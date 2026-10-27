@@ -1,0 +1,408 @@
+{
+  "versao": 1,
+  "livroId": "se-arthur-conan-doyle-the-adventures-of-sherlock-holmes",
+  "titulo": "The Adventures of Sherlock Holmes",
+  "idioma": "en",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 2
+  },
+  "autorEContexto": [
+    {
+      "texto": "Arthur Conan Doyle nasceu em Edimburgo, na Escócia, em 1859, e morreu em 1930.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Doyle estudou medicina na Universidade de Edimburgo e trabalhou como médico antes de viver da escrita.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Um professor dele, o médico Joseph Bell, impressionava pela capacidade de deduzir fatos sobre pacientes só de observá-los. Doyle reconheceu Bell como inspiração para Holmes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Sherlock Holmes estreou no romance A Study in Scarlet (1887) e voltou em The Sign of the Four (1890).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os doze contos deste livro saíram primeiro na revista The Strand Magazine, entre 1891 e 1892, e foram reunidos em livro em 1892.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As histórias se passam na Inglaterra vitoriana, com Londres iluminada a gás, carruagens de aluguel, trens e telegramas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Doyle recebeu o título de cavaleiro em 1902 e passou a ser chamado de Sir Arthur Conan Doyle.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É a primeira coletânea de contos de Sherlock Holmes e ajudou a transformar o personagem num fenômeno mundial.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Fixou o modelo do detetive que resolve casos pela observação e pelo raciocínio lógico, seguido por muitos autores depois.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Popularizou a dupla detetive genial e amigo narrador, um formato copiado até hoje em livros, filmes e séries.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os contos são curtos e independentes, o que torna o livro ótimo para quem aprende inglês: dá para ler um caso por vez.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Razão e observação",
+      "texto": "Holmes mostra que pequenos detalhes, como roupas, mãos e sapatos, revelam muito sobre uma pessoa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Justiça e lei",
+      "texto": "Holmes nem sempre entrega culpados à polícia. Às vezes decide sozinho o que é justo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amizade",
+      "texto": "A relação entre Holmes e Watson é o coração do livro: admiração, provocação e lealdade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Aparência e identidade",
+      "texto": "Disfarces, nomes falsos e segredos do passado aparecem em vários contos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mulheres e dependência",
+      "texto": "Vários casos mostram mulheres sem controle sobre o próprio dinheiro ou casamento, comum na época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Dinheiro e herança",
+      "texto": "Heranças, joias e fortunas motivam muitos dos crimes e mistérios do livro.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Sherlock Holmes",
+      "texto": "Detetive consultor que mora em Londres. Brilhante, frio, toca violino e se entedia sem um bom problema.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mrs. Hudson",
+      "texto": "Dona da casa onde Holmes mora, em Baker Street.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Irene Adler",
+      "texto": "Cantora envolvida com o rei da Boêmia no primeiro conto, A Scandal in Bohemia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Irene Adler (desfecho)",
+      "texto": "Ela consegue enganar Holmes, que passa a chamá-la com respeito de the woman.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Jabez Wilson",
+      "texto": "Penhorista de cabelo ruivo que procura Holmes em The Red-Headed League por causa de um emprego estranho.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Inspetor Lestrade",
+      "texto": "Policial da Scotland Yard que aparece em The Boscombe Valley Mystery.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Helen Stoner",
+      "texto": "Jovem que procura Holmes, assustada, em The Adventure of the Speckled Band.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Dr. Grimesby Roylott",
+      "texto": "Padrasto violento de Helen Stoner. Ele é o responsável pela morte da irmã dela.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Violet Hunter",
+      "texto": "Jovem que pede conselho a Holmes sobre um emprego de preceptora em The Adventure of the Copper Beeches.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O livro tem doze contos, de A Scandal in Bohemia a The Adventure of the Copper Beeches.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Holmes mora no endereço 221B Baker Street, hoje um dos endereços fictícios mais famosos do mundo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As ilustrações originais na The Strand Magazine eram de Sidney Paget e moldaram a imagem visual de Holmes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O boné deerstalker associado a Holmes vem das ilustrações de Paget. O texto quase não descreve esse chapéu.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A frase Elementary, my dear Watson não aparece assim nos contos escritos por Doyle. Ela ficou famosa por adaptações.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Doyle teve a ideia de usar um personagem fixo em contos independentes numa revista, para o leitor não perder nada se pulasse uma edição.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Doyle apontou The Adventure of the Speckled Band como um de seus contos favoritos de Holmes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "The Adventure of the Blue Carbuncle se passa no Natal e envolve um ganso e uma pedra preciosa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "The Man with the Twisted Lip começa num antro de ópio em Londres, onde Watson vai buscar um conhecido.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Em The Five Orange Pips, o mistério está ligado à Ku Klux Klan, organização racista dos Estados Unidos.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "texto": "Logo depois deste livro, Doyle cansou de Holmes e escreveu sua morte em 1893, mas os leitores protestaram e ele trouxe o detetive de volta anos depois.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "singular",
+      "texto": "Na época, muito usado com o sentido de estranho, fora do comum. Holmes adora casos assim.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "queer",
+      "texto": "Aqui significa estranho, esquisito. O sentido atual ligado à identidade LGBTQIA+ é posterior.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ejaculated",
+      "texto": "Na escrita da época, quer dizer exclamou, disse de repente. Não tem sentido sexual nesse uso.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "hansom",
+      "texto": "Carruagem leve de duas rodas, puxada por um cavalo, usada como táxi em Londres.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "wire",
+      "texto": "Telegrama, ou o verbo mandar um telegrama. Era o jeito rápido de se comunicar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "fortnight",
+      "texto": "Duas semanas. Ainda usado no inglês britânico.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "sovereign",
+      "texto": "Moeda de ouro que valia uma libra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "guinea",
+      "texto": "Valor de 21 xelins, um pouco mais que uma libra. Usado para honorários e preços elegantes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "shilling",
+      "texto": "Xelim. Uma libra tinha 20 xelins, e um xelim tinha 12 pence.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "pawnbroker",
+      "texto": "Penhorista: quem empresta dinheiro e fica com um objeto como garantia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "governess",
+      "texto": "Preceptora: mulher contratada para educar as crianças de uma família em casa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "carbuncle",
+      "texto": "Nome antigo para uma pedra preciosa vermelha. No conto, a pedra é azul, o que a torna rara.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "coronet",
+      "texto": "Pequena coroa usada por nobres, abaixo da coroa de um rei.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "A Inglaterra vitoriana tinha classes sociais muito marcadas. Nobres, comerciantes e criados aparecem com papéis bem definidos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mulheres solteiras tinham poucas opções de trabalho, como preceptora ou datilógrafa, e muitas dependiam do pai ou padrasto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Não havia polícia científica como hoje. Por isso o método de Holmes parecia tão moderno aos leitores.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O Império Britânico aparece no fundo de vários contos, com personagens que voltam da Índia, da Austrália ou da América.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O ópio era vendido e consumido em Londres no século 19, e antros de ópio existiam de fato.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Os contos trazem estereótipos sobre estrangeiros e grupos étnicos comuns na época. Vale ler com olhar crítico.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "Which of Holmes's deductions surprised you most? Does it seem possible in real life?",
+      "texto": "Qual dedução de Holmes mais surpreendeu você? Ela parece possível na vida real?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Why is the story told by Watson and not by Holmes? What would change?",
+      "texto": "Por que a história é contada por Watson e não por Holmes? O que mudaria?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Holmes sometimes does not hand the culprit over to the police. Do you agree with these decisions?",
+      "texto": "Holmes às vezes não entrega o culpado à polícia. Você concorda com essas decisões?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How are women portrayed in the stories? What limits did society place on them?",
+      "texto": "Como as mulheres aparecem nos contos? Que limites a sociedade impunha a elas?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Why is Irene Adler so memorable to Holmes?",
+      "texto": "Por que Irene Adler é tão marcante para Holmes?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Which story did you find the scariest or the funniest? Why?",
+      "texto": "Qual conto você achou mais assustador ou mais engraçado? Por quê?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Which objects and technologies of the time appear in the cases? How would a modern detective solve the same mystery?",
+      "texto": "Que objetos e tecnologias da época aparecem nos casos? Como um detetive de hoje resolveria o mesmo mistério?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "What stereotypes of the time did you notice in the stories? How should we deal with them when reading today?",
+      "texto": "Que estereótipos de época você percebeu nos contos? Como lidar com eles ao ler hoje?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "se-arthur-conan-doyle-a-study-in-scarlet",
+      "motivo": "O primeiro livro de Holmes, onde ele conhece Watson."
+    },
+    {
+      "id": "se-arthur-conan-doyle-the-hound-of-the-baskervilles",
+      "motivo": "O romance mais famoso de Holmes, com clima de mistério e suspense."
+    },
+    {
+      "id": "se-edgar-allan-poe-short-fiction",
+      "motivo": "Poe criou o detetive Dupin, um dos modelos que inspiraram Holmes."
+    },
+    {
+      "id": "pg-204",
+      "motivo": "Contos policiais da mesma época, com um detetive bem diferente: o padre Brown."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "contos policiais com crimes e mortes sem detalhe gráfico; um conto se passa num antro de ópio. Sensível: \"The Five Orange Pips\" envolve a Ku Klux Klan; estereótipos de época",
+    "sensivel": "\"The Five Orange Pips\" envolve a Ku Klux Klan; estereótipos de época"
+  }
+}

@@ -1,0 +1,320 @@
+{
+  "versao": 1,
+  "livroId": "pg-64974",
+  "titulo": "El Hombre Mediocre",
+  "idioma": "es",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 4
+  },
+  "autorEContexto": [
+    {
+      "texto": "José Ingenieros nasceu em Palermo, na Itália, em 1877, e cresceu em Buenos Aires, na Argentina.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Formou-se em medicina e trabalhou como psiquiatra e criminologista, além de escrever sobre psicologia, sociologia e filosofia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na juventude, foi militante socialista e fundou, com o poeta Leopoldo Lugones, o jornal La Montaña, em 1897.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Seguia o positivismo, corrente que queria explicar a sociedade e a mente humana com métodos das ciências naturais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1911, frustrado por não ser nomeado para uma cátedra universitária, deixou a Argentina e passou alguns anos na Europa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "El hombre mediocre foi publicado em 1913, nesse período fora do país.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "De volta à Argentina, fundou a Revista de Filosofía, em 1915, e seguiu escrevendo até morrer em Buenos Aires, em 1925.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Entre suas outras obras estão La simulación en la lucha por la vida e Las fuerzas morales.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É um dos ensaios mais lidos da América Latina e segue sendo reeditado e indicado a jovens há mais de um século.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Influenciou estudantes do continente inteiro, incluindo o movimento da Reforma Universitária de Córdoba, em 1918; Ingenieros ficou conhecido como mestre da juventude.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Propõe uma pergunta que continua atual: o que acontece com uma sociedade que premia o conformismo e desconfia de quem pensa diferente?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É um bom exemplo do ensaio hispano-americano do começo do século XX, com linguagem enfática e cheia de imagens.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Idealismo",
+      "texto": "O livro defende que ter ideais e buscar o aperfeiçoamento é o que move os indivíduos e a humanidade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mediocridade e conformismo",
+      "texto": "O medíocre é descrito como quem não tem personalidade própria e apenas imita as opiniões e hábitos do grupo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Rotina e prejuízo",
+      "texto": "O autor critica a rotina e os preconceitos herdados, que fazem as pessoas repetir sem pensar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Inveja",
+      "texto": "A inveja aparece como a reação típica do medíocre diante de quem se destaca.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Juventude e velhice",
+      "texto": "A juventude é associada à capacidade de sonhar e mudar; a velhice, no sentido moral, à perda dos ideais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Política e sociedade",
+      "texto": "O autor critica a mediocracia, um governo e uma vida pública dominados pelos medíocres.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [],
+  "curiosidades": [
+    {
+      "texto": "O livro não é um romance: é um ensaio, dividido em capítulos que tratam de um tipo humano ou de um vício moral.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ingenieros divide as pessoas em três tipos: o homem inferior, o homem medíocre e o homem idealista.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O autor popularizou em espanhol a palavra mediocracia, para falar do poder exercido pelos medíocres.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitos trechos de abertura do livro circulam até hoje como frases motivacionais, às vezes sem o contexto original.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A obra mistura linguagem científica da época, como biologia e psicologia, com um estilo quase poético.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O ensaio dialoga com o Ariel, de José Enrique Rodó, outro texto que falava à juventude latino-americana sobre ideais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ingenieros foi amigo próximo de Leopoldo Lugones, um dos grandes escritores argentinos do período.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Além de escritor, ele dirigiu um serviço de observação de alienados em Buenos Aires, ligado à polícia.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "mediocre",
+      "texto": "Literalmente, do meio, mediano. No livro, ganha sentido moral: quem não tem ideais nem personalidade própria.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "mediocridad",
+      "texto": "A condição de ser medíocre. É o conceito central do ensaio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "mediocracia",
+      "texto": "Palavra formada como democracia: governo ou domínio dos medíocres.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "idealista",
+      "texto": "Aqui, quem vive guiado por ideais e busca a perfeição. Não é o sentido filosófico técnico.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ideal",
+      "texto": "Meta de perfeição que orienta a vida. No livro, é quase uma força que move a história.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "rutina",
+      "texto": "Rotina. No ensaio, tem tom negativo: o hábito repetido sem reflexão.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "prejuicio",
+      "texto": "Preconceito, ideia aceita antes de pensar. Atenção: não significa prejuízo financeiro, que em espanhol é perjuicio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "envidia",
+      "texto": "Inveja. Falso amigo parcial: lembra enviar, mas não tem relação.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "genio",
+      "texto": "Gênio, pessoa de talento excepcional. Também pode significar temperamento, como em mal genio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "vulgo",
+      "texto": "O povo comum, a massa. Palavra culta, com tom de desprezo, comum na prosa da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "harto",
+      "texto": "Na prosa antiga, pode significar muito ou bastante. Hoje é mais usado como cansado de algo.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "O positivismo dominava as universidades argentinas. Por isso o autor fala da moral e da sociedade usando termos de biologia e evolução.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Algumas ideias do livro vêm de teorias da época hoje superadas, como a hierarquia natural entre tipos de pessoas. Vale ler com olhar crítico.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Argentina vivia grande imigração europeia e crescimento rápido, e acabava de festejar o centenário da Revolução de Maio, em 1910.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O ensaio fazia parte de uma tradição latino-americana de textos dirigidos à juventude, como o Ariel de Rodó, de 1900.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época, os jornais e revistas eram o grande meio de debate de ideias, e muitos ensaios circulavam primeiro em conferências ou artigos.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "¿Qué separa, para el autor, al hombre mediocre del idealista? ¿Estás de acuerdo con esa división?",
+      "texto": "O que, para o autor, separa o homem medíocre do idealista? Você concorda com essa divisão?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Ser como la mayoría es siempre malo? Da ejemplos en que seguir al grupo tiene sentido.",
+      "texto": "Ser como a maioria é sempre ruim? Dê exemplos em que seguir o grupo faz sentido.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Por qué el autor relaciona la envidia con la mediocridad? ¿Aparece eso hoy en las redes sociales?",
+      "texto": "Por que o autor liga a inveja à mediocridade? Isso aparece nas redes sociais hoje?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Para el autor, la vejez puede ser una actitud y no una edad. ¿Qué opinas de esa idea?",
+      "texto": "Para o autor, a velhice pode ser uma atitude, e não uma idade. O que você acha dessa ideia?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué sería hoy una mediocracia? ¿Ves ejemplos en la política o en las escuelas?",
+      "texto": "O que seria uma mediocracia hoje? Você vê exemplos na política ou nas escolas?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué ideas del libro parecen hoy anticuadas o injustas? ¿Por qué?",
+      "texto": "Quais ideias do livro parecem antigas ou injustas hoje? Por quê?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Tener ideales puede ser peligroso? ¿Cómo distinguir el idealismo del fanatismo?",
+      "texto": "Ter ideais pode ser perigoso? Como diferenciar idealismo de fanatismo?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-79262",
+      "motivo": "Rodó, autor do Ariel, também escreveu para a juventude hispano-americana sobre ideais e aperfeiçoamento pessoal."
+    },
+    {
+      "id": "pg-34901",
+      "motivo": "Mill defende a individualidade contra a pressão da maioria, tema central do ensaio de Ingenieros."
+    },
+    {
+      "id": "pg-1998",
+      "motivo": "Nietzsche critica o espírito de rebanho e exalta quem se supera, ideias próximas das do livro."
+    },
+    {
+      "id": "se-henry-david-thoreau-walden",
+      "motivo": "Thoreau propõe viver segundo convicções próprias, longe do conformismo social."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "livre",
+    "nota": "ensaio de psicologia social sobre a mediocridade",
+    "sensivel": ""
+  }
+}

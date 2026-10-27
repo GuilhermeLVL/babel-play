@@ -1,0 +1,420 @@
+{
+  "versao": 1,
+  "livroId": "pg-394",
+  "titulo": "Cranford",
+  "idioma": "en",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "Elizabeth Gaskell nasceu em 1810, em Chelsea, Londres, e morreu em 1865.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A mãe dela morreu quando ela era bebê. Gaskell foi criada por uma tia em Knutsford, uma pequena cidade do condado de Cheshire.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ela se casou com William Gaskell, pastor unitarista, e viveu em Manchester, uma das grandes cidades industriais da Inglaterra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Gaskell também escreveu romances sobre a vida dos operários, como Mary Barton (1848) e North and South.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ela era amiga de Charlotte Brontë e escreveu a biografia dela, The Life of Charlotte Brontë (1857).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Cranford saiu primeiro em capítulos, entre 1851 e 1853, na revista Household Words, dirigida por Charles Dickens. Virou livro em 1853.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A história se passa na época vitoriana, quando ferrovias, bancos e indústrias mudavam depressa a vida inglesa, inclusive nas cidades pequenas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É um retrato carinhoso e engraçado de uma comunidade quase só de mulheres, algo raro na ficção da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra, com humor, como pessoas pobres mas orgulhosas tentam manter a dignidade e as aparências.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Registra o choque entre o velho mundo rural e a modernidade industrial vista de perto, numa cidade que parece parada no tempo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Virou um clássico da literatura inglesa de cidade pequena e inspirou muitas obras sobre comunidades e vizinhança.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Comunidade de mulheres",
+      "texto": "A cidade é governada, na prática, por senhoras viúvas e solteiras. Elas criam suas próprias regras e cuidam umas das outras.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Pobreza e dignidade",
+      "texto": "As senhoras têm pouco dinheiro, mas fingem que economizar é questão de bom gosto. O livro chama isso de elegant economy.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Tradição e mudança",
+      "texto": "A ferrovia, os bancos e a cidade industrial de Drumble ameaçam os costumes antigos de Cranford.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Classe social e etiqueta",
+      "texto": "Quem pode visitar quem, quem senta onde e quem é mais importante são questões muito sérias para os moradores.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Bondade e solidariedade",
+      "texto": "Por trás das fofocas e das manias, há gestos discretos de generosidade entre vizinhos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Memória e perda",
+      "texto": "Lembranças de família, amores que não aconteceram e o passar do tempo dão ao livro um tom também melancólico.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Mary Smith",
+      "texto": "A narradora. Uma jovem que mora em Drumble e visita Cranford com frequência. Observa tudo com carinho e ironia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Miss Matty (Matilda Jenkyns)",
+      "texto": "Filha do antigo pastor da cidade. Tímida, gentil e insegura, vive à sombra da irmã mais velha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Miss Jenkyns (Deborah Jenkyns)",
+      "texto": "Irmã mais velha de Miss Matty. Firme e cheia de opiniões, admira muito o escritor Samuel Johnson.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Captain Brown",
+      "texto": "Militar aposentado que chega à cidade e trabalha para a ferrovia. É pobre, franco e fala de dinheiro sem vergonha, o que choca as senhoras.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Miss Jessie Brown",
+      "texto": "Filha mais nova do Captain Brown. Alegre e dedicada à família.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Miss Pole",
+      "texto": "Vizinha que adora saber e espalhar as novidades da cidade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mrs Jamieson",
+      "texto": "Viúva de família nobre, a pessoa de mais alta posição social em Cranford. Lenta, vaidosa e muito consciente da sua importância.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mrs Forrester",
+      "texto": "Viúva de um oficial. Vive com pouco, mas faz questão de receber as amigas com elegância.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Martha",
+      "texto": "Empregada de Miss Matty. Jovem do campo, sem modos refinados, mas leal e de bom coração.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Peter Jenkyns",
+      "texto": "Irmão de Miss Matty que fugiu de casa na juventude, depois de ser castigado pelo pai. Ninguém sabia dele havia muitos anos, até reaparecer vindo da Índia.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "Cranford começou como um texto único, Our Society at Cranford, publicado em dezembro de 1851. Fez sucesso e Gaskell continuou a história.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Cranford é inspirada em Knutsford, a cidade onde Gaskell passou a infância.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Drumble, a cidade grande e industrial do livro, corresponde a Manchester, onde Gaskell morava.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro é episódico: cada capítulo conta um caso da cidade, quase como crônicas ligadas pelos mesmos personagens.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Logo no início, Miss Jenkyns e o Captain Brown discutem literatura: ela defende Samuel Johnson; ele prefere The Pickwick Papers, de Dickens, o próprio editor da revista.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Um dos episódios mais famosos é o da vaca que perde o pelo e passa a usar roupa de flanela cinza.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro abre comparando as senhoras de Cranford às Amazonas, as guerreiras da mitologia grega, porque quase não há homens na cidade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 2007, a BBC lançou uma minissérie chamada Cranford, com Judi Dench no papel de Miss Matty. Ela juntava este livro a outras histórias de Gaskell.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em Knutsford existe a Gaskell Memorial Tower, uma torre em homenagem à escritora.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Gaskell foi chamada durante muito tempo de Mrs Gaskell, como era costume com escritoras casadas da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Uma crise bancária muda a vida de Miss Matty, que perde quase todo o dinheiro e passa a vender chá em casa para sobreviver.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "genteel",
+      "texto": "Refinado, de boa família. Na época, indicava quem queria parecer de classe alta, mesmo sem dinheiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "elegant economy",
+      "texto": "Expressão irônica do livro: economizar fingindo que é escolha de bom gosto, e não falta de dinheiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "spinster / old maid",
+      "texto": "Mulher que nunca se casou. Na época, eram termos comuns; hoje soam pejorativos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "half-pay",
+      "texto": "Meio-soldo: pagamento reduzido de oficiais militares fora do serviço ativo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "rector",
+      "texto": "Pastor responsável por uma paróquia da Igreja Anglicana. O pai de Miss Matty era o rector de Cranford.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "the Honourable",
+      "texto": "Tratamento dado a filhos de nobres. Mrs Jamieson é the Honourable Mrs Jamieson, sinal da sua posição alta.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "sedan chair",
+      "texto": "Liteira: cadeira fechada carregada por dois homens. As senhoras a usam para ir às festas à noite.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "to call / a call",
+      "texto": "Fazer uma visita formal. Não é telefonar: é ir à casa de alguém, seguindo regras de etiqueta.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "shilling / sovereign / pound",
+      "texto": "Moedas britânicas antigas. Um pound (libra) valia 20 shillings; o sovereign era uma moeda de ouro de uma libra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "bank-note",
+      "texto": "Cédula de papel emitida por um banco. Na época, vários bancos privados emitiam as suas, e elas podiam perder o valor se o banco quebrasse.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "conjuror",
+      "texto": "Mágico de palco, ilusionista. Não é feiticeiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "mourning",
+      "texto": "Luto, sobretudo as roupas pretas que se usavam por um período depois de uma morte.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "cap",
+      "texto": "Touca de renda ou tecido que mulheres adultas usavam dentro de casa. Não é boné.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Drumble",
+      "texto": "Nome inventado da cidade industrial vizinha, onde a narradora mora.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Nomes de irmãs: a mais velha era chamada só pelo sobrenome (Miss Jenkyns); as mais novas, pelo primeiro nome (Miss Matty). Isso indica a ordem de nascimento.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Visitas formais tinham regras rígidas: horários certos, duração curta e a obrigação de retribuir a visita em poucos dias.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As ferrovias se espalhavam pela Inglaterra nos anos 1840. Para uma cidade pequena, eram símbolo de modernidade, barulho e perigo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mulheres de classe média que não se casavam tinham poucas formas de ganhar dinheiro sem perder status. Trabalhar no comércio era visto como rebaixamento.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época, não havia proteção para quem tinha dinheiro em banco. Se um banco quebrava, os clientes e acionistas podiam perder tudo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Grã-Bretanha controlava boa parte da Índia. Muitos jovens ingleses iam para lá como militares ou comerciantes e passavam décadas longe de casa.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "Why do the ladies of Cranford hide that they are poor? Is it funny, sad, or both?",
+      "texto": "Por que as senhoras de Cranford escondem que são pobres? Isso é engraçado, triste ou as duas coisas?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How does Captain Brown's arrival change the town? Why does his frankness bother people?",
+      "texto": "Como a chegada do Captain Brown muda a cidade? Por que a franqueza dele incomoda?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "The narrator, Mary Smith, lives in Drumble. How does being an outsider change the way she tells the story?",
+      "texto": "A narradora, Mary Smith, mora em Drumble. Como o fato de ser de fora muda o jeito de contar a história?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "The book laughs at the characters' habits. Does it also respect them? Give examples.",
+      "texto": "O livro ri das manias das personagens. Ele também as respeita? Dê exemplos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Which Cranford etiquette rules seem strange today? Are there similar rules in your town or school?",
+      "texto": "Quais regras de etiqueta de Cranford parecem estranhas hoje? Existem regras parecidas na sua cidade ou escola?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How does Miss Matty change during the book, once she no longer lives in her sister's shadow?",
+      "texto": "Como Miss Matty muda ao longo do livro, quando deixa de viver à sombra da irmã?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "When Miss Matty loses her money, how does the town react? What does this say about the community?",
+      "texto": "Quando Miss Matty perde o dinheiro, como a cidade reage? O que isso diz sobre a comunidade?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Cranford is afraid of modern life. Is there something good in this fear, or is it just being old-fashioned?",
+      "texto": "Cranford tem medo da modernidade. Há algo de bom nesse medo, ou é só atraso?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "se-jane-austen-emma",
+      "motivo": "Outra comédia sobre a vida social de uma pequena comunidade inglesa, com fofocas, visitas e regras de classe."
+    },
+    {
+      "id": "se-george-eliot-middlemarch",
+      "motivo": "Grande retrato de uma cidade provinciana inglesa na mesma época de mudanças, incluindo a chegada da ferrovia."
+    },
+    {
+      "id": "se-charlotte-bronte-jane-eyre",
+      "motivo": "Romance da amiga de Gaskell, que escreveu a biografia de Charlotte Brontë."
+    },
+    {
+      "id": "se-charles-dickens-a-christmas-carol",
+      "motivo": "De Dickens, editor da revista onde Cranford saiu e autor querido do Captain Brown; também mistura humor e bondade."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "livre",
+    "nota": "crônica de uma pequena cidade inglesa, cômica e afetuosa",
+    "sensivel": ""
+  }
+}

@@ -1,0 +1,419 @@
+{
+  "versao": 1,
+  "livroId": "pg-57303",
+  "titulo": "La Divina Comedia",
+  "idioma": "es",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 1
+  },
+  "autorEContexto": [
+    {
+      "texto": "Dante Alighieri nasceu em Florença, na Itália, em 1265, e morreu em Ravena, em 1321.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Florença era uma cidade-estado rica e dividida por lutas políticas entre guelfos e gibelinos. Depois, os próprios guelfos se dividiram em brancos e negros.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Dante participou da política da cidade. Em 1302, com a vitória dos guelfos negros, foi condenado ao exílio e nunca mais voltou a Florença.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Grande parte da Comédia foi escrita durante o exílio. Isso explica a amargura de Dante com Florença e com muitos políticos da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Beatriz, uma jovem florentina que Dante amou desde a infância, morreu em 1290. Ele a celebrou antes em outra obra, a Vita Nuova.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Dante escreveu o poema em toscano, a língua falada do povo, e não em latim, a língua dos estudiosos. Foi uma escolha ousada para uma obra tão ambiciosa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O original é em versos: tercetos encadeados, a terza rima, forma criada pelo próprio Dante. Esta edição é uma tradução espanhola do século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É considerada a obra máxima da literatura italiana e uma das maiores da literatura mundial.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ajudou a firmar o toscano como base do italiano moderno. Por isso Dante é chamado de pai da língua italiana.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Reúne o saber da Idade Média: teologia, filosofia, astronomia, política e história, tudo dentro de uma viagem imaginária.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Suas imagens do Inferno influenciaram por séculos a pintura, a literatura, o cinema e até a forma como imaginamos o além.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Viagem e salvação",
+      "texto": "O poema é a jornada de um homem perdido que atravessa o além para reencontrar o caminho do bem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Justiça e castigo",
+      "texto": "Cada pecado recebe uma pena que combina com ele. Os estudiosos chamam essa lógica de contrapasso.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amor",
+      "texto": "O amor aparece de muitas formas: o amor que leva ao erro, o amor de Beatriz e o amor divino que move o universo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Política e corrupção",
+      "texto": "Dante critica duramente governantes, cidades e até papas de seu tempo. A obra é também um ataque à corrupção.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Razão e fé",
+      "texto": "Virgílio representa a razão humana, que guia até certo ponto. Para ir além, é preciso a fé e a graça, representadas por Beatriz.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Livre-arbítrio",
+      "texto": "Para Dante, cada pessoa é responsável pelas próprias escolhas, e o destino no além depende delas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Dante",
+      "texto": "Narrador e protagonista. É o próprio poeta, que se perde numa floresta escura e começa uma viagem pelo além.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Virgílio",
+      "texto": "Grande poeta romano, autor da Eneida. É o guia de Dante pelo Inferno e pelo Purgatório. Dante o trata como mestre.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Beatriz",
+      "texto": "A mulher amada por Dante, já morta. É ela quem pede a Virgílio que ajude Dante.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Beatriz como guia",
+      "texto": "No alto do Purgatório, Beatriz substitui Virgílio e conduz Dante pelo Paraíso.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Caronte",
+      "texto": "Barqueiro da mitologia grega que leva as almas condenadas através do rio Aqueronte.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Francesca da Rimini",
+      "texto": "Mulher real da época de Dante. No círculo dos luxuriosos, ela conta sua história de amor proibido.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ulisses",
+      "texto": "Herói grego da Odisseia. Dante o encontra no Inferno e lhe dá uma nova versão de sua última viagem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Conde Ugolino",
+      "texto": "Nobre de Pisa preso numa torre com os filhos. Seu relato é um dos mais sombrios do Inferno.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "nome": "Catão de Útica",
+      "texto": "Político romano famoso por sua integridade. Dante o põe como guardião da entrada do Purgatório.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Lúcifer",
+      "texto": "O anjo rebelde. Está preso no gelo, no ponto mais fundo do Inferno.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "Dante chamou o poema apenas de Commedia. O adjetivo Divina veio depois: Boccaccio já o usava, e ele entrou no título numa edição de Veneza de 1555.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na Idade Média, comédia era uma história que começa mal e termina bem, não necessariamente engraçada.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A obra tem três partes, chamadas cânticas: Inferno, Purgatório e Paraíso. São 100 cantos no total: um de introdução e 33 em cada parte.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O número três aparece por toda parte, em homenagem à Santíssima Trindade: três cânticas, tercetos, três feras no início.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As três cânticas terminam com a mesma palavra: estrelas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A viagem se passa no ano de 1300, durante a Semana Santa. Assim, Dante pode anunciar como profecia fatos que já tinham acontecido quando escrevia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Dante colocou no Inferno pessoas reais que conheceu, inclusive inimigos políticos e papas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No canto XXVIII do Inferno, Dante põe Maomé entre os que semeiam a discórdia. Reflete a visão cristã medieval sobre o Islã e é considerado ofensivo por muitos muçulmanos.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "O fundo do Inferno não é de fogo, mas de gelo: o lugar mais distante do amor de Deus é frio e imóvel.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Na entrada do Inferno ficam até os indecisos, que nunca tomaram partido na vida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No Limbo estão grandes poetas e sábios antigos, como Homero e Aristóteles. Não sofrem tormentos, mas vivem sem esperança de ver Deus.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O artista francês Gustave Doré fez gravuras famosas da obra no século XIX. Muitas imagens que temos do Inferno vêm dele.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "selva",
+      "texto": "Aqui significa bosque ou floresta, não selva tropical. A selva oscura do início simboliza o pecado e a confusão.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "círculo",
+      "texto": "Cada um dos níveis do Inferno, que tem forma de funil. Quanto mais fundo, mais grave o pecado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "condenado",
+      "texto": "Alma que recebeu castigo eterno no Inferno.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "limbo",
+      "texto": "Lugar à beira do Inferno para quem não foi batizado, mas não cometeu grandes pecados.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "güelfo",
+      "texto": "Partidário do papa nas lutas políticas da Itália medieval. Dante era guelfo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "gibelino",
+      "texto": "Partidário do imperador do Sacro Império, rival dos guelfos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "simonía",
+      "texto": "Venda de cargos e coisas sagradas da Igreja. Vem de Simão Mago, personagem bíblico.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "usura",
+      "texto": "Empréstimo de dinheiro a juros. Na Idade Média era considerado pecado grave.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "florín",
+      "texto": "Moeda de ouro de Florença, muito valiosa e usada em toda a Europa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "bienaventurado",
+      "texto": "Alma que está no Paraíso, que goza da felicidade eterna.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Empíreo",
+      "texto": "O céu mais alto, além de todos os outros, onde fica Deus.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "vos / vosotros",
+      "texto": "Formas de tratamento antigas ou da Espanha. Vosotros é o plural de tú, comum no espanhol europeu.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "maestro",
+      "texto": "Mestre ou professor. É como Dante chama Virgílio, com respeito.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "O universo de Dante segue a visão de Ptolomeu: a Terra parada no centro, cercada por céus que giram. O Paraíso se organiza nesses céus.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os sete pecados capitais eram ensinados a todos na Idade Média. O Purgatório é uma montanha com terraços, cada um ligado a um desses pecados.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O Purgatório, para a Igreja medieval, era um lugar de purificação temporária. Quem está lá já tem a salvação garantida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1300, o papa Bonifácio VIII proclamou o primeiro Jubileu, ano de perdão que atraiu multidões a Roma. Dante era seu inimigo político.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Para os leitores da época, muitos personagens eram vizinhos, políticos e famílias conhecidas. Hoje precisamos de notas para entendê-los.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os castigos do Inferno são descritos com imagens fortes, mas têm sentido simbólico: mostram a natureza de cada pecado.",
+      "spoiler": false,
+      "sensivel": true
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "¿Por qué Dante eligió a un poeta pagano, Virgilio, como guía? ¿Qué dice eso sobre la razón humana?",
+      "texto": "Por que Dante escolheu um poeta pagão, Virgílio, como guia? O que isso diz sobre a razão humana?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Los castigos corresponden a los pecados. ¿Te parece justo? ¿Por qué?",
+      "texto": "Os castigos combinam com os pecados. Isso parece justo para você? Por quê?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Dante siente compasión por algunos condenados. ¿Cómo convive su compasión con la idea de justicia divina?",
+      "texto": "Dante sente pena de alguns condenados. Como a compaixão dele convive com a ideia de justiça divina?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Dante coloca a enemigos personales y a papas en el Infierno. ¿Es el poema también una venganza? ¿Qué riesgos tenía eso en su época?",
+      "texto": "Dante põe inimigos pessoais e papas no Inferno. O poema é também uma vingança? Que riscos isso tinha na época?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Por qué los indecisos quedan fuera del Infierno y hasta del Limbo? ¿Es peor no elegir que elegir mal?",
+      "texto": "Por que os indecisos ficam fora do Inferno e até do Limbo? É pior não escolher do que escolher errado?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo trata la Comedia a personas de otras religiones, como Mahoma? ¿Cómo leer hoy una obra con prejuicios de su época?",
+      "texto": "Como a Comédia trata pessoas de outras religiões, como Maomé? Como ler hoje uma obra com preconceitos de sua época?",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "¿Por qué es más fácil imaginar el Infierno que el Paraíso? ¿Qué parte te pareció más viva?",
+      "texto": "Por que é mais fácil imaginar o Inferno do que o Paraíso? Qual parte você achou mais viva?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué cambia cuando Beatriz sustituye a Virgilio como guía?",
+      "texto": "O que muda quando Beatriz substitui Virgílio como guia?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-1012",
+      "motivo": "O original italiano da mesma obra, para comparar com a tradução."
+    },
+    {
+      "id": "pg-67092",
+      "motivo": "Outro grande poema cristão sobre céu, inferno e queda de Lúcifer, também em espanhol."
+    },
+    {
+      "id": "pg-58221",
+      "motivo": "A Odisseia, de onde vem o Ulisses que Dante reinventa no Inferno."
+    },
+    {
+      "id": "ws-pt-auto-da-barca-do-inferno",
+      "motivo": "Julgamento das almas no além, com sátira aos pecados de cada classe social."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "Divina Comédia: torturas do Inferno descritas de forma alegórica. Sensível: Maomé entre os condenados (Inferno XXVIII)",
+    "sensivel": "Maomé entre os condenados (Inferno XXVIII)"
+  }
+}

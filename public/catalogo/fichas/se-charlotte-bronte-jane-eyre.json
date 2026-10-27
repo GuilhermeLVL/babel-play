@@ -1,0 +1,411 @@
+{
+  "versao": 1,
+  "livroId": "se-charlotte-bronte-jane-eyre",
+  "titulo": "Jane Eyre",
+  "idioma": "en",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 2
+  },
+  "autorEContexto": [
+    {
+      "texto": "Charlotte Brontë nasceu em 1816, em Thornton, no condado de Yorkshire, norte da Inglaterra. Cresceu em Haworth, uma vila no meio dos pântanos, onde o pai, Patrick Brontë, era pastor anglicano.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A mãe morreu em 1821, quando os seis filhos eram pequenos. As duas irmãs mais velhas, Maria e Elizabeth, morreram em 1825, depois de adoecer num internato para filhas de clérigos em Cowan Bridge.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na infância, Charlotte e o irmão Branwell inventaram um reino imaginário, Angria, e escreveram dezenas de histórias em livrinhos minúsculos. As irmãs Emily e Anne criaram o seu próprio mundo, Gondal.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Charlotte trabalhou como professora e como preceptora (governess) em casas de famílias ricas. Entre 1842 e 1844 estudou e ensinou em Bruxelas, na Bélgica.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro saiu em 1847, no início da era vitoriana. Para uma mulher de classe média sem dinheiro, as saídas aceitas eram poucas: casar, ensinar ou ser preceptora.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1837, Charlotte escreveu ao poeta Robert Southey pedindo uma opinião sobre seus versos. Ele respondeu que a literatura não podia ser ocupação de uma mulher. Ela continuou escrevendo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Entre 1848 e 1849 morreram Branwell, Emily e Anne. Charlotte casou-se em 1854 com Arthur Bell Nicholls, auxiliar do pai, e morreu em 1855, aos 38 anos, durante a gravidez.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É um dos romances mais lidos da língua inglesa. Deu voz em primeira pessoa a uma heroína pobre, sem beleza e sem família, que exige ser tratada como igual.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Une o romance de formação (a vida da protagonista da infância à idade adulta) com mistério e clima gótico. Essa mistura influenciou muitos livros e filmes depois.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Gerou debates que continuam: sobre a liberdade da mulher, sobre classe social e, mais recentemente, sobre o modo como o livro trata o colonialismo e a doença mental.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Independência e dignidade",
+      "texto": "Jane quer amor, mas não aceita perder o respeito por si mesma nem depender de ninguém. O livro inteiro testa esse equilíbrio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Classe social",
+      "texto": "Jane vive num lugar ambíguo: é educada como uma dama, mas é empregada e pobre. O livro mostra como o dinheiro e a posição definem quem pode falar e casar com quem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Infância e injustiça",
+      "texto": "Os primeiros capítulos mostram uma criança maltratada pela família que a acolheu e depois num internato duro. Jane aprende cedo a reagir contra a injustiça.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Religião e consciência",
+      "texto": "O livro mostra vários jeitos de viver a fé: a hipocrisia severa, a paciência resignada e a devoção que exige sacrifício. Jane procura seu próprio caminho entre eles.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amor entre iguais",
+      "texto": "Para Jane, o amor só vale se os dois forem iguais em espírito, mesmo que não sejam iguais em dinheiro ou posição.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Colonialismo e o outro",
+      "texto": "A fortuna de algumas personagens vem das colônias inglesas no Caribe. A personagem que vem de lá é descrita de forma desumanizante, com o racismo e o preconceito contra a doença mental da época.",
+      "spoiler": true,
+      "sensivel": true
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Jane Eyre",
+      "texto": "Narradora e protagonista. Órfã, começa a história aos 10 anos, morando com parentes que não a querem. É inteligente, apaixonada e não se cala diante da injustiça.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mrs Reed",
+      "texto": "Tia por casamento de Jane, viúva rica de Gateshead. Cria Jane por obrigação e a trata com frieza e desprezo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "John Reed",
+      "texto": "Primo de Jane, filho de Mrs Reed. Mimado e violento, maltrata a prima sem ser castigado.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Mr Brocklehurst",
+      "texto": "Responsável pela escola de Lowood. Prega humildade e privação às alunas pobres, enquanto a própria família vive com luxo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Helen Burns",
+      "texto": "Colega de Jane em Lowood. Calma e muito religiosa, ensina Jane a suportar o sofrimento com paciência. Morre de tuberculose ainda menina.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Miss Temple",
+      "texto": "Diretora de Lowood. Justa e gentil, é um modelo de mulher culta e serena para Jane.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Edward Rochester",
+      "texto": "Dono da mansão de Thornfield. Rude, irônico e de humor instável, guarda um passado que não conta a ninguém.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Adèle Varens",
+      "texto": "Menina francesa sob a tutela de Rochester em Thornfield. Jane é contratada para ser sua preceptora.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Bertha Mason",
+      "texto": "Primeira esposa de Rochester, vinda da Jamaica, mantida presa no último andar de Thornfield. O livro a descreve como um animal, refletindo o racismo e o preconceito contra a doença mental da época.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "nome": "St John Rivers",
+      "texto": "Jovem pastor, bonito, frio e muito determinado. Quer dedicar a vida a ser missionário e pede o mesmo de quem está perto dele.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O livro saiu em outubro de 1847 assinado por Currer Bell. Ninguém sabia se o autor era homem ou mulher, e isso virou assunto em Londres.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As três irmãs usaram pseudônimos com as mesmas iniciais dos nomes verdadeiros: Currer (Charlotte), Ellis (Emily) e Acton (Anne) Bell.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Emily publicou \"Wuthering Heights\" e Anne publicou \"Agnes Grey\" no mesmo ano de 1847, poucas semanas depois de \"Jane Eyre\".",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A escola de Lowood foi inspirada no internato de Cowan Bridge, onde Charlotte estudou e onde as irmãs mais velhas adoeceram.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Charlotte disse que Helen Burns foi inspirada na irmã mais velha, Maria, que morreu aos 11 anos.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "O subtítulo original é \"An Autobiography\". Quem narra é Jane adulta, lembrando a própria vida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Jane conversa diretamente com quem lê, chamando-o de leitor. Era um recurso ousado e dá ao livro um tom íntimo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A segunda edição, de 1848, foi dedicada ao escritor William Makepeace Thackeray, que Charlotte admirava muito.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1857, a romancista Elizabeth Gaskell, amiga de Charlotte, publicou \"The Life of Charlotte Brontë\", uma biografia famosa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1966, a escritora Jean Rhys, nascida na Dominica, publicou \"Wide Sargasso Sea\", que conta a vida de Bertha Mason antes de Thornfield, pelo ponto de vista dela.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro foi adaptado muitas vezes. Entre os filmes mais conhecidos estão o de 1943, com Joan Fontaine e Orson Welles, e o de 2011, com Mia Wasikowska e Michael Fassbender.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "governess",
+      "texto": "Preceptora: mulher contratada para morar com uma família rica e educar as crianças em casa. Não era criada nem membro da família.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Reader",
+      "texto": "Leitor. Jane se dirige diretamente a quem lê o livro, como se conversasse.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ere",
+      "texto": "Forma antiga de before (antes de). Muito comum na prosa do século 19.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "whilst",
+      "texto": "O mesmo que while (enquanto). Ainda é usado no inglês britânico, mas soa formal.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "parlour",
+      "texto": "Sala de estar mais simples, para uso da família ou receber visitas comuns. Grafia britânica de parlor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "drawing-room",
+      "texto": "Sala de visitas elegante, para onde as damas se retiravam depois do jantar. Vem de withdrawing room.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "red-room",
+      "texto": "Quarto vermelho de Gateshead, onde Jane é trancada de castigo. Não é termo da época, mas o nome volta como imagem no livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Gytrash",
+      "texto": "Espírito do folclore do norte da Inglaterra, em forma de cavalo, cão ou mula, que aparece a viajantes solitários.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "master",
+      "texto": "Patrão, senhor da casa. Era como empregados se referiam ao dono; não tem sentido de mestre ou professor aqui.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "moor",
+      "texto": "Charneca: terreno alto, aberto e sem árvores, coberto de urze, típico de Yorkshire. Também aparece como heath.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "consumption",
+      "texto": "Nome antigo da tuberculose, doença muito comum e mortal no século 19. Não tem a ver com consumo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "lunatic",
+      "texto": "Louco, termo da época para pessoa com doença mental grave. Hoje é considerado ofensivo.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "termo": "Creole",
+      "texto": "No século 19 inglês, pessoa nascida nas colônias do Caribe, em geral de família europeia. Bertha é chamada assim.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "termo": "gipsy",
+      "texto": "Grafia antiga de gypsy (cigano). Na época, ciganas eram associadas a ler a sorte; hoje o termo é visto como pejorativo.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "A preceptora vivia num lugar estranho: educada como uma dama, mas paga como empregada. Os patrões a viam como inferior e os criados, como alguém de fora.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Escolas de caridade como Lowood recebiam meninas pobres ou órfãs. Muitas tinham comida ruim, frio e disciplina dura, e doenças se espalhavam rápido.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Uma mulher casada não tinha bens próprios: tudo passava ao marido. Divórcio era raríssimo e quase impossível, mesmo em casos graves. As leis só mudaram décadas depois.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitas famílias ricas inglesas ganhavam dinheiro com plantações nas colônias do Caribe, como a Jamaica, que dependiam do trabalho escravo. A escravidão nas colônias britânicas foi abolida em 1833.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "No século 19, pessoas com doença mental eram muitas vezes trancadas em casa ou em asilos, sem tratamento. O livro reflete essa visão, que hoje é criticada.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "texto": "Moedas e salários eram contados em libras (pounds), xelins (shillings) e pence. Uma libra tinha 20 xelins, e um xelim, 12 pence.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "Jane stands up to her aunt and cousin while still a child. What does this reaction show about who she will become?",
+      "texto": "Jane enfrenta a tia e o primo ainda criança. O que essa reação mostra sobre quem ela vai ser?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Helen Burns and Jane react to injustice in opposite ways. Which one do you agree with more? Why?",
+      "texto": "Helen Burns e Jane reagem de jeitos opostos à injustiça. Com qual você concorda mais? Por quê?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Jane says she is Rochester's equal in spirit, even though she is poor. What does it mean to be equal to someone in a relationship?",
+      "texto": "Jane diz que é igual a Rochester em espírito, mesmo sendo pobre. O que significa ser igual a alguém numa relação?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How does the novel show the difference between rich and poor? Give an example from one scene.",
+      "texto": "Como o livro mostra a diferença entre ricos e pobres? Dê um exemplo de uma cena.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Why do you think Jane decides to leave Thornfield? Would you do the same?",
+      "texto": "Por que você acha que Jane decide deixar Thornfield? Você faria o mesmo?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How is Bertha Mason described? What does this description reveal about the prejudices of the time?",
+      "texto": "Como Bertha Mason é descrita? O que essa descrição revela sobre os preconceitos da época?",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "St John offers Jane a life with purpose but without love. Why is this choice difficult for her?",
+      "texto": "St John oferece a Jane uma vida de propósito, mas sem amor. Por que essa escolha é difícil para ela?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Jane speaks directly to the reader several times. What effect does this have on you?",
+      "texto": "Jane fala diretamente com o leitor várias vezes. Que efeito isso tem em você?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "se-emily-bronte-wuthering-heights",
+      "motivo": "Romance de Emily Brontë, irmã de Charlotte, publicado no mesmo ano, com paixão intensa e paisagem de Yorkshire."
+    },
+    {
+      "id": "se-charles-dickens-great-expectations",
+      "motivo": "Outro romance vitoriano narrado em primeira pessoa por um órfão que cresce e enfrenta as barreiras de classe."
+    },
+    {
+      "id": "pg-3268",
+      "motivo": "Clássico do romance gótico, com heroína jovem, castelo cheio de segredos e mistérios que lembram Thornfield."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "maus-tratos na infância, morte de uma criança por doença, mulher presa no sótão, incêndio. Sensível: Bertha Mason, crioula das Índias Ocidentais, descrita como bestial: racismo e capacitismo de época",
+    "sensivel": "Bertha Mason, crioula das Índias Ocidentais, descrita como bestial: racismo e capacitismo de época"
+  }
+}

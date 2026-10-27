@@ -1,0 +1,392 @@
+{
+  "versao": 1,
+  "livroId": "pg-67979",
+  "titulo": "The Blue Castle",
+  "idioma": "en",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 2
+  },
+  "autorEContexto": [
+    {
+      "texto": "Lucy Maud Montgomery nasceu em 1874 na Ilha do Príncipe Eduardo, no Canadá, e morreu em Toronto em 1942.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ela ficou famosa no mundo todo com Anne of Green Gables, publicado em 1908.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1911, casou-se com o pastor presbiteriano Ewan Macdonald e foi morar na província de Ontário, onde passou o resto da vida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "The Blue Castle foi publicado em 1926 e é um dos poucos romances de Montgomery escritos para o público adulto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Diferente da maioria de seus livros, a história não se passa na Ilha do Príncipe Eduardo, e sim em Ontário, na região de lagos e florestas de Muskoka.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No início do século XX, uma mulher solteira da classe média tinha pouca liberdade: dependia da família, devia obedecer às regras sociais e era vista como fracassada se não casasse.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Montgomery passou férias em Bala, em Muskoka, em 1922. A cidade hoje tem um museu dedicado a ela e à ligação com este livro.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É uma história de libertação: uma mulher sufocada pela família decide, de uma vez, viver do próprio jeito.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra o humor afiado de Montgomery numa versão mais adulta, com sátira das famílias respeitáveis e de suas aparências.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Valoriza a natureza canadense como espaço de liberdade e beleza, com descrições que se tornaram marcantes na obra da autora.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Continua muito lido e querido, inclusive fora do mundo de língua inglesa, como na Polônia, onde o livro é especialmente popular.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Liberdade e coragem",
+      "texto": "Valancy passa a vida obedecendo por medo. A notícia de que tem pouco tempo de vida a faz perder esse medo e agir pela primeira vez.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Família e aparências",
+      "texto": "O clã Stirling se preocupa mais com o que os outros vão pensar do que com a felicidade de seus membros.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Sonho e realidade",
+      "texto": "O castelo azul é o refúgio imaginário de Valancy. O livro pergunta o que acontece quando o sonho encontra a vida real.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Natureza",
+      "texto": "Os bosques e lagos de Muskoka representam tudo o que a vida fechada em casa negou a Valancy.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Julgamento social",
+      "texto": "A cidade condena pessoas por boatos e reputação, sem conhecê-las de verdade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Doença e morte",
+      "texto": "A ameaça da morte faz a protagonista repensar o que significa viver de verdade. O tema é tratado com delicadeza.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Valancy Stirling",
+      "texto": "Protagonista. Tem 29 anos, é solteira, tímida e vive sob o controle da mãe e dos parentes. Sonha com um castelo azul imaginário.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mrs. Frederick Stirling",
+      "texto": "Mãe de Valancy. Fria e autoritária, cuida mais das regras e da opinião alheia do que da filha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Cousin Stickles",
+      "texto": "Prima idosa que mora com Valancy e a mãe. Vive reclamando e vigiando tudo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Olive Stirling",
+      "texto": "Prima bonita e admirada por todos. A família sempre a usa como exemplo para diminuir Valancy.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Uncle Benjamin",
+      "texto": "Tio rico da família, que adora fazer charadas e piadas sem graça.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Barney Snaith",
+      "texto": "Homem misterioso que mora isolado numa ilha. A cidade espalha boatos terríveis sobre ele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Roaring Abel Gay",
+      "texto": "Carpinteiro beberrão e barulhento, desprezado pela gente respeitável da cidade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Cecily (Cissy) Gay",
+      "texto": "Filha de Abel. Foi antiga colega de Valancy. Está muito doente e é rejeitada pela cidade por ter tido um filho sem ser casada.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Dr. Trent",
+      "texto": "Médico que Valancy consulta em segredo sobre problemas no coração.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O título vem do castelo imaginário onde Valancy se refugia em pensamento desde a infância.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro começa no dia em que Valancy faz 29 anos, idade em que era considerada solteirona sem chance de casar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Deerwood, a cidade do livro, é fictícia. O lago Mistawis também é inventado, inspirado nos lagos de Muskoka.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Valancy adora os livros de um escritor de natureza chamado John Foster, cujos trechos aparecem ao longo do romance.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A virada da história começa com uma carta do Dr. Trent dizendo que Valancy tem uma doença grave no coração e talvez só um ano de vida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A carta do médico foi trocada: o diagnóstico grave era de outra paciente, e Valancy não estava morrendo.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Valancy pede Barney Snaith em casamento, uma inversão ousada dos costumes da época.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Barney é na verdade filho de um milionário que enriqueceu vendendo pílulas milagrosas, e também é o escritor John Foster.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1987, a escritora australiana Colleen McCullough publicou The Ladies of Missalonghi, com enredo muito parecido. As semelhanças geraram acusações públicas de plágio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro foi adaptado para musical e para teatro em diferentes países, mostrando seu apelo duradouro.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "spinster",
+      "texto": "Mulher que não se casou. Na época, tinha tom de pena ou desprezo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "old maid",
+      "texto": "Solteirona. Expressão pejorativa para mulher mais velha e solteira.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "consumption",
+      "texto": "Nome antigo da tuberculose, doença comum e muitas vezes fatal na época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "patent medicine",
+      "texto": "Remédio vendido com propaganda exagerada e fórmula secreta, prometendo curar quase tudo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "clan",
+      "texto": "Aqui, a família grande e unida, com tios, primos e tias que se metem na vida de todos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "parlour",
+      "texto": "Sala de visitas formal, usada em ocasiões especiais. Grafia britânica de parlor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "verandah",
+      "texto": "Varanda coberta na frente ou ao redor da casa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "pew",
+      "texto": "Banco de igreja. Famílias muitas vezes tinham banco fixo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "propriety",
+      "texto": "Decoro: as regras de comportamento considerado correto pela sociedade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "chaperon",
+      "texto": "Pessoa mais velha que acompanhava uma moça para proteger sua reputação.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "trousseau",
+      "texto": "Enxoval: roupas e itens que a noiva preparava para o casamento.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "queer",
+      "texto": "Na época, significava estranho ou esquisito. Hoje o sentido principal mudou.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Uma filha solteira costumava morar com os pais por toda a vida, sem renda própria e sem decidir sobre a própria rotina.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ter um filho fora do casamento trazia vergonha pública para a mulher, que era excluída da vida social e da igreja.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A tuberculose ainda não tinha cura com antibióticos; os doentes muitas vezes definhavam em casa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Remédios milagrosos vendidos por propaganda eram um grande negócio na América do Norte do início do século XX.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muskoka já era, nos anos 1920, região de férias de famílias ricas de Toronto, com chalés à beira dos lagos.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "Why does Valancy only find the courage to change when she believes she is going to die?",
+      "texto": "Por que Valancy só tem coragem de mudar quando acredita que vai morrer?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "What does the Blue Castle represent for Valancy? Do you have a similar refuge?",
+      "texto": "O que o castelo azul representa para Valancy? Você tem algum refúgio parecido?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How does the Stirling family use humour, rules and comparison to control Valancy?",
+      "texto": "Como a família Stirling usa o humor, as regras e a comparação para controlar Valancy?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Why does the town judge Barney Snaith and the Gays without knowing them? Does this still happen today?",
+      "texto": "Por que a cidade julga Barney Snaith e os Gay sem conhecê-los? Isso ainda acontece hoje?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Valancy takes care of Cissy when everyone else rejects her. What does this choice show about her?",
+      "texto": "Valancy cuida de Cissy quando todos a rejeitam. O que essa escolha mostra sobre ela?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "What role does nature play in Valancy's transformation?",
+      "texto": "Que papel a natureza tem na transformação de Valancy?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "When Valancy discovers she is not ill, does her freedom lose its meaning? Why?",
+      "texto": "Quando Valancy descobre que não está doente, sua liberdade perde o sentido? Por quê?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "What did you think of the revelation about who Barney really is? Does it make the ending better or too easy?",
+      "texto": "O que você achou da revelação sobre quem Barney realmente é? Ela torna o final melhor ou mais fácil demais?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "se-l-m-montgomery-anne-of-green-gables",
+      "motivo": "O livro mais famoso da mesma autora, com o mesmo humor e amor pela natureza."
+    },
+    {
+      "id": "pg-16389",
+      "motivo": "Também dos anos 1920: mulheres insatisfeitas fogem da rotina e renascem num lugar bonito."
+    },
+    {
+      "id": "se-jane-austen-persuasion",
+      "motivo": "Heroína quieta e já fora da idade ideal de casar que encontra uma segunda chance."
+    },
+    {
+      "id": "se-charlotte-bronte-jane-eyre",
+      "motivo": "Mulher sem beleza nem poder que afirma sua independência e encontra um homem com segredos."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "livre",
+    "nota": "romance de uma mulher que muda de vida; menção a mãe solteira e doença terminal, sem cenas fortes",
+    "sensivel": ""
+  }
+}

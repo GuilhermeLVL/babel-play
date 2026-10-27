@@ -1,0 +1,386 @@
+{
+  "versao": 1,
+  "livroId": "pg-1952",
+  "titulo": "The Yellow Wallpaper",
+  "idioma": "en",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 1
+  },
+  "autorEContexto": [
+    {
+      "texto": "Charlotte Perkins Gilman nasceu em 1860, em Hartford, Connecticut, nos Estados Unidos, e morreu em 1935.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ela era sobrinha-neta de Harriet Beecher Stowe, autora de A Cabana do Pai Tomás. A família Beecher era famosa por reformadores e escritores.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Depois do nascimento da filha, em 1885, Gilman teve uma forte depressão. Hoje chamaríamos isso de depressão pós-parto.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Ela foi tratada pelo médico S. Weir Mitchell com a rest cure (cura pelo repouso): ficar deitada, quase sem atividade e sem escrever. Gilman disse que o tratamento quase a levou à loucura.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "O conto foi publicado em 1892 na revista The New England Magazine. Na época, ela assinava Charlotte Perkins Stetson, sobrenome do primeiro marido.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Gilman se separou do marido e se divorciou em 1894, algo raro e malvisto na época. Ela se tornou palestrante e escritora feminista conhecida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ela também escreveu o ensaio Women and Economics (1898) e o romance utópico Herland (1915), sobre uma sociedade só de mulheres.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No fim do século XIX, nos EUA, as mulheres não votavam em eleições nacionais e dependiam muito do marido. Médicos costumavam rotular o sofrimento feminino como histeria ou nervos.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É um dos textos fundadores da literatura feminista nos Estados Unidos. Mostra como o controle de um casamento pode sufocar uma mulher.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Critica um tratamento médico real da época, a cura pelo repouso, a partir da experiência da própria autora.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "É um clássico do conto gótico e psicológico. A tensão vem da mente da narradora, não de monstros ou fantasmas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É um exemplo marcante de narradora não confiável: o leitor precisa desconfiar do que ela vê e interpretar por conta própria.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Saúde mental e tratamento médico",
+      "texto": "O conto mostra uma mulher doente cuja dor não é levada a sério. O tratamento imposto piora seu estado em vez de ajudar.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Papel da mulher no casamento",
+      "texto": "O marido decide tudo pela esposa, com carinho, mas sem ouvi-la. Ela é tratada quase como uma criança.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Confinamento e liberdade",
+      "texto": "O quarto com grades nas janelas vira símbolo de prisão. A narradora busca, de algum modo, se libertar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Escrever como resistência",
+      "texto": "Ela é proibida de trabalhar e escrever, mas escreve escondido. O diário é o único espaço onde tem voz.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Percepção e realidade",
+      "texto": "Aos poucos, o papel de parede ganha vida para a narradora. O leitor acompanha a mudança na forma como ela percebe o mundo.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "A narradora",
+      "texto": "Jovem esposa e mãe recente, que passa o verão numa casa alugada para se recuperar de uma depressão. Ela gosta de escrever e conta a história num diário secreto. Seu nome nunca é dito com clareza.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "John",
+      "texto": "Marido da narradora e médico. É prático, racional e afetuoso, mas não acredita que ela esteja realmente doente e controla sua rotina.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Jennie",
+      "texto": "Irmã de John. Cuida da casa e é vista pela narradora como uma dona de casa dedicada e perfeita.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mary",
+      "texto": "Mulher que cuida do bebê da narradora.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "O bebê",
+      "texto": "Filho recém-nascido da narradora. Ela sofre por não conseguir ficar perto dele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "A mulher no papel de parede",
+      "texto": "Figura que a narradora passa a ver atrás do desenho do papel amarelo. Ela parece presa e tenta sair.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O conto foi recusado antes pela revista The Atlantic Monthly. O editor achou a história perturbadora demais para os leitores.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O médico S. Weir Mitchell, que tratou a autora de verdade, é citado pelo nome dentro do conto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1913, Gilman publicou o texto Why I Wrote The Yellow Wallpaper, explicando que escreveu o conto para alertar contra a cura pelo repouso.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Nesse texto, ela conta que enviou um exemplar do conto ao próprio Weir Mitchell.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Gilman publicou esse texto na revista The Forerunner, que ela mesma criou e escreveu quase sozinha entre 1909 e 1916.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O conto é escrito como um diário em primeira pessoa, com entradas curtas. O estilo fica mais fragmentado conforme a narradora muda.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época, muitos leitores leram o conto como história de terror ou de fantasmas, sem notar a crítica social.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O escritor William Dean Howells incluiu o conto na antologia The Great Modern American Stories, de 1920.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O conto ficou meio esquecido por décadas. Em 1973, a editora The Feminist Press o relançou, e ele virou leitura comum em escolas e universidades.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A cor amarela é central: a narradora descreve o papel como feio e até sente nele um cheiro amarelo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No final, a narradora menciona um nome, Jane, e leitores discutem até hoje se esse seria o nome dela.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "colonial mansion",
+      "texto": "Casarão do período colonial americano (antes de 1776). Era sinal de casa antiga e importante.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "hereditary estate",
+      "texto": "Propriedade herdada dentro de uma família, passada de geração em geração.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "piazza",
+      "texto": "No inglês americano antigo, é a varanda coberta da casa, não uma praça.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "nursery",
+      "texto": "Quarto das crianças pequenas numa casa rica, onde elas dormiam e brincavam.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "hysterical tendency",
+      "texto": "Tendência histérica. Diagnóstico vago e comum da época para mulheres com sofrimento emocional.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "phosphates or phosphites",
+      "texto": "Compostos receitados como tônicos fortificantes no século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "tonics",
+      "texto": "Tônicos: remédios que prometiam dar energia e força.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "congenial work",
+      "texto": "Trabalho agradável, que combina com a pessoa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "draught",
+      "texto": "Corrente de ar. Grafia britânica e antiga de draft.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "bedstead",
+      "texto": "A armação da cama, sem o colchão.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "arabesque",
+      "texto": "Desenho decorativo cheio de curvas e linhas entrelaçadas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "frieze",
+      "texto": "Faixa decorativa no alto da parede, perto do teto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "smooch",
+      "texto": "Aqui significa mancha ou borrão, não beijo como no inglês de hoje.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "lurid",
+      "texto": "De cor forte e desagradável, berrante. Também pode ser chocante.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "A rest cure de Weir Mitchell exigia repouso total, isolamento, muita comida e proibição de ler, escrever ou trabalhar. Era muito usada para mulheres de classe média e alta.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No século XIX, o marido tinha grande autoridade legal e social sobre a esposa. Ser marido e médico dava a John autoridade dupla.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Famílias ricas costumavam alugar casas de campo no verão para descanso ou para tratar a saúde.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Papel de parede estampado era moda nas casas do século XIX. Padrões grandes e cores fortes eram comuns.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época, mulheres que escreviam ou queriam uma carreira eram vistas com desconfiança. Pensava-se que esforço intelectual fazia mal à saúde delas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "Why does the narrator write in secret? What does this tell us about her life?",
+      "texto": "Por que a narradora escreve em segredo? O que isso diz sobre a vida dela?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Does John love his wife? Is it possible to love someone and still harm them?",
+      "texto": "John ama a esposa? É possível amar alguém e ainda assim fazer mal a essa pessoa?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "What might the room and the barred windows symbolize?",
+      "texto": "O que o quarto e as grades nas janelas podem simbolizar?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How does the narrator's description of the wallpaper change throughout the story?",
+      "texto": "Como a forma de a narradora descrever o papel de parede muda ao longo do conto?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Can we trust everything the narrator tells us? Why or why not?",
+      "texto": "Podemos confiar em tudo o que a narradora conta? Por quê?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Who is the woman behind the wallpaper? What might she represent?",
+      "texto": "Quem é a mulher atrás do papel de parede? O que ela pode representar?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Is the ending a defeat or a kind of liberation for the narrator?",
+      "texto": "O final é uma derrota ou uma forma de libertação para a narradora?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How do people talk about mental health today? What has changed since the time of the story?",
+      "texto": "Como as pessoas falam hoje sobre saúde mental? O que mudou desde a época do conto?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-2542",
+      "motivo": "Peça da mesma época sobre uma esposa tratada como criança pelo marido."
+    },
+    {
+      "id": "se-edgar-allan-poe-short-fiction",
+      "motivo": "Contos góticos com narradores perturbados, em quem o leitor não pode confiar."
+    },
+    {
+      "id": "pg-209",
+      "motivo": "História de terror psicológico com narradora ambígua: é real ou é coisa da mente dela?"
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "14",
+    "nota": "conto de uma mulher confinada que enlouquece (depressão pós-parto), atmosfera opressiva. Sensível: tema de saúde mental tratado de forma perturbadora",
+    "sensivel": "tema de saúde mental tratado de forma perturbadora"
+  }
+}

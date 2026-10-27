@@ -1,0 +1,397 @@
+{
+  "versao": 1,
+  "livroId": "se-robert-louis-stevenson-the-strange-case-of-dr-jekyll-and-mr-hyde",
+  "titulo": "The Strange Case of Dr. Jekyll and Mr. Hyde",
+  "idioma": "en",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "Robert Louis Stevenson nasceu em Edimburgo, na Escócia, em 1850.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Vinha de uma família de engenheiros de faróis. Estudou engenharia e depois direito na Universidade de Edimburgo, mas escolheu a literatura.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Teve a saúde frágil a vida toda, com problemas sérios nos pulmões.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ficou famoso com \"Treasure Island\" (1883). No mesmo ano deste livro, 1886, também publicou \"Kidnapped\".",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Escreveu esta novela em Bournemouth, no sul da Inglaterra. Ela saiu em 1886.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro se passa em Londres na Era Vitoriana, sob a rainha Vitória. Era uma sociedade que valorizava muito a reputação e as aparências.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época, a ciência avançava rápido, e havia debates sobre a natureza humana e os limites da experimentação.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Stevenson passou os últimos anos em Samoa, no Pacífico, e morreu lá em 1894.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É uma das histórias de terror e mistério mais influentes da literatura em inglês.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A expressão \"Jekyll and Hyde\" virou parte da língua inglesa. Ela descreve alguém com duas personalidades opostas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Trata de uma pergunta que continua atual: o bem e o mal convivem dentro da mesma pessoa?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É curto e ganhou incontáveis adaptações para teatro, cinema e TV. Por isso, é uma ótima porta de entrada para os clássicos em inglês.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "A dualidade humana",
+      "texto": "A ideia de que cada pessoa tem um lado respeitável e um lado escondido, e o que acontece quando eles se separam.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Reputação e aparências",
+      "texto": "Os personagens são cavalheiros que temem o escândalo. Muitas vezes preferem calar a fazer perguntas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ciência e seus limites",
+      "texto": "O livro questiona até onde a ciência pode ir sem considerar as consequências morais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Segredo e silêncio",
+      "texto": "Cartas lacradas, portas trancadas e testamentos estranhos: a história avança pelo que fica escondido.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "A cidade como labirinto",
+      "texto": "A Londres do livro tem neblina, ruas escuras e bairros contrastantes, que espelham o tema do duplo.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Mr. Utterson",
+      "texto": "Advogado sério, reservado e leal aos amigos. É por meio dele que acompanhamos o mistério.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mr. Enfield",
+      "texto": "Parente distante de Utterson e seu companheiro de passeios. Conta a história que dá início à investigação.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Dr. Henry Jekyll",
+      "texto": "Médico rico e respeitado, cliente e amigo de Utterson. Tem um comportamento cada vez mais misterioso.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mr. Edward Hyde",
+      "texto": "Homem baixo e de aparência perturbadora, que causa repulsa em todos que o veem. Parece ter uma ligação inexplicável com Jekyll.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Dr. Lanyon",
+      "texto": "Médico, velho amigo de Jekyll e de Utterson. Afastou-se de Jekyll por discordar das ideias científicas dele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Poole",
+      "texto": "Mordomo de Jekyll há muitos anos, fiel e preocupado com o patrão.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Sir Danvers Carew",
+      "texto": "Cavalheiro idoso e membro do Parlamento. Sua morte violenta pelas mãos de Hyde é um ponto de virada.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "nome": "Jekyll e Hyde, a revelação",
+      "texto": "Jekyll e Hyde são a mesma pessoa. Jekyll criou uma poção que o transforma em Hyde, a encarnação do seu lado mau.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "Em um ensaio, \"A Chapter on Dreams\", o próprio Stevenson contou que a ideia central da história veio de um sonho.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro foi lançado como uma brochura barata, no estilo das histórias de suspense populares da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Foi um sucesso imediato e consolidou a fama de Stevenson.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Antes deste livro, Stevenson escreveu com W. E. Henley a peça \"Deacon Brodie\". Ela fala de um homem respeitável de Edimburgo que levava vida dupla como ladrão.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1887, a história já virou peça de teatro em que o mesmo ator fazia Jekyll e Hyde.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Fredric March ganhou o Oscar de melhor ator por viver Jekyll e Hyde no filme de 1931.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O nome Hyde soa igual a hide, que significa esconder em inglês. É um jogo de palavras proposital.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A maior parte do livro segue Utterson. Os últimos capítulos, porém, são documentos escritos por outros personagens, que esclarecem o mistério.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitos leitores de hoje já sabem a reviravolta. Mas os primeiros leitores de 1886 descobriam só no final que Jekyll e Hyde são o mesmo homem.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "hansom",
+      "texto": "Carruagem leve de duas rodas puxada por um cavalo, o táxi da Londres vitoriana.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "cheque",
+      "texto": "Grafia britânica de check (cheque bancário). Um cheque tem papel importante logo no começo da história.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "will",
+      "texto": "Aqui significa testamento, e não vontade ou o futuro. O testamento de Jekyll preocupa muito Utterson.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "holograph",
+      "texto": "Termo jurídico: documento escrito inteiro à mão pela própria pessoa que o assina.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "sawbones",
+      "texto": "Gíria antiga e informal para cirurgião ou médico (literalmente, serra-ossos).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Juggernaut",
+      "texto": "Força brutal e impossível de deter. Hoje também quer dizer caminhão enorme no inglês britânico.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "troglodytic",
+      "texto": "Como um troglodita, um homem das cavernas: primitivo, pouco humano.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "cabinet",
+      "texto": "No livro, não é armário: é o escritório ou gabinete particular de Jekyll.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "theatre",
+      "texto": "Neste contexto, é a sala de anatomia ou de cirurgia onde se davam aulas, e não um teatro de espetáculos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "phial",
+      "texto": "Forma antiga de vial: frasquinho de vidro para remédios ou substâncias químicas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "draught",
+      "texto": "Pronuncia-se como draft. Aqui significa dose de bebida ou de remédio, um gole.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "balderdash",
+      "texto": "Bobagem, disparate. A palavra soa antiquada hoje.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "M.P.",
+      "texto": "Member of Parliament: deputado do Parlamento britânico.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "countenance",
+      "texto": "Palavra formal para rosto ou expressão facial, muito comum na prosa do século 19.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Londres vivia coberta de neblina densa, misturada à fumaça do carvão. As ruas eram iluminadas por lampiões a gás.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Soho era então um bairro pobre e cheio de imigrantes. Contrastava com as praças elegantes onde moravam médicos ricos, como Cavendish Square.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Um gentleman vitoriano dependia da reputação. Um escândalo podia arruinar a carreira e a vida social. Por isso, os personagens evitam falar abertamente.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Scotland Yard é o nome pelo qual se conhece a Polícia Metropolitana de Londres.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Títulos como Sir indicam nobreza menor ou cavalaria. Mr. e Dr. marcavam bem a posição social e profissional de cada um.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Casas ricas tinham criados, como mordomos, cozinheiras e criadas. O mordomo (butler) chefiava a criadagem e conhecia os hábitos do patrão.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "Why do you think Stevenson tells the story mainly through Utterson's eyes rather than Jekyll's?",
+      "texto": "Por que você acha que Stevenson conta a história principalmente pelos olhos de Utterson, e não de Jekyll?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "The characters struggle to describe what is wrong with Hyde. Why does that make him more frightening?",
+      "texto": "Os personagens têm dificuldade de descrever o que há de errado em Hyde. Por que isso torna ele mais assustador?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Why do the gentlemen in the book prefer silence to asking direct questions?",
+      "texto": "Por que os cavalheiros do livro preferem o silêncio a fazer perguntas diretas?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How do the fog and the streets of London help create the mood of the story?",
+      "texto": "Como a neblina e as ruas de Londres ajudam a criar o clima da história?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Is Hyde a separate being from Jekyll, or a true part of him? Who is responsible for Hyde's actions?",
+      "texto": "Hyde é um ser separado de Jekyll ou é uma parte verdadeira dele? Quem é responsável pelos atos de Hyde?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Why does Hyde grow stronger while Jekyll grows weaker?",
+      "texto": "Por que Hyde vai ficando mais forte enquanto Jekyll enfraquece?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "What does the book say about the limits of science? Does that question still matter today?",
+      "texto": "O que o livro diz sobre os limites da ciência? Essa questão ainda importa hoje?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Do you believe everyone has a hidden side? How do we deal with it?",
+      "texto": "Você acredita que todas as pessoas têm um lado escondido? Como lidamos com ele?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "se-oscar-wilde-the-picture-of-dorian-gray",
+      "motivo": "Outro clássico vitoriano sobre vida dupla, aparência respeitável e corrupção escondida."
+    },
+    {
+      "id": "se-mary-shelley-frankenstein",
+      "motivo": "Um cientista ultrapassa limites e perde o controle do que criou."
+    },
+    {
+      "id": "se-bram-stoker-dracula",
+      "motivo": "Terror gótico vitoriano, também contado em parte por cartas e documentos."
+    },
+    {
+      "id": "se-robert-louis-stevenson-treasure-island",
+      "motivo": "Do mesmo autor, uma aventura que mostra outro lado do seu talento."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "duplo de um médico: um assassinato a bengaladas e um suicídio, narrados sem detalhe",
+    "sensivel": ""
+  }
+}

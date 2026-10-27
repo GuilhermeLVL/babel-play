@@ -1,0 +1,348 @@
+{
+  "versao": 1,
+  "livroId": "pg-18600",
+  "titulo": "Mi Ultimo Adiós",
+  "idioma": "es",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 2
+  },
+  "autorEContexto": [
+    {
+      "texto": "José Rizal nasceu em 19 de junho de 1861, em Calamba, nas Filipinas, e foi fuzilado em Manila em 30 de dezembro de 1896.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As Filipinas foram colônia da Espanha desde o século XVI. No tempo de Rizal, o espanhol era a língua da administração e da elite instruída.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Rizal estudou nas Filipinas e depois na Europa. Formou-se em medicina em Madri e se especializou em oftalmologia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele escreveu os romances Noli me tángere (1887) e El filibusterismo (1891), que criticam os abusos do governo colonial e de parte do clero.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Fez parte do Movimento de Propaganda, grupo de filipinos instruídos que pedia reformas e igualdade de direitos dentro do domínio espanhol.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1892 fundou a Liga Filipina e logo foi desterrado para Dapitan, em Mindanao, onde viveu até 1896 trabalhando como médico e professor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1896 começou a Revolução Filipina, liderada pela sociedade secreta Katipunan. Rizal foi preso, julgado por um tribunal militar e condenado por rebelião.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Poucos anos depois, em 1898, a Espanha perdeu as Filipinas para os Estados Unidos após a Guerra Hispano-Americana.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "Mi último adiós é o poema mais famoso das Filipinas. É a despedida de Rizal à pátria, escrita na prisão pouco antes de sua execução.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Rizal é considerado o herói nacional filipino. Sua morte transformou o poema em símbolo da luta pela liberdade do país.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os poemas mostram como um autor colonizado usou a própria língua do colonizador para falar de identidade e de pátria.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É uma ótima porta de entrada para a poesia em espanhol do século XIX: versos musicais, vocabulário elevado e imagens românticas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Amor à pátria",
+      "texto": "O eu lírico fala às Filipinas como a uma pessoa amada e oferece a ela a própria vida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Morte e sacrifício",
+      "texto": "A morte aparece com serenidade, como descanso e como entrega por uma causa maior.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Liberdade e opressão",
+      "texto": "O poeta sonha com um lugar sem escravos nem opressores e com o futuro livre do seu povo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Memória",
+      "texto": "O eu lírico pede para ser lembrado e imagina como a natureza e as pessoas guardarão sua lembrança.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Despedida",
+      "texto": "O poema se despede da terra, da família, dos amigos e da juventude, um de cada vez.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Fé e esperança",
+      "texto": "Mesmo diante da morte, há esperança no amanhecer de um novo tempo para a pátria.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [],
+  "curiosidades": [
+    {
+      "texto": "Rizal escreveu Mi último adiós no Forte Santiago, em Manila, onde esteve preso nos dias antes da execução.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O poema não tinha título no manuscrito. O nome Mi último adiós foi dado depois.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O poema tem 14 estrofes de cinco versos cada.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Rizal foi executado no campo de Bagumbayan, em Manila. Hoje o lugar é o Parque Rizal, também chamado Luneta, onde fica seu monumento.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O dia 30 de dezembro é feriado nacional nas Filipinas: o Dia de Rizal.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Desde 1956, uma lei filipina, a chamada Lei Rizal, obriga as escolas e universidades do país a ensinar a vida e as obras dele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mi último adiós foi traduzido para dezenas de idiomas, incluindo o tagalo e outras línguas das Filipinas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ainda jovem, Rizal ganhou um concurso de poesia em Manila com o poema A la juventud filipina (1879).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Rizal falava vários idiomas e escrevia principalmente em espanhol, mas também em tagalo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Noli me tángere foi publicado em Berlim e El filibusterismo em Gante, na Bélgica, porque seria difícil publicá-los nas Filipinas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "patria",
+      "texto": "Pátria, a terra natal. No poema, as Filipinas são tratadas como uma pessoa querida a quem o poeta fala.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "cadalso",
+      "texto": "Patíbulo, lugar de execução. Palavra antiga e literária.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "verdugo",
+      "texto": "Carrasco, quem executa a pena de morte. Por extensão, quem oprime e tortura.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "martirio",
+      "texto": "Martírio: sofrimento ou morte por uma causa ou crença.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "vieres",
+      "texto": "Futuro do subjuntivo de ver (equivale a se vires, se você vir). Esse tempo verbal quase sumiu do espanhol moderno e hoje aparece só em textos antigos, poéticos ou jurídicos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "¡salud!",
+      "texto": "Aqui é saudação solene, como salve. Hoje se usa mais em brindes ou quando alguém espirra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "lóbrego",
+      "texto": "Escuro, sombrio, triste. Palavra literária.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "capuz",
+      "texto": "Capuz, manto que cobre. Na imagem poética, a escuridão da noite que cobre o céu.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "grana",
+      "texto": "Cor vermelho-escura, escarlate. Na poesia, pode lembrar o sangue.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ciprés",
+      "texto": "Cipreste, árvore comum em cemitérios. Na tradição poética, símbolo de luto e morte.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "laurel",
+      "texto": "Louro. Desde a Antiguidade, símbolo de glória e vitória.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Edén",
+      "texto": "Éden, o paraíso bíblico. Rizal usa a ideia de um paraíso perdido para falar da pátria.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "lumbre",
+      "texto": "Fogo, luz. Palavra mais literária do que fuego ou luz.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "No início do período colonial, filipino designava os espanhóis nascidos nas Filipinas. Os nativos eram chamados de indios pelas autoridades. Só no século XIX a palavra passou a abranger todo o povo do arquipélago.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ilustrados era o nome dado aos filipinos com educação superior, muitos formados na Europa, como Rizal. Eles lideraram o pedido de reformas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Peninsulares eram os espanhóis nascidos na Espanha. Ocupavam os cargos mais altos da colônia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As ordens religiosas, os frailes, tinham enorme poder nas Filipinas, inclusive sobre terras e educação. Rizal as criticou duramente.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Filibustero era o termo usado pelas autoridades espanholas para acusar alguém de subversivo ou inimigo do governo. Daí o título El filibusterismo.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "¿Por qué Rizal le habla a la patria como si fuera una persona? ¿Qué efecto produce?",
+      "texto": "Por que Rizal fala com a pátria como se ela fosse uma pessoa? Que efeito isso causa?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo se presenta la muerte en el poema: con miedo, tristeza, calma u orgullo? Da ejemplos.",
+      "texto": "Como a morte é apresentada no poema: com medo, tristeza, calma ou orgulho? Dê exemplos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué imágenes de la naturaleza aparecen en los poemas? ¿Qué simbolizan?",
+      "texto": "Que imagens da natureza aparecem nos poemas? O que elas simbolizam?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Rizal escribió sobre la libertad de Filipinas en español, la lengua del colonizador. ¿Es una contradicción o una estrategia?",
+      "texto": "Rizal escreveu sobre a liberdade das Filipinas em espanhol, a língua do colonizador. Isso é uma contradição ou uma estratégia?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿De quiénes se despide el poema? ¿Por qué importa el orden de las despedidas?",
+      "texto": "Para quem o poema se despede? Por que a ordem das despedidas importa?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "El poeta pide ser recordado. ¿De qué forma una persona puede seguir viva en la memoria de un pueblo?",
+      "texto": "O poeta pede para ser lembrado. De que forma uma pessoa pode continuar viva na memória de um povo?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Rizal defendía reformas pacíficas, pero fue condenado por rebelión. ¿Qué revela esto sobre el gobierno colonial de la época?",
+      "texto": "Rizal defendia reformas pacíficas, mas foi condenado por rebelião. O que isso revela sobre o governo colonial da época?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Conoces algún poema o canción de Brasil o de otro país que trate del amor a la patria? Compáralo con el de Rizal.",
+      "texto": "Você conhece algum poema ou canção do Brasil ou de outro país que trate do amor à pátria? Compare com o de Rizal.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-47584",
+      "motivo": "O primeiro romance de Rizal, que denuncia os abusos coloniais nas Filipinas e o tornou famoso."
+    },
+    {
+      "id": "pg-30903",
+      "motivo": "Continuação de Noli me tángere, mais sombria e política, escrita pelo mesmo autor."
+    },
+    {
+      "id": "pg-19898",
+      "motivo": "José Martí, contemporâneo de Rizal, também lutou pela independência de sua terra, Cuba, contra a Espanha e escreveu em espanhol para formar novas gerações."
+    },
+    {
+      "id": "pg-53552",
+      "motivo": "Bécquer é o grande poeta romântico espanhol do século XIX, a mesma tradição de versos musicais e emotivos que aparece em Rizal."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "livre",
+    "nota": "poemas de Rizal, entre eles o escrito antes de sua execução",
+    "sensivel": ""
+  }
+}

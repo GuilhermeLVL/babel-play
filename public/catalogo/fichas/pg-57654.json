@@ -1,0 +1,425 @@
+{
+  "versao": 1,
+  "livroId": "pg-57654",
+  "titulo": "La Ilíada",
+  "idioma": "es",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 1
+  },
+  "autorEContexto": [
+    {
+      "texto": "A Ilíada é atribuída a Homero, mas quase nada se sabe com segurança sobre ele. Até sua existência como pessoa única é debatida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O debate sobre quem compôs a Ilíada e a Odisseia, e como, é chamado de questão homérica. Ele ocupa estudiosos há séculos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A maioria dos especialistas situa a composição do poema entre os séculos VIII e VII a.C., na Grécia antiga.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O poema nasceu de uma tradição oral: cantores recitavam histórias de heróis de memória, usando fórmulas e versos prontos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A história se passa na Guerra de Troia, conflito lendário entre gregos e troianos. Os gregos antigos a viam como parte do seu passado distante.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O original é em grego antigo, em versos chamados hexâmetros. A língua mistura dialetos, sobretudo o jônico.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Esta edição é a tradução em prosa de Luis Segalá y Estalella, helenista catalão e professor de grego na Universidade de Barcelona, publicada no início do século XX.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A tradução de Segalá foi por muito tempo uma das versões mais lidas da Ilíada no mundo hispânico.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É uma das obras mais antigas da literatura ocidental e serviu de modelo para quase toda a poesia épica que veio depois.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os gregos antigos usavam Homero na educação. Durante séculos, o poema foi uma referência de valores, linguagem e história.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra a guerra sem esconder o preço dela: heróis gloriosos, mas também famílias destruídas e vidas curtas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "A cólera",
+      "texto": "O poema gira em torno da raiva de Aquiles e das consequências dela para gregos e troianos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Honra e glória",
+      "texto": "Os heróis lutam por fama duradoura. Perder a honra diante dos outros pode ser pior que perder a vida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Guerra e morte",
+      "texto": "A guerra é mostrada como grandiosa e terrível ao mesmo tempo. Quase todo guerreiro morto ganha um nome e uma história breve.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Deuses e destino",
+      "texto": "Os deuses tomam partido, discutem entre si e interferem nas batalhas. Ainda assim, os humanos não escapam do destino.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Família e luto",
+      "texto": "Pais, esposas e filhos aparecem como quem mais sofre com a guerra. O luto é um dos sentimentos centrais do poema.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Compaixão",
+      "texto": "Mesmo entre inimigos, o poema abre espaço para momentos de respeito e reconhecimento da dor do outro.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Aquiles",
+      "texto": "O maior guerreiro grego, filho da deusa Tétis e do mortal Peleu. Chefe dos mirmidões, orgulhoso e de temperamento explosivo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Agamenón",
+      "texto": "Rei de Micenas e comandante supremo do exército grego. Seu conflito com Aquiles abre o poema.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Héctor",
+      "texto": "Filho do rei Príamo e principal defensor de Troia. Guerreiro corajoso e também marido e pai dedicado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Príamo",
+      "texto": "Velho rei de Troia, pai de Heitor e de Páris. Assiste à guerra que ameaça sua cidade e seus filhos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Andrómaca",
+      "texto": "Esposa de Heitor e mãe do pequeno Astíanax. Teme perder o marido na guerra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Patroclo",
+      "texto": "Amigo mais próximo de Aquiles, que luta ao seu lado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Helena",
+      "texto": "Esposa do rei grego Menelau, levada a Troia por Páris. Sua partida é a causa da guerra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Paris (Alejandro)",
+      "texto": "Príncipe troiano que levou Helena. No texto também é chamado de Alejandro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Odisseu",
+      "texto": "Rei de Ítaca, chefe grego conhecido pela astúcia e pela habilidade com as palavras. É o herói da Odisseia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Morte de Patroclo",
+      "texto": "Patroclo morre em combate pelas mãos de Heitor, e isso faz Aquiles voltar à luta para se vingar.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "A Ilíada não conta a guerra inteira. Ela narra poucas semanas do décimo e último ano do cerco a Troia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O cavalo de Troia não aparece na Ilíada. Esse episódio é mencionado na Odisseia e contado em detalhe na Eneida, de Virgílio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O título vem de Ílion, outro nome da cidade de Troia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O poema é dividido em 24 cantos. A tradição atribui essa divisão a estudiosos de Alexandria, um canto para cada letra do alfabeto grego.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O canto II traz o Catálogo das Naus, uma longa lista dos povos e chefes gregos que foram a Troia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os personagens costumam vir com epítetos fixos, como Aquiles de pés ligeiros. Essas fórmulas ajudavam os cantores a compor e memorizar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Nos anos 1920 e 1930, o estudioso Milman Parry mostrou como essas fórmulas revelam a origem oral do poema.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No século XIX, Heinrich Schliemann escavou a colina de Hisarlik, na atual Turquia, hoje identificada como o sítio de Troia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os deuses se dividem: Hera, Atena e Poseidon apoiam os gregos; Apolo, Afrodite e Ares ajudam os troianos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No canto VI, Heitor se despede de Andrômaca, e o filho pequeno se assusta com o penacho do capacete do pai. É uma das cenas mais famosas do poema.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "No canto XVIII, o deus ferreiro Hefesto fabrica um novo escudo para Aquiles, decorado com cenas de cidades, festas e trabalho no campo.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "A morte de Aquiles não é narrada na Ilíada, embora o poema deixe claro que ele terá vida curta.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "aqueos",
+      "texto": "Um dos nomes que o poema dá aos gregos. Homero nunca usa a palavra helenos para o exército inteiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "dánaos",
+      "texto": "Outro nome para os gregos, usado como sinônimo de aqueos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "argivos",
+      "texto": "Mais um nome para os gregos, ligado à região de Argos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "teucros",
+      "texto": "Nome usado para os troianos, a partir de Teucro, antigo rei lendário da região.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Ilión",
+      "texto": "Outro nome de Troia. Daí vem o título Ilíada.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "cólera",
+      "texto": "Raiva intensa e duradoura. É a palavra-chave do poema, ligada a Aquiles.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Pelida",
+      "texto": "Filho de Peleu, ou seja, Aquiles. O sufixo indica de quem a pessoa é filha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Atrida",
+      "texto": "Filho de Atreu. Designa Agamêmnon ou seu irmão Menelau; no plural, os dois.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "hecatombe",
+      "texto": "Na origem, sacrifício solene de muitos bois aos deuses. Hoje em espanhol também significa catástrofe com muitas vítimas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "égida",
+      "texto": "Escudo ou couraça mágica usada por Zeus e Atena, que espalha medo. Daí a expressão bajo la égida de, sob a proteção de.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "auriga",
+      "texto": "Quem conduz o carro de guerra puxado por cavalos, enquanto o guerreiro luta.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "grebas",
+      "texto": "Peças de armadura que protegem as canelas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "libación",
+      "texto": "Oferenda em que se derrama vinho ou outro líquido em honra dos deuses.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ambrosía",
+      "texto": "Alimento dos deuses, que os mantém imortais. Costuma aparecer junto com o néctar, a bebida divina.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Os guerreiros lutam com armas de bronze. O poema evoca uma Idade do Bronze já distante para os próprios gregos que o ouviam.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Prêmios de guerra, como armas, bens e até pessoas capturadas, marcavam a honra de cada chefe. Tirar um prêmio era uma ofensa grave.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A hospitalidade entre famílias criava laços que valiam por gerações, mesmo entre inimigos na guerra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Enterrar ou cremar os mortos com ritos adequados era um dever sagrado. Deixar um corpo sem funeral era uma ofensa aos deuses.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O poema era recitado em público por rapsodos, cantores profissionais, em festas e competições.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Segalá traduziu em prosa, não em versos. O espanhol dele é do início do século XX e tem um tom solene e um pouco antigo.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "¿Tiene razón Aquiles en sentirse ofendido por Agamenón? ¿Es justa su reacción?",
+      "texto": "Aquiles tem razão de se sentir ofendido por Agamêmnon? A reação dele é justa?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué significa el honor para los héroes del poema? ¿Se parece a lo que hoy entendemos por honor?",
+      "texto": "O que significa honra para os heróis do poema? Isso se parece com o que entendemos por honra hoje?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo actúan los dioses en el poema? ¿Parecen más justos o más humanos que los mortales?",
+      "texto": "Como os deuses agem no poema? Eles parecem mais justos ou mais humanos que os mortais?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Héctor es enemigo de los griegos, pero el poema lo muestra con simpatía. ¿Por qué crees que ocurre esto?",
+      "texto": "Heitor é um inimigo dos gregos, mas o poema o mostra com simpatia. Por que você acha que isso acontece?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué papel tienen las mujeres, como Helena y Andrómaca, en una historia dominada por la guerra?",
+      "texto": "Qual é o papel das mulheres, como Helena e Andrômaca, numa história dominada pela guerra?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿El poema glorifica la guerra o muestra su coste? Da ejemplos.",
+      "texto": "O poema glorifica a guerra ou mostra o seu custo? Dê exemplos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Por qué la muerte de Patroclo cambia tanto el comportamiento de Aquiles?",
+      "texto": "Por que a morte de Patroclo muda tanto o comportamento de Aquiles?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué nos dice el encuentro final entre Aquiles y Príamo sobre el dolor compartido entre enemigos?",
+      "texto": "O que o encontro final entre Aquiles e Príamo diz sobre a dor compartilhada entre inimigos?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-58221",
+      "motivo": "O outro grande poema atribuído a Homero, que acompanha a volta de Odisseu para casa depois da Guerra de Troia."
+    },
+    {
+      "id": "pg-57303",
+      "motivo": "Grande épico da tradição ocidental; Dante coloca Homero entre os maiores poetas da Antiguidade."
+    },
+    {
+      "id": "pg-67092",
+      "motivo": "Poema épico que retoma o modelo de Homero para contar uma história de guerra entre forças divinas."
+    },
+    {
+      "id": "pg-72753",
+      "motivo": "Heródoto escreve sobre o mundo grego e suas guerras, com menções à Guerra de Troia logo no início."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "Ilíada: mortes em combate descritas, profanação do corpo de Heitor",
+    "sensivel": ""
+  }
+}

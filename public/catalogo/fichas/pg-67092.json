@@ -1,0 +1,403 @@
+{
+  "versao": 1,
+  "livroId": "pg-67092",
+  "titulo": "El paraíso perdido",
+  "idioma": "es",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 1
+  },
+  "autorEContexto": [
+    {
+      "texto": "John Milton nasceu em Londres em 1608 e morreu em 1674. É considerado um dos maiores poetas da língua inglesa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Milton viveu a Guerra Civil Inglesa, o conflito entre o rei Carlos I e o Parlamento, que terminou com a execução do rei em 1649.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele apoiou o governo republicano de Oliver Cromwell e trabalhou para ele como secretário de línguas estrangeiras, redigindo cartas oficiais em latim.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1644 publicou Areopagitica, um texto famoso em defesa da liberdade de imprensa contra a censura prévia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Milton ficou totalmente cego por volta de 1652. Compôs o Paraíso Perdido ditando os versos a ajudantes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Com a volta da monarquia em 1660 (a Restauração), Milton caiu em desgraça política e chegou a ser preso por pouco tempo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O poema saiu em 1667, em dez livros. A segunda edição, de 1674, ano da morte do autor, reorganizou a obra em doze livros.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Esta edição traz a tradução para o espanhol de Cayetano Rosell, escritor e erudito espanhol do século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É a grande epopeia da língua inglesa: Milton quis fazer para o cristianismo o que Homero e Virgílio fizeram para o mundo antigo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Seu Satanás, orgulhoso e eloquente, virou um dos personagens mais discutidos da literatura e inspirou os poetas românticos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O poema discute questões que continuam vivas: liberdade, obediência, rebeldia, culpa e responsabilidade pelas próprias escolhas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Influenciou obras como Frankenstein, de Mary Shelley, e moldou a forma como o Ocidente imagina o céu, o inferno e os anjos.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Livre-arbítrio",
+      "texto": "O poema insiste que anjos e humanos foram criados livres para escolher. A obediência só vale se for livre.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Orgulho e rebeldia",
+      "texto": "A revolta de Satanás nasce do orgulho e da recusa em se submeter. O leitor é convidado a pensar se essa rebeldia é heroica ou trágica.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Tentação e queda",
+      "texto": "Recontagem do relato do Gênesis sobre Adão, Eva e o fruto proibido, com muito mais diálogo e psicologia.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Conhecimento e seus limites",
+      "texto": "Até onde é bom querer saber? O poema discute curiosidade, ciência e os limites do conhecimento humano.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amor e convivência",
+      "texto": "A relação entre Adão e Eva mostra companheirismo, conversa, discordância e reconciliação.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Justiça divina",
+      "texto": "Milton anuncia logo no início que quer explicar aos homens os caminhos de Deus. É um poema que argumenta, não só narra.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Satanás",
+      "texto": "Anjo que se rebelou contra Deus e foi expulso do céu. Começa o poema caído no inferno, mas ainda orgulhoso e cheio de planos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Belcebú",
+      "texto": "Companheiro de Satanás na rebelião e seu principal aliado entre os anjos caídos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Dios Padre",
+      "texto": "O criador, que observa do céu tudo o que acontece e explica suas razões em diálogos com o Filho.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "El Hijo",
+      "texto": "O Filho de Deus, figura central nas cenas celestes, mostrado como o mais próximo do Pai.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Adán",
+      "texto": "O primeiro homem, que vive no Éden. É curioso e conversa longamente com o anjo Rafael sobre a criação.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Eva",
+      "texto": "A primeira mulher, companheira de Adão no Éden. É uma das personagens mais complexas do poema.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Rafael",
+      "texto": "Arcanjo enviado para visitar Adão e alertá-lo sobre o inimigo. Conta a história da guerra no céu e da criação do mundo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Miguel",
+      "texto": "Arcanjo guerreiro, que comanda os exércitos fiéis a Deus.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Abdiel",
+      "texto": "Anjo que se recusa a seguir a rebelião de Satanás, mesmo sozinho entre os rebeldes. Símbolo de fidelidade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "El Pecado y la Muerte",
+      "texto": "Figuras alegóricas que guardam as portas do inferno. Representam ideias, não pessoas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "Pelo contrato da primeira edição, Milton recebeu inicialmente apenas cinco libras, com pagamentos extras previstos conforme as vendas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A palavra pandemônio foi inventada por Milton: Pandemonium é o nome da capital dos demônios no poema. Significa algo como lugar de todos os demônios.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O original inglês é escrito em verso branco, sem rima, algo ousado para um poema épico na época. Milton defendeu essa escolha numa nota ao leitor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O poema tem mais de dez mil versos no original.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Como a Ilíada e a Eneida, a história começa no meio da ação: os anjos rebeldes já estão caídos no inferno. O passado é contado depois.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Milton conta que visitou Galileu na Itália, e o astrônomo e seu telescópio são mencionados no poema.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O poeta William Blake escreveu que Milton estava do lado do Diabo sem saber, por causa da força do seu Satanás.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O ilustrador francês Gustave Doré fez gravuras célebres para o poema no século XIX. Elas ainda definem como muita gente imagina essas cenas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em Frankenstein, de Mary Shelley, a criatura lê o Paraíso Perdido e se compara a Adão e a Satanás.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Milton escreveu uma continuação, Paraíso Reconquistado, publicada em 1671.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "querubín / serafín",
+      "texto": "Tipos de anjos de alta categoria na tradição cristã. Plural: querubines, serafines.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "huestes",
+      "texto": "Exércitos, tropas. Palavra antiga usada para as legiões de anjos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "empíreo",
+      "texto": "O céu mais alto, morada de Deus, segundo a cosmologia antiga e medieval.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "abismo",
+      "texto": "Profundeza sem fundo. No poema, o espaço escuro entre o inferno e o mundo criado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "caos",
+      "texto": "Aqui não é bagunça: é a matéria sem forma que existia antes da criação, quase um lugar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Pandemonio",
+      "texto": "Forma espanhola de Pandemonium, a capital dos demônios. Hoje pandemonio também significa barulheira, confusão.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Edén",
+      "texto": "O jardim do paraíso onde vivem Adão e Eva.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "tronos, dominaciones, potestades",
+      "texto": "Nomes de ordens da hierarquia dos anjos. Não são objetos nem cargos humanos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "soberbia",
+      "texto": "Orgulho excessivo, arrogância. É o pecado central de Satanás. Não confundir com soberbio (magnífico, esplêndido).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "el Altísimo / el Omnipotente",
+      "texto": "Formas solenes de se referir a Deus.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "réprobo",
+      "texto": "Condenado, rejeitado por Deus. Usado para os anjos caídos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "vosotros / os",
+      "texto": "Pronome de segunda pessoa do plural, como vós. Muito usado nos discursos solenes de chefes a seus seguidores.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "A hierarquia dos anjos (serafins, querubins, tronos, potestades etc.) vem de tratados teológicos medievais. Milton usa esses nomes como se fossem patentes de um exército.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No século XVII ainda se discutia se a Terra ou o Sol estava no centro do universo. O poema reflete esse debate sem tomar um lado de forma definitiva.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Milton era protestante puritano e o poema reflete debates religiosos da época, como o livre-arbítrio e a relação direta entre a pessoa e Deus.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitos leitores veem na guerra no céu ecos da Guerra Civil Inglesa, que Milton viveu de perto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na prosa espanhola do século XIX são comuns pronomes colados ao verbo (díjole, hallábase) e uma ordem de palavras mais livre. Vale ler devagar e reorganizar a frase mentalmente.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "¿Satanás es un héroe, un villano o ambas cosas? ¿Qué en el poema te hace pensar así?",
+      "texto": "Satanás é um herói, um vilão ou os dois? O que no poema faz você pensar assim?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Por qué crees que Milton dio discursos tan bellos y convincentes al enemigo de Dios?",
+      "texto": "Por que você acha que Milton deu discursos tão bonitos e convincentes ao inimigo de Deus?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "El poema dice que la obediencia solo tiene valor si es libre. ¿Estás de acuerdo?",
+      "texto": "O poema diz que a obediência só tem valor se for livre. Você concorda?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo imagina Milton el infierno? ¿Es solo un lugar o también un estado de ánimo?",
+      "texto": "Como Milton imagina o inferno? Ele é só um lugar ou também um estado de espírito?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué enseña la actitud de Abdiel sobre quedarse solo frente a la opinión del grupo?",
+      "texto": "O que a atitude de Abdiel ensina sobre ficar sozinho contra a opinião do grupo?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo es la relación entre Adán y Eva? ¿Parece igual, desigual o ambas cosas?",
+      "texto": "Como é a relação entre Adão e Eva? Ela parece igual, desigual ou as duas coisas?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Quién tiene más responsabilidad en la caída: Eva, Adán o Satanás? ¿Por qué?",
+      "texto": "Quem tem mais responsabilidade pela queda: Eva, Adão ou Satanás? Por quê?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿El final del poema es solo triste o también trae esperanza?",
+      "texto": "O final do poema é só triste ou também traz esperança?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "se-john-milton-paradise-lost",
+      "motivo": "O poema no original inglês, para comparar com a tradução e ouvir o verso de Milton."
+    },
+    {
+      "id": "pg-57303",
+      "motivo": "Outra grande viagem poética por inferno e céu, em espanhol, que Milton conhecia bem."
+    },
+    {
+      "id": "pg-68566",
+      "motivo": "Também gira em torno de um pacto com o diabo, da tentação e do desejo de saber tudo."
+    },
+    {
+      "id": "se-mary-shelley-frankenstein",
+      "motivo": "A criatura lê o Paraíso Perdido e se vê como Adão e como Satanás; diálogo direto com Milton."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "Paraíso Perdido: guerra no céu e queda do homem",
+    "sensivel": ""
+  }
+}

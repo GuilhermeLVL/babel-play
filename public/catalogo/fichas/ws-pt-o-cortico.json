@@ -1,0 +1,416 @@
+{
+  "versao": 1,
+  "livroId": "ws-pt-o-cortico",
+  "titulo": "O Cortiço",
+  "idioma": "pt",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 1
+  },
+  "autorEContexto": [
+    {
+      "texto": "Aluísio Azevedo nasceu em São Luís, no Maranhão, em 1857, e morreu em Buenos Aires, em 1913.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Antes de se firmar como romancista, ele trabalhou no Rio de Janeiro como caricaturista e desenhista de jornais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O romance O Mulato, de 1881, é considerado o marco inicial do Naturalismo no Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O Naturalismo via o ser humano como produto do meio, da herança biológica e do momento histórico. Era uma escola influenciada pela ciência do século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Aluísio foi um dos fundadores da Academia Brasileira de Letras, criada em 1897.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mais tarde, ele deixou a literatura e seguiu carreira diplomática como cônsul do Brasil em vários países.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O Cortiço saiu em 1890, logo depois da abolição da escravidão (1888) e da Proclamação da República (1889).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O irmão dele, Artur Azevedo, foi um importante autor de teatro e de contos.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É considerado o principal romance do Naturalismo brasileiro e aparece com frequência em listas de leitura de escolas e vestibulares.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Retrata a vida dos pobres do Rio de Janeiro no fim do século XIX: imigrantes portugueses, negros, mestiços e trabalhadores que dividem o mesmo espaço apertado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra como alguém enriquece explorando os outros. Por isso, muitos críticos leem o livro como um retrato da formação do capitalismo no Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Também é um documento das ideias racistas da época. Hoje, ler o livro de forma crítica ajuda a entender como esse preconceito se apresentava como se fosse ciência.",
+      "spoiler": false,
+      "sensivel": true
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Ambição e exploração",
+      "texto": "O dono do cortiço enriquece economizando ao extremo e lucrando com o trabalho e a pobreza dos moradores.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "O meio molda as pessoas",
+      "texto": "Seguindo o Naturalismo, o livro mostra os personagens sendo transformados pelo ambiente, pelo clima e pelos instintos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Escravidão e racismo",
+      "texto": "A história se passa quando a escravidão ainda existia. O narrador descreve as pessoas a partir de ideias racistas da época. É preciso ler esses trechos com olhar crítico.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Imigração portuguesa",
+      "texto": "Muitos personagens são portugueses que vieram ao Rio tentar a vida. Alguns enriquecem, outros mudam profundamente em contato com o Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Coletivo e multidão",
+      "texto": "O cortiço funciona quase como um personagem: acorda, trabalha, briga e festeja como um único organismo vivo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ascensão social",
+      "texto": "O desejo de subir na vida, ganhar títulos e ser aceito pelos ricos move vários personagens.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "João Romão",
+      "texto": "Português, dono de uma venda e de uma pedreira. Ele constrói o cortiço e só pensa em juntar dinheiro, sem nenhum escrúpulo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Bertoleza",
+      "texto": "Mulher escravizada que trabalha como quitandeira. Ela se torna companheira de João Romão e trabalha sem descanso ao lado dele. Ele a engana com uma falsa carta de alforria, e ela acredita que é livre.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Miranda",
+      "texto": "Comerciante português rico que mora num sobrado ao lado do cortiço. Vive em rivalidade com João Romão.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Jerônimo",
+      "texto": "Trabalhador português forte e disciplinado que vai trabalhar na pedreira. Chega ao cortiço com a esposa e a filha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Piedade",
+      "texto": "Esposa de Jerônimo. Portuguesa, honesta e dedicada à família.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Rita Baiana",
+      "texto": "Moradora alegre e sedutora do cortiço, famosa por suas danças nas festas. O narrador a apresenta como símbolo da sensualidade brasileira.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Firmo",
+      "texto": "Capoeira e tocador de violão, namorado de Rita Baiana. Tem fama de valente e é ágil com a navalha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Pombinha",
+      "texto": "Moça delicada do cortiço que escreve cartas para os vizinhos que não sabem ler. A mãe dela sonha em casá-la bem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Jerônimo e Rita Baiana",
+      "texto": "Jerônimo se apaixona por Rita Baiana, abandona Piedade e vai perdendo os hábitos portugueses. Por causa dela, ele entra em conflito violento com Firmo e o mata numa emboscada.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "nome": "Bertoleza (desfecho)",
+      "texto": "Rico e querendo se casar com a filha de Miranda, João Romão denuncia Bertoleza aos antigos donos. Quando vêm buscá-la, ela tira a própria vida.",
+      "spoiler": true,
+      "sensivel": true
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O livro foi publicado em 1890, mas a história se passa antes da abolição, numa época em que ainda havia pessoas escravizadas no Rio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A obra mostra forte influência do escritor francês Émile Zola, principal nome do Naturalismo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitos críticos consideram que o verdadeiro protagonista é o próprio cortiço, e não uma pessoa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O narrador costuma comparar as pessoas a animais. A crítica chama esse recurso de zoomorfização, e ele é típico do Naturalismo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A história se passa no bairro de Botafogo, no Rio de Janeiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O crítico Antonio Candido escreveu um ensaio famoso sobre o livro, chamado De cortiço a cortiço.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os cortiços existiram de verdade no Rio e eram alvo das campanhas de higiene urbana. Em 1893, a prefeitura derrubou o maior deles, o Cabeça de Porco.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No romance, existe também um cortiço rival, chamado Cabeça-de-Gato.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Aluísio Azevedo é lembrado como um dos primeiros escritores brasileiros que tentaram viver só da escrita.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ao longo do livro, o cortiço muda de nome e de cara. Isso acompanha a ascensão social de seu dono.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "cortiço",
+      "texto": "Conjunto de casinhas ou quartos pobres em volta de um pátio, com tanques e banheiros coletivos. A palavra também significa colmeia de abelhas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "estalagem",
+      "texto": "Aqui, outro nome para cortiço: moradia coletiva de aluguel barato. Hoje a palavra quer dizer pousada.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "venda",
+      "texto": "Pequena loja de bairro que vendia comida, bebida e utensílios. Também era chamada de armazém ou taverna.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "quitandeira",
+      "texto": "Mulher que vendia comida, frutas ou verduras na rua ou na porta de casa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "pedreira",
+      "texto": "Lugar de onde se extrai pedra para construção.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "cavouqueiro",
+      "texto": "Trabalhador que quebra e extrai pedra nas pedreiras.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "sobrado",
+      "texto": "Casa de dois andares ou mais, sinal de riqueza na época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "carta de alforria",
+      "texto": "Documento que dava liberdade a uma pessoa escravizada.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "capoeira",
+      "texto": "Aqui, a palavra indica também a pessoa que pratica capoeira, luta de origem afro-brasileira. Na época, o termo era usado para valentões de rua.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "navalha",
+      "texto": "Lâmina dobrável de barbear, usada também como arma nas brigas de rua.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "mulato",
+      "texto": "Termo racial da época para pessoa de ascendência negra e branca. Hoje é considerado ofensivo por sua origem e seu uso preconceituoso.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "termo": "réis",
+      "texto": "Moeda do Brasil na época, contada em réis e mil-réis.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "fado",
+      "texto": "Canção tradicional portuguesa, muitas vezes melancólica, cultivada pelos imigrantes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "barão",
+      "texto": "Título de nobreza. No Império, era dado pelo imperador, muitas vezes a comerciantes ricos.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "A escravidão no Brasil só acabou com a Lei Áurea, em 13 de maio de 1888. Antes disso, uma pessoa escravizada podia ser reclamada pelos donos mesmo vivendo como livre.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "No século XIX, muitos portugueses pobres emigraram para o Rio de Janeiro. Vários trabalhavam no comércio e em serviços pesados.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No fim do século XIX, cientistas e escritores espalhavam teorias racistas que diziam explicar o comportamento pelas raças. Hoje, essas teorias são rejeitadas pela ciência.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "O Código Penal de 1890 tornou crime a prática da capoeira nas ruas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No Império, títulos de nobreza como barão não passavam para os filhos e eram cobiçados por ricos comerciantes como sinal de prestígio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Para os médicos e governantes da época, os cortiços eram focos de doenças como a febre amarela. Isso justificou demolições no Rio.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que se pode dizer que o cortiço é o verdadeiro protagonista do livro?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Como João Romão consegue enriquecer? Quem paga o preço da riqueza dele?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O narrador compara pessoas a animais muitas vezes. Que efeito isso causa em você como leitor?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Que ideias racistas da época aparecem no modo como o narrador descreve os personagens? Por que é importante perceber isso hoje?",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Compare o cortiço e o sobrado de Miranda. O que cada espaço representa?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Jerônimo muda muito ao longo da história. O livro trata essa mudança como algo bom ou ruim? Você concorda?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O que o destino de Bertoleza revela sobre a escravidão e sobre João Romão?",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Para o Naturalismo, o meio determina as pessoas. Os personagens têm alguma liberdade de escolha?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "ws-pt-a-escrava-isaura",
+      "motivo": "Trata da escravidão sob a visão romântica, um contraste interessante com o olhar naturalista."
+    },
+    {
+      "id": "ws-pt-memorias-de-um-sargento-de-milicias",
+      "motivo": "Retrata a vida das camadas populares do Rio de Janeiro."
+    },
+    {
+      "id": "ws-pt-o-crime-do-padre-amaro",
+      "motivo": "Romance realista-naturalista de Eça de Queirós, da mesma época e com a mesma influência de Zola."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "16",
+    "nota": "naturalismo: cenas sexuais sugeridas, sedução lésbica de uma adolescente, brigas a navalha, suicídio de Bertoleza. Sensível: racismo e escravidão (Bertoleza vendida como livre); personagens descritos por \"raça\" de forma determinista",
+    "sensivel": "racismo e escravidão (Bertoleza vendida como livre); personagens descritos por \"raça\" de forma determinista"
+  }
+}

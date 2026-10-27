@@ -1,0 +1,350 @@
+{
+  "versao": 1,
+  "livroId": "ws-pt-peregrinacam",
+  "titulo": "Peregrinaçam",
+  "idioma": "pt",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "Fernão Mendes Pinto nasceu em Montemor-o-Velho, em Portugal, no início do século XVI, numa família modesta.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1537 ele partiu para a Índia, como muitos portugueses pobres que buscavam fortuna no Oriente.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Passou cerca de vinte anos na Ásia como soldado, mercador, embaixador e, por vezes, prisioneiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No Japão, conheceu o missionário jesuíta Francisco Xavier. Mais tarde entrou por um tempo na Companhia de Jesus e depois saiu.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Voltou a Portugal em 1558 e viveu em Almada, perto de Lisboa, onde escreveu o livro. Morreu ali em 1583.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época, Portugal controlava uma rede de fortalezas e portos no Índico, com sede em Goa e pontos como Malaca, chamada Estado da Índia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro só foi publicado em 1614, em Lisboa, mais de trinta anos após a morte do autor.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É considerado uma das obras-primas da literatura de viagens em língua portuguesa e costuma ser comparado ao livro de Marco Polo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra a expansão portuguesa sem glória heroica: o narrador é um homem comum, que sofre, foge, passa fome e muitas vezes fracassa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Oferece um retrato vivo da China, do Japão e do Sudeste Asiático do século XVI vistos por um europeu, muitas vezes com admiração.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Traz uma crítica velada aos próprios portugueses: a cobiça e a violência deles aparecem com frequência, às vezes julgadas por personagens asiáticos.",
+      "spoiler": false,
+      "sensivel": true
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Viagem e aventura",
+      "texto": "Deslocamentos constantes por mar e terra, entre portos, reinos e cidades da Ásia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Cobiça e violência",
+      "texto": "A busca por riqueza leva a saques, pirataria e combates, contados com naturalidade pelo narrador.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Sofrimento e sobrevivência",
+      "texto": "Naufrágios, fome e cativeiro aparecem como parte da vida de quem se arriscava no Oriente.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Encontro de culturas",
+      "texto": "O livro descreve costumes, religiões e governos asiáticos, e muitas vezes os compara com os de Portugal.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Fé e providência",
+      "texto": "O narrador atribui a Deus sua sobrevivência e reflete sobre os pecados dos cristãos.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Fernão Mendes Pinto",
+      "texto": "O narrador. Um português pobre que vai ao Oriente buscar fortuna e conta suas desventuras em primeira pessoa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "António de Faria",
+      "texto": "Capitão português com quem o narrador navega por um longo trecho. Lidera expedições de corso nas costas da China.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Francisco Xavier",
+      "texto": "Missionário jesuíta que aparece na parte final do livro, ligado à missão no Japão.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O título original usa a grafia antiga Peregrinaçam. Hoje a obra é conhecida como Peregrinação.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No começo do livro, o narrador conta ter sido capturado e vendido como escravo muitas vezes.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Por causa das histórias espantosas, Fernão foi acusado de exagerar. Surgiu até o trocadilho popular Fernão, mentes? Minto!, brincando com o nome dele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Pesquisas posteriores confirmaram muitas informações do livro, mas parte das viagens e episódios continua em discussão entre historiadores.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Fernão afirma estar entre os primeiros portugueses a chegar ao Japão, na década de 1540. Essa afirmação é debatida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele escreveu o livro já idoso, em Almada, e diz que o fez para que os filhos conhecessem suas aventuras.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ainda no século XVII, a obra foi traduzida para o espanhol, o francês e o inglês, e fez sucesso pela Europa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Fernão ajudou a financiar uma missão jesuíta ao Japão antes de deixar a ordem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em parte do livro, o narrador é preso na China e levado pelo interior do país, o que lhe permite descrever cidades e instituições chinesas.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Um episódio famoso é a tentativa de saquear túmulos reais numa ilha chamada Calempluy. O narrador trata o caso como castigo de Deus à cobiça.",
+      "spoiler": true,
+      "sensivel": true
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "nau",
+      "texto": "Grande navio a vela, usado nas viagens entre Portugal e a Índia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "junco",
+      "texto": "Embarcação típica da China e do Sudeste Asiático. Não tem nada a ver com a planta.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "fusta",
+      "texto": "Embarcação leve, a remo e vela, muito usada em ataques e combates no litoral.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "corsário",
+      "texto": "Navegante que ataca e saqueia navios. No século XVI a linha entre corsário e pirata era tênue.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "mandarim",
+      "texto": "Alto funcionário do governo imperial chinês. Hoje a palavra também nomeia a língua chinesa principal.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "bonzo",
+      "texto": "Monge budista, sobretudo no Japão e na China, segundo os europeus da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "mouro",
+      "texto": "Na época, nome dado aos muçulmanos em geral, não só aos do norte da África.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "gentio",
+      "texto": "Quem não era cristão, judeu nem muçulmano. Era usado para hindus, budistas e outros povos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "fazenda",
+      "texto": "Bens e mercadorias, não uma propriedade rural como no Brasil de hoje.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "mercê",
+      "texto": "Favor ou recompensa concedida pelo rei ou por um senhor. Daí vem Vossa Mercê, e depois você.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "fidalgo",
+      "texto": "Membro da pequena nobreza portuguesa. Muitos capitães do Oriente eram fidalgos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "pera",
+      "texto": "Forma antiga de para, comum em textos portugueses do século XVI.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "A ortografia é a do século XVI: -am no lugar de -ão, hum e hũa no lugar de um e uma, e o til sobre vogais com som nasal. Ler em voz alta ajuda a reconhecer as palavras.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O Estado da Índia era uma rede de fortalezas e feitorias portuguesas na costa, e não um território contínuo como um país.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitos portugueses no Oriente agiam por conta própria como mercadores e aventureiros, longe do controle do rei.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A escravidão era comum e aceita entre europeus e asiáticos na época. O livro a menciona sem questioná-la, o que hoje exige leitura crítica.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "A visão religiosa da época divide o mundo entre cristãos e infiéis. Termos como mouro e gentio refletem esse olhar, não uma descrição neutra.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que um narrador que se apresenta como pobre e azarado torna o relato diferente das histórias de heróis?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Como o livro mostra a cobiça dos portugueses? Você acha que o autor a critica ou a aceita?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O que chama sua atenção no modo como Fernão descreve a China e o Japão?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que certas críticas aos portugueses aparecem na boca de personagens asiáticos?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Até que ponto devemos confiar num relato de viagem escrito décadas depois dos fatos?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Que papel a fé tem na maneira como o narrador explica seus sofrimentos e sua sobrevivência?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Como ler hoje um livro que narra violência e escravidão com naturalidade?",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Compare a Peregrinação com a visão heroica dos descobrimentos em Os Lusíadas. O que muda?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-3333",
+      "motivo": "Mesma época e mesma expansão portuguesa no Oriente, mas contada em tom épico e heroico."
+    },
+    {
+      "id": "ws-pt-carta-a-el-rei-d-manuel-ortografia-original",
+      "motivo": "Outro relato português de viagem do século XVI, também em ortografia antiga."
+    },
+    {
+      "id": "pg-25537",
+      "motivo": "Um português que viveu no Extremo Oriente descreve a China e o Japão séculos depois."
+    },
+    {
+      "id": "ws-pt-aventuras-de-hans-staden-6-edicao",
+      "motivo": "Relato de cativeiro e aventura de um europeu no século XVI, em versão acessível."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "14",
+    "nota": "viagens pela Ásia: pirataria, massacres, naufrágios, cativeiro e torturas. Sensível: violência colonial portuguesa e saques narrados com naturalidade",
+    "sensivel": "violência colonial portuguesa e saques narrados com naturalidade"
+  }
+}

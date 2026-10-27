@@ -1,0 +1,369 @@
+{
+  "versao": 1,
+  "livroId": "pg-31347",
+  "titulo": "Contos",
+  "idioma": "pt",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 2
+  },
+  "autorEContexto": [
+    {
+      "texto": "José Maria Eça de Queirós nasceu em 1845, em Póvoa de Varzim, no norte de Portugal, e morreu em 1900, em Paris.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Formou-se em Direito na Universidade de Coimbra. Lá conviveu com jovens escritores que queriam renovar a cultura portuguesa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Esse grupo ficou conhecido como Geração de 70. Dele faziam parte, entre outros, Antero de Quental e Ramalho Ortigão.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1871, Eça participou das Conferências do Casino, em Lisboa, com uma palestra sobre o Realismo na arte.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Eça foi diplomata. Trabalhou como cônsul em Havana, na Inglaterra (Newcastle e Bristol) e, por fim, em Paris.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É o principal nome do Realismo em Portugal. Seus romances mais famosos incluem O Crime do Padre Amaro, O Primo Basílio e Os Maias.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro Contos saiu em 1902, depois da morte do autor. Reúne histórias que Eça publicou em jornais e revistas ao longo da vida.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "Mostra a variedade de Eça num só livro: há histórias realistas, sátiras, lendas medievais, temas bíblicos e mitologia grega.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os contos são curtos e completos. São uma boa porta de entrada para um autor cujos romances são longos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A ironia de Eça continua atual. Ele critica a vaidade, a ganância, a hipocrisia e a fé cega no progresso.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Vários contos, como Singularidades de uma Rapariga Loura e A Aia, são leitura comum nas escolas de Portugal.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Aparência e realidade",
+      "texto": "Muitas personagens não são o que parecem. O leitor aprende a desconfiar das primeiras impressões.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ganância",
+      "texto": "O desejo de dinheiro e de bens move algumas histórias e leva a escolhas terríveis.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Civilização e natureza",
+      "texto": "Eça questiona se o conforto moderno e a tecnologia trazem felicidade, comparando a cidade com o campo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amor e idealização",
+      "texto": "Há amores idealizados, platônicos ou frustrados. Eça olha para eles com ternura e ironia ao mesmo tempo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Fé e santidade",
+      "texto": "Alguns contos recontam lendas religiosas e perguntam o que é, de fato, ser bom.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Dever e sacrifício",
+      "texto": "Certas personagens precisam escolher entre o que sentem e o que consideram seu dever.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Macário",
+      "texto": "Do conto Singularidades de uma Rapariga Loura. Jovem que trabalha na loja de tecidos do tio, em Lisboa. Apaixona-se por uma moça loura que vê numa janela.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Luísa",
+      "texto": "Do conto Singularidades de uma Rapariga Loura. A moça loura por quem Macário se apaixona. Parece delicada e perfeita.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Rui, Guanes e Rostabal",
+      "texto": "Do conto O Tesouro. Três irmãos fidalgos, muito pobres, que encontram um cofre cheio de ouro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ulisses",
+      "texto": "Do conto A Perfeição. O herói grego da Odisseia, retido na ilha da deusa Calipso, sente saudade de casa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Calipso",
+      "texto": "Do conto A Perfeição. Deusa imortal que vive numa ilha perfeita e quer que Ulisses fique com ela.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Maria da Piedade",
+      "texto": "Do conto No Moinho. Esposa dedicada, admirada por todos na vila por cuidar do marido doente e dos filhos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Korriscosso",
+      "texto": "Do conto Um Poeta Lírico. Grego que trabalha como garçom em Londres e escreve poesia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "José Matias",
+      "texto": "Do conto José Matias. Homem que dedica a vida a um amor por uma mulher chamada Elisa. Sua história é contada por um conhecido.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Frei Genebro",
+      "texto": "Do conto Frei Genebro. Frade famoso pela bondade e pela humildade, inspirado nas lendas franciscanas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "Singularidades de uma Rapariga Loura, de 1874, é considerado o primeiro conto realista de Eça.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O conto Civilização, de 1892, deu origem ao romance A Cidade e as Serras, publicado depois da morte de Eça. Jacinto é o protagonista dos dois.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em Singularidades de uma Rapariga Loura, Macário descobre que Luísa é ladra e desiste do casamento.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Em O Tesouro, os três irmãos tramam uns contra os outros para ficar com o ouro. Nenhum deles sobrevive.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Em A Aia, a ama troca o próprio filho pelo príncipe para salvá-lo de um assassino. O bebê dela morre no lugar do herdeiro.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Em A Perfeição, Ulisses recusa a imortalidade oferecida por Calipso. Prefere a vida humana, com suas falhas.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Adão e Eva no Paraíso reconta o início da Bíblia com humor e mistura a história com ideias sobre a evolução humana.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Perfeição dialoga diretamente com a Odisseia, de Homero, que Eça conhecia bem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Um Poeta Lírico se passa em Londres. Eça morou muitos anos na Inglaterra como cônsul.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "rapariga",
+      "texto": "Em Portugal, quer dizer simplesmente moça ou garota. No Brasil, a palavra pode ter sentido ofensivo, mas não é o caso aqui.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "aia",
+      "texto": "Mulher que cuidava e criava os filhos de famílias nobres ou reais. Uma espécie de ama ou babá.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "frei",
+      "texto": "Título usado antes do nome de frades, religiosos de ordens como a dos franciscanos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "fidalgo",
+      "texto": "Pessoa de família nobre. Um fidalgo podia ser nobre e, ainda assim, pobre.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "D.",
+      "texto": "Abreviação de Dom ou Dona. Título de respeito usado antes do nome de nobres e pessoas importantes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "defunto",
+      "texto": "Pessoa morta. Palavra mais formal que morto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "lírico",
+      "texto": "Ligado à poesia que expressa sentimentos pessoais. Um poeta lírico escreve sobre suas emoções.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "moinho",
+      "texto": "Construção onde se moem grãos, como trigo e milho, para fazer farinha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "réis",
+      "texto": "Plural de real, a moeda antiga de Portugal e do Brasil. Mil réis e conto de réis eram valores comuns.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "O livro usa o português de Portugal. Algumas palavras e construções soam diferentes para quem está acostumado ao português do Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Edições antigas usam a ortografia anterior à reforma portuguesa de 1911. Por isso aparecem grafias como ph, th e y em certas palavras.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No tempo de Eça, Portugal era uma monarquia. A república só foi proclamada em 1910.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No fim do século XIX, Paris era vista como a capital da civilização e da moda. Muitos portugueses ricos imitavam os costumes franceses.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Nessa época surgiam invenções como o telefone e a luz elétrica. Eça discute com ironia essa confiança no progresso.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Qual conto mais surpreendeu você? Por quê?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Em Civilização, ter tudo traz felicidade a Jacinto? O que você acha que torna alguém feliz?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Macário julga Luísa pela aparência. Você já se enganou ao julgar alguém assim?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O que O Tesouro mostra sobre a ganância? A história poderia acontecer hoje?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Você concorda com a escolha de Ulisses em A Perfeição? Trocaria uma vida perfeita por uma vida humana?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "A escolha da aia é heroica, terrível ou as duas coisas? Discuta.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Onde você percebe a ironia de Eça? Dê um exemplo de um conto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Eça mistura contos realistas com lendas e mitos. Qual estilo você prefere? Por quê?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-18220",
+      "motivo": "Romance de Eça que desenvolve a história de Jacinto, nascida no conto Civilização."
+    },
+    {
+      "id": "ws-pt-o-mandarim",
+      "motivo": "Narrativa curta de Eça, com fantasia, ironia e o tema da ganância."
+    },
+    {
+      "id": "ws-pt-os-maias",
+      "motivo": "A obra-prima de Eça, com a mesma crítica à sociedade portuguesa."
+    },
+    {
+      "id": "pg-33056",
+      "motivo": "Contos de Machado de Assis, contemporâneo de Eça, com ironia parecida."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "contos de Eça: morte, amor e crítica social, sem cenas fortes",
+    "sensivel": ""
+  }
+}

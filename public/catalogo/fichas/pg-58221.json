@@ -1,0 +1,424 @@
+{
+  "versao": 1,
+  "livroId": "pg-58221",
+  "titulo": "La Odisea",
+  "idioma": "es",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "A Odisseia é atribuída a Homero, nome que a tradição grega deu ao poeta da Ilíada e da Odisseia. Quase nada se sabe com segurança sobre a vida dele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os estudiosos discutem até hoje se Homero foi uma pessoa só, vários poetas ou o nome de uma tradição inteira. Esse debate se chama questão homérica.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O poema vem de uma longa tradição oral: cantores profissionais, os aedos, recitavam histórias de heróis de memória, diante de uma plateia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A maioria dos especialistas situa a composição entre o fim do século VIII e o século VII a.C., na Grécia arcaica.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O original é em grego antigo, em versos chamados hexâmetros, e foi dividido em 24 cantos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A história se passa depois da Guerra de Troia, contada na Ilíada. A Odisseia trata da volta para casa de um dos heróis gregos dessa guerra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Esta edição é a tradução em prosa de Luis Segalá y Estalella, helenista catalão e professor da Universidade de Barcelona, que também traduziu a Ilíada.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Por ser tradução em prosa, o texto não tem rimas nem versos: lê-se como uma narrativa, mas mantém o estilo solene e as repetições típicas de Homero.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É uma das obras fundadoras da literatura ocidental. Muitas histórias de viagem e de volta ao lar que vieram depois seguem o seu modelo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A palavra odisseia virou substantivo comum em português e espanhol: significa uma viagem longa e cheia de dificuldades.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ao contrário de muitos heróis antigos, Ulisses vence mais pela inteligência e pela astúcia do que pela força. Isso fez dele um personagem muito moderno.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Inspirou obras de todas as épocas, de Dante a James Joyce, além de filmes, quadrinhos e séries.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "A volta para casa",
+      "texto": "O desejo de voltar à pátria e à família move o herói. Os gregos tinham uma palavra para esse tipo de retorno: nóstos, de onde vem nostalgia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Astúcia e inteligência",
+      "texto": "Disfarces, mentiras bem contadas e planos engenhosos são as armas principais do herói. O livro pergunta quando enganar é sabedoria e quando é perigo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Hospitalidade",
+      "texto": "Receber bem o estrangeiro era um dever sagrado. O modo como cada personagem trata o hóspede revela se é justo ou injusto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Fidelidade e espera",
+      "texto": "Enquanto o herói está longe, a família e os criados leais esperam sem saber se ele está vivo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Deuses e destino",
+      "texto": "Os deuses ajudam ou atrapalham os humanos conforme suas simpatias e rancores, mas os homens também respondem pelos próprios erros.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Crescer",
+      "texto": "O jovem Telêmaco precisa sair da sombra do pai ausente e aprender a agir como adulto.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Ulisses (Odisseu)",
+      "texto": "Rei de Ítaca e herói da Guerra de Troia, famoso pela astúcia. No começo do livro, faz anos que não consegue voltar para casa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Penélope",
+      "texto": "Esposa de Ulisses. Em Ítaca, resiste à pressão de homens que querem casar com ela enquanto o marido não volta.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Telêmaco",
+      "texto": "Filho de Ulisses e Penélope. Era bebê quando o pai partiu para a guerra e agora é um jovem que não sabe se o pai vive.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Atena",
+      "texto": "Deusa da sabedoria, protetora de Ulisses e de Telêmaco. Costuma aparecer disfarçada de pessoas comuns para orientá-los.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Poseidon",
+      "texto": "Deus do mar. Guarda rancor de Ulisses e dificulta sua viagem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Os pretendentes",
+      "texto": "Jovens nobres que ocupam a casa de Ulisses, comem e bebem às custas dela e disputam a mão de Penélope. Antínoo e Eurímaco são os mais destacados.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Calipso",
+      "texto": "Ninfa que vive numa ilha distante e retém Ulisses ao seu lado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Euricleia",
+      "texto": "Velha ama que criou Ulisses e depois Telêmaco. É uma das criadas mais leais da casa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Eumeu",
+      "texto": "Porqueiro, cuidador dos porcos de Ulisses. Homem simples e fiel ao dono ausente.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Polifemo",
+      "texto": "Ciclope, gigante de um olho só e filho de Poseidon. Ulisses o encontra durante suas viagens.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O livro começa no meio da história, com o herói já perto do fim da sua viagem. As aventuras anteriores são contadas depois, pelo próprio Ulisses, num banquete.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os quatro primeiros cantos quase não mostram Ulisses: acompanham Telêmaco em busca de notícias do pai. Essa parte é chamada de Telemaquia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A palavra mentor vem de Mentor, amigo de Ulisses cuja aparência Atena usa para aconselhar Telêmaco.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ao todo, Ulisses passa vinte anos longe de casa: dez na Guerra de Troia e cerca de dez tentando voltar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Para enganar o Ciclope, Ulisses diz que seu nome é Ninguém. O truque de palavras é decisivo para a fuga.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Penélope promete escolher um pretendente quando terminar de tecer uma mortalha para o sogro, Laertes. De dia ela tece, à noite desfaz o trabalho.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na ilha de Circe, uma feiticeira transforma companheiros de Ulisses em porcos.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Para ouvir o canto das sereias sem morrer, Ulisses manda os marinheiros taparem os ouvidos com cera e pede para ser amarrado ao mastro.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Ulisses visita o mundo dos mortos e conversa com almas de heróis e parentes. Essa cena inspirou muitas descidas ao inferno na literatura, como a de Dante.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Argos, o velho cão de Ulisses, protagoniza uma das cenas mais comoventes do livro quando o dono volta disfarçado.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Euricleia reconhece Ulisses por uma cicatriz na perna, ferimento de uma caçada a javali na juventude.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "O Ulisses de James Joyce, um dos romances mais importantes do século XX, se estrutura em paralelo com a Odisseia.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "Ulises",
+      "texto": "Forma espanhola do nome do herói, vinda do latim Ulixes. Em grego ele se chama Odisseu; em português, Ulisses.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "pretendientes",
+      "texto": "Os homens que querem casar com Penélope. Em português, também pretendentes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "aedo",
+      "texto": "Cantor e poeta que recitava histórias acompanhado de um instrumento de cordas. Igual em português.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "hecatombe",
+      "texto": "Sacrifício de muitos animais aos deuses, originalmente cem bois. Hoje a palavra também significa catástrofe, mas aqui tem o sentido religioso.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "libación",
+      "texto": "Ritual de derramar um pouco de vinho em honra aos deuses antes de beber. Em português, libação.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "heraldo",
+      "texto": "Arauto, mensageiro oficial que serve ao rei e organiza assembleias e banquetes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "huésped",
+      "texto": "Em espanhol pode significar tanto o hóspede quanto quem hospeda. O contexto indica qual dos dois.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "aqueos",
+      "texto": "Um dos nomes que Homero usa para os gregos. Também aparecem argivos e dánaos com o mesmo sentido.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ambrosía",
+      "texto": "Alimento dos deuses, que os torna imortais. O néctar é a bebida divina.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "varón",
+      "texto": "Homem adulto. Em espanhol atual soa formal ou antigo; equivale ao português varão.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "porquero",
+      "texto": "Quem cuida dos porcos, como Eumeu. Em português, porqueiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Hades",
+      "texto": "Deus do mundo dos mortos e, por extensão, o próprio mundo dos mortos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "vosotros",
+      "texto": "Pronome de segunda pessoa do plural usado na Espanha, com verbos como sois e tenéis. Corresponde a vós ou vocês.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Os epítetos são expressões fixas que acompanham nomes, como a deusa de olhos brilhantes ou a aurora de dedos rosados. Ajudavam os aedos a memorizar e recitar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A hospitalidade tinha regras: dar banho, comida e presentes ao estrangeiro antes mesmo de perguntar seu nome. Zeus era considerado protetor dos hóspedes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na Grécia homérica não havia moeda. A riqueza se media em rebanhos, metais, tecidos e objetos preciosos, como trípodes e taças.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As casas nobres tinham escravos e criados domésticos. Era uma sociedade muito desigual, e o livro mostra isso sem questionar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os banquetes começavam com sacrifícios aos deuses. A carne assada era dividida entre os convidados, e o aedo cantava ao final.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O final do poema traz vingança violenta, incluindo o massacre dos pretendentes e o enforcamento de servas consideradas desleais. Para os ouvintes antigos, isso era punição justa; para leitores de hoje, é motivo de debate.",
+      "spoiler": true,
+      "sensivel": true
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "Ulises es llamado héroe, pero miente y engaña con frecuencia. ¿Su astucia es una virtud o un defecto?",
+      "texto": "Ulisses é chamado de herói, mas mente e engana com frequência. A astúcia dele é uma qualidade ou um defeito?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Por qué el libro empieza con Telémaco y no con Ulises? ¿Qué muestra esa elección?",
+      "texto": "Por que o livro começa com Telêmaco e não com Ulisses? O que essa escolha mostra?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo separa la hospitalidad a los personajes buenos de los malos a lo largo de la historia?",
+      "texto": "Como a hospitalidade separa os personagens bons dos maus ao longo da história?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Penélope tiene pocas armas para resistir a los pretendientes. ¿Cómo usa su inteligencia?",
+      "texto": "Penélope tem poucas armas para resistir aos pretendentes. Como ela usa a inteligência?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Los desastres del viaje, ¿son culpa de los dioses, de Ulises o de sus compañeros?",
+      "texto": "Os desastres da viagem são culpa dos deuses, de Ulisses ou dos companheiros?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Por qué Ulises vuelve a casa disfrazado en lugar de revelarse enseguida?",
+      "texto": "Por que Ulisses volta para casa disfarçado em vez de se revelar logo?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Es justa la venganza del final? ¿Cómo podrían juzgarla de forma distinta un lector de hoy y un oyente de la Grecia antigua?",
+      "texto": "A vingança do final é justa? Como um leitor de hoje e um ouvinte da Grécia antiga poderiam julgá-la de formas diferentes?",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué obra, película o serie actual conoces que recuerde una odisea? ¿Qué tiene en común con el libro?",
+      "texto": "Que obra, filme ou série atual você conhece que lembra uma odisseia? O que ela tem em comum com o livro?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-57654",
+      "motivo": "A outra grande epopeia atribuída a Homero, sobre a Guerra de Troia, também em espanhol."
+    },
+    {
+      "id": "pg-57303",
+      "motivo": "Dante encontra Ulisses no Inferno e reconta a sua última viagem."
+    },
+    {
+      "id": "pg-3333",
+      "motivo": "Epopeia de viagem marítima que se inspira em Homero e cita Ulisses."
+    },
+    {
+      "id": "se-james-joyce-ulysses",
+      "motivo": "Romance moderno construído em paralelo com a Odisseia."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "Odisseia: Ciclope que devora homens, massacre dos pretendentes e enforcamento das servas",
+    "sensivel": ""
+  }
+}

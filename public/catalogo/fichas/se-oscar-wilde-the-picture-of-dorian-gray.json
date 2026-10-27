@@ -1,0 +1,398 @@
+{
+  "versao": 1,
+  "livroId": "se-oscar-wilde-the-picture-of-dorian-gray",
+  "titulo": "The Picture of Dorian Gray",
+  "idioma": "en",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 1
+  },
+  "autorEContexto": [
+    {
+      "texto": "Oscar Wilde nasceu em Dublin, na Irlanda, em 1854, e morreu em Paris em 1900, aos 46 anos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Estudou no Trinity College, em Dublin, e no Magdalen College, em Oxford, onde se destacou nos estudos clássicos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Wilde foi a figura mais famosa do esteticismo, movimento que defendia a arte pela arte: a arte não precisa ensinar moral nem ser útil.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1882, fez uma longa turnê de palestras pelos Estados Unidos e Canadá, falando sobre beleza e decoração.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Nos anos 1890, fez enorme sucesso como dramaturgo em Londres, com comédias como The Importance of Being Earnest (1895).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro nasce na Inglaterra vitoriana, uma sociedade de regras morais rígidas, aparências e forte divisão entre classes sociais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1895, Wilde foi condenado por sua relação com homens, então crime na Inglaterra, e cumpriu dois anos de trabalhos forçados.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Depois da prisão, viveu exilado na França, com pouco dinheiro, até morrer em Paris.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É o único romance de Oscar Wilde e uma das obras centrais da literatura do fim do século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A ideia do retrato que envelhece no lugar do dono virou um dos mitos modernos mais conhecidos, citado em filmes, séries e quadrinhos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro discute uma pergunta que continua atual: o que acontece quando alguém valoriza a aparência e o prazer acima de tudo?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mistura comédia de salão, cheia de frases espirituosas, com romance gótico e de terror moral.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Beleza e juventude",
+      "texto": "Dorian deseja ficar jovem e belo para sempre. O livro pergunta quanto vale a beleza e o que ela esconde.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Arte e moral",
+      "texto": "O livro discute se a arte deve ter função moral ou existir só pela beleza, ideia central do esteticismo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Influência",
+      "texto": "As ideias de Lord Henry moldam Dorian. A obra mostra como palavras e livros podem transformar uma pessoa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Aparência e realidade",
+      "texto": "Por fora, tudo parece perfeito; por dentro, a alma se deforma. A vida dupla é um tema forte do livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Hedonismo",
+      "texto": "A busca do prazer como objetivo de vida é defendida por Lord Henry e testada por Dorian, com consequências.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Consciência e culpa",
+      "texto": "O retrato funciona como uma consciência visível: mostra o que Dorian não quer ver em si mesmo.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Dorian Gray",
+      "texto": "Jovem rico e extremamente belo. No começo, é ingênuo e influenciável.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Lord Henry Wotton",
+      "texto": "Aristocrata elegante e irônico, cheio de frases provocadoras. Defende que a vida deve ser dedicada ao prazer e à beleza.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Basil Hallward",
+      "texto": "Pintor talentoso e sério. Fica fascinado por Dorian e pinta seu retrato.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Sibyl Vane",
+      "texto": "Jovem atriz pobre que interpreta papéis de Shakespeare num pequeno teatro de Londres.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "James Vane",
+      "texto": "Irmão de Sibyl, marinheiro, protetor e desconfiado dos homens ricos que se aproximam dela.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Alan Campbell",
+      "texto": "Cientista, antigo amigo de Dorian, que se afastou dele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Sibyl Vane (destino)",
+      "texto": "Depois de ser rejeitada por Dorian, Sibyl tira a própria vida.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "nome": "Basil Hallward (destino)",
+      "texto": "Basil é assassinado por Dorian depois de ver o retrato transformado.",
+      "spoiler": true,
+      "sensivel": true
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O livro foi encomendado num jantar em Londres, em 1889, pelo editor americano da revista Lippincott's. No mesmo jantar, Arthur Conan Doyle recebeu a encomenda de The Sign of the Four.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A primeira versão saiu na Lippincott's Monthly Magazine em 1890, com 13 capítulos. A versão em livro, de 1891, foi ampliada para 20 capítulos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Antes da publicação na revista, o editor cortou trechos considerados ousados demais para os leitores da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitos críticos chamaram o livro de imoral. Wilde respondeu publicamente em cartas aos jornais, defendendo a obra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na edição de 1891, Wilde acrescentou um prefácio feito só de aforismos sobre arte, como resposta às críticas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O misterioso livro que Lord Henry dá a Dorian é inspirado em À rebours (1884), romance francês de Joris-Karl Huysmans.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1895, no tribunal, o advogado Edward Carson usou trechos do romance para atacar Wilde.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Wilde escreveu numa carta que Basil é como ele se via, Lord Henry é como o mundo o via, e Dorian é o que ele gostaria de ser.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Sibyl Vane interpreta Julieta, de Romeo and Juliet, e outras heroínas de Shakespeare.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O filme de 1945 deu a Angela Lansbury, no papel de Sibyl, uma indicação ao Oscar de atriz coadjuvante.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "hansom",
+      "texto": "Carruagem de aluguel de duas rodas, puxada por um cavalo. Era o táxi da Londres vitoriana.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "sovereign",
+      "texto": "Moeda de ouro que valia uma libra esterlina. Não é rei: aqui é dinheiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "guinea",
+      "texto": "Valor de 21 xelins, um pouco mais que uma libra. Usado para preços elegantes, como arte e serviços de luxo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "shilling",
+      "texto": "Xelim: moeda que valia 1/20 de libra. Usada no dia a dia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "valet",
+      "texto": "Criado pessoal de um homem rico, que cuida de roupas, recados e da casa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Mayfair",
+      "texto": "Bairro nobre do West End de Londres, onde moravam aristocratas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Grosvenor",
+      "texto": "Grosvenor Gallery: galeria de arte de Londres ligada aos artistas modernos e estetas da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Royal Academy",
+      "texto": "Instituição oficial de arte britânica, com grandes exposições anuais. Mais tradicional que a Grosvenor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "curious",
+      "texto": "Em Wilde, muitas vezes significa estranho, raro ou elaborado, não curioso no sentido de querer saber.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "fellow",
+      "texto": "Sujeito, camarada. Em my dear fellow, é forma amigável entre homens da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Philistine",
+      "texto": "Pessoa sem gosto artístico, que só valoriza o útil e o convencional. Insulto comum entre os estetas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "dandyism",
+      "texto": "Dandismo: culto à elegância extrema nas roupas, nos modos e nas frases. Wilde era um dândi famoso.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "opium",
+      "texto": "Ópio: droga fumada em casas clandestinas na Londres da época, associadas ao vício e ao submundo.",
+      "spoiler": false,
+      "sensivel": true
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Lord e Lady são títulos da aristocracia britânica. Indicam nobreza e posição social, algo central na sociedade do livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O West End era a Londres rica, dos teatros e salões. O East End era a Londres pobre, das docas e das ruas perigosas. O livro circula entre os dois mundos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os clubes de cavalheiros eram espaços exclusivos onde homens ricos conversavam, jantavam e liam jornais. Pertencer a eles mostrava status.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O dono do teatro de Sibyl é descrito com estereótipos antissemitas comuns na época. É um preconceito do período, não um retrato justo.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Na era vitoriana, qualquer insinuação de amor entre homens era tabu e crime. Por isso, o livro fala de certas relações de forma indireta.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Os retratos pintados eram símbolo de status para famílias ricas, que os exibiam em casa por gerações.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "Is Lord Henry the villain of the story, or just someone who says what he thinks? How responsible is he for what happens to Dorian?",
+      "texto": "Lord Henry é o vilão da história ou só alguém que fala o que pensa? Quanto ele é responsável pelo que acontece com Dorian?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "If you could stay young forever while something else aged in your place, would you accept? Why?",
+      "texto": "Se você pudesse ficar jovem para sempre e outra coisa envelhecesse no seu lugar, aceitaria? Por quê?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "What does the portrait represent? Why can't Dorian simply destroy it or forget about it?",
+      "texto": "O que o retrato representa? Por que Dorian não consegue simplesmente destruí-lo ou esquecê-lo?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Why does Dorian lose interest in Sibyl after her bad performance? What does this reveal about him?",
+      "texto": "Por que Dorian perde o interesse por Sibyl depois da apresentação ruim dela? O que isso revela sobre ele?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Can a book change someone's life? Think about the yellow book Lord Henry gives Dorian.",
+      "texto": "Um livro pode mudar a vida de alguém? Pense no livro amarelo que Lord Henry dá a Dorian.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Today, filters and social media show perfect versions of people. What parallels do you see with Dorian's story?",
+      "texto": "Hoje, filtros e redes sociais mostram versões perfeitas das pessoas. Que paralelos você vê com a história de Dorian?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Is the ending a moral punishment? Does that fit with the idea that art doesn't need a moral lesson?",
+      "texto": "O final é uma punição moral? Isso combina com a ideia de que a arte não precisa ter lição de moral?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Basil, Lord Henry and Dorian see beauty in different ways. Which view seems healthiest to you?",
+      "texto": "Basil, Lord Henry e Dorian veem a beleza de formas diferentes. Qual visão parece mais saudável para você?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "se-robert-louis-stevenson-the-strange-case-of-dr-jekyll-and-mr-hyde",
+      "motivo": "Também vitoriano e gótico, mostra um homem respeitável com uma vida dupla e um lado sombrio escondido."
+    },
+    {
+      "id": "pg-844",
+      "motivo": "Do mesmo autor: a comédia mais famosa de Wilde, com o mesmo humor afiado e as mesmas frases espirituosas."
+    },
+    {
+      "id": "pg-2229",
+      "motivo": "A história de um pacto que troca a alma por desejos, ideia que ecoa no destino de Dorian."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "14",
+    "nota": "decadência moral, antros de ópio, um assassinato a faca, suicídio de Sibyl Vane. Sensível: \"Jew\" caricato no dono do teatro; antissemitismo de época",
+    "sensivel": "\"Jew\" caricato no dono do teatro; antissemitismo de época"
+  }
+}

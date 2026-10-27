@@ -1,0 +1,430 @@
+{
+  "versao": 1,
+  "livroId": "pg-17013",
+  "titulo": "Fortunata y Jacinta",
+  "idioma": "es",
+  "geradaEm": "2026-10-27",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "Benito Pérez Galdós nasceu em 1843 em Las Palmas de Gran Canaria, nas Ilhas Canárias, e morreu em Madri em 1920.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Jovem, mudou-se para Madri para estudar Direito, mas se dedicou ao jornalismo e à literatura. Madri virou o grande cenário de seus romances.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É o principal nome do realismo espanhol do século XIX, ao lado de autores como Leopoldo Alas (Clarín) e Emilia Pardo Bazán.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Escreveu os Episodios Nacionales, 46 romances em cinco séries que contam a história da Espanha do século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Fortunata y Jacinta saiu entre 1886 e 1887, em quatro partes. Faz parte das chamadas Novelas españolas contemporáneas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A história se passa em Madri entre o fim dos anos 1860 e meados dos anos 1870: Revolução de 1868, reinado de Amadeo de Saboya, Primeira República (1873) e Restauração dos Bourbon.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Galdós também atuou na política como deputado, primeiro liberal e depois republicano.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Entrou na Real Academia Española em 1897.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É frequentemente apontado como o maior romance espanhol depois de Dom Quixote.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Pinta Madri inteira: comerciantes ricos, funcionários, religiosos e o povo pobre dos bairros antigos. É um retrato vivo de uma cidade e de uma sociedade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Une a vida íntima das personagens à história política da Espanha, mostrando como o público e o privado se misturam.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Dá voz e profundidade a uma mulher pobre e sem estudo, algo pouco comum no romance da época.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Classe social",
+      "texto": "O choque entre a burguesia rica do comércio e o povo pobre de Madri, e como a origem marca o destino de cada um.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Casamento e adultério",
+      "texto": "O livro mostra dois casamentos e uma relação fora deles. Trata o tema com seriedade, sem cenas explícitas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Maternidade",
+      "texto": "O desejo de ter filhos, e o que significa ser mãe, move boa parte das escolhas das duas protagonistas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Natureza contra convenção",
+      "texto": "Fortunata age pelo instinto e pelo sentimento; a sociedade exige regras e aparências. O romance põe essas forças em conflito.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Religião e caridade",
+      "texto": "A Igreja, as obras de caridade e as tentativas de 'corrigir' mulheres aparecem com olhar crítico e complexo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "História e política",
+      "texto": "As mudanças de regime na Espanha ecoam na vida das personagens, que vivem tempos instáveis.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Fortunata",
+      "texto": "Jovem bonita e pobre de um bairro popular de Madri. É espontânea, apaixonada e tem pouca instrução.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Jacinta",
+      "texto": "Prima e esposa de Juanito. Delicada, educada e bondosa, sonha em ser mãe.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Juanito Santa Cruz",
+      "texto": "Filho único de uma família rica de comerciantes. Mimado e charmoso, é o típico 'señorito'. A família o chama de 'el Delfín'.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Barbarita Arnaiz",
+      "texto": "Mãe de Juanito. Adora o filho e organiza a vida da família.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Baldomero Santa Cruz",
+      "texto": "Pai de Juanito, comerciante de tecidos enriquecido e homem tranquilo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Maximiliano Rubín",
+      "texto": "Rapaz frágil e tímido que estuda farmácia. Tem uma vida interior intensa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Doña Lupe",
+      "texto": "Tia de Maximiliano. Viúva prática, empresta dinheiro a juros e controla a família.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Guillermina Pacheco",
+      "texto": "Senhora rica que dedica a vida à caridade e a construir um asilo para crianças.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Plácido Estupiñá",
+      "texto": "Velho conhecido da família Santa Cruz, falante e cheio de histórias do comércio de Madri.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Evaristo Feijoo",
+      "texto": "Coronel aposentado, mais velho, que se torna conselheiro de Fortunata sobre como viver em sociedade.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O subtítulo do livro é Dos historias de casadas, ou seja, duas histórias de mulheres casadas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É um dos romances mais longos da literatura espanhola: são quatro partes e muitas centenas de páginas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O primeiro encontro entre Juanito e Fortunata acontece numa escada, quando ela está comendo um ovo cru. A cena ficou famosa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O começo do livro conta com detalhes a história do comércio de tecidos e de mantones de Manila em Madri, ligado à família Santa Cruz.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Galdós usa muito o discurso indireto livre: a voz do narrador se mistura aos pensamentos das personagens.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O narrador às vezes fala como se tivesse conhecido as personagens em pessoa, o que dá ao livro um tom de crônica.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitos lugares reais de Madri aparecem no livro, como a Plaza Mayor, a Cava de San Miguel e a Puerta del Sol.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1980, a televisão espanhola (TVE) exibiu uma série baseada no livro, dirigida por Mario Camus, com Ana Belén como Fortunata.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Fortunata se casa com Maximiliano Rubín sem amá-lo, e o casamento vira um dos centros do romance.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Jacinta tenta adotar um menino, o Pituso, achando que é filho de Juanito. Depois se descobre que não é.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Fortunata passa um tempo num convento para mulheres 'arrependidas', as Micaelas, onde conhece Mauricia la Dura, mulher marcada pelo álcool.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "texto": "No final, Fortunata morre pouco depois de dar à luz e entrega o filho a Jacinta. Maximiliano termina internado num hospício.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "señorito",
+      "texto": "Rapaz de família rica, muitas vezes mimado e sem trabalho. Juanito é o exemplo clássico.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "el Delfín",
+      "texto": "Apelido de Juanito. 'Delfim' era o título do herdeiro do trono francês; aqui, ironia para o filho querido e herdeiro da família.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "cursi",
+      "texto": "Pessoa ou coisa que quer parecer elegante e fica ridícula. Palavra muito usada no século XIX e ainda hoje.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "chulo / chula",
+      "texto": "Tipo popular madrilenho, atrevido e de fala desenvolta. Hoje 'chulo' também pode significar 'legal' ou 'arrogante'.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "duro",
+      "texto": "Moeda de cinco pesetas. Ainda se diz 'estar sin un duro' para 'estar sem dinheiro'.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "real",
+      "texto": "Moeda antiga que valia um quarto de peseta. Na época ainda se contava muito em reales.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "peseta",
+      "texto": "Moeda criada em 1868, justamente o período em que o romance começa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "mantón de Manila",
+      "texto": "Grande xale de seda bordado, vindo do Oriente via Filipinas. Era moda em Madri e base do comércio da família Santa Cruz.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "hortera",
+      "texto": "Na Madri do século XIX, o jovem empregado de loja. Hoje significa 'brega, de mau gosto'.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "tertulia",
+      "texto": "Reunião habitual de pessoas para conversar, em casa ou num café.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "botica / boticario",
+      "texto": "Farmácia e farmacêutico, em linguagem antiga. Maximiliano estuda para ser boticário.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "prestamista",
+      "texto": "Pessoa que empresta dinheiro cobrando juros, como Doña Lupe.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "querida",
+      "texto": "Além de 'querida', na época podia significar 'amante', a mulher sustentada fora do casamento.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "pituso",
+      "texto": "Palavra familiar para 'menino pequeno e engraçadinho'. No livro vira apelido de uma criança.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Revolução de 1868 (La Gloriosa): derrubou a rainha Isabel II. Abriu um período de seis anos de instabilidade que serve de fundo ao livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Primeira República Espanhola (1873–1874): durou menos de dois anos. Depois veio a Restauração, com Alfonso XII no trono a partir do fim de 1874.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O centro de Madri era dominado por pequenos e médios comerciantes. Lojas de tecidos passavam de pai para filho e enriqueciam famílias inteiras.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Para uma mulher da época, o casamento definia a posição social. Uma mulher pobre e 'desonrada' tinha poucas saídas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Existiam instituições religiosas para recolher e 'regenerar' mulheres consideradas perdidas. O livro mostra uma delas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O tratamento don/doña indicava respeito e certa posição social. Seu uso ou ausência revela muito sobre a classe de cada personagem.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "¿Por qué crees que el libro lleva el nombre de las dos mujeres y no el de Juanito?",
+      "texto": "Por que você acha que o livro tem o nome das duas mulheres, e não de Juanito?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Fortunata y Jacinta son muy distintas. ¿En qué se parecen?",
+      "texto": "Fortunata e Jacinta são muito diferentes. Em que elas se parecem?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo deciden el dinero y la clase social lo que cada personaje puede hacer?",
+      "texto": "Como o dinheiro e a classe social decidem o que cada personagem pode fazer?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Es Juanito un villano o solo el producto de cómo lo criaron? Justifica tu respuesta.",
+      "texto": "Juanito é um vilão ou só um produto da forma como foi criado? Justifique.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué papel tiene Madrid en la novela? ¿Parece la ciudad un personaje más?",
+      "texto": "Que papel tem Madri no romance? A cidade parece uma personagem?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo se reflejan los acontecimientos políticos de España en la vida de los personajes?",
+      "texto": "Como os acontecimentos políticos da Espanha se refletem na vida das personagens?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Maximiliano quiere 'salvar' a Fortunata. ¿Qué dice esa idea sobre él y sobre la época?",
+      "texto": "Maximiliano quer 'salvar' Fortunata. O que essa ideia diz sobre ele e sobre a época?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué te pareció el final? ¿La decisión de Fortunata sobre su hijo es una victoria o una derrota para ella?",
+      "texto": "O que você achou do final? A decisão de Fortunata sobre o filho é uma vitória ou uma derrota para ela?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-52392",
+      "motivo": "Outro romance de Galdós sobre a Madri do século XIX, com o mesmo olhar realista sobre a classe média."
+    },
+    {
+      "id": "pg-17073",
+      "motivo": "O outro grande romance realista espanhol da mesma década, também sobre uma mulher casada e a sociedade que a cerca."
+    },
+    {
+      "id": "se-leo-tolstoy-anna-karenina-constance-garnett",
+      "motivo": "Romance realista contemporâneo que também trata de casamento, adultério e pressão social."
+    },
+    {
+      "id": "pg-42942",
+      "motivo": "Romance realista português da mesma época sobre casamento e adultério na burguesia urbana."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "14",
+    "nota": "adultério e filho ilegítimo como tema central, mulher pobre explorada, sem cena explícita",
+    "sensivel": ""
+  }
+}

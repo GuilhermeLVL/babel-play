@@ -1,0 +1,354 @@
+{
+  "versao": 1,
+  "livroId": "se-niccolo-machiavelli-the-prince-w-k-marriott",
+  "titulo": "The Prince",
+  "idioma": "en",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "Nicolau Maquiavel (Niccolò Machiavelli) nasceu em Florença, na Itália, em 1469, e morreu na mesma cidade em 1527.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "De 1498 a 1512, ele trabalhou para a República de Florença como secretário da Segunda Chancelaria. Cuidava de assuntos de governo, de guerra e de diplomacia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Como diplomata, viajou em missões à França, à corte do papa e a outros Estados. Também conheceu de perto César Bórgia, que depois virou um dos grandes exemplos do livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1512, a família Médici voltou ao poder em Florença e a república caiu. Maquiavel perdeu o cargo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1513, foi preso sob suspeita de participar de uma conspiração contra os Médici e foi torturado. Depois foi solto e se retirou para sua propriedade no campo, perto de Florença.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Foi nesse afastamento, por volta de 1513, que ele escreveu O Príncipe. Dedicou a obra a Lorenzo de Médici, na esperança de voltar a servir ao governo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época, a Itália não era um país unido. Era dividida em vários Estados rivais, como Florença, Veneza, Milão, Nápoles e os territórios do papa. A partir de 1494, exércitos estrangeiros, sobretudo da França e da Espanha, invadiram a península nas chamadas Guerras Italianas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro foi escrito em italiano e só foi publicado em 1532, cinco anos após a morte do autor.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É considerado um dos marcos do pensamento político moderno. Maquiavel analisa o poder como ele é exercido na prática, e não como deveria ser em um mundo ideal.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro separa a política da moral cristã tradicional, e isso provocou polêmica por séculos. A Igreja Católica o incluiu no Índice de Livros Proibidos em 1559.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O nome do autor virou adjetivo. Em português, maquiavélico significa astuto e sem escrúpulos, e o mesmo vale para machiavellian em inglês. Muitos estudiosos acham esse rótulo simplificado demais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Até hoje, a obra é lida e debatida em cursos de ciência política, história, filosofia e até administração.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Como conquistar e manter o poder",
+      "texto": "O livro compara tipos de principado: os herdados, os novos e os mistos. Para cada um, discute o que o governante precisa fazer para não perder o Estado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Virtù e fortuna",
+      "texto": "Maquiavel opõe a capacidade e a energia do governante (virtù) à sorte e às circunstâncias (fortuna). Ele pergunta até onde uma pessoa consegue controlar o próprio destino.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Moral e política",
+      "texto": "O autor discute se um governante deve sempre ser bom, cumprir a palavra e ser generoso, ou se às vezes precisa agir de outro modo para proteger o Estado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Exércitos próprios",
+      "texto": "Maquiavel critica os exércitos de mercenários e de aliados estrangeiros. Defende que o Estado tenha soldados próprios, formados por seus cidadãos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Aparência e reputação",
+      "texto": "O livro dá muita importância a como o governante é visto pelo povo. Discute como evitar ser odiado ou desprezado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "A Itália dividida",
+      "texto": "No último capítulo, o autor faz um apelo para que um líder una a Itália e a liberte dos invasores estrangeiros.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [],
+  "curiosidades": [
+    {
+      "texto": "O livro é curto: tem 26 capítulos, e muitos deles ocupam poucas páginas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em italiano, o título é Il Principe. Em suas cartas, porém, Maquiavel se referia à obra em latim, como De Principatibus, que quer dizer Sobre os principados.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os títulos dos capítulos foram escritos originalmente em latim, enquanto o texto está em italiano.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Maquiavel usa exemplos da Antiguidade, como Moisés, Ciro, Rômulo e Teseu, ao lado de exemplos da sua própria época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "César Bórgia, filho do papa Alexandre VI, é um dos exemplos mais discutidos do livro. Maquiavel analisa os métodos dele, inclusive os violentos, para conquistar e manter territórios.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "O livro comenta o frade Savonarola, que liderou Florença e foi executado em 1498. Maquiavel o usa como exemplo de líder que não tinha armas para se sustentar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Maquiavel não ficou só na teoria militar. Quando era funcionário de Florença, ajudou a organizar uma milícia de cidadãos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele também escreveu os Discursos sobre a primeira década de Tito Lívio, em que trata das repúblicas, além de A Arte da Guerra e da comédia A Mandrágora.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Há um longo debate sobre o livro. Seria um manual sincero para tiranos, um retrato realista da política ou até uma sátira? Os estudiosos discordam até hoje.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A tradução de W. K. Marriott, do começo do século XX, está em domínio público e virou uma das versões em inglês mais lidas na internet. Por isso, o inglês dela soa um pouco formal e antigo.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "principality",
+      "texto": "Principado: Estado governado por um príncipe. Aqui, a palavra vale para qualquer território com um governante único, e não só para os pequenos, como Mônaco hoje.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "prince",
+      "texto": "No livro, prince quer dizer qualquer governante com poder supremo, seja rei, duque ou senhor. Não significa só o filho do rei.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "hereditary",
+      "texto": "Hereditário: recebido por herança de família. Os hereditary principalities são Estados que passam de pai para filho.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ecclesiastical",
+      "texto": "Eclesiástico: ligado à Igreja. Os ecclesiastical principalities são os Estados governados pela Igreja, como os do papa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "mercenaries",
+      "texto": "Mercenários: soldados que lutam por pagamento, e não por lealdade ao Estado. O livro critica esse tipo de soldado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "auxiliaries",
+      "texto": "Tropas auxiliares: exércitos emprestados por outro governante aliado. Não é a mesma coisa que ajudantes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "soldiery",
+      "texto": "Palavra antiga para soldados em geral, ou tropas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "liberality",
+      "texto": "Aqui significa generosidade, sobretudo ao gastar dinheiro e distribuir presentes. Não tem relação com ideias políticas liberais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "meanness",
+      "texto": "Neste livro, quer dizer avareza, ou seja, mão-fechada com dinheiro. No inglês atual, a palavra costuma significar maldade ou grosseria.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "clemency",
+      "texto": "Clemência: disposição para perdoar ou punir com brandura. É o contrário da crueldade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "keep faith",
+      "texto": "Expressão que significa cumprir a palavra ou manter promessas. Não tem relação com fé religiosa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "wickedness",
+      "texto": "Maldade, perversidade. Aparece na ideia de chegar ao poder por meio de crimes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ability",
+      "texto": "Muitas vezes é assim que Marriott traduz a palavra italiana virtù. Ela quer dizer talento, energia e capacidade de agir, e não virtude moral.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "fortune",
+      "texto": "Fortuna: sorte, acaso, as circunstâncias. Não é riqueza. No livro, a fortuna é às vezes tratada como uma força personificada, no feminino.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Quando o livro fala em barbarians, ele se refere aos estrangeiros que invadiam a Itália, como franceses, espanhóis e suíços. Não se trata de povos selvagens.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "César Bórgia aparece também como Duke Valentino. O apelido vem do ducado francês de Valentinois, que ele recebeu do rei da França.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época, o papa não era só um líder religioso. Também governava um território no centro da Itália, com exército próprio, e fazia guerras e alianças como os outros Estados.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitos Estados italianos contratavam chefes militares profissionais, os condottieri, que vendiam os serviços de suas tropas. Isso ajuda a entender as críticas do livro aos mercenários.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os leitores da época conheciam bem os nomes de reis, papas e capitães citados. Hoje, vale a pena ter uma nota ou mapa à mão para acompanhar os exemplos históricos.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "Why did Machiavelli dedicate the book to a Medici, the family that had removed him from office? What does this suggest about the book's purpose?",
+      "texto": "Por que Maquiavel dedicou o livro a um Médici, a família que o tinha afastado do governo? O que isso diz sobre a intenção da obra?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "For Machiavelli, what matters more in a ruler's success: personal ability or fortune? Do you agree with him?",
+      "texto": "Para Maquiavel, o que pesa mais no sucesso de um governante: a capacidade pessoal ou a sorte? Você concorda com ele?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "According to the book, can someone be a good ruler and a good person at the same time? What do you think?",
+      "texto": "É possível ser um bom governante e uma boa pessoa ao mesmo tempo, segundo o livro? E na sua opinião?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Machiavelli discusses whether it is better to be loved or feared. What arguments does he use? Do they apply to leaders today?",
+      "texto": "Maquiavel discute se é melhor ser amado ou temido. Que argumentos ele usa? Eles valem para líderes de hoje?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Why does the author distrust mercenaries and borrowed troops so much?",
+      "texto": "Por que o autor desconfia tanto de soldados mercenários e de tropas emprestadas?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How important are appearance and reputation for the ruler in the book? Do you see something similar in politics or social media today?",
+      "texto": "Qual a importância da aparência e da reputação para o governante do livro? Você vê algo parecido na política ou nas redes sociais de hoje?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "After reading the book, do you think the word Machiavellian is fair to the author? Why?",
+      "texto": "Você acha que o adjetivo maquiavélico é justo com o autor depois de ler o livro? Por quê?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How does the last chapter, with its call to free Italy, change the way you read the rest of the book?",
+      "texto": "Como o último capítulo, com o apelo pela libertação da Itália, muda a sua leitura do resto do livro?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-3207",
+      "motivo": "Outro clássico da filosofia política moderna. Hobbes também pensa o poder do Estado a partir de uma visão realista da natureza humana."
+    },
+    {
+      "id": "pg-1497",
+      "motivo": "Platão descreve o governante e o Estado ideais, e isso faz um ótimo contraste com o realismo de Maquiavel."
+    },
+    {
+      "id": "pg-7370",
+      "motivo": "Locke discute os limites do poder e o consentimento dos governados, um contraponto ao príncipe que governa sozinho."
+    },
+    {
+      "id": "se-william-shakespeare-macbeth",
+      "motivo": "A peça mostra a ambição e o preço de conquistar e manter o poder pela força, temas centrais em O Príncipe."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "tratado político; discute crueldade e assassinatos políticos como exemplos históricos",
+    "sensivel": ""
+  }
+}

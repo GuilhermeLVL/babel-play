@@ -1,0 +1,404 @@
+{
+  "versao": 1,
+  "livroId": "pg-45438",
+  "titulo": "La isla del tesoro",
+  "idioma": "es",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 3
+  },
+  "autorEContexto": [
+    {
+      "texto": "Robert Louis Stevenson nasceu em Edimburgo, na Escócia, em 1850, e morreu em Samoa, no Pacífico, em 1894.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Vinha de uma família de engenheiros que construíam faróis na costa escocesa. Estudou engenharia e depois direito, mas preferiu escrever.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Teve a saúde frágil a vida toda, com sérios problemas nos pulmões. Por isso viajou muito em busca de climas melhores.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Ilha do Tesouro saiu primeiro em capítulos na revista infantojuvenil Young Folks, entre 1881 e 1882. Virou livro em 1883.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Foi o primeiro grande sucesso de Stevenson. Depois vieram O Médico e o Monstro e Raptado, ambos de 1886.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A história se passa no século XVIII, época em que piratas ainda eram lembrados como ameaça real nos mares do Caribe e do Atlântico.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No fim do século XIX, os romances de aventura para jovens eram muito populares no Reino Unido, junto com o crescimento do império britânico e das viagens marítimas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "Long John Silver é um dos vilões mais famosos da literatura, justamente por não ser só vilão: é simpático, esperto e imprevisível.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "É um romance de formação: acompanhamos um garoto que precisa tomar decisões difíceis e aprende a confiar no próprio julgamento.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Inspirou dezenas de filmes, séries e livros, e continua sendo uma das portas de entrada mais comuns para a literatura de aventura.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Aventura e coragem",
+      "texto": "Jim enfrenta perigos no mar e na ilha e descobre do que é capaz.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ganância",
+      "texto": "O tesouro move quase todos os personagens e revela o pior de muitos deles.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Lealdade e traição",
+      "texto": "Quem é aliado de verdade? O livro mostra como é difícil saber em quem confiar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Crescer",
+      "texto": "A viagem é também a passagem de Jim da infância para uma vida com mais responsabilidade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Bem e mal misturados",
+      "texto": "Os personagens não são todos heróis ou todos bandidos. Até os vilões têm charme e até os heróis erram.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Jim Hawkins",
+      "texto": "Garoto que ajuda a mãe na estalagem da família, no litoral da Inglaterra. É o narrador da maior parte da história.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Long John Silver",
+      "texto": "Cozinheiro do navio, com uma perna só e um papagaio. Carismático, falante e difícil de decifrar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Billy Bones",
+      "texto": "Velho marinheiro rude que se hospeda na estalagem de Jim. Bebe muito, assusta todo mundo e guarda um baú misterioso.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Doutor Livesey",
+      "texto": "Médico e juiz local. Calmo, justo e corajoso, é uma das vozes mais sensatas do livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Squire Trelawney",
+      "texto": "Proprietário rural rico e entusiasmado que financia a expedição. Generoso, mas fala demais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Capitão Smollett",
+      "texto": "Comandante do navio. Severo e desconfiado desde o início, leva o dever muito a sério.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Capitão Flint",
+      "texto": "Pirata temido que enterrou o tesouro antes do início da história. Também é o nome do papagaio de Silver.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Israel Hands",
+      "texto": "Marinheiro experiente da tripulação, responsável pelo leme.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ben Gunn",
+      "texto": "Ex-pirata que vive sozinho na ilha há anos, meio estranho por causa do isolamento. Sonha com um pedaço de queijo.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Pew",
+      "texto": "Pirata cego e ameaçador que aparece na estalagem logo no começo.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "Tudo começou com um mapa. Em 1881, nas férias em Braemar, na Escócia, Stevenson desenhou uma ilha imaginária com o enteado, Lloyd Osbourne, e criou a história a partir dela.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O título original planejado era The Sea Cook, ou seja, O Cozinheiro do Mar, uma referência a Long John Silver.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na revista Young Folks, a história foi publicada com o pseudônimo Captain George North.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Stevenson contou em carta que se inspirou no amigo e poeta William Ernest Henley, que tinha perdido parte de uma perna, para criar Silver.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Israel Hands era o nome de um pirata real, que serviu com o famoso Barba Negra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No ensaio My First Book, Stevenson admitiu empréstimos: o papagaio veio de Robinson Crusoé, de Defoe, e reconheceu dívidas com Washington Irving e Edgar Allan Poe.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A canção que os piratas cantam no livro tem refrão inventado por Stevenson. Ela ficou tão famosa que muita gente acha que é uma cantiga antiga de marinheiros.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O jeito exagerado de falar dos piratas no cinema vem muito do ator Robert Newton, que fez Silver no filme da Disney de 1950.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "H. Rider Haggard escreveu As Minas do Rei Salomão depois de apostar com o irmão que faria um livro tão bom quanto A Ilha do Tesouro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro já virou de tudo: filmes, desenhos, séries e até uma versão com os Muppets, de 1996.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Uma das cenas mais famosas acontece dentro de um barril de maçãs: escondido ali, Jim escuta uma conversa que muda a viagem.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "No final, Silver foge levando parte do dinheiro. Stevenson deixa o vilão escapar, algo raro nos livros juvenis da época.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "goleta",
+      "texto": "Escuna: navio a vela de dois mastros ou mais. É o tipo de embarcação da expedição.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "cubierta",
+      "texto": "Convés, a parte de cima do navio onde a tripulação circula. Não confunda com capa de livro, outro sentido da palavra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "bodega",
+      "texto": "No navio, é o porão de carga. Em outros contextos significa adega ou depósito de vinho.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "posada",
+      "texto": "Estalagem ou hospedaria simples, com quartos e comida. A família de Jim tem uma.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "doblón",
+      "texto": "Dobrão: antiga moeda de ouro espanhola, de alto valor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "piezas de a ocho",
+      "texto": "Moedas de prata espanholas que valiam oito reales. Eram muito usadas no comércio e viraram símbolo do tesouro pirata.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ron",
+      "texto": "Rum, a bebida destilada da cana-de-açúcar, típica dos marinheiros e piratas da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "timón",
+      "texto": "Leme, a peça que dá direção ao navio. Timonel é quem o controla.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "contramaestre",
+      "texto": "Contramestre: oficial que comanda diretamente os marinheiros no trabalho do navio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "grumete",
+      "texto": "Grumete: aprendiz de marinheiro, geralmente um menino que faz os serviços mais simples a bordo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "catalejo",
+      "texto": "Luneta, o pequeno telescópio usado pelos marinheiros para ver longe.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "empalizada",
+      "texto": "Paliçada: cerca de troncos fincados no chão, usada como proteção.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "mosquete",
+      "texto": "Arma de fogo longa e antiga, carregada pela boca do cano, um tiro de cada vez.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "bucanero",
+      "texto": "Bucaneiro: pirata que atacava navios e cidades no Caribe, sobretudo no século XVII.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "No século XVIII, a Espanha tirava muita prata e ouro da América. Por isso as moedas espanholas aparecem tanto em histórias de piratas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Não havia GPS nem rádio. Navegava-se com mapas, bússola e observação do sol e das estrelas. Um mapa secreto valia uma fortuna.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Bristol, de onde parte o navio, era um dos portos mais importantes da Inglaterra e um centro do comércio marítimo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Abandonar alguém sozinho numa ilha era um castigo usado entre piratas e marinheiros.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Um squire era um proprietário de terras inglês respeitado no seu distrito, abaixo da nobreza. Algumas traduções mantêm a palavra em inglês.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época, o rum fazia parte da rotina dos marinheiros, e o excesso de bebida era um problema comum a bordo.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "¿Por qué el mapa es tan importante para todos los personajes?",
+      "texto": "Por que o mapa é tão importante para todos os personagens?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué piensas de Long John Silver la primera vez que aparece? ¿Cambia esa opinión a lo largo de la lectura?",
+      "texto": "O que você pensa de Long John Silver na primeira vez que ele aparece? Essa opinião muda ao longo da leitura?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Jim toma varias decisiones solo, sin pedir permiso a los adultos. ¿Son valientes o imprudentes?",
+      "texto": "Jim toma várias decisões sozinho, sem pedir permissão aos adultos. Elas são corajosas ou imprudentes?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Quién es el adulto más confiable de la historia? ¿Por qué?",
+      "texto": "Quem é o adulto mais confiável da história? Por quê?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo cambia la codicia el comportamiento de las personas en el libro?",
+      "texto": "Como a ganância muda o comportamento das pessoas no livro?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué le hicieron a Ben Gunn los años solo en la isla?",
+      "texto": "O que os anos sozinho na ilha fizeram com Ben Gunn?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Te quedaste satisfecho con el destino de Silver al final? ¿Qué merecería?",
+      "texto": "Você ficou satisfeito com o destino de Silver no final? O que ele mereceria?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-22015",
+      "motivo": "Aventura em busca de tesouro escrita para rivalizar com A Ilha do Tesouro."
+    },
+    {
+      "id": "pg-74",
+      "motivo": "Outro garoto do século XIX metido numa caça ao tesouro cheia de perigos."
+    },
+    {
+      "id": "pg-16",
+      "motivo": "Piratas, ilha e um capitão vilão marcante; Barrie era grande admirador de Stevenson."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "A Ilha do Tesouro: piratas, tiroteios e mortes sem detalhe gráfico",
+    "sensivel": ""
+  }
+}

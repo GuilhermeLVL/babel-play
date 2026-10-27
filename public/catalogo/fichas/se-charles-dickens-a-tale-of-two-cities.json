@@ -1,0 +1,410 @@
+{
+  "versao": 1,
+  "livroId": "se-charles-dickens-a-tale-of-two-cities",
+  "titulo": "A Tale of Two Cities",
+  "idioma": "en",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "Charles Dickens nasceu em 1812, em Portsmouth, na Inglaterra, e morreu em 1870. Foi o romancista mais popular da Inglaterra vitoriana.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na infância, Dickens trabalhou numa fábrica de graxa para sapatos enquanto o pai estava preso por dívidas. Essa experiência marcou sua visão sobre pobreza e injustiça.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Tale of Two Cities saiu em 1859, em capítulos semanais, na revista All the Year Round, que o próprio Dickens tinha acabado de fundar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É um romance histórico. A ação se passa entre Londres e Paris, mais ou menos de 1775 até os anos do Terror na Revolução Francesa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Dickens se inspirou no livro The French Revolution (1837), de Thomas Carlyle, que ele admirava muito. Ele reconhece essa dívida no prefácio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No prefácio, Dickens também conta que a ideia da história surgiu quando ele atuava na peça The Frozen Deep, de Wilkie Collins, em 1857.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Dickens escreveu apenas dois romances históricos: este e Barnaby Rudge (1841). Quase todos os outros se passam na Inglaterra de sua própria época.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É um dos romances mais lidos da língua inglesa. Sua abertura, feita de pares de opostos, está entre as mais famosas da literatura.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra a Revolução Francesa pelo olhar de pessoas comuns: explica por que o povo se revoltou e também como a revolta virou nova tirania.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "É uma boa porta de entrada para Dickens: mais curto e com enredo mais concentrado que muitos de seus outros romances.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Ressurreição e renascimento",
+      "texto": "A ideia de ser chamado de volta à vida aparece do começo ao fim: pessoas que voltam da prisão, do desespero ou da morte simbólica.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Injustiça social e revolução",
+      "texto": "A crueldade dos nobres e a miséria do povo francês preparam a explosão da Revolução. Dickens mostra as causas sem esconder os excessos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Vingança contra perdão",
+      "texto": "Alguns personagens vivem para se vingar; outros escolhem perdoar. O livro pergunta qual dos caminhos leva a algum futuro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Sacrifício e amor",
+      "texto": "O amor aparece como algo capaz de mudar uma vida inteira, inclusive a de quem parecia perdido.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Duplos e espelhos",
+      "texto": "Duas cidades, dois homens parecidos, dois países: o livro compara e contrasta o tempo todo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Prisão e memória",
+      "texto": "Prisões de verdade e prisões interiores, como traumas e lembranças, pesam sobre vários personagens.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Doctor Manette",
+      "texto": "Médico francês que passou 18 anos preso na Bastilha. No começo da história, volta à liberdade frágil e confuso.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Lucie Manette",
+      "texto": "Filha do Doutor Manette. Cresceu na Inglaterra achando que o pai estava morto. É o centro afetivo do livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Jarvis Lorry",
+      "texto": "Funcionário do banco Tellson's. Homem metódico, que diz só cuidar de negócios, mas tem bom coração.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Charles Darnay",
+      "texto": "Jovem francês que vive na Inglaterra e ensina francês. É honesto e rejeita a vida de privilégios da nobreza.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Sydney Carton",
+      "texto": "Advogado inglês brilhante, mas cínico e sem rumo, que bebe demais. É fisicamente muito parecido com Darnay.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Madame Defarge",
+      "texto": "Dona de uma taverna no bairro de Saint Antoine, em Paris. Está sempre tricotando e observa tudo em silêncio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ernest Defarge",
+      "texto": "Marido de Madame Defarge e dono da taverna. Foi criado do Doutor Manette e participa da organização dos revolucionários.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Jerry Cruncher",
+      "texto": "Mensageiro do banco Tellson's em Londres. Rabugento e cômico, tem um trabalho noturno misterioso.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Miss Pross",
+      "texto": "Governanta inglesa de Lucie, ferozmente leal e protetora.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Marquis St. Evrémonde",
+      "texto": "Aristocrata francês cruel e arrogante, símbolo da nobreza que trata o povo como coisa.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O livro é dividido em três partes, chamadas Recalled to Life, The Golden Thread e The Track of a Storm.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Além dos capítulos semanais na revista, a história saiu em fascículos mensais com ilustrações de Hablot K. Browne, conhecido como Phiz.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As duas cidades do título são Londres e Paris.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A tomada da Bastilha, em 14 de julho de 1789, aparece no romance pelos olhos dos moradores de Saint Antoine.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na peça The Frozen Deep, que inspirou o livro, um homem se sacrifica por um rival no amor. Dickens fazia esse papel.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Charles Darnay é, na verdade, sobrinho do Marquês St. Evrémonde. Ele abandonou o nome da família por vergonha de seus crimes.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "O tricô de Madame Defarge é um registro secreto: ela tricota os nomes das pessoas que os revolucionários querem punir.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "O trabalho noturno de Jerry Cruncher é desenterrar cadáveres para vender a médicos, prática real na Inglaterra da época.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "No final, Sydney Carton troca de lugar com Darnay e morre na guilhotina em seu lugar.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "texto": "A versão de cinema de 1935, com Ronald Colman como Sydney Carton, é uma das adaptações mais lembradas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "Old Bailey",
+      "texto": "Nome popular do principal tribunal criminal de Londres. Ainda existe.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "guinea",
+      "texto": "Moeda de ouro inglesa da época, que valia um pouco mais que uma libra (21 xelins).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "tumbril",
+      "texto": "Carroça simples, de duas rodas. Na Revolução, levava os condenados até a guilhotina.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "termo": "resurrection man",
+      "texto": "Ladrão de cadáveres: quem desenterrava mortos para vender a escolas de medicina. Ironia com a palavra ressurreição.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Monseigneur",
+      "texto": "Título francês de respeito para grandes nobres e bispos, algo como Vossa Senhoria. No livro, representa a alta nobreza.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Jacques",
+      "texto": "Nome francês comum. No livro, os revolucionários se chamam todos de Jacques como senha, lembrando as antigas revoltas camponesas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Citizen / Citizeness",
+      "texto": "Cidadão / cidadã. Na Revolução, substituíram senhor e senhora para marcar que todos eram iguais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "emigrant",
+      "texto": "No contexto da Revolução, o nobre que fugiu da França (em francês, émigré). Era visto como traidor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Farmer-General",
+      "texto": "Na França antiga, homem rico que comprava do rei o direito de cobrar impostos e lucrava com isso. Era muito odiado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "mail",
+      "texto": "Além de correio, a palavra indicava a diligência do correio (mail coach), que também levava passageiros.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "sou",
+      "texto": "Moeda francesa de pouco valor. Aparece como sinal da pobreza do povo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Carmagnole",
+      "texto": "Canção e dança de roda popular entre os revolucionários franceses.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "spy",
+      "texto": "Espião. Na Inglaterra e na França da época, informantes pagos eram comuns, e a palavra era um grande insulto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "La Guillotine",
+      "texto": "A guilhotina, máquina de execução da Revolução. O livro a trata quase como uma personagem.",
+      "spoiler": false,
+      "sensivel": true
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Na França do Antigo Regime, uma pessoa podia ser presa sem julgamento por ordem real, a lettre de cachet. A Bastilha era o símbolo desse poder.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na Inglaterra do século 18, a pena por traição era a morte pública com crueldade extra. Por isso um julgamento por traição era tão assustador.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "A Revolução começou em 1789. O rei Luís XVI foi executado em 1793, e veio o período chamado de Terror, com execuções em massa.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Em setembro de 1792, multidões invadiram prisões de Paris e mataram muitos presos. O episódio ficou conhecido como Massacres de Setembro.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Viajar entre Londres e Paris levava dias: diligência até Dover, barco pelo Canal da Mancha e diligência de novo na França.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Bancos como o Tellson's guardavam dinheiro e documentos de clientes dos dois países. Isso explica por que um bancário viaja tanto na história.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "The novel opens with a series of opposites. Why do you think Dickens chose to begin the story this way?",
+      "texto": "O livro começa com uma série de opostos. Por que você acha que Dickens escolheu abrir a história assim?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "What does being recalled to life mean for the different characters?",
+      "texto": "O que significa ser chamado de volta à vida para os diferentes personagens?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Dickens shows sympathy for the French people and also fear of the crowd. How does he balance these two things?",
+      "texto": "Dickens mostra simpatia pelo povo francês e também medo da multidão. Como ele equilibra essas duas coisas?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Compare London and Paris in the novel. Are they as different as they seem?",
+      "texto": "Compare Londres e Paris no livro. Elas são tão diferentes quanto parecem?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Sydney Carton and Charles Darnay look alike. How are they different on the inside?",
+      "texto": "Sydney Carton e Charles Darnay são parecidos por fora. Em que eles são diferentes por dentro?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Madame Defarge has reasons to hate the Evrémonde family. Is her revenge ever justified?",
+      "texto": "Madame Defarge tem motivos para odiar a família Evrémonde. A vingança dela é justa em algum momento?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Why does Carton's sacrifice give meaning to his life? Do you agree with this view?",
+      "texto": "Por que o sacrifício de Carton dá sentido à vida dele? Você concorda com essa visão?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "During the Revolution, the oppressors become the oppressed. What does the novel say about cycles of violence?",
+      "texto": "Quem oprimia passa a ser oprimido na Revolução. O que o livro diz sobre ciclos de violência?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "se-charles-dickens-great-expectations",
+      "motivo": "Outro grande romance de Dickens, escrito logo depois, com temas de culpa, classe social e redenção."
+    },
+    {
+      "id": "se-edmund-burke-reflections-on-the-revolution-in-france",
+      "motivo": "Texto clássico de 1790 sobre a Revolução Francesa, escrito por um inglês que temia seus excessos, visão próxima da do romance."
+    },
+    {
+      "id": "se-leo-tolstoy-war-and-peace-louise-maude-aylmer-maude",
+      "motivo": "Romance histórico que mistura vidas pessoais e grandes acontecimentos, na Europa logo após a Revolução."
+    },
+    {
+      "id": "se-charles-dickens-a-christmas-carol",
+      "motivo": "Obra curta de Dickens, também sobre transformação pessoal e uma segunda chance na vida."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "Revolução Francesa: guilhotina, massacres e linchamentos descritos sem detalhe gráfico",
+    "sensivel": ""
+  }
+}

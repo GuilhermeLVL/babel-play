@@ -17,6 +17,8 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
   lint/prettier; mudanças só com `FRASY:` e registro em `foliate/PATCHES.md`), tela em `src/components/views/leitor/`,
   regras puras (anotação W3C, exportações, CFI, perfil) em `src/core/leitura/`, estante e `abrirLivroNoLeitor` em `src/lib/livros/`.
 - `src/data/`: acesso a dados e clientes das rotas da API (`src/data/rotas/`), trilha de conteúdo.
+  `public/catalogo/fichas/` (as fichas dos livros) e `src/data/livros/fichasDoParceiro.json` (a parte delas que o
+  servidor do parceiro de leitura empacota) são GERADOS por `scripts/livros/gerar-fichas.mjs`; não edite à mão.
 - `server/`: Express (`routes/`, `ai/` com proxies e núcleo de IA, `db/` com migrações Drizzle em `migrations-pg/`, `lib/`).
   `server/lib/config.ts` lista as variáveis de ambiente; `.env.production.example` é o modelo de produção.
   `server/boot/`: passos do boot que o `server.ts` orquestra (validar, preparar, jobs) e o portão do Worker; nenhum módulo lê env ou disco ao ser importado.

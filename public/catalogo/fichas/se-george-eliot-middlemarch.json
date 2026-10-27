@@ -1,0 +1,414 @@
+{
+  "versao": 1,
+  "livroId": "se-george-eliot-middlemarch",
+  "titulo": "Middlemarch",
+  "idioma": "en",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "George Eliot é o pseudônimo de Mary Ann Evans (1819–1880), nascida em Warwickshire, na região central da Inglaterra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ela adotou um nome masculino para que seus romances fossem levados a sério e julgados sem o preconceito contra autoras mulheres.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Antes da ficção, trabalhou como tradutora e editora. Traduziu para o inglês obras de filósofos alemães, como David Strauss e Ludwig Feuerbach, e editou a revista Westminster Review.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Viveu por mais de vinte anos com o crítico George Henry Lewes sem poder se casar com ele, pois Lewes era legalmente casado. Isso causou escândalo na sociedade vitoriana.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Outros romances seus são Adam Bede (1859), The Mill on the Floss (1860), Silas Marner (1861) e Daniel Deronda (1876).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Middlemarch saiu entre 1871 e 1872, em oito partes, chamadas de livros. Tem o subtítulo A Study of Provincial Life (um estudo da vida provinciana).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A história se passa entre 1829 e 1832, numa cidade fictícia do interior da Inglaterra, na época em que se discutia a grande reforma eleitoral de 1832.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É considerado um dos maiores romances da língua inglesa e aparece com frequência em listas dos melhores livros já escritos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em vez de um único herói, o livro acompanha uma cidade inteira. Mostra como as escolhas de cada pessoa afetam a vida das outras.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É um marco do realismo: trata pessoas comuns com seriedade e mostra seus erros com compreensão, sem transformá-las em vilões ou santos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Discute com profundidade os limites impostos às mulheres inteligentes e ambiciosas de sua época.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Casamento e expectativas",
+      "texto": "Vários casais se formam com ideias erradas um sobre o outro. O livro mostra o choque entre o que se espera do casamento e a vida real a dois.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ambição e vocação",
+      "texto": "Personagens querem fazer algo grande: reformar a medicina, escrever uma obra definitiva, melhorar a vida dos pobres. O livro pergunta o que acontece com esses sonhos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "O lugar da mulher",
+      "texto": "Mulheres com talento e vontade de agir encontram poucas saídas além do casamento e da caridade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Dinheiro e heranças",
+      "texto": "Testamentos, dívidas e expectativas de herança movem muitas decisões e revelam o caráter das pessoas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mudança social",
+      "texto": "A reforma política, a chegada das ferrovias e a nova medicina mexem com uma comunidade que resiste a mudanças.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Reputação e segredos",
+      "texto": "Numa cidade pequena, todos falam de todos. Um passado escondido pode destruir uma posição construída por anos.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Dorothea Brooke",
+      "texto": "Jovem rica, idealista e muito religiosa. Quer dedicar a vida a algo importante e se sente presa às atividades permitidas a uma moça de sua classe.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Edward Casaubon",
+      "texto": "Clérigo erudito bem mais velho, dedicado há anos a uma grande obra sobre as mitologias do mundo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Tertius Lydgate",
+      "texto": "Médico jovem e talentoso que chega a Middlemarch com ideias modernas e o sonho de fazer descobertas científicas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Rosamond Vincy",
+      "texto": "Filha do prefeito, bonita e educada para brilhar na sociedade. Sonha com um casamento que a eleve socialmente.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Fred Vincy",
+      "texto": "Irmão de Rosamond. Simpático e preguiçoso, conta com uma herança e acumula dívidas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mary Garth",
+      "texto": "Jovem sensata, honesta e de humor afiado, de família modesta. É amiga de infância de Fred.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Will Ladislaw",
+      "texto": "Jovem primo de Casaubon, artístico e sem rumo definido. Depende financeiramente do parente.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Nicholas Bulstrode",
+      "texto": "Banqueiro rico e muito religioso, influente na cidade e pouco querido por muitos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Caleb Garth",
+      "texto": "Pai de Mary. Administra terras e obras e tem um senso de honestidade e de trabalho bem-feito admirado por todos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mr. Brooke",
+      "texto": "Tio e tutor de Dorothea. Proprietário de terras bem-intencionado, mas confuso, que resolve entrar na política.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O livro nasceu da junção de dois projetos diferentes: uma história sobre um jovem médico e um conto chamado Miss Brooke.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Começa com um Prelúdio sobre Santa Teresa de Ávila. A comparação sugere uma mulher de grande alma nascida num tempo sem espaço para ela.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Cada capítulo abre com uma epígrafe. Muitas foram escritas pela própria Eliot, sem indicação de autoria.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A publicação em oito partes, ao longo de cerca de um ano, fez os leitores acompanharem a história como uma série.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A escritora Virginia Woolf o elogiou como um dos poucos romances ingleses escritos para leitores adultos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Eliot escreveu sobre uma época cerca de quarenta anos anterior à publicação, o tempo da sua própria juventude.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A grande obra de Casaubon, chamada Key to all Mythologies, virou expressão para projetos intelectuais enormes que nunca se concluem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O narrador comenta muito as ações dos personagens e pede ao leitor que entenda também o ponto de vista de quem parece antipático.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Dorothea se casa com Casaubon, e o casamento se revela infeliz. Mais tarde, um codicilo no testamento dele tenta impedir que ela se case com Will Ladislaw.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "O passado de Bulstrode inclui uma fortuna obtida de forma desonesta. Um homem chamado Raffles reaparece e o chantageia; a morte de Raffles levanta suspeitas.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "No final, Dorothea abre mão da herança para se casar com Will. O Finale conta o destino dos personagens anos depois.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "living",
+      "texto": "Aqui não é “vida”: é o cargo de pároco de uma igreja da Igreja Anglicana, com a renda que vem junto. Quem tinha terras muitas vezes podia indicar quem ocupava o cargo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "rector",
+      "texto": "Pároco anglicano que recebia toda a renda da paróquia. Casaubon é o rector de Lowick.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "vicar",
+      "texto": "Pároco anglicano que recebia só parte da renda da paróquia. Na prática, função parecida com a do rector, mas geralmente com menos dinheiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "curate",
+      "texto": "Clérigo auxiliar, mal pago, que trabalhava no lugar ou ao lado do pároco.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "codicil",
+      "texto": "Codicilo: acréscimo feito a um testamento já escrito, que muda ou completa suas regras.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "will",
+      "texto": "Além do verbo auxiliar, significa testamento. Heranças são assunto central do livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "guinea",
+      "texto": "Guinéu: moeda que valia 21 xelins, um pouco mais que uma libra. Usada para preços de prestígio, como honorários e objetos de luxo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "gentry",
+      "texto": "A pequena nobreza rural: famílias donas de terras, sem título de nobreza, que viviam de rendas e tinham prestígio social.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "apothecary",
+      "texto": "Boticário: profissional que preparava e vendia remédios e também atendia doentes. Médicos e boticários disputavam clientes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Dissenter",
+      "texto": "Protestante que não pertencia à Igreja Anglicana oficial, como metodistas e batistas. Tinham menos direitos e eram vistos com desconfiança.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Reform Bill",
+      "texto": "O projeto de lei de reforma eleitoral, aprovado em 1832, que ampliou o direito de voto e redistribuiu as cadeiras do Parlamento.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "hustings",
+      "texto": "Palanque onde candidatos discursavam aos eleitores. Por extensão, a campanha eleitoral.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Tory / Whig",
+      "texto": "Os dois grandes grupos políticos da época. Os Tories eram conservadores; os Whigs defendiam reformas como a eleitoral.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Em 1832, a Reform Act mudou o sistema eleitoral britânico. Antes dela, poucos homens votavam e muitas cidades novas não tinham representantes. Nenhuma mulher votava.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1829, a Emancipação Católica permitiu que católicos ocupassem cargos públicos. Foi tema de debate acalorado na Inglaterra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As primeiras ferrovias surgiam nessa época; a linha Liverpool–Manchester abriu em 1830. Muitos donos de terras tinham medo delas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A medicina ainda não conhecia os micróbios como causa das doenças. Instrumentos como o estetoscópio eram novidade, e médicos de ideias modernas enfrentavam desconfiança.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1832, uma epidemia de cólera atingiu a Grã-Bretanha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mulheres de classe alta raramente recebiam educação séria. Ao casar, perdiam boa parte do controle sobre seus bens, e o casamento era quase a única carreira possível para elas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "Why does Dorothea admire Casaubon's learning so much? What does she hope to gain from it?",
+      "texto": "Por que Dorothea admira tanto o conhecimento de Casaubon? O que ela espera ganhar com essa admiração?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Lydgate and Dorothea both want to do something great. Which obstacles come from themselves and which come from society?",
+      "texto": "Lydgate e Dorothea querem fazer algo grande. Quais obstáculos vêm deles mesmos e quais vêm da sociedade?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "The narrator often asks us to understand difficult characters too. Does this change your opinion of any of them?",
+      "texto": "O narrador costuma pedir que entendamos também personagens difíceis. Isso muda sua opinião sobre algum deles?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How do money and the hope of an inheritance influence Fred Vincy's choices?",
+      "texto": "Como o dinheiro e a expectativa de herança influenciam as escolhas de Fred Vincy?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Compare Mary Garth and Rosamond Vincy. What kind of upbringing did each receive, and how does it show in their behavior?",
+      "texto": "Compare Mary Garth e Rosamond Vincy. Que tipo de educação cada uma recebeu e como isso aparece no comportamento delas?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "What role do gossip and public opinion play in the life of Middlemarch?",
+      "texto": "Que papel têm as fofocas e a opinião pública na vida de Middlemarch?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Is Bulstrode a hypocrite or someone who sincerely believes in his religion? Can he be both?",
+      "texto": "Bulstrode é um hipócrita ou alguém que acredita sinceramente em sua religião? Pode ser as duas coisas?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "The ending gives Dorothea a life of small, quiet effects. Do you find this ending sad or hopeful?",
+      "texto": "O final mostra uma vida de efeitos pequenos e discretos para Dorothea. Você acha esse final triste ou esperançoso?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "se-jane-austen-emma",
+      "motivo": "Também retrata a vida numa comunidade rural inglesa, com casamentos, classes sociais e uma heroína que erra ao julgar os outros."
+    },
+    {
+      "id": "pg-394",
+      "motivo": "Romance de Elizabeth Gaskell, contemporânea de Eliot, sobre o cotidiano de uma pequena cidade inglesa."
+    },
+    {
+      "id": "se-leo-tolstoy-anna-karenina-constance-garnett",
+      "motivo": "Grande romance realista da mesma década, que também acompanha vários casamentos e uma sociedade inteira."
+    },
+    {
+      "id": "se-charlotte-bronte-jane-eyre",
+      "motivo": "Outro clássico vitoriano sobre uma mulher que busca independência e sentido para a vida."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "romance de costumes: casamentos infelizes, chantagem, morte suspeita, sem cenas fortes",
+    "sensivel": ""
+  }
+}

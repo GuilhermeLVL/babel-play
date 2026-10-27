@@ -1,0 +1,419 @@
+{
+  "versao": 1,
+  "livroId": "ws-pt-iracema",
+  "titulo": "Iracema",
+  "idioma": "pt",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "José de Alencar nasceu em 1829, em Messejana, no Ceará, hoje um bairro de Fortaleza. Morreu em 1877, no Rio de Janeiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Alencar foi romancista, jornalista, advogado e político. Foi deputado e ministro da Justiça no Segundo Reinado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Seu pai, também chamado José Martiniano de Alencar, foi padre e senador do Império.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Iracema saiu em 1865. O subtítulo é Lenda do Ceará, a terra natal do autor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro pertence ao Romantismo brasileiro. Depois da Independência, em 1822, muitos escritores queriam criar uma literatura com cara de Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O indianismo foi a vertente romântica que fez do indígena um herói nacional. Gonçalves Dias, na poesia, e Alencar, na prosa, são seus maiores nomes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Iracema forma com O Guarani (1857) e Ubirajara (1874) a chamada trilogia indianista de Alencar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Alencar é o patrono da cadeira 23 da Academia Brasileira de Letras, escolhido por Machado de Assis.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É um dos livros mais conhecidos do Romantismo brasileiro e presença constante nas escolas e nos vestibulares.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Conta, em forma de lenda, uma versão romântica da origem do Brasil: o encontro entre o colonizador português e a terra indígena.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A linguagem é muito musical, cheia de imagens da natureza. Por isso, a crítica costuma chamar o livro de poema em prosa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Hoje o livro também é lido com olhar crítico: ele idealiza os indígenas e mostra a colonização como algo harmonioso, o que esconde a violência real desse processo.",
+      "spoiler": false,
+      "sensivel": true
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Encontro de culturas",
+      "texto": "O livro gira em torno do contato entre um português e os povos indígenas do litoral e do sertão do Ceará.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amor e dever",
+      "texto": "Iracema tem uma função sagrada na sua tribo. O amor pelo estrangeiro entra em choque com esse dever.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Natureza",
+      "texto": "A natureza não é só cenário. Plantas, bichos, rios e o céu servem para descrever pessoas e sentimentos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Origem da nação",
+      "texto": "Alencar quis criar um mito de fundação do Brasil e, em especial, do Ceará.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amizade e lealdade",
+      "texto": "A amizade entre Martim e o guerreiro Poti é um dos laços mais fortes da história.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Saudade e perda",
+      "texto": "Ao longo do livro cresce um clima de tristeza, ligado à distância, à solidão e ao sacrifício.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Iracema",
+      "texto": "Jovem tabajara, filha do pajé Araquém. Guarda um segredo sagrado da tribo e por isso deve permanecer virgem. É descrita como parte da própria natureza.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Martim",
+      "texto": "Guerreiro português que chega às terras dos tabajaras. É amigo dos pitiguaras, inimigos da tribo de Iracema.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Poti",
+      "texto": "Guerreiro pitiguara e amigo fiel de Martim. Seu nome quer dizer camarão em tupi.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Araquém",
+      "texto": "Pajé dos tabajaras e pai de Iracema. Recebe Martim como hóspede em sua cabana.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Caubi",
+      "texto": "Irmão de Iracema, guerreiro tabajara.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Irapuã",
+      "texto": "Chefe guerreiro dos tabajaras. Odeia o estrangeiro e deseja Iracema.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Andira",
+      "texto": "Velho guerreiro tabajara, irmão de Araquém.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Jacaúna",
+      "texto": "Chefe dos pitiguaras e irmão de Poti.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Moacir",
+      "texto": "Filho de Iracema e Martim. Seu nome significa filho da dor. É visto como símbolo do primeiro cearense e do povo brasileiro mestiço.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O nome Iracema é um anagrama de América: as mesmas letras em outra ordem. Muitos críticos leem a personagem como símbolo da terra americana.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em nota do próprio livro, Alencar explica que Iracema vem do tupi e significa lábios de mel.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Martim foi inspirado em Martim Soares Moreno, português que participou da colonização do Ceará no início do século XVII.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Poti foi inspirado em Antônio Felipe Camarão, líder indígena que lutou ao lado dos portugueses contra os holandeses em Pernambuco.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Alencar acrescentou ao livro notas que explicam palavras de origem tupi. Elas ajudam muito o leitor de hoje.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro traz no fim uma carta ao Dr. Jaguaribe, em que Alencar explica suas ideias sobre a linguagem e o projeto da obra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O tupi que Alencar usa vem de estudos da época. Hoje, linguistas consideram várias de suas explicações de palavras imprecisas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em Fortaleza há a Praia de Iracema e estátuas da personagem. Ela virou um símbolo do Ceará.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Machado de Assis escreveu uma crítica elogiosa ao livro pouco depois do lançamento.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Alencar defendia um português com marcas brasileiras. Por isso, foi criticado por defensores de um português mais próximo do de Portugal.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Antes de Iracema, Alencar ficou famoso por criticar o poema A Confederação dos Tamoios, de Gonçalves de Magalhães. Ele assinava essas cartas com o pseudônimo Ig.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os capítulos são curtos e a narrativa avança quase como uma sequência de cenas poéticas, sem diálogos longos.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "pajé",
+      "texto": "Líder espiritual e curandeiro de um povo indígena. No livro, é o pai de Iracema.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "taba",
+      "texto": "Aldeia indígena, conjunto de cabanas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "jurema",
+      "texto": "Planta da caatinga. No livro, dela se faz uma bebida sagrada que provoca sonhos e visões.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Tupã",
+      "texto": "Nome usado para o deus do trovão ou divindade maior, como os colonizadores entenderam a crença tupi.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "tacape",
+      "texto": "Arma indígena de madeira, uma espécie de clava ou porrete.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "jandaia",
+      "texto": "Pequeno papagaio de cores vivas, comum no Nordeste. É uma ave importante no livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "oiticica",
+      "texto": "Árvore grande do Nordeste, de sombra fresca.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "carnaúba",
+      "texto": "Palmeira típica do Ceará e do Piauí.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "igara",
+      "texto": "Canoa indígena.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "uru",
+      "texto": "Pequeno cesto de palha usado para guardar objetos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "maracá",
+      "texto": "Chocalho feito de cabaça com sementes, usado em rituais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "pocema",
+      "texto": "Grito coletivo dos guerreiros, de guerra ou de festa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "luas",
+      "texto": "No livro, o tempo é contado pela natureza. Luas equivalem a meses e sóis, a dias.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "guerreiro branco",
+      "texto": "Expressão com que os indígenas do livro se referem ao europeu.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "A história se passa no início do século XVII, quando os portugueses começavam a ocupar o litoral do Ceará.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Nessa época, portugueses e franceses disputavam o litoral do Brasil. Cada lado fazia alianças com povos indígenas diferentes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Tabajaras e pitiguaras (ou potiguaras) eram povos de língua tupi. No livro, os tabajaras vivem na serra, e os pitiguaras, no litoral.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro foi escrito quase 250 anos depois dos fatos que inspira. Ele mostra mais o olhar do Brasil Império sobre o passado do que a vida indígena real.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No século XIX, o indígena idealizado servia de símbolo nacional, enquanto os povos indígenas reais continuavam perdendo terras e direitos.",
+      "spoiler": false,
+      "sensivel": true
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que Alencar chamou o livro de lenda, e não de romance histórico?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Como a natureza é usada para descrever Iracema? Que efeito isso causa em você?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O que a amizade entre Martim e Poti diz sobre a visão de colonização do autor?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Iracema precisa escolher entre o amor e o dever com sua tribo. Como você vê essa escolha?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Se Iracema representa a América, o que representa Martim? E o filho dos dois?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Quem perde e quem ganha com o encontro entre os dois mundos na história?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Quais imagens dos indígenas no livro parecem idealizadas ou estereotipadas para um leitor de hoje?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que a linguagem cheia de palavras tupis era importante para um projeto de literatura nacional?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "ws-pt-o-guarani",
+      "motivo": "Outro romance indianista de Alencar, também sobre o encontro entre portugueses e indígenas."
+    },
+    {
+      "id": "ws-pt-y-juca-pyrama",
+      "motivo": "Poema indianista de Gonçalves Dias, o grande nome do indianismo na poesia."
+    },
+    {
+      "id": "ws-pt-o-uraguai",
+      "motivo": "Poema do século XVIII que já trazia o indígena como figura literária, precursor do indianismo."
+    },
+    {
+      "id": "ws-pt-carta-a-el-rei-d-manuel-ortografia-original",
+      "motivo": "O primeiro olhar europeu sobre os indígenas do Brasil, bom para comparar com a visão romântica."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "romance indianista: guerra entre tribos, união sugerida de Iracema com Martim sob bebida, morte dela. Sensível: visão colonial e romântica dos indígenas",
+    "sensivel": "visão colonial e romântica dos indígenas"
+  }
+}

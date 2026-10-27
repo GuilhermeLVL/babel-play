@@ -1,0 +1,414 @@
+{
+  "versao": 1,
+  "livroId": "pg-17073",
+  "titulo": "La Regenta",
+  "idioma": "es",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 2
+  },
+  "autorEContexto": [
+    {
+      "texto": "Leopoldo Alas nasceu em Zamora, na Espanha, em 1852, e morreu em Oviedo em 1901.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Foi professor de Direito na Universidade de Oviedo, cidade onde passou a maior parte da vida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Foi um dos críticos literários mais temidos da Espanha. Escrevia textos curtos e afiados na imprensa, os paliques.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "La Regenta saiu em dois volumes, em 1884 e 1885. Foi seu primeiro romance.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A obra nasce no período da Restauração (a partir de 1874), quando a Espanha voltou à monarquia e a Igreja tinha grande peso social.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro dialoga com o realismo e o naturalismo, que buscavam mostrar como o meio social e o caráter moldam as pessoas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É considerado por muitos o maior romance espanhol do século XIX, ao lado de Fortunata y Jacinta, de Galdós.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Faz um retrato completo de uma cidade de província: Igreja, nobreza, novos ricos, políticos e fofoca.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mergulha na mente dos personagens. Usa muito o discurso indireto livre, mistura da voz do narrador com o pensamento do personagem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra com força o sufoco de uma mulher inteligente presa às regras e ao tédio de uma sociedade fechada.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Tédio e sufoco da vida de província",
+      "texto": "Vetusta é uma cidade parada, que vigia todos e não perdoa quem sai da linha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Hipocrisia religiosa e social",
+      "texto": "Por trás da devoção e das boas maneiras, muitos buscam poder, dinheiro e prestígio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Desejo e repressão",
+      "texto": "Ana oscila entre a fé mística e um desejo que ela mesma tenta negar.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Poder da Igreja",
+      "texto": "O Magistral controla consciências pela confissão e manda na cidade quase como um político.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Condição da mulher",
+      "texto": "Ana tem poucas saídas: casamento, religião ou escândalo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Fofoca e opinião pública",
+      "texto": "A cidade inteira funciona como um tribunal que observa, comenta e julga.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Ana Ozores",
+      "texto": "A protagonista. Órfã de mãe, criada sem carinho por tias, casou-se com um homem bem mais velho. É sensível, imaginativa e entediada. Todos a chamam de la Regenta.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Víctor Quintanar",
+      "texto": "Marido de Ana, ex-regente da Audiencia. Bondoso e distraído, adora caçar e recitar peças de Calderón sobre honra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Fermín de Pas",
+      "texto": "O Magistral da catedral. Inteligente, ambicioso e poderoso, torna-se confessor de Ana e passa a se interessar por ela de forma cada vez mais possessiva.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Álvaro Mesía",
+      "texto": "Presidente do Cassino e líder político local. Sedutor vaidoso, decide conquistar Ana.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Doña Paula",
+      "texto": "Mãe de Fermín. Dura e calculista, empurrou a carreira do filho e controla seus negócios.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Frígilis",
+      "texto": "Tomás Crespo, melhor amigo de Víctor. Ama a natureza, cuida de árvores e despreza as convenções.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Petra",
+      "texto": "Criada da casa dos Quintanar. Esperta e ressentida, observa tudo e usa o que sabe a seu favor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Visitación Olías",
+      "texto": "Amiga de Ana, fofoqueira e intrometida, que gosta de ver Ana tentada.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Saturnino Bermúdez",
+      "texto": "Erudito local pedante, apaixonado por antiguidades de Vetusta. Aparece logo no começo.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "Vetusta, a cidade do romance, é inspirada em Oviedo, capital das Astúrias.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No primeiro capítulo, o Magistral observa a cidade do alto da torre da catedral com uma luneta, como se ela fosse sua.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O título vem do cargo do marido: a esposa do regente era chamada de la Regenta.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O bispo de Oviedo condenou o livro na época, e a obra foi vista como escandalosa e anticlerical.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O romance foi muito comparado a Madame Bovary, de Flaubert, outra história de esposa entediada na província. Clarín chegou a ser acusado de plágio, acusação que a crítica rejeita.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Benito Pérez Galdós escreveu o prólogo da segunda edição, em 1901.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro é longo: tem 30 capítulos, e a ação se espalha por cerca de três anos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Uma cena importante se passa numa apresentação de Don Juan Tenorio, peça de Zorrilla sobre um sedutor, tradicional no Dia de Finados.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Há uma estátua de la Regenta diante da catedral de Oviedo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro virou filme em 1974, dirigido por Gonzalo Suárez, e série da televisão espanhola em 1995.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No fim, Víctor morre num duelo com Álvaro, e Ana fica isolada e rejeitada por toda Vetusta.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "texto": "A última cena se passa na catedral e termina com um gesto repugnante que resume a degradação de Ana aos olhos da cidade.",
+      "spoiler": true,
+      "sensivel": true
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "regente",
+      "texto": "Magistrado que presidia uma Audiencia (tribunal regional). A esposa era la Regenta.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Audiencia",
+      "texto": "Tribunal de justiça de uma região. Não tem a ver com público ouvindo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Magistral",
+      "texto": "Cônego da catedral encarregado de pregar. Fermín é chamado assim, como um título.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "canónigo",
+      "texto": "Cônego: sacerdote que faz parte do grupo que governa uma catedral.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "cabildo",
+      "texto": "Conjunto de cônegos da catedral. Também pode significar câmara municipal.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "confesor",
+      "texto": "Padre que ouve a confissão de alguém com regularidade e orienta sua vida espiritual.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "beata",
+      "texto": "Mulher muito devota, que vive na igreja. Muitas vezes com tom irônico.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "sotana",
+      "texto": "Batina, a veste longa e preta dos padres.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Casino",
+      "texto": "Clube social de homens da elite, para conversa, leitura e jogo. Não é cassino de apostas no sentido atual.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "La Encimada",
+      "texto": "Bairro antigo e nobre de Vetusta, onde vivem a aristocracia e o clero.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "La Colonia",
+      "texto": "Bairro novo de Vetusta, dos indianos enriquecidos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "indiano",
+      "texto": "Espanhol que emigrou para a América e voltou rico. Não significa indígena.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "don / doña",
+      "texto": "Tratamento de respeito antes do primeiro nome: don Víctor, doña Paula.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "tertulia",
+      "texto": "Roda de conversa habitual em casa, café ou clube.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Na Restauração, a Igreja recuperou muito poder. Um padre influente podia mandar mais que um político.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A confissão era um momento íntimo e frequente. Por isso o confessor tinha enorme influência sobre mulheres devotas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os duelos eram proibidos por lei, mas ainda aconteciam entre homens da elite para defender a honra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O código de honra pesava sobre o marido: a infidelidade da esposa era vista como desonra dele, tema do teatro de Calderón.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mulheres de classe alta não trabalhavam e tinham pouca liberdade de movimento, o que alimenta o tédio de Ana.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A velha nobreza empobrecida convivia, com desprezo, com os novos ricos vindos da América.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "¿Por qué Vetusta parece casi un personaje del libro?",
+      "texto": "Por que Vetusta parece quase um personagem do livro?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué revela sobre el Magistral la escena del catalejo en la torre?",
+      "texto": "O que a cena da luneta na torre revela sobre o Magistral?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué salidas tiene Ana para escapar del aburrimiento? ¿Alguna es realmente libre?",
+      "texto": "Que saídas Ana tem para escapar do tédio? Alguma delas é realmente livre?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Fermín y Álvaro se disputan a Ana. ¿En qué se parecen y en qué se diferencian?",
+      "texto": "Fermín e Álvaro disputam Ana. Em que eles se parecem e em que se diferenciam?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Víctor ama los dramas de honra de Calderón. ¿Cómo contrasta eso con su vida real?",
+      "texto": "Víctor ama as peças de honra de Calderón. Como isso contrasta com sua vida real?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué papel tiene el chisme en la historia? ¿Sigue existiendo hoy, en las redes sociales?",
+      "texto": "Qual é o papel da fofoca na história? Ela ainda existe hoje, nas redes sociais?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Es Ana víctima, culpable o ambas cosas? ¿Por qué?",
+      "texto": "Ana é vítima, culpada ou as duas coisas? Por quê?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Después del duelo, ¿a quién culpa la ciudad y a quién perdona? ¿Qué dice eso de Vetusta?",
+      "texto": "Depois do duelo, quem a cidade culpa e quem ela perdoa? O que isso diz sobre Vetusta?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-17013",
+      "motivo": "Fortunata y Jacinta, de Galdós: o outro grande romance espanhol da época, também sobre casamento e sociedade."
+    },
+    {
+      "id": "ws-pt-o-crime-do-padre-amaro",
+      "motivo": "Eça de Queirós retrata um padre e o poder da Igreja numa cidade de província, como em Vetusta."
+    },
+    {
+      "id": "pg-42942",
+      "motivo": "O Primo Bazilio: esposa entediada, sedutor e criada que chantageia, no realismo português."
+    },
+    {
+      "id": "se-leo-tolstoy-anna-karenina-constance-garnett",
+      "motivo": "Outra grande heroína do século XIX esmagada pelas regras sociais sobre casamento e adultério."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "16",
+    "nota": "adultério central, desejo obsessivo de um padre pela protagonista, morte do marido em duelo",
+    "sensivel": ""
+  }
+}

@@ -1,0 +1,367 @@
+{
+  "versao": 1,
+  "livroId": "pg-27637",
+  "titulo": "A correspondência de Fradique Mendes",
+  "idioma": "pt",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 2
+  },
+  "autorEContexto": [
+    {
+      "texto": "José Maria Eça de Queirós nasceu em 1845, em Póvoa de Varzim, Portugal, e morreu em 1900, perto de Paris.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Estudou Direito na Universidade de Coimbra, onde conviveu com jovens escritores que queriam renovar a cultura portuguesa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Fez parte da chamada Geração de 70, grupo que criticava o atraso de Portugal e defendia ideias novas vindas da Europa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1871, participou das Conferências do Casino, em Lisboa, encontros de debate que acabaram proibidos pelo governo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Eça é o grande nome do Realismo em Portugal, com romances como O Crime do Padre Amaro, O Primo Basílio e Os Maias.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Foi diplomata: trabalhou como cônsul em Havana, na Inglaterra e, por fim, em Paris. Por isso viveu boa parte da vida fora de Portugal.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1869, viajou ao Egito para a inauguração do Canal de Suez e passou pela Palestina. Essa experiência do Oriente aparece em várias obras dele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro saiu em volume em 1900, ano da morte do autor. Antes disso, parte das cartas foi publicada em jornais de Portugal e do Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É um jogo literário ousado: um personagem inventado escreve cartas a pessoas reais, misturando ficção e realidade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Fradique Mendes é um dos personagens mais famosos da literatura portuguesa. Muitos críticos o veem como um antecessor dos heterônimos de Fernando Pessoa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra o Eça da fase madura: mais irônico, mais leve e mais cosmopolita, mas ainda muito crítico da sociedade portuguesa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É ótimo para conhecer a prosa elegante de Eça em textos curtos, já que cada carta pode ser lida quase sozinha.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Crítica social",
+      "texto": "As cartas zombam da política, da vaidade e da falta de ideias da elite portuguesa do século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Cosmopolitismo",
+      "texto": "Fradique é um cidadão do mundo. O livro discute o que significa ser português olhando o país de fora.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Viagem e Oriente",
+      "texto": "Viagens a terras distantes aparecem com fascínio, mas também com o olhar europeu e os preconceitos da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ficção e realidade",
+      "texto": "Um homem inventado convive com escritores reais. O livro brinca com a fronteira entre biografia e invenção.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "A pose e a aparência",
+      "texto": "O livro observa o elegante, o culto e o sofisticado, e pergunta o que há de verdadeiro por trás da pose.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amor",
+      "texto": "Algumas cartas são de amor e mostram um lado mais íntimo do protagonista.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Fradique Mendes",
+      "texto": "Português rico, culto, viajado e elegante. Conhece o mundo todo e opina sobre tudo com ironia. É o autor das cartas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "O narrador",
+      "texto": "Um português que conheceu e admirou Fradique. Na primeira parte, conta quem ele era e depois apresenta suas cartas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Madame de Jouarre",
+      "texto": "Madrinha de Fradique, que vive em Paris. É uma das pessoas a quem ele escreve.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Clara",
+      "texto": "Mulher amada por Fradique, destinatária de cartas de amor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Oliveira Martins",
+      "texto": "Historiador português real, amigo de Eça. Aparece como um dos destinatários das cartas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ramalho Ortigão",
+      "texto": "Escritor português real, grande amigo e parceiro de Eça. Também recebe cartas de Fradique.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Guerra Junqueiro",
+      "texto": "Poeta português real da mesma geração de Eça, outro destinatário das cartas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Eduardo Prado",
+      "texto": "Escritor brasileiro real, amigo de Eça. Recebe uma carta em que se fala do Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Pacheco",
+      "texto": "Figura pública portuguesa, famosa por um talento enorme que ninguém nunca chegou a ver. É alvo de uma das cartas mais satíricas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "Fradique Mendes nasceu antes deste livro. Em 1869, Eça, Antero de Quental e Jaime Batalha Reis inventaram um poeta com esse nome e publicaram poemas assinados por ele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Fradique também aparece em O Mistério da Estrada de Sintra, romance que Eça escreveu com Ramalho Ortigão em 1870.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro tem duas partes: primeiro uma espécie de biografia do personagem, depois as cartas atribuídas a ele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As cartas têm destinatários reais, como Oliveira Martins e Ramalho Ortigão. Isso dava ao leitor da época a impressão de que Fradique tinha existido.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Parte do material foi publicada antes na Gazeta de Notícias, jornal do Rio de Janeiro onde Eça colaborou por muitos anos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro saiu no mesmo ano da morte de Eça, em 1900.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A carta sobre Pacheco virou referência em Portugal para falar de políticos de fama sem obra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A viagem de Eça ao Egito e à Palestina, em 1869, ajuda a explicar o interesse de Fradique pelo Oriente.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O gênero do livro é difícil de definir: não é bem romance, nem coletânea de crônicas. Muitos o chamam de romance epistolar.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "correspondência",
+      "texto": "Aqui significa o conjunto de cartas trocadas entre pessoas, não o sentido de semelhança.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "epistolar",
+      "texto": "Feito em forma de cartas. Um romance epistolar conta a história por meio de cartas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "réis",
+      "texto": "Moeda de Portugal e do Brasil no século XIX. Um conto de réis valia um milhão de réis, uma grande soma.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "fidalgo",
+      "texto": "Pessoa de família nobre. Na época, o título ainda dava prestígio social.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Vossa Excelência",
+      "texto": "Forma de tratamento formal e respeitosa, comum em cartas do século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "cônsul",
+      "texto": "Diplomata que representa seu país em uma cidade estrangeira. Eça exerceu essa função.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "dândi",
+      "texto": "Homem muito elegante, que cuida da aparência e das maneiras como uma arte. Fradique tem esse perfil.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "O livro usa o português de Portugal do século XIX. Algumas palavras, construções e formas de tratamento são diferentes das usadas no Brasil hoje.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Edições antigas usam a ortografia da época, com grafias como ph e th (por exemplo, philosophia). O sentido das palavras é o mesmo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Portugal era uma monarquia constitucional. Os intelectuais da geração de Eça achavam o país atrasado em relação à França e à Inglaterra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Paris era vista como a capital da cultura e da elegância. Muitos portugueses e brasileiros ricos sonhavam viver lá.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No fim do século XIX, as potências europeias disputavam territórios na África e na Ásia. O livro reflete esse mundo colonial e o olhar europeu sobre outros povos, com preconceitos que hoje reconhecemos como tal.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Cartas eram o principal meio de comunicação à distância. Escrever bem uma carta era uma arte valorizada.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que Eça teria escolhido escrever cartas de um personagem inventado para pessoas reais?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Fradique é admirável ou ridículo? O narrador o vê do mesmo jeito que você?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O que as cartas criticam na sociedade portuguesa? Alguma dessas críticas ainda faz sentido hoje?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Como o livro mostra os povos do Oriente e da África? Que preconceitos da época você consegue identificar?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Olhar o próprio país de longe ajuda a entendê-lo melhor ou pior?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "A carta sobre Pacheco fala de alguém famoso sem ter feito nada. Você conhece exemplos atuais disso?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "As cartas de amor mostram um Fradique diferente? Em quê?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Se Fradique vivesse hoje, como você imagina que ele se comunicaria com o mundo?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "ws-pt-o-mysterio-da-estrada-de-cintra",
+      "motivo": "Romance de Eça e Ramalho Ortigão em que Fradique Mendes já aparece como personagem."
+    },
+    {
+      "id": "pg-18220",
+      "motivo": "Do mesmo autor e da mesma fase, também discute civilização, cosmopolitismo e Portugal."
+    },
+    {
+      "id": "ws-pt-cartas-de-inglaterra-eca-de-queiros",
+      "motivo": "Textos de Eça escritos do estrangeiro, com o mesmo olhar irônico sobre a sociedade."
+    },
+    {
+      "id": "ws-pt-os-maias",
+      "motivo": "A grande sátira de Eça à elite lisboeta, com personagens cultos e elegantes como Fradique."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "cartas fictícias de crítica social e viagens. Sensível: visões de época sobre o Oriente e a África",
+    "sensivel": "visões de época sobre o Oriente e a África"
+  }
+}

@@ -1,0 +1,281 @@
+{
+  "versao": 1,
+  "livroId": "pg-25777",
+  "titulo": "El idilio de un enfermo",
+  "idioma": "es",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "Armando Palacio Valdés nasceu em 1853 em Entralgo, no vale de Laviana, nas Astúrias, no norte da Espanha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Estudou Direito em Madri e começou a carreira como crítico e jornalista antes de se dedicar ao romance.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Publicou El idilio de un enfermo em 1884. Foi um de seus primeiros romances, depois de El señorito Octavio e Marta y María.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele faz parte do realismo espanhol do século XIX, ao lado de autores como Benito Pérez Galdós, Juan Valera e Leopoldo Alas, o Clarín.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na Espanha dessa época, Madri representava a vida moderna e agitada, enquanto as aldeias do norte pareciam um mundo antigo e tranquilo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As Astúrias, terra natal do autor, aparecem em várias de suas obras, com paisagens verdes, montanhas e vida camponesa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Palacio Valdés morreu em Madri em 1938, durante a Guerra Civil Espanhola.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "Mostra o contraste entre a cidade grande e o campo, um tema central do romance espanhol do fim do século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É uma boa porta de entrada para Palacio Valdés, autor muito lido e traduzido em vida, inclusive fora da Espanha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O título brinca com a ideia de idílio, a visão idealizada do campo, e convida o leitor a perguntar se essa visão é verdadeira.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Cidade e campo",
+      "texto": "O protagonista sai de Madri para a aldeia e compara dois modos de vida muito diferentes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Doença e cura",
+      "texto": "A saúde frágil do protagonista é o motivo da viagem. O livro pergunta se a natureza pode curar o corpo e o espírito.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amor entre mundos sociais",
+      "texto": "Um rapaz da cidade se interessa por uma moça da aldeia. A diferença de classe e de costumes pesa nessa relação.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Idealização e realidade",
+      "texto": "O campo parece um paraíso para quem chega de fora, mas a vida dos aldeões tem suas próprias regras e dificuldades.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Andrés Heredia",
+      "texto": "Jovem de Madri, com a saúde abalada. Vai para uma aldeia das Astúrias tentar se recuperar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Rosa",
+      "texto": "Moça da aldeia que chama a atenção de Andrés durante sua estadia no campo.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "Palacio Valdés foi eleito para a Real Academia Española, a principal instituição da língua espanhola.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Foi indicado várias vezes ao Prêmio Nobel de Literatura, mas nunca ganhou.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em vida, foi um dos romancistas espanhóis mais traduzidos, com muitos leitores na Inglaterra e nos Estados Unidos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Seu romance mais famoso é La hermana San Sulpicio, de 1889, ambientado na Andaluzia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em José, de 1885, ele retrata a vida dos pescadores de um povoado do litoral asturiano.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "La aldea perdida, de 1903, volta ao vale de Laviana, onde o autor nasceu, e lamenta o fim do mundo rural com a chegada da mineração.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele também escreveu Tristán o el pesimismo, de 1906, um romance sobre um homem que vê tudo pelo lado negativo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No começo da carreira, dirigiu a Revista Europea, publicação cultural de Madri.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No século XIX, médicos costumavam recomendar ar puro do campo ou da montanha para quem tinha doenças dos pulmões ou dos nervos.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "idilio",
+      "texto": "Originalmente, poema sobre a vida simples de pastores e camponeses. Também significa namoro tranquilo e romântico. O título usa os dois sentidos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "aldea",
+      "texto": "Povoado pequeno no campo, menor que um pueblo. Corresponde a aldeia ou vilarejo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "señorito",
+      "texto": "Rapaz de família rica, muitas vezes visto como mimado e sem trabalho. Em textos da época pode ter tom de crítica.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "cura",
+      "texto": "Padre responsável por uma paróquia. Não confundir com cura no sentido de tratamento, que também existe em espanhol.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "tío / tía",
+      "texto": "No campo, era comum chamar pessoas mais velhas do povo de tío ou tía antes do nome, sem que houvesse parentesco.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "don / doña",
+      "texto": "Tratamento de respeito antes do primeiro nome, usado para pessoas de posição social mais alta.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Na Espanha do século XIX, a viagem de Madri ao norte era longa, e as aldeias asturianas ficavam bastante isoladas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O padre da paróquia tinha grande autoridade nas aldeias e participava de quase todos os aspectos da vida da comunidade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Casamentos no campo costumavam envolver interesses de família, terras e dinheiro, não só sentimentos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A distância social entre um senhor da cidade e uma família camponesa era muito grande e marcava o tratamento entre eles.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "¿Por qué crees que el autor eligió la palabra idilio para el título?",
+      "texto": "Por que você acha que o autor escolheu a palavra idílio para o título?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo ve Andrés el campo cuando llega? ¿Cambia esa visión a lo largo de la lectura?",
+      "texto": "Como Andrés vê o campo quando chega? Essa visão muda ao longo da leitura?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué representan la ciudad y el campo en el libro?",
+      "texto": "O que a cidade e o campo representam no livro?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo afecta la diferencia social entre Andrés y Rosa a su relación?",
+      "texto": "Como a diferença social entre Andrés e Rosa afeta a relação dos dois?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Puede la naturaleza curar a una persona? ¿Qué sugiere el libro sobre esto?",
+      "texto": "A natureza consegue curar uma pessoa? O que o livro sugere sobre isso?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Los habitantes de la aldea aparecen de forma idealizada o realista? Da ejemplos.",
+      "texto": "Os moradores da aldeia são mostrados de forma idealizada ou realista? Dê exemplos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Hoy mucha gente sueña con dejar la gran ciudad y vivir en el campo. ¿Crees que el libro dialoga con ese deseo?",
+      "texto": "Hoje, muita gente sonha em sair da cidade grande e viver no campo. Você acha que o livro conversa com esse desejo?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-27738",
+      "motivo": "Do mesmo autor, também ambientado nas Astúrias, com amor e vida de um povoado de pescadores."
+    },
+    {
+      "id": "pg-26655",
+      "motivo": "Outro romance de Palacio Valdés, para conhecer uma fase mais madura do autor."
+    },
+    {
+      "id": "pg-17223",
+      "motivo": "Romance realista espanhol da mesma época, com amor e vida de província longe de Madri."
+    },
+    {
+      "id": "pg-17340",
+      "motivo": "Galdós também leva o leitor a um ambiente rural espanhol e trata de amor e diferença social."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "romance de um doente que vai se curar no campo e se envolve com uma moça da aldeia; conteúdo exato não conferido",
+    "sensivel": ""
+  }
+}

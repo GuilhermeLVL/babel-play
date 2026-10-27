@@ -1,0 +1,425 @@
+{
+  "versao": 1,
+  "livroId": "se-bram-stoker-dracula",
+  "titulo": "Dracula",
+  "idioma": "en",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "Bram Stoker nasceu em Dublin, na Irlanda, em 1847, e morreu em Londres, em 1912.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na infância, Stoker ficou muito doente e passou os primeiros anos de vida quase sempre de cama. Depois, estudou no Trinity College de Dublin.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Antes de virar escritor conhecido, trabalhou como funcionário público em Dublin e escreveu críticas de teatro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A partir de 1878, foi por quase 30 anos gerente do Lyceum Theatre, em Londres, a serviço do famoso ator Henry Irving.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Dracula foi publicado em 1897, no fim da era vitoriana, quando a Inglaterra vivia o auge do império e grandes mudanças tecnológicas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Stoker passou anos pesquisando para o livro. Suas anotações de trabalho sobrevivem e mostram que o título provisório era The Un-Dead.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O vampiro já existia na literatura antes dele, por exemplo em The Vampyre, de John Polidori (1819), e Carmilla, de Sheridan Le Fanu (1872).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Transilvânia, onde o livro começa, ficava então no Reino da Hungria, parte do Império Austro-Húngaro. Hoje faz parte da Romênia.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "O conde Drácula virou o vampiro mais famoso do mundo. Boa parte do que imaginamos sobre vampiros (alho, crucifixo, estaca, não ter reflexo no espelho) foi popularizada por este livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É um romance epistolar: a história é contada por diários, cartas, telegramas e recortes de jornal. O leitor monta o quebra-cabeça junto com os personagens.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro mostra os medos da Inglaterra vitoriana: o estrangeiro que invade, a doença, a sexualidade, o choque entre ciência moderna e superstição antiga.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Gerou centenas de adaptações no cinema, no teatro e na TV, e é uma porta de entrada clássica para o romance gótico.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Medo do estrangeiro",
+      "texto": "Um nobre do Leste Europeu quer se mudar para Londres. Muitos críticos leem isso como o medo vitoriano de ser invadido por quem vem de fora.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ciência contra superstição",
+      "texto": "Os heróis usam máquina de escrever, fonógrafo, telégrafo e medicina moderna, mas precisam também de crenças antigas para enfrentar o vampiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Papel da mulher",
+      "texto": "Mina é inteligente e organizada, mas os homens querem protegê-la e afastá-la do perigo. O livro discute, sem resolver, a mulher moderna da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Sexualidade e desejo",
+      "texto": "A mordida do vampiro tem um lado sedutor. O livro trata o desejo como algo perigoso, ligado ao medo e à culpa.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Trabalho em grupo",
+      "texto": "Ninguém vence sozinho: o grupo junta informações, compara diários e divide tarefas. A união e a fé são as armas principais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Sangue e vida",
+      "texto": "O sangue é vida, alimento e laço entre as pessoas. Ele aparece na doença, na transfusão e na mordida.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Jonathan Harker",
+      "texto": "Jovem advogado inglês (solicitor). Viaja à Transilvânia para tratar da compra de uma casa em Londres por um nobre local. O livro começa com o diário dele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Conde Drácula",
+      "texto": "Nobre antigo que vive num castelo nos Montes Cárpatos. É educado e misterioso, e quer se mudar para a Inglaterra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mina Murray",
+      "texto": "Noiva de Jonathan, professora assistente. É inteligente, sabe taquigrafia e datilografia, e tem papel central em organizar as informações.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Lucy Westenra",
+      "texto": "Melhor amiga de Mina. Jovem alegre e bonita, recebe três pedidos de casamento no mesmo dia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Abraham Van Helsing",
+      "texto": "Médico e professor holandês, de Amsterdã. Mistura ciência e conhecimento de lendas antigas. Fala um inglês cheio de erros.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Dr. John Seward",
+      "texto": "Jovem médico que dirige um hospício perto de Londres. Grava seu diário num fonógrafo. É um dos pretendentes de Lucy.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Arthur Holmwood",
+      "texto": "Jovem aristocrata inglês, noivo de Lucy.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Quincey Morris",
+      "texto": "Americano do Texas, rico e aventureiro. Também pede Lucy em casamento e continua amigo de todos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Renfield",
+      "texto": "Paciente do hospício do Dr. Seward. Come moscas e aranhas e tem uma ligação estranha com o conde.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Destino de Lucy",
+      "texto": "Lucy adoece, morre e volta como vampira. O grupo precisa destruí-la com estaca e decapitação.",
+      "spoiler": true,
+      "sensivel": true
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "Stoker passou férias em Whitby, no norte da Inglaterra, em 1890. Lá, numa biblioteca, leu um livro sobre a Valáquia que dizia que Dracula significava diabo no idioma local.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Whitby virou cenário de uma parte importante do livro. A cidade hoje atrai muitos turistas por causa de Drácula.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O nome Drácula também remete a Vlad III, príncipe da Valáquia no século XV. O quanto Stoker se baseou nele é discutido pelos estudiosos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Stoker nunca visitou a Transilvânia. Pesquisou a região em livros, mapas e relatos de viagem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Stoker se casou com Florence Balcombe, que antes tinha sido cortejada por Oscar Wilde.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O filme alemão Nosferatu (1922), de F. W. Murnau, adaptou o livro sem autorização. A viúva de Stoker processou e a justiça mandou destruir as cópias, mas algumas sobreviveram.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O filme Dracula (1931), com Bela Lugosi, fixou a imagem do conde de capa e sotaque estrangeiro. Ele foi baseado numa peça de teatro inspirada no livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No livro, Drácula não vira morcego o tempo todo: ele também aparece como lobo, névoa e poeira. E pode andar de dia, só com menos poder.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro é cheio de tecnologia nova para 1897: fonógrafo, máquina de escrever, taquigrafia e transfusão de sangue.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Stoker escreveu outros romances, como The Lair of the White Worm (1911), mas nenhum teve o sucesso de Drácula.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No fim, Drácula é morto por facas, não por estaca: Jonathan corta o pescoço dele e Quincey crava uma faca no coração.",
+      "spoiler": true,
+      "sensivel": true
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "solicitor",
+      "texto": "Advogado que cuida de contratos, imóveis e papéis, sem atuar nos tribunais superiores. É a profissão de Jonathan.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "boyar",
+      "texto": "Título da antiga nobreza do Leste Europeu. O conde se orgulha de ser um.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "voivode",
+      "texto": "Título de príncipe ou governante militar em regiões como a Valáquia e a Transilvânia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Szekely",
+      "texto": "Povo de língua húngara da Transilvânia. O conde diz descender deles e conta suas guerras com orgulho.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Szgany",
+      "texto": "Nome que o livro usa para os ciganos que trabalham para o conde. Hoje se prefere falar em povo rom.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Un-Dead",
+      "texto": "Morto-vivo. Termo usado para o vampiro, que morreu mas continua a se mover.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "nosferatu",
+      "texto": "Palavra que Van Helsing usa para vampiro. Depois virou título de filme.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Host",
+      "texto": "Aqui não é anfitrião: é a hóstia, o pão consagrado da missa católica, usada como proteção contra o vampiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "shorthand",
+      "texto": "Taquigrafia: escrita rápida com sinais. Mina e Jonathan escrevem seus diários assim.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "phonograph",
+      "texto": "Fonógrafo: aparelho que grava e reproduz som em cilindros. O Dr. Seward dita seu diário nele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "lunatic asylum",
+      "texto": "Hospício, como se dizia na época. Hoje se diz hospital psiquiátrico; lunatic é considerado ofensivo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "kukri",
+      "texto": "Faca curva grande, de origem nepalesa, usada pelos soldados gurkhas. Jonathan carrega uma.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "bowie knife",
+      "texto": "Faca grande de caça típica dos Estados Unidos. Quincey, o texano, anda com uma.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "paprika hendl",
+      "texto": "Frango com páprica, prato húngaro que Jonathan prova no início da viagem e anota no diário.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "O inglês de Van Helsing é propositalmente errado: ordem de palavras estranha e expressões traduzidas do holandês. Não estranhe nem copie.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O velho pescador Mr. Swales, em Whitby, fala o dialeto de Yorkshire, com grafia diferente. É difícil até para nativos; vale ler em voz alta.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Há também falas em inglês popular de Londres (cockney), como a do tratador do zoológico. A grafia imita a pronúncia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época, a transfusão de sangue era rara e arriscada. Ainda não se conheciam os tipos sanguíneos, descobertos só em 1901.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro traz estereótipos de época sobre os ciganos (Szgany) e sobre o judeu Hildesheim, retratado como movido por dinheiro. São preconceitos comuns no século XIX e merecem leitura crítica.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "As cartas e telegramas mostram como a comunicação funcionava: o correio chegava várias vezes ao dia em Londres, e o telegrama era o meio mais rápido.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "Why do you think Stoker told the story through diaries and letters instead of a single narrator? How does this change the reading?",
+      "texto": "Por que você acha que Stoker contou a história por diários e cartas, e não com um narrador só? O que isso muda na leitura?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "When does Jonathan realize he is a prisoner in the castle? What signs appeared before that?",
+      "texto": "Em que momento Jonathan percebe que é prisioneiro no castelo? Quais sinais apareceram antes?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How does technology help or hinder the characters in their fight against the Count?",
+      "texto": "Como a tecnologia ajuda ou atrapalha os personagens na luta contra o conde?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How do the men in the group treat Mina? Is she stronger or weaker than they think?",
+      "texto": "Como os homens do grupo tratam Mina? Ela é mais forte ou mais frágil do que eles pensam?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Why would a foreign nobleman wanting to live in London frighten English readers in 1897?",
+      "texto": "Por que um nobre estrangeiro querendo morar em Londres assustaria os leitores ingleses de 1897?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "What is Renfield's role in the story? Is he just a madman or a clue?",
+      "texto": "Qual é o papel de Renfield na história? Ele é só um louco ou uma pista?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How does the novel portray the Gypsies and the merchant Hildesheim? What prejudices of the time do you notice?",
+      "texto": "Como o livro retrata os ciganos e o comerciante Hildesheim? Que preconceitos da época você percebe?",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "What makes Dracula frightening: what he does, or what we do not see of him?",
+      "texto": "O que torna Drácula assustador: o que ele faz ou o que não vemos dele?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "se-mary-shelley-frankenstein",
+      "motivo": "Outro clássico do terror gótico britânico, sobre um monstro e os limites da ciência."
+    },
+    {
+      "id": "se-robert-louis-stevenson-the-strange-case-of-dr-jekyll-and-mr-hyde",
+      "motivo": "Terror vitoriano em Londres, também contado por documentos e relatos de vários personagens."
+    },
+    {
+      "id": "se-oscar-wilde-the-picture-of-dorian-gray",
+      "motivo": "Romance gótico da mesma década sobre desejo, juventude eterna e o lado oculto da sociedade vitoriana."
+    },
+    {
+      "id": "pg-3268",
+      "motivo": "Romance gótico clássico com castelo sombrio e heroína em perigo, antecessor do clima de Drácula."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "14",
+    "nota": "terror: vampirismo, mortes, estaca no coração, decapitação, erotismo sugerido das vampiras, um bebê dado às vampiras. Sensível: estereótipos de época sobre ciganos (Szgany) e sobre o judeu Hildesheim",
+    "sensivel": "estereótipos de época sobre ciganos (Szgany) e sobre o judeu Hildesheim"
+  }
+}

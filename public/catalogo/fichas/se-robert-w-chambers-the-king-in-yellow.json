@@ -1,0 +1,375 @@
+{
+  "versao": 1,
+  "livroId": "se-robert-w-chambers-the-king-in-yellow",
+  "titulo": "The King in Yellow",
+  "idioma": "en",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "Robert W. Chambers nasceu em 1865, no Brooklyn, em Nova York, e morreu em 1933.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Antes de virar escritor, Chambers estudou arte em Paris e trabalhou como ilustrador de revistas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "The King in Yellow saiu em 1895 e foi um dos primeiros livros de ficção dele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro é uma coletânea de dez contos, não um romance.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os primeiros contos são de horror sobrenatural; os últimos são histórias de amor e de vida boêmia de estudantes de arte em Paris.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A obra pertence ao fim do século XIX, época do decadentismo e do esteticismo, movimentos que valorizavam a arte, o estranho e o mórbido.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Depois desse livro, Chambers fez enorme sucesso com romances históricos e românticos, e quase abandonou o horror.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É um marco da ficção de horror americana e influenciou muito o horror cósmico do século XX.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "H. P. Lovecraft elogiou o livro em seu ensaio Supernatural Horror in Literature e incorporou elementos dele ao seu próprio universo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A ideia central, uma peça de teatro que enlouquece quem a lê, virou um dos motivos mais imitados da literatura de terror.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro voltou à fama em 2014, com as referências a ele na primeira temporada da série True Detective.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Loucura",
+      "texto": "Vários narradores perdem a noção do que é real. O leitor nunca sabe bem em quem confiar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "O poder perigoso da arte",
+      "texto": "Uma obra de arte, a peça proibida, é capaz de destruir a mente de quem entra em contato com ela.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "O horror não dito",
+      "texto": "Chambers quase nunca mostra o horror por inteiro. Ele sugere, e a imaginação do leitor completa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Vida boêmia de artistas",
+      "texto": "Pintores, escultores e estudantes de arte em Paris e Nova York aparecem em quase todos os contos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amor e perda",
+      "texto": "Mesmo nos contos de horror, histórias de amor dão o tom, muitas vezes trágico.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Hildred Castaigne",
+      "texto": "Narrador de The Repairer of Reputations. Jovem que sofreu um acidente na cabeça e ficou obcecado pela peça proibida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mr. Wilde",
+      "texto": "Em The Repairer of Reputations, um homem estranho e deformado que diz consertar reputações alheias.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Louis Castaigne",
+      "texto": "Primo de Hildred, oficial do exército, apaixonado por Constance.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Constance Hawberk",
+      "texto": "Jovem amada por Louis, filha de um armeiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Boris Yvain",
+      "texto": "Escultor de The Mask, que faz experiências com um líquido misterioso.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Geneviève",
+      "texto": "Em The Mask, a jovem que vive com Boris e é querida pelos amigos dele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mr. Scott",
+      "texto": "Pintor que narra The Yellow Sign. Ele se incomoda com um vigia de igreja que vê da janela.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Tessie",
+      "texto": "Modelo que posa para Mr. Scott em The Yellow Sign e conta a ele um sonho perturbador.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "O Rei de Amarelo",
+      "texto": "Figura misteriosa da peça dentro do livro. Nunca é descrito por completo, o que o torna mais assustador.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "A peça The King in Yellow não existe de verdade. Só aparecem dela pequenos trechos e referências espalhados pelos contos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Diz-se nos contos que o primeiro ato da peça é inofensivo; o perigo está no segundo ato.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os nomes Carcosa e Hastur foram tirados de contos de Ambrose Bierce, como An Inhabitant of Carcosa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Só os quatro primeiros contos estão ligados diretamente à peça proibida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os contos são: The Repairer of Reputations, The Mask, In the Court of the Dragon, The Yellow Sign, The Demoiselle d'Ys, The Prophets' Paradise, The Street of the Four Winds, The Street of the First Shell, The Street of Our Lady of the Fields e Rue Barrée.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "The Repairer of Reputations se passa num futuro imaginado: os Estados Unidos de 1920, vistos por um autor de 1895.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Nesse futuro, o governo instala câmaras públicas onde as pessoas podem tirar a própria vida. É uma crítica sombria, apresentada com frieza.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "The Street of the First Shell se passa durante o cerco de Paris na Guerra Franco-Prussiana, em 1870–1871.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Lovecraft citou o Sinal Amarelo e Hastur no conto The Whisperer in Darkness.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitos autores depois escreveram histórias novas sobre o Rei de Amarelo, ampliando o mito.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "Carcosa",
+      "texto": "Cidade misteriosa e antiga ligada à peça. Não é um lugar real.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Hastur",
+      "texto": "Nome misterioso ligado ao mundo da peça. O livro nunca explica exatamente o que é.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Yellow Sign",
+      "texto": "O Sinal Amarelo, um símbolo ligado à peça que traz má sorte e horror a quem o encontra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Pallid Mask",
+      "texto": "A Máscara Pálida, outra imagem da peça. Pallid é uma palavra literária para muito pálido.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Lethal Chamber",
+      "texto": "Câmara letal: as cabines do governo, no futuro imaginado de 1920, para quem quer morrer.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "termo": "armourer",
+      "texto": "Armeiro: quem faz ou conserta armaduras e armas antigas. Grafia britânica de armorer.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "studio",
+      "texto": "Ateliê de pintor ou escultor. Muitas cenas acontecem nesses espaços.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Latin Quarter",
+      "texto": "Quartier Latin, bairro de Paris onde viviam estudantes e artistas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "concierge",
+      "texto": "Porteiro ou zeladora de prédio em Paris, figura comum nos contos franceses.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Salon",
+      "texto": "A grande exposição oficial de arte em Paris. Ser aceito nela era o sonho dos estudantes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "garret",
+      "texto": "Sótão pequeno e barato onde artistas pobres moravam.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ere",
+      "texto": "Forma antiga de before (antes de). Aparece em textos de tom poético.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "No fim do século XIX, muitos jovens americanos iam a Paris estudar arte. Chambers foi um deles e usa essa experiência no livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os contos misturam inglês com palavras e frases em francês, sem tradução. Isso era normal para leitores cultos da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O cerco de Paris (1870–1871) deixou a cidade sem comida e sob bombardeio. É o pano de fundo de The Street of the First Shell.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ao imaginar 1920, Chambers mostra ansiedades de 1895: militarismo, poder do Estado e controle sobre a vida das pessoas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "Why does the author never show the full text of the play? Does that make the story more or less frightening?",
+      "texto": "Por que o autor nunca mostra o texto completo da peça? Isso deixa a história mais ou menos assustadora?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Do you trust the narrator of The Repairer of Reputations? What clues make you doubt him?",
+      "texto": "Você confia no narrador de The Repairer of Reputations? Que pistas fazem você duvidar dele?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Can a work of art really change someone's mind? Give real-life examples.",
+      "texto": "Uma obra de arte pode mudar a mente de alguém de verdade? Dê exemplos da vida real.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Why do you think the book shifts from horror stories to love stories set in Paris?",
+      "texto": "Por que você acha que o livro muda dos contos de horror para histórias de amor em Paris?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How did the author imagine the year 1920? What does this vision reveal about the fears of 1895?",
+      "texto": "Como o autor imaginou o ano de 1920? O que essa visão revela sobre os medos de 1895?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "What role does the color yellow play in the book? What feelings does it create in you?",
+      "texto": "Que papel a cor amarela tem no livro? Que sensações ela provoca em você?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Why are so many characters artists? What does that add to the stories?",
+      "texto": "Por que tantos personagens são artistas? O que isso acrescenta às histórias?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "se-h-p-lovecraft-short-fiction",
+      "motivo": "Lovecraft admirava este livro e levou Hastur e o Sinal Amarelo para o seu horror cósmico."
+    },
+    {
+      "id": "se-edgar-allan-poe-short-fiction",
+      "motivo": "Contos curtos de horror e loucura, com narradores pouco confiáveis, tradição que Chambers segue."
+    },
+    {
+      "id": "se-oscar-wilde-the-picture-of-dorian-gray",
+      "motivo": "Da mesma década, mostra a arte como algo perigoso e o clima do esteticismo."
+    },
+    {
+      "id": "pg-1952",
+      "motivo": "Também dos anos 1890, une a cor amarela, a loucura e uma narradora em quem não se pode confiar."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "14",
+    "nota": "contos de terror: loucura, suicídio, morte; um conto tem um suicídio assistido estatal",
+    "sensivel": ""
+  }
+}

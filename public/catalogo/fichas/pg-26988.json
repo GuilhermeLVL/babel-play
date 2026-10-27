@@ -1,0 +1,339 @@
+{
+  "versao": 1,
+  "livroId": "pg-26988",
+  "titulo": "Amor de Salvação",
+  "idioma": "pt",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 1
+  },
+  "autorEContexto": [
+    {
+      "texto": "Camilo Castelo Branco nasceu em Lisboa, em 1825, e morreu em São Miguel de Seide, no norte de Portugal, em 1890.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ficou órfão ainda criança e foi criado por parentes em Trás-os-Montes, no interior do norte português.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É um dos maiores nomes do Romantismo português e um dos escritores mais produtivos da língua, com mais de cem obras.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Viveu da escrita, coisa rara na época: publicava romances, novelas, crônicas, polêmicas e textos para jornais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1860–1861 esteve preso na Cadeia da Relação do Porto, acusado de adultério com Ana Plácido, que depois foi sua companheira.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na prisão escreveu Amor de Perdição (1862), sua obra mais famosa. Amor de Salvação saiu pouco depois, em 1864.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1885 recebeu o título de Visconde de Correia Botelho. No fim da vida, quase cego e doente, tirou a própria vida em Seide.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "O Portugal da época vivia a monarquia constitucional, com uma sociedade marcada por fidalgos, dinheiro de famílias, casamentos arranjados e forte peso da Igreja.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "O título conversa de propósito com Amor de Perdição: Camilo mostra agora um amor que salva, e não um amor que destrói.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É um bom exemplo da novela passional camiliana: paixões intensas, conflitos de família e um narrador que comenta tudo com ironia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ajuda a entender como o Romantismo português via o casamento, a honra e o dinheiro no século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Paixão que destrói",
+      "texto": "O livro mostra como uma paixão cega pode levar alguém à ruína moral e financeira.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Redenção",
+      "texto": "Há a ideia de que um amor sereno e sincero pode recuperar uma vida perdida. O título já anuncia isso.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Família e dinheiro",
+      "texto": "Heranças, casamentos de interesse e a vontade dos pais pesam muito nas escolhas dos jovens.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Cidade e província",
+      "texto": "A vida agitada de Lisboa se opõe à vida mais calma do norte rural de Portugal.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Infidelidade e honra",
+      "texto": "A traição no casamento aparece como escândalo social e como fonte de culpa e queda.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "O narrador",
+      "texto": "Um escritor que reencontra um velho conhecido e ouve dele a história da sua vida. Ele comenta os fatos com ironia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Afonso de Teive",
+      "texto": "Jovem fidalgo do Minho. É a sua história de amor e de erros que o livro conta.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Teodora",
+      "texto": "A primeira grande paixão de Afonso, ligada a ele desde a juventude.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mafalda",
+      "texto": "Jovem bondosa e discreta que tem papel decisivo na recuperação de Afonso.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "Amor de Salvação foi publicado em 1864, dois anos depois de Amor de Perdição.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os dois títulos formam um par: perdição e salvação. Muitos leitores leem os dois livros em sequência.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A história é contada em moldura: um narrador ouve o relato de outra pessoa e o passa ao leitor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Camilo costuma conversar diretamente com o leitor, interrompendo a história para opinar ou brincar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Grande parte da obra de Camilo se passa no Minho e em Trás-os-Montes, regiões do norte de Portugal que ele conhecia bem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A casa onde Camilo viveu em São Miguel de Seide, em Vila Nova de Famalicão, hoje é um museu: a Casa de Camilo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Camilo escrevia muito rápido e publicava vários livros por ano, em parte por necessidade de dinheiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A própria vida de Camilo, com amores proibidos e prisão, parecia um romance e alimentou o interesse do público pelos seus livros.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Edições antigas usam a ortografia do século XIX, com grafias como ph, th e y que hoje não se usam.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ana Plácido, companheira de Camilo, também escreveu e publicou textos literários.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "fidalgo",
+      "texto": "Pessoa de família nobre. Era um título de prestígio social, nem sempre ligado a riqueza.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "morgado",
+      "texto": "Filho mais velho que herdava todos os bens da família, que não podiam ser divididos. Também o próprio conjunto desses bens.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "solar",
+      "texto": "Casa nobre e antiga de uma família fidalga, geralmente no campo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "réis",
+      "texto": "Plural de real, a moeda portuguesa da época. Valores grandes apareciam em mil-réis ou contos de réis.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "conto de réis",
+      "texto": "Um milhão de réis. Era uma quantia alta, sinal de fortuna.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "dote",
+      "texto": "Bens ou dinheiro que a família da noiva entregava no casamento. Influenciava muito as escolhas de noivos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "vossemecê",
+      "texto": "Forma de tratamento antiga, de onde vem você. Indicava respeito ou certa distância.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "brasileiro",
+      "texto": "Em Portugal, o português que emigrou para o Brasil e voltou rico. Muitas vezes aparecia como figura de sátira.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "recolhimento",
+      "texto": "Casa religiosa onde moças ou mulheres viviam afastadas do mundo, às vezes por decisão da família.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "D.",
+      "texto": "Abreviatura de Dom ou Dona, tratamento de pessoas nobres ou respeitadas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "No século XIX, os pais tinham enorme poder sobre o casamento dos filhos. Casar por interesse era comum e aceito.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em Portugal, o adultério era crime previsto em lei. O próprio Camilo foi preso por isso.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Lisboa era vista como lugar de luxo, festas e perdição. A província aparecia como lugar de tradição e simplicidade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A honra da família, sobretudo a das mulheres, era um valor central. Um escândalo podia arruinar uma família inteira.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O que o título Amor de Salvação sugere antes mesmo de começar a leitura?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que você acha que o autor escolheu contar a história através de um narrador que ouve o relato de outro?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Como as famílias influenciam as escolhas amorosas dos personagens? Isso ainda acontece hoje?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Que diferenças o livro mostra entre a vida em Lisboa e a vida no interior?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Os comentários irônicos do narrador ajudam ou atrapalham você a se envolver com a história?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Qual é a diferença entre um amor que perde e um amor que salva, segundo o livro?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Afonso é responsável pelos próprios erros ou é vítima das circunstâncias?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Como o livro trata as personagens femininas? Elas têm liberdade de escolha?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "ws-pt-amor-de-perdicao-1862",
+      "motivo": "A obra mais famosa de Camilo, com a qual este livro dialoga desde o título."
+    },
+    {
+      "id": "pg-23203",
+      "motivo": "Outra obra de Camilo Castelo Branco, com retratos da sociedade portuguesa da época."
+    },
+    {
+      "id": "ws-pt-as-pupilas-do-senhor-reitor",
+      "motivo": "Romance português da mesma época, com amores e vida no interior do norte de Portugal."
+    },
+    {
+      "id": "pg-42942",
+      "motivo": "Eça de Queirós trata a paixão e a traição no casamento com olhar realista, em contraste com o Romantismo de Camilo."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "novela romântica de paixão, abandono e redenção",
+    "sensivel": ""
+  }
+}

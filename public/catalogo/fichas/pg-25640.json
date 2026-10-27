@@ -1,0 +1,346 @@
+{
+  "versao": 1,
+  "livroId": "pg-25640",
+  "titulo": "Los argonautas",
+  "idioma": "es",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 1
+  },
+  "autorEContexto": [
+    {
+      "texto": "Vicente Blasco Ibáñez nasceu em Valência, na Espanha, em 1867, e morreu em Menton, na França, em 1928.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Além de romancista, foi jornalista e político republicano. Fundou em Valência o jornal El Pueblo e foi deputado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ficou conhecido primeiro pelos romances ambientados em Valência, como La barraca (1898) e Cañas y barro (1902), ligados ao naturalismo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1909 viajou à Argentina para uma série de conferências. Depois tentou fundar colônias agrícolas no país, projeto que não deu certo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Los argonautas foi publicado em 1914 e nasce dessa experiência americana do autor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Entre o fim do século XIX e o começo do XX, milhões de europeus, muitos deles espanhóis e italianos, emigraram para a Argentina em busca de trabalho e fortuna.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Espanha vivia o desânimo após perder Cuba, Porto Rico e as Filipinas em 1898. Para muitos espanhóis, a América aparecia como uma segunda chance.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Pouco depois, Blasco Ibáñez alcançaria fama mundial com Los cuatro jinetes del Apocalipsis (1916), adaptado para o cinema de Hollywood em 1921.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É um retrato literário da grande emigração europeia para a América do Sul, vista de dentro de um navio que cruza o Atlântico.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O navio funciona como uma sociedade em miniatura: classes sociais, nacionalidades e ambições diferentes convivem no mesmo espaço fechado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra como a Espanha da época enxergava a América: terra de riqueza, aventura e recomeço, mas também de ilusões.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Marca a virada do autor dos temas valencianos para romances de alcance internacional.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Emigração e o sonho de enriquecer",
+      "texto": "Os passageiros partem para a América esperando mudar de vida. O livro discute o que há de real e de ilusório nesse sonho.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "O mito dos argonautas",
+      "texto": "O título lembra Jasão e os argonautas, que navegaram em busca do velocino de ouro. Aqui, o ouro procurado é a riqueza da América.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Viagem e vida a bordo",
+      "texto": "A travessia longa cria rotinas, festas, intrigas e amizades. O navio é quase um mundo à parte.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Classes sociais",
+      "texto": "Os luxos da primeira classe contrastam com a vida apertada dos emigrantes pobres na terceira classe.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Espanha e América",
+      "texto": "Os personagens comparam a velha Espanha com as novas nações americanas e debatem a herança espanhola no continente.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amor e tentação",
+      "texto": "O isolamento da viagem favorece paixões e relações proibidas, que trazem consequências para os envolvidos.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Fernando Ojeda",
+      "texto": "Protagonista. Espanhol de boa família, com alma de poeta, que embarca para a Argentina tentando refazer a vida e a fortuna.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Isidro Maltrana",
+      "texto": "Amigo de Ojeda, escritor pobre e boêmio de Madri. Observador irônico dos outros passageiros. Já aparecia em outro romance do autor, La horda (1905).",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "Isidro Maltrana, um dos personagens centrais, vem de La horda (1905), romance de Blasco Ibáñez sobre os pobres dos arredores de Madri.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O título faz referência à mitologia grega: os argonautas eram os heróis que viajaram no navio Argo com Jasão.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O autor conhecia de perto a rota: ele próprio cruzou o Atlântico até a Argentina em 1909.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Blasco Ibáñez também escreveu Argentina y sus grandezas, uma obra sobre o país publicada por volta do centenário da independência argentina (1910).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Suas colônias agrícolas na Argentina fracassaram, e ele voltou à Europa com prejuízo. Essa experiência pesa no olhar do romance sobre o sonho americano.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Grande parte do livro se passa a bordo, durante a travessia, e não em terra firme.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Blasco Ibáñez foi um dos escritores espanhóis mais lidos no mundo em sua época, com muitos livros traduzidos e adaptados ao cinema.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Durante a Primeira Guerra Mundial, o autor vivia na França, onde escreveu Los cuatro jinetes del Apocalipsis, que também tem personagens ligados à Argentina.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele foi um republicano combativo e chegou a ser preso e a se exilar por suas posições políticas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "trasatlántico",
+      "texto": "Grande navio de passageiros que cruzava o Atlântico entre a Europa e a América.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "camarote",
+      "texto": "Cabine de dormir no navio. Não confundir com camarote de teatro no sentido brasileiro mais comum.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "cubierta",
+      "texto": "Convés: a parte aberta e superior do navio, onde os passageiros passeiam.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "tercera clase",
+      "texto": "A classe mais barata do navio, onde viajava a maioria dos emigrantes pobres.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "emigrante",
+      "texto": "Quem sai do próprio país para viver em outro. Na época, palavra ligada sobretudo aos europeus pobres que iam para a América.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "indiano",
+      "texto": "Na Espanha, o emigrante que voltava rico da América. Nada a ver com a Índia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "hacer la América",
+      "texto": "Expressão da época: ir para a América para fazer fortuna.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "vellocino de oro",
+      "texto": "Velocino (ou tosão) de ouro: a pele de carneiro dourada buscada pelos argonautas no mito grego.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "argonauta",
+      "texto": "Tripulante do navio Argo, no mito de Jasão. Em sentido figurado, aventureiro que viaja em busca de fortuna.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "estancia",
+      "texto": "Na Argentina, grande fazenda de gado. Na Espanha, o sentido comum é cômodo ou permanência.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "porteño",
+      "texto": "Morador de Buenos Aires, cidade portuária.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "gringo",
+      "texto": "Na Argentina da época, imigrante estrangeiro, especialmente italiano. Sentido diferente do uso atual mais comum.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Uma viagem da Espanha a Buenos Aires de navio levava semanas, com escalas em portos pelo caminho.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os navios separavam rigidamente as classes: salões, jantares formais e bailes na primeira; porões lotados na terceira.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Argentina do início do século XX era um dos países mais prósperos do mundo, graças à exportação de carne e cereais, e atraía imigrantes em massa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1910 a Argentina comemorou o centenário da Revolução de Maio, e vários intelectuais espanhóis visitaram o país nessa época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na Espanha de então, um nome de família não garantia dinheiro: muitos jovens de boa origem e pouca renda viam na América a saída.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "¿Por qué el autor eligió el mito de los argonautas como título? ¿Qué sería el vellocino de oro para estos viajeros?",
+      "texto": "Por que o autor escolheu o mito dos argonautas como título? O que seria o velocino de ouro para estes viajantes?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo funciona el barco como una pequeña sociedad? ¿Qué divisiones aparecen entre los pasajeros?",
+      "texto": "Como o navio funciona como uma pequena sociedade? Que divisões aparecem entre os passageiros?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué diferencia a Fernando Ojeda de Isidro Maltrana en su manera de ver el viaje y América?",
+      "texto": "O que diferencia Fernando Ojeda de Isidro Maltrana na maneira de ver a viagem e a América?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿El sueño de enriquecerse en América aparece en el libro como realidad o como ilusión? Da ejemplos.",
+      "texto": "O sonho de enriquecer na América aparece como realidade ou ilusão no livro? Dê exemplos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo puede el aislamiento de un viaje largo cambiar el comportamiento de las personas?",
+      "texto": "Como o isolamento de uma longa viagem pode mudar o comportamento das pessoas?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué imagen de España y de América construyen los personajes en sus conversaciones a bordo?",
+      "texto": "Que imagem da Espanha e da América os personagens constroem nas conversas a bordo?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Hay semejanzas entre los emigrantes del libro y los migrantes de hoy? ¿Cuáles?",
+      "texto": "Há semelhanças entre os emigrantes do livro e os migrantes de hoje? Quais?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Crees que el narrador trata con crítica o con simpatía la pasión que el protagonista vive a bordo?",
+      "texto": "Você acha que a paixão vivida a bordo pelo protagonista é tratada com crítica ou com simpatia pelo narrador?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-24536",
+      "motivo": "Mesmo autor; romance que também liga a Europa à Argentina, com personagens de famílias de imigrantes."
+    },
+    {
+      "id": "pg-23236",
+      "motivo": "Mesmo autor e mesma época; o mar e a navegação estão no centro da história."
+    },
+    {
+      "id": "pg-33267",
+      "motivo": "Clássico argentino do século XIX que ajuda a entender o país que os viajantes esperam encontrar."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "14",
+    "nota": "travessia de navio para a América com um caso de adultério do protagonista e mortes",
+    "sensivel": ""
+  }
+}

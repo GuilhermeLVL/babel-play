@@ -1,0 +1,351 @@
+{
+  "versao": 1,
+  "livroId": "pg-53552",
+  "titulo": "Obras escogidas",
+  "idioma": "es",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 3
+  },
+  "autorEContexto": [
+    {
+      "texto": "Gustavo Adolfo Bécquer nasceu em Sevilha, na Espanha, em 1836, e morreu em Madri em 1870, com apenas 34 anos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Seu nome de batismo era Gustavo Adolfo Domínguez Bastida. Ele adotou o sobrenome Bécquer, que vinha de antepassados de origem flamenga.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ficou órfão ainda criança: perdeu o pai e, poucos anos depois, a mãe.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Seu irmão Valeriano Bécquer era pintor e desenhista. Os dois foram muito próximos e trabalharam juntos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em Madri, Bécquer viveu do jornalismo e enfrentou pobreza e problemas de saúde durante boa parte da vida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele é o principal nome do pós-romantismo espanhol: escreveu quando o Romantismo já estava no fim, com um estilo mais íntimo, simples e musical.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Suas obras mais conhecidas são as Rimas (poemas curtos) e as Leyendas (contos em prosa, muitos com elementos sobrenaturais).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em vida, publicou sobretudo em jornais. A maior parte da obra foi reunida em livro por amigos, logo depois de sua morte.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "As Rimas são consideradas o ponto de partida da poesia espanhola moderna. Poetas como Antonio Machado, Juan Ramón Jiménez e a Geração de 27 reconheceram essa influência.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As Leyendas estão entre os contos fantásticos mais lidos da língua espanhola e ainda são leitura escolar comum na Espanha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Para quem aprende espanhol, os textos são curtos e musicais. Isso ajuda a ler em voz alta e a sentir o ritmo da língua.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Amor e desilusão",
+      "texto": "O amor aparece como desejo ideal, quase impossível. Muitas vezes termina em perda ou decepção.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Morte e passagem do tempo",
+      "texto": "A morte, a solidão e a brevidade da vida voltam sempre, tanto nos poemas quanto nas lendas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "O sobrenatural",
+      "texto": "Fantasmas, almas penadas, seres encantados e objetos amaldiçoados criam um clima de mistério e medo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "A própria poesia",
+      "texto": "Vários poemas falam do que é a poesia, da inspiração e da dificuldade de pôr sentimentos em palavras.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Espanha medieval e tradições",
+      "texto": "Muitas lendas se passam em castelos, mosteiros e catedrais antigas, como em Soria, Toledo e Sevilha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Sonho e realidade",
+      "texto": "Os personagens costumam perseguir uma ilusão. O choque entre o que se sonha e o que é real tem um preço.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Alonso",
+      "texto": "Jovem caçador e nobre de El monte de las ánimas. Está apaixonado pela prima Beatriz.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Beatriz",
+      "texto": "Prima de Alonso em El monte de las ánimas. É orgulhosa e quer pôr à prova o amor dele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Fernando de Argensola",
+      "texto": "Jovem caçador de Los ojos verdes. Fica obcecado por uma misteriosa mulher de olhos verdes que vê numa fonte.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Manrique",
+      "texto": "Jovem sonhador e solitário de El rayo de luna. Prefere suas fantasias ao mundo real e sai à procura de uma mulher que acredita ter visto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Maese Pérez",
+      "texto": "Organista cego de um convento de Sevilha, famoso por tocar na missa da noite de Natal, em Maese Pérez el organista.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Destino de Alonso e Beatriz",
+      "texto": "Alonso volta ao monte na noite de Finados para buscar a faixa perdida de Beatriz e não retorna. Beatriz também tem um fim trágico.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "Bécquer entregou um manuscrito com seus poemas ao ministro Luis González Bravo, mas ele se perdeu na revolução de 1868. O poeta reescreveu os poemas de memória num caderno.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Esse caderno é conhecido como Libro de los gorriones e hoje está guardado na Biblioteca Nacional da Espanha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As Rimas são numeradas em algarismos romanos e, em geral, não têm título. Por isso costumam ser citadas pelo número.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A rima das golondrinas (andorinhas) é um dos poemas mais famosos da língua espanhola e já foi musicada várias vezes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Valeriano, o irmão pintor, morreu em 1870, poucos meses antes de Gustavo Adolfo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os restos dos dois irmãos estão juntos no Panteão de Sevilhanos Ilustres, em Sevilha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Bécquer passou uma temporada no mosteiro de Veruela, em Aragão. Ali escreveu as Cartas desde mi celda, textos em prosa sobre a vida e as tradições da região.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele trabalhou como fiscal de novelas, um cargo do governo que fazia a censura de romances publicados.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Várias lendas se passam em Soria, cidade ligada à família da esposa do autor. Lá existe hoje uma rota turística sobre Bécquer.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "El monte de las ánimas acontece na noite de Finados (2 de novembro) e é uma leitura tradicional na Espanha nessa época do ano.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "leyenda",
+      "texto": "Lenda. Narrativa curta baseada em tradições populares, muitas vezes com elementos sobrenaturais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ánimas",
+      "texto": "Almas dos mortos, especialmente as que estão no purgatório. Daí vem noche de ánimas, a noite de Finados.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Día de Difuntos",
+      "texto": "Dia de Finados, 2 de novembro, quando se reza pelos mortos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "maese",
+      "texto": "Forma antiga de maestro. Era um tratamento de respeito para mestres de um ofício, como em Maese Pérez.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ajorca",
+      "texto": "Bracelete ou argola de metal usada no braço ou no tornozelo. Aparece no título La ajorca de oro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "banda",
+      "texto": "Faixa de tecido usada atravessada no peito ou na cintura. Não confunda com a banda de música.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "montero",
+      "texto": "Caçador, especialmente o que participa de caçadas de nobres em montes e florestas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "misa del gallo",
+      "texto": "Missa da meia-noite na véspera de Natal, a Missa do Galo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "templarios",
+      "texto": "Membros da Ordem do Templo, ordem militar e religiosa medieval. Fazem parte do passado lendário de Soria.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Na Espanha católica do século XIX, a crença no purgatório e as rezas pelas almas eram parte do dia a dia. Isso ajuda a entender o clima das lendas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitas lendas se passam na Idade Média, com nobres, cavaleiros e clérigos. Era uma época que os românticos idealizavam.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No tempo de Bécquer, contos e poemas saíam primeiro em jornais e revistas. Só depois eram reunidos em livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Espanha de meados do século XIX viveu grande instabilidade política, que terminou com a revolução de 1868 e a queda da rainha Isabel II.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "¿Por qué crees que las Rimas, poemas tan breves y sencillos, influyeron en tantos poetas posteriores a Bécquer?",
+      "texto": "Por que você acha que as Rimas, poemas tão curtos e simples, influenciaram tantos poetas depois de Bécquer?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "En las leyendas, ¿lo sobrenatural sirve más para asustar o para enseñar algo? Pon un ejemplo.",
+      "texto": "Nas lendas, o sobrenatural serve mais para assustar ou para ensinar algo? Dê um exemplo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Muchos personajes persiguen un ideal o una ilusión. ¿Qué parece pensar el autor sobre eso?",
+      "texto": "Muitos personagens perseguem um ideal ou uma ilusão. O que o autor parece pensar sobre isso?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo aparece el amor en las Rimas: como alegría, como sufrimiento o como ambas cosas?",
+      "texto": "Como o amor aparece nas Rimas: como alegria, sofrimento ou as duas coisas?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué papel tiene el paisaje (montes, ríos, ruinas, iglesias) en el ambiente de las leyendas?",
+      "texto": "Que papel tem a paisagem (montes, rios, ruínas, igrejas) no clima das lendas?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "En El monte de las ánimas, ¿te parece justo el desafío que Beatriz le plantea a Alonso? ¿Por qué?",
+      "texto": "Em El monte de las ánimas, você acha justo o desafio que Beatriz faz a Alonso? Por quê?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Elige una rima y léela en voz alta. ¿Qué sonidos y repeticiones crean la música del poema?",
+      "texto": "Escolha uma rima e leia em voz alta. Que sons e repetições criam a música do poema?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Alguna leyenda podría convertirse hoy en una película de terror? ¿Cuál y qué cambiarías?",
+      "texto": "Alguma lenda poderia virar um filme de terror hoje? Qual, e o que você mudaria?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-68525",
+      "motivo": "Antonio Machado admirava Bécquer. Sua poesia também é íntima e musical, e também tem Soria como cenário."
+    },
+    {
+      "id": "pg-46196",
+      "motivo": "Contos de Poe em espanhol: mistério, morte e o sobrenatural, da mesma época romântica."
+    },
+    {
+      "id": "pg-52894",
+      "motivo": "Rubén Darío renovou a poesia em espanhol pouco depois de Bécquer e foi influenciado por ele."
+    },
+    {
+      "id": "pg-72665",
+      "motivo": "Lorca, da Geração de 27, herdeira de Bécquer, une tradição popular andaluza, mistério e morte."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "Rimas e Lendas de Bécquer: amor, morte e lendas sobrenaturais sombrias",
+    "sensivel": ""
+  }
+}

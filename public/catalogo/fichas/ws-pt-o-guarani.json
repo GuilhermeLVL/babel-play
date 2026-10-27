@@ -1,0 +1,397 @@
+{
+  "versao": 1,
+  "livroId": "ws-pt-o-guarani",
+  "titulo": "O Guarani",
+  "idioma": "pt",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "José de Alencar nasceu em 1829, em Messejana, no Ceará, e morreu em 1877, no Rio de Janeiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Formou-se em Direito em São Paulo e trabalhou como advogado, jornalista e político. Foi ministro da Justiça no Império.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O Guarani saiu em 1857, primeiro em capítulos (folhetim) no jornal Diário do Rio de Janeiro, e no mesmo ano virou livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro pertence ao Romantismo brasileiro, movimento que buscava criar uma identidade nacional depois da Independência, em 1822.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Alencar é o grande nome do indianismo na prosa: o indígena aparece como herói e símbolo da origem do Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Com Iracema (1865) e Ubirajara (1874), O Guarani forma a chamada trilogia indianista de Alencar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Pouco antes, em 1856, Alencar criticou o poema A Confederação dos Tamoios, de Gonçalves de Magalhães, defendendo outra forma de retratar o indígena e a natureza.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A história se passa no início do século XVII, quando Portugal e Espanha estavam sob o mesmo rei (União Ibérica, 1580–1640).",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É um dos romances fundadores da literatura brasileira e um dos mais lidos do século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra o projeto romântico de inventar um mito de origem para o Brasil, unindo o português e o indígena.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Suas descrições da mata e dos rios ajudaram a fixar uma imagem idealizada da natureza brasileira.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Hoje é lido também de forma crítica: o livro idealiza um indígena submisso ao branco e desumaniza outros povos, o que abre boa discussão sobre representação.",
+      "spoiler": false,
+      "sensivel": true
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Lealdade e devoção",
+      "texto": "Peri dedica a vida a proteger Ceci. A fidelidade ao senhor, ao rei e à palavra dada move vários personagens.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Natureza brasileira",
+      "texto": "A mata, os rios e os animais são descritos com grandeza. A natureza é cenário e quase personagem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Origem da nação",
+      "texto": "O encontro entre portugueses e indígenas é apresentado como o nascimento simbólico do Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Honra e traição",
+      "texto": "De um lado, o código de honra do fidalgo. Do outro, ambição e cobiça que ameaçam a casa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Representação do indígena",
+      "texto": "O livro opõe o indígena bom e leal (Peri) ao indígena feroz (os aimorés). Essa divisão reflete os preconceitos da época.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Amor idealizado",
+      "texto": "Os amores do livro são puros e quase sagrados, bem ao gosto romântico.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Peri",
+      "texto": "Jovem guerreiro goitacá, forte, ágil e corajoso. Vive perto da casa de D. Antônio e protege Cecília com devoção total.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Cecília (Ceci)",
+      "texto": "Filha de D. Antônio de Mariz. Moça loura, alegre e delicada, centro das atenções da casa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "D. Antônio de Mariz",
+      "texto": "Fidalgo português que se instalou numa casa fortificada à beira do rio Paquequer. Fiel ao rei de Portugal, recusa servir à coroa espanhola.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "D. Lauriana",
+      "texto": "Esposa de D. Antônio. Orgulhosa e desconfiada, não gosta da presença de Peri.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "D. Diogo de Mariz",
+      "texto": "Filho de D. Antônio, jovem e impulsivo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Isabel",
+      "texto": "Jovem mestiça que vive na casa como sobrinha de D. Antônio. Morena e apaixonada, contrasta com Cecília.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Álvaro de Sá",
+      "texto": "Jovem cavaleiro português, leal e honrado, a serviço de D. Antônio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Loredano",
+      "texto": "Aventureiro italiano a serviço de D. Antônio. Ambicioso e misterioso.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Loredano (identidade)",
+      "texto": "Loredano é na verdade o ex-frei Ângelo di Luca, que abandonou a batina para buscar um tesouro e trama contra a família.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Isabel (origem)",
+      "texto": "Isabel é, na verdade, filha de D. Antônio com uma mulher indígena, segredo que pesa sobre ela.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O romance é dividido em quatro partes: Os Aventureiros, Peri, Os Aimorés e A Catástrofe.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O compositor Carlos Gomes transformou o livro na ópera Il Guarany, estreada em 1870 no Teatro alla Scala, em Milão.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A abertura da ópera de Carlos Gomes é a música de abertura do programa de rádio A Voz do Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Por ter saído em folhetim, muitos capítulos terminam em suspense, para o leitor comprar o jornal do dia seguinte.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O nome Peri e o apelido Ceci ficaram tão populares que viraram nomes de pessoas no Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Críticos costumam comparar o livro aos romances de aventura de James Fenimore Cooper, como O Último dos Moicanos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A história se passa na região da serra dos Órgãos, no atual estado do Rio de Janeiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O conflito com os aimorés começa quando D. Diogo mata por acidente uma jovem aimoré durante uma caçada.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "texto": "Para salvar Ceci, Peri toma veneno e tenta fazer os aimorés o devorarem, para envenená-los.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "texto": "Cercado, D. Antônio batiza Peri, entrega-lhe Ceci e explode a casa com pólvora.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "texto": "No final, Peri conta a Ceci a lenda de Tamandaré, sobre um dilúvio, enquanto uma enchente os cerca no alto de uma palmeira.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "fidalgo",
+      "texto": "Nobre de origem, membro da pequena nobreza portuguesa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "aventureiro",
+      "texto": "Na época, homem armado contratado para expedições e defesa, em troca de pagamento ou parte de riquezas. Não é só quem gosta de aventura.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "escudeiro",
+      "texto": "Criado ou ajudante de um nobre, que o acompanhava e servia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "arcabuz",
+      "texto": "Arma de fogo antiga, de cano longo, anterior ao fuzil.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "cacique",
+      "texto": "Chefe de um grupo indígena.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "tacape",
+      "texto": "Clava de madeira usada como arma por povos indígenas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "goitacá",
+      "texto": "Povo indígena do litoral norte fluminense. Peri pertence a ele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "aimoré",
+      "texto": "Nome dado pelos colonizadores a um povo indígena temido, ligado aos botocudos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "selvagem",
+      "texto": "Na época, palavra comum para indígenas. Hoje é vista como preconceituosa.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "termo": "folhetim",
+      "texto": "Romance publicado em capítulos num jornal, como uma novela.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "pólvora",
+      "texto": "Explosivo usado em armas de fogo e na defesa das casas coloniais.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Entre 1580 e 1640, Portugal ficou sob o rei da Espanha (União Ibérica). Por isso, D. Antônio vê lealdade a Portugal como questão de honra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No século XVII, fidalgos recebiam terras e montavam casas fortificadas com homens armados, longe das cidades.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro usa a palavra de então para os indígenas e repete estereótipos da época, como o canibalismo dos aimorés. Vale ler com olhar crítico.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "O português do livro é do século XIX: frases longas, vocabulário raro e muitos termos de origem tupi.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que os românticos escolheram o indígena como símbolo do Brasil?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Como a natureza é descrita? Ela parece real ou idealizada?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Peri é um herói completo ou um personagem criado para servir aos brancos?",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Que diferença o livro faz entre Peri e os aimorés? O que isso revela sobre a época?",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Compare Cecília e Isabel. Por que o livro as coloca em contraste?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O que significa honra para D. Antônio? Você concorda com as escolhas dele?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que o batismo de Peri é importante para o sentido do final?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O que o final em aberto, com a enchente e a lenda de Tamandaré, sugere sobre a origem do Brasil?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "ws-pt-iracema",
+      "motivo": "Outro romance indianista de Alencar, que também conta um mito de origem do Brasil."
+    },
+    {
+      "id": "ws-pt-y-juca-pyrama",
+      "motivo": "Poema indianista de Gonçalves Dias, do mesmo Romantismo, com um guerreiro indígena como herói."
+    },
+    {
+      "id": "ws-pt-o-uraguai",
+      "motivo": "Poema épico do século XVIII sobre indígenas e colonizadores, precursor do indianismo."
+    },
+    {
+      "id": "ws-pt-as-minas-de-prata",
+      "motivo": "Romance histórico de Alencar ambientado no Brasil colonial, com aventura e mistério."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "aventura: lutas, mortes, ataque dos aimorés e uma explosão. Sensível: indígenas idealizados (Peri) ou retratados como selvagens canibais (aimorés)",
+    "sensivel": "indígenas idealizados (Peri) ou retratados como selvagens canibais (aimorés)"
+  }
+}

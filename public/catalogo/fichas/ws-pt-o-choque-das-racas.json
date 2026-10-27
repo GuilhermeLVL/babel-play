@@ -1,0 +1,357 @@
+{
+  "versao": 1,
+  "livroId": "ws-pt-o-choque-das-racas",
+  "titulo": "O Choque das Raças",
+  "idioma": "pt",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 2
+  },
+  "autorEContexto": [
+    {
+      "texto": "José Bento Monteiro Lobato nasceu em Taubaté (SP), em 1882, e morreu em São Paulo, em 1948.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Lobato ficou famoso com Urupês (1918), livro de contos em que aparece o personagem Jeca Tatu, o caipira pobre do interior paulista.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele é o grande nome da literatura infantil brasileira, criador do Sítio do Picapau Amarelo, com Emília, Narizinho e Pedrinho.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Lobato também foi editor. Em 1925, fundou com Octalles Marcondes Ferreira a Companhia Editora Nacional, que publicou este livro em 1926.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Nos anos 1910 e 1920, a eugenia era um movimento forte no Brasil e no mundo. Ela defendia, com base em ideias hoje rejeitadas pela ciência, que se deveria controlar quem tem filhos para melhorar a raça.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Muitos intelectuais brasileiros da época, inclusive Lobato, defendiam o branqueamento da população e viam a mestiçagem como um problema. Lobato se correspondia com Renato Kehl, principal divulgador da eugenia no país.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "De 1927 a 1931, Lobato viveu nos Estados Unidos como adido comercial do Brasil em Nova York. Ele queria lançar o livro lá, mas não encontrou editora americana.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Nos anos 1930, Lobato fez campanha pela exploração de petróleo no Brasil e entrou em conflito com o governo Vargas. Em 1941, chegou a ser preso.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É um dos primeiros romances de ficção científica do Brasil. Imagina o futuro com tecnologia, política e mudanças sociais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É um documento histórico importante: mostra como ideias racistas e eugenistas circulavam entre escritores respeitados nos anos 1920. Ler com olhar crítico ajuda a entender a história do racismo no Brasil.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "O livro está no centro do debate sobre racismo na obra de Lobato, que também atinge seus livros infantis. Em 2010, por exemplo, houve uma grande discussão nacional sobre Caçadas de Pedrinho nas escolas.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "A eleição de Barack Obama, primeiro presidente negro dos Estados Unidos, em 2008, fez o livro voltar a ser muito comentado, agora como exemplo do pensamento que a história desmentiu.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Racismo e eugenia",
+      "texto": "A tese do livro é eugenista: trata a separação e a hierarquia entre raças como algo natural. Hoje a ciência rejeita a ideia de raças humanas superiores ou inferiores.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Ciência e futuro",
+      "texto": "Uma máquina permite ver o futuro. O livro mistura especulação científica com opinião política, e mostra como a ciência pode ser usada para justificar violências.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Democracia e voto",
+      "texto": "A história gira em torno de uma eleição presidencial nos Estados Unidos e de como grupos sociais votam e se dividem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Papel das mulheres",
+      "texto": "O livro imagina mulheres organizadas em partido próprio, disputando o poder com os homens. É um reflexo dos debates sobre o feminismo e o voto feminino nos anos 1920.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Estados Unidos como modelo",
+      "texto": "Lobato admirava a eficiência e a técnica americanas. O livro projeta nos Estados Unidos um futuro que ele via como modelo, inclusive na questão racial.",
+      "spoiler": false,
+      "sensivel": true
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Ayrton Lobo",
+      "texto": "O narrador. É um jovem funcionário de escritório no Rio de Janeiro, com vida modesta, que sofre um acidente de carro e vai parar num lugar inesperado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Professor Benson",
+      "texto": "Cientista recluso que vive num castelo. Inventou uma máquina capaz de mostrar o futuro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Miss Jane",
+      "texto": "Filha do professor Benson. É ela quem conta a Ayrton o que viu do futuro pela máquina do pai.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Jim Roy",
+      "texto": "Líder da população negra nos Estados Unidos do futuro e candidato à Presidência.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Kerlog",
+      "texto": "Candidato à Presidência pelo partido dos homens brancos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Evelyn Astor",
+      "texto": "Líder do partido das mulheres, que disputa a mesma eleição.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Jim Roy (desfecho)",
+      "texto": "Jim Roy vence a eleição porque o voto branco se divide entre homens e mulheres. Depois, os brancos se reúnem contra ele, e Jim Roy morre antes de assumir.",
+      "spoiler": true,
+      "sensivel": true
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O título completo da primeira edição é O Choque das Raças ou O Presidente Negro. Edições posteriores passaram a usar só O Presidente Negro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Antes de virar livro, o texto saiu em capítulos no jornal carioca A Manhã, em 1926, como folhetim.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A máquina de ver o futuro se chama porviroscópio. O nome junta porvir (futuro) com o sufixo -scópio (instrumento para ver).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A parte principal da história se passa nos Estados Unidos do ano de 2228, cerca de três séculos depois da época de Lobato.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro imagina pessoas trabalhando de casa por meio de transmissões a distância. Muitos leitores de hoje veem nisso uma antecipação do trabalho remoto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em cartas do fim dos anos 1920, Lobato elogiou a Ku Klux Klan, grupo racista e violento dos Estados Unidos. Essas cartas são muito citadas por estudiosos da sua obra.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "No final, a população negra é esterilizada às escondidas, por meio de um tratamento para alisar o cabelo. O livro apresenta isso como solução, não como crime: é aqui que a tese eugenista fica explícita.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "texto": "A história tem duas camadas: o presente de Ayrton no Rio de Janeiro dos anos 1920 e o futuro contado por Miss Jane.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É o único romance adulto de Lobato. Ele era sobretudo contista, ensaísta e autor de livros infantis.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "porviroscópio",
+      "texto": "Máquina inventada no livro para ver o futuro. Vem de porvir, palavra antiga para futuro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "porvir",
+      "texto": "O futuro, o que ainda vai acontecer. Palavra pouco usada hoje fora da linguagem literária.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "eugenia",
+      "texto": "Ideia, hoje desacreditada, de melhorar a espécie humana controlando quem pode ter filhos. Serviu de base para leis racistas e para o nazismo.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "termo": "esterilização",
+      "texto": "Ato de tornar alguém incapaz de ter filhos. Na época, programas eugenistas fizeram esterilizações forçadas em vários países.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "termo": "raça",
+      "texto": "Na época, era usada como categoria biológica rígida. Hoje a ciência mostra que raças humanas não existem nesse sentido; o termo é entendido como construção social.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "termo": "mestiçagem",
+      "texto": "Mistura entre grupos de origens diferentes. Os eugenistas da época viam isso como um mal; hoje a palavra é usada para descrever a formação diversa do povo brasileiro.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "termo": "branqueamento",
+      "texto": "Ideologia do início do século XX que defendia tornar a população brasileira mais branca, por imigração europeia e casamentos. É uma ideia racista.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "termo": "folhetim",
+      "texto": "Romance publicado em capítulos no jornal, um pouco por dia ou por semana. Era muito comum no Brasil dos séculos XIX e XX.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Miss",
+      "texto": "Palavra inglesa para senhorita, usada antes do nome de moças solteiras. Lobato a usa para dar ar americano às personagens.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Em 1926, o Brasil tinha menos de 40 anos desde o fim da escravidão (1888). A população negra enfrentava pobreza e discriminação sem proteção legal.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Nos Estados Unidos dos anos 1920, havia leis de segregação racial no Sul, e a Ku Klux Klan vivia um momento de grande força.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Em vários países, inclusive nos Estados Unidos, havia leis que permitiam esterilizar pessoas à força por motivos eugenistas. Depois do nazismo, essas ideias foram condenadas.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Em 1926, as brasileiras ainda não podiam votar. O voto feminino só veio no Brasil em 1932. Nos Estados Unidos, tinha chegado em 1920.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A moeda do Brasil na época era o réis. Os valores apareciam em mil-réis e contos de réis (um conto era um milhão de réis).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Nos anos 1920, ter automóvel era sinal de modernidade e de alguma riqueza no Rio de Janeiro, então capital do país.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que Lobato escolheu os Estados Unidos, e não o Brasil, como cenário do futuro?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O livro trata ideias racistas como se fossem científicas. Como podemos reconhecer quando a ciência está sendo usada para justificar preconceitos?",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Que previsões do livro sobre tecnologia acertaram, e quais erraram? E as previsões sobre a sociedade?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Como o livro retrata as mulheres e o partido feminino? Essa visão é favorável, crítica ou irônica?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O desfecho é apresentado pelo narrador como algo positivo. Como você reage a isso, sabendo o que a história do século XX mostrou?",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "É possível separar a importância literária de um autor das ideias que ele defendeu? Como as escolas devem lidar com obras assim?",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Que papel tem o narrador Ayrton, que só escuta e reage ao que Miss Jane conta? Ele questiona o que ouve?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "A eleição de Barack Obama em 2008 mostrou um futuro diferente do imaginado por Lobato. O que isso diz sobre previsões baseadas em preconceito?",
+      "spoiler": false,
+      "sensivel": true
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "ws-pt-aventuras-de-hans-staden-6-edicao",
+      "motivo": "Outra obra de Monteiro Lobato, em registro bem diferente, para conhecer o autor por outro lado."
+    },
+    {
+      "id": "ws-pt-o-alienista",
+      "motivo": "Sátira de Machado de Assis sobre um cientista que usa a ciência para decidir quem é normal: um contraponto crítico às certezas pseudocientíficas."
+    },
+    {
+      "id": "se-h-g-wells-the-time-machine",
+      "motivo": "Ficção científica clássica que também projeta o futuro distante para falar das divisões sociais do presente."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "16",
+    "nota": "ficção eugenista de 1926: o eleitorado branco reage à eleição de um presidente negro e a população negra é esterilizada. Sensível: racismo e eugenia são a tese do livro; nunca sem contexto",
+    "sensivel": "racismo e eugenia são a tese do livro; nunca sem contexto"
+  }
+}

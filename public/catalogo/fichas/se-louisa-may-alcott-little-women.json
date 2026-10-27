@@ -1,0 +1,413 @@
+{
+  "versao": 1,
+  "livroId": "se-louisa-may-alcott-little-women",
+  "titulo": "Little Women",
+  "idioma": "en",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "Louisa May Alcott nasceu em 1832 em Germantown, na Pensilvânia, e cresceu sobretudo em Concord, no estado de Massachusetts (EUA).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O pai, Amos Bronson Alcott, era educador e filósofo ligado ao transcendentalismo. Era um idealista, e a família passou muitos anos com pouco dinheiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ainda jovem, Louisa trabalhou como costureira, professora, governanta e escritora para ajudar a sustentar a família.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em Concord, a família conviveu com pensadores como Ralph Waldo Emerson e Henry David Thoreau.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na Guerra Civil Americana (1861–1865), Alcott foi enfermeira voluntária em Washington. Adoeceu gravemente e contou a experiência em Hospital Sketches (1863).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Little Women saiu em duas partes, em 1868 e 1869, e foi escrito a pedido do editor Thomas Niles, que queria um livro para meninas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A família Alcott apoiava a abolição da escravidão, e Louisa defendeu o direito de voto das mulheres.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Alcott morreu em Boston em 1888, apenas dois dias depois da morte do pai.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É um dos romances mais lidos da literatura americana e um marco dos livros sobre o crescimento de meninas até a vida adulta.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Jo March, que quer ser escritora e independente, virou modelo para gerações de leitoras e de autoras.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra a vida doméstica do século XIX com humor e afeto, mas também discute dinheiro, trabalho e as poucas escolhas que as mulheres tinham.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Nunca saiu de moda: ganhou várias adaptações para cinema, TV e teatro, até hoje.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Família e irmandade",
+      "texto": "O laço entre as quatro irmãs e a mãe é o centro do livro, com brigas, ciúmes e muito apoio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Crescer",
+      "texto": "Cada irmã sai da infância e precisa decidir que tipo de adulta quer ser.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Papel da mulher",
+      "texto": "O livro mostra o que se esperava das moças da época (casar, cuidar da casa) e as que querem outro caminho, como Jo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Pobreza e dinheiro",
+      "texto": "As March perderam a fortuna e aprendem a viver com pouco, comparando-se a vizinhos ricos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Defeitos e esforço moral",
+      "texto": "Cada irmã tem um defeito para vencer, como vaidade, raiva, timidez ou egoísmo, numa jornada inspirada em The Pilgrim's Progress.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Arte e vocação",
+      "texto": "Jo escreve, Beth toca piano, Amy desenha: o livro pergunta quanto vale seguir um talento.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Meg (Margaret) March",
+      "texto": "A irmã mais velha. É bonita, responsável e sonha com uma vida mais elegante do que a família pode pagar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Jo (Josephine) March",
+      "texto": "A segunda irmã. É impulsiva, esportiva e esquentada. Ama livros e quer ser escritora. Detesta as regras do que é ser uma moça bem-comportada.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Beth (Elizabeth) March",
+      "texto": "A terceira irmã. É tímida, gentil e caseira. Adora música e cuida de todos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amy March",
+      "texto": "A caçula. É artista, vaidosa e preocupada com boas maneiras e com subir na sociedade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Marmee (Sra. March)",
+      "texto": "A mãe das meninas. É sábia e paciente, e guia as filhas enquanto o pai está na guerra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Sr. March",
+      "texto": "O pai. Está longe de casa, servindo como capelão no exército da União durante a Guerra Civil.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Laurie (Theodore Laurence)",
+      "texto": "O jovem vizinho rico e solitário, que mora com o avô. Fica amigo das irmãs, especialmente de Jo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Sr. Laurence",
+      "texto": "O avô de Laurie. Parece severo no começo, mas tem bom coração.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Tia March",
+      "texto": "Tia rica e rabugenta do pai. Jo trabalha como dama de companhia dela.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Professor Friedrich Bhaer",
+      "texto": "Professor alemão, pobre e bondoso, que Jo conhece quando vai trabalhar em Nova York, na segunda parte.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "As irmãs March foram inspiradas nas irmãs Alcott: Anna (Meg), Louisa (Jo), Elizabeth (Beth) e May (Amy).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Alcott escreveu o livro na Orchard House, a casa da família em Concord, que hoje é um museu.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Alcott não gostou muito da ideia de escrever um livro para meninas, mas aceitou o pedido do editor. O sucesso foi enorme e resolveu os problemas de dinheiro da família.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Antes da fama, Alcott escrevia contos de suspense e sensação com o pseudônimo A. M. Barnard, como Jo faz no romance.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O clube das irmãs e o jornalzinho que elas fazem são inspirados em The Pickwick Papers, de Charles Dickens.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro The Pilgrim's Progress, de John Bunyan, aparece como guia moral das irmãs e inspira títulos de capítulos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No Brasil, o livro ficou conhecido como Mulherzinhas. A segunda parte já foi publicada sozinha, na Inglaterra, com o título Good Wives.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitos leitores queriam que Jo se casasse com Laurie. Alcott se recusou de propósito e deu outro destino aos dois.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "A história continua em Little Men (1871) e Jo's Boys (1886).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Há várias versões para o cinema, entre elas as de 1933 (com Katharine Hepburn), 1994 (com Winona Ryder) e 2019 (dirigida por Greta Gerwig).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Beth real, Elizabeth Alcott, morreu em 1858, depois de ter tido escarlatina, e isso inspirou o destino de Beth no romance.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1879, Alcott foi a primeira mulher a se registrar para votar em Concord, numa eleição para o conselho escolar.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "Marmee",
+      "texto": "Apelido carinhoso que as meninas dão à mãe, uma forma antiga e familiar de dizer mamãe.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "garret",
+      "texto": "Sótão, o quarto embaixo do telhado. É o canto preferido de Jo para ler e escrever.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "governess",
+      "texto": "Governanta: moça contratada para educar crianças de uma família rica dentro de casa. Era um dos poucos trabalhos aceitos para moças de boa família.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "chaplain",
+      "texto": "Capelão: religioso que acompanha soldados no exército. É a função do Sr. March na guerra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "pickled limes",
+      "texto": "Limas em conserva de salmoura. Eram uma moda entre as alunas da escola de Amy e serviam como moeda de troca entre as meninas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "slang",
+      "texto": "Gíria. Jo usa muitas gírias, e Amy e Meg acham isso pouco próprio para uma moça.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "old maid",
+      "texto": "Solteirona: termo da época, hoje ofensivo, para mulher que não se casou. Jo diz que prefere ser uma.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Christopher Columbus!",
+      "texto": "Exclamação de surpresa típica de Jo, algo como Nossa! ou Caramba!.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "burden",
+      "texto": "Fardo, peso. As irmãs chamam assim os próprios defeitos e dificuldades, como o peregrino de The Pilgrim's Progress.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "parlor",
+      "texto": "Sala de visitas, o cômodo mais arrumado da casa, usado para receber pessoas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "beau",
+      "texto": "Palavra de origem francesa para namorado ou pretendente.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Miss",
+      "texto": "Título para moça solteira. Por costume, a filha mais velha era só Miss March, e as outras eram chamadas pelo primeiro nome, como Miss Jo.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "A história se passa no Norte dos EUA durante a Guerra Civil (1861–1865). Lá, a União lutava contra os estados do Sul, que eram escravistas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Moças de classe média tinham poucas opções de trabalho pago: governanta, professora, costureira ou dama de companhia. O casamento era visto como o futuro natural.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Escarlatina era uma doença infantil grave e comum na época, antes dos antibióticos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Visitar e levar comida aos pobres era um dever de caridade esperado das famílias cristãs, como as March fazem com os Hummel.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As boas maneiras eram muito rígidas: luvas, vestidos e regras sobre com quem se pode falar e dançar contam muito nos bailes e visitas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "Which of the four sisters do you identify with most? Why?",
+      "texto": "Com qual das quatro irmãs você mais se identifica? Por quê?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "What flaw does each sister try to overcome? Do they succeed?",
+      "texto": "Que defeito cada irmã tenta vencer? Elas conseguem?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How does poverty affect the Marches' lives and choices?",
+      "texto": "Como a pobreza afeta a vida e as escolhas das March?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "What does Jo want from life, and what does society expect of her?",
+      "texto": "O que Jo quer da vida? O que a sociedade espera dela?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "What role does Marmee play in raising her daughters? Do you agree with her advice?",
+      "texto": "Qual é o papel de Marmee na educação das filhas? Você concorda com os conselhos dela?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How is the war present in the book, even far from the battlefields?",
+      "texto": "Como a guerra aparece no livro, mesmo longe dos campos de batalha?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Why do you think Alcott did not let Jo marry Laurie? Did you like that choice?",
+      "texto": "Por que você acha que Alcott não fez Jo se casar com Laurie? Você gostou dessa escolha?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How do Beth's illness and death change Jo and the family?",
+      "texto": "Como a doença e a morte de Beth mudam Jo e a família?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "se-l-m-montgomery-anne-of-green-gables",
+      "motivo": "Outra menina sonhadora e de gênio forte, que ama palavras e cresce numa família afetuosa."
+    },
+    {
+      "id": "se-jane-austen-pride-and-prejudice",
+      "motivo": "Também segue irmãs, casamento e dinheiro, com uma heroína independente."
+    },
+    {
+      "id": "se-henry-david-thoreau-walden",
+      "motivo": "Thoreau era vizinho e amigo da família Alcott em Concord, e o livro mostra o mundo de ideias em que Louisa cresceu."
+    },
+    {
+      "id": "pg-74",
+      "motivo": "Infância e travessuras nos EUA do século XIX, do ponto de vista de um menino."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "livre",
+    "nota": "vida de quatro irmãs; morte de Beth por doença, sem outros conteúdos sensíveis",
+    "sensivel": ""
+  }
+}

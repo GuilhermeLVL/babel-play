@@ -1,0 +1,418 @@
+{
+  "versao": 1,
+  "livroId": "pg-49836",
+  "titulo": "Niebla (Nivola)",
+  "idioma": "es",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "Miguel de Unamuno nasceu em Bilbao, no País Basco, em 1864, e morreu em Salamanca em 31 de dezembro de 1936.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Foi professor de grego e reitor da Universidade de Salamanca, cidade ligada a quase toda a sua vida adulta.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É um dos nomes centrais da Geração de 98, grupo de escritores marcado pela crise da Espanha após a perda de Cuba, Porto Rico e Filipinas em 1898.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Escreveu romance, poesia, teatro e ensaio. Seu ensaio mais conhecido é Del sentimiento trágico de la vida, de 1913, publicado um ano antes de Niebla.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Sua obra gira em torno de dúvidas sobre a fé, a morte e a vontade de não deixar de existir, temas próximos do que depois se chamou existencialismo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Admirava o filósofo dinamarquês Kierkegaard e aprendeu dinamarquês para lê-lo no original.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Por criticar a ditadura de Primo de Rivera, foi desterrado em 1924 para a ilha de Fuerteventura e depois viveu exilado na França até 1930.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No início da Guerra Civil Espanhola, em outubro de 1936, enfrentou publicamente militares franquistas na Universidade de Salamanca e passou seus últimos meses em prisão domiciliar.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "Publicado em 1914, Niebla é um dos primeiros grandes romances a brincar abertamente com a fronteira entre autor, narrador e personagem, o que hoje chamamos de metaficção.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Unamuno inventa a palavra nivola para fugir das regras do romance realista do século XIX: menos descrição, mais diálogo e mais ideias.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro transforma uma história de amor quase cômica numa pergunta séria: o que faz alguém existir de verdade?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É leitura frequente em escolas e universidades de língua espanhola e uma boa porta de entrada para a literatura espanhola do século XX.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Existência e identidade",
+      "texto": "Augusto se pergunta se vive de verdade ou apenas deixa a vida passar. O livro discute o que dá realidade a uma pessoa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Liberdade e destino",
+      "texto": "Até onde as escolhas de um personagem são dele? A pergunta vale também para nós e para quem nos 'escreve' a vida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ficção e realidade",
+      "texto": "O livro mistura o mundo inventado com o mundo do próprio autor, até ficar difícil separar um do outro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amor e posse",
+      "texto": "Augusto trata o amor como algo que se descobre, se compra ou se testa. O livro mostra os limites e a crueldade dessa visão.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Morte e suicídio",
+      "texto": "A morte e a ideia de tirar a própria vida aparecem como questão filosófica central, tratadas com ironia e angústia.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Solidão",
+      "texto": "Rico, sem família e sem rumo, Augusto conversa mais com seu cachorro do que com as pessoas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Augusto Pérez",
+      "texto": "Jovem rico, órfão de mãe há pouco tempo, que vive sem objetivo, como num nevoeiro. Ao ver uma moça na rua, decide que está apaixonado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Eugenia Domingo del Arco",
+      "texto": "Professora de piano, independente e de gênio forte. Não gosta de tocar piano, mas trabalha para se sustentar. Augusto se apaixona por ela.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mauricio",
+      "texto": "Namorado de Eugenia, um rapaz preguiçoso e sem emprego.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Rosario",
+      "texto": "Jovem passadeira que leva a roupa à casa de Augusto. Ele passa a se interessar por ela enquanto corteja Eugenia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Víctor Goti",
+      "texto": "Amigo de Augusto, com quem joga xadrez e conversa sobre a vida. Está escrevendo uma nivola e assina o prólogo do livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Orfeo",
+      "texto": "Cachorrinho que Augusto recolhe na rua. Vira seu ouvinte nos longos monólogos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Don Fermín e doña Ermelinda",
+      "texto": "Tios de Eugenia, com quem ela mora. Ele é um anarquista teórico e fã do esperanto; ela quer casar a sobrinha bem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Domingo e Liduvina",
+      "texto": "Casal de criados da casa de Augusto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Miguel de Unamuno",
+      "texto": "O próprio autor entra no livro como personagem e conversa com Augusto em Salamanca.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "A palavra nivola foi inventada por Unamuno em resposta a críticos que diziam que seus livros não eram romances de verdade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No próprio livro, Víctor Goti explica o que é uma nivola: uma história em que os personagens se fazem falando, sem plano fixo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O prólogo é assinado por Víctor Goti, um personagem. Logo depois vem um pós-prólogo assinado por Unamuno, que discorda dele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O título fala do nevoeiro em que Augusto vive: sem saber o que quer nem quem é.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro tem muito diálogo e monólogo e pouca descrição de paisagens, ao contrário do romance realista da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A história se passa numa cidade espanhola que nunca é nomeada.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na véspera do casamento, Eugenia foge com Mauricio, deixando Augusto humilhado.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "No capítulo XXXI, Augusto vai a Salamanca falar com Unamuno sobre a ideia de se matar. O autor lhe diz que ele é um ente de ficção e não pode decidir isso sozinho.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "texto": "Na mesma conversa, Augusto se rebela e lembra ao autor que ele também vai morrer. A cena é uma das mais famosas da literatura espanhola.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro termina com um discurso fúnebre feito pelo cachorro Orfeo, refletindo sobre os humanos.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "A cena de um personagem que discute com seu autor é muitas vezes comparada à peça Seis personagens à procura de um autor, de Pirandello, de 1921.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Unamuno voltou ao tema anos depois em Cómo se hace una novela, escrito no exílio na França.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "nivola",
+      "texto": "Palavra inventada por Unamuno, brincando com novela (romance). Indica um romance livre, de ideias e diálogo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "niebla",
+      "texto": "Neblina, nevoeiro. No livro, também quer dizer confusão interior, falta de rumo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "novela",
+      "texto": "Em espanhol, novela é romance (livro longo de ficção), e não novela de TV. Cuidado com esse falso amigo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "novio / novia",
+      "texto": "Pode ser namorado(a) ou noivo(a), conforme o contexto. Na época, o namoro já era visto como passo para o casamento.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "hipoteca",
+      "texto": "Dívida garantida por um imóvel. A casa de Eugenia está hipotecada, e isso pesa no enredo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "planchadora",
+      "texto": "Passadeira, mulher que passava roupa por encomenda. É o trabalho de Rosario.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "portera / portero",
+      "texto": "Porteira ou porteiro de prédio, que muitas vezes morava ali e sabia da vida de todos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "don / doña",
+      "texto": "Tratamentos de respeito usados antes do primeiro nome, como em don Fermín ou doña Ermelinda.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "usted / tú",
+      "texto": "Usted é o tratamento formal, e tú o informal. A troca de um pelo outro mostra mudança de intimidade entre os personagens.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "casino",
+      "texto": "Aqui, clube social de cavalheiros para conversar e jogar, não cassino de apostas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ajedrez",
+      "texto": "Xadrez. Augusto e Víctor jogam enquanto conversam.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ente de ficción",
+      "texto": "Ser de ficção, personagem inventado. Expressão-chave na conversa entre Augusto e o autor.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "termo": "esperanto",
+      "texto": "Língua artificial criada no fim do século XIX para ser universal. Don Fermín é um entusiasta dela.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Em 1914, a Espanha vivia a Restauração, uma monarquia constitucional com política dominada por poucos partidos e muita desigualdade social.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Depois de 1898, muitos intelectuais espanhóis debatiam o atraso do país e a perda de sentido coletivo. Esse mal-estar ajuda a entender o tédio de Augusto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época, o casamento era a principal saída esperada para uma moça de classe média. Uma mulher que trabalha e escolhe por si, como Eugenia, chamava atenção.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Famílias de posses tinham criados morando em casa, como Domingo e Liduvina. A distância entre patrões e empregados aparece no livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O anarquismo tinha muita força na Espanha do começo do século XX. Don Fermín representa um anarquista de ideias, mais teórico do que prático.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O jeito como Augusto trata Rosario mostra o poder que um homem rico tinha sobre uma moça pobre. O livro expõe esse abuso sem detalhar.",
+      "spoiler": false,
+      "sensivel": true
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "¿Por qué crees que Unamuno prefirió llamar al libro nivola y no novela?",
+      "texto": "Por que você acha que Unamuno preferiu chamar o livro de nivola e não de romance?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Augusto se enamora de Eugenia antes de conocerla. ¿Es posible amar a alguien así?",
+      "texto": "Augusto se apaixona por Eugenia antes de conhecê-la. É possível amar alguém assim?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo muestra la reacción de Eugenia ante el gesto de Augusto con la hipoteca lo que ella piensa sobre el dinero y la libertad?",
+      "texto": "Como a reação de Eugenia ao gesto de Augusto com a hipoteca mostra o que ela pensa sobre dinheiro e liberdade?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿De qué manera trata Augusto a Rosario? ¿Qué revela eso sobre él y sobre la sociedad de la época?",
+      "texto": "De que forma Augusto trata Rosario? O que isso revela sobre ele e sobre a sociedade da época?",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué papel tiene Orfeo en la historia? ¿Por qué Augusto le habla tanto?",
+      "texto": "Qual é o papel de Orfeo na história? Por que Augusto fala tanto com ele?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué cambia en el libro cuando el autor aparece como personaje?",
+      "texto": "O que muda no livro quando o autor aparece como personagem?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Augusto le dice al autor que él también va a morir. ¿Quién tiene razón en la discusión entre los dos?",
+      "texto": "Augusto diz ao autor que ele também vai morrer. Quem tem razão na discussão entre os dois?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Crees que tenemos libertad para elegir nuestra vida, o alguien o algo nos escribe?",
+      "texto": "Você acha que temos liberdade para escolher nossa vida, ou alguém ou algo nos escreve?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-78052",
+      "motivo": "Outro livro de Unamuno, em espanhol, com seu olhar pessoal sobre a Espanha."
+    },
+    {
+      "id": "se-miguel-de-cervantes-saavedra-don-quixote-john-ormsby",
+      "motivo": "Unamuno admirava o Quixote, que já brincava com autor, livro e personagem séculos antes."
+    },
+    {
+      "id": "pg-54829",
+      "motivo": "Narrador irônico e livro que conversa com o leitor, em português, numa linha próxima da metaficção de Niebla."
+    },
+    {
+      "id": "se-fyodor-dostoevsky-notes-from-underground-constance-garnett",
+      "motivo": "Monólogo de um homem angustiado que questiona sua existência, tema muito próximo de Unamuno."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "14",
+    "nota": "\"nivola\" de Unamuno: o protagonista tenta seduzir e humilha uma mulher e discute o suicídio com o autor. Sensível: o suicídio é tema central",
+    "sensivel": "o suicídio é tema central"
+  }
+}

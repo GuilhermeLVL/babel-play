@@ -1,0 +1,426 @@
+{
+  "versao": 1,
+  "livroId": "pg-49297",
+  "titulo": "The Works of William Shakespeare [Cambridge Edition] [Vol. 5 of 9]",
+  "idioma": "en",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "William Shakespeare nasceu em Stratford-upon-Avon, na Inglaterra, em 1564, e morreu na mesma cidade em 1616.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As três partes de Henrique VI estão entre as primeiras peças de Shakespeare. Foram escritas no início da década de 1590, quando ele começava a carreira em Londres.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ricardo III veio logo depois. Com as três partes de Henrique VI, forma o que os estudiosos chamam de primeira tetralogia: quatro peças seguidas sobre a história inglesa do século XV.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As peças tratam da Guerra das Rosas (1455–1487), a disputa pelo trono entre duas famílias da nobreza: a casa de York, ligada à rosa branca, e a casa de Lancaster, ligada à rosa vermelha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As principais fontes de Shakespeare foram as crônicas históricas de Edward Hall e de Raphael Holinshed. Ele mudou datas, juntou fatos e inventou cenas para dar força ao drama.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Shakespeare escreveu sob Elizabeth I, neta de Henrique VII, o primeiro rei Tudor. A visão das peças favorece os Tudor e mostra os reis anteriores pelo olhar dessa dinastia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Cambridge Edition, organizada por William George Clark e William Aldis Wright, saiu em nove volumes na década de 1860. Ela compara as edições antigas e anota as diferenças entre elas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Este volume traz também The First Part of the Contention (1594) e The True Tragedy of Richard Duke of York (1595). São versões antigas e mais curtas da segunda e da terceira partes de Henrique VI.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "Estas peças mostram Shakespeare aprendendo a fazer teatro histórico. O gênero se tornou uma das marcas da sua obra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ricardo III criou um dos vilões mais famosos da literatura: um personagem que fala direto com a plateia e a torna cúmplice dos seus planos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As peças moldaram por séculos a imagem popular da Guerra das Rosas e do rei Ricardo III, mais até do que os livros de história.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ter as versões antigas (The Contention e The True Tragedy) ao lado das versões do Folio permite ver como um texto de teatro mudava entre uma edição e outra.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Poder e legitimidade",
+      "texto": "Quem tem direito ao trono? As peças opõem o direito de herança, a força militar e o apoio dos nobres.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Guerra civil",
+      "texto": "A luta entre York e Lancaster divide famílias. Pais, filhos e primos acabam em lados opostos.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Rei fraco, reino em caos",
+      "texto": "Henrique VI é piedoso e gentil, mas não consegue controlar os nobres. As peças perguntam se um bom homem é necessariamente um bom rei.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ambição e manipulação",
+      "texto": "Personagens como Ricardo de Gloucester usam mentiras, charme e violência para subir. A plateia vê os planos por dentro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Inglaterra contra França",
+      "texto": "Henrique VI, parte 1, mostra a perda dos territórios ingleses na França no fim da Guerra dos Cem Anos, com forte tom patriótico inglês.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Destino e consciência",
+      "texto": "Maldições, profecias e sonhos voltam várias vezes. Os crimes do passado parecem cobrar seu preço.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Henrique VI",
+      "texto": "Rei da Inglaterra desde bebê. Religioso, pacífico e indeciso, cercado de nobres ambiciosos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Lord Talbot",
+      "texto": "Grande comandante inglês na guerra contra a França. É o herói militar da primeira parte.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Joana d'Arc (Joan la Pucelle)",
+      "texto": "Jovem francesa que lidera o exército da França contra os ingleses. A peça a mostra pelo olhar inimigo inglês.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ricardo, duque de York",
+      "texto": "Nobre que acredita ter mais direito ao trono que Henrique VI. Sua reivindicação dá início à guerra entre as casas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Margarida de Anjou",
+      "texto": "Nobre francesa que se casa com Henrique VI. Forte, orgulhosa e decidida, ao contrário do marido.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Humphrey, duque de Gloucester",
+      "texto": "Tio do rei e Lord Protector do reino. Leal e respeitado pelo povo, mas cercado de inimigos na corte.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Conde de Warwick",
+      "texto": "Nobre poderosíssimo, capaz de decidir quem fica no trono. Ficou conhecido na história como o fazedor de reis.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Jack Cade",
+      "texto": "Líder de uma revolta popular na segunda parte. Mistura de rebelde, agitador e figura cômica.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ricardo de Gloucester (futuro Ricardo III)",
+      "texto": "Filho do duque de York. Inteligente, irônico e sem escrúpulos. Fala com a plateia sobre sua ambição de chegar ao trono.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Henrique, conde de Richmond",
+      "texto": "Nobre da casa de Lancaster que vive no exílio. Na última peça, surge como esperança contra Ricardo.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "Em 1592, o escritor Robert Greene chamou Shakespeare de upstart crow (corvo arrivista) e parodiou um verso de Henrique VI, parte 3. É uma das primeiras menções a Shakespeare como autor em Londres.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Também em 1592, Thomas Nashe escreveu que o público chorava ao ver Talbot no palco. É sinal de que Henrique VI, parte 1, fazia sucesso.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A cena em que nobres arrancam rosas brancas e vermelhas num jardim para escolher lados é criação teatral. Ajudou a fixar o nome Guerra das Rosas na imaginação popular.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Henrique VI virou rei em 1422, com menos de um ano de idade. Por isso o reino era governado por protetores.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ricardo III é uma das peças mais longas de Shakespeare. Só Hamlet é mais extensa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na terceira parte de Henrique VI, Ricardo de Gloucester se compara a Maquiavel, o pensador italiano que, na Inglaterra da época, era sinônimo de político sem escrúpulos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitos estudiosos acham que Shakespeare escreveu algumas destas peças com outros autores. A New Oxford Shakespeare (2016) creditou Christopher Marlowe como coautor das três partes de Henrique VI.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No teatro da época, papéis femininos como Joana d'Arc e Margarida eram feitos por meninos e jovens atores, porque mulheres não atuavam nos palcos ingleses.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 2012, um esqueleto foi achado sob um estacionamento em Leicester. Em 2013, análises confirmaram que era Ricardo III. Ele foi enterrado de novo na Catedral de Leicester em 2015.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "O esqueleto de Ricardo III mostrou escoliose, uma curvatura da coluna. Não era o corcunda monstruoso da tradição Tudor, mas a condição era real.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ricardo III ganhou adaptações famosas no cinema: a de Laurence Olivier (1955) e a de Ian McKellen (1995), que leva a história para uma Inglaterra fascista dos anos 1930.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Joana d'Arc foi queimada em Rouen em 1431. A Igreja Católica a declarou santa em 1920. Hoje ela é heroína nacional da França.",
+      "spoiler": true,
+      "sensivel": true
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "thou / thee / thy",
+      "texto": "Formas antigas de you (tu, te, teu). Eram usadas entre íntimos, para inferiores ou para insultar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "hath / doth",
+      "texto": "Formas antigas de has e does. Ex.: he hath = he has.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ere",
+      "texto": "Antes (before). Não confundir com here.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "liege",
+      "texto": "Senhor a quem se deve lealdade; muito usado para se dirigir ao rei (my liege).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Dauphin",
+      "texto": "Delfim: título do herdeiro do trono da França.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Pucelle",
+      "texto": "Palavra francesa para donzela. Joana d'Arc era chamada la Pucelle; os ingleses fazem trocadilhos maldosos com o termo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Protector",
+      "texto": "Lord Protector: quem governava o reino em nome de um rei menor de idade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "cousin / coz",
+      "texto": "Na época, cousin servia para quase qualquer parente ou para nobres entre si, não só para primo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "attainted",
+      "texto": "Termo jurídico: família punida por traição, que perdia títulos e direitos de herança.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Alarum",
+      "texto": "Rubrica de palco: sinal de batalha (trombetas, tambores, gritos).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Flourish",
+      "texto": "Rubrica de palco: toque de trombetas que anuncia a entrada de um rei ou nobre.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Exeunt",
+      "texto": "Latim para saem (plural). Exit é a forma para um só personagem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "methinks",
+      "texto": "Parece-me, acho que (it seems to me).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "wherefore",
+      "texto": "Por quê (why), não onde. Um dos falsos amigos mais comuns do inglês antigo.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Duques e condes (duke, earl) eram donos de terras e de exércitos próprios. Um rei fraco ficava à mercê deles.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O direito ao trono dependia da linhagem a partir de Eduardo III. York e Lancaster descendiam de filhos diferentes dele; por isso as genealogias recitadas nas peças importam.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitos nobres são chamados pelo título, não pelo nome: York, Warwick, Somerset, Suffolk. Às vezes, o mesmo título passa de pai para filho dentro da peça.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Torre de Londres era ao mesmo tempo palácio, fortaleza e prisão de presos políticos importantes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A imagem de Joana d'Arc como bruxa e devassa vem da propaganda inglesa da época. Não reflete a visão histórica atual sobre ela.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "As peças misturam verso (nobres, momentos solenes) e prosa (povo, cenas cômicas, como a revolta de Cade). A troca diz algo sobre a posição social de quem fala.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "Henry VI is a good man. Does that make him a good king? Why?",
+      "texto": "Henrique VI é um homem bom. Isso faz dele um bom rei? Por quê?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How does the play portray Joan of Arc? How does the English point of view shape this portrait?",
+      "texto": "Como a peça mostra Joana d'Arc? Como o fato de ser uma visão inglesa muda o retrato dela?",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "Richard of Gloucester tells the audience his plans directly. Why does this make us almost root for him?",
+      "texto": "Ricardo de Gloucester conta seus planos direto à plateia. Por que isso nos faz quase torcer por ele?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Is Jack Cade's rebellion comic or frightening? What does it say about common people in these plays?",
+      "texto": "A revolta de Jack Cade é cômica ou assustadora? O que ela diz sobre o povo comum nessas peças?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Margaret of Anjou is stronger than many men around her. How do the plays treat women with power?",
+      "texto": "Margarida de Anjou é mais forte que muitos homens à sua volta. Como as peças tratam mulheres com poder?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Shakespeare wrote under the Tudors. How might this have influenced his portrait of Richard III?",
+      "texto": "Shakespeare escrevia sob os Tudor. Como isso pode ter influenciado o retrato de Ricardo III?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Why does the symbol of the roses work so well for a war between families?",
+      "texto": "Por que o símbolo das rosas funciona tão bem para uma guerra entre famílias?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Curses and prophecies come true in these plays. Do you see this as fate or as a consequence of the characters' actions?",
+      "texto": "Maldições e profecias se cumprem nestas peças. Você vê isso como destino ou como consequência dos atos dos personagens?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "se-william-shakespeare-macbeth",
+      "motivo": "Outra peça de Shakespeare sobre ambição, usurpação do trono e culpa, com um vilão-protagonista como Ricardo III."
+    },
+    {
+      "id": "pg-49008",
+      "motivo": "Outro volume da mesma Cambridge Edition das obras de Shakespeare."
+    },
+    {
+      "id": "se-william-shakespeare-hamlet",
+      "motivo": "Tragédia de Shakespeare sobre corte, crime pelo trono e vingança, escrita alguns anos depois."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "14",
+    "nota": "volume com Henrique VI (partes 1–3), The Contention e Ricardo III: guerras, decapitações, assassinato de crianças (os príncipes na Torre), Joana d'Arc queimada. Sensível: Joana d'Arc retratada como bruxa e devassa (propaganda inglesa de época)",
+    "sensivel": "Joana d'Arc retratada como bruxa e devassa (propaganda inglesa de época)"
+  }
+}

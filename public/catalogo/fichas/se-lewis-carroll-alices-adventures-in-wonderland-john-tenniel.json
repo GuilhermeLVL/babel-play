@@ -1,0 +1,419 @@
+{
+  "versao": 1,
+  "livroId": "se-lewis-carroll-alices-adventures-in-wonderland-john-tenniel",
+  "titulo": "Alice’s Adventures in Wonderland",
+  "idioma": "en",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "Lewis Carroll é o pseudônimo de Charles Lutwidge Dodgson (1832–1898), escritor inglês.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Dodgson era matemático e professor no Christ Church, um dos colégios da Universidade de Oxford.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O pseudônimo vem de seus dois primeiros nomes, passados para o latim e depois de volta ao inglês em outra ordem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A história nasceu num passeio de barco em 1862, contada de improviso para as três irmãs Liddell, filhas do decano do Christ Church.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Uma das irmãs, Alice Liddell, pediu que ele escrevesse a história. Ele fez um manuscrito ilustrado à mão, chamado Alice's Adventures Under Ground, e deu a ela de presente.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A versão ampliada saiu em 1865, com ilustrações de John Tenniel, cartunista da revista satírica Punch.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro é da Era Vitoriana, quando a literatura infantil inglesa costumava ser cheia de lições de moral.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1871, Carroll publicou a continuação: Through the Looking-Glass.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "Foi um marco da literatura infantil: em vez de ensinar moral, o livro diverte com humor, absurdo e imaginação.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É um clássico do nonsense, o humor do absurdo. Brinca com lógica, regras e o próprio sentido das palavras.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Seus personagens e imagens viraram parte da cultura mundial e inspiraram filmes, peças, músicas e artes visuais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Nunca deixou de ser reeditado e já foi traduzido para dezenas de idiomas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Identidade e crescimento",
+      "texto": "Alice muda de tamanho o tempo todo e se pergunta quem ela é. O livro fala da confusão de crescer.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Lógica e absurdo",
+      "texto": "As conversas parecem seguir regras, mas as regras são malucas. Carroll, que era matemático, brinca com o raciocínio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Linguagem e jogos de palavras",
+      "texto": "Trocadilhos, sentidos literais e palavras inventadas aparecem o tempo todo. Muito do humor depende do inglês.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Crítica aos adultos e à autoridade",
+      "texto": "Os adultos do País das Maravilhas são mandões, irritados e sem sentido. A obediência cega vira piada.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Sátira da educação vitoriana",
+      "texto": "Alice tenta recitar lições e poemas da escola, mas tudo sai errado. O livro ri da decoreba e dos poemas moralistas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Alice",
+      "texto": "Menina curiosa e educada, que cai num mundo estranho. Tenta entender tudo com as regras que aprendeu em casa e na escola.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "White Rabbit (Coelho Branco)",
+      "texto": "Coelho de colete e relógio, sempre atrasado e nervoso. Alice o segue no começo da história.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Caterpillar (Lagarta)",
+      "texto": "Lagarta azul que fuma um narguilé sobre um cogumelo. Faz perguntas secas e difíceis para Alice.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Cheshire Cat (Gato de Cheshire)",
+      "texto": "Gato de sorriso enorme, que aparece e desaparece quando quer. Fala de forma enigmática.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Hatter (Chapeleiro)",
+      "texto": "Chapeleiro excêntrico que vive num chá sem fim. No livro, ele é chamado apenas de Hatter.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "March Hare e Dormouse (Lebre de Março e Arganaz)",
+      "texto": "Companheiros do Chapeleiro no chá. A Lebre é tão estranha quanto ele; o Arganaz vive cochilando.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Duchess (Duquesa)",
+      "texto": "Nobre de humor instável, que vive numa casa caótica com uma cozinheira que exagera na pimenta.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Queen of Hearts (Rainha de Copas)",
+      "texto": "Rainha das cartas de baralho, furiosa e autoritária. Manda cortar a cabeça de todos por qualquer coisa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "King of Hearts (Rei de Copas)",
+      "texto": "Marido da Rainha, mais tímido e confuso que ela.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mock Turtle e Gryphon (Falsa Tartaruga e Grifo)",
+      "texto": "Dupla que conta a Alice sobre sua escola no fundo do mar. A Falsa Tartaruga vive chorando.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "A primeira tiragem, de 1865, foi recolhida porque Tenniel ficou insatisfeito com a qualidade da impressão das ilustrações.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Vários poemas do livro são paródias de poemas morais que as crianças vitorianas decoravam, como os de Isaac Watts e Robert Southey.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Twinkle, Twinkle, Little Bat parodia a canção que conhecemos como Brilha, brilha, estrelinha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A história contada pelo Rato aparece impressa em forma de cauda, um dos exemplos mais famosos de poema visual. O trocadilho é entre tale (história) e tail (cauda).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As expressões mad as a hatter e grin like a Cheshire cat já existiam em inglês antes do livro. Carroll as transformou em personagens.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Falsa Tartaruga é uma piada culinária: mock turtle soup era uma sopa que imitava a de tartaruga, feita com carne de vitela.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Além de matemático, Dodgson foi um fotógrafo importante do século 19.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Disney lançou sua famosa animação baseada no livro em 1951. Ela mistura cenas deste livro e da continuação.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As ilustrações de Tenniel definiram a aparência de Alice e dos personagens no imaginário popular por gerações.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitas versões no cinema e na TV juntam este livro com Through the Looking-Glass. Por isso, personagens como Tweedledum e Tweedledee não aparecem aqui.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No final, as aventuras se revelam um sonho de Alice.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "curiouser",
+      "texto": "Erro proposital de gramática. O certo seria more curious. Mostra Alice tão espantada que até esquece o inglês correto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "comfits",
+      "texto": "Confeitos: docinhos de açúcar com semente ou fruta dentro. Alice carrega uma caixinha deles.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "marmalade",
+      "texto": "Geleia de laranja, típica do café da manhã britânico. Em inglês, não é marmelada de marmelo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "hookah",
+      "texto": "Narguilé, cachimbo de água de origem oriental. É o que a Lagarta fuma.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "dormouse",
+      "texto": "Arganaz, pequeno roedor europeu famoso por hibernar e dormir muito. Daí o personagem sonolento.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "hatter",
+      "texto": "Chapeleiro: quem fabricava ou vendia chapéus, ofício comum na época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "treacle",
+      "texto": "Melaço, xarope escuro feito do refino do açúcar. Era muito comum nas casas britânicas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "caucus-race",
+      "texto": "Caucus era uma reunião política de partido. Carroll usa a palavra para uma corrida sem sentido, onde todos correm em círculos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "knave",
+      "texto": "Nome antigo da carta valete no baralho. Também significava patife, pessoa desonesta.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "tarts",
+      "texto": "Tortinhas doces, geralmente com geleia. São importantes na parte final do livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Gryphon",
+      "texto": "Grifo, criatura mitológica com cabeça e asas de águia e corpo de leão. Grafia antiga de griffin.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Antipathies",
+      "texto": "Antipatias. Alice usa por engano no lugar de Antipodes, as terras do outro lado do mundo, como a Austrália.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Reeling and Writhing",
+      "texto": "Trocadilho da Falsa Tartaruga com reading and writing (ler e escrever). Reeling é cambalear; writhing é se contorcer.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Uglification",
+      "texto": "Palavra inventada, que brinca com multiplication (multiplicação). Seria algo como enfeiação.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Crianças vitorianas decoravam poemas morais e lições de geografia e aritmética. Alice tenta recitá-los, e as palavras saem trocadas: é a piada.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O croquet, jogo de bater bolas com tacos por arcos no gramado, estava na moda na Inglaterra dos anos 1860. Por isso a Rainha organiza uma partida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O chá da tarde era um ritual social importante na Inglaterra. Um chá sem fim e sem modos era algo bem absurdo para o leitor da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os naipes do baralho em inglês são hearts (copas), diamonds (ouros), clubs (paus) e spades (espadas). Os personagens-carta usam esses nomes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época, era comum crianças de famílias abastadas terem governanta e aulas em casa. Alice fala das suas lições como algo do dia a dia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitos trocadilhos só funcionam em inglês. Se uma frase parecer sem sentido, tente ler em voz alta: às vezes o som revela a piada.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "Why does Alice find it so hard to say who she is? Have you ever felt that way?",
+      "texto": "Por que Alice tem tanta dificuldade em dizer quem ela é? Você já se sentiu assim?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "What might Alice's changes in size represent?",
+      "texto": "O que as mudanças de tamanho de Alice podem representar?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Do the adults in Wonderland make sense? What does the book seem to say about authority?",
+      "texto": "Os adultos do País das Maravilhas fazem sentido? O que o livro parece dizer sobre autoridade?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Choose a pun from the book. How would you translate it into Portuguese without losing the joke?",
+      "texto": "Escolha um trocadilho do livro. Como você o traduziria para o português sem perder a graça?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Why is the constant threat of cutting off heads funny rather than frightening?",
+      "texto": "Por que a ameaça constante de cortar cabeças é engraçada, e não assustadora?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Which character do you find the most sensible? And the most absurd? Why?",
+      "texto": "Qual personagem você acha mais sensato? E qual o mais absurdo? Por quê?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How does Alice change from the beginning to the end? Does she become more confident?",
+      "texto": "Como Alice muda do começo ao fim? Ela fica mais confiante?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Is the trial at the end fair? What does it show about rules without logic?",
+      "texto": "O julgamento no final é justo? O que ele mostra sobre regras sem lógica?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "se-l-frank-baum-the-wonderful-wizard-of-oz",
+      "motivo": "Outra menina levada a um mundo fantástico e cheio de personagens estranhos."
+    },
+    {
+      "id": "pg-16",
+      "motivo": "Clássico da fantasia infantil britânica sobre infância, imaginação e o mundo adulto."
+    },
+    {
+      "id": "pg-52484",
+      "motivo": "Fantasia infantil do século 19, quase da mesma época, com aventuras episódicas e humor."
+    },
+    {
+      "id": "pg-24571",
+      "motivo": "Exemplo do livro infantil moralista do século 19, o tipo de literatura que Carroll satirizou."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "livre",
+    "nota": "fantasia infantil, ameaças cômicas (\"cortem-lhe a cabeça\") sem violência real",
+    "sensivel": ""
+  }
+}

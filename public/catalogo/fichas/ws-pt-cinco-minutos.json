@@ -1,0 +1,304 @@
+{
+  "versao": 1,
+  "livroId": "ws-pt-cinco-minutos",
+  "titulo": "Cinco Minutos",
+  "idioma": "pt",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 1
+  },
+  "autorEContexto": [
+    {
+      "texto": "José de Alencar nasceu em 1829, em Messejana, no Ceará, e morreu em 1877, no Rio de Janeiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele era filho do senador José Martiniano de Alencar e se mudou ainda menino para o Rio de Janeiro, então capital do Império.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Formou-se em Direito e trabalhou como advogado, jornalista e político. Foi deputado e ministro da Justiça no reinado de Dom Pedro II.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Alencar é o principal romancista do Romantismo brasileiro. Esse movimento valorizava o sentimento, a natureza e a busca de uma identidade nacional.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele escreveu romances indianistas, como O Guarani e Iracema, regionais, como O Gaúcho, históricos e urbanos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Cinco Minutos pertence aos romances urbanos, que retratam a vida da elite do Rio de Janeiro, como também Diva e Senhora.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Nos anos 1850, o Rio de Janeiro crescia e se modernizava. Jornais, teatros e novos meios de transporte mudavam a vida da cidade.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É o primeiro romance de José de Alencar, o ponto de partida de uma das obras mais importantes da literatura brasileira.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ajudou a firmar o romance urbano no Brasil, com histórias de amor passadas na cidade e no cotidiano da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É curto e de leitura leve, uma boa porta de entrada para conhecer o Romantismo e o português do século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Acaso e destino",
+      "texto": "Um atraso de poucos minutos muda a vida do narrador. O livro brinca com a ideia de que pequenos acasos decidem grandes coisas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amor romântico",
+      "texto": "O amor aparece como força absoluta, capaz de vencer distâncias e obstáculos, bem ao gosto do Romantismo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mistério",
+      "texto": "O narrador se apaixona por uma mulher que não consegue ver nem identificar. A curiosidade move a história.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Doença e fragilidade",
+      "texto": "A doença da amada, comum nos romances da época, tensiona a história e põe o amor à prova.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Vida na cidade",
+      "texto": "O Rio de Janeiro da época, com seus transportes, passeios e costumes, serve de cenário para o encontro.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "O narrador",
+      "texto": "Jovem do Rio de Janeiro que conta sua própria história em primeira pessoa. Romântico e impulsivo, ele não é nomeado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "A desconhecida (Carlota)",
+      "texto": "Mulher misteriosa que o narrador encontra por acaso e cujo rosto ele não consegue ver. Ela se torna o centro da busca dele.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Carlota (o segredo)",
+      "texto": "Carlota sofre de uma doença grave e se afasta do narrador por causa disso.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "A prima",
+      "texto": "Destinatária a quem o narrador conta a história, como numa longa carta. Ela não age na trama, mas é a sua ouvinte.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "Cinco Minutos foi publicado em 1856, como folhetim no Diário do Rio de Janeiro, jornal do qual Alencar era redator.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No fim daquele ano, o texto foi reunido em volume e oferecido como presente aos assinantes do jornal.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O título se refere a um atraso: por cinco minutos, o narrador perde o ônibus, e isso dá início a toda a história.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro é narrado como se fosse dirigido a uma prima. É um recurso que dá tom de conversa íntima à história.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Viuvinha, outro romance curto de Alencar, também se dirige à mesma prima. Por isso, os dois costumam ser publicados juntos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1856, Alencar também ficou conhecido por criticar o poema A Confederação dos Tamoios, de Gonçalves de Magalhães, numa famosa polêmica nos jornais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No ano seguinte, em 1857, Alencar publicou O Guarani no mesmo jornal, também em folhetim. O livro fez enorme sucesso.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em Como e por que sou romancista, texto autobiográfico, Alencar contou como se formou como leitor e escritor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Alencar é o patrono da cadeira 23 da Academia Brasileira de Letras, escolhido por Machado de Assis.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "ônibus",
+      "texto": "Na época, era uma carruagem grande para vários passageiros, puxada por cavalos ou mulas, com horários e trajetos fixos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "romance",
+      "texto": "Além de caso amoroso, quer dizer obra longa de ficção em prosa. Hoje também se diz assim, mas no século XIX o gênero era uma novidade no Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "prima",
+      "texto": "Filha de um tio ou tia. No livro, é a pessoa a quem o narrador se dirige ao contar a história.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "véu",
+      "texto": "Tecido fino que as senhoras usavam sobre o rosto ou o chapéu. Era comum na época e ajudava a esconder a identidade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "tísica",
+      "texto": "Nome antigo da tuberculose pulmonar, ou da pessoa doente dela. Era uma doença muito temida e sem cura eficaz no século XIX.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "termo": "vapor",
+      "texto": "Abreviação de navio a vapor, o grande meio de viagem marítima no século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Nos anos 1850, o Rio de Janeiro era a Corte, a capital do Império do Brasil, governado por Dom Pedro II.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Folhetim era a parte de baixo da página do jornal dedicada à ficção. Muitos romances saíam primeiro assim, em capítulos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A ópera italiana era a grande diversão da elite carioca. Frases e árias em italiano faziam parte do dia a dia elegante.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No século XIX, a tuberculose matava muito. Os médicos recomendavam repouso e mudança de ares, e a doença aparece em muitos romances românticos.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "As regras de conduta da época limitavam o contato entre moças e rapazes. Por isso, um encontro casual com uma desconhecida tinha ar de aventura.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Você acredita que um acaso de poucos minutos pode mudar uma vida? Já aconteceu algo assim com você ou com alguém que você conhece?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que o narrador se apaixona por alguém cujo rosto nem viu? O que isso revela sobre a ideia de amor no Romantismo?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Que efeito tem contar a história como se fosse para uma prima? Como isso muda a sua relação com o narrador?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Que retrato do Rio de Janeiro do século XIX aparece no livro? O que mais chamou sua atenção?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "A atitude do narrador ao procurar a desconhecida seria vista como romântica hoje? Ou poderia parecer exagerada?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que Carlota tenta se afastar do narrador? Você concorda com a decisão dela?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Você achou o final convincente? Como ele combina com a visão romântica do amor?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "ws-pt-a-viuvinha",
+      "motivo": "Romance curto de Alencar, também dirigido à mesma prima. Os dois livros formam um par."
+    },
+    {
+      "id": "ws-pt-diva",
+      "motivo": "Outro romance urbano de Alencar, com amor e orgulho na sociedade carioca."
+    },
+    {
+      "id": "ws-pt-a-pata-da-gazela",
+      "motivo": "Romance urbano de Alencar em que o acaso e um mistério também despertam a paixão."
+    },
+    {
+      "id": "ws-pt-a-moreninha-1860",
+      "motivo": "Clássico do romance romântico urbano brasileiro, da mesma época e de leitura leve."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "livre",
+    "nota": "novela romântica curta, sem conteúdo sensível",
+    "sensivel": ""
+  }
+}

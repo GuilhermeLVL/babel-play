@@ -1,0 +1,337 @@
+{
+  "versao": 1,
+  "livroId": "ws-pt-carta-a-el-rei-d-manuel-ortografia-original",
+  "titulo": "Carta a El Rei D. Manuel (ortografia original)",
+  "idioma": "pt",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 2
+  },
+  "autorEContexto": [
+    {
+      "texto": "Pero Vaz de Caminha foi o escrivão da armada de Pedro Álvares Cabral, que saiu de Lisboa em março de 1500 rumo à Índia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele era natural do Porto e tinha sido nomeado escrivão da feitoria que os portugueses queriam fundar em Calicute, na Índia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A armada de Cabral tinha treze navios e seguia a rota aberta por Vasco da Gama, que chegara à Índia em 1498.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 22 de abril de 1500, a frota avistou terra no litoral do atual sul da Bahia. O primeiro ponto visto foi um monte que recebeu o nome de Monte Pascoal.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A carta foi escrita a bordo e datada de 1º de maio de 1500, em Porto Seguro. Ela seguiu para Portugal num navio que voltou com a notícia, enquanto o resto da frota continuava para a Índia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Caminha morreu no fim de 1500, em Calicute, durante um ataque à feitoria portuguesa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época, Portugal e Castela disputavam as terras novas. O Tratado de Tordesilhas, de 1494, já dividia o mundo entre os dois reinos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O original da carta está guardado no Arquivo Nacional da Torre do Tombo, em Lisboa.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É um testemunho direto do primeiro contato entre portugueses e povos indígenas daquela costa, contado por quem estava lá.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra como os europeus olhavam o outro: com curiosidade, mas também com interesse em riquezas, em conversão religiosa e em domínio. Ler a carta hoje ajuda a entender as raízes da colonização.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É um documento precioso da língua portuguesa do fim do século XV, com grafias e palavras que mudaram muito até hoje.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Descoberta e expansão marítima",
+      "texto": "A carta registra a chegada a uma terra desconhecida pelos europeus, dentro do projeto português de navegações.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Encontro entre culturas",
+      "texto": "Portugueses e indígenas não falam a mesma língua. Eles se comunicam por gestos, trocas de objetos e música.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Olhar colonial",
+      "texto": "Caminha descreve os indígenas a partir dos valores europeus e cristãos. Ele os vê como gente a ser convertida e a terra como algo a ser aproveitado pela Coroa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Religião e conversão",
+      "texto": "A fé católica aparece o tempo todo: missas, a cruz erguida na praia e o desejo de levar o cristianismo aos habitantes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Natureza e riqueza",
+      "texto": "O escrivão observa águas, árvores, aves e frutos, e procura sinais de ouro e prata.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [],
+  "curiosidades": [
+    {
+      "texto": "A carta ficou guardada e esquecida por cerca de três séculos. Ela só foi publicada em 1817, pelo padre Manuel Aires de Casal, na obra Corografia Brasílica.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O nome Monte Pascoal vem da época do ano: a frota chegou na semana depois da Páscoa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A primeira missa em terra foi celebrada por frei Henrique de Coimbra, num domingo, 26 de abril de 1500.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A carta de Caminha não é o único relato da viagem. Também existem a carta do Mestre João, que descreve as estrelas do Cruzeiro do Sul, e o relato de um piloto anônimo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A famosa frase popular de que, plantando, tudo dá não aparece assim na carta. É uma simplificação de um trecho sobre a fertilidade da terra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os povos que Caminha encontrou são identificados por historiadores como tupiniquins, um povo de língua tupi.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na viagem estava Bartolomeu Dias, o navegador que anos antes havia contornado o sul da África.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O poeta modernista Oswald de Andrade usou trechos da carta em poemas do livro Pau Brasil, de 1925, para olhar a história do país com ironia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os portugueses deixaram na terra dois degredados, homens condenados pela justiça, para aprender a língua e os costumes locais.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "No fim da carta, Caminha faz um pedido pessoal ao rei: que perdoe o genro dele, que estava degredado na ilha de São Tomé.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "Vossa Alteza",
+      "texto": "Forma de tratamento usada para o rei. Caminha se dirige diretamente a D. Manuel I.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "capitão-mor",
+      "texto": "O comandante de toda a armada. Na carta, é Pedro Álvares Cabral.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "escrivão",
+      "texto": "Funcionário encarregado de registrar por escrito os fatos e as contas. Era o cargo de Caminha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "armada",
+      "texto": "Conjunto de navios que viajam juntos, sob um mesmo comando. Não quer dizer só frota de guerra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "nau",
+      "texto": "Navio grande de vela, usado nas viagens longas dos portugueses.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "batel",
+      "texto": "Barco pequeno levado pelos navios para chegar à praia ou ir de um navio a outro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "degredado",
+      "texto": "Pessoa condenada pela justiça a viver longe da pátria, como castigo. Muitos eram deixados em terras novas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "grumete",
+      "texto": "Marinheiro jovem e de posto mais baixo no navio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "légua",
+      "texto": "Antiga medida de distância, de alguns quilômetros. Os navegantes usavam para medir o caminho no mar e na costa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "braça",
+      "texto": "Antiga medida de comprimento, de cerca de dois metros. Servia para medir a profundidade da água.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "pardos",
+      "texto": "Cor de pele entre o escuro e o claro. Caminha usa a palavra para descrever a aparência dos indígenas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "vergonhas",
+      "texto": "Na carta, quer dizer as partes íntimas do corpo. Caminha usa a palavra ao comentar que os indígenas andavam nus.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Vera Cruz",
+      "texto": "Significa Cruz Verdadeira, um nome religioso. Foi um dos primeiros nomes dados à terra.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "A ortografia ainda não tinha regras fixas. A mesma palavra podia ser escrita de vários jeitos, com h no começo de palavras curtas e com u e v trocados.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os portugueses contavam os dias pelo calendário religioso: Páscoa, oitava da Páscoa e dias de santos. Essas datas ajudam a localizar os fatos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Igreja e a Coroa andavam juntas. Espalhar o cristianismo servia de justificativa oficial para as conquistas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Deixar degredados em terras desconhecidas era prática comum. Eles serviam de intérpretes e informantes para viagens futuras.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O objetivo principal da viagem era o comércio de especiarias na Índia. A parada na nova terra foi um episódio no caminho.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que você acha que a carta foi chamada de certidão de nascimento do Brasil? Você concorda com essa ideia?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "A terra já tinha habitantes. Faz sentido falar em descobrimento? Que outras palavras poderiam ser usadas?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Como Caminha descreve os indígenas? O que essa descrição revela sobre ele e sobre os portugueses?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Sem uma língua comum, como os dois grupos tentam se entender? Que mal-entendidos podem surgir?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Que interesses do rei aparecem na carta? Procure sinais de busca por riqueza e por conversão religiosa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Se a carta tivesse sido escrita por um indígena que viu os navios chegarem, o que ela poderia contar?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Que palavras ou grafias da carta foram mais difíceis para você? Como o português mudou desde 1500?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Caminha escreve para agradar o rei. Isso muda a forma como devemos confiar no que ele conta?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-3333",
+      "motivo": "Epopeia das navegações portuguesas. Mostra como Portugal celebrava a expansão marítima que a carta registra."
+    },
+    {
+      "id": "ws-pt-peregrinacam",
+      "motivo": "Outro relato português de viagem do século XVI, com o olhar de quem conheceu terras distantes."
+    },
+    {
+      "id": "ws-pt-arte-de-grammatica-da-lingoa-mais-vsada-na-costa-do-brasil",
+      "motivo": "Gramática do tupi feita por um jesuíta no século XVI. Mostra o esforço europeu de aprender a língua dos povos que Caminha encontrou."
+    },
+    {
+      "id": "ws-pt-aventuras-de-hans-staden-6-edicao",
+      "motivo": "Recontagem de um relato do Brasil do século XVI sobre o contato entre europeus e tupis."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "livre",
+    "nota": "relato da chegada portuguesa ao Brasil; descreve a nudez dos indígenas sem erotismo. Sensível: olhar colonial sobre os indígenas, pede contexto",
+    "sensivel": "olhar colonial sobre os indígenas, pede contexto"
+  }
+}

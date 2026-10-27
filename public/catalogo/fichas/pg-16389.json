@@ -1,0 +1,364 @@
+{
+  "versao": 1,
+  "livroId": "pg-16389",
+  "titulo": "The Enchanted April",
+  "idioma": "en",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 2
+  },
+  "autorEContexto": [
+    {
+      "texto": "Elizabeth von Arnim é o nome literário de Mary Annette Beauchamp, nascida em 1866 em Sydney, na Austrália, e criada na Inglaterra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ela ficou famosa com Elizabeth and Her German Garden (1898), um livro sobre sua vida e seu jardim numa propriedade rural na Pomerânia, então parte da Alemanha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O sobrenome vem do primeiro marido, o conde prussiano Henning von Arnim. Por muitos anos, ela assinou os livros só como a autora de Elizabeth.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ela era prima da escritora neozelandesa Katherine Mansfield.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Seu segundo casamento, com Frank Russell, irmão do filósofo Bertrand Russell, foi infeliz. Muitos críticos ligam essa experiência ao romance Vera (1921).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "The Enchanted April saiu em 1922. Foi escrito depois de uma temporada da autora em Portofino, na Riviera italiana, em 1921.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro surge logo após a Primeira Guerra Mundial, quando muitas mulheres britânicas começavam a questionar a vida limitada ao lar e ao dever.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Elizabeth von Arnim morreu em 1941 em Charleston, nos Estados Unidos.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É uma comédia leve que trata de um assunto sério: mulheres que vivem para os outros e descobrem que também têm direito a descanso e alegria.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra com humor e carinho como um lugar bonito e um tempo livre podem mudar o jeito de as pessoas se verem e se tratarem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Continua popular há cem anos e ganhou adaptações para cinema e teatro, o que mostra como o tema ainda conversa com leitores de hoje.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Liberdade e descanso",
+      "texto": "Sair da rotina e ter um mês só para si é, para as personagens, quase um ato de coragem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Casamento",
+      "texto": "O livro observa casais que se afastaram por hábito, frieza ou falta de atenção, sempre com humor e sem cenas pesadas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Natureza e beleza",
+      "texto": "As flores, o sol e o mar da Itália quase funcionam como personagens e mexem com o humor de todos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amizade entre mulheres",
+      "texto": "Quatro desconhecidas, muito diferentes entre si, precisam conviver e acabam se transformando nesse convívio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Aparência e verdade",
+      "texto": "Várias personagens escondem o que sentem atrás de boas maneiras, religião, beleza ou orgulho.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Lotty Wilkins",
+      "texto": "Dona de casa tímida de Hampstead, em Londres. Parece desajeitada, mas é impulsiva e intuitiva. É ela quem tem a ideia da viagem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Rose Arbuthnot",
+      "texto": "Mulher séria e religiosa, dedicada a obras de caridade com os pobres. Vive distante do marido e é infeliz, embora não admita.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Lady Caroline Dester",
+      "texto": "Jovem aristocrata, rica e muito bonita. Os amigos a chamam de Scrap. Está cansada de ser admirada o tempo todo e quer sossego.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mrs. Fisher",
+      "texto": "Viúva idosa, rígida e mandona. Vive de lembranças de grandes escritores vitorianos que conheceu na juventude.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mellersh Wilkins",
+      "texto": "Marido de Lotty. É advogado, cuidadoso com dinheiro e com a própria reputação, e trata a esposa com pouca atenção.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Frederick Arbuthnot",
+      "texto": "Marido de Rose. Escreve livros populares sobre amantes de reis sob pseudônimo, o que incomoda a esposa religiosa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mr. Briggs",
+      "texto": "Jovem dono do castelo italiano que as quatro mulheres alugam.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Frederick, Mellersh e Briggs na Itália",
+      "texto": "Os três homens acabam indo ao castelo durante o mês, e as chegadas deles criam confusões e reaproximações inesperadas.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "A história começa com um anúncio no jornal The Times oferecendo um pequeno castelo medieval na Itália para alugar em abril.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O castelo do livro se chama San Salvatore. A inspiração foi o Castello Brown, em Portofino, onde a autora se hospedou.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro ganhou um filme em 1935, feito em Hollywood.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Joan Plowright foi indicada ao Oscar de atriz coadjuvante pelo papel de Mrs. Fisher no filme de 1992.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro usa a grafia wistaria, mais antiga, para a flor que hoje se escreve wisteria.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mrs. Fisher fala o tempo todo de figuras vitorianas reais, como escritores famosos que frequentavam a casa do pai dela.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Jardins e flores aparecem em quase toda a obra da autora, desde seu primeiro livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As quatro mulheres só se conhecem por causa do anúncio. Duas delas mal se falavam antes, apesar de frequentarem o mesmo lugar em Londres.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "wistaria",
+      "texto": "Glicínia, trepadeira de flores lilases em cachos. Grafia antiga de wisteria. É a flor-símbolo do castelo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "solicitor",
+      "texto": "No Reino Unido, advogado que cuida de contratos, testamentos e negócios, sem atuar nos grandes tribunais. É a profissão de Mellersh.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Agony Column",
+      "texto": "Seção de anúncios pessoais do jornal The Times, com recados, pedidos e ofertas. É lá que sai o anúncio do castelo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Lady",
+      "texto": "Título de nobreza. Lady seguido do primeiro nome, como Lady Caroline, indica filha de um nobre de alto grau.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Mrs.",
+      "texto": "Senhora casada ou viúva, usado com o sobrenome do marido. Mrs. Fisher é viúva.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "pen-name",
+      "texto": "Pseudônimo, nome falso usado por um escritor. Frederick publica seus livros com um.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Hampstead",
+      "texto": "Bairro de Londres onde vivem Lotty e Rose. Na época era um bairro respeitável de classe média.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "signora",
+      "texto": "Senhora, em italiano. É assim que os empregados italianos chamam as hóspedes inglesas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Victorian",
+      "texto": "Da era da rainha Vitória (1837–1901). No livro, indica algo antigo, rígido e cheio de regras, como Mrs. Fisher.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "frock",
+      "texto": "Vestido. Palavra comum na época, hoje soa antiquada.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "pound",
+      "texto": "Libra esterlina, a moeda britânica. O aluguel do castelo é um gasto grande para Lotty e Rose.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Em 1922, uma mulher casada de classe média raramente viajava sem o marido. A ideia de Lotty e Rose era ousada.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitas esposas não tinham dinheiro próprio. Por isso as economias pessoais de Lotty e Rose são tão importantes na história.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os britânicos ricos viajavam muito para a Itália em busca de sol, arte e clima ameno, sobretudo na primavera.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Inglaterra vivia o pós-guerra: as pessoas queriam alegria, mas havia luto e dificuldades econômicas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ter empregados era normal até em casas modestas. No castelo, cozinheira e criados italianos atendem as hóspedes.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "Why does the newspaper advertisement affect Lotty and Rose so much?",
+      "texto": "Por que o anúncio do jornal mexe tanto com Lotty e Rose?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How do the flowers and the Italian landscape change the characters' moods?",
+      "texto": "Como as flores e a paisagem da Itália mudam o humor das personagens?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Lady Caroline is admired by everyone, but she is tired of it. Why can beauty be a burden?",
+      "texto": "Lady Caroline é admirada por todos, mas está cansada disso. Por que a beleza pode ser um peso?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "What is Mrs. Fisher looking for when she talks so much about the past?",
+      "texto": "O que Mrs. Fisher busca ao falar tanto do passado?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Does Rose's religion help her or keep her away from people?",
+      "texto": "A religião de Rose a ajuda ou a afasta das pessoas?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Do you think a new place can really change a person?",
+      "texto": "Você acha que um lugar novo pode mesmo mudar uma pessoa?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "What changes in the marriages when the husbands arrive at the castle?",
+      "texto": "O que muda nos casamentos quando os maridos chegam ao castelo?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Is the ending too happy? Does it suit the tone of the book?",
+      "texto": "O final é feliz demais? Ele combina com o tom do livro?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-67979",
+      "motivo": "Também dos anos 1920, mostra uma mulher que larga uma vida sem graça e descobre a felicidade num lugar novo."
+    },
+    {
+      "id": "pg-394",
+      "motivo": "Comédia gentil sobre um grupo de mulheres, seus hábitos e sua amizade."
+    },
+    {
+      "id": "se-jane-austen-emma",
+      "motivo": "Humor e ironia sobre boas maneiras, aparências e relações na sociedade inglesa."
+    },
+    {
+      "id": "se-virginia-woolf-to-the-lighthouse",
+      "motivo": "Da mesma época, olha de perto o casamento e a vida interior das mulheres, numa casa de férias."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "livre",
+    "nota": "comédia leve de quatro mulheres em férias na Itália; insatisfação conjugal sem cenas",
+    "sensivel": ""
+  }
+}

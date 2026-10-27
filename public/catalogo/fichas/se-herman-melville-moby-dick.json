@@ -1,0 +1,425 @@
+{
+  "versao": 1,
+  "livroId": "se-herman-melville-moby-dick",
+  "titulo": "Moby Dick",
+  "idioma": "en",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 1
+  },
+  "autorEContexto": [
+    {
+      "texto": "Herman Melville nasceu em Nova York em 1819 e morreu na mesma cidade em 1891.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ainda jovem, em 1841, Melville embarcou como marinheiro no baleeiro Acushnet, rumo ao Oceano Pacífico.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Suas viagens pelo Pacífico inspiraram seus primeiros livros, como Typee (1846), que fizeram sucesso na época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Moby Dick foi publicado em 1851, primeiro em Londres, com o título The Whale, e semanas depois em Nova York, como Moby-Dick; or, The Whale.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Melville escreveu o livro em Pittsfield, Massachusetts, onde ficou amigo do escritor Nathaniel Hawthorne. O romance é dedicado a ele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em meados do século XIX, a caça à baleia era uma grande indústria nos Estados Unidos. O óleo de baleia iluminava casas e lubrificava máquinas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro vendeu pouco e teve críticas duras. Melville acabou trabalhando por cerca de vinte anos como inspetor da alfândega em Nova York.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Só por volta dos anos 1920, décadas após sua morte, críticos e leitores redescobriram Melville e passaram a vê-lo como um dos maiores autores americanos.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É considerado um dos grandes romances da literatura dos Estados Unidos e aparece em quase toda lista de clássicos mundiais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mistura aventura, filosofia, religião, ciência e até teatro. Essa variedade de estilos era muito ousada para um romance de 1851.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O capitão Ahab virou símbolo universal de obsessão. Ainda hoje se fala em alguém que persegue sua própria baleia branca.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É também um retrato detalhado do trabalho nos baleeiros, com tripulantes de muitos países e culturas no mesmo navio.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Obsessão e vingança",
+      "texto": "Ahab quer se vingar da baleia que o mutilou. A pergunta é até onde essa ideia fixa pode levar ele e todos ao seu redor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "O ser humano diante da natureza",
+      "texto": "O mar e a baleia são imensos e indiferentes. O livro pergunta se o ser humano pode dominar a natureza ou entendê-la.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Conhecimento e mistério",
+      "texto": "Ishmael tenta explicar tudo sobre as baleias, com classificações e detalhes. Mas a baleia branca continua um mistério que ninguém decifra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amizade entre diferentes",
+      "texto": "A amizade entre Ishmael e Queequeg une pessoas de culturas muito distintas e questiona os preconceitos da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Religião e destino",
+      "texto": "Há muitas referências à Bíblia, profecias e presságios. Os personagens discutem se o destino já está escrito ou se podem escolher.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Liderança e obediência",
+      "texto": "Um capitão tem poder quase total no navio. O livro mostra o que acontece quando os tripulantes seguem um líder em um projeto perigoso.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Ishmael",
+      "texto": "O narrador. Um jovem que decide ir para o mar em um baleeiro. Curioso e reflexivo, comenta tudo o que vê.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Queequeg",
+      "texto": "Arpoador vindo de uma ilha dos Mares do Sul, coberto de tatuagens. Torna-se o melhor amigo de Ishmael.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Capitão Ahab",
+      "texto": "Capitão do navio Pequod. Perdeu uma perna para a baleia branca Moby Dick e usa uma perna feita de osso de baleia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Starbuck",
+      "texto": "Primeiro imediato do Pequod. Quaker de Nantucket, sério e prudente. Muitas vezes discorda dos planos de Ahab.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Stubb",
+      "texto": "Segundo imediato. Bem-humorado e despreocupado, está sempre com seu cachimbo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Flask",
+      "texto": "Terceiro imediato. Baixinho e agressivo na caça, vê as baleias apenas como presas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Tashtego e Daggoo",
+      "texto": "Arpoadores do Pequod, ao lado de Queequeg. Tashtego é um indígena de Gay Head, em Massachusetts; Daggoo é um africano de grande estatura.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Padre Mapple",
+      "texto": "Antigo baleeiro que virou pregador. Faz um sermão famoso sobre Jonas e a baleia em uma capela de New Bedford.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Fedallah",
+      "texto": "Homem misterioso que Ahab trouxe escondido a bordo, com sua própria equipe de remadores. Faz profecias sobre o destino do capitão.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Pip",
+      "texto": "Jovem negro, ajudante de bordo. Depois de ser abandonado no mar durante uma caçada, perde a razão e passa a falar de forma estranha e profunda.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "Melville se inspirou no caso real do baleeiro Essex, afundado por um cachalote no Pacífico em 1820.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Outra inspiração foi Mocha Dick, um cachalote branco famoso entre os baleeiros, descrito em um artigo de Jeremiah N. Reynolds em 1839.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A primeira edição inglesa saiu sem o epílogo. Por isso, alguns críticos reclamaram que o narrador não poderia ter sobrevivido para contar a história.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro tem mais de 130 capítulos, além de um epílogo. Alguns são bem curtos, outros parecem ensaios científicos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Há capítulos escritos como cenas de teatro, com falas e indicações de palco, mostrando a influência de Shakespeare.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O navio Pequod tem o nome de um povo indígena da Nova Inglaterra, os Pequot.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O nome Ahab vem de um rei de Israel na Bíblia, conhecido como um governante perverso. Ishmael também é um nome bíblico, de um filho rejeitado de Abraão.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A rede de cafeterias Starbucks recebeu esse nome por causa do imediato Starbuck.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Melville trabalhou de fato em um baleeiro e abandonou o navio nas Ilhas Marquesas em 1842. Muito do que descreve, ele viveu.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1956, John Huston dirigiu uma famosa adaptação para o cinema, com Gregory Peck no papel de Ahab.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No livro, a baleia branca é um cachalote, a espécie caçada pelo valioso espermacete, usado em velas de alta qualidade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro é cheio de digressões: capítulos sobre a cor branca, sobre como se classificam as baleias e sobre cordas e ferramentas. Pular alguns na primeira leitura é comum.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "harpooneer",
+      "texto": "Arpoador, o homem que lança o arpão na baleia. Melville usa esta grafia antiga; hoje se escreve harpooner.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "mate",
+      "texto": "Neste livro, oficial do navio abaixo do capitão: first mate é o primeiro imediato. Não tem o sentido de amigo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "whaleman / whaler",
+      "texto": "Whaleman é o homem que caça baleias. Whaler pode ser o caçador ou o próprio navio baleeiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "blubber",
+      "texto": "A grossa camada de gordura sob a pele da baleia. Era derretida para produzir óleo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "try-works",
+      "texto": "Fornalhas no convés onde a gordura da baleia era derretida para virar óleo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "spermaceti",
+      "texto": "Espermacete: substância cerosa da cabeça do cachalote, usada em velas e óleos finos. Daí o nome sperm whale.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ambergris",
+      "texto": "Âmbar-gris: substância rara do intestino do cachalote, muito valiosa na fabricação de perfumes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "gam",
+      "texto": "Encontro social entre dois baleeiros em alto-mar, quando as tripulações trocam visitas e notícias.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "lay",
+      "texto": "A parte do lucro da viagem que cabia a cada tripulante. Não havia salário fixo; quanto mais baixo o cargo, menor a parte.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "forecastle",
+      "texto": "Castelo de proa: a parte da frente do navio onde dormiam os marinheiros comuns. Pronuncia-se mais ou menos fók-sl.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "there she blows",
+      "texto": "Grito do vigia ao ver o jato de ar e água de uma baleia. Blow aqui é o sopro da baleia ao respirar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "thee / thou / ye",
+      "texto": "Formas antigas de you. Os quakers de Nantucket ainda as usavam no dia a dia, por isso aparecem nas falas de alguns personagens.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "leviathan",
+      "texto": "Monstro marinho da Bíblia. No livro, é outro nome poético para a baleia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "doubloon",
+      "texto": "Dobrão: antiga moeda de ouro espanhola ou latino-americana, de alto valor. Ahab oferece uma como prêmio.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Antes do petróleo se popularizar, o óleo de baleia era o principal combustível de lamparinas. Por isso a caça era um negócio tão lucrativo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Nantucket e New Bedford, em Massachusetts, eram os grandes portos baleeiros dos Estados Unidos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As viagens baleeiras duravam anos. Os navios só voltavam quando os porões estavam cheios de óleo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitos donos de navios em Nantucket eram quakers, um grupo cristão pacifista. O livro brinca com o contraste entre essa fé e a violência da caça.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As tripulações reuniam homens de muitos países e povos. O livro usa termos da época, como cannibal e savage, para Queequeg e outros tripulantes não brancos. Hoje são termos ofensivos, que refletem o preconceito daquele tempo.",
+      "spoiler": false,
+      "sensivel": true
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "Why do you think Ishmael decides to go to sea? What is he looking for?",
+      "texto": "Por que você acha que Ishmael decide ir para o mar? O que ele procura?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How does the friendship between Ishmael and Queequeg change Ishmael's first impression of him?",
+      "texto": "Como a amizade entre Ishmael e Queequeg muda a primeira impressão que Ishmael tinha dele?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Is Ahab a hero, a villain, or both? Why?",
+      "texto": "Ahab é um herói, um vilão ou as duas coisas? Por quê?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "What does Moby Dick represent for Ahab? And for Ishmael?",
+      "texto": "O que Moby Dick representa para Ahab? E para Ishmael?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Starbuck disagrees with Ahab, but he stays on the ship. What would you do in his place?",
+      "texto": "Starbuck discorda de Ahab, mas continua no navio. O que você faria no lugar dele?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Why did Melville include so many chapters about the science and work of whaling? Do they help or hurt the story?",
+      "texto": "Por que Melville incluiu tantos capítulos sobre a ciência e o trabalho da caça às baleias? Eles ajudam ou atrapalham a história?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How does the book show the relationship between humans and nature? Does this view seem current?",
+      "texto": "Como o livro mostra a relação entre os seres humanos e a natureza? Essa visão parece atual?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "The book uses period words to describe non-white crew members. How should we read a classic with this kind of language today?",
+      "texto": "O livro usa palavras de época para descrever tripulantes não brancos. Como ler hoje um clássico com esse tipo de linguagem?",
+      "spoiler": false,
+      "sensivel": true
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-25344",
+      "motivo": "De Nathaniel Hawthorne, amigo de Melville e a quem Moby Dick é dedicado. Também explora culpa, obsessão e religião na Nova Inglaterra."
+    },
+    {
+      "id": "se-joseph-conrad-heart-of-darkness",
+      "motivo": "Outra viagem narrada por um marinheiro, rumo a um líder obcecado e ao lado sombrio do ser humano."
+    },
+    {
+      "id": "se-john-milton-paradise-lost",
+      "motivo": "A revolta de Satã contra Deus é uma das grandes referências para a figura desafiadora do capitão Ahab."
+    },
+    {
+      "id": "se-robert-louis-stevenson-treasure-island",
+      "motivo": "Aventura clássica no mar, com navio, tripulação e um capitão marcante. Mais curta e leve para começar."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "caça à baleia com mortes de animais e de tripulantes, violência de aventura sem detalhe gráfico. Sensível: descrição de época de Queequeg e de outros tripulantes não brancos (\"cannibal\", \"savage\")",
+    "sensivel": "descrição de época de Queequeg e de outros tripulantes não brancos (\"cannibal\", \"savage\")"
+  }
+}

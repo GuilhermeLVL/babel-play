@@ -1,0 +1,373 @@
+{
+  "versao": 1,
+  "livroId": "ws-pt-bom-crioulo",
+  "titulo": "Bom Crioulo",
+  "idioma": "pt",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "Adolfo Caminha nasceu em 1867, em Aracati, no Ceará, e morreu em 1897, no Rio de Janeiro, de tuberculose, com menos de 30 anos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Caminha foi oficial da Marinha. Por isso conhecia de perto a vida a bordo, os navios e a disciplina dura dos marinheiros.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele deixou a Marinha depois de um escândalo: viveu com uma mulher casada, o que a sociedade da época condenou.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em Fortaleza, participou da Padaria Espiritual, um grupo literário irreverente dos anos 1890.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Caminha é um dos principais nomes do Naturalismo no Brasil. Essa corrente via o ser humano como produto da raça, do meio e da hereditariedade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Bom Crioulo saiu em 1895, poucos anos depois da Abolição da escravatura (1888) e da Proclamação da República (1889).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na Marinha da época, marinheiros eram castigados com chibatadas. Muitos eram pobres, negros ou ex-escravizados.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Antes deste livro, Caminha publicou A Normalista (1893), outro romance naturalista, passado em Fortaleza.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É considerado um dos primeiros romances da literatura ocidental com um protagonista homossexual, e o primeiro do tipo no Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Tem um protagonista negro, ex-escravizado, no centro da história. Isso era raro no romance brasileiro do século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra a violência dos castigos físicos na Marinha, tema que explodiu na Revolta da Chibata, em 1910.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Causou escândalo quando saiu. Hoje é lido como documento da época e também como obra que expõe os preconceitos dela.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Desejo e ciúme",
+      "texto": "O romance gira em torno de uma paixão possessiva e de como o ciúme pode levar à destruição.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Homossexualidade vista como doença",
+      "texto": "O narrador trata o desejo entre homens como patologia e instinto. É a visão médica e moral da época, hoje superada e rejeitada.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Raça e racismo",
+      "texto": "Amaro é descrito com estereótipos raciais típicos do século XIX. Vale ler com olhar crítico sobre como o narrador fala dele.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Violência e disciplina na Marinha",
+      "texto": "Os castigos corporais mostram uma instituição que ainda tratava marinheiros pobres quase como escravizados.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Liberdade",
+      "texto": "Amaro fugiu da escravidão e buscou no mar uma vida livre. O livro pergunta o que essa liberdade de fato significava.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Cidade e mar",
+      "texto": "A história alterna entre o navio e o Rio de Janeiro, com suas ruas, pensões e vida popular.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Amaro (Bom Crioulo)",
+      "texto": "Marinheiro negro, forte e respeitado, que fugiu da escravidão e entrou para a Marinha. O apelido vem do seu jeito considerado bom e leal.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Aleixo",
+      "texto": "Grumete de 15 anos, vindo do Sul do Brasil, loiro e de olhos azuis. Chega novo ao navio e logo chama a atenção de Amaro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Dona Carolina",
+      "texto": "Portuguesa que aluga um quarto na Rua da Misericórdia, no Rio de Janeiro, onde Amaro e Aleixo vão morar.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Dona Carolina (papel na trama)",
+      "texto": "Enquanto Amaro está longe, ela seduz Aleixo e se torna o centro do ciúme de Amaro.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "nome": "Amaro (desfecho)",
+      "texto": "Separado de Aleixo e tomado pelo ciúme, Amaro acaba matando o rapaz na rua.",
+      "spoiler": true,
+      "sensivel": true
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "Crioulo era o termo usado para negros nascidos no Brasil. Hoje a palavra costuma ser ofensiva.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "O livro saiu em 1895 e provocou forte reação da crítica. Caminha chegou a escrever em defesa do romance.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A experiência de Caminha como oficial ajuda a explicar a precisão nas cenas de bordo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A primeira parte se passa num navio; a segunda, quase toda em terra, no Rio de Janeiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Logo no começo, o livro mostra uma cena de castigo com chibata diante da tripulação.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "A Rua da Misericórdia, onde Amaro aluga o quarto, existe de fato no centro antigo do Rio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Caminha também escreveu No País dos Ianques, sobre uma viagem que fez aos Estados Unidos com a Marinha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele publicou ainda o romance Tentação (1896), pouco antes de morrer.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro tem várias traduções para outras línguas e é estudado em cursos de literatura e de estudos de gênero.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Escravizados fugidos às vezes buscavam a Marinha como forma de escapar. É o caminho de Amaro.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "grumete",
+      "texto": "Aprendiz de marinheiro, geralmente um rapaz bem jovem, no posto mais baixo do navio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "crioulo",
+      "texto": "No século XIX, negro nascido no Brasil (diferente do africano). Hoje é termo racista e ofensivo.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "termo": "chibata",
+      "texto": "Vara ou chicote usado para castigar marinheiros. Chibatada é cada golpe.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "termo": "corveta",
+      "texto": "Navio de guerra a vela, de porte médio, comum na Marinha do século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "couraçado",
+      "texto": "Navio de guerra protegido por placas de metal (couraça). Era o tipo mais moderno na época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "marujo",
+      "texto": "Marinheiro, sobretudo o de patente baixa. Palavra mais popular que marinheiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "convés",
+      "texto": "Piso de cima do navio, ao ar livre, onde a tripulação trabalha e se reúne.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "tombadilho",
+      "texto": "Parte elevada do convés, na popa (traseira do navio), ligada aos oficiais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "navalha",
+      "texto": "Lâmina dobrável usada para fazer a barba. Também servia como arma.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "mil-réis",
+      "texto": "Moeda do Brasil no século XIX. Escrevia-se com o cifrão depois do número, como 5$000.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "praça",
+      "texto": "Na Marinha e no Exército, militar sem posto de oficial, como marinheiros e soldados.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "escaler",
+      "texto": "Barco pequeno a remo, levado pelo navio para ir à terra ou entre navios.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Até 1888 havia escravidão no Brasil. Um escravizado fugido não tinha direitos e podia ser caçado.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Os castigos com chibata na Marinha continuaram mesmo depois da Abolição. Só caíram após a Revolta da Chibata, liderada por João Cândido em 1910.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "No fim do século XIX, a medicina tratava a homossexualidade como doença ou desvio. O narrador reflete essa ideia, hoje rejeitada pela ciência.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "O Naturalismo gostava de temas chocantes e de descrições do corpo. O objetivo era mostrar o ser humano como um caso a ser estudado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O Rio de Janeiro era a capital do país e o principal porto da Marinha. Seu centro antigo tinha muitas pensões e quartos de aluguel.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Como o narrador descreve Amaro? Em que momentos você percebe preconceito racial nessa descrição?",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O livro trata a homossexualidade como doença. Como podemos ler hoje uma obra com essa visão de época?",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O que a Marinha representa para Amaro no início: liberdade ou outra forma de prisão?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Aleixo tem 15 anos e Amaro é adulto. Como a diferença de idade e de poder pesa nessa relação?",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que os castigos corporais aparecem logo no começo? Que efeito isso tem sobre o leitor?",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Como a mudança do navio para a cidade transforma os personagens?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O final parece inevitável, como queria o Naturalismo, ou fruto das escolhas dos personagens?",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que você acha que o livro causou escândalo em 1895? Ele causaria hoje? Por motivos iguais ou diferentes?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "ws-pt-a-normalista",
+      "motivo": "Outro romance naturalista de Adolfo Caminha, publicado dois anos antes."
+    },
+    {
+      "id": "ws-pt-o-cortico",
+      "motivo": "Grande romance naturalista brasileiro da mesma época, com vida popular no Rio de Janeiro e tensões raciais."
+    },
+    {
+      "id": "ws-pt-o-ateneu",
+      "motivo": "Romance de 1888 sobre um internato masculino, com relações de poder e desejo entre rapazes."
+    },
+    {
+      "id": "se-herman-melville-moby-dick",
+      "motivo": "A vida dura dos marinheiros no século XIX e a amizade entre homens de origens diferentes a bordo."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "18",
+    "nota": "relação sexual de um marinheiro adulto com um grumete de 15 anos, açoites, assassinato no fim. Sensível: homossexualidade tratada como patologia (visão de época) e racismo; sexualidade com adolescente",
+    "sensivel": "homossexualidade tratada como patologia (visão de época) e racismo; sexualidade com adolescente"
+  }
+}

@@ -1,0 +1,410 @@
+{
+  "versao": 1,
+  "livroId": "pg-3333",
+  "titulo": "Os Lusíadas",
+  "idioma": "pt",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 4
+  },
+  "autorEContexto": [
+    {
+      "texto": "Luís Vaz de Camões foi um poeta português do século XVI e é considerado o maior poeta da língua portuguesa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Camões serviu como soldado no norte da África e perdeu um olho em combate.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele passou muitos anos no Oriente português, em lugares como Goa, na Índia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os Lusíadas foi publicado em Lisboa em 1572, durante o reinado de D. Sebastião, a quem o poema é dedicado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O poema conta a viagem de Vasco da Gama, que abriu o caminho marítimo da Europa para a Índia entre 1497 e 1499.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No século XVI, Portugal tinha um grande império marítimo, com rotas e feitorias na África, na Ásia e no Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Camões morreu em Lisboa em 1580. Nesse mesmo ano, Portugal passou a ser governado pelo rei da Espanha, Filipe II.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A obra pertence ao Renascimento e segue o modelo das epopeias clássicas, sobretudo a Eneida, de Virgílio.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É a grande epopeia da língua portuguesa. Por isso o português é chamado muitas vezes de língua de Camões.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O poema mistura a viagem de Vasco da Gama com toda a história de Portugal até a época do autor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A obra ajudou a fixar o português literário. Muitas palavras e expressões do poema ainda são usadas hoje.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É um retrato de como os europeus do século XVI viam a expansão marítima, com orgulho e também com dúvidas.",
+      "spoiler": false,
+      "sensivel": true
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Viagem e descoberta",
+      "texto": "O mar é o grande cenário. Ele traz perigo, medo e também a promessa de novas terras e de glória.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Glória e fama",
+      "texto": "O poema quer tornar eternos os feitos dos portugueses. A fama é vista como recompensa pelo esforço heroico.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "História de Portugal",
+      "texto": "Reis, batalhas e heróis portugueses aparecem em longos relatos dentro da narrativa da viagem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Deuses e destino",
+      "texto": "Os deuses da mitologia greco-romana ajudam ou atrapalham os navegadores, num poema de autor cristão.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Crítica à ambição",
+      "texto": "Ao lado da celebração, o poema também mostra vozes que criticam a cobiça e o preço humano das conquistas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Império e o outro",
+      "texto": "Os povos encontrados, especialmente os mouros, são vistos pelo olhar do conquistador europeu, muitas vezes como inimigos.",
+      "spoiler": false,
+      "sensivel": true
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Vasco da Gama",
+      "texto": "Capitão da armada que parte de Lisboa rumo à Índia. É o herói da viagem e narra boa parte da história de Portugal.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Paulo da Gama",
+      "texto": "Irmão de Vasco da Gama e comandante de uma das naus da armada.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Vênus",
+      "texto": "Deusa do amor. Protege os portugueses, pois vê neles herdeiros dos romanos, de quem ela gosta.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Baco",
+      "texto": "Deus do vinho. Teme que os portugueses ofusquem a fama que ele tem no Oriente e tenta impedir a viagem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Júpiter",
+      "texto": "Rei dos deuses. Reúne os deuses do Olimpo para decidir o destino da viagem portuguesa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Velho do Restelo",
+      "texto": "Homem idoso que, na partida da armada, critica a ambição e os perigos da viagem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Adamastor",
+      "texto": "Gigante que representa o cabo das Tormentas, no sul da África, e ameaça os navegadores.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Inês de Castro",
+      "texto": "Dama histórica amada pelo príncipe D. Pedro. Sua história trágica é contada num dos episódios mais famosos do poema.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "nome": "Rei de Melinde",
+      "texto": "Rei africano que recebe bem os portugueses e pede a Vasco da Gama que conte a história de Portugal.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Samorim",
+      "texto": "Governante de Calicute, na Índia, com quem os portugueses tentam negociar.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O poema tem 10 cantos e 1102 estrofes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Cada estrofe tem oito versos de dez sílabas, com rimas no esquema ABABABCC. Essa forma se chama oitava rima.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O título vem de Luso, figura mítica tida como ancestral dos lusitanos. Lusíadas quer dizer, portanto, os portugueses.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O dia 10 de junho, data tradicional da morte de Camões, é o Dia de Portugal, de Camões e das Comunidades Portuguesas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em Portugal, chamar alguém de velho do Restelo significa dizer que a pessoa é pessimista e desconfia de novidades.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O próprio poema menciona um naufrágio na foz do rio Mekong, no Sudeste Asiático, vivido pelo autor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O Prêmio Camões, criado em 1988 por Portugal e Brasil, é o principal prêmio literário da língua portuguesa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Grande parte da história de Portugal é contada por Vasco da Gama ao rei de Melinde, como uma história dentro da história.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Camões também escreveu sonetos e outros poemas líricos, reunidos depois da sua morte no livro Rimas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No fim da viagem, os navegadores são recompensados na Ilha dos Amores, episódio criado por Vênus, com cenas de amor em linguagem mitológica.",
+      "spoiler": true,
+      "sensivel": true
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "nau",
+      "texto": "Grande navio à vela usado nas viagens oceânicas dos séculos XV e XVI.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "armada",
+      "texto": "Conjunto de navios que viajam juntos sob um comando. Aqui, a frota de Vasco da Gama.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "barões",
+      "texto": "No poema, não é título de nobreza moderno. Quer dizer varões, homens ilustres e valentes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Lusitano",
+      "texto": "Habitante da Lusitânia, antiga região romana. No poema, sinônimo de português.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "engenho",
+      "texto": "Na época, significava talento natural, inteligência criativa. Não tem a ver com fábrica de açúcar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Taprobana",
+      "texto": "Nome antigo da ilha que hoje é o Sri Lanka.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "mouro",
+      "texto": "Termo da época para muçulmanos, sobretudo do norte da África. Hoje é visto como termo histórico e carregado de preconceito.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "termo": "gentio",
+      "texto": "Quem não era cristão nem judeu nem muçulmano, na visão europeia da época. Usado para povos da Índia, por exemplo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Samorim",
+      "texto": "Título do governante de Calicute, na costa da Índia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Catual",
+      "texto": "Título de um alto funcionário a serviço do Samorim, em Calicute.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "fero",
+      "texto": "Forma antiga de feroz, bravo, selvagem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "inda",
+      "texto": "Forma poética e antiga de ainda.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Restelo",
+      "texto": "Praia perto de Lisboa, em Belém, de onde partiu a armada de Vasco da Gama.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "As especiarias da Índia, como pimenta e canela, valiam muito na Europa. Chegar a elas por mar era um grande objetivo econômico.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os portugueses viam suas conquistas também como luta religiosa contra os muçulmanos, herança das guerras na Península Ibérica.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "No Renascimento, usar deuses greco-romanos em poemas era um recurso literário comum, mesmo para autores católicos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Livros publicados em Portugal passavam pela censura da Inquisição. Os Lusíadas foi publicado com licença oficial.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A ortografia do século XVI era diferente da atual. Muitas edições modernas atualizam a grafia para facilitar a leitura.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O poema celebra o império português. Leitores de hoje discutem também a violência da colonização e o olhar sobre os povos encontrados.",
+      "spoiler": false,
+      "sensivel": true
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que você acha que Camões escolheu uma viagem, e não um único herói, como centro da epopeia?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O Velho do Restelo critica a viagem logo na partida. Você concorda com algum argumento dele?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Qual é o papel dos deuses na história? A viagem seria tão interessante sem eles?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Como os povos da África e da Ásia são apresentados no poema? Como poderíamos contar essa mesma história do ponto de vista deles?",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O que o gigante Adamastor pode representar para os navegadores daquela época?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que o episódio de Inês de Castro emociona leitores até hoje, num poema cheio de batalhas?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O poema busca a fama eterna dos heróis. Que feitos de hoje você acha que mereceriam uma epopeia?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Quais palavras ou construções do poema foram mais difíceis para você? O que elas mostram sobre a mudança da língua?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "se-homer-the-odyssey-william-cullen-bryant",
+      "motivo": "Epopeia clássica de viagem pelo mar, um dos grandes modelos de Camões."
+    },
+    {
+      "id": "ws-pt-o-uraguai",
+      "motivo": "Poema épico em língua portuguesa que dialoga com a tradição camoniana."
+    },
+    {
+      "id": "ws-pt-carta-a-el-rei-d-manuel-ortografia-original",
+      "motivo": "Documento da mesma era das navegações, sobre a chegada da armada de Cabral ao Brasil."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "epopeia: batalhas, naufrágios e a Ilha dos Amores (canto IX) com erotismo em linguagem mitológica. Sensível: expansão colonial portuguesa celebrada; mouros e povos africanos e asiáticos retratados como inimigos",
+    "sensivel": "expansão colonial portuguesa celebrada; mouros e povos africanos e asiáticos retratados como inimigos"
+  }
+}

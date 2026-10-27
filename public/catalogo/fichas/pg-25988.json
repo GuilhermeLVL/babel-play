@@ -1,0 +1,353 @@
+{
+  "versao": 1,
+  "livroId": "pg-25988",
+  "titulo": "Historia de la literatura y del arte dramático en España, tomo II",
+  "idioma": "es",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "Adolf Friedrich von Schack nasceu em 1815, no norte da Alemanha, e morreu em Roma, em 1894.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Schack foi poeta, tradutor e historiador da literatura. Também foi um grande colecionador de arte.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Sua coleção de pintura alemã do século XIX deu origem à Sammlung Schack, um museu que existe até hoje em Munique.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele viajou pela Espanha e estudou a fundo o teatro espanhol antigo, lendo peças raras em bibliotecas e arquivos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A obra saiu originalmente em alemão, em Berlim, entre 1845 e 1846, com o título Geschichte der dramatischen Literatur und Kunst in Spanien.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A tradução espanhola de Eduardo de Mier foi publicada em Madri na década de 1880, em vários tomos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No século XIX, os românticos alemães, como August Wilhelm Schlegel, admiravam muito o teatro espanhol, sobretudo Calderón. Schack faz parte dessa tradição.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Schack também escreveu sobre a poesia e a arte dos árabes na Espanha e na Sicília. Esse livro foi traduzido para o espanhol por Juan Valera.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "Foi uma das primeiras histórias completas e detalhadas do teatro espanhol, escrita quando quase não havia estudos desse tipo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ajudou a divulgar na Europa autores como Lope de Vega e Calderón de la Barca.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra como um estrangeiro do século XIX enxergava a cultura espanhola, o que também revela as ideias do Romantismo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A tradução espanhola levou aos próprios leitores espanhóis um estudo que valorizava seu teatro nacional.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "O teatro do Século de Ouro",
+      "texto": "O auge do teatro espanhol, nos séculos XVI e XVII, com autores como Lope de Vega, Tirso de Molina e Calderón.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Teatro e sociedade",
+      "texto": "Como o público, a Igreja e a corte influenciavam o que se escrevia e se encenava.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "A honra",
+      "texto": "A honra era um valor central na sociedade espanhola da época e um motor de muitas peças.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Religião no palco",
+      "texto": "O teatro religioso, como os autos sacramentais, tinha grande peso na vida cultural.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Crítica literária romântica",
+      "texto": "O autor julga as obras com os gostos do século XIX, valorizando o que é nacional, popular e poético.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [],
+  "curiosidades": [
+    {
+      "texto": "O livro não é ficção: é uma obra de história e crítica literária, escrita como um estudo acadêmico.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O texto que você lê é uma tradução do alemão. Por isso, às vezes a sintaxe parece mais longa e pesada que a de um autor espanhol.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na Espanha do Século de Ouro, comedia era o nome de qualquer peça de teatro, mesmo as que terminavam em tragédia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Lope de Vega escreveu centenas de peças. Ele explicou suas ideias sobre teatro no poema Arte nuevo de hacer comedias, de 1609.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As peças eram encenadas em corrales, pátios internos de casas, ao ar livre e com plateia em pé.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em Madri, os corrales mais famosos eram o Corral de la Cruz e o Corral del Príncipe.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No corral, as mulheres assistiam de uma galeria separada, chamada cazuela.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As peças da época eram escritas em verso e misturavam vários tipos de estrofe, como romances, redondillas e décimas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Uma comedia tinha em geral três atos, chamados jornadas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Entre os atos, apresentavam-se peças curtas e cômicas, os entremeses, para divertir o público.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Calderón de la Barca, morto em 1681, é autor de La vida es sueño, uma das peças espanholas mais famosas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "comedia",
+      "texto": "Peça de teatro em geral, não só comédia. Era o gênero principal do Século de Ouro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "corral de comedias",
+      "texto": "Teatro ao ar livre montado no pátio de um conjunto de casas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "jornada",
+      "texto": "No teatro antigo, significa ato de uma peça, e não dia ou viagem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "auto sacramental",
+      "texto": "Peça religiosa em um ato, encenada na festa de Corpus Christi.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "entremés",
+      "texto": "Peça curta e cômica apresentada no intervalo entre os atos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "loa",
+      "texto": "Pequeno prólogo recitado antes da peça para saudar o público.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "gracioso",
+      "texto": "Personagem cômico, geralmente o criado do herói.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "galán",
+      "texto": "O jovem herói apaixonado da comedia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "autor de comedias",
+      "texto": "Na época, era o diretor e empresário de uma companhia de teatro, não o escritor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "poeta",
+      "texto": "No teatro antigo, era o nome comum para quem escrevia as peças, mesmo em verso dramático.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "mosqueteros",
+      "texto": "Espectadores que viam a peça em pé no pátio do corral. Eram barulhentos e decidiam o sucesso.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "tramoya",
+      "texto": "Máquinas e efeitos de cena usados para mudanças e aparições no palco.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "comedia de capa y espada",
+      "texto": "Peça de enredo amoroso e intriga entre nobres de nível médio, com duelos e disfarces.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "honra",
+      "texto": "Reputação pública de uma pessoa e da família. Era um valor quase sagrado na época.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "O Século de Ouro espanhol vai, de modo geral, do século XVI ao fim do século XVII.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O teatro era um grande divertimento popular, com público de todas as classes sociais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Igreja às vezes criticava o teatro e, em alguns períodos, as apresentações foram proibidas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro usa o espanhol formal do século XIX, com frases longas e vocabulário erudito.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Algumas grafias e acentos do século XIX diferem das normas atuais do espanhol.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "¿Por qué un extranjero puede ver una literatura de forma distinta a quien nació en el país?",
+      "texto": "Por que um estrangeiro pode ver uma literatura de forma diferente de quem nasceu no país?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué diferencias notas entre el teatro de corral y el teatro de hoy?",
+      "texto": "Que diferenças você nota entre o teatro de corral e o teatro de hoje?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Por qué la honra era un tema tan importante en las obras españolas?",
+      "texto": "Por que a honra era um tema tão importante nas peças espanholas?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cuál es el papel del público en el éxito de una obra, ayer y hoy?",
+      "texto": "Qual é o papel do público no sucesso de uma peça, ontem e hoje?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Percibes la opinión personal del autor en sus análisis? ¿Dónde?",
+      "texto": "Você percebe a opinião pessoal do autor nas análises? Onde?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué se pierde y qué se gana al leer una obra traducida?",
+      "texto": "O que se perde e o que se ganha ao ler uma obra traduzida?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Por qué el teatro religioso era tan popular en la España de aquella época?",
+      "texto": "Por que o teatro religioso era tão popular na Espanha daquela época?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Escribir obras en verso ayuda o dificulta la comprensión del público? ¿Por qué?",
+      "texto": "Escrever peças em verso ajuda ou atrapalha a compreensão do público? Por quê?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-60198",
+      "motivo": "Peça de Lope de Vega, figura central do teatro estudado por Schack."
+    },
+    {
+      "id": "pg-23206",
+      "motivo": "Outra comedia de Lope de Vega, para ver na prática o teatro do Século de Ouro."
+    },
+    {
+      "id": "pg-50027",
+      "motivo": "Clássico do teatro espanhol posterior, útil para comparar com a comedia antiga."
+    },
+    {
+      "id": "se-miguel-de-cervantes-saavedra-don-quixote-john-ormsby",
+      "motivo": "Obra-prima da mesma época, que também comenta o teatro de seu tempo."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "livre",
+    "nota": "história acadêmica do teatro espanhol",
+    "sensivel": ""
+  }
+}

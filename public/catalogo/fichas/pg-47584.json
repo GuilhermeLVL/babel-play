@@ -1,0 +1,418 @@
+{
+  "versao": 1,
+  "livroId": "pg-47584",
+  "titulo": "Noli me tángere",
+  "idioma": "es",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 2
+  },
+  "autorEContexto": [
+    {
+      "texto": "José Rizal nasceu em 19 de junho de 1861, em Calamba, na província de Laguna, nas Filipinas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Rizal estudou na Universidade de Santo Tomás, em Manila, e depois medicina em Madri. Tornou-se oftalmologista.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As Filipinas foram colônia da Espanha desde o século XVI até 1898, quando passaram para o controle dos Estados Unidos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na colônia, as ordens religiosas católicas (frades dominicanos, agostinianos, franciscanos e recoletos) tinham enorme poder político, econômico e social.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Rizal participou do chamado Movimento de Propaganda, de filipinos na Europa que pediam reformas, representação nas Cortes espanholas e igualdade de direitos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Noli me tángere foi publicado em Berlim, em 1887. A continuação, El filibusterismo, saiu em Gante (Bélgica), em 1891.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1896 começou a Revolução Filipina contra a Espanha. Rizal foi acusado de rebelião, embora não tenha liderado o levante.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Rizal foi fuzilado pelas autoridades espanholas em 30 de dezembro de 1896, em Bagumbayan, Manila. Tinha 35 anos.",
+      "spoiler": false,
+      "sensivel": true
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É considerado o romance fundador da consciência nacional filipina. Ajudou a despertar o desejo de reforma e, depois, de independência.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra por dentro como funcionava uma sociedade colonial: quem mandava, quem obedecia e como o preconceito organizava a vida de todos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Nas Filipinas, a Lei Rizal, de 1956, tornou obrigatório o estudo da vida e das obras de Rizal, incluindo este romance, nas escolas e universidades.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mistura drama romântico, sátira social e crítica política. Rizal ridiculariza tanto os abusos dos colonizadores quanto os filipinos que imitam os espanhóis.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Colonialismo e injustiça",
+      "texto": "O livro mostra como as leis e as autoridades coloniais tratam os filipinos como inferiores, sem direito real de defesa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Poder da Igreja",
+      "texto": "Os frades controlam a vida da cidade: a política, a educação, a reputação das famílias e até os enterros.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Reforma ou revolução",
+      "texto": "Os personagens discutem se é possível mudar o país com educação e paciência ou se só a violência resolveria.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Educação",
+      "texto": "Ibarra acredita que uma escola pode transformar sua cidade. O livro pergunta se a educação basta contra um sistema injusto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Identidade e imitação",
+      "texto": "Alguns filipinos rejeitam sua origem e copiam os espanhóis para subir na vida. Rizal trata isso com humor e crítica.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amor e dever",
+      "texto": "O romance entre Ibarra e María Clara é atravessado pelas pressões da família, da Igreja e da política.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Crisóstomo Ibarra",
+      "texto": "Jovem filipino rico que volta para casa após sete anos estudando na Europa. Idealista, quer modernizar sua cidade natal, San Diego.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "María Clara",
+      "texto": "Noiva de Ibarra desde a infância. Delicada, religiosa e muito admirada, vive sob a autoridade do pai e dos padres.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Capitán Tiago",
+      "texto": "Pai de María Clara. Comerciante rico de Manila, faz de tudo para agradar às autoridades e à Igreja.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Padre Dámaso",
+      "texto": "Frade franciscano, antigo pároco de San Diego. Arrogante e grosseiro, despreza os filipinos e logo entra em choque com Ibarra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Padre Salví",
+      "texto": "Frade franciscano, atual pároco de San Diego. Magro e silencioso, mais discreto que Dámaso, mas também perigoso.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Sisa",
+      "texto": "Mãe pobre de dois meninos, Basilio e Crispín. Ama os filhos e sofre com um marido violento e ausente.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Basilio e Crispín",
+      "texto": "Irmãos ainda crianças que trabalham como sacristães na igreja de San Diego, tocando os sinos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Filósofo Tasio",
+      "texto": "Velho sábio da cidade que o povo considera louco. Escreve para o futuro, convencido de que seu tempo não o entende.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Doña Victorina",
+      "texto": "Filipina que se pinta e se veste como europeia e despreza os filipinos. Personagem cômica e satírica.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O título vem do latim e significa não me toques. São palavras de Jesus a Maria Madalena após a ressurreição, no Evangelho de João (20,17).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Rizal dedicou o livro à sua pátria. Na dedicatória, compara os males do país a um câncer social que precisava ser exposto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Rizal começou a escrever em Madri, continuou em Paris e terminou em Berlim.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O amigo filipino Máximo Viola pagou a impressão da primeira edição, de 2.000 exemplares.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Rizal se inspirou em A cabana do Pai Tomás, de Harriet Beecher Stowe, romance que denunciou a escravidão nos Estados Unidos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro foi proibido pelas autoridades espanholas nas Filipinas. Mesmo assim, exemplares circularam escondidos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Rizal escreveu em espanhol, embora sua língua materna fosse o tagalo. Assim, podia ser lido também na Espanha e pela elite filipina.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Um capítulo chamado Elías y Salomé foi retirado antes da publicação. Hoje aparece em algumas edições como apêndice.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A cidade de San Diego, onde se passa quase toda a história, é fictícia. Muitos leitores veem nela traços de Calamba, a cidade de Rizal.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Rizal também era poeta, pintor e escultor, e falava muitos idiomas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Antes de ser fuzilado, Rizal escreveu o poema conhecido como Mi último adiós, uma despedida de sua pátria.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O dia 30 de dezembro, data da morte de Rizal, é feriado nacional nas Filipinas: o Dia de Rizal.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "indio",
+      "texto": "Na colônia, nome dado aos filipinos nativos. Era usado de forma depreciativa pelos espanhóis. Hoje é ofensivo nesse sentido.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "termo": "peninsular",
+      "texto": "Espanhol nascido na Península Ibérica. Ocupava o topo da hierarquia social da colônia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "criollo",
+      "texto": "Pessoa de família espanhola, mas nascida na colônia. Tinha menos prestígio que o peninsular.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "mestizo",
+      "texto": "Pessoa de origem mista, por exemplo espanhola ou chinesa com filipina.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "filibustero",
+      "texto": "Na época, nas Filipinas, rótulo para quem era suspeito de conspirar contra a Espanha. Acusação perigosa, quase como traidor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "fraile",
+      "texto": "Frade, membro de uma ordem religiosa. No livro, os frades são também párocos e autoridades locais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "convento",
+      "texto": "Nas Filipinas, além de convento, designava a casa paroquial onde morava o frade da cidade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "alférez",
+      "texto": "Posto militar de oficial. No livro, o alférez é quem comanda a Guarda Civil na cidade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Guardia Civil",
+      "texto": "Força policial militar espanhola, também usada na colônia. No livro, é temida pela população.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "gobernadorcillo",
+      "texto": "Literalmente pequeno governador. Era o chefe filipino de uma cidade, com pouco poder real diante do frade e dos militares.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "capitán",
+      "texto": "Título honorífico usado por quem já tinha sido gobernadorcillo. Por isso o pai de María Clara é chamado Capitán Tiago.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "sacristán",
+      "texto": "Ajudante da igreja que cuida dos objetos do culto e, no livro, também toca os sinos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "onza",
+      "texto": "Moeda de ouro espanhola de alto valor. Para uma família pobre, uma onza era uma fortuna.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "A sociedade colonial era rigidamente dividida: espanhóis peninsulares no topo, depois criollos, mestiços e, por último, os nativos filipinos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O frade era muitas vezes o único espanhol da cidade. Por isso concentrava poder religioso, político e até a fiscalização das escolas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Poucos filipinos falavam espanhol. A língua era sinal de status e de acesso à educação, coisa de uma pequena elite.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Estudar na Europa era privilégio de famílias ricas. Quem voltava trazia ideias liberais, vistas com desconfiança pelas autoridades.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As festas do santo padroeiro eram o grande evento das cidades: missas, procissões, música, teatro e jogos que duravam dias.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ser enterrado no cemitério católico dependia da aprovação da Igreja. Negar sepultura era uma forma de punição e humilhação.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "¿Por qué habrá elegido Rizal un título en latín, tomado del Evangelio, para un libro tan crítico con la Iglesia colonial?",
+      "texto": "Por que Rizal teria escolhido um título em latim, tirado do Evangelho, para um livro tão crítico à Igreja da colônia?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Ibarra quiere mejorar el país con educación, sin enfrentamiento. ¿Crees que esa estrategia funciona en un sistema injusto?",
+      "texto": "Ibarra quer melhorar o país com educação, sem confronto. Você acha que essa estratégia funciona num sistema injusto?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo ven Ibarra y Elías los problemas del país de maneras distintas? ¿Con cuál estás más de acuerdo?",
+      "texto": "Como Ibarra e Elías veem os problemas do país de jeitos diferentes? Com qual deles você concorda mais?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Rizal usa el humor para criticar a personajes como Doña Victorina. ¿Por qué la sátira puede ser un arma política?",
+      "texto": "Rizal usa humor para criticar personagens como Doña Victorina. Por que a sátira pode ser uma arma política?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "La historia de Sisa y sus hijos muestra lo que les pasa a los más pobres. ¿Qué revela sobre la justicia en la colonia?",
+      "texto": "A história de Sisa e seus filhos mostra o que acontece com os mais pobres. O que ela revela sobre a justiça na colônia?",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "¿Por qué una novela puede asustar tanto a un gobierno como para ser prohibida?",
+      "texto": "Por que um romance pode assustar tanto um governo a ponto de ser proibido?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Rizal escribió en español, la lengua del colonizador. ¿Qué ventajas y qué problemas tiene esa elección?",
+      "texto": "Rizal escreveu em espanhol, a língua do colonizador. Quais as vantagens e os problemas dessa escolha?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué dice el final del libro sobre la posibilidad de cambio en las Filipinas de aquella época?",
+      "texto": "O que o final do livro diz sobre a possibilidade de mudança nas Filipinas daquela época?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-30903",
+      "motivo": "A continuação direta do romance, escrita por Rizal, mais sombria e política."
+    },
+    {
+      "id": "pg-18600",
+      "motivo": "O poema de despedida que Rizal escreveu antes de ser fuzilado."
+    },
+    {
+      "id": "pg-28281",
+      "motivo": "Romance do século XIX sobre a Cuba colonial espanhola, com racismo e hierarquia social no centro."
+    },
+    {
+      "id": "pg-31971",
+      "motivo": "Romance da mesma época que critica o poder e a hipocrisia do clero numa cidade do interior."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "14",
+    "nota": "abusos dos frades na Filipinas colonial, morte e profanação de corpo, loucura de uma mãe, filho bastardo de padre. Sensível: violência colonial e racismo contra filipinos (\"indios\") no centro do livro",
+    "sensivel": "violência colonial e racismo contra filipinos (\"indios\") no centro do livro"
+  }
+}

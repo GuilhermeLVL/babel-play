@@ -1,0 +1,384 @@
+{
+  "versao": 1,
+  "livroId": "pg-28002",
+  "titulo": "Electra",
+  "idioma": "es",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 1
+  },
+  "autorEContexto": [
+    {
+      "texto": "Benito Pérez Galdós nasceu em Las Palmas de Gran Canaria, em 1843, e morreu em Madri, em 1920.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele é considerado o maior romancista do realismo espanhol do século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Sua obra mais extensa são os Episodios Nacionales, uma série de romances sobre a história da Espanha no século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Além de romances, Galdós escreveu peças de teatro e adaptou para o palco algumas de suas próprias narrativas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Electra estreou em Madri, no Teatro Español, em 1901.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Espanha vivia a crise após a derrota de 1898, quando perdeu Cuba, Porto Rico e as Filipinas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época havia um debate intenso sobre o poder da Igreja Católica na educação, na família e na política espanhola.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Galdós tinha posições liberais e depois se aproximou do republicanismo, chegando a ser eleito deputado.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "Foi um dos maiores acontecimentos teatrais da Espanha de seu tempo: a estreia virou manifestação política.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A peça colocou no centro do palco a disputa entre liberdade individual e controle religioso sobre a vida das mulheres.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra o lado de dramaturgo de Galdós, menos conhecido que o de romancista.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ajuda a entender o clima de ideias da Espanha por volta de 1900, entre tradição e desejo de modernização.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Liberdade de escolha",
+      "texto": "Quem decide o futuro de uma jovem: ela mesma, a família ou a religião?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Fanatismo religioso",
+      "texto": "A peça critica quem usa a fé para controlar a vida dos outros, não a fé em si.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ciência e progresso",
+      "texto": "O mundo do laboratório e da técnica aparece como símbolo de futuro e de razão.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Manipulação e culpa",
+      "texto": "Segredos do passado e o sentimento de culpa são usados como armas para dominar alguém.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Juventude e alegria",
+      "texto": "A vivacidade da protagonista contrasta com o ambiente rígido e sombrio que querem impor a ela.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Electra",
+      "texto": "Moça jovem, alegre e travessa, que vive na casa de parentes ricos em Madri. Seu passado familiar é cercado de mistério.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Pantoja",
+      "texto": "Homem austero e muito devoto, com grande influência na casa. Quer guiar Electra para uma vida religiosa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Máximo",
+      "texto": "Cientista e engenheiro, viúvo, dedicado ao trabalho no laboratório. Representa o espírito moderno.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Evarista",
+      "texto": "Senhora rica e muito religiosa, dona da casa onde Electra vive. Confia em Pantoja.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Urbano",
+      "texto": "Marido de Evarista, homem de boa posição e pouca firmeza diante das decisões da casa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Marquês de Ronda",
+      "texto": "Amigo da família, homem do mundo, que observa os conflitos da casa com olhar mais leve.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Pantoja e o segredo",
+      "texto": "Pantoja insinua a Electra que ela e Máximo seriam irmãos, para afastá-la dele e levá-la ao convento.",
+      "spoiler": true,
+      "sensivel": true
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "A estreia, em 1901, terminou com o público gritando palavras de ordem na rua. A peça virou bandeira dos liberais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A peça coincidiu com o caso Ubao, um processo judicial sobre uma jovem que entrou num convento contra a vontade da família.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O processo do caso Ubao chegou ao Tribunal Supremo em 1901 e foi acompanhado por toda a imprensa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Jovens escritores da época, que depois seriam ligados à chamada Geração de 98, apoiaram publicamente a peça.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O nome Electra lembra a heroína da tragédia grega, mas também a eletricidade, ligada ao mundo da ciência de Máximo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A peça foi encenada e traduzida fora da Espanha logo após a estreia, inclusive na América Latina e em outros países da Europa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Electra é uma peça em cinco atos, escrita em prosa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Galdós foi indicado várias vezes ao Prêmio Nobel de Literatura, mas nunca recebeu o prêmio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Galdós entrou na Real Academia Española em 1897.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No fim da vida, Galdós ficou cego e continuou trabalhando ditando seus textos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No desfecho, um elemento sobrenatural ajuda a desfazer a mentira sobre o parentesco de Electra.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "convento",
+      "texto": "Casa onde vivem freiras ou frades. Na peça, é o destino que querem dar a Electra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "monja",
+      "texto": "Freira. Mulher que faz votos religiosos e vive num convento.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "novicia",
+      "texto": "Noviça: moça que está no período de preparação antes de se tornar freira.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "profesar",
+      "texto": "Aqui, fazer os votos religiosos e entrar oficialmente numa ordem. Não é só ensinar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "beata",
+      "texto": "Mulher muito devota, que vive na igreja. Muitas vezes tem tom de crítica: carola.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "clerical",
+      "texto": "Ligado ao clero ou a quem defende o poder da Igreja na sociedade. Na época era termo de briga política.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "librepensador",
+      "texto": "Livre-pensador: quem rejeita a autoridade religiosa e defende a razão. Palavra comum nos debates de 1900.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "dote",
+      "texto": "Bens ou dinheiro que a família dava ao casar uma filha ou ao entregá-la a um convento.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "marqués",
+      "texto": "Marquês, título de nobreza. Era comum aparecer antes do nome de lugar: marqués de Ronda.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "don / doña",
+      "texto": "Tratamento de respeito antes do primeiro nome, como em don Urbano. Não é título de nobreza.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "usted",
+      "texto": "Forma de tratamento formal (o senhor, a senhora). O uso de tú ou usted mostra a relação entre as personagens.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "travieso",
+      "texto": "Travesso, brincalhão. Não tem sentido negativo forte.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Por volta de 1900, era comum que famílias ricas pressionassem filhas a entrar no convento, por motivos religiosos ou de herança.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As ordens religiosas tinham grande peso na educação e na vida social da Espanha. Limitar esse poder era uma bandeira dos liberais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A ciência e a eletricidade eram vistas como símbolos de modernidade numa Espanha que se sentia atrasada depois de 1898.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Uma moça menor de idade dependia legalmente da família ou de um tutor para decidir sobre a própria vida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O teatro era um grande espaço de debate público. Uma estreia podia mobilizar a imprensa e as ruas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "¿Tiene Electra derecho a elegir su propio camino? ¿Qué se lo impide?",
+      "texto": "Electra tem direito de escolher o próprio caminho? O que a impede?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cree Pantoja que hace el bien? ¿Hace eso más aceptables sus acciones?",
+      "texto": "Pantoja acredita que faz o bem? Isso torna suas ações mais aceitáveis?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué representa el laboratorio de Máximo en la obra?",
+      "texto": "O que o laboratório de Máximo representa na peça?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿La obra critica la religión o el uso de la religión para controlar a las personas? Explica.",
+      "texto": "A peça critica a religião ou o uso da religião para controlar pessoas? Explique.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Por qué una obra de teatro provocó manifestaciones en las calles en 1901?",
+      "texto": "Por que uma peça de teatro provocou manifestações nas ruas em 1901?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo cambia la mentira sobre el parentesco las decisiones de Electra?",
+      "texto": "Como a mentira sobre o parentesco muda as decisões de Electra?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué te pareció que el final use un elemento sobrenatural? ¿Encaja con el resto de la obra?",
+      "texto": "O que você achou de o final usar um elemento sobrenatural? Combina com o resto da peça?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué situaciones de hoy recuerdan la presión que sufre Electra?",
+      "texto": "Que situações de hoje lembram a pressão que Electra sofre?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-17340",
+      "motivo": "Do mesmo autor, também opõe ciência e sentimento numa história de juventude."
+    },
+    {
+      "id": "pg-17013",
+      "motivo": "A obra-prima de Galdós, com retrato amplo da sociedade madrilenha."
+    },
+    {
+      "id": "pg-17073",
+      "motivo": "Romance da mesma época sobre a influência do clero na vida de uma mulher."
+    },
+    {
+      "id": "pg-50027",
+      "motivo": "Teatro espanhol sobre uma moça cujo destino os mais velhos querem decidir."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "drama anticlerical: uma moça pressionada a entrar no convento e a falsa suspeita de incesto",
+    "sensivel": ""
+  }
+}

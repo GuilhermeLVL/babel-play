@@ -1,0 +1,354 @@
+{
+  "versao": 1,
+  "livroId": "pg-52894",
+  "titulo": "Azul...",
+  "idioma": "es",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 6
+  },
+  "autorEContexto": [
+    {
+      "texto": "Rubén Darío é o pseudônimo de Félix Rubén García Sarmiento, nascido em 1867 na Nicarágua.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele morreu em 1916, em León, na Nicarágua, já famoso em toda a América Latina e na Espanha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Darío morou no Chile entre 1886 e 1889. Lá trabalhou como jornalista e escreveu os textos de Azul...",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A primeira edição de Azul... saiu em 1888, em Valparaíso, o grande porto chileno da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Uma segunda edição, ampliada com novos textos, foi publicada na Guatemala em 1890.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Darío lia com paixão os poetas franceses de seu tempo, sobretudo os parnasianos e os simbolistas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O escritor espanhol Juan Valera elogiou o livro em cartas publicadas na imprensa de Madri, o que deu fama a Darío na Espanha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Darío se tornou o principal nome do modernismo hispano-americano, movimento que renovou a poesia e a prosa em espanhol.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "Azul... é considerado o marco inicial do modernismo hispano-americano.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro mostrou uma prosa musical, cheia de cor e de imagens, muito diferente do espanhol literário da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Pela primeira vez, um autor da América Latina passou a influenciar a literatura da Espanha, e não o contrário.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os contos discutem uma questão ainda atual: qual o lugar do artista numa sociedade que só valoriza o dinheiro?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "O artista contra a sociedade materialista",
+      "texto": "Vários contos opõem o poeta ou o artista a ricos e burgueses que não entendem a arte.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Arte e beleza",
+      "texto": "A busca do belo, do sonho e do ideal aparece em quase todos os textos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Dinheiro e pobreza",
+      "texto": "O ouro, o luxo e a miséria aparecem lado a lado. Há crítica social clara.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mitologia e fantasia",
+      "texto": "Ninfas, sátiros, gnomos e fadas convivem com cenas da vida moderna.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Natureza e estações do ano",
+      "texto": "A parte em verso acompanha as quatro estações e liga a natureza ao amor e ao desejo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amor e desejo",
+      "texto": "O erotismo aparece de forma sugerida, em imagens delicadas e simbólicas, sem descrições explícitas.",
+      "spoiler": false,
+      "sensivel": true
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "O rei burguês",
+      "texto": "Rei rico e vaidoso de \"El rey burgués\". Enche o palácio de luxo, mas não entende de arte.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "O poeta",
+      "texto": "Poeta pobre que chega à corte do rei burguês e pede para ser ouvido.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Tio Lucas",
+      "texto": "Velho trabalhador do porto em \"El fardo\". Conta sua vida dura de carregador de cargas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Garcín",
+      "texto": "Jovem poeta boêmio em Paris, no conto \"El pájaro azul\". Diz ter um pássaro azul dentro da cabeça.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "A rainha Mab",
+      "texto": "Fada minúscula de \"El velo de la reina Mab\". Visita quatro artistas pobres e insatisfeitos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "O gnomo",
+      "texto": "Criatura subterrânea de \"El rubí\". Fica indignado ao ver um rubi feito em laboratório.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O livro mistura contos em prosa e poemas. A prosa ocupa a maior parte.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O título é um símbolo: o azul representa o sonho, o ideal e a arte.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A primeira edição teve prólogo do escritor chileno Eduardo de la Barra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "\"El fardo\" se passa no porto de Valparaíso e é o conto mais realista do livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "\"El rubí\" se inspira em um fato real da época: a fabricação de rubis artificiais por químicos franceses.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A rainha Mab vem da tradição inglesa de fadas e aparece também em Romeu e Julieta, de Shakespeare.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitos contos foram publicados antes em jornais chilenos, antes de virarem livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em \"El rey burgués\", o destino do poeta é uma crítica amarga à indiferença dos ricos diante da arte.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "\"El pájaro azul\" termina de forma trágica, com a morte do jovem poeta. O tema do suicídio é tratado com sobriedade.",
+      "spoiler": true,
+      "sensivel": true
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "azul",
+      "texto": "Além da cor, no livro simboliza o céu, o sonho e o ideal artístico.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "burgués",
+      "texto": "Aqui não é só ‘de classe média’: é a pessoa rica e materialista que despreza a arte.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "fardo",
+      "texto": "Fardo, grande pacote de mercadoria amarrado, carregado nos portos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "lanchero",
+      "texto": "Trabalhador das lanchas que levavam carga entre os navios e o cais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "organillo",
+      "texto": "Realejo: pequeno órgão portátil que toca música ao girar uma manivela.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "manubrio",
+      "texto": "Manivela. Peça que se gira com a mão para fazer funcionar um mecanismo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ninfa",
+      "texto": "Na mitologia grega, divindade feminina dos bosques, rios e fontes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "sátiro",
+      "texto": "Ser mitológico metade homem, metade bode, ligado à natureza e ao desejo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "gnomo",
+      "texto": "Pequeno ser fantástico que vive debaixo da terra e guarda pedras preciosas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "rubí",
+      "texto": "Rubi, pedra preciosa vermelha. No conto, ganha sentido mágico e simbólico.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Nos anos 1880, Valparaíso era um dos portos mais movimentados do Pacífico, com muito comércio e muita pobreza.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Paris era a capital cultural do mundo para os escritores latino-americanos. Daí tantas cenas e nomes franceses.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O parnasianismo francês buscava a forma perfeita e a beleza pura. O simbolismo valorizava sugestão e musicalidade. Darío misturou os dois.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A ‘boemia’ era um estilo de vida de artistas jovens e pobres no século XIX, ligado a cafés, noites e rebeldia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A ciência estava em alta no fim do século XIX. Alguns contos põem a fantasia em choque com o progresso científico.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "¿Por qué crees que el autor eligió el azul como título? ¿Qué ideas despierta en ti ese color?",
+      "texto": "Por que você acha que o autor escolheu o azul como título? Que ideias essa cor desperta em você?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo trata el rey burgués al arte? ¿Existen ‘reyes burgueses’ hoy?",
+      "texto": "Como o rei burguês trata a arte? Existem ‘reis burgueses’ hoje?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "\"El fardo\" es distinto de los otros cuentos. ¿Qué cambia en el estilo y en el tema?",
+      "texto": "\"El fardo\" é diferente dos outros contos. O que muda no estilo e no assunto?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "En \"El velo de la reina Mab\", cada artista se queja de algo. ¿Qué queja te parece más actual?",
+      "texto": "Em \"El velo de la reina Mab\", cada artista reclama de algo. Qual queixa parece mais atual?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué puede representar el pájaro azul de Garcín?",
+      "texto": "O que o pássaro azul de Garcín pode representar?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Por qué Darío mezcla dioses y hadas con escenas modernas, como laboratorios y cafés?",
+      "texto": "Por que Darío mistura deuses e fadas com cenas modernas, como laboratórios e cafés?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Lee un fragmento en voz alta. ¿Qué palabras o sonidos hacen que la prosa sea musical?",
+      "texto": "Leia um trecho em voz alta. Que palavras ou sons tornam a prosa musical?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "En el libro el dinero aparece como enemigo del arte. ¿Estás de acuerdo con esa visión?",
+      "texto": "O dinheiro aparece como inimigo da arte no livro. Você concorda com essa visão?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-51569",
+      "motivo": "Poesia madura de Darío, para continuar com o mesmo autor."
+    },
+    {
+      "id": "pg-19898",
+      "motivo": "José Martí, precursor do modernismo, escrevendo para jovens leitores."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "contos e poemas modernistas com erotismo sugerido e crítica social",
+    "sensivel": ""
+  }
+}

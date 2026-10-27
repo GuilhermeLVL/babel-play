@@ -1,0 +1,390 @@
+{
+  "versao": 1,
+  "livroId": "ws-pt-a-escrava-isaura",
+  "titulo": "A escrava Isaura",
+  "idioma": "pt",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "Bernardo Guimarães nasceu em 1825 em Ouro Preto, Minas Gerais, e morreu na mesma cidade em 1884.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Estudou Direito em São Paulo, onde foi amigo do poeta Álvares de Azevedo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Foi juiz em Catalão, Goiás, e também trabalhou como professor e jornalista.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Escreveu poesia e romances. Entre os romances estão O Seminarista e O Garimpeiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É patrono da cadeira nº 5 da Academia Brasileira de Letras.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A escrava Isaura saiu em 1875, quando a escravidão ainda era legal no Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época, o abolicionismo ganhava força. A Lei do Ventre Livre, de 1871, declarou livres os filhos de escravas nascidos a partir dali.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A escravidão só acabou no Brasil em 1888, com a Lei Áurea, treze anos depois do livro.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É um dos romances brasileiros mais conhecidos sobre a escravidão, escrito em plena campanha abolicionista.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra que uma pessoa escravizada não tinha direito sobre o próprio corpo, nem sobre a própria vida.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Ajuda a entender o Romantismo brasileiro: heroína virtuosa, vilão cruel, amor idealizado e muita aventura.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Também é bom para discutir o racismo da época. O livro critica a escravidão, mas pede compaixão pela heroína sobretudo porque ela parece branca.",
+      "spoiler": false,
+      "sensivel": true
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Escravidão",
+      "texto": "A escravidão como sistema legal que transforma pessoas em propriedade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Liberdade",
+      "texto": "A busca da liberdade e o preço que ela tem numa sociedade escravista.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Abuso de poder",
+      "texto": "O senhor usa seu poder legal para perseguir e pressionar a escrava. O livro mostra isso sem cenas explícitas.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Cor e racismo",
+      "texto": "A hierarquia de cor da época aparece no texto. A heroína é elogiada pela pele clara, e isso revela o preconceito do próprio narrador.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Virtude e amor romântico",
+      "texto": "A pureza moral da heroína e o amor idealizado, típicos do Romantismo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Abolicionismo",
+      "texto": "Ideias contra a escravidão aparecem em personagens e nas falas do narrador.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Isaura",
+      "texto": "Jovem escravizada, filha de mãe escrava. Foi criada e educada pela senhora da fazenda: sabe ler, toca piano e fala outras línguas. Tem a pele clara.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Leôncio",
+      "texto": "Filho do comendador e herdeiro da fazenda. Rico, mimado e sem escrúpulos, deseja Isaura e a persegue.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Malvina",
+      "texto": "Esposa de Leôncio. Moça bondosa, trata Isaura com carinho.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Miguel",
+      "texto": "Pai de Isaura, um homem livre de origem portuguesa que trabalhou como feitor. Sonha comprar a liberdade da filha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Henrique",
+      "texto": "Irmão de Malvina, jovem visitante da fazenda.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Rosa",
+      "texto": "Escrava da fazenda que tem ciúme de Isaura.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Belchior",
+      "texto": "Jardineiro da fazenda, homem simples e de aparência disforme.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Álvaro",
+      "texto": "Jovem rico e de ideias abolicionistas que Isaura conhece no Recife. Ele se apaixona por ela.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Martinho",
+      "texto": "Estudante ambicioso que tenta lucrar com a recompensa por uma escrava fugida.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "A história se passa nos primeiros anos do reinado de D. Pedro II.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O começo se passa numa fazenda em Campos dos Goytacazes, na província do Rio de Janeiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Parte do romance se passa no Recife, em Pernambuco.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "No Recife, Isaura vive sob outro nome, Elvira, para não ser reconhecida.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1976, a Rede Globo exibiu uma telenovela baseada no livro, com Lucélia Santos no papel de Isaura.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Essa novela foi exportada para dezenas de países e virou um dos maiores sucessos da TV brasileira no exterior.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 2004, a Rede Record fez uma nova versão em novela, com Bianca Rinaldi como Isaura.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O nome Isaura ficou tão ligado ao livro que, para muita gente, lembra logo a novela.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitos críticos apontam uma contradição. O livro ataca a escravidão, mas escolhe uma heroína de aparência branca para comover os leitores brancos da época.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "No final, o vilão perde tudo e tira a própria vida. Isaura fica livre e se casa com Álvaro.",
+      "spoiler": true,
+      "sensivel": true
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "senzala",
+      "texto": "Alojamento onde as pessoas escravizadas eram obrigadas a morar nas fazendas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "feitor",
+      "texto": "Homem que vigiava e comandava o trabalho dos escravizados, muitas vezes com violência.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "comendador",
+      "texto": "Título honorífico dado pelo Império a homens ricos ou importantes, membros de uma ordem honorífica.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "alforria",
+      "texto": "Libertação de uma pessoa escravizada. O documento era a carta de alforria.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "conto de réis",
+      "texto": "Mil mil-réis, uma quantia grande de dinheiro. O real (plural réis) era a moeda da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "fazenda",
+      "texto": "Grande propriedade rural. No livro, produz com trabalho escravo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "senhor",
+      "texto": "Além de forma educada de tratamento, era o nome do dono de escravos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "mulata",
+      "texto": "Termo de época para pessoa de origem africana e europeia. Hoje é considerado ofensivo por muitos.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "termo": "escrava",
+      "texto": "Palavra do título e da época. Hoje se prefere 'escravizada', que mostra que a condição foi imposta.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "sarau",
+      "texto": "Reunião social à noite, com música, dança ou leitura, comum nas casas ricas do século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Pela lei do Império, a pessoa escravizada era propriedade. Podia ser vendida, herdada ou dada como garantia de dívida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Filhos de mãe escrava nasciam escravos. Isso só mudou com a Lei do Ventre Livre, de 1871, posterior à época da história.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O tráfico de africanos para o Brasil foi proibido em 1850 pela Lei Eusébio de Queirós, mas a escravidão continuou.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Jornais publicavam anúncios de escravos fugidos, com descrição física e recompensa para quem os capturasse.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A liberdade podia ser comprada, mas só se o senhor aceitasse o preço. Muitas vezes ele pedia um valor impossível.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A sociedade da época classificava as pessoas pela cor da pele. Quanto mais clara, mais prestígio. O livro reflete esse preconceito.",
+      "spoiler": false,
+      "sensivel": true
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Isaura é educada como uma moça rica, mas continua escravizada. O que isso mostra sobre a escravidão?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que o autor terá escolhido uma heroína de pele clara? Que efeito isso tinha nos leitores de 1875, e que problema isso cria hoje?",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Que poder a lei dava a Leôncio sobre Isaura? Como o livro mostra esse poder?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Os personagens negros que não são a heroína recebem a mesma atenção do narrador? Dê exemplos.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Como o Romantismo aparece no livro: personagens só bons ou só maus, amor ideal, aventura?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Malvina é boa com Isaura. Bondade individual basta diante de um sistema injusto?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O desfecho depende da ajuda de um homem rico. O que isso diz sobre os caminhos para a liberdade na época?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que o livro, e depois a novela, fizeram tanto sucesso? O que eles ensinam e o que deixam de fora sobre a escravidão?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "ws-pt-o-seminarista",
+      "motivo": "Outro romance de Bernardo Guimarães, também com um amor impedido pelas regras da sociedade."
+    },
+    {
+      "id": "pg-28281",
+      "motivo": "Romance cubano do século XIX sobre escravidão e preconceito de cor, com heroína mestiça."
+    },
+    {
+      "id": "pg-23",
+      "motivo": "Relato real de um homem que foi escravizado e conquistou a liberdade. Contraponto à ficção."
+    },
+    {
+      "id": "ws-pt-o-guarani",
+      "motivo": "Clássico do Romantismo brasileiro, da mesma época, com heroísmo e amor idealizado."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "escravidão: perseguição e assédio do senhor à escrava, castigos, sem cena explícita. Sensível: escravidão como tema central; a heroína é valorizada por ser \"branca\"; termos de época",
+    "sensivel": "escravidão como tema central; a heroína é valorizada por ser \"branca\"; termos de época"
+  }
+}

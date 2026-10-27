@@ -1,0 +1,419 @@
+{
+  "versao": 1,
+  "livroId": "se-leo-tolstoy-war-and-peace-louise-maude-aylmer-maude",
+  "titulo": "War and Peace",
+  "idioma": "en",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 1
+  },
+  "autorEContexto": [
+    {
+      "texto": "Liev Tolstói nasceu em 1828, na propriedade de Iásnaia Poliana, na Rússia, numa família da alta nobreza.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Jovem, serviu no exército russo e lutou na Guerra da Crimeia, em Sebastopol. Essa experiência marcou seu modo de escrever sobre a guerra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Tolstói escreveu Guerra e Paz na década de 1860, em Iásnaia Poliana. O livro saiu primeiro em partes numa revista, a partir de 1865, e foi publicado completo em 1869.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A história se passa entre 1805 e 1812, nas guerras da Rússia contra a França de Napoleão, e o epílogo avança alguns anos além disso.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Sua esposa, Sófia Tolstáia, copiava à mão os rascunhos do marido, cheios de correções, para que ele pudesse continuar revisando.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Depois de Guerra e Paz, Tolstói escreveu Anna Kariênina e, mais tarde, passou por uma crise espiritual. Tornou-se um pensador cristão pacifista, muito lido no mundo todo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A tradução desta edição é de Louise e Aylmer Maude, um casal inglês que viveu na Rússia e conheceu Tolstói pessoalmente. Aylmer Maude também escreveu uma biografia do autor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Tolstói morreu em 1910, aos 82 anos, numa pequena estação de trem em Astapovo, depois de sair de casa em segredo.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É considerado um dos maiores romances já escritos. Mistura a vida íntima de algumas famílias com grandes acontecimentos históricos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra a guerra de um jeito novo para a época: confusa, sem glória e vista também pelos olhos de soldados comuns.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Tolstói discute no próprio livro quem faz a história: os grandes líderes, como Napoleão, ou a soma das ações de milhões de pessoas comuns.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Seus personagens mudam, erram e amadurecem ao longo dos anos. Por isso o livro é muito estudado como retrato do crescimento humano.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Guerra e sociedade",
+      "texto": "O livro alterna salões de festa e campos de batalha. Mostra como a guerra entra na vida de todos, mesmo longe da frente.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "O sentido da vida",
+      "texto": "Vários personagens procuram uma razão para viver: na religião, no amor, na família, na política ou no serviço ao país.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "História e livre-arbítrio",
+      "texto": "Tolstói pergunta se as pessoas escolhem seu destino ou se são levadas por forças maiores que elas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Família",
+      "texto": "As famílias Rostov, Bolkónski e Kuráguin têm jeitos muito diferentes de viver, amar e educar os filhos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Aparência e verdade",
+      "texto": "A alta sociedade valoriza dinheiro, títulos e boas maneiras. O livro contrasta essa falsidade com sentimentos simples e sinceros.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amor e casamento",
+      "texto": "Há muitos namoros, noivados e casamentos, alguns felizes e outros por interesse. O livro mostra como as escolhas amorosas mudam vidas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Pierre Bezúkhov",
+      "texto": "Jovem desajeitado, de óculos, filho ilegítimo de um conde muito rico. Acabou de voltar do estrangeiro, cheio de ideias e sem saber o que fazer da vida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Príncipe Andrei Bolkónski",
+      "texto": "Amigo de Pierre, inteligente e orgulhoso. Está entediado com a vida social e com o casamento, e quer partir para a guerra em busca de glória.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Nikolai Rostov",
+      "texto": "Irmão de Natacha. Jovem impulsivo e entusiasmado, entra para a cavalaria como hussardo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Princesa Mária Bolkónskaia",
+      "texto": "Irmã de Andrei. Muito religiosa e bondosa, vive no campo com o pai severo e se acha feia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Velho príncipe Bolkónski",
+      "texto": "Pai de Andrei e Mária. General aposentado, exigente e de temperamento difícil, que cuida da educação da filha com rigor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Sônia",
+      "texto": "Prima pobre que é criada pelos Rostov. É apaixonada por Nikolai.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Hélène e Anatole Kuráguin",
+      "texto": "Irmãos bonitos e mimados, filhos do príncipe Vassíli. Ela brilha nos salões; ele vive de festas e dívidas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Dólokhov",
+      "texto": "Oficial ousado, jogador e brigão, conhecido por suas apostas perigosas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Kutúzov",
+      "texto": "Personagem histórico real: o velho general que comanda o exército russo. Tolstói o mostra como alguém paciente, que confia mais no tempo do que em planos.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O livro começa numa festa em São Petersburgo, em julho de 1805. As primeiras falas, no original russo, estão em francês.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As primeiras partes saíram com o título 1805. O título Guerra e Paz só apareceu depois.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Tolstói dizia que o livro não era um romance. Ele escreveu um ensaio para explicar que a obra não cabia em nenhum gênero conhecido.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No meio da história, Tolstói faz pausas para escrever capítulos de ensaio sobre história e guerra. O segundo epílogo é quase todo um texto filosófico.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Aparecem pessoas reais, como Napoleão, o czar Alexandre I, o general Kutúzov e o general Bagration, ao lado dos personagens inventados.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Tolstói se inspirou na própria família. Os Rostov lembram a família do pai dele, e o velho Bolkónski lembra seu avô materno, o príncipe Volkónski.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Batalhas reais são descritas no livro, como Austerlitz, em 1805, e Borodinó, em 1812, uma das mais sangrentas da época.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Em 1812, Napoleão chega a Moscou, e a cidade é tomada por um grande incêndio. Isso é história real e também parte do livro.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Tolstói tinha inicialmente a ideia de escrever sobre um dezembrista, participante de uma revolta de 1825, e acabou voltando no tempo até as guerras napoleônicas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O compositor Serguei Prokófiev transformou o livro numa ópera chamada Guerra e Paz.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A versão soviética para o cinema, dirigida por Serguei Bondartchuk, ganhou o Oscar de melhor filme estrangeiro.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "Count / Countess",
+      "texto": "Conde / condessa. Título de nobreza. Os Rostov e os Bezúkhov são famílias de condes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Prince / Princess",
+      "texto": "Traduz o russo knyaz: um título de família nobre antiga, não filho de rei. Por isso há muitos príncipes e princesas no livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "serf",
+      "texto": "Servo: camponês preso à terra de um senhor, que podia ser vendido junto com a propriedade. A riqueza dos nobres era contada em servos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "estate",
+      "texto": "Propriedade rural de um nobre, com terras, casa principal e aldeias de servos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "steward",
+      "texto": "Administrador que cuida das terras e do dinheiro de uma propriedade em nome do dono.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ruble",
+      "texto": "Rublo, a moeda da Rússia. Aparece em dívidas, heranças e apostas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "verst",
+      "texto": "Versta: antiga medida russa de distância, um pouco mais de um quilômetro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "hussar",
+      "texto": "Hussardo: soldado da cavalaria leve, com uniforme vistoso. Tinha fama de corajoso e farrista.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Cossack",
+      "texto": "Cossaco: povo de cavaleiros guerreiros das estepes, que servia no exército russo como cavalaria.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "adjutant",
+      "texto": "Ajudante de ordens: oficial que acompanha um general e leva suas mensagens e ordens.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "militia",
+      "texto": "Milícia: tropa formada às pressas com civis, como camponeses, para ajudar o exército regular.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Your Excellency",
+      "texto": "Vossa Excelência: forma de tratamento para pessoas de alto posto, como generais e altos funcionários.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "drawing room",
+      "texto": "Sala de visitas de uma casa elegante, onde se recebiam convidados. Não tem a ver com desenhar: vem de withdrawing room.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Freemason",
+      "texto": "Maçom: membro da maçonaria, sociedade secreta de ajuda mútua e reflexão moral, popular entre nobres da época.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "A nobreza russa falava francês no dia a dia, até em família. No original há muito francês; nesta tradução, quase tudo foi passado para o inglês.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os russos têm nome, patronímico (nome do pai) e sobrenome, como Andrei Nikoláievitch Bolkónski. Usar nome e patronímico é sinal de respeito.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os apelidos carinhosos mudam muito o nome: Natacha vem de Natália, Pétia de Piotr, Nikólenka de Nikolai. É a mesma pessoa com nomes diferentes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O sobrenome muda conforme o gênero: Rostov para homens, Rostova para mulheres; Bolkónski e Bolkónskaia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A servidão só foi abolida na Rússia em 1861. Na época do livro, os camponeses pertenciam aos donos das terras.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Rússia usava o calendário juliano, que estava 12 dias atrás do calendário usado na França. Por isso as datas podem variar entre fontes.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "Why do you think the book begins at a high-society party rather than on a battlefield?",
+      "texto": "Por que você acha que o livro começa numa festa da alta sociedade, e não numa batalha?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How does Tolstoy show war? Does it seem heroic or confusing?",
+      "texto": "Como Tolstói mostra a guerra? Ela parece heroica ou confusa?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Pierre and Andrei are friends, but very different. What is each of them looking for in life?",
+      "texto": "Pierre e Andrei são amigos, mas muito diferentes. O que cada um procura na vida?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Compare the Rostov and Bolkonsky families. How does each one treat its children?",
+      "texto": "Compare as famílias Rostov e Bolkónski. Como cada uma trata seus filhos?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "For Tolstoy, who makes history: great leaders or ordinary people? Do you agree?",
+      "texto": "Para Tolstói, quem faz a história: os grandes líderes ou as pessoas comuns? Você concorda?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How does the book portray Napoleon? Is he different from the Napoleon of history books?",
+      "texto": "Como o livro retrata Napoleão? Ele é diferente do Napoleão dos livros de história?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Which characters changed the most from beginning to end? What caused that change?",
+      "texto": "Quais personagens mais mudaram do começo ao fim? O que provocou essa mudança?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "What does the title War and Peace mean to you after reading the book?",
+      "texto": "O que o título Guerra e Paz significa para você depois da leitura?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "se-leo-tolstoy-anna-karenina-constance-garnett",
+      "motivo": "O outro grande romance de Tolstói, também sobre famílias da nobreza russa, amor e sentido da vida."
+    },
+    {
+      "id": "se-henry-seton-merriman-barlasch-of-the-guard",
+      "motivo": "Romance passado em 1812, durante a campanha de Napoleão na Rússia e a retirada de Moscou."
+    },
+    {
+      "id": "se-charles-dickens-a-tale-of-two-cities",
+      "motivo": "Também mistura vidas privadas com grandes acontecimentos históricos, na época da Revolução Francesa."
+    },
+    {
+      "id": "se-arthur-conan-doyle-brigadier-gerard-stories",
+      "motivo": "Aventuras de um oficial da cavalaria de Napoleão, um olhar leve e francês sobre as mesmas guerras."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "guerras napoleônicas: batalhas, mortes, um fuzilamento, uma tentativa de sedução, sem detalhe gráfico",
+    "sensivel": ""
+  }
+}

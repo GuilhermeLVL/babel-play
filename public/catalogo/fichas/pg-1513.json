@@ -1,0 +1,430 @@
+{
+  "versao": 1,
+  "livroId": "pg-1513",
+  "titulo": "Romeo and Juliet",
+  "idioma": "en",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "William Shakespeare nasceu em 1564, em Stratford-upon-Avon, na Inglaterra, e morreu em 1616.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele foi ator, poeta e dramaturgo, e é considerado o maior autor da língua inglesa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Romeo and Juliet foi escrita em meados da década de 1590, no reinado de Elizabeth I.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A peça foi impressa pela primeira vez em 1597. Uma versão mais completa saiu em 1599.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Shakespeare escrevia para a companhia Lord Chamberlain's Men, da qual também era sócio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A principal fonte foi o poema narrativo de Arthur Brooke, The Tragicall Historye of Romeus and Juliet, de 1562. Brooke adaptou uma novela italiana de Matteo Bandello.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A história se passa na Itália, em Verona e Mântua. Para o público inglês da época, a Itália era um cenário de paixão, elegância e violência.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No teatro da época, mulheres não atuavam. Julieta e as outras personagens femininas eram interpretadas por meninos.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É talvez a história de amor mais famosa do mundo. Os nomes Romeu e Julieta viraram sinônimo de casal apaixonado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A peça mostra como o ódio dos adultos pode destruir a vida dos jovens. Esse tema continua atual.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mistura comédia e tragédia, poesia lírica e brigas de rua. É uma ótima porta de entrada para Shakespeare.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Inspirou balés, óperas, musicais e filmes. Conhecer o original ajuda a entender muitas referências culturais.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Amor e ódio",
+      "texto": "O amor dos dois jovens nasce no meio da rixa entre suas famílias. Os dois sentimentos andam lado a lado na peça.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Destino e acaso",
+      "texto": "Desde o prólogo, o público sabe que os amantes estão marcados pelo azar. A peça faz pensar: foi o destino ou foram as escolhas das pessoas?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Pressa e tempo",
+      "texto": "Tudo acontece em poucos dias. Os personagens decidem rápido demais, e a pressa tem consequências.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Juventude e autoridade",
+      "texto": "Os jovens enfrentam pais, regras e costumes. Os adultos decidem casamentos e alianças sem ouvir os filhos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Honra e violência",
+      "texto": "Para os rapazes de Verona, a honra da família se defende com a espada. A peça mostra o preço dessa ideia de masculinidade.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Amor e morte",
+      "texto": "Amor e morte se ligam o tempo todo nas imagens da peça, até o desfecho trágico, em que os dois jovens tiram a própria vida.",
+      "spoiler": true,
+      "sensivel": true
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Romeo",
+      "texto": "Jovem da família Montague. No começo da peça, sofre por um amor não correspondido. É sonhador e impulsivo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Juliet",
+      "texto": "Filha única dos Capulet, quase com 14 anos. Os pais já pensam em casá-la. Parece obediente, mas tem vontade própria.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Mercutio",
+      "texto": "Amigo de Romeu e parente do Príncipe. Brincalhão, falante e cheio de trocadilhos. Não pertence a nenhuma das duas famílias.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Benvolio",
+      "texto": "Primo e amigo de Romeu. Tenta acalmar as brigas e manter a paz.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Tybalt",
+      "texto": "Primo de Julieta. Esquentado e ótimo espadachim, odeia os Montague.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "The Nurse",
+      "texto": "A ama que criou Julieta. Fala muito, é engraçada e às vezes grosseira. É a confidente da menina.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Friar Laurence",
+      "texto": "Frade franciscano que conhece ervas e remédios. É conselheiro de Romeu.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Lord and Lady Capulet",
+      "texto": "Pais de Julieta. Querem um bom casamento para a filha e esperam que ela obedeça.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Paris",
+      "texto": "Jovem nobre, parente do Príncipe, que pede a mão de Julieta aos pais dela.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Prince Escalus",
+      "texto": "Governante de Verona. Está cansado das brigas entre Montague e Capulet e ameaça punir quem perturbar a paz.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O prólogo da peça é um soneto, poema de 14 versos. Ele resume a história antes de ela começar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "As primeiras falas trocadas por Romeu e Julieta, quando se conhecem, formam juntas um soneto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na fonte de Brooke, Julieta tem 16 anos. Shakespeare a deixou mais nova, com quase 14.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Toda a ação acontece em poucos dias. A versão de Brooke se estendia por meses.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mercutio tem um longo discurso sobre Queen Mab, uma fada que traz sonhos às pessoas. É um dos trechos mais famosos da peça.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O musical West Side Story (1957) leva a história para Nova York, com gangues rivais no lugar das famílias.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O compositor russo Sergei Prokofiev fez um balé famoso baseado na peça.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O filme de Franco Zeffirelli, de 1968, usou atores adolescentes nos papéis principais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O filme de Baz Luhrmann, de 1996, manteve o texto de Shakespeare, mas trocou as espadas por armas de fogo num cenário moderno.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em Verona, turistas visitam uma casa com sacada ligada à lenda de Julieta. Mas os personagens são fictícios.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A peça tem muitos trocadilhos de duplo sentido, alguns sexuais, principalmente nas falas de Mercutio e da Ama. Eles faziam o público rir.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Muita gente pensa que Romeu, no início, já ama Julieta. Na verdade, ele começa a peça apaixonado por outra moça, Rosaline, que nem aparece em cena.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "wherefore",
+      "texto": "Significa por quê, e não onde. É um erro comum achar que Julieta pergunta onde Romeu está.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "thou / thee / thy",
+      "texto": "Formas antigas de you e your. Indicam intimidade, ou às vezes desprezo, conforme o contexto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "art / wilt / dost",
+      "texto": "Formas verbais antigas usadas com thou: art = are, wilt = will, dost = do.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "'tis",
+      "texto": "Contração de it is.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ay",
+      "texto": "Significa sim (yes).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "anon",
+      "texto": "Já, daqui a pouco. A Ama usa muito quando é chamada.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ere",
+      "texto": "Antes de (before).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "hie",
+      "texto": "Apressar-se, ir depressa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "prithee",
+      "texto": "Por favor. Vem de I pray thee.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "marry",
+      "texto": "Interjeição que significa ora, pois é. Vem de by Mary (pela Virgem Maria). Não tem a ver com casar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "soft",
+      "texto": "Como interjeição, quer dizer espere, silêncio, devagar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "coz",
+      "texto": "Abreviação de cousin. Era usado para parentes e amigos próximos em geral.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "County",
+      "texto": "Aqui significa conde (count), e não condado. Paris é chamado assim.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "shrift",
+      "texto": "Confissão a um padre e o perdão dos pecados. Ir ao frade se confessar era uma boa desculpa para sair de casa.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Casamentos de famílias ricas eram arranjados pelos pais. Valiam mais o dinheiro e as alianças do que o amor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os filhos, principalmente as filhas, deviam obediência total ao pai. Desobedecer podia significar ser expulso de casa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Morder o polegar na direção de alguém (bite my thumb) era um gesto de insulto. Ele começa a briga da primeira cena.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A rapieira, espada fina e longa, estava na moda, assim como os manuais italianos de esgrima. Mercutio zomba do estilo afetado de Tybalt.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Itália da peça é católica, com frades e confissão. A Inglaterra de Shakespeare já era protestante, e o público via esse mundo como estrangeiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A peste era uma ameaça real na época. Na peça, uma quarentena impede que uma carta importante chegue ao destino.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "The prologue tells us the ending at the very start. Why would Shakespeare do this? Does it spoil the play or make it more tense?",
+      "texto": "O prólogo conta o final logo no início. Por que Shakespeare faria isso? Isso estraga ou aumenta a tensão?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Romeo moves from Rosaline to Juliet very quickly. Is his love for Juliet real, or just infatuation?",
+      "texto": "Romeu passa de Rosaline para Julieta muito rápido. O amor dele por Julieta é verdadeiro ou só paixão?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Who is most to blame for the tragedy: fate, the families, or the young lovers themselves?",
+      "texto": "Quem é mais culpado pela tragédia: o destino, as famílias ou os próprios jovens?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How do the adults in the play (parents, Nurse, Friar) help or harm Romeo and Juliet?",
+      "texto": "Como os adultos da peça (pais, Ama, frade) ajudam ou atrapalham Romeu e Julieta?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "What idea of honour and manhood do the young men of Verona have? How does it lead to violence?",
+      "texto": "Que ideia de honra e de ser homem os rapazes de Verona têm? Como isso leva à violência?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Mercutio is funny, but also bitter. What is his role in the play?",
+      "texto": "Mercutio é engraçado, mas também amargo. Qual o papel dele na peça?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "The play ends with the death of both young people. Why does the story treat this as a tragedy, not a romantic act to copy? Who can young people talk to when they feel there is no way out?",
+      "texto": "A peça termina com a morte dos dois jovens. Por que a história trata isso como tragédia, e não como gesto romântico a imitar? Com quem jovens podem conversar quando se sentem sem saída?",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "The feud between the Montagues and the Capulets has no explained cause. What does this say about old hatreds between groups?",
+      "texto": "A rixa entre Montague e Capulet não tem causa explicada. O que isso diz sobre ódios antigos entre grupos?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "se-william-shakespeare-hamlet",
+      "motivo": "Outra grande tragédia de Shakespeare, com um jovem protagonista, conflitos de família e mortes trágicas."
+    },
+    {
+      "id": "ws-pt-amor-de-perdicao-1862",
+      "motivo": "Romance português de amor proibido entre jovens de famílias rivais, com desfecho trágico."
+    },
+    {
+      "id": "se-emily-bronte-wuthering-heights",
+      "motivo": "Paixão intensa e destrutiva, marcada por rivalidades familiares."
+    },
+    {
+      "id": "se-e-nesbit-beautiful-stories-from-shakespeare",
+      "motivo": "Recontos em prosa de peças de Shakespeare, uma porta de entrada mais fácil para outras histórias do autor."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "amor adolescente, duelos com mortes e o duplo suicídio dos protagonistas no fim; trocadilhos sexuais. Sensível: o suicídio dos jovens é o desfecho; merece conversa com menor",
+    "sensivel": "o suicídio dos jovens é o desfecho; merece conversa com menor"
+  }
+}

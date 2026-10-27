@@ -1,0 +1,366 @@
+{
+  "versao": 1,
+  "livroId": "ws-pt-o-alienista",
+  "titulo": "O Alienista",
+  "idioma": "pt",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "Joaquim Maria Machado de Assis nasceu em 1839, no Rio de Janeiro, e morreu em 1908, na mesma cidade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Teve origem humilde. Trabalhou como tipógrafo e revisor antes de se firmar como escritor e funcionário público.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Foi um dos fundadores da Academia Brasileira de Letras, criada em 1897, e seu primeiro presidente.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O Alienista saiu em partes na revista A Estação, entre 1881 e 1882.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1882 a história foi reunida no livro de contos Papéis Avulsos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É da mesma época de Memórias Póstumas de Brás Cubas (1881), livro que marca a fase mais madura do autor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Machado escreveu durante o Segundo Reinado, sob Dom Pedro II, quando a ciência era vista como resposta para quase tudo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A história, porém, se passa no tempo do Brasil colonial, numa vila chamada Itaguaí.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É uma das sátiras mais famosas da literatura brasileira. Com humor, faz pensar sobre quem decide o que é normal.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Critica a confiança cega na ciência e o poder de quem fala em nome dela.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra, em poucas páginas, a ironia típica de Machado: o narrador parece sério, mas está rindo dos personagens.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É leitura frequente nas escolas e nos vestibulares do Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Loucura e razão",
+      "texto": "A pergunta central é onde termina a sanidade e começa a loucura, e se essa linha existe mesmo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ciência e poder",
+      "texto": "Em nome da ciência, um homem ganha poder sobre a vida de uma cidade inteira.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Vaidade",
+      "texto": "Muitos personagens agem por orgulho, desejo de fama ou de aprovação dos outros.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Política e oportunismo",
+      "texto": "Líderes mudam de lado conforme o vento e usam as revoltas para subir.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Ironia",
+      "texto": "O narrador conta tudo em tom solene, e é desse contraste que nasce o humor.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Simão Bacamarte",
+      "texto": "Médico respeitado, formado em Coimbra e Pádua. Volta a Itaguaí decidido a estudar a loucura a fundo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "D. Evarista",
+      "texto": "Esposa de Bacamarte. Ele a escolheu por motivos práticos, pensando em saúde, e não por beleza.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Crispim Soares",
+      "texto": "Boticário da vila e amigo próximo de Bacamarte. Admira o médico e quer ficar bem com ele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Padre Lopes",
+      "texto": "Vigário de Itaguaí. Observa os planos do médico com certa desconfiança.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Porfírio",
+      "texto": "Barbeiro da vila, conhecido pelo apelido Canjica. Tem ambições políticas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Porfírio (papel na revolta)",
+      "texto": "Lidera uma revolta popular contra a Casa Verde e chega a tomar o poder na vila por um tempo.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "Alienista era o nome que se dava, no século XIX, ao médico que tratava doenças mentais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Bacamarte é o nome de uma arma de fogo antiga, de cano curto e largo. O sobrenome do médico é uma brincadeira.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O hospício da história se chama Casa Verde por causa da cor das janelas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Itaguaí é uma cidade real, no estado do Rio de Janeiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O narrador diz se basear em antigas crônicas da vila. Esse recurso dá um ar falso de documento histórico.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Há debate se o texto é um conto longo ou uma novela. Os dois rótulos aparecem em obras de referência.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A revolta contra a Casa Verde ficou conhecida como Revolta dos Canjicas, por causa do apelido do barbeiro.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1970, Nelson Pereira dos Santos lançou o filme Azyllo Muito Louco, inspirado nesta história.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ao longo da história, a teoria do médico sobre a loucura muda mais de uma vez, sempre com o mesmo entusiasmo.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "O final é um dos mais comentados de Machado: o médico acaba aplicando a teoria a si mesmo.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "A obra já ganhou adaptações para teatro e quadrinhos no Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "alienista",
+      "texto": "Médico especialista em doenças mentais. Hoje se diz psiquiatra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "alienado",
+      "texto": "Pessoa considerada louca. Hoje a palavra quer dizer, mais comum, alguém desligado da realidade ou da política.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "boticário",
+      "texto": "Quem preparava e vendia remédios na botica. Equivale ao farmacêutico de hoje.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "vigário",
+      "texto": "Padre responsável por uma paróquia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Câmara",
+      "texto": "Aqui, a Câmara Municipal, que governava a vila.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "vereador",
+      "texto": "Membro da Câmara Municipal, eleito para cuidar dos assuntos da vila.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "barbeiro",
+      "texto": "Na época, além de cortar cabelo e barba, o barbeiro podia fazer pequenos tratamentos, como sangrias.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "vice-rei",
+      "texto": "Representante do rei de Portugal que governava o Brasil colonial.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "hospício",
+      "texto": "Lugar onde se internavam pessoas consideradas loucas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "D.",
+      "texto": "Abreviação de Dona (ou Dom), título de respeito antes do nome.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "No Brasil colonial, jovens de famílias ricas iam estudar na Universidade de Coimbra, em Portugal.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O Brasil colonial era governado de longe pelo rei de Portugal, por meio de um vice-rei.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A psiquiatria era uma ciência nova no século XIX. O primeiro hospício do Brasil, o Hospício Pedro II, abriu no Rio em 1852.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Igreja tinha muito peso na vida das vilas, e o vigário era uma das figuras mais importantes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época de Machado, muitas obras saíam primeiro em capítulos em jornais e revistas, antes de virar livro.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Quem tem o direito de decidir o que é normal? Um médico, a população, o governo?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que a cidade aceita, no começo, os planos de Simão Bacamarte?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Como o narrador cria humor contando a história de um jeito tão sério?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Bacamarte é um vilão, um herói ou outra coisa? Por quê?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O que a revolta do barbeiro mostra sobre política e poder?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que a teoria do médico muda tanto ao longo da história? O que isso diz sobre a ciência?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Como você interpreta o final? Ele é triste, engraçado ou as duas coisas?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "A história ainda faz sentido hoje? Dê exemplos de situações atuais parecidas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-54829",
+      "motivo": "Do mesmo autor e da mesma época, com a mesma ironia afiada."
+    },
+    {
+      "id": "ws-pt-quincas-borba",
+      "motivo": "Machado de novo satiriza teorias filosóficas e trata de loucura."
+    },
+    {
+      "id": "se-miguel-de-cervantes-saavedra-don-quixote-john-ormsby",
+      "motivo": "Clássico sobre loucura e razão contado com muito humor."
+    },
+    {
+      "id": "pg-1080",
+      "motivo": "Sátira curta que usa um tom sério para criticar a sociedade."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "livre",
+    "nota": "sátira de um médico que interna a cidade; humor, sem violência",
+    "sensivel": ""
+  }
+}

@@ -1,0 +1,392 @@
+{
+  "versao": 1,
+  "livroId": "ws-pt-quincas-borba",
+  "titulo": "Quincas Borba",
+  "idioma": "pt",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 1
+  },
+  "autorEContexto": [
+    {
+      "texto": "Joaquim Maria Machado de Assis nasceu em 1839, no Rio de Janeiro, e morreu na mesma cidade em 1908.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Machado veio de família pobre, era neto de pessoas escravizadas libertas e aprendeu quase tudo sozinho. Trabalhou como tipógrafo, jornalista e funcionário público.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele foi um dos fundadores da Academia Brasileira de Letras, em 1897, e seu primeiro presidente.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Quincas Borba saiu primeiro em capítulos na revista A Estação, entre 1886 e 1891. Virou livro em 1891.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro pertence à fase madura de Machado, iniciada com Memórias Póstumas de Brás Cubas (1881). Essa fase é marcada pela ironia e pela análise psicológica.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A história se passa no Rio de Janeiro do Segundo Reinado, quando a cidade era a Corte do Império do Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Enquanto o romance era publicado, o Brasil viveu duas grandes mudanças: a Abolição da escravatura (1888) e a Proclamação da República (1889).",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É um dos grandes romances de Machado de Assis. Forma com Memórias Póstumas de Brás Cubas e Dom Casmurro o núcleo de sua obra mais estudada.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro mostra, com humor e crueldade, como o dinheiro atrai interesseiros e como a sociedade da Corte vivia de aparências.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Com o Humanitismo, Machado faz uma sátira das filosofias de sua época que justificavam a vitória do mais forte sobre o mais fraco.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É leitura frequente em escolas e vestibulares no Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Dinheiro e interesse",
+      "texto": "A herança muda a vida de Rubião. Muita gente se aproxima dele pelo que ele tem, não pelo que ele é.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Aparência e ambição social",
+      "texto": "Os personagens querem subir na sociedade da Corte. Casamentos, festas e amizades servem muitas vezes como degraus.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Humanitismo",
+      "texto": "É a filosofia inventada pelo personagem Quincas Borba. Segundo ela, a luta e a vitória do mais forte fazem parte da ordem natural. O livro trata essa ideia com ironia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Loucura",
+      "texto": "O romance acompanha uma mente que aos poucos perde o contato com a realidade. Machado também trata esse tema em O Alienista.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Amor e ilusão",
+      "texto": "Rubião se apaixona por uma mulher casada e lê sinais onde talvez não exista nada. O livro mostra como o desejo distorce o olhar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Lealdade",
+      "texto": "O cão Quincas Borba é fiel a Rubião de forma simples e total. Essa lealdade contrasta com o comportamento de muitos humanos ao redor.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Rubião",
+      "texto": "Pedro Rubião de Alvarenga é um ex-professor de Barbacena, em Minas Gerais. Ingênuo e generoso, recebe uma grande herança e se muda para o Rio de Janeiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Quincas Borba (o filósofo)",
+      "texto": "Amigo de Rubião e criador do Humanitismo. Excêntrico e de saúde frágil, aparece no começo do livro. Já tinha surgido em Memórias Póstumas de Brás Cubas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Quincas Borba (o cão)",
+      "texto": "O cachorro do filósofo, que tem o mesmo nome do dono. Rubião precisa cuidar dele por causa do testamento.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Cristiano Palha",
+      "texto": "Homem de negócios que Rubião conhece na viagem para o Rio. É simpático e esperto, e logo se interessa pelo dinheiro do novo amigo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Sofia",
+      "texto": "Esposa de Palha, bonita e elegante. Rubião se apaixona por ela. Ela gosta de ser admirada e quer subir na sociedade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Camacho",
+      "texto": "Político e jornalista que se aproxima de Rubião e o envolve em projetos de jornal e de carreira política.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Carlos Maria",
+      "texto": "Jovem rico, bonito e vaidoso da sociedade carioca. Desperta a atenção de Sofia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Maria Benedita",
+      "texto": "Prima de Sofia, moça simples vinda da roça, que aos poucos entra na vida social da Corte.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Dona Fernanda",
+      "texto": "Senhora gaúcha, bondosa e sincera. É uma das poucas figuras que mostram compaixão verdadeira por Rubião.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Rubião (no fim)",
+      "texto": "Explorado pelos falsos amigos e consumido pela paixão, Rubião enlouquece, passa a se ver como Napoleão III e perde a fortuna. Volta a Barbacena com o cão e morre lá. O cão morre pouco depois.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O título é o nome de dois personagens ao mesmo tempo: o filósofo e o seu cachorro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O filósofo Quincas Borba já aparecia em Memórias Póstumas de Brás Cubas, onde explica o Humanitismo ao narrador.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ao contrário de Memórias Póstumas de Brás Cubas e de Dom Casmurro, este romance não é contado em primeira pessoa por um personagem. O narrador está em terceira pessoa, mas conversa com o leitor e comenta a história.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A versão publicada como livro em 1891 tem diferenças em relação à versão saída na revista A Estação. Machado revisou o texto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O testamento do filósofo exige que o herdeiro cuide do cão. Essa condição prende Rubião ao animal desde o início.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os capítulos são curtos, uma marca da fase madura de Machado. Isso ajuda quem lê em outro idioma a avançar aos poucos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Rubião começa a se identificar com Napoleão III, imperador da França. A escolha tem ironia: um homem simples sonha com grandeza imperial.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "A revista A Estação, onde o romance saiu primeiro, era uma publicação de moda voltada para o público feminino.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro já foi adaptado para o cinema no Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "réis",
+      "texto": "Moeda do Brasil no Império. O singular era real. Valores grandes eram contados em mil-réis e contos de réis.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "conto de réis",
+      "texto": "Um milhão de réis, ou mil mil-réis. Era uma quantia alta. Quem tinha centenas de contos era muito rico.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "a Corte",
+      "texto": "Nome dado ao Rio de Janeiro na época do Império, por ser a cidade onde vivia o imperador.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "herdeiro universal",
+      "texto": "Pessoa que recebe todos os bens de alguém que morreu, segundo o testamento.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "testamento",
+      "texto": "Documento em que uma pessoa diz quem vai receber seus bens depois da morte, e com quais condições.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Humanitismo",
+      "texto": "Filosofia inventada por Machado para o personagem Quincas Borba. O nome brinca com Humanitas, a força que estaria em todas as coisas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "major",
+      "texto": "Na época, muitos civis usavam títulos como major ou coronel por causa da Guarda Nacional, sem serem militares de carreira.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "sarau",
+      "texto": "Reunião social à noite, em casa, com conversa, música e às vezes dança.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "bacharel",
+      "texto": "Pessoa formada em curso superior, sobretudo Direito. Ser bacharel dava prestígio social no Império.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "vosmecê",
+      "texto": "Forma antiga de tratamento, vinda de vossa mercê. Deu origem a você.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "comendador",
+      "texto": "Título honorífico dado a quem recebia certas condecorações. Era sinal de prestígio.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "No Segundo Reinado (1840–1889), o Brasil era uma monarquia governada por Dom Pedro II. A vida política e social girava em torno da Corte, no Rio de Janeiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época da história, a escravidão ainda era legal no Brasil. Famílias ricas tinham pessoas escravizadas trabalhando em suas casas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Barbacena é uma cidade de Minas Gerais. Para a elite carioca, quem vinha do interior era visto como provinciano.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Napoleão III foi imperador da França de 1852 a 1870. Era uma figura muito conhecida nos jornais brasileiros da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No século XIX, muitos romances saíam primeiro em capítulos, em jornais e revistas, antes de virar livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ideias como o darwinismo social, que aplicava a luta pela sobrevivência à sociedade, estavam na moda. O Humanitismo é uma paródia desse tipo de pensamento.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que você acha que o filósofo exigiu que Rubião cuidasse do cão para receber a herança?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O que significa a ideia de que ao vencedor ficam as batatas? Você concorda com ela? Por quê?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Como Palha e Sofia tratam Rubião? Que sinais mostram o interesse deles?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Rubião interpreta os gestos de Sofia do seu jeito. Já aconteceu com você de ver algo que talvez não existisse?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O narrador conversa com o leitor e faz comentários irônicos. Como isso muda sua forma de ler a história?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Compare a lealdade do cão com a atitude dos amigos humanos de Rubião. O que Machado parece querer dizer?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "A loucura de Rubião é só um problema pessoal ou também diz algo sobre a sociedade em volta dele?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O dinheiro trouxe felicidade a Rubião? Que outras histórias você conhece em que uma fortuna muda a vida de alguém?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-54829",
+      "motivo": "Mesmo autor. É o livro onde o filósofo Quincas Borba aparece pela primeira vez e explica o Humanitismo."
+    },
+    {
+      "id": "ws-pt-dom-casmurro",
+      "motivo": "Mesmo autor e mesma fase. Também trata de ciúme, ilusão e da sociedade carioca do Império."
+    },
+    {
+      "id": "ws-pt-o-alienista",
+      "motivo": "Mesmo autor. Uma novela curta e irônica sobre loucura e razão."
+    },
+    {
+      "id": "se-miguel-de-cervantes-saavedra-don-quixote-john-ormsby",
+      "motivo": "Outro herói que vive uma ilusão de grandeza, entre o cômico e o trágico."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "herança, loucura, interesse amoroso por mulher casada, sem cena",
+    "sensivel": ""
+  }
+}

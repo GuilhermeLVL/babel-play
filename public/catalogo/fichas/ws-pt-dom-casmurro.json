@@ -1,0 +1,398 @@
+{
+  "versao": 1,
+  "livroId": "ws-pt-dom-casmurro",
+  "titulo": "Dom Casmurro",
+  "idioma": "pt",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 2
+  },
+  "autorEContexto": [
+    {
+      "texto": "Joaquim Maria Machado de Assis nasceu em 1839 no Rio de Janeiro e morreu na mesma cidade em 1908.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele era neto de pessoas escravizadas que conseguiram a liberdade. Veio de família pobre e se tornou o escritor mais respeitado do Brasil no seu tempo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Trabalhou como tipógrafo, jornalista e funcionário público. Escreveu romances, contos, crônicas, poemas, peças e críticas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Foi um dos fundadores da Academia Brasileira de Letras, criada em 1897, e o seu primeiro presidente.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A história se passa no Rio de Janeiro do Segundo Reinado, quando o Brasil era um império governado por D. Pedro II e ainda havia escravidão.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro foi escrito pouco depois de dois grandes fatos: a abolição da escravatura (1888) e a Proclamação da República (1889). O narrador conta, já velho, uma juventude vivida nos anos 1850.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Machado é ligado ao Realismo, mas tem estilo próprio: ironia, humor discreto, capítulos curtos e conversas diretas com o leitor.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É um dos romances mais lidos e estudados do Brasil. Está sempre em listas de leitura escolar e de vestibular.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É um grande exemplo de narrador não confiável: tudo o que sabemos vem de Bento, que conta a história do jeito dele. O leitor precisa julgar o que lê.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A dúvida central do livro nunca é resolvida pelo texto. Por isso ele continua gerando debate mais de um século depois.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra com finura a sociedade do Rio no Império: família, religião, dinheiro, aparências e relações de dependência.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Ciúme",
+      "texto": "O ciúme cresce aos poucos no narrador e muda a forma como ele vê tudo e todos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Memória e verdade",
+      "texto": "Bento escreve para juntar as pontas da vida. Mas a memória escolhe, esquece e distorce. Até onde podemos acreditar nele?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amor de infância",
+      "texto": "O romance começa com o amor entre dois vizinhos adolescentes, cheio de segredos, promessas e pequenas estratégias.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Religião e promessa",
+      "texto": "Uma promessa religiosa da mãe pesa sobre o destino de Bento e cria o primeiro grande conflito do livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Aparência e dissimulação",
+      "texto": "Muitos personagens fingem, calculam e escondem intenções. O livro pergunta quem é sincero e quem só parece ser.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Classe social e dependência",
+      "texto": "A família de Bento é rica; outros personagens dependem dela. Essa diferença aparece em favores, agrados e casamentos.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Bento Santiago (Bentinho)",
+      "texto": "O narrador. Já mais velho, conta a própria vida desde a adolescência. Ganhou o apelido de Dom Casmurro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Capitu (Capitolina)",
+      "texto": "Vizinha de Bentinho desde a infância. Inteligente, observadora e decidida, é o grande amor da vida dele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Dona Glória",
+      "texto": "Mãe de Bentinho, viúva, rica e muito religiosa. Fez uma promessa que envolve o futuro do filho.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "José Dias",
+      "texto": "Agregado que vive com a família há anos. Gosta de falar difícil, adora superlativos e sempre tenta agradar e influenciar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Tio Cosme",
+      "texto": "Irmão de Dona Glória, advogado viúvo que mora na casa. Bonachão e um tanto acomodado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Prima Justina",
+      "texto": "Prima viúva de Dona Glória que também vive com a família. Observa tudo e não costuma ser gentil nos comentários.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Escobar",
+      "texto": "Colega de Bentinho no seminário, que se torna seu grande amigo. Tem jeito para contas e negócios.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Sancha",
+      "texto": "Amiga de Capitu desde os tempos de escola.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Pádua",
+      "texto": "Pai de Capitu, funcionário público e vizinho da família Santiago.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ezequiel",
+      "texto": "Filho de Bento e Capitu.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O primeiro capítulo explica o título: Dom Casmurro é um apelido dado ao narrador por um jovem poeta, depois de um encontro no trem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro tem 148 capítulos, quase todos curtos. Alguns têm só poucas linhas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Logo no início, Bento conta que mandou construir no Engenho Novo uma cópia da casa da infância, na Rua de Matacavalos. Ele quer atar as duas pontas da vida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em um capítulo famoso, um velho tenor compara a vida a uma ópera. É uma das muitas passagens em que Machado mistura filosofia e ironia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os olhos de Capitu são um dos elementos mais lembrados do livro. Expressões como olhos de ressaca entraram na cultura brasileira.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A peça Otelo, de Shakespeare, sobre um marido ciumento, é citada no romance. Muitos críticos comparam as duas obras.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Durante décadas, muitos leitores deram como certa a traição de Capitu. Em 1960, a estudiosa americana Helen Caldwell publicou The Brazilian Othello of Machado de Assis e mostrou que a culpa dela nunca é provada.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Hoje a leitura mais aceita é que o livro não dá resposta: a pergunta sobre a traição fica aberta de propósito.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Helen Caldwell também foi tradutora do romance para o inglês, em 1953, com o título Dom Casmurro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 2008, ano do centenário da morte de Machado, a TV Globo exibiu a minissérie Capitu, dirigida por Luiz Fernando Carvalho e baseada no romance.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A antiga Rua de Matacavalos, onde Bentinho cresce, existe até hoje no Rio de Janeiro com outro nome: Rua do Riachuelo.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "casmurro",
+      "texto": "Pessoa fechada, calada, teimosa e de mau humor. O próprio narrador comenta o sentido da palavra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "agregado",
+      "texto": "Pessoa que vivia na casa de uma família rica sem ser parente direto nem empregado formal. Recebia casa e comida em troca de serviços e companhia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "seminário",
+      "texto": "Escola religiosa onde se formam padres. Seminarista é o aluno do seminário.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "promessa",
+      "texto": "Aqui, compromisso feito a Deus ou a um santo em troca de uma graça. Na época, quebrar uma promessa era assunto muito sério.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ressaca",
+      "texto": "No livro, o sentido é o do mar: o movimento forte das ondas que puxa para dentro. Não é o mal-estar depois de beber.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "dissimulada",
+      "texto": "Quem esconde o que pensa ou sente e finge outra coisa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "oblíqua",
+      "texto": "Inclinada, de lado, que não é direta. Dito de um olhar, sugere esconder intenções.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "cigana",
+      "texto": "Mulher do povo cigano. Na época, a palavra carregava o preconceito de que ciganas eram espertas e enganadoras.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "superlativo",
+      "texto": "Forma do adjetivo que indica grau máximo, como belíssimo ou gravíssimo. José Dias adora usar superlativos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "bacharel",
+      "texto": "Quem se formou em um curso superior, sobretudo em Direito. No Império, era um título de muito prestígio social.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "mil-réis",
+      "texto": "Unidade de dinheiro do Brasil na época. Um conto de réis equivalia a mil mil-réis, uma quantia grande.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "viúva",
+      "texto": "Mulher cujo marido morreu. Várias mulheres da casa de Bento são viúvas, o que define muito do seu lugar social.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "No Rio dos anos 1850, famílias ricas tinham pessoas escravizadas trabalhando em casa. Elas aparecem no romance, em geral ao fundo da cena.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ser padre era uma carreira respeitada, e famílias às vezes decidiam o destino religioso de um filho. A vontade do jovem nem sempre contava.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os casamentos envolviam interesses de família e de dinheiro. A diferença de riqueza entre os noivos era vista com atenção.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mulheres casadas tinham pouca liberdade e quase nenhum direito legal. A honra do marido dependia muito da reputação da esposa.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Bento conta a história muitos anos depois. Que interesses ele pode ter ao contá-la desse jeito?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Como Capitu aparece nas primeiras páginas? Que qualidades o narrador destaca nela, e por quê?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "José Dias quer agradar a todos. Ele ajuda ou atrapalha Bentinho? Dê exemplos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O que a promessa de Dona Glória revela sobre o papel da religião e da família na época?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Em que momentos o narrador fala direto com você, leitor? Que efeito isso causa?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Uma semelhança física é prova de alguma coisa? Como o ciúme muda o modo de ver o outro?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Se Capitu pudesse contar a sua versão, o que você imagina que ela diria?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Você acha que o livro dá uma resposta sobre a traição? Que trechos sustentam a sua opinião?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-54829",
+      "motivo": "Do mesmo autor, outro narrador irônico e pouco confiável que conta a própria vida."
+    },
+    {
+      "id": "ws-pt-quincas-borba",
+      "motivo": "Romance de Machado da mesma fase madura, com o mesmo olhar crítico sobre a sociedade do Rio."
+    },
+    {
+      "id": "ws-pt-a-cartomante",
+      "motivo": "Conto curto de Machado sobre um triângulo amoroso, suspeita e segredo."
+    },
+    {
+      "id": "pg-42942",
+      "motivo": "Romance realista da mesma época, de Eça de Queirós, sobre casamento, adultério e aparências."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "12",
+    "nota": "ciúme e suspeita de adultério como tema central, sem cena de sexo",
+    "sensivel": ""
+  }
+}

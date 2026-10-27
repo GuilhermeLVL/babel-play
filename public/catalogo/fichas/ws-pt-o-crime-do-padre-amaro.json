@@ -1,0 +1,403 @@
+{
+  "versao": 1,
+  "livroId": "ws-pt-o-crime-do-padre-amaro",
+  "titulo": "O Crime do Padre Amaro",
+  "idioma": "pt",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 2
+  },
+  "autorEContexto": [
+    {
+      "texto": "José Maria Eça de Queirós nasceu em 1845, na Póvoa de Varzim, em Portugal, e morreu em Paris, em 1900.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Formou-se em Direito na Universidade de Coimbra e depois seguiu carreira diplomática como cônsul, morando em Cuba, na Inglaterra e na França.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Antes de virar cônsul, foi administrador do concelho de Leiria, a cidade onde se passa o romance.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Fez parte da Geração de 70, grupo de jovens intelectuais portugueses que queria modernizar o país e criticava a sociedade da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1871, nas Conferências do Casino, em Lisboa, Eça defendeu o Realismo como nova forma de fazer arte.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O Realismo e o Naturalismo buscavam mostrar a sociedade como ela é, com observação detalhada e crítica aos costumes, às instituições e à hipocrisia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época, Portugal era uma monarquia constitucional, e a Igreja Católica tinha enorme influência, sobretudo nas cidades pequenas do interior.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O romance saiu primeiro em 1875, numa revista, e ganhou versões em livro em 1876 e 1880; a de 1880, muito reescrita, é a definitiva.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É considerado um marco do Realismo em língua portuguesa e um dos romances mais importantes de Portugal no século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Faz uma crítica dura à hipocrisia religiosa e ao poder do clero na vida das pessoas, tema que causou escândalo na época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Retrata com humor e ironia a vida de uma cidade pequena: fofocas, rezas, jantares e jogos de poder entre padres e devotas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra como a falta de liberdade e de escolha pode estragar vidas, principalmente a das mulheres.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Hipocrisia religiosa",
+      "texto": "Padres e devotas pregam uma moral rígida, mas muitos agem de forma oposta ao que dizem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Vocação forçada",
+      "texto": "Amaro vira padre sem ter escolhido de verdade. O livro pergunta o que acontece quando alguém é obrigado a uma vida que não quer.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Celibato e desejo",
+      "texto": "O romance discute o voto de castidade dos padres e o conflito entre regra religiosa e desejo humano.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Poder e influência",
+      "texto": "O clero controla opiniões, empregos e reputações na cidade, e usa isso para se proteger.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Vida de província",
+      "texto": "Leiria aparece como um lugar fechado, cheio de fofoca, onde todos vigiam todos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Destino da mulher",
+      "texto": "Amélia tem pouca liberdade e pouca educação. O livro mostra como a sociedade a deixa vulnerável e a culpa por tudo.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Amaro Vieira",
+      "texto": "Jovem padre que chega a Leiria para ser pároco. Foi encaminhado para o sacerdócio desde menino, sem vocação verdadeira.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amélia",
+      "texto": "Moça bonita e muito religiosa, filha da dona da casa onde Amaro se hospeda.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "S. Joaneira",
+      "texto": "Mãe de Amélia. Recebe Amaro como hóspede em sua casa, onde se reúnem padres e beatas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Cónego Dias",
+      "texto": "Padre gordo e influente, antigo professor de Amaro. Frequenta muito a casa da S. Joaneira.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "João Eduardo",
+      "texto": "Escrevente que quer casar com Amélia. Desconfia dos padres e tem ideias liberais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Padre Natário",
+      "texto": "Padre esperto e vingativo, que adora intrigas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Dr. Gouveia",
+      "texto": "Médico da cidade, racional e crítico da Igreja. Representa a visão científica da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Abade Ferrão",
+      "texto": "Padre do campo, simples e honesto. Mostra que nem todo religioso do livro é hipócrita.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Totó",
+      "texto": "Filha doente e acamada do sineiro. Amaro usa visitas à casa dela como pretexto para encontrar Amélia em segredo.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Carlota",
+      "texto": "Mulher que recebe bebês indesejados e os deixa morrer. Amaro entrega a ela o filho de Amélia.",
+      "spoiler": true,
+      "sensivel": true
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "Leiria não foi escolhida por acaso: Eça conheceu a cidade de perto quando trabalhou lá como administrador.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Existem três versões do romance (1875, 1876 e 1880). A última é quase um livro novo, bem maior e mais trabalhado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Eça foi acusado de copiar La Faute de l'abbé Mouret, de Émile Zola, que também fala de um padre apaixonado. Ele se defendeu no prefácio da edição de 1880.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro provocou escândalo por mostrar padres corruptos e foi muito atacado por setores católicos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 2002, o México lançou o filme El crimen del padre Amaro, que leva a história para o México atual. Foi indicado ao Oscar de filme estrangeiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 2005, a história ganhou também uma adaptação portuguesa para o cinema.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O crime do título é o destino do bebê de Amélia, entregue por Amaro a uma mulher conhecida por deixar recém-nascidos morrerem.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "texto": "A cena final se passa em Lisboa, em 1871, perto da estátua de Camões, enquanto os personagens comentam a Comuna de Paris.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "No fim, Amaro não sofre punição: segue a carreira de padre normalmente. É uma das críticas mais fortes do livro.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "pároco",
+      "texto": "Padre responsável por uma paróquia, a comunidade religiosa de um bairro ou cidade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "cónego",
+      "texto": "Padre ligado a uma catedral, com cargo mais alto. Grafia de Portugal; no Brasil se escreve cônego.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Sé",
+      "texto": "A catedral, igreja principal de uma diocese. Em Portugal se fala muito a Sé de tal cidade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "beata",
+      "texto": "Mulher muito devota, que vive na igreja. Muitas vezes tem sentido irônico: alguém carola e fofoqueira.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "sineiro",
+      "texto": "Homem encarregado de tocar os sinos da igreja.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "coadjutor",
+      "texto": "Padre auxiliar, que ajuda o pároco no trabalho da paróquia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "abade",
+      "texto": "Em Portugal, nome dado também ao padre de algumas paróquias do campo, não só ao chefe de um mosteiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "escrevente",
+      "texto": "Funcionário que copiava e redigia documentos num cartório ou escritório.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "breviário",
+      "texto": "Livro com as orações que o padre deve rezar todos os dias.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "sotaina",
+      "texto": "Batina: a veste longa e preta usada pelos padres.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "sacristia",
+      "texto": "Sala da igreja onde se guardam as roupas e objetos da missa e onde o padre se prepara.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "tecedeira de anjos",
+      "texto": "Apelido sombrio para mulher que recebia bebês indesejados e os deixava morrer. Os bebês viravam anjos, no sentido de mortos.",
+      "spoiler": true,
+      "sensivel": true
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "O livro usa o português de Portugal do século XIX. Algumas edições mantêm a ortografia antiga, com grafias como scenas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitos meninos pobres ou órfãos eram mandados ao seminário por famílias ou protetores, sem que tivessem vocação.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época, uma moça solteira grávida era desonrada perante a sociedade, e a culpa caía quase toda sobre ela.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "Os jornais locais eram arma política: um artigo podia destruir reputações numa cidade pequena.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Havia forte disputa entre liberais, que queriam limitar o poder da Igreja, e conservadores católicos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Comuna de Paris (1871) foi uma revolta popular que assustou as elites conservadoras de toda a Europa.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Amaro escolheu ser padre? Como isso ajuda a entender suas atitudes?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que tantas pessoas na cidade fingem não ver o que acontece?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Que diferenças você nota entre o Abade Ferrão e os outros padres do livro?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Como a educação que Amélia recebeu influencia suas decisões?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Qual é o papel da fofoca e da reputação na vida de Leiria?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O Dr. Gouveia representa a ciência. O que o livro parece dizer sobre ciência e religião?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Qual é, afinal, o crime do título? Há só um culpado?",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O que significa o fato de Amaro terminar a história sem punição?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-42942",
+      "motivo": "Outro romance realista de Eça, com crítica à moral burguesa e uma protagonista feminina vulnerável."
+    },
+    {
+      "id": "ws-pt-os-maias",
+      "motivo": "A obra-prima de Eça, um retrato crítico da sociedade portuguesa do século XIX."
+    },
+    {
+      "id": "pg-17073",
+      "motivo": "Romance realista espanhol sobre uma cidade de província dominada pelo clero e um padre que deseja uma mulher."
+    },
+    {
+      "id": "ws-pt-o-seminarista",
+      "motivo": "Romance brasileiro do século XIX sobre um jovem obrigado ao seminário e o conflito com o celibato."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "16",
+    "nota": "padre seduz uma jovem, gravidez, morte dela e o bebê entregue a uma \"tecedeira de anjos\" (infanticídio)",
+    "sensivel": ""
+  }
+}

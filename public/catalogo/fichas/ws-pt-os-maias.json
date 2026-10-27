@@ -1,0 +1,389 @@
+{
+  "versao": 1,
+  "livroId": "ws-pt-os-maias",
+  "titulo": "Os Maias",
+  "idioma": "pt",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 1
+  },
+  "autorEContexto": [
+    {
+      "texto": "José Maria Eça de Queirós nasceu em 1845, em Póvoa de Varzim, no norte de Portugal, e morreu em Paris, em 1900.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Formou-se em Direito na Universidade de Coimbra, onde conviveu com jovens que depois formariam a chamada Geração de 70.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A Geração de 70 queria modernizar Portugal e criticava o atraso do país, a Igreja conservadora e o Romantismo na literatura.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1871, Eça participou das Conferências do Casino, em Lisboa, com uma palestra sobre o Realismo como nova forma de arte.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Eça foi diplomata (cônsul) e viveu a maior parte da vida adulta fora de Portugal: em Havana, na Inglaterra (Newcastle e Bristol) e depois em Paris.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os Maias foi publicado em 1888, no Porto, em dois volumes, com o subtítulo Episódios da Vida Romântica.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O romance se passa sobretudo em Lisboa, na década de 1870, durante a monarquia constitucional, numa elite que imitava a moda e as ideias de Paris e Londres.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Eça é o principal nome do Realismo em língua portuguesa, ao lado de Machado de Assis no Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É considerado por muitos críticos o maior romance português do século XIX e a obra-prima de Eça.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Faz um retrato amplo e irônico da alta sociedade de Lisboa: políticos, jornalistas, poetas, banqueiros e diplomatas aparecem cheios de pose e vazio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Junta duas histórias numa só: a saga de uma família ao longo de três gerações e uma crônica de costumes de um país que se sentia atrasado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É leitura obrigatória no ensino secundário em Portugal e influenciou gerações de escritores dos dois lados do Atlântico.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Decadência de uma família",
+      "texto": "Os Maias são uma família rica e antiga. O livro acompanha avô, pai e neto e mostra como talento e dinheiro não garantem uma vida plena.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Crítica à sociedade portuguesa",
+      "texto": "Eça satiriza a elite de Lisboa: gente que fala muito, faz pouco e copia o estrangeiro. Jantares, corridas de cavalos e saraus viram palco dessa crítica.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Romantismo x Realismo",
+      "texto": "O livro zomba dos exageros românticos (paixões fatais, poesia sentimental) e defende um olhar mais objetivo sobre a vida. O subtítulo Episódios da Vida Romântica é irônico.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Educação",
+      "texto": "O romance compara duas formas de criar crianças: uma educação inglesa, ao ar livre e prática, e outra religiosa e superprotetora. O leitor vê os resultados nos adultos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amor, adultério e destino",
+      "texto": "Vários casos amorosos fora do casamento aparecem no livro, tratados sem detalhes explícitos. O grande amor da história tem um segredo trágico: os amantes são irmãos e não sabem disso.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "nome": "Fracasso e diletantismo",
+      "texto": "Os personagens jovens têm muitos projetos (livros, revistas, pesquisas) e quase nenhum se realiza. O livro discute por que uma geração brilhante não consegue agir.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Carlos da Maia",
+      "texto": "Neto de Afonso. Jovem rico, bonito e culto, formado em Medicina em Coimbra. Volta a Lisboa cheio de planos de trabalho, mas tende a se dispersar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Afonso da Maia",
+      "texto": "Avô de Carlos e chefe da família. Homem íntegro, de ideias liberais, que criou o neto com rigor e muito carinho.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Pedro da Maia",
+      "texto": "Filho de Afonso e pai de Carlos. Rapaz frágil e emotivo, que se casa contra a vontade do pai com a bela Maria Monforte.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Maria Monforte",
+      "texto": "Mulher deslumbrante, filha de um antigo traficante de escravizados, malvista pela família Maia. Sua história com Pedro marca o passado da família.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "João da Ega",
+      "texto": "Melhor amigo de Carlos desde Coimbra. Espirituoso, exagerado e provocador, faz os comentários mais afiados sobre Portugal.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Maria Eduarda",
+      "texto": "Mulher elegante e misteriosa que chega a Lisboa e encanta Carlos à primeira vista. Pouco se sabe sobre seu passado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Maria Eduarda (revelação)",
+      "texto": "Maria Eduarda é a irmã de Carlos, filha de Pedro e Maria Monforte, levada pela mãe quando ainda era criança.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Tomás de Alencar",
+      "texto": "Poeta romântico já envelhecido, amigo antigo de Pedro. Sentimental e teatral, representa a velha escola literária que o livro critica, mas tem bom coração.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Dâmaso Salcede",
+      "texto": "Rapaz rico, vaidoso e fofoqueiro, que imita tudo o que é chique e vive se gabando de conhecer gente importante.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Vilaça",
+      "texto": "Procurador da família Maia, cuida dos negócios e das propriedades. Leal e um pouco cerimonioso.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "A família também tem uma quinta em Santa Olávia, às margens do rio Douro, onde Carlos passa a infância com o avô.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A ação principal começa em 1875, mas os primeiros capítulos voltam no tempo para contar a juventude de Afonso e de Pedro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Eça escreveu o romance durante anos, enquanto morava na Inglaterra. O livro cresceu muito além do plano inicial.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Cenas famosas de crítica social incluem um jantar no Hotel Central, uma corrida de cavalos e um sarau literário em teatro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "João da Ega quer escrever um livro grandioso chamado Memórias dum Átomo, um dos muitos projetos ambiciosos do romance.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitos críticos veem em João da Ega traços do próprio Eça, como o humor ácido e o gosto pela provocação.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 2001, a TV Globo exibiu uma minissérie baseada no livro, com roteiro de Maria Adelaide Amaral e direção de Luiz Fernando Carvalho.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 2014, o diretor português João Botelho lançou um filme baseado no romance.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O casamento de Pedro termina quando Maria Monforte foge com um italiano levando a filha. Desesperado, Pedro tira a própria vida.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "texto": "Afonso da Maia morre pouco depois de descobrir o segredo que une Carlos e Maria Eduarda.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "O último capítulo salta cerca de dez anos: Carlos e Ega voltam a Lisboa e fazem um balanço de suas vidas fracassadas, num final ao mesmo tempo melancólico e cômico.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "fidalgo",
+      "texto": "Pessoa de família nobre. Os Maias são uma família fidalga, com nome antigo e propriedades.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "procurador",
+      "texto": "Aqui, a pessoa que administra os bens e negócios de uma família rica, como faz Vilaça. Não é o promotor público.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "sarau",
+      "texto": "Reunião noturna com música, poesia e discursos, muito comum na alta sociedade do século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "quinta",
+      "texto": "Em Portugal, propriedade rural com casa, terras e plantações. Equivale mais ou menos a uma chácara ou fazenda.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "negreiro",
+      "texto": "Traficante de pessoas escravizadas. A palavra é usada para falar do pai de Maria Monforte e mostra o preconceito da família contra ela.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "americano",
+      "texto": "Em Lisboa do fim do século XIX, nome do bonde puxado por cavalos sobre trilhos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "diletante",
+      "texto": "Quem se dedica a arte ou ciência por prazer, sem compromisso nem método. É uma palavra-chave para entender Carlos e seus amigos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "consultório",
+      "texto": "Lugar onde o médico atende. Carlos monta um consultório no Rossio, praça central de Lisboa.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Portugal era uma monarquia constitucional, com rei, parlamento e partidos que se alternavam no poder. Muitos personagens são deputados, ministros ou querem ser.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Paris era o modelo de elegância para a elite lisboeta. Por isso o livro tem muitas palavras francesas e inglesas na fala dos personagens.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A moeda portuguesa era o real (no plural, réis). Valores grandes eram contados em contos de réis. A libra esterlina inglesa também circulava entre os ricos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Edições antigas usam a grafia anterior à reforma ortográfica portuguesa de 1911, com ph, th e y em palavras como pharmacia. É a mesma palavra de hoje, só escrita de outro jeito.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O português do livro é o de Portugal: aparecem formas como tu e vós, colocação de pronomes depois do verbo e palavras que no Brasil soam diferentes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Lugares como o Chiado, o Rossio, o Aterro e Sintra eram pontos de encontro e passeio da sociedade elegante da época.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Como a educação que Carlos recebeu do avô aparece no adulto que ele se torna? Ela basta para fazê-lo realizar seus planos?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que você acha que Eça escolheu o subtítulo Episódios da Vida Romântica? Ele é sério ou irônico?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Que imagem de Portugal surge nas conversas de João da Ega? Você concorda com as críticas dele ou acha que ele exagera?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Tomás de Alencar é ridicularizado, mas também é generoso. Como o livro equilibra crítica e simpatia por esse personagem?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "De que forma o preconceito contra a origem de Maria Monforte influencia a história da família Maia?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O Ramalhete muda ao longo do livro. O que a casa revela sobre o destino da família?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "A tragédia de Carlos e Maria Eduarda é obra do acaso ou das escolhas dos personagens e das gerações anteriores?",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "No final, Carlos e Ega fazem um balanço da vida. O que esse final diz sobre a geração deles e sobre o país?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-42942",
+      "motivo": "Outro grande romance realista de Eça, também sobre a sociedade de Lisboa, o adultério e a hipocrisia burguesa."
+    },
+    {
+      "id": "pg-18220",
+      "motivo": "Romance posterior de Eça que volta ao contraste entre a vida urbana sofisticada e o Portugal do campo."
+    },
+    {
+      "id": "pg-34811",
+      "motivo": "Saga de uma família rica ao longo de gerações e de sua lenta decadência, como em Os Maias."
+    },
+    {
+      "id": "pg-17073",
+      "motivo": "Grande romance realista espanhol da mesma década, com crítica social de uma cidade provinciana e um caso amoroso proibido."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "16",
+    "nota": "incesto entre irmãos que não sabem do parentesco, adultério e amantes",
+    "sensivel": ""
+  }
+}

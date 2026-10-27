@@ -1,0 +1,404 @@
+{
+  "versao": 1,
+  "livroId": "se-fyodor-dostoevsky-crime-and-punishment-constance-garnett",
+  "titulo": "Crime and Punishment",
+  "idioma": "en",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 1
+  },
+  "autorEContexto": [
+    {
+      "texto": "Fiódor Dostoiévski nasceu em Moscou, em 1821, e morreu em São Petersburgo, em 1881.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1849, foi preso por participar do Círculo de Petrachévski, um grupo que discutia ideias socialistas proibidas pelo governo do tsar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Foi condenado à morte, mas a pena foi trocada no último instante, já diante do pelotão, por trabalhos forçados na Sibéria.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Passou quatro anos num presídio em Omsk e depois serviu como soldado. Essa experiência marcou toda a sua obra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Sofria de epilepsia e viveu boa parte da vida endividado, em parte por causa do vício em jogos de azar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro saiu em 1866, numa Rússia em mudança: a servidão havia sido abolida em 1861 e jovens discutiam ideias radicais sobre razão, ciência e moral.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A tradução inglesa de Constance Garnett foi publicada em 1914. Ela traduziu dezenas de livros russos e apresentou Dostoiévski a muitos leitores de língua inglesa.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É um dos romances psicológicos mais influentes da história: o leitor acompanha por dentro a mente de alguém dominado pela culpa, pela febre e pela dúvida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Discute uma pergunta que nunca envelhece: alguém tem o direito de passar por cima da moral comum em nome de uma ideia ou de um objetivo maior?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra a pobreza urbana de São Petersburgo com força rara, dando voz a pessoas que a literatura da época costumava ignorar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Influenciou romances policiais, o existencialismo e escritores do mundo todo, inclusive no Brasil.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Culpa e consciência",
+      "texto": "O livro se interessa menos pelo crime em si e mais pelo que ele faz com a mente de quem o comete.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "O homem extraordinário",
+      "texto": "Raskólnikov testa a ideia de que pessoas superiores, como Napoleão, estariam acima das regras morais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Pobreza e dignidade",
+      "texto": "Fome, dívidas e moradias apertadas pressionam quase todos os personagens e limitam suas escolhas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Redenção e fé",
+      "texto": "O romance pergunta se uma pessoa pode se transformar, e qual o papel do amor e da fé nisso.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Isolamento",
+      "texto": "O protagonista se afasta de todos. O livro mostra como a solidão alimenta ideias perigosas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Razão contra vida",
+      "texto": "Teorias frias, por mais lógicas que pareçam, entram em choque com a experiência humana real.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Rodion Raskólnikov",
+      "texto": "Ex-estudante de direito, muito pobre, orgulhoso e isolado. Vive num quartinho e remói uma ideia que o deixa doente. Na tradução de Garnett: Raskolnikov.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Sônia Marmeládova",
+      "texto": "Filha de Marmeládov. Jovem tímida e religiosa, que se sacrifica para sustentar a família. Garnett escreve Sonia.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Semion Marmeládov",
+      "texto": "Ex-funcionário público alcoólatra que Raskólnikov conhece numa taverna. Conta sua vida com vergonha e desespero.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Katerina Ivánovna",
+      "texto": "Esposa de Marmeládov. Orgulhosa, doente e cheia de filhos pequenos, luta para manter a dignidade na miséria.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Dúnia (Avdótia Románovna)",
+      "texto": "Irmã de Raskólnikov. Inteligente e firme, está disposta a se sacrificar pela família. Garnett escreve Dounia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Pulquéria Alexándrovna",
+      "texto": "Mãe de Raskólnikov. Vive no interior e deposita no filho todas as esperanças.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Razumíkhin",
+      "texto": "Amigo de faculdade de Raskólnikov. Alegre, trabalhador e leal. Garnett escreve Razumihin.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Porfíri Petróvitch",
+      "texto": "Investigador encarregado de um caso de assassinato. Esperto e irônico, prefere conversas a provas diretas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Lújin",
+      "texto": "Homem de negócios, rico e calculista, noivo de Dúnia. Trata o casamento como uma transação.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Svidrigáilov",
+      "texto": "Ex-patrão de Dúnia, homem de passado escandaloso. Chega a São Petersburgo com intenções misteriosas.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O romance foi publicado em partes, ao longo de 1866, na revista russa O Mensageiro Russo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Dostoiévski teve a ideia do livro em 1865, na cidade alemã de Wiesbaden, sem dinheiro após perder no jogo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os rascunhos mostram que o livro foi planejado primeiro como uma confissão em primeira pessoa. Depois, o autor mudou para a terceira pessoa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1866, enquanto escrevia este livro, Dostoiévski ditou outro romance, O Jogador, para cumprir um prazo com um editor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A estenógrafa que anotou O Jogador, Anna Snítkina, casou-se com ele em 1867.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O sobrenome Raskólnikov lembra a palavra russa raskol, que significa cisão ou ruptura.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O nome Razumíkhin vem de razum, que em russo quer dizer razão ou juízo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro tem seis partes e um epílogo. A ação principal se passa num verão quente em São Petersburgo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Grande parte da história acontece perto da Praça do Feno, uma região pobre e movimentada da cidade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Uma cena importante envolve a leitura do trecho bíblico da ressurreição de Lázaro, que ecoa o tema da renovação.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "O epílogo se passa na Sibéria, lugar que Dostoiévski conhecia por experiência própria.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "garret",
+      "texto": "Sótão ou quartinho logo abaixo do telhado, típico de quem tinha pouco dinheiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "landlady",
+      "texto": "Senhoria: a mulher que aluga o quarto e cobra o aluguel.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "lodger",
+      "texto": "Inquilino que aluga um quarto na casa de outra pessoa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "pawnbroker",
+      "texto": "Penhorista: quem empresta dinheiro e fica com um objeto como garantia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "pledge",
+      "texto": "Aqui, o objeto deixado em penhor. Hoje a palavra costuma significar promessa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "rouble",
+      "texto": "Rublo, a moeda russa. Garnett usa a grafia britânica antiga.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "copeck",
+      "texto": "Copeque, a centésima parte do rublo. Hoje se escreve mais kopek.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "titular counsellor",
+      "texto": "Conselheiro titular: um cargo baixo na hierarquia de funcionários públicos russos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "yellow ticket",
+      "texto": "Bilhete amarelo: documento que a polícia dava às mulheres registradas como prostitutas.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "termo": "samovar",
+      "texto": "Chaleira russa de metal, usada para manter água quente para o chá.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "tavern",
+      "texto": "Taverna: bar simples e barato onde se bebia vodca e cerveja.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "penal servitude",
+      "texto": "Trabalhos forçados, pena cumprida em geral na Sibéria. Em russo, katorga.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "A Tabela de Postos dividia os funcionários do Estado russo em 14 graus. O título de cada um mostrava seu lugar na sociedade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "São Petersburgo era a capital do Império Russo. Ao lado dos palácios, havia bairros superlotados, sujos e muito pobres.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A reforma judicial de 1864 mudou os tribunais russos. Criou, por exemplo, a figura do juiz de instrução, que investiga os crimes.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na década de 1860, muitos jovens defendiam ideias utilitaristas e materialistas. Dostoiévski discutia essas ideias e as criticava em seus livros.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A prostituição era regulada pela polícia. Quem se registrava perdia o passaporte comum e recebia o bilhete amarelo, o que dificultava sair dessa vida.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Na época, uma mulher pobre e solteira tinha pouquíssimas formas de ganhar a vida. Por isso, o casamento era muitas vezes uma questão de sobrevivência.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "Why does Raskolnikov isolate himself so much from other people? How does this affect his thinking?",
+      "texto": "Por que Raskólnikov se isola tanto das outras pessoas? Como isso afeta seus pensamentos?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "What do you think of the idea that extraordinary people have the right to break the rules?",
+      "texto": "O que você acha da ideia de que pessoas extraordinárias teriam direito de quebrar as regras?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "How does poverty shape the choices of the Raskolnikov and Marmeladov families?",
+      "texto": "De que modo a pobreza influencia as escolhas das famílias Raskólnikov e Marmeládov?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Porfiry rarely makes direct accusations. Why might this strategy be more effective?",
+      "texto": "Porfíri quase nunca acusa diretamente. Por que essa estratégia pode ser mais eficaz?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Sonia and Dounia accept sacrifices for their families. What do these sacrifices reveal about the society of the time?",
+      "texto": "Sônia e Dúnia aceitam sacrifícios pela família. O que esses sacrifícios revelam sobre a sociedade da época?",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "The title speaks of punishment. Does Raskolnikov's worst punishment come from the law or from his own conscience?",
+      "texto": "O título fala em castigo. O pior castigo de Raskólnikov vem da lei ou da própria consciência?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Are Svidrigaïlov and Raskolnikov alike in any way? How are they different?",
+      "texto": "Svidrigáilov e Raskólnikov se parecem em algum ponto? Em que são diferentes?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Does the epilogue show a real change or only a hope? What did you think of the ending?",
+      "texto": "O epílogo traz uma mudança de verdade ou só uma esperança? O que você achou do final?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "se-fyodor-dostoevsky-notes-from-underground-constance-garnett",
+      "motivo": "Mesmo autor e tradutora. Um narrador isolado e amargo que antecipa várias questões de Raskólnikov."
+    },
+    {
+      "id": "se-fyodor-dostoevsky-the-brothers-karamazov-constance-garnett",
+      "motivo": "Último romance de Dostoiévski. Volta aos temas de crime, culpa, fé e responsabilidade moral."
+    },
+    {
+      "id": "se-william-shakespeare-macbeth",
+      "motivo": "Outra grande história sobre um assassinato e a culpa que devora quem o comete."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "14",
+    "nota": "assassinato a machado descrito, prostituição de Sônia por pobreza, alcoolismo, suicídio de Svidrigáilov",
+    "sensivel": ""
+  }
+}

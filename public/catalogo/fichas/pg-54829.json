@@ -1,0 +1,402 @@
+{
+  "versao": 1,
+  "livroId": "pg-54829",
+  "titulo": "Memorias Posthumas de Braz Cubas",
+  "idioma": "pt",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 2
+  },
+  "autorEContexto": [
+    {
+      "texto": "Joaquim Maria Machado de Assis nasceu em 1839, no Rio de Janeiro, e morreu na mesma cidade em 1908.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Machado era neto de pessoas que tinham sido escravizadas e libertadas. Veio de família pobre e estudou praticamente sozinho.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Foi fundador e primeiro presidente da Academia Brasileira de Letras, criada em 1897.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro saiu em capítulos na Revista Brasileira em 1880 e foi publicado como livro em 1881.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A obra se passa no Rio de Janeiro do século XIX, entre o fim do período colonial e o Segundo Reinado, de Dom Pedro II.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época, a escravidão ainda era legal no Brasil. Ela só foi abolida em 1888, pela Lei Áurea.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Depois deste livro, Machado publicou outros romances muito estudados, como Quincas Borba (1891) e Dom Casmurro (1899).",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É considerado o marco inicial do Realismo na literatura brasileira.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Rompeu com o romance romântico da época: o narrador é um morto, conversa com o leitor, interrompe a história e faz piada de si mesmo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Faz um retrato crítico e irônico da elite carioca do Império: vaidade, interesse, hipocrisia e a naturalidade com que convivia com a escravidão.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É um dos livros brasileiros mais lidos e traduzidos no mundo e aparece com frequência em listas de grandes romances.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Morte e memória",
+      "texto": "O narrador conta a vida depois de morrer. Livre do medo da opinião alheia, ele diz o que em vida esconderia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Vaidade e desejo de glória",
+      "texto": "Brás quer ser lembrado, admirado e importante. Muitos de seus planos nascem mais da vaidade do que de uma vontade real de fazer algo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ironia e pessimismo",
+      "texto": "O tom é de humor e melancolia ao mesmo tempo. O livro ri das pessoas, mas mostra uma visão amarga sobre a natureza humana.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Amor, interesse e aparências",
+      "texto": "As relações amorosas aparecem ligadas a dinheiro, posição social e reputação. Importa muito o que os outros vão pensar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Escravidão e privilégio",
+      "texto": "O livro mostra, sem discursos, como a elite tratava pessoas escravizadas como coisa comum do dia a dia, e como a violência se reproduzia.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Crítica às filosofias da época",
+      "texto": "Por meio do Humanitismo, uma filosofia inventada por um personagem, o livro zomba de teorias que justificavam o egoísmo e a lei do mais forte.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Brás Cubas",
+      "texto": "Narrador. Homem rico da elite carioca que, já morto, decide contar a própria vida desde a infância, com franqueza e ironia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Virgília",
+      "texto": "Moça da elite que cruza o caminho de Brás quando ele é jovem. Torna-se a mulher mais importante da vida dele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Lobo Neves",
+      "texto": "Político ambicioso que se casa com Virgília. Sonha com cargos e prestígio.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Marcela",
+      "texto": "Primeira paixão de Brás na juventude, uma relação em que o dinheiro pesa muito.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Quincas Borba",
+      "texto": "Colega de infância de Brás. Reaparece mais tarde e cria uma filosofia própria, o Humanitismo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Prudêncio",
+      "texto": "Menino escravizado da casa dos Cubas na infância de Brás, que o maltrata como se fosse brinquedo.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Dona Plácida",
+      "texto": "Senhora pobre que, por necessidade, acaba ajudando a esconder o romance de Brás e Virgília.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Sabina e Cotrim",
+      "texto": "Irmã de Brás e o marido dela. Cotrim é um comerciante prático, que se acha honesto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Nhã-loló",
+      "texto": "Eulália, moça que a família tenta casar com Brás já na maturidade dele. Morre jovem, de febre amarela.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O narrador se apresenta como um defunto autor, e não como um autor defunto: não é um escritor que morreu, mas um morto que virou escritor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro começa pelo enterro do narrador, e não pelo nascimento dele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A obra é dedicada, com humor macabro, ao primeiro verme que comeu o corpo do narrador.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No prefácio, o narrador cita Laurence Sterne e Xavier de Maistre como modelos da forma livre do livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O romance tem 160 capítulos, muitos deles curtíssimos, alguns com poucas linhas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Um dos capítulos é um diálogo feito quase só de sinais de pontuação, sem palavras.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em outro capítulo, só há reticências no lugar do texto: o vazio é a piada.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em um capítulo de delírio, Brás é levado por um hipopótamo até a origem dos séculos e encontra a Natureza, ou Pandora.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Brás tenta inventar um remédio, o emplasto Brás Cubas, mais pela fama que ele traria do que para curar alguém.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O personagem Quincas Borba voltou em outro romance de Machado, Quincas Borba, de 1891.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O último capítulo faz um balanço do que Brás não teve e não fez na vida, e termina com uma conclusão pessimista.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "defunto",
+      "texto": "Pessoa morta. Palavra usada pelo narrador para falar de si mesmo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "galhofa",
+      "texto": "Brincadeira, zombaria, deboche. O narrador diz que escreve com humor e melancolia misturados.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "emplasto",
+      "texto": "Pasta medicinal que se aplicava sobre a pele. Hoje se diz mais emplastro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "hipocondria",
+      "texto": "No século XIX, além de medo exagerado de doença, indicava tristeza profunda, melancolia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "conto de réis",
+      "texto": "Mil mil-réis, ou seja, um milhão de réis. Era uma quantia alta de dinheiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "réis",
+      "texto": "Plural de real, a moeda do Brasil no Império. Valores eram escritos em mil-réis e contos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "nhonhô",
+      "texto": "Forma de tratamento usada por pessoas escravizadas para o filho do senhor. Vem de senhor.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "moleque",
+      "texto": "Na época, era também o nome dado a meninos negros escravizados. Hoje significa só garoto, ou pessoa travessa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "alforria",
+      "texto": "Libertação formal de uma pessoa escravizada, dada pelo senhor ou comprada.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "bacharel",
+      "texto": "Pessoa formada em curso superior, sobretudo Direito. Era título de prestígio entre a elite.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Humanitismo",
+      "texto": "Filosofia inventada por Quincas Borba no livro. É uma sátira das teorias da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "posthumas",
+      "texto": "Grafia antiga de póstumas: que vêm depois da morte. O título usa a ortografia do século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "A ortografia desta edição é a do século XIX: Braz em vez de Brás, posthumas em vez de póstumas. Muitas palavras têm letras dobradas ou h que hoje não se usam.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No Brasil do Império, a escravidão era legal e fazia parte da rotina das casas ricas. O livro mostra isso com ironia, e termos de época hoje são ofensivos.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Filhos da elite brasileira costumavam estudar na Universidade de Coimbra, em Portugal, e voltavam bacharéis.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Carreira política era sinal de prestígio. Ser deputado ou ministro era a ambição de muitos homens ricos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O casamento era muitas vezes um arranjo de família, ligado a dinheiro e posição. A reputação, sobretudo das mulheres, era vigiada de perto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O Rio de Janeiro era a capital do Império e o centro da vida política e social do país.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Por que um narrador morto pode ser mais sincero do que um vivo? Você confia no que Brás conta?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O narrador conversa com o leitor e até zomba dele. Como isso muda sua experiência de leitura?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O que o emplasto revela sobre o que Brás realmente deseja na vida?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Como o dinheiro e a posição social influenciam os amores do livro?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O que o destino de Prudêncio mostra sobre a violência da escravidão e como ela se reproduz?",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "O Humanitismo é uma filosofia séria ou uma piada? O que ela critica?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Capítulos curtíssimos, sem palavras ou só com reticências: para que servem essas brincadeiras com a forma?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "",
+      "texto": "Você concorda com o balanço que Brás faz da própria vida no último capítulo? Por quê?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "ws-pt-quincas-borba",
+      "motivo": "Do mesmo autor, retoma o personagem Quincas Borba e sua filosofia, o Humanitismo."
+    },
+    {
+      "id": "ws-pt-dom-casmurro",
+      "motivo": "Outro romance de Machado com narrador em primeira pessoa que conta a vida e em quem não dá para confiar por completo."
+    },
+    {
+      "id": "pg-42942",
+      "motivo": "Romance realista da mesma época sobre adultério, aparências e a vida burguesa."
+    },
+    {
+      "id": "se-fyodor-dostoevsky-notes-from-underground-constance-garnett",
+      "motivo": "Narrador amargo e irônico que se dirige ao leitor e expõe as próprias contradições."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "14",
+    "nota": "Memórias Póstumas: adultério central com Virgília, cinismo, morte. Sensível: escravidão: Prudêncio açoita outro escravizado; termos de época",
+    "sensivel": "escravidão: Prudêncio açoita outro escravizado; termos de época"
+  }
+}

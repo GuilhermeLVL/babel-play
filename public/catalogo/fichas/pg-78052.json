@@ -1,0 +1,298 @@
+{
+  "versao": 1,
+  "livroId": "pg-78052",
+  "titulo": "Andanzas y visiones españolas",
+  "idioma": "es",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "Miguel de Unamuno nasceu em Bilbao, no País Basco, em 1864, e morreu em Salamanca em 1936.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Foi professor de grego na Universidade de Salamanca e depois reitor dessa universidade.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É um dos principais nomes da chamada Geração de 98. Esse grupo de escritores refletiu sobre a crise da Espanha depois da perda das últimas colônias em 1898.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Unamuno escreveu romances, poesia, teatro e ensaios. Entre suas obras mais conhecidas estão Niebla e Del sentimiento trágico de la vida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele era um grande caminhante e viajou muito pelo interior da Espanha e por Portugal. Depois transformou essas viagens em artigos para jornais e revistas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Andanzas y visiones españolas foi publicado em 1922. O livro reúne textos de viagem escritos ao longo de vários anos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1924, por criticar a ditadura de Primo de Rivera, Unamuno foi desterrado para a ilha de Fuerteventura. Depois viveu exilado na França e só voltou à Espanha em 1930.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "O livro mostra como a Geração de 98 olhou para a paisagem espanhola. Para esses escritores, a terra também ajudava a entender o povo e a história do país.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Nele aparece um Unamuno diferente do filósofo angustiado: um observador atento de montanhas, cidades velhas e gente do campo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os textos são curtos e independentes. Isso torna o livro uma boa porta de entrada para conhecer a prosa de Unamuno.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Paisagem e alma",
+      "texto": "Para Unamuno, descrever um lugar é também falar de sentimentos, de lembranças e de perguntas sobre a vida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Castela e o interior da Espanha",
+      "texto": "Serras, planaltos e cidades antigas do centro e do oeste da Espanha estão no centro do livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "O que é a Espanha",
+      "texto": "As viagens servem para pensar a identidade espanhola, uma preocupação constante da Geração de 98.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Caminhar",
+      "texto": "Andar a pé, subir montanhas e observar com calma são formas de conhecer o país de perto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "História e tradição",
+      "texto": "Mosteiros, igrejas e cidades muradas lembram o passado da Espanha e levam o autor a refletir sobre ele.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [],
+  "curiosidades": [
+    {
+      "texto": "O título junta duas ideias: as andanças, que são os passeios e as viagens, e as visões, que são o que o autor vê e imagina.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Unamuno viveu a maior parte da vida adulta em Salamanca. Por isso, as terras ao redor dessa cidade aparecem com frequência nos seus textos de viagem.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Antes deste livro, Unamuno já tinha publicado outra coletânea de viagens: Por tierras de Portugal y de España, de 1911.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Unamuno criou a palavra intrahistoria. Ela designa a vida silenciosa e cotidiana do povo, que fica por baixo dos grandes acontecimentos históricos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Unamuno chamou seu romance Niebla de nivola, uma palavra inventada para indicar que o livro não seguia as regras do romance tradicional.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele gostava de Portugal e conhecia bem a sua literatura, coisa rara entre os escritores espanhóis da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Unamuno também era poeta. Muitas de suas paisagens em prosa têm um tom lírico, próximo da poesia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Os textos de viagem de Unamuno saíram primeiro em jornais e revistas, inclusive da América Latina, e só depois foram reunidos em livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Unamuno morreu no último dia de 1936, poucos meses depois do início da Guerra Civil Espanhola.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "andanzas",
+      "texto": "Andanças, aventuras de quem anda de um lugar para outro. Palavra do título.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "meseta",
+      "texto": "Planalto. Na Espanha, a palavra indica sobretudo o grande planalto central, onde fica Castela.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "páramo",
+      "texto": "Terreno alto, plano, descampado e frio, com pouca vegetação. É típico da paisagem castelhana.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "sierra",
+      "texto": "Cadeia de montanhas, serra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "encina",
+      "texto": "Azinheira, árvore muito comum nos campos do centro e do oeste da Espanha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "dehesa",
+      "texto": "Pasto com árvores espalhadas, em geral azinheiras ou sobreiros, usado para criar gado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "ermita",
+      "texto": "Pequena capela, muitas vezes isolada no campo ou no alto de um morro. Não quer dizer eremita.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "romería",
+      "texto": "Romaria, festa religiosa com peregrinação a um santuário.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "intrahistoria",
+      "texto": "Conceito de Unamuno: a vida comum e silenciosa do povo, que continua por baixo dos fatos da história oficial.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "castizo",
+      "texto": "Autêntico, típico, de raiz tradicional. Unamuno discutiu essa ideia no ensaio En torno al casticismo.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "Em 1898, a Espanha perdeu Cuba, Porto Rico e as Filipinas. Essa derrota provocou uma longa discussão sobre os rumos do país.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No começo do século 20, viajar pelo interior da Espanha era lento e difícil. Muitas regiões só eram alcançadas a pé, a cavalo ou de carroça.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Grande parte do interior espanhol era rural e pobre. Alguns textos de viagem da época registram essa pobreza com preocupação social.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1922, a Espanha era uma monarquia, sob o rei Afonso XIII. No ano seguinte começou a ditadura de Primo de Rivera.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "¿Por qué un escritor preocupado por el futuro de su país saldría a observar montañas y aldeas?",
+      "texto": "Por que um escritor preocupado com o futuro do país sairia para observar montanhas e aldeias?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo puede un paisaje expresar sentimientos? Da un ejemplo del libro.",
+      "texto": "Como uma paisagem pode expressar sentimentos? Dê um exemplo do livro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué diferencia hay entre ver un lugar y tener una visión de él?",
+      "texto": "Que diferença existe entre ver um lugar e ter uma visão dele?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué entiendes por intrahistoria? ¿Aparece en la gente sencilla que describe el autor?",
+      "texto": "O que você entende por intrahistoria? Ela aparece nas pessoas comuns que o autor descreve?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Caminar despacio cambia la manera de conocer un lugar? ¿Por qué?",
+      "texto": "Caminhar devagar muda o modo como conhecemos um lugar? Por quê?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué lugar de tu país describirías para explicar cómo es su gente?",
+      "texto": "Que lugar do seu país você descreveria para explicar quem são as pessoas de lá?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo sería hoy un relato de viaje sobre estos mismos lugares, con fotos y redes sociales?",
+      "texto": "Como seria um relato de viagem desses mesmos lugares escrito hoje, com fotos e redes sociais?",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-49836",
+      "motivo": "Romance do mesmo autor, para conhecer o Unamuno ficcionista e filósofo."
+    },
+    {
+      "id": "pg-68525",
+      "motivo": "Antonio Machado, amigo de Unamuno e também da Geração de 98, escreveu poemas marcantes sobre a paisagem de Castela."
+    },
+    {
+      "id": "se-miguel-de-cervantes-saavedra-don-quixote-john-ormsby",
+      "motivo": "Unamuno admirava o Quixote e escreveu sobre ele. O romance também percorre os caminhos da Espanha."
+    },
+    {
+      "id": "se-henry-david-thoreau-walden",
+      "motivo": "Outro escritor que fez da observação da natureza um caminho para pensar a vida."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "livre",
+    "nota": "crônicas de viagem de Unamuno pela Espanha",
+    "sensivel": ""
+  }
+}

@@ -1,0 +1,333 @@
+{
+  "versao": 1,
+  "livroId": "pg-27738",
+  "titulo": "José",
+  "idioma": "es",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 3
+  },
+  "autorEContexto": [
+    {
+      "texto": "Armando Palacio Valdés nasceu em 1853 em Entralgo, no concelho de Laviana, nas Astúrias, norte da Espanha. Morreu em Madri em 1938.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Estudou Direito, mas logo trocou a advocacia pelo jornalismo e pela literatura.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É um dos grandes nomes do realismo espanhol do século XIX, ao lado de Benito Pérez Galdós, Emilia Pardo Bazán e Leopoldo Alas, o Clarín, de quem foi amigo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Entre seus romances mais conhecidos estão Marta y María, La hermana San Sulpicio e La aldea perdida.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Foi membro da Real Academia Española e um dos romancistas espanhóis mais traduzidos de sua época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "José saiu em 1885, durante a Restauração, período de monarquia restaurada e relativa estabilidade política na Espanha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época, muitos escritores espanhóis retratavam a vida das regiões, com seus costumes, paisagens e modos de falar.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É um dos primeiros romances espanhóis centrados na vida dura dos pescadores do mar Cantábrico.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Mostra o realismo de Palacio Valdés em sua forma mais simples e acessível: enredo direto, personagens humildes e um ambiente bem observado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ajuda a entender como pobreza, trabalho e autoridade familiar pesavam sobre o amor e o casamento numa aldeia do século XIX.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Amor contra obstáculos",
+      "texto": "Um casal jovem enfrenta a oposição da família e as diferenças de dinheiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Pobreza e trabalho",
+      "texto": "A vida depende da pesca, um trabalho incerto, perigoso e mal pago.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "O mar",
+      "texto": "O mar dá sustento à aldeia, mas também ameaça a vida de quem trabalha nele.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ambição e interesse",
+      "texto": "O livro mostra como o desejo de subir na vida pode atropelar os sentimentos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Nobreza decadente",
+      "texto": "Um velho fidalgo empobrecido revela o contraste entre títulos antigos e a falta de dinheiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Vida de aldeia",
+      "texto": "Fofocas, rivalidades e solidariedade marcam a convivência num lugar pequeno.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "José",
+      "texto": "Jovem pescador honesto e trabalhador. Quer ter sua própria lancha e se casar com Elisa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Elisa",
+      "texto": "Moça da aldeia, namorada de José. Vive sob a autoridade forte da mãe.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Don Fernando de Meira",
+      "texto": "Fidalgo de família antiga, mas pobre. Vive de lembranças da grandeza passada e mantém seu orgulho.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "A aldeia do romance se chama Rodillero. É um nome inventado, inspirado em Cudillero, vila pesqueira real das Astúrias.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Cudillero é famosa pelas casas construídas na encosta, em forma de anfiteatro em volta do porto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No mesmo ano de José, 1885, José María de Pereda publicou Sotileza, outro romance sobre pescadores do norte da Espanha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "José é bem mais curto do que muitos romances de sua época, o que o torna uma boa porta de entrada para o realismo espanhol.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Palacio Valdés situou várias obras nas Astúrias. La aldea perdida, por exemplo, se passa no vale de Laviana, onde ele nasceu.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em sua época, Palacio Valdés foi muito lido fora da Espanha, inclusive na Inglaterra e nos Estados Unidos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro costuma ser classificado como romance regional ou de costumes, pela atenção ao trabalho, à fala e aos hábitos locais.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Um sonho concreto move o protagonista: ter um barco próprio para não depender de outros patrões.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "José sofre grandes perdas ao longo da história, entre elas um naufrágio, que é um dos momentos mais dramáticos do livro.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "texto": "O velho fidalgo Don Fernando acaba tendo um papel importante e generoso no destino de José.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "lancha",
+      "texto": "Barco de pesca de tamanho médio, movido a remo e vela. Não é a lancha a motor de hoje.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "patrón",
+      "texto": "Aqui é quem comanda o barco de pesca, o mestre da embarcação, e não só o chefe de uma empresa.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "marinero",
+      "texto": "Na aldeia, é sinônimo de pescador, homem que trabalha no mar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "redes",
+      "texto": "Redes de pesca. Em espanhol, a mesma palavra que usamos para redes em geral.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "muelle",
+      "texto": "Cais do porto, onde os barcos atracam. Não confundir com o sentido de mola.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "señá",
+      "texto": "Forma popular e reduzida de señora, usada antes do nome de mulheres do povo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "hidalgo",
+      "texto": "Fidalgo: membro da nobreza mais baixa, com título de família, mas muitas vezes sem dinheiro.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "mozo / moza",
+      "texto": "Rapaz ou moça jovem, em idade de namorar ou casar. Não significa garçom.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "novio / novia",
+      "texto": "Namorado ou noivo. Em espanhol, a mesma palavra serve para os dois casos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "duro",
+      "texto": "Moeda de cinco pesetas. Era uma quantia considerável para um pescador pobre.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "real",
+      "texto": "Moeda antiga de pequeno valor, ainda usada na fala popular depois da criação da peseta.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "A peseta virou a moeda oficial da Espanha em 1868, mas o povo continuou contando em reais e duros por muito tempo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na pesca tradicional, poucos tinham barco próprio. A maioria trabalhava para um dono e recebia parte do que pescava.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "No século XIX, os pais tinham enorme peso na escolha do noivo, e o dinheiro de cada família pesava muito no casamento.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A pesca a remo e vela no mar Cantábrico era muito perigosa. Tempestades súbitas podiam matar tripulações inteiras.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Muitas famílias nobres do interior tinham perdido a fortuna, mas mantinham o orgulho do sobrenome e a casa antiga.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "¿Por qué es tan importante para José tener una lancha propia?",
+      "texto": "Por que ter um barco próprio é tão importante para José?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo aparece el mar en el libro: como amigo, como enemigo o como ambas cosas?",
+      "texto": "Como o mar aparece no livro: como amigo, inimigo ou as duas coisas?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué representa don Fernando en el pueblo? ¿Por qué se aferra al pasado?",
+      "texto": "O que Don Fernando representa na aldeia? Por que ele se agarra ao passado?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿El pueblo ayuda o perjudica a los personajes? Da ejemplos.",
+      "texto": "A aldeia ajuda ou atrapalha os personagens? Dê exemplos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué diferencias ves entre el amor y el matrimonio en el libro y en la actualidad?",
+      "texto": "Que diferenças você vê entre o amor e o casamento no livro e nos dias de hoje?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo reacciona José ante las pérdidas que sufre? ¿Qué muestra eso de él?",
+      "texto": "Como José reage às perdas que sofre? O que isso mostra sobre ele?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-25777",
+      "motivo": "Do mesmo autor, um romance curto com ambiente rural do norte da Espanha."
+    },
+    {
+      "id": "pg-17073",
+      "motivo": "Grande romance realista asturiano de Clarín, amigo de Palacio Valdés, mas mais longo e complexo."
+    },
+    {
+      "id": "pg-23600",
+      "motivo": "Romance de costumes passado numa aldeia de pescadores, também com amor e diferenças sociais."
+    },
+    {
+      "id": "pg-17340",
+      "motivo": "Romance curto de Galdós sobre pobreza e amor num ambiente rural do norte."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "livre",
+    "nota": "romance de pescadores asturianos: amor, pobreza e um naufrágio",
+    "sensivel": ""
+  }
+}

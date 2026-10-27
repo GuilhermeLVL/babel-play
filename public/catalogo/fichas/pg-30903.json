@@ -1,0 +1,425 @@
+{
+  "versao": 1,
+  "livroId": "pg-30903",
+  "titulo": "El Filibusterismo (Continuación del Noli me tángere)",
+  "idioma": "es",
+  "geradaEm": "2026-10-26",
+  "procedencia": {
+    "geradoPor": "claude-opus (claude -p)",
+    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "aviso": "Gerado por IA, revisado automaticamente.",
+    "removidosNaRevisao": 0
+  },
+  "autorEContexto": [
+    {
+      "texto": "José Rizal nasceu em 1861, em Calamba, nas Filipinas, que eram então colônia da Espanha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Rizal estudou medicina e filosofia em Madri e se especializou em oftalmologia na Europa. Falava vários idiomas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ele fez parte do Movimento de Propaganda, grupo de filipinos que pedia reformas e direitos iguais dentro do domínio espanhol.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1887 publicou Noli me tángere, em Berlim. El Filibusterismo, a continuação, saiu em 1891, em Gante (Bélgica).",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Na época, as ordens religiosas católicas, os frades, tinham enorme poder político e econômico nas Filipinas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1892, Rizal fundou a Liga Filipina e logo foi desterrado para Dapitan, no sul do arquipélago, onde ficou até 1896.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1896 começou a revolução filipina contra a Espanha. Rizal foi acusado de inspirá-la, julgado e fuzilado em Manila em 30 de dezembro de 1896.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "Rizal escreveu em espanhol, a língua da administração colonial, embora a maioria dos filipinos falasse idiomas locais, como o tagalo.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "porQueImporta": [
+    {
+      "texto": "É uma das obras fundadoras da consciência nacional filipina. Rizal é considerado o herói nacional das Filipinas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Desde 1956, uma lei filipina, a Lei Rizal, obriga as escolas e universidades do país a estudar este livro e o Noli me tángere.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O livro discute uma pergunta difícil: mudar uma sociedade injusta por reformas pacíficas ou pela revolta violenta? Rizal não dá uma resposta fácil.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "É um retrato crítico do colonialismo escrito por alguém que vivia sob ele, e não por um observador estrangeiro.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "temas": [
+    {
+      "nome": "Reforma ou revolução",
+      "texto": "O livro opõe quem quer mudanças pacíficas, pela educação e pela lei, a quem acredita que só a violência derruba a injustiça.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Colonialismo e abuso de poder",
+      "texto": "Autoridades civis e religiosas usam o poder em benefício próprio, enquanto os filipinos comuns sofrem com impostos, prisões e perda de terras.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "nome": "Educação",
+      "texto": "Os estudantes lutam para criar uma academia de língua espanhola. O ensino aparece como chave para a liberdade e também como algo que o poder quer controlar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Vingança",
+      "texto": "A vingança pessoal se mistura com a causa coletiva, e o livro questiona se uma pode justificar a outra.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Corrupção e hipocrisia",
+      "texto": "Rizal satiriza funcionários, jornalistas e religiosos que falam em moral e progresso, mas agem por interesse.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Racismo colonial",
+      "texto": "Os filipinos nativos são tratados como inferiores pelos colonizadores, o que aparece em falas, leis e oportunidades negadas.",
+      "spoiler": false,
+      "sensivel": true
+    }
+  ],
+  "personagens": [
+    {
+      "nome": "Simoun",
+      "texto": "Joalheiro rico e misterioso, de óculos escuros, muito próximo do Capitão-General. Parece estimular a corrupção do governo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Simoun (identidade)",
+      "texto": "Simoun é, na verdade, Crisóstomo Ibarra, o protagonista do Noli me tángere, que voltou disfarçado para se vingar e provocar uma revolução.",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "nome": "Basilio",
+      "texto": "Jovem estudante de medicina, que os leitores do Noli conheceram ainda criança. Quer apenas estudar e trabalhar em paz.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Isagani",
+      "texto": "Estudante idealista e poeta, sobrinho do padre Florentino. Acredita na força da educação e defende suas ideias com paixão.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Padre Florentino",
+      "texto": "Sacerdote filipino, bondoso e sensato, que vive afastado na costa. Representa um clero nativo honesto.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Cabesang Tales",
+      "texto": "Camponês trabalhador que transformou terras abandonadas em plantação. Entra em disputa com uma ordem religiosa que reivindica essas terras.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Juli",
+      "texto": "Filha de Cabesang Tales e namorada de Basilio. Faz grandes sacrifícios para ajudar a família.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Paulita Gómez",
+      "texto": "Jovem bonita e rica de Manila, por quem Isagani é apaixonado.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Ben Zayb",
+      "texto": "Jornalista espanhol vaidoso, que escreve o que agrada às autoridades. É uma sátira da imprensa da época.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "nome": "Padre Camorra",
+      "texto": "Frade jovem, grosseiro e abusivo, que mostra o lado mais violento do poder religioso na colônia.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "curiosidades": [
+    {
+      "texto": "O livro é dedicado aos padres Gómez, Burgos e Zamora, conhecidos juntos como Gomburza, executados pelos espanhóis em 1872.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A execução de Gomburza seguiu um motim no arsenal de Cavite, em 1872. Os três foram acusados sem provas sólidas, e o caso marcou a juventude de Rizal.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Rizal tinha pouco dinheiro para imprimir o livro. Seu amigo Valentín Ventura ajudou a pagar a edição de 1891.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A história se passa cerca de treze anos depois dos acontecimentos do Noli me tángere.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O romance começa a bordo de um barco a vapor que sobe o rio Pasig, onde diferentes grupos sociais da colônia se encontram.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O tom é bem mais sombrio que o do Noli. Muitos leitores o veem como um aviso do que poderia acontecer se as reformas fossem negadas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A família de Rizal enfrentou uma longa disputa de terras com os frades dominicanos em Calamba e acabou despejada. O conflito de Cabesang Tales lembra esse caso.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O dia 30 de dezembro, data da morte de Rizal, é feriado nacional nas Filipinas: o Dia de Rizal.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Antes de ser fuzilado, Rizal escreveu o poema conhecido como Mi último adiós, uma despedida de sua pátria.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "O plano de Simoun culmina numa bomba escondida dentro de uma lâmpada, que deveria explodir numa festa de casamento.",
+      "spoiler": true,
+      "sensivel": true
+    },
+    {
+      "texto": "No final, Simoun morre na casa do padre Florentino, que joga o tesouro do joalheiro no mar.",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "vocabulario": [
+    {
+      "termo": "filibustero",
+      "texto": "Nas Filipinas da época, era quem se opunha ao governo espanhol: subversivo, inimigo do Estado. Não tem o sentido de pirata nem de obstrução parlamentar.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "filibusterismo",
+      "texto": "A atitude ou o movimento dos filibusteros, isto é, a oposição ao domínio colonial espanhol.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "fraile",
+      "texto": "Frade, membro de uma ordem religiosa (dominicanos, franciscanos, agostinianos). Nas Filipinas, os frades tinham enorme poder.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "indio",
+      "texto": "Termo colonial para os nativos filipinos. Muitas vezes era usado com desprezo. Não se refere aos povos indígenas da América.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "termo": "Capitán General",
+      "texto": "Governador-geral, a maior autoridade civil e militar da colônia, nomeado pela Espanha.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "guardia civil",
+      "texto": "Força policial militarizada espanhola, temida nas províncias pelos abusos contra a população.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "tulisán",
+      "texto": "Palavra de origem tagala para bandido ou fora da lei que vivia nas montanhas.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "cabeza de barangay",
+      "texto": "Chefe de um barangay, a menor unidade administrativa local, responsável por cobrar impostos. Cabesang é a forma tagala de cabeza.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "vapor",
+      "texto": "Barco a vapor. Hoje vapor é sobretudo o gás; no século XIX também designava o navio.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "peso",
+      "texto": "Moeda principal da colônia, de prata.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "cuarto",
+      "texto": "Moeda de cobre de pouco valor. Também aparece no sentido geral de dinheiro miúdo.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "mestizo",
+      "texto": "Pessoa de origem mista, por exemplo filho de espanhol ou chinês com filipino. Na colônia, a origem definia lugar social.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "peninsular",
+      "texto": "Espanhol nascido na Península Ibérica, que ocupava os cargos mais altos na colônia.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "termo": "Su Excelencia",
+      "texto": "Tratamento formal dado ao Capitão-General e a altas autoridades. Equivale a Vossa Excelência.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "notasDeEpoca": [
+    {
+      "texto": "As Filipinas foram colônia espanhola por mais de três séculos, até 1898, quando passaram ao controle dos Estados Unidos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "A sociedade colonial era dividida por origem: peninsulares no topo, depois criollos, mestiços, chineses e, por fim, os nativos filipinos.",
+      "spoiler": false,
+      "sensivel": true
+    },
+    {
+      "texto": "O ensino superior em Manila era controlado pelas ordens religiosas, como a Universidade de Santo Tomás, dos dominicanos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Ensinar espanhol aos filipinos era tema polêmico. Saber a língua dava acesso à lei e à política, e por isso muitos no poder não incentivavam o ensino.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Grande parte das terras agrícolas pertencia a ordens religiosas, que as arrendavam a camponeses. Aumentos de aluguel e despejos geravam muitos conflitos.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "texto": "Em 1892, Andrés Bonifacio fundou o Katipunan, sociedade secreta que lançou a revolução armada de 1896.",
+      "spoiler": false,
+      "sensivel": false
+    }
+  ],
+  "perguntas": [
+    {
+      "noIdiomaDoLivro": "En tu opinión, ¿la injusticia se combate mejor con reformas pacíficas o con la rebelión? ¿Cómo muestra el libro cada camino?",
+      "texto": "Na sua opinião, a injustiça se combate melhor com reformas pacíficas ou com revolta? Como o livro mostra cada caminho?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Por qué los estudiantes dan tanta importancia a aprender español? ¿Qué representa la lengua en el libro?",
+      "texto": "Por que os estudantes dão tanta importância a aprender espanhol? O que a língua representa no livro?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Simoun es un héroe, un villano o algo intermedio? Justifica tu respuesta.",
+      "texto": "Simoun é um herói, um vilão ou algo entre os dois? Justifique.",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Cómo usa Rizal el humor y la sátira para criticar a las autoridades y a los periodistas?",
+      "texto": "Como Rizal usa o humor e a sátira para criticar autoridades e jornalistas?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "La historia de Cabesang Tales muestra cómo una persona común puede ser empujada a la rebelión. ¿Qué opinas de eso?",
+      "texto": "A história de Cabesang Tales mostra como uma pessoa comum pode ser empurrada para a revolta. O que você pensa disso?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "Compara a Basilio e Isagani. ¿Cómo reacciona cada uno ante la injusticia que los rodea?",
+      "texto": "Compare Basilio e Isagani. Como cada um reage à injustiça ao seu redor?",
+      "spoiler": false,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Por qué Isagani decide impedir la explosión en la fiesta? ¿Qué revela esa decisión sobre él?",
+      "texto": "Por que Isagani decide impedir a explosão na festa? O que essa escolha revela sobre ele?",
+      "spoiler": true,
+      "sensivel": false
+    },
+    {
+      "noIdiomaDoLivro": "¿Qué quiere decir el padre Florentino al arrojar el tesoro al mar? ¿Qué mensaje final deja Rizal?",
+      "texto": "O que o padre Florentino quer dizer ao jogar o tesouro no mar? Que mensagem final Rizal deixa?",
+      "spoiler": true,
+      "sensivel": false
+    }
+  ],
+  "leiaTambem": [
+    {
+      "id": "pg-47584",
+      "motivo": "O primeiro romance de Rizal, do qual este livro é a continuação direta, com os mesmos personagens e cenário."
+    },
+    {
+      "id": "pg-18600",
+      "motivo": "O poema de despedida que Rizal escreveu antes de ser fuzilado, síntese do seu amor pela pátria."
+    },
+    {
+      "id": "pg-28281",
+      "motivo": "Romance do século XIX sobre a sociedade colonial espanhola em Cuba, com suas divisões de raça e classe."
+    },
+    {
+      "id": "pg-19898",
+      "motivo": "Obra de José Martí, contemporâneo de Rizal que também lutou pela independência de uma colônia espanhola, escrita para jovens leitores."
+    }
+  ],
+  "avisoDeConteudo": {
+    "classificacaoSugerida": "14",
+    "nota": "conspiração revolucionária, atentado a bomba, tortura e violência colonial nas Filipinas. Sensível: violência colonial espanhola e racismo contra filipinos",
+    "sensivel": "violência colonial espanhola e racismo contra filipinos"
+  }
+}

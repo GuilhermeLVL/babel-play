@@ -27,9 +27,8 @@ afterAll(async () => {
   await h.cleanup()
 })
 afterEach(async () => {
-  /* `registrarFalhaDeBoot` grava sem esperar (`void db…`). No Postgres de verdade a inserção ainda em voo chegava
-     DEPOIS do `DELETE` do reset e a linha vazava para o teste seguinte: deixa as inserções pousarem antes. */
-  await new Promise((r) => setTimeout(r, 50))
+  /* `registrarFalhaDeBoot` grava sem esperar. O reset espera as gravações em voo pousarem antes do `DELETE`
+     (`aguardarGravacoesDeBoot`): sem isso, no Postgres de verdade a linha vazava para o teste seguinte. */
   await boot.resetBootStatus()
   vi.restoreAllMocks()
 })
@@ -128,6 +127,18 @@ describe('bootStatus + /api/health — P2-5', () => {
     expect((await boot.bootStatus()).ok).toBe(true)
   })
 
+  /* As gravações em `boot_falhas` são disparadas sem espera; `aguardarGravacoesDeBoot` é o que torna o estado
+     determinístico (e o reset dos testes). Sem sono fixo: depois de esperar, só o banco vale e já reflete o passo. */
+  it('aguardarGravacoesDeBoot: depois de esperar, a linha já está no banco, e some quando o passo dá certo', async () => {
+    boot.registrarFalhaDeBoot('backfill-tenancy', new Error('x'))
+    await boot.aguardarGravacoesDeBoot()
+    boot.esquecerEmMemoria()
+    expect((await boot.bootStatus()).erros.map((e: any) => e.passo)).toEqual(['backfill-tenancy'])
+    boot.registrarSucessoDeBoot('backfill-tenancy')
+    await boot.aguardarGravacoesDeBoot()
+    expect((await boot.bootStatus()).erros).toEqual([])
+  })
+
   it('não vaza o texto do erro na resposta (só o passo que falhou)', async () => {
     boot.registrarFalhaDeBoot('backfill-tenancy', new Error('SEGREDO no caminho /var/x'))
     const res = fakeRes()
@@ -142,28 +153,20 @@ describe('bootStatus + /api/health — P2-5', () => {
   it('configuração crítica ausente e depois corrigida: health volta a ok', async () => {
     const { conferirConfiguracao, verificarConfiguracaoNoBoot } = await h.load<any>('../../server/lib/config')
     const antes = { ...process.env }
-    const esperarNoBanco = async (presente: boolean) => {
-      for (let i = 0; i < 100; i++) {
-        boot.esquecerEmMemoria() // só o banco vale: o espelho local escondia a corrida
-        const passos = (await boot.bootStatus()).erros.map((e: any) => e.passo)
-        if (passos.includes('configuracao') === presente) return
-        await new Promise((r) => setTimeout(r, 20))
-      }
-      throw new Error(`o banco não refletiu a falha de configuração (esperado presente=${presente}) em 2 s`)
-    }
     try {
       process.env.AUTH_REQUIRED = '1'
       const criticas: string[] = conferirConfiguracao().faltandoCriticas
       expect(criticas.length).toBeGreaterThan(0)
       verificarConfiguracaoNoBoot()
       expect((await boot.bootStatus()).erros.map((e: any) => e.passo)).toContain('configuracao')
-      /* A gravação e a remoção em `boot_falhas` são disparadas sem espera (`void db…`): no Postgres de verdade a
-         remoção podia chegar ANTES da inserção e a linha ficava. Espera o banco refletir cada passo. */
-      await esperarNoBanco(true)
+      /* A gravação e a remoção em `boot_falhas` são disparadas sem espera: no Postgres de verdade a remoção
+         podia chegar ANTES da inserção e a linha ficava. Espera cada gravação pousar, na ordem. */
+      await boot.aguardarGravacoesDeBoot()
 
       for (const n of criticas) process.env[n] = 'x'
       expect(verificarConfiguracaoNoBoot().ok).toBe(true)
-      await esperarNoBanco(false)
+      await boot.aguardarGravacoesDeBoot()
+      boot.esquecerEmMemoria() // só o banco vale: o espelho local escondia a corrida
       const res = fakeRes()
       await health({} as any, res)
       expect(res.body.bootErros ?? []).toEqual([])

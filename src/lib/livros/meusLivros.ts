@@ -28,7 +28,7 @@ export interface MeuLivro {
   titulo: string;
   autor?: string;
   origem: OrigemDoMeuLivro;
-  formato?: 'epub' | 'pdf' | 'web';
+  formato?: 'epub' | 'pdf' | 'txt' | 'web';
   idioma?: string;
   /** O endereço do artigo, quando veio por link. */
   url?: string;

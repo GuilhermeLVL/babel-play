@@ -38,6 +38,12 @@ Origem, commit e lista de arquivos: `ORIGEM.txt`. Toda mudança está marcada co
    com várias threads faz `import()` do módulo Emscripten a partir de um `blob:` na thread principal
    (`server/http/csp.ts`); por isso as barreiras 1 a 3 não dependem dela.
 
+## Narração (L3, 27/10/2026)
+
+5. **`paginator.js`: `mostrarTrecho(anchor)`**, o `#scrollToAnchor` com o motivo `'anchor'`. A narração vira a
+   página para a frase lida sem pôr o caret no começo da página (o `scrollToAnchor` público usa `'navigation'`,
+   que mexe na seleção; no WebKit um caret novo seria lido como toque na palavra).
+
 ## Recorte
 
 - `view.js`: `makeBook` só abre EPUB e PDF (MOBI, FB2, CBZ e pasta ficaram fora); o ZIP sai do

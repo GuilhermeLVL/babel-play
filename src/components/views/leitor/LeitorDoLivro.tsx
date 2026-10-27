@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  Headphones,
   Highlighter,
   ListTree,
   Type,
@@ -28,19 +29,25 @@ import {
   paraMarkdown,
   paraTextoDoAnki,
 } from '../../../core/leitura/exportar';
+import { type ModoDaNarracao, MODOS_DA_NARRACAO, mostraConviteDaVozNatural } from '../../../core/leitura/narracao';
 import { CORES_DOS_TEMAS } from '../../../core/leitura/perfilDeLeitura';
 import { ancorar } from '../../../core/leitura/reancorar';
+import { FLAG_VOZ_NATURAL } from '../../../core/vozNatural';
 import { fetchDeck } from '../../../data/api';
 import { buildGateway } from '../../../gateway';
 import { getActiveProfile } from '../../../gateway/activeProfile';
 import { ficharCartao } from '../../../lib/adicionarAoDeck';
 import { consentiuNuvem } from '../../../lib/consentimentoDeNuvem';
+import { getEntitlements } from '../../../lib/entitlements';
 import { baixar, baixarTexto } from '../../../lib/exportacao/baixar';
+import { flagLigada } from '../../../lib/flagsCache';
 import { t } from '../../../lib/i18n';
 import { useLangConfig } from '../../../lib/langConfig';
+import { detectLanguage } from '../../../lib/langDetect';
 import { baseLang, toBcp47 } from '../../../lib/languages';
 import type { Localizacao } from '../../../lib/leitor/foliate/view.js';
 import { type InfoDoLivro, MotorDoLeitor } from '../../../lib/leitor/motor';
+import { Narrador, type VistaDoNarrador } from '../../../lib/leitor/narrador';
 import { linkExternoSeguro } from '../../../lib/leitor/politicaDeRecursos';
 import {
   citacaoDoRange,
@@ -58,20 +65,44 @@ import type { LivroGuardado } from '../../../lib/livros/armazem';
 import { livroParaOMotor } from '../../../lib/livros/fontesDoLivro';
 import { idRemotoDoLivro } from '../../../lib/livros/idRemoto';
 import { posicoes } from '../../../lib/livros/posicoesDoAparelho';
+import { perfilProtegido } from '../../../lib/protecaoDoMenor';
 import { speak } from '../../../lib/tts';
 import { buildVocabWord, mtNoteFor, resolveWord } from '../../../lib/vocabWord';
 import { haVozPara } from '../../../lib/voz/haVoz';
+import { useVozesPreferidas, VOZ_DA_NUVEM, vozDaNuvemDisponivel, vozEmUso } from '../../../lib/voz/preferenciaDeVoz';
+import { destravarVozDaNuvem } from '../../../lib/voz/vozDaNuvem';
 import type { VocabWord } from '../../../types';
 import { toast } from '../../Toast';
 import VocabularyPanel from '../../VocabularyPanel';
 import BarraDaSelecao, { type TrechoSelecionado } from './BarraDaSelecao';
+import BarraDoNarrador, { PainelDaNarracao } from './BarraDoNarrador';
 import { etiquetaDaPalavra, HistoricoNaFolha } from './ganchosDaPalavra';
 import PainelDeAnotacoes, { type FormatoDeExportacao } from './PainelDeAnotacoes';
 import PainelDeTipografia from './PainelDeTipografia';
 import PainelDoSumario from './PainelDoSumario';
 import { usePerfilDeLeitura } from './usePerfilDeLeitura';
 
-type Painel = 'sumario' | 'tipografia' | 'anotacoes';
+type Painel = 'sumario' | 'tipografia' | 'anotacoes' | 'narracao';
+
+/* As escolhas do narrador ficam no aparelho (como o perfil de leitura). */
+const LS_MODO = 'leitor:narracao:modo';
+const LS_VELOCIDADE = 'leitor:narracao:velocidade';
+const LS_SEGUIR = 'leitor:narracao:seguir';
+const lerLocal = (chave: string): string | null => {
+  try {
+    return localStorage.getItem(chave);
+  } catch {
+    return null;
+  }
+};
+const gravarLocal = (chave: string, valor: string) => {
+  try {
+    localStorage.setItem(chave, valor);
+  } catch {
+    /* sem armazenamento: vale só nesta visita */
+  }
+};
+const VISTA_PARADA: VistaDoNarrador = { fase: 'parada', indice: 0, total: 0, frase: '' };
 
 interface Selecao {
   trecho: TrechoSelecionado;
@@ -149,6 +180,22 @@ export default function LeitorDoLivro({
   const [avisoPdf, setAvisoPdf] = useState<string | null>(null);
   const [anuncio, setAnuncio] = useState('');
   const [ttsSpeed, setTtsSpeed] = useState(1);
+  /* ── a narração (L3) ── */
+  const narradorRef = useRef<Narrador | null>(null);
+  const [narracaoAberta, setNarracaoAberta] = useState(false);
+  const [vistaNarrador, setVistaNarrador] = useState<VistaDoNarrador>(VISTA_PARADA);
+  const [modoNarracao, setModoNarracao] = useState<ModoDaNarracao>(() => {
+    const m = lerLocal(LS_MODO) as ModoDaNarracao | null;
+    return m && MODOS_DA_NARRACAO.includes(m) ? m : 'original';
+  });
+  const [velNarracao, setVelNarracao] = useState(() => {
+    const v = Number(lerLocal(LS_VELOCIDADE));
+    return Number.isFinite(v) && v >= 0.5 && v <= 2 ? v : 1;
+  });
+  const [seguirNarracao, setSeguirNarracao] = useState(() => lerLocal(LS_SEGUIR) !== '0');
+  /** A narração acabou de virar a página: o caret que a navegação põe não é toque na palavra. */
+  const ignorarToquesAte = useRef(0);
+  useVozesPreferidas(); // a voz escolhida em outra tela (ou na conta) vale aqui
   const langConfig = useLangConfig();
   const gateway = useMemo(() => buildGateway({ profile: getActiveProfile(), cloudConsent: consentiuNuvem }), []);
   const repo = useMemo(() => anotacoesDoLivro(livroId), [livroId]);
@@ -294,6 +341,88 @@ export default function LeitorDoLivro({
     if (estado === 'pronto') void motorRef.current?.aplicarPerfil(perfil);
   }, [perfil, estado]);
 
+  const avisouCota = useRef(false);
+  const langConfigRef = useRef(langConfig);
+  langConfigRef.current = langConfig;
+  const modoRef = useRef(modoNarracao);
+  modoRef.current = modoNarracao;
+  const velRef = useRef(velNarracao);
+  velRef.current = velNarracao;
+  const seguirRef = useRef(seguirNarracao);
+  seguirRef.current = seguirNarracao;
+  /* O narrador nasce com o livro pronto e morre com ele (a voz para ao sair do leitor). */
+  const traduzirRef = useRef<(texto: string) => Promise<string | null>>(async () => null);
+  const infoRef = useRef<InfoDoLivro | null>(null);
+  infoRef.current = info;
+  useEffect(() => {
+    if (estado !== 'pronto') return;
+    const n = new Narrador({
+      motor: () => motorRef.current,
+      livroId,
+      idiomaDoLivro: () => idiomaRef.current,
+      idiomaDaPessoa: () => baseLang(langConfigRef.current.mine),
+      traduzir: (texto) => traduzirRef.current(texto),
+      detectar: async (texto) => {
+        /* Frase curta engana o detector (a mesma regra da Leitura): sem sinal, vale o idioma do livro. */
+        const d = await detectLanguage(texto);
+        return d && d.confidence >= 0.6 && texto.trim().split(/\s+/).length >= 4 ? d.lang : null;
+      },
+      escolheuNuvem: (idioma) => vozEmUso(idioma) === VOZ_DA_NUVEM,
+      nuvemLiberada: () => ({ temDireito: getEntitlements().vozNatural, flagLigada: flagLigada(FLAG_VOZ_NATURAL) }),
+      aoMudar: setVistaNarrador,
+      aoNavegar: () => {
+        ignorarToquesAte.current = Date.now() + 900;
+      },
+      aoAviso: (aviso) => {
+        if (aviso === 'fim') setAnuncio(t('Fim do livro.'));
+        else if (aviso === 'sem-texto') toast.warn(t('Esta página não tem texto para ler.'));
+        else toast.warn(t('Não deu para ler esta frase com a voz do aparelho. Escolha outra voz em "Voz e modo".'));
+      },
+      aoRecuoDaNuvem: (motivo) => {
+        if (motivo === 'cota' && !avisouCota.current) {
+          avisouCota.current = true;
+          toast.warn(t('A voz natural chegou ao limite do seu plano: a narração segue com a voz do aparelho.'));
+        }
+      },
+      metadados: () => ({ titulo: infoRef.current?.titulo || t('Livro'), autor: infoRef.current?.autor }),
+    });
+    n.modo = modoRef.current;
+    n.velocidade = velRef.current;
+    n.seguir = seguirRef.current;
+    narradorRef.current = n;
+    return () => {
+      n.destruir();
+      narradorRef.current = null;
+    };
+    // O narrador é um por livro aberto; as escolhas chegam pelos refs e pelos `definir*`.
+  }, [estado, livroId]);
+
+  /* O estado da narração para o leitor de tela: UMA vez por mudança de estado, nunca por frase. */
+  const faseAnunciada = useRef(vistaNarrador.fase);
+  useEffect(() => {
+    const f = vistaNarrador.fase;
+    if (f === faseAnunciada.current || f === 'virando') return;
+    faseAnunciada.current = f;
+    setAnuncio(
+      f === 'tocando' ? t('Narração tocando.') : f === 'pausada' ? t('Narração pausada.') : t('Narração parada.'),
+    );
+  }, [vistaNarrador.fase]);
+
+  const abrirNarracao = () => {
+    if (narracaoAberta) {
+      narradorRef.current?.alternar();
+      return;
+    }
+    setNarracaoAberta(true);
+    if (vozDaNuvemDisponivel()) destravarVozDaNuvem(); // o iPhone só toca áudio liberado num toque
+    narradorRef.current?.tocar();
+  };
+  const fecharNarracao = () => {
+    narradorRef.current?.parar();
+    setNarracaoAberta(false);
+    if (painel === 'narracao') setPainel(null);
+  };
+
   useEffect(() => {
     fetchDeck()
       .then((d) => setNoDeck(new Set(d.map((c) => c.word.toLowerCase()))))
@@ -301,15 +430,17 @@ export default function LeitorDoLivro({
   }, []);
 
   /* A posição falada para o leitor de tela (uma vez por parada, não a cada pixel de rolagem). */
+  const narrando = vistaNarrador.fase === 'tocando' || vistaNarrador.fase === 'virando';
   useEffect(() => {
-    if (!local) return;
+    /* Narrando, a página vira sozinha: anunciar cada virada falaria por cima da narração. */
+    if (!local || narrando) return;
     const id = window.setTimeout(() => {
       const pct = Number.isFinite(local.fraction) ? Math.round(local.fraction * 100) : 0;
       const cap = local.tocItem?.label?.trim();
       setAnuncio(cap ? t('{cap}, {pct}% do livro', { cap, pct }) : t('{pct}% do livro', { pct }));
     }, 600);
     return () => window.clearTimeout(id);
-  }, [local]);
+  }, [local, narrando]);
 
   /* ── a Leitura antiga: as anotações por frase (no localStorage) migram uma vez, reancoradas pela citação ── */
   async function migrarAnotacoesDaLeitura(falas: string[]) {
@@ -343,6 +474,7 @@ export default function LeitorDoLivro({
 
   /* ── o documento de cada seção: teclado, seleção e toque na palavra ── */
   function ligarDocumento(doc: Document, indice: number) {
+    narradorRef.current?.secaoCarregada(doc, indice);
     const motor = () => motorRef.current;
     const gestos = {
       aoSelecionar: (r: Range) => {
@@ -361,7 +493,7 @@ export default function LeitorDoLivro({
       /* SÓ O TOQUE LIMPO chega aqui (`core/leitura/gestoDoLeitor.ts`): arrastar, segurar e o toque duplo são
          seleção e nunca abrem a folha da palavra. */
       aoTocar: (r: Range, alvo: Node) => {
-        if (Date.now() - toqueEmAnotacao.current < 700) return;
+        if (Date.now() - toqueEmAnotacao.current < 700 || Date.now() < ignorarToquesAte.current) return;
         if (seguirLinkInterno(alvo)) return;
         const texto = r.toString();
         if (!/\p{L}/u.test(texto) || texto.length < 2) return;
@@ -552,6 +684,8 @@ export default function LeitorDoLivro({
     }
   };
 
+  traduzirRef.current = traduzir;
+
   /* ── exportações (todas no navegador) ── */
   const livroDaExportacao = () => ({
     id: livroId,
@@ -619,6 +753,7 @@ export default function LeitorDoLivro({
     sumario: t('Sumário e busca'),
     tipografia: t('Aparência'),
     anotacoes: t('Anotações'),
+    narracao: t('Narração'),
   };
 
   return (
@@ -640,6 +775,19 @@ export default function LeitorDoLivro({
           {titulo}
         </h1>
         <nav className="leitor-ferramentas" aria-label={t('Ferramentas do leitor')}>
+          {!info?.ehPdf && (
+            <button
+              type="button"
+              className="leitor-botao"
+              aria-pressed={narracaoAberta}
+              disabled={estado !== 'pronto'}
+              data-testid="leitor-ouvir"
+              onClick={abrirNarracao}
+            >
+              <Headphones aria-hidden />
+              <span>{t('Ouvir')}</span>
+            </button>
+          )}
           <button
             type="button"
             className="leitor-botao"
@@ -740,6 +888,33 @@ export default function LeitorDoLivro({
                   ehPdf={!!info?.ehPdf}
                 />
               )}
+              {painel === 'narracao' && (
+                <PainelDaNarracao
+                  modo={modoNarracao}
+                  seguir={seguirNarracao}
+                  idiomaDoLivro={idiomaRef.current}
+                  idiomaDaPessoa={baseLang(langConfig.mine)}
+                  nuvem={vozDaNuvemDisponivel()}
+                  convite={mostraConviteDaVozNatural({
+                    temDireito: getEntitlements().vozNatural,
+                    flagLigada: flagLigada(FLAG_VOZ_NATURAL),
+                    protegido: perfilProtegido(),
+                    podeAbrirPlanos: !!aoConhecerPlanos,
+                  })}
+                  aoModo={(m) => {
+                    setModoNarracao(m);
+                    gravarLocal(LS_MODO, m);
+                    narradorRef.current?.definirModo(m);
+                  }}
+                  aoSeguir={(v) => {
+                    setSeguirNarracao(v);
+                    gravarLocal(LS_SEGUIR, v ? '1' : '0');
+                    narradorRef.current?.definirSeguir(v);
+                  }}
+                  aoEscolherVoz={() => narradorRef.current?.reiniciarFrase()}
+                  aoConhecerPlanos={aoConhecerPlanos}
+                />
+              )}
               {painel === 'anotacoes' && (
                 <PainelDeAnotacoes
                   anotacoes={anotacoes}
@@ -790,6 +965,27 @@ export default function LeitorDoLivro({
                 }
               : undefined
           }
+        />
+      )}
+
+      {narracaoAberta && (
+        <BarraDoNarrador
+          vista={vistaNarrador}
+          velocidade={velNarracao}
+          ajustesAbertos={painel === 'narracao'}
+          aoAlternar={() => {
+            if (vozDaNuvemDisponivel()) destravarVozDaNuvem();
+            narradorRef.current?.alternar();
+          }}
+          aoAnterior={() => narradorRef.current?.anterior()}
+          aoProxima={() => narradorRef.current?.proxima()}
+          aoVelocidade={(v) => {
+            setVelNarracao(v);
+            gravarLocal(LS_VELOCIDADE, String(v));
+            narradorRef.current?.definirVelocidade(v);
+          }}
+          aoAjustes={() => abrirPainel('narracao')}
+          aoParar={fecharNarracao}
         />
       )}
 

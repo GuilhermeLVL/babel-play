@@ -919,6 +919,12 @@ export class Paginator extends HTMLElement {
     async scrollToAnchor(anchor, select) {
         return this.#scrollToAnchor(anchor, select ? 'selection' : 'navigation')
     }
+    // FRASY: mostrar um trecho SEM mexer na seleção (a narração, L3, vira a página para a frase lida). O
+    // `scrollToAnchor` público usa o motivo 'navigation', que põe o caret no começo da página — e no WebKit
+    // (sem eventos do iframe) um caret novo é lido como toque na palavra.
+    async mostrarTrecho(anchor) {
+        return this.#scrollToAnchor(anchor, 'anchor')
+    }
     async #scrollToAnchor(anchor, reason = 'anchor') {
         this.#anchor = anchor
         const rects = uncollapse(anchor)?.getClientRects?.()

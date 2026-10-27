@@ -215,10 +215,20 @@ test.describe('Cartões: hoje e a rodada', () => {
 
     const rodada = revisao(page)
     await expect(rodada).toHaveAttribute('data-estado', /^(rodada|fora)$/, { timeout: 20_000 })
-    if ((await rodada.getAttribute('data-estado')) === 'fora') {
-      await clicarRobusto(page, rodada.locator('.q-vazio .q-ctl.pri'))
-    }
-    await expect(rodada).toHaveAttribute('data-estado', 'rodada', { timeout: 10_000 })
+    /* "fora" é transitório (sem rodada ou sem cartão atual): a rodada pode começar entre a leitura e o
+       clique, e aí o botão some. Por isso leitura, clique e conferência repetem juntas; só o clique que
+       estourou o prazo porque o botão sumiu é tolerado — o desfecho exigido continua sendo "rodada". */
+    await expect(async () => {
+      if ((await rodada.getAttribute('data-estado')) === 'fora') {
+        await rodada
+          .locator('.q-vazio .q-ctl.pri')
+          .click({ timeout: 2_000 })
+          .catch((e: Error) => {
+            if (e.name !== 'TimeoutError') throw e
+          })
+      }
+      await expect(rodada).toHaveAttribute('data-estado', 'rodada', { timeout: 1_000 })
+    }).toPass({ timeout: 20_000 })
     const conta = rodada.locator('.qr-conta')
     await expect(conta).toHaveText(/^1 \/ \d+$/)
     const naFila = Number(((await conta.textContent()) ?? '').match(/\/ (\d+)/)?.[1] ?? 0)

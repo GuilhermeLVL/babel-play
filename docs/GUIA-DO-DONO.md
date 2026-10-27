@@ -21,6 +21,30 @@ Este guia **não repete** o detalhe técnico: aponta para a fonte. Se um número
 
 ---
 
+## Estado em 27/10/2026 (noite): o que já foi feito
+
+A produção **já está no ar e fechada** em `https://frasy.com.br` (Worker `frasy`; `/api/health` com `status: ok`,
+banco `up`; `www` redireciona para o domínio sem `www`). Feito hoje, sem precisar de você:
+
+- **A1** NS trocados no Registro.br e zona **ativa** (SSL strict, HTTPS sempre, TLS 1.2).
+- **A8** Environment `production` criado (deploy só da `main`), com os 4 secrets e as 5 variáveis públicas.
+- **A9** Os 6 secrets entraram no Worker `frasy`: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SECRET_KEY` (nova, só da
+  produção), `ASAAS_WEBHOOK_TOKEN`, `SIGNUP_ENABLED=0` e `CHECKOUT_ENABLED=0`.
+- **A10 (parte)** Os dois runs do deploy passaram (o 2º com fumaça, promoção a 100% e fumaça final) e `frasy.com.br` e
+  `www.frasy.com.br` estão ligados ao Worker. **Falta** da A10: cabeçalho de origem, WAF, rate limit, cache e flags (passos 6 a 11).
+- **A15** Worker antigo `babel-play` apagado.
+
+> ⚠️ **Guarde agora o `.secrets.production.json`** (está só no seu computador, na pasta do worktree, ignorado pelo git;
+> se a pasta for apagada, o valor se perde). Ele tem o `ASAAS_WEBHOOK_TOKEN`, que você cola no painel do Asaas na A5.
+>
+> ⚠️ O **banco de produção** (`postgres`, mesmo projeto Supabase do staging, outro banco) ainda tem **dados de ensaio**
+> (por exemplo 213 `vocab_cards` e 10 `flags`). Limpe antes de abrir o cadastro (A13).
+
+**Falta, em ordem:** A2 (Supabase: redirects, PITR) → A11 (política, `contato@`, DPAs) → A5 (Asaas) e A3 (Resend) →
+A6, A7 → fechar a A10 → A12 (passeio) → A13 (abrir as portas) → A14.
+
+---
+
 ## Mapa de dependências e ordem recomendada
 
 ```
@@ -59,21 +83,21 @@ FASE C  O resto: guias, livros, parceiro de leitura, decisões de produto
 **Fase 0 e A (abre a produção)**
 
 - [ ] 0. Cofre de senhas, 2FA, contador (ME no Simples, CNPJ, NFS-e)
-- [ ] A1. NS da zona `frasy.com.br` trocados no Registro.br e zona **Ativa**
+- [x] A1. NS da zona `frasy.com.br` trocados no Registro.br e zona **Ativa** (feito em 27/10)
 - [ ] A2. Supabase Pro: redirects, cadastro desligado, PITR, projeto separado para o staging
 - [ ] A3. Resend: domínio verificado (SPF/DKIM/DMARC), tracking desligado, chave de envio, SMTP no Supabase
 - [ ] A4. Chaves de IA pagas (OpenRouter e Groq) com teto e retenção zero
 - [ ] A5. Asaas PJ: aprovada, chave sandbox + produção, webhook, nenhuma assinatura antiga (R$ 39,90 / R$ 179)
 - [ ] A6. Sentry (2 DSNs), UptimeRobot (monitor + `HEALTH_URL`), Turnstile (site key + Supabase)
 - [ ] A7. R2: chaves S3 (backup e Environment `restauracao`), domínio `modelos.frasy.com.br`
-- [ ] A8. GitHub Environment `production` com secrets e variables
-- [ ] A9. `.secrets.production.json` preenchido e enviado por `scripts/cloudflare/secrets.ts`
-- [ ] A10. Deploy da produção (2 runs), domínio no Worker, cabeçalho de origem, WAF, rate limit
+- [x] A8. GitHub Environment `production` com secrets e variables (feito em 27/10)
+- [x] A9. `.secrets.production.json` preenchido e enviado por `scripts/cloudflare/secrets.ts` (feito em 27/10; **guarde o arquivo**)
+- [ ] A10. Deploy da produção (2 runs ✅), domínio no Worker ✅; **falta**: cabeçalho de origem, WAF, rate limit, cache e flags
 - [ ] A11. Política de privacidade (campos `[DONO]`), DPAs, `contato@frasy.com.br`, advogado (Termos §3–§4)
 - [ ] A12. Passeio manual no staging (com console aberto), Safari, conferências do LANCAMENTO §10
 - [ ] A13. Abrir as portas, uma por vez (`SIGNUP_ENABLED` → `CHECKOUT_ENABLED` → `ANUAL_ENABLED`)
 - [ ] A14. Alertas de fatura (Cloudflare, Supabase, Sentry)
-- [ ] A15. Apagar o Worker antigo `babel-play`
+- [x] A15. Apagar o Worker antigo `babel-play` (feito em 27/10)
 
 **Fase B (anúncios)**
 

@@ -310,3 +310,16 @@ Cada fase vai num worktree próprio, com revisão `revisor-critico`, merge na ma
    mostrado também no Grátis (custo zero); gerar resumo novo, simplificar, quiz e explicar continuam no pago.
 3. Teto do audiolivro no pago (proposta, a confirmar na L3): 30 capítulos por mês no Plus, dentro dos 150 mil
    caracteres de voz que já existem.
+4. **Baixar o texto do livro (TXT e o EPUB original) só para livros PD do catálogo** (decisão de 26/10, na L2).
+   Livro trazido pela pessoa e sessão da Leitura exportam só as anotações (Markdown, JSON W3C, Anki).
+5. **Posição e perfil de leitura ficam por aparelho, por enquanto** (decisão de 26/10, na L2). Só as anotações
+   sincronizam com a conta. **Pendência (follow-up):** sincronizar a posição (CFI + "continuar de onde parei")
+   e o perfil de leitura entre aparelhos, pela mesma infra de dados de estudo.
+
+## Notas da implementação da L2 (26/10/2026)
+
+- `/livros/<id>/ler` (o "Ler" da L1, e "Meus livros") abre o leitor da L2 (`LeitorDoCatalogo`): o livro vai
+  para a estante do aparelho (`src/lib/livros/doCatalogo.ts`) e o leitor abre nele. A leitura provisória da L1
+  saiu. A estante usa um IndexedDB próprio (`frasy-leitor`); o `frasy-livros` continua sendo o de "Meus livros".
+- O capítulo do livro é limpo pelo DOMPurify e sai como HTML montado pelo app, com a CSP (`default-src 'none'`)
+  como primeiro filho do `<head>`, num iframe sem `allow-scripts` (`src/lib/leitor/foliate/PATCHES.md`).

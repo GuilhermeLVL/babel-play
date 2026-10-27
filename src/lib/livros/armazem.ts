@@ -1,5 +1,7 @@
 /**
- * A ESTANTE DO APARELHO (IndexedDB `frasy-livros`): os arquivos dos livros e as anotações locais.
+ * A ESTANTE DO APARELHO (IndexedDB `frasy-leitor`): os arquivos dos livros e as anotações locais. Banco
+ * PRÓPRIO: o `frasy-livros` é o de "Meus livros" da L1 (`meusLivros.ts`), com outro esquema e outra versão —
+ * dividir o nome fazia um dos dois falhar com `VersionError`.
  *
  *  · `livros`: o EPUB/PDF/TXT trazido pela pessoa (o arquivo NUNCA vai ao servidor) e a cópia do livro do
  *    catálogo baixada do navegador (Standard Ebooks, Wikisource, cópia curada no R2) — para reabrir sem rede
@@ -60,7 +62,7 @@ interface EsquemaDaEstante extends DBSchema {
   estado: { key: string; value: { chave: string; valor: number } };
 }
 
-const NOME = 'frasy-livros';
+const NOME = 'frasy-leitor';
 let conexao: Promise<IDBPDatabase<EsquemaDaEstante>> | null = null;
 
 function abrir() {

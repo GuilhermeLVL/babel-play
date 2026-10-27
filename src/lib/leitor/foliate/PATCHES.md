@@ -14,8 +14,12 @@ Origem, commit e lista de arquivos: `ORIGEM.txt`. Toda mudança está marcada co
    motor (`../motor.ts`) já trata o evento `external-link` e cancela o padrão; esta é a segunda barreira.
 3. **O motor (`../motor.ts`, `../politicaDeRecursos.ts`), fora do vendor:** o evento `load` só deixa entrar
    (X)HTML, SVG, CSS, imagem, fonte e áudio (XML genérico, XSLT, JS e o resto ficam fora); o evento `data`
-   limpa toda marcação, inclusive `Blob` que fareja como HTML/SVG, com `../limparHtml.ts` (tira script,
-   `on*`, `javascript:`, `iframe`/`object`/`embed`/`form` e a instrução `xml-stylesheet`).
+   limpa toda marcação, inclusive `Blob` que fareja como HTML/SVG, com `../limparHtml.ts` — o **DOMPurify**
+   (`WHOLE_DOCUMENT`, no modo `text/html` em que o capítulo vai ser lido; o XHTML/SVG é recriado sem prefixos
+   pelo nome local antes; saída estável em até 2 passadas, senão recusa). Um predicado só (`tipoDeMarcacao`)
+   decide o que é marcação, e o tipo do `blob:` só vira `text/html` depois que a limpeza rodou; o que falha
+   vira texto vazio. A instrução `xml-stylesheet` não passa (o documento é remontado como HTML). O e2e com
+   `mxss.epub` (raw text de `<style>`/`<xmp>`/`<noscript>`, prefixos, raiz SVG) roda no Chromium e no WebKit.
 0. **CSP do capítulo (a barreira principal, revisão de 26/10/2026):** `../limparHtml.ts` põe
    `<meta http-equiv="Content-Security-Policy">` (`CSP_DO_CAPITULO`: só `blob:`/`data:`, nenhum script) como
    primeiro filho do `<head>` de todo capítulo e tira toda `<meta http-equiv>` do livro. O (X)HTML sai como

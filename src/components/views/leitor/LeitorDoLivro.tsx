@@ -120,10 +120,13 @@ export default function LeitorDoLivro({
   livroId,
   aoVoltar,
   aoConhecerPlanos,
+  rotuloDoVoltar,
 }: {
   livroId: string;
   aoVoltar: () => void;
   aoConhecerPlanos?: () => void;
+  /** O texto do botão de voltar (padrão: "Estante"; aberto pelo catálogo: "Voltar"). */
+  rotuloDoVoltar?: string;
 }) {
   const hospedeiro = useRef<HTMLDivElement>(null);
   const motorRef = useRef<MotorDoLeitor | null>(null);
@@ -603,7 +606,7 @@ export default function LeitorDoLivro({
       <header className="leitor-topo">
         <button type="button" className="leitor-botao" onClick={aoVoltar}>
           <ArrowLeft aria-hidden />
-          <span>{t('Estante')}</span>
+          <span>{rotuloDoVoltar ?? t('Estante')}</span>
         </button>
         <h1 className="leitor-titulo" title={titulo}>
           {titulo}

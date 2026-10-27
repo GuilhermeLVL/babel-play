@@ -553,8 +553,12 @@ export function consumirQueryDoBoot(): string {
  * dança de boot o App espelha a view antiga (`/`) antes de restaurar, e o caminho volta como `/leitor`, sem o
  * id. É o que faz o F5 no leitor reabrir o MESMO livro. Lido na montagem do leitor, esquecido no efeito.
  */
-let livroDoBoot: string | null =
-  typeof window === 'undefined' ? null : (urlParaEstado(window.location.pathname).livroId ?? null);
+let livroDoBoot: string | null = (() => {
+  if (typeof window === 'undefined') return null;
+  /* Só o `/leitor/<id>`: o `/livros/<id>` da L1 usa o mesmo campo, e não é um livro da estante. */
+  const e = urlParaEstado(window.location.pathname);
+  return e.view === 'leitor' ? (e.livroId ?? null) : null;
+})();
 
 export const lerLivroDoBoot = (): string | null => livroDoBoot;
 

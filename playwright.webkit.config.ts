@@ -15,7 +15,8 @@ import base from './playwright.config'
  */
 export default defineConfig({
   ...base,
-  testMatch: '**/leitor*.e2e.ts',
+  /* O leitor, e o catálogo da L1 que abre nele (`/livros/<id>/ler`). */
+  testMatch: ['**/leitor*.e2e.ts', '**/livros.e2e.ts'],
   projects: [
     { name: 'webkit-iphone', use: { ...devices['iPhone 13'] } },
     { name: 'webkit-desktop', use: { ...devices['Desktop Safari'], viewport: { width: 1280, height: 800 } } },

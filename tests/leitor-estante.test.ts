@@ -11,11 +11,14 @@ import { type AnotacaoDeLeitura, citacaoDe, novaAnotacao } from '../src/core/lei
 import { formatoDosBytes, idDoArquivo, idDoCatalogo, prepararLivro } from '../src/lib/livros/abrir'
 import { anotacoesDoLivro } from '../src/lib/livros/anotacoesDoLivro'
 import { esquecerConexaoDaEstante, estante } from '../src/lib/livros/armazem'
+import { lerCapitulosGuardados } from '../src/lib/livros/capitulosGuardados'
+import { prepararDoCatalogo, prepararMeuLivro } from '../src/lib/livros/doCatalogo'
+import { guardarConteudo, type MeuLivro } from '../src/lib/livros/meusLivros'
 
 async function zerarEstante() {
   await esquecerConexaoDaEstante()
   await new Promise<void>((ok) => {
-    const q = indexedDB.deleteDatabase('frasy-livros')
+    const q = indexedDB.deleteDatabase('frasy-leitor')
     q.onsuccess = q.onerror = q.onblocked = () => ok()
   })
 }
@@ -79,6 +82,91 @@ describe('abrir e a estante (IndexedDB)', () => {
       code: 'formato',
     })
     await expect(prepararLivro(new File([], 'x.epub'))).rejects.toMatchObject({ code: 'vazio' })
+  })
+})
+
+const livroDoCatalogo = (o: Record<string, unknown>) =>
+  ({
+    titulo: 'Contos',
+    autores: [{ nome: 'Machado de Assis', anoMorte: 1908, idiomas: ['pt'] }],
+    tradutores: [],
+    idioma: 'pt',
+    fonteId: 'x',
+    categorias: [],
+    classificacao: 'livre',
+    nivel: 'B1',
+    palavras: 1000,
+    minutosEstimados: 5,
+    popularidade: 0,
+    downloads: 0,
+    credito: 'Wikisource',
+    licenca: 'Domínio público',
+    ...o,
+  }) as unknown as Parameters<typeof prepararDoCatalogo>[0]
+
+describe('o livro da L1 (catálogo e "Meus livros") na estante do leitor', () => {
+  beforeEach(zerarEstante)
+
+  it('Standard Ebooks: o EPUB vem da fonte com ?source=download, como domínio público', async () => {
+    const fetch = vi.fn(async () => new Response(new Blob([new Uint8Array([0x50, 0x4b, 3, 4])]), { status: 200 }))
+    vi.stubGlobal('fetch', fetch)
+    const id = await prepararDoCatalogo(
+      livroDoCatalogo({
+        id: 'se-x',
+        fonte: 'standard-ebooks',
+        formatos: { epub: 'https://standardebooks.org/x.epub' },
+      }),
+      (i) => `Parte ${i + 1}`,
+    )
+    expect(fetch).toHaveBeenCalledWith('https://standardebooks.org/x.epub?source=download', expect.anything())
+    expect(await estante.livro(id)).toMatchObject({ origem: 'catalogo', dominioPublico: true, formato: 'epub' })
+    vi.unstubAllGlobals()
+  })
+
+  it('"Meus livros": o EPUB que a L1 guardou abre no leitor; os dois bancos convivem (sem VersionError)', async () => {
+    const meu: MeuLivro = {
+      id: 'meu-abc123',
+      titulo: 'Meu Livro',
+      origem: 'arquivo',
+      formato: 'epub',
+      adicionadoEm: 5,
+      status: 'lendo',
+      etiquetas: [],
+      progresso: null,
+    }
+    expect(
+      await guardarConteudo({
+        id: meu.id,
+        arquivo: new Blob([new Uint8Array([0x50, 0x4b, 3, 4, 0, 0])]),
+        capitulos: [{ titulo: 'Um', texto: 'Texto.' }],
+      }),
+    ).toMatchObject({ guardado: true })
+    /* No disco da L1 o arquivo vai como bytes, e não como Blob (o Safari recusa Blob no IndexedDB). */
+    const cru = await new Promise<Record<string, unknown>>((ok, falha) => {
+      const q = indexedDB.open('frasy-livros')
+      q.onerror = () => falha(q.error)
+      q.onsuccess = () => {
+        const g = q.result.transaction('conteudo').objectStore('conteudo').get(meu.id)
+        g.onsuccess = () => {
+          q.result.close()
+          ok(g.result as Record<string, unknown>)
+        }
+      }
+    })
+    expect(cru.arquivo).toBeUndefined()
+    expect(cru.bytes).toBeInstanceOf(ArrayBuffer)
+    expect(await prepararMeuLivro(meu)).toBe(meu.id)
+    expect(await estante.livro(meu.id)).toMatchObject({ origem: 'usuario', formato: 'epub', titulo: 'Meu Livro' })
+    expect((await estante.livro(meu.id))?.dominioPublico).toBeUndefined()
+    // Sem conteúdo no aparelho: null (a tela pede o arquivo de novo).
+    expect(await prepararMeuLivro({ ...meu, id: 'meu-sumiu' })).toBeNull()
+  })
+
+  it('os capítulos guardados que não conferem são ignorados (o leitor lê como texto corrido)', async () => {
+    const tipo = 'application/x-frasy-capitulos+json'
+    expect(await lerCapitulosGuardados(new Blob(['[{"titulo":1}]'], { type: tipo }))).toBeNull()
+    expect(await lerCapitulosGuardados(new Blob(['nao é json'], { type: tipo }))).toBeNull()
+    expect(await lerCapitulosGuardados(new Blob(['[]'], { type: 'text/plain' }))).toBeNull()
   })
 })
 

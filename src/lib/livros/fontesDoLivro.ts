@@ -1,11 +1,12 @@
 /**
  * DE ONDE O LEITOR TIRA O LIVRO: da estante do aparelho (`armazem.ts`). EPUB e PDF vão ao motor como
- * arquivo; TXT e a sessão `document` da Leitura antiga viram um livro de texto (`livroDeTexto`).
+ * arquivo; TXT (corrido ou em capítulos, `capitulosGuardados.ts`) e a sessão `document` da Leitura antiga viram um livro de texto (`livroDeTexto`).
  */
 import { fetchSessionTranscript } from '../../data/rotas/sessoes';
 import type { LivroDoFoliate } from '../leitor/foliate/view.js';
 import { capitulosDoTexto, livroDeTexto } from '../leitor/livroDeTexto';
 import { estante, type LivroGuardado } from './armazem';
+import { lerCapitulosGuardados } from './capitulosGuardados';
 
 export interface LivroParaOMotor {
   guardado: LivroGuardado;
@@ -35,14 +36,17 @@ export async function livroParaOMotor(livroId: string, rotuloDoCapitulo: string)
     };
   }
   if (guardado.formato === 'txt') {
-    const texto = await guardado.arquivo.text();
+    /* Texto em capítulos (Wikisource, livro trazido na L1) ou texto corrido (TXT da pessoa). */
+    const capitulos =
+      (await lerCapitulosGuardados(guardado.arquivo)) ??
+      capitulosDoTexto(await guardado.arquivo.text(), rotuloDoCapitulo);
     return {
       guardado,
       entrada: livroDeTexto({
         titulo: guardado.titulo,
         autor: guardado.autor,
         idioma: guardado.idioma,
-        capitulos: capitulosDoTexto(texto, rotuloDoCapitulo),
+        capitulos,
       }),
       idioma: guardado.idioma,
     };

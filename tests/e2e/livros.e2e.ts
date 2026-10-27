@@ -1,11 +1,11 @@
 import { expect, type Page, test } from '@playwright/test'
 import { strToU8, zipSync } from 'fflate'
 
-import { abrirTela, clicarRobusto } from './_helpers'
+import { abrirTela, clicarRobusto, fecharSobreposicoes } from './_helpers'
 
 /**
  * LIVROS (L1 de `docs/specs/2026-10-26-livros-e-leitura.md`): navegar, filtrar, abrir o detalhe, começar a
- * ler direto da fonte, "Trazer o seu", "Por que este livro não está?" e o perfil de menor sem os títulos
+ * ler direto da fonte (no leitor da L2), "Trazer o seu", "Por que este livro não está?" e o perfil de menor sem os títulos
  * de 18 anos (nem na vitrine, nem na busca, nem por link direto).
  *
  * O CATÁLOGO E AS FONTES SÃO FIXOS AQUI: o JSON de `/catalogo/livros.json`, o EPUB do Standard Ebooks e a
@@ -168,6 +168,17 @@ async function comoCrianca(page: Page) {
   })
 }
 
+/** O texto do livro no LEITOR (L2): o capítulo é um iframe `blob:` montado pelo motor. */
+async function esperarNoLeitor(page: Page, frase: string) {
+  await expect(page.locator('[data-testid=leitor][data-estado=pronto]')).toBeVisible({ timeout: 30_000 })
+  await fecharSobreposicoes(page)
+  await expect(async () => {
+    const capitulo = page.frames().find((f) => f.url().startsWith('blob:'))
+    expect(capitulo).toBeTruthy()
+    await expect(capitulo!.getByText(frase)).toBeVisible({ timeout: 1000 })
+  }).toPass({ timeout: 15_000 })
+}
+
 const cartao = (page: Page, id: string) => page.locator(`[data-livro="${id}"]`).first()
 
 test.describe('Livros', () => {
@@ -211,14 +222,26 @@ test.describe('Livros', () => {
     await expect(detalhe.getByText('Nível estimado')).toBeVisible()
 
     /* Ler: o EPUB vem do Standard Ebooks; nada do livro passa pelo servidor do Frasy. */
+    /* Só os pedidos de DADOS (fetch/xhr): o código do leitor (`LeitorDoLivro.tsx`…) vem do app, e não é o livro. */
     const pedidos: string[] = []
-    page.on('request', (r) => pedidos.push(r.url()))
+    page.on('request', (r) => {
+      if (['fetch', 'xhr', 'document', 'other'].includes(r.resourceType())) pedidos.push(r.url())
+    })
     await detalhe.getByTestId('ler-livro').click()
     await expect(page).toHaveURL(/\/livros\/se-teste-pequena-viagem\/ler$/)
-    await expect(page.getByTestId('texto-do-livro')).toContainText('Era uma vez um barco pequeno')
+    await esperarNoLeitor(page, 'Era uma vez um barco pequeno')
     expect(pedidos.some((u) => u.startsWith('https://standardebooks.org/'))).toBe(true)
     const origem = new URL(page.url()).origin
-    expect(pedidos.filter((u) => u.startsWith(origem) && /epub|standardebooks|livro|import/i.test(u))).toEqual([])
+    /* As ANOTAÇÕES do leitor sincronizam com o servidor (`/api/leitura/anotacoes`): é o que a pessoa escreveu,
+       e não o livro. O livro em si não passa por lá. */
+    expect(
+      pedidos.filter(
+        (u) =>
+          u.startsWith(origem) &&
+          !u.startsWith(`${origem}/api/leitura/anotacoes`) &&
+          /epub|standardebooks|livro|import/i.test(u),
+      ),
+    ).toEqual([])
 
     /* Voltar leva ao detalhe; o voltar do navegador também. */
     await page.getByRole('button', { name: 'Voltar', exact: true }).click()
@@ -232,7 +255,7 @@ test.describe('Livros', () => {
     const pedidos: string[] = []
     page.on('request', (r) => pedidos.push(r.url()))
     await abrirTela(page, '/livros/ws-pt-contos-da-serra/ler')
-    await expect(page.getByTestId('texto-do-livro')).toContainText('Primeiro conto da serra.')
+    await esperarNoLeitor(page, 'Primeiro conto da serra.')
     expect(pedidos.some((u) => u.startsWith('https://pt.wikisource.org/w/api.php'))).toBe(true)
   })
 
@@ -266,7 +289,7 @@ test.describe('Livros', () => {
     expect(pedidos.filter((p) => p.startsWith('POST'))).toEqual([])
     await trazido.getByRole('button', { name: 'Ler agora' }).click()
     await expect(page).toHaveURL(/\/livros\/meu-[a-z0-9-]+\/ler$/)
-    await expect(page.getByTestId('texto-do-livro')).toContainText('Esta frase veio de um arquivo meu.')
+    await esperarNoLeitor(page, 'Esta frase veio de um arquivo meu.')
     await page.getByRole('button', { name: 'Voltar', exact: true }).click()
     await page.getByRole('tab', { name: /Meus livros/ }).click()
     await expect(page.getByTestId('meus-livros')).toContainText('Meu Livro de Casa')

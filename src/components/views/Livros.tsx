@@ -1,7 +1,7 @@
 import '../../styles/questLivros.css';
 
 import { BookMarked, BookOpen, Upload } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 
 import { livrosVisiveis } from '../../core/livros/catalogo';
 import { type Catalogo, NIVEIS_DO_LIVRO, type NivelDoLivro } from '../../core/livros/tipos';
@@ -9,19 +9,28 @@ import { lerAjustesDoAssistente } from '../../lib/assistente/ajustesDoAssistente
 import { t } from '../../lib/i18n';
 import { useLangConfig } from '../../lib/langConfig';
 import { baseLang } from '../../lib/languages';
+import { lazyComRecarga } from '../../lib/lazyComRecarga';
 import { abrirDetalheDoLivro, abrirLivroNoLeitor, voltarAoCatalogo } from '../../lib/livros/abrir';
 import { carregarCatalogo } from '../../lib/livros/catalogo';
-import { filtrarMeusLivrosVisiveis, useMeusLivros } from '../../lib/livros/meusLivros';
+import { prepararDoCatalogo, prepararMeuLivro } from '../../lib/livros/doCatalogo';
+import { filtrarMeusLivrosVisiveis, marcarAberto, useMeusLivros } from '../../lib/livros/meusLivros';
 import { leitorMenor, tetoDoLeitor } from '../../lib/livros/quemLe';
-import { abrirTextoDoCatalogo, abrirTextoTrazido } from '../../lib/livros/textoDoLivro';
 import type { AgeProfileType } from '../../lib/profile';
 import DetalheDoLivro from './livros/DetalheDoLivro';
-import LeituraProvisoria from './livros/LeituraProvisoria';
 import MeusLivros from './livros/MeusLivros';
 import TrazerOSeu from './livros/TrazerOSeu';
 import Vitrine from './livros/Vitrine';
 
 type Aba = 'catalogo' | 'meus' | 'trazer';
+
+/* O leitor (L2: foliate-js, PDF.js, DOMPurify) é um pedaço à parte: só desce quando a pessoa vai ler. */
+const LeitorDoCatalogo = lazyComRecarga(() => import('./leitor/LeitorDoCatalogo'));
+
+const Abrindo = () => (
+  <div className="q-palco lv" data-testid="livros" aria-busy="true">
+    <div className="q-esqueleto" style={{ minHeight: 320 }} />
+  </div>
+);
 
 const CHAVE_DO_IDIOMA = 'frasy.livros.idioma';
 const CHAVE_DO_NIVEL = 'frasy.livros.nivel';
@@ -43,7 +52,7 @@ const gravarLocal = (chave: string, valor: string) => {
 
 /**
  * LIVROS (L1 de `docs/specs/2026-10-26-livros-e-leitura.md`): o catálogo de domínio público, o detalhe de
- * cada livro, a leitura provisória, "Meus livros" e "Trazer o seu".
+ * cada livro, a leitura (o leitor da L2, `LeitorDoCatalogo`), "Meus livros" e "Trazer o seu".
  *
  * O catálogo é um JSON estático baixado quando esta tela abre. TUDO o que a tela mostra passa por
  * `livrosVisiveis` (o filtro legal de novo, e a faixa etária de quem lê): um livro que um menor não pode ver
@@ -123,16 +132,17 @@ export default function Livros({
     const meu = meusVisiveis.find((m) => m.id === livroAberto.id && m.origem !== 'catalogo');
     if (meu && livroAberto.lendo) {
       return (
-        <LeituraProvisoria
-          id={meu.id}
-          titulo={meu.titulo}
-          idioma={meu.idioma}
-          abrir={() => abrirTextoTrazido(meu.id, (i) => t('Parte {n}', { n: i + 1 }))}
-          aoVoltar={() => {
-            setAba('meus');
-            voltarAoCatalogo();
-          }}
-        />
+        <Suspense fallback={<Abrindo />}>
+          <LeitorDoCatalogo
+            key={meu.id}
+            preparar={() => prepararMeuLivro(meu)}
+            aoAbrir={() => marcarAberto(meu.id)}
+            aoVoltar={() => {
+              setAba('meus');
+              voltarAoCatalogo();
+            }}
+          />
+        </Suspense>
       );
     }
     if (!catalogo)
@@ -162,14 +172,14 @@ export default function Livros({
     }
     if (livroAberto.lendo) {
       return (
-        <LeituraProvisoria
-          id={livro.id}
-          titulo={livro.titulo}
-          idioma={livro.idioma}
-          credito={livro.credito}
-          abrir={() => abrirTextoDoCatalogo(livro, (i) => t('Parte {n}', { n: i + 1 }))}
-          aoVoltar={() => abrirDetalheDoLivro(livro)}
-        />
+        <Suspense fallback={<Abrindo />}>
+          <LeitorDoCatalogo
+            key={livro.id}
+            preparar={() => prepararDoCatalogo(livro, (i) => t('Parte {n}', { n: i + 1 }))}
+            aoAbrir={() => marcarAberto(livro.id)}
+            aoVoltar={() => abrirDetalheDoLivro(livro)}
+          />
+        </Suspense>
       );
     }
     return <DetalheDoLivro livro={livro} aoVoltar={voltarAoCatalogo} aoLer={() => abrirLivroNoLeitor(livro)} />;

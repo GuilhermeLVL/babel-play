@@ -6,14 +6,12 @@
  *   · Wikisource: a API do MediaWiki com `origin=*`; a página principal dá o sumário, e cada capítulo é
  *     pedido quando a pessoa chega nele;
  *   · Gutenberg: a cópia curada no R2 (`VITE_LIVROS_URL` + a chave do catálogo). Nunca o gutenberg.org;
- *   · trazido pela pessoa: o que ficou no IndexedDB deste aparelho.
  *
- * É o que a leitura provisória da L1 usa; o leitor da L2 pode reaproveitar as mesmas origens.
+ * O leitor da L2 usa a Wikisource daqui (`src/lib/livros/doCatalogo.ts`); o EPUB e o R2, pelo `prepararLivro`.
  */
 import type { CapituloDeTexto } from '../../core/livros/epub';
 import type { LivroDoCatalogo } from '../../core/livros/tipos';
 import { extrairEpub } from '../import/epub';
-import { lerConteudo, lerDaMemoria } from './meusLivros';
 
 export interface TextoAberto {
   titulos: string[];
@@ -106,9 +104,4 @@ export async function abrirTextoDoCatalogo(
     return doEpub(`${base}/${formatos.r2}`, rotulo);
   }
   throw new Error('este livro não tem um formato que o navegador abra');
-}
-
-export async function abrirTextoTrazido(id: string, rotulo: (i: number) => string): Promise<TextoAberto | null> {
-  const c = lerDaMemoria(id) ?? (await lerConteudo(id));
-  return c ? deCapitulos(c.capitulos, rotulo) : null;
 }

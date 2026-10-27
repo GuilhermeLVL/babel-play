@@ -5101,15 +5101,10 @@
   "O nível é uma estimativa feita a partir do texto: o vocabulário comparado com as listas de cada nível e o tamanho das frases. Folhear as primeiras páginas ainda é o melhor teste.": "The level is an estimate made from the text: its vocabulary compared with the word lists for each level, and the length of its sentences. Leafing through the first pages is still the best test.",
   "O conteúdo deste livro não está mais neste aparelho. Traga o arquivo de novo.": "This book's content is no longer on this device. Bring the file again.",
   "A cópia revisada deste livro ainda não foi publicada. Tente um livro do Standard Ebooks ou da Wikisource.": "The reviewed copy of this book hasn't been published yet. Try a book from Standard Ebooks or Wikisource.",
-  "Não conseguimos abrir o texto agora ({motivo}). Confira a conexão e tente de novo.": "We couldn't open the text right now ({motivo}). Check your connection and try again.",
   "Leitura": "Reading",
-  "Leitura simples: ainda sem marcar a página nem grifar. O leitor completo vem numa próxima versão.": "Simple reading: no bookmarks or highlights yet. The full reader comes in a future version.",
   "Abrindo o livro…": "Opening the book…",
   "Capítulos": "Chapters",
-  "Capítulo anterior": "Previous chapter",
   "Capítulo": "Chapter",
-  "Próximo capítulo": "Next chapter",
-  "Este capítulo veio vazio.": "This chapter came back empty.",
   "Quero ler": "Want to read",
   "Lendo": "Reading",
   "Lido": "Read",
@@ -5299,5 +5294,6 @@
   "Não consegui baixar o livro. Confira a conexão.": "Couldn't download the book. Check your connection.",
   "Este livro não tem arquivo para abrir.": "This book has no file to open.",
   "O arquivo está vazio.": "The file is empty.",
-  "Anotar": "Annotate"
+  "Anotar": "Annotate",
+  "Não deu para abrir este livro agora. Confira a conexão e tente de novo.": "Couldn't open this book right now. Check your connection and try again."
 }

@@ -79,12 +79,27 @@ describe('diretivasDeCsp', () => {
     expect(c.some((x) => x.includes('nao-e-url'))).toBe(false)
   })
 
-  it('as fontes são do próprio site: font-src só self (e data:, das faces embutidas) e nenhuma origem do Google em lugar nenhum', () => {
+  it('as fontes são do próprio site: font-src só self (e data:, das faces embutidas; blob:, das fontes de um EPUB) e nenhuma origem do Google em lugar nenhum', () => {
     const d = diretivasDeCsp(env({}))
-    expect(d.fontSrc).toEqual(["'self'", 'data:'])
+    expect(d.fontSrc).toEqual(["'self'", 'data:', 'blob:'])
     expect(d.styleSrc).toEqual(["'self'", "'unsafe-inline'"])
     for (const lista of Object.values(d))
       expect((lista as string[]).some((x) => /fonts.(googleapis|gstatic).com/.test(x))).toBe(false)
+  })
+
+  it('o leitor (L2): Standard Ebooks e Wikisource em connect-src, o bucket dos livros só com VITE_LIVROS_URL', () => {
+    const c = diretivasDeCsp(env({})).connectSrc
+    for (const o of ['https://standardebooks.org', 'https://*.wikisource.org', 'https://ws-export.wmcloud.org'])
+      expect(c).toContain(o)
+    expect(c.some((x) => x.includes('livros.exemplo'))).toBe(false)
+    const comBucket = diretivasDeCsp(env({ VITE_LIVROS_URL: 'https://livros.exemplo.dev/frasy-livros/' })).connectSrc
+    expect(comBucket).toContain('https://livros.exemplo.dev')
+    // Os livros nunca ganham script-src: o EPUB é dado, não código.
+    expect(diretivasDeCsp(env({ VITE_LIVROS_URL: 'https://livros.exemplo.dev' })).scriptSrc).toEqual([
+      "'self'",
+      "'wasm-unsafe-eval'",
+      'blob:',
+    ])
   })
 
   it('script-src continua sem host externo e sem unsafe-eval', () => {

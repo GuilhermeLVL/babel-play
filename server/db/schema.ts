@@ -1415,3 +1415,42 @@ export const palavrasVistas = pgTable(
     index('idx_palavras_vistas_sessao').on(t.sessionId),
   ],
 )
+
+/**
+ * AS ANOTAÇÕES DO LEITOR (L2 da spec `docs/specs/2026-10-26-livros-e-leitura.md`, migração 0013) — grifos,
+ * notas e palavras salvas de um livro, no modelo W3C Web Annotation: CFI + `TextQuoteSelector`
+ * (`exact`/`prefixo`/`sufixo`). O modelo e a validação moram em `src/core/leitura/anotacao.ts`, os mesmos do
+ * cliente.
+ *
+ * `exact` ≤ 500 caracteres para TODO livro (o servidor não sabe se o livro é do catálogo ou trazido, e não
+ * pode virar cópia da obra trazida); o arquivo do livro nunca sobe. A sincronização é por `atualizado_em`
+ * (última escrita vence) com lápide em `apagado_em`. DADO DO TITULAR: entra em `TABELAS_DO_TITULAR`
+ * (exportação e exclusão), grátis para todo plano — é dado de estudo como o deck.
+ */
+export const anotacoesDeLeitura = pgTable(
+  'anotacoes_de_leitura',
+  {
+    userId: text('user_id').notNull(),
+    id: text('id').notNull(),
+    livroId: text('livro_id').notNull(),
+    tipo: text('tipo').notNull(),
+    cfi: text('cfi').notNull().default(''),
+    exact: text('exact').notNull().default(''),
+    prefixo: text('prefixo').notNull().default(''),
+    sufixo: text('sufixo').notNull().default(''),
+    capitulo: text('capitulo'),
+    cor: text('cor').notNull(),
+    nota: text('nota').notNull().default(''),
+    palavra: text('palavra'),
+    criadoEm: bigint('criado_em', { mode: 'number' }).notNull(),
+    atualizadoEm: bigint('atualizado_em', { mode: 'number' }).notNull(),
+    apagadoEm: bigint('apagado_em', { mode: 'number' }),
+    /* O RELÓGIO DO SERVIDOR (e não o do aparelho): posto pelo servidor a cada inserção, edição e lápide, sob a
+       trava do usuário e sempre crescente por pessoa. É o cursor da sincronização, com o `id` de desempate. */
+    sincronizadoEm: bigint('sincronizado_em', { mode: 'number' }).notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.id] }),
+    index('idx_anotacoes_de_leitura_livro').on(t.userId, t.livroId, t.sincronizadoEm, t.id),
+  ],
+)

@@ -41,6 +41,18 @@ export const ROTAS_DE_CORPO_GRANDE: readonly string[] = [
   '/api/anki/imports',
 ]
 
+/** Teto das rotas de `ROTAS_DE_CORPO_MEDIO`, só depois do auth. */
+export const LIMITE_MEDIO = '1mb'
+
+/**
+ * Prefixos com teto PRÓPRIO, entre o padrão e o grande, lidos também só depois do auth.
+ *
+ * - `/api/leitura`: o lote de anotações do leitor (até 200, cada uma com citação de 500 caracteres e nota de
+ *   4.000). O cliente corta os lotes por BYTES abaixo de 90 KB (`src/lib/livros/anotacoesDoLivro.ts`); 1 MB é a
+ *   folga de quem fala com a API direto, sem chegar aos 5 MB do teto grande.
+ */
+export const ROTAS_DE_CORPO_MEDIO: readonly string[] = ['/api/leitura']
+
 /** Teto das rotas de `ROTAS_DE_CORPO_MINIMO`. */
 export const LIMITE_MINIMO = '8kb'
 
@@ -62,6 +74,10 @@ export function aceitaCorpoGrande(caminho: string): boolean {
   return casaPrefixo(ROTAS_DE_CORPO_GRANDE, caminho)
 }
 
+/** O caminho é lido depois do auth (corpo grande ou médio)? */
+const lidoDepoisDoAuth = (caminho: string) =>
+  casaPrefixo(ROTAS_DE_CORPO_GRANDE, caminho) || casaPrefixo(ROTAS_DE_CORPO_MEDIO, caminho)
+
 /**
  * O parser montado NO TOPO da pilha. Pula as rotas de corpo grande — elas são lidas depois do
  * auth, por `jsonDepoisDoAuth()`. `express.json` não relê um corpo já lido, então as rotas que
@@ -71,7 +87,7 @@ export function jsonAntesDoAuth(): RequestHandler {
   const pequeno = express.json({ limit: LIMITE_PADRAO })
   const minimo = express.json({ limit: LIMITE_MINIMO })
   return (req, res, next) => {
-    if (aceitaCorpoGrande(req.path)) return next()
+    if (lidoDepoisDoAuth(req.path)) return next()
     return (casaPrefixo(ROTAS_DE_CORPO_MINIMO, req.path) ? minimo : pequeno)(req, res, next)
   }
 }
@@ -79,4 +95,9 @@ export function jsonAntesDoAuth(): RequestHandler {
 /** O parser das rotas de corpo grande, montado DEPOIS do `authMiddleware`. */
 export function jsonDepoisDoAuth(): RequestHandler {
   return express.json({ limit: LIMITE_GRANDE })
+}
+
+/** O parser das rotas de corpo médio (`ROTAS_DE_CORPO_MEDIO`), montado DEPOIS do `authMiddleware`. */
+export function jsonMedioDepoisDoAuth(): RequestHandler {
+  return express.json({ limit: LIMITE_MEDIO })
 }

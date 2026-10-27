@@ -196,4 +196,6 @@ export type ViewType =
   | 'diagnostico'
   /** A administração do dono (`/admin`): só para a conta com papel admin; o servidor decide de verdade. */
   | 'admin'
+  /** O leitor de livros (`/leitor/<livroId>`): EPUB, PDF e texto, com anotações (L2 de Livros & Leitura). */
+  | 'leitor'
   | 'naoencontrado';

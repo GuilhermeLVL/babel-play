@@ -92,6 +92,13 @@
       "when": 1793200000000,
       "tag": "0012_palavras_vistas_e_nota",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793300000000,
+      "tag": "0013_anotacoes_de_leitura",
+      "breakpoints": true
     }
   ]
 }

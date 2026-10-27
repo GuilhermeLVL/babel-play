@@ -68,7 +68,9 @@ describe('gerarHeaders', () => {
     expect(csp).toContain('https://cdn.jsdelivr.net')
     expect(csp).toContain('https://huggingface.co')
     expect(csp).not.toContain('challenges.cloudflare.com')
-    expect(csp).not.toContain('frame-src')
+    // O leitor de livros (L2): cada capítulo é um documento `blob:` num iframe — e só isso entra em frame-src.
+    expect(csp).toContain("frame-src 'self' blob:")
+    expect(csp).not.toMatch(/frame-src [^;]*https:/)
   })
 
   it('traz o isolamento e os demais cabeçalhos globais', () => {

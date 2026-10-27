@@ -310,3 +310,31 @@ Cada fase vai num worktree próprio, com revisão `revisor-critico`, merge na ma
    mostrado também no Grátis (custo zero); gerar resumo novo, simplificar, quiz e explicar continuam no pago.
 3. Teto do audiolivro no pago (proposta, a confirmar na L3): 30 capítulos por mês no Plus, dentro dos 150 mil
    caracteres de voz que já existem.
+4. **Baixar o texto do livro (TXT e o EPUB original) só para livros PD do catálogo** (decisão de 26/10, na L2).
+   Livro trazido pela pessoa e sessão da Leitura exportam só as anotações (Markdown, JSON W3C, Anki).
+5. **Posição e perfil de leitura ficam por aparelho, por enquanto** (decisão de 26/10, na L2). Só as anotações
+   sincronizam com a conta. **Pendência (follow-up):** sincronizar a posição (CFI + "continuar de onde parei")
+   e o perfil de leitura entre aparelhos, pela mesma infra de dados de estudo.
+
+## Notas da implementação da L2 (26/10/2026)
+
+- `/livros/<id>/ler` (o "Ler" da L1, e "Meus livros") abre o leitor da L2 (`LeitorDoCatalogo`): o livro vai
+  para a estante do aparelho (`src/lib/livros/doCatalogo.ts`) e o leitor abre nele. A leitura provisória da L1
+  saiu. A estante usa um IndexedDB próprio (`frasy-leitor`); o `frasy-livros` continua sendo o de "Meus livros".
+- SINCRONIZAÇÃO: o cursor é `(sincronizado_em, id)`, o relógio do SERVIDOR posto em toda escrita sob a trava do
+  usuário (crescente por pessoa); `atualizado_em` (o do aparelho) só decide o conflito. A leitura vem em páginas
+  de 2000 com `temMais`, e o aparelho só guarda o cursor no fim. Os lotes que sobem são cortados por bytes
+  (< 90 KB); `/api/leitura` tem teto de corpo próprio (1 MB); um 413 parte o lote, e a anotação que sozinha não
+  cabe fica só no aparelho, com aviso. Datas além de agora + 1 dia são recusadas (400).
+- ID DO LIVRO TRAZIDO NO SERVIDOR: `arq:<HMAC-SHA256(chave, sha)>`, nunca o hash do arquivo. A chave é derivada
+  no servidor, por pessoa, de `SECRET_KEY` (`GET /api/leitura/chave`). Escolhido no lugar do sal do cliente em
+  `settings`: dois aparelhos que gerassem sais diferentes antes de sincronizar dividiriam as anotações do mesmo
+  livro; a chave derivada é a mesma em todo aparelho e fica fora do banco. Vale também para a origem do cartão
+  no deck (`livro:<id>`).
+- Teto somado de citação viva em livro trazido (`arq:`, `meu-`): 20 mil caracteres, no servidor e no aparelho.
+- A estante do aparelho tem teto (20 livros, 300 MB) com LRU e aviso de quais saíram; o arquivo de "Meus livros"
+  fica UMA vez (a estante guarda só a referência). Remover de "Meus livros" apaga a referência e a posição.
+- LINKS do livro nunca navegam o iframe: o `href` vira `data-href`; o interno vai pelo motor, o externo só abre
+  pela folha da palavra ("Abrir link"), em aba nova sem opener (e2e no Chromium e no WebKit).
+- O capítulo do livro é limpo pelo DOMPurify e sai como HTML montado pelo app, com a CSP (`default-src 'none'`)
+  como primeiro filho do `<head>`, num iframe sem `allow-scripts` (`src/lib/leitor/foliate/PATCHES.md`).

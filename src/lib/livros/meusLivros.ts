@@ -16,6 +16,8 @@ import { type DBSchema, type IDBPDatabase, openDB } from 'idb';
 import { useSyncExternalStore } from 'react';
 
 import type { CapituloDeTexto } from '../../core/livros/epub';
+import { estante } from './armazem';
+import { posicoes } from './posicoesDoAparelho';
 
 export type OrigemDoMeuLivro = 'catalogo' | 'arquivo' | 'link';
 export type StatusDeLeitura = 'quero-ler' | 'lendo' | 'lido';
@@ -111,9 +113,15 @@ export function mudarStatus(id: string, status: StatusDeLeitura): void {
   gravar(lerMeusLivros().map((l) => (l.id === id ? { ...l, status } : l)));
 }
 
+/**
+ * Remove o livro de "Meus livros" — e também a cópia (ou referência) na estante do leitor (`frasy-leitor`) e a
+ * posição de leitura deste aparelho. As anotações ficam (são da pessoa e sincronizam).
+ */
 export async function removerMeuLivro(id: string): Promise<void> {
   gravar(lerMeusLivros().filter((l) => l.id !== id));
   await apagarConteudo(id).catch(() => undefined);
+  await estante.apagarLivro(id).catch(() => undefined);
+  posicoes.esquecer(id);
 }
 
 function assinar(f: () => void) {
@@ -170,8 +178,21 @@ interface MetaDoConteudo {
   usadoEm: number;
 }
 
+/**
+ * O conteúdo NO DISCO: o arquivo vai como bytes (`ArrayBuffer`) e tipo, e não como `Blob` — o WebKit (Safari)
+ * recusa `Blob` no IndexedDB ("Error preparing Blob/File data to be stored in object store"). Registro antigo
+ * com `arquivo` (Blob) continua sendo lido.
+ */
+type ConteudoNoDisco = Omit<ConteudoDoMeuLivro, 'arquivo'> & { arquivo?: Blob; bytes?: ArrayBuffer; tipo?: string };
+
+const paraODisco = async ({ arquivo, ...resto }: ConteudoDoMeuLivro): Promise<ConteudoNoDisco> =>
+  arquivo ? { ...resto, bytes: await arquivo.arrayBuffer(), tipo: arquivo.type } : resto;
+
+const doDisco = ({ bytes, tipo, ...resto }: ConteudoNoDisco): ConteudoDoMeuLivro =>
+  bytes ? { ...resto, arquivo: new Blob([bytes], tipo ? { type: tipo } : undefined) } : resto;
+
 interface EsquemaDosLivros extends DBSchema {
-  conteudo: { key: string; value: ConteudoDoMeuLivro };
+  conteudo: { key: string; value: ConteudoNoDisco };
   meta: { key: string; value: MetaDoConteudo };
 }
 
@@ -227,6 +248,7 @@ export async function guardarConteudo(c: ConteudoDoMeuLivro): Promise<ResultadoD
   const tamanho = tamanhoDoConteudo(c);
   if (tamanho > TETO_DE_BYTES_GUARDADOS) return { guardado: false, motivo: 'grande-demais' };
   try {
+    const registro = await paraODisco(c);
     const db = await abrirBanco();
     const novo = { id: c.id, tamanho, usadoEm: Date.now() };
     const removidos = quemSaiParaCaber(await db.getAll('meta'), novo);
@@ -235,7 +257,7 @@ export async function guardarConteudo(c: ConteudoDoMeuLivro): Promise<ResultadoD
       void tx.objectStore('conteudo').delete(id);
       void tx.objectStore('meta').delete(id);
     }
-    void tx.objectStore('conteudo').put(c);
+    void tx.objectStore('conteudo').put(registro);
     void tx.objectStore('meta').put(novo);
     await tx.done;
     return { guardado: true, removidos };
@@ -247,12 +269,11 @@ export async function guardarConteudo(c: ConteudoDoMeuLivro): Promise<ResultadoD
 export async function lerConteudo(id: string): Promise<ConteudoDoMeuLivro | null> {
   try {
     const db = await abrirBanco();
-    const c = (await db.get('conteudo', id)) ?? null;
-    if (c) {
-      const meta = await db.get('meta', id);
-      if (meta) await db.put('meta', { ...meta, usadoEm: Date.now() });
-    }
-    return c;
+    const registro = await db.get('conteudo', id);
+    if (!registro) return null;
+    const meta = await db.get('meta', id);
+    if (meta) await db.put('meta', { ...meta, usadoEm: Date.now() });
+    return doDisco(registro);
   } catch {
     return null;
   }

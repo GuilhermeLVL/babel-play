@@ -61,15 +61,17 @@ describe('diretivasDeCsp com anúncios', () => {
   it('flag ligada + origem: a origem entra SÓ em frame-src', () => {
     const base = diretivasDeCsp(env({}))
     const d = diretivasDeCsp(env({ ANUNCIOS_ORIGEM: ORIGEM }), { anuncios: true })
-    expect(d.frameSrc).toEqual(["'self'", ORIGEM])
+    expect(d.frameSrc).toEqual(["'self'", 'blob:', ORIGEM])
     const { frameSrc: _f, ...resto } = d
-    expect(resto).toEqual(base)
+    const { frameSrc: _b, ...restoDaBase } = base
+    expect(resto).toEqual(restoDaBase)
+    expect(base.frameSrc).toEqual(["'self'", 'blob:'])
     expect(d.scriptSrc).toEqual(["'self'", "'wasm-unsafe-eval'", 'blob:'])
   })
 
   it('com o Turnstile, frame-src leva os dois', () => {
     const d = diretivasDeCsp(env({ ANUNCIOS_ORIGEM: ORIGEM, VITE_TURNSTILE_SITE_KEY: 'x' }), { anuncios: true })
-    expect(d.frameSrc).toEqual(["'self'", 'https://challenges.cloudflare.com', ORIGEM])
+    expect(d.frameSrc).toEqual(["'self'", 'blob:', 'https://challenges.cloudflare.com', ORIGEM])
   })
 
   it('nenhum host do Google em lugar nenhum da CSP do app', () => {
@@ -80,17 +82,26 @@ describe('diretivasDeCsp com anúncios', () => {
 
 describe('cspComAnuncios (a sobreposição do Worker)', () => {
   it('sem frame-src: cria com self e a origem; o resto fica igual', () => {
-    const antes = serializarCsp(diretivasDeCsp(env({})))
+    // A CSP do app já traz frame-src (o `blob:` do leitor): o caso "sem frame-src" é o de um cabeçalho de fora.
+    const antes = "default-src 'self'; script-src 'self'"
     const depois = cspComAnuncios(antes, ORIGEM)
     expect(diretiva(depois, 'frame-src')).toEqual(["'self'", ORIGEM])
     expect(diretiva(depois, 'script-src')).toEqual(diretiva(antes, 'script-src'))
     expect(depois.replace(/;\s*frame-src [^;]*/, '')).toBe(antes)
   })
 
+  it('a CSP do app sem anúncios: frame-src com o blob: do leitor; a origem entra sem tirar nada', () => {
+    const antes = serializarCsp(diretivasDeCsp(env({})))
+    expect(diretiva(antes, 'frame-src')).toEqual(["'self'", 'blob:'])
+    const depois = cspComAnuncios(antes, ORIGEM)
+    expect(diretiva(depois, 'frame-src')).toEqual(["'self'", 'blob:', ORIGEM])
+    expect(diretiva(depois, 'script-src')).toEqual(diretiva(antes, 'script-src'))
+  })
+
   it('com frame-src: acrescenta a origem sem repetir', () => {
     const antes = serializarCsp(diretivasDeCsp(env({ VITE_TURNSTILE_SITE_KEY: 'x' })))
     const depois = cspComAnuncios(antes, ORIGEM)
-    expect(diretiva(depois, 'frame-src')).toEqual(["'self'", 'https://challenges.cloudflare.com', ORIGEM])
+    expect(diretiva(depois, 'frame-src')).toEqual(["'self'", 'blob:', 'https://challenges.cloudflare.com', ORIGEM])
     expect(cspComAnuncios(depois, ORIGEM)).toBe(depois)
     expect(diretiva(depois, 'script-src')).toEqual(diretiva(antes, 'script-src'))
   })

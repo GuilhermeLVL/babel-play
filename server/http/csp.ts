@@ -90,6 +90,12 @@ const CONEXOES_FIXAS = [
   'https://*.wikisource.org',
 ]
 
+/**
+ * O LEITOR DE LIVROS (L2 de Livros & Leitura): além das fontes do catálogo (acima, em `CONEXOES_FIXAS`), o EPUB
+ * do Wikisource sai do ws-export, baixado pelo NAVEGADOR por CORS, sem passar pelo servidor.
+ */
+const CONEXOES_DO_LEITOR = ['https://ws-export.wmcloud.org']
+
 /** A ORIGEM (`https://host[:porta]`) de uma URL, ou `null` se ela não for http(s) válida. */
 function origemDe(valor: string | undefined): string | null {
   const v = valor?.trim()
@@ -149,7 +155,16 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
   const turnstile = env.VITE_TURNSTILE_SITE_KEY?.trim() ? [HOST_DO_TURNSTILE] : []
 
   const conexoes = [
-    ...new Set(["'self'", 'blob:', 'data:', ...CONEXOES_FIXAS, ...doDeploy, ...runtimeDoOnnx, ...turnstile]),
+    ...new Set([
+      "'self'",
+      'blob:',
+      'data:',
+      ...CONEXOES_FIXAS,
+      ...CONEXOES_DO_LEITOR,
+      ...doDeploy,
+      ...runtimeDoOnnx,
+      ...turnstile,
+    ]),
   ]
 
   /* R32: com a flag ligada E a origem configurada, a página de anúncios entra SÓ em `frame-src`. Nada em
@@ -159,6 +174,11 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
 
   return {
     defaultSrc: ["'self'"],
+    /* `blob:` CONTINUA (conferido em 26/10/2026, revisão do leitor): com várias threads e o runtime em outra
+       origem (`VITE_ORT_WASM_URL`, o R2 de produção), o `importWasmModule` do onnxruntime-web 1.26 baixa o
+       `.mjs`, faz `URL.createObjectURL` e `import()` desse `blob:` NA THREAD PRINCIPAL — `worker-src` não cobre
+       isso. Por isso o conteúdo dos livros NÃO depende desta diretiva: o iframe do capítulo não tem
+       `allow-scripts` (`src/lib/leitor/foliate/PATCHES.md`). */
     scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'blob:', ...runtimeDoOnnx, ...turnstile],
     workerSrc: ["'self'", 'blob:', ...runtimeDoOnnx],
     connectSrc: conexoes,
@@ -167,12 +187,16 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
     styleSrc: ["'self'", "'unsafe-inline'"],
     // `data:`: o Vite embute no CSS as faces pequenas (Silkscreen, < 4 KB) como data URI; sem isto o
     // navegador as recusa e a marca cai na fonte de reserva (visto no staging, 03/10/2026).
-    fontSrc: ["'self'", 'data:'],
+    /* `blob:`: as fontes EMBUTIDAS num EPUB viram `blob:` (o foliate-js reescreve as URLs do livro). */
+    fontSrc: ["'self'", 'data:', 'blob:'],
     objectSrc: ["'none'"],
     frameAncestors: ["'self'"],
     baseUri: ["'self'"],
     formAction: ["'self'"],
-    ...(quadros.length ? { frameSrc: ["'self'", ...quadros] } : {}),
+    /* `blob:`: cada capítulo do leitor é um documento `blob:` num iframe (foliate-js). A CSP NÃO é a barreira do
+       conteúdo do livro: o iframe não tem `allow-scripts`, o motor só aceita os tipos da lista e limpa toda
+       marcação (`src/lib/leitor/foliate/PATCHES.md`). */
+    frameSrc: ["'self'", 'blob:', ...quadros],
   }
 }
 

@@ -47,6 +47,8 @@ export default tseslint.config(
       '*.cjs',
       'docs/prototipos/*-src/**',
       'docs/prototipos/_comum/**',
+      // O motor do leitor vendorizado (foliate-js, MIT): código de terceiro numa versão fixa, ver ORIGEM.txt.
+      'src/lib/leitor/foliate/**',
     ],
   },
   js.configs.recommended,

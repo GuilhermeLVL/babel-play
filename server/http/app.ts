@@ -71,6 +71,7 @@ import { criarRotaDeFlags } from '../routes/flags'
 import { healthHandler, readyHandler } from '../routes/health'
 import { imagesRouter } from '../routes/images'
 import { importRouter } from '../routes/import'
+import { leituraRouter } from '../routes/leitura'
 import { meRouter } from '../routes/me'
 import { metricasCapturaRouter } from '../routes/metricasCaptura'
 import { metricasOfertasRouter } from '../routes/metricasOfertas'
@@ -83,7 +84,13 @@ import { tutorRouter } from '../routes/tutor'
 import { vocabRouter } from '../routes/vocab'
 import { diretivasDeCsp } from './csp'
 import { isolamentoDeOrigem } from './isolamento'
-import { jsonAntesDoAuth, jsonDepoisDoAuth, ROTAS_DE_CORPO_GRANDE } from './limitesDeCorpo'
+import {
+  jsonAntesDoAuth,
+  jsonDepoisDoAuth,
+  jsonMedioDepoisDoAuth,
+  ROTAS_DE_CORPO_GRANDE,
+  ROTAS_DE_CORPO_MEDIO,
+} from './limitesDeCorpo'
 import { handlerDeMetricas, middlewareDeMetricas } from './metricas'
 import { exigirOrigem } from './origemProtegida'
 
@@ -512,6 +519,7 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
 
   // GAP-015: o corpo grande só é lido depois de o token ser aceito (ver `limitesDeCorpo.ts`).
   app.use([...ROTAS_DE_CORPO_GRANDE], jsonDepoisDoAuth())
+  app.use([...ROTAS_DE_CORPO_MEDIO], jsonMedioDepoisDoAuth())
 
   /* Fase 6 — 2FA de verdade: quem ativou a verificação em duas etapas precisa de sessão AAL2 nas
      rotas de cobrança, exclusão/exportação de conta, credencial BYOK e admin (`server/lib/aal.ts`). */
@@ -536,6 +544,8 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
       '/api/settings',
       '/api/images',
       '/api/tutor',
+      /* As anotações do leitor guardam trecho do livro e nota da pessoa: dado de estudo na nuvem, como o deck. */
+      '/api/leitura',
     ],
     exigirContaLiberada,
   )
@@ -576,6 +586,7 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
         '/api/audio',
         '/api/responsavel',
         '/api/anuncios',
+        '/api/leitura',
       ],
       writeLimiter,
     )
@@ -619,6 +630,8 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   app.use('/api/billing', capturarAssincrono(billingRouter))
   // Anúncios — a recompensa do premiado, creditada pelo servidor (spec `anuncios-no-gratis`).
   app.use('/api/anuncios', capturarAssincrono(anunciosRouter))
+  // Leitor (L2 de Livros & Leitura) — grifos, notas e palavras do livro, grátis; o arquivo do livro nunca sobe.
+  app.use('/api/leitura', capturarAssincrono(leituraRouter))
   // Áudio do sistema via WASAPI loopback do PRÓPRIO servidor local (Windows) — a rota sem
   // fricção para capturar o que o computador toca; o navegador só consome o PCM.
   // Capacidade local: no modo público (AUTH_REQUIRED) ela some (403), mesmo autenticado. No Worker também:

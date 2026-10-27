@@ -496,6 +496,9 @@ export const vocabRepo = {
       if (!s) return { kind: 'manual', ref: null }
       if (s.startsWith('trilha:')) return { kind: 'trilha', ref: s.slice('trilha:'.length) }
       if (s.startsWith('anki:')) return { kind: 'anki', ref: s.slice('anki:'.length) }
+      /* O leitor (L2 de Livros & Leitura): "salvar no deck" manda `livro:<livroId>` — a palavra fica com
+         `origin_kind = 'livro'` e o id do livro, que é o que a fonte "Livro" dos jogos (L5) vai filtrar. */
+      if (s.startsWith('livro:')) return { kind: 'livro', ref: s.slice('livro:'.length) }
       return dosDono.has(s) ? { kind: 'sessao', ref: s } : { kind: 'manual', ref: null }
     }
 

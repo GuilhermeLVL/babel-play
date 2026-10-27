@@ -12,10 +12,13 @@ test('sem conta, /estatisticas mostra só o convite, centrado', async ({ page })
   await expect(page.getByRole('heading', { name: 'Estatísticas', exact: true })).toHaveCount(0)
   await expect(page.getByText('Minutos por dia')).toHaveCount(0)
 
-  const titulo = await cartao.getByText('Esta parte precisa de conta').boundingBox()
-  const tela = page.viewportSize()
-  expect(titulo && tela).toBeTruthy()
-  /* O título fica na metade de cima/do meio, longe do topo onde o cartão ficava preso. */
-  const meio = titulo!.y + titulo!.height / 2
-  expect(Math.abs(meio - tela!.height / 2)).toBeLessThan(tela!.height * 0.25)
+  const tela = page.viewportSize()!
+  /* O título fica na metade de cima/do meio, longe do topo onde o cartão ficava preso. O cartão ainda
+     está assentando quando aparece, então a posição é medida até estabilizar (não numa foto só). */
+  await expect
+    .poll(async () => {
+      const caixa = await cartao.getByText('Esta parte precisa de conta').boundingBox()
+      return caixa ? Math.abs(caixa.y + caixa.height / 2 - tela.height / 2) : Infinity
+    })
+    .toBeLessThan(tela.height * 0.25)
 })

@@ -28,18 +28,40 @@ async function falha(r: Response): Promise<FalhaDaLeitura> {
 }
 const semRede = (): FalhaDaLeitura => ({ ok: false, status: 0, error: 'não consegui falar com o servidor' })
 
-/** As anotações (com lápides) mudadas depois de `desde`, de um livro. `agora` é a marca para a próxima vez. */
+export interface PaginaDoServidor {
+  anotacoes: AnotacaoDeLeitura[]
+  /** Onde a próxima página começa (`<sincronizado_em>:<id>`, o relógio do SERVIDOR). */
+  cursor: string | null
+  temMais: boolean
+}
+
+/** Uma página das anotações (com lápides) de um livro escritas no servidor depois do `cursor`. */
 export async function lerAnotacoesDoServidor(
   livroId: string,
-  desde?: number,
-): Promise<{ ok: true; anotacoes: AnotacaoDeLeitura[]; agora: number } | FalhaDaLeitura> {
+  cursor?: string,
+): Promise<({ ok: true } & PaginaDoServidor) | FalhaDaLeitura> {
   try {
     const q = new URLSearchParams({ livroId })
-    if (desde != null) q.set('desde', String(desde))
+    if (cursor) q.set('cursor', cursor)
     const r = await apiFetch(`/api/leitura/anotacoes?${q}`)
     if (!r.ok) return falha(r)
-    const c = (await r.json()) as { anotacoes: AnotacaoDeLeitura[]; agora: number }
-    return { ok: true, ...c }
+    const c = (await r.json()) as PaginaDoServidor
+    return { ok: true, anotacoes: c.anotacoes ?? [], cursor: c.cursor ?? null, temMais: c.temMais === true }
+  } catch {
+    return semRede()
+  }
+}
+
+/** A chave da pessoa para o id do livro trazido (`arq:`), derivada no servidor. */
+export async function lerChaveDoLivro(): Promise<{ ok: true; chave: string } | FalhaDaLeitura> {
+  try {
+    const r = await apiFetch('/api/leitura/chave')
+    if (!r.ok) return falha(r)
+    const c = (await r.json()) as { chave?: unknown }
+    if (typeof c.chave !== 'string' || !/^[0-9a-f]{64}$/.test(c.chave)) {
+      return { ok: false, status: 502, error: 'chave inválida' }
+    }
+    return { ok: true, chave: c.chave }
   } catch {
     return semRede()
   }
@@ -51,7 +73,7 @@ export interface RespostaDoLote {
   ignoradas: string[]
 }
 
-/** Envia um lote (até 200): o servidor devolve a versão que ficou valendo de cada uma. */
+/** Envia um lote (até 200, abaixo de 90 KB): o servidor devolve a versão que ficou valendo de cada uma. */
 export async function enviarAnotacoes(lista: readonly AnotacaoDeLeitura[]): Promise<({ ok: true } & RespostaDoLote) | FalhaDaLeitura> {
   try {
     const r = await apiFetch('/api/leitura/anotacoes/lote', {

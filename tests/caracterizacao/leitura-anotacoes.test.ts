@@ -3,7 +3,9 @@
  * público, com a montagem de produção.
  *
  *   - sem token é 401 (a rota é privada);
- *   - gravar em lote, ler por livro e de forma incremental (`desde`), lápide no DELETE;
+ *   - gravar em lote, ler por livro e de forma incremental (o `cursor` é o relógio do SERVIDOR), lápide no DELETE;
+ *   - datas no futuro (mais de 1 dia) e negativas são recusadas; o corpo tem teto próprio de 1 MB;
+ *   - a chave do id do livro trazido é da pessoa (a mesma a cada pedido, outra para outra pessoa);
  *   - a última escrita vence (uma versão velha não sobrescreve a nova), decidido no banco;
  *   - o servidor recusa citação acima de 500 caracteres, CFI malformado e lote grande demais;
  *   - IDOR: outra pessoa não lê, não apaga e não sobrescreve — o mesmo id vira linha DELA;
@@ -74,7 +76,8 @@ describe('POST /api/leitura/anotacoes/lote e GET /api/leitura/anotacoes', () => 
       cor: 'amarelo',
       alvo: { citacao: { exact: 'O gato dormia.' }, capitulo: 'Capítulo 1' },
     })
-    expect(typeof lidas.agora).toBe('number')
+    expect(lidas.cursor).toMatch(/^\d+:anot-ana-000[12]$/)
+    expect(lidas.temMais).toBe(false)
   })
 
   it('a última escrita vence: versão velha não sobrescreve a nova', async () => {
@@ -85,10 +88,55 @@ describe('POST /api/leitura/anotacoes/lote e GET /api/leitura/anotacoes', () => 
     expect(mais.gravadas[0].nota).toBe('mais nova')
   })
 
-  it('incremental: `desde` traz só o que mudou depois', async () => {
+  it('incremental: o cursor traz só o que o servidor gravou depois — mesmo com data de aparelho antiga', async () => {
+    const antes = await (await s.get('/api/leitura/anotacoes', ana)).json()
     await lote([anotacao('anot-ana-0004', { atualizadoEm: 50_000, criadoEm: 50_000 })], ana)
-    const lidas = await (await s.get('/api/leitura/anotacoes?desde=40000', ana)).json()
-    expect(lidas.anotacoes.map((a: { id: string }) => a.id)).toEqual(['anot-ana-0004'])
+    // Escrita feita SEM REDE, com a data do aparelho bem antes do que já tinha sido lido.
+    await lote([anotacao('anot-ana-0005', { atualizadoEm: 2, criadoEm: 2 })], ana)
+    const lidas = await (await s.get(`/api/leitura/anotacoes?cursor=${encodeURIComponent(antes.cursor)}`, ana)).json()
+    expect(lidas.anotacoes.map((a: { id: string }) => a.id)).toEqual(['anot-ana-0004', 'anot-ana-0005'])
+    const nada = await (await s.get(`/api/leitura/anotacoes?cursor=${encodeURIComponent(lidas.cursor)}`, ana)).json()
+    expect(nada).toMatchObject({ anotacoes: [], cursor: lidas.cursor, temMais: false })
+    expect((await s.get('/api/leitura/anotacoes?cursor=lixo', ana)).status).toBe(400)
+  })
+
+  it('datas: mais de 1 dia no futuro ou negativas → 400', async () => {
+    const futuro = Date.now() + 2 * 86_400_000
+    const r1 = await lote([anotacao('anot-ana-0090', { atualizadoEm: futuro })], ana)
+    expect(r1.status).toBe(400)
+    expect((await r1.json()).code).toBe('data_no_futuro')
+    const r2 = await lote([anotacao('anot-ana-0091', { criadoEm: -5 })], ana)
+    expect(r2.status).toBe(400)
+    expect((await r2.json()).code).toBe('datas_invalidas')
+    const r3 = await lote([anotacao('anot-ana-0092', { apagadoEm: futuro })], ana)
+    expect(r3.status).toBe(400)
+    // Uma hora adiantado (relógio do aparelho) passa.
+    expect((await lote([anotacao('anot-ana-0093', { atualizadoEm: Date.now() + 3_600_000 })], ana)).status).toBe(200)
+  })
+
+  it('corpo: o teto de /api/leitura é ~1 MB (passa dos 100 KB comuns; acima de 1 MB → 413)', async () => {
+    const nota = 'n'.repeat(3_900)
+    const medio = Array.from({ length: 60 }, (_, i) =>
+      anotacao(`anot-corpo-${String(i).padStart(4, '0')}`, { tipo: 'nota', nota }),
+    )
+    expect(JSON.stringify({ anotacoes: medio }).length).toBeGreaterThan(200_000)
+    expect((await lote(medio, ana)).status).toBe(200)
+    const grande = Array.from({ length: 200 }, (_, i) =>
+      anotacao(`anot-corpo-g${String(i).padStart(4, '0')}`, { tipo: 'nota', nota: 'g'.repeat(6_000) }),
+    )
+    expect(JSON.stringify({ anotacoes: grande }).length).toBeGreaterThan(1_100_000)
+    expect((await lote(grande, ana)).status).toBe(413)
+  })
+
+  it('a chave do livro trazido: a mesma para a pessoa, outra para outra pessoa, sem cache público', async () => {
+    const r1 = await s.get('/api/leitura/chave', ana)
+    expect(r1.status).toBe(200)
+    expect(r1.headers.get('cache-control')).toMatch(/no-store/)
+    const k1 = (await r1.json()).chave
+    expect(k1).toMatch(/^[0-9a-f]{64}$/)
+    expect((await (await s.get('/api/leitura/chave', ana)).json()).chave).toBe(k1)
+    expect((await (await s.get('/api/leitura/chave', bia)).json()).chave).not.toBe(k1)
+    expect((await s.get('/api/leitura/chave')).status).toBe(401)
   })
 
   it('recusa citação acima de 500, CFI malformado, lote vazio e lote grande', async () => {

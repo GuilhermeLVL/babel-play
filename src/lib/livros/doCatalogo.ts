@@ -99,14 +99,15 @@ export async function prepararMeuLivro(meu: MeuLivro): Promise<string | null> {
     abertoEm: agora,
   };
   if (conteudo.arquivo?.size) {
-    const bytes = await conteudo.arquivo.arrayBuffer();
-    const formato = formatoDosBytes(new Uint8Array(bytes.slice(0, 8)));
+    const formato = formatoDosBytes(new Uint8Array(await conteudo.arquivo.slice(0, 8).arrayBuffer()));
     if (formato === 'epub' || formato === 'pdf') {
+      /* O arquivo fica UMA vez, no banco de "Meus livros": aqui só a referência (`refMeuLivro`). */
       await estante.guardarLivro({
         ...comum,
         formato,
-        arquivo: new Blob([bytes], { type: formato === 'epub' ? 'application/epub+zip' : 'application/pdf' }),
+        arquivo: new Blob([], { type: formato === 'epub' ? 'application/epub+zip' : 'application/pdf' }),
         nomeDoArquivo: `${meu.id}.${formato}`,
+        refMeuLivro: meu.id,
       });
       return meu.id;
     }

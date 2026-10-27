@@ -1445,9 +1445,12 @@ export const anotacoesDeLeitura = pgTable(
     criadoEm: bigint('criado_em', { mode: 'number' }).notNull(),
     atualizadoEm: bigint('atualizado_em', { mode: 'number' }).notNull(),
     apagadoEm: bigint('apagado_em', { mode: 'number' }),
+    /* O RELÓGIO DO SERVIDOR (e não o do aparelho): posto pelo servidor a cada inserção, edição e lápide, sob a
+       trava do usuário e sempre crescente por pessoa. É o cursor da sincronização, com o `id` de desempate. */
+    sincronizadoEm: bigint('sincronizado_em', { mode: 'number' }).notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.userId, t.id] }),
-    index('idx_anotacoes_de_leitura_livro').on(t.userId, t.livroId, t.atualizadoEm),
+    index('idx_anotacoes_de_leitura_livro').on(t.userId, t.livroId, t.sincronizadoEm, t.id),
   ],
 )

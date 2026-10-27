@@ -7,6 +7,7 @@ import type { LivroDoFoliate } from '../leitor/foliate/view.js';
 import { capitulosDoTexto, livroDeTexto } from '../leitor/livroDeTexto';
 import { estante, type LivroGuardado } from './armazem';
 import { lerCapitulosGuardados } from './capitulosGuardados';
+import { lerConteudo, lerDaMemoria } from './meusLivros';
 
 export interface LivroParaOMotor {
   guardado: LivroGuardado;
@@ -17,8 +18,15 @@ export interface LivroParaOMotor {
 }
 
 export async function livroParaOMotor(livroId: string, rotuloDoCapitulo: string): Promise<LivroParaOMotor | null> {
-  const guardado = await estante.livro(livroId);
-  if (!guardado) return null;
+  const achado = await estante.livro(livroId);
+  if (!achado) return null;
+  /* A REFERÊNCIA a "Meus livros": o arquivo está no banco da L1 (guardado uma vez só). Sumiu de lá: sem livro. */
+  let guardado = achado;
+  if (achado.refMeuLivro) {
+    const c = lerDaMemoria(achado.refMeuLivro) ?? (await lerConteudo(achado.refMeuLivro));
+    if (!c?.arquivo?.size) return null;
+    guardado = { ...achado, arquivo: new Blob([c.arquivo], { type: achado.arquivo.type || c.arquivo.type }) };
+  }
   if (guardado.origem === 'sessao') {
     const sessionId = livroId.replace(/^sessao:/, '');
     const { session, utterances } = await fetchSessionTranscript(sessionId);

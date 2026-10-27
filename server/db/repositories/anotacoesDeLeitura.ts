@@ -6,8 +6,12 @@
  * sobrescreve a linha dela — vira uma linha NOVA desta pessoa. Por isso não existe caminho de IDOR:
  * toda leitura, escrita e lápide filtra pelo `user_id` do pedido, nunca pelo `id` sozinho.
  *
- * A SINCRONIZAÇÃO é "última escrita vence" por `max(atualizado_em, apagado_em)`, decidida no banco
- * (`ON CONFLICT … WHERE`), e não num "lê, compara, grava" que dois aparelhos atravessariam juntos.
+ * O CONFLITO é "última escrita vence" por `max(atualizado_em, apagado_em)` (o relógio do APARELHO), decidido no
+ * banco (`ON CONFLICT … WHERE`), e não num "lê, compara, grava" que dois aparelhos atravessariam juntos.
+ *
+ * A SINCRONIZAÇÃO (o que cada aparelho ainda não recebeu) é outra coisa: o cursor é `(sincronizado_em, id)`, o
+ * relógio do SERVIDOR posto em toda escrita (`proximoRelogio`). Comparar o relógio do aparelho com o cursor perdia
+ * a escrita feita sem rede, com data antiga, que sobe depois que o outro aparelho já leu.
  *
  * TETOS (`TETOS_DAS_ANOTACOES`, os três num lugar só): vivas por livro, vivas por pessoa e livros distintos
  * com anotação viva — cobrados sob a trava do usuário (como o glossário). Não dependem de plano (anotar é
@@ -15,11 +19,17 @@
  * teto por pessoa e o de livros fecham o desvio de inventar `livro_id` novos para fugir do teto por livro.
  * "Nova viva" inclui a RESSURREIÇÃO: uma lápide que volta a `apagado_em = null` ocupa vaga como uma nova.
  */
-import { and, eq, gt, inArray, isNull, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
 
-import type { AnotacaoDeLeitura, CorDeAnotacao, TipoDeAnotacao } from '../../../src/core/leitura/anotacao'
+import {
+  type AnotacaoDeLeitura,
+  type CorDeAnotacao,
+  ehLivroTrazido,
+  MAX_CITACAO_POR_LIVRO_TRAZIDO,
+  type TipoDeAnotacao,
+} from '../../../src/core/leitura/anotacao'
 import type { UserId } from '../../lib/authContext'
-import { db, emTransacao, linhas, linhasAfetadas, travarUsuario } from '../db'
+import { db, emTransacao, type ExecutorDb, linhas, linhasAfetadas, travarUsuario } from '../db'
 import { anotacoesDeLeitura as t } from '../schema'
 
 /**
@@ -64,12 +74,30 @@ function paraAnotacao(l: Linha): AnotacaoDeLeitura {
   }
 }
 
-export type MotivoDeRecusa = 'livro_cheio' | 'pessoa_cheia' | 'livros_demais' | 'linhas_demais'
+export type MotivoDeRecusa = 'livro_cheio' | 'pessoa_cheia' | 'livros_demais' | 'linhas_demais' | 'citacao_demais'
 export type ResultadoDoLote = {
   gravadas: AnotacaoDeLeitura[]
   recusadas: Array<{ id: string; motivo: MotivoDeRecusa }>
   /** Lápides de id que a pessoa não tem: não há o que apagar, e nenhuma linha nasce. */
   ignoradas: string[]
+}
+
+/** O cursor da sincronização: o relógio do servidor da última linha lida, e o `id` de desempate. */
+export interface CursorDaLeitura {
+  s: number
+  id: string
+}
+export const cursorParaTexto = (c: CursorDaLeitura) => `${c.s}:${c.id}`
+export function cursorDoTexto(x: string): CursorDaLeitura | null {
+  const m = /^(\d{1,16}):([A-Za-z0-9_-]{1,64})$/.exec(x)
+  return m ? { s: Number(m[1]), id: m[2] } : null
+}
+
+export interface PaginaDeAnotacoes {
+  anotacoes: AnotacaoDeLeitura[]
+  /** Onde a próxima página começa (o mesmo de entrada, se a página veio vazia). */
+  cursor: CursorDaLeitura | null
+  temMais: boolean
 }
 
 /**
@@ -80,53 +108,83 @@ export type ResultadoDoLote = {
 const SEM_CONTEUDO = { cfi: '', exact: '', prefixo: '', sufixo: '', capitulo: null, nota: '', palavra: null } as const
 
 const marca = (atualizadoEm: number, apagadoEm: number | null) => Math.max(atualizadoEm, apagadoEm ?? 0)
+const caracteres = (s: string) => Array.from(s).length
+
+/**
+ * O PRÓXIMO VALOR DO RELÓGIO DO SERVIDOR para esta pessoa: o relógio da máquina, mas nunca menor que o maior já
+ * dado + 1. Chamado SOB a trava do usuário: as escritas da pessoa saem em fila, e uma transação só ganha um valor
+ * depois que a anterior terminou — por isso quem lê com o cursor `(s, id)` nunca pula uma linha que ainda ia
+ * aparecer "atrás" dele. O relógio do aparelho não entra nessa conta.
+ */
+async function proximoRelogio(tx: ExecutorDb, userId: UserId, agora: number): Promise<number> {
+  const [{ s }] = linhas<{ s: number | string | null }>(
+    await tx.execute(sql`SELECT MAX(sincronizado_em) AS s FROM ${t} WHERE user_id = ${userId}`),
+  )
+  return Math.max(agora, Number(s ?? 0) + 1)
+}
+
+type Guardada = { livroId: string; atualizadoEm: number; apagadoEm: number | null; exact: string }
 
 export const anotacoesDeLeituraRepo = {
   /**
-   * As anotações da pessoa — de um livro ou de todos —, inclusive as lápides, mudadas DEPOIS de `desde`
-   * (a sincronização incremental). Ordem por `atualizado_em`, para a próxima página continuar daí.
+   * Uma PÁGINA das anotações da pessoa — de um livro ou de todos —, inclusive as lápides, escritas no servidor
+   * DEPOIS do `cursor` (a sincronização incremental), na ordem `(sincronizado_em, id)`. `temMais` = há outra
+   * página; o cliente só guarda o cursor quando chega ao fim.
    */
   async listar(
     userId: UserId,
-    opcoes: { livroId?: string; desde?: number; limite?: number } = {},
-  ): Promise<AnotacaoDeLeitura[]> {
+    opcoes: { livroId?: string; cursor?: CursorDaLeitura | null; limite?: number } = {},
+  ): Promise<PaginaDeAnotacoes> {
+    const limite = Math.max(1, Math.min(opcoes.limite ?? MAX_POR_LEITURA, MAX_POR_LEITURA))
     const filtros = [eq(t.userId, userId)]
     if (opcoes.livroId) filtros.push(eq(t.livroId, opcoes.livroId))
-    if (opcoes.desde != null) {
-      filtros.push(gt(sql`greatest(${t.atualizadoEm}, coalesce(${t.apagadoEm}, 0))`, opcoes.desde))
-    }
+    if (opcoes.cursor) filtros.push(sql`(${t.sincronizadoEm}, ${t.id}) > (${opcoes.cursor.s}, ${opcoes.cursor.id})`)
     const rows = await db
       .select()
       .from(t)
       .where(and(...filtros))
-      .orderBy(t.atualizadoEm, t.id)
-      .limit(Math.min(opcoes.limite ?? MAX_POR_LEITURA, MAX_POR_LEITURA))
-    return rows.map(paraAnotacao)
+      .orderBy(t.sincronizadoEm, t.id)
+      .limit(limite + 1)
+    const temMais = rows.length > limite
+    const pagina = temMais ? rows.slice(0, limite) : rows
+    const ultima = pagina.at(-1)
+    return {
+      anotacoes: pagina.map(paraAnotacao),
+      cursor: ultima ? { s: ultima.sincronizadoEm, id: ultima.id } : (opcoes.cursor ?? null),
+      temMais,
+    }
   },
 
   /**
-   * Grava um lote (já validado). Cada anotação entra se for nova ou mais recente que a guardada; a mais
-   * velha perde em silêncio e a resposta devolve a que ficou valendo. Uma escrita que faria uma anotação
-   * VIVA nascer — nova, ou lápide ressuscitada — passa pelos três tetos (`livro_cheio`, `pessoa_cheia`,
-   * `livros_demais`); editar uma viva ou apagar sempre passa. `tetos` é injetável só para o teste.
+   * Grava um lote (já validado). Cada anotação entra se for nova ou mais recente que a guardada (pelo
+   * `atualizado_em`/`apagado_em` do aparelho: só o desempate do conflito); a mais velha perde em silêncio e a
+   * resposta devolve a que ficou valendo. Toda linha que muda ganha o `sincronizado_em` do servidor. Uma escrita
+   * que faria uma anotação VIVA nascer — nova, ou lápide ressuscitada — passa pelos tetos (`livro_cheio`,
+   * `pessoa_cheia`, `livros_demais`); a citação de livro TRAZIDO, pelo teto somado (`citacao_demais`). `tetos` e
+   * `agora` são injetáveis só para o teste.
    */
   async gravarLote(
     userId: UserId,
     lote: readonly AnotacaoDeLeitura[],
     tetos: TetosDasAnotacoes = TETOS_DAS_ANOTACOES,
+    agora = Date.now(),
   ): Promise<ResultadoDoLote> {
     const recusadas: ResultadoDoLote['recusadas'] = []
     const ignoradas: string[] = []
     await emTransacao(async (tx) => {
       await travarUsuario(tx, userId)
-      /* A contagem das vivas, UMA vez por lote e sob a trava: por livro, o total e os livros distintos. */
+      const relogio = await proximoRelogio(tx, userId, agora)
+      /* A contagem das vivas, UMA vez por lote e sob a trava: por livro, o total e os livros distintos — e os
+         caracteres de citação viva de cada livro. */
       const porLivro = new Map<string, number>()
-      for (const r of linhas<{ livro_id: string; n: number | string }>(
+      const citacaoPorLivro = new Map<string, number>()
+      for (const r of linhas<{ livro_id: string; n: number | string; c: number | string | null }>(
         await tx.execute(
-          sql`SELECT livro_id, COUNT(*) AS n FROM ${t} WHERE user_id = ${userId} AND apagado_em IS NULL GROUP BY livro_id`,
+          sql`SELECT livro_id, COUNT(*) AS n, SUM(char_length(exact)) AS c FROM ${t} WHERE user_id = ${userId} AND apagado_em IS NULL GROUP BY livro_id`,
         ),
       )) {
         porLivro.set(r.livro_id, Number(r.n))
+        citacaoPorLivro.set(r.livro_id, Number(r.c ?? 0))
       }
       let total = [...porLivro.values()].reduce((s, n) => s + n, 0)
       const [{ n: linhasBrutas }] = linhas<{ n: number | string }>(
@@ -135,12 +193,25 @@ export const anotacoesDeLeituraRepo = {
       let todasAsLinhas = Number(linhasBrutas)
       const vivas = (livroId: string) => porLivro.get(livroId) ?? 0
       const livrosVivos = () => [...porLivro.values()].filter((n) => n > 0).length
-      for (const a of lote) {
-        const [guardada] = await tx
-          .select({ livroId: t.livroId, atualizadoEm: t.atualizadoEm, apagadoEm: t.apagadoEm })
+      /* As guardadas do lote inteiro numa consulta só (e não uma por anotação). */
+      const guardadas = new Map<string, Guardada>()
+      const idsDoLote = [...new Set(lote.map((a) => a.id))]
+      if (idsDoLote.length) {
+        const achadas = await tx
+          .select({
+            id: t.id,
+            livroId: t.livroId,
+            atualizadoEm: t.atualizadoEm,
+            apagadoEm: t.apagadoEm,
+            exact: t.exact,
+          })
           .from(t)
-          .where(and(eq(t.userId, userId), eq(t.id, a.id)))
-          .limit(1)
+          .where(and(eq(t.userId, userId), inArray(t.id, idsDoLote)))
+        for (const { id, ...g } of achadas) guardadas.set(id, g)
+      }
+      const escritas = new Map<string, typeof t.$inferInsert>()
+      for (const a of lote) {
+        const guardada = guardadas.get(a.id)
         /* LÁPIDE DE ID DESCONHECIDO: nada a apagar. Não cria linha — senão um cliente encheria o banco de
            lápides, que nenhum teto de vivas conta. */
         if (!guardada && a.apagadoEm != null) {
@@ -155,9 +226,10 @@ export const anotacoesDeLeituraRepo = {
            vencer a guardada; se perder, não há o que contar. */
         const livroId = guardada?.livroId ?? a.livroId
         const vence = !guardada || marca(a.atualizadoEm, a.apagadoEm) > marca(guardada.atualizadoEm, guardada.apagadoEm)
+        if (!vence) continue
         const estavaViva = !!guardada && guardada.apagadoEm == null
         const ficaViva = a.apagadoEm == null
-        if (vence && !estavaViva && ficaViva) {
+        if (!estavaViva && ficaViva) {
           const motivo: MotivoDeRecusa | null =
             vivas(livroId) >= tetos.porLivro
               ? 'livro_cheio'
@@ -170,9 +242,20 @@ export const anotacoesDeLeituraRepo = {
             recusadas.push({ id: a.id, motivo })
             continue
           }
+        }
+        /* O TETO SOMADO DA CITAÇÃO de livro trazido: conta o que a escrita acrescenta à viva de antes. */
+        const antes = estavaViva ? caracteres(guardada.exact) : 0
+        const depois = ficaViva ? caracteres(a.alvo.citacao.exact) : 0
+        const soma = (citacaoPorLivro.get(livroId) ?? 0) - antes + depois
+        if (ehLivroTrazido(livroId) && depois > antes && soma > MAX_CITACAO_POR_LIVRO_TRAZIDO) {
+          recusadas.push({ id: a.id, motivo: 'citacao_demais' })
+          continue
+        }
+        citacaoPorLivro.set(livroId, soma)
+        if (!estavaViva && ficaViva) {
           porLivro.set(livroId, vivas(livroId) + 1)
           total++
-        } else if (vence && estavaViva && !ficaViva) {
+        } else if (estavaViva && !ficaViva) {
           porLivro.set(livroId, Math.max(0, vivas(livroId) - 1))
           total--
         }
@@ -181,7 +264,7 @@ export const anotacoesDeLeituraRepo = {
         const valores = {
           userId,
           id: a.id,
-          livroId: a.livroId,
+          livroId,
           tipo: a.tipo,
           cfi: a.alvo.cfi,
           exact: a.alvo.citacao.exact,
@@ -194,8 +277,14 @@ export const anotacoesDeLeituraRepo = {
           criadoEm: a.criadoEm,
           atualizadoEm: a.atualizadoEm,
           apagadoEm: a.apagadoEm,
+          sincronizadoEm: relogio,
           ...(lapide ? SEM_CONTEUDO : {}),
         }
+        /* A próxima versão do MESMO id neste lote compara com esta. */
+        guardadas.set(a.id, { livroId, atualizadoEm: a.atualizadoEm, apagadoEm: a.apagadoEm, exact: valores.exact })
+        escritas.set(a.id, valores)
+      }
+      for (const valores of escritas.values()) {
         /* O livro de uma anotação não muda: `livro_id` fica fora do UPDATE (um lote não "move" a anotação
            de outro livro para cá e fura o teto por esse caminho). */
         const mutaveis = {
@@ -210,6 +299,7 @@ export const anotacoesDeLeituraRepo = {
           palavra: valores.palavra,
           atualizadoEm: valores.atualizadoEm,
           apagadoEm: valores.apagadoEm,
+          sincronizadoEm: valores.sincronizadoEm,
         }
         await tx
           .insert(t)
@@ -235,12 +325,16 @@ export const anotacoesDeLeituraRepo = {
 
   /** Lápide numa anotação DA PESSOA. `false` = não existe (ou é de outra pessoa, que dá no mesmo). */
   async apagar(userId: UserId, id: string, agora = Date.now()): Promise<boolean> {
-    const r = await db
-      .update(t)
-      .set({ apagadoEm: agora, ...SEM_CONTEUDO })
-      .where(and(eq(t.userId, userId), eq(t.id, id), isNull(t.apagadoEm)))
-      .returning({ id: t.id })
-    return r.length > 0
+    return emTransacao(async (tx) => {
+      await travarUsuario(tx, userId)
+      const relogio = await proximoRelogio(tx, userId, agora)
+      const r = await tx
+        .update(t)
+        .set({ apagadoEm: agora, sincronizadoEm: relogio, ...SEM_CONTEUDO })
+        .where(and(eq(t.userId, userId), eq(t.id, id), isNull(t.apagadoEm)))
+        .returning({ id: t.id })
+      return r.length > 0
+    })
   },
 
   /** A limpeza diária: apaga de vez as lápides com mais de `DIAS_DA_LAPIDE` dias (em lotes de 5 mil). */

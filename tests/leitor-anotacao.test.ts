@@ -10,6 +10,7 @@ import {
   anotacoesVivas,
   citacaoDe,
   COR_DO_TIPO,
+  ehLivroTrazido,
   MAX_CITACAO,
   mesclarAnotacoes,
   novaAnotacao,
@@ -48,6 +49,22 @@ describe('citacaoDe', () => {
 })
 
 describe('validarAnotacao', () => {
+  it('datas: com agora, nada passa de agora + 1 dia; negativa nunca; o estrito recusa apagadoEm malformado', () => {
+    const agora = 10_000_000
+    const ok = { ...base(), atualizadoEm: agora + 3_600_000 }
+    expect(validarAnotacao(ok, { estrito: true, agora }).ok).toBe(true)
+    expect(
+      validarAnotacao({ ...base(), atualizadoEm: agora + 2 * 86_400_000 }, { estrito: true, agora }),
+    ).toMatchObject({
+      ok: false,
+      code: 'data_no_futuro',
+    })
+    expect(validarAnotacao({ ...base(), apagadoEm: agora + 2 * 86_400_000 }, { agora })).toMatchObject({ ok: false })
+    expect(validarAnotacao({ ...base(), criadoEm: -1 }, { estrito: true, agora })).toMatchObject({ ok: false })
+    expect(validarAnotacao({ ...base(), apagadoEm: 'ontem' }, { estrito: true })).toMatchObject({ ok: false })
+    expect(ehLivroTrazido('arq:x') && ehLivroTrazido('meu-x') && !ehLivroTrazido('cat:x')).toBe(true)
+  })
+
   it('a nova anotação sai normalizada, com a cor do tipo', () => {
     expect(base().cor).toBe(COR_DO_TIPO.grifo)
     expect(base({ tipo: 'nota' }).cor).toBe(COR_DO_TIPO.nota)

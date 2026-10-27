@@ -107,7 +107,7 @@ p { background-image: url(data:image/png;base64,AA) }`
     expect(limpo).toContain('url(data:image/png;base64,AA)')
   })
 
-  it('HTML: imagem, srcset, poster, áudio, vídeo, SVG <image>, <link> e estilo remotos saem; o link de navegação fica', () => {
+  it('HTML: imagem, srcset, poster, áudio, vídeo, SVG <image>, <link> e estilo remotos saem; o link de navegação vira data-href', () => {
     const x = `<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:xlink="http://www.w3.org/1999/xlink"><head>
       <link rel="stylesheet" href="https://x.test/a.css"/><link rel="preconnect" href="//x.test"/>
       <style>body { background: url(https://x.test/bg.png) }</style></head><body>
@@ -122,7 +122,8 @@ p { background-image: url(data:image/png;base64,AA) }`
     const limpo = limparCapitulo(x, 'xhtml') ?? ''
     expect(limpo.replace('https://standardebooks.org', '')).not.toMatch(/x\.test/)
     expect(limpo).toContain('src="blob:http://localhost/capa"')
-    expect(limpo).toContain('href="https://standardebooks.org"')
+    expect(limpo).toContain('data-href="https://standardebooks.org"')
+    expect(limpo).not.toMatch(/<a [^>]*\shref=/)
     expect(limpo).toContain('texto')
   })
 })
@@ -264,6 +265,6 @@ describe('DOMPurify e mXSS (o capítulo sai como HTML montado por nós, com a CS
     expect(limparCapitulo(um, 'html')).toBe(um)
     expect(um).toContain('lang="en"')
     expect(um).toContain('class="c"')
-    expect(um).toContain('href="https://standardebooks.org"')
+    expect(um).toContain('data-href="https://standardebooks.org"')
   })
 })

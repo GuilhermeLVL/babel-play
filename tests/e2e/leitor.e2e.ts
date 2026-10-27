@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, createHmac } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -28,11 +28,35 @@ const LIVRO_ID = `arq:${createHash('sha256').update(readFileSync(FIXTURE)).diges
  * As anotações deste livro no servidor saem antes do teste: o banco do e2e é o mesmo para os três projetos
  * (viewports) e para as rodadas anteriores, e a contagem do teste é a desta rodada.
  */
+/**
+ * O id que o SERVIDOR vê para o arquivo (`arq:<HMAC(chave, sha)>`, `src/lib/livros/idRemoto.ts`): o hash do
+ * arquivo nunca chega lá.
+ */
+async function idNoServidor(page: Page): Promise<string> {
+  const { chave } = (await (await page.request.get('/api/leitura/chave')).json()) as { chave: string }
+  const h = createHmac('sha256', Buffer.from(chave, 'hex')).update(LIVRO_ID.slice('arq:'.length)).digest('hex')
+  return `arq:${h.slice(0, 32)}`
+}
+
 async function apagarAnotacoesDoServidor(page: Page) {
-  const r = await page.request.get(`/api/leitura/anotacoes?livroId=${encodeURIComponent(LIVRO_ID)}`)
-  expect(r.ok()).toBe(true)
-  for (const a of ((await r.json()) as { anotacoes: Array<{ id: string; apagadoEm: number | null }> }).anotacoes) {
-    if (a.apagadoEm == null) await page.request.delete(`/api/leitura/anotacoes/${a.id}`)
+  // O hash cru nunca foi guardado no servidor.
+  const cru = await page.request.get(`/api/leitura/anotacoes?livroId=${encodeURIComponent(LIVRO_ID)}`)
+  expect(((await cru.json()) as { anotacoes: unknown[] }).anotacoes).toEqual([])
+  let cursor = ''
+  for (;;) {
+    const q = new URLSearchParams({ livroId: await idNoServidor(page), ...(cursor ? { cursor } : {}) })
+    const r = await page.request.get(`/api/leitura/anotacoes?${q}`)
+    expect(r.ok()).toBe(true)
+    const pagina = (await r.json()) as {
+      anotacoes: Array<{ id: string; apagadoEm: number | null }>
+      cursor: string | null
+      temMais: boolean
+    }
+    for (const a of pagina.anotacoes) {
+      if (a.apagadoEm == null) await page.request.delete(`/api/leitura/anotacoes/${a.id}`)
+    }
+    if (!pagina.temMais) break
+    cursor = pagina.cursor ?? ''
   }
 }
 

@@ -4,8 +4,9 @@ import { BookOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { t } from '../../../lib/i18n';
-import { estante } from '../../../lib/livros/armazem';
+import { consumirRemovidosDaEstante, estante } from '../../../lib/livros/armazem';
 import { CopiaIndisponivel } from '../../../lib/livros/textoDoLivro';
+import { toast } from '../../Toast';
 import LeitorDoLivro from './LeitorDoLivro';
 
 type Estado = { tipo: 'preparando' } | { tipo: 'erro'; mensagem: string } | { tipo: 'pronto'; livroId: string };
@@ -41,6 +42,15 @@ export default function LeitorDoCatalogo({
           return;
         }
         await estante.marcarAberto(livroId);
+        const sairam = consumirRemovidosDaEstante();
+        if (sairam.length) {
+          toast.warn(
+            t(
+              'Para caber, saíram deste aparelho: {titulos}. As anotações continuam; para ler de novo, abra o livro outra vez.',
+              { titulos: sairam.join(', ') },
+            ),
+          );
+        }
         aoAbrir?.();
         if (vivo) setEstado({ tipo: 'pronto', livroId });
       })

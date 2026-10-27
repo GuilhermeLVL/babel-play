@@ -234,3 +234,86 @@ test.describe('Leitor — mXSS e confusão de namespace (DOMPurify)', () => {
     expect(deFora).toEqual([])
   })
 })
+
+test.describe('Leitor — os links do livro nunca navegam o capítulo', () => {
+  /* `links.epub`: um link externo, um `javascript:` e um interno. O `href` sai na limpeza (vira `data-href`):
+     o iframe do capítulo não navega em nenhum motor, e nada é pedido para fora. O externo só abre pela folha
+     da palavra ("Abrir link"), em aba nova sem opener; o interno leva ao capítulo 2 pelo motor. */
+  test('clicar no link externo não navega nem pede nada; "Abrir link" abre sem opener; o interno vai ao capítulo 2', async ({
+    page,
+    baseURL,
+  }) => {
+    test.slow()
+    const app = new URL(baseURL ?? 'http://localhost:3100').host
+    const deFora: string[] = []
+    page.context().on('request', (r) => {
+      const u = new URL(r.url())
+      if (/^https?:$/.test(u.protocol) && u.host !== app) deFora.push(r.url())
+    })
+    const chegaram: string[] = []
+    await page.context().route(/links\.example/, (rota) => {
+      chegaram.push(rota.request().url())
+      return rota.fulfill({ status: 200, contentType: 'text/html', body: '<p>fonte</p>' })
+    })
+    const popups: Page[] = []
+    page.context().on('page', (p) => popups.push(p))
+    await page.goto('/leitor')
+    await expect(page.getByTestId('estante')).toBeVisible({ timeout: 30_000 })
+    deFora.length = 0
+    await page.getByTestId('abrir-arquivo').setInputFiles(path.resolve('tests', 'fixtures', 'livros', 'links.epub'))
+    await expect(page.locator('[data-testid=leitor][data-estado=pronto]')).toBeVisible({ timeout: 30_000 })
+    await fecharSobreposicoes(page)
+    let capitulo = page.frames().find((f) => f.url().startsWith('blob:'))
+    await expect(async () => {
+      capitulo = page.frames().find((f) => f.url().startsWith('blob:'))
+      await expect(capitulo!.getByText('Links chapter')).toBeVisible({ timeout: 1000 })
+    }).toPass({ timeout: 15_000 })
+    const urlDoCapitulo = capitulo!.url()
+    const urlDaPagina = page.url()
+    // Nenhum link do capítulo tem href (só data-href); o javascript: não tem nem data-href.
+    expect(await capitulo!.locator('a[href]').count()).toBe(0)
+    expect(await capitulo!.locator('#externo').getAttribute('data-href')).toBe('https://links.example/fonte')
+    expect(await capitulo!.locator('#js').getAttribute('data-href')).toBeNull()
+
+    // O externo: clicar NÃO navega (nem o iframe, nem a página) e não pede nada; a folha oferece "Abrir link".
+    await capitulo!.locator('#externo').click()
+    await expect(page.getByTestId('abrir-link')).toBeVisible({ timeout: 10_000 })
+    await page.waitForTimeout(800)
+    expect(capitulo!.url()).toBe(urlDoCapitulo)
+    expect(page.url()).toBe(urlDaPagina)
+    expect(popups).toHaveLength(0)
+    expect(chegaram).toEqual([])
+    /* A folha da palavra consulta o DICIONÁRIO (Wiktionary) pela palavra tocada: é o app, não o livro. Fora
+       isso, nada sai. */
+    expect(deFora.filter((u) => !/^https:\/\/[a-z]+\.wiktionary\.org\//.test(u))).toEqual([])
+    await expect(page.getByTestId('abrir-link')).toContainText('links.example')
+
+    // "Abrir link" (controle do app): aba nova, no destino, sem opener.
+    const [aba] = await Promise.all([page.context().waitForEvent('page'), page.getByTestId('abrir-link').click()])
+    await aba.waitForLoadState('domcontentloaded').catch(() => {})
+    expect(aba.url()).toBe('https://links.example/fonte')
+    expect(await aba.evaluate(() => window.opener)).toBeNull()
+    await aba.close()
+    expect(chegaram).toEqual(['https://links.example/fonte'])
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('abrir-link')).toBeHidden()
+
+    // O javascript: não faz nada.
+    await capitulo!.locator('#js').click()
+    await page.waitForTimeout(500)
+    await page.keyboard.press('Escape')
+    expect(await pwnedEmTodaParte(page)).toEqual([])
+
+    // O interno: o motor leva ao capítulo 2 (o iframe do capítulo 1 não navegou para lugar nenhum).
+    await capitulo!.locator('#interno').click()
+    await expect(async () => {
+      const outro = page.frames().find((f) => f.url().startsWith('blob:') && f !== capitulo)
+      await expect(outro!.getByText('The end of the links book.')).toBeVisible({ timeout: 1000 })
+    }).toPass({ timeout: 15_000 })
+    for (const f of page.frames()) {
+      if (f !== page.mainFrame()) expect(f.url()).toMatch(/^(blob:|about:)/)
+    }
+    expect(page.url()).toBe(urlDaPagina)
+    expect(chegaram).toEqual(['https://links.example/fonte'])
+  })
+})

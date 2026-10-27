@@ -84,7 +84,13 @@ import { tutorRouter } from '../routes/tutor'
 import { vocabRouter } from '../routes/vocab'
 import { diretivasDeCsp } from './csp'
 import { isolamentoDeOrigem } from './isolamento'
-import { jsonAntesDoAuth, jsonDepoisDoAuth, ROTAS_DE_CORPO_GRANDE } from './limitesDeCorpo'
+import {
+  jsonAntesDoAuth,
+  jsonDepoisDoAuth,
+  jsonMedioDepoisDoAuth,
+  ROTAS_DE_CORPO_GRANDE,
+  ROTAS_DE_CORPO_MEDIO,
+} from './limitesDeCorpo'
 import { handlerDeMetricas, middlewareDeMetricas } from './metricas'
 import { exigirOrigem } from './origemProtegida'
 
@@ -513,6 +519,7 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
 
   // GAP-015: o corpo grande só é lido depois de o token ser aceito (ver `limitesDeCorpo.ts`).
   app.use([...ROTAS_DE_CORPO_GRANDE], jsonDepoisDoAuth())
+  app.use([...ROTAS_DE_CORPO_MEDIO], jsonMedioDepoisDoAuth())
 
   /* Fase 6 — 2FA de verdade: quem ativou a verificação em duas etapas precisa de sessão AAL2 nas
      rotas de cobrança, exclusão/exportação de conta, credencial BYOK e admin (`server/lib/aal.ts`). */

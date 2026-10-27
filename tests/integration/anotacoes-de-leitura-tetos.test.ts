@@ -9,6 +9,9 @@
  *   - apagar libera a vaga.
  *   - LÁPIDES: a de id desconhecido não cria linha; a guardada não tem conteúdo; o teto de linhas conta as
  *     lápides; a limpeza diária poda as velhas.
+ *   - CURSOR DO SERVIDOR: `sincronizado_em` cresce a cada escrita (mesmo com o relógio do aparelho no passado),
+ *     a escrita offline com data antiga aparece depois do cursor, e a leitura vem em páginas com `temMais`.
+ *   - CITAÇÃO de livro trazido: o teto somado (`citacao_demais`); o livro do catálogo não tem.
  *
  * Os tetos são injetados pequenos (a função aceita `tetos` para isto): o comportamento é o mesmo dos de verdade.
  */
@@ -57,7 +60,7 @@ describe('teto por livro e ressurreição', () => {
   })
 
   it('apagar libera a vaga; ressuscitar a lápide com o livro cheio de novo é recusado', async () => {
-    const vivas = (await repo.listar(U, { livroId: 'arq:l1' })).filter((x: AnotacaoDeLeitura) => !x.apagadoEm)
+    const vivas = (await repo.listar(U, { livroId: 'arq:l1' })).anotacoes.filter((x: AnotacaoDeLeitura) => !x.apagadoEm)
     const alvo = vivas[0]
     expect(await repo.apagar(U, alvo.id, 3_000)).toBe(true)
     // A vaga voltou: uma nova entra.
@@ -67,9 +70,13 @@ describe('teto por livro e ressurreição', () => {
     const ressurreicao = { ...alvo, apagadoEm: null, nota: 'voltei', atualizadoEm: 9_000 }
     const r = await repo.gravarLote(U, [ressurreicao], TETOS)
     expect(r.recusadas).toEqual([{ id: alvo.id, motivo: 'livro_cheio' }])
-    const guardada = (await repo.listar(U, { livroId: 'arq:l1' })).find((x: AnotacaoDeLeitura) => x.id === alvo.id)
+    const guardada = (await repo.listar(U, { livroId: 'arq:l1' })).anotacoes.find(
+      (x: AnotacaoDeLeitura) => x.id === alvo.id,
+    )
     expect(guardada.apagadoEm).toBe(3_000)
-    expect((await repo.listar(U, { livroId: 'arq:l1' })).filter((x: AnotacaoDeLeitura) => !x.apagadoEm)).toHaveLength(2)
+    expect(
+      (await repo.listar(U, { livroId: 'arq:l1' })).anotacoes.filter((x: AnotacaoDeLeitura) => !x.apagadoEm),
+    ).toHaveLength(2)
   })
 
   it('com vaga, a ressurreição passa e conta (a próxima nova é recusada)', async () => {
@@ -153,7 +160,7 @@ describe('lápides', () => {
     }
     // E a lápide sem conteúdo continua lendo como anotação (o cliente a valida para mesclar).
     const { validarAnotacao } = await import('../../src/core/leitura/anotacao')
-    for (const x of await repo.listar(U)) expect(validarAnotacao(x, { estrito: true }).ok).toBe(true)
+    for (const x of (await repo.listar(U)).anotacoes) expect(validarAnotacao(x, { estrito: true }).ok).toBe(true)
   })
 
   it('o teto de linhas conta TODAS as linhas, lápides incluídas', async () => {
@@ -183,5 +190,68 @@ describe('lápides', () => {
     expect(await repo.podarLapides(agora)).toBeGreaterThanOrEqual(1)
     const ids = (await linhasDe('lapide-poda')).map((l) => l.id).sort()
     expect(ids).toEqual([nova1.id, viva.id].sort())
+  })
+})
+
+describe('o cursor da sincronização é o relógio do servidor', () => {
+  const U = asUserId('cursor-servidor')
+
+  it('a escrita feita sem rede, com data antiga, aparece depois do cursor de quem já leu', async () => {
+    await repo.gravarLote(U, [nova('arq:c1', { atualizadoEm: 500_000, criadoEm: 500_000 })])
+    const b = await repo.listar(U, { livroId: 'arq:c1' })
+    expect(b.anotacoes).toHaveLength(1)
+    expect(b.temMais).toBe(false)
+    // Aparelho A, sem rede desde antes: data do aparelho MUITO menor que a do que B já leu.
+    const offline = nova('arq:c1', { atualizadoEm: 1, criadoEm: 1, nota: 'feita sem rede' })
+    await repo.gravarLote(U, [offline])
+    const depois = await repo.listar(U, { livroId: 'arq:c1', cursor: b.cursor })
+    expect(depois.anotacoes.map((x: AnotacaoDeLeitura) => x.id)).toEqual([offline.id])
+    // E a lápide (pelo DELETE) também ganha relógio novo.
+    await repo.apagar(U, offline.id, 2)
+    const lapide = await repo.listar(U, { livroId: 'arq:c1', cursor: depois.cursor })
+    expect(lapide.anotacoes.map((x: AnotacaoDeLeitura) => [x.id, x.apagadoEm])).toEqual([[offline.id, 2]])
+    expect(lapide.cursor.s).toBeGreaterThan(depois.cursor.s)
+  })
+
+  it('o relógio nunca volta: com a máquina "no passado", a escrita seguinte ainda fica depois', async () => {
+    await repo.gravarLote(U, [nova('arq:c2')], undefined, 9_000_000_000_000)
+    const a = await repo.listar(U, { livroId: 'arq:c2' })
+    await repo.gravarLote(U, [nova('arq:c2')], undefined, 1_000)
+    const b = await repo.listar(U, { livroId: 'arq:c2', cursor: a.cursor })
+    expect(b.anotacoes).toHaveLength(1)
+    expect(b.cursor.s).toBe(a.cursor.s + 1)
+  })
+
+  it('mais de 2000: páginas de 2000 com temMais, e a segunda página continua do cursor', async () => {
+    const lote: AnotacaoDeLeitura[] = []
+    for (let i = 0; i < 2_150; i++) lote.push(nova('cat:paginas'))
+    for (let i = 0; i < lote.length; i += 200) await repo.gravarLote(U, lote.slice(i, i + 200))
+    const p1 = await repo.listar(U, { livroId: 'cat:paginas' })
+    expect(p1.anotacoes).toHaveLength(2_000)
+    expect(p1.temMais).toBe(true)
+    const p2 = await repo.listar(U, { livroId: 'cat:paginas', cursor: p1.cursor })
+    expect(p2.anotacoes).toHaveLength(150)
+    expect(p2.temMais).toBe(false)
+    const ids = new Set([...p1.anotacoes, ...p2.anotacoes].map((x: AnotacaoDeLeitura) => x.id))
+    expect(ids.size).toBe(2_150)
+  })
+})
+
+describe('teto somado da citação de livro trazido', () => {
+  const U = asUserId('citacao-trazido')
+  const cit = (n: number) => ({ cfi: '', citacao: { exact: 'z'.repeat(n), prefix: '', suffix: '' } })
+
+  it('arq: recusa a escrita que passaria de 20 mil caracteres vivos; apagar libera; catálogo não tem teto', async () => {
+    const quarenta = Array.from({ length: 40 }, () => nova('arq:t1', { alvo: cit(500) }))
+    expect((await repo.gravarLote(U, quarenta)).recusadas).toEqual([])
+    const extra = nova('arq:t1', { alvo: cit(10) })
+    expect((await repo.gravarLote(U, [extra])).recusadas).toEqual([{ id: extra.id, motivo: 'citacao_demais' }])
+    // Editar uma viva sem aumentar a citação passa.
+    const ed = await repo.gravarLote(U, [{ ...quarenta[0], nota: 'ok', atualizadoEm: 5_000 }])
+    expect(ed.recusadas).toEqual([])
+    await repo.apagar(U, quarenta[1].id)
+    expect((await repo.gravarLote(U, [extra])).recusadas).toEqual([])
+    const cat = Array.from({ length: 41 }, () => nova('cat:t1', { alvo: cit(500) }))
+    expect((await repo.gravarLote(U, cat)).recusadas).toEqual([])
   })
 })

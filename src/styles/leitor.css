@@ -654,3 +654,15 @@
 .leitor[data-estado='carregando'] .leitor-motor {
   visibility: hidden;
 }
+
+/* "Abrir link" na folha da palavra: o destino aparece (o host), para a pessoa saber aonde vai. */
+.leitor-abrir-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0;
+}
+.leitor-link-destino {
+  font-size: 0.85em;
+  opacity: 0.75;
+}

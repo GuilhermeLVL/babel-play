@@ -3,32 +3,14 @@ import '../../../styles/leitor.css';
 import { BookOpen, FileUp, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { criarArmazemDePosicoes } from '../../../core/leitura/posicao';
 import { comBaseDoApp } from '../../../lib/baseDoApp';
 import { t } from '../../../lib/i18n';
 import { abrirLivroNoLeitor, ErroAoAbrirLivro } from '../../../lib/livros/abrir';
-import { estante, type LivroGuardado } from '../../../lib/livros/armazem';
+import { consumirRemovidosDaEstante, estante, type LivroGuardado } from '../../../lib/livros/armazem';
+import { posicoes } from '../../../lib/livros/posicoesDoAparelho';
 import { esquecerLivroDoBoot, estadoParaUrl, lerLivroDoBoot, lerUrlAtual, navegarPara } from '../../../lib/rotas';
 import { toast } from '../../Toast';
 import LeitorDoLivro from './LeitorDoLivro';
-
-const posicoes = criarArmazemDePosicoes({
-  ler: (k) => {
-    try {
-      return localStorage.getItem(k);
-    } catch {
-      return null;
-    }
-  },
-  gravar: () => {},
-  apagar: (k) => {
-    try {
-      localStorage.removeItem(k);
-    } catch {
-      /* sem armazenamento */
-    }
-  },
-});
 
 /**
  * O LEITOR (`/leitor` e `/leitor/<livroId>`, L2 de Livros & Leitura). Com o id, abre o livro; sem, mostra a
@@ -86,6 +68,15 @@ function Estante() {
     setAbrindo(true);
     try {
       await abrirLivroNoLeitor(arquivo);
+      const sairam = consumirRemovidosDaEstante();
+      if (sairam.length) {
+        toast.warn(
+          t(
+            'Para caber, saíram deste aparelho: {titulos}. As anotações continuam; para ler de novo, abra o livro outra vez.',
+            { titulos: sairam.join(', ') },
+          ),
+        );
+      }
     } catch (e) {
       console.error('leitor: não abriu o arquivo', e);
       toast.error(e instanceof ErroAoAbrirLivro ? t(MENSAGEM_DO_ERRO[e.code]) : t('Não deu para abrir o arquivo.'));

@@ -146,7 +146,8 @@ p, li, blockquote, dd, div {
 }
 [align="center"] { text-align: center; }
 [align="right"] { text-align: right; }
-a:link, a:visited { color: ${c.link} !important; }
+a:link, a:visited, a[data-href] { color: ${c.link} !important; }
+a[data-href] { text-decoration: underline; cursor: pointer; }
 pre { white-space: pre-wrap !important; }
 img, svg { max-width: 100%; height: auto; }
 ::selection { background: ${c.esquema === 'dark' ? 'rgba(140,184,255,0.35)' : 'rgba(31,95,168,0.22)'}; }

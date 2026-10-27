@@ -39,6 +39,20 @@ export const MAX_LIVRO_ID = 120;
 export const MAX_CAPITULO = 300;
 /** Teto da palavra salva (tipo `palavra`). */
 export const MAX_PALAVRA = 200;
+/**
+ * Teto SOMADO das citações (`exact`) vivas de um livro TRAZIDO pela pessoa (`arq:…`, `meu-…`): o servidor
+ * não vira cópia da obra por mil grifos de 500 caracteres. Livro do catálogo é domínio público: sem teto.
+ */
+export const MAX_CITACAO_POR_LIVRO_TRAZIDO = 20_000;
+/** Quanto do futuro uma data da anotação pode vir (relógio do aparelho adiantado). */
+export const FOLGA_DO_RELOGIO_MS = 86_400_000;
+
+/** O livro foi trazido pela pessoa (arquivo do aparelho), e não é do catálogo nem uma sessão? */
+export const ehLivroTrazido = (livroId: string) => /^(arq:|meu-)/.test(livroId);
+
+/** Quantos caracteres (pontos de código) de citação viva um conjunto de anotações guarda. */
+export const caracteresDeCitacao = (lista: readonly AnotacaoDeLeitura[]) =>
+  lista.reduce((s, a) => s + (a.apagadoEm == null ? Array.from(a.alvo.citacao.exact).length : 0), 0);
 
 export interface CitacaoDoTexto {
   exact: string;
@@ -119,7 +133,7 @@ export type ResultadoDaValidacao =
  * teto está fora do contrato. No cliente (`estrito = false`) o excesso é cortado, porque o que se lê
  * do disco antigo não deve sumir por um caractere a mais.
  */
-export function validarAnotacao(x: unknown, opcoes: { estrito?: boolean } = {}): ResultadoDaValidacao {
+export function validarAnotacao(x: unknown, opcoes: { estrito?: boolean; agora?: number } = {}): ResultadoDaValidacao {
   const estrito = opcoes.estrito === true;
   if (!x || typeof x !== 'object') return { ok: false, erro: 'anotação inválida', code: 'anotacao_invalida' };
   const o = x as Record<string, unknown>;
@@ -158,7 +172,18 @@ export function validarAnotacao(x: unknown, opcoes: { estrito?: boolean } = {}):
   if (!ehNumero(o.criadoEm) || !ehNumero(o.atualizadoEm)) {
     return { ok: false, erro: 'datas inválidas', code: 'datas_invalidas' };
   }
+  if (estrito && o.apagadoEm != null && !ehNumero(o.apagadoEm)) {
+    return { ok: false, erro: 'datas inválidas', code: 'datas_invalidas' };
+  }
   const apagadoEm = o.apagadoEm == null ? null : ehNumero(o.apagadoEm) ? o.apagadoEm : null;
+  /* DATAS NO FUTURO: com `agora`, nenhuma data passa de agora + 1 dia — senão uma escrita "do ano 3000" venceria
+     toda edição futura na regra da última escrita. */
+  if (opcoes.agora != null) {
+    const teto = opcoes.agora + FOLGA_DO_RELOGIO_MS;
+    if (o.criadoEm > teto || o.atualizadoEm > teto || (apagadoEm != null && apagadoEm > teto)) {
+      return { ok: false, erro: 'data no futuro', code: 'data_no_futuro' };
+    }
+  }
   return {
     ok: true,
     anotacao: {

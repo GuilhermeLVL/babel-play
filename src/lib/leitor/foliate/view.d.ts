@@ -11,6 +11,7 @@ export interface SecaoDoLivro {
   load(): Promise<string> | string;
   unload?(): void;
   createDocument?(): Promise<Document> | Document;
+  resolveHref?(href: string): string;
   size: number;
   linear?: string;
   cfi?: string;

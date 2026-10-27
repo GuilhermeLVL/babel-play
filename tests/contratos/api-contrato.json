@@ -35,6 +35,7 @@
     "GET /api/health",
     "GET /api/images/search",
     "GET /api/leitura/anotacoes",
+    "GET /api/leitura/chave",
     "GET /api/me",
     "GET /api/me/entitlements",
     "GET /api/me/exportar",

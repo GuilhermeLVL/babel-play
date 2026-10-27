@@ -160,6 +160,19 @@ function dompurify(): DOMPurify {
   const p = createDOMPurify(window);
   p.addHook('uponSanitizeElement', (no, dados) => {
     if (dados.tagName === 'style' && no.textContent) no.textContent = limparCss(no.textContent);
+    /* O LINK NÃO NAVEGA: todo `href` de `<a>` (HTML ou SVG) sai e o destino vai para `data-href`. O iframe do
+       capítulo nunca navega (no WebKit os ouvintes do pai não chegam a ele e o clique seguiria o link); quem
+       segue o link é o app — o interno pelo motor (`irParaLink`), o externo pela folha da palavra ("Abrir
+       link"), em aba nova sem opener. Só fica destino `http(s)` ou caminho do próprio livro. */
+    if (no.nodeType === 1 && (no as Element).localName?.toLowerCase() === 'a') {
+      const el = no as Element;
+      const alvos = [...el.attributes].filter((a) => a.localName.toLowerCase() === 'href');
+      /* Sem href (a segunda passada, ou o livro escreveu data-href): vale a mesma regra para o data-href. */
+      const destino = aparar(alvos.length ? alvos[0].value : (el.getAttribute('data-href') ?? ''));
+      for (const a of alvos) el.removeAttributeNode(a);
+      el.removeAttribute('data-href');
+      if (destino && (/^https?:\/\//i.test(destino) || !ehRemoto(destino))) el.setAttribute('data-href', destino);
+    }
   });
   p.addHook('uponSanitizeAttribute', (no, dados) => {
     const local = (dados.attrName.split(':').pop() ?? '').toLowerCase();
@@ -181,8 +194,6 @@ function dompurify(): DOMPurify {
       return;
     }
     if (!ehRemoto(dados.attrValue)) return;
-    /* Link de NAVEGAÇÃO para fora fica (o motor só abre http(s), em aba nova, sem opener). */
-    if (nome === 'a' && local === 'href' && /^https?:\/\//i.test(aparar(dados.attrValue))) return;
     dados.keepAttr = false;
   });
   purificador = p;

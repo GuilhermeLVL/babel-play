@@ -31,7 +31,18 @@ export interface LivroGuardado {
   nomeDoArquivo: string;
   adicionadoEm: number;
   abertoEm: number;
+  /**
+   * O arquivo NÃO está aqui: é o de "Meus livros" (L1, banco `frasy-livros`) com este id. Cada arquivo da pessoa
+   * fica guardado UMA vez; quem lê resolve a referência (`fontesDoLivro.ts`). `arquivo` vem vazio.
+   */
+  refMeuLivro?: string;
 }
+
+/**
+ * O TETO DA ESTANTE: livros e bytes guardados neste aparelho. Passou, sai o aberto há mais tempo (LRU) — e a
+ * tela diz quais saíram (`consumirRemovidosDaEstante`). As anotações ficam (são pequenas e sincronizam).
+ */
+export const TETO_DA_ESTANTE = { livros: 20, bytes: 300 * 1024 * 1024 } as const;
 
 export interface AnotacaoLocal extends AnotacaoDeLeitura {
   /** 1 = ainda não subiu para o servidor (número, e não booleano, para virar índice do IndexedDB). */
@@ -43,13 +54,20 @@ export interface AnotacaoLocal extends AnotacaoDeLeitura {
  * `Blob` no IndexedDB em vários cenários ("Error preparing Blob/File data to be stored in object store") —
  * e o dono lê no Safari. A estante devolve sempre um `Blob` para quem lê.
  */
-type LivroNoDisco = Omit<LivroGuardado, 'arquivo'> & { bytes: ArrayBuffer; tipo: string };
+type LivroNoDisco = Omit<LivroGuardado, 'arquivo'> & { bytes: ArrayBuffer; tipo: string; tamanho?: number };
 
-const paraODisco = async ({ arquivo, ...resto }: LivroGuardado): Promise<LivroNoDisco> => ({
-  ...resto,
-  bytes: await arquivo.arrayBuffer(),
-  tipo: arquivo.type,
-});
+const paraODisco = async ({ arquivo, ...resto }: LivroGuardado): Promise<LivroNoDisco> => {
+  const bytes = resto.refMeuLivro ? new ArrayBuffer(0) : await arquivo.arrayBuffer();
+  return { ...resto, bytes, tipo: arquivo.type, tamanho: bytes.byteLength };
+};
+
+let removidos: string[] = [];
+/** Os títulos que o teto tirou da estante desde a última consulta (para a tela dizer, uma vez). */
+export function consumirRemovidosDaEstante(): string[] {
+  const r = removidos;
+  removidos = [];
+  return r;
+}
 const doDisco = (l: LivroNoDisco | undefined): LivroGuardado | undefined => {
   if (!l) return undefined;
   const { bytes, tipo, ...resto } = l;
@@ -59,7 +77,7 @@ const doDisco = (l: LivroNoDisco | undefined): LivroGuardado | undefined => {
 interface EsquemaDaEstante extends DBSchema {
   livros: { key: string; value: LivroNoDisco; indexes: { abertoEm: number } };
   anotacoes: { key: string; value: AnotacaoLocal; indexes: { livroId: string; pendente: number } };
-  estado: { key: string; value: { chave: string; valor: number } };
+  estado: { key: string; value: { chave: string; valor: number | string } };
 }
 
 const NOME = 'frasy-leitor';
@@ -86,9 +104,39 @@ export async function esquecerConexaoDaEstante(): Promise<void> {
 }
 
 export const estante = {
-  async guardarLivro(l: LivroGuardado): Promise<void> {
+  /**
+   * Guarda o livro e, se passar do teto (`TETO_DA_ESTANTE`), tira os abertos há mais tempo. Devolve os títulos
+   * que saíram (também em `consumirRemovidosDaEstante`). `teto` é injetável só para o teste.
+   */
+  async guardarLivro(l: LivroGuardado, teto: { livros: number; bytes: number } = TETO_DA_ESTANTE): Promise<string[]> {
     const registro = await paraODisco(l);
-    await (await abrir()).put('livros', registro);
+    const db = await abrir();
+    const tx = db.transaction('livros', 'readwrite');
+    const outros: Array<{ livroId: string; titulo: string; abertoEm: number; tamanho: number }> = [];
+    for (let c = await tx.store.index('abertoEm').openCursor(); c; c = await c.continue()) {
+      const v = c.value;
+      if (v.livroId === l.livroId) continue;
+      outros.push({
+        livroId: v.livroId,
+        titulo: v.titulo,
+        abertoEm: v.abertoEm,
+        tamanho: v.tamanho ?? v.bytes?.byteLength ?? 0,
+      });
+    }
+    let livros = outros.length + 1;
+    let bytes = outros.reduce((s, o) => s + o.tamanho, 0) + (registro.tamanho ?? 0);
+    const sairam: string[] = [];
+    for (const o of outros) {
+      if (livros <= teto.livros && bytes <= teto.bytes) break;
+      await tx.store.delete(o.livroId);
+      sairam.push(o.titulo);
+      livros--;
+      bytes -= o.tamanho;
+    }
+    await tx.store.put(registro);
+    await tx.done;
+    removidos.push(...sairam);
+    return sairam;
   },
   async livro(livroId: string): Promise<LivroGuardado | undefined> {
     return doDisco(await (await abrir()).get('livros', livroId));
@@ -118,11 +166,11 @@ export const estante = {
     return (await abrir()).getAllFromIndex('anotacoes', 'pendente', 1);
   },
 
-  /** Marcas de sincronização (o `agora` do servidor na última leitura de cada livro). */
-  async marca(chave: string): Promise<number | undefined> {
+  /** Marcas de sincronização (o cursor do servidor, `<sincronizado_em>:<id>`, da última leitura de cada livro). */
+  async marca(chave: string): Promise<number | string | undefined> {
     return (await (await abrir()).get('estado', chave))?.valor;
   },
-  async gravarMarca(chave: string, valor: number): Promise<void> {
+  async gravarMarca(chave: string, valor: number | string): Promise<void> {
     await (await abrir()).put('estado', { chave, valor });
   },
 };

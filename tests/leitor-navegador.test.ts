@@ -20,7 +20,9 @@ describe('limparCapitulo (nenhum script do livro roda)', () => {
     const limpo = limparCapitulo(sujo, 'xhtml') ?? ''
     expect(limpo).not.toMatch(/<script|onload|onclick|onerror|javascript:|<iframe|<object|<form/i)
     expect(limpo).toContain('Olá')
-    expect(limpo).toContain('href="#n"')
+    // O link não navega: o destino vai para data-href (o app segue); o javascript: some de vez.
+    expect(limpo).toContain('data-href="#n"')
+    expect(limpo).not.toMatch(/\shref=/)
     expect(limpo).toContain('src="capa.png"')
   })
 

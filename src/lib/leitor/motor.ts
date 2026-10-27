@@ -98,7 +98,8 @@ export class MotorDoLeitor {
       eventos.aoCarregarSecao?.(doc, index);
     });
     view.addEventListener('draw-annotation', (e) => motor.desenhar(e as CustomEvent));
-    /* LINK EXTERNO: o motor decide, não o foliate — só http(s), aba nova sem opener nem referrer. */
+    /* LINK EXTERNO: o motor decide, não o foliate — só http(s), aba nova sem opener nem referrer. (Os links do
+       livro chegam sem `href` — `limparHtml.ts` —, então este caminho só vale para o que o foliate gerar.) */
     view.addEventListener('external-link', (e) => {
       e.preventDefault();
       const url = linkExternoSeguro((e as CustomEvent<{ href_: string }>).detail?.href_ ?? '');
@@ -247,6 +248,34 @@ export class MotorDoLeitor {
   /** Os documentos das seções carregadas agora (para ligar eventos e achar a seleção). */
   documentos(): Array<{ doc: Document; index: number }> {
     return this.view.renderer?.getContents?.() ?? [];
+  }
+
+  /**
+   * O LINK sob um nó do capítulo (`a[data-href]`, ver `limparHtml.ts`): `externo` = http(s), para a folha da
+   * palavra oferecer "Abrir link"; `interno` = um lugar do próprio livro, aonde `irParaLink` vai. `null` = não é link.
+   */
+  linkDoNo(no: Node | null): { externo: string } | { interno: string; indice: number } | null {
+    const el = (no?.nodeType === 1 ? (no as Element) : no?.parentElement)?.closest?.('a[data-href]');
+    const href = el?.getAttribute('data-href');
+    if (!el || !href) return null;
+    const externo = linkExternoSeguro(href);
+    if (externo) return { externo };
+    if (/^[a-z][a-z0-9+.-]*:/i.test(href)) return null;
+    const doc = el.ownerDocument;
+    const achado = this.documentos().find((d) => d.doc === doc);
+    return achado ? { interno: href, indice: achado.index } : null;
+  }
+
+  /** Vai ao destino de um link INTERNO do livro (o iframe nunca navega: quem vai é o motor). */
+  async irParaLink(indice: number, href: string): Promise<boolean> {
+    const secao = this.view.book.sections[indice];
+    const alvo = secao?.resolveHref?.(href) ?? href;
+    if (this.view.book.isExternal?.(alvo)) return false;
+    try {
+      return !!(await this.view.goTo(alvo));
+    } catch {
+      return false;
+    }
   }
 
   cfiDe(indice: number, range: Range): string {

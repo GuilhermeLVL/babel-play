@@ -16,6 +16,8 @@ import { type DBSchema, type IDBPDatabase, openDB } from 'idb';
 import { useSyncExternalStore } from 'react';
 
 import type { CapituloDeTexto } from '../../core/livros/epub';
+import { estante } from './armazem';
+import { posicoes } from './posicoesDoAparelho';
 
 export type OrigemDoMeuLivro = 'catalogo' | 'arquivo' | 'link';
 export type StatusDeLeitura = 'quero-ler' | 'lendo' | 'lido';
@@ -111,9 +113,15 @@ export function mudarStatus(id: string, status: StatusDeLeitura): void {
   gravar(lerMeusLivros().map((l) => (l.id === id ? { ...l, status } : l)));
 }
 
+/**
+ * Remove o livro de "Meus livros" — e também a cópia (ou referência) na estante do leitor (`frasy-leitor`) e a
+ * posição de leitura deste aparelho. As anotações ficam (são da pessoa e sincronizam).
+ */
 export async function removerMeuLivro(id: string): Promise<void> {
   gravar(lerMeusLivros().filter((l) => l.id !== id));
   await apagarConteudo(id).catch(() => undefined);
+  await estante.apagarLivro(id).catch(() => undefined);
+  posicoes.esquecer(id);
 }
 
 function assinar(f: () => void) {

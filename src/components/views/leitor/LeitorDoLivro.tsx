@@ -1,11 +1,22 @@
 import { makeCloze } from '@core';
-import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Highlighter, ListTree, Type, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  Highlighter,
+  ListTree,
+  Type,
+  X,
+} from 'lucide-react';
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   type AnotacaoDeLeitura,
   citacaoDe,
   type CorDeAnotacao,
+  MAX_CITACAO_POR_LIVRO_TRAZIDO,
   novaAnotacao,
   type TipoDeAnotacao,
 } from '../../../core/leitura/anotacao';
@@ -18,7 +29,6 @@ import {
   paraTextoDoAnki,
 } from '../../../core/leitura/exportar';
 import { CORES_DOS_TEMAS } from '../../../core/leitura/perfilDeLeitura';
-import { criarArmazemDePosicoes } from '../../../core/leitura/posicao';
 import { ancorar } from '../../../core/leitura/reancorar';
 import { fetchDeck } from '../../../data/api';
 import { buildGateway } from '../../../gateway';
@@ -31,6 +41,7 @@ import { useLangConfig } from '../../../lib/langConfig';
 import { baseLang, toBcp47 } from '../../../lib/languages';
 import type { Localizacao } from '../../../lib/leitor/foliate/view.js';
 import { type InfoDoLivro, MotorDoLeitor } from '../../../lib/leitor/motor';
+import { linkExternoSeguro } from '../../../lib/leitor/politicaDeRecursos';
 import {
   citacaoDoRange,
   fraseDoRange,
@@ -43,6 +54,8 @@ import { lerAnotacoes } from '../../../lib/leitura/anotacaoDaFrase';
 import { anotacoesDoLivro, type EstadoDaSincronizacao } from '../../../lib/livros/anotacoesDoLivro';
 import type { LivroGuardado } from '../../../lib/livros/armazem';
 import { livroParaOMotor } from '../../../lib/livros/fontesDoLivro';
+import { idRemotoDoLivro } from '../../../lib/livros/idRemoto';
+import { posicoes } from '../../../lib/livros/posicoesDoAparelho';
 import { speak } from '../../../lib/tts';
 import { buildVocabWord, mtNoteFor, resolveWord } from '../../../lib/vocabWord';
 import { haVozPara } from '../../../lib/voz/haVoz';
@@ -73,31 +86,9 @@ interface PalavraAberta {
   cfi: string;
   citacao: AnotacaoDeLeitura['alvo']['citacao'];
   capitulo: string;
+  /** A palavra está num link EXTERNO do livro: a folha oferece "Abrir link" (o capítulo nunca navega). */
+  link?: string;
 }
-
-const posicoes = criarArmazemDePosicoes({
-  ler: (k) => {
-    try {
-      return localStorage.getItem(k);
-    } catch {
-      return null;
-    }
-  },
-  gravar: (k, v) => {
-    try {
-      localStorage.setItem(k, v);
-    } catch {
-      /* sem armazenamento: a posição vale só nesta abertura */
-    }
-  },
-  apagar: (k) => {
-    try {
-      localStorage.removeItem(k);
-    } catch {
-      /* idem */
-    }
-  },
-});
 
 const novoId = () =>
   (crypto.randomUUID?.() ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`).replace(
@@ -109,7 +100,11 @@ const ehCampo = (alvo: EventTarget | null) =>
   alvo instanceof Element && !!alvo.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]');
 
 /** O id que o deck recebe como origem (`origin_kind = 'livro'`); acima de 64 caracteres o servidor não aceita. */
-const origemNoDeck = (livroId: string) => (`livro:${livroId}`.length <= 64 ? `livro:${livroId}` : undefined);
+/** A origem do cartão no deck (`livro:<id>`), com o id que o servidor pode ver (`idRemoto.ts`: nunca o hash do arquivo). */
+const origemNoDeck = async (livroId: string) => {
+  const id = await idRemotoDoLivro(livroId).catch(() => null);
+  return id && `livro:${id}`.length <= 64 ? `livro:${id}` : undefined;
+};
 
 /**
  * O LEITOR DE UM LIVRO (L2): o motor (foliate-js/PDF.js), a barra de cima (voltar, sumário e busca,
@@ -194,9 +189,10 @@ export default function LeitorDoLivro({
   }, [ancorarEDesenhar, repo]);
 
   const sincronizar = useCallback(async () => {
-    const r = await repo.sincronizar().catch(() => ({ estado: 'erro' as const, recusadas: 0 }));
+    const r = await repo.sincronizar().catch(() => ({ estado: 'erro' as const, recusadas: 0, grandes: 0 }));
     setSinc(r.estado);
     if (r.recusadas) toast.warn(t('Algumas anotações passaram do limite e ficaram só neste aparelho.'));
+    if (r.grandes) toast.warn(t('Uma anotação é grande demais para guardar na conta e ficou só neste aparelho.'));
     await recarregarAnotacoes();
   }, [repo, recarregarAnotacoes]);
 
@@ -361,9 +357,10 @@ export default function LeitorDoLivro({
             });
           },
           aoTocar: (r) => {
+            if (seguirLinkInterno(r.startContainer)) return;
             const palavra = r.toString();
             if (!/\p{L}/u.test(palavra) || palavra.length < 2) return;
-            void abrirPalavra(palavra, r, indice);
+            void abrirPalavra(palavra, r, indice, linkExternoDe(r.startContainer));
           },
         },
         () => !!document.activeElement && !!hospedeiro.current?.contains(document.activeElement),
@@ -390,19 +387,33 @@ export default function LeitorDoLivro({
     });
     doc.addEventListener('click', (e) => {
       if (selecaoDoDocumento(doc)) return;
-      if ((e.target as Element | null)?.closest?.('a[href]')) return;
+      const alvo = e.target as Node | null;
+      if (seguirLinkInterno(alvo)) return;
       const { clientX, clientY } = e;
       window.setTimeout(() => {
         if (Date.now() - toqueEmAnotacao.current < 300) return;
         const p = palavraNoPonto(doc, clientX, clientY, idiomaRef.current);
         const motor = motorRef.current;
         if (!p || !motor || !/\p{L}/u.test(p.palavra) || p.palavra.length < 2) return;
-        void abrirPalavra(p.palavra, p.range, indice);
+        void abrirPalavra(p.palavra, p.range, indice, linkExternoDe(alvo));
       }, 0);
     });
   }
 
-  async function abrirPalavra(texto: string, range: Range, indice: number) {
+  /* ── links do livro: o capítulo NUNCA navega (`limparHtml.ts` tira o `href`); o app segue ── */
+  function seguirLinkInterno(no: Node | null): boolean {
+    const motor = motorRef.current;
+    const link = motor?.linkDoNo(no);
+    if (!motor || !link || !('interno' in link)) return false;
+    void motor.irParaLink(link.indice, link.interno);
+    return true;
+  }
+  function linkExternoDe(no: Node | null): string | undefined {
+    const link = motorRef.current?.linkDoNo(no);
+    return link && 'externo' in link ? link.externo : undefined;
+  }
+
+  async function abrirPalavra(texto: string, range: Range, indice: number, link?: string) {
     const motor = motorRef.current;
     if (!motor) return;
     const frase = fraseDoRange(range, idiomaRef.current);
@@ -414,6 +425,7 @@ export default function LeitorDoLivro({
       cfi: motor.cfiDe(indice, range),
       citacao: citacaoDoRange(range),
       capitulo: capituloRef.current,
+      ...(link ? { link } : {}),
     };
     setSelecao(null);
     setPalavra(base);
@@ -470,7 +482,17 @@ export default function LeitorDoLivro({
       ...extra,
       agora: Date.now(),
     });
-    await repo.gravar(a);
+    if (!(await repo.gravar(a))) {
+      toast.warn(
+        t(
+          'Este livro é seu: dá para guardar até {n} caracteres de trechos nele. Apague algum grifo para grifar mais.',
+          {
+            n: MAX_CITACAO_POR_LIVRO_TRAZIDO.toLocaleString(),
+          },
+        ),
+      );
+      return;
+    }
     await recarregarAnotacoes();
     setAnuncio(tipo === 'nota' ? t('Nota salva.') : tipo === 'palavra' ? t('Palavra salva.') : t('Trecho grifado.'));
     void sincronizar();
@@ -504,7 +526,7 @@ export default function LeitorDoLivro({
       sentence: palavra.frase,
       resolved,
       cloze: palavra.frase ? makeCloze(palavra.frase, w.word) : null,
-      sessionId: origemNoDeck(livroId),
+      sessionId: await origemNoDeck(livroId),
     });
     if (criados.length) {
       setNoDeck((s) => new Set([...s, w.word.toLowerCase()]));
@@ -816,7 +838,26 @@ export default function LeitorDoLivro({
           setTtsSpeed={setTtsSpeed}
           podeOuvir={!!palavra.idioma && haVozPara(palavra.idioma)}
           etiqueta={etiquetaDaPalavra(palavra.vocab.word, palavra.idioma)}
-          extra={<HistoricoNaFolha palavra={palavra.vocab.word} idioma={palavra.idioma} />}
+          extra={
+            <>
+              {palavra.link && (
+                <button
+                  type="button"
+                  className="btn btn-outline leitor-alvo leitor-abrir-link"
+                  data-testid="abrir-link"
+                  title={palavra.link}
+                  onClick={() => {
+                    const url = linkExternoSeguro(palavra.link ?? '');
+                    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+                  }}
+                >
+                  <ExternalLink aria-hidden /> {t('Abrir link')}
+                  <span className="leitor-link-destino">{new URL(palavra.link).host}</span>
+                </button>
+              )}
+              <HistoricoNaFolha palavra={palavra.vocab.word} idioma={palavra.idioma} />
+            </>
+          }
         />
       )}
     </div>

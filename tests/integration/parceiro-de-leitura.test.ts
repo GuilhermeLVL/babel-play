@@ -705,7 +705,7 @@ describe('concorrência nas cotas (PGlite; Postgres real com BANCO_DE_TESTE=post
     expect(await doDia(quem)).toBe(PARCEIRO_DIA_DOS_PAGOS)
   })
 
-  it('com a subcota para UM pedido, 5 ao mesmo tempo: exatamente 1 passa e os outros são 402 cota_do_parceiro', async () => {
+  it('com a subcota para UM pedido, 5 ao mesmo tempo: exatamente 1 passa e os outros são recusados (402 cota_do_parceiro ou 429 nuvem_ocupada)', async () => {
     const quem = await assinante('parceiro-corrida-subcota')
     /* A estimativa de UM pedido: a reserva que a subcota recebe (o provedor cai, e tudo é estornado). */
     const espia = vi.spyOn(counters, 'reserve')
@@ -719,7 +719,12 @@ describe('concorrência nas cotas (PGlite; Postgres real com BANCO_DE_TESTE=post
     const chamadas = provedor(() => ({ texto: certa() }))
     const rs = await Promise.all(Array.from({ length: 5 }, () => pedir(quem, pergunta)))
     expect(rs.filter((r) => r.statusCode === 200)).toHaveLength(1)
-    expect(rs.filter((r) => r.body?.code === 'cota_do_parceiro')).toHaveLength(4)
+    /* A admissão (vagas em voo, atômicas no banco) vem ANTES da cota: no PGlite os pedidos se serializam e
+       todos chegam à subcota (402); no Postgres de verdade eles se sobrepõem e parte é barrada antes (429
+       `nuvem_ocupada`). Nos dois casos a recusa é fechada, e o que vale é: 1 passa, 1 chamada, cota no teto. */
+    const recusas = rs.filter((r) => r.statusCode !== 200)
+    expect(recusas).toHaveLength(4)
+    for (const r of recusas) expect(['cota_do_parceiro', 'nuvem_ocupada']).toContain(r.body?.code)
     expect(chamadas).toHaveLength(1)
     expect(await contador(quem, usageQuota.METRIC_PARCEIRO_TOKENS_MES, mes())).toBeLessThanOrEqual(teto)
   })

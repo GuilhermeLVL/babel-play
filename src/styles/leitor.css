@@ -666,3 +666,102 @@
   font-size: 0.85em;
   opacity: 0.75;
 }
+
+/* A barra do narrador (L3): transporte, onde está, velocidade, ajustes e parar. Fica no pé, acima da virada de
+   página, como a barra do trecho. */
+.leitor-narrador {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--leitor-borda);
+  background: var(--leitor-sutil);
+}
+.leitor-narrador-transporte {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.leitor-narrador-tocar {
+  background: var(--leitor-acento);
+  color: var(--leitor-fundo);
+  border-radius: 50%;
+  min-width: 48px;
+  min-height: 48px;
+}
+.leitor-narrador-tocar:hover {
+  background: color-mix(in srgb, var(--leitor-acento) 86%, var(--leitor-texto));
+}
+.leitor-narrador-onde {
+  flex: 1;
+  min-width: 8ch;
+  margin: 0;
+  font-size: 13px;
+  color: var(--leitor-suave);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.leitor-narrador-velocidade select {
+  min-height: 44px;
+  padding: 0 8px;
+  border-radius: 10px;
+  border: 1px solid var(--leitor-borda);
+  background: var(--leitor-fundo);
+  color: var(--leitor-texto);
+  font: 600 13px var(--font-display, system-ui);
+  font-variant-numeric: tabular-nums;
+}
+.leitor-modos {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.leitor-modo {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--leitor-borda);
+  border-radius: 10px;
+  background: var(--leitor-fundo);
+  cursor: pointer;
+}
+.leitor-modo:has(input:checked) {
+  border-color: var(--leitor-acento);
+}
+.leitor-modo input {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--leitor-acento);
+}
+.leitor-modo span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+}
+.leitor-modo small {
+  color: var(--leitor-suave);
+  font-size: 12.5px;
+}
+.leitor-convite {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+@media (max-width: 640px) {
+  .leitor-narrador {
+    padding: 4px 6px;
+  }
+  .leitor-narrador-onde {
+    order: -1;
+    flex-basis: 100%;
+    text-align: center;
+  }
+}

@@ -56,6 +56,11 @@ export interface Renderizador extends HTMLElement {
   prev(): Promise<void>;
   goTo(r: Resolvido): Promise<void>;
   scrollToAnchor?(range: Range, select?: boolean): void;
+  /** FRASY (paginador): rola até o trecho sem mexer na seleção. */
+  mostrarTrecho?(range: Range): Promise<void>;
+  nextSection?(): Promise<void>;
+  /** Paginador: rolagem contínua em vez de páginas. */
+  scrolled?: boolean;
   destroy?(): void;
 }
 

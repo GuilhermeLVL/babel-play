@@ -4,6 +4,7 @@
  * selecionado viram FRASE (o contexto do cartão) e CITAÇÃO (o `TextQuoteSelector` da anotação).
  */
 import { type CitacaoDoTexto, MAX_CITACAO, MAX_CONTEXTO } from '../../core/leitura/anotacao';
+import { type ClasseDoGesto, criarReconhecedorDeToque, type RelogioDoGesto } from '../../core/leitura/gestoDoLeitor';
 
 const BLOCOS = 'p, li, blockquote, dd, dt, td, th, h1, h2, h3, h4, h5, h6, figcaption, div, section, body';
 
@@ -150,21 +151,184 @@ export function ouvintesDoDocumentoFuncionam(doc: Document): boolean {
   return chegou;
 }
 
+/** Há trecho selecionado (não recolhido, com texto que não é só espaço)? */
+function temTrecho(doc: Document): boolean {
+  const sel = doc.defaultView?.getSelection?.();
+  return !!sel && !sel.isCollapsed && sel.rangeCount > 0 && sel.toString().trim().length > 0;
+}
+
+/** A palavra (`Range`) em torno de um caret (nó de texto + offset), ou `null`. */
+function palavraNoCaretDe(doc: Document, no: Node, offset: number, idioma?: string): Range | null {
+  if (no.nodeType !== Node.TEXT_NODE) return null;
+  const texto = no.textContent ?? '';
+  const p = palavraEm(texto, offset, idioma) ?? (offset > 0 ? palavraEm(texto, offset - 1, idioma) : null);
+  if (!p) return null;
+  const r = doc.createRange();
+  r.setStart(no, p.inicio);
+  r.setEnd(no, p.fim);
+  return r;
+}
+
 /**
- * SEM OUVINTES (WebKit): a seleção do documento é lida de fora, a cada `intervalo`. O toque numa palavra vira
- * um CARET (seleção recolhida no ponto tocado — o WebKit o põe mesmo em texto não editável) e o arrastar vira
- * uma seleção com texto. O DOM do capítulo continua acessível ao app; só os eventos não chegam. Devolve a
- * função que para a vigia (que também para sozinha quando o documento sai de cena).
+ * A PALAVRA NO CURSOR (o caminho do TECLADO para o cartão da palavra): o caret (seleção recolhida) dentro de uma
+ * palavra, ou um trecho selecionado que é uma palavra só. `null` = nada a abrir.
+ */
+export function palavraNoCursor(doc: Document, idioma?: string): Range | null {
+  const sel = doc.defaultView?.getSelection?.();
+  if (!sel || sel.rangeCount === 0) return null;
+  const r = sel.getRangeAt(0);
+  if (sel.isCollapsed) return palavraNoCaretDe(doc, r.startContainer, r.startOffset, idioma);
+  const texto = r.toString().trim();
+  return texto && ehUmaPalavra(texto, idioma) ? r : null;
+}
+
+/** O texto é UMA palavra (para o "Ver a palavra" da barra do trecho)? */
+export function ehUmaPalavra(texto: string, idioma?: string): boolean {
+  const t = texto.trim();
+  if (!t || t.length > 60) return false;
+  const seg = new Intl.Segmenter(idioma || undefined, { granularity: 'word' });
+  return [...seg.segment(t)].filter((s) => s.isWordLike).length === 1 && !/\s/.test(t);
+}
+
+/** O que o leitor faz com cada gesto no texto do livro. */
+export interface GestosDoLivro {
+  /** Um trecho selecionado, com o gesto já terminado (a barra do trecho). */
+  aoSelecionar: (r: Range) => void;
+  /** Um toque LIMPO numa palavra (já passada a janela do toque duplo). `alvo` é o nó tocado (para os links). */
+  aoTocar: (palavra: Range, alvo: Node) => void;
+  /** O toque desfez a seleção (a barra do trecho sai). */
+  aoLimpar?: () => void;
+}
+
+const RELOGIO_DO_NAVEGADOR: RelogioDoGesto = {
+  agora: () => performance.now(),
+  esperar: (ms, f) => {
+    const id = window.setTimeout(f, ms);
+    return () => window.clearTimeout(id);
+  },
+};
+
+/** Depois de qualquer gesto que não seja o toque limpo: o trecho que ficou, se houver, vai para a barra. */
+function depoisDoGesto(doc: Document, classe: ClasseDoGesto | null, g: GestosDoLivro) {
+  if (classe === 'limpar') {
+    g.aoLimpar?.();
+    return;
+  }
+  if (classe === 'toque') return;
+  const r = selecaoDoDocumento(doc);
+  if (r) g.aoSelecionar(r);
+}
+
+/**
+ * COM OUVINTES (Chromium): o gesto pelos eventos de ponteiro do documento do capítulo, classificado pelo
+ * `criarReconhecedorDeToque`. O cartão da palavra só abre no toque limpo; o resto é seleção. Devolve o desligar.
+ */
+export function ouvirGestos(
+  doc: Document,
+  g: GestosDoLivro,
+  idioma: () => string | undefined = () => undefined,
+  relogio: RelogioDoGesto = RELOGIO_DO_NAVEGADOR,
+): () => void {
+  const rec = criarReconhecedorDeToque<{ palavra: Range; alvo: Node } | null>({
+    relogio,
+    aoToque: (_p, carga) => {
+      /* A seleção pode ter aparecido sem `selectionchange` a tempo (o toque duplo do Safari, a barra): confere. */
+      if (carga && !temTrecho(doc)) g.aoTocar(carga.palavra, carga.alvo);
+    },
+  });
+  const ponto = (e: PointerEvent) => ({
+    t: relogio.agora(),
+    x: e.clientX,
+    y: e.clientY,
+  });
+  const desce = (e: PointerEvent) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    rec.baixou(ponto(e), temTrecho(doc));
+  };
+  const move = (e: PointerEvent) => {
+    if (rec.emCurso()) rec.moveu(ponto(e));
+  };
+  const sobe = (e: PointerEvent) => {
+    if (!rec.emCurso()) return;
+    const p = ponto(e);
+    const alvo = e.target as Node | null;
+    const achada = alvo ? palavraNoPonto(doc, e.clientX, e.clientY, idioma()) : null;
+    const classe = rec.subiu(p, temTrecho(doc), achada && alvo ? { palavra: achada.range, alvo } : null);
+    /* A seleção do arrasto termina de assentar depois do `pointerup`. */
+    window.setTimeout(() => depoisDoGesto(doc, classe, g), 0);
+  };
+  const cancela = () => {
+    rec.cancelou();
+    window.setTimeout(() => depoisDoGesto(doc, null, g), 0);
+  };
+  /* A seleção que não veio de um gesto do ponteiro (teclado, o toque longo do Android, que termina em
+     `pointercancel`) chega pela `selectionchange`, assentada. */
+  let assentar = 0;
+  const mudouSelecao = () => {
+    const tem = temTrecho(doc);
+    rec.selecaoMudou(tem);
+    window.clearTimeout(assentar);
+    if (tem && !rec.emCurso())
+      assentar = window.setTimeout(() => {
+        const r = !rec.emCurso() ? selecaoDoDocumento(doc) : null;
+        if (r) g.aoSelecionar(r);
+      }, 200);
+  };
+  doc.addEventListener('pointerdown', desce);
+  doc.addEventListener('pointermove', move);
+  doc.addEventListener('pointerup', sobe);
+  doc.addEventListener('pointercancel', cancela);
+  doc.addEventListener('contextmenu', () => rec.cancelou());
+  doc.addEventListener('selectionchange', mudouSelecao);
+  return () => {
+    rec.descartar();
+    window.clearTimeout(assentar);
+    doc.removeEventListener('pointerdown', desce);
+    doc.removeEventListener('pointermove', move);
+    doc.removeEventListener('pointerup', sobe);
+    doc.removeEventListener('pointercancel', cancela);
+    doc.removeEventListener('selectionchange', mudouSelecao);
+  };
+}
+
+/**
+ * SEM OUVINTES (WebKit): o gesto é AMOSTRADO de fora, a cada `intervalo`. O ponteiro descido aparece no
+ * `:active` do documento (o estado de estilo que o motor de eventos põe, com ou sem script no iframe); o toque
+ * numa palavra vira um CARET (seleção recolhida no ponto tocado — o WebKit o põe mesmo em texto não editável) e
+ * o arrastar vira uma seleção com texto. O mesmo reconhecedor do Chromium decide: o caret só vira cartão no
+ * toque limpo (soltar rápido, sem seleção durante o gesto), depois da janela do toque duplo; o toque longo e o
+ * arrasto são seleção, e a barra do trecho só aparece quando o dedo sobe.
+ *
+ * O toque mais rápido que a amostra (descer e subir entre duas leituras) aparece só como caret novo: conta como
+ * toque de duração zero. Devolve a função que para a vigia (que também para sozinha quando o documento sai).
  */
 export function vigiarSelecao(
   doc: Document,
-  aoMudar: { aoSelecionar: (r: Range) => void; aoTocar: (r: Range) => void },
+  g: GestosDoLivro,
   /* O caret só é TOQUE se o foco estiver no livro (a pessoa tocou nele): o WebKit também põe caret ao rolar ou
      ao restaurar a página, e isso não pode abrir a folha da palavra. */
   focoNoLivro: () => boolean = () => true,
-  intervalo = 180,
+  intervalo = 100,
+  relogio: RelogioDoGesto = RELOGIO_DO_NAVEGADOR,
+  idioma: () => string | undefined = () => undefined,
 ): () => void {
+  const rec = criarReconhecedorDeToque<Range | null>({
+    relogio,
+    aoToque: (_p, palavra) => {
+      const sel = doc.defaultView?.getSelection();
+      if (!palavra || temTrecho(doc)) return;
+      /* O caret tratado sai: tocar de novo no mesmo lugar é um toque novo. */
+      sel?.removeAllRanges();
+      caretVisto = null;
+      g.aoTocar(palavra, palavra.startContainer);
+    },
+  });
+  let ativoAntes = false;
+  let trechoAntes = false;
   let assinatura = '';
+  let caretVisto: { no: Node; offset: number } | null = null;
+  const ponto = () => ({ t: relogio.agora(), x: 0, y: 0 });
+
   const id = window.setInterval(() => {
     const janela = doc.defaultView;
     if (!janela) {
@@ -172,30 +336,57 @@ export function vigiarSelecao(
       return;
     }
     const sel = janela.getSelection();
-    if (!sel || sel.rangeCount === 0) {
+    const r = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+    const trecho = temTrecho(doc);
+    let ativo = false;
+    try {
+      ativo = !!doc.querySelector(':active');
+    } catch {
+      /* sem `:active` (motor antigo): só o caret decide */
+    }
+    const caret = r && sel?.isCollapsed && r.startContainer.nodeType === Node.TEXT_NODE ? r : null;
+    const caretNovo =
+      !!caret && (!caretVisto || caretVisto.no !== caret.startContainer || caretVisto.offset !== caret.startOffset);
+    if (caret) caretVisto = { no: caret.startContainer, offset: caret.startOffset };
+    else if (!r) caretVisto = null;
+
+    const palavraDoCaret = () =>
+      caret && focoNoLivro() ? palavraNoCaretDe(doc, caret.startContainer, caret.startOffset, idioma()) : null;
+
+    /* A ordem importa: o gesto começa ANTES de a seleção que ele desfaz sumir. */
+    const comecou = ativo && !ativoAntes;
+    const rapido = !ativo && !ativoAntes && caretNovo && focoNoLivro();
+    if (comecou || rapido) rec.baixou(ponto(), trechoAntes);
+    if (trecho !== trechoAntes) rec.selecaoMudou(trecho);
+    if (rapido || (!ativo && ativoAntes)) {
+      const classe = rec.subiu(ponto(), trecho, palavraDoCaret());
+      /* O caret de um gesto que não foi toque (segurar, o toque que desfez a seleção) sai: o próximo toque no
+         MESMO lugar tem de pôr um caret novo, senão a amostra não o vê. */
+      if (classe !== 'toque' && !trecho && caret) {
+        sel?.removeAllRanges();
+        caretVisto = null;
+      }
+      depoisDoGesto(doc, classe, g);
+      assinatura = trecho && r ? assinaturaDe(r) : '';
+    } else if (trecho && r && !ativo) {
+      /* Um trecho que mudou FORA de um gesto (programático, teclado): a barra do trecho. */
+      const agora = assinaturaDe(r);
+      if (agora !== assinatura) {
+        assinatura = agora;
+        const s = selecaoDoDocumento(doc);
+        if (s) g.aoSelecionar(s);
+      }
+    } else if (!trecho) {
       assinatura = '';
-      return;
     }
-    const r = sel.getRangeAt(0);
-    const agora = `${sel.isCollapsed}|${r.startOffset}|${r.endOffset}|${r.toString().length}|${(r.startContainer.textContent ?? '').slice(0, 40)}`;
-    if (agora === assinatura) return;
-    assinatura = agora;
-    if (!sel.isCollapsed) {
-      if (r.toString().trim().length >= 2) aoMudar.aoSelecionar(r);
-      return;
-    }
-    const no = r.startContainer;
-    if (no.nodeType !== Node.TEXT_NODE || !focoNoLivro()) return;
-    const texto = no.textContent ?? '';
-    const p = palavraEm(texto, r.startOffset) ?? (r.startOffset > 0 ? palavraEm(texto, r.startOffset - 1) : null);
-    if (!p) return;
-    const palavra = doc.createRange();
-    palavra.setStart(no, p.inicio);
-    palavra.setEnd(no, p.fim);
-    /* O caret tratado sai: tocar de novo no mesmo lugar é um toque novo. */
-    sel.removeAllRanges();
-    assinatura = '';
-    aoMudar.aoTocar(palavra);
+    ativoAntes = ativo;
+    trechoAntes = trecho;
   }, intervalo);
-  return () => window.clearInterval(id);
+  return () => {
+    rec.descartar();
+    window.clearInterval(id);
+  };
 }
+
+const assinaturaDe = (r: Range) =>
+  `${r.startOffset}|${r.endOffset}|${r.toString().length}|${(r.startContainer.textContent ?? '').slice(0, 40)}`;

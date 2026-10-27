@@ -338,3 +338,31 @@ Cada fase vai num worktree próprio, com revisão `revisor-critico`, merge na ma
   pela folha da palavra ("Abrir link"), em aba nova sem opener (e2e no Chromium e no WebKit).
 - O capítulo do livro é limpo pelo DOMPurify e sai como HTML montado pelo app, com a CSP (`default-src 'none'`)
   como primeiro filho do `<head>`, num iframe sem `allow-scripts` (`src/lib/leitor/foliate/PATCHES.md`).
+
+## Notas da implementação da L3 (27/10/2026)
+
+- "Ouvir" na barra do leitor abre a barra do narrador (frase anterior, tocar/pausar, seguinte, velocidade 0,5–2×,
+  "Voz e modo", parar). Frases pelo `Intl.Segmenter` sobre o texto do capítulo carregado
+  (`src/lib/leitor/frasesDoCapitulo.ts`; `\n` virtual entre blocos, frase > 600 caracteres partida no teto da
+  voz natural). Máquina de estados pura em `src/core/leitura/narracao.ts`; o controlador é
+  `src/lib/leitor/narrador.ts`.
+- Destaque pelo overlayer do foliate (chave `frasy:narracao`, desenhado pelo app; tocar nele não abre o painel de
+  anotações), com esmaecer curto que some com `prefers-reduced-motion`. "Seguir a leitura" vira a página com
+  `mostrarTrecho` (patch no `paginator.js`, motivo `'anchor'`: não mexe na seleção). Fim do capítulo: o seguinte
+  abre e a leitura continua; fim do livro: para.
+- Começa na frase guardada (`leitor:narracao:<livroId>`, o CFI da última frase lida) se ela estiver na página;
+  senão na primeira frase da página visível. Pausar e retomar repetem a frase do começo (a nuvem não pausa, e o
+  Chrome perde a fala pausada por muito tempo). Velocidade, voz e modo recomeçam a frase sem perder o destaque.
+- Modos da Leitura: original, tradução, bilíngue e leitura inteligente (detecção por frase, ≥ 4 palavras e
+  confiança ≥ 0,6). Voz pelo `SeletorDeVoz` (a mesma preferência do app). Voz do aparelho para todos, pelo
+  `nativeTts` (sem o "blip" do `speak()` a cada frase). Voz natural só com a escolha + `vozNatural` + flag
+  `voz_natural`, pelo `criarVozDaNuvem` (`POST /api/ai/tts`, cota no servidor; a recusa cai na voz do aparelho,
+  com aviso de cota uma vez). Convite a plano só fora do perfil protegido (`mostraConviteDaVozNatural`).
+- Acessibilidade: o contador "Frase n de N" tem `aria-live="off"`; o leitor de tela ouve só a mudança de estado
+  (tocando/pausada/parada), e a posição não é anunciada a cada virada enquanto narra. Media Session: tocar,
+  pausar, parar, frase anterior/seguinte.
+- Fora por enquanto: PDF (o `foliate-fxl` não dá índice nem overlayer; o "Ouvir" não aparece), destaque por
+  palavra (`boundary`) e o audiolivro MP3 (decisão do dono).
+- Gesto no texto (pedido do dono, junto da L3): só o toque limpo abre a folha da palavra
+  (`src/core/leitura/gestoDoLeitor.ts`); arrastar, segurar e o toque duplo são seleção. No WebKit o gesto é
+  amostrado pelo `:active` do capítulo e pela seleção.

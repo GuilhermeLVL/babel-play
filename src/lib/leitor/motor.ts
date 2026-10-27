@@ -28,6 +28,46 @@ export const COR_DO_GRIFO: Record<CorDeAnotacao, string> = {
   laranja: '#ff9500',
 };
 
+/** A chave do destaque da frase narrada no overlayer (não é uma anotação: não tem CFI guardado). */
+export const CHAVE_DA_NARRACAO = 'frasy:narracao';
+
+const SVG = 'http://www.w3.org/2000/svg';
+
+/**
+ * O DESENHO DA FRASE NARRADA: um fundo suave na cor de destaque do tema e um traço embaixo (não depende só da
+ * cor). Aparece com um esmaecer curto — e sem ele com `prefers-reduced-motion`.
+ */
+function desenharFraseNarrada(rects: DOMRectList | DOMRect[], o: { cor: string; opacidade: number; animar: boolean }) {
+  const g = document.createElementNS(SVG, 'g');
+  g.setAttribute('data-narracao', '');
+  for (const { left, top, height, width } of Array.from(rects)) {
+    if (!width || !height) continue;
+    const fundo = document.createElementNS(SVG, 'rect');
+    fundo.setAttribute('x', String(left - 1));
+    fundo.setAttribute('y', String(top));
+    fundo.setAttribute('width', String(width + 2));
+    fundo.setAttribute('height', String(height));
+    fundo.setAttribute('rx', '3');
+    fundo.setAttribute('fill', o.cor);
+    fundo.setAttribute('fill-opacity', String(o.opacidade));
+    const traco = document.createElementNS(SVG, 'rect');
+    traco.setAttribute('x', String(left));
+    traco.setAttribute('y', String(top + height - 2));
+    traco.setAttribute('width', String(width));
+    traco.setAttribute('height', '2');
+    traco.setAttribute('fill', o.cor);
+    g.append(fundo, traco);
+  }
+  if (o.animar)
+    requestAnimationFrame(() => g.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' }));
+  return g;
+}
+
+interface Overlayer {
+  add(key: string, range: Range, draw: (rects: DOMRectList, o: never) => SVGElement, options: unknown): void;
+  remove(key: string): void;
+}
+
 export interface AnotacaoDesenhada {
   cfi: string;
   tipo: TipoDeAnotacao;
@@ -105,9 +145,11 @@ export class MotorDoLeitor {
       const url = linkExternoSeguro((e as CustomEvent<{ href_: string }>).detail?.href_ ?? '');
       if (url) window.open(url, '_blank', 'noopener,noreferrer');
     });
-    view.addEventListener('show-annotation', (e) =>
-      eventos.aoTocarAnotacao?.((e as CustomEvent<{ value: string }>).detail.value),
-    );
+    view.addEventListener('show-annotation', (e) => {
+      const valor = (e as CustomEvent<{ value: string }>).detail.value;
+      /* O destaque da narração mora no mesmo overlayer, mas não é anotação: tocar nele não abre o painel. */
+      if (valor !== CHAVE_DA_NARRACAO) eventos.aoTocarAnotacao?.(valor);
+    });
     view.addEventListener('create-overlay', (e) => {
       const { index } = (e as CustomEvent<{ index: number }>).detail;
       for (const a of motor.anotacoes.values()) {
@@ -333,6 +375,67 @@ export class MotorDoLeitor {
       pos += len;
     }
     return null;
+  }
+
+  /* ── a narração (L3) ── */
+
+  /**
+   * Destaca a frase narrada (ou tira o destaque, com `null`). O desenho é do overlayer do foliate — o SVG no
+   * documento do APP, sobre o iframe: o capítulo não tem script, quem desenha é o pai.
+   */
+  destacarFrase(range: Range | null) {
+    for (const { doc, overlayer } of this.documentos() as Array<{ doc: Document; overlayer?: Overlayer }>) {
+      if (!overlayer) continue;
+      overlayer.remove(CHAVE_DA_NARRACAO);
+      if (!range || range.startContainer.ownerDocument !== doc) continue;
+      const tema = this.perfil ? CORES_DOS_TEMAS[this.perfil.tema] : null;
+      const escuro = tema?.esquema === 'dark';
+      const animar = !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      try {
+        overlayer.add(CHAVE_DA_NARRACAO, range, desenharFraseNarrada as never, {
+          cor: tema?.link ?? '#4a8dff',
+          opacidade: escuro ? 0.3 : 0.2,
+          animar,
+        });
+      } catch {
+        /* o range saiu do documento (o capítulo mudou): sem destaque */
+      }
+    }
+  }
+
+  /** O trecho começa na página (ou na janela de rolagem) visível agora? */
+  trechoVisivel(range: Range): boolean {
+    const visivel = this.view.lastLocation?.range;
+    if (!visivel || visivel.startContainer.ownerDocument !== range.startContainer.ownerDocument) return false;
+    try {
+      return (
+        range.compareBoundaryPoints(Range.START_TO_START, visivel) >= 0 &&
+        range.compareBoundaryPoints(Range.END_TO_START, visivel) < 0
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  /** Vira a página (ou rola) até o trecho, sem mexer na seleção. Na fila das viradas. */
+  mostrarTrecho(range: Range) {
+    const r = this.view.renderer;
+    if (!r.mostrarTrecho) return Promise.resolve();
+    return this.virar(() => r.mostrarTrecho!(range));
+  }
+
+  /**
+   * O próximo capítulo (a narração chegou ao fim deste). `false` = era o último. A seleção que o paginador põe
+   * ao navegar sai na hora (no WebKit um caret novo seria lido como toque na palavra).
+   */
+  async proximoCapitulo(): Promise<boolean> {
+    const r = this.view.renderer;
+    const antes = this.documentos()[0]?.index;
+    if (!r.nextSection) return false;
+    await this.virar(() => r.nextSection!());
+    for (const { doc } of this.documentos()) doc.defaultView?.getSelection()?.removeAllRanges();
+    const depois = this.documentos()[0]?.index;
+    return depois != null && depois !== antes;
   }
 
   /** Troca o conjunto de anotações desenhadas. */

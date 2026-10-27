@@ -112,7 +112,7 @@ const CATALOGO = {
 }
 
 /** Um EPUB 3 mínimo, montado aqui. */
-function epub(titulo: string, frase: string): Buffer {
+function epub(titulo: string, frase: string, extras: Record<string, string> = {}): Buffer {
   const arquivos: Record<string, Uint8Array> = {
     mimetype: strToU8('application/epub+zip'),
     'META-INF/container.xml': strToU8(
@@ -125,6 +125,7 @@ function epub(titulo: string, frase: string): Buffer {
       `<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>1</title></head><body><h2>Capítulo um</h2><p>${frase}</p></body></html>`,
     ),
   }
+  for (const [nome, texto] of Object.entries(extras)) arquivos[nome] = strToU8(texto)
   return Buffer.from(zipSync(arquivos))
 }
 
@@ -272,27 +273,100 @@ test.describe('Livros', () => {
     await expect(page.getByTestId('trazer-o-seu')).toBeVisible()
   })
 
-  test('"Trazer o seu": um EPUB do disco abre no aparelho e fica em Meus livros', async ({ page }) => {
+  test('"Trazer o seu": soltar um EPUB abre direto no leitor e o livro fica em Meus livros', async ({ page }) => {
     await prepararFontes(page)
     await abrirTela(page, '/livros')
     await page.getByRole('tab', { name: /Trazer o seu/ }).click()
+    await expect(page.getByTestId('aviso-de-direitos')).toContainText('Traga só livros que você tem o direito de ler')
     const pedidos: string[] = []
     page.on('request', (r) => pedidos.push(`${r.method()} ${r.url()}`))
-    await page.getByTestId('arquivo-do-livro').setInputFiles({
-      name: 'meu-livro.epub',
-      mimeType: 'application/epub+zip',
-      buffer: epub('Meu Livro de Casa', 'Esta frase veio de um arquivo meu.'),
-    })
-    const trazido = page.getByTestId('trazido')
-    await expect(trazido).toContainText('Meu Livro de Casa')
-    /* O arquivo não sobe: nenhum POST saiu durante a importação. */
-    expect(pedidos.filter((p) => p.startsWith('POST'))).toEqual([])
-    await trazido.getByRole('button', { name: 'Ler agora' }).click()
+    /* Soltar de verdade: um DataTransfer com o arquivo, disparado como "drop" na zona. */
+    const bytes = [...epub('Meu Livro de Casa', 'Esta frase veio de um arquivo meu.')]
+    await page.getByTestId('zona-de-soltar').evaluate((zona, dados) => {
+      const dt = new DataTransfer()
+      dt.items.add(new File([new Uint8Array(dados)], 'sem-extensao', { type: '' }))
+      zona.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }))
+    }, bytes)
+    /* Sem clicar em nada: abre direto no leitor. */
     await expect(page).toHaveURL(/\/livros\/meu-[a-z0-9-]+\/ler$/)
     await esperarNoLeitor(page, 'Esta frase veio de um arquivo meu.')
+    /* O arquivo não sobe: nenhum POST saiu durante a importação. */
+    expect(pedidos.filter((p) => p.startsWith('POST'))).toEqual([])
     await page.getByRole('button', { name: 'Voltar', exact: true }).click()
     await page.getByRole('tab', { name: /Meus livros/ }).click()
     await expect(page.getByTestId('meus-livros')).toContainText('Meu Livro de Casa')
+  })
+
+  test('"Trazer o seu": EPUB com proteção (DRM) é recusado com gentileza, sem abrir', async ({ page }) => {
+    await prepararFontes(page)
+    await abrirTela(page, '/livros')
+    await page.getByRole('tab', { name: /Trazer o seu/ }).click()
+    const protegido = epub('Livro Protegido', 'Texto cifrado.', {
+      'META-INF/encryption.xml':
+        '<encryption xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><EncryptedData xmlns="http://www.w3.org/2001/04/xmlenc#"><EncryptionMethod Algorithm="http://www.w3.org/2001/04/xmlenc#aes128-cbc"/><CipherData><CipherReference URI="OEBPS/cap1.xhtml"/></CipherData></EncryptedData></encryption>',
+    })
+    await page.getByTestId('arquivo-do-livro').setInputFiles({
+      name: 'comprado.epub',
+      mimeType: 'application/epub+zip',
+      buffer: protegido,
+    })
+    const erro = page.getByTestId('erro-do-trazer')
+    await expect(erro).toContainText('proteção (DRM) e o Frasy não consegue abrir')
+    await expect(erro).toContainText('Não é culpa sua')
+    await expect(page.getByTestId('ajuda-kindle')).toBeVisible()
+    await expect(page).not.toHaveURL(/\/ler$/)
+  })
+
+  test('"Trazer o seu": link do raw do GitHub é baixado pelo navegador e abre; página de loja é explicada', async ({
+    page,
+  }) => {
+    await prepararFontes(page)
+    const pedidos: string[] = []
+    await page.route('https://raw.githubusercontent.com/**', (r) => {
+      pedidos.push(r.request().url())
+      return r.fulfill({
+        status: 200,
+        headers: { ...CORS, 'content-type': 'application/octet-stream' },
+        body: epub('Livro do GitHub', 'Esta frase veio de um repositório.'),
+      })
+    })
+    await abrirTela(page, '/livros')
+    await page.getByRole('tab', { name: /Trazer o seu/ }).click()
+    await page.getByTestId('link-do-livro').fill('https://www.amazon.com.br/dp/B000000000')
+    await page.getByRole('button', { name: 'Trazer livro' }).click()
+    await expect(page.getByTestId('erro-do-trazer')).toContainText('uma página, não um arquivo de livro')
+    expect(pedidos).toEqual([])
+
+    await page.getByTestId('link-do-livro').fill('https://raw.githubusercontent.com/usuario/repo/main/livro.epub')
+    await page.getByRole('button', { name: 'Trazer livro' }).click()
+    await expect(page).toHaveURL(/\/livros\/meu-[a-z0-9-]+\/ler$/)
+    await esperarNoLeitor(page, 'Esta frase veio de um repositório.')
+    expect(pedidos).toEqual(['https://raw.githubusercontent.com/usuario/repo/main/livro.epub'])
+  })
+
+  test('"Trazer o seu": o guia abre a fonte em outra aba e, ao voltar, lembra de soltar o arquivo', async ({
+    page,
+    context,
+  }) => {
+    await prepararFontes(page)
+    await context.route('https://www.gutenberg.org/**', (r) =>
+      r.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>Gutenberg de teste</body></html>' }),
+    )
+    await abrirTela(page, '/livros')
+    await page.getByRole('tab', { name: /Trazer o seu/ }).click()
+    const guia = page.getByTestId('onde-achar-livros')
+    await expect(guia).toContainText('70 anos depois da morte do autor')
+    const link = guia.getByTestId('fonte-gutenberg').getByRole('link')
+    await expect(link).toHaveAttribute('target', '_blank')
+    await expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    const popup = page.waitForEvent('popup')
+    await link.click()
+    await (await popup).close()
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+    const lembrete = page.getByTestId('lembrete-de-volta')
+    await expect(lembrete).toContainText('Baixou um livro? Solte o arquivo aqui')
+    await lembrete.getByRole('button').click()
+    await expect(page.getByTestId('zona-de-soltar')).toBeFocused()
   })
 
   test('perfil de menor: o livro de 18 anos e o "a revisar" não aparecem na vitrine, na busca nem por link', async ({

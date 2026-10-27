@@ -88,6 +88,10 @@ const CONEXOES_FIXAS = [
   'http://127.0.0.1:11434',
   'https://standardebooks.org',
   'https://*.wikisource.org',
+  /* "Trazer o seu" por link: o arquivo de um repositório público, baixado pelo navegador. Conferido com
+     `curl -sI -H 'Origin: https://frasy.com.br'`: responde `access-control-allow-origin: *`. Release do GitHub
+     fica de fora (github.com responde 302 sem CORS). */
+  'https://raw.githubusercontent.com',
 ]
 
 /**

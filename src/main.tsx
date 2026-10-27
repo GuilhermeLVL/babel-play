@@ -50,6 +50,12 @@ void import('./lib/voz/preferenciaDeVoz').then((m) => m.ligarVozesAConta());
 // E4 — erro de runtime do navegador deixou de morrer no console: window.onerror e
 // unhandledrejection reportam ao diário do servidor (só erro; nenhum dado do usuário).
 instalarRelatorioDeErros();
+// "Abrir com Frasy" (PWA instalado no Chromium de computador): só liga se o navegador tem `launchQueue`.
+if ('launchQueue' in globalThis) {
+  void Promise.all([import('./lib/livros/abrirCom'), import('./lib/livros/abrir')]).then(([c, a]) =>
+    c.ligarAbrirCom((arquivo) => a.abrirLivroNoLeitor(arquivo)),
+  );
+}
 // P0-7b — o servidor já é de outra versão (deploy com a aba aberta): um aviso discreto, uma vez,
 // com "Atualizar". Quem detecta é o `apiFetch`; aqui só se liga o evento ao canal de avisos.
 ligarAvisoDeNovaVersao(({ mensagem, rotuloDaAcao, aoAtualizar }) =>

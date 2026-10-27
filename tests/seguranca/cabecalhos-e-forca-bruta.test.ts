@@ -81,6 +81,7 @@ describe('cabeçalhos de hardening', () => {
     const relatorio = r.headers.get('content-security-policy-report-only') ?? ''
     const connect = relatorio.split(';').find((d) => d.trim().startsWith('connect-src')) ?? ''
     expect(connect).toContain('https://huggingface.co')
+    expect(connect).toContain('https://raw.githubusercontent.com')
     expect(connect.split(/\s+/)).not.toContain('https:')
   })
 })

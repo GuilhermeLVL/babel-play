@@ -8,6 +8,15 @@
   "display": "standalone",
   "background_color": "#F5F2EA",
   "theme_color": "#26241F",
+  "file_handlers": [
+    {
+      "action": "/app",
+      "accept": {
+        "application/epub+zip": [".epub"],
+        "application/pdf": [".pdf"]
+      }
+    }
+  ],
   "icons": [
     {
       "src": "/icones/icone-192.png",

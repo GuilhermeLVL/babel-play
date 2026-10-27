@@ -101,6 +101,14 @@ export interface LivroDoCatalogo {
   resumo?: string;
   /** A fonte ou o texto dizem que é tradução (mesmo sem dizer de quem). Entra no filtro do cliente. */
   traducaoDeclarada?: boolean;
+  /**
+   * A OBRA a que esta edição pertence: o QID da Wikidata da obra (`Q170583`) quando a montagem o achou, senão
+   * `local:<idioma>:<autor>-<título>` (só desambigua dentro do idioma, nunca liga idiomas). Edições com o mesmo
+   * QID são o MESMO livro em idiomas ou traduções diferentes. Ausente = catálogo antigo, cada livro é uma obra.
+   */
+  obra?: string;
+  /** Os rótulos da obra nos idiomas da trilha (e apelidos), sem o título desta edição: servem à busca. */
+  titulosAlternativos?: string[];
 }
 
 /** Por que um livro que a fonte tem NÃO está no catálogo. A tela usa para responder "por que não está?". */

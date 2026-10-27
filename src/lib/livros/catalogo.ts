@@ -16,6 +16,22 @@ const CAMINHO = '/catalogo/livros.json';
 
 let pedido: Promise<Catalogo> | null = null;
 
+/**
+ * `obra` e `titulosAlternativos` são opcionais (catálogo antigo não os tem). Valor de tipo errado some, e a
+ * edição vira uma obra só dela: nunca liga idiomas por um campo malformado.
+ */
+function comCamposDeObraValidos(l: LivroDoCatalogo): LivroDoCatalogo {
+  const { obra, titulosAlternativos, ...resto } = l;
+  const alternativos = Array.isArray(titulosAlternativos)
+    ? titulosAlternativos.filter((x): x is string => typeof x === 'string' && x.trim() !== '')
+    : [];
+  return {
+    ...resto,
+    ...(typeof obra === 'string' && obra ? { obra } : {}),
+    ...(alternativos.length ? { titulosAlternativos: alternativos } : {}),
+  };
+}
+
 export function validarCatalogo(bruto: unknown, agora: Date = new Date()): Catalogo {
   const c = bruto as Partial<Catalogo> | null;
   if (!c || c.versao !== 1 || !Array.isArray(c.livros) || typeof c.anoLimite !== 'number')
@@ -27,6 +43,7 @@ export function validarCatalogo(bruto: unknown, agora: Date = new Date()): Catal
         !!l && typeof l.id === 'string' && Array.isArray(l.autores) && Array.isArray(l.tradutores),
     )
     .map((l) => (ehClassificacao(l.classificacao) ? l : { ...l, classificacao: null }))
+    .map(comCamposDeObraValidos)
     .filter((l) => passaNaDefesaDoCliente(l, limite, agora));
   return {
     versao: 1,

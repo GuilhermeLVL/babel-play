@@ -53,6 +53,17 @@ describe('lerRespostaDoParceiro', () => {
     expect(cita('households, both')).toEqual([{ trechoId: 'p1', exato: 'households, both' }]) // 16 caracteres
   })
 
+  it('citação longa e verdadeira passa, cortada no teto numa fronteira de palavra (o achado da bancada de produção)', () => {
+    const longo = `${'palavra '.repeat(60)}fim do parágrafo.`
+    const r = lerRespostaDoParceiro(resposta({ citacoes: [{ trechoId: 'p1', exato: longo.trim() }] }), 'explicar', [
+      { id: 'p1', texto: longo },
+    ])
+    expect(r?.citacoes).toHaveLength(1)
+    expect(r?.citacoes[0].exato.length).toBeLessThanOrEqual(300)
+    expect(longo).toContain(r?.citacoes[0].exato as string)
+    expect(r?.citacoes[0].exato.endsWith('palavra')).toBe(true)
+  })
+
   it('pergunta com spoiler sustentado por âncora fraca é "não está neste trecho"', () => {
     const verona = [
       { id: 'p1', texto: 'Two households, both alike in dignity, In fair Verona, where we lay our scene.' },

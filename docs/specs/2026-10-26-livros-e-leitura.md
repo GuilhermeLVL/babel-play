@@ -405,6 +405,15 @@ Sem tela nesta entrega (a do leitor muda noutra frente). Duas peças:
   prompt e o leitor de produção, mas não a cascata), juízes `claude -p` Opus e `agy` Gemini: 18/20 na 1ª rodada — um
   ponto com citação adulterada entre aspas simples (o leitor passou a conferir aspas simples e a usar a ficha como
   fonte; `parceiro-v2`) e um veredito ilegível do juiz; 20/20 depois. Resultado em
-  `docs/auditoria/eval/parceiro-v1/`. **Pendente do dono:** a rodada com o modelo de produção
-  (`--candidato openrouter:<modelo> --confirmo-gasto --teto 0.2`, estimativa < US$ 0,05 para os 20 casos) antes de
-  ligar a flag.
+  `docs/auditoria/eval/parceiro-v1/`.
+- **Rodada com a cascata de produção** (27/10, autorizada pelo dono, teto US$ 0,05): a primeira perna da leitura,
+  `google/gemma-4-26b-a4b-it` pelo OpenRouter com retenção zero, depois da revisão (âncora forte e texto conferido;
+  _Dom Casmurro_ não conferido, recortado para 2 trechos). **15/20**: explicar 2/4, analogia 2/2, pergunta 5/7,
+  curiosidade 1/2, observar 3/3, ideia 2/2. "Não está neste trecho" certo em 90% (18/20), citações válidas 87% (20 de
+  23), latência p50 2,4 s e p95 6,5 s (com os 20 pedidos ao mesmo tempo), gasto US$ 0,0043 (`gasto.json`). O
+  substituto Haiku, no mesmo gold revisado, também 15/20. Falhas do Gemma: um erro de leitura do pronome em _Dom
+  Casmurro_ (d1); uma citação adulterada pelo modelo ("le había" no lugar de "me había") que a âncora recusou, e a
+  pergunta virou "não está" (i3: a recusa é a regra, mas custa uma resposta certa); a pergunta do apelido (d3) sem
+  resposta porque o texto não conferido só leva 2 trechos (o mesmo no Haiku); uma curiosidade fraca (d5); e um
+  veredito ilegível do juiz (r8). A bancada também achou e corrigiu um defeito: a citação longa era cortada ANTES da
+  conferência e reprovava na fronteira de palavra (`parceiro-v4`).

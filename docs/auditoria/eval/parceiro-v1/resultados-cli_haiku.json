@@ -3,13 +3,20 @@
     "candidato": "cli:haiku",
     "data": "2026-10-27",
     "casos": 20,
-    "passaram": 20,
-    "taxaDeAprovacao": 1,
+    "passaram": 15,
+    "taxaDeAprovacao": 0.75,
     "validas": 1,
-    "naoEstaCerto": 1,
-    "juizClaude": 1,
-    "juizGemini": 1,
-    "comCitacao": 0.85,
+    "naoEstaCerto": 0.95,
+    "juizClaude": 0.75,
+    "juizGemini": 0.9,
+    "comCitacao": 0.8,
+    "citacoesValidas": 1,
+    "textoConferido": 0.65,
+    "latenciaMs": {
+      "p50": null,
+      "p95": null
+    },
+    "gastoUsd": 0,
     "porModo": {
       "explicar": {
         "casos": 4,
@@ -21,19 +28,19 @@
       },
       "pergunta": {
         "casos": 7,
-        "passaram": 7
+        "passaram": 6
       },
       "curiosidade": {
         "casos": 2,
-        "passaram": 2
+        "passaram": 1
       },
       "observar": {
         "casos": 3,
-        "passaram": 3
+        "passaram": 1
       },
       "ideia": {
         "casos": 2,
-        "passaram": 2
+        "passaram": 1
       }
     }
   },
@@ -44,7 +51,11 @@
       "modo": "explicar",
       "menor": false,
       "temFicha": true,
+      "conferido": false,
       "valida": true,
+      "citacoesBrutas": 1,
+      "ms": null,
+      "usd": null,
       "citacoes": 1,
       "naoEstaOk": true,
       "juizClaude": true,
@@ -55,14 +66,15 @@
         "gemini": []
       },
       "resposta": {
-        "texto": "Bento pede ao leitor que não procure casmurro no dicionário, porque a palavra não tem ali o sentido que ele quer. Para ele, casmurro é o que o povo dizia de alguém calado e fechado em si mesmo. A frase também mostra a voz do narrador, que fala com humor e ironia e já avisa que vai contar a história do seu jeito.",
+        "texto": "Bento pede ao leitor que não procure a palavra casmurro no dicionário. Segundo ele, o sentido que importa é o que o povo deu ao termo: um homem calado, fechado em si mesmo. Assim, ele explica a alcunha da passagem anterior e já mostra como se apresenta, com ironia e de forma reservada.",
         "pontos": [
-          "\"Consultes\" é a forma de tu do modo subjuntivo, usada aqui como ordem negativa: \"não consultes\" equivale a \"não consulte\".",
-          "\"mettido comsigo\" é a grafia antiga de \"metido consigo\", ou seja, fechado em si mesmo. A ortografia antiga também aparece em \"elles\" (eles) e \"diccionarios\" (dicionários)."
+          "\"Vulgo\" significa o povo, as pessoas comuns. Aqui, o sentido vem do uso popular, não do significado oficial.",
+          "\"Mettido comsigo\" é grafia antiga de \"metido consigo\": quem se fecha dentro de si mesmo e não se abre com os outros. Também aparecem \"elles\" (eles) e \"poz\" (pôs), formas da ortografia antiga.",
+          "\"Não consultes\" está no imperativo informal (tu). Bento fala diretamente com o leitor, o que é típico do narrador deste livro."
         ],
         "citacoes": [
           {
-            "trechoId": "selecao",
+            "trechoId": "p7",
             "exato": "Não consultes diccionarios. Casmurro não está aqui no sentido que elles lhe dão, mas no que lhe poz o vulgo de homem calado e mettido comsigo."
           }
         ],
@@ -75,8 +87,12 @@
       "modo": "analogia",
       "menor": false,
       "temFicha": true,
+      "conferido": false,
       "valida": true,
-      "citacoes": 2,
+      "citacoesBrutas": 1,
+      "ms": null,
+      "usd": null,
+      "citacoes": 1,
       "naoEstaOk": true,
       "juizClaude": true,
       "juizGemini": true,
@@ -86,18 +102,15 @@
         "gemini": []
       },
       "resposta": {
-        "texto": "Imagine que você quer refazer a sua adolescência com uma mochila nova e um caderno velho: a ideia é repetir o começo para sentir de novo aquilo que foi bom. Bento faz algo parecido. Ele mora numa casa igual à da infância e quer, com a escrita, juntar o começo e o fim da vida. Mas a comparação para aqui: na vida real, não dá para voltar ao passado como ele era, e o narrador mesmo admite que não consegue. Ele não fica mais jovem, só tenta parecer.",
+        "texto": "Imagine uma reunião de turma do colégio, anos depois da formatura. Você chega com a vontade de ser o mesmo adolescente de antes, com as mesmas piadas e os mesmos sonhos, como se o tempo pudesse ser desfeito. Mas os rostos mudaram, as conversas mudaram, e você percebe que só pode fingir. Bento faz algo parecido: ele escreve para juntar o começo e o fim da vida, tentando voltar à juventude pela escrita.",
         "pontos": [
-          "A comparação para quando Bento diz que não consegue 'recompor o que foi nem o que fui', porque ele mudou por dentro. Como a mochila velha, a imagem por fora pode enganar, mas não muda quem a usa."
+          "Assim como quem vai à reunião de turma quer reviver a adolescência, Bento quer unir o começo e o fim da vida. O verbo atar sugere juntar duas pontas que estão distantes.",
+          "A comparação para no fim: a reunião acaba e a pessoa volta à vida real. Bento tenta recompor o passado escrevendo, mas o próprio texto mostra que essa tentativa não funciona bem, porque o rosto é igual e a physionomia é diferente."
         ],
         "citacoes": [
           {
             "trechoId": "p11",
             "exato": "O meu fim evidente era atar as duas pontas da vida, e restaurar na velhice a adolescencia."
-          },
-          {
-            "trechoId": "p11",
-            "exato": "Pois, senhor, não consegui recompor o que foi nem o que fui."
           }
         ],
         "naoEstaNoTrecho": false
@@ -109,43 +122,31 @@
       "modo": "pergunta",
       "menor": false,
       "temFicha": true,
+      "conferido": false,
       "valida": true,
-      "citacoes": 4,
-      "naoEstaOk": true,
-      "juizClaude": true,
-      "juizGemini": true,
-      "passou": true,
+      "citacoesBrutas": 0,
+      "ms": null,
+      "usd": null,
+      "citacoes": 0,
+      "naoEstaOk": false,
+      "juizClaude": false,
+      "juizGemini": false,
+      "passou": false,
       "reprovados": {
-        "claude": [],
-        "gemini": []
+        "claude": [
+          "resposta: A referência espera a explicação do apelido. O trecho [p2] já mostra a causa (cochilo, versos no bolso), mas a resposta recusa tudo.",
+          "tarefa: No modo pergunta, devia responder ao menos em parte, citando [p2]. A resposta não traz pontos nem citações, ao contrário da referência."
+        ],
+        "gemini": [
+          "resposta: A resposta diz que a informação não está no trecho, contradizendo a referência, mas nos parágrafos enviados [p1, p2] o apelido realmente ainda não aparece; porém falha na referência.",
+          "tarefa: Embora use o formato esperado de recusa quando ausente no trecho enviado, não responde à pergunta conforme esperado pela referência da equipe."
+        ]
       },
       "resposta": {
-        "texto": "O narrador ganhou o apelido depois de uma viagem de trem. Um rapaz do bairro recitava versos para ele, mas o narrador cochilou várias vezes. O rapaz ficou chateado, parou de ler e, no dia seguinte, começou a falar mal dele e acabou inventando o apelido. Os vizinhos, que não gostam dos hábitos calados do narrador, espalharam o nome, e os amigos passaram a usá-lo, às vezes por graça. Ele explica que casmurro não tem o sentido que os dicionários dão, mas o de homem calado e fechado em si. O Dom foi usado por ironia, para dar a ele ares de fidalgo.",
-        "pontos": [
-          "O apelido nasceu depois que o narrador cochilou enquanto o rapaz recitava versos no trem.",
-          "O rapaz se ofendeu e, no dia seguinte, começou a dizer nomes feios sobre o narrador e criou o apelido.",
-          "Os vizinhos espalharam o apelido porque não gostavam dos hábitos calados e reclusos do narrador.",
-          "Casmurro significa homem calado e metido consigo, e o Dom foi usado por ironia."
-        ],
-        "citacoes": [
-          {
-            "trechoId": "p2",
-            "exato": "fechei os olhos tres ou quatro vezes"
-          },
-          {
-            "trechoId": "p6",
-            "exato": "No dia seguinte entrou a dizer de mim nomes feios, e acabou alcunhando-me Dom Casmurro."
-          },
-          {
-            "trechoId": "p6",
-            "exato": "Os visinhos, que não gostam dos meus habitos reclusos e calados, deram curso á alcunha, que afinal pegou."
-          },
-          {
-            "trechoId": "p7",
-            "exato": "Casmurro não está aqui no sentido que elles lhe dão, mas no que lhe poz o vulgo de homem calado e mettido comsigo."
-          }
-        ],
-        "naoEstaNoTrecho": false
+        "texto": "Não está neste trecho. Tente selecionar outra parte do capítulo ou reformular.",
+        "pontos": [],
+        "citacoes": [],
+        "naoEstaNoTrecho": true
       }
     },
     {
@@ -154,7 +155,11 @@
       "modo": "pergunta",
       "menor": false,
       "temFicha": true,
+      "conferido": false,
       "valida": true,
+      "citacoesBrutas": 0,
+      "ms": null,
+      "usd": null,
       "citacoes": 0,
       "naoEstaOk": true,
       "juizClaude": true,
@@ -177,29 +182,33 @@
       "modo": "curiosidade",
       "menor": false,
       "temFicha": true,
+      "conferido": false,
       "valida": true,
+      "citacoesBrutas": 2,
+      "ms": null,
+      "usd": null,
       "citacoes": 2,
       "naoEstaOk": true,
-      "juizClaude": true,
+      "juizClaude": false,
       "juizGemini": true,
-      "passou": true,
+      "passou": false,
       "reprovados": {
-        "claude": [],
+        "claude": [
+          "tarefa: Só reformula o p10. Não explica quem são as figuras (Massinissa, rei da Numídia) nem oferece fato curioso novo, como pede o modo curiosidade e a referência."
+        ],
         "gemini": []
       },
       "resposta": {
-        "texto": "Curiosidade: o narrador diz que pôr figuras antigas e de sabor clássico nas paredes era gosto da época, e a sala já estava assim decorada quando a família se mudou para a casa de Matacavallos, pois a pintura vinha da década anterior. Os medalhões são uma moda de outro tempo que ele herdou sem entender bem. Ligação com o trecho: ele não sabe explicar a escolha desses personagens, e essa distância dá ao narrador um tom irônico e reservado, que é uma das marcas do estilo de Machado. A casa nova copia a antiga, então as paredes guardam a memória de uma época que já passou.",
-        "pontos": [
-          "Repare como o narrador afirma não entender a escolha, mas mesmo assim descreve tudo com cuidado. Pergunte-se por que ele faz isso."
-        ],
+        "texto": "Segundo o próprio narrador, pôr sabor clássico e figuras antigas em pinturas era gosto da época. A decoração com esses medalhões já estava na casa de Matacavallos quando a família se mudou para lá, porque vinha da década anterior. Ele mesmo diz que não entende a razão de tais personagens, o que mostra como ele olha para a casa com certa distância.",
+        "pontos": [],
         "citacoes": [
           {
             "trechoId": "p10",
-            "exato": "Não alcanço a razão de taes personagens."
+            "exato": "Naturalmente era gosto do tempo metter sabor classico e figuras antigas em pinturas americanas."
           },
           {
             "trechoId": "p10",
-            "exato": "Naturalmente era gosto do tempo metter sabor classico e figuras antigas em pinturas americanas."
+            "exato": "Não alcanço a razão de taes personagens."
           }
         ],
         "naoEstaNoTrecho": false
@@ -211,41 +220,43 @@
       "modo": "observar",
       "menor": false,
       "temFicha": true,
+      "conferido": false,
       "valida": true,
-      "citacoes": 4,
+      "citacoesBrutas": 3,
+      "ms": null,
+      "usd": null,
+      "citacoes": 3,
       "naoEstaOk": true,
-      "juizClaude": true,
+      "juizClaude": false,
       "juizGemini": true,
-      "passou": true,
+      "passou": false,
       "reprovados": {
-        "claude": [],
+        "claude": [
+          "fiel: As citações são exatas. Mas o trecho enviado não mostra o narrador falando com o leitor. A grafia reflete a época da edição, não a de 1850 em que o livro se passa."
+        ],
         "gemini": []
       },
       "resposta": {
-        "texto": "Estes dois capítulos são curtos e funcionam como uma apresentação: o narrador explica o título e por que decidiu escrever. Observe como ele fala de si mesmo com ironia e como já deixa pistas sobre a memória e a dúvida.",
+        "texto": "Estes dois capítulos são curtos e funcionam como uma entrada: o narrador apresenta o título e, logo em seguida, uma cena pequena e aparentemente banal no trem.",
         "pontos": [
-          "O título: o narrador explica a origem de Dom Casmurro com humor. Pense no que significa ser chamado de \"calado\" e no tom de brincadeira dos amigos.",
-          "A ironia sobre si mesmo: ele diz que cochilou no trem e que o apelido foi \"por ironia\". Veja como ele se apresenta como alguém que não se leva muito a sério.",
-          "A casa reconstruída: ele copia a casa da infância, mas diz que \"não consegui recompor o que foi nem o que fui\". Pense no que é repetir o passado.",
-          "A memória como motivo da escrita: ele quer \"atar as duas pontas da vida\" e reviver a juventude. Observe que ele mesmo parece desconfiar do próprio projeto.",
-          "A linguagem: o português é antigo e cheio de formas como \"póde\" e \"cançado\", com frases longas e digressões. Repare como isso cria uma voz de homem velho que conversa com você."
+          "Observe a voz do narrador: ele fala diretamente com o leitor e já mostra um tom de ironia discreta.",
+          "Repare no cansaço dele e no fato de ele fechar os olhos. Isso pode ser importante para pensar no que ele vê e no que ele deixa de ver.",
+          "Note a expressão 'os versos póde ser que não fossem inteiramente maus': a fala é educada, mas tem um julgamento irônico sobre o rapaz.",
+          "Perceba o gesto final do rapaz, que mete os versos no bolso. Pequenos gestos, neste livro, costumam ganhar sentido depois.",
+          "Veja a grafia antiga (chapéo, cançado, Succedeu) e pense como ela situa a época em que o livro se passa."
         ],
         "citacoes": [
           {
-            "trechoId": "p7",
-            "exato": "Dom veiu por ironia, para attribuir-me fumos de fidalgo. Tudo por estar cochilando!"
+            "trechoId": "p2",
+            "exato": "A viagem era curta, e os versos póde ser que não fossem inteiramente maus."
           },
           {
-            "trechoId": "p11",
-            "exato": "O meu fim evidente era atar as duas pontas da vida, e restaurar na velhice a adolescencia. Pois, senhor, não consegui recompor o que foi nem o que fui."
+            "trechoId": "p2",
+            "exato": "Succedeu, porém, que como eu estava cançado, fechei os olhos tres ou quatro vezes;"
           },
           {
-            "trechoId": "p10",
-            "exato": "Constructor e pintor entenderam bem as indicações que lhes fiz: é o mesmo predio assobradado, tres janellas de frente, varanda ao fundo, as mesmas alcovas e salas."
-          },
-          {
-            "trechoId": "p14",
-            "exato": "É o que vás entender, lendo."
+            "trechoId": "p2",
+            "exato": "tanto bastou para que elle interrompesse a leitura e mettesse os versos no bolso."
           }
         ],
         "naoEstaNoTrecho": false
@@ -257,26 +268,34 @@
       "modo": "ideia",
       "menor": false,
       "temFicha": true,
+      "conferido": false,
       "valida": true,
+      "citacoesBrutas": 1,
+      "ms": null,
+      "usd": null,
       "citacoes": 1,
       "naoEstaOk": true,
-      "juizClaude": true,
-      "juizGemini": true,
-      "passou": true,
+      "juizClaude": false,
+      "juizGemini": false,
+      "passou": false,
       "reprovados": {
-        "claude": [],
-        "gemini": []
+        "claude": [
+          "fiel: Atribui a origem do título a uma 'brincadeira dos amigos', mas o apelido veio do poeta do trem; os amigos só o adotaram. Também atribui a fala do narrador a Machado."
+        ],
+        "gemini": [
+          "fiel: Afirma que o título nasceu de uma brincadeira dos amigos, mas o texto diz que a alcunha e o título vieram do poeta do trem."
+        ]
       },
       "resposta": {
-        "texto": "Bento diz que o título veio de um poeta do trem e que, com pouco esforço, a obra poderia ser dele também. Por que o narrador fala de autoria logo no começo, antes de contar a própria história? Vale pensar: quem realmente escreve um livro, quem narra ou quem inspira a narração? Essa questão já prepara o leitor para desconfiar da voz que conta tudo.",
+        "texto": "Machado escreve que há livros que quase nada devem ao autor, e ele mesmo parece dizer isso sobre o próprio título. Vale pensar: o que é, de fato, de quem escreve uma história, e o que vem do uso que o leitor faz dela? Essa ideia é interessante porque o narrador já mistura ironia e modéstia, e isso o torna menos confiável para dizer quem controla a obra.",
         "pontos": [
-          "Ele brinca com a autoria, ou fala a sério sobre quem dá forma a uma história?",
-          "Se o narrador divide a autoria do livro, o que isso sugere sobre a confiança que podemos ter no resto do que ele conta?"
+          "Se o título nasceu de uma brincadeira dos amigos, o autor perde o controle sobre o próprio livro, ou ganha outra forma de autoria?",
+          "A frase fala de livros em geral ou só do de Bento? Como você lê a ironia de quem diz que pouco é seu?"
         ],
         "citacoes": [
           {
             "trechoId": "p7",
-            "exato": "Ha livros que apenas terão isso dos seus autores; alguns nem tanto."
+            "exato": "E com pequeno esforço, sendo o titulo seu, poderá cuidar que a obra é sua. Ha livros que apenas terão isso dos seus autores; alguns nem tanto."
           }
         ],
         "naoEstaNoTrecho": false
@@ -288,7 +307,11 @@
       "modo": "explicar",
       "menor": false,
       "temFicha": true,
+      "conferido": true,
       "valida": true,
+      "citacoesBrutas": 1,
+      "ms": null,
+      "usd": null,
       "citacoes": 1,
       "naoEstaOk": true,
       "juizClaude": true,
@@ -299,11 +322,11 @@
         "gemini": []
       },
       "resposta": {
-        "texto": "Aqui o Capitão canta uma canção de marinheiros, com voz alta e rouca. A letra fala de quinze homens que querem o baú de um homem morto, e o refrão repete 'yo-ho-ho' e termina com um brinde ao rum. Essa canção mostra quem é o Capitão: um homem do mar, que vive de histórias de navios e de tesouros. Também aparece a ideia de um baú cheio de coisas valiosas, que já prepara o leitor para o tema do tesouro.",
+        "texto": "O Capitão canta esta canção de marinheiros com uma voz de velho, alta e tremida. Ela fala de quinze homens que querem o cofre de um homem morto, e termina com um brinde ao rum. Assim, logo no começo, aparecem o tema do tesouro e da morte, e fica claro que o Capitão é um homem do mar, mesmo sem dizer quem ele é.",
         "pontos": [
-          "Quince significa quinze, e quieren é o verbo querer: 'quieren' = eles querem.",
-          "Cofre é baú, e muerto é morto: 'el cofre de aquel muerto' = o baú daquele morto.",
-          "¡viva el rom! é um brinde: viva o rum! Os sons 'yo--ho--hó' são o refrão da canção e não têm tradução exata."
+          "\"cofre\" é baú, uma caixa grande para guardar coisas de valor; \"aquel muerto\" significa \"aquele morto\", com o pronome \"aquel\" antes de \"muerto\".",
+          "\"¡viva el rom!\" é um brinde, como \"viva o rum!\"; \"rom\" é o rum, bebida forte feita de cana-de-açúcar.",
+          "\"¡yo--ho--hó!\" é um grito de marinheiro, não tem sentido de palavra; serve só para marcar o ritmo da canção."
         ],
         "citacoes": [
           {
@@ -320,7 +343,11 @@
       "modo": "pergunta",
       "menor": false,
       "temFicha": true,
+      "conferido": true,
       "valida": true,
+      "citacoesBrutas": 1,
+      "ms": null,
+      "usd": null,
       "citacoes": 1,
       "naoEstaOk": true,
       "juizClaude": true,
@@ -331,12 +358,14 @@
         "gemini": []
       },
       "resposta": {
-        "texto": "A pousada se chama Almirante Benbow. O narrador conta que o pai dele era o dono dessa pousada naquela época.",
-        "pontos": ["A pousada se chama Almirante Benbow."],
+        "texto": "A pousada se chama Almirante Benbow. O pai de Jim era o dono dela.",
+        "pontos": [
+          "O nome aparece no começo do capítulo, quando o narrador conta que seu pai tinha a pousada."
+        ],
         "citacoes": [
           {
             "trechoId": "p1",
-            "exato": "posada del \"Almirante Benbow,\""
+            "exato": "Almirante Benbow"
           }
         ],
         "naoEstaNoTrecho": false
@@ -348,8 +377,12 @@
       "modo": "pergunta",
       "menor": false,
       "temFicha": true,
+      "conferido": true,
       "valida": true,
-      "citacoes": 3,
+      "citacoesBrutas": 2,
+      "ms": null,
+      "usd": null,
+      "citacoes": 2,
       "naoEstaOk": true,
       "juizClaude": true,
       "juizGemini": true,
@@ -359,23 +392,20 @@
         "gemini": []
       },
       "resposta": {
-        "texto": "O Capitão pede ao narrador que fique atento e avise quando aparecer um \"marino con una sola pierna\" (um marinheiro com uma perna só). Em troca, ele promete dar uma moeda de quatro peniques todo dia primeiro do mês.",
+        "texto": "O Capitão pede ao narrador que fique atento e avise no momento em que aparecer um marinheiro com uma perna só (marino con una sola pierna). Em troca, ele promete dar uma moeda de quatro peniques no primeiro dia de cada mês.",
         "pontos": [
-          "O Capitão quer que o narrador fique alerta (estar alerta) e avise assim que vir um marinheiro com uma perna só.",
-          "Como pagamento, ele promete uma pieza de cuatro peniques no primeiro dia de cada mês."
+          "O Capitão quer que o narrador vigie a chegada de um marinheiro com uma perna só.",
+          "Quando o narrador vir esse homem, deve avisar o Capitão na hora.",
+          "A recompensa é uma moeda de quatro peniques no primeiro dia de cada mês."
         ],
         "citacoes": [
           {
             "trechoId": "p10",
-            "exato": "estuviese alerta, y le avisara"
+            "exato": "y le avisara, en el momento mismo en que descubriera, la aparición de un \"marino con una sola pierna"
           },
           {
             "trechoId": "p10",
-            "exato": "la aparición de un \"marino con una sola pierna.\""
-          },
-          {
-            "trechoId": "p10",
-            "exato": "una pieza de cuatro peniques el día primero de cada mes"
+            "exato": "prometido darme una pieza de cuatro peniques el día primero de cada mes con la sola condición de que estuviese alerta"
           }
         ],
         "naoEstaNoTrecho": false
@@ -387,7 +417,11 @@
       "modo": "pergunta",
       "menor": false,
       "temFicha": true,
+      "conferido": true,
       "valida": true,
+      "citacoesBrutas": 0,
+      "ms": null,
+      "usd": null,
       "citacoes": 0,
       "naoEstaOk": true,
       "juizClaude": true,
@@ -410,24 +444,30 @@
       "modo": "observar",
       "menor": false,
       "temFicha": true,
+      "conferido": true,
       "valida": true,
+      "citacoesBrutas": 4,
+      "ms": null,
+      "usd": null,
       "citacoes": 4,
       "naoEstaOk": true,
-      "juizClaude": true,
+      "juizClaude": false,
       "juizGemini": true,
-      "passou": true,
+      "passou": false,
       "reprovados": {
-        "claude": [],
+        "claude": [
+          "fiel: As citações são exatas. Porém, dizer que o narrador conta 'com medo' não tem apoio no trecho, onde ele diz não ver mistério. 'Vigiar a estrada' omite o marinheiro de uma perna."
+        ],
         "gemini": []
       },
       "resposta": {
-        "texto": "Este capítulo apresenta o narrador, um menino da estalagem, e um hóspede misterioso. Leia com calma e observe o que ele faz e por que tem medo.",
+        "texto": "Este capítulo apresenta o homem da cicatriz e o mistério que ele traz. Observe como o narrador, um menino da posada, vê esse hóspede.",
         "pontos": [
-          "Observe a aparência do Capitão: ele é forte, tem cicatrizes e mãos destruídas. Como o autor descreve isso?",
-          "Repare no medo do Capitão. Ele observa os marinheiros de longe e quase não fala com ninguém.",
-          "Preste atenção no pagamento: o menino recebe moedas para vigiar. Por que ele aceita esse acordo?",
-          "Note as palavras do mar, como rom, grumete e cofre. Tente entender o sentido pelo contexto.",
-          "Pense na voz do narrador: ele conta a história com lembranças e detalhes, como se lembrasse de tudo."
+          "Repare na descrição física do homem: a cicatriz, as mãos e a voz. Que impressão elas causam?",
+          "O capitão fala pouco e tem um jeito orgulhoso. Isso deixa a história mais misteriosa.",
+          "Ele sempre pergunta por marinheiros e os evita. Pense por que ele age assim.",
+          "O menino recebe moedas para vigiar a estrada. Isso cria um segredo entre os dois.",
+          "O narrador conta a história com medo e curiosidade. Observe as palavras que mostram esses sentimentos."
         ],
         "citacoes": [
           {
@@ -436,15 +476,15 @@
           },
           {
             "trechoId": "p9",
-            "exato": "Las más veces no quería contestar cuando se le hablaba: contentábase con arrojar sobre el que le dirijía la palabra una rápida y altiva mirada"
+            "exato": "preguntaba invariablemente si no se había visto algunos marineros atravesar por el camino"
           },
           {
             "trechoId": "p10",
-            "exato": "marino con una sola pierna."
+            "exato": "con la sola condición de que estuviese alerta"
           },
           {
             "trechoId": "p7",
-            "exato": "¡Avisarme cuando se acabe eso!"
+            "exato": "llámenme Capitán."
           }
         ],
         "naoEstaNoTrecho": false
@@ -456,7 +496,11 @@
       "modo": "explicar",
       "menor": false,
       "temFicha": true,
+      "conferido": true,
       "valida": true,
+      "citacoesBrutas": 1,
+      "ms": null,
+      "usd": null,
       "citacoes": 1,
       "naoEstaOk": true,
       "juizClaude": true,
@@ -467,15 +511,15 @@
         "gemini": []
       },
       "resposta": {
-        "texto": "Neste trecho, o Coro (narrador da peça) diz que as duas famílias, iguais em posição social, começam uma nova briga a partir de um ódio antigo. Ele usa a palavra civil num jogo de sentidos: o sangue derramado é de cidadãos da mesma cidade, e isso suja as mãos de todos, não só de um lado. Assim, o público já entende que a violência de Verona é um problema da própria cidade, não apenas dos dois lados em guerra.",
+        "texto": "Neste trecho, o Coro diz que uma antiga mágoa (ancient grudge) leva as duas famílias a começar uma nova briga em Verona. O sangue derramado pelos cidadãos suja as mãos dos próprios cidadãos. A ideia é que a violência entre as famílias prejudica toda a cidade, e não só os envolvidos.",
         "pontos": [
-          "Grudge quer dizer rancor ou ódio guardado por muito tempo, e mutiny quer dizer revolta ou briga coletiva. Juntos, eles mostram que o ódio antigo gera uma nova confusão.",
-          "Em civil blood, civil significa do povo ou de cidadãos da mesma cidade, e não educado, que é o sentido mais comum hoje. Por isso, o sangue é de gente da mesma cidade.",
-          "O verbo break aparece sem -s porque o sujeito é Two households, que é plural. No inglês antigo, o verbo concorda com o sujeito plural, mesmo com o sujeito mais longe no texto."
+          "Grudge é uma mágoa ou rancor guardado por muito tempo. Mutiny aqui significa revolta ou tumulto, ou seja, uma briga aberta.",
+          "Civil, neste contexto, quer dizer dos cidadãos ou da cidade. Não significa educado, que é o sentido mais comum da palavra em português.",
+          "A construção break to new mutiny quer dizer irromper em uma nova briga. Em makes civil hands unclean, o verbo make seguido de objeto e adjetivo significa fazer as mãos ficarem sujas."
         ],
         "citacoes": [
           {
-            "trechoId": "p3",
+            "trechoId": "p1",
             "exato": "From ancient grudge break to new mutiny, Where civil blood makes civil hands unclean."
           }
         ],
@@ -488,7 +532,11 @@
       "modo": "analogia",
       "menor": false,
       "temFicha": true,
+      "conferido": true,
       "valida": true,
+      "citacoesBrutas": 1,
+      "ms": null,
+      "usd": null,
       "citacoes": 1,
       "naoEstaOk": true,
       "juizClaude": true,
@@ -499,14 +547,14 @@
         "gemini": []
       },
       "resposta": {
-        "texto": "Imagine dois grupos de alunos no recreio da escola. Um menino olha para o grupo rival e faz um gesto de desafio, como mostrar o dedo do meio. Se o outro grupo não reage, todos acham que ele é fraco, e o gesto vira um convite para a briga. Assim funciona a provocação de Sampson: é um insulto que pede uma resposta, e o orgulho decide o resto.",
+        "texto": "Imagine uma escola em que duas turmas não se gostam. Um aluno passa pelo corredor da turma rival e faz um gesto de deboche, como uma cara de desprezo ou um dedo levantado. Ele não encosta em ninguém, mas quer que todos vejam a provocação, e o outro grupo precisa decidir se engole isso ou reage.",
         "pontos": [
-          "A ligação: no recreio, quem faz o gesto quer briga, e quem não responde perde a honra diante dos amigos. Em Verona, morder o polegar também é um desafio, e a fala de Sampson mostra isso ao dizer que o gesto é 'disgrace to them if they bear it'.",
-          "Onde a comparação para: morder o polegar era um gesto de provocação da época de Shakespeare, e hoje não tem o mesmo sentido. Além disso, a rixa entre as duas famílias é muito mais antiga e perigosa do que uma briga de recreio."
+          "A ligação funciona: o gesto é pequeno, mas é uma provocação feita de propósito, e quem recebe sente que precisa responder para não parecer fraco.",
+          "A comparação para no contexto: o cenário da peça tem uma rixa entre duas famílias inteiras, com regras de honra que nenhuma turma de escola tem, e a briga não é só entre dois alunos."
         ],
         "citacoes": [
           {
-            "trechoId": "p33",
+            "trechoId": "p31",
             "exato": "I will bite my thumb at them, which is disgrace to them if they bear it."
           }
         ],
@@ -519,7 +567,11 @@
       "modo": "pergunta",
       "menor": false,
       "temFicha": true,
+      "conferido": true,
       "valida": true,
+      "citacoesBrutas": 1,
+      "ms": null,
+      "usd": null,
       "citacoes": 1,
       "naoEstaOk": true,
       "juizClaude": true,
@@ -530,15 +582,15 @@
         "gemini": []
       },
       "resposta": {
-        "texto": "A peça se passa em Verona. No prólogo, o Chorus diz: \"In fair Verona, where we lay our scene\". Essa frase quer dizer que Verona é o lugar onde a história acontece.",
+        "texto": "A peça se passa em Verona. O Coro, no prólogo, diz isso com estas palavras: \"In fair Verona, where we lay our scene,\". Verona é uma cidade da Itália. Esta parte do texto também fala de duas famílias, mas a pergunta é só sobre a cidade.",
         "pontos": [
-          "O nome da cidade aparece logo no prólogo, na fala do Chorus.",
-          "A palavra scene aqui significa cena ou lugar da história."
+          "O prólogo diz o lugar da história: Verona.",
+          "A palavra scene quer dizer cena, lugar onde a história acontece."
         ],
         "citacoes": [
           {
-            "trechoId": "p3",
-            "exato": "In fair Verona, where we lay our scene"
+            "trechoId": "p1",
+            "exato": "In fair Verona, where we lay our scene,"
           }
         ],
         "naoEstaNoTrecho": false
@@ -550,7 +602,11 @@
       "modo": "pergunta",
       "menor": false,
       "temFicha": true,
+      "conferido": true,
       "valida": true,
+      "citacoesBrutas": 0,
+      "ms": null,
+      "usd": null,
       "citacoes": 0,
       "naoEstaOk": true,
       "juizClaude": true,
@@ -573,7 +629,11 @@
       "modo": "curiosidade",
       "menor": false,
       "temFicha": true,
+      "conferido": true,
       "valida": true,
+      "citacoesBrutas": 1,
+      "ms": null,
+      "usd": null,
       "citacoes": 1,
       "naoEstaOk": true,
       "juizClaude": true,
@@ -584,12 +644,12 @@
         "gemini": []
       },
       "resposta": {
-        "texto": "Curiosidade: a peça se passa em Verona, na Itália, e não na Inglaterra. Para o público inglês da época, a Itália era um cenário de paixão, elegância e violência, e esse clima já aparece quando o Coro diz que a história acontece 'In fair Verona'. Logo na abertura, o Coro também fala de duas casas 'alike in dignity', ou seja, duas famílias de mesmo prestígio, o que prepara o conflito entre elas.",
+        "texto": "A cena acontece em Verona, uma cidade da Itália. Para o público inglês da época, a Itália era um cenário de paixão, elegância e violência, e o próprio começo da peça já mostra essa mistura. Logo na primeira linha, as duas famílias são apresentadas como iguais em dignity, mas o texto logo mostra que a igualdade termina aí, porque elas vivem em guerra. Essa abertura prepara o público para a rixa que vai dominar a história.",
         "pontos": [],
         "citacoes": [
           {
-            "trechoId": "p3",
-            "exato": "In fair Verona, where we lay our scene,"
+            "trechoId": "p1",
+            "exato": "Two households, both alike in dignity, In fair Verona, where we lay our scene,"
           }
         ],
         "naoEstaNoTrecho": false
@@ -601,7 +661,11 @@
       "modo": "ideia",
       "menor": false,
       "temFicha": true,
+      "conferido": true,
       "valida": true,
+      "citacoesBrutas": 2,
+      "ms": null,
+      "usd": null,
       "citacoes": 2,
       "naoEstaOk": true,
       "juizClaude": true,
@@ -612,19 +676,19 @@
         "gemini": []
       },
       "resposta": {
-        "texto": "Logo no início, o Coro diz que os dois jovens são “star-cross’d lovers”, amantes marcados pelo azar. Como o público já sabe que eles vão morrer, a pergunta muda: por que Shakespeare conta o fim antes de começar a história? Pense se ele quer criar suspense ou fazer você se perguntar de quem é a culpa.",
+        "texto": "O prólogo já diz que os dois amantes são star-cross'd, ou seja, marcados pelo azar desde o começo. A história deles é guiada pelo destino ou pelas escolhas que as pessoas fazem? A pergunta é interessante porque a peça não responde de forma simples, e cada leitura muda a maneira como você vê as brigas das famílias.",
         "pontos": [
-          "Se o fim já foi revelado, a atenção vai para como e por que as coisas acontecem. Isso faz a briga da cena 1 parecer mais pesada ou mais absurda?",
-          "O prólogo fala de estrelas e de azar, mas também de pais que não param a rixa. O destino é algo que ninguém escolhe, ou as famílias têm parte nisso?"
+          "Destino: se o fim já é anunciado no prólogo, talvez nada do que os personagens façam pudesse mudar o resultado.",
+          "Escolhas: as famílias começam uma nova briga por causa de um ódio antigo. Isso pode ser visto como uma decisão humana, e não apenas como azar."
         ],
         "citacoes": [
           {
-            "trechoId": "p3",
-            "exato": "A pair of star-cross’d lovers take their life;"
+            "trechoId": "p1",
+            "exato": "A pair of star-cross'd lovers take their life;"
           },
           {
-            "trechoId": "p3",
-            "exato": "Doth with their death bury their parents’ strife."
+            "trechoId": "p1",
+            "exato": "From ancient grudge break to new mutiny,"
           }
         ],
         "naoEstaNoTrecho": false
@@ -636,7 +700,11 @@
       "modo": "observar",
       "menor": false,
       "temFicha": true,
+      "conferido": true,
       "valida": true,
+      "citacoesBrutas": 4,
+      "ms": null,
+      "usd": null,
       "citacoes": 4,
       "naoEstaOk": true,
       "juizClaude": true,
@@ -647,29 +715,29 @@
         "gemini": []
       },
       "resposta": {
-        "texto": "Este capítulo tem um Prólogo, com o Coro, e depois uma briga de criados nas ruas de Verona. Observe como a rixa entre as duas famílias aparece logo nas primeiras falas.",
+        "texto": "Você está começando a peça. O prólogo já apresenta o conflito e o destino dos amantes, e a primeira cena mostra criados brigando nas ruas de Verona. Observe como as palavras são usadas com duplo sentido.",
         "pontos": [
-          "O Coro apresenta as duas casas como iguais em dignity, mas em guerra. Pense no que essa igualdade pode significar.",
-          "Os criados fazem muitos trocadilhos e duplos sentidos, como coals e colliers, e a piada com maidenheads. Preste atenção ao humor e ao que ele esconde.",
-          "O Coro fala de amantes star-cross'd, ou seja, marcados pelo azar. Pergunte-se: o destino ou as escolhas das pessoas vão mandar na história?",
-          "Sampson fala de honra, medo e poder com frases de ameaça e orgulho. Observe quem parece mais forte e quem finge ser corajoso."
+          "O prólogo fala de 'star-cross'd lovers', ou seja, amantes marcados pelo azar desde o início.",
+          "Sampson e Gregory fazem piadas com palavras que têm mais de um sentido, como 'coals', 'collar' e 'maidenheads'.",
+          "A cena mostra a violência como brincadeira e orgulho entre os criados, o que dá um tom de comédia ao conflito.",
+          "Repare em 'the weaker vessels' e na forma como as mulheres são tratadas como alvo de briga entre os homens."
         ],
         "citacoes": [
           {
-            "trechoId": "p3",
-            "exato": "Two households, both alike in dignity"
+            "trechoId": "p1",
+            "exato": "From ancient grudge break to new mutiny"
           },
           {
-            "trechoId": "p3",
-            "exato": "A pair of star-cross’d lovers take their life"
-          },
-          {
-            "trechoId": "p14",
-            "exato": "A dog of the house of Montague moves me."
+            "trechoId": "p1",
+            "exato": "A pair of star-cross'd lovers take their life"
           },
           {
             "trechoId": "p20",
-            "exato": "I will show myself a tyrant"
+            "exato": "the heads of the maids, or their maidenheads; take it in what sense thou wilt."
+          },
+          {
+            "trechoId": "p16",
+            "exato": "women, being the weaker vessels, are ever thrust to the wall"
           }
         ],
         "naoEstaNoTrecho": false
@@ -681,7 +749,11 @@
       "modo": "explicar",
       "menor": true,
       "temFicha": true,
+      "conferido": true,
       "valida": true,
+      "citacoesBrutas": 1,
+      "ms": null,
+      "usd": null,
       "citacoes": 1,
       "naoEstaOk": true,
       "juizClaude": true,
@@ -692,14 +764,15 @@
         "gemini": []
       },
       "resposta": {
-        "texto": "Aqui Sampson faz um trocadilho. Ele fala em cortar as cabeças das criadas (the heads of the maids), mas acrescenta maidenheads, uma palavra antiga com duplo sentido, e deixa Gregory escolher o significado (take it in what sense thou wilt). O humor está nessa ambiguidade e no tom de bravata dos criados, que ameaçam os Montague sem nenhuma intenção séria de cumprir o que dizem. Esse trecho mostra logo no início a provocação e a violência de rua que vão levar à briga, o que combina com o tema da rixa entre as famílias.",
+        "texto": "Sampson fala com Gregory usando um jogo de palavras de mau gosto. Ele diz que vai cortar as cabeças (heads) das criadas da casa de Montague, e depois acrescenta or their maidenheads, que tem um segundo sentido sobre a honra e a sexualidade das mulheres. Ao dizer take it in what sense thou wilt, ele deixa Gregory escolher o sentido, o que é uma provocação grosseira. A cena mostra que esses criados usam ameaças e piadas para parecer fortes antes de qualquer luta começar.",
         "pontos": [
-          "maidenheads: palavra antiga com duplo sentido. Aqui o sentido literal (heads, cabeças) e o sentido figurado convivem, e é isso que faz a piada funcionar.",
-          "Ay é uma forma antiga de yes, e maids são as criadas ou moças da casa."
+          "maidenheads: palavra antiga que significa virgindade. Ela soa parecida com heads, e é isso que cria o duplo sentido da piada.",
+          "take it in what sense thou wilt: take it = entender; in what sense = em que sentido; thou wilt = você quiser. Literalmente: entenda no sentido que você quiser.",
+          "Ay significa sim (forma antiga de yes), e the maids são as criadas ou moças da casa."
         ],
         "citacoes": [
           {
-            "trechoId": "p22",
+            "trechoId": "p20",
             "exato": "Ay, the heads of the maids, or their maidenheads; take it in what sense thou wilt."
           }
         ],

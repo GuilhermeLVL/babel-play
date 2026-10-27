@@ -32,7 +32,7 @@ export const MODOS_COM_SELECAO: readonly ModoDoParceiro[] = ['explicar', 'analog
  * A versão do prompt: entra na chave do cache compartilhado. Mudou o texto de um prompt ou do leitor, sobe aqui — a
  * resposta antiga não serve ao prompt novo.
  */
-export const VERSAO_DO_PROMPT_DO_PARCEIRO = 'parceiro-v3';
+export const VERSAO_DO_PROMPT_DO_PARCEIRO = 'parceiro-v4';
 
 /** O id que a SELEÇÃO tem para a citação (os trechos do capítulo têm os ids que o cliente mandou). */
 export const ID_DA_SELECAO = 'selecao';
@@ -301,9 +301,15 @@ export function lerRespostaDoParceiro(
   for (const c of o.citacoes) {
     if (!c || typeof c !== 'object' || citacoes.length >= MAX_CITACOES) continue;
     const trechoId = texto((c as Record<string, unknown>).trechoId, TETOS_DO_PARCEIRO.idDoTrecho);
-    const exato = texto((c as Record<string, unknown>).exato, MAX_CARACTERES_DA_CITACAO);
+    /* Confere a citação INTEIRA (cortá-la antes partia a última palavra e a fronteira reprovava a citação boa — a
+       bancada com o modelo de produção achou) e só depois corta no teto, numa fronteira de palavra. */
+    const inteira = texto((c as Record<string, unknown>).exato, TETOS_DO_PARCEIRO.textoDoTrecho);
     const doTrecho = porId.get(trechoId);
-    if (!doTrecho || !citacaoAncorada(normalizarParaCitacao(exato), doTrecho)) continue;
+    if (!doTrecho || !citacaoAncorada(normalizarParaCitacao(inteira), doTrecho)) continue;
+    const exato =
+      inteira.length <= MAX_CARACTERES_DA_CITACAO
+        ? inteira
+        : inteira.slice(0, inteira.lastIndexOf(' ', MAX_CARACTERES_DA_CITACAO)).trimEnd();
     if (citacoes.some((x) => x.trechoId === trechoId && x.exato === exato)) continue;
     citacoes.push({ trechoId, exato });
   }

@@ -15,14 +15,17 @@ import '../styles/questInstitucional.css';
 import type { LucideIcon } from 'lucide-react';
 import { BookOpen, CircleHelp, LifeBuoy, MessageCircle, Mic, MonitorPlay, PictureInPicture2, Plus } from 'lucide-react';
 
+import { perfilDoDispositivo } from '../lib/dispositivo/perfil';
 import { t } from '../lib/i18n';
 import { Dialogo, fecharDialogoDe, IconeEmBloco } from './ui';
 
-const FLUXOS: Array<{ icone: LucideIcon; titulo: string; passos: string }> = [
+const FLUXOS: Array<{ icone: LucideIcon; titulo: string; passos: string; passosSemSomDoSistema?: string }> = [
   {
     icone: MonitorPlay,
     titulo: 'Traduzir um vídeo ou chamada',
     passos: 'Dê play em qualquer app e clique em Iniciar captura. O som do computador entra sozinho.',
+    passosSemSomDoSistema:
+      'Neste navegador o som do computador não entra: use o microfone perto do alto-falante ou abra o Frasy no Chrome ou no Edge. Clique em Iniciar captura.',
   },
   {
     icone: Mic,
@@ -75,11 +78,13 @@ export default function GuidePanel({
     <Dialogo icone={CircleHelp} titulo="Guia rápido" sub={sub} largura="largo" aoFechar={onClose}>
       <div className="dlg-corpo rola-dlg" tabIndex={0} role="region" aria-label="Conteúdo">
         <div className="g-guia">
-          {FLUXOS.map(({ icone, titulo, passos }) => (
+          {FLUXOS.map(({ icone, titulo, passos, passosSemSomDoSistema }) => (
             <div key={titulo} className="cartao p5">
               <IconeEmBloco icone={icone} />
               <h3>{t(titulo)}</h3>
-              <p className="mut">{t(passos)}</p>
+              <p className="mut">
+                {t(passosSemSomDoSistema && !perfilDoDispositivo().capturaDoSistema ? passosSemSomDoSistema : passos)}
+              </p>
             </div>
           ))}
         </div>

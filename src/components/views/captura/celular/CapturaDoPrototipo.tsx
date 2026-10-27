@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+import { perfilDoDispositivo } from '../../../../lib/dispositivo/perfil';
 import { t } from '../../../../lib/i18n';
 import { telasEnxutas } from '../../../../lib/polimento/base';
 import { afundarBotao, celular, entrarPronta, sairMiolo } from '../../../../lib/polimento/captura';
@@ -254,9 +255,13 @@ export default function CapturaDoPrototipo({
                 <p>
                   {celular()
                     ? t('Toque em Iniciar e deixe o celular perto do som. A legenda nos dois idiomas aparece aqui.')
-                    : t(
-                        'O som do computador entra sozinho. Dê play no vídeo, aula ou chamada e clique em Iniciar. A legenda bilíngue aparece aqui e nas Legendas flutuantes.',
-                      )}
+                    : !perfilDoDispositivo().capturaDoSistema
+                      ? t(
+                          'Este navegador não captura o som do computador. Use o microfone perto do alto-falante ou abra o Frasy no Chrome ou no Edge. A legenda bilíngue aparece aqui.',
+                        )
+                      : t(
+                          'O som do computador entra sozinho. Dê play no vídeo, aula ou chamada e clique em Iniciar. A legenda bilíngue aparece aqui e nas Legendas flutuantes.',
+                        )}
                 </p>
                 {nivel.nota}
               </div>

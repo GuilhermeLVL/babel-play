@@ -730,7 +730,7 @@ A troca efetiva espera o domínio público do bucket (`r2.dev` não é para prod
 
 ### Modelos no R2
 
-Os modelos do Bergamot (15 pares X→en, ~423 MB) sobem pelo workflow `publicar-modelos` (manual; inputs `ambiente` e
+Os modelos do Bergamot (16 pares X→en: o pt e os 15 de `paresDoCdn`, ~450 MB) sobem pelo workflow `publicar-modelos` (manual; inputs `ambiente` e
 `pares`, padrão `all`): o runner baixa da Mozilla, confere o sha256 e faz `wrangler r2 object put --remote` no bucket
 `frasy-modelos` (`scripts/modelos/publicar-bergamot-no-r2.ts --via=wrangler`), só com o token da Cloudflare do
 Environment. O CORS do bucket (GET/HEAD para as origens do app) vem de `scripts/cloudflare/r2.mjs`.

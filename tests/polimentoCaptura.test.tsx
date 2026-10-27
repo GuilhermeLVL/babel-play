@@ -95,7 +95,20 @@ const fala = (id: string, originalText: string, translatedText = '', isPartial =
    headset: o chip do modelo, a ajuda e a letra na faixa. A tela do computador e do celular, com o chip
    de estado, está em `tests/capturaEnxuta.test.tsx`. */
 describe('a captura pronta (direto.js:25-47)', () => {
+  /* O jsdom não tem getDisplayMedia: sem ele o perfil diz "sem som do computador" (ver o teste do Safari abaixo). */
+  const comGetDisplayMedia = () =>
+    Object.defineProperty(navigator, 'mediaDevices', { value: { getDisplayMedia: () => {} }, configurable: true })
+  afterEach(() => Reflect.deleteProperty(navigator, 'mediaDevices'))
+
+  it('sem som do computador (Safari/Firefox, sem getDisplayMedia) a frase não promete o que não entra', () => {
+    render(<CapturaDoPrototipo {...base} />)
+    const texto = document.querySelector('.px-pronto-miolo p')?.textContent ?? ''
+    expect(texto).not.toMatch(/entra sozinho/)
+    expect(texto).toMatch(/Chrome ou no Edge/)
+  })
+
   it('monta o topo, o miolo e a faixa do protótipo, com o texto do computador', () => {
+    comGetDisplayMedia()
     const { container } = render(<CapturaDoPrototipo {...base} />)
     const v = container.firstElementChild as HTMLElement
     expect(v.className).toBe('cel cel-gravando quest-vivo px-vivo px-pronto')

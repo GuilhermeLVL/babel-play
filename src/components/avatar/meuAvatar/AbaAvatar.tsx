@@ -49,7 +49,7 @@ type Visao = 'escolher' | 'personalizar' | 'traga';
 /** Abaixo disto a prévia fica fixa no topo e compacta (celular); acima, é o cartão da coluna da esquerda. */
 const CONSULTA_DO_CELULAR = '(max-width: 879px)';
 const TAMANHO_NO_DESKTOP = 280;
-const TAMANHO_NO_CELULAR = 132;
+const TAMANHO_NO_CELULAR = 112;
 
 function useCelular(): boolean {
   const [celular, setCelular] = useState(

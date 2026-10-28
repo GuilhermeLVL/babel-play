@@ -431,6 +431,15 @@ test.describe('Meu avatar', () => {
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
     await restaurar.click({ trial: true })
     await foto(page, '14-celular-fim-da-tela')
+    // Nada alarga a página: sem rolagem de lado, e a prévia (com o botão de salvar) cabe na largura.
+    const largura = await page.evaluate(() => ({
+      pagina: document.documentElement.scrollWidth,
+      janela: document.documentElement.clientWidth,
+    }))
+    expect(largura.pagina).toBeLessThanOrEqual(largura.janela)
+    const salvar = (await page.getByTestId('avatar-salvar').boundingBox())!
+    const cartao = (await previa.boundingBox())!
+    expect(salvar.x + salvar.width).toBeLessThanOrEqual(cartao.x + cartao.width + 1)
   })
 
   test('abas internas: a aba escolhida vem inteira para a vista (sem texto cortado)', async ({ page }) => {
@@ -446,6 +455,11 @@ test.describe('Meu avatar', () => {
     await dentro('Seções do avatar', 'Traga o seu')
     await page.getByRole('tab', { name: 'Você' }).click()
     await dentro('Seções do perfil', 'Você')
+    // Trocar de aba rola SÓ a faixa: o conteúdo da página nunca é empurrado de lado.
+    const empurrado = await page.evaluate(() =>
+      [...document.querySelectorAll('main, [data-testid="perfil-do-quest"]')].map((e) => e.scrollLeft),
+    )
+    expect(empurrado.every((x) => x === 0)).toBe(true)
     await foto(page, '15-abas')
   })
 

@@ -99,38 +99,6 @@
   outline: 3px solid var(--q-acento, var(--accent));
   outline-offset: 2px;
 }
-/* CELULAR: a prévia viva fica fixa no topo (compacta, no máximo 40% da altura) enquanto se mexe nos controles. */
-@media (max-width: 879px) {
-  .av-previa {
-    position: sticky;
-    top: calc(env(safe-area-inset-top, 0px) + 8px);
-    z-index: 20;
-    max-height: 40vh;
-    max-height: 40dvh;
-    overflow: hidden;
-    grid-template-columns: 132px minmax(0, 1fr);
-    place-items: center stretch;
-    gap: 12px;
-    padding: 10px;
-    background: var(--surface);
-    box-shadow: 0 8px 20px color-mix(in srgb, var(--ink) 16%, transparent);
-  }
-  .av-previa-moldura {
-    width: 132px;
-  }
-  .av-previa-texto {
-    justify-items: start;
-    gap: 8px;
-  }
-  .av-previa .av-credito {
-    max-width: none;
-    text-align: start;
-    font-size: 13px;
-  }
-  .av-status {
-    min-height: 0;
-  }
-}
 .av-previa-moldura {
   width: min(100%, 300px);
   aspect-ratio: 1;
@@ -153,6 +121,60 @@
   text-align: center;
   font: 700 17px/1.4 var(--font-body, inherit);
   color: var(--ink-muted);
+}
+
+/* CELULAR: a prévia viva fica fixa no topo (compacta, no máximo 40% da altura) enquanto se mexe nos controles.
+   Tudo cabe na largura da tela: nada aqui pode alargar a página. */
+@media (max-width: 879px) {
+  .av-previa {
+    position: sticky;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    z-index: 20;
+    max-height: 40vh;
+    max-height: 40dvh;
+    overflow: hidden;
+    grid-template-columns: 112px minmax(0, 1fr);
+    place-items: center stretch;
+    gap: 12px;
+    padding: 10px;
+    min-width: 0;
+    background: var(--surface);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--ink) 16%, transparent);
+  }
+  .av-previa-moldura {
+    width: 112px;
+  }
+  .av-previa-texto {
+    justify-items: start;
+    gap: 8px;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .av-previa-texto > * {
+    max-width: 100%;
+    min-width: 0;
+  }
+  .av-previa .av-credito {
+    max-width: none;
+    text-align: start;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+  .av-previa .q-ctl {
+    min-height: 48px;
+    padding-inline: 14px;
+    font-size: 16px;
+    max-width: 100%;
+  }
+  .av-modo-botao {
+    min-height: 44px;
+    padding: 0 10px;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .av-status {
+    min-height: 0;
+  }
 }
 
 /* ── Grade da coleção ─────────────────────────────────────────────────────────────────────────── */

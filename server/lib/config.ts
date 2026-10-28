@@ -937,6 +937,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'quantos corpos grandes o MESMO usuário pode ter em voo ao mesmo tempo (server/lib/corposGrandes.ts). Ausente ou inválido: 1',
   },
   {
+    nome: 'AVATAR_GALERIA_TERCEIROS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'com `1`, a CSP libera `arweave.net` e `*.arweave.net` em `connect-src` para a galeria ao vivo de avatares (coleção 100Avatars, CC0), atrás da flag `avatar_3d` e do opt-in da pessoa; nunca para perfil protegido. Ausente: a galeria avisa que está indisponível',
+  },
+  {
     nome: 'VITE_AVATARES_URL',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',

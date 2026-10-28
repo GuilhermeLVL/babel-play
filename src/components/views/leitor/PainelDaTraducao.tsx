@@ -19,6 +19,7 @@ export default function PainelDaTraducao({
   traduzir,
   lote,
   pausaMs,
+  preparoMs,
 }: {
   /** Os parágrafos do capítulo em exibição (lidos pelo leitor). */
   paragrafos: readonly string[];
@@ -28,11 +29,14 @@ export default function PainelDaTraducao({
   traduzir: (texto: string) => Promise<string | null>;
   lote?: number;
   pausaMs?: number;
+  /** Quanto esperar o tradutor do aparelho carregar antes de dar a falha (padrão 90 s; os testes passam 0). */
+  preparoMs?: number;
 }) {
   const [fase, setFase] = useState<Fase>('parado');
   const [traducoes, setTraducoes] = useState<Array<string | null | undefined>>([]);
   const [feitos, setFeitos] = useState(0);
   const [aviso, setAviso] = useState('');
+  const [preparando, setPreparando] = useState(false);
   const ctrl = useRef<AbortController | null>(null);
   const traducoesRef = useRef(traducoes);
   traducoesRef.current = traducoes;
@@ -53,6 +57,8 @@ export default function PainelDaTraducao({
       sinal: c.signal,
       lote,
       pausaMs,
+      preparoMs,
+      aoPreparar: setPreparando,
       jaTraduzidos: traducoesRef.current,
       aoProgresso: (f, _total, parcial) => {
         setFeitos(f);
@@ -63,10 +69,11 @@ export default function PainelDaTraducao({
     setTraducoes([...r.traducoes]);
     setFase(r.fim);
     if (r.fim === 'completo') setAviso(t('Capítulo traduzido.'));
-  }, [textos, traduzir, lote, pausaMs]);
+  }, [textos, traduzir, lote, pausaMs, preparoMs]);
 
   const cancelar = () => {
     ctrl.current?.abort();
+    setPreparando(false);
     setFase('cancelado');
   };
 
@@ -96,13 +103,15 @@ export default function PainelDaTraducao({
 
   const andando = fase === 'andando';
   const statusDaFase =
-    fase === 'andando'
-      ? t('Traduzindo {n} de {total}…', { n: feitos, total })
-      : fase === 'cancelado'
-        ? t('Parei. O que já foi traduzido continua aqui.')
-        : fase === 'erro'
-          ? t('Não deu para traduzir agora. O tradutor do aparelho pode estar carregando; tente de novo.')
-          : aviso;
+    fase === 'andando' && preparando
+      ? t('Preparando o tradutor do aparelho. Na primeira vez ele baixa um modelo e pode levar um minuto.')
+      : fase === 'andando'
+        ? t('Traduzindo {n} de {total}…', { n: feitos, total })
+        : fase === 'cancelado'
+          ? t('Parei. O que já foi traduzido continua aqui.')
+          : fase === 'erro'
+            ? t('Não deu para traduzir agora. O tradutor do aparelho pode estar carregando; tente de novo.')
+            : aviso;
 
   return (
     <section className="leitor-ia-bloco" aria-label={t('Traduzir este capítulo')} data-testid="painel-da-traducao">

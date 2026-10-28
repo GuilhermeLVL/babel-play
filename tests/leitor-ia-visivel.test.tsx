@@ -336,6 +336,7 @@ describe('PainelDaTraducao', () => {
         traduzir={async (t) => `PT ${t}`}
         lote={2}
         pausaMs={0}
+        preparoMs={0}
         {...extra}
       />,
     )

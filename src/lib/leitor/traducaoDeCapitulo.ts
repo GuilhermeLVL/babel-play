@@ -16,6 +16,14 @@ export interface OpcoesDaTraducao {
   pausaMs?: number;
   /** Falhas SEGUIDAS que encerram com `erro` (padrão 3). */
   falhasSeguidas?: number;
+  /**
+   * O PREPARO: o tradutor do aparelho baixa e carrega um modelo na primeira vez, e até lá toda chamada falha. Enquanto
+   * NADA foi traduzido, a falha repete o mesmo parágrafo a cada `intervaloDePreparoMs`, até `preparoMs` (padrão 90 s)
+   * — só depois disso conta como falha de verdade. `aoPreparar` avisa a tela (uma vez por espera).
+   */
+  preparoMs?: number;
+  intervaloDePreparoMs?: number;
+  aoPreparar?: (preparando: boolean) => void;
   sinal?: AbortSignal;
   aoProgresso?: (feitos: number, total: number, parcial: ReadonlyArray<string | null | undefined>) => void;
   /** Para os testes: troca o `setTimeout`. */
@@ -36,22 +44,44 @@ export async function traduzirParagrafos(
   traduzir: (texto: string) => Promise<string | null>,
   opcoes: OpcoesDaTraducao & { jaTraduzidos?: ReadonlyArray<string | null | undefined> } = {},
 ): Promise<{ fim: FimDaTraducao; traducoes: Array<string | null | undefined> }> {
-  const { lote = 2, pausaMs = 40, falhasSeguidas = 3, sinal, aoProgresso, esperar = esperarDeVerdade } = opcoes;
+  const {
+    lote = 2,
+    pausaMs = 40,
+    falhasSeguidas = 3,
+    preparoMs = 90_000,
+    intervaloDePreparoMs = 2_000,
+    aoPreparar,
+    sinal,
+    aoProgresso,
+    esperar = esperarDeVerdade,
+  } = opcoes;
   const traducoes: Array<string | null | undefined> = paragrafos.map((_, i) => opcoes.jaTraduzidos?.[i] ?? undefined);
   const pendentes = paragrafos.map((_, i) => i).filter((i) => typeof traducoes[i] !== 'string');
   let feitos = paragrafos.length - pendentes.length;
   let seguidas = 0;
+  let esperaDePreparo = 0;
   aoProgresso?.(feitos, paragrafos.length, traducoes);
 
   for (let ini = 0; ini < pendentes.length; ini += lote) {
     for (const i of pendentes.slice(ini, ini + lote)) {
       if (sinal?.aborted) return { fim: 'cancelado', traducoes };
       let saida: string | null;
-      try {
-        saida = (await traduzir(paragrafos[i])) || null;
-      } catch {
-        saida = null;
+      let preparando = false;
+      for (;;) {
+        try {
+          saida = (await traduzir(paragrafos[i])) || null;
+        } catch {
+          saida = null;
+        }
+        if (saida !== null || sinal?.aborted) break;
+        const jaTraduziuAlgo = traducoes.some((x) => typeof x === 'string');
+        if (jaTraduziuAlgo || esperaDePreparo >= preparoMs) break;
+        /* Ainda carregando o modelo: espera e repete o mesmo parágrafo. */
+        if (!preparando) aoPreparar?.((preparando = true));
+        await esperar(intervaloDePreparoMs);
+        esperaDePreparo += intervaloDePreparoMs;
       }
+      if (preparando) aoPreparar?.(false);
       if (sinal?.aborted) return { fim: 'cancelado', traducoes };
       traducoes[i] = saida;
       feitos++;

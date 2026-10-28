@@ -68,9 +68,32 @@ describe('traduzirParagrafos', () => {
 
   it('falhas em sequência encerram com erro, sem tentar o resto', async () => {
     const traduzir = vi.fn(async () => null)
-    const r = await traduzirParagrafos(['a', 'b', 'c', 'd', 'e'], traduzir, { esperar: semPausa })
+    const r = await traduzirParagrafos(['a', 'b', 'c', 'd', 'e'], traduzir, { esperar: semPausa, preparoMs: 0 })
     expect(r.fim).toBe('erro')
     expect(traduzir).toHaveBeenCalledTimes(3)
+  })
+
+  it('enquanto o tradutor do aparelho carrega, repete o mesmo parágrafo em vez de desistir', async () => {
+    let chamadas = 0
+    const avisos: boolean[] = []
+    const r = await traduzirParagrafos(['a', 'b'], async (t) => (++chamadas <= 5 ? null : t.toUpperCase()), {
+      esperar: semPausa,
+      aoPreparar: (p) => avisos.push(p),
+    })
+    expect(r.fim).toBe('completo')
+    expect(r.traducoes).toEqual(['A', 'B'])
+    expect(avisos).toEqual([true, false]) // avisou o preparo uma vez e depois que acabou
+  })
+
+  it('se o preparo estoura o prazo, vira falha de verdade e encerra com erro', async () => {
+    const traduzir = vi.fn(async () => null)
+    const r = await traduzirParagrafos(['a', 'b', 'c'], traduzir, {
+      esperar: semPausa,
+      preparoMs: 6_000,
+      intervaloDePreparoMs: 2_000,
+    })
+    expect(r.fim).toBe('erro')
+    expect(traduzir).toHaveBeenCalledTimes(6) // 4 no 1º parágrafo (1 + 3 esperas), depois 1 e 1: três falhas seguidas
   })
 
   it('pula o que a pessoa já traduziu um a um', async () => {

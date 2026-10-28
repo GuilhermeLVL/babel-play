@@ -38,7 +38,7 @@ import {
   type PoseDaBoca,
   suavizar,
 } from '../../core/avatar/boca';
-import { cederABoca, expressaoDaEmocao, type ExpressaoEscolhida,EXPRESSOES_DE_EMOCAO } from '../../core/avatar/emocao';
+import { cederABoca, expressaoDaEmocao, type ExpressaoEscolhida, EXPRESSOES_DE_EMOCAO } from '../../core/avatar/emocao';
 import {
   ehEmocaoDoAvatar,
   ehEstadoDoAvatar,
@@ -62,6 +62,15 @@ export interface OpcoesDoMotor {
 /** De onde o motor lê a boca a cada quadro: `null` = sem fala (boca fechada). */
 export type FonteDaBoca = (agoraMs: number) => PoseDaBoca | null;
 
+/** M4b: escreve nos ossos a cada quadro (depois da vida ociosa, antes de `humanoid.update()`). `dt` em segundos. */
+export type GanchoDosOssos = (dt: number, agoraMs: number) => void;
+
+/** Enquadramento próprio (ex.: só as mãos): ponto de mira no mundo e altura visível em metros. */
+export interface EnquadramentoDoAvatar {
+  alvo: { x: number; y: number; z: number };
+  altura: number;
+}
+
 export interface CustoDosQuadros {
   quadros: number;
   mediaMs: number;
@@ -78,6 +87,12 @@ export interface MotorDeAvatar {
    * `sincronizarGpu: false` mede só a SUBMISSÃO de CPU (como o protótipo); `true` espera a GPU (`gl.finish`).
    */
   medirQuadros(n: number, opcoes?: { sincronizarGpu?: boolean }): CustoDosQuadros;
+  /** M4b: liga (ou desliga com `null`) o gancho que escreve nos ossos (mãos que soletram). */
+  definirGanchoDosOssos(gancho: GanchoDosOssos | null): void;
+  /** Pede um quadro novo (com movimento reduzido o laço só desenha quando algo muda). */
+  invalidar(): void;
+  /** Enquadramento próprio; `null` volta ao busto. */
+  definirEnquadramento(e: EnquadramentoDoAvatar | null): void;
   definirEstado(estado: EstadoDoAvatar): void;
   definirEmocao(emocao: EmocaoDoAvatar): void;
   redimensionar(largura: number, altura: number): void;
@@ -137,6 +152,9 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
   const cabeca = { x: 0, z: 0 };
   // M3: fala e vida.
   let fonteDaBoca: FonteDaBoca | null = null;
+  // M4b: mãos que soletram.
+  let ganchoDosOssos: GanchoDosOssos | null = null;
+  let enquadramentoProprio: EnquadramentoDoAvatar | null = null;
   const pesoDaVogal: Record<ExpressaoDeVogal, number> = { aa: 0, ih: 0, ou: 0, ee: 0, oh: 0 };
   let aberturaSuave = 0;
   let disponiveis = new Set<string>();
@@ -156,6 +174,14 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
 
   const enquadrar = () => {
     if (!atual) return;
+    if (enquadramentoProprio) {
+      const { alvo, altura } = enquadramentoProprio;
+      const d = altura / 2 / Math.tan((camera.fov * Math.PI) / 360) / Math.min(1, camera.aspect);
+      camera.position.set(alvo.x, alvo.y, alvo.z + d);
+      camera.lookAt(alvo.x, alvo.y, alvo.z);
+      camera.updateProjectionMatrix();
+      return;
+    }
     atual.objeto.updateMatrixWorld(true);
     const caixa = new Box3().setFromObject(atual.objeto);
     const tamanho = caixa.getSize(new Vector3());
@@ -171,7 +197,11 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
 
   const aplicarPose = (dt: number) => {
     const vrm = atual?.vrm;
-    if (!vrm) return;
+    if (!vrm) {
+      // GLB puro: sem expressões nem vida; só as mãos que soletram (se ligadas)
+      ganchoDosOssos?.(dt, performance.now());
+      return;
+    }
     const k = reduzido ? 1 : 1 - Math.exp(-dt * 8);
     const alvo = CABECA[estado];
     cabeca.x += (alvo.x - cabeca.x) * k;
@@ -223,6 +253,7 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
         vrm.lookAt.pitch = v.olhar.pitch;
       }
     }
+    ganchoDosOssos?.(dt, performance.now());
     if (orc.molas) vrm.update(dt);
     else {
       vrm.humanoid?.update();
@@ -328,6 +359,18 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
     },
     definirBoca(fonte) {
       fonteDaBoca = fonte;
+      sujo = true;
+    },
+    definirGanchoDosOssos(gancho) {
+      ganchoDosOssos = gancho;
+      sujo = true;
+    },
+    invalidar() {
+      sujo = true;
+    },
+    definirEnquadramento(e) {
+      enquadramentoProprio = e;
+      enquadrar();
       sujo = true;
     },
     medirQuadros(n, opc) {

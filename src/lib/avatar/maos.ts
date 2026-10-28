@@ -579,13 +579,74 @@ export function filtrarClipe(clip: AnimationClip, nomes: readonly string[]): Ani
   return copia;
 }
 
+/**
+ * Enquadramento "só mãos": mira o espaço de soletração (altura do ombro, à frente do peito) e mostra ~46% da altura
+ * do modelo, de modo a caber as mãos com os dedos para cima. Combine com `ocultarCabeca` para não aparecer rosto.
+ */
+export function enquadramentoDasMaos(ctl: ControleDeMaos): {
+  alvo: { x: number; y: number; z: number };
+  altura: number;
+} {
+  const meio = wpos(ctl.ossos.R.braco).add(wpos(ctl.ossos.L.braco)).multiplyScalar(0.5);
+  const h = ctl.alturaDoModelo;
+  return { alvo: { x: meio.x, y: meio.y - 0.02 * h, z: meio.z }, altura: 0.46 * h };
+}
+
+const ESCALA_ORIGINAL = new WeakMap<Object3D, Vector3>();
+/**
+ * Esconde (ou devolve) a cabeça colapsando a escala do osso da cabeça (as malhas do rosto e do cabelo têm peso
+ * nele). VRM: osso CRU da cabeça (a escala não passa do rig normalizado para o cru); GLB: osso `head`.
+ */
+export function ocultarCabeca(avatar: AvatarParaMaos, ocultar: boolean): void {
+  let cabeca: Object3D | null = avatar.vrm?.humanoid?.getRawBoneNode('head') ?? null;
+  if (!cabeca) {
+    avatar.objeto.traverse((o) => {
+      if (!cabeca && /^(mixamorig:?)?head$/i.test(o.name)) cabeca = o;
+    });
+  }
+  if (!cabeca) return;
+  const osso: Object3D = cabeca;
+  if (ocultar) {
+    if (!ESCALA_ORIGINAL.has(osso)) ESCALA_ORIGINAL.set(osso, osso.scale.clone());
+    osso.scale.setScalar(1e-4);
+  } else {
+    const original = ESCALA_ORIGINAL.get(osso);
+    if (original) osso.scale.copy(original);
+    ESCALA_ORIGINAL.delete(osso);
+  }
+}
+
 /** Critério do verificador de independência (igual ao P1/D1): dedo acionado anda >= 8 cm, os outros <= 1 cm (1,7 m). */
-export const INDEPENDENCIA = { minAcionadoM: 0.08, maxOutrosM: 0.01, alturaDeReferenciaM: 1.7 } as const;
+export const INDEPENDENCIA = {
+  minAcionadoM: 0.08,
+  maxOutrosM: 0.01,
+  alturaDeReferenciaM: 1.7,
+  /** Mão de referência (punho até a ponta do médio) de uma pessoa de 1,7 m. */
+  maoDeReferenciaM: 0.19,
+} as const;
 
 export interface ResultadoDeIndependencia {
-  /** Deslocamento da ponta de cada dedo acionado (m, normalizado para 1,7 m) e o maior deslocamento dos outros. */
-  dedos: Array<{ dedo: string; andouM: number; outrosMaxM: number; ok: boolean }>;
+  /**
+   * Deslocamento da ponta de cada dedo acionado e o maior deslocamento dos outros, em metros NORMALIZADOS PARA
+   * 1,7 m de altura (`andouM`, `outrosMaxM`: o critério do P1/D1). `andouRelM` normaliza pelo tamanho da mão do
+   * próprio modelo (mão de 19 cm): separa "o dedo não anda" de "a mão do modelo é pequena" (avatar de desenho).
+   */
+  dedos: Array<{
+    dedo: string;
+    andouM: number;
+    andouRelM: number;
+    outrosMaxM: number;
+    ok: boolean;
+    okRelativo: boolean;
+  }>;
+  /** Critério estrito (todos os dedos >= 8 cm e os outros <= 1 cm, por altura). */
   ok: boolean;
+  /** Os outros dedos nunca passam de 1 cm quando um se move (independência), em todos os dedos. */
+  independentes: boolean;
+  /** Critério pela mão do modelo: acionado >= 8 cm (mão de 19 cm) e os outros <= 1 cm. */
+  okRelativo: boolean;
+  /** Comprimento da mão do modelo (punho até a ponta do médio), em metros reais do modelo. */
+  maoDoModeloM: number;
 }
 
 /**
@@ -619,18 +680,31 @@ export function medirIndependenciaDosDedos(ctl: ControleDeMaos, lado: LadoDaMao 
   const nomes = ['polegar', ...NOMES_DOS_DEDOS];
   const acoesDe = (i: number): Record<number, number> =>
     i === 0 ? { 0: 50, 1: 55, 2: 40, 3: 50 } : { [5 + 4 * (i - 1)]: 85, [6 + 4 * (i - 1)]: 100, [7 + 4 * (i - 1)]: 67 };
+  const maoDoModeloM = wpos(ctl.ossos[lado].mao).distanceTo(base[2]);
+  const escalaMao = INDEPENDENCIA.maoDeReferenciaM / Math.max(1e-6, maoDoModeloM);
   const dedos = nomes.map((dedo, i) => {
     const m = medir(acoesDe(i));
-    const d = m.map((p, k) => p.distanceTo(base[k]) * escala);
+    const bruto = m.map((p, k) => p.distanceTo(base[k]));
+    const d = bruto.map((x) => x * escala);
     const outrosMaxM = Math.max(...d.filter((_, k) => k !== i));
+    const outrosRel = Math.max(...bruto.filter((_, k) => k !== i)) * escalaMao;
     const andouM = d[i];
+    const andouRelM = bruto[i] * escalaMao;
     return {
       dedo,
       andouM,
+      andouRelM,
       outrosMaxM,
       ok: andouM >= INDEPENDENCIA.minAcionadoM && outrosMaxM <= INDEPENDENCIA.maxOutrosM,
+      okRelativo: andouRelM >= INDEPENDENCIA.minAcionadoM && outrosRel <= INDEPENDENCIA.maxOutrosM,
     };
   });
   ctl.aplicar(neutra({}), repouso);
-  return { dedos, ok: dedos.every((d) => d.ok) };
+  return {
+    dedos,
+    ok: dedos.every((d) => d.ok),
+    independentes: dedos.every((d) => d.outrosMaxM <= INDEPENDENCIA.maxOutrosM),
+    okRelativo: dedos.every((d) => d.okRelativo),
+    maoDoModeloM,
+  };
 }

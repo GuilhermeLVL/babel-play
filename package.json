@@ -102,6 +102,7 @@
     "express-rate-limit": "^8.7.1",
     "fflate": "^0.8.3",
     "fzstd": "^0.1.1",
+    "gltf-validator": "2.0.0-dev.3.10",
     "helmet": "^8.3.0",
     "idb": "^8.0.4",
     "jose": "^6.2.12",

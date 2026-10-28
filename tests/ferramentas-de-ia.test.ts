@@ -6,6 +6,7 @@ import {
   type FatosDasFerramentas,
   FERRAMENTAS_DE_IA,
   janelaDaFalha,
+  livroParaOParceiro,
 } from '../src/core/leitura/ferramentasDeIa'
 
 const PAGO: FatosDasFerramentas = {
@@ -101,6 +102,21 @@ describe('estadoDaFerramenta', () => {
 
   it('estadoDasFerramentas devolve todas, na ordem', () => {
     expect(Object.keys(estadoDasFerramentas(PAGO))).toEqual([...FERRAMENTAS_DE_IA])
+  })
+})
+
+describe('livroParaOParceiro', () => {
+  it('o do catálogo vai pelo id do catálogo (sem o `cat:` que o aparelho guarda)', () => {
+    expect(livroParaOParceiro('cat:se-jane-austen-emma', 'catalogo')).toEqual({
+      origem: 'catalogo',
+      id: 'se-jane-austen-emma',
+    })
+  })
+  it('o trazido pela pessoa vai sem id, mesmo que o id pareça de catálogo', () => {
+    expect(livroParaOParceiro('arq:abc', 'usuario')).toEqual({ origem: 'proprio' })
+    expect(livroParaOParceiro('cat:se-x', 'usuario')).toEqual({ origem: 'proprio' })
+    expect(livroParaOParceiro('meu-123', undefined)).toEqual({ origem: 'proprio' })
+    expect(livroParaOParceiro('cat:', 'catalogo')).toEqual({ origem: 'proprio' })
   })
 })
 

@@ -30,7 +30,12 @@ import {
   paraMarkdown,
   paraTextoDoAnki,
 } from '../../../core/leitura/exportar';
-import { estadoDasFerramentas, type FerramentaDeIa, type JanelaDaCota } from '../../../core/leitura/ferramentasDeIa';
+import {
+  estadoDasFerramentas,
+  type FerramentaDeIa,
+  type JanelaDaCota,
+  livroParaOParceiro,
+} from '../../../core/leitura/ferramentasDeIa';
 import { type ModoDaNarracao, MODOS_DA_NARRACAO, mostraConviteDaVozNatural } from '../../../core/leitura/narracao';
 import { CORES_DOS_TEMAS } from '../../../core/leitura/perfilDeLeitura';
 import { ancorar } from '../../../core/leitura/reancorar';
@@ -990,9 +995,7 @@ export default function LeitorDoLivro({
                   parceiro={
                     <PainelDoParceiro
                       key={`${selecao?.trecho.texto ?? trechoDaIa?.texto ?? ''}\u0000${modoDoParceiro ?? ''}`}
-                      livro={
-                        guardado?.origem === 'catalogo' ? { origem: 'catalogo', id: livroId } : { origem: 'proprio' }
-                      }
+                      livro={livroParaOParceiro(livroId, guardado?.origem)}
                       tituloDoCapitulo={local?.tocItem?.label?.trim() ?? ''}
                       selecao={(selecao?.trecho ?? trechoDaIa)?.texto ?? ''}
                       fraseDaSelecao={(selecao?.trecho ?? trechoDaIa)?.frase}

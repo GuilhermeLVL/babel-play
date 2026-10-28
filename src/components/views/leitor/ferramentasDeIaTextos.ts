@@ -24,7 +24,9 @@ export function comoUsar(f: FerramentaDeIa): string {
     case 'traduzir-trecho':
       return t('Selecione um texto no livro e toque em Traduzir. Roda no seu aparelho.');
     case 'traduzir-capitulo':
-      return t('O capítulo lado a lado com a tradução, parágrafo por parágrafo. Roda no seu aparelho.');
+      return t(
+        'O capítulo lado a lado com a tradução, parágrafo por parágrafo. Roda no seu aparelho; se ele não der conta e você autorizou a IA de nuvem, usa a nuvem.',
+      );
     case 'explicar':
       return t('Selecione um texto no livro e toque em Explicar: o que ele quer dizer, no seu nível.');
     case 'parceiro':

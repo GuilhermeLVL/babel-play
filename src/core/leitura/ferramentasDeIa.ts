@@ -72,6 +72,20 @@ export function estadoDasFerramentas(fatos: FatosDasFerramentas): Record<Ferrame
   };
 }
 
+/**
+ * O LIVRO COMO O PARCEIRO O PEDE: o do catálogo vai pelo id do CATÁLOGO (o aparelho guarda `cat:<id>`; o servidor só
+ * conhece `<id>`), o trazido pela pessoa vai sem id nenhum. Um id `cat:` que o servidor não reconheça (derivado de um
+ * id fora do formato) volta 404 `livro_inexistente`, e a tela já trata como pedido inválido.
+ */
+export function livroParaOParceiro(
+  livroId: string,
+  origemGuardada: string | undefined,
+): { origem: 'catalogo'; id: string } | { origem: 'proprio' } {
+  return origemGuardada === 'catalogo' && livroId.startsWith('cat:') && livroId.length > 4
+    ? { origem: 'catalogo', id: livroId.slice(4) }
+    : { origem: 'proprio' };
+}
+
 /** A recusa do servidor que esgota a cota (`FalhaDoParceiro`/`FalhaDaExplicacao`) → a janela, ou `null` se não é cota. */
 export function janelaDaFalha(motivo: string): JanelaDaCota | null {
   if (motivo === 'uso_justo') return 'dia';

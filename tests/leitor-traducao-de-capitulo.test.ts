@@ -85,6 +85,17 @@ describe('traduzirParagrafos', () => {
     expect(avisos).toEqual([true, false]) // avisou o preparo uma vez e depois que acabou
   })
 
+  it('uma queda no meio (o disjuntor do tradutor abriu) também espera e retoma, sem marcar falha', async () => {
+    let chamadas = 0
+    const r = await traduzirParagrafos(
+      ['a', 'b', 'c', 'd'],
+      async (t) => (++chamadas >= 3 && chamadas <= 7 ? null : t.toUpperCase()),
+      { esperar: semPausa },
+    )
+    expect(r.fim).toBe('completo')
+    expect(r.traducoes).toEqual(['A', 'B', 'C', 'D'])
+  })
+
   it('se o preparo estoura o prazo, vira falha de verdade e encerra com erro', async () => {
     const traduzir = vi.fn(async () => null)
     const r = await traduzirParagrafos(['a', 'b', 'c'], traduzir, {

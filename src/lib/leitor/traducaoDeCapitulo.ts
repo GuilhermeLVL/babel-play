@@ -17,9 +17,10 @@ export interface OpcoesDaTraducao {
   /** Falhas SEGUIDAS que encerram com `erro` (padrão 3). */
   falhasSeguidas?: number;
   /**
-   * O PREPARO: o tradutor do aparelho baixa e carrega um modelo na primeira vez, e até lá toda chamada falha. Enquanto
-   * NADA foi traduzido, a falha repete o mesmo parágrafo a cada `intervaloDePreparoMs`, até `preparoMs` (padrão 90 s)
-   * — só depois disso conta como falha de verdade. `aoPreparar` avisa a tela (uma vez por espera).
+   * O PREPARO: o tradutor do aparelho baixa e carrega um modelo na primeira vez (e um disjuntor pode ficar aberto por
+   * 30 s), e até lá a chamada falha. A falha repete o mesmo parágrafo a cada `intervaloDePreparoMs`, até `preparoMs` de
+   * espera SEGUIDA (padrão 60 s; cada acerto zera a conta) — só depois disso vale como falha de verdade.
+   * `aoPreparar` avisa a tela (uma vez por espera).
    */
   preparoMs?: number;
   intervaloDePreparoMs?: number;
@@ -48,7 +49,7 @@ export async function traduzirParagrafos(
     lote = 2,
     pausaMs = 40,
     falhasSeguidas = 3,
-    preparoMs = 90_000,
+    preparoMs = 60_000,
     intervaloDePreparoMs = 2_000,
     aoPreparar,
     sinal,
@@ -74,8 +75,7 @@ export async function traduzirParagrafos(
           saida = null;
         }
         if (saida !== null || sinal?.aborted) break;
-        const jaTraduziuAlgo = traducoes.some((x) => typeof x === 'string');
-        if (jaTraduziuAlgo || esperaDePreparo >= preparoMs) break;
+        if (esperaDePreparo >= preparoMs) break;
         /* Ainda carregando o modelo: espera e repete o mesmo parágrafo. */
         if (!preparando) aoPreparar?.((preparando = true));
         await esperar(intervaloDePreparoMs);
@@ -84,6 +84,7 @@ export async function traduzirParagrafos(
       if (preparando) aoPreparar?.(false);
       if (sinal?.aborted) return { fim: 'cancelado', traducoes };
       traducoes[i] = saida;
+      if (saida !== null) esperaDePreparo = 0; /* a paciência volta inteira depois de cada acerto */
       feitos++;
       seguidas = saida === null ? seguidas + 1 : 0;
       aoProgresso?.(feitos, paragrafos.length, traducoes);

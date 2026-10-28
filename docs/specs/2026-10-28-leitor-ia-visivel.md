@@ -15,11 +15,11 @@ O dono não consegue ver nem testar o que o leitor tem de tradução e de IA:
 
 ## Decisões
 
-1. **Nenhuma IA nova no servidor.** Só telas e um cliente de tradução que usa o `gateway.mt` (local, custo zero).
+1. **Nenhuma IA nova no servidor.** Só telas e um cliente de tradução que usa o `gateway.mt` (o mesmo tradutor do leitor: no aparelho, com a cascata de sempre).
    O parceiro e o explicar continuam exatamente como o servidor os decide (flag, plano, cota, retenção zero, menores).
 2. **Privacidade igual à atual.** Nada novo é gravado no servidor. O trecho só sai do aparelho quando a pessoa aperta
    um botão de IA de nuvem; livro trazido continua limitado à seleção e 2 vizinhos (`montarTrechos`). Tradução de
-   capítulo roda no aparelho: o texto não sai dele.
+   capítulo usa o `gateway.mt` do leitor: no aparelho; só se ele não estiver pronto e a pessoa autorizou a IA de nuvem, os parágrafos vão à nuvem (retenção zero), como já acontece com "Traduzir" no trecho. A tela diz isso.
 3. **Menores seguem as travas existentes.** A tela não decide idade: pergunta ao servidor e mostra a recusa. Perfil
    protegido nunca vê botão de planos; o motivo `idade` explica sem oferta.
 4. **Ferramentas sempre visíveis, com motivo.** Um botão "IA" no cabeçalho abre a lista; cada ferramenta diz se está

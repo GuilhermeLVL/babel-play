@@ -664,9 +664,25 @@
   padding-left: 18px;
 }
 .leitor-ia-progresso {
+  appearance: none;
   width: 100%;
-  height: 10px;
+  height: 8px;
+  border: 0;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--leitor-borda);
   accent-color: var(--leitor-acento);
+}
+.leitor-ia-progresso::-webkit-progress-bar {
+  background: var(--leitor-borda);
+}
+.leitor-ia-progresso::-webkit-progress-value {
+  background: var(--leitor-acento);
+  border-radius: 99px;
+}
+.leitor-ia-progresso::-moz-progress-bar {
+  background: var(--leitor-acento);
+  border-radius: 99px;
 }
 /* Botão indisponível na barra do trecho: continua focável e legível, só mais apagado (a razão aparece embaixo). */
 .leitor .btn.leitor-indisponivel {

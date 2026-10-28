@@ -29,7 +29,7 @@ export default function PainelDaTraducao({
   traduzir: (texto: string) => Promise<string | null>;
   lote?: number;
   pausaMs?: number;
-  /** Quanto esperar o tradutor do aparelho carregar antes de dar a falha (padrão 90 s; os testes passam 0). */
+  /** Quanto esperar o tradutor do aparelho carregar antes de dar a falha (padrão 60 s; os testes passam 0). */
   preparoMs?: number;
 }) {
   const [fase, setFase] = useState<Fase>('parado');
@@ -149,7 +149,11 @@ export default function PainelDaTraducao({
       <p className="leitor-apoio" role="status" data-testid="traducao-status">
         {statusDaFase}
       </p>
-      <p className="leitor-apoio">{t('A tradução é do seu aparelho: o texto do livro não sai dele.')}</p>
+      <p className="leitor-apoio">
+        {t(
+          'A tradução roda no seu aparelho. Se ele ainda não está pronto e você autorizou a IA de nuvem, os parágrafos podem ir à nuvem, que não guarda nada.',
+        )}
+      </p>
 
       <ol className="leitor-bilingue">
         {textos.map((original, i) => (

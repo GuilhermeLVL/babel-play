@@ -26,6 +26,9 @@ export const makeComicBook = ({ entries, loadBlob, getSize }, file) => {
     if (!files.length) throw new Error('No supported image files in archive')
 
     const book = {}
+    // FRASY: a página é um HTML FIXO nosso (só um <img> com `blob:` local da própria imagem do arquivo): nada do
+    // livro vira marcação. O motor aceita livro sem `transformTarget` apenas com esta marca.
+    book.frasyConfiavel = true
     book.getCover = () => loadBlob(files[0])
     book.metadata = { title: file.name }
     book.sections = files.map(name => ({

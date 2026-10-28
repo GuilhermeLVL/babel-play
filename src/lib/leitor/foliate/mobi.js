@@ -516,6 +516,9 @@ class PDB {
     }
 }
 
+// FRASY: capítulos limpos pelo motor antes de virar `blob:` (ver frasy-limpeza.js).
+import { limparSecao } from './frasy-limpeza.js'
+
 export class MOBI extends PDB {
     #start = 0
     #resourceStart
@@ -681,6 +684,8 @@ function rawBytesToString(uint8Array) {
 }
 
 class MOBI6 {
+    // FRASY: o mesmo contrato do EPUB (evento `data`), para o motor limpar cada capítulo.
+    transformTarget = new EventTarget()
     parser = new DOMParser()
     serializer = new XMLSerializer()
     #resourceCache = new Map()
@@ -878,7 +883,9 @@ class MOBI6 {
 
         await this.replaceResources(doc)
         const result = this.serializer.serializeToString(doc)
-        const url = URL.createObjectURL(new Blob([result], { type: this.#type }))
+        // FRASY: limpeza obrigatória (falha fechada).
+        const limpo = await limparSecao(this.transformTarget, result, this.#type, this.#sections.indexOf(section))
+        const url = URL.createObjectURL(new Blob([limpo.data], { type: limpo.type }))
         this.#cache.set(section, url)
         return url
     }
@@ -1107,7 +1114,7 @@ class KF8 {
         const newData = await event.detail.data
         const newType = await event.detail.type
         const doc = newType === MIME.SVG ? this.parser.parseFromString(newData, newType) : null
-        return [new Blob([newData], { newType }),
+        return [new Blob([newData], { type: newType }), // FRASY: `{ newType }` perdia o tipo
             // SVG wrappers need to be inlined
             // as browsers don't allow external resources when loading SVG as an image
             doc?.getElementsByTagNameNS('http://www.w3.org/2000/svg', 'image')?.length
@@ -1197,8 +1204,10 @@ class KF8 {
             for (const el of doc.querySelectorAll(`img[src="${url}"]`))
                 el.replaceWith(node)
         }
-        const url = URL.createObjectURL(
-            new Blob([this.serializer.serializeToString(doc)], { type: this.#type }))
+        // FRASY: limpeza obrigatória (falha fechada).
+        const limpo = await limparSecao(this.transformTarget, this.serializer.serializeToString(doc),
+            this.#type, this.#sections.indexOf(section))
+        const url = URL.createObjectURL(new Blob([limpo.data], { type: limpo.type }))
         this.#cache.set(section, url)
         return url
     }

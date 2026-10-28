@@ -19,6 +19,7 @@ import {
   type MotivoDoErro,
   TETO_DO_LINK_EM_BYTES,
 } from '../../core/livros/trazer';
+import { type EntradaDoZip, problemaDoCbz, problemaDoZip } from '../../core/livros/zipSeguro';
 import { extrairEpub } from '../import/epub';
 import { conferirTamanhoDoDocx, extrairDocumento } from '../import/extrairDocumento';
 
@@ -134,17 +135,17 @@ async function conferirNoMotor(
 
 const bytesDe = async (b: Blob) => new Uint8Array(await b.arrayBuffer());
 
-/** Os nomes dos arquivos dentro de um zip, sem descompactar nada. */
-async function nomesDoZip(arquivo: Blob): Promise<string[]> {
+/** As entradas de um zip (nome e tamanho declarado), lidas do diretório central, sem descompactar nada. */
+async function entradasDoZip(arquivo: Blob): Promise<EntradaDoZip[]> {
   const { unzip } = await import('fflate');
   const bytes = await bytesDe(arquivo);
-  const nomes: string[] = [];
+  const nomes: EntradaDoZip[] = [];
   await new Promise<void>((resolve, reject) =>
     unzip(
       bytes,
       {
         filter: (f) => {
-          nomes.push(f.name);
+          nomes.push({ nome: f.name, tamanho: f.originalSize });
           return false;
         },
       },
@@ -165,15 +166,20 @@ export async function lerArquivoTrazido(arquivo: File, rotulo: (i: number) => st
   if (!r.ok || !r.formato) throw new ErroDoLivro(r.motivo ?? 'formato', r.nome ?? '');
   let formato: FormatoTrazido;
   if (r.formato === 'zip') {
-    let nomes: string[];
+    let entradas: EntradaDoZip[];
     try {
-      nomes = await nomesDoZip(arquivo);
+      entradas = await entradasDoZip(arquivo);
     } catch {
       throw new ErroDoLivro('corrompido', 'o arquivo zip não abre');
     }
-    const z = formatoDoZip(nomes);
+    /* Zip é conteúdo não confiável: tetos e caminhos ANTES de descompactar qualquer coisa. */
+    const problema = problemaDoZip(entradas, arquivo.size);
+    if (problema) throw new ErroDoLivro(problema, 'o zip passa dos limites de segurança');
+    const z = formatoDoZip(entradas.map((e) => e.nome));
     if (!z.ok || !z.formato) throw new ErroDoLivro('formato', z.nome);
     formato = z.formato;
+    const doCbz = formato === 'cbz' ? problemaDoCbz(entradas) : null;
+    if (doCbz) throw new ErroDoLivro(doCbz, 'o CBZ tem páginas ou imagens demais');
   } else formato = r.formato;
 
   const nome = arquivo.name || 'livro';

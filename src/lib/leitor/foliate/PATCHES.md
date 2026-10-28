@@ -68,3 +68,17 @@ Origem, commit e lista de arquivos: `ORIGEM.txt`. Toda mudança está marcada co
   decodificar o base64 no lugar.
 - `comic-book.js`: extensão sem diferenciar maiúscula (`PAGINA.JPG`) e sem lixo de macOS (`__MACOSX/`, `._x`).
 - `view.js`: ver "Recorte".
+
+## Limpeza dos capítulos de MOBI/KF8/FB2/CBZ (28/10/2026), falha fechada
+
+- `frasy-limpeza.js` (novo): `limparSecao` despacha o evento `data` do livro e EXIGE que o motor o marque
+  (`detail.frasyLimpo`); sem a marca lança "Capítulo sem limpeza" e nada vira `blob:`.
+- `mobi.js`: `MOBI6` ganha `transformTarget` e `MOBI6.loadSection`/`KF8.loadSection` passam o capítulo por
+  `limparSecao` antes do `URL.createObjectURL`. `loadResourceBlob` do KF8 perdia o tipo (`{ newType }`): corrigido.
+- `fb2.js`: `transformTarget` e capítulo criado sob demanda depois da limpeza; `getImageSrc` só aceita `#id`
+  local de um `<binary>` com `content-type` `image/*`; qualquer outro `href` vira `data:,`.
+- `comic-book.js` e `pdf.js`: `frasyConfiavel = true` (a página é HTML fixo do Frasy com `blob:` local da
+  própria imagem). O motor (`MotorDoLeitor.blindar`) RECUSA (`ErroDoLivro`) o livro que não tem `transformTarget`
+  nem essa marca. Os livros de texto (`livroDeTexto.ts`) também a trazem.
+- Teto de zip (entradas, tamanho por entrada e total, razão 200:1, caminhos `..`/absolutos, páginas de CBZ) em
+  `src/core/livros/zipSeguro.ts`, aplicado em `lerArquivoTrazido` antes de descompactar.

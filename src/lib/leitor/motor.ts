@@ -11,6 +11,7 @@
  */
 import type { CorDeAnotacao, TipoDeAnotacao } from '../../core/leitura/anotacao';
 import { CORES_DOS_TEMAS, cssDoLivro, type PerfilDeLeitura } from '../../core/leitura/perfilDeLeitura';
+import { ErroDoLivro } from '../../core/livros/trazer';
 import type { ItemDoSumario, LivroDoFoliate, Localizacao, View } from './foliate/view.js';
 import { facesDaFonte } from './fontes';
 import { limparCapitulo, limparCss, limparSvgDeImagem, tipoDeMarcacao } from './limparHtml';
@@ -158,7 +159,7 @@ export class MotorDoLeitor {
       }
     });
     await view.open(livro);
-    motor.blindar();
+    MotorDoLeitor.blindar(view.book);
     const b = view.book;
     const info: InfoDoLivro = {
       titulo: texto(b.metadata?.title),
@@ -172,10 +173,13 @@ export class MotorDoLeitor {
   }
 
   /** Nenhum script do livro roda: recurso de script recusado, HTML limpo antes de virar `blob:`. */
-  private blindar() {
-    const livro = this.view.book;
+  static blindar(livro: LivroDoFoliate) {
     const alvo = livro.transformTarget;
-    if (!alvo) return;
+    if (!alvo) {
+      /* FALHA FECHADA: livro sem o caminho de limpeza só abre se foi montado por nós (texto, PDF, CBZ). */
+      if (livro.frasyConfiavel) return;
+      throw new ErroDoLivro('formato', 'livro sem limpeza de capítulos: recusado');
+    }
     /* NEGAÇÃO POR PADRÃO: só entra o tipo da lista (`tipoPermitido`); script, XML/XSLT e o resto, não. */
     alvo.addEventListener('load', (e) => {
       const d = (e as CustomEvent<{ type: string; isScript: boolean; allow: boolean | Promise<boolean> }>).detail;
@@ -187,7 +191,8 @@ export class MotorDoLeitor {
      * passou na limpeza vira texto vazio (`text/plain`) — falha fechada. CSS passa por `limparCss`.
      */
     alvo.addEventListener('data', (e) => {
-      const d = (e as CustomEvent<{ data: unknown; type: unknown; name?: string }>).detail;
+      const d = (e as CustomEvent<{ data: unknown; type: unknown; name?: string; frasyLimpo?: boolean }>).detail;
+      d.frasyLimpo = true; /* quem não passa por aqui é recusado no vendor (frasy-limpeza.js) */
       const declarado = String(d.type ?? '');
       const ehCapitulo = livro.sections.some((s) => s.id === d.name);
       let fixarTipo: (t: string) => void = () => {};

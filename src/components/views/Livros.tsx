@@ -212,6 +212,14 @@ export default function Livros({
           </p>
           <h1>{t('Livros')}</h1>
         </div>
+        <button
+          type="button"
+          className="q-ctl pri lv-chamada-trazer"
+          data-testid="trazer-um-livro-seu"
+          onClick={() => setAba('trazer')}
+        >
+          <Upload aria-hidden /> {t('Trazer um livro seu')}
+        </button>
       </header>
       <div className="q-abas" role="tablist" aria-label={t('Seções de Livros')}>
         {abas.map((a) => (
@@ -295,7 +303,9 @@ export default function Livros({
             aoCatalogo={() => setAba('catalogo')}
           />
         )}
-        {aba === 'trazer' && <TrazerOSeu aoAbrir={(l) => abrirLivroNoLeitor(l)} />}
+        {aba === 'trazer' && (
+          <TrazerOSeu aoAbrir={(l) => abrirLivroNoLeitor(l)} aoVerMeusLivros={() => setAba('meus')} />
+        )}
       </div>
     </div>
   );

@@ -1,3 +1,5 @@
+import { limparSecao } from './frasy-limpeza.js'
+
 const normalizeWhitespace = str => str ? str
     .replace(/[\t\n\f\r ]+/g, ' ')
     .replace(/^[\t\n\f\r ]+/, '')
@@ -81,13 +83,14 @@ class FB2Converter {
     }
     getImageSrc(el) {
         const href = el.getAttributeNS(NS.XLINK, 'href')
-        if (!href) return 'data:,'
-        const [, id] = href.split('#')
-        if (!id) return href
+        // FRASY: só referência local `#id` a um <binary> do próprio livro; nada de http(s):, file:, //host.
+        if (!href || !href.startsWith('#')) return 'data:,'
+        const id = href.slice(1)
         const bin = this.bins.get(id)
-        return bin
-            ? `data:${bin.getAttribute('content-type')};base64,${bin.textContent}`
-            : href
+        const tipo = bin?.getAttribute('content-type') ?? ''
+        return bin && /^image\/[a-z0-9.+-]+$/i.test(tipo)
+            ? `data:${tipo};base64,${bin.textContent.replace(/[^A-Za-z0-9+/=]/g, '')}`
+            : 'data:,'
     }
     image(node) {
         const el = this.doc.createElement('img')
@@ -294,6 +297,8 @@ export const makeFB2 = async blob => {
         }), converted]
     })
 
+    // FRASY: contrato do EPUB; cada capítulo só vira `blob:` depois da limpeza do motor (frasy-limpeza.js).
+    book.transformTarget = new EventTarget()
     const urls = []
     const sectionData = bodyData[0][0]
         // make a separate section for each section in the first body
@@ -316,13 +321,19 @@ export const makeFB2 = async blob => {
         .map(({ ids, titles, el, linear }) => {
             const str = template(el.outerHTML)
             const blob = new Blob([str], { type: MIME.XHTML })
-            const url = URL.createObjectURL(blob)
-            urls.push(url)
+            let url, indice
+            const carregar = async () => {
+                if (url) return url
+                const limpo = await limparSecao(book.transformTarget, str, MIME.XHTML, indice)
+                url = URL.createObjectURL(new Blob([limpo.data], { type: limpo.type }))
+                urls.push(url)
+                return url
+            }
             const title = normalizeWhitespace(
                 el.querySelector('.title, .subtitle, p')?.textContent
                 ?? (el.classList.contains('title') ? el.textContent : ''))
             return {
-                ids, title, titles, load: () => url,
+                ids, title, titles, load: carregar, setIndice: i => { indice = i },
                 createDocument: () => new DOMParser().parseFromString(str, MIME.XHTML),
                 // doo't count image data as it'd skew the size too much
                 size: blob.size - Array.from(el.querySelectorAll('[src]'),
@@ -334,7 +345,8 @@ export const makeFB2 = async blob => {
 
     const idMap = new Map()
     book.sections = sectionData.map((section, index) => {
-        const { ids, load, createDocument, size, linear } = section
+        const { ids, load, createDocument, size, linear, setIndice } = section
+        setIndice(index)
         for (const id of ids) if (id) idMap.set(id, index)
         return { id: index, load, createDocument, size, linear }
     })

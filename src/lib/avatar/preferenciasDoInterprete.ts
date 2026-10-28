@@ -65,8 +65,3 @@ export function usePreferenciasDosAvatares(): [PreferenciasDosAvatares, typeof g
   const p = useSyncExternalStore(assinar, lerPreferenciasDosAvatares, () => PREFERENCIAS_PADRAO);
   return [p, guardarPreferenciasDosAvatares];
 }
-
-/** Só para os testes. */
-export function esquecerPreferenciasDosAvatares(): void {
-  memoria = null;
-}

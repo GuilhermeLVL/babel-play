@@ -27,8 +27,8 @@
 
 ## 4. M4 Intérprete e PiP (depois de M3)
 
-- [ ] 4.1 Avatar por lado em `ModoInterprete`. Aceite: legenda de texto sempre presente
-- [ ] 4.2 PiP (documento, vídeo, painel). Aceite: tier fraco no PiP; checklist do Safari entregue ao dono
+- [x] 4.1 Avatar por lado em `ModoInterprete`. Aceite: legenda de texto sempre presente
+- [x] 4.2 PiP (documento, vídeo, painel). Aceite: tier fraco no PiP; checklist do Safari entregue ao dono (spec, seção M4; Safari, Firefox e celular reais NÃO provados)
 - [ ] 4.3 Soletração sob `avatar_sinais`. Aceite: rótulo "demonstração" e aviso visíveis
 
 ## 5. M5 Livros e personagens (depende do PR de Livros)

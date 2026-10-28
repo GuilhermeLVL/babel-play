@@ -1,9 +1,11 @@
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { SuporteDaPaleta } from '../../core/avatar/aparencia';
+import type { CamerasDoModelo, ModoDeCamera } from '../../core/avatar/enquadramento';
 import type { EmocaoDoAvatar, EstadoDoAvatar } from '../../core/avatar/estados';
 import type { ReceitaDeAvatar } from '../../core/avatar/receita';
 import type { TierDoAvatar } from '../../core/avatar/tiers';
+import { modeloDaColecao } from '../../data/avatar/colecao';
 import { aplicarAparencia, type AvatarAplicavel } from '../../lib/avatar/aparencia';
 import { temWebGL2 } from '../../lib/avatar/detectarTier';
 import { descritorDoFallback, type MotivoDoFallback } from '../../lib/avatar/fallback2d';
@@ -34,6 +36,13 @@ export interface AvatarCanvasProps {
   aoPronto?: (capturar: (() => string | null) | null) => void;
   /** De onde a boca lê a pose a cada quadro (`LigacaoDaFala.pose`); `null`/ausente = boca parada. */
   fonteDaBoca?: FonteDaBoca | null;
+  /** `corpo` (inteiro, o padrão) ou `rosto` (busto). Troca sem reabrir o modelo. */
+  modo?: ModoDeCamera;
+  /**
+   * As câmeras do modelo. Ausente: as do catálogo quando a base é da coleção e a `fonte` não foi substituída;
+   * senão, o motor calcula pelas medidas do arquivo (modelo trazido pela pessoa).
+   */
+  enquadramento?: CamerasDoModelo | null;
   /** Entrega a sessão aberta (ou `null` ao fechar): diagnóstico e medição. Não é para a tela do produto. */
   aoSessao?: (sessao: SessaoDeAvatar | null) => void;
 }
@@ -64,6 +73,8 @@ export default function AvatarCanvas({
   aoPronto,
   fonteDaBoca,
   aoSessao,
+  modo = 'corpo',
+  enquadramento,
 }: AvatarCanvasProps) {
   const palco = useRef<HTMLDivElement>(null);
   const sessao = useRef<SessaoDeAvatar | null>(null);
@@ -78,13 +89,20 @@ export default function AvatarCanvas({
   const foto = useFotoDoPerfil(usuarioId);
 
   // Estado e emoção entram no motor já aberto sem reabrir nada.
-  const vivo = useRef({ estado, emocao, fonteDaBoca: fonteDaBoca ?? null });
-  vivo.current = { estado, emocao, fonteDaBoca: fonteDaBoca ?? null };
+  const camerasDoCatalogo =
+    enquadramento !== undefined
+      ? enquadramento
+      : fonte === undefined && receita.base.origem === 'colecao'
+        ? (modeloDaColecao(receita.base.id)?.camera ?? null)
+        : null;
+  const vivo = useRef({ estado, emocao, fonteDaBoca: fonteDaBoca ?? null, modo, cameras: camerasDoCatalogo });
+  vivo.current = { estado, emocao, fonteDaBoca: fonteDaBoca ?? null, modo, cameras: camerasDoCatalogo };
   const aoSessaoRef = useRef(aoSessao);
   aoSessaoRef.current = aoSessao;
   useEffect(() => sessao.current?.motor.definirBoca(fonteDaBoca ?? null), [fonteDaBoca]);
   useEffect(() => sessao.current?.motor.definirEstado(estado), [estado]);
   useEffect(() => sessao.current?.motor.definirEmocao(emocao), [emocao]);
+  useEffect(() => sessao.current?.motor.definirModo(modo), [modo]);
 
   const chaveDaFonte = fonte instanceof Blob ? fonte : (fonte ?? `${receita.base.origem}/${receita.base.id}`);
   useEffect(() => {
@@ -124,6 +142,8 @@ export default function AvatarCanvas({
         altura: tamanho,
         estado: vivo.current.estado,
         emocao: vivo.current.emocao,
+        enquadramento: vivo.current.cameras,
+        modo: vivo.current.modo,
         aoFalhar: () => falhar('contexto_perdido'),
       });
       if (fechado) {
@@ -159,7 +179,8 @@ export default function AvatarCanvas({
     const s = sessao.current;
     if (!s || motivo) return;
     aoAparenciaRef.current?.(aplicarAparencia(s.avatar as unknown as AvatarAplicavel, receita));
-    // Pede um quadro novo mesmo com movimento reduzido (o laço só redesenha quando algo muda).
+    // A escala da receita muda o tamanho do corpo: reenquadra (e pede quadro novo, mesmo com movimento reduzido).
+    s.motor.reenquadrar();
     s.motor.definirEstado(vivo.current.estado);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [motivo, receita.paleta, receita.ajustes]);
@@ -172,8 +193,12 @@ export default function AvatarCanvas({
       return;
     }
     aoProntoRef.current?.(() => {
+      // A miniatura é sempre o ROSTO (busto), qualquer que seja o modo da prévia; depois a câmera volta.
+      s.motor.definirModo('rosto');
       s.motor.amostrarPixels(); // desenha um quadro agora; o canvas WebGL só é legível na mesma tarefa
-      return capturarMiniatura(c);
+      const url = capturarMiniatura(c);
+      s.motor.definirModo(vivo.current.modo);
+      return url;
     });
     return () => aoProntoRef.current?.(null);
   }, [motivo]);

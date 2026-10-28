@@ -11,9 +11,11 @@ import { createRoot } from 'react-dom/client'
 import AvatarCanvas from '../../../src/components/avatar/AvatarCanvas'
 import AvatarFalante from '../../../src/components/avatar/AvatarFalante'
 import type { PoseDaBoca } from '../../../src/core/avatar/boca'
+import type { MedidasDoModelo, ModoDeCamera } from '../../../src/core/avatar/enquadramento'
 import { type EmocaoDoAvatar, EMOCOES_DO_AVATAR, type EstadoDoAvatar } from '../../../src/core/avatar/estados'
 import { validarReceita } from '../../../src/core/avatar/receita'
 import type { TierDoAvatar } from '../../../src/core/avatar/tiers'
+import { modeloDaColecao } from '../../../src/data/avatar/colecao'
 import { prepararAnalisadorDaVoz } from '../../../src/lib/avatar/amplitude'
 import { ligarAvatarAFala, useAvatarFalando } from '../../../src/lib/avatar/fala'
 import type { SessaoDeAvatar } from '../../../src/lib/avatar/motor'
@@ -24,10 +26,13 @@ const q = new URLSearchParams(location.search)
 const fonte = q.get('fonte') ?? '/avatares/dev/milk.vrm'
 const tier = (q.get('tier') ?? 'medio') as TierDoAvatar
 const tamanho = Number(q.get('tamanho') ?? 256)
+const baseId = q.get('base') ?? 'milk'
+/** `catalogo=1`: usa as câmeras calibradas do catálogo (senão o motor mede o arquivo, que é o que calibra). */
+const camerasDoCatalogo = q.get('catalogo') === '1' ? (modeloDaColecao(baseId)?.camera ?? null) : undefined
 
 const r = validarReceita({
   versao: 1,
-  base: { origem: 'colecao', id: 'milk' },
+  base: { origem: 'colecao', id: baseId },
   paleta: { pele: 'pele-3', cabelo: 'cabelo-1', olhos: 'olhos-2' },
   pecas: [],
   ajustes: {},
@@ -65,6 +70,12 @@ interface Ponte {
   volumeDoElemento(): { volume: number; muted: boolean; tocando: boolean }
   /** Quadros já desenhados pelo motor. */
   quadros(): number
+  /** M2.1: medidas do modelo (calibragem) e troca de câmera. */
+  medidas(): MedidasDoModelo | null
+  modo(m: ModoDeCamera): void
+  /** Quadro atual: pixels não vazios por borda (0 = nada encosta no limite) e total. */
+  bordas(): { total: number; naoVazios: number; naBorda: number } | null
+  stats(): { antialias: boolean; pixelRatio: number } | null
 }
 declare global {
   interface Window {
@@ -172,6 +183,7 @@ function Harness() {
   const [estado, setEstado] = useState<EstadoDoAvatar>('parado')
   const [emocao, setEmocao] = useState<EmocaoDoAvatar>('neutro')
   const [montado, setMontado] = useState(true)
+  const [modo, setModo] = useState<ModoDeCamera>('corpo')
   const falando = useAvatarFalando(ligacao)
   useEffect(() => {
     window.__avatarHarness = {
@@ -205,6 +217,32 @@ function Harness() {
         return { volume: el.volume, muted: el.muted, tocando: !el.paused }
       },
       quadros: () => sessao?.motor.estatisticas().quadros ?? 0,
+      medidas: () => sessao?.motor.medirModelo() ?? null,
+      modo: (m) => setModo(m),
+      stats: () => {
+        const e = sessao?.motor.estatisticas()
+        return e ? { antialias: e.antialias, pixelRatio: e.pixelRatio } : null
+      },
+      bordas: () => {
+        const c = document.querySelector('canvas')
+        if (!c || !sessao) return null
+        sessao.motor.amostrarPixels()
+        const gl = (c.getContext('webgl2') ?? null) as WebGL2RenderingContext | null
+        if (!gl) return null
+        const w = gl.drawingBufferWidth
+        const h = gl.drawingBufferHeight
+        const px = new Uint8Array(w * h * 4)
+        gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px)
+        let naoVazios = 0
+        let naBorda = 0
+        for (let y = 0; y < h; y++)
+          for (let x = 0; x < w; x++) {
+            if (px[(y * w + x) * 4 + 3] === 0) continue
+            naoVazios++
+            if (x === 0 || y === 0 || x === w - 1 || y === h - 1) naBorda++
+          }
+        return { total: w * h, naoVazios, naBorda }
+      },
       desmontar: () => setMontado(false),
       erros: window.__avatarHarness?.erros ?? [],
       emocoes: EMOCOES_DO_AVATAR,
@@ -237,6 +275,11 @@ function Harness() {
       tier={tier}
       tamanho={tamanho}
       fonte={fonte}
+      modo={modo}
+      enquadramento={camerasDoCatalogo}
+      aoSessao={(s) => {
+        sessao = s
+      }}
       aoErro={(m) => window.__avatarHarness?.erros.push(m)}
     />
   )

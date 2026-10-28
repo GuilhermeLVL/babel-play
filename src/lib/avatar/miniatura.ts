@@ -14,6 +14,9 @@ export function capturarMiniatura(origem: HTMLCanvasElement): string | null {
     c.height = LADO_DA_MINIATURA;
     const g = c.getContext('2d');
     if (!g) return null;
+    // Reduz do quadro da prévia (superamostrado) para 192: suavização de alta qualidade, sem borda serrilhada.
+    g.imageSmoothingEnabled = true;
+    g.imageSmoothingQuality = 'high';
     g.drawImage(origem, 0, 0, LADO_DA_MINIATURA, LADO_DA_MINIATURA);
     // WebP onde o navegador codifica (Chrome, Firefox); o Safari devolve PNG sozinho.
     const url = c.toDataURL('image/webp', 0.85);

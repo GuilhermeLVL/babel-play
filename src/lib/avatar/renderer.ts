@@ -38,7 +38,15 @@ import {
   type PoseDaBoca,
   suavizar,
 } from '../../core/avatar/boca';
-import { cederABoca, expressaoDaEmocao, type ExpressaoEscolhida,EXPRESSOES_DE_EMOCAO } from '../../core/avatar/emocao';
+import { cederABoca, expressaoDaEmocao, type ExpressaoEscolhida, EXPRESSOES_DE_EMOCAO } from '../../core/avatar/emocao';
+import {
+  caixaDoRostoPorCabeca,
+  camerasAutomaticas,
+  type CamerasDoModelo,
+  FOV_PADRAO,
+  type MedidasDoModelo,
+  type ModoDeCamera,
+} from '../../core/avatar/enquadramento';
 import {
   ehEmocaoDoAvatar,
   ehEstadoDoAvatar,
@@ -70,7 +78,17 @@ export interface CustoDosQuadros {
 }
 
 export interface MotorDeAvatar {
-  mostrar(avatar: AvatarCarregado): void;
+  /**
+   * Põe o avatar em cena. `enquadramento`: as câmeras calibradas do modelo (catálogo); sem elas (modelo trazido),
+   * a câmera sai das medidas do próprio arquivo.
+   */
+  mostrar(avatar: AvatarCarregado, enquadramento?: CamerasDoModelo | null): void;
+  /** `corpo` (inteiro, sem corte) ou `rosto` (busto, para a miniatura). Reenquadra na hora. */
+  definirModo(modo: ModoDeCamera): void;
+  /** Refaz o enquadramento (depois de mudar a escala do modelo). */
+  reenquadrar(): void;
+  /** Caixa do corpo e do rosto em posição neutra e escala 1 (metros), para calibrar a câmera. `null` sem avatar. */
+  medirModelo(): MedidasDoModelo | null;
   /** Liga (ou desliga com `null`) a fonte da boca da fala. */
   definirBoca(fonte: FonteDaBoca | null): void;
   /**
@@ -83,7 +101,15 @@ export interface MotorDeAvatar {
   redimensionar(largura: number, altura: number): void;
   /** Desenha um quadro agora e conta os pixels do canvas (total e não transparentes). Para teste e diagnóstico. */
   amostrarPixels(): { total: number; naoVazios: number };
-  estatisticas(): { quadros: number; perdasDeContexto: number; pausado: boolean; perdido: boolean };
+  estatisticas(): {
+    quadros: number;
+    perdasDeContexto: number;
+    pausado: boolean;
+    perdido: boolean;
+    /** O contexto foi criado com MSAA (conforme o tier). */
+    antialias: boolean;
+    pixelRatio: number;
+  };
   /** Para teste e diagnóstico: força a perda e a restauração do contexto (`WEBGL_lose_context`). */
   simularPerdaDeContexto(): void;
   simularRestauracaoDeContexto(): void;
@@ -120,6 +146,17 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
   renderer.setClearColor(0x000000, 0);
   renderer.setPixelRatio(Math.min(typeof devicePixelRatio === 'number' ? devicePixelRatio : 1, orc.pixelRatioMax));
 
+  /**
+   * Pixel ratio: o fraco nunca passa do dispositivo (teto 1). Forte e médio desenham SUPERAMOSTRADOS (no teto do
+   * tier, mesmo em tela 1x) quando o quadro é pequeno (<= 480 px, custo desprezível): junto do MSAA, tira o
+   * serrilhado das bordas. Quadro grande: o do aparelho, até o teto.
+   */
+  const razaoDoPixel = (lado: number) => {
+    const aparelho = typeof devicePixelRatio === 'number' && devicePixelRatio > 0 ? devicePixelRatio : 1;
+    if (tier === 'fraco' || lado > 480) return Math.min(aparelho, orc.pixelRatioMax);
+    return orc.pixelRatioMax;
+  };
+
   const gl = renderer.getContext();
   const perdaDeContexto = gl.getExtension('WEBGL_lose_context');
 
@@ -154,18 +191,50 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
   let sujo = true;
   let temporizador: ReturnType<typeof setTimeout> | undefined;
 
+  let enquadramento: CamerasDoModelo | null = null;
+  let modo: ModoDeCamera = 'corpo';
+  const antialias = renderer.getContext().getContextAttributes()?.antialias === true;
+
+  /** Caixa do corpo e do rosto com o modelo na escala 1 (a escala da receita não entra na medida). */
+  const medir = (): MedidasDoModelo | null => {
+    if (!atual) return null;
+    const o = atual.objeto;
+    const escala = o.scale.clone();
+    o.scale.set(1, 1, 1);
+    o.updateMatrixWorld(true);
+    const caixa = new Box3().setFromObject(o);
+    const osso = atual.vrm?.humanoid?.getRawBoneNode('head');
+    let alturaDaCabeca = caixa.max.y - (caixa.max.y - caixa.min.y) * 0.15;
+    if (osso) alturaDaCabeca = osso.getWorldPosition(new Vector3()).y;
+    o.scale.copy(escala);
+    o.updateMatrixWorld(true);
+    const arred = (v: number) => Math.round(v * 1000) / 1000;
+    const c = {
+      min: [arred(caixa.min.x), arred(caixa.min.y), arred(caixa.min.z)] as const,
+      max: [arred(caixa.max.x), arred(caixa.max.y), arred(caixa.max.z)] as const,
+    };
+    return { caixa: c, caixaDoRosto: caixaDoRostoPorCabeca(c, alturaDaCabeca) };
+  };
+
   const enquadrar = () => {
     if (!atual) return;
-    atual.objeto.updateMatrixWorld(true);
-    const caixa = new Box3().setFromObject(atual.objeto);
-    const tamanho = caixa.getSize(new Vector3());
-    const centro = caixa.getCenter(new Vector3());
-    // Busto: olha para o terço de cima do corpo e enquadra ~45% da altura.
-    const alvoY = caixa.min.y + tamanho.y * 0.82;
-    const altura = Math.max(tamanho.y * 0.42, 0.01);
-    const dist = altura / 2 / Math.tan((camera.fov * Math.PI) / 360) / Math.min(1, camera.aspect) + tamanho.z / 2;
-    camera.position.set(centro.x, alvoY, centro.z + dist);
-    camera.lookAt(centro.x, alvoY, centro.z);
+    const e = atual.objeto.scale;
+    let cam;
+    let ajusteDeAspecto = 1;
+    if (enquadramento) {
+      cam = enquadramento[modo];
+      // As câmeras do catálogo são calibradas para um quadro quadrado: num quadro mais estreito, afasta.
+      ajusteDeAspecto = 1 / Math.min(1, camera.aspect);
+    } else {
+      const medidas = medir();
+      if (!medidas) return;
+      cam = camerasAutomaticas(medidas, camera.aspect)[modo];
+    }
+    const k = Math.max(e.x, e.y, e.z, 0.01);
+    const alvo = { x: cam.alvo[0] * e.x, y: cam.alvo[1] * e.y, z: cam.alvo[2] * e.z };
+    camera.fov = cam.fov ?? FOV_PADRAO;
+    camera.position.set(alvo.x, alvo.y, alvo.z + cam.distancia * k * ajusteDeAspecto);
+    camera.lookAt(alvo.x, alvo.y, alvo.z);
     camera.updateProjectionMatrix();
   };
 
@@ -297,7 +366,7 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
   document.addEventListener('visibilitychange', aoMudarVisibilidade);
 
   const motor: MotorDeAvatar = {
-    mostrar(avatar) {
+    mostrar(avatar, cameras) {
       if (disposed) {
         avatar.dispose();
         return;
@@ -307,6 +376,7 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
         atual.dispose();
       }
       atual = avatar;
+      enquadramento = cameras ?? null;
       pesoDaEmocao.clear();
       for (const nome of EXPRESSOES_DE_VOGAL) pesoDaVogal[nome] = 0;
       inventariar();
@@ -315,6 +385,16 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
       sujo = true;
       retomar();
     },
+    definirModo(m) {
+      modo = m;
+      enquadrar();
+      sujo = true;
+    },
+    reenquadrar() {
+      enquadrar();
+      sujo = true;
+    },
+    medirModelo: medir,
     definirEstado(e) {
       if (!ehEstadoDoAvatar(e)) return;
       estado = e;
@@ -354,6 +434,7 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
     redimensionar(largura, altura) {
       const l = Math.max(1, Math.floor(largura));
       const a = Math.max(1, Math.floor(altura));
+      renderer.setPixelRatio(razaoDoPixel(Math.max(l, a)));
       renderer.setSize(l, a, false);
       camera.aspect = l / a;
       enquadrar();
@@ -370,7 +451,14 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
       for (let i = 3; i < px.length; i += 4) if (px[i] > 0) naoVazios += 1;
       return { total: w * h, naoVazios };
     },
-    estatisticas: () => ({ quadros, perdasDeContexto: perdas, pausado: raf === 0, perdido }),
+    estatisticas: () => ({
+      quadros,
+      perdasDeContexto: perdas,
+      pausado: raf === 0,
+      perdido,
+      antialias,
+      pixelRatio: renderer.getPixelRatio(),
+    }),
     simularPerdaDeContexto: () => perdaDeContexto?.loseContext(),
     simularRestauracaoDeContexto: () => perdaDeContexto?.restoreContext(),
     dispose() {

@@ -35,11 +35,11 @@ export function tipoPelosBytes(b: Uint8Array): TipoDeImagem | null {
   return null;
 }
 
-export type MotivoDaRecusaDaImagem = 'vazia' | 'grande' | 'tipo' | 'pixels' | 'ilegivel';
+export type MotivoDaRecusaDaImagem = 'vazia' | 'grande' | 'tipo' | 'pixels' | 'ilegivel' | 'invalida';
 
 export type ValidacaoDaImagem =
   | { ok: true; tipo: TipoDeImagem }
-  | { ok: false; motivo: Exclude<MotivoDaRecusaDaImagem, 'pixels' | 'ilegivel'> };
+  | { ok: false; motivo: Exclude<MotivoDaRecusaDaImagem, 'pixels' | 'ilegivel' | 'invalida'> };
 
 /** Confere tamanho e assinatura do arquivo escolhido (antes de qualquer decodificação). */
 export function validarImagemDeOrigem(tamanho: number, primeirosBytes: Uint8Array): ValidacaoDaImagem {
@@ -127,4 +127,66 @@ export function capasQueSaem(
     quantidade--;
   }
   return saem;
+}
+
+/** Quantos bytes do começo do arquivo bastam para achar as dimensões (o SOF do JPEG pode vir depois de um EXIF). */
+export const BYTES_PARA_DIMENSOES = 256 * 1024;
+
+const u16be = (b: Uint8Array, i: number) => (b[i] << 8) | b[i + 1];
+const u32be = (b: Uint8Array, i: number) => ((b[i] << 24) | (b[i + 1] << 16) | (b[i + 2] << 8) | b[i + 3]) >>> 0;
+const u16le = (b: Uint8Array, i: number) => b[i] | (b[i + 1] << 8);
+const u24le = (b: Uint8Array, i: number) => b[i] | (b[i + 1] << 8) | (b[i + 2] << 16);
+
+/**
+ * Largura e altura lidas SÓ do cabeçalho (sem decodificar), para recusar bomba de descompressão antes de
+ * `createImageBitmap`. `null` = tipo desconhecido, cabeçalho truncado ou malformado (falha fechada).
+ */
+export function dimensoesDaImagem(b: Uint8Array): { largura: number; altura: number } | null {
+  const tipo = tipoPelosBytes(b);
+  const ok = (largura: number, altura: number) => (largura > 0 && altura > 0 ? { largura, altura } : null);
+  if (tipo === 'image/png') {
+    if (b.length < 24 || String.fromCharCode(b[12], b[13], b[14], b[15]) !== 'IHDR') return null;
+    return ok(u32be(b, 16), u32be(b, 20));
+  }
+  if (tipo === 'image/gif') {
+    return b.length < 10 ? null : ok(u16le(b, 6), u16le(b, 8));
+  }
+  if (tipo === 'image/webp') {
+    if (b.length < 30) return null;
+    const chunk = String.fromCharCode(b[12], b[13], b[14], b[15]);
+    if (chunk === 'VP8 ')
+      return b[23] === 0x9d && b[24] === 0x01 && b[25] === 0x2a
+        ? ok(u16le(b, 26) & 0x3fff, u16le(b, 28) & 0x3fff)
+        : null;
+    if (chunk === 'VP8L') {
+      if (b[20] !== 0x2f) return null;
+      const bits = (b[21] | (b[22] << 8) | (b[23] << 16) | (b[24] << 24)) >>> 0;
+      return ok((bits & 0x3fff) + 1, ((bits >>> 14) & 0x3fff) + 1);
+    }
+    if (chunk === 'VP8X') return ok(u24le(b, 24) + 1, u24le(b, 27) + 1);
+    return null;
+  }
+  if (tipo === 'image/jpeg') {
+    let i = 2;
+    while (i + 3 < b.length) {
+      if (b[i] !== 0xff) return null;
+      const m = b[i + 1];
+      if (m === 0xff) {
+        i++;
+        continue;
+      }
+      if (m === 0xd8 || m === 0x01 || (m >= 0xd0 && m <= 0xd7)) {
+        i += 2;
+        continue;
+      }
+      if (m === 0xd9 || m === 0xda) return null;
+      const tam = u16be(b, i + 2);
+      if (tam < 2) return null;
+      const sof = m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc;
+      if (sof) return i + 9 <= b.length ? ok(u16be(b, i + 7), u16be(b, i + 5)) : null;
+      i += 2 + tam;
+    }
+    return null;
+  }
+  return null;
 }

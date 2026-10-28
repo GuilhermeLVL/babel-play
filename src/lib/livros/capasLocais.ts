@@ -15,9 +15,11 @@ import { useEffect, useState } from 'react';
 
 import type { MotivoDaRecusaDaImagem } from '../../core/livros/imagemDeCapa';
 import {
+  BYTES_PARA_DIMENSOES,
   CAPA_ALTURA,
   CAPA_LARGURA,
   capasQueSaem,
+  dimensoesDaImagem,
   type MetaDeCapa,
   type ModoDoAjuste,
   planoDeDesenho,
@@ -137,9 +139,14 @@ function canvasParaBlob(canvas: HTMLCanvasElement, tipo: string, qualidade: numb
  * WebP (ou JPEG, onde o navegador não codifica WebP). `ErroDaCapa` com o motivo quando recusa.
  */
 export async function reduzirParaCapa(origem: Blob, modo: ModoDoAjuste = 'preencher'): Promise<Blob> {
-  const cabeca = new Uint8Array(await origem.slice(0, 16).arrayBuffer());
+  /* Só o começo do arquivo vai para a memória; o resto só depois de passar nas checagens. */
+  const cabeca = new Uint8Array(await origem.slice(0, BYTES_PARA_DIMENSOES).arrayBuffer());
   const v = validarImagemDeOrigem(origem.size, cabeca);
   if (v.ok === false) throw new ErroDaCapa(v.motivo);
+  /* Dimensões do CABEÇALHO, antes de decodificar: uma bomba de pixels cabe em poucos bytes. */
+  const dim = dimensoesDaImagem(cabeca);
+  if (!dim) throw new ErroDaCapa('invalida');
+  if (dim.largura * dim.altura > TETO_DE_PIXELS) throw new ErroDaCapa('pixels');
   let imagem: ImageBitmap;
   try {
     imagem = await createImageBitmap(new Blob([origem], { type: v.tipo }));
@@ -255,7 +262,10 @@ export async function garantirCapaDoArquivo(livroId: string, arquivo: Blob | und
   emAndamento.add(livroId);
   try {
     if ((await ler(livroId))?.tentouExtrair) return;
-    await guardarExtraida(livroId, await extrairCapaDoArquivo(arquivo));
+    /* Marca ANTES: se a extração travar a aba ou derrubá-la, a próxima abertura não repete. */
+    await guardarExtraida(livroId, null);
+    const capa = await extrairCapaDoArquivo(arquivo);
+    if (capa) await guardarExtraida(livroId, capa);
   } catch {
     /* sem banco ou sem capa: fica a tipográfica */
   } finally {

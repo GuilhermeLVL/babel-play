@@ -19,7 +19,7 @@ import {
   voltarAoOriginal,
 } from '../src/lib/livros/capasLocais'
 
-const JPEG = [0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+const JPEG = [0xff, 0xd8, 0xff, 0xe1, 0, 4, 0, 0, 0xff, 0xc0, 0, 17, 8, 0x03, 0x84, 0x02, 0x58, 3, 0, 0, 0, 0, 0, 0, 0]
 const arquivo = (bytes: number[] | string, tipo = 'image/jpeg') =>
   new Blob([typeof bytes === 'string' ? bytes : new Uint8Array(bytes)], { type: tipo })
 

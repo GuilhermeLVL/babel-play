@@ -7,7 +7,8 @@ import type { ReceitaDeAvatar } from '../../core/avatar/receita';
 import type { TierDoAvatar } from '../../core/avatar/tiers';
 import { COLECAO_CURADA } from '../../data/avatar/colecao';
 import { assinarMeuAvatar, lerMeuAvatar, lerMeuAvatarLocal } from '../../lib/avatar/meuAvatar';
-import type { FonteDaBoca } from '../../lib/avatar/renderer';
+import type { SessaoDeAvatar } from '../../lib/avatar/motor';
+import type { FonteDaBoca, JanelaDoMotor } from '../../lib/avatar/renderer';
 import { t } from '../../lib/i18n';
 import { usePerfil } from '../../lib/usePerfil';
 import AvatarFalante from './AvatarFalante';
@@ -41,6 +42,10 @@ export interface AvatarDaConversaProps {
   tamanho: number;
   tier: TierDoAvatar;
   anunciar: boolean;
+  /** A janela do canvas, quando não é a página (o Document PiP). */
+  janela?: JanelaDoMotor;
+  /** A sessão aberta (ou `null` ao fechar): a ponte do PiP de vídeo liga o `aoQuadro` do motor aqui. */
+  aoSessao?: (sessao: SessaoDeAvatar | null) => void;
 }
 
 /**
@@ -55,6 +60,8 @@ export default function AvatarDaConversa({
   tamanho,
   tier,
   anunciar,
+  janela,
+  aoSessao,
 }: AvatarDaConversaProps) {
   const { perfil } = usePerfil();
   const salva = useReceitaDaPessoa(perfil?.id);
@@ -82,6 +89,8 @@ export default function AvatarDaConversa({
       estadoEmSilencio={estado === 'falando' ? 'parado' : estado}
       anunciar={anunciar}
       usuarioId={dono === 'meu' ? perfil?.id : null}
+      {...(janela ? { janela } : {})}
+      {...(aoSessao ? { aoSessao } : {})}
     />
   );
 }

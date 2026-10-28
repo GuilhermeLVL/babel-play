@@ -9,6 +9,7 @@ import {
   politicaDosAvatares,
 } from '../../../../core/avatar/interprete';
 import { FLAG_AVATAR_3D, FLAG_AVATAR_SINAIS } from '../../../../core/planos';
+import { publicarAvatarDoPip } from '../../../../lib/avatar/avatarDoPip';
 import { destravarComAvatar } from '../../../../lib/avatar/destravarComAvatar';
 import { detectarTier, temWebGL2 } from '../../../../lib/avatar/detectarTier';
 import { criarPonteDaVoz, type PonteDaVoz, useVozTocando } from '../../../../lib/avatar/ponteDaVoz';
@@ -71,9 +72,21 @@ export function useAvataresDoInterprete({
   const destravar = useMemo(() => (original: () => void) => destravarComAvatar(original, () => ativoRef.current), []);
 
   const tamanho = ladoDoAvatarEmPx(prefs.tamanho, layout);
+  const donoDe = (lado: LadoDaConversa): LadoDaConversa =>
+    estado.trocados ? (lado === 'meu' ? 'outro' : 'meu') : lado;
+  /* O PiP lê o estado por DONO (a pessoa, o intérprete): é UM avatar só, o de quem tem atividade. */
+  const estadoDoMeu = estadoDoLadoNaConversa(donoDe('meu'), estado, vozTocando);
+  const estadoDoOutro = estadoDoLadoNaConversa(donoDe('outro'), estado, vozTocando);
+  useEffect(() => {
+    publicarAvatarDoPip(
+      ativo ? { ativo: true, estados: { meu: estadoDoMeu, outro: estadoDoOutro }, boca: ponte.pose } : null,
+    );
+  }, [ativo, estadoDoMeu, estadoDoOutro, ponte]);
+  useEffect(() => () => publicarAvatarDoPip(null), []);
+
   const doLado = (lado: LadoDaConversa): ReactNode => {
     if (!ativo) return undefined;
-    const dono: LadoDaConversa = estado.trocados ? (lado === 'meu' ? 'outro' : 'meu') : lado;
+    const dono = donoDe(lado);
     if (!politica.donos.includes(dono)) return undefined;
     const meuEstado = estadoDoLadoNaConversa(lado, estado, vozTocando);
     const comABoca = meuEstado === 'falando';

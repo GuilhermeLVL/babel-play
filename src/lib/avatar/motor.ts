@@ -5,7 +5,7 @@
 import type { EmocaoDoAvatar, EstadoDoAvatar } from '../../core/avatar/estados';
 import type { TierDoAvatar } from '../../core/avatar/tiers';
 import { type AvatarCarregado, carregarAvatar, type FonteDoAvatar } from './carregador';
-import { criarMotor, type MotivoDeFalha, type MotorDeAvatar } from './renderer';
+import { criarMotor, type JanelaDoMotor, type MotivoDeFalha, type MotorDeAvatar } from './renderer';
 
 export interface OpcoesDaSessao {
   canvas: HTMLCanvasElement;
@@ -18,6 +18,8 @@ export interface OpcoesDaSessao {
   estado: EstadoDoAvatar;
   emocao: EmocaoDoAvatar;
   aoFalhar?: (motivo: MotivoDeFalha) => void;
+  /** A janela dona do canvas (o Document PiP). Padrão: a página. */
+  janela?: JanelaDoMotor;
 }
 
 export interface SessaoDeAvatar {
@@ -32,6 +34,7 @@ export async function abrirSessaoDeAvatar(o: OpcoesDaSessao): Promise<SessaoDeAv
     tier: o.tier,
     movimentoReduzido: o.movimentoReduzido,
     aoFalhar: o.aoFalhar,
+    ...(o.janela ? { janela: o.janela } : {}),
   });
   try {
     const avatar = await carregarAvatar(o.fonte, { tier: o.tier, sinalDeAborto: o.sinalDeAborto });

@@ -175,6 +175,21 @@ export function modeloDoInterprete(idDaPessoa: string | null | undefined, ids: r
   return escolhido ?? null;
 }
 
+const PESO_DO_ESTADO: Record<EstadoDoAvatar, number> = { parado: 0, ouvindo: 1, pensando: 2, falando: 3 };
+
+/**
+ * QUAL AVATAR O PiP MOSTRA. A janelinha é pequena: UM avatar só, e é sempre o INTÉRPRETE (`outro`): quem lê a tradução em
+ * voz alta é ele, e trocar de modelo a cada fala recarregaria o avatar a cada troca de quem fala. O estado é o de maior
+ * atividade entre os dois lados (falando, depois pensando, depois ouvindo): se alguém fala, o intérprete "fala".
+ */
+export function avatarDoPip(estados: Record<LadoDaConversa, EstadoDoAvatar>): {
+  dono: LadoDaConversa;
+  estado: EstadoDoAvatar;
+} {
+  const estado = PESO_DO_ESTADO[estados.meu] > PESO_DO_ESTADO[estados.outro] ? estados.meu : estados.outro;
+  return { dono: 'outro', estado };
+}
+
 /** O avatar que a pessoa recebe enquanto não escolhe um em "Meu avatar": o primeiro da coleção que não é o do intérprete. */
 export function modeloPadraoDaPessoa(ids: readonly string[]): string | null {
   return ids.find((id) => id !== INTERPRETE_PADRAO) ?? ids[0] ?? null;

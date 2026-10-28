@@ -14,7 +14,6 @@ import {
   fase,
   observarEstadosDoAvatar,
   porToque,
-  pronta,
   semPreferenciasDeAvatar,
   wavComTom,
 } from './_interprete'

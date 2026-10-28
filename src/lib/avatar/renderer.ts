@@ -11,7 +11,14 @@
  *  · `dispose` desfaz TUDO: laço, listeners, geometrias, materiais, texturas, renderer e o contexto.
  *
  * Movimento reduzido: sem suavização e sem laço contínuo — desenha só quando algo muda (estado, emoção,
- * tamanho, restauração do contexto).
+ * tamanho, restauração do contexto). EXCEÇÃO consciente (M3): enquanto o avatar FALA com uma fonte de boca
+ * ligada, a boca é o próprio conteúdo da fala e desenha a no máximo 12 quadros/s, sem suavização; respiração,
+ * piscar, olhar e balanço continuam desligados.
+ *
+ * Fala (M3): `definirBoca(fonte)` liga uma função `(agoraMs) => pose | null` lida a cada quadro (a ligação com o
+ * motor de voz está em `fala.ts`); as vogais do VRM (aa, ih, ou, ee, oh) vencem a expressão de emoção (que cede
+ * pela abertura da boca), e a emoção cai para a expressão vizinha quando o modelo não tem a pedida. A vida
+ * ociosa (respiração, piscar, olhar, balanço) vem de `core/avatar/vida.ts`. Aba oculta: o laço pausa.
  */
 import {
   AmbientLight,
@@ -25,12 +32,21 @@ import {
 } from 'three';
 
 import {
+  type ExpressaoDeVogal,
+  EXPRESSOES_DE_VOGAL,
+  pesosDaBoca,
+  type PoseDaBoca,
+  suavizar,
+} from '../../core/avatar/boca';
+import { cederABoca, expressaoDaEmocao, type ExpressaoEscolhida,EXPRESSOES_DE_EMOCAO } from '../../core/avatar/emocao';
+import {
   ehEmocaoDoAvatar,
   ehEstadoDoAvatar,
   type EmocaoDoAvatar,
   type EstadoDoAvatar,
 } from '../../core/avatar/estados';
 import { ORCAMENTOS, type TierDoAvatar } from '../../core/avatar/tiers';
+import { criarEstadoDaVida, passoDaVida } from '../../core/avatar/vida';
 import type { AvatarCarregado } from './carregador';
 
 export type MotivoDeFalha = 'webgl' | 'contexto_perdido';
@@ -43,8 +59,25 @@ export interface OpcoesDoMotor {
   prazoDeRestauracaoMs?: number;
 }
 
+/** De onde o motor lê a boca a cada quadro: `null` = sem fala (boca fechada). */
+export type FonteDaBoca = (agoraMs: number) => PoseDaBoca | null;
+
+export interface CustoDosQuadros {
+  quadros: number;
+  mediaMs: number;
+  p95Ms: number;
+  maxMs: number;
+}
+
 export interface MotorDeAvatar {
   mostrar(avatar: AvatarCarregado): void;
+  /** Liga (ou desliga com `null`) a fonte da boca da fala. */
+  definirBoca(fonte: FonteDaBoca | null): void;
+  /**
+   * Para medição: desenha `n` quadros em sequência (o laço fica parado) e devolve o custo por quadro em ms.
+   * `sincronizarGpu: false` mede só a SUBMISSÃO de CPU (como o protótipo); `true` espera a GPU (`gl.finish`).
+   */
+  medirQuadros(n: number, opcoes?: { sincronizarGpu?: boolean }): CustoDosQuadros;
   definirEstado(estado: EstadoDoAvatar): void;
   definirEmocao(emocao: EmocaoDoAvatar): void;
   redimensionar(largura: number, altura: number): void;
@@ -56,16 +89,6 @@ export interface MotorDeAvatar {
   simularRestauracaoDeContexto(): void;
   dispose(): void;
 }
-
-/** Emoção do Frasy para o nome da expressão do VRM. */
-const EXPRESSAO: Record<EmocaoDoAvatar, string> = {
-  neutro: 'neutral',
-  feliz: 'happy',
-  triste: 'sad',
-  bravo: 'angry',
-  surpreso: 'surprised',
-  relaxado: 'relaxed',
-};
 
 /** Inclinação da cabeça (rad) por estado: pose simples, sem animação de clipe. */
 const CABECA: Record<EstadoDoAvatar, { x: number; z: number }> = {
@@ -112,6 +135,15 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
   const pesoDaEmocao = new Map<string, number>();
   let emocaoAlvo: EmocaoDoAvatar = 'neutro';
   const cabeca = { x: 0, z: 0 };
+  // M3: fala e vida.
+  let fonteDaBoca: FonteDaBoca | null = null;
+  const pesoDaVogal: Record<ExpressaoDeVogal, number> = { aa: 0, ih: 0, ou: 0, ee: 0, oh: 0 };
+  let aberturaSuave = 0;
+  let disponiveis = new Set<string>();
+  let expressaoDaEmocaoAtual: ExpressaoEscolhida = expressaoDaEmocao('neutro', disponiveis);
+  let temBlink = false;
+  const vida = criarEstadoDaVida();
+  const configDaVida = { tier, movimentoReduzido: reduzido };
 
   let disposed = false;
   let perdido = false;
@@ -150,13 +182,45 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
       osso.rotation.z = cabeca.z;
     }
     const gerente = vrm.expressionManager;
+    const falando = estado === 'falando';
+
+    // Boca: a pose do quadro (só falando) vira peso das vogais. Movimento reduzido: sem suavização.
+    const pose = falando && fonteDaBoca ? fonteDaBoca(performance.now()) : null;
+    const alvoDaBoca = pesosDaBoca(pose ?? { vogal: 'F', abertura: 0, acabou: true }, tier === 'fraco');
+    let abertura = 0;
+    for (const nome of EXPRESSOES_DE_VOGAL) {
+      const w = reduzido ? alvoDaBoca[nome] : suavizar(pesoDaVogal[nome], alvoDaBoca[nome], dt * 1000);
+      pesoDaVogal[nome] = w;
+      if (w > abertura) abertura = w;
+      if (gerente && disponiveis.has(nome)) gerente.setValue(nome, w);
+    }
+    aberturaSuave = abertura;
+
+    // Emoção: a vogal vence (cede pela abertura), e a intensidade nunca passa do limite de `emocao.ts`.
     if (gerente) {
-      for (const emocao of Object.values(EXPRESSAO)) {
-        const alvoPeso = emocao === EXPRESSAO[emocaoAlvo] && emocao !== 'neutral' ? 1 : 0;
-        const w = pesoDaEmocao.get(emocao) ?? 0;
+      const ceder = cederABoca(aberturaSuave);
+      for (const nome of EXPRESSOES_DE_EMOCAO) {
+        if (!disponiveis.has(nome)) continue;
+        const alvoPeso = nome === expressaoDaEmocaoAtual.nome ? expressaoDaEmocaoAtual.intensidade * ceder : 0;
+        const w = pesoDaEmocao.get(nome) ?? 0;
         const novo = w + (alvoPeso - w) * k;
-        pesoDaEmocao.set(emocao, novo);
-        if (emocao !== 'neutral') gerente.setValue(emocao, novo);
+        pesoDaEmocao.set(nome, novo);
+        gerente.setValue(nome, novo);
+      }
+    }
+
+    // Vida ociosa (nada com movimento reduzido; tier fraco sem olhar nem balanço).
+    const v = passoDaVida(vida, dt * 1000, configDaVida, estado);
+    if (!reduzido) {
+      const tronco = vrm.humanoid?.getNormalizedBoneNode('spine');
+      if (tronco) {
+        tronco.rotation.x = v.respiracao;
+        tronco.rotation.z = v.balanco;
+      }
+      if (gerente && temBlink) gerente.setValue('blink', v.piscar);
+      if (tier !== 'fraco' && vrm.lookAt) {
+        vrm.lookAt.yaw = v.olhar.yaw;
+        vrm.lookAt.pitch = v.olhar.pitch;
       }
     }
     if (orc.molas) vrm.update(dt);
@@ -175,13 +239,29 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
 
   const quadro = (agora: number) => {
     raf = requestAnimationFrame(quadro);
-    const passo = 1000 / orc.fps;
+    // Reduzido + falando com boca ligada: a boca é o conteúdo, a 12 quadros/s e sem suavização.
+    const falandoReduzido = reduzido && estado === 'falando' && fonteDaBoca !== null;
+    const passo = falandoReduzido ? 1000 / 12 : 1000 / orc.fps;
     if (ultimo && agora - ultimo < passo - 2) return;
     const dt = ultimo ? Math.min((agora - ultimo) / 1000, 0.1) : 1 / orc.fps;
     ultimo = agora;
-    if (reduzido && !sujo) return;
+    if (reduzido && !sujo && !falandoReduzido) return;
     sujo = false;
     desenhar(dt);
+  };
+
+  /** Descobre o que o modelo atual tem (as vogais, as emoções, o `blink`) e resolve a expressão da emoção. */
+  const inventariar = () => {
+    const g = atual?.vrm?.expressionManager;
+    disponiveis = new Set<string>();
+    if (g) {
+      for (const nome of [...EXPRESSOES_DE_EMOCAO, ...EXPRESSOES_DE_VOGAL, 'blink']) {
+        if (g.getExpression(nome)) disponiveis.add(nome);
+      }
+    }
+    // Sem a expressão `blink` o modelo simplesmente não pisca (documentado em design.md; sem plano B por osso).
+    temBlink = disponiveis.has('blink');
+    expressaoDaEmocaoAtual = expressaoDaEmocao(emocaoAlvo, disponiveis);
   };
 
   const parar = () => {
@@ -228,6 +308,8 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
       }
       atual = avatar;
       pesoDaEmocao.clear();
+      for (const nome of EXPRESSOES_DE_VOGAL) pesoDaVogal[nome] = 0;
+      inventariar();
       cena.add(avatar.objeto);
       enquadrar();
       sujo = true;
@@ -241,7 +323,33 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
     definirEmocao(e) {
       if (!ehEmocaoDoAvatar(e)) return;
       emocaoAlvo = e;
+      expressaoDaEmocaoAtual = expressaoDaEmocao(e, disponiveis);
       sujo = true;
+    },
+    definirBoca(fonte) {
+      fonteDaBoca = fonte;
+      sujo = true;
+    },
+    medirQuadros(n, opc) {
+      const total = Math.max(1, Math.floor(n));
+      const eraPausado = raf === 0;
+      parar();
+      const tempos: number[] = [];
+      for (let i = 0; i < total; i += 1) {
+        const ini = performance.now();
+        desenhar(1 / orc.fps);
+        if (opc?.sincronizarGpu) gl.finish();
+        tempos.push(performance.now() - ini);
+      }
+      if (!eraPausado) retomar();
+      const ordenados = [...tempos].sort((x, y) => x - y);
+      const media = tempos.reduce((acc, x) => acc + x, 0) / total;
+      return {
+        quadros: total,
+        mediaMs: media,
+        p95Ms: ordenados[Math.min(total - 1, Math.floor(total * 0.95))],
+        maxMs: ordenados[total - 1],
+      };
     },
     redimensionar(largura, altura) {
       const l = Math.max(1, Math.floor(largura));

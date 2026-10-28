@@ -14,6 +14,7 @@ import { CORES_DOS_TEMAS, cssDoLivro, type PerfilDeLeitura } from '../../core/le
 import type { ItemDoSumario, LivroDoFoliate, Localizacao, View } from './foliate/view.js';
 import { facesDaFonte } from './fontes';
 import { limparCapitulo, limparCss, limparSvgDeImagem, tipoDeMarcacao } from './limparHtml';
+import { indiceDoParagrafoNoRange, paragrafosDoDocumento } from './paragrafos';
 import { linkExternoSeguro, normalizarTipo, tipoPermitido } from './politicaDeRecursos';
 
 /**
@@ -290,6 +291,22 @@ export class MotorDoLeitor {
   /** Os documentos das seções carregadas agora (para ligar eventos e achar a seleção). */
   documentos(): Array<{ doc: Document; index: number }> {
     return this.view.renderer?.getContents?.() ?? [];
+  }
+
+  /**
+   * A SEÇÃO (capítulo) em exibição, só para LER: o texto dos parágrafos na ordem e o índice do que contém o começo do
+   * trecho visível. `null` = nenhum documento carregado (PDF sem camada de texto ainda, livro abrindo).
+   */
+  secaoAtual(): { indice: number; paragrafos: string[]; primeiroVisivel: number } | null {
+    const loc = this.view.lastLocation;
+    const docs = this.documentos();
+    const alvo = docs.find((d) => d.index === loc?.section?.current) ?? docs[0];
+    if (!alvo) return null;
+    return {
+      indice: alvo.index,
+      paragrafos: paragrafosDoDocumento(alvo.doc),
+      primeiroVisivel: Math.max(0, indiceDoParagrafoNoRange(alvo.doc, loc?.range)),
+    };
   }
 
   /**

@@ -122,7 +122,9 @@ function blocosEmCapitulos(
   blocos: Bloco[],
   rotulo: (i: number) => string,
 ): { titulo?: string; capitulos: CapituloDeTexto[] } {
-  const primeiroH1 = blocos.find((b) => b.nivel === 1)?.texto;
+  /* Só vale como título do documento um h1 único; vários h1 são capítulos. */
+  const h1s = blocos.filter((b) => b.nivel === 1);
+  const primeiroH1 = h1s.length === 1 ? h1s[0].texto : undefined;
   const divisores = blocos.filter((b) => b.nivel === 1 || b.nivel === 2).length;
   if (divisores < 1) {
     return { titulo: primeiroH1, capitulos: dividirEmCapitulos(blocos.map((b) => b.texto).join('\n\n'), rotulo) };

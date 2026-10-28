@@ -33,12 +33,58 @@ export interface FonteDeAudio {
 interface Grafo {
   analisador: AnalyserNode;
   buffer: Uint8Array<ArrayBuffer>;
+  ctx: AudioContext;
 }
+
+/** Eventos de gesto que valem para o navegador retomar o áudio (iOS/Safari só retomam dentro de um). */
+const EVENTOS_DE_GESTO = ['pointerdown', 'touchend', 'keydown', 'click'] as const;
 
 const grafos = new WeakMap<object, Grafo>();
 const tentativas = new WeakMap<object, Promise<boolean>>();
 
 type FabricaDeContexto = () => AudioContext | null;
+
+/**
+ * iPhone/iPad (qualquer navegador: todos usam WebKit): o sistema INTERROMPE o `AudioContext` (ligação, Siri, app em
+ * segundo plano) e, com o elemento já preso ao grafo, a voz some até um gesto retomar. O som da tradução vale mais que
+ * a boca sincronizada, então ali o analisador NÃO é ligado e a boca anda pela cadência.
+ */
+export function ehWebKitDeToque(nav: Pick<Navigator, 'userAgent' | 'maxTouchPoints'> | undefined = globalThis.navigator): boolean {
+  if (!nav) return false;
+  if (/iPhone|iPad|iPod/.test(nav.userAgent)) return true;
+  // iPadOS se apresenta como Mac, mas tem toque.
+  return /Macintosh/.test(nav.userAgent) && (nav.maxTouchPoints ?? 0) > 1;
+}
+
+/**
+ * Contexto que saiu de `running` (`suspended` ou `interrupted` no Safari) com a voz tocando: tenta retomar na hora e,
+ * se o navegador exigir um gesto, na PRÓXIMA interação ou quando a aba voltar a ficar visível. Nunca lança.
+ */
+function retomarQuandoPuder(ctx: AudioContext, alvo: EventTarget = document): () => void {
+  let solto = false;
+  const tentar = () => {
+    if ((ctx.state as string) === 'running') return desligar();
+    void ctx
+      .resume()
+      .then(() => {
+        if ((ctx.state as string) === 'running') desligar();
+      })
+      .catch(() => undefined);
+  };
+  const aoVoltar = () => {
+    if (!document.hidden) tentar();
+  };
+  function desligar() {
+    if (solto) return;
+    solto = true;
+    for (const e of EVENTOS_DE_GESTO) alvo.removeEventListener(e, tentar, true);
+    document.removeEventListener('visibilitychange', aoVoltar);
+  }
+  for (const e of EVENTOS_DE_GESTO) alvo.addEventListener(e, tentar, { capture: true, passive: true });
+  document.addEventListener('visibilitychange', aoVoltar);
+  tentar();
+  return desligar;
+}
 
 const contextoPadrao: FabricaDeContexto = () => {
   const C =
@@ -55,8 +101,9 @@ const contextoPadrao: FabricaDeContexto = () => {
 export function prepararAnalisadorDaVoz(
   elemento: HTMLMediaElement | null = criarElemento(),
   fabrica: FabricaDeContexto = contextoPadrao,
+  ios: boolean = ehWebKitDeToque(),
 ): Promise<boolean> {
-  if (!elemento) return Promise.resolve(false);
+  if (!elemento || ios) return Promise.resolve(false);
   if (grafos.has(elemento)) return Promise.resolve(true);
   const em = tentativas.get(elemento);
   if (em) return em;
@@ -76,10 +123,14 @@ export function prepararAnalisadorDaVoz(
       analisador.smoothingTimeConstant = 0;
       fonte.connect(ctx.destination);
       fonte.connect(analisador);
+      let soltarRetomada: (() => void) | null = null;
       ctx.addEventListener?.('statechange', () => {
-        if ((ctx.state as string) !== 'running' && !elemento.paused) void ctx.resume().catch(() => undefined);
+        if ((ctx.state as string) === 'running') {
+          soltarRetomada?.();
+          soltarRetomada = null;
+        } else if (!soltarRetomada) soltarRetomada = retomarQuandoPuder(ctx);
       });
-      grafos.set(elemento, { analisador, buffer: new Uint8Array(analisador.fftSize) });
+      grafos.set(elemento, { analisador, buffer: new Uint8Array(analisador.fftSize), ctx });
       return true;
     } catch {
       return false;
@@ -99,7 +150,8 @@ export function fonteDeAudioDaVoz(elemento: HTMLMediaElement | null = elementoDe
   return {
     amplitude() {
       const g = grafos.get(elemento);
-      if (!g) return null;
+      // Contexto parado (suspenso/interrompido): não há medida confiável, a boca cai na cadência.
+      if (!g || (g.ctx.state as string) !== 'running') return null;
       g.analisador.getByteTimeDomainData(g.buffer);
       return rmsDeBytes(g.buffer);
     },

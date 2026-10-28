@@ -11,6 +11,7 @@ import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { receitaNova } from '../src/core/avatar/edicao'
+import { COLECAO_SUGERIVEL } from '../src/data/avatar/colecao'
 import { esquecerConexaoDoAvatar, lerModeloImportado } from '../src/lib/avatar/armazem'
 import {
   apagarMeuAvatar,
@@ -156,7 +157,7 @@ describe('Perfil > Avatar: adulto', () => {
     )
     const guardado = await lerMeuAvatar('u-1')
     expect(guardado?.base.origem).toBe('colecao')
-    expect(['milk', 'bullidan']).toContain(guardado?.base.id)
+    expect(COLECAO_SUGERIVEL.map((m) => m.id)).toContain(guardado?.base.id)
     // A miniatura estática capturada da prévia foi guardada para as molduras.
     expect(lerMiniatura('u-1')).toMatch(/^data:image\/png;base64,/)
     // Nada foi ao servidor: nenhuma requisição.

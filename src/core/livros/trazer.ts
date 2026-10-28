@@ -1,7 +1,7 @@
 /**
  * "TRAZER O SEU": regras PURAS (sem React, sem rede, sem DOM) de quem chega com um arquivo ou um link.
  *
- *  · o formato vem do CONTEÚDO (assinatura de bytes), nunca da extensão;
+ *  · o formato vem do CONTEÚDO (assinatura de bytes), nunca da extensão (`formatos.ts`);
  *  · EPUB com proteção (DRM) é reconhecido e recusado com um motivo próprio, sem culpar a pessoa;
  *  · um link de livro só vale se for um ARQUIVO de um host que a CSP deixa o navegador baixar. A página de
  *    uma loja ou de um repositório não é arquivo, e a mensagem diz o que fazer.
@@ -9,7 +9,7 @@
  * O Frasy NÃO ensina a remover DRM (LDA art. 107). Aqui só se reconhece e se recusa.
  */
 
-export type FormatoTrazido = 'epub' | 'pdf' | 'txt';
+export type { FormatoTrazido } from './formatos';
 
 /** Por que um arquivo ou link não virou livro. As frases ficam na tela (`t()`), não aqui. */
 export type MotivoDoErro =
@@ -23,7 +23,8 @@ export type MotivoDoErro =
   | 'pagina'
   | 'release'
   | 'host'
-  | 'invalido';
+  | 'invalido'
+  | 'senha';
 
 export class ErroDoLivro extends Error {
   constructor(
@@ -37,24 +38,6 @@ export class ErroDoLivro extends Error {
 
 /** O teto de um arquivo trazido pelo link (o mesmo de `MAX_BYTES_DO_LIVRO`). */
 export const TETO_DO_LINK_EM_BYTES = 150 * 1024 * 1024;
-
-/** O formato pela assinatura: zip → EPUB (confirmado depois), `%PDF` → PDF, texto sem bytes de controle → TXT. */
-export function formatoPeloConteudo(cabeca: Uint8Array): FormatoTrazido | null {
-  if (!cabeca.length) return null;
-  if (cabeca[0] === 0x50 && cabeca[1] === 0x4b && cabeca[2] === 0x03 && cabeca[3] === 0x04) return 'epub';
-  if (cabeca[0] === 0x25 && cabeca[1] === 0x50 && cabeca[2] === 0x44 && cabeca[3] === 0x46) return 'pdf';
-  /* HTML solto (a página de uma loja salva como arquivo) não é livro de texto. */
-  const inicio = Array.from(cabeca.slice(0, 64), (b) => (b < 128 ? String.fromCharCode(b) : '?'))
-    .join('')
-    .trimStart()
-    .toLowerCase();
-  if (inicio.startsWith('<!doctype') || inicio.startsWith('<html')) return null;
-  for (const b of cabeca.slice(0, 4096)) {
-    /* Tab, LF, CR e ESC-livre: qualquer outro controle (NUL inclusive) é binário. */
-    if (b < 9 || (b > 13 && b < 32)) return null;
-  }
-  return 'txt';
-}
 
 /** As cifras que NÃO são proteção: a ofuscação de fontes do EPUB (IDPF e Adobe). */
 const OFUSCACAO_DE_FONTE = ['http://www.idpf.org/2008/embedding', 'http://ns.adobe.com/pdf/enc#rc'];

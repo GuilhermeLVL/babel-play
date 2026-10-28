@@ -14,6 +14,7 @@
  *  · SESSÃO `document` da Leitura antiga: vira um livro de texto (`abrirSessaoNoLeitor`).
  */
 import { ehLivroId } from '../../core/leitura/anotacao';
+import { reconhecerPeloConteudo } from '../../core/livros/formatos';
 import { navegarPara } from '../rotas';
 import { estante, type FormatoDoLivro, type LivroGuardado } from './armazem';
 
@@ -53,10 +54,13 @@ export async function idDoArquivo(bytes: ArrayBuffer): Promise<string> {
 
 /** O formato pelo conteúdo (assinatura), e não pelo nome: `.epub` renomeado de outra coisa não engana. */
 export function formatoDosBytes(cabeca: Uint8Array, nome = ''): FormatoDoLivro | null {
-  if (cabeca[0] === 0x50 && cabeca[1] === 0x4b && cabeca[2] === 0x03 && cabeca[3] === 0x04) return 'epub';
-  if (cabeca[0] === 0x25 && cabeca[1] === 0x50 && cabeca[2] === 0x44 && cabeca[3] === 0x46) return 'pdf';
-  if (/\.(txt|text|md)$/i.test(nome)) return 'txt';
-  return null;
+  const r = reconhecerPeloConteudo(cabeca, nome);
+  if (!r.ok) return null;
+  /* Um zip aqui é tratado como EPUB; quem trouxe pela tela "Trazer o seu" já sabe o formato (CBZ, por exemplo). */
+  if (r.formato === 'zip') return 'epub';
+  if (r.formato === 'epub' || r.formato === 'pdf' || r.formato === 'mobi' || r.formato === 'fb2' || r.formato === 'cbz')
+    return r.formato;
+  return /\.(txt|text|md)$/i.test(nome) ? 'txt' : null;
 }
 
 const nomeDoAutor = (a: { nome: string } | string) => (typeof a === 'string' ? a : a.nome);
@@ -90,7 +94,7 @@ export async function prepararLivro(livro: LivroComFormatos | File, agora = Date
     if (arquivo.size > MAX_BYTES_DO_LIVRO) throw new ErroAoAbrirLivro('grande', 'o arquivo é grande demais');
     const bytes = await arquivo.arrayBuffer();
     const formato = formatoDosBytes(new Uint8Array(bytes.slice(0, 8)), arquivo.name);
-    if (!formato) throw new ErroAoAbrirLivro('formato', 'formato não suportado (use EPUB, PDF ou TXT)');
+    if (!formato) throw new ErroAoAbrirLivro('formato', 'formato não suportado (use EPUB, PDF, MOBI, FB2, CBZ ou TXT)');
     const livroId = await idDoArquivo(bytes);
     const ja = await estante.livro(livroId);
     if (!ja) {
@@ -136,8 +140,15 @@ export async function prepararLivro(livro: LivroComFormatos | File, agora = Date
   return livroId;
 }
 
-const mimeDe = (f: FormatoDoLivro) =>
-  f === 'epub' ? 'application/epub+zip' : f === 'pdf' ? 'application/pdf' : 'text/plain';
+export const MIME_DO_FORMATO: Record<FormatoDoLivro, string> = {
+  epub: 'application/epub+zip',
+  pdf: 'application/pdf',
+  mobi: 'application/x-mobipocket-ebook',
+  fb2: 'application/x-fictionbook+xml',
+  cbz: 'application/vnd.comicbook+zip',
+  txt: 'text/plain',
+};
+const mimeDe = (f: FormatoDoLivro) => MIME_DO_FORMATO[f];
 
 /** O que o catálogo (L1) passa: o id do livro (do catálogo ou o `meu-…` de um livro trazido). */
 export interface LivroParaAbrir {

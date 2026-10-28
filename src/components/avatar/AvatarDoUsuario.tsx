@@ -16,7 +16,7 @@ import { usePerfil } from '../../lib/usePerfil';
  * Ordem: miniatura do avatar → foto do perfil → iniciais. Sem a flag `avatar_3d`, `useAvatarDaMoldura` devolve
  * `undefined` e nada muda.
  */
-export default function AvatarDoUsuario({ tamanho = 40 }: { tamanho?: number }) {
+function AvatarDoUsuario({ tamanho = 40 }: { tamanho?: number }) {
   const { perfil } = usePerfil();
   const usuario = perfil?.id;
   const miniatura = useMiniaturaDoAvatar(usuario);

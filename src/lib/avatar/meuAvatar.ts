@@ -120,10 +120,6 @@ export async function apagarMeuAvatar(usuario: string | null | undefined): Promi
   avisar();
 }
 
-/** Há avatar guardado? (síncrono: espelho da receita ou miniatura). */
-export const temMeuAvatar = (usuario: string | null | undefined): boolean =>
-  lerMeuAvatarLocal(usuario) !== null || lerMiniatura(usuario) !== null;
-
 /** A miniatura do avatar, atualizada quando a pessoa salva ou apaga. `null` = sem avatar (foto ou iniciais). */
 export function useMiniaturaDoAvatar(usuario: string | null | undefined): string | null {
   const [m, setM] = useState(() => lerMiniatura(usuario));

@@ -7,6 +7,7 @@ import {
   INTERPRETE_RESERVA,
   ladoDoAvatarEmPx,
   modeloDoInterprete,
+  modeloPadraoDaPessoa,
   OPCOES_DE_QUEM,
   politicaDosAvatares,
   PREFERENCIAS_PADRAO,
@@ -120,5 +121,7 @@ describe('avatar-intérprete', () => {
     expect(modeloDoInterprete('bullidan', ids)).toBe(INTERPRETE_RESERVA)
     expect(modeloDoInterprete('milk', ['milk'])).toBe('milk')
     expect(modeloDoInterprete(null, [])).toBeNull()
+    expect(modeloPadraoDaPessoa(ids)).toBe('milk')
+    expect(modeloDoInterprete(modeloPadraoDaPessoa(ids), ids)).toBe(INTERPRETE_PADRAO)
   })
 })

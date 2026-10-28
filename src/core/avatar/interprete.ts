@@ -24,7 +24,7 @@ export interface EntradaDoEstadoDaConversa {
   /** O modo automático está ouvindo a conversa (ninguém toca em lado). */
   automatico: boolean;
   /** A fala da fila de voz em curso: quem falou originalmente e se a voz realmente começou. */
-  falando: { lado: LadoDaConversa } | null;
+  falando: { lado?: LadoDaConversa | undefined } | null;
 }
 
 /**
@@ -43,8 +43,10 @@ export function estadoDoLadoNaConversa(
   e: EntradaDoEstadoDaConversa,
   vozTocando: boolean,
 ): EstadoDoAvatar {
-  if (e.fase === 'falando' && e.falando) {
-    if (e.falando.lado === lado) return vozTocando ? 'falando' : 'pensando';
+  const dono = e.falando?.lado;
+  // Toque no texto (leitura manual) não muda a fase da conversa, mas a voz toca: o avatar de quem disse acompanha.
+  if (dono && (e.fase === 'falando' || vozTocando)) {
+    if (dono === lado) return vozTocando ? 'falando' : 'pensando';
     return 'ouvindo';
   }
   if (e.fase === 'traduzindo') return e.automatico || e.lado === lado ? 'pensando' : 'parado';
@@ -171,4 +173,9 @@ export function modeloDoInterprete(idDaPessoa: string | null | undefined, ids: r
   const ordem = [INTERPRETE_PADRAO, INTERPRETE_RESERVA, ...ids];
   const escolhido = ordem.find((id) => ids.includes(id) && id !== idDaPessoa) ?? ordem.find((id) => ids.includes(id));
   return escolhido ?? null;
+}
+
+/** O avatar que a pessoa recebe enquanto não escolhe um em "Meu avatar": o primeiro da coleção que não é o do intérprete. */
+export function modeloPadraoDaPessoa(ids: readonly string[]): string | null {
+  return ids.find((id) => id !== INTERPRETE_PADRAO) ?? ids[0] ?? null;
 }

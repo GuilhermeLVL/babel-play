@@ -697,3 +697,73 @@ button.int-voz:focus-visible {
   align-items: center;
   gap: 10px;
 }
+
+/* ---------- os avatares da conversa (atrás da flag `avatar_3d`) ---------- */
+/* O avatar fica na linha do idioma, à direita: pouco espaço do texto, que continua sendo o conteúdo. */
+.int-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.int-avatar {
+  flex: none;
+  line-height: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid var(--int-linha);
+  background: color-mix(in srgb, var(--accent) 12%, var(--int-escuro-2));
+}
+.int-av-painel {
+  max-height: 100%;
+  overflow-y: auto;
+}
+.int-av-titulo {
+  margin: 0;
+  font: 800 17px var(--font-display, inherit);
+}
+.int-av-nota {
+  margin: 0;
+  font: 600 12.5px / 1.4 var(--font-body);
+  color: var(--int-mut);
+}
+.int-av-grupo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.int-av-grupo legend {
+  width: 100%;
+  padding: 0;
+  font: 700 12px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--int-acento);
+}
+.int-av-opcao {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  font: 600 14px var(--font-body);
+  cursor: pointer;
+}
+.int-av-opcao[data-desabilitado] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.int-av-opcao input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+.int-av-opcao input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.int-av-linha {
+  display: flex;
+}

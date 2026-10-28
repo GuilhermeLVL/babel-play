@@ -1,4 +1,4 @@
-import type { KeyboardEvent, ReactNode } from 'react';
+import { type KeyboardEvent, type ReactNode, useEffect, useRef } from 'react';
 
 export interface AbaDoQuest {
   id: string;
@@ -23,6 +23,13 @@ export default function AbasDoQuest({
   aoTrocar: (id: string) => void;
   rotuloDoGrupo: string;
 }) {
+  /* A faixa rola de lado no celular: a aba escolhida vem para o meio, nunca meio cortada na borda. */
+  const faixa = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const aba = faixa.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+    if (aba && typeof aba.scrollIntoView === 'function') aba.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }, [ativo]);
+
   const aoTeclar = (e: KeyboardEvent<HTMLButtonElement>, indice: number) => {
     const passo = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
     if (!passo && e.key !== 'Home' && e.key !== 'End') return;
@@ -38,7 +45,7 @@ export default function AbasDoQuest({
   };
 
   return (
-    <div className="q-abas" role="tablist" aria-label={rotuloDoGrupo}>
+    <div ref={faixa} className="q-abas" role="tablist" aria-label={rotuloDoGrupo}>
       {itens.map((item, i) => {
         const escolhida = item.id === ativo;
         return (

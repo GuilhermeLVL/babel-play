@@ -3,8 +3,8 @@
  * estática; só o motor pesado é carregado por `import()`.
  *
  *  · `colecao`: a coleção curada num bucket (`VITE_AVATARES_URL`, a CSP libera a origem em `connect-src`);
- *    sem a variável, do PRÓPRIO domínio em `/avatares/colecao/<id>.vrm` (e, em desenvolvimento, de
- *    `/avatares/dev/<id>.vrm`, os modelos de teste CC0 que não vão para o `dist`);
+ *    sem a variável, do PRÓPRIO domínio em `/avatares/colecao/<id>.vrm` (`public/avatares/colecao/`, que vai no
+ *    `dist`; ver o `LICENSES.md` de lá). `public/avatares/dev/` é só dos testes do harness e não vai ao `dist`;
  *  · `familia`: os modelos da família Frasy, em `<base>/familia/<id>.glb`;
  *  · `importado`: o arquivo que a pessoa trouxe, só no IndexedDB deste aparelho.
  */
@@ -17,15 +17,12 @@ export function baseDosAvatares(): string {
   return v || '/avatares';
 }
 
-/** Há bucket configurado? Sem ele, só o desenvolvimento tem os modelos (`public/avatares/dev/`, fora do `dist`). */
-const temBucket = () => !!(import.meta.env?.VITE_AVATARES_URL as string | undefined)?.trim();
+/** A URL do modelo da coleção: `<VITE_AVATARES_URL>/colecao/<id>.vrm` com bucket, senão `/avatares/colecao/<id>.vrm`. */
+export const urlDoModeloDaColecao = (id: string): string => `${baseDosAvatares()}/colecao/${id}.vrm`;
 
 export async function fonteDaReceita(receita: ReceitaDeAvatar): Promise<FonteDoAvatar | null> {
   const { origem, id } = receita.base;
-  if (origem === 'colecao') {
-    if (!temBucket() && import.meta.env?.DEV) return `/avatares/dev/${id}.vrm`;
-    return `${baseDosAvatares()}/colecao/${id}.vrm`;
-  }
+  if (origem === 'colecao') return urlDoModeloDaColecao(id);
   if (origem === 'familia') return `${baseDosAvatares()}/familia/${id}.glb`;
   return lerModeloImportado(id);
 }

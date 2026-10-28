@@ -964,6 +964,25 @@ button.q-chip[aria-pressed='true'] {
 .q-abas.q-seg {
   padding: 4px;
 }
+/* CELULAR: a faixa de abas rola de lado. Sombra de rolagem nas duas pontas (só aparece onde ainda há aba escondida,
+   pela técnica de `background-attachment: local`) e `scroll-snap`, para nenhuma aba parar cortada ("gresso"). */
+@media (max-width: 879px) {
+  .q-abas:not(.q-seg) {
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: 28px;
+    background:
+      linear-gradient(to right, var(--surface) 30%, transparent) left center / 36px 100% no-repeat local,
+      linear-gradient(to left, var(--surface) 30%, transparent) right center / 36px 100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, color-mix(in srgb, var(--ink) 30%, transparent), transparent) left center /
+        12px 100% no-repeat scroll,
+      radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, var(--ink) 30%, transparent), transparent) right
+        center / 12px 100% no-repeat scroll,
+      var(--surface);
+  }
+  .q-abas:not(.q-seg) .q-aba {
+    scroll-snap-align: center;
+  }
+}
 .q-seg .q-aba {
   min-height: 52px;
   padding: 0 18px;

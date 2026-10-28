@@ -46,9 +46,25 @@ Origem, commit e lista de arquivos: `ORIGEM.txt`. Toda mudança está marcada co
 
 ## Recorte
 
-- `view.js`: `makeBook` só abre EPUB e PDF (MOBI, FB2, CBZ e pasta ficaram fora); o ZIP sai do
-  `carregadorZip.js` (sobre o `fflate` do app) no lugar do `vendor/zip.js`; `initTTS` desligado (L3).
+- `view.js`: `makeBook` abre EPUB, PDF, MOBI/AZW3, FB2 (e FB2.zip) e CBZ, sempre pelo CONTEÚDO (zip com
+  `container.xml`/`mimetype` = EPUB; zip só de imagens = CBZ; zip com `.fb2` = FBZ; `BOOKMOBI` no byte 60 = MOBI;
+  `<FictionBook` no começo = FB2), nunca pela extensão. Pasta e CBR ficaram fora; o ZIP sai do
+  `carregadorZip.js` (sobre o `fflate` do app) no lugar do `vendor/zip.js`; o `unzlib` do MOBI é o `fflate` do app;
+  `initTTS` desligado (L3).
 - `pdf.js`: a página desenhada vai como `<img>` (`blob:`) e não como `<canvas>`: sem `allow-scripts`, o canvas
   num documento sem script mostra só o conteúdo de reserva (consequência do item 1 da segurança).
 - `pdf.js`: reescrito sobre o `pdfjs-dist` do app, sem a camada de anotações do PDF, com o CSS da camada de
   texto embutido e `book.amostraDeTexto` para o aviso de PDF escaneado/duas colunas.
+
+## Formatos religados (28/10/2026), mesmo commit 78914ae do upstream
+
+- `mobi.js`, `fb2.js`, `comic-book.js`: copiados do upstream (MIT, a mesma LICENSE da pasta). Não há `unrar`:
+  CBR (RAR) segue fora.
+- `mobi.js`: **DRM.** O campo `encryption` do cabeçalho PalmDOC (0 = sem proteção) era lido e nunca verificado.
+  Agora `open()` lança `DRMError` se for diferente de 0, tanto no registro 0 quanto no registro KF8 de um arquivo
+  combo. O Frasy só reconhece e recusa: não há código para remover proteção. A checagem antes de importar
+  (sem abrir o livro) está em `src/core/livros/formatos.ts`.
+- `fb2.js`: `getCover` decodificava o `data:` com `fetch`, que a CSP (`connect-src`) não libera; passou a
+  decodificar o base64 no lugar.
+- `comic-book.js`: extensão sem diferenciar maiúscula (`PAGINA.JPG`) e sem lixo de macOS (`__MACOSX/`, `._x`).
+- `view.js`: ver "Recorte".

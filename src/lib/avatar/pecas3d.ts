@@ -61,6 +61,8 @@ export interface RelatorioDePecas {
   omitidas: { id: string; motivo: MotivoDeOmissao }[];
   /** Triângulos que as peças montadas somam (medido na geometria). */
   triangulos: number;
+  /** Medidas da cabeça usadas na calibração (diagnóstico). */
+  medidas?: MedidasDaCabeca;
 }
 
 export interface PecasMontadas {
@@ -82,6 +84,8 @@ export interface MedidasDaCabeca {
   olhosY: number;
   /** Metade da distância entre os olhos. */
   olhosX: number;
+  /** Metade da largura da cabeça na altura da orelha (em cabeças cônicas é bem menor que `largura / 2`). */
+  meiaNaOrelha: number;
 }
 
 /* ── Medição ─────────────────────────────────────────────────────────────────────────────────── */
@@ -94,7 +98,11 @@ function percentil(v: number[], p: number): number {
 }
 
 /** Mede a cabeça com o tronco em repouso (zera as rotações um instante e as devolve). */
+/** VRM 0.x olha para -Z e `rotateVRM0` gira a cena inteira: o osso normalizado fica de costas. Medimos e construímos no quadro canônico (frente +Z) e giramos a geometria no fim. */
+const quadroInvertido = (vrm: VRM): boolean => String((vrm.meta as { metaVersion?: unknown } | undefined)?.metaVersion) === '0';
+
 export function medirCabeca(vrm: VRM, cabeca: Object3D): MedidasDaCabeca | null {
+  const g = quadroInvertido(vrm) ? -1 : 1;
   const nos = OSSOS_DO_TRONCO.map((n) => vrm.humanoid?.getNormalizedBoneNode(n)).filter((n): n is Object3D => !!n);
   const guardadas = nos.map((n) => n.rotation.clone());
   nos.forEach((n) => n.rotation.set(0, 0, 0));
@@ -113,6 +121,8 @@ export function medirCabeca(vrm: VRM, cabeca: Object3D): MedidasDaCabeca | null 
       const pos = malha.geometry.attributes.position;
       for (let i = 0; i < pos.count; i += 1) {
         p.fromBufferAttribute(pos, i).applyMatrix4(m);
+        p.x *= g;
+        p.z *= g;
         if (p.y < 0) continue;
         xs.push(p.x);
         ys.push(p.y);
@@ -130,12 +140,18 @@ export function medirCabeca(vrm: VRM, cabeca: Object3D): MedidasDaCabeca | null 
     let olhosX = (x1 - x0) * 0.2;
     if (olho) {
       const q = olho.getWorldPosition(new Vector3()).applyMatrix4(inversa);
+      q.x *= g;
+      q.z *= g;
       if (q.y > 0 && q.y < topo) {
         olhosY = q.y;
         olhosX = Math.max(Math.abs(q.x), olhosX * 0.5);
       }
     }
+    const yo = olhosY - topo * 0.08;
+    const nx = xs.filter((_, i) => Math.abs(ys[i] - yo) < topo * 0.06);
+    const meiaNaOrelha = nx.length > 20 ? (percentil(nx, 0.99) - percentil(nx, 0.01)) / 2 : (x1 - x0) / 2;
     return {
+      meiaNaOrelha,
       largura: x1 - x0,
       profundidade: z1 - z0,
       topo,
@@ -242,17 +258,17 @@ const foneDeOuvido: Construtor = (m) => {
 const orelha = (m: MedidasDaCabeca) => ({
   y: m.olhosY - m.topo * 0.08,
   z: m.cz - m.profundidade * 0.03,
-  x: m.largura / 2,
+  x: m.meiaNaOrelha,
 });
 
 function aparelhoAuditivo(lado: 1 | -1): Construtor {
   return (m) => {
     const o = orelha(m);
-    const x = m.cx + lado * (o.x - m.largura * 0.01);
-    const corpo = new SphereGeometry(m.largura * 0.045, 8, 6).scale(0.7, 1.5, 0.9);
+    const x = m.cx + lado * (o.x + m.largura * 0.035);
+    const corpo = new SphereGeometry(m.largura * 0.06, 8, 6).scale(0.7, 1.5, 0.9);
     const gancho = tubo(
       [
-        new Vector3(x, o.y + m.topo * 0.02, o.z - m.profundidade * 0.09),
+        new Vector3(x, o.y + m.topo * 0.02, o.z - m.profundidade * 0.03),
         new Vector3(x + lado * m.largura * 0.02, o.y + m.topo * 0.13, o.z - m.profundidade * 0.04),
         new Vector3(x + lado * m.largura * 0.02, o.y + m.topo * 0.12, o.z + m.profundidade * 0.04),
         new Vector3(x - lado * m.largura * 0.005, o.y - m.topo * 0.01, o.z + m.profundidade * 0.05),
@@ -263,7 +279,7 @@ function aparelhoAuditivo(lado: 1 | -1): Construtor {
     );
     const molde = new SphereGeometry(m.largura * 0.025, 6, 4);
     return [
-      { geo: mover(corpo, x, o.y + m.topo * 0.035, o.z - m.profundidade * 0.09), principal: true },
+      { geo: mover(corpo, x, o.y + m.topo * 0.035, o.z - m.profundidade * 0.03), principal: true },
       { geo: gancho, principal: true },
       {
         geo: mover(molde, x - lado * m.largura * 0.005, o.y - m.topo * 0.01, o.z + m.profundidade * 0.05),
@@ -277,11 +293,11 @@ function aparelhoAuditivo(lado: 1 | -1): Construtor {
 function implanteCoclear(lado: 1 | -1): Construtor {
   return (m) => {
     const o = orelha(m);
-    const x = m.cx + lado * (o.x - m.largura * 0.005);
-    const zp = o.z - m.profundidade * 0.1;
+    const x = m.cx + lado * (o.x + m.largura * 0.04);
+    const zp = o.z - m.profundidade * 0.03;
     const yp = o.y + m.topo * 0.05;
     // Processador atrás da orelha, bobina na lateral da cabeça (acima e atrás), cabo ligando os dois.
-    const processador = new SphereGeometry(m.largura * 0.05, 8, 6).scale(0.65, 1.55, 0.9);
+    const processador = new SphereGeometry(m.largura * 0.065, 8, 6).scale(0.65, 1.55, 0.9);
     const bobina = new CylinderGeometry(m.largura * 0.055, m.largura * 0.055, m.largura * 0.02, 12);
     bobina.rotateZ(Math.PI / 2);
     const bx = x + lado * m.largura * 0.01;
@@ -346,8 +362,8 @@ const faixaDeCabelo: Construtor = (m) => {
 };
 
 const balaoDeFala: Construtor = (m) => {
-  const w = m.largura * 0.9;
-  const h = m.largura * 0.5;
+  const w = m.largura * 0.62;
+  const h = m.largura * 0.36;
   const r = h * 0.35;
   const s = new Shape();
   s.moveTo(-w / 2 + r, -h / 2);
@@ -364,8 +380,8 @@ const balaoDeFala: Construtor = (m) => {
   s.quadraticCurveTo(-w / 2, -h / 2, -w / 2 + r, -h / 2);
   const espessura = m.largura * 0.025;
   const corpo = new ExtrudeGeometry(s, { depth: espessura, bevelEnabled: false, curveSegments: 3 });
-  const cx = m.cx + m.largura * 0.78;
-  const cy = m.topo * 1.12;
+  const cx = m.cx + m.largura * 0.5 + w * 0.55;
+  const cy = m.topo * 0.78;
   const cz = m.cz;
   const partes: Parte[] = [{ geo: mover(corpo, cx, cy, cz), principal: true }];
   for (const i of [-1, 0, 1]) {
@@ -498,6 +514,7 @@ export function criarPecas(vrm: VRM | null): PecasMontadas {
     const hex = hexDaCorDePeca(token) ?? hexDaCorDePeca(p.corPadrao) ?? '#888888';
     let triangulos = 0;
     for (const parte of partes) {
+      if (quadroInvertido(vrm)) parte.geo.rotateY(Math.PI);
       pintar(parte.geo, parte.principal ? hex : (parte.fixa ?? PRETO));
       triangulos += triangulosDaGeometria(parte.geo);
       const malha = new Mesh(parte.geo, material);
@@ -532,6 +549,7 @@ export function criarPecas(vrm: VRM | null): PecasMontadas {
         relatorio.montadas.push(id);
         relatorio.triangulos += m.triangulos;
       });
+      relatorio.medidas = medidas ?? undefined;
       return relatorio;
     },
     dispose() {

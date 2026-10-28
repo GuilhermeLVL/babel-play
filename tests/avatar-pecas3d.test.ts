@@ -18,6 +18,7 @@ const cabeca = (escala = 1): MedidasDaCabeca => ({
   frente: 0.105 * escala,
   olhosY: 0.1 * escala,
   olhosX: 0.032 * escala,
+  meiaNaOrelha: 0.085 * escala,
 })
 
 describe('geometria das peças', () => {

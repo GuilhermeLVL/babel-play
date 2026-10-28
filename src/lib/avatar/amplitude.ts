@@ -18,7 +18,7 @@
  * existe mas `amplitude()` devolve `null` e a boca anda pela cadência do relógio do áudio.
  */
 import { rmsDeBytes } from '../../core/avatar/boca';
-import { elementoDeAudioDaVoz } from '../voz/elementoDaVoz';
+import { elemento as criarElemento, elementoDeAudioDaVoz } from '../voz/elementoDaVoz';
 
 /** O que `fala.ts` precisa de uma voz em áudio. */
 export interface FonteDeAudio {
@@ -53,7 +53,7 @@ const contextoPadrao: FabricaDeContexto = () => {
  * (sem Web Audio, contexto que não roda, fonte já criada por outro código) NÃO mexe no som e devolve `false`.
  */
 export function prepararAnalisadorDaVoz(
-  elemento: HTMLMediaElement | null = elementoDeAudioDaVoz(),
+  elemento: HTMLMediaElement | null = criarElemento(),
   fabrica: FabricaDeContexto = contextoPadrao,
 ): Promise<boolean> {
   if (!elemento) return Promise.resolve(false);

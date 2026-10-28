@@ -1,14 +1,7 @@
 import { expect, type Page, test } from '@playwright/test'
 
 import { violacoesGraves } from './_acessibilidade'
-import {
-  abasDePraticar,
-  abrirAoVivo,
-  abrirMais,
-  clicarRobusto,
-  fecharSobreposicoes,
-  trilho,
-} from './_helpers'
+import { abasDePraticar, abrirAoVivo, abrirMais, clicarRobusto, fecharSobreposicoes, trilho } from './_helpers'
 
 /**
  * FUNDAÇÃO (23/09/2026) — o que o shell novo promete e o que as duas telas-molde garantem.
@@ -65,7 +58,7 @@ test('o trilho leva a todo destino: os do trilho direto, o resto pelo "Mais"', a
   await expect(nav).toBeVisible()
 
   /* A NAVEGAÇÃO DE 22/10/2026 (R40). No computador e no tablet o trilho tem oito destinos: Início,
-     Ao vivo (Capturar e Intérprete), Cartões, Jogar, Biblioteca, Progresso e Planos. Abaixo de 720 px ele é a barra
+     Ao vivo (Capturar e Intérprete), Cartões, Jogar, Biblioteca, Livros, Progresso e Planos. Abaixo de 720 px ele é a barra
      de cinco (Início, Cartões, Ao vivo, Jogar, Mais): Biblioteca e Progresso passam ao
      "Mais" e Planos fica na faixa "Planos e Premium" dele. Personalizar mora no "Mais" em todo aparelho. */
   const noTrilho: Array<[RegExp, RegExp]> = [
@@ -77,6 +70,8 @@ test('o trilho leva a todo destino: os do trilho direto, o resto pelo "Mais"', a
   /** Não é item do trilho: mora dentro do "Ao vivo" (a escolha rápida). */
   const interprete: [RegExp, RegExp] = [/^Intérprete/, /\/interprete/]
   const biblioteca: [RegExp, RegExp] = [/^(Biblioteca|Minhas Mídias)/, /\/biblioteca/]
+  /* Livros (27/10/2026): destino do trilho no computador; no celular mora no "Mais", ao lado da Biblioteca. */
+  const livros: [RegExp, RegExp] = [/^Livros/, /\/livros/]
   const progresso: [RegExp, RegExp] = [/^(Progresso|Meu progresso)/, /\/estatisticas/]
   const planos: [RegExp, RegExp] = [/^(Planos|Planos e preços)/, /\/plano/]
   const soNoMais: Array<[RegExp, RegExp]> = [
@@ -85,7 +80,7 @@ test('o trilho leva a todo destino: os do trilho direto, o resto pelo "Mais"', a
     [/^(Ajustes|Configurações)/, /\/ajustes/],
   ]
 
-  for (const [nome, url] of [...noTrilho, ...(estreito ? [] : [biblioteca, progresso, planos])]) {
+  for (const [nome, url] of [...noTrilho, ...(estreito ? [] : [biblioteca, livros, progresso, planos])]) {
     const item = nav.getByRole('button', { name: nome })
     await expect(item, `${nome} deveria estar no trilho`).toBeVisible()
     await clicarRobusto(page, item)
@@ -115,7 +110,7 @@ test('o trilho leva a todo destino: os do trilho direto, o resto pelo "Mais"', a
   await expect(page).toHaveURL(/\/cartoes$/)
 
   if (estreito) {
-    for (const nome of [interprete[0], biblioteca[0], progresso[0], planos[0]])
+    for (const nome of [interprete[0], biblioteca[0], livros[0], progresso[0], planos[0]])
       await expect(nav.getByRole('button', { name: nome })).toHaveCount(0)
     await expect(nav.locator('.q-item:visible')).toHaveCount(5)
     await clicarRobusto(page, nav.getByRole('button', { name: 'Cartões', exact: true }))
@@ -140,13 +135,13 @@ test('o trilho leva a todo destino: os do trilho direto, o resto pelo "Mais"', a
     /* O "Mais" não repete o que o trilho já tem: nem Progresso, nem Biblioteca, nem o ladrilho de Planos. */
     const mais = await abrirMais(page)
     const destinos = mais.getByRole('tabpanel', { name: 'Destinos' })
-    for (const [nome] of [interprete, biblioteca, progresso, planos])
+    for (const [nome] of [interprete, biblioteca, livros, progresso, planos])
       await expect(destinos.getByRole('button', { name: nome }), `${nome} só no trilho`).toHaveCount(0)
     await page.keyboard.press('Escape')
     await expect(mais).toBeHidden()
   }
 
-  for (const [nome, url] of [...(estreito ? [biblioteca, progresso] : []), ...soNoMais]) {
+  for (const [nome, url] of [...(estreito ? [biblioteca, livros, progresso] : []), ...soNoMais]) {
     const mais = await abrirMais(page)
     const porta = mais.getByRole('tabpanel', { name: 'Destinos' }).getByRole('button', { name: nome })
     await expect(porta, `${nome} deveria estar no "Mais"`).toBeVisible()

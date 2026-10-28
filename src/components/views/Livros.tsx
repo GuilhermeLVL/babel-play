@@ -4,6 +4,7 @@ import { BookMarked, BookOpen, Upload } from 'lucide-react';
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 
 import { livrosVisiveis } from '../../core/livros/catalogo';
+import { edicoesEmOutrosIdiomas } from '../../core/livros/obras';
 import { type Catalogo, NIVEIS_DO_LIVRO, type NivelDoLivro } from '../../core/livros/tipos';
 import { lerAjustesDoAssistente } from '../../lib/assistente/ajustesDoAssistente';
 import { t } from '../../lib/i18n';
@@ -182,7 +183,17 @@ export default function Livros({
         </Suspense>
       );
     }
-    return <DetalheDoLivro livro={livro} aoVoltar={voltarAoCatalogo} aoLer={() => abrirLivroNoLeitor(livro)} />;
+    return (
+      <DetalheDoLivro
+        livro={livro}
+        aoVoltar={voltarAoCatalogo}
+        aoLer={() => abrirLivroNoLeitor(livro)}
+        /* Filtro legal e faixa etária valem edição por edição: irmã que este leitor não pode ver não entra. */
+        outrasEdicoes={edicoesEmOutrosIdiomas(livro, catalogo.livros, teto, catalogo.anoLimite)}
+        aoAbrirEdicao={abrirDetalheDoLivro}
+        aoLerEdicao={(e) => void abrirLivroNoLeitor(e)}
+      />
+    );
   }
 
   /* ── O catálogo ───────────────────────────────────────────────────────────────────────────── */
@@ -277,6 +288,7 @@ export default function Livros({
           ))}
         {aba === 'meus' && (
           <MeusLivros
+            catalogo={visiveis}
             visivel={visivel}
             aoAbrir={(l) => abrirLivroNoLeitor(l)}
             aoTrazer={() => setAba('trazer')}

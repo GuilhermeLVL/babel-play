@@ -66,7 +66,7 @@ describe('TrilhoDoQuest', () => {
     return { ir, ...r }
   }
 
-  it('os sete destinos por prioridade (R40, com Ao vivo no lugar de Capturar e Intérprete) e "Mais", com o destino atual marcado', () => {
+  it('os oito destinos por prioridade (R40 e Livros, com Ao vivo no lugar de Capturar e Intérprete) e "Mais", com o destino atual marcado', () => {
     const { container } = montar('play')
     const itens = [...container.querySelectorAll('.q-trilho .q-item')]
     expect(itens.map((i) => i.querySelector('span')?.textContent)).toEqual([
@@ -75,6 +75,7 @@ describe('TrilhoDoQuest', () => {
       'Cartões',
       'Jogar',
       'Biblioteca',
+      'Livros',
       'Progresso',
       'Planos',
       'Ajustes',
@@ -130,6 +131,7 @@ describe('TrilhoDoQuest', () => {
     const nomes = [...painel.querySelectorAll('.q-grade .q-tile b')].map((b) => b.textContent)
     expect(nomes).not.toContain('Progresso')
     expect(nomes).not.toContain('Planos')
+    expect(nomes).not.toContain('Livros')
     expect(painel.textContent).not.toContain('Biblioteca')
     expect(painel.textContent).not.toContain('Vocabulário')
     expect(painel.textContent).toContain('Diagnóstico do aparelho')
@@ -163,6 +165,7 @@ describe('TrilhoDoQuest', () => {
       'Cartões',
       'Jogar',
       'Biblioteca',
+      'Livros',
       'Progresso',
       'Planos',
       'Ajustes',
@@ -618,7 +621,7 @@ describe('a casca no computador com o desenho novo', () => {
     expect(ir).toHaveBeenCalledWith('settings')
   })
 
-  it('os mesmos sete destinos, e a busca no próprio trilho com o atalho à vista', () => {
+  it('os mesmos oito destinos, e a busca no próprio trilho com o atalho à vista', () => {
     const { container, aoBuscar } = montar()
     const itens = [...container.querySelectorAll('.q-trilho .q-item')]
     expect(itens.map((i) => i.querySelector('span')?.textContent)).toEqual([
@@ -627,6 +630,7 @@ describe('a casca no computador com o desenho novo', () => {
       'Cartões',
       'Jogar',
       'Biblioteca',
+      'Livros',
       'Progresso',
       'Planos',
       'Buscar',

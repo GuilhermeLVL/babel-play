@@ -75,22 +75,65 @@ export interface FiltrosDoCatalogo {
 
 const dobrar = (s: string) => dobrarTexto(s, { espacos: 'colapsar' });
 
-/** O texto em que a busca procura: título e nomes de autor e tradutor, sem acento nem caixa. */
-function textoBuscavel(l: Pick<LivroDoCatalogo, 'titulo' | 'autores' | 'tradutores'>): string {
-  return dobrar([l.titulo, ...l.autores.map((a) => a.nome), ...l.tradutores.map((t) => t.nome)].join(' '));
+type Buscavel = Pick<LivroDoCatalogo, 'titulo' | 'autores' | 'tradutores'> &
+  Partial<Pick<LivroDoCatalogo, 'titulosAlternativos'>>;
+
+/** O texto em que a busca procura: título, títulos da obra em outros idiomas, autores e tradutores, dobrados. */
+function textoBuscavel(l: Buscavel): string {
+  return dobrar(
+    [
+      l.titulo,
+      ...(l.titulosAlternativos ?? []),
+      ...l.autores.map((a) => a.nome),
+      ...l.tradutores.map((t) => t.nome),
+    ].join(' '),
+  );
 }
 
-/** Cada palavra da busca precisa aparecer (em qualquer ordem): "machado casmurro" acha Dom Casmurro. */
-export function casaComBusca(
-  l: Pick<LivroDoCatalogo, 'titulo' | 'autores' | 'tradutores'>,
-  texto: string | undefined,
-): boolean {
-  const termos = dobrar(texto ?? '')
+/** Palavras que se escrevem de jeitos óbvios em línguas irmãs ("Dom Quixote", "Don Quijote"). Já dobradas. */
+const SINONIMOS: ReadonlyArray<readonly string[]> = [
+  ['dom', 'don'],
+  ['sao', 'san', 'saint'],
+];
+
+const variantesDoTermo = (t: string): readonly string[] => SINONIMOS.find((g) => g.includes(t)) ?? [t];
+
+/** Duas palavras a no máximo UMA edição de distância (troca, falta ou sobra de uma letra)? Determinístico. */
+export function aUmaLetra(a: string, b: string): boolean {
+  if (a === b) return true;
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  if (a.length === b.length) return a.slice(i + 1) === b.slice(i + 1);
+  const [curta, longa] = a.length < b.length ? [a, b] : [b, a];
+  return curta.slice(i) === longa.slice(i + 1);
+}
+
+/** Termos com menos letras que isto só casam exatos: com 3–4 letras uma letra a mais ou a menos é outra palavra. */
+const MIN_LETRAS_PARA_ERRO = 5;
+
+/**
+ * O termo casa com o alvo? Primeiro por trecho exato (prefixo incluído); depois, com 5+ letras, por uma palavra
+ * do alvo a uma letra de distância (a palavra inteira ou o começo dela com o tamanho do termo).
+ */
+function termoCasa(termo: string, alvo: string, palavras: readonly string[]): boolean {
+  if (variantesDoTermo(termo).some((v) => alvo.includes(v))) return true;
+  if ([...termo].length < MIN_LETRAS_PARA_ERRO) return false;
+  return palavras.some((p) => aUmaLetra(termo, p) || aUmaLetra(termo, p.slice(0, termo.length)));
+}
+
+const termosDe = (texto: string | undefined) =>
+  dobrar(texto ?? '')
     .split(' ')
     .filter(Boolean);
+
+/** Cada palavra da busca precisa aparecer (em qualquer ordem): "machado casmurro" acha Dom Casmurro. */
+export function casaComBusca(l: Buscavel, texto: string | undefined): boolean {
+  const termos = termosDe(texto);
   if (termos.length === 0) return true;
   const alvo = textoBuscavel(l);
-  return termos.every((t) => alvo.includes(t));
+  const palavras = alvo.split(' ');
+  return termos.every((t) => termoCasa(t, alvo, palavras));
 }
 
 export function filtrarLivros(livros: readonly LivroDoCatalogo[], f: FiltrosDoCatalogo): LivroDoCatalogo[] {
@@ -105,11 +148,35 @@ export function filtrarLivros(livros: readonly LivroDoCatalogo[], f: FiltrosDoCa
   );
 }
 
-/** Ordem de lista: com busca, o título que começa com o termo vem antes; depois, popularidade. */
-export function ordenarLivros(livros: readonly LivroDoCatalogo[], texto?: string): LivroDoCatalogo[] {
-  const t = dobrar(texto ?? '');
-  const peso = (l: LivroDoCatalogo) => (t && dobrar(l.titulo).startsWith(t) ? 1 : 0);
-  return [...livros].sort((a, b) => peso(b) - peso(a) || b.popularidade - a.popularidade);
+/**
+ * Quão bem o livro responde à busca (maior = melhor): título exato no idioma preferido, título que começa com
+ * o termo, título com os termos, título da obra em outro idioma, e por último autor, tradutor ou erro de digitação.
+ */
+export function pontuacaoDaBusca(l: Buscavel & { idioma?: string }, texto: string, idiomaPreferido?: string): number {
+  const t = dobrar(texto);
+  if (!t) return 0;
+  const termos = termosDe(texto);
+  const titulo = dobrar(l.titulo);
+  const noTitulo = (alvo: string) => termos.every((x) => variantesDoTermo(x).some((v) => alvo.includes(v)));
+  let base = 0;
+  if (titulo === t) base = 5;
+  else if (titulo.startsWith(t)) base = 4;
+  else if (noTitulo(titulo)) base = 3;
+  else if ((l.titulosAlternativos ?? []).some((a) => dobrar(a) === t)) base = 2.5;
+  else if ((l.titulosAlternativos ?? []).some((a) => noTitulo(dobrar(a)))) base = 2;
+  else if (noTitulo(textoBuscavel(l))) base = 1;
+  return base + (idiomaPreferido && l.idioma === idiomaPreferido ? 0.5 : 0);
+}
+
+/** Ordem de lista: com busca, pela `pontuacaoDaBusca` (título no idioma > título alternativo > autor); depois, popularidade. */
+export function ordenarLivros(
+  livros: readonly LivroDoCatalogo[],
+  texto?: string,
+  idiomaPreferido?: string,
+): LivroDoCatalogo[] {
+  const t = texto ?? '';
+  const peso = new Map(livros.map((l) => [l, pontuacaoDaBusca(l, t, idiomaPreferido)]));
+  return [...livros].sort((a, b) => peso.get(b)! - peso.get(a)! || b.popularidade - a.popularidade);
 }
 
 /** Quantos livros cada valor de um filtro teria, para o filtro não oferecer opção que dá zero. */

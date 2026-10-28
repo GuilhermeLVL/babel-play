@@ -2,6 +2,7 @@ import React from 'react';
 
 import type { LivroDoCatalogo } from '../../../core/livros/tipos';
 import { t } from '../../../lib/i18n';
+import { rotuloDoIdioma } from './rotulos';
 
 /** Um tom estável por livro (o mesmo livro tem sempre a mesma lombada), só para distinguir as capas. */
 function tomDe(id: string): number {
@@ -25,22 +26,41 @@ export const autoresDe = (l: Pick<LivroDoCatalogo, 'autores'>) => l.autores.map(
  */
 export function CapaDoLivro({ livro, grande = false }: { livro: LivroDoCatalogo; grande?: boolean }) {
   return (
+    <CapaDesenhada id={livro.id} titulo={livro.titulo} autor={autoresDe(livro)} idioma={livro.idioma} grande={grande} />
+  );
+}
+
+/** A mesma capa para quem não tem a ficha do catálogo (o livro que a pessoa trouxe): só precisa de id e título. */
+export function CapaDesenhada({
+  id,
+  titulo,
+  autor,
+  idioma,
+  grande = false,
+}: {
+  id: string;
+  titulo: string;
+  autor?: string;
+  idioma?: string;
+  grande?: boolean;
+}) {
+  return (
     <span
       className={`lv-capa${grande ? ' grande' : ''}`}
-      style={{ '--lv-tom': tomDe(livro.id) } as React.CSSProperties}
+      style={{ '--lv-tom': tomDe(id) } as React.CSSProperties}
       aria-hidden
     >
       {grande ? (
         <>
-          <span className="lv-capa-titulo" lang={livro.idioma}>
-            {livro.titulo}
+          <span className="lv-capa-titulo" lang={idioma}>
+            {titulo}
           </span>
-          <span className="lv-capa-autor">{autoresDe(livro)}</span>
+          <span className="lv-capa-autor">{autor}</span>
         </>
       ) : (
         /* Na fileira o título já vem logo abaixo: a capa pequena leva só a inicial, sem repetir texto. */
-        <span className="lv-capa-inicial" lang={livro.idioma}>
-          {inicialDe(livro.titulo)}
+        <span className="lv-capa-inicial" lang={idioma}>
+          {inicialDe(titulo)}
         </span>
       )}
     </span>
@@ -54,7 +74,17 @@ export function rotuloDoTempo(minutos: number): string {
 }
 
 /** O livro numa prateleira ou na lista de resultados: um alvo só, que abre o detalhe. */
-export default function CartaoDoLivro({ livro, aoAbrir }: { livro: LivroDoCatalogo; aoAbrir: () => void }) {
+export default function CartaoDoLivro({
+  livro,
+  aoAbrir,
+  tambemEm = [],
+}: {
+  livro: LivroDoCatalogo;
+  aoAbrir: () => void;
+  /** Os idiomas das OUTRAS edições visíveis desta obra (códigos); o próprio idioma do livro não entra. */
+  tambemEm?: readonly string[];
+}) {
+  const nomes = tambemEm.map((i) => rotuloDoIdioma(i).toLowerCase());
   return (
     <li className="lv-item">
       <button type="button" className="lv-cartao" onClick={aoAbrir} data-livro={livro.id}>
@@ -70,6 +100,20 @@ export default function CartaoDoLivro({ livro, aoAbrir }: { livro: LivroDoCatalo
             )}
             <span className="lv-selo fraco">{rotuloDoTempo(livro.minutosEstimados)}</span>
           </span>
+          {tambemEm.length > 0 && (
+            <span
+              className="lv-tambem"
+              data-testid="tambem-em"
+              title={t('Também em {idiomas}', { idiomas: nomes.join(', ') })}
+            >
+              <span className="sr-only">{t('Também em {idiomas}', { idiomas: nomes.join(', ') })}</span>
+              {tambemEm.map((i) => (
+                <span key={i} className="lv-selo idioma" aria-hidden>
+                  {i}
+                </span>
+              ))}
+            </span>
+          )}
         </span>
       </button>
     </li>

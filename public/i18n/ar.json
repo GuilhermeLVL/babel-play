@@ -1955,5 +1955,27 @@
   "Você usou a IA de nuvem deste mês; ela volta no dia {data}. O que já foi polido continua guardado.": "لقد استخدمت الذكاء الاصطناعي السحابي لهذا الشهر؛ سيعود في {data}. ما تم تحسينه يبقى محفوظًا.",
   "Você chegou ao limite de hoje. Amanhã o polimento continua de onde parou.": "لقد وصلت إلى حد اليوم. غدًا يستمر التحسين من حيث توقف.",
   "Não ajudou": "لم يساعد",
-  "Obrigado pelo aviso. Ele ajuda a melhorar as respostas.": "شكرًا على التنبيه. هذا يساعد على تحسين الإجابات."
+  "Obrigado pelo aviso. Ele ajuda a melhorar as respostas.": "شكرًا على التنبيه. هذا يساعد على تحسين الإجابات.",
+  "Guardados neste aparelho, com a sua posição de leitura e os seus grifos.": "محفوظة على هذا الجهاز، مع موضع قراءتك وتظليلاتك.",
+  "Buscar em Meus livros": "البحث في كتبي",
+  "Filtrar por status": "التصفية حسب الحالة",
+  "Nenhum livro encontrado": "لم يُعثر على أي كتاب",
+  "Tente outro termo ou limpe os filtros.": "جرّب كلمة أخرى أو امسح عوامل التصفية.",
+  "Última leitura em {data}": "آخر قراءة في {data}",
+  "Faltam cerca de {tempo}": "يتبقى نحو {tempo}",
+  "Progresso de {titulo}": "تقدّم {titulo}",
+  "Capítulo atual: {capitulo}": "الفصل الحالي: {capitulo}",
+  "Marcar como {status}": "تحديد كـ {status}",
+  "{n} anotações": {
+    "zero": "{n} ملاحظة",
+    "one": "ملاحظة واحدة",
+    "two": "ملاحظتان",
+    "few": "{n} ملاحظات",
+    "many": "{n} ملاحظة",
+    "other": "{n} ملاحظة"
+  },
+  "Ler esta obra em outros idiomas": "اقرأ هذا العمل بلغات أخرى",
+  "Ler em {idioma}": "اقرأ بـ{idioma}",
+  "Também em {idiomas}": "متوفر أيضًا بـ{idiomas}",
+  "Abrir em {idioma}": "افتح بـ{idioma}"
 }

@@ -36,4 +36,7 @@ regexes = [
   '''AIzaSyA1234567890abcdef''',
   '''sk-proj-AAAABBBBCCCCDDDD''',
   '''gsk_1234567890abcdefgh''',
+  # A chave do localStorage de "Meus livros" (`frasy.livros.meus.v1`): nome de chave de armazenamento no
+  # teste `tests/livros-meus-tela.test.tsx` (`StorageEvent({ key })`), nao credencial. Por VALOR, so ela.
+  '''frasy\.livros\.meus\.v1''',
 ]

@@ -12,6 +12,7 @@ import {
   type Tamanho,
   tamanhoDe,
 } from '../../../core/livros/catalogo';
+import { agruparPorObra, chaveDaObra, idiomasDasEdicoes } from '../../../core/livros/obras';
 import {
   type CategoriaDoLivro,
   CATEGORIAS_DO_LIVRO,
@@ -38,6 +39,7 @@ function Prateleira({
   aoAbrir,
   controle,
   id,
+  tambemEm,
 }: {
   titulo: string;
   descricao?: string;
@@ -45,6 +47,7 @@ function Prateleira({
   aoAbrir: (l: LivroDoCatalogo) => void;
   controle?: React.ReactNode;
   id: string;
+  tambemEm: (l: LivroDoCatalogo) => string[];
 }) {
   return (
     <section className="q-secao lv-prateleira" aria-labelledby={id} data-prateleira={id}>
@@ -58,7 +61,7 @@ function Prateleira({
       {livros.length > 0 ? (
         <ul className="lv-fileira">
           {livros.map((l) => (
-            <CartaoDoLivro key={l.id} livro={l} aoAbrir={() => aoAbrir(l)} />
+            <CartaoDoLivro key={l.id} livro={l} aoAbrir={() => aoAbrir(l)} tambemEm={tambemEm(l)} />
           ))}
         </ul>
       ) : (
@@ -108,6 +111,10 @@ export default function Vitrine({
     [porIdioma],
   );
   const doIdioma = useMemo(() => livros.filter((l) => l.idioma === idioma), [livros, idioma]);
+  /* A mesma obra em outros idiomas: só edições que ESTE leitor pode ver (`livros` já passou por `livrosVisiveis`). */
+  const porObra = useMemo(() => agruparPorObra(livros), [livros]);
+  const tambemEm = (l: LivroDoCatalogo) =>
+    idiomasDasEdicoes(porObra.get(chaveDaObra(l)) ?? []).filter((i) => i !== l.idioma);
 
   const filtros: FiltrosDoCatalogo = {
     texto,
@@ -119,13 +126,27 @@ export default function Vitrine({
   };
   const ativos = niveis.length + (categoria ? 1 : 0) + (tamanho ? 1 : 0) + (fonte ? 1 : 0);
   const filtrando = !!texto.trim() || ativos > 0;
-  const resultados = filtrando ? ordenarLivros(filtrarLivros(livros, filtros), texto) : [];
-  /* A mesma busca nos outros idiomas: "nada em inglês" não é "nada". */
-  const emOutros =
+  const resultados = filtrando ? ordenarLivros(filtrarLivros(livros, filtros), texto, idioma) : [];
+  /* A mesma busca nos outros idiomas: "nada em inglês" não é "nada". Conta OBRAS (não edições) que ainda não
+     aparecem nos resultados, e leva à edição certa quando só há uma. */
+  const obrasNosResultados = new Set(resultados.map(chaveDaObra));
+  const obrasEmOutros =
     filtrando && texto.trim()
-      ? filtrarLivros(livros, { ...filtros, idioma: null }).filter((l) => l.idioma !== idioma)
+      ? [
+          ...agruparPorObra(
+            ordenarLivros(
+              filtrarLivros(livros, { ...filtros, idioma: null }).filter((l) => l.idioma !== idioma),
+              texto,
+            ),
+          ),
+        ].filter(([k]) => !obrasNosResultados.has(k))
       : [];
-  const outroIdioma = emOutros.length ? [...contarPor(emOutros, (l) => l.idioma)].sort((a, b) => b[1] - a[1])[0] : null;
+  const obrasPorIdioma = new Map<string, LivroDoCatalogo[]>();
+  for (const [, edicoes] of obrasEmOutros)
+    for (const i of new Set(edicoes.map((l) => l.idioma)))
+      obrasPorIdioma.set(i, [...(obrasPorIdioma.get(i) ?? []), edicoes.find((l) => l.idioma === i)!]);
+  const outroIdioma = [...obrasPorIdioma].sort((a, b) => b[1].length - a[1].length)[0] ?? null;
+  const edicaoDireta = outroIdioma && outroIdioma[1].length === 1 ? outroIdioma[1][0] : null;
 
   const comece = comecePorAqui(doIdioma, idioma);
   const idsDoComece = new Set(comece.map((l) => l.id));
@@ -260,12 +281,23 @@ export default function Vitrine({
               </h2>
               {outroIdioma && (
                 <p>
-                  {tp(outroIdioma[1], 'Há {n} resultado em {idioma}.', 'Há {n} resultados em {idioma}.', {
+                  {tp(outroIdioma[1].length, 'Há {n} resultado em {idioma}.', 'Há {n} resultados em {idioma}.', {
                     idioma: rotuloDoIdioma(outroIdioma[0]).toLowerCase(),
                   })}{' '}
-                  <button type="button" className="lv-link" onClick={() => aoTrocarIdioma(outroIdioma[0])}>
-                    {t('Ver em {idioma}', { idioma: rotuloDoIdioma(outroIdioma[0]).toLowerCase() })}
-                  </button>
+                  {edicaoDireta ? (
+                    <button
+                      type="button"
+                      className="lv-link"
+                      data-testid="abrir-em-outro-idioma"
+                      onClick={() => aoAbrir(edicaoDireta)}
+                    >
+                      {t('Abrir em {idioma}', { idioma: rotuloDoIdioma(outroIdioma[0]).toLowerCase() })}
+                    </button>
+                  ) : (
+                    <button type="button" className="lv-link" onClick={() => aoTrocarIdioma(outroIdioma[0])}>
+                      {t('Ver em {idioma}', { idioma: rotuloDoIdioma(outroIdioma[0]).toLowerCase() })}
+                    </button>
+                  )}
                 </p>
               )}
             </div>
@@ -276,7 +308,7 @@ export default function Vitrine({
           {resultados.length > 0 && (
             <ul className="lv-grade">
               {resultados.map((l) => (
-                <CartaoDoLivro key={l.id} livro={l} aoAbrir={() => aoAbrir(l)} />
+                <CartaoDoLivro key={l.id} livro={l} aoAbrir={() => aoAbrir(l)} tambemEm={tambemEm(l)} />
               ))}
             </ul>
           )}
@@ -299,6 +331,7 @@ export default function Vitrine({
             descricao={t('Os mais lidos entre os mais fáceis deste idioma.')}
             livros={comece}
             aoAbrir={aoAbrir}
+            tambemEm={tambemEm}
           />
           <Prateleira
             id="lv-seu-nivel"
@@ -311,6 +344,7 @@ export default function Vitrine({
               nivel,
             )}
             aoAbrir={aoAbrir}
+            tambemEm={tambemEm}
             controle={
               <label className="q-campo lv-nivel">
                 <span>{t('Seu nível')}</span>
@@ -335,6 +369,7 @@ export default function Vitrine({
               titulo={rotuloDaCategoria(p.categoria)}
               livros={p.livros}
               aoAbrir={aoAbrir}
+              tambemEm={tambemEm}
             />
           ))}
           <details className="lv-porque-dobra">

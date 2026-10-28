@@ -491,7 +491,7 @@ export function PainelDaNarracao({
           type="button"
           className="btn btn-outline leitor-alvo"
           data-testid="salvar-meu-estilo"
-          disabled={atual === 'meu'}
+          disabled={atual !== 'personalizado'}
           onClick={() => {
             gravarMeuEstilo(opcoes);
             setMeu(lerMeuEstilo());

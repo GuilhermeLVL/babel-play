@@ -6,10 +6,7 @@
       "id": "pt-01",
       "idioma": "pt",
       "tema": "travessão alternado",
-      "personagens": [
-        "Marta",
-        "Caio"
-      ],
+      "personagens": ["Marta", "Caio"],
       "frases": [
         {
           "texto": "Marta abriu o portão e encontrou Caio sentado na calçada.",
@@ -57,10 +54,7 @@
       "id": "pt-02",
       "idioma": "pt",
       "tema": "aspas com verbo de fala",
-      "personagens": [
-        "Helena",
-        "Otávio"
-      ],
+      "personagens": ["Helena", "Otávio"],
       "frases": [
         {
           "texto": "Helena entregou o envelope ao irmão sem dizer nada.",
@@ -100,9 +94,7 @@
       "id": "pt-03",
       "idioma": "pt",
       "tema": "fala indireta",
-      "personagens": [
-        "Rui"
-      ],
+      "personagens": ["Rui"],
       "frases": [
         {
           "texto": "Rui disse que chegaria tarde por causa da reunião.",
@@ -182,10 +174,7 @@
       "id": "pt-05",
       "idioma": "pt",
       "tema": "grito",
-      "personagens": [
-        "Lúcia",
-        "Bento"
-      ],
+      "personagens": ["Lúcia", "Bento"],
       "frases": [
         {
           "texto": "Bento viu a panela no chão e a sopa espalhada pela cozinha inteira.",
@@ -225,10 +214,7 @@
       "id": "pt-06",
       "idioma": "pt",
       "tema": "sussurro",
-      "personagens": [
-        "Dona Irene",
-        "Davi"
-      ],
+      "personagens": ["Dona Irene", "Davi"],
       "frases": [
         {
           "texto": "Davi encostou a boca no ouvido da avó.",
@@ -268,10 +254,7 @@
       "id": "pt-07",
       "idioma": "pt",
       "tema": "ironia ambígua",
-      "personagens": [
-        "Paula",
-        "Tiago"
-      ],
+      "personagens": ["Paula", "Tiago"],
       "frases": [
         {
           "texto": "Tiago derrubou o café sobre o relatório que Paula tinha acabado de imprimir.",
@@ -311,11 +294,7 @@
       "id": "pt-08",
       "idioma": "pt",
       "tema": "três personagens",
-      "personagens": [
-        "Nina",
-        "Ícaro",
-        "Vó Cecília"
-      ],
+      "personagens": ["Nina", "Ícaro", "Vó Cecília"],
       "frases": [
         {
           "texto": "Nina, Ícaro e a avó esperavam o bolo esfriar.",
@@ -371,10 +350,7 @@
       "id": "pt-09",
       "idioma": "pt",
       "tema": "pronome sem nome",
-      "personagens": [
-        "Sérgio",
-        "Clara"
-      ],
+      "personagens": ["Sérgio", "Clara"],
       "frases": [
         {
           "texto": "Sérgio e Clara chegaram juntos à estação.",
@@ -414,10 +390,7 @@
       "id": "pt-10",
       "idioma": "pt",
       "tema": "mudança de falante sem verbo",
-      "personagens": [
-        "Jonas",
-        "Elisa"
-      ],
+      "personagens": ["Jonas", "Elisa"],
       "frases": [
         {
           "texto": "Jonas encontrou Elisa na porta da biblioteca.",
@@ -473,10 +446,7 @@
       "id": "pt-11",
       "idioma": "pt",
       "tema": "aspas desbalanceadas",
-      "personagens": [
-        "Vitor",
-        "Sofia"
-      ],
+      "personagens": ["Vitor", "Sofia"],
       "frases": [
         {
           "texto": "Vitor leu o bilhete duas vezes.",
@@ -524,10 +494,7 @@
       "id": "pt-12",
       "idioma": "pt",
       "tema": "aspas francesas e curvas, vocativo",
-      "personagens": [
-        "Rosa",
-        "Miguel"
-      ],
+      "personagens": ["Rosa", "Miguel"],
       "frases": [
         {
           "texto": "Rosa segurava a carta com as duas mãos.",
@@ -567,10 +534,7 @@
       "id": "en-01",
       "idioma": "en",
       "tema": "dash dialogue, alternating",
-      "personagens": [
-        "Mara",
-        "Joel"
-      ],
+      "personagens": ["Mara", "Joel"],
       "frases": [
         {
           "texto": "Mara found Joel waiting on the porch with a suitcase.",
@@ -618,10 +582,7 @@
       "id": "en-02",
       "idioma": "en",
       "tema": "quotes with speech verb",
-      "personagens": [
-        "Edith",
-        "Walter"
-      ],
+      "personagens": ["Edith", "Walter"],
       "frases": [
         {
           "texto": "Edith put the kettle on and turned to her brother.",
@@ -661,9 +622,7 @@
       "id": "en-03",
       "idioma": "en",
       "tema": "indirect speech",
-      "personagens": [
-        "Carlos"
-      ],
+      "personagens": ["Carlos"],
       "frases": [
         {
           "texto": "Carlos said he would be late because of the meeting.",
@@ -743,10 +702,7 @@
       "id": "en-05",
       "idioma": "en",
       "tema": "shout",
-      "personagens": [
-        "Greta",
-        "Hugo"
-      ],
+      "personagens": ["Greta", "Hugo"],
       "frases": [
         {
           "texto": "Hugo saw the pot on the floor and the soup spread across the whole kitchen.",
@@ -786,10 +742,7 @@
       "id": "en-06",
       "idioma": "en",
       "tema": "whisper",
-      "personagens": [
-        "Ivy",
-        "Gran"
-      ],
+      "personagens": ["Ivy", "Gran"],
       "frases": [
         {
           "texto": "Ivy leaned toward her grandmother's ear.",
@@ -829,10 +782,7 @@
       "id": "en-07",
       "idioma": "en",
       "tema": "ambiguous irony",
-      "personagens": [
-        "Pam",
-        "Theo"
-      ],
+      "personagens": ["Pam", "Theo"],
       "frases": [
         {
           "texto": "Theo spilled coffee over the report Pam had just printed.",
@@ -872,11 +822,7 @@
       "id": "en-08",
       "idioma": "en",
       "tema": "three characters",
-      "personagens": [
-        "Nora",
-        "Ike",
-        "Aunt Cecily"
-      ],
+      "personagens": ["Nora", "Ike", "Aunt Cecily"],
       "frases": [
         {
           "texto": "Nora, Ike and their aunt waited for the cake to cool.",
@@ -932,10 +878,7 @@
       "id": "en-09",
       "idioma": "en",
       "tema": "pronoun without name",
-      "personagens": [
-        "Silas",
-        "Clara"
-      ],
+      "personagens": ["Silas", "Clara"],
       "frases": [
         {
           "texto": "Silas and Clara reached the station together.",
@@ -975,10 +918,7 @@
       "id": "en-10",
       "idioma": "en",
       "tema": "speaker change without verb",
-      "personagens": [
-        "Jonah",
-        "Elsie"
-      ],
+      "personagens": ["Jonah", "Elsie"],
       "frases": [
         {
           "texto": "Jonah met Elsie at the library door.",
@@ -1034,10 +974,7 @@
       "id": "en-11",
       "idioma": "en",
       "tema": "unbalanced quotes",
-      "personagens": [
-        "Victor",
-        "Sophie"
-      ],
+      "personagens": ["Victor", "Sophie"],
       "frases": [
         {
           "texto": "Victor read the note twice.",
@@ -1085,10 +1022,7 @@
       "id": "en-12",
       "idioma": "en",
       "tema": "curly quotes, vocative",
-      "personagens": [
-        "Rose",
-        "Miles"
-      ],
+      "personagens": ["Rose", "Miles"],
       "frases": [
         {
           "texto": "Rose held the letter with both hands.",
@@ -1128,10 +1062,7 @@
       "id": "es-01",
       "idioma": "es",
       "tema": "raya alternada",
-      "personagens": [
-        "Marta",
-        "Hugo"
-      ],
+      "personagens": ["Marta", "Hugo"],
       "frases": [
         {
           "texto": "Marta abrió el portón y encontró a Hugo sentado en la acera.",
@@ -1179,10 +1110,7 @@
       "id": "es-02",
       "idioma": "es",
       "tema": "comillas con verbo de habla",
-      "personagens": [
-        "Elena",
-        "Octavio"
-      ],
+      "personagens": ["Elena", "Octavio"],
       "frases": [
         {
           "texto": "Elena le entregó el sobre a su hermano sin decir nada.",
@@ -1222,9 +1150,7 @@
       "id": "es-03",
       "idioma": "es",
       "tema": "habla indirecta",
-      "personagens": [
-        "Raúl"
-      ],
+      "personagens": ["Raúl"],
       "frases": [
         {
           "texto": "Raúl dijo que llegaría tarde por la reunión.",
@@ -1304,10 +1230,7 @@
       "id": "es-05",
       "idioma": "es",
       "tema": "grito",
-      "personagens": [
-        "Lucía",
-        "Benito"
-      ],
+      "personagens": ["Lucía", "Benito"],
       "frases": [
         {
           "texto": "Benito vio la olla en el suelo y la sopa regada por toda la cocina.",
@@ -1347,10 +1270,7 @@
       "id": "es-06",
       "idioma": "es",
       "tema": "susurro",
-      "personagens": [
-        "Doña Irene",
-        "David"
-      ],
+      "personagens": ["Doña Irene", "David"],
       "frases": [
         {
           "texto": "David acercó la boca al oído de su abuela.",
@@ -1390,10 +1310,7 @@
       "id": "es-07",
       "idioma": "es",
       "tema": "ironía ambigua",
-      "personagens": [
-        "Paula",
-        "Tomás"
-      ],
+      "personagens": ["Paula", "Tomás"],
       "frases": [
         {
           "texto": "Tomás derramó el café sobre el informe que Paula acababa de imprimir.",
@@ -1433,11 +1350,7 @@
       "id": "es-08",
       "idioma": "es",
       "tema": "tres personajes",
-      "personagens": [
-        "Nina",
-        "Ícaro",
-        "Abuela Cecilia"
-      ],
+      "personagens": ["Nina", "Ícaro", "Abuela Cecilia"],
       "frases": [
         {
           "texto": "Nina, Ícaro y la abuela esperaban a que el pastel se enfriara.",
@@ -1493,10 +1406,7 @@
       "id": "es-09",
       "idioma": "es",
       "tema": "pronombre sin nombre",
-      "personagens": [
-        "Sergio",
-        "Clara"
-      ],
+      "personagens": ["Sergio", "Clara"],
       "frases": [
         {
           "texto": "Sergio y Clara llegaron juntos a la estación.",
@@ -1536,10 +1446,7 @@
       "id": "es-10",
       "idioma": "es",
       "tema": "cambio de hablante sin verbo",
-      "personagens": [
-        "Jonás",
-        "Elisa"
-      ],
+      "personagens": ["Jonás", "Elisa"],
       "frases": [
         {
           "texto": "Jonás encontró a Elisa en la puerta de la biblioteca.",
@@ -1595,10 +1502,7 @@
       "id": "es-11",
       "idioma": "es",
       "tema": "comillas desbalanceadas",
-      "personagens": [
-        "Víctor",
-        "Sofía"
-      ],
+      "personagens": ["Víctor", "Sofía"],
       "frases": [
         {
           "texto": "Víctor leyó la nota dos veces.",
@@ -1646,10 +1550,7 @@
       "id": "es-12",
       "idioma": "es",
       "tema": "comillas curvas, vocativo",
-      "personagens": [
-        "Rosa",
-        "Miguel"
-      ],
+      "personagens": ["Rosa", "Miguel"],
       "frases": [
         {
           "texto": "Rosa sostenía la carta con las dos manos.",

@@ -19,6 +19,7 @@ import type { CapituloDeTexto } from '../../core/livros/epub';
 import type { StatusDeLeitura } from '../../core/livros/meusLivros';
 import { idDoCatalogo } from './abrir';
 import { estante } from './armazem';
+import { garantirCapaDoArquivo, removerCapa } from './capasLocais';
 import { posicoes } from './posicoesDoAparelho';
 
 export type OrigemDoMeuLivro = 'catalogo' | 'arquivo' | 'link';
@@ -132,6 +133,8 @@ export async function removerMeuLivro(id: string): Promise<void> {
   gravar(lerMeusLivros().filter((l) => l.id !== id));
   await apagarConteudo(id).catch(() => undefined);
   await estante.apagarLivro(idDaEstante).catch(() => undefined);
+  /* A capa que a pessoa escolheu para um livro do catálogo é preferência dela e fica; a do arquivo sai com ele. */
+  if (alvo?.origem !== 'catalogo') await removerCapa(idDaEstante);
   posicoes.esquecer(idDaEstante);
 }
 
@@ -271,6 +274,7 @@ export async function guardarConteudo(c: ConteudoDoMeuLivro): Promise<ResultadoD
     void tx.objectStore('conteudo').put(registro);
     void tx.objectStore('meta').put(novo);
     await tx.done;
+    void garantirCapaDoArquivo(c.id, c.arquivo);
     return { guardado: true, removidos };
   } catch {
     return { guardado: false, motivo: 'indisponivel' };

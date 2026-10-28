@@ -86,6 +86,8 @@ export type EventoDaNarracao =
   | { tipo: 'parar' }
   | { tipo: 'proxima' }
   | { tipo: 'anterior' }
+  /** Vai a outra frase do capítulo mantendo a fase (tocando segue tocando, pausada segue pausada). */
+  | { tipo: 'ir'; indice: number }
   | { tipo: 'fimDaFrase'; vez: number }
   | { tipo: 'erro'; vez: number }
   /** As frases mudaram (outro capítulo): `continuar` = seguir falando a partir de `indice`. */
@@ -119,6 +121,9 @@ export function narrar(e: EstadoDaNarracao, ev: EventoDaNarracao): EstadoDaNarra
     case 'anterior':
       if (e.fase === 'parada' || e.fase === 'virando') return e;
       return { ...e, indice: Math.max(0, e.indice - 1), vez };
+    case 'ir':
+      if (e.fase === 'parada' || e.fase === 'virando' || !e.total) return e;
+      return { ...e, indice: limitar(ev.indice, e.total), vez };
     case 'fimDaFrase':
       if (e.fase !== 'tocando' || ev.vez !== e.vez) return e;
       if (e.indice + 1 < e.total) return { ...e, indice: e.indice + 1, vez };

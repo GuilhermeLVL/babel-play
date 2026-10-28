@@ -438,6 +438,17 @@ export class MotorDoLeitor {
     return depois != null && depois !== antes;
   }
 
+  /** O capítulo anterior (botão do narrador). `false` = já era o primeiro. */
+  async capituloAnterior(): Promise<boolean> {
+    const r = this.view.renderer as unknown as { prevSection?: () => Promise<void> };
+    const antes = this.documentos()[0]?.index;
+    if (!r.prevSection) return false;
+    await this.virar(() => r.prevSection!());
+    for (const { doc } of this.documentos()) doc.defaultView?.getSelection()?.removeAllRanges();
+    const depois = this.documentos()[0]?.index;
+    return depois != null && depois !== antes;
+  }
+
   /** Troca o conjunto de anotações desenhadas. */
   async desenharAnotacoes(lista: AnotacaoDesenhada[]) {
     const novas = new Map(lista.filter((a) => a.cfi).map((a) => [a.cfi, a]));

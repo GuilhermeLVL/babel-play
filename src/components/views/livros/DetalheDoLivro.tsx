@@ -1,14 +1,18 @@
-import { ArrowLeft, BookmarkCheck, BookmarkPlus, BookOpen, ExternalLink, ShieldCheck } from 'lucide-react';
-import React from 'react';
+import { ArrowLeft, BookmarkCheck, BookmarkPlus, BookOpen, ExternalLink, ImagePlus, ShieldCheck } from 'lucide-react';
+import React, { useState } from 'react';
 
+import { capaDoLivro } from '../../../core/livros/capas';
 import { tamanhoDe } from '../../../core/livros/catalogo';
 import type { LivroDoCatalogo, Pessoa } from '../../../core/livros/tipos';
 import { t } from '../../../lib/i18n';
 import { direcaoDoTexto } from '../../../lib/languages';
+import { idDoCatalogo } from '../../../lib/livros/abrir';
+import { useCapaLocal } from '../../../lib/livros/capasLocais';
 import { guardarMeuLivro, removerMeuLivro, useMeusLivros } from '../../../lib/livros/meusLivros';
 import { autoresDe, CapaDoLivro, rotuloDoTempo } from './CartaoDoLivro';
 import OutrosIdiomasDaObra from './OutrosIdiomasDaObra';
 import { rotuloDaCategoria, rotuloDaClassificacao, rotuloDaFonte, rotuloDoIdioma, rotuloDoTamanho } from './rotulos';
+import TrocarCapa from './TrocarCapa';
 
 const comAno = (p: Pessoa) => (p.anoMorte != null ? `${p.nome} (†${p.anoMorte})` : p.nome);
 const numero = (n: number) => n.toLocaleString('pt-BR');
@@ -35,6 +39,9 @@ export default function DetalheDoLivro({
   aoLerEdicao?: (l: LivroDoCatalogo) => void;
 }) {
   const meus = useMeusLivros();
+  const [trocando, setTrocando] = useState(false);
+  const capaLocal = useCapaLocal(idDoCatalogo(livro.id));
+  const capaDoCatalogo = capaDoLivro(livro);
   const guardado = meus.some((m) => m.id === livro.id);
   const anoDoSelo = Math.max(...livro.autores.map((a) => a.anoMorte ?? 0));
   const selo = [
@@ -78,7 +85,13 @@ export default function DetalheDoLivro({
       </header>
 
       <div className="lv-detalhe-corpo">
-        <CapaDoLivro livro={livro} grande />
+        <div className="lv-detalhe-capa">
+          <CapaDoLivro livro={livro} grande decorativa={false} />
+          {capaDoCatalogo && !capaLocal && <small className="lv-capa-credito">{capaDoCatalogo.credito}</small>}
+          <button type="button" className="q-chip" onClick={() => setTrocando(true)} data-testid="trocar-capa-abrir">
+            <ImagePlus aria-hidden /> {t('Trocar capa')}
+          </button>
+        </div>
         <div className="lv-detalhe-info">
           <p className="lv-autores">
             {t('de {autores}', { autores: livro.autores.map(comAno).join(', ') })}
@@ -171,6 +184,9 @@ export default function DetalheDoLivro({
           </p>
         </div>
       </div>
+      {trocando && (
+        <TrocarCapa livroId={idDoCatalogo(livro.id)} titulo={livro.titulo} aoFechar={() => setTrocando(false)} />
+      )}
     </div>
   );
 }

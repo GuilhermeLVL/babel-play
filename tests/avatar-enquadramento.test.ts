@@ -10,9 +10,10 @@ import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { mapearMateriais } from '../src/core/avatar/aparencia'
+import { receitaNova } from '../src/core/avatar/edicao'
 import {
   caixaCabeNoQuadro,
   camerasAutomaticas,
@@ -27,6 +28,7 @@ import {
 import { avaliarLicenca } from '../src/core/avatar/licencaVrm'
 import { sugerirModelo } from '../src/core/avatar/sugestao'
 import { COLECAO_CURADA, COLECAO_SUGERIVEL, modeloDaColecao } from '../src/data/avatar/colecao'
+import { fonteDaReceita, urlDoModeloDaColecao } from '../src/lib/avatar/fontes'
 
 const RAIZ = path.resolve(__dirname, '..')
 const PASTA = path.join(RAIZ, 'public', 'avatares', 'colecao')
@@ -229,5 +231,27 @@ describe('coleção: arquivos, licença e crédito', () => {
     expect(licencas).toContain('ToxSam/open-source-avatars')
     expect(licencas).toContain('VITE_AVATARES_URL')
     expect(licencas.toLowerCase()).toContain('nada da quaternius')
+  })
+})
+
+describe('coleção: de onde vem o arquivo (VITE_AVATARES_URL)', () => {
+  afterEach(() => vi.unstubAllEnvs())
+
+  it('sem a variável, do próprio domínio em /avatares/colecao/ (inclusive em desenvolvimento)', async () => {
+    vi.stubEnv('VITE_AVATARES_URL', '')
+    for (const m of COLECAO_CURADA) {
+      expect(urlDoModeloDaColecao(m.id)).toBe(`/avatares/colecao/${m.id}.vrm`)
+      expect(await fonteDaReceita(receitaNova({ origem: 'colecao', id: m.id }, '', 1))).toBe(
+        `/avatares/colecao/${m.id}.vrm`,
+      )
+    }
+  })
+
+  it('com a variável, do bucket (barra final ignorada)', async () => {
+    vi.stubEnv('VITE_AVATARES_URL', 'https://avatares.frasy.com.br/')
+    expect(urlDoModeloDaColecao('milk')).toBe('https://avatares.frasy.com.br/colecao/milk.vrm')
+    expect(await fonteDaReceita(receitaNova({ origem: 'colecao', id: 'bullidan' }, '', 1))).toBe(
+      'https://avatares.frasy.com.br/colecao/bullidan.vrm',
+    )
   })
 })

@@ -74,7 +74,7 @@ interface Ponte {
   medidas(): MedidasDoModelo | null
   modo(m: ModoDeCamera): void
   /** Quadro atual: pixels não vazios por borda (0 = nada encosta no limite) e total. */
-  bordas(): { total: number; naoVazios: number; naBorda: number } | null
+  bordas(): { total: number; naoVazios: number; naBorda: number; topo: number; base: number; lados: number } | null
   stats(): { antialias: boolean; pixelRatio: number } | null
 }
 declare global {
@@ -235,13 +235,20 @@ function Harness() {
         gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px)
         let naoVazios = 0
         let naBorda = 0
+        let topo = 0
+        let base = 0
+        let lados = 0
         for (let y = 0; y < h; y++)
           for (let x = 0; x < w; x++) {
             if (px[(y * w + x) * 4 + 3] === 0) continue
             naoVazios++
+            // A origem do `readPixels` é o canto de BAIXO: y === 0 é a base do quadro.
+            if (y === h - 1) topo++
+            if (y === 0) base++
+            if (x === 0 || x === w - 1) lados++
             if (x === 0 || y === 0 || x === w - 1 || y === h - 1) naBorda++
           }
-        return { total: w * h, naoVazios, naBorda }
+        return { total: w * h, naoVazios, naBorda, topo, base, lados }
       },
       desmontar: () => setMontado(false),
       erros: window.__avatarHarness?.erros ?? [],

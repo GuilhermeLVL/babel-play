@@ -30,7 +30,11 @@ export default function AbasDoQuest({
     const destino =
       e.key === 'Home' ? 0 : e.key === 'End' ? itens.length - 1 : (indice + passo + itens.length) % itens.length;
     aoTrocar(itens[destino].id);
-    (e.currentTarget.parentElement?.children[destino] as HTMLElement | undefined)?.focus();
+    /* Pelo papel, e não por `children[destino]`: a camada de polimento põe um marcador dentro da faixa de abas,
+       e o índice dos filhos deixava de ser o das abas (o foco ia para a aba errada). */
+    (
+      e.currentTarget.parentElement?.querySelectorAll<HTMLElement>('[role="tab"]')[destino] as HTMLElement | undefined
+    )?.focus();
   };
 
   return (

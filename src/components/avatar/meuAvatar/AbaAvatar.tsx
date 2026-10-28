@@ -82,11 +82,14 @@ export default function AbaAvatar() {
   const [salvo, setSalvo] = useState<ReceitaDeAvatar | null>(() => lerMeuAvatarLocal(usuario));
   const [hist, setHist] = useState<Historico | null>(null);
   const [trazido, setTrazido] = useState<Trazido | null>(null);
-  const [suporte, setSuporte] = useState<SuporteDaPaleta | null>(null);
-  const [erroDaPrevia, setErroDaPrevia] = useState<MotivoDoFallback | null>(null);
+  // O que a prévia contou vale só para o modelo que a contou (guardado com o id da base, sem efeito de reset).
+  const [suporteDe, setSuporteDe] = useState<{ base: string; suporte: SuporteDaPaleta } | null>(null);
+  const [erroDe, setErroDe] = useState<{ base: string; motivo: MotivoDoFallback } | null>(null);
+  const [salvando, setSalvando] = useState(false);
   const [aviso, setAviso] = useState<{ tom: 'ok' | 'erro'; texto: string } | null>(null);
   const [apagando, setApagando] = useState(false);
   const capturar = useRef<(() => string | null) | null>(null);
+  const erroNaBase = useRef(false);
 
   // A sugestão: um modelo da coleção, sorteado uma vez. Só vira avatar se a pessoa aceitar.
   const sugerida = useMemo<ReceitaDeAvatar | null>(() => {
@@ -118,14 +121,11 @@ export default function AbaAvatar() {
   const modelo = atual?.base.origem === 'colecao' ? modeloDaColecao(atual.base.id) : undefined;
   const blobDoTrazido = atual?.base.origem === 'importado' && trazido?.id === atual.base.id ? trazido.blob : undefined;
   const sujo = hist ? !salvo || !receitasIguais(hist.atual, salvo) : false;
-  const suporteEfetivo = suporte ?? modelo?.suporta ?? SEM_SUPORTE;
-
-  // Trocou de modelo: o que o anterior suportava não vale mais.
   const baseId = atual?.base.id;
-  useEffect(() => {
-    setSuporte(null);
-    setErroDaPrevia(null);
-  }, [baseId]);
+  const suporte = suporteDe && suporteDe.base === baseId ? suporteDe.suporte : null;
+  const erroDaPrevia = erroDe && erroDe.base === baseId ? erroDe.motivo : null;
+  erroNaBase.current = erroDaPrevia !== null;
+  const suporteEfetivo = suporte ?? modelo?.suporta ?? SEM_SUPORTE;
 
   const editar = useCallback((fn: (r: ReceitaDeAvatar) => ReceitaDeAvatar) => {
     setApagando(false);
@@ -175,11 +175,16 @@ export default function AbaAvatar() {
     if (!r) return;
     const importado = r.base.origem === 'importado';
     const arquivo = importado && trazido?.id === r.base.id && !trazido.salvo ? trazido.blob : undefined;
+    setSalvando(true);
+    // Se a prévia ainda está carregando, espera um pouco para guardar a miniatura junto (sem WebGL, não espera).
+    for (let i = 0; i < 80 && !capturar.current && !erroNaBase.current; i++)
+      await new Promise((ok) => setTimeout(ok, 100));
     const ok = await salvarMeuAvatar(usuario, r, {
       miniatura: capturar.current?.() ?? null,
       credito: importado ? (trazido?.credito ?? undefined) : null,
       modelo: arquivo,
     });
+    setSalvando(false);
     if (!ok) {
       setAviso({
         tom: 'erro',
@@ -231,11 +236,11 @@ export default function AbaAvatar() {
                 tamanho={280}
                 usuarioId={usuario}
                 fonte={blobDoTrazido}
-                aoAparencia={setSuporte}
+                aoAparencia={(sup) => setSuporteDe({ base: atual.base.id, suporte: sup })}
                 aoPronto={(c) => {
                   capturar.current = c;
                 }}
-                aoErro={setErroDaPrevia}
+                aoErro={(motivo) => setErroDe({ base: atual.base.id, motivo })}
               />
             ) : (
               <p className="av-vazio">{t('Ainda não há modelos disponíveis.')}</p>
@@ -251,7 +256,11 @@ export default function AbaAvatar() {
                   : ''}
             </p>
           )}
-          {credito && <p className="av-credito">{credito}</p>}
+          {credito && (
+            <p className="av-credito" data-testid="avatar-credito-linha">
+              {credito}
+            </p>
+          )}
           {erroDaPrevia && (
             <p className="av-credito" role="status" data-testid="avatar-sem-3d">
               {t('Não deu para mostrar o avatar em 3D neste aparelho. Você pode escolher e salvar mesmo assim.')}
@@ -262,7 +271,7 @@ export default function AbaAvatar() {
               type="button"
               className="q-ctl pri"
               onClick={() => void salvar()}
-              disabled={!atual || (!ehSugestao && !sujo)}
+              disabled={!atual || salvando || (!ehSugestao && !sujo)}
               data-testid="avatar-salvar"
             >
               <Save aria-hidden /> {ehSugestao ? t('Usar este avatar') : t('Salvar meu avatar')}

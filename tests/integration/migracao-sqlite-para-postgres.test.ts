@@ -332,8 +332,14 @@ describe('migração SQLite → Postgres', () => {
       const flags = r.tabelas.find((t) => t.nome === 'flags')!
       expect(flags.ok).toBe(true)
       expect(flags.checksumDestino).toBe(flags.checksumOrigem)
-      /* `parceiro_de_leitura` (PG 0014) nasceu depois da migração e só o Postgres a semeia: é extra em qualquer origem. */
-      expect(flags.extrasNoDestino).toEqual(['parceiro_de_leitura', 'stt_ao_vivo'])
+      /* `parceiro_de_leitura` (PG 0014) e as três `avatar_*` (PG 0015) nasceram depois da migração e só o Postgres a semeia: é extra em qualquer origem. */
+      expect(flags.extrasNoDestino).toEqual([
+        'avatar_3d',
+        'avatar_elenco',
+        'avatar_sinais',
+        'parceiro_de_leitura',
+        'stt_ao_vivo',
+      ])
       expect(r.ok).toBe(true)
     } finally {
       semUma.fechar()
@@ -345,7 +351,7 @@ describe('migração SQLite → Postgres', () => {
     const r = await mig.migrarSqliteParaPostgres({ origem: origem.url, destino: mdb.db })
     expect(r.tabelas.find((t) => t.nome === 'flags')).toMatchObject({
       ok: true,
-      extrasNoDestino: ['parceiro_de_leitura'], // só do Postgres (PG 0014), como no caso acima
+      extrasNoDestino: ['avatar_3d', 'avatar_elenco', 'avatar_sinais', 'parceiro_de_leitura'], // só do Postgres (PG 0014 e 0015), como no caso acima
     })
     const anuncios = mdb.linhas<{ habilitada: boolean; atualizado_por: string }>(
       await mdb.db.execute(sql`select habilitada, atualizado_por from flags where chave = 'anuncios'`),

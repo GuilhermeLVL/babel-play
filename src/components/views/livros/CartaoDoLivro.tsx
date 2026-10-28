@@ -1,32 +1,42 @@
-import React from 'react';
+import '../../../styles/questLivrosCapas.css';
 
+import React, { useState } from 'react';
+
+import { capaDoLivro } from '../../../core/livros/capas';
 import type { LivroDoCatalogo } from '../../../core/livros/tipos';
 import { t } from '../../../lib/i18n';
+import { idDoCatalogo } from '../../../lib/livros/abrir';
+import { useCapaLocal } from '../../../lib/livros/capasLocais';
+import CapaTipografica from './CapaTipografica';
 import { rotuloDoIdioma } from './rotulos';
-
-/** Um tom estável por livro (o mesmo livro tem sempre a mesma lombada), só para distinguir as capas. */
-function tomDe(id: string): number {
-  let h = 0;
-  for (const c of id) h = (h * 31 + c.charCodeAt(0)) % 360;
-  return h;
-}
-
-/** A primeira letra do título, pulando artigo inicial ("The", "A", "O", "El"…) e pontuação. */
-function inicialDe(titulo: string): string {
-  const semArtigo = titulo.replace(/^(?:the|a|an|o|os|as|el|la|los|las|le|les|der|die|das|il|lo)\s+/i, '');
-  return (semArtigo.match(/\p{L}|\p{N}/u)?.[0] ?? titulo.charAt(0)).toUpperCase();
-}
 
 export const autoresDe = (l: Pick<LivroDoCatalogo, 'autores'>) => l.autores.map((a) => a.nome).join(', ');
 
 /**
- * A CAPA DESENHADA: nenhum livro do catálogo traz imagem de capa (as do Standard Ebooks têm licença própria
- * e as do Gutenberg são do projeto). Uma lombada colorida com o título e o autor em tinta do tema mantém o
- * contraste em claro e escuro, e o tom do id distingue um livro do outro.
+ * A CAPA. Por baixo, sempre a tipográfica (SVG, `CapaTipografica`): é ela que aparece enquanto a imagem carrega,
+ * se a imagem falhar e para os livros sem imagem. Por cima, a imagem, na ordem: a que a PESSOA escolheu ou veio
+ * no arquivo dela (só neste aparelho), depois a do catálogo (Standard Ebooks, CC0). A caixa é 2:3 desde o
+ * primeiro quadro, então nada se mexe quando a imagem chega.
  */
-export function CapaDoLivro({ livro, grande = false }: { livro: LivroDoCatalogo; grande?: boolean }) {
+export function CapaDoLivro({
+  livro,
+  grande = false,
+  decorativa = true,
+}: {
+  livro: LivroDoCatalogo;
+  grande?: boolean;
+  decorativa?: boolean;
+}) {
   return (
-    <CapaDesenhada id={livro.id} titulo={livro.titulo} autor={autoresDe(livro)} idioma={livro.idioma} grande={grande} />
+    <CapaDesenhada
+      id={idDoCatalogo(livro.id)}
+      titulo={livro.titulo}
+      autor={autoresDe(livro)}
+      idioma={livro.idioma}
+      grande={grande}
+      decorativa={decorativa}
+      imagemDoCatalogo={capaDoLivro(livro)?.url}
+    />
   );
 }
 
@@ -37,31 +47,44 @@ export function CapaDesenhada({
   autor,
   idioma,
   grande = false,
+  decorativa = true,
+  imagemDoCatalogo,
 }: {
+  /** O id NA ESTANTE do aparelho (`cat:<id>` no catálogo, `meu-…` no trazido): chave da capa local. */
   id: string;
   titulo: string;
   autor?: string;
   idioma?: string;
   grande?: boolean;
+  /** O título já aparece ao lado? Então a capa é só enfeite (`alt` vazio). */
+  decorativa?: boolean;
+  imagemDoCatalogo?: string;
 }) {
+  const local = useCapaLocal(id);
+  const origem = local?.url ?? imagemDoCatalogo;
+  const [falhou, setFalhou] = useState<string | null>(null);
+  const alt = decorativa ? '' : t('Capa de {titulo}', { titulo });
+  const mostrar = origem && falhou !== origem ? origem : null;
   return (
     <span
       className={`lv-capa${grande ? ' grande' : ''}`}
-      style={{ '--lv-tom': tomDe(id) } as React.CSSProperties}
-      aria-hidden
+      data-capa={mostrar ? (local ? 'local' : 'catalogo') : 'tipografica'}
+      {...(decorativa ? { 'aria-hidden': true } : mostrar ? {} : { role: 'img', 'aria-label': alt })}
     >
-      {grande ? (
-        <>
-          <span className="lv-capa-titulo" lang={idioma}>
-            {titulo}
-          </span>
-          <span className="lv-capa-autor">{autor}</span>
-        </>
-      ) : (
-        /* Na fileira o título já vem logo abaixo: a capa pequena leva só a inicial, sem repetir texto. */
-        <span className="lv-capa-inicial" lang={idioma}>
-          {inicialDe(titulo)}
-        </span>
+      <CapaTipografica id={id} titulo={titulo} autor={autor} idioma={idioma} />
+      {mostrar && (
+        <img
+          key={mostrar}
+          className="lv-capa-img"
+          src={mostrar}
+          alt={alt}
+          width={350}
+          height={525}
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          onError={() => setFalhou(mostrar)}
+        />
       )}
     </span>
   );

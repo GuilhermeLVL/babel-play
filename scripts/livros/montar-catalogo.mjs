@@ -32,6 +32,7 @@ import {
   slug,
 } from '../../src/core/livros/categorias.ts'
 import { lerEpubComoTexto } from '../../src/core/livros/epub.ts'
+import { capaDoStandardEbooks } from '../../src/core/livros/capas.ts'
 import { ehClassificacao } from '../../src/core/livros/catalogo.ts'
 import {
   anoEmSaoPaulo,
@@ -214,6 +215,9 @@ function aceitar(meta, texto) {
     credito: meta.credito,
     licenca: licencaDe(meta.autores, meta.tradutores),
     ...(meta.resumo ? { resumo: meta.resumo } : {}),
+    ...(meta.fonte === 'standard-ebooks' && capaDoStandardEbooks(meta.fonteId)
+      ? { capa: capaDoStandardEbooks(meta.fonteId) }
+      : {}),
     ...(meta.traducaoDeclarada ? { traducaoDeclarada: true } : {}),
   })
   obrasVistas.add(chaveDaObra(meta.idioma, meta.titulo, meta.autores))

@@ -40,11 +40,12 @@ import { usePerfil } from '../../../lib/usePerfil';
 import { PainelDeAba } from '../../ui';
 import AbasDoQuest from '../../views/ajustes/quest/AbasDoQuest';
 import AvatarCanvas from '../AvatarCanvas';
+import EstudioDoAvatar from '../EstudioDoAvatar';
 import Escolher from './Escolher';
 import Personalizar from './Personalizar';
 import TragaOSeu, { type ModeloPreparado } from './TragaOSeu';
 
-type Visao = 'escolher' | 'personalizar' | 'traga';
+type Visao = 'escolher' | 'personalizar' | 'estudio' | 'traga';
 
 /** Abaixo disto a prévia fica fixa no topo e compacta (celular); acima, é o cartão da coluna da esquerda. */
 const CONSULTA_DO_CELULAR = '(max-width: 879px)';
@@ -97,7 +98,7 @@ function linhaDeCredito(c: CreditoDoModelo | null, modelo?: ModeloDaColecao): st
  *
  * Só a prévia desta tela é viva (um contexto WebGL); o resto do app mostra a miniatura estática.
  */
-export default function AbaAvatar() {
+export default function AbaAvatar({ nivel = 1, saldoSeeds = 0 }: { nivel?: number; saldoSeeds?: number }) {
   const { perfil } = usePerfil();
   const usuario = perfil?.id;
   const protegido = useProtegidoParaAvatar();
@@ -120,6 +121,7 @@ export default function AbaAvatar() {
   const [apagando, setApagando] = useState(false);
   const capturar = useRef<(() => string | null) | null>(null);
   const erroNaBase = useRef(false);
+  const miniaturaDoEstudio = useRef<string | null>(null);
 
   // A sugestão: um modelo da coleção, sorteado uma vez. Só vira avatar se a pessoa aceitar.
   const sugerida = useMemo<ReceitaDeAvatar | null>(() => {
@@ -214,7 +216,7 @@ export default function AbaAvatar() {
     for (let i = 0; i < 80 && !capturar.current && !erroNaBase.current; i++)
       await new Promise((ok) => setTimeout(ok, 100));
     const ok = await salvarMeuAvatar(usuario, r, {
-      miniatura: capturar.current?.() ?? null,
+      miniatura: capturar.current?.() ?? miniaturaDoEstudio.current,
       credito: importado ? (trazido?.credito ?? undefined) : null,
       modelo: arquivo,
     });
@@ -249,6 +251,7 @@ export default function AbaAvatar() {
   const itens = [
     { id: 'escolher', rotulo: t('Escolher') },
     { id: 'personalizar', rotulo: t('Personalizar') },
+    { id: 'estudio', rotulo: t('Estúdio') },
     ...(politica.podeImportar ? [{ id: 'traga', rotulo: t('Traga o seu') }] : []),
   ];
 
@@ -274,6 +277,7 @@ export default function AbaAvatar() {
                 tier={tier}
                 tamanho={celular ? TAMANHO_NO_CELULAR : TAMANHO_NO_DESKTOP}
                 modo={modo}
+                {...(atual.pecas.length > 0 ? { pecas: { ids: atual.pecas, cores: atual.coresDasPecas } } : {})}
                 usuarioId={usuario}
                 fonte={fonteDaPrevia}
                 aoAparencia={(sup) => {
@@ -430,6 +434,27 @@ export default function AbaAvatar() {
             ) : (
               <p className="qc-nota" data-testid="avatar-personalizar-vazio">
                 {carregado || !salvo ? t('Escolha um modelo primeiro; depois dá para personalizar.') : t('Carregando…')}
+              </p>
+            )}
+          </PainelDeAba>
+          <PainelDeAba id="estudio" ativo={visao} className="av-tela">
+            {hist ? (
+              <EstudioDoAvatar
+                receita={hist.atual}
+                aoMudar={(r) => editar(() => r)}
+                tier={tier}
+                fonte={fonteDaPrevia}
+                usuarioId={usuario}
+                nivel={nivel}
+                saldoSeeds={saldoSeeds}
+                tamanho={celular ? TAMANHO_NO_CELULAR : 220}
+                aoMiniatura={(url) => {
+                  miniaturaDoEstudio.current = url;
+                }}
+              />
+            ) : (
+              <p className="qc-nota" data-testid="avatar-estudio-vazio">
+                {carregado || !salvo ? t('Escolha um modelo primeiro; depois dá para montar peças.') : t('Carregando…')}
               </p>
             )}
           </PainelDeAba>

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 
+import type { ModoDeCamera } from '../../core/avatar/enquadramento';
 import type { EmocaoDoAvatar, EstadoDoAvatar } from '../../core/avatar/estados';
 import type { ReceitaDeAvatar } from '../../core/avatar/receita';
 import type { TierDoAvatar } from '../../core/avatar/tiers';
 import type { MotivoDoFallback } from '../../lib/avatar/fallback2d';
 import type { SessaoDeAvatar } from '../../lib/avatar/motor';
+import type { PecasDoAvatar } from '../../lib/avatar/pecasNaSessao';
 import type { FonteDaBoca, JanelaDoMotor } from '../../lib/avatar/renderer';
 import { t } from '../../lib/i18n';
 import AvatarCanvas from './AvatarCanvas';
@@ -32,6 +34,10 @@ export interface AvatarFalanteProps {
   aoSessao?: (sessao: SessaoDeAvatar | null) => void;
   /** A janela do canvas, quando não é a página (Document PiP). */
   janela?: JanelaDoMotor;
+  /** `corpo` (padrão) ou `rosto` (busto, para os círculos do Intérprete e do PiP). */
+  modo?: ModoDeCamera;
+  /** Peças do Estúdio da receita (o tier fraco já filtra). */
+  pecas?: PecasDoAvatar;
 }
 
 const SO_PARA_LEITOR = {
@@ -64,6 +70,8 @@ export default function AvatarFalante({
   aoErro,
   aoSessao,
   janela,
+  modo,
+  pecas,
 }: AvatarFalanteProps) {
   const estado: EstadoDoAvatar = falando ? 'falando' : estadoEmSilencio;
 
@@ -91,6 +99,8 @@ export default function AvatarFalante({
         fonteDaBoca={fonteDaBoca}
         aoSessao={aoSessao}
         {...(janela ? { janela } : {})}
+        {...(modo ? { modo } : {})}
+        {...(pecas ? { pecas } : {})}
       />
       {anunciar && (
         <span aria-live="polite" role="status" data-avatar-aviso style={SO_PARA_LEITOR}>

@@ -285,7 +285,7 @@ describe('traga o seu: importador na tela', () => {
     enviar(construirGlb({ imagens: [pngBomba(20000, 20000)] }), 'bomba.glb')
     const alerta = await screen.findByTestId('avatar-importador-recusado')
     expect(alerta.getAttribute('role')).toBe('alert')
-    expect(alerta.textContent).toContain('travaria o seu aparelho')
+    expect(alerta.textContent).toContain('grande demais')
     expect(alerta.querySelector('[data-recusa-passo="encontre"]')).toBeTruthy()
     expect(espiao).not.toHaveBeenCalled()
     // o foco vai para o resultado (teclado e leitor de tela)

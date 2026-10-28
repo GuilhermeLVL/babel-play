@@ -88,7 +88,10 @@ export default function Perfil({ progress, ageProfile }: PerfilProps) {
       {avatarLigado && (
         <PainelDeAba id="avatar" ativo={aba} className="qc-painel">
           <Suspense fallback={<div role="status">{t('Carregando…')}</div>}>
-            <AbaAvatar />
+            <AbaAvatar
+              nivel={progress.available ? progress.level : 1}
+              saldoSeeds={progress.available ? progress.seeds : 0}
+            />
           </Suspense>
         </PainelDeAba>
       )}

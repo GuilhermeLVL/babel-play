@@ -77,6 +77,13 @@ export default function AvatarDaConversa({
     const id = modeloDoInterprete(idDaPessoa, IDS_DA_COLECAO);
     return id ? receitaNova({ origem: 'colecao', id }, t('Intérprete'), 0) : null;
   }, [dono, salva, idDaPessoa, padraoDaPessoa, perfil?.displayName]);
+  const pecasDaReceita = useMemo(
+    () =>
+      dono === 'meu' && receita && receita.pecas.length > 0
+        ? { ids: receita.pecas, cores: receita.coresDasPecas }
+        : undefined,
+    [dono, receita],
+  );
   if (!receita) return null;
   return (
     <AvatarFalante
@@ -89,6 +96,8 @@ export default function AvatarDaConversa({
       estadoEmSilencio={estado === 'falando' ? 'parado' : estado}
       anunciar={anunciar}
       usuarioId={dono === 'meu' ? perfil?.id : null}
+      modo="rosto"
+      {...(pecasDaReceita ? { pecas: pecasDaReceita } : {})}
       {...(janela ? { janela } : {})}
       {...(aoSessao ? { aoSessao } : {})}
     />

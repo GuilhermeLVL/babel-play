@@ -7,7 +7,14 @@ import { FERRAMENTAS_DE_AVATAR, FONTES_DE_AVATAR } from '../../../data/avatar/fo
 import { analisarArquivo, prepararParaUso } from '../../../lib/avatar/importador';
 import { t } from '../../../lib/i18n';
 import GaleriaDeTerceiros from './GaleriaDeTerceiros';
-import { NOME_DO_PASSO, NUMERO_DO_PASSO, textoDaLicenca, textoDaRecusa, textoDoAviso } from './mensagens';
+import {
+  ehTelaDeToque,
+  NOME_DO_PASSO,
+  NUMERO_DO_PASSO,
+  textoDaLicenca,
+  textoDaRecusa,
+  textoDoAviso,
+} from './mensagens';
 
 export interface ModeloPreparado {
   bytes: Uint8Array;
@@ -147,7 +154,11 @@ export default function TragaOSeu({ tier, aoUsar, aoPrevisualizar }: Props) {
                 {p === 'baixe' &&
                   t('Baixe o arquivo .vrm ou .glb. Se vier num .zip, abra-o e pegue o arquivo de dentro.')}
                 {p === 'arraste' &&
-                  t('Arraste o arquivo para o quadro abaixo ou use o botão. O Frasy confere tudo aqui mesmo.')}
+                  (ehTelaDeToque()
+                    ? t('Escolha o arquivo .vrm ou .glb pelo botão abaixo. O Frasy confere tudo aqui mesmo.')
+                    : t(
+                        'Escolha o arquivo .vrm ou .glb (ou arraste, no computador). O Frasy confere tudo aqui mesmo.',
+                      ))}
                 {p === 'licenca' && t('Leia o que a licença permite e confirme. O crédito do autor fica à mostra.')}
               </span>
             </li>
@@ -169,7 +180,9 @@ export default function TragaOSeu({ tier, aoUsar, aoPrevisualizar }: Props) {
         >
           <FileUp aria-hidden />
           <p style={{ margin: 0, font: '700 17px/1.4 var(--font-body, inherit)' }}>
-            {t('Arraste um arquivo .vrm ou .glb para cá')}
+            {ehTelaDeToque()
+              ? t('Toque em Escolher arquivo.')
+              : t('Escolher arquivo .vrm ou .glb. No computador, você também pode arrastar para cá.')}
           </p>
           <label className="q-ctl av-arquivo">
             {t('Escolher arquivo')}
@@ -226,9 +239,11 @@ export default function TragaOSeu({ tier, aoUsar, aoPrevisualizar }: Props) {
               {dedupe(rel.recusas.map(textoDaRecusa)).map((r) => (
                 <li key={r.problema} data-recusa-passo={r.passo}>
                   <b>{r.problema}</b> {r.ajuda}{' '}
-                  <i style={{ fontStyle: 'normal', color: 'var(--ink-muted)' }}>
-                    {t('(Passo {n}: {nome})', { n: NUMERO_DO_PASSO[r.passo], nome: NOME_DO_PASSO[r.passo]() })}
-                  </i>
+                  {r.mostrarPasso && (
+                    <i style={{ fontStyle: 'normal', color: 'var(--ink-muted)' }}>
+                      {t('(Passo {n}: {nome})', { n: NUMERO_DO_PASSO[r.passo], nome: NOME_DO_PASSO[r.passo]() })}
+                    </i>
+                  )}
                 </li>
               ))}
             </ul>

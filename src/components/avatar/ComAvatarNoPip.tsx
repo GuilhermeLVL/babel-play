@@ -14,6 +14,19 @@ const FUNDOS = { escuro: '#141210', preto: '#000000', claro: '#f6f1e8' } as cons
 /** Largura da janela a partir da qual o avatar fica AO LADO da legenda; abaixo, em cima dela. */
 const LARGURA_PARA_FICAR_AO_LADO = 520;
 
+/** Lado mínimo do círculo: abaixo disso o rosto some no meio do quadro. */
+const LADO_MINIMO = 96;
+
+/**
+ * O lado do círculo, proporcional à janela: ~26% da largura (em cima da legenda) ou ~18% (ao lado), nunca menos que
+ * `LADO_MINIMO` nem mais que 160, e sem passar de metade da altura quando a janela é baixa (a legenda tem de caber).
+ */
+export function ladoDoAvatarNoPip(largura: number, altura: number, aoLado: boolean): number {
+  const alvo = Math.round(largura * (aoLado ? 0.18 : 0.26));
+  const teto = altura > 0 && !aoLado ? Math.max(LADO_MINIMO, Math.floor(altura * 0.5)) : 160;
+  return Math.max(LADO_MINIMO, Math.min(160, teto, alvo));
+}
+
 /**
  * O AVATAR NO DOCUMENT PiP. Envolve a legenda flutuante: sem a flag `avatar_3d` devolve só os filhos (a janela é a de
  * sempre); com ela, e com o Intérprete publicando avatares (`lib/avatar/avatarDoPip`), mostra UM avatar (o intérprete, com o
@@ -28,9 +41,13 @@ export default function ComAvatarNoPip({ janela, children }: { janela: Window | 
   const ligada = useFlag(FLAG_AVATAR_3D);
   const av = useAvatarDoPip();
   const [largura, setLargura] = useState(() => janela?.innerWidth ?? LARGURA_PARA_FICAR_AO_LADO);
+  const [altura, setAltura] = useState(() => janela?.innerHeight ?? 0);
   useEffect(() => {
     if (!janela) return;
-    const medir = () => setLargura(janela.innerWidth);
+    const medir = () => {
+      setLargura(janela.innerWidth);
+      setAltura(janela.innerHeight);
+    };
     medir();
     janela.addEventListener('resize', medir);
     return () => janela.removeEventListener('resize', medir);
@@ -39,7 +56,7 @@ export default function ComAvatarNoPip({ janela, children }: { janela: Window | 
   if (!ligada || !janela) return <>{children}</>;
   const aoLado = largura >= LARGURA_PARA_FICAR_AO_LADO;
   const { dono, estado } = avatarDoPip(av.estados);
-  const lado = aoLado ? 96 : 72;
+  const lado = ladoDoAvatarNoPip(largura, altura, aoLado);
   return (
     <div
       data-pip-com-avatar={av.ativo ? '' : undefined}
@@ -54,7 +71,8 @@ export default function ComAvatarNoPip({ janela, children }: { janela: Window | 
             display: 'grid',
             placeItems: 'center',
             padding: 8,
-            background: FUNDOS[fundoResolvido(lerAparencia().fundo, document.documentElement.classList.contains('dark'))],
+            background:
+              FUNDOS[fundoResolvido(lerAparencia().fundo, document.documentElement.classList.contains('dark'))],
           }}
         >
           <div style={{ borderRadius: '50%', overflow: 'hidden', lineHeight: 0 }}>

@@ -248,7 +248,7 @@ test.describe('Meu avatar', () => {
     const recusa = page.getByTestId('avatar-importador-recusado')
     await expect(recusa).toBeVisible()
     await expect(recusa).toHaveAttribute('role', 'alert')
-    await expect(recusa).toContainText('travaria o seu aparelho')
+    await expect(recusa).toContainText('grande demais')
     await expect(recusa.locator('[data-recusa-passo="encontre"]')).toBeVisible()
     await expect(page.locator(':focus')).toHaveText(/Esse arquivo não pode ser usado/)
     await expect(page.getByTestId('avatar-usar-modelo')).toHaveCount(0)

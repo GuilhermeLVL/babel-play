@@ -7,12 +7,29 @@ import type { AvisoDeImportacao, CodigoDeRecusa, PassoDoGuia, Recusa } from '../
 import type { CodigoDeLicenca } from '../../../core/avatar/licencaVrm';
 import { t } from '../../../lib/i18n';
 
+/** Tela de toque (celular, tablet): não existe "arrastar" um arquivo, só escolher. */
+export const ehTelaDeToque = (): boolean => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+
 export const NOME_DO_PASSO: Record<PassoDoGuia, () => string> = {
   encontre: () => t('Encontre'),
   baixe: () => t('Baixe'),
-  arraste: () => t('Arraste'),
+  arraste: () => (ehTelaDeToque() ? t('Escolha o arquivo') : t('Arraste')),
   licenca: () => t('Confira a licença'),
 };
+
+/**
+ * Recusas cuja saída é reexportar o modelo (reduzir, simplificar), não "voltar ao passo 1": a frase de ajuda já diz o
+ * que fazer, e apontar o passo "Encontre" mandaria a pessoa para o lugar errado.
+ */
+const CORRIGE_NA_EXPORTACAO: ReadonlySet<CodigoDeRecusa> = new Set<CodigoDeRecusa>([
+  'textura_bomba',
+  'pixels_total',
+  'triangulos',
+  'ossos',
+  'materiais',
+  'texturas',
+  'nos',
+]);
 
 export const NUMERO_DO_PASSO: Record<PassoDoGuia, number> = { encontre: 1, baixe: 2, arraste: 3, licenca: 4 };
 
@@ -34,9 +51,13 @@ const RECUSAS: Partial<Record<CodigoDeRecusa, (d: D) => [string, string]>> = {
   ],
   sem_magic: () => [
     t('Este arquivo não é um avatar 3D (.vrm ou .glb).'),
-    t(
-      'Se você baixou um .zip, abra-o e arraste só o arquivo .vrm ou .glb de dentro. Se for .fbx ou .blend, converta no Blender.',
-    ),
+    ehTelaDeToque()
+      ? t(
+          'Se você baixou um .zip, abra-o e escolha só o arquivo .vrm ou .glb de dentro. Se for .fbx ou .blend, converta no Blender.',
+        )
+      : t(
+          'Se você baixou um .zip, abra-o e arraste só o arquivo .vrm ou .glb de dentro. Se for .fbx ou .blend, converta no Blender.',
+        ),
   ],
   glb_curto: CORROMPIDO,
   versao_glb: CORROMPIDO,
@@ -84,11 +105,11 @@ const RECUSAS: Partial<Record<CodigoDeRecusa, (d: D) => [string, string]>> = {
     t('Reduza a malha (no Blender, use "Decimate") ou escolha um modelo mais leve.'),
   ],
   textura_bomba: (d) => [
-    t('Uma textura declara {largura} x {altura} pixels: abrir isso travaria o seu aparelho.', {
+    t('Uma imagem do modelo é grande demais ({largura} x {altura} pixels) para o seu aparelho.', {
       largura: d.largura,
       altura: d.altura,
     }),
-    t('Reduza as texturas para 1024 x 1024 ou 2048 x 2048 antes de exportar.'),
+    t('Reduza as texturas para 2048 x 2048 ou menos e exporte de novo.'),
   ],
   pixels_total: (d) => [
     t('As texturas somam {milhoes} milhões de pixels (limite: {teto} milhões).', { milhoes: d.milhoes, teto: d.teto }),
@@ -123,7 +144,9 @@ const RECUSAS: Partial<Record<CodigoDeRecusa, (d: D) => [string, string]>> = {
     t('Só use se você for o autor ou tiver essa licença.'),
   ],
   uso_sexual: () => [
-    t('A licença não proíbe expressamente o uso sexual excessivo.'),
+    t(
+      'A licença não deixa claro se o modelo pode ser usado para conteúdo sexual. Por isso o Frasy não aceita este arquivo.',
+    ),
     t('Escolha um modelo da coleção do Frasy.'),
   ],
   uso_violento: () => [
@@ -136,9 +159,15 @@ const RECUSAS: Partial<Record<CodigoDeRecusa, (d: D) => [string, string]>> = {
   ],
 };
 
-export function textoDaRecusa(r: Recusa): { problema: string; ajuda: string; passo: PassoDoGuia } {
+export function textoDaRecusa(r: Recusa): {
+  problema: string;
+  ajuda: string;
+  passo: PassoDoGuia;
+  /** Falso quando a saída é reexportar o modelo: aí a tela não aponta passo do guia. */
+  mostrarPasso: boolean;
+} {
   const [problema, ajuda] = (RECUSAS[r.codigo] ?? CORROMPIDO)(r.detalhes);
-  return { problema, ajuda, passo: r.passo };
+  return { problema, ajuda, passo: r.passo, mostrarPasso: !CORRIGE_NA_EXPORTACAO.has(r.codigo) };
 }
 
 export function textoDoAviso(a: AvisoDeImportacao): string {

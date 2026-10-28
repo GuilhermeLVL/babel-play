@@ -74,6 +74,20 @@ export default function Escolher({
             <p>{t('Modelos que o Frasy avaliou um a um. Valem para todas as idades.')}</p>
           </div>
         </header>
+        {!podeImportar && (
+          <div className="av-protegido" data-testid="avatar-protegido">
+            <p className="qc-nota" data-testid="avatar-so-colecao">
+              {t(
+                'Aqui você usa os avatares da coleção do Frasy, avaliados um a um. Importar arquivos e a galeria de fora ficam fechados para menores de 18 anos.',
+              )}
+            </p>
+            <p className="qc-nota" data-testid="avatar-responsavel">
+              {t(
+                'Responsável: o avatar fica só neste aparelho e nada dele vai para o servidor. Menores de 18 anos usam só a coleção do Frasy.',
+              )}
+            </p>
+          </div>
+        )}
         <ul className="av-grade" role="radiogroup" aria-label={t('Modelos de avatar')}>
           {itens.map((m, i) => (
             <li key={m.id}>
@@ -96,11 +110,6 @@ export default function Escolher({
             </li>
           ))}
         </ul>
-        {!podeImportar && (
-          <p className="qc-nota" data-testid="avatar-so-colecao">
-            {t('No seu perfil, os avatares vêm da coleção do Frasy.')}
-          </p>
-        )}
       </section>
       <div className="av-acoes">
         <button type="button" className="q-ctl" onClick={aoSortear} data-testid="avatar-sortear">

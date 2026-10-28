@@ -820,6 +820,7 @@ export default function LeitorDoLivro({
       style={estilo}
       data-testid="leitor"
       data-estado={estado}
+      data-painel={painel ?? undefined}
     >
       <header className="leitor-topo">
         <button type="button" className="leitor-botao" onClick={aoVoltar}>

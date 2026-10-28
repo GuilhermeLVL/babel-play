@@ -773,6 +773,11 @@
 /* Celular e janela estreita: o painel vira folha de baixo, por cima do texto; os rótulos dos botões
    da barra somem (o nome acessível fica no aria do botão pelo texto que continua no DOM, só oculto). */
 @media (max-width: 900px) {
+  /* O painel de IA é a folha de baixo; a barra do trecho por baixo dela o espremia a ponto de a resposta sumir.
+     Enquanto a folha está aberta a barra descansa (a seleção continua valendo para o parceiro). */
+  .leitor[data-painel='ia'] .leitor-selecao {
+    display: none;
+  }
   .leitor-painel {
     position: absolute;
     inset: auto 0 0 0;

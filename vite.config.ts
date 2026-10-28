@@ -235,7 +235,15 @@ export default defineConfig(({ mode }) => {
       // `tests/viteDepsDosWorkers.test.ts` cobra esta lista.
       // `fflate`, `fzstd` e `sql.js` (CJS: precisa do pré-bundle para o `default`) só o leitor de `.apkg`
       // importa (`leitorDeApkg.worker.ts`).
-      include: ['@ricky0123/vad-web', 'onnxruntime-web', 'onnxruntime-web/wasm', 'fflate', 'fzstd', 'sql.js'],
+      include: [
+        '@ricky0123/vad-web',
+        'onnxruntime-web',
+        'onnxruntime-web/wasm',
+        'fflate',
+        'fzstd',
+        'sql.js',
+        'gltf-validator',
+      ],
       exclude: ['@huggingface/transformers'],
     },
     server: {

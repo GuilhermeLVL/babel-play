@@ -29,9 +29,20 @@ vi.mock('../src/lib/usePerfil', () => ({
 }))
 // Sem WebGL no jsdom: a prévia viva vira um marcador (o fluxo dela é do e2e).
 vi.mock('../src/components/avatar/AvatarCanvas', () => ({
-  default: ({ receita }: { receita: { base: { id: string } } }) => (
-    <div data-testid="canvas-falso">{receita.base.id}</div>
-  ),
+  default: function CanvasFalso({
+    receita,
+    aoPronto,
+  }: {
+    receita: { base: { id: string } }
+    aoPronto?: (capturar: (() => string | null) | null) => void
+  }) {
+    // Pronto na hora, e a captura devolve uma miniatura PNG mínima (o desenho real é do e2e).
+    React.useEffect(() => {
+      aoPronto?.(() => 'data:image/png;base64,iVBORw0KGgo=')
+      return () => aoPronto?.(null)
+    }, [aoPronto])
+    return <div data-testid="canvas-falso">{receita.base.id}</div>
+  },
 }))
 // O validador da Khronos roda num Worker que o jsdom não tem: o core é testado com ele em `avatar-importador.test.ts`.
 vi.mock('../src/lib/avatar/validadorKhronos', () => ({ criarValidadorKhronos: () => null }))
@@ -146,6 +157,8 @@ describe('Perfil > Avatar: adulto', () => {
     const guardado = await lerMeuAvatar('u-1')
     expect(guardado?.base.origem).toBe('colecao')
     expect(['milk', 'bullidan']).toContain(guardado?.base.id)
+    // A miniatura estática capturada da prévia foi guardada para as molduras.
+    expect(lerMiniatura('u-1')).toMatch(/^data:image\/png;base64,/)
     // Nada foi ao servidor: nenhuma requisição.
   })
 

@@ -5,7 +5,7 @@ import type { ReceitaDeAvatar } from '../../core/avatar/receita';
 import type { TierDoAvatar } from '../../core/avatar/tiers';
 import type { MotivoDoFallback } from '../../lib/avatar/fallback2d';
 import type { SessaoDeAvatar } from '../../lib/avatar/motor';
-import type { FonteDaBoca } from '../../lib/avatar/renderer';
+import type { FonteDaBoca, JanelaDoMotor } from '../../lib/avatar/renderer';
 import { t } from '../../lib/i18n';
 import AvatarCanvas from './AvatarCanvas';
 
@@ -30,6 +30,8 @@ export interface AvatarFalanteProps {
   usuarioId?: string | null;
   aoErro?: (motivo: MotivoDoFallback) => void;
   aoSessao?: (sessao: SessaoDeAvatar | null) => void;
+  /** A janela do canvas, quando não é a página (Document PiP). */
+  janela?: JanelaDoMotor;
 }
 
 const SO_PARA_LEITOR = {
@@ -61,6 +63,7 @@ export default function AvatarFalante({
   usuarioId,
   aoErro,
   aoSessao,
+  janela,
 }: AvatarFalanteProps) {
   const estado: EstadoDoAvatar = falando ? 'falando' : estadoEmSilencio;
 
@@ -87,6 +90,7 @@ export default function AvatarFalante({
         aoErro={aoErro}
         fonteDaBoca={fonteDaBoca}
         aoSessao={aoSessao}
+        {...(janela ? { janela } : {})}
       />
       {anunciar && (
         <span aria-live="polite" role="status" data-avatar-aviso style={SO_PARA_LEITOR}>

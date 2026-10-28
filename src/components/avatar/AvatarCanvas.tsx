@@ -12,7 +12,7 @@ import { descritorDoFallback, type MotivoDoFallback } from '../../lib/avatar/fal
 import { fonteDaReceita } from '../../lib/avatar/fontes';
 import { capturarMiniatura } from '../../lib/avatar/miniatura';
 import type { SessaoDeAvatar } from '../../lib/avatar/motor';
-import type { FonteDaBoca } from '../../lib/avatar/renderer';
+import type { FonteDaBoca, JanelaDoMotor } from '../../lib/avatar/renderer';
 import { useFotoDoPerfil } from '../../lib/fotoDoPerfil';
 import { t } from '../../lib/i18n';
 import { movimentoReduzido } from '../../lib/movimento/reduzido';
@@ -45,6 +45,11 @@ export interface AvatarCanvasProps {
   enquadramento?: CamerasDoModelo | null;
   /** Entrega a sessão aberta (ou `null` ao fechar): diagnóstico e medição. Não é para a tela do produto. */
   aoSessao?: (sessao: SessaoDeAvatar | null) => void;
+  /**
+   * A janela onde o canvas vive, quando não é a página (o Document PiP): o canvas nasce no documento DELA, o laço de
+   * desenho usa o `requestAnimationFrame` DELA e o contexto é próprio (nada é movido entre documentos).
+   */
+  janela?: JanelaDoMotor;
 }
 
 const ROTULO: Record<EstadoDoAvatar, () => string> = {
@@ -75,6 +80,7 @@ export default function AvatarCanvas({
   aoSessao,
   modo = 'corpo',
   enquadramento,
+  janela,
 }: AvatarCanvasProps) {
   const palco = useRef<HTMLDivElement>(null);
   const sessao = useRef<SessaoDeAvatar | null>(null);
@@ -122,7 +128,7 @@ export default function AvatarCanvas({
       return;
     }
     // Canvas NOVO por sessão: um canvas cujo contexto foi perdido de propósito (`dispose`) não serve de novo.
-    const canvas = document.createElement('canvas');
+    const canvas = (janela?.document ?? document).createElement('canvas');
     canvas.setAttribute('aria-hidden', 'true');
     canvas.style.cssText = 'display:block;width:100%;height:100%';
     host.appendChild(canvas);
@@ -145,6 +151,7 @@ export default function AvatarCanvas({
         enquadramento: vivo.current.cameras,
         modo: vivo.current.modo,
         aoFalhar: () => falhar('contexto_perdido'),
+        ...(janela ? { janela } : {}),
       });
       if (fechado) {
         s.dispose();

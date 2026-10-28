@@ -164,6 +164,68 @@ M1 núcleo e motor · M2 meu avatar · M3 fala · M4 intérprete e PiP · M5 liv
 M6 estúdio e loja · M7 qualidade e entrega. Cada marco: spec, testes, implementação, verificação, juiz, PR draft. Tarefas e
 critérios de aceite em `openspec/changes/avatar-interprete/tasks.md`.
 
+## M4: Intérprete e PiP (implementado, atrás de `avatar_3d`)
+
+Medições: `docs/pesquisa/2026-10-28-avatar-interprete-medicoes.md`.
+
+**Intérprete (`ModoInterprete`).** Um `AvatarFalante` por lado do motor. O lado cujo DONO é a pessoa usa a receita salva em
+"Meu avatar" (ou o primeiro modelo da coleção que não é o do intérprete); o lado da outra pessoa usa o avatar-intérprete
+(`bullidan`, ou `milk` se a pessoa já usa `bullidan`): o app não tem foto nem aparência da outra pessoa e não deve ter. Ao
+"trocar os lados" o avatar acompanha o dono. Estado, por lado, vem de `estado()` do controle e da voz
+(`core/avatar/interprete.ts`, `estadoDoLadoNaConversa`): `ouvindo` no lado do microfone (os dois no automático), `pensando`
+enquanto traduz, `falando` no lado de QUEM DISSE a frase quando o som da tradução começa (o outro lado fica `ouvindo`).
+Emoção sempre neutra (M5 traz a emoção por frase). A legenda e o balão de texto são os de antes, intocados; o avatar é uma
+imagem ao lado da linha do idioma, sem foco, sem controle.
+
+**Modo automático com 3 ou mais falantes.** Fica com os dois lados. O segmento do intérprete não traz `speakerId` hoje
+(só o texto da captura, `ChatTranscript`, tem), então não há dado para um avatar por falante; quando o intérprete passar a
+trazê-lo, a decisão é por falante distinto, até 4. Nada foi inventado.
+
+**Configuração.** Botão "Avatares" na faixa da conversa abre o painel "Avatares da conversa": quem aparece (eu e o
+intérprete, só eu, só o intérprete, nenhum), tamanho P/M/G, só rosto/só mãos (só mãos desabilitado sem a flag
+`avatar_sinais`), modo economia, região viva (desligada por padrão) e "Escolher voz", que abre o seletor de voz que JÁ
+existe. Preferências locais em `frasy.avatar.interprete.*` (`try/catch`). Foco entra no painel, Esc fecha e devolve o foco.
+Modo economia (e "nenhum") desliga os avatares e o layout volta ao de antes. Sem WebGL2, foto ou iniciais. Dois avatares
+juntos nunca passam do tier `medio`.
+
+**Áudio.**
+
+- `destravarComAvatar` roda o destravador de sempre e então `prepararAnalisadorDaVoz()`, no mesmo gesto (`tocar`, `ouvir`
+  e `ouvirTrecho` do controle). Sem avatar ativo é o destravador original.
+- `AudioContext` parado (`suspended`/`interrupted`): a amplitude vira `null` (a boca cai na cadência) e o contexto é
+  retomado no próximo gesto ou quando a aba volta a ficar visível. Risco assumido: com o elemento já preso ao grafo, um
+  contexto parado deixa a voz da nuvem muda até a retomada. Por isso **iPhone e iPad não ligam o analisador** (a
+  interrupção é frequente ali); a boca anda pela cadência.
+- O som: a fonte vai ao destino e ao analisador (o analisador não está no caminho do som). O e2e comprova `volume 1`,
+  `muted false` e `paused false` com a voz tocando e o fim do áudio.
+- Guarda de eco (`isTtsActive`/`marcarFalaExterna`): vive DENTRO do motor da voz; a ponte só envolve o motor. Teste de
+  regressão em `tests/avatar-interprete-voz.test.ts` (ligado enquanto toca, cauda no fim, mesma ordem de callbacks,
+  `cancel` corta).
+- A voz do avatar é a escolhida pelo seletor existente (preferência por lado e idioma, `motorPorPreferencia`); não há
+  seletor novo.
+
+**PiP.**
+
+- Document PiP: `ComAvatarNoPip` envolve a legenda flutuante e mostra UM avatar, sempre o intérprete, com o estado de maior
+  atividade (trocar de modelo a cada fala recarregaria o avatar). O renderer é NOVO e vive dentro da janela: canvas criado
+  no documento dela, `requestAnimationFrame` dela (`JanelaDoMotor`), tier `fraco` (sem spring bones), guarda de
+  `webglcontextlost` do próprio motor (laço pausa; sem restauração em 3 s cai na foto/iniciais), dispose ao fechar. Nada é
+  movido entre documentos: o avatar da página continua com a sessão dele. Ao lado da legenda em janela larga (>= 520 px),
+  em cima dela em janela estreita. O fundo da faixa acompanha o fundo da legenda.
+- PiP de vídeo (Safari): o avatar vive num canvas WebGL oculto (fora da tela) e, a cada quadro, o `aoQuadro` do motor o
+  copia para o canvas 2D da legenda (`pintarAvatar`, na mesma tarefa: só então o WebGL é legível). O laço é de
+  TEMPORIZADOR (15 quadros/s, `janelaPorTemporizador`), porque o `requestAnimationFrame` para com a aba em segundo plano,
+  que é justamente o uso desse PiP. Círculo à esquerda nos formatos horizontais, no alto no `conversa`; `estudo` sem
+  avatar. O quadro de texto só é redesenhado quando muda, como antes; a cópia do avatar acompanha.
+- Celular e navegadores sem nenhum dos dois PiP: painel dentro da página; não há avatar nele (a conversa já mostra os
+  avatares). O PiP só mostra avatar enquanto o Intérprete está aberto e publicando (`lib/avatar/avatarDoPip`).
+
+**Não provado (pendência do dono ou de M7):** Document PiP de verdade (janela nativa), Safari real (PiP de vídeo, o
+temporizador com aba oculta, `AudioContext` interrompido), Firefox real (Document PiP no Firefox 151), celular real.
+Checklist para o dono, no Safari do Mac: (1) ligar `avatar_3d` em staging; (2) Intérprete, Alt+L: a janelinha abre com o
+avatar no alto e a legenda embaixo; (3) trocar de aba e falar: o avatar mexe a boca e o texto aparece; (4) fechar a janelinha
+e ver se o avatar da página continua; (5) iPhone: a voz da nuvem toca inteira, sem mudar o volume.
+
 ## Pendências do dono
 
 PR único das 4 frentes de Livros · parecer jurídico (Quaternius QAL × CC0, `meta` de terceiros, menores, miniaturas de

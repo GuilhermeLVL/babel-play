@@ -72,6 +72,14 @@ export interface MetadeDaConversa {
   lendo?: boolean;
   /** A tecla que fala por esta metade no computador ("1", "2"); aparece embaixo do botão. */
   atalho?: string;
+  /** O avatar desta metade (atrás da flag `avatar_3d`): só imagem, ao lado do idioma. Ausente = a metade é a de sempre. */
+  avatar?: ReactNode;
+}
+
+/** Os avatares da conversa: o botão da faixa e o painel (que abre o seletor de voz que já existe). */
+export interface AvataresDaConversa {
+  botao: ReactNode;
+  painel: (api: { escolherVoz?: (() => void) | undefined }) => ReactNode;
 }
 
 /**
@@ -184,6 +192,7 @@ export default function ConversaDoPrototipo({
   rotulo,
   rotuloDeSair,
   assistente,
+  avatares,
   children,
 }: {
   cima: MetadeDaConversa;
@@ -235,6 +244,8 @@ export default function ConversaDoPrototipo({
   rotuloDeSair?: string;
   /** O assistente ao vivo (Fase C3). Ausente = nada dele. */
   assistente?: AssistenteNaConversa | undefined;
+  /** Os avatares da conversa (atrás da flag `avatar_3d`): botão na faixa e painel de configuração. */
+  avatares?: AvataresDaConversa | undefined;
   children?: ReactNode;
 }) {
   const raiz = useRef<HTMLDivElement>(null);
@@ -351,6 +362,27 @@ export default function ConversaDoPrototipo({
     );
   };
 
+  /** A linha do idioma da metade: quem é e o botão que troca o idioma. */
+  const idiomaDaMetade = (m: MetadeDaConversa) => (
+    <p className="int-idioma">
+      <span className="int-quem">{quem(m.dono)}</span>
+      {aoEscolherIdioma ? (
+        /* O NOME DO IDIOMA É O BOTÃO: o alvo é a palavra que a pessoa procura, e não um chevron ao lado. */
+        <button
+          type="button"
+          className="int-idioma-btn"
+          aria-label={t('{idioma}. Trocar este idioma', { idioma: m.nome })}
+          onClick={aoEscolherIdioma}
+        >
+          <span>{m.nome}</span>
+          <ChevronDown aria-hidden />
+        </button>
+      ) : (
+        <span className="int-idioma-nome">{m.nome}</span>
+      )}
+    </p>
+  );
+
   const metade = (m: MetadeDaConversa, virada: boolean) => (
     <section
       key={m.dono}
@@ -361,23 +393,16 @@ export default function ConversaDoPrototipo({
       aria-label={t('Lado de quem fala {idioma}', { idioma: m.nome })}
       data-testid={`interprete-${m.lado}`}
     >
-      <p className="int-idioma">
-        <span className="int-quem">{quem(m.dono)}</span>
-        {aoEscolherIdioma ? (
-          /* O NOME DO IDIOMA É O BOTÃO: o alvo é a palavra que a pessoa procura, e não um chevron ao lado. */
-          <button
-            type="button"
-            className="int-idioma-btn"
-            aria-label={t('{idioma}. Trocar este idioma', { idioma: m.nome })}
-            onClick={aoEscolherIdioma}
-          >
-            <span>{m.nome}</span>
-            <ChevronDown aria-hidden />
-          </button>
-        ) : (
-          <span className="int-idioma-nome">{m.nome}</span>
-        )}
-      </p>
+      {m.avatar ? (
+        <div className="int-topo">
+          {idiomaDaMetade(m)}
+          <div className="int-avatar" data-testid={`avatar-${m.lado}`}>
+            {m.avatar}
+          </div>
+        </div>
+      ) : (
+        idiomaDaMetade(m)
+      )}
       <div className="int-frase" aria-live="polite">
         {frase(m)}
       </div>
@@ -546,6 +571,7 @@ export default function ConversaDoPrototipo({
               </span>
             </button>
           ))}
+          {avatares?.botao}
           {aoVirtual && (
             <button
               type="button"
@@ -666,6 +692,7 @@ export default function ConversaDoPrototipo({
         <CartaoDaMarca marca={marcaAberta.marca} lang={marcaAberta.lang} aoFechar={() => setMarcaAberta(null)} />
       )}
       {vozes && escolhendoVoz && <FolhaDasVozes lados={vozes.lados} aoFechar={() => setEscolhendoVoz(false)} />}
+      {avatares?.painel({ escolherVoz: vozes ? () => setEscolhendoVoz(true) : undefined })}
     </div>
   );
 }

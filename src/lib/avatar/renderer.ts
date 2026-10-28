@@ -59,12 +59,29 @@ import type { AvatarCarregado } from './carregador';
 
 export type MotivoDeFalha = 'webgl' | 'contexto_perdido';
 
+/**
+ * O MÍNIMO que o motor usa de uma janela: o relógio de quadros, o `devicePixelRatio` e o documento (visibilidade e
+ * criação de elementos). Uma `Window` de verdade serve (o Document PiP); `janelaPorTemporizador` serve de janela de
+ * mentira para quando a página está em segundo plano (a ponte do PiP de vídeo).
+ */
+export interface JanelaDoMotor {
+  requestAnimationFrame(cb: FrameRequestCallback): number;
+  cancelAnimationFrame(id: number): void;
+  devicePixelRatio: number;
+  document: Pick<Document, 'hidden' | 'addEventListener' | 'removeEventListener' | 'createElement'>;
+}
+
 export interface OpcoesDoMotor {
   canvas: HTMLCanvasElement;
   tier: TierDoAvatar;
   movimentoReduzido?: boolean;
   aoFalhar?: (motivo: MotivoDeFalha) => void;
   prazoDeRestauracaoMs?: number;
+  /**
+   * A janela dona do canvas, quando NÃO é a página (o Document PiP): é dela o `requestAnimationFrame` (o da página pode
+   * parar quando ela fica em segundo plano), o `devicePixelRatio` e o `visibilitychange`. Padrão: `window`.
+   */
+  janela?: JanelaDoMotor;
 }
 
 /** De onde o motor lê a boca a cada quadro: `null` = sem fala (boca fechada). */
@@ -91,6 +108,11 @@ export interface MotorDeAvatar {
   medirModelo(): MedidasDoModelo | null;
   /** Liga (ou desliga com `null`) a fonte da boca da fala. */
   definirBoca(fonte: FonteDaBoca | null): void;
+  /**
+   * Chamada logo depois de cada quadro desenhado, NA MESMA TAREFA (único momento em que um canvas WebGL sem
+   * `preserveDrawingBuffer` ainda pode ser lido por `drawImage`). É a ponte do PiP de vídeo. `null` desliga.
+   */
+  definirAoQuadro(cb: ((canvas: HTMLCanvasElement) => void) | null): void;
   /**
    * Para medição: desenha `n` quadros em sequência (o laço fica parado) e devolve o custo por quadro em ms.
    * `sincronizarGpu: false` mede só a SUBMISSÃO de CPU (como o protótipo); `true` espera a GPU (`gl.finish`).
@@ -126,6 +148,8 @@ const CABECA: Record<EstadoDoAvatar, { x: number; z: number }> = {
 
 export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
   const { canvas, tier } = opcoes;
+  const jan: JanelaDoMotor = opcoes.janela ?? window;
+  const doc = jan.document;
   const orc = ORCAMENTOS[tier];
   const reduzido = opcoes.movimentoReduzido === true;
   const prazo = opcoes.prazoDeRestauracaoMs ?? 3000;
@@ -144,7 +168,9 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
   }
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.setClearColor(0x000000, 0);
-  renderer.setPixelRatio(Math.min(typeof devicePixelRatio === 'number' ? devicePixelRatio : 1, orc.pixelRatioMax));
+  renderer.setPixelRatio(
+    Math.min(typeof jan.devicePixelRatio === 'number' ? jan.devicePixelRatio : 1, orc.pixelRatioMax),
+  );
 
   /**
    * Pixel ratio: o fraco nunca passa do dispositivo (teto 1). Forte e médio desenham SUPERAMOSTRADOS (no teto do
@@ -300,14 +326,16 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
     }
   };
 
+  let aoQuadro: ((c: HTMLCanvasElement) => void) | null = null;
   const desenhar = (dt: number) => {
     aplicarPose(dt);
     renderer.render(cena, camera);
     quadros += 1;
+    aoQuadro?.(canvas);
   };
 
   const quadro = (agora: number) => {
-    raf = requestAnimationFrame(quadro);
+    raf = jan.requestAnimationFrame(quadro);
     // Reduzido + falando com boca ligada: a boca é o conteúdo, a 12 quadros/s e sem suavização.
     const falandoReduzido = reduzido && estado === 'falando' && fonteDaBoca !== null;
     const passo = falandoReduzido ? 1000 / 12 : 1000 / orc.fps;
@@ -334,17 +362,17 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
   };
 
   const parar = () => {
-    if (raf) cancelAnimationFrame(raf);
+    if (raf) jan.cancelAnimationFrame(raf);
     raf = 0;
     ultimo = 0;
   };
   const retomar = () => {
-    if (disposed || perdido || raf || document.hidden) return;
+    if (disposed || perdido || raf || doc.hidden) return;
     sujo = true;
-    raf = requestAnimationFrame(quadro);
+    raf = jan.requestAnimationFrame(quadro);
   };
 
-  const aoMudarVisibilidade = () => (document.hidden ? parar() : retomar());
+  const aoMudarVisibilidade = () => (doc.hidden ? parar() : retomar());
   const aoPerder = (e: Event) => {
     e.preventDefault();
     perdido = true;
@@ -363,7 +391,7 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
   };
   canvas.addEventListener('webglcontextlost', aoPerder);
   canvas.addEventListener('webglcontextrestored', aoRestaurar);
-  document.addEventListener('visibilitychange', aoMudarVisibilidade);
+  doc.addEventListener('visibilitychange', aoMudarVisibilidade);
 
   const motor: MotorDeAvatar = {
     mostrar(avatar, cameras) {
@@ -408,6 +436,10 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
     },
     definirBoca(fonte) {
       fonteDaBoca = fonte;
+      sujo = true;
+    },
+    definirAoQuadro(cb) {
+      aoQuadro = cb;
       sujo = true;
     },
     medirQuadros(n, opc) {
@@ -468,7 +500,7 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
       clearTimeout(temporizador);
       canvas.removeEventListener('webglcontextlost', aoPerder);
       canvas.removeEventListener('webglcontextrestored', aoRestaurar);
-      document.removeEventListener('visibilitychange', aoMudarVisibilidade);
+      doc.removeEventListener('visibilitychange', aoMudarVisibilidade);
       if (atual) {
         cena.remove(atual.objeto);
         atual.dispose();

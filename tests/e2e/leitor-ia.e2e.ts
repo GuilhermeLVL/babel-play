@@ -250,7 +250,8 @@ test.describe('Leitor: ferramentas de IA', () => {
     await page.route('**/api/ai/mt', async (r) => {
       await new Promise((ok) => setTimeout(ok, 400))
       const { text } = r.request().postDataJSON() as { text: string }
-      await r.fulfill({ status: 200, json: { text: `PT: ${text}` } })
+      /* Não pode conter o original: o gateway recusa tradução que é eco do texto. */
+      await r.fulfill({ status: 200, json: { text: `Tradução: ${text.split(' ').reverse().join(' ')}` } })
     })
     await abrirOLivro(page)
     await page.getByTestId('leitor-ia').click()
@@ -281,6 +282,6 @@ test.describe('Leitor: ferramentas de IA', () => {
     /* O texto do livro não mudou: o capítulo continua em inglês, sem a tradução. */
     const quadro = page.frames().find((f) => f.url().startsWith('blob:'))!
     await expect(quadro.getByText(FRASE)).toBeVisible()
-    await expect(quadro.getByText('PT: ', { exact: false })).toHaveCount(0)
+    await expect(quadro.getByText('Tradução:', { exact: false })).toHaveCount(0)
   })
 })

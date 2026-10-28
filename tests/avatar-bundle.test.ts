@@ -29,7 +29,13 @@ function arquivos(dir: string): string[] {
 const fonte = (rel: string) => readFileSync(path.join(RAIZ, rel), 'utf8')
 const rel = (abs: string) => path.relative(RAIZ, abs).split(path.sep).join('/')
 
-const PORTAS_DO_MOTOR = ['src/lib/avatar/carregador.ts', 'src/lib/avatar/renderer.ts', 'src/lib/avatar/motor.ts']
+const PORTAS_DO_MOTOR = [
+  'src/lib/avatar/carregador.ts',
+  'src/lib/avatar/renderer.ts',
+  'src/lib/avatar/motor.ts',
+  // M6: as peças do Estúdio; só alcançadas por import() em `pecasNaSessao.ts`.
+  'src/lib/avatar/pecas3d.ts',
+]
 /** Import estático de valor (não `import type`) de `three` ou `@pixiv/three-vrm`. */
 const IMPORT_ESTATICO = /^\s*import\s+(?!type\b)[^'"]*from\s+['"](three|three\/[^'"]*|@pixiv\/[^'"]+)['"]/m
 const IMPORT_QUALQUER = /(?:from|import\s*\()\s*['"](three|three\/[^'"]*|@pixiv\/[^'"]+)['"]/

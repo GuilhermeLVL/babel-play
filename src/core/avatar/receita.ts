@@ -9,7 +9,13 @@
  * IndexedDB (`origem: 'importado'`); a receita guarda apenas o id local dele.
  */
 
+import { ehCorDePeca, validarPecas } from './pecas';
+
+/** `1`: a receita original (peças só como ids soltos, nada as desenha). `2` (M6): peças do catálogo + cor por peça. */
 export const VERSAO_DA_RECEITA = 1 as const;
+export const VERSAO_DA_RECEITA_COM_PECAS = 2 as const;
+/** A versão que o app grava e exporta. A 1 continua lida (e migrada com `migrarReceitaParaV2`). */
+export const VERSAO_ATUAL_DA_RECEITA = VERSAO_DA_RECEITA_COM_PECAS;
 
 export type OrigemDaBase = 'familia' | 'colecao' | 'importado';
 export const ORIGENS_DA_BASE: readonly OrigemDaBase[] = ['familia', 'colecao', 'importado'];
@@ -22,12 +28,14 @@ export const FAIXAS_DE_AJUSTE = {
 export type ChaveDeAjuste = keyof typeof FAIXAS_DE_AJUSTE;
 
 export interface ReceitaDeAvatar {
-  versao: typeof VERSAO_DA_RECEITA;
+  versao: typeof VERSAO_DA_RECEITA | typeof VERSAO_DA_RECEITA_COM_PECAS;
   base: { origem: OrigemDaBase; id: string };
   /** Tokens de paleta (ids, nunca cor crua): pele, cabelo e olhos. */
   paleta: { pele: string; cabelo: string; olhos: string };
-  /** Ids de peças do catálogo (cabelo, traje, acessório). */
+  /** Ids de peças do catálogo (`pecas.ts`), na ordem em que são desenhadas. Na v2, só ids que o catálogo conhece. */
   pecas: string[];
+  /** v2: cor de cada peça (id da peça para id de `CORES_DE_PECA`). Ausente = cores de fábrica. */
+  coresDasPecas?: Record<string, string>;
   /** Ajustes numéricos, cada um com faixa própria. Chave fora de `FAIXAS_DE_AJUSTE` é recusada. */
   ajustes: Partial<Record<ChaveDeAjuste, number>>;
   meta: { nome: string; criadoEm: number };
@@ -109,6 +117,25 @@ function lerPecas(v: unknown, erros: string[]): string[] | null {
   return [...new Set(v as string[])];
 }
 
+function lerCoresDasPecas(v: unknown, pecas: string[], erros: string[]): Record<string, string> | null {
+  if (!objetoPuro(v)) {
+    erros.push('coresDasPecas: precisa ser um objeto');
+    return null;
+  }
+  const saida: Record<string, string> = {};
+  let ok = true;
+  for (const k of Reflect.ownKeys(v).map(String)) {
+    if (!pecas.includes(k)) {
+      erros.push(`coresDasPecas: "${k.slice(0, 30)}" não é uma peça da receita`);
+      ok = false;
+    } else if (!ehCorDePeca(v[k])) {
+      erros.push(`coresDasPecas.${k}: cor desconhecida`);
+      ok = false;
+    } else saida[k] = v[k] as string;
+  }
+  return ok ? saida : null;
+}
+
 function lerAjustes(v: unknown, erros: string[]): ReceitaDeAvatar['ajustes'] | null {
   if (!objetoPuro(v)) {
     erros.push('ajustes: precisa ser um objeto');
@@ -151,21 +178,38 @@ function lerMeta(v: unknown, erros: string[]): ReceitaDeAvatar['meta'] | null {
 function validar(entrada: unknown): ResultadoDaReceita {
   if (!objetoPuro(entrada)) return { ok: false, erros: ['receita: precisa ser um objeto'] };
   const erros: string[] = [];
-  soChaves(entrada, ['versao', 'base', 'paleta', 'pecas', 'ajustes', 'meta'], 'receita', erros);
+  const v2 = entrada.versao === VERSAO_DA_RECEITA_COM_PECAS;
+  soChaves(
+    entrada,
+    ['versao', 'base', 'paleta', 'pecas', 'ajustes', 'meta', ...(v2 ? ['coresDasPecas'] : [])],
+    'receita',
+    erros,
+  );
 
-  if (entrada.versao !== VERSAO_DA_RECEITA) {
-    const futura = typeof entrada.versao === 'number' && Number.isFinite(entrada.versao) && entrada.versao > 1;
-    erros.push(futura ? 'versao: receita de uma versão mais nova que este app' : 'versao: precisa ser 1');
+  if (entrada.versao !== VERSAO_DA_RECEITA && !v2) {
+    const futura = typeof entrada.versao === 'number' && Number.isFinite(entrada.versao) && entrada.versao > 2;
+    erros.push(futura ? 'versao: receita de uma versão mais nova que este app' : 'versao: precisa ser 1 ou 2');
   }
   const base = lerBase(entrada.base, erros);
   const paleta = lerPaleta(entrada.paleta, erros);
   const pecas = lerPecas(entrada.pecas, erros);
+  // v2: as peças valem contra o catálogo (id desconhecido, incompatível, lugar repetido, orçamento).
+  if (v2 && pecas) {
+    const problemas = validarPecas(pecas, base ? { origem: base.origem } : {});
+    if (problemas.length > 0) erros.push(...problemas);
+  }
+  const cores =
+    v2 && pecas && temPropria(entrada, 'coresDasPecas') ? lerCoresDasPecas(entrada.coresDasPecas, pecas, erros) : {};
   const ajustes = lerAjustes(entrada.ajustes, erros);
   const meta = lerMeta(entrada.meta, erros);
 
-  if (erros.length > 0 || !base || !paleta || !pecas || !ajustes || !meta)
+  if (erros.length > 0 || !base || !paleta || !pecas || !ajustes || !meta || !cores)
     return { ok: false, erros: erros.slice(0, LIMITES_DA_RECEITA.maxErros) };
-  return { ok: true, receita: { versao: VERSAO_DA_RECEITA, base, paleta, pecas, ajustes, meta } };
+  if (!v2) return { ok: true, receita: { versao: VERSAO_DA_RECEITA, base, paleta, pecas, ajustes, meta } };
+  return {
+    ok: true,
+    receita: { versao: VERSAO_DA_RECEITA_COM_PECAS, base, paleta, pecas, coresDasPecas: cores, ajustes, meta },
+  };
 }
 
 /** Nunca lança: um getter ou um Proxy hostil vira "ilegível". */

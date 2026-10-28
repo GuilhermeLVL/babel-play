@@ -12,6 +12,8 @@ import { descritorDoFallback, type MotivoDoFallback } from '../../lib/avatar/fal
 import { fonteDaReceita } from '../../lib/avatar/fontes';
 import { capturarMiniatura } from '../../lib/avatar/miniatura';
 import type { SessaoDeAvatar } from '../../lib/avatar/motor';
+import type { RelatorioDePecas } from '../../lib/avatar/pecas3d';
+import { aplicarPecasNaSessao, liberarPecasDaSessao, type PecasDoAvatar } from '../../lib/avatar/pecasNaSessao';
 import type { FonteDaBoca, JanelaDoMotor } from '../../lib/avatar/renderer';
 import { useFotoDoPerfil } from '../../lib/fotoDoPerfil';
 import { t } from '../../lib/i18n';
@@ -50,6 +52,10 @@ export interface AvatarCanvasProps {
    * desenho usa o `requestAnimationFrame` DELA e o contexto é próprio (nada é movido entre documentos).
    */
   janela?: JanelaDoMotor;
+  /** M6: peças do Estúdio (ids na ordem e cores). Sem a prop nada é carregado. */
+  pecas?: PecasDoAvatar;
+  /** M6: o que foi montado e o que foi cortado (tier, osso que falta). */
+  aoPecas?: (relatorio: RelatorioDePecas) => void;
 }
 
 const ROTULO: Record<EstadoDoAvatar, () => string> = {
@@ -81,6 +87,8 @@ export default function AvatarCanvas({
   modo = 'corpo',
   enquadramento,
   janela,
+  pecas,
+  aoPecas,
 }: AvatarCanvasProps) {
   const palco = useRef<HTMLDivElement>(null);
   const sessao = useRef<SessaoDeAvatar | null>(null);
@@ -171,6 +179,7 @@ export default function AvatarCanvas({
       fechado = true;
       controle.abort();
       if (sessao.current) aoSessaoRef.current?.(null);
+      liberarPecasDaSessao(sessao.current);
       sessao.current?.dispose();
       sessao.current = null;
       canvas.remove();
@@ -180,6 +189,23 @@ export default function AvatarCanvas({
   }, [chaveDaFonte, tier]);
 
   useEffect(() => sessao.current?.motor.redimensionar(tamanho, tamanho), [tamanho]);
+
+  // M6: peças do Estúdio entram na sessão aberta (carregadas por import() só se houver peça).
+  const aoPecasRef = useRef(aoPecas);
+  aoPecasRef.current = aoPecas;
+  const chaveDasPecas = JSON.stringify(pecas ?? null);
+  useEffect(
+    () =>
+      aplicarPecasNaSessao(
+        motivo ? null : sessao.current,
+        pecas,
+        tier,
+        () => sessao.current?.motor.definirEstado(vivo.current.estado),
+        (r) => aoPecasRef.current?.(r),
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [motivo, chaveDasPecas, tier],
+  );
 
   // Paleta e ajustes da receita entram no modelo JÁ aberto, sem reabrir a sessão (prévia imediata).
   useEffect(() => {

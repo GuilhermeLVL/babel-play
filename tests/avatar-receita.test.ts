@@ -68,7 +68,7 @@ describe('validarReceita: bordas', () => {
   })
 
   it('recusa versão errada e diz quando é futura', () => {
-    expect(erros({ ...boa(), versao: 2 }).join()).toMatch(/mais nova/)
+    expect(erros({ ...boa(), versao: 3 }).join()).toMatch(/mais nova/)
     expect(erros({ ...boa(), versao: '1' }).join()).toMatch(/precisa ser 1/)
     expect(erros({ ...boa(), versao: undefined }).join()).toMatch(/versao/)
   })

@@ -9,8 +9,6 @@
  * O Frasy NÃO ensina a remover DRM (LDA art. 107). Aqui só se reconhece e se recusa.
  */
 
-export type { FormatoTrazido } from './formatos';
-
 /** Por que um arquivo ou link não virou livro. As frases ficam na tela (`t()`), não aqui. */
 export type MotivoDoErro =
   | 'drm'

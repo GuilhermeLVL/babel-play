@@ -55,7 +55,7 @@ export async function idDoArquivo(bytes: ArrayBuffer): Promise<string> {
 /** O formato pelo conteúdo (assinatura), e não pelo nome: `.epub` renomeado de outra coisa não engana. */
 export function formatoDosBytes(cabeca: Uint8Array, nome = ''): FormatoDoLivro | null {
   const r = reconhecerPeloConteudo(cabeca, nome);
-  if (!r.ok) return null;
+  if (!r.ok) return /\.(txt|text|md)$/i.test(nome) ? 'txt' : null;
   /* Um zip aqui é tratado como EPUB; quem trouxe pela tela "Trazer o seu" já sabe o formato (CBZ, por exemplo). */
   if (r.formato === 'zip') return 'epub';
   if (r.formato === 'epub' || r.formato === 'pdf' || r.formato === 'mobi' || r.formato === 'fb2' || r.formato === 'cbz')

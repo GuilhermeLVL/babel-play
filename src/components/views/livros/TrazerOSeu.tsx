@@ -177,6 +177,7 @@ export default function TrazerOSeu({
   const campoDoArquivo = useRef<HTMLInputElement>(null);
   const zona = useRef<HTMLDivElement>(null);
   const cartaoPronto = useRef<HTMLDivElement>(null);
+  const mensagemDeErro = useRef<HTMLParagraphElement>(null);
   const idDoLink = useId();
   const idDoLinkDoLivro = useId();
   const rotulo = (i: number) => t('Parte {n}', { n: i + 1 });
@@ -196,7 +197,9 @@ export default function TrazerOSeu({
   /* Terminou: o foco vai para o cartão "Pronto!" (quem usa teclado ou leitor de tela cai nele). */
   useEffect(() => {
     if (estado.tipo === 'pronto') cartaoPronto.current?.focus();
-  }, [estado.tipo]);
+    /* No celular a mensagem fica abaixo da dobra: traz o erro para a vista. */
+    if (estado.tipo === 'erro') mensagemDeErro.current?.scrollIntoView?.({ block: 'center' });
+  }, [estado]);
 
   const concluir = async (
     dados: Omit<MeuLivro, 'id' | 'adicionadoEm' | 'status' | 'etiquetas' | 'progresso'>,
@@ -433,7 +436,13 @@ export default function TrazerOSeu({
           </div>
         )}
         {estado.tipo === 'erro' && (
-          <p role="alert" className="lv-erro" data-testid="erro-do-trazer" data-motivo={estado.motivo}>
+          <p
+            ref={mensagemDeErro}
+            role="alert"
+            className="lv-erro"
+            data-testid="erro-do-trazer"
+            data-motivo={estado.motivo}
+          >
             {estado.mensagem}
           </p>
         )}

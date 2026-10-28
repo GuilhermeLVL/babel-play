@@ -279,7 +279,7 @@ describe('amostrar (linha do tempo)', () => {
     const p = j.passos[0]
     const meio = amostrar(j, p.chegadaMs + (p.fimMs - p.chegadaMs) * 0.5).pose
     const mudou =
-      meio.posicao.some((v, i) => Math.abs(v - (p.pose.posicao as number[])[i]) > 1e-4) ||
+      meio.posicao.some((v, i) => Math.abs(v - p.pose.posicao[i]) > 1e-4) ||
       meio.a.some((v, i) => Math.abs(v - p.pose.a[i]) > 1e-3)
     expect(mudou).toBe(true)
   })

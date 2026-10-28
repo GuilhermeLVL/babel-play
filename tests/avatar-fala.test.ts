@@ -1,11 +1,10 @@
 // @vitest-environment jsdom
+import { act,renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
-import { renderHook, act } from '@testing-library/react'
-
-import { prepararAnalisadorDaVoz, fonteDeAudioDaVoz } from '../src/lib/avatar/amplitude'
-import { ligarAvatarAFala, PRAZO_SEM_SINAL_MS, useAvatarFalando } from '../src/lib/avatar/fala'
 import type { FonteDeAudio } from '../src/lib/avatar/amplitude'
+import { fonteDeAudioDaVoz,prepararAnalisadorDaVoz } from '../src/lib/avatar/amplitude'
+import { ligarAvatarAFala, PRAZO_SEM_SINAL_MS, useAvatarFalando } from '../src/lib/avatar/fala'
 import type { SpeakOptions, TtsEngine } from '../src/lib/tts'
 
 /** Motor falso: guarda a última fala e deixa o teste disparar os eventos como o navegador faria. */
@@ -301,7 +300,9 @@ describe('useAvatarFalando', () => {
   it('reflete a ligação e volta a false sem ligação', () => {
     const { engine, ultima } = motorFalso()
     const lig = ligarAvatarAFala(engine, { agora: relogio().agora })
-    const { result, rerender } = renderHook(({ l }) => useAvatarFalando(l), { initialProps: { l: lig as typeof lig | null } })
+    const { result, rerender } = renderHook(({ l }) => useAvatarFalando(l), {
+      initialProps: { l: lig as typeof lig | null },
+    })
     expect(result.current).toBe(false)
     lig.motor.speak('oi gente', { lang: 'pt-BR' })
     act(() => ultima().opts.onStart!())

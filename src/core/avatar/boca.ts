@@ -88,11 +88,29 @@ export const limitarVelocidade = (v: unknown): number =>
 /* ─────────────────────────── a tabela grafema → vogal ─────────────────────────── */
 
 const ACENTUADAS: Record<string, Vogal> = {
-  á: 'A', à: 'A', â: 'A', ã: 'A', ä: 'A', å: 'A',
-  é: 'E', è: 'E', ê: 'E', ë: 'E',
-  í: 'I', ì: 'I', î: 'I', ï: 'I',
-  ó: 'O', ò: 'O', ô: 'O', õ: 'O', ö: 'O',
-  ú: 'U', ù: 'U', û: 'U', ü: 'U',
+  á: 'A',
+  à: 'A',
+  â: 'A',
+  ã: 'A',
+  ä: 'A',
+  å: 'A',
+  é: 'E',
+  è: 'E',
+  ê: 'E',
+  ë: 'E',
+  í: 'I',
+  ì: 'I',
+  î: 'I',
+  ï: 'I',
+  ó: 'O',
+  ò: 'O',
+  ô: 'O',
+  õ: 'O',
+  ö: 'O',
+  ú: 'U',
+  ù: 'U',
+  û: 'U',
+  ü: 'U',
 };
 const SIMPLES: Record<string, Vogal> = { a: 'A', e: 'E', i: 'I', o: 'O', u: 'U', y: 'I' };
 
@@ -100,7 +118,16 @@ const vogalDeLetra = (c: string): Vogal | null => ACENTUADAS[c] ?? SIMPLES[c] ??
 
 /** Dígito → vogal de como se diz (pt: zero, um, dois, três, quatro, cinco, seis, sete, oito, nove). */
 const DIGITO: Record<string, Vogal> = {
-  '0': 'E', '1': 'U', '2': 'O', '3': 'E', '4': 'A', '5': 'I', '6': 'E', '7': 'E', '8': 'O', '9': 'O',
+  '0': 'E',
+  '1': 'U',
+  '2': 'O',
+  '3': 'E',
+  '4': 'A',
+  '5': 'I',
+  '6': 'E',
+  '7': 'E',
+  '8': 'O',
+  '9': 'O',
 };
 
 /** Letras longas de vogal da escrita árabe; o resto das letras é consoante. */
@@ -273,7 +300,10 @@ export function montarLinhaDaBoca(entrada: EntradaDaBoca): LinhaDaBoca {
   const brutos = dividir(typeof entrada.texto === 'string' ? entrada.texto : '', entrada.idioma);
   const pesoTotal = somaDosPesos(brutos);
   const fixa =
-    typeof entrada.duracaoMs === 'number' && Number.isFinite(entrada.duracaoMs) && entrada.duracaoMs > 0 && pesoTotal > 0;
+    typeof entrada.duracaoMs === 'number' &&
+    Number.isFinite(entrada.duracaoMs) &&
+    entrada.duracaoMs > 0 &&
+    pesoTotal > 0;
   const msPorPeso = fixa ? (entrada.duracaoMs as number) / pesoTotal : MS_POR_SILABA / velocidade;
   const unidades = cronometrar(brutos, msPorPeso);
   return {

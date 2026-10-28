@@ -7,6 +7,7 @@ import { temWebGL2 } from '../../lib/avatar/detectarTier';
 import { descritorDoFallback, type MotivoDoFallback } from '../../lib/avatar/fallback2d';
 import { fonteDaReceita } from '../../lib/avatar/fontes';
 import type { SessaoDeAvatar } from '../../lib/avatar/motor';
+import type { FonteDaBoca } from '../../lib/avatar/renderer';
 import { useFotoDoPerfil } from '../../lib/fotoDoPerfil';
 import { t } from '../../lib/i18n';
 import { movimentoReduzido } from '../../lib/movimento/reduzido';
@@ -24,6 +25,10 @@ export interface AvatarCanvasProps {
   fonte?: string | Blob;
   /** Quem é a pessoa, para a foto do fallback (`babel.fotoDoPerfil.<id>`). */
   usuarioId?: string | null;
+  /** De onde a boca lê a pose a cada quadro (`LigacaoDaFala.pose`); `null`/ausente = boca parada. */
+  fonteDaBoca?: FonteDaBoca | null;
+  /** Entrega a sessão aberta (ou `null` ao fechar): diagnóstico e medição. Não é para a tela do produto. */
+  aoSessao?: (sessao: SessaoDeAvatar | null) => void;
 }
 
 const ROTULO: Record<EstadoDoAvatar, () => string> = {
@@ -48,6 +53,8 @@ export default function AvatarCanvas({
   aoErro,
   fonte,
   usuarioId,
+  fonteDaBoca,
+  aoSessao,
 }: AvatarCanvasProps) {
   const palco = useRef<HTMLDivElement>(null);
   const sessao = useRef<SessaoDeAvatar | null>(null);
@@ -57,8 +64,11 @@ export default function AvatarCanvas({
   const foto = useFotoDoPerfil(usuarioId);
 
   // Estado e emoção entram no motor já aberto sem reabrir nada.
-  const vivo = useRef({ estado, emocao });
-  vivo.current = { estado, emocao };
+  const vivo = useRef({ estado, emocao, fonteDaBoca: fonteDaBoca ?? null });
+  vivo.current = { estado, emocao, fonteDaBoca: fonteDaBoca ?? null };
+  const aoSessaoRef = useRef(aoSessao);
+  aoSessaoRef.current = aoSessao;
+  useEffect(() => sessao.current?.motor.definirBoca(fonteDaBoca ?? null), [fonteDaBoca]);
   useEffect(() => sessao.current?.motor.definirEstado(estado), [estado]);
   useEffect(() => sessao.current?.motor.definirEmocao(emocao), [emocao]);
 
@@ -107,6 +117,8 @@ export default function AvatarCanvas({
         return;
       }
       sessao.current = s;
+      s.motor.definirBoca(vivo.current.fonteDaBoca);
+      aoSessaoRef.current?.(s);
       setMotivo(null);
     })().catch((e) => {
       if (controle.signal.aborted) return;
@@ -116,6 +128,7 @@ export default function AvatarCanvas({
     return () => {
       fechado = true;
       controle.abort();
+      if (sessao.current) aoSessaoRef.current?.(null);
       sessao.current?.dispose();
       sessao.current = null;
       canvas.remove();

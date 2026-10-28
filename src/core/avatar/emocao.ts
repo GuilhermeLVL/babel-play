@@ -21,7 +21,8 @@ const VOZ: Record<EmocaoDoAvatar, { rate: number; pitch: number }> = {
 };
 
 const preso = (v: number, min: number, max: number): number => Math.min(max, Math.max(min, v));
-const numero = (v: unknown, padrao: number): number => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : padrao);
+const numero = (v: unknown, padrao: number): number =>
+  typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : padrao;
 
 export interface VozBase {
   rate?: number;
@@ -85,7 +86,8 @@ export function expressaoDaEmocao(
   intensidade = 1,
 ): ExpressaoEscolhida {
   const e = ehEmocaoDoAvatar(emocao) ? emocao : 'neutro';
-  const tem = (n: string) => (disponiveis instanceof Set ? disponiveis.has(n) : (disponiveis as readonly string[]).includes(n));
+  const tem = (n: string) =>
+    disponiveis instanceof Set ? disponiveis.has(n) : (disponiveis as readonly string[]).includes(n);
   const forca = preso(typeof intensidade === 'number' && Number.isFinite(intensidade) ? intensidade : 1, 0, 1);
   const cadeia = CADEIA[e];
   for (let i = 0; i < cadeia.length; i += 1) {

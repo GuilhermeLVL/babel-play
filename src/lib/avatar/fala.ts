@@ -79,8 +79,7 @@ interface Fala {
 
 export function ligarAvatarAFala(engine: TtsEngine, opcoes: OpcoesDaLigacao = {}): LigacaoDaFala {
   const agora = opcoes.agora ?? (() => performance.now());
-  const fonteDeAudio =
-    opcoes.fonteDeAudio ?? (() => (audioDaVozTocando() ? fonteDeAudioDaVoz() : null));
+  const fonteDeAudio = opcoes.fonteDeAudio ?? (() => (audioDaVozTocando() ? fonteDeAudioDaVoz() : null));
   const temTom = opcoes.temTom !== false;
 
   let vez = 0;
@@ -225,7 +224,11 @@ export function ligarAvatarAFala(engine: TtsEngine, opcoes: OpcoesDaLigacao = {}
     }
     origem = 'amplitude';
     const abertura = aberturaDaAmplitude(rms);
-    return { vogal: abertura > 0 ? (nasLetras.vogal === 'F' ? 'A' : nasLetras.vogal) : 'F', abertura, acabou: nasLetras.acabou };
+    return {
+      vogal: abertura > 0 ? (nasLetras.vogal === 'F' ? 'A' : nasLetras.vogal) : 'F',
+      abertura,
+      acabou: nasLetras.acabou,
+    };
   };
 
   return {

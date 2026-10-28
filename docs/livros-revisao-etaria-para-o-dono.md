@@ -1,5 +1,24 @@
 # Revisão etária dos livros: o que falta para o dono
 
+> ## ✅ Atualização de 28/10/2026: a aprovação foi aplicada (303 de 328)
+>
+> A pedido do dono, foram aprovados **303 livros**, revisor `Guilherme` (aplicado por Claude seguindo a sugestão de
+> cada linha das tabelas abaixo): livre 87, 12 anos 128, 14 anos 62, 16 anos 20, 18 anos 6. Os 6 de 18 anos ficam
+> aprovados **como 18** (fora do alcance de menor; a _Josefine Mutzenbacher_ segue só 18+).
+>
+> **Faixas que subi, como as tabelas sugerem:** _Struwwelpeter_ e _Peter Pan_ de livre para 12; _Huckleberry Finn_ de
+> 12 para 14.
+>
+> **25 ficaram SEM aprovação**, porque a tabela manda "revisar" (nenhuma amostra foi lida): sem aprovação eles
+> continuam invisíveis para menor (adulto vê). Para terminar, leia uma amostra e aprove com `--ids=<id>`:
+> `pg-78063`, `pg-78064` (3b); _Demons_ (`se-fyodor-dostoevsky-demons-constance-garnett`), `pg-66452`, `pg-28592`,
+> `pg-34635`, `ws-pt-o-choque-das-racas` (3c); e 18 de confiança baixa da 3d: `pg-26479`, `pg-23400`, `pg-21581`,
+> `pg-25178`, `pg-28175`, `pg-63403`, `pg-25138`, `pg-25777`, `pg-49660`, `pg-26453`, `pg-25074`, `pg-78036`,
+> `pg-23203`, `se-henry-seton-merriman-suspense`, `pg-45252`, `pg-22622`, `pg-26655`, `pg-38628`.
+>
+> **Para desfazer** tudo: `git revert` do commit da aprovação. Só chega ao menor **depois do merge e do deploy** (o
+> catálogo é estático). O texto abaixo é o plano original, de 27/10.
+
 Estado em 27/10/2026. Das 328 propostas de classificação etária (`scripts/livros/classificacao.json`, `"revisor":
 "proposta-claude"`), **nenhuma está aprovada**. Por isso `public/catalogo/livros.json` sai com `classificacao: null` em
 todos e **menor de idade não vê nenhum livro** (adulto vê tudo). Aprovar é **decisão sua**: define o que quem tem 12 a 17

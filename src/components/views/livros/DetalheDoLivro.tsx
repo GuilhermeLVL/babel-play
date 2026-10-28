@@ -6,6 +6,7 @@ import type { LivroDoCatalogo, Pessoa } from '../../../core/livros/tipos';
 import { t } from '../../../lib/i18n';
 import { direcaoDoTexto } from '../../../lib/languages';
 import { guardarMeuLivro, removerMeuLivro, useMeusLivros } from '../../../lib/livros/meusLivros';
+import BaixarEpubDaFonte from './BaixarEpubDaFonte';
 import { autoresDe, CapaDoLivro, rotuloDoTempo } from './CartaoDoLivro';
 import OutrosIdiomasDaObra from './OutrosIdiomasDaObra';
 import { rotuloDaCategoria, rotuloDaClassificacao, rotuloDaFonte, rotuloDoIdioma, rotuloDoTamanho } from './rotulos';
@@ -105,6 +106,7 @@ export default function DetalheDoLivro({
                 <ExternalLink aria-hidden /> {t('Ver na fonte')}
               </a>
             )}
+            <BaixarEpubDaFonte livro={livro} />
           </div>
 
           <OutrosIdiomasDaObra edicoes={outrasEdicoes} aoAbrir={aoAbrirEdicao} aoLer={aoLerEdicao} />

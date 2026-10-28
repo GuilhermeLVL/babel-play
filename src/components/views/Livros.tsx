@@ -18,6 +18,7 @@ import { filtrarMeusLivrosVisiveis, marcarAberto, useMeusLivros } from '../../li
 import { leitorMenor, tetoDoLeitor } from '../../lib/livros/quemLe';
 import type { AgeProfileType } from '../../lib/profile';
 import DetalheDoLivro from './livros/DetalheDoLivro';
+import EstanteEBackup from './livros/EstanteEBackup';
 import MeusLivros from './livros/MeusLivros';
 import TrazerOSeu from './livros/TrazerOSeu';
 import Vitrine from './livros/Vitrine';
@@ -295,13 +296,16 @@ export default function Livros({
             </div>
           ))}
         {aba === 'meus' && (
-          <MeusLivros
-            catalogo={visiveis}
-            visivel={visivel}
-            aoAbrir={(l) => abrirLivroNoLeitor(l)}
-            aoTrazer={() => setAba('trazer')}
-            aoCatalogo={() => setAba('catalogo')}
-          />
+          <>
+            <MeusLivros
+              catalogo={visiveis}
+              visivel={visivel}
+              aoAbrir={(l) => abrirLivroNoLeitor(l)}
+              aoTrazer={() => setAba('trazer')}
+              aoCatalogo={() => setAba('catalogo')}
+            />
+            <EstanteEBackup />
+          </>
         )}
         {aba === 'trazer' && (
           <TrazerOSeu aoAbrir={(l) => abrirLivroNoLeitor(l)} aoVerMeusLivros={() => setAba('meus')} />

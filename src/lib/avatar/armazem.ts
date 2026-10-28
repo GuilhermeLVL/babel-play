@@ -64,6 +64,11 @@ function espelhar(id: string, receita: ReceitaDeAvatar | null): void {
   }
 }
 
+/** Lê a receita do espelho do `localStorage`, de forma SÍNCRONA (o que aparece de primeira, sem esperar o IndexedDB). */
+export function lerReceitaLocal(id: string): ReceitaDeAvatar | null {
+  return idDoArmazemValido(id) ? lerEspelho(id) : null;
+}
+
 function lerEspelho(id: string): ReceitaDeAvatar | null {
   try {
     const bruto = localStorage.getItem(chaveLocal(id));

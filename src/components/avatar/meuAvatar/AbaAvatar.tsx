@@ -1,0 +1,356 @@
+import '../../../styles/avatar.css';
+
+import { AlertTriangle, Check, Save, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import { SEM_SUPORTE, type SuporteDaPaleta } from '../../../core/avatar/aparencia';
+import {
+  aplicar,
+  comAjuste,
+  comBase,
+  comNome,
+  comPaleta,
+  desfazer,
+  estaNoPadrao,
+  type Historico,
+  iniciarHistorico,
+  receitaNova,
+  receitasIguais,
+  restaurarPadrao,
+} from '../../../core/avatar/edicao';
+import type { CreditoDoModelo } from '../../../core/avatar/importador/validar';
+import type { ReceitaDeAvatar } from '../../../core/avatar/receita';
+import { sugerirModelo } from '../../../core/avatar/sugestao';
+import { permissoesDoAvatar } from '../../../core/avatar/sugestao';
+import { COLECAO_CURADA, type ModeloDaColecao, modeloDaColecao } from '../../../data/avatar/colecao';
+import { lerModeloImportado } from '../../../lib/avatar/armazem';
+import { detectarTier } from '../../../lib/avatar/detectarTier';
+import type { MotivoDoFallback } from '../../../lib/avatar/fallback2d';
+import {
+  apagarMeuAvatar,
+  lerCreditoGuardado,
+  lerMeuAvatar,
+  lerMeuAvatarLocal,
+  salvarMeuAvatar,
+} from '../../../lib/avatar/meuAvatar';
+import { useProtegidoParaAvatar } from '../../../lib/avatar/protegido';
+import { t } from '../../../lib/i18n';
+import { usePerfil } from '../../../lib/usePerfil';
+import { PainelDeAba } from '../../ui';
+import AbasDoQuest from '../../views/ajustes/quest/AbasDoQuest';
+import AvatarCanvas from '../AvatarCanvas';
+import Escolher from './Escolher';
+import Personalizar from './Personalizar';
+import TragaOSeu, { type ModeloPreparado } from './TragaOSeu';
+
+type Visao = 'escolher' | 'personalizar' | 'traga';
+
+interface Trazido {
+  id: string;
+  titulo: string;
+  credito: CreditoDoModelo | null;
+  /** O arquivo ainda não foi salvo: só vai para o IndexedDB no "Salvar". */
+  blob: Blob;
+  salvo: boolean;
+}
+
+function linhaDeCredito(c: CreditoDoModelo | null, modelo?: ModeloDaColecao): string | null {
+  if (modelo) return t('Crédito: {credito}', { credito: modelo.credito });
+  if (!c || (!c.titulo && c.autores.length === 0)) return null;
+  return t('Crédito: {titulo} · {autor}', {
+    titulo: c.titulo || t('sem título'),
+    autor: c.autores.join(', ') || t('autor não informado'),
+  });
+}
+
+/**
+ * PERFIL > AVATAR ("Meu avatar"): a pessoa escolhe, personaliza e guarda o avatar que a representa. Tudo atrás da
+ * flag `avatar_3d` (quem monta a aba é o `Perfil`). Sempre OPCIONAL: "Continuar sem avatar" e "Apagar meu avatar"
+ * voltam à foto e às iniciais. Receita, miniatura e o arquivo trazido ficam SÓ neste aparelho.
+ *
+ * Só a prévia desta tela é viva (um contexto WebGL); o resto do app mostra a miniatura estática.
+ */
+export default function AbaAvatar() {
+  const { perfil } = usePerfil();
+  const usuario = perfil?.id;
+  const protegido = useProtegidoParaAvatar();
+  const politica = permissoesDoAvatar(protegido);
+  const tier = useMemo(() => detectarTier(), []);
+
+  const [visao, setVisao] = useState<Visao>('escolher');
+  const [carregado, setCarregado] = useState(false);
+  const [salvo, setSalvo] = useState<ReceitaDeAvatar | null>(() => lerMeuAvatarLocal(usuario));
+  const [hist, setHist] = useState<Historico | null>(null);
+  const [trazido, setTrazido] = useState<Trazido | null>(null);
+  const [suporte, setSuporte] = useState<SuporteDaPaleta | null>(null);
+  const [erroDaPrevia, setErroDaPrevia] = useState<MotivoDoFallback | null>(null);
+  const [aviso, setAviso] = useState<{ tom: 'ok' | 'erro'; texto: string } | null>(null);
+  const [apagando, setApagando] = useState(false);
+  const capturar = useRef<(() => string | null) | null>(null);
+
+  // A sugestão: um modelo da coleção, sorteado uma vez. Só vira avatar se a pessoa aceitar.
+  const sugerida = useMemo<ReceitaDeAvatar | null>(() => {
+    const m = sugerirModelo(COLECAO_CURADA, protegido, Math.random);
+    return m ? receitaNova({ origem: 'colecao', id: m.id }, '', Date.now()) : null;
+  }, [protegido]);
+
+  // O que está guardado vem do IndexedDB (o espelho do localStorage já pintou de primeira).
+  useEffect(() => {
+    let vivo = true;
+    void lerMeuAvatar(usuario).then(async (r) => {
+      if (!vivo) return;
+      setSalvo(r);
+      setHist((h) => h ?? (r ? iniciarHistorico(r) : null));
+      if (r?.base.origem === 'importado') {
+        const blob = await lerModeloImportado(r.base.id);
+        if (vivo && blob)
+          setTrazido({ id: r.base.id, titulo: r.meta.nome, credito: lerCreditoGuardado(usuario), blob, salvo: true });
+      }
+      setCarregado(true);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [usuario]);
+
+  const atual = hist?.atual ?? sugerida;
+  const ehSugestao = !hist;
+  const modelo = atual?.base.origem === 'colecao' ? modeloDaColecao(atual.base.id) : undefined;
+  const blobDoTrazido = atual?.base.origem === 'importado' && trazido?.id === atual.base.id ? trazido.blob : undefined;
+  const sujo = hist ? !salvo || !receitasIguais(hist.atual, salvo) : false;
+  const suporteEfetivo = suporte ?? modelo?.suporta ?? SEM_SUPORTE;
+
+  // Trocou de modelo: o que o anterior suportava não vale mais.
+  const baseId = atual?.base.id;
+  useEffect(() => {
+    setSuporte(null);
+    setErroDaPrevia(null);
+  }, [baseId]);
+
+  const editar = useCallback((fn: (r: ReceitaDeAvatar) => ReceitaDeAvatar) => {
+    setApagando(false);
+    setAviso(null);
+    setHist((h) => (h ? aplicar(h, fn(h.atual)) : h));
+  }, []);
+
+  const comecarDe = (base: { origem: 'colecao' | 'importado'; id: string }, nome = '') => {
+    setApagando(false);
+    setAviso(null);
+    setHist((h) => (h ? aplicar(h, comBase(h.atual, base)) : iniciarHistorico(receitaNova(base, nome, Date.now()))));
+  };
+
+  const escolher = (m: ModeloDaColecao) => comecarDe({ origem: 'colecao', id: m.id });
+  const sortear = () => {
+    const m = sugerirModelo(COLECAO_CURADA, protegido, Math.random, atual?.base.id);
+    if (m) escolher(m);
+  };
+
+  const dispensar = () => {
+    setHist(null);
+    setAviso({
+      tom: 'ok',
+      texto: t('Tudo bem: você continua com a foto ou as iniciais. Dá para criar um avatar quando quiser.'),
+    });
+  };
+
+  const usarTrazido = (m: ModeloPreparado) => {
+    setTrazido({
+      id: m.id,
+      titulo: m.titulo,
+      credito: m.credito,
+      blob: new Blob([m.bytes.slice().buffer as ArrayBuffer], { type: 'model/gltf-binary' }),
+      salvo: false,
+    });
+    setApagando(false);
+    setAviso(null);
+    setHist((h) => {
+      const base = { origem: 'importado' as const, id: m.id };
+      return h ? aplicar(h, comBase(h.atual, base)) : iniciarHistorico(receitaNova(base, m.titulo, Date.now()));
+    });
+    setVisao('personalizar');
+  };
+
+  async function salvar() {
+    const r = hist?.atual ?? sugerida;
+    if (!r) return;
+    const importado = r.base.origem === 'importado';
+    const arquivo = importado && trazido?.id === r.base.id && !trazido.salvo ? trazido.blob : undefined;
+    const ok = await salvarMeuAvatar(usuario, r, {
+      miniatura: capturar.current?.() ?? null,
+      credito: importado ? (trazido?.credito ?? undefined) : null,
+      modelo: arquivo,
+    });
+    if (!ok) {
+      setAviso({
+        tom: 'erro',
+        texto: t(
+          'Não deu para guardar o avatar neste aparelho. O armazenamento do navegador pode estar cheio ou bloqueado.',
+        ),
+      });
+      return;
+    }
+    setSalvo(r);
+    setHist((h) => h ?? iniciarHistorico(r));
+    if (importado && trazido) setTrazido({ ...trazido, salvo: true });
+    setAviso({ tom: 'ok', texto: t('Avatar salvo neste aparelho.') });
+  }
+
+  async function apagar() {
+    await apagarMeuAvatar(usuario);
+    setSalvo(null);
+    setHist(null);
+    setTrazido(null);
+    setApagando(false);
+    setAviso({ tom: 'ok', texto: t('Avatar apagado. Você voltou à foto ou às iniciais.') });
+  }
+
+  const credito = atual
+    ? linhaDeCredito(atual.base.origem === 'importado' ? (trazido?.credito ?? null) : null, modelo)
+    : null;
+  const itens = [
+    { id: 'escolher', rotulo: t('Escolher') },
+    { id: 'personalizar', rotulo: t('Personalizar') },
+    ...(politica.podeImportar ? [{ id: 'traga', rotulo: t('Traga o seu') }] : []),
+  ];
+
+  return (
+    <div className="av-tela" data-testid="aba-avatar">
+      <p className="qc-nota">
+        {t('O avatar é opcional e fica só neste aparelho. Nada dele é enviado para o servidor.')}
+      </p>
+
+      <div className="av-duas">
+        <section className="av-previa" aria-label={t('Prévia do avatar')} data-testid="avatar-previa">
+          <div className="av-previa-moldura">
+            {atual ? (
+              <AvatarCanvas
+                receita={atual}
+                estado="parado"
+                emocao="neutro"
+                tier={tier}
+                tamanho={280}
+                usuarioId={usuario}
+                fonte={blobDoTrazido}
+                aoAparencia={setSuporte}
+                aoPronto={(c) => {
+                  capturar.current = c;
+                }}
+                aoErro={setErroDaPrevia}
+              />
+            ) : (
+              <p className="av-vazio">{t('Ainda não há modelos disponíveis.')}</p>
+            )}
+          </div>
+          {atual && (
+            <p className="av-credito" data-testid="avatar-credito">
+              {ehSugestao ? t('Sugerido para você') : sujo ? t('Alterações não salvas') : t('Salvo neste aparelho')}
+              {modelo
+                ? ` · ${modelo.nome}`
+                : atual.base.origem === 'importado'
+                  ? ` · ${trazido?.titulo || t('Meu modelo')}`
+                  : ''}
+            </p>
+          )}
+          {credito && <p className="av-credito">{credito}</p>}
+          {erroDaPrevia && (
+            <p className="av-credito" role="status" data-testid="avatar-sem-3d">
+              {t('Não deu para mostrar o avatar em 3D neste aparelho. Você pode escolher e salvar mesmo assim.')}
+            </p>
+          )}
+          <div className="av-acoes" style={{ justifyContent: 'center' }}>
+            <button
+              type="button"
+              className="q-ctl pri"
+              onClick={() => void salvar()}
+              disabled={!atual || (!ehSugestao && !sujo)}
+              data-testid="avatar-salvar"
+            >
+              <Save aria-hidden /> {ehSugestao ? t('Usar este avatar') : t('Salvar meu avatar')}
+            </button>
+          </div>
+          {(salvo || hist) && !apagando && salvo && (
+            <button type="button" className="q-ctl" onClick={() => setApagando(true)} data-testid="avatar-apagar">
+              <Trash2 aria-hidden /> {t('Apagar meu avatar')}
+            </button>
+          )}
+          {apagando && (
+            <div className="av-aviso" role="alertdialog" aria-label={t('Apagar meu avatar')} data-tom="erro">
+              <AlertTriangle aria-hidden />
+              <div>
+                <p style={{ margin: 0 }}>
+                  {t('Apagar o avatar e o modelo que você trouxe? A foto ou as iniciais voltam.')}
+                </p>
+                <div className="av-acoes" style={{ marginTop: 10 }}>
+                  <button
+                    type="button"
+                    className="q-ctl"
+                    onClick={() => void apagar()}
+                    data-testid="avatar-apagar-confirma"
+                    autoFocus
+                  >
+                    {t('Sim, apagar')}
+                  </button>
+                  <button type="button" className="q-ctl" onClick={() => setApagando(false)}>
+                    {t('Cancelar')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          <div role="status" aria-live="polite" data-testid="avatar-status" style={{ minHeight: 24 }}>
+            {aviso && (
+              <span className="qc-nota" data-tom={aviso.tom}>
+                {aviso.tom === 'ok' && <Check aria-hidden />}
+                {aviso.texto}
+              </span>
+            )}
+          </div>
+        </section>
+
+        <div className="av-tela">
+          <AbasDoQuest
+            rotuloDoGrupo={t('Seções do avatar')}
+            ativo={visao}
+            aoTrocar={(v) => setVisao(v as Visao)}
+            itens={itens}
+          />
+          <PainelDeAba id="escolher" ativo={visao} className="av-tela">
+            <Escolher
+              escolhido={atual && !ehSugestao ? atual.base.id : null}
+              trazido={trazido ? { id: trazido.id, titulo: trazido.titulo } : null}
+              podeImportar={politica.podeImportar}
+              aoEscolher={escolher}
+              aoEscolherTrazido={() => trazido && comecarDe({ origem: 'importado', id: trazido.id }, trazido.titulo)}
+              aoSortear={sortear}
+              aoDispensar={dispensar}
+            />
+          </PainelDeAba>
+          <PainelDeAba id="personalizar" ativo={visao} className="av-tela">
+            {hist ? (
+              <Personalizar
+                receita={hist.atual}
+                suporte={suporteEfetivo}
+                podeDesfazer={hist.passado.length > 0}
+                noPadrao={estaNoPadrao(hist.atual)}
+                aoPaleta={(c, id) => editar((r) => comPaleta(r, c, id))}
+                aoAjuste={(k, v) => editar((r) => comAjuste(r, k, v))}
+                aoNome={(n) => editar((r) => comNome(r, n))}
+                aoDesfazer={() => setHist((h) => (h ? desfazer(h) : h))}
+                aoRestaurar={() => editar(restaurarPadrao)}
+              />
+            ) : (
+              <p className="qc-nota" data-testid="avatar-personalizar-vazio">
+                {carregado || !salvo ? t('Escolha um modelo primeiro; depois dá para personalizar.') : t('Carregando…')}
+              </p>
+            )}
+          </PainelDeAba>
+          {politica.podeImportar && (
+            <PainelDeAba id="traga" ativo={visao} className="av-tela">
+              <TragaOSeu tier={tier} aoUsar={usarTrazido} />
+            </PainelDeAba>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

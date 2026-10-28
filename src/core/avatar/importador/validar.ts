@@ -530,6 +530,21 @@ export async function validarAvatar(bytes: Bytes, op: OpcoesDeValidacao = {}): P
   return concluir(r, op);
 }
 
+/**
+ * Recusa por TAMANHO sem ler o arquivo: a lib confere `File.size` antes de `arrayBuffer()`, para um arquivo de
+ * 2 GB nunca ser carregado na memória só para ser recusado.
+ */
+export function recusarPorTamanho(tamanho: number, op: OpcoesDeValidacao = {}): RelatorioDeImportacao | null {
+  if (tamanho <= LIMITES_DA_IMPORTACAO.bytes) return null;
+  const r = novoRelatorio(op.protegido, op.tier ?? 'forte');
+  const e = etapa(r, 'tamanho_magic');
+  recusar(r, e, 'arquivo_grande', 'encontre', {
+    mb: Number((tamanho / 1048576).toFixed(1)),
+    tetoMb: LIMITES_DA_IMPORTACAO.bytes / 1048576,
+  });
+  return concluir(r);
+}
+
 /** Como reduzir uma imagem: o navegador usa canvas; os testes usam um espião. */
 export interface GanchosDePreparo {
   reduzirImagem(bytes: Bytes, mime: string, largura: number, altura: number): Promise<TrocaDeImagem>;

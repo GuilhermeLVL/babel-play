@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { perfilEquipado } from '../../lib/galeria/equipar';
 import { t } from '../../lib/i18n';
 import { CATALOGO_DA_LOJA, estadoDoItem, type ItemDaLoja } from '../../lib/loja';
+import { useAvatarDaMoldura } from '../avatar/AvatarDoUsuario';
 import { AnelDaMoldura, SeloDoTitulo } from './pecasDoPerfil';
 
 /**
@@ -35,12 +36,7 @@ export function molduraETituloEquipados(nivel = 1): { moldura: ItemDaLoja | null
   return { moldura: vestido('moldura', guardado.moldura, nivel), titulo: vestido('titulo', guardado.titulo, nivel) };
 }
 
-export default function MolduraETitulo({
-  nivel = 1,
-  avatar,
-  tamanho = 40,
-  compacto = false,
-}: {
+interface PropsDaMoldura {
   /** Nível da conta, para a régua de posse. */
   nivel?: number;
   /** O avatar a emoldurar (foto, iniciais). Sem ele, a moldura aparece em volta do ícone. */
@@ -48,23 +44,58 @@ export default function MolduraETitulo({
   tamanho?: number;
   /** Na linha do ranking: só o título, pequeno, sem anel. */
   compacto?: boolean;
-}) {
+}
+
+export default function MolduraETitulo(props: PropsDaMoldura) {
+  /* Dois componentes, para o hook do avatar não depender de uma prop: o compacto (ranking) nunca tem avatar. */
+  return props.compacto ? <TituloCompacto nivel={props.nivel} /> : <MolduraCompleta {...props} />;
+}
+
+function TituloCompacto({ nivel = 1 }: { nivel?: number }) {
+  const { titulo } = molduraETituloEquipados(nivel);
+  return titulo ? <SeloDoTitulo item={titulo} /> : null;
+}
+
+function MolduraCompleta({ nivel = 1, avatar, tamanho = 40 }: PropsDaMoldura) {
   const { moldura, titulo } = molduraETituloEquipados(nivel);
-  if (!moldura && !titulo) return null;
+  /* O AVATAR DO USUÁRIO (atrás da flag `avatar_3d`): a miniatura estática que a pessoa salvou nos Ajustes. Sem a
+     flag ou sem avatar salvo é `undefined`, e a moldura se comporta exatamente como antes. */
+  const doUsuario = useAvatarDaMoldura(tamanho);
+  const figura = avatar ?? doUsuario;
+  if (!moldura && !titulo && !figura) return null;
 
   const tituloEl = titulo && <SeloDoTitulo item={titulo} />;
-  if (compacto) return titulo ? tituloEl : null;
+  const rotulos = [
+    moldura && t('Moldura: {nome}', { nome: moldura.nome }),
+    titulo && t('Título: {nome}', { nome: titulo.nome }),
+  ].filter(Boolean);
 
   return (
     <span
       className="linha"
       style={{ gap: 10, flexWrap: 'wrap' }}
       data-testid="moldura-e-titulo"
-      aria-label={[moldura && t('Moldura: {nome}', { nome: moldura.nome }), titulo && t('Título: {nome}', { nome: titulo.nome })]
-        .filter(Boolean)
-        .join(' · ')}
+      aria-label={rotulos.length ? rotulos.join(' · ') : undefined}
     >
-      {moldura && <AnelDaMoldura item={moldura} tamanho={tamanho} avatar={avatar} />}
+      {moldura ? (
+        <AnelDaMoldura item={moldura} tamanho={tamanho} avatar={figura} />
+      ) : (
+        figura && (
+          <span
+            data-avatar-sem-moldura
+            style={{
+              display: 'inline-grid',
+              width: tamanho,
+              height: tamanho,
+              borderRadius: '50%',
+              overflow: 'hidden',
+              placeItems: 'center',
+            }}
+          >
+            {figura}
+          </span>
+        )
+      )}
       {tituloEl}
     </span>
   );

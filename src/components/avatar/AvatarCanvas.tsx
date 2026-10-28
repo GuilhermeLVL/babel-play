@@ -1,11 +1,14 @@
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 
+import type { SuporteDaPaleta } from '../../core/avatar/aparencia';
 import type { EmocaoDoAvatar, EstadoDoAvatar } from '../../core/avatar/estados';
 import type { ReceitaDeAvatar } from '../../core/avatar/receita';
 import type { TierDoAvatar } from '../../core/avatar/tiers';
+import { aplicarAparencia, type AvatarAplicavel } from '../../lib/avatar/aparencia';
 import { temWebGL2 } from '../../lib/avatar/detectarTier';
 import { descritorDoFallback, type MotivoDoFallback } from '../../lib/avatar/fallback2d';
 import { fonteDaReceita } from '../../lib/avatar/fontes';
+import { capturarMiniatura } from '../../lib/avatar/miniatura';
 import type { SessaoDeAvatar } from '../../lib/avatar/motor';
 import { useFotoDoPerfil } from '../../lib/fotoDoPerfil';
 import { t } from '../../lib/i18n';
@@ -24,6 +27,10 @@ export interface AvatarCanvasProps {
   fonte?: string | Blob;
   /** Quem é a pessoa, para a foto do fallback (`babel.fotoDoPerfil.<id>`). */
   usuarioId?: string | null;
+  /** Depois de o modelo carregar, avisa quais controles da paleta ELE permite (pele, cabelo, olhos). */
+  aoAparencia?: (suporte: SuporteDaPaleta) => void;
+  /** Entrega (ou retira, com `null`) a função que captura a miniatura de 192 px do quadro atual. */
+  aoPronto?: (capturar: (() => string | null) | null) => void;
 }
 
 const ROTULO: Record<EstadoDoAvatar, () => string> = {
@@ -48,11 +55,18 @@ export default function AvatarCanvas({
   aoErro,
   fonte,
   usuarioId,
+  aoAparencia,
+  aoPronto,
 }: AvatarCanvasProps) {
   const palco = useRef<HTMLDivElement>(null);
   const sessao = useRef<SessaoDeAvatar | null>(null);
+  const canvasAtual = useRef<HTMLCanvasElement | null>(null);
   const aoErroRef = useRef(aoErro);
   aoErroRef.current = aoErro;
+  const aoAparenciaRef = useRef(aoAparencia);
+  aoAparenciaRef.current = aoAparencia;
+  const aoProntoRef = useRef(aoPronto);
+  aoProntoRef.current = aoPronto;
   const [motivo, setMotivo] = useState<MotivoDoFallback | null>('carregando');
   const foto = useFotoDoPerfil(usuarioId);
 
@@ -107,6 +121,7 @@ export default function AvatarCanvas({
         return;
       }
       sessao.current = s;
+      canvasAtual.current = canvas;
       setMotivo(null);
     })().catch((e) => {
       if (controle.signal.aborted) return;
@@ -125,6 +140,30 @@ export default function AvatarCanvas({
   }, [chaveDaFonte, tier]);
 
   useEffect(() => sessao.current?.motor.redimensionar(tamanho, tamanho), [tamanho]);
+
+  // Paleta e ajustes da receita entram no modelo JÁ aberto, sem reabrir a sessão (prévia imediata).
+  useEffect(() => {
+    const s = sessao.current;
+    if (!s || motivo) return;
+    aoAparenciaRef.current?.(aplicarAparencia(s.avatar as unknown as AvatarAplicavel, receita));
+    // Pede um quadro novo mesmo com movimento reduzido (o laço só redesenha quando algo muda).
+    s.motor.definirEstado(vivo.current.estado);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [motivo, receita.paleta, receita.ajustes]);
+
+  useEffect(() => {
+    const s = sessao.current;
+    const c = canvasAtual.current;
+    if (motivo || !s || !c) {
+      aoProntoRef.current?.(null);
+      return;
+    }
+    aoProntoRef.current?.(() => {
+      s.motor.amostrarPixels(); // desenha um quadro agora; o canvas WebGL só é legível na mesma tarefa
+      return capturarMiniatura(c);
+    });
+    return () => aoProntoRef.current?.(null);
+  }, [motivo]);
 
   const fallback = useMemo(
     () => (motivo ? descritorDoFallback({ usuario: usuarioId, nome: receita.meta.nome, motivo }) : null),

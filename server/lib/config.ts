@@ -442,6 +442,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'diário de erros em disco (F5-04)',
   },
   {
+    nome: 'FLAGS_LIGADAS_NO_DEV',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'só dev local: flags (separadas por vírgula) forçadas LIGADAS no `npm run dev:local`; ignorada em produção, com AUTH_REQUIRED=1 e no Worker (`flagsLigadasNoDev`)',
+  },
+  {
     nome: 'GIT_SHA',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',

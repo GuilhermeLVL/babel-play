@@ -58,14 +58,17 @@ export default function PainelDaTraducao({
       lote,
       pausaMs,
       preparoMs,
-      aoPreparar: setPreparando,
+      aoPreparar: (p) => {
+        if (ctrl.current === c) setPreparando(p);
+      },
       jaTraduzidos: traducoesRef.current,
       aoProgresso: (f, _total, parcial) => {
+        if (ctrl.current !== c) return; // uma retomada tomou a vez: este laço velho não escreve mais
         setFeitos(f);
         setTraducoes([...parcial]);
       },
     });
-    if (c.signal.aborted && r.fim !== 'cancelado') return;
+    if (ctrl.current !== c) return; // superado por uma retomada (o laço velho voltou do `await` já abortado)
     setTraducoes([...r.traducoes]);
     setFase(r.fim);
     if (r.fim === 'completo') setAviso(t('Capítulo traduzido.'));

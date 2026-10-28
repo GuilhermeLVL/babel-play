@@ -373,6 +373,23 @@ describe('PainelDaTraducao', () => {
     expect(document.body.textContent).not.toContain('PT Four.')
   })
 
+  it('parar e continuar com uma chamada ainda em voo: o laço velho não sobrescreve o novo', async () => {
+    const soltar: Array<() => void> = []
+    let n = 0
+    montar({
+      traduzir: (t: string) =>
+        ++n === 2 ? new Promise<string>((ok) => soltar.push(() => ok(`PT ${t}`))) : Promise.resolve(`PT ${t}`),
+    })
+    fireEvent.click(screen.getByTestId('traduzir-capitulo'))
+    await screen.findByTestId('cancelar-traducao')
+    await waitFor(() => expect(n).toBe(2)) // a 2ª está em voo
+    fireEvent.click(screen.getByTestId('cancelar-traducao'))
+    fireEvent.click(screen.getByText('Continuar a tradução'))
+    await act(async () => soltar.forEach((s) => s())) // o laço velho volta do await, já abortado
+    await waitFor(() => expect(screen.getByTestId('traducao-status').textContent).toContain('Capítulo traduzido'))
+    expect(document.querySelectorAll('.leitor-bilingue-traducao')).toHaveLength(4)
+  })
+
   it('traduz um parágrafo só, sob pedido', async () => {
     montar()
     fireEvent.click(screen.getAllByText('Traduzir este parágrafo')[2])

@@ -34,6 +34,8 @@
  *   VITE_SENTRY_DSN                             o envio de erro do navegador
  *   VITE_LIVROS_URL                             a cópia curada dos livros do Gutenberg no R2
  *                                               (`scripts/livros/curar-gutenberg.mjs`)
+ *   VITE_AVATARES_URL                           a coleção curada de avatares (VRM/GLB) num R2/CDN
+ *                                               (`src/lib/avatar/fontes.ts`). Dado, não código: só `connect-src`
  *   VITE_ORT_WASM_URL                           o runtime do ONNX (`ort-wasm-*.{wasm,mjs}`) num R2/CDN
  *                                               (`src/gateway/baseDoWasm.ts`). ESTE é código: entra
  *                                               também em `script-src` e `worker-src` (ver abaixo)
@@ -144,6 +146,9 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
     origemDe(env.VITE_BERGAMOT_MODELOS_URL),
     /* Os livros do Gutenberg, na cópia curada do R2 (sem ela, o detalhe diz que a cópia não foi publicada). */
     origemDe(env.VITE_LIVROS_URL),
+    /* Os modelos de avatar da coleção curada (sem ela, saem do próprio domínio). O arquivo é dado: nunca
+       entra em `script-src` nem `worker-src`. O avatar do usuário (traga-o-seu) nunca sai do aparelho. */
+    origemDe(env.VITE_AVATARES_URL),
     /* O DSN tem a chave pública no userinfo; `origin` a descarta e fica só o host de ingestão. */
     origemDe(env.VITE_SENTRY_DSN),
   ].filter((o): o is string => o !== null)

@@ -951,6 +951,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'base pública do bucket R2 com a cópia curada dos livros do Gutenberg (`livros/pg-<id>.epub`, publicada por `scripts/livros/curar-gutenberg.mjs`). Ausente: os livros do Gutenberg aparecem no catálogo e a leitura diz que a cópia ainda não foi publicada; Standard Ebooks e Wikisource abrem direto da fonte. Com ela, a CSP libera a origem em `connect-src`',
   },
   {
+    nome: 'VITE_AVATARES_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'base pública do bucket R2 com a coleção curada de avatares 3D (`colecao/<id>.vrm`, `familia/<id>.glb`), para o avatar atrás da flag `avatar_3d`. Ausente: os modelos saem do PRÓPRIO domínio (`/avatares`). Com ela, a CSP libera a origem em `connect-src` (dado, nunca `script-src`)',
+  },
+  {
     nome: 'VITE_ORT_WASM_URL',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',

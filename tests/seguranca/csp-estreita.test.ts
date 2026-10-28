@@ -115,6 +115,21 @@ describe('diretivasDeCsp', () => {
     ])
   })
 
+  it('avatares (M1): o bucket só entra com VITE_AVATARES_URL, em connect-src, nunca em script-src nem worker-src', () => {
+    const base = diretivasDeCsp(env({}))
+    expect(base.connectSrc.some((x) => x.includes('avatares.exemplo'))).toBe(false)
+    const d = diretivasDeCsp(env({ VITE_AVATARES_URL: 'https://avatares.exemplo.dev/colecao/' }))
+    expect(d.connectSrc).toContain('https://avatares.exemplo.dev')
+    expect(d.scriptSrc).toEqual(base.scriptSrc)
+    expect(d.workerSrc).toEqual(base.workerSrc)
+    // O WebGL, o `blob:` das texturas embutidas no GLB e o contexto da página já passam sem afrouxar nada.
+    expect(base.connectSrc).toContain('blob:')
+    expect(base.imgSrc).toContain('blob:')
+    // URL inválida ou de outro protocolo não entra.
+    for (const ruim of ['', 'javascript:alert(1)', 'ftp://x.dev', 'não é url'])
+      expect(diretivasDeCsp(env({ VITE_AVATARES_URL: ruim })).connectSrc).toEqual(base.connectSrc)
+  })
+
   it('script-src continua sem host externo e sem unsafe-eval', () => {
     const s = diretivasDeCsp(env({})).scriptSrc
     expect(s).toEqual(["'self'", "'wasm-unsafe-eval'", 'blob:'])

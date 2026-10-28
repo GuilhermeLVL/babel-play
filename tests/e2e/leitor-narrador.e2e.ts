@@ -19,6 +19,8 @@ function vozDeMentira() {
     text: string
     lang: string
     rate: number
+    pitch: number
+    volume: number
     onstart?: () => void
     onend?: () => void
     onerror?: (e: unknown) => void
@@ -43,7 +45,7 @@ function vozDeMentira() {
     }
   }
   const estado = {
-    faladas: [] as Array<{ texto: string; lang: string; rate: number }>,
+    faladas: [] as Array<{ texto: string; lang: string; rate: number; pitch: number; volume: number }>,
     atual: null as Fala | null,
     cancelamentos: 0,
   }
@@ -54,7 +56,7 @@ function vozDeMentira() {
     onvoiceschanged: null,
     getVoices: () => vozes,
     speak(u: Fala) {
-      estado.faladas.push({ texto: u.text, lang: u.lang, rate: u.rate })
+      estado.faladas.push({ texto: u.text, lang: u.lang, rate: u.rate, pitch: u.pitch, volume: u.volume })
       estado.atual = u
       synth.speaking = true
       setTimeout(() => u.onstart?.(), 0)
@@ -84,7 +86,7 @@ function vozDeMentira() {
   }
 }
 
-type Fala = { texto: string; lang: string; rate: number }
+type Fala = { texto: string; lang: string; rate: number; pitch: number; volume: number }
 const faladas = (page: Page) =>
   page.evaluate(() => (window as unknown as { __fala: { estado: { faladas: Fala[] } } }).__fala.estado.faladas)
 const falando = (page: Page) =>
@@ -95,7 +97,7 @@ const falando = (page: Page) =>
 const terminar = (page: Page) =>
   page.evaluate(() => (window as unknown as { __fala: { terminar: () => void } }).__fala.terminar())
 
-async function abrirLivro(page: Page) {
+async function abrirLivro(page: Page, opcoes: Record<string, number> = { pausaParagrafo: 0 }) {
   await page.addInitScript(vozDeMentira)
   await page.goto('/leitor')
   await expect(page.getByTestId('estante')).toBeVisible({ timeout: 30_000 })
@@ -103,6 +105,8 @@ async function abrirLivro(page: Page) {
     for (const k of Object.keys(localStorage))
       if (k.startsWith('leitor:narracao') || k === 'leitor:perfil') localStorage.removeItem(k)
   })
+  /* Sem o silêncio entre parágrafos o teste conta as falas sem esperar; os testes de pausa passam as deles. */
+  await page.evaluate((o) => localStorage.setItem('leitor:narracao:opcoes', JSON.stringify(o)), opcoes)
   await page.getByTestId('abrir-arquivo').setInputFiles(FIXTURE)
   await expect(page.locator('[data-testid=leitor][data-estado=pronto]')).toBeVisible({ timeout: 30_000 })
   await fecharSobreposicoes(page)
@@ -150,7 +154,7 @@ test.describe('Leitor — narração', () => {
     await expect(barra).toHaveAttribute('data-indice', '1')
 
     // ── a velocidade muda sem perder o destaque ──
-    await barra.getByLabel('Velocidade da narração').selectOption('1.5')
+    await barra.getByTestId('narrador-velocidade').selectOption('1.5')
     await expect.poll(async () => (await faladas(page)).at(-1)!.rate).toBe(1.5)
     expect((await faladas(page)).at(-1)!.texto).toBe(segunda)
     await expect(barra).toHaveAttribute('data-indice', '1')
@@ -198,6 +202,67 @@ test.describe('Leitor — narração', () => {
     await painel.getByRole('radio', { name: /Bilíngue/ }).check()
     await expect(painel.getByTestId('seletor-de-voz')).toHaveCount(2)
     expect(await page.evaluate(() => localStorage.getItem('leitor:narracao:modo'))).toBe('bilingue')
+    await page.getByRole('button', { name: 'Parar e fechar a narração' }).click()
+  })
+  test('controles v2: tom, volume, passo de velocidade, estilos, repetição, atalhos e sono', async ({ page }) => {
+    test.slow()
+    await abrirLivro(page)
+    const barra = page.getByTestId('barra-do-narrador')
+    await page.getByTestId('leitor-ouvir').click()
+    await expect(barra).toHaveAttribute('data-fase', 'tocando')
+    await expect.poll(async () => (await faladas(page)).length).toBe(1)
+    expect(await faladas(page)).toMatchObject([{ rate: 1, pitch: 1, volume: 1 }])
+
+    // ── o passo fino da velocidade (+) e os atalhos ] e [ ──
+    await barra.getByRole('button', { name: 'Mais rápido' }).click()
+    await expect.poll(async () => (await faladas(page)).at(-1)!.rate).toBeCloseTo(1.1)
+    await page.keyboard.press(']')
+    await expect.poll(async () => (await faladas(page)).at(-1)!.rate).toBeCloseTo(1.2)
+    await page.keyboard.press('[')
+    await expect.poll(async () => (await faladas(page)).at(-1)!.rate).toBeCloseTo(1.1)
+
+    // ── Espaço pausa e continua; "." passa à frase seguinte ──
+    /* Com o foco num botão, o Espaço é do botão (ele já foi clicado acima): tira o foco para testar o atalho. */
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+    await page.keyboard.press('Space')
+    await expect(barra).toHaveAttribute('data-fase', 'pausada')
+    await page.keyboard.press('Space')
+    await expect(barra).toHaveAttribute('data-fase', 'tocando')
+    const indice = Number(await barra.getAttribute('data-indice'))
+    await page.keyboard.press('.')
+    await expect(barra).toHaveAttribute('data-indice', String(indice + 1))
+    await page.keyboard.press(',')
+    await expect(barra).toHaveAttribute('data-indice', String(indice))
+
+    // ── o painel: tom e volume chegam à fala; o estilo Estudo muda velocidade e repete a frase ──
+    await page.getByRole('button', { name: /Voz e modo/ }).click()
+    const painel = page.getByTestId('painel-narracao')
+    await expect(painel.getByTestId('nota-pausar')).toContainText('volta ao início da frase')
+    await painel.getByTestId('narr-tom').fill('0.8')
+    await painel.getByTestId('narr-volume').fill('0.5')
+    await expect.poll(async () => (await faladas(page)).at(-1)!.pitch).toBeCloseTo(0.8)
+    await expect.poll(async () => (await faladas(page)).at(-1)!.volume).toBeCloseTo(0.5)
+    await painel.getByRole('radio', { name: /Estudo/ }).check()
+    await expect.poll(async () => (await faladas(page)).at(-1)!.rate).toBeCloseTo(0.8)
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('leitor:narracao:opcoes')!))).toMatchObject({
+      velocidade: 0.8,
+      repeticoes: 2,
+    })
+    const antes = (await faladas(page)).length
+    const texto = (await faladas(page)).at(-1)!.texto
+    await terminar(page)
+    await expect.poll(async () => (await faladas(page)).length, { timeout: 8000 }).toBe(antes + 1)
+    expect((await faladas(page)).at(-1)!.texto).toBe(texto) // a repetição do modo Estudo
+    await expect(painel.getByTestId('salvar-meu-estilo')).toBeDisabled() // já é um estilo pronto
+    await painel.getByTestId('narr-tom').fill('0.9')
+    await painel.getByTestId('salvar-meu-estilo').click()
+    await expect(painel.getByRole('radio', { name: /Meu estilo/ })).toBeChecked()
+
+    // ── o sono: o seletor guarda a escolha e mostra quanto falta ──
+    await barra.getByTestId('narrador-sono').selectOption('30')
+    await expect(barra.getByTestId('narrador-sono')).toHaveValue('ativo')
+    await barra.getByTestId('narrador-sono').selectOption('')
+    await expect(barra.getByTestId('narrador-sono')).toHaveValue('')
     await page.getByRole('button', { name: 'Parar e fechar a narração' }).click()
   })
 })

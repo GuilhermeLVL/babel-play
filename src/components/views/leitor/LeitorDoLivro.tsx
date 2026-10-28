@@ -23,6 +23,7 @@ import {
   type TipoDeAnotacao,
 } from '../../../core/leitura/anotacao';
 import { diagnosticarPdf } from '../../../core/leitura/diagnosticoDoPdf';
+import { OPCOES_PADRAO_DA_NARRACAO } from '../../../core/leitura/estilosDeLeitura';
 import {
   colecaoW3C,
   nomeDeArquivo,
@@ -83,7 +84,7 @@ import type { VocabWord } from '../../../types';
 import { toast } from '../../Toast';
 import VocabularyPanel from '../../VocabularyPanel';
 import BarraDaSelecao, { type TrechoSelecionado } from './BarraDaSelecao';
-import BarraDoNarrador, { PainelDaNarracao } from './BarraDoNarrador';
+import BarraDoNarrador, { aoTeclarNoNarrador, PainelDaNarracao } from './BarraDoNarrador';
 import { etiquetaDaPalavra, HistoricoNaFolha } from './ganchosDaPalavra';
 import PainelDaTraducao from './PainelDaTraducao';
 import PainelDeAnotacoes, { type FormatoDeExportacao } from './PainelDeAnotacoes';
@@ -98,7 +99,6 @@ type Painel = 'sumario' | 'tipografia' | 'anotacoes' | 'narracao' | 'ia';
 
 /* As escolhas do narrador ficam no aparelho (como o perfil de leitura). */
 const LS_MODO = 'leitor:narracao:modo';
-const LS_VELOCIDADE = 'leitor:narracao:velocidade';
 const LS_SEGUIR = 'leitor:narracao:seguir';
 const lerLocal = (chave: string): string | null => {
   try {
@@ -114,7 +114,14 @@ const gravarLocal = (chave: string, valor: string) => {
     /* sem armazenamento: vale só nesta visita */
   }
 };
-const VISTA_PARADA: VistaDoNarrador = { fase: 'parada', indice: 0, total: 0, frase: '' };
+const VISTA_PARADA: VistaDoNarrador = {
+  fase: 'parada',
+  indice: 0,
+  total: 0,
+  frase: '',
+  opcoes: OPCOES_PADRAO_DA_NARRACAO,
+  sono: null,
+};
 
 interface Selecao {
   trecho: TrechoSelecionado;
@@ -211,10 +218,6 @@ export default function LeitorDoLivro({
   const [modoNarracao, setModoNarracao] = useState<ModoDaNarracao>(() => {
     const m = lerLocal(LS_MODO) as ModoDaNarracao | null;
     return m && MODOS_DA_NARRACAO.includes(m) ? m : 'original';
-  });
-  const [velNarracao, setVelNarracao] = useState(() => {
-    const v = Number(lerLocal(LS_VELOCIDADE));
-    return Number.isFinite(v) && v >= 0.5 && v <= 2 ? v : 1;
   });
   const [seguirNarracao, setSeguirNarracao] = useState(() => lerLocal(LS_SEGUIR) !== '0');
   /** A narração acabou de virar a página: o caret que a navegação põe não é toque na palavra. */
@@ -370,8 +373,8 @@ export default function LeitorDoLivro({
   langConfigRef.current = langConfig;
   const modoRef = useRef(modoNarracao);
   modoRef.current = modoNarracao;
-  const velRef = useRef(velNarracao);
-  velRef.current = velNarracao;
+  const narracaoAbertaRef = useRef(narracaoAberta);
+  narracaoAbertaRef.current = narracaoAberta;
   const seguirRef = useRef(seguirNarracao);
   seguirRef.current = seguirNarracao;
   /* O narrador nasce com o livro pronto e morre com ele (a voz para ao sair do leitor). */
@@ -399,6 +402,7 @@ export default function LeitorDoLivro({
       },
       aoAviso: (aviso) => {
         if (aviso === 'fim') setAnuncio(t('Fim do livro.'));
+        else if (aviso === 'sono') setAnuncio(t('Temporizador de sono: narração pausada.'));
         else if (aviso === 'sem-texto') toast.warn(t('Esta página não tem texto para ler.'));
         else toast.warn(t('Não deu para ler esta frase com a voz do aparelho. Escolha outra voz em "Voz e modo".'));
       },
@@ -411,7 +415,6 @@ export default function LeitorDoLivro({
       metadados: () => ({ titulo: infoRef.current?.titulo || t('Livro'), autor: infoRef.current?.autor }),
     });
     n.modo = modoRef.current;
-    n.velocidade = velRef.current;
     n.seguir = seguirRef.current;
     narradorRef.current = n;
     return () => {
@@ -604,6 +607,10 @@ export default function LeitorDoLivro({
     if (document.querySelector('dialog[open]')) return;
     const m = motorRef.current;
     if (!m) return;
+    if (narracaoAbertaRef.current && aoTeclarNoNarrador(e, narradorRef.current)) {
+      e.preventDefault();
+      return;
+    }
     if (e.key === 'ArrowLeft') void m.esquerda();
     else if (e.key === 'ArrowRight') void m.direita();
     else if (e.key === 'PageDown') void m.proxima();
@@ -962,6 +969,8 @@ export default function LeitorDoLivro({
                 <PainelDaNarracao
                   modo={modoNarracao}
                   seguir={seguirNarracao}
+                  opcoes={vistaNarrador.opcoes}
+                  narrador={narradorRef.current}
                   idiomaDoLivro={idiomaRef.current}
                   idiomaDaPessoa={baseLang(langConfig.mine)}
                   nuvem={vozDaNuvemDisponivel()}
@@ -1082,18 +1091,11 @@ export default function LeitorDoLivro({
       {narracaoAberta && (
         <BarraDoNarrador
           vista={vistaNarrador}
-          velocidade={velNarracao}
+          narrador={narradorRef.current}
           ajustesAbertos={painel === 'narracao'}
           aoAlternar={() => {
             if (vozDaNuvemDisponivel()) destravarVozDaNuvem();
             narradorRef.current?.alternar();
-          }}
-          aoAnterior={() => narradorRef.current?.anterior()}
-          aoProxima={() => narradorRef.current?.proxima()}
-          aoVelocidade={(v) => {
-            setVelNarracao(v);
-            gravarLocal(LS_VELOCIDADE, String(v));
-            narradorRef.current?.definirVelocidade(v);
           }}
           aoAjustes={() => abrirPainel('narracao')}
           aoParar={fecharNarracao}

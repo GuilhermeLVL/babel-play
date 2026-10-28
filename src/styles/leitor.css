@@ -878,7 +878,35 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.leitor-narrador-velocidade select {
+.leitor-narrador-velocidade {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.leitor-narrador-sono {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--leitor-suave);
+}
+.leitor-narrador-sono svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.leitor .leitor-narrador-sono select {
+  min-height: 44px;
+  width: 8.5em;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  padding: 0 6px;
+  border-radius: 10px;
+  border: 1px solid var(--leitor-borda);
+  background: var(--leitor-fundo);
+  color: var(--leitor-texto);
+  font: 600 13px var(--font-display, system-ui);
+}
+.leitor .leitor-narrador-velocidade select {
   min-height: 44px;
   padding: 0 8px;
   border-radius: 10px;
@@ -932,10 +960,60 @@
 @media (max-width: 640px) {
   .leitor-narrador {
     padding: 4px 6px;
+    gap: 4px;
+  }
+  .leitor .leitor-narrador-sono select {
+    width: 7em;
   }
   .leitor-narrador-onde {
     order: -1;
     flex-basis: 100%;
     text-align: center;
+  }
+}
+
+/* Os ajustes finos da narração: o rótulo, o controle e o valor à vista. */
+.leitor-ajustes-finos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.leitor-deslizante {
+  display: grid;
+  grid-template-columns: minmax(7.5em, 1fr) minmax(0, 1.6fr) 5.5em;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.leitor-deslizante input[type='range'] {
+  width: 100%;
+  min-height: 44px;
+  accent-color: var(--leitor-acento);
+}
+.leitor-deslizante select {
+  grid-column: 2 / -1;
+  min-height: 44px;
+  padding: 0 8px;
+  border-radius: 10px;
+  border: 1px solid var(--leitor-borda);
+  background: var(--leitor-fundo);
+  color: var(--leitor-texto);
+}
+.leitor-deslizante output {
+  color: var(--leitor-suave);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+@media (max-width: 640px) {
+  .leitor-deslizante {
+    grid-template-columns: 1fr 5.5em;
+  }
+  .leitor-deslizante input[type='range'] {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .leitor-deslizante select {
+    grid-column: 1 / -1;
   }
 }

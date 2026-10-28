@@ -4,24 +4,24 @@
     {
       "id": "pg-78079",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "manual de fisiologia geral (ciência do início do séc. XX), sem conteúdo sensível"
     },
     {
       "id": "pg-78125",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "baixa",
       "nota": "romance de família e de estudantes de medicina (amostra lida): namoro, conflito religioso católico × luterano, sem cena de sexo nas amostras"
     },
     {
       "id": "pg-78056",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "divulgação científica sobre a floresta e a vida natural"
     },
@@ -36,704 +36,704 @@
     {
       "id": "pg-22367",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "homem vira inseto; isolamento, rejeição da família e morte do protagonista, sem violência gráfica"
     },
     {
       "id": "pg-31284",
       "classificacao": "18",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "romance pornográfico de 1906: sexo explícito, inclusive envolvendo criança e incesto. Sensível: abuso sexual de menor descrito de forma explícita; nunca liberar para menor"
     },
     {
       "id": "pg-35312",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "novela romântica de andanças de um jovem músico, tom leve e cômico"
     },
     {
       "id": "pg-2229",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "pacto com o diabo, sedução de Gretchen, infanticídio e execução dela; cena da Noite de Valpúrgis"
     },
     {
       "id": "pg-34811",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "decadência de uma família de comerciantes: doenças, mortes, casamentos arranjados, sem cenas fortes"
     },
     {
       "id": "pg-40739",
       "classificacao": "16",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "psicanálise dos sonhos: discussão clínica franca de sexualidade, desejo incestuoso (Édipo) e simbolismo sexual"
     },
     {
       "id": "pg-24571",
-      "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "classificacao": "12",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "versos de advertência para crianças com castigos cruéis (polegares cortados, menina queimada), em tom de fábula. Sensível: história dos meninos que zombam de um menino negro (\"Mohr\"): intenção antirracista, mas linguagem e imagem de época"
     },
     {
       "id": "pg-50285",
       "classificacao": "16",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "romance policial: jogo, hipnose, assassinatos, cocaína e outras drogas no submundo de Berlim"
     },
     {
       "id": "se-herman-melville-moby-dick",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "caça à baleia com mortes de animais e de tripulantes, violência de aventura sem detalhe gráfico. Sensível: descrição de época de Queequeg e de outros tripulantes não brancos (\"cannibal\", \"savage\")"
     },
     {
       "id": "se-lewis-carroll-alices-adventures-in-wonderland-john-tenniel",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "fantasia infantil, ameaças cômicas (\"cortem-lhe a cabeça\") sem violência real"
     },
     {
       "id": "se-arthur-conan-doyle-the-adventures-of-sherlock-holmes",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "contos policiais com crimes e mortes sem detalhe gráfico; um conto se passa num antro de ópio. Sensível: \"The Five Orange Pips\" envolve a Ku Klux Klan; estereótipos de época"
     },
     {
       "id": "pg-1513",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "amor adolescente, duelos com mortes e o duplo suicídio dos protagonistas no fim; trocadilhos sexuais. Sensível: o suicídio dos jovens é o desfecho; merece conversa com menor"
     },
     {
       "id": "se-bram-stoker-dracula",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "terror: vampirismo, mortes, estaca no coração, decapitação, erotismo sugerido das vampiras, um bebê dado às vampiras. Sensível: estereótipos de época sobre ciganos (Szgany) e sobre o judeu Hildesheim"
     },
     {
       "id": "se-robert-louis-stevenson-the-strange-case-of-dr-jekyll-and-mr-hyde",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "duplo de um médico: um assassinato a bengaladas e um suicídio, narrados sem detalhe"
     },
     {
       "id": "se-george-eliot-middlemarch",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "romance de costumes: casamentos infelizes, chantagem, morte suspeita, sem cenas fortes"
     },
     {
       "id": "pg-49297",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "volume com Henrique VI (partes 1–3), The Contention e Ricardo III: guerras, decapitações, assassinato de crianças (os príncipes na Torre), Joana d'Arc queimada. Sensível: Joana d'Arc retratada como bruxa e devassa (propaganda inglesa de época)"
     },
     {
       "id": "pg-67979",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "romance de uma mulher que muda de vida; menção a mãe solteira e doença terminal, sem cenas fortes"
     },
     {
       "id": "se-fyodor-dostoevsky-crime-and-punishment-constance-garnett",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "assassinato a machado descrito, prostituição de Sônia por pobreza, alcoolismo, suicídio de Svidrigáilov"
     },
     {
       "id": "se-charlotte-bronte-jane-eyre",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "maus-tratos na infância, morte de uma criança por doença, mulher presa no sótão, incêndio. Sensível: Bertha Mason, crioula das Índias Ocidentais, descrita como bestial: racismo e capacitismo de época"
     },
     {
       "id": "se-louisa-may-alcott-little-women",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "vida de quatro irmãs; morte de Beth por doença, sem outros conteúdos sensíveis"
     },
     {
       "id": "se-oscar-wilde-the-picture-of-dorian-gray",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "decadência moral, antros de ópio, um assassinato a faca, suicídio de Sibyl Vane. Sensível: \"Jew\" caricato no dono do teatro; antissemitismo de época"
     },
     {
       "id": "se-charles-dickens-a-tale-of-two-cities",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "Revolução Francesa: guilhotina, massacres e linchamentos descritos sem detalhe gráfico"
     },
     {
       "id": "pg-16389",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "comédia leve de quatro mulheres em férias na Itália; insatisfação conjugal sem cenas"
     },
     {
       "id": "pg-1952",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "conto de uma mulher confinada que enlouquece (depressão pós-parto), atmosfera opressiva. Sensível: tema de saúde mental tratado de forma perturbadora"
     },
     {
       "id": "se-niccolo-machiavelli-the-prince-w-k-marriott",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "tratado político; discute crueldade e assassinatos políticos como exemplos históricos"
     },
     {
       "id": "se-leo-tolstoy-war-and-peace-louise-maude-aylmer-maude",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "guerras napoleônicas: batalhas, mortes, um fuzilamento, uma tentativa de sedução, sem detalhe gráfico"
     },
     {
       "id": "pg-394",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "crônica de uma pequena cidade inglesa, cômica e afetuosa"
     },
     {
       "id": "se-robert-w-chambers-the-king-in-yellow",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "contos de terror: loucura, suicídio, morte; um conto tem um suicídio assistido estatal"
     },
     {
       "id": "pg-6593",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "romance picaresco com aventuras amorosas e sexuais (não explícitas), duelos, suspeita de incesto"
     },
     {
       "id": "pg-74",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "aventura de infância com um assassinato no cemitério e o vilão morto de fome numa caverna. Sensível: \"Injun Joe\" e a palavra n-word: linguagem racista de época"
     },
     {
       "id": "pg-23",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "autobiografia de um escravizado: açoites e assassinatos de escravizados descritos com detalhe. Sensível: escravidão e violência racial descritas em primeira pessoa; termos de época"
     },
     {
       "id": "pg-49008",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "volume com Hamlet, Rei Lear e Otelo: assassinatos, olhos arrancados (Gloucester), feminicídio, suicídios. Sensível: Otelo: linguagem racista de época contra o protagonista negro"
     },
     {
       "id": "pg-59828",
       "classificacao": "16",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "Sweeney Todd: barbeiro assassino em série e carne humana vendida em tortas"
     },
     {
       "id": "pg-25344",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "adultério e filho fora do casamento como tema central, punição pública, sem cena de sexo"
     },
     {
       "id": "pg-3296",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "autobiografia espiritual; confessa juventude sensual e roubo de peras, em linguagem religiosa"
     },
     {
       "id": "se-l-frank-baum-the-wonderful-wizard-of-oz",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "fantasia infantil; bruxas derretem e lobos são mortos, sem detalhe"
     },
     {
       "id": "se-charles-dickens-great-expectations",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "órfão, condenado foragido, violência doméstica, uma mulher queimada, mortes sem detalhe"
     },
     {
       "id": "pg-1080",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "sátira em que se propõe comer bebês pobres; precisa de leitura irônica"
     },
     {
       "id": "se-jane-austen-sense-and-sensibility",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "romance de costumes; sedução e abandono de uma moça apenas mencionados"
     },
     {
       "id": "se-arthur-conan-doyle-a-study-in-scarlet",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "romance policial com assassinatos por veneno e faca, casamento forçado. Sensível: retrato hostil dos mórmons, de época"
     },
     {
       "id": "pg-3207",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "filosofia política (estado de natureza, soberania), sem conteúdo sensível"
     },
     {
       "id": "se-mark-twain-the-adventures-of-huckleberry-finn",
-      "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "classificacao": "14",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "fuga pelo rio: pai alcoólatra e violento, assassinatos e uma rixa de famílias com mortes. Sensível: a palavra n-word mais de 200 vezes; escravidão como tema; obra antirracista, mas pede contexto"
     },
     {
       "id": "se-emily-bronte-wuthering-heights",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "paixão obsessiva, violência doméstica, maus-tratos de crianças, sequestro e casamento forçado. Sensível: Heathcliff tratado como \"gipsy\" de pele escura; preconceito de época"
     },
     {
       "id": "pg-78118",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "história de futebol americano num colégio de rapazes, para jovens"
     },
     {
       "id": "se-henry-david-thoreau-walden",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "ensaio sobre a vida simples na floresta"
     },
     {
       "id": "pg-2542",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "casamento opressivo, fraude e a mulher que abandona o lar; sem violência"
     },
     {
       "id": "pg-41",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "conto do Cavaleiro sem Cabeça, sustos sem violência real"
     },
     {
       "id": "pg-844",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "comédia de costumes, sem conteúdo sensível"
     },
     {
       "id": "se-l-m-montgomery-anne-of-green-gables",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "clássico infantojuvenil; a morte de Matthew é o único momento pesado"
     },
     {
       "id": "pg-7370",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "filosofia política (governo, propriedade, consentimento). Sensível: justifica a escravidão de cativos de guerra (capítulo IV): ideia de época"
     },
     {
       "id": "pg-2148",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "contos de Poe: assassinatos, emparedamento, decomposição, enterro prematuro"
     },
     {
       "id": "pg-3268",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "romance gótico: castelo sombrio, sequestro, ameaças, sustos que se explicam no fim"
     },
     {
       "id": "se-fyodor-dostoevsky-the-brothers-karamazov-constance-garnett",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "parricídio, suicídio, relatos de crianças torturadas (capítulo \"Rebelião\"), alcoolismo e desejo"
     },
     {
       "id": "se-h-p-lovecraft-short-fiction",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "horror cósmico: mortes, loucura, mutilações, canibalismo sugerido. Sensível: racismo explícito e recorrente (o gato de \"The Rats in the Walls\" tem nome com n-word; \"The Horror at Red Hook\"; imigrantes como degenerados)"
     },
     {
       "id": "pg-20203",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "autobiografia de Benjamin Franklin. Sensível: menções a escravos domésticos e a indígenas como \"savages\", de época"
     },
     {
       "id": "pg-209",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "história de fantasmas ambígua; insinuação de corrupção de crianças e morte de um menino"
     },
     {
       "id": "pg-46",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "conto de Natal com fantasmas, sem violência"
     },
     {
       "id": "pg-1998",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "filosofia em forma poética; passagens misóginas (\"vais ter com mulheres? não esqueças o chicote\")"
     },
     {
       "id": "pg-57669",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "conto policial de fuga de uma cela, sem violência"
     },
     {
       "id": "se-h-g-wells-the-time-machine",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "ficção científica; os Morlocks comem os Eloi (sugerido), lutas sem detalhe"
     },
     {
       "id": "pg-2465",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "paixão destrutiva, contrabando, assassinatos e o feminicídio de Carmen pelo amante. Sensível: estereótipos de época sobre ciganos (romani) e uma digressão sobre a língua deles"
     },
     {
       "id": "pg-4363",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "filosofia moral; aforismos misóginos e comentários sobre judeus e \"raças\" de época. Sensível: passagens sobre \"raças\" e judeus que pedem contexto"
     },
     {
       "id": "pg-1497",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "diálogos de filosofia política. Sensível: propõe eugenia e abandono de recém-nascidos \"inferiores\" (livro V): ideia antiga a contextualizar"
     },
     {
       "id": "pg-15399",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "autobiografia de um africano escravizado: sequestro, açoites e torturas descritos. Sensível: escravidão e tráfico atlântico descritos em primeira pessoa"
     },
     {
       "id": "pg-59892",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "contos irlandeses de Donn Byrne: amor, morte, brigas, sem cenas fortes conhecidas"
     },
     {
       "id": "pg-1695",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "thriller metafísico de anarquistas e detetives, duelos e perseguições sem violência gráfica"
     },
     {
       "id": "pg-16",
-      "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "classificacao": "12",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "clássico infantil; lutas com piratas e Gancho devorado pelo crocodilo, sem detalhe. Sensível: \"Redskins\" e a tribo \"piccaninny\": retrato racista de indígenas, de época"
     },
     {
       "id": "pg-204",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "contos policiais do Padre Brown, assassinatos sem detalhe gráfico"
     },
     {
       "id": "pg-78009",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "história da educação física"
     },
     {
       "id": "pg-34901",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "ensaio sobre a liberdade individual. Sensível: defende o \"despotismo\" para povos \"bárbaros\": visão colonial de época"
     },
     {
       "id": "se-arthur-conan-doyle-the-hound-of-the-baskervilles",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "mistério com mortes, um cão feroz e um fugitivo morto, sem detalhe gráfico"
     },
     {
       "id": "pg-78122",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "história da conquista normanda: batalhas e mortes narradas por um historiador"
     },
     {
       "id": "pg-78025",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "história das ideias nos Estados Unidos. Sensível: escravidão e expulsão de indígenas discutidas na história; termos de época"
     },
     {
       "id": "pg-78013",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "tratado antigo de caça com cães (lebres caçadas)"
     },
     {
       "id": "se-jane-austen-emma",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "romance de costumes, sem conteúdo sensível"
     },
     {
       "id": "se-joseph-conrad-heart-of-darkness",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "violência colonial no Congo: trabalho forçado, africanos morrendo de fome, cabeças em estacas. Sensível: racismo de época (n-word, africanos descritos como selvagens); obra sobre o horror colonial, pede contexto"
     },
     {
       "id": "se-arthur-conan-doyle-the-sign-of-the-four",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "Holmes se injeta cocaína na abertura; assassinato com dardo envenenado, tesouro roubado na Índia. Sensível: Tonga, o andamanês, descrito como selvagem; o motim indiano visto pelo lado colonial"
     },
     {
       "id": "se-miguel-de-cervantes-saavedra-don-quixote-john-ormsby",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "sátira de cavalaria: surras, brigas e humor grosseiro, sem cenas fortes. Sensível: mouriscos e judeus em falas de época"
     },
     {
       "id": "se-jack-london-the-call-of-the-wild",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "cão roubado e espancado, brigas mortais entre cães, assassinato de pessoas por indígenas no fim. Sensível: os Yeehats retratados como selvagens, de época"
     },
     {
       "id": "se-mary-shelley-frankenstein",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "criatura que mata uma criança e outras pessoas; estrangulamentos sem detalhe"
     },
     {
       "id": "se-leo-tolstoy-anna-karenina-constance-garnett",
       "classificacao": "16",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "adultério e suicídio da protagonista como tema central; sem cena de sexo"
     },
     {
       "id": "se-h-g-wells-the-war-of-the-worlds",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "invasão marciana: mortes em massa, pessoas usadas como alimento (sugerido)"
     },
     {
       "id": "se-fyodor-dostoevsky-notes-from-underground-constance-garnett",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "monólogo amargo; humilhação de uma prostituta jovem na segunda parte"
     },
     {
       "id": "se-jane-austen-persuasion",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "romance de costumes, sem conteúdo sensível"
     },
     {
       "id": "se-jane-austen-pride-and-prejudice",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "romance de costumes; uma fuga amorosa (Lydia) só mencionada"
     },
     {
       "id": "se-laozi-tao-te-ching-james-legge",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "texto filosófico chinês"
     },
     {
       "id": "se-h-g-wells-the-invisible-man",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "cientista que comete agressões e um assassinato, morto por uma multidão"
     },
     {
       "id": "se-edgar-allan-poe-short-fiction",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "contos de terror: assassinatos, emparedamento, mutilação de olho de gato, enterro prematuro"
     },
@@ -748,112 +748,112 @@
     {
       "id": "se-charles-dickens-a-christmas-carol",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "conto de Natal com fantasmas, sem violência"
     },
     {
       "id": "se-dante-alighieri-the-divine-comedy-henry-wadsworth-longfellow",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "poema; torturas do Inferno descritas (mutilações, canibalismo do conde Ugolino) em linguagem alegórica. Sensível: Maomé retratado entre os condenados (Inferno XXVIII)"
     },
     {
       "id": "se-edmund-burke-reflections-on-the-revolution-in-france",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "ensaio político sobre a Revolução Francesa"
     },
     {
       "id": "se-robert-louis-stevenson-treasure-island",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "aventura com piratas: tiroteios, facadas e mortes sem detalhe gráfico"
     },
     {
       "id": "se-e-nesbit-beautiful-stories-from-shakespeare",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "Shakespeare recontado para crianças; mortes e assassinatos só narrados, sem detalhe"
     },
     {
       "id": "se-theodore-roosevelt-a-book-lovers-holidays-in-the-open",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "relatos de viagem e caça na natureza; animais abatidos. Sensível: visão de época sobre povos indígenas"
     },
     {
       "id": "se-pauline-e-hopkins-of-one-blood",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "romance especulativo: escravidão, incesto revelado entre irmãos, assassinato e morte, hipnose. Sensível: racismo e escravidão no centro (autora negra escrevendo contra o racismo); termos de época"
     },
     {
       "id": "se-jules-verne-robur-the-conqueror-sampson-low-marston-searle-rivington",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "aventura aérea, sequestro de dois homens, tiros e explosão sem detalhe. Sensível: cenas na África com retrato de época de africanos"
     },
     {
       "id": "se-c-h-spurgeon-the-art-of-illustration",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "palestras a pregadores sobre o uso de exemplos e histórias"
     },
     {
       "id": "se-w-h-davies-the-autobiography-of-a-super-tramp",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "vida de vagabundo: bebida, roubo, cadeia, brigas e a perna amputada após acidente com trem. Sensível: termos de época para negros e imigrantes nos EUA"
     },
     {
       "id": "se-a-e-w-mason-the-house-of-the-arrow",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "romance policial: assassinato por veneno, chantagem, sem detalhe gráfico"
     },
     {
       "id": "se-henry-seton-merriman-barlasch-of-the-guard",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "guerras napoleônicas: a retirada de Moscou, fome, frio e mortes sem detalhe gráfico"
     },
     {
       "id": "se-henry-seton-merriman-the-sowers",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "Rússia czarista: camponeses, intriga, violência de turba e epidemia"
     },
     {
       "id": "se-george-macdonald-within-and-without",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "poema dramático: crise de fé, casamento, morte da esposa, sem cenas fortes"
     },
@@ -868,208 +868,208 @@
     {
       "id": "se-winnifred-eaton-reeve-his-royal-nibs",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "romance num rancho canadense, brigas e romance sem cenas fortes. Sensível: personagens indígenas e mestiços descritos com termos de época"
     },
     {
       "id": "se-adam-smith-the-wealth-of-nations",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "tratado de economia. Sensível: escravidão e colônias discutidas em termos econômicos de época"
     },
     {
       "id": "se-virginia-woolf-orlando",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "biografia fantástica com troca de sexo e amores, sem cena explícita"
     },
     {
       "id": "se-homer-the-iliad-william-cullen-bryant",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "guerra de Troia: mortes em combate descritas, profanação do corpo de Heitor. Sensível: escravidão de cativas de guerra (Briseida) como dado da época"
     },
     {
       "id": "se-john-milton-paradise-lost",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "poema bíblico: guerra no céu, queda do homem, sem cenas fortes"
     },
     {
       "id": "se-william-shakespeare-macbeth",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "assassinatos de rei, de amigos e de uma família inteira; suicídio de Lady Macbeth fora de cena"
     },
     {
       "id": "se-william-shakespeare-hamlet",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "vingança: assassinatos, envenenamentos, suicídio de Ofélia sugerido; trocadilhos sexuais"
     },
     {
       "id": "se-arthur-conan-doyle-brigadier-gerard-stories",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "aventuras cômicas de um hussardo napoleônico, duelos e combates"
     },
     {
       "id": "se-james-joyce-ulysses",
       "classificacao": "16",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "sexualidade franca (masturbação, fantasias, monólogo de Molly), bordel no episódio \"Circe\"; foi censurado por obscenidade. Sensível: antissemitismo vivido por Bloom em falas de outros personagens"
     },
     {
       "id": "se-virginia-woolf-to-the-lighthouse",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "vida de uma família; mortes de personagens, inclusive na guerra, só mencionadas"
     },
     {
       "id": "se-pauline-e-hopkins-contending-forces",
       "classificacao": "16",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "escravidão, linchamento e o estupro de uma menina de 14 anos (passado de Sappho) narrado. Sensível: racismo, linchamento e violência sexual contra mulheres negras no centro do enredo"
     },
     {
       "id": "se-homer-the-odyssey-william-cullen-bryant",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "aventura mítica: Ciclope que devora homens, massacre dos pretendentes e enforcamento das servas"
     },
     {
       "id": "se-f-scott-fitzgerald-the-great-gatsby",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "adultério, bebida na Lei Seca, atropelamento fatal e assassinato seguido de suicídio. Sensível: racismo de Tom Buchanan (\"The Rise of the Colored Empires\"), mostrado como ridículo"
     },
     {
       "id": "se-marcus-aurelius-meditations-george-long",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "reflexões estoicas"
     },
     {
       "id": "pg-78052",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "crônicas de viagem de Unamuno pela Espanha"
     },
     {
       "id": "pg-58221",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "Odisseia: Ciclope que devora homens, massacre dos pretendentes e enforcamento das servas"
     },
     {
       "id": "pg-25640",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "travessia de navio para a América com um caso de adultério do protagonista e mortes"
     },
     {
       "id": "pg-49836",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "\"nivola\" de Unamuno: o protagonista tenta seduzir e humilha uma mulher e discute o suicídio com o autor. Sensível: o suicídio é tema central"
     },
     {
       "id": "pg-57303",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "Divina Comédia: torturas do Inferno descritas de forma alegórica. Sensível: Maomé entre os condenados (Inferno XXVIII)"
     },
     {
       "id": "pg-27738",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "romance de pescadores asturianos: amor, pobreza e um naufrágio"
     },
     {
       "id": "pg-52894",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "contos e poemas modernistas com erotismo sugerido e crítica social"
     },
     {
       "id": "pg-67092",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "Paraíso Perdido: guerra no céu e queda do homem"
     },
     {
       "id": "pg-47584",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "abusos dos frades na Filipinas colonial, morte e profanação de corpo, loucura de uma mãe, filho bastardo de padre. Sensível: violência colonial e racismo contra filipinos (\"indios\") no centro do livro"
     },
     {
       "id": "pg-57654",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "Ilíada: mortes em combate descritas, profanação do corpo de Heitor"
     },
     {
       "id": "pg-25988",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "história acadêmica do teatro espanhol"
     },
     {
       "id": "pg-18600",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "poemas de Rizal, entre eles o escrito antes de sua execução"
     },
@@ -1084,104 +1084,104 @@
     {
       "id": "pg-28002",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "drama anticlerical: uma moça pressionada a entrar no convento e a falsa suspeita de incesto"
     },
     {
       "id": "pg-53552",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "Rimas e Lendas de Bécquer: amor, morte e lendas sobrenaturais sombrias"
     },
     {
       "id": "pg-45438",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "A Ilha do Tesouro: piratas, tiroteios e mortes sem detalhe gráfico"
     },
     {
       "id": "pg-17013",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "adultério e filho ilegítimo como tema central, mulher pobre explorada, sem cena explícita"
     },
     {
       "id": "pg-17073",
       "classificacao": "16",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "adultério central, desejo obsessivo de um padre pela protagonista, morte do marido em duelo"
     },
     {
       "id": "pg-64974",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "ensaio de psicologia social sobre a mediocridade"
     },
     {
       "id": "pg-30903",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "conspiração revolucionária, atentado a bomba, tortura e violência colonial nas Filipinas. Sensível: violência colonial espanhola e racismo contra filipinos"
     },
     {
       "id": "pg-55206",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "fábulas morais em verso para crianças"
     },
     {
       "id": "pg-46196",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "contos de Poe em espanhol: assassinatos, emparedamento, terror"
     },
     {
       "id": "pg-13507",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "contos de Quiroga: mortes cruéis (a menina degolada pelos irmãos, o parasita do travesseiro), loucura"
     },
     {
       "id": "pg-19898",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "revista infantil de José Martí, contos e artigos para crianças"
     },
     {
       "id": "pg-28281",
       "classificacao": "16",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "escravidão em Havana: castigos e torturas de escravizados, incesto entre meios-irmãos e um assassinato. Sensível: escravidão e racismo no centro (romance abolicionista); termos de época"
     },
     {
       "id": "pg-17340",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "amor de um cego e uma moça pobre e feia, morte dela no fim; sem violência"
     },
@@ -1196,24 +1196,24 @@
     {
       "id": "pg-60198",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "o Comendador abusa das camponesas (tentativas de estupro), tortura dos aldeões e o assassinato dele pelo povo"
     },
     {
       "id": "pg-56451",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "ensaio sobre a poesia gauchesca e o Martín Fierro. Sensível: visão de época sobre indígenas e \"raças\""
     },
     {
       "id": "pg-24536",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "Primeira Guerra Mundial: massacres, fuzilamentos, estupro sugerido na invasão, caso amoroso adúltero"
     },
@@ -1228,120 +1228,120 @@
     {
       "id": "pg-23035",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "sátira social argentina sobre especulação na Bolsa (amostra lida), sem cenas fortes"
     },
     {
       "id": "pg-33267",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "biografia de um caudilho: degolas, massacres e violência política na Argentina. Sensível: desprezo de época por gaúchos, indígenas e mestiços (\"civilização × barbárie\")"
     },
     {
       "id": "pg-50351",
       "classificacao": "16",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "Las Casas relata massacres, torturas e escravização de indígenas na conquista, com detalhe. Sensível: violência colonial descrita para denunciá-la; muito pesada para menor"
     },
     {
       "id": "pg-14765",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "vida de um gaúcho perseguido: duelos a faca, mortes, castigos no forte. Sensível: cena em que Fierro insulta e mata um negro com ofensas racistas; indígenas como selvagens"
     },
     {
       "id": "pg-29506",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "comédia de costumes: o corregedor tenta seduzir a moleira, sem cena explícita"
     },
     {
       "id": "pg-50027",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "comédia sobre casamento arranjado de uma moça com um velho, sem conteúdo sensível"
     },
     {
       "id": "pg-23236",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "Primeira Guerra: caso amoroso com uma espiã, submarinos, afogamento e morte"
     },
     {
       "id": "pg-72665",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "poemas de Lorca: erotismo (\"La casada infiel\"), mortes violentas e a Guarda Civil. Sensível: retrato de ciganos idealizado, mas estereotipado"
     },
     {
       "id": "pg-52392",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "funcionário demitido cai na miséria e se suicida no fim. Sensível: suicídio como desfecho"
     },
     {
       "id": "pg-23600",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "romance de costumes andaluz: casamento infeliz, adultério e morte de um toureiro"
     },
     {
       "id": "pg-56454",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "Hamlet: assassinatos, envenenamentos, morte de Ofélia"
     },
     {
       "id": "pg-29731",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "comédia: um capitão ferido e rabugento que acaba se apaixonando"
     },
     {
       "id": "pg-68566",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "Fausto: pacto com o diabo, sedução, infanticídio e execução de Margarida"
     },
     {
       "id": "pg-23206",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "comédia de Lope: a protagonista mata o ofensor para vingar a honra do pai e se disfarça de criada"
     },
     {
       "id": "pg-36558",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "conto infantil do Ratinho Pérez (o \"fada do dente\" espanhol)"
     },
@@ -1356,72 +1356,72 @@
     {
       "id": "pg-68525",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "poesia de Antonio Machado: paisagem, tempo, memória"
     },
     {
       "id": "pg-26947",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "ensaio sobre \"raças\" na América com determinismo racial de época. Sensível: racismo pseudocientífico como tese; precisa de contexto"
     },
     {
       "id": "pg-79262",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "parábolas morais de Rodó"
     },
     {
       "id": "pg-72753",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "Heródoto: guerras, costumes antigos e algumas crueldades narradas"
     },
     {
       "id": "pg-17223",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "seminarista que se apaixona por uma jovem viúva; tensão amorosa sem cena explícita"
     },
     {
       "id": "pg-47650",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "poemas modernistas com erotismo e sensualidade explícitos para a época"
     },
     {
       "id": "pg-49063",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "Orlando Furioso: combates sangrentos, episódios eróticos e tentativas de estupro. Sensível: cristãos × sarracenos com visão de época"
     },
     {
       "id": "pg-53207",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "volume com O Mercador de Veneza, Macbeth, Romeu e Julieta e Otelo (conferido no texto): assassinatos, suicídios, feminicídio. Sensível: Shylock: antissemitismo de época; Otelo: racismo de época contra o protagonista negro"
     },
     {
       "id": "pg-53867",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "poemas finais de Darío: morte, fé, amor"
     },
@@ -1436,48 +1436,48 @@
     {
       "id": "pg-49354",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "relato de viagem de um mexicano aos Estados Unidos em 1877. Sensível: comentários de época sobre negros, indígenas e chineses"
     },
     {
       "id": "pg-46201",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "Orlando Furioso: combates sangrentos, episódios eróticos e tentativas de estupro. Sensível: cristãos × sarracenos com visão de época"
     },
     {
       "id": "pg-51569",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "poemas sobre o tempo, o amor e a morte"
     },
     {
       "id": "pg-78027",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "crônicas da natureza e da floresta"
     },
     {
       "id": "pg-62215",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "mistério gótico: enforcamentos, sequestro da cantora e ameaças, sem detalhe gráfico"
     },
     {
       "id": "pg-78041",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "contos de Jack London no Grande Norte: frio, fome, morte e brigas. Sensível: indígenas retratados com termos de época"
     },
@@ -1500,24 +1500,24 @@
     {
       "id": "pg-78069",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "\"Dois Hussardos\": jogo, bebida, duelo e a sedução de uma jovem"
     },
     {
       "id": "pg-78021",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "padre que perdeu a fé, mentira e um suicídio"
     },
     {
       "id": "pg-78101",
       "classificacao": "16",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "romance de paixão adúltera nos anos 1920 que termina em suicídio"
     },
@@ -1532,24 +1532,24 @@
     {
       "id": "pg-78059",
       "classificacao": "18",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "Catulle Mendès, autor conhecido por contos licenciosos e eróticos"
     },
     {
       "id": "pg-78098",
       "classificacao": "18",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "\"A arte de amar\" de Catulle Mendès: contos galantes e eróticos"
     },
     {
       "id": "pg-17989",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "prisão injusta, fuga e começo da vingança; mortes sem detalhe gráfico"
     },
@@ -1564,32 +1564,32 @@
     {
       "id": "pg-61885",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "memórias de infância e de escola de De Amicis"
     },
     {
       "id": "pg-1012",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "Divina Comédia: torturas do Inferno em linguagem alegórica. Sensível: Maomé entre os condenados (Inferno XXVIII)"
     },
     {
       "id": "pg-52484",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "Pinóquio: travessuras e castigos de fábula, enforcado pelos bandidos sem detalhe"
     },
     {
       "id": "pg-38720",
       "classificacao": "16",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "romance de amores adúlteros e amantes (amostra lida) de Guido da Verona, autor de sucesso escandaloso pela sensualidade"
     },
@@ -1612,40 +1612,40 @@
     {
       "id": "pg-45334",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "sequestro, a peste de Milão, a monja de Monza (sedução e crime sugeridos), sem detalhe"
     },
     {
       "id": "pg-22501",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "baixa",
       "nota": "ensaio histórico-político que culmina na derrota colonial italiana na Eritreia. Sensível: defesa do colonialismo italiano; termos de época sobre africanos"
     },
     {
       "id": "pg-27433",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "poema alegórico medieval inspirado em Dante: vícios, inferno e virtudes"
     },
     {
       "id": "pg-57565",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "tragédias históricas (mortes, traição) e hinos religiosos"
     },
     {
       "id": "pg-997",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "Divina Comédia: torturas do Inferno em linguagem alegórica. Sensível: Maomé entre os condenados (Inferno XXVIII)"
     },
@@ -1660,24 +1660,24 @@
     {
       "id": "pg-1982",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "contos de Akutagawa: um ladrão e uma velha que arranca cabelos de cadáveres, fome e morte"
     },
     {
       "id": "pg-34013",
       "classificacao": "16",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "\"O Riso Vermelho\": horror da guerra, cadáveres, loucura, descrições gráficas"
     },
     {
       "id": "pg-25946",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "Razão e Sensibilidade em holandês"
     },
@@ -1692,48 +1692,48 @@
     {
       "id": "pg-28120",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "romance histórico no Egito antigo: intrigas da corte, guerra e mortes"
     },
     {
       "id": "pg-21848",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "Noli me tángere em holandês: abusos dos frades e violência colonial. Sensível: violência colonial e racismo contra filipinos"
     },
     {
       "id": "pg-26564",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "cavalaria medieval: torneios, cerco, Rebeca acusada de bruxaria. Sensível: antissemitismo de época na forma como os personagens tratam Isaac e Rebeca"
     },
     {
       "id": "pg-26127",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "feitos heroicos holandeses para jovens: batalhas navais. Sensível: heróis coloniais e navais vistos sem crítica"
     },
     {
       "id": "pg-73246",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "Darwin sobre seleção sexual: discussão científica de reprodução e corte. Sensível: hierarquias raciais de época (\"raças selvagens\")"
     },
     {
       "id": "pg-16829",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "história cultural da Baixa Idade Média: execuções públicas, violência e religiosidade"
     },
@@ -1748,104 +1748,104 @@
     {
       "id": "pg-36077",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "estudo dos sobrenomes holandeses"
     },
     {
       "id": "pg-27309",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "Da Terra à Lua de Verne, sem violência"
     },
     {
       "id": "pg-28029",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "Vida Nova de Dante: poemas e prosa de amor idealizado"
     },
     {
       "id": "pg-31536",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "epopeia polonesa: rixa de famílias, batalha e mortes sem detalhe. Sensível: caricatura de época do judeu Jankiel (retratado com simpatia, mas estereotipado)"
     },
     {
       "id": "pg-28044",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "Cinderela dos Grimm em polonês"
     },
     {
       "id": "pg-28049",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "baladas: fantasmas, uma esposa que mata o marido, castigos sobrenaturais"
     },
     {
       "id": "pg-8119",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "contos de Bruno Schulz: delírio, loucura do pai e uma rua de sexualidade sugerida (Rua dos Crocodilos)"
     },
     {
       "id": "pg-30407",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "divulgação sobre descobertas e invenções"
     },
     {
       "id": "pg-27081",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "sonetos amorosos e da Crimeia, sensualidade discreta"
     },
     {
       "id": "pg-28014",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "contos (amostra lida): romance, beijos, angústia; sem cenas fortes nas amostras"
     },
     {
       "id": "pg-35301",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "poemas de Leśmian: erotismo e morte, criaturas fantásticas"
     },
     {
       "id": "pg-27062",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "Romeu e Julieta: duelos e o duplo suicídio dos protagonistas. Sensível: suicídio dos jovens como desfecho"
     },
     {
       "id": "pg-27835",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "poema idílico do campo polonês"
     },
@@ -1860,136 +1860,136 @@
     {
       "id": "pg-27723",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "relato de uma batalha contra os russos (amostra lida): artilharia e combate sem detalhe gráfico"
     },
     {
       "id": "ws-pt-dom-casmurro",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "ciúme e suspeita de adultério como tema central, sem cena de sexo"
     },
     {
       "id": "pg-3333",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "epopeia: batalhas, naufrágios e a Ilha dos Amores (canto IX) com erotismo em linguagem mitológica. Sensível: expansão colonial portuguesa celebrada; mouros e povos africanos e asiáticos retratados como inimigos"
     },
     {
       "id": "ws-pt-os-maias",
       "classificacao": "16",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "incesto entre irmãos que não sabem do parentesco, adultério e amantes"
     },
     {
       "id": "ws-pt-a-escrava-isaura",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "escravidão: perseguição e assédio do senhor à escrava, castigos, sem cena explícita. Sensível: escravidão como tema central; a heroína é valorizada por ser \"branca\"; termos de época"
     },
     {
       "id": "pg-54829",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "Memórias Póstumas: adultério central com Virgília, cinismo, morte. Sensível: escravidão: Prudêncio açoita outro escravizado; termos de época"
     },
     {
       "id": "ws-pt-o-cortico",
       "classificacao": "16",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "naturalismo: cenas sexuais sugeridas, sedução lésbica de uma adolescente, brigas a navalha, suicídio de Bertoleza. Sensível: racismo e escravidão (Bertoleza vendida como livre); personagens descritos por \"raça\" de forma determinista"
     },
     {
       "id": "ws-pt-o-crime-do-padre-amaro",
       "classificacao": "16",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "padre seduz uma jovem, gravidez, morte dela e o bebê entregue a uma \"tecedeira de anjos\" (infanticídio)"
     },
     {
       "id": "ws-pt-carta-a-el-rei-d-manuel-ortografia-original",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "relato da chegada portuguesa ao Brasil; descreve a nudez dos indígenas sem erotismo. Sensível: olhar colonial sobre os indígenas, pede contexto"
     },
     {
       "id": "pg-26988",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "novela romântica de paixão, abandono e redenção"
     },
     {
       "id": "ws-pt-o-guarani",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "aventura: lutas, mortes, ataque dos aimorés e uma explosão. Sensível: indígenas idealizados (Peri) ou retratados como selvagens canibais (aimorés)"
     },
     {
       "id": "ws-pt-iracema",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "romance indianista: guerra entre tribos, união sugerida de Iracema com Martim sob bebida, morte dela. Sensível: visão colonial e romântica dos indígenas"
     },
     {
       "id": "pg-31347",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "contos de Eça: morte, amor e crítica social, sem cenas fortes"
     },
     {
       "id": "ws-pt-o-alienista",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "sátira de um médico que interna a cidade; humor, sem violência"
     },
     {
       "id": "ws-pt-bom-crioulo",
       "classificacao": "18",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "relação sexual de um marinheiro adulto com um grumete de 15 anos, açoites, assassinato no fim. Sensível: homossexualidade tratada como patologia (visão de época) e racismo; sexualidade com adolescente"
     },
     {
       "id": "ws-pt-quincas-borba",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "herança, loucura, interesse amoroso por mulher casada, sem cena"
     },
     {
       "id": "pg-27637",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "cartas fictícias de crítica social e viagens. Sensível: visões de época sobre o Oriente e a África"
     },
@@ -2004,8 +2004,8 @@
     {
       "id": "ws-pt-peregrinacam",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "viagens pela Ásia: pirataria, massacres, naufrágios, cativeiro e torturas. Sensível: violência colonial portuguesa e saques narrados com naturalidade"
     },
@@ -2020,56 +2020,56 @@
     {
       "id": "ws-pt-cinco-minutos",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "novela romântica curta, sem conteúdo sensível"
     },
     {
       "id": "ws-pt-o-mandarim",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "conto fantástico: um homem mata um mandarim à distância por herança e é perseguido pela culpa. Sensível: estereótipos de época sobre chineses"
     },
     {
       "id": "ws-pt-esau-e-jaco",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "gêmeos rivais e uma moça disputada; política, sem cenas fortes"
     },
     {
       "id": "pg-42942",
       "classificacao": "16",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "adultério da protagonista como tema central, chantagem da criada, doença e morte de Luísa"
     },
     {
       "id": "ws-pt-a-reliquia",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "sátira anticlerical: hipocrisia religiosa, caso com uma amante, sensualidade sugerida"
     },
     {
       "id": "ws-pt-o-ateneu",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "internato de meninos: violência, assédio e homossexualidade sugeridos, incêndio"
     },
     {
       "id": "ws-pt-o-uraguai",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "poema da guerra contra os guaranis: batalhas e o suicídio de Lindoia (picada de cobra). Sensível: violência colonial contra indígenas, com propaganda antijesuítica"
     },
@@ -2084,128 +2084,128 @@
     {
       "id": "ws-pt-noite-na-taverna",
       "classificacao": "18",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "contos ultrarromânticos: necrofilia, incesto, estupro, canibalismo e assassinatos"
     },
     {
       "id": "ws-pt-sermao-de-santo-antonio-1654",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "sermão aos peixes: crítica moral aos colonos. Sensível: denúncia da escravização de indígenas no Maranhão, em linguagem de época"
     },
     {
       "id": "pg-22015",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "aventura na África: batalhas sangrentas, a feiticeira Gagool e mortes sem detalhe gráfico. Sensível: retrato colonial e racista dos africanos; linguagem de época"
     },
     {
       "id": "ws-pt-o-seminarista",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "seminarista forçado ao sacerdócio que perde o amor de infância e enlouquece"
     },
     {
       "id": "ws-pt-o-mysterio-da-estrada-de-cintra",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "mistério de folhetim: adultério, cadáver, amante e envenenamento"
     },
     {
       "id": "ws-pt-o-cabeleira",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "cangaceiro histórico: assassinatos e violência no sertão"
     },
     {
       "id": "pg-27599",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "poemas líricos de João de Deus"
     },
     {
       "id": "ws-pt-a-cartomante",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "conto de adultério que termina com o casal de amantes assassinado"
     },
     {
       "id": "ws-pt-ressurreicao-machado-de-assis",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "ciúme e desconfiança que impedem um casamento, sem cenas fortes"
     },
     {
       "id": "pg-31971",
       "classificacao": "16",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "O Crime do Padre Amaro (outra edição): sedução de uma jovem, morte dela e infanticídio"
     },
     {
       "id": "ws-pt-o-gaucho",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "romance regionalista: duelos, vingança e violência do pampa"
     },
     {
       "id": "ws-pt-memorias-de-um-sargento-de-milicias",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "malandragem no Rio colonial: travessuras, namoros, prisões, sem cenas fortes. Sensível: escravidão e ciganos aparecem com termos de época"
     },
     {
       "id": "ws-pt-y-juca-pyrama",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "poema indianista: prisioneiro tupi diante do ritual de sacrifício. Sensível: ritual antropofágico; idealização romântica dos indígenas"
     },
     {
       "id": "pg-26338",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "perfis biográficos de contemporâneos portugueses"
     },
     {
       "id": "ws-pt-encarnacao-jose-de-alencar",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "viúvo obcecado pela falecida esposa; incêndio no fim"
     },
     {
       "id": "ws-pt-a-normalista",
       "classificacao": "16",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "naturalismo: o padrinho seduz a afilhada, gravidez e aborto sugerido. Sensível: abuso de uma jovem pelo tutor como tema central"
     },
@@ -2220,80 +2220,80 @@
     {
       "id": "ws-pt-a-moreninha-1860",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "romance romântico estudantil, sem conteúdo sensível"
     },
     {
       "id": "ws-pt-a-luneta-magica",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "fábula de um míope com uma luneta que mostra o mal e o bem nas pessoas"
     },
     {
       "id": "ws-pt-amor-de-perdicao-1862",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "amor proibido, um assassinato, prisão e mortes por doença e desgosto"
     },
     {
       "id": "pg-20874",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "poemas de Antero: desespero, morte e dúvida religiosa"
     },
     {
       "id": "ws-pt-auto-da-barca-do-inferno",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "sátira moral; personagens condenados ao inferno, humor grosseiro. Sensível: o Judeu e a Alcoviteira caricaturados com preconceito de época"
     },
     {
       "id": "ws-pt-arte-de-grammatica-da-lingoa-mais-vsada-na-costa-do-brasil",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "gramática do tupi do séc. XVI. Sensível: contexto da catequese colonial"
     },
     {
       "id": "ws-pt-o-garimpeiro",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "romance de garimpo e amor, conflitos e violência sem detalhe"
     },
     {
       "id": "pg-25537",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "crônicas de viagem pela China e pelo Japão. Sensível: exotismo e orientalismo de época"
     },
     {
       "id": "ws-pt-marilia-de-dirceu",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "poemas de amor árcades"
     },
     {
       "id": "ws-pt-luciola",
       "classificacao": "16",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "a protagonista é uma cortesã; prostituição, uma orgia e sexualidade sugerida"
     },
@@ -2308,136 +2308,136 @@
     {
       "id": "ws-pt-helena",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "suspeita de incesto entre meios-irmãos (que não são), morte da heroína por doença"
     },
     {
       "id": "ws-pt-espumas-flutuantes-1913",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "poemas amorosos sensuais e de dor, sem erotismo explícito"
     },
     {
       "id": "ws-pt-diva",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "romance romântico de um médico e uma moça orgulhosa"
     },
     {
       "id": "pg-20841",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "miséria urbana, prostituição, fome e morte em Lisboa"
     },
     {
       "id": "ws-pt-cartas-de-inglaterra-eca-de-queiros",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "crônicas sobre a Inglaterra vitoriana e seu império. Sensível: guerras coloniais (Afeganistão, Egito) comentadas com termos de época"
     },
     {
       "id": "ws-pt-as-minas-de-prata",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "romance histórico colonial: intriga, duelos, jesuítas e aventura. Sensível: indígenas e escravizados com visão de época"
     },
     {
       "id": "pg-18220",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "sátira da civilização e elogio da vida no campo"
     },
     {
       "id": "ws-pt-as-pupilas-do-senhor-reitor",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "romance de aldeia: namoros e mal-entendidos, sem conteúdo sensível"
     },
     {
       "id": "ws-pt-a-viuvinha",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "romance romântico; o noivo arruinado finge a própria morte. Sensível: suicídio fingido como recurso do enredo"
     },
     {
       "id": "ws-pt-a-pata-da-gazela",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "romance romântico de costumes, sem conteúdo sensível"
     },
     {
       "id": "pg-33056",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "contos de Machado: adultério sugerido, morte, crueldade psicológica"
     },
     {
       "id": "ws-pt-guerra-dos-mascates",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "romance histórico satírico da guerra de 1710 em Pernambuco"
     },
     {
       "id": "ws-pt-a-mao-e-a-luva",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "romance de uma moça entre três pretendentes, sem conteúdo sensível"
     },
     {
       "id": "ws-pt-aventuras-de-hans-staden-6-edicao",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "adaptação para jovens do cativeiro entre os tupinambás: ameaça de ser devorado, rituais antropofágicos. Sensível: visão colonial dos indígenas como canibais; linguagem de época de Monteiro Lobato"
     },
     {
       "id": "pg-24824",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "estudo histórico sobre os deputados brasileiros nas Cortes de 1821"
     },
     {
       "id": "pg-14741",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "odes religiosas e filosóficas de Derjávin"
     },
     {
       "id": "pg-65580",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "romance histórico de guerra sueca (amostra lida): combates, incêndios e mortes sem detalhe gráfico"
     },
@@ -2452,48 +2452,48 @@
     {
       "id": "pg-74639",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "romance de uma moça e sua vida escolar e familiar, para jovens"
     },
     {
       "id": "pg-62806",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "relato de uma jornalista que viveu com os sámi nômades. Sensível: retrato de época do povo sámi"
     },
     {
       "id": "pg-48961",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "reportagem de uma jornalista disfarçada de criada de fazenda: trabalho duro e condições de vida"
     },
     {
       "id": "pg-27875",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "esboços e sonhos em prosa e verso"
     },
     {
       "id": "pg-26546",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "novelas de realismo social: pobreza, alcoolismo, violência doméstica e mulheres oprimidas"
     },
     {
       "id": "pg-51440",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "contos de Selma Lagerlöf: lendas, culpa, morte"
     },
@@ -2508,120 +2508,120 @@
     {
       "id": "pg-26347",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "ensaios de crítica literária"
     },
     {
       "id": "pg-59341",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "história de família (amostra lida): separação, disputa pela guarda de uma criança, morte e luto"
     },
     {
       "id": "pg-53343",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "\"The Song of the Cardinal\": romance de um pássaro cardeal"
     },
     {
       "id": "pg-23910",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "romance mitológico chinês: batalhas sobrenaturais, torturas do rei Zhou (coluna em brasa) e a raposa Daji"
     },
     {
       "id": "pg-24032",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "sátira dos letrados e dos exames imperiais; sem cenas fortes"
     },
     {
       "id": "pg-23839",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "Analectos de Confúcio"
     },
     {
       "id": "pg-25606",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "crônica histórica dos Três Reinos: guerras e execuções narradas"
     },
     {
       "id": "pg-25142",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "obras do filósofo neoconfuciano Wang Yangming"
     },
     {
       "id": "pg-57248",
       "classificacao": "18",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "coletânea de contos populares Ming com episódios sexuais explícitos, adultério e crimes"
     },
     {
       "id": "pg-23841",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "história da dinastia Han: guerras, execuções e intrigas da corte"
     },
     {
       "id": "pg-24047",
       "classificacao": "12",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "anedotas de letrados e nobres da China antiga"
     },
     {
       "id": "pg-25128",
       "classificacao": "16",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "a protagonista é uma ex-cortesã: adultério, bordéis e intrigas políticas"
     },
     {
       "id": "pg-54756",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "sátira da corrupção dos funcionários: subornos, ópio, bordéis"
     },
     {
       "id": "pg-54567",
       "classificacao": "14",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "média",
       "nota": "\"Estranhos acontecimentos de vinte anos\": corrupção, fraude, ópio, prostituição e violência familiar"
     },
     {
       "id": "pg-23844",
       "classificacao": "livre",
-      "revisor": "proposta-claude",
-      "data": "2026-10-26",
+      "revisor": "Guilherme",
+      "data": "2026-10-28",
       "confianca": "alta",
       "nota": "Sutra do Sexto Patriarca (budismo chan)"
     },

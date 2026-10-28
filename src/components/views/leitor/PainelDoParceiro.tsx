@@ -128,6 +128,7 @@ export default function PainelDoParceiro({
   const idDaPergunta = useId();
   const idDoStatus = useId();
   const pedidoAtual = useRef(0);
+  const respostaRef = useRef<HTMLElement>(null);
 
   /* A seleção mudou ou o modo veio de fora: a resposta anterior era de outro trecho. */
   useEffect(() => {
@@ -138,6 +139,13 @@ export default function PainelDoParceiro({
   useEffect(() => {
     if (modoInicial) setModo(modoInicial);
   }, [modoInicial]);
+
+  /* A resposta chega embaixo da folha (no celular, fora da vista): leva o foco e a vista até ela. */
+  useEffect(() => {
+    if (estado.fase !== 'ok') return;
+    respostaRef.current?.focus({ preventScroll: true });
+    respostaRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+  }, [estado.fase]);
 
   const precisaDeSelecao = MODOS_COM_SELECAO.includes(modo) && !temSelecao;
   const faltaPergunta = modo === 'pergunta' && pergunta.trim().length < 3;
@@ -263,7 +271,13 @@ export default function PainelDoParceiro({
       )}
 
       {resposta && (
-        <article className="leitor-ia-resposta" data-testid="parceiro-resposta">
+        <article
+          ref={respostaRef}
+          tabIndex={-1}
+          className="leitor-ia-resposta"
+          aria-label={t('Resposta do parceiro')}
+          data-testid="parceiro-resposta"
+        >
           <p>{resposta.resposta.texto}</p>
           {resposta.resposta.pontos.length > 0 && (
             <ul>

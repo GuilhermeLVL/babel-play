@@ -22,8 +22,8 @@
 
 ## 3. M3 Fala
 
-- [ ] 3.1 `useAvatarFalando` ligado ao `TtsEngine`; amplitude da nuvem e cadência estimada. Aceite: teste dos estados com TTS falso
-- [ ] 3.2 Vida procedural e movimento reduzido. Aceite: com `prefers-reduced-motion` não há animação ociosa
+- [x] 3.1 `useAvatarFalando` ligado ao `TtsEngine`; amplitude da nuvem e cadência estimada. Aceite: teste dos estados com TTS falso
+- [x] 3.2 Vida procedural e movimento reduzido. Aceite: com `prefers-reduced-motion` não há animação ociosa
 
 ## 4. M4 Intérprete e PiP (depois de M3)
 

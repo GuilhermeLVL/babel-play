@@ -28,6 +28,9 @@ export const ORCAMENTOS: Record<TierDoAvatar, OrcamentoDoTier> = {
   forte: { triangulos: 70_000, materiais: 32, texturaMax: 2048, fps: 60, pixelRatioMax: 2, molas: true },
 };
 
+/** Teto de bytes do arquivo do modelo (VRM/GLB), lido do cabeçalho/`Content-Length` antes de decodificar. */
+export const TETO_DO_MODELO_BYTES = 15 * 1024 * 1024;
+
 /** O PiP é minúsculo e roda em outro documento: sempre o orçamento mais baixo. */
 export const TIER_DO_PIP: TierDoAvatar = 'fraco';
 

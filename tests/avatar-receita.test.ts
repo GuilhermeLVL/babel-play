@@ -14,7 +14,7 @@ const boa = () => ({
 const erros = (entrada: unknown) => {
   const r = validarReceita(entrada)
   expect(r.ok).toBe(false)
-  return r.ok ? [] : r.erros
+  return 'erros' in r ? r.erros : []
 }
 
 describe('validarReceita: casos felizes', () => {

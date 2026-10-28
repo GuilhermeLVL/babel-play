@@ -16,11 +16,37 @@
   display: grid;
   gap: 22px;
   grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'previa'
+    'controles'
+    'extra';
   align-items: start;
+  /* Celular: a barra de navegação inferior flutua sobre a página; o fim da tela passa por cima dela. */
+  padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+}
+.av-previa {
+  grid-area: previa;
+}
+.av-controles {
+  grid-area: controles;
+}
+.av-extra {
+  grid-area: extra;
+  display: grid;
+  gap: 12px;
+  justify-items: start;
 }
 @media (min-width: 880px) {
   .av-duas {
     grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+    grid-template-areas:
+      'previa controles'
+      'extra controles';
+    grid-template-rows: auto 1fr;
+    padding-bottom: 0;
+  }
+  .av-extra {
+    justify-items: center;
   }
 }
 .av-previa {
@@ -32,6 +58,46 @@
   border: 1.5px solid var(--border-subtle);
   border-radius: 20px;
   background: var(--surface-sunken, var(--surface));
+}
+.av-previa-texto {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  min-width: 0;
+}
+.av-acoes-previa {
+  justify-content: center;
+}
+.av-status {
+  min-height: 24px;
+}
+/* Enquadramento da prévia: corpo inteiro ou rosto (a miniatura do perfil é sempre o rosto). */
+.av-modo {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border-subtle);
+  background: var(--surface);
+}
+.av-modo-botao {
+  min-height: 48px;
+  padding: 0 16px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-muted);
+  font: 700 15px/1 var(--font-body, inherit);
+  cursor: pointer;
+}
+.av-modo-botao[aria-pressed='true'] {
+  background: var(--q-suave, var(--accent-soft));
+  border-color: var(--q-acento, var(--accent));
+  color: var(--ink);
+}
+.av-modo-botao:focus-visible {
+  outline: 3px solid var(--q-acento, var(--accent));
+  outline-offset: 2px;
 }
 .av-previa-moldura {
   width: min(100%, 300px);
@@ -55,6 +121,60 @@
   text-align: center;
   font: 700 17px/1.4 var(--font-body, inherit);
   color: var(--ink-muted);
+}
+
+/* CELULAR: a prévia viva fica fixa no topo (compacta, no máximo 40% da altura) enquanto se mexe nos controles.
+   Tudo cabe na largura da tela: nada aqui pode alargar a página. */
+@media (max-width: 879px) {
+  .av-previa {
+    position: sticky;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    z-index: 20;
+    max-height: 40vh;
+    max-height: 40dvh;
+    overflow: hidden;
+    grid-template-columns: 112px minmax(0, 1fr);
+    place-items: center stretch;
+    gap: 12px;
+    padding: 10px;
+    min-width: 0;
+    background: var(--surface);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--ink) 16%, transparent);
+  }
+  .av-previa-moldura {
+    width: 112px;
+  }
+  .av-previa-texto {
+    justify-items: start;
+    gap: 8px;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .av-previa-texto > * {
+    max-width: 100%;
+    min-width: 0;
+  }
+  .av-previa .av-credito {
+    max-width: none;
+    text-align: start;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+  .av-previa .q-ctl {
+    min-height: 48px;
+    padding-inline: 14px;
+    font-size: 16px;
+    max-width: 100%;
+  }
+  .av-modo-botao {
+    min-height: 44px;
+    padding: 0 10px;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .av-status {
+    min-height: 0;
+  }
 }
 
 /* ── Grade da coleção ─────────────────────────────────────────────────────────────────────────── */
@@ -352,6 +472,29 @@
   object-fit: cover;
   border-radius: 10px;
   background: var(--canvas);
+}
+/* O resultado da conferência: o visto fica alinhado ao título, e "Ver a licença" não quebra de linha. */
+.av-titulo-ok {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font: 800 20px/1.2 var(--font-display, inherit);
+}
+.av-titulo-ok svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+.av-nowrap {
+  white-space: nowrap;
+}
+.av-nowrap .av-link-licenca svg {
+  /* O ícone do app é `display: block` por padrão: aqui fica na linha, colado ao texto. */
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  vertical-align: -2px;
 }
 .av-acoes {
   display: flex;

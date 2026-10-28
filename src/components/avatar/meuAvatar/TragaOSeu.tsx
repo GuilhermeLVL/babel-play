@@ -19,6 +19,11 @@ export interface ModeloPreparado {
 interface Props {
   tier: TierDoAvatar;
   aoUsar: (m: ModeloPreparado) => void;
+  /**
+   * Um arquivo que passou na conferência (e só ele) é mostrado na prévia NA HORA, antes de "Usar este modelo":
+   * recebe os bytes e o título; `null` quando não há mais arquivo aceito (outro arquivo, recusa, erro, usado).
+   */
+  aoPrevisualizar?: (m: { bytes: Uint8Array; titulo: string } | null) => void;
 }
 
 type Fase =
@@ -39,12 +44,27 @@ function linkSeguro(url: string): string | null {
  * "Onde encontrar" e a galeria ao vivo (com opt-in). SÓ adultos chegam aqui (`politicaDeAvatar`): o perfil protegido
  * nem vê esta aba. O arquivo NUNCA vai ao servidor: tudo acontece neste navegador.
  */
-export default function TragaOSeu({ tier, aoUsar }: Props) {
+export default function TragaOSeu({ tier, aoUsar, aoPrevisualizar }: Props) {
   const [estado, setEstado] = useState<Fase>({ fase: 'ocioso' });
   const [direitos, setDireitos] = useState(false);
   const [sobre, setSobre] = useState(false);
   const resultado = useRef<HTMLHeadingElement>(null);
   const id = useId();
+
+  // Arquivo aceito: vai para a prévia na hora (a prévia diz "não salvo" e oferece voltar ao anterior).
+  const aoPrevisualizarRef = useRef(aoPrevisualizar);
+  aoPrevisualizarRef.current = aoPrevisualizar;
+  useEffect(() => {
+    const aceito = estado.fase === 'resultado' && estado.relatorio.decisao !== 'recusado' && estado.bytes;
+    if (aceito && estado.fase === 'resultado' && estado.bytes) {
+      aoPrevisualizarRef.current?.({
+        bytes: estado.bytes,
+        titulo: estado.relatorio.credito?.titulo || estado.nome.replace(/\.[^.]+$/, '').slice(0, 40),
+      });
+    } else if (estado.fase !== 'preparando') {
+      aoPrevisualizarRef.current?.(null);
+    }
+  }, [estado]);
 
   // Leva o foco ao resultado: quem usa teclado ou leitor de tela cai direto no que aconteceu.
   useEffect(() => {
@@ -218,14 +238,11 @@ export default function TragaOSeu({ tier, aoUsar }: Props) {
 
       {rel && rel.decisao !== 'recusado' && (
         <section className="q-cartao" data-testid="avatar-importador-ok" aria-labelledby={`${id}-ok`}>
-          <h4
-            id={`${id}-ok`}
-            ref={resultado}
-            tabIndex={-1}
-            style={{ margin: 0, font: '800 20px/1.2 var(--font-display, inherit)' }}
-          >
-            <CheckCircle2 aria-hidden style={{ width: 22, height: 22, verticalAlign: -4, marginRight: 6 }} />
-            {rel.decisao === 'aceito' ? t('O arquivo passou na conferência') : t('Falta só confirmar a licença')}
+          <h4 id={`${id}-ok`} ref={resultado} tabIndex={-1} className="av-titulo-ok">
+            <CheckCircle2 aria-hidden />
+            <span>
+              {rel.decisao === 'aceito' ? t('O arquivo passou na conferência') : t('Falta só confirmar a licença')}
+            </span>
           </h4>
           <p className="av-credito" style={{ textAlign: 'start', maxWidth: 'none' }}>
             {credito && (credito.titulo || credito.autores.length > 0)
@@ -235,12 +252,12 @@ export default function TragaOSeu({ tier, aoUsar }: Props) {
                 })
               : t('O arquivo não informa título nem autor.')}
             {linkDaLicenca && (
-              <>
+              <span className="av-nowrap">
                 {' · '}
-                <a href={linkDaLicenca} target="_blank" rel="noopener noreferrer">
-                  {t('Ver a licença')} <ExternalLink aria-hidden style={{ width: 14, height: 14, verticalAlign: -2 }} />
+                <a className="av-link-licenca" href={linkDaLicenca} target="_blank" rel="noopener noreferrer">
+                  {t('Ver a licença')} <ExternalLink aria-hidden />
                 </a>
-              </>
+              </span>
             )}
           </p>
           {rel.licenca && (rel.licenca.avisos.length > 0 || rel.licenca.confirmacoes.length > 0) && (

@@ -1,6 +1,6 @@
 import '../../../styles/avatar.css';
 
-import { AlertTriangle, Check, Save, Trash2 } from 'lucide-react';
+import { AlertTriangle, Check, RotateCcw, Save, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { SEM_SUPORTE, type SuporteDaPaleta } from '../../../core/avatar/aparencia';
@@ -18,11 +18,12 @@ import {
   receitasIguais,
   restaurarPadrao,
 } from '../../../core/avatar/edicao';
+import type { ModoDeCamera } from '../../../core/avatar/enquadramento';
 import type { CreditoDoModelo } from '../../../core/avatar/importador/validar';
 import type { ReceitaDeAvatar } from '../../../core/avatar/receita';
 import { sugerirModelo } from '../../../core/avatar/sugestao';
 import { permissoesDoAvatar } from '../../../core/avatar/sugestao';
-import { COLECAO_CURADA, type ModeloDaColecao, modeloDaColecao } from '../../../data/avatar/colecao';
+import { COLECAO_SUGERIVEL, type ModeloDaColecao, modeloDaColecao } from '../../../data/avatar/colecao';
 import { lerModeloImportado } from '../../../lib/avatar/armazem';
 import { detectarTier } from '../../../lib/avatar/detectarTier';
 import type { MotivoDoFallback } from '../../../lib/avatar/fallback2d';
@@ -44,6 +45,32 @@ import Personalizar from './Personalizar';
 import TragaOSeu, { type ModeloPreparado } from './TragaOSeu';
 
 type Visao = 'escolher' | 'personalizar' | 'traga';
+
+/** Abaixo disto a prévia fica fixa no topo e compacta (celular); acima, é o cartão da coluna da esquerda. */
+const CONSULTA_DO_CELULAR = '(max-width: 879px)';
+const TAMANHO_NO_DESKTOP = 280;
+const TAMANHO_NO_CELULAR = 112;
+
+function useCelular(): boolean {
+  const [celular, setCelular] = useState(
+    () => typeof matchMedia === 'function' && matchMedia(CONSULTA_DO_CELULAR).matches,
+  );
+  useEffect(() => {
+    if (typeof matchMedia !== 'function') return;
+    const mq = matchMedia(CONSULTA_DO_CELULAR);
+    const ouvir = () => setCelular(mq.matches);
+    ouvir();
+    mq.addEventListener('change', ouvir);
+    return () => mq.removeEventListener('change', ouvir);
+  }, []);
+  return celular;
+}
+
+/** O arquivo que a pessoa trouxe e passou na conferência, mostrado na prévia ANTES de ser usado ou salvo. */
+interface PreviaImportada {
+  blob: Blob;
+  titulo: string;
+}
 
 interface Trazido {
   id: string;
@@ -85,6 +112,9 @@ export default function AbaAvatar() {
   // O que a prévia contou vale só para o modelo que a contou (guardado com o id da base, sem efeito de reset).
   const [suporteDe, setSuporteDe] = useState<{ base: string; suporte: SuporteDaPaleta } | null>(null);
   const [erroDe, setErroDe] = useState<{ base: string; motivo: MotivoDoFallback } | null>(null);
+  const [modo, setModo] = useState<ModoDeCamera>('corpo');
+  const [previaImportada, setPreviaImportada] = useState<PreviaImportada | null>(null);
+  const celular = useCelular();
   const [salvando, setSalvando] = useState(false);
   const [aviso, setAviso] = useState<{ tom: 'ok' | 'erro'; texto: string } | null>(null);
   const [apagando, setApagando] = useState(false);
@@ -93,7 +123,7 @@ export default function AbaAvatar() {
 
   // A sugestão: um modelo da coleção, sorteado uma vez. Só vira avatar se a pessoa aceitar.
   const sugerida = useMemo<ReceitaDeAvatar | null>(() => {
-    const m = sugerirModelo(COLECAO_CURADA, protegido, Math.random);
+    const m = sugerirModelo(COLECAO_SUGERIVEL, protegido, Math.random);
     return m ? receitaNova({ origem: 'colecao', id: m.id }, '', Date.now()) : null;
   }, [protegido]);
 
@@ -120,6 +150,8 @@ export default function AbaAvatar() {
   const ehSugestao = !hist;
   const modelo = atual?.base.origem === 'colecao' ? modeloDaColecao(atual.base.id) : undefined;
   const blobDoTrazido = atual?.base.origem === 'importado' && trazido?.id === atual.base.id ? trazido.blob : undefined;
+  // Um arquivo recém-aceito aparece na prévia na hora (sem salvar nada), até a pessoa usar ou voltar.
+  const fonteDaPrevia = previaImportada?.blob ?? blobDoTrazido;
   const sujo = hist ? !salvo || !receitasIguais(hist.atual, salvo) : false;
   const baseId = atual?.base.id;
   const suporte = suporteDe && suporteDe.base === baseId ? suporteDe.suporte : null;
@@ -134,6 +166,7 @@ export default function AbaAvatar() {
   }, []);
 
   const comecarDe = (base: { origem: 'colecao' | 'importado'; id: string }, nome = '') => {
+    setPreviaImportada(null);
     setApagando(false);
     setAviso(null);
     setHist((h) => (h ? aplicar(h, comBase(h.atual, base)) : iniciarHistorico(receitaNova(base, nome, Date.now()))));
@@ -141,7 +174,7 @@ export default function AbaAvatar() {
 
   const escolher = (m: ModeloDaColecao) => comecarDe({ origem: 'colecao', id: m.id });
   const sortear = () => {
-    const m = sugerirModelo(COLECAO_CURADA, protegido, Math.random, atual?.base.id);
+    const m = sugerirModelo(COLECAO_SUGERIVEL, protegido, Math.random, atual?.base.id);
     if (m) escolher(m);
   };
 
@@ -154,6 +187,7 @@ export default function AbaAvatar() {
   };
 
   const usarTrazido = (m: ModeloPreparado) => {
+    setPreviaImportada(null);
     setTrazido({
       id: m.id,
       titulo: m.titulo,
@@ -225,7 +259,12 @@ export default function AbaAvatar() {
       </p>
 
       <div className="av-duas">
-        <section className="av-previa" aria-label={t('Prévia do avatar')} data-testid="avatar-previa">
+        <section
+          className="av-previa"
+          aria-label={t('Prévia do avatar')}
+          data-testid="avatar-previa"
+          data-importada={previaImportada ? 'true' : undefined}
+        >
           <div className="av-previa-moldura">
             {atual ? (
               <AvatarCanvas
@@ -233,10 +272,13 @@ export default function AbaAvatar() {
                 estado="parado"
                 emocao="neutro"
                 tier={tier}
-                tamanho={280}
+                tamanho={celular ? TAMANHO_NO_CELULAR : TAMANHO_NO_DESKTOP}
+                modo={modo}
                 usuarioId={usuario}
-                fonte={blobDoTrazido}
-                aoAparencia={(sup) => setSuporteDe({ base: atual.base.id, suporte: sup })}
+                fonte={fonteDaPrevia}
+                aoAparencia={(sup) => {
+                  if (!previaImportada) setSuporteDe({ base: atual.base.id, suporte: sup });
+                }}
                 aoPronto={(c) => {
                   capturar.current = c;
                 }}
@@ -246,16 +288,73 @@ export default function AbaAvatar() {
               <p className="av-vazio">{t('Ainda não há modelos disponíveis.')}</p>
             )}
           </div>
-          {atual && (
-            <p className="av-credito" data-testid="avatar-credito">
-              {ehSugestao ? t('Sugerido para você') : sujo ? t('Alterações não salvas') : t('Salvo neste aparelho')}
-              {modelo
-                ? ` · ${modelo.nome}`
-                : atual.base.origem === 'importado'
-                  ? ` · ${trazido?.titulo || t('Meu modelo')}`
-                  : ''}
-            </p>
-          )}
+          <div className="av-previa-texto">
+            {atual && (
+              <p className="av-credito" data-testid="avatar-credito">
+                {previaImportada
+                  ? `${t('Prévia, ainda não usada nem salva')} · ${previaImportada.titulo || t('Meu modelo')}`
+                  : ehSugestao
+                    ? t('Sugerido para você')
+                    : sujo
+                      ? t('Alterações não salvas')
+                      : t('Salvo neste aparelho')}
+                {!previaImportada &&
+                  (modelo
+                    ? ` · ${modelo.nome}`
+                    : atual.base.origem === 'importado'
+                      ? ` · ${trazido?.titulo || t('Meu modelo')}`
+                      : '')}
+              </p>
+            )}
+            {previaImportada && (
+              <button
+                type="button"
+                className="q-ctl"
+                onClick={() => setPreviaImportada(null)}
+                data-testid="avatar-previa-voltar"
+              >
+                <RotateCcw aria-hidden /> {t('Voltar ao anterior')}
+              </button>
+            )}
+            {atual && (
+              <div className="av-modo" role="group" aria-label={t('Enquadramento da prévia')}>
+                {(['corpo', 'rosto'] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    className="av-modo-botao"
+                    aria-pressed={modo === m}
+                    onClick={() => setModo(m)}
+                    data-modo-da-previa={m}
+                  >
+                    {m === 'corpo' ? t('Corpo inteiro') : t('Rosto')}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="av-acoes av-acoes-previa">
+              <button
+                type="button"
+                className="q-ctl pri"
+                onClick={() => void salvar()}
+                disabled={!atual || salvando || !!previaImportada || (!ehSugestao && !sujo)}
+                data-testid="avatar-salvar"
+              >
+                <Save aria-hidden /> {ehSugestao ? t('Usar este avatar') : t('Salvar meu avatar')}
+              </button>
+            </div>
+            <div role="status" aria-live="polite" data-testid="avatar-status" className="av-status">
+              {aviso && (
+                <span className="qc-nota" data-tom={aviso.tom}>
+                  {aviso.tom === 'ok' && <Check aria-hidden />}
+                  {aviso.texto}
+                </span>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <div className="av-extra">
           {credito && (
             <p className="av-credito" data-testid="avatar-credito-linha">
               {credito}
@@ -266,18 +365,7 @@ export default function AbaAvatar() {
               {t('Não deu para mostrar o avatar em 3D neste aparelho. Você pode escolher e salvar mesmo assim.')}
             </p>
           )}
-          <div className="av-acoes" style={{ justifyContent: 'center' }}>
-            <button
-              type="button"
-              className="q-ctl pri"
-              onClick={() => void salvar()}
-              disabled={!atual || salvando || (!ehSugestao && !sujo)}
-              data-testid="avatar-salvar"
-            >
-              <Save aria-hidden /> {ehSugestao ? t('Usar este avatar') : t('Salvar meu avatar')}
-            </button>
-          </div>
-          {(salvo || hist) && !apagando && salvo && (
+          {salvo && !apagando && (
             <button type="button" className="q-ctl" onClick={() => setApagando(true)} data-testid="avatar-apagar">
               <Trash2 aria-hidden /> {t('Apagar meu avatar')}
             </button>
@@ -306,17 +394,9 @@ export default function AbaAvatar() {
               </div>
             </div>
           )}
-          <div role="status" aria-live="polite" data-testid="avatar-status" style={{ minHeight: 24 }}>
-            {aviso && (
-              <span className="qc-nota" data-tom={aviso.tom}>
-                {aviso.tom === 'ok' && <Check aria-hidden />}
-                {aviso.texto}
-              </span>
-            )}
-          </div>
-        </section>
+        </div>
 
-        <div className="av-tela">
+        <div className="av-tela av-controles">
           <AbasDoQuest
             rotuloDoGrupo={t('Seções do avatar')}
             ativo={visao}
@@ -355,7 +435,20 @@ export default function AbaAvatar() {
           </PainelDeAba>
           {politica.podeImportar && (
             <PainelDeAba id="traga" ativo={visao} className="av-tela">
-              <TragaOSeu tier={tier} aoUsar={usarTrazido} />
+              <TragaOSeu
+                tier={tier}
+                aoUsar={usarTrazido}
+                aoPrevisualizar={(m) =>
+                  setPreviaImportada(
+                    m
+                      ? {
+                          blob: new Blob([m.bytes.slice().buffer as ArrayBuffer], { type: 'model/gltf-binary' }),
+                          titulo: m.titulo,
+                        }
+                      : null,
+                  )
+                }
+              />
             </PainelDeAba>
           )}
         </div>

@@ -1,4 +1,4 @@
-import type { KeyboardEvent, ReactNode } from 'react';
+import { type KeyboardEvent, type ReactNode, useEffect, useRef } from 'react';
 
 export interface AbaDoQuest {
   id: string;
@@ -23,6 +23,26 @@ export default function AbasDoQuest({
   aoTrocar: (id: string) => void;
   rotuloDoGrupo: string;
 }) {
+  /* A faixa rola de lado no celular: a aba escolhida vem para o meio, nunca meio cortada na borda, e as pontas
+     onde ainda há aba escondida esmaecem (`data-rola-esq`/`data-rola-dir`, lidos por `quest.css`). */
+  const faixa = useRef<HTMLDivElement>(null);
+  const marcarPontas = () => {
+    const el = faixa.current;
+    if (!el) return;
+    el.dataset.rolaEsq = String(el.scrollLeft > 4);
+    el.dataset.rolaDir = String(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  };
+  useEffect(() => {
+    const lista = faixa.current;
+    const aba = lista?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+    // Rola SÓ a faixa (`scrollIntoView` rolaria também o `main`, que tem `overflow-x` escondido e empurraria a página de lado).
+    if (lista && aba && typeof lista.scrollTo === 'function')
+      lista.scrollTo({ left: Math.max(0, aba.offsetLeft - (lista.clientWidth - aba.offsetWidth) / 2) });
+    marcarPontas();
+    window.addEventListener('resize', marcarPontas);
+    return () => window.removeEventListener('resize', marcarPontas);
+  }, [ativo]);
+
   const aoTeclar = (e: KeyboardEvent<HTMLButtonElement>, indice: number) => {
     const passo = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
     if (!passo && e.key !== 'Home' && e.key !== 'End') return;
@@ -38,7 +58,7 @@ export default function AbasDoQuest({
   };
 
   return (
-    <div className="q-abas" role="tablist" aria-label={rotuloDoGrupo}>
+    <div ref={faixa} className="q-abas" role="tablist" aria-label={rotuloDoGrupo} onScroll={marcarPontas}>
       {itens.map((item, i) => {
         const escolhida = item.id === ativo;
         return (

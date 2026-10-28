@@ -13,9 +13,11 @@ import { construirGlb, META1_BASE, pngBomba, vrm1Vroid } from '../harness/avatar
  *
  * Capturas: `$CLAUDE_JOB_DIR/tmp` (ou `tests/e2e/__capturas__/`, fora do git).
  */
-const PASTA = process.env.CLAUDE_JOB_DIR
-  ? path.join(process.env.CLAUDE_JOB_DIR, 'tmp')
-  : path.join(process.cwd(), 'tests', 'e2e', '__capturas__')
+const PASTA = process.env.AVATAR_CAPTURAS
+  ? process.env.AVATAR_CAPTURAS
+  : process.env.CLAUDE_JOB_DIR
+    ? path.join(process.env.CLAUDE_JOB_DIR, 'tmp')
+    : path.join(process.cwd(), 'tests', 'e2e', '__capturas__')
 mkdirSync(PASTA, { recursive: true })
 
 // SwiftShader: WebGL2 por software, o que o Chromium headless do CI tem.
@@ -88,6 +90,17 @@ test.describe('Meu avatar', () => {
     await expect(page.getByTestId('avatar-credito')).toContainText('Salvo neste aparelho')
     await expect(page.locator('header canvas')).toHaveCount(0)
     await foto(page, '3-recarregado')
+
+    // A moldura GRANDE da aba "Você" mostra o rosto do avatar (192 px, imagem, sem WebGL) em vez de "?", e
+    // "Enviar foto" continua ali como alternativa.
+    await page.getByRole('tab', { name: 'Você' }).click()
+    const grande = page.locator('.qc-foto-avatar')
+    await expect(grande).toBeVisible()
+    expect(await grande.evaluate((el) => (el as HTMLImageElement).naturalWidth)).toBe(192)
+    await expect(page.getByText('Enviar foto')).toBeVisible()
+    await expect(page.locator('.qc-foto canvas')).toHaveCount(0)
+    await foto(page, '3b-voce-com-avatar')
+    await page.getByRole('tab', { name: 'Avatar' }).click()
 
     // Apagar volta à foto/iniciais: a miniatura some.
     await page.getByTestId('avatar-apagar').click()
@@ -168,6 +181,32 @@ test.describe('Meu avatar', () => {
     await expect(ok).not.toContainText('não pôde rodar neste navegador')
     await expect(page.locator(':focus')).toHaveText(/O arquivo passou na conferência/)
     await foto(page, '6-importado-ok')
+
+    // A prévia já mostra o arquivo aceito, dito "não salvo", com como voltar ao anterior; salvar fica desligado.
+    await expect(page.getByTestId('avatar-credito')).toContainText('Prévia, ainda não usada nem salva')
+    await expect(page.getByTestId('avatar-credito')).toContainText('Modelo de teste')
+    await expect(page.getByTestId('avatar-salvar')).toBeDisabled()
+    await expect(page.locator('[data-avatar-pronto="true"]')).toBeVisible({ timeout: 30_000 })
+    await foto(page, '6b-importado-previa')
+    await page.getByTestId('avatar-previa-voltar').click()
+    await expect(page.getByTestId('avatar-credito')).not.toContainText('Prévia')
+    await expect(page.getByTestId('avatar-previa-voltar')).toHaveCount(0)
+    // O visto fica alinhado ao título e "Ver a licença" não quebra de linha.
+    const titulo = page.locator('.av-titulo-ok')
+    const [caixaDoVisto, caixaDoTexto] = await Promise.all([
+      titulo.locator('svg').boundingBox(),
+      titulo.locator('span').boundingBox(),
+    ])
+    expect(
+      Math.abs(caixaDoVisto!.y + caixaDoVisto!.height / 2 - (caixaDoTexto!.y + caixaDoTexto!.height / 2)),
+    ).toBeLessThan(6)
+    const link = page.locator('.av-link-licenca')
+    if (await link.count()) {
+      // Uma linha só: a altura da caixa do link é a de uma linha de texto (quebrado, passaria de 1,5 linha).
+      const caixaDoLink = (await link.first().boundingBox())!
+      const linha = await link.first().evaluate((el) => parseFloat(getComputedStyle(el).lineHeight) || 24)
+      expect(caixaDoLink.height, '"Ver a licença" não quebra de linha').toBeLessThan(linha * 1.6)
+    }
 
     await page.getByTestId('avatar-usar-modelo').click()
     await expect(page.getByTestId('avatar-credito')).toContainText(/Modelo de teste|Meu modelo/)
@@ -335,6 +374,93 @@ test.describe('Meu avatar', () => {
     // Sem WebGL não há miniatura: a moldura do perfil fica como era (foto ou iniciais).
     await page.reload()
     await expect(page.locator('header [data-avatar-do-usuario="avatar"]')).toHaveCount(0)
+  })
+
+  test('"Escolher para mim" sorteia entre os 6 modelos da coleção (todos passam no enquadramento)', async ({
+    page,
+  }) => {
+    await abrirAvatar(page)
+    await expect(page.locator('[data-modelo]')).toHaveCount(6)
+    const vistos = new Set<string>()
+    for (let i = 0; i < 14; i++) {
+      await page.getByTestId('avatar-sortear').click()
+      vistos.add((await page.locator('[data-modelo][aria-checked="true"]').getAttribute('data-modelo')) ?? '')
+    }
+    expect(vistos.size).toBeGreaterThanOrEqual(3)
+    for (const id of vistos) expect(id).toMatch(/^(milk|bullidan|100avatars-r[12]-[a-z]+)$/)
+    // O modo "Rosto" troca o enquadramento da prévia sem reabrir o modelo.
+    await page.locator('[data-modo-da-previa="rosto"]').click()
+    await expect(page.locator('[data-modo-da-previa="rosto"]')).toHaveAttribute('aria-pressed', 'true')
+    await expect(previaPronta(page)).toBeVisible({ timeout: 30_000 })
+    await foto(page, '12-modo-rosto')
+  })
+
+  test('celular: a prévia fica fixa no topo (até 40% da altura) e não cobre os controles nem a barra inferior', async ({
+    page,
+  }) => {
+    const vp = page.viewportSize()!
+    test.skip(vp.width >= 880, 'a prévia só fica fixa no celular')
+    await abrirAvatar(page)
+    await expect(previaPronta(page)).toBeVisible({ timeout: 30_000 })
+    await page.getByTestId('avatar-sortear').click()
+    // A aba "Traga o seu" é comprida: rolada, a prévia tem de ficar colada no topo.
+    await page.getByRole('tab', { name: 'Traga o seu' }).click()
+    await page.evaluate(() => {
+      let el: HTMLElement | null = document.querySelector('[data-testid="avatar-previa"]')
+      while (el && el.scrollHeight <= el.clientHeight + 4) el = el.parentElement
+      ;(el ?? document.documentElement).scrollBy(0, 900)
+    })
+    await page.waitForTimeout(300)
+    const previa = page.getByTestId('avatar-previa')
+    const caixa = (await previa.boundingBox())!
+    expect(caixa.y, 'colada no topo').toBeGreaterThanOrEqual(0)
+    expect(caixa.y).toBeLessThan(40)
+    expect(caixa.height, 'no máximo 40% da altura').toBeLessThanOrEqual(vp.height * 0.4 + 1)
+    await expect(previa).toBeInViewport()
+    await foto(page, '13-celular-previa-fixa-traga')
+    await page.getByRole('tab', { name: 'Personalizar' }).click()
+    const altura = page.locator('[data-ajuste="altura"]')
+    await altura.scrollIntoViewIfNeeded()
+    await foto(page, '13-celular-previa-fixa')
+    // Os controles continuam alcançáveis (nada os cobre), no meio e no fim da tela.
+    await altura.click({ trial: true })
+    await altura.fill('1.1')
+    await expect(previa).toBeInViewport()
+    const restaurar = page.getByRole('button', { name: /Restaurar padrão/ })
+    await restaurar.click({ trial: true })
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+    await restaurar.click({ trial: true })
+    await foto(page, '14-celular-fim-da-tela')
+    // Nada alarga a página: sem rolagem de lado, e a prévia (com o botão de salvar) cabe na largura.
+    const largura = await page.evaluate(() => ({
+      pagina: document.documentElement.scrollWidth,
+      janela: document.documentElement.clientWidth,
+    }))
+    expect(largura.pagina).toBeLessThanOrEqual(largura.janela)
+    const salvar = (await page.getByTestId('avatar-salvar').boundingBox())!
+    const cartao = (await previa.boundingBox())!
+    expect(salvar.x + salvar.width).toBeLessThanOrEqual(cartao.x + cartao.width + 1)
+  })
+
+  test('abas internas: a aba escolhida vem inteira para a vista (sem texto cortado)', async ({ page }) => {
+    await abrirAvatar(page)
+    const dentro = async (lista: string, aba: string) => {
+      const l = (await page.getByRole('tablist', { name: lista }).boundingBox())!
+      const a = (await page.getByRole('tab', { name: aba, exact: true }).boundingBox())!
+      expect(a.x, `${aba} começa dentro da faixa`).toBeGreaterThanOrEqual(l.x - 1)
+      expect(a.x + a.width, `${aba} termina dentro da faixa`).toBeLessThanOrEqual(l.x + l.width + 1)
+    }
+    await dentro('Seções do perfil', 'Avatar')
+    await page.getByRole('tab', { name: 'Traga o seu' }).click()
+    await dentro('Seções do avatar', 'Traga o seu')
+    await page.getByRole('tab', { name: 'Você' }).click()
+    await dentro('Seções do perfil', 'Você')
+    // Trocar de aba rola SÓ a faixa: o conteúdo da página nunca é empurrado de lado.
+    const empurrado = await page.evaluate(() =>
+      [...document.querySelectorAll('main, [data-testid="perfil-do-quest"]')].map((e) => e.scrollLeft),
+    )
+    expect(empurrado.every((x) => x === 0)).toBe(true)
+    await foto(page, '15-abas')
   })
 
   test('só com o teclado: abas, grade e botões se alcançam e o foco fica visível', async ({ page }) => {

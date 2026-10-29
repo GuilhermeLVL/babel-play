@@ -144,6 +144,17 @@ export function ladoComAvisosEmPx(lado: number): number {
   return Math.max(LADO_MINIMO_NO_CELULAR, Math.min(lado, 72));
 }
 
+/**
+ * O lado do PALCO DAS MÃOS (a soletração ligada). No computador ele cresce (há largura de sobra e as mãos precisam de
+ * tamanho para serem lidas); no celular fica no lado apertado que deixa a frase da conversa respirar.
+ */
+export const LADO_DO_PALCO_NO_COMPUTADOR = 232;
+/** No celular as mãos precisam de um pouco mais que o círculo apertado, desde que a frase siga com 58 px ou mais. */
+export const LADO_DO_PALCO_NO_CELULAR = 64;
+export function ladoDoPalcoEmPx(ladoApertado: number, layout: 'celular' | 'computador' | 'quest'): number {
+  return Math.max(ladoApertado, layout === 'computador' ? LADO_DO_PALCO_NO_COMPUTADOR : LADO_DO_PALCO_NO_CELULAR);
+}
+
 export interface EntradaDaPolitica {
   /** A flag `avatar_3d`. */
   flag: boolean;

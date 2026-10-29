@@ -11,6 +11,8 @@ import {
 import {
   type EscolhaDeAlfabeto,
   ESCOLHAS_DE_ALFABETO,
+  type ModoDeSoletracao,
+  MODOS_DE_SOLETRACAO,
   type MotivoDoPainel,
   type RitmoDaSoletracao,
   RITMOS_DA_SOLETRACAO,
@@ -40,6 +42,10 @@ const ROTULO_DE_ALFABETO: Record<EscolhaDeAlfabeto, () => string> = {
   auto: () => t('Automático (pelo idioma da outra pessoa)'),
   libras: () => t('Libras'),
   asl: () => t('ASL'),
+};
+const ROTULO_DE_MODO: Record<ModoDeSoletracao, () => string> = {
+  nomes: () => t('Só nomes próprios'),
+  tudo: () => t('Soletrar tudo (todas as palavras)'),
 };
 const ROTULO_DE_RITMO: Record<RitmoDaSoletracao, () => string> = {
   lenta: () => t('Lenta'),
@@ -232,6 +238,32 @@ export default function PainelDosAvatares({
             )}
             {soletrando && (
               <>
+                <div
+                  className="int-av-sub"
+                  role="radiogroup"
+                  aria-label={t('O que soletrar')}
+                  data-testid="avatar-modo"
+                >
+                  {MODOS_DE_SOLETRACAO.map((m) => (
+                    <label key={m} className="int-av-opcao">
+                      <input
+                        type="radio"
+                        name="avatar-modo-soletracao"
+                        checked={(prefs.soletrarTudo ? 'tudo' : 'nomes') === m}
+                        onChange={() => aoMudar({ soletrarTudo: m === 'tudo' })}
+                        data-testid={`avatar-modo-${m}`}
+                      />
+                      <span>{ROTULO_DE_MODO[m]()}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="int-av-nota" data-testid="avatar-modo-nota">
+                  {prefs.soletrarTudo
+                    ? t(
+                        'Soletração, não tradução. Soletrar tudo é mais lento: se outra fala já espera na fila de voz, a soletração é pulada.',
+                      )
+                    : t('Soletração, não tradução. Só os nomes próprios vão para as mãos.')}
+                </p>
                 <div className="int-av-sub" role="radiogroup" aria-label={t('Alfabeto manual')}>
                   {ESCOLHAS_DE_ALFABETO.map((a) => (
                     <label key={a} className="int-av-opcao">

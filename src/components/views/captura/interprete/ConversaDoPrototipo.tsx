@@ -77,6 +77,8 @@ export interface MetadeDaConversa {
   avatar?: ReactNode;
   /** A soletração do avatar-intérprete (flag `avatar_sinais`): os avisos fixos e as mãos, embaixo do idioma. */
   soletracao?: ReactNode;
+  /** O estado do palco das mãos ("Aguardando…") no celular: embaixo do idioma, ao lado do círculo, sem gastar altura. */
+  estadoNoTopo?: ReactNode;
 }
 
 /** Os avatares da conversa: o botão da faixa e o painel (que abre o seletor de voz que já existe). */
@@ -412,7 +414,14 @@ export default function ConversaDoPrototipo({
     >
       {m.avatar ? (
         <div className="int-topo">
-          {idiomaDaMetade(m)}
+          {m.estadoNoTopo ? (
+            <div className="int-topo-texto">
+              {idiomaDaMetade(m)}
+              {m.estadoNoTopo}
+            </div>
+          ) : (
+            idiomaDaMetade(m)
+          )}
           <div className="int-avatar" data-testid={`avatar-${m.lado}`}>
             {m.avatar}
           </div>

@@ -576,9 +576,11 @@ export default function ModoInterprete({
       }
     const avatar = avatares.doLado(lado);
     const soletracao = avatares.soletracaoDoLado(lado);
+    const estadoNoTopo = avatares.estadoNoTopoDoLado(lado);
     return {
       ...(avatar ? { avatar } : {}),
       ...(soletracao ? { soletracao } : {}),
+      ...(estadoNoTopo ? { estadoNoTopo } : {}),
       lado,
       dono: donoDe(lado),
       lang: d.direcao.fala,

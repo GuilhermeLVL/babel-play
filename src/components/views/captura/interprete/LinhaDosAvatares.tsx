@@ -1,4 +1,4 @@
-import { Hand, Info, X } from 'lucide-react';
+import { BookOpen, Hand, Info, X } from 'lucide-react';
 import { useState } from 'react';
 
 import type { AtalhoDeSoletrar } from '../../../../core/avatar/descoberta';
@@ -18,6 +18,7 @@ export default function LinhaDosAvatares({
   motivoEmTexto,
   aoEscolherOutroAvatar,
   aoMostrarInterprete,
+  aoAbrirGuia,
 }: {
   atalho: AtalhoDeSoletrar;
   aoAlternar: () => void;
@@ -29,6 +30,8 @@ export default function LinhaDosAvatares({
   /** Leva a Perfil › Avatar (ausente onde o Perfil não existe). */
   aoEscolherOutroAvatar?: (() => void) | undefined;
   aoMostrarInterprete: () => void;
+  /** Abre o guia "Alfabeto manual" (só quando o avatar consegue soletrar). */
+  aoAbrirGuia?: (() => void) | undefined;
 }) {
   const [explicando, setExplicando] = useState(false);
   if (atalho.tipo === 'oculto' && !dica) return null;
@@ -59,6 +62,19 @@ export default function LinhaDosAvatares({
           <span className="int-modo-estado" aria-hidden>
             {pressionado ? t('Ligado') : t('Desligado')}
           </span>
+        </button>
+      )}
+      {atalho.tipo === 'pronto' && aoAbrirGuia && (
+        <button
+          type="button"
+          className="int-modo int-modo-avatar int-modo-guia"
+          aria-haspopup="dialog"
+          title={t('Alfabeto manual')}
+          onClick={aoAbrirGuia}
+          data-testid="abrir-guia-do-alfabeto"
+        >
+          <BookOpen aria-hidden />
+          <span className="int-modo-visivel">{t('Alfabeto manual')}</span>
         </button>
       )}
       {indisponivel && explicando && (

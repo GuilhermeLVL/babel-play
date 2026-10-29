@@ -447,6 +447,21 @@ button.int-voz:focus-visible {
 /* No celular a faixa é estreita: com o botão do modo, a voz em uso fica só com o ícone (o nome segue
    no `title` e para o leitor de tela). */
 @media (max-width: 480px) {
+  /* O guia "Alfabeto manual" divide a linha com o atalho de soletrar: só o ícone (o nome segue no `title` e para o leitor de
+     tela), senão a linha vira duas e a frase de baixo perde altura. */
+  .int-modo-guia .int-modo-visivel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .int-modo-guia {
+    position: relative;
+    min-width: 44px;
+    padding-inline: 10px;
+  }
   .int-faixa[data-com-modo] .int-voz-txt {
     position: absolute;
     width: 1px;
@@ -827,6 +842,25 @@ button.int-voz:focus-visible {
   flex-wrap: wrap;
   gap: 8px 12px;
 }
+.int-topo-texto {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.int-soletra-estado-topo {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: 700 11px / 1.25 var(--font-body);
+}
+/* O palco das mãos, grande (computador): retângulo arredondado, não círculo, para as mãos não serem cortadas. */
+.int-avatar:has([data-palco-grande]) {
+  border-radius: 16px;
+}
 .int-avatar {
   flex: none;
   line-height: 0;
@@ -912,6 +946,14 @@ button.int-voz:focus-visible {
   margin: 0;
   min-height: 28px;
   font: 600 14px var(--font-body);
+}
+.int-soletra-estado {
+  margin: 0;
+  width: 100%;
+  font: 700 14px var(--font-body);
+}
+.int-soletra-atual {
+  flex-direction: row;
 }
 .int-soletra-atual strong {
   min-width: 1ch;

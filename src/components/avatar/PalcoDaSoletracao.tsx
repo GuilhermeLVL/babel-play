@@ -5,6 +5,9 @@ import AvatarSinalizante, { type AvatarSinalizanteProps } from './AvatarSinaliza
  * para que o resto da soletração (dados do alfabeto, motor de ossos, `three`) seja um chunk baixado sob demanda, quando
  * há um nome a soletrar.
  */
-export default function PalcoDaSoletracao(props: Omit<AvatarSinalizanteProps, 'avisosPorFora' | 'soNomesProprios'>) {
-  return <AvatarSinalizante {...props} avisosPorFora soNomesProprios />;
+export default function PalcoDaSoletracao({
+  soNomesProprios = true,
+  ...props
+}: Omit<AvatarSinalizanteProps, 'avisosPorFora'>) {
+  return <AvatarSinalizante {...props} avisosPorFora soNomesProprios={soNomesProprios} />;
 }

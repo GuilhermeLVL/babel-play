@@ -5940,5 +5940,11 @@
   "Escolher as vozes": "Choose the voices",
   "Dispensar a dica": "Dismiss the tip",
   "Elenco: {n} personagens": "Cast: {n} characters",
-  "Elenco": "Cast"
+  "Elenco": "Cast",
+  "Aguardando um nome…": "Waiting for a name…",
+  "Janela flutuante": "Floating window",
+  "Meu avatar": "My avatar",
+  "Conversar com avatar": "Talk with an avatar",
+  "Dispensar o atalho do avatar": "Dismiss the avatar shortcut",
+  "Veja um avatar na conversa e escolha o seu. É opcional e fica só neste aparelho.": "See an avatar in the conversation and pick yours. It is optional and stays only on this device."
 }

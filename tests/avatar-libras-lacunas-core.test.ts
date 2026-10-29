@@ -5,7 +5,13 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { PREFERENCIAS_PADRAO, validarPreferencias } from '../src/core/avatar/interprete'
+import {
+  LADO_DO_PALCO_NO_CELULAR,
+  LADO_DO_PALCO_NO_COMPUTADOR,
+  ladoDoPalcoEmPx,
+  PREFERENCIAS_PADRAO,
+  validarPreferencias,
+} from '../src/core/avatar/interprete'
 import {
   instanteDaPose,
   proximaTecla,
@@ -119,6 +125,16 @@ describe('modo nomes x tudo', () => {
     const seq = soletrar(texto, libras, { limites: lim, soNomesProprios: false, tetoMs: 60_000 })
     const tocadas = seq.palavras.filter((p) => p.estado === 'soletrada').map((p) => p.texto)
     expect(tocadas).toEqual(palavrasASoletrar(texto, 'libras', 'tudo'))
+  })
+})
+
+describe('o tamanho do palco das mãos', () => {
+  it('cresce no computador; no celular nunca passa do lado apertado que deixa a frase respirar', () => {
+    expect(ladoDoPalcoEmPx(144, 'computador')).toBe(LADO_DO_PALCO_NO_COMPUTADOR)
+    expect(ladoDoPalcoEmPx(300, 'computador')).toBe(300)
+    expect(ladoDoPalcoEmPx(64, 'celular')).toBe(LADO_DO_PALCO_NO_CELULAR)
+    expect(LADO_DO_PALCO_NO_CELULAR).toBe(64) // a frase de baixo precisa de 58 px (avatar-polimento.e2e)
+    expect(ladoDoPalcoEmPx(72, 'celular')).toBe(72)
   })
 })
 

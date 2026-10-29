@@ -27,7 +27,19 @@ export const MOTIVO_DA_PULADA: Record<MotivoDaPulada, () => string> = {
  * vazio = nenhum passo, só o repouso), para a pessoa ver o que o recurso faz antes de o primeiro nome aparecer.
  */
 export function soletracaoEmRepouso(alfabeto: Lingua, espelhar: boolean): SoletracaoEmCurso {
-  return { tipo: 'soletrar', id: 'repouso', texto: '', alfabeto, nomes: [], velocidade: 1, tetoMs: 1_000, espelhar };
+  return {
+    tipo: 'soletrar',
+    id: 'repouso',
+    texto: '',
+    alfabeto,
+    modo: 'nomes',
+    palavras: [],
+    nomes: [],
+    soNomesProprios: true,
+    velocidade: 1,
+    tetoMs: 1_000,
+    espelhar,
+  };
 }
 
 /** O que está sendo soletrado agora (vem do palco, por `aoAtual`). */

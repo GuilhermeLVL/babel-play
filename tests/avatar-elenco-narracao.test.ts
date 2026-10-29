@@ -50,6 +50,32 @@ describe('planejarElenco', () => {
   })
 })
 
+describe('planejarElenco: marcação prévia (ponto de extensão da IA)', () => {
+  const textos = ['O vento soprava.', '"Quem é?"']
+  const previa = (i: number, nome: string | null, confianca = 0.9) => ({
+    indice: i,
+    texto: textos[i],
+    falante: nome ? { tipo: 'personagem' as const, nome } : { tipo: 'narrador' as const },
+    emocao: 'surpreso' as const,
+    confianca,
+  })
+
+  it('prévia válida e confiante vence a heurística', () => {
+    const d = montarDistribuicao(cfg)
+    const [, b] = planejarElenco(textos, cfg, d, [null, previa(1, 'Bruno')])
+    expect(b.falante).toEqual({ tipo: 'personagem', nome: 'Bruno' })
+    expect(b.emocao).toBe('surpreso')
+    expect(b.voz).toBe(d.personagens.Bruno)
+  })
+
+  it('personagem inventada, pouca confiança ou texto diferente caem na heurística', () => {
+    const d = montarDistribuicao(cfg)
+    expect(planejarElenco(textos, cfg, d, [null, previa(1, 'Zeca')])[1].voz).toBeNull()
+    expect(planejarElenco(textos, cfg, d, [null, previa(1, 'Bruno', 0.2)])[1].voz).toBeNull()
+    expect(planejarElenco(textos, cfg, d, [null, { ...previa(1, 'Bruno'), texto: 'outra' }])[1].voz).toBeNull()
+  })
+})
+
 describe('falaDaFrase', () => {
   const plano = {
     falante: { tipo: 'personagem' as const, nome: 'Ana' },

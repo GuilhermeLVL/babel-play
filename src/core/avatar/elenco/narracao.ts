@@ -6,8 +6,8 @@
 import type { EmocaoDoAvatar } from '../estados';
 import { marcarFrases } from './marcador';
 import { TETO_DE_CARACTERES_DA_FRASE } from './texto';
-import { CONFIANCA_MINIMA, type Falante } from './tipos';
-import { atribuirVozes, type DistribuicaoDeVozes, parametrosDaEmocao, vozDaFrase,type VozDisponivel } from './vozes';
+import { CONFIANCA_MINIMA, type Falante, type FraseMarcada } from './tipos';
+import { atribuirVozes, type DistribuicaoDeVozes, parametrosDaEmocao, vozDaFrase, type VozDisponivel } from './vozes';
 
 export interface ConfigDoElenco {
   idioma?: string;
@@ -38,11 +38,23 @@ export function montarDistribuicao(cfg: ConfigDoElenco): DistribuicaoDeVozes {
 
 const PLANO_DO_NARRADOR: PlanoDaFrase = { falante: { tipo: 'narrador' }, emocao: 'neutro', confianca: 0, voz: null };
 
+/** A marcação prévia só vale com a MESMA frase, confiança suficiente e personagem que existe na lista (nunca inventada). */
+function previaAceita(
+  p: FraseMarcada | null | undefined,
+  personagens: readonly string[],
+  texto: string,
+): FraseMarcada | null {
+  if (!p || p.texto !== texto || !(p.confianca >= CONFIANCA_MINIMA)) return null;
+  if (p.falante.tipo === 'personagem' && !(p.falante.nome && personagens.includes(p.falante.nome))) return null;
+  return p;
+}
+
 /** Um plano por frase, na MESMA ordem e quantidade da entrada. Nunca lança: o que falhar vira narrador/neutro. */
 export function planejarElenco(
   textos: readonly string[],
   cfg: ConfigDoElenco,
   dist: DistribuicaoDeVozes = montarDistribuicao(cfg),
+  previas?: readonly (FraseMarcada | null | undefined)[],
 ): PlanoDaFrase[] {
   /* O marcador parte frase > 600 em pedaços; cortar na entrada mantém o 1 para 1 com as frases do leitor. */
   const entrada = textos.map((t) =>
@@ -55,7 +67,10 @@ export function planejarElenco(
     return textos.map(() => PLANO_DO_NARRADOR);
   }
   if (marcadas.length !== textos.length) return textos.map(() => PLANO_DO_NARRADOR);
-  return marcadas.map((m) => {
+  return marcadas.map((heuristica, i) => {
+    /* PONTO DE EXTENSÃO (função de IA `leitura_elenco`, ainda não implementada): uma marcação prévia VÁLIDA e confiante
+       (arquivo do capítulo, IA do servidor) vence a heurística frase a frase; qualquer outra coisa cai nela. */
+    const m = previaAceita(previas?.[i], cfg.personagens, textos[i]) ?? heuristica;
     const confiante = m.confianca >= CONFIANCA_MINIMA;
     const voz = m.falante.tipo === 'personagem' && confiante ? vozDaFrase(m, dist) : null;
     return {

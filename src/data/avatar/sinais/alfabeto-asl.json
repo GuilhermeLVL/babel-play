@@ -44,10 +44,22 @@
         }
       },
       "orientacao": {
-        "dedos": [0, 1, 0],
-        "palma": [0, 0, 1]
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
       },
-      "posicao": [-0.05, 0.07, 0.3],
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -92,10 +104,22 @@
         }
       },
       "orientacao": {
-        "dedos": [0, 1, 0],
-        "palma": [0, 0, 1]
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
       },
-      "posicao": [-0.05, 0.07, 0.3],
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -140,10 +164,22 @@
         }
       },
       "orientacao": {
-        "dedos": [0.1, 0.95, 0.3],
-        "palma": [-1, 0, 0.15]
+        "dedos": [
+          0.1,
+          0.95,
+          0.3
+        ],
+        "palma": [
+          -1,
+          0,
+          0.15
+        ]
       },
-      "posicao": [-0.05, 0, 0.3],
+      "posicao": [
+        -0.05,
+        0,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -188,10 +224,22 @@
         }
       },
       "orientacao": {
-        "dedos": [0, 1, 0],
-        "palma": [-1, 0, 0.2]
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          -1,
+          0,
+          0.2
+        ]
       },
-      "posicao": [-0.05, 0.07, 0.3],
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -200,46 +248,58 @@
       "fidelidade": "baixa",
       "movimento": false,
       "movimento_descricao": null,
-      "obs": "M4b: dedos em garra (mcp 62, pip 98) sobre o polegar cruzado por baixo; ainda difícil de distinguir de A e S de frente, as pontas não encostam no polegar (sem colisão).",
-      "referencia": "ASL: Commons \"ABC pict.png\" (domínio público, fotos) e \"Asl alphabet gallaudet.png\" (Ds13, domínio público)",
+      "obs": "Polimento: dedos em garra mais abertos na base (as quatro pontas aparecem sobre o polegar, que fica por baixo), para não se confundir com A e S. Sem colisão: as pontas não tocam o polegar. Pose de demonstração, não revisada por pessoas surdas.",
+      "referencia": "{L}: descrição da forma [?]; sem gráfico livre reaberto nesta rodada",
       "mao": {
         "polegar": {
-          "cmc_flex": 82,
-          "cmc_abd": 2,
-          "mcp": 38,
-          "ip": 30,
+          "cmc_flex": 86,
+          "cmc_abd": 0,
+          "mcp": 45,
+          "ip": 35,
           "oposicao": 10
         },
         "indicador": {
-          "mcp": 62,
-          "pip": 98,
+          "mcp": 52,
+          "pip": 102,
           "dip": null,
           "abd": 0
         },
         "medio": {
-          "mcp": 62,
-          "pip": 98,
+          "mcp": 52,
+          "pip": 102,
           "dip": null,
           "abd": 0
         },
         "anelar": {
-          "mcp": 62,
-          "pip": 98,
+          "mcp": 52,
+          "pip": 102,
           "dip": null,
           "abd": 0
         },
         "minimo": {
-          "mcp": 62,
-          "pip": 98,
+          "mcp": 52,
+          "pip": 102,
           "dip": null,
           "abd": 0
         }
       },
       "orientacao": {
-        "dedos": [0, 1, 0],
-        "palma": [0, 0, 1]
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
       },
-      "posicao": [-0.05, 0.07, 0.3],
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -284,10 +344,22 @@
         }
       },
       "orientacao": {
-        "dedos": [0, 1, 0],
-        "palma": [0, 0, 1]
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
       },
-      "posicao": [-0.05, 0.07, 0.3],
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -296,12 +368,12 @@
       "fidelidade": "baixa",
       "movimento": false,
       "movimento_descricao": null,
-      "obs": "Indicador e polegar paralelos apontando para o lado; a orientação da palma vem só de uma foto e o punho serrilha com essa torção.",
-      "referencia": "ASL: Commons \"ABC pict.png\" (domínio público, fotos) e \"Asl alphabet gallaudet.png\" (Ds13, domínio público)",
+      "obs": "Polimento: polegar estendido, paralelo ao indicador (antes ficava deitado e sumia). Pose de demonstração, não revisada por pessoas surdas.",
+      "referencia": "{L}: descrição da forma [?]; sem gráfico livre reaberto nesta rodada",
       "mao": {
         "polegar": {
-          "cmc_flex": 10,
-          "cmc_abd": 0,
+          "cmc_flex": -30,
+          "cmc_abd": 65,
           "mcp": 0,
           "ip": 0,
           "oposicao": 0
@@ -332,10 +404,22 @@
         }
       },
       "orientacao": {
-        "dedos": [1, 0.05, 0.25],
-        "palma": [0, 0, -1]
+        "dedos": [
+          1,
+          0.05,
+          0.25
+        ],
+        "palma": [
+          0,
+          0,
+          -1
+        ]
       },
-      "posicao": [-0.06, 0.03, 0.32],
+      "posicao": [
+        -0.06,
+        0.03,
+        0.32
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -380,10 +464,22 @@
         }
       },
       "orientacao": {
-        "dedos": [1, 0.05, 0.25],
-        "palma": [0, 0, -1]
+        "dedos": [
+          1,
+          0.05,
+          0.25
+        ],
+        "palma": [
+          0,
+          0,
+          -1
+        ]
       },
-      "posicao": [-0.06, 0.03, 0.32],
+      "posicao": [
+        -0.06,
+        0.03,
+        0.32
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -428,10 +524,22 @@
         }
       },
       "orientacao": {
-        "dedos": [0, 1, 0],
-        "palma": [0, 0, 1]
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
       },
-      "posicao": [-0.05, 0.07, 0.3],
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -476,27 +584,59 @@
         }
       },
       "orientacao": {
-        "dedos": [0, 1, 0],
-        "palma": [0, 0, 1]
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
       },
-      "posicao": [0, 0.1, 0.3],
+      "posicao": [
+        0,
+        0.1,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       },
       "caminho": [
         {
           "t": 0.45,
-          "dpos": [0, -0.05, 0]
+          "dpos": [
+            0,
+            -0.05,
+            0
+          ]
         },
         {
           "t": 0.8,
-          "dpos": [0.02, -0.07, 0],
-          "rot": [0, 0, 25]
+          "dpos": [
+            0.02,
+            -0.07,
+            0
+          ],
+          "rot": [
+            0,
+            0,
+            25
+          ]
         },
         {
           "t": 1,
-          "dpos": [0.035, -0.06, 0],
-          "rot": [0, 0, 45]
+          "dpos": [
+            0.035,
+            -0.06,
+            0
+          ],
+          "rot": [
+            0,
+            0,
+            45
+          ]
         }
       ]
     },
@@ -540,10 +680,22 @@
         }
       },
       "orientacao": {
-        "dedos": [0, 1, 0],
-        "palma": [0, 0, 1]
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
       },
-      "posicao": [-0.05, 0.07, 0.3],
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -588,10 +740,22 @@
         }
       },
       "orientacao": {
-        "dedos": [0, 1, 0],
-        "palma": [0, 0, 1]
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
       },
-      "posicao": [-0.05, 0.07, 0.3],
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -600,46 +764,58 @@
       "fidelidade": "baixa",
       "movimento": false,
       "movimento_descricao": null,
-      "obs": "M4b: punho de frente como o S, polegar recolhido sob os dedos (antes: mão de lado com o polegar para fora). M e N seguem quase iguais: a diferença (ponta do polegar entre o anelar e o mínimo, ou entre o médio e o anelar) exige colisão.",
-      "referencia": "ASL: Commons \"ABC pict.png\" (domínio público, fotos) e \"Asl alphabet gallaudet.png\" (Ds13, domínio público)",
+      "obs": "Polimento: mão virada para baixo e três dedos (indicador, médio e anelar) caídos sobre o polegar, mindinho recolhido; distingue de N e do punho. Sem colisão. Pose de demonstração, não revisada por pessoas surdas.",
+      "referencia": "ASL: descrição da forma [?]; sem gráfico livre reaberto nesta rodada",
       "mao": {
         "polegar": {
-          "cmc_flex": 105,
-          "cmc_abd": 4,
-          "mcp": 55,
-          "ip": 25,
-          "oposicao": 20
+          "cmc_flex": 95,
+          "cmc_abd": -5,
+          "mcp": 45,
+          "ip": 20,
+          "oposicao": 25
         },
         "indicador": {
-          "mcp": 85,
-          "pip": 100,
+          "mcp": 75,
+          "pip": 40,
           "dip": null,
           "abd": 0
         },
         "medio": {
-          "mcp": 85,
-          "pip": 100,
+          "mcp": 75,
+          "pip": 40,
           "dip": null,
           "abd": 0
         },
         "anelar": {
-          "mcp": 85,
-          "pip": 100,
+          "mcp": 75,
+          "pip": 40,
           "dip": null,
           "abd": 0
         },
         "minimo": {
-          "mcp": 85,
+          "mcp": 88,
           "pip": 100,
           "dip": null,
           "abd": 0
         }
       },
       "orientacao": {
-        "dedos": [0, 1, 0],
-        "palma": [0, 0, 1]
+        "dedos": [
+          0,
+          -0.6,
+          0.8
+        ],
+        "palma": [
+          0,
+          -0.8,
+          -0.6
+        ]
       },
-      "posicao": [-0.05, 0.07, 0.3],
+      "posicao": [
+        -0.05,
+        0.05,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -648,46 +824,58 @@
       "fidelidade": "baixa",
       "movimento": false,
       "movimento_descricao": null,
-      "obs": "M4b: punho de frente como o S, polegar recolhido sob os dedos (antes: mão de lado com o polegar para fora). M e N seguem quase iguais: a diferença exige colisão entre dedos e polegar.",
-      "referencia": "ASL: Commons \"ABC pict.png\" (domínio público, fotos) e \"Asl alphabet gallaudet.png\" (Ds13, domínio público)",
+      "obs": "Polimento: como o M, mas só indicador e médio caídos sobre o polegar; anelar e mindinho recolhidos. Sem colisão. Pose de demonstração, não revisada por pessoas surdas.",
+      "referencia": "ASL: descrição da forma [?]; sem gráfico livre reaberto nesta rodada",
       "mao": {
         "polegar": {
-          "cmc_flex": 96,
-          "cmc_abd": 4,
-          "mcp": 48,
-          "ip": 25,
-          "oposicao": 20
+          "cmc_flex": 90,
+          "cmc_abd": -5,
+          "mcp": 40,
+          "ip": 20,
+          "oposicao": 25
         },
         "indicador": {
-          "mcp": 85,
-          "pip": 100,
+          "mcp": 75,
+          "pip": 40,
           "dip": null,
           "abd": 0
         },
         "medio": {
-          "mcp": 85,
-          "pip": 100,
+          "mcp": 75,
+          "pip": 40,
           "dip": null,
           "abd": 0
         },
         "anelar": {
-          "mcp": 85,
+          "mcp": 88,
           "pip": 100,
           "dip": null,
           "abd": 0
         },
         "minimo": {
-          "mcp": 85,
+          "mcp": 88,
           "pip": 100,
           "dip": null,
           "abd": 0
         }
       },
       "orientacao": {
-        "dedos": [0, 1, 0],
-        "palma": [0, 0, 1]
+        "dedos": [
+          0,
+          -0.6,
+          0.8
+        ],
+        "palma": [
+          0,
+          -0.8,
+          -0.6
+        ]
       },
-      "posicao": [-0.05, 0.07, 0.3],
+      "posicao": [
+        -0.05,
+        0.05,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -732,10 +920,22 @@
         }
       },
       "orientacao": {
-        "dedos": [0.1, 1, 0],
-        "palma": [-1, 0, 0.2]
+        "dedos": [
+          0.1,
+          1,
+          0
+        ],
+        "palma": [
+          -1,
+          0,
+          0.2
+        ]
       },
-      "posicao": [-0.05, 0.07, 0.3],
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -780,10 +980,22 @@
         }
       },
       "orientacao": {
-        "dedos": [-0.4, -0.15, 0.9],
-        "palma": [0, -1, -0.15]
+        "dedos": [
+          -0.4,
+          -0.15,
+          0.9
+        ],
+        "palma": [
+          0,
+          -1,
+          -0.15
+        ]
       },
-      "posicao": [-0.05, 0.05, 0.3],
+      "posicao": [
+        -0.05,
+        0.05,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -828,10 +1040,22 @@
         }
       },
       "orientacao": {
-        "dedos": [0.15, -0.9, 0.4],
-        "palma": [-1, -0.1, 0]
+        "dedos": [
+          0.15,
+          -0.9,
+          0.4
+        ],
+        "palma": [
+          -1,
+          -0.1,
+          0
+        ]
       },
-      "posicao": [-0.05, 0.03, 0.3],
+      "posicao": [
+        -0.05,
+        0.03,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -840,8 +1064,8 @@
       "fidelidade": "baixa",
       "movimento": false,
       "movimento_descricao": null,
-      "obs": "Cruzamento aproximado: os dedos se sobrepõem, não se enroscam.",
-      "referencia": "ASL: Commons \"ABC pict.png\" (domínio público, fotos) e \"Asl alphabet gallaudet.png\" (Ds13, domínio público)",
+      "obs": "Polimento: a mão desceu 5 cm para os dedos cruzados não saírem do quadro das mãos. Cruzamento só por sobreposição (sem colisão). Pose de demonstração, não revisada por pessoas surdas.",
+      "referencia": "{L}: descrição da forma [?]; sem gráfico livre reaberto nesta rodada",
       "mao": {
         "polegar": {
           "cmc_flex": 58,
@@ -876,10 +1100,22 @@
         }
       },
       "orientacao": {
-        "dedos": [0, 1, 0],
-        "palma": [0, 0, 1]
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
       },
-      "posicao": [-0.05, 0.07, 0.3],
+      "posicao": [
+        -0.05,
+        0.02,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -924,10 +1160,22 @@
         }
       },
       "orientacao": {
-        "dedos": [0, 1, 0],
-        "palma": [0, 0, 1]
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
       },
-      "posicao": [-0.05, 0.07, 0.3],
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -936,13 +1184,13 @@
       "fidelidade": "baixa",
       "movimento": false,
       "movimento_descricao": null,
-      "obs": "M4b: polegar erguido entre indicador e médio (cmc_abd 14); a abertura entre os dedos é pequena e o polegar atravessa a malha dos dedos (sem colisão).",
-      "referencia": "ASL: Commons \"ABC pict.png\" (domínio público, fotos) e \"Asl alphabet gallaudet.png\" (Ds13, domínio público)",
+      "obs": "Polimento: polegar erguido, saindo entre indicador e médio (abertura um pouco maior). Atravessa a malha dos dedos (sem colisão). Pose de demonstração, não revisada por pessoas surdas.",
+      "referencia": "{L}: descrição da forma [?]; sem gráfico livre reaberto nesta rodada",
       "mao": {
         "polegar": {
           "cmc_flex": 42,
-          "cmc_abd": 14,
-          "mcp": 8,
+          "cmc_abd": 24,
+          "mcp": 12,
           "ip": 0,
           "oposicao": 0
         },
@@ -950,13 +1198,13 @@
           "mcp": 88,
           "pip": 100,
           "dip": null,
-          "abd": 4
+          "abd": 6
         },
         "medio": {
           "mcp": 88,
           "pip": 100,
           "dip": null,
-          "abd": -3
+          "abd": -4
         },
         "anelar": {
           "mcp": 88,
@@ -972,10 +1220,22 @@
         }
       },
       "orientacao": {
-        "dedos": [0, 1, 0],
-        "palma": [0, 0, 1]
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
       },
-      "posicao": [-0.05, 0.07, 0.3],
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -1020,10 +1280,22 @@
         }
       },
       "orientacao": {
-        "dedos": [0, 1, 0],
-        "palma": [0, 0, 1]
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
       },
-      "posicao": [-0.05, 0.07, 0.3],
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -1068,10 +1340,22 @@
         }
       },
       "orientacao": {
-        "dedos": [0, 1, 0],
-        "palma": [0, 0, 1]
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
       },
-      "posicao": [-0.05, 0.07, 0.3],
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -1116,10 +1400,22 @@
         }
       },
       "orientacao": {
-        "dedos": [0, 1, 0],
-        "palma": [0, 0, 1]
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
       },
-      "posicao": [-0.05, 0.07, 0.3],
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -1164,10 +1460,22 @@
         }
       },
       "orientacao": {
-        "dedos": [0, 1, 0],
-        "palma": [0, 0, 1]
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
       },
-      "posicao": [-0.05, 0.07, 0.3],
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -1212,10 +1520,22 @@
         }
       },
       "orientacao": {
-        "dedos": [0, 1, 0],
-        "palma": [0, 0, 1]
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
       },
-      "posicao": [-0.05, 0.07, 0.3],
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
       "cotovelo": {
         "giro": 0
       }
@@ -1260,27 +1580,651 @@
         }
       },
       "orientacao": {
-        "dedos": [-0.1, 0.55, 0.83],
-        "palma": [0, -0.83, 0.55]
+        "dedos": [
+          -0.1,
+          0.55,
+          0.83
+        ],
+        "palma": [
+          0,
+          -0.83,
+          0.55
+        ]
       },
-      "posicao": [0.04, 0.05, 0.32],
+      "posicao": [
+        0.04,
+        0.05,
+        0.32
+      ],
       "cotovelo": {
         "giro": 0
       },
       "caminho": [
         {
           "t": 0.3,
-          "dpos": [-0.08, 0, 0]
+          "dpos": [
+            -0.08,
+            0,
+            0
+          ]
         },
         {
           "t": 0.65,
-          "dpos": [0, -0.07, 0]
+          "dpos": [
+            0,
+            -0.07,
+            0
+          ]
         },
         {
           "t": 1,
-          "dpos": [-0.08, -0.07, 0]
+          "dpos": [
+            -0.08,
+            -0.07,
+            0
+          ]
         }
       ]
+    },
+    "0": {
+      "fidelidade": "baixa",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Zero: dedos e polegar em círculo (forma do O). Pose de demonstração, não revisada por pessoas surdas.",
+      "referencia": "{L}: forma do zero por descrição [?]; convenção NÃO confirmada com pessoas surdas",
+      "orientacao": {
+        "dedos": [
+          0.1,
+          1,
+          0
+        ],
+        "palma": [
+          -1,
+          0,
+          0.2
+        ]
+      },
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
+      "cotovelo": {
+        "giro": 0
+      },
+      "mao": {
+        "polegar": {
+          "cmc_flex": 34,
+          "cmc_abd": 23,
+          "mcp": 14,
+          "ip": 10,
+          "oposicao": 25
+        },
+        "indicador": {
+          "mcp": 46,
+          "pip": 58,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 50,
+          "pip": 58,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 54,
+          "pip": 58,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 58,
+          "pip": 56,
+          "dip": null,
+          "abd": 0
+        }
+      }
+    },
+    "1": {
+      "fidelidade": "baixa",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Um: indicador para cima, polegar sobre os dedos recolhidos. Pose de demonstração, não revisada por pessoas surdas.",
+      "referencia": "{L}: forma do um por descrição [?]; convenção NÃO confirmada com pessoas surdas",
+      "orientacao": {
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
+      },
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
+      "cotovelo": {
+        "giro": 0
+      },
+      "mao": {
+        "polegar": {
+          "cmc_flex": 58,
+          "cmc_abd": -7,
+          "mcp": 20,
+          "ip": 27,
+          "oposicao": 10
+        },
+        "indicador": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        }
+      }
+    },
+    "2": {
+      "fidelidade": "baixa",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Dois: indicador e médio abertos em V. Pose de demonstração, não revisada por pessoas surdas.",
+      "referencia": "ASL: forma do dois por descrição [?]; convenção NÃO confirmada com pessoas surdas",
+      "orientacao": {
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
+      },
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
+      "cotovelo": {
+        "giro": 0
+      },
+      "mao": {
+        "polegar": {
+          "cmc_flex": 58,
+          "cmc_abd": -7,
+          "mcp": 20,
+          "ip": 27,
+          "oposicao": 10
+        },
+        "indicador": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 14
+        },
+        "medio": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": -14
+        },
+        "anelar": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        }
+      }
+    },
+    "3": {
+      "fidelidade": "baixa",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Três: polegar, indicador e médio estendidos. Pose de demonstração, não revisada por pessoas surdas.",
+      "referencia": "ASL: forma do três por descrição [?]; convenção NÃO confirmada com pessoas surdas",
+      "orientacao": {
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
+      },
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
+      "cotovelo": {
+        "giro": 0
+      },
+      "mao": {
+        "polegar": {
+          "cmc_flex": -50,
+          "cmc_abd": 0,
+          "mcp": 0,
+          "ip": 0,
+          "oposicao": 0
+        },
+        "indicador": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 6
+        },
+        "medio": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": -6
+        },
+        "anelar": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        }
+      }
+    },
+    "4": {
+      "fidelidade": "baixa",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Quatro: quatro dedos estendidos e abertos, polegar sobre a palma. Pose de demonstração, não revisada por pessoas surdas.",
+      "referencia": "{L}: forma do quatro por descrição [?]; convenção NÃO confirmada com pessoas surdas",
+      "orientacao": {
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
+      },
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
+      "cotovelo": {
+        "giro": 0
+      },
+      "mao": {
+        "polegar": {
+          "cmc_flex": 105,
+          "cmc_abd": -3,
+          "mcp": 35,
+          "ip": 25,
+          "oposicao": -15
+        },
+        "indicador": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 8
+        },
+        "medio": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 8
+        },
+        "minimo": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 14
+        }
+      }
+    },
+    "5": {
+      "fidelidade": "baixa",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Cinco: mão aberta, dedos e polegar afastados. Pose de demonstração, não revisada por pessoas surdas.",
+      "referencia": "{L}: forma do cinco por descrição [?]; convenção NÃO confirmada com pessoas surdas",
+      "orientacao": {
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
+      },
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
+      "cotovelo": {
+        "giro": 0
+      },
+      "mao": {
+        "polegar": {
+          "cmc_flex": -40,
+          "cmc_abd": 25,
+          "mcp": 0,
+          "ip": 0,
+          "oposicao": 0
+        },
+        "indicador": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 10
+        },
+        "medio": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 8
+        },
+        "minimo": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 16
+        }
+      }
+    },
+    "6": {
+      "fidelidade": "baixa",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Seis: polegar encontra o mindinho, os outros três estendidos. Sem colisão: o polegar só se aproxima. Em Libras a convenção NÃO foi confirmada: usa a forma da ASL. Pose de demonstração, não revisada por pessoas surdas.",
+      "referencia": "ASL: forma do seis por descrição [?]; em Libras, adotada por suposição [?]",
+      "orientacao": {
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
+      },
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
+      "cotovelo": {
+        "giro": 0
+      },
+      "mao": {
+        "polegar": {
+          "cmc_flex": 21,
+          "cmc_abd": 26,
+          "mcp": 19,
+          "ip": 10,
+          "oposicao": 25
+        },
+        "indicador": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 8
+        },
+        "medio": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 8
+        },
+        "minimo": {
+          "mcp": 48,
+          "pip": 62,
+          "dip": null,
+          "abd": 14
+        }
+      }
+    },
+    "7": {
+      "fidelidade": "baixa",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Sete: polegar encontra o anelar, os outros três estendidos. Sem colisão. Em Libras a convenção NÃO foi confirmada: usa a forma da ASL. Pose de demonstração, não revisada por pessoas surdas.",
+      "referencia": "ASL: forma do sete por descrição [?]; em Libras, adotada por suposição [?]",
+      "orientacao": {
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
+      },
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
+      "cotovelo": {
+        "giro": 0
+      },
+      "mao": {
+        "polegar": {
+          "cmc_flex": 21,
+          "cmc_abd": 26,
+          "mcp": 19,
+          "ip": 10,
+          "oposicao": 25
+        },
+        "indicador": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 8
+        },
+        "medio": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 48,
+          "pip": 62,
+          "dip": null,
+          "abd": 8
+        },
+        "minimo": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 14
+        }
+      }
+    },
+    "8": {
+      "fidelidade": "baixa",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Oito: polegar encontra o médio, os outros três estendidos. Sem colisão. Em Libras a convenção NÃO foi confirmada: usa a forma da ASL. Pose de demonstração, não revisada por pessoas surdas.",
+      "referencia": "ASL: forma do oito por descrição [?]; em Libras, adotada por suposição [?]",
+      "orientacao": {
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
+      },
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
+      "cotovelo": {
+        "giro": 0
+      },
+      "mao": {
+        "polegar": {
+          "cmc_flex": 21,
+          "cmc_abd": 26,
+          "mcp": 19,
+          "ip": 10,
+          "oposicao": 25
+        },
+        "indicador": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 8
+        },
+        "medio": {
+          "mcp": 48,
+          "pip": 62,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 8
+        },
+        "minimo": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 14
+        }
+      }
+    },
+    "9": {
+      "fidelidade": "baixa",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Nove: polegar encontra o indicador (como o F), os outros três estendidos. Sem colisão. Em Libras a convenção NÃO foi confirmada: usa a forma da ASL. Pose de demonstração, não revisada por pessoas surdas.",
+      "referencia": "ASL: forma do nove por descrição [?]; em Libras, adotada por suposição [?]",
+      "orientacao": {
+        "dedos": [
+          0,
+          1,
+          0
+        ],
+        "palma": [
+          0,
+          0,
+          1
+        ]
+      },
+      "posicao": [
+        -0.05,
+        0.07,
+        0.3
+      ],
+      "cotovelo": {
+        "giro": 0
+      },
+      "mao": {
+        "polegar": {
+          "cmc_flex": 21,
+          "cmc_abd": 26,
+          "mcp": 19,
+          "ip": 10,
+          "oposicao": 25
+        },
+        "indicador": {
+          "mcp": 48,
+          "pip": 62,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 2
+        },
+        "anelar": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 8
+        },
+        "minimo": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 14
+        }
+      }
     }
   }
 }

@@ -194,13 +194,44 @@ describe('soletrar', () => {
 
   it('só nomes próprios; números e símbolos marcados; dicionário vazio', () => {
     const n = sol('ontem a Marta viu 2025', libras, { soNomesProprios: true })
-    expect(n.palavras.map((p) => p.motivo)).toEqual(['so_nomes', 'uma_letra', undefined, 'so_nomes', 'numero'])
-    expect(n.numerosPulados).toBe(true)
-    const s = sol('?! 😀 99')
+    expect(n.palavras.map((p) => p.motivo)).toEqual(['so_nomes', 'uma_letra', undefined, 'so_nomes', 'so_nomes'])
+    expect(n.numerosPulados).toBe(false)
+    const s = sol('?! 😀')
     expect(s.passos).toHaveLength(0)
-    expect(s.palavras.map((p) => p.motivo)).toEqual(['sem_letras', 'sem_letras', 'numero'])
+    expect(s.palavras.map((p) => p.motivo)).toEqual(['sem_letras', 'sem_letras'])
     expect(s.duracaoMs).toBe(0)
     expect(s.desconhecidos).toContain('😀')
+  })
+
+  it('números 0-9 (defeito 4): soletrados quando o alfabeto os traz; sem eles, pulados e marcados como antes', () => {
+    for (const a of [libras, asl]) {
+      for (const d of '0123456789') expect(a.letras[d], d).toBeTruthy()
+      const s = sol('R2D2 99', a)
+      expect(s.passos.map((p) => p.letra).join('')).toBe('R2D299')
+      expect(s.numerosPulados).toBe(false)
+      expect(s.palavras.every((p) => p.estado === 'soletrada')).toBe(true)
+    }
+    const semNumeros = {
+      ...libras,
+      letras: Object.fromEntries(Object.entries(libras.letras).filter(([k]) => !/^[0-9]$/.test(k))),
+    } as Alfabeto
+    const s = sol('R2D2 99', semNumeros)
+    expect(s.passos.map((p) => p.letra).join('')).toBe('RD')
+    expect(s.numerosPulados).toBe(true)
+    expect(s.palavras.map((p) => p.motivo)).toEqual([undefined, 'numero'])
+  })
+
+  it('os dez algarismos têm formas diferentes entre si, e M, N, S, E e T diferem entre si (defeito 4)', () => {
+    const assinatura = (a: Alfabeto, c: string) =>
+      JSON.stringify([a.letras[c].mao, a.letras[c].orientacao])
+    for (const a of [libras, asl]) {
+      const ds = [...'0123456789'].map((c) => assinatura(a, c))
+      expect(new Set(ds).size).toBe(10)
+      const fortes = [...'MNSET'].map((c) => assinatura(a, c))
+      expect(new Set(fortes).size).toBe(5)
+    }
+    // no ASL, M e N não são mais "punhos de frente": a mão vira para baixo, com dedos caídos sobre o polegar
+    for (const c of 'MN') expect(asl.letras[c].orientacao.dedos[1]).toBeLessThan(-0.3)
   })
 
   it('dicionário de sinais (ponto de extensão): palavra com sinal gravado sai da soletração', () => {

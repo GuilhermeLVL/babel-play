@@ -3,7 +3,8 @@
  *
  *  · Acentos são ignorados (letra-base). Libras: `Ç` tem sinal próprio; `Ã`/`Õ` = letra-base + til (balanço).
  *    ASL: `Ç` vira C, `Ã` vira A, `Õ` vira O.
- *  · Números NÃO são suportados (sem referência confiável): são pulados e a palavra fica marcada.
+ *  · Algarismos 0-9: soletrados só se o alfabeto os traz (`opcoes.numeros`); senão (e para outros dígitos Unicode)
+ *    são pulados e a palavra fica marcada.
  *  · Espaço, hífen e pontuação separam palavras (pausa). Qualquer outro caractere (emoji, escrita RTL, símbolos,
  *    letras sem decomposição como ß ou ø) também vira pausa e é listado em `desconhecidos`.
  *  · Percorre por pontos de código (pares substitutos e sequências de emoji não quebram) e é linear no tamanho.
@@ -40,7 +41,12 @@ const ESPACO_OU_PONTUACAO = /^[\p{Z}\s\p{P}]$/u;
 const CEDILHA = '̧';
 const TIL = '̃';
 
-export function normalizarTexto(texto: string, lingua: Lingua): TextoNormalizado {
+export interface OpcoesDeNormalizacao {
+  /** O alfabeto tem os algarismos 0-9: eles viram "letras" soletráveis (os outros dígitos Unicode seguem pulados). */
+  numeros?: boolean;
+}
+
+export function normalizarTexto(texto: string, lingua: Lingua, opcoes: OpcoesDeNormalizacao = {}): TextoNormalizado {
   const desconhecidos = new Set<string>();
   const palavras: PalavraNormalizada[] = [];
   for (const token of texto.split(/\s+/u)) {
@@ -74,6 +80,8 @@ export function normalizarTexto(texto: string, lingua: Lingua): TextoNormalizado
         atual.push({ disp, chave, til });
       } else if (COMBINANTE.test(ch)) {
         // marca solta (sem letra-base): ignora
+      } else if (opcoes.numeros === true && /^[0-9]$/.test(ch)) {
+        atual.push({ disp: ch, chave: ch, til: false });
       } else if (/^\p{Nd}$/u.test(ch)) {
         temNumeros = true;
       } else if (ESPACO_OU_PONTUACAO.test(ch)) {

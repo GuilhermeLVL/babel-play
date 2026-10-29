@@ -7,7 +7,7 @@
  *  · TETO DE TEMPO por fala: preenche por prioridade (nomes próprios primeiro, depois a ordem do texto) e toca
  *    na ordem do texto; o que não coube fica "não soletrada" (marcada por palavra, com o motivo);
  *  · palavra de UMA letra ("a", "é") não é soletrada nem gasta o teto à toa (motivo `uma_letra`);
- *  · números não suportados: pulados e marcados; caracteres desconhecidos viram pausa.
+ *  · algarismos 0-9: soletrados quando o alfabeto os traz; outros dígitos são pulados e marcados; caracteres desconhecidos viram pausa.
  *
  * Soletração do alfabeto manual: NÃO é tradução. As poses não foram revisadas por pessoas surdas.
  */
@@ -134,7 +134,9 @@ export function soletrar(texto: string, alfabeto: Alfabeto, opcoes: OpcoesDeSole
   const t = temposDe(opcoes);
   const max = opcoes.maxCaracteres ?? PADROES.maxCaracteres;
   const textoCortado = texto.length > max;
-  const normal = normalizarTexto(textoCortado ? texto.slice(0, max) : texto, alfabeto.lingua);
+  const normal = normalizarTexto(textoCortado ? texto.slice(0, max) : texto, alfabeto.lingua, {
+    numeros: alfabeto.letras['0'] !== undefined,
+  });
   const desconhecidos = new Set(normal.desconhecidos);
   const dicionario = opcoes.dicionario ?? dicionarioDeSinais;
   const teto = opcoes.tetoMs ?? PADROES.tetoMs;

@@ -63,7 +63,7 @@ Lista de pontos com `t` crescente em (0,1] (fração do tempo de retenção da l
 
 - Libras: acentos são ignorados (letra-base). `Ç` tem sinal próprio (C com leve movimento descendente). `Ã` e `Õ`: letra-base seguida de um leve balanço lateral da mão (til); convenção NÃO confirmada com surdos [?].
 - ASL: sem acentos; `Ç` vira C; `Ã` e `Õ` viram A e O.
-- Letra dupla: pequeno rebote (a mão avança 3,5 cm, afrouxa 30% os dedos e volta). Espaço, hífen e pontuação separam palavras (pausa). Números e símbolos não são soletrados neste protótipo.
+- Letra dupla: pequeno rebote (a mão avança 3,5 cm, afrouxa 30% os dedos e volta). Espaço, hífen e pontuação separam palavras (pausa). Algarismos 0-9 têm pose própria nos dois alfabetos (chaves `"0"` a `"9"`, opcionais, mas se um existe os dez existem; o motor só os soletra quando o alfabeto os traz). As formas são de DEMONSTRAÇÃO por descrição, sem revisão de pessoas surdas; em Libras, 6 a 9 reusam a forma da ASL por suposição [?]. Outros dígitos Unicode e símbolos não são soletrados.
 
 ## Receber poses capturadas (compatível com `pose-format`)
 

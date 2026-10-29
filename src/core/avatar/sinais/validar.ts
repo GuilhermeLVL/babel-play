@@ -10,6 +10,8 @@ export const ESQUEMA_DO_ALFABETO = 'frasy-alfabeto-mao/2';
 const ALCANCE_M = 0.5; // distância máxima do centro da palma ao ombro dominante (braço do modelo: ~0,47 m)
 const FIDELIDADES = ['alta', 'media', 'baixa'];
 const LETRAS_AZ = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+/** Algarismos: opcionais, mas se um existe os dez existem. */
+export const ALGARISMOS = '0123456789'.split('');
 export const LETRAS_EXIGIDAS: Record<Lingua, string[]> = { libras: [...LETRAS_AZ, 'Ç'], asl: LETRAS_AZ };
 /** Letras que DEVEM ter `movimento: true`. */
 const MOVIMENTO_EXIGIDO: Record<Lingua, string[]> = { libras: ['H', 'J', 'X', 'Z', 'Ç'], asl: ['J', 'Z'] };
@@ -81,7 +83,8 @@ export function validarAlfabeto(dados: unknown, lingua: Lingua, lim: Limites): R
   const letras = ehObj(dados.letras) ? dados.letras : {};
   for (const c of LETRAS_EXIGIDAS[lingua]) if (!letras[c]) erro(`${lingua}: letra ${c} ausente`);
   for (const c of Object.keys(letras))
-    if (!LETRAS_EXIGIDAS[lingua].includes(c)) erro(`${lingua}: letra inesperada ${c}`);
+    if (!LETRAS_EXIGIDAS[lingua].includes(c) && !ALGARISMOS.includes(c)) erro(`${lingua}: letra inesperada ${c}`);
+  if (ALGARISMOS.some((c) => letras[c])) for (const c of ALGARISMOS) if (!letras[c]) erro(`${lingua}: algarismo ${c} ausente`);
 
   for (const [c, bruta] of Object.entries(letras)) {
     const onde = `${lingua}.${c}`;

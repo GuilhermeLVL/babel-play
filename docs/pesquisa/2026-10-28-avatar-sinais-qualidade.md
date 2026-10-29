@@ -84,3 +84,11 @@ Calibração do polegar por rig (nova): o zero de `cmc_abd` e o ângulo de repou
 - O verificador de independência dos dedos passa nos dois modelos pelo critério da mão do próprio modelo; pelo critério estrito de 8 cm a 1,7 m o `milk` fica abaixo no polegar (7,4 cm) e no mínimo (6,9 e 7,9 cm) porque a mão dele é pequena. Os outros dedos andam 0,00 cm em todos os casos.
 - Letras com movimento (H, J, X, Z, Ç em Libras; J, Z em ASL) seguem aproximadas.
 - Convenção de til (Ã, Õ em Libras): balanço lateral, NÃO confirmada com surdos.
+
+## Polimento de 29/10/2026 (ramo `feat/avatar-polimento-sinais`)
+
+Continua valendo: nenhuma pose foi revisada por pessoas surdas; é soletração, não tradução.
+
+- **ASL M e N:** a mão vira para baixo e os dedos caem sobre o polegar (M: três, N: dois), em vez de dois punhos de frente. **E** (ASL e Libras): garra com as quatro pontas à vista. **T**: polegar mais alto entre indicador e médio. **G**: polegar estendido (de frente quase não se vê: a mão mostra o dorso). **R**: mão 5 cm mais baixa, e o enquadramento "só mãos" sobe 2% da altura, para os dedos cruzados não saírem do quadro.
+- **Números 0 a 9** nos dois alfabetos, por descrição das formas; em Libras, 1 a 5 são contagem pelos dedos e 6 a 9 reusam a ASL por suposição. Sem colisão: nas formas 6 a 9 o polegar só se aproxima do dedo.
+- **Sem mudança:** H, P, Q, Z (não consegui melhorar sem colisão ou referência). Capturas: `$AVATAR_CAPTURAS` (`letras-*-antes/depois`).

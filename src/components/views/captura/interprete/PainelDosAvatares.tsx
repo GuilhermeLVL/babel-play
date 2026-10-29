@@ -52,6 +52,8 @@ const MOTIVO_DO_PAINEL: Record<MotivoDoPainel, () => string> = {
   sem_ossos_reconheciveis: () => t('Os ossos deste avatar não têm nomes reconhecíveis.'),
   sem_modelo: () => t('O avatar ainda não carregou.'),
   sem_3d: () => t('Este aparelho não mostra o avatar em 3D.'),
+  maos_minusculas: () =>
+    t('As mãos deste avatar são pequenas demais para soletrar. Escolha outro avatar em Meu avatar (o intérprete muda).'),
   sem_interprete: () => t('Escolha "Eu e o intérprete" ou "Só o intérprete" em Quem aparece.'),
 };
 

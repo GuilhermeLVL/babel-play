@@ -19,9 +19,11 @@ import {
   FILA_MAXIMA_PARA_SOLETRAR,
   nomesProprios,
   soletracaoDisponivel,
+  suporteComModelo,
   TETO_DA_FALA_MS,
   VELOCIDADE_DO_RITMO,
 } from '../src/core/avatar/sinais/soletracaoDoInterprete'
+import { modeloDaColecao } from '../src/data/avatar/colecao'
 
 afterEach(cleanup)
 
@@ -227,6 +229,8 @@ describe('o painel: modelo sem dedos esconde/desabilita com o motivo', () => {
       sem_ossos_reconheciveis: 'Os ossos deste avatar não têm nomes reconhecíveis.',
       sem_3d: 'Este aparelho não mostra o avatar em 3D.',
       sem_interprete: 'Escolha "Eu e o intérprete" ou "Só o intérprete" em Quem aparece.',
+      maos_minusculas:
+        'As mãos deste avatar são pequenas demais para soletrar. Escolha outro avatar em Meu avatar (o intérprete muda).',
     } as const
     for (const [motivo, texto] of Object.entries(textos)) {
       const { unmount } = ligar({ estado: 'nao', motivo: motivo as keyof typeof textos })
@@ -254,6 +258,20 @@ describe('o painel: modelo sem dedos esconde/desabilita com o motivo', () => {
     expect(within(painel).getByTestId('avatar-espelhar')).toBeTruthy()
     expect(within(painel).getByText(AVISO_1)).toBeTruthy()
     expect(within(painel).getByText(AVISO_2)).toBeTruthy()
+  })
+  it('modelo de mãos minúsculas (Milk): o "sim" vira "não" com o motivo; os outros estados mandam (defeito 5)', () => {
+    expect(modeloDaColecao('milk')?.maosMinusculas).toBe(true)
+    expect(modeloDaColecao('bullidan')?.maosMinusculas).toBeUndefined()
+    expect(suporteComModelo({ estado: 'sim' }, modeloDaColecao('milk') ?? null)).toEqual({
+      estado: 'nao',
+      motivo: 'maos_minusculas',
+    })
+    expect(suporteComModelo({ estado: 'sim' }, modeloDaColecao('bullidan') ?? null)).toEqual({ estado: 'sim' })
+    expect(suporteComModelo({ estado: 'nao', motivo: 'sem_dedos' }, { maosMinusculas: true })).toEqual({
+      estado: 'nao',
+      motivo: 'sem_dedos',
+    })
+    expect(soletracaoDisponivel(suporteComModelo({ estado: 'sim' }, { maosMinusculas: true }))).toBe(false)
   })
   it('a opção só vale com suporte confirmado', () => {
     expect(soletracaoDisponivel({ estado: 'sim' })).toBe(true)

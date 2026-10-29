@@ -13,8 +13,10 @@ import {
   decidirSoletracao,
   type MotivoDoPainel,
   type SuporteDoInterprete,
+  suporteComModelo,
 } from '../../../../core/avatar/sinais/soletracaoDoInterprete';
 import { FLAG_AVATAR_3D, FLAG_AVATAR_SINAIS } from '../../../../core/planos';
+import { modeloDaColecao } from '../../../../data/avatar/colecao';
 import { publicarAvatarDoPip } from '../../../../lib/avatar/avatarDoPip';
 import { destravarComAvatar } from '../../../../lib/avatar/destravarComAvatar';
 import { detectarTier, temWebGL2 } from '../../../../lib/avatar/detectarTier';
@@ -24,7 +26,7 @@ import { usePreferenciasDosAvatares } from '../../../../lib/avatar/preferenciasD
 import type { EstadoDoControle } from '../../../../lib/captura/controleDoInterprete';
 import { useFlag } from '../../../../lib/flags';
 import { t } from '../../../../lib/i18n';
-import AvatarDaConversa from '../../../avatar/AvatarDaConversa';
+import AvatarDaConversa, { useReceitaDoDono } from '../../../avatar/AvatarDaConversa';
 import SoletracaoNaConversa, { type AtualDaSoletracao, PalcoNaConversa } from '../../../avatar/SoletracaoNaConversa';
 import { useSoletracaoAtiva } from '../../../avatar/useSoletracaoAtiva';
 import type { AvataresDaConversa } from './ConversaDoPrototipo';
@@ -97,12 +99,15 @@ export function useAvataresDoInterprete({
       );
     });
   }, []);
+  const receitaDoOutro = useReceitaDoDono('outro');
+  const modeloDoOutro =
+    receitaDoOutro?.base.origem === 'colecao' ? (modeloDaColecao(receitaDoOutro.base.id) ?? null) : null;
   const interpreteNaTela = ativo && politica.donos.includes('outro');
   const suporte: SuporteDoInterprete = !medido.webgl2
     ? { estado: 'nao', motivo: 'sem_3d' }
     : !interpreteNaTela
       ? { estado: 'nao', motivo: 'sem_interprete' }
-      : suporteDaSessao;
+      : suporteComModelo(suporteDaSessao, modeloDoOutro);
   const soletrarAtivo = sinaisOk && politica.soletrar && suporte.estado === 'sim';
   const camera: 'corpo' | 'maos' = politica.foco === 'maos' ? 'maos' : 'corpo';
   const alfabeto = alfabetoDaConversa(prefs.alfabeto, idiomaDaOutra);

@@ -109,7 +109,16 @@ export type MotivoDoPainel =
   | 'sem_ossos_reconheciveis'
   | 'sem_modelo'
   | 'sem_3d'
-  | 'sem_interprete';
+  | 'sem_interprete'
+  | 'maos_minusculas';
+
+/**
+ * O modelo do intérprete tem dedos, mas as mãos são pequenas demais para a soletração ser legível (Milk): a opção fica
+ * desabilitada com o motivo, em vez de mostrar mãos que ninguém consegue ler. Só troca o "sim"; os outros estados mandam.
+ */
+export function suporteComModelo(s: SuporteDoInterprete, modelo: { maosMinusculas?: boolean } | null): SuporteDoInterprete {
+  return s.estado === 'sim' && modelo?.maosMinusculas === true ? { estado: 'nao', motivo: 'maos_minusculas' } : s;
+}
 
 export function soletracaoDisponivel(s: SuporteDoInterprete): boolean {
   return s.estado === 'sim';

@@ -186,7 +186,9 @@
 /* OUVINDO: o anel em volta de quem fala. */
 .int-falar[data-ouvindo] {
   background: var(--int-tinta);
-  color: var(--accent);
+  /* O rótulo "Parar" sobre a tinta: o fundo da tela (`--int-escuro`), o oposto da tinta nos dois temas. Antes era o
+     laranja de acento (4,29:1 no claro, 2,4:1 no escuro: reprovado pelo axe, medido em M2.2); o anel segue laranja. */
+  color: var(--int-escuro);
   box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 45%, transparent);
   animation: int-anel 1.6s ease-in-out infinite;
 }
@@ -696,4 +698,140 @@ button.int-voz:focus-visible {
 .int-conversa-topo {
   align-items: center;
   gap: 10px;
+}
+
+/* ---------- os avatares da conversa (atrás da flag `avatar_3d`) ---------- */
+/* O avatar fica na linha do idioma, à direita: pouco espaço do texto, que continua sendo o conteúdo. */
+.int-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.int-avatar {
+  flex: none;
+  line-height: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid var(--int-linha);
+  background: color-mix(in srgb, var(--accent) 12%, var(--int-escuro-2));
+}
+.int-av-painel {
+  max-height: 100%;
+  overflow-y: auto;
+}
+.int-av-titulo {
+  margin: 0;
+  font: 800 17px var(--font-display, inherit);
+}
+.int-av-nota {
+  margin: 0;
+  font: 600 12.5px / 1.4 var(--font-body);
+  color: var(--int-mut);
+}
+.int-av-grupo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.int-av-grupo legend {
+  width: 100%;
+  padding: 0;
+  font: 700 12px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--int-acento);
+}
+.int-av-opcao {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  font: 600 14px var(--font-body);
+  cursor: pointer;
+}
+.int-av-opcao[data-desabilitado] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.int-av-opcao input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+.int-av-opcao input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.int-av-linha {
+  display: flex;
+}
+
+/* ---------- a soletração do avatar-intérprete (flag avatar_sinais) ---------- */
+.int-av-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  width: 100%;
+}
+.int-soletra {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.int-soletra-atual {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 0;
+  min-height: 28px;
+  font: 600 14px var(--font-body);
+}
+.int-soletra-atual strong {
+  min-width: 1ch;
+  font: 800 24px / 1 var(--font-display, inherit);
+}
+.int-soletra-palavra {
+  padding: 1px 8px;
+  border-radius: 6px;
+  border: 2px solid currentColor;
+  background: #6fd3a8;
+  color: #101010;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.int-soletra-atual small {
+  font: 600 12px var(--font-body);
+  color: var(--int-mut);
+}
+
+/* Com os avisos da soletração na metade, o respiro encolhe: o texto da conversa precisa do espaço (celular). */
+.int-metade:has(.int-soletra) {
+  padding-block: 10px;
+  gap: 4px;
+}
+.int-soletra-mini {
+  position: absolute;
+  inset: auto 8px 17px 8px;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 3px;
+  margin: 0;
+  padding: 1px 3px;
+  border-radius: 4px;
+  background: #6fd3a8;
+  color: #101010;
+  font: 800 10px / 1.3 var(--font-body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

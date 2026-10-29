@@ -32,6 +32,12 @@ export interface SpeakOptions {
   onStart?: () => void;
   onEnd?: () => void;
   onError?: () => void;
+  /**
+   * Marco de palavra da voz do aparelho (`boundary`), com o índice UTF-16 do caractere no texto falado. OPCIONAL
+   * e só informativo (o avatar usa para amarrar a boca): vozes de rede do Chrome não o disparam, e pode chegar
+   * fora de ordem. Quem não o usa não percebe nada.
+   */
+  onBoundary?: (charIndex: number) => void;
 }
 
 export interface TtsEngine {
@@ -393,6 +399,14 @@ class NativeTts implements TtsEngine {
       markTtsEnd();
       opts.onError?.();
     };
+    if (opts.onBoundary) {
+      const aoMarcar = opts.onBoundary;
+      u.onboundary = (e) => {
+        // Só palavras: `sentence` repete índices e não ajuda a boca.
+        if (e.name && e.name !== 'word') return;
+        if (typeof e.charIndex === 'number') aoMarcar(e.charIndex);
+      };
+    }
     synth.speak(u);
   }
   cancel(): void {

@@ -588,6 +588,8 @@ jobs:
         timeout-minutes: 10
       - name: Orçamento do bundle (slo.json → frontend)
         run: node scripts/perf/orcamento-bundle.mjs
+      - name: Avatar 3D fora do arranque (three não entra no JS inicial do dist)
+        run: AVATAR_BUNDLE_EXIGIR=1 npx vitest run tests/avatar-bundle.test.ts
       - name: Carga leve (autocannon; p95 e rotas do slo.json, zero erro)
         run: node scripts/perf/ci-carga.mjs
         timeout-minutes: 5

@@ -1,9 +1,12 @@
 import '../../styles/questConta.css';
 
-import { ShieldCheck, TrendingUp, User } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { ShieldCheck, Smile, TrendingUp, User } from 'lucide-react';
+import { Suspense, useRef, useState } from 'react';
 
+import { FLAG_AVATAR_3D } from '../../core/planos';
+import { useFlag } from '../../lib/flags';
 import { t } from '../../lib/i18n';
+import { lazyComRecarga } from '../../lib/lazyComRecarga';
 import { useAbasAVista } from '../../lib/polimento/ajustes';
 import type { AgeProfileType } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
@@ -13,6 +16,9 @@ import AbasDoQuest from './ajustes/quest/AbasDoQuest';
 import AbaDados from './perfil/AbaDados';
 import AbaProgresso from './perfil/AbaProgresso';
 import AbaVoce from './perfil/AbaVoce';
+
+/* O avatar (flag `avatar_3d`) mora num chunk próprio: nem a tela, nem o motor 3D entram no arranque. */
+const AbaAvatar = lazyComRecarga(() => import('../avatar/meuAvatar/AbaAvatar'));
 
 /**
  * PERFIL — quem você é e onde você está.
@@ -34,6 +40,7 @@ interface PerfilProps {
 
 export default function Perfil({ progress, ageProfile }: PerfilProps) {
   const [aba, setAba] = useState('voce');
+  const avatarLigado = useFlag(FLAG_AVATAR_3D);
   /* O Perfil não existe no protótipo: recebe a camada comum, como os Ajustes (a aba escolhida à vista). */
   const palco = useRef<HTMLDivElement>(null);
   useAbasAVista(palco, aba);
@@ -49,7 +56,9 @@ export default function Perfil({ progress, ageProfile }: PerfilProps) {
           <p className="qc-sub">
             {aba === 'voce'
               ? t('Como o app te chama, o que você quer alcançar e onde está em cada idioma.')
-              : t('Os seus dados, o que você já conquistou e onde você está no idioma.')}
+              : aba === 'avatar'
+                ? t('Escolha, personalize e guarde o avatar que te representa. É opcional.')
+                : t('Os seus dados, o que você já conquistou e onde você está no idioma.')}
           </p>
         </div>
         <MolduraETitulo nivel={progress.available ? progress.level : 1} tamanho={56} />
@@ -63,6 +72,7 @@ export default function Perfil({ progress, ageProfile }: PerfilProps) {
           { id: 'voce', rotulo: t('Você'), icone: <User aria-hidden /> },
           { id: 'progresso', rotulo: t('Progresso'), icone: <TrendingUp aria-hidden /> },
           { id: 'dados', rotulo: t('Seus dados'), icone: <ShieldCheck aria-hidden /> },
+          ...(avatarLigado ? [{ id: 'avatar', rotulo: t('Avatar'), icone: <Smile aria-hidden /> }] : []),
         ]}
       />
 
@@ -75,6 +85,16 @@ export default function Perfil({ progress, ageProfile }: PerfilProps) {
       <PainelDeAba id="dados" ativo={aba} className="qc-painel">
         <AbaDados />
       </PainelDeAba>
+      {avatarLigado && (
+        <PainelDeAba id="avatar" ativo={aba} className="qc-painel">
+          <Suspense fallback={<div role="status">{t('Carregando…')}</div>}>
+            <AbaAvatar
+              nivel={progress.available ? progress.level : 1}
+              saldoSeeds={progress.available ? progress.seeds : 0}
+            />
+          </Suspense>
+        </PainelDeAba>
+      )}
     </div>
   );
 }

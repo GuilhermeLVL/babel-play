@@ -1,0 +1,1368 @@
+{
+  "esquema": "frasy-alfabeto-mao/2",
+  "aviso": "Poses de DEMONSTRAÇÃO autoradas por IA a partir de imagens de referência livres. NÃO revisadas por pessoas surdas. Soletração do alfabeto manual, não tradução.",
+  "lingua": "libras",
+  "mao_dominante_padrao": "direita",
+  "letras": {
+    "A": {
+      "fidelidade": "media",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Punho com o polegar ao lado, como na referência. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 10,
+          "cmc_abd": 0,
+          "mcp": 0,
+          "ip": 0,
+          "oposicao": 0
+        },
+        "indicador": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [0, 1, 0],
+        "palma": [0, 0, 1]
+      },
+      "posicao": [-0.05, 0.07, 0.3],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "B": {
+      "fidelidade": "media",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "M4b: polegar atravessa a palma (cmc_flex 105, mcp 35, ip 25); a ponta ainda fica mais baixa que na referência, sem colisão com a palma.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 105,
+          "cmc_abd": -3,
+          "mcp": 35,
+          "ip": 25,
+          "oposicao": -15
+        },
+        "indicador": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [0, 1, 0],
+        "palma": [0, 0, 1]
+      },
+      "posicao": [-0.05, 0.07, 0.3],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "C": {
+      "fidelidade": "media",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Curva de C reconhecível; o polegar some atrás dos dedos na vista frontal e o vão é menor que na referência. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": -8,
+          "cmc_abd": 15,
+          "mcp": 25,
+          "ip": 15,
+          "oposicao": 0
+        },
+        "indicador": {
+          "mcp": 32,
+          "pip": 38,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 34,
+          "pip": 40,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 36,
+          "pip": 40,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 38,
+          "pip": 40,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [0.1, 0.95, 0.3],
+        "palma": [-1, 0, 0.15]
+      },
+      "posicao": [-0.05, 0, 0.3],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "D": {
+      "fidelidade": "media",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Indicador para cima e círculo com polegar e médio; anelar e mindinho não tocam o polegar. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 33,
+          "cmc_abd": 23,
+          "mcp": 20,
+          "ip": 10,
+          "oposicao": 25
+        },
+        "indicador": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 52,
+          "pip": 58,
+          "dip": 30,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 54,
+          "pip": 60,
+          "dip": 32,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 56,
+          "pip": 60,
+          "dip": 32,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [0, 1, 0],
+        "palma": [-1, 0, 0.2]
+      },
+      "posicao": [-0.05, 0.07, 0.3],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "E": {
+      "fidelidade": "baixa",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "M4b: dedos em garra (mcp 62, pip 98) sobre o polegar cruzado por baixo; ainda difícil de distinguir de A e S de frente, as pontas não encostam no polegar (sem colisão).",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 82,
+          "cmc_abd": 2,
+          "mcp": 38,
+          "ip": 30,
+          "oposicao": 10
+        },
+        "indicador": {
+          "mcp": 62,
+          "pip": 98,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 62,
+          "pip": 98,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 62,
+          "pip": 98,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 62,
+          "pip": 98,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [0, 1, 0],
+        "palma": [0, 0, 1]
+      },
+      "posicao": [-0.05, 0.07, 0.3],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "F": {
+      "fidelidade": "media",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Círculo indicador-polegar e três dedos para cima; o círculo é pequeno. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 21,
+          "cmc_abd": 26,
+          "mcp": 19,
+          "ip": 10,
+          "oposicao": 25
+        },
+        "indicador": {
+          "mcp": 48,
+          "pip": 62,
+          "dip": 30,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 2
+        },
+        "anelar": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 8
+        },
+        "minimo": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 14
+        }
+      },
+      "orientacao": {
+        "dedos": [0, 1, 0],
+        "palma": [0, 0, 1]
+      },
+      "posicao": [-0.05, 0.07, 0.3],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "G": {
+      "fidelidade": "baixa",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Indicador e polegar paralelos apontando para o lado; a orientação da palma vem só de uma foto e o punho serrilha com essa torção. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 10,
+          "cmc_abd": 0,
+          "mcp": 0,
+          "ip": 0,
+          "oposicao": 0
+        },
+        "indicador": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [1, 0.05, 0.25],
+        "palma": [0, 0, -1]
+      },
+      "posicao": [-0.06, 0.03, 0.32],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "H": {
+      "fidelidade": "baixa",
+      "movimento": true,
+      "movimento_descricao": "Pequeno balanço lateral da mão (informado por quem encomendou; a forma exata do percurso é desconhecida) [?].",
+      "obs": "Indicador e médio juntos apontando para o lado. Em Libras a letra tem movimento; o percurso aqui é um palpite. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 58,
+          "cmc_abd": -7,
+          "mcp": 20,
+          "ip": 27,
+          "oposicao": 10
+        },
+        "indicador": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [1, 0.05, 0.25],
+        "palma": [0, 0, -1]
+      },
+      "posicao": [-0.06, 0.03, 0.32],
+      "cotovelo": {
+        "giro": 0
+      },
+      "caminho": [
+        {
+          "t": 0.5,
+          "dpos": [0.04, 0, 0]
+        },
+        {
+          "t": 1,
+          "dpos": [0, 0, 0]
+        }
+      ]
+    },
+    "I": {
+      "fidelidade": "media",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Mindinho para cima e polegar cruzando os dedos fechados, como na referência. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 58,
+          "cmc_abd": -7,
+          "mcp": 20,
+          "ip": 27,
+          "oposicao": 10
+        },
+        "indicador": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [0, 1, 0],
+        "palma": [0, 0, 1]
+      },
+      "posicao": [-0.05, 0.07, 0.3],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "J": {
+      "fidelidade": "baixa",
+      "movimento": true,
+      "movimento_descricao": "A mão desce e faz o gancho do J para o lado esquerdo de quem vê.",
+      "obs": "Postura do I correta; o percurso do J é aproximado. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 58,
+          "cmc_abd": -7,
+          "mcp": 20,
+          "ip": 27,
+          "oposicao": 10
+        },
+        "indicador": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [0, 1, 0],
+        "palma": [0, 0, 1]
+      },
+      "posicao": [0, 0.1, 0.3],
+      "cotovelo": {
+        "giro": 0
+      },
+      "caminho": [
+        {
+          "t": 0.45,
+          "dpos": [0, -0.05, 0]
+        },
+        {
+          "t": 0.8,
+          "dpos": [0.02, -0.07, 0],
+          "rot": [0, 0, 25]
+        },
+        {
+          "t": 1,
+          "dpos": [0.035, -0.06, 0],
+          "rot": [0, 0, 45]
+        }
+      ]
+    },
+    "K": {
+      "fidelidade": "media",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "V com o polegar tocando a base do médio; o médio deveria ficar mais inclinado para a frente. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 25,
+          "cmc_abd": -2,
+          "mcp": 10,
+          "ip": 10,
+          "oposicao": 10
+        },
+        "indicador": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 10
+        },
+        "medio": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": -12
+        },
+        "anelar": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [0, 1, 0],
+        "palma": [0, 0, 1]
+      },
+      "posicao": [-0.05, 0.07, 0.3],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "L": {
+      "fidelidade": "media",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Indicador para cima e polegar aberto em ângulo reto, como na referência. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": -50,
+          "cmc_abd": 0,
+          "mcp": 0,
+          "ip": 0,
+          "oposicao": 0
+        },
+        "indicador": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [0, 1, 0],
+        "palma": [0, 0, 1]
+      },
+      "posicao": [-0.05, 0.07, 0.3],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "M": {
+      "fidelidade": "baixa",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Três dedos (indicador, médio e anelar) estendidos para baixo sobre o polegar [?: pelo gráfico histórico de 1875 e memória].",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 85,
+          "cmc_abd": -10,
+          "mcp": 12,
+          "ip": 12,
+          "oposicao": 20
+        },
+        "indicador": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [0.1, -1, 0.15],
+        "palma": [0, 0, 1]
+      },
+      "posicao": [-0.05, 0.07, 0.3],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "N": {
+      "fidelidade": "baixa",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Dois dedos (indicador e médio) estendidos para baixo sobre o polegar [?: pelo gráfico histórico de 1875 e memória].",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 85,
+          "cmc_abd": -10,
+          "mcp": 12,
+          "ip": 12,
+          "oposicao": 20
+        },
+        "indicador": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [0.1, -1, 0.15],
+        "palma": [0, 0, 1]
+      },
+      "posicao": [-0.05, 0.07, 0.3],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "O": {
+      "fidelidade": "media",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Círculo de todos os dedos com o polegar; o círculo não fecha por completo. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 34,
+          "cmc_abd": 23,
+          "mcp": 14,
+          "ip": 10,
+          "oposicao": 25
+        },
+        "indicador": {
+          "mcp": 46,
+          "pip": 58,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 50,
+          "pip": 58,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 54,
+          "pip": 58,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 58,
+          "pip": 56,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [0.1, 1, 0],
+        "palma": [-1, 0, 0.2]
+      },
+      "posicao": [-0.05, 0.07, 0.3],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "P": {
+      "fidelidade": "baixa",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "A referência tem o indicador na horizontal e o médio para baixo; aqui os dois dedos apontam para baixo. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 25,
+          "cmc_abd": -2,
+          "mcp": 10,
+          "ip": 10,
+          "oposicao": 10
+        },
+        "indicador": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 70,
+          "pip": 10,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [-0.4, -0.15, 0.9],
+        "palma": [0, -1, -0.15]
+      },
+      "posicao": [-0.05, 0.05, 0.3],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "Q": {
+      "fidelidade": "baixa",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Indicador para baixo e polegar paralelo; o polegar quase não aparece. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": -15,
+          "cmc_abd": 25,
+          "mcp": 8,
+          "ip": 8,
+          "oposicao": 0
+        },
+        "indicador": {
+          "mcp": 25,
+          "pip": 15,
+          "dip": 0,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [0.15, -0.9, 0.4],
+        "palma": [-1, -0.1, 0]
+      },
+      "posicao": [-0.05, 0.03, 0.3],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "R": {
+      "fidelidade": "baixa",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Cruzamento aproximado: os dedos se sobrepõem, não se enroscam. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 58,
+          "cmc_abd": -7,
+          "mcp": 20,
+          "ip": 27,
+          "oposicao": 10
+        },
+        "indicador": {
+          "mcp": 6,
+          "pip": 0,
+          "dip": null,
+          "abd": -14
+        },
+        "medio": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 14
+        },
+        "anelar": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [0, 1, 0],
+        "palma": [0, 0, 1]
+      },
+      "posicao": [-0.05, 0.07, 0.3],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "S": {
+      "fidelidade": "media",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Punho com o polegar na frente dos dedos; o polegar fica um pouco baixo. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 58,
+          "cmc_abd": -7,
+          "mcp": 20,
+          "ip": 27,
+          "oposicao": 10
+        },
+        "indicador": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [0, 1, 0],
+        "palma": [0, 0, 1]
+      },
+      "posicao": [-0.05, 0.07, 0.3],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "T": {
+      "fidelidade": "baixa",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "M4b: polegar erguido entre indicador e médio (cmc_abd 14); a abertura entre os dedos é pequena e o polegar atravessa a malha dos dedos (sem colisão).",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 42,
+          "cmc_abd": 14,
+          "mcp": 8,
+          "ip": 0,
+          "oposicao": 0
+        },
+        "indicador": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 4
+        },
+        "medio": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": -3
+        },
+        "anelar": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [0, 1, 0],
+        "palma": [0, 0, 1]
+      },
+      "posicao": [-0.05, 0.07, 0.3],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "U": {
+      "fidelidade": "media",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Indicador e médio juntos para cima, como na referência. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 58,
+          "cmc_abd": -7,
+          "mcp": 20,
+          "ip": 27,
+          "oposicao": 10
+        },
+        "indicador": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [0, 1, 0],
+        "palma": [0, 0, 1]
+      },
+      "posicao": [-0.05, 0.07, 0.3],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "V": {
+      "fidelidade": "media",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "V aberto, como na referência. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 58,
+          "cmc_abd": -7,
+          "mcp": 20,
+          "ip": 27,
+          "oposicao": 10
+        },
+        "indicador": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 14
+        },
+        "medio": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": -14
+        },
+        "anelar": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [0, 1, 0],
+        "palma": [0, 0, 1]
+      },
+      "posicao": [-0.05, 0.07, 0.3],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "W": {
+      "fidelidade": "media",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Três dedos abertos, polegar sobre o mindinho, como na referência. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 58,
+          "cmc_abd": -7,
+          "mcp": 20,
+          "ip": 27,
+          "oposicao": 10
+        },
+        "indicador": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 14
+        },
+        "medio": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 12
+        },
+        "minimo": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [0, 1, 0],
+        "palma": [0, 0, 1]
+      },
+      "posicao": [-0.05, 0.07, 0.3],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "X": {
+      "fidelidade": "media",
+      "movimento": true,
+      "movimento_descricao": "O dedo em gancho flexiona e estende levemente [?].",
+      "obs": "Indicador em gancho; o gancho é mais aberto que na referência. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 58,
+          "cmc_abd": -7,
+          "mcp": 20,
+          "ip": 27,
+          "oposicao": 10
+        },
+        "indicador": {
+          "mcp": 20,
+          "pip": 100,
+          "dip": 30,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [0, 1, 0],
+        "palma": [0, 0, 1]
+      },
+      "posicao": [-0.05, 0.07, 0.3],
+      "cotovelo": {
+        "giro": 0
+      },
+      "caminho": [
+        {
+          "t": 0.5,
+          "dflex": {
+            "indicador": [0, -35, 0, 0]
+          }
+        },
+        {
+          "t": 1,
+          "dflex": {
+            "indicador": [0, 0, 0, 0]
+          }
+        }
+      ]
+    },
+    "Y": {
+      "fidelidade": "media",
+      "movimento": false,
+      "movimento_descricao": null,
+      "obs": "Polegar e mindinho abertos, como na referência. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": -50,
+          "cmc_abd": 0,
+          "mcp": 0,
+          "ip": 0,
+          "oposicao": 0
+        },
+        "indicador": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 10
+        }
+      },
+      "orientacao": {
+        "dedos": [0, 1, 0],
+        "palma": [0, 0, 1]
+      },
+      "posicao": [-0.05, 0.07, 0.3],
+      "cotovelo": {
+        "giro": 0
+      }
+    },
+    "Z": {
+      "fidelidade": "baixa",
+      "movimento": true,
+      "movimento_descricao": "O indicador desenha um Z, da esquerda para a direita de quem vê.",
+      "obs": "Indicador apontando para a frente; o percurso do Z é aproximado e a mão sai do enquadramento no começo. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": 58,
+          "cmc_abd": -7,
+          "mcp": 20,
+          "ip": 27,
+          "oposicao": 10
+        },
+        "indicador": {
+          "mcp": 0,
+          "pip": 0,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 88,
+          "pip": 100,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [-0.1, 0.55, 0.83],
+        "palma": [0, -0.83, 0.55]
+      },
+      "posicao": [0.04, 0.05, 0.32],
+      "cotovelo": {
+        "giro": 0
+      },
+      "caminho": [
+        {
+          "t": 0.3,
+          "dpos": [-0.08, 0, 0]
+        },
+        {
+          "t": 0.65,
+          "dpos": [0, -0.07, 0]
+        },
+        {
+          "t": 1,
+          "dpos": [-0.08, -0.07, 0]
+        }
+      ]
+    },
+    "Ç": {
+      "fidelidade": "baixa",
+      "movimento": true,
+      "movimento_descricao": "A mão em C faz um pequeno movimento para baixo e volta [?].",
+      "obs": "C com um pequeno movimento descendente, que marca a cedilha [?].",
+      "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
+      "mao": {
+        "polegar": {
+          "cmc_flex": -8,
+          "cmc_abd": 15,
+          "mcp": 25,
+          "ip": 15,
+          "oposicao": 0
+        },
+        "indicador": {
+          "mcp": 32,
+          "pip": 38,
+          "dip": null,
+          "abd": 0
+        },
+        "medio": {
+          "mcp": 34,
+          "pip": 40,
+          "dip": null,
+          "abd": 0
+        },
+        "anelar": {
+          "mcp": 36,
+          "pip": 40,
+          "dip": null,
+          "abd": 0
+        },
+        "minimo": {
+          "mcp": 38,
+          "pip": 40,
+          "dip": null,
+          "abd": 0
+        }
+      },
+      "orientacao": {
+        "dedos": [0.1, 0.95, 0.3],
+        "palma": [-1, 0, 0.15]
+      },
+      "posicao": [-0.05, 0.07, 0.3],
+      "cotovelo": {
+        "giro": 0
+      },
+      "caminho": [
+        {
+          "t": 0.5,
+          "dpos": [0, -0.035, 0.015]
+        },
+        {
+          "t": 1,
+          "dpos": [0, 0, 0]
+        }
+      ]
+    }
+  }
+}

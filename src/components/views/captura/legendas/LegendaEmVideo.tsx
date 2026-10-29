@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import type { Formato } from '../../../../core/legendas/janelaFlutuante';
+import { type Formato, ladoDoAvatarNoQuadro } from '../../../../core/legendas/janelaFlutuante';
+import { FLAG_AVATAR_3D } from '../../../../core/planos';
+import { useAvatarDoPip } from '../../../../lib/avatar/avatarDoPip';
 import { avancar, type EstadoDoRitmo, RITMO_VAZIO, saltarParaOFim } from '../../../../lib/captura/ritmoDaLegenda';
+import { useFlag } from '../../../../lib/flags';
 import { t } from '../../../../lib/i18n';
-import type { LegendaEmVideo as Controlador } from '../../../../lib/legendas/legendaEmVideo';
+import { DIMENSOES_DO_QUADRO, type LegendaEmVideo as Controlador } from '../../../../lib/legendas/legendaEmVideo';
+import PonteDoAvatarNoVideo from '../../../avatar/PonteDoAvatarNoVideo';
 import { fundoResolvido, lerAparencia } from './aparenciaDaLegenda';
 import type { LegendaAoVivo } from './LinhaDaLegenda';
 
@@ -95,6 +99,14 @@ export default function LegendaEmVideo({
   const maisNova = desenhadas[desenhadas.length - 1];
   const glosa = formato !== 'faixa' && maisNova ? glosas?.get(maisNova.id) : undefined;
 
+  /* O AVATAR no quadro do vídeo (flag `avatar_3d`, só nos formatos horizontais): a ponte copia o canvas WebGL oculto. */
+  const flagDoAvatar = useFlag(FLAG_AVATAR_3D);
+  const doPip = useAvatarDoPip();
+  const avatarPublicado = doPip.ativo;
+  const soletracaoLigada = !!doPip.soletracao;
+  const comAvatar = flagDoAvatar && avatarPublicado && formato !== 'estudo';
+  const ladoDoAvatar = ladoDoAvatarNoQuadro(formato, DIMENSOES_DO_QUADRO[formato]);
+
   const quadro = {
     falas: desenhadas.map((f) => ({ original: f.original, traducao: f.traducao || undefined, quem: f.quem })),
     formato,
@@ -103,6 +115,8 @@ export default function LegendaEmVideo({
     escala: ap.tam / 100,
     pausado: seloDePausa,
     ...(glosa ? { glosa } : {}),
+    ...(comAvatar && aberta ? { avatar: { lado: ladoDoAvatar } } : {}),
+    ...(comAvatar && aberta && soletracaoLigada ? { avisoDaSoletracao: t('Demonstração · não é tradução') } : {}),
     textos: { vazio: t('Esperando a primeira fala'), pausada: t('Pausada') },
   };
   /* O controlador compara a chave e só pinta o que mudou. */
@@ -110,5 +124,7 @@ export default function LegendaEmVideo({
     if (aberta) controlador?.desenhar(quadro);
   });
 
-  return null;
+  return comAvatar && aberta && controlador ? (
+    <PonteDoAvatarNoVideo controlador={controlador} lado={ladoDoAvatar} />
+  ) : null;
 }

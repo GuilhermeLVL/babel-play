@@ -371,6 +371,13 @@
   object-fit: cover;
   border: 3px solid var(--q-acento);
 }
+/* A miniatura do avatar (rosto, 192 px): no tamanho em que foi gerada, suavizada (nada de pixel esticado). */
+.qc-foto img.qc-foto-avatar {
+  width: 192px;
+  height: 192px;
+  image-rendering: auto;
+  background: var(--q-suave, var(--surface));
+}
 .qc-inicial {
   display: grid;
   place-items: center;
@@ -1154,6 +1161,10 @@ html[data-quest-novo='true'] dialog .dlg-corpo ol {
     width: 96px;
     height: 96px;
     grid-row: span 2;
+  }
+  .qc-foto img.qc-foto-avatar {
+    width: 128px;
+    height: 128px;
   }
   .qc-inicial {
     font-size: 36px;

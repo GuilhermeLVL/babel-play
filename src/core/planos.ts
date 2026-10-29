@@ -294,6 +294,16 @@ export const FRACAO_DA_COTA_DO_ASSISTENTE = 0.25;
 export const FLAG_PARCEIRO_DE_LEITURA = 'parceiro_de_leitura';
 
 /**
+ * OS AVATARES (`docs/specs/2026-10-28-avatar-interprete.md`; migração PG 0015). Três flags que nascem DESLIGADAS:
+ * `avatar_3d` (a base: o avatar da pessoa e o do intérprete, em 3D com fallback 2D), `avatar_sinais` (soletração
+ * rotulada como demonstração, nunca "tradução para Libras") e `avatar_elenco` (narrador e personagens nos livros).
+ * Desligadas, nada muda na tela. Não são permissão nem cota: avatar é recurso livre e a acessibilidade não depende dele.
+ */
+export const FLAG_AVATAR_3D = 'avatar_3d';
+export const FLAG_AVATAR_SINAIS = 'avatar_sinais';
+export const FLAG_AVATAR_ELENCO = 'avatar_elenco';
+
+/**
  * O TETO DO DIA do parceiro nos planos pagos: 40 pedidos por dia local. A conta: um pedido leva até ~8 mil caracteres
  * do capítulo (~2,3 mil tokens), ~600 tokens da ficha e o system, e até 900 de saída — ~4 mil tokens, ≈ US$ 0,0011 no
  * DeepSeek V4.1 Flash (US$ 0,15/0,65 por 1M) e menos no Gemma 4. 40 por dia cobrem uma tarde inteira de leitura com

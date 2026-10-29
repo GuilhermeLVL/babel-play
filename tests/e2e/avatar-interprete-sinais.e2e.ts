@@ -202,15 +202,16 @@ test.describe('Soletração no Intérprete', () => {
     const palco = fase(page).getByTestId('soletracao-palco')
     await expect(palco).toBeVisible({ timeout: 30_000 })
     await expect(palco.locator('[data-sinais-estado="soletrando"]')).toBeVisible({ timeout: 60_000 })
-    // No computador (colunas) a palavra atual fica embaixo do idioma, com a letra e a contagem das não soletradas; no
-    // celular/frente a frente o texto é compacto e a palavra aparece como mini legenda sobre o quadro das mãos.
+    // No computador (colunas) a palavra atual fica embaixo do idioma, com a letra; no celular/frente a frente o texto é
+    // compacto e a palavra aparece como mini legenda sobre o quadro das mãos.
     const emColunas = (await page.locator('[data-layout="computador"]').count()) > 0
     if (emColunas) {
       const atual = fase(page).getByTestId('soletracao-atual')
       await expect(atual.locator('[data-palavra-atual]')).toHaveText('Conceição')
       await expect(atual.locator('[data-sinais-letra-atual]')).toBeAttached()
-      // o resto da fala fica marcado como não soletrado (4 palavras: "[trad]", "fale", "com", "amanhã")
-      await expect(atual.getByTestId('soletracao-nao-soletradas')).toContainText('4')
+      // o nome soletrado NÃO conta como "não soletrado", nem as palavras comuns (a voz e a legenda as levam):
+      // só aparece o aviso quando um NOME não coube no teto de tempo
+      await expect(atual.getByTestId('soletracao-nao-soletradas')).toHaveCount(0)
     } else {
       await expect(fase(page).getByTestId('soletracao-atual-mini').locator('[data-palavra-atual]')).toHaveText(
         'Conceição',

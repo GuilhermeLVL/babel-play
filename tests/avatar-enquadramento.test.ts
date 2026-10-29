@@ -21,6 +21,7 @@ import {
   camerasAutomaticas,
   type CamerasDoModelo,
   enquadrarCaixa,
+  fovDe,
   MARGEM_DO_QUADRO,
   MARGEM_DO_ROSTO,
   type MedidasDoModelo,
@@ -152,8 +153,19 @@ describe('coleção: enquadramento calibrado por modelo', () => {
         expect(m.camera.corpo.distancia).toBeCloseTo(esperada.distancia, 2)
         expect(m.camera.corpo.alvo[1]).toBeCloseTo(esperada.alvo[1], 2)
         const rosto = enquadrarCaixa(m.medidas.caixaDoRosto, { margem: MARGEM_DO_ROSTO })
-        expect(m.camera.rosto.distancia).toBeCloseTo(rosto.distancia, 2)
-        expect(m.camera.rosto.alvo[1]).toBeCloseTo(rosto.alvo[1], 2)
+        if (m.rotuloEmY === undefined) {
+          expect(m.camera.rosto.distancia).toBeCloseTo(rosto.distancia, 2)
+          expect(m.camera.rosto.alvo[1]).toBeCloseTo(rosto.alvo[1], 2)
+        }
+      })
+
+      it('com rótulo no corpo, o quadro do rosto não mostra nem um pedaço dele (defeito 5)', () => {
+        if (m.rotuloEmY === undefined) return
+        const t = Math.tan((fovDe(m.camera.rosto) * Math.PI) / 360)
+        // o rótulo está na frente do corpo: a borda de baixo do quadro é medida na profundidade da frente
+        const profundidade = m.camera.rosto.distancia - (m.medidas.caixaDoRosto.max[2] - m.camera.rosto.alvo[2])
+        const base = m.camera.rosto.alvo[1] - profundidade * t
+        expect(base).toBeGreaterThanOrEqual(m.rotuloEmY)
       })
 
       it('o rosto fica acima do meio do corpo (é o alto do modelo, não os pés)', () => {

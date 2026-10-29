@@ -42,6 +42,13 @@ export interface ModeloDaColecao {
   camera: CamerasDoModelo;
   /** Caixas do corpo e do rosto, lidas do próprio arquivo (escala 1, metros). */
   medidas: MedidasDoModelo;
+  /**
+   * Altura (m, escala 1) do topo de um RÓTULO desenhado no corpo logo abaixo da cabeça (ex.: "MILK" na caixa). A câmera
+   * do `rosto` não mostra o que está abaixo disto, para a moldura (círculo) não cortar as letras no meio.
+   */
+  rotuloEmY?: number;
+  /** As mãos são minúsculas perto do corpo: o modelo NÃO serve para soletrar (a tela avisa e sugere outro). */
+  maosMinusculas?: true;
 }
 
 const REGISTRO = 'https://github.com/ToxSam/open-source-avatars';
@@ -60,7 +67,9 @@ export const COLECAO_CURADA: readonly ModeloDaColecao[] = [
     suporta: { pele: false, cabelo: false, olhos: false },
     triangulos: 9000,
     medidas: { caixa: { min: [-1.064, 0, -0.185], max: [1.064, 1.601, 0.2] }, caixaDoRosto: { min: [-0.184, 1.129, -0.186], max: [0.185, 1.601, 0.199] }, rosto: { cabecaY: 1.188 } },
-    camera: { corpo: { alvo: [0, 0.801, 0.008], distancia: 5.434 }, rosto: { alvo: [0.001, 1.365, 0.007], distancia: 1.588 } },
+    camera: { corpo: { alvo: [0, 0.801, 0.008], distancia: 5.434 }, rosto: { alvo: [0.001, 1.368, 0.007], distancia: 1.509 } },
+    rotuloEmY: 1.075,
+    maosMinusculas: true,
   },
   {
     id: 'bullidan',

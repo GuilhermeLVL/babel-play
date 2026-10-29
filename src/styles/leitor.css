@@ -841,6 +841,51 @@
   opacity: 0.75;
 }
 
+/* O avatar-narrador (M5): um rosto pequeno e a legenda, logo acima da barra do narrador. A legenda é o conteúdo. */
+.leitor-avatar-narrador {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--leitor-borda);
+  background: var(--leitor-sutil);
+}
+.leitor-avatar-narrador-rosto {
+  flex: 0 0 72px;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.leitor-avatar-narrador-legenda {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  min-width: 0;
+  font-size: 14px;
+}
+.leitor-avatar-narrador-legenda span {
+  opacity: 0.8;
+}
+.leitor-elenco-lista {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+.leitor-elenco-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 14px;
+}
+.leitor-elenco-linha select {
+  min-height: 44px;
+  max-width: 55%;
+}
+
 /* A barra do narrador (L3): transporte, onde está, velocidade, ajustes e parar. Fica no pé, acima da virada de
    página, como a barra do trecho. */
 .leitor-narrador {

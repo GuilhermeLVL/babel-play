@@ -5916,5 +5916,19 @@
   "Dinâmico": "Lively",
   "Mais rápida, com pausas curtas.": "Faster, with short pauses.",
   "Lenta, com uma pausa depois de cada frase e cada frase lida duas vezes, para repetir em voz alta.": "Slow, with a pause after each sentence and each sentence read twice, so you can repeat aloud.",
-  "Rápida e quase sem pausas, para passar os olhos e ouvir junto.": "Fast and almost without pauses, to skim along while listening."
+  "Rápida e quase sem pausas, para passar os olhos e ouvir junto.": "Fast and almost without pauses, to skim along while listening.",
+  "Palavras não soletradas: {n}": "Words not spelled: {n}",
+  "Soletrando": "Spelling",
+  "Elenco desligado: uma voz só lê o livro inteiro.": "Cast off: a single voice reads the whole book.",
+  "Este livro não tem personagens listadas: só o narrador lê, com o ritmo seguindo a emoção.": "This book has no listed characters: only the narrator reads, with the pace following the emotion.",
+  "Voz natural em uso: as personagens usam o mesmo timbre, e só o ritmo muda com a emoção.": "Natural voice in use: characters share the same timbre, and only the pace changes with the emotion.",
+  "Não há outras vozes neste aparelho: o narrador lê as falas das personagens.": "There are no other voices on this device: the narrator reads the characters' lines.",
+  "Elenco ligado. Personagens com voz própria: {n}.": "Cast on. Characters with their own voice: {n}.",
+  "Elenco do livro": "Book cast",
+  "Dar uma voz a cada personagem": "Give each character a voice",
+  "Voz de cada personagem": "Voice of each character",
+  "Voz automática": "Automatic voice",
+  "Narrador": "Narrator",
+  "Mostrar o avatar do narrador (precisa dos avatares ligados)": "Show the narrator avatar (needs avatars turned on)",
+  "Faltam vozes para todas: algumas personagens dividem a mesma voz.": "Not enough voices for everyone: some characters share the same voice."
 }

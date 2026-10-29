@@ -35,8 +35,8 @@
 
 ## 5. M5 Livros e personagens (depende do PR de Livros)
 
-- [ ] 5.1 Falante e emoção por frase (JSON estrito, lotes, cache, retenção zero, cota) com fallback heurístico. Aceite: conjunto de ouro pt/en/es acima do limiar do juiz
-- [ ] 5.2 Mapa personagem para voz e painel do elenco. Aceite: `voiceName` chega ao motor
+- [ ] 5.1 Falante e emoção por frase (JSON estrito, lotes, cache, retenção zero, cota) com fallback heurístico. Aceite: conjunto de ouro pt/en/es acima do limiar do juiz. PARCIAL: a heurística está ligada ao Narrador e medida no plano final (`docs/pesquisa/2026-10-29-avatar-m5-elenco-no-narrador.md`); o ponto de extensão para marcação prévia existe (`planejarElenco`, 4º parâmetro). Função `leitura_elenco` NÃO implementada: depende de decisão do dono (ver `docs/specs/2026-10-28-avatar-elenco-ia.md`, seção 10)
+- [x] 5.2 Mapa personagem para voz e painel do elenco, atrás de `avatar_elenco`. Aceite: `voiceName` chega ao motor (testes `leitor-narrador-elenco` e e2e `avatar-elenco`); a nuvem muda só o ritmo; avatar-narrador no leitor com legenda. NÃO provado: voz real do aparelho, Safari, Firefox, celular real; PiP sem fonte natural (fora)
 
 ## 6. M6 Estúdio e loja
 

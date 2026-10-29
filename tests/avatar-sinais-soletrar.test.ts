@@ -222,8 +222,7 @@ describe('soletrar', () => {
   })
 
   it('os dez algarismos têm formas diferentes entre si, e M, N, S, E e T diferem entre si (defeito 4)', () => {
-    const assinatura = (a: Alfabeto, c: string) =>
-      JSON.stringify([a.letras[c].mao, a.letras[c].orientacao])
+    const assinatura = (a: Alfabeto, c: string) => JSON.stringify([a.letras[c].mao, a.letras[c].orientacao])
     for (const a of [libras, asl]) {
       const ds = [...'0123456789'].map((c) => assinatura(a, c))
       expect(new Set(ds).size).toBe(10)

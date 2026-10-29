@@ -120,9 +120,9 @@ describe('política dos avatares', () => {
     expect(politicaDosAvatares({ ...base, prefs: { ...auto, soletrar: true }, sinais: true }).foco).toBe('maos')
     // sem a flag dos sinais ou sem o intérprete na tela, nunca mãos
     expect(politicaDosAvatares({ ...base, prefs: { ...auto, soletrar: true } }).foco).toBe('rosto')
-    expect(
-      politicaDosAvatares({ ...base, prefs: { ...auto, soletrar: true, quem: 'meu' }, sinais: true }).foco,
-    ).toBe('rosto')
+    expect(politicaDosAvatares({ ...base, prefs: { ...auto, soletrar: true, quem: 'meu' }, sinais: true }).foco).toBe(
+      'rosto',
+    )
   })
   it('a preferência explícita vence o automático', () => {
     const soletrando = { ...PREFERENCIAS_PADRAO, soletrar: true }

@@ -3,9 +3,9 @@ import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } fro
 
 import {
   estadoDoLadoNaConversa,
-  type LadoDaConversa,
   LADO_MINIMO_NO_CELULAR,
   ladoComAvisosEmPx,
+  type LadoDaConversa,
   ladoDoAvatarEmPx,
   politicaDosAvatares,
 } from '../../../../core/avatar/interprete';
@@ -14,8 +14,8 @@ import {
   alfabetoDaConversa,
   decidirSoletracao,
   type MotivoDoPainel,
-  type SuporteDoInterprete,
   suporteComModelo,
+  type SuporteDoInterprete,
 } from '../../../../core/avatar/sinais/soletracaoDoInterprete';
 import { FLAG_AVATAR_3D, FLAG_AVATAR_SINAIS } from '../../../../core/planos';
 import { modeloDaColecao } from '../../../../data/avatar/colecao';

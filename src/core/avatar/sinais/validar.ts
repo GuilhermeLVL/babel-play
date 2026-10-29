@@ -84,7 +84,8 @@ export function validarAlfabeto(dados: unknown, lingua: Lingua, lim: Limites): R
   for (const c of LETRAS_EXIGIDAS[lingua]) if (!letras[c]) erro(`${lingua}: letra ${c} ausente`);
   for (const c of Object.keys(letras))
     if (!LETRAS_EXIGIDAS[lingua].includes(c) && !ALGARISMOS.includes(c)) erro(`${lingua}: letra inesperada ${c}`);
-  if (ALGARISMOS.some((c) => letras[c])) for (const c of ALGARISMOS) if (!letras[c]) erro(`${lingua}: algarismo ${c} ausente`);
+  if (ALGARISMOS.some((c) => letras[c]))
+    for (const c of ALGARISMOS) if (!letras[c]) erro(`${lingua}: algarismo ${c} ausente`);
 
   for (const [c, bruta] of Object.entries(letras)) {
     const onde = `${lingua}.${c}`;

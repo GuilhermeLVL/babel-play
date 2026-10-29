@@ -710,7 +710,11 @@ button.int-voz:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* Coluna estreita (tablet com o trilho): o círculo desce para a linha de baixo em vez de empurrar a metade. */
+  gap: 12px;
+}
+/* Coluna estreita (tablet com o trilho): o círculo desce para a linha de baixo em vez de empurrar a metade. No celular a
+   linha NÃO quebra (cada pixel de altura conta). */
+.int[data-layout='computador'] .int-topo {
   flex-wrap: wrap;
   gap: 8px 12px;
 }

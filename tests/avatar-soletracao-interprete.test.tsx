@@ -223,6 +223,24 @@ describe('o painel: modelo sem dedos esconde/desabilita com o motivo', () => {
     expect(screen.queryByText(AVISO_1)).toBeNull()
     expect(screen.queryByTestId('avatar-alfabeto-auto')).toBeNull()
   })
+  it('"O que mostrar": o automático é o padrão e está marcado; a escolha explícita é respeitada (defeito 3)', () => {
+    const { unmount } = ligar({ estado: 'sim' })
+    expect((screen.getByTestId('avatar-foco-auto') as HTMLInputElement).checked).toBe(true)
+    expect(screen.getByTestId('avatar-foco-auto').closest('label')?.textContent).toBe('Automático (mãos ao soletrar)')
+    unmount()
+    render(
+      <PainelDosAvatares
+        prefs={{ ...PREFERENCIAS_PADRAO, foco: 'rosto' }}
+        aoMudar={() => undefined}
+        aoFechar={() => undefined}
+        sinaisLigada
+        suporte={{ estado: 'sim' }}
+        sem3d={false}
+      />,
+    )
+    expect((screen.getByTestId('avatar-foco-rosto') as HTMLInputElement).checked).toBe(true)
+    expect((screen.getByTestId('avatar-foco-auto') as HTMLInputElement).checked).toBe(false)
+  })
   it('cada motivo tem o seu texto', () => {
     const textos = {
       sem_braco: 'Este avatar não tem braços articulados.',

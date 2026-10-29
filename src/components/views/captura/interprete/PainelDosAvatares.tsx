@@ -184,19 +184,19 @@ export default function PainelDosAvatares({
 
         <fieldset className="int-av-grupo">
           <legend>{t('O que mostrar')}</legend>
-          {(['rosto', 'maos'] as const satisfies readonly FocoDoAvatar[]).map((f) => {
+          {(['auto', 'rosto', 'maos'] as const satisfies readonly FocoDoAvatar[]).map((f) => {
             const desabilitado = f === 'maos' && !disponivel;
             return (
               <label key={f} className="int-av-opcao" data-desabilitado={desabilitado ? '' : undefined}>
                 <input
                   type="radio"
                   name="avatar-foco"
-                  checked={(desabilitado ? 'rosto' : prefs.foco) === f}
+                  checked={(prefs.foco === 'maos' && !disponivel ? 'auto' : prefs.foco) === f}
                   disabled={desabilitado}
                   onChange={() => aoMudar({ foco: f })}
                   data-testid={`avatar-foco-${f}`}
                 />
-                <span>{f === 'rosto' ? t('Só rosto') : t('Só mãos')}</span>
+                <span>{f === 'auto' ? t('Automático (mãos ao soletrar)') : f === 'rosto' ? t('Só rosto') : t('Só mãos')}</span>
               </label>
             );
           })}

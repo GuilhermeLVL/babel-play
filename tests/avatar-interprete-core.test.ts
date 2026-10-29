@@ -48,12 +48,12 @@ describe('estado do avatar por lado na conversa', () => {
 })
 
 describe('preferências', () => {
-  it('padrão: os dois, médio, rosto, sem economia, sem anúncio por voz', () => {
+  it('padrão: os dois, médio, enquadramento automático, sem economia, sem anúncio por voz', () => {
     expect(validarPreferencias(undefined)).toEqual(PREFERENCIAS_PADRAO)
     expect(PREFERENCIAS_PADRAO).toMatchObject({
       quem: 'ambos',
       tamanho: 'm',
-      foco: 'rosto',
+      foco: 'auto',
       economia: false,
       anunciar: false,
     })
@@ -111,6 +111,26 @@ describe('política dos avatares', () => {
     const prefs = { ...PREFERENCIAS_PADRAO, foco: 'maos' as const }
     expect(politicaDosAvatares({ ...base, prefs }).foco).toBe('rosto')
     expect(politicaDosAvatares({ ...base, prefs, sinais: true }).foco).toBe('maos')
+  })
+  it('automático (padrão): "só mãos" quando a soletração está ativa; sem soletrar, rosto (defeito 3)', () => {
+    const auto = { ...PREFERENCIAS_PADRAO, foco: 'auto' as const }
+    expect(politicaDosAvatares({ ...base, prefs: auto, sinais: true }).foco).toBe('rosto')
+    expect(politicaDosAvatares({ ...base, prefs: { ...auto, soletrar: true }, sinais: true }).foco).toBe('maos')
+    // sem a flag dos sinais ou sem o intérprete na tela, nunca mãos
+    expect(politicaDosAvatares({ ...base, prefs: { ...auto, soletrar: true } }).foco).toBe('rosto')
+    expect(
+      politicaDosAvatares({ ...base, prefs: { ...auto, soletrar: true, quem: 'meu' }, sinais: true }).foco,
+    ).toBe('rosto')
+  })
+  it('a preferência explícita vence o automático', () => {
+    const soletrando = { ...PREFERENCIAS_PADRAO, soletrar: true }
+    expect(politicaDosAvatares({ ...base, prefs: { ...soletrando, foco: 'rosto' }, sinais: true }).foco).toBe('rosto')
+    expect(politicaDosAvatares({ ...base, prefs: { ...soletrando, foco: 'maos' }, sinais: true }).foco).toBe('maos')
+  })
+  it('valor guardado antigo ("rosto"/"maos") continua valendo; lixo vira automático', () => {
+    expect(validarPreferencias({ foco: 'rosto' }).foco).toBe('rosto')
+    expect(validarPreferencias({ foco: 'maos' }).foco).toBe('maos')
+    expect(validarPreferencias({ foco: 'x' }).foco).toBe('auto')
   })
 })
 

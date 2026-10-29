@@ -67,8 +67,11 @@ export const OPCOES_DE_QUEM: readonly QuemAparece[] = ['ambos', 'meu', 'interpre
 export type TamanhoDoAvatar = 'p' | 'm' | 'g';
 export const TAMANHOS_DO_AVATAR: readonly TamanhoDoAvatar[] = ['p', 'm', 'g'];
 
-/** "Só rosto" ou "só mãos". Só mãos exige a flag `avatar_sinais` (e continua rotulado como demonstração). */
-export type FocoDoAvatar = 'rosto' | 'maos';
+/**
+ * O que mostrar: "só rosto", "só mãos" ou AUTOMÁTICO (o padrão: mãos enquanto a soletração está ativa, rosto no resto).
+ * Só mãos exige a flag `avatar_sinais` (e continua rotulado como demonstração). Escolha explícita vence o automático.
+ */
+export type FocoDoAvatar = 'auto' | 'rosto' | 'maos';
 
 export interface PreferenciasDosAvatares {
   quem: QuemAparece;
@@ -90,7 +93,7 @@ export interface PreferenciasDosAvatares {
 export const PREFERENCIAS_PADRAO: Readonly<PreferenciasDosAvatares> = Object.freeze({
   quem: 'ambos',
   tamanho: 'm',
-  foco: 'rosto',
+  foco: 'auto',
   economia: false,
   anunciar: false,
   soletrar: false,
@@ -108,7 +111,7 @@ export function validarPreferencias(bruto: unknown): PreferenciasDosAvatares {
   return {
     quem: um(OPCOES_DE_QUEM, o.quem, PREFERENCIAS_PADRAO.quem),
     tamanho: um(TAMANHOS_DO_AVATAR, o.tamanho, PREFERENCIAS_PADRAO.tamanho),
-    foco: um<FocoDoAvatar>(['rosto', 'maos'], o.foco, PREFERENCIAS_PADRAO.foco),
+    foco: um<FocoDoAvatar>(['auto', 'rosto', 'maos'], o.foco, PREFERENCIAS_PADRAO.foco),
     economia: o.economia === true,
     anunciar: o.anunciar === true,
     soletrar: o.soletrar === true,
@@ -148,7 +151,8 @@ export interface PoliticaDosAvatares {
   tier: TierDoAvatar;
   /** Sem WebGL2: foto ou iniciais em vez do 3D (o avatar continua à vista, só não é 3D). */
   fallback2d: boolean;
-  foco: FocoDoAvatar;
+  /** O enquadramento EFETIVO (o `auto` já foi resolvido). */
+  foco: Exclude<FocoDoAvatar, 'auto'>;
   /**
    * A soletração pode acontecer: as duas flags, a opção ligada e o avatar-intérprete na tela. (Falta ainda o modelo
    * suportar: isso só se sabe com o modelo carregado.)
@@ -157,7 +161,7 @@ export interface PoliticaDosAvatares {
   motivo: 'ok' | 'sem_flag' | 'economia' | 'nenhum';
 }
 
-const SEM_AVATAR = (motivo: PoliticaDosAvatares['motivo'], foco: FocoDoAvatar): PoliticaDosAvatares => ({
+const SEM_AVATAR = (motivo: PoliticaDosAvatares['motivo'], foco: PoliticaDosAvatares['foco']): PoliticaDosAvatares => ({
   mostrar: false,
   donos: [],
   tier: 'fraco',
@@ -170,7 +174,12 @@ const SEM_AVATAR = (motivo: PoliticaDosAvatares['motivo'], foco: FocoDoAvatar): 
 /** Quando e como os avatares aparecem. Sem a flag, no modo economia ou em "nenhum", nada muda na tela. */
 export function politicaDosAvatares(e: EntradaDaPolitica): PoliticaDosAvatares {
   // "Só mãos" só vale com a flag dos sinais; sem ela, volta ao rosto (e o painel mostra a opção desabilitada).
-  const foco: FocoDoAvatar = e.prefs.foco === 'maos' && e.sinais === true ? 'maos' : 'rosto';
+  // O automático escolhe "só mãos" quando a soletração está ativa (opção ligada e intérprete na tela), pois no
+  // círculo pequeno as mãos ficam minúsculas no enquadramento do corpo. A escolha explícita da pessoa vence.
+  const interpreteNaTela = e.prefs.quem === 'ambos' || e.prefs.quem === 'interprete';
+  const querMaos =
+    e.prefs.foco === 'maos' || (e.prefs.foco === 'auto' && e.prefs.soletrar && interpreteNaTela && !e.prefs.economia);
+  const foco: PoliticaDosAvatares['foco'] = querMaos && e.sinais === true ? 'maos' : 'rosto';
   if (!e.flag) return SEM_AVATAR('sem_flag', foco);
   if (e.prefs.economia) return SEM_AVATAR('economia', foco);
   const donos: readonly LadoDaConversa[] =

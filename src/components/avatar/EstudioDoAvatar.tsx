@@ -54,7 +54,7 @@ export interface EstudioDoAvatarProps {
   /** Recebe a miniatura de 192 px (data URL) quando a pessoa pede; o M2 grava com `salvarMeuAvatar({ miniatura })`. */
   aoMiniatura?: (dataUrl: string) => void;
   /** Entrega a função que captura a miniatura da prévia do Estúdio (quando a prévia da tela está escondida). */
-  aoCapturar?: (capturar: () => string | null) => void;
+  aoCapturar?: (capturar: (() => string | null) | null) => void;
   /** Para teste e diagnóstico: o que foi montado e o que o tier cortou. */
   aoPecas?: (r: RelatorioDePecas) => void;
 }

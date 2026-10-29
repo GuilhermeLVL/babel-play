@@ -5,6 +5,8 @@ import {
   estadoDoLadoNaConversa,
   INTERPRETE_PADRAO,
   INTERPRETE_RESERVA,
+  LADO_MINIMO_NO_CELULAR,
+  ladoComAvisosEmPx,
   ladoDoAvatarEmPx,
   modeloDoInterprete,
   modeloPadraoDaPessoa,
@@ -131,6 +133,15 @@ describe('política dos avatares', () => {
     expect(validarPreferencias({ foco: 'rosto' }).foco).toBe('rosto')
     expect(validarPreferencias({ foco: 'maos' }).foco).toBe('maos')
     expect(validarPreferencias({ foco: 'x' }).foco).toBe('auto')
+  })
+})
+
+describe('círculo com os avisos da soletração no celular (defeito 2)', () => {
+  it('cede espaço ao texto: no máximo 72 px, nunca abaixo de 64 px', () => {
+    expect(ladoComAvisosEmPx(ladoDoAvatarEmPx('g', 'celular'))).toBe(72)
+    expect(ladoComAvisosEmPx(ladoDoAvatarEmPx('m', 'celular'))).toBe(72)
+    expect(ladoComAvisosEmPx(ladoDoAvatarEmPx('p', 'celular'))).toBe(LADO_MINIMO_NO_CELULAR)
+    expect(ladoComAvisosEmPx(10)).toBe(LADO_MINIMO_NO_CELULAR)
   })
 })
 

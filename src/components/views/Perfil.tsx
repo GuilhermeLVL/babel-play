@@ -66,6 +66,7 @@ export default function Perfil({ progress, ageProfile }: PerfilProps) {
 
       <AbasDoQuest
         rotuloDoGrupo={t('Seções do perfil')}
+        grade={avatarLigado}
         ativo={aba}
         aoTrocar={setAba}
         itens={[

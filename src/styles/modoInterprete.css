@@ -818,6 +818,13 @@ button.int-voz:focus-visible {
   padding-block: 10px;
   gap: 4px;
 }
+/* No celular as duas metades dividem a altura: a que leva os dois avisos fixos fica com um pouco mais, e a frase de cada
+   uma não encolhe abaixo de duas linhas de tradução (o aviso não se esconde: é o texto que ganha o espaço). */
+@media (max-width: 759px) {
+  .int:not([data-layout='computador']) .int-metade:has(.int-soletra) {
+    flex-grow: 1.2;
+  }
+}
 .int-soletra-mini {
   position: absolute;
   inset: auto 8px 17px 8px;

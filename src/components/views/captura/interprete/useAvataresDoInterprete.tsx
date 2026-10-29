@@ -4,6 +4,8 @@ import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } fro
 import {
   estadoDoLadoNaConversa,
   type LadoDaConversa,
+  LADO_MINIMO_NO_CELULAR,
+  ladoComAvisosEmPx,
   ladoDoAvatarEmPx,
   politicaDosAvatares,
 } from '../../../../core/avatar/interprete';
@@ -152,7 +154,10 @@ export function useAvataresDoInterprete({
 
   const tamanhoPref = ladoDoAvatarEmPx(prefs.tamanho, layout);
   /* No celular, com os dois avisos fixos embaixo do idioma, o círculo do intérprete cede espaço ao texto da conversa. */
-  const tamanhoDoInterprete = soletrarAtivo && layout !== 'computador' ? Math.min(tamanhoPref, 80) : tamanhoPref;
+  const apertado = soletrarAtivo && layout !== 'computador';
+  const tamanhoDoInterprete = apertado ? ladoComAvisosEmPx(tamanhoPref) : tamanhoPref;
+  /* O círculo da pessoa também encolhe: as duas metades dividem a altura, e a frase precisa de ao menos 3 linhas. */
+  const tamanhoDaPessoa = apertado ? Math.min(tamanhoPref, LADO_MINIMO_NO_CELULAR) : tamanhoPref;
   const donoDe = (lado: LadoDaConversa): LadoDaConversa =>
     estado.trocados ? (lado === 'meu' ? 'outro' : 'meu') : lado;
   /* O PiP lê o estado por DONO (a pessoa, o intérprete): é UM avatar só, o de quem tem atividade. */
@@ -183,7 +188,7 @@ export function useAvataresDoInterprete({
         dono={dono}
         estado={meuEstado}
         fonteDaBoca={comABoca ? ponte.pose : null}
-        tamanho={dono === 'outro' ? tamanhoDoInterprete : tamanhoPref}
+        tamanho={dono === 'outro' ? tamanhoDoInterprete : tamanhoDaPessoa}
         tier={politica.tier}
         anunciar={prefs.anunciar}
         {...(dono === 'outro' && sinaisOk ? { aoSessao: aoSessaoDoInterprete } : {})}

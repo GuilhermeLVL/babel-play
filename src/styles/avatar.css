@@ -550,31 +550,6 @@
   margin: 0;
 }
 
-/* CELULAR: as abas internas (Escolher, Personalizar, Estúdio, Traga o seu) ficam TODAS à vista numa grade de 2 colunas,
-   sem rolar de lado e sem rótulo cortado. A faixa de rolagem de `.q-abas` continua valendo no desktop. */
-@media (max-width: 879px) {
-  .q-abas.q-abas-grade {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
-    overflow: visible;
-    align-self: stretch;
-    border-radius: 28px;
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
-  .q-abas.q-abas-grade .q-aba {
-    min-height: 48px;
-    padding: 0 10px;
-    justify-content: center;
-    text-align: center;
-    min-width: 0;
-  }
-  .q-abas.q-abas-grade .q-aba:last-of-type:nth-of-type(odd) {
-    grid-column: 1 / -1;
-  }
-}
-
 /* CONTRASTE MEDIDO (a11y do M2.2, `tests/e2e/avatar-a11y.e2e.ts`). No escuro o botão secundário era fundo e borda quase
    iguais ao cartão (1:1), e o "Salvar" desabilitado ficava a 1,09:1 (texto escuro a 40% de opacidade sobre fundo escuro):
    a única explicação do estado ("Avatar já salvo") não se lia. Agora: contorno de 3:1 ou mais nos secundários, e o

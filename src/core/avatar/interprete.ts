@@ -130,6 +130,16 @@ export function ladoDoAvatarEmPx(tamanho: TamanhoDoAvatar, layout: 'celular' | '
   return tabela[layout === 'computador' ? 'computador' : 'celular'][tamanho];
 }
 
+/** O menor círculo do avatar no celular (o tamanho "p"). */
+export const LADO_MINIMO_NO_CELULAR = 64;
+/**
+ * No celular, com os dois avisos fixos da soletração embaixo do idioma, o círculo do intérprete cede espaço ao texto
+ * da conversa: no máximo 72 px (as mãos continuam legíveis porque o enquadramento automático vira "só mãos").
+ */
+export function ladoComAvisosEmPx(lado: number): number {
+  return Math.max(LADO_MINIMO_NO_CELULAR, Math.min(lado, 72));
+}
+
 export interface EntradaDaPolitica {
   /** A flag `avatar_3d`. */
   flag: boolean;

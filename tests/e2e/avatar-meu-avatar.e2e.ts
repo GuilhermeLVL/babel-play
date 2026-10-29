@@ -468,6 +468,69 @@ test.describe('Meu avatar', () => {
     expect(salvar.x + salvar.width).toBeLessThanOrEqual(cartao.x + cartao.width + 1)
   })
 
+  test('estúdio: UMA prévia viva (um contexto WebGL), com "Salvar" e o crédito à mão; a miniatura salva vem do Estúdio', async ({
+    page,
+  }) => {
+    await abrirAvatar(page)
+    await expect(previaPronta(page).first()).toBeVisible({ timeout: 30_000 })
+    await page.getByTestId('avatar-sortear').click()
+    await expect(page.getByTestId('aba-avatar').locator('canvas')).toHaveCount(1)
+    await foto(page, '16-estudio-antes-escolher')
+    await page.getByRole('tab', { name: 'Estúdio' }).click()
+    await expect(page.getByTestId('estudio-do-avatar')).toBeVisible()
+    await expect(page.getByTestId('avatar-previa')).toHaveAttribute('data-previa-viva', 'false')
+    await expect(previaPronta(page)).toHaveCount(1) // a do Estúdio; a da tela saiu
+    await expect(page.getByTestId('aba-avatar').locator('canvas')).toHaveCount(1)
+    // O principal e o crédito continuam alcançáveis.
+    await expect(page.getByTestId('avatar-salvar')).toBeVisible()
+    await expect(page.getByTestId('avatar-credito')).toBeVisible()
+    await expect(page.getByTestId('avatar-credito-linha')).toBeVisible()
+    await foto(page, '16-estudio-uma-previa')
+    await page.getByTestId('avatar-salvar').click()
+    await expect(page.getByTestId('avatar-status')).toContainText('Avatar salvo')
+    const miniatura = await page.evaluate(() => {
+      const k = Object.keys(localStorage).find((x) => x.startsWith('frasy.avatar.miniatura.'))
+      return k ? localStorage.getItem(k) : null
+    })
+    expect(miniatura).toMatch(/^data:image\/(webp|png);base64,/)
+    // Voltar a Escolher traz a prévia da tela de volta (ainda um canvas só).
+    await page.getByRole('tab', { name: 'Escolher' }).click()
+    await expect(page.getByTestId('avatar-previa')).toHaveAttribute('data-previa-viva', 'true')
+    await expect(page.getByTestId('aba-avatar').locator('canvas')).toHaveCount(1)
+  })
+
+  for (const largura of [390, 375]) {
+    test(`celular ${largura}: as 4 abas internas aparecem TODAS, sem rolar de lado e sem texto cortado`, async ({
+      page,
+    }) => {
+      test.skip((page.viewportSize()?.width ?? 0) >= 880, 'só no celular')
+      await page.setViewportSize({ width: largura, height: 844 })
+      await abrirAvatar(page)
+      const lista = page.getByRole('tablist', { name: 'Seções do avatar' })
+      const medidas = await lista.evaluate((el) => ({ rolagem: el.scrollWidth, visivel: el.clientWidth }))
+      expect(medidas.rolagem, 'a faixa não rola de lado').toBeLessThanOrEqual(medidas.visivel + 1)
+      const caixaLista = (await lista.boundingBox())!
+      for (const nome of ['Escolher', 'Personalizar', 'Estúdio', 'Traga o seu']) {
+        const aba = page.getByRole('tab', { name: nome, exact: true })
+        await expect(aba).toBeVisible()
+        const c = (await aba.boundingBox())!
+        expect(c.x, `${nome} dentro da faixa (esq)`).toBeGreaterThanOrEqual(caixaLista.x - 1)
+        expect(c.x + c.width, `${nome} dentro da faixa (dir)`).toBeLessThanOrEqual(caixaLista.x + caixaLista.width + 1)
+        expect(c.x + c.width, `${nome} dentro da tela`).toBeLessThanOrEqual(largura)
+        expect(c.height, `${nome} é alvo de toque`).toBeGreaterThanOrEqual(44)
+        // O texto cabe no botão (sem reticências nem corte).
+        const corta = await aba.evaluate((el) => el.scrollWidth > el.clientWidth + 1)
+        expect(corta, `${nome} sem texto cortado`).toBe(false)
+      }
+      // Papéis e teclado continuam: setas movem a aba e o foco.
+      await page.getByRole('tab', { name: 'Escolher' }).focus()
+      await page.keyboard.press('ArrowRight')
+      await expect(page.getByRole('tab', { name: 'Personalizar' })).toBeFocused()
+      await expect(page.getByRole('tab', { name: 'Personalizar' })).toHaveAttribute('aria-selected', 'true')
+      await foto(page, `17-celular-${largura}-abas-em-grade`)
+    })
+  }
+
   test('abas internas: a aba escolhida vem inteira para a vista (sem texto cortado)', async ({ page }) => {
     await abrirAvatar(page)
     const dentro = async (lista: string, aba: string) => {

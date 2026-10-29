@@ -17,18 +17,21 @@ export default function AbasDoQuest({
   ativo,
   aoTrocar,
   rotuloDoGrupo,
+  grade = false,
 }: {
   itens: readonly AbaDoQuest[];
   ativo: string;
   aoTrocar: (id: string) => void;
   rotuloDoGrupo: string;
+  /** No celular as abas viram uma grade de 2 colunas (todas à vista, sem rolar de lado); no desktop, a faixa de sempre. */
+  grade?: boolean;
 }) {
   /* A faixa rola de lado no celular: a aba escolhida vem para o meio, nunca meio cortada na borda, e as pontas
      onde ainda há aba escondida esmaecem (`data-rola-esq`/`data-rola-dir`, lidos por `quest.css`). */
   const faixa = useRef<HTMLDivElement>(null);
   const marcarPontas = () => {
     const el = faixa.current;
-    if (!el) return;
+    if (!el || el.classList.contains('q-abas-grade')) return;
     el.dataset.rolaEsq = String(el.scrollLeft > 4);
     el.dataset.rolaDir = String(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
   };
@@ -58,7 +61,13 @@ export default function AbasDoQuest({
   };
 
   return (
-    <div ref={faixa} className="q-abas" role="tablist" aria-label={rotuloDoGrupo} onScroll={marcarPontas}>
+    <div
+      ref={faixa}
+      className={grade ? 'q-abas q-abas-grade' : 'q-abas'}
+      role="tablist"
+      aria-label={rotuloDoGrupo}
+      onScroll={marcarPontas}
+    >
       {itens.map((item, i) => {
         const escolhida = item.id === ativo;
         return (

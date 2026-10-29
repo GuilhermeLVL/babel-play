@@ -35,7 +35,7 @@ import { t } from '../../lib/i18n';
 import { CATALOGO_DA_LOJA, estadoPorAlvo } from '../../lib/loja';
 import AvatarCanvas from './AvatarCanvas';
 import { fraseDaNegativa, frasesDeAviso, frasesDeErroDeImportacao } from './estudio/mensagens';
-import { nomeDaPeca,NOMES_DAS_CATEGORIAS } from './estudio/nomesDasPecas';
+import { nomeDaPeca, NOMES_DAS_CATEGORIAS } from './estudio/nomesDasPecas';
 import { nomeDaCor } from './meuAvatar/nomesDeCor';
 
 export interface EstudioDoAvatarProps {
@@ -53,6 +53,8 @@ export interface EstudioDoAvatarProps {
   saldoSeeds?: number;
   /** Recebe a miniatura de 192 px (data URL) quando a pessoa pede; o M2 grava com `salvarMeuAvatar({ miniatura })`. */
   aoMiniatura?: (dataUrl: string) => void;
+  /** Entrega a função que captura a miniatura da prévia do Estúdio (quando a prévia da tela está escondida). */
+  aoCapturar?: (capturar: () => string | null) => void;
   /** Para teste e diagnóstico: o que foi montado e o que o tier cortou. */
   aoPecas?: (r: RelatorioDePecas) => void;
 }
@@ -80,6 +82,7 @@ export default function EstudioDoAvatar({
   nivel = 1,
   saldoSeeds = 0,
   aoMiniatura,
+  aoCapturar,
   aoPecas,
 }: EstudioDoAvatarProps) {
   const [hist, setHist] = useState<Historico>(() => iniciarHistorico(receita));
@@ -225,6 +228,7 @@ export default function EstudioDoAvatar({
               }}
               aoPronto={(c) => {
                 capturar.current = c;
+                aoCapturar?.(c);
               }}
             />
           </div>
@@ -424,4 +428,3 @@ export default function EstudioDoAvatar({
     </section>
   );
 }
-

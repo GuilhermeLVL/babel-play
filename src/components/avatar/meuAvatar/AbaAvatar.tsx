@@ -122,6 +122,7 @@ export default function AbaAvatar({ nivel = 1, saldoSeeds = 0 }: { nivel?: numbe
   const capturar = useRef<(() => string | null) | null>(null);
   const erroNaBase = useRef(false);
   const miniaturaDoEstudio = useRef<string | null>(null);
+  const capturarDoEstudio = useRef<(() => string | null) | null>(null);
 
   // A sugestão: um modelo da coleção, sorteado uma vez. Só vira avatar se a pessoa aceitar.
   const sugerida = useMemo<ReceitaDeAvatar | null>(() => {
@@ -160,6 +161,13 @@ export default function AbaAvatar({ nivel = 1, saldoSeeds = 0 }: { nivel?: numbe
   const erroDaPrevia = erroDe && erroDe.base === baseId ? erroDe.motivo : null;
   erroNaBase.current = erroDaPrevia !== null;
   const suporteEfetivo = suporte ?? modelo?.suporta ?? SEM_SUPORTE;
+
+  // No Estúdio a única prévia viva é a dele (dois contextos WebGL pesam no celular): a desta tela some e deixa o
+  // texto, o "Salvar" e o crédito. A miniatura salva vem da prévia do Estúdio.
+  const previaViva = visao !== 'estudio';
+  useEffect(() => {
+    if (!previaViva) capturar.current = null;
+  }, [previaViva]);
 
   const editar = useCallback((fn: (r: ReceitaDeAvatar) => ReceitaDeAvatar) => {
     setApagando(false);
@@ -213,10 +221,10 @@ export default function AbaAvatar({ nivel = 1, saldoSeeds = 0 }: { nivel?: numbe
     const arquivo = importado && trazido?.id === r.base.id && !trazido.salvo ? trazido.blob : undefined;
     setSalvando(true);
     // Se a prévia ainda está carregando, espera um pouco para guardar a miniatura junto (sem WebGL, não espera).
-    for (let i = 0; i < 80 && !capturar.current && !erroNaBase.current; i++)
+    for (let i = 0; i < 80 && previaViva && !capturar.current && !erroNaBase.current; i++)
       await new Promise((ok) => setTimeout(ok, 100));
     const ok = await salvarMeuAvatar(usuario, r, {
-      miniatura: capturar.current?.() ?? miniaturaDoEstudio.current,
+      miniatura: capturar.current?.() ?? capturarDoEstudio.current?.() ?? miniaturaDoEstudio.current,
       credito: importado ? (trazido?.credito ?? undefined) : null,
       modelo: arquivo,
     });
@@ -263,13 +271,14 @@ export default function AbaAvatar({ nivel = 1, saldoSeeds = 0 }: { nivel?: numbe
 
       <div className="av-duas">
         <section
-          className="av-previa"
+          className={previaViva ? 'av-previa' : 'av-previa av-previa-sem-canvas'}
+          data-previa-viva={previaViva ? 'true' : 'false'}
           aria-label={t('Prévia do avatar')}
           data-testid="avatar-previa"
           data-importada={previaImportada ? 'true' : undefined}
         >
           <div className="av-previa-moldura">
-            {atual ? (
+            {atual && !previaViva ? null : atual ? (
               <AvatarCanvas
                 receita={atual}
                 estado="parado"
@@ -320,7 +329,7 @@ export default function AbaAvatar({ nivel = 1, saldoSeeds = 0 }: { nivel?: numbe
                 <RotateCcw aria-hidden /> {t('Voltar ao anterior')}
               </button>
             )}
-            {atual && (
+            {atual && previaViva && (
               <div className="av-modo" role="group" aria-label={t('Enquadramento da prévia')}>
                 {(['corpo', 'rosto'] as const).map((m) => (
                   <button
@@ -403,6 +412,7 @@ export default function AbaAvatar({ nivel = 1, saldoSeeds = 0 }: { nivel?: numbe
         <div className="av-tela av-controles">
           <AbasDoQuest
             rotuloDoGrupo={t('Seções do avatar')}
+            grade
             ativo={visao}
             aoTrocar={(v) => setVisao(v as Visao)}
             itens={itens}
@@ -450,6 +460,9 @@ export default function AbaAvatar({ nivel = 1, saldoSeeds = 0 }: { nivel?: numbe
                 tamanho={celular ? TAMANHO_NO_CELULAR : 220}
                 aoMiniatura={(url) => {
                   miniaturaDoEstudio.current = url;
+                }}
+                aoCapturar={(c) => {
+                  capturarDoEstudio.current = c;
                 }}
               />
             ) : (

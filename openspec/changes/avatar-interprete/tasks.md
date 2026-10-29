@@ -29,7 +29,7 @@
 
 - [x] 4.1 Avatar por lado em `ModoInterprete`. Aceite: legenda de texto sempre presente
 - [x] 4.2 PiP (documento, vídeo, painel). Aceite: tier fraco no PiP; checklist do Safari entregue ao dono (spec, seção M4; Safari, Firefox e celular reais NÃO provados)
-- [ ] 4.3 Soletração sob `avatar_sinais`. Aceite: rótulo "demonstração" e aviso visíveis
+- [x] 4.3 Soletração sob `avatar_sinais` ligada ao Intérprete (painel, mãos sobre o círculo do intérprete, PiP de documento e aviso no quadro do PiP de vídeo; só nomes próprios, teto por fala, pulada com a fila atrasada). Aceite: os dois avisos fixos sempre visíveis; `suportaSinais` falso desabilita com o motivo. NÃO provado: PiP real, Safari, celular real, revisão por pessoas surdas
 
 ## 5. M5 Livros e personagens (depende do PR de Livros)
 

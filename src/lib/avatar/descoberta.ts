@@ -6,6 +6,7 @@ import { useCallback, useState } from 'react';
 
 export const DICA_DO_INTERPRETE = 'frasy.avatar.dica.interprete';
 export const CONVITE_DO_PERFIL = 'frasy.avatar.dica.perfil';
+export const ATALHO_DO_INICIO = 'frasy.avatar.dica.inicio';
 
 export function jaViu(chave: string): boolean {
   try {

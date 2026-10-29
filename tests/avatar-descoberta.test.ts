@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { atalhoDeSoletrar, convidarParaCriarAvatar } from '../src/core/avatar/descoberta'
+import { atalhoDeSoletrar, convidarParaCriarAvatar, mostrarAtalhoDoInicio } from '../src/core/avatar/descoberta'
 
 describe('o atalho "Soletrar nomes"', () => {
   it('sem a flag avatar_sinais não existe', () => {
@@ -42,6 +42,14 @@ describe('o atalho "Soletrar nomes"', () => {
     expect(
       atalhoDeSoletrar({ sinaisLigada: true, soletrar: false, suporte: { estado: 'nao', motivo: 'sem_modelo' } }),
     ).toMatchObject({ saida: 'nenhuma' })
+  })
+})
+
+describe('o atalho "Seu avatar" no Início', () => {
+  it('só com a flag e enquanto não foi dispensado', () => {
+    expect(mostrarAtalhoDoInicio({ flag: true, dispensado: false })).toBe(true)
+    expect(mostrarAtalhoDoInicio({ flag: false, dispensado: false })).toBe(false)
+    expect(mostrarAtalhoDoInicio({ flag: true, dispensado: true })).toBe(false)
   })
 })
 

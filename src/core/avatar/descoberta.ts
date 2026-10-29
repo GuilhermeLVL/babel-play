@@ -44,6 +44,11 @@ export function atalhoDeSoletrar({
   return { tipo: 'indisponivel', motivo, saida };
 }
 
+/** O atalho discreto "Seu avatar" no Início: só com a flag `avatar_3d` e enquanto a pessoa não o dispensou. */
+export function mostrarAtalhoDoInicio({ flag, dispensado }: { flag: boolean; dispensado: boolean }): boolean {
+  return flag && !dispensado;
+}
+
 /** O cartão "Crie seu avatar" do Perfil: só sem avatar salvo, sem ter sido dispensado e com a flag `avatar_3d`. */
 export function convidarParaCriarAvatar({
   flag,

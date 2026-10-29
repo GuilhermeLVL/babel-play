@@ -83,6 +83,8 @@ export interface PreferenciasDosAvatares {
   anunciar: boolean;
   /** "Soletrar nomes e palavras sem sinal" (flag `avatar_sinais`). DESLIGADA por padrão. */
   soletrar: boolean;
+  /** "Soletrar tudo": as mãos soletram todas as palavras da fala, não só os nomes próprios. DESLIGADA por padrão. */
+  soletrarTudo: boolean;
   /** Libras ou ASL: no automático vem do idioma da outra pessoa. */
   alfabeto: EscolhaDeAlfabeto;
   /** Mão canhota: espelha as poses e usa a mão esquerda. */
@@ -97,6 +99,7 @@ export const PREFERENCIAS_PADRAO: Readonly<PreferenciasDosAvatares> = Object.fre
   economia: false,
   anunciar: false,
   soletrar: false,
+  soletrarTudo: false,
   alfabeto: 'auto',
   espelhar: false,
   ritmo: 'normal',
@@ -115,6 +118,7 @@ export function validarPreferencias(bruto: unknown): PreferenciasDosAvatares {
     economia: o.economia === true,
     anunciar: o.anunciar === true,
     soletrar: o.soletrar === true,
+    soletrarTudo: o.soletrarTudo === true,
     alfabeto: um(ESCOLHAS_DE_ALFABETO, o.alfabeto, PREFERENCIAS_PADRAO.alfabeto),
     espelhar: o.espelhar === true,
     ritmo: um(RITMOS_DA_SOLETRACAO, o.ritmo, PREFERENCIAS_PADRAO.ritmo),

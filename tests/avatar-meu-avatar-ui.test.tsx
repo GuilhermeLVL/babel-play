@@ -146,7 +146,12 @@ describe('o avatar guardado no aparelho', () => {
 describe('Perfil > Avatar: adulto', () => {
   it('mostra Escolher, Personalizar e Traga o seu; "Escolher para mim" + "Salvar" guarda a receita local', async () => {
     render(<AbaAvatar />)
-    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Escolher', 'Personalizar', 'Traga o seu'])
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual([
+      'Escolher',
+      'Personalizar',
+      'Estúdio',
+      'Traga o seu',
+    ])
     // Antes de escolher, a prévia mostra a SUGESTÃO e o botão diz "Usar este avatar".
     expect(screen.getByTestId('avatar-credito').textContent).toContain('Sugerido para você')
     fireEvent.click(screen.getByTestId('avatar-sortear'))
@@ -226,7 +231,7 @@ describe('galeria de terceiros: opt-in e política de menor', () => {
     const buscar = vi.fn()
     vi.stubGlobal('fetch', buscar)
     render(<AbaAvatar />)
-    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Escolher', 'Personalizar'])
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Escolher', 'Personalizar', 'Estúdio'])
     expect(screen.queryByTestId('avatar-traga')).toBeNull()
     expect(screen.queryByTestId('avatar-galeria-optin')).toBeNull()
     expect(screen.queryByTestId('avatar-galeria')).toBeNull()
@@ -243,7 +248,7 @@ describe('galeria de terceiros: opt-in e política de menor', () => {
   it('a trava só restringe: valor diferente de "1" não protege, e sem ela o adulto vê a aba', () => {
     sessionStorage.setItem(CHAVE_DA_TRAVA, '0')
     render(<AbaAvatar />)
-    expect(screen.getAllByRole('tab')).toHaveLength(3)
+    expect(screen.getAllByRole('tab')).toHaveLength(4)
   })
 })
 

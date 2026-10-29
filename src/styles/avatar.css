@@ -532,3 +532,13 @@
     filter: none;
   }
 }
+
+/* Perfil protegido: o que está fechado e a linha do responsável, em parágrafos separados (também no celular). */
+.av-protegido {
+  display: grid;
+  gap: 10px;
+  margin: 4px 0 14px;
+}
+.av-protegido .qc-nota {
+  margin: 0;
+}

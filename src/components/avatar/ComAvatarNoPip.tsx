@@ -18,11 +18,11 @@ const LARGURA_PARA_FICAR_AO_LADO = 520;
 const LADO_MINIMO = 96;
 
 /**
- * O lado do círculo, proporcional à janela: ~26% da largura (em cima da legenda) ou ~18% (ao lado), nunca menos que
+ * O lado do círculo, proporcional à janela: ~34% da largura (em cima da legenda) ou ~20% (ao lado), nunca menos que
  * `LADO_MINIMO` nem mais que 160, e sem passar de metade da altura quando a janela é baixa (a legenda tem de caber).
  */
 export function ladoDoAvatarNoPip(largura: number, altura: number, aoLado: boolean): number {
-  const alvo = Math.round(largura * (aoLado ? 0.18 : 0.26));
+  const alvo = Math.round(largura * (aoLado ? 0.2 : 0.34));
   const teto = altura > 0 && !aoLado ? Math.max(LADO_MINIMO, Math.floor(altura * 0.5)) : 160;
   return Math.max(LADO_MINIMO, Math.min(160, teto, alvo));
 }

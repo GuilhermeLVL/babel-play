@@ -4,11 +4,11 @@ import { ladoDoAvatarNoPip } from '../src/components/avatar/ComAvatarNoPip'
 
 describe('ladoDoAvatarNoPip', () => {
   it('nunca fica abaixo de 96 px', () => {
-    expect(ladoDoAvatarNoPip(300, 200, false)).toBe(96)
-    expect(ladoDoAvatarNoPip(520, 300, true)).toBe(96)
+    expect(ladoDoAvatarNoPip(200, 200, false)).toBe(96)
+    expect(ladoDoAvatarNoPip(520, 300, true)).toBe(104)
   })
   it('cresce com a janela, até 160 px', () => {
-    expect(ladoDoAvatarNoPip(400, 600, false)).toBe(104)
+    expect(ladoDoAvatarNoPip(400, 600, false)).toBe(136)
     expect(ladoDoAvatarNoPip(1200, 900, true)).toBe(160)
   })
   it('em janela baixa, não passa de metade da altura (mas respeita o mínimo)', () => {

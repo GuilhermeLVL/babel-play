@@ -112,6 +112,29 @@ test.describe('Meu avatar', () => {
     await expect(page.getByTestId('avatar-credito')).toContainText('Sugerido para você')
   })
 
+  test('estúdio no Perfil: peça entra, a receita salva é v2 com a peça e volta depois de recarregar', async ({
+    page,
+  }) => {
+    await abrirAvatar(page)
+    await page.getByTestId('avatar-sortear').click()
+    await page.getByRole('tab', { name: 'Estúdio' }).click()
+    await expect(page.getByTestId('estudio-do-avatar')).toBeVisible()
+    await page.locator('[data-peca="oculos-redondo"]').click()
+    await expect(page.getByTestId('estudio-mensagem')).toContainText('entrou no avatar')
+    await page.getByTestId('avatar-salvar').click()
+    await expect(page.getByTestId('avatar-status')).toContainText('Avatar salvo')
+    const guardada = await page.evaluate(() => {
+      const k = Object.keys(localStorage).find((x) => x.startsWith('frasy.avatar.receita.'))
+      return k ? JSON.parse(localStorage.getItem(k) as string) : null
+    })
+    expect(guardada?.versao).toBe(2)
+    expect(guardada?.pecas).toEqual(['oculos-redondo'])
+    await page.reload()
+    await page.getByRole('tab', { name: 'Avatar' }).click()
+    await page.getByRole('tab', { name: 'Estúdio' }).click()
+    await expect(page.locator('[data-peca="oculos-redondo"]')).toHaveAttribute('aria-pressed', 'true')
+  })
+
   test('personalizar: ajustes com prévia, desfazer, restaurar; a paleta some onde o modelo não permite; persiste', async ({
     page,
   }) => {
@@ -289,6 +312,9 @@ test.describe('Meu avatar', () => {
     await expect(page.getByTestId('avatar-galeria-optin')).toHaveCount(0)
     await expect(page.getByTestId('avatar-arquivo')).toHaveCount(0)
     await expect(page.getByTestId('avatar-so-colecao')).toContainText('coleção do Frasy')
+    // O texto está à vista (inclusive no celular, sem rolar até o fim da grade) e há uma linha para o responsável.
+    await expect(page.getByTestId('avatar-so-colecao')).toBeInViewport()
+    await expect(page.getByTestId('avatar-responsavel')).toContainText('Responsável')
     await foto(page, '8-menor')
     // O menor ainda escolhe e salva dentro da coleção curada.
     await page.getByTestId('avatar-sortear').click()

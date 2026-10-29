@@ -86,7 +86,8 @@ test.describe('Palco das mãos no Intérprete', () => {
     await expect(mao).toBeVisible({ timeout: 60_000 })
     await expect(palco.locator('[data-sinais-pronto="true"]')).toBeVisible({ timeout: 60_000 })
     const conversa = fase(page).getByTestId('soletracao-na-conversa')
-    await expect(conversa.getByTestId('soletracao-aguardando')).toHaveText('Aguardando um nome para soletrar…')
+    // no computador a linha está embaixo do idioma; no celular ela mora no topo da metade (forma curta, `title` com a longa)
+    await expect(fase(page).getByTestId('soletracao-aguardando')).toHaveText(/^Aguardando um nome/)
     await avisosSempre(conversa)
     // no computador o palco cresce: bem maior que o círculo de antes
     const caixa = await palco.boundingBox()

@@ -62,6 +62,7 @@
 .int-metade {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -159,6 +160,7 @@
 /* ---------- o botão Falar ---------- */
 .int-falar {
   position: relative;
+  flex: none;
   width: 96px;
   height: 96px;
   border-radius: 50%;
@@ -355,7 +357,9 @@ button.int-voz:focus-visible {
    fica à esquerda e a de cima à direita, e "Trocar os lados" troca as colunas. */
 .int[data-layout='computador'] {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* `minmax(0, 1fr)`: com `1fr` puro a coluna não encolhe abaixo do conteúdo mais largo (avisos, círculo) e a da direita
+     saía da tela num tablet de 768 px (rail de 108 px + duas colunas). */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   grid-template-rows: auto 1fr auto;
   grid-template-areas:
     'faixa faixa'
@@ -706,7 +710,9 @@ button.int-voz:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  /* Coluna estreita (tablet com o trilho): o círculo desce para a linha de baixo em vez de empurrar a metade. */
+  flex-wrap: wrap;
+  gap: 8px 12px;
 }
 .int-avatar {
   flex: none;

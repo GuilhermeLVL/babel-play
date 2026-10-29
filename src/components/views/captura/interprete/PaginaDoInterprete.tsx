@@ -216,9 +216,11 @@ export default function PaginaDoInterprete({
     const semVozParaOOutro = mudo(idiomaDe(outroLado(dono)));
     const avatar = avatares.doLado(lado);
     const soletracao = avatares.soletracaoDoLado(lado);
+    const estadoNoTopo = avatares.estadoNoTopoDoLado(lado);
     return {
       ...(avatar ? { avatar } : {}),
       ...(soletracao ? { soletracao } : {}),
+      ...(estadoNoTopo ? { estadoNoTopo } : {}),
       lado,
       dono,
       lang,

@@ -193,7 +193,7 @@ test.describe('Avatares visíveis na tela inicial do Intérprete (sem começar a
     await expect(conversa.getByText(AVISO_1)).toBeVisible()
     await expect(conversa.getByText(AVISO_2)).toBeVisible()
     // sem nenhum nome: o palco das mãos em repouso e o estado claro, antes de qualquer fala
-    await expect(conversa.getByTestId('soletracao-aguardando')).toHaveText('Aguardando um nome…')
+    await expect(pronta(page).getByTestId('soletracao-aguardando')).toHaveText(/^Aguardando um nome/)
     const palco = pronta(page).getByTestId('soletracao-palco')
     await expect(palco).toBeVisible()
     await expect(palco.locator('[data-sinais-camera]')).toBeVisible({ timeout: 60_000 })

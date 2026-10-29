@@ -35,7 +35,7 @@ const foto = (page: Page, nome: string) =>
   page.screenshot({ path: path.join(CAPTURAS, `descoberta-${test.info().project.name}-${nome}.png`) })
 
 const pronto = (page: Page, lado: 'meu' | 'outro') =>
-  fase(page).getByTestId(`avatar-${lado}`).locator('[data-avatar-pronto="true"]')
+  fase(page).getByTestId(`avatar-${lado}`).locator('[data-avatar-pronto="true"]').first()
 
 /** Um avatar salvo da pessoa: com "bullidan" ela, o intérprete passa a ser o "milk" (mãos pequenas demais). */
 const comAvatarSalvo = (page: Page, id: string) =>

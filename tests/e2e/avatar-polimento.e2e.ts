@@ -46,7 +46,7 @@ test.describe('Polimento no celular, tablet e desktop', () => {
     await page.addInitScript(() => localStorage.setItem('frasy.avatar.interprete.soletrar', '1'))
     await abrirPeloMenu(page)
     await comecarFalando(page, /Falar em Português/)
-    await expect(fase(page).getByTestId('avatar-outro').locator('[data-avatar-pronto="true"]')).toBeVisible({
+    await expect(fase(page).getByTestId('avatar-outro').locator('[data-avatar-pronto="true"]').first()).toBeVisible({
       timeout: 60_000,
     })
     const conversa = fase(page).getByTestId('soletracao-na-conversa')

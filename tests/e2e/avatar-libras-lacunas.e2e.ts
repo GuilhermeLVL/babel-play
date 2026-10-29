@@ -36,7 +36,7 @@ const FRASE = 'fale com Conceição amanhã'
 const foto = (page: Page, nome: string) =>
   page.screenshot({ path: path.join(CAPTURAS, `lacunas-${test.info().project.name}-${nome}.png`), fullPage: false })
 
-const pronto = (page: Page) => fase(page).getByTestId('avatar-outro').locator('[data-avatar-pronto="true"]')
+const pronto = (page: Page) => fase(page).getByTestId('avatar-outro').locator('[data-avatar-pronto="true"]').first()
 
 const ligar = (page: Page, extra: Record<string, string> = {}) =>
   page.addInitScript((prefs) => {

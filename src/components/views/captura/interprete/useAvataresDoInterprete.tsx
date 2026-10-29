@@ -317,7 +317,7 @@ export function useAvataresDoInterprete({
   };
 
   const estadoNoTopoDoLado = (lado: LadoDaConversa): ReactNode => {
-    if (!soletrarAtivo || donoDe(lado) !== 'outro' || layout === 'computador') return undefined;
+    if (!soletrarAtivo || suspenso || donoDe(lado) !== 'outro' || layout === 'computador') return undefined;
     return estadoDoPalcoAgora.tipo === 'aguardando' ? <LinhaDoEstadoDoPalco modo={modo} /> : undefined;
   };
 

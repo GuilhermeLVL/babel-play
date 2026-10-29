@@ -89,6 +89,36 @@ export function tamanhoDaLetra(layout: Layout, largura: number, escala = 1): num
   return Math.round(base * limitar(escala, 0.5, 2));
 }
 
+/** Lado mínimo do círculo do avatar na janela: abaixo disso o rosto some. */
+const LADO_MINIMO_NA_JANELA = 96;
+
+/**
+ * O lado (px) do círculo do avatar na JANELA flutuante (Document PiP). Quanto maior, menos vazio sobra entre ele e a
+ * legenda: AO LADO (janela larga), enche a altura da janela (menos o respiro) até ~28% da largura, no máximo 220;
+ * EM CIMA (janela estreita), ~70% da largura e no máximo 55% da altura, para a legenda ainda caber embaixo.
+ */
+export function ladoDoAvatarNaJanela(tamanho: Tamanho, aoLado: boolean): number {
+  const { largura, altura } = tamanho;
+  if (aoLado) {
+    const doAlto = altura > 0 ? altura - 16 : 160;
+    return Math.max(72, Math.min(doAlto, Math.round(largura * 0.28), 220));
+  }
+  const doAlto = altura > 0 ? Math.floor(altura * 0.55) : 280;
+  return Math.max(LADO_MINIMO_NA_JANELA, Math.min(Math.round(largura * 0.7), doAlto, 280));
+}
+
+/**
+ * O lado (px) do círculo do avatar no QUADRO do PiP de vídeo (`dimensoes` = as do formato). A faixa e a legenda
+ * (horizontais) enchem a altura menos o respiro; a conversa (vertical) usa 60% da largura, e o texto fica colado
+ * embaixo do círculo (`desenharQuadro`). O `estudo` não tem avatar (0).
+ */
+export function ladoDoAvatarNoQuadro(formato: Formato, dimensoes: Tamanho): number {
+  if (formato === 'estudo') return 0;
+  if (formato === 'conversa') return Math.round(dimensoes.largura * 0.6);
+  if (formato === 'faixa') return dimensoes.altura - 32;
+  return Math.min(dimensoes.altura - 48, 300);
+}
+
 /** O que o app sabe da captura na hora de abrir a janela. */
 export interface ContextoDaCaptura {
   /** O modo intérprete (duas pessoas conversando) está aberto. */

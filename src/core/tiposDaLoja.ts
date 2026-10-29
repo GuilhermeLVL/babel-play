@@ -27,7 +27,8 @@ export type TipoDaLoja =
   | 'moldura'
   | 'titulo' // onda 3 (maestria)
   | 'legenda'
-  | 'cartao'; // onda 4 (legenda e cartão)
+  | 'cartao' // onda 4 (legenda e cartão)
+  | 'avatar'; // M6: peças cosméticas do avatar 3D (`alvo` = id em `core/avatar/pecas.ts`)
 
 export interface ItemDaLoja {
   id: string;

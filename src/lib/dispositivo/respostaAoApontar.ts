@@ -20,6 +20,16 @@ import { zoomDoCorpo } from '../zoomDoCorpo';
 import { perfilDoDispositivo } from './perfil';
 import { lerVibracaoDoQuest, type VibracaoDoQuest } from './preferenciasDoQuest';
 
+/**
+ * `hapticActuators` é a API ANTIGA de vibração, que só alguns navegadores ainda têm. O `@types/three` traz o
+ * `@types/webxr`, que a declara como sempre presente em `Gamepad`; isso faria o `?.` virar TS2774 no modo
+ * estrito. Aqui o tipo volta a dizer a verdade (pode faltar), e o guard em runtime continua o mesmo.
+ */
+type GamepadAntigo = {
+  hapticActuators?: readonly { pulse?: (intensidade: number, ms: number) => Promise<unknown> }[];
+};
+const antigos = (c: Gamepad) => c as unknown as GamepadAntigo;
+
 /** Além do que soa ao clicar: os cartões-alvo, as linhas, os campos e as listas de escolha. */
 const SELETOR = `${SELETOR_DO_ACIONAVEL}, select, summary, input:not([type="hidden"]), textarea, [data-tocavel]`;
 
@@ -129,8 +139,8 @@ export async function provarVibracaoEmDetalhe(
             weakMagnitude: intensidade,
           });
           relato.vibrou = true;
-        } else if (c.hapticActuators?.[0]?.pulse) {
-          await c.hapticActuators[0].pulse(intensidade, ms * 3);
+        } else if (antigos(c).hapticActuators?.[0]?.pulse) {
+          await antigos(c).hapticActuators![0].pulse!(intensidade, ms * 3);
           relato.vibrou = true;
         }
       } catch {

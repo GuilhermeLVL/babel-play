@@ -29,6 +29,7 @@ import { chaveLigada } from '../captura/testesDoInterprete';
 import { getEntitlements } from '../entitlements';
 import { marcarFalaExterna, nativeTts, type SpeakOptions, type TtsEngine } from '../tts';
 import { cacheDeVozDoAparelho, type GuardadosDaVoz } from './cacheDeVoz';
+import { elemento } from './elementoDaVoz';
 import { partirEmFrases } from './frasesDaVoz';
 
 /** Quanto a nuvem tem para devolver o áudio antes de a voz do aparelho assumir. */
@@ -108,8 +109,6 @@ export interface VozDaNuvem extends TtsEngine {
 
 /* ─────────────────────────── o reprodutor padrão ─────────────────────────── */
 
-let elementoCompartilhado: HTMLAudioElement | null = null;
-const elemento = (): HTMLAudioElement => (elementoCompartilhado ??= new Audio());
 
 /** Um silêncio de 1 amostra (WAV), para liberar o elemento de áudio dentro do toque. */
 const SILENCIO = 'data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQIAAAAAAA==';

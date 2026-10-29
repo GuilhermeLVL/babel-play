@@ -631,7 +631,9 @@ export default function LegendasFlutuantes({
     right: 'auto',
     bottom: 'auto',
     width: '100%',
-    height: '100vh',
+    /* 100% (e não 100vh): a janela monta isto dentro do contêiner de altura da janela, e com o avatar do PiP ao lado ou
+       em cima (`ComAvatarNoPip`) a legenda ocupa só o que sobra. Sem avatar, 100% do contêiner é 100vh. */
+    height: '100%',
     maxHeight: 'none',
     borderRadius: 0,
     boxShadow: 'none',

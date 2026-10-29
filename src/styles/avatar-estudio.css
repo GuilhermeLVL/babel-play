@@ -1,0 +1,220 @@
+/*
+ * O ESTÚDIO DO AVATAR (criador de peças). Prefixo `.es-`. Reaproveita `.q-ctl`, `.av-paleta` e `.av-cor` (quest.css e
+ * avatar.css). As mesmas regras da casa: alvo >= 56 px, nada que dependa só de cor (o escolhido leva borda grossa,
+ * visto e a palavra "Em uso"), foco sempre visível, sem animação com movimento reduzido, cores do sistema quando o
+ * contraste alto está ligado.
+ */
+.es-estudio {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.es-estudio h3,
+.es-estudio h4 {
+  margin: 0;
+  font: 800 20px/1.2 var(--font-display, inherit);
+}
+.es-estudio h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+}
+.es-estudio h4 svg {
+  width: 20px;
+  height: 20px;
+}
+.es-estudio header p,
+.es-nota {
+  margin: 4px 0 0;
+  font: 600 15px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.es-duas {
+  display: grid;
+  gap: 22px;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+@media (min-width: 880px) {
+  .es-duas {
+    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  }
+}
+.es-previa {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 20px;
+  background: var(--surface-sunken, var(--surface));
+}
+@media (min-width: 880px) {
+  .es-previa {
+    position: sticky;
+    top: 12px;
+  }
+}
+.es-moldura {
+  max-width: 100%;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--canvas);
+}
+.es-miniatura {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.es-miniatura img {
+  border-radius: 12px;
+  border: 1.5px solid var(--border-subtle);
+  background: var(--canvas);
+}
+.es-controles {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.es-grupo {
+  display: grid;
+  gap: 10px;
+}
+.es-grade {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+.es-peca {
+  position: relative;
+  width: 100%;
+  min-height: 72px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 4px;
+  align-content: center;
+  justify-items: start;
+  text-align: start;
+  border: 2px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 700 16px/1.25 var(--font-body, inherit);
+  cursor: pointer;
+}
+.es-peca:hover {
+  border-color: var(--q-acento, var(--accent));
+}
+.es-peca[aria-pressed='true'] {
+  border-width: 4px;
+  padding: 10px 12px;
+  border-color: var(--q-acento, var(--accent));
+  background: var(--q-suave, var(--accent-soft));
+}
+.es-peca[aria-disabled='true'] {
+  opacity: 0.72;
+  border-style: dashed;
+}
+.es-peca:focus-visible {
+  outline: 3px solid var(--q-acento, var(--accent));
+  outline-offset: 3px;
+}
+.es-marca,
+.es-trava,
+.es-livre {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 800 13px/1.2 var(--font-body, inherit);
+}
+.es-marca {
+  color: var(--accent-ink, var(--q-acento));
+}
+.es-trava,
+.es-livre {
+  color: var(--ink-muted);
+  font-weight: 700;
+}
+.es-marca svg,
+.es-trava svg {
+  width: 16px;
+  height: 16px;
+}
+.es-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.es-item {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.es-item-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.es-item-nome {
+  font: 800 16px/1.2 var(--font-body, inherit);
+}
+.es-item-nome small {
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+.es-ordem {
+  display: inline-flex;
+  gap: 8px;
+}
+.es-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.es-mensagem {
+  min-height: 24px;
+  font: 600 16px/1.45 var(--font-body, inherit);
+}
+.es-mensagem ul {
+  margin: 0;
+  padding-inline-start: 20px;
+}
+.es-mensagem[data-tom='erro'] {
+  padding: 12px 14px;
+  border: 2px solid var(--error, var(--border-strong));
+  border-radius: 14px;
+}
+.es-mensagem[data-tom='aviso'] {
+  padding: 12px 14px;
+  border: 2px solid var(--warn, var(--border-strong));
+  border-radius: 14px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .es-estudio * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+@media (forced-colors: active) {
+  .es-peca[aria-pressed='true'] {
+    border-color: Highlight;
+  }
+  .es-peca:focus-visible {
+    outline-color: Highlight;
+  }
+}

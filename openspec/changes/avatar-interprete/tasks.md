@@ -31,6 +31,8 @@
 - [x] 4.2 PiP (documento, vídeo, painel). Aceite: tier fraco no PiP; checklist do Safari entregue ao dono (spec, seção M4; Safari, Firefox e celular reais NÃO provados)
 - [x] 4.3 Soletração sob `avatar_sinais` ligada ao Intérprete (painel, mãos sobre o círculo do intérprete, PiP de documento e aviso no quadro do PiP de vídeo; só nomes próprios, teto por fala, pulada com a fila atrasada). Aceite: os dois avisos fixos sempre visíveis; `suportaSinais` falso desabilita com o motivo. NÃO provado: PiP real, Safari, celular real, revisão por pessoas surdas
 
+- [x] 4.4 Descoberta no Intérprete e no Perfil (atrás de `avatar_3d`/`avatar_sinais`): botão "Avatares" com rótulo à vista e alvo de 44 px, atalho "Soletrar nomes (Libras/ASL)" (aria-pressed, explica e oferece outro avatar quando o modelo não serve), dica da primeira vez dispensável e lembrada, cartão "Crie seu avatar" no Perfil com pular. Aceite: E2E nos três tamanhos; sem flags a tela não muda. PiP: sem controle novo (o PiP não tem controle de soletração)
+
 ## 5. M5 Livros e personagens (depende do PR de Livros)
 
 - [ ] 5.1 Falante e emoção por frase (JSON estrito, lotes, cache, retenção zero, cota) com fallback heurístico. Aceite: conjunto de ouro pt/en/es acima do limiar do juiz

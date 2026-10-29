@@ -2260,5 +2260,16 @@
   "Nomes que não couberam na soletração: {n}": "Nombres que no cupieron en el deletreo: {n}",
   "Soletrando": "Deletreando",
   "As mãos deste avatar são pequenas demais para soletrar. Escolha outro avatar em Meu avatar (o intérprete muda).": "Las manos de este avatar son demasiado pequeñas para deletrear. Elige otro avatar en Mi avatar (el intérprete cambia).",
-  "Automático (mãos ao soletrar)": "Automático (manos al deletrear)"
+  "Automático (mãos ao soletrar)": "Automático (manos al deletrear)",
+  "Soletrar nomes (Libras/ASL)": "Deletrear nombres (Libras/ASL)",
+  "Desligado": "Desactivado",
+  "Não dá para soletrar com este avatar.": "Este avatar no puede deletrear.",
+  "Escolher outro avatar": "Elegir otro avatar",
+  "Mostrar o intérprete": "Mostrar al intérprete",
+  "Novo: toque em Avatares para ver um avatar na conversa.": "Novedad: toca Avatares para ver un avatar en la conversación.",
+  "Novo: toque em Avatares para ver um avatar na conversa, ou ligue aqui a soletração de nomes.": "Novedad: toca Avatares para ver un avatar en la conversación, o activa aquí el deletreo de nombres.",
+  "Dispensar a dica": "Descartar el consejo",
+  "Crie seu avatar": "Crea tu avatar",
+  "Escolha um rosto para te representar na conversa. É opcional e fica só neste aparelho.": "Elige un rostro que te represente en la conversación. Es opcional y se queda solo en este dispositivo.",
+  "Criar meu avatar": "Crear mi avatar"
 }

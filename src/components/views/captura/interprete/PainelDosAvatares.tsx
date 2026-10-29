@@ -46,14 +46,16 @@ const ROTULO_DE_RITMO: Record<RitmoDaSoletracao, () => string> = {
   normal: () => t('Normal'),
   rapida: () => t('Rápida'),
 };
-const MOTIVO_DO_PAINEL: Record<MotivoDoPainel, () => string> = {
+export const MOTIVO_DO_PAINEL: Record<MotivoDoPainel, () => string> = {
   sem_dedos: () => t('Este avatar não tem dedos articulados.'),
   sem_braco: () => t('Este avatar não tem braços articulados.'),
   sem_ossos_reconheciveis: () => t('Os ossos deste avatar não têm nomes reconhecíveis.'),
   sem_modelo: () => t('O avatar ainda não carregou.'),
   sem_3d: () => t('Este aparelho não mostra o avatar em 3D.'),
   maos_minusculas: () =>
-    t('As mãos deste avatar são pequenas demais para soletrar. Escolha outro avatar em Meu avatar (o intérprete muda).'),
+    t(
+      'As mãos deste avatar são pequenas demais para soletrar. Escolha outro avatar em Meu avatar (o intérprete muda).',
+    ),
   sem_interprete: () => t('Escolha "Eu e o intérprete" ou "Só o intérprete" em Quem aparece.'),
 };
 
@@ -196,7 +198,9 @@ export default function PainelDosAvatares({
                   onChange={() => aoMudar({ foco: f })}
                   data-testid={`avatar-foco-${f}`}
                 />
-                <span>{f === 'auto' ? t('Automático (mãos ao soletrar)') : f === 'rosto' ? t('Só rosto') : t('Só mãos')}</span>
+                <span>
+                  {f === 'auto' ? t('Automático (mãos ao soletrar)') : f === 'rosto' ? t('Só rosto') : t('Só mãos')}
+                </span>
               </label>
             );
           })}

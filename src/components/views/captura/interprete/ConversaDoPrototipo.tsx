@@ -81,6 +81,8 @@ export interface MetadeDaConversa {
 /** Os avatares da conversa: o botão da faixa e o painel (que abre o seletor de voz que já existe). */
 export interface AvataresDaConversa {
   botao: ReactNode;
+  /** A linha embaixo da faixa: atalho de soletrar, explicação e a dica da primeira vez (pode ser `null`). */
+  linha?: ReactNode;
   painel: (api: { escolherVoz?: (() => void) | undefined }) => ReactNode;
 }
 
@@ -525,7 +527,7 @@ export default function ConversaDoPrototipo({
       data-escuta={escuta ? '' : undefined}
     >
       {metade(cima, true)}
-      <div key="faixa" className="int-faixa" data-com-modo="">
+      <div key="faixa" className="int-faixa" data-com-modo="" data-com-avatares={avatares ? '' : undefined}>
         <div className="int-esq">
           <button type="button" className="int-ib peq" aria-label={t('Trocar os lados')} onClick={trocar}>
             {emColunas ? <ArrowLeftRight aria-hidden /> : <ArrowUpDown aria-hidden />}
@@ -639,6 +641,7 @@ export default function ConversaDoPrototipo({
         >
           <X aria-hidden />
         </button>
+        {avatares?.linha}
       </div>
       {lista.aberta && (
         <section key="lista" className="int-conversa" aria-label={t('Conversa')} data-testid="interprete-conversa">

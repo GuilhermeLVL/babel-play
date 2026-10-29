@@ -1,15 +1,17 @@
 import '../../styles/questConta.css';
 
 import { ShieldCheck, Smile, TrendingUp, User } from 'lucide-react';
-import { Suspense, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 
 import { FLAG_AVATAR_3D } from '../../core/planos';
+import { abaPedidaAoPerfil, consumirAbaDoPerfil } from '../../lib/avatar/descoberta';
 import { useFlag } from '../../lib/flags';
 import { t } from '../../lib/i18n';
 import { lazyComRecarga } from '../../lib/lazyComRecarga';
 import { useAbasAVista } from '../../lib/polimento/ajustes';
 import type { AgeProfileType } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
+import ConviteDoAvatar from '../perfil/ConviteDoAvatar';
 import MolduraETitulo from '../perfil/MolduraETitulo';
 import { PainelDeAba } from '../ui';
 import AbasDoQuest from './ajustes/quest/AbasDoQuest';
@@ -39,8 +41,13 @@ interface PerfilProps {
 }
 
 export default function Perfil({ progress, ageProfile }: PerfilProps) {
-  const [aba, setAba] = useState('voce');
   const avatarLigado = useFlag(FLAG_AVATAR_3D);
+  /* Quem vem do Intérprete ("Escolher outro avatar") pede a aba Avatar; a flag pode chegar depois da tela, então o pedido
+     só vale se a flag estiver ligada ao montar (senão a aba não existe e cai em Você). */
+  const [aba, setAba] = useState(() => (abaPedidaAoPerfil() === 'avatar' && avatarLigado ? 'avatar' : 'voce'));
+  useEffect(() => {
+    consumirAbaDoPerfil();
+  }, []);
   /* O Perfil não existe no protótipo: recebe a camada comum, como os Ajustes (a aba escolhida à vista). */
   const palco = useRef<HTMLDivElement>(null);
   useAbasAVista(palco, aba);
@@ -63,6 +70,8 @@ export default function Perfil({ progress, ageProfile }: PerfilProps) {
         </div>
         <MolduraETitulo nivel={progress.available ? progress.level : 1} tamanho={56} />
       </header>
+
+      {aba !== 'avatar' && <ConviteDoAvatar flag={avatarLigado} aoCriar={() => setAba('avatar')} />}
 
       <AbasDoQuest
         rotuloDoGrupo={t('Seções do perfil')}

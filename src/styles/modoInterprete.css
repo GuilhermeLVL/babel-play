@@ -335,6 +335,115 @@ button.int-voz:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+/* ---------- avatares: entrada visível e atalho de soletrar (flag avatar_3d; sem ela nada disto existe) ---------- */
+.int-modo-avatar {
+  min-height: 44px;
+  min-width: 44px;
+  border-color: var(--accent);
+  color: var(--int-tinta);
+  font-size: 13.5px;
+}
+.int-modo-avatar svg {
+  width: 18px;
+  height: 18px;
+}
+/* O nome fica à vista em qualquer largura (no celular os outros botões da faixa ficam só com o ícone). */
+.int-modo-visivel {
+  white-space: nowrap;
+}
+.int-modo-estado {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--int-tinta) 14%, transparent);
+  font-size: 11px;
+}
+.int-modo-avatar[aria-pressed='true'] .int-modo-estado {
+  background: var(--accent);
+  color: #fff;
+}
+.int-modo-avatar[data-indisponivel] {
+  border-style: dashed;
+  color: var(--int-mut);
+}
+.int-faixa[data-com-avatares] {
+  flex-wrap: wrap;
+}
+/* No celular a primeira linha (modos, voz, sair) precisa caber com o nome do botão à vista: encurta os respiros. */
+@media (max-width: 480px) {
+  .int-faixa[data-com-avatares] {
+    gap: 6px;
+    padding-inline: 8px;
+  }
+  .int-faixa[data-com-avatares] .int-esq {
+    gap: 6px;
+  }
+  .int-faixa[data-com-avatares] .int-esq .int-modo {
+    padding-inline: 9px;
+  }
+  /* A linha do atalho gasta altura: as metades cedem um pouco de respiro para a frase não ser espremida. */
+  .int-faixa[data-com-avatares] {
+    row-gap: 4px;
+    padding-block: 6px;
+  }
+  .int:has(.int-faixa[data-com-avatares]) .int-metade {
+    padding-block: 4px;
+    gap: 6px;
+  }
+}
+.int-av-linha-atalhos {
+  order: 99;
+  flex: 1 0 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+.int-av-explica,
+.int-av-dica {
+  flex: 1 1 260px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--int-linha);
+  background: color-mix(in srgb, var(--accent) 16%, var(--int-escuro-2));
+  color: var(--int-tinta);
+  font: 600 13px/1.35 var(--font-body);
+}
+.int-av-explica {
+  flex-basis: 100%;
+  flex-wrap: wrap;
+}
+.int-av-explica .int-ib {
+  white-space: nowrap;
+  width: auto;
+  padding-inline: 14px;
+  border-radius: 999px;
+}
+.int-av-explica p,
+.int-av-dica p {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.int-av-explica > svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.int-av-explica-acoes {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.int-av-explica .int-ib,
+.int-av-dica .int-ib {
+  min-height: 44px;
+  min-width: 44px;
+}
 /* No celular a faixa é estreita: com o botão do modo, a voz em uso fica só com o ícone (o nome segue
    no `title` e para o leitor de tela). */
 @media (max-width: 480px) {

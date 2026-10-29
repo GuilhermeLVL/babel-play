@@ -127,6 +127,7 @@ export default function ModoInterprete({
   aoFalharMicrofone,
   aoEscolherIdiomas,
   aoConhecerOPremium,
+  aoEscolherOutroAvatar,
   comVirtual = false,
   assistente,
   aoOuvirSugestao,
@@ -162,6 +163,8 @@ export default function ModoInterprete({
   aoEscolherIdiomas?: (() => void) | undefined;
   /** Os Planos, a partir do aviso do cadeado (ausente no perfil protegido). */
   aoConhecerOPremium?: (() => void) | undefined;
+  /** Abre Perfil › Avatar (o atalho de soletrar oferece quando o avatar não serve; ausente = não oferece). */
+  aoEscolherOutroAvatar?: (() => void) | undefined;
   /** A conversa virtual existe neste aparelho; "Virtual" abre a folha dela. */
   comVirtual?: boolean;
   /**
@@ -201,6 +204,7 @@ export default function ModoInterprete({
     estado,
     layout,
     idiomaDaOutra: idiomasDaConversa.outro || estado.detectado,
+    aoEscolherOutroAvatar,
   });
   const ponteDoAvatar = avatares.ponte;
   const destravarDoAvatar = avatares.destravar;

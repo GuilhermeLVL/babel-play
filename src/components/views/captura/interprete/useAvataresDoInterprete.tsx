@@ -1,6 +1,7 @@
 import { UserRound } from 'lucide-react';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { atalhoDeSoletrar } from '../../../../core/avatar/descoberta';
 import {
   estadoDoLadoNaConversa,
   LADO_MINIMO_NO_CELULAR,
@@ -20,6 +21,7 @@ import {
 import { FLAG_AVATAR_3D, FLAG_AVATAR_SINAIS } from '../../../../core/planos';
 import { modeloDaColecao } from '../../../../data/avatar/colecao';
 import { publicarAvatarDoPip } from '../../../../lib/avatar/avatarDoPip';
+import { DICA_DO_INTERPRETE, useDicaUmaVez } from '../../../../lib/avatar/descoberta';
 import { destravarComAvatar } from '../../../../lib/avatar/destravarComAvatar';
 import { detectarTier, temWebGL2 } from '../../../../lib/avatar/detectarTier';
 import type { SessaoDeAvatar } from '../../../../lib/avatar/motor';
@@ -32,7 +34,8 @@ import AvatarDaConversa, { useReceitaDoDono } from '../../../avatar/AvatarDaConv
 import SoletracaoNaConversa, { type AtualDaSoletracao, PalcoNaConversa } from '../../../avatar/SoletracaoNaConversa';
 import { useSoletracaoAtiva } from '../../../avatar/useSoletracaoAtiva';
 import type { AvataresDaConversa } from './ConversaDoPrototipo';
-import PainelDosAvatares from './PainelDosAvatares';
+import LinhaDosAvatares from './LinhaDosAvatares';
+import PainelDosAvatares, { MOTIVO_DO_PAINEL } from './PainelDosAvatares';
 
 export interface AvataresDoInterprete {
   /** Os avatares estão ligados (flag, preferência e modo economia)? Falso = a tela é a de antes. */
@@ -61,11 +64,14 @@ export function useAvataresDoInterprete({
   estado,
   layout,
   idiomaDaOutra,
+  aoEscolherOutroAvatar,
 }: {
   estado: EstadoDoControle;
   layout: 'celular' | 'computador' | 'quest';
   /** O idioma da OUTRA pessoa (o combinado ou o detectado): escolhe Libras ou ASL no automático. */
   idiomaDaOutra?: string | null | undefined;
+  /** Leva a Perfil › Avatar (ausente onde o Perfil não existe): o atalho de soletrar oferece quando o avatar não serve. */
+  aoEscolherOutroAvatar?: (() => void) | undefined;
 }): AvataresDoInterprete {
   const flag = useFlag(FLAG_AVATAR_3D);
   const sinais = useFlag(FLAG_AVATAR_SINAIS);
@@ -148,6 +154,8 @@ export function useAvataresDoInterprete({
   const vozTocando = useVozTocando(ponte);
 
   const [painelAberto, setPainelAberto] = useState(false);
+  const dica = useDicaUmaVez(DICA_DO_INTERPRETE);
+  const atalho = atalhoDeSoletrar({ sinaisLigada: sinaisOk, soletrar: prefs.soletrar, suporte });
   const ativoRef = useRef(ativo);
   ativoRef.current = ativo;
   const destravar = useMemo(() => (original: () => void) => destravarComAvatar(original, () => ativoRef.current), []);
@@ -155,7 +163,8 @@ export function useAvataresDoInterprete({
   const tamanhoPref = ladoDoAvatarEmPx(prefs.tamanho, layout);
   /* No celular, com os dois avisos fixos embaixo do idioma, o círculo do intérprete cede espaço ao texto da conversa. */
   const apertado = soletrarAtivo && layout !== 'computador';
-  const tamanhoDoInterprete = apertado ? ladoComAvisosEmPx(tamanhoPref) : tamanhoPref;
+  /* ... e a linha do atalho "Soletrar nomes" também gasta altura no celular: o círculo vai ao mínimo. */
+  const tamanhoDoInterprete = apertado ? Math.min(ladoComAvisosEmPx(tamanhoPref), LADO_MINIMO_NO_CELULAR) : tamanhoPref;
   /* O círculo da pessoa também encolhe: as duas metades dividem a altura, e a frase precisa de ao menos 3 linhas. */
   const tamanhoDaPessoa = apertado ? Math.min(tamanhoPref, LADO_MINIMO_NO_CELULAR) : tamanhoPref;
   const donoDe = (lado: LadoDaConversa): LadoDaConversa =>
@@ -246,19 +255,33 @@ export function useAvataresDoInterprete({
         botao: (
           <button
             type="button"
-            className="int-modo"
+            className="int-modo int-modo-avatar"
             aria-haspopup="dialog"
             aria-expanded={painelAberto}
             aria-pressed={ativo}
             aria-label={t('Avatares da conversa')}
-            onClick={() => setPainelAberto((v) => !v)}
+            onClick={() => {
+              dica.dispensar();
+              setPainelAberto((v) => !v);
+            }}
             data-testid="avatares-da-conversa"
           >
             <UserRound aria-hidden />
-            <span className="int-modo-txt" aria-hidden>
+            <span className="int-modo-visivel" aria-hidden>
               {t('Avatares')}
             </span>
           </button>
+        ),
+        linha: (
+          <LinhaDosAvatares
+            atalho={atalho}
+            aoAlternar={() => guardar({ soletrar: !prefs.soletrar })}
+            dica={dica.visivel && !painelAberto && !(sinaisOk && prefs.soletrar)}
+            aoDispensarDica={dica.dispensar}
+            motivoEmTexto={atalho.tipo === 'indisponivel' ? MOTIVO_DO_PAINEL[atalho.motivo]() : null}
+            aoEscolherOutroAvatar={aoEscolherOutroAvatar}
+            aoMostrarInterprete={() => guardar({ quem: 'ambos', economia: false })}
+          />
         ),
         painel: ({ escolherVoz }) =>
           painelAberto ? (

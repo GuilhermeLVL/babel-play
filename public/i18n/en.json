@@ -5738,5 +5738,16 @@
   "Nomes que não couberam na soletração: {n}": "Names that did not fit in the spelling: {n}",
   "Soletrando": "Spelling",
   "As mãos deste avatar são pequenas demais para soletrar. Escolha outro avatar em Meu avatar (o intérprete muda).": "This avatar's hands are too small to spell. Pick another avatar in My avatar (the interpreter changes).",
-  "Automático (mãos ao soletrar)": "Automatic (hands when spelling)"
+  "Automático (mãos ao soletrar)": "Automatic (hands when spelling)",
+  "Soletrar nomes (Libras/ASL)": "Spell names (Libras/ASL)",
+  "Desligado": "Off",
+  "Não dá para soletrar com este avatar.": "This avatar cannot spell.",
+  "Escolher outro avatar": "Choose another avatar",
+  "Mostrar o intérprete": "Show the interpreter",
+  "Novo: toque em Avatares para ver um avatar na conversa.": "New: tap Avatars to see an avatar in the conversation.",
+  "Novo: toque em Avatares para ver um avatar na conversa, ou ligue aqui a soletração de nomes.": "New: tap Avatars to see an avatar in the conversation, or turn on name spelling here.",
+  "Dispensar a dica": "Dismiss the tip",
+  "Crie seu avatar": "Create your avatar",
+  "Escolha um rosto para te representar na conversa. É opcional e fica só neste aparelho.": "Pick a face to represent you in the conversation. It is optional and stays only on this device.",
+  "Criar meu avatar": "Create my avatar"
 }

@@ -74,6 +74,7 @@ import {
   onDeviceChange,
   supportsSinkId,
 } from '../../lib/audioDevices';
+import { abrirMeuAvatar } from '../../lib/avatar/descoberta';
 // Fontes de áudio: som do sistema/aba, microfone (Whisper ou Web Speech) e o mudo/ativo do mic.
 import {
   type AjudaDoMic,
@@ -4455,6 +4456,7 @@ export default function LiveCapture({
             aoSair={sairDoInterprete}
             aoEscolherIdiomas={() => setIdiomasAbertos(true)}
             aoConhecerOPremium={conhecerOPremium}
+            aoEscolherOutroAvatar={onChangeView ? () => abrirMeuAvatar(onChangeView) : undefined}
             comVirtual={chaveLigada('virtual') && systemEnabled && !capturaEnxuta}
             assistente={doAssistente}
             aoOuvirSugestao={ouvirNaLegenda}

@@ -88,7 +88,11 @@ describe('ponte do avatar no quadro do PiP de vídeo', () => {
     expect(reservaDoAvatarNoTopo(quadro({ avatar: { lado: 200 }, formato: 'conversa' }))).toBe(232)
     expect(reservaDoAvatar(quadro({ avatar: { lado: 220 }, formato: 'estudo' }))).toBe(0)
     expect(retanguloDoAvatar(quadro({ avatar: { lado: 220 }, formato: 'estudo' })).lado).toBe(0)
-    expect(retanguloDoAvatar(quadro({ avatar: { lado: 200 }, formato: 'conversa' }))).toEqual({ x: 260, y: 16, lado: 200 })
+    expect(retanguloDoAvatar(quadro({ avatar: { lado: 200 }, formato: 'conversa' }))).toEqual({
+      x: 260,
+      y: 16,
+      lado: 200,
+    })
     const r = retanguloDoAvatar(quadro({ avatar: { lado: 220 } }))
     expect(r).toEqual({ x: 24, y: 70, lado: 220 })
   })
@@ -126,6 +130,18 @@ describe('ponte do avatar no quadro do PiP de vídeo', () => {
     expect(com.textos[0].x).toBe(268 + (1280 - 268) / 2)
     expect(sem.chamadas).not.toContain('arc')
     expect(com.chamadas).toContain('arc') // o círculo do avatar
+  })
+
+  it('a soletração ligada desenha o aviso curto "Demonstração · não é tradução" em todos os formatos com avatar; desligada, nada', () => {
+    const aviso = 'Demonstração · não é tradução'
+    for (const formato of ['faixa', 'legenda', 'conversa'] as const) {
+      const com = ctxFalso()
+      desenharQuadro(com.ctx, quadro({ formato, avatar: { lado: 150 }, avisoDaSoletracao: aviso }))
+      expect(com.textos.map((t) => t.s)).toContain(aviso)
+      const sem = ctxFalso()
+      desenharQuadro(sem.ctx, quadro({ formato, avatar: { lado: 150 } }))
+      expect(sem.textos.map((t) => t.s)).not.toContain(aviso)
+    }
   })
 
   it('pintarAvatar só pinta com reserva, redesenhar o texto repinta a cópia, e limparAvatar a esquece', () => {

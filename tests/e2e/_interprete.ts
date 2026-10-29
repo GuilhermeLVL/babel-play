@@ -8,109 +8,118 @@ import { assentar, clicarRobusto, irAoInterpretePeloMenu } from './_helpers'
  * estado "pensando") e os elementos de áudio e os contextos de áudio criados pela página ficam à mostra em
  * `window.__audios` / `window.__contextos`, para provar volume, mudo, pausa e o momento em que o analisador foi ligado.
  */
-export async function falsos(page: Page, o: { atrasoDaTraducaoMs?: number } = {}) {
-  await page.addInitScript((atraso) => {
-    const w = window as unknown as Record<string, unknown>
-    const FRASES: Record<string, string> = { pt: 'bom dia a todos', en: 'good morning everyone' }
-    type Ev = { error?: string; resultIndex?: number; results?: unknown }
-    class Falso {
-      lang = ''
-      continuous = false
-      interimResults = false
-      maxAlternatives = 1
-      onresult: ((e: Ev) => void) | null = null
-      onerror: ((e: Ev) => void) | null = null
-      onend: (() => void) | null = null
-      onstart: (() => void) | null = null
-      onaudiostart: (() => void) | null = null
-      onsoundstart: (() => void) | null = null
-      onsoundend: (() => void) | null = null
-      private parado = false
-      start() {
-        setTimeout(() => {
-          if (this.parado) return
-          this.onstart?.()
-          this.onaudiostart?.()
-          this.onsoundstart?.()
+export async function falsos(
+  page: Page,
+  o: { atrasoDaTraducaoMs?: number; atrasoDaFalaMs?: number; fraseEmPt?: string } = {},
+) {
+  await page.addInitScript(
+    ({ atraso, atrasoDaFala, fraseEmPt }) => {
+      const w = window as unknown as Record<string, unknown>
+      const FRASES: Record<string, string> = { pt: fraseEmPt || 'bom dia a todos', en: 'good morning everyone' }
+      type Ev = { error?: string; resultIndex?: number; results?: unknown }
+      class Falso {
+        lang = ''
+        continuous = false
+        interimResults = false
+        maxAlternatives = 1
+        onresult: ((e: Ev) => void) | null = null
+        onerror: ((e: Ev) => void) | null = null
+        onend: (() => void) | null = null
+        onstart: (() => void) | null = null
+        onaudiostart: (() => void) | null = null
+        onsoundstart: (() => void) | null = null
+        onsoundend: (() => void) | null = null
+        private parado = false
+        start() {
           setTimeout(() => {
             if (this.parado) return
-            const texto = FRASES[this.lang.slice(0, 2)] ?? 'frase'
-            const r = Object.assign([{ transcript: texto, confidence: 0.9 }], { isFinal: true })
-            this.onresult?.({ resultIndex: 0, results: { length: 1, 0: r } })
-          }, 400)
-        }, 200)
+            this.onstart?.()
+            this.onaudiostart?.()
+            this.onsoundstart?.()
+            setTimeout(
+              () => {
+                if (this.parado) return
+                const texto = FRASES[this.lang.slice(0, 2)] ?? 'frase'
+                const r = Object.assign([{ transcript: texto, confidence: 0.9 }], { isFinal: true })
+                this.onresult?.({ resultIndex: 0, results: { length: 1, 0: r } })
+              },
+              400 + (atrasoDaFala as number),
+            )
+          }, 200)
+        }
+        stop() {
+          if (this.parado) return
+          this.parado = true
+          setTimeout(() => this.onend?.(), 0)
+        }
+        abort() {
+          this.stop()
+        }
       }
-      stop() {
-        if (this.parado) return
-        this.parado = true
-        setTimeout(() => this.onend?.(), 0)
+      w.SpeechRecognition = Falso
+      w.webkitSpeechRecognition = Falso
+      w.Translator = {
+        availability: async () => 'available',
+        create: async () => ({
+          translate: async (t: string) => {
+            if (atraso) await new Promise((r) => setTimeout(r, atraso as number))
+            return `[trad] ${t}`
+          },
+        }),
       }
-      abort() {
-        this.stop()
-      }
-    }
-    w.SpeechRecognition = Falso
-    w.webkitSpeechRecognition = Falso
-    w.Translator = {
-      availability: async () => 'available',
-      create: async () => ({
-        translate: async (t: string) => {
-          if (atraso) await new Promise((r) => setTimeout(r, atraso as number))
-          return `[trad] ${t}`
+      const lidas: Array<{ texto: string; lang: string }> = []
+      w.__lidas = lidas
+      let falando = false
+      const synth = {
+        get speaking() {
+          return falando
         },
-      }),
-    }
-    const lidas: Array<{ texto: string; lang: string }> = []
-    w.__lidas = lidas
-    let falando = false
-    const synth = {
-      get speaking() {
-        return falando
-      },
-      paused: false,
-      pending: false,
-      onvoiceschanged: null,
-      getVoices: () => [],
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      cancel: () => {
-        falando = false
-      },
-      pause: () => {},
-      resume: () => {},
-      speak: (u: SpeechSynthesisUtterance) => {
-        lidas.push({ texto: u.text, lang: u.lang })
-        falando = true
-        setTimeout(() => {
-          u.onstart?.(new Event('start') as SpeechSynthesisEvent)
+        paused: false,
+        pending: false,
+        onvoiceschanged: null,
+        getVoices: () => [],
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        cancel: () => {
+          falando = false
+        },
+        pause: () => {},
+        resume: () => {},
+        speak: (u: SpeechSynthesisUtterance) => {
+          lidas.push({ texto: u.text, lang: u.lang })
+          falando = true
           setTimeout(() => {
-            falando = false
-            u.onend?.(new Event('end') as SpeechSynthesisEvent)
-          }, 300)
-        }, 50)
-      },
-    }
-    Object.defineProperty(window, 'speechSynthesis', { value: synth, configurable: true })
-
-    // Os áudios e os contextos que a página cria, à vista dos testes.
-    const audios: HTMLMediaElement[] = []
-    w.__audios = audios
-    const play = HTMLMediaElement.prototype.play
-    HTMLMediaElement.prototype.play = function (this: HTMLMediaElement) {
-      if (!audios.includes(this)) audios.push(this)
-      return play.call(this)
-    }
-    const contextos: Array<{ criadoEm: number; fontes: number }> = []
-    w.__contextos = contextos
-    const Original = window.AudioContext
-    if (Original) {
-      const criar = Original.prototype.createMediaElementSource
-      Original.prototype.createMediaElementSource = function (this: AudioContext, el: HTMLMediaElement) {
-        contextos.push({ criadoEm: performance.now(), fontes: contextos.length + 1 })
-        return criar.call(this, el)
+            u.onstart?.(new Event('start') as SpeechSynthesisEvent)
+            setTimeout(() => {
+              falando = false
+              u.onend?.(new Event('end') as SpeechSynthesisEvent)
+            }, 300)
+          }, 50)
+        },
       }
-    }
-  }, o.atrasoDaTraducaoMs ?? 0)
+      Object.defineProperty(window, 'speechSynthesis', { value: synth, configurable: true })
+
+      // Os áudios e os contextos que a página cria, à vista dos testes.
+      const audios: HTMLMediaElement[] = []
+      w.__audios = audios
+      const play = HTMLMediaElement.prototype.play
+      HTMLMediaElement.prototype.play = function (this: HTMLMediaElement) {
+        if (!audios.includes(this)) audios.push(this)
+        return play.call(this)
+      }
+      const contextos: Array<{ criadoEm: number; fontes: number }> = []
+      w.__contextos = contextos
+      const Original = window.AudioContext
+      if (Original) {
+        const criar = Original.prototype.createMediaElementSource
+        Original.prototype.createMediaElementSource = function (this: AudioContext, el: HTMLMediaElement) {
+          contextos.push({ criadoEm: performance.now(), fontes: contextos.length + 1 })
+          return criar.call(this, el)
+        }
+      }
+    },
+    { atraso: o.atrasoDaTraducaoMs ?? 0, atrasoDaFala: o.atrasoDaFalaMs ?? 0, fraseEmPt: o.fraseEmPt ?? '' },
+  )
 }
 
 export async function porToque(page: Page) {

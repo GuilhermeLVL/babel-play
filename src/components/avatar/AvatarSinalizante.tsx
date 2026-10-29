@@ -35,8 +35,12 @@ export interface AvatarSinalizanteProps {
   repetir?: number;
   /** Não toca sozinho: só prepara. Padrão: toca ao montar e quando algo muda. */
   pausado?: boolean;
+  /** Só para captura e diagnóstico: congela a soletração neste instante (ms desde o início). */
+  tempoFixoMs?: number;
   tetoMs?: number;
   soNomesProprios?: boolean;
+  /** Soletra também palavras de uma letra (padrão: não; elas não gastam o teto à toa). */
+  soletrarUmaLetra?: boolean;
   /**
    * Anuncia a palavra atual ao leitor de tela (`aria-live="polite"`). DESLIGADO por padrão: a legenda em texto é o
    * conteúdo, e anunciar cada palavra repetiria o que já se lê.
@@ -156,8 +160,10 @@ export default function AvatarSinalizante({
   tamanho = 320,
   repetir = 0,
   pausado = false,
+  tempoFixoMs,
   tetoMs,
   soNomesProprios = false,
+  soletrarUmaLetra = false,
   anunciar = false,
   aoPalavra,
   aoFim,
@@ -238,9 +244,10 @@ export default function AvatarSinalizante({
             espelhar,
             tetoMs,
             soNomesProprios,
+            soletrarUmaLetra,
           })
         : null,
-    [dados, texto, velocidade, espelhar, tetoMs, soNomesProprios],
+    [dados, texto, velocidade, espelhar, tetoMs, soNomesProprios, soletrarUmaLetra],
   );
   const seqRef = useRef<Sequencia | null>(null);
   seqRef.current = sequencia;
@@ -281,18 +288,13 @@ export default function AvatarSinalizante({
     void import('../../lib/avatar/maos').then((m) => {
       if (!vivo) return;
       const av = { objeto: sessao.avatar.objeto, vrm: sessao.avatar.vrm };
-      if (camera === 'maos') {
-        m.ocultarCabeca(av, true);
-        sessao.motor.definirEnquadramento(m.enquadramentoDasMaos(ctl));
-      } else {
-        m.ocultarCabeca(av, false);
-        sessao.motor.definirEnquadramento(null);
-      }
+      m.ocultarCabeca(av, camera === 'maos');
+      sessao.motor.definirEnquadramento(m.enquadramentoDaSoletracao(ctl, camera, espelhar ? 'L' : 'R'));
     });
     return () => {
       vivo = false;
     };
-  }, [sessao, camera, controlePronto]);
+  }, [sessao, camera, espelhar, controlePronto]);
 
   // reprodução: relógio, gancho dos ossos e atualização da legenda
   const inicio = useRef<number | null>(null);
@@ -302,16 +304,18 @@ export default function AvatarSinalizante({
     if (!sessao || !seq) return;
     const motor = sessao.motor;
     inicio.current = pausado ? null : performance.now();
+    const relogio = () =>
+      tempoFixoMs !== undefined ? tempoFixoMs : inicio.current === null ? 0 : performance.now() - inicio.current;
     let terminou = !seq.passos.length;
     let ultima = { palavra: -2, passo: -2, pose: null as unknown };
     if (ctl) {
       motor.definirGanchoDosOssos(() => {
-        const ms = inicio.current === null ? 0 : performance.now() - inicio.current;
+        const ms = relogio();
         ctl.aplicar(amostrar(seq, ms, { reduzido }).pose, seq.repouso);
       });
     }
     const tick = () => {
-      const ms = inicio.current === null ? 0 : performance.now() - inicio.current;
+      const ms = relogio();
       const am = amostrar(seq, ms, { reduzido });
       if (am.palavra !== ultima.palavra || am.passo !== ultima.passo) {
         const p = am.passo >= 0 && am.palavra >= 0 ? seq.passos[am.passo] : null;
@@ -322,7 +326,7 @@ export default function AvatarSinalizante({
       if (reduzido && (am.palavra !== ultima.palavra || am.passo !== ultima.passo || am.pose !== ultima.pose))
         motor.invalidar();
       ultima = { palavra: am.palavra, passo: am.passo, pose: am.pose };
-      if (!terminou && inicio.current !== null && ms >= seq.duracaoMs) {
+      if (!terminou && inicio.current !== null && tempoFixoMs === undefined && ms >= seq.duracaoMs) {
         terminou = true;
         setAtual({ palavra: -1, letra: '', mov: false });
         cbs.current.aoFim?.();
@@ -336,7 +340,7 @@ export default function AvatarSinalizante({
       motor.definirGanchoDosOssos(null);
     };
     // `repetir` reinicia; `controlePronto` religa o gancho quando o controle fica pronto
-  }, [sessao, sequencia, repetir, pausado, reduzido, controlePronto]);
+  }, [sessao, sequencia, repetir, pausado, tempoFixoMs, reduzido, controlePronto]);
 
   // avisa quem monta quando tudo está pronto
   useEffect(() => {

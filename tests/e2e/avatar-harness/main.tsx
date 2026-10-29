@@ -286,6 +286,8 @@ function PainelSinais() {
         tamanho={Math.min(tamanho, Math.max(200, window.innerWidth - 40))}
         repetir={rep}
         pausado={q.get('pausado') === '1'}
+        soletrarUmaLetra={q.get('uma') === '1'}
+        tempoFixoMs={q.get('t') ? Number(q.get('t')) : undefined}
         tetoMs={q.get('teto') ? Number(q.get('teto')) : 30_000}
         anunciar={q.get('anunciar') === '1'}
         aoPalavra={(i) => {

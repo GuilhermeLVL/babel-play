@@ -2123,5 +2123,20 @@
   "Boa leitura para entender o que é um VRM. Os exemplos oficiais têm condições próprias.": "Buena lectura para entender qué es un VRM. Los ejemplos oficiales tienen condiciones propias.",
   "Abre .blend, .fbx e .obj e exporta em GLB (Arquivo > Exportar > glTF 2.0 > glTF Binary). Gratuito.": "Abre .blend, .fbx y .obj y exporta en GLB (Archivo > Exportar > glTF 2.0 > glTF Binary). Gratuito.",
   "Importa e exporta .vrm no Blender. Confira na página quais versões do Blender ele aceita.": "Importa y exporta .vrm en Blender. Comprueba en la página qué versiones de Blender admite.",
-  "Reduz texturas e otimiza um .glb pela linha de comando. Teste com o seu arquivo e valide de novo aqui.": "Reduce texturas y optimiza un .glb desde la línea de comandos. Pruébalo con tu archivo y valídalo de nuevo aquí."
+  "Reduz texturas e otimiza um .glb pela linha de comando. Teste com o seu arquivo e valide de novo aqui.": "Reduce texturas y optimiza un .glb desde la línea de comandos. Pruébalo con tu archivo y valídalo de nuevo aquí.",
+  "Avatar soletrando com as mãos": "Avatar deletreando con las manos",
+  "Avisos sobre a soletração": "Avisos sobre el deletreo",
+  "Este modelo não tem braços articulados: a soletração fica indisponível.": "Este modelo no tiene brazos articulados: el deletreo no está disponible.",
+  "Este modelo não tem dedos articulados: a soletração fica indisponível.": "Este modelo no tiene dedos articulados: el deletreo no está disponible.",
+  "Fora do tempo máximo da fala: não soletrada": "Fuera del tiempo máximo del habla: no deletreada",
+  "letra com movimento: aproximada": "letra con movimiento: aproximada",
+  "Números não são soletrados": "Los números no se deletrean",
+  "Os ossos deste modelo não têm nomes reconhecíveis: a soletração fica indisponível.": "Los huesos de este modelo no tienen nombres reconocibles: el deletreo no está disponible.",
+  "Palavra de uma letra: não soletrada": "Palabra de una letra: no deletreada",
+  "Poses de DEMONSTRAÇÃO: ainda NÃO revisadas por pessoas surdas": "Poses de DEMOSTRACIÓN: AÚN NO revisadas por personas sordas",
+  "Sem letras para soletrar": "Sin letras para deletrear",
+  "Sem modelo carregado: a soletração fica indisponível.": "Sin modelo cargado: el deletreo no está disponible.",
+  "Só nomes próprios são soletrados": "Solo se deletrean nombres propios",
+  "Soletração do alfabeto manual: não é tradução para Libras": "Deletreo del alfabeto manual: no es una traducción a Libras",
+  "Tem sinal gravado: não soletrada": "Tiene seña grabada: no deletreada"
 }

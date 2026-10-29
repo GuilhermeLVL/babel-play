@@ -5602,5 +5602,20 @@
   "Boa leitura para entender o que é um VRM. Os exemplos oficiais têm condições próprias.": "Good reading to understand what a VRM is. The official examples have their own conditions.",
   "Abre .blend, .fbx e .obj e exporta em GLB (Arquivo > Exportar > glTF 2.0 > glTF Binary). Gratuito.": "Opens .blend, .fbx and .obj and exports as GLB (File > Export > glTF 2.0 > glTF Binary). Free.",
   "Importa e exporta .vrm no Blender. Confira na página quais versões do Blender ele aceita.": "Imports and exports .vrm in Blender. Check the page for which Blender versions it supports.",
-  "Reduz texturas e otimiza um .glb pela linha de comando. Teste com o seu arquivo e valide de novo aqui.": "Reduces textures and optimizes a .glb from the command line. Test with your file and validate again here."
+  "Reduz texturas e otimiza um .glb pela linha de comando. Teste com o seu arquivo e valide de novo aqui.": "Reduces textures and optimizes a .glb from the command line. Test with your file and validate again here.",
+  "Avatar soletrando com as mãos": "Avatar spelling with its hands",
+  "Avisos sobre a soletração": "Notices about the spelling",
+  "Este modelo não tem braços articulados: a soletração fica indisponível.": "This model has no articulated arms: spelling is unavailable.",
+  "Este modelo não tem dedos articulados: a soletração fica indisponível.": "This model has no articulated fingers: spelling is unavailable.",
+  "Fora do tempo máximo da fala: não soletrada": "Over the maximum time for the speech: not spelled",
+  "letra com movimento: aproximada": "letter with movement: approximate",
+  "Números não são soletrados": "Numbers are not spelled",
+  "Os ossos deste modelo não têm nomes reconhecíveis: a soletração fica indisponível.": "This model's bones have no recognisable names: spelling is unavailable.",
+  "Palavra de uma letra: não soletrada": "One-letter word: not spelled",
+  "Poses de DEMONSTRAÇÃO: ainda NÃO revisadas por pessoas surdas": "DEMONSTRATION poses: NOT yet reviewed by deaf people",
+  "Sem letras para soletrar": "No letters to spell",
+  "Sem modelo carregado: a soletração fica indisponível.": "No model loaded: spelling is unavailable.",
+  "Só nomes próprios são soletrados": "Only proper names are spelled",
+  "Soletração do alfabeto manual: não é tradução para Libras": "Manual alphabet spelling: this is not a translation into Libras",
+  "Tem sinal gravado: não soletrada": "Has a recorded sign: not spelled"
 }

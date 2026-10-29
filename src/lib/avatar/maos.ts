@@ -273,8 +273,12 @@ interface Quadro {
 }
 
 const radDe = Math.PI / 180;
-/** Ângulo (graus) do polegar de repouso no plano da palma, medido de F0 em torno de gTh. Referência: Quaternius. */
-export const POLEGAR_REFERENCIA_NO_PLANO = 0;
+/**
+ * Ângulo (graus) do polegar de repouso no plano da palma, medido de F0 em torno de gTh, no rig em que os dados
+ * foram autorados (Quaternius UBC, medido com este mesmo código num GLB real: -18,26; elevação 27,7). Os dados
+ * de `cmc_flex` valem a partir desta direção; em outro rig soma-se a diferença (`offsetCmcFlex`).
+ */
+export const POLEGAR_REFERENCIA_NO_PLANO = -18.26;
 
 function prepararMao(o: OssosDaMao, quadro: Quadro): MaoPronta {
   const sign = o.lado === 'R' ? 1 : -1;
@@ -580,16 +584,22 @@ export function filtrarClipe(clip: AnimationClip, nomes: readonly string[]): Ani
 }
 
 /**
- * Enquadramento "só mãos": mira o espaço de soletração (altura do ombro, à frente do peito) e mostra ~46% da altura
- * do modelo, de modo a caber as mãos com os dedos para cima. Combine com `ocultarCabeca` para não aparecer rosto.
+ * Enquadramentos da soletração, em função da altura do modelo: `corpo` mostra cabeça e mãos (~50% da altura);
+ * `maos` é mais fechado no espaço de soletração (altura do ombro, à frente do peito, ~32% da altura). Combine
+ * `maos` com `ocultarCabeca` para não aparecer rosto.
  */
-export function enquadramentoDasMaos(ctl: ControleDeMaos): {
-  alvo: { x: number; y: number; z: number };
-  altura: number;
-} {
+export function enquadramentoDaSoletracao(
+  ctl: ControleDeMaos,
+  modo: 'corpo' | 'maos',
+  lado: LadoDaMao = 'R',
+): { alvo: { x: number; y: number; z: number }; altura: number } {
+  const ombro = wpos(ctl.ossos[lado].braco);
   const meio = wpos(ctl.ossos.R.braco).add(wpos(ctl.ossos.L.braco)).multiplyScalar(0.5);
   const h = ctl.alturaDoModelo;
-  return { alvo: { x: meio.x, y: meio.y - 0.02 * h, z: meio.z }, altura: 0.46 * h };
+  // `maos` desloca a mira para o lado da mão que sinaliza (G, H e M apontam para fora do ombro)
+  return modo === 'maos'
+    ? { alvo: { x: meio.x + (ombro.x - meio.x) * 0.7, y: meio.y - 0.01 * h, z: meio.z }, altura: 0.36 * h }
+    : { alvo: { x: meio.x, y: meio.y - 0.04 * h, z: meio.z }, altura: 0.5 * h };
 }
 
 const ESCALA_ORIGINAL = new WeakMap<Object3D, Vector3>();

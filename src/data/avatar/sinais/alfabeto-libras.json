@@ -56,14 +56,14 @@
       "fidelidade": "media",
       "movimento": false,
       "movimento_descricao": null,
-      "obs": "Dedos juntos e polegar cruzando a palma; o polegar fica mais baixo na palma do que na referência. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "obs": "M4b: polegar atravessa a palma (cmc_flex 105, mcp 35, ip 25); a ponta ainda fica mais baixa que na referência, sem colisão com a palma.",
       "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
       "mao": {
         "polegar": {
-          "cmc_flex": 100,
-          "cmc_abd": -6,
-          "mcp": 0,
-          "ip": 0,
+          "cmc_flex": 105,
+          "cmc_abd": -3,
+          "mcp": 35,
+          "ip": 25,
           "oposicao": -15
         },
         "indicador": {
@@ -200,37 +200,37 @@
       "fidelidade": "baixa",
       "movimento": false,
       "movimento_descricao": null,
-      "obs": "Mão fechada com polegar por baixo, mas os dedos ficam mais abertos que na referência; difícil distinguir de A e S. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "obs": "M4b: dedos em garra (mcp 62, pip 98) sobre o polegar cruzado por baixo; ainda difícil de distinguir de A e S de frente, as pontas não encostam no polegar (sem colisão).",
       "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
       "mao": {
         "polegar": {
-          "cmc_flex": 70,
-          "cmc_abd": 0,
-          "mcp": 28,
-          "ip": 22,
-          "oposicao": 15
+          "cmc_flex": 82,
+          "cmc_abd": 2,
+          "mcp": 38,
+          "ip": 30,
+          "oposicao": 10
         },
         "indicador": {
-          "mcp": 70,
-          "pip": 105,
+          "mcp": 62,
+          "pip": 98,
           "dip": null,
           "abd": 0
         },
         "medio": {
-          "mcp": 72,
-          "pip": 105,
+          "mcp": 62,
+          "pip": 98,
           "dip": null,
           "abd": 0
         },
         "anelar": {
-          "mcp": 74,
-          "pip": 105,
+          "mcp": 62,
+          "pip": 98,
           "dip": null,
           "abd": 0
         },
         "minimo": {
-          "mcp": 76,
-          "pip": 105,
+          "mcp": 62,
+          "pip": 98,
           "dip": null,
           "abd": 0
         }
@@ -946,15 +946,15 @@
       "fidelidade": "baixa",
       "movimento": false,
       "movimento_descricao": null,
-      "obs": "O polegar entre indicador e médio não aparece de frente. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "obs": "M4b: polegar erguido entre indicador e médio (cmc_abd 14); a abertura entre os dedos é pequena e o polegar atravessa a malha dos dedos (sem colisão).",
       "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
       "mao": {
         "polegar": {
-          "cmc_flex": 45,
-          "cmc_abd": -3,
-          "mcp": 30,
-          "ip": 25,
-          "oposicao": 10
+          "cmc_flex": 42,
+          "cmc_abd": 14,
+          "mcp": 8,
+          "ip": 0,
+          "oposicao": 0
         },
         "indicador": {
           "mcp": 88,

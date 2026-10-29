@@ -10,19 +10,33 @@ import { useSyncExternalStore } from 'react';
 
 import type { EstadoDoAvatar } from '../../core/avatar/estados';
 import type { LadoDaConversa } from '../../core/avatar/interprete';
+import type { DecisaoDeSoletracao } from '../../core/avatar/sinais/soletracaoDoInterprete';
 import type { FonteDaBoca } from './renderer';
+
+/**
+ * A soletração ligada no Intérprete (as duas flags, a opção e o modelo com dedos): o PiP mostra os dois avisos fixos e,
+ * quando há um nome a soletrar, o avatar das mãos no lugar do círculo. Ausente = o PiP é o de sempre.
+ */
+export interface SoletracaoNoPip {
+  camera: 'corpo' | 'maos';
+  decisao: DecisaoDeSoletracao;
+  /** A fala em voz agora (`null` = a voz parou). */
+  itemId: string | null;
+}
 
 export interface AvatarDoPip {
   ativo: boolean;
   estados: Record<LadoDaConversa, EstadoDoAvatar>;
   /** A boca da fala em curso (de quem fala). */
   boca: FonteDaBoca | null;
+  soletracao?: SoletracaoNoPip | null;
 }
 
 export const SEM_AVATAR_NO_PIP: AvatarDoPip = Object.freeze({
   ativo: false,
   estados: Object.freeze({ meu: 'parado', outro: 'parado' }),
   boca: null,
+  soletracao: null,
 }) as AvatarDoPip;
 
 let atual: AvatarDoPip = SEM_AVATAR_NO_PIP;
@@ -30,7 +44,11 @@ const ouvintes = new Set<() => void>();
 
 function iguais(a: AvatarDoPip, b: AvatarDoPip): boolean {
   return (
-    a.ativo === b.ativo && a.boca === b.boca && a.estados.meu === b.estados.meu && a.estados.outro === b.estados.outro
+    a.ativo === b.ativo &&
+    a.boca === b.boca &&
+    a.estados.meu === b.estados.meu &&
+    a.estados.outro === b.estados.outro &&
+    (a.soletracao ?? null) === (b.soletracao ?? null)
   );
 }
 

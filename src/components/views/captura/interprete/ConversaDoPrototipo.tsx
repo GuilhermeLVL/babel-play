@@ -74,6 +74,8 @@ export interface MetadeDaConversa {
   atalho?: string;
   /** O avatar desta metade (atrás da flag `avatar_3d`): só imagem, ao lado do idioma. Ausente = a metade é a de sempre. */
   avatar?: ReactNode;
+  /** A soletração do avatar-intérprete (flag `avatar_sinais`): os avisos fixos e as mãos, embaixo do idioma. */
+  soletracao?: ReactNode;
 }
 
 /** Os avatares da conversa: o botão da faixa e o painel (que abre o seletor de voz que já existe). */
@@ -403,6 +405,7 @@ export default function ConversaDoPrototipo({
       ) : (
         idiomaDaMetade(m)
       )}
+      {m.soletracao}
       <div className="int-frase" aria-live="polite">
         {frase(m)}
       </div>

@@ -197,7 +197,11 @@ export default function ModoInterprete({
     estadoDaTela().trocados ? { ...ESTADO_DA_TELA, trocados: true } : ESTADO_DA_TELA,
   );
   /* OS AVATARES (atrás da flag `avatar_3d`; sem ela este hook é inerte e a tela é a de sempre). */
-  const avatares = useAvataresDoInterprete({ estado, layout });
+  const avatares = useAvataresDoInterprete({
+    estado,
+    layout,
+    idiomaDaOutra: idiomasDaConversa.outro || estado.detectado,
+  });
   const ponteDoAvatar = avatares.ponte;
   const destravarDoAvatar = avatares.destravar;
   const velocidadeRef = useRef(velocidade);
@@ -563,8 +567,10 @@ export default function ModoInterprete({
         break;
       }
     const avatar = avatares.doLado(lado);
+    const soletracao = avatares.soletracaoDoLado(lado);
     return {
       ...(avatar ? { avatar } : {}),
+      ...(soletracao ? { soletracao } : {}),
       lado,
       dono: donoDe(lado),
       lang: d.direcao.fala,

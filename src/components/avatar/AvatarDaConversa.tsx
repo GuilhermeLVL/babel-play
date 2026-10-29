@@ -53,6 +53,24 @@ export interface AvatarDaConversaProps {
  * intérprete (um modelo da coleção curada diferente do dela). Emoção neutra: a emoção por frase é do marco M5.
  * É SÓ IMAGEM e fica ao lado do texto; quem lê e ouve a conversa nunca depende dele.
  */
+/** A receita do avatar de um dono: a da pessoa (`meu`) ou a do avatar-intérprete (`outro`). `null` sem coleção. */
+export function useReceitaDoDono(dono: 'meu' | 'outro'): ReceitaDeAvatar | null {
+  const { perfil } = usePerfil();
+  const salva = useReceitaDaPessoa(perfil?.id);
+  const padraoDaPessoa = modeloPadraoDaPessoa(IDS_DA_COLECAO);
+  const idDaPessoa = salva ? (salva.base.origem === 'colecao' ? salva.base.id : null) : padraoDaPessoa;
+  return useMemo<ReceitaDeAvatar | null>(() => {
+    if (dono === 'meu') {
+      if (salva) return salva;
+      return padraoDaPessoa
+        ? receitaNova({ origem: 'colecao', id: padraoDaPessoa }, perfil?.displayName?.slice(0, 40) || t('Você'), 0)
+        : null;
+    }
+    const id = modeloDoInterprete(idDaPessoa, IDS_DA_COLECAO);
+    return id ? receitaNova({ origem: 'colecao', id }, t('Intérprete'), 0) : null;
+  }, [dono, salva, idDaPessoa, padraoDaPessoa, perfil?.displayName]);
+}
+
 export default function AvatarDaConversa({
   dono,
   estado,
@@ -64,19 +82,7 @@ export default function AvatarDaConversa({
   aoSessao,
 }: AvatarDaConversaProps) {
   const { perfil } = usePerfil();
-  const salva = useReceitaDaPessoa(perfil?.id);
-  const padraoDaPessoa = modeloPadraoDaPessoa(IDS_DA_COLECAO);
-  const idDaPessoa = salva ? (salva.base.origem === 'colecao' ? salva.base.id : null) : padraoDaPessoa;
-  const receita = useMemo<ReceitaDeAvatar | null>(() => {
-    if (dono === 'meu') {
-      if (salva) return salva;
-      return padraoDaPessoa
-        ? receitaNova({ origem: 'colecao', id: padraoDaPessoa }, perfil?.displayName?.slice(0, 40) || t('Você'), 0)
-        : null;
-    }
-    const id = modeloDoInterprete(idDaPessoa, IDS_DA_COLECAO);
-    return id ? receitaNova({ origem: 'colecao', id }, t('Intérprete'), 0) : null;
-  }, [dono, salva, idDaPessoa, padraoDaPessoa, perfil?.displayName]);
+  const receita = useReceitaDoDono(dono);
   const pecasDaReceita = useMemo(
     () =>
       dono === 'meu' && receita && receita.pecas.length > 0

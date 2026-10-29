@@ -8,7 +8,16 @@ import {
   type TamanhoDoAvatar,
   TAMANHOS_DO_AVATAR,
 } from '../../../../core/avatar/interprete';
+import {
+  type EscolhaDeAlfabeto,
+  ESCOLHAS_DE_ALFABETO,
+  type MotivoDoPainel,
+  type RitmoDaSoletracao,
+  RITMOS_DA_SOLETRACAO,
+  type SuporteDoInterprete,
+} from '../../../../core/avatar/sinais/soletracaoDoInterprete';
 import { t } from '../../../../lib/i18n';
+import AvisosDaSoletracao from '../../../avatar/AvisosDaSoletracao';
 
 const ROTULO_DE_QUEM: Record<QuemAparece, () => string> = {
   ambos: () => t('Eu e o intérprete'),
@@ -27,6 +36,25 @@ const NOME_DE_TAMANHO: Record<TamanhoDoAvatar, () => string> = {
   g: () => t('Grande'),
 };
 
+const ROTULO_DE_ALFABETO: Record<EscolhaDeAlfabeto, () => string> = {
+  auto: () => t('Automático (pelo idioma da outra pessoa)'),
+  libras: () => t('Libras'),
+  asl: () => t('ASL'),
+};
+const ROTULO_DE_RITMO: Record<RitmoDaSoletracao, () => string> = {
+  lenta: () => t('Lenta'),
+  normal: () => t('Normal'),
+  rapida: () => t('Rápida'),
+};
+const MOTIVO_DO_PAINEL: Record<MotivoDoPainel, () => string> = {
+  sem_dedos: () => t('Este avatar não tem dedos articulados.'),
+  sem_braco: () => t('Este avatar não tem braços articulados.'),
+  sem_ossos_reconheciveis: () => t('Os ossos deste avatar não têm nomes reconhecíveis.'),
+  sem_modelo: () => t('O avatar ainda não carregou.'),
+  sem_3d: () => t('Este aparelho não mostra o avatar em 3D.'),
+  sem_interprete: () => t('Escolha "Eu e o intérprete" ou "Só o intérprete" em Quem aparece.'),
+};
+
 /**
  * "AVATARES DA CONVERSA": quem aparece, o tamanho, rosto ou mãos, modo economia e a voz. Folha pequena sobre a
  * conversa, com foco que entra e volta, Esc que fecha e controles nativos (rádio e caixa), lidos por qualquer leitor
@@ -37,6 +65,7 @@ export default function PainelDosAvatares({
   aoMudar,
   aoFechar,
   sinaisLigada,
+  suporte,
   sem3d,
   aoEscolherVoz,
 }: {
@@ -45,12 +74,22 @@ export default function PainelDosAvatares({
   aoFechar: () => void;
   /** A flag `avatar_sinais`: sem ela, "só mãos" fica desabilitado. */
   sinaisLigada: boolean;
+  /** O avatar-intérprete tem dedos e braços articulados? Só então "Só mãos" e a soletração valem. */
+  suporte: SuporteDoInterprete;
   /** O aparelho não tem WebGL2: os avatares aparecem como foto ou iniciais. */
   sem3d: boolean;
   /** Abre o seletor de voz que já existe (ausente onde a conversa não tem voz a escolher). */
   aoEscolherVoz?: (() => void) | undefined;
 }) {
   const primeiro = useRef<HTMLInputElement>(null);
+  const disponivel = sinaisLigada && suporte.estado === 'sim';
+  const motivoDoSuporte =
+    sinaisLigada && suporte.estado === 'nao'
+      ? MOTIVO_DO_PAINEL[suporte.motivo]()
+      : sinaisLigada && suporte.estado === 'verificando'
+        ? t('Verificando o avatar…')
+        : null;
+  const soletrando = disponivel && prefs.soletrar;
   const aoFecharRef = useRef(aoFechar);
   aoFecharRef.current = aoFechar;
   useEffect(() => {
@@ -144,7 +183,7 @@ export default function PainelDosAvatares({
         <fieldset className="int-av-grupo">
           <legend>{t('O que mostrar')}</legend>
           {(['rosto', 'maos'] as const satisfies readonly FocoDoAvatar[]).map((f) => {
-            const desabilitado = f === 'maos' && !sinaisLigada;
+            const desabilitado = f === 'maos' && !disponivel;
             return (
               <label key={f} className="int-av-opcao" data-desabilitado={desabilitado ? '' : undefined}>
                 <input
@@ -160,7 +199,75 @@ export default function PainelDosAvatares({
             );
           })}
           {!sinaisLigada && <p className="int-av-nota">{t('Só mãos ainda não está disponível.')}</p>}
+          {motivoDoSuporte && (
+            <p className="int-av-nota" data-testid="avatar-maos-motivo">
+              {motivoDoSuporte}
+            </p>
+          )}
         </fieldset>
+
+        {sinaisLigada && (
+          <fieldset className="int-av-grupo" data-testid="avatar-soletracao-grupo">
+            <legend>{t('Soletração')}</legend>
+            <label className="int-av-opcao int-av-linha" data-desabilitado={disponivel ? undefined : ''}>
+              <input
+                type="checkbox"
+                checked={soletrando}
+                disabled={!disponivel}
+                onChange={(e) => aoMudar({ soletrar: e.target.checked })}
+                data-testid="avatar-soletrar"
+              />
+              <span>{t('Soletrar nomes e palavras sem sinal')}</span>
+            </label>
+            {motivoDoSuporte && (
+              <p className="int-av-nota" data-testid="avatar-soletrar-motivo">
+                {motivoDoSuporte}
+              </p>
+            )}
+            {soletrando && (
+              <>
+                <div className="int-av-sub" role="radiogroup" aria-label={t('Alfabeto manual')}>
+                  {ESCOLHAS_DE_ALFABETO.map((a) => (
+                    <label key={a} className="int-av-opcao">
+                      <input
+                        type="radio"
+                        name="avatar-alfabeto"
+                        checked={prefs.alfabeto === a}
+                        onChange={() => aoMudar({ alfabeto: a })}
+                        data-testid={`avatar-alfabeto-${a}`}
+                      />
+                      <span>{ROTULO_DE_ALFABETO[a]()}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="int-av-sub" role="radiogroup" aria-label={t('Velocidade da soletração')}>
+                  {RITMOS_DA_SOLETRACAO.map((r) => (
+                    <label key={r} className="int-av-opcao">
+                      <input
+                        type="radio"
+                        name="avatar-ritmo"
+                        checked={prefs.ritmo === r}
+                        onChange={() => aoMudar({ ritmo: r })}
+                        data-testid={`avatar-ritmo-${r}`}
+                      />
+                      <span>{ROTULO_DE_RITMO[r]()}</span>
+                    </label>
+                  ))}
+                </div>
+                <label className="int-av-opcao int-av-linha">
+                  <input
+                    type="checkbox"
+                    checked={prefs.espelhar}
+                    onChange={(e) => aoMudar({ espelhar: e.target.checked })}
+                    data-testid="avatar-espelhar"
+                  />
+                  <span>{t('Mão esquerda (espelhar, para canhotos)')}</span>
+                </label>
+                <AvisosDaSoletracao />
+              </>
+            )}
+          </fieldset>
+        )}
 
         <label className="int-av-opcao int-av-linha">
           <input

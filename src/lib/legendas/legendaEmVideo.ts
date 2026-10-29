@@ -42,6 +42,11 @@ export interface QuadroDaLegenda {
    * horizontais (`faixa`, `legenda`); no alto, centrado, no `conversa` (vertical). O `estudo` fica sem avatar.
    */
   avatar?: { lado: number };
+  /**
+   * A soletração do avatar está ligada (flag `avatar_sinais`): o aviso curto fixo, desenhado SEMPRE no canto de cima do
+   * quadro ("Demonstração · não é tradução"). Ausente = o quadro é o de sempre.
+   */
+  avisoDaSoletracao?: string;
   /** Os textos da moldura, já traduzidos para a interface (`t()` fica com quem chama). */
   textos: { vazio: string; pausada: string };
 }
@@ -189,7 +194,8 @@ export function desenharQuadro(ctx: CanvasRenderingContext2D, q: QuadroDaLegenda
       return linhas;
     });
     const espacoEntre = q.formato === 'conversa' ? tamO * 0.7 : tamO * 0.45;
-    let y = H - margem * 0.7;
+    let y =
+      H - margem * 0.7 - (q.avisoDaSoletracao && q.formato === 'conversa' ? Math.max(20, tamQ * 0.9) * 1.6 + 10 : 0);
     /* A glosa mora no pé do quadro, com um ponto à esquerda; a legenda sobe para dar lugar a ela. */
     if (q.glosa) {
       const tamG = Math.round(tamO * 0.56);
@@ -235,6 +241,23 @@ export function desenharQuadro(ctx: CanvasRenderingContext2D, q: QuadroDaLegenda
       ctx.globalAlpha = 1;
       y -= alturaDoBloco + espacoEntre;
     }
+  }
+
+  if (q.avisoDaSoletracao) {
+    const tam = Math.round(Math.max(20, tamQ * 0.9));
+    ctx.font = `800 ${tam}px ${FONTE}`;
+    ctx.textAlign = 'left';
+    const w = ctx.measureText(q.avisoDaSoletracao).width + tam;
+    const h = tam * 1.6;
+    /* No vertical (`conversa`) o avatar ocupa o alto: o aviso vai no pé, centrado. Nos horizontais, o avatar fica à
+       esquerda e o aviso no canto de cima, à direita (abaixo do selo de pausa, se houver). */
+    const x0 = q.formato === 'conversa' ? (W - w) / 2 : W - w - 16;
+    const y0 = q.formato === 'conversa' ? H - h - 10 : 14 + (q.pausado ? Math.max(22, tamQ) * 1.6 + 8 : 0);
+    ctx.fillStyle = '#ffd23f';
+    ctx.fillRect(x0, y0, w, h);
+    ctx.fillStyle = '#2a1e00';
+    ctx.fillText(q.avisoDaSoletracao, x0 + tam / 2, y0 + tam * 1.15);
+    ctx.textAlign = centro ? 'center' : 'left';
   }
 
   if (q.pausado) {

@@ -10,9 +10,11 @@ import { carregarSinais, type DadosDeSinais } from '../../data/avatar/sinais/car
 import type { MotivoDoFallback } from '../../lib/avatar/fallback2d';
 import type { ControleDeMaos, MotivoSemSinais } from '../../lib/avatar/maos';
 import type { SessaoDeAvatar } from '../../lib/avatar/motor';
+import type { JanelaDoMotor } from '../../lib/avatar/renderer';
 import { t } from '../../lib/i18n';
 import { movimentoReduzido } from '../../lib/movimento/reduzido';
 import AvatarCanvas from './AvatarCanvas';
+import { useAvisosFixos } from './AvisosDaSoletracao';
 
 export interface AvatarSinalizanteProps {
   /** O texto a soletrar. A legenda mostra SEMPRE o texto inteiro, soletrado ou não. */
@@ -47,78 +49,31 @@ export interface AvatarSinalizanteProps {
    */
   anunciar?: boolean;
   aoPalavra?: (indice: number) => void;
+  /**
+   * O que está sendo soletrado agora: a palavra (`null` entre palavras e no fim), a letra e quantas palavras do texto
+   * ficaram de fora. Quem monta a legenda por fora (`semLegenda`) mostra isto no lugar da legenda deste componente.
+   */
+  aoAtual?: (a: { palavra: string | null; letra: string; naoSoletradas: number }) => void;
+  /** Sem a letra grande nem a legenda: só o quadro com as mãos (quem monta mostra a palavra por fora, via `aoAtual`). */
+  semLegenda?: boolean;
   aoFim?: () => void;
   /** O modelo não consegue soletrar (sem dedos, ossos irreconhecíveis...): a UI de futuro esconde o recurso. */
   aoNaoSuportar?: (motivo: MotivoSemSinais) => void;
   aoErro?: (motivo: MotivoDoFallback | 'dados') => void;
   /** Para diagnóstico e teste: o controle dos ossos e a sequência vigente. */
   aoPronto?: (info: { sessao: SessaoDeAvatar; controle: ControleDeMaos; sequencia: Sequencia }) => void;
-}
-
-/**
- * AVISOS FIXOS e NÃO REMOVÍVEIS. São montados à mão no DOM (não pelo React) e um `MutationObserver` os recoloca se
- * alguém os tirar, esconder ou editar. Textos obrigatórios do produto (nenhum botão fecha, nada os esconde).
- */
-function avisosFixos(): Array<{ id: string; texto: string; estilo: string }> {
-  return [
-    {
-      id: 'nao-e-traducao',
-      texto: t('Soletração do alfabeto manual: não é tradução para Libras'),
-      estilo: 'background:#ffe08a;color:#2a1e00;border-bottom:2px solid #7a5600',
-    },
-    {
-      id: 'demonstracao',
-      texto: t('Poses de DEMONSTRAÇÃO: ainda NÃO revisadas por pessoas surdas'),
-      estilo: 'background:#ff9d8f;color:#2d0600;border-bottom:2px solid #8a1b0c',
-    },
-  ];
-}
-const ESTILO_DO_AVISO = 'display:block;padding:7px 12px;font-weight:700;font-size:13px;line-height:1.35;';
-
-/** O `style` que NÓS gravamos em cada nó (normalizado pelo navegador): qualquer outra coisa é adulteração. */
-const ESTILO_GRAVADO = new WeakMap<Element, string>();
-
-function defineSe(el: Element, atributo: string, valor: string): void {
-  if (el.getAttribute(atributo) !== valor) el.setAttribute(atributo, valor);
-}
-
-/** Idempotente: só escreve no DOM o que mudou (não dispara o próprio observador em laço). */
-function preencherAvisos(caixa: HTMLElement): void {
-  defineSe(caixa, 'data-avisos-fixos', '');
-  defineSe(caixa, 'role', 'group');
-  defineSe(caixa, 'aria-label', t('Avisos sobre a soletração'));
-  if (caixa.hasAttribute('hidden')) caixa.removeAttribute('hidden');
-  const estiloDaCaixa = 'display:block;position:relative;z-index:2;';
-  if (!ESTILO_GRAVADO.has(caixa) || caixa.getAttribute('style') !== ESTILO_GRAVADO.get(caixa)) {
-    caixa.setAttribute('style', estiloDaCaixa);
-    ESTILO_GRAVADO.set(caixa, caixa.getAttribute('style') ?? '');
-  }
-  const esperados = avisosFixos();
-  const intactos =
-    caixa.children.length === esperados.length &&
-    esperados.every((a, i) => {
-      const el = caixa.children[i];
-      return (
-        el?.getAttribute('data-aviso-fixo') === a.id &&
-        el.getAttribute('role') === 'note' &&
-        el.textContent === a.texto &&
-        el.children.length === 0 &&
-        el.getAttribute('style') === ESTILO_GRAVADO.get(el) &&
-        !el.hasAttribute('hidden')
-      );
-    });
-  if (intactos) return;
-  caixa.replaceChildren(
-    ...esperados.map((a) => {
-      const el = document.createElement('p');
-      el.setAttribute('data-aviso-fixo', a.id);
-      el.setAttribute('role', 'note');
-      el.setAttribute('style', `margin:0;${ESTILO_DO_AVISO}${a.estilo};`);
-      ESTILO_GRAVADO.set(el, el.getAttribute('style') ?? '');
-      el.textContent = a.texto;
-      return el;
-    }),
-  );
+  /**
+   * Quem monta mostra os DOIS AVISOS FIXOS por fora (`AvisosDaSoletracao`, ao lado deste componente). Só para a
+   * soletração dentro do Intérprete e do PiP, onde os avisos valem para a opção inteira e não só enquanto soletra.
+   * Padrão: o componente mostra os avisos ele mesmo.
+   */
+  avisosPorFora?: boolean;
+  /** Versão de janelinha: sem a letra grande, a legenda numa linha só (a palavra atual em destaque) e avisos menores. */
+  compacto?: boolean;
+  /** A janela do canvas, quando não é a página (Document PiP). */
+  janela?: JanelaDoMotor;
+  /** A sessão aberta (ou `null` ao fechar): a ponte do PiP de vídeo liga o `aoQuadro` do motor aqui. */
+  aoSessao?: (sessao: SessaoDeAvatar | null) => void;
 }
 
 const MOTIVO_DA_PALAVRA: Record<MotivoDeNaoSoletrar, () => string> = {
@@ -166,10 +121,16 @@ export default function AvatarSinalizante({
   soletrarUmaLetra = false,
   anunciar = false,
   aoPalavra,
+  aoAtual,
+  semLegenda = false,
   aoFim,
   aoNaoSuportar,
   aoErro,
   aoPronto,
+  avisosPorFora = false,
+  compacto = false,
+  janela,
+  aoSessao: aoSessaoDeFora,
 }: AvatarSinalizanteProps) {
   const raiz = useRef<HTMLElement>(null);
   const avisos = useRef<HTMLDivElement>(null);
@@ -185,32 +146,11 @@ export default function AvatarSinalizante({
   const reduzido = useMemo(() => movimentoReduzido(), []);
   const aoErroRef = useRef(aoErro);
   aoErroRef.current = aoErro;
-  const cbs = useRef({ aoPalavra, aoFim, aoNaoSuportar, aoPronto });
-  cbs.current = { aoPalavra, aoFim, aoNaoSuportar, aoPronto };
+  const cbs = useRef({ aoPalavra, aoAtual, aoFim, aoNaoSuportar, aoPronto });
+  cbs.current = { aoPalavra, aoAtual, aoFim, aoNaoSuportar, aoPronto };
 
-  // avisos fixos: montados à mão e recolocados se alguém os remover ou editar
-  useEffect(() => {
-    const caixa = avisos.current;
-    const host = raiz.current;
-    if (!caixa || !host) return;
-    preencherAvisos(caixa);
-    let ocupado = false;
-    const obs: MutationObserver = new MutationObserver(() => garantir());
-    const garantir = () => {
-      if (ocupado) return;
-      ocupado = true;
-      try {
-        if (!host.contains(caixa)) host.prepend(caixa);
-        preencherAvisos(caixa);
-      } finally {
-        ocupado = false;
-        obs.takeRecords(); // descarta o que nós mesmos acabamos de escrever
-      }
-    };
-    obs.observe(caixa, { childList: true, subtree: true, characterData: true, attributes: true });
-    obs.observe(host, { childList: true });
-    return () => obs.disconnect();
-  }, []);
+  // avisos fixos: montados à mão e recolocados se alguém os remover ou editar (a menos que o dono os mostre por fora)
+  useAvisosFixos(avisos, raiz, compacto);
 
   // largura disponível
   useEffect(() => {
@@ -320,6 +260,11 @@ export default function AvatarSinalizante({
       if (am.palavra !== ultima.palavra || am.passo !== ultima.passo) {
         const p = am.passo >= 0 && am.palavra >= 0 ? seq.passos[am.passo] : null;
         setAtual({ palavra: am.palavra, letra: p?.letra ?? '', mov: p?.movimento ?? false });
+        cbs.current.aoAtual?.({
+          palavra: p ? (seq.palavras[am.palavra]?.texto ?? null) : null,
+          letra: p?.letra ?? '',
+          naoSoletradas: seq.palavras.filter((w) => w.estado === 'nao_soletrada').length,
+        });
         if (am.palavra !== ultima.palavra && am.palavra >= 0) cbs.current.aoPalavra?.(am.palavra);
       }
       // movimento reduzido: o laço só desenha quando algo muda; pede quadro na troca de pose
@@ -329,6 +274,11 @@ export default function AvatarSinalizante({
       if (!terminou && inicio.current !== null && tempoFixoMs === undefined && ms >= seq.duracaoMs) {
         terminou = true;
         setAtual({ palavra: -1, letra: '', mov: false });
+        cbs.current.aoAtual?.({
+          palavra: null,
+          letra: '',
+          naoSoletradas: seq.palavras.filter((w) => w.estado === 'nao_soletrada').length,
+        });
         cbs.current.aoFim?.();
         motor.invalidar();
       }
@@ -348,11 +298,16 @@ export default function AvatarSinalizante({
       cbs.current.aoPronto?.({ sessao, controle: controle.current, sequencia });
   }, [sessao, sequencia, controlePronto]);
 
-  const aoSessao = useCallback((s: SessaoDeAvatar | null) => setSessao(s), []);
+  const aoSessaoDeForaRef = useRef(aoSessaoDeFora);
+  aoSessaoDeForaRef.current = aoSessaoDeFora;
+  const aoSessao = useCallback((s: SessaoDeAvatar | null) => {
+    setSessao(s);
+    aoSessaoDeForaRef.current?.(s);
+  }, []);
 
   const pele = corDaPaleta('pele', receita.paleta.pele)?.hex ?? null;
   const contraste = altoContraste ? fundoDeAltoContraste(pele) : null;
-  const lado = Math.max(120, Math.min(tamanho, largura || tamanho));
+  const lado = Math.max(compacto ? 64 : 120, Math.min(tamanho, largura || tamanho));
   const palavras = sequencia?.palavras ?? null;
   const estado = !sequencia ? 'carregando' : semSinais ? 'indisponivel' : atual.palavra >= 0 ? 'soletrando' : 'parado';
 
@@ -375,7 +330,7 @@ export default function AvatarSinalizante({
       data-sinais-contraste={contraste ? contraste.razao.toFixed(2) : undefined}
       style={{ width: '100%', maxWidth: tamanho + 8, position: 'relative' }}
     >
-      <div ref={avisos} />
+      {!avisosPorFora && <div ref={avisos} />}
       <div style={caixaDoAvatar} data-sinais-palco>
         <AvatarCanvas
           receita={receita}
@@ -386,6 +341,7 @@ export default function AvatarSinalizante({
           fonte={fonte}
           aoErro={(m) => aoErroRef.current?.(m)}
           aoSessao={aoSessao}
+          {...(janela ? { janela } : {})}
         />
       </div>
       {semSinais && (
@@ -393,51 +349,76 @@ export default function AvatarSinalizante({
           {MOTIVO_SEM_SINAIS[semSinais]()}
         </p>
       )}
-      <div
-        data-sinais-letra-atual
-        aria-hidden="true"
-        style={{ minHeight: 40, display: 'flex', alignItems: 'baseline', gap: 10, padding: '4px 0' }}
-      >
-        <strong style={{ fontSize: 32, lineHeight: 1 }}>{atual.letra}</strong>
-        {atual.mov && <small>{t('letra com movimento: aproximada')}</small>}
-      </div>
-      <p
-        data-sinais-legenda
-        aria-live={anunciar ? 'polite' : 'off'}
-        aria-label={t('Legenda')}
-        style={{ margin: 0, fontSize: 18, lineHeight: 1.5, wordBreak: 'break-word' }}
-      >
-        {palavras && palavras.length
-          ? palavras.map((p, i) => {
-              const ativa = p.indice === atual.palavra;
-              const motivo = p.estado === 'nao_soletrada' && p.motivo ? MOTIVO_DA_PALAVRA[p.motivo]() : undefined;
-              return (
-                <span key={`${p.indice}-${p.texto}`}>
-                  {i > 0 ? ' ' : ''}
-                  <span
-                    data-palavra={p.indice}
-                    data-palavra-estado={p.estado}
-                    data-palavra-atual={ativa || undefined}
-                    aria-current={ativa ? 'true' : undefined}
-                    title={motivo}
-                    style={{
-                      padding: '0 3px',
-                      borderRadius: 4,
-                      fontWeight: ativa ? 800 : 400,
-                      textDecoration: ativa ? 'underline' : p.estado === 'nao_soletrada' ? 'underline dotted' : 'none',
-                      textUnderlineOffset: 3,
-                      background: ativa ? (claro ? '#ffd23f' : '#6fd3a8') : 'transparent',
-                      color: ativa ? '#101010' : 'inherit',
-                      outline: ativa ? '2px solid currentColor' : 'none',
-                    }}
-                  >
-                    {p.texto}
-                  </span>
-                </span>
-              );
-            })
-          : texto}
-      </p>
+      {!semLegenda && (
+        <>
+          {!compacto && (
+            <div
+              data-sinais-letra-atual
+              aria-hidden="true"
+              style={{ minHeight: 40, display: 'flex', alignItems: 'baseline', gap: 10, padding: '4px 0' }}
+            >
+              <strong style={{ fontSize: 32, lineHeight: 1 }}>{atual.letra}</strong>
+              {atual.mov && <small>{t('letra com movimento: aproximada')}</small>}
+            </div>
+          )}
+          <p
+            data-sinais-legenda
+            aria-live={anunciar ? 'polite' : 'off'}
+            aria-label={t('Legenda')}
+            style={
+              compacto
+                ? {
+                    margin: 0,
+                    fontSize: 14,
+                    lineHeight: 1.4,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    textAlign: 'center',
+                  }
+                : { margin: 0, fontSize: 18, lineHeight: 1.5, wordBreak: 'break-word' }
+            }
+          >
+            {palavras && palavras.length
+              ? (compacto && palavras.some((p) => p.estado === 'soletrada')
+                  ? palavras.filter((p) => p.estado === 'soletrada')
+                  : palavras
+                ).map((p, i) => {
+                  const ativa = p.indice === atual.palavra;
+                  const motivo = p.estado === 'nao_soletrada' && p.motivo ? MOTIVO_DA_PALAVRA[p.motivo]() : undefined;
+                  return (
+                    <span key={`${p.indice}-${p.texto}`}>
+                      {i > 0 ? ' ' : ''}
+                      <span
+                        data-palavra={p.indice}
+                        data-palavra-estado={p.estado}
+                        data-palavra-atual={ativa || undefined}
+                        aria-current={ativa ? 'true' : undefined}
+                        title={motivo}
+                        style={{
+                          padding: '0 3px',
+                          borderRadius: 4,
+                          fontWeight: ativa ? 800 : 400,
+                          textDecoration: ativa
+                            ? 'underline'
+                            : p.estado === 'nao_soletrada'
+                              ? 'underline dotted'
+                              : 'none',
+                          textUnderlineOffset: 3,
+                          background: ativa ? (claro ? '#ffd23f' : '#6fd3a8') : 'transparent',
+                          color: ativa ? '#101010' : 'inherit',
+                          outline: ativa ? '2px solid currentColor' : 'none',
+                        }}
+                      >
+                        {p.texto}
+                      </span>
+                    </span>
+                  );
+                })
+              : texto}
+          </p>
+        </>
+      )}
     </section>
   );
 }

@@ -101,7 +101,9 @@ export default function LegendaEmVideo({
 
   /* O AVATAR no quadro do vídeo (flag `avatar_3d`, só nos formatos horizontais): a ponte copia o canvas WebGL oculto. */
   const flagDoAvatar = useFlag(FLAG_AVATAR_3D);
-  const avatarPublicado = useAvatarDoPip().ativo;
+  const doPip = useAvatarDoPip();
+  const avatarPublicado = doPip.ativo;
+  const soletracaoLigada = !!doPip.soletracao;
   const comAvatar = flagDoAvatar && avatarPublicado && formato !== 'estudo';
   const ladoDoAvatar = ladoDoAvatarNoQuadro(formato, DIMENSOES_DO_QUADRO[formato]);
 
@@ -114,6 +116,7 @@ export default function LegendaEmVideo({
     pausado: seloDePausa,
     ...(glosa ? { glosa } : {}),
     ...(comAvatar && aberta ? { avatar: { lado: ladoDoAvatar } } : {}),
+    ...(comAvatar && aberta && soletracaoLigada ? { avisoDaSoletracao: t('Demonstração · não é tradução') } : {}),
     textos: { vazio: t('Esperando a primeira fala'), pausada: t('Pausada') },
   };
   /* O controlador compara a chave e só pinta o que mudou. */

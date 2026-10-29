@@ -75,7 +75,7 @@ import { livroParaOMotor } from '../../../lib/livros/fontesDoLivro';
 import { idRemotoDoLivro } from '../../../lib/livros/idRemoto';
 import { posicoes } from '../../../lib/livros/posicoesDoAparelho';
 import { perfilProtegido } from '../../../lib/protecaoDoMenor';
-import { speak } from '../../../lib/tts';
+import { getVoicePref, speak } from '../../../lib/tts';
 import { buildVocabWord, mtNoteFor, resolveWord } from '../../../lib/vocabWord';
 import { haVozPara } from '../../../lib/voz/haVoz';
 import { useVozesPreferidas, VOZ_DA_NUVEM, vozDaNuvemDisponivel, vozEmUso } from '../../../lib/voz/preferenciaDeVoz';
@@ -83,6 +83,7 @@ import { destravarVozDaNuvem } from '../../../lib/voz/vozDaNuvem';
 import type { VocabWord } from '../../../types';
 import { toast } from '../../Toast';
 import VocabularyPanel from '../../VocabularyPanel';
+import AvatarDoNarrador from './AvatarDoNarrador';
 import BarraDaSelecao, { type TrechoSelecionado } from './BarraDaSelecao';
 import BarraDoNarrador, { aoTeclarNoNarrador, PainelDaNarracao } from './BarraDoNarrador';
 import { etiquetaDaPalavra, HistoricoNaFolha } from './ganchosDaPalavra';
@@ -90,8 +91,10 @@ import PainelDaTraducao from './PainelDaTraducao';
 import PainelDeAnotacoes, { type FormatoDeExportacao } from './PainelDeAnotacoes';
 import PainelDeFerramentas, { type AbaDeIa, tituloDaAbaDeIa } from './PainelDeFerramentas';
 import PainelDeTipografia from './PainelDeTipografia';
+import PainelDoElenco from './PainelDoElenco';
 import PainelDoParceiro from './PainelDoParceiro';
 import PainelDoSumario from './PainelDoSumario';
+import { useElencoDoLivro } from './useElencoDoLivro';
 import { useFatosDasFerramentas } from './useFatosDasFerramentas';
 import { usePerfilDeLeitura } from './usePerfilDeLeitura';
 
@@ -228,6 +231,15 @@ export default function LeitorDoLivro({
   const repo = useMemo(() => anotacoesDoLivro(livroId), [livroId]);
   const idiomaRef = useRef('');
   idiomaRef.current = idioma || baseLang(langConfig.studying);
+  /* O ELENCO (flag `avatar_elenco`): voz por personagem e emoção por frase. Sem a flag nada disto age. */
+  const elenco = useElencoDoLivro({
+    livroId,
+    origem: guardado?.origem,
+    idiomaDoLivro: idiomaRef.current,
+    aoMudar: () => narradorRef.current?.definirElenco(),
+  });
+  const elencoRef = useRef(elenco);
+  elencoRef.current = elenco;
   const toqueEmAnotacao = useRef(0);
   const capituloRef = useRef('');
   capituloRef.current = local?.tocItem?.label?.trim() ?? '';
@@ -397,6 +409,7 @@ export default function LeitorDoLivro({
       escolheuNuvem: (idioma) => vozEmUso(idioma) === VOZ_DA_NUVEM,
       nuvemLiberada: () => ({ temDireito: getEntitlements().vozNatural, flagLigada: flagLigada(FLAG_VOZ_NATURAL) }),
       aoMudar: setVistaNarrador,
+      elenco: () => elencoRef.current.config(),
       aoNavegar: () => {
         ignorarToquesAte.current = Date.now() + 900;
       },
@@ -994,6 +1007,13 @@ export default function LeitorDoLivro({
                   aoConhecerPlanos={aoConhecerPlanos}
                 />
               )}
+              {painel === 'narracao' && (
+                <PainelDoElenco
+                  elenco={elenco}
+                  vozDoNarrador={getVoicePref(idiomaRef.current) ?? ''}
+                  nuvem={vozEmUso(idiomaRef.current) === VOZ_DA_NUVEM}
+                />
+              )}
               {painel === 'ia' && (
                 <PainelDeFerramentas
                   aba={iaAba}
@@ -1086,6 +1106,10 @@ export default function LeitorDoLivro({
               : undefined
           }
         />
+      )}
+
+      {narracaoAberta && elenco.disponivel && elenco.ligado && elenco.avatar && (
+        <AvatarDoNarrador vista={vistaNarrador} />
       )}
 
       {narracaoAberta && (

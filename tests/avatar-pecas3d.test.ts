@@ -19,6 +19,9 @@ const cabeca = (escala = 1): MedidasDaCabeca => ({
   olhosY: 0.1 * escala,
   olhosX: 0.032 * escala,
   meiaNaOrelha: 0.085 * escala,
+  yTesta: 0.16 * escala,
+  meiaNaTesta: 0.08 * escala,
+  meiaProfundidadeNaTesta: 0.095 * escala,
 })
 
 describe('geometria das peças', () => {
@@ -76,5 +79,35 @@ describe('geometria das peças', () => {
       return max - min
     }
     expect(largura(2) / largura(1)).toBeCloseTo(2, 3)
+  })
+
+  it('boné e chapéus escalam pela LARGURA DA CABEÇA NA TESTA, não pela largura máxima (cabeça cônica)', () => {
+    const larguraDe = (id: string, m: MedidasDaCabeca) => {
+      const partes = construirPartes(id, m)!
+      let max = -Infinity
+      let min = Infinity
+      for (const p of partes) {
+        p.geo.computeBoundingBox()
+        max = Math.max(max, p.geo.boundingBox!.max.x)
+        min = Math.min(min, p.geo.boundingBox!.min.x)
+      }
+      return max - min
+    }
+    const larga = cabeca()
+    // A mesma cabeça por fora (largura máxima igual), mas afunilada na testa (cone): a peça acompanha a testa.
+    const conica: MedidasDaCabeca = {
+      ...larga,
+      meiaNaTesta: larga.meiaNaTesta * 0.5,
+      meiaProfundidadeNaTesta: larga.meiaProfundidadeNaTesta * 0.5,
+    }
+    expect(conica.largura).toBe(larga.largura)
+    for (const id of ['bone', 'chapeu-simples', 'cartola']) {
+      const razao = larguraDe(id, conica) / larguraDe(id, larga)
+      // O chapéu tem aba (mais larga que a testa), então a razão fica entre 0,5 e ~0,6; o boné acompanha 1:1.
+      expect(razao, id).toBeLessThan(0.62)
+      expect(razao, id).toBeGreaterThan(0.45)
+    }
+    // E o boné veste a testa com folga pequena (8%), não a cabeça máxima.
+    expect(larguraDe('bone', larga)).toBeCloseTo(larga.meiaNaTesta * 2 * 1.08, 3)
   })
 })

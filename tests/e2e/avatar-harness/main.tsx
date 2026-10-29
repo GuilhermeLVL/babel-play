@@ -28,6 +28,10 @@ const tier = (q.get('tier') ?? 'medio') as TierDoAvatar
 const tamanho = Number(q.get('tamanho') ?? 256)
 const baseId = q.get('base') ?? 'milk'
 /** `catalogo=1`: usa as câmeras calibradas do catálogo (senão o motor mede o arquivo, que é o que calibra). */
+/** `pecas=a,b`: ids do Estúdio ligados na cena; `modo=rosto`: começa na câmera do rosto. */
+const pecasDaCena = (q.get('pecas') ?? '').split(',').filter(Boolean)
+const modoInicial: ModoDeCamera = q.get('modo') === 'rosto' ? 'rosto' : 'corpo'
+let montadasDaCena: string[] = []
 const camerasDoCatalogo = q.get('catalogo') === '1' ? (modeloDaColecao(baseId)?.camera ?? null) : undefined
 
 const r = validarReceita({
@@ -70,6 +74,8 @@ interface Ponte {
   volumeDoElemento(): { volume: number; muted: boolean; tocando: boolean }
   /** Quadros já desenhados pelo motor. */
   quadros(): number
+  /** M2.2: ids das peças que o motor JÁ montou (esperar por isto, não por tempo). */
+  pecasMontadas(): string[]
   /** M2.1: medidas do modelo (calibragem) e troca de câmera. */
   medidas(): MedidasDoModelo | null
   modo(m: ModoDeCamera): void
@@ -192,7 +198,7 @@ function Harness() {
   const [estado, setEstado] = useState<EstadoDoAvatar>('parado')
   const [emocao, setEmocao] = useState<EmocaoDoAvatar>('neutro')
   const [montado, setMontado] = useState(true)
-  const [modo, setModo] = useState<ModoDeCamera>('corpo')
+  const [modo, setModo] = useState<ModoDeCamera>(modoInicial)
   const falando = useAvatarFalando(ligacao)
   useEffect(() => {
     window.__avatarHarness = {
@@ -227,6 +233,7 @@ function Harness() {
       },
       quadros: () => sessao?.motor.estatisticas().quadros ?? 0,
       medidas: () => sessao?.motor.medirModelo() ?? null,
+      pecasMontadas: () => montadasDaCena.slice(),
       modo: (m) => setModo(m),
       stats: () => {
         const e = sessao?.motor.estatisticas()
@@ -309,6 +316,10 @@ function Harness() {
       tamanho={tamanho}
       fonte={fonte}
       modo={modo}
+      {...(pecasDaCena.length ? { pecas: { ids: pecasDaCena, cores: {} } } : {})}
+      aoPecas={(r) => {
+        montadasDaCena = r.montadas
+      }}
       enquadramento={camerasDoCatalogo}
       aoSessao={(s) => {
         sessao = s

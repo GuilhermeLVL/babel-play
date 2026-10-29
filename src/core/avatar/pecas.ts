@@ -126,7 +126,7 @@ export const PECAS: readonly PecaDoCatalogo[] = [
     requer: ['head'],
     lugares: ['aparelho-e'],
     orcamento: { triangulos: 180, materiais: 0 },
-    corPadrao: 'grisalho',
+    corPadrao: 'azul',
   }),
   peca({
     id: 'aparelho-auditivo-dir',
@@ -136,7 +136,7 @@ export const PECAS: readonly PecaDoCatalogo[] = [
     requer: ['head'],
     lugares: ['aparelho-d'],
     orcamento: { triangulos: 180, materiais: 0 },
-    corPadrao: 'grisalho',
+    corPadrao: 'azul',
   }),
   peca({
     id: 'implante-coclear-esq',
@@ -146,7 +146,7 @@ export const PECAS: readonly PecaDoCatalogo[] = [
     requer: ['head'],
     lugares: ['implante-e'],
     orcamento: { triangulos: 170, materiais: 0 },
-    corPadrao: 'grisalho',
+    corPadrao: 'azul',
   }),
   peca({
     id: 'implante-coclear-dir',
@@ -156,7 +156,7 @@ export const PECAS: readonly PecaDoCatalogo[] = [
     requer: ['head'],
     lugares: ['implante-d'],
     orcamento: { triangulos: 170, materiais: 0 },
-    corPadrao: 'grisalho',
+    corPadrao: 'azul',
   }),
   peca({
     id: 'bone',

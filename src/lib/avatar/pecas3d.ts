@@ -86,6 +86,10 @@ export interface MedidasDaCabeca {
   olhosX: number;
   /** Metade da largura da cabeça na altura da orelha (em cabeças cônicas é bem menor que `largura / 2`). */
   meiaNaOrelha: number;
+  /** A altura da testa (do osso) e a meia largura / meia profundidade da cabeça NELA: o que boné e chapéu vestem. */
+  yTesta: number;
+  meiaNaTesta: number;
+  meiaProfundidadeNaTesta: number;
 }
 
 /* ── Medição ─────────────────────────────────────────────────────────────────────────────────── */
@@ -99,7 +103,8 @@ function percentil(v: number[], p: number): number {
 
 /** Mede a cabeça com o tronco em repouso (zera as rotações um instante e as devolve). */
 /** VRM 0.x olha para -Z e `rotateVRM0` gira a cena inteira: o osso normalizado fica de costas. Medimos e construímos no quadro canônico (frente +Z) e giramos a geometria no fim. */
-const quadroInvertido = (vrm: VRM): boolean => String((vrm.meta as { metaVersion?: unknown } | undefined)?.metaVersion) === '0';
+const quadroInvertido = (vrm: VRM): boolean =>
+  String((vrm.meta as { metaVersion?: unknown } | undefined)?.metaVersion) === '0';
 
 export function medirCabeca(vrm: VRM, cabeca: Object3D): MedidasDaCabeca | null {
   const g = quadroInvertido(vrm) ? -1 : 1;
@@ -150,7 +155,18 @@ export function medirCabeca(vrm: VRM, cabeca: Object3D): MedidasDaCabeca | null 
     const yo = olhosY - topo * 0.08;
     const nx = xs.filter((_, i) => Math.abs(ys[i] - yo) < topo * 0.06);
     const meiaNaOrelha = nx.length > 20 ? (percentil(nx, 0.99) - percentil(nx, 0.01)) / 2 : (x1 - x0) / 2;
+    // A testa: um pouco acima dos olhos. Boné e chapéu vestem a largura DAQUI, não a máxima da cabeça (que, em
+    // cabeça cônica ou de caixa, está noutra altura e deixava a peça flutuando ou enterrada).
+    const yTesta = Math.min(topo * 0.9, Math.max(olhosY + (topo - olhosY) * 0.4, topo * 0.6));
+    const naTesta = ys.map((y, i) => (Math.abs(y - yTesta) < topo * 0.05 ? i : -1)).filter((i) => i >= 0);
+    const txs = naTesta.map((i) => xs[i]);
+    const tzs = naTesta.map((i) => zs[i]);
+    const meiaNaTesta = txs.length > 20 ? (percentil(txs, 0.99) - percentil(txs, 0.01)) / 2 : (x1 - x0) / 2;
+    const meiaProfundidadeNaTesta = tzs.length > 20 ? (percentil(tzs, 0.99) - percentil(tzs, 0.01)) / 2 : (z1 - z0) / 2;
     return {
+      yTesta,
+      meiaNaTesta,
+      meiaProfundidadeNaTesta,
       meiaNaOrelha,
       largura: x1 - x0,
       profundidade: z1 - z0,
@@ -264,25 +280,27 @@ const orelha = (m: MedidasDaCabeca) => ({
 function aparelhoAuditivo(lado: 1 | -1): Construtor {
   return (m) => {
     const o = orelha(m);
-    const x = m.cx + lado * (o.x + m.largura * 0.035);
-    const corpo = new SphereGeometry(m.largura * 0.06, 8, 6).scale(0.7, 1.5, 0.9);
+    // Maior e um pouco para FORA da cabeça, na frente do meio da orelha: de frente, aparece ao lado do rosto (a versão
+    // colada atrás da orelha sumia atrás da cabeça, sobretudo nas cabeças de caixa).
+    const x = m.cx + lado * (o.x + m.largura * 0.055);
+    const corpo = new SphereGeometry(m.largura * 0.085, 8, 6).scale(0.7, 1.5, 0.9);
     const gancho = tubo(
       [
-        new Vector3(x, o.y + m.topo * 0.02, o.z - m.profundidade * 0.03),
-        new Vector3(x + lado * m.largura * 0.02, o.y + m.topo * 0.13, o.z - m.profundidade * 0.04),
-        new Vector3(x + lado * m.largura * 0.02, o.y + m.topo * 0.12, o.z + m.profundidade * 0.04),
-        new Vector3(x - lado * m.largura * 0.005, o.y - m.topo * 0.01, o.z + m.profundidade * 0.05),
+        new Vector3(x, o.y + m.topo * 0.02, o.z - m.profundidade * 0.02),
+        new Vector3(x + lado * m.largura * 0.03, o.y + m.topo * 0.17, o.z - m.profundidade * 0.02),
+        new Vector3(x + lado * m.largura * 0.03, o.y + m.topo * 0.16, o.z + m.profundidade * 0.07),
+        new Vector3(x - lado * m.largura * 0.005, o.y - m.topo * 0.01, o.z + m.profundidade * 0.08),
       ],
-      m.largura * 0.01,
+      m.largura * 0.016,
       8,
       4,
     );
-    const molde = new SphereGeometry(m.largura * 0.025, 6, 4);
+    const molde = new SphereGeometry(m.largura * 0.035, 6, 4);
     return [
-      { geo: mover(corpo, x, o.y + m.topo * 0.035, o.z - m.profundidade * 0.03), principal: true },
+      { geo: mover(corpo, x, o.y + m.topo * 0.04, o.z - m.profundidade * 0.02), principal: true },
       { geo: gancho, principal: true },
       {
-        geo: mover(molde, x - lado * m.largura * 0.005, o.y - m.topo * 0.01, o.z + m.profundidade * 0.05),
+        geo: mover(molde, x - lado * m.largura * 0.005, o.y - m.topo * 0.01, o.z + m.profundidade * 0.08),
         principal: false,
         fixa: '#e8c8b0',
       },
@@ -293,36 +311,38 @@ function aparelhoAuditivo(lado: 1 | -1): Construtor {
 function implanteCoclear(lado: 1 | -1): Construtor {
   return (m) => {
     const o = orelha(m);
-    const x = m.cx + lado * (o.x + m.largura * 0.04);
-    const zp = o.z - m.profundidade * 0.03;
+    const x = m.cx + lado * (o.x + m.largura * 0.06);
+    const zp = o.z - m.profundidade * 0.01;
     const yp = o.y + m.topo * 0.05;
-    // Processador atrás da orelha, bobina na lateral da cabeça (acima e atrás), cabo ligando os dois.
-    const processador = new SphereGeometry(m.largura * 0.065, 8, 6).scale(0.65, 1.55, 0.9);
-    const bobina = new CylinderGeometry(m.largura * 0.055, m.largura * 0.055, m.largura * 0.02, 12);
+    // Processador atrás da orelha, bobina na lateral da cabeça (acima e atrás), cabo ligando os dois. Maiores e mais
+    // para fora que antes, para aparecerem de frente.
+    const processador = new SphereGeometry(m.largura * 0.09, 8, 6).scale(0.65, 1.55, 0.9);
+    const bobina = new CylinderGeometry(m.largura * 0.075, m.largura * 0.075, m.largura * 0.03, 12);
     bobina.rotateZ(Math.PI / 2);
     const bx = x + lado * m.largura * 0.01;
     const by = o.y + m.topo * 0.2;
-    const bz = zp - m.profundidade * 0.05;
-    const imã = new CylinderGeometry(m.largura * 0.02, m.largura * 0.02, m.largura * 0.026, 6);
+    const bz = zp - m.profundidade * 0.02;
+    const imã = new CylinderGeometry(m.largura * 0.03, m.largura * 0.03, m.largura * 0.04, 6);
     imã.rotateZ(Math.PI / 2);
     return [
       { geo: mover(processador, x, yp, zp), principal: true },
       {
-        geo: barra(x, yp + m.topo * 0.05, zp, bx, by - m.topo * 0.02, bz, m.largura * 0.012),
+        geo: barra(x, yp + m.topo * 0.05, zp, bx, by - m.topo * 0.02, bz, m.largura * 0.02),
         principal: false,
         fixa: PRETO,
       },
       { geo: mover(bobina, bx, by, bz), principal: true },
-      { geo: mover(imã, bx + lado * m.largura * 0.006, by, bz), principal: false, fixa: METAL },
+      { geo: mover(imã, bx + lado * m.largura * 0.01, by, bz), principal: false, fixa: METAL },
     ];
   };
 }
 
 const bone: Construtor = (m) => {
-  const y0 = m.topo * 0.5;
-  const a = (m.largura / 2) * 1.08;
-  const b = (m.profundidade / 2) * 1.08;
-  const ry = m.topo * 1.06 - y0;
+  // Veste a largura da cabeça NA TESTA (e a profundidade dela), com folga de 8%; a cúpula nasce na altura da testa.
+  const y0 = m.yTesta;
+  const a = m.meiaNaTesta * 1.08;
+  const b = m.meiaProfundidadeNaTesta * 1.08;
+  const ry = Math.max(m.topo * 1.06 - y0, a * 0.5);
   const cupula = new SphereGeometry(1, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2).scale(a, ry, b);
   const aba = new CylinderGeometry(a * 0.95, a * 0.95, m.topo * 0.02, 12, 1, false, -Math.PI / 2, Math.PI);
   return [
@@ -333,9 +353,10 @@ const bone: Construtor = (m) => {
 
 function chapeuDeAba(altura: number, abaLargura: number, copaAfunila: number): Construtor {
   return (m) => {
-    const a = (m.largura / 2) * 1.04;
-    const b = (m.profundidade / 2) * 1.04;
-    const base = m.topo * 0.78;
+    // A copa veste a largura da cabeça na testa (`meiaNaTesta`); a aba nasce na altura da testa.
+    const a = m.meiaNaTesta * 1.06;
+    const b = m.meiaProfundidadeNaTesta * 1.06;
+    const base = m.yTesta;
     const h = m.topo * altura;
     const copa = new CylinderGeometry(a * copaAfunila, a, h, 12).scale(1, 1, b / a);
     const aba = new RingGeometry(a * 0.98, a * abaLargura, 16).scale(1, b / a, 1).rotateX(-Math.PI / 2);

@@ -16,6 +16,14 @@
  *  · Media Session: os controles do sistema (fone, tela de bloqueio) tocam, pausam e pulam frase.
  */
 import {
+  type ConfigDoElenco,
+  falaDaFrase,
+  montarDistribuicao,
+  planejarElenco,
+  type PlanoDaFrase,
+} from '../../core/avatar/elenco';
+import type { EmocaoDoAvatar } from '../../core/avatar/estados';
+import {
   dormirEm,
   frasesParaVoltar,
   normalizarOpcoes,
@@ -52,6 +60,11 @@ export interface VistaDoNarrador {
   opcoes: OpcoesDaNarracao;
   /** O temporizador de sono armado (`null` = sem sono). */
   sono: Sono;
+  /**
+   * Quem fala a frase destacada e com que emoção, SÓ com o elenco ligado (`null` = voz única, como sempre).
+   * `nome` é a personagem, ou `null` quando é o narrador.
+   */
+  fala?: { nome: string | null; emocao: EmocaoDoAvatar } | null;
 }
 
 export interface DependenciasDoNarrador {
@@ -82,6 +95,11 @@ export interface DependenciasDoNarrador {
   opcoesIniciais?: OpcoesDaNarracao;
   /** O relógio do sono (para o teste); padrão: `Date.now`. */
   agora?: () => number;
+  /**
+   * O ELENCO (M5, flag `avatar_elenco`): a configuração em vigor, ou `null`/ausente = voz única (a fala de sempre).
+   * Lida a cada capítulo e em `definirElenco()`; nunca é obrigatória nem usa rede.
+   */
+  elenco?: () => ConfigDoElenco | null;
 }
 
 /** Quanto esperar sem novas mudanças antes de recomeçar a frase (a pessoa arrasta um controle). */
@@ -92,6 +110,8 @@ const CHAVE_DA_POSICAO = (livroId: string) => `leitor:narracao:${livroId}`;
 export class Narrador {
   private estado: EstadoDaNarracao = NARRACAO_PARADA;
   private frases: FraseNoCapitulo[] = [];
+  /** O plano do elenco por frase do capítulo (`null` = elenco desligado). */
+  private planos: PlanoDaFrase[] | null = null;
   private doc: Document | null = null;
   private indiceDaSecao = -1;
   private virandoCapitulo = false;
@@ -134,7 +154,39 @@ export class Narrador {
       frase: comDestaque ? (this.frases[e.indice]?.texto ?? '') : '',
       opcoes: this.opcoes,
       sono: this.sono,
+      fala: this.falaDa(comDestaque ? e.indice : -1),
     };
+  }
+
+  /** O falante e a emoção da frase `indice` (só com o elenco ligado). */
+  private falaDa(indice: number): VistaDoNarrador['fala'] {
+    const p = this.planos?.[indice];
+    if (!p) return null;
+    return { nome: p.falante.tipo === 'personagem' ? (p.falante.nome ?? null) : null, emocao: p.emocao };
+  }
+
+  /** O elenco mudou (ligou, desligou, outra voz): refaz o plano e a frase em curso recomeça com a voz nova. */
+  definirElenco() {
+    this.planejar();
+    this.reiniciarFrase();
+    if (!this.destruido) this.d.aoMudar(this.vista);
+  }
+
+  private planejar() {
+    let cfg: ConfigDoElenco | null;
+    try {
+      cfg = this.d.elenco?.() ?? null;
+    } catch {
+      cfg = null; // falhou ao montar o elenco: voz única, nunca silêncio
+    }
+    this.planos =
+      cfg && this.frases.length
+        ? planejarElenco(
+            this.frases.map((f) => f.texto),
+            cfg,
+            montarDistribuicao(cfg),
+          )
+        : null;
   }
 
   /* ── comandos ── */
@@ -353,6 +405,7 @@ export class Narrador {
     this.doc = atual.doc;
     this.indiceDaSecao = atual.index;
     this.frases = frasesDoDocumento(atual.doc, this.d.idiomaDoLivro() || undefined);
+    this.planejar();
     return this.frases.length > 0;
   }
 
@@ -438,11 +491,19 @@ export class Narrador {
       if (!passo) return this.fimDaFrase(indice, vez);
       const { motor, id } = await this.motorDeVoz(passo.idioma);
       if (this.estado.vez !== vez) return;
+      /* Só o passo do LIVRO leva elenco; a tradução fala sempre na voz da pessoa. */
+      const doLivro = passo.texto === this.frases[indice]?.texto;
+      const fala = falaDaFrase(
+        doLivro ? this.planos?.[indice] : undefined,
+        { rate: this.opcoes.velocidade, pitch: this.opcoes.tom },
+        { temTom: id !== 'nuvem', temVoz: id === 'aparelho' },
+      );
       motor.speak(passo.texto, {
         lang: codigoDeFala(passo.idioma),
         /* A voz natural da nuvem só vai de 0,5 a 2× (a rota recusa mais); tom e volume são do aparelho. */
-        rate: id === 'nuvem' ? Math.min(this.opcoes.velocidade, 2) : this.opcoes.velocidade,
-        pitch: this.opcoes.tom,
+        rate: id === 'nuvem' ? Math.min(fala.rate, 2) : fala.rate,
+        pitch: fala.pitch,
+        ...(fala.voiceName ? { voiceName: fala.voiceName } : {}),
         volume: this.opcoes.volume,
         onEnd: () => {
           if (this.estado.vez === vez) void falarPasso(i + 1);

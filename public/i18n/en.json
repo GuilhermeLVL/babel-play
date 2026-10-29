@@ -5930,5 +5930,16 @@
   "Voz automática": "Automatic voice",
   "Narrador": "Narrator",
   "Mostrar o avatar do narrador (precisa dos avatares ligados)": "Show the narrator avatar (needs avatars turned on)",
-  "Faltam vozes para todas: algumas personagens dividem a mesma voz.": "Not enough voices for everyone: some characters share the same voice."
+  "Faltam vozes para todas: algumas personagens dividem a mesma voz.": "Not enough voices for everyone: some characters share the same voice.",
+  "Só há o narrador neste livro: livros que você traz não têm lista de personagens.": "There is only the narrator in this book: books you bring yourself have no list of characters.",
+  "Só há o narrador neste livro: ele ainda não tem lista de personagens.": "There is only the narrator in this book: it has no list of characters yet.",
+  "Experimentar a voz de {nome}": "Try the voice of {nome}",
+  "Experimentar": "Try voice",
+  "Dica: elenco do livro": "Tip: book cast",
+  "Este livro tem 1 personagem. Dê uma voz a ela.": "This book has 1 character. Give it a voice.",
+  "Este livro tem {n} personagens. Dê uma voz a cada uma.": "This book has {n} characters. Give each one a voice.",
+  "Escolher as vozes": "Choose the voices",
+  "Dispensar a dica": "Dismiss the tip",
+  "Elenco: {n} personagens": "Cast: {n} characters",
+  "Elenco": "Cast"
 }

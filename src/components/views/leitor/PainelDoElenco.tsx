@@ -1,3 +1,4 @@
+import { Volume2 } from 'lucide-react';
 import { useId } from 'react';
 
 import { t } from '../../../lib/i18n';
@@ -51,6 +52,13 @@ export default function PainelDoElenco({
       <p className="leitor-apoio" role="status" data-testid="elenco-resumo">
         {resumo}
       </p>
+      {semFicha && elenco.fichaPronta && (
+        <p className="leitor-apoio" data-testid="elenco-so-narrador">
+          {elenco.livroProprio
+            ? t('Só há o narrador neste livro: livros que você traz não têm lista de personagens.')
+            : t('Só há o narrador neste livro: ele ainda não tem lista de personagens.')}
+        </p>
+      )}
       {elenco.ligado && !semFicha && !nuvem && !semVozes && (
         <ul className="leitor-elenco-lista" aria-label={t('Voz de cada personagem')}>
           <li className="leitor-elenco-linha">
@@ -62,7 +70,9 @@ export default function PainelDoElenco({
             const atual = gostos[nome] ?? distribuicao?.personagens[nome] ?? '';
             return (
               <li key={nome} className="leitor-elenco-linha">
-                <label htmlFor={campo}>{nome}</label>
+                <label htmlFor={campo} className="leitor-elenco-nome">
+                  {nome}
+                </label>
                 <select
                   id={campo}
                   value={atual}
@@ -75,6 +85,16 @@ export default function PainelDoElenco({
                     </option>
                   ))}
                 </select>
+                <button
+                  type="button"
+                  className="leitor-botao leitor-elenco-testar"
+                  data-testid={`elenco-testar-${i}`}
+                  aria-label={t('Experimentar a voz de {nome}', { nome })}
+                  onClick={() => elenco.experimentar(nome, atual)}
+                >
+                  <Volume2 aria-hidden />
+                  <span>{t('Experimentar')}</span>
+                </button>
               </li>
             );
           })}

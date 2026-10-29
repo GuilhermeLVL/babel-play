@@ -802,7 +802,7 @@
     padding: 4px 4px;
     gap: 2px;
   }
-  .leitor-botao > span {
+  .leitor-botao:not(.leitor-botao-rotulo):not(.leitor-elenco-testar) > span {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -812,6 +812,26 @@
   }
   .leitor-titulo {
     font-size: 14px;
+  }
+  /* "Elenco" com rótulo cabe na barra do celular se a contagem virar uma insígnia sobre o ícone. */
+  .leitor-botao-rotulo {
+    position: relative;
+    padding: 0 8px 0 6px;
+    gap: 4px;
+  }
+  .leitor-botao-rotulo .leitor-contagem {
+    position: absolute;
+    top: 3px;
+    left: 22px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: var(--leitor-acento);
+    color: var(--leitor-fundo);
+    font-size: 10px;
+    line-height: 16px;
+    text-align: center;
   }
   .leitor-exportacoes {
     grid-template-columns: 1fr;
@@ -875,15 +895,57 @@
 }
 .leitor-elenco-linha {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 6px 10px;
   min-height: 44px;
   font-size: 14px;
 }
+.leitor-elenco-nome {
+  flex: 1 1 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .leitor-elenco-linha select {
   min-height: 44px;
-  max-width: 55%;
+  flex: 1 1 0;
+  min-width: 0;
+}
+.leitor-elenco-testar {
+  border-color: var(--leitor-borda);
+}
+
+/* O botão "Elenco" na barra: o rótulo aparece mesmo no celular (os outros botões ficam só no ícone) e o estado
+   ligado se vê pela cor, não só pelo atributo. */
+.leitor-botao-rotulo[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--leitor-acento) 16%, var(--leitor-fundo));
+  border-color: var(--leitor-acento);
+}
+
+/* A dica da primeira vez: uma faixa discreta sob a barra, que não cobre o livro nem prende o foco. */
+.leitor-dica {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 4px 14px;
+  font-size: 14px;
+  background: color-mix(in srgb, var(--leitor-acento) 10%, var(--leitor-fundo));
+  border-bottom: 1px solid var(--leitor-borda);
+}
+.leitor-dica p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.leitor-dica-icone {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--leitor-acento);
+}
+.leitor-dica-acao {
+  border-color: var(--leitor-borda);
 }
 
 /* A barra do narrador (L3): transporte, onde está, velocidade, ajustes e parar. Fica no pé, acima da virada de

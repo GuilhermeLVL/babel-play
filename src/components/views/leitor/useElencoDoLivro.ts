@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { fraseDeAmostra } from '../../../core/avatar/amostraDeVoz';
 import { type ConfigDoElenco, type DistribuicaoDeVozes, montarDistribuicao } from '../../../core/avatar/elenco';
 import { FLAG_AVATAR_ELENCO } from '../../../core/planos';
 import { useFlag } from '../../../lib/flags';
@@ -9,7 +10,15 @@ import {
   lerEscolhasDoElenco,
 } from '../../../lib/leitor/preferenciasDoElenco';
 import { personagensDoLivro } from '../../../lib/livros/elenco';
-import { getVoicePref, pickVoice, type VoiceInfo, voicesFor } from '../../../lib/tts';
+import {
+  cancelSpeech,
+  codigoDeFala,
+  getVoicePref,
+  pickVoice,
+  speak,
+  type VoiceInfo,
+  voicesFor,
+} from '../../../lib/tts';
 
 export interface ElencoDoLivro {
   /** A flag `avatar_elenco` está ligada para esta pessoa? Desligada, nada do elenco aparece nem age. */
@@ -22,6 +31,12 @@ export interface ElencoDoLivro {
   /** Quem lê o quê com as escolhas de agora (`null` sem voz nenhuma no aparelho). */
   distribuicao: DistribuicaoDeVozes | null;
   gostos: Readonly<Record<string, string>>;
+  /** Livro trazido pela pessoa (arquivo dela): nunca tem ficha de personagens. */
+  livroProprio: boolean;
+  /** A ficha já foi consultada (evita afirmar "sem personagens" enquanto ainda carrega). */
+  fichaPronta: boolean;
+  /** Fala uma frase curta de amostra com a voz dada (o motor do aparelho, sem rede). */
+  experimentar: (personagem: string, voz: string) => void;
   /** A configuração para o Narrador; `null` = voz única. */
   config: () => ConfigDoElenco | null;
   ligar: (v: boolean) => void;
@@ -39,27 +54,37 @@ export function useElencoDoLivro({
   origem,
   idiomaDoLivro,
   aoMudar,
+  antesDeExperimentar,
 }: {
   livroId: string;
   origem: string | undefined;
   idiomaDoLivro: string;
   aoMudar: () => void;
+  /** Chamado antes de falar a amostra (o leitor para a narração para as duas vozes não se atropelarem). */
+  antesDeExperimentar?: () => void;
 }): ElencoDoLivro {
   const disponivel = useFlag(FLAG_AVATAR_ELENCO);
   const [escolhas, setEscolhas] = useState<EscolhasDoElenco>(() => lerEscolhasDoElenco(livroId));
   const [personagens, setPersonagens] = useState<readonly string[]>([]);
+  const [fichaPronta, setFichaPronta] = useState(false);
+  const livroProprio = origem !== 'catalogo';
 
   useEffect(() => {
     setEscolhas(lerEscolhasDoElenco(livroId));
   }, [livroId]);
 
   useEffect(() => {
+    setFichaPronta(false);
     if (!disponivel) {
       setPersonagens([]);
       return;
     }
     let vivo = true;
-    void personagensDoLivro(livroId, origem).then((p) => vivo && setPersonagens(p));
+    void personagensDoLivro(livroId, origem).then((p) => {
+      if (!vivo) return;
+      setPersonagens(p);
+      setFichaPronta(true);
+    });
     return () => {
       vivo = false;
     };
@@ -113,6 +138,16 @@ export function useElencoDoLivro({
     vozes,
     distribuicao,
     gostos: escolhas.gostos,
+    livroProprio,
+    fichaPronta,
+    experimentar: (personagem, voz) => {
+      antesDeExperimentar?.();
+      cancelSpeech();
+      speak(fraseDeAmostra(idiomaDoLivro, personagem), {
+        lang: codigoDeFala(idiomaDoLivro),
+        ...(voz ? { voiceName: voz } : {}),
+      });
+    },
     config,
     ligar: (v) => guardar({ ...escolhas, ligado: v }),
     mostrarAvatar: (v) => guardar({ ...escolhas, avatar: v }),

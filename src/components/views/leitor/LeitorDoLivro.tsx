@@ -10,6 +10,7 @@ import {
   ListTree,
   Sparkles,
   Type,
+  Users,
   X,
 } from 'lucide-react';
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -54,6 +55,7 @@ import { t } from '../../../lib/i18n';
 import { useLangConfig } from '../../../lib/langConfig';
 import { detectLanguage } from '../../../lib/langDetect';
 import { baseLang, toBcp47 } from '../../../lib/languages';
+import { dicaDoElencoJaVista, marcarDicaDoElencoVista } from '../../../lib/leitor/dicaDoElenco';
 import type { Localizacao } from '../../../lib/leitor/foliate/view.js';
 import { type InfoDoLivro, MotorDoLeitor } from '../../../lib/leitor/motor';
 import { Narrador, type VistaDoNarrador } from '../../../lib/leitor/narrador';
@@ -86,6 +88,7 @@ import VocabularyPanel from '../../VocabularyPanel';
 import AvatarDoNarrador from './AvatarDoNarrador';
 import BarraDaSelecao, { type TrechoSelecionado } from './BarraDaSelecao';
 import BarraDoNarrador, { aoTeclarNoNarrador, PainelDaNarracao } from './BarraDoNarrador';
+import DicaDoElenco from './DicaDoElenco';
 import { etiquetaDaPalavra, HistoricoNaFolha } from './ganchosDaPalavra';
 import PainelDaTraducao from './PainelDaTraducao';
 import PainelDeAnotacoes, { type FormatoDeExportacao } from './PainelDeAnotacoes';
@@ -237,7 +240,22 @@ export default function LeitorDoLivro({
     origem: guardado?.origem,
     idiomaDoLivro: idiomaRef.current,
     aoMudar: () => narradorRef.current?.definirElenco(),
+    antesDeExperimentar: () => {
+      const n = narradorRef.current;
+      if (n && n.vista.fase !== 'parada') n.parar(); // a amostra e a narração não falam ao mesmo tempo
+    },
   });
+  /* O elenco em destaque: o botão "Elenco" abre o painel da narração com o elenco no topo; "Voz e modo" abre como
+     sempre. A dica da primeira vez some ao dispensar (lembrado no aparelho). */
+  const [elencoNoTopo, setElencoNoTopo] = useState(false);
+  const [dicaDoElencoVista, setDicaDoElencoVista] = useState(dicaDoElencoJaVista);
+  const temElenco = elenco.disponivel && elenco.personagens.length > 0;
+  const abrirElenco = () => {
+    marcarDicaDoElencoVista();
+    setDicaDoElencoVista(true);
+    setElencoNoTopo(true);
+    setPainel('narracao');
+  };
   const elencoRef = useRef(elenco);
   elencoRef.current = elenco;
   const toqueEmAnotacao = useRef(0);
@@ -823,6 +841,13 @@ export default function LeitorDoLivro({
     setModoDoParceiro(modo);
     setPainel('ia');
   };
+  const painelDoElenco = (
+    <PainelDoElenco
+      elenco={elenco}
+      vozDoNarrador={getVoicePref(idiomaRef.current) ?? ''}
+      nuvem={vozEmUso(idiomaRef.current) === VOZ_DA_NUVEM}
+    />
+  );
   const TITULO_DO_PAINEL: Record<Painel, string> = {
     sumario: t('Sumário e busca'),
     tipografia: t('Aparência'),
@@ -862,6 +887,27 @@ export default function LeitorDoLivro({
             >
               <Headphones aria-hidden />
               <span>{t('Ouvir')}</span>
+            </button>
+          )}
+          {temElenco && !info?.ehPdf && (
+            <button
+              type="button"
+              className="leitor-botao leitor-botao-rotulo"
+              aria-pressed={elenco.ligado}
+              aria-controls={painel === 'narracao' ? 'leitor-painel' : undefined}
+              aria-label={t('Elenco: {n} personagens', { n: elenco.personagens.length })}
+              disabled={estado !== 'pronto'}
+              data-testid="leitor-elenco"
+              onClick={() => {
+                if (painel === 'narracao' && elencoNoTopo) setPainel(null);
+                else abrirElenco();
+              }}
+            >
+              <Users aria-hidden />
+              <span>{t('Elenco')}</span>
+              <span className="leitor-contagem" aria-hidden>
+                {elenco.personagens.length}
+              </span>
             </button>
           )}
           <button
@@ -918,6 +964,17 @@ export default function LeitorDoLivro({
         <p className="leitor-aviso" role="note">
           {avisoPdf}
         </p>
+      )}
+
+      {temElenco && !dicaDoElencoVista && estado === 'pronto' && painel !== 'narracao' && (
+        <DicaDoElenco
+          personagens={elenco.personagens.length}
+          aoAbrir={abrirElenco}
+          aoFechar={() => {
+            marcarDicaDoElencoVista();
+            setDicaDoElencoVista(true);
+          }}
+        />
       )}
 
       <div className="leitor-miolo">
@@ -978,6 +1035,7 @@ export default function LeitorDoLivro({
                   ehPdf={!!info?.ehPdf}
                 />
               )}
+              {painel === 'narracao' && elencoNoTopo && painelDoElenco}
               {painel === 'narracao' && (
                 <PainelDaNarracao
                   modo={modoNarracao}
@@ -1007,13 +1065,7 @@ export default function LeitorDoLivro({
                   aoConhecerPlanos={aoConhecerPlanos}
                 />
               )}
-              {painel === 'narracao' && (
-                <PainelDoElenco
-                  elenco={elenco}
-                  vozDoNarrador={getVoicePref(idiomaRef.current) ?? ''}
-                  nuvem={vozEmUso(idiomaRef.current) === VOZ_DA_NUVEM}
-                />
-              )}
+              {painel === 'narracao' && !elencoNoTopo && painelDoElenco}
               {painel === 'ia' && (
                 <PainelDeFerramentas
                   aba={iaAba}
@@ -1121,7 +1173,10 @@ export default function LeitorDoLivro({
             if (vozDaNuvemDisponivel()) destravarVozDaNuvem();
             narradorRef.current?.alternar();
           }}
-          aoAjustes={() => abrirPainel('narracao')}
+          aoAjustes={() => {
+            setElencoNoTopo(false);
+            abrirPainel('narracao');
+          }}
           aoParar={fecharNarracao}
         />
       )}

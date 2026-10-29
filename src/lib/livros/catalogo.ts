@@ -8,6 +8,7 @@
  * ver (`core/livros/filtroLegal`). A classificação etária que não for um valor conhecido vira `null` ("a
  * revisar"): nenhum valor estranho no JSON passa como "livre".
  */
+import { capaValida } from '../../core/livros/capas';
 import { ehClassificacao } from '../../core/livros/catalogo';
 import { passaNaDefesaDoCliente } from '../../core/livros/filtroLegal';
 import type { Catalogo, LivroDoCatalogo } from '../../core/livros/tipos';
@@ -17,11 +18,12 @@ const CAMINHO = '/catalogo/livros.json';
 let pedido: Promise<Catalogo> | null = null;
 
 /**
- * `obra` e `titulosAlternativos` são opcionais (catálogo antigo não os tem). Valor de tipo errado some, e a
+ * `obra`, `titulosAlternativos` e `capa` são opcionais (catálogo antigo não os tem). Valor de tipo errado some, e a
  * edição vira uma obra só dela: nunca liga idiomas por um campo malformado.
  */
 function comCamposDeObraValidos(l: LivroDoCatalogo): LivroDoCatalogo {
-  const { obra, titulosAlternativos, ...resto } = l;
+  const { obra, titulosAlternativos, capa, ...resto } = l;
+  const capaOk = capaValida(capa);
   const alternativos = Array.isArray(titulosAlternativos)
     ? titulosAlternativos.filter((x): x is string => typeof x === 'string' && x.trim() !== '')
     : [];
@@ -29,6 +31,7 @@ function comCamposDeObraValidos(l: LivroDoCatalogo): LivroDoCatalogo {
     ...resto,
     ...(typeof obra === 'string' && obra ? { obra } : {}),
     ...(alternativos.length ? { titulosAlternativos: alternativos } : {}),
+    ...(capaOk ? { capa: capaOk } : {}),
   };
 }
 

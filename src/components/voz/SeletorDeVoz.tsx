@@ -9,6 +9,7 @@ import { t } from '../../lib/i18n';
 import { langLabelNaUI } from '../../lib/languages';
 import { cancelSpeech, codigoDeFala, speak, vozesCarregadas } from '../../lib/tts';
 import { fraseDeAmostra, nomeLegivelDaVoz, type OpcaoDeVoz, opcoesDeVoz } from '../../lib/voz/catalogoDeVozes';
+import { passosParaInstalarVoz } from '../../lib/voz/faltaDeVoz';
 import {
   escolherVoz,
   useVozesPreferidas,
@@ -186,7 +187,14 @@ export default function SeletorDeVoz({
         <p className="q-aju-nota" role="note" data-testid="sem-voz-do-aparelho">
           {noHeadset()
             ? t('No Quest a voz é a do site: não há outras vozes para escolher.')
-            : t('Nenhuma voz instalada para este idioma.')}
+            : !vozesCarregadas()
+              ? t('Carregando as vozes deste aparelho…')
+              : `${t('Este aparelho não tem voz em {idioma}.', { idioma: nomeDoIdioma })} ${passosParaInstalarVoz()}`}
+        </p>
+      )}
+      {opcoes.some((o) => o.etiquetas.includes(t('Natural'))) && (
+        <p className="q-aju-nota" data-testid="nota-natural">
+          {t('“Natural” é uma estimativa pelo nome da voz: o navegador não informa a qualidade.')}
         </p>
       )}
       {recuou && (

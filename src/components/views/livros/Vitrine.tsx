@@ -1,4 +1,4 @@
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { Search, SlidersHorizontal, Upload, X } from 'lucide-react';
 import React, { useId, useMemo, useState } from 'react';
 
 import {
@@ -311,6 +311,13 @@ export default function Vitrine({
                 <CartaoDoLivro key={l.id} livro={l} aoAbrir={() => aoAbrir(l)} tambemEm={tambemEm(l)} />
               ))}
             </ul>
+          )}
+          {resultados.length === 0 && (
+            <div className="q-acoes" data-testid="busca-sem-resultado-trazer">
+              <button type="button" className="q-ctl pri lv-chamada-trazer" onClick={aoTrazer}>
+                <Upload aria-hidden /> {t('Não achou? Traga o seu')}
+              </button>
+            </div>
           )}
           {resultados.length === 0 && (
             <PorQueNaoEsta

@@ -24,6 +24,8 @@ export interface LivroDoFoliate {
   dir?: string;
   rendition?: { layout?: string };
   transformTarget?: EventTarget;
+  /** FRASY: livro cujas páginas são montadas pelo próprio Frasy (texto, PDF, CBZ): dispensa a limpeza de marcação. */
+  frasyConfiavel?: boolean;
   resolveHref?(href: string): unknown;
   splitTOCHref?(href: string): unknown;
   getTOCFragment?(doc: Document, id: unknown): Node;

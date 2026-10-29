@@ -34,19 +34,60 @@ const fetchFile = async url => {
     return new File([await res.blob()], new URL(res.url).pathname)
 }
 
-// FRASY: só EPUB e PDF (MOBI, FB2 e CBZ ficaram fora do vendor; ver ORIGEM.txt).
+// FRASY: EPUB, PDF, MOBI/AZW3, FB2 (e FB2.zip) e CBZ, reconhecidos pelo CONTEÚDO (não pela extensão).
+// MOBI com `encryption` != 0 lança `DRMError` (mobi.js). Pasta e CBR ficaram fora.
+const IMAGENS = /\.(jpe?g|png|gif|bmp|webp|svg|jxl|avif)$/i
+
+const classificarZip = entries => {
+    const nomes = entries.map(e => e.filename)
+    if (nomes.includes('META-INF/container.xml') || nomes.includes('mimetype')) return 'epub'
+    if (nomes.some(n => /\.fb2$/i.test(n))) return 'fbz'
+    const imagens = nomes.filter(n => IMAGENS.test(n) && !n.startsWith('__MACOSX/'))
+    const paginas = nomes.filter(n => /\.(x?html?|opf|ncx)$/i.test(n))
+    if (imagens.length && !paginas.length) return 'cbz'
+    return 'epub'
+}
+
+const ehFB2 = async file => {
+    const texto = new TextDecoder('latin1').decode(await file.slice(0, 4096).arrayBuffer())
+    return /<FictionBook[\s>]/.test(texto)
+}
+
 export const makeBook = async file => {
     if (typeof file === 'string') file = await fetchFile(file)
     let book
     if (!file.size) throw new NotFoundError('File not found')
     else if (await isZip(file)) {
         const loader = await makeZipLoader(file)
-        const { EPUB } = await import('./epub.js')
-        book = await new EPUB(loader).init()
+        const tipo = classificarZip(loader.entries)
+        if (tipo === 'cbz') {
+            const { makeComicBook } = await import('./comic-book.js')
+            book = makeComicBook(loader, file)
+        }
+        else if (tipo === 'fbz') {
+            const { makeFB2 } = await import('./fb2.js')
+            const entry = loader.entries.find(entry => /\.fb2$/i.test(entry.filename))
+            book = await makeFB2(await loader.loadBlob(entry.filename))
+        }
+        else {
+            const { EPUB } = await import('./epub.js')
+            book = await new EPUB(loader).init()
+        }
     }
     else if (await isPDF(file)) {
         const { makePDF } = await import('./pdf.js')
         book = await makePDF(file)
+    }
+    else {
+        const { isMOBI, MOBI } = await import('./mobi.js')
+        if (await isMOBI(file)) {
+            const { unzlibSync } = await import('fflate')
+            book = await new MOBI({ unzlib: unzlibSync }).open(file)
+        }
+        else if (await ehFB2(file)) {
+            const { makeFB2 } = await import('./fb2.js')
+            book = await makeFB2(file)
+        }
     }
     if (!book) throw new UnsupportedTypeError('File type not supported')
     return book

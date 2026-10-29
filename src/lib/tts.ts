@@ -5,9 +5,11 @@
  * por idioma (padrão do Reading.tsx) e deixa um SEAM para uma voz neural (nuvem)
  * ser plugada depois, atrás de consentimento — sem nada fabricado agora.
  */
+import { baseDaVoz, ehVozNatural, recomendarVoz } from '../core/voz/melhorVoz';
 import { idiomaDaInterface } from './i18n';
 import { toBcp47 } from './languages';
 import { play } from './soundFx';
+import { criarGuardaDaFala, type GuardaDaFala } from './voz/guardaDaFala';
 
 export interface SpeakOptions {
   /**
@@ -21,7 +23,10 @@ export interface SpeakOptions {
    */
   lang: string;
   rate?: number;
+  /** 0,5–1,5 (1 = natural). */
   pitch?: number;
+  /** 0–1. */
+  volume?: number;
   /** Nome exato de uma voz instalada (sobrepõe a escolha automática). */
   voiceName?: string;
   /**
@@ -127,34 +132,40 @@ if (isTtsSupported()) {
   window.speechSynthesis.addEventListener?.('voiceschanged', refreshVoices);
 }
 
+/**
+ * Espera a lista de vozes chegar (`voiceschanged`): no primeiro acesso o Chrome devolve `[]` e só depois popula.
+ * Resolve `true` com a lista cheia, ou `false` no prazo (aparelho sem nenhuma voz, ou navegador sem o evento).
+ */
+export function aguardarVozes(prazoMs = 1500): Promise<boolean> {
+  if (!isTtsSupported()) return Promise.resolve(false);
+  if (getVoices().length) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    let feito = false;
+    const fim = (ok: boolean) => {
+      if (feito) return;
+      feito = true;
+      clearTimeout(relogio);
+      window.speechSynthesis.removeEventListener?.('voiceschanged', aoVozes);
+      resolve(ok);
+    };
+    const aoVozes = () => {
+      refreshVoices();
+      if (voiceCache.length) fim(true);
+    };
+    const relogio = setTimeout(() => fim(getVoices().length > 0), prazoMs);
+    window.speechSynthesis.addEventListener?.('voiceschanged', aoVozes);
+  });
+}
+
 export function getVoices(): SpeechSynthesisVoice[] {
   if (!voiceCache.length) refreshVoices();
   return voiceCache;
 }
 
-/**
- * Os códigos que os sistemas dão à MESMA língua: o Android e o Chrome chamam o mandarim de `cmn`, o
- * hebraico de `iw`, o indonésio de `in`, e o norueguês de `no`. Sem isto, a voz instalada não era
- * reconhecida como a do idioma pedido e a tela dizia "sem voz".
- */
-const BASES_EQUIVALENTES: Record<string, string> = { cmn: 'zh', iw: 'he', in: 'id', no: 'nb', nn: 'nb' };
+/* As regras puras de idioma e de qualidade das vozes moram em `core/voz/melhorVoz.ts`. */
+export { baseDaVoz };
 
-/** O código da voz em minúsculas e com hífen (`zh_CN_#Hans` → `zh-cn-#hans`). */
-const codigoDaVoz = (lang: string): string => (lang || '').toLowerCase().replace(/_/g, '-');
-
-/**
- * A base ISO-639-1 de um código de voz ou de idioma, já com os códigos equivalentes reunidos
- * (`cmn-Hans-CN` → `zh`, `iw-IL` → `he`). O cantonês (`yue`, `zh-HK`) NÃO é a base `zh`: é outra
- * língua falada, e ler mandarim com voz cantonesa ensina a pronúncia errada.
- */
-export function baseDaVoz(lang: string): string {
-  const codigo = codigoDaVoz(lang);
-  const base = codigo.split('-')[0];
-  if (base === 'zh' && /-(hk|mo)(-|$)/.test(codigo)) return 'yue';
-  return BASES_EQUIVALENTES[base] ?? base;
-}
-
-/** Melhor voz instalada para um idioma; prefere vozes "Natural/Neural" quando há. */
+/** Melhor voz instalada para um idioma; prefere região exata, vozes "Natural/Neural" e vozes locais. */
 export function pickVoice(lang: string, preferredName?: string): SpeechSynthesisVoice | null {
   const voices = getVoices();
   if (!voices.length) return null;
@@ -162,18 +173,12 @@ export function pickVoice(lang: string, preferredName?: string): SpeechSynthesis
     const named = voices.find((v) => v.name === preferredName);
     if (named) return named;
   }
-  const want = codigoDaVoz(lang);
-  const base = baseDaVoz(lang);
-  /* MESMA BASE, e não "começa com": `fi` casava com a voz filipina (`fil-PH`), e `zh-CN` com a
-     cantonesa (`zh-HK`). */
-  const doIdioma = voices.filter((v) => baseDaVoz(v.lang) === base);
+  /* MESMA BASE, e não "começa com": `fi` casava com a voz filipina (`fil-PH`), e `zh-CN` com a cantonesa. */
   return (
-    // 1) região exata + neural   2) região exata   3) mesmo idioma + neural   4) mesmo idioma
-    doIdioma.find((v) => codigoDaVoz(v.lang) === want && isNeuralVoice(v)) ||
-    doIdioma.find((v) => codigoDaVoz(v.lang) === want) ||
-    doIdioma.find((v) => isNeuralVoice(v)) ||
-    doIdioma[0] ||
-    null
+    recomendarVoz(
+      voices.map((v) => ({ name: v.name, lang: v.lang, local: v.localService, voz: v })),
+      lang,
+    )?.voz ?? null
   );
 }
 
@@ -185,7 +190,7 @@ export function pickVoice(lang: string, preferredName?: string): SpeechSynthesis
  * Web Speech API não expõe nenhum campo de qualidade.
  */
 export function isNeuralVoice(v: SpeechSynthesisVoice): boolean {
-  return /natural|neural|online|google|premium|enhanced/i.test(v.name);
+  return ehVozNatural(v.name);
 }
 
 export interface VoiceInfo {
@@ -371,6 +376,7 @@ class NativeTts implements TtsEngine {
     u.lang = lang;
     if (opts.rate) u.rate = opts.rate;
     if (opts.pitch) u.pitch = opts.pitch;
+    if (opts.volume != null) u.volume = Math.max(0, Math.min(1, opts.volume));
     // Sem `voiceName` explícito, herda a voz que o usuário escolheu para ESTE idioma no narrador.
     // É isto que faz clicar numa palavra (em qualquer tela) soar com a mesma voz do narrador.
     const voice = pickVoice(lang, opts.voiceName ?? getVoicePref(lang));
@@ -387,15 +393,22 @@ class NativeTts implements TtsEngine {
       u.voice = voice;
       u.lang = voice.lang;
     }
+    /* Voz de REDE no Chrome: o navegador corta a fala depois de ~15 s; o guarda a mantém viva (pause/resume). */
+    this.guarda?.parar();
+    const guarda = voice && voice.localService === false ? criarGuardaDaFala(synth) : null;
+    this.guarda = guarda;
     u.onstart = () => {
       markTtsStart();
+      guarda?.iniciar();
       opts.onStart?.();
     };
     u.onend = () => {
+      guarda?.parar();
       markTtsEnd();
       opts.onEnd?.();
     };
     u.onerror = () => {
+      guarda?.parar();
       markTtsEnd();
       opts.onError?.();
     };
@@ -409,8 +422,15 @@ class NativeTts implements TtsEngine {
     }
     synth.speak(u);
   }
+  private guarda: GuardaDaFala | null = null;
   cancel(): void {
-    if (isTtsSupported()) window.speechSynthesis.cancel();
+    this.guarda?.parar();
+    this.guarda = null;
+    if (isTtsSupported()) {
+      window.speechSynthesis.cancel();
+      /* Quirk do Chrome: o `cancel()` deixa o flag `paused` preso, e a próxima fala nasceria muda. */
+      if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+    }
     // O Chrome nem sempre dispara onend após cancel() — zera o relógio anti-eco na mão.
     ttsActiveCount = 0;
     ttsLastEndTs = performance.now();

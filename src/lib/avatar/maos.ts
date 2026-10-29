@@ -584,7 +584,7 @@ export function filtrarClipe(clip: AnimationClip, nomes: readonly string[]): Ani
 }
 
 /**
- * Enquadramentos da soletração, em função da altura do modelo: `corpo` mostra cabeça e mãos (~50% da altura);
+ * Enquadramentos da soletração, em função da altura do modelo: `corpo` mostra cabeça e mãos (~58% da altura);
  * `maos` é mais fechado no espaço de soletração (altura do ombro, à frente do peito, ~32% da altura). Combine
  * `maos` com `ocultarCabeca` para não aparecer rosto.
  */
@@ -599,7 +599,7 @@ export function enquadramentoDaSoletracao(
   // `maos` desloca a mira para o lado da mão que sinaliza (G, H e M apontam para fora do ombro)
   return modo === 'maos'
     ? { alvo: { x: meio.x + (ombro.x - meio.x) * 0.7, y: meio.y - 0.01 * h, z: meio.z }, altura: 0.36 * h }
-    : { alvo: { x: meio.x, y: meio.y - 0.04 * h, z: meio.z }, altura: 0.5 * h };
+    : { alvo: { x: meio.x, y: meio.y + 0.0 * h, z: meio.z }, altura: 0.58 * h };
 }
 
 const ESCALA_ORIGINAL = new WeakMap<Object3D, Vector3>();

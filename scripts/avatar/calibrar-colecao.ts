@@ -1,6 +1,6 @@
 /**
  * CALIBRA O ENQUADRAMENTO DA COLEÇÃO: abre cada `.vrm` de `public/avatares/colecao/` no harness do avatar (Chromium
- * de verdade, o mesmo motor do app), lê as caixas do corpo e do rosto (`motor.medirModelo()`) e imprime, por modelo,
+ * de verdade, o mesmo motor do app), lê as caixas do corpo e da cabeça (vértices pesados no osso da cabeça) e os ossos (`motor.medirModelo()`) e imprime, por modelo,
  * o `medidas` e o `camera` para colar em `src/data/avatar/colecao.ts`. O teste `tests/avatar-enquadramento.test.ts`
  * confere depois que o catálogo bate com o que se mede aqui.
  *
@@ -10,7 +10,7 @@
 import { chromium } from '@playwright/test';
 import { readdirSync } from 'node:fs';
 
-import { enquadrarCaixa } from '../../src/core/avatar/enquadramento';
+import { enquadrarCaixa, MARGEM_DO_ROSTO } from '../../src/core/avatar/enquadramento';
 
 const base = process.env.BASE_URL || 'http://localhost:3100';
 const ids = process.argv.slice(2).length
@@ -19,8 +19,12 @@ const ids = process.argv.slice(2).length
       .filter((n) => n.endsWith('.vrm'))
       .map((n) => n.replace(/\.vrm$/, ''));
 
+/**
+ * Onde a CABEÇA medida pelos vértices não contém o rosto (o hidrante tem a "cara" numa faixa escura do corpo, abaixo
+ * da tampa), a caixa do rosto é escolhida à mão, olhando a folha de capturas (`capturar-colecao.ts`).
+ */
 const AJUSTES_DO_ROSTO: Record<string, { ymin: number; ymax: number; meia: number }> = {
-  '100avatars-r2-coolhydrant': { ymin: 1.45, ymax: 2.2, meia: 0.5 },
+  '100avatars-r2-coolhydrant': { ymin: 1.47, ymax: 2.201, meia: 0.42 },
 };
 
 const navegador = await chromium.launch({
@@ -41,9 +45,8 @@ for (const id of ids) {
   const medidas = m as {
     caixa: Parameters<typeof enquadrarCaixa>[0];
     caixaDoRosto: Parameters<typeof enquadrarCaixa>[0];
+    rosto?: { cabecaY: number; olhoY?: number };
   };
-  // Onde a cabeça medida pelo osso não é onde está o rosto (o hidrante tem a "cara" no corpo), a caixa do rosto
-  // é escolhida à mão, olhando a folha de capturas (`capturar-colecao.ts`).
   const ajuste = AJUSTES_DO_ROSTO[id];
   if (ajuste) {
     medidas.caixaDoRosto = {
@@ -53,7 +56,10 @@ for (const id of ids) {
   }
   saida[id] = {
     medidas,
-    camera: { corpo: enquadrarCaixa(medidas.caixa), rosto: enquadrarCaixa(medidas.caixaDoRosto) },
+    camera: {
+      corpo: enquadrarCaixa(medidas.caixa),
+      rosto: enquadrarCaixa(medidas.caixaDoRosto, { margem: MARGEM_DO_ROSTO }),
+    },
   };
 }
 await navegador.close();

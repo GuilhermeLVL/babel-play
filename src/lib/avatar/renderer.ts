@@ -24,8 +24,10 @@ import {
   AmbientLight,
   Box3,
   DirectionalLight,
+  type Object3D,
   PerspectiveCamera,
   Scene,
+  type SkinnedMesh,
   SRGBColorSpace,
   Vector3,
   WebGLRenderer,
@@ -56,6 +58,52 @@ import {
 import { ORCAMENTOS, type TierDoAvatar } from '../../core/avatar/tiers';
 import { criarEstadoDaVida, passoDaVida } from '../../core/avatar/vida';
 import type { AvatarCarregado } from './carregador';
+
+/**
+ * A caixa da CABEÇA medida nos vértices: os que a malha pesa (>= 50%) no osso da cabeça ou num filho dele (cabelo,
+ * chifres, orelhas), já com a pose de repouso aplicada. Dá a largura e a altura reais da cabeça, em vez de uma
+ * estimativa pela altura do osso. `null` sem malha com pesos (GLB sem esqueleto): quem chama usa a estimativa.
+ */
+function caixaDosVerticesDaCabeca(raiz: Object3D, osso: Object3D): Box3 | null {
+  const caixa = new Box3();
+  const v = new Vector3();
+  const ehDaCabeca = new Map<Object3D, boolean>();
+  const daCabeca = (b: Object3D): boolean => {
+    let r = ehDaCabeca.get(b);
+    if (r === undefined) {
+      r = false;
+      for (let p: Object3D | null = b; p; p = p.parent) {
+        if (p === osso) {
+          r = true;
+          break;
+        }
+      }
+      ehDaCabeca.set(b, r);
+    }
+    return r;
+  };
+  raiz.traverse((no) => {
+    const m = no as SkinnedMesh;
+    if (!m.isSkinnedMesh || !m.skeleton) return;
+    m.skeleton.update();
+    const idx = m.geometry.getAttribute('skinIndex');
+    const peso = m.geometry.getAttribute('skinWeight');
+    if (!idx || !peso) return;
+    for (let i = 0; i < idx.count; i++) {
+      let da = 0;
+      for (let k = 0; k < 4; k++) {
+        const osso_ = m.skeleton.bones[idx.getComponent(i, k)];
+        if (osso_ && daCabeca(osso_)) da += peso.getComponent(i, k);
+      }
+      if (da < 0.5) continue;
+      m.getVertexPosition(i, v);
+      v.applyMatrix4(m.matrixWorld);
+      caixa.expandByPoint(v);
+    }
+  });
+  if (caixa.isEmpty() || caixa.max.y - caixa.min.y < 0.02) return null;
+  return caixa;
+}
 
 export type MotivoDeFalha = 'webgl' | 'contexto_perdido';
 
@@ -232,6 +280,11 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
     const osso = atual.vrm?.humanoid?.getRawBoneNode('head');
     let alturaDaCabeca = caixa.max.y - (caixa.max.y - caixa.min.y) * 0.15;
     if (osso) alturaDaCabeca = osso.getWorldPosition(new Vector3()).y;
+    const olhoE = atual.vrm?.humanoid?.getRawBoneNode('leftEye');
+    const olhoD = atual.vrm?.humanoid?.getRawBoneNode('rightEye');
+    const pe = olhoE?.getWorldPosition(new Vector3());
+    const pd = olhoD?.getWorldPosition(new Vector3());
+    const cabecaMedida = osso ? caixaDosVerticesDaCabeca(o, osso) : null;
     o.scale.copy(escala);
     o.updateMatrixWorld(true);
     const arred = (v: number) => Math.round(v * 1000) / 1000;
@@ -239,7 +292,19 @@ export function criarMotor(opcoes: OpcoesDoMotor): MotorDeAvatar {
       min: [arred(caixa.min.x), arred(caixa.min.y), arred(caixa.min.z)] as const,
       max: [arred(caixa.max.x), arred(caixa.max.y), arred(caixa.max.z)] as const,
     };
-    return { caixa: c, caixaDoRosto: caixaDoRostoPorCabeca(c, alturaDaCabeca) };
+    const rosto = {
+      cabecaY: arred(alturaDaCabeca),
+      ...(pe && pd
+        ? { olhoY: arred((pe.y + pd.y) / 2), olhoX: arred(Math.abs(pe.x - pd.x) / 2), olhoZ: arred((pe.z + pd.z) / 2) }
+        : {}),
+    };
+    const caixaDoRosto = cabecaMedida
+      ? {
+          min: [arred(cabecaMedida.min.x), arred(cabecaMedida.min.y), arred(cabecaMedida.min.z)] as const,
+          max: [arred(cabecaMedida.max.x), arred(cabecaMedida.max.y), arred(cabecaMedida.max.z)] as const,
+        }
+      : caixaDoRostoPorCabeca(c, alturaDaCabeca);
+    return { caixa: c, caixaDoRosto, rosto };
   };
 
   const enquadrar = () => {

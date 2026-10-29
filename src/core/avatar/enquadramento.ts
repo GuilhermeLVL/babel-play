@@ -32,9 +32,20 @@ export interface MedidasDoModelo {
   caixa: CaixaDoModelo;
   /** Caixa da região do rosto (cabeça e o que a cerca). */
   caixaDoRosto: CaixaDoModelo;
+  /** Onde estão a cabeça e os olhos (ossos), em metros, escala 1. Sem olhos: só `cabecaY` (e a caixa da cabeça). */
+  rosto?: { cabecaY: number; olhoY?: number; olhoX?: number; olhoZ?: number };
 }
 
 export const FOV_PADRAO = 24;
+/**
+ * Fração livre em cada lado do quadro no modo `rosto`. Maior que a do corpo: a moldura do Intérprete e o selo são
+ * CÍRCULOS, que cortam os cantos de um quadrado; a cabeça (caixa dos vértices) fica com ~80% do quadro.
+ */
+export const MARGEM_DO_ROSTO = 0.2;
+/** O rosto (olhos ao queixo, ou a cabeça sem olhos) ocupa pelo menos isto da ALTURA do quadro... */
+export const ROSTO_MINIMO_NO_QUADRO = 0.45;
+/** ...e a cabeça, no máximo isto (acima disso encosta na borda e o topo corre risco de corte). */
+export const CABECA_MAXIMA_NO_QUADRO = 0.92;
 /** Fração livre em cada lado do quadro (o corpo nunca encosta na borda). */
 export const MARGEM_DO_QUADRO = 0.04;
 /** Distância mínima à frente da câmera para um canto contar como visível (m). */
@@ -142,7 +153,36 @@ export function caixaDoRostoPorCabeca(caixa: CaixaDoModelo, alturaDaCabeca: numb
 export function camerasAutomaticas(medidas: MedidasDoModelo, aspecto = 1): CamerasDoModelo {
   return {
     corpo: enquadrarCaixa(medidas.caixa, { aspecto }),
-    rosto: enquadrarCaixa(medidas.caixaDoRosto, { aspecto }),
+    rosto: enquadrarCaixa(medidas.caixaDoRosto, { aspecto, margem: MARGEM_DO_ROSTO }),
+  };
+}
+
+/**
+ * Quanto da ALTURA do quadro (0..1) o rosto ocupa: dos olhos ao queixo (base da cabeça medida), quando o modelo tem
+ * ossos dos olhos; sem eles, a cabeça inteira (a caixa dos vértices). `null` se a câmera não vê a caixa.
+ */
+export function alturaDoRostoNoQuadro(medidas: MedidasDoModelo, camera: CameraDoModelo, aspecto = 1): number | null {
+  const cx = medidas.caixaDoRosto;
+  const olhoY = medidas.rosto?.olhoY;
+  const caixa: CaixaDoModelo =
+    olhoY === undefined ? cx : { min: [cx.min[0], cx.min[1], cx.min[2]], max: [cx.max[0], olhoY, cx.max[2]] };
+  const p = projetarCaixa(caixa, camera, aspecto);
+  return p ? (p.maxY - p.minY) / 2 : null;
+}
+
+/** A cabeça (topo ao queixo) ocupa quanto da altura do quadro, e o centro dela cai a quanto do centro (-1..1)? */
+export function posicaoDaCabecaNoQuadro(
+  medidas: MedidasDoModelo,
+  camera: CameraDoModelo,
+  aspecto = 1,
+): { altura: number; largura: number; centroX: number; centroY: number } | null {
+  const p = projetarCaixa(medidas.caixaDoRosto, camera, aspecto);
+  if (!p) return null;
+  return {
+    altura: (p.maxY - p.minY) / 2,
+    largura: (p.maxX - p.minX) / 2,
+    centroX: (p.maxX + p.minX) / 2,
+    centroY: (p.maxY + p.minY) / 2,
   };
 }
 
@@ -155,9 +195,9 @@ export function passaNoEnquadramento(
   if (!caixaCabeNoQuadro(medidas.caixa, cameras.corpo, aspecto)) return { passa: false, motivo: 'corpo cortado' };
   if (ocupacaoDoQuadro(medidas.caixa, cameras.corpo, aspecto) < 0.6)
     return { passa: false, motivo: 'corpo pequeno demais' };
-  if (!caixaCabeNoQuadro(medidas.caixaDoRosto, cameras.rosto, aspecto))
+  if (!caixaCabeNoQuadro(medidas.caixaDoRosto, cameras.rosto, aspecto, MARGEM_DO_ROSTO / 2))
     return { passa: false, motivo: 'rosto cortado' };
-  if (ocupacaoDoQuadro(medidas.caixaDoRosto, cameras.rosto, aspecto) < 0.6)
-    return { passa: false, motivo: 'rosto pequeno demais' };
+  const rosto = alturaDoRostoNoQuadro(medidas, cameras.rosto, aspecto);
+  if (rosto === null || rosto < ROSTO_MINIMO_NO_QUADRO) return { passa: false, motivo: 'rosto pequeno demais' };
   return { passa: true };
 }

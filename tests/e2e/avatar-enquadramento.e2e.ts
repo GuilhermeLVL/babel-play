@@ -19,7 +19,15 @@ const HARNESS = '/tests/e2e/avatar-harness/index.html'
 /** Só dentro de `page.evaluate`: a ponte que o harness põe em `window`. */
 type Ponte = {
   modo(m: 'corpo' | 'rosto'): void
-  bordas(): { total: number; naoVazios: number; naBorda: number; topo: number; base: number; lados: number } | null
+  bordas(): {
+    total: number
+    naoVazios: number
+    naBorda: number
+    topo: number
+    base: number
+    lados: number
+    caixa: { x0: number; x1: number; y0: number; y1: number }
+  } | null
   stats(): { antialias: boolean; pixelRatio: number } | null
 }
 type JanelaDoHarness = { __avatarHarness: Ponte }
@@ -30,16 +38,25 @@ for (const m of COLECAO_CURADA) {
     await expect(page.locator('[data-avatar-pronto="true"]')).toBeVisible({ timeout: 60_000 })
 
     await page.evaluate(() => (window as unknown as JanelaDoHarness).__avatarHarness.modo('corpo'))
+    await expect(page.locator('[data-camera-pronta="corpo"]')).toHaveCount(1)
     const corpo = await page.evaluate(() => (window as unknown as JanelaDoHarness).__avatarHarness.bordas())
     expect(corpo).toBeTruthy()
     expect(corpo!.naBorda, 'nenhum pixel do corpo toca a borda').toBe(0)
     expect(corpo!.naoVazios / corpo!.total, 'o corpo aparece (não é um ponto)').toBeGreaterThan(0.05)
 
     await page.evaluate(() => (window as unknown as JanelaDoHarness).__avatarHarness.modo('rosto'))
+    await expect(page.locator('[data-camera-pronta="rosto"]')).toHaveCount(1)
     const rosto = await page.evaluate(() => (window as unknown as JanelaDoHarness).__avatarHarness.bordas())
     expect(rosto!.topo, 'o topo da cabeça não é cortado').toBe(0)
     expect(rosto!.naoVazios / rosto!.total, 'o rosto enche o quadro').toBeGreaterThan(0.15)
     expect(rosto!.naoVazios, 'o rosto é maior que o corpo inteiro').toBeGreaterThan(corpo!.naoVazios)
+    // Medido em pixels: o topo da cabeça fica a 3%..22% do topo do quadro (nem cortado, nem sobrando vazio; a cabeça
+    // inteira, de ~80% do quadro, está provada pela projeção em `tests/avatar-enquadramento.test.ts`), e está
+    // centrada na horizontal. Abaixo do queixo o pescoço e o corpo continuam até a borda, e isso é esperado.
+    const { x0, x1, y0 } = rosto!.caixa
+    expect(y0, 'folga acima da cabeça').toBeGreaterThanOrEqual(0.03)
+    expect(y0, 'a cabeça começa perto do topo (rosto grande)').toBeLessThanOrEqual(0.22)
+    expect(Math.abs((x0 + x1) / 2 - 0.5), 'centrada na horizontal').toBeLessThan(0.08)
   })
 }
 

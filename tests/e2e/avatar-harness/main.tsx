@@ -74,7 +74,16 @@ interface Ponte {
   medidas(): MedidasDoModelo | null
   modo(m: ModoDeCamera): void
   /** Quadro atual: pixels não vazios por borda (0 = nada encosta no limite) e total. */
-  bordas(): { total: number; naoVazios: number; naBorda: number; topo: number; base: number; lados: number } | null
+  bordas(): {
+    total: number
+    naoVazios: number
+    naBorda: number
+    topo: number
+    base: number
+    lados: number
+    /** Caixa dos pixels não vazios, em frações do quadro (0..1, y de cima para baixo). */
+    caixa: { x0: number; x1: number; y0: number; y1: number }
+  } | null
   stats(): { antialias: boolean; pixelRatio: number } | null
 }
 declare global {
@@ -238,17 +247,34 @@ function Harness() {
         let topo = 0
         let base = 0
         let lados = 0
+        let x0 = w
+        let x1 = -1
+        let y0 = h
+        let y1 = -1
         for (let y = 0; y < h; y++)
           for (let x = 0; x < w; x++) {
             if (px[(y * w + x) * 4 + 3] === 0) continue
             naoVazios++
+            x0 = Math.min(x0, x)
+            x1 = Math.max(x1, x)
+            y0 = Math.min(y0, y)
+            y1 = Math.max(y1, y)
             // A origem do `readPixels` é o canto de BAIXO: y === 0 é a base do quadro.
             if (y === h - 1) topo++
             if (y === 0) base++
             if (x === 0 || x === w - 1) lados++
             if (x === 0 || y === 0 || x === w - 1 || y === h - 1) naBorda++
           }
-        return { total: w * h, naoVazios, naBorda, topo, base, lados }
+        return {
+          total: w * h,
+          naoVazios,
+          naBorda,
+          topo,
+          base,
+          lados,
+          // y do readPixels é de baixo para cima: inverte para "de cima para baixo".
+          caixa: { x0: x0 / w, x1: (x1 + 1) / w, y0: (h - 1 - y1) / h, y1: (h - y0) / h },
+        }
       },
       desmontar: () => setMontado(false),
       erros: window.__avatarHarness?.erros ?? [],

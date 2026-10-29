@@ -15,15 +15,20 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mapearMateriais } from '../src/core/avatar/aparencia'
 import { receitaNova } from '../src/core/avatar/edicao'
 import {
+  alturaDoRostoNoQuadro,
+  CABECA_MAXIMA_NO_QUADRO,
   caixaCabeNoQuadro,
   camerasAutomaticas,
   type CamerasDoModelo,
   enquadrarCaixa,
   MARGEM_DO_QUADRO,
+  MARGEM_DO_ROSTO,
   type MedidasDoModelo,
   ocupacaoDoQuadro,
   passaNoEnquadramento,
+  posicaoDaCabecaNoQuadro,
   projetarCaixa,
+  ROSTO_MINIMO_NO_QUADRO,
 } from '../src/core/avatar/enquadramento'
 import { avaliarLicenca } from '../src/core/avatar/licencaVrm'
 import { sugerirModelo } from '../src/core/avatar/sugestao'
@@ -88,6 +93,8 @@ describe('enquadramento: matemática pura', () => {
     expect(passaNoEnquadramento(medidas, cortada)).toEqual({ passa: false, motivo: 'corpo cortado' })
     const longe: CamerasDoModelo = { ...boas, corpo: { ...boas.corpo, distancia: boas.corpo.distancia * 3 } }
     expect(passaNoEnquadramento(medidas, longe)).toEqual({ passa: false, motivo: 'corpo pequeno demais' })
+    const rostoMinusculo: CamerasDoModelo = { ...boas, rosto: { ...boas.rosto, distancia: boas.rosto.distancia * 3 } }
+    expect(passaNoEnquadramento(medidas, rostoMinusculo)).toEqual({ passa: false, motivo: 'rosto pequeno demais' })
     const rostoCortado: CamerasDoModelo = { ...boas, rosto: { ...boas.rosto, distancia: boas.rosto.distancia * 0.6 } }
     expect(passaNoEnquadramento(medidas, rostoCortado)).toEqual({ passa: false, motivo: 'rosto cortado' })
   })
@@ -117,9 +124,22 @@ describe('coleção: enquadramento calibrado por modelo', () => {
         expect(ocupacaoDoQuadro(m.medidas.caixa, m.camera.corpo)).toBeGreaterThan(0.6)
       })
 
-      it('o rosto cabe no quadro e é grande o bastante para ler', () => {
-        expect(caixaCabeNoQuadro(m.medidas.caixaDoRosto, m.camera.rosto)).toBe(true)
-        expect(ocupacaoDoQuadro(m.medidas.caixaDoRosto, m.camera.rosto)).toBeGreaterThan(0.6)
+      it('o rosto (olhos ao queixo, ou a cabeça sem olhos) ocupa >= 45% da altura do quadro, centrado, sem cortar o topo', () => {
+        const cam = m.camera.rosto
+        const rosto = alturaDoRostoNoQuadro(m.medidas, cam)!
+        expect(rosto).toBeGreaterThanOrEqual(ROSTO_MINIMO_NO_QUADRO)
+        const cabeca = posicaoDaCabecaNoQuadro(m.medidas, cam)!
+        // Não corta: a cabeça inteira cabe com margem, e não passa do teto (nem encosta na borda de cima).
+        expect(caixaCabeNoQuadro(m.medidas.caixaDoRosto, cam, 1, MARGEM_DO_ROSTO / 2)).toBe(true)
+        expect(cabeca.altura).toBeLessThanOrEqual(CABECA_MAXIMA_NO_QUADRO)
+        expect(cabeca.largura).toBeLessThanOrEqual(CABECA_MAXIMA_NO_QUADRO)
+        // Centrada: o centro da cabeça cai a menos de 5% do centro do quadro.
+        expect(Math.abs(cabeca.centroX)).toBeLessThan(0.05)
+        expect(Math.abs(cabeca.centroY)).toBeLessThan(0.05)
+        // E o quadro mostra a cabeça, não o busto com os braços: ela é bem mais estreita que o corpo.
+        expect(m.medidas.caixaDoRosto.max[0] - m.medidas.caixaDoRosto.min[0]).toBeLessThan(
+          (m.medidas.caixa.max[0] - m.medidas.caixa.min[0]) / 2,
+        )
       })
 
       it('passa no teste de enquadramento (por isso pode ser sorteado)', () => {
@@ -131,7 +151,7 @@ describe('coleção: enquadramento calibrado por modelo', () => {
         const esperada = enquadrarCaixa(m.medidas.caixa)
         expect(m.camera.corpo.distancia).toBeCloseTo(esperada.distancia, 2)
         expect(m.camera.corpo.alvo[1]).toBeCloseTo(esperada.alvo[1], 2)
-        const rosto = enquadrarCaixa(m.medidas.caixaDoRosto)
+        const rosto = enquadrarCaixa(m.medidas.caixaDoRosto, { margem: MARGEM_DO_ROSTO })
         expect(m.camera.rosto.distancia).toBeCloseTo(rosto.distancia, 2)
         expect(m.camera.rosto.alvo[1]).toBeCloseTo(rosto.alvo[1], 2)
       })

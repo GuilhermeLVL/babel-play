@@ -116,7 +116,14 @@ export default function AvatarCanvas({
   useEffect(() => sessao.current?.motor.definirBoca(fonteDaBoca ?? null), [fonteDaBoca]);
   useEffect(() => sessao.current?.motor.definirEstado(estado), [estado]);
   useEffect(() => sessao.current?.motor.definirEmocao(emocao), [emocao]);
-  useEffect(() => sessao.current?.motor.definirModo(modo), [modo]);
+  // `data-camera-pronta` = o modo de câmera que o motor JÁ aplicou (os testes esperam por ele, em vez de por tempo).
+  const [cameraPronta, setCameraPronta] = useState<ModoDeCamera | null>(null);
+  useEffect(() => {
+    const s = sessao.current;
+    if (!s) return;
+    s.motor.definirModo(modo);
+    setCameraPronta(modo);
+  }, [modo]);
 
   const chaveDaFonte = fonte instanceof Blob ? fonte : (fonte ?? `${receita.base.origem}/${receita.base.id}`);
   useEffect(() => {
@@ -169,6 +176,7 @@ export default function AvatarCanvas({
       canvasAtual.current = canvas;
       s.motor.definirBoca(vivo.current.fonteDaBoca);
       aoSessaoRef.current?.(s);
+      setCameraPronta(vivo.current.modo);
       setMotivo(null);
     })().catch((e) => {
       if (controle.signal.aborted) return;
@@ -251,6 +259,7 @@ export default function AvatarCanvas({
       style={caixa}
       data-avatar-estado={estado}
       data-avatar-pronto={!motivo}
+      data-camera-pronta={cameraPronta ?? undefined}
     >
       <div
         ref={palco}

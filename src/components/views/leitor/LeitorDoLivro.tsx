@@ -867,7 +867,7 @@ export default function LeitorDoLivro({
       data-estado={estado}
       data-painel={painel ?? undefined}
     >
-      <header className="leitor-topo">
+      <header className={`leitor-topo${temElenco && !info?.ehPdf ? ' leitor-topo-com-elenco' : ''}`}>
         <button type="button" className="leitor-botao" onClick={aoVoltar}>
           <ArrowLeft aria-hidden />
           <span>{rotuloDoVoltar ?? t('Estante')}</span>

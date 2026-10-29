@@ -152,14 +152,22 @@ describe('Perfil > Avatar: adulto', () => {
       'Estúdio',
       'Traga o seu',
     ])
-    // Antes de escolher, a prévia mostra a SUGESTÃO e o botão diz "Usar este avatar".
+    // Antes de escolher, a prévia mostra a SUGESTÃO e o botão diz "Salvar este avatar".
     expect(screen.getByTestId('avatar-credito').textContent).toContain('Sugerido para você')
+    expect(screen.getByTestId('avatar-salvar').textContent).toContain('Salvar este avatar') // um rótulo por ação
     fireEvent.click(screen.getByTestId('avatar-sortear'))
+    expect(screen.getByTestId('avatar-salvar').textContent).toContain('Salvar este avatar')
     expect(screen.getByTestId('avatar-credito').textContent).toContain('Alterações não salvas')
     fireEvent.click(screen.getByTestId('avatar-salvar'))
     await waitFor(() =>
       expect(screen.getByTestId('avatar-status').textContent).toContain('Avatar salvo neste aparelho'),
     )
+    // Salvo: o botão diz o estado (e não fica um "Salvar" apagado sem explicação).
+    expect(screen.getByTestId('avatar-salvar').textContent).toContain('Avatar já salvo')
+    expect((screen.getByTestId('avatar-salvar') as HTMLButtonElement).disabled).toBe(true)
+    // O crédito da primeira tela é curto; o completo fica em "Ver crédito completo".
+    expect(screen.getByTestId('avatar-credito-linha').textContent).toMatch(/, de Polygonal Mind\. Uso livre\./)
+    expect(screen.getByTestId('avatar-credito-linha').textContent).toContain('Ver crédito completo')
     const guardado = await lerMeuAvatar('u-1')
     expect(guardado?.base.origem).toBe('colecao')
     expect(COLECAO_SUGERIVEL.map((m) => m.id)).toContain(guardado?.base.id)

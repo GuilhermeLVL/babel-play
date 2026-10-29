@@ -54,9 +54,7 @@ export default function Personalizar({
         </header>
         {campos.length === 0 ? (
           <p className="qc-nota" data-testid="avatar-sem-paleta">
-            {t(
-              'Este modelo não permite trocar a cor da pele, do cabelo ou dos olhos. A altura, a largura e o tamanho funcionam em qualquer modelo.',
-            )}
+            {t('Este modelo tem cores fixas. Você ainda pode ajustar tamanho, altura e largura.')}
           </p>
         ) : (
           campos.map((campo) => {

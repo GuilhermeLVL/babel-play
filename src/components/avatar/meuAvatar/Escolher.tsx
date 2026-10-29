@@ -48,7 +48,7 @@ export default function Escolher({
     ...COLECAO_CURADA.map((m) => ({
       id: m.id,
       nome: m.nome,
-      linha: t('{autor} · {licenca}', { autor: m.autor, licenca: m.licenca.split(' ')[0] }),
+      linha: t('{autor} · Uso livre ({licenca})', { autor: m.autor, licenca: m.licenca.split(' ')[0] }),
       escolher: () => aoEscolher(m),
     })),
   ];
@@ -105,6 +105,7 @@ export default function Escolher({
                 <small>{m.linha}</small>
                 <span className="av-marca">
                   <Check aria-hidden /> {t('Escolhido')}
+                  <span className="sr-only">{t(', {nome}', { nome: m.nome })}</span>
                 </span>
               </button>
             </li>

@@ -83,7 +83,7 @@ interface Trazido {
 }
 
 function linhaDeCredito(c: CreditoDoModelo | null, modelo?: ModeloDaColecao): string | null {
-  if (modelo) return t('Crédito: {credito}', { credito: modelo.credito });
+  if (modelo) return t('{nome}, de {autor}. Uso livre.', { nome: modelo.nome, autor: modelo.autor });
   if (!c || (!c.titulo && c.autores.length === 0)) return null;
   return t('Crédito: {titulo} · {autor}', {
     titulo: c.titulo || t('sem título'),
@@ -353,7 +353,8 @@ export default function AbaAvatar({ nivel = 1, saldoSeeds = 0 }: { nivel?: numbe
                 disabled={!atual || salvando || !!previaImportada || (!ehSugestao && !sujo)}
                 data-testid="avatar-salvar"
               >
-                <Save aria-hidden /> {ehSugestao ? t('Usar este avatar') : t('Salvar meu avatar')}
+                <Save aria-hidden />{' '}
+                {!ehSugestao && !sujo && !previaImportada ? t('Avatar já salvo') : t('Salvar este avatar')}
               </button>
             </div>
             <div role="status" aria-live="polite" data-testid="avatar-status" className="av-status">
@@ -369,9 +370,15 @@ export default function AbaAvatar({ nivel = 1, saldoSeeds = 0 }: { nivel?: numbe
 
         <div className="av-extra">
           {credito && (
-            <p className="av-credito" data-testid="avatar-credito-linha">
-              {credito}
-            </p>
+            <div className="av-credito" data-testid="avatar-credito-linha">
+              <p style={{ margin: 0 }}>{credito}</p>
+              {modelo && (
+                <details>
+                  <summary>{t('Ver crédito completo')}</summary>
+                  <p style={{ margin: '6px 0 0' }}>{t('Crédito: {credito}', { credito: modelo.credito })}</p>
+                </details>
+              )}
+            </div>
           )}
           {erroDaPrevia && (
             <p className="av-credito" role="status" data-testid="avatar-sem-3d">
@@ -388,7 +395,9 @@ export default function AbaAvatar({ nivel = 1, saldoSeeds = 0 }: { nivel?: numbe
               <AlertTriangle aria-hidden />
               <div>
                 <p style={{ margin: 0 }}>
-                  {t('Apagar o avatar e o modelo que você trouxe? A foto ou as iniciais voltam.')}
+                  {t(
+                    'Apagar seu avatar e o arquivo que você trouxe? Isso não dá para desfazer. A foto ou as iniciais voltam.',
+                  )}
                 </p>
                 <div className="av-acoes" style={{ marginTop: 10 }}>
                   <button

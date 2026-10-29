@@ -103,11 +103,11 @@ export default function GaleriaDeTerceiros({ aoBaixar, ocupado }: Props) {
             <ul>
               <li>
                 {t(
-                  'Para mostrar a galeria, o seu navegador consulta o GitHub e, para os modelos e as imagens, o Arweave.',
+                  'Ao abrir a galeria, sites de fora (GitHub e Arweave) podem ver o endereço de internet do seu aparelho (IP).',
                 )}
               </li>
-              <li>{t('Esses sites veem o seu endereço de rede (IP). O Frasy não envia cookie nem identificação.')}</li>
-              <li>{t('Nada é pedido se você não abrir. Seu arquivo e seu avatar nunca saem do aparelho.')}</li>
+              <li>{t('O Frasy não envia cookie nem dados seus.')}</li>
+              <li>{t('Se você não abrir, nada é pedido. Seu arquivo e seu avatar nunca saem do aparelho.')}</li>
             </ul>
           </div>
         </div>

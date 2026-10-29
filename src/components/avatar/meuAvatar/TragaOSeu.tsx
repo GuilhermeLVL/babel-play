@@ -395,7 +395,12 @@ export default function TragaOSeu({ tier, aoUsar, aoPrevisualizar }: Props) {
               <a href={f.url} target="_blank" rel="noopener noreferrer">
                 {t('Abrir {nome}', { nome: f.nome })} <ExternalLink aria-hidden />
               </a>
-              <a href={f.termosUrl} target="_blank" rel="noopener noreferrer">
+              <a
+                href={f.termosUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={t('Ler os termos de {nome} (abre em nova aba)', { nome: f.nome })}
+              >
                 {t('Ler os termos')} <ExternalLink aria-hidden />
               </a>
             </li>

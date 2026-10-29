@@ -24,7 +24,8 @@ export function gerarHeaders(env: NodeJS.ProcessEnv, base: string): string {
   const global = [
     '/*',
     '  Cross-Origin-Opener-Policy: same-origin',
-    '  Cross-Origin-Embedder-Policy: credentialless',
+    // Sem COEP quando o piloto VLibras está ativo: o iframe do avatar não o manda (`server/http/isolamento.ts`).
+    ...(env.VLIBRAS_ATIVO === '1' ? [] : ['  Cross-Origin-Embedder-Policy: credentialless']),
     '  Document-Isolation-Policy: isolate-and-credentialless',
     '  X-Content-Type-Options: nosniff',
     // O mesmo HSTS que o helmet manda nas respostas da API (o ZAP apontou a ausência nos estáticos, 21/10/2026).

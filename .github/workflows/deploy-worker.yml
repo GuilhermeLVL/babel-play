@@ -145,6 +145,8 @@ jobs:
           # aparece no catálogo e a leitura avisa que a cópia ainda não foi publicada; a CSP abre a origem sozinha.
           VITE_LIVROS_URL: ${{ vars.VITE_LIVROS_URL }}
           VITE_AVATARES_URL: ${{ vars.VITE_AVATARES_URL }}
+          # Piloto VLibras (flag libras_vlibras): 1 abre a CSP do dist/_headers só para os domínios do VLibras e tira o COEP.
+          VLIBRAS_ATIVO: ${{ vars.VLIBRAS_ATIVO }}
         run: npm run build
 
       # Migrações antes da versão nova existir (o schema é aditivo; o Worker antigo continua servindo). A conexão

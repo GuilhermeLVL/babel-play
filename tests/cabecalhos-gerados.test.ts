@@ -87,6 +87,20 @@ describe('gerarHeaders', () => {
     expect(g).toContain('Permissions-Policy: microphone=(self)')
   })
 
+  it('VLibras (piloto): VLIBRAS_ATIVO=1 abre a CSP e troca o COEP pelo só-DIP; sem a variável nada muda', () => {
+    const sem = bloco(gerarHeaders(env({}), BASE), '/*')
+    expect(gerarHeaders(env({ VLIBRAS_ATIVO: '0' }), BASE)).toBe(gerarHeaders(env({}), BASE))
+    expect(sem).not.toContain('vlibras')
+    const e = env({ VLIBRAS_ATIVO: '1' })
+    const g = bloco(gerarHeaders(e, BASE), '/*')
+    expect(g).toContain(`Content-Security-Policy: ${serializarCsp(diretivasDeCsp(e))}`)
+    expect(g).toContain('https://traducao2.vlibras.gov.br')
+    // O avatar do VLibras é um iframe de outra origem sem COEP: sob `credentialless` o navegador o bloqueia.
+    expect(g).not.toContain('Cross-Origin-Embedder-Policy')
+    expect(g).toContain('Cross-Origin-Opener-Policy: same-origin')
+    expect(g).toContain('Document-Isolation-Policy: isolate-and-credentialless')
+  })
+
   it('as regras de cache do base vêm inalteradas', () => {
     const h = gerarHeaders(env({}), BASE)
     const cache = BASE.slice(BASE.indexOf('/ort-wasm-*'))

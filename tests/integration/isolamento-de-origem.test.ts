@@ -119,6 +119,17 @@ describe('isolamento de origem na montagem de produção', () => {
   })
 })
 
+describe('VLibras (piloto): VLIBRAS_ATIVO=1', () => {
+  it('troca o modo completo por só-DIP (o iframe do avatar não tem COEP); `=0` e `dip` seguem como estão', () => {
+    expect(modoDeIsolamento({ VLIBRAS_ATIVO: '1' })).toBe('dip')
+    expect(modoDeIsolamento({ VLIBRAS_ATIVO: '1', CROSS_ORIGIN_ISOLATION: 'completo' })).toBe('dip')
+    expect(modoDeIsolamento({ VLIBRAS_ATIVO: '1', CROSS_ORIGIN_ISOLATION: '0' })).toBe('desligado')
+    expect(modoDeIsolamento({ VLIBRAS_ATIVO: '1', CROSS_ORIGIN_ISOLATION: 'dip' })).toBe('dip')
+    for (const v of [undefined, '', '0', 'true'])
+      expect(modoDeIsolamento({ VLIBRAS_ATIVO: v }), String(v)).toBe('completo')
+  })
+})
+
 describe('leitura do valor', () => {
   it('ausente, vazio, `1` e `completo` são o modo completo', () => {
     for (const v of [undefined, '', '  ', '1', 'completo', 'COMPLETO', 'true']) {

@@ -42,6 +42,12 @@
  *                                               `raw.githubusercontent.com` (já liberado) e as miniaturas por
  *                                               `img-src`, que já é `https:`. Sem a variável, nada entra e a galeria
  *                                               avisa que está indisponível. Só `connect-src`, nunca script/worker.
+ *   VLIBRAS_ATIVO=1                             o piloto VLibras (flag `libras_vlibras`, só adultos com aceite): o
+ *                                               widget do governo federal. Abre SÓ `vlibras.gov.br` e o caminho do
+ *                                               repositório do VLibras no jsdelivr em `script-src`/`font-src`, os
+ *                                               quatro hosts do serviço em `connect-src` e `vlibras.gov.br` em
+ *                                               `frame-src` (o avatar é um iframe). O PostHog do widget NUNCA entra
+ *                                               (`docs/pesquisa/2026-10-29-vlibras-piloto.md`). Sem a variável, nada muda.
  *   VITE_ORT_WASM_URL                           o runtime do ONNX (`ort-wasm-*.{wasm,mjs}`) num R2/CDN
  *                                               (`src/gateway/baseDoWasm.ts`). ESTE é código: entra
  *                                               também em `script-src` e `worker-src` (ver abaixo)
@@ -145,6 +151,8 @@ export interface OpcoesDaCsp {
 }
 
 export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: OpcoesDaCsp = {}): DiretivasDeCsp {
+  /* O piloto VLibras (só ligado pelo deploy): ver o cabeçalho deste arquivo. */
+  const vlibras = env.VLIBRAS_ATIVO === '1'
   const doDeploy = [
     origemDe(env.SUPABASE_URL),
     origemDe(env.VITE_SUPABASE_URL),
@@ -185,13 +193,14 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
       ...doDeploy,
       ...runtimeDoOnnx,
       ...turnstile,
+      ...(vlibras ? CSP_DO_VLIBRAS.connect : []),
     ]),
   ]
 
   /* R32: com a flag ligada E a origem configurada, a página de anúncios entra SÓ em `frame-src`. Nada em
      `script-src`: o GPT roda lá, nunca no documento do app. */
   const anuncios = opcoes.anuncios ? [origemDosAnuncios(env)].filter((o): o is string => o !== null) : []
-  const quadros = [...turnstile, ...anuncios]
+  const quadros = [...turnstile, ...anuncios, ...(vlibras ? CSP_DO_VLIBRAS.frame : [])]
 
   return {
     defaultSrc: ["'self'"],
@@ -200,7 +209,14 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
        `.mjs`, faz `URL.createObjectURL` e `import()` desse `blob:` NA THREAD PRINCIPAL — `worker-src` não cobre
        isso. Por isso o conteúdo dos livros NÃO depende desta diretiva: o iframe do capítulo não tem
        `allow-scripts` (`src/lib/leitor/foliate/PATCHES.md`). */
-    scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'blob:', ...runtimeDoOnnx, ...turnstile],
+    scriptSrc: [
+      "'self'",
+      "'wasm-unsafe-eval'",
+      'blob:',
+      ...runtimeDoOnnx,
+      ...turnstile,
+      ...(vlibras ? CSP_DO_VLIBRAS.script : []),
+    ],
     workerSrc: ["'self'", 'blob:', ...runtimeDoOnnx],
     connectSrc: conexoes,
     imgSrc: ["'self'", 'https:', 'data:', 'blob:'],
@@ -209,7 +225,7 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
     // `data:`: o Vite embute no CSS as faces pequenas (Silkscreen, < 4 KB) como data URI; sem isto o
     // navegador as recusa e a marca cai na fonte de reserva (visto no staging, 03/10/2026).
     /* `blob:`: as fontes EMBUTIDAS num EPUB viram `blob:` (o foliate-js reescreve as URLs do livro). */
-    fontSrc: ["'self'", 'data:', 'blob:'],
+    fontSrc: ["'self'", 'data:', 'blob:', ...(vlibras ? CSP_DO_VLIBRAS.font : [])],
     objectSrc: ["'none'"],
     frameAncestors: ["'self'"],
     baseUri: ["'self'"],
@@ -249,3 +265,4 @@ export function serializarCsp(d: DiretivasDeCsp): string {
     .map(([nome, valores]) => [nome.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase()), ...valores].join(' '))
     .join('; ')
 }
+import { CSP_DO_VLIBRAS } from '../../src/core/libras/vlibras'

@@ -304,6 +304,13 @@ export const FLAG_AVATAR_SINAIS = 'avatar_sinais';
 export const FLAG_AVATAR_ELENCO = 'avatar_elenco';
 
 /**
+ * O PILOTO VLIBRAS (`docs/pesquisa/2026-10-29-vlibras-piloto.md`; migração PG 0016). Sinais de apoio por um serviço
+ * EXTERNO do governo federal, só para adultos com consentimento explícito. Nasce DESLIGADA; ligar é ato do dono. Não é
+ * permissão nem cota, e a flag sozinha não basta: o portão (`core/libras/vlibras.ts`) também exige adulto e aceite.
+ */
+export const FLAG_LIBRAS_VLIBRAS = 'libras_vlibras';
+
+/**
  * O TETO DO DIA do parceiro nos planos pagos: 40 pedidos por dia local. A conta: um pedido leva até ~8 mil caracteres
  * do capítulo (~2,3 mil tokens), ~600 tokens da ficha e o system, e até 900 de saída — ~4 mil tokens, ≈ US$ 0,0011 no
  * DeepSeek V4.1 Flash (US$ 0,15/0,65 por 1M) e menos no Gemma 4. 40 por dia cobrem uma tarde inteira de leitura com

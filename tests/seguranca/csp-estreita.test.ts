@@ -144,6 +144,39 @@ describe('diretivasDeCsp', () => {
     expect(d.imgSrc).toEqual(base.imgSrc)
   })
 
+  it('VLibras (piloto): só entra com VLIBRAS_ATIVO=1, só os domínios confirmados e nenhum analytics', () => {
+    const base = diretivasDeCsp(env({}))
+    expect(JSON.stringify(base)).not.toContain('vlibras')
+    for (const nao of ['', '0', 'true', 'sim']) expect(diretivasDeCsp(env({ VLIBRAS_ATIVO: nao }))).toEqual(base)
+    const d = diretivasDeCsp(env({ VLIBRAS_ATIVO: '1' }))
+    expect(d.scriptSrc).toEqual([
+      ...base.scriptSrc,
+      'https://vlibras.gov.br',
+      'https://cdn.jsdelivr.net/gh/spbgovbr-vlibras/',
+    ])
+    expect(d.connectSrc).toEqual(
+      expect.arrayContaining([
+        'https://vlibras.gov.br',
+        'https://traducao2.vlibras.gov.br',
+        'https://dicionario2.vlibras.gov.br',
+        'https://repositorio.vlibras.gov.br',
+      ]),
+    )
+    expect(d.frameSrc).toContain('https://vlibras.gov.br')
+    expect(d.fontSrc).toEqual([
+      ...base.fontSrc,
+      'https://vlibras.gov.br',
+      'https://cdn.jsdelivr.net/gh/spbgovbr-vlibras/',
+    ])
+    // O que não muda: workers, imagens, mídia, objetos, formulários, e o jsdelivr inteiro NÃO entra em script-src.
+    expect(d.workerSrc).toEqual(base.workerSrc)
+    expect(d.imgSrc).toEqual(base.imgSrc)
+    expect(d.mediaSrc).toEqual(base.mediaSrc)
+    expect(d.formAction).toEqual(base.formAction)
+    expect(d.scriptSrc).not.toContain('https://cdn.jsdelivr.net')
+    expect(serializarCsp(d)).not.toMatch(/posthog/)
+  })
+
   it('script-src continua sem host externo e sem unsafe-eval', () => {
     const s = diretivasDeCsp(env({})).scriptSrc
     expect(s).toEqual(["'self'", "'wasm-unsafe-eval'", 'blob:'])

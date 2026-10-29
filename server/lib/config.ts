@@ -290,6 +290,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'com `1`, a CSP libera `arweave.net` e `*.arweave.net` em `connect-src` para a galeria ao vivo de avatares (coleção 100Avatars, CC0), atrás da flag `avatar_3d` e do opt-in da pessoa; nunca para perfil protegido. Ausente: a galeria avisa que está indisponível',
   },
   {
+    nome: 'VLIBRAS_ATIVO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'com `1`, a CSP libera os domínios do widget VLibras (governo federal) e o isolamento `completo` vira `dip` (o iframe do avatar não manda COEP), para o piloto atrás da flag `libras_vlibras` (só adultos, com aceite). Vale no servidor e no BUILD (`dist/_headers`). Ausente: nada muda',
+  },
+  {
     nome: 'BABEL_RUNTIME',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',

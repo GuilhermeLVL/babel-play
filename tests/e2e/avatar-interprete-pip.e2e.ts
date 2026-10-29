@@ -3,6 +3,8 @@ import path from 'node:path'
 
 import { expect, type Page, test } from '@playwright/test'
 
+import { ladoDoAvatarNoQuadro } from '../../src/core/legendas/janelaFlutuante'
+import { DIMENSOES_DO_QUADRO, retanguloDoAvatar } from '../../src/lib/legendas/legendaEmVideo'
 import { abrirPeloMenu, comecarFalando, comFlags, falsos, fase, porToque, semPreferenciasDeAvatar } from './_interprete'
 
 /**
@@ -182,21 +184,27 @@ test.describe('Avatar no PiP de vídeo (Safari simulado)', () => {
     const caixa = await ponte.boundingBox()
     expect(caixa!.x).toBeLessThan(0)
 
+    const circulo = retanguloDoAvatar({
+      formato: 'conversa',
+      avatar: { lado: ladoDoAvatarNoQuadro('conversa', DIMENSOES_DO_QUADRO.conversa) },
+    })
     // O quadro do vídeo tem o avatar: a região do círculo (conversa: centrado no alto) não é um fundo liso.
     await expect
       .poll(
         () =>
-          page.evaluate(async () => {
+          page.evaluate(async (r) => {
             const v = (window as unknown as { __videoPiP: HTMLVideoElement }).__videoPiP
             const c = document.createElement('canvas')
             c.width = v.videoWidth || 720
             c.height = v.videoHeight || 960
             c.getContext('2d')!.drawImage(v, 0, 0)
-            const d = c.getContext('2d')!.getImageData(260, 16, 200, 200).data
+            // O miolo do círculo do avatar (a região quadrada inscrita), onde o fundo liso não passa de 1-2 cores.
+            const m = Math.round(r.lado * 0.15)
+            const d = c.getContext('2d')!.getImageData(r.x + m, r.y + m, r.lado - 2 * m, r.lado - 2 * m).data
             const unicas = new Set<number>()
             for (let i = 0; i < d.length; i += 4 * 17) unicas.add((d[i] << 16) | (d[i + 1] << 8) | d[i + 2])
             return unicas.size
-          }),
+          }, circulo),
         { timeout: 20_000 },
       )
       .toBeGreaterThan(8)

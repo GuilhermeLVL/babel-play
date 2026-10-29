@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import type { Formato } from '../../../../core/legendas/janelaFlutuante';
+import { type Formato, ladoDoAvatarNoQuadro } from '../../../../core/legendas/janelaFlutuante';
 import { FLAG_AVATAR_3D } from '../../../../core/planos';
 import { useAvatarDoPip } from '../../../../lib/avatar/avatarDoPip';
 import { avancar, type EstadoDoRitmo, RITMO_VAZIO, saltarParaOFim } from '../../../../lib/captura/ritmoDaLegenda';
 import { useFlag } from '../../../../lib/flags';
 import { t } from '../../../../lib/i18n';
-import type { LegendaEmVideo as Controlador } from '../../../../lib/legendas/legendaEmVideo';
+import { DIMENSOES_DO_QUADRO, type LegendaEmVideo as Controlador } from '../../../../lib/legendas/legendaEmVideo';
 import PonteDoAvatarNoVideo from '../../../avatar/PonteDoAvatarNoVideo';
 import { fundoResolvido, lerAparencia } from './aparenciaDaLegenda';
 import type { LegendaAoVivo } from './LinhaDaLegenda';
@@ -103,7 +103,7 @@ export default function LegendaEmVideo({
   const flagDoAvatar = useFlag(FLAG_AVATAR_3D);
   const avatarPublicado = useAvatarDoPip().ativo;
   const comAvatar = flagDoAvatar && avatarPublicado && formato !== 'estudo';
-  const ladoDoAvatar = formato === 'faixa' ? 150 : formato === 'conversa' ? 200 : 220;
+  const ladoDoAvatar = ladoDoAvatarNoQuadro(formato, DIMENSOES_DO_QUADRO[formato]);
 
   const quadro = {
     falas: desenhadas.map((f) => ({ original: f.original, traducao: f.traducao || undefined, quem: f.quem })),
@@ -121,5 +121,7 @@ export default function LegendaEmVideo({
     if (aberta) controlador?.desenhar(quadro);
   });
 
-  return comAvatar && aberta && controlador ? <PonteDoAvatarNoVideo controlador={controlador} lado={ladoDoAvatar} /> : null;
+  return comAvatar && aberta && controlador ? (
+    <PonteDoAvatarNoVideo controlador={controlador} lado={ladoDoAvatar} />
+  ) : null;
 }

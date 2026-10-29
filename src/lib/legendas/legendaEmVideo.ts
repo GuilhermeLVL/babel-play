@@ -73,7 +73,11 @@ export function retanguloDoAvatar(q: Pick<QuadroDaLegenda, 'formato' | 'avatar'>
 }
 
 /** Desenha o avatar dentro do círculo do quadro (o fundo do círculo é pintado por `desenharQuadro`). */
-function pintarNoCirculo(ctx: CanvasRenderingContext2D, imagem: CanvasImageSource, r: { x: number; y: number; lado: number }) {
+function pintarNoCirculo(
+  ctx: CanvasRenderingContext2D,
+  imagem: CanvasImageSource,
+  r: { x: number; y: number; lado: number },
+) {
   ctx.save();
   ctx.beginPath();
   ctx.arc(r.x + r.lado / 2, r.y + r.lado / 2, r.lado / 2, 0, Math.PI * 2);
@@ -205,10 +209,20 @@ export function desenharQuadro(ctx: CanvasRenderingContext2D, q: QuadroDaLegenda
       ctx.textAlign = centro ? 'center' : 'left';
       y = yG - tamG * 1.35;
     }
+    /* Quais falas cabem (a mais nova sempre; as antigas até acabar a altura). */
+    const visiveis: number[] = [];
+    let ocupado = 0;
     for (let i = blocos.length - 1; i >= 0; i--) {
+      const alturaDoBloco = blocos[i].reduce((s, l) => s + l.altura, 0);
+      if (y - ocupado - alturaDoBloco < reservaDeCima && i < blocos.length - 1) break;
+      visiveis.push(i);
+      ocupado += alturaDoBloco + espacoEntre;
+    }
+    /* Com o avatar no alto (`conversa`), o texto fica COLADO embaixo dele, não no pé do quadro: sem o vazio no meio. */
+    if (reservaDeCima > 0) y = Math.min(y, reservaDeCima + ocupado - espacoEntre);
+    for (const i of visiveis) {
       const bloco = blocos[i];
       const alturaDoBloco = bloco.reduce((s, l) => s + l.altura, 0);
-      if (y - alturaDoBloco < reservaDeCima && i < blocos.length - 1) break;
       const anterior = i < blocos.length - 1;
       ctx.globalAlpha = anterior ? 0.6 : 1;
       let yl = y - alturaDoBloco;

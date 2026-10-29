@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useState } from 'react';
 
 import { avatarDoPip } from '../../core/avatar/interprete';
 import { TIER_DO_PIP } from '../../core/avatar/tiers';
+import { ladoDoAvatarNaJanela } from '../../core/legendas/janelaFlutuante';
 import { FLAG_AVATAR_3D } from '../../core/planos';
 import { useAvatarDoPip } from '../../lib/avatar/avatarDoPip';
 import { useFlag } from '../../lib/flags';
@@ -14,17 +15,9 @@ const FUNDOS = { escuro: '#141210', preto: '#000000', claro: '#f6f1e8' } as cons
 /** Largura da janela a partir da qual o avatar fica AO LADO da legenda; abaixo, em cima dela. */
 const LARGURA_PARA_FICAR_AO_LADO = 520;
 
-/** Lado mínimo do círculo: abaixo disso o rosto some no meio do quadro. */
-const LADO_MINIMO = 96;
-
-/**
- * O lado do círculo, proporcional à janela: ~34% da largura (em cima da legenda) ou ~20% (ao lado), nunca menos que
- * `LADO_MINIMO` nem mais que 160, e sem passar de metade da altura quando a janela é baixa (a legenda tem de caber).
- */
+/** O lado do círculo, pela regra pura de `core/legendas/janelaFlutuante` (testada sem DOM). */
 export function ladoDoAvatarNoPip(largura: number, altura: number, aoLado: boolean): number {
-  const alvo = Math.round(largura * (aoLado ? 0.2 : 0.34));
-  const teto = altura > 0 && !aoLado ? Math.max(LADO_MINIMO, Math.floor(altura * 0.5)) : 160;
-  return Math.max(LADO_MINIMO, Math.min(160, teto, alvo));
+  return ladoDoAvatarNaJanela({ largura, altura }, aoLado);
 }
 
 /**
@@ -70,7 +63,7 @@ export default function ComAvatarNoPip({ janela, children }: { janela: Window | 
             flex: 'none',
             display: 'grid',
             placeItems: 'center',
-            padding: 8,
+            padding: 4,
             background:
               FUNDOS[fundoResolvido(lerAparencia().fundo, document.documentElement.classList.contains('dark'))],
           }}

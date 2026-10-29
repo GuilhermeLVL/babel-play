@@ -202,11 +202,20 @@ test.describe('Soletração no Intérprete', () => {
     const palco = fase(page).getByTestId('soletracao-palco')
     await expect(palco).toBeVisible({ timeout: 30_000 })
     await expect(palco.locator('[data-sinais-estado="soletrando"]')).toBeVisible({ timeout: 60_000 })
-    const atual = fase(page).getByTestId('soletracao-atual')
-    await expect(atual.locator('[data-palavra-atual]')).toHaveText('Conceição')
-    await expect(atual.locator('[data-sinais-letra-atual]')).toBeAttached()
-    // o resto da fala fica marcado como não soletrado (4 palavras: "[trad]", "fale", "com", "amanhã")
-    await expect(atual.getByTestId('soletracao-nao-soletradas')).toContainText('4')
+    // No computador (colunas) a palavra atual fica embaixo do idioma, com a letra e a contagem das não soletradas; no
+    // celular/frente a frente o texto é compacto e a palavra aparece como mini legenda sobre o quadro das mãos.
+    const emColunas = (await page.locator('[data-layout="computador"]').count()) > 0
+    if (emColunas) {
+      const atual = fase(page).getByTestId('soletracao-atual')
+      await expect(atual.locator('[data-palavra-atual]')).toHaveText('Conceição')
+      await expect(atual.locator('[data-sinais-letra-atual]')).toBeAttached()
+      // o resto da fala fica marcado como não soletrado (4 palavras: "[trad]", "fale", "com", "amanhã")
+      await expect(atual.getByTestId('soletracao-nao-soletradas')).toContainText('4')
+    } else {
+      await expect(fase(page).getByTestId('soletracao-atual-mini').locator('[data-palavra-atual]')).toHaveText(
+        'Conceição',
+      )
+    }
     // enquanto soletra, a legenda do Intérprete segue à vista
     await expect(traducao).toBeVisible()
     await foto(page, '2-soletrando')

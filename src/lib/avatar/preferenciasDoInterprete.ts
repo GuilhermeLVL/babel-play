@@ -8,7 +8,18 @@ import { useSyncExternalStore } from 'react';
 import { PREFERENCIAS_PADRAO, type PreferenciasDosAvatares, validarPreferencias } from '../../core/avatar/interprete';
 
 export const PREFIXO_DAS_PREFERENCIAS = 'frasy.avatar.interprete.';
-const CAMPOS = ['quem', 'tamanho', 'foco', 'economia', 'anunciar'] as const;
+const CAMPOS = [
+  'quem',
+  'tamanho',
+  'foco',
+  'economia',
+  'anunciar',
+  'soletrar',
+  'alfabeto',
+  'espelhar',
+  'ritmo',
+] as const;
+const BOOLEANOS: readonly string[] = ['economia', 'anunciar', 'soletrar', 'espelhar'];
 
 const ouvintes = new Set<() => void>();
 let memoria: PreferenciasDosAvatares | null = null;
@@ -19,7 +30,7 @@ function lerDoArmazenamento(): PreferenciasDosAvatares {
     for (const c of CAMPOS) {
       const v = localStorage.getItem(PREFIXO_DAS_PREFERENCIAS + c);
       if (v === null) continue;
-      bruto[c] = c === 'economia' || c === 'anunciar' ? v === '1' : v;
+      bruto[c] = BOOLEANOS.includes(c) ? v === '1' : v;
     }
   } catch {
     /* armazenamento bloqueado: valem os padrões */

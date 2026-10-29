@@ -12,6 +12,12 @@
  * tem foto nem aparência da outra pessoa e não deve ter.
  */
 import type { EstadoDoAvatar } from './estados';
+import {
+  type EscolhaDeAlfabeto,
+  ESCOLHAS_DE_ALFABETO,
+  type RitmoDaSoletracao,
+  RITMOS_DA_SOLETRACAO,
+} from './sinais/soletracaoDoInterprete';
 import { limitarTier, type TierDoAvatar } from './tiers';
 
 export type LadoDaConversa = 'meu' | 'outro';
@@ -72,6 +78,13 @@ export interface PreferenciasDosAvatares {
   economia: boolean;
   /** Região viva (`aria-live`) que anuncia quando o avatar fala. DESLIGADA por padrão: a legenda já é lida. */
   anunciar: boolean;
+  /** "Soletrar nomes e palavras sem sinal" (flag `avatar_sinais`). DESLIGADA por padrão. */
+  soletrar: boolean;
+  /** Libras ou ASL: no automático vem do idioma da outra pessoa. */
+  alfabeto: EscolhaDeAlfabeto;
+  /** Mão canhota: espelha as poses e usa a mão esquerda. */
+  espelhar: boolean;
+  ritmo: RitmoDaSoletracao;
 }
 
 export const PREFERENCIAS_PADRAO: Readonly<PreferenciasDosAvatares> = Object.freeze({
@@ -80,6 +93,10 @@ export const PREFERENCIAS_PADRAO: Readonly<PreferenciasDosAvatares> = Object.fre
   foco: 'rosto',
   economia: false,
   anunciar: false,
+  soletrar: false,
+  alfabeto: 'auto',
+  espelhar: false,
+  ritmo: 'normal',
 });
 
 const um = <T extends string>(lista: readonly T[], v: unknown, padrao: T): T =>
@@ -94,6 +111,10 @@ export function validarPreferencias(bruto: unknown): PreferenciasDosAvatares {
     foco: um<FocoDoAvatar>(['rosto', 'maos'], o.foco, PREFERENCIAS_PADRAO.foco),
     economia: o.economia === true,
     anunciar: o.anunciar === true,
+    soletrar: o.soletrar === true,
+    alfabeto: um(ESCOLHAS_DE_ALFABETO, o.alfabeto, PREFERENCIAS_PADRAO.alfabeto),
+    espelhar: o.espelhar === true,
+    ritmo: um(RITMOS_DA_SOLETRACAO, o.ritmo, PREFERENCIAS_PADRAO.ritmo),
   };
 }
 
@@ -128,6 +149,11 @@ export interface PoliticaDosAvatares {
   /** Sem WebGL2: foto ou iniciais em vez do 3D (o avatar continua à vista, só não é 3D). */
   fallback2d: boolean;
   foco: FocoDoAvatar;
+  /**
+   * A soletração pode acontecer: as duas flags, a opção ligada e o avatar-intérprete na tela. (Falta ainda o modelo
+   * suportar: isso só se sabe com o modelo carregado.)
+   */
+  soletrar: boolean;
   motivo: 'ok' | 'sem_flag' | 'economia' | 'nenhum';
 }
 
@@ -137,6 +163,7 @@ const SEM_AVATAR = (motivo: PoliticaDosAvatares['motivo'], foco: FocoDoAvatar): 
   tier: 'fraco',
   fallback2d: false,
   foco,
+  soletrar: false,
   motivo,
 });
 
@@ -161,6 +188,7 @@ export function politicaDosAvatares(e: EntradaDaPolitica): PoliticaDosAvatares {
     tier: donos.length > 1 ? limitarTier(e.tier, 'medio') : e.tier,
     fallback2d: !e.webgl2,
     foco,
+    soletrar: e.sinais === true && e.prefs.soletrar && donos.includes('outro'),
     motivo: 'ok',
   };
 }

@@ -170,16 +170,22 @@ const terminar = (page: Page) =>
 const foto = (page: Page, nome: string) =>
   page.screenshot({ path: path.join(CAPTURAS, `elenco-${test.info().project.name}-${nome}.png`) })
 
-async function preparar(page: Page, flags: Record<string, boolean>) {
+async function preparar(page: Page, flags: Record<string, boolean>, opcoes: { semFicha?: boolean } = {}) {
   await page.addInitScript(vozDeMentira)
   await page.route('**/catalogo/livros.json', (r) =>
     r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(CATALOGO) }),
   )
   await page.route('**/catalogo/fichas/indice.json', (r) =>
-    r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ versao: 1, fichas: [ID] }) }),
+    r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ versao: 1, fichas: opcoes.semFicha ? [] : [ID] }),
+    }),
   )
   await page.route(`**/catalogo/fichas/${ID}.json`, (r) =>
-    r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(ficha()) }),
+    opcoes.semFicha
+      ? r.fulfill({ status: 404, body: '' })
+      : r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(ficha()) }),
   )
   await page.route('https://standardebooks.org/**', (r) =>
     r.fulfill({
@@ -193,8 +199,15 @@ async function preparar(page: Page, flags: Record<string, boolean>) {
   await page.route('**/api/flags', (r) => r.fulfill({ json: { flags: todas } }))
   await page.addInitScript(() => {
     try {
+      if (sessionStorage.getItem('__limpo')) return // só na primeira carga: recarregar mantém o que ficou guardado
+      sessionStorage.setItem('__limpo', '1')
       for (const k of Object.keys(localStorage))
-        if (k.startsWith('leitor:elenco') || k.startsWith('leitor:narracao') || k.includes('avatar'))
+        if (
+          k.startsWith('leitor:elenco') ||
+          k.startsWith('leitor:dica') ||
+          k.startsWith('leitor:narracao') ||
+          k.includes('avatar')
+        )
           localStorage.removeItem(k)
       localStorage.setItem('leitor:narracao:opcoes', JSON.stringify({ pausaParagrafo: 0, pausaFrase: 0 }))
     } catch {
@@ -239,8 +252,8 @@ test.describe('Elenco na narração do leitor', () => {
     await page.keyboard.press('Space')
     await expect(ligar).toBeChecked()
     await expect(page.getByTestId('elenco-resumo')).toContainText('2')
-    await expect(page.getByLabel('Ana')).toBeVisible()
-    await expect(page.getByLabel('Bruno')).toBeVisible()
+    await expect(page.getByLabel('Ana', { exact: true })).toBeVisible()
+    await expect(page.getByLabel('Bruno', { exact: true })).toBeVisible()
     await foto(page, 'painel')
 
     // A narração recomeça com o elenco: percorre as 5 frases (título + 4) anotando voz, ritmo e tom.
@@ -286,5 +299,87 @@ test.describe('Elenco na narração do leitor', () => {
         return u.texto.includes('I am coming now') ? u.voz : 'ainda-nao'
       })
       .toBe(narracao.voz)
+  })
+
+  test('descoberta: botão Elenco, dica da primeira vez, elenco no topo e Experimentar voz', async ({ page }) => {
+    test.slow()
+    await preparar(page, { avatar_elenco: true })
+    const botao = page.getByTestId('leitor-elenco')
+    await expect(botao).toBeVisible()
+    await expect(botao).toContainText('Elenco')
+    await expect(botao).toContainText('2')
+    await expect(botao).toHaveAttribute('aria-pressed', 'false')
+    const caixa = (await botao.boundingBox())!
+    expect(caixa.height).toBeGreaterThanOrEqual(44)
+    expect(caixa.width).toBeGreaterThanOrEqual(44)
+
+    // A dica da primeira vez: discreta, com a contagem, sem tirar o livro do lugar.
+    const dica = page.getByTestId('dica-elenco')
+    await expect(dica).toContainText('2 personagens')
+    await page.waitForTimeout(600)
+    await foto(page, 'descoberta-dica')
+
+    // Teclado: Tab chega ao botão da dica, Enter abre o painel do elenco, no topo.
+    await dica.getByRole('button', { name: 'Escolher as vozes' }).focus()
+    await page.keyboard.press('Enter')
+    await expect(dica).toHaveCount(0)
+    const painel = page.getByTestId('painel-elenco')
+    await expect(painel).toBeVisible()
+    await expect(page.getByTestId('painel-narracao')).toBeVisible()
+    const topoDoElenco = (await painel.boundingBox())!.y
+    const topoDaNarracao = (await page.getByTestId('painel-narracao').boundingBox())!.y
+    expect(topoDoElenco).toBeLessThan(topoDaNarracao)
+
+    // Ligar o elenco: os seletores aparecem sem rolar demais (dentro da tela).
+    await page.getByTestId('elenco-ligar').check()
+    await expect(botao).toHaveAttribute('aria-pressed', 'true')
+    const viewport = page.viewportSize()!
+    const sel = page.getByTestId('elenco-voz-0')
+    await expect(sel).toBeVisible()
+    expect((await sel.boundingBox())!.y).toBeLessThan(viewport.height)
+    await foto(page, 'descoberta-painel')
+
+    // Experimentar voz: fala uma frase de exemplo com a voz escolhida, sem iniciar a narração do livro.
+    await sel.selectOption('Teste C')
+    await page.getByTestId('elenco-testar-0').click()
+    await expect.poll(async () => (await faladas(page)).at(-1)?.texto ?? '').toContain('Ana')
+    const amostra = (await faladas(page)).at(-1)!
+    expect(amostra.voz).toBe('Teste C')
+    expect(amostra.texto).toMatch(/Hello, I am Ana/)
+    await foto(page, 'descoberta-experimentar')
+
+    // Fechar e reabrir o livro não mostra a dica de novo (lembrada no aparelho).
+    await page.reload()
+    await expect(page.locator('[data-testid=leitor][data-estado=pronto]')).toBeVisible({ timeout: 30_000 })
+    await expect(page.getByTestId('dica-elenco')).toHaveCount(0)
+    await expect(botao).toBeVisible()
+  })
+
+  test('descoberta: dispensar a dica a esconde e o botão continua', async ({ page }) => {
+    test.slow()
+    await preparar(page, { avatar_elenco: true })
+    await page.getByTestId('dica-elenco').getByRole('button', { name: 'Dispensar a dica' }).click()
+    await expect(page.getByTestId('dica-elenco')).toHaveCount(0)
+    await expect(page.getByTestId('leitor-elenco')).toBeVisible()
+    await expect(page.getByTestId('painel-elenco')).toHaveCount(0)
+  })
+
+  test('descoberta: sem a flag não há botão nem dica', async ({ page }) => {
+    test.slow()
+    await preparar(page, {})
+    await expect(page.getByTestId('leitor-elenco')).toHaveCount(0)
+    await expect(page.getByTestId('dica-elenco')).toHaveCount(0)
+  })
+
+  test('descoberta: livro sem personagens não tem botão e o painel diz que só há o narrador', async ({ page }) => {
+    test.slow()
+    await preparar(page, { avatar_elenco: true }, { semFicha: true })
+    await expect(page.getByTestId('leitor-elenco')).toHaveCount(0)
+    await expect(page.getByTestId('dica-elenco')).toHaveCount(0)
+    await page.getByTestId('leitor-ouvir').click()
+    await page.getByRole('button', { name: /Voz e modo/ }).click()
+    await expect(page.getByTestId('elenco-so-narrador')).toContainText('Só há o narrador')
+    await page.getByTestId('elenco-so-narrador').scrollIntoViewIfNeeded()
+    await foto(page, 'descoberta-so-narrador')
   })
 })

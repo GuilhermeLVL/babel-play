@@ -2493,5 +2493,25 @@
   "{n} palavras na fila": {
     "one": "{n} palabra en la cola",
     "other": "{n} palabras en la cola"
-  }
+  },
+  "Ajustes do avatar": "Ajustes del avatar",
+  "Avatar da legenda": "Avatar de los subtítulos",
+  "Avatar da narração": "Avatar de la narración",
+  "Avatar desligado: ligar": "Avatar apagado: encender",
+  "Avatar do intérprete": "Avatar del intérprete",
+  "Avatar ligado: desligar": "Avatar encendido: apagar",
+  "Desligar o avatar": "Apagar el avatar",
+  "Dica: avatar": "Consejo: avatar",
+  "Em repouso": "En reposo",
+  "Escolher ou trazer o meu avatar": "Elegir o traer mi avatar",
+  "Ligar o avatar": "Encender el avatar",
+  "Meu avatar (do Perfil)": "Mi avatar (del Perfil)",
+  "Mostrar o avatar": "Mostrar el avatar",
+  "Mostrar também na janela flutuante": "Mostrar también en la ventana flotante",
+  "O texto continua sempre à vista. O avatar é só um complemento.": "El texto siempre está a la vista. El avatar es solo un complemento.",
+  "Recolher o avatar": "Contraer el avatar",
+  "Traduzindo": "Traduciendo",
+  "Um avatar pode ler o livro com você, ao lado do texto.": "Un avatar puede leer el libro contigo, junto al texto.",
+  "Um avatar pode ouvir a legenda com você, ao lado do texto.": "Un avatar puede escuchar los subtítulos contigo, junto al texto.",
+  "Um rosto diferente para cada personagem (com o avatar ligado)": "Una cara distinta para cada personaje (con el avatar encendido)"
 }

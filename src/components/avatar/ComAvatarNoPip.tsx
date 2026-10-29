@@ -1,4 +1,4 @@
-import { lazy, type ReactNode, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { lazy, type ReactNode, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { avatarDoPip } from '../../core/avatar/interprete';
 import { TIER_DO_PIP } from '../../core/avatar/tiers';
@@ -6,10 +6,12 @@ import { ladoDoAvatarNaJanela } from '../../core/legendas/janelaFlutuante';
 import { FLAG_AVATAR_3D } from '../../core/planos';
 import { useAvatarDoPip } from '../../lib/avatar/avatarDoPip';
 import { useFlag } from '../../lib/flags';
+import { t } from '../../lib/i18n';
 import { fundoResolvido, lerAparencia } from '../views/captura/legendas/aparenciaDaLegenda';
 import AvatarDaConversa from './AvatarDaConversa';
 import { useReceitaDoDono } from './AvatarDaConversa';
 import AvisosDaSoletracao from './AvisosDaSoletracao';
+import { soletracaoEmRepouso } from './SoletracaoNaConversa';
 import { type SoletracaoEmCurso, useSoletracaoAtiva } from './useSoletracaoAtiva';
 
 const PalcoDaSoletracao = lazy(() => import('./PalcoDaSoletracao'));
@@ -55,6 +57,11 @@ export default function ComAvatarNoPip({ janela, children }: { janela: Window | 
 
   const sol = av.soletracao ?? null;
   const { ativa } = useSoletracaoAtiva(sol?.decisao ?? SEM_DECISAO, sol?.itemId ?? null);
+  /* Sem nome a soletrar, as mãos ficam em repouso à vista (a soletração está ligada e tem alfabeto). */
+  const repouso = useMemo(
+    () => (sol?.repouso ? soletracaoEmRepouso(sol.repouso.alfabeto, sol.repouso.espelhar) : null),
+    [sol?.repouso],
+  );
   /* Os dois avisos fixos moram em cima da janela inteira; o círculo do avatar usa a altura que sobra. */
   const caixaDosAvisos = useRef<HTMLDivElement>(null);
   const [alturaDosAvisos, setAlturaDosAvisos] = useState(0);
@@ -91,8 +98,20 @@ export default function ComAvatarNoPip({ janela, children }: { janela: Window | 
               FUNDOS[fundoResolvido(lerAparencia().fundo, document.documentElement.classList.contains('dark'))],
           }}
         >
-          {ativa && sol ? (
-            <PalcoNoPip ativa={ativa} camera={sol.camera} tamanho={Math.max(64, lado - 30)} janela={janela} />
+          {sol && (ativa || repouso) ? (
+            <div style={{ display: 'grid', justifyItems: 'center' }}>
+              <PalcoNoPip
+                ativa={(ativa ?? repouso)!}
+                camera={ativa ? sol.camera : 'corpo'}
+                tamanho={Math.max(64, lado - 30)}
+                janela={janela}
+              />
+              {!ativa && (
+                <p data-testid="aguardando-no-pip" role="status" style={{ margin: 0, fontSize: 12 }}>
+                  {t('Aguardando um nome…')}
+                </p>
+              )}
+            </div>
           ) : (
             <div style={{ borderRadius: '50%', overflow: 'hidden', lineHeight: 0 }}>
               <AvatarDaConversa

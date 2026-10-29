@@ -37,6 +37,7 @@ import type { AssistenteDaJanela } from '../assistente/useAssistenteAoVivo';
 import ConversaDoPrototipo, {
   type AssistenteNaConversa,
   type FraseDaMetade,
+  type JanelaFlutuanteDoInterprete,
   type MetadeDaConversa,
 } from './ConversaDoPrototipo';
 import { guardarModo, type ModoDaConversa, modoGuardado } from './modoDaConversa';
@@ -128,6 +129,7 @@ export default function ModoInterprete({
   aoEscolherIdiomas,
   aoConhecerOPremium,
   aoEscolherOutroAvatar,
+  janelaFlutuante,
   comVirtual = false,
   assistente,
   aoOuvirSugestao,
@@ -165,6 +167,8 @@ export default function ModoInterprete({
   aoConhecerOPremium?: (() => void) | undefined;
   /** Abre Perfil › Avatar (o atalho de soletrar oferece quando o avatar não serve; ausente = não oferece). */
   aoEscolherOutroAvatar?: (() => void) | undefined;
+  /** O botão "Janela flutuante" (Alt+L) da faixa; ausente onde o navegador não abre a janela. */
+  janelaFlutuante?: JanelaFlutuanteDoInterprete | undefined;
   /** A conversa virtual existe neste aparelho; "Virtual" abre a folha dela. */
   comVirtual?: boolean;
   /**
@@ -824,6 +828,7 @@ export default function ModoInterprete({
       fase={atual.fase}
       assistente={naConversa}
       avatares={avatares.avatares}
+      janelaFlutuante={janelaFlutuante}
     >
       {assistente && (
         <ComoRespondoNaPagina

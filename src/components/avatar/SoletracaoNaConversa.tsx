@@ -1,6 +1,7 @@
-import { lazy, Suspense } from 'react';
+import { type CSSProperties, lazy, Suspense } from 'react';
 
 import type { MotivoDaPulada } from '../../core/avatar/sinais/soletracaoDoInterprete';
+import type { Lingua } from '../../core/avatar/sinais/tipos';
 import type { TierDoAvatar } from '../../core/avatar/tiers';
 import { t } from '../../lib/i18n';
 import { useReceitaDoDono } from './AvatarDaConversa';
@@ -12,6 +13,26 @@ const PalcoDaSoletracao = lazy(() => import('./PalcoDaSoletracao'));
 export const MOTIVO_DA_PULADA: Record<MotivoDaPulada, () => string> = {
   fila: () => t('Soletração pulada: a voz está atrasada.'),
   sem_alfabeto: () => t('Soletração pulada: sem alfabeto manual para este idioma.'),
+};
+
+/**
+ * O PALCO EM REPOUSO: com a soletração ligada e nenhum nome a soletrar, as mãos ficam à vista na pose de repouso (texto
+ * vazio = nenhum passo, só o repouso), para a pessoa ver o que o recurso faz antes de o primeiro nome aparecer.
+ */
+export function soletracaoEmRepouso(alfabeto: Lingua, espelhar: boolean): SoletracaoEmCurso {
+  return { tipo: 'soletrar', id: 'repouso', texto: '', alfabeto, nomes: [], velocidade: 1, tetoMs: 1_000, espelhar };
+}
+
+const VISUALMENTE_ESCONDIDO: CSSProperties = {
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  margin: -1,
+  padding: 0,
+  overflow: 'hidden',
+  clip: 'rect(0 0 0 0)',
+  whiteSpace: 'nowrap',
+  border: 0,
 };
 
 /** O que está sendo soletrado agora (vem do palco, por `aoAtual`). */
@@ -94,6 +115,17 @@ export default function SoletracaoNaConversa({
       {pulada && (
         <p className="int-av-nota" data-testid="soletracao-pulada" role="status">
           {MOTIVO_DA_PULADA[pulada]()}
+        </p>
+      )}
+      {!soletrando && !pulada && (
+        <p
+          className="int-soletra-aguarda"
+          data-testid="soletracao-aguardando"
+          role="status"
+          /* No celular a altura é do texto da conversa: a frase fica só para o leitor de tela (as mãos em repouso já mostram o estado). */
+          style={compacto ? VISUALMENTE_ESCONDIDO : { margin: '4px 0 0', fontSize: 14 }}
+        >
+          {t('Aguardando um nome…')}
         </p>
       )}
       {soletrando && atual && (

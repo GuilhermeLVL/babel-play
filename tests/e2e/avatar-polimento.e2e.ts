@@ -52,6 +52,8 @@ test.describe('Polimento no celular, tablet e desktop', () => {
     const conversa = fase(page).getByTestId('soletracao-na-conversa')
     await expect(conversa.getByText(AVISO_1)).toBeVisible({ timeout: 30_000 })
     await expect(conversa.getByText(AVISO_2)).toBeVisible()
+    // os avisos já aparecem com as mãos em repouso, antes de a animação de entrada da tela acabar: espera-a para medir
+    await page.waitForTimeout(1_200)
     await foto(page, '1-conversa')
 
     // sem rolagem horizontal da página

@@ -39,7 +39,7 @@ const foto = (page: Page, nome: string) =>
   page.screenshot({ path: path.join(CAPTURAS, `interprete-sinais-${test.info().project.name}-${nome}.png`) })
 
 const pronto = (page: Page, lado: 'meu' | 'outro') =>
-  fase(page).getByTestId(`avatar-${lado}`).locator('[data-avatar-pronto="true"]')
+  fase(page).getByTestId(`avatar-${lado}`).locator('[data-avatar-pronto="true"]').first()
 
 /** Liga a opção antes da página abrir (a preferência é local), com a velocidade rápida para caber no teto. */
 const comSoletracaoLigada = (page: Page) =>

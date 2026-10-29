@@ -31,11 +31,18 @@ import type { EstadoDoControle } from '../../../../lib/captura/controleDoInterpr
 import { useFlag } from '../../../../lib/flags';
 import { t } from '../../../../lib/i18n';
 import AvatarDaConversa, { useReceitaDoDono } from '../../../avatar/AvatarDaConversa';
-import SoletracaoNaConversa, { type AtualDaSoletracao, PalcoNaConversa } from '../../../avatar/SoletracaoNaConversa';
+import SoletracaoNaConversa, {
+  type AtualDaSoletracao,
+  PalcoNaConversa,
+  soletracaoEmRepouso,
+} from '../../../avatar/SoletracaoNaConversa';
 import { useSoletracaoAtiva } from '../../../avatar/useSoletracaoAtiva';
 import type { AvataresDaConversa } from './ConversaDoPrototipo';
 import LinhaDosAvatares from './LinhaDosAvatares';
 import PainelDosAvatares, { MOTIVO_DO_PAINEL } from './PainelDosAvatares';
+
+/** Com a soletração ligada o palco das mãos é maior que o círculo do rosto (no computador, onde há espaço). */
+const LADO_DAS_MAOS_NO_COMPUTADOR = 208;
 
 export interface AvataresDoInterprete {
   /** Os avatares estão ligados (flag, preferência e modo economia)? Falso = a tela é a de antes. */
@@ -65,6 +72,7 @@ export function useAvataresDoInterprete({
   layout,
   idiomaDaOutra,
   aoEscolherOutroAvatar,
+  suspenso = false,
 }: {
   estado: EstadoDoControle;
   layout: 'celular' | 'computador' | 'quest';
@@ -72,6 +80,12 @@ export function useAvataresDoInterprete({
   idiomaDaOutra?: string | null | undefined;
   /** Leva a Perfil › Avatar (ausente onde o Perfil não existe): o atalho de soletrar oferece quando o avatar não serve. */
   aoEscolherOutroAvatar?: (() => void) | undefined;
+  /**
+   * A TELA INICIAL usa o mesmo hook (botão Avatares, atalho de soletrar e a prévia dos dois avatares antes de falar). Enquanto
+   * a conversa em curso está por cima (`suspenso`), a tela inicial não desenha avatar nenhum nem publica nada para o PiP: quem
+   * manda é o hook do `ModoInterprete`.
+   */
+  suspenso?: boolean;
 }): AvataresDoInterprete {
   const flag = useFlag(FLAG_AVATAR_3D);
   const sinais = useFlag(FLAG_AVATAR_SINAIS);
@@ -142,9 +156,18 @@ export function useAvataresDoInterprete({
   useEffect(() => {
     if (!ativa) setAtualDaSoletracao(null);
   }, [ativa]);
+  const suspensoRef = useRef(suspenso);
+  suspensoRef.current = suspenso;
+  const repouso = useMemo(
+    () => (alfabeto ? soletracaoEmRepouso(alfabeto, prefs.espelhar) : null),
+    [alfabeto, prefs.espelhar],
+  );
   const soletracaoDoPip = useMemo(
-    () => (soletrarAtivo ? { camera, decisao, itemId } : null),
-    [soletrarAtivo, camera, decisao, itemId],
+    () =>
+      soletrarAtivo
+        ? { camera, decisao, itemId, repouso: alfabeto ? { alfabeto, espelhar: prefs.espelhar } : null }
+        : null,
+    [soletrarAtivo, camera, decisao, itemId, alfabeto, prefs.espelhar],
   );
 
   useEffect(() => {
@@ -164,7 +187,11 @@ export function useAvataresDoInterprete({
   /* No celular, com os dois avisos fixos embaixo do idioma, o círculo do intérprete cede espaço ao texto da conversa. */
   const apertado = soletrarAtivo && layout !== 'computador';
   /* ... e a linha do atalho "Soletrar nomes" também gasta altura no celular: o círculo vai ao mínimo. */
-  const tamanhoDoInterprete = apertado ? Math.min(ladoComAvisosEmPx(tamanhoPref), LADO_MINIMO_NO_CELULAR) : tamanhoPref;
+  const tamanhoDoInterprete = apertado
+    ? Math.min(ladoComAvisosEmPx(tamanhoPref), LADO_MINIMO_NO_CELULAR)
+    : soletrarAtivo
+      ? Math.max(tamanhoPref, LADO_DAS_MAOS_NO_COMPUTADOR)
+      : tamanhoPref;
   /* O círculo da pessoa também encolhe: as duas metades dividem a altura, e a frase precisa de ao menos 3 linhas. */
   const tamanhoDaPessoa = apertado ? Math.min(tamanhoPref, LADO_MINIMO_NO_CELULAR) : tamanhoPref;
   const donoDe = (lado: LadoDaConversa): LadoDaConversa =>
@@ -173,6 +200,7 @@ export function useAvataresDoInterprete({
   const estadoDoMeu = estadoDoLadoNaConversa(donoDe('meu'), estado, vozTocando);
   const estadoDoOutro = estadoDoLadoNaConversa(donoDe('outro'), estado, vozTocando);
   useEffect(() => {
+    if (suspenso) return;
     publicarAvatarDoPip(
       ativo
         ? {
@@ -183,11 +211,16 @@ export function useAvataresDoInterprete({
           }
         : null,
     );
-  }, [ativo, estadoDoMeu, estadoDoOutro, ponte, soletracaoDoPip]);
-  useEffect(() => () => publicarAvatarDoPip(null), []);
+  }, [suspenso, ativo, estadoDoMeu, estadoDoOutro, ponte, soletracaoDoPip]);
+  useEffect(
+    () => () => {
+      if (!suspensoRef.current) publicarAvatarDoPip(null);
+    },
+    [],
+  );
 
   const doLado = (lado: LadoDaConversa): ReactNode => {
-    if (!ativo) return undefined;
+    if (!ativo || suspenso) return undefined;
     const dono = donoDe(lado);
     if (!politica.donos.includes(dono)) return undefined;
     const meuEstado = estadoDoLadoNaConversa(lado, estado, vozTocando);
@@ -210,6 +243,21 @@ export function useAvataresDoInterprete({
     return (
       <div style={{ position: 'relative', lineHeight: 0 }} data-soletrando={soletrarAtivo && ativa ? '' : undefined}>
         {rosto}
+        {soletrarAtivo && !ativa && repouso && (
+          <div
+            data-testid="soletracao-palco-repouso"
+            style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: '#1d1a17' }}
+          >
+            <PalcoNaConversa
+              ativa={repouso}
+              camera="corpo"
+              tier="fraco"
+              tamanho={tamanhoDoInterprete}
+              aoAtual={setAtualDaSoletracao}
+              aoFim={aoFim}
+            />
+          </div>
+        )}
         {soletrarAtivo && ativa && (
           <div
             data-testid="soletracao-palco"
@@ -238,7 +286,7 @@ export function useAvataresDoInterprete({
   };
 
   const soletracaoDoLado = (lado: LadoDaConversa): ReactNode => {
-    if (!soletrarAtivo || donoDe(lado) !== 'outro') return undefined;
+    if (!soletrarAtivo || suspenso || donoDe(lado) !== 'outro') return undefined;
     return (
       <SoletracaoNaConversa
         soletrando={!!ativa}
@@ -250,53 +298,54 @@ export function useAvataresDoInterprete({
     );
   };
 
-  const avatares: AvataresDaConversa | undefined = flag
-    ? {
-        botao: (
-          <button
-            type="button"
-            className="int-modo int-modo-avatar"
-            aria-haspopup="dialog"
-            aria-expanded={painelAberto}
-            aria-pressed={ativo}
-            aria-label={t('Avatares da conversa')}
-            onClick={() => {
-              dica.dispensar();
-              setPainelAberto((v) => !v);
-            }}
-            data-testid="avatares-da-conversa"
-          >
-            <UserRound aria-hidden />
-            <span className="int-modo-visivel" aria-hidden>
-              {t('Avatares')}
-            </span>
-          </button>
-        ),
-        linha: (
-          <LinhaDosAvatares
-            atalho={atalho}
-            aoAlternar={() => guardar({ soletrar: !prefs.soletrar })}
-            dica={dica.visivel && !painelAberto && !(sinaisOk && prefs.soletrar)}
-            aoDispensarDica={dica.dispensar}
-            motivoEmTexto={atalho.tipo === 'indisponivel' ? MOTIVO_DO_PAINEL[atalho.motivo]() : null}
-            aoEscolherOutroAvatar={aoEscolherOutroAvatar}
-            aoMostrarInterprete={() => guardar({ quem: 'ambos', economia: false })}
-          />
-        ),
-        painel: ({ escolherVoz }) =>
-          painelAberto ? (
-            <PainelDosAvatares
-              prefs={prefs}
-              aoMudar={guardar}
-              aoFechar={() => setPainelAberto(false)}
-              sinaisLigada={sinais}
-              suporte={suporte}
-              sem3d={!medido.webgl2}
-              aoEscolherVoz={escolherVoz}
+  const avatares: AvataresDaConversa | undefined =
+    flag && !suspenso
+      ? {
+          botao: (
+            <button
+              type="button"
+              className="int-modo int-modo-avatar"
+              aria-haspopup="dialog"
+              aria-expanded={painelAberto}
+              aria-pressed={ativo}
+              aria-label={t('Avatares da conversa')}
+              onClick={() => {
+                dica.dispensar();
+                setPainelAberto((v) => !v);
+              }}
+              data-testid="avatares-da-conversa"
+            >
+              <UserRound aria-hidden />
+              <span className="int-modo-visivel" aria-hidden>
+                {t('Avatares')}
+              </span>
+            </button>
+          ),
+          linha: (
+            <LinhaDosAvatares
+              atalho={atalho}
+              aoAlternar={() => guardar({ soletrar: !prefs.soletrar })}
+              dica={dica.visivel && !painelAberto && !(sinaisOk && prefs.soletrar)}
+              aoDispensarDica={dica.dispensar}
+              motivoEmTexto={atalho.tipo === 'indisponivel' ? MOTIVO_DO_PAINEL[atalho.motivo]() : null}
+              aoEscolherOutroAvatar={aoEscolherOutroAvatar}
+              aoMostrarInterprete={() => guardar({ quem: 'ambos', economia: false })}
             />
-          ) : null,
-      }
-    : undefined;
+          ),
+          painel: ({ escolherVoz }) =>
+            painelAberto ? (
+              <PainelDosAvatares
+                prefs={prefs}
+                aoMudar={guardar}
+                aoFechar={() => setPainelAberto(false)}
+                sinaisLigada={sinais}
+                suporte={suporte}
+                sem3d={!medido.webgl2}
+                aoEscolherVoz={escolherVoz}
+              />
+            ) : null,
+        }
+      : undefined;
 
   return { ativo, ponte, destravar, doLado, soletracaoDoLado, avatares };
 }

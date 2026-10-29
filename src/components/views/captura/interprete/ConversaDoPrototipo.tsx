@@ -12,6 +12,7 @@ import {
   MessageCircleReply,
   Mic,
   Monitor,
+  PictureInPicture2,
   RotateCcw,
   Volume2,
   VolumeX,
@@ -84,6 +85,15 @@ export interface AvataresDaConversa {
   /** A linha embaixo da faixa: atalho de soletrar, explicação e a dica da primeira vez (pode ser `null`). */
   linha?: ReactNode;
   painel: (api: { escolherVoz?: (() => void) | undefined }) => ReactNode;
+}
+
+/** O botão "Janela flutuante" da faixa: o mesmo caminho do Alt+L (`useJanelaFlutuante.alternar`). */
+export interface JanelaFlutuanteDoInterprete {
+  aberta: boolean;
+  /** Abre ou fecha, dentro do toque (o navegador exige o gesto). */
+  aoAlternar: () => void;
+  /** O que a janela vai ser neste navegador (vem do hook, com o atalho). */
+  dica: string;
 }
 
 /**
@@ -197,6 +207,7 @@ export default function ConversaDoPrototipo({
   rotuloDeSair,
   assistente,
   avatares,
+  janelaFlutuante,
   children,
 }: {
   cima: MetadeDaConversa;
@@ -250,6 +261,8 @@ export default function ConversaDoPrototipo({
   assistente?: AssistenteNaConversa | undefined;
   /** Os avatares da conversa (atrás da flag `avatar_3d`): botão na faixa e painel de configuração. */
   avatares?: AvataresDaConversa | undefined;
+  /** A janela flutuante (Alt+L) em botão visível. Só aparece junto dos avatares e onde o navegador abre a janela. */
+  janelaFlutuante?: JanelaFlutuanteDoInterprete | undefined;
   children?: ReactNode;
 }) {
   const raiz = useRef<HTMLDivElement>(null);
@@ -577,6 +590,23 @@ export default function ConversaDoPrototipo({
             </button>
           ))}
           {avatares?.botao}
+          {avatares && janelaFlutuante && (
+            <button
+              type="button"
+              className="int-modo int-modo-avatar"
+              aria-pressed={janelaFlutuante.aberta}
+              aria-label={t('Janela flutuante')}
+              aria-keyshortcuts="Alt+L"
+              title={janelaFlutuante.dica}
+              onClick={janelaFlutuante.aoAlternar}
+              data-testid="janela-flutuante"
+            >
+              <PictureInPicture2 aria-hidden />
+              <span className="int-modo-visivel" aria-hidden>
+                {t('Janela flutuante')}
+              </span>
+            </button>
+          )}
           {aoVirtual && (
             <button
               type="button"

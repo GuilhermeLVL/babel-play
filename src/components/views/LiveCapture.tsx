@@ -3169,6 +3169,12 @@ export default function LiveCapture({
     assistente,
     aoMudarVistaDoAssistente: setVistaDaJanela,
   });
+  /* O botão "Janela flutuante" do Intérprete: o MESMO `alternar` do Alt+L, só onde o navegador abre uma janela de verdade
+     (Document PiP ou PiP de vídeo); onde só há o painel dentro da página, nada de botão. */
+  const janelaDoInterprete =
+    !noQuest && flutuante.caminho !== 'painel'
+      ? { aberta: flutuante.aberta, aoAlternar: flutuante.alternar, dica: flutuante.dica }
+      : undefined;
   /* O ÍNDICE DE PALAVRAS VISTAS é renovado quando a janela flutuante abre e uma vez quando a captura termina — nunca a
      cada fala (`pedirVistas`). */
   const idiomaDasLinhas = captureScenario === 'mic' ? sourceLang : targetLang;
@@ -4117,6 +4123,9 @@ export default function LiveCapture({
               aoEscolherIdiomas={() => setIdiomasAbertos(true)}
               aoVoltar={() => onChangeView?.('hub')}
               {...(praticaDoInterprete ? { pratica: praticaDoInterprete } : {})}
+              layout={noQuest ? 'quest' : noCelular ? 'celular' : 'computador'}
+              aoEscolherOutroAvatar={onChangeView ? () => abrirMeuAvatar(onChangeView) : undefined}
+              janelaFlutuante={janelaDoInterprete}
             />
           </Suspense>
         </div>
@@ -4457,6 +4466,7 @@ export default function LiveCapture({
             aoEscolherIdiomas={() => setIdiomasAbertos(true)}
             aoConhecerOPremium={conhecerOPremium}
             aoEscolherOutroAvatar={onChangeView ? () => abrirMeuAvatar(onChangeView) : undefined}
+            janelaFlutuante={janelaDoInterprete}
             comVirtual={chaveLigada('virtual') && systemEnabled && !capturaEnxuta}
             assistente={doAssistente}
             aoOuvirSugestao={ouvirNaLegenda}

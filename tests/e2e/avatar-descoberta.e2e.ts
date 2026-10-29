@@ -110,7 +110,10 @@ test.describe('Descoberta dos avatares no Intérprete', () => {
     await page.keyboard.press('Escape')
     await expect(page.getByTestId('dica-dos-avatares')).toHaveCount(0)
     await page.reload()
-    await expect(page.getByTestId('avatares-da-conversa')).toHaveCount(0) // volta à tela pronta
+    // volta à tela pronta, que agora também traz o botão (mas a dica, já dispensada, não volta)
+    await expect(page.getByTestId('conversa-pronta')).toBeVisible()
+    await expect(page.getByTestId('conversa-pronta').getByTestId('avatares-da-conversa')).toBeVisible()
+    await expect(page.getByTestId('dica-dos-avatares')).toHaveCount(0)
   })
 
   test('avatar_sinais: o atalho liga e desliga a soletração sem abrir o painel, com os dois avisos fixos', async ({

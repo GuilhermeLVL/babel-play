@@ -121,6 +121,14 @@ function duracaoDosGrupos(grupos: GrupoPronto[], alfabeto: Alfabeto, t: Tempos):
   return total;
 }
 
+/**
+ * Quantas palavras ficaram sem soletrar. No modo "só nomes" (Intérprete) as palavras comuns não são soletradas DE
+ * PROPÓSITO (a voz e a legenda as levam), então só conta o nome que não coube no teto de tempo.
+ */
+export function contarNaoSoletradas(palavras: readonly PalavraDaFala[], soNomesProprios: boolean): number {
+  return palavras.filter((p) => p.estado === 'nao_soletrada' && (!soNomesProprios || p.motivo === 'teto')).length;
+}
+
 export function soletrar(texto: string, alfabeto: Alfabeto, opcoes: OpcoesDeSoletracao): Sequencia {
   const lim = opcoes.limites;
   const t = temposDe(opcoes);

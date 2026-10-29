@@ -3,7 +3,7 @@ import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState }
 import { corDaPaleta } from '../../core/avatar/paleta';
 import type { ReceitaDeAvatar } from '../../core/avatar/receita';
 import { fundoDeAltoContraste } from '../../core/avatar/sinais/contraste';
-import { amostrar, soletrar } from '../../core/avatar/sinais/soletrar';
+import { amostrar, contarNaoSoletradas, soletrar } from '../../core/avatar/sinais/soletrar';
 import type { Lingua, MotivoDeNaoSoletrar, Sequencia } from '../../core/avatar/sinais/tipos';
 import type { TierDoAvatar } from '../../core/avatar/tiers';
 import { carregarSinais, type DadosDeSinais } from '../../data/avatar/sinais/carregar';
@@ -263,7 +263,7 @@ export default function AvatarSinalizante({
         cbs.current.aoAtual?.({
           palavra: p ? (seq.palavras[am.palavra]?.texto ?? null) : null,
           letra: p?.letra ?? '',
-          naoSoletradas: seq.palavras.filter((w) => w.estado === 'nao_soletrada').length,
+          naoSoletradas: contarNaoSoletradas(seq.palavras, soNomesProprios),
         });
         if (am.palavra !== ultima.palavra && am.palavra >= 0) cbs.current.aoPalavra?.(am.palavra);
       }
@@ -277,7 +277,7 @@ export default function AvatarSinalizante({
         cbs.current.aoAtual?.({
           palavra: null,
           letra: '',
-          naoSoletradas: seq.palavras.filter((w) => w.estado === 'nao_soletrada').length,
+          naoSoletradas: contarNaoSoletradas(seq.palavras, soNomesProprios),
         });
         cbs.current.aoFim?.();
         motor.invalidar();
@@ -290,7 +290,7 @@ export default function AvatarSinalizante({
       motor.definirGanchoDosOssos(null);
     };
     // `repetir` reinicia; `controlePronto` religa o gancho quando o controle fica pronto
-  }, [sessao, sequencia, repetir, pausado, tempoFixoMs, reduzido, controlePronto]);
+  }, [sessao, sequencia, repetir, pausado, tempoFixoMs, reduzido, controlePronto, soNomesProprios]);
 
   // avisa quem monta quando tudo está pronto
   useEffect(() => {

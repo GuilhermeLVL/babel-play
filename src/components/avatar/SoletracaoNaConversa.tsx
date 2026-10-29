@@ -113,7 +113,7 @@ export default function SoletracaoNaConversa({
           )}
           {atual.naoSoletradas > 0 && (
             <small data-testid="soletracao-nao-soletradas">
-              {t('Palavras não soletradas: {n}', { n: atual.naoSoletradas })}
+              {t('Nomes que não couberam na soletração: {n}', { n: atual.naoSoletradas })}
             </small>
           )}
         </p>

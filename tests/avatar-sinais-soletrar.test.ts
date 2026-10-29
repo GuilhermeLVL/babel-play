@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { clampOsso } from '../src/core/avatar/sinais/limites'
 import { normalizarTexto } from '../src/core/avatar/sinais/normalizar'
 import { comDelta, espelharPose, limitarAngulos, misturar, poseDaLetra } from '../src/core/avatar/sinais/pose'
-import { amostrar, soletrar } from '../src/core/avatar/sinais/soletrar'
+import { amostrar, contarNaoSoletradas, soletrar } from '../src/core/avatar/sinais/soletrar'
 import type { Alfabeto, Limites, PoseDeMao } from '../src/core/avatar/sinais/tipos'
 import alfabetoAsl from '../src/data/avatar/sinais/alfabeto-asl.json'
 import alfabetoLibras from '../src/data/avatar/sinais/alfabeto-libras.json'
@@ -292,5 +292,22 @@ describe('amostrar (linha do tempo)', () => {
       ativ += limitarAngulos(pose.a, limites).ativacoes
     }
     expect(ativ).toBe(0)
+  })
+})
+
+describe('contagem de não soletradas (defeito 1)', () => {
+  it('só nomes: as palavras comuns e a própria soletrada não entram; só o que não coube no teto', () => {
+    const s = sol('Ola, eu sou a Maria e moro em Recife', libras, { soNomesProprios: true })
+    expect(s.palavras.filter((p) => p.estado === 'soletrada').length).toBe(2)
+    expect(contarNaoSoletradas(s.palavras, true)).toBe(0)
+    const curto = sol('Ola, eu sou Maria e Recife', libras, { soNomesProprios: true, tetoMs: 2000 })
+    const noTeto = curto.palavras.filter((p) => p.motivo === 'teto').length
+    expect(noTeto).toBeGreaterThan(0)
+    expect(contarNaoSoletradas(curto.palavras, true)).toBe(noTeto)
+  })
+
+  it('fora do modo só-nomes mantém a contagem de todas as não soletradas', () => {
+    const s = sol('Maria 123 e', libras)
+    expect(contarNaoSoletradas(s.palavras, false)).toBe(s.palavras.filter((p) => p.estado === 'nao_soletrada').length)
   })
 })

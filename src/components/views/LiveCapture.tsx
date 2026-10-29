@@ -207,6 +207,7 @@ import AvisoDeNuvemSemConsentimento from '../AvisoDeNuvemSemConsentimento';
 // A conversa em balões (lados opostos, agrupamento por pessoa, estado vazio que ensina).
 // Um componente só serve a tela embutida E o Modo Foco — antes eram dois blocos que divergiam.
 import ChatTranscript from '../ChatTranscript';
+import { useAvatarDaLegenda } from './captura/legendas/AvatarDaLegenda';
 
 /** O benchmark do aparelho agendado pela última saída da captura (cancelado por uma captura nova). */
 let benchmarkPendente: AbortController | null = null;
@@ -3148,6 +3149,16 @@ export default function LiveCapture({
     }),
     [doAssistente.marcas, doAssistente.correcoes, tocarMarcaDaLegenda, falaDoComoRespondo],
   );
+  /* O AVATAR DO MODO LEGENDAR (flag `avatar_3d`): presença ouvindo/traduzindo/falando; sem a flag, `undefined`. */
+  const ultimaFala = speechSegments[speechSegments.length - 1];
+  const avatarDaLegenda = useAvatarDaLegenda({
+    gravando: isRecording && !noQuest,
+    pausado,
+    pensando:
+      !!ultimaFala && !ultimaFala.isPartial && (ultimaFala.translatedText === '…' || !!ultimaFala.traducaoPendente),
+    interpreteAberto,
+    aoEscolherMeuAvatar: onChangeView ? () => abrirMeuAvatar(onChangeView) : undefined,
+  });
   /* A LEGENDA FLUTUANTE (PiP inteligente): um botão, Alt+L, e a melhor janela deste navegador. */
   const flutuante = useJanelaFlutuante({
     ativo: !noQuest,
@@ -3392,6 +3403,7 @@ export default function LiveCapture({
           noMaximo: escalaDaLegenda >= ESCALAS_DA_LEGENDA[ESCALAS_DA_LEGENDA.length - 1],
         }}
         noQuest={noQuest}
+        avatar={noQuest ? undefined : avatarDaLegenda}
         pausa={telasEnxutas() ? { pausada: pausado, aoAlternar: alternarPausa } : undefined}
         /* O NÍVEL DE SERVIÇO (`captura/niveis/`): escolher um nível grava a preferência que já existia
            ("Qualidade da transcrição"), como o seletor dos Ajustes da captura. */

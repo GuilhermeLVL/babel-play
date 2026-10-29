@@ -29,7 +29,12 @@ export default function AvatarDoNarrador({ vista }: { vista: VistaDoNarrador }) 
   return (
     <section className="leitor-avatar-narrador" aria-label={t('Narrador')} data-testid="avatar-do-narrador">
       {mostrar && medido && (
-        <div className="leitor-avatar-narrador-rosto" aria-hidden="true" data-emocao={fala?.emocao ?? 'neutro'}>
+        <div
+          className="leitor-avatar-narrador-rosto"
+          aria-hidden="true"
+          data-testid="avatar-do-narrador-rosto"
+          data-emocao={fala?.emocao ?? 'neutro'}
+        >
           <AvatarDaConversa
             dono="outro"
             estado={falando ? 'falando' : 'parado'}

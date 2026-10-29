@@ -5,19 +5,22 @@
  * `window.__avatarHarness` deixa o teste trocar estado e emoção, desmontar e ler os erros reportados.
  * Não é uma tela do produto: nada daqui entra no build (`index.html` do app é a única entrada do Vite).
  */
-import { StrictMode, useEffect, useState } from 'react'
+import { StrictMode, useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 
 import AvatarCanvas from '../../../src/components/avatar/AvatarCanvas'
 import AvatarFalante from '../../../src/components/avatar/AvatarFalante'
+import AvatarSinalizante from '../../../src/components/avatar/AvatarSinalizante'
 import type { PoseDaBoca } from '../../../src/core/avatar/boca'
 import type { MedidasDoModelo, ModoDeCamera } from '../../../src/core/avatar/enquadramento'
 import { type EmocaoDoAvatar, EMOCOES_DO_AVATAR, type EstadoDoAvatar } from '../../../src/core/avatar/estados'
 import { validarReceita } from '../../../src/core/avatar/receita'
+import type { Lingua, Sequencia } from '../../../src/core/avatar/sinais/tipos'
 import type { TierDoAvatar } from '../../../src/core/avatar/tiers'
 import { modeloDaColecao } from '../../../src/data/avatar/colecao'
 import { prepararAnalisadorDaVoz } from '../../../src/lib/avatar/amplitude'
 import { ligarAvatarAFala, useAvatarFalando } from '../../../src/lib/avatar/fala'
+import type { ControleDeMaos, ResultadoDeIndependencia } from '../../../src/lib/avatar/maos'
 import type { SessaoDeAvatar } from '../../../src/lib/avatar/motor'
 import type { SpeakOptions, TtsEngine } from '../../../src/lib/tts'
 import { elemento } from '../../../src/lib/voz/elementoDaVoz'
@@ -91,6 +94,22 @@ interface Ponte {
     caixa: { x0: number; x1: number; y0: number; y1: number }
   } | null
   stats(): { antialias: boolean; pixelRatio: number } | null
+  /** M4b: soletração (`?sinais=1`). */
+  sinais?: {
+    sequencia(): Sequencia | null
+    controle(): ControleDeMaos | null
+    /** Verificador de independência dos dedos nas duas mãos (a pose do avatar fica neutra no fim). */
+    testeDedos(): Promise<{ R: ResultadoDeIndependencia; L: ResultadoDeIndependencia } | null>
+    /** Remove os avisos fixos do DOM (para provar que voltam). */
+    removerAvisos(): void
+    /** Esconde os avisos por estilo e esvazia o texto (adulteração). */
+    adulterarAvisos(): void
+    naoSuportou(): string | null
+    palavraAtual(): string | null
+    terminou(): boolean
+    letrasVistas(): string
+    erros: string[]
+  }
 }
 declare global {
   interface Window {
@@ -192,6 +211,125 @@ const fonteDaBoca = (t: number): PoseDaBoca | null => {
       acabou: false,
     }
   return ligacao.pose(t)
+}
+
+/** M4b: o avatar que soletra, com botões. `?sinais=1&alfabeto=libras&texto=Conceição&cam=maos&contraste=1&espelhar=1&vel=1`. */
+function PainelSinais() {
+  const [texto, setTexto] = useState(q.get('texto') ?? 'Conceição')
+  const [alfabeto, setAlfabeto] = useState<Lingua>(q.get('alfabeto') === 'asl' ? 'asl' : 'libras')
+  const [vel, setVel] = useState(Number(q.get('vel') ?? 1))
+  const [espelhar, setEspelhar] = useState(q.get('espelhar') === '1')
+  const [cam, setCam] = useState<'corpo' | 'maos'>(q.get('cam') === 'maos' ? 'maos' : 'corpo')
+  const [contraste, setContraste] = useState(q.get('contraste') === '1')
+  const [rep, setRep] = useState(0)
+  const [fim, setFim] = useState(false)
+  const [semSuporte, setSemSuporte] = useState<string | null>(null)
+  const info = useRef<{ controle: ControleDeMaos; sequencia: Sequencia } | null>(null)
+  const atual = useRef<string | null>(null)
+  const vistas = useRef('')
+  const erros = useRef<string[]>([])
+  useEffect(() => {
+    const aoErro = (e: ErrorEvent) => erros.current.push(e.message)
+    window.addEventListener('error', aoErro)
+    return () => window.removeEventListener('error', aoErro)
+  }, [])
+  useEffect(() => {
+    const ponte = window.__avatarHarness
+    if (!ponte) return
+    ponte.sinais = {
+      sequencia: () => info.current?.sequencia ?? null,
+      controle: () => info.current?.controle ?? null,
+      testeDedos: async () => {
+        if (!info.current) return null
+        const { medirIndependenciaDosDedos } = await import('../../../src/lib/avatar/maos')
+        const c = info.current.controle
+        return { R: medirIndependenciaDosDedos(c, 'R'), L: medirIndependenciaDosDedos(c, 'L') }
+      },
+      removerAvisos: () => document.querySelector('[data-avisos-fixos]')?.remove(),
+      adulterarAvisos: () => {
+        for (const el of document.querySelectorAll<HTMLElement>('[data-aviso-fixo]')) {
+          el.style.display = 'none'
+          el.textContent = ''
+        }
+      },
+      naoSuportou: () => semSuporte,
+      palavraAtual: () => atual.current,
+      terminou: () => fim,
+      letrasVistas: () => vistas.current,
+      erros: erros.current,
+    }
+  })
+  const iniciar = (t: string, a: Lingua) => {
+    setTexto(t)
+    setAlfabeto(a)
+    setFim(false)
+    vistas.current = ''
+    setRep((n) => n + 1)
+  }
+  return (
+    <div style={{ maxWidth: 520 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+        <button onClick={() => iniciar('Conceição', 'libras')}>Soletrar Conceição (Libras)</button>
+        <button onClick={() => iniciar('Conceição', 'asl')}>Soletrar Conceição (ASL)</button>
+        <button onClick={() => iniciar('Hoje Maria viu Zé e João', alfabeto)}>Frase com nomes</button>
+        <button onClick={() => iniciar(texto, alfabeto)}>Repetir</button>
+        <button onClick={() => setEspelhar((v) => !v)} aria-pressed={espelhar}>
+          Canhoto
+        </button>
+        <button onClick={() => setCam((c) => (c === 'maos' ? 'corpo' : 'maos'))} aria-pressed={cam === 'maos'}>
+          Só mãos
+        </button>
+        <button onClick={() => setContraste((v) => !v)} aria-pressed={contraste}>
+          Alto contraste
+        </button>
+        <select aria-label="velocidade" value={vel} onChange={(e) => setVel(Number(e.target.value))}>
+          {[0.5, 1, 1.5, 2].map((v) => (
+            <option key={v} value={v}>
+              {v}x
+            </option>
+          ))}
+        </select>
+      </div>
+      <input
+        aria-label="texto"
+        value={texto}
+        onChange={(e) => {
+          setTexto(e.target.value)
+          setFim(false)
+        }}
+        style={{ width: '100%', marginBottom: 8 }}
+      />
+      <AvatarSinalizante
+        texto={texto}
+        alfabeto={alfabeto}
+        receita={receita}
+        tier={tier}
+        fonte={fonte}
+        velocidade={vel}
+        espelhar={espelhar}
+        camera={cam}
+        altoContraste={contraste}
+        tamanho={Math.min(tamanho, Math.max(200, window.innerWidth - 40))}
+        repetir={rep}
+        pausado={q.get('pausado') === '1'}
+        soletrarUmaLetra={q.get('uma') === '1'}
+        tempoFixoMs={q.get('t') ? Number(q.get('t')) : undefined}
+        tetoMs={q.get('teto') ? Number(q.get('teto')) : 30_000}
+        anunciar={q.get('anunciar') === '1'}
+        aoPalavra={(i) => {
+          atual.current = info.current?.sequencia.palavras[i]?.texto ?? null
+        }}
+        aoFim={() => setFim(true)}
+        aoNaoSuportar={setSemSuporte}
+        aoErro={(m) => window.__avatarHarness?.erros.push(String(m))}
+        aoPronto={(i) => {
+          info.current = i
+          const base = i.sequencia.passos.map((p) => p.letra).join('')
+          vistas.current = base
+        }}
+      />
+    </div>
+  )
 }
 
 function Harness() {
@@ -336,7 +474,5 @@ window.__avatarHarness = {
   emocoes: EMOCOES_DO_AVATAR,
 } as unknown as Ponte
 createRoot(document.getElementById('raiz')!).render(
-  <StrictMode>
-    <Harness />
-  </StrictMode>,
+  <StrictMode>{q.get('sinais') === '1' ? <PainelSinais /> : <Harness />}</StrictMode>,
 )

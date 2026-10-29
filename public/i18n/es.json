@@ -2223,5 +2223,20 @@
   "Ao abrir a galeria, sites de fora (GitHub e Arweave) podem ver o endereço de internet do seu aparelho (IP).": "Al abrir la galería, sitios externos (GitHub y Arweave) pueden ver la dirección de internet de tu dispositivo (IP).",
   "O Frasy não envia cookie nem dados seus.": "Frasy no envía cookies ni datos tuyos.",
   "Se você não abrir, nada é pedido. Seu arquivo e seu avatar nunca saem do aparelho.": "Si no la abres, no se pide nada. Tu archivo y tu avatar nunca salen de tu dispositivo.",
-  "Ler os termos de {nome} (abre em nova aba)": "Leer los términos de {nome} (se abre en una pestaña nueva)"
+  "Ler os termos de {nome} (abre em nova aba)": "Leer los términos de {nome} (se abre en una pestaña nueva)",
+  "Avatar soletrando com as mãos": "Avatar deletreando con las manos",
+  "Avisos sobre a soletração": "Avisos sobre el deletreo",
+  "Este modelo não tem braços articulados: a soletração fica indisponível.": "Este modelo no tiene brazos articulados: el deletreo no está disponible.",
+  "Este modelo não tem dedos articulados: a soletração fica indisponível.": "Este modelo no tiene dedos articulados: el deletreo no está disponible.",
+  "Fora do tempo máximo da fala: não soletrada": "Fuera del tiempo máximo del habla: no deletreada",
+  "letra com movimento: aproximada": "letra con movimiento: aproximada",
+  "Números não são soletrados": "Los números no se deletrean",
+  "Os ossos deste modelo não têm nomes reconhecíveis: a soletração fica indisponível.": "Los huesos de este modelo no tienen nombres reconocibles: el deletreo no está disponible.",
+  "Palavra de uma letra: não soletrada": "Palabra de una letra: no deletreada",
+  "Poses de DEMONSTRAÇÃO: ainda NÃO revisadas por pessoas surdas": "Poses de DEMOSTRACIÓN: AÚN NO revisadas por personas sordas",
+  "Sem letras para soletrar": "Sin letras para deletrear",
+  "Sem modelo carregado: a soletração fica indisponível.": "Sin modelo cargado: el deletreo no está disponible.",
+  "Só nomes próprios são soletrados": "Solo se deletrean nombres propios",
+  "Soletração do alfabeto manual: não é tradução para Libras": "Deletreo del alfabeto manual: no es una traducción a Libras",
+  "Tem sinal gravado: não soletrada": "Tiene seña grabada: no deletreada"
 }

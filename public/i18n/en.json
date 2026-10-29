@@ -5701,5 +5701,20 @@
   "Ao abrir a galeria, sites de fora (GitHub e Arweave) podem ver o endereço de internet do seu aparelho (IP).": "When you open the gallery, outside sites (GitHub and Arweave) can see your device's internet address (IP).",
   "O Frasy não envia cookie nem dados seus.": "Frasy sends no cookie and none of your data.",
   "Se você não abrir, nada é pedido. Seu arquivo e seu avatar nunca saem do aparelho.": "If you don't open it, nothing is requested. Your file and your avatar never leave your device.",
-  "Ler os termos de {nome} (abre em nova aba)": "Read the terms of {nome} (opens in a new tab)"
+  "Ler os termos de {nome} (abre em nova aba)": "Read the terms of {nome} (opens in a new tab)",
+  "Avatar soletrando com as mãos": "Avatar spelling with its hands",
+  "Avisos sobre a soletração": "Notices about the spelling",
+  "Este modelo não tem braços articulados: a soletração fica indisponível.": "This model has no articulated arms: spelling is unavailable.",
+  "Este modelo não tem dedos articulados: a soletração fica indisponível.": "This model has no articulated fingers: spelling is unavailable.",
+  "Fora do tempo máximo da fala: não soletrada": "Over the maximum time for the speech: not spelled",
+  "letra com movimento: aproximada": "letter with movement: approximate",
+  "Números não são soletrados": "Numbers are not spelled",
+  "Os ossos deste modelo não têm nomes reconhecíveis: a soletração fica indisponível.": "This model's bones have no recognisable names: spelling is unavailable.",
+  "Palavra de uma letra: não soletrada": "One-letter word: not spelled",
+  "Poses de DEMONSTRAÇÃO: ainda NÃO revisadas por pessoas surdas": "DEMONSTRATION poses: NOT yet reviewed by deaf people",
+  "Sem letras para soletrar": "No letters to spell",
+  "Sem modelo carregado: a soletração fica indisponível.": "No model loaded: spelling is unavailable.",
+  "Só nomes próprios são soletrados": "Only proper names are spelled",
+  "Soletração do alfabeto manual: não é tradução para Libras": "Manual alphabet spelling: this is not a translation into Libras",
+  "Tem sinal gravado: não soletrada": "Has a recorded sign: not spelled"
 }

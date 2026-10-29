@@ -29,12 +29,14 @@ function arquivos(dir: string): string[] {
 const fonte = (rel: string) => readFileSync(path.join(RAIZ, rel), 'utf8')
 const rel = (abs: string) => path.relative(RAIZ, abs).split(path.sep).join('/')
 
+/** `maos.ts` (M4b) usa `three` em tempo de execução e só é alcançado por `import()` dinâmico (ver o teste abaixo). */
 const PORTAS_DO_MOTOR = [
   'src/lib/avatar/carregador.ts',
   'src/lib/avatar/renderer.ts',
   'src/lib/avatar/motor.ts',
   // M6: as peças do Estúdio; só alcançadas por import() em `pecasNaSessao.ts`.
   'src/lib/avatar/pecas3d.ts',
+  'src/lib/avatar/maos.ts',
 ]
 /** Import estático de valor (não `import type`) de `three` ou `@pixiv/three-vrm`. */
 const IMPORT_ESTATICO = /^\s*import\s+(?!type\b)[^'"]*from\s+['"](three|three\/[^'"]*|@pixiv\/[^'"]+)['"]/m
@@ -46,6 +48,14 @@ describe('orçamento de bundle do avatar: fonte', () => {
   it('só as portas do motor citam three/three-vrm', () => {
     const intrusos = codigo.map(rel).filter((f) => !PORTAS_DO_MOTOR.includes(f) && IMPORT_QUALQUER.test(fonte(f)))
     expect(intrusos).toEqual([])
+  })
+
+  it('maos.ts só é alcançado por import() dinâmico (nada o importa de forma estática)', () => {
+    const estaticos = codigo
+      .map(rel)
+      .filter((f) => /^\s*import\s+(?!type\b)[^'"]*from\s+['"][^'"]*avatar\/maos['"]/m.test(fonte(f)))
+      .filter((f) => !f.startsWith('tests/'))
+    expect(estaticos).toEqual([])
   })
 
   it('o carregador só importa three/three-vrm como tipo ou por import() dinâmico', () => {

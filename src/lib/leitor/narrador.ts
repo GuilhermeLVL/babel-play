@@ -100,6 +100,11 @@ export interface DependenciasDoNarrador {
    * Lida a cada capítulo e em `definirElenco()`; nunca é obrigatória nem usa rede.
    */
   elenco?: () => ConfigDoElenco | null;
+  /**
+   * O AVATAR NA NARRAÇÃO (flag `avatar_3d`): embrulha o motor que vai falar a frase (`ligarAvatarAFala`), para a boca do
+   * avatar seguir a voz. Ausente = o motor como veio (o som e as chamadas não mudam).
+   */
+  envolverMotor?: (motor: TtsEngine) => TtsEngine;
 }
 
 /** Quanto esperar sem novas mudanças antes de recomeçar a frase (a pessoa arrasta um controle). */
@@ -489,8 +494,10 @@ export class Narrador {
     const falarPasso = async (i: number): Promise<void> => {
       const passo = passos[i];
       if (!passo) return this.fimDaFrase(indice, vez);
-      const { motor, id } = await this.motorDeVoz(passo.idioma);
+      const escolhido = await this.motorDeVoz(passo.idioma);
       if (this.estado.vez !== vez) return;
+      const { id } = escolhido;
+      const motor = this.d.envolverMotor ? this.d.envolverMotor(escolhido.motor) : escolhido.motor;
       /* Só o passo do LIVRO leva elenco; a tradução fala sempre na voz da pessoa. */
       const doLivro = passo.texto === this.frases[indice]?.texto;
       const fala = falaDaFrase(

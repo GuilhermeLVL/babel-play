@@ -108,7 +108,7 @@ export default function PainelDoElenco({
             data-testid="elenco-avatar"
             onChange={(e) => elenco.mostrarAvatar(e.target.checked)}
           />
-          <span>{t('Mostrar o avatar do narrador (precisa dos avatares ligados)')}</span>
+          <span>{t('Um rosto diferente para cada personagem (com o avatar ligado)')}</span>
         </label>
       )}
       {elenco.ligado && distribuicao && distribuicao.repetidas.length > 0 && !nuvem && (

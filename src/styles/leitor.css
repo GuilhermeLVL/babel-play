@@ -1137,3 +1137,39 @@
     grid-column: 1 / -1;
   }
 }
+
+/* O avatar-narrador (faixa acima da barra, no fluxo: nunca cobre o texto). O tamanho vem do avatar (P/M/G, com teto de
+   um quinto da altura); recolhido, sobra só a legenda. */
+.leitor-avatar-narrador {
+  position: relative;
+  flex-wrap: wrap;
+}
+.leitor-avatar-narrador-rosto {
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  border-radius: 50%;
+}
+.leitor-avatar-narrador-legenda {
+  flex: 1 1 140px;
+}
+.leitor-avatar-narrador-legenda small {
+  opacity: 0.7;
+}
+.leitor-avatar-narrador-legenda span {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.leitor-avatar-painel {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 100%;
+  z-index: 5;
+  max-width: 420px;
+}
+.leitor-avatar-painel .avm-painel {
+  max-height: min(55dvh, 520px);
+}

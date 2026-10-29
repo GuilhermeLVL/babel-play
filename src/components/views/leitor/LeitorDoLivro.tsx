@@ -47,6 +47,7 @@ import type { ModoDoParceiro } from '../../../data/rotas/parceiroDeLeitura';
 import { buildGateway } from '../../../gateway';
 import { getActiveProfile } from '../../../gateway/activeProfile';
 import { ficharCartao } from '../../../lib/adicionarAoDeck';
+import { criarPonteDaVoz, type PonteDaVoz } from '../../../lib/avatar/ponteDaVoz';
 import { consentiuNuvem } from '../../../lib/consentimentoDeNuvem';
 import { getEntitlements } from '../../../lib/entitlements';
 import { baixar, baixarTexto } from '../../../lib/exportacao/baixar';
@@ -83,6 +84,8 @@ import { haVozPara } from '../../../lib/voz/haVoz';
 import { useVozesPreferidas, VOZ_DA_NUVEM, vozDaNuvemDisponivel, vozEmUso } from '../../../lib/voz/preferenciaDeVoz';
 import { destravarVozDaNuvem } from '../../../lib/voz/vozDaNuvem';
 import type { VocabWord } from '../../../types';
+import { BotaoDoAvatar, DicaDoAvatar } from '../../avatar/modo/BotaoDoAvatar';
+import { useAvatarDoModo } from '../../avatar/modo/useAvatarDoModo';
 import { toast } from '../../Toast';
 import VocabularyPanel from '../../VocabularyPanel';
 import AvatarDoNarrador from './AvatarDoNarrador';
@@ -179,11 +182,14 @@ export default function LeitorDoLivro({
   livroId,
   aoVoltar,
   aoConhecerPlanos,
+  aoEscolherAvatar,
   rotuloDoVoltar,
 }: {
   livroId: string;
   aoVoltar: () => void;
   aoConhecerPlanos?: () => void;
+  /** Leva a Perfil › Avatar (escolher outro ou trazer o seu). Ausente onde o Perfil não existe. */
+  aoEscolherAvatar?: () => void;
   /** O texto do botão de voltar (padrão: "Estante"; aberto pelo catálogo: "Voltar"). */
   rotuloDoVoltar?: string;
 }) {
@@ -258,6 +264,17 @@ export default function LeitorDoLivro({
   };
   const elencoRef = useRef(elenco);
   elencoRef.current = elenco;
+  /* O AVATAR NA NARRAÇÃO (flag `avatar_3d`, sem exigir o elenco): o mesmo controle de todos os modos. A ponte liga a boca
+     à voz que lê a frase; desligada, o motor segue como veio. */
+  const avatar = useAvatarDoModo('livro', { aoEscolherMeuAvatar: aoEscolherAvatar });
+  const ponteRef = useRef<PonteDaVoz | null>(null);
+  ponteRef.current ??= criarPonteDaVoz();
+  const ponte = ponteRef.current;
+  const avatarNaTela = narracaoAberta && avatar.ativo;
+  useEffect(() => {
+    ponte.ativar(avatarNaTela);
+  }, [ponte, avatarNaTela]);
+  useEffect(() => () => ponte.dispose(), [ponte]);
   const toqueEmAnotacao = useRef(0);
   const capituloRef = useRef('');
   capituloRef.current = local?.tocItem?.label?.trim() ?? '';
@@ -428,6 +445,7 @@ export default function LeitorDoLivro({
       nuvemLiberada: () => ({ temDireito: getEntitlements().vozNatural, flagLigada: flagLigada(FLAG_VOZ_NATURAL) }),
       aoMudar: setVistaNarrador,
       elenco: () => elencoRef.current.config(),
+      envolverMotor: (m) => ponte.envolver(m),
       aoNavegar: () => {
         ignorarToquesAte.current = Date.now() + 900;
       },
@@ -453,7 +471,7 @@ export default function LeitorDoLivro({
       narradorRef.current = null;
     };
     // O narrador é um por livro aberto; as escolhas chegam pelos refs e pelos `definir*`.
-  }, [estado, livroId]);
+  }, [estado, livroId, ponte]);
 
   /* O estado da narração para o leitor de tela: UMA vez por mudança de estado, nunca por frase. */
   const faseAnunciada = useRef(vistaNarrador.fase);
@@ -474,6 +492,11 @@ export default function LeitorDoLivro({
     setNarracaoAberta(true);
     if (vozDaNuvemDisponivel()) destravarVozDaNuvem(); // o iPhone só toca áudio liberado num toque
     narradorRef.current?.tocar();
+  };
+  /* "Avatar" na barra: liga/desliga em um toque. Ligar com a narração fechada abre a faixa (sem começar a tocar). */
+  const alternarAvatar = () => {
+    if (!avatar.ligado && !narracaoAberta) setNarracaoAberta(true);
+    avatar.alternar();
   };
   const fecharNarracao = () => {
     narradorRef.current?.parar();
@@ -867,7 +890,9 @@ export default function LeitorDoLivro({
       data-estado={estado}
       data-painel={painel ?? undefined}
     >
-      <header className={`leitor-topo${temElenco && !info?.ehPdf ? ' leitor-topo-com-elenco' : ''}`}>
+      <header
+        className={`leitor-topo${(temElenco || avatar.disponivel) && !info?.ehPdf ? ' leitor-topo-com-elenco' : ''}`}
+      >
         <button type="button" className="leitor-botao" onClick={aoVoltar}>
           <ArrowLeft aria-hidden />
           <span>{rotuloDoVoltar ?? t('Estante')}</span>
@@ -888,6 +913,14 @@ export default function LeitorDoLivro({
               <Headphones aria-hidden />
               <span>{t('Ouvir')}</span>
             </button>
+          )}
+          {avatar.disponivel && !info?.ehPdf && (
+            <BotaoDoAvatar
+              modo="livro"
+              ligado={avatar.ligado}
+              aoAlternar={alternarAvatar}
+              classe="leitor-botao leitor-botao-rotulo"
+            />
           )}
           {temElenco && !info?.ehPdf && (
             <button
@@ -966,7 +999,11 @@ export default function LeitorDoLivro({
         </p>
       )}
 
-      {temElenco && !dicaDoElencoVista && estado === 'pronto' && painel !== 'narracao' && (
+      {avatar.dica.visivel && !info?.ehPdf && estado === 'pronto' && (
+        <DicaDoAvatar modo="livro" aoLigar={alternarAvatar} aoDispensar={avatar.dica.dispensar} />
+      )}
+
+      {temElenco && !dicaDoElencoVista && !avatar.dica.visivel && estado === 'pronto' && painel !== 'narracao' && (
         <DicaDoElenco
           personagens={elenco.personagens.length}
           aoAbrir={abrirElenco}
@@ -1160,8 +1197,13 @@ export default function LeitorDoLivro({
         />
       )}
 
-      {narracaoAberta && elenco.disponivel && elenco.ligado && elenco.avatar && (
-        <AvatarDoNarrador vista={vistaNarrador} />
+      {avatarNaTela && (
+        <AvatarDoNarrador
+          vista={vistaNarrador}
+          ctl={avatar}
+          ponte={ponte}
+          elencoLigado={elenco.disponivel && elenco.ligado && elenco.avatar}
+        />
       )}
 
       {narracaoAberta && (

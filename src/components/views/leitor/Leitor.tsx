@@ -3,6 +3,7 @@ import '../../../styles/leitor.css';
 import { BookOpen, FileUp, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
+import { abrirMeuAvatar } from '../../../lib/avatar/descoberta';
 import { comBaseDoApp } from '../../../lib/baseDoApp';
 import { t } from '../../../lib/i18n';
 import { abrirLivroNoLeitor, ErroAoAbrirLivro } from '../../../lib/livros/abrir';
@@ -43,6 +44,7 @@ export default function Leitor({ onChangeView }: { onChangeView?: (view: string,
         livroId={livroId}
         aoVoltar={() => navegarPara({ view: 'leitor' })}
         aoConhecerPlanos={onChangeView ? () => onChangeView('planos') : undefined}
+        aoEscolherAvatar={onChangeView ? () => abrirMeuAvatar(onChangeView) : undefined}
       />
     );
   }

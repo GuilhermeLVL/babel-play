@@ -494,12 +494,22 @@ export function setTtsEngine(e: TtsEngine): void {
   engine = e;
 }
 
+/**
+ * A ENVOLTURA DA FALA: quem quer ouvir QUEM FALA pelo ponto único (o avatar de um modo, para a boca seguir a voz) registra
+ * aqui uma função que embrulha o motor ativo (`ligarAvatarAFala`). Ausente (o padrão), o motor segue como veio.
+ */
+let envoltura: ((motor: TtsEngine) => TtsEngine) | null = null;
+export function setEnvolturaDaFala(f: ((motor: TtsEngine) => TtsEngine) | null): void {
+  envoltura = f;
+}
+const motorAtivo = (): TtsEngine => (envoltura ? envoltura(engine) : engine);
+
 export function speak(text: string, opts: SpeakOptions): void {
   /* Um blip curto ANTES da fala, para o usuario perceber que o pedido foi aceito — a sintese
      costuma levar alguns centenas de ms para comecar, e nesse silencio o clique parece perdido.
      Fica aqui, no unico ponto por onde toda fala passa, e nao nos ~12 botoes que a chamam. */
   play('speak');
-  engine.speak(text, opts);
+  motorAtivo().speak(text, opts);
 }
 /**
  * FALAR UM TEXTO NO IDIOMA DELE — o ponto único para os jogos, a Biblioteca e o Estudo.
@@ -517,7 +527,7 @@ export function falar(texto: string, idioma: string, opts: Omit<SpeakOptions, 'l
 }
 
 export function cancelSpeech(): void {
-  engine.cancel();
+  motorAtivo().cancel();
 }
 
 /**

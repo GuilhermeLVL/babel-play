@@ -70,6 +70,36 @@ export default function PainelDosAvatares({
         if (e.key === 'Escape') {
           e.stopPropagation();
           aoFecharRef.current();
+          return;
+        }
+        // `aria-modal`: o Tab fica DENTRO do painel (o que está atrás não é alcançável). Volta ao primeiro depois do
+        // último, e ao último antes do primeiro. (Grupo de rádio: só o marcado entra na ordem do Tab.)
+        if (e.key !== 'Tab') return;
+        const alcancaveis = [
+          ...e.currentTarget.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), input:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+          ),
+        ].filter(
+          (el) =>
+            el.offsetParent !== null &&
+            !(
+              el instanceof HTMLInputElement &&
+              el.type === 'radio' &&
+              !el.checked &&
+              el.name &&
+              e.currentTarget.querySelector(`input[type=radio][name="${el.name}"]:checked`)
+            ),
+        );
+        if (!alcancaveis.length) return;
+        const primeiroEl = alcancaveis[0];
+        const ultimoEl = alcancaveis[alcancaveis.length - 1];
+        const ativo = document.activeElement;
+        if (e.shiftKey && (ativo === primeiroEl || !e.currentTarget.contains(ativo))) {
+          e.preventDefault();
+          ultimoEl.focus();
+        } else if (!e.shiftKey && (ativo === ultimoEl || !e.currentTarget.contains(ativo))) {
+          e.preventDefault();
+          primeiroEl.focus();
         }
       }}
     >

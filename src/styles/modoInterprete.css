@@ -186,7 +186,9 @@
 /* OUVINDO: o anel em volta de quem fala. */
 .int-falar[data-ouvindo] {
   background: var(--int-tinta);
-  color: var(--accent);
+  /* O rótulo "Parar" sobre a tinta: o fundo da tela (`--int-escuro`), o oposto da tinta nos dois temas. Antes era o
+     laranja de acento (4,29:1 no claro, 2,4:1 no escuro: reprovado pelo axe, medido em M2.2); o anel segue laranja. */
+  color: var(--int-escuro);
   box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 45%, transparent);
   animation: int-anel 1.6s ease-in-out infinite;
 }

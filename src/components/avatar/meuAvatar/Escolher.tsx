@@ -90,7 +90,7 @@ export default function Escolher({
         )}
         <ul className="av-grade" role="radiogroup" aria-label={t('Modelos de avatar')}>
           {itens.map((m, i) => (
-            <li key={m.id}>
+            <li key={m.id} role="none">
               <button
                 type="button"
                 role="radio"

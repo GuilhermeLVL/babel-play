@@ -574,3 +574,19 @@
     grid-column: 1 / -1;
   }
 }
+
+/* CONTRASTE MEDIDO (a11y do M2.2, `tests/e2e/avatar-a11y.e2e.ts`). No escuro o botão secundário era fundo e borda quase
+   iguais ao cartão (1:1), e o "Salvar" desabilitado ficava a 1,09:1 (texto escuro a 40% de opacidade sobre fundo escuro):
+   a única explicação do estado ("Avatar já salvo") não se lia. Agora: contorno de 3:1 ou mais nos secundários, e o
+   desabilitado deixa de ser "apagado": é um botão quieto, de texto cheio, com o contorno tracejado. */
+.av-tela .q-ctl:not(.pri):not(:hover):not([aria-pressed='true']) {
+  border-color: color-mix(in srgb, var(--ink) 55%, var(--canvas));
+}
+.av-tela .q-ctl:disabled,
+.av-tela .q-ctl.pri:disabled {
+  opacity: 1;
+  background: var(--surface-sunken);
+  color: var(--ink);
+  border: 2px dashed color-mix(in srgb, var(--ink) 55%, var(--canvas));
+  box-shadow: none;
+}

@@ -13,6 +13,7 @@ import { baseLang, langLabelNaUI } from '../../../lib/languages';
 import { type Cefr, NIVEIS_CEFR, NOME_DO_NIVEL, salvarPreferencias, usePreferencias } from '../../../lib/preferencias';
 import { salvarPerfil, usePerfil } from '../../../lib/usePerfil';
 import { LangFlag } from '../../LangFlag';
+import { AjusteDoVLibras } from '../../libras/SinaisDeApoio';
 import { toast } from '../../Toast';
 
 /**
@@ -378,6 +379,8 @@ export default function AbaVoce() {
           </p>
         </div>
       </section>
+
+      <AjusteDoVLibras />
 
       <div className="qc-salvar-pe" role="status" aria-live="polite">
         {sujo || estado === 'erro' ? (

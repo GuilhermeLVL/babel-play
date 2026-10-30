@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { diretivasDeCsp, serializarCsp } from '../../server/http/csp'
+import { cspDaPonteDoVLibras, diretivasDaPonteDoVLibras, diretivasDeCsp, serializarCsp } from '../../server/http/csp'
 
 const env = (e: Record<string, string>) => e as unknown as NodeJS.ProcessEnv
 
@@ -142,6 +142,37 @@ describe('diretivasDeCsp', () => {
     expect(d.scriptSrc).toEqual(base.scriptSrc)
     expect(d.workerSrc).toEqual(base.workerSrc)
     expect(d.imgSrc).toEqual(base.imgSrc)
+  })
+
+  it('VLibras (piloto): a CSP do APP é idêntica com e sem VLIBRAS_ATIVO (nenhum host de terceiro, nem em script-src)', () => {
+    const base = diretivasDeCsp(env({}))
+    for (const v of ['', '0', '1', 'true']) expect(diretivasDeCsp(env({ VLIBRAS_ATIVO: v }))).toEqual(base)
+    expect(base.scriptSrc).toEqual(["'self'", "'wasm-unsafe-eval'", 'blob:'])
+    expect(serializarCsp(diretivasDeCsp(env({ VLIBRAS_ATIVO: '1' })))).not.toMatch(/vlibras|posthog/)
+  })
+
+  it('VLibras (piloto): a CSP da PONTE só abre os hosts confirmados, e só com VLIBRAS_ATIVO=1', () => {
+    for (const v of [undefined, '', '0', 'true']) {
+      const fechada = diretivasDaPonteDoVLibras(env(v === undefined ? {} : { VLIBRAS_ATIVO: v }))
+      expect(fechada.defaultSrc).toEqual(["'none'"])
+      expect(fechada.scriptSrc).toBeUndefined()
+      expect(JSON.stringify(fechada)).not.toContain('vlibras.gov.br')
+    }
+    const d = diretivasDaPonteDoVLibras(env({ VLIBRAS_ATIVO: '1' }))
+    expect(d.scriptSrc).toEqual(["'self'", 'https://vlibras.gov.br', 'https://cdn.jsdelivr.net/gh/spbgovbr-vlibras/'])
+    expect(d.connectSrc).toEqual([
+      'https://vlibras.gov.br',
+      'https://traducao2.vlibras.gov.br',
+      'https://dicionario2.vlibras.gov.br',
+      'https://repositorio.vlibras.gov.br',
+    ])
+    expect(d.frameSrc).toEqual(['https://vlibras.gov.br'])
+    expect(d.frameAncestors).toEqual(["'self'"])
+    expect(d.objectSrc).toEqual(["'none'"])
+    expect(d.formAction).toEqual(["'none'"])
+    const texto = cspDaPonteDoVLibras(env({ VLIBRAS_ATIVO: '1' }))
+    expect(texto).not.toMatch(/posthog|unsafe-eval|unsafe-inline.*script|https:\s*;|\*/)
+    expect(texto).toContain("frame-ancestors 'self'")
   })
 
   it('script-src continua sem host externo e sem unsafe-eval', () => {

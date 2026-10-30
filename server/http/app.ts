@@ -82,7 +82,7 @@ import { sessionsRouter } from '../routes/sessions'
 import { settingsRouter } from '../routes/settings'
 import { tutorRouter } from '../routes/tutor'
 import { vocabRouter } from '../routes/vocab'
-import { diretivasDeCsp } from './csp'
+import { CAMINHO_DA_PONTE_DO_VLIBRAS, cspDaPonteDoVLibras, diretivasDeCsp, SCRIPT_DA_PONTE_DO_VLIBRAS } from './csp'
 import { isolamentoDeOrigem } from './isolamento'
 import {
   jsonAntesDoAuth,
@@ -282,6 +282,26 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
       crossOriginEmbedderPolicy: false,
     }),
   )
+
+  /* A PONTE DO VLIBRAS (piloto, `docs/pesquisa/2026-10-29-vlibras-piloto.md`): a página que hospeda o widget do governo
+     federal num iframe de origem opaca tem uma CSP SÓ DELA (trocada aqui, para nunca valer as duas ao mesmo tempo); a do app
+     continua sem host de terceiro. Sem `VLIBRAS_ATIVO=1` a CSP dela não permite carregar nada. */
+  app.use((req, res, next) => {
+    if (req.path === CAMINHO_DA_PONTE_DO_VLIBRAS || req.path === SCRIPT_DA_PONTE_DO_VLIBRAS) {
+      /* A ponte roda em origem OPACA (sandbox sem `allow-same-origin`): para o navegador, o script dela é de outra origem, e
+         o `Cross-Origin-Resource-Policy: same-origin` do helmet o bloquearia. Só estes dois arquivos públicos o relaxam. */
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
+    }
+    if (req.path === CAMINHO_DA_PONTE_DO_VLIBRAS) {
+      res.removeHeader('Content-Security-Policy')
+      res.removeHeader('Content-Security-Policy-Report-Only')
+      res.setHeader(
+        process.env.NODE_ENV !== 'production' ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy',
+        cspDaPonteDoVLibras(),
+      )
+    }
+    next()
+  })
 
   // Rate-limit nas rotas CARAS (proxy de IA e importação) — anti-abuso básico.
   //

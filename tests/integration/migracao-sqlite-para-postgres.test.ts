@@ -337,6 +337,7 @@ describe('migração SQLite → Postgres', () => {
         'avatar_3d',
         'avatar_elenco',
         'avatar_sinais',
+        'libras_vlibras',
         'parceiro_de_leitura',
         'stt_ao_vivo',
       ])
@@ -351,7 +352,7 @@ describe('migração SQLite → Postgres', () => {
     const r = await mig.migrarSqliteParaPostgres({ origem: origem.url, destino: mdb.db })
     expect(r.tabelas.find((t) => t.nome === 'flags')).toMatchObject({
       ok: true,
-      extrasNoDestino: ['avatar_3d', 'avatar_elenco', 'avatar_sinais', 'parceiro_de_leitura'], // só do Postgres (PG 0014 e 0015), como no caso acima
+      extrasNoDestino: ['avatar_3d', 'avatar_elenco', 'avatar_sinais', 'libras_vlibras', 'parceiro_de_leitura'], // só do Postgres (PG 0014, 0015 e 0016), como no caso acima
     })
     const anuncios = mdb.linhas<{ habilitada: boolean; atualizado_por: string }>(
       await mdb.db.execute(sql`select habilitada, atualizado_por from flags where chave = 'anuncios'`),

@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import type { Plugin } from 'vite';
 
-import { diretivasDeCsp, serializarCsp } from '../../server/http/csp';
+import { CAMINHO_DA_PONTE_DO_VLIBRAS, cspDaPonteDoVLibras, diretivasDeCsp, serializarCsp } from '../../server/http/csp';
 
 /** Onde o modelo começa a parte que NÃO é gerada: as regras de cache. */
 const INICIO_DO_CACHE = '/ort-wasm-*';
@@ -24,7 +24,8 @@ export function gerarHeaders(env: NodeJS.ProcessEnv, base: string): string {
   const global = [
     '/*',
     '  Cross-Origin-Opener-Policy: same-origin',
-    '  Cross-Origin-Embedder-Policy: credentialless',
+    // Sem COEP quando o piloto VLibras está ativo: o iframe do avatar não o manda (`server/http/isolamento.ts`).
+    ...(env.VLIBRAS_ATIVO === '1' ? [] : ['  Cross-Origin-Embedder-Policy: credentialless']),
     '  Document-Isolation-Policy: isolate-and-credentialless',
     '  X-Content-Type-Options: nosniff',
     // O mesmo HSTS que o helmet manda nas respostas da API (o ZAP apontou a ausência nos estáticos, 21/10/2026).
@@ -34,7 +35,13 @@ export function gerarHeaders(env: NodeJS.ProcessEnv, base: string): string {
     `  Content-Security-Policy: ${serializarCsp(diretivasDeCsp(env))}`,
   ].join('\n');
   const diagnostico = ['/diagnostico-audio.html', '  ! Content-Security-Policy'].join('\n');
-  return `${comentarios}${global}\n\n${diagnostico}\n\n${cache}`;
+  // A ponte do VLibras tem CSP própria (`!` tira a de `/*`, senão valeriam as duas): ver `server/http/csp.ts`.
+  const ponte = [
+    CAMINHO_DA_PONTE_DO_VLIBRAS,
+    '  ! Content-Security-Policy',
+    `  Content-Security-Policy: ${cspDaPonteDoVLibras(env)}`,
+  ].join('\n');
+  return `${comentarios}${global}\n\n${diagnostico}\n\n${ponte}\n\n${cache}`;
 }
 
 /** Grava `dist/_headers` ao fim do build, com a CSP das variáveis do próprio build. */

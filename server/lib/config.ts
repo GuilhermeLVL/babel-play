@@ -1004,6 +1004,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue:
       'chave PÚBLICA do Cloudflare Turnstile: o convidado passa pelo captcha antes de o Supabase criar o usuário anônimo (Fase 7). Com ela a CSP libera challenges.cloudflare.com; sem ela o captcha fica desligado',
   },
+  {
+    nome: 'VLIBRAS_ATIVO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'com `1`, a CSP da PÁGINA DA PONTE (`/vlibras-ponte.html`, onde roda o widget VLibras do governo federal num iframe sandbox) libera os domínios do VLibras e o isolamento `completo` vira `dip` (o iframe do avatar não manda COEP), para o piloto atrás da flag `libras_vlibras` (só adultos, com aceite). A CSP do app NÃO muda. Vale no servidor e no BUILD (`dist/_headers`). Ausente: a ponte não carrega nada',
+  },
 ]
 
 /**

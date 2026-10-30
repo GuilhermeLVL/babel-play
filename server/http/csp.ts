@@ -42,6 +42,12 @@
  *                                               `raw.githubusercontent.com` (já liberado) e as miniaturas por
  *                                               `img-src`, que já é `https:`. Sem a variável, nada entra e a galeria
  *                                               avisa que está indisponível. Só `connect-src`, nunca script/worker.
+ *   VLIBRAS_ATIVO=1                             o piloto VLibras (flag `libras_vlibras`, só adultos com aceite). NADA muda
+ *                                               nesta política: o widget do governo federal roda numa PÁGINA PRÓPRIA
+ *                                               (`/vlibras-ponte.html`) dentro de um `<iframe sandbox="allow-scripts">`
+ *                                               sem `allow-same-origin`, e é ELA que tem uma CSP à parte
+ *                                               (`diretivasDaPonteDoVLibras`, abaixo). `script-src` do app segue sem
+ *                                               nenhum host de terceiro (`docs/pesquisa/2026-10-29-vlibras-piloto.md`).
  *   VITE_ORT_WASM_URL                           o runtime do ONNX (`ort-wasm-*.{wasm,mjs}`) num R2/CDN
  *                                               (`src/gateway/baseDoWasm.ts`). ESTE é código: entra
  *                                               também em `script-src` e `worker-src` (ver abaixo)
@@ -62,6 +68,8 @@
  * `'self'` e `style-src` não abre nenhuma origem de folha. O Google Fonts saiu em 03/10/2026 — pedir as
  * fontes a ele entregava o IP de cada visitante ao Google (LGPD, docs/lgpd/operadores.md).
  */
+
+import { CAMINHO_DA_PONTE_DO_VLIBRAS, CSP_DO_VLIBRAS } from '../../src/core/libras/vlibras'
 
 /** O que o `helmet` recebe em `contentSecurityPolicy.directives`. */
 export interface DiretivasDeCsp {
@@ -219,6 +227,45 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
        marcação (`src/lib/leitor/foliate/PATCHES.md`). */
     frameSrc: ["'self'", 'blob:', ...quadros],
   }
+}
+
+export { CAMINHO_DA_PONTE_DO_VLIBRAS }
+/** O script da ponte (`public/vlibras-ponte.js`), mesma origem do app. */
+export const SCRIPT_DA_PONTE_DO_VLIBRAS = '/vlibras-ponte.js'
+
+/**
+ * A CSP DA PONTE DO VLIBRAS (`public/vlibras-ponte.html`), só dela. O app NÃO abre nenhum host de terceiro: o widget do
+ * governo federal roda aqui, num iframe de origem opaca (`sandbox="allow-scripts"`, sem `allow-same-origin`) que não
+ * enxerga o DOM, os cookies nem o `localStorage` do Frasy. Sem `VLIBRAS_ATIVO=1` a página não carrega nada (`default-src
+ * 'none'`); com ela abre SÓ os hosts confirmados (`CSP_DO_VLIBRAS`). `frame-ancestors 'self'`: só o próprio app a embute.
+ * O PostHog do widget nunca entra. O jsdelivr entra pelo caminho do repositório do VLibras (destino do 302 do
+ * `vlibras.gov.br`); como o caminho não vale em redirecionamento, isso não impede outro repositório do mesmo CDN, e o
+ * limite real é o sandbox desta página (risco residual no doc de pesquisa).
+ */
+export function diretivasDaPonteDoVLibras(env: NodeJS.ProcessEnv = process.env): Record<string, string[]> {
+  const ativa = env.VLIBRAS_ATIVO === '1'
+  if (!ativa) return { defaultSrc: ["'none'"], frameAncestors: ["'self'"], baseUri: ["'none'"], formAction: ["'none'"] }
+  return {
+    defaultSrc: ["'none'"],
+    scriptSrc: ["'self'", ...CSP_DO_VLIBRAS.script],
+    connectSrc: [...CSP_DO_VLIBRAS.connect],
+    frameSrc: [...CSP_DO_VLIBRAS.frame],
+    imgSrc: ['https:', 'data:', 'blob:'],
+    fontSrc: ["'self'", 'data:', ...CSP_DO_VLIBRAS.font],
+    styleSrc: ["'self'", "'unsafe-inline'"],
+    mediaSrc: ["'self'", 'blob:', 'data:'],
+    objectSrc: ["'none'"],
+    frameAncestors: ["'self'"],
+    baseUri: ["'none'"],
+    formAction: ["'none'"],
+  }
+}
+
+/** A CSP da ponte como texto de cabeçalho. */
+export function cspDaPonteDoVLibras(env: NodeJS.ProcessEnv = process.env): string {
+  return Object.entries(diretivasDaPonteDoVLibras(env))
+    .map(([nome, valores]) => [nome.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase()), ...valores].join(' '))
+    .join('; ')
 }
 
 /**

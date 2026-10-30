@@ -72,6 +72,10 @@ export function modoDeIsolamento(env: NodeJS.ProcessEnv = process.env): ModoDeIs
   const v = normalizar(env)
   if (DESLIGADO.has(v)) return 'desligado'
   if (v === 'dip') return 'dip'
+  /* O piloto VLibras (`VLIBRAS_ATIVO=1`): o avatar é um iframe de `vlibras.gov.br` que NÃO manda COEP, e sob
+     `credentialless` o navegador o bloqueia (visto em Chromium, 29/10/2026). O DIP isola só o documento e não exige
+     nada dos iframes, então o modo completo vira `dip`: Chromium mantém as threads, o Firefox as perde. Só com a variável. */
+  if (env.VLIBRAS_ATIVO === '1') return 'dip'
   return 'completo'
 }
 

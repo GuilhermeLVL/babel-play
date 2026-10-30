@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 import { gerarHeaders } from '../scripts/vite/cabecalhos'
-import { diretivasDeCsp, serializarCsp } from '../server/http/csp'
+import { cspDaPonteDoVLibras, diretivasDeCsp, serializarCsp } from '../server/http/csp'
 
 const BASE = readFileSync('scripts/vite/_headers.base', 'utf8')
 const env = (e: Record<string, string>) => e as unknown as NodeJS.ProcessEnv
@@ -85,6 +85,29 @@ describe('gerarHeaders', () => {
     expect(g).toContain('Strict-Transport-Security: max-age=31536000; includeSubDomains')
     expect(g).toContain('Referrer-Policy: strict-origin-when-cross-origin')
     expect(g).toContain('Permissions-Policy: microphone=(self)')
+  })
+
+  it('VLibras (piloto): a CSP do app não muda; a ponte tem bloco próprio e VLIBRAS_ATIVO=1 só tira o COEP', () => {
+    const sem = gerarHeaders(env({}), BASE)
+    const com = gerarHeaders(env({ VLIBRAS_ATIVO: '1' }), BASE)
+    const cspDoApp = (h: string) =>
+      bloco(h, '/*')
+        .split('\n')
+        .find((l) => l.startsWith('Content-Security-Policy:'))
+    expect(cspDoApp(com)).toBe(cspDoApp(sem))
+    expect(cspDoApp(com)).not.toContain('vlibras')
+    // O bloco da ponte tira a CSP herdada de `/*` (senão valeriam as duas) e põe a dela.
+    expect(bloco(sem, '/vlibras-ponte.html')).toBe(
+      `! Content-Security-Policy\nContent-Security-Policy: ${cspDaPonteDoVLibras(env({}))}`,
+    )
+    expect(bloco(sem, '/vlibras-ponte.html')).not.toContain('vlibras.gov.br')
+    const g = bloco(com, '/*')
+    expect(bloco(com, '/vlibras-ponte.html')).toContain('https://traducao2.vlibras.gov.br')
+    // O avatar do VLibras é um iframe de outra origem sem COEP: sob `credentialless` o navegador o bloqueia.
+    expect(g).not.toContain('Cross-Origin-Embedder-Policy')
+    expect(g).toContain('Cross-Origin-Opener-Policy: same-origin')
+    expect(g).toContain('Document-Isolation-Policy: isolate-and-credentialless')
+    expect(bloco(sem, '/*')).toContain('Cross-Origin-Embedder-Policy: credentialless')
   })
 
   it('as regras de cache do base vêm inalteradas', () => {

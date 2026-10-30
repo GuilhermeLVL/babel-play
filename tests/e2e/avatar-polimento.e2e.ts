@@ -59,6 +59,8 @@ test.describe('Polimento no celular, tablet e desktop', () => {
     // sem rolagem horizontal da página
     const sobra = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
     expect(sobra).toBeLessThanOrEqual(0)
+    // o `main` (overflow oculto) também não pode ter sido rolado de lado pelo foco/toque: tudo deslizaria para a esquerda
+    expect(await page.evaluate(() => document.querySelector('main')?.scrollLeft ?? 0)).toBe(0)
 
     // os dois avisos (os quatro, nas duas metades) cabem dentro da tela
     const dentro = await page.evaluate(() =>

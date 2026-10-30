@@ -23,6 +23,10 @@ html[data-px='on'] .px-aura {
   background: radial-gradient(circle, color-mix(in srgb, var(--q-acento, var(--accent)) 26%, transparent), transparent 62%);
 }
 html[data-px='on'] .px-tela { position: relative; z-index: 1; }
+/* A aura (620 px) e as telas rotacionadas ficam parcialmente fora do `main`, que é `overflow: hidden`: ainda assim o
+   navegador o rola na horizontal (foco, toque), e o app inteiro desliza para a esquerda sem a pessoa poder voltar (o
+   avisos obrigatórios da soletração ficavam cortados no celular). `clip` corta igual, mas não deixa rolar. */
+html[data-px='on'] main { overflow: clip; }
 
 /* ---- Título: palavra por palavra ------------------------------------------ */
 .px-pal {

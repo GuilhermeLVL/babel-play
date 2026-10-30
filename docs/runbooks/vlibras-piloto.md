@@ -8,7 +8,7 @@ Pesquisa e riscos: `docs/pesquisa/2026-10-29-vlibras-piloto.md`. Flag: `libras_v
 Botão "Sinais de apoio (VLibras)" no Intérprete, na Legendar e no leitor de livros, SÓ para adulto confirmado e com
 consentimento. O widget do governo federal roda numa página nossa (`/vlibras-ponte.html`) dentro de um
 `<iframe sandbox="allow-scripts">` sem `allow-same-origin` (origem opaca). O `script-src` do app não ganha nenhum
-host de terceiro. A pessoa seleciona um trecho e toca em "Enviar o trecho selecionado"; o trecho vai por `postMessage`
+host de terceiro. A pessoa seleciona um trecho e toca em "Enviar o trecho selecionado"; o trecho vai pela porta de um `MessageChannel`
 à ponte, e o widget o traduz lá dentro.
 
 ## Ligar (ato do dono; produção segue fechada)

@@ -40,11 +40,13 @@ repositórios de qualquer pessoa). Decisão:
    `referrerpolicy` é `no-referrer` e `allow=""`).
 3. A ponte tem CSP PRÓPRIA (`diretivasDaPonteDoVLibras`, só ela, em cabeçalho no Express e bloco `/vlibras-ponte.html` do
    `dist/_headers`; o `!` tira a CSP herdada para não valerem duas). Sem `VLIBRAS_ATIVO=1`: `default-src 'none'`.
-4. O app e a ponte só falam por `postMessage` com esquema estrito (`lerMensagemParaAPonte` / `lerMensagemDaPonte`): o app
-   só aceita mensagem cujo `event.source` é o iframe e sem carga extra; a ponte só aceita do `window.parent`, texto
-   com teto de 2000 caracteres, e escreve com `textContent`. Limite do navegador: para um iframe de origem opaca o único
-   `targetOrigin` possível é `'*'`; por isso as mensagens do app levam só `iniciar` ou o trecho que a pessoa escolheu
-   enviar, e as da ponte não levam dado nenhum.
+4. O app e a ponte só falam com esquema estrito (`lerMensagemParaAPonte` / `lerMensagemDaPonte`), por um `MessageChannel`:
+   a ponte manda UM `postMessage` de janela, o `pronta` (sem dado, com a porta anexada; para um iframe de origem opaca
+   o único `targetOrigin` possível é `'*'`, e por isso ele sai de dentro do iframe, em `public/`), e o app só aceita esse
+   aperto de mão se o `event.source` é o iframe. Dali em diante tudo vai pela porta (`iniciar` e o trecho que a pessoa
+   escolheu enviar, no sentido app→ponte; `iniciado`/`erro`, sem dado, no outro), sem `targetOrigin` no app (o Semgrep
+   `wildcard-postmessage-configuration` não tem o que acusar), e só quem recebeu a ponta da porta fala com a ponte. A
+   ponte aceita texto com teto de 2000 caracteres e escreve com `textContent`.
 5. O `frame-src` do app continua `'self'` (a ponte é da mesma origem). Nada de terceiro.
 6. SRI: não se aplica. O script oficial é um arquivo vivo do governo (já mudou de formato entre versões) e o
    `vlibras-plugin.js` busca outros arquivos; SRI não cobriria o conteúdo mutável que ele carrega. A contenção é o

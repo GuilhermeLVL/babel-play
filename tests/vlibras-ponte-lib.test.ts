@@ -28,6 +28,22 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
+/** O aperto de mão como a ponte o faz: um `message` da janela do iframe, com `pronta` e a porta anexada. */
+function apertoDeMao(f: HTMLIFrameElement, source: unknown = f.contentWindow) {
+  const canal = new MessageChannel()
+  const evento = new MessageEvent('message', {
+    source: source as MessageEventSource,
+    data: { frasy: 'vlibras-ponte', tipo: 'pronta' },
+  })
+  Object.defineProperty(evento, 'ports', { value: [canal.port2] })
+  window.dispatchEvent(evento)
+  return canal
+}
+const proximaMensagem = (porta: MessagePort) =>
+  new Promise<unknown>((ok) => {
+    porta.onmessage = (e) => ok(e.data)
+  })
+
 describe('a ponte do VLibras: o portão antes de qualquer iframe', () => {
   it('flag desligada, mesmo com adulto e aceite: não cria o iframe', () => {
     estado.protegido = false
@@ -91,19 +107,36 @@ describe('a ponte do VLibras: o portão antes de qualquer iframe', () => {
     expect(criarPonteDoVLibras(true)).toBeNull()
   })
 
-  it('revogar apaga o aceite: depois disso nada é criado nem enviado', () => {
+  it('revogar apaga o aceite: depois disso nada é criado nem enviado', async () => {
     estado.protegido = false
     aceitarVLibras()
     const f = criarPonteDoVLibras(true)!
     document.body.appendChild(f)
-    const enviar = vi.spyOn(f.contentWindow!, 'postMessage')
+    const janela = vi.spyOn(f.contentWindow!, 'postMessage')
+    const parar = ouvirAPonte(f, () => {})
+    const canal = apertoDeMao(f)
+    const chegou = proximaMensagem(canal.port1)
     expect(enviarParaAPonte(f, true, mensagemDeInicio())).toBe(true)
-    expect(enviar).toHaveBeenCalledWith(mensagemDeInicio(), '*')
+    expect(await chegou).toEqual(mensagemDeInicio())
     revogarVLibras()
     expect(consentimentoDoVLibras()).toBe(false)
     expect(enviarParaAPonte(f, true, mensagemDeInicio())).toBe(false)
-    expect(enviar).toHaveBeenCalledTimes(1)
     expect(criarPonteDoVLibras(true)).toBeNull()
+    // nada foi para a janela do iframe: nem uma vez, e portanto nunca com `targetOrigin '*'`
+    expect(janela).not.toHaveBeenCalled()
+    parar()
+    canal.port1.close()
+  })
+
+  it('sem o aperto de mão (a ponte ainda não entregou a porta) nada é enviado', () => {
+    estado.protegido = false
+    aceitarVLibras()
+    const f = criarPonteDoVLibras(true)!
+    document.body.appendChild(f)
+    const janela = vi.spyOn(f.contentWindow!, 'postMessage')
+    ouvirAPonte(f, () => {})
+    expect(enviarParaAPonte(f, true, mensagemDeInicio())).toBe(false)
+    expect(janela).not.toHaveBeenCalled()
   })
 })
 
@@ -118,21 +151,26 @@ describe('mensagens da ponte: esquema estrito e só do iframe', () => {
   const disparar = (source: unknown, data: unknown) =>
     window.dispatchEvent(new MessageEvent('message', { source: source as MessageEventSource, data }))
 
-  it('aceita pronta/iniciado/erro vindos do iframe da ponte', () => {
+  it('o `pronta` com a porta abre o canal; iniciado/erro chegam PELA PORTA', async () => {
     const f = ponteAtiva()
     const recebidas: string[] = []
     const parar = ouvirAPonte(f, (t) => recebidas.push(t))
-    for (const tipo of ['pronta', 'iniciado', 'erro']) disparar(f.contentWindow, { frasy: 'vlibras-ponte', tipo })
+    const canal = apertoDeMao(f)
+    expect(recebidas).toEqual(['pronta'])
+    for (const tipo of ['iniciado', 'erro']) canal.port1.postMessage({ frasy: 'vlibras-ponte', tipo })
+    await vi.waitFor(() => expect(recebidas).toEqual(['pronta', 'iniciado', 'erro']))
     parar()
-    expect(recebidas).toEqual(['pronta', 'iniciado', 'erro'])
+    canal.port1.close()
   })
 
-  it('ignora mensagem de outra janela, de formato errado ou com carga extra', () => {
+  it('ignora `pronta` sem porta, de outra janela, e iniciado/erro soltos na janela (só a porta vale)', () => {
     const f = ponteAtiva()
     const recebidas: string[] = []
     ouvirAPonte(f, (t) => recebidas.push(t))
-    disparar(window, { frasy: 'vlibras-ponte', tipo: 'pronta' }) // não é o iframe
-    disparar(null, { frasy: 'vlibras-ponte', tipo: 'pronta' })
+    apertoDeMao(f, window) // não é o iframe
+    apertoDeMao(f, null)
+    disparar(f.contentWindow, { frasy: 'vlibras-ponte', tipo: 'pronta' }) // é o iframe, mas sem porta
+    for (const tipo of ['iniciado', 'erro']) disparar(f.contentWindow, { frasy: 'vlibras-ponte', tipo })
     for (const ruim of [
       'pronta',
       null,
@@ -144,6 +182,27 @@ describe('mensagens da ponte: esquema estrito e só do iframe', () => {
     ])
       disparar(f.contentWindow, ruim)
     expect(recebidas).toEqual([])
+    expect(enviarParaAPonte(f, true, mensagemDeInicio())).toBe(false)
+  })
+
+  it('formato errado ou carga extra pela porta é ignorado; parar a escuta fecha a porta', async () => {
+    const f = ponteAtiva()
+    const recebidas: string[] = []
+    const parar = ouvirAPonte(f, (t) => recebidas.push(t))
+    const canal = apertoDeMao(f)
+    for (const ruim of [
+      'erro',
+      null,
+      { tipo: 'erro' },
+      { frasy: 'vlibras-ponte', tipo: 'texto' },
+      { frasy: 'vlibras-ponte', tipo: 'erro', extra: 1 },
+    ])
+      canal.port1.postMessage(ruim)
+    canal.port1.postMessage({ frasy: 'vlibras-ponte', tipo: 'iniciado' })
+    await vi.waitFor(() => expect(recebidas).toEqual(['pronta', 'iniciado']))
+    parar()
+    expect(enviarParaAPonte(f, true, mensagemDeInicio())).toBe(false)
+    canal.port1.close()
   })
 
   it('o texto enviado é aparado, tem teto e some se for vazio', () => {

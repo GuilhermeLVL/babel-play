@@ -100,30 +100,58 @@ export function criarPonteDoVLibras(flag: boolean): HTMLIFrameElement | null {
   return f;
 }
 
+/** A ponta do `MessageChannel` que a ponte entregou no `pronta`, por iframe. Sem ela não há como falar com a ponte. */
+const portas = new WeakMap<HTMLIFrameElement, MessagePort>();
+
 /**
- * Manda uma mensagem à ponte (o portão é conferido a CADA envio). O destino é origem opaca: o navegador só aceita
- * `targetOrigin '*'` aqui, e por isso a mensagem leva só `iniciar` ou um trecho que a pessoa escolheu enviar.
+ * Manda uma mensagem à ponte (o portão é conferido a CADA envio). Vai pela PORTA que a própria ponte entregou no
+ * `pronta`, e não por `window.postMessage`: assim não existe `targetOrigin` (a origem do iframe sandbox é opaca e só o
+ * `'*'` serviria), e só o iframe que entregou a porta recebe. A mensagem leva só `iniciar` ou um trecho que a pessoa
+ * escolheu enviar. Antes do `pronta` não há porta e nada é enviado (devolve `false`).
  */
 export function enviarParaAPonte(
   ponte: HTMLIFrameElement | null,
   flag: boolean,
   mensagem: MensagemParaAPonte,
 ): boolean {
-  const alvo = ponte?.contentWindow;
-  if (!alvo || !podeUsarAPonte(flag)) return false;
-  alvo.postMessage(mensagem, '*');
+  const porta = ponte ? portas.get(ponte) : undefined;
+  if (!porta || !podeUsarAPonte(flag)) return false;
+  porta.postMessage(mensagem);
   return true;
 }
 
-/** Escuta a ponte: só vale mensagem cujo `source` é o iframe e cujo corpo cumpre o esquema estrito. */
+/**
+ * Escuta a ponte. O aperto de mão é UM `message` da janela do iframe (`source` conferido) com `pronta` e a porta anexada;
+ * dali em diante tudo (`iniciado`, `erro`) chega pela porta, sempre com o esquema estrito. Quem para a escuta fecha a porta.
+ */
 export function ouvirAPonte(ponte: HTMLIFrameElement, aoReceber: (tipo: TipoDeMensagemDaPonte) => void): () => void {
+  let porta: MessagePort | null = null;
+  const largar = () => {
+    if (porta) {
+      porta.onmessage = null;
+      porta.close();
+    }
+    porta = null;
+    portas.delete(ponte);
+  };
   const f = (e: MessageEvent) => {
     if (!ponte.contentWindow || e.source !== ponte.contentWindow) return;
-    const tipo = lerMensagemDaPonte(e.data);
-    if (tipo) aoReceber(tipo);
+    const recebida = e.ports?.[0];
+    if (lerMensagemDaPonte(e.data) !== 'pronta' || !recebida) return;
+    largar(); // uma página recarregada manda outro `pronta`: a porta velha morre
+    porta = recebida;
+    portas.set(ponte, recebida);
+    recebida.onmessage = (m: MessageEvent) => {
+      const tipo = lerMensagemDaPonte(m.data);
+      if (tipo && tipo !== 'pronta') aoReceber(tipo);
+    };
+    aoReceber('pronta');
   };
   window.addEventListener('message', f);
-  return () => window.removeEventListener('message', f);
+  return () => {
+    window.removeEventListener('message', f);
+    largar();
+  };
 }
 
 /* ------------------------------ o gancho das telas ------------------------------ */

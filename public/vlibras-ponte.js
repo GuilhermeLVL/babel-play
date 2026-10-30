@@ -1,10 +1,13 @@
 /*
  * A PONTE DO VLIBRAS (piloto só para adultos): o script desta página. Roda num iframe de ORIGEM OPACA
  * (`sandbox="allow-scripts"`, sem `allow-same-origin`) e só faz três coisas:
- *   1. avisa o app que está pronta (`pronta`);
+ *   1. avisa o app que está pronta (`pronta`) e lhe entrega UMA ponta de um `MessageChannel`;
  *   2. ao receber `iniciar` DO PAI, pede o script oficial do VLibras e abre o widget (`iniciado` ou `erro`);
  *   3. ao receber `texto` DO PAI, mostra a frase e toca nela para o widget traduzir.
- * Mensagens: esquema estrito, só do `window.parent`, texto com teto. Nada é guardado. O esquema é o mesmo de
+ * O único `postMessage` de janela é o `pronta`, sem dado, com a porta anexada (a origem do pai é desconhecida para uma
+ * página opaca, então `'*'` é o único destino possível, e por isso ele nasce AQUI, de dentro do iframe). Daí em diante tudo
+ * vai pela porta: o app responde sem `targetOrigin` nenhum, e só quem recebeu a ponta (o pai) fala com a ponte.
+ * Mensagens: esquema estrito, texto com teto. Nada é guardado. O esquema é o mesmo de
  * `src/core/libras/vlibras.ts` (`lerMensagemParaAPonte`); `tests/vlibras-ponte.test.ts` trava os dois juntos.
  * Arquivo estático, fora do lint e do bundle: sem dependência.
  */
@@ -19,13 +22,15 @@
   var pai = window.parent;
   if (!pai || pai === window) return; // aberta sozinha: não faz nada, nunca carrega o VLibras
 
+  var canal = new MessageChannel();
+  var porta = canal.port1;
+
   var campo = document.getElementById('texto');
   var estado = document.getElementById('estado');
 
   function avisar(tipo) {
     try {
-      // A origem do pai é desconhecida aqui (esta página é opaca) e a mensagem não leva dado nenhum.
-      pai.postMessage({ frasy: MARCA, tipo: tipo }, '*');
+      porta.postMessage({ frasy: MARCA, tipo: tipo });
     } catch (e) {
       /* o pai sumiu */
     }
@@ -87,13 +92,18 @@
     setTimeout(tentar, 300, 0);
   }
 
-  window.addEventListener('message', function (e) {
-    if (e.source !== pai) return; // só o pai (o Frasy) fala com a ponte
+  // Só quem tem a outra ponta da porta (o pai, que a recebeu no `pronta`) consegue falar com a ponte.
+  porta.onmessage = function (e) {
     var m = esquema(e.data);
     if (!m) return;
     if (m.tipo === 'iniciar') iniciar();
     else mostrar(m.texto);
-  });
+  };
 
-  avisar('pronta');
+  try {
+    // Sem dado nenhum além da marca; a origem do pai é desconhecida aqui (esta página é opaca), logo `'*'`.
+    pai.postMessage({ frasy: MARCA, tipo: 'pronta' }, '*', [canal.port2]);
+  } catch (e) {
+    /* o pai sumiu */
+  }
 })();

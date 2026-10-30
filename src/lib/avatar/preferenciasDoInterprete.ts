@@ -15,11 +15,12 @@ const CAMPOS = [
   'economia',
   'anunciar',
   'soletrar',
+  'soletrarTudo',
   'alfabeto',
   'espelhar',
   'ritmo',
 ] as const;
-const BOOLEANOS: readonly string[] = ['economia', 'anunciar', 'soletrar', 'espelhar'];
+const BOOLEANOS: readonly string[] = ['economia', 'anunciar', 'soletrar', 'soletrarTudo', 'espelhar'];
 
 const ouvintes = new Set<() => void>();
 let memoria: PreferenciasDosAvatares | null = null;

@@ -7,6 +7,7 @@
  * Uma frase maior que o teto de um pedido da voz natural (`TETO_DE_CARACTERES_DA_VOZ`, 600) é partida em pedaços
  * no último sinal de pausa ou espaço antes do teto: cada pedaço é uma "frase" da narração (destaque e fala).
  */
+import type { MotorDeVozId } from '../voz/portaDeVoz';
 import { TETO_DE_CARACTERES_DA_VOZ } from '../vozNatural';
 
 export interface FraseDoTexto {
@@ -85,6 +86,8 @@ export type EventoDaNarracao =
   | { tipo: 'parar' }
   | { tipo: 'proxima' }
   | { tipo: 'anterior' }
+  /** Vai a outra frase do capítulo mantendo a fase (tocando segue tocando, pausada segue pausada). */
+  | { tipo: 'ir'; indice: number }
   | { tipo: 'fimDaFrase'; vez: number }
   | { tipo: 'erro'; vez: number }
   /** As frases mudaram (outro capítulo): `continuar` = seguir falando a partir de `indice`. */
@@ -118,6 +121,9 @@ export function narrar(e: EstadoDaNarracao, ev: EventoDaNarracao): EstadoDaNarra
     case 'anterior':
       if (e.fase === 'parada' || e.fase === 'virando') return e;
       return { ...e, indice: Math.max(0, e.indice - 1), vez };
+    case 'ir':
+      if (e.fase === 'parada' || e.fase === 'virando' || !e.total) return e;
+      return { ...e, indice: limitar(ev.indice, e.total), vez };
     case 'fimDaFrase':
       if (e.fase !== 'tocando' || ev.vez !== e.vez) return e;
       if (e.indice + 1 < e.total) return { ...e, indice: e.indice + 1, vez };
@@ -187,7 +193,13 @@ export function vozDaNarracao(o: {
   escolheuNuvem: boolean;
   temDireito: boolean;
   flagLigada: boolean;
-}): 'nuvem' | 'aparelho' {
+  /**
+   * Um motor neural local está registrado e pronto para o idioma (`gateway/registroDeMotoresDeVoz.ts`). Ausente
+   * = não há: o comportamento é o de sempre. Enquanto nenhum adaptador existir, ninguém passa `true`.
+   */
+  neuralLocalPronto?: boolean;
+}): MotorDeVozId {
+  if (o.neuralLocalPronto) return 'neural-local';
   return o.escolheuNuvem && o.temDireito && o.flagLigada ? 'nuvem' : 'aparelho';
 }
 
@@ -205,5 +217,5 @@ export function mostraConviteDaVozNatural(o: {
   return o.flagLigada && !o.temDireito && !o.protegido && o.podeAbrirPlanos;
 }
 
-/** As velocidades do narrador (spec §6: 0,5–2×). */
-export const VELOCIDADES_DA_NARRACAO = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] as const;
+/** As velocidades de atalho do narrador (a barra regula em passos finos: `estilosDeLeitura.ts`). */
+export const VELOCIDADES_DA_NARRACAO = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5] as const;

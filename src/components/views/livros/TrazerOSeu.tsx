@@ -1,13 +1,15 @@
 import '../../../styles/questLivrosTrazer.css';
 
-import { FileUp, Link2, ShieldCheck } from 'lucide-react';
+import { Download, FileUp, Library, Link2, ShieldCheck } from 'lucide-react';
 import React, { useEffect, useId, useRef, useState } from 'react';
 
 import type { CapituloDeTexto } from '../../../core/livros/epub';
+import { EXTENSOES_ACEITAS, GRUPOS_DE_FORMATOS } from '../../../core/livros/formatos';
 import { ErroDoLivro, type MotivoDoErro } from '../../../core/livros/trazer';
 import { importWeb } from '../../../data/rotas/importacao';
 import { edicaoEstatica } from '../../../lib/edicaoEstatica';
 import { t } from '../../../lib/i18n';
+import { baixarCopiaDoLivro } from '../../../lib/livros/copiaDoArquivo';
 import {
   guardarConteudo,
   guardarEmMemoria,
@@ -31,7 +33,7 @@ import OndeAcharLivros from './OndeAcharLivros';
 type Estado =
   | { tipo: 'parado' }
   | { tipo: 'lendo'; oQue: string; etapa: 'baixando' | 'abrindo' }
-  | { tipo: 'erro'; motivo: MotivoDoErro | 'outro'; mensagem: string }
+  | { tipo: 'erro'; motivo: MotivoDoErro | 'outro'; mensagem: string; dica?: string }
   | { tipo: 'pronto'; livro: MeuLivro; guarda: ResultadoDaGuarda; sairam: string[] };
 
 /**
@@ -51,27 +53,39 @@ function AvisoDeDireitos({ testid }: { testid: string }) {
   );
 }
 
-/** A frase de cada motivo: gentil, sem culpar, e dizendo o que fazer. */
-function mensagemDoMotivo(motivo: MotivoDoErro | 'outro'): string {
+const NOME_DE_FORMATO = /^[A-Z0-9][A-Za-z0-9 ()/+.-]{1,20}$/;
+
+/** A frase de cada motivo: gentil, sem culpar, e dizendo o que fazer. `nome` = o formato que reconhecemos mas não abrimos. */
+function mensagemDoMotivo(motivo: MotivoDoErro | 'outro', nome = ''): string {
   switch (motivo) {
     case 'drm':
       return t(
         'Esse arquivo tem proteção (DRM) e o Frasy não consegue abrir. Não é culpa sua: veja a ajuda "Comprei na Amazon, posso trazer?" aqui embaixo.',
       );
+    case 'senha':
+      return t(
+        'Esse PDF tem senha e o Frasy não consegue abrir. Abra-o no leitor de PDF do seu aparelho, salve uma cópia sem senha e traga de novo.',
+      );
     case 'pdf-imagem':
       return t(
-        'Esse PDF parece ser só imagem (digitalizado), sem texto para ler. Procure uma versão com texto, como o EPUB.',
+        'Esse PDF é só imagem (escaneado ou fotografado) e ainda não lemos PDF escaneado. Procure uma versão com texto, como o EPUB, ou um PDF em que dê para selecionar as palavras.',
       );
     case 'grande':
-      return t('Esse arquivo é grande demais para abrir aqui. Procure uma versão menor, como o EPUB.');
+      return t(
+        'Esse arquivo é grande demais para abrir aqui (livros até 150 MB; documentos como DOCX, TXT e HTML, até 30 MB). Procure uma versão menor, como o EPUB.',
+      );
     case 'corrompido':
       return t(
         'Não deu para ler esse arquivo: ele pode estar incompleto ou danificado. Baixe de novo e tente outra vez.',
       );
     case 'formato':
-      return t('Esse arquivo não parece ser um livro que o Frasy abre. Traga um EPUB, um PDF ou um TXT.');
+      return NOME_DE_FORMATO.test(nome)
+        ? t('Ainda não abrimos arquivos {nome}. Se puder, salve ou exporte como PDF, DOCX ou EPUB e traga de novo.', {
+            nome,
+          })
+        : t('Esse arquivo não parece ser um livro ou documento que o Frasy abre. Veja os formatos aceitos acima.');
     case 'vazio':
-      return t('Esse arquivo está vazio. Baixe de novo e tente outra vez.');
+      return t('Esse arquivo está vazio ou não tem texto para ler. Baixe de novo e tente outra vez.');
     case 'rede':
       return t('Não consegui baixar esse link. Confira o endereço ou baixe o arquivo e solte aqui.');
     case 'pagina':
@@ -87,25 +101,83 @@ function mensagemDoMotivo(motivo: MotivoDoErro | 'outro'): string {
         'Daqui o Frasy só baixa links do raw.githubusercontent.com. Para outro site, baixe o arquivo e solte aqui.',
       );
     default:
-      return t('Cole o endereço completo de um arquivo (.epub, .pdf ou .txt), começando com https://');
+      return t('Cole o endereço completo de um arquivo de livro (.epub, .pdf, .docx, .txt…), começando com https://');
   }
 }
 
+/** Os 3 passos, para quem nunca fez isso. */
+function Passos() {
+  const passos = [
+    { n: 1, titulo: t('Tenha o arquivo'), dica: t('Baixe ou separe o livro ou o documento no seu aparelho.') },
+    { n: 2, titulo: t('Solte aqui'), dica: t('Arraste para a área abaixo, ou toque nela para escolher.') },
+    { n: 3, titulo: t('Leia'), dica: t('Ele abre na hora e fica em Meus livros.') },
+  ];
+  return (
+    <ol className="lv-passos" data-testid="passos-de-trazer" aria-label={t('Como trazer o seu')}>
+      {passos.map((p) => (
+        <li key={p.n} className="lv-passo">
+          <span className="lv-passo-n" aria-hidden>
+            {p.n}
+          </span>
+          <span>
+            <b>{p.titulo}</b>
+            <small>{p.dica}</small>
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** Os formatos aceitos em chips, por grupo. Só entra o que de fato abre. */
+function FormatosAceitos() {
+  const rotulos: Record<string, string> = {
+    livros: t('Livros'),
+    documentos: t('Documentos'),
+    quadrinhos: t('Quadrinhos'),
+  };
+  return (
+    <div className="lv-formatos" role="group" aria-label={t('Formatos aceitos')} data-testid="formatos-aceitos">
+      {GRUPOS_DE_FORMATOS.map((g) => (
+        <div key={g.id} className="lv-formatos-grupo" data-testid={`formatos-${g.id}`}>
+          <span className="lv-formatos-rotulo">{rotulos[g.id]}:</span>
+          <ul>
+            {g.formatos.map((f) => (
+              <li key={f} className="lv-chip">
+                {f}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /**
- * "TRAZER O SEU" (CAT10): o arquivo solto ou escolhido (EPUB, PDF ou TXT, reconhecido pelo conteúdo), um link de
+ * "TRAZER O SEU" (CAT10): o arquivo solto ou escolhido (livro ou documento, reconhecido pelo conteúdo), um link de
  * arquivo do GitHub (baixado pelo NAVEGADOR) e o artigo por link pela importação de página que já existe
  * (`/api/import/web`, o único caminho que passa pelo servidor, e a tela diz isso). Livros e arquivos nunca vão ao
- * servidor. Quando termina, o livro abre no leitor e fica em "Meus livros", neste aparelho.
+ * servidor. Quando termina, o cartão "Pronto!" oferece abrir agora, ver em Meus livros e baixar a cópia.
  */
-export default function TrazerOSeu({ aoAbrir }: { aoAbrir: (livro: MeuLivro) => void }) {
+export default function TrazerOSeu({
+  aoAbrir,
+  aoVerMeusLivros,
+}: {
+  aoAbrir: (livro: MeuLivro) => void;
+  aoVerMeusLivros?: () => void;
+}) {
   const [estado, setEstado] = useState<Estado>({ tipo: 'parado' });
   const [url, setUrl] = useState('');
   const [urlDoLivro, setUrlDoLivro] = useState('');
   const [arrastando, setArrastando] = useState(false);
   const [lembrete, setLembrete] = useState(false);
+  const [semCopia, setSemCopia] = useState(false);
   const saiuParaUmaFonte = useRef(false);
   const campoDoArquivo = useRef<HTMLInputElement>(null);
   const zona = useRef<HTMLDivElement>(null);
+  const cartaoPronto = useRef<HTMLDivElement>(null);
+  const mensagemDeErro = useRef<HTMLParagraphElement>(null);
   const idDoLink = useId();
   const idDoLinkDoLivro = useId();
   const rotulo = (i: number) => t('Parte {n}', { n: i + 1 });
@@ -122,13 +194,26 @@ export default function TrazerOSeu({ aoAbrir }: { aoAbrir: (livro: MeuLivro) => 
     return () => document.removeEventListener('visibilitychange', aoVoltar);
   }, []);
 
+  /* Terminou: o foco vai para o cartão "Pronto!" (quem usa teclado ou leitor de tela cai nele). */
+  useEffect(() => {
+    if (estado.tipo === 'pronto') cartaoPronto.current?.focus();
+    /* No celular a mensagem fica abaixo da dobra: traz o erro para a vista. */
+    if (estado.tipo === 'erro') mensagemDeErro.current?.scrollIntoView?.({ block: 'center' });
+  }, [estado]);
+
   const concluir = async (
     dados: Omit<MeuLivro, 'id' | 'adicionadoEm' | 'status' | 'etiquetas' | 'progresso'>,
     capitulos: CapituloDeTexto[],
-    arquivo?: Blob,
+    extras: { arquivo?: Blob; copia?: Blob; nomeDoArquivo?: string } = {},
   ) => {
     const id = novoIdDeLivroTrazido();
-    const conteudo = { id, capitulos, ...(arquivo ? { arquivo } : {}) };
+    const conteudo = {
+      id,
+      capitulos,
+      ...(extras.arquivo ? { arquivo: extras.arquivo } : {}),
+      ...(extras.copia ? { copia: extras.copia } : {}),
+      ...(extras.nomeDoArquivo ? { nomeDoArquivo: extras.nomeDoArquivo } : {}),
+    };
     guardarEmMemoria(conteudo);
     const guarda = await guardarConteudo(conteudo);
     /* Os títulos dos que saíram para este caber (o conteúdo; a entrada na lista continua). */
@@ -140,12 +225,7 @@ export default function TrazerOSeu({ aoAbrir }: { aoAbrir: (livro: MeuLivro) => 
         : [];
     const livro = guardarMeuLivro({ id, ...dados, status: 'lendo' });
     setLembrete(false);
-    /* Deu tudo certo: abre direto no leitor. Se algo não coube, fica o cartão com o aviso. */
-    if (guarda.guardado && sairam.length === 0) {
-      aoAbrir(livro);
-      setEstado({ tipo: 'parado' });
-      return;
-    }
+    setSemCopia(false);
     setEstado({ tipo: 'pronto', livro, guarda, sairam });
   };
 
@@ -160,12 +240,20 @@ export default function TrazerOSeu({ aoAbrir }: { aoAbrir: (livro: MeuLivro) => 
         ...(endereco ? { url: endereco } : {}),
       },
       lido.capitulos,
-      lido.arquivo,
+      {
+        arquivo: lido.arquivo,
+        copia: lido.copia,
+        nomeDoArquivo: lido.nomeDoArquivo,
+      },
     );
 
   const falhou = (e: unknown) => {
     const erro = comoErroDoLivro(e);
-    setEstado({ tipo: 'erro', motivo: erro.motivo, mensagem: mensagemDoMotivo(erro.motivo) });
+    setEstado({
+      tipo: 'erro',
+      motivo: erro.motivo,
+      mensagem: mensagemDoMotivo(erro.motivo, erro.motivo === 'formato' ? erro.message : ''),
+    });
   };
 
   const aoEscolherArquivo = async (arquivo: File | undefined) => {
@@ -211,7 +299,13 @@ export default function TrazerOSeu({ aoAbrir }: { aoAbrir: (livro: MeuLivro) => 
     try {
       const pagina = await importWeb(endereco);
       await concluir(
-        { titulo: pagina.title || endereco, origem: 'link', formato: 'web', url: endereco, idioma: pagina.lang },
+        {
+          titulo: pagina.title || endereco,
+          origem: 'link',
+          formato: 'web',
+          url: endereco,
+          idioma: pagina.lang,
+        },
         emCapitulos(pagina.text, rotulo),
       );
       setUrl('');
@@ -226,14 +320,28 @@ export default function TrazerOSeu({ aoAbrir }: { aoAbrir: (livro: MeuLivro) => 
     }
   };
 
+  const abrirAjudaDoDrm = () => {
+    const ajuda = document.querySelector<HTMLDetailsElement>('[data-testid="ajuda-kindle"]');
+    if (!ajuda) return;
+    ajuda.open = true;
+    ajuda.scrollIntoView?.({ block: 'center' });
+    ajuda.querySelector('summary')?.focus();
+  };
+
   const ocupado = estado.tipo === 'lendo';
 
   return (
     <section className="lv-trazer" aria-labelledby="lv-trazer-titulo" data-testid="trazer-o-seu">
       <header>
-        <h2 id="lv-trazer-titulo">{t('Trazer o seu')}</h2>
-        <p>{t('Leia aqui um livro ou um artigo que você já tem. Ele fica em Meus livros, neste aparelho.')}</p>
+        <h2 id="lv-trazer-titulo">{t('Trazer um livro seu')}</h2>
+        <p>
+          {t(
+            'Leia aqui um livro, um documento ou um artigo que você já tem. Ele fica em Meus livros, neste aparelho: o arquivo não vai para a internet.',
+          )}
+        </p>
       </header>
+
+      <Passos />
 
       {lembrete && (
         <div className="lv-lembrete" role="status" data-testid="lembrete-de-volta">
@@ -279,8 +387,8 @@ export default function TrazerOSeu({ aoAbrir }: { aoAbrir: (livro: MeuLivro) => 
           }}
         >
           <FileUp aria-hidden />
-          <b>{t('Solte o livro aqui')}</b>
-          <span>{t('EPUB, PDF ou TXT. Ou escolha um arquivo do seu aparelho.')}</span>
+          <b>{t('Solte o arquivo aqui')}</b>
+          <span>{t('Ou toque para escolher um arquivo do seu aparelho.')}</span>
           <span className="q-ctl pri" aria-hidden>
             {t('Escolher arquivo')}
           </span>
@@ -291,46 +399,30 @@ export default function TrazerOSeu({ aoAbrir }: { aoAbrir: (livro: MeuLivro) => 
           tabIndex={-1}
           aria-hidden
           type="file"
-          accept=".epub,.pdf,.txt,application/epub+zip,application/pdf,text/plain"
+          accept={EXTENSOES_ACEITAS}
           onChange={(e) => {
             void aoEscolherArquivo(e.target.files?.[0]);
             e.target.value = '';
           }}
           data-testid="arquivo-do-livro"
         />
-        <p className="lv-nota">{t('PDF digitalizado (só imagem) ainda não abre.')}</p>
-        <AvisoDeDireitos testid="aviso-de-direitos" />
-      </div>
-
-      <form className="q-cartao" onSubmit={(e) => void aoTrazerLivroDoLink(e)} data-testid="form-link-de-livro">
-        <h3>
-          <Link2 aria-hidden /> {t('Colar o link de um livro')}
-        </h3>
+        <FormatosAceitos />
+        <p className="lv-nota lv-drm" data-testid="linha-drm">
+          <ShieldCheck aria-hidden />
+          <span>
+            {t('Livros com proteção (DRM) não abrem.')}{' '}
+            <button type="button" className="lv-link" onClick={abrirAjudaDoDrm}>
+              {t('O que é isso?')}
+            </button>
+          </span>
+        </p>
         <p className="lv-nota">
           {t(
-            'Cole o endereço de um arquivo .epub, .pdf ou .txt do GitHub (raw.githubusercontent.com). O seu navegador baixa o arquivo direto: ele não passa pelo Frasy.',
+            'Documentos (DOCX, TXT, HTML, Markdown) viram texto: títulos e parágrafos ficam, imagens e tabelas não. PDF só com texto: ainda não lemos PDF escaneado.',
           )}
         </p>
-        <label className="q-campo" htmlFor={idDoLinkDoLivro}>
-          <span>{t('Endereço do arquivo')}</span>
-          <input
-            id={idDoLinkDoLivro}
-            type="text"
-            inputMode="url"
-            autoComplete="off"
-            placeholder="https://raw.githubusercontent.com/…"
-            value={urlDoLivro}
-            onChange={(e) => setUrlDoLivro(e.target.value)}
-            data-testid="link-do-livro"
-          />
-        </label>
-        <div className="q-acoes">
-          <button type="submit" className="q-ctl" disabled={!urlDoLivro.trim() || ocupado}>
-            <Link2 aria-hidden /> {t('Trazer livro')}
-          </button>
-        </div>
-        <AvisoDeDireitos testid="aviso-de-direitos-link" />
-      </form>
+        <AvisoDeDireitos testid="aviso-de-direitos" />
+      </div>
 
       <div aria-live="polite" className="lv-estado-do-trazer">
         {estado.tipo === 'lendo' && (
@@ -344,12 +436,25 @@ export default function TrazerOSeu({ aoAbrir }: { aoAbrir: (livro: MeuLivro) => 
           </div>
         )}
         {estado.tipo === 'erro' && (
-          <p role="alert" className="lv-erro" data-testid="erro-do-trazer" data-motivo={estado.motivo}>
+          <p
+            ref={mensagemDeErro}
+            role="alert"
+            className="lv-erro"
+            data-testid="erro-do-trazer"
+            data-motivo={estado.motivo}
+          >
             {estado.mensagem}
           </p>
         )}
         {estado.tipo === 'pronto' && (
-          <div className="q-cartao" data-testid="trazido">
+          <div
+            ref={cartaoPronto}
+            tabIndex={-1}
+            className="q-cartao lv-pronto"
+            data-testid="trazido"
+            aria-labelledby="lv-pronto-titulo"
+          >
+            <h3 id="lv-pronto-titulo">{t('Pronto!')}</h3>
             <p>
               <b>{estado.livro.titulo}</b>{' '}
               {estado.guarda.guardado
@@ -374,12 +479,61 @@ export default function TrazerOSeu({ aoAbrir }: { aoAbrir: (livro: MeuLivro) => 
             )}
             <div className="q-acoes">
               <button type="button" className="q-ctl pri" onClick={() => aoAbrir(estado.livro)}>
-                {t('Ler agora')}
+                {t('Abrir agora')}
               </button>
+              {aoVerMeusLivros && (
+                <button type="button" className="q-ctl" onClick={aoVerMeusLivros}>
+                  <Library aria-hidden /> {t('Ver em Meus livros')}
+                </button>
+              )}
+              {estado.livro.formato !== 'web' && (
+                <button
+                  type="button"
+                  className="q-ctl"
+                  onClick={() => void baixarCopiaDoLivro(estado.livro).then((ok) => setSemCopia(!ok))}
+                >
+                  <Download aria-hidden /> {t('Baixar cópia do arquivo')}
+                </button>
+              )}
             </div>
+            {semCopia && (
+              <p className="lv-nota" role="status">
+                {t('Não achei o arquivo neste aparelho para baixar. Traga-o de novo.')}
+              </p>
+            )}
           </div>
         )}
       </div>
+
+      <form className="q-cartao" onSubmit={(e) => void aoTrazerLivroDoLink(e)} data-testid="form-link-de-livro">
+        <h3>
+          <Link2 aria-hidden /> {t('Colar o link de um livro')}
+        </h3>
+        <p className="lv-nota">
+          {t(
+            'Cole o endereço de um arquivo de livro (.epub, .pdf, .mobi, .docx, .txt…) do GitHub (raw.githubusercontent.com). O seu navegador baixa o arquivo direto: ele não passa pelo Frasy.',
+          )}
+        </p>
+        <label className="q-campo" htmlFor={idDoLinkDoLivro}>
+          <span>{t('Endereço do arquivo')}</span>
+          <input
+            id={idDoLinkDoLivro}
+            type="text"
+            inputMode="url"
+            autoComplete="off"
+            placeholder="https://raw.githubusercontent.com/…"
+            value={urlDoLivro}
+            onChange={(e) => setUrlDoLivro(e.target.value)}
+            data-testid="link-do-livro"
+          />
+        </label>
+        <div className="q-acoes">
+          <button type="submit" className="q-ctl" disabled={!urlDoLivro.trim() || ocupado}>
+            <Link2 aria-hidden /> {t('Trazer livro')}
+          </button>
+        </div>
+        <AvisoDeDireitos testid="aviso-de-direitos-link" />
+      </form>
 
       <OndeAcharLivros
         aoIrParaFonte={() => {

@@ -31,10 +31,14 @@
 - [x] 4.2 PiP (documento, vídeo, painel). Aceite: tier fraco no PiP; checklist do Safari entregue ao dono (spec, seção M4; Safari, Firefox e celular reais NÃO provados)
 - [x] 4.3 Soletração sob `avatar_sinais` ligada ao Intérprete (painel, mãos sobre o círculo do intérprete, PiP de documento e aviso no quadro do PiP de vídeo; só nomes próprios, teto por fala, pulada com a fila atrasada). Aceite: os dois avisos fixos sempre visíveis; `suportaSinais` falso desabilita com o motivo. NÃO provado: PiP real, Safari, celular real, revisão por pessoas surdas
 
+- [x] 4.4 Descoberta no Intérprete e no Perfil (atrás de `avatar_3d`/`avatar_sinais`): botão "Avatares" com rótulo à vista e alvo de 44 px, atalho "Soletrar nomes (Libras/ASL)" (aria-pressed, explica e oferece outro avatar quando o modelo não serve), dica da primeira vez dispensável e lembrada, cartão "Crie seu avatar" no Perfil com pular. Aceite: E2E nos três tamanhos; sem flags a tela não muda. PiP: sem controle novo (o PiP não tem controle de soletração)
+
+- [x] 4.5 Lacunas do modo Libras (atrás de `avatar_3d` + `avatar_sinais`): palco das mãos SEMPRE à vista com a soletração ligada (mãos em posição de espera, câmera "só mãos", cresce no computador; no celular fica em 64 px para a frase manter 58 px), estado do palco ("Aguardando…", "Soletrando: C-O-N-…", "pulada"), letras feitas/atual/faltam (negrito e sublinhado, não só cor), opção "Soletrar tudo" (preferência `soletrarTudo`, desligada por padrão; usa o ritmo e a regra de pular, mais estrita), "N palavras na fila", guia "Alfabeto manual" (Libras e ASL, letras e 0 a 9, teclado, pose grande, campo "Soletrar uma palavra", lista local de poses marcadas como incorretas exportável em JSON, sem servidor) na linha do atalho e em Perfil › Avatar, espelho para canhotos e leitor de tela que ouve só a palavra. Aceite: núcleo puro com testes (`avatar-libras-lacunas-core`), e2e `avatar-libras-lacunas` em 1280, 768 e 375 sem microfone, os dois avisos fixos sempre visíveis. NÃO provado: PiP real, Safari, celular real, revisão por pessoas surdas (as poses seguem de DEMONSTRAÇÃO)
+
 ## 5. M5 Livros e personagens (depende do PR de Livros)
 
-- [ ] 5.1 Falante e emoção por frase (JSON estrito, lotes, cache, retenção zero, cota) com fallback heurístico. Aceite: conjunto de ouro pt/en/es acima do limiar do juiz
-- [ ] 5.2 Mapa personagem para voz e painel do elenco. Aceite: `voiceName` chega ao motor
+- [ ] 5.1 Falante e emoção por frase (JSON estrito, lotes, cache, retenção zero, cota) com fallback heurístico. Aceite: conjunto de ouro pt/en/es acima do limiar do juiz. PARCIAL: a heurística está ligada ao Narrador e medida no plano final (`docs/pesquisa/2026-10-29-avatar-m5-elenco-no-narrador.md`); o ponto de extensão para marcação prévia existe (`planejarElenco`, 4º parâmetro). Função `leitura_elenco` NÃO implementada: depende de decisão do dono (ver `docs/specs/2026-10-28-avatar-elenco-ia.md`, seção 10)
+- [x] 5.2 Mapa personagem para voz e painel do elenco, atrás de `avatar_elenco`. Aceite: `voiceName` chega ao motor (testes `leitor-narrador-elenco` e e2e `avatar-elenco`); a nuvem muda só o ritmo; avatar-narrador no leitor com legenda. NÃO provado: voz real do aparelho, Safari, Firefox, celular real; PiP sem fonte natural (fora)
 
 ## 6. M6 Estúdio e loja
 

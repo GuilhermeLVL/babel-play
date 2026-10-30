@@ -68,6 +68,7 @@ export default function CapturaDoPrototipo({
   niveis,
   pausa,
   noQuest = false,
+  avatar,
 }: {
   gravando: boolean;
   /** Já há falas na tela (mesmo parada). */
@@ -108,6 +109,8 @@ export default function CapturaDoPrototipo({
   pausa?: { pausada: boolean; aoAlternar: () => void };
   /** No Quest a captura fica como está: só o seletor e a marca. */
   noQuest?: boolean;
+  /** O avatar do modo legendar (flag `avatar_3d`): botão, faixa de presença e dica. Ausente = a tela de antes. */
+  avatar?: { botao: ReactNode; presenca: ReactNode; dica: ReactNode };
 }) {
   const raiz = useRef<HTMLDivElement>(null);
   const principal = useRef<HTMLButtonElement>(null);
@@ -231,6 +234,7 @@ export default function CapturaDoPrototipo({
         >
           <Mic aria-hidden />
         </button>
+        {avatar?.botao}
         <button type="button" className="q-ctl" aria-label={t('Ajustes da captura')} onClick={aoAbrirAjustes}>
           <SlidersHorizontal aria-hidden />
         </button>
@@ -243,6 +247,8 @@ export default function CapturaDoPrototipo({
       </div>
       {nivel.linha}
       {avisos}
+      {avatar?.dica}
+      {avatar?.presenca}
       <div className="cel-conversa">
         {pronta ? (
           <div className="q-leg">

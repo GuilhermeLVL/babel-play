@@ -15,6 +15,8 @@ const FORA = 'script, style, noscript, template, head, title, rt, rp';
 export interface FraseNoCapitulo {
   texto: string;
   range: Range;
+  /** A frase fecha um parágrafo (a próxima começa noutro bloco): a narração faz a pausa maior. */
+  fimDeParagrafo?: boolean;
 }
 
 interface PedacoDoTexto {
@@ -72,10 +74,17 @@ export function frasesDoDocumento(doc: Document, idioma?: string): FraseNoCapitu
   const { texto, pedacos } = textoDoDocumento(doc);
   if (!pedacos.length) return [];
   const out: FraseNoCapitulo[] = [];
-  for (const f of frasesDoTexto(texto, idioma)) {
+  const frases = frasesDoTexto(texto, idioma);
+  frases.forEach((f, i) => {
     const r = rangeDe(doc, pedacos, f);
-    if (r) out.push({ texto: f.texto.replace(/\s+/g, ' '), range: r });
-  }
+    const proxima = frases[i + 1];
+    if (r)
+      out.push({
+        texto: f.texto.replace(/\s+/g, ' '),
+        range: r,
+        fimDeParagrafo: !proxima || texto.slice(f.fim, proxima.inicio).includes('\n'),
+      });
+  });
   return out;
 }
 

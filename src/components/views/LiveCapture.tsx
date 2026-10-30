@@ -74,6 +74,7 @@ import {
   onDeviceChange,
   supportsSinkId,
 } from '../../lib/audioDevices';
+import { abrirMeuAvatar } from '../../lib/avatar/descoberta';
 // Fontes de áudio: som do sistema/aba, microfone (Whisper ou Web Speech) e o mudo/ativo do mic.
 import {
   type AjudaDoMic,
@@ -206,6 +207,7 @@ import AvisoDeNuvemSemConsentimento from '../AvisoDeNuvemSemConsentimento';
 // A conversa em balões (lados opostos, agrupamento por pessoa, estado vazio que ensina).
 // Um componente só serve a tela embutida E o Modo Foco — antes eram dois blocos que divergiam.
 import ChatTranscript from '../ChatTranscript';
+import { useAvatarDaLegenda } from './captura/legendas/AvatarDaLegenda';
 
 /** O benchmark do aparelho agendado pela última saída da captura (cancelado por uma captura nova). */
 let benchmarkPendente: AbortController | null = null;
@@ -3147,6 +3149,16 @@ export default function LiveCapture({
     }),
     [doAssistente.marcas, doAssistente.correcoes, tocarMarcaDaLegenda, falaDoComoRespondo],
   );
+  /* O AVATAR DO MODO LEGENDAR (flag `avatar_3d`): presença ouvindo/traduzindo/falando; sem a flag, `undefined`. */
+  const ultimaFala = speechSegments[speechSegments.length - 1];
+  const avatarDaLegenda = useAvatarDaLegenda({
+    gravando: isRecording && !noQuest,
+    pausado,
+    pensando:
+      !!ultimaFala && !ultimaFala.isPartial && (ultimaFala.translatedText === '…' || !!ultimaFala.traducaoPendente),
+    interpreteAberto,
+    aoEscolherMeuAvatar: onChangeView ? () => abrirMeuAvatar(onChangeView) : undefined,
+  });
   /* A LEGENDA FLUTUANTE (PiP inteligente): um botão, Alt+L, e a melhor janela deste navegador. */
   const flutuante = useJanelaFlutuante({
     ativo: !noQuest,
@@ -3168,6 +3180,12 @@ export default function LiveCapture({
     assistente,
     aoMudarVistaDoAssistente: setVistaDaJanela,
   });
+  /* O botão "Janela flutuante" do Intérprete: o MESMO `alternar` do Alt+L, só onde o navegador abre uma janela de verdade
+     (Document PiP ou PiP de vídeo); onde só há o painel dentro da página, nada de botão. */
+  const janelaDoInterprete =
+    !noQuest && flutuante.caminho !== 'painel'
+      ? { aberta: flutuante.aberta, aoAlternar: flutuante.alternar, dica: flutuante.dica }
+      : undefined;
   /* O ÍNDICE DE PALAVRAS VISTAS é renovado quando a janela flutuante abre e uma vez quando a captura termina — nunca a
      cada fala (`pedirVistas`). */
   const idiomaDasLinhas = captureScenario === 'mic' ? sourceLang : targetLang;
@@ -3385,6 +3403,7 @@ export default function LiveCapture({
           noMaximo: escalaDaLegenda >= ESCALAS_DA_LEGENDA[ESCALAS_DA_LEGENDA.length - 1],
         }}
         noQuest={noQuest}
+        avatar={noQuest ? undefined : avatarDaLegenda}
         pausa={telasEnxutas() ? { pausada: pausado, aoAlternar: alternarPausa } : undefined}
         /* O NÍVEL DE SERVIÇO (`captura/niveis/`): escolher um nível grava a preferência que já existia
            ("Qualidade da transcrição"), como o seletor dos Ajustes da captura. */
@@ -4116,6 +4135,9 @@ export default function LiveCapture({
               aoEscolherIdiomas={() => setIdiomasAbertos(true)}
               aoVoltar={() => onChangeView?.('hub')}
               {...(praticaDoInterprete ? { pratica: praticaDoInterprete } : {})}
+              layout={noQuest ? 'quest' : noCelular ? 'celular' : 'computador'}
+              aoEscolherOutroAvatar={onChangeView ? () => abrirMeuAvatar(onChangeView) : undefined}
+              janelaFlutuante={janelaDoInterprete}
             />
           </Suspense>
         </div>
@@ -4455,6 +4477,8 @@ export default function LiveCapture({
             aoSair={sairDoInterprete}
             aoEscolherIdiomas={() => setIdiomasAbertos(true)}
             aoConhecerOPremium={conhecerOPremium}
+            aoEscolherOutroAvatar={onChangeView ? () => abrirMeuAvatar(onChangeView) : undefined}
+            janelaFlutuante={janelaDoInterprete}
             comVirtual={chaveLigada('virtual') && systemEnabled && !capturaEnxuta}
             assistente={doAssistente}
             aoOuvirSugestao={ouvirNaLegenda}

@@ -83,6 +83,8 @@ export interface PreferenciasDosAvatares {
   anunciar: boolean;
   /** "Soletrar nomes e palavras sem sinal" (flag `avatar_sinais`). DESLIGADA por padrão. */
   soletrar: boolean;
+  /** "Soletrar tudo": as mãos soletram todas as palavras da fala, não só os nomes próprios. DESLIGADA por padrão. */
+  soletrarTudo: boolean;
   /** Libras ou ASL: no automático vem do idioma da outra pessoa. */
   alfabeto: EscolhaDeAlfabeto;
   /** Mão canhota: espelha as poses e usa a mão esquerda. */
@@ -97,6 +99,7 @@ export const PREFERENCIAS_PADRAO: Readonly<PreferenciasDosAvatares> = Object.fre
   economia: false,
   anunciar: false,
   soletrar: false,
+  soletrarTudo: false,
   alfabeto: 'auto',
   espelhar: false,
   ritmo: 'normal',
@@ -115,6 +118,7 @@ export function validarPreferencias(bruto: unknown): PreferenciasDosAvatares {
     economia: o.economia === true,
     anunciar: o.anunciar === true,
     soletrar: o.soletrar === true,
+    soletrarTudo: o.soletrarTudo === true,
     alfabeto: um(ESCOLHAS_DE_ALFABETO, o.alfabeto, PREFERENCIAS_PADRAO.alfabeto),
     espelhar: o.espelhar === true,
     ritmo: um(RITMOS_DA_SOLETRACAO, o.ritmo, PREFERENCIAS_PADRAO.ritmo),
@@ -138,6 +142,17 @@ export const LADO_MINIMO_NO_CELULAR = 64;
  */
 export function ladoComAvisosEmPx(lado: number): number {
   return Math.max(LADO_MINIMO_NO_CELULAR, Math.min(lado, 72));
+}
+
+/**
+ * O lado do PALCO DAS MÃOS (a soletração ligada). No computador ele cresce (há largura de sobra e as mãos precisam de
+ * tamanho para serem lidas); no celular fica no lado apertado que deixa a frase da conversa respirar.
+ */
+export const LADO_DO_PALCO_NO_COMPUTADOR = 232;
+/** No celular as mãos precisam de um pouco mais que o círculo apertado, desde que a frase siga com 58 px ou mais. */
+export const LADO_DO_PALCO_NO_CELULAR = 64;
+export function ladoDoPalcoEmPx(ladoApertado: number, layout: 'celular' | 'computador' | 'quest'): number {
+  return Math.max(ladoApertado, layout === 'computador' ? LADO_DO_PALCO_NO_COMPUTADOR : LADO_DO_PALCO_NO_CELULAR);
 }
 
 export interface EntradaDaPolitica {

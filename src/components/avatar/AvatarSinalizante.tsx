@@ -16,6 +16,17 @@ import { movimentoReduzido } from '../../lib/movimento/reduzido';
 import AvatarCanvas from './AvatarCanvas';
 import { useAvisosFixos } from './AvisosDaSoletracao';
 
+/** O que as mãos fazem agora: a palavra, as letras dela (na ordem em que são feitas) e qual é a atual. */
+export interface AtualDoSinalizante {
+  palavra: string | null;
+  letra: string;
+  /** As letras da palavra atual (vazio fora de uma palavra). */
+  letras: string[];
+  /** A posição de `letra` em `letras` (-1 fora de uma palavra). */
+  indice: number;
+  naoSoletradas: number;
+}
+
 export interface AvatarSinalizanteProps {
   /** O texto a soletrar. A legenda mostra SEMPRE o texto inteiro, soletrado ou não. */
   texto: string;
@@ -53,7 +64,7 @@ export interface AvatarSinalizanteProps {
    * O que está sendo soletrado agora: a palavra (`null` entre palavras e no fim), a letra e quantas palavras do texto
    * ficaram de fora. Quem monta a legenda por fora (`semLegenda`) mostra isto no lugar da legenda deste componente.
    */
-  aoAtual?: (a: { palavra: string | null; letra: string; naoSoletradas: number }) => void;
+  aoAtual?: (a: AtualDoSinalizante) => void;
   /** Sem a letra grande nem a legenda: só o quadro com as mãos (quem monta mostra a palavra por fora, via `aoAtual`). */
   semLegenda?: boolean;
   aoFim?: () => void;
@@ -68,6 +79,11 @@ export interface AvatarSinalizanteProps {
    * Padrão: o componente mostra os avisos ele mesmo.
    */
   avisosPorFora?: boolean;
+  /**
+   * Sem nada a soletrar, a mão fica na posição de ESPERA (levantada e à vista, aberta e solta) em vez de caída ao lado do
+   * corpo, fora do quadro. Para o palco que fica sempre na tela (Intérprete).
+   */
+  maosEmPosicao?: boolean;
   /** Versão de janelinha: sem a letra grande, a legenda numa linha só (a palavra atual em destaque) e avisos menores. */
   compacto?: boolean;
   /** A janela do canvas, quando não é a página (Document PiP). */
@@ -128,6 +144,7 @@ export default function AvatarSinalizante({
   aoErro,
   aoPronto,
   avisosPorFora = false,
+  maosEmPosicao = false,
   compacto = false,
   janela,
   aoSessao: aoSessaoDeFora,
@@ -248,10 +265,11 @@ export default function AvatarSinalizante({
       tempoFixoMs !== undefined ? tempoFixoMs : inicio.current === null ? 0 : performance.now() - inicio.current;
     let terminou = !seq.passos.length;
     let ultima = { palavra: -2, passo: -2, pose: null as unknown };
+    const emEspera = maosEmPosicao && !seq.passos.length;
     if (ctl) {
       motor.definirGanchoDosOssos(() => {
         const ms = relogio();
-        ctl.aplicar(amostrar(seq, ms, { reduzido }).pose, seq.repouso);
+        ctl.aplicar(emEspera ? seq.descanso : amostrar(seq, ms, { reduzido }).pose, seq.repouso);
       });
     }
     const tick = () => {
@@ -260,9 +278,12 @@ export default function AvatarSinalizante({
       if (am.palavra !== ultima.palavra || am.passo !== ultima.passo) {
         const p = am.passo >= 0 && am.palavra >= 0 ? seq.passos[am.passo] : null;
         setAtual({ palavra: am.palavra, letra: p?.letra ?? '', mov: p?.movimento ?? false });
+        const letrasDaPalavra = p ? seq.passos.filter((x) => x.palavra === p.palavra) : [];
         cbs.current.aoAtual?.({
           palavra: p ? (seq.palavras[am.palavra]?.texto ?? null) : null,
           letra: p?.letra ?? '',
+          letras: letrasDaPalavra.map((x) => x.letra),
+          indice: p ? p.indiceNaPalavra : -1,
           naoSoletradas: contarNaoSoletradas(seq.palavras, soNomesProprios),
         });
         if (am.palavra !== ultima.palavra && am.palavra >= 0) cbs.current.aoPalavra?.(am.palavra);
@@ -277,6 +298,8 @@ export default function AvatarSinalizante({
         cbs.current.aoAtual?.({
           palavra: null,
           letra: '',
+          letras: [],
+          indice: -1,
           naoSoletradas: contarNaoSoletradas(seq.palavras, soNomesProprios),
         });
         cbs.current.aoFim?.();
@@ -290,7 +313,7 @@ export default function AvatarSinalizante({
       motor.definirGanchoDosOssos(null);
     };
     // `repetir` reinicia; `controlePronto` religa o gancho quando o controle fica pronto
-  }, [sessao, sequencia, repetir, pausado, tempoFixoMs, reduzido, controlePronto, soNomesProprios]);
+  }, [sessao, sequencia, repetir, pausado, tempoFixoMs, reduzido, controlePronto, soNomesProprios, maosEmPosicao]);
 
   // avisa quem monta quando tudo está pronto
   useEffect(() => {

@@ -130,7 +130,7 @@ describe('progresso derivado da posição do leitor', () => {
     act(() => {
       window.dispatchEvent(new StorageEvent('storage', { key: 'frasy.livros.meus.v1' }))
     })
-    expect(screen.getByText('Velho')).toBeTruthy()
+    expect(screen.getByText('Velho', { selector: 'b' })).toBeTruthy()
     expect(screen.queryByRole('progressbar')).toBeNull()
   })
 })
@@ -149,7 +149,7 @@ describe('status e anotações', () => {
     const l = guardar({ id: 'meu-nota', titulo: 'Com notas', origem: 'arquivo' })
     anotacoesPorLivro.dados[idNaEstante(l)] = [{ apagadoEm: null }, { apagadoEm: null }, { apagadoEm: 5 }]
     montar()
-    expect(screen.getByText('Com notas')).toBeTruthy()
+    expect(screen.getByText('Com notas', { selector: 'b' })).toBeTruthy()
     await waitFor(() => expect(document.body.textContent).toContain('2 anotações'))
   })
 })
@@ -168,18 +168,18 @@ describe('busca, filtro e ordem', () => {
     const busca = screen.getByTestId('busca-meus-livros')
     fireEvent.change(busca, { target: { value: 'machado' } })
     expect(screen.queryByText('Beta')).toBeNull()
-    expect(screen.getByText('Alfa')).toBeTruthy()
+    expect(screen.getByText('Alfa', { selector: 'b' })).toBeTruthy()
     fireEvent.change(busca, { target: { value: 'zzz' } })
     expect(screen.getByTestId('meus-livros-sem-resultado')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Limpar filtros' }))
-    expect(screen.getByText('Beta')).toBeTruthy()
+    expect(screen.getByText('Beta', { selector: 'b' })).toBeTruthy()
   })
 
   it('filtra por status e mostra os números', () => {
     tresLivros()
     montar()
     fireEvent.click(screen.getByRole('button', { name: /^Lido/ }))
-    expect(screen.getByText('Gama')).toBeTruthy()
+    expect(screen.getByText('Gama', { selector: 'b' })).toBeTruthy()
     expect(screen.queryByText('Alfa')).toBeNull()
     expect(screen.getByRole('button', { name: /^Lido/ }).getAttribute('aria-pressed')).toBe('true')
   })
@@ -198,7 +198,7 @@ describe('quem é menor', () => {
     guardar({ id: 'meu-meu', titulo: 'Do Aluno', origem: 'arquivo' })
     montar({ visivel: () => false })
     expect(screen.queryByText('Livro Adulto')).toBeNull()
-    expect(screen.getByText('Do Aluno')).toBeTruthy()
+    expect(screen.getByText('Do Aluno', { selector: 'b' })).toBeTruthy()
   })
 })
 

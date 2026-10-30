@@ -402,7 +402,13 @@
         "Moby-Dick ou le Cachalot",
         "Der weiße Wal",
         "Quequeeg"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/herman-melville/moby-dick/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-lewis-carroll-alices-adventures-in-wonderland-john-tenniel",
@@ -449,7 +455,13 @@
         "Alice's Adventures Underground",
         "Alice au pays des merveilles",
         "Alice nel paese delle meraviglie"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/lewis-carroll/alices-adventures-in-wonderland/john-tenniel/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-arthur-conan-doyle-the-adventures-of-sherlock-holmes",
@@ -493,7 +505,13 @@
         "福爾摩斯辦案記",
         "Das Geheimnis vom Boscombe-Tal",
         "La Lega dei Capelli Rossi"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/arthur-conan-doyle/the-adventures-of-sherlock-holmes/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "pg-1513",
@@ -551,7 +569,13 @@
         "德拉库拉",
         "1897 Dracula",
         "Graf Dracula"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/bram-stoker/dracula/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-robert-louis-stevenson-the-strange-case-of-dr-jekyll-and-mr-hyde",
@@ -602,7 +626,13 @@
         "El extraño caso del Dr. Jekyll y Mr. Hyde",
         "El extraño caso del doctor Jekyll y míster Hyde",
         "Doctor Jekyll y Mr. Hyde"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/robert-louis-stevenson/the-strange-case-of-dr-jekyll-and-mr-hyde/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-george-eliot-middlemarch",
@@ -637,7 +667,13 @@
         "미들마치",
         "米德尔马契",
         "Middlemarch, A Study of Provincial Life"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/george-eliot/middlemarch/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "pg-49297",
@@ -739,7 +775,13 @@
         "Rodion Raskolnikoff, Schuld und Sühne",
         "Prestuplenie i nakazanie",
         "Prestuplenie e nakazanie"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/fyodor-dostoevsky/crime-and-punishment/constance-garnett/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-charlotte-bronte-jane-eyre",
@@ -775,7 +817,13 @@
         "제인 에어",
         "简·爱",
         "Jane Eyre: An Autobiography"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/charlotte-bronte/jane-eyre/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-louisa-may-alcott-little-women",
@@ -800,7 +848,13 @@
       "credito": "Edição do Standard Ebooks (CC0), produzida por voluntários a partir de texto em domínio público.",
       "licenca": "Domínio público no Brasil (Lei 9.610, art. 41): Louisa May Alcott †1888.",
       "resumo": "Little Women is the classic coming-of-age tale of four sisters on their journey to adulthood. Though today it’s considered a classic, Little Women almost wasn’t written: Alcott wanted to publish a collection of short stories instead, but her publisher and her father pressed her to write a book that would appeal to a wide audience of young girls.",
-      "obra": "local:en:louisa-may-alcott-little-women"
+      "obra": "local:en:louisa-may-alcott-little-women",
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/louisa-may-alcott/little-women/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-oscar-wilde-the-picture-of-dorian-gray",
@@ -827,7 +881,13 @@
       "credito": "Edição do Standard Ebooks (CC0), produzida por voluntários a partir de texto em domínio público.",
       "licenca": "Domínio público no Brasil (Lei 9.610, art. 41): Oscar Wilde †1900.",
       "resumo": "The Picture of Dorian Gray was first published as a serial in Lippencott’s Monthly Magazine, and the publishers thought it would so offend readers that they removed nearly 500 words without Wilde’s approval. Wilde soon expanded it and republished it as a novel, including a short preface justifying his art. Even though his contemporaries considered it so offensive that some argued for his prosecuti",
-      "obra": "local:en:oscar-wilde-the-picture-of-dorian-gray"
+      "obra": "local:en:oscar-wilde-the-picture-of-dorian-gray",
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/oscar-wilde/the-picture-of-dorian-gray/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-charles-dickens-a-tale-of-two-cities",
@@ -875,7 +935,13 @@
         "Paris et Londres en 1793",
         "Storia di due città",
         "Racconto di due città"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/charles-dickens/a-tale-of-two-cities/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "pg-16389",
@@ -990,7 +1056,13 @@
         "Il Principe (“The Prince”)",
         "De Principatibus",
         "Monarchie mixte"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/niccolo-machiavelli/the-prince/w-k-marriott/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-leo-tolstoy-war-and-peace-louise-maude-aylmer-maude",
@@ -1041,7 +1113,13 @@
         "La guerra y la paz",
         "Guerra & Paz",
         "La Guerre et la Paix"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/leo-tolstoy/war-and-peace/louise-maude_aylmer-maude/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "pg-394",
@@ -1113,7 +1191,13 @@
         "Roi en jaune",
         "Le roi de jaune vêtu",
         "König in Gelb"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/robert-w-chambers/the-king-in-yellow/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "pg-6593",
@@ -1362,7 +1446,13 @@
         "Magicien d'oz",
         "Zauberer von Oz",
         "Il mago di Oz"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/l-frank-baum/the-wonderful-wizard-of-oz/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-charles-dickens-great-expectations",
@@ -1407,7 +1497,13 @@
         "Grandes esperanças",
         "Grandes espérances",
         "Grosse Erwartungen"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/charles-dickens/great-expectations/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "pg-1080",
@@ -1496,7 +1592,13 @@
         "Raison et Sensibilité",
         "Elinor and Marianne",
         "Raison et sensibilité, ou Les deux manières d'aimer"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/jane-austen/sense-and-sensibility/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-arthur-conan-doyle-a-study-in-scarlet",
@@ -1546,7 +1648,13 @@
         "Un crime étrange",
         "Détective amateur",
         "Sherlock Holmes. Etude en rouge"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/arthur-conan-doyle/a-study-in-scarlet/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "pg-3207",
@@ -1632,7 +1740,13 @@
         "Aventures de Huckleberry Finn",
         "Les aventures d'Huckleberry Finn",
         "Huckleberry Finns Abenteuer"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/mark-twain/the-adventures-of-huckleberry-finn/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-emily-bronte-wuthering-heights",
@@ -1679,7 +1793,13 @@
         "Hurlevent des Monts",
         "Les Hauts de Hurle-Vent",
         "Die Sturmhöhe"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/emily-bronte/wuthering-heights/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "pg-78118",
@@ -1740,7 +1860,13 @@
         "Walden oder Leben in den Wäldern",
         "Walden oder Hüttenleben im Walde",
         "Walden, ovvero La vita nei boschi"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/henry-david-thoreau/walden/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "pg-2542",
@@ -1900,7 +2026,13 @@
         "Anne... La Maison Aux Pignons Verts",
         "Anna dei Tetti Verdi",
         "Anna dei verdi abbaini"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/l-m-montgomery/anne-of-green-gables/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "pg-7370",
@@ -2052,7 +2184,13 @@
         "Irmãos Karamazov",
         "Frères Karamazov",
         "Karamasov"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/fyodor-dostoevsky/the-brothers-karamazov/constance-garnett/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-h-p-lovecraft-short-fiction",
@@ -2077,7 +2215,13 @@
       "credito": "Edição do Standard Ebooks (CC0), produzida por voluntários a partir de texto em domínio público.",
       "licenca": "Domínio público no Brasil (Lei 9.610, art. 41): H. P. Lovecraft †1937.",
       "resumo": "Howard Phillips Lovecraft was one of the most influential writers of horror fiction in the early 20th century. His fame is mostly posthumous: he was only published in pulp magazines in his lifetime, and never saw financial success. Despite that, Lovecraft’s unique blend of gothicism, horror, and the supernatural, set in an imagined but eerily real New England, marked a gold standard for horror fic",
-      "obra": "local:en:h-p-lovecraft-short-fiction"
+      "obra": "local:en:h-p-lovecraft-short-fiction",
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/h-p-lovecraft/short-fiction/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "pg-20203",
@@ -2284,7 +2428,13 @@
       "credito": "Edição do Standard Ebooks (CC0), produzida por voluntários a partir de texto em domínio público.",
       "licenca": "Domínio público no Brasil (Lei 9.610, art. 41): H. G. Wells †1946.",
       "resumo": "The Time Machine is the novel that gave us the concept of—and even the word for—a “time machine.” While it’s not Wells’ first story involving time travel, it is the one that most fully fleshes out the concept of a device that can send a person backwards and forwards in time with complete precision. Time machines have since become a staple of the science fiction and fantasy genres, making The Time ",
-      "obra": "local:en:h-g-wells-the-time-machine"
+      "obra": "local:en:h-g-wells-the-time-machine",
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/h-g-wells/the-time-machine/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "pg-2465",
@@ -2654,7 +2804,13 @@
         "Le chien des Baskervilles",
         "Il cane dei Baskerville",
         "Il mastino di Baskerville"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/arthur-conan-doyle/the-hound-of-the-baskervilles/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "pg-78122",
@@ -2744,7 +2900,13 @@
       "licenca": "Domínio público no Brasil (Lei 9.610, art. 41): Jane Austen †1817.",
       "resumo": "Emma is one of Jane Austen’s best-loved novels. Its eponymous heroine, Emma Woodhouse, has lived a pampered, protected life and consequently is somewhat unrealistic when she sets her sights on becoming a matchmaker for a young friend.",
       "obra": "Q223880",
-      "titulosAlternativos": ["Эмма", "إيما", "אמה", "एमा", "エマ", "엠마", "愛瑪"]
+      "titulosAlternativos": ["Эмма", "إيما", "אמה", "एमा", "エマ", "엠마", "愛瑪"],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/jane-austen/emma/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-joseph-conrad-heart-of-darkness",
@@ -2787,7 +2949,13 @@
         "The Heart of Darkness",
         "Coração das Trevas",
         "O Coração das Trevas"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/joseph-conrad/heart-of-darkness/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-arthur-conan-doyle-the-sign-of-the-four",
@@ -2834,7 +3002,13 @@
         "O Signo dos Quatro",
         "La Marque des quatre",
         "Le Pacte des quatre"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/arthur-conan-doyle/the-sign-of-the-four/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-miguel-de-cervantes-saavedra-don-quixote-john-ormsby",
@@ -2886,7 +3060,13 @@
         "O Engenhoso Fidalgo Dom Quixote de la Mancha",
         "L'ingénieux Hidalgo Don Quichotte de la Manche",
         "Don Quichote"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/miguel-de-cervantes-saavedra/don-quixote/john-ormsby/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-jack-london-the-call-of-the-wild",
@@ -2935,7 +3115,13 @@
         "O Grito da Selva",
         "Chamado Selvagem",
         "L'Appel sauvage"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/jack-london/the-call-of-the-wild/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-mary-shelley-frankenstein",
@@ -2983,7 +3169,13 @@
         "Frankenstein, o il Prometeo moderno",
         "Dr. Frankenstein",
         "Frankenstein, o il moderno Prometeo"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/mary-shelley/frankenstein/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-leo-tolstoy-anna-karenina-constance-garnett",
@@ -3008,7 +3200,13 @@
       "credito": "Edição do Standard Ebooks (CC0), produzida por voluntários a partir de texto em domínio público.",
       "licenca": "Domínio público no Brasil (Lei 9.610, art. 41): Leo Tolstoy †1910; tradução de Constance Garnett †1946.",
       "resumo": "Anna Karenina is certainly somewhat unhappy in her life, but presents a strong and vivacious character when called in to smooth over a major crack that’s appeared in her brother’s marriage. Unfortunately, the very visit designed to help her brother introduces her to Count Alexei Vronsky and sets in motion a chain of events that will ripple through families and the unforgiving society of wealthy Mo",
-      "obra": "local:en:leo-tolstoy-anna-karenina"
+      "obra": "local:en:leo-tolstoy-anna-karenina",
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/leo-tolstoy/anna-karenina/constance-garnett/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-h-g-wells-the-war-of-the-worlds",
@@ -3033,7 +3231,13 @@
       "credito": "Edição do Standard Ebooks (CC0), produzida por voluntários a partir de texto em domínio público.",
       "licenca": "Domínio público no Brasil (Lei 9.610, art. 41): H. G. Wells †1946.",
       "resumo": "H. G. Wells’ classic tale of alien invasion has to this day never been out of print. Like many works of the era, it was originally published as a serial—though the publisher, Pearson’s Magazine, demanded to know the ending before committing to publication.",
-      "obra": "local:en:h-g-wells-the-war-of-the-worlds"
+      "obra": "local:en:h-g-wells-the-war-of-the-worlds",
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/h-g-wells/the-war-of-the-worlds/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-fyodor-dostoevsky-notes-from-underground-constance-garnett",
@@ -3084,7 +3288,13 @@
         "Mémoires écrits dans un souterrain",
         "Manuscrit du souterrain",
         "Le sous-sol"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/fyodor-dostoevsky/notes-from-underground/constance-garnett/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-jane-austen-persuasion",
@@ -3126,7 +3336,13 @@
         "勸導 (小說)",
         "Persuasão Jane Austen",
         "Persuasão (Jane Austen)"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/jane-austen/persuasion/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-jane-austen-pride-and-prejudice",
@@ -3177,7 +3393,13 @@
         "P&P",
         "Les Cinq Filles de Mrs Bennet",
         "Stolz & Vorurteil"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/jane-austen/pride-and-prejudice/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-laozi-tao-te-ching-james-legge",
@@ -3228,7 +3450,13 @@
         "Tao Te King",
         "Tao-Te King",
         "Tao To King"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/laozi/tao-te-ching/james-legge/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-h-g-wells-the-invisible-man",
@@ -3253,7 +3481,13 @@
       "credito": "Edição do Standard Ebooks (CC0), produzida por voluntários a partir de texto em domínio público.",
       "licenca": "Domínio público no Brasil (Lei 9.610, art. 41): H. G. Wells †1946.",
       "resumo": "Griffin, a scientist, has devoted his life to the study of optics. As his work progresses, he invents a method of making a person invisible. After testing the experiment on himself, he comes to realize that while the experiment was a complete success, he has no way of reversing his invisibility.",
-      "obra": "local:en:h-g-wells-the-invisible-man"
+      "obra": "local:en:h-g-wells-the-invisible-man",
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/h-g-wells/the-invisible-man/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-edgar-allan-poe-short-fiction",
@@ -3278,7 +3512,13 @@
       "credito": "Edição do Standard Ebooks (CC0), produzida por voluntários a partir de texto em domínio público.",
       "licenca": "Domínio público no Brasil (Lei 9.610, art. 41): Edgar Allan Poe †1849.",
       "resumo": "Edgar Allan Poe is one of the primary figures of American nineteenth-century literature. His writing was heavily influenced by Romanticism ideals of emotion and feeling, and although mostly known for his Gothic-tinged horror, his tales jump between many different genres, including science-fiction, satire, humor, mystery, and even early detective fiction.",
-      "obra": "local:en:edgar-allan-poe-short-fiction"
+      "obra": "local:en:edgar-allan-poe-short-fiction",
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/edgar-allan-poe/short-fiction/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-fyodor-dostoevsky-demons-constance-garnett",
@@ -3325,7 +3565,13 @@
         "Los demonios",
         "Les Possedes",
         "Böse Geister"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/fyodor-dostoevsky/demons/constance-garnett/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-charles-dickens-a-christmas-carol",
@@ -3376,7 +3622,13 @@
         "Mr Scrooge",
         "Conte de Noël",
         "Cantique de Noël"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/charles-dickens/a-christmas-carol/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-dante-alighieri-the-divine-comedy-henry-wadsworth-longfellow",
@@ -3433,7 +3685,13 @@
         "Divina Comedia (Dante Alighieri)",
         "La Divina Commedia",
         "A divina comédia"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/dante-alighieri/the-divine-comedy/henry-wadsworth-longfellow/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-edmund-burke-reflections-on-the-revolution-in-france",
@@ -3473,7 +3731,13 @@
         "法蘭西大革命的反思",
         "Reflections on the French Revolution",
         "Réflexions sur la Révolution française"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/edmund-burke/reflections-on-the-revolution-in-france/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-robert-louis-stevenson-treasure-island",
@@ -3522,7 +3786,13 @@
         "Schatzinsel",
         "Quindici uomini sulla cassa del morto",
         "La canzone dei pirati"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/robert-louis-stevenson/treasure-island/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-e-nesbit-beautiful-stories-from-shakespeare",
@@ -3548,7 +3818,13 @@
       "licenca": "Domínio público no Brasil (Lei 9.610, art. 41): E. Nesbit †1924.",
       "resumo": "Two young couples, lost in an enchanted wood, are manipulated by quarreling fairies. A magician and his daughter entertain visitors he shipwrecked on their enchanted island. A king divides his lands unequally among his three daughters according to how well they flatter him. A witches’ prophecy sets a Scottish general on a tragic path.",
       "obra": "Q4877815",
-      "titulosAlternativos": ["Красивые истории из Шекспира"]
+      "titulosAlternativos": ["Красивые истории из Шекспира"],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/e-nesbit/beautiful-stories-from-shakespeare/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-theodore-roosevelt-a-book-lovers-holidays-in-the-open",
@@ -3576,7 +3852,13 @@
       "licenca": "Domínio público no Brasil (Lei 9.610, art. 41): Theodore Roosevelt †1919.",
       "resumo": "A Book-Lover’s Holidays in the Open is a travelogue written by former U.S. president Theodore Roosevelt about his expeditions through the Americas following his presidency in the early twentieth century. In it, Roosevelt takes readers on a cougar hunt in the Grand Canyon, through the Andes and Northern Patagonia, to a Mississippi River bird reserve, and to a Hopi snake dance, among other exotic an",
       "obra": "Q51427145",
-      "titulosAlternativos": ["A book-lover's holidays in the open"]
+      "titulosAlternativos": ["A book-lover's holidays in the open"],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/theodore-roosevelt/a-book-lovers-holidays-in-the-open/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-pauline-e-hopkins-of-one-blood",
@@ -3602,7 +3884,13 @@
       "licenca": "Domínio público no Brasil (Lei 9.610, art. 41): Pauline E. Hopkins †1930.",
       "resumo": "Attending medical school in Boston, Reuel Briggs has neither wealth nor the good looks of the upper-class white society with which he surrounds himself. He is, however, incredibly talented, and has a rare gift in the psychological study of mysticism and supernatural phenomenon. Even if his peers aren’t too keen on him, they can’t help but be awed by his talent, and subsequently call on his aid in ",
       "obra": "Q85790290",
-      "titulosAlternativos": ["من دم واحد", "Of One Blood, or The Hidden Self"]
+      "titulosAlternativos": ["من دم واحد", "Of One Blood, or The Hidden Self"],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/pauline-e-hopkins/of-one-blood/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-jules-verne-robur-the-conqueror-sampson-low-marston-searle-rivington",
@@ -3645,7 +3933,13 @@
         "정복자 로뷔르",
         "征服者罗比尔",
         "The Clipper of the Clouds"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/jules-verne/robur-the-conqueror/sampson-low-marston-searle-rivington/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-c-h-spurgeon-the-art-of-illustration",
@@ -3670,7 +3964,13 @@
       "credito": "Edição do Standard Ebooks (CC0), produzida por voluntários a partir de texto em domínio público.",
       "licenca": "Domínio público no Brasil (Lei 9.610, art. 41): C. H. Spurgeon †1892.",
       "resumo": "Though most well-known as the “Prince of Preachers,” C. H. Spurgeon was also the founder of and a lecturer at the Pastor’s College in London, later renamed “Spurgeon’s College” in his honor. The Art of Illustration is a posthumously published series of lectures given by Spurgeon late in his life to students at the college on the subject of improving their sermons through the use of metaphors, anec",
-      "obra": "local:en:c-h-spurgeon-the-art-of-illustration"
+      "obra": "local:en:c-h-spurgeon-the-art-of-illustration",
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/c-h-spurgeon/the-art-of-illustration/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-w-h-davies-the-autobiography-of-a-super-tramp",
@@ -3699,7 +3999,13 @@
       "titulosAlternativos": [
         "Autobiografía de un súper vagabundo",
         "Supertramp. Autobiographie eines Vagabunden"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/w-h-davies/the-autobiography-of-a-super-tramp/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-a-e-w-mason-the-house-of-the-arrow",
@@ -3725,7 +4031,13 @@
       "licenca": "Domínio público no Brasil (Lei 9.610, art. 41): A. E. W. Mason †1948.",
       "resumo": "After the apparently natural death of wealthy widow Madame Harlowe, a blackmailer accuses her niece of murder by poison—an accusation he knows to be false. The famous French detective Inspector Hanaud is called in, with Madame Harlowe’s death only an excuse to investigate a series of anonymous blackmailings the local police have been helpless to solve.",
       "obra": "Q7740668",
-      "titulosAlternativos": ["La casa della freccia"]
+      "titulosAlternativos": ["La casa della freccia"],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/a-e-w-mason/the-house-of-the-arrow/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-henry-seton-merriman-barlasch-of-the-guard",
@@ -3750,7 +4062,13 @@
       "credito": "Edição do Standard Ebooks (CC0), produzida por voluntários a partir de texto em domínio público.",
       "licenca": "Domínio público no Brasil (Lei 9.610, art. 41): Henry Seton Merriman †1903.",
       "resumo": "One of Henry Seton Merriman’s most popular and acclaimed novels, Barlasch of the Guard explores the ideals and imperfections of people, great and small alike, under the incomprehensible strains of life under siege, beset by the destructive forces of both man and nature.",
-      "obra": "Q124081743"
+      "obra": "Q124081743",
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/henry-seton-merriman/barlasch-of-the-guard/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-henry-seton-merriman-the-sowers",
@@ -3775,7 +4093,13 @@
       "credito": "Edição do Standard Ebooks (CC0), produzida por voluntários a partir de texto em domínio público.",
       "licenca": "Domínio público no Brasil (Lei 9.610, art. 41): Henry Seton Merriman †1903.",
       "resumo": "With The Sowers, a story ranging from the upper class drawing-rooms of London, Paris, and St. Petersburg to the vast estates and peasant villages of the Russian steppe, Henry Seton Merriman enjoyed his greatest popular success. Its protagonist is a young man of strong ideals and character who is known to his friends and London society as Paul Howard Alexis, to the vicious Russian aristocracy and t",
-      "obra": "local:en:henry-seton-merriman-the-sowers"
+      "obra": "local:en:henry-seton-merriman-the-sowers",
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/henry-seton-merriman/the-sowers/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-george-macdonald-within-and-without",
@@ -3800,7 +4124,13 @@
       "credito": "Edição do Standard Ebooks (CC0), produzida por voluntários a partir de texto em domínio público.",
       "licenca": "Domínio público no Brasil (Lei 9.610, art. 41): George MacDonald †1905.",
       "resumo": "Brother Julian is far from an exemplary monk: he takes no joy in monastery life, feels no connection with God, and continuously dwells on the mysterious life he left behind. When he learns that a woman from his past needs his help, he must choose between his duty to the Church and his duty to his conscience.",
-      "obra": "local:en:george-macdonald-within-and-without"
+      "obra": "local:en:george-macdonald-within-and-without",
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/george-macdonald/within-and-without/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-henry-seton-merriman-suspense",
@@ -3825,7 +4155,13 @@
       "credito": "Edição do Standard Ebooks (CC0), produzida por voluntários a partir de texto em domínio público.",
       "licenca": "Domínio público no Brasil (Lei 9.610, art. 41): Henry Seton Merriman †1903.",
       "resumo": "Theo Trist and Brenda Gilholme have known one another since childhood. Trist has become a renowned war correspondent for influential newspapers in London and Paris, dispatched to dangerous areas of the globe to report on the most terrible events imaginable. Brenda, until now in the shadow of her sister, a celebrated society beauty, has lived the life of the mind, immersing herself in studies of la",
-      "obra": "local:en:henry-seton-merriman-suspense"
+      "obra": "local:en:henry-seton-merriman-suspense",
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/henry-seton-merriman/suspense/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-winnifred-eaton-reeve-his-royal-nibs",
@@ -3850,7 +4186,13 @@
       "credito": "Edição do Standard Ebooks (CC0), produzida por voluntários a partir de texto em domínio público.",
       "licenca": "Domínio público no Brasil (Lei 9.610, art. 41): Winnifred Eaton Reeve †1954.",
       "resumo": "A young man dubbed “Cheerio” for his English background, clean appearance, and well-kept suit, unexpectedly arrives at the highly regarded O Bar O ranch with one goal in mind: to offer his services as a hired hand, and thus find a new start in life in a foreign land. The ranch’s foreman, Bully Bill, surprised and irritated by the unwelcome stranger, decides to give Cheerio the job after witnessing",
-      "obra": "local:en:winnifred-eaton-reeve-his-royal-nibs"
+      "obra": "local:en:winnifred-eaton-reeve-his-royal-nibs",
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/winnifred-eaton-reeve/his-royal-nibs/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-adam-smith-the-wealth-of-nations",
@@ -3901,7 +4243,13 @@
         "Investigação sobre a Natureza e as Causas da Riqueza das Nações",
         "Richesse des Nations",
         "La Richesse des Nations"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/adam-smith/the-wealth-of-nations/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-virginia-woolf-orlando",
@@ -3940,7 +4288,13 @@
         "Orlando: una biografía",
         "Orlando - Uma Biografia",
         "Orlando – eine Biographie"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/virginia-woolf/orlando/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-homer-the-iliad-william-cullen-bryant",
@@ -3986,7 +4340,13 @@
         "L'Iliade",
         "Iliade (L')",
         "L’Iliade"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/homer/the-iliad/william-cullen-bryant/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-john-milton-paradise-lost",
@@ -4039,7 +4399,13 @@
         "Das verlustigte Paradeis",
         "Das Verlohrne Paradies",
         "Paradiso perduto"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/john-milton/paradise-lost/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-william-shakespeare-macbeth",
@@ -4080,7 +4446,13 @@
         "Tragedy of Macbeth",
         "Batalla de Dunsinane",
         "Dramma scozzese"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/william-shakespeare/macbeth/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-william-shakespeare-hamlet",
@@ -4127,7 +4499,13 @@
         "Die Tragödie von Hamlet, Prinz von Dänemark",
         "La tragedia di Amleto, principe di Danimarca",
         "Amleto, principe di Danimarca"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/william-shakespeare/hamlet/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-arthur-conan-doyle-brigadier-gerard-stories",
@@ -4152,7 +4530,13 @@
       "credito": "Edição do Standard Ebooks (CC0), produzida por voluntários a partir de texto em domínio público.",
       "licenca": "Domínio público no Brasil (Lei 9.610, art. 41): Arthur Conan Doyle †1930.",
       "resumo": "When Arthur Conan Doyle’s gallant French cavalryman Brigadier Gerard first appeared in print, the reading public was still reeling from the “death” of Conan Doyle’s most famous creation, Sherlock Holmes, the previous year. What they found in Brigadier Gerard was someone very different from the intense, emotionless consulting detective: a courageous and skilled, but vain and emotional, soldier-adve",
-      "obra": "local:en:arthur-conan-doyle-brigadier-gerard-stories"
+      "obra": "local:en:arthur-conan-doyle-brigadier-gerard-stories",
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/arthur-conan-doyle/brigadier-gerard-stories/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-james-joyce-ulysses",
@@ -4192,7 +4576,13 @@
         "ユリシーズ",
         "율리시스",
         "尤利西斯"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/james-joyce/ulysses/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-virginia-woolf-to-the-lighthouse",
@@ -4234,7 +4624,13 @@
         "등대로",
         "到燈塔去",
         "Vers le phare"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/virginia-woolf/to-the-lighthouse/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-pauline-e-hopkins-contending-forces",
@@ -4262,7 +4658,13 @@
       "obra": "Q42184384",
       "titulosAlternativos": [
         "Contending Forces: A Romance Illustrative of Negro Life North and South"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/pauline-e-hopkins/contending-forces/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-homer-the-odyssey-william-cullen-bryant",
@@ -4314,7 +4716,13 @@
         "A odisséia",
         "Odyssée d'Homère",
         "Odesseye"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/homer/the-odyssey/william-cullen-bryant/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-f-scott-fitzgerald-the-great-gatsby",
@@ -4359,7 +4767,13 @@
         "Great Gatsby",
         "Gatsby",
         "Der grosse Gatsby"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/f-scott-fitzgerald/the-great-gatsby/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "se-marcus-aurelius-meditations-george-long",
@@ -4406,7 +4820,13 @@
         "Pensées de Marc-Aurèle",
         "A se stesso",
         "Ricordi"
-      ]
+      ],
+      "capa": {
+        "origem": "standard-ebooks",
+        "url": "https://standardebooks.org/ebooks/marcus-aurelius/meditations/george-long/downloads/cover-thumbnail.jpg",
+        "licenca": "CC0",
+        "credito": "Capa: Standard Ebooks (CC0)"
+      }
     },
     {
       "id": "pg-78052",

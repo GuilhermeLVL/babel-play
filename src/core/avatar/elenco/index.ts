@@ -1,5 +1,13 @@
 export { lexicoDoIdioma, LEXICOS } from './lexico';
 export { marcarFrases } from './marcador';
+export {
+  type ConfigDoElenco,
+  type FalaDaFrase,
+  falaDaFrase,
+  montarDistribuicao,
+  planejarElenco,
+  type PlanoDaFrase,
+} from './narracao';
 export { partirNoTeto, TETO_DE_CARACTERES_DA_FRASE } from './texto';
 export {
   type ChaveDoElenco,

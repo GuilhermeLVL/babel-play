@@ -47,6 +47,12 @@ const voltarParaAAba = () => {
   })
 }
 
+/** O cartão "Pronto!" aparece; "Abrir agora" abre no leitor. */
+const abrirAgora = async () => {
+  const cartao = await screen.findByTestId('trazido')
+  fireEvent.click(within(cartao).getByRole('button', { name: 'Abrir agora' }))
+}
+
 const arquivo = (nome = 'livro.epub') => new File(['x'], nome)
 
 describe('Trazer o seu: arquivo', () => {
@@ -55,7 +61,8 @@ describe('Trazer o seu: arquivo', () => {
     const aoAbrir = vi.fn()
     render(<TrazerOSeu aoAbrir={aoAbrir} />)
     fireEvent.drop(screen.getByTestId('zona-de-soltar'), { dataTransfer: { files: [arquivo()] } })
-    await waitFor(() => expect(aoAbrir).toHaveBeenCalledTimes(1))
+    await abrirAgora()
+    expect(aoAbrir).toHaveBeenCalledTimes(1)
     expect(aoAbrir.mock.calls[0][0]).toMatchObject({ id: 'meu-teste', titulo: 'Livro de Teste', origem: 'arquivo' })
   })
 
@@ -64,7 +71,7 @@ describe('Trazer o seu: arquivo', () => {
     const aoAbrir = vi.fn()
     render(<TrazerOSeu aoAbrir={aoAbrir} />)
     fireEvent.change(screen.getByTestId('arquivo-do-livro'), { target: { files: [arquivo()] } })
-    await waitFor(() => expect(aoAbrir).toHaveBeenCalled())
+    await abrirAgora()
   })
 
   it('arquivo com proteção (DRM): mensagem gentil que aponta a ajuda, nada abre', async () => {
@@ -83,12 +90,69 @@ describe('Trazer o seu: arquivo', () => {
     ['pdf-imagem', /só imagem/],
     ['grande', /grande demais/],
     ['corrompido', /incompleto ou danificado/],
-    ['formato', /EPUB, um PDF ou um TXT/],
+    ['formato', /não parece ser um livro ou documento/],
   ] as const)('erro %s tem frase própria', async (motivo, esperado) => {
     lib.lerArquivoTrazido.mockRejectedValue(new ErroDoLivro(motivo))
     render(<TrazerOSeu aoAbrir={vi.fn()} />)
     fireEvent.drop(screen.getByTestId('zona-de-soltar'), { dataTransfer: { files: [arquivo()] } })
     expect((await screen.findByTestId('erro-do-trazer')).textContent).toMatch(esperado)
+  })
+})
+
+describe('Trazer o seu: passos, formatos e cartão pronto', () => {
+  it('mostra os 3 passos, os formatos aceitos em chips por grupo e a linha do DRM', () => {
+    render(<TrazerOSeu aoAbrir={vi.fn()} />)
+    const passos = screen.getByTestId('passos-de-trazer')
+    expect(
+      within(passos)
+        .getAllByRole('listitem')
+        .map((l) => l.textContent),
+    ).toEqual([
+      expect.stringContaining('Tenha o arquivo'),
+      expect.stringContaining('Solte aqui'),
+      expect.stringContaining('Leia'),
+    ])
+    const chips = (g: string) =>
+      within(screen.getByTestId(`formatos-${g}`))
+        .getAllByRole('listitem')
+        .map((l) => l.textContent)
+    expect(chips('livros')).toEqual(['EPUB', 'MOBI', 'AZW3', 'FB2'])
+    expect(chips('documentos')).toEqual(['PDF', 'DOCX', 'TXT', 'HTML', 'Markdown'])
+    expect(chips('quadrinhos')).toEqual(['CBZ'])
+    expect(screen.getByTestId('linha-drm').textContent).toMatch(/Livros com proteção \(DRM\) não abrem/)
+  })
+
+  it('formato não aceito diz qual é e o que fazer; PDF escaneado e senha têm frase própria', async () => {
+    lib.lerArquivoTrazido.mockRejectedValue(new ErroDoLivro('formato', 'DJVU'))
+    render(<TrazerOSeu aoAbrir={vi.fn()} />)
+    fireEvent.drop(screen.getByTestId('zona-de-soltar'), { dataTransfer: { files: [arquivo('a.djvu')] } })
+    expect((await screen.findByTestId('erro-do-trazer')).textContent).toMatch(
+      /Ainda não abrimos arquivos DJVU.*PDF, DOCX ou EPUB/,
+    )
+    lib.lerArquivoTrazido.mockRejectedValue(new ErroDoLivro('pdf-imagem'))
+    fireEvent.drop(screen.getByTestId('zona-de-soltar'), { dataTransfer: { files: [arquivo('a.pdf')] } })
+    await waitFor(() =>
+      expect(screen.getByTestId('erro-do-trazer').textContent).toMatch(/ainda não lemos PDF escaneado/),
+    )
+    lib.lerArquivoTrazido.mockRejectedValue(new ErroDoLivro('senha'))
+    fireEvent.drop(screen.getByTestId('zona-de-soltar'), { dataTransfer: { files: [arquivo('b.pdf')] } })
+    await waitFor(() => expect(screen.getByTestId('erro-do-trazer').textContent).toMatch(/tem senha/))
+  })
+
+  it('cartão pós-importação: Pronto, Abrir agora, Ver em Meus livros, Baixar cópia; foco no cartão', async () => {
+    lib.lerArquivoTrazido.mockResolvedValue(LIDO)
+    const aoVer = vi.fn()
+    const aoAbrir = vi.fn()
+    render(<TrazerOSeu aoAbrir={aoAbrir} aoVerMeusLivros={aoVer} />)
+    fireEvent.drop(screen.getByTestId('zona-de-soltar'), { dataTransfer: { files: [arquivo()] } })
+    const cartao = await screen.findByTestId('trazido')
+    expect(within(cartao).getByRole('heading', { name: 'Pronto!' })).toBeTruthy()
+    // O foco é posto num efeito (passivo) depois do commit: o `findBy` pode resolver antes dele rodar, então espera.
+    await waitFor(() => expect(document.activeElement).toBe(cartao))
+    expect(within(cartao).getByRole('button', { name: /Baixar cópia do arquivo/ })).toBeTruthy()
+    fireEvent.click(within(cartao).getByRole('button', { name: /Ver em Meus livros/ }))
+    expect(aoVer).toHaveBeenCalled()
+    expect(aoAbrir).not.toHaveBeenCalled()
   })
 })
 
@@ -105,7 +169,7 @@ describe('Trazer o seu: link de livro', () => {
     const aoAbrir = vi.fn()
     render(<TrazerOSeu aoAbrir={aoAbrir} />)
     colar(url)
-    await waitFor(() => expect(aoAbrir).toHaveBeenCalled())
+    await abrirAgora()
     expect(lib.baixarLivroDoLink).toHaveBeenCalledWith(url)
     expect(aoAbrir.mock.calls[0][0]).toMatchObject({ origem: 'link', url })
   })

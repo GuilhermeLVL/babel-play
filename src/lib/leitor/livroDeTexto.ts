@@ -84,6 +84,8 @@ export function livroDeTexto(e: EntradaDoLivroDeTexto): LivroDoFoliate {
   const indice = (href: string) => Number(/^cap-(\d+)/.exec(href)?.[1] ?? -1);
   return {
     metadata: { title: e.titulo, author: e.autor, language: e.idioma },
+    /* Montado por nós: o texto é escapado em `xhtmlDoCapitulo`, sem marcação do arquivo. */
+    frasyConfiavel: true,
     toc,
     sections,
     dir: 'ltr',

@@ -11,6 +11,7 @@ import { useSyncExternalStore } from 'react';
 import type { EstadoDoAvatar } from '../../core/avatar/estados';
 import type { LadoDaConversa } from '../../core/avatar/interprete';
 import type { DecisaoDeSoletracao } from '../../core/avatar/sinais/soletracaoDoInterprete';
+import type { Lingua } from '../../core/avatar/sinais/tipos';
 import type { FonteDaBoca } from './renderer';
 
 /**
@@ -22,6 +23,8 @@ export interface SoletracaoNoPip {
   decisao: DecisaoDeSoletracao;
   /** A fala em voz agora (`null` = a voz parou). */
   itemId: string | null;
+  /** O alfabeto da conversa, quando há um: sem nome a soletrar, o PiP mostra as mãos em repouso. */
+  repouso?: { alfabeto: Lingua; espelhar: boolean } | null;
 }
 
 export interface AvatarDoPip {

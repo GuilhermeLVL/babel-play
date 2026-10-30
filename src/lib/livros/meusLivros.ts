@@ -16,9 +16,11 @@ import { type DBSchema, type IDBPDatabase, openDB } from 'idb';
 import { useSyncExternalStore } from 'react';
 
 import type { CapituloDeTexto } from '../../core/livros/epub';
+import type { FormatoTrazido } from '../../core/livros/formatos';
 import type { StatusDeLeitura } from '../../core/livros/meusLivros';
 import { idDoCatalogo } from './abrir';
 import { estante } from './armazem';
+import { garantirCapaDoArquivo, removerCapa } from './capasLocais';
 import { posicoes } from './posicoesDoAparelho';
 
 export type OrigemDoMeuLivro = 'catalogo' | 'arquivo' | 'link';
@@ -30,7 +32,7 @@ export interface MeuLivro {
   titulo: string;
   autor?: string;
   origem: OrigemDoMeuLivro;
-  formato?: 'epub' | 'pdf' | 'txt' | 'web';
+  formato?: FormatoTrazido | 'web';
   idioma?: string;
   /** O endereço do artigo, quando veio por link. */
   url?: string;
@@ -47,8 +49,11 @@ export interface MeuLivro {
 
 export interface ConteudoDoMeuLivro {
   id: string;
-  /** O arquivo como veio (o leitor da L2 abre o EPUB/PDF original). */
+  /** O arquivo como veio (o leitor da L2 abre o EPUB/PDF/MOBI/FB2/CBZ original). */
   arquivo?: Blob;
+  /** A cópia fiel dos bytes dos formatos que viram texto (TXT, HTML, Markdown, DOCX): só para "Baixar cópia". */
+  copia?: Blob;
+  nomeDoArquivo?: string;
   capitulos: CapituloDeTexto[];
 }
 
@@ -132,6 +137,8 @@ export async function removerMeuLivro(id: string): Promise<void> {
   gravar(lerMeusLivros().filter((l) => l.id !== id));
   await apagarConteudo(id).catch(() => undefined);
   await estante.apagarLivro(idDaEstante).catch(() => undefined);
+  /* A capa que a pessoa escolheu para um livro do catálogo é preferência dela e fica; a do arquivo sai com ele. */
+  if (alvo?.origem !== 'catalogo') await removerCapa(idDaEstante);
   posicoes.esquecer(idDaEstante);
 }
 
@@ -194,13 +201,25 @@ interface MetaDoConteudo {
  * recusa `Blob` no IndexedDB ("Error preparing Blob/File data to be stored in object store"). Registro antigo
  * com `arquivo` (Blob) continua sendo lido.
  */
-type ConteudoNoDisco = Omit<ConteudoDoMeuLivro, 'arquivo'> & { arquivo?: Blob; bytes?: ArrayBuffer; tipo?: string };
+type ConteudoNoDisco = Omit<ConteudoDoMeuLivro, 'arquivo' | 'copia'> & {
+  arquivo?: Blob;
+  bytes?: ArrayBuffer;
+  tipo?: string;
+  bytesDaCopia?: ArrayBuffer;
+  tipoDaCopia?: string;
+};
 
-const paraODisco = async ({ arquivo, ...resto }: ConteudoDoMeuLivro): Promise<ConteudoNoDisco> =>
-  arquivo ? { ...resto, bytes: await arquivo.arrayBuffer(), tipo: arquivo.type } : resto;
+const paraODisco = async ({ arquivo, copia, ...resto }: ConteudoDoMeuLivro): Promise<ConteudoNoDisco> => ({
+  ...resto,
+  ...(arquivo ? { bytes: await arquivo.arrayBuffer(), tipo: arquivo.type } : {}),
+  ...(copia ? { bytesDaCopia: await copia.arrayBuffer(), tipoDaCopia: copia.type } : {}),
+});
 
-const doDisco = ({ bytes, tipo, ...resto }: ConteudoNoDisco): ConteudoDoMeuLivro =>
-  bytes ? { ...resto, arquivo: new Blob([bytes], tipo ? { type: tipo } : undefined) } : resto;
+const doDisco = ({ bytes, tipo, bytesDaCopia, tipoDaCopia, ...resto }: ConteudoNoDisco): ConteudoDoMeuLivro => ({
+  ...resto,
+  ...(bytes ? { arquivo: new Blob([bytes], tipo ? { type: tipo } : undefined) } : {}),
+  ...(bytesDaCopia ? { copia: new Blob([bytesDaCopia], tipoDaCopia ? { type: tipoDaCopia } : undefined) } : {}),
+});
 
 interface EsquemaDosLivros extends DBSchema {
   conteudo: { key: string; value: ConteudoNoDisco };
@@ -224,7 +243,11 @@ function abrirBanco() {
 
 /** Quanto um conteúdo ocupa: o arquivo original mais o texto extraído (2 bytes por caractere, por cima). */
 export function tamanhoDoConteudo(c: ConteudoDoMeuLivro): number {
-  return (c.arquivo?.size ?? 0) + c.capitulos.reduce((s, x) => s + (x.texto.length + x.titulo.length) * 2, 0);
+  return (
+    (c.arquivo?.size ?? 0) +
+    (c.copia?.size ?? 0) +
+    c.capitulos.reduce((s, x) => s + (x.texto.length + x.titulo.length) * 2, 0)
+  );
 }
 
 /**
@@ -271,6 +294,7 @@ export async function guardarConteudo(c: ConteudoDoMeuLivro): Promise<ResultadoD
     void tx.objectStore('conteudo').put(registro);
     void tx.objectStore('meta').put(novo);
     await tx.done;
+    void garantirCapaDoArquivo(c.id, c.arquivo);
     return { guardado: true, removidos };
   } catch {
     return { guardado: false, motivo: 'indisponivel' };

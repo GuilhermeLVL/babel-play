@@ -1,11 +1,11 @@
-import { BookA, Highlighter, Languages, Lightbulb, StickyNote, X } from 'lucide-react';
-import { useState } from 'react';
+import { BookA, Highlighter, Languages, Lightbulb, MessageCircleQuestion, StickyNote, X } from 'lucide-react';
+import { useId, useState } from 'react';
 
 import { type CorDeAnotacao, CORES_DE_ANOTACAO } from '../../../core/leitura/anotacao';
-import { FLAG_IA_DE_ESTUDO } from '../../../core/planos';
-import { useFlag } from '../../../lib/flags';
+import type { EstadoDaFerramenta } from '../../../core/leitura/ferramentasDeIa';
 import { t } from '../../../lib/i18n';
 import ExplicacaoDaFrase from '../captura/estudo/ExplicacaoDaFrase';
+import { fraseDoMotivo } from './ferramentasDeIaTextos';
 
 const NOME_DA_COR: Record<CorDeAnotacao, string> = {
   amarelo: 'amarelo',
@@ -36,6 +36,9 @@ export default function BarraDaSelecao({
   aoFechar,
   aoConhecerPlanos,
   aoVerPalavra,
+  explicar,
+  parceiro,
+  aoPerguntar,
 }: {
   trecho: TrechoSelecionado;
   /** O idioma da tradução (o da pessoa). */
@@ -47,10 +50,17 @@ export default function BarraDaSelecao({
   aoConhecerPlanos?: () => void;
   /** O trecho é UMA palavra (o toque duplo, a seleção pelo teclado): abre a folha da palavra. */
   aoVerPalavra?: () => void;
+  /** O estado de "Explicar" e de "Perguntar" (`estadoDaFerramenta`): indisponível, o botão FICA e diz o porquê. */
+  explicar: EstadoDaFerramenta;
+  parceiro: EstadoDaFerramenta;
+  /** Abre o parceiro de leitura já com este trecho. */
+  aoPerguntar: () => void;
 }) {
   const [modo, setModo] = useState<'acoes' | 'nota' | 'traducao' | 'explicar'>('acoes');
-  /* "Explicar" só aparece com a IA de estudo ligada; quem pode explicar (plano ou amostra) é o servidor. */
-  const explicarLigado = useFlag(FLAG_IA_DE_ESTUDO);
+  /* Quem pode explicar (plano ou amostra) é o servidor; aqui só o que já se sabe. O botão indisponível não some:
+     fica com `aria-disabled` (continua focável) e a razão aparece embaixo, lida pelo leitor de tela. */
+  const [motivoAberto, setMotivoAberto] = useState<'explicar' | 'parceiro' | null>(null);
+  const idDoMotivo = useId();
   const [nota, setNota] = useState('');
   const [traducao, setTraducao] = useState<string | null | undefined>(undefined);
 
@@ -91,15 +101,38 @@ export default function BarraDaSelecao({
           <button type="button" className="btn btn-outline leitor-alvo" onClick={() => void pedirTraducao()}>
             <Languages aria-hidden /> {t('Traduzir')}
           </button>
-          {explicarLigado && (
-            <button type="button" className="btn btn-outline leitor-alvo" onClick={() => setModo('explicar')}>
-              <Lightbulb aria-hidden /> {t('Explicar')}
+          {(
+            [
+              ['explicar', explicar, Lightbulb, t('Explicar'), () => setModo('explicar')],
+              ['parceiro', parceiro, MessageCircleQuestion, t('Perguntar'), aoPerguntar],
+            ] as const
+          ).map(([chave, estado, Icone, rotulo, abrir]) => (
+            <button
+              key={chave}
+              type="button"
+              className={`btn btn-outline leitor-alvo${estado.disponivel ? '' : ' leitor-indisponivel'}`}
+              aria-disabled={estado.disponivel ? undefined : true}
+              aria-describedby={!estado.disponivel && motivoAberto === chave ? idDoMotivo : undefined}
+              title={estado.disponivel ? undefined : fraseDoMotivo(estado)}
+              data-testid={`selecao-${chave}`}
+              onClick={() => (estado.disponivel ? abrir() : setMotivoAberto((m) => (m === chave ? null : chave)))}
+            >
+              <Icone aria-hidden /> {rotulo}
             </button>
-          )}
+          ))}
           <button type="button" className="btn btn-outline leitor-alvo" aria-label={t('Fechar')} onClick={aoFechar}>
             <X aria-hidden />
           </button>
         </div>
+      )}
+      {modo === 'acoes' && (
+        <p id={idDoMotivo} className="leitor-apoio" role="status" data-testid="selecao-motivo">
+          {motivoAberto === 'explicar'
+            ? fraseDoMotivo(explicar)
+            : motivoAberto === 'parceiro'
+              ? fraseDoMotivo(parceiro)
+              : ''}
+        </p>
       )}
       {modo === 'nota' && (
         <form

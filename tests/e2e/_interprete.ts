@@ -240,7 +240,22 @@ export async function abrirPeloMenu(page: Page) {
 export async function comecarFalando(page: Page, lado: RegExp) {
   await clicarRobusto(page, pronta(page).getByRole('button', { name: lado }))
   const folha = page.getByRole('dialog', { name: 'Como transcrever a sua voz?' })
-  if (await folha.isVisible({ timeout: 3_000 }).catch(() => false)) {
+  /* `isVisible({ timeout })` IGNORA o timeout (responde na hora): numa máquina lenta (CI sem GPU) a folha ainda não
+     tinha aparecido, o helper seguia sem escolher o modo, e a conversa nunca começava. Espera de verdade: o que vier
+     primeiro, a folha ou a conversa. */
+  const primeiro = await Promise.race([
+    folha.waitFor({ state: 'visible', timeout: 15_000 }).then(
+      () => 'folha',
+      () => 'nada',
+    ),
+    fase(page)
+      .waitFor({ state: 'visible', timeout: 15_000 })
+      .then(
+        () => 'conversa',
+        () => 'nada',
+      ),
+  ])
+  if (primeiro === 'folha') {
     await clicarRobusto(page, folha.getByRole('button', { name: /Rápido/ }).first())
     await clicarRobusto(page, folha.getByRole('button', { name: /Baixar e iniciar|^Iniciar$|Continuar/ }))
     await expect(folha).toBeHidden()

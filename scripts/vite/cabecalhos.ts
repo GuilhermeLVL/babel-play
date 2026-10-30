@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import type { Plugin } from 'vite';
 
-import { diretivasDeCsp, serializarCsp } from '../../server/http/csp';
+import { CAMINHO_DA_PONTE_DO_VLIBRAS, cspDaPonteDoVLibras, diretivasDeCsp, serializarCsp } from '../../server/http/csp';
 
 /** Onde o modelo começa a parte que NÃO é gerada: as regras de cache. */
 const INICIO_DO_CACHE = '/ort-wasm-*';
@@ -35,7 +35,13 @@ export function gerarHeaders(env: NodeJS.ProcessEnv, base: string): string {
     `  Content-Security-Policy: ${serializarCsp(diretivasDeCsp(env))}`,
   ].join('\n');
   const diagnostico = ['/diagnostico-audio.html', '  ! Content-Security-Policy'].join('\n');
-  return `${comentarios}${global}\n\n${diagnostico}\n\n${cache}`;
+  // A ponte do VLibras tem CSP própria (`!` tira a de `/*`, senão valeriam as duas): ver `server/http/csp.ts`.
+  const ponte = [
+    CAMINHO_DA_PONTE_DO_VLIBRAS,
+    '  ! Content-Security-Policy',
+    `  Content-Security-Policy: ${cspDaPonteDoVLibras(env)}`,
+  ].join('\n');
+  return `${comentarios}${global}\n\n${diagnostico}\n\n${ponte}\n\n${cache}`;
 }
 
 /** Grava `dist/_headers` ao fim do build, com a CSP das variáveis do próprio build. */

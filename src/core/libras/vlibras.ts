@@ -65,3 +65,52 @@ export function consentimentoValido(bruto: unknown): boolean {
     return false;
   }
 }
+
+/* ------------------------------ a PONTE (iframe isolado que hospeda o widget) ------------------------------ */
+
+/**
+ * O widget do governo NÃO roda no documento do app: roda em `public/vlibras-ponte.html`, dentro de um
+ * `<iframe sandbox="allow-scripts">` SEM `allow-same-origin` (origem opaca: sem acesso ao DOM, aos cookies nem ao
+ * `localStorage` do Frasy). O app e a ponte só conversam por `postMessage`, com estas duas formas e mais nada.
+ */
+export const CAMINHO_DA_PONTE_DO_VLIBRAS = '/vlibras-ponte.html';
+/** O `sandbox` do iframe da ponte: scripts, e NUNCA `allow-same-origin`. */
+export const SANDBOX_DA_PONTE_DO_VLIBRAS = 'allow-scripts';
+/** O teto do texto enviado à ponte (caracteres): uma frase ou um parágrafo, não o livro. */
+export const TAMANHO_MAXIMO_DO_TEXTO_DO_VLIBRAS = 2000;
+const MARCA_DA_PONTE = 'vlibras-ponte';
+
+export type MensagemParaAPonte =
+  | { frasy: typeof MARCA_DA_PONTE; tipo: 'iniciar' }
+  | { frasy: typeof MARCA_DA_PONTE; tipo: 'texto'; texto: string };
+export type TipoDeMensagemDaPonte = 'pronta' | 'iniciado' | 'erro';
+
+/** A mensagem de texto para a ponte: aparado, no teto, ou `null` se não sobrou nada. */
+export function mensagemDeTexto(bruto: unknown): MensagemParaAPonte | null {
+  if (typeof bruto !== 'string') return null;
+  const texto = bruto.replace(/\s+/g, ' ').trim().slice(0, TAMANHO_MAXIMO_DO_TEXTO_DO_VLIBRAS);
+  return texto ? { frasy: MARCA_DA_PONTE, tipo: 'texto', texto } : null;
+}
+
+export const mensagemDeInicio = (): MensagemParaAPonte => ({ frasy: MARCA_DA_PONTE, tipo: 'iniciar' });
+
+/** O esquema ESTRITO do que a ponte aceita do app (a ponte tem a mesma regra, em `public/vlibras-ponte.js`). */
+export function lerMensagemParaAPonte(dados: unknown): MensagemParaAPonte | null {
+  if (!dados || typeof dados !== 'object' || Array.isArray(dados)) return null;
+  const d = dados as Record<string, unknown>;
+  if (d.frasy !== MARCA_DA_PONTE) return null;
+  if (d.tipo === 'iniciar') return Object.keys(d).length === 2 ? mensagemDeInicio() : null;
+  if (d.tipo === 'texto' && Object.keys(d).length === 3 && typeof d.texto === 'string') {
+    if (d.texto.length > TAMANHO_MAXIMO_DO_TEXTO_DO_VLIBRAS) return null;
+    return { frasy: MARCA_DA_PONTE, tipo: 'texto', texto: d.texto };
+  }
+  return null;
+}
+
+/** O esquema estrito do que o app aceita DA ponte: só um dos três tipos, sem carga. */
+export function lerMensagemDaPonte(dados: unknown): TipoDeMensagemDaPonte | null {
+  if (!dados || typeof dados !== 'object' || Array.isArray(dados)) return null;
+  const d = dados as Record<string, unknown>;
+  if (d.frasy !== MARCA_DA_PONTE || Object.keys(d).length !== 2) return null;
+  return d.tipo === 'pronta' || d.tipo === 'iniciado' || d.tipo === 'erro' ? d.tipo : null;
+}

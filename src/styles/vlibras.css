@@ -1,0 +1,144 @@
+/* O PILOTO VLIBRAS (flag libras_vlibras, só adultos): o botão, a tela de consentimento e a faixa com a origem e o aviso.
+   Cores do tema da tela que hospeda; sem token, as do sistema. O widget do governo fica por cima (z-index dele é maior). */
+.vlb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border-subtle, #999);
+  border-radius: 10px;
+  background: var(--surface, Canvas);
+  color: var(--ink, CanvasText);
+  font: 600 13.5px var(--font-display, system-ui);
+  cursor: pointer;
+}
+.vlb-btn svg {
+  width: 18px;
+  height: 18px;
+}
+.vlb-btn:focus-visible {
+  outline: 2px solid var(--accent, #b8501a);
+  outline-offset: 2px;
+}
+/* Na faixa de controles da Legendar (já cheia no celular): o rótulo quebra em duas linhas em vez de estourar a faixa. */
+.vlb-q {
+  height: auto;
+  max-width: 11em;
+  padding: 4px 10px;
+  font-size: 12px;
+  line-height: 1.2;
+  text-align: left;
+}
+.vlb-q .int-modo-visivel {
+  white-space: normal;
+}
+.vlb-pri {
+  background: var(--accent, #b8501a);
+  border-color: var(--accent, #b8501a);
+  color: #fff;
+}
+.vlb-so-icone {
+  padding: 0;
+}
+.vlb-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(0 0 0 / 0.55);
+}
+.vlb-tela {
+  width: min(520px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: 20px;
+  border-radius: 14px;
+  background: var(--surface, Canvas);
+  color: var(--ink, CanvasText);
+  box-shadow: 0 8px 40px rgb(0 0 0 / 0.4);
+}
+.vlb-tela h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+}
+.vlb-origem {
+  margin: 0 0 12px;
+  font-weight: 700;
+  color: var(--accent, #b8501a);
+}
+.vlb-tela ul {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.vlb-aviso {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-left: 4px solid var(--accent, #b8501a);
+  background: color-mix(in srgb, var(--accent, #b8501a) 10%, transparent);
+  font-weight: 600;
+  font-size: 14px;
+}
+.vlb-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.vlb-painel {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2147483000;
+  display: grid;
+  gap: 8px;
+  width: min(400px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle, #999);
+  background: var(--surface, Canvas);
+  color: var(--ink, CanvasText);
+  box-shadow: 0 4px 20px rgb(0 0 0 / 0.3);
+  font-size: 13px;
+}
+.vlb-faixa-txt {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.vlb-estado {
+  margin: 0;
+}
+/* A ponte: o iframe de origem opaca onde o widget do governo roda (o avatar e os controles dele ficam aqui dentro). */
+.vlb-ponte iframe {
+  display: block;
+  width: 100%;
+  height: min(440px, 52dvh);
+  border: 1px solid var(--border-subtle, #999);
+  border-radius: 8px;
+  background: #f5f5f5;
+}
+.vlb-ajuste {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  margin-block: 16px;
+}
+.vlb-ajuste h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.vlb-ajuste p {
+  margin: 0;
+  font-size: 14px;
+}

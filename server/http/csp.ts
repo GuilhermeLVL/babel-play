@@ -42,12 +42,12 @@
  *                                               `raw.githubusercontent.com` (já liberado) e as miniaturas por
  *                                               `img-src`, que já é `https:`. Sem a variável, nada entra e a galeria
  *                                               avisa que está indisponível. Só `connect-src`, nunca script/worker.
- *   VLIBRAS_ATIVO=1                             o piloto VLibras (flag `libras_vlibras`, só adultos com aceite): o
- *                                               widget do governo federal. Abre SÓ `vlibras.gov.br` e o caminho do
- *                                               repositório do VLibras no jsdelivr em `script-src`/`font-src`, os
- *                                               quatro hosts do serviço em `connect-src` e `vlibras.gov.br` em
- *                                               `frame-src` (o avatar é um iframe). O PostHog do widget NUNCA entra
- *                                               (`docs/pesquisa/2026-10-29-vlibras-piloto.md`). Sem a variável, nada muda.
+ *   VLIBRAS_ATIVO=1                             o piloto VLibras (flag `libras_vlibras`, só adultos com aceite). NADA muda
+ *                                               nesta política: o widget do governo federal roda numa PÁGINA PRÓPRIA
+ *                                               (`/vlibras-ponte.html`) dentro de um `<iframe sandbox="allow-scripts">`
+ *                                               sem `allow-same-origin`, e é ELA que tem uma CSP à parte
+ *                                               (`diretivasDaPonteDoVLibras`, abaixo). `script-src` do app segue sem
+ *                                               nenhum host de terceiro (`docs/pesquisa/2026-10-29-vlibras-piloto.md`).
  *   VITE_ORT_WASM_URL                           o runtime do ONNX (`ort-wasm-*.{wasm,mjs}`) num R2/CDN
  *                                               (`src/gateway/baseDoWasm.ts`). ESTE é código: entra
  *                                               também em `script-src` e `worker-src` (ver abaixo)
@@ -68,6 +68,8 @@
  * `'self'` e `style-src` não abre nenhuma origem de folha. O Google Fonts saiu em 03/10/2026 — pedir as
  * fontes a ele entregava o IP de cada visitante ao Google (LGPD, docs/lgpd/operadores.md).
  */
+
+import { CAMINHO_DA_PONTE_DO_VLIBRAS, CSP_DO_VLIBRAS } from '../../src/core/libras/vlibras'
 
 /** O que o `helmet` recebe em `contentSecurityPolicy.directives`. */
 export interface DiretivasDeCsp {
@@ -151,8 +153,6 @@ export interface OpcoesDaCsp {
 }
 
 export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: OpcoesDaCsp = {}): DiretivasDeCsp {
-  /* O piloto VLibras (só ligado pelo deploy): ver o cabeçalho deste arquivo. */
-  const vlibras = env.VLIBRAS_ATIVO === '1'
   const doDeploy = [
     origemDe(env.SUPABASE_URL),
     origemDe(env.VITE_SUPABASE_URL),
@@ -193,14 +193,13 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
       ...doDeploy,
       ...runtimeDoOnnx,
       ...turnstile,
-      ...(vlibras ? CSP_DO_VLIBRAS.connect : []),
     ]),
   ]
 
   /* R32: com a flag ligada E a origem configurada, a página de anúncios entra SÓ em `frame-src`. Nada em
      `script-src`: o GPT roda lá, nunca no documento do app. */
   const anuncios = opcoes.anuncios ? [origemDosAnuncios(env)].filter((o): o is string => o !== null) : []
-  const quadros = [...turnstile, ...anuncios, ...(vlibras ? CSP_DO_VLIBRAS.frame : [])]
+  const quadros = [...turnstile, ...anuncios]
 
   return {
     defaultSrc: ["'self'"],
@@ -209,14 +208,7 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
        `.mjs`, faz `URL.createObjectURL` e `import()` desse `blob:` NA THREAD PRINCIPAL — `worker-src` não cobre
        isso. Por isso o conteúdo dos livros NÃO depende desta diretiva: o iframe do capítulo não tem
        `allow-scripts` (`src/lib/leitor/foliate/PATCHES.md`). */
-    scriptSrc: [
-      "'self'",
-      "'wasm-unsafe-eval'",
-      'blob:',
-      ...runtimeDoOnnx,
-      ...turnstile,
-      ...(vlibras ? CSP_DO_VLIBRAS.script : []),
-    ],
+    scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'blob:', ...runtimeDoOnnx, ...turnstile],
     workerSrc: ["'self'", 'blob:', ...runtimeDoOnnx],
     connectSrc: conexoes,
     imgSrc: ["'self'", 'https:', 'data:', 'blob:'],
@@ -225,7 +217,7 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
     // `data:`: o Vite embute no CSS as faces pequenas (Silkscreen, < 4 KB) como data URI; sem isto o
     // navegador as recusa e a marca cai na fonte de reserva (visto no staging, 03/10/2026).
     /* `blob:`: as fontes EMBUTIDAS num EPUB viram `blob:` (o foliate-js reescreve as URLs do livro). */
-    fontSrc: ["'self'", 'data:', 'blob:', ...(vlibras ? CSP_DO_VLIBRAS.font : [])],
+    fontSrc: ["'self'", 'data:', 'blob:'],
     objectSrc: ["'none'"],
     frameAncestors: ["'self'"],
     baseUri: ["'self'"],
@@ -235,6 +227,45 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
        marcação (`src/lib/leitor/foliate/PATCHES.md`). */
     frameSrc: ["'self'", 'blob:', ...quadros],
   }
+}
+
+export { CAMINHO_DA_PONTE_DO_VLIBRAS }
+/** O script da ponte (`public/vlibras-ponte.js`), mesma origem do app. */
+export const SCRIPT_DA_PONTE_DO_VLIBRAS = '/vlibras-ponte.js'
+
+/**
+ * A CSP DA PONTE DO VLIBRAS (`public/vlibras-ponte.html`), só dela. O app NÃO abre nenhum host de terceiro: o widget do
+ * governo federal roda aqui, num iframe de origem opaca (`sandbox="allow-scripts"`, sem `allow-same-origin`) que não
+ * enxerga o DOM, os cookies nem o `localStorage` do Frasy. Sem `VLIBRAS_ATIVO=1` a página não carrega nada (`default-src
+ * 'none'`); com ela abre SÓ os hosts confirmados (`CSP_DO_VLIBRAS`). `frame-ancestors 'self'`: só o próprio app a embute.
+ * O PostHog do widget nunca entra. O jsdelivr entra pelo caminho do repositório do VLibras (destino do 302 do
+ * `vlibras.gov.br`); como o caminho não vale em redirecionamento, isso não impede outro repositório do mesmo CDN, e o
+ * limite real é o sandbox desta página (risco residual no doc de pesquisa).
+ */
+export function diretivasDaPonteDoVLibras(env: NodeJS.ProcessEnv = process.env): Record<string, string[]> {
+  const ativa = env.VLIBRAS_ATIVO === '1'
+  if (!ativa) return { defaultSrc: ["'none'"], frameAncestors: ["'self'"], baseUri: ["'none'"], formAction: ["'none'"] }
+  return {
+    defaultSrc: ["'none'"],
+    scriptSrc: ["'self'", ...CSP_DO_VLIBRAS.script],
+    connectSrc: [...CSP_DO_VLIBRAS.connect],
+    frameSrc: [...CSP_DO_VLIBRAS.frame],
+    imgSrc: ['https:', 'data:', 'blob:'],
+    fontSrc: ["'self'", 'data:', ...CSP_DO_VLIBRAS.font],
+    styleSrc: ["'self'", "'unsafe-inline'"],
+    mediaSrc: ["'self'", 'blob:', 'data:'],
+    objectSrc: ["'none'"],
+    frameAncestors: ["'self'"],
+    baseUri: ["'none'"],
+    formAction: ["'none'"],
+  }
+}
+
+/** A CSP da ponte como texto de cabeçalho. */
+export function cspDaPonteDoVLibras(env: NodeJS.ProcessEnv = process.env): string {
+  return Object.entries(diretivasDaPonteDoVLibras(env))
+    .map(([nome, valores]) => [nome.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase()), ...valores].join(' '))
+    .join('; ')
 }
 
 /**
@@ -265,4 +296,3 @@ export function serializarCsp(d: DiretivasDeCsp): string {
     .map(([nome, valores]) => [nome.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase()), ...valores].join(' '))
     .join('; ')
 }
-import { CSP_DO_VLIBRAS } from '../../src/core/libras/vlibras'

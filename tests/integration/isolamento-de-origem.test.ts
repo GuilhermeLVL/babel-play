@@ -39,6 +39,8 @@ beforeAll(async () => {
   writeFileSync(path.join(dist, 'index.html'), '<!doctype html><div id="root"></div>')
   /* Um chunk de worker: sob COEP, o script de um `new Worker(url)` precisa trazer o cabeçalho também. */
   writeFileSync(path.join(dist, 'assets', 'whisperWorker-Ab12Cd34.js'), 'self.onmessage = () => {}')
+  writeFileSync(path.join(dist, 'vlibras-ponte.html'), '<!doctype html><title>ponte</title>')
+  writeFileSync(path.join(dist, 'vlibras-ponte.js'), '/* ponte */')
 }, 60_000)
 
 afterAll(async () => {
@@ -116,6 +118,52 @@ describe('isolamento de origem na montagem de produção', () => {
     for (const h of await cabecalhosCom('dip', CAMINHOS)) {
       expect(h).toEqual({ coop: 'same-origin', coep: null, dip: 'isolate-and-credentialless' })
     }
+  })
+})
+
+describe('ponte do VLibras na montagem de produção', () => {
+  async function ponte(ativo: boolean) {
+    const anterior = process.env.VLIBRAS_ATIVO
+    if (ativo) process.env.VLIBRAS_ATIVO = '1'
+    else delete process.env.VLIBRAS_ATIVO
+    const { criarApp } = await s.load('../../server/http/app')
+    const { montarSpa } = await s.load('../../server/http/estaticos')
+    const app = criarApp()
+    montarSpa(app, dist)
+    const servidor: Server = await new Promise((r) => {
+      const srv = app.listen(0, '127.0.0.1', () => r(srv))
+    })
+    try {
+      const addr = servidor.address()
+      const base = `http://127.0.0.1:${typeof addr === 'object' && addr ? addr.port : 0}`
+      return await Promise.all(['/vlibras-ponte.html', '/vlibras-ponte.js', '/'].map((c) => fetch(base + c)))
+    } finally {
+      await new Promise<void>((r) => servidor.close(() => r()))
+      if (anterior === undefined) delete process.env.VLIBRAS_ATIVO
+      else process.env.VLIBRAS_ATIVO = anterior
+    }
+  }
+  const csp = (r: Response) =>
+    r.headers.get('content-security-policy') ?? r.headers.get('content-security-policy-report-only')
+
+  it('a página da ponte tem a CSP SÓ dela (uma só), o app não ganha host de terceiro, e o script sai com CORP cross-origin', async () => {
+    const [html, js, app] = await ponte(true)
+    expect(csp(html)).toContain('https://traducao2.vlibras.gov.br')
+    expect(csp(html)).not.toContain("script-src 'self' 'wasm-unsafe-eval'")
+    expect(
+      html.headers.get('content-security-policy-report-only') && html.headers.get('content-security-policy'),
+    ).toBeFalsy()
+    expect(js.headers.get('cross-origin-resource-policy')).toBe('cross-origin')
+    expect(html.headers.get('cross-origin-embedder-policy')).toBeNull()
+    expect(csp(app)).not.toContain('vlibras')
+    expect(app.headers.get('cross-origin-resource-policy')).toBe('same-origin')
+  })
+
+  it('sem VLIBRAS_ATIVO a ponte não deixa carregar nada e o isolamento segue completo', async () => {
+    const [html, , app] = await ponte(false)
+    expect(csp(html)).not.toContain('vlibras.gov.br')
+    expect(csp(html)).toContain("default-src 'none'")
+    expect(app.headers.get('cross-origin-embedder-policy')).toBe('credentialless')
   })
 })
 

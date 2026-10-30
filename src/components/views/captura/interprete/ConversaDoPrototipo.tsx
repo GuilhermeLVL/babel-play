@@ -37,6 +37,7 @@ import {
 } from '../../../../lib/polimento/interprete';
 import { sentir } from '../../../../lib/polimento/sentidos';
 import type { LadoDaVoz } from '../../../../lib/voz/catalogoDeVozes';
+import SinaisDeApoio from '../../../libras/SinaisDeApoio';
 import FolhaDasVozes from '../../../voz/FolhaDasVozes';
 import { CartaoDaMarca, ComparacaoNaPagina, CorrecaoNaPagina, SugestaoParaLer } from '../assistente/AssistenteNaPagina';
 import { TextoComMarcas } from '../assistente/TextoComMarcas';
@@ -599,6 +600,7 @@ export default function ConversaDoPrototipo({
             </button>
           ))}
           {avatares?.botao}
+          <SinaisDeApoio onde="interprete" classe="int-modo int-modo-avatar" />
           {avatares && janelaFlutuante && (
             <button
               type="button"

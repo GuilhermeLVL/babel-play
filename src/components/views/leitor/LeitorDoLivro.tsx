@@ -86,6 +86,7 @@ import { destravarVozDaNuvem } from '../../../lib/voz/vozDaNuvem';
 import type { VocabWord } from '../../../types';
 import { BotaoDoAvatar, DicaDoAvatar } from '../../avatar/modo/BotaoDoAvatar';
 import { useAvatarDoModo } from '../../avatar/modo/useAvatarDoModo';
+import SinaisDeApoio from '../../libras/SinaisDeApoio';
 import { toast } from '../../Toast';
 import VocabularyPanel from '../../VocabularyPanel';
 import AvatarDoNarrador from './AvatarDoNarrador';
@@ -920,6 +921,13 @@ export default function LeitorDoLivro({
               ligado={avatar.ligado}
               aoAlternar={alternarAvatar}
               classe="leitor-botao leitor-botao-rotulo"
+            />
+          )}
+          {!info?.ehPdf && (
+            <SinaisDeApoio
+              onde="livro"
+              classe="leitor-botao leitor-botao-rotulo"
+              texto={selecao?.trecho.texto ?? null}
             />
           )}
           {temElenco && !info?.ehPdf && (

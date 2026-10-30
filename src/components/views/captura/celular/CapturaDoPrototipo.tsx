@@ -18,6 +18,7 @@ import { telasEnxutas } from '../../../../lib/polimento/base';
 import { afundarBotao, celular, entrarPronta, sairMiolo } from '../../../../lib/polimento/captura';
 import { entraSuave } from '../../../../lib/polimento/enxuto';
 import { entrarNivel } from '../../../../lib/polimento/niveis';
+import SinaisDeApoio from '../../../libras/SinaisDeApoio';
 import { BotaoDePausa } from '../enxuta/pecas';
 import { type NiveisDaCaptura, useNiveisDaCaptura } from '../niveis/useNiveisDaCaptura';
 
@@ -235,6 +236,7 @@ export default function CapturaDoPrototipo({
           <Mic aria-hidden />
         </button>
         {avatar?.botao}
+        <SinaisDeApoio onde="legendar" classe="q-ctl vlb-q" />
         <button type="button" className="q-ctl" aria-label={t('Ajustes da captura')} onClick={aoAbrirAjustes}>
           <SlidersHorizontal aria-hidden />
         </button>

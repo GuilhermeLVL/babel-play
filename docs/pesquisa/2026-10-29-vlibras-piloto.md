@@ -27,33 +27,71 @@ rotulado como serviço EXTERNO. Nunca "nosso" nem "tradução oficial". Texto fi
 | Armazenamento local          | `localStorage`: `@vlibras-widget` (aberto/opacidade) e `@vlibras/player` (velocidade, legenda, avatar). Nenhum cookie.                                                                                                                                                                                                                                                                                                                                                                                               |
 | Funciona sob COEP?           | NÃO. Com `Cross-Origin-Embedder-Policy: credentialless` (o padrão do app) o iframe do avatar é bloqueado (`ERR_BLOCKED_BY_RESPONSE`), porque `vlibras.gov.br` não manda COEP. Com `Document-Isolation-Policy: isolate-and-credentialless` e SEM COEP (modo `CROSS_ORIGIN_ISOLATION=dip`) funciona. Ver "Consequência para o deploy".                                                                                                                                                                                 |
 
-## Domínios por diretiva (confirmados no Chromium com uma CSP estreita)
+## Decisão de arquitetura (revisão de segurança, 29/10/2026): o widget NÃO roda no app
 
-CSP de teste: `script-src 'self' https://vlibras.gov.br https://cdn.jsdelivr.net/gh/spbgovbr-vlibras/`; `connect-src`
-com os quatro hosts abaixo; `frame-src https://vlibras.gov.br`; `font-src` com `vlibras.gov.br` e o mesmo caminho do
-jsdelivr; `img-src https:` (já é a regra do app). Resultado: widget abre, avatar carrega, tradução e sinais rodam.
+A primeira versão abria `vlibras.gov.br` e o jsdelivr no `script-src` do app. A revisão apontou (médio) que isso
+enfraquece a CSP do app inteiro: um script de terceiro no documento enxerga o DOM, o `localStorage` e a sessão do
+Frasy, e restringir por caminho no jsdelivr não é confiável (o caminho não vale em redirecionamento, e o CDN serve
+repositórios de qualquer pessoa). Decisão:
 
-| Diretiva      | Entra                                                                                                                                                                                             |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `script-src`  | `https://vlibras.gov.br` e `https://cdn.jsdelivr.net/gh/spbgovbr-vlibras/` (destino do 302; em redirecionamento o caminho da fonte é ignorado e só o host conta, em Chromium).                    |
-| `connect-src` | `https://vlibras.gov.br`, `https://traducao2.vlibras.gov.br`, `https://dicionario2.vlibras.gov.br`, `https://repositorio.vlibras.gov.br`. (`cdn.jsdelivr.net` já está nas conexões fixas do app.) |
-| `frame-src`   | `https://vlibras.gov.br`                                                                                                                                                                          |
-| `font-src`    | `https://vlibras.gov.br` e `https://cdn.jsdelivr.net/gh/spbgovbr-vlibras/` (Rawline, pela mesma regra do redirecionamento).                                                                       |
-| `img-src`     | nada (já `https:`).                                                                                                                                                                               |
-| `media-src`   | nada (não vimos mídia).                                                                                                                                                                           |
+1. O `script-src` (e toda a CSP) do app é IDÊNTICO com e sem `VLIBRAS_ATIVO` (teste). Nenhum host de terceiro.
+2. O widget roda em `public/vlibras-ponte.html`, servida por nós, num `<iframe sandbox="allow-scripts">` SEM
+   `allow-same-origin`: origem opaca, sem acesso ao DOM, cookies nem `localStorage` do Frasy (teste do atributo; o
+   `referrerpolicy` é `no-referrer` e `allow=""`).
+3. A ponte tem CSP PRÓPRIA (`diretivasDaPonteDoVLibras`, só ela, em cabeçalho no Express e bloco `/vlibras-ponte.html` do
+   `dist/_headers`; o `!` tira a CSP herdada para não valerem duas). Sem `VLIBRAS_ATIVO=1`: `default-src 'none'`.
+4. O app e a ponte só falam por `postMessage` com esquema estrito (`lerMensagemParaAPonte` / `lerMensagemDaPonte`): o app
+   só aceita mensagem cujo `event.source` é o iframe e sem carga extra; a ponte só aceita do `window.parent`, texto
+   com teto de 2000 caracteres, e escreve com `textContent`. Limite do navegador: para um iframe de origem opaca o único
+   `targetOrigin` possível é `'*'`; por isso as mensagens do app levam só `iniciar` ou o trecho que a pessoa escolheu
+   enviar, e as da ponte não levam dado nenhum.
+5. O `frame-src` do app continua `'self'` (a ponte é da mesma origem). Nada de terceiro.
+6. SRI: não se aplica. O script oficial é um arquivo vivo do governo (já mudou de formato entre versões) e o
+   `vlibras-plugin.js` busca outros arquivos; SRI não cobriria o conteúdo mutável que ele carrega. A contenção é o
+   sandbox da ponte, a CSP da ponte e o consentimento 18+.
+7. Provado em Chromium (Playwright, rede real): dentro do sandbox opaque o widget abre, o avatar carrega, o texto vai a
+   `traducao2` e os sinais vêm de `dicionario2`. O `localStorage` do widget fica indisponível (só avisos do zustand).
+   Com COEP em qualquer ponto da cadeia o avatar é bloqueado: por isso `VLIBRAS_ATIVO=1` ainda troca `completo` por
+   `dip` no app (a ponte também fica sem COEP).
 
-O PostHog fica BLOQUEADO de propósito: como o caminho do jsdelivr é limitado a `/gh/spbgovbr-vlibras/`, o `import()`
-direto de `cdn.jsdelivr.net/npm/posthog-js` viola a CSP (visto no console) e o widget segue funcionando sem analytics.
-`us.i.posthog.com` e `us-assets.i.posthog.com` NÃO entram em nenhuma diretiva. Limite: a pergunta de aceite de analytics
-do widget continua aparecendo (é do widget); aceitar não envia nada porque a biblioteca não carrega. Só provado no
-Chromium: Safari e Firefox podem tratar o caminho em redirecionamento de outro jeito (NC).
+### Risco residual (a CSP e o sandbox NÃO resolvem)
+
+- O widget continua enviando o texto ao serviço do governo (`traducao2.vlibras.gov.br`), e o IP do aparelho chega a
+  `vlibras.gov.br`, ao jsdelivr (redirecionamento) e ao `dicionario2`. Só o consentimento 18+ mitiga isso.
+- O PostHog do widget é bloqueado pela CSP da ponte (o `import()` do `cdn.jsdelivr.net/npm/posthog-js` viola o caminho
+  `/gh/spbgovbr-vlibras/`), mas o `widget_initialized` amostrado e a pergunta de analytics são do widget. Se o
+  navegador tratar o caminho de outra forma (Safari/Firefox, NC), a biblioteca poderia carregar DENTRO do sandbox: o
+  que ela enxerga é só a página da ponte (a frase enviada e `host`/`origin` opaco).
+- O jsdelivr entra em `script-src` e `font-src` da ponte pelo host (redirecionamento): outro repositório do mesmo CDN
+  poderia ser carregado por um script que já esteja rodando na ponte. O dano fica no sandbox (sem DOM/sessão do app),
+  limitado ao `connect-src` da ponte.
+- Código remoto mutável (o governo pode mudar o widget a qualquer hora).
+
+## Domínios por diretiva (confirmados em Chromium; valem para a CSP da PONTE, não do app)
+
+Teste: `script-src 'self' https://vlibras.gov.br https://cdn.jsdelivr.net/gh/spbgovbr-vlibras/`, `connect-src` com os quatro
+hosts, `frame-src https://vlibras.gov.br`, fontes pelos mesmos hosts, `img-src https:`. Widget abre, avatar carrega,
+tradução e sinais funcionam.
+
+| Diretiva (da ponte) | Entra                                                                                                                                                 |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `script-src`        | `'self'` (a ponte), `https://vlibras.gov.br` e `https://cdn.jsdelivr.net/gh/spbgovbr-vlibras/` (destino do 302; só o host conta no redirecionamento). |
+| `connect-src`       | `https://vlibras.gov.br`, `https://traducao2.vlibras.gov.br`, `https://dicionario2.vlibras.gov.br`, `https://repositorio.vlibras.gov.br`.             |
+| `frame-src`         | `https://vlibras.gov.br` (o avatar Unity).                                                                                                            |
+| `font-src`          | `'self'`, `data:`, `https://vlibras.gov.br` e o mesmo caminho do jsdelivr (Rawline, pelo redirecionamento).                                           |
+| `img-src`           | `https:`, `data:`, `blob:` (a ponte; o app já é `https:`).                                                                                            |
+| `media-src`         | `'self'`, `blob:`, `data:` (não vimos mídia).                                                                                                         |
+| nunca               | `us.i.posthog.com`, `us-assets.i.posthog.com`, `cdn.jsdelivr.net` inteiro, `unsafe-eval`, `*`.                                                        |
 
 ## Consequência para o deploy (COEP)
 
-O app roda isolado (COOP + COEP `credentialless` + DIP) para ter threads no WASM. Para o iframe do VLibras funcionar,
-`VLIBRAS_ATIVO=1` troca o modo `completo` por `dip` (sem COEP), tanto no Express (`server/http/isolamento.ts`) quanto
-no `dist/_headers`. Custo: o Firefox perde o isolamento (e as threads dos modelos locais); Chromium mantém pelo DIP;
-Safari já não isolava. É o preço de ligar o piloto, e só acontece com a variável.
+O app roda isolado (COOP + COEP `credentialless` + DIP) para ter threads no WASM. O avatar do VLibras é um iframe de outra
+origem que não manda COEP, e sob COEP o navegador o bloqueia (`ERR_BLOCKED_BY_RESPONSE`, visto também com a ponte no
+meio). `VLIBRAS_ATIVO=1` troca o modo `completo` por `dip` (sem COEP) no Express (`server/http/isolamento.ts`) e no
+`dist/_headers`. Custo: o Firefox perde o isolamento e as threads dos modelos locais; Chromium mantém pelo DIP; Safari
+já não isolava. O script da ponte sai com `Cross-Origin-Resource-Policy: cross-origin` no Express (origem opaca conta
+como outra origem). A regra `!` do `_headers` (tirar a CSP herdada na ponte) não foi provada no Workers Static Assets:
+conferir com `curl -I` (ver `docs/runbooks/vlibras-piloto.md`).
 
 ## Riscos e o que NÃO foi confirmado (NC)
 

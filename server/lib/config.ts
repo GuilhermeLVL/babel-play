@@ -283,6 +283,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: '1 liga o modo público, 0 desliga; sem valor, liga só em produção',
   },
   {
+    nome: 'AVATAR_GALERIA_TERCEIROS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'com `1`, a CSP libera `arweave.net` e `*.arweave.net` em `connect-src` para a galeria ao vivo de avatares (coleção 100Avatars, CC0), atrás da flag `avatar_3d` e do opt-in da pessoa; nunca para perfil protegido. Ausente: a galeria avisa que está indisponível',
+  },
+  {
     nome: 'BABEL_RUNTIME',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -935,6 +942,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'quantos corpos grandes o MESMO usuário pode ter em voo ao mesmo tempo (server/lib/corposGrandes.ts). Ausente ou inválido: 1',
+  },
+  {
+    nome: 'VITE_AVATARES_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'base pública do bucket R2 com a coleção curada de avatares 3D (`colecao/<id>.vrm`, `familia/<id>.glb`), para o avatar atrás da flag `avatar_3d`. Ausente: os modelos saem do PRÓPRIO domínio (`/avatares`). Com ela, a CSP libera a origem em `connect-src` (dado, nunca `script-src`)',
   },
   {
     nome: 'VITE_BERGAMOT_MODELOS_URL',

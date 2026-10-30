@@ -1,0 +1,567 @@
+/*
+ * A TELA "MEU AVATAR" (Perfil > Avatar). As peças comuns (`.q-secao`, `.q-cartao`, `.q-ctl`, `.q-campo`, `.q-abas`)
+ * e os tokens moram em `quest.css`; aqui fica só o que é desta área, com o prefixo `.av-`.
+ *
+ * As mesmas regras da casa: só tokens do tema, alvo >= 56 px, nada que dependa só de cor (o escolhido leva borda
+ * grossa, marca de verificação e o texto "Escolhido"), foco sempre visível, sem animação com movimento reduzido,
+ * e cores do sistema quando o contraste alto está ligado (`forced-colors`).
+ */
+
+.av-tela {
+  display: grid;
+  gap: 26px;
+  min-width: 0;
+}
+.av-duas {
+  display: grid;
+  gap: 22px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'previa'
+    'controles'
+    'extra';
+  align-items: start;
+  /* Celular: a barra de navegação inferior flutua sobre a página; o fim da tela passa por cima dela. */
+  padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+}
+.av-previa {
+  grid-area: previa;
+}
+.av-controles {
+  grid-area: controles;
+}
+.av-extra {
+  grid-area: extra;
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+@media (min-width: 880px) {
+  .av-duas {
+    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+    grid-template-areas:
+      'previa controles'
+      'extra controles';
+    grid-template-rows: auto 1fr;
+    padding-bottom: 0;
+  }
+  .av-extra {
+    justify-items: center;
+  }
+}
+.av-previa {
+  position: relative;
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  padding: 16px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 20px;
+  background: var(--surface-sunken, var(--surface));
+}
+.av-previa-texto {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  min-width: 0;
+}
+.av-acoes-previa {
+  justify-content: center;
+}
+.av-status {
+  min-height: 24px;
+}
+/* Enquadramento da prévia: corpo inteiro ou rosto (a miniatura do perfil é sempre o rosto). */
+.av-modo {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border-subtle);
+  background: var(--surface);
+}
+.av-modo-botao {
+  min-height: 48px;
+  padding: 0 16px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-muted);
+  font: 700 15px/1 var(--font-body, inherit);
+  cursor: pointer;
+}
+.av-modo-botao[aria-pressed='true'] {
+  background: var(--q-suave, var(--accent-soft));
+  border-color: var(--q-acento, var(--accent));
+  color: var(--ink);
+}
+.av-modo-botao:focus-visible {
+  outline: 3px solid var(--q-acento, var(--accent));
+  outline-offset: 2px;
+}
+.av-previa-moldura {
+  width: min(100%, 300px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--canvas);
+}
+/* No Estúdio a prévia viva é a dele: aqui ficam só o texto, o "Salvar" e o crédito (um contexto WebGL só). */
+.av-previa-sem-canvas .av-previa-moldura {
+  display: none;
+}
+.av-credito {
+  margin: 0;
+  max-width: 34ch;
+  text-align: center;
+  font: 600 14px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.av-vazio {
+  margin: 0;
+  max-width: 34ch;
+  text-align: center;
+  font: 700 17px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+
+/* CELULAR: a prévia viva fica fixa no topo (compacta, no máximo 40% da altura) enquanto se mexe nos controles.
+   Tudo cabe na largura da tela: nada aqui pode alargar a página. */
+@media (max-width: 879px) {
+  .av-previa {
+    position: sticky;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    z-index: 20;
+    max-height: 40vh;
+    max-height: 40dvh;
+    overflow: hidden;
+    grid-template-columns: 112px minmax(0, 1fr);
+    place-items: center stretch;
+    gap: 12px;
+    padding: 10px;
+    min-width: 0;
+    background: var(--surface);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--ink) 16%, transparent);
+  }
+  .av-previa-moldura {
+    width: 112px;
+  }
+  .av-previa-sem-canvas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .av-previa-texto {
+    justify-items: start;
+    gap: 8px;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .av-previa-texto > * {
+    max-width: 100%;
+    min-width: 0;
+  }
+  .av-previa .av-credito {
+    max-width: none;
+    text-align: start;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+  .av-previa .q-ctl {
+    min-height: 48px;
+    padding-inline: 14px;
+    font-size: 16px;
+    max-width: 100%;
+  }
+  .av-modo-botao {
+    min-height: 44px;
+    padding: 0 10px;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .av-status {
+    min-height: 0;
+  }
+}
+
+/* ── Grade da coleção ─────────────────────────────────────────────────────────────────────────── */
+.av-grade {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+.av-modelo {
+  position: relative;
+  width: 100%;
+  min-height: 112px;
+  padding: 14px;
+  display: grid;
+  gap: 6px;
+  align-content: center;
+  justify-items: start;
+  text-align: start;
+  border: 2px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 700 17px/1.25 var(--font-body, inherit);
+  cursor: pointer;
+}
+.av-modelo small {
+  font: 600 14px/1.35 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.av-modelo:hover {
+  border-color: var(--q-acento, var(--accent));
+}
+.av-modelo[aria-checked='true'] {
+  border-width: 4px;
+  padding: 12px;
+  border-color: var(--q-acento, var(--accent));
+  background: var(--q-suave, var(--accent-soft));
+}
+.av-modelo .av-marca {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  font: 800 14px/1 var(--font-body, inherit);
+  color: var(--accent-ink, var(--q-acento));
+}
+.av-modelo[aria-checked='true'] .av-marca {
+  display: inline-flex;
+}
+.av-modelo .av-marca svg {
+  width: 18px;
+  height: 18px;
+}
+.av-modelo:focus-visible,
+.av-cor:focus-visible,
+.av-fonte a:focus-visible {
+  outline: 3px solid var(--q-acento, var(--accent));
+  outline-offset: 3px;
+}
+
+/* ── Paleta ───────────────────────────────────────────────────────────────────────────────────── */
+.av-paleta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.av-cor {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong, var(--border-subtle));
+  background: var(--av-cor, var(--canvas));
+  color: #fff;
+  cursor: pointer;
+}
+.av-cor[aria-checked='true'] {
+  border-color: var(--ink);
+  box-shadow:
+    0 0 0 3px var(--surface),
+    0 0 0 6px var(--q-acento, var(--accent));
+}
+.av-cor svg {
+  width: 26px;
+  height: 26px;
+  /* O visto lê em qualquer tom: contorno claro e escuro. */
+  filter: drop-shadow(0 0 1px #000) drop-shadow(0 0 2px #000);
+}
+.av-cor.av-original {
+  background: repeating-linear-gradient(45deg, var(--canvas) 0 6px, var(--surface-sunken, var(--surface)) 6px 12px);
+  color: var(--ink);
+}
+.av-cor.av-original svg {
+  filter: none;
+}
+.av-nome-da-cor {
+  margin: 0;
+  font: 700 15px/1.3 var(--font-body, inherit);
+  color: var(--ink-muted);
+  min-height: 1.3em;
+}
+
+/* ── Ajustes (faixas) ─────────────────────────────────────────────────────────────────────────── */
+.av-ajuste {
+  display: grid;
+  gap: 6px;
+}
+.av-ajuste label {
+  font: 700 17px/1.3 var(--font-body, inherit);
+}
+.av-ajuste output {
+  font: 700 15px/1 var(--font-mono, monospace);
+  color: var(--ink-muted);
+}
+.av-ajuste input[type='range'] {
+  width: 100%;
+  min-height: 44px;
+  accent-color: var(--q-acento, var(--accent));
+}
+.av-ajuste input[type='range']:focus-visible {
+  outline: 3px solid var(--q-acento, var(--accent));
+  outline-offset: 3px;
+}
+
+/* ── Traga o seu ──────────────────────────────────────────────────────────────────────────────── */
+.av-passos {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+  counter-reset: passo;
+}
+.av-passos li {
+  counter-increment: passo;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  font: 600 17px/1.45 var(--font-body, inherit);
+}
+.av-passos li::before {
+  content: counter(passo);
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--q-acento, var(--accent));
+  font: 800 18px/1 var(--font-display, inherit);
+}
+.av-passos li.av-passo-ativo::before {
+  background: var(--q-acento, var(--accent));
+  color: var(--q-sobre-acento, #fff);
+}
+.av-passos b {
+  display: block;
+}
+.av-faq details {
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 0 16px;
+  background: var(--surface);
+}
+.av-faq summary {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font: 700 17px/1.3 var(--font-body, inherit);
+}
+.av-faq summary:focus-visible {
+  outline: 3px solid var(--q-acento, var(--accent));
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+.av-faq details > :not(summary) {
+  margin: 0 0 14px;
+  font: 600 16px/1.5 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.av-fontes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+.av-fonte {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 16px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.av-fonte h4 {
+  margin: 0;
+  font: 800 18px/1.25 var(--font-display, inherit);
+}
+.av-fonte p {
+  margin: 0;
+  font: 600 15px/1.45 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.av-fonte a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font: 700 16px/1.2 var(--font-body, inherit);
+  color: var(--accent-ink, var(--q-acento));
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.av-fonte a svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ── Soltar o arquivo, avisos, galeria ────────────────────────────────────────────────────────── */
+.av-solta {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  padding: 22px;
+  text-align: center;
+  border: 2px dashed var(--border-strong, var(--border-subtle));
+  border-radius: 18px;
+  background: var(--surface);
+}
+.av-solta[data-sobre='true'] {
+  border-color: var(--q-acento, var(--accent));
+  background: var(--q-suave, var(--accent-soft));
+}
+.av-aviso {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 2px solid var(--warn, var(--border-strong));
+  background: var(--surface);
+  font: 600 16px/1.45 var(--font-body, inherit);
+}
+.av-aviso svg {
+  width: 22px;
+  height: 22px;
+}
+.av-aviso[data-tom='erro'] {
+  border-color: var(--error, var(--border-strong));
+}
+.av-aviso[data-tom='ok'] {
+  border-color: var(--good, var(--border-strong));
+}
+.av-aviso ul {
+  margin: 6px 0 0;
+  padding-inline-start: 20px;
+}
+.av-aviso b {
+  font-weight: 800;
+}
+.av-confirma {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  min-height: 56px;
+  font: 700 17px/1.4 var(--font-body, inherit);
+}
+.av-confirma input {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  margin-top: 2px;
+  accent-color: var(--q-acento, var(--accent));
+}
+.av-galeria {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+}
+.av-galeria img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 10px;
+  background: var(--canvas);
+}
+/* O resultado da conferência: o visto fica alinhado ao título, e "Ver a licença" não quebra de linha. */
+.av-titulo-ok {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font: 800 20px/1.2 var(--font-display, inherit);
+}
+.av-titulo-ok svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+.av-nowrap {
+  white-space: nowrap;
+}
+.av-nowrap .av-link-licenca svg {
+  /* O ícone do app é `display: block` por padrão: aqui fica na linha, colado ao texto. */
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  vertical-align: -2px;
+}
+.av-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .av-tela * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Contraste alto do sistema: bordas e foco nas cores do sistema, o escolhido continua dito por borda e visto. */
+@media (forced-colors: active) {
+  .av-modelo,
+  .av-cor,
+  .av-fonte,
+  .av-previa,
+  .av-aviso,
+  .av-solta {
+    border-color: CanvasText;
+  }
+  .av-modelo[aria-checked='true'],
+  .av-cor[aria-checked='true'] {
+    border-color: Highlight;
+    outline: 3px solid Highlight;
+  }
+  .av-cor {
+    forced-color-adjust: none;
+  }
+  .av-cor svg {
+    filter: none;
+  }
+}
+
+/* Perfil protegido: o que está fechado e a linha do responsável, em parágrafos separados (também no celular). */
+.av-protegido {
+  display: grid;
+  gap: 10px;
+  margin: 4px 0 14px;
+}
+.av-protegido .qc-nota {
+  margin: 0;
+}
+
+/* CONTRASTE MEDIDO (a11y do M2.2, `tests/e2e/avatar-a11y.e2e.ts`). No escuro o botão secundário era fundo e borda quase
+   iguais ao cartão (1:1), e o "Salvar" desabilitado ficava a 1,09:1 (texto escuro a 40% de opacidade sobre fundo escuro):
+   a única explicação do estado ("Avatar já salvo") não se lia. Agora: contorno de 3:1 ou mais nos secundários, e o
+   desabilitado deixa de ser "apagado": é um botão quieto, de texto cheio, com o contorno tracejado. */
+.av-tela .q-ctl:not(.pri):not(:hover):not([aria-pressed='true']) {
+  border-color: color-mix(in srgb, var(--ink) 55%, var(--canvas));
+}
+.av-tela .q-ctl:disabled,
+.av-tela .q-ctl.pri:disabled {
+  opacity: 1;
+  background: var(--surface-sunken);
+  color: var(--ink);
+  border: 2px dashed color-mix(in srgb, var(--ink) 55%, var(--canvas));
+  box-shadow: none;
+}

@@ -47,6 +47,8 @@ export interface EstadoDoControle extends EstadoDoInterprete {
    * "Detectar", ou o terceiro idioma. `null` = o combinado, ou ainda nenhum. Zera quando a escuta recomeça.
    */
   detectado: string | null;
+  /** Quantas traduções esperam atrás da que está em voz (só a fila; a soletração do avatar pula quando atrasa). */
+  naFila?: number;
 }
 
 export interface OpcoesDoControle {
@@ -154,11 +156,17 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
   const traducoes = new Map<string, TraducaoFinal>();
   let desligado = false;
   let falando: ItemDeFala | null = null;
+  let naFila = 0;
   /** Cortar a voz para ler um trecho tocado não é "fim da voz": o automático não reabre o microfone. */
   let cortandoParaTrecho = false;
   let trechos = 0;
 
-  const estado = (): EstadoDoControle => ({ ...maquina.estado(), falando, detectado: conversa.estrangeiro });
+  const estado = (): EstadoDoControle => ({
+    ...maquina.estado(),
+    falando,
+    detectado: conversa.estrangeiro,
+    naFila,
+  });
   const avisar = () => {
     if (!desligado) o.aoMudar?.(estado());
   };
@@ -179,6 +187,7 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
     aoDescartar: (item) => void enfileiradoEm.delete(item.id),
     aoMudar: (f) => {
       falando = f.falando;
+      naFila = f.espera.length;
       if (!f.falando && f.espera.length === 0 && !cortandoParaTrecho) maquina.enviar({ tipo: 'fimDaVoz' });
       avisar();
     },

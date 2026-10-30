@@ -964,6 +964,44 @@ button.q-chip[aria-pressed='true'] {
 .q-abas.q-seg {
   padding: 4px;
 }
+/* CELULAR: a faixa de abas rola de lado. `scroll-snap`, para nenhuma aba parar cortada ("gresso"), e uma esmaecida
+   nas pontas ONDE AINDA HÁ ABA ESCONDIDA (`AbasDoQuest` marca `data-rola-esq` e `data-rola-dir` ao rolar). */
+@media (max-width: 879px) {
+  .q-abas:not(.q-seg) {
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: 28px;
+  }
+  .q-abas:not(.q-seg) .q-aba {
+    scroll-snap-align: center;
+  }
+  .q-abas[data-rola-esq],
+  html[data-px='on'] .q-palco .q-abas[data-rola-esq]:not(.q-seg) {
+    --q-esmaece-esq: 0px;
+    --q-esmaece-dir: 0px;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--q-esmaece-esq),
+      #000 calc(100% - var(--q-esmaece-dir)),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--q-esmaece-esq),
+      #000 calc(100% - var(--q-esmaece-dir)),
+      transparent 100%
+    );
+  }
+  .q-abas[data-rola-esq='true'],
+  html[data-px='on'] .q-palco .q-abas[data-rola-esq='true']:not(.q-seg) {
+    --q-esmaece-esq: 44px;
+  }
+  .q-abas[data-rola-dir='true'],
+  html[data-px='on'] .q-palco .q-abas[data-rola-dir='true']:not(.q-seg) {
+    --q-esmaece-dir: 44px;
+  }
+}
 .q-seg .q-aba {
   min-height: 52px;
   padding: 0 18px;
@@ -1630,5 +1668,31 @@ html[data-quest-novo='true'][data-dispositivo^='desktop'] .q-palco {
   }
   .q-vivo-opcao {
     transition: none;
+  }
+}
+
+/* CELULAR: as abas com `grade` (Perfil: Você, Progresso, Seus dados, Avatar; Meu avatar: Escolher, Personalizar, Estúdio,
+   Traga o seu) ficam TODAS à vista numa grade de 2 colunas,
+   sem rolar de lado e sem rótulo cortado. A faixa de rolagem de `.q-abas` continua valendo no desktop. */
+@media (max-width: 879px) {
+  .q-abas.q-abas-grade {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    overflow: visible;
+    align-self: stretch;
+    border-radius: 28px;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .q-abas.q-abas-grade .q-aba {
+    min-height: 48px;
+    padding: 0 10px;
+    justify-content: center;
+    text-align: center;
+    min-width: 0;
+  }
+  .q-abas.q-abas-grade .q-aba:last-of-type:nth-of-type(odd) {
+    grid-column: 1 / -1;
   }
 }

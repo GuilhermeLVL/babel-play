@@ -37,6 +37,16 @@ export interface QuadroDaLegenda {
    * Só leitura, como o resto do quadro.
    */
   glosa?: string;
+  /**
+   * O avatar da conversa (flag `avatar_3d`): um círculo de `lado` px e o texto usa o que sobra. À esquerda nos formatos
+   * horizontais (`faixa`, `legenda`); no alto, centrado, no `conversa` (vertical). O `estudo` fica sem avatar.
+   */
+  avatar?: { lado: number };
+  /**
+   * A soletração do avatar está ligada (flag `avatar_sinais`): o aviso curto fixo, desenhado SEMPRE no canto de cima do
+   * quadro ("Demonstração · não é tradução"). Ausente = o quadro é o de sempre.
+   */
+  avisoDaSoletracao?: string;
   /** Os textos da moldura, já traduzidos para a interface (`t()` fica com quem chama). */
   textos: { vazio: string; pausada: string };
 }
@@ -48,6 +58,38 @@ export const DIMENSOES_DO_QUADRO: Readonly<Record<Formato, { largura: number; al
   conversa: { largura: 720, altura: 960 },
   estudo: { largura: 1280, altura: 360 },
 };
+
+/** O espaço que o avatar toma da ESQUERDA do quadro (círculo + respiro) nos formatos horizontais; senão 0. */
+export function reservaDoAvatar(q: Pick<QuadroDaLegenda, 'formato' | 'avatar'>): number {
+  return q.avatar && (q.formato === 'faixa' || q.formato === 'legenda') ? q.avatar.lado + 48 : 0;
+}
+
+/** O espaço que o avatar toma do ALTO do quadro no formato vertical (`conversa`); senão 0. */
+export function reservaDoAvatarNoTopo(q: Pick<QuadroDaLegenda, 'formato' | 'avatar'>): number {
+  return q.avatar && q.formato === 'conversa' ? q.avatar.lado + 32 : 0;
+}
+
+/** Onde o círculo do avatar é desenhado no quadro (`lado` 0 = o formato não tem avatar). */
+export function retanguloDoAvatar(q: Pick<QuadroDaLegenda, 'formato' | 'avatar'>) {
+  const { largura, altura } = DIMENSOES_DO_QUADRO[q.formato];
+  const lado = q.avatar && q.formato !== 'estudo' ? q.avatar.lado : 0;
+  if (q.formato === 'conversa') return { x: Math.round((largura - lado) / 2), y: 16, lado };
+  return { x: 24, y: Math.round((altura - lado) / 2), lado };
+}
+
+/** Desenha o avatar dentro do círculo do quadro (o fundo do círculo é pintado por `desenharQuadro`). */
+function pintarNoCirculo(
+  ctx: CanvasRenderingContext2D,
+  imagem: CanvasImageSource,
+  r: { x: number; y: number; lado: number },
+) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(r.x + r.lado / 2, r.y + r.lado / 2, r.lado / 2, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.drawImage(imagem, r.x, r.y, r.lado, r.lado);
+  ctx.restore();
+}
 
 const CORES = {
   escuro: {
@@ -92,9 +134,18 @@ export function desenharQuadro(ctx: CanvasRenderingContext2D, q: QuadroDaLegenda
   const cor = CORES[q.fundo];
   ctx.fillStyle = cor.fundo;
   ctx.fillRect(0, 0, W, H);
+  if (retanguloDoAvatar(q).lado > 0) {
+    const r = retanguloDoAvatar(q);
+    ctx.fillStyle = q.fundo === 'claro' ? 'rgba(29,25,21,0.10)' : 'rgba(255,255,255,0.10)';
+    ctx.beginPath();
+    ctx.arc(r.x + r.lado / 2, r.y + r.lado / 2, r.lado / 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   const margem = q.formato === 'conversa' ? 40 : 48;
-  const larguraUtil = W - margem * 2;
+  const reserva = reservaDoAvatar(q);
+  const reservaDeCima = reservaDoAvatarNoTopo(q);
+  const larguraUtil = W - margem * 2 - reserva;
   const escala = Math.min(2, Math.max(0.5, q.escala));
   const tamO = Math.round((q.formato === 'faixa' ? 54 : q.formato === 'conversa' ? 40 : 52) * escala);
   const tamT = Math.round(tamO * 0.8);
@@ -102,13 +153,13 @@ export function desenharQuadro(ctx: CanvasRenderingContext2D, q: QuadroDaLegenda
   const centro = q.formato !== 'conversa';
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = centro ? 'center' : 'left';
-  const x = centro ? W / 2 : margem;
+  const x = centro ? reserva + (W - reserva) / 2 : margem;
 
   if (!q.falas.length) {
     ctx.font = `600 ${Math.round(tamT * 0.9)}px ${FONTE}`;
     ctx.fillStyle = cor.quem;
     ctx.textAlign = 'center';
-    ctx.fillText(q.textos.vazio, W / 2, H / 2 + tamT / 3);
+    ctx.fillText(q.textos.vazio, reserva + (W - reserva) / 2, (H + reservaDeCima) / 2 + tamT / 3);
   } else {
     /* Monta as linhas de baixo para cima até acabar a altura. */
     type Linha = { texto: string; fonte: string; cor: string; altura: number };
@@ -143,7 +194,8 @@ export function desenharQuadro(ctx: CanvasRenderingContext2D, q: QuadroDaLegenda
       return linhas;
     });
     const espacoEntre = q.formato === 'conversa' ? tamO * 0.7 : tamO * 0.45;
-    let y = H - margem * 0.7;
+    let y =
+      H - margem * 0.7 - (q.avisoDaSoletracao && q.formato === 'conversa' ? Math.max(20, tamQ * 0.9) * 1.6 + 10 : 0);
     /* A glosa mora no pé do quadro, com um ponto à esquerda; a legenda sobe para dar lugar a ela. */
     if (q.glosa) {
       const tamG = Math.round(tamO * 0.56);
@@ -152,7 +204,7 @@ export function desenharQuadro(ctx: CanvasRenderingContext2D, q: QuadroDaLegenda
       const texto = linha ?? q.glosa;
       const largura = ctx.measureText(texto).width;
       const yG = H - margem * 0.55;
-      const x0 = centro ? (W - largura) / 2 : margem + tamG * 0.6;
+      const x0 = centro ? reserva + (W - reserva - largura) / 2 : margem + tamG * 0.6;
       /* Um ponto na cor da marca de expressão (o mesmo sinal do sublinhado da janela), não um traço que se leia "|". */
       ctx.fillStyle = cor.glosa;
       ctx.beginPath();
@@ -163,10 +215,20 @@ export function desenharQuadro(ctx: CanvasRenderingContext2D, q: QuadroDaLegenda
       ctx.textAlign = centro ? 'center' : 'left';
       y = yG - tamG * 1.35;
     }
+    /* Quais falas cabem (a mais nova sempre; as antigas até acabar a altura). */
+    const visiveis: number[] = [];
+    let ocupado = 0;
     for (let i = blocos.length - 1; i >= 0; i--) {
+      const alturaDoBloco = blocos[i].reduce((s, l) => s + l.altura, 0);
+      if (y - ocupado - alturaDoBloco < reservaDeCima && i < blocos.length - 1) break;
+      visiveis.push(i);
+      ocupado += alturaDoBloco + espacoEntre;
+    }
+    /* Com o avatar no alto (`conversa`), o texto fica COLADO embaixo dele, não no pé do quadro: sem o vazio no meio. */
+    if (reservaDeCima > 0) y = Math.min(y, reservaDeCima + ocupado - espacoEntre);
+    for (const i of visiveis) {
       const bloco = blocos[i];
       const alturaDoBloco = bloco.reduce((s, l) => s + l.altura, 0);
-      if (y - alturaDoBloco < 0 && i < blocos.length - 1) break;
       const anterior = i < blocos.length - 1;
       ctx.globalAlpha = anterior ? 0.6 : 1;
       let yl = y - alturaDoBloco;
@@ -179,6 +241,23 @@ export function desenharQuadro(ctx: CanvasRenderingContext2D, q: QuadroDaLegenda
       ctx.globalAlpha = 1;
       y -= alturaDoBloco + espacoEntre;
     }
+  }
+
+  if (q.avisoDaSoletracao) {
+    const tam = Math.round(Math.max(20, tamQ * 0.9));
+    ctx.font = `800 ${tam}px ${FONTE}`;
+    ctx.textAlign = 'left';
+    const w = ctx.measureText(q.avisoDaSoletracao).width + tam;
+    const h = tam * 1.6;
+    /* No vertical (`conversa`) o avatar ocupa o alto: o aviso vai no pé, centrado. Nos horizontais, o avatar fica à
+       esquerda e o aviso no canto de cima, à direita (abaixo do selo de pausa, se houver). */
+    const x0 = q.formato === 'conversa' ? (W - w) / 2 : W - w - 16;
+    const y0 = q.formato === 'conversa' ? H - h - 10 : 14 + (q.pausado ? Math.max(22, tamQ) * 1.6 + 8 : 0);
+    ctx.fillStyle = '#ffd23f';
+    ctx.fillRect(x0, y0, w, h);
+    ctx.fillStyle = '#2a1e00';
+    ctx.fillText(q.avisoDaSoletracao, x0 + tam / 2, y0 + tam * 1.15);
+    ctx.textAlign = centro ? 'center' : 'left';
   }
 
   if (q.pausado) {
@@ -219,6 +298,14 @@ export interface LegendaEmVideo {
   abrir(acoes: AcoesDoVideo): Promise<void>;
   /** Redesenha só se o quadro mudou. */
   desenhar(q: QuadroDaLegenda): void;
+  /**
+   * A PONTE DO AVATAR: recebe o canvas WebGL do avatar e o copia, de imediato, para o quadro (o canvas WebGL só pode ser
+   * lido na mesma tarefa em que foi desenhado: chame de dentro do `aoQuadro` do motor). Só pinta se o último quadro
+   * reservou lugar (`QuadroDaLegenda.avatar`).
+   */
+  pintarAvatar(origem: CanvasImageSource): void;
+  /** Esquece a cópia do avatar (o avatar saiu). */
+  limparAvatar(): void;
   fechar(): Promise<void>;
   aberta(): boolean;
   /** Solta tudo (saiu da tela da captura). */
@@ -249,6 +336,9 @@ export function criarLegendaEmVideo(doc: Document = document): LegendaEmVideo {
   let canvas: HTMLCanvasElement | null = null;
   let video: HTMLVideoElement | null = null;
   let ultimaChave = '';
+  let ultimoQuadro: QuadroDaLegenda | null = null;
+  /* A cópia do último quadro do avatar: o canvas WebGL some depois da tarefa, e o texto pode redesenhar o quadro sem ele. */
+  let copiaDoAvatar: HTMLCanvasElement | null = null;
   let emPiP = false;
   let acoes: AcoesDoVideo | null = null;
   /* Pausa pedida pela Media Session (Chrome): o vídeo segue tocando para o selo "Pausada" aparecer. */
@@ -370,18 +460,44 @@ export function criarLegendaEmVideo(doc: Document = document): LegendaEmVideo {
       if (ms) ms.playbackState = 'playing';
     },
 
+    pintarAvatar(origem) {
+      if (!canvas || !ultimoQuadro || retanguloDoAvatar(ultimoQuadro).lado === 0) return;
+      const { x, y, lado } = retanguloDoAvatar(ultimoQuadro);
+      if (!copiaDoAvatar) copiaDoAvatar = doc.createElement('canvas');
+      if (copiaDoAvatar.width !== lado || copiaDoAvatar.height !== lado) {
+        copiaDoAvatar.width = lado;
+        copiaDoAvatar.height = lado;
+      }
+      const c = copiaDoAvatar.getContext('2d');
+      const ctx = canvas.getContext('2d');
+      if (!c || !ctx) return;
+      c.clearRect(0, 0, lado, lado);
+      c.drawImage(origem, 0, 0, lado, lado);
+      pintarNoCirculo(ctx, copiaDoAvatar, { x, y, lado });
+    },
+
+    limparAvatar() {
+      copiaDoAvatar = null;
+    },
+
     desenhar(q) {
       if (!canvas) return;
       const chave = chaveDoQuadro(q);
       if (chave === ultimaChave) return;
       ultimaChave = chave;
+      ultimoQuadro = q;
       const { largura, altura } = DIMENSOES_DO_QUADRO[q.formato];
       if (canvas.width !== largura || canvas.height !== altura) {
         canvas.width = largura;
         canvas.height = altura;
       }
       const ctx = canvas.getContext('2d');
-      if (ctx) desenharQuadro(ctx, q);
+      if (ctx) {
+        desenharQuadro(ctx, q);
+        if (copiaDoAvatar && retanguloDoAvatar(q).lado > 0) {
+          pintarNoCirculo(ctx, copiaDoAvatar, retanguloDoAvatar(q));
+        }
+      }
     },
 
     async fechar() {

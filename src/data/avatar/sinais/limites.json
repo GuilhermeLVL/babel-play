@@ -1,0 +1,15 @@
+{
+  "_nota": "Fonte única dos limites articulares (graus) lida pelo protótipo (clamp) e por validar.mjs (rejeição). Tetos conservadores deste protótipo, não medidas de anatomia [?]. Polegar: cmc_abd = 0 é o polegar deitado na palma (esquema /2).",
+  "dedo": { "mcp": [-20, 95], "pip": [0, 115], "dip": [0, 90], "abd": [-30, 30] },
+  "dedo_por_osso": { "minimo": { "abd": [-30, 35] } },
+  "polegar": {
+    "cmc_flex": [-60, 105],
+    "cmc_abd": [-15, 90],
+    "mcp": [0, 75],
+    "ip": [-15, 90],
+    "oposicao": [-30, 90]
+  },
+  "polegar_zero": { "cmc_abd": -30 },
+  "dip_acoplado": 0.6667,
+  "giro": [-60, 60]
+}

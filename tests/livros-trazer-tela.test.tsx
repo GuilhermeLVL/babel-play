@@ -147,7 +147,8 @@ describe('Trazer o seu: passos, formatos e cartão pronto', () => {
     fireEvent.drop(screen.getByTestId('zona-de-soltar'), { dataTransfer: { files: [arquivo()] } })
     const cartao = await screen.findByTestId('trazido')
     expect(within(cartao).getByRole('heading', { name: 'Pronto!' })).toBeTruthy()
-    expect(document.activeElement).toBe(cartao)
+    // O foco é posto num efeito (passivo) depois do commit: o `findBy` pode resolver antes dele rodar, então espera.
+    await waitFor(() => expect(document.activeElement).toBe(cartao))
     expect(within(cartao).getByRole('button', { name: /Baixar cópia do arquivo/ })).toBeTruthy()
     fireEvent.click(within(cartao).getByRole('button', { name: /Ver em Meus livros/ }))
     expect(aoVer).toHaveBeenCalled()

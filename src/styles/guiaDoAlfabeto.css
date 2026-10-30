@@ -18,6 +18,7 @@
   max-height: calc(100dvh - 24px);
   overflow-y: auto;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   padding: 16px;
   border-radius: 18px;
@@ -113,6 +114,9 @@
 }
 .ga-lado {
   display: grid;
+  /* `minmax(0, 1fr)`, não `auto`: a trilha automática cresce até o min-content do campo + botão "Soletrar" e da grade de
+     teclas, e com uma fonte mais larga que a do desenho (a CI usa a sans-serif do Linux) o guia passava da caixa e rolava de lado. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   min-width: 0;
 }
@@ -182,6 +186,10 @@
 }
 .ga-palavra {
   display: grid;
+  grid-template-columns: minmax(
+    0,
+    1fr
+  ); /* o campo de texto tem largura intrínseca de 20 caracteres: sem isto a trilha estoura */
   gap: 6px;
 }
 .ga-palavra label {

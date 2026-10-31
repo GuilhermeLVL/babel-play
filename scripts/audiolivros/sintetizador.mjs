@@ -32,6 +32,10 @@ function clipeDe(wav, tempoDeSinteseS) {
 /** Lê a resposta como WAV ou lança com o status (sem eco do corpo, que pode trazer dados do pedido). */
 async function wavDaResposta(r, quem) {
   if (!r.ok) throw new Error(`${quem}: HTTP ${r.status}`)
+  const tipo = (r.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase()
+  if (!tipo.startsWith('audio/') && tipo !== 'application/octet-stream') {
+    throw new Error(`${quem}: resposta não é áudio WAV: content-type ${tipo || '(ausente)'}`)
+  }
   return new Uint8Array(await r.arrayBuffer())
 }
 
@@ -84,7 +88,32 @@ async function carregarCamposDeClonagem() {
   return m.CAMPOS_DE_CLONAGEM
 }
 
+/**
+ * NÃO VERIFICADO: a URL, o formato do corpo e o formato da resposta abaixo são SUPOSIÇÃO (formato da API de
+ * áudio da OpenAI), sem confirmação na documentação da DeepInfra nem numa chamada real. DEVE ser confirmado
+ * (docs ou uma chamada barata, Task 11) antes de confiar neste adaptador.
+ */
 const URL_DEEPINFRA = 'https://api.deepinfra.com/v1/openai/audio/speech'
+
+/**
+ * Monta o corpo do pedido à DeepInfra — o ÚNICO lugar a corrigir na Task 11.
+ * NÃO VERIFICADO: (1) `extra_body` é construção do SDK Python da OpenAI; na rede provavelmente NÃO é uma
+ * chave JSON honrada, então o idioma pode ser ignorado em silêncio; (2) `response_format: 'wav'` pode não
+ * ser aceito por todo modelo; (3) supõe-se que a resposta seja o WAV cru (não JSON com base64).
+ * @param {{ modelo: string, voz: string }} cfg
+ * @param {string} texto
+ * @param {OpcoesDeSintese} o
+ */
+function corpoDaDeepInfra(cfg, texto, o) {
+  return {
+    model: cfg.modelo,
+    input: texto,
+    voice: o.voz || cfg.voz,
+    response_format: 'wav',
+    ...(o.velocidade ? { speed: o.velocidade } : {}),
+    extra_body: { language: o.idioma },
+  }
+}
 
 /**
  * Adaptador da DeepInfra (endpoint compatível com a OpenAI). A chave vem SÓ de `DEEPINFRA_API_KEY`; nunca
@@ -117,14 +146,7 @@ export function criarSintetizadorDeepInfra(cfg, deps = {}) {
       const chave = process.env.DEEPINFRA_API_KEY
       if (!chave)
         throw new Error('DEEPINFRA_API_KEY ausente: defina a variável de ambiente (nunca em arquivo versionado)')
-      const corpo = {
-        model: cfg.modelo,
-        input: texto,
-        voice: o.voz || cfg.voz,
-        response_format: 'wav',
-        ...(o.velocidade ? { speed: o.velocidade } : {}),
-        extra_body: { language: o.idioma },
-      }
+      const corpo = corpoDaDeepInfra(cfg, texto, o)
       await conferir(corpo)
       const inicio = performance.now()
       const r = await (deps.fetch ?? fetch)(URL_DEEPINFRA, {
@@ -168,7 +190,8 @@ export function criarSintetizadorFalso(cfg = {}) {
  * @returns {string[]}
  */
 function cortar(texto, limite) {
-  const frases = texto.match(/[^.!?…]+[.!?…]+["'”’)»]*\s*|[^.!?…]+$/g) ?? [texto]
+  // A pontuação solta do começo ("...oi") vira o início da primeira frase, não se perde.
+  const frases = texto.match(/[.!?…]*[^.!?…]+[.!?…]+["'”’)»]*\s*|[.!?…]+\s*$|[^.!?…]+$/g) ?? [texto]
   const pedacos = []
   let atual = ''
   const fechar = () => {
@@ -220,6 +243,7 @@ function cortarPorEspaco(frase, limite) {
  */
 export async function sintetizarComLimite(s, texto, o) {
   const { pausaS = PAUSA_PADRAO_S, ...opcoes } = o
+  if (!Number.isFinite(pausaS) || pausaS < 0) throw new RangeError(`sintetizarComLimite: pausaS inválida (${pausaS})`)
   const pedacos = cortar(texto, s.limiteDeCaracteres)
   if (pedacos.length === 0) throw new Error('sintetizarComLimite: texto vazio')
   const clipes = []

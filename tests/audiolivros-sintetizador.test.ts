@@ -55,6 +55,61 @@ describe('wav', () => {
   })
 })
 
+describe('wav: validações extras', () => {
+  it('recusa pausa negativa ou não finita e clipe que não é PCM 16-bit mono', () => {
+    for (const p of [-1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() => emendarWavs([wavDe(1), wavDe(1)], p)).toThrow(RangeError)
+    }
+    const estereo = wavDe(1)
+    new DataView(estereo.buffer).setUint16(22, 2, true)
+    expect(() => emendarWavs([wavDe(1), estereo], 0.3)).toThrow(/mono/)
+    const naoPcm = wavDe(1)
+    new DataView(naoPcm.buffer).setUint16(20, 3, true)
+    expect(() => emendarWavs([naoPcm], 0.3)).toThrow(/PCM/)
+  })
+
+  it('sintetizarComLimite recusa pausa inválida', async () => {
+    const s = criarSintetizadorFalso({})
+    await expect(sintetizarComLimite(s, 'oi', { voz: 'x', idioma: 'pt', pausaS: -1 })).rejects.toThrow(RangeError)
+  })
+})
+
+describe('respostas ruins dos adaptadores', () => {
+  const casos = (quem: string, criar: (f: typeof fetch) => ReturnType<typeof criarSintetizadorHttp>) => {
+    it(`${quem}: não 2xx cita só o status, sem corpo nem chave`, async () => {
+      vi.stubEnv('DEEPINFRA_API_KEY', 'chave-secreta-t5')
+      const f = vi.fn(async () => new Response('corpo-sensivel chave-secreta-t5', { status: 503 }))
+      const erro = await criar(comoFetch(f))
+        .sintetizar('oi', { voz: 'v', idioma: 'pt' })
+        .catch((e: Error) => e)
+      expect((erro as Error).message).toMatch(/503/)
+      expect((erro as Error).message).not.toMatch(/corpo-sensivel|chave-secreta-t5/)
+    })
+    it(`${quem}: 2xx que não é áudio diz o content-type, sem corpo`, async () => {
+      vi.stubEnv('DEEPINFRA_API_KEY', 'chave-secreta-t5')
+      const f = vi.fn(
+        async () => new Response('corpo-sensivel', { status: 200, headers: { 'content-type': 'application/json' } }),
+      )
+      const erro = await criar(comoFetch(f))
+        .sintetizar('oi', { voz: 'v', idioma: 'pt' })
+        .catch((e: Error) => e)
+      expect((erro as Error).message).toMatch(/resposta não é áudio WAV: content-type application\/json/)
+      expect((erro as Error).message).not.toMatch(/corpo-sensivel/)
+    })
+  }
+  casos('http', (fetch) => criarSintetizadorHttp({ id: 'm', versao: '1', url: 'http://x' }, { fetch }))
+  casos('deepinfra', (fetch) => criarSintetizadorDeepInfra({ modelo: 'm', voz: 'v' }, { fetch }))
+})
+
+describe('sintetizarComLimite: pontuação inicial', () => {
+  it('não perde a pontuação do começo do texto', async () => {
+    const s = criarSintetizadorFalso({ limiteDeCaracteres: 100 })
+    const espia = vi.spyOn(s, 'sintetizar')
+    await sintetizarComLimite(s, '...oi tudo bem. e você?', { voz: 'x', idioma: 'pt' })
+    expect(espia.mock.calls.map(([t]) => t).join(' ')).toBe('...oi tudo bem. e você?')
+  })
+})
+
 describe('sintetizador falso', () => {
   it('devolve duração determinística que o WAV confirma', async () => {
     const s = criarSintetizadorFalso({})

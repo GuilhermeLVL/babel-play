@@ -8,7 +8,7 @@ const ASCII = (b, i, s) => [...s].every((c, k) => b[i + k] === c.charCodeAt(0))
 /**
  * Lê taxa, canais, bits e a posição dos dados.
  * @param {Uint8Array} wav
- * @returns {{ taxaHz: number, canais: number, bits: number, inicio: number, tamanho: number }}
+ * @returns {{ formato: number, taxaHz: number, canais: number, bits: number, inicio: number, tamanho: number }}
  */
 function lerCabecalho(wav) {
   if (!(wav instanceof Uint8Array) || wav.length < 44 || !ASCII(wav, 0, 'RIFF') || !ASCII(wav, 8, 'WAVE')) {
@@ -21,6 +21,7 @@ function lerCabecalho(wav) {
     const tamanho = v.getUint32(pos + 4, true)
     if (ASCII(wav, pos, 'fmt ') && pos + 24 <= wav.length) {
       fmt = {
+        formato: v.getUint16(pos + 8, true),
         canais: v.getUint16(pos + 10, true),
         taxaHz: v.getUint32(pos + 12, true),
         bits: v.getUint16(pos + 22, true),
@@ -62,7 +63,7 @@ export function taxaDoWav(wav) {
  * @param {number} taxaHz
  * @returns {Uint8Array}
  */
-export function montarWav(pcm, taxaHz) {
+function montarWav(pcm, taxaHz) {
   const b = new Uint8Array(44 + pcm.length)
   const v = new DataView(b.buffer)
   b.set([0x52, 0x49, 0x46, 0x46], 0)
@@ -99,7 +100,14 @@ export function wavDeSilencio(segundos, taxaHz) {
  */
 export function emendarWavs(clipes, pausaS) {
   if (clipes.length === 0) throw new Error('emendarWavs precisa de ao menos um clipe')
+  if (!Number.isFinite(pausaS) || pausaS < 0) throw new RangeError(`emendarWavs: pausaS inválida (${pausaS})`)
   const cabecalhos = clipes.map(lerCabecalho)
+  for (const h of cabecalhos) {
+    if (h.formato !== 1) throw new Error(`emendarWavs: clipe não é PCM (formato ${h.formato})`)
+    if (h.bits !== 16 || h.canais !== 1) {
+      throw new Error(`emendarWavs: clipe precisa ser 16-bit mono (veio ${h.bits} bits, ${h.canais} canais)`)
+    }
+  }
   const taxaHz = cabecalhos[0].taxaHz
   if (cabecalhos.some((h) => h.taxaHz !== taxaHz)) {
     throw new Error('emendarWavs: clipes com taxa de amostragem diferente')

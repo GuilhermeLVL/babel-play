@@ -19,14 +19,20 @@ const RAIZ_DO_REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 
 export const MIN_CLIPES_PARA_MEDIANA = 3
 
 /**
- * Valor de `--<nome> <valor>` em `argv`, ou `undefined` se ausente ou sem valor.
+ * Valor de `--<nome> <valor>` em `argv`, ou `undefined` se a flag não aparece. Flag sem valor (fim da
+ * lista ou valor começando com `--`) e flag repetida são ERRO: nunca cair em silêncio num padrão.
  * @param {string[]} argv
  * @param {string} nome
  * @returns {string|undefined}
  */
 export function pegarOpcao(argv, nome) {
-  const i = argv.indexOf(`--${nome}`)
-  return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : undefined
+  const flag = `--${nome}`
+  const i = argv.indexOf(flag)
+  if (i < 0) return undefined
+  if (argv.indexOf(flag, i + 1) >= 0) throw new Error(`${flag} repetida: informe uma vez só`)
+  const valor = argv[i + 1]
+  if (!valor || valor.startsWith('--')) throw new Error(`${flag} exige um valor`)
+  return valor
 }
 
 /**
@@ -74,7 +80,12 @@ export function rtf(tempoDeSinteseS, duracaoS) {
   return tempoDeSinteseS / duracaoS
 }
 
-const medianaDe = (xs) => {
+/**
+ * Mediana clássica (média dos dois do meio com número par).
+ * @param {number[]} xs
+ * @returns {number}
+ */
+export const mediana = (xs) => {
   const s = [...xs].sort((a, b) => a - b)
   const m = s.length >> 1
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2
@@ -95,7 +106,7 @@ export function foraDaMediana(frases, tolerancia = 0.3) {
     .filter((f) => Number.isFinite(f.duracaoS) && f.duracaoS > 0 && Number.isFinite(f.caracteres) && f.caracteres > 0)
     .map((f) => ({ id: f.id, razao: f.duracaoS / f.caracteres }))
   if (validas.length === 0) return { ids: [], fracao: 0 }
-  const med = medianaDe(validas.map((v) => v.razao))
+  const med = mediana(validas.map((v) => v.razao))
   const ids = validas.filter((v) => Math.abs(v.razao / med - 1) > tolerancia + 1e-9).map((v) => v.id)
   return { ids, fracao: ids.length / validas.length }
 }

@@ -17,11 +17,11 @@
  * (RTF por frase, RTF mediano e máximo, outliers de duração/caractere por idioma, pico de memória).
  *
  * `--longo`: sintetiza UM trecho longo e grava `longo.wav`, `longo.txt` (a referência da estabilidade, que
- * `medir-estabilidade.mjs` lê) e `resumo-longo.json`. Sem `--texto`, o trecho é a concatenação dos
- * excertos LITERÁRIOS do próprio corpus (`corpus-voz.jsonl`, de domínio público, fontes em `fontes/`), no
- * idioma de `--idioma` (padrão pt). Isso dá bem MENOS de 10 min (pt: cerca de 4 min): para o trecho de
- * ~10 min da spec §7.1 passe `--texto <arquivo.txt>` com um capítulo de domínio público (ex.: Project
- * Gutenberg). O resumo avisa quando o áudio ficou abaixo de 9 min. Nenhum texto novo é versionado.
+ * `medir-estabilidade.mjs` lê) e `resumo-longo.json`. Sem `--texto`, o trecho é
+ * `fontes-longo/dom-casmurro-longo.txt` (Dom Casmurro, caps. I a V, domínio público, Project Gutenberg
+ * #55752; pasta à parte para o corpus de 14 frases não o absorver), só em pt. Para outro idioma, ou outro
+ * texto, passe `--texto <arquivo.txt>` de domínio público (linhas iniciadas por "#" são cabeçalho e saem).
+ * O resumo avisa quando o áudio ficou abaixo de 9 min (a spec pede ~10 min).
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
@@ -37,6 +37,7 @@ import {
   foraDaMediana,
   IDIOMAS,
   lerCorpus,
+  mediana,
   MIN_CLIPES_PARA_MEDIANA,
   nomeSeguro,
   pastaDeSaida,
@@ -50,34 +51,22 @@ const CORPUS = path.join(AQUI, 'corpus-voz.jsonl')
 /** Duração abaixo da qual o trecho "longo" não representa os ~10 min da spec. */
 const MINIMO_DO_LONGO_S = 540
 
-/** Categorias do corpus que são prosa/verso literário (as demais testam números, siglas etc.). */
-const CATEGORIAS_LITERARIAS = new Set([
-  'dom-casmurro-cap1',
-  'dom-casmurro-cap5',
-  'eca',
-  'dialogo',
-  'soneto',
-  'frase-longa',
-  'reticencias',
-  'literario',
-])
-
-const mediana = (xs) => {
-  const s = [...xs].sort((a, b) => a - b)
-  const m = s.length >> 1
-  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2
-}
+/** Texto longo padrão (pt, domínio público). */
+const TEXTO_LONGO_PADRAO = path.join(AQUI, 'fontes-longo', 'dom-casmurro-longo.txt')
 
 /**
- * Trecho longo de referência: os excertos literários do corpus no idioma, separados por linha em branco.
- * @param {import('./comum.mjs').CorpusItem[]} corpus
- * @param {'pt'|'en'|'es'} idioma
+ * Lê um texto longo: tira as linhas de cabeçalho (`#`), apara cada linha e descarta as vazias.
+ * @param {string} arquivo
  * @returns {string}
  */
-export function textoLongoDeReferencia(corpus, idioma) {
-  const partes = corpus.filter((i) => i.idioma === idioma && CATEGORIAS_LITERARIAS.has(i.categoria)).map((i) => i.texto)
-  if (partes.length === 0) throw new Error(`o corpus não tem excerto literário em "${idioma}": passe --texto <arquivo>`)
-  return partes.join('\n\n')
+export function lerTextoLongo(arquivo) {
+  return readFileSync(arquivo, 'utf8')
+    .replace(/\r/g, '')
+    .split('\n')
+    .filter((l) => !l.startsWith('#'))
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .join('\n')
 }
 
 /**
@@ -169,7 +158,9 @@ async function main() {
     if (!IDIOMAS.includes(idioma)) throw new Error(`--idioma "${idioma}" inválido (use ${IDIOMAS.join('|')})`)
     const arquivo = pegarOpcao(argv, 'texto')
     if (arquivo && !existsSync(arquivo)) throw new Error(`--texto: "${arquivo}" não existe`)
-    const texto = (arquivo ? readFileSync(arquivo, 'utf8') : textoLongoDeReferencia(corpus, idioma)).trim()
+    if (!arquivo && idioma !== 'pt')
+      throw new Error(`não há texto longo padrão em "${idioma}": passe --texto <arquivo>`)
+    const texto = lerTextoLongo(arquivo ?? TEXTO_LONGO_PADRAO)
     if (!texto) throw new Error('o texto longo está vazio')
     writeFileSync(path.join(dir, 'longo.txt'), `${texto}\n`)
     alvo = [{ id: 'longo', idioma, texto, categoria: 'longo', itens: [] }]

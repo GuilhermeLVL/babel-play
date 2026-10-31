@@ -34,7 +34,7 @@ import { acertoDosItens, avaliarContraLimiares, normalizarParaComparar } from '.
 const AQUI = path.dirname(fileURLToPath(import.meta.url))
 const RAIZ = path.resolve(AQUI, '..', '..')
 const CORPUS = path.join(AQUI, 'corpus-voz.jsonl')
-const MODELO_WHISPER = 'onnx-community/whisper-small'
+export const MODELO_WHISPER = 'onnx-community/whisper-small'
 const IDIOMAS = ['pt', 'en', 'es']
 
 export { MIN_CLIPES_PARA_MEDIANA }
@@ -222,36 +222,48 @@ export function prepararPcm(buf) {
 }
 
 /**
- * Cria o decodificador Whisper real (carrega o modelo uma vez): `(pcm 16 kHz, idioma) => texto`.
- * Import dinâmico: os testes não o tocam. Também usado por `medir-estabilidade.mjs` (pedaços do trecho longo).
+ * Opções de decode das FRASES curtas e isoladas (as de `scripts/eval-fala/medir-wer.mjs`): proíbem
+ * trigramas repetidos e penalizam repetição, o que ajuda em frase solta. NÃO servem para medir
+ * estabilidade (`medir-estabilidade.mjs` usa as suas).
+ */
+export const OPCOES_DE_DECODE_FRASE = { no_repeat_ngram_size: 3, repetition_penalty: 1.15 }
+
+/**
+ * Cria o decodificador Whisper real (carrega o modelo uma vez):
+ * `(pcm 16 kHz, idioma, opcoes) => texto`. As opções de decode são POR CHAMADA; `max_new_tokens`, se
+ * vier, vale no lugar do teto padrão (15 tokens/s, no máximo 128). Import dinâmico: os testes não o tocam.
+ * Também usado por `medir-estabilidade.mjs`.
  */
 export async function criarDecodificadorWhisper() {
   const { pipeline, env } = await import('@huggingface/transformers')
   env.allowLocalModels = false
   const asr = await pipeline('automatic-speech-recognition', MODELO_WHISPER, { dtype: 'q8', device: 'cpu' })
-  return async (pcm, idioma) => {
+  return async (pcm, idioma, opcoes = OPCOES_DE_DECODE_FRASE) => {
     const audioSec = pcm.length / 16000
+    const { max_new_tokens: teto, ...decode } = opcoes
     const out = await asr(pcm, {
       language: idioma,
       task: 'transcribe',
       return_timestamps: false,
       num_beams: 1,
       do_sample: false,
-      max_new_tokens: Math.max(8, Math.min(128, Math.round(audioSec * 15))),
-      no_repeat_ngram_size: 3,
-      repetition_penalty: 1.15,
+      max_new_tokens: teto ?? Math.max(8, Math.min(128, Math.round(audioSec * 15))),
+      ...decode,
     })
     return (out.text ?? '').trim()
   }
 }
 
-/** Transcritor por item do corpus: lê `<id>.wav` da pasta (ausente = `null`). */
-async function criarTranscritorWhisper(pasta) {
-  const decodificar = await criarDecodificadorWhisper()
+/**
+ * Transcritor por item do corpus: lê `<id>.wav` da pasta (ausente = `null`) e decodifica com
+ * `OPCOES_DE_DECODE_FRASE`.
+ * @param {{ pasta: string, decodificar: (pcm: Float32Array, idioma: string, opcoes: object) => Promise<string> }} p
+ */
+export function criarTranscritorDeItens({ pasta, decodificar }) {
   return async (item) => {
     const arquivo = path.join(pasta, `${item.id}.wav`)
     if (!existsSync(arquivo)) return null
-    return decodificar(prepararPcm(readFileSync(arquivo)), item.idioma)
+    return decodificar(prepararPcm(readFileSync(arquivo)), item.idioma, OPCOES_DE_DECODE_FRASE)
   }
 }
 
@@ -275,7 +287,7 @@ function pendentesDe(medidas) {
 async function main() {
   const { motor, voz, entrada } = lerArgumentos(process.argv.slice(2))
   const corpus = lerCorpus(CORPUS)
-  const transcrever = await criarTranscritorWhisper(entrada)
+  const transcrever = criarTranscritorDeItens({ pasta: entrada, decodificar: await criarDecodificadorWhisper() })
   const duracaoDe = (item) => {
     const arquivo = path.join(entrada, `${item.id}.wav`)
     return existsSync(arquivo) ? duracaoDoWav(readFileSync(arquivo)) : undefined

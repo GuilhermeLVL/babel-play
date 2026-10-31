@@ -13,6 +13,28 @@ Produção segue FECHADA e ligar flag é ato do dono.
 
 ---
 
+## Respostas do dono (31/10/2026)
+
+O dono aprovou o plano de execução em 31/10/2026, incluindo as cinco suposições abaixo. Onde a spec §12 não escreve uma
+resposta explícita, vale a que ela implica, marcada "(implícita)".
+
+1. **Escopo do primeiro lote:** piloto de **10 livros pt** (§11/F2), ~72 h; en/es só entram na bancada (14 frases pt +
+   mesmas categorias em en/es), não no lote. (implícita: §8.1 e §11) Confirmada na aprovação do plano em 31/10/2026.
+2. **Elenco no MVP:** **não manda na escolha do motor**. Decisão provisória da §4.2: Qwen3 como alvo, Chatterbox como
+   atalho; o portão "≥ 4 timbres, acerto ≥ 80%" (§6.4 item 4) só vale "se o objetivo T3 for mantido"; sem ele, T3 usa
+   narrador + 2 vozes. (implícita) Confirmada na aprovação do plano em 31/10/2026.
+3. **Catálogo ouvido no Grátis:** **Sim** (§12 item 3); elenco e nuvem no pago. Sem alterar `src/core/planos.ts` nesta
+   entrega. Confirmada na aprovação do plano em 31/10/2026.
+4. **Quais 10 livros:** sugestão da §12 item 4: os mais populares do pt **com classificação aprovada** (Dom Casmurro,
+   Os Lusíadas, Memórias Póstumas, O Guarani, A Escrava Isaura + 5 por popularidade em `public/catalogo/livros.json`).
+   Sugestão aceita; pendente: o dono escolhe os 10 ids e a ortografia (Task 22). A lista final entra em
+   `scripts/audiolivros/piloto.json`, com ids `pg-…`/`se-…` reais do catálogo.
+5. **Quem escuta e aprova:** dono **+ 3 a 5 convidados** (1 jovem do público, com consentimento do responsável e só
+   apelido), §7.3 e §12 item 5; **tetos de teste da F0: US$ 5 de GPU (ou 6 h de GPU, o que vier primeiro) e US$ 2 de
+   DeepInfra** (§8.5). Confirmada na aprovação do plano em 31/10/2026.
+
+---
+
 ## 1. Problema
 
 O Frasy já tem leitor de livros, narrador por frase com a voz do aparelho (`src/lib/leitor/narrador.ts`), voz natural da

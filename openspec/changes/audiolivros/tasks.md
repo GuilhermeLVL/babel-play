@@ -1,7 +1,7 @@
 ## 0. M0 Especificação (esta change)
 
 - [x] 0.1 Spec técnica `docs/specs/2026-10-31-audiolivros-e-leitura.md`, change OpenSpec e esqueleto do runbook. Aceite: `openspec validate audiolivros` passa (CLI não instalado no ambiente da escrita: rodar antes de arquivar)
-- [ ] 0.2 Dono responde as 5 perguntas em aberto (spec, seção 12). Aceite: respostas registradas no topo da spec
+- [x] 0.2 Dono responde as 5 perguntas em aberto (spec, seção 12). Aceite: respostas registradas no topo da spec (parcial: 4 de 5 confirmadas, falta a lista dos 10 livros)
 
 ## 1. F0 Spike e decisão do motor (2 dias; teto US$ 5 de GPU)
 

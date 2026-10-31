@@ -82,6 +82,26 @@ const NOMES_DAS_LETRAS: Readonly<Record<string, string>> = {
   Z: 'zê',
 };
 
+/** Siglas lidas letra a letra mesmo com vogal (as sem vogal, como CPF, são sempre soletradas). */
+const SIGLAS_SOLETRADAS = new Set([
+  'USP',
+  'IBGE',
+  'UFMG',
+  'UFRJ',
+  'PUC',
+  'INSS',
+  'FGTS',
+  'OAB',
+  'PIB',
+  'IPTU',
+  'CNPJ',
+  'SUS',
+  'ONG',
+  'CLT',
+  'STF',
+  'STJ',
+]);
+
 const MAIOR_NUMERO = 999_999_999_999;
 
 function escaparRegex(s: string): string {
@@ -170,6 +190,19 @@ function moedaDataPorcento(texto: string): string {
     });
 }
 
+function horasEFaixas(texto: string): string {
+  const horas = new RegExp(`(?<![${LETRA}.,:])(\\d{1,2})(?:h(\\d{2})?|:(\\d{2}))(?![${LETRA}]|\\d|[.,:]\\d)`, 'gu');
+  return texto
+    .replace(horas, (m, h: string, minH?: string, minDoisPontos?: string) => {
+      const hora = Number(h);
+      const minutos = Number(minH ?? minDoisPontos ?? '0');
+      if (hora > 23 || minutos > 59) return m;
+      const base = `${cardinalPt(hora, 'f')} ${hora === 1 ? 'hora' : 'horas'}`;
+      return minutos === 0 ? base : `${base} e ${cardinalPt(minutos)}`;
+    })
+    .replace(/(\d)–(\d)/g, '$1 a $2');
+}
+
 function ordinais(texto: string): string {
   return texto.replace(/(?<![\d])(\d{1,3})([ºª])/g, (m, n: string, marca: string) => {
     const valor = Number(n);
@@ -198,9 +231,12 @@ function romanos(texto: string): string {
 }
 
 function numeros(texto: string): string {
-  return texto.replace(new RegExp(`(?<![${LETRA}.,])${NUMERO}`, 'gu'), (m, inteiro: string, fracao?: string) => {
-    return numeroPorExtenso(inteiro, fracao) ?? m;
-  });
+  return texto.replace(
+    new RegExp(`(?<![${LETRA}.,])${NUMERO}(?![\\p{L}\\d]|[.,]\\d)`, 'gu'),
+    (m, inteiro: string, fracao?: string) => {
+      return numeroPorExtenso(inteiro, fracao) ?? m;
+    },
+  );
 }
 
 function abreviacoes(texto: string): string {
@@ -218,6 +254,7 @@ function abreviacoes(texto: string): string {
 function siglas(texto: string): string {
   return texto.replace(new RegExp(`(?<![${LETRA}])\\p{Lu}{3,6}(?![${LETRA}])`, 'gu'), (sigla) => {
     if (SIGLAS_PRONUNCIAVEIS.has(sigla) || romanoParaNumero(sigla) !== null) return sigla;
+    if (!SIGLAS_SOLETRADAS.has(sigla) && /[AEIOU]/.test(sigla)) return sigla;
     const letras = [...sigla].map((l) => NOMES_DAS_LETRAS[l]);
     return letras.some((l) => l === undefined) ? sigla : letras.join(' ');
   });
@@ -232,12 +269,12 @@ function espacos(texto: string): string {
 
 /** Texto do livro → texto que a voz lê. Idempotente; `en`/`es` só recebem as regras neutras. */
 export function prepararTextoParaVoz(texto: string, idioma: IdiomaDeVoz, opcoes: OpcoesDoPreparo = {}): string {
-  let t = texto;
+  let t = texto.replace(/\r\n?/g, '\n');
   if (opcoes.dicionario) t = trocarPalavras(t, opcoes.dicionario);
   if (idioma === 'pt' && opcoes.ortografia === 'modernizada') t = trocarPalavras(t, MODERNIZACAO);
   t = reticencias(travessao(t));
   if (idioma === 'pt') {
-    t = numeros(romanos(ordinais(moedaDataPorcento(t))));
+    t = numeros(romanos(ordinais(horasEFaixas(moedaDataPorcento(t)))));
     t = siglas(abreviacoes(t));
   }
   return espacos(t);

@@ -36,6 +36,32 @@ describe('prepararTextoParaVoz: números', () => {
   })
 })
 
+describe('prepararTextoParaVoz: horas, unidades e faixas', () => {
+  it.each<[string, string]>([
+    ['às 10h30', 'às dez horas e trinta'],
+    ['8h', 'oito horas'],
+    ['1h', 'uma hora'],
+    ['2h', 'duas horas'],
+    ['15:30', 'quinze horas e trinta'],
+    ['10h00', 'dez horas'],
+    ['5kg', '5kg'],
+    ['3D', '3D'],
+    ['mp3', 'mp3'],
+    ['A4', 'A4'],
+    ['2.5', '2.5'],
+    ['12.34', '12.34'],
+    ['1.000.000', 'um milhão'],
+    ['1914–1918', 'mil novecentos e catorze a mil novecentos e dezoito'],
+  ])('%s -> %s', (entrada, saida) => {
+    expect(pt(entrada)).toBe(saida)
+  })
+
+  it('normaliza CRLF', () => {
+    expect(pt('Fim —\r\nOutra linha')).toBe('Fim\nOutra linha')
+    expect(pt('Fim —\r\n')).toBe('Fim')
+  })
+})
+
 describe('prepararTextoParaVoz: romanos', () => {
   it.each<[string, string]>([
     ['Capítulo IV', 'Capítulo quatro'],
@@ -69,6 +95,17 @@ describe('prepararTextoParaVoz: siglas e abreviações', () => {
     ['ONU', 'ONU'],
     ['NASA', 'NASA'],
     ['NÃO', 'NÃO'],
+    ['Isto é BEM', 'Isto é BEM'],
+    ['SOCORRO', 'SOCORRO'],
+    ['PERIGO', 'PERIGO'],
+    ['FOGO', 'FOGO'],
+    ['SIM', 'SIM'],
+    ['CNPJ', 'cê êne pê jota'],
+    ['UFMG', 'u efe ême gê'],
+    ['PUC', 'pê u cê'],
+    ['INSS', 'i êne ésse ésse'],
+    ['OAB', 'ó a bê'],
+    ['PIB', 'pê i bê'],
     ['Sr. Silva', 'Senhor Silva'],
     ['Sra. Silva', 'Senhora Silva'],
     ['Dr. Souza', 'Doutor Souza'],
@@ -165,6 +202,9 @@ describe('prepararTextoParaVoz: idempotência', () => {
     'MIL e DI e Vi',
     'Dr. Souza, nº 5, cap. 3',
     'annos hontem immenso tambem Capitu',
+    'às 10h30 e 15:30, 5kg, 2.5 e 1914–1918',
+    'Fim —\r\nIsto é BEM, diz a OAB',
+    '8h, 1h e 1.000.000',
   ])('f(f(x)) === f(x): %s', (entrada) => {
     const opcoes = { ortografia: 'modernizada' as const, dicionario: { Capitu: 'Capitú' } }
     const uma = pt(entrada, opcoes)

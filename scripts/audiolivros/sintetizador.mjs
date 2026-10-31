@@ -11,7 +11,8 @@
 import { duracaoDoWav, emendarWavs, taxaDoWav, wavDeSilencio } from './wav.mjs'
 
 /**
- * @typedef {{ wav: Uint8Array, duracaoS: number, taxaHz: number, tempoDeSinteseS: number }} ClipeDeAudio
+ * @typedef {{ wav: Uint8Array, duracaoS: number, taxaHz: number, tempoDeSinteseS: number, memoriaMB?: number }} ClipeDeAudio
+ * `memoriaMB`: memória do servidor após o pedido, quando ele informa (cabeçalho `X-Memoria-MB` do contrato HTTP).
  * @typedef {{ voz: string, idioma: string, velocidade?: number }} OpcoesDeSintese
  * @typedef {{
  *   id: string, versao: string, idiomas: string[], limiteDeCaracteres: number,
@@ -74,7 +75,10 @@ export function criarSintetizadorHttp(cfg, deps = {}) {
       const wav = await wavDaResposta(r, `${cfg.id}: /sintetizar`)
       const medido = (performance.now() - inicio) / 1000
       const cab = Number.parseFloat(r.headers.get('x-tempo-sintese') ?? '')
-      return clipeDe(wav, Number.isFinite(cab) ? cab : medido)
+      const clipe = clipeDe(wav, Number.isFinite(cab) ? cab : medido)
+      const memoria = Number.parseFloat(r.headers.get('x-memoria-mb') ?? '')
+      if (Number.isFinite(memoria) && memoria >= 0) clipe.memoriaMB = memoria
+      return clipe
     },
   }
 }
@@ -252,10 +256,12 @@ export async function sintetizarComLimite(s, texto, o) {
     clipes.map((c) => c.wav),
     pausaS,
   )
+  const memorias = clipes.map((c) => c.memoriaMB).filter((m) => m !== undefined)
   return {
     wav,
     duracaoS: clipes.reduce((t, c) => t + c.duracaoS, 0) + (clipes.length - 1) * pausaS,
     taxaHz: clipes[0].taxaHz,
     tempoDeSinteseS: clipes.reduce((t, c) => t + c.tempoDeSinteseS, 0),
+    ...(memorias.length > 0 ? { memoriaMB: Math.max(...memorias) } : {}),
   }
 }

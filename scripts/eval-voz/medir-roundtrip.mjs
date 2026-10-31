@@ -21,7 +21,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { agregar } from '../../src/core/eval/wer.ts'
 import { duracaoDoWav } from '../audiolivros/wav.mjs'
-import { LIMIARES_DA_SPEC, lerCorpus } from './comum.mjs'
+import {
+  foraDaMediana,
+  LIMIARES_DA_SPEC,
+  lerCorpus,
+  MIN_CLIPES_PARA_MEDIANA,
+  nomeSeguro,
+  pegarOpcao,
+} from './comum.mjs'
 import { acertoDosItens, avaliarContraLimiares, normalizarParaComparar } from './metricas.mjs'
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url))
@@ -30,18 +37,7 @@ const CORPUS = path.join(AQUI, 'corpus-voz.jsonl')
 const MODELO_WHISPER = 'onnx-community/whisper-small'
 const IDIOMAS = ['pt', 'en', 'es']
 
-/**
- * Mínimo de clipes COM áudio e duração, por idioma, para calcular a mediana e os outliers de
- * duração/caractere. Com 1 ou 2 clipes a "mediana" é o próprio clipe (ou a média de dois) e o
- * ±30% não diz nada; abaixo disso `foraDaMediana` fica ausente ("não medida").
- */
-export const MIN_CLIPES_PARA_MEDIANA = 3
-
-const mediana = (xs) => {
-  const s = [...xs].sort((a, b) => a - b)
-  const m = s.length >> 1
-  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2
-}
+export { MIN_CLIPES_PARA_MEDIANA }
 
 /**
  * Orquestração pura. `transcrever(item)` devolve o texto ouvido, `null`/`undefined` se não há áudio,
@@ -136,14 +132,10 @@ export async function medirRoundtrip({ corpus, transcrever, duracaoDe }) {
     }
     // Duração por caractere NORMALIZADO (o que o sintetizador de fato leu) contra a mediana da própria
     // voz (spec §7.2). Só com durações informadas e ao menos MIN_CLIPES_PARA_MEDIANA clipes.
-    const razoes = medidosOk
-      .filter((f) => Number.isFinite(f.duracaoS) && f.referenciaNormalizada.length > 0)
-      .map((f) => f.duracaoS / f.referenciaNormalizada.length)
-    if (razoes.length >= MIN_CLIPES_PARA_MEDIANA) {
-      const med = mediana(razoes)
-      const fora = razoes.filter((r) => Math.abs(r / med - 1) > 0.3).length
-      medidas.foraDaMediana = fora / razoes.length
-    }
+    const clipes = medidosOk
+      .map((f) => ({ id: f.id, duracaoS: f.duracaoS, caracteres: f.referenciaNormalizada.length }))
+      .filter((c) => Number.isFinite(c.duracaoS) && c.duracaoS > 0 && c.caracteres > 0)
+    if (clipes.length >= MIN_CLIPES_PARA_MEDIANA) medidas.foraDaMediana = foraDaMediana(clipes).fracao
     porIdioma[idioma] = medidas
   }
   return { medidas: { porIdioma }, frases }
@@ -229,18 +221,18 @@ export function prepararPcm(buf) {
   return cortarSilencio(pcm)
 }
 
-/** Cria o transcritor Whisper real (carrega o modelo uma vez). Import dinâmico: os testes não o tocam. */
-async function criarTranscritorWhisper(pasta) {
+/**
+ * Cria o decodificador Whisper real (carrega o modelo uma vez): `(pcm 16 kHz, idioma) => texto`.
+ * Import dinâmico: os testes não o tocam. Também usado por `medir-estabilidade.mjs` (pedaços do trecho longo).
+ */
+export async function criarDecodificadorWhisper() {
   const { pipeline, env } = await import('@huggingface/transformers')
   env.allowLocalModels = false
   const asr = await pipeline('automatic-speech-recognition', MODELO_WHISPER, { dtype: 'q8', device: 'cpu' })
-  return async (item) => {
-    const arquivo = path.join(pasta, `${item.id}.wav`)
-    if (!existsSync(arquivo)) return null
-    const pcm = prepararPcm(readFileSync(arquivo))
+  return async (pcm, idioma) => {
     const audioSec = pcm.length / 16000
     const out = await asr(pcm, {
-      language: item.idioma,
+      language: idioma,
       task: 'transcribe',
       return_timestamps: false,
       num_beams: 1,
@@ -253,18 +245,20 @@ async function criarTranscritorWhisper(pasta) {
   }
 }
 
-function lerArgumentos(argv) {
-  const pegar = (nome) => {
-    const i = argv.indexOf(`--${nome}`)
-    return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : undefined
+/** Transcritor por item do corpus: lê `<id>.wav` da pasta (ausente = `null`). */
+async function criarTranscritorWhisper(pasta) {
+  const decodificar = await criarDecodificadorWhisper()
+  return async (item) => {
+    const arquivo = path.join(pasta, `${item.id}.wav`)
+    if (!existsSync(arquivo)) return null
+    return decodificar(prepararPcm(readFileSync(arquivo)), item.idioma)
   }
-  const motor = pegar('motor')
-  const voz = pegar('voz')
-  const entrada = pegar('entrada')
-  if (!motor || !/^[\w.-]+$/.test(motor) || motor.startsWith('.'))
-    throw new Error('--motor <id> é obrigatório (letras, números, "_", "-", ".")')
-  if (!voz || !/^[\w.-]+$/.test(voz) || voz.startsWith('.'))
-    throw new Error('--voz <id> é obrigatório (letras, números, "_", "-", ".")')
+}
+
+function lerArgumentos(argv) {
+  const motor = nomeSeguro(pegarOpcao(argv, 'motor'), '--motor')
+  const voz = nomeSeguro(pegarOpcao(argv, 'voz'), '--voz')
+  const entrada = pegarOpcao(argv, 'entrada')
   if (!entrada) throw new Error('--entrada <dir de wavs> é obrigatório')
   if (!existsSync(entrada) || !statSync(entrada).isDirectory())
     throw new Error(`--entrada: "${entrada}" não é uma pasta`)

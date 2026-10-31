@@ -5,7 +5,7 @@
  * `prepararTextoParaVoz.ts`, que tem imports sem extensão), então quem usa este módulo roda sob `tsx`
  * (ou Vitest). Já `comum.mjs` (corpus, tipos, limiares) segue carregável em `node` puro.
  */
-import { cer as cerDe, normalizarPt, wer as werDe } from '../../src/core/eval/wer.ts'
+import { cer as cerDe, distanciaDeEdicao, normalizarPt, palavras, wer as werDe } from '../../src/core/eval/wer.ts'
 import { prepararTextoParaVoz } from '../../src/core/leitura/prepararTextoParaVoz.ts'
 
 /** Folga contra erro de ponto flutuante nas comparações com o limiar (3,0 % tem de passar). */
@@ -38,6 +38,25 @@ export function medirTrecho(ref, hip, idioma) {
   const r = normalizarParaComparar(ref, idioma)
   const h = normalizarParaComparar(hip, idioma)
   return { wer: werDe(r, h).taxa, cer: cerDe(r, h).taxa }
+}
+
+/**
+ * Estabilidade do texto longo (spec §7.2): alinha as palavras (a mesma distância de edição do WER, em
+ * `distanciaDeEdicao`) e conta SÓ inserções (palavras da hipótese sem par na referência: repetição) e
+ * deleções (palavras da referência que sumiram: omissão). Substituições ficam com o WER. `taxa` =
+ * (inserções + deleções) ÷ palavras da referência, fração que pode passar de 1. Referência vazia: sem
+ * divisão por zero, 1 se a hipótese inventou texto e 0 se também é vazia.
+ * @param {string} ref
+ * @param {string} hip
+ * @param {'pt'|'en'|'es'} idioma
+ * @returns {{ insercoes: number, delecoes: number, taxa: number }}
+ */
+export function estabilidadeDoTrecho(ref, hip, idioma) {
+  const r = palavras(normalizarParaComparar(ref, idioma))
+  const h = palavras(normalizarParaComparar(hip, idioma))
+  const { insercoes, delecoes } = distanciaDeEdicao(r, h)
+  const erros = insercoes + delecoes
+  return { insercoes, delecoes, taxa: r.length === 0 ? (erros > 0 ? 1 : 0) : erros / r.length }
 }
 
 /** Normaliza e dobra o acento, para o casamento dos itens difíceis. */

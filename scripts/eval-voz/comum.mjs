@@ -5,6 +5,100 @@
  * estabilidade) entram nesta pasta nas tarefas seguintes.
  */
 import { readFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const RAIZ_DO_REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
+
+/**
+ * Mínimo de clipes COM áudio e duração, por idioma, para calcular a mediana e os outliers de
+ * duração/caractere. Com 1 ou 2 clipes a "mediana" é o próprio clipe (ou a média de dois) e o
+ * ±30% não diz nada; abaixo disso `foraDaMediana` fica ausente ("não medida").
+ */
+export const MIN_CLIPES_PARA_MEDIANA = 3
+
+/**
+ * Valor de `--<nome> <valor>` em `argv`, ou `undefined` se ausente ou sem valor.
+ * @param {string[]} argv
+ * @param {string} nome
+ * @returns {string|undefined}
+ */
+export function pegarOpcao(argv, nome) {
+  const i = argv.indexOf(`--${nome}`)
+  return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : undefined
+}
+
+/**
+ * Id seguro para virar nome de arquivo ou pasta (letras, números, "_", "-", "."; não começa com ".").
+ * Barra o path traversal.
+ * @param {string|undefined} valor
+ * @param {string} rotulo  ex.: `--motor`, só para a mensagem
+ * @returns {string}
+ */
+export function nomeSeguro(valor, rotulo) {
+  if (!valor || !/^[\w.-]+$/.test(valor) || valor.startsWith('.'))
+    throw new Error(`${rotulo} <id> é obrigatório (letras, números, "_", "-", ".")`)
+  return valor
+}
+
+/**
+ * Pasta dos WAVs gerados: `saida`, senão `$CLAUDE_JOB_DIR/tmp/eval-voz/<motor>`, senão
+ * `os.tmpdir()/eval-voz/<motor>`. NUNCA dentro do repositório (áudio gerado não é versionado).
+ * @param {{ motor: string, saida?: string, env?: Record<string, string|undefined> }} p
+ * @returns {string}
+ */
+export function pastaDeSaida({ motor, saida, env = process.env }) {
+  const destino = path.resolve(
+    saida ??
+      (env.CLAUDE_JOB_DIR
+        ? path.join(env.CLAUDE_JOB_DIR, 'tmp', 'eval-voz', motor)
+        : path.join(tmpdir(), 'eval-voz', motor)),
+  )
+  const rel = path.relative(RAIZ_DO_REPO, destino)
+  if (rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel)))
+    throw new Error(`a pasta de saída não pode ficar dentro do repositório: ${destino}`)
+  return destino
+}
+
+/**
+ * Real-time factor: tempo gasto na síntese ÷ duração do áudio gerado (spec §7.2: ≤ 0,5).
+ * @param {number} tempoDeSinteseS
+ * @param {number} duracaoS
+ * @returns {number}
+ */
+export function rtf(tempoDeSinteseS, duracaoS) {
+  if (!Number.isFinite(duracaoS) || duracaoS <= 0) throw new RangeError(`rtf: duração inválida (${duracaoS})`)
+  if (!Number.isFinite(tempoDeSinteseS) || tempoDeSinteseS < 0)
+    throw new RangeError(`rtf: tempo de síntese inválido (${tempoDeSinteseS})`)
+  return tempoDeSinteseS / duracaoS
+}
+
+const medianaDe = (xs) => {
+  const s = [...xs].sort((a, b) => a - b)
+  const m = s.length >> 1
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2
+}
+
+/**
+ * Frases cuja duração POR CARACTERE foge da mediana da própria voz por mais que `tolerancia` (±, spec
+ * §7.2; exatamente na borda NÃO é marcada, com folga de ponto flutuante). Itens com `caracteres` <= 0 ou
+ * duração não positiva/não finita são ignorados (nem marcados nem contados). `fracao` = marcadas ÷
+ * itens considerados; lista vazia (ou toda ignorada) dá `{ ids: [], fracao: 0 }`.
+ * O mínimo de clipes (`MIN_CLIPES_PARA_MEDIANA`) é decisão do chamador.
+ * @param {{ id: string, duracaoS: number, caracteres: number }[]} frases
+ * @param {number} [tolerancia]
+ * @returns {{ ids: string[], fracao: number }}
+ */
+export function foraDaMediana(frases, tolerancia = 0.3) {
+  const validas = frases
+    .filter((f) => Number.isFinite(f.duracaoS) && f.duracaoS > 0 && Number.isFinite(f.caracteres) && f.caracteres > 0)
+    .map((f) => ({ id: f.id, razao: f.duracaoS / f.caracteres }))
+  if (validas.length === 0) return { ids: [], fracao: 0 }
+  const med = medianaDe(validas.map((v) => v.razao))
+  const ids = validas.filter((v) => Math.abs(v.razao / med - 1) > tolerancia + 1e-9).map((v) => v.id)
+  return { ids, fracao: ids.length / validas.length }
+}
 
 /**
  * @typedef {object} ItemDificil

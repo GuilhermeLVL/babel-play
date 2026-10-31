@@ -1,0 +1,235 @@
+{
+  "revisao_do_dono": "pendente",
+  "nota": "Gabarito escrito à mão dos itens difíceis (nomes, números, siglas, anos). 'aceita' lista as grafias que contam como acerto na transcrição: por extenso, em dígitos e variantes de grafia. Cada 'texto' aparece literalmente na frase. O dono revisa antes de a bancada valer como critério.",
+  "itens": {
+    "pt-dom-casmurro-cap1": [
+      { "texto": "Engenho Novo", "tipo": "nome", "aceita": ["engenho novo"] }
+    ],
+    "pt-dom-casmurro-cap5": [
+      { "texto": "Itaguahy", "tipo": "nome", "aceita": ["itaguahy", "itaguaí", "itaguai"] },
+      { "texto": "José Dias", "tipo": "nome", "aceita": ["josé dias", "jose dias"] }
+    ],
+    "pt-eca": [
+      { "texto": "Fradique Mendes", "tipo": "nome", "aceita": ["fradique mendes"] },
+      {
+        "texto": "1880",
+        "tipo": "ano",
+        "aceita": ["1880", "mil oitocentos e oitenta", "mil e oitocentos e oitenta"]
+      },
+      {
+        "texto": "1867",
+        "tipo": "ano",
+        "aceita": ["1867", "mil oitocentos e sessenta e sete", "mil e oitocentos e sessenta e sete"]
+      },
+      { "texto": "Lisboa", "tipo": "nome", "aceita": ["lisboa"] }
+    ],
+    "pt-frase-longa": [
+      { "texto": "Dom Casmurro", "tipo": "nome", "aceita": ["dom casmurro"] },
+      { "texto": "Petropolis", "tipo": "nome", "aceita": ["petropolis", "petrópolis"] },
+      { "texto": "Rhenania", "tipo": "nome", "aceita": ["rhenania", "renânia", "renania"] },
+      { "texto": "Engenho Novo", "tipo": "nome", "aceita": ["engenho novo"] }
+    ],
+    "pt-numeros": [
+      {
+        "texto": "1889",
+        "tipo": "ano",
+        "aceita": ["1889", "mil oitocentos e oitenta e nove", "mil e oitocentos e oitenta e nove"]
+      },
+      {
+        "texto": "R$ 49,90",
+        "tipo": "numero",
+        "aceita": [
+          "R$ 49,90",
+          "49,90",
+          "quarenta e nove reais e noventa centavos",
+          "quarenta e nove e noventa",
+          "quarenta e nove reais e noventa"
+        ]
+      },
+      {
+        "texto": "1.250",
+        "tipo": "numero",
+        "aceita": ["1.250", "1250", "mil duzentos e cinquenta", "mil e duzentos e cinquenta"]
+      },
+      {
+        "texto": "7h30",
+        "tipo": "numero",
+        "aceita": [
+          "7h30",
+          "7:30",
+          "sete e trinta",
+          "sete horas e trinta",
+          "sete e meia",
+          "sete horas e trinta minutos"
+        ]
+      }
+    ],
+    "pt-romanos-ordinais": [
+      {
+        "texto": "João Paulo II",
+        "tipo": "nome",
+        "aceita": ["joão paulo ii", "joão paulo segundo", "joão paulo 2", "joao paulo segundo"]
+      },
+      { "texto": "XX", "tipo": "numero", "aceita": ["XX", "vinte", "20"] },
+      { "texto": "3º", "tipo": "numero", "aceita": ["3º", "terceiro", "3"] },
+      { "texto": "10º", "tipo": "numero", "aceita": ["10º", "décimo", "decimo", "10"] },
+      { "texto": "XIV", "tipo": "numero", "aceita": ["XIV", "catorze", "quatorze", "14"] },
+      { "texto": "21", "tipo": "numero", "aceita": ["21", "vinte e um", "vinte e uma"] }
+    ],
+    "pt-siglas": [
+      { "texto": "USP", "tipo": "sigla", "aceita": ["usp", "u s p", "u-s-p", "u esse pê"] },
+      { "texto": "UNICAMP", "tipo": "sigla", "aceita": ["unicamp"] },
+      { "texto": "IBGE", "tipo": "sigla", "aceita": ["ibge", "i b g e", "i-b-g-e", "i bê gê é"] },
+      { "texto": "NASA", "tipo": "sigla", "aceita": ["nasa"] },
+      {
+        "texto": "INSS",
+        "tipo": "sigla",
+        "aceita": ["inss", "i n s s", "i-n-s-s", "i ene esse esse"]
+      },
+      { "texto": "SUS", "tipo": "sigla", "aceita": ["sus", "s u s"] },
+      { "texto": "ONU", "tipo": "sigla", "aceita": ["onu"] }
+    ],
+    "pt-nomes-estrangeiros": [
+      {
+        "texto": "Friedrich Nietzsche",
+        "tipo": "nome",
+        "aceita": ["friedrich nietzsche", "friedrich nietsche", "frederico nietzsche", "nietzsche"]
+      },
+      {
+        "texto": "Marie Curie",
+        "tipo": "nome",
+        "aceita": ["marie curie", "maria curie", "madame curie"]
+      },
+      {
+        "texto": "Mahatma Gandhi",
+        "tipo": "nome",
+        "aceita": ["mahatma gandhi", "mahatma gandi", "gandhi", "gandi"]
+      },
+      {
+        "texto": "Dostoiévski",
+        "tipo": "nome",
+        "aceita": ["dostoiévski", "dostoievski", "dostoyevsky", "dostoiévsky", "dostoievsky"]
+      },
+      { "texto": "Zurique", "tipo": "nome", "aceita": ["zurique", "zürich", "zurich"] }
+    ],
+    "pt-estrangeirismo": [
+      { "texto": "workshop", "tipo": "nome", "aceita": ["workshop", "worqui shop", "uorkshop"] },
+      { "texto": "marketing", "tipo": "nome", "aceita": ["marketing", "márketing"] },
+      { "texto": "brunch", "tipo": "nome", "aceita": ["brunch", "branch"] },
+      { "texto": "feedback", "tipo": "nome", "aceita": ["feedback", "fidbék", "fidbeck"] },
+      { "texto": "deadline", "tipo": "nome", "aceita": ["deadline", "dedlaine", "dead line"] }
+    ],
+    "en-dialogo": [
+      { "texto": "Netherfield Park", "tipo": "nome", "aceita": ["netherfield park"] },
+      { "texto": "Mrs. Long", "tipo": "nome", "aceita": ["mrs. long", "mrs long", "missus long"] }
+    ],
+    "en-numeros": [
+      {
+        "texto": "1776",
+        "tipo": "ano",
+        "aceita": ["1776", "seventeen seventy-six", "seventeen seventy six"]
+      },
+      {
+        "texto": "2,450",
+        "tipo": "numero",
+        "aceita": [
+          "2,450",
+          "2450",
+          "two thousand four hundred fifty",
+          "two thousand four hundred and fifty",
+          "twenty-four fifty"
+        ]
+      },
+      {
+        "texto": "$19.99",
+        "tipo": "numero",
+        "aceita": [
+          "$19.99",
+          "19.99",
+          "nineteen ninety-nine",
+          "nineteen dollars and ninety-nine cents",
+          "nineteen ninety nine"
+        ]
+      },
+      {
+        "texto": "7:30",
+        "tipo": "numero",
+        "aceita": ["7:30", "7.30", "seven thirty", "half past seven"]
+      },
+      { "texto": "3rd", "tipo": "numero", "aceita": ["3rd", "third", "3"] }
+    ],
+    "en-siglas": [
+      { "texto": "NASA", "tipo": "sigla", "aceita": ["nasa"] },
+      { "texto": "FBI", "tipo": "sigla", "aceita": ["fbi", "f b i", "f-b-i"] },
+      { "texto": "UN", "tipo": "sigla", "aceita": ["un", "u n", "u-n", "united nations"] },
+      { "texto": "NATO", "tipo": "sigla", "aceita": ["nato"] },
+      { "texto": "BBC", "tipo": "sigla", "aceita": ["bbc", "b b c", "b-b-c"] },
+      { "texto": "MIT", "tipo": "sigla", "aceita": ["mit", "m i t", "m-i-t"] }
+    ],
+    "en-nomes-estrangeiros": [
+      {
+        "texto": "Gabriel García Márquez",
+        "tipo": "nome",
+        "aceita": ["gabriel garcía márquez", "gabriel garcia marquez"]
+      },
+      { "texto": "Machado de Assis", "tipo": "nome", "aceita": ["machado de assis"] },
+      {
+        "texto": "Marie Skłodowska-Curie",
+        "tipo": "nome",
+        "aceita": [
+          "marie skłodowska-curie",
+          "marie sklodowska-curie",
+          "marie sklodowska curie",
+          "marie curie"
+        ]
+      },
+      { "texto": "Kraków", "tipo": "nome", "aceita": ["kraków", "krakow", "cracow"] }
+    ],
+    "es-numeros": [
+      { "texto": "1492", "tipo": "ano", "aceita": ["1492", "mil cuatrocientos noventa y dos"] },
+      {
+        "texto": "1.250",
+        "tipo": "numero",
+        "aceita": ["1.250", "1250", "mil doscientos cincuenta"]
+      },
+      {
+        "texto": "24,50 euros",
+        "tipo": "numero",
+        "aceita": [
+          "24,50 euros",
+          "24,50",
+          "veinticuatro euros con cincuenta",
+          "veinticuatro con cincuenta",
+          "veinticuatro euros con cincuenta céntimos"
+        ]
+      },
+      {
+        "texto": "7:30",
+        "tipo": "numero",
+        "aceita": ["7:30", "7.30", "siete y media", "siete y treinta", "las siete treinta"]
+      }
+    ],
+    "es-siglas": [
+      { "texto": "ONU", "tipo": "sigla", "aceita": ["onu"] },
+      { "texto": "UNAM", "tipo": "sigla", "aceita": ["unam"] },
+      { "texto": "CSIC", "tipo": "sigla", "aceita": ["csic", "c s i c", "c-s-i-c"] },
+      { "texto": "RAE", "tipo": "sigla", "aceita": ["rae", "r a e", "r-a-e"] },
+      { "texto": "OTAN", "tipo": "sigla", "aceita": ["otan"] },
+      { "texto": "UE", "tipo": "sigla", "aceita": ["ue", "u e", "u-e", "unión europea"] }
+    ],
+    "es-nomes-estrangeiros": [
+      {
+        "texto": "Friedrich Nietzsche",
+        "tipo": "nome",
+        "aceita": ["friedrich nietzsche", "friedrich nietsche", "federico nietzsche", "nietzsche"]
+      },
+      { "texto": "Machado de Assis", "tipo": "nome", "aceita": ["machado de assis"] },
+      {
+        "texto": "Marie Curie",
+        "tipo": "nome",
+        "aceita": ["marie curie", "maría curie", "madame curie"]
+      },
+      { "texto": "Zúrich", "tipo": "nome", "aceita": ["zúrich", "zurich", "zurique"] }
+    ]
+  }
+}

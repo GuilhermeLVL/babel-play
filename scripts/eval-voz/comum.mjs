@@ -11,9 +11,10 @@ import { readFileSync } from 'node:fs'
  * @property {string} texto  trecho exato que aparece no texto da frase
  * @property {string[]} aceita  grafias aceitas na transcrição (por extenso, em dígitos, variantes
  *   ORTOGRÁFICAS da mesma palavra; nada de respelling fonético nem outra palavra). A métrica
- *   (Tarefa 7) compara DEPOIS de normalizar os dois lados (minúsculas, sem acento nem pontuação),
- *   então caixa mista em `aceita` não importa. Entradas curtas ("un", "3", "vinte") exigem
- *   casamento por fronteira de palavra lá, para não acertar dentro de outra palavra.
+ *   (`acertoDosItens` em `metricas.mjs`) normaliza os dois lados com `normalizarParaComparar`
+ *   (minúsculas, sem pontuação, números por extenso em pt) e ainda dobra o acento, então caixa
+ *   mista e "Dostoiévski"/"Dostoievski" não importam. O casamento é por sequência de palavras
+ *   inteiras (fronteira de palavra): "un", "3", "vinte" não acertam dentro de outra palavra.
  * @property {'nome'|'numero'|'sigla'|'ano'} tipo
  */
 
@@ -72,4 +73,74 @@ export function lerCorpus(caminho) {
     itens.push(o)
   }
   return itens
+}
+
+/**
+ * Medidas de uma voz num idioma. Todas as taxas são FRAÇÕES em [0,1] (3,0 % = 0.03).
+ * @typedef {object} MedidasDoIdioma
+ * @property {number} cer  CER agregado (erros ÷ caracteres da referência)
+ * @property {number} wer  WER agregado (erros ÷ palavras da referência)
+ * @property {number} itensAcerto  fração dos itens difíceis (nome, número, sigla, ano) corretos; 1 se não há itens
+ * @property {number} itensNumerosEAnos  fração só dos itens `numero` e `ano`; 1 se não há
+ * @property {number} semAudio  CONTAGEM de frases sem áudio (WAV ausente); fora do WER
+ * @property {number} [estabilidade]  inserções + deleções no texto longo, fração das palavras;
+ *   vem de `medir-estabilidade.mjs`, não do round-trip (ausente = não medida)
+ * @property {number} [foraDaMediana]  fração das frases com duração/caractere fora de ±30% da
+ *   mediana da própria voz; só existe se o chamador informou as durações (ausente = não medida)
+ */
+
+/**
+ * @typedef {object} Medidas
+ * @property {Partial<Record<'pt'|'en'|'es', MedidasDoIdioma>>} porIdioma  só os idiomas presentes no corpus
+ */
+
+/**
+ * Limiares de um idioma (spec §7.2). Taxas em fração; um campo ausente não é checado.
+ * @typedef {object} LimiaresDoIdioma
+ * @property {number} cerMax  CER agregado, eliminatório (pt 3,0 % / en 2,0 % / es 3,0 %)
+ * @property {number} werMax  WER agregado, eliminatório (pt 8,0 % / en 5,0 % / es 7,0 %)
+ * @property {number} itensAcertoMin  itens difíceis corretos (pt 85 % / en 90 % / es 90 %)
+ * @property {number} itensNumerosEAnosMin  números e anos corretos (100 % nos três)
+ * @property {number} estabilidadeMax  inserções + deleções no texto longo (1,0 %)
+ * @property {number} foraDaMedianaMax  frases fora de ±30% da mediana de duração/caractere (3 %)
+ * @property {number} semAudioMax  frases sem áudio, em contagem (0)
+ */
+
+/**
+ * @typedef {Record<'pt'|'en'|'es', LimiaresDoIdioma>} Limiares
+ */
+
+/**
+ * Limiares automáticos da spec §7.2 (PROPOSTA; a F0 calibra e trava em `limiares.json`).
+ * O RTF (≤ 0,5) é medido na síntese, não aqui.
+ * @type {Limiares}
+ */
+export const LIMIARES_DA_SPEC = {
+  pt: {
+    cerMax: 0.03,
+    werMax: 0.08,
+    itensAcertoMin: 0.85,
+    itensNumerosEAnosMin: 1,
+    estabilidadeMax: 0.01,
+    foraDaMedianaMax: 0.03,
+    semAudioMax: 0,
+  },
+  en: {
+    cerMax: 0.02,
+    werMax: 0.05,
+    itensAcertoMin: 0.9,
+    itensNumerosEAnosMin: 1,
+    estabilidadeMax: 0.01,
+    foraDaMedianaMax: 0.03,
+    semAudioMax: 0,
+  },
+  es: {
+    cerMax: 0.03,
+    werMax: 0.07,
+    itensAcertoMin: 0.9,
+    itensNumerosEAnosMin: 1,
+    estabilidadeMax: 0.01,
+    foraDaMedianaMax: 0.03,
+    semAudioMax: 0,
+  },
 }

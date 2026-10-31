@@ -396,13 +396,17 @@ describe('itens numero/ano: vizinhança consciente da referência', () => {
     expect(acerta('em 1889 1776', ano89, 'Outra frase qualquer.')).toBe(0)
   })
 
-  it('o gabarito do corpus acerta 100% lendo o próprio texto com ref', () => {
+  it('o gabarito do corpus acerta 100% lendo o próprio texto escrito e a forma falada, com ref', () => {
     const corpus = lerCorpus(path.resolve(__dirname, '..', 'scripts', 'eval-voz', 'corpus-voz.jsonl')) as Item[]
     for (const c of corpus) {
-      // Só numero/ano: o texto escrito de uma sigla ("CPF") não é uma das formas faladas do gabarito.
-      const itens = c.itens.filter((i) => i.tipo === 'numero' || i.tipo === 'ano')
-      const r = acertoDosItens(c.texto, itens, c.idioma, { ref: c.texto })
-      expect(`${c.id}: ${r.acertos}/${r.total}`).toBe(`${c.id}: ${r.total}/${r.total}`)
+      const escrito = acertoDosItens(c.texto, c.itens, c.idioma, { ref: c.texto })
+      expect(`${c.id} escrito: ${escrito.acertos}/${escrito.total}`).toBe(
+        `${c.id} escrito: ${escrito.total}/${escrito.total}`,
+      )
+      const falado = acertoDosItens(normalizarParaComparar(c.texto, c.idioma), c.itens, c.idioma, { ref: c.texto })
+      expect(`${c.id} falado: ${falado.acertos}/${falado.total}`).toBe(
+        `${c.id} falado: ${falado.total}/${falado.total}`,
+      )
     }
   })
 
@@ -419,6 +423,41 @@ describe('itens numero/ano: vizinhança consciente da referência', () => {
       transcrever: async () => 'em mil oitocentos e oitenta e nove quatro homens chegaram',
     })
     expect(r.medidas.porIdioma.pt.itensNumerosEAnos).toBe(1)
+  })
+})
+
+describe('itens sigla: duas vistas (letras e falado)', () => {
+  const corpus = lerCorpus(path.resolve(__dirname, '..', 'scripts', 'eval-voz', 'corpus-voz.jsonl')) as Item[]
+  const sigla = (texto: string) => {
+    const it = corpus.flatMap((c) => c.itens).find((i) => i.tipo === 'sigla' && i.texto === texto)
+    if (!it) throw new Error(`sigla ${texto} não está no corpus`)
+    return [it]
+  }
+  const ok = (hip: string, texto: string, idioma: 'pt' | 'en' | 'es' = 'pt') =>
+    acertoDosItens(hip, sigla(texto), idioma).acertos
+
+  it.each([
+    ['Estudei na USP em 2010', 'USP'],
+    ['Segundo o IBGE a taxa caiu', 'IBGE'],
+    ['estudei na u ésse pê', 'USP'],
+    ['estudei na usp', 'USP'],
+    ['estudei na U.S.P.', 'USP'],
+    ['estudei na u s p', 'USP'],
+    ['estudei na U-S-P', 'USP'],
+    ['foi a u s p ontem', 'USP'],
+    ['a ONU decidiu', 'ONU'],
+    ['o INSS pagou, e o SUS atendeu', 'INSS'],
+    ['o INSS pagou, e o SUS atendeu', 'SUS'],
+  ])('aceita %j para %s', (hip, texto) => {
+    expect(ok(hip, texto)).toBe(1)
+  })
+
+  it('não acerta dentro de outra palavra nem com letras soltas sem relação', () => {
+    expect(ok('o suspeito russo fugiu', 'SUS')).toBe(0)
+    expect(ok('o ônus da prova', 'ONU')).toBe(0)
+    // Letras soltas que não formam a sigla (nem em outra ordem) não acertam.
+    expect(ok('a b c', 'USP')).toBe(0)
+    expect(ok('u p s', 'USP')).toBe(0)
   })
 })
 

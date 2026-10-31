@@ -152,6 +152,58 @@ function contem(palheiro, agulha, vizinhos = null) {
 }
 
 /**
+ * Vista "letras" (só para `sigla`): minúsculas, sem acento, sem ponto, hífen nem apóstrofo
+ * ("U.S.P." e "U-S-P" viram "usp"), demais pontuação vira espaço. NÃO passa por `prepararTextoParaVoz`,
+ * que expandiria "USP" (maiúsculo) em "u ésse pê" e deixaria "usp" (minúsculo) como está: dois lados
+ * normalizados de jeitos diferentes.
+ */
+function paraLetras(texto) {
+  return (texto ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[.'’\-‐-―]/g, '')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .split(' ')
+    .filter(Boolean)
+}
+
+/**
+ * `alvo` (tokens da forma aceita, vista "letras") aparece em `hip` em fronteira de palavra? Uma sigla
+ * pode vir como uma palavra ("usp") ou soletrada ("u s p"): tokens de UMA letra consecutivos se somam,
+ * só até formar o alvo, então "sus" não acerta em "suspeito" nem "russo".
+ */
+function contemLetras(hip, alvo) {
+  if (alvo.length === 0) return false
+  if (alvo.length > 1 && !alvo.every((t) => t.length === 1)) return contem(hip, alvo)
+  const texto = alvo.join('')
+  for (let i = 0; i < hip.length; i++) {
+    if (hip[i] === texto) return true
+    if (hip[i].length !== 1) continue
+    let acc = hip[i]
+    for (let j = i + 1; j < hip.length && hip[j].length === 1 && acc.length < texto.length; j++) {
+      acc += hip[j]
+      if (acc === texto) return true
+    }
+  }
+  return false
+}
+
+/**
+ * Sigla: acerta se, em fronteira de palavra, QUALQUER vista casa: (aceita ou `texto` na vista "letras"
+ * dentro da hipótese em "letras") ou (aceita ou `texto` na vista "falada" dentro da hipótese "falada").
+ * O `texto` entra nas duas: a sigla escrita em qualquer caixa e a forma que o pré-processador gera
+ * dela ("u ésse pê") contam, sem mexer no gabarito.
+ */
+function acertouSigla(item, palavras, letrasDaHip, idioma) {
+  const formas = [...item.aceita, item.texto]
+  return (
+    formas.some((f) => contemLetras(letrasDaHip, paraLetras(f))) ||
+    formas.some((f) => contem(palavras, paraItem(f, idioma)))
+  )
+}
+
+/**
  * Quantos itens difíceis aparecem na hipótese. Um item acerta se QUALQUER forma de `aceita` aparece
  * como sequência de palavras inteiras, depois de normalizar os dois lados e ignorar acento.
  * Itens `numero` e `ano` exigem casamento EXATO no sentido numeral (o achado não pode estar dentro de
@@ -171,13 +223,17 @@ function contem(palheiro, agulha, vizinhos = null) {
  */
 export function acertoDosItens(hip, itens, idioma = 'pt', { ref } = {}) {
   const palavras = paraItem(hip, idioma)
+  const letrasDaHip = paraLetras(hip)
   const refTokens = ref === undefined ? null : paraItem(ref, idioma)
   const porTipo = {}
   let acertos = 0
   for (const item of itens) {
     const exato = item.tipo === 'numero' || item.tipo === 'ano'
     const vizinhos = exato ? vizinhosDaReferencia(refTokens, paraItem(item.texto, idioma)) : null
-    const ok = item.aceita.some((forma) => contem(palavras, paraItem(forma, idioma), vizinhos))
+    const ok =
+      item.tipo === 'sigla'
+        ? acertouSigla(item, palavras, letrasDaHip, idioma)
+        : item.aceita.some((forma) => contem(palavras, paraItem(forma, idioma), vizinhos))
     const par = (porTipo[item.tipo] ??= [0, 0])
     par[1]++
     if (ok) {

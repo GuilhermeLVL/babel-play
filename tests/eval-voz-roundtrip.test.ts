@@ -6,7 +6,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { LIMIARES_DA_SPEC } from '../scripts/eval-voz/comum.mjs'
-import { medirRoundtrip } from '../scripts/eval-voz/medir-roundtrip.mjs'
+import { medirRoundtrip, MIN_CLIPES_PARA_MEDIANA, prepararPcm } from '../scripts/eval-voz/medir-roundtrip.mjs'
 import {
   acertoDosItens,
   avaliarContraLimiares,
@@ -32,6 +32,7 @@ const medidasOk = (pt: Record<string, number> = {}) => ({
       estabilidade: 0.005,
       foraDaMediana: 0.01,
       semAudio: 0,
+      invalidos: 0,
       ...pt,
     },
     en: {
@@ -42,6 +43,7 @@ const medidasOk = (pt: Record<string, number> = {}) => ({
       estabilidade: 0.005,
       foraDaMediana: 0.01,
       semAudio: 0,
+      invalidos: 0,
     },
     es: {
       cer: 0.01,
@@ -51,6 +53,7 @@ const medidasOk = (pt: Record<string, number> = {}) => ({
       estabilidade: 0.005,
       foraDaMediana: 0.01,
       semAudio: 0,
+      invalidos: 0,
     },
   },
 })
@@ -157,11 +160,12 @@ describe('avaliarContraLimiares', () => {
 
   it('reprova WER, itens, estabilidade, fora da mediana e frases sem áudio', () => {
     const r = avaliarContraLimiares(
-      medidasOk({ wer: 0.09, itensAcerto: 0.8, estabilidade: 0.02, foraDaMediana: 0.04, semAudio: 1 }),
+      medidasOk({ wer: 0.09, itensAcerto: 0.8, estabilidade: 0.02, foraDaMediana: 0.04, semAudio: 1, invalidos: 2 }),
       LIMIARES_DA_SPEC,
     )
     expect(r.passou).toBe(false)
-    expect(r.falhas).toHaveLength(5)
+    expect(r.falhas).toHaveLength(6)
+    expect(r.falhas.join(' ')).toMatch(/inválid/)
   })
 
   it('métrica ainda não medida (estabilidade) reprova em vez de passar calada', () => {
@@ -250,6 +254,202 @@ describe('medirRoundtrip (orquestração com transcritor falso)', () => {
       duracaoDe: (it: Item) => dur[it.id],
     })
     expect(r.medidas.porIdioma.pt.foraDaMediana).toBe(0.2)
+  })
+})
+
+describe('itens numero/ano: casamento exato no sentido numeral', () => {
+  const ano: Item['itens'] = [
+    {
+      texto: '1889',
+      tipo: 'ano',
+      aceita: ['1889', 'mil oitocentos e oitenta e nove', 'mil e oitocentos e oitenta e nove'],
+    },
+  ]
+  const aceitaTipo = (hip: string, itens: Item['itens'], idioma: 'pt' | 'en' | 'es' = 'pt') =>
+    acertoDosItens(hip, itens, idioma).acertos
+
+  it('falsos aceites: número maior que contém o ano NÃO casa', () => {
+    expect(aceitaTipo('mil oitocentos e oitenta e nove mil e um', ano)).toBe(0)
+    expect(aceitaTipo('onze mil oitocentos e oitenta e nove', ano)).toBe(0)
+  })
+
+  it('"cento e vinte e um" não casa "vinte e um"; "vinte e um" não casa "vinte"', () => {
+    const vinteEUm: Item['itens'] = [{ texto: '21', tipo: 'numero', aceita: ['vinte e um'] }]
+    const vinte: Item['itens'] = [{ texto: '20', tipo: 'numero', aceita: ['vinte'] }]
+    expect(aceitaTipo('cento e vinte e um', vinteEUm)).toBe(0)
+    expect(aceitaTipo('vinte e um', vinte)).toBe(0)
+    expect(aceitaTipo('vinte e um', vinteEUm)).toBe(1)
+    expect(aceitaTipo('vinte', vinte)).toBe(1)
+  })
+
+  it('verdadeiros positivos: extenso, "mil e", dígitos e dentro de frase maior', () => {
+    expect(aceitaTipo('mil oitocentos e oitenta e nove', ano)).toBe(1)
+    expect(aceitaTipo('mil e oitocentos e oitenta e nove', ano)).toBe(1)
+    expect(aceitaTipo('1889', ano)).toBe(1)
+    expect(aceitaTipo('em mil oitocentos e oitenta e nove ele', ano)).toBe(1)
+    expect(aceitaTipo('em mil oitocentos e oitenta e nove, a república', ano)).toBe(1)
+  })
+
+  it('hora e moeda continuam casando com a própria lista aceita', () => {
+    const hora: Item['itens'] = [
+      { texto: '7h30', tipo: 'numero', aceita: ['7h30', 'sete horas e trinta', 'sete e trinta'] },
+    ]
+    const moeda: Item['itens'] = [
+      {
+        texto: 'R$ 49,90',
+        tipo: 'numero',
+        aceita: ['R$ 49,90', 'quarenta e nove reais e noventa centavos'],
+      },
+    ]
+    expect(aceitaTipo('o trem sai às sete horas e trinta', hora)).toBe(1)
+    expect(aceitaTipo('o trem sai às 7h30', hora)).toBe(1)
+    expect(aceitaTipo('sai às sete e trinta e cinco', hora)).toBe(0)
+    expect(aceitaTipo('custa quarenta e nove reais e noventa centavos.', moeda)).toBe(1)
+    expect(aceitaTipo('custa R$ 49,90, a viagem', moeda)).toBe(1)
+  })
+
+  it('en e es: dígito ou palavra de número adjacente reprova', () => {
+    const en: Item['itens'] = [{ texto: '1776', tipo: 'ano', aceita: ['1776', 'seventeen seventy six'] }]
+    expect(aceitaTipo('in 1776 the town', en, 'en')).toBe(1)
+    expect(aceitaTipo('in 17760', en, 'en')).toBe(0)
+    expect(aceitaTipo('in 1776 2450', en, 'en')).toBe(0)
+    const es: Item['itens'] = [{ texto: '92', tipo: 'numero', aceita: ['noventa y dos'] }]
+    expect(aceitaTipo('cuatrocientos noventa y dos', es, 'es')).toBe(0)
+    expect(aceitaTipo('el noventa y dos', es, 'es')).toBe(1)
+  })
+
+  it('nome e sigla seguem com contenção simples', () => {
+    const nome: Item['itens'] = [{ texto: 'Capitu', tipo: 'nome', aceita: ['capitu'] }]
+    expect(aceitaTipo('a Capitu vinte e um', nome)).toBe(1)
+  })
+})
+
+describe('avaliarContraLimiares: opção ignorar', () => {
+  it('por padrão a métrica ausente reprova; com ignorar não é checada', () => {
+    const m = medidasOk()
+    delete (m.porIdioma.pt as Record<string, number>).estabilidade
+    expect(avaliarContraLimiares(m, LIMIARES_DA_SPEC).passou).toBe(false)
+    expect(avaliarContraLimiares(m, LIMIARES_DA_SPEC, { ignorar: ['estabilidade'] })).toEqual({
+      passou: true,
+      falhas: [],
+    })
+  })
+})
+
+describe('WAV inválido não derruba a rodada', () => {
+  const wav = (o: {
+    bits?: number
+    amostras?: number[]
+    declarado?: number
+    semFmt?: boolean
+    semData?: boolean
+    formato?: number
+  }) => {
+    const amostras = o.amostras ?? [0]
+    const dados = Buffer.alloc(amostras.length * 2)
+    amostras.forEach((a, i) => dados.writeInt16LE(a, i * 2))
+    const fmt = Buffer.alloc(24)
+    fmt.write('fmt ', 0, 'ascii')
+    fmt.writeUInt32LE(16, 4)
+    fmt.writeUInt16LE(o.formato ?? 1, 8)
+    fmt.writeUInt16LE(1, 10)
+    fmt.writeUInt32LE(16000, 12)
+    fmt.writeUInt32LE(32000, 16)
+    fmt.writeUInt16LE(2, 20)
+    fmt.writeUInt16LE(o.bits ?? 16, 22)
+    const cab = Buffer.alloc(8)
+    cab.write('data', 0, 'ascii')
+    cab.writeUInt32LE(o.declarado ?? dados.length, 4)
+    const riff = Buffer.alloc(12)
+    riff.write('RIFF', 0, 'ascii')
+    riff.write('WAVE', 8, 'ascii')
+    return Buffer.concat([riff, ...(o.semFmt ? [] : [fmt]), ...(o.semData ? [] : [cab, dados])])
+  }
+  const fala = Array.from({ length: 1600 }, (_, i) => Math.round(Math.sin(i / 5) * 12000))
+
+  it('prepararPcm aceita WAV bom e devolve PCM 16 kHz', () => {
+    const pcm = prepararPcm(wav({ amostras: fala }))
+    expect(pcm.length).toBeGreaterThan(1000)
+  })
+
+  it.each([
+    ['8 bits', wav({ bits: 8, amostras: fala }), /16-bit/],
+    ['truncado', wav({ amostras: fala, declarado: 99999 }), /truncad/],
+    ['sem fmt', wav({ semFmt: true, amostras: fala }), /fmt/],
+    ['sem data', wav({ semData: true }), /data/],
+    ['data vazio', wav({ amostras: [] }), /vazi/],
+    ['tudo zero', wav({ amostras: new Array(1600).fill(0) }), /vazi|silêncio/],
+    ['não é WAV', Buffer.from('nada a ver'), /RIFF/],
+    ['formato não PCM', wav({ formato: 3, amostras: fala }), /PCM/],
+  ])('prepararPcm rejeita %s com mensagem clara', (_n, buf, re) => {
+    expect(() => prepararPcm(buf as Buffer)).toThrow(re as RegExp)
+  })
+
+  const corpus: Item[] = ['a', 'b', 'c'].map((n) => ({
+    id: `pt-${n}`,
+    idioma: 'pt' as const,
+    texto: 'um dois tres',
+    categoria: 'x',
+    itens: [],
+  }))
+
+  it('transcritor que lança conta em invalidos, guarda o erro e segue', async () => {
+    const r = await medirRoundtrip({
+      corpus,
+      transcrever: async (it: Item) => {
+        if (it.id === 'pt-b') throw new Error('esperado PCM 16-bit, veio 8')
+        return it.texto
+      },
+    })
+    expect(r.medidas.porIdioma.pt.invalidos).toBe(1)
+    expect(r.medidas.porIdioma.pt.semAudio).toBe(0)
+    expect(r.medidas.porIdioma.pt.wer).toBe(0)
+    const f = r.frases.find((x: { id: string }) => x.id === 'pt-b')
+    expect(f.invalido).toBe(true)
+    expect(f.erro).toMatch(/16-bit/)
+    expect(
+      avaliarContraLimiares(r.medidas, LIMIARES_DA_SPEC, { ignorar: ['estabilidade', 'foraDaMediana'] }).falhas.join(
+        ' ',
+      ),
+    ).toMatch(/inválid/)
+  })
+
+  it('invalidos é 0 quando tudo vai bem', async () => {
+    const r = await medirRoundtrip({ corpus, transcrever: async (it: Item) => it.texto })
+    expect(r.medidas.porIdioma.pt.invalidos).toBe(0)
+  })
+})
+
+describe('foraDaMediana: mínimo de clipes e comprimento normalizado', () => {
+  const faz = (n: number): Item[] =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `pt-${i}`,
+      idioma: 'pt' as const,
+      texto: 'aaaaaaaaaa',
+      categoria: 'x',
+      itens: [],
+    }))
+  it.each([0, 1, 2, 3])('com %i clipes: só mede a partir de 3', async (n) => {
+    const r = await medirRoundtrip({
+      corpus: faz(n),
+      transcrever: async (it: Item) => it.texto,
+      duracaoDe: () => 1,
+    })
+    if (n === 0) return expect(r.medidas.porIdioma.pt).toBeUndefined()
+    if (n < MIN_CLIPES_PARA_MEDIANA) expect(r.medidas.porIdioma.pt.foraDaMediana).toBeUndefined()
+    else expect(r.medidas.porIdioma.pt.foraDaMediana).toBe(0)
+  })
+
+  it('usa o comprimento do texto normalizado ("R$ 5" vira "cinco reais")', async () => {
+    // Texto cru "R$ 5" tem 4 caracteres; normalizado, "cinco reais" tem 11. Duração proporcional
+    // ao normalizado (1,1 s) não pode ser outlier contra frases de 10 caracteres em 1 s.
+    const corpus: Item[] = [...faz(4), { id: 'pt-x', idioma: 'pt', texto: 'R$ 5', categoria: 'x', itens: [] }]
+    const r = await medirRoundtrip({
+      corpus,
+      transcrever: async (it: Item) => it.texto,
+      duracaoDe: (it: Item) => (it.id === 'pt-x' ? 1.1 : 1),
+    })
+    expect(r.medidas.porIdioma.pt.foraDaMediana).toBe(0)
   })
 })
 

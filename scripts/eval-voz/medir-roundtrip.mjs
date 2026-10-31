@@ -5,7 +5,9 @@
  *   node --import tsx scripts/eval-voz/medir-roundtrip.mjs --motor <id> --voz <id> --entrada <dir de wavs>
  *
  * Espera um `<id>.wav` por item do corpus (`corpus-voz.jsonl`) na pasta de entrada. WAV ausente conta em
- * `semAudio` (falha dura nos limiares), não derruba a medição. Grava `docs/auditoria/eval/voz-<motor>-<voz>.json`.
+ * `semAudio`; WAV inválido (8 bits, truncado, sem fmt/data, vazio, só silêncio) ou transcrição que lança
+ * conta em `invalidos`, com a mensagem de erro no registro da frase. Nenhum dos dois derruba a rodada,
+ * e ambos reprovam nos limiares. Grava `docs/auditoria/eval/voz-<motor>-<voz>.json`.
  *
  * O Whisper usa as MESMAS opções de decode de `scripts/eval-fala/medir-wer.mjs` (espelho de
  * `whisperWorker.ts`): guloso, sem timestamps, `no_repeat_ngram_size: 3`, `repetition_penalty: 1.15`.
@@ -17,16 +19,23 @@ import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'no
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
+import { agregar } from '../../src/core/eval/wer.ts'
 import { duracaoDoWav } from '../audiolivros/wav.mjs'
 import { LIMIARES_DA_SPEC, lerCorpus } from './comum.mjs'
 import { acertoDosItens, avaliarContraLimiares, normalizarParaComparar } from './metricas.mjs'
-import { agregar } from '../../src/core/eval/wer.ts'
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url))
 const RAIZ = path.resolve(AQUI, '..', '..')
 const CORPUS = path.join(AQUI, 'corpus-voz.jsonl')
 const MODELO_WHISPER = 'onnx-community/whisper-small'
 const IDIOMAS = ['pt', 'en', 'es']
+
+/**
+ * Mínimo de clipes COM áudio e duração, por idioma, para calcular a mediana e os outliers de
+ * duração/caractere. Com 1 ou 2 clipes a "mediana" é o próprio clipe (ou a média de dois) e o
+ * ±30% não diz nada; abaixo disso `foraDaMediana` fica ausente ("não medida").
+ */
+export const MIN_CLIPES_PARA_MEDIANA = 3
 
 const mediana = (xs) => {
   const s = [...xs].sort((a, b) => a - b)
@@ -35,7 +44,8 @@ const mediana = (xs) => {
 }
 
 /**
- * Orquestração pura. `transcrever(item)` devolve o texto ouvido, ou `null`/`undefined` se não há áudio.
+ * Orquestração pura. `transcrever(item)` devolve o texto ouvido, `null`/`undefined` se não há áudio,
+ * ou LANÇA se o áudio é inválido (a mensagem vai para o registro da frase e conta em `invalidos`).
  * `duracaoDe(item)` (opcional) devolve a duração em segundos, para o teste de ±30% da mediana.
  * @param {{ corpus: import('./comum.mjs').CorpusItem[],
  *           transcrever: (item: import('./comum.mjs').CorpusItem) => Promise<string|null|undefined>,
@@ -44,24 +54,54 @@ const mediana = (xs) => {
 export async function medirRoundtrip({ corpus, transcrever, duracaoDe }) {
   const frases = []
   for (const item of corpus) {
-    const hip = await transcrever(item)
-    if (hip === null || hip === undefined) {
-      frases.push({ id: item.id, idioma: item.idioma, referencia: item.texto, hipotese: null, semAudio: true })
+    let hip
+    try {
+      hip = await transcrever(item)
+    } catch (e) {
+      frases.push({
+        id: item.id,
+        idioma: item.idioma,
+        referencia: item.texto,
+        hipotese: null,
+        semAudio: false,
+        invalido: true,
+        erro: e instanceof Error ? e.message : String(e),
+      })
       continue
     }
-    const referencia = normalizarParaComparar(item.texto, item.idioma)
-    const hipotese = normalizarParaComparar(hip, item.idioma)
-    const { wer, cer } = agregar([{ id: item.id, referencia, hipotese }])
+    if (hip === null || hip === undefined) {
+      frases.push({
+        id: item.id,
+        idioma: item.idioma,
+        referencia: item.texto,
+        hipotese: null,
+        semAudio: true,
+        invalido: false,
+      })
+      continue
+    }
+    const referenciaNormalizada = normalizarParaComparar(item.texto, item.idioma)
+    const hipoteseNormalizada = normalizarParaComparar(hip, item.idioma)
+    const { wer, cer } = agregar([{ id: item.id, referencia: referenciaNormalizada, hipotese: hipoteseNormalizada }])
+    let duracaoS
+    try {
+      duracaoS = duracaoDe?.(item)
+    } catch {
+      duracaoS = undefined
+    }
     frases.push({
       id: item.id,
       idioma: item.idioma,
       referencia: item.texto,
+      referenciaNormalizada,
       hipotese: hip,
+      hipoteseNormalizada,
       semAudio: false,
+      invalido: false,
       wer,
       cer,
       itens: acertoDosItens(hip, item.itens, item.idioma),
-      duracaoS: duracaoDe?.(item),
+      duracaoS,
     })
   }
 
@@ -69,19 +109,15 @@ export async function medirRoundtrip({ corpus, transcrever, duracaoDe }) {
   for (const idioma of IDIOMAS) {
     const doIdioma = frases.filter((f) => f.idioma === idioma)
     if (doIdioma.length === 0) continue
-    const comAudio = doIdioma.filter((f) => !f.semAudio)
+    const medidosOk = doIdioma.filter((f) => !f.semAudio && !f.invalido)
     const agg = agregar(
-      comAudio.map((f) => ({
-        id: f.id,
-        referencia: normalizarParaComparar(f.referencia, idioma),
-        hipotese: normalizarParaComparar(f.hipotese, idioma),
-      })),
+      medidosOk.map((f) => ({ id: f.id, referencia: f.referenciaNormalizada, hipotese: f.hipoteseNormalizada })),
     )
     let acertos = 0,
       total = 0,
       numAcertos = 0,
       numTotal = 0
-    for (const f of comAudio) {
+    for (const f of medidosOk) {
       acertos += f.itens.acertos
       total += f.itens.total
       for (const tipo of ['numero', 'ano']) {
@@ -95,15 +131,17 @@ export async function medirRoundtrip({ corpus, transcrever, duracaoDe }) {
       wer: agg.wer,
       itensAcerto: total === 0 ? 1 : acertos / total,
       itensNumerosEAnos: numTotal === 0 ? 1 : numAcertos / numTotal,
-      semAudio: doIdioma.length - comAudio.length,
+      semAudio: doIdioma.filter((f) => f.semAudio).length,
+      invalidos: doIdioma.filter((f) => f.invalido).length,
     }
-    // Duração por caractere contra a mediana da própria voz (spec §7.2): só se o chamador deu durações.
-    const razoes = comAudio
-      .filter((f) => Number.isFinite(f.duracaoS) && f.referencia.length > 0)
-      .map((f) => ({ id: f.id, r: f.duracaoS / f.referencia.length }))
-    if (razoes.length > 0) {
-      const med = mediana(razoes.map((x) => x.r))
-      const fora = razoes.filter((x) => Math.abs(x.r / med - 1) > 0.3).length
+    // Duração por caractere NORMALIZADO (o que o sintetizador de fato leu) contra a mediana da própria
+    // voz (spec §7.2). Só com durações informadas e ao menos MIN_CLIPES_PARA_MEDIANA clipes.
+    const razoes = medidosOk
+      .filter((f) => Number.isFinite(f.duracaoS) && f.referenciaNormalizada.length > 0)
+      .map((f) => f.duracaoS / f.referenciaNormalizada.length)
+    if (razoes.length >= MIN_CLIPES_PARA_MEDIANA) {
+      const med = mediana(razoes)
+      const fora = razoes.filter((r) => Math.abs(r / med - 1) > 0.3).length
       medidas.foraDaMediana = fora / razoes.length
     }
     porIdioma[idioma] = medidas
@@ -111,20 +149,25 @@ export async function medirRoundtrip({ corpus, transcrever, duracaoDe }) {
   return { medidas: { porIdioma }, frases }
 }
 
-/** Corta o silêncio das pontas (amplitude < 0,01), deixando 100 ms de margem. */
+/** Amplitude abaixo da qual uma amostra conta como silêncio. */
+const LIMIAR_DE_SILENCIO = 0.01
+
+/** Corta o silêncio das pontas, deixando 100 ms de margem. */
 function cortarSilencio(pcm, taxa = 16000) {
-  const limiar = 0.01
   let ini = 0
   let fim = pcm.length - 1
-  while (ini < fim && Math.abs(pcm[ini]) < limiar) ini++
-  while (fim > ini && Math.abs(pcm[fim]) < limiar) fim--
+  while (ini < fim && Math.abs(pcm[ini]) < LIMIAR_DE_SILENCIO) ini++
+  while (fim > ini && Math.abs(pcm[fim]) < LIMIAR_DE_SILENCIO) fim--
   const margem = Math.round(taxa * 0.1)
   return pcm.subarray(Math.max(0, ini - margem), Math.min(pcm.length, fim + 1 + margem))
 }
 
-/** WAV PCM 16-bit -> Float32 mono a 16 kHz (reamostragem linear, como `medir-wer.mjs`). */
+/**
+ * WAV PCM 16-bit -> Float32 mono a 16 kHz (reamostragem linear, como `medir-wer.mjs`).
+ * Lança com mensagem clara para WAV que não dá para usar.
+ */
 function wavParaPcm16k(buf) {
-  if (buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WAVE')
+  if (buf.length < 12 || buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WAVE')
     throw new Error('não é um WAV RIFF')
   let pos = 12,
     fmt = null,
@@ -133,18 +176,28 @@ function wavParaPcm16k(buf) {
     const id = buf.toString('ascii', pos, pos + 4)
     const tam = buf.readUInt32LE(pos + 4)
     const corpo = pos + 8
-    if (id === 'fmt ')
+    if (id === 'fmt ') {
+      if (tam < 16 || corpo + 16 > buf.length) throw new Error('WAV truncado: bloco fmt incompleto')
       fmt = {
+        formato: buf.readUInt16LE(corpo),
         canais: buf.readUInt16LE(corpo + 2),
         taxa: buf.readUInt32LE(corpo + 4),
         bits: buf.readUInt16LE(corpo + 14),
       }
-    else if (id === 'data') dados = buf.subarray(corpo, Math.min(corpo + tam, buf.length))
+    } else if (id === 'data') {
+      if (corpo + tam > buf.length)
+        throw new Error(`WAV truncado: data declara ${tam} bytes, mas só há ${buf.length - corpo}`)
+      dados = buf.subarray(corpo, corpo + tam)
+    }
     pos = corpo + tam + (tam % 2)
   }
-  if (!fmt || !dados) throw new Error('WAV sem fmt ou data')
+  if (!fmt) throw new Error('WAV sem bloco fmt')
+  if (!dados) throw new Error('WAV sem bloco data')
+  if (fmt.formato !== 1 && fmt.formato !== 0xfffe) throw new Error(`esperado PCM (formato 1), veio ${fmt.formato}`)
   if (fmt.bits !== 16) throw new Error(`esperado PCM 16-bit, veio ${fmt.bits}`)
+  if (fmt.canais < 1 || fmt.taxa < 1) throw new Error(`fmt inválido (canais ${fmt.canais}, taxa ${fmt.taxa})`)
   const n = Math.floor(dados.length / 2 / fmt.canais)
+  if (n === 0) throw new Error('WAV com data vazio')
   const mono = new Float32Array(n)
   for (let i = 0; i < n; i++) {
     let soma = 0
@@ -163,6 +216,19 @@ function wavParaPcm16k(buf) {
   return saida
 }
 
+/**
+ * Decodifica o WAV, recusa áudio vazio ou só silêncio (não vai ao Whisper) e corta o silêncio das pontas.
+ * @param {Buffer} buf
+ * @returns {Float32Array}
+ */
+export function prepararPcm(buf) {
+  const pcm = wavParaPcm16k(buf)
+  let pico = 0
+  for (const a of pcm) pico = Math.max(pico, Math.abs(a))
+  if (pico < LIMIAR_DE_SILENCIO) throw new Error('áudio vazio: só silêncio')
+  return cortarSilencio(pcm)
+}
+
 /** Cria o transcritor Whisper real (carrega o modelo uma vez). Import dinâmico: os testes não o tocam. */
 async function criarTranscritorWhisper(pasta) {
   const { pipeline, env } = await import('@huggingface/transformers')
@@ -171,7 +237,7 @@ async function criarTranscritorWhisper(pasta) {
   return async (item) => {
     const arquivo = path.join(pasta, `${item.id}.wav`)
     if (!existsSync(arquivo)) return null
-    const pcm = cortarSilencio(wavParaPcm16k(readFileSync(arquivo)))
+    const pcm = prepararPcm(readFileSync(arquivo))
     const audioSec = pcm.length / 16000
     const out = await asr(pcm, {
       language: item.idioma,
@@ -205,6 +271,13 @@ function lerArgumentos(argv) {
   return { motor, voz, entrada: path.resolve(entrada) }
 }
 
+/** Métricas com limiar que este script não consegue medir (o resumo as lista como pendentes). */
+function pendentesDe(medidas) {
+  const pendentes = new Set(['estabilidade']) // vem de medir-estabilidade.mjs
+  for (const m of Object.values(medidas.porIdioma)) if (m.foraDaMediana === undefined) pendentes.add('foraDaMediana')
+  return [...pendentes]
+}
+
 async function main() {
   const { motor, voz, entrada } = lerArgumentos(process.argv.slice(2))
   const corpus = lerCorpus(CORPUS)
@@ -214,14 +287,24 @@ async function main() {
     return existsSync(arquivo) ? duracaoDoWav(readFileSync(arquivo)) : undefined
   }
   const { medidas, frases } = await medirRoundtrip({ corpus, transcrever, duracaoDe })
-  const avaliacao = avaliarContraLimiares(medidas, LIMIARES_DA_SPEC)
+  const pendentes = pendentesDe(medidas)
+  const avaliacao = avaliarContraLimiares(medidas, LIMIARES_DA_SPEC, { ignorar: pendentes })
 
   const saida = path.join(RAIZ, 'docs', 'auditoria', 'eval', `voz-${motor}-${voz}.json`)
   mkdirSync(path.dirname(saida), { recursive: true })
   writeFileSync(
     saida,
     JSON.stringify(
-      { geradoEm: new Date().toISOString(), motor, voz, whisper: MODELO_WHISPER, medidas, avaliacao, frases },
+      {
+        geradoEm: new Date().toISOString(),
+        motor,
+        voz,
+        whisper: MODELO_WHISPER,
+        medidas,
+        pendentes,
+        avaliacao,
+        frases,
+      },
       null,
       2,
     ),
@@ -229,10 +312,12 @@ async function main() {
 
   for (const [idioma, m] of Object.entries(medidas.porIdioma)) {
     console.log(
-      `${idioma}: CER ${(m.cer * 100).toFixed(1)}%  WER ${(m.wer * 100).toFixed(1)}%  itens ${(m.itensAcerto * 100).toFixed(0)}%  semAudio ${m.semAudio}`,
+      `${idioma}: CER ${(m.cer * 100).toFixed(1)}%  WER ${(m.wer * 100).toFixed(1)}%  itens ${(m.itensAcerto * 100).toFixed(0)}%  semAudio ${m.semAudio}  inválidos ${m.invalidos}`,
     )
   }
+  for (const f of frases.filter((x) => x.invalido)) console.log(`  ! ${f.id}: ${f.erro}`)
   console.log(avaliacao.passou ? 'limiares: passou' : `limiares: reprovou\n  - ${avaliacao.falhas.join('\n  - ')}`)
+  console.log(`pendentes (não medidas aqui, fora do veredito): ${pendentes.join(', ')}`)
   console.log(`resultado: ${saida}`)
 }
 

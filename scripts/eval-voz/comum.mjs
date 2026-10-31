@@ -83,6 +83,10 @@ export function lerCorpus(caminho) {
  * @property {number} itensAcerto  fração dos itens difíceis (nome, número, sigla, ano) corretos; 1 se não há itens
  * @property {number} itensNumerosEAnos  fração só dos itens `numero` e `ano`; 1 se não há
  * @property {number} semAudio  CONTAGEM de frases sem áudio (WAV ausente); fora do WER
+ * @property {number} invalidos  CONTAGEM de frases cujo WAV existe mas é inválido (8 bits, truncado,
+ *   sem fmt/data, vazio ou só silêncio) ou cuja transcrição falhou; fora do WER, com o erro no registro
+ *   da frase. Nota: frases com siglas ("CPF"/"cê pê efe"/"C P F") normalizam diferente e inflam o WER;
+ *   para elas vale o acerto do item difícil.
  * @property {number} [estabilidade]  inserções + deleções no texto longo, fração das palavras;
  *   vem de `medir-estabilidade.mjs`, não do round-trip (ausente = não medida)
  * @property {number} [foraDaMediana]  fração das frases com duração/caractere fora de ±30% da
@@ -104,6 +108,7 @@ export function lerCorpus(caminho) {
  * @property {number} estabilidadeMax  inserções + deleções no texto longo (1,0 %)
  * @property {number} foraDaMedianaMax  frases fora de ±30% da mediana de duração/caractere (3 %)
  * @property {number} semAudioMax  frases sem áudio, em contagem (0)
+ * @property {number} invalidosMax  frases com áudio inválido, em contagem (0; "truncada" da spec §7.2)
  */
 
 /**
@@ -124,6 +129,7 @@ export const LIMIARES_DA_SPEC = {
     estabilidadeMax: 0.01,
     foraDaMedianaMax: 0.03,
     semAudioMax: 0,
+    invalidosMax: 0,
   },
   en: {
     cerMax: 0.02,
@@ -133,6 +139,7 @@ export const LIMIARES_DA_SPEC = {
     estabilidadeMax: 0.01,
     foraDaMedianaMax: 0.03,
     semAudioMax: 0,
+    invalidosMax: 0,
   },
   es: {
     cerMax: 0.03,
@@ -142,5 +149,6 @@ export const LIMIARES_DA_SPEC = {
     estabilidadeMax: 0.01,
     foraDaMedianaMax: 0.03,
     semAudioMax: 0,
+    invalidosMax: 0,
   },
 }

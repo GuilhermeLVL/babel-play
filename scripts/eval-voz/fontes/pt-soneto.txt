@@ -1,6 +1,6 @@
 # pt-soneto | pt | soneto | dominio-publico
 # origem: Luís de Camões, soneto "Alma minha gentil, que te partiste", em Obras completas de Luis de Camões II (1843), p. 84, via Wikisource em português (Página:Obras completas de Luis de Camões II (1843).djvu/84, https://pt.wikisource.org/wiki/Alma_minha_gentil,_que_te_partiste), obtido em 2026-10-31. Versos separados por quebra de linha, estrofes por linha em branco omitida.
-# licença: domínio público (autor morreu em 1580; edição de 1843). Só texto do original.
+# licença: domínio público (autor morreu em 1580; edição de 1843). Transcrição da Wikisource (CC-BY-SA); obra de Camões em domínio público; usar só o texto da obra.
 Alma minha gentil, que te partiste
 Tão cedo desta vida descontente,
 Repousa lá no Ceo eternamente,

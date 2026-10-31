@@ -9,7 +9,11 @@ import { readFileSync } from 'node:fs'
 /**
  * @typedef {object} ItemDificil
  * @property {string} texto  trecho exato que aparece no texto da frase
- * @property {string[]} aceita  grafias aceitas na transcrição (por extenso, em dígitos, variantes)
+ * @property {string[]} aceita  grafias aceitas na transcrição (por extenso, em dígitos, variantes
+ *   ORTOGRÁFICAS da mesma palavra; nada de respelling fonético nem outra palavra). A métrica
+ *   (Tarefa 7) compara DEPOIS de normalizar os dois lados (minúsculas, sem acento nem pontuação),
+ *   então caixa mista em `aceita` não importa. Entradas curtas ("un", "3", "vinte") exigem
+ *   casamento por fronteira de palavra lá, para não acertar dentro de outra palavra.
  * @property {'nome'|'numero'|'sigla'|'ano'} tipo
  */
 

@@ -9,7 +9,9 @@
  * e fica pendente de revisão do dono até `revisao_do_dono` mudar.
  *
  * Falha alto (exit 1) se uma fonte não tiver cabeçalho, se a licença não for `dominio-publico`, se
- * faltar `# origem:`, se houver id repetido ou se o gabarito citar um id/trecho que não existe.
+ * faltar `# origem:`, se houver id repetido, se o id não for o nome do arquivo, se uma flag vier sem
+ * valor, se o gabarito for ilegível ou se ele citar um id/trecho que não existe.
+ * Marcas de itálico `_..._` do Gutenberg saem do texto (o gabarito vale para o texto já limpo).
  *
  * Uso:
  *   node scripts/eval-voz/montar-frases.mjs
@@ -21,19 +23,26 @@ import { fileURLToPath } from 'node:url'
 
 import { IDIOMAS, validarItem } from './comum.mjs'
 
-const AQUI = path.dirname(fileURLToPath(import.meta.url))
-const args = process.argv.slice(2)
-const opt = (n, p) => {
-  const i = args.indexOf(`--${n}`)
-  return i >= 0 && args[i + 1] ? args[i + 1] : p
-}
-const DIR_FONTES = opt('fontes', path.join(AQUI, 'fontes'))
-const SAIDA = opt('saida', path.join(AQUI, 'corpus-voz.jsonl'))
-
 function falhar(msg) {
   console.error(`montar-frases: ${msg}`)
   process.exit(1)
 }
+
+const AQUI = path.dirname(fileURLToPath(import.meta.url))
+const args = process.argv.slice(2)
+/** Valor de `--nome`; flag sem valor é erro (nunca cai no padrão e sobrescreve o corpus commitado). */
+const opt = (n, p) => {
+  const i = args.indexOf(`--${n}`)
+  if (i < 0) return p
+  const v = args[i + 1]
+  if (!v || v.startsWith('--')) falhar(`--${n} exige um valor`)
+  return v
+}
+const DIR_FONTES = opt('fontes', path.join(AQUI, 'fontes'))
+const SAIDA = opt('saida', path.join(AQUI, 'corpus-voz.jsonl'))
+
+/** Itálico do Gutenberg (`_Dom Casmurro._`): não deve ser lido em voz alta. */
+const ITALICO = /_([^_\n]+)_/g
 
 /** Lê uma fonte e devolve o item (sem o gabarito). */
 function lerFonte(arquivo) {
@@ -52,7 +61,7 @@ function lerFonte(arquivo) {
   if (!resto.some((l) => l.startsWith('# origem:'))) falhar(`${arquivo}: falta a linha "# origem: ..."`)
   const texto = resto
     .filter((l) => !l.startsWith('#'))
-    .map((l) => l.trim())
+    .map((l) => l.trim().replace(ITALICO, '$1'))
     .filter(Boolean)
     .join('\n')
   if (!texto) falhar(`${arquivo}: sem texto`)
@@ -71,7 +80,17 @@ for (const it of corpus) {
   ids.add(it.id)
 }
 
-const gabarito = JSON.parse(readFileSync(path.join(DIR_FONTES, 'gabarito.json'), 'utf8'))
+for (const [k, it] of corpus.entries()) {
+  const stem = path.basename(arquivos[k], '.txt')
+  if (it.id !== stem) falhar(`${arquivos[k]}: id "${it.id}" difere do nome do arquivo`)
+}
+
+let gabarito
+try {
+  gabarito = JSON.parse(readFileSync(path.join(DIR_FONTES, 'gabarito.json'), 'utf8'))
+} catch (e) {
+  falhar(`gabarito.json inválido ou ausente em ${DIR_FONTES} (${e.message})`)
+}
 for (const [id, itens] of Object.entries(gabarito.itens ?? {})) {
   const alvo = corpus.find((c) => c.id === id)
   if (!alvo) falhar(`gabarito cita o id "${id}", que não existe nas fontes`)

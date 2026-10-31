@@ -1,4 +1,4 @@
 # pt-dom-casmurro-cap5 | pt | dom-casmurro-cap5 | dominio-publico
-# origem: Machado de Assis, Dom Casmurro, cap. V ("O aggregado"), 2º parágrafo (do início até "recusou"). Project Gutenberg #55752, https://www.gutenberg.org/cache/epub/55752/pg55752.txt, obtido em 2026-10-31. Ortografia da edição original mantida.
+# origem: Machado de Assis, Dom Casmurro, cap. V ("O aggregado"), 2º parágrafo, só o começo (do início até "remuneração."; o resto do parágrafo foi omitido, e o texto lido é contíguo). Project Gutenberg #55752, https://www.gutenberg.org/cache/epub/55752/pg55752.txt, obtido em 2026-10-31. Ortografia da edição original mantida.
 # licença: domínio público (autor morreu em 1908). Só texto do original; sem tradução nem edição protegida.
 Era nosso aggregado desde muitos annos; meu pae ainda estava na antiga fazenda de Itaguahy, e eu acabava de nascer. Um dia appareceu alli vendendo-se por medico homeopatha; levava um _Manual_ e uma botica. Havia então um andaço de febres; José Dias curou o feitor e uma escrava, e não quiz receber nenhuma remuneração.

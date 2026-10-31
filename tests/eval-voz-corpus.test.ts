@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -95,38 +95,96 @@ describe('corpus de voz', () => {
     }
   })
 
-  it('o JSONL gerado bate com as fontes (nenhum texto fora delas)', () => {
-    const fontes = readdirSync(FONTES)
-      .filter((f) => f.endsWith('.txt'))
-      .map((f) => readFileSync(path.join(FONTES, f), 'utf8'))
-      .join('\n')
-    for (const i of lerItens()) {
-      for (const linha of i.texto.split('\n')) expect(fontes).toContain(linha)
-    }
+  it('regerar o corpus a partir das fontes dá exatamente o JSONL commitado', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'eval-voz-'))
+    const saida = path.join(dir, 'corpus-voz.jsonl')
+    execFileSync(process.execPath, [path.join(RAIZ, 'montar-frases.mjs'), '--saida', saida], { stdio: 'pipe' })
+    expect(readFileSync(saida)).toEqual(readFileSync(CORPUS))
   })
 
-  it('gabarito: pendente de revisão do dono e ids existentes nas fontes', () => {
+  it('o texto lido em voz alta não tem marcas de itálico do Gutenberg (_..._)', () => {
+    for (const i of lerItens()) expect(i.texto, i.id).not.toMatch(/_/)
+  })
+
+  it('gabarito: revisão do dono pendente ou aprovada, e ids existentes nas fontes', () => {
     const g = JSON.parse(readFileSync(path.join(FONTES, 'gabarito.json'), 'utf8'))
-    expect(g.revisao_do_dono).toBe('pendente')
+    expect(['pendente', 'aprovado']).toContain(g.revisao_do_dono)
     const ids = new Set(lerItens().map((i) => i.id))
     for (const id of Object.keys(g.itens)) expect(ids.has(id), `id ${id} do gabarito sem fonte`).toBe(true)
   })
 
-  it('o gerador falha alto com fonte sem cabeçalho ou com licença que não é dominio-publico', () => {
-    const gerar = (conteudo: string) => {
+  describe('gerador', () => {
+    const OK = '# x | pt | numeros | dominio-publico\n# origem: teste\ntexto aqui\n'
+    /** Roda o gerador numa pasta temporária; devolve status e stderr. */
+    const gerar = (arquivos: Record<string, string>, gabarito: string = '{"itens":{}}', extra: string[] = []) => {
       const dir = mkdtempSync(path.join(tmpdir(), 'eval-voz-'))
-      writeFileSync(path.join(dir, 'x.txt'), conteudo)
-      writeFileSync(path.join(dir, 'gabarito.json'), JSON.stringify({ revisao_do_dono: 'pendente', itens: {} }))
-      return () =>
-        execFileSync(
-          process.execPath,
-          [path.join(RAIZ, 'montar-frases.mjs'), '--fontes', dir, '--saida', path.join(dir, 'o.jsonl')],
-          { stdio: 'pipe' },
-        )
+      for (const [nome, conteudo] of Object.entries(arquivos)) writeFileSync(path.join(dir, nome), conteudo)
+      writeFileSync(path.join(dir, 'gabarito.json'), gabarito)
+      const saida = path.join(dir, 'o.jsonl')
+      const r = spawnSync(
+        process.execPath,
+        [path.join(RAIZ, 'montar-frases.mjs'), '--fontes', dir, '--saida', saida, ...extra],
+        { encoding: 'utf8' },
+      )
+      return { status: r.status, erro: r.stderr, saida }
     }
-    expect(gerar('sem cabeçalho\ntexto')).toThrow()
-    expect(gerar('# a | pt | numeros | cc-by-nc\n# origem: x\ntexto')).toThrow()
-    expect(gerar('# a | pt | numeros | dominio-publico\n# origem: x\ntexto aqui')).not.toThrow()
+
+    it('aceita uma fonte válida', () => {
+      expect(gerar({ 'x.txt': OK }).status).toBe(0)
+    })
+
+    it('falha sem cabeçalho', () => {
+      const r = gerar({ 'x.txt': 'sem cabeçalho\ntexto' })
+      expect(r.status).not.toBe(0)
+      expect(r.erro).toMatch(/primeira linha deve ser "# id \| idioma \| categoria \| licenca"/)
+    })
+
+    it('falha com licença que não é dominio-publico', () => {
+      const r = gerar({ 'x.txt': OK.replace('dominio-publico', 'cc-by-nc') })
+      expect(r.status).not.toBe(0)
+      expect(r.erro).toMatch(/licenca "cc-by-nc" não é dominio-publico/)
+    })
+
+    it('falha sem a linha "# origem:"', () => {
+      const r = gerar({ 'x.txt': '# x | pt | numeros | dominio-publico\ntexto aqui\n' })
+      expect(r.status).not.toBe(0)
+      expect(r.erro).toMatch(/falta a linha "# origem: \.\.\."/)
+    })
+
+    it('falha com id repetido', () => {
+      const r = gerar({ 'x.txt': OK, 'y.txt': OK.replace('# x |', '# x |') })
+      expect(r.status).not.toBe(0)
+      expect(r.erro).toMatch(/id repetido: x/)
+    })
+
+    it('falha quando o id do cabeçalho não é o nome do arquivo', () => {
+      const r = gerar({ 'outro.txt': OK })
+      expect(r.status).not.toBe(0)
+      expect(r.erro).toMatch(/id "x" difere do nome do arquivo/)
+    })
+
+    it('falha com gabarito malformado, com mensagem clara', () => {
+      const r = gerar({ 'x.txt': OK }, '{ não é json')
+      expect(r.status).not.toBe(0)
+      expect(r.erro).toMatch(/gabarito\.json inválido/)
+      expect(r.erro).not.toMatch(/at .*\.mjs:\d+/)
+    })
+
+    it('falha com --saida ou --fontes sem valor, sem sobrescrever o corpus', () => {
+      const antes = readFileSync(CORPUS)
+      for (const flag of ['--saida', '--fontes']) {
+        const r = spawnSync(process.execPath, [path.join(RAIZ, 'montar-frases.mjs'), flag], { encoding: 'utf8' })
+        expect(r.status, flag).not.toBe(0)
+        expect(r.stderr, flag).toMatch(new RegExp(`${flag} exige um valor`))
+      }
+      expect(readFileSync(CORPUS)).toEqual(antes)
+    })
+
+    it('tira o itálico _..._ do Gutenberg do texto', () => {
+      const r = gerar({ 'x.txt': OK.replace('texto aqui', 'chamam-me _Dom Casmurro._ sim') })
+      expect(r.status).toBe(0)
+      expect(readFileSync(r.saida, 'utf8')).toContain('chamam-me Dom Casmurro. sim')
+    })
   })
 
   it('lerCorpus rejeita linha inválida com o número da linha', () => {

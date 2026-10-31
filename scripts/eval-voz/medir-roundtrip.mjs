@@ -100,7 +100,7 @@ export async function medirRoundtrip({ corpus, transcrever, duracaoDe }) {
       invalido: false,
       wer,
       cer,
-      itens: acertoDosItens(hip, item.itens, item.idioma),
+      itens: acertoDosItens(hip, item.itens, item.idioma, { ref: item.texto }),
       duracaoS,
     })
   }

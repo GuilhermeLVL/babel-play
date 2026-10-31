@@ -73,30 +73,78 @@ const ehNumero = (t) => t !== undefined && (ehDigito(t) || PALAVRAS_DE_NUMERO.ha
 const ehNumeroAmplo = (t) => ehNumero(t) || (t !== undefined && ARTIGOS_NUMERO.has(t))
 
 /**
- * Um achado em `palheiro[i, i+n)` é um numeral EXATO se nada numérico o prolonga:
- * - antes: nem número forte, nem conector precedido de número forte ("cento e [vinte e um]");
- * - depois: nem número forte, nem conector seguido de número amplo ("[vinte] e um").
- * Limitação aceita: dois numerais sem pontuação visível entre eles ("1889 1776") reprovam; na prática
- * a pontuação some na normalização, mas o corpus separa os itens por palavras comuns.
+ * O que "prolonga" um achado em `t[i, i+n)` para a esquerda: o número vizinho ("onze [mil ...]") ou
+ * número + conector ("cento e [vinte e um]"). Vazio se o vizinho não é numeral-ish.
  */
-function numeralExato(palheiro, i, n) {
-  const antes = palheiro[i - 1]
-  if (ehNumero(antes)) return false
-  if (CONECTORES.has(antes) && ehNumero(palheiro[i - 2])) return false
-  const depois = palheiro[i + n]
-  if (ehNumero(depois)) return false
-  if (CONECTORES.has(depois) && ehNumeroAmplo(palheiro[i + n + 1])) return false
-  return true
+function extensaoAntes(t, i) {
+  const a = t[i - 1]
+  if (ehNumero(a)) return [a]
+  if (CONECTORES.has(a) && ehNumero(t[i - 2])) return [t[i - 2], a]
+  return []
+}
+
+/** Idem para a direita: o número vizinho ("[vinte] mil") ou conector + número ("[vinte] e um"). */
+function extensaoDepois(t, i, n) {
+  const d = t[i + n]
+  if (ehNumero(d)) return [d]
+  if (CONECTORES.has(d) && ehNumeroAmplo(t[i + n + 1])) return [d, t[i + n + 1]]
+  return []
 }
 
 /**
- * `agulha` aparece em `palheiro` como sequência contígua de palavras inteiras? Com `exato`
+ * Duas extensões têm a mesma FORMA: mesmo tamanho, conectores iguais nas mesmas posições e numerais
+ * nas demais. O valor do numeral vizinho não é comparado (ver `vizinhosDaReferencia`).
+ */
+function mesmaForma(a, b) {
+  return a.length === b.length && a.every((x, k) => (CONECTORES.has(x) ? x === b[k] : !CONECTORES.has(b[k])))
+}
+
+/**
+ * Onde o item cai na REFERÊNCIA: para cada ocorrência do `texto` normalizado do item na frase de
+ * referência, as extensões numéricas que ela tem à esquerda e à direita. Sem `ref`, ou se o item não
+ * aparece nela, a única "ocorrência" é a estrita (sem vizinho numérico permitido).
+ */
+function vizinhosDaReferencia(refTokens, itemTokens) {
+  const achados = []
+  if (refTokens && itemTokens.length > 0) {
+    for (let i = 0; i + itemTokens.length <= refTokens.length; i++) {
+      if (itemTokens.every((p, k) => refTokens[i + k] === p)) {
+        achados.push({ antes: extensaoAntes(refTokens, i), depois: extensaoDepois(refTokens, i, itemTokens.length) })
+      }
+    }
+  }
+  return achados.length > 0 ? achados : [{ antes: [], depois: [] }]
+}
+
+/**
+ * Um achado em `palheiro[i, i+n)` é um numeral EXATO se nenhum numeral o prolonga, a não ser que a
+ * REFERÊNCIA tenha um numeral vizinho do mesmo lado e da mesma forma (`vizinhos`). Assim:
+ * - "onze mil oitocentos e oitenta e nove", "cento e vinte e um", "... nove mil e um" reprovam quando a
+ *   referência não tem esse vizinho (borda de frase ou palavra comum ao lado);
+ * - "em 1889, quatro homens" acerta o 1889 porque a referência também tem um numeral logo depois.
+ * ESCOLHA: só a presença e a forma do vizinho são comparadas, não o valor. Errar o vizinho (1890 virar
+ * 1990) é falha do item dele, que tem gabarito próprio; punir aqui contaria o mesmo erro duas vezes.
+ * Sem `vizinhos` (sem referência) o padrão é o estrito: nenhum vizinho numérico é aceito.
+ */
+function numeralExato(palheiro, i, n, vizinhos) {
+  const antes = extensaoAntes(palheiro, i)
+  const depois = extensaoDepois(palheiro, i, n)
+  return vizinhos.some(
+    (v) => (antes.length === 0 || mesmaForma(antes, v.antes)) && (depois.length === 0 || mesmaForma(depois, v.depois)),
+  )
+}
+
+/**
+ * `agulha` aparece em `palheiro` como sequência contígua de palavras inteiras? Com `vizinhos`
  * (itens `numero` e `ano`), o achado não pode ser parte de um numeral maior (ver `numeralExato`).
  */
-function contem(palheiro, agulha, exato = false) {
+function contem(palheiro, agulha, vizinhos = null) {
   if (agulha.length === 0) return false
   for (let i = 0; i + agulha.length <= palheiro.length; i++) {
-    if (agulha.every((p, k) => palheiro[i + k] === p) && (!exato || numeralExato(palheiro, i, agulha.length))) {
+    if (
+      agulha.every((p, k) => palheiro[i + k] === p) &&
+      (!vizinhos || numeralExato(palheiro, i, agulha.length, vizinhos))
+    ) {
       return true
     }
   }
@@ -116,15 +164,20 @@ function contem(palheiro, agulha, exato = false) {
  * @param {string} hip
  * @param {import('./comum.mjs').ItemDificil[]} itens
  * @param {'pt'|'en'|'es'} [idioma]
+ * @param {{ ref?: string }} [opcoes]  `ref`: a frase do corpus (`texto`). Com ela, um numeral vizinho
+ *   na hipótese é aceito quando a referência também tem um numeral ali ("em 1889, quatro homens");
+ *   sem ela vale o modo estrito (nenhum vizinho numérico), que é o padrão seguro.
  * @returns {{ acertos: number, total: number, porTipo: Record<string, [number, number]> }}
  */
-export function acertoDosItens(hip, itens, idioma = 'pt') {
+export function acertoDosItens(hip, itens, idioma = 'pt', { ref } = {}) {
   const palavras = paraItem(hip, idioma)
+  const refTokens = ref === undefined ? null : paraItem(ref, idioma)
   const porTipo = {}
   let acertos = 0
   for (const item of itens) {
     const exato = item.tipo === 'numero' || item.tipo === 'ano'
-    const ok = item.aceita.some((forma) => contem(palavras, paraItem(forma, idioma), exato))
+    const vizinhos = exato ? vizinhosDaReferencia(refTokens, paraItem(item.texto, idioma)) : null
+    const ok = item.aceita.some((forma) => contem(palavras, paraItem(forma, idioma), vizinhos))
     const par = (porTipo[item.tipo] ??= [0, 0])
     par[1]++
     if (ok) {

@@ -5,7 +5,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { LIMIARES_DA_SPEC } from '../scripts/eval-voz/comum.mjs'
+import { lerCorpus, LIMIARES_DA_SPEC } from '../scripts/eval-voz/comum.mjs'
 import { medirRoundtrip, MIN_CLIPES_PARA_MEDIANA, prepararPcm } from '../scripts/eval-voz/medir-roundtrip.mjs'
 import {
   acertoDosItens,
@@ -321,6 +321,104 @@ describe('itens numero/ano: casamento exato no sentido numeral', () => {
   it('nome e sigla seguem com contenção simples', () => {
     const nome: Item['itens'] = [{ texto: 'Capitu', tipo: 'nome', aceita: ['capitu'] }]
     expect(aceitaTipo('a Capitu vinte e um', nome)).toBe(1)
+  })
+})
+
+describe('itens numero/ano: vizinhança consciente da referência', () => {
+  const ano89: Item['itens'] = [
+    {
+      texto: '1889',
+      tipo: 'ano',
+      aceita: ['1889', 'mil oitocentos e oitenta e nove', 'mil e oitocentos e oitenta e nove'],
+    },
+  ]
+  const acerta = (hip: string, itens: Item['itens'], ref: string | undefined, idioma: 'pt' | 'en' | 'es' = 'pt') =>
+    acertoDosItens(hip, itens, idioma, ref === undefined ? undefined : { ref }).acertos
+
+  it('numeral correto seguido ou precedido de outro numeral que a referência também tem: acerta', () => {
+    expect(
+      acerta('em mil oitocentos e oitenta e nove, quatro homens chegaram', ano89, 'Em 1889, quatro homens chegaram.'),
+    ).toBe(1)
+    expect(acerta('mil oitocentos e oitenta e nove e setenta e seis', ano89, '1889 e 76')).toBe(1)
+    expect(acerta('em 1889, 3 homens', ano89, 'Em 1889, 3 homens.')).toBe(1)
+    expect(acerta('em 1889 e 1890', ano89, 'Em 1889 e 1890.')).toBe(1)
+    expect(acerta('chegaram quatro em mil oitocentos e oitenta e nove', ano89, 'Chegaram quatro em 1889.')).toBe(1)
+  })
+
+  it('moeda seguida de outro numeral', () => {
+    const moeda: Item['itens'] = [
+      { texto: 'R$ 49,90', tipo: 'numero', aceita: ['R$ 49,90', 'quarenta e nove reais e noventa centavos'] },
+    ]
+    expect(
+      acerta('custa quarenta e nove reais e noventa centavos e cinco filhos', moeda, 'Custa R$ 49,90 e 5 filhos.'),
+    ).toBe(1)
+  })
+
+  it('en e es', () => {
+    const en: Item['itens'] = [{ texto: '1984', tipo: 'ano', aceita: ['1984', 'nineteen eighty four'] }]
+    expect(acerta('in nineteen eighty four and two men', en, 'In 1984 and two men arrived.', 'en')).toBe(1)
+    expect(acerta('in nineteen eighty four and 2 men', en, 'In 1984 and two men arrived.', 'en')).toBe(1)
+    const es: Item['itens'] = [{ texto: '1889', tipo: 'ano', aceita: ['1889', 'mil ochocientos ochenta y nueve'] }]
+    expect(acerta('en mil ochocientos ochenta y nueve y tres hombres', es, 'En 1889 y tres hombres.', 'es')).toBe(1)
+  })
+
+  it('os falsos aceites seguem reprovados MESMO com a referência (vizinho que ela não tem)', () => {
+    const ref = 'Em 1889 ele nasceu.'
+    expect(acerta('em mil oitocentos e oitenta e nove mil e um ele nasceu', ano89, ref)).toBe(0)
+    expect(acerta('em onze mil oitocentos e oitenta e nove ele nasceu', ano89, ref)).toBe(0)
+    expect(acerta('em 1889 ele nasceu', ano89, ref)).toBe(1)
+    const v21: Item['itens'] = [{ texto: '21', tipo: 'numero', aceita: ['vinte e um'] }]
+    const v20: Item['itens'] = [{ texto: '20', tipo: 'numero', aceita: ['vinte'] }]
+    expect(acerta('cento e vinte e um', v21, 'Tem 21.')).toBe(0)
+    expect(acerta('vinte e um', v20, 'Tem 20.')).toBe(0)
+  })
+
+  it('borda de frase: sem vizinho na referência, qualquer numeral vizinho na hipótese reprova', () => {
+    expect(acerta('mil oitocentos e oitenta e nove quatro', ano89, 'Em 1889')).toBe(0)
+    expect(acerta('quatro mil oitocentos e oitenta e nove', ano89, '1889 chegou')).toBe(0)
+  })
+
+  it('vizinho existe na referência mas a hipótese erra o OUTRO número: o item avaliado continua certo', () => {
+    // Escolha: só a presença de um numeral do lado certo é comparada, não o valor dele. Errar o vizinho
+    // (1890 virar 1990) é falha do item do vizinho, que tem o próprio gabarito; punir aqui contaria o
+    // mesmo erro duas vezes.
+    expect(acerta('mil oitocentos e oitenta e nove, mil novecentos e noventa', ano89, 'Em 1889, 1890 ...')).toBe(1)
+    // Mas o numeral vizinho do lado ERRADO da referência reprova.
+    expect(acerta('mil novecentos e noventa, mil oitocentos e oitenta e nove', ano89, 'Em 1889, 1890')).toBe(0)
+  })
+
+  it('sem ref o comportamento estrito continua (dois numerais colados reprovam)', () => {
+    expect(acerta('em 1889 1776', ano89, undefined)).toBe(0)
+    expect(acerta('em 1889 1776', ano89, 'Em 1889 1776')).toBe(1)
+  })
+
+  it('item que não aparece na referência: cai no modo estrito', () => {
+    expect(acerta('em 1889 1776', ano89, 'Outra frase qualquer.')).toBe(0)
+  })
+
+  it('o gabarito do corpus acerta 100% lendo o próprio texto com ref', () => {
+    const corpus = lerCorpus(path.resolve(__dirname, '..', 'scripts', 'eval-voz', 'corpus-voz.jsonl')) as Item[]
+    for (const c of corpus) {
+      // Só numero/ano: o texto escrito de uma sigla ("CPF") não é uma das formas faladas do gabarito.
+      const itens = c.itens.filter((i) => i.tipo === 'numero' || i.tipo === 'ano')
+      const r = acertoDosItens(c.texto, itens, c.idioma, { ref: c.texto })
+      expect(`${c.id}: ${r.acertos}/${r.total}`).toBe(`${c.id}: ${r.total}/${r.total}`)
+    }
+  })
+
+  it('medirRoundtrip passa o texto do corpus como ref', async () => {
+    const item: Item = {
+      id: 'pt-v',
+      idioma: 'pt',
+      texto: 'Em 1889, quatro homens chegaram.',
+      categoria: 'x',
+      itens: ano89,
+    }
+    const r = await medirRoundtrip({
+      corpus: [item],
+      transcrever: async () => 'em mil oitocentos e oitenta e nove quatro homens chegaram',
+    })
+    expect(r.medidas.porIdioma.pt.itensNumerosEAnos).toBe(1)
   })
 })
 

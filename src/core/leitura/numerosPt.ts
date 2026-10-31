@@ -20,7 +20,7 @@ const UNIDADES = [
   'onze',
   'doze',
   'treze',
-  'quatorze',
+  'catorze',
   'quinze',
   'dezesseis',
   'dezessete',
@@ -171,6 +171,7 @@ const MESES = [
 /** Data por extenso: dia 1 é ordinal ("primeiro"), os demais cardinais; o ano é opcional. */
 export function dataPt(dia: number, mes: number, ano: number | null): string {
   if (mes < 1 || mes > 12) throw new RangeError(`dataPt: mês inválido (${mes})`);
+  if (!Number.isInteger(dia) || dia < 1 || dia > 31) throw new RangeError(`dataPt: dia inválido (${dia})`);
   const base = `${dia === 1 ? 'primeiro' : cardinalPt(dia)} de ${MESES[mes - 1]}`;
   return ano === null ? base : `${base} de ${cardinalPt(ano)}`;
 }

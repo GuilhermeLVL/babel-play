@@ -32,6 +32,14 @@ describe('numerosPt', () => {
     [1500000, 'um milhão e quinhentos mil'],
     [1000000000, 'um bilhão'],
     [3000000000, 'três bilhões'],
+    [4, 'quatro'],
+    [14, 'catorze'],
+    [14, 'catorze', 'f'],
+    [40, 'quarenta'],
+    [114, 'cento e catorze'],
+    [14000, 'catorze mil'],
+    [1001000, 'um milhão e mil'],
+    [2100, 'dois mil e cem'],
   ])('cardinalPt: %i', (n, esperado, genero) => {
     expect(cardinalPt(n, genero)).toBe(esperado)
   })
@@ -79,5 +87,19 @@ describe('numerosPt', () => {
     [2, 5, null, 'dois de maio'],
   ])('dataPt: %i/%i/%s', (d, m, a, esperado) => {
     expect(dataPt(d, m, a)).toBe(esperado)
+  })
+
+  it('moedaPt: zero reais', () => {
+    expect(moedaPt(0, 0, 'BRL')).toBe('zero reais')
+  })
+
+  it('valida os limites com RangeError', () => {
+    expect(() => cardinalPt(-1)).toThrow(RangeError)
+    expect(() => cardinalPt(1.5)).toThrow(RangeError)
+    expect(() => ordinalPt(0)).toThrow(RangeError)
+    expect(() => ordinalPt(1000)).toThrow(RangeError)
+    expect(() => dataPt(0, 5, null)).toThrow(RangeError)
+    expect(() => dataPt(32, 5, null)).toThrow(RangeError)
+    expect(() => dataPt(1, 13, null)).toThrow(RangeError)
   })
 })

@@ -221,39 +221,78 @@ export function lerCorpus(caminho) {
  */
 
 /**
- * Limiares automáticos da spec §7.2 (PROPOSTA; a F0 calibra e trava em `limiares.json`).
- * O RTF (≤ 0,5) é medido na síntese, não aqui.
+ * Todos os limiares da bancada de voz (`limiares.json` é a ÚNICA fonte dos números).
+ * @typedef {object} LimiaresDaBancada
+ * @property {boolean} provisorio  `true` enquanto a F0 não calibrou e travou os números (Tarefa 13 vira para `false`)
+ * @property {Limiares} porIdioma  spec §7.2: CER, WER, itens, estabilidade, ±30 % da mediana, sem áudio/inválidos
+ * @property {number} rtfMax  RTF máximo no hardware do lote (spec §6.4 portão 3 e §7.2)
+ * @property {number} ttfaP95MaxS  1º áudio p95 em segundos, só se informado e o motor for usado online (spec §6.4 portão 3)
+ * @property {{ timbresDistinguiveisMin: number, acertoTimbresMin: number }} t3  só se o T3 for mantido (spec §6.4 portão 4)
+ * @property {{ naturalidadeMin: number, aguenta30Min: number, errosGravesRepetidosMax: number, melhorQueAparelhoMin: number }} escuta
+ *   critério de aceite da escuta (spec §7.3)
+ */
+
+const CAMPOS_DO_IDIOMA = [
+  'cerMax',
+  'werMax',
+  'itensAcertoMin',
+  'itensNumerosEAnosMin',
+  'estabilidadeMax',
+  'foraDaMedianaMax',
+  'semAudioMax',
+  'invalidosMax',
+]
+
+/**
+ * Confere a FORMA do `limiares.json` e devolve o objeto. Qualquer chave faltando (ou não numérica) é erro
+ * com o caminho da chave: limiar ausente nunca vira "sem limite" em silêncio.
+ * @param {unknown} o
+ * @param {string} [origem]  só para a mensagem
+ * @returns {LimiaresDaBancada}
+ */
+export function validarLimiares(o, origem = 'limiares.json') {
+  const falta = (chave) => {
+    throw new Error(`${origem}: chave "${chave}" ausente ou inválida`)
+  }
+  const numero = (obj, chave, caminho) => {
+    if (typeof obj?.[chave] !== 'number' || !Number.isFinite(obj[chave])) falta(caminho)
+  }
+  if (!o || typeof o !== 'object') falta('(raiz)')
+  if (typeof o.provisorio !== 'boolean') falta('provisorio')
+  for (const idioma of IDIOMAS) {
+    if (!o.porIdioma || typeof o.porIdioma[idioma] !== 'object' || o.porIdioma[idioma] === null)
+      falta(`porIdioma.${idioma}`)
+    for (const campo of CAMPOS_DO_IDIOMA) numero(o.porIdioma[idioma], campo, `porIdioma.${idioma}.${campo}`)
+  }
+  numero(o, 'rtfMax', 'rtfMax')
+  numero(o, 'ttfaP95MaxS', 'ttfaP95MaxS')
+  for (const c of ['timbresDistinguiveisMin', 'acertoTimbresMin']) numero(o.t3, c, `t3.${c}`)
+  for (const c of ['naturalidadeMin', 'aguenta30Min', 'errosGravesRepetidosMax', 'melhorQueAparelhoMin'])
+    numero(o.escuta, c, `escuta.${c}`)
+  return o
+}
+
+/**
+ * Lê e valida um arquivo de limiares. Síncrono e sem dependências: funciona em `node` puro.
+ * @param {string|URL} caminho
+ * @returns {LimiaresDaBancada}
+ */
+export function lerLimiares(caminho) {
+  let o
+  try {
+    o = JSON.parse(readFileSync(caminho, 'utf8'))
+  } catch (e) {
+    throw new Error(`${String(caminho)}: não foi possível ler os limiares (${e.message})`)
+  }
+  return validarLimiares(o, String(caminho))
+}
+
+/** Limiares da bancada, carregados de `limiares.json` (única fonte dos números). */
+export const LIMIARES = lerLimiares(new URL('./limiares.json', import.meta.url))
+
+/**
+ * Limiares por idioma da spec §7.2 (a parte de `LIMIARES` que as medidas automáticas usam). Vem de
+ * `limiares.json`; não repita os números em código.
  * @type {Limiares}
  */
-export const LIMIARES_DA_SPEC = {
-  pt: {
-    cerMax: 0.03,
-    werMax: 0.08,
-    itensAcertoMin: 0.85,
-    itensNumerosEAnosMin: 1,
-    estabilidadeMax: 0.01,
-    foraDaMedianaMax: 0.03,
-    semAudioMax: 0,
-    invalidosMax: 0,
-  },
-  en: {
-    cerMax: 0.02,
-    werMax: 0.05,
-    itensAcertoMin: 0.9,
-    itensNumerosEAnosMin: 1,
-    estabilidadeMax: 0.01,
-    foraDaMedianaMax: 0.03,
-    semAudioMax: 0,
-    invalidosMax: 0,
-  },
-  es: {
-    cerMax: 0.03,
-    werMax: 0.07,
-    itensAcertoMin: 0.9,
-    itensNumerosEAnosMin: 1,
-    estabilidadeMax: 0.01,
-    foraDaMedianaMax: 0.03,
-    semAudioMax: 0,
-    invalidosMax: 0,
-  },
-}
+export const LIMIARES_DA_SPEC = LIMIARES.porIdioma

@@ -1,0 +1,246 @@
+/**
+ * Relatório da bancada de voz (spec §7.1 passo 9) e recomendação por idioma (spec §6.4).
+ *
+ * Uso (precisa de `tsx`, porque `metricas.mjs` importa TypeScript de `src/core`):
+ *   node --import tsx scripts/eval-voz/relatorio.mjs --fase 0 [--entrada <dir>] [--sintese <dir>[,<dir>...]]
+ *     [--escuta <resumo.json>] [--candidatos <manifesto.json>] [--t3] [--gravar]
+ *
+ * Fontes (nada é medido aqui; tudo vem de resultados que as outras ferramentas gravaram):
+ *   --entrada     pasta com `voz-<motor>-<voz>.json` (round-trip, `medir-roundtrip.mjs`) e
+ *                 `voz-estabilidade-<motor>-<voz>.json` (`medir-estabilidade.mjs`). Padrão: `docs/auditoria/eval/`.
+ *   --sintese     pasta(s) de `sintetizar.mjs` com `resumo.json` (RTF, memória, duração por frase, ±30 % da mediana).
+ *   --escuta      `resumo.json` do `gerar-formulario.mjs` (`{ vozes: { "<motor>/<voz>": {...} } }`).
+ *   --candidatos  manifesto do OPERADOR, lista de `{ id: "<motor>/<voz>", licencaLimpa, temComponenteGpl,
+ *                 melhorQueAparelho, ttfaP95S?, timbresDistinguiveis?, acertoTimbres? }`: o que a máquina não mede
+ *                 (licença lida no LICENSE, GPL no caminho distribuído, comparação com a voz do aparelho).
+ *                 Campo ausente reprova ("não informado"): nada é presumido.
+ *
+ * Mapeamento para `Candidato` (um por `<motor>/<voz>`; o id é `motor/voz`):
+ *   medidas.porIdioma[i] = round-trip + `estabilidade` do arquivo de estabilidade; `foraDaMediana` do round-trip,
+ *                          senão `foraDaMediana[i].fracao` da síntese
+ *   rtf                  = `rtfMediano` da síntese (o `rtfMax` aparece só no JSON da síntese)
+ *   naturalidade/aguenta30/errosGravesRepetidos = resumo da escuta (`null` = sem escuta)
+ *   o resto              = manifesto
+ * Extras só para a tabela (o `recomendar` ignora): `memoriaGB`, `duracaoMediaFraseS`, `vozesDoMotor`.
+ * Ouvintes avaliam o motor/voz, não o idioma: a mesma nota vale para todos os idiomas medidos.
+ *
+ * Imprime e NÃO grava nada, a menos que `--gravar` (aí também escreve `<entrada>/voz-relatorio-fase-0.md`).
+ */
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+
+import { IDIOMAS, LIMIARES, pegarOpcao } from './comum.mjs'
+import { recomendar } from './recomendar.mjs'
+
+const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
+const ENTRADA_PADRAO = path.join(RAIZ, 'docs', 'auditoria', 'eval')
+
+const idDe = (motor, voz) => `${motor}/${voz}`
+const pct = (x) => (typeof x === 'number' && Number.isFinite(x) ? `${(x * 100).toFixed(1).replace('.', ',')}%` : '-')
+const dec = (x, casas = 2) => (typeof x === 'number' && Number.isFinite(x) ? x.toFixed(casas).replace('.', ',') : '-')
+const media = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : undefined)
+
+/**
+ * Junta as fontes em `Candidato[]` (ver o mapeamento no cabeçalho do arquivo). Ordem estável por id.
+ * @param {{ roundtrips?: any[], estabilidades?: any[], sinteses?: any[], escuta?: any, manifesto?: any[] }} p
+ * @returns {Array<import('./recomendar.mjs').Candidato & { memoriaGB?: number, duracaoMediaFraseS?: number, vozesDoMotor: number }>}
+ */
+export function montarCandidatos({ roundtrips = [], estabilidades = [], sinteses = [], escuta, manifesto = [] }) {
+  const porId = new Map()
+  const pegar = (motor, voz) => {
+    const id = idDe(motor, voz)
+    if (!porId.has(id)) porId.set(id, { id, motor, medidas: { porIdioma: {} }, sintese: undefined })
+    return porId.get(id)
+  }
+  const mesclar = (c, medidas) => {
+    for (const [idioma, m] of Object.entries(medidas?.porIdioma ?? {}))
+      c.medidas.porIdioma[idioma] = { ...c.medidas.porIdioma[idioma], ...m }
+  }
+  for (const r of roundtrips) mesclar(pegar(r.motor, r.voz), r.medidas)
+  for (const e of estabilidades) mesclar(pegar(e.motor, e.voz), e.medidas)
+  for (const s of sinteses) {
+    const c = pegar(s.motor, s.voz)
+    c.sintese = s
+    for (const [idioma, f] of Object.entries(s.foraDaMediana ?? {})) {
+      const m = c.medidas.porIdioma[idioma]
+      if (m && m.foraDaMediana === undefined && typeof f?.fracao === 'number') m.foraDaMediana = f.fracao
+    }
+  }
+  const vozesPorMotor = new Map()
+  for (const c of porId.values()) vozesPorMotor.set(c.motor, (vozesPorMotor.get(c.motor) ?? 0) + 1)
+  const doManifesto = new Map(manifesto.map((m) => [m.id, m]))
+
+  return [...porId.values()]
+    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    .map(({ id, motor, medidas, sintese }) => {
+      const man = doManifesto.get(id) ?? {}
+      const esc = escuta?.vozes?.[id] ?? {}
+      const frases = sintese?.frases ?? []
+      return {
+        id,
+        licencaLimpa: man.licencaLimpa,
+        temComponenteGpl: man.temComponenteGpl,
+        medidas,
+        rtf: sintese?.rtfMediano ?? undefined,
+        ttfaP95S: man.ttfaP95S,
+        timbresDistinguiveis: man.timbresDistinguiveis,
+        acertoTimbres: man.acertoTimbres,
+        naturalidade: esc.naturalidade ?? null,
+        aguenta30: esc.aguenta30 ?? null,
+        errosGravesRepetidos: esc.errosGravesRepetidos,
+        melhorQueAparelho: man.melhorQueAparelho,
+        memoriaGB: typeof sintese?.memoriaPicoMB === 'number' ? sintese.memoriaPicoMB / 1024 : undefined,
+        duracaoMediaFraseS: media(frases.map((f) => f.duracaoS).filter((d) => Number.isFinite(d))),
+        vozesDoMotor: vozesPorMotor.get(motor),
+      }
+    })
+}
+
+/**
+ * Relatório em Markdown (formato dos de `docs/auditoria/`) mais a recomendação por idioma. Pura.
+ * @param {{ roundtrips?: any[], estabilidades?: any[], sinteses?: any[], escuta?: any, manifesto?: any[],
+ *           limiares: import('./comum.mjs').LimiaresDaBancada, idiomas?: string[], t3Mantido?: boolean,
+ *           geradoEm?: string }} p
+ * @returns {{ candidatos: ReturnType<typeof montarCandidatos>,
+ *             recomendacoes: Record<string, import('./recomendar.mjs').Recomendacao>, texto: string }}
+ */
+export function montarRelatorio({ limiares, idiomas = IDIOMAS, t3Mantido = false, geradoEm, ...fontes }) {
+  const candidatos = montarCandidatos(fontes)
+  const linhas = ['# voz-fase-0 — bancada de voz: motores candidatos', '']
+  if (geradoEm) linhas.push(`Gerado em ${geradoEm}.`, '')
+  if (limiares.provisorio) {
+    linhas.push(
+      '> Provisório: os limiares de `scripts/eval-voz/limiares.json` ainda não foram calibrados pela F0.',
+      '> O número só elimina; o dono ouve e aprova (spec §7.3).',
+      '',
+    )
+  }
+
+  linhas.push(
+    '## 1. Motores e vozes',
+    '',
+    '| candidato | RTF (mediana) | memória (GB) | vozes do motor | duração por frase (s) | GPL |',
+    '|---|---|---|---|---|---|',
+  )
+  for (const c of candidatos) {
+    const gpl = c.temComponenteGpl === true ? 'sim' : c.temComponenteGpl === false ? 'não' : 'não informado'
+    linhas.push(
+      `| \`${c.id}\` | ${dec(c.rtf, 3)} | ${dec(c.memoriaGB)} | ${c.vozesDoMotor} | ${dec(c.duracaoMediaFraseS, 1)} | ${gpl} |`,
+    )
+  }
+  linhas.push('')
+
+  const recomendacoes = {}
+  let n = 2
+  for (const idioma of idiomas) {
+    const doIdioma = candidatos.filter((c) => c.medidas.porIdioma[idioma])
+    linhas.push(`## ${n++}. ${idioma}`, '')
+    if (doIdioma.length === 0) {
+      linhas.push(`Nenhum candidato com medidas em ${idioma}.`, '')
+      recomendacoes[idioma] = recomendar([], limiares, idioma, { t3Mantido })
+      continue
+    }
+    linhas.push(
+      '| candidato | CER | WER | itens | números e anos | estabilidade | fora de ±30% | nota | aguenta 30 min |',
+      '|---|---|---|---|---|---|---|---|---|',
+    )
+    for (const c of doIdioma) {
+      const m = c.medidas.porIdioma[idioma]
+      const nota = typeof c.naturalidade === 'number' ? dec(c.naturalidade, 1) : 'sem escuta'
+      const ag = typeof c.aguenta30 === 'number' ? pct(c.aguenta30) : 'sem escuta'
+      linhas.push(
+        `| \`${c.id}\` | ${pct(m.cer)} | ${pct(m.wer)} | ${pct(m.itensAcerto)} | ${pct(m.itensNumerosEAnos)} | ${pct(m.estabilidade)} | ${pct(m.foraDaMediana)} | ${nota} | ${ag} |`,
+      )
+    }
+    const r = recomendar(doIdioma, limiares, idioma, { t3Mantido })
+    recomendacoes[idioma] = r
+    linhas.push(
+      '',
+      `**Recomendação (${idioma}):** ${r.escolhido ? `\`${r.escolhido}\`` : r.motivos.__geral__.join('; ')}`,
+      '',
+    )
+    for (const [id, ms] of Object.entries(r.motivos)) {
+      if (id === '__geral__') continue
+      linhas.push(ms.length === 0 ? `- \`${id}\`: passou em todos os portões` : `- \`${id}\`: ${ms.join('; ')}`)
+    }
+    linhas.push('')
+  }
+  return { candidatos, recomendacoes, texto: `${linhas.join('\n').trimEnd()}\n` }
+}
+
+const lerJson = (arquivo) => {
+  try {
+    return JSON.parse(readFileSync(arquivo, 'utf8'))
+  } catch (e) {
+    throw new Error(`${arquivo}: não foi possível ler (${e.message})`)
+  }
+}
+
+/** Lê `voz-*.json` da pasta: round-trip e estabilidade, cada um com `motor`, `voz` e `medidas`. */
+function lerResultados(pasta) {
+  if (!existsSync(pasta)) throw new Error(`pasta de entrada inexistente: ${pasta}`)
+  const roundtrips = []
+  const estabilidades = []
+  for (const nome of readdirSync(pasta).sort()) {
+    if (!/^voz-.+\.json$/.test(nome)) continue
+    const o = lerJson(path.join(pasta, nome))
+    if (typeof o.motor !== 'string' || typeof o.voz !== 'string' || !o.medidas?.porIdioma)
+      throw new Error(`${path.join(pasta, nome)}: faltam motor, voz ou medidas.porIdioma`)
+    ;(nome.startsWith('voz-estabilidade-') ? estabilidades : roundtrips).push(o)
+  }
+  if (roundtrips.length + estabilidades.length === 0) throw new Error(`nenhum resultado voz-*.json em ${pasta}`)
+  return { roundtrips, estabilidades }
+}
+
+const IO_PADRAO = { out: (s) => console.log(s), err: (s) => console.error(s) }
+
+/**
+ * CLI. Devolve o código de saída (0 relatório impresso, 1 uso errado ou entrada ruim).
+ * @param {string[]} argv
+ * @param {{ out: (s: string) => void, err: (s: string) => void }} [io]
+ * @returns {Promise<number>}
+ */
+export async function principal(argv, io = IO_PADRAO) {
+  try {
+    const fase = pegarOpcao(argv, 'fase')
+    if (fase !== '0') throw new Error('--fase 0 é obrigatório (só a fase 0 existe)')
+    const entrada = path.resolve(pegarOpcao(argv, 'entrada') ?? ENTRADA_PADRAO)
+    const { roundtrips, estabilidades } = lerResultados(entrada)
+    const dirSintese = pegarOpcao(argv, 'sintese')
+    const sinteses = (dirSintese ? dirSintese.split(',') : []).map((d) => {
+      const arquivo = path.join(path.resolve(d), 'resumo.json')
+      if (!existsSync(arquivo)) throw new Error(`resumo.json ausente em ${d} (saída de sintetizar.mjs)`)
+      return lerJson(arquivo)
+    })
+    const arquivoEscuta = pegarOpcao(argv, 'escuta')
+    const arquivoManifesto = pegarOpcao(argv, 'candidatos')
+    const manifesto = arquivoManifesto ? lerJson(path.resolve(arquivoManifesto)) : []
+    if (!Array.isArray(manifesto)) throw new Error(`${arquivoManifesto}: esperava uma lista`)
+    const r = montarRelatorio({
+      roundtrips,
+      estabilidades,
+      sinteses,
+      escuta: arquivoEscuta ? lerJson(path.resolve(arquivoEscuta)) : undefined,
+      manifesto,
+      limiares: LIMIARES,
+      t3Mantido: argv.includes('--t3'),
+      geradoEm: new Date().toISOString().slice(0, 10),
+    })
+    io.out(r.texto)
+    if (argv.includes('--gravar')) {
+      const destino = path.join(entrada, 'voz-relatorio-fase-0.md')
+      writeFileSync(destino, r.texto)
+      io.out(`gravado: ${destino}`)
+    }
+    return 0
+  } catch (e) {
+    io.err(`erro: ${e.message}`)
+    return 1
+  }
+}
+
+// Só roda como script; importado pelos testes não faz nada.
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  principal(process.argv.slice(2)).then((codigo) => process.exit(codigo))
+}

@@ -74,19 +74,26 @@ function paraItem(texto, idioma) {
 /**
  * Palavras de número (sem acento) em pt, en e es. "um/uma/uno/una/un/one" ficam à parte (ARTIGOS):
  * também são artigos, então só contam como número ao lado de um conector ("vinte e um").
+ * Cobre todas as palavras que `cardinalPt` (`src/core/leitura/numerosPt.ts`) pode gerar, no masculino e no
+ * feminino (`duzentas`…`novecentas`, `duas`): um teste confere isso contra `cardinalPt`. Em es entram
+ * `dos` e as centenas femininas (`quinientas`…). A lista é uma só para os três idiomas, então `dos` (es)
+ * também conta como numeral em pt ("dos"= de+os); a comparação é simétrica (a referência passa pela mesma
+ * regra), e só afeta quem tem "dos" colado a um número.
  */
-const PALAVRAS_DE_NUMERO = new Set(
+export const PALAVRAS_DE_NUMERO = new Set(
   (
     'zero dois duas tres quatro cinco seis sete oito nove dez onze doze treze catorze quatorze quinze ' +
     'dezesseis dezessete dezoito dezenove vinte trinta quarenta cinquenta sessenta setenta oitenta noventa ' +
     'cem cento duzentos trezentos quatrocentos quinhentos seiscentos setecentos oitocentos novecentos ' +
+    'duzentas trezentas quatrocentas quinhentas seiscentas setecentas oitocentas novecentas ' +
     'mil milhao milhoes bilhao bilhoes ' +
     'two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen ' +
     'eighteen nineteen twenty thirty forty fifty sixty seventy eighty ninety hundred thousand million billion ' +
-    'cuatro siete ocho nueve diez once doce trece catorce quince dieciseis diecisiete dieciocho diecinueve ' +
+    'dos cuatro siete ocho nueve diez once doce trece catorce quince dieciseis diecisiete dieciocho diecinueve ' +
     'veinte veintiuno veintidos veintitres veinticuatro veinticinco veintiseis veintisiete veintiocho veintinueve ' +
     'cien treinta cuarenta cincuenta sesenta ochenta ciento doscientos trescientos cuatrocientos quinientos ' +
-    'seiscientos setecientos ochocientos novecientos millon millones'
+    'seiscientos setecientos ochocientos novecientos millon millones ' +
+    'doscientas trescientas cuatrocientas quinientas seiscientas setecientas ochocientas novecientas'
   ).split(' '),
 )
 const ARTIGOS_NUMERO = new Set(['um', 'uma', 'uno', 'una', 'un', 'one'])

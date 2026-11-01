@@ -663,6 +663,56 @@ describe('CLIs: principal(argv)', () => {
     expect(readFileSync(path.join(dir, 'voz-relatorio-fase-0.md'), 'utf8')).toMatch(/qwen\/ryan/)
   })
 
+  it('relatório: classifica pelo CONTEÚDO (tipo), não pelo nome: motor "estabilidade" e nomes com hífen', async () => {
+    const dir = pasta()
+    // O nome começa com "voz-estabilidade-", mas é o round-trip do MOTOR "estabilidade".
+    gravar(dir, 'voz-estabilidade-a-b.json', {
+      tipo: 'roundtrip',
+      motor: 'estabilidade',
+      voz: 'a-b',
+      medidas: medidasOk(),
+    })
+    // O nome parece round-trip, mas é a estabilidade de x-y/z-w.
+    gravar(dir, 'voz-x-y-z-w.json', {
+      tipo: 'estabilidade',
+      motor: 'x-y',
+      voz: 'z-w',
+      medidas: { porIdioma: { pt: { estabilidade: 0.004 } } },
+    })
+    gravar(dir, 'voz-x-y-z-w-rt.json', { tipo: 'roundtrip', motor: 'x-y', voz: 'z-w', medidas: medidasOk() })
+    const t = io()
+    expect(await principalRelatorio(['--fase', '0', '--entrada', dir], t.io)).toBe(0)
+    const texto = t.saida.join('\n')
+    expect(texto).not.toMatch(/pelo NOME do arquivo/)
+    // estabilidade/a-b tem CER (round-trip), mas nenhuma estabilidade; x-y/z-w tem as duas (0,5% do round-trip é substituído por 0,4%)
+    expect(texto).toMatch(/`estabilidade\/a-b` \| 1,0% \| 3,0% \| 95,0% \| 100,0% \| 0,5% /)
+    expect(texto).toMatch(/`x-y\/z-w` \| 1,0% \| 3,0% \| 95,0% \| 100,0% \| 0,4% /)
+    expect(texto).not.toMatch(/repetido/)
+  })
+
+  it('relatório: arquivo antigo sem "tipo" cai no nome e AVISA; tipo inválido é erro', async () => {
+    const dir = pasta()
+    gravar(dir, 'voz-qwen-ryan.json', { motor: 'qwen', voz: 'ryan', medidas: medidasOk() })
+    gravar(dir, 'voz-estabilidade-qwen-ryan.json', {
+      motor: 'qwen',
+      voz: 'ryan',
+      medidas: { porIdioma: { pt: { estabilidade: 0.004 } } },
+    })
+    const t = io()
+    expect(await principalRelatorio(['--fase', '0', '--entrada', dir], t.io)).toBe(0)
+    const texto = t.saida.join('\n')
+    expect(texto).toMatch(
+      /voz-estabilidade-qwen-ryan\.json não tem o campo "tipo": classificado como estabilidade pelo NOME/,
+    )
+    expect(texto).toMatch(/voz-qwen-ryan\.json não tem o campo "tipo": classificado como roundtrip pelo NOME/)
+    expect(texto).toMatch(/`qwen\/ryan` \| 1,0% \| 3,0% \| 95,0% \| 100,0% \| 0,4% /)
+    const ruim = pasta()
+    gravar(ruim, 'voz-a-b.json', { tipo: 'outro', motor: 'a', voz: 'b', medidas: medidasOk() })
+    const e = io()
+    expect(await principalRelatorio(['--fase', '0', '--entrada', ruim], e.io)).toBe(1)
+    expect(e.erro.join(' ')).toMatch(/tipo "outro" inválido/)
+  })
+
   it('relatório: uso errado dá exit 1 (sem --fase, fase desconhecida, pasta sem resultados, JSON sem medidas)', async () => {
     const vazia = pasta()
     const semMedidas = pasta()

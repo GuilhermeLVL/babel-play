@@ -169,13 +169,20 @@ function avisosDasFontes({ roundtrips = [], estabilidades = [], sinteses = [], m
  * Relatório em Markdown (formato dos de `docs/auditoria/`) mais a recomendação por idioma. Pura.
  * @param {{ roundtrips?: any[], estabilidades?: any[], sinteses?: any[], escuta?: any, manifesto?: any[],
  *           limiares: import('./comum.mjs').LimiaresDaBancada, idiomas?: string[], t3Mantido?: boolean,
- *           geradoEm?: string }} p
+ *           geradoEm?: string, avisosExtras?: string[] }} p
  * @returns {{ candidatos: ReturnType<typeof montarCandidatos>,
  *             recomendacoes: Record<string, import("./recomendar.mjs").Recomendacao>, avisos: string[], texto: string }}
  */
-export function montarRelatorio({ limiares, idiomas = IDIOMAS, t3Mantido = false, geradoEm, ...fontes }) {
+export function montarRelatorio({
+  limiares,
+  idiomas = IDIOMAS,
+  t3Mantido = false,
+  geradoEm,
+  avisosExtras = [],
+  ...fontes
+}) {
   const candidatos = montarCandidatos(fontes)
-  const avisos = avisosDasFontes(fontes)
+  const avisos = [...avisosDasFontes(fontes), ...avisosExtras]
   const linhas = ['# voz-fase-0 — bancada de voz: motores candidatos', '']
   if (geradoEm) linhas.push(`Gerado em ${geradoEm}.`, '')
   if (limiares.provisorio) {
@@ -249,21 +256,43 @@ const lerJson = (arquivo) => {
   }
 }
 
+/**
+ * Tipo de um resultado: o campo `tipo` DENTRO do JSON ('roundtrip' | 'estabilidade'). O nome do arquivo é
+ * ambíguo (`voz-estabilidade-a-b.json` pode ser a estabilidade de a/b ou o round-trip do motor "estabilidade"),
+ * então só vale como plano B para arquivo antigo SEM `tipo`, e então vem um aviso.
+ * @param {{ tipo?: unknown }} o
+ * @param {string} nome
+ * @returns {{ tipo: 'roundtrip'|'estabilidade', aviso?: string }}
+ */
+export function classificarResultado(o, nome) {
+  if (o.tipo === 'roundtrip' || o.tipo === 'estabilidade') return { tipo: o.tipo }
+  if (o.tipo !== undefined) throw new Error(`${nome}: tipo "${String(o.tipo)}" inválido (use roundtrip|estabilidade)`)
+  const tipo = nome.startsWith('voz-estabilidade-') ? 'estabilidade' : 'roundtrip'
+  return {
+    tipo,
+    aviso: `${nome} não tem o campo "tipo": classificado como ${tipo} pelo NOME do arquivo (resultado antigo; meça de novo)`,
+  }
+}
+
 /** Lê `voz-*.json` da pasta: round-trip e estabilidade, cada um com `motor`, `voz` e `medidas`. */
 function lerResultados(pasta) {
   if (!existsSync(pasta)) throw new Error(`pasta de entrada inexistente: ${pasta}`)
   const roundtrips = []
   const estabilidades = []
+  const avisos = []
   for (const nome of readdirSync(pasta).sort()) {
     if (!/^voz-.+\.json$/.test(nome)) continue
     const o = lerJson(path.join(pasta, nome))
     if (typeof o.motor !== 'string' || typeof o.voz !== 'string' || !o.medidas?.porIdioma)
       throw new Error(`${path.join(pasta, nome)}: faltam motor, voz ou medidas.porIdioma`)
     o.arquivo = nome
-    ;(nome.startsWith('voz-estabilidade-') ? estabilidades : roundtrips).push(o)
+    const { tipo, aviso } = classificarResultado(o, nome)
+    if (aviso) avisos.push(aviso)
+    ;(tipo === 'estabilidade' ? estabilidades : roundtrips).push(o)
+    for (const a of o.avisos ?? []) avisos.push(`${nome}: ${a}`)
   }
   if (roundtrips.length + estabilidades.length === 0) throw new Error(`nenhum resultado voz-*.json em ${pasta}`)
-  return { roundtrips, estabilidades }
+  return { roundtrips, estabilidades, avisos }
 }
 
 const IO_PADRAO = { out: (s) => console.log(s), err: (s) => console.error(s) }
@@ -279,7 +308,7 @@ export async function principal(argv, io = IO_PADRAO) {
     const fase = pegarOpcao(argv, 'fase')
     if (fase !== '0') throw new Error('--fase 0 é obrigatório (só a fase 0 existe)')
     const entrada = path.resolve(pegarOpcao(argv, 'entrada') ?? ENTRADA_PADRAO)
-    const { roundtrips, estabilidades } = lerResultados(entrada)
+    const { roundtrips, estabilidades, avisos: avisosDeLeitura } = lerResultados(entrada)
     const dirSintese = pegarOpcao(argv, 'sintese')
     const sinteses = (dirSintese ? dirSintese.split(',') : []).map((d) => {
       const arquivo = path.join(path.resolve(d), 'resumo.json')
@@ -296,6 +325,7 @@ export async function principal(argv, io = IO_PADRAO) {
       sinteses,
       escuta: arquivoEscuta ? lerJson(path.resolve(arquivoEscuta)) : undefined,
       manifesto,
+      avisosExtras: avisosDeLeitura,
       limiares: LIMIARES,
       t3Mantido: argv.includes('--t3'),
       geradoEm: new Date().toISOString().slice(0, 10),

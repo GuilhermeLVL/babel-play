@@ -5,7 +5,7 @@ import vm from 'node:vm'
 
 import { describe, expect, it } from 'vitest'
 
-import { lerCorpus } from '../scripts/eval-voz/comum.mjs'
+import { CLASSE_DO_JUIZ_PARA_ERRO_DO_CSV, erroDoCsvDaClasse, lerCorpus } from '../scripts/eval-voz/comum.mjs'
 import {
   avaliarOuvintes,
   avisosDaEscuta,
@@ -18,6 +18,7 @@ import {
   sortearCega,
 } from '../scripts/eval-voz/gerar-formulario.mjs'
 import {
+  itensDoRoundtrip,
   julgarTextos,
   lerVeredito,
   montarPromptDoJuizDeTexto,
@@ -586,6 +587,64 @@ describe('rodada de correções', () => {
       const r = resumirEscuta([linha('ana', 'a01', 4)], { a01: 'k/a', a02: 'k/b', a03: '__ancora__' })
       expect(r['k/b']).toEqual({ naturalidade: null, aguenta30: null, errosGravesRepetidos: 0, ouvintes: 0 })
       expect(Object.keys(r)).toEqual(['k/a', 'k/b'])
+    })
+  })
+
+  describe('juiz: entrada do round-trip e classes únicas', () => {
+    it('itensDoRoundtrip monta { id, hip } de frases[].hipotese e lista as sem transcrição', () => {
+      const r = itensDoRoundtrip({
+        frases: [
+          { id: 'pt-a', hipotese: 'texto ouvido' },
+          { id: 'pt-b', hipotese: null, semAudio: true },
+          { id: 'pt-c', hipotese: null, invalido: true },
+          { id: 'en-d', hipotese: '' },
+        ],
+      })
+      expect(r.itens).toEqual([
+        { id: 'pt-a', hip: 'texto ouvido' },
+        { id: 'en-d', hip: '' },
+      ])
+      expect(r.ignorados).toEqual(['pt-b', 'pt-c'])
+      expect(() => itensDoRoundtrip({})).toThrow(/frases/)
+      expect(() => itensDoRoundtrip({ frases: [{ hipotese: 'x' }] })).toThrow(/sem id/)
+    })
+
+    it('o resultado real do round-trip alimenta o juiz com a referência do corpus', async () => {
+      const corpus = lerCorpus(CORPUS)
+      const alvo = corpus[0]
+      const { itens } = itensDoRoundtrip({ frases: [{ id: alvo.id, hipotese: 'transcrição qualquer' }] })
+      const prompts: string[] = []
+      const r = await julgarTextos({
+        itens: itens.map((i) => ({ id: i.id, ref: alvo.texto, hip: i.hip })),
+        corpus,
+        cache: path.join(pastaTmp(), 'cache'),
+        executar: async (_j, prompt) => {
+          prompts.push(prompt)
+          return '{"diferencas":[]}'
+        },
+      })
+      expect(r.resultados[0].diferencas).toEqual([])
+      expect(prompts[0]).toContain('transcrição qualquer')
+      expect(prompts[0]).toContain(alvo.texto.slice(0, 20))
+    })
+
+    it('a tabela única: o juiz diz numero_lido_errado, o CSV da escuta diz numero_errado', () => {
+      expect(CLASSE_DO_JUIZ_PARA_ERRO_DO_CSV.numero_lido_errado).toBe('numero_errado')
+      expect(erroDoCsvDaClasse('nome_errado')).toBe('nome_errado')
+      expect(() => erroDoCsvDaClasse('robotico')).toThrow(/desconhecida/)
+      expect(
+        lerVeredito('{"diferencas":[{"ref":"1889","hip":"1890","classe":"numero_lido_errado"}]}').diferencas,
+      ).toHaveLength(1)
+      expect(() => lerVeredito('{"diferencas":[{"ref":"a","hip":"b","classe":"numero_errado"}]}')).toThrow(/classe/)
+    })
+
+    it('toda classe do juiz mapeada é uma caixa de erro GRAVE do CSV (conta em errosGravesRepetidos)', () => {
+      const k = { a01: 'k/a' }
+      for (const classe of Object.keys(CLASSE_DO_JUIZ_PARA_ERRO_DO_CSV)) {
+        const erro = erroDoCsvDaClasse(classe)
+        const r = resumirEscuta([linha('ana', 'a01', 4, 4, [erro]), linha('bia', 'a01', 4, 4, [erro])], k)
+        expect(r['k/a'].errosGravesRepetidos, classe).toBe(1)
+      }
     })
   })
 

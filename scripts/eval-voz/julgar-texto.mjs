@@ -5,9 +5,15 @@
  * em `nome_errado | numero_lido_errado | omissao | repeticao`. NÃO avalia naturalidade, prosódia nem timbre
  * (isso é da escuta humana cega).
  *
- * Uso:
+ * Uso (node puro):
  *   node scripts/eval-voz/julgar-texto.mjs --entrada <itens.json> [--juiz claude|agy] [--saida <dir>] [--corpus <jsonl>]
+ *   node scripts/eval-voz/julgar-texto.mjs --roundtrip <voz-motor-voz.json> [...]
  *   `itens.json`: lista de `{ id: <id do item do corpus>, hip: <transcrição> }`
+ *   `--roundtrip`: o JSON de `medir-roundtrip.mjs` (`frases[].hipotese`); a referência continua sendo a do corpus.
+ *   Frases sem transcrição (sem áudio ou inválidas) ficam de fora e são listadas.
+ *
+ * Classes: o juiz devolve `nome_errado|numero_lido_errado|omissao|repeticao`; a caixa de erro grave do CSV da
+ * escuta chama a segunda de `numero_errado`. A tabela única é `CLASSE_DO_JUIZ_PARA_ERRO_DO_CSV` (`comum.mjs`).
  *
  * Só usa as CLIs locais já logadas (`claude -p`, `agy -p`): nenhuma chave, nenhum `fetch`, nenhum SDK. No máximo
  * 3 chamadas ao mesmo tempo. Respostas em cache por hash do prompt em `$CLAUDE_JOB_DIR/tmp/juiz-voz/` (senão
@@ -23,12 +29,13 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-import { lerCorpus, pastaDeSaida, pegarOpcao } from './comum.mjs'
+import { CLASSE_DO_JUIZ_PARA_ERRO_DO_CSV, lerCorpus, pastaDeSaida, pegarOpcao } from './comum.mjs'
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url))
 const CONCORRENCIA = 3
 const ALARME_MS = 240_000
-const CLASSES = ['nome_errado', 'numero_lido_errado', 'omissao', 'repeticao']
+/** As classes do juiz são as chaves da tabela única de `comum.mjs` (que mapeia cada uma para o erro do CSV). */
+const CLASSES = Object.keys(CLASSE_DO_JUIZ_PARA_ERRO_DO_CSV)
 
 /**
  * Prompt do juiz: só texto (nenhum caminho de áudio, nenhum nome de motor).
@@ -210,13 +217,40 @@ export async function julgarTextos({ itens, corpus, juiz = 'claude', executar = 
   return resultado
 }
 
+/**
+ * Itens `{ id, hip }` a partir do JSON do round-trip (`frases[]` com `hipotese`). Frase sem transcrição
+ * (`hipotese` nula: sem áudio ou inválida) não vai ao juiz e sai em `ignorados`.
+ * @param {{ frases?: { id?: string, hipotese?: string|null, semAudio?: boolean, invalido?: boolean }[] }} json
+ * @returns {{ itens: { id: string, hip: string }[], ignorados: string[] }}
+ */
+export function itensDoRoundtrip(json) {
+  if (!Array.isArray(json?.frases)) throw new Error('o JSON do round-trip não tem a lista "frases"')
+  const itens = []
+  const ignorados = []
+  for (const f of json.frases) {
+    if (typeof f?.id !== 'string') throw new Error('frase do round-trip sem id')
+    if (typeof f.hipotese === 'string') itens.push({ id: f.id, hip: f.hipotese })
+    else ignorados.push(f.id)
+  }
+  return { itens, ignorados }
+}
+
 async function principal(argv) {
   const entrada = pegarOpcao(argv, 'entrada')
-  if (!entrada) throw new Error('--entrada <itens.json> é obrigatório')
+  const arquivoRoundtrip = pegarOpcao(argv, 'roundtrip')
+  if (!entrada === !arquivoRoundtrip) throw new Error('passe --entrada <itens.json> OU --roundtrip <resultado.json>')
   const juiz = pegarOpcao(argv, 'juiz') ?? 'claude'
   if (!['claude', 'agy'].includes(juiz)) throw new Error('--juiz deve ser claude ou agy')
   const corpus = lerCorpus(pegarOpcao(argv, 'corpus') ?? path.join(AQUI, 'corpus-voz.jsonl'))
-  const itens = JSON.parse(readFileSync(entrada, 'utf8')).map((it) => {
+  let lista
+  if (arquivoRoundtrip) {
+    const { itens: doRoundtrip, ignorados } = itensDoRoundtrip(JSON.parse(readFileSync(arquivoRoundtrip, 'utf8')))
+    lista = doRoundtrip
+    if (ignorados.length) console.warn(`aviso: sem transcrição, fora do julgamento: ${ignorados.join(', ')}`)
+  } else {
+    lista = JSON.parse(readFileSync(entrada, 'utf8'))
+  }
+  const itens = lista.map((it) => {
     const item = corpus.find((c) => c.id === it.id)
     if (!item) throw new Error(`id "${it.id}" não existe no corpus`)
     return { id: it.id, ref: item.texto, hip: String(it.hip ?? '') }

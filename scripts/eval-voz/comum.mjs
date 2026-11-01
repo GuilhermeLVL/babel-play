@@ -187,6 +187,30 @@ export function foraDaMediana(frases, tolerancia = 0.3) {
  */
 
 export const IDIOMAS = ['pt', 'en', 'es']
+
+/**
+ * Classes de erro de texto: UMA tabela para os dois lados. A chave é o nome que o JUIZ DE TEXTO
+ * (`julgar-texto.mjs`) devolve; o valor é o nome da caixa de erro grave do CSV da escuta
+ * (`gerar-formulario.mjs`, coluna `erros[]`). Só o número muda de nome: `numero_lido_errado` -> `numero_errado`.
+ */
+export const CLASSE_DO_JUIZ_PARA_ERRO_DO_CSV = Object.freeze({
+  nome_errado: 'nome_errado',
+  numero_lido_errado: 'numero_errado',
+  omissao: 'omissao',
+  repeticao: 'repeticao',
+})
+
+/**
+ * O nome no CSV da escuta para uma classe do juiz de texto.
+ * @param {string} classe
+ * @returns {string}
+ */
+export function erroDoCsvDaClasse(classe) {
+  const erro = CLASSE_DO_JUIZ_PARA_ERRO_DO_CSV[classe]
+  if (!erro)
+    throw new Error(`classe "${classe}" desconhecida (use ${Object.keys(CLASSE_DO_JUIZ_PARA_ERRO_DO_CSV).join('|')})`)
+  return erro
+}
 export const TIPOS_DE_ITEM = ['nome', 'numero', 'sigla', 'ano']
 
 /**

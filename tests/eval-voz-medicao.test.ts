@@ -22,9 +22,10 @@ import {
 import { LIMIARES } from '../scripts/eval-voz/comum.mjs'
 import { montarRegistro } from '../scripts/eval-voz/medir-estabilidade.mjs'
 import { montarRegistroDoRoundtrip } from '../scripts/eval-voz/medir-roundtrip.mjs'
-import { medirTrecho } from '../scripts/eval-voz/metricas.mjs'
+import { acertoDosItens, medirTrecho, PALAVRAS_DE_NUMERO } from '../scripts/eval-voz/metricas.mjs'
 import { montarRelatorio } from '../scripts/eval-voz/relatorio.mjs'
 import { sintetizarCorpus } from '../scripts/eval-voz/sintetizar.mjs'
+import { cardinalPt } from '../src/core/leitura/numerosPt'
 import { VERSAO_DO_PREPROCESSADOR } from '../src/core/leitura/prepararTextoParaVoz'
 
 const pastas: string[] = []
@@ -295,5 +296,37 @@ describe('origemDoTempo do tempo de síntese', () => {
     expect(relogio.avisos.join('\n')).toMatch(/RTF medido pelo relógio, inclui rede — não vale para o portão da GPU/)
     expect(relogio.texto).toMatch(/RTF medido pelo relógio/)
     expect(montarRelatorio({ sinteses: [s('servidor')], limiares: LIMIARES, idiomas: [] }).avisos).toEqual([])
+  })
+})
+
+describe('vocabulário numérico do casamento dos itens', () => {
+  const itemNumero = (texto: string, aceita: string[]) => ({ texto, aceita, tipo: 'numero' as const })
+
+  it('es: "mil cuatrocientos noventa" NÃO acerta dentro de "mil cuatrocientos noventa y dos"', () => {
+    const item = itemNumero('1490', ['1490', 'mil cuatrocientos noventa'])
+    expect(acertoDosItens('Llegó en mil cuatrocientos noventa y dos', [item], 'es').acertos).toBe(0)
+    expect(acertoDosItens('Llegó en mil cuatrocientos noventa', [item], 'es').acertos).toBe(1)
+  })
+
+  it('pt: centenas femininas contam como numeral vizinho ("duzentas e trinta" não acerta "trinta")', () => {
+    const item = itemNumero('30', ['30', 'trinta'])
+    expect(acertoDosItens('Vieram duzentas e trinta pessoas', [item], 'pt').acertos).toBe(0)
+    expect(acertoDosItens('Vieram quinhentas e trinta pessoas', [item], 'pt').acertos).toBe(0)
+    expect(acertoDosItens('Vieram trinta pessoas', [item], 'pt').acertos).toBe(1)
+  })
+
+  it('toda palavra que cardinalPt gera (masculino e feminino, até 999 999 999) está na lista', () => {
+    const faltam = new Set<string>()
+    for (const genero of ['m', 'f'] as const) {
+      for (let n = 0; n < 1000; n++) {
+        for (const base of [n, n * 1000 + 17, n * 1_000_000]) {
+          const semAcento = cardinalPt(base, genero).normalize('NFD').replace(/[̀-ͯ]/g, '')
+          for (const w of semAcento.split(' ')) {
+            if (w !== 'e' && w !== 'um' && w !== 'uma' && !PALAVRAS_DE_NUMERO.has(w)) faltam.add(w)
+          }
+        }
+      }
+    }
+    expect([...faltam]).toEqual([])
   })
 })

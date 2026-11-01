@@ -24,7 +24,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-import { IDIOMAS, pastaDeSaida, pegarOpcao } from './comum.mjs'
+import { CLASSE_DO_JUIZ_PARA_ERRO_DO_CSV, IDIOMAS, pastaDeSaida, pegarOpcao } from './comum.mjs'
 
 /** Cabeçalho EXATO do CSV de escuta (a coluna chama-se literalmente `erros[]`; lista separada por `|`). */
 export const CABECALHO_DO_CSV = 'ouvinte,idioma,frase_id,voz_cega,naturalidade,clareza,erros[],comentario'
@@ -42,7 +42,8 @@ const MARCA_REPETIDA = '__repetida__:'
  * erro grave repetido em ≥ 2 ouvintes" sem listar quais; adotamos as classes que o juiz de texto também usa
  * (nome, número, omissão, repetição), pois mudam o sentido do que o aluno ouve.
  */
-const ERROS_GRAVES = ['nome_errado', 'numero_errado', 'omissao', 'repeticao']
+/** Caixas de erro grave do CSV: os valores da tabela única que o juiz de texto também usa (`comum.mjs`). */
+const ERROS_GRAVES = Object.values(CLASSE_DO_JUIZ_PARA_ERRO_DO_CSV)
 const ERROS_LEVES = ['pronuncia_estranha', 'pausa_estranha', 'voz_robotica', 'corte_brusco']
 
 /* ── Sorteio cego ── */

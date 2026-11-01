@@ -232,11 +232,15 @@ export function prepararPcm(buf) {
   return cortarSilencio(pcm)
 }
 
+/** Acima disso o clipe é cortado em partes antes do Whisper (janela dele: ~30 s). */
+const JANELA_MAXIMA_S = 25
+
 /**
  * Opções de decode das FRASES curtas e isoladas (as de `scripts/eval-fala/medir-wer.mjs`): proíbem
  * trigramas repetidos e penalizam repetição, o que ajuda em frase solta. NÃO servem para medir
  * estabilidade (`medir-estabilidade.mjs` usa as suas).
  */
+
 export const OPCOES_DE_DECODE_FRASE = { no_repeat_ngram_size: 3, repetition_penalty: 1.15 }
 
 /**
@@ -274,7 +278,16 @@ export function criarTranscritorDeItens({ pasta, decodificar }) {
   return async (item) => {
     const arquivo = path.join(pasta, `${item.id}.wav`)
     if (!existsSync(arquivo)) return null
-    return decodificar(prepararPcm(readFileSync(arquivo)), item.idioma, OPCOES_DE_DECODE_FRASE)
+    const pcm = prepararPcm(readFileSync(arquivo))
+    if (pcm.length <= JANELA_MAXIMA_S * 16000) return decodificar(pcm, item.idioma, OPCOES_DE_DECODE_FRASE)
+    // O Whisper decodifica ~30 s por janela: acima disso a cauda era descartada em silêncio e inflava
+    // CER/WER. Corta nas pausas (como `medir-estabilidade.mjs`) e junta as partes.
+    const { dividirPcm } = await import('./medir-estabilidade.mjs')
+    const partes = []
+    for (const p of dividirPcm(pcm, 16000, JANELA_MAXIMA_S).pedacos) {
+      partes.push(await decodificar(p, item.idioma, OPCOES_DE_DECODE_FRASE))
+    }
+    return partes.join(' ')
   }
 }
 

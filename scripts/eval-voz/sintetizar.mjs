@@ -15,6 +15,9 @@
  *   --motor falso                      silêncio de duração determinística (ensaio da bancada)
  *   --url <base> (qualquer --motor)    servidor do contrato HTTP (`POST /sintetizar`, `GET /vozes`); lê
  *                                      `X-Tempo-Sintese` e `X-Memoria-MB` (pico de memória; sem o cabeçalho = null)
+ *   --motor supertonic | pocket-tts    motores locais (CPU) em 127.0.0.1:8801 / :8802; suba antes o servidor de
+ *                                      `scripts/audiolivros/spike/` (pocket-tts: `--incluir-nao-verificadas`
+ *                                      libera rafael/lola, só para avaliação)
  *   --motor deepinfra --modelo <id>    adaptador da DeepInfra (chave só em DEEPINFRA_API_KEY). URL e corpo
  *                                      estão marcados NÃO VERIFICADO em `scripts/audiolivros/sintetizador.mjs`
  *
@@ -41,6 +44,7 @@ import {
   criarSintetizadorHttp,
   sintetizarComLimite,
 } from '../audiolivros/sintetizador.mjs'
+import { criarSintetizadorPocketTts, criarSintetizadorSupertonic } from '../audiolivros/sintetizador-local.mjs'
 import { prepararTextoParaVoz, VERSAO_DO_PREPROCESSADOR } from '../../src/core/leitura/prepararTextoParaVoz.ts'
 import {
   escreverOrigem,
@@ -149,6 +153,10 @@ function criarSintetizador(argv, motor, voz) {
     })
   }
   if (motor === 'falso') return criarSintetizadorFalso()
+  if (motor === 'supertonic') return criarSintetizadorSupertonic()
+  if (motor === 'pocket-tts') {
+    return criarSintetizadorPocketTts({ incluirNaoVerificadas: argv.includes('--incluir-nao-verificadas') })
+  }
   if (motor === 'deepinfra') {
     const modelo = pegarOpcao(argv, 'modelo')
     if (!modelo) throw new Error('--motor deepinfra exige --modelo <id>')

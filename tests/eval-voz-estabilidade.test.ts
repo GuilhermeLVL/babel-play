@@ -576,4 +576,34 @@ describe('o round-trip mantém o decode de frases curtas', () => {
     expect(chamadas[0][2]).toBe(OPCOES_DE_DECODE_FRASE)
     expect(OPCOES_DE_DECODE_FRASE).toEqual({ no_repeat_ngram_size: 3, repetition_penalty: 1.15 })
   })
+
+  it('clipe acima da janela do Whisper é cortado em partes e as transcrições são juntadas', async () => {
+    const pasta = pastas.criarPasta('rt-longo-')
+    const n = 16000 * 40
+    const wav = Buffer.alloc(44 + n * 2)
+    wav.write('RIFF', 0)
+    wav.writeUInt32LE(36 + n * 2, 4)
+    wav.write('WAVEfmt ', 8)
+    wav.writeUInt32LE(16, 16)
+    wav.writeUInt16LE(1, 20)
+    wav.writeUInt16LE(1, 22)
+    wav.writeUInt32LE(16000, 24)
+    wav.writeUInt32LE(32000, 28)
+    wav.writeUInt16LE(2, 32)
+    wav.writeUInt16LE(16, 34)
+    wav.write('data', 36)
+    wav.writeUInt32LE(n * 2, 40)
+    for (let i = 0; i < n; i++) wav.writeInt16LE(8000, 44 + i * 2)
+    writeFileSync(path.join(pasta, 'longo.wav'), wav)
+    const duracoes: number[] = []
+    const transcrever = criarTranscritorDeItens({
+      pasta,
+      decodificar: async (pcm: Float32Array) => {
+        duracoes.push(pcm.length / 16000)
+        return `parte${duracoes.length}`
+      },
+    })
+    expect(await transcrever({ id: 'longo', idioma: 'pt' })).toBe('parte1 parte2')
+    expect(Math.max(...duracoes)).toBeLessThanOrEqual(25.001)
+  })
 })

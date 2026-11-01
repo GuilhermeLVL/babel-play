@@ -12,10 +12,15 @@
  * de origem nem nome de arquivo original. A chave `voz_cega -> motor/voz` vai para OUTRA pasta (`<saida>-chave/`),
  * que o ouvinte nunca recebe. A pasta de escuta nunca fica dentro do repositório (`pastaDeSaida`).
  *
+ * LIMITE CONHECIDO: a taxa de amostragem e a duração dos WAVs continuam como canal lateral FRACO (motores
+ * diferentes podem entregar taxas ou durações diferentes). Não reamostramos; para escuta séria, sintetize todos
+ * na mesma taxa. A pasta de saída tem de estar vazia (nada é sobrescrito). Texto livre do CSV (apelido,
+ * comentário) é protegido contra injeção de fórmula (prefixo `'`, desfeito na leitura).
+ *
  * Retenção zero: o formulário não guarda nada no servidor; o CSV é baixado no navegador de quem ouve e só traz
  * apelido, nota e comentário.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -72,10 +77,15 @@ function embaralhar(lista, aleatorio) {
  * áudio (`gerarFormulario`) o degrada. `chave`: `voz_cega -> "motor/voz"`, `"__ancora__"` ou `"__repetida__:<voz_cega original>"`.
  * @param {{ motor: string, voz: string, arquivo: string, ancora?: true, frase_id?: string, idioma?: string }[]} amostras
  * @param {number} semente
- * @returns {{ itens: { voz_cega: string, arquivo: string, ancora?: true, repetida?: true, degradar?: true, frase_id?: string, idioma?: string }[], chave: Record<string, string> }}
+ * @returns {{ avisos: string[], itens: { voz_cega: string, arquivo: string, ancora?: true, repetida?: true, degradar?: true, frase_id?: string, idioma?: string }[], chave: Record<string, string> }}
  */
 export function sortearCega(amostras, semente) {
-  if (!Number.isInteger(semente)) throw new Error('semente deve ser um inteiro')
+  if (!Number.isInteger(semente) || semente < 0 || semente > 0xffffffff)
+    throw new Error('semente deve ser um inteiro entre 0 e 4294967295')
+  amostras.forEach((a, i) => {
+    if (typeof a?.frase_id !== 'string' || !a.frase_id.trim())
+      throw new Error(`amostras[${i}]: frase_id é obrigatório (identifica a frase no CSV)`)
+  })
   const reais = amostras.filter((a) => !a.ancora)
   if (reais.length === 0) throw new Error('sem amostras para sortear')
   const aleatorio = mulberry32(semente)
@@ -95,11 +105,16 @@ export function sortearCega(amostras, semente) {
         ancora: true,
       }
     : { arquivo: reais[0].arquivo, frase_id: reais[0].frase_id, idioma: reais[0].idioma, ancora: true, degradar: true }
+  const avisos = []
+  if (brutos.length < 2)
+    avisos.push(
+      `só ${brutos.length} amostra(s): não há como incluir 2 frases repetidas (a checagem de consistência fica reduzida)`,
+    )
   const repetidas = embaralhar(brutos, aleatorio)
     .slice(0, Math.min(2, brutos.length))
     .map((b) => ({ ...b, repetida: true, de: b.arquivo }))
 
-  const todos = embaralhar([...brutos, ancora, ...repetidas], aleatorio)
+  const todos = espalhar(embaralhar([...brutos, ancora, ...repetidas], aleatorio), aleatorio)
   const largura = Math.max(2, String(todos.length).length)
   const itens = []
   const chave = {}
@@ -119,7 +134,32 @@ export function sortearCega(amostras, semente) {
     if (v.startsWith(`${MARCA_REPETIDA}?`))
       chave[cega] = MARCA_REPETIDA + cegaDoOriginal.get(v.slice(MARCA_REPETIDA.length + 1))
   }
-  return { itens, chave }
+  return { itens, chave, avisos }
+}
+
+/**
+ * Reparo determinístico da ordem: cada repetida fica a pelo menos `min(4, ⌊n/3⌋)` posições do original e a âncora
+ * fora das 2 primeiras posições (o ouvinte ainda está se acostumando). Troca itens por posições sorteadas do MESMO
+ * PRNG, até valer; com limite de tentativas (ordem quase impossível só em listas minúsculas).
+ */
+function espalhar(ordem, aleatorio) {
+  const n = ordem.length
+  const dmin = Math.max(1, Math.min(4, Math.floor(n / 3)))
+  const ok = () => {
+    const posAncora = ordem.findIndex((t) => t.ancora)
+    if (n >= 3 && posAncora < 2) return false
+    return ordem.every((t, i) => {
+      if (!t.repetida) return true
+      const o = ordem.findIndex((x) => !x.repetida && !x.ancora && x.arquivo === t.de)
+      return Math.abs(i - o) >= dmin
+    })
+  }
+  for (let tentativa = 0; tentativa < 20000 && !ok(); tentativa++) {
+    const i = Math.floor(aleatorio() * n)
+    const j = Math.floor(aleatorio() * n)
+    ;[ordem[i], ordem[j]] = [ordem[j], ordem[i]]
+  }
+  return ordem
 }
 
 /* ── WAV: copiar sem metadado e degradar a âncora ── */
@@ -174,7 +214,11 @@ export function degradarWav(buf) {
   const canais = fmt.readUInt16LE(2)
   const taxa = fmt.readUInt32LE(4)
   const bits = fmt.readUInt16LE(14)
-  if (fmt.readUInt16LE(0) !== 1 || bits !== 16) throw new Error('degradarWav exige WAV PCM de 16 bits')
+  const formato = fmt.readUInt16LE(0)
+  if (formato !== 1 || bits !== 16)
+    throw new Error(
+      `degradarWav exige WAV PCM inteiro de 16 bits (veio formato ${formato === 3 ? '3 float' : formato === 0xfffe ? 'EXTENSIBLE' : formato}, ${bits} bits)`,
+    )
   const passo = Math.max(1, Math.round(taxa / 4000))
   const quadros = Math.floor(dados.length / (2 * canais))
   const saida = Buffer.from(dados)
@@ -186,6 +230,29 @@ export function degradarWav(buf) {
     }
   }
   return montarWav(fmt, saida)
+}
+
+/* ── Células do CSV: proteção contra injeção de fórmula ── */
+
+/**
+ * Texto livre (apelido, comentário) que começa com `=`, `+`, `-`, `@`, TAB ou CR vira fórmula ao abrir o CSV numa
+ * planilha. Prefixamos um `'` (também quando o texto já começa com `'` + caractere perigoso, para a volta ser
+ * exata). Roda no navegador (embutida no HTML via `toString`), por isso é autocontida.
+ */
+function protegerCelula(v) {
+  v = String(v)
+  return /^'*[=+\-@\t\r]/.test(v) ? "'" + v : v
+}
+
+/** Célula CSV (RFC 4180) já protegida. Autocontida pelo mesmo motivo. */
+function campoCsv(v) {
+  v = protegerCelula(v)
+  return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v
+}
+
+/** Inverso de `protegerCelula`: tira UM `'` inicial só se vier seguido de caractere perigoso. */
+function desprotegerCelula(v) {
+  return /^'+[=+\-@\t\r]/.test(v) ? v.slice(1) : v
 }
 
 /* ── Formulário ── */
@@ -229,22 +296,30 @@ ${blocos}
 <button id="baixar" type="button">Baixar CSV</button>
 <script>
 var CABECALHO=${JSON.stringify(CABECALHO_DO_CSV)};
-function campo(v){v=String(v);return /[",\\r\\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
-document.getElementById('baixar').onclick=function(){
+${protegerCelula.toString()}
+${campoCsv.toString()}
+function montarCsv(ouvinte,idioma,respostas){
+  var linhas=[CABECALHO];
+  respostas.forEach(function(r){
+    linhas.push([ouvinte,idioma,r.frase,r.voz,r.n,r.c,r.erros,r.comentario].map(campoCsv).join(','));
+  });
+  return linhas.join('\\r\\n')+'\\r\\n';
+}
+if(typeof document!=='undefined'){document.getElementById('baixar').onclick=function(){
   var ouvinte=document.getElementById('ouvinte').value.trim(),idioma=document.getElementById('idioma').value.trim();
   if(!ouvinte){alert('Informe um apelido.');return}
-  var linhas=[CABECALHO],pendente=0;
+  var respostas=[],pendente=0;
   document.querySelectorAll('.item').forEach(function(s){
     var n=s.querySelector('[name=naturalidade]').value,c=s.querySelector('[name=clareza]').value;
     if(!n||!c){pendente++;return}
     var erros=[].map.call(s.querySelectorAll('[name=erros]:checked'),function(e){return e.value}).join('|');
-    linhas.push([ouvinte,idioma,s.dataset.frase,s.dataset.voz,n,c,erros,s.querySelector('[name=comentario]').value].map(campo).join(','));
+    respostas.push({frase:s.dataset.frase,voz:s.dataset.voz,n:n,c:c,erros:erros,comentario:s.querySelector('[name=comentario]').value});
   });
   if(pendente&&!confirm(pendente+' amostra(s) sem nota. Baixar assim mesmo?'))return;
   var a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([linhas.join('\\r\\n')+'\\r\\n'],{type:'text/csv'}));
+  a.href=URL.createObjectURL(new Blob(['\\uFEFF'+montarCsv(ouvinte,idioma,respostas)],{type:'text/csv;charset=utf-8'}));
   a.download='escuta-'+ouvinte+'.csv';a.click();
-};
+};}
 </script>
 </body>
 </html>
@@ -257,20 +332,27 @@ document.getElementById('baixar').onclick=function(){
  * @returns {{ itens: ReturnType<typeof sortearCega>['itens'], pastaDeEscuta: string, arquivoDaChave: string }}
  */
 export function gerarFormulario({ amostras, semente = 1, saida, env = process.env }) {
-  const { itens, chave } = sortearCega(amostras, semente)
+  const { itens, chave, avisos } = sortearCega(amostras, semente)
+  for (const a of avisos) console.warn(`aviso: ${a}`)
   const pastaDeEscuta = pastaDeSaida({ motor: 'escuta', saida, env })
   const pastaDaChave = pastaDeSaida({
     motor: 'escuta-chave',
     saida: saida ? `${path.resolve(saida)}-chave` : undefined,
     env,
   })
-  mkdirSync(pastaDeEscuta, { recursive: true })
-  mkdirSync(pastaDaChave, { recursive: true })
-  for (const it of itens) {
+  for (const pasta of [pastaDeEscuta, pastaDaChave]) {
+    if (existsSync(pasta) && readdirSync(pasta).length > 0)
+      throw new Error(`a pasta de saída não está vazia: ${pasta} (use outra --saida; nada foi sobrescrito)`)
+  }
+  // Tudo é lido, validado e convertido ANTES de gravar: falha não deixa pasta pela metade.
+  const wavs = itens.map((it) => {
     if (!existsSync(it.arquivo)) throw new Error(`áudio não encontrado: ${it.arquivo}`)
     const bruto = readFileSync(it.arquivo)
-    writeFileSync(path.join(pastaDeEscuta, `${it.voz_cega}.wav`), it.degradar ? degradarWav(bruto) : limparWav(bruto))
-  }
+    return [`${it.voz_cega}.wav`, it.degradar ? degradarWav(bruto) : limparWav(bruto)]
+  })
+  mkdirSync(pastaDeEscuta, { recursive: true })
+  mkdirSync(pastaDaChave, { recursive: true })
+  for (const [nome, conteudo] of wavs) writeFileSync(path.join(pastaDeEscuta, nome), conteudo)
   writeFileSync(path.join(pastaDeEscuta, 'formulario.html'), htmlDoFormulario(itens))
   const modelo = [CABECALHO_DO_CSV, ...itens.map((it) => `,${it.idioma ?? ''},${it.frase_id ?? ''},${it.voz_cega},,,,`)]
   writeFileSync(path.join(pastaDeEscuta, 'modelo.csv'), `${modelo.join('\n')}\n`)
@@ -349,6 +431,7 @@ export function lerCsvDeEscuta(csv) {
   if (cabecalho.some((c, i) => c !== COLUNAS[i]))
     throw new Error(`CSV: colunas fora de ordem (esperado ${CABECALHO_DO_CSV})`)
 
+  const vistas = new Map()
   return corpo.map(({ linha, campos }) => {
     if (campos.length !== COLUNAS.length)
       throw new Error(`CSV linha ${linha}: ${campos.length} campos, esperado ${COLUNAS.length}`)
@@ -365,10 +448,10 @@ export function lerCsvDeEscuta(csv) {
         throw new Error(`CSV linha ${linha}: ${nome} deve ser inteiro de 1 a 5 (veio "${v}")`)
       return Number(v)
     }
-    return {
-      ouvinte: ouvinte.trim(),
-      idioma: idioma.trim(),
-      frase_id: frase_id.trim(),
+    const resultado = {
+      ouvinte: desprotegerCelula(ouvinte.trim()),
+      idioma: desprotegerCelula(idioma.trim()),
+      frase_id: desprotegerCelula(frase_id.trim()),
       voz_cega: voz_cega.trim(),
       naturalidade: nota('naturalidade', nat),
       clareza: nota('clareza', cla),
@@ -376,12 +459,22 @@ export function lerCsvDeEscuta(csv) {
         .split('|')
         .map((e) => e.trim())
         .filter(Boolean),
-      comentario,
+      comentario: desprotegerCelula(comentario),
     }
+    const id = `${idDoOuvinte(resultado.ouvinte)}|${resultado.frase_id}|${resultado.voz_cega}`
+    if (vistas.has(id))
+      throw new Error(
+        `CSV: linhas ${vistas.get(id)} e ${linha} repetem ouvinte + frase_id + voz_cega (${resultado.ouvinte}, ${resultado.frase_id}, ${resultado.voz_cega})`,
+      )
+    vistas.set(id, linha)
+    return resultado
   })
 }
 
 /* ── Resumo ── */
+
+/** Identidade do ouvinte: sem espaços nas pontas e sem diferença de caixa ("Ana" e "ana " são a mesma pessoa). */
+const idDoOuvinte = (nome) => nome.trim().normalize('NFC').toLowerCase()
 
 function tipoDaChave(chave, voz_cega) {
   const v = chave[voz_cega]
@@ -403,10 +496,16 @@ function tipoDaChave(chave, voz_cega) {
  *   para a mesma voz. O mesmo ouvinte repetindo o erro não soma.
  * @param {ReturnType<typeof lerCsvDeEscuta>} linhas
  * @param {Record<string, string>} chave
- * @returns {Record<string, { naturalidade: number, aguenta30: number, errosGravesRepetidos: number, ouvintes: number }>}
+ *
+ * Ouvintes são contados sem distinguir caixa/espaços. Voz da chave sem nenhuma nota sai com `ouvintes: 0` e
+ * `naturalidade`/`aguenta30` `null` (nunca NaN).
+ * @returns {Record<string, { naturalidade: number|null, aguenta30: number|null, errosGravesRepetidos: number, ouvintes: number }>}
  */
 export function resumirEscuta(linhas, chave) {
   const grupos = new Map()
+  for (const v of Object.values(chave)) {
+    if (v !== MARCA_ANCORA && !v.startsWith(MARCA_REPETIDA)) grupos.set(v, [])
+  }
   for (const l of linhas) {
     const t = tipoDaChave(chave, l.voz_cega)
     if (t.tipo !== 'voz') continue
@@ -420,13 +519,13 @@ export function resumirEscuta(linhas, chave) {
       for (const e of l.erros) {
         if (!ERROS_GRAVES.includes(e)) continue
         if (!porErro.has(e)) porErro.set(e, new Set())
-        porErro.get(e).add(l.ouvinte)
+        porErro.get(e).add(idDoOuvinte(l.ouvinte))
       }
     resumo[rotulo] = {
-      naturalidade: ls.reduce((a, l) => a + l.naturalidade, 0) / ls.length,
-      aguenta30: ls.filter((l) => l.naturalidade >= 4 && l.clareza >= 4).length / ls.length,
+      naturalidade: ls.length ? ls.reduce((a, l) => a + l.naturalidade, 0) / ls.length : null,
+      aguenta30: ls.length ? ls.filter((l) => l.naturalidade >= 4 && l.clareza >= 4).length / ls.length : null,
       errosGravesRepetidos: [...porErro.values()].filter((o) => o.size >= 2).length,
-      ouvintes: new Set(ls.map((l) => l.ouvinte)).size,
+      ouvintes: new Set(ls.map((l) => idDoOuvinte(l.ouvinte))).size,
     }
   }
   return resumo
@@ -441,25 +540,31 @@ export function resumirEscuta(linhas, chave) {
  */
 export function avaliarOuvintes(linhas, chave) {
   const motivos = new Map()
-  const marcar = (o, m) => motivos.set(o, [...(motivos.get(o) ?? []), m])
-  const nota = new Map(linhas.map((l) => [`${l.ouvinte}|${l.voz_cega}`, l.naturalidade]))
+  const nomes = new Map()
+  const marcar = (o, m) => {
+    const id = idDoOuvinte(o)
+    if (!nomes.has(id)) nomes.set(id, o)
+    motivos.set(id, [...(motivos.get(id) ?? []), m])
+  }
+  const nota = new Map(linhas.map((l) => [`${idDoOuvinte(l.ouvinte)}|${l.voz_cega}`, l.naturalidade]))
   for (const l of linhas) {
     const t = tipoDaChave(chave, l.voz_cega)
     if (t.tipo === 'ancora' && l.naturalidade >= 4)
       marcar(l.ouvinte, `deu naturalidade ${l.naturalidade} à âncora ruim`)
     if (t.tipo === 'repetida') {
-      const original = nota.get(`${l.ouvinte}|${t.de}`)
+      const original = nota.get(`${idDoOuvinte(l.ouvinte)}|${t.de}`)
       if (original !== undefined && Math.abs(original - l.naturalidade) >= 2)
         marcar(l.ouvinte, `frase repetida com notas ${original} e ${l.naturalidade} (diferença >= 2)`)
     }
   }
-  return [...motivos].map(([ouvinte, m]) => ({ ouvinte, motivos: m }))
+  return [...motivos].map(([id, m]) => ({ ouvinte: nomes.get(id), motivos: m }))
 }
 
-/** CSV do resumo (uma linha por motor/voz). */
-function csvDoResumo(resumo) {
-  const linhas = Object.entries(resumo).map(
-    ([k, r]) => `${k},${r.naturalidade.toFixed(2)},${r.aguenta30.toFixed(2)},${r.errosGravesRepetidos},${r.ouvintes}`,
+/** CSV do resumo (uma linha por motor/voz), com as células protegidas contra fórmula. Nota ausente sai vazia. */
+export function csvDoResumo(resumo) {
+  const num = (x) => (x === null ? '' : x.toFixed(2))
+  const linhas = Object.entries(resumo).map(([k, r]) =>
+    [k, num(r.naturalidade), num(r.aguenta30), r.errosGravesRepetidos, r.ouvintes].map(campoCsv).join(','),
   )
   return `motor_voz,naturalidade,aguenta30,erros_graves_repetidos,ouvintes\n${linhas.join('\n')}\n`
 }

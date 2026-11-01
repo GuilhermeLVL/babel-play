@@ -4,6 +4,14 @@
  * Uso (precisa de `tsx`, porque importa TypeScript de `src/core`):
  *   node --import tsx scripts/eval-voz/medir-roundtrip.mjs --motor <id> --voz <id> --entrada <dir de wavs>
  *
+ * `--entrada` costuma ser a pasta `<motor>/<voz>/` de `sintetizar.mjs`, que traz `origem.json`: se ele
+ * contradiz `--motor/--voz`, a medição ABORTA (mediria a voz errada); sem `origem.json` segue, com um aviso
+ * no resultado (`avisos`). O resultado traz `tipo: 'roundtrip'` (o `relatorio` classifica por ele).
+ *
+ * Limite conhecido (en/es): a normalização expande números por extenso SÓ em pt. Em en/es um Whisper que
+ * transcreva "one thousand" contra "1000" na referência pontua como erro de WER/CER (e nos itens `numero`
+ * só valem as grafias de `aceita`). O plano cobre números em en/es apenas se o orçamento permitir.
+ *
  * Espera um `<id>.wav` por item do corpus (`corpus-voz.jsonl`) na pasta de entrada. WAV ausente conta em
  * `semAudio`; WAV inválido (8 bits, truncado, sem fmt/data, vazio, só silêncio) ou transcrição que lança
  * conta em `invalidos`, com a mensagem de erro no registro da frase. Nenhum dos dois derruba a rodada,
@@ -22,7 +30,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { agregar } from '../../src/core/eval/wer.ts'
 import { duracaoDoWav } from '../audiolivros/wav.mjs'
 import {
+  conferirOrigem,
   foraDaMediana,
+  IDIOMAS,
   LIMIARES_DA_SPEC,
   lerCorpus,
   MIN_CLIPES_PARA_MEDIANA,
@@ -35,7 +45,6 @@ const AQUI = path.dirname(fileURLToPath(import.meta.url))
 const RAIZ = path.resolve(AQUI, '..', '..')
 const CORPUS = path.join(AQUI, 'corpus-voz.jsonl')
 export const MODELO_WHISPER = 'onnx-community/whisper-small'
-const IDIOMAS = ['pt', 'en', 'es']
 
 export { MIN_CLIPES_PARA_MEDIANA }
 
@@ -101,6 +110,7 @@ export async function medirRoundtrip({ corpus, transcrever, duracaoDe }) {
     })
   }
 
+  /** @type {import('./comum.mjs').Medidas['porIdioma']} */
   const porIdioma = {}
   for (const idioma of IDIOMAS) {
     const doIdioma = frases.filter((f) => f.idioma === idioma)
@@ -274,7 +284,38 @@ function lerArgumentos(argv) {
   if (!entrada) throw new Error('--entrada <dir de wavs> é obrigatório')
   if (!existsSync(entrada) || !statSync(entrada).isDirectory())
     throw new Error(`--entrada: "${entrada}" não é uma pasta`)
-  return { motor, voz, entrada: path.resolve(entrada) }
+  const pasta = path.resolve(entrada)
+  return { motor, voz, entrada: pasta, avisos: conferirOrigem(pasta, { motor, voz }).avisos }
+}
+
+/**
+ * O JSON que o round-trip grava. `tipo` identifica o resultado pelo CONTEÚDO (o nome do arquivo é ambíguo
+ * com hífens em motor/voz).
+ * @param {{ motor: string, voz: string, medidas: object, pendentes: string[], avaliacao: object, frases: object[],
+ *           avisos?: string[], geradoEm?: string }} p
+ */
+export function montarRegistroDoRoundtrip({
+  motor,
+  voz,
+  medidas,
+  pendentes,
+  avaliacao,
+  frases,
+  avisos = [],
+  geradoEm,
+}) {
+  return {
+    tipo: 'roundtrip',
+    geradoEm: geradoEm ?? new Date().toISOString(),
+    motor,
+    voz,
+    whisper: MODELO_WHISPER,
+    medidas,
+    pendentes,
+    avaliacao,
+    ...(avisos.length > 0 ? { avisos } : {}),
+    frases,
+  }
 }
 
 /** Métricas com limiar que este script não consegue medir (o resumo as lista como pendentes). */
@@ -285,7 +326,8 @@ function pendentesDe(medidas) {
 }
 
 async function main() {
-  const { motor, voz, entrada } = lerArgumentos(process.argv.slice(2))
+  const { motor, voz, entrada, avisos } = lerArgumentos(process.argv.slice(2))
+  for (const a of avisos) console.warn(`aviso: ${a}`)
   const corpus = lerCorpus(CORPUS)
   const transcrever = criarTranscritorDeItens({ pasta: entrada, decodificar: await criarDecodificadorWhisper() })
   const duracaoDe = (item) => {
@@ -300,20 +342,7 @@ async function main() {
   mkdirSync(path.dirname(saida), { recursive: true })
   writeFileSync(
     saida,
-    JSON.stringify(
-      {
-        geradoEm: new Date().toISOString(),
-        motor,
-        voz,
-        whisper: MODELO_WHISPER,
-        medidas,
-        pendentes,
-        avaliacao,
-        frases,
-      },
-      null,
-      2,
-    ),
+    JSON.stringify(montarRegistroDoRoundtrip({ motor, voz, medidas, pendentes, avaliacao, frases, avisos }), null, 2),
   )
 
   for (const [idioma, m] of Object.entries(medidas.porIdioma)) {

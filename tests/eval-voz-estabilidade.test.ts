@@ -26,6 +26,12 @@ import { criarTranscritorDeItens, OPCOES_DE_DECODE_FRASE } from '../scripts/eval
 import { estabilidadeDoTrecho } from '../scripts/eval-voz/metricas.mjs'
 import { lerTextoLongo, sintetizarCorpus } from '../scripts/eval-voz/sintetizar.mjs'
 
+/** Estreita `T | undefined` com erro claro (em vez de `!` ou `as`). */
+function definido<T>(x: T | undefined, quem = 'valor'): T {
+  if (x === undefined) throw new Error(`${quem} indefinido`)
+  return x
+}
+
 const frase = (id: string, duracaoS: number, caracteres = 100) => ({ id, duracaoS, caracteres })
 
 describe('rtf', () => {
@@ -210,6 +216,7 @@ function sintetizadorControlado(seg: (t: string) => number, fator: number, memor
         duracaoS,
         taxaHz: 16000,
         tempoDeSinteseS: duracaoS * fator,
+        origemDoTempo: 'servidor' as const,
         ...(m === undefined ? {} : { memoriaMB: m }),
       }
     },
@@ -270,8 +277,8 @@ describe('sintetizarCorpus', () => {
       voz: 'v',
       escrever: () => {},
     })
-    expect(r.foraDaMediana.pt.ids).toEqual(['p4'])
-    expect(r.foraDaMediana.pt.fracao).toBeCloseTo(0.25)
+    expect(definido(r.foraDaMediana.pt).ids).toEqual(['p4'])
+    expect(definido(r.foraDaMediana.pt).fracao).toBeCloseTo(0.25)
     // en tem 2 clipes (< mínimo): não medido
     expect(r.foraDaMediana.en).toBeUndefined()
   })

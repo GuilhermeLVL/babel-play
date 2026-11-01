@@ -313,6 +313,9 @@ describe('montarCandidatos e relatório', () => {
     rtfMediano,
     rtfMax: rtfMediano * 2,
     memoriaPicoMB: 2048,
+    preprocessado: true,
+    versaoPreprocessador: '1',
+    origemDoTempo: 'servidor',
     frases: [
       { id: 'pt-1', idioma: 'pt', duracaoS: 4, caracteres: 40, tempoDeSinteseS: 1, rtf: 0.25 },
       { id: 'pt-2', idioma: 'pt', duracaoS: 6, caracteres: 60, tempoDeSinteseS: 2, rtf: 0.33 },

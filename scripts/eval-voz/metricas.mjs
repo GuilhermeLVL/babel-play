@@ -23,8 +23,15 @@ const EPSILON = 1e-9
  * @returns {string}
  */
 export function normalizarParaComparar(texto, idioma) {
-  return normalizarPt(prepararTextoParaVoz(texto ?? '', idioma))
+  return normalizarPt(prepararTextoParaVoz(texto ?? '', idioma).replace(ASPAS_QUE_NAO_SE_FALAM, ' '))
 }
+
+/**
+ * Aspas angulares e baixas («»‹›„‚): `normalizarPt` não as conhece e um Whisper nunca as transcreve, então
+ * uma transcrição perfeita de «Dom Casmurro» perdia WER. Fica AQUI e não em `wer.ts` (o eval-fala também o usa).
+ * As aspas curvas “”‘’ já são tratadas por `normalizarPt`.
+ */
+const ASPAS_QUE_NAO_SE_FALAM = /[«»‹›„‚]/g
 
 /**
  * WER e CER de um trecho, como frações. Referência vazia: 0 se a hipótese também é vazia, 1 se ela

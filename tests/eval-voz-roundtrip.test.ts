@@ -14,6 +14,12 @@ import {
   normalizarParaComparar,
 } from '../scripts/eval-voz/metricas.mjs'
 
+/** Estreita `T | undefined` com erro claro (em vez de `!` ou `as`). */
+function definido<T>(x: T | undefined, quem = 'valor'): T {
+  if (x === undefined) throw new Error(`${quem} indefinido`)
+  return x
+}
+
 type Item = {
   id: string
   idioma: 'pt' | 'en' | 'es'
@@ -202,12 +208,12 @@ describe('medirRoundtrip (orquestração com transcritor falso)', () => {
 
   it('transcrição perfeita dá WER/CER 0 e itens 100%', async () => {
     const r = await medirRoundtrip({ corpus, transcrever: async (it: Item) => it.texto })
-    expect(r.medidas.porIdioma.pt.wer).toBe(0)
-    expect(r.medidas.porIdioma.pt.cer).toBe(0)
-    expect(r.medidas.porIdioma.pt.itensAcerto).toBe(1)
-    expect(r.medidas.porIdioma.pt.itensNumerosEAnos).toBe(1)
-    expect(r.medidas.porIdioma.pt.semAudio).toBe(0)
-    expect(r.medidas.porIdioma.en.wer).toBe(0)
+    expect(definido(r.medidas.porIdioma.pt).wer).toBe(0)
+    expect(definido(r.medidas.porIdioma.pt).cer).toBe(0)
+    expect(definido(r.medidas.porIdioma.pt).itensAcerto).toBe(1)
+    expect(definido(r.medidas.porIdioma.pt).itensNumerosEAnos).toBe(1)
+    expect(definido(r.medidas.porIdioma.pt).semAudio).toBe(0)
+    expect(definido(r.medidas.porIdioma.en).wer).toBe(0)
     expect(r.frases).toHaveLength(3)
   })
 
@@ -216,7 +222,7 @@ describe('medirRoundtrip (orquestração com transcritor falso)', () => {
       corpus: corpus.slice(1, 2),
       transcrever: async () => 'um dois tres quatro cinco seis sete oito nove onze',
     })
-    expect(r.medidas.porIdioma.pt.wer).toBe(0.1)
+    expect(definido(r.medidas.porIdioma.pt).wer).toBe(0.1)
   })
 
   it('WAV ausente conta em semAudio e não derruba nem entra no WER', async () => {
@@ -224,9 +230,9 @@ describe('medirRoundtrip (orquestração com transcritor falso)', () => {
       corpus,
       transcrever: async (it: Item) => (it.id === 'pt-2' ? null : it.texto),
     })
-    expect(r.medidas.porIdioma.pt.semAudio).toBe(1)
-    expect(r.medidas.porIdioma.pt.wer).toBe(0)
-    expect(r.frases.find((f: { id: string }) => f.id === 'pt-2').semAudio).toBe(true)
+    expect(definido(r.medidas.porIdioma.pt).semAudio).toBe(1)
+    expect(definido(r.medidas.porIdioma.pt).wer).toBe(0)
+    expect(definido(r.frases.find((f: { id: string }) => f.id === 'pt-2')).semAudio).toBe(true)
     expect(avaliarContraLimiares(r.medidas, LIMIARES_DA_SPEC).falhas.join(' ')).toMatch(/sem áudio/)
   })
 
@@ -235,8 +241,8 @@ describe('medirRoundtrip (orquestração com transcritor falso)', () => {
       corpus: corpus.slice(0, 1),
       transcrever: async () => 'Capitu nasceu em mil novecentos',
     })
-    expect(r.medidas.porIdioma.pt.itensNumerosEAnos).toBe(0)
-    expect(r.medidas.porIdioma.pt.itensAcerto).toBe(0.5)
+    expect(definido(r.medidas.porIdioma.pt).itensNumerosEAnos).toBe(0)
+    expect(definido(r.medidas.porIdioma.pt).itensAcerto).toBe(0.5)
   })
 
   it('duração fora de ±30% da mediana (por caractere) entra em foraDaMediana', async () => {
@@ -253,7 +259,7 @@ describe('medirRoundtrip (orquestração com transcritor falso)', () => {
       transcrever: async (it: Item) => it.texto,
       duracaoDe: (it: Item) => dur[it.id],
     })
-    expect(r.medidas.porIdioma.pt.foraDaMediana).toBe(0.2)
+    expect(definido(r.medidas.porIdioma.pt).foraDaMediana).toBe(0.2)
   })
 })
 
@@ -422,7 +428,7 @@ describe('itens numero/ano: vizinhança consciente da referência', () => {
       corpus: [item],
       transcrever: async () => 'em mil oitocentos e oitenta e nove quatro homens chegaram',
     })
-    expect(r.medidas.porIdioma.pt.itensNumerosEAnos).toBe(1)
+    expect(definido(r.medidas.porIdioma.pt).itensNumerosEAnos).toBe(1)
   })
 })
 
@@ -538,10 +544,10 @@ describe('WAV inválido não derruba a rodada', () => {
         return it.texto
       },
     })
-    expect(r.medidas.porIdioma.pt.invalidos).toBe(1)
-    expect(r.medidas.porIdioma.pt.semAudio).toBe(0)
-    expect(r.medidas.porIdioma.pt.wer).toBe(0)
-    const f = r.frases.find((x: { id: string }) => x.id === 'pt-b')
+    expect(definido(r.medidas.porIdioma.pt).invalidos).toBe(1)
+    expect(definido(r.medidas.porIdioma.pt).semAudio).toBe(0)
+    expect(definido(r.medidas.porIdioma.pt).wer).toBe(0)
+    const f = definido(r.frases.find((x: { id: string }) => x.id === 'pt-b'))
     expect(f.invalido).toBe(true)
     expect(f.erro).toMatch(/16-bit/)
     expect(
@@ -553,7 +559,7 @@ describe('WAV inválido não derruba a rodada', () => {
 
   it('invalidos é 0 quando tudo vai bem', async () => {
     const r = await medirRoundtrip({ corpus, transcrever: async (it: Item) => it.texto })
-    expect(r.medidas.porIdioma.pt.invalidos).toBe(0)
+    expect(definido(r.medidas.porIdioma.pt).invalidos).toBe(0)
   })
 })
 
@@ -573,8 +579,8 @@ describe('foraDaMediana: mínimo de clipes e comprimento normalizado', () => {
       duracaoDe: () => 1,
     })
     if (n === 0) return expect(r.medidas.porIdioma.pt).toBeUndefined()
-    if (n < MIN_CLIPES_PARA_MEDIANA) expect(r.medidas.porIdioma.pt.foraDaMediana).toBeUndefined()
-    else expect(r.medidas.porIdioma.pt.foraDaMediana).toBe(0)
+    if (n < MIN_CLIPES_PARA_MEDIANA) expect(definido(r.medidas.porIdioma.pt).foraDaMediana).toBeUndefined()
+    else expect(definido(r.medidas.porIdioma.pt).foraDaMediana).toBe(0)
   })
 
   it('usa o comprimento do texto normalizado ("R$ 5" vira "cinco reais")', async () => {
@@ -586,7 +592,7 @@ describe('foraDaMediana: mínimo de clipes e comprimento normalizado', () => {
       transcrever: async (it: Item) => it.texto,
       duracaoDe: (it: Item) => (it.id === 'pt-x' ? 1.1 : 1),
     })
-    expect(r.medidas.porIdioma.pt.foraDaMediana).toBe(0)
+    expect(definido(r.medidas.porIdioma.pt).foraDaMediana).toBe(0)
   })
 })
 

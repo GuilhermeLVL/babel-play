@@ -18,6 +18,13 @@
  * `taxa` é um limite SUPERIOR do erro de estabilidade (o corte pode ter criado erros). Sem sobreposição
  * nem desduplicação: a palavra partida no meio de um corte é o viés que SOBRA, e só afeta `cortesSemPausa`.
  *
+ * `--entrada` costuma ser a pasta `<motor>/<voz>/` de `sintetizar.mjs --longo`: o `origem.json` dela é conferido
+ * contra `--motor/--voz` (diferente = erro; ausente = segue, com aviso em `notas`). O resultado traz
+ * `tipo: 'estabilidade'` (o `relatorio` classifica por ele, não pelo nome do arquivo).
+ *
+ * Limite conhecido (en/es): números por extenso só são expandidos em pt; um Whisper que escreva "one thousand"
+ * contra "1000" na referência soma erro. O plano cobre números em en/es apenas se o orçamento permitir.
+ *
  * Saída: `docs/auditoria/eval/voz-estabilidade-<motor>-<voz>.json` (repositório) só com campos compactos
  * (contagens, taxas, veredito contra o limite da spec §7.2 de 1,0 %, decodificador, chunks, hash do texto).
  * A transcrição completa vai para `<entrada>/hipotese.txt`, fora do repositório.
@@ -28,7 +35,7 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { palavras } from '../../src/core/eval/wer.ts'
-import { IDIOMAS, LIMIARES_DA_SPEC, nomeSeguro, pegarOpcao } from './comum.mjs'
+import { conferirOrigem, IDIOMAS, LIMIARES_DA_SPEC, nomeSeguro, pegarOpcao } from './comum.mjs'
 import { criarDecodificadorWhisper, MODELO_WHISPER, prepararPcm } from './medir-roundtrip.mjs'
 import { estabilidadeDoTrecho, normalizarParaComparar } from './metricas.mjs'
 import { lerTextoLongo } from './sintetizar.mjs'
@@ -140,16 +147,18 @@ export async function medirEstabilidadeDoLongo({
 /**
  * O JSON que vai para o repositório: só campos compactos, NUNCA a transcrição (`hipotese`).
  * @param {{ motor: string, voz: string, idioma: string, textoId: string, texto: string, audioDuracaoS: number,
- *           r: Awaited<ReturnType<typeof medirEstabilidadeDoLongo>> | Record<string, any>, geradoEm?: string }} p
+ *           r: Awaited<ReturnType<typeof medirEstabilidadeDoLongo>> | Record<string, any>, geradoEm?: string,
+ *           avisos?: string[] }} p
  */
-export function montarRegistro({ motor, voz, idioma, textoId, texto, audioDuracaoS, r, geradoEm }) {
-  const notas = []
+export function montarRegistro({ motor, voz, idioma, textoId, texto, audioDuracaoS, r, geradoEm, avisos = [] }) {
+  const notas = [...avisos]
   if (r.cortesSemPausa > 0) {
     notas.push(
       `${r.cortesSemPausa} corte(s) de chunk sem pausa real (>= 150 ms): a taxa é um limite superior do erro de estabilidade`,
     )
   }
   return {
+    tipo: 'estabilidade',
     geradoEm: geradoEm ?? new Date().toISOString(),
     motor,
     voz,
@@ -180,6 +189,8 @@ async function main() {
   const idioma = pegarOpcao(argv, 'idioma') ?? 'pt'
   if (!IDIOMAS.includes(idioma)) throw new Error(`--idioma "${idioma}" inválido (use ${IDIOMAS.join('|')})`)
   const pasta = path.resolve(entrada)
+  const { avisos } = conferirOrigem(pasta, { motor, voz })
+  for (const a of avisos) console.warn(`aviso: ${a}`)
   const wav = path.join(pasta, 'longo.wav')
   const arquivoTexto = pegarOpcao(argv, 'texto') ?? path.join(pasta, 'longo.txt')
   for (const f of [wav, arquivoTexto]) if (!existsSync(f)) throw new Error(`arquivo ausente: ${f}`)
@@ -198,6 +209,7 @@ async function main() {
     texto,
     audioDuracaoS: pcm.length / TAXA_HZ,
     r,
+    avisos,
   })
   const saida = path.join(RAIZ, 'docs', 'auditoria', 'eval', `voz-estabilidade-${motor}-${voz}.json`)
   mkdirSync(path.dirname(saida), { recursive: true })

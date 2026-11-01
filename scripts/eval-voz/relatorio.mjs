@@ -105,6 +105,21 @@ export function montarCandidatos({ roundtrips = [], estabilidades = [], sinteses
  */
 function avisosDasFontes({ roundtrips = [], estabilidades = [], sinteses = [], manifesto = [] }) {
   const avisos = []
+  for (const s of sinteses) {
+    const quem = `${idDe(s.motor, s.voz)}${s.arquivo ? ` (${s.arquivo})` : ''}`
+    if (s.origemDoTempo === 'relogio')
+      avisos.push(
+        `**ATENÇÃO, RTF medido pelo relógio, inclui rede — não vale para o portão da GPU:** ${quem}. O tempo de síntese não veio do servidor (sem \`X-Tempo-Sintese\`).`,
+      )
+    else if (s.origemDoTempo !== 'servidor')
+      avisos.push(`origem do tempo de síntese não registrada em ${quem}: o RTF pode incluir rede`)
+    if (s.preprocessado === false)
+      avisos.push(
+        `**ATENÇÃO, síntese SEM pré-processador:** ${quem} mandou o texto cru ao motor; o portão de números e anos não reflete a produção`,
+      )
+    else if (s.preprocessado !== true)
+      avisos.push(`pré-processador não registrado em ${quem}: o resumo é anterior ao registro`)
+  }
   const duplicados = (tipo, itens) => {
     const por = new Map()
     itens.forEach((o, i) =>

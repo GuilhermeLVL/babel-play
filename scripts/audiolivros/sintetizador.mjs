@@ -11,7 +11,11 @@
 import { duracaoDoWav, emendarWavs, taxaDoWav, wavDeSilencio } from './wav.mjs'
 
 /**
- * @typedef {{ wav: Uint8Array, duracaoS: number, taxaHz: number, tempoDeSinteseS: number, memoriaMB?: number }} ClipeDeAudio
+ * @typedef {{ wav: Uint8Array, duracaoS: number, taxaHz: number, tempoDeSinteseS: number, memoriaMB?: number,
+ *   origemDoTempo: 'servidor'|'relogio' }} ClipeDeAudio
+ * `origemDoTempo`: de onde veio `tempoDeSinteseS`. `servidor` = o motor mediu e informou (cabeçalho
+ * `X-Tempo-Sintese`; só isso vale para o portão de RTF da GPU); `relogio` = relógio do cliente, que inclui
+ * rede e fila (caso do adaptador da DeepInfra e de servidor HTTP sem o cabeçalho).
  * `memoriaMB`: memória do servidor após o pedido, quando ele informa (cabeçalho `X-Memoria-MB` do contrato HTTP).
  * @typedef {{ voz: string, idioma: string, velocidade?: number }} OpcoesDeSintese
  * @typedef {{
@@ -25,9 +29,9 @@ import { duracaoDoWav, emendarWavs, taxaDoWav, wavDeSilencio } from './wav.mjs'
 const LIMITE_PADRAO = 400
 const PAUSA_PADRAO_S = 0.3
 
-/** @param {Uint8Array} wav @param {number} tempoDeSinteseS @returns {ClipeDeAudio} */
-function clipeDe(wav, tempoDeSinteseS) {
-  return { wav, duracaoS: duracaoDoWav(wav), taxaHz: taxaDoWav(wav), tempoDeSinteseS }
+/** @param {Uint8Array} wav @param {number} tempoDeSinteseS @param {'servidor'|'relogio'} origemDoTempo @returns {ClipeDeAudio} */
+function clipeDe(wav, tempoDeSinteseS, origemDoTempo) {
+  return { wav, duracaoS: duracaoDoWav(wav), taxaHz: taxaDoWav(wav), tempoDeSinteseS, origemDoTempo }
 }
 
 /** Lê a resposta como WAV ou lança com o status (sem eco do corpo, que pode trazer dados do pedido). */
@@ -75,7 +79,7 @@ export function criarSintetizadorHttp(cfg, deps = {}) {
       const wav = await wavDaResposta(r, `${cfg.id}: /sintetizar`)
       const medido = (performance.now() - inicio) / 1000
       const cab = Number.parseFloat(r.headers.get('x-tempo-sintese') ?? '')
-      const clipe = clipeDe(wav, Number.isFinite(cab) ? cab : medido)
+      const clipe = Number.isFinite(cab) ? clipeDe(wav, cab, 'servidor') : clipeDe(wav, medido, 'relogio')
       const memoria = Number.parseFloat(r.headers.get('x-memoria-mb') ?? '')
       if (Number.isFinite(memoria) && memoria >= 0) clipe.memoriaMB = memoria
       return clipe
@@ -159,7 +163,7 @@ export function criarSintetizadorDeepInfra(cfg, deps = {}) {
         body: JSON.stringify(corpo),
       })
       const wav = await wavDaResposta(r, 'deepinfra')
-      return clipeDe(wav, (performance.now() - inicio) / 1000)
+      return clipeDe(wav, (performance.now() - inicio) / 1000, 'relogio')
     },
   }
 }
@@ -181,7 +185,7 @@ export function criarSintetizadorFalso(cfg = {}) {
       return [{ id: 'falsa', idioma: '*' }]
     },
     async sintetizar(texto) {
-      return clipeDe(wavDeSilencio(texto.length * porCaractere, 16000), 0)
+      return clipeDe(wavDeSilencio(texto.length * porCaractere, 16000), 0, 'servidor')
     },
   }
 }
@@ -262,6 +266,8 @@ export async function sintetizarComLimite(s, texto, o) {
     duracaoS: clipes.reduce((t, c) => t + c.duracaoS, 0) + (clipes.length - 1) * pausaS,
     taxaHz: clipes[0].taxaHz,
     tempoDeSinteseS: clipes.reduce((t, c) => t + c.tempoDeSinteseS, 0),
+    // Um pedaço medido pelo relógio já contamina a soma; origem desconhecida conta como relógio.
+    origemDoTempo: clipes.every((c) => c.origemDoTempo === 'servidor') ? 'servidor' : 'relogio',
     ...(memorias.length > 0 ? { memoriaMB: Math.max(...memorias) } : {}),
   }
 }

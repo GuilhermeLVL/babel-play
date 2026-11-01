@@ -4,7 +4,7 @@
  * Aqui mora só o que mais de um script precisa. As métricas (round-trip, itens difíceis,
  * estabilidade) entram nesta pasta nas tarefas seguintes.
  */
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -49,22 +49,76 @@ export function nomeSeguro(valor, rotulo) {
 }
 
 /**
- * Pasta dos WAVs gerados: `saida`, senão `$CLAUDE_JOB_DIR/tmp/eval-voz/<motor>`, senão
- * `os.tmpdir()/eval-voz/<motor>`. NUNCA dentro do repositório (áudio gerado não é versionado).
- * @param {{ motor: string, saida?: string, env?: Record<string, string|undefined> }} p
+ * Pasta dos WAVs gerados: `saida`, senão `$CLAUDE_JOB_DIR/tmp/eval-voz/<motor>[/<voz>]`, senão
+ * `os.tmpdir()/eval-voz/<motor>[/<voz>]`. Com `voz`, duas vozes do mesmo motor NUNCA dividem a pasta (uma
+ * sobrescrevendo a outra e o round-trip medindo a voz errada). NUNCA dentro do repositório (áudio gerado
+ * não é versionado).
+ * @param {{ motor: string, voz?: string, saida?: string, env?: Record<string, string|undefined> }} p
  * @returns {string}
  */
-export function pastaDeSaida({ motor, saida, env = process.env }) {
+export function pastaDeSaida({ motor, voz, saida, env = process.env }) {
+  const sub = voz ? [motor, voz] : [motor]
   const destino = path.resolve(
     saida ??
       (env.CLAUDE_JOB_DIR
-        ? path.join(env.CLAUDE_JOB_DIR, 'tmp', 'eval-voz', motor)
-        : path.join(tmpdir(), 'eval-voz', motor)),
+        ? path.join(env.CLAUDE_JOB_DIR, 'tmp', 'eval-voz', ...sub)
+        : path.join(tmpdir(), 'eval-voz', ...sub)),
   )
   const rel = path.relative(RAIZ_DO_REPO, destino)
   if (rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel)))
     throw new Error(`a pasta de saída não pode ficar dentro do repositório: ${destino}`)
   return destino
+}
+
+/** Nome do marcador que `sintetizar.mjs` grava na pasta dos WAVs. */
+export const ARQUIVO_DE_ORIGEM = 'origem.json'
+
+/**
+ * Grava o marcador `origem.json` (motor, voz, idioma do `--longo`, versão do pré-processador) na pasta dos
+ * WAVs. Se já há um marcador do MESMO motor/voz, preserva os campos dele (ex.: o `idioma` do longo); de
+ * outro motor/voz, é sobrescrito.
+ * @param {string} pasta
+ * @param {{ motor: string, voz: string, idioma?: string, versaoPreprocessador: string|null, preprocessado?: boolean }} origem
+ */
+export function escreverOrigem(pasta, origem) {
+  const anterior = lerOrigem(pasta)
+  const base = anterior && anterior.motor === origem.motor && anterior.voz === origem.voz ? anterior : {}
+  writeFileSync(path.join(pasta, ARQUIVO_DE_ORIGEM), `${JSON.stringify({ ...base, ...origem }, null, 2)}\n`)
+}
+
+/** @param {string} pasta @returns {{ motor?: string, voz?: string, idioma?: string, versaoPreprocessador?: string|null }|null} */
+export function lerOrigem(pasta) {
+  const arquivo = path.join(pasta, ARQUIVO_DE_ORIGEM)
+  if (!existsSync(arquivo)) return null
+  try {
+    const o = JSON.parse(readFileSync(arquivo, 'utf8'))
+    return o && typeof o === 'object' ? o : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Confere `--motor/--voz` com o marcador da pasta de entrada. Marcador presente e diferente: ERRO (mediria
+ * a voz errada em silêncio). Marcador ausente: segue, devolvendo um aviso para o resultado.
+ * @param {string} pasta
+ * @param {{ motor: string, voz: string }} p
+ * @returns {{ avisos: string[] }}
+ */
+export function conferirOrigem(pasta, { motor, voz }) {
+  const o = lerOrigem(pasta)
+  if (!o) {
+    return {
+      avisos: [
+        `sem ${ARQUIVO_DE_ORIGEM} em ${pasta}: não dá para conferir que os WAVs são de ${motor}/${voz} (pasta de antes do marcador?)`,
+      ],
+    }
+  }
+  if (o.motor !== motor || o.voz !== voz)
+    throw new Error(
+      `--entrada ${pasta} é de ${o.motor}/${o.voz} (${ARQUIVO_DE_ORIGEM}), mas --motor/--voz dizem ${motor}/${voz}`,
+    )
+  return { avisos: [] }
 }
 
 /**

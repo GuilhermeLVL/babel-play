@@ -62,6 +62,20 @@ O leitor de livros já tem o narrador completo: tocar/pausar, frase anterior/seg
 4. Fatia A2: "Biblioteca de áudio" ligando o narrador existente a capítulos pré-gerados (só após motor aprovado).
 5. Decisão de design do UX lab depois de verificado.
 
+## Medição da transcrição (01/11/2026, bancada `scripts/perf/latencia-legenda`)
+
+Roteiro da bancada atualizado para a interface atual (título da tela, chip de idiomas, classes das legendas em `HistoricoDoPrototipo`); estava quebrado desde setembro. Mac Apple Silicon, Chromium headless, Moonshine base q8 + opus-mt, mediana de 2 rodadas válidas (desktop) e 3 (fraco). Comparação com a base de 30/09 é INDICATIVA: a base é de outra máquina (Windows, Ryzen 5).
+
+| Métrica             | desktop hoje | base 30/09 | fraco hoje | base 30/09 |
+| ------------------- | ------------ | ---------- | ---------- | ---------- |
+| 1ª legenda (ms)     | ~5.540       | 1.228      | ~6.040     | 2.004      |
+| RTF p50             | 0,044        | 0,096      | 0,100      | 0,110      |
+| CPU no silêncio (%) | ~12          | 25         | ~10,8      | 7,3        |
+| renders/s silêncio  | ~23          | 31         | ~27        | 31         |
+| frames > 50 ms      | 0            | 1          | 0          | 4          |
+
+Em aberto: a 1ª legenda está 3 a 4 vezes mais lenta que a base, mas não se sabe se é regressão, máquina diferente ou a mudança de como a legenda aparece (a sonda agora lê outro componente). Memória de pico não sai no Mac (`measureUserAgentSpecificMemory` ausente no headless). A 1ª rodada medida do perfil desktop falha ("bipe não encontrado") nas duas execuções. Gravar base do Mac (`--gravar-linha-de-base`) é decisão do dono.
+
 ## Não verificado (conferir antes de decidir)
 
 Licença das vozes do Pocket TTS; qualidade pt-BR dos dois motores; sherpa-onnx × espeak; Safari (Translator API, áudio de aba, Document PiP); termos do gov.br; leis 10.436/5.626/13.146 citadas de memória; licença do parakeet.js. Nada disto é parecer jurídico.

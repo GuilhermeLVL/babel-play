@@ -266,7 +266,10 @@ await page.addInitScript(
 
 const tAbrir = Date.now()
 await page.goto(`${URL_BASE}/capturar`)
-await page.getByRole('heading', { name: 'Capturar', level: 1 }).waitFor({ timeout: 30_000 })
+await page
+  .getByRole('heading', { name: /^(Capturar|Pronto para legendar)$/ })
+  .first()
+  .waitFor({ timeout: 30_000 })
 const pular = page.getByRole('button', { name: 'Pular apresentação' })
 if (await pular.isVisible().catch(() => false)) await pular.click()
 await page.waitForTimeout(800)
@@ -318,9 +321,8 @@ async function escolher(rotuloDoCampo, valor) {
   await dlg.getByRole('option', { name: nome, exact: false }).first().click()
   await page.waitForTimeout(200)
 }
-const chip = page
-  .getByRole('region', { name: 'Espaço de gravação' })
-  .getByRole('button', { name: /Detectar|Português|English/ })
+// O chip de idiomas já não fica numa região "Espaço de gravação": é o botão com "Detectar → Português (BR)".
+const chip = page.getByRole('button', { name: /Detectar|Português|English/ })
 await chip.first().click()
 await page.getByRole('dialog', { name: /Idiomas da sessão/ }).waitFor()
 const soMicrofone =

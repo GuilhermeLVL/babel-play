@@ -7,9 +7,11 @@
  *
  * Fontes (nada é medido aqui; tudo vem de resultados que as outras ferramentas gravaram):
  *   --entrada     pasta com `voz-<motor>-<voz>.json` (round-trip, `medir-roundtrip.mjs`) e
- *                 `voz-estabilidade-<motor>-<voz>.json` (`medir-estabilidade.mjs`). Padrão: `docs/auditoria/eval/`.
+ *                 `voz-estabilidade-<motor>-<voz>.json` (`medir-estabilidade.mjs`); o tipo vem do campo `tipo`.
+ *                 Padrão: `docs/auditoria/eval/`.
  *   --sintese     pasta(s) de `sintetizar.mjs` com `resumo.json` (RTF, memória, duração por frase, ±30 % da mediana).
- *   --escuta      `resumo.json` do `gerar-formulario.mjs` (`{ vozes: { "<motor>/<voz>": {...} } }`).
+ *   --escuta      `resumo.json` do `gerar-formulario.mjs resumir`
+ *                 (`{ vozes: { "<motor>/<voz>": { ..., porIdioma: { pt: {...}, en: {...} } } } }`).
  *   --candidatos  manifesto do OPERADOR, lista de `{ id: "<motor>/<voz>", licencaLimpa, temComponenteGpl,
  *                 melhorQueAparelho, ttfaP95S?, timbresDistinguiveis?, acertoTimbres? }`: o que a máquina não mede
  *                 (licença lida no LICENSE, GPL no caminho distribuído, comparação com a voz do aparelho).
@@ -19,10 +21,18 @@
  *   medidas.porIdioma[i] = round-trip + `estabilidade` do arquivo de estabilidade; `foraDaMediana` do round-trip,
  *                          senão `foraDaMediana[i].fracao` da síntese
  *   rtf                  = `rtfMediano` da síntese (o `rtfMax` aparece só no JSON da síntese)
- *   naturalidade/aguenta30/errosGravesRepetidos = resumo da escuta (`null` = sem escuta)
+ *   naturalidade/aguenta30/errosGravesRepetidos/ouvintes = `escuta.vozes[id].porIdioma[idioma]` (a decisão é
+ *                          POR IDIOMA, spec §6.4); idioma sem notas = `null` = "sem escuta". O candidato guarda
+ *                          `escutaPorIdioma` e o relatório copia o do idioma para a chamada de `recomendar`.
  *   o resto              = manifesto
  * Extras só para a tabela (o `recomendar` ignora): `memoriaGB`, `duracaoMediaFraseS`, `vozesDoMotor`.
- * Ouvintes avaliam o motor/voz, não o idioma: a mesma nota vale para todos os idiomas medidos.
+ *
+ * Limite conhecido (en/es): a normalização do WER/CER expande números por extenso só em pt. Um Whisper que
+ * transcreva "one thousand" contra "1000" na referência em en/es soma erro de WER; o plano cobre números em
+ * en/es apenas se o orçamento permitir.
+ *
+ * Classificação dos resultados de `--entrada`: pelo campo `tipo` DENTRO do JSON ('roundtrip' | 'estabilidade').
+ * Arquivo antigo sem `tipo` cai no nome (`voz-estabilidade-...`) e gera um aviso.
  *
  * Imprime e NÃO grava nada, a menos que `--gravar` (aí também escreve `<entrada>/voz-relatorio-fase-0.md`).
  */
@@ -86,9 +96,7 @@ export function montarCandidatos({ roundtrips = [], estabilidades = [], sinteses
         ttfaP95S: man.ttfaP95S,
         timbresDistinguiveis: man.timbresDistinguiveis,
         acertoTimbres: man.acertoTimbres,
-        naturalidade: esc.naturalidade ?? null,
-        aguenta30: esc.aguenta30 ?? null,
-        errosGravesRepetidos: esc.errosGravesRepetidos,
+        escutaPorIdioma: esc.porIdioma ?? {},
         melhorQueAparelho: man.melhorQueAparelho,
         memoriaGB: typeof sintese?.memoriaPicoMB === 'number' ? sintese.memoriaPicoMB / 1024 : undefined,
         duracaoMediaFraseS: media(frases.map((f) => f.duracaoS).filter((d) => Number.isFinite(d))),
@@ -98,13 +106,32 @@ export function montarCandidatos({ roundtrips = [], estabilidades = [], sinteses
 }
 
 /**
+ * O candidato com a escuta DO IDIOMA (`escutaPorIdioma[idioma]`); sem notas naquele idioma, `null` = "sem escuta".
+ * Nenhuma nota de um idioma vale para outro.
+ */
+function comEscutaDoIdioma(c, idioma) {
+  const { escutaPorIdioma, ...resto } = c
+  const e = escutaPorIdioma?.[idioma]
+  return {
+    ...resto,
+    naturalidade: e?.naturalidade ?? null,
+    aguenta30: e?.aguenta30 ?? null,
+    errosGravesRepetidos: e?.errosGravesRepetidos,
+    ouvintes: e?.ouvintes ?? 0,
+  }
+}
+
+/**
  * Avisos sobre as fontes: o mesmo motor/voz em mais de um arquivo (o ÚLTIMO vale, como em `montarCandidatos`) e
  * id do manifesto sem nenhuma medição. O nome do arquivo vem de `arquivo` (o CLI preenche); sem ele, "#n".
  * @param {{ roundtrips?: any[], estabilidades?: any[], sinteses?: any[], manifesto?: any[] }} p
  * @returns {string[]}
  */
-function avisosDasFontes({ roundtrips = [], estabilidades = [], sinteses = [], manifesto = [] }) {
-  const avisos = []
+function avisosDasFontes({ roundtrips = [], estabilidades = [], sinteses = [], manifesto = [], escuta }) {
+  const avisos = [...(escuta?.avisos ?? []).map((a) => `escuta: ${a}`)]
+  for (const [id, v] of Object.entries(escuta?.vozes ?? {}))
+    if (v?.ouvintes > 0 && !v.porIdioma)
+      avisos.push(`escuta de ${id} sem porIdioma (resumo antigo): gere de novo com \`gerar-formulario.mjs resumir\``)
   for (const s of sinteses) {
     const quem = `${idDe(s.motor, s.voz)}${s.arquivo ? ` (${s.arquivo})` : ''}`
     if (s.origemDoTempo === 'relogio')
@@ -185,18 +212,19 @@ export function montarRelatorio({ limiares, idiomas = IDIOMAS, t3Mantido = false
       continue
     }
     linhas.push(
-      '| candidato | CER | WER | itens | números e anos | estabilidade | fora de ±30% | nota | aguenta 30 min |',
-      '|---|---|---|---|---|---|---|---|---|',
+      '| candidato | CER | WER | itens | números e anos | estabilidade | fora de ±30% | nota | aguenta 30 min | ouvintes |',
+      '|---|---|---|---|---|---|---|---|---|---|',
     )
-    for (const c of doIdioma) {
+    const doIdiomaComEscuta = doIdioma.map((c) => comEscutaDoIdioma(c, idioma))
+    for (const c of doIdiomaComEscuta) {
       const m = c.medidas.porIdioma[idioma]
       const nota = typeof c.naturalidade === 'number' ? dec(c.naturalidade, 1) : 'sem escuta'
       const ag = typeof c.aguenta30 === 'number' ? pct(c.aguenta30) : 'sem escuta'
       linhas.push(
-        `| \`${c.id}\` | ${pct(m.cer)} | ${pct(m.wer)} | ${pct(m.itensAcerto)} | ${pct(m.itensNumerosEAnos)} | ${pct(m.estabilidade)} | ${pct(m.foraDaMediana)} | ${nota} | ${ag} |`,
+        `| \`${c.id}\` | ${pct(m.cer)} | ${pct(m.wer)} | ${pct(m.itensAcerto)} | ${pct(m.itensNumerosEAnos)} | ${pct(m.estabilidade)} | ${pct(m.foraDaMediana)} | ${nota} | ${ag} | ${c.ouvintes ?? 0} |`,
       )
     }
-    const r = recomendar(doIdioma, limiares, idioma, { t3Mantido })
+    const r = recomendar(doIdiomaComEscuta, limiares, idioma, { t3Mantido })
     recomendacoes[idioma] = r
     const marca = limiares.provisorio ? ' (provisório)' : ''
     linhas.push(

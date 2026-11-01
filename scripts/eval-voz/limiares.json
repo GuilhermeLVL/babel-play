@@ -42,6 +42,7 @@
     "naturalidadeMin": 3.5,
     "aguenta30Min": 0.6,
     "errosGravesRepetidosMax": 0,
-    "melhorQueAparelhoMin": 0.5
+    "melhorQueAparelhoMin": 0.5,
+    "ouvintesMin": 3
   }
 }

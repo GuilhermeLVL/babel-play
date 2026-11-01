@@ -38,6 +38,7 @@ const MOTIVO_SEM_ESCOLHA = 'opção 0 + T2: nenhum candidato passou em todos os 
  * @property {number|null} naturalidade  média da escuta, 1 a 5; `null` = sem escuta (nunca vira 0)
  * @property {number|null} aguenta30  fração de "aguentaria 30 min"; `null` = sem escuta
  * @property {number} errosGravesRepetidos  erros graves apontados por >= 2 ouvintes
+ * @property {number} ouvintes  ouvintes distintos que avaliaram esta voz NESTE idioma (inteiro >= 0; mínimo em `escuta.ouvintesMin`)
  * @property {number} melhorQueAparelho  pontos de naturalidade acima da voz do aparelho
  */
 
@@ -104,6 +105,10 @@ function motivosDe(c, lim, idioma, t3Mantido) {
 
   // Escuta (spec §7.3): ausente é "sem escuta" (nunca zero, nunca aprovação); fora da faixa é "valor inválido"
   const e = lim.escuta
+  const ou = estado(c.ouvintes, (x) => Number.isInteger(x) && x >= 0)
+  if (ou === 'invalido') m.push(invalido('ouvintes', c.ouvintes))
+  else if ((ou === 'ausente' ? 0 : c.ouvintes) < e.ouvintesMin)
+    m.push(`escuta insuficiente: ${ou === 'ausente' ? 0 : c.ouvintes} ouvinte(s), mínimo ${e.ouvintesMin}`)
   const nat = estado(c.naturalidade, (x) => x >= 1 && x <= 5)
   if (nat === 'ausente') m.push('sem escuta (naturalidade)')
   else if (nat === 'invalido') m.push(invalido('naturalidade', c.naturalidade))

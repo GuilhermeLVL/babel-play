@@ -24,7 +24,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-import { pastaDeSaida, pegarOpcao } from './comum.mjs'
+import { IDIOMAS, pastaDeSaida, pegarOpcao } from './comum.mjs'
 
 /** Cabeçalho EXATO do CSV de escuta (a coluna chama-se literalmente `erros[]`; lista separada por `|`). */
 export const CABECALHO_DO_CSV = 'ouvinte,idioma,frase_id,voz_cega,naturalidade,clareza,erros[],comentario'
@@ -485,21 +485,24 @@ function tipoDaChave(chave, voz_cega) {
 }
 
 /**
- * Resumo por motor/voz. Âncora e repetidas ficam FORA das médias.
- *
- * - `naturalidade`: média das notas.
- * - `ouvintes`: ouvintes distintos que avaliaram a voz.
- * - `aguenta30`: a spec §7.3 pede "aguentaria 30 min" ≥ 60% de sim, mas é uma pergunta que NÃO está nas colunas do
- *   CSV (cabeçalho fixo) e a spec não diz como mapeá-la. DERIVAÇÃO ADOTADA: fração das avaliações com naturalidade
- *   ≥ 4 E clareza ≥ 4 (quem dá 4+ nos dois, aguentaria). É proxy; a pergunta direta pode entrar numa rodada futura.
+ * Resume a escuta por motor/voz (chave `<motor>/<voz>` do `chave.json`), mais POR IDIOMA: a decisão do
+ * motor é por idioma (spec §6.4) e uma voz pode ir bem em pt e mal em en.
+ * - `naturalidade`: média das notas (1 a 5) de cada voz, `null` sem nota.
+ * - `aguenta30`: fração das notas com naturalidade >= 4 e clareza >= 4 ("aguentaria 30 min").
  * - `errosGravesRepetidos`: nº de tipos DISTINTOS de erro grave (`ERROS_GRAVES`) citados por ≥ 2 ouvintes distintos
  *   para a mesma voz. O mesmo ouvinte repetindo o erro não soma.
+ * - `porIdioma[pt|en|es]`: as mesmas quatro medidas só com as linhas daquele idioma, que é o PREFIXO do
+ *   `frase_id` (`^(pt|en|es)-`). Linha cujo `frase_id` não tem prefixo reconhecido entra só nos totais (e
+ *   `avisosDaEscuta` a lista). Idioma sem nota não aparece; voz sem nenhuma linha de idioma fica SEM a chave
+ *   `porIdioma` (o `relatorio` lê ausente como "sem escuta").
+ * Âncora e frases repetidas ficam fora de tudo.
  * @param {ReturnType<typeof lerCsvDeEscuta>} linhas
  * @param {Record<string, string>} chave
  *
  * Ouvintes são contados sem distinguir caixa/espaços. Voz da chave sem nenhuma nota sai com `ouvintes: 0` e
  * `naturalidade`/`aguenta30` `null` (nunca NaN).
- * @returns {Record<string, { naturalidade: number|null, aguenta30: number|null, errosGravesRepetidos: number, ouvintes: number }>}
+ * @returns {Record<string, Medidas & { porIdioma?: Partial<Record<'pt'|'en'|'es', Medidas>> }>}
+ *   com `Medidas = { naturalidade: number|null, aguenta30: number|null, errosGravesRepetidos: number, ouvintes: number }`
  */
 export function resumirEscuta(linhas, chave) {
   const grupos = new Map()
@@ -514,21 +517,53 @@ export function resumirEscuta(linhas, chave) {
   }
   const resumo = {}
   for (const [rotulo, ls] of grupos) {
-    const porErro = new Map()
-    for (const l of ls)
-      for (const e of l.erros) {
-        if (!ERROS_GRAVES.includes(e)) continue
-        if (!porErro.has(e)) porErro.set(e, new Set())
-        porErro.get(e).add(idDoOuvinte(l.ouvinte))
-      }
-    resumo[rotulo] = {
-      naturalidade: ls.length ? ls.reduce((a, l) => a + l.naturalidade, 0) / ls.length : null,
-      aguenta30: ls.length ? ls.filter((l) => l.naturalidade >= 4 && l.clareza >= 4).length / ls.length : null,
-      errosGravesRepetidos: [...porErro.values()].filter((o) => o.size >= 2).length,
-      ouvintes: new Set(ls.map((l) => idDoOuvinte(l.ouvinte))).size,
+    const porIdioma = {}
+    for (const idioma of IDIOMAS) {
+      const doIdioma = ls.filter((l) => idiomaDaFrase(l.frase_id) === idioma)
+      if (doIdioma.length > 0) porIdioma[idioma] = medidasDaEscuta(doIdioma)
     }
+    resumo[rotulo] = { ...medidasDaEscuta(ls), ...(Object.keys(porIdioma).length > 0 ? { porIdioma } : {}) }
   }
   return resumo
+}
+
+/** Idioma de uma linha da escuta: o prefixo do `frase_id` (`pt-dialogo` -> `pt`); `null` sem prefixo reconhecido. */
+function idiomaDaFrase(fraseId) {
+  const m = /^(pt|en|es)-/.exec(String(fraseId ?? ''))
+  return m ? m[1] : null
+}
+
+/** As quatro medidas de um conjunto de linhas de UMA voz. */
+function medidasDaEscuta(ls) {
+  const porErro = new Map()
+  for (const l of ls)
+    for (const e of l.erros) {
+      if (!ERROS_GRAVES.includes(e)) continue
+      if (!porErro.has(e)) porErro.set(e, new Set())
+      porErro.get(e).add(idDoOuvinte(l.ouvinte))
+    }
+  return {
+    naturalidade: ls.length ? ls.reduce((a, l) => a + l.naturalidade, 0) / ls.length : null,
+    aguenta30: ls.length ? ls.filter((l) => l.naturalidade >= 4 && l.clareza >= 4).length / ls.length : null,
+    errosGravesRepetidos: [...porErro.values()].filter((o) => o.size >= 2).length,
+    ouvintes: new Set(ls.map((l) => idDoOuvinte(l.ouvinte))).size,
+  }
+}
+
+/**
+ * Avisos da escuta: linhas de voz cujo `frase_id` não começa por `pt-`, `en-` ou `es-` (contam nos totais, mas
+ * em nenhum idioma). Uma entrada por `frase_id` distinto.
+ * @param {ReturnType<typeof lerCsvDeEscuta>} linhas
+ * @param {Record<string, string>} chave
+ * @returns {string[]}
+ */
+export function avisosDaEscuta(linhas, chave) {
+  const ids = new Set()
+  for (const l of linhas)
+    if (tipoDaChave(chave, l.voz_cega).tipo === 'voz' && idiomaDaFrase(l.frase_id) === null) ids.add(l.frase_id)
+  return [...ids].map(
+    (id) => `frase_id "${id}" sem prefixo de idioma (pt-, en-, es-): conta só nos totais, em nenhum idioma`,
+  )
 }
 
 /**
@@ -592,10 +627,15 @@ async function principal(argv) {
     const linhas = lerCsvDeEscuta(readFileSync(csv, 'utf8'))
     const chave = JSON.parse(readFileSync(chaveArq, 'utf8'))
     const resumo = resumirEscuta(linhas, chave)
+    const avisos = avisosDaEscuta(linhas, chave)
+    for (const a of avisos) console.warn(`aviso: ${a}`)
     const ouvintesSuspeitos = avaliarOuvintes(linhas, chave)
     const pasta = pastaDeSaida({ motor: 'resumo-escuta', saida: pegarOpcao(resto, 'saida') })
     mkdirSync(pasta, { recursive: true })
-    writeFileSync(path.join(pasta, 'resumo.json'), `${JSON.stringify({ vozes: resumo, ouvintesSuspeitos }, null, 2)}\n`)
+    writeFileSync(
+      path.join(pasta, 'resumo.json'),
+      `${JSON.stringify({ vozes: resumo, ouvintesSuspeitos, avisos }, null, 2)}\n`,
+    )
     writeFileSync(path.join(pasta, 'resumo.csv'), csvDoResumo(resumo))
     console.log(
       `resumo em ${pasta}; ouvintes suspeitos: ${ouvintesSuspeitos.map((o) => o.ouvinte).join(', ') || 'nenhum'}`,

@@ -282,8 +282,8 @@ export function lerCorpus(caminho) {
  * @property {number} rtfMax  RTF máximo no hardware do lote (spec §6.4 portão 3 e §7.2)
  * @property {number} ttfaP95MaxS  1º áudio p95 em segundos, só se informado e o motor for usado online (spec §6.4 portão 3)
  * @property {{ timbresDistinguiveisMin: number, acertoTimbresMin: number }} t3  só se o T3 for mantido (spec §6.4 portão 4)
- * @property {{ naturalidadeMin: number, aguenta30Min: number, errosGravesRepetidosMax: number, melhorQueAparelhoMin: number }} escuta
- *   critério de aceite da escuta (spec §7.3)
+ * @property {{ naturalidadeMin: number, aguenta30Min: number, errosGravesRepetidosMax: number, melhorQueAparelhoMin: number, ouvintesMin: number }} escuta
+ *   critério de aceite da escuta (spec §7.3); `ouvintesMin` = ouvintes distintos POR IDIOMA (a spec pede 3 a 5)
  */
 
 const CAMPOS_DO_IDIOMA = [
@@ -321,7 +321,7 @@ export function validarLimiares(o, origem = 'limiares.json') {
   numero(o, 'rtfMax', 'rtfMax')
   numero(o, 'ttfaP95MaxS', 'ttfaP95MaxS')
   for (const c of ['timbresDistinguiveisMin', 'acertoTimbresMin']) numero(o.t3, c, `t3.${c}`)
-  for (const c of ['naturalidadeMin', 'aguenta30Min', 'errosGravesRepetidosMax', 'melhorQueAparelhoMin'])
+  for (const c of ['naturalidadeMin', 'aguenta30Min', 'errosGravesRepetidosMax', 'melhorQueAparelhoMin', 'ouvintesMin'])
     numero(o.escuta, c, `escuta.${c}`)
   return o
 }

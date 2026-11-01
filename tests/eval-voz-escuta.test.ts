@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest'
 import { lerCorpus } from '../scripts/eval-voz/comum.mjs'
 import {
   avaliarOuvintes,
+  avisosDaEscuta,
   CABECALHO_DO_CSV,
   csvDoResumo,
   degradarWav,
@@ -261,6 +262,68 @@ describe('resumirEscuta', () => {
     expect(r['orpheus/bia'].ouvintes).toBe(0)
     expect(r['kokoro/ana'].naturalidade).toBe(5)
     expect(() => resumirEscuta([linha('ana', 'zzz', 3)], chave)).toThrow(/zzz/)
+  })
+
+  describe('por idioma (prefixo do frase_id)', () => {
+    const comFrase = (l: ReturnType<typeof linha>, frase_id: string) => ({ ...l, frase_id })
+    const k = { a01: 'k/a', a03: '__ancora__', a04: '__repetida__:a01' }
+
+    it('voz com 5 em pt e 1 em en: pt 5, en 1, total 3', () => {
+      const r = resumirEscuta(
+        [
+          comFrase(linha('ana', 'a01', 5), 'pt-dialogo'),
+          comFrase(linha('bia', 'a01', 5), 'pt-numeros'),
+          comFrase(linha('ana', 'a01', 1), 'en-frase'),
+        ],
+        k,
+      )
+      expect(r['k/a'].porIdioma?.pt?.naturalidade).toBe(5)
+      expect(r['k/a'].porIdioma?.en?.naturalidade).toBe(1)
+      expect(r['k/a'].porIdioma?.es).toBeUndefined()
+      expect(r['k/a'].porIdioma?.pt?.ouvintes).toBe(2)
+      expect(r['k/a'].porIdioma?.en?.ouvintes).toBe(1)
+      expect(r['k/a'].naturalidade).toBeCloseTo(11 / 3)
+      expect(r['k/a'].ouvintes).toBe(2)
+    })
+
+    it('erro grave repetido conta POR IDIOMA (2 ouvintes no mesmo idioma)', () => {
+      const r = resumirEscuta(
+        [
+          comFrase(linha('ana', 'a01', 4, 4, ['nome_errado']), 'pt-a'),
+          comFrase(linha('bia', 'a01', 4, 4, ['nome_errado']), 'en-b'),
+        ],
+        k,
+      )
+      expect(r['k/a'].errosGravesRepetidos).toBe(1)
+      expect(r['k/a'].porIdioma?.pt?.errosGravesRepetidos).toBe(0)
+      expect(r['k/a'].porIdioma?.en?.errosGravesRepetidos).toBe(0)
+    })
+
+    it('âncora e repetidas não entram em nenhum idioma', () => {
+      const r = resumirEscuta(
+        [
+          comFrase(linha('ana', 'a01', 4), 'pt-a'),
+          comFrase(linha('ana', 'a03', 1), 'pt-a'),
+          comFrase(linha('ana', 'a04', 1), 'pt-a'),
+        ],
+        k,
+      )
+      expect(r['k/a'].porIdioma).toEqual({
+        pt: { naturalidade: 4, aguenta30: 1, errosGravesRepetidos: 0, ouvintes: 1 },
+      })
+    })
+
+    it('frase_id sem prefixo reconhecido conta só nos totais e gera aviso', () => {
+      const linhas = [comFrase(linha('ana', 'a01', 4), 'f1'), comFrase(linha('ana', 'a01', 2), 'xx-9')]
+      const r = resumirEscuta(linhas, k)
+      expect(r['k/a'].naturalidade).toBe(3)
+      expect(r['k/a'].porIdioma).toBeUndefined()
+      expect(avisosDaEscuta(linhas, k)).toHaveLength(2)
+      expect(avisosDaEscuta(linhas, k)[0]).toMatch(/"f1".*prefixo/)
+      expect(
+        avisosDaEscuta([comFrase(linha('ana', 'a03', 1), 'f1'), comFrase(linha('ana', 'a01', 4), 'pt-a')], k),
+      ).toEqual([])
+    })
   })
 
   it('marca ouvinte suspeito: âncora >= 4 ou repetida com diferença >= 2', () => {

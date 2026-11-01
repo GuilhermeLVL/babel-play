@@ -56,6 +56,7 @@ const cand = (id: string, extra: Cand = {}): Cand => ({
   naturalidade: 4,
   aguenta30: 0.8,
   errosGravesRepetidos: 0,
+  ouvintes: 3,
   melhorQueAparelho: 0.8,
   ...extra,
 })
@@ -187,6 +188,30 @@ describe('recomendar: portões da spec 6.4, nesta ordem', () => {
     const r = rodar([cand('a', { errosGravesRepetidos: 1 })])
     expect(r.escolhido).toBeNull()
     expect(r.motivos.a.join(' ')).toMatch(/erro grave/)
+  })
+
+  it('escuta: o mínimo de ouvintes vem do limiares.json (3): 2 reprova, 3 passa', () => {
+    expect(LIMIARES.escuta.ouvintesMin).toBe(3)
+    const dois = rodar([cand('a', { ouvintes: 2 })])
+    expect(dois.escolhido).toBeNull()
+    expect(dois.motivos.a).toEqual(['escuta insuficiente: 2 ouvinte(s), mínimo 3'])
+    expect(rodar([cand('a', { ouvintes: 3 })]).escolhido).toBe('a')
+    expect(rodar([cand('a', { ouvintes: 5 })]).escolhido).toBe('a')
+  })
+
+  it('escuta: ouvintes ausente (undefined, null, NaN) reprova como 0 ouvinte(s)', () => {
+    for (const v of [undefined, null, Number.NaN]) {
+      const r = rodar([cand('a', { ouvintes: v })])
+      expect(r.escolhido).toBeNull()
+      expect(r.motivos.a).toEqual(['escuta insuficiente: 0 ouvinte(s), mínimo 3'])
+    }
+  })
+
+  it('limiares: escuta.ouvintesMin é validado como as outras chaves', () => {
+    const base = JSON.parse(readFileSync(new URL('../scripts/eval-voz/limiares.json', import.meta.url), 'utf8'))
+    expect(() => validarLimiares({ ...base, escuta: { ...base.escuta, ouvintesMin: undefined } })).toThrow(
+      /escuta\.ouvintesMin/,
+    )
   })
 
   it('escuta: melhorQueAparelho 0.4 reprova, 0.5 passa', () => {
@@ -329,7 +354,13 @@ describe('montarCandidatos e relatório', () => {
   ]
   const escuta = {
     vozes: {
-      'qwen/ryan': { naturalidade: 4.1, aguenta30: 0.8, errosGravesRepetidos: 0, ouvintes: 3 },
+      'qwen/ryan': {
+        naturalidade: 4.1,
+        aguenta30: 0.8,
+        errosGravesRepetidos: 0,
+        ouvintes: 3,
+        porIdioma: { pt: { naturalidade: 4.1, aguenta30: 0.8, errosGravesRepetidos: 0, ouvintes: 3 } },
+      },
       'piper/faber': { naturalidade: null, aguenta30: null, errosGravesRepetidos: 0, ouvintes: 0 },
     },
   }
@@ -350,7 +381,8 @@ describe('montarCandidatos e relatório', () => {
     expect(q.rtf).toBe(0.3)
     expect(q.memoriaGB).toBeCloseTo(2)
     expect(q.duracaoMediaFraseS).toBe(5)
-    expect(q.naturalidade).toBe(4.1)
+    expect(q.escutaPorIdioma.pt.naturalidade).toBe(4.1)
+    expect(q.escutaPorIdioma.en).toBeUndefined()
     expect(q.melhorQueAparelho).toBe(1.2)
     expect(q.temComponenteGpl).toBe(false)
     expect(q.medidas.porIdioma.pt.estabilidade).toBe(0.004)
@@ -361,7 +393,7 @@ describe('montarCandidatos e relatório', () => {
     }) as Cand[]
     expect(sem.find((c) => c.id === 'qwen/ryan')!.medidas.porIdioma.pt.foraDaMediana).toBe(0.02)
     const p = cs.find((c) => c.id === 'piper/faber')!
-    expect(p.naturalidade).toBeNull()
+    expect(p.escutaPorIdioma).toEqual({})
     expect(p.temComponenteGpl).toBe(true)
   })
 
@@ -370,6 +402,55 @@ describe('montarCandidatos e relatório', () => {
     expect(r.recomendacoes.pt.escolhido).toBe('qwen/ryan')
     expect(r.recomendacoes.pt.motivos['piper/faber']).toContain('GPL no caminho distribuído')
     expect(r.texto).toMatch(/Provisório/)
+  })
+
+  it('a escuta entra POR IDIOMA: nota de pt não vale para en, e idioma sem escuta é "sem escuta"', () => {
+    const porIdioma = {
+      pt: { naturalidade: 5, aguenta30: 0.9, errosGravesRepetidos: 0, ouvintes: 3 },
+      en: { naturalidade: 1, aguenta30: 0.1, errosGravesRepetidos: 0, ouvintes: 3 },
+    }
+    const e = {
+      ...entradas(),
+      roundtrips: [roundtrip('qwen', 'ryan')],
+      estabilidades: [],
+      sinteses: [sintese('qwen', 'ryan', 0.3)],
+      escuta: { vozes: { 'qwen/ryan': { ...porIdioma.pt, porIdioma } } },
+      manifesto: [{ id: 'qwen/ryan', licencaLimpa: true, temComponenteGpl: false, melhorQueAparelho: 1 }],
+    }
+    const r = montarRelatorio({ ...e, limiares: LIMIARES, idiomas: ['pt', 'en', 'es'] })
+    expect(r.recomendacoes.pt.escolhido).toBe('qwen/ryan')
+    expect(r.recomendacoes.en.escolhido).toBeNull()
+    expect(r.recomendacoes.en.motivos['qwen/ryan'].join(' ')).toMatch(/naturalidade 1 abaixo/)
+    expect(r.recomendacoes.es.escolhido).toBeNull()
+    expect(r.recomendacoes.es.motivos['qwen/ryan'].join(' ')).toMatch(/escuta insuficiente: 0 ouvinte\(s\), mínimo 3/)
+    expect(r.recomendacoes.es.motivos['qwen/ryan'].join(' ')).toMatch(/sem escuta \(naturalidade\)/)
+  })
+
+  it('poucos ouvintes no idioma reprovam mesmo com nota alta', () => {
+    const e = {
+      roundtrips: [roundtrip('qwen', 'ryan')],
+      sinteses: [sintese('qwen', 'ryan', 0.3)],
+      escuta: {
+        vozes: {
+          'qwen/ryan': { porIdioma: { pt: { naturalidade: 5, aguenta30: 1, errosGravesRepetidos: 0, ouvintes: 2 } } },
+        },
+      },
+      manifesto: [{ id: 'qwen/ryan', licencaLimpa: true, temComponenteGpl: false, melhorQueAparelho: 1 }],
+    }
+    const r = montarRelatorio({ ...e, limiares: LIMIARES, idiomas: ['pt'] })
+    expect(r.recomendacoes.pt.escolhido).toBeNull()
+    expect(r.recomendacoes.pt.motivos['qwen/ryan']).toContain('escuta insuficiente: 2 ouvinte(s), mínimo 3')
+  })
+
+  it('resumo de escuta antigo (sem porIdioma) avisa e não vale para nenhum idioma', () => {
+    const r = montarRelatorio({
+      ...entradas(),
+      escuta: { vozes: { 'qwen/ryan': { naturalidade: 4, ouvintes: 3 } } },
+      limiares: LIMIARES,
+      idiomas: ['pt'],
+    })
+    expect(r.avisos.join('\n')).toMatch(/qwen\/ryan sem porIdioma/)
+    expect(r.recomendacoes.pt.escolhido).toBeNull()
   })
 
   it('golden: tabela do relatório', () => {
@@ -391,14 +472,14 @@ describe('montarCandidatos e relatório', () => {
 
       ## 2. pt
 
-      | candidato | CER | WER | itens | números e anos | estabilidade | fora de ±30% | nota | aguenta 30 min |
-      |---|---|---|---|---|---|---|---|---|
-      | \`piper/faber\` | 1,0% | 3,0% | 95,0% | 100,0% | 0,5% | 1,0% | sem escuta | sem escuta |
-      | \`qwen/ryan\` | 1,0% | 3,0% | 95,0% | 100,0% | 0,4% | 1,0% | 4,1 | 80,0% |
+      | candidato | CER | WER | itens | números e anos | estabilidade | fora de ±30% | nota | aguenta 30 min | ouvintes |
+      |---|---|---|---|---|---|---|---|---|---|
+      | \`piper/faber\` | 1,0% | 3,0% | 95,0% | 100,0% | 0,5% | 1,0% | sem escuta | sem escuta | 0 |
+      | \`qwen/ryan\` | 1,0% | 3,0% | 95,0% | 100,0% | 0,4% | 1,0% | 4,1 | 80,0% | 3 |
 
       **Recomendação (pt):** \`qwen/ryan\` (provisório)
 
-      - \`piper/faber\`: GPL no caminho distribuído; sem escuta (naturalidade); sem escuta (aguentaria 30 min); melhor que a voz do aparelho em 0 ponto(s), mínimo 0,5
+      - \`piper/faber\`: GPL no caminho distribuído; escuta insuficiente: 0 ouvinte(s), mínimo 3; sem escuta (naturalidade); sem escuta (aguentaria 30 min); sem escuta (erros graves); melhor que a voz do aparelho em 0 ponto(s), mínimo 0,5
       - \`qwen/ryan\`: passou em todos os portões
       "
     `)
@@ -470,6 +551,8 @@ describe('recomendar: valores inválidos não passam (zero, negativo, fora da fa
     ['aguenta30', -0.1],
     ['errosGravesRepetidos', -1],
     ['errosGravesRepetidos', 1.5],
+    ['ouvintes', 2.5],
+    ['ouvintes', -1],
     ['melhorQueAparelho', -0.2],
     ['melhorQueAparelho', Number.POSITIVE_INFINITY],
   ])('%s = %s é "valor inválido", não "sem escuta"', (campo, valor) => {

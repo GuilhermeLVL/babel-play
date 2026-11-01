@@ -30,7 +30,8 @@ O leitor de livros já tem o narrador completo: tocar/pausar, frase anterior/seg
 - **Adotar:** transformers.js (Apache-2.0) como camada única; **Silero VAD** (MIT) para cortar silêncio (ataca "CPU do silêncio"); **LocalAgreement** como função pura em `src/core` para estabilizar parciais (porta da ideia, não do código); Chrome Translator só como atalho opcional (Bergamot continua o caminho garantido); medição WER/latência com jiwer.
 - **Evitar:** NLLB (CC-BY-NC), Vosk, MADLAD/Voxtral no aparelho, diarização (biometria, LGPD/menores). Moonshine só inglês, após ler a licença dos modelos.
 - **Riscos:** runtime do Bergamot parado desde 2022 (fixar versão); Safari sem áudio de aba e sem Document PiP (fonte secundária: CONFERIR no caniuse/WebKit); licença do parakeet.js e dos pesos Whisper ONNX não verificada.
-- **Primeira fatia:** estabilização de parciais (função pura + testes), depois VAD no fluxo.
+- **CORREÇÃO (verificada no código em 01/11):** o app JÁ tem estabilização de parciais (`src/lib/captura/parcialEstavel.ts`), VAD (`src/gateway/capture/vadWorker.ts`, `portaoDeEnergia.ts`, `fimDeFala.ts`) e adaptadores de Parakeet, Whisper, Moonshine, Opus-MT, Bergamot e Chrome Translator. As recomendações de "adotar" acima são, em grande parte, o que já existe: NÃO reimplementar. A lacuna real é **medir** (CPU do silêncio, Safari, latência até a palavra estável) e decidir o que trocar com número.
+- **Primeira fatia:** medir antes de mudar (CPU em silêncio, tempo até o parcial estável, Safari) com o harness existente.
 - **Dono:** medir no Safari com Web Inspector; decidir se "nunca Gemini" cobre o Chrome Translator (modelo do Google).
 
 ### 3. Avatares e Libras (frente ativa C, só validação e decisão)
@@ -56,7 +57,7 @@ O leitor de livros já tem o narrador completo: tocar/pausar, frase anterior/seg
 ## Sequência proposta
 
 1. Hoje: plano aprovado pelo dono + 2 frentes ativas confirmadas (sugestão: Audiolivros e Transcrição; Avatares só decisão).
-2. Fatia B1: estabilização de parciais (TDD, pura) → fatia B2: VAD no fluxo, medindo CPU antes/depois.
+2. Fatia B1: medição da transcrição (CPU em silêncio, latência do parcial estável, Safari) → só então decidir mudanças (estabilização e VAD já existem).
 3. Fatia A1: bancada rodando Supertonic e Pocket TTS em pt-BR; formulário de escuta cega para o dono.
 4. Fatia A2: "Biblioteca de áudio" ligando o narrador existente a capítulos pré-gerados (só após motor aprovado).
 5. Decisão de design do UX lab depois de verificado.

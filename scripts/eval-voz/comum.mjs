@@ -288,7 +288,14 @@ export function lerLimiares(caminho) {
 }
 
 /** Limiares da bancada, carregados de `limiares.json` (única fonte dos números). */
-export const LIMIARES = lerLimiares(new URL('./limiares.json', import.meta.url))
+export const LIMIARES = (() => {
+  const arquivo = new URL('./limiares.json', import.meta.url)
+  try {
+    return lerLimiares(arquivo)
+  } catch (e) {
+    throw new Error(`scripts/eval-voz/limiares.json está inválido (${fileURLToPath(arquivo)}): ${e.message}`)
+  }
+})()
 
 /**
  * Limiares por idioma da spec §7.2 (a parte de `LIMIARES` que as medidas automáticas usam). Vem de

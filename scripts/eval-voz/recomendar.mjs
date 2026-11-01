@@ -22,7 +22,7 @@ import { avaliarContraLimiares } from './metricas.mjs'
 const EPSILON = 1e-9
 
 /** Chave reservada de `motivos` para o veredito geral ("opção 0 + T2"). Nenhum candidato pode ter este id. */
-const CHAVE_GERAL = '__geral__'
+export const CHAVE_GERAL = '__geral__'
 const MOTIVO_SEM_ESCOLHA = 'opção 0 + T2: nenhum candidato passou em todos os portões'
 
 /**
@@ -49,7 +49,14 @@ const MOTIVO_SEM_ESCOLHA = 'opção 0 + T2: nenhum candidato passou em todos os 
  */
 
 const num = (x) => String(x).replace('.', ',')
-const eNumero = (x) => typeof x === 'number' && Number.isFinite(x)
+const invalido = (campo, x) => `valor inválido: ${campo} ${x}`
+/** 'ausente' = null/undefined/NaN (sem dado); 'invalido' = não numérico, infinito ou fora da faixa `ok`. */
+const estado = (x, ok) =>
+  x === null || x === undefined || Number.isNaN(x)
+    ? 'ausente'
+    : typeof x === 'number' && Number.isFinite(x) && ok(x)
+      ? 'ok'
+      : 'invalido'
 
 /**
  * Motivos de reprovação de UM candidato, na ordem dos portões da spec §6.4 (todos, não só o primeiro).
@@ -72,38 +79,50 @@ function motivosDe(c, lim, idioma, t3Mantido) {
   if (!doIdioma) m.push(`${idioma}: não medida (sem medidas automáticas neste idioma)`)
   else m.push(...avaliarContraLimiares({ porIdioma: { [idioma]: doIdioma } }, lim.porIdioma).falhas)
 
-  // Portão 3: RTF e 1º áudio
-  if (!eNumero(c.rtf)) m.push(`RTF não medido (máximo ${num(lim.rtfMax)})`)
+  // Portão 3: RTF e 1º áudio (positivos e finitos: zero ou negativo é medição não preenchida/quebrada)
+  const rtfEstado = estado(c.rtf, (x) => x > 0)
+  if (rtfEstado !== 'ok') m.push(`RTF não medido ou inválido (máximo ${num(lim.rtfMax)})`)
   else if (c.rtf > lim.rtfMax + EPSILON) m.push(`RTF ${num(c.rtf)} acima do máximo de ${num(lim.rtfMax)}`)
   if (c.ttfaP95S !== undefined && c.ttfaP95S !== null) {
-    if (!eNumero(c.ttfaP95S)) m.push('1º áudio p95 inválido')
+    if (estado(c.ttfaP95S, (x) => x > 0) !== 'ok') m.push(`1º áudio p95 inválido: ${c.ttfaP95S}`)
     else if (c.ttfaP95S > lim.ttfaP95MaxS + EPSILON)
       m.push(`1º áudio p95 ${num(c.ttfaP95S)} s acima do máximo de ${num(lim.ttfaP95MaxS)} s`)
   }
 
   // Portão 4: timbres, só se o T3 for mantido
   if (t3Mantido) {
-    if (!eNumero(c.timbresDistinguiveis) || !eNumero(c.acertoTimbres)) m.push('timbres não medidos (T3 mantido)')
-    else {
-      if (c.timbresDistinguiveis < lim.t3.timbresDistinguiveisMin - EPSILON)
-        m.push(`timbres distinguíveis ${c.timbresDistinguiveis} abaixo do mínimo de ${lim.t3.timbresDistinguiveisMin}`)
-      if (c.acertoTimbres < lim.t3.acertoTimbresMin - EPSILON)
-        m.push(`acerto de timbres ${num(c.acertoTimbres)} abaixo do mínimo de ${num(lim.t3.acertoTimbresMin)}`)
-    }
+    const tim = estado(c.timbresDistinguiveis, (x) => Number.isInteger(x) && x >= 0)
+    const aco = estado(c.acertoTimbres, (x) => x >= 0 && x <= 1)
+    if (tim === 'ausente' || aco === 'ausente') m.push('timbres não medidos (T3 mantido)')
+    if (tim === 'invalido') m.push(invalido('timbresDistinguiveis', c.timbresDistinguiveis))
+    if (aco === 'invalido') m.push(invalido('acertoTimbres', c.acertoTimbres))
+    if (tim === 'ok' && c.timbresDistinguiveis < lim.t3.timbresDistinguiveisMin - EPSILON)
+      m.push(`timbres distinguíveis ${c.timbresDistinguiveis} abaixo do mínimo de ${lim.t3.timbresDistinguiveisMin}`)
+    if (aco === 'ok' && c.acertoTimbres < lim.t3.acertoTimbresMin - EPSILON)
+      m.push(`acerto de timbres ${num(c.acertoTimbres)} abaixo do mínimo de ${num(lim.t3.acertoTimbresMin)}`)
   }
 
-  // Escuta (spec §7.3): o dado ausente é "sem escuta", nunca zero e nunca aprovação
+  // Escuta (spec §7.3): ausente é "sem escuta" (nunca zero, nunca aprovação); fora da faixa é "valor inválido"
   const e = lim.escuta
-  if (!eNumero(c.naturalidade)) m.push('sem escuta (naturalidade)')
+  const nat = estado(c.naturalidade, (x) => x >= 1 && x <= 5)
+  if (nat === 'ausente') m.push('sem escuta (naturalidade)')
+  else if (nat === 'invalido') m.push(invalido('naturalidade', c.naturalidade))
   else if (c.naturalidade < e.naturalidadeMin - EPSILON)
     m.push(`naturalidade ${num(c.naturalidade)} abaixo do mínimo de ${num(e.naturalidadeMin)}`)
-  if (!eNumero(c.aguenta30)) m.push('sem escuta (aguentaria 30 min)')
+  const ag = estado(c.aguenta30, (x) => x >= 0 && x <= 1)
+  if (ag === 'ausente') m.push('sem escuta (aguentaria 30 min)')
+  else if (ag === 'invalido') m.push(invalido('aguenta30', c.aguenta30))
   else if (c.aguenta30 < e.aguenta30Min - EPSILON)
     m.push(`aguenta30 ${num(c.aguenta30)} abaixo do mínimo de ${num(e.aguenta30Min)}`)
-  if (!eNumero(c.errosGravesRepetidos)) m.push('sem escuta (erros graves)')
+  const eg = estado(c.errosGravesRepetidos, (x) => Number.isInteger(x) && x >= 0)
+  if (eg === 'ausente') m.push('sem escuta (erros graves)')
+  else if (eg === 'invalido') m.push(invalido('errosGravesRepetidos', c.errosGravesRepetidos))
   else if (c.errosGravesRepetidos > e.errosGravesRepetidosMax)
     m.push(`erro grave repetido em ${c.errosGravesRepetidos} caso(s), máximo ${e.errosGravesRepetidosMax}`)
-  if (!eNumero(c.melhorQueAparelho)) m.push('sem comparação com a voz do aparelho')
+  // A spec §7.3 não põe teto em melhorQueAparelho (só o mínimo); negativo = pior que o aparelho, valor inválido aqui
+  const mq = estado(c.melhorQueAparelho, (x) => x >= 0)
+  if (mq === 'ausente') m.push('sem comparação com a voz do aparelho')
+  else if (mq === 'invalido') m.push(invalido('melhorQueAparelho', c.melhorQueAparelho))
   else if (c.melhorQueAparelho < e.melhorQueAparelhoMin - EPSILON)
     m.push(
       `melhor que a voz do aparelho em ${num(c.melhorQueAparelho)} ponto(s), mínimo ${num(e.melhorQueAparelhoMin)}`,

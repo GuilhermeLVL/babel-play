@@ -31,7 +31,7 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { IDIOMAS, LIMIARES, pegarOpcao } from './comum.mjs'
-import { recomendar } from './recomendar.mjs'
+import { CHAVE_GERAL, recomendar } from './recomendar.mjs'
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const ENTRADA_PADRAO = path.join(RAIZ, 'docs', 'auditoria', 'eval')
@@ -98,15 +98,42 @@ export function montarCandidatos({ roundtrips = [], estabilidades = [], sinteses
 }
 
 /**
+ * Avisos sobre as fontes: o mesmo motor/voz em mais de um arquivo (o ÚLTIMO vale, como em `montarCandidatos`) e
+ * id do manifesto sem nenhuma medição. O nome do arquivo vem de `arquivo` (o CLI preenche); sem ele, "#n".
+ * @param {{ roundtrips?: any[], estabilidades?: any[], sinteses?: any[], manifesto?: any[] }} p
+ * @returns {string[]}
+ */
+function avisosDasFontes({ roundtrips = [], estabilidades = [], sinteses = [], manifesto = [] }) {
+  const avisos = []
+  const duplicados = (tipo, itens) => {
+    const por = new Map()
+    itens.forEach((o, i) =>
+      por.set(idDe(o.motor, o.voz), [...(por.get(idDe(o.motor, o.voz)) ?? []), o.arquivo ?? `#${i + 1}`]),
+    )
+    for (const [id, arquivos] of por)
+      if (arquivos.length > 1)
+        avisos.push(`${tipo} repetido para ${id} (${arquivos.join(', ')}): vale o último, ${arquivos.at(-1)}`)
+  }
+  duplicados('round-trip', roundtrips)
+  duplicados('estabilidade', estabilidades)
+  duplicados('síntese', sinteses)
+  const medidos = new Set([...roundtrips, ...estabilidades, ...sinteses].map((o) => idDe(o.motor, o.voz)))
+  for (const m of manifesto)
+    if (!medidos.has(m.id)) avisos.push(`o manifesto lista ${m.id}, mas não há nenhuma medição dele`)
+  return avisos
+}
+
+/**
  * Relatório em Markdown (formato dos de `docs/auditoria/`) mais a recomendação por idioma. Pura.
  * @param {{ roundtrips?: any[], estabilidades?: any[], sinteses?: any[], escuta?: any, manifesto?: any[],
  *           limiares: import('./comum.mjs').LimiaresDaBancada, idiomas?: string[], t3Mantido?: boolean,
  *           geradoEm?: string }} p
  * @returns {{ candidatos: ReturnType<typeof montarCandidatos>,
- *             recomendacoes: Record<string, import('./recomendar.mjs').Recomendacao>, texto: string }}
+ *             recomendacoes: Record<string, import("./recomendar.mjs").Recomendacao>, avisos: string[], texto: string }}
  */
 export function montarRelatorio({ limiares, idiomas = IDIOMAS, t3Mantido = false, geradoEm, ...fontes }) {
   const candidatos = montarCandidatos(fontes)
+  const avisos = avisosDasFontes(fontes)
   const linhas = ['# voz-fase-0 — bancada de voz: motores candidatos', '']
   if (geradoEm) linhas.push(`Gerado em ${geradoEm}.`, '')
   if (limiares.provisorio) {
@@ -117,6 +144,7 @@ export function montarRelatorio({ limiares, idiomas = IDIOMAS, t3Mantido = false
     )
   }
 
+  if (avisos.length) linhas.push('## Avisos', '', ...avisos.map((a) => `- ${a}`), '')
   linhas.push(
     '## 1. Motores e vozes',
     '',
@@ -155,18 +183,19 @@ export function montarRelatorio({ limiares, idiomas = IDIOMAS, t3Mantido = false
     }
     const r = recomendar(doIdioma, limiares, idioma, { t3Mantido })
     recomendacoes[idioma] = r
+    const marca = limiares.provisorio ? ' (provisório)' : ''
     linhas.push(
       '',
-      `**Recomendação (${idioma}):** ${r.escolhido ? `\`${r.escolhido}\`` : r.motivos.__geral__.join('; ')}`,
+      `**Recomendação (${idioma}):** ${r.escolhido ? `\`${r.escolhido}\`${marca}` : `${r.motivos[CHAVE_GERAL].join('; ')}${marca}`}`,
       '',
     )
     for (const [id, ms] of Object.entries(r.motivos)) {
-      if (id === '__geral__') continue
+      if (id === CHAVE_GERAL) continue
       linhas.push(ms.length === 0 ? `- \`${id}\`: passou em todos os portões` : `- \`${id}\`: ${ms.join('; ')}`)
     }
     linhas.push('')
   }
-  return { candidatos, recomendacoes, texto: `${linhas.join('\n').trimEnd()}\n` }
+  return { candidatos, recomendacoes, avisos, texto: `${linhas.join('\n').trimEnd()}\n` }
 }
 
 const lerJson = (arquivo) => {
@@ -187,6 +216,7 @@ function lerResultados(pasta) {
     const o = lerJson(path.join(pasta, nome))
     if (typeof o.motor !== 'string' || typeof o.voz !== 'string' || !o.medidas?.porIdioma)
       throw new Error(`${path.join(pasta, nome)}: faltam motor, voz ou medidas.porIdioma`)
+    o.arquivo = nome
     ;(nome.startsWith('voz-estabilidade-') ? estabilidades : roundtrips).push(o)
   }
   if (roundtrips.length + estabilidades.length === 0) throw new Error(`nenhum resultado voz-*.json em ${pasta}`)
@@ -211,7 +241,7 @@ export async function principal(argv, io = IO_PADRAO) {
     const sinteses = (dirSintese ? dirSintese.split(',') : []).map((d) => {
       const arquivo = path.join(path.resolve(d), 'resumo.json')
       if (!existsSync(arquivo)) throw new Error(`resumo.json ausente em ${d} (saída de sintetizar.mjs)`)
-      return lerJson(arquivo)
+      return { ...lerJson(arquivo), arquivo: d }
     })
     const arquivoEscuta = pegarOpcao(argv, 'escuta')
     const arquivoManifesto = pegarOpcao(argv, 'candidatos')

@@ -5,7 +5,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { lerLimiares, LIMIARES, LIMIARES_DA_SPEC, validarLimiares } from '../scripts/eval-voz/comum.mjs'
-import { principal as principalRecomendar, recomendar } from '../scripts/eval-voz/recomendar.mjs'
+import { CHAVE_GERAL, principal as principalRecomendar, recomendar } from '../scripts/eval-voz/recomendar.mjs'
 import { montarCandidatos, montarRelatorio, principal as principalRelatorio } from '../scripts/eval-voz/relatorio.mjs'
 
 // Os números abaixo são FIXTURES: o que vale está em scripts/eval-voz/limiares.json.
@@ -267,7 +267,7 @@ describe('recomendar: escolha entre aprovados', () => {
   it('nenhum passa: escolhido null e "opção 0 + T2" em __geral__, com os motivos de cada um', () => {
     const r = rodar([cand('a', { rtf: 0.9 }), cand('b', { naturalidade: 2 })])
     expect(r.escolhido).toBeNull()
-    expect(r.motivos.__geral__.join(' ')).toMatch(/opção 0 \+ T2/)
+    expect(r.motivos[CHAVE_GERAL].join(' ')).toMatch(/opção 0 \+ T2/)
     expect(r.motivos.a.length).toBeGreaterThan(0)
     expect(r.motivos.b.length).toBeGreaterThan(0)
   })
@@ -275,11 +275,11 @@ describe('recomendar: escolha entre aprovados', () => {
   it('lista vazia: nenhum candidato, "opção 0 + T2"', () => {
     const r = rodar([])
     expect(r.escolhido).toBeNull()
-    expect(r.motivos.__geral__.join(' ')).toMatch(/opção 0 \+ T2/)
+    expect(r.motivos[CHAVE_GERAL].join(' ')).toMatch(/opção 0 \+ T2/)
   })
 
   it('com escolhido, __geral__ não existe', () => {
-    expect(rodar([cand('a')]).motivos).not.toHaveProperty('__geral__')
+    expect(rodar([cand('a')]).motivos).not.toHaveProperty(CHAVE_GERAL)
   })
 
   it('é determinística: repetida e com a ordem embaralhada dá o mesmo resultado', () => {
@@ -300,7 +300,7 @@ describe('recomendar: escolha entre aprovados', () => {
 
   it('id repetido ou reservado é erro de uso', () => {
     expect(() => rodar([cand('a'), cand('a')])).toThrow(/repetido/)
-    expect(() => rodar([cand('__geral__')])).toThrow(/reservado/)
+    expect(() => rodar([cand(CHAVE_GERAL)])).toThrow(/reservado/)
     expect(() => recomendar([cand('a')] as never, LIMIARES, 'fr' as never, { t3Mantido: false })).toThrow(/idioma/)
   })
 })
@@ -393,7 +393,7 @@ describe('montarCandidatos e relatório', () => {
       | \`piper/faber\` | 1,0% | 3,0% | 95,0% | 100,0% | 0,5% | 1,0% | sem escuta | sem escuta |
       | \`qwen/ryan\` | 1,0% | 3,0% | 95,0% | 100,0% | 0,4% | 1,0% | 4,1 | 80,0% |
 
-      **Recomendação (pt):** \`qwen/ryan\`
+      **Recomendação (pt):** \`qwen/ryan\` (provisório)
 
       - \`piper/faber\`: GPL no caminho distribuído; sem escuta (naturalidade); sem escuta (aguentaria 30 min); melhor que a voz do aparelho em 0 ponto(s), mínimo 0,5
       - \`qwen/ryan\`: passou em todos os portões
@@ -401,11 +401,100 @@ describe('montarCandidatos e relatório', () => {
     `)
   })
 
+  it('avisa quando o mesmo motor/voz aparece em vários arquivos e diz qual valeu', () => {
+    const e = entradas()
+    const r = montarRelatorio({
+      ...e,
+      roundtrips: [
+        { ...roundtrip('qwen', 'ryan'), arquivo: 'voz-qwen-ryan.json' },
+        { ...roundtrip('qwen', 'ryan'), arquivo: 'voz-qwen-ryan-2.json' },
+      ],
+      sinteses: [
+        { ...sintese('qwen', 'ryan', 0.3), arquivo: '/tmp/a' },
+        { ...sintese('qwen', 'ryan', 0.4), arquivo: '/tmp/b' },
+      ],
+      limiares: LIMIARES,
+      idiomas: ['pt'],
+    })
+    expect(r.avisos.join('\n')).toContain(
+      'round-trip repetido para qwen/ryan (voz-qwen-ryan.json, voz-qwen-ryan-2.json): vale o último, voz-qwen-ryan-2.json',
+    )
+    expect(r.avisos.join('\n')).toContain('síntese repetido para qwen/ryan (/tmp/a, /tmp/b): vale o último, /tmp/b')
+    expect(r.texto).toMatch(/## Avisos/)
+    expect(r.candidatos.find((c: Cand) => c.id === 'qwen/ryan')!.rtf).toBe(0.4)
+  })
+
+  it('avisa quando um id do manifesto não tem nenhuma medição', () => {
+    const e = entradas()
+    const r = montarRelatorio({
+      ...e,
+      manifesto: [
+        ...manifesto,
+        { id: 'fantasma/x', licencaLimpa: true, temComponenteGpl: false, melhorQueAparelho: 1 },
+      ],
+      limiares: LIMIARES,
+      idiomas: ['pt'],
+    })
+    expect(r.avisos).toEqual(['o manifesto lista fantasma/x, mas não há nenhuma medição dele'])
+    expect(montarRelatorio({ ...e, limiares: LIMIARES, idiomas: ['pt'] }).avisos).toEqual([])
+  })
+
   it('sem candidato com medidas no idioma, diz isso em vez de inventar', () => {
     const e = entradas()
     const r = montarRelatorio({ ...e, roundtrips: [], estabilidades: [], limiares: LIMIARES, idiomas: ['en'] })
     expect(r.texto).toMatch(/nenhum candidato com medidas em en/i)
     expect(r.recomendacoes.en.escolhido).toBeNull()
+  })
+})
+
+describe('recomendar: valores inválidos não passam (zero, negativo, fora da faixa)', () => {
+  it.each([0, -0.1, Number.POSITIVE_INFINITY, Number.NaN])('rtf %s reprova', (rtf) => {
+    const r = rodar([cand('a', { rtf })])
+    expect(r.escolhido).toBeNull()
+    expect(r.motivos.a.join(' ')).toMatch(/RTF não medido ou inválido/)
+  })
+
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])('ttfaP95S informado %s reprova', (ttfaP95S) => {
+    const r = rodar([cand('a', { ttfaP95S })])
+    expect(r.escolhido).toBeNull()
+    expect(r.motivos.a.join(' ')).toMatch(/1º áudio p95 inválido/)
+  })
+
+  it.each([
+    ['naturalidade', 7],
+    ['naturalidade', 0],
+    ['aguenta30', 60],
+    ['aguenta30', -0.1],
+    ['errosGravesRepetidos', -1],
+    ['errosGravesRepetidos', 1.5],
+    ['melhorQueAparelho', -0.2],
+    ['melhorQueAparelho', Number.POSITIVE_INFINITY],
+  ])('%s = %s é "valor inválido", não "sem escuta"', (campo, valor) => {
+    const r = rodar([cand('a', { [campo]: valor })])
+    expect(r.escolhido).toBeNull()
+    expect(r.motivos.a.join(' ')).toContain(`valor inválido: ${campo} ${valor}`)
+    expect(r.motivos.a.join(' ')).not.toMatch(/sem escuta/)
+  })
+
+  it.each([
+    ['acertoTimbres', 1.2],
+    ['acertoTimbres', -0.1],
+    ['timbresDistinguiveis', 2.5],
+    ['timbresDistinguiveis', -1],
+  ])('com T3, %s = %s é "valor inválido"', (campo, valor) => {
+    const r = rodar([cand('a', { timbresDistinguiveis: 4, acertoTimbres: 0.9, [campo]: valor })], 'pt', true)
+    expect(r.escolhido).toBeNull()
+    expect(r.motivos.a.join(' ')).toContain(`valor inválido: ${campo} ${valor}`)
+  })
+
+  it('os extremos válidos passam: naturalidade 5, aguenta30 1, melhorQueAparelho 4', () => {
+    expect(rodar([cand('a', { naturalidade: 5, aguenta30: 1, melhorQueAparelho: 4 })]).escolhido).toBe('a')
+  })
+
+  it('candidato com valor inválido não vence o ranking, mesmo com "nota" maior', () => {
+    const r = rodar([cand('a', { naturalidade: 4.9, aguenta30: 60 }), cand('b', { naturalidade: 3.6 })])
+    expect(r.escolhido).toBe('b')
+    expect(r.motivos.a.join(' ')).toContain('valor inválido: aguenta30 60')
   })
 })
 

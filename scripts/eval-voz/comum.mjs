@@ -99,16 +99,41 @@ export function lerOrigem(pasta) {
 }
 
 /**
+ * Avisos de um marcador de origem quanto ao pré-processador: versão diferente da atual e síntese diagnóstica
+ * sem pré-processador. São AVISOS, não erros (o efeito é conservador: WER inflado, nunca um falso "passou", e
+ * ressintetizar pode custar caro), mas gravados no resultado e mostrados no relatório. `versaoAtual` vem do
+ * chamador (este módulo não importa TypeScript); sem ela a versão não é comparada.
+ * @param {{ versaoPreprocessador?: string|null, preprocessado?: boolean }|null|undefined} origem
+ * @param {string} [versaoAtual]
+ * @returns {string[]}
+ */
+export function avisosDoPreprocessador(origem, versaoAtual) {
+  const avisos = []
+  if (!origem) return avisos
+  if (origem.preprocessado === false)
+    avisos.push('áudio sintetizado SEM pré-processador (diagnóstico); números e siglas não valem para o portão')
+  else if (versaoAtual !== undefined && origem.versaoPreprocessador !== versaoAtual)
+    avisos.push(
+      `áudio gerado com o pré-processador v${origem.versaoPreprocessador ?? '?'}, a referência usa v${versaoAtual}`,
+    )
+  return avisos
+}
+
+/**
  * Confere `--motor/--voz` com o marcador da pasta de entrada. Marcador presente e diferente: ERRO (mediria
- * a voz errada em silêncio). Marcador ausente: segue, devolvendo um aviso para o resultado.
+ * a voz errada em silêncio). Marcador ausente: segue, devolvendo um aviso para o resultado. Marcador com versão
+ * do pré-processador diferente da `versaoAtual`, ou `preprocessado: false`: segue, com aviso
+ * (`avisosDoPreprocessador`). `origem` devolve o que o marcador diz, para o resultado gravá-lo.
  * @param {string} pasta
  * @param {{ motor: string, voz: string }} p
- * @returns {{ avisos: string[] }}
+ * @param {string} [versaoAtual]  `VERSAO_DO_PREPROCESSADOR` do chamador
+ * @returns {{ avisos: string[], origem: { versaoPreprocessador: string|null, preprocessado: boolean|null }|null }}
  */
-export function conferirOrigem(pasta, { motor, voz }) {
+export function conferirOrigem(pasta, { motor, voz }, versaoAtual) {
   const o = lerOrigem(pasta)
   if (!o) {
     return {
+      origem: null,
       avisos: [
         `sem ${ARQUIVO_DE_ORIGEM} em ${pasta}: não dá para conferir que os WAVs são de ${motor}/${voz} (pasta de antes do marcador?)`,
       ],
@@ -118,7 +143,8 @@ export function conferirOrigem(pasta, { motor, voz }) {
     throw new Error(
       `--entrada ${pasta} é de ${o.motor}/${o.voz} (${ARQUIVO_DE_ORIGEM}), mas --motor/--voz dizem ${motor}/${voz}`,
     )
-  return { avisos: [] }
+  const origem = { versaoPreprocessador: o.versaoPreprocessador ?? null, preprocessado: o.preprocessado ?? null }
+  return { origem, avisos: avisosDoPreprocessador(origem, versaoAtual) }
 }
 
 /**

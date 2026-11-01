@@ -85,7 +85,8 @@ export function lerTextoLongo(arquivo) {
  * O motor recebe o texto PREPARADO (`prepararTextoParaVoz`), como na produção; `preprocessar: false` manda
  * o cru (só diagnóstico) e o resultado grava `preprocessado: false`.
  * `foraDaMediana` por idioma só existe com ao menos `MIN_CLIPES_PARA_MEDIANA` clipes; a razão usa os
- * caracteres do texto ENVIADO ao motor (o preparado), coerente com o round-trip, que usa o normalizado.
+ * caracteres do texto ENVIADO ao motor (o preparado). O round-trip usa o comprimento do texto NORMALIZADO
+ * (preparado + minúsculas e sem pontuação), que difere um pouco; o relatório prefere o `foraDaMediana` do round-trip.
  * @param {{ corpus: import('./comum.mjs').CorpusItem[],
  *           sintetizador: import('../audiolivros/sintetizador.mjs').Sintetizador,
  *           voz: string,

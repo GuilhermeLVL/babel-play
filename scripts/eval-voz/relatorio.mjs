@@ -40,7 +40,8 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-import { IDIOMAS, LIMIARES, pegarOpcao } from './comum.mjs'
+import { VERSAO_DO_PREPROCESSADOR } from '../../src/core/leitura/prepararTextoParaVoz.ts'
+import { avisosDoPreprocessador, IDIOMAS, LIMIARES, pegarOpcao } from './comum.mjs'
 import { CHAVE_GERAL, recomendar } from './recomendar.mjs'
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -127,6 +128,17 @@ function comEscutaDoIdioma(c, idioma) {
  * @param {{ roundtrips?: any[], estabilidades?: any[], sinteses?: any[], manifesto?: any[] }} p
  * @returns {string[]}
  */
+/** Ids de candidatos cujas medidas vieram de áudio com versão defasada do pré-processador ou sem ele. */
+function idsComAudioDefasado({ roundtrips = [], estabilidades = [] }) {
+  return new Set(
+    [...roundtrips, ...estabilidades]
+      .filter((o) => avisosDoPreprocessador(o.origem, VERSAO_DO_PREPROCESSADOR).length > 0)
+      .map((o) => idDe(o.motor, o.voz)),
+  )
+}
+
+const MARCA_DEFASADO = ' (medido com áudio defasado/sem pré-processador)'
+
 function avisosDasFontes({ roundtrips = [], estabilidades = [], sinteses = [], manifesto = [], escuta }) {
   const avisos = [...(escuta?.avisos ?? []).map((a) => `escuta: ${a}`)]
   for (const [id, v] of Object.entries(escuta?.vozes ?? {}))
@@ -156,6 +168,9 @@ function avisosDasFontes({ roundtrips = [], estabilidades = [], sinteses = [], m
       if (arquivos.length > 1)
         avisos.push(`${tipo} repetido para ${id} (${arquivos.join(', ')}): vale o último, ${arquivos.at(-1)}`)
   }
+  for (const o of [...roundtrips, ...estabilidades])
+    for (const a of avisosDoPreprocessador(o.origem, VERSAO_DO_PREPROCESSADOR))
+      avisos.push(`**ATENÇÃO** ${idDe(o.motor, o.voz)}: ${a}`)
   duplicados('round-trip', roundtrips)
   duplicados('estabilidade', estabilidades)
   duplicados('síntese', sinteses)
@@ -183,6 +198,7 @@ export function montarRelatorio({
 }) {
   const candidatos = montarCandidatos(fontes)
   const avisos = [...avisosDasFontes(fontes), ...avisosExtras]
+  const defasados = idsComAudioDefasado(fontes)
   const linhas = ['# voz-fase-0 — bancada de voz: motores candidatos', '']
   if (geradoEm) linhas.push(`Gerado em ${geradoEm}.`, '')
   if (limiares.provisorio) {
@@ -236,12 +252,15 @@ export function montarRelatorio({
     const marca = limiares.provisorio ? ' (provisório)' : ''
     linhas.push(
       '',
-      `**Recomendação (${idioma}):** ${r.escolhido ? `\`${r.escolhido}\`${marca}` : `${r.motivos[CHAVE_GERAL].join('; ')}${marca}`}`,
+      `**Recomendação (${idioma}):** ${r.escolhido ? `\`${r.escolhido}\`${marca}${defasados.has(r.escolhido) ? MARCA_DEFASADO : ''}` : `${r.motivos[CHAVE_GERAL].join('; ')}${marca}`}`,
       '',
     )
     for (const [id, ms] of Object.entries(r.motivos)) {
       if (id === CHAVE_GERAL) continue
-      linhas.push(ms.length === 0 ? `- \`${id}\`: passou em todos os portões` : `- \`${id}\`: ${ms.join('; ')}`)
+      {
+        const base = ms.length === 0 ? `- \`${id}\`: passou em todos os portões` : `- \`${id}\`: ${ms.join('; ')}`
+        linhas.push(defasados.has(id) ? `${base}${MARCA_DEFASADO}` : base)
+      }
     }
     linhas.push('')
   }

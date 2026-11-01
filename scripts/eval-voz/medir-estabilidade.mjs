@@ -35,6 +35,7 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { palavras } from '../../src/core/eval/wer.ts'
+import { VERSAO_DO_PREPROCESSADOR } from '../../src/core/leitura/prepararTextoParaVoz.ts'
 import { conferirOrigem, IDIOMAS, LIMIARES_DA_SPEC, nomeSeguro, pegarOpcao } from './comum.mjs'
 import { criarDecodificadorWhisper, MODELO_WHISPER, prepararPcm } from './medir-roundtrip.mjs'
 import { estabilidadeDoTrecho, normalizarParaComparar } from './metricas.mjs'
@@ -148,9 +149,20 @@ export async function medirEstabilidadeDoLongo({
  * O JSON que vai para o repositório: só campos compactos, NUNCA a transcrição (`hipotese`).
  * @param {{ motor: string, voz: string, idioma: string, textoId: string, texto: string, audioDuracaoS: number,
  *           r: Awaited<ReturnType<typeof medirEstabilidadeDoLongo>> | Record<string, any>, geradoEm?: string,
- *           avisos?: string[] }} p
+ *           avisos?: string[], origem?: object|null }} p
  */
-export function montarRegistro({ motor, voz, idioma, textoId, texto, audioDuracaoS, r, geradoEm, avisos = [] }) {
+export function montarRegistro({
+  motor,
+  voz,
+  idioma,
+  textoId,
+  texto,
+  audioDuracaoS,
+  r,
+  geradoEm,
+  avisos = [],
+  origem = null,
+}) {
   const notas = [...avisos]
   if (r.cortesSemPausa > 0) {
     notas.push(
@@ -159,6 +171,7 @@ export function montarRegistro({ motor, voz, idioma, textoId, texto, audioDuraca
   }
   return {
     tipo: 'estabilidade',
+    ...(origem ? { origem } : {}),
     geradoEm: geradoEm ?? new Date().toISOString(),
     motor,
     voz,
@@ -189,7 +202,7 @@ async function main() {
   const idioma = pegarOpcao(argv, 'idioma') ?? 'pt'
   if (!IDIOMAS.includes(idioma)) throw new Error(`--idioma "${idioma}" inválido (use ${IDIOMAS.join('|')})`)
   const pasta = path.resolve(entrada)
-  const { avisos } = conferirOrigem(pasta, { motor, voz })
+  const { avisos, origem } = conferirOrigem(pasta, { motor, voz }, VERSAO_DO_PREPROCESSADOR)
   for (const a of avisos) console.warn(`aviso: ${a}`)
   const wav = path.join(pasta, 'longo.wav')
   const arquivoTexto = pegarOpcao(argv, 'texto') ?? path.join(pasta, 'longo.txt')
@@ -210,6 +223,7 @@ async function main() {
     audioDuracaoS: pcm.length / TAXA_HZ,
     r,
     avisos,
+    origem,
   })
   const saida = path.join(RAIZ, 'docs', 'auditoria', 'eval', `voz-estabilidade-${motor}-${voz}.json`)
   mkdirSync(path.dirname(saida), { recursive: true })

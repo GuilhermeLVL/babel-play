@@ -330,3 +330,114 @@ describe('vocabulário numérico do casamento dos itens', () => {
     expect([...faltam]).toEqual([])
   })
 })
+
+describe('conferirOrigem: versão e bandeira do preprocessador', () => {
+  const v = VERSAO_DO_PREPROCESSADOR
+  const nova = (origem: Record<string, unknown>) => {
+    const d = pastaTemporaria()
+    writeFileSync(
+      path.join(d, ARQUIVO_DE_ORIGEM),
+      JSON.stringify({ motor: 'm', voz: 'v', versaoPreprocessador: v, preprocessado: true, ...origem }),
+    )
+    return d
+  }
+
+  it('versão atual e preprocessado: sem aviso, e devolve a origem lida', () => {
+    const r = conferirOrigem(nova({}), { motor: 'm', voz: 'v' }, v)
+    expect(r.avisos).toEqual([])
+    expect(r.origem).toEqual({ versaoPreprocessador: v, preprocessado: true })
+  })
+
+  it('versão antiga: AVISO (não erro) com as duas versões', () => {
+    const r = conferirOrigem(nova({ versaoPreprocessador: '0' }), { motor: 'm', voz: 'v' }, v)
+    expect(r.avisos).toEqual([`áudio gerado com o pré-processador v0, a referência usa v${v}`])
+    expect(r.origem?.versaoPreprocessador).toBe('0')
+  })
+
+  it('preprocessado: false: aviso de diagnóstico', () => {
+    const r = conferirOrigem(nova({ preprocessado: false, versaoPreprocessador: null }), { motor: 'm', voz: 'v' }, v)
+    expect(r.avisos).toEqual([
+      'áudio sintetizado SEM pré-processador (diagnóstico); números e siglas não valem para o portão',
+    ])
+  })
+
+  it('marcador ausente: o aviso de sempre e origem null', () => {
+    const r = conferirOrigem(pastaTemporaria(), { motor: 'm', voz: 'v' }, v)
+    expect(r.avisos[0]).toMatch(/sem origem\.json/)
+    expect(r.origem).toBeNull()
+  })
+
+  it('os resultados gravam origem e os avisos', () => {
+    const origem = { versaoPreprocessador: '0', preprocessado: true }
+    const avisos = ['áudio gerado com o pré-processador v0, a referência usa v1']
+    const rt = montarRegistroDoRoundtrip({
+      motor: 'm',
+      voz: 'v',
+      medidas: { porIdioma: {} },
+      pendentes: [],
+      avaliacao: { passou: true, falhas: [] },
+      frases: [],
+      avisos,
+      origem,
+    })
+    expect(rt.origem).toEqual(origem)
+    expect(rt.avisos).toEqual(avisos)
+    const est = montarRegistro({
+      motor: 'm',
+      voz: 'v',
+      idioma: 'pt',
+      textoId: 't',
+      texto: 'abc',
+      audioDuracaoS: 1,
+      r: {
+        palavrasNaReferencia: 1,
+        insercoes: 0,
+        delecoes: 0,
+        taxa: 0,
+        limite: 0.01,
+        passou: true,
+        chunks: 1,
+        cortesSemPausa: 0,
+        decodificador: {},
+      },
+      avisos,
+      origem,
+    })
+    expect(est.origem).toEqual(origem)
+    expect(est.notas).toEqual(expect.arrayContaining(avisos))
+  })
+
+  it('o relatório mostra o aviso em "## Avisos" e marca a recomendação do candidato', () => {
+    const medidas = {
+      porIdioma: {
+        pt: {
+          cer: 0.01,
+          wer: 0.03,
+          itensAcerto: 0.95,
+          itensNumerosEAnos: 1,
+          estabilidade: 0.005,
+          foraDaMediana: 0.01,
+          semAudio: 0,
+          invalidos: 0,
+        },
+      },
+    }
+    const rt = {
+      tipo: 'roundtrip',
+      motor: 'm',
+      voz: 'v',
+      medidas,
+      origem: { versaoPreprocessador: '0', preprocessado: true },
+    }
+    const r = montarRelatorio({ roundtrips: [rt], limiares: LIMIARES, idiomas: ['pt'] })
+    expect(r.texto).toMatch(/## Avisos[\s\S]*m\/v: áudio gerado com o pré-processador v0, a referência usa v/)
+    expect(r.texto).toContain('medido com áudio defasado/sem pré-processador')
+    const cru = { ...rt, origem: { versaoPreprocessador: null, preprocessado: false } }
+    const r2 = montarRelatorio({ roundtrips: [cru], limiares: LIMIARES, idiomas: ['pt'] })
+    expect(r2.avisos.join('\n')).toMatch(/SEM pré-processador \(diagnóstico\)/)
+    expect(r2.texto).toContain('medido com áudio defasado/sem pré-processador')
+    const ok = { ...rt, origem: { versaoPreprocessador: VERSAO_DO_PREPROCESSADOR, preprocessado: true } }
+    const r3 = montarRelatorio({ roundtrips: [ok], limiares: LIMIARES, idiomas: ['pt'] })
+    expect(r3.texto).not.toContain('medido com áudio defasado')
+  })
+})

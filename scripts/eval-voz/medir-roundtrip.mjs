@@ -28,6 +28,7 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { agregar } from '../../src/core/eval/wer.ts'
+import { VERSAO_DO_PREPROCESSADOR } from '../../src/core/leitura/prepararTextoParaVoz.ts'
 import { duracaoDoWav } from '../audiolivros/wav.mjs'
 import {
   conferirOrigem,
@@ -285,14 +286,14 @@ function lerArgumentos(argv) {
   if (!existsSync(entrada) || !statSync(entrada).isDirectory())
     throw new Error(`--entrada: "${entrada}" não é uma pasta`)
   const pasta = path.resolve(entrada)
-  return { motor, voz, entrada: pasta, avisos: conferirOrigem(pasta, { motor, voz }).avisos }
+  return { motor, voz, entrada: pasta, ...conferirOrigem(pasta, { motor, voz }, VERSAO_DO_PREPROCESSADOR) }
 }
 
 /**
  * O JSON que o round-trip grava. `tipo` identifica o resultado pelo CONTEÚDO (o nome do arquivo é ambíguo
  * com hífens em motor/voz).
  * @param {{ motor: string, voz: string, medidas: object, pendentes: string[], avaliacao: object, frases: object[],
- *           avisos?: string[], geradoEm?: string }} p
+ *           avisos?: string[], origem?: object|null, geradoEm?: string }} p
  */
 export function montarRegistroDoRoundtrip({
   motor,
@@ -302,6 +303,7 @@ export function montarRegistroDoRoundtrip({
   avaliacao,
   frases,
   avisos = [],
+  origem = null,
   geradoEm,
 }) {
   return {
@@ -314,6 +316,7 @@ export function montarRegistroDoRoundtrip({
     pendentes,
     avaliacao,
     ...(avisos.length > 0 ? { avisos } : {}),
+    ...(origem ? { origem } : {}),
     frases,
   }
 }
@@ -326,7 +329,7 @@ function pendentesDe(medidas) {
 }
 
 async function main() {
-  const { motor, voz, entrada, avisos } = lerArgumentos(process.argv.slice(2))
+  const { motor, voz, entrada, avisos, origem } = lerArgumentos(process.argv.slice(2))
   for (const a of avisos) console.warn(`aviso: ${a}`)
   const corpus = lerCorpus(CORPUS)
   const transcrever = criarTranscritorDeItens({ pasta: entrada, decodificar: await criarDecodificadorWhisper() })
@@ -342,7 +345,11 @@ async function main() {
   mkdirSync(path.dirname(saida), { recursive: true })
   writeFileSync(
     saida,
-    JSON.stringify(montarRegistroDoRoundtrip({ motor, voz, medidas, pendentes, avaliacao, frases, avisos }), null, 2),
+    JSON.stringify(
+      montarRegistroDoRoundtrip({ motor, voz, medidas, pendentes, avaliacao, frases, avisos, origem }),
+      null,
+      2,
+    ),
   )
 
   for (const [idioma, m] of Object.entries(medidas.porIdioma)) {

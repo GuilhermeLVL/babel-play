@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto'
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { criarSintetizadorFalso, criarSintetizadorHttp } from '../scripts/audiolivros/sintetizador.mjs'
 import { wavDeSilencio } from '../scripts/audiolivros/wav.mjs'
@@ -25,6 +25,10 @@ import {
 import { criarTranscritorDeItens, OPCOES_DE_DECODE_FRASE } from '../scripts/eval-voz/medir-roundtrip.mjs'
 import { estabilidadeDoTrecho } from '../scripts/eval-voz/metricas.mjs'
 import { lerTextoLongo, sintetizarCorpus } from '../scripts/eval-voz/sintetizar.mjs'
+import { criarGerenciadorDePastas } from './harness/pastasTemporarias'
+
+const pastas = criarGerenciadorDePastas()
+afterEach(() => pastas.limparPastas())
 
 /** Estreita `T | undefined` com erro claro (em vez de `!` ou `as`). */
 function definido<T>(x: T | undefined, quem = 'valor'): T {
@@ -345,9 +349,9 @@ describe('lerTextoLongo e o texto longo padrão', () => {
     })
     expect(r.frases[0].duracaoS).toBeGreaterThanOrEqual(540)
   })
-  it('trechos de 5 palavras em 30 pontos aparecem no texto-fonte do Gutenberg (pula sem o cache)', (ctx) => {
-    const fonte = process.env.GUTENBERG_55752_TXT ?? path.join(tmpdir(), 'pg55752.txt')
-    if (!existsSync(fonte)) return ctx.skip()
+  it('trechos de 5 palavras em 30 pontos aparecem no texto-fonte do Gutenberg (só com GUTENBERG_55752_TXT)', (ctx) => {
+    const fonte = process.env.GUTENBERG_55752_TXT
+    if (!fonte || !existsSync(fonte)) return ctx.skip()
     const norm = (t: string) => t.replace(/_/g, '').replace(/\s+/g, ' ')
     const base = norm(readFileSync(fonte, 'utf8'))
     const linhas = lerTextoLongo(arquivo)
@@ -540,7 +544,7 @@ describe('montarRegistro (o JSON que vai para o repositório)', () => {
 
 describe('o round-trip mantém o decode de frases curtas', () => {
   it('criarTranscritorDeItens passa OPCOES_DE_DECODE_FRASE ao decodificador', async () => {
-    const pasta = mkdtempSync(path.join(tmpdir(), 'rt-'))
+    const pasta = pastas.criarPasta('rt-')
     const n = 8000
     const wav = Buffer.alloc(44 + n * 2)
     wav.write('RIFF', 0)

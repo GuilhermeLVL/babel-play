@@ -1,9 +1,9 @@
-import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import vm from 'node:vm'
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { CLASSE_DO_JUIZ_PARA_ERRO_DO_CSV, erroDoCsvDaClasse, lerCorpus } from '../scripts/eval-voz/comum.mjs'
 import {
@@ -24,6 +24,10 @@ import {
   montarPromptDoJuizDeTexto,
   pastaDoCacheDoJuiz,
 } from '../scripts/eval-voz/julgar-texto.mjs'
+import { criarGerenciadorDePastas } from './harness/pastasTemporarias'
+
+const pastas = criarGerenciadorDePastas()
+afterEach(() => pastas.limparPastas())
 
 const CORPUS = path.resolve(__dirname, '../scripts/eval-voz/corpus-voz.jsonl')
 
@@ -69,7 +73,7 @@ function amostrasFalsas(dir: string) {
   return saida
 }
 
-const pastaTmp = () => mkdtempSync(path.join(tmpdir(), 'escuta-teste-'))
+const pastaTmp = () => pastas.criarPasta('escuta-teste-')
 
 describe('sortearCega', () => {
   const amostras = ['a', 'b', 'c', 'd', 'e'].map((m) => ({

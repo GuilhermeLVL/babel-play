@@ -1,9 +1,9 @@
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { lerCorpus, LIMIARES_DA_SPEC } from '../scripts/eval-voz/comum.mjs'
 import { medirRoundtrip, MIN_CLIPES_PARA_MEDIANA, prepararPcm } from '../scripts/eval-voz/medir-roundtrip.mjs'
@@ -13,6 +13,10 @@ import {
   medirTrecho,
   normalizarParaComparar,
 } from '../scripts/eval-voz/metricas.mjs'
+import { criarGerenciadorDePastas } from './harness/pastasTemporarias'
+
+const pastas = criarGerenciadorDePastas()
+afterEach(() => pastas.limparPastas())
 
 /** Estreita `T | undefined` com erro claro (em vez de `!` ou `as`). */
 function definido<T>(x: T | undefined, quem = 'valor'): T {
@@ -614,7 +618,7 @@ describe('CLI medir-roundtrip', () => {
   })
 
   it('recusa motor com caractere de caminho', () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'rt-'))
+    const dir = pastas.criarPasta('rt-')
     writeFileSync(path.join(dir, 'x.txt'), '')
     const r = rodar('--motor', '../x', '--voz', 'v', '--entrada', dir)
     expect(r.status).not.toBe(0)

@@ -1,12 +1,15 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { lerLimiares, LIMIARES, LIMIARES_DA_SPEC, validarLimiares } from '../scripts/eval-voz/comum.mjs'
 import { CHAVE_GERAL, principal as principalRecomendar, recomendar } from '../scripts/eval-voz/recomendar.mjs'
 import { montarCandidatos, montarRelatorio, principal as principalRelatorio } from '../scripts/eval-voz/relatorio.mjs'
+import { criarGerenciadorDePastas } from './harness/pastasTemporarias'
+
+const pastas = criarGerenciadorDePastas()
+afterEach(() => pastas.limparPastas())
 
 // Os números abaixo são FIXTURES: o que vale está em scripts/eval-voz/limiares.json.
 
@@ -93,7 +96,7 @@ describe('limiares.json é a única fonte dos números', () => {
   })
 
   it('lerLimiares: arquivo inexistente ou JSON quebrado dá erro com o caminho', () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'limiares-'))
+    const dir = pastas.criarPasta('limiares-')
     expect(() => lerLimiares(path.join(dir, 'nao-existe.json'))).toThrow(/nao-existe\.json/)
     const ruim = path.join(dir, 'ruim.json')
     writeFileSync(ruim, '{ quebrado')
@@ -590,7 +593,7 @@ describe('CLIs: principal(argv)', () => {
     const erro: string[] = []
     return { saida, erro, io: { out: (s: string) => saida.push(s), err: (s: string) => erro.push(s) } }
   }
-  const pasta = () => mkdtempSync(path.join(tmpdir(), 'recomendar-'))
+  const pasta = () => pastas.criarPasta('recomendar-')
   const gravar = (dir: string, nome: string, dados: unknown) => {
     const f = path.join(dir, nome)
     mkdirSync(path.dirname(f), { recursive: true })

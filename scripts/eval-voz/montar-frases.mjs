@@ -21,7 +21,7 @@ import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { IDIOMAS, validarItem } from './comum.mjs'
+import { IDIOMAS, pegarOpcao, validarItem } from './comum.mjs'
 
 function falhar(msg) {
   console.error(`montar-frases: ${msg}`)
@@ -30,13 +30,13 @@ function falhar(msg) {
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url))
 const args = process.argv.slice(2)
-/** Valor de `--nome`; flag sem valor é erro (nunca cai no padrão e sobrescreve o corpus commitado). */
+/** Valor de `--nome`; flag sem valor ou repetida é erro (nunca cai no padrão e sobrescreve o corpus commitado). */
 const opt = (n, p) => {
-  const i = args.indexOf(`--${n}`)
-  if (i < 0) return p
-  const v = args[i + 1]
-  if (!v || v.startsWith('--')) falhar(`--${n} exige um valor`)
-  return v
+  try {
+    return pegarOpcao(args, n) ?? p
+  } catch (e) {
+    return falhar(e.message)
+  }
 }
 const DIR_FONTES = opt('fontes', path.join(AQUI, 'fontes'))
 const SAIDA = opt('saida', path.join(AQUI, 'corpus-voz.jsonl'))

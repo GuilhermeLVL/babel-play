@@ -1,11 +1,14 @@
 import { execFileSync, spawnSync } from 'node:child_process'
-import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { lerCorpus } from '../scripts/eval-voz/comum.mjs'
+import { criarGerenciadorDePastas } from './harness/pastasTemporarias'
+
+const pastas = criarGerenciadorDePastas()
+afterEach(() => pastas.limparPastas())
 
 type Item = {
   id: string
@@ -96,7 +99,7 @@ describe('corpus de voz', () => {
   })
 
   it('regerar o corpus a partir das fontes dá exatamente o JSONL commitado', () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'eval-voz-'))
+    const dir = pastas.criarPasta('eval-voz-')
     const saida = path.join(dir, 'corpus-voz.jsonl')
     execFileSync(process.execPath, [path.join(RAIZ, 'montar-frases.mjs'), '--saida', saida], { stdio: 'pipe' })
     expect(readFileSync(saida)).toEqual(readFileSync(CORPUS))
@@ -117,7 +120,7 @@ describe('corpus de voz', () => {
     const OK = '# x | pt | numeros | dominio-publico\n# origem: teste\ntexto aqui\n'
     /** Roda o gerador numa pasta temporária; devolve status e stderr. */
     const gerar = (arquivos: Record<string, string>, gabarito: string = '{"itens":{}}', extra: string[] = []) => {
-      const dir = mkdtempSync(path.join(tmpdir(), 'eval-voz-'))
+      const dir = pastas.criarPasta('eval-voz-')
       for (const [nome, conteudo] of Object.entries(arquivos)) writeFileSync(path.join(dir, nome), conteudo)
       writeFileSync(path.join(dir, 'gabarito.json'), gabarito)
       const saida = path.join(dir, 'o.jsonl')
@@ -188,7 +191,7 @@ describe('corpus de voz', () => {
   })
 
   it('lerCorpus rejeita linha inválida com o número da linha', () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'eval-voz-'))
+    const dir = pastas.criarPasta('eval-voz-')
     const f = path.join(dir, 'c.jsonl')
     const ok = { id: 'a', idioma: 'pt', texto: 't', categoria: 'c', itens: [] }
     writeFileSync(f, `${JSON.stringify(ok)}\n${JSON.stringify({ ...ok, idioma: 'fr' })}\n`)

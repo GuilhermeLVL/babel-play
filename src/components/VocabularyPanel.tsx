@@ -26,7 +26,7 @@ import Provenance from './Provenance';
 import { Dialogo } from './ui';
 
 /** Rótulos amigáveis dos motores de tradução — o usuário não deve ler ids técnicos crus. */
-const MT_ENGINE_LABELS: Record<string, string> = {
+export const MT_ENGINE_LABELS: Record<string, string> = {
   // As duas chaves de propósito: sessões antigas gravaram 'groq-llm'; as novas gravam o id neutro.
   'groq-llm': 'Tradutor IA (servidor)',
   'server-llm-mt': 'Tradutor IA (servidor)',
@@ -41,7 +41,7 @@ const MT_ENGINE_LABELS: Record<string, string> = {
 };
 
 /** Estes "motores" são dicionários: a tradução é um verbete, não uma saída de máquina. */
-const DE_DICIONARIO = new Set(['dicionario-local', 'wiktionary']);
+export const DE_DICIONARIO = new Set(['dicionario-local', 'wiktionary']);
 
 /**
  * ANALISTA DE VOCABULÁRIO — painel ÚNICO e padronizado, usado por TODAS as telas

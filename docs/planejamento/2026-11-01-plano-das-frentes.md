@@ -74,7 +74,7 @@ Roteiro da bancada atualizado para a interface atual (título da tela, chip de i
 | renders/s silêncio  | ~23          | 31         | ~27        | 31         |
 | frames > 50 ms      | 0            | 1          | 0          | 4          |
 
-Em aberto: a 1ª legenda está 3 a 4 vezes mais lenta que a base, mas não se sabe se é regressão, máquina diferente ou a mudança de como a legenda aparece (a sonda agora lê outro componente). Memória de pico não sai no Mac (`measureUserAgentSpecificMemory` ausente no headless). A 1ª rodada medida do perfil desktop falha ("bipe não encontrado") nas duas execuções. Gravar base do Mac (`--gravar-linha-de-base`) é decisão do dono.
+RESOLVIDO (antes × depois no MESMO Mac, bde13bd × HEAD, 3 rodadas intercaladas por perfil, tabela em `tmp/antes-depois/resultado/antes-depois.md`): não há regressão do STT (RTF p50 igual, 0,035 no desktop). Os ~5,5 s da "1ª legenda" no desktop vêm da métrica: ela lê só o campo `.orig`, que na tela nova só se preenche no fim da fala; o 1º texto aparece na tela em ~0,86 s nos dois lados (por instantes do log de uma rodada de cada lado; não repetido). Sugestão: separar na bancada "1º texto na tela" de "legenda completa". Diferença real, não medida em uso: hoje o Whisper local carrega no START e não ao abrir a tela (~0,9 s a mais para quem fala logo). Memória de pico não sai no Mac (`measureUserAgentSpecificMemory` ausente no headless). A 1ª rodada medida do perfil desktop falha ("bipe não encontrado") nas duas execuções. Gravar base do Mac (`--gravar-linha-de-base`) é decisão do dono.
 
 ## Não verificado (conferir antes de decidir)
 

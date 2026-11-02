@@ -61,6 +61,10 @@ test.describe('Meu avatar', () => {
   test('leigo: abrir, escolher para mim e salvar em 3 toques; recarregar e ver persistido; apagar', async ({
     page,
   }) => {
+    // O roteiro é longo (dois recarregamentos e a prévia 3D em software): leva ~14 s na máquina de desenvolvimento e 29–31 s
+    // na CI, colado nos 30 s padrão. Na CI o 30 s estourava no último clique ("element is not stable" era só a tela ainda
+    // entrando depois do reload, quando o relógio do teste acabou); o `retry` passava com 28,8 s.
+    test.slow()
     await abrirAvatar(page) // toque 1: a aba "Avatar"
     await expect(previaPronta(page)).toBeVisible({ timeout: 30_000 })
     await foto(page, '1-sugestao')

@@ -67,8 +67,11 @@ export const OPCOES_DE_QUEM: readonly QuemAparece[] = ['ambos', 'meu', 'interpre
 export type TamanhoDoAvatar = 'p' | 'm' | 'g';
 export const TAMANHOS_DO_AVATAR: readonly TamanhoDoAvatar[] = ['p', 'm', 'g'];
 
-/** "Só rosto" ou "só mãos". Só mãos exige a flag `avatar_sinais` (e continua rotulado como demonstração). */
-export type FocoDoAvatar = 'rosto' | 'maos';
+/**
+ * O que mostrar: "só rosto", "só mãos" ou AUTOMÁTICO (o padrão: mãos enquanto a soletração está ativa, rosto no resto).
+ * Só mãos exige a flag `avatar_sinais` (e continua rotulado como demonstração). Escolha explícita vence o automático.
+ */
+export type FocoDoAvatar = 'auto' | 'rosto' | 'maos';
 
 export interface PreferenciasDosAvatares {
   quem: QuemAparece;
@@ -80,6 +83,8 @@ export interface PreferenciasDosAvatares {
   anunciar: boolean;
   /** "Soletrar nomes e palavras sem sinal" (flag `avatar_sinais`). DESLIGADA por padrão. */
   soletrar: boolean;
+  /** "Soletrar tudo": as mãos soletram todas as palavras da fala, não só os nomes próprios. DESLIGADA por padrão. */
+  soletrarTudo: boolean;
   /** Libras ou ASL: no automático vem do idioma da outra pessoa. */
   alfabeto: EscolhaDeAlfabeto;
   /** Mão canhota: espelha as poses e usa a mão esquerda. */
@@ -90,10 +95,11 @@ export interface PreferenciasDosAvatares {
 export const PREFERENCIAS_PADRAO: Readonly<PreferenciasDosAvatares> = Object.freeze({
   quem: 'ambos',
   tamanho: 'm',
-  foco: 'rosto',
+  foco: 'auto',
   economia: false,
   anunciar: false,
   soletrar: false,
+  soletrarTudo: false,
   alfabeto: 'auto',
   espelhar: false,
   ritmo: 'normal',
@@ -108,10 +114,11 @@ export function validarPreferencias(bruto: unknown): PreferenciasDosAvatares {
   return {
     quem: um(OPCOES_DE_QUEM, o.quem, PREFERENCIAS_PADRAO.quem),
     tamanho: um(TAMANHOS_DO_AVATAR, o.tamanho, PREFERENCIAS_PADRAO.tamanho),
-    foco: um<FocoDoAvatar>(['rosto', 'maos'], o.foco, PREFERENCIAS_PADRAO.foco),
+    foco: um<FocoDoAvatar>(['auto', 'rosto', 'maos'], o.foco, PREFERENCIAS_PADRAO.foco),
     economia: o.economia === true,
     anunciar: o.anunciar === true,
     soletrar: o.soletrar === true,
+    soletrarTudo: o.soletrarTudo === true,
     alfabeto: um(ESCOLHAS_DE_ALFABETO, o.alfabeto, PREFERENCIAS_PADRAO.alfabeto),
     espelhar: o.espelhar === true,
     ritmo: um(RITMOS_DA_SOLETRACAO, o.ritmo, PREFERENCIAS_PADRAO.ritmo),
@@ -125,6 +132,27 @@ export function ladoDoAvatarEmPx(tamanho: TamanhoDoAvatar, layout: 'celular' | '
     computador: { p: 96, m: 144, g: 208 },
   };
   return tabela[layout === 'computador' ? 'computador' : 'celular'][tamanho];
+}
+
+/** O menor círculo do avatar no celular (o tamanho "p"). */
+export const LADO_MINIMO_NO_CELULAR = 64;
+/**
+ * No celular, com os dois avisos fixos da soletração embaixo do idioma, o círculo do intérprete cede espaço ao texto
+ * da conversa: no máximo 72 px (as mãos continuam legíveis porque o enquadramento automático vira "só mãos").
+ */
+export function ladoComAvisosEmPx(lado: number): number {
+  return Math.max(LADO_MINIMO_NO_CELULAR, Math.min(lado, 72));
+}
+
+/**
+ * O lado do PALCO DAS MÃOS (a soletração ligada). No computador ele cresce (há largura de sobra e as mãos precisam de
+ * tamanho para serem lidas); no celular fica no lado apertado que deixa a frase da conversa respirar.
+ */
+export const LADO_DO_PALCO_NO_COMPUTADOR = 232;
+/** No celular as mãos precisam de um pouco mais que o círculo apertado, desde que a frase siga com 58 px ou mais. */
+export const LADO_DO_PALCO_NO_CELULAR = 64;
+export function ladoDoPalcoEmPx(ladoApertado: number, layout: 'celular' | 'computador' | 'quest'): number {
+  return Math.max(ladoApertado, layout === 'computador' ? LADO_DO_PALCO_NO_COMPUTADOR : LADO_DO_PALCO_NO_CELULAR);
 }
 
 export interface EntradaDaPolitica {
@@ -148,7 +176,8 @@ export interface PoliticaDosAvatares {
   tier: TierDoAvatar;
   /** Sem WebGL2: foto ou iniciais em vez do 3D (o avatar continua à vista, só não é 3D). */
   fallback2d: boolean;
-  foco: FocoDoAvatar;
+  /** O enquadramento EFETIVO (o `auto` já foi resolvido). */
+  foco: Exclude<FocoDoAvatar, 'auto'>;
   /**
    * A soletração pode acontecer: as duas flags, a opção ligada e o avatar-intérprete na tela. (Falta ainda o modelo
    * suportar: isso só se sabe com o modelo carregado.)
@@ -157,7 +186,7 @@ export interface PoliticaDosAvatares {
   motivo: 'ok' | 'sem_flag' | 'economia' | 'nenhum';
 }
 
-const SEM_AVATAR = (motivo: PoliticaDosAvatares['motivo'], foco: FocoDoAvatar): PoliticaDosAvatares => ({
+const SEM_AVATAR = (motivo: PoliticaDosAvatares['motivo'], foco: PoliticaDosAvatares['foco']): PoliticaDosAvatares => ({
   mostrar: false,
   donos: [],
   tier: 'fraco',
@@ -170,7 +199,12 @@ const SEM_AVATAR = (motivo: PoliticaDosAvatares['motivo'], foco: FocoDoAvatar): 
 /** Quando e como os avatares aparecem. Sem a flag, no modo economia ou em "nenhum", nada muda na tela. */
 export function politicaDosAvatares(e: EntradaDaPolitica): PoliticaDosAvatares {
   // "Só mãos" só vale com a flag dos sinais; sem ela, volta ao rosto (e o painel mostra a opção desabilitada).
-  const foco: FocoDoAvatar = e.prefs.foco === 'maos' && e.sinais === true ? 'maos' : 'rosto';
+  // O automático escolhe "só mãos" quando a soletração está ativa (opção ligada e intérprete na tela), pois no
+  // círculo pequeno as mãos ficam minúsculas no enquadramento do corpo. A escolha explícita da pessoa vence.
+  const interpreteNaTela = e.prefs.quem === 'ambos' || e.prefs.quem === 'interprete';
+  const querMaos =
+    e.prefs.foco === 'maos' || (e.prefs.foco === 'auto' && e.prefs.soletrar && interpreteNaTela && !e.prefs.economia);
+  const foco: PoliticaDosAvatares['foco'] = querMaos && e.sinais === true ? 'maos' : 'rosto';
   if (!e.flag) return SEM_AVATAR('sem_flag', foco);
   if (e.prefs.economia) return SEM_AVATAR('economia', foco);
   const donos: readonly LadoDaConversa[] =

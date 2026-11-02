@@ -304,6 +304,15 @@ export const FLAG_AVATAR_SINAIS = 'avatar_sinais';
 export const FLAG_AVATAR_ELENCO = 'avatar_elenco';
 
 /**
+ * OS AUDIOLIVROS (`docs/specs/2026-10-31-audiolivros-e-leitura.md` §9.1; migrações PG 0017 e SQLite 0059). Nascem
+ * DESLIGADAS e sem regra de plano: `audiolivros` (o áudio pré-gerado do catálogo no "Ouvir"), `audiolivros_nuvem`
+ * (voz natural para livro próprio) e `audiolivros_elenco` (voz por personagem). Nenhuma cota aqui.
+ */
+export const FLAG_AUDIOLIVROS = 'audiolivros';
+export const FLAG_AUDIOLIVROS_NUVEM = 'audiolivros_nuvem';
+export const FLAG_AUDIOLIVROS_ELENCO = 'audiolivros_elenco';
+
+/**
  * O TETO DO DIA do parceiro nos planos pagos: 40 pedidos por dia local. A conta: um pedido leva até ~8 mil caracteres
  * do capítulo (~2,3 mil tokens), ~600 tokens da ficha e o system, e até 900 de saída — ~4 mil tokens, ≈ US$ 0,0011 no
  * DeepSeek V4.1 Flash (US$ 0,15/0,65 por 1M) e menos no Gemma 4. 40 por dia cobrem uma tarde inteira de leitura com

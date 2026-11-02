@@ -24,7 +24,7 @@ env:
 # Agora cada grupo é um job independente e paralelo, e nenhum portão barato espera um passo caro:
 #   estatico            YAML, typecheck ×3, lint, código morto, build, i18n, auditoria, rotas, ast-grep
 #   unidade (2 fatias)  vitest com cobertura, `--shard`; `unidade-cobertura` junta e cobra o piso
-#   e2e (5 fatias)      um job por viewport; celular e desktop em duas fatias (`--shard`)
+#   e2e (6 fatias)      um job por viewport; os três em duas fatias (`--shard`)
 #   e2e-estatica (4)    um job por viewport × duas fatias
 #   e2e-publico, migracoes, carga, imagem-construir → imagem
 #   postgres-real       os testes que só rodam com TESTE_POSTGRES_URL, contra um postgres:17 de serviço
@@ -468,10 +468,11 @@ jobs:
         run: npm run fumaca:worker
 
   # E2E PRINCIPAL, UM JOB POR VIEWPORT. Os três projetos rodavam em série no `verify` (~33 min:
-  # celular 12, tablet 7, desktop 13). Cada fatia sobe o SEU servidor e o SEU banco vazio, então o
+  # celular 12, tablet 7, desktop 13 — antes dos avatares). Cada fatia sobe o SEU servidor e o SEU banco vazio, então o
   # `workers: 1` do playwright.config.ts continua valendo dentro dela (o motivo dele é o banco
-  # único, e aqui cada fatia tem o seu). Celular e desktop passam de 10 min e vão em duas fatias
-  # (`--shard`, que divide por ARQUIVO: os `beforeAll` que semeiam o banco ficam inteiros).
+  # único, e aqui cada fatia tem o seu). Os três passam de 10 min e vão em duas fatias
+  # (`--shard`, que divide por ARQUIVO: os `beforeAll` que semeiam o banco ficam inteiros). O tablet, com os 324 testes
+  # numa fatia só, estourava o teto de 20 min do passo (parou no teste 236) e o job caía por tempo, não por asserção.
   #
   # O e2e existia e nenhum workflow o chamava. E agora ele carrega o teste de layout com
   # pseudo-localizacao, que e o unico que ve texto cortado antes de haver traducao para cortar.
@@ -486,7 +487,8 @@ jobs:
         include:
           - { projeto: mobile-375, fatia: 1, fatias: 2 }
           - { projeto: mobile-375, fatia: 2, fatias: 2 }
-          - { projeto: tablet-768, fatia: 1, fatias: 1 }
+          - { projeto: tablet-768, fatia: 1, fatias: 2 }
+          - { projeto: tablet-768, fatia: 2, fatias: 2 }
           - { projeto: desktop-1280, fatia: 1, fatias: 2 }
           - { projeto: desktop-1280, fatia: 2, fatias: 2 }
     name: e2e (${{ matrix.projeto }} ${{ matrix.fatia }}/${{ matrix.fatias }})

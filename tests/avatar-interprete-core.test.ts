@@ -5,6 +5,8 @@ import {
   estadoDoLadoNaConversa,
   INTERPRETE_PADRAO,
   INTERPRETE_RESERVA,
+  LADO_MINIMO_NO_CELULAR,
+  ladoComAvisosEmPx,
   ladoDoAvatarEmPx,
   modeloDoInterprete,
   modeloPadraoDaPessoa,
@@ -48,12 +50,12 @@ describe('estado do avatar por lado na conversa', () => {
 })
 
 describe('preferências', () => {
-  it('padrão: os dois, médio, rosto, sem economia, sem anúncio por voz', () => {
+  it('padrão: os dois, médio, enquadramento automático, sem economia, sem anúncio por voz', () => {
     expect(validarPreferencias(undefined)).toEqual(PREFERENCIAS_PADRAO)
     expect(PREFERENCIAS_PADRAO).toMatchObject({
       quem: 'ambos',
       tamanho: 'm',
-      foco: 'rosto',
+      foco: 'auto',
       economia: false,
       anunciar: false,
     })
@@ -111,6 +113,35 @@ describe('política dos avatares', () => {
     const prefs = { ...PREFERENCIAS_PADRAO, foco: 'maos' as const }
     expect(politicaDosAvatares({ ...base, prefs }).foco).toBe('rosto')
     expect(politicaDosAvatares({ ...base, prefs, sinais: true }).foco).toBe('maos')
+  })
+  it('automático (padrão): "só mãos" quando a soletração está ativa; sem soletrar, rosto (defeito 3)', () => {
+    const auto = { ...PREFERENCIAS_PADRAO, foco: 'auto' as const }
+    expect(politicaDosAvatares({ ...base, prefs: auto, sinais: true }).foco).toBe('rosto')
+    expect(politicaDosAvatares({ ...base, prefs: { ...auto, soletrar: true }, sinais: true }).foco).toBe('maos')
+    // sem a flag dos sinais ou sem o intérprete na tela, nunca mãos
+    expect(politicaDosAvatares({ ...base, prefs: { ...auto, soletrar: true } }).foco).toBe('rosto')
+    expect(politicaDosAvatares({ ...base, prefs: { ...auto, soletrar: true, quem: 'meu' }, sinais: true }).foco).toBe(
+      'rosto',
+    )
+  })
+  it('a preferência explícita vence o automático', () => {
+    const soletrando = { ...PREFERENCIAS_PADRAO, soletrar: true }
+    expect(politicaDosAvatares({ ...base, prefs: { ...soletrando, foco: 'rosto' }, sinais: true }).foco).toBe('rosto')
+    expect(politicaDosAvatares({ ...base, prefs: { ...soletrando, foco: 'maos' }, sinais: true }).foco).toBe('maos')
+  })
+  it('valor guardado antigo ("rosto"/"maos") continua valendo; lixo vira automático', () => {
+    expect(validarPreferencias({ foco: 'rosto' }).foco).toBe('rosto')
+    expect(validarPreferencias({ foco: 'maos' }).foco).toBe('maos')
+    expect(validarPreferencias({ foco: 'x' }).foco).toBe('auto')
+  })
+})
+
+describe('círculo com os avisos da soletração no celular (defeito 2)', () => {
+  it('cede espaço ao texto: no máximo 72 px, nunca abaixo de 64 px', () => {
+    expect(ladoComAvisosEmPx(ladoDoAvatarEmPx('g', 'celular'))).toBe(72)
+    expect(ladoComAvisosEmPx(ladoDoAvatarEmPx('m', 'celular'))).toBe(72)
+    expect(ladoComAvisosEmPx(ladoDoAvatarEmPx('p', 'celular'))).toBe(LADO_MINIMO_NO_CELULAR)
+    expect(ladoComAvisosEmPx(10)).toBe(LADO_MINIMO_NO_CELULAR)
   })
 })
 

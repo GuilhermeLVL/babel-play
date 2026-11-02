@@ -122,6 +122,18 @@ export interface LivroDoCatalogo {
   titulosAlternativos?: string[];
   /** A imagem de capa, quando há uma com licença verificada (ver `core/livros/capas`). */
   capa?: CapaDoCatalogo;
+  /**
+   * O AUDIOLIVRO pré-gerado publicado (F2, `scripts/audiolivros/publicados.json`): a voz, a versão do lote, quantos
+   * capítulos têm áudio e as horas. Ausente = sem áudio. Quem toca decide por `temAudioVisivel` (flag + visibilidade).
+   */
+  audio?: AudioDoCatalogo;
+}
+
+export interface AudioDoCatalogo {
+  voz: string;
+  versao: number;
+  capitulos: number;
+  horas: number;
 }
 
 /** Por que um livro que a fonte tem NÃO está no catálogo. A tela usa para responder "por que não está?". */

@@ -20,13 +20,16 @@ import {
 } from 'lucide-react';
 import React, { useState } from 'react';
 
+import { FLAG_AVATAR_3D } from '../../../core/planos';
 import type { AppMetrics } from '../../../data/api';
+import { abrirMeuAvatar } from '../../../lib/avatar/descoberta';
 import { contagemDaFonte, type Conteudo } from '../../../lib/conteudo/estado';
 import { useConteudo } from '../../../lib/conteudo/loja';
 import { useContagensDeConteudo } from '../../../lib/conteudo/useContagens';
 import { noCelular } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../../lib/edicaoEstatica';
 import { getEntitlements } from '../../../lib/entitlements';
+import { useFlag } from '../../../lib/flags';
 import { proximaRecompensa } from '../../../lib/galeria/progressao';
 import { numero, t, tp } from '../../../lib/i18n';
 import { comNomeDoPlano, planoParaNome } from '../../../lib/planoDeEntrada';
@@ -35,6 +38,7 @@ import type { DerivedProgress } from '../../../lib/progress';
 import { perfilProtegido } from '../../../lib/protecaoDoMenor';
 import type { Recording } from '../../../types';
 import EspacoDeAnuncio from '../../anuncios/EspacoDeAnuncio';
+import AtalhoDoAvatarNoInicio from '../../avatar/AtalhoDoAvatarNoInicio';
 import CardDePlanos from '../../CardDePlanos';
 import AvisoDeConta from '../../conta/AvisoDeConta';
 import { idiomaNaFicha, nomeCurtoDaFonte } from '../../conteudo/fontes';
@@ -183,6 +187,7 @@ export default function InicioDoQuest({
   carregandoSessoes = false,
   missoesPendentes = false,
 }: InicioDoQuestProps) {
+  const avatarLigado = useFlag(FLAG_AVATAR_3D);
   const cartoes = ladrilhoDosCartoes(semConta ? 'sem-conta' : metrics);
   /* O conteúdo escolhido no app (um só, o mesmo da ficha de Cartões, Jogar e Biblioteca). */
   const conteudo = useConteudo();
@@ -294,6 +299,13 @@ export default function InicioDoQuest({
           </button>
         )}
       </div>
+
+      {/* O AVATAR (flag `avatar_3d`): um cartão discreto, dispensável, para quem não passa pelo Perfil nem pelo Intérprete. */}
+      <AtalhoDoAvatarNoInicio
+        flag={avatarLigado}
+        aoConversar={() => onChangeView('interprete')}
+        aoEscolherAvatar={() => abrirMeuAvatar(onChangeView)}
+      />
 
       {/* O PROGRESSO numa linha só: nível, XP até o próximo e Seeds. Toca, abre as Estatísticas.
           Enquanto as métricas não chegam, a forma da linha (nunca um "Nível 1 · 0 XP" falso). */}

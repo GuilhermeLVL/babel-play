@@ -12,7 +12,7 @@ import {
   SkipForward,
   Square,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 
 import {
   type AjustesDoEstilo,
@@ -32,6 +32,7 @@ import { langLabelNaUI } from '../../../lib/languages';
 import type { Narrador, VistaDoNarrador } from '../../../lib/leitor/narrador';
 import { gravarMeuEstilo, lerMeuEstilo } from '../../../lib/leitor/preferenciasDaNarracao';
 import SeletorDeVoz from '../../voz/SeletorDeVoz';
+import ChipVozSintetizada from './ChipVozSintetizada';
 
 /** Os rótulos dizem o que cada modo faz (NAR02), os mesmos modos da Leitura. */
 export const ROTULO_DO_MODO: Record<ModoDaNarracao, { nome: string; explica: string }> = {
@@ -226,6 +227,7 @@ export default function BarraDoNarrador({
             ? t('Frase {n} de {total}', { n: vista.indice + 1, total: vista.total })
             : t('Pronto para ouvir')}
       </p>
+      {vista.gravado && <ChipVozSintetizada />}
       <div className="leitor-narrador-velocidade" role="group" aria-label={t('Velocidade da narração')}>
         <button
           type="button"
@@ -367,6 +369,7 @@ export function PainelDaNarracao({
   aoSeguir,
   aoEscolherVoz,
   aoConhecerPlanos,
+  audioDoCapitulo,
 }: {
   modo: ModoDaNarracao;
   seguir: boolean;
@@ -382,6 +385,8 @@ export function PainelDaNarracao({
   aoSeguir: (s: boolean) => void;
   aoEscolherVoz: () => void;
   aoConhecerPlanos?: () => void;
+  /** O áudio gravado do capítulo (o "Baixar este capítulo"), só com o áudio pré-gerado em uso. */
+  audioDoCapitulo?: ReactNode;
 }) {
   const idiomas = [
     idiomaDoLivro,
@@ -393,6 +398,12 @@ export function PainelDaNarracao({
   const usar = (a: AjustesDoEstilo) => narrador?.definirOpcoes(a, { adiar: false });
   return (
     <div className="leitor-narracao" data-testid="painel-narracao">
+      {audioDoCapitulo && (
+        <fieldset className="leitor-grupo">
+          <legend>{t('Áudio deste capítulo')}</legend>
+          {audioDoCapitulo}
+        </fieldset>
+      )}
       <fieldset className="leitor-grupo">
         <legend>{t('Estilo de leitura')}</legend>
         <div className="leitor-modos" role="radiogroup" aria-label={t('Estilo de leitura')}>

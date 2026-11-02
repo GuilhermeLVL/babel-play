@@ -84,3 +84,22 @@ Calibração do polegar por rig (nova): o zero de `cmc_abd` e o ângulo de repou
 - O verificador de independência dos dedos passa nos dois modelos pelo critério da mão do próprio modelo; pelo critério estrito de 8 cm a 1,7 m o `milk` fica abaixo no polegar (7,4 cm) e no mínimo (6,9 e 7,9 cm) porque a mão dele é pequena. Os outros dedos andam 0,00 cm em todos os casos.
 - Letras com movimento (H, J, X, Z, Ç em Libras; J, Z em ASL) seguem aproximadas.
 - Convenção de til (Ã, Õ em Libras): balanço lateral, NÃO confirmada com surdos.
+
+## Polimento de 29/10/2026 (ramo `feat/avatar-polimento-sinais`)
+
+Continua valendo: nenhuma pose foi revisada por pessoas surdas; é soletração, não tradução.
+
+- **ASL M e N:** a mão vira para baixo e os dedos caem sobre o polegar (M: três, N: dois), em vez de dois punhos de frente. **E** (ASL e Libras): garra com as quatro pontas à vista. **T**: polegar mais alto entre indicador e médio. **G**: polegar estendido (de frente quase não se vê: a mão mostra o dorso). **R**: mão 5 cm mais baixa, e o enquadramento "só mãos" sobe 2% da altura, para os dedos cruzados não saírem do quadro.
+- **Números 0 a 9** nos dois alfabetos, por descrição das formas; em Libras, 1 a 5 são contagem pelos dedos e 6 a 9 reusam a ASL por suposição. Sem colisão: nas formas 6 a 9 o polegar só se aproxima do dedo.
+- **Sem mudança:** H, P, Q, Z (não consegui melhorar sem colisão ou referência). Capturas: `$AVATAR_CAPTURAS` (`letras-*-antes/depois`).
+
+## Lacunas do modo Libras, 29/10/2026 (ramo `feat/avatar-libras-lacunas-2`)
+
+Continua valendo: nenhuma pose foi revisada por pessoas surdas; é soletração, não tradução. Sem referência nova: os ajustes partem de capturas do guia "Alfabeto manual" (antes e depois) e de uma medida de distância geométrica, não de comparação com gráficos de referência.
+
+- **G e H** (ASL e Libras): mão girada para o polegar do G aparecer abaixo do indicador (antes sumia atrás dele) e polegar menos aberto. O polegar agora aparece; a distância G-H caiu de 41,6 para 37,3 (piso do teste: 34).
+- **Q**: polegar mais aberto, separado do indicador (antes quase invisível).
+- **Z**: base e percurso menores e mais ao centro, para a mão ficar no quadro.
+- **M e N na ASL**: palma voltada a quem olha, dedos caídos sobre o polegar (M três, N dois, anelar recolhido); antes eram dois punhos quase iguais vistos de trás. A distância subiu de 16,1 para 23,2. Em Libras, M e N não mudaram.
+- **P**: NÃO melhorou. Os dois dedos seguem para baixo e o polegar fica atrás; qualquer giro que mostrasse o polegar apontava os dedos para a câmera. Fica para revisão humana.
+- Pisos por par em `tests/avatar-poses-distincao.test.ts` (regressão, não validação linguística). Pares idênticos por definição: I-J e C-Ç (só o movimento muda) e os algarismos que reusam formas de letras (0-O, 2-V, 9-F).

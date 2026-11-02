@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { clampOsso } from '../src/core/avatar/sinais/limites'
 import { normalizarTexto } from '../src/core/avatar/sinais/normalizar'
 import { comDelta, espelharPose, limitarAngulos, misturar, poseDaLetra } from '../src/core/avatar/sinais/pose'
-import { amostrar, soletrar } from '../src/core/avatar/sinais/soletrar'
+import { amostrar, contarNaoSoletradas, soletrar } from '../src/core/avatar/sinais/soletrar'
 import type { Alfabeto, Limites, PoseDeMao } from '../src/core/avatar/sinais/tipos'
 import alfabetoAsl from '../src/data/avatar/sinais/alfabeto-asl.json'
 import alfabetoLibras from '../src/data/avatar/sinais/alfabeto-libras.json'
@@ -194,13 +194,43 @@ describe('soletrar', () => {
 
   it('só nomes próprios; números e símbolos marcados; dicionário vazio', () => {
     const n = sol('ontem a Marta viu 2025', libras, { soNomesProprios: true })
-    expect(n.palavras.map((p) => p.motivo)).toEqual(['so_nomes', 'uma_letra', undefined, 'so_nomes', 'numero'])
-    expect(n.numerosPulados).toBe(true)
-    const s = sol('?! 😀 99')
+    expect(n.palavras.map((p) => p.motivo)).toEqual(['so_nomes', 'uma_letra', undefined, 'so_nomes', 'so_nomes'])
+    expect(n.numerosPulados).toBe(false)
+    const s = sol('?! 😀')
     expect(s.passos).toHaveLength(0)
-    expect(s.palavras.map((p) => p.motivo)).toEqual(['sem_letras', 'sem_letras', 'numero'])
+    expect(s.palavras.map((p) => p.motivo)).toEqual(['sem_letras', 'sem_letras'])
     expect(s.duracaoMs).toBe(0)
     expect(s.desconhecidos).toContain('😀')
+  })
+
+  it('números 0-9 (defeito 4): soletrados quando o alfabeto os traz; sem eles, pulados e marcados como antes', () => {
+    for (const a of [libras, asl]) {
+      for (const d of '0123456789') expect(a.letras[d], d).toBeTruthy()
+      const s = sol('R2D2 99', a)
+      expect(s.passos.map((p) => p.letra).join('')).toBe('R2D299')
+      expect(s.numerosPulados).toBe(false)
+      expect(s.palavras.every((p) => p.estado === 'soletrada')).toBe(true)
+    }
+    const semNumeros = {
+      ...libras,
+      letras: Object.fromEntries(Object.entries(libras.letras).filter(([k]) => !/^[0-9]$/.test(k))),
+    } as Alfabeto
+    const s = sol('R2D2 99', semNumeros)
+    expect(s.passos.map((p) => p.letra).join('')).toBe('RD')
+    expect(s.numerosPulados).toBe(true)
+    expect(s.palavras.map((p) => p.motivo)).toEqual([undefined, 'numero'])
+  })
+
+  it('os dez algarismos têm formas diferentes entre si, e M, N, S, E e T diferem entre si (defeito 4)', () => {
+    const assinatura = (a: Alfabeto, c: string) => JSON.stringify([a.letras[c].mao, a.letras[c].orientacao])
+    for (const a of [libras, asl]) {
+      const ds = [...'0123456789'].map((c) => assinatura(a, c))
+      expect(new Set(ds).size).toBe(10)
+      const fortes = [...'MNSET'].map((c) => assinatura(a, c))
+      expect(new Set(fortes).size).toBe(5)
+    }
+    // no ASL, M e N não são mais "punhos de frente": a mão vira para baixo, com dedos caídos sobre o polegar
+    for (const c of 'MN') expect(asl.letras[c].orientacao.dedos[1]).toBeLessThan(-0.3)
   })
 
   it('dicionário de sinais (ponto de extensão): palavra com sinal gravado sai da soletração', () => {
@@ -292,5 +322,22 @@ describe('amostrar (linha do tempo)', () => {
       ativ += limitarAngulos(pose.a, limites).ativacoes
     }
     expect(ativ).toBe(0)
+  })
+})
+
+describe('contagem de não soletradas (defeito 1)', () => {
+  it('só nomes: as palavras comuns e a própria soletrada não entram; só o que não coube no teto', () => {
+    const s = sol('Ola, eu sou a Maria e moro em Recife', libras, { soNomesProprios: true })
+    expect(s.palavras.filter((p) => p.estado === 'soletrada').length).toBe(2)
+    expect(contarNaoSoletradas(s.palavras, true)).toBe(0)
+    const curto = sol('Ola, eu sou Maria e Recife', libras, { soNomesProprios: true, tetoMs: 2000 })
+    const noTeto = curto.palavras.filter((p) => p.motivo === 'teto').length
+    expect(noTeto).toBeGreaterThan(0)
+    expect(contarNaoSoletradas(curto.palavras, true)).toBe(noTeto)
+  })
+
+  it('fora do modo só-nomes mantém a contagem de todas as não soletradas', () => {
+    const s = sol('Maria 123 e', libras)
+    expect(contarNaoSoletradas(s.palavras, false)).toBe(s.palavras.filter((p) => p.estado === 'nao_soletrada').length)
   })
 })

@@ -37,6 +37,7 @@ import type { AssistenteDaJanela } from '../assistente/useAssistenteAoVivo';
 import ConversaDoPrototipo, {
   type AssistenteNaConversa,
   type FraseDaMetade,
+  type JanelaFlutuanteDoInterprete,
   type MetadeDaConversa,
 } from './ConversaDoPrototipo';
 import { guardarModo, type ModoDaConversa, modoGuardado } from './modoDaConversa';
@@ -127,6 +128,8 @@ export default function ModoInterprete({
   aoFalharMicrofone,
   aoEscolherIdiomas,
   aoConhecerOPremium,
+  aoEscolherOutroAvatar,
+  janelaFlutuante,
   comVirtual = false,
   assistente,
   aoOuvirSugestao,
@@ -162,6 +165,10 @@ export default function ModoInterprete({
   aoEscolherIdiomas?: (() => void) | undefined;
   /** Os Planos, a partir do aviso do cadeado (ausente no perfil protegido). */
   aoConhecerOPremium?: (() => void) | undefined;
+  /** Abre Perfil › Avatar (o atalho de soletrar oferece quando o avatar não serve; ausente = não oferece). */
+  aoEscolherOutroAvatar?: (() => void) | undefined;
+  /** O botão "Janela flutuante" (Alt+L) da faixa; ausente onde o navegador não abre a janela. */
+  janelaFlutuante?: JanelaFlutuanteDoInterprete | undefined;
   /** A conversa virtual existe neste aparelho; "Virtual" abre a folha dela. */
   comVirtual?: boolean;
   /**
@@ -201,6 +208,7 @@ export default function ModoInterprete({
     estado,
     layout,
     idiomaDaOutra: idiomasDaConversa.outro || estado.detectado,
+    aoEscolherOutroAvatar,
   });
   const ponteDoAvatar = avatares.ponte;
   const destravarDoAvatar = avatares.destravar;
@@ -568,9 +576,11 @@ export default function ModoInterprete({
       }
     const avatar = avatares.doLado(lado);
     const soletracao = avatares.soletracaoDoLado(lado);
+    const estadoNoTopo = avatares.estadoNoTopoDoLado(lado);
     return {
       ...(avatar ? { avatar } : {}),
       ...(soletracao ? { soletracao } : {}),
+      ...(estadoNoTopo ? { estadoNoTopo } : {}),
       lado,
       dono: donoDe(lado),
       lang: d.direcao.fala,
@@ -820,6 +830,7 @@ export default function ModoInterprete({
       fase={atual.fase}
       assistente={naConversa}
       avatares={avatares.avatares}
+      janelaFlutuante={janelaFlutuante}
     >
       {assistente && (
         <ComoRespondoNaPagina

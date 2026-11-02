@@ -153,8 +153,11 @@ test.describe('avatar soletrando (harness)', () => {
     expect(c.consoleErros).toEqual([])
   })
 
-  test('texto com número, emoji e palavra de uma letra: marca o que não soletrou', async ({ page }) => {
-    await abrir(page, `&texto=${encodeURIComponent('a Rita 2025 😀')}&vel=2`)
+  test('texto com número, emoji e palavra de uma letra: números 0-9 soletram; marca o que não soletrou', async ({
+    page,
+  }) => {
+    // "٢٠٢٥" são dígitos Unicode que NÃO são 0-9: seguem pulados e marcados como número
+    await abrir(page, `&texto=${encodeURIComponent('a Rita 2025 😀 ٢٠٢٥')}&vel=2`)
     const estados = await page
       .locator('[data-palavra]')
       .evaluateAll((els) =>
@@ -162,8 +165,11 @@ test.describe('avatar soletrando (harness)', () => {
       )
     expect(estados[0]).toEqual(['a', 'nao_soletrada', 'Palavra de uma letra: não soletrada'])
     expect(estados[1][1]).toBe('soletrada')
-    expect(estados[2]).toEqual(['2025', 'nao_soletrada', 'Números não são soletrados'])
+    // os algarismos 0-9 têm pose própria: "2025" é soletrado
+    expect(estados[2][0]).toBe('2025')
+    expect(estados[2][1]).toBe('soletrada')
     expect(estados[3][1]).toBe('nao_soletrada')
+    expect(estados[4]).toEqual(['٢٠٢٥', 'nao_soletrada', 'Números não são soletrados'])
     await expect(page.locator('[data-sinais-legenda]')).toHaveAttribute('aria-live', 'off')
   })
 })

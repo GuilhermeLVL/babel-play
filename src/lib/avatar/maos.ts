@@ -598,7 +598,7 @@ export function enquadramentoDaSoletracao(
   const h = ctl.alturaDoModelo;
   // `maos` desloca a mira para o lado da mão que sinaliza (G, H e M apontam para fora do ombro)
   return modo === 'maos'
-    ? { alvo: { x: meio.x + (ombro.x - meio.x) * 0.7, y: meio.y - 0.01 * h, z: meio.z }, altura: 0.36 * h }
+    ? { alvo: { x: meio.x + (ombro.x - meio.x) * 0.7, y: meio.y + 0.01 * h, z: meio.z }, altura: 0.36 * h }
     : { alvo: { x: meio.x, y: meio.y + 0.0 * h, z: meio.z }, altura: 0.58 * h };
 }
 

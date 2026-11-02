@@ -129,7 +129,9 @@ describe('zip não confiável: bomba, zip slip, truncado', () => {
     })
     await expect(lerArquivoTrazido(arq(docx, 'bomba.docx'), String)).rejects.toMatchObject({ motivo: 'grande' })
     await expect(lerArquivoTrazido(arq(bomba, 'bomba.zip'), String)).rejects.toMatchObject({ motivo: 'grande' })
-  })
+    // Teto próprio: monta e descomprime 3 × 100 MB. Medido: ~1,8 s sem cobertura, ~7,6 s com cobertura na máquina de dev e
+    // 28 s no runner da CI (cobertura + fatia vizinha), que estourava os 20 s padrão sem que nada tivesse regredido.
+  }, 90_000)
 
   it('CBZ com mais páginas que o teto, ou entrada com ../ (zip slip), é recusado', async () => {
     const muitas: Record<string, Uint8Array> = {}

@@ -17,11 +17,14 @@ import {
   decidirSoletracao,
   type EntradaDaDecisao,
   FILA_MAXIMA_PARA_SOLETRAR,
+  letrasDoPalco,
   nomesProprios,
   soletracaoDisponivel,
+  suporteComModelo,
   TETO_DA_FALA_MS,
   VELOCIDADE_DO_RITMO,
 } from '../src/core/avatar/sinais/soletracaoDoInterprete'
+import { modeloDaColecao } from '../src/data/avatar/colecao'
 
 afterEach(cleanup)
 
@@ -87,6 +90,9 @@ describe('a decisão por fala', () => {
       id: 'f1',
       texto: 'fale com Conceição amanhã',
       alfabeto: 'libras',
+      modo: 'nomes',
+      soNomesProprios: true,
+      palavras: ['Conceição'],
       nomes: ['Conceição'],
       velocidade: VELOCIDADE_DO_RITMO.rapida,
       tetoMs: TETO_DA_FALA_MS,
@@ -168,26 +174,59 @@ describe('os dois avisos fixos', () => {
     container.querySelector('[data-aviso-fixo="demonstracao"]')!.textContent = 'tudo certo'
     await waitFor(() => expect(screen.getByText(AVISO_2)).toBeTruthy())
   })
-  it('na conversa os avisos estão SEMPRE, soletrando ou não, e a palavra atual só enquanto soletra', async () => {
-    const { rerender, container } = render(
-      <SoletracaoNaConversa soletrando={false} pulada={null} atual={null} compacto={false} anunciar={false} />,
-    )
+  it('na conversa os avisos estão SEMPRE; aguardando, soletrando (letras e fila) e pulada', async () => {
+    const props = { modo: 'nomes' as const, palavrasNaFila: 0, compacto: false, anunciar: false }
+    const { rerender, container } = render(<SoletracaoNaConversa {...props} estado={{ tipo: 'aguardando' }} />)
     await waitFor(() => expect(container.querySelectorAll('[data-aviso-fixo]')).toHaveLength(2))
     expect(container.querySelector('[data-palavra-atual]')).toBeNull()
+    expect(screen.getByTestId('soletracao-aguardando').textContent).toBe('Aguardando um nome para soletrar…')
     rerender(
       <SoletracaoNaConversa
-        soletrando
-        pulada={null}
-        atual={{ palavra: 'Conceição', letra: 'C', naoSoletradas: 4 }}
-        compacto={false}
-        anunciar={false}
+        {...props}
+        modo="tudo"
+        palavrasNaFila={3}
+        estado={{
+          tipo: 'soletrando',
+          palavra: 'Conceição',
+          rotulo: 'C-O-…',
+          letras: letrasDoPalco(['C', 'O', 'N'], 1),
+        }}
       />,
     )
     expect(container.querySelectorAll('[data-aviso-fixo]')).toHaveLength(2)
     expect(container.querySelector('[data-palavra-atual]')?.textContent).toBe('Conceição')
-    rerender(<SoletracaoNaConversa soletrando={false} pulada="fila" atual={null} compacto={false} anunciar={false} />)
+    expect(screen.getByTestId('soletracao-rotulo').textContent).toBe('Soletrando: C-O-…')
+    expect(screen.getByTestId('soletracao-fila').textContent).toBe('3 palavras na fila')
+    expect(screen.getByTestId('soletracao-nao-traducao').textContent).toBe('Soletração, não tradução')
+    const letras = [...container.querySelectorAll('[data-testid="soletracao-letras"] li')].map((l) =>
+      l.getAttribute('data-estado'),
+    )
+    expect(letras).toEqual(['feita', 'atual', 'futura'])
+    rerender(<SoletracaoNaConversa {...props} estado={{ tipo: 'pulada', motivo: 'fila' }} />)
     expect(container.querySelectorAll('[data-aviso-fixo]')).toHaveLength(2)
     expect(screen.getByTestId('soletracao-pulada').textContent).toBe('Soletração pulada: a voz está atrasada.')
+  })
+  it('leitor de tela: só a PALAVRA é anunciada (nunca letra por letra) e só se a pessoa pediu', () => {
+    const estado = (indice: number) =>
+      ({
+        tipo: 'soletrando',
+        palavra: 'Ana',
+        rotulo: 'A-N',
+        letras: letrasDoPalco(['A', 'N', 'A'], indice),
+      }) as const
+    const props = { modo: 'nomes' as const, palavrasNaFila: 0, compacto: false }
+    const { rerender } = render(<SoletracaoNaConversa {...props} anunciar={false} estado={estado(0)} />)
+    expect(screen.getByTestId('soletracao-anuncio').getAttribute('aria-live')).toBe('off')
+    expect(screen.getByTestId('soletracao-anuncio').textContent).toBe('')
+    rerender(<SoletracaoNaConversa {...props} anunciar estado={estado(0)} />)
+    const live = screen.getByTestId('soletracao-anuncio')
+    expect(live.getAttribute('aria-live')).toBe('polite')
+    expect(live.textContent).toBe('Soletrando Ana')
+    rerender(<SoletracaoNaConversa {...props} anunciar estado={estado(1)} />)
+    expect(live.textContent).toBe('Soletrando Ana') // trocar de letra não muda o que o leitor ouve
+    // o visual (letras e rótulo) fica escondido do leitor de tela
+    expect(screen.getByTestId('soletracao-rotulo').getAttribute('aria-hidden')).toBe('true')
+    expect(screen.getByTestId('soletracao-letras').getAttribute('aria-hidden')).toBe('true')
   })
 })
 
@@ -221,12 +260,32 @@ describe('o painel: modelo sem dedos esconde/desabilita com o motivo', () => {
     expect(screen.queryByText(AVISO_1)).toBeNull()
     expect(screen.queryByTestId('avatar-alfabeto-auto')).toBeNull()
   })
+  it('"O que mostrar": o automático é o padrão e está marcado; a escolha explícita é respeitada (defeito 3)', () => {
+    const { unmount } = ligar({ estado: 'sim' })
+    expect((screen.getByTestId('avatar-foco-auto') as HTMLInputElement).checked).toBe(true)
+    expect(screen.getByTestId('avatar-foco-auto').closest('label')?.textContent).toBe('Automático (mãos ao soletrar)')
+    unmount()
+    render(
+      <PainelDosAvatares
+        prefs={{ ...PREFERENCIAS_PADRAO, foco: 'rosto' }}
+        aoMudar={() => undefined}
+        aoFechar={() => undefined}
+        sinaisLigada
+        suporte={{ estado: 'sim' }}
+        sem3d={false}
+      />,
+    )
+    expect((screen.getByTestId('avatar-foco-rosto') as HTMLInputElement).checked).toBe(true)
+    expect((screen.getByTestId('avatar-foco-auto') as HTMLInputElement).checked).toBe(false)
+  })
   it('cada motivo tem o seu texto', () => {
     const textos = {
       sem_braco: 'Este avatar não tem braços articulados.',
       sem_ossos_reconheciveis: 'Os ossos deste avatar não têm nomes reconhecíveis.',
       sem_3d: 'Este aparelho não mostra o avatar em 3D.',
       sem_interprete: 'Escolha "Eu e o intérprete" ou "Só o intérprete" em Quem aparece.',
+      maos_minusculas:
+        'As mãos deste avatar são pequenas demais para soletrar. Escolha outro avatar em Meu avatar (o intérprete muda).',
     } as const
     for (const [motivo, texto] of Object.entries(textos)) {
       const { unmount } = ligar({ estado: 'nao', motivo: motivo as keyof typeof textos })
@@ -254,6 +313,20 @@ describe('o painel: modelo sem dedos esconde/desabilita com o motivo', () => {
     expect(within(painel).getByTestId('avatar-espelhar')).toBeTruthy()
     expect(within(painel).getByText(AVISO_1)).toBeTruthy()
     expect(within(painel).getByText(AVISO_2)).toBeTruthy()
+  })
+  it('modelo de mãos minúsculas (Milk): o "sim" vira "não" com o motivo; os outros estados mandam (defeito 5)', () => {
+    expect(modeloDaColecao('milk')?.maosMinusculas).toBe(true)
+    expect(modeloDaColecao('bullidan')?.maosMinusculas).toBeUndefined()
+    expect(suporteComModelo({ estado: 'sim' }, modeloDaColecao('milk') ?? null)).toEqual({
+      estado: 'nao',
+      motivo: 'maos_minusculas',
+    })
+    expect(suporteComModelo({ estado: 'sim' }, modeloDaColecao('bullidan') ?? null)).toEqual({ estado: 'sim' })
+    expect(suporteComModelo({ estado: 'nao', motivo: 'sem_dedos' }, { maosMinusculas: true })).toEqual({
+      estado: 'nao',
+      motivo: 'sem_dedos',
+    })
+    expect(soletracaoDisponivel(suporteComModelo({ estado: 'sim' }, { maosMinusculas: true }))).toBe(false)
   })
   it('a opção só vale com suporte confirmado', () => {
     expect(soletracaoDisponivel({ estado: 'sim' })).toBe(true)

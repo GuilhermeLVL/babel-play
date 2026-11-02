@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { fraseDeAmostra } from '../../../core/avatar/amostraDeVoz';
 import { type ConfigDoElenco, type DistribuicaoDeVozes, montarDistribuicao } from '../../../core/avatar/elenco';
 import { FLAG_AVATAR_ELENCO } from '../../../core/planos';
+import { vozesUteis } from '../../../core/voz/vozesUteis';
 import { useFlag } from '../../../lib/flags';
 import {
   type EscolhasDoElenco,
@@ -91,7 +92,8 @@ export function useElencoDoLivro({
   }, [disponivel, livroId, origem]);
 
   /* A lista de vozes do navegador chega depois; ler a cada render é barato e sempre atual. */
-  const vozes: readonly VoiceInfo[] = disponivel && idiomaDoLivro ? voicesFor(idiomaDoLivro) : [];
+  const vozes: readonly VoiceInfo[] =
+    disponivel && idiomaDoLivro ? vozesUteis(voicesFor(idiomaDoLivro), idiomaDoLivro) : [];
 
   const montar = useCallback(
     (e: EscolhasDoElenco, v: readonly VoiceInfo[], p: readonly string[]): ConfigDoElenco | null => {
@@ -113,7 +115,7 @@ export function useElencoDoLivro({
   ref.current = { escolhas, personagens, vozes, montar };
   const config = useCallback(() => {
     const r = ref.current;
-    return r.montar(r.escolhas, voicesFor(idiomaDoLivro), r.personagens);
+    return r.montar(r.escolhas, vozesUteis(voicesFor(idiomaDoLivro), idiomaDoLivro), r.personagens);
   }, [idiomaDoLivro]);
 
   const cfgDeAmostra = montar({ ...escolhas, ligado: true }, vozes, personagens);

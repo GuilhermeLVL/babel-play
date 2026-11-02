@@ -2,7 +2,17 @@ import { Volume2 } from 'lucide-react';
 import { useId } from 'react';
 
 import { t } from '../../../lib/i18n';
+import { passosParaInstalarVoz } from '../../../lib/voz/faltaDeVoz';
 import type { ElencoDoLivro } from './useElencoDoLivro';
+
+/** Com tão poucas vozes boas, vale avisar que dá para baixar outras no sistema. */
+const POUCAS_VOZES = 3;
+
+/** "Cheshire Cat (Gato de Cheshire)" → o nome original em destaque e a tradução em texto secundário. */
+function partesDoNome(nome: string): { principal: string; traducao: string } {
+  const m = /^(.*?)\s*(\([^()]*\))\s*$/.exec(nome);
+  return m && m[1] ? { principal: m[1], traducao: m[2] } : { principal: nome, traducao: '' };
+}
 
 /**
  * O PAINEL DO ELENCO (M5, flag `avatar_elenco`): quem lê o quê. Liga/desliga a narração com personagens (desligado =
@@ -68,37 +78,46 @@ export default function PainelDoElenco({
           {personagens.map((nome, i) => {
             const campo = `${id}-p${i}`;
             const atual = gostos[nome] ?? distribuicao?.personagens[nome] ?? '';
+            const { principal, traducao } = partesDoNome(nome);
             return (
-              <li key={nome} className="leitor-elenco-linha">
+              <li key={nome} className="leitor-elenco-personagem">
                 <label htmlFor={campo} className="leitor-elenco-nome">
-                  {nome}
+                  <span>{principal}</span>
+                  {traducao && <span className="leitor-elenco-traducao"> {traducao}</span>}
                 </label>
-                <select
-                  id={campo}
-                  value={atual}
-                  data-testid={`elenco-voz-${i}`}
-                  onChange={(e) => elenco.escolherVoz(nome, e.target.value)}
-                >
-                  {vozes.map((v) => (
-                    <option key={v.name} value={v.name}>
-                      {v.name}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className="leitor-botao leitor-elenco-testar"
-                  data-testid={`elenco-testar-${i}`}
-                  aria-label={t('Experimentar a voz de {nome}', { nome })}
-                  onClick={() => elenco.experimentar(nome, atual)}
-                >
-                  <Volume2 aria-hidden />
-                  <span>{t('Experimentar')}</span>
-                </button>
+                <div className="leitor-elenco-controle">
+                  <select
+                    id={campo}
+                    value={atual}
+                    data-testid={`elenco-voz-${i}`}
+                    onChange={(e) => elenco.escolherVoz(nome, e.target.value)}
+                  >
+                    {vozes.map((v) => (
+                      <option key={v.name} value={v.name}>
+                        {v.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="leitor-botao leitor-elenco-testar"
+                    data-testid={`elenco-testar-${i}`}
+                    aria-label={t('Ouvir a voz de {nome}', { nome })}
+                    onClick={() => elenco.experimentar(nome, atual)}
+                  >
+                    <Volume2 aria-hidden />
+                    <span>{t('Ouvir')}</span>
+                  </button>
+                </div>
               </li>
             );
           })}
         </ul>
+      )}
+      {elenco.ligado && !semFicha && !nuvem && !semVozes && vozes.length <= POUCAS_VOZES && (
+        <p className="leitor-apoio" data-testid="elenco-poucas-vozes">
+          {t('Há poucas vozes neste idioma.')} {passosParaInstalarVoz()}
+        </p>
       )}
       {elenco.ligado && (
         <label className="leitor-alternar">

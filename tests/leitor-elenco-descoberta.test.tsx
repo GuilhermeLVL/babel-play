@@ -89,12 +89,35 @@ describe('a frase de amostra', () => {
 })
 
 describe('o painel do elenco: experimentar e livro trazido', () => {
-  it('cada personagem tem um botão Experimentar com a voz escolhida', () => {
+  it('cada personagem tem um botão Ouvir com a voz escolhida', () => {
     const e = elenco()
     render(<PainelDoElenco elenco={e} vozDoNarrador="Luciana" nuvem={false} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Experimentar a voz de Ana' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Ouvir a voz de Ana' }))
     expect(e.experimentar).toHaveBeenCalledWith('Ana', 'Felipe')
-    expect(screen.getByRole('button', { name: 'Experimentar a voz de Bruno' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Ouvir a voz de Bruno' })).toBeTruthy()
+  })
+
+  it('o nome original fica em destaque e a tradução entre parênteses vai à parte', () => {
+    render(
+      <PainelDoElenco
+        elenco={elenco({ personagens: ['Cheshire Cat (Gato de Cheshire)'] })}
+        vozDoNarrador=""
+        nuvem={false}
+      />,
+    )
+    const campo = screen.getByTestId('elenco-voz-0').id
+    const rotulo = document.querySelector(`label[for="${campo}"]`)!
+    expect(rotulo.children[0].textContent).toBe('Cheshire Cat')
+    expect(rotulo.querySelector('.leitor-elenco-traducao')!.textContent).toMatch(/\(Gato de Cheshire\)/)
+  })
+
+  it('com até 3 vozes, uma linha de ajuda diz que dá para baixar outras; com mais, não', () => {
+    const { unmount } = render(<PainelDoElenco elenco={elenco()} vozDoNarrador="" nuvem={false} />)
+    expect(screen.getByTestId('elenco-poucas-vozes')).toBeTruthy()
+    unmount()
+    const muitas = ['A', 'B', 'C', 'D'].map((name) => ({ name, lang: 'pt-BR', base: 'pt', local: true, neural: false }))
+    render(<PainelDoElenco elenco={elenco({ vozes: muitas })} vozDoNarrador="" nuvem={false} />)
+    expect(screen.queryByTestId('elenco-poucas-vozes')).toBeNull()
   })
 
   it('livro trazido: frase honesta de que só há narrador, sem seletores', () => {

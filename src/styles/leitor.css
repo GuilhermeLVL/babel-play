@@ -914,18 +914,42 @@
   gap: 6px 10px;
   min-height: 44px;
   font-size: 14px;
+  padding-bottom: 10px;
+}
+/* Cada personagem é um bloco: o nome em cima, a voz e o botão de ouvir numa linha embaixo; o filete entre blocos
+   deixa claro de quem é cada seletor. */
+.leitor-elenco-personagem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0;
+  border-top: 1px solid var(--leitor-borda);
+  font-size: 14px;
 }
 .leitor-elenco-nome {
-  flex: 1 1 100%;
+  font-weight: 600;
   min-width: 0;
   overflow-wrap: anywhere;
 }
-.leitor-elenco-linha select {
+.leitor-elenco-traducao {
+  font-weight: 400;
+  font-size: 12px;
+  opacity: 0.75;
+}
+.leitor-elenco-controle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.leitor-elenco-controle select {
   min-height: 44px;
   flex: 1 1 0;
   min-width: 0;
 }
 .leitor-elenco-testar {
+  flex: none;
+  min-width: 44px;
+  min-height: 44px;
   border-color: var(--leitor-borda);
 }
 

@@ -9,7 +9,7 @@
  * O que o navegador NÃO informa não é inventado: a Web Speech só dá nome, idioma e `localService`.
  * "Natural" é a heurística de nome de `isNeuralVoice` (a mesma que escolhe a automática).
  */
-import { ordenarPorQualidade } from '../../core/voz/melhorVoz';
+import { vozesUteis } from '../../core/voz/vozesUteis';
 import { idiomaDaInterface, t } from '../i18n';
 import { codigoDeFala, type VoiceInfo, voicesFor } from '../tts';
 import { VOZ_AUTOMATICA, VOZ_DA_NUVEM, vozDaNuvemDisponivel, vozEmUso } from './preferenciaDeVoz';
@@ -84,7 +84,7 @@ export function opcoesDeVoz(idioma: string, nuvem: boolean = vozDaNuvemDisponive
   }
   /* A recomendada é a que a "Automática" lê: natural, no aparelho e do país exato do idioma (`core/voz/melhorVoz.ts`). */
   /* A ordem da lista é a da recomendação: a melhor primeiro, depois as outras do mesmo idioma. */
-  const vozes = ordenarPorQualidade(voicesFor(idioma), codigoDeFala(idioma));
+  const vozes = vozesUteis(voicesFor(idioma), codigoDeFala(idioma));
   const melhor = vozes[0]?.name;
   return [...opcoes, ...vozes.map((v) => opcaoDoAparelho(v, v.name === melhor))];
 }

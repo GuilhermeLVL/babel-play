@@ -23,10 +23,10 @@
 
 ## 4b. Primeiro contato
 
-- [ ] 4b.1 Puro: `supertonicLe` (a "Automática" com o modelo pronto) e `convidarParaVozNoAparelho` (30 dias), com testes
-- [ ] 4b.2 Narrador e leitor: a porta usa a resolução; `anteciparVozLocal` pré-busca na troca; elenco segue a resolução
-- [ ] 4b.3 Cartão do convite na barra do narrador (não modal, progresso, cancelar, falha com saída), i18n en/es
-- [ ] 4b.4 Prova na demo `primeiro` (porta 3195): perfil limpo, troca sem salto, recarga, "Agora não", 390 px, áudio gravado
+- [x] 4b.1 Puro: `supertonicLe` (a "Automática" com o modelo pronto) e `convidarParaVozNoAparelho` (30 dias), com testes
+- [x] 4b.2 Narrador e leitor: a porta usa a resolução; `anteciparVozLocal` pré-busca na troca; elenco segue a resolução
+- [x] 4b.3 Cartão do convite na barra do narrador (não modal, progresso, cancelar, falha com saída), i18n en/es
+- [ ] 4b.4 Prova na demo `primeiro` (porta 3195): perfil limpo, troca sem salto, recarga, "Agora não", 390 px, áudio gravado (o item "áudio gravado" ao vivo ficou pendente: a Wikisource respondeu 429; coberto por teste)
 
 ## 5. Prova
 

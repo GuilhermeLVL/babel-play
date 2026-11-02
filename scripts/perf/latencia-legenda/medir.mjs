@@ -92,6 +92,7 @@ const CACHE_MODELOS = opt('cache-modelos', '')
 const INTENCAO_MS = Number(opt('intencao-ms', 0))
 // Visita: abre a captura, não toca em nada por N ms e conta os workers criados; não captura.
 const VISITA_MS = Number(opt('visita-ms', 0))
+const SEM_IDIOMAS = flag('sem-idiomas')
 
 const sondaSrc = readFileSync(path.join(AQUI, 'sonda.js'), 'utf8')
 // O prettier fecha a expressão com `;`: tira, para caber em `(${sondaFn})(cfg)`.
@@ -344,33 +345,38 @@ async function escolher(rotuloDoCampo, valor) {
 }
 // O chip de idiomas já não fica numa região "Espaço de gravação": é o botão com "Detectar → Português (BR)".
 const chip = page.getByRole('button', { name: /Detectar|Português|English/ })
-await chip.first().click()
-await page.getByRole('dialog', { name: /Idiomas da sessão/ }).waitFor()
-const soMicrofone =
-  MODO === 'mic' &&
-  (await page
-    .getByRole('dialog', { name: /Idiomas da sessão/ })
-    .locator('button.campo-idioma', { hasText: 'Falo em' })
-    .count()) > 0
-if (soMicrofone) {
-  // cenário só microfone (aparelho sem getDisplayMedia): [Falo em] [Traduzir para]
-  await escolher('Falo em', EU)
-  await escolher('Traduzir para', ELES)
-} else if (MODO === 'mic') {
-  // cenário conversa: [Eu falo] [Eles falam]
-  await escolher('Eu falo', EU)
-  await escolher('Eles falam', ELES)
-} else {
-  // cenário mídia: [Idioma do conteúdo] [Traduzir para]
-  await escolher('Idioma do conteúdo', ELES)
-  await escolher('Traduzir para', EU)
+let resumo = ''
+// `--sem-idiomas`: os idiomas já estão salvos no perfil (a rodada de aquecimento os escolheu); não abre o
+// diálogo, cuja confirmação TAMBÉM aquece o STT e esconderia o efeito do ponteiro sobre "Iniciar".
+if (!SEM_IDIOMAS) {
+  await chip.first().click()
+  await page.getByRole('dialog', { name: /Idiomas da sessão/ }).waitFor()
+  const soMicrofone =
+    MODO === 'mic' &&
+    (await page
+      .getByRole('dialog', { name: /Idiomas da sessão/ })
+      .locator('button.campo-idioma', { hasText: 'Falo em' })
+      .count()) > 0
+  if (soMicrofone) {
+    // cenário só microfone (aparelho sem getDisplayMedia): [Falo em] [Traduzir para]
+    await escolher('Falo em', EU)
+    await escolher('Traduzir para', ELES)
+  } else if (MODO === 'mic') {
+    // cenário conversa: [Eu falo] [Eles falam]
+    await escolher('Eu falo', EU)
+    await escolher('Eles falam', ELES)
+  } else {
+    // cenário mídia: [Idioma do conteúdo] [Traduzir para]
+    await escolher('Idioma do conteúdo', ELES)
+    await escolher('Traduzir para', EU)
+  }
+  resumo = await page
+    .locator('.resumo-idioma')
+    .textContent()
+    .catch(() => '')
+  await page.getByRole('button', { name: 'Usar estes idiomas' }).click()
+  await page.waitForTimeout(500)
 }
-const resumo = await page
-  .locator('.resumo-idioma')
-  .textContent()
-  .catch(() => '')
-await page.getByRole('button', { name: 'Usar estes idiomas' }).click()
-await page.waitForTimeout(500)
 const chipTexto = await chip
   .first()
   .textContent()

@@ -188,7 +188,10 @@ function rodar(alvo, perfil, rotulo) {
     CACHE_MODELOS,
     ...CENARIO,
     ...(opt('intencao-ms', '') ? ['--intencao-ms', opt('intencao-ms', '')] : []),
-    ...(opt('flag', '') ? ['--flag', opt('flag', '')] : []),
+    ...(opt('flag', '') && !(flag('isolar-ponteiro') && rotulo.endsWith('.aquecimento'))
+      ? ['--flag', opt('flag', '')]
+      : []),
+    ...(flag('isolar-ponteiro') && !rotulo.endsWith('.aquecimento') ? ['--sem-idiomas'] : []),
     ...(flag('headful') ? [] : ['--headless']),
     ...(PERFIS[perfil] ? ['--dispositivo', PERFIS[perfil]] : []),
   ]

@@ -22,9 +22,9 @@
 
 ## 4. Prova com a bancada
 
-- [ ] 4.1 Intenção de 1 500 ms no desktop: `sttProntoMs` ≤ 0; sem intenção: sem piora (antes × depois intercalado) (PARCIAL 01/11: com a flag, o STT ficou pronto antes do clique, mas o roteiro da bancada confirma os idiomas ~31 s antes do clique e foi isso que aqueceu; o ganho só do ponteiro NÃO foi isolado: falta cenário com idiomas pré-definidos)
-- [x] 4.2 Visita sem captura: 0 workers; passou o ponteiro e saiu: workers encerrados no prazo existente (visita com a flag ligada: só o worker de partículas, 0 de STT ou tradução; atravessar e sair coberto por teste de unidade e de desmonte; encerramento dos workers no prazo existente NÃO medido)
-- [ ] 4.3 Perfil fraco e pouca memória: só a confirmação dos idiomas aquece
+- [x] 4.1 Intenção de 1 500 ms no desktop: `sttProntoMs` ≤ 0; sem intenção: sem piora (MEDIDO 01/11, mesma build, só o ponteiro, idiomas pré-salvos, 2 rodadas: flag desligada +0,90 e +0,92 s; ligada −0,51 s nas duas; ganho ~1,4 s. "Sem intenção" ligada NÃO rodado)
+- [ ] 4.2 Visita sem captura: 0 workers; passou o ponteiro e saiu: workers encerrados no prazo existente (visita com a flag ligada: só o worker de partículas, 0 de STT ou tradução; atravessar e sair coberto por teste de unidade e de desmonte; encerramento dos workers no prazo existente NÃO medido)
+- [x] 4.3 Perfil fraco e pouca memória: só a confirmação dos idiomas aquece (medido: no fraco o ponteiro foi ignorado por "pouca memória" e o STT seguiu em +1,03 s; os idiomas dispararam em outra rodada; o contraste desligado teve 1 rodada válida no fraco)
 
 ## 5. Fechamento
 

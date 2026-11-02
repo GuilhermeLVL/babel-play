@@ -100,7 +100,7 @@ function proximaVersao(pastaDaVoz) {
  *   capitulos: { nn: number, frases: FraseDoCapitulo[] }[], opcoes: object, pausas: Pausas, kbps: number,
  *   saida: string, licencaDoTexto: string, classificacao: string, tentativas?: number,
  *   codificar?: (wav: Uint8Array, kbps: number) => Promise<{ bytes: Uint8Array, sha256: string }>,
- *   agora?: () => Date }} e
+ *   agora?: () => Date, aoGravar?: (arquivo: string) => void }} e
  */
 export async function gerarLivro(e) {
   const codificar = e.codificar ?? codificarOpus
@@ -155,12 +155,20 @@ export async function gerarLivro(e) {
     const destino = path.join(e.saida, chave)
     mkdirSync(path.dirname(destino), { recursive: true })
     writeFileSync(destino, dados)
+    e.aoGravar?.(destino)
   }
-  /* O manifesto por último, por troca atômica: quem lê vê o anterior ou o novo, nunca a metade. */
-  const destino = path.join(pastaDaVoz, 'manifesto.json')
+  /* O manifesto e o ponteiro por último, por troca atômica: quem lê vê o anterior ou o novo, nunca a metade. */
   mkdirSync(pastaDaVoz, { recursive: true })
-  writeFileSync(`${destino}.tmp`, `${JSON.stringify(manifesto, null, 2)}\n`)
-  renameSync(`${destino}.tmp`, destino)
+  const trocar = (nome, conteudo) => {
+    const destino = path.join(pastaDaVoz, nome)
+    writeFileSync(`${destino}.tmp`, conteudo)
+    renameSync(`${destino}.tmp`, destino)
+    e.aoGravar?.(destino)
+  }
+  trocar('manifesto.json', `${JSON.stringify(manifesto, null, 2)}\n`)
+  /* `atual.json` ({ versao }) diz ao cliente qual pasta `<versao>/` buscar (o contrato do manifesto não diz; ruling
+     da F2, `docs/runbooks/audiolivros.md`). Gravado por ÚLTIMO: até ele trocar, o cliente segue na versão anterior. */
+  trocar('atual.json', `${JSON.stringify({ versao })}\n`)
   return { publicado: true, versao, manifesto, pastaDaVoz, falhas: [] }
 }
 

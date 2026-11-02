@@ -30,6 +30,16 @@ Beta: `ids` dos convidados, `percentual: 0`. Gradual: `percentual` 5 → 25 → 
 
 - Buckets `frasy-audio` e `frasy-audio-staging` (a criar pelo dono; seguir `docs/livros-catalogo.md` §3 e `scripts/cloudflare/r2.mjs`). **[PREENCHER na F2]**
 - Chave: `audiolivros/<livroId>/<voz>/<versao>/<nn>.opus`, `<nn>.json` e `manifesto.json`. Imutável por versão.
+- **Ponteiro da versão (ruling F2):** o contrato do manifesto não diz qual `<versao>` usar. O cliente busca primeiro
+  `audiolivros/<livroId>/<voz>/atual.json` (`{"versao": n}`, n inteiro ≥ 1), depois `manifesto.json` e os arquivos em
+  `<versao>/<nn>.opus|json` (`chaveDoCapitulo`). `atual.json` inválido ou ausente = sem áudio (o narrador local lê, sem
+  aviso). `gerar-livro.mjs` grava `atual.json` por ÚLTIMO, depois do manifesto.
+- **Capítulo ↔ `nn` (ruling F2):** `nn` = índice da seção no leitor + 1 (a ordem dos XHTML passados ao gerador). O
+  manifesto lista só os capítulos gerados; capítulo ausente do manifesto, ou com hash das frases diferente, cai no
+  narrador local sem aviso.
+- **Catálogo:** `scripts/audiolivros/publicados.json` (`publicar-catalogo.mjs --pasta <voz>`) → `montar-catalogo.mjs --audio`
+  escreve `audio` em `public/catalogo/livros.json` (depois `npx prettier --write public/catalogo/livros.json`, o formato
+  versionado).
 - Domínio público do bucket e `VITE_AUDIO_URL` (CSP abre sozinha). **[PREENCHER na F2]**
 - Elenco: `elenco/<livro>/<cap>.json`. **[PREENCHER na F3]**
 - Segredos (`CLOUDFLARE_API_TOKEN`, `DEEPINFRA_API_KEY`, chaves de GPU): só `.env`/secrets do host, nunca versionados.

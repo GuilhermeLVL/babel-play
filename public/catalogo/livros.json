@@ -7693,7 +7693,8 @@
       "credito": "Texto da Wikisource em português, transcrito e revisado por voluntários.",
       "licenca": "Domínio público no Brasil (Lei 9.610, art. 41): Machado de Assis †1908.",
       "obra": "Q1236531",
-      "titulosAlternativos": ["Don Casmurro", "동 카즈무후"]
+      "titulosAlternativos": ["Don Casmurro", "동 카즈무후"],
+      "audio": { "voz": "F1", "versao": 1, "capitulos": 1, "horas": 0.04 }
     },
     {
       "id": "pg-3333",

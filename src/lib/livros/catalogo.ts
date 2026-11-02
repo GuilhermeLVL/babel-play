@@ -9,7 +9,7 @@
  * revisar"): nenhum valor estranho no JSON passa como "livre".
  */
 import { capaValida } from '../../core/livros/capas';
-import { ehClassificacao } from '../../core/livros/catalogo';
+import { audioValido, ehClassificacao } from '../../core/livros/catalogo';
 import { passaNaDefesaDoCliente } from '../../core/livros/filtroLegal';
 import type { Catalogo, LivroDoCatalogo } from '../../core/livros/tipos';
 
@@ -22,8 +22,10 @@ let pedido: Promise<Catalogo> | null = null;
  * edição vira uma obra só dela: nunca liga idiomas por um campo malformado.
  */
 function comCamposDeObraValidos(l: LivroDoCatalogo): LivroDoCatalogo {
-  const { obra, titulosAlternativos, capa, ...resto } = l;
+  const { obra, titulosAlternativos, capa, audio, ...resto } = l;
   const capaOk = capaValida(capa);
+  /* `audio` malformado some: nunca vira caminho estranho no CDN de áudio. */
+  const audioOk = audioValido(audio);
   const alternativos = Array.isArray(titulosAlternativos)
     ? titulosAlternativos.filter((x): x is string => typeof x === 'string' && x.trim() !== '')
     : [];
@@ -32,6 +34,7 @@ function comCamposDeObraValidos(l: LivroDoCatalogo): LivroDoCatalogo {
     ...(typeof obra === 'string' && obra ? { obra } : {}),
     ...(alternativos.length ? { titulosAlternativos: alternativos } : {}),
     ...(capaOk ? { capa: capaOk } : {}),
+    ...(audioOk ? { audio: audioOk } : {}),
   };
 }
 

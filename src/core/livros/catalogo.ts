@@ -8,6 +8,7 @@
 import { dobrarTexto } from '../texto/palavra';
 import { passaNaDefesaDoCliente } from './filtroLegal';
 import {
+  type AudioDoCatalogo,
   type CategoriaDoLivro,
   type Classificacao,
   CLASSIFICACOES,
@@ -39,6 +40,33 @@ export function visivelPara(livro: { classificacao?: unknown }, teto: TetoDeClas
   const c = livro.classificacao;
   if (!ehClassificacao(c)) return false;
   return CLASSIFICACOES.indexOf(c) <= CLASSIFICACOES.indexOf(teto);
+}
+
+/** A voz vira pedaço de caminho no CDN (`audiolivros/<livro>/<voz>/…`): só letras, dígitos, `_` e `-`. */
+const VOZ_SEGURA = /^[A-Za-z0-9_-]{1,32}$/;
+
+/** O `audio` do catálogo na forma publicada, ou `null` (qualquer desvio: sem áudio, nunca um caminho estranho). */
+export function audioValido(a: unknown): AudioDoCatalogo | null {
+  if (typeof a !== 'object' || a === null) return null;
+  const { voz, versao, capitulos, horas } = a as Record<string, unknown>;
+  if (typeof voz !== 'string' || !VOZ_SEGURA.test(voz)) return null;
+  if (!Number.isInteger(versao) || (versao as number) < 1) return null;
+  if (!Number.isInteger(capitulos) || (capitulos as number) < 1) return null;
+  if (typeof horas !== 'number' || !Number.isFinite(horas) || horas < 0) return null;
+  return { voz, versao: versao as number, capitulos: capitulos as number, horas };
+}
+
+/**
+ * O livro tem áudio pré-gerado que ESTA pessoa pode ouvir? A porta única do "Ouvir gravado": a flag `audiolivros`
+ * ligada, o `audio` publicado e o livro visível para quem lê (`visivelPara`: menor e livro a revisar ficam de fora).
+ * `false` aqui = nenhuma requisição ao CDN de áudio.
+ */
+export function temAudioVisivel(
+  livro: { audio?: unknown; classificacao?: unknown },
+  teto: TetoDeClassificacao,
+  flagLigada: boolean,
+): boolean {
+  return flagLigada && audioValido(livro.audio) !== null && visivelPara(livro, teto);
 }
 
 /**

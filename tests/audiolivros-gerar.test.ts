@@ -149,6 +149,26 @@ describe('gerarLivro', () => {
     const r = await gerarLivro({ ...base(saida, sintetizador), capitulos: [{ nn: 1, frases }] })
     expect(r.versao).toBe(2)
     expect(existsSync(join(saida, 'audiolivros/pg-teste/falsa/2/01.opus'))).toBe(true)
+    /* O ponteiro `atual.json` (ruling da demo): o cliente lê dele qual pasta de versão buscar. */
+    expect(JSON.parse(readFileSync(join(saida, 'audiolivros/pg-teste/falsa/atual.json'), 'utf8'))).toEqual({
+      versao: 2,
+    })
+  })
+
+  it('atual.json é o ÚLTIMO arquivo gravado (depois do manifesto)', async () => {
+    const saida = mkdtempSync(join(tmpdir(), 'gerar-livro-'))
+    const { sintetizador } = espiao()
+    const ordem: string[] = []
+    await gerarLivro({
+      ...base(saida, sintetizador),
+      capitulos: [{ nn: 1, frases }],
+      aoGravar: (arquivo: string) => ordem.push(arquivo.split('/').slice(-2).join('/')),
+    })
+    expect(ordem.at(-1)).toBe('falsa/atual.json')
+    expect(ordem.at(-2)).toBe('falsa/manifesto.json')
+    expect(JSON.parse(readFileSync(join(saida, 'audiolivros/pg-teste/falsa/atual.json'), 'utf8'))).toEqual({
+      versao: 1,
+    })
   })
 
   it('frase que falha 3 vezes: nada é escrito', async () => {

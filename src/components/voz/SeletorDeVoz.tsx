@@ -1,7 +1,7 @@
 import '../../styles/questAjustes.css';
 import '../../styles/seletorDeVoz.css';
 
-import { AudioLines, Check, Cloud, Cpu, Sparkles, Square, Volume2 } from 'lucide-react';
+import { AudioLines, Check, Cloud, Cpu, Sparkles, Square, Star, Volume2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { FLAG_VOZ_NO_APARELHO } from '../../core/harness/vozNoAparelho';
@@ -201,10 +201,13 @@ export default function SeletorDeVoz({
                 >
                   <Icone aria-hidden />
                   <span className="voz-texto">
-                    <b>{o.nome}</b>
-                    {o.vozDoModelo ? (
-                      o.etiquetas.includes(t('Recomendada')) && <small>{t('Recomendada')}</small>
-                    ) : (
+                    <b>
+                      {o.nome}
+                      {o.vozDoModelo && o.etiquetas.includes(t('Recomendada')) && (
+                        <Star aria-label={t('Recomendada')} className="voz-estrela" />
+                      )}
+                    </b>
+                    {o.vozDoModelo ? null : (
                       <small>{o.tipo === 'aparelho' ? [o.detalhe, ...o.etiquetas].join(' · ') : o.detalhe}</small>
                     )}
                     {o.tipo === 'no-aparelho' &&

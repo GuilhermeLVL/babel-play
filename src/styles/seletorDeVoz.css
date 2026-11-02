@@ -6,6 +6,7 @@
  * de várias, a opção com o botão de ouvir ao lado e o texto em duas linhas (o nome e a variante).
  */
 .voz-seletor {
+  container-type: inline-size;
   display: grid;
   gap: 12px;
   min-width: 0;
@@ -117,17 +118,60 @@
 .voz-grupo {
   margin-top: 6px;
 }
+.voz-linha[data-modelo] {
+  gap: 6px;
+}
 .voz-linha[data-modelo] > .q-opcao {
   padding: 8px 10px;
-  gap: 8px;
+  gap: 6px;
+}
+/* O rótulo do grupo já diz que são vozes de alta qualidade: o ícone repetido só roubava largura do nome. */
+.voz-linha[data-modelo] > .q-opcao > svg:first-child {
+  display: none;
 }
 .voz-linha[data-modelo] > .q-ctl {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
 }
 /* Modelo pronto: uma linha só, com o texto e o botão de apagar. */
 .voz-no-aparelho-pronta {
   grid-auto-flow: column;
   align-items: center;
   justify-content: space-between;
+}
+
+/* Uma lista só rola por vez: quem rola é o painel ou o diálogo que a contém, nunca a lista dentro dele. */
+.voz-lista {
+  max-height: none;
+  overflow: visible;
+}
+.voz-estrela {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-left: 6px;
+  vertical-align: -2px;
+  color: var(--q-acento);
+  fill: currentColor;
+}
+/* Modelo pronto: o texto e o selo na mesma linha, "Apagar" ao lado, sem esticar. */
+.voz-no-aparelho-pronta > .q-aju-nota {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 0;
+}
+.voz-no-aparelho-pronta > .btn {
+  flex: none;
+  width: auto;
+  min-height: 40px;
+  padding-inline: 12px;
+}
+
+/* Painel estreito (o do leitor tem ~350 px): duas colunas cortariam os nomes; uma coluna mantém o alvo de toque inteiro. */
+@container (max-width: 420px) {
+  .voz-lista {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

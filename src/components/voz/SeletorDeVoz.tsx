@@ -22,7 +22,13 @@ import {
   vozEmUso,
   vozGuardada,
 } from '../../lib/voz/preferenciaDeVoz';
-import { motorDaVozNoAparelho, VOZ_NO_APARELHO, vozNoAparelhoUtilizavel } from '../../lib/voz/vozNoAparelho';
+import {
+  definirVozDoNarrador,
+  motorDaVozNoAparelho,
+  VOZ_NO_APARELHO,
+  vozDoNarradorNoAparelho,
+  vozNoAparelhoUtilizavel,
+} from '../../lib/voz/vozNoAparelho';
 import { zoomDoCorpo } from '../../lib/zoomDoCorpo';
 import { toast } from '../Toast';
 import VozNoAparelho from './VozNoAparelho';
@@ -103,7 +109,8 @@ export default function SeletorDeVoz({
   }, [idioma]);
 
   const ouvir = async (o: OpcaoDeVoz) => {
-    const jaTocava = tocando === o.id;
+    const chave = o.vozDoModelo ? `${o.id}:${o.vozDoModelo}` : o.id;
+    const jaTocava = tocando === chave;
     parar();
     setRecuou(false);
     if (jaTocava) return setTocando(null);
@@ -113,7 +120,7 @@ export default function SeletorDeVoz({
     };
     const texto = fraseDeAmostra(idioma);
     const fala = { lang: codigoDeFala(idioma), onEnd: fim, onError: fim };
-    setTocando(o.id);
+    setTocando(chave);
     if (o.tipo === 'nuvem') {
       /* A voz da nuvem fica fora do JS inicial; a amostra gasta os caracteres de uma frase curta. Se a
          nuvem não responder, quem lê é a voz do aparelho, e a tela diz isso. */
@@ -130,7 +137,7 @@ export default function SeletorDeVoz({
       if (meu !== pedido.current) return;
       if (!motor) return fim();
       calar.current = () => motor.cancel();
-      motor.speak(texto, fala);
+      motor.speak(texto, o.vozDoModelo ? { ...fala, voiceName: o.vozDoModelo } : fala);
       return;
     }
     calar.current = cancelSpeech;
@@ -140,6 +147,7 @@ export default function SeletorDeVoz({
 
   const escolher = (o: OpcaoDeVoz) => {
     if (o.id === VOZ_NO_APARELHO && !vozNoAparelhoUtilizavel()) return; // antes de baixar, só o botão de baixar vale
+    if (o.vozDoModelo) definirVozDoNarrador(o.vozDoModelo);
     aoEscolher?.(o.id);
     void escolherVoz(idioma, o.id).then(
       (ok) => ok || toast.warn(t('A voz já vale neste aparelho, mas não deu para guardar na conta agora.')),
@@ -156,16 +164,17 @@ export default function SeletorDeVoz({
       >
         {opcoes.map((o) => {
           const Icone = ICONE[o.tipo];
-          const escolhida = o.id === emUso;
-          const amostra = tocando === o.id;
+          const chave = o.vozDoModelo ? `${o.id}:${o.vozDoModelo}` : o.id;
+          const escolhida = o.id === emUso && (!o.vozDoModelo || o.vozDoModelo === vozDoNarradorNoAparelho());
+          const amostra = tocando === chave;
           return (
-            <div key={o.id || 'automatica'} className="voz-linha">
+            <div key={chave || 'automatica'} className="voz-linha">
               <button
                 type="button"
                 role="radio"
                 className="q-opcao"
                 aria-checked={escolhida}
-                data-voz={o.id || 'automatica'}
+                data-voz={chave || 'automatica'}
                 onClick={() => escolher(o)}
               >
                 <Icone aria-hidden />
@@ -192,7 +201,7 @@ export default function SeletorDeVoz({
                 className="q-ctl"
                 aria-pressed={amostra}
                 aria-label={amostra ? t('Parar a amostra') : t('Ouvir uma amostra da voz {voz}', { voz: o.nome })}
-                data-amostra={o.id || 'automatica'}
+                data-amostra={chave || 'automatica'}
                 disabled={o.tipo === 'no-aparelho' && !vozNoAparelhoUtilizavel()}
                 onClick={() => void ouvir(o)}
               >

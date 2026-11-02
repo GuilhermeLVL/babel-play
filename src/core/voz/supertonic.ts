@@ -20,6 +20,12 @@ export const VOZES_DO_SUPERTONIC = ['F1', 'F2', 'F3', 'F4', 'F5', 'M1', 'M2', 'M
 export type VozDoSupertonic = (typeof VOZES_DO_SUPERTONIC)[number];
 export const VOZ_PADRAO_DO_NARRADOR: VozDoSupertonic = 'F1';
 
+/** O modelo só informa o id; o app diz só o que sabe: feminina/masculina e o número. */
+export const rotuloDaVozDoSupertonic = (v: VozDoSupertonic): { genero: 'feminina' | 'masculina'; numero: string } => ({
+  genero: v.startsWith('F') ? 'feminina' : 'masculina',
+  numero: v.slice(1),
+});
+
 export const ehVozDoSupertonic = (v: unknown): v is VozDoSupertonic =>
   typeof v === 'string' && (VOZES_DO_SUPERTONIC as readonly string[]).includes(v);
 

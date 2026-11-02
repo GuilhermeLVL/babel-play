@@ -1,12 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 import type { MotivoDaOferta } from '../../core/harness/vozNoAparelho';
-import {
-  ehVozDoSupertonic,
-  idiomaDoSupertonic,
-  MB_DO_SUPERTONIC,
-  VOZES_DO_SUPERTONIC,
-} from '../../core/voz/supertonic';
+import { idiomaDoSupertonic, MB_DO_SUPERTONIC } from '../../core/voz/supertonic';
 import { t } from '../../lib/i18n';
 import {
   aoMudarVozNoAparelho,
@@ -14,11 +9,9 @@ import {
   baixarVozNoAparelho,
   cancelarDownloadDaVozNoAparelho,
   decisaoDaVozNoAparelho,
-  definirVozDoNarrador,
   estadoDaVozNoAparelho,
   modeloNoAparelho,
   raizDoModelo,
-  vozDoNarradorNoAparelho,
 } from '../../lib/voz/vozNoAparelho';
 import ChipVozSintetizada from '../views/leitor/ChipVozSintetizada';
 
@@ -42,7 +35,6 @@ const mb = (bytes: number) => Math.round(bytes / 1_000_000);
  */
 export default function VozNoAparelho({ idioma, aoFicarPronta }: { idioma: string; aoFicarPronta: () => void }) {
   const estado = useSyncExternalStore(aoMudarVozNoAparelho, estadoDaVozNoAparelho);
-  useSyncExternalStore(aoMudarVozNoAparelho, vozDoNarradorNoAparelho);
   if (!raizDoModelo() || !idiomaDoSupertonic(idioma)) return null;
   const d = decisaoDaVozNoAparelho();
   if (d.oferta === 'nao') {
@@ -76,21 +68,6 @@ export default function VozNoAparelho({ idioma, aoFicarPronta }: { idioma: strin
         <p className="q-aju-nota" role="status">
           {t('A voz de alta qualidade está pronta neste aparelho.')} <ChipVozSintetizada />
         </p>
-        <label className="voz-no-aparelho-narrador">
-          <span>{t('Voz do narrador')}</span>
-          <select
-            className="campo"
-            value={vozDoNarradorNoAparelho()}
-            data-testid="voz-do-narrador-no-aparelho"
-            onChange={(e) => ehVozDoSupertonic(e.target.value) && definirVozDoNarrador(e.target.value)}
-          >
-            {VOZES_DO_SUPERTONIC.map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </label>
         <button type="button" className="btn btn-outline" onClick={() => void apagarVozNoAparelho()}>
           {t('Apagar do aparelho')}
         </button>

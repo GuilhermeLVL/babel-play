@@ -6055,7 +6055,6 @@
   "Baixando a voz de alta qualidade": "Downloading the high-quality voice",
   "Baixando: {feito} de {total} MB.": "Downloading: {feito} of {total} MB.",
   "A voz de alta qualidade está pronta neste aparelho.": "The high-quality voice is ready on this device.",
-  "Voz do narrador": "Narrator voice",
   "Baixa uma vez, ≈ {mb} MB; fica só neste aparelho; funciona sem internet depois; você apaga quando quiser.": "Downloads once, ≈ {mb} MB; stays only on this device; works offline afterwards; you can delete it anytime.",
   "Usa cerca de 2 a 3 GB de memória enquanto lê. Se o computador ficar lento, feche outras abas.": "Uses about 2 to 3 GB of memory while reading. If your computer slows down, close other tabs.",
   "Neste navegador ela roda mais devagar: a primeira frase pode levar alguns segundos.": "In this browser it runs slower: the first sentence may take a few seconds.",
@@ -6070,5 +6069,7 @@
   "Baixando a voz de alta qualidade. A leitura continua.": "Downloading the high-quality voice. Reading continues.",
   "Preparando a voz…": "Preparing the voice…",
   "Pronto: a próxima frase já sai na voz nova.": "Done: the next sentence will use the new voice.",
-  "A leitura continua com a voz do sistema. Tente baixar de novo em Voz e modo.": "Reading continues with the system voice. Try downloading again in Voice and mode."
+  "A leitura continua com a voz do sistema. Tente baixar de novo em Voz e modo.": "Reading continues with the system voice. Try downloading again in Voice and mode.",
+  "Feminina {n}": "Female {n}",
+  "Masculina {n}": "Male {n}"
 }

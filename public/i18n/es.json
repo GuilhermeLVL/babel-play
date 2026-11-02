@@ -2559,7 +2559,6 @@
   "Baixando a voz de alta qualidade": "Descargando la voz de alta calidad",
   "Baixando: {feito} de {total} MB.": "Descargando: {feito} de {total} MB.",
   "A voz de alta qualidade está pronta neste aparelho.": "La voz de alta calidad está lista en este dispositivo.",
-  "Voz do narrador": "Voz del narrador",
   "Apagar do aparelho": "Borrar del dispositivo",
   "Baixa uma vez, ≈ {mb} MB; fica só neste aparelho; funciona sem internet depois; você apaga quando quiser.": "Se descarga una vez, ≈ {mb} MB; queda solo en este dispositivo; funciona sin internet después; la borras cuando quieras.",
   "Usa cerca de 2 a 3 GB de memória enquanto lê. Se o computador ficar lento, feche outras abas.": "Usa unos 2 a 3 GB de memoria mientras lee. Si el ordenador se pone lento, cierra otras pestañas.",
@@ -2575,5 +2574,7 @@
   "Baixando a voz de alta qualidade. A leitura continua.": "Descargando la voz de alta calidad. La lectura continúa.",
   "Preparando a voz…": "Preparando la voz…",
   "Pronto: a próxima frase já sai na voz nova.": "Listo: la próxima frase ya sale con la voz nueva.",
-  "A leitura continua com a voz do sistema. Tente baixar de novo em Voz e modo.": "La lectura continúa con la voz del sistema. Intenta descargarla de nuevo en Voz y modo."
+  "A leitura continua com a voz do sistema. Tente baixar de novo em Voz e modo.": "La lectura continúa con la voz del sistema. Intenta descargarla de nuevo en Voz y modo.",
+  "Feminina {n}": "Femenina {n}",
+  "Masculina {n}": "Masculina {n}"
 }

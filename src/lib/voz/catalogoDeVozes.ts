@@ -9,12 +9,19 @@
  * O que o navegador NÃO informa não é inventado: a Web Speech só dá nome, idioma e `localService`.
  * "Natural" é a heurística de nome de `isNeuralVoice` (a mesma que escolhe a automática).
  */
-import { idiomaDoSupertonic, MB_DO_SUPERTONIC } from '../../core/voz/supertonic';
+import {
+  idiomaDoSupertonic,
+  MB_DO_SUPERTONIC,
+  rotuloDaVozDoSupertonic,
+  VOZ_PADRAO_DO_NARRADOR,
+  type VozDoSupertonic,
+  VOZES_DO_SUPERTONIC,
+} from '../../core/voz/supertonic';
 import { vozesUteis } from '../../core/voz/vozesUteis';
 import { idiomaDaInterface, t } from '../i18n';
 import { codigoDeFala, type VoiceInfo, voicesFor } from '../tts';
 import { VOZ_AUTOMATICA, VOZ_DA_NUVEM, vozDaNuvemDisponivel, vozEmUso } from './preferenciaDeVoz';
-import { VOZ_NO_APARELHO, vozNoAparelhoOferecida } from './vozNoAparelho';
+import { modeloNoAparelho, VOZ_NO_APARELHO, vozNoAparelhoOferecida } from './vozNoAparelho';
 
 export interface OpcaoDeVoz {
   /** O que vai para a preferência: `''` (automática), `@nuvem`, ou o nome exato da voz do aparelho. */
@@ -25,6 +32,8 @@ export interface OpcaoDeVoz {
   detalhe: string;
   /** Etiquetas curtas: "Natural", "No aparelho", "Pela internet", "Nuvem". */
   etiquetas: string[];
+  /** Só na voz de alta qualidade com o modelo baixado: qual das 10 vozes do modelo esta linha é. */
+  vozDoModelo?: VozDoSupertonic;
 }
 
 /**
@@ -92,15 +101,31 @@ export function opcoesDeVoz(
     });
   }
   if (noAparelho && idiomaDoSupertonic(idioma)) {
-    opcoes.push({
-      id: VOZ_NO_APARELHO,
-      tipo: 'no-aparelho',
-      nome: t('Voz de alta qualidade'),
-      detalhe: t('Voz sintetizada que roda neste aparelho. Baixa uma vez (≈ {mb} MB) e depois funciona sem internet.', {
-        mb: MB_DO_SUPERTONIC,
-      }),
-      etiquetas: [t('Voz sintetizada')],
-    });
+    if (modeloNoAparelho()) {
+      /* Com o modelo baixado, as 10 vozes dele viram 10 linhas (a mesma escolha `@no-aparelho`, a voz vai para o narrador). */
+      for (const v of VOZES_DO_SUPERTONIC) {
+        const r = rotuloDaVozDoSupertonic(v);
+        opcoes.push({
+          id: VOZ_NO_APARELHO,
+          tipo: 'no-aparelho',
+          nome: r.genero === 'feminina' ? t('Feminina {n}', { n: r.numero }) : t('Masculina {n}', { n: r.numero }),
+          detalhe: t('Voz de alta qualidade'),
+          etiquetas: v === VOZ_PADRAO_DO_NARRADOR ? [t('Voz sintetizada'), t('Recomendada')] : [t('Voz sintetizada')],
+          vozDoModelo: v,
+        });
+      }
+    } else {
+      opcoes.push({
+        id: VOZ_NO_APARELHO,
+        tipo: 'no-aparelho',
+        nome: t('Voz de alta qualidade'),
+        detalhe: t(
+          'Voz sintetizada que roda neste aparelho. Baixa uma vez (≈ {mb} MB) e depois funciona sem internet.',
+          { mb: MB_DO_SUPERTONIC },
+        ),
+        etiquetas: [t('Voz sintetizada')],
+      });
+    }
   }
   /* A recomendada é a que a "Automática" lê: natural, no aparelho e do país exato do idioma (`core/voz/melhorVoz.ts`). */
   /* A ordem da lista é a da recomendação: a melhor primeiro, depois as outras do mesmo idioma. */

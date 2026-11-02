@@ -71,6 +71,8 @@ export interface VistaDoNarrador {
   gravado?: boolean;
   /** A frase sai da voz sintetizada NO APARELHO (`neural-local`; o chip "Voz sintetizada" aparece). */
   vozLocal?: boolean;
+  /** A frase sai da voz do SISTEMA (`speechSynthesis`): só então o convite da voz no aparelho pode aparecer. */
+  vozDoSistema?: boolean;
 }
 
 /**
@@ -139,6 +141,11 @@ export interface DependenciasDoNarrador {
    * pessoa o escolheu para o idioma. Ausente = a porta decide com o que já está registrado (hoje: nada muda).
    */
   garantirVozLocal?: (idioma: string) => Promise<void>;
+  /**
+   * A voz no aparelho lê o idioma agora? (para o teste, com `aparelho` falso). Padrão: a porta (`neuralLocalPronto`), e
+   * `false` quando o teste injeta o `aparelho` sem isto.
+   */
+  vozLocalPronta?: (idioma: string) => boolean;
 }
 
 /** O capítulo com áudio gravado conferido (hash das frases = manifesto, tempos válidos). */
@@ -170,6 +177,8 @@ export class Narrador {
   private neural: TtsEngine | null = null;
   /** A frase em curso sai do motor local? (o chip "Voz sintetizada") */
   private falandoLocal = false;
+  /** A frase em curso sai da voz do sistema? (o convite da voz no aparelho) */
+  private falandoSistema = false;
   private traducoes = new Map<string, Promise<string | null>>();
   private destruido = false;
   modo: ModoDaNarracao = 'original';
@@ -219,6 +228,7 @@ export class Narrador {
       fala: this.falaDa(comDestaque ? e.indice : -1),
       ...(this.d.audioGravado ? { gravado: comDestaque && this.usaGravado() } : {}),
       ...(comDestaque && this.falandoLocal ? { vozLocal: true } : {}),
+      ...(comDestaque && this.falandoSistema ? { vozDoSistema: true } : {}),
     };
   }
 
@@ -313,6 +323,16 @@ export class Narrador {
       this.timerDoReinicio = null;
       this.reiniciarFrase();
     }, ATRASO_DO_REINICIO_MS);
+  }
+  /**
+   * A voz no aparelho ficou pronta NO MEIO da leitura (o convite "Baixar e usar"): a frase em curso termina na voz de
+   * antes (nada é cortado nem recomeça) e as 2 seguintes já são sintetizadas, para a troca não deixar silêncio.
+   */
+  async anteciparVozLocal(): Promise<void> {
+    const e = this.estado;
+    if (e.fase !== 'tocando' || this.destruido) return;
+    const { motor, id } = await this.motorDeVoz(this.d.idiomaDoLivro());
+    if (id === 'neural-local' && this.estado.vez === e.vez) this.preBuscar(e.indice, motor);
   }
   definirModo(m: ModoDaNarracao) {
     this.modo = m;
@@ -672,6 +692,8 @@ export class Narrador {
       await this.preparoDoGravado;
       if (this.estado.vez !== vez || this.destruido) return;
       if (this.usaGravado()) {
+        this.falandoSistema = false;
+        this.falandoLocal = false;
         if (this.fraseDoAudio !== indice) {
           await this.tocarGravado(indice);
           if (!this.destruido) this.d.aoMudar(this.vista); // o chip aparece com o áudio
@@ -692,8 +714,9 @@ export class Narrador {
       if (this.estado.vez !== vez) return;
       const { id } = escolhido;
       const motor = this.d.envolverMotor ? this.d.envolverMotor(escolhido.motor) : escolhido.motor;
-      if (this.falandoLocal !== (id === 'neural-local')) {
+      if (this.falandoLocal !== (id === 'neural-local') || this.falandoSistema !== (id === 'aparelho')) {
         this.falandoLocal = id === 'neural-local';
+        this.falandoSistema = id === 'aparelho';
         this.d.aoMudar(this.vista);
       }
       /* Só o passo do LIVRO leva elenco; a tradução fala sempre na voz da pessoa. */
@@ -760,8 +783,11 @@ export class Narrador {
     const quem = vozDaNarracao({
       escolheuNuvem: this.d.escolheuNuvem(idioma),
       ...liberada,
-      /* Hoje ninguém registra o motor neural local: o campo vale `false` e nada muda. */
-      neuralLocalPronto: this.d.aparelho ? false : neuralLocalPronto(idioma),
+      neuralLocalPronto: this.d.vozLocalPronta
+        ? this.d.vozLocalPronta(idioma)
+        : this.d.aparelho
+          ? false
+          : neuralLocalPronto(idioma),
     });
     if (quem === 'neural-local') {
       try {

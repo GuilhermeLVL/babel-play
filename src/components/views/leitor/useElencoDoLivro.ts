@@ -21,11 +21,13 @@ import {
   type VoiceInfo,
   voicesFor,
 } from '../../../lib/tts';
-import { vozEmUso } from '../../../lib/voz/preferenciaDeVoz';
-import { motorDaVozNoAparelho, VOZ_NO_APARELHO, vozDoNarradorNoAparelho } from '../../../lib/voz/vozNoAparelho';
+import { motorDaVozNoAparelho, vozDoNarradorNoAparelho, vozNoAparelhoLe } from '../../../lib/voz/vozNoAparelho';
 
-/** A voz no aparelho lê este idioma agora (escolhida, baixada, flag e perfil)? Então o elenco usa as vozes dela. */
-const comVozNoAparelho = (idioma: string) => !!idioma && vozEmUso(idioma) === VOZ_NO_APARELHO;
+/**
+ * A voz no aparelho lê este idioma agora (escolhida ou "Automática" com o modelo baixado, flag e perfil)? Então o elenco
+ * usa as vozes dela.
+ */
+const comVozNoAparelho = (idioma: string) => !!idioma && vozNoAparelhoLe(idioma);
 
 /**
  * As vozes que o elenco distribui: com a voz no aparelho, as 10 do Supertonic (F1–F5, M1–M5; a ordem e a escolha seguem o

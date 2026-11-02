@@ -9,9 +9,14 @@
  *  · A VOZ DO NARRADOR (padrão F1) e a do elenco: `vozDoNarradorNoAparelho()`.
  */
 import {
+  convidarParaVozNoAparelho,
   type DecisaoDaVozNoAparelho,
+  type EntradaDaVozDaLeitura,
+  type EntradaDaVozNoAparelho,
+  type EscolhaDaVoz,
   FLAG_VOZ_NO_APARELHO,
   ofertaDaVozNoAparelho,
+  supertonicLe,
 } from '../../core/harness/vozNoAparelho';
 import {
   ehVozDoSupertonic,
@@ -20,11 +25,13 @@ import {
   VOZ_PADRAO_DO_NARRADOR,
   type VozDoSupertonic,
 } from '../../core/voz/supertonic';
+import { FLAG_VOZ_NATURAL } from '../../core/vozNatural';
 import { motorDeVozRegistrado, registrarMotorDeVoz } from '../../gateway/registroDeMotoresDeVoz';
 import { perfilDoDispositivo } from '../dispositivo/perfil';
+import { getEntitlements } from '../entitlements';
 import { flagLigada } from '../flagsCache';
 import { perfilProtegido } from '../protecaoDoMenor';
-import { getVoicePrefs, type TtsEngine } from '../tts';
+import { getVoicePrefs, getVoices, type TtsEngine } from '../tts';
 
 /** A escolha "Voz de alta qualidade (no aparelho)" na preferência de voz. O `@` não existe em voz do sistema. */
 export const VOZ_NO_APARELHO = '@no-aparelho';
@@ -66,9 +73,13 @@ const ehIos = (ua: string, toques: number) => /iPhone|iPad|iPod/i.test(ua) || (/
 
 /** O portão agora: a flag, o perfil de quem lê e o do aparelho. */
 export function decisaoDaVozNoAparelho(): DecisaoDaVozNoAparelho {
+  return ofertaDaVozNoAparelho(entradaDoPortao());
+}
+
+function entradaDoPortao(): EntradaDaVozNoAparelho {
   const p = perfilDoDispositivo();
   const nav = typeof navigator !== 'undefined' ? navigator : undefined;
-  return ofertaDaVozNoAparelho({
+  return {
     flagLigada: flagLigada(FLAG_VOZ_NO_APARELHO),
     perfilProtegido: perfilProtegido(),
     tipo: p.tipo,
@@ -79,7 +90,7 @@ export function decisaoDaVozNoAparelho(): DecisaoDaVozNoAparelho {
     isolado: p.sinais.isolado,
     ios: ehIos(p.sinais.userAgent, p.sinais.toques),
     armazenamento: typeof nav?.storage?.getDirectory === 'function',
-  });
+  };
 }
 
 /** A opção aparece (por padrão ou por escolha)? Sem a raiz dos pesos, nunca. */
@@ -95,6 +106,67 @@ export const vozNoAparelhoUtilizavel = (): boolean => modeloNoAparelho() && vozN
 export function vozNoAparelhoPronta(idioma: string): boolean {
   const base = idiomaDoSupertonic(idioma);
   return !!base && getVoicePrefs()[base] === VOZ_NO_APARELHO && vozNoAparelhoUtilizavel();
+}
+
+/* ───────── o primeiro contato: a "Automática" e o convite ───────── */
+
+const CHAVE_DO_CONVITE = 'frasy.vozNoAparelho.conviteRecusadoEm';
+
+/** A escolha guardada para o idioma, classificada (voz do sistema que sumiu, ou nuvem fora do plano, = automática). */
+function escolhaDaVoz(idioma: string): EscolhaDaVoz {
+  const guardada = getVoicePrefs()[idiomaDoSupertonic(idioma) ?? ''] ?? '';
+  if (guardada === VOZ_NO_APARELHO) return 'no-aparelho';
+  if (guardada === '@nuvem')
+    return getEntitlements().vozNatural && flagLigada(FLAG_VOZ_NATURAL) ? 'nuvem' : 'automatica';
+  if (!guardada) return 'automatica';
+  /* Antes de o sistema entregar a lista de vozes, não dá para saber se a escolhida sumiu: ela vale. */
+  const vozes = getVoices();
+  return !vozes.length || vozes.some((v) => v.name === guardada) ? 'sistema' : 'automatica';
+}
+
+function entradaDaLeitura(idioma: string): EntradaDaVozDaLeitura {
+  return {
+    ...entradaDoPortao(),
+    idiomaSuportado: !!idiomaDoSupertonic(idioma),
+    modeloPronto: modeloNoAparelho(),
+    escolha: escolhaDaVoz(idioma),
+  };
+}
+
+/**
+ * A voz no aparelho LÊ este idioma agora? A escolha explícita dela, ou a "Automática" com o modelo já pronto (a melhor
+ * voz disponível desde a primeira frase). Uma voz do sistema escolhida pela pessoa sempre vence.
+ */
+export const vozNoAparelhoLe = (idioma: string): boolean =>
+  raizDoModelo() !== null && supertonicLe(entradaDaLeitura(idioma));
+
+const recusadoEm = (): number | null => {
+  const n = Number(ler(CHAVE_DO_CONVITE));
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
+/** Mostrar o convite "Quer uma voz mais natural?" na barra do narrador? */
+export function conviteDaVozNoAparelho(idioma: string, audioGravado: boolean): boolean {
+  if (raizDoModelo() === null) return false;
+  return convidarParaVozNoAparelho({
+    ...entradaDaLeitura(idioma),
+    audioGravado,
+    recusadoEm: recusadoEm(),
+    agora: Date.now(),
+  });
+}
+
+/** "Agora não": o convite não volta neste aparelho por 30 dias (a opção segue no seletor). */
+export function recusarConviteDaVozNoAparelho(): void {
+  gravar(CHAVE_DO_CONVITE, String(Date.now()));
+}
+
+/** Carrega as sessões do modelo no worker (a conferência de que ele abre aqui), antes de trocar a voz. */
+export async function aquecerVozNoAparelho(): Promise<void> {
+  await carregarMotor();
+  await (
+    motorDeVozRegistrado('neural-local') as { cliente?: { carregar(): Promise<unknown> } } | undefined
+  )?.cliente?.carregar();
 }
 
 export function vozDoNarradorNoAparelho(): VozDoSupertonic {
@@ -160,7 +232,7 @@ export function carregarMotor(): Promise<Modulo> {
       m.adaptadorDoSupertonic({
         threads: d.threadsWasm,
         webgpu: d.backend === 'webgpu',
-        pronto: vozNoAparelhoPronta,
+        pronto: vozNoAparelhoLe,
         vozPadrao: vozDoNarradorNoAparelho,
         contexto: contextoDaVozNoAparelho,
         soltarAposMs: perfilDoDispositivo().poucaMemoria ? 0 : SOLTAR_APOS_MS,

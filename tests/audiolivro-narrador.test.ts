@@ -8,6 +8,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { type FraseComTempo, hashDasFrases, type ManifestoDeAudio } from '../src/core/leitura/audiolivro'
 import { OPCOES_PADRAO_DA_NARRACAO } from '../src/core/leitura/estilosDeLeitura'
+import { CAPACIDADES_DO_APARELHO } from '../src/core/voz/portaDeVoz'
+import { registrarMotorDeVoz, reiniciarRegistroDeMotoresDeVoz } from '../src/gateway/registroDeMotoresDeVoz'
 import type { ReprodutorDeCapitulo } from '../src/lib/leitor/audiolivro/reprodutor'
 import type { MotorDoLeitor } from '../src/lib/leitor/motor'
 import {
@@ -337,5 +339,30 @@ describe('o narrador com áudio gravado', () => {
     await esperar()
     expect(m.aparelho.falas).toEqual(['Um'])
     expect(m.reprodutor.carregar).not.toHaveBeenCalled()
+  })
+
+  it('o áudio gravado vence a voz no aparelho pronta: nem ela nem a do sistema falam (e não há convite)', async () => {
+    const neural = voz()
+    registrarMotorDeVoz({
+      id: 'neural-local',
+      capacidades: CAPACIDADES_DO_APARELHO,
+      pronto: () => true,
+      criar: () => neural,
+    })
+    try {
+      const m = montar({
+        manifesto: await manifestoCom([{ nn: 1, frases: FRASES_1 }]),
+        extra: { vozLocalPronta: () => true },
+      })
+      m.n.tocar()
+      await esperar()
+      expect(m.reprodutor.chamadas).toEqual(['carregar https://cdn/1/01.opus', 'tocarDe 0'])
+      expect(neural.falas).toEqual([])
+      expect(m.aparelho.falas).toEqual([])
+      expect(m.ultima().gravado).toBe(true)
+      expect(m.ultima().vozDoSistema).toBeUndefined()
+    } finally {
+      reiniciarRegistroDeMotoresDeVoz()
+    }
   })
 })

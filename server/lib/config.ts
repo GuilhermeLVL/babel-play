@@ -1011,6 +1011,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue:
       'chave PÚBLICA do Cloudflare Turnstile: o convidado passa pelo captcha antes de o Supabase criar o usuário anônimo (Fase 7). Com ela a CSP libera challenges.cloudflare.com; sem ela o captcha fica desligado',
   },
+  {
+    nome: 'VITE_VOZ_MODELO_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'raiz pública do bucket R2 com os pesos da voz no aparelho (Supertonic 3: `onnx/*.onnx|json` e `voice_styles/F1…M5.json`, ~401 MB, sha256 fixado em `src/core/voz/supertonic.ts`), para a flag `voz_no_aparelho`. Ausente: a opção "Voz de alta qualidade (no aparelho)" não aparece e a narração lê com a voz do sistema. Com ela, a CSP libera a origem em `connect-src` (dado, nunca `script-src`)',
+  },
 ]
 
 /**

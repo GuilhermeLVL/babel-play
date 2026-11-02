@@ -12,6 +12,7 @@
  */
 import { frasesDoTexto } from '../leitura/narracao';
 import { type IdiomaDeVoz, prepararTextoParaVoz } from '../leitura/prepararTextoParaVoz';
+import type { CapacidadesDoMotor } from './portaDeVoz';
 
 export const REVISAO_DO_SUPERTONIC = '724fb5abbf5502583fb520898d45929e62f02c0b';
 
@@ -119,6 +120,20 @@ export const ARQUIVOS_DO_SUPERTONIC: readonly ArquivoDoSupertonic[] = [
 export const BYTES_DO_SUPERTONIC = ARQUIVOS_DO_SUPERTONIC.reduce((s, a) => s + a.bytes, 0);
 /** O tamanho que a tela diz antes de baixar (MB decimais, arredondado). */
 export const MB_DO_SUPERTONIC = Math.round(BYTES_DO_SUPERTONIC / 1_000_000);
+
+/** O que o motor sabe fazer, para a porta (`core/voz/portaDeVoz.ts`). Tom não existe no modelo. */
+export const CAPACIDADES_DO_SUPERTONIC: CapacidadesDoMotor = {
+  idiomas: IDIOMAS_DO_SUPERTONIC,
+  retomaNoMeio: false,
+  velocidade: { min: 0.5, max: 2 },
+  tom: null,
+  volume: { min: 0, max: 1 },
+  estilos: false,
+  tamanhoMb: MB_DO_SUPERTONIC,
+  precisaIsolamento: false,
+  licenca: 'pesos OpenRAIL-M (Supertone/supertonic-3); código do pipeline MIT',
+  textoSaiDoAparelho: false,
+};
 
 /** A URL de cada arquivo a partir da raiz (sem barra dupla). */
 export const urlDoArquivo = (raiz: string, a: ArquivoDoSupertonic): string =>

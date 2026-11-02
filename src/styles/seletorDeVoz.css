@@ -125,9 +125,12 @@
   padding: 8px 10px;
   gap: 6px;
 }
-/* O rótulo do grupo já diz que são vozes de alta qualidade: o ícone repetido só roubava largura do nome. */
-.voz-linha[data-modelo] > .q-opcao > svg:first-child {
-  display: none;
+.voz-avatar {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 .voz-linha[data-modelo] > .q-ctl {
   width: 36px;

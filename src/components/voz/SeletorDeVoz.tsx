@@ -10,6 +10,7 @@ import { useFlag } from '../../lib/flags';
 import { t } from '../../lib/i18n';
 import { langLabelNaUI } from '../../lib/languages';
 import { cancelSpeech, codigoDeFala, speak, vozesCarregadas } from '../../lib/tts';
+import { avatarDaVoz } from '../../lib/voz/avatarDaVoz';
 import { fraseDeAmostra, nomeLegivelDaVoz, type OpcaoDeVoz, opcoesDeVoz } from '../../lib/voz/catalogoDeVozes';
 import { passosParaInstalarVoz } from '../../lib/voz/faltaDeVoz';
 import {
@@ -199,7 +200,11 @@ export default function SeletorDeVoz({
                   data-voz={chave || 'automatica'}
                   onClick={() => escolher(o)}
                 >
-                  <Icone aria-hidden />
+                  {o.vozDoModelo ? (
+                    <img className="voz-avatar" src={avatarDaVoz(o.vozDoModelo)} alt="" width={36} height={36} />
+                  ) : (
+                    <Icone aria-hidden />
+                  )}
                   <span className="voz-texto">
                     <b>
                       {o.nome}

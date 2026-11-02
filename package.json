@@ -126,6 +126,8 @@
   },
   "devDependencies": {
     "@ast-grep/cli": "0.45.1",
+    "@dicebear/core": "^9.4.3",
+    "@dicebear/lorelei": "^9.4.2",
     "@eslint/js": "^10.0.1",
     "@libsql/client": "^0.17.4",
     "@playwright/test": "^1.64.1",

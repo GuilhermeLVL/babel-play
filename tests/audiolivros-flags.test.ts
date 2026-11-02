@@ -26,12 +26,14 @@ function migracao(pasta: string): { tag: string; sql: string; journal: { entries
 
 describe('migrações das flags dos audiolivros', () => {
   for (const pasta of ['migrations-pg', 'migrations-sqlite']) {
-    it(`${pasta}: o journal registra a migração por último, com when crescente`, () => {
+    it(`${pasta}: o journal registra a migração, com when crescente em relação às vizinhas`, () => {
       const m = migracao(pasta)
       const entradas = m.journal.entries
       const i = entradas.findIndex((e) => e.tag === m.tag)
-      expect(i).toBe(entradas.length - 1)
+      /* Não precisa ser a última: migrações posteriores (ex.: `voz_no_aparelho`) entram depois dela. */
+      expect(i).toBeGreaterThan(0)
       expect(entradas[i].when).toBeGreaterThan(entradas[i - 1].when)
+      if (entradas[i + 1]) expect(entradas[i + 1].when).toBeGreaterThan(entradas[i].when)
     })
 
     it(`${pasta}: semeia as 3 chaves desligadas, sem regra, sem sobrescrever`, () => {

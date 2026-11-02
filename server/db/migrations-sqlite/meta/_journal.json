@@ -421,6 +421,13 @@
       "when": 1793600000000,
       "tag": "0059_flags_audiolivros",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "6",
+      "when": 1793700000000,
+      "tag": "0060_flag_voz_no_aparelho",
+      "breakpoints": true
     }
   ]
 }

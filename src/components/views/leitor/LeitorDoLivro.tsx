@@ -93,10 +93,10 @@ import { useVozesPreferidas, VOZ_DA_NUVEM, vozDaNuvemDisponivel, vozEmUso } from
 import { destravarVozDaNuvem } from '../../../lib/voz/vozDaNuvem';
 import {
   carregarMotor,
+  conviteDaVozNoAparelho,
   destravarVozNoAparelho,
-  VOZ_NO_APARELHO,
   vozDoNarradorNoAparelho,
-  vozNoAparelhoPronta,
+  vozNoAparelhoLe,
 } from '../../../lib/voz/vozNoAparelho';
 import type { VocabWord } from '../../../types';
 import { BotaoDoAvatar, DicaDoAvatar } from '../../avatar/modo/BotaoDoAvatar';
@@ -106,6 +106,7 @@ import AvatarDoNarrador from './AvatarDoNarrador';
 import BarraDaSelecao, { type TrechoSelecionado } from './BarraDaSelecao';
 import BarraDoNarrador, { aoTeclarNoNarrador, PainelDaNarracao } from './BarraDoNarrador';
 import CartaoDaPalavra from './CartaoDaPalavra';
+import ConviteDaVozNoAparelho from './ConviteDaVozNoAparelho';
 import DicaDoElenco from './DicaDoElenco';
 import { etiquetaDaPalavra, HistoricoNaFolha } from './ganchosDaPalavra';
 import PainelDaTraducao from './PainelDaTraducao';
@@ -513,9 +514,10 @@ export default function LeitorDoLivro({
       elenco: () => elencoRef.current.config(),
       envolverMotor: (m) => ponte.envolver(m),
       audioGravado: () => audioGravadoRef.current,
-      /* A VOZ NO APARELHO (flag `voz_no_aparelho`): o motor só chega por import() quando a pessoa o escolheu e ele serve. */
+      /* A VOZ NO APARELHO (flag `voz_no_aparelho`): o motor só chega por import() quando ele lê o idioma (escolhido, ou a
+         "Automática" com o modelo já pronto). */
       garantirVozLocal: async (idioma) => {
-        if (vozNoAparelhoPronta(idioma)) await carregarMotor();
+        if (vozNoAparelhoLe(idioma)) await carregarMotor();
       },
       aoNavegar: () => {
         ignorarToquesAte.current = Date.now() + 900;
@@ -549,6 +551,17 @@ export default function LeitorDoLivro({
   }, [estado, livroId, ponte]);
 
   /* O estado da narração para o leitor de tela: UMA vez por mudança de estado, nunca por frase. */
+  /* O CONVITE DA VOZ NO APARELHO (primeiro contato): avaliado UMA vez, quando a primeira frase sai da voz do sistema. Livro
+     com áudio pré-gerado nunca convida (o gravado tem prioridade, mesmo se ele falhar e a voz do sistema assumir). */
+  const [convidarVoz, setConvidarVoz] = useState(false);
+  const conviteAvaliado = useRef(false);
+  useEffect(() => {
+    if (conviteAvaliado.current || !vistaNarrador.vozDoSistema) return;
+    conviteAvaliado.current = true;
+    if (conviteDaVozNoAparelho(idiomaRef.current, !!audioGravadoRef.current || !!vistaNarrador.gravado))
+      setConvidarVoz(true);
+  }, [vistaNarrador.vozDoSistema, vistaNarrador.gravado]);
+
   const faseAnunciada = useRef(vistaNarrador.fase);
   useEffect(() => {
     const f = vistaNarrador.fase;
@@ -1009,9 +1022,7 @@ export default function LeitorDoLivro({
     <PainelDoElenco
       elenco={elenco}
       vozDoNarrador={
-        vozEmUso(idiomaRef.current) === VOZ_NO_APARELHO
-          ? vozDoNarradorNoAparelho()
-          : (getVoicePref(idiomaRef.current) ?? '')
+        vozNoAparelhoLe(idiomaRef.current) ? vozDoNarradorNoAparelho() : (getVoicePref(idiomaRef.current) ?? '')
       }
       nuvem={vozEmUso(idiomaRef.current) === VOZ_DA_NUVEM}
     />
@@ -1380,6 +1391,14 @@ export default function LeitorDoLivro({
             abrirPainel('narracao');
           }}
           aoParar={fecharNarracao}
+          convite={
+            convidarVoz ? (
+              <ConviteDaVozNoAparelho
+                idioma={idiomaRef.current}
+                aoFicarPronta={() => void narradorRef.current?.anteciparVozLocal()}
+              />
+            ) : undefined
+          }
         />
       )}
 

@@ -138,6 +138,7 @@ export default function BarraDoNarrador({
   aoAlternar,
   aoAjustes,
   aoParar,
+  convite,
 }: {
   vista: VistaDoNarrador;
   narrador: Narrador | null;
@@ -145,6 +146,8 @@ export default function BarraDoNarrador({
   aoAlternar: () => void;
   aoAjustes: () => void;
   aoParar: () => void;
+  /** O convite da voz no aparelho (primeiro contato), desenhado no topo da barra, sem pausar a leitura. */
+  convite?: ReactNode;
 }) {
   const tocando = vista.fase === 'tocando' || vista.fase === 'virando';
   const ativa = vista.fase !== 'parada';
@@ -160,7 +163,9 @@ export default function BarraDoNarrador({
       data-fase={vista.fase}
       data-indice={vista.indice}
       data-frase={vista.frase}
+      data-voz={vista.gravado ? 'gravado' : vista.vozLocal ? 'no-aparelho' : vista.vozDoSistema ? 'sistema' : undefined}
     >
+      {convite}
       <div className="leitor-narrador-transporte">
         <button
           type="button"

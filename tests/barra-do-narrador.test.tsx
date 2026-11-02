@@ -63,6 +63,30 @@ describe('a barra do narrador', () => {
       />,
     )
 
+  it('o convite da voz no aparelho entra DENTRO da barra (não é modal) e a barra diz de que voz sai a frase', () => {
+    render(
+      <BarraDoNarrador
+        vista={vista({ vozDoSistema: true })}
+        narrador={falso()}
+        ajustesAbertos={false}
+        aoAlternar={vi.fn()}
+        aoAjustes={vi.fn()}
+        aoParar={vi.fn()}
+        convite={<div data-testid="convite-falso" />}
+      />,
+    )
+    const barra = screen.getByTestId('barra-do-narrador')
+    expect(within(barra).getByTestId('convite-falso')).toBeTruthy()
+    expect(barra.dataset.voz).toBe('sistema')
+    expect(document.querySelector('[aria-modal]')).toBeNull()
+  })
+
+  it('sem convite, nada a mais na barra; com a voz no aparelho, data-voz = no-aparelho', () => {
+    montar(falso(), vista({ vozLocal: true }))
+    expect(screen.getByTestId('barra-do-narrador').dataset.voz).toBe('no-aparelho')
+    expect(screen.queryByTestId('convite-voz-no-aparelho')).toBeNull()
+  })
+
   it('tem play/pausa, frases, voltar 10 s e capítulos, cada um chamando o narrador', () => {
     const n = falso()
     montar(n)

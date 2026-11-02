@@ -6062,5 +6062,13 @@
   "Não deu para baixar agora. Você pode tentar de novo: o que já veio fica guardado.": "Couldn't download it right now. You can try again: what already arrived is kept.",
   "Baixar a voz ({mb} MB)": "Download the voice ({mb} MB)",
   "A voz de alta qualidade não está pronta neste aparelho. Lendo com a voz automática.": "The high-quality voice isn't ready on this device. Reading with the automatic voice.",
-  "A voz de alta qualidade não conseguiu ler agora. Seguimos com a voz do aparelho.": "The high-quality voice couldn't read right now. We'll continue with your device's voice."
+  "A voz de alta qualidade não conseguiu ler agora. Seguimos com a voz do aparelho.": "The high-quality voice couldn't read right now. We'll continue with your device's voice.",
+  "Quer uma voz mais natural?": "Want a more natural voice?",
+  "Baixa uma vez (≈ {mb} MB), fica só neste aparelho e depois funciona sem internet.": "Downloads once (≈ {mb} MB), stays only on this device and then works offline.",
+  "Usa cerca de 2 a 3 GB de memória enquanto lê.": "Uses about 2 to 3 GB of memory while reading.",
+  "Baixar e usar": "Download and use",
+  "Baixando a voz de alta qualidade. A leitura continua.": "Downloading the high-quality voice. Reading continues.",
+  "Preparando a voz…": "Preparing the voice…",
+  "Pronto: a próxima frase já sai na voz nova.": "Done: the next sentence will use the new voice.",
+  "A leitura continua com a voz do sistema. Tente baixar de novo em Voz e modo.": "Reading continues with the system voice. Try downloading again in Voice and mode."
 }

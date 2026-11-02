@@ -2567,5 +2567,13 @@
   "Não deu para baixar agora. Você pode tentar de novo: o que já veio fica guardado.": "No se pudo descargar ahora. Puedes intentarlo de nuevo: lo que ya llegó queda guardado.",
   "Baixar a voz ({mb} MB)": "Descargar la voz ({mb} MB)",
   "A voz de alta qualidade não está pronta neste aparelho. Lendo com a voz automática.": "La voz de alta calidad no está lista en este dispositivo. Leyendo con la voz automática.",
-  "A voz de alta qualidade não conseguiu ler agora. Seguimos com a voz do aparelho.": "La voz de alta calidad no pudo leer ahora. Seguimos con la voz del dispositivo."
+  "A voz de alta qualidade não conseguiu ler agora. Seguimos com a voz do aparelho.": "La voz de alta calidad no pudo leer ahora. Seguimos con la voz del dispositivo.",
+  "Quer uma voz mais natural?": "¿Quieres una voz más natural?",
+  "Baixa uma vez (≈ {mb} MB), fica só neste aparelho e depois funciona sem internet.": "Se descarga una vez (≈ {mb} MB), queda solo en este dispositivo y luego funciona sin internet.",
+  "Usa cerca de 2 a 3 GB de memória enquanto lê.": "Usa unos 2 a 3 GB de memoria mientras lee.",
+  "Baixar e usar": "Descargar y usar",
+  "Baixando a voz de alta qualidade. A leitura continua.": "Descargando la voz de alta calidad. La lectura continúa.",
+  "Preparando a voz…": "Preparando la voz…",
+  "Pronto: a próxima frase já sai na voz nova.": "Listo: la próxima frase ya sale con la voz nueva.",
+  "A leitura continua com a voz do sistema. Tente baixar de novo em Voz e modo.": "La lectura continúa con la voz del sistema. Intenta descargarla de nuevo en Voz y modo."
 }

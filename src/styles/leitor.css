@@ -1060,6 +1060,52 @@
   font: 600 13px var(--font-display, system-ui);
   font-variant-numeric: tabular-nums;
 }
+/* O convite da voz no aparelho: uma faixa na própria barra, sem sombra nem véu (a leitura segue atrás). */
+.leitor-convite-voz {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--leitor-borda);
+  border-left: 4px solid var(--leitor-acento);
+  border-radius: 10px;
+  background: var(--leitor-fundo);
+  color: var(--leitor-texto);
+}
+.leitor-convite-voz p {
+  margin: 0;
+}
+.leitor-convite-voz-titulo {
+  font-size: 14px;
+}
+.leitor-convite-voz-texto {
+  flex: 1 1 22ch;
+  font-size: 13px;
+  color: var(--leitor-suave);
+}
+.leitor-convite-voz-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 100%;
+}
+.leitor-convite-voz progress {
+  flex: 1 1 10ch;
+  min-width: 8ch;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .leitor-convite-voz {
+    animation: leitor-convite-voz-entra 0.18s ease-out;
+  }
+}
+@keyframes leitor-convite-voz-entra {
+  from {
+    opacity: 0;
+  }
+}
 .leitor-modos {
   display: flex;
   flex-direction: column;

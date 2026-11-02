@@ -29,5 +29,5 @@
 ## 5. Fechamento
 
 - [x] 5.1 `npm run typecheck`, `typecheck:core`, `lint`, `npm test` e `npx knip` verdes (01/11: typecheck, typecheck:core, typecheck:estrito, lint, npm test 14600 passaram, knip sem itens novos)
-- [ ] 5.2 Revisão crítica (`revisor-critico`) e commit local, sem push
+- [x] 5.2 Revisão crítica (`revisor-critico`) e commit local, sem push (revisor-critico 02/11: aprovar com ressalvas; o importante, Safari de celular, foi corrigido; menores abertos: cancelar o temporizador no clique em Iniciar e teste da ligação real em LiveCapture)
 - [ ] 5.3 Dono decide ligar a flag em cada perfil depois de ver as medições (Safari/6 GB incluídos)

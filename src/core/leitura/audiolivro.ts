@@ -237,6 +237,44 @@ export async function frasesIntegras(
   return (await hashDasFrases(frasesDoApp)) === c.hashDasFrases;
 }
 
+/**
+ * Os tempos das frases de um capítulo: a duração de cada clipe é o tempo (sem alinhador). Depois de cada frase
+ * entra a pausa (`paragrafo` quando ela fecha parágrafo, senão `frase`); a última não leva pausa. Os padrões
+ * vêm de `OPCOES_PADRAO_DA_NARRACAO` (0 e 0,4 s) e quem chama passa.
+ */
+export function temposDasFrases(
+  clipes: readonly { duracaoS: number; fimDeParagrafo: boolean }[],
+  pausas: { frase: number; paragrafo: number },
+): FraseComTempo[] {
+  /* Em milissegundos: a soma em ponto flutuante (5,2 + 0,4 = 5,6000000000000005) desalinharia a busca. */
+  const ms = (s: number) => Math.round(s * 1000);
+  const out: FraseComTempo[] = [];
+  let t = 0;
+  clipes.forEach((c, i) => {
+    const t0 = t;
+    const t1 = t0 + ms(c.duracaoS);
+    out.push({ i, t0: t0 / 1000, t1: t1 / 1000 });
+    t = t1 + ms(c.fimDeParagrafo ? pausas.paragrafo : pausas.frase);
+  });
+  return out;
+}
+
+/**
+ * A frase tocando no tempo `t`: a que contém `t` em `[t0, t1 + pausa seguinte)` (na pausa ainda é a anterior);
+ * `-1` antes da primeira; a última se `t` passa do fim. Busca binária.
+ */
+export function frasePorTempo(tempos: readonly FraseComTempo[], t: number): number {
+  if (!tempos.length || t < tempos[0].t0) return -1;
+  let lo = 0;
+  let hi = tempos.length - 1;
+  while (lo < hi) {
+    const m = (lo + hi + 1) >> 1;
+    if (tempos[m].t0 <= t) lo = m;
+    else hi = m - 1;
+  }
+  return tempos[lo].i;
+}
+
 /** `audiolivros/<livroId>/<voz>/<versao>/<nn>.<ext>` (`nn` com 2 dígitos). */
 export function chaveDoCapitulo(
   m: Pick<ManifestoDeAudio, 'livroId' | 'voz'>,

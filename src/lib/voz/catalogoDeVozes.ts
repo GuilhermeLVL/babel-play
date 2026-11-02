@@ -9,7 +9,7 @@
  * O que o navegador NÃO informa não é inventado: a Web Speech só dá nome, idioma e `localService`.
  * "Natural" é a heurística de nome de `isNeuralVoice` (a mesma que escolhe a automática).
  */
-import { idiomaDoSupertonic } from '../../core/voz/supertonic';
+import { idiomaDoSupertonic, MB_DO_SUPERTONIC } from '../../core/voz/supertonic';
 import { vozesUteis } from '../../core/voz/vozesUteis';
 import { idiomaDaInterface, t } from '../i18n';
 import { codigoDeFala, type VoiceInfo, voicesFor } from '../tts';
@@ -95,11 +95,11 @@ export function opcoesDeVoz(
     opcoes.push({
       id: VOZ_NO_APARELHO,
       tipo: 'no-aparelho',
-      nome: t('Voz de alta qualidade (no aparelho)'),
-      detalhe: t(
-        'Lê os livros com uma voz sintetizada que roda neste aparelho. Nas outras telas, lê a voz do sistema.',
-      ),
-      etiquetas: [t('No aparelho')],
+      nome: t('Voz de alta qualidade'),
+      detalhe: t('Voz sintetizada que roda neste aparelho. Baixa uma vez (≈ {mb} MB) e depois funciona sem internet.', {
+        mb: MB_DO_SUPERTONIC,
+      }),
+      etiquetas: [t('Voz sintetizada')],
     });
   }
   /* A recomendada é a que a "Automática" lê: natural, no aparelho e do país exato do idioma (`core/voz/melhorVoz.ts`). */
@@ -114,7 +114,7 @@ export function nomeDaVozEmUso(idioma: string, nuvem: boolean = vozDaNuvemDispon
   const id = vozEmUso(idioma, nuvem);
   if (id === VOZ_AUTOMATICA) return t('Automática');
   if (id === VOZ_DA_NUVEM) return t('Voz natural');
-  if (id === VOZ_NO_APARELHO) return t('Voz de alta qualidade (no aparelho)');
+  if (id === VOZ_NO_APARELHO) return t('Voz de alta qualidade');
   return nomeLegivelDaVoz(id);
 }
 

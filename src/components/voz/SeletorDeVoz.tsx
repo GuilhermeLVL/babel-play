@@ -171,11 +171,13 @@ export default function SeletorDeVoz({
                 <Icone aria-hidden />
                 <span className="voz-texto">
                   <b>{o.nome}</b>
-                  <small>
-                    {o.tipo === 'aparelho' || o.tipo === 'no-aparelho'
-                      ? [o.detalhe, ...o.etiquetas].join(' · ')
-                      : o.detalhe}
-                  </small>
+                  <small>{o.tipo === 'aparelho' ? [o.detalhe, ...o.etiquetas].join(' · ') : o.detalhe}</small>
+                  {o.tipo === 'no-aparelho' &&
+                    o.etiquetas.map((e) => (
+                      <span key={e} className="q-tag voz-texto-tag">
+                        {e}
+                      </span>
+                    ))}
                 </span>
                 {o.tipo === 'nuvem' &&
                   o.etiquetas.map((e) => (

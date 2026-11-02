@@ -50,6 +50,11 @@
   white-space: nowrap;
   font: inherit;
 }
+/* O rótulo da voz no aparelho vai embaixo da descrição: ao lado dela roubaria a largura do texto no celular. */
+.voz-texto > .voz-texto-tag {
+  justify-self: start;
+  margin-top: 2px;
+}
 .voz-texto > small {
   font: 600 14px/1.3 var(--font-body, inherit);
   color: var(--ink-muted);

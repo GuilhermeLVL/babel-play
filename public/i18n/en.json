@@ -6071,5 +6071,6 @@
   "Pronto: a próxima frase já sai na voz nova.": "Done: the next sentence will use the new voice.",
   "A leitura continua com a voz do sistema. Tente baixar de novo em Voz e modo.": "Reading continues with the system voice. Try downloading again in Voice and mode.",
   "Feminina {n}": "Female {n}",
-  "Masculina {n}": "Male {n}"
+  "Masculina {n}": "Male {n}",
+  "Começa com a voz Feminina 1; as outras 9 ficam em Voz e modo.": "Starts with the Female 1 voice; the other 9 are in Voice and mode."
 }

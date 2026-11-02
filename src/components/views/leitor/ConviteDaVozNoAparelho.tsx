@@ -124,6 +124,7 @@ export default function ConviteDaVozNoAparelho({
               mb: MB_DO_SUPERTONIC,
             })}
             {avisoDeMemoria && ` ${t('Usa cerca de 2 a 3 GB de memória enquanto lê.')}`}
+            {` ${t('Começa com a voz Feminina 1; as outras 9 ficam em Voz e modo.')}`}
           </p>
           <div className="leitor-convite-voz-acoes">
             <button

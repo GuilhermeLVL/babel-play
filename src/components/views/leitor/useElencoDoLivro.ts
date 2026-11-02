@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { fraseDeAmostra } from '../../../core/avatar/amostraDeVoz';
 import { type ConfigDoElenco, type DistribuicaoDeVozes, montarDistribuicao } from '../../../core/avatar/elenco';
 import { FLAG_AVATAR_ELENCO } from '../../../core/planos';
+import { VOZES_DO_SUPERTONIC } from '../../../core/voz/supertonic';
 import { vozesUteis } from '../../../core/voz/vozesUteis';
 import { useFlag } from '../../../lib/flags';
 import {
@@ -20,6 +21,20 @@ import {
   type VoiceInfo,
   voicesFor,
 } from '../../../lib/tts';
+import { vozEmUso } from '../../../lib/voz/preferenciaDeVoz';
+import { motorDaVozNoAparelho, VOZ_NO_APARELHO, vozDoNarradorNoAparelho } from '../../../lib/voz/vozNoAparelho';
+
+/** A voz no aparelho lê este idioma agora (escolhida, baixada, flag e perfil)? Então o elenco usa as vozes dela. */
+const comVozNoAparelho = (idioma: string) => !!idioma && vozEmUso(idioma) === VOZ_NO_APARELHO;
+
+/**
+ * As vozes que o elenco distribui: com a voz no aparelho, as 10 do Supertonic (F1–F5, M1–M5; a ordem e a escolha seguem o
+ * `atribuirVozes` determinístico, sem gênero pelo nome); sem ela, as do sistema, como sempre.
+ */
+function vozesDoElenco(idioma: string): readonly VoiceInfo[] {
+  if (!comVozNoAparelho(idioma)) return vozesUteis(voicesFor(idioma), idioma);
+  return VOZES_DO_SUPERTONIC.map((v) => ({ name: v, lang: idioma, base: idioma, local: true, neural: true }));
+}
 
 export interface ElencoDoLivro {
   /** A flag `avatar_elenco` está ligada para esta pessoa? Desligada, nada do elenco aparece nem age. */
@@ -92,13 +107,14 @@ export function useElencoDoLivro({
   }, [disponivel, livroId, origem]);
 
   /* A lista de vozes do navegador chega depois; ler a cada render é barato e sempre atual. */
-  const vozes: readonly VoiceInfo[] =
-    disponivel && idiomaDoLivro ? vozesUteis(voicesFor(idiomaDoLivro), idiomaDoLivro) : [];
+  const vozes: readonly VoiceInfo[] = disponivel && idiomaDoLivro ? vozesDoElenco(idiomaDoLivro) : [];
 
   const montar = useCallback(
     (e: EscolhasDoElenco, v: readonly VoiceInfo[], p: readonly string[]): ConfigDoElenco | null => {
       if (!disponivel || !e.ligado || !v.length) return null;
-      const principal = getVoicePref(idiomaDoLivro) ?? pickVoice(idiomaDoLivro)?.name;
+      const principal = comVozNoAparelho(idiomaDoLivro)
+        ? vozDoNarradorNoAparelho()
+        : (getVoicePref(idiomaDoLivro) ?? pickVoice(idiomaDoLivro)?.name);
       return {
         idioma: idiomaDoLivro,
         personagens: p,
@@ -115,7 +131,7 @@ export function useElencoDoLivro({
   ref.current = { escolhas, personagens, vozes, montar };
   const config = useCallback(() => {
     const r = ref.current;
-    return r.montar(r.escolhas, vozesUteis(voicesFor(idiomaDoLivro), idiomaDoLivro), r.personagens);
+    return r.montar(r.escolhas, vozesDoElenco(idiomaDoLivro), r.personagens);
   }, [idiomaDoLivro]);
 
   const cfgDeAmostra = montar({ ...escolhas, ligado: true }, vozes, personagens);
@@ -145,6 +161,16 @@ export function useElencoDoLivro({
     experimentar: (personagem, voz) => {
       antesDeExperimentar?.();
       cancelSpeech();
+      if (comVozNoAparelho(idiomaDoLivro)) {
+        /* A amostra sai do próprio motor no aparelho, com a voz F/M da personagem. */
+        void motorDaVozNoAparelho().then((m) =>
+          m?.speak(fraseDeAmostra(idiomaDoLivro, personagem), {
+            lang: codigoDeFala(idiomaDoLivro),
+            ...(voz ? { voiceName: voz } : {}),
+          }),
+        );
+        return;
+      }
       speak(fraseDeAmostra(idiomaDoLivro, personagem), {
         lang: codigoDeFala(idiomaDoLivro),
         ...(voz ? { voiceName: voz } : {}),

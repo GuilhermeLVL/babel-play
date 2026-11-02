@@ -10,6 +10,7 @@ import {
   ListTree,
   Sparkles,
   Type,
+  Users,
   X,
 } from 'lucide-react';
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -54,6 +55,7 @@ import { t } from '../../../lib/i18n';
 import { useLangConfig } from '../../../lib/langConfig';
 import { detectLanguage } from '../../../lib/langDetect';
 import { baseLang, toBcp47 } from '../../../lib/languages';
+import { dicaDoElencoJaVista, marcarDicaDoElencoVista } from '../../../lib/leitor/dicaDoElenco';
 import type { Localizacao } from '../../../lib/leitor/foliate/view.js';
 import { type InfoDoLivro, MotorDoLeitor } from '../../../lib/leitor/motor';
 import { Narrador, type VistaDoNarrador } from '../../../lib/leitor/narrador';
@@ -75,7 +77,7 @@ import { livroParaOMotor } from '../../../lib/livros/fontesDoLivro';
 import { idRemotoDoLivro } from '../../../lib/livros/idRemoto';
 import { posicoes } from '../../../lib/livros/posicoesDoAparelho';
 import { perfilProtegido } from '../../../lib/protecaoDoMenor';
-import { speak } from '../../../lib/tts';
+import { getVoicePref, speak } from '../../../lib/tts';
 import { buildVocabWord, mtNoteFor, resolveWord } from '../../../lib/vocabWord';
 import { haVozPara } from '../../../lib/voz/haVoz';
 import { useVozesPreferidas, VOZ_DA_NUVEM, vozDaNuvemDisponivel, vozEmUso } from '../../../lib/voz/preferenciaDeVoz';
@@ -83,15 +85,19 @@ import { destravarVozDaNuvem } from '../../../lib/voz/vozDaNuvem';
 import type { VocabWord } from '../../../types';
 import { toast } from '../../Toast';
 import VocabularyPanel from '../../VocabularyPanel';
+import AvatarDoNarrador from './AvatarDoNarrador';
 import BarraDaSelecao, { type TrechoSelecionado } from './BarraDaSelecao';
 import BarraDoNarrador, { aoTeclarNoNarrador, PainelDaNarracao } from './BarraDoNarrador';
+import DicaDoElenco from './DicaDoElenco';
 import { etiquetaDaPalavra, HistoricoNaFolha } from './ganchosDaPalavra';
 import PainelDaTraducao from './PainelDaTraducao';
 import PainelDeAnotacoes, { type FormatoDeExportacao } from './PainelDeAnotacoes';
 import PainelDeFerramentas, { type AbaDeIa, tituloDaAbaDeIa } from './PainelDeFerramentas';
 import PainelDeTipografia from './PainelDeTipografia';
+import PainelDoElenco from './PainelDoElenco';
 import PainelDoParceiro from './PainelDoParceiro';
 import PainelDoSumario from './PainelDoSumario';
+import { useElencoDoLivro } from './useElencoDoLivro';
 import { useFatosDasFerramentas } from './useFatosDasFerramentas';
 import { usePerfilDeLeitura } from './usePerfilDeLeitura';
 
@@ -228,6 +234,30 @@ export default function LeitorDoLivro({
   const repo = useMemo(() => anotacoesDoLivro(livroId), [livroId]);
   const idiomaRef = useRef('');
   idiomaRef.current = idioma || baseLang(langConfig.studying);
+  /* O ELENCO (flag `avatar_elenco`): voz por personagem e emoção por frase. Sem a flag nada disto age. */
+  const elenco = useElencoDoLivro({
+    livroId,
+    origem: guardado?.origem,
+    idiomaDoLivro: idiomaRef.current,
+    aoMudar: () => narradorRef.current?.definirElenco(),
+    antesDeExperimentar: () => {
+      const n = narradorRef.current;
+      if (n && n.vista.fase !== 'parada') n.parar(); // a amostra e a narração não falam ao mesmo tempo
+    },
+  });
+  /* O elenco em destaque: o botão "Elenco" abre o painel da narração com o elenco no topo; "Voz e modo" abre como
+     sempre. A dica da primeira vez some ao dispensar (lembrado no aparelho). */
+  const [elencoNoTopo, setElencoNoTopo] = useState(false);
+  const [dicaDoElencoVista, setDicaDoElencoVista] = useState(dicaDoElencoJaVista);
+  const temElenco = elenco.disponivel && elenco.personagens.length > 0;
+  const abrirElenco = () => {
+    marcarDicaDoElencoVista();
+    setDicaDoElencoVista(true);
+    setElencoNoTopo(true);
+    setPainel('narracao');
+  };
+  const elencoRef = useRef(elenco);
+  elencoRef.current = elenco;
   const toqueEmAnotacao = useRef(0);
   const capituloRef = useRef('');
   capituloRef.current = local?.tocItem?.label?.trim() ?? '';
@@ -397,6 +427,7 @@ export default function LeitorDoLivro({
       escolheuNuvem: (idioma) => vozEmUso(idioma) === VOZ_DA_NUVEM,
       nuvemLiberada: () => ({ temDireito: getEntitlements().vozNatural, flagLigada: flagLigada(FLAG_VOZ_NATURAL) }),
       aoMudar: setVistaNarrador,
+      elenco: () => elencoRef.current.config(),
       aoNavegar: () => {
         ignorarToquesAte.current = Date.now() + 900;
       },
@@ -810,6 +841,13 @@ export default function LeitorDoLivro({
     setModoDoParceiro(modo);
     setPainel('ia');
   };
+  const painelDoElenco = (
+    <PainelDoElenco
+      elenco={elenco}
+      vozDoNarrador={getVoicePref(idiomaRef.current) ?? ''}
+      nuvem={vozEmUso(idiomaRef.current) === VOZ_DA_NUVEM}
+    />
+  );
   const TITULO_DO_PAINEL: Record<Painel, string> = {
     sumario: t('Sumário e busca'),
     tipografia: t('Aparência'),
@@ -829,7 +867,7 @@ export default function LeitorDoLivro({
       data-estado={estado}
       data-painel={painel ?? undefined}
     >
-      <header className="leitor-topo">
+      <header className={`leitor-topo${temElenco && !info?.ehPdf ? ' leitor-topo-com-elenco' : ''}`}>
         <button type="button" className="leitor-botao" onClick={aoVoltar}>
           <ArrowLeft aria-hidden />
           <span>{rotuloDoVoltar ?? t('Estante')}</span>
@@ -849,6 +887,27 @@ export default function LeitorDoLivro({
             >
               <Headphones aria-hidden />
               <span>{t('Ouvir')}</span>
+            </button>
+          )}
+          {temElenco && !info?.ehPdf && (
+            <button
+              type="button"
+              className="leitor-botao leitor-botao-rotulo"
+              aria-pressed={elenco.ligado}
+              aria-controls={painel === 'narracao' ? 'leitor-painel' : undefined}
+              aria-label={t('Elenco: {n} personagens', { n: elenco.personagens.length })}
+              disabled={estado !== 'pronto'}
+              data-testid="leitor-elenco"
+              onClick={() => {
+                if (painel === 'narracao' && elencoNoTopo) setPainel(null);
+                else abrirElenco();
+              }}
+            >
+              <Users aria-hidden />
+              <span>{t('Elenco')}</span>
+              <span className="leitor-contagem" aria-hidden>
+                {elenco.personagens.length}
+              </span>
             </button>
           )}
           <button
@@ -905,6 +964,17 @@ export default function LeitorDoLivro({
         <p className="leitor-aviso" role="note">
           {avisoPdf}
         </p>
+      )}
+
+      {temElenco && !dicaDoElencoVista && estado === 'pronto' && painel !== 'narracao' && (
+        <DicaDoElenco
+          personagens={elenco.personagens.length}
+          aoAbrir={abrirElenco}
+          aoFechar={() => {
+            marcarDicaDoElencoVista();
+            setDicaDoElencoVista(true);
+          }}
+        />
       )}
 
       <div className="leitor-miolo">
@@ -965,6 +1035,7 @@ export default function LeitorDoLivro({
                   ehPdf={!!info?.ehPdf}
                 />
               )}
+              {painel === 'narracao' && elencoNoTopo && painelDoElenco}
               {painel === 'narracao' && (
                 <PainelDaNarracao
                   modo={modoNarracao}
@@ -994,6 +1065,7 @@ export default function LeitorDoLivro({
                   aoConhecerPlanos={aoConhecerPlanos}
                 />
               )}
+              {painel === 'narracao' && !elencoNoTopo && painelDoElenco}
               {painel === 'ia' && (
                 <PainelDeFerramentas
                   aba={iaAba}
@@ -1088,6 +1160,10 @@ export default function LeitorDoLivro({
         />
       )}
 
+      {narracaoAberta && elenco.disponivel && elenco.ligado && elenco.avatar && (
+        <AvatarDoNarrador vista={vistaNarrador} />
+      )}
+
       {narracaoAberta && (
         <BarraDoNarrador
           vista={vistaNarrador}
@@ -1097,7 +1173,10 @@ export default function LeitorDoLivro({
             if (vozDaNuvemDisponivel()) destravarVozDaNuvem();
             narradorRef.current?.alternar();
           }}
-          aoAjustes={() => abrirPainel('narracao')}
+          aoAjustes={() => {
+            setElencoNoTopo(false);
+            abrirPainel('narracao');
+          }}
           aoParar={fecharNarracao}
         />
       )}

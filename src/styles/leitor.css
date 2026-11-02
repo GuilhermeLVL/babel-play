@@ -802,7 +802,7 @@
     padding: 4px 4px;
     gap: 2px;
   }
-  .leitor-botao > span {
+  .leitor-botao:not(.leitor-botao-rotulo):not(.leitor-elenco-testar) > span {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -812,6 +812,39 @@
   }
   .leitor-titulo {
     font-size: 14px;
+  }
+  /* "Elenco" com rótulo cabe na barra do celular empilhando ícone e rótulo; a contagem fica ao lado do ícone, sem
+     cobrir o texto. Com o botão presente o título desce para uma segunda linha, inteiro, em vez de encolher. */
+  .leitor-botao-rotulo {
+    position: relative;
+    flex-direction: column;
+    gap: 0;
+    padding: 2px 6px;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+  .leitor-botao-rotulo .leitor-contagem {
+    position: absolute;
+    top: 1px;
+    right: -4px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: var(--leitor-acento);
+    color: var(--leitor-fundo);
+    font-size: 10px;
+    line-height: 16px;
+    text-align: center;
+  }
+  .leitor-topo-com-elenco {
+    flex-wrap: wrap;
+  }
+  .leitor-topo-com-elenco .leitor-titulo {
+    order: 3;
+    flex: 1 1 100%;
+    min-height: 0;
+    padding: 0 8px 4px;
   }
   .leitor-exportacoes {
     grid-template-columns: 1fr;
@@ -839,6 +872,117 @@
 .leitor-link-destino {
   font-size: 0.85em;
   opacity: 0.75;
+}
+
+/* O avatar-narrador (M5): um rosto pequeno e a legenda, logo acima da barra do narrador. A legenda é o conteúdo. */
+.leitor-avatar-narrador {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--leitor-borda);
+  background: var(--leitor-sutil);
+}
+.leitor-avatar-narrador-rosto {
+  flex: 0 0 72px;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.leitor-avatar-narrador-legenda {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  min-width: 0;
+  font-size: 14px;
+}
+.leitor-avatar-narrador-legenda span {
+  opacity: 0.8;
+}
+.leitor-elenco-lista {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+.leitor-elenco-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  min-height: 44px;
+  font-size: 14px;
+  padding-bottom: 10px;
+}
+/* Cada personagem é um bloco: o nome em cima, a voz e o botão de ouvir numa linha embaixo; o filete entre blocos
+   deixa claro de quem é cada seletor. */
+.leitor-elenco-personagem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0;
+  border-top: 1px solid var(--leitor-borda);
+  font-size: 14px;
+}
+.leitor-elenco-nome {
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.leitor-elenco-traducao {
+  font-weight: 400;
+  font-size: 12px;
+  opacity: 0.75;
+}
+.leitor-elenco-controle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.leitor-elenco-controle select {
+  min-height: 44px;
+  flex: 1 1 0;
+  min-width: 0;
+}
+.leitor-elenco-testar {
+  flex: none;
+  min-width: 44px;
+  min-height: 44px;
+  border-color: var(--leitor-borda);
+}
+
+/* O botão "Elenco" na barra: o rótulo aparece mesmo no celular (os outros botões ficam só no ícone) e o estado
+   ligado se vê pela cor, não só pelo atributo. */
+.leitor-botao-rotulo[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--leitor-acento) 16%, var(--leitor-fundo));
+  border-color: var(--leitor-acento);
+}
+
+/* A dica da primeira vez: uma faixa discreta sob a barra, que não cobre o livro nem prende o foco. */
+.leitor-dica {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 4px 14px;
+  font-size: 14px;
+  background: color-mix(in srgb, var(--leitor-acento) 10%, var(--leitor-fundo));
+  border-bottom: 1px solid var(--leitor-borda);
+}
+.leitor-dica p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.leitor-dica-icone {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--leitor-acento);
+}
+.leitor-dica-acao {
+  border-color: var(--leitor-borda);
 }
 
 /* A barra do narrador (L3): transporte, onde está, velocidade, ajustes e parar. Fica no pé, acima da virada de

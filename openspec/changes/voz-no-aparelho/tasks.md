@@ -21,6 +21,13 @@
 - [x] 4.1 Flag `voz_no_aparelho` (PG 0018, SQLite 0060, snapshots, journals, PainelFlags, docs/flags.md, baseline)
 - [x] 4.2 Teste de chunk: o código do motor só por `import()`
 
+## 4b. Primeiro contato
+
+- [ ] 4b.1 Puro: `supertonicLe` (a "Automática" com o modelo pronto) e `convidarParaVozNoAparelho` (30 dias), com testes
+- [ ] 4b.2 Narrador e leitor: a porta usa a resolução; `anteciparVozLocal` pré-busca na troca; elenco segue a resolução
+- [ ] 4b.3 Cartão do convite na barra do narrador (não modal, progresso, cancelar, falha com saída), i18n en/es
+- [ ] 4b.4 Prova na demo `primeiro` (porta 3195): perfil limpo, troca sem salto, recarga, "Agora não", 390 px, áudio gravado
+
 ## 5. Prova
 
 - [x] 5.1 Demo `vozap` (porta 3192) e evidências no Chromium (áudio local, destaque, RTF, liberação, flag desligada,

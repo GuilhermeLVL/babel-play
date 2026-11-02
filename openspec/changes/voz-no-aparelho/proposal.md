@@ -27,6 +27,12 @@ QUALQUER texto (livro da pessoa, importação), que o servidor não pode receber
 - **Flag `voz_no_aparelho`**, nascida DESLIGADA (PG 0018, SQLite 0060). `VITE_VOZ_MODELO_URL` (opcional,
   `degrada-capacidade`) com a origem na CSP `connect-src`.
 - **Carregamento tardio**: o código do motor só chega por `import()`, com a flag ligada e o perfil permitindo.
+- **Primeiro contato (02/11/2026)**: o dono ouviu "uma voz péssima" porque a "Automática" era a voz do sistema e a voz boa
+  só entrava depois de abrir o seletor e baixar. Agora a "Automática" resolve para a voz no aparelho quando o modelo já está
+  pronto (escolha manual de outra voz vence), e o primeiro "Ouvir" de quem pode usá-la mostra, na barra do narrador, um
+  convite não modal ("Baixar e usar" / "Agora não", 30 dias) enquanto a voz do sistema já lê; pronta, a voz troca no
+  próximo limite de frase. Para quem não pode (celular, iOS, Quest, perfil protegido, flag desligada, idioma fora do
+  motor) e para capítulo com áudio pré-gerado, nada muda.
 
 ## Non-Goals
 

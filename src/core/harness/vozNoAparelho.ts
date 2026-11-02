@@ -92,3 +92,46 @@ export function ofertaDaVozNoAparelho(e: EntradaDaVozNoAparelho): DecisaoDaVozNo
   if (e.memoriaGb != null && e.memoriaGb < 8) return d('por-escolha', 'memoria-justa');
   return d('padrao', 'aparelho-capaz');
 }
+
+/* ───────── o primeiro contato (02/11/2026): a "Automática" e o convite ───────── */
+
+/** A escolha guardada para o idioma, já classificada (voz do sistema que sumiu daqui conta como `automatica`). */
+export type EscolhaDaVoz = 'automatica' | 'no-aparelho' | 'nuvem' | 'sistema';
+
+export interface EntradaDaVozDaLeitura extends EntradaDaVozNoAparelho {
+  /** O motor fala o idioma (pt, en, es). */
+  idiomaSuportado: boolean;
+  /** O modelo está baixado e conferido NESTE aparelho. */
+  modeloPronto: boolean;
+  escolha: EscolhaDaVoz;
+}
+
+/**
+ * A Supertonic lê? Com o portão permitindo (flag, perfil, aparelho), o idioma do motor e o modelo pronto, a "Automática"
+ * resolve para ela desde a primeira frase. Uma escolha explícita por voz do sistema ou da nuvem sempre vence.
+ */
+export function supertonicLe(e: EntradaDaVozDaLeitura): boolean {
+  if (ofertaDaVozNoAparelho(e).oferta === 'nao' || !e.idiomaSuportado || !e.modeloPronto) return false;
+  return e.escolha === 'automatica' || e.escolha === 'no-aparelho';
+}
+
+/** "Agora não" cala o convite neste aparelho por 30 dias. */
+export const PRAZO_DO_CONVITE_MS = 30 * 24 * 60 * 60 * 1000;
+
+export interface EntradaDoConvite extends EntradaDaVozDaLeitura {
+  /** O capítulo toca o áudio pré-gerado: ele tem prioridade e o convite não aparece. */
+  audioGravado: boolean;
+  /** Quando a pessoa tocou "Agora não" neste aparelho (ms), ou `null`. */
+  recusadoEm: number | null;
+  agora: number;
+}
+
+/**
+ * O cartão "Quer uma voz mais natural?" no primeiro "Ouvir": só para quem PODE usar a voz (o mesmo portão), com o modelo
+ * ainda fora do aparelho, a "Automática" (ou a própria voz no aparelho) escolhida, sem áudio gravado e sem recusa recente.
+ */
+export function convidarParaVozNoAparelho(e: EntradaDoConvite): boolean {
+  if (ofertaDaVozNoAparelho(e).oferta === 'nao' || !e.idiomaSuportado || e.modeloPronto || e.audioGravado) return false;
+  if (e.escolha !== 'automatica' && e.escolha !== 'no-aparelho') return false;
+  return e.recusadoEm == null || e.agora - e.recusadoEm >= PRAZO_DO_CONVITE_MS;
+}

@@ -188,6 +188,7 @@ function rodar(alvo, perfil, rotulo) {
     CACHE_MODELOS,
     ...CENARIO,
     ...(opt('intencao-ms', '') ? ['--intencao-ms', opt('intencao-ms', '')] : []),
+    ...(opt('flag', '') ? ['--flag', opt('flag', '')] : []),
     ...(flag('headful') ? [] : ['--headless']),
     ...(PERFIS[perfil] ? ['--dispositivo', PERFIS[perfil]] : []),
   ]
@@ -223,6 +224,7 @@ function visitar(alvo, perfil) {
     '--cache-modelos',
     CACHE_MODELOS,
     ...CENARIO,
+    ...(opt('flag', '') ? ['--flag', opt('flag', '')] : []),
     '--visita-ms',
     opt('visita-ms', '3000'),
     ...(flag('headful') ? [] : ['--headless']),

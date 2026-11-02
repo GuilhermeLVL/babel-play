@@ -255,7 +255,7 @@ if (APARELHO) {
   await aplicarCpu(page, APARELHO.cpu)
 }
 await page.addInitScript(
-  ({ q, d, dt }) => {
+  ({ q, d, dt, fl }) => {
     try {
       localStorage.setItem('babel_tour_blitz', '1')
       localStorage.setItem('babel.sttQuality', q)
@@ -263,9 +263,10 @@ await page.addInitScript(
       else localStorage.setItem('babel.whisperDevice', d)
       if (dt) localStorage.setItem('babel.whisperDtype', dt)
       else localStorage.removeItem('babel.whisperDtype')
+      if (fl) localStorage.setItem('babel.flags', JSON.stringify({ [fl]: { ligada: true } }))
     } catch {}
   },
-  { q: QUALIDADE, d: DEVICE, dt: opt('dtype', '') },
+  { q: QUALIDADE, d: DEVICE, dt: opt('dtype', ''), fl: opt('flag', '') },
 )
 
 const tAbrir = Date.now()

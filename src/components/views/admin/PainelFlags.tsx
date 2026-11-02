@@ -22,6 +22,7 @@ const FLAGS_SENSIVEIS = new Set([
   'voz_natural',
   'stt_aparelho_primeiro',
   'assistente_ao_vivo',
+  'aquecer_stt_na_intencao',
 ]);
 
 /** As regras da flag em palavras curtas, para ver de relance quem ela alcança. */

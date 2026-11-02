@@ -68,6 +68,7 @@ export default function CapturaDoPrototipo({
   niveis,
   pausa,
   noQuest = false,
+  intencao,
 }: {
   gravando: boolean;
   /** Já há falas na tela (mesmo parada). */
@@ -108,6 +109,8 @@ export default function CapturaDoPrototipo({
   pausa?: { pausada: boolean; aoAlternar: () => void };
   /** No Quest a captura fica como está: só o seletor e a marca. */
   noQuest?: boolean;
+  /** Antecipação do "Iniciar" (foco/ponteiro); ausente = sem handlers novos. */
+  intencao?: { entrou: () => void; saiu: () => void };
 }) {
   const raiz = useRef<HTMLDivElement>(null);
   const principal = useRef<HTMLButtonElement>(null);
@@ -285,6 +288,10 @@ export default function CapturaDoPrototipo({
             data-testid="iniciar-captura"
             disabled={!podeIniciar || abrindo}
             onClick={comecar}
+            onFocus={intencao?.entrou}
+            onPointerEnter={intencao?.entrou}
+            onBlur={intencao?.saiu}
+            onPointerLeave={intencao?.saiu}
           >
             <Mic aria-hidden /> {t('Iniciar captura')}
           </button>

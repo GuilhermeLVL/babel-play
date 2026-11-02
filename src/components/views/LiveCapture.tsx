@@ -81,6 +81,7 @@ import {
   classificarFalhaDoMic,
   plataformaDoNavegador,
 } from '../../lib/captura/ajudaDoMicrofone';
+import { useAquecerNaIntencao } from '../../lib/captura/aquecerNaIntencao';
 import {
   ligarAudioDasFalas,
   limparAudioDasFalas,
@@ -1424,6 +1425,11 @@ export default function LiveCapture({
      gravação em curso não é tocada. */
   const preaquecerRef = useRef(preaquecerModelos);
   preaquecerRef.current = preaquecerModelos;
+  /* AQUECER NA INTENÇÃO (flag `aquecer_stt_na_intencao`, desligada): foco/ponteiro 200 ms em "Iniciar" ou a
+     confirmação dos idiomas chamam o pré-aquecimento em modo padrão; sem a flag os handlers não fazem nada. */
+  const aquecimento = useAquecerNaIntencao(() => {
+    if (!isRecordingRef.current) return preaquecerRef.current();
+  });
   /* A conexão entra na lista: o previsto do selo da fala (e a marca da tela) muda quando ela cai ou volta. */
   const semRede = useSemRede();
   useEffect(() => {
@@ -3378,6 +3384,7 @@ export default function LiveCapture({
         aoAbrirAjuda={() => setShowGuide(true)}
         aoFlutuante={noQuest ? undefined : alternarFlutuante}
         flutuante={{ aberta: flutuante.aberta, dica: flutuante.dica }}
+        intencao={{ entrou: aquecimento.ponteiroEntrou, saiu: aquecimento.ponteiroSaiu }}
         letra={{
           menor: () => setEscalaDaLegenda((e) => mudarEscalaDaLegenda(e, -1)),
           maior: () => setEscalaDaLegenda((e) => mudarEscalaDaLegenda(e, 1)),
@@ -4159,6 +4166,7 @@ export default function LiveCapture({
           }
           avisos={avisosDoPar}
           aoFechar={() => setIdiomasAbertos(false)}
+          aoConfirmar={aquecimento.idiomasConfirmados}
         />
       )}
       {modeloAberto && (

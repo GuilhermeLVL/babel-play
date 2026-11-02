@@ -2,7 +2,8 @@
  * ONDE O CARTÃO DA PALAVRA FICA — puro (geometria, sem DOM).
  *
  * Computador: ancorado na palavra, ABAIXO quando cabe, ACIMA quando não cabe; sem espaço inteiro nos dois, o
- * lado maior com a altura limitada. Nunca por cima da palavra.
+ * lado maior com a altura limitada. Nunca por cima da palavra, e sempre dentro da faixa do leitor (`faixa`: a
+ * coluna do livro, sem o menu lateral do app).
  * Celular (≤ 600 px de largura) ou sem o retângulo da palavra: MINI-FOLHA presa embaixo, com no máximo 40% da
  * altura; se embaixo ela cobriria a palavra, vai para o topo. (O texto paginado não rola: uma página é uma
  * página. Trocar de borda é o que garante a palavra à vista.)
@@ -21,6 +22,8 @@ export interface EntradaDaPosicao {
   janela: { largura: number; altura: number };
   /** O tamanho que o cartão quer ter (medido, ou o estimado antes da primeira medida). */
   cartao: { largura: number; altura: number };
+  /** A faixa horizontal do leitor na janela (a coluna do livro, sem o menu lateral). Ausente = a janela inteira. */
+  faixa?: { esquerda: number; direita: number };
 }
 
 export type PosicaoDoCartao =
@@ -32,7 +35,7 @@ const MARGEM = 8;
 const VAO = 6;
 const FRACAO_DA_FOLHA = 0.4;
 
-export function posicaoDoCartao({ palavra, janela, cartao }: EntradaDaPosicao): PosicaoDoCartao {
+export function posicaoDoCartao({ palavra, janela, cartao, faixa }: EntradaDaPosicao): PosicaoDoCartao {
   if (!palavra || janela.largura <= LARGURA_DO_CELULAR) {
     const maxAltura = Math.floor(janela.altura * FRACAO_DA_FOLHA);
     const ocupa = Math.min(cartao.altura, maxAltura) + MARGEM;
@@ -49,7 +52,11 @@ export function posicaoDoCartao({ palavra, janela, cartao }: EntradaDaPosicao): 
   const top = lado === 'abaixo' ? palavra.bottom + VAO : palavra.top - VAO - maxAltura;
 
   const centro = (palavra.left + palavra.right) / 2;
-  const maxLeft = Math.max(MARGEM, janela.largura - cartao.largura - MARGEM);
-  const left = Math.min(Math.max(centro - cartao.largura / 2, MARGEM), maxLeft);
+  const minimo = Math.max(0, faixa?.esquerda ?? 0) + MARGEM;
+  const maxLeft = Math.max(
+    minimo,
+    Math.min(janela.largura, faixa?.direita ?? janela.largura) - cartao.largura - MARGEM,
+  );
+  const left = Math.min(Math.max(centro - cartao.largura / 2, minimo), maxLeft);
   return { modo: 'ancorado', lado, top: Math.round(top), left: Math.round(left), maxAltura };
 }

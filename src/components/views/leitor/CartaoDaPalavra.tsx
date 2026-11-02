@@ -15,7 +15,7 @@ import { DE_DICIONARIO, MT_ENGINE_LABELS } from '../../VocabularyPanel';
 import ExplicacaoDaFrase from '../captura/estudo/ExplicacaoDaFrase';
 
 /** O cartão antes da primeira medida (o tamanho real chega no `useLayoutEffect`). */
-const TAMANHO_ESTIMADO = { largura: 500, altura: 200 };
+const TAMANHO_ESTIMADO = { largura: 520, altura: 200 };
 const VELOCIDADES = [0.75, 1] as const;
 
 const NOME_DA_CLASSE: Record<string, string> = {
@@ -82,7 +82,12 @@ export default function CartaoDaPalavra(props: CartaoDaPalavraProps) {
   const [tamanho, setTamanho] = useState(TAMANHO_ESTIMADO);
   const [janela, setJanela] = useState(() => ({ largura: window.innerWidth, altura: window.innerHeight }));
   /* A faixa da tela que é do leitor (no celular, a barra de navegação do app fica embaixo dele). */
-  const [area, setArea] = useState(() => ({ topo: 0, base: window.innerHeight }));
+  const [area, setArea] = useState(() => ({
+    topo: 0,
+    base: window.innerHeight,
+    esquerda: 0,
+    direita: window.innerWidth,
+  }));
 
   /* O verbete da forma consultada (cacheado e deduplicado em `lookup`). */
   useEffect(() => {
@@ -130,7 +135,10 @@ export default function CartaoDaPalavra(props: CartaoDaPalavraProps) {
     const r = el.parentElement?.closest('.leitor')?.getBoundingClientRect();
     const topo = Math.max(0, r?.top ?? 0);
     const base = Math.min(janela.altura, r?.bottom ?? janela.altura);
-    if (topo !== area.topo || base !== area.base) setArea({ topo, base });
+    const esquerda = Math.max(0, r?.left ?? 0);
+    const direita = Math.min(janela.largura, r?.right ?? janela.largura);
+    if (topo !== area.topo || base !== area.base || esquerda !== area.esquerda || direita !== area.direita)
+      setArea({ topo, base, esquerda, direita });
   });
 
   /* A conta é feita dentro da faixa do leitor e devolvida para a janela. */
@@ -139,6 +147,7 @@ export default function CartaoDaPalavra(props: CartaoDaPalavraProps) {
     palavra: a && { ...a, top: a.top - area.topo, bottom: a.bottom - area.topo },
     janela: { largura: janela.largura, altura: area.base - area.topo },
     cartao: tamanho,
+    faixa: { esquerda: area.esquerda, direita: area.direita },
   });
 
   const achado = entrada?.status === 'found' ? entrada.entry : null;

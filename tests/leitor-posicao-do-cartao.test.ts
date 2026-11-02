@@ -55,6 +55,50 @@ describe('posicaoDoCartao — computador', () => {
   })
 })
 
+describe('posicaoDoCartao — faixa do leitor (sem o menu lateral)', () => {
+  const FAIXA = { esquerda: 108, direita: 1280 }
+
+  it('palavra perto da borda esquerda da coluna: o cartão não invade o menu lateral', () => {
+    const p = posicaoDoCartao({
+      palavra: palavra(300, 190, 20, 40),
+      janela: DESKTOP,
+      cartao: { largura: 520, altura: 150 },
+      faixa: FAIXA,
+    })
+    if (p.modo !== 'ancorado') throw new Error('esperava ancorado')
+    expect(p.left).toBeGreaterThanOrEqual(FAIXA.esquerda)
+  })
+
+  it('palavra perto da borda direita da coluna: o cartão fica dentro dela', () => {
+    const p = posicaoDoCartao({
+      palavra: palavra(300, 1230, 20, 40),
+      janela: DESKTOP,
+      cartao: { largura: 520, altura: 150 },
+      faixa: FAIXA,
+    })
+    if (p.modo !== 'ancorado') throw new Error('esperava ancorado')
+    expect(p.left + 520).toBeLessThanOrEqual(FAIXA.direita)
+  })
+
+  it('segue centrado na palavra quando cabe na faixa e abaixo dela', () => {
+    const w = palavra(300, 600, 20, 40)
+    const p = posicaoDoCartao({ palavra: w, janela: DESKTOP, cartao: { largura: 520, altura: 150 }, faixa: FAIXA })
+    if (p.modo !== 'ancorado') throw new Error('esperava ancorado')
+    expect(p.left).toBe(360)
+    expect(p.top).toBeGreaterThanOrEqual(w.bottom)
+  })
+
+  it('sem faixa, vale a janela inteira', () => {
+    const p = posicaoDoCartao({
+      palavra: palavra(300, 20, 20, 40),
+      janela: DESKTOP,
+      cartao: { largura: 520, altura: 150 },
+    })
+    if (p.modo !== 'ancorado') throw new Error('esperava ancorado')
+    expect(p.left).toBe(8)
+  })
+})
+
 describe('posicaoDoCartao — celular (≤ 600 px)', () => {
   it('vira mini-folha embaixo, com no máximo 40% da altura', () => {
     const p = posicaoDoCartao({ palavra: palavra(150, 40), janela: CELULAR, cartao: CARTAO })

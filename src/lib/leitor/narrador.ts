@@ -69,6 +69,8 @@ export interface VistaDoNarrador {
   fala?: { nome: string | null; emocao: EmocaoDoAvatar } | null;
   /** A frase sai do áudio pré-gerado do catálogo (o chip "Voz sintetizada" aparece). */
   gravado?: boolean;
+  /** A frase sai da voz sintetizada NO APARELHO (`neural-local`; o chip "Voz sintetizada" aparece). */
+  vozLocal?: boolean;
 }
 
 /**
@@ -84,7 +86,7 @@ export interface AudioGravadoDoLivro {
   flagLigada(): boolean;
 }
 
-export type AvisoDoNarrador = 'erro' | 'fim' | 'sem-texto' | 'sono' | 'audio-indisponivel';
+export type AvisoDoNarrador = 'erro' | 'fim' | 'sem-texto' | 'sono' | 'audio-indisponivel' | 'voz-local-indisponivel';
 
 export interface DependenciasDoNarrador {
   motor: () => MotorDoLeitor | null;
@@ -132,6 +134,11 @@ export interface DependenciasDoNarrador {
    * reprodutor; ausente (flag desligada, livro sem áudio, menor), o narrador de sempre, sem mudança.
    */
   audioGravado?: () => AudioGravadoDoLivro | null;
+  /**
+   * A VOZ NO APARELHO (flag `voz_no_aparelho`): prepara o motor `neural-local` (o `import()` e o registro na porta) quando a
+   * pessoa o escolheu para o idioma. Ausente = a porta decide com o que já está registrado (hoje: nada muda).
+   */
+  garantirVozLocal?: (idioma: string) => Promise<void>;
 }
 
 /** O capítulo com áudio gravado conferido (hash das frases = manifesto, tempos válidos). */
@@ -159,6 +166,10 @@ export class Narrador {
   /** O capítulo mudou por fora (sumário, página): retomar recomeça da página visível. */
   private recalcular = false;
   private nuvem: VozDaNuvem | null = null;
+  /** O motor neural local (a voz no aparelho), criado na primeira frase que ele lê. */
+  private neural: TtsEngine | null = null;
+  /** A frase em curso sai do motor local? (o chip "Voz sintetizada") */
+  private falandoLocal = false;
   private traducoes = new Map<string, Promise<string | null>>();
   private destruido = false;
   modo: ModoDaNarracao = 'original';
@@ -207,6 +218,7 @@ export class Narrador {
       sono: this.sono,
       fala: this.falaDa(comDestaque ? e.indice : -1),
       ...(this.d.audioGravado ? { gravado: comDestaque && this.usaGravado() } : {}),
+      ...(comDestaque && this.falandoLocal ? { vozLocal: true } : {}),
     };
   }
 
@@ -369,6 +381,7 @@ export class Narrador {
     if (this.timerDoReinicio) clearTimeout(this.timerDoReinicio);
     this.estado = narrar(this.estado, { tipo: 'parar' });
     this.calar();
+    this.neural?.liberar?.();
     this.fonteGravada?.reprodutor.destruir();
     this.d.motor()?.destacarFrase(null);
     this.limparSessaoDeMidia();
@@ -392,6 +405,7 @@ export class Narrador {
     if (e.fase === 'parada') {
       motor?.destacarFrase(null);
       this.limparSessaoDeMidia();
+      this.neural?.liberar?.(); // a voz no aparelho devolve a memória (na hora ou depois do prazo do perfil)
       return;
     }
     if (e.fase === 'virando') {
@@ -678,12 +692,17 @@ export class Narrador {
       if (this.estado.vez !== vez) return;
       const { id } = escolhido;
       const motor = this.d.envolverMotor ? this.d.envolverMotor(escolhido.motor) : escolhido.motor;
+      if (this.falandoLocal !== (id === 'neural-local')) {
+        this.falandoLocal = id === 'neural-local';
+        this.d.aoMudar(this.vista);
+      }
       /* Só o passo do LIVRO leva elenco; a tradução fala sempre na voz da pessoa. */
       const doLivro = passo.texto === this.frases[indice]?.texto;
       const fala = falaDaFrase(
         doLivro ? this.planos?.[indice] : undefined,
         { rate: this.opcoes.velocidade, pitch: this.opcoes.tom },
-        { temTom: id !== 'nuvem', temVoz: id === 'aparelho' },
+        /* Tom só o `speechSynthesis` tem; a voz por nome vale no aparelho e no motor local (F1…M5 do elenco). */
+        { temTom: id === 'aparelho', temVoz: id !== 'nuvem' },
       );
       motor.speak(passo.texto, {
         lang: codigoDeFala(passo.idioma),
@@ -701,12 +720,42 @@ export class Narrador {
           this.despachar({ tipo: 'erro', vez });
         },
       });
+      if (id === 'neural-local' && doLivro && i === 0) this.preBuscar(indice, escolhido.motor);
     };
     await falarPasso(0);
   }
 
+  /**
+   * PRÉ-BUSCA da voz no aparelho: as 2 frases seguintes do livro, com a voz de cada uma (o elenco), sintetizadas enquanto a
+   * atual toca. Só no modo original e sem repetição (os outros modos intercalam a tradução).
+   */
+  private preBuscar(indice: number, motor: TtsEngine) {
+    if (!motor.preparar || this.modo !== 'original' || this.opcoes.repeticoes !== 1) return;
+    const itens = [1, 2].flatMap((k) => {
+      const f = this.frases[indice + k];
+      if (!f) return [];
+      const fala = falaDaFrase(
+        this.planos?.[indice + k],
+        { rate: this.opcoes.velocidade, pitch: this.opcoes.tom },
+        { temTom: false, temVoz: true },
+      );
+      return [
+        {
+          texto: f.texto,
+          opts: {
+            lang: codigoDeFala(this.d.idiomaDoLivro()),
+            rate: fala.rate,
+            ...(fala.voiceName ? { voiceName: fala.voiceName } : {}),
+          },
+        },
+      ];
+    });
+    motor.preparar(itens);
+  }
+
   private async motorDeVoz(idioma: string): Promise<{ motor: TtsEngine; id: MotorDeVozId }> {
     const aparelho = this.d.aparelho ?? nativeTts;
+    if (!this.d.aparelho && this.d.garantirVozLocal) await this.d.garantirVozLocal(idioma).catch(() => undefined);
     const liberada = this.d.nuvemLiberada();
     const quem = vozDaNarracao({
       escolheuNuvem: this.d.escolheuNuvem(idioma),
@@ -716,8 +765,14 @@ export class Narrador {
     });
     if (quem === 'neural-local') {
       try {
-        const neural = await motorDeVozRegistrado('neural-local')?.criar({ reserva: aparelho });
-        if (neural) return { motor: neural, id: quem };
+        const neural = await motorDeVozRegistrado('neural-local')?.criar({
+          reserva: aparelho,
+          aoRecuar: () => this.d.aoAviso?.('voz-local-indisponivel'),
+        });
+        if (neural) {
+          this.neural = neural;
+          return { motor: neural, id: quem };
+        }
       } catch {
         /* o neural falhou ao abrir: o aparelho lê */
       }
@@ -747,6 +802,7 @@ export class Narrador {
     }
     (this.d.aparelho ?? nativeTts).cancel();
     this.nuvem?.cancel();
+    this.neural?.cancel();
   }
 
   /* ── Media Session (fone, tela de bloqueio) ── */

@@ -56,6 +56,13 @@ export interface TtsEngine {
   resume?(): void;
   isSpeaking?(): boolean;
   isPaused?(): boolean;
+  /**
+   * PRÉ-BUSCA (opcional): as próximas falas, para o motor que sintetiza adiantar o trabalho enquanto a atual toca (a voz
+   * no aparelho, `lib/voz/motorNoAparelho.ts`). Quem não sintetiza ignora.
+   */
+  preparar?(itens: ReadonlyArray<{ texto: string; opts: SpeakOptions }>): void;
+  /** Devolver a memória do motor (o worker do modelo). Opcional: o `speechSynthesis` não tem o que soltar. */
+  liberar?(): void;
 }
 
 export function isTtsSupported(): boolean {

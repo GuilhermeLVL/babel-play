@@ -20,7 +20,7 @@ import { data, t } from '../../../../lib/i18n';
 import { langLabel, toBcp47 } from '../../../../lib/languages';
 import { comNomeDoPlano, planoDeEntradaAgora } from '../../../../lib/planoDeEntrada';
 import { mudarEstadoDaTela } from '../../../../lib/polimento/interprete';
-import { nativeTts } from '../../../../lib/tts';
+import { motorDaFala } from '../../../../lib/tts';
 import { ladosDaVoz } from '../../../../lib/voz/catalogoDeVozes';
 import { criarFilaDeFala, type FilaDeFala } from '../../../../lib/voz/filaDeFala';
 import { criarMotorPorPreferencia } from '../../../../lib/voz/motorPorPreferencia';
@@ -125,7 +125,7 @@ export default function ConversaVirtual({
     vozRef.current = voz;
     const velocidadeInicial = velocidadeRef.current;
     const fila = criarFilaDeFala({
-      motor: () => voz ?? nativeTts,
+      motor: () => voz ?? motorDaFala(),
       ...(velocidadeInicial && velocidadeInicial !== 1 ? { opcoesDeFala: { rate: velocidadeInicial } } : {}),
       aoMudar: (e) => setLendo(e.falando?.manual ? { texto: e.falando.texto, lang: e.falando.lang } : null),
     });

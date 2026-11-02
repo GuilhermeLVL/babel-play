@@ -66,6 +66,7 @@ export function vozEmUso(idioma: string, nuvem: boolean = vozDaNuvemDisponivel()
 /** A pessoa escolheu, para este idioma, uma voz DO APARELHO que existe aqui? (o intérprete não vai à nuvem) */
 export function prefereVozDoAparelho(idioma: string): boolean {
   const guardada = vozGuardada(idioma);
+  if (guardada === VOZ_NO_APARELHO) return vozNoAparelhoPronta(idioma); // a Supertonic também roda no aparelho
   return guardada !== VOZ_DA_NUVEM && vozDoAparelhoExiste(guardada);
 }
 

@@ -509,6 +509,8 @@ let envoltura: ((motor: TtsEngine) => TtsEngine) | null = null;
 export function setEnvolturaDaFala(f: ((motor: TtsEngine) => TtsEngine) | null): void {
   envoltura = f;
 }
+/** O motor que `speak()` usa agora (sem a envoltura do avatar): a fila do intérprete lê dele, não do nativo. */
+export const motorDaFala = (): TtsEngine => engine;
 const motorAtivo = (): TtsEngine => (envoltura ? envoltura(engine) : engine);
 
 export function speak(text: string, opts: SpeakOptions): void {

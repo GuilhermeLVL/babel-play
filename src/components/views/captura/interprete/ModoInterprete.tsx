@@ -17,7 +17,7 @@ import { data, t } from '../../../../lib/i18n';
 import { langLabel, toBcp47 } from '../../../../lib/languages';
 import { comNomeDoPlano, planoDeEntradaAgora, textoDoAutomaticoNoPlano } from '../../../../lib/planoDeEntrada';
 import { estadoDaTela, mudarEstadoDaTela, tomarPedidoDaConversa, tremer } from '../../../../lib/polimento/interprete';
-import { nativeTts, type TtsEngine } from '../../../../lib/tts';
+import { motorDaFala, type TtsEngine } from '../../../../lib/tts';
 import { aquecerInterprete } from '../../../../lib/voz/aquecimentoDoInterprete';
 import { ladosDaVoz } from '../../../../lib/voz/catalogoDeVozes';
 import { comoInstalarVoz, faltaVozNoAparelho, useVozesDoAparelho } from '../../../../lib/voz/faltaDeVoz';
@@ -254,7 +254,7 @@ export default function ModoInterprete({
         abrir: () => microfoneRef.current.abrir(),
         fechar: () => microfoneRef.current.fechar(),
       },
-      motor: () => ponteDoAvatar.envolver(voz ?? (semVozRef.current ? MOTOR_SEM_VOZ : nativeTts)),
+      motor: () => ponteDoAvatar.envolver(voz ?? (semVozRef.current ? MOTOR_SEM_VOZ : motorDaFala())),
       nomeDoMotor: () =>
         comVozDoSite
           ? voz?.motorDaUltimaFala() === 'voz-da-nuvem'

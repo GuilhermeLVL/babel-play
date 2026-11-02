@@ -11,7 +11,8 @@ Itens marcados **[PREENCHER na Fx]** só existem depois daquela fase. Nada aqui 
 | `audiolivros_nuvem`  | Voz natural para livro próprio | `voz_natural` ligada, chave do provedor, contrato G7 (F4) |
 | `audiolivros_elenco` | Voz por personagem no catálogo | `audiolivros` ligada + elenco aprovado (F3)               |
 
-Migração PG 0016 (número provisório) **[PREENCHER na F2]**.
+Migrações: PG `0016_flags_audiolivros` e SQLite legado `0058_flags_audiolivros` (semente idempotente, `regras = '{}'`). Constantes
+`FLAG_AUDIOLIVROS*` em `src/core/planos.ts`; linhas em `docs/flags.md`.
 
 ## 2. Ligar, abrir e desligar
 

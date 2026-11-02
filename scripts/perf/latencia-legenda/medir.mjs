@@ -88,6 +88,10 @@ const TETO_PRIMEIRA_CARGA_S = Number(opt('teto', 600))
 const AMOSTRA_MS = Number(opt('amostra-ms', 3000))
 const RETRATOS = Number(opt('retratos', 1))
 const CACHE_MODELOS = opt('cache-modelos', '')
+// Intenção: foca "Iniciar" e espera N ms ANTES do clique (mede o quanto um aquecimento por intenção ganharia).
+const INTENCAO_MS = Number(opt('intencao-ms', 0))
+// Visita: abre a captura, não toca em nada por N ms e conta os workers criados; não captura.
+const VISITA_MS = Number(opt('visita-ms', 0))
 
 const sondaSrc = readFileSync(path.join(AQUI, 'sonda.js'), 'utf8')
 // O prettier fecha a expressão com `;`: tira, para caber em `(${sondaFn})(cfg)`.
@@ -274,6 +278,22 @@ const pular = page.getByRole('button', { name: 'Pular apresentação' })
 if (await pular.isVisible().catch(() => false)) await pular.click()
 await page.waitForTimeout(800)
 
+// ---- cenário de VISITA: quem só passa pela tela não deve criar worker algum (correção G, 22/10/2026)
+if (VISITA_MS > 0) {
+  await page.waitForTimeout(VISITA_MS)
+  const workersCriados = await page.evaluate(() =>
+    (window.__lat?.ev ?? []).filter((e) => e.k === 'worker:novo').map((e) => e.nome),
+  )
+  await ctx.close().catch(() => {})
+  mkdirSync(SAIDA, { recursive: true })
+  writeFileSync(
+    path.join(SAIDA, `${ROTULO}.json`),
+    JSON.stringify({ rotulo: ROTULO, visitaMs: VISITA_MS, workersCriados }, null, 1),
+  )
+  log('visita de', VISITA_MS, 'ms: workers criados', workersCriados.length, JSON.stringify(workersCriados))
+  process.exit(0)
+}
+
 // ---- motor do microfone (só no modo mic): "Local (offline)" = VAD + Whisper/Moonshine no navegador
 if (MODO === 'mic') {
   await page.getByRole('button', { name: 'Ajustes da captura' }).click()
@@ -359,6 +379,15 @@ const seloModelo = await page
   .getAttribute('aria-label')
   .catch(() => '')
 log('idiomas:', chipTexto, '|', resumo, '|', seloModelo)
+
+// ---- intenção: foco em "Iniciar" por N ms antes do clique (tIniciarPerf vem DEPOIS: pronto antes do clique = negativo)
+if (INTENCAO_MS > 0) {
+  const botao = page.getByRole('button', { name: 'Iniciar captura' })
+  await botao.hover()
+  await botao.focus()
+  await page.waitForTimeout(INTENCAO_MS)
+  log('intenção de', INTENCAO_MS, 'ms antes do clique')
+}
 
 // ---- grava
 await page.evaluate(() => {

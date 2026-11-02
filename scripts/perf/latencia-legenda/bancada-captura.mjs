@@ -187,6 +187,7 @@ function rodar(alvo, perfil, rotulo) {
     '--cache-modelos',
     CACHE_MODELOS,
     ...CENARIO,
+    ...(opt('intencao-ms', '') ? ['--intencao-ms', opt('intencao-ms', '')] : []),
     ...(flag('headful') ? [] : ['--headless']),
     ...(PERFIS[perfil] ? ['--dispositivo', PERFIS[perfil]] : []),
   ]
@@ -206,7 +207,40 @@ function rodar(alvo, perfil, rotulo) {
   return m
 }
 
+/** VISITA: abre a captura, não toca em nada e conta os workers criados (quem só passa pela tela não paga nada). */
+function visitar(alvo, perfil) {
+  const rotulo = `${alvo.nome}.${perfil}.visita`
+  const a = [
+    path.join(AQUI, 'medir.mjs'),
+    '--rotulo',
+    rotulo,
+    '--audio',
+    ROTEIRO,
+    '--url',
+    alvo.url,
+    '--saida',
+    path.join(SAIDA, 'rodadas'),
+    '--cache-modelos',
+    CACHE_MODELOS,
+    ...CENARIO,
+    '--visita-ms',
+    opt('visita-ms', '3000'),
+    ...(flag('headful') ? [] : ['--headless']),
+    ...(PERFIS[perfil] ? ['--dispositivo', PERFIS[perfil]] : []),
+  ]
+  spawnSync(process.execPath, a, { stdio: 'inherit', timeout: 5 * 60_000 })
+  const arq = path.join(SAIDA, 'rodadas', `${rotulo}.json`)
+  if (!existsSync(arq)) return log(`   ${rotulo}: INVÁLIDA — sem resultado`)
+  const d = JSON.parse(readFileSync(arq, 'utf8'))
+  log(`   ${rotulo}: workers criados ${d.workersCriados.length} ${JSON.stringify(d.workersCriados)}`)
+}
+
 const prefixo = (alvo) => (alvos.length > 1 ? `${alvo.nome}.` : '')
+if (flag('so-visita')) {
+  for (const perfil of perfis) for (const alvo of alvos) visitar(alvo, perfil)
+  encerrar()
+  process.exit(0)
+}
 for (const perfil of perfis) {
   for (const alvo of alvos) rodar(alvo, perfil, `${prefixo(alvo)}${perfil}.aquecimento`)
   for (let r = 1; r <= RODADAS; r++)

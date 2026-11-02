@@ -1,0 +1,85 @@
+# Plano das frentes (01/11/2026)
+
+Status: rascunho para o dono · Fonte das pesquisas: relatórios de subagentes (licenças e versões NÃO reconferidas pelo controlador, salvo onde marcado) · Produção segue FECHADA, nada vai a remoto sem OK.
+
+## Método (rápido, com resultado visível)
+
+- No máximo **duas frentes ativas**. Cada fatia termina em algo que o dono abre e testa no mesmo dia (demo local ou protótipo).
+- Ordem por fatia: protótipo/tela → teste do dono (3–6 perguntas) → só então app atrás de flag.
+- Uma revisão independente por fatia (não por tarefa), mais a checagem do controlador (typecheck, lint, testes, captura aberta).
+- Reaproveitar código aberto ANTES de escrever; licença conferida no repositório; AGPL/GPL/NC só com parecer jurídico.
+- Skills/ferramentas por tipo de trabalho: `superpowers:test-driven-development` (lógica pura), `opsx:propose` (mudança de comportamento), `ui-ux-pro-max` e `design:accessibility-review` (telas), `webapp-testing`/`chrome-devtools-mcp` (captura e desempenho), `custo-de-ia` (qualquer gasto), `copy-br-etica` (texto de plano/preço), `code-review` (fim da fatia).
+
+## O que já existe (descoberta de hoje)
+
+O leitor de livros já tem o narrador completo: tocar/pausar, frase anterior/seguinte, capítulo, velocidade 0,5×–2,5×, temporizador de sono, modos original/tradução/bilíngue/auto, seletor de voz, atalhos (`src/lib/leitor/narrador.ts`, `src/components/views/leitor/BarraDoNarrador.tsx`, `src/core/leitura/narracao.ts`). O "player" do protótipo NÃO deve ser reescrito: a lacuna é a **voz de alta qualidade pré-gerada** e a **biblioteca de áudio**.
+
+## Frentes, escolhas de código aberto e próximos passos
+
+### 1. Audiolivros (frente ativa A)
+
+- **Motor de voz:** candidatos sem espeak-ng (GPL): **Supertonic 3** (código MIT, pesos OpenRAIL-M, ONNX ~398 MB; repo arquivado em 09/09/2026; qualidade pt-BR não ouvida) e **Pocket TTS** (código MIT, pesos CC-BY-4.0; licença das vozes pt/es não confirmada). Kokoro pt/es e Piper dependem de espeak-ng: fora do cliente, só com parecer.
+- **Runtime:** sherpa-onnx (Apache-2.0) ou onnxruntime-web/transformers.js. Pendente verificar se o WASM do sherpa linka libespeak-ng.
+- **Leitor/sincronia:** foliate-js (MIT, já vendorizado) + sidecar JSON `{i,t0,t1}` por frase (pt/es: destaque por frase). Player: `<audio>` + Media Session + Workbox (cache offline com Range no R2).
+- **Lote:** pipeline próprio em Node reaproveitando `scripts/eval-voz` (audiblez/abogen só como referência).
+- **Próximo passo:** escuta cega Supertonic × Pocket TTS pt-BR na bancada (Tarefa 11–12 do plano); o dono ouve. Depois, Tarefa 13 (travar limiares).
+- **Dono:** consulta jurídica do espeak-ng, 10 livros + ortografia, revisar gabarito.
+
+### 2. Transcrição e tradução ao vivo (frente ativa B)
+
+- **Adotar:** transformers.js (Apache-2.0) como camada única; **Silero VAD** (MIT) para cortar silêncio (ataca "CPU do silêncio"); **LocalAgreement** como função pura em `src/core` para estabilizar parciais (porta da ideia, não do código); Chrome Translator só como atalho opcional (Bergamot continua o caminho garantido); medição WER/latência com jiwer.
+- **Evitar:** NLLB (CC-BY-NC), Vosk, MADLAD/Voxtral no aparelho, diarização (biometria, LGPD/menores). Moonshine só inglês, após ler a licença dos modelos.
+- **Riscos:** runtime do Bergamot parado desde 2022 (fixar versão); Safari sem áudio de aba e sem Document PiP (fonte secundária: CONFERIR no caniuse/WebKit); licença do parakeet.js e dos pesos Whisper ONNX não verificada.
+- **CORREÇÃO (verificada no código em 01/11):** o app JÁ tem estabilização de parciais (`src/lib/captura/parcialEstavel.ts`), VAD (`src/gateway/capture/vadWorker.ts`, `portaoDeEnergia.ts`, `fimDeFala.ts`) e adaptadores de Parakeet, Whisper, Moonshine, Opus-MT, Bergamot e Chrome Translator. As recomendações de "adotar" acima são, em grande parte, o que já existe: NÃO reimplementar. A lacuna real é **medir** (CPU do silêncio, Safari, latência até a palavra estável) e decidir o que trocar com número.
+- **Primeira fatia:** medir antes de mudar (CPU em silêncio, tempo até o parcial estável, Safari) com o harness existente.
+- **Dono:** medir no Safari com Web Inspector; decidir se "nunca Gemini" cobre o Chrome Translator (modelo do Google).
+
+### 3. Avatares e Libras (frente ativa C, só validação e decisão)
+
+- **Adotar:** `@pixiv/three-vrm-animation` (MIT) para gestos .vrma; `@mediapipe/tasks-vision` (Apache-2.0) para validar poses localmente; MINDS-Libras (CC-BY-4.0, 20 sinais) só para testes, com atribuição.
+- **Só referência:** VLibras (repositórios LGPL-3.0): estudar integração e glosa, sem copiar até parecer jurídico.
+- **Evitar:** sign.mt (CC BY-NC-SA), Ready Player Me (encerrado), Mixamo empacotado, Hand Talk, datasets sem licença confirmada.
+- **Bloqueios do dono:** contato com LAViD/UFPB (avatares, dicionário, menores); ler termos do widget no gov.br; parecer sobre LGPL; revisão por pessoas surdas. A interface deve dizer "demonstração, pode errar".
+- **Decisão de design:** escolher a direção do UX lab (A/B/C), hoje provisória em C "Palco" e NÃO verificada pelo controlador.
+
+### 4. Livros e leitura
+
+- PR de Livros (um ou fatiado), classificação etária, fontes de catálogo. Dependem do dono.
+
+### 5. Planos, anúncios e jurídico; 6. Produção e infraestrutura
+
+- Tudo fechado de propósito (`SIGNUP_ENABLED=0`, `CHECKOUT_ENABLED=0`). Cutover de produção, domínio, pareceres: atos do dono.
+
+### 7. Dívidas técnicas
+
+- 2 testes de teto mensal em `tests/integration/anuncios-premiado.test.ts` falham sem relação com estas mudanças (suspeita de dependência de data); CI vermelha conhecida em `bancada`, jogo Bao e teste de cotas instável; `avatar-a11y:168` sem causa; limpeza de ~1.300 pastas temporárias (precisa do OK).
+
+## Sequência proposta
+
+1. Hoje: plano aprovado pelo dono + 2 frentes ativas confirmadas (sugestão: Audiolivros e Transcrição; Avatares só decisão).
+2. Fatia B1: medição da transcrição (CPU em silêncio, latência do parcial estável, Safari) → só então decidir mudanças (estabilização e VAD já existem).
+3. Fatia A1: bancada rodando Supertonic e Pocket TTS em pt-BR; formulário de escuta cega para o dono.
+4. Fatia A2: "Biblioteca de áudio" ligando o narrador existente a capítulos pré-gerados (só após motor aprovado).
+5. Decisão de design do UX lab depois de verificado.
+
+## Medição da transcrição (01/11/2026, bancada `scripts/perf/latencia-legenda`)
+
+Roteiro da bancada atualizado para a interface atual (título da tela, chip de idiomas, classes das legendas em `HistoricoDoPrototipo`); estava quebrado desde setembro. Mac Apple Silicon, Chromium headless, Moonshine base q8 + opus-mt, mediana de 2 rodadas válidas (desktop) e 3 (fraco). Comparação com a base de 30/09 é INDICATIVA: a base é de outra máquina (Windows, Ryzen 5).
+
+| Métrica             | desktop hoje | base 30/09 | fraco hoje | base 30/09 |
+| ------------------- | ------------ | ---------- | ---------- | ---------- |
+| 1ª legenda (ms)     | ~5.540       | 1.228      | ~6.040     | 2.004      |
+| RTF p50             | 0,044        | 0,096      | 0,100      | 0,110      |
+| CPU no silêncio (%) | ~12          | 25         | ~10,8      | 7,3        |
+| renders/s silêncio  | ~23          | 31         | ~27        | 31         |
+| frames > 50 ms      | 0            | 1          | 0          | 4          |
+
+RESOLVIDO (antes × depois no MESMO Mac, bde13bd × HEAD, 3 rodadas intercaladas por perfil, tabela em `tmp/antes-depois/resultado/antes-depois.md`): não há regressão do STT (RTF p50 igual, 0,035 no desktop). Os ~5,5 s da "1ª legenda" no desktop vêm da métrica: ela lê só o campo `.orig`, que na tela nova só se preenche no fim da fala; o 1º texto aparece na tela em ~0,86 s nos dois lados (por instantes do log de uma rodada de cada lado; não repetido). Sugestão: separar na bancada "1º texto na tela" de "legenda completa". Diferença real, não medida em uso: hoje o Whisper local carrega no START e não ao abrir a tela (~0,9 s a mais para quem fala logo). Memória de pico não sai no Mac (`measureUserAgentSpecificMemory` ausente no headless). A 1ª rodada medida do perfil desktop falha ("bipe não encontrado") nas duas execuções. Gravar base do Mac (`--gravar-linha-de-base`) é decisão do dono.
+
+Carregamento do STT (medido nas 12 rodadas válidas do antes × depois, `sttProntoMs` = clique em Iniciar até o worker pronto): setembro −1,1 a −1,8 s (pronto ANTES do clique); hoje ~0,9 s (desktop) e ~1,0 s (fraco) DEPOIS do clique, com cache quente (perfil frio: 2,0 a 2,6 s nos dois). A mudança é DELIBERADA: `LiveCapture.tsx:1420` ("correção G do diagnóstico do Safari", 22/10/2026) tirou o pré-aquecimento ao abrir a tela porque carregava ~320 MB e deixava workers vivos em quem só passava por Capturar. Voltar atrás reintroduziria isso: NÃO fazer sem decisão do dono. Alternativas a medir (todas mudam comportamento, passam por `/opsx:propose`): aquecer só na intenção (foco ou passar o mouse em "Iniciar", ou depois de escolher os idiomas); começar a gravar áudio em fila enquanto o modelo carrega (verificar se as primeiras palavras já se perdem hoje).
+
+A métrica `primeiroTextoNaTelaMs` (original ou tradução) foi adicionada à bancada; `primeiraLegendaMs` passa a significar "legenda completa".
+
+## Não verificado (conferir antes de decidir)
+
+Licença das vozes do Pocket TTS; qualidade pt-BR dos dois motores; sherpa-onnx × espeak; Safari (Translator API, áudio de aba, Document PiP); termos do gov.br; leis 10.436/5.626/13.146 citadas de memória; licença do parakeet.js. Nada disto é parecer jurídico.

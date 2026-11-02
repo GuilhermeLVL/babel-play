@@ -88,6 +88,11 @@ const TETO_PRIMEIRA_CARGA_S = Number(opt('teto', 600))
 const AMOSTRA_MS = Number(opt('amostra-ms', 3000))
 const RETRATOS = Number(opt('retratos', 1))
 const CACHE_MODELOS = opt('cache-modelos', '')
+// Intenção: foca "Iniciar" e espera N ms ANTES do clique (mede o quanto um aquecimento por intenção ganharia).
+const INTENCAO_MS = Number(opt('intencao-ms', 0))
+// Visita: abre a captura, não toca em nada por N ms e conta os workers criados; não captura.
+const VISITA_MS = Number(opt('visita-ms', 0))
+const SEM_IDIOMAS = flag('sem-idiomas')
 
 const sondaSrc = readFileSync(path.join(AQUI, 'sonda.js'), 'utf8')
 // O prettier fecha a expressão com `;`: tira, para caber em `(${sondaFn})(cfg)`.
@@ -251,7 +256,7 @@ if (APARELHO) {
   await aplicarCpu(page, APARELHO.cpu)
 }
 await page.addInitScript(
-  ({ q, d, dt }) => {
+  ({ q, d, dt, fl }) => {
     try {
       localStorage.setItem('babel_tour_blitz', '1')
       localStorage.setItem('babel.sttQuality', q)
@@ -259,17 +264,37 @@ await page.addInitScript(
       else localStorage.setItem('babel.whisperDevice', d)
       if (dt) localStorage.setItem('babel.whisperDtype', dt)
       else localStorage.removeItem('babel.whisperDtype')
+      if (fl) localStorage.setItem('babel.flags', JSON.stringify({ [fl]: { ligada: true } }))
     } catch {}
   },
-  { q: QUALIDADE, d: DEVICE, dt: opt('dtype', '') },
+  { q: QUALIDADE, d: DEVICE, dt: opt('dtype', ''), fl: opt('flag', '') },
 )
 
 const tAbrir = Date.now()
 await page.goto(`${URL_BASE}/capturar`)
-await page.getByRole('heading', { name: 'Capturar', level: 1 }).waitFor({ timeout: 30_000 })
+await page
+  .getByRole('heading', { name: /^(Capturar|Pronto para legendar)$/ })
+  .first()
+  .waitFor({ timeout: 30_000 })
 const pular = page.getByRole('button', { name: 'Pular apresentação' })
 if (await pular.isVisible().catch(() => false)) await pular.click()
 await page.waitForTimeout(800)
+
+// ---- cenário de VISITA: quem só passa pela tela não deve criar worker algum (correção G, 22/10/2026)
+if (VISITA_MS > 0) {
+  await page.waitForTimeout(VISITA_MS)
+  const workersCriados = await page.evaluate(() =>
+    (window.__lat?.ev ?? []).filter((e) => e.k === 'worker:novo').map((e) => e.nome),
+  )
+  await ctx.close().catch(() => {})
+  mkdirSync(SAIDA, { recursive: true })
+  writeFileSync(
+    path.join(SAIDA, `${ROTULO}.json`),
+    JSON.stringify({ rotulo: ROTULO, visitaMs: VISITA_MS, workersCriados }, null, 1),
+  )
+  log('visita de', VISITA_MS, 'ms: workers criados', workersCriados.length, JSON.stringify(workersCriados))
+  process.exit(0)
+}
 
 // ---- motor do microfone (só no modo mic): "Local (offline)" = VAD + Whisper/Moonshine no navegador
 if (MODO === 'mic') {
@@ -318,36 +343,40 @@ async function escolher(rotuloDoCampo, valor) {
   await dlg.getByRole('option', { name: nome, exact: false }).first().click()
   await page.waitForTimeout(200)
 }
-const chip = page
-  .getByRole('region', { name: 'Espaço de gravação' })
-  .getByRole('button', { name: /Detectar|Português|English/ })
-await chip.first().click()
-await page.getByRole('dialog', { name: /Idiomas da sessão/ }).waitFor()
-const soMicrofone =
-  MODO === 'mic' &&
-  (await page
-    .getByRole('dialog', { name: /Idiomas da sessão/ })
-    .locator('button.campo-idioma', { hasText: 'Falo em' })
-    .count()) > 0
-if (soMicrofone) {
-  // cenário só microfone (aparelho sem getDisplayMedia): [Falo em] [Traduzir para]
-  await escolher('Falo em', EU)
-  await escolher('Traduzir para', ELES)
-} else if (MODO === 'mic') {
-  // cenário conversa: [Eu falo] [Eles falam]
-  await escolher('Eu falo', EU)
-  await escolher('Eles falam', ELES)
-} else {
-  // cenário mídia: [Idioma do conteúdo] [Traduzir para]
-  await escolher('Idioma do conteúdo', ELES)
-  await escolher('Traduzir para', EU)
+// O chip de idiomas já não fica numa região "Espaço de gravação": é o botão com "Detectar → Português (BR)".
+const chip = page.getByRole('button', { name: /Detectar|Português|English/ })
+let resumo = ''
+// `--sem-idiomas`: os idiomas já estão salvos no perfil (a rodada de aquecimento os escolheu); não abre o
+// diálogo, cuja confirmação TAMBÉM aquece o STT e esconderia o efeito do ponteiro sobre "Iniciar".
+if (!SEM_IDIOMAS) {
+  await chip.first().click()
+  await page.getByRole('dialog', { name: /Idiomas da sessão/ }).waitFor()
+  const soMicrofone =
+    MODO === 'mic' &&
+    (await page
+      .getByRole('dialog', { name: /Idiomas da sessão/ })
+      .locator('button.campo-idioma', { hasText: 'Falo em' })
+      .count()) > 0
+  if (soMicrofone) {
+    // cenário só microfone (aparelho sem getDisplayMedia): [Falo em] [Traduzir para]
+    await escolher('Falo em', EU)
+    await escolher('Traduzir para', ELES)
+  } else if (MODO === 'mic') {
+    // cenário conversa: [Eu falo] [Eles falam]
+    await escolher('Eu falo', EU)
+    await escolher('Eles falam', ELES)
+  } else {
+    // cenário mídia: [Idioma do conteúdo] [Traduzir para]
+    await escolher('Idioma do conteúdo', ELES)
+    await escolher('Traduzir para', EU)
+  }
+  resumo = await page
+    .locator('.resumo-idioma')
+    .textContent()
+    .catch(() => '')
+  await page.getByRole('button', { name: 'Usar estes idiomas' }).click()
+  await page.waitForTimeout(500)
 }
-const resumo = await page
-  .locator('.resumo-idioma')
-  .textContent()
-  .catch(() => '')
-await page.getByRole('button', { name: 'Usar estes idiomas' }).click()
-await page.waitForTimeout(500)
 const chipTexto = await chip
   .first()
   .textContent()
@@ -357,6 +386,15 @@ const seloModelo = await page
   .getAttribute('aria-label')
   .catch(() => '')
 log('idiomas:', chipTexto, '|', resumo, '|', seloModelo)
+
+// ---- intenção: foco em "Iniciar" por N ms antes do clique (tIniciarPerf vem DEPOIS: pronto antes do clique = negativo)
+if (INTENCAO_MS > 0) {
+  const botao = page.getByRole('button', { name: 'Iniciar captura' })
+  await botao.hover()
+  await botao.focus()
+  await page.waitForTimeout(INTENCAO_MS)
+  log('intenção de', INTENCAO_MS, 'ms antes do clique')
+}
 
 // ---- grava
 await page.evaluate(() => {

@@ -34,6 +34,17 @@
  *   VITE_SENTRY_DSN                             o envio de erro do navegador
  *   VITE_LIVROS_URL                             a cópia curada dos livros do Gutenberg no R2
  *                                               (`scripts/livros/curar-gutenberg.mjs`)
+ *   VITE_AUDIO_URL                              os audiolivros pré-gerados no R2 (manifesto e tempos por
+ *                                               `connect-src`, o `.opus` por `media-src`)
+ *   VITE_VOZ_MODELO_URL                         os pesos da voz no aparelho (Supertonic 3) num R2: só `connect-src`
+ *   VITE_AVATARES_URL                           a coleção curada de avatares (VRM/GLB) num R2/CDN
+ *                                               (`src/lib/avatar/fontes.ts`). Dado, não código: só `connect-src`
+ *   AVATAR_GALERIA_TERCEIROS=1                  a galeria ao vivo do avatar (coleção 100Avatars, CC0, da ToxSam): os
+ *                                               MODELOS saem do `arweave.net` (e do subdomínio para onde ele
+ *                                               redireciona) por `connect-src`. O registro vem do
+ *                                               `raw.githubusercontent.com` (já liberado) e as miniaturas por
+ *                                               `img-src`, que já é `https:`. Sem a variável, nada entra e a galeria
+ *                                               avisa que está indisponível. Só `connect-src`, nunca script/worker.
  *   VITE_ORT_WASM_URL                           o runtime do ONNX (`ort-wasm-*.{wasm,mjs}`) num R2/CDN
  *                                               (`src/gateway/baseDoWasm.ts`). ESTE é código: entra
  *                                               também em `script-src` e `worker-src` (ver abaixo)
@@ -100,6 +111,9 @@ const CONEXOES_FIXAS = [
  */
 const CONEXOES_DO_LEITOR = ['https://ws-export.wmcloud.org']
 
+/** Onde moram os modelos da galeria 100Avatars (o `arweave.net` redireciona para um subdomínio). */
+const HOSTS_DA_GALERIA_DE_AVATARES = ['https://arweave.net', 'https://*.arweave.net']
+
 /** A ORIGEM (`https://host[:porta]`) de uma URL, ou `null` se ela não for http(s) válida. */
 function origemDe(valor: string | undefined): string | null {
   const v = valor?.trim()
@@ -144,6 +158,12 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
     origemDe(env.VITE_BERGAMOT_MODELOS_URL),
     /* Os livros do Gutenberg, na cópia curada do R2 (sem ela, o detalhe diz que a cópia não foi publicada). */
     origemDe(env.VITE_LIVROS_URL),
+    /* Os modelos de avatar da coleção curada (sem ela, saem do próprio domínio). O arquivo é dado: nunca
+       entra em `script-src` nem `worker-src`. O avatar do usuário (traga-o-seu) nunca sai do aparelho. */
+    origemDe(env.VITE_AVATARES_URL),
+    /* A galeria de avatares de terceiros (opt-in da pessoa, desligada para perfil protegido na UI): só liga com a
+       variável. Dado, nunca código. */
+    ...(env.AVATAR_GALERIA_TERCEIROS === '1' ? HOSTS_DA_GALERIA_DE_AVATARES : []),
     /* O DSN tem a chave pública no userinfo; `origin` a descarta e fica só o host de ingestão. */
     origemDe(env.VITE_SENTRY_DSN),
   ].filter((o): o is string => o !== null)
@@ -158,6 +178,14 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
   /* Fase 7: o captcha do convidado só entra na CSP quando a chave pública existe no deploy. */
   const turnstile = env.VITE_TURNSTILE_SITE_KEY?.trim() ? [HOST_DO_TURNSTILE] : []
 
+  /* Os AUDIOLIVROS pré-gerados (F2, flag `audiolivros`): manifesto e tempos por `fetch` (`connect-src`) e o
+     capítulo pelo `<audio>` (`media-src`). Dado, nunca código. Sem a variável, nada entra. */
+  const audio = [origemDe(env.VITE_AUDIO_URL)].filter((o): o is string => o !== null)
+
+  /* A VOZ NO APARELHO (flag `voz_no_aparelho`): os pesos do Supertonic baixados pelo worker por `fetch` (`connect-src`).
+     Dado, nunca código. Sem a variável, nada entra. */
+  const vozNoAparelho = [origemDe(env.VITE_VOZ_MODELO_URL)].filter((o): o is string => o !== null)
+
   const conexoes = [
     ...new Set([
       "'self'",
@@ -168,6 +196,8 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
       ...doDeploy,
       ...runtimeDoOnnx,
       ...turnstile,
+      ...audio,
+      ...vozNoAparelho,
     ]),
   ]
 
@@ -187,7 +217,7 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
     workerSrc: ["'self'", 'blob:', ...runtimeDoOnnx],
     connectSrc: conexoes,
     imgSrc: ["'self'", 'https:', 'data:', 'blob:'],
-    mediaSrc: ["'self'", 'blob:', 'data:'],
+    mediaSrc: ["'self'", 'blob:', 'data:', ...audio],
     styleSrc: ["'self'", "'unsafe-inline'"],
     // `data:`: o Vite embute no CSS as faces pequenas (Silkscreen, < 4 KB) como data URI; sem isto o
     // navegador as recusa e a marca cai na fonte de reserva (visto no staging, 03/10/2026).

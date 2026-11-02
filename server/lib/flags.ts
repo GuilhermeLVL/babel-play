@@ -200,7 +200,28 @@ export async function contextoDoRequest(req: Request, userId?: string | null): P
   }
 }
 
+/**
+ * AS FLAGS LIGADAS SÓ NO DEV LOCAL (`FLAGS_LIGADAS_NO_DEV`, lista separada por vírgula; o `npm run dev:local` a
+ * define). É o jeito de o dono ver uma funcionalidade que nasce desligada sem mexer no banco nem na CLI.
+ * SEGURA POR CONSTRUÇÃO: só vale com `NODE_ENV` diferente de `production`, com a autenticação DESLIGADA
+ * (`AUTH_REQUIRED=0`, o modo sem login) e fora do Worker. Em produção, no staging (que exige conta) e em teste sem
+ * a variável, o conjunto é vazio e nada muda. Lida na hora da chamada (nenhum módulo lê env ao ser importado).
+ */
+export function flagsLigadasNoDev(env: NodeJS.ProcessEnv = process.env): ReadonlySet<string> {
+  const lista = env.FLAGS_LIGADAS_NO_DEV?.trim()
+  if (!lista || env.NODE_ENV === 'production' || authRequired(env) || ehWorker()) return new Set()
+  return new Set(
+    lista
+      .split(',')
+      .map((c) => c.trim())
+      .filter((c) => FORMATO_DA_CHAVE.test(c)),
+  )
+}
+
 function aplicarTravas(avaliadas: FlagsAvaliadas): FlagsAvaliadas {
+  for (const chave of flagsLigadasNoDev()) {
+    avaliadas[chave] = { ...avaliadas[chave], ligada: true }
+  }
   for (const [chave, aberta] of Object.entries(TRAVAS)) {
     if (avaliadas[chave]?.ligada && !aberta()) avaliadas[chave] = { ligada: false }
   }
@@ -219,6 +240,10 @@ export async function avaliarParaContexto(ctx: ContextoDaFlag): Promise<FlagsAva
  */
 export async function flagLigada(req: Request, chave: string): Promise<boolean> {
   try {
+    if (flagsLigadasNoDev().has(chave)) {
+      const trava = TRAVAS[chave]
+      return trava ? trava() : true
+    }
     const def = (await definicoesDasFlags()).find((d) => d.chave === chave)
     if (!def) return false
     if (!avaliarFlag(def, await contextoDoRequest(req))) return false

@@ -558,6 +558,175 @@
   font-size: 15px;
 }
 
+/* As ferramentas de IA (painel "IA"): sempre listadas, com o motivo quando não dá para usar. */
+.leitor-ia-lista {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.leitor-ia-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--leitor-borda);
+  border-radius: 12px;
+  background: var(--leitor-fundo);
+}
+.leitor-ia-item .leitor-subtitulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+.leitor-ia-item .leitor-subtitulo svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--leitor-acento);
+}
+.leitor-ia-item[data-disponivel='false'] .leitor-subtitulo {
+  color: var(--leitor-suave);
+}
+.leitor-ia-motivo,
+.leitor-ia-pronto {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.leitor-ia-motivo {
+  color: var(--leitor-texto);
+  padding-left: 10px;
+  border-left: 3px solid var(--leitor-borda);
+}
+.leitor-ia-pronto {
+  color: var(--leitor-acento);
+}
+.leitor-ia-link {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--leitor-link);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.leitor-ia-voltar {
+  margin-bottom: 12px;
+}
+.leitor-ia-bloco {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.leitor-ia-modos {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+.leitor-ia-modos .btn {
+  justify-content: center;
+}
+.leitor-ia-modos .btn[aria-pressed='true'] {
+  background: var(--leitor-sutil);
+  border-color: var(--leitor-acento);
+  box-shadow: inset 0 0 0 1px var(--leitor-acento);
+}
+.leitor-ia-trecho,
+.leitor-ia-citacoes blockquote {
+  margin: 0;
+  padding: 6px 12px;
+  border-left: 3px solid var(--leitor-acento);
+  font-family: Georgia, serif;
+  font-size: 14px;
+  color: var(--leitor-suave);
+}
+.leitor-ia-resposta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--leitor-borda);
+  border-radius: 12px;
+  background: var(--leitor-fundo);
+}
+.leitor-ia-resposta p,
+.leitor-ia-resposta ul {
+  margin: 0;
+}
+.leitor-ia-resposta ul {
+  padding-left: 18px;
+}
+.leitor-ia-progresso {
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border: 0;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--leitor-borda);
+  accent-color: var(--leitor-acento);
+}
+.leitor-ia-progresso::-webkit-progress-bar {
+  background: var(--leitor-borda);
+}
+.leitor-ia-progresso::-webkit-progress-value {
+  background: var(--leitor-acento);
+  border-radius: 99px;
+}
+.leitor-ia-progresso::-moz-progress-bar {
+  background: var(--leitor-acento);
+  border-radius: 99px;
+}
+/* Botão indisponível na barra do trecho: continua focável e legível, só mais apagado (a razão aparece embaixo). */
+.leitor .btn.leitor-indisponivel {
+  opacity: 0.65;
+  border-style: dashed;
+  cursor: help;
+}
+/* A tradução do capítulo, lado a lado com o original. */
+.leitor-bilingue {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.leitor-bilingue-par {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--leitor-borda);
+}
+.leitor-bilingue-par p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.leitor-bilingue-traducao {
+  color: var(--leitor-link);
+}
+.leitor-bilingue-um {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--leitor-link);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* A estante. */
 .leitor-estante {
   max-width: 760px;
@@ -604,6 +773,11 @@
 /* Celular e janela estreita: o painel vira folha de baixo, por cima do texto; os rótulos dos botões
    da barra somem (o nome acessível fica no aria do botão pelo texto que continua no DOM, só oculto). */
 @media (max-width: 900px) {
+  /* O painel de IA é a folha de baixo; a barra do trecho por baixo dela o espremia a ponto de a resposta sumir.
+     Enquanto a folha está aberta a barra descansa (a seleção continua valendo para o parceiro). */
+  .leitor[data-painel='ia'] .leitor-selecao {
+    display: none;
+  }
   .leitor-painel {
     position: absolute;
     inset: auto 0 0 0;
@@ -628,7 +802,7 @@
     padding: 4px 4px;
     gap: 2px;
   }
-  .leitor-botao > span {
+  .leitor-botao:not(.leitor-botao-rotulo):not(.leitor-elenco-testar) > span {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -638,6 +812,39 @@
   }
   .leitor-titulo {
     font-size: 14px;
+  }
+  /* "Elenco" com rótulo cabe na barra do celular empilhando ícone e rótulo; a contagem fica ao lado do ícone, sem
+     cobrir o texto. Com o botão presente o título desce para uma segunda linha, inteiro, em vez de encolher. */
+  .leitor-botao-rotulo {
+    position: relative;
+    flex-direction: column;
+    gap: 0;
+    padding: 2px 6px;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+  .leitor-botao-rotulo .leitor-contagem {
+    position: absolute;
+    top: 1px;
+    right: -4px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: var(--leitor-acento);
+    color: var(--leitor-fundo);
+    font-size: 10px;
+    line-height: 16px;
+    text-align: center;
+  }
+  .leitor-topo-com-elenco {
+    flex-wrap: wrap;
+  }
+  .leitor-topo-com-elenco .leitor-titulo {
+    order: 3;
+    flex: 1 1 100%;
+    min-height: 0;
+    padding: 0 8px 4px;
   }
   .leitor-exportacoes {
     grid-template-columns: 1fr;
@@ -665,6 +872,117 @@
 .leitor-link-destino {
   font-size: 0.85em;
   opacity: 0.75;
+}
+
+/* O avatar-narrador (M5): um rosto pequeno e a legenda, logo acima da barra do narrador. A legenda é o conteúdo. */
+.leitor-avatar-narrador {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--leitor-borda);
+  background: var(--leitor-sutil);
+}
+.leitor-avatar-narrador-rosto {
+  flex: 0 0 72px;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.leitor-avatar-narrador-legenda {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  min-width: 0;
+  font-size: 14px;
+}
+.leitor-avatar-narrador-legenda span {
+  opacity: 0.8;
+}
+.leitor-elenco-lista {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+.leitor-elenco-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  min-height: 44px;
+  font-size: 14px;
+  padding-bottom: 10px;
+}
+/* Cada personagem é um bloco: o nome em cima, a voz e o botão de ouvir numa linha embaixo; o filete entre blocos
+   deixa claro de quem é cada seletor. */
+.leitor-elenco-personagem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0;
+  border-top: 1px solid var(--leitor-borda);
+  font-size: 14px;
+}
+.leitor-elenco-nome {
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.leitor-elenco-traducao {
+  font-weight: 400;
+  font-size: 12px;
+  opacity: 0.75;
+}
+.leitor-elenco-controle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.leitor-elenco-controle select {
+  min-height: 44px;
+  flex: 1 1 0;
+  min-width: 0;
+}
+.leitor-elenco-testar {
+  flex: none;
+  min-width: 44px;
+  min-height: 44px;
+  border-color: var(--leitor-borda);
+}
+
+/* O botão "Elenco" na barra: o rótulo aparece mesmo no celular (os outros botões ficam só no ícone) e o estado
+   ligado se vê pela cor, não só pelo atributo. */
+.leitor-botao-rotulo[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--leitor-acento) 16%, var(--leitor-fundo));
+  border-color: var(--leitor-acento);
+}
+
+/* A dica da primeira vez: uma faixa discreta sob a barra, que não cobre o livro nem prende o foco. */
+.leitor-dica {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 4px 14px;
+  font-size: 14px;
+  background: color-mix(in srgb, var(--leitor-acento) 10%, var(--leitor-fundo));
+  border-bottom: 1px solid var(--leitor-borda);
+}
+.leitor-dica p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.leitor-dica-icone {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--leitor-acento);
+}
+.leitor-dica-acao {
+  border-color: var(--leitor-borda);
 }
 
 /* A barra do narrador (L3): transporte, onde está, velocidade, ajustes e parar. Fica no pé, acima da virada de
@@ -704,7 +1022,35 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.leitor-narrador-velocidade select {
+.leitor-narrador-velocidade {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.leitor-narrador-sono {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--leitor-suave);
+}
+.leitor-narrador-sono svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.leitor .leitor-narrador-sono select {
+  min-height: 44px;
+  width: 8.5em;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  padding: 0 6px;
+  border-radius: 10px;
+  border: 1px solid var(--leitor-borda);
+  background: var(--leitor-fundo);
+  color: var(--leitor-texto);
+  font: 600 13px var(--font-display, system-ui);
+}
+.leitor .leitor-narrador-velocidade select {
   min-height: 44px;
   padding: 0 8px;
   border-radius: 10px;
@@ -713,6 +1059,52 @@
   color: var(--leitor-texto);
   font: 600 13px var(--font-display, system-ui);
   font-variant-numeric: tabular-nums;
+}
+/* O convite da voz no aparelho: uma faixa na própria barra, sem sombra nem véu (a leitura segue atrás). */
+.leitor-convite-voz {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--leitor-borda);
+  border-left: 4px solid var(--leitor-acento);
+  border-radius: 10px;
+  background: var(--leitor-fundo);
+  color: var(--leitor-texto);
+}
+.leitor-convite-voz p {
+  margin: 0;
+}
+.leitor-convite-voz-titulo {
+  font-size: 14px;
+}
+.leitor-convite-voz-texto {
+  flex: 1 1 22ch;
+  font-size: 13px;
+  color: var(--leitor-suave);
+}
+.leitor-convite-voz-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 100%;
+}
+.leitor-convite-voz progress {
+  flex: 1 1 10ch;
+  min-width: 8ch;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .leitor-convite-voz {
+    animation: leitor-convite-voz-entra 0.18s ease-out;
+  }
+}
+@keyframes leitor-convite-voz-entra {
+  from {
+    opacity: 0;
+  }
 }
 .leitor-modos {
   display: flex;
@@ -755,13 +1147,346 @@
   align-items: flex-start;
   gap: 6px;
 }
+/* O rótulo "Voz sintetizada" (áudio pré-gerado, F2): sempre visível enquanto o áudio gravado toca; não fecha. */
+.leitor-chip-voz-sintetizada {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border: 1px solid var(--leitor-borda);
+  border-radius: 999px;
+  background: var(--leitor-fundo);
+  color: var(--leitor-texto);
+  font: 600 12px var(--font-display, system-ui);
+  white-space: nowrap;
+}
+.leitor-baixar-capitulo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
 @media (max-width: 640px) {
   .leitor-narrador {
     padding: 4px 6px;
+    gap: 4px;
+  }
+  .leitor .leitor-narrador-sono select {
+    width: 7em;
   }
   .leitor-narrador-onde {
     order: -1;
     flex-basis: 100%;
     text-align: center;
   }
+}
+
+/* Os ajustes finos da narração: o rótulo, o controle e o valor à vista. */
+.leitor-ajustes-finos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.leitor-deslizante {
+  display: grid;
+  grid-template-columns: minmax(7.5em, 1fr) minmax(0, 1.6fr) 5.5em;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.leitor-deslizante input[type='range'] {
+  width: 100%;
+  min-height: 44px;
+  accent-color: var(--leitor-acento);
+}
+.leitor-deslizante select {
+  grid-column: 2 / -1;
+  min-height: 44px;
+  padding: 0 8px;
+  border-radius: 10px;
+  border: 1px solid var(--leitor-borda);
+  background: var(--leitor-fundo);
+  color: var(--leitor-texto);
+}
+.leitor-deslizante output {
+  color: var(--leitor-suave);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+@media (max-width: 640px) {
+  .leitor-deslizante {
+    grid-template-columns: 1fr 5.5em;
+  }
+  .leitor-deslizante input[type='range'] {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .leitor-deslizante select {
+    grid-column: 1 / -1;
+  }
+}
+
+/* O CARTÃO LEVE DA PALAVRA (`CartaoDaPalavra.tsx`): não modal, sem fundo por trás, perto da palavra (a posição é
+   calculada em `core/leitura/posicaoDoCartao.ts`). Cores só dos tokens do tema de leitura. */
+.cartao-palavra {
+  position: fixed;
+  z-index: 40;
+  width: min(520px, calc(100vw - 16px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--leitor-borda);
+  border-radius: 14px;
+  background: var(--leitor-fundo);
+  color: var(--leitor-texto);
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--leitor-texto) 18%, transparent);
+  animation: cartao-palavra-entra 120ms ease-out;
+}
+.cartao-palavra:focus {
+  outline: none;
+}
+.cartao-palavra:focus-visible {
+  outline: 3px solid var(--leitor-acento);
+}
+.cartao-palavra[data-modo='folha'] {
+  left: 0;
+  right: 0;
+  width: auto;
+  border-radius: 14px 14px 0 0;
+}
+.cartao-palavra[data-modo='folha'][data-lado='baixo'] {
+  bottom: 0;
+}
+.cartao-palavra[data-modo='folha'][data-lado='topo'] {
+  top: 0;
+  border-radius: 0 0 14px 14px;
+}
+@keyframes cartao-palavra-entra {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cartao-palavra {
+    animation: none;
+  }
+}
+.cartao-palavra-topo {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.cartao-palavra-cab {
+  flex: 1;
+  min-width: 0;
+}
+.cartao-palavra-cab p {
+  margin: 0;
+}
+.cartao-palavra-linha1 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.cartao-palavra-termo {
+  font: 700 20px/1.25 var(--font-display, system-ui);
+  overflow-wrap: anywhere;
+}
+.cartao-palavra-ipa {
+  font-size: 14px;
+  color: var(--leitor-suave);
+}
+.cartao-palavra-traducao {
+  margin-top: 2px;
+  font-size: 16px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cartao-palavra-apoio {
+  margin: 0;
+  font-size: 14px;
+  color: var(--leitor-suave);
+  white-space: normal;
+}
+.cartao-palavra-apoio svg,
+.cartao-palavra-chip svg {
+  width: 18px;
+  height: 18px;
+  vertical-align: -3px;
+}
+.cartao-palavra-cantos {
+  display: flex;
+  gap: 2px;
+}
+.cartao-palavra-imagem {
+  margin: 0;
+  width: 64px;
+  flex: none;
+  text-align: center;
+}
+.cartao-palavra-imagem img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--leitor-borda);
+}
+.cartao-palavra-imagem figcaption {
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--leitor-suave);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cartao-palavra-imagem a {
+  color: inherit;
+}
+.cartao-palavra-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+/* Mini-folha (celular): os botões quebram de 2 em 2, sem botão órfão (o último, se ímpar, ocupa a linha). E o botão
+   flutuante do iChat sai de baixo da folha, como já sai de baixo de qualquer folha do app (`.folha.on`). */
+.cartao-palavra[data-modo='folha'] > .cartao-palavra-acoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.cartao-palavra[data-modo='folha'] > .cartao-palavra-acoes > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+.cartao-palavra[data-modo='folha'] .cartao-palavra-acoes .cartao-palavra-chip {
+  justify-content: center;
+}
+body:has(.cartao-palavra[data-modo='folha']) .fab {
+  display: none;
+}
+.cartao-palavra-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 44px;
+  padding: 0 9px;
+  white-space: nowrap;
+  border: 1px solid var(--leitor-borda);
+  border-radius: 22px;
+  background: var(--leitor-sutil);
+  color: var(--leitor-texto);
+  font:
+    600 14px/1.2 system-ui,
+    sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+}
+.cartao-palavra-chip:hover {
+  border-color: var(--leitor-acento);
+}
+.cartao-palavra-chip[aria-expanded='true'],
+.cartao-palavra-chip[aria-pressed='true'] {
+  border-color: var(--leitor-acento);
+  box-shadow: inset 0 0 0 1px var(--leitor-acento);
+}
+.cartao-palavra-chip[data-estado='salva'] {
+  cursor: default;
+  border-style: dashed;
+}
+.cartao-palavra-chip[aria-expanded='true'] .cartao-palavra-seta {
+  transform: rotate(180deg);
+}
+.cartao-palavra-bloco,
+.cartao-palavra-mais {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--leitor-borda);
+  font-size: 15px;
+  line-height: 1.45;
+}
+.cartao-palavra-bloco p,
+.cartao-palavra-mais p {
+  margin: 0;
+}
+.cartao-palavra-citacao {
+  font-family: Georgia, serif;
+  color: var(--leitor-suave);
+}
+.cartao-palavra-link {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--leitor-link);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.cartao-palavra-sub {
+  margin: 4px 0 0;
+  font: 700 14px/1.3 var(--font-display, system-ui);
+}
+.cartao-palavra-sentidos {
+  margin: 0;
+  padding-left: 18px;
+}
+.cartao-palavra-classe {
+  font-style: italic;
+  color: var(--leitor-suave);
+}
+.cartao-palavra-exemplo {
+  font-style: italic;
+}
+.cartao-palavra-velocidade {
+  display: flex;
+  gap: 6px;
+}
+.cartao-palavra-fontes summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--leitor-suave);
+}
+
+/* O avatar-narrador (faixa acima da barra, no fluxo: nunca cobre o texto). O tamanho vem do avatar (P/M/G, com teto de
+   um quinto da altura); recolhido, sobra só a legenda. */
+.leitor-avatar-narrador {
+  position: relative;
+  flex-wrap: wrap;
+}
+.leitor-avatar-narrador-rosto {
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  border-radius: 50%;
+}
+.leitor-avatar-narrador-legenda {
+  flex: 1 1 140px;
+}
+.leitor-avatar-narrador-legenda small {
+  opacity: 0.7;
+}
+.leitor-avatar-narrador-legenda span {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.leitor-avatar-painel {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 100%;
+  z-index: 5;
+  max-width: 420px;
+}
+.leitor-avatar-painel .avm-painel {
+  max-height: min(55dvh, 520px);
 }

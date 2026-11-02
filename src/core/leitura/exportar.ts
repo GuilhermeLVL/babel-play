@@ -189,6 +189,53 @@ export function paraMarkdown(
   return linhas.join('\n') + '\n';
 }
 
+const escaparHtml = (v: string) =>
+  v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+/**
+ * HTML IMPRIMÍVEL das anotações (um arquivo só, sem script nem recurso externo, com CSP restritiva): capítulo,
+ * citação, nota e palavra, tudo ESCAPADO (o texto do livro e a nota da pessoa nunca viram marcação).
+ */
+export function paraHtml(
+  livro: LivroDaExportacao,
+  anotacoes: readonly AnotacaoDeLeitura[],
+  opcoes: { agora: number; rotulos?: Partial<RotulosDoMarkdown>; idioma?: string } = { agora: 0 },
+): string {
+  const r = { ...ROTULOS_PADRAO, ...opcoes.rotulos };
+  const vivas = anotacoesVivas(anotacoes.filter((a) => a.livroId === livro.id));
+  const partes: string[] = [];
+  let capituloAtual: string | null = null;
+  for (const a of vivas) {
+    const cap = a.alvo.capitulo || r.semCapitulo;
+    if (cap !== capituloAtual) {
+      capituloAtual = cap;
+      partes.push(`<h2>${escaparHtml(cap)}</h2>`);
+    }
+    partes.push('<section class="anotacao">');
+    if (a.tipo === 'palavra' && a.palavra) {
+      partes.push(`<p><b>${escaparHtml(r.palavra)}:</b> ${escaparHtml(a.palavra)}</p>`);
+    }
+    if (a.alvo.citacao.exact) partes.push(`<blockquote>${escaparHtml(a.alvo.citacao.exact)}</blockquote>`);
+    if (a.nota) partes.push(`<p><b>${escaparHtml(r.nota)}:</b> ${escaparHtml(a.nota).replace(/\r?\n/g, '<br>')}</p>`);
+    partes.push('</section>');
+  }
+  const sub = [livro.autor, livro.fonte].filter(Boolean).join(' · ');
+  const data = new Date(opcoes.agora).toISOString().slice(0, 10);
+  return (
+    `<!doctype html>\n<html lang="${escaparHtml(opcoes.idioma ?? 'pt-BR')}"><head><meta charset="utf-8">` +
+    `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">` +
+    `<meta name="viewport" content="width=device-width,initial-scale=1"><title>${escaparHtml(livro.titulo)}</title>` +
+    `<style>body{font:16px/1.5 Georgia,serif;max-width:42rem;margin:2rem auto;padding:0 1rem;color:#222}` +
+    `blockquote{margin:.5rem 0;padding-left:1rem;border-left:4px solid #e2b93b}` +
+    `.anotacao{margin:1rem 0;break-inside:avoid}h2{margin-top:2rem}</style></head><body>` +
+    `<h1>${escaparHtml(livro.titulo)}</h1>` +
+    (sub ? `<p><i>${escaparHtml(sub)}</i></p>` : '') +
+    `<p><i>${escaparHtml(r.exportadoEm(data))}</i></p>` +
+    partes.join('\n') +
+    `</body></html>\n`
+  );
+}
+
 /**
  * Um campo de CSV PARA PLANILHA (RFC 4180, com a mitigação de injeção de fórmula da OWASP): o campo que
  * começa com `=`, `+`, `-`, `@`, tab ou CR ganha um apóstrofo na frente ANTES das aspas — senão o Excel e o

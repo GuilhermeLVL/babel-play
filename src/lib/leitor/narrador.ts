@@ -10,9 +10,28 @@
  *    (`vozDaNuvem.ts`) só com o direito do plano, a flag e a escolha da pessoa — e qualquer recusa da nuvem
  *    (402 do plano, cota, 429) lê a MESMA frase com a voz do aparelho;
  *  · pausar e retomar: retomar fala a frase de novo do começo (a nuvem não pausa, e o Chrome perde a fala pausada
- *    por muito tempo); mudar a velocidade, a voz ou o modo recomeça a frase, sem perder o destaque;
+ *    por muito tempo); mudar a velocidade, o tom, o volume, a voz ou o modo recomeça a frase, sem perder o destaque;
+ *  · os AJUSTES (`OpcoesDaNarracao`: velocidade, tom, volume, pausas, repetições), guardados no aparelho, a pausa
+ *    entre frases/parágrafos, "voltar 10 s", capítulo anterior/próximo e o temporizador de sono;
  *  · Media Session: os controles do sistema (fone, tela de bloqueio) tocam, pausam e pulam frase.
  */
+import {
+  type ConfigDoElenco,
+  falaDaFrase,
+  montarDistribuicao,
+  planejarElenco,
+  type PlanoDaFrase,
+} from '../../core/avatar/elenco';
+import type { EmocaoDoAvatar } from '../../core/avatar/estados';
+import { type FraseComTempo, frasesIntegras, type ManifestoDeAudio } from '../../core/leitura/audiolivro';
+import {
+  dormirEm,
+  frasesParaVoltar,
+  normalizarOpcoes,
+  type OpcoesDaNarracao,
+  pausaAposAFrase,
+  type Sono,
+} from '../../core/leitura/estilosDeLeitura';
 import {
   type EstadoDaNarracao,
   type EventoDaNarracao,
@@ -24,10 +43,14 @@ import {
   passosDaFrase,
   vozDaNarracao,
 } from '../../core/leitura/narracao';
-import { codigoDeFala, nativeTts, type TtsEngine } from '../tts';
+import type { MotorDeVozId } from '../../core/voz/portaDeVoz';
+import { motorDeVozRegistrado, neuralLocalPronto } from '../../gateway/registroDeMotoresDeVoz';
+import { aguardarVozes, codigoDeFala, nativeTts, type TtsEngine } from '../tts';
 import type { VozDaNuvem } from '../voz/vozDaNuvem';
+import type { ReprodutorDeCapitulo } from './audiolivro/reprodutor';
 import { type FraseNoCapitulo, frasesDoDocumento, indiceDaFraseEm } from './frasesDoCapitulo';
 import type { MotorDoLeitor } from './motor';
+import { gravarOpcoesDaNarracao, lerOpcoesDaNarracao } from './preferenciasDaNarracao';
 
 export interface VistaDoNarrador {
   fase: EstadoDaNarracao['fase'];
@@ -35,7 +58,37 @@ export interface VistaDoNarrador {
   total: number;
   /** A frase destacada (vazia sem destaque). */
   frase: string;
+  /** Os ajustes em vigor (a barra e o painel desenham deles). */
+  opcoes: OpcoesDaNarracao;
+  /** O temporizador de sono armado (`null` = sem sono). */
+  sono: Sono;
+  /**
+   * Quem fala a frase destacada e com que emoção, SÓ com o elenco ligado (`null` = voz única, como sempre).
+   * `nome` é a personagem, ou `null` quando é o narrador.
+   */
+  fala?: { nome: string | null; emocao: EmocaoDoAvatar } | null;
+  /** A frase sai do áudio pré-gerado do catálogo (o chip "Voz sintetizada" aparece). */
+  gravado?: boolean;
+  /** A frase sai da voz sintetizada NO APARELHO (`neural-local`; o chip "Voz sintetizada" aparece). */
+  vozLocal?: boolean;
+  /** A frase sai da voz do SISTEMA (`speechSynthesis`): só então o convite da voz no aparelho pode aparecer. */
+  vozDoSistema?: boolean;
 }
+
+/**
+ * O AUDIOLIVRO PRÉ-GERADO do livro aberto (F2, flag `audiolivros`): o manifesto já validado, onde fica cada capítulo
+ * (`nn` = índice da seção + 1, a ordem que o gerador recebeu), os tempos das frases e o reprodutor. Só existe com a
+ * flag ligada e o livro visível para quem lê; `flagLigada()` é relida a cada frase (o kill-switch vale no meio).
+ */
+export interface AudioGravadoDoLivro {
+  manifesto: ManifestoDeAudio;
+  urlDoCapitulo(nn: number): string;
+  tempos(nn: number): Promise<FraseComTempo[] | null>;
+  reprodutor: ReprodutorDeCapitulo;
+  flagLigada(): boolean;
+}
+
+export type AvisoDoNarrador = 'erro' | 'fim' | 'sem-texto' | 'sono' | 'audio-indisponivel' | 'voz-local-indisponivel';
 
 export interface DependenciasDoNarrador {
   motor: () => MotorDoLeitor | null;
@@ -52,8 +105,11 @@ export interface DependenciasDoNarrador {
   aoMudar: (v: VistaDoNarrador) => void;
   /** A narração vai mexer na página (o leitor ignora "toques" que a navegação produz). */
   aoNavegar?: () => void;
-  /** Uma frase não pôde ser lida, ou o livro acabou. */
-  aoAviso?: (aviso: 'erro' | 'fim' | 'sem-texto') => void;
+  /**
+   * Uma frase não pôde ser lida, ou o livro acabou. `audio-indisponivel`: o áudio gravado falhou e a voz do aparelho
+   * seguiu na mesma frase (uma vez por livro aberto).
+   */
+  aoAviso?: (aviso: AvisoDoNarrador) => void;
   /** A voz natural não serviu e a do aparelho leu (o plano, a cota): para avisar uma vez. */
   aoRecuoDaNuvem?: (motivo: string) => void;
   metadados?: () => { titulo: string; autor?: string };
@@ -61,26 +117,103 @@ export interface DependenciasDoNarrador {
   criarNuvem?: () => Promise<VozDaNuvem>;
   /** A voz do aparelho (para o teste); padrão: `nativeTts`. */
   aparelho?: TtsEngine;
+  /** Os ajustes de partida (padrão: os guardados no aparelho). */
+  opcoesIniciais?: OpcoesDaNarracao;
+  /** O relógio do sono (para o teste); padrão: `Date.now`. */
+  agora?: () => number;
+  /**
+   * O ELENCO (M5, flag `avatar_elenco`): a configuração em vigor, ou `null`/ausente = voz única (a fala de sempre).
+   * Lida a cada capítulo e em `definirElenco()`; nunca é obrigatória nem usa rede.
+   */
+  elenco?: () => ConfigDoElenco | null;
+  /**
+   * O AVATAR NA NARRAÇÃO (flag `avatar_3d`): embrulha o motor que vai falar a frase (`ligarAvatarAFala`), para a boca do
+   * avatar seguir a voz. Ausente = o motor como veio (o som e as chamadas não mudam).
+   */
+  envolverMotor?: (motor: TtsEngine) => TtsEngine;
+  /**
+   * O ÁUDIO PRÉ-GERADO (flag `audiolivros`): com áudio íntegro para o capítulo e o modo `original`, a frase sai do
+   * reprodutor; ausente (flag desligada, livro sem áudio, menor), o narrador de sempre, sem mudança.
+   */
+  audioGravado?: () => AudioGravadoDoLivro | null;
+  /**
+   * A VOZ NO APARELHO (flag `voz_no_aparelho`): prepara o motor `neural-local` (o `import()` e o registro na porta) quando a
+   * pessoa o escolheu para o idioma. Ausente = a porta decide com o que já está registrado (hoje: nada muda).
+   */
+  garantirVozLocal?: (idioma: string) => Promise<void>;
+  /**
+   * A voz no aparelho lê o idioma agora? (para o teste, com `aparelho` falso). Padrão: a porta (`neuralLocalPronto`), e
+   * `false` quando o teste injeta o `aparelho` sem isto.
+   */
+  vozLocalPronta?: (idioma: string) => boolean;
 }
+
+/** O capítulo com áudio gravado conferido (hash das frases = manifesto, tempos válidos). */
+interface CapituloGravado {
+  secao: number;
+  nn: number;
+  url: string;
+  tempos: FraseComTempo[];
+  carregado: boolean;
+}
+
+/** Quanto esperar sem novas mudanças antes de recomeçar a frase (a pessoa arrasta um controle). */
+const ATRASO_DO_REINICIO_MS = 300;
 
 const CHAVE_DA_POSICAO = (livroId: string) => `leitor:narracao:${livroId}`;
 
 export class Narrador {
   private estado: EstadoDaNarracao = NARRACAO_PARADA;
   private frases: FraseNoCapitulo[] = [];
+  /** O plano do elenco por frase do capítulo (`null` = elenco desligado). */
+  private planos: PlanoDaFrase[] | null = null;
   private doc: Document | null = null;
   private indiceDaSecao = -1;
   private virandoCapitulo = false;
   /** O capítulo mudou por fora (sumário, página): retomar recomeça da página visível. */
   private recalcular = false;
   private nuvem: VozDaNuvem | null = null;
+  /** O motor neural local (a voz no aparelho), criado na primeira frase que ele lê. */
+  private neural: TtsEngine | null = null;
+  /** A frase em curso sai do motor local? (o chip "Voz sintetizada") */
+  private falandoLocal = false;
+  /** A frase em curso sai da voz do sistema? (o convite da voz no aparelho) */
+  private falandoSistema = false;
   private traducoes = new Map<string, Promise<string | null>>();
   private destruido = false;
   modo: ModoDaNarracao = 'original';
-  velocidade = 1;
   seguir = true;
+  opcoes: OpcoesDaNarracao;
+  private sono: Sono = null;
+  private timerDoSono: ReturnType<typeof setTimeout> | null = null;
+  private timerDaPausa: ReturnType<typeof setTimeout> | null = null;
+  private timerDoReinicio: ReturnType<typeof setTimeout> | null = null;
+  /** O capítulo que está virando deve voltar (-1) ou avançar (1)? */
+  private direcao: 1 | -1 = 1;
+  /** Ao acabar de virar, seguir falando? (virar à mão numa narração pausada não toca sozinho) */
+  private falarAoVirar = true;
+  private viraAMao = false;
+  /* ── o áudio gravado (F2) ── */
+  /** O capítulo carregado tem áudio íntegro? (`null` = a voz do aparelho lê) */
+  private gravado: CapituloGravado | null = null;
+  /** A conferência do áudio do capítulo (hash + tempos), pedida em `carregarFrases`. */
+  private preparoDoGravado: Promise<void> = Promise.resolve();
+  /** A frase que o reprodutor está tocando AGORA (-1 = parado): a frase seguinte não recomeça o áudio. */
+  private fraseDoAudio = -1;
+  /** O áudio falhou neste livro: até fechar, só a voz do aparelho (e o aviso sai uma vez). */
+  private audioFalhou = false;
+  private fonteGravada: AudioGravadoDoLivro | null = null;
 
-  constructor(private readonly d: DependenciasDoNarrador) {}
+  constructor(private readonly d: DependenciasDoNarrador) {
+    this.opcoes = d.opcoesIniciais ?? lerOpcoesDaNarracao();
+  }
+
+  get velocidade(): number {
+    return this.opcoes.velocidade;
+  }
+  set velocidade(v: number) {
+    this.opcoes = normalizarOpcoes({ velocidade: v }, this.opcoes);
+  }
 
   get vista(): VistaDoNarrador {
     const e = this.estado;
@@ -90,7 +223,51 @@ export class Narrador {
       indice: e.indice,
       total: e.total,
       frase: comDestaque ? (this.frases[e.indice]?.texto ?? '') : '',
+      opcoes: this.opcoes,
+      sono: this.sono,
+      fala: this.falaDa(comDestaque ? e.indice : -1),
+      ...(this.d.audioGravado ? { gravado: comDestaque && this.usaGravado() } : {}),
+      ...(comDestaque && this.falandoLocal ? { vozLocal: true } : {}),
+      ...(comDestaque && this.falandoSistema ? { vozDoSistema: true } : {}),
     };
+  }
+
+  /** O capítulo de áudio gravado em uso (para o "Baixar este capítulo"), ou `null`. */
+  get audioDoCapitulo(): { url: string; bytes: number; duracaoS: number } | null {
+    const g = this.gravado;
+    const cap = g && this.usaGravado() ? this.fonteGravada?.manifesto.capitulos.find((c) => c.nn === g.nn) : null;
+    return g && cap ? { url: g.url, bytes: cap.bytes, duracaoS: cap.duracaoS } : null;
+  }
+
+  /** O falante e a emoção da frase `indice` (só com o elenco ligado). */
+  private falaDa(indice: number): VistaDoNarrador['fala'] {
+    const p = this.planos?.[indice];
+    if (!p) return null;
+    return { nome: p.falante.tipo === 'personagem' ? (p.falante.nome ?? null) : null, emocao: p.emocao };
+  }
+
+  /** O elenco mudou (ligou, desligou, outra voz): refaz o plano e a frase em curso recomeça com a voz nova. */
+  definirElenco() {
+    this.planejar();
+    this.reiniciarFrase();
+    if (!this.destruido) this.d.aoMudar(this.vista);
+  }
+
+  private planejar() {
+    let cfg: ConfigDoElenco | null;
+    try {
+      cfg = this.d.elenco?.() ?? null;
+    } catch {
+      cfg = null; // falhou ao montar o elenco: voz única, nunca silêncio
+    }
+    this.planos =
+      cfg && this.frases.length
+        ? planejarElenco(
+            this.frases.map((f) => f.texto),
+            cfg,
+            montarDistribuicao(cfg),
+          )
+        : null;
   }
 
   /* ── comandos ── */
@@ -115,16 +292,94 @@ export class Narrador {
 
   /** Velocidade, voz ou modo mudaram: a frase recomeça (o destaque fica). */
   reiniciarFrase() {
-    if (this.estado.fase === 'tocando') this.despachar({ tipo: 'tocar', indice: this.estado.indice });
+    if (this.estado.fase !== 'tocando') return;
+    this.pararAudio(); // o áudio gravado também recomeça a frase (velocidade nova, modo novo)
+    this.despachar({ tipo: 'tocar', indice: this.estado.indice });
   }
   definirVelocidade(v: number) {
-    this.velocidade = v;
-    this.reiniciarFrase();
+    this.definirOpcoes({ velocidade: v }, { adiar: false });
+  }
+  /**
+   * Muda os ajustes e guarda no aparelho. Velocidade, tom e volume valem na fala NOVA: a frase recomeça (com
+   * um respiro quando a pessoa arrasta o controle, `adiar`); as pausas e as repetições valem na próxima frase.
+   */
+  definirOpcoes(parcial: Partial<OpcoesDaNarracao>, o: { adiar?: boolean } = {}) {
+    const antes = this.opcoes;
+    this.opcoes = normalizarOpcoes(parcial, antes);
+    gravarOpcoesDaNarracao(this.opcoes);
+    const mudouAFala =
+      this.opcoes.velocidade !== antes.velocidade ||
+      this.opcoes.tom !== antes.tom ||
+      this.opcoes.volume !== antes.volume;
+    if (mudouAFala) {
+      if (o.adiar === false) this.reiniciarFrase();
+      else this.reiniciarDepois();
+    }
+    if (!this.destruido) this.d.aoMudar(this.vista);
+  }
+  private reiniciarDepois() {
+    if (this.timerDoReinicio) clearTimeout(this.timerDoReinicio);
+    this.timerDoReinicio = setTimeout(() => {
+      this.timerDoReinicio = null;
+      this.reiniciarFrase();
+    }, ATRASO_DO_REINICIO_MS);
+  }
+  /**
+   * A voz no aparelho ficou pronta NO MEIO da leitura (o convite "Baixar e usar"): a frase em curso termina na voz de
+   * antes (nada é cortado nem recomeça) e as 2 seguintes já são sintetizadas, para a troca não deixar silêncio.
+   */
+  async anteciparVozLocal(): Promise<void> {
+    const e = this.estado;
+    if (e.fase !== 'tocando' || this.destruido) return;
+    const { motor, id } = await this.motorDeVoz(this.d.idiomaDoLivro());
+    if (id === 'neural-local' && this.estado.vez === e.vez) this.preBuscar(e.indice, motor);
   }
   definirModo(m: ModoDaNarracao) {
     this.modo = m;
     this.reiniciarFrase();
   }
+  /** Volta cerca de `segundos` de fala (estimativa pelo tamanho das frases e pela velocidade). */
+  voltar(segundos = 10) {
+    const e = this.estado;
+    if (e.fase !== 'tocando' && e.fase !== 'pausada') return;
+    const n = frasesParaVoltar(
+      this.frases.map((f) => f.texto.length),
+      e.indice,
+      segundos,
+      this.opcoes.velocidade,
+    );
+    this.despachar({ tipo: 'ir', indice: e.indice - n });
+  }
+  /** Pula para o capítulo seguinte (`1`) ou anterior (`-1`). */
+  irParaCapitulo(direcao: 1 | -1) {
+    const e = this.estado;
+    if (e.fase === 'parada' || e.fase === 'virando') return;
+    this.direcao = direcao;
+    this.falarAoVirar = e.fase === 'tocando';
+    this.viraAMao = true;
+    this.despachar({ tipo: 'capitulo', total: 0, indice: 0, continuar: true });
+  }
+
+  /** Arma (ou desarma, com `null`) o temporizador de sono: minutos, ou `'capitulo'` para o fim do capítulo. */
+  definirSono(quando: number | 'capitulo' | null) {
+    if (this.timerDoSono) clearTimeout(this.timerDoSono);
+    this.timerDoSono = null;
+    const agora = this.d.agora ?? Date.now;
+    this.sono = quando === null ? null : quando === 'capitulo' ? { tipo: 'capitulo' } : dormirEm(quando, agora());
+    if (typeof quando === 'number') {
+      this.timerDoSono = setTimeout(() => this.dormir(), quando * 60_000);
+    }
+    if (!this.destruido) this.d.aoMudar(this.vista);
+  }
+  private dormir() {
+    this.timerDoSono = null;
+    this.sono = null;
+    if (this.estado.fase === 'tocando' || this.estado.fase === 'virando') {
+      this.d.aoAviso?.('sono');
+      this.despachar({ tipo: 'pausar' });
+    } else this.d.aoMudar(this.vista);
+  }
+
   definirSeguir(s: boolean) {
     this.seguir = s;
     const f = this.frases[this.estado.indice];
@@ -142,8 +397,12 @@ export class Narrador {
 
   destruir() {
     this.destruido = true;
+    if (this.timerDoSono) clearTimeout(this.timerDoSono);
+    if (this.timerDoReinicio) clearTimeout(this.timerDoReinicio);
     this.estado = narrar(this.estado, { tipo: 'parar' });
     this.calar();
+    this.neural?.liberar?.();
+    this.fonteGravada?.reprodutor.destruir();
     this.d.motor()?.destacarFrase(null);
     this.limparSessaoDeMidia();
   }
@@ -160,16 +419,18 @@ export class Narrador {
   }
 
   private aplicar(e: EstadoDaNarracao) {
-    this.calar();
+    /* O áudio gravado chegou sozinho à frase nova (`aoMudarFrase`): ele segue tocando, só o destaque muda. */
+    this.calar({ manterAudio: e.fase === 'tocando' && this.fraseDoAudio === e.indice && this.usaGravado() });
     const motor = this.d.motor();
     if (e.fase === 'parada') {
       motor?.destacarFrase(null);
       this.limparSessaoDeMidia();
+      this.neural?.liberar?.(); // a voz no aparelho devolve a memória (na hora ou depois do prazo do perfil)
       return;
     }
     if (e.fase === 'virando') {
       motor?.destacarFrase(null);
-      void this.virarCapitulo(e.vez);
+      void this.virarCapitulo(e.vez, this.direcao);
       return;
     }
     const f = this.frases[e.indice];
@@ -188,25 +449,49 @@ export class Narrador {
     void motor.mostrarTrecho(range);
   }
 
-  private async virarCapitulo(vez: number) {
+  private async virarCapitulo(vez: number, direcao: 1 | -1) {
     const motor = this.d.motor();
     if (!motor) return;
+    const continuar = this.falarAoVirar;
+    this.direcao = 1;
+    this.falarAoVirar = true;
+    const aMao = this.viraAMao;
+    this.viraAMao = false;
+    /* O sono "no fim do capítulo": o capítulo acabou, a narração pausa em vez de abrir o seguinte. */
+    if (
+      !aMao &&
+      direcao === 1 &&
+      continuar &&
+      this.sono?.tipo === 'capitulo' &&
+      this.estado.indice >= this.estado.total - 1
+    ) {
+      this.sono = null;
+      this.d.aoAviso?.('sono');
+      this.despachar({ tipo: 'capitulo', total: this.estado.total, indice: this.estado.total - 1, continuar: false });
+      return;
+    }
     this.virandoCapitulo = true;
     this.d.aoNavegar?.();
-    const foi = await motor
-      .proximoCapitulo()
+    const virar = direcao === 1 ? motor.proximoCapitulo() : motor.capituloAnterior();
+    const foi = await virar
       .catch(() => false)
       .finally(() => {
         this.virandoCapitulo = false;
       });
     if (this.destruido || this.estado.vez !== vez) return;
     if (!foi) {
+      if (direcao === -1) {
+        /* Já é o primeiro capítulo: recomeça do começo dele. */
+        this.carregarFrases();
+        this.despachar({ tipo: 'capitulo', total: this.frases.length, indice: 0, continuar });
+        return;
+      }
       this.d.aoAviso?.('fim');
       this.despachar({ tipo: 'parar' });
       return;
     }
     this.carregarFrases();
-    this.despachar({ tipo: 'capitulo', total: this.frases.length, indice: 0, continuar: true });
+    this.despachar({ tipo: 'capitulo', total: this.frases.length, indice: 0, continuar });
   }
 
   /* ── as frases e de onde começar ── */
@@ -217,7 +502,119 @@ export class Narrador {
     this.doc = atual.doc;
     this.indiceDaSecao = atual.index;
     this.frases = frasesDoDocumento(atual.doc, this.d.idiomaDoLivro() || undefined);
+    this.planejar();
+    if (this.d.audioGravado) {
+      if (this.gravado?.secao !== atual.index) {
+        this.pararAudio();
+        this.gravado = null;
+      }
+      this.preparoDoGravado = this.prepararGravado(
+        atual.index,
+        this.frases.map((f) => f.texto),
+      );
+    }
     return this.frases.length > 0;
+  }
+
+  /* ── o áudio gravado (F2) ── */
+
+  /**
+   * Confere o áudio do capítulo UMA vez: flag, capítulo no manifesto (`nn` = seção + 1), hash das frases do app e
+   * tempos válidos. Qualquer desvio: `gravado = null` e a voz do aparelho lê, sem aviso.
+   */
+  private async prepararGravado(secao: number, textos: string[]): Promise<void> {
+    if (this.gravado?.secao === secao || this.audioFalhou || !textos.length) return;
+    try {
+      const fonte = this.d.audioGravado?.() ?? null;
+      if (!fonte || !fonte.flagLigada()) return;
+      const nn = secao + 1;
+      const cap = fonte.manifesto.capitulos.find((c) => c.nn === nn);
+      if (!cap || cap.frases === 0) return;
+      if (!(await frasesIntegras(fonte.manifesto, nn, textos))) return;
+      const tempos = await fonte.tempos(nn);
+      if (!tempos || tempos.length !== textos.length || this.destruido || this.indiceDaSecao !== secao) return;
+      this.ligarReprodutor(fonte);
+      this.gravado = { secao, nn, url: fonte.urlDoCapitulo(nn), tempos, carregado: false };
+    } catch {
+      /* conferência falhou: a voz do aparelho lê */
+    }
+  }
+
+  /** O áudio gravado vale para a frase? (capítulo conferido, modo original, sem repetição, flag ligada) */
+  private usaGravado(): boolean {
+    return (
+      !!this.gravado &&
+      !this.audioFalhou &&
+      this.modo === 'original' &&
+      this.opcoes.repeticoes === 1 &&
+      !!this.fonteGravada?.flagLigada()
+    );
+  }
+
+  private ligarReprodutor(fonte: AudioGravadoDoLivro) {
+    if (this.fonteGravada === fonte) return;
+    this.fonteGravada = fonte;
+    const r = fonte.reprodutor;
+    r.aoMudarFrase = (j) => this.audioMudou(j);
+    r.aoFimDoCapitulo = () => {
+      const e = this.estado;
+      if (e.fase !== 'tocando' || this.fraseDoAudio < 0) return;
+      this.fraseDoAudio = -1;
+      this.despachar({ tipo: 'fimDaFrase', vez: e.vez });
+    };
+    r.aoErro = () => this.audioFalhouAgora();
+    r.aoPausarDeFora = () => {
+      if (this.estado.fase !== 'tocando') return;
+      this.fraseDoAudio = -1;
+      this.despachar({ tipo: 'pausar' });
+    };
+  }
+
+  /** O tempo do áudio cruzou para a frase `j`: o destaque anda junto, sem recomeçar o áudio. */
+  private audioMudou(j: number) {
+    const e = this.estado;
+    if (e.fase !== 'tocando' || this.fraseDoAudio < 0 || j === this.fraseDoAudio || j >= e.total) return;
+    if (!this.fonteGravada?.flagLigada()) {
+      /* KILL-SWITCH: a frase em curso acabou; daqui em diante, a voz do aparelho e nada novo do CDN. */
+      this.pararAudio();
+      this.gravado = null;
+    } else this.fraseDoAudio = j;
+    if (j === e.indice + 1) this.despachar({ tipo: 'fimDaFrase', vez: e.vez });
+    else this.despachar({ tipo: 'ir', indice: j });
+  }
+
+  /** O áudio falhou (rede, decodificação, autoplay): a MESMA frase segue pela voz do aparelho, sem silêncio. */
+  private audioFalhouAgora() {
+    if (!this.gravado || this.audioFalhou) return;
+    this.audioFalhou = true;
+    this.pararAudio();
+    this.gravado = null;
+    this.d.aoAviso?.('audio-indisponivel');
+    const e = this.estado;
+    if (e.fase === 'tocando') {
+      void this.falarFrase(e.indice, e.vez);
+      this.d.aoMudar(this.vista);
+    }
+  }
+
+  private pararAudio() {
+    if (this.fraseDoAudio < 0) return;
+    this.fraseDoAudio = -1;
+    this.fonteGravada?.reprodutor.parar();
+  }
+
+  /** Toca a frase pelo reprodutor (carrega o capítulo na primeira vez); falha chega por `aoErro`. */
+  private async tocarGravado(indice: number): Promise<void> {
+    const g = this.gravado;
+    const r = this.fonteGravada?.reprodutor;
+    if (!g || !r) return;
+    if (!g.carregado) {
+      await r.carregar(g.url, g.tempos);
+      g.carregado = true;
+    }
+    r.definirVelocidade(this.opcoes.velocidade);
+    this.fraseDoAudio = indice;
+    await r.tocarDe(indice);
   }
 
   /** A frase guardada (se estiver na página visível), senão a primeira da página. */
@@ -280,17 +677,63 @@ export class Narrador {
     return passosDaFrase(this.modo, frase, { idiomaDoLivro, idiomaDaPessoa, traducao, detectado });
   }
 
+  /** O silêncio depois da frase (pausa entre frases + a de parágrafo), e então a próxima. */
+  private fimDaFrase(indice: number, vez: number) {
+    const ms = pausaAposAFrase(this.opcoes, !!this.frases[indice]?.fimDeParagrafo);
+    if (ms <= 0) return this.despachar({ tipo: 'fimDaFrase', vez });
+    this.timerDaPausa = setTimeout(() => {
+      this.timerDaPausa = null;
+      if (this.estado.vez === vez) this.despachar({ tipo: 'fimDaFrase', vez });
+    }, ms);
+  }
+
   private async falarFrase(indice: number, vez: number) {
-    const passos = await this.passos(indice);
+    if (this.d.audioGravado) {
+      await this.preparoDoGravado;
+      if (this.estado.vez !== vez || this.destruido) return;
+      if (this.usaGravado()) {
+        this.falandoSistema = false;
+        this.falandoLocal = false;
+        if (this.fraseDoAudio !== indice) {
+          await this.tocarGravado(indice);
+          if (!this.destruido) this.d.aoMudar(this.vista); // o chip aparece com o áudio
+        }
+        return;
+      }
+    }
+    const original = await this.passos(indice);
+    /* `repeticoes` (modo Estudo): a frase inteira, com todos os seus passos, lida N vezes seguidas. */
+    const passos = Array.from({ length: this.opcoes.repeticoes }, () => original).flat();
+    /* A lista de vozes do Chrome chega depois do primeiro acesso: sem ela a 1ª frase sairia com a voz errada. */
+    if (!this.d.aparelho) await aguardarVozes();
     if (this.estado.vez !== vez || this.destruido) return;
     const falarPasso = async (i: number): Promise<void> => {
       const passo = passos[i];
-      if (!passo) return this.despachar({ tipo: 'fimDaFrase', vez });
-      const motor = await this.motorDeVoz(passo.idioma);
+      if (!passo) return this.fimDaFrase(indice, vez);
+      const escolhido = await this.motorDeVoz(passo.idioma);
       if (this.estado.vez !== vez) return;
+      const { id } = escolhido;
+      const motor = this.d.envolverMotor ? this.d.envolverMotor(escolhido.motor) : escolhido.motor;
+      if (this.falandoLocal !== (id === 'neural-local') || this.falandoSistema !== (id === 'aparelho')) {
+        this.falandoLocal = id === 'neural-local';
+        this.falandoSistema = id === 'aparelho';
+        this.d.aoMudar(this.vista);
+      }
+      /* Só o passo do LIVRO leva elenco; a tradução fala sempre na voz da pessoa. */
+      const doLivro = passo.texto === this.frases[indice]?.texto;
+      const fala = falaDaFrase(
+        doLivro ? this.planos?.[indice] : undefined,
+        { rate: this.opcoes.velocidade, pitch: this.opcoes.tom },
+        /* Tom só o `speechSynthesis` tem; a voz por nome vale no aparelho e no motor local (F1…M5 do elenco). */
+        { temTom: id === 'aparelho', temVoz: id !== 'nuvem' },
+      );
       motor.speak(passo.texto, {
         lang: codigoDeFala(passo.idioma),
-        rate: this.velocidade,
+        /* A voz natural da nuvem só vai de 0,5 a 2× (a rota recusa mais); tom e volume são do aparelho. */
+        rate: id === 'nuvem' ? Math.min(fala.rate, 2) : fala.rate,
+        pitch: fala.pitch,
+        ...(fala.voiceName ? { voiceName: fala.voiceName } : {}),
+        volume: this.opcoes.volume,
         onEnd: () => {
           if (this.estado.vez === vez) void falarPasso(i + 1);
         },
@@ -300,15 +743,69 @@ export class Narrador {
           this.despachar({ tipo: 'erro', vez });
         },
       });
+      if (id === 'neural-local' && doLivro && i === 0) this.preBuscar(indice, escolhido.motor);
     };
     await falarPasso(0);
   }
 
-  private async motorDeVoz(idioma: string): Promise<TtsEngine> {
+  /**
+   * PRÉ-BUSCA da voz no aparelho: as 2 frases seguintes do livro, com a voz de cada uma (o elenco), sintetizadas enquanto a
+   * atual toca. Só no modo original e sem repetição (os outros modos intercalam a tradução).
+   */
+  private preBuscar(indice: number, motor: TtsEngine) {
+    if (!motor.preparar || this.modo !== 'original' || this.opcoes.repeticoes !== 1) return;
+    const itens = [1, 2].flatMap((k) => {
+      const f = this.frases[indice + k];
+      if (!f) return [];
+      const fala = falaDaFrase(
+        this.planos?.[indice + k],
+        { rate: this.opcoes.velocidade, pitch: this.opcoes.tom },
+        { temTom: false, temVoz: true },
+      );
+      return [
+        {
+          texto: f.texto,
+          opts: {
+            lang: codigoDeFala(this.d.idiomaDoLivro()),
+            rate: fala.rate,
+            ...(fala.voiceName ? { voiceName: fala.voiceName } : {}),
+          },
+        },
+      ];
+    });
+    motor.preparar(itens);
+  }
+
+  private async motorDeVoz(idioma: string): Promise<{ motor: TtsEngine; id: MotorDeVozId }> {
     const aparelho = this.d.aparelho ?? nativeTts;
+    if (!this.d.aparelho && this.d.garantirVozLocal) await this.d.garantirVozLocal(idioma).catch(() => undefined);
     const liberada = this.d.nuvemLiberada();
-    if (vozDaNarracao({ escolheuNuvem: this.d.escolheuNuvem(idioma), ...liberada }) !== 'nuvem') return aparelho;
-    if (this.nuvem) return this.nuvem;
+    const quem = vozDaNarracao({
+      escolheuNuvem: this.d.escolheuNuvem(idioma),
+      ...liberada,
+      neuralLocalPronto: this.d.vozLocalPronta
+        ? this.d.vozLocalPronta(idioma)
+        : this.d.aparelho
+          ? false
+          : neuralLocalPronto(idioma),
+    });
+    if (quem === 'neural-local') {
+      try {
+        const neural = await motorDeVozRegistrado('neural-local')?.criar({
+          reserva: aparelho,
+          aoRecuar: () => this.d.aoAviso?.('voz-local-indisponivel'),
+        });
+        if (neural) {
+          this.neural = neural;
+          return { motor: neural, id: quem };
+        }
+      } catch {
+        /* o neural falhou ao abrir: o aparelho lê */
+      }
+      return { motor: aparelho, id: 'aparelho' };
+    }
+    if (quem !== 'nuvem') return { motor: aparelho, id: 'aparelho' };
+    if (this.nuvem) return { motor: this.nuvem, id: 'nuvem' };
     try {
       const nuvem = this.d.criarNuvem
         ? await this.d.criarNuvem()
@@ -316,15 +813,22 @@ export class Narrador {
             criarVozDaNuvem({ reserva: aparelho, aoRecuar: (m) => this.d.aoRecuoDaNuvem?.(m) }),
           );
       this.nuvem = nuvem;
-      return nuvem;
+      return { motor: nuvem, id: 'nuvem' };
     } catch {
-      return aparelho;
+      return { motor: aparelho, id: 'aparelho' };
     }
   }
 
-  private calar() {
+  private calar(o: { manterAudio?: boolean } = {}) {
+    if (this.timerDaPausa) clearTimeout(this.timerDaPausa);
+    this.timerDaPausa = null;
+    if (!o.manterAudio && this.fraseDoAudio >= 0) {
+      this.fraseDoAudio = -1;
+      this.fonteGravada?.reprodutor.pausar();
+    }
     (this.d.aparelho ?? nativeTts).cancel();
     this.nuvem?.cancel();
+    this.neural?.cancel();
   }
 
   /* ── Media Session (fone, tela de bloqueio) ── */
@@ -340,6 +844,7 @@ export class Narrador {
       ms.setActionHandler('play', () => this.tocar());
       ms.setActionHandler('pause', () => this.pausar());
       ms.setActionHandler('stop', () => this.parar());
+      ms.setActionHandler('seekbackward', () => this.voltar(10));
       ms.setActionHandler('previoustrack', () => this.anterior());
       ms.setActionHandler('nexttrack', () => this.proxima());
     } catch {
@@ -352,7 +857,8 @@ export class Narrador {
     if (!ms) return;
     try {
       ms.playbackState = 'none';
-      for (const a of ['play', 'pause', 'stop', 'previoustrack', 'nexttrack'] as const) ms.setActionHandler(a, null);
+      for (const a of ['play', 'pause', 'stop', 'seekbackward', 'previoustrack', 'nexttrack'] as const)
+        ms.setActionHandler(a, null);
     } catch {
       /* nada a limpar */
     }

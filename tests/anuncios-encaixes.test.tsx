@@ -54,6 +54,7 @@ vi.mock('../src/lib/dispositivo/telaNovaDoQuest', async (original) => ({
 /* A festa do fim de rodada (som, confete) não é o assunto e não roda no jsdom. */
 vi.mock('../src/lib/comemoracao', () => ({ celebrar: vi.fn(), tocarPreviaDoEfeito: vi.fn() }))
 
+const { iniciarAtualizacaoDeFlags } = await import('../src/lib/flags')
 const { default: InicioDoQuest } = await import('../src/components/views/quest/InicioDoQuest')
 const { default: BibliotecaDoQuest } = await import('../src/components/views/biblioteca/quest/BibliotecaDoQuest')
 const { default: FimDaRodada } = await import('../src/components/minigames/casca/FimDaRodada')
@@ -187,6 +188,9 @@ const TELAS: Array<{
   {
     nome: 'Início: cartão nativo',
     espacos: ['inicio-nativo'],
+    /* O Início lê flags (o atalho do avatar): a PRIMEIRA leitura do módulo é global e pede /api/flags uma vez, e a
+       comparação antes/depois não pode confundir isso com um pedido da tela. */
+    preparar: () => void iniciarAtualizacaoDeFlags(),
     tela: () => (
       <InicioDoQuest onChangeView={nada} recordings={GRAVACOES} progress={PROGRESSO} metrics={null} missoes={null} />
     ),

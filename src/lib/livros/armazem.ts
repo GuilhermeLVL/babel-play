@@ -12,8 +12,9 @@
 import { type DBSchema, type IDBPDatabase, openDB } from 'idb';
 
 import type { AnotacaoDeLeitura } from '../../core/leitura/anotacao';
+import type { FormatoDoMotor } from '../../core/livros/formatos';
 
-export type FormatoDoLivro = 'epub' | 'pdf' | 'txt';
+export type FormatoDoLivro = FormatoDoMotor | 'txt';
 export type OrigemDoLivro = 'usuario' | 'catalogo' | 'sessao';
 
 export interface LivroGuardado {

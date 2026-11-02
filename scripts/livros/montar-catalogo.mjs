@@ -32,7 +32,8 @@ import {
   slug,
 } from '../../src/core/livros/categorias.ts'
 import { lerEpubComoTexto } from '../../src/core/livros/epub.ts'
-import { ehClassificacao } from '../../src/core/livros/catalogo.ts'
+import { capaDoStandardEbooks } from '../../src/core/livros/capas.ts'
+import { audioValido, ehClassificacao } from '../../src/core/livros/catalogo.ts'
 import {
   anoEmSaoPaulo,
   anoLimite,
@@ -47,6 +48,7 @@ import {
 } from '../../src/core/livros/gutenberg.ts'
 import { textoDizQueETraducao } from '../../src/core/livros/traducao.ts'
 import { contarPalavras, estimarNivel, montarIndiceCefr } from '../../src/core/livros/nivelEstimado.ts'
+import { anexarAudio, lerPublicados } from '../audiolivros/publicar-catalogo.mjs'
 import { textoDoEspelho } from './_espelho.mjs'
 import { resolverObras } from './_obras.mjs'
 import { baixar, pedidosFeitos, usarCache } from './_rede.mjs'
@@ -68,6 +70,8 @@ const SO_VERIFICAR = args.includes('--verificar')
 const RAPIDO = args.includes('--rapido')
 /* Só acrescenta `obra`/`titulosAlternativos` ao JSON publicado (Wikidata, com cache); não muda a lista de livros. */
 const SO_OBRAS = args.includes('--obras')
+/* Só reescreve o campo `audio` (de `scripts/audiolivros/publicados.json`) no JSON publicado; sem rede. */
+const SO_AUDIO = args.includes('--audio')
 if (!Number.isInteger(ANO) || ANO < 2000 || ANO > 2200) throw new Error(`--ano inválido: ${arg('ano')}`)
 const LIMITE = anoLimite(ANO)
 
@@ -214,6 +218,9 @@ function aceitar(meta, texto) {
     credito: meta.credito,
     licenca: licencaDe(meta.autores, meta.tradutores),
     ...(meta.resumo ? { resumo: meta.resumo } : {}),
+    ...(meta.fonte === 'standard-ebooks' && capaDoStandardEbooks(meta.fonteId)
+      ? { capa: capaDoStandardEbooks(meta.fonteId) }
+      : {}),
     ...(meta.traducaoDeclarada ? { traducaoDeclarada: true } : {}),
   })
   obrasVistas.add(chaveDaObra(meta.idioma, meta.titulo, meta.autores))
@@ -777,6 +784,7 @@ function conferir(catalogo, agora = new Date()) {
   )
   for (const l of catalogo.livros) {
     if (ids.has(l.id)) problemas.push(`id repetido: ${l.id}`)
+    if (l.audio !== undefined && !audioValido(l.audio)) problemas.push(`${l.id}: audio malformado`)
     ids.add(l.id)
     const v = avaliarLegalidade(l, catalogo.ano)
     if (!v.entra) problemas.push(`${l.id} (${l.titulo}): ${v.motivo}: ${v.detalhe}`)
@@ -834,6 +842,21 @@ async function principal() {
     )
     return
   }
+  if (SO_AUDIO) {
+    const catalogo = JSON.parse(readFileSync(SAIDA, 'utf8'))
+    const antes = catalogo.livros.map((l) => l.id).join('|')
+    const n = anexarAudio(catalogo.livros, lerPublicados())
+    if (catalogo.livros.map((l) => l.id).join('|') !== antes)
+      throw new Error('--audio não pode mudar a lista de livros')
+    const problemas = conferir(catalogo)
+    if (problemas.length) {
+      console.error(`[catalogo] NÃO GRAVADO: ${problemas.length} problema(s):\n  ${problemas.join('\n  ')}`)
+      process.exit(1)
+    }
+    writeFileSync(SAIDA, JSON.stringify(catalogo) + '\n')
+    console.log(`[catalogo] ${n} livro(s) com audiolivro gravados em ${SAIDA}`)
+    return
+  }
   usarCache(join(RAIZ, 'data', 'livros-cache'))
   if (SO_OBRAS) {
     const catalogo = JSON.parse(readFileSync(SAIDA, 'utf8'))
@@ -880,6 +903,7 @@ async function principal() {
     exclusoes: exclusoesUnicas,
   }
   await anexarObras(livros)
+  anexarAudio(livros, lerPublicados())
   const problemas = conferir(catalogo)
   if (problemas.length) {
     console.error(`[catalogo] NÃO GRAVADO: ${problemas.length} problema(s):\n  ${problemas.join('\n  ')}`)

@@ -205,70 +205,6 @@
   background: var(--surface-sunken);
 }
 
-/* A CAPA DESENHADA: lombada no tom do livro, miolo na superfície do tema. A cor só decora (a lombada), o
-   texto fica em tinta do tema sobre a superfície: o contraste é o do resto do app, em claro e escuro. */
-.lv-capa {
-  --lv-tom: 210;
-  position: relative;
-  /* Baixa de propósito: o título está logo abaixo, a capa só distingue um livro do outro na fileira. */
-  aspect-ratio: 16 / 10;
-  border-radius: 10px 12px 12px 10px;
-  padding: 14px 12px 12px 22px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 8px;
-  overflow: hidden;
-  background: linear-gradient(90deg, hsl(var(--lv-tom) 55% 42%) 0 10px, transparent 10px),
-    linear-gradient(
-      160deg,
-      color-mix(in srgb, hsl(var(--lv-tom) 60% 55%) 18%, var(--surface-sunken)),
-      var(--surface-sunken)
-    );
-  border: 1.5px solid color-mix(in srgb, hsl(var(--lv-tom) 50% 45%) 35%, var(--border-subtle));
-  color: var(--ink);
-}
-.lv-capa-inicial {
-  align-self: flex-end;
-  margin-top: auto;
-  font: 900 44px/1 var(--font-display, inherit);
-  color: color-mix(in srgb, hsl(var(--lv-tom) 55% 35%) 55%, var(--ink));
-  opacity: 0.85;
-}
-.lv-capa-titulo {
-  font: 800 14px/1.2 var(--font-display, inherit);
-  overflow-wrap: anywhere;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.lv-capa-autor {
-  font: 600 12px/1.25 var(--font-body, inherit);
-  color: var(--ink-muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.lv-capa.grande {
-  aspect-ratio: 2 / 3;
-  width: min(240px, 100%);
-  padding: 22px 18px 18px 32px;
-  background: linear-gradient(90deg, hsl(var(--lv-tom) 55% 42%) 0 14px, transparent 14px),
-    linear-gradient(
-      160deg,
-      color-mix(in srgb, hsl(var(--lv-tom) 60% 55%) 18%, var(--surface-sunken)),
-      var(--surface-sunken)
-    );
-}
-.lv-capa.grande .lv-capa-titulo {
-  font-size: 22px;
-}
-.lv-capa.grande .lv-capa-autor {
-  font-size: 14px;
-}
-
 /* ── Detalhe ─────────────────────────────────────────────────────────────────────────────────── */
 .lv-detalhe-corpo {
   display: grid;
@@ -455,13 +391,6 @@
   flex: 0 0 72px;
   align-self: flex-start;
 }
-.lv-meu-capa .lv-capa {
-  aspect-ratio: 2 / 3;
-  padding: 10px 8px 8px 16px;
-}
-.lv-meu-capa .lv-capa-inicial {
-  font-size: 34px;
-}
 .lv-meu-lado {
   flex: 0 0 170px;
   display: grid;
@@ -598,12 +527,6 @@
   .lv-detalhe-corpo {
     grid-template-columns: minmax(0, 1fr);
     gap: 18px;
-  }
-  .lv-capa.grande {
-    width: 150px;
-  }
-  .lv-capa.grande .lv-capa-titulo {
-    font-size: 18px;
   }
   .lv-fileira {
     grid-auto-columns: minmax(140px, 46%);

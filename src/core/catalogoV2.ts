@@ -1,3 +1,4 @@
+import { PECAS } from './avatar/pecas';
 import type { ItemDaLoja } from './tiposDaLoja';
 
 /**
@@ -220,4 +221,25 @@ export const CARTOES_V2: ItemDaLoja[] = [
 ];
 
 /** Tudo o que a onda 4 acrescenta ao catálogo, na ordem da vitrine. */
-export const CATALOGO_V2: ItemDaLoja[] = [...TEMAS_V2, ...LEGENDAS_V2, ...CARTOES_V2];
+/* ── PEÇAS DO AVATAR (M6) ──
+   Só as peças `tipo: 'loja'` de `core/avatar/pecas.ts` entram aqui, e só com Seeds (nunca Créditos: o perfil
+   protegido não compra com dinheiro). As livres ficam FORA do catálogo (fora do catálogo = livre) e as de
+   acessibilidade (aparelho auditivo, implante coclear, óculos) NUNCA são item: representação não é recompensa. */
+const PRECO_DAS_PECAS_DA_LOJA: Record<string, { raridade: ItemDaLoja['raridade']; precoSeeds: number; desc: string }> =
+  {
+    cartola: { raridade: 'comum', precoSeeds: 400, desc: 'Cartola preta para o seu avatar.' },
+    'chapeu-de-explorador': { raridade: 'comum', precoSeeds: 450, desc: 'Chapéu de aba larga para o seu avatar.' },
+    capa: { raridade: 'raro', precoSeeds: 1100, desc: 'Uma capa que cai pelas costas do seu avatar.' },
+  };
+export const AVATAR_V2: ItemDaLoja[] = PECAS.filter((p) => p.tipo === 'loja').map((p) => ({
+  id: `avatar-${p.id}`,
+  tipo: 'avatar',
+  alvo: p.id,
+  nome: p.nome,
+  desc: PRECO_DAS_PECAS_DA_LOJA[p.id].desc,
+  raridade: PRECO_DAS_PECAS_DA_LOJA[p.id].raridade,
+  nivel: NIVEL_SO_SEEDS,
+  precoSeeds: PRECO_DAS_PECAS_DA_LOJA[p.id].precoSeeds,
+}));
+
+export const CATALOGO_V2: ItemDaLoja[] = [...TEMAS_V2, ...LEGENDAS_V2, ...CARTOES_V2, ...AVATAR_V2];

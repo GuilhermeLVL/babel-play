@@ -1,0 +1,208 @@
+/* O AVATAR NOS MODOS (Livro, Legendar): o mesmo botão, painel, dica e círculo em todos. As cores vêm do tema da tela que
+   hospeda (o leitor define --leitor-*, o resto do app --surface/--ink): sem token, o do sistema. */
+.avm-rosto {
+  position: relative;
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+.avm-2d {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-weight: 700;
+  user-select: none;
+}
+.avm-2d img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.avm-alvo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font: 600 13px var(--font-display, system-ui);
+  cursor: pointer;
+}
+.avm-alvo svg {
+  width: 20px;
+  height: 20px;
+}
+.avm-alvo[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--leitor-acento, var(--accent, #b8501a)) 16%, transparent);
+  border-color: var(--leitor-acento, var(--accent, #b8501a));
+}
+.avm-dica {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 4px 14px;
+  font-size: 14px;
+  background: color-mix(
+    in srgb,
+    var(--leitor-acento, var(--accent, #b8501a)) 10%,
+    var(--leitor-fundo, var(--surface, Canvas))
+  );
+  border-bottom: 1px solid var(--leitor-borda, var(--border-subtle, #ccc));
+  color: var(--leitor-texto, var(--ink, CanvasText));
+}
+.avm-dica p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.avm-dica-icone {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+.avm-dica-acao {
+  border-color: var(--leitor-borda, var(--border-subtle, #ccc));
+}
+.avm-painel {
+  display: grid;
+  gap: 10px;
+  max-height: min(70dvh, 560px);
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid var(--leitor-borda, var(--border-subtle, #ccc));
+  border-radius: 14px;
+  background: var(--leitor-fundo, var(--surface, Canvas));
+  color: var(--leitor-texto, var(--ink, CanvasText));
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.22);
+  font-size: 14px;
+}
+.avm-titulo {
+  margin: 0;
+  font-size: 16px;
+}
+.avm-nota {
+  margin: 0;
+  opacity: 0.8;
+}
+.avm-grupo {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.avm-grupo legend {
+  padding: 0;
+  font-weight: 700;
+}
+.avm-opcao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+.avm-opcao input {
+  width: 20px;
+  height: 20px;
+}
+.avm-tamanhos {
+  display: flex;
+  gap: 8px;
+}
+.avm-tamanho {
+  min-width: 44px;
+}
+.avm-botao {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--leitor-borda, var(--border-subtle, #ccc));
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font: 600 14px var(--font-display, system-ui);
+  cursor: pointer;
+}
+.avm-pri {
+  background: var(--leitor-acento, var(--accent, #b8501a));
+  border-color: transparent;
+  color: var(--leitor-fundo, #fff);
+}
+.avm-link {
+  justify-self: start;
+  text-decoration: underline;
+  border-color: transparent;
+}
+.avm-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .avm-rosto,
+  .avm-alvo,
+  .avm-painel {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* A faixa de presença do avatar na legenda: no fluxo, entre os avisos e o texto; o painel abre como balão. */
+.avm-presenca {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px;
+  color: var(--ink, inherit);
+}
+.avm-presenca-texto {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.avm-painel-solto {
+  position: absolute;
+  top: 100%;
+  left: 8px;
+  right: 8px;
+  z-index: 30;
+  max-width: 420px;
+}
+.avm-no-topo[aria-pressed='true'] {
+  border-color: var(--accent, #b8501a);
+}
+/* No topo da captura o botão divide a linha com o microfone e os ajustes: ícone sobre o rótulo, sem passar de 56 px. */
+.avm-no-topo {
+  flex-direction: column;
+  gap: 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 2px 6px;
+  font-size: 10px;
+  line-height: 1.2;
+}
+.avm-no-topo svg {
+  width: 18px;
+  height: 18px;
+}
+/* A tela enxuta põe o topo da captura numa grade (idioma, selo do modelo, microfone, ajustes): com o botão do avatar,
+   uma coluna a mais, nos dois modos da grade (com e sem `data-px`). O idioma encolhe com reticências. */
+html[data-telas='enxuta']:not([data-px='on']) .px-vivo-topo:has(> .avm-no-topo) {
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+}
+@media (max-width: 720px) {
+  html[data-px='on'][data-telas='enxuta'] .px-vivo .px-vivo-topo:has(> .ex-selo-ancora):has(> .avm-no-topo),
+  html[data-telas='enxuta']:not([data-px='on']) .px-vivo .px-vivo-topo:has(> .ex-selo-ancora):has(> .avm-no-topo) {
+    grid-template-columns: minmax(0, 1fr) auto auto auto auto;
+  }
+}

@@ -28,6 +28,7 @@ export const METRICAS_ESCALARES = [
   'framesLongos.somaMs',
   'framesLongos.maiorMs',
   'primeiraLegendaMs',
+  'primeiroTextoNaTelaMs',
   'sttProntoMs',
   'memoriaPicoMb',
   'heapPicoMb',
@@ -115,6 +116,12 @@ export function picoDeMemoria(amostras, campo) {
 
 const temTexto = (r) => !!r && typeof r.o === 'string' && r.o.trim().length > 0
 
+/**
+ * Algum texto de verdade na tela, no original OU na tradução (letra ou número: o balão em branco e o "…" de
+ * "traduzindo" não contam). A tela de hoje só preenche o original no fim da fala, mas já mostra a legenda antes.
+ */
+const temTextoNaTela = (r) => !!r && ['o', 'tr'].some((k) => typeof r[k] === 'string' && /[\p{L}\p{N}]/u.test(r[k]))
+
 /** As três janelas da rodada (ver o cabeçalho). Supõe relógio válido. */
 export function janelasDaRodada(d, relogio = relogioDoArquivo(d)) {
   const falas = d.roteiro.falas
@@ -152,6 +159,8 @@ export function metricasDaRodada(d) {
   // espera para ver ALGUMA coisa depois de começar a falar. Inclui a carga do modelo se ela atrasar.
   const inicioDaVoz = j.fala[0]
   const primeiroTexto = (d.lat.dom ?? []).find((r) => r.t >= inicioDaVoz - 500 && temTexto(r))
+  // E o 1º texto de qualquer campo (original ou tradução): quando a pessoa já vê ALGUMA legenda.
+  const primeiroNaTela = (d.lat.dom ?? []).find((r) => r.t >= inicioDaVoz - 500 && temTextoNaTela(r))
 
   // RTF: só as falas cujo final foi postado com o modelo já pronto.
   const rtf = analise.falas.filter((f) => finito(f.rtf) && (!pronto || f.tPostFinal >= pronto.t)).map((f) => f.rtf)
@@ -183,6 +192,7 @@ export function metricasDaRodada(d) {
     janelas: j,
     framesLongos: framesLongos(d.lat.loaf, j.sessao[0], j.sessao[1]),
     primeiraLegendaMs: primeiroTexto ? Math.round(primeiroTexto.t - inicioDaVoz) : null,
+    primeiroTextoNaTelaMs: primeiroNaTela ? Math.round(primeiroNaTela.t - inicioDaVoz) : null,
     sttProntoMs: pronto ? Math.round(pronto.t - d.tIniciarPerf) : null,
     rtf: { valores: rtf, p50: percentil(rtf, 50), p95: percentil(rtf, 95) },
     memoriaPicoMb: picoDeMemoria(d.amostras, 'memMb'),

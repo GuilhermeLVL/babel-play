@@ -6,6 +6,7 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 
+import { OPCOES_PADRAO_DA_NARRACAO } from '../src/core/leitura/estilosDeLeitura'
 import { frasesDoDocumento } from '../src/lib/leitor/frasesDoCapitulo'
 import type { MotorDoLeitor } from '../src/lib/leitor/motor'
 import { type DependenciasDoNarrador, Narrador, type VistaDoNarrador } from '../src/lib/leitor/narrador'
@@ -78,6 +79,8 @@ function montar(extra: Partial<DependenciasDoNarrador> = {}) {
     nuvemLiberada: () => ({ temDireito: false, flagLigada: false }),
     aoMudar: (v) => vistas.push(v),
     aparelho,
+    /* Sem pausas: estes testes contam as falas, e o silêncio entre parágrafos é testado à parte. */
+    opcoesIniciais: { ...OPCOES_PADRAO_DA_NARRACAO, pausaParagrafo: 0 },
     criarNuvem: async () => nuvem as unknown as VozDaNuvem,
     ...extra,
   })

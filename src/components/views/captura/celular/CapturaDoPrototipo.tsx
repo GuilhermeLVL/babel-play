@@ -68,6 +68,8 @@ export default function CapturaDoPrototipo({
   niveis,
   pausa,
   noQuest = false,
+  intencao,
+  avatar,
 }: {
   gravando: boolean;
   /** Já há falas na tela (mesmo parada). */
@@ -108,6 +110,10 @@ export default function CapturaDoPrototipo({
   pausa?: { pausada: boolean; aoAlternar: () => void };
   /** No Quest a captura fica como está: só o seletor e a marca. */
   noQuest?: boolean;
+  /** Antecipação do "Iniciar" (foco/ponteiro); ausente = sem handlers novos. */
+  intencao?: { entrou: () => void; saiu: () => void };
+  /** O avatar do modo legendar (flag `avatar_3d`): botão, faixa de presença e dica. Ausente = a tela de antes. */
+  avatar?: { botao: ReactNode; presenca: ReactNode; dica: ReactNode };
 }) {
   const raiz = useRef<HTMLDivElement>(null);
   const principal = useRef<HTMLButtonElement>(null);
@@ -231,6 +237,7 @@ export default function CapturaDoPrototipo({
         >
           <Mic aria-hidden />
         </button>
+        {avatar?.botao}
         <button type="button" className="q-ctl" aria-label={t('Ajustes da captura')} onClick={aoAbrirAjustes}>
           <SlidersHorizontal aria-hidden />
         </button>
@@ -243,6 +250,8 @@ export default function CapturaDoPrototipo({
       </div>
       {nivel.linha}
       {avisos}
+      {avatar?.dica}
+      {avatar?.presenca}
       <div className="cel-conversa">
         {pronta ? (
           <div className="q-leg">
@@ -285,6 +294,10 @@ export default function CapturaDoPrototipo({
             data-testid="iniciar-captura"
             disabled={!podeIniciar || abrindo}
             onClick={comecar}
+            onFocus={intencao?.entrou}
+            onPointerEnter={intencao?.entrou}
+            onBlur={intencao?.saiu}
+            onPointerLeave={intencao?.saiu}
           >
             <Mic aria-hidden /> {t('Iniciar captura')}
           </button>

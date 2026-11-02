@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import { abrirContextoDoClique } from '../../../../lib/captura/contextoDoClique';
+import type { EstadoDoControle } from '../../../../lib/captura/controleDoInterprete';
+import { ESTADO_INICIAL } from '../../../../lib/captura/interprete';
 import type { LadoDoInterprete } from '../../../../lib/captura/tiposDaFala';
 import { t } from '../../../../lib/i18n';
 import { langLabel } from '../../../../lib/languages';
@@ -21,7 +23,7 @@ import {
   idiomasDaVozDoQuest,
   vozDoQuestFala,
 } from '../../../../lib/voz/vozDoQuest';
-import ConversaDoPrototipo, { type MetadeDaConversa } from './ConversaDoPrototipo';
+import ConversaDoPrototipo, { type JanelaFlutuanteDoInterprete, type MetadeDaConversa } from './ConversaDoPrototipo';
 import FolhaDaConversaVirtual from './FolhaDaConversaVirtual';
 import { guardarModo, type ModoDaConversa, modoGuardado } from './modoDaConversa';
 import type { AutomaticoNoPlano } from './ModoInterprete';
@@ -34,6 +36,7 @@ import {
   textoDaPraticaNoToque,
   textoDaPraticaSemIdioma,
 } from './praticaNaConversa';
+import { useAvataresDoInterprete } from './useAvataresDoInterprete';
 
 interface PropsDaPagina {
   idiomas: { meu: string; outro: string };
@@ -66,7 +69,16 @@ interface PropsDaPagina {
   aoVoltar?: (() => void) | undefined;
   /** "Praticar a conversa" (o botão "Praticar" da faixa). Ausente = não aparece. */
   pratica?: PraticaNaConversa;
+  /** O desenho da tela, para o tamanho dos avatares da prévia (o mesmo que o da conversa). Padrão: computador. */
+  layout?: 'celular' | 'computador' | 'quest';
+  /** Leva a Perfil › Avatar (o atalho de soletrar oferece quando o avatar não serve). */
+  aoEscolherOutroAvatar?: (() => void) | undefined;
+  /** O botão "Janela flutuante" (Alt+L); ausente onde o navegador não abre a janela. */
+  janelaFlutuante?: JanelaFlutuanteDoInterprete | undefined;
 }
+
+/** A tela pronta ainda não ouviu ninguém: os avatares da prévia ficam parados. */
+const ESTADO_PRONTO: EstadoDoControle = { ...ESTADO_INICIAL, falando: null, detectado: null };
 
 /** O tempo de a captura encerrar uma sessão vazia antes de a tela seguir para a origem ou os Planos. */
 const ESPERA_DA_VOLTA = 400;
@@ -96,8 +108,21 @@ export default function PaginaDoInterprete({
   aoEscolherIdiomas,
   aoVoltar,
   pratica,
+  layout = 'computador',
+  aoEscolherOutroAvatar,
+  janelaFlutuante,
 }: PropsDaPagina) {
   const tela = useSyncExternalStore(aoMudarEstadoDaTela, estadoDaTela, estadoDaTela);
+  /* OS AVATARES JÁ NA TELA PRONTA (atrás de `avatar_3d`): botão Avatares, atalho de soletrar e a prévia dos dois avatares,
+     para a pessoa ver que existem ANTES de falar. Com a conversa em curso por cima, quem manda é o `ModoInterprete`. */
+  const estadoPronto = useMemo(() => ({ ...ESTADO_PRONTO, trocados: tela.trocados }), [tela.trocados]);
+  const avatares = useAvataresDoInterprete({
+    estado: estadoPronto,
+    layout,
+    idiomaDaOutra: idiomas.outro,
+    aoEscolherOutroAvatar,
+    suspenso: tela.emCurso,
+  });
   /* Sair da tela esquece os lados trocados e a folha pedida: a próxima visita começa do desenho. */
   useEffect(() => () => mudarEstadoDaTela({ trocados: false, folhaVirtual: false, depois: null, praticar: false }), []);
   /* O X (ou "Conhecer o Premium") de uma conversa em que ninguém falou: a sessão encerra e a tela
@@ -189,7 +214,13 @@ export default function PaginaDoInterprete({
     const lang = idiomaDe(dono);
     const nome = detectar && dono === 'outro' ? t('Detectar automaticamente') : langLabel(lang);
     const semVozParaOOutro = mudo(idiomaDe(outroLado(dono)));
+    const avatar = avatares.doLado(lado);
+    const soletracao = avatares.soletracaoDoLado(lado);
+    const estadoNoTopo = avatares.estadoNoTopoDoLado(lado);
     return {
+      ...(avatar ? { avatar } : {}),
+      ...(soletracao ? { soletracao } : {}),
+      ...(estadoNoTopo ? { estadoNoTopo } : {}),
       lado,
       dono,
       lang,
@@ -317,6 +348,8 @@ export default function PaginaDoInterprete({
           aoVirtual={aoComecarVirtual ? () => mudarEstadoDaTela({ folhaVirtual: true }) : undefined}
           aoEscolherIdioma={aoEscolherIdiomas}
           aoSair={() => aoVoltar?.()}
+          avatares={avatares.avatares}
+          janelaFlutuante={janelaFlutuante}
           comEntrada
           testid="conversa-pronta"
         />

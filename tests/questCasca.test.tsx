@@ -78,6 +78,7 @@ describe('TrilhoDoQuest', () => {
       'Livros',
       'Progresso',
       'Planos',
+      'Voz',
       'Ajustes',
       'Mais',
     ])
@@ -168,6 +169,7 @@ describe('TrilhoDoQuest', () => {
       'Livros',
       'Progresso',
       'Planos',
+      'Voz',
       'Ajustes',
       'Mais',
     ])
@@ -634,6 +636,7 @@ describe('a casca no computador com o desenho novo', () => {
       'Progresso',
       'Planos',
       'Buscar',
+      'Voz',
       'Ajustes',
       'Mais',
     ])

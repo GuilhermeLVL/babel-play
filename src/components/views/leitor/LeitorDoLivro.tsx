@@ -4,14 +4,15 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
   Headphones,
   Highlighter,
   ListTree,
+  Sparkles,
   Type,
+  Users,
   X,
 } from 'lucide-react';
-import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   type AnotacaoDeLeitura,
@@ -22,6 +23,7 @@ import {
   type TipoDeAnotacao,
 } from '../../../core/leitura/anotacao';
 import { diagnosticarPdf } from '../../../core/leitura/diagnosticoDoPdf';
+import { OPCOES_PADRAO_DA_NARRACAO } from '../../../core/leitura/estilosDeLeitura';
 import {
   colecaoW3C,
   nomeDeArquivo,
@@ -29,26 +31,41 @@ import {
   paraMarkdown,
   paraTextoDoAnki,
 } from '../../../core/leitura/exportar';
+import {
+  estadoDasFerramentas,
+  type FerramentaDeIa,
+  type JanelaDaCota,
+  livroParaOParceiro,
+} from '../../../core/leitura/ferramentasDeIa';
 import { type ModoDaNarracao, MODOS_DA_NARRACAO, mostraConviteDaVozNatural } from '../../../core/leitura/narracao';
 import { CORES_DOS_TEMAS } from '../../../core/leitura/perfilDeLeitura';
+import type { Retangulo } from '../../../core/leitura/posicaoDoCartao';
 import { ancorar } from '../../../core/leitura/reancorar';
+import { type ContextoDaPalavra, formaDeConsulta } from '../../../core/leitura/sentidoNoContexto';
+import { FLAG_AUDIOLIVROS } from '../../../core/planos';
 import { FLAG_VOZ_NATURAL } from '../../../core/vozNatural';
 import { fetchDeck } from '../../../data/api';
+import type { ModoDoParceiro } from '../../../data/rotas/parceiroDeLeitura';
 import { buildGateway } from '../../../gateway';
 import { getActiveProfile } from '../../../gateway/activeProfile';
 import { ficharCartao } from '../../../lib/adicionarAoDeck';
+import { criarPonteDaVoz, type PonteDaVoz } from '../../../lib/avatar/ponteDaVoz';
 import { consentiuNuvem } from '../../../lib/consentimentoDeNuvem';
 import { getEntitlements } from '../../../lib/entitlements';
 import { baixar, baixarTexto } from '../../../lib/exportacao/baixar';
+import { useFlag } from '../../../lib/flags';
 import { flagLigada } from '../../../lib/flagsCache';
 import { t } from '../../../lib/i18n';
+import type { ImagemDaPalavra } from '../../../lib/imagens/criterios';
+import { buscarImagensDaPalavra } from '../../../lib/imagens/imagensDaPalavra';
 import { useLangConfig } from '../../../lib/langConfig';
 import { detectLanguage } from '../../../lib/langDetect';
 import { baseLang, toBcp47 } from '../../../lib/languages';
+import { audiolivroDoLivro } from '../../../lib/leitor/audiolivroDoLivro';
+import { dicaDoElencoJaVista, marcarDicaDoElencoVista } from '../../../lib/leitor/dicaDoElenco';
 import type { Localizacao } from '../../../lib/leitor/foliate/view.js';
 import { type InfoDoLivro, MotorDoLeitor } from '../../../lib/leitor/motor';
-import { Narrador, type VistaDoNarrador } from '../../../lib/leitor/narrador';
-import { linkExternoSeguro } from '../../../lib/leitor/politicaDeRecursos';
+import { type AudioGravadoDoLivro, Narrador, type VistaDoNarrador } from '../../../lib/leitor/narrador';
 import {
   citacaoDoRange,
   ehUmaPalavra,
@@ -62,31 +79,54 @@ import {
 import { lerAnotacoes } from '../../../lib/leitura/anotacaoDaFrase';
 import { anotacoesDoLivro, type EstadoDaSincronizacao } from '../../../lib/livros/anotacoesDoLivro';
 import type { LivroGuardado } from '../../../lib/livros/armazem';
+import { carregarCatalogo } from '../../../lib/livros/catalogo';
 import { livroParaOMotor } from '../../../lib/livros/fontesDoLivro';
 import { idRemotoDoLivro } from '../../../lib/livros/idRemoto';
 import { posicoes } from '../../../lib/livros/posicoesDoAparelho';
+import { tetoDoLeitor } from '../../../lib/livros/quemLe';
+import { readAgeProfile } from '../../../lib/profile';
 import { perfilProtegido } from '../../../lib/protecaoDoMenor';
-import { speak } from '../../../lib/tts';
+import { getVoicePref, speak } from '../../../lib/tts';
 import { buildVocabWord, mtNoteFor, resolveWord } from '../../../lib/vocabWord';
 import { haVozPara } from '../../../lib/voz/haVoz';
 import { useVozesPreferidas, VOZ_DA_NUVEM, vozDaNuvemDisponivel, vozEmUso } from '../../../lib/voz/preferenciaDeVoz';
 import { destravarVozDaNuvem } from '../../../lib/voz/vozDaNuvem';
+import {
+  carregarMotor,
+  conviteDaVozNoAparelho,
+  destravarVozNoAparelho,
+  vozDoNarradorNoAparelho,
+  vozNoAparelhoLe,
+} from '../../../lib/voz/vozNoAparelho';
 import type { VocabWord } from '../../../types';
+import { BotaoDoAvatar, DicaDoAvatar } from '../../avatar/modo/BotaoDoAvatar';
+import { useAvatarDoModo } from '../../avatar/modo/useAvatarDoModo';
 import { toast } from '../../Toast';
-import VocabularyPanel from '../../VocabularyPanel';
+import AvatarDoNarrador from './AvatarDoNarrador';
 import BarraDaSelecao, { type TrechoSelecionado } from './BarraDaSelecao';
-import BarraDoNarrador, { PainelDaNarracao } from './BarraDoNarrador';
+import BarraDoNarrador, { aoTeclarNoNarrador, PainelDaNarracao } from './BarraDoNarrador';
+import CartaoDaPalavra from './CartaoDaPalavra';
+import ConviteDaVozNoAparelho from './ConviteDaVozNoAparelho';
+import DicaDoElenco from './DicaDoElenco';
 import { etiquetaDaPalavra, HistoricoNaFolha } from './ganchosDaPalavra';
+import PainelDaTraducao from './PainelDaTraducao';
 import PainelDeAnotacoes, { type FormatoDeExportacao } from './PainelDeAnotacoes';
+import PainelDeFerramentas, { type AbaDeIa, tituloDaAbaDeIa } from './PainelDeFerramentas';
 import PainelDeTipografia from './PainelDeTipografia';
+import PainelDoElenco from './PainelDoElenco';
+import PainelDoParceiro from './PainelDoParceiro';
 import PainelDoSumario from './PainelDoSumario';
+
+/* "Baixar este capítulo" puxa o código do CDN de áudio: só com o áudio gravado em uso (flag `audiolivros`). */
+const BotaoBaixarCapitulo = lazy(() => import('./BotaoBaixarCapitulo'));
+import { useElencoDoLivro } from './useElencoDoLivro';
+import { useFatosDasFerramentas } from './useFatosDasFerramentas';
 import { usePerfilDeLeitura } from './usePerfilDeLeitura';
 
-type Painel = 'sumario' | 'tipografia' | 'anotacoes' | 'narracao';
+type Painel = 'sumario' | 'tipografia' | 'anotacoes' | 'narracao' | 'ia';
 
 /* As escolhas do narrador ficam no aparelho (como o perfil de leitura). */
 const LS_MODO = 'leitor:narracao:modo';
-const LS_VELOCIDADE = 'leitor:narracao:velocidade';
 const LS_SEGUIR = 'leitor:narracao:seguir';
 const lerLocal = (chave: string): string | null => {
   try {
@@ -102,7 +142,14 @@ const gravarLocal = (chave: string, valor: string) => {
     /* sem armazenamento: vale só nesta visita */
   }
 };
-const VISTA_PARADA: VistaDoNarrador = { fase: 'parada', indice: 0, total: 0, frase: '' };
+const VISTA_PARADA: VistaDoNarrador = {
+  fase: 'parada',
+  indice: 0,
+  total: 0,
+  frase: '',
+  opcoes: OPCOES_PADRAO_DA_NARRACAO,
+  sono: null,
+};
 
 interface Selecao {
   trecho: TrechoSelecionado;
@@ -123,6 +170,30 @@ interface PalavraAberta {
   capitulo: string;
   /** A palavra está num link EXTERNO do livro: a folha oferece "Abrir link" (o capítulo nunca navega). */
   link?: string;
+  /** A palavra na frase (escolhe a forma consultada e a ordem dos sentidos) e a forma consultada. */
+  contexto: ContextoDaPalavra;
+  forma: string;
+  /** Onde a palavra está na janela do app, para o cartão ficar perto sem cobri-la. */
+  ancora: Retangulo | null;
+  /** Aberta pelo teclado: o foco vai ao cartão e, ao fechar, volta à palavra. */
+  porTeclado: boolean;
+  range: Range;
+  /** As imagens da palavra; ausente no perfil protegido (nada de imagem externa para menor). */
+  imagens?: { lista: ImagemDaPalavra[]; carregando: boolean };
+}
+
+/** O retângulo do trecho na janela do APP: o do documento do capítulo somado ao do iframe dele. */
+function retanguloNaJanela(range: Range): Retangulo | null {
+  try {
+    const r = range.getBoundingClientRect();
+    if (!r.width && !r.height) return null;
+    const quadro = range.startContainer.ownerDocument?.defaultView?.frameElement?.getBoundingClientRect();
+    const dx = quadro?.left ?? 0;
+    const dy = quadro?.top ?? 0;
+    return { top: r.top + dy, left: r.left + dx, bottom: r.bottom + dy, right: r.right + dx };
+  } catch {
+    return null;
+  }
 }
 
 const novoId = () =>
@@ -154,11 +225,14 @@ export default function LeitorDoLivro({
   livroId,
   aoVoltar,
   aoConhecerPlanos,
+  aoEscolherAvatar,
   rotuloDoVoltar,
 }: {
   livroId: string;
   aoVoltar: () => void;
   aoConhecerPlanos?: () => void;
+  /** Leva a Perfil › Avatar (escolher outro ou trazer o seu). Ausente onde o Perfil não existe. */
+  aoEscolherAvatar?: () => void;
   /** O texto do botão de voltar (padrão: "Estante"; aberto pelo catálogo: "Voltar"). */
   rotuloDoVoltar?: string;
 }) {
@@ -176,9 +250,23 @@ export default function LeitorDoLivro({
   const [sinc, setSinc] = useState<EstadoDaSincronizacao | 'carregando'>('carregando');
   const [selecao, setSelecao] = useState<Selecao | null>(null);
   const [palavra, setPalavra] = useState<PalavraAberta | null>(null);
+  const palavraRef = useRef<PalavraAberta | null>(null);
+  palavraRef.current = palavra;
   const [noDeck, setNoDeck] = useState<Set<string>>(new Set());
   const [avisoPdf, setAvisoPdf] = useState<string | null>(null);
   const [anuncio, setAnuncio] = useState('');
+  /* ── as ferramentas de IA (painel "IA") ── */
+  const [iaAba, setIaAba] = useState<AbaDeIa>('lista');
+  const [modoDoParceiro, setModoDoParceiro] = useState<ModoDoParceiro | undefined>();
+  const [cotaEsgotada, setCotaEsgotada] = useState<Partial<Record<FerramentaDeIa, JanelaDaCota>>>({});
+  /** O trecho que a IA usa depois que a barra da seleção fecha (a seleção segue marcada no livro). */
+  const [trechoDaIa, setTrechoDaIa] = useState<TrechoSelecionado | null>(null);
+  const fatos = useFatosDasFerramentas(cotaEsgotada);
+  const estadosDeIa = estadoDasFerramentas(fatos);
+  /* Uma seleção nova vale mais que a guardada; fechar o painel esquece a guardada. */
+  useEffect(() => {
+    if (selecao || painel !== 'ia') setTrechoDaIa(null);
+  }, [selecao, painel]);
   const [ttsSpeed, setTtsSpeed] = useState(1);
   /* ── a narração (L3) ── */
   const narradorRef = useRef<Narrador | null>(null);
@@ -187,10 +275,6 @@ export default function LeitorDoLivro({
   const [modoNarracao, setModoNarracao] = useState<ModoDaNarracao>(() => {
     const m = lerLocal(LS_MODO) as ModoDaNarracao | null;
     return m && MODOS_DA_NARRACAO.includes(m) ? m : 'original';
-  });
-  const [velNarracao, setVelNarracao] = useState(() => {
-    const v = Number(lerLocal(LS_VELOCIDADE));
-    return Number.isFinite(v) && v >= 0.5 && v <= 2 ? v : 1;
   });
   const [seguirNarracao, setSeguirNarracao] = useState(() => lerLocal(LS_SEGUIR) !== '0');
   /** A narração acabou de virar a página: o caret que a navegação põe não é toque na palavra. */
@@ -201,6 +285,63 @@ export default function LeitorDoLivro({
   const repo = useMemo(() => anotacoesDoLivro(livroId), [livroId]);
   const idiomaRef = useRef('');
   idiomaRef.current = idioma || baseLang(langConfig.studying);
+  /* O ELENCO (flag `avatar_elenco`): voz por personagem e emoção por frase. Sem a flag nada disto age. */
+  const elenco = useElencoDoLivro({
+    livroId,
+    origem: guardado?.origem,
+    idiomaDoLivro: idiomaRef.current,
+    aoMudar: () => narradorRef.current?.definirElenco(),
+    antesDeExperimentar: () => {
+      const n = narradorRef.current;
+      if (n && n.vista.fase !== 'parada') n.parar(); // a amostra e a narração não falam ao mesmo tempo
+    },
+  });
+  /* O elenco em destaque: o botão "Elenco" abre o painel da narração com o elenco no topo; "Voz e modo" abre como
+     sempre. A dica da primeira vez some ao dispensar (lembrado no aparelho). */
+  const [elencoNoTopo, setElencoNoTopo] = useState(false);
+  const [dicaDoElencoVista, setDicaDoElencoVista] = useState(dicaDoElencoJaVista);
+  const temElenco = elenco.disponivel && elenco.personagens.length > 0;
+  const abrirElenco = () => {
+    marcarDicaDoElencoVista();
+    setDicaDoElencoVista(true);
+    setElencoNoTopo(true);
+    setPainel('narracao');
+  };
+  const elencoRef = useRef(elenco);
+  elencoRef.current = elenco;
+  /* O AVATAR NA NARRAÇÃO (flag `avatar_3d`, sem exigir o elenco): o mesmo controle de todos os modos. A ponte liga a boca
+     à voz que lê a frase; desligada, o motor segue como veio. */
+  const avatar = useAvatarDoModo('livro', { aoEscolherMeuAvatar: aoEscolherAvatar });
+  const ponteRef = useRef<PonteDaVoz | null>(null);
+  ponteRef.current ??= criarPonteDaVoz();
+  const ponte = ponteRef.current;
+  const avatarNaTela = narracaoAberta && avatar.ativo;
+  useEffect(() => {
+    ponte.ativar(avatarNaTela);
+  }, [ponte, avatarNaTela]);
+  useEffect(() => () => ponte.dispose(), [ponte]);
+  /* O AUDIOLIVRO PRÉ-GERADO (flag `audiolivros`): só para livro do catálogo com áudio publicado e visível para quem lê
+     (`audiolivroDoLivro`). Desligada a flag, nada é lido nem baixado; o narrador lê com a voz do aparelho. */
+  const audiolivrosLigados = useFlag(FLAG_AUDIOLIVROS);
+  const audioGravadoRef = useRef<AudioGravadoDoLivro | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    audioGravadoRef.current = null;
+    if (!audiolivrosLigados || !guardado) return;
+    void audiolivroDoLivro({
+      livroId,
+      origem: guardado.origem,
+      flagLigada: audiolivrosLigados,
+      teto: tetoDoLeitor(readAgeProfile()),
+      catalogo: carregarCatalogo,
+    }).then((a) => {
+      if (vivo) audioGravadoRef.current = a;
+      else a?.reprodutor.destruir();
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [audiolivrosLigados, guardado, livroId]);
   const toqueEmAnotacao = useRef(0);
   const capituloRef = useRef('');
   capituloRef.current = local?.tocItem?.label?.trim() ?? '';
@@ -346,8 +487,8 @@ export default function LeitorDoLivro({
   langConfigRef.current = langConfig;
   const modoRef = useRef(modoNarracao);
   modoRef.current = modoNarracao;
-  const velRef = useRef(velNarracao);
-  velRef.current = velNarracao;
+  const narracaoAbertaRef = useRef(narracaoAberta);
+  narracaoAbertaRef.current = narracaoAberta;
   const seguirRef = useRef(seguirNarracao);
   seguirRef.current = seguirNarracao;
   /* O narrador nasce com o livro pronto e morre com ele (a voz para ao sair do leitor). */
@@ -370,12 +511,25 @@ export default function LeitorDoLivro({
       escolheuNuvem: (idioma) => vozEmUso(idioma) === VOZ_DA_NUVEM,
       nuvemLiberada: () => ({ temDireito: getEntitlements().vozNatural, flagLigada: flagLigada(FLAG_VOZ_NATURAL) }),
       aoMudar: setVistaNarrador,
+      elenco: () => elencoRef.current.config(),
+      envolverMotor: (m) => ponte.envolver(m),
+      audioGravado: () => audioGravadoRef.current,
+      /* A VOZ NO APARELHO (flag `voz_no_aparelho`): o motor só chega por import() quando ele lê o idioma (escolhido, ou a
+         "Automática" com o modelo já pronto). */
+      garantirVozLocal: async (idioma) => {
+        if (vozNoAparelhoLe(idioma)) await carregarMotor();
+      },
       aoNavegar: () => {
         ignorarToquesAte.current = Date.now() + 900;
       },
       aoAviso: (aviso) => {
         if (aviso === 'fim') setAnuncio(t('Fim do livro.'));
+        else if (aviso === 'sono') setAnuncio(t('Temporizador de sono: narração pausada.'));
         else if (aviso === 'sem-texto') toast.warn(t('Esta página não tem texto para ler.'));
+        else if (aviso === 'voz-local-indisponivel')
+          toast.warn(t('A voz de alta qualidade não conseguiu ler agora. Seguimos com a voz do aparelho.'));
+        else if (aviso === 'audio-indisponivel')
+          toast.warn(t('Não conseguimos tocar este capítulo agora. Vamos ler com a voz do seu aparelho.'));
         else toast.warn(t('Não deu para ler esta frase com a voz do aparelho. Escolha outra voz em "Voz e modo".'));
       },
       aoRecuoDaNuvem: (motivo) => {
@@ -387,7 +541,6 @@ export default function LeitorDoLivro({
       metadados: () => ({ titulo: infoRef.current?.titulo || t('Livro'), autor: infoRef.current?.autor }),
     });
     n.modo = modoRef.current;
-    n.velocidade = velRef.current;
     n.seguir = seguirRef.current;
     narradorRef.current = n;
     return () => {
@@ -395,9 +548,20 @@ export default function LeitorDoLivro({
       narradorRef.current = null;
     };
     // O narrador é um por livro aberto; as escolhas chegam pelos refs e pelos `definir*`.
-  }, [estado, livroId]);
+  }, [estado, livroId, ponte]);
 
   /* O estado da narração para o leitor de tela: UMA vez por mudança de estado, nunca por frase. */
+  /* O CONVITE DA VOZ NO APARELHO (primeiro contato): avaliado UMA vez, quando a primeira frase sai da voz do sistema. Livro
+     com áudio pré-gerado nunca convida (o gravado tem prioridade, mesmo se ele falhar e a voz do sistema assumir). */
+  const [convidarVoz, setConvidarVoz] = useState(false);
+  const conviteAvaliado = useRef(false);
+  useEffect(() => {
+    if (conviteAvaliado.current || !vistaNarrador.vozDoSistema) return;
+    conviteAvaliado.current = true;
+    if (conviteDaVozNoAparelho(idiomaRef.current, !!audioGravadoRef.current || !!vistaNarrador.gravado))
+      setConvidarVoz(true);
+  }, [vistaNarrador.vozDoSistema, vistaNarrador.gravado]);
+
   const faseAnunciada = useRef(vistaNarrador.fase);
   useEffect(() => {
     const f = vistaNarrador.fase;
@@ -415,7 +579,13 @@ export default function LeitorDoLivro({
     }
     setNarracaoAberta(true);
     if (vozDaNuvemDisponivel()) destravarVozDaNuvem(); // o iPhone só toca áudio liberado num toque
+    destravarVozNoAparelho(); // idem para a voz no aparelho (só age com ela pronta)
     narradorRef.current?.tocar();
+  };
+  /* "Avatar" na barra: liga/desliga em um toque. Ligar com a narração fechada abre a faixa (sem começar a tocar). */
+  const alternarAvatar = () => {
+    if (!avatar.ligado && !narracaoAberta) setNarracaoAberta(true);
+    avatar.alternar();
   };
   const fecharNarracao = () => {
     narradorRef.current?.parar();
@@ -428,6 +598,14 @@ export default function LeitorDoLivro({
       .then((d) => setNoDeck(new Set(d.map((c) => c.word.toLowerCase()))))
       .catch(() => {});
   }, []);
+
+  /* Virar a página fecha o cartão: a palavra saiu da vista. (Repaginar sem sair dela, como quando as fontes
+     chegam, não fecha.) */
+  useEffect(() => {
+    const p = palavraRef.current;
+    if (!p || !local || motorRef.current?.trechoVisivel(p.range) !== false) return;
+    setPalavra(null);
+  }, [local]);
 
   /* A posição falada para o leitor de tela (uma vez por parada, não a cada pixel de rolagem). */
   const narrando = vistaNarrador.fase === 'tocando' || vistaNarrador.fase === 'virando';
@@ -494,9 +672,10 @@ export default function LeitorDoLivro({
          seleção e nunca abrem a folha da palavra. */
       aoTocar: (r: Range, alvo: Node) => {
         if (Date.now() - toqueEmAnotacao.current < 700 || Date.now() < ignorarToquesAte.current) return;
-        if (seguirLinkInterno(alvo)) return;
+        if (seguirLinkInterno(alvo)) return setPalavra(null);
         const texto = r.toString();
-        if (!/\p{L}/u.test(texto) || texto.length < 2) return;
+        /* Toque fora de palavra (no texto do livro) fecha o cartão; outra palavra troca o conteúdo. */
+        if (!/\p{L}/u.test(texto) || texto.length < 2) return setPalavra(null);
         void abrirPalavra(texto, r, indice, linkExternoDe(alvo));
       },
       aoLimpar: () => setSelecao(null),
@@ -530,7 +709,7 @@ export default function LeitorDoLivro({
       if (!r) continue;
       const texto = r.toString().trim();
       if (!/\p{L}/u.test(texto) || texto.length < 2) continue;
-      void abrirPalavra(texto, r, index, linkExternoDe(r.startContainer));
+      void abrirPalavra(texto, r, index, linkExternoDe(r.startContainer), true);
       return true;
     }
     return false;
@@ -549,12 +728,16 @@ export default function LeitorDoLivro({
     return link && 'externo' in link ? link.externo : undefined;
   }
 
-  async function abrirPalavra(texto: string, range: Range, indice: number, link?: string) {
+  async function abrirPalavra(texto: string, range: Range, indice: number, link?: string, porTeclado = false) {
     const motor = motorRef.current;
     if (!motor) return;
     const frase = fraseDoRange(range, idiomaRef.current);
+    const contexto: ContextoDaPalavra = { palavra: texto.trim(), frase, idioma: idiomaRef.current };
+    /* "Call" no começo da frase é consultado como "call": a página "Call" é a do sobrenome. */
+    const forma = formaDeConsulta(contexto);
+    const imagens = perfilProtegido() ? undefined : { lista: [], carregando: true };
     const base: PalavraAberta = {
-      vocab: { word: texto, translation: '', example: frase, lang: idiomaRef.current || undefined },
+      vocab: { word: forma, translation: '', example: frase, lang: idiomaRef.current || undefined },
       mtNote: null,
       frase,
       idioma: idiomaRef.current,
@@ -562,17 +745,67 @@ export default function LeitorDoLivro({
       citacao: citacaoDoRange(range),
       capitulo: capituloRef.current,
       ...(link ? { link } : {}),
+      contexto,
+      forma,
+      ancora: retanguloNaJanela(range),
+      porTeclado,
+      range: range.cloneRange(),
+      ...(imagens ? { imagens } : {}),
     };
     setSelecao(null);
     setPalavra(base);
-    const { vocab, resolved } = await buildVocabWord(
-      { word: texto, context: frase, declaredLang: idiomaRef.current || undefined, config: langConfig },
-      gateway.mt,
+    const mesma = (atual: PalavraAberta | null): atual is PalavraAberta => !!atual && atual.cfi === base.cfi;
+    const origem = { word: forma, context: frase, declaredLang: idiomaRef.current || undefined, config: langConfig };
+    const traducao = buildVocabWord(origem, gateway.mt);
+    void traducao.then(({ vocab, resolved }) =>
+      setPalavra((atual) =>
+        mesma(atual) ? { ...atual, vocab, mtNote: mtNoteFor(resolved, vocab.translation) } : atual,
+      ),
     );
-    setPalavra((atual) =>
-      atual && atual.cfi === base.cfi ? { ...atual, vocab, mtNote: mtNoteFor(resolved, vocab.translation) } : atual,
-    );
+    /* A imagem nunca segura o cartão: chega quando chegar, e só para quem pode ver imagem externa. */
+    if (!imagens) return;
+    const lista = await resolveWord(origem)
+      .then((resolved) =>
+        buscarImagensDaPalavra({
+          palavra: forma,
+          idioma: resolved.lang,
+          traducao: () => traducao.then((r) => r.vocab.translation || null),
+          idiomaDaTraducao: resolved.targetLang,
+        }),
+      )
+      .catch((): ImagemDaPalavra[] => []);
+    setPalavra((atual) => (mesma(atual) ? { ...atual, imagens: { lista, carregando: false } } : atual));
   }
+
+  /** O cartão da palavra fecha; aberto pelo teclado, o caret volta à palavra no livro. */
+  function fecharPalavra() {
+    const p = palavraRef.current;
+    setPalavra(null);
+    if (!p?.porTeclado) return;
+    try {
+      const janela = p.range.startContainer.ownerDocument?.defaultView;
+      const sel = janela?.getSelection();
+      ignorarToquesAte.current = Date.now() + 900; // o caret posto aqui não é toque na palavra
+      const caret = p.range.cloneRange();
+      caret.collapse(true);
+      sel?.removeAllRanges();
+      sel?.addRange(caret);
+      (janela?.frameElement as HTMLElement | null)?.focus({ preventScroll: true });
+      janela?.focus();
+    } catch {
+      /* o capítulo saiu da tela: o foco fica onde estava */
+    }
+  }
+
+  /* A tradução de cada frase, uma vez por livro aberto (o cartão pede de novo ao reabrir a palavra). */
+  const frasesTraduzidas = useRef(new Map<string, string>());
+  const traduzirFrase = async (frase: string): Promise<string | null> => {
+    const guardada = frasesTraduzidas.current.get(frase);
+    if (guardada) return guardada;
+    const r = await traduzir(frase);
+    if (r) frasesTraduzidas.current.set(frase, r);
+    return r;
+  };
 
   /* ── teclado (ACE07): ← → PageUp PageDown viram a página; "/" abre a busca; Esc fecha ── */
   const aoTeclar = (e: KeyboardEvent) => {
@@ -580,6 +813,10 @@ export default function LeitorDoLivro({
     if (document.querySelector('dialog[open]')) return;
     const m = motorRef.current;
     if (!m) return;
+    if (narracaoAbertaRef.current && aoTeclarNoNarrador(e, narradorRef.current)) {
+      e.preventDefault();
+      return;
+    }
     if (e.key === 'ArrowLeft') void m.esquerda();
     else if (e.key === 'ArrowRight') void m.direita();
     else if (e.key === 'PageDown') void m.proxima();
@@ -587,6 +824,8 @@ export default function LeitorDoLivro({
     else if (e.key === '/') setPainel('sumario');
     else if (e.key === 'Enter' && dentroDoLivro(e.target) && abrirPalavraNoCursor()) {
       /* a folha da palavra abriu */
+    } else if (e.key === 'Escape' && palavraRef.current) {
+      fecharPalavra();
     } else if (e.key === 'Escape') {
       setPainel(null);
       setSelecao(null);
@@ -686,6 +925,31 @@ export default function LeitorDoLivro({
 
   traduzirRef.current = traduzir;
 
+  /** Traduz UM parágrafo do capítulo (a tradução do capítulo): como `traduzir`, mas o erro é `null`, nunca o original. */
+  const traduzirParagrafo = (texto: string): Promise<string | null> => traduzir(texto);
+
+  /** Guarda o trecho selecionado como cartão (o parceiro oferece depois de responder). */
+  const guardarTrecho = async (texto: string, frase: string): Promise<boolean> => {
+    try {
+      const { vocab, resolved } = await buildVocabWord(
+        { word: texto, context: frase, declaredLang: idiomaRef.current || undefined, config: langConfig },
+        gateway.mt,
+      );
+      const criados = await ficharCartao({
+        word: vocab.word,
+        back: vocab.translation || '',
+        sentence: frase,
+        resolved,
+        cloze: frase ? makeCloze(frase, texto) : null,
+        sessionId: await origemNoDeck(livroId),
+      });
+      if (criados.length) toast.ok(t('Guardado no deck, com a frase do livro.'));
+      return criados.length > 0;
+    } catch {
+      return false;
+    }
+  };
+
   /* ── exportações (todas no navegador) ── */
   const livroDaExportacao = () => ({
     id: livroId,
@@ -749,11 +1013,26 @@ export default function LeitorDoLivro({
   const pct = Number.isFinite(local?.fraction) ? Math.round((local!.fraction ?? 0) * 100) : 0;
   const titulo = info?.titulo || guardado?.titulo || '';
   const abrirPainel = (p: Painel) => setPainel((atual) => (atual === p ? null : p));
+  const abrirIa = (aba: AbaDeIa, modo?: ModoDoParceiro) => {
+    setIaAba(aba);
+    setModoDoParceiro(modo);
+    setPainel('ia');
+  };
+  const painelDoElenco = (
+    <PainelDoElenco
+      elenco={elenco}
+      vozDoNarrador={
+        vozNoAparelhoLe(idiomaRef.current) ? vozDoNarradorNoAparelho() : (getVoicePref(idiomaRef.current) ?? '')
+      }
+      nuvem={vozEmUso(idiomaRef.current) === VOZ_DA_NUVEM}
+    />
+  );
   const TITULO_DO_PAINEL: Record<Painel, string> = {
     sumario: t('Sumário e busca'),
     tipografia: t('Aparência'),
     anotacoes: t('Anotações'),
     narracao: t('Narração'),
+    ia: tituloDaAbaDeIa(iaAba),
   };
 
   return (
@@ -765,8 +1044,11 @@ export default function LeitorDoLivro({
       style={estilo}
       data-testid="leitor"
       data-estado={estado}
+      data-painel={painel ?? undefined}
     >
-      <header className="leitor-topo">
+      <header
+        className={`leitor-topo${(temElenco || avatar.disponivel) && !info?.ehPdf ? ' leitor-topo-com-elenco' : ''}`}
+      >
         <button type="button" className="leitor-botao" onClick={aoVoltar}>
           <ArrowLeft aria-hidden />
           <span>{rotuloDoVoltar ?? t('Estante')}</span>
@@ -788,6 +1070,49 @@ export default function LeitorDoLivro({
               <span>{t('Ouvir')}</span>
             </button>
           )}
+          {avatar.disponivel && !info?.ehPdf && (
+            <BotaoDoAvatar
+              modo="livro"
+              ligado={avatar.ligado}
+              aoAlternar={alternarAvatar}
+              classe="leitor-botao leitor-botao-rotulo"
+            />
+          )}
+          {temElenco && !info?.ehPdf && (
+            <button
+              type="button"
+              className="leitor-botao leitor-botao-rotulo"
+              aria-pressed={elenco.ligado}
+              aria-controls={painel === 'narracao' ? 'leitor-painel' : undefined}
+              aria-label={t('Elenco: {n} personagens', { n: elenco.personagens.length })}
+              disabled={estado !== 'pronto'}
+              data-testid="leitor-elenco"
+              onClick={() => {
+                if (painel === 'narracao' && elencoNoTopo) setPainel(null);
+                else abrirElenco();
+              }}
+            >
+              <Users aria-hidden />
+              <span>{t('Elenco')}</span>
+              <span className="leitor-contagem" aria-hidden>
+                {elenco.personagens.length}
+              </span>
+            </button>
+          )}
+          <button
+            type="button"
+            className="leitor-botao"
+            aria-expanded={painel === 'ia'}
+            aria-controls={painel === 'ia' ? 'leitor-painel' : undefined}
+            data-testid="leitor-ia"
+            onClick={() => {
+              if (painel === 'ia') setPainel(null);
+              else abrirIa('lista');
+            }}
+          >
+            <Sparkles aria-hidden />
+            <span>{t('IA')}</span>
+          </button>
           <button
             type="button"
             className="leitor-botao"
@@ -828,6 +1153,21 @@ export default function LeitorDoLivro({
         <p className="leitor-aviso" role="note">
           {avisoPdf}
         </p>
+      )}
+
+      {avatar.dica.visivel && !info?.ehPdf && estado === 'pronto' && (
+        <DicaDoAvatar modo="livro" aoLigar={alternarAvatar} aoDispensar={avatar.dica.dispensar} />
+      )}
+
+      {temElenco && !dicaDoElencoVista && !avatar.dica.visivel && estado === 'pronto' && painel !== 'narracao' && (
+        <DicaDoElenco
+          personagens={elenco.personagens.length}
+          aoAbrir={abrirElenco}
+          aoFechar={() => {
+            marcarDicaDoElencoVista();
+            setDicaDoElencoVista(true);
+          }}
+        />
       )}
 
       <div className="leitor-miolo">
@@ -888,10 +1228,21 @@ export default function LeitorDoLivro({
                   ehPdf={!!info?.ehPdf}
                 />
               )}
+              {painel === 'narracao' && elencoNoTopo && painelDoElenco}
               {painel === 'narracao' && (
                 <PainelDaNarracao
+                  audioDoCapitulo={(() => {
+                    const a = vistaNarrador.gravado ? narradorRef.current?.audioDoCapitulo : null;
+                    return a ? (
+                      <Suspense fallback={null}>
+                        <BotaoBaixarCapitulo url={a.url} bytes={a.bytes} minutos={Math.round(a.duracaoS / 60)} />
+                      </Suspense>
+                    ) : undefined;
+                  })()}
                   modo={modoNarracao}
                   seguir={seguirNarracao}
+                  opcoes={vistaNarrador.opcoes}
+                  narrador={narradorRef.current}
                   idiomaDoLivro={idiomaRef.current}
                   idiomaDaPessoa={baseLang(langConfig.mine)}
                   nuvem={vozDaNuvemDisponivel()}
@@ -913,6 +1264,41 @@ export default function LeitorDoLivro({
                   }}
                   aoEscolherVoz={() => narradorRef.current?.reiniciarFrase()}
                   aoConhecerPlanos={aoConhecerPlanos}
+                />
+              )}
+              {painel === 'narracao' && !elencoNoTopo && painelDoElenco}
+              {painel === 'ia' && (
+                <PainelDeFerramentas
+                  aba={iaAba}
+                  aoMudarAba={(a) => abrirIa(a)}
+                  estados={estadosDeIa}
+                  temSelecao={!!(selecao?.trecho ?? trechoDaIa)}
+                  protegido={perfilProtegido()}
+                  aoConhecerPlanos={aoConhecerPlanos}
+                  parceiro={
+                    <PainelDoParceiro
+                      key={`${selecao?.trecho.texto ?? trechoDaIa?.texto ?? ''}\u0000${modoDoParceiro ?? ''}`}
+                      livro={livroParaOParceiro(livroId, guardado?.origem)}
+                      tituloDoCapitulo={local?.tocItem?.label?.trim() ?? ''}
+                      selecao={(selecao?.trecho ?? trechoDaIa)?.texto ?? ''}
+                      fraseDaSelecao={(selecao?.trecho ?? trechoDaIa)?.frase}
+                      idiomaDoLivro={idiomaRef.current}
+                      idiomaDaPessoa={baseLang(langConfig.mine)}
+                      lerSecao={() => motorRef.current?.secaoAtual() ?? null}
+                      modoInicial={modoDoParceiro}
+                      aoEsgotarCota={(j) => setCotaEsgotada((c) => ({ ...c, parceiro: j }))}
+                      aoGuardar={guardarTrecho}
+                    />
+                  }
+                  capitulo={
+                    <PainelDaTraducao
+                      key={local?.section?.current ?? 0}
+                      paragrafos={motorRef.current?.secaoAtual()?.paragrafos ?? []}
+                      idiomaDoLivro={idiomaRef.current}
+                      idiomaDaPessoa={baseLang(langConfig.mine)}
+                      traduzir={traduzirParagrafo}
+                    />
+                  }
                 />
               )}
               {painel === 'anotacoes' && (
@@ -957,35 +1343,62 @@ export default function LeitorDoLivro({
             motorRef.current?.desmarcar();
           }}
           aoConhecerPlanos={aoConhecerPlanos}
+          explicar={estadosDeIa.explicar}
+          parceiro={estadosDeIa.parceiro}
+          aoPerguntar={() => {
+            setTrechoDaIa(selecao.trecho);
+            abrirIa('parceiro', 'pergunta');
+            setSelecao(null);
+          }}
           aoVerPalavra={
             selecao.palavra
               ? () => {
                   const p = selecao.palavra!;
-                  void abrirPalavra(selecao.trecho.texto, p.range, p.indice, linkExternoDe(p.range.startContainer));
+                  /* A barra some ao abrir o cartão: o foco vai para o cartão (este é o caminho do teclado). */
+                  void abrirPalavra(
+                    selecao.trecho.texto,
+                    p.range,
+                    p.indice,
+                    linkExternoDe(p.range.startContainer),
+                    true,
+                  );
                 }
               : undefined
           }
         />
       )}
 
+      {avatarNaTela && (
+        <AvatarDoNarrador
+          vista={vistaNarrador}
+          ctl={avatar}
+          ponte={ponte}
+          elencoLigado={elenco.disponivel && elenco.ligado && elenco.avatar}
+        />
+      )}
+
       {narracaoAberta && (
         <BarraDoNarrador
           vista={vistaNarrador}
-          velocidade={velNarracao}
+          narrador={narradorRef.current}
           ajustesAbertos={painel === 'narracao'}
           aoAlternar={() => {
             if (vozDaNuvemDisponivel()) destravarVozDaNuvem();
             narradorRef.current?.alternar();
           }}
-          aoAnterior={() => narradorRef.current?.anterior()}
-          aoProxima={() => narradorRef.current?.proxima()}
-          aoVelocidade={(v) => {
-            setVelNarracao(v);
-            gravarLocal(LS_VELOCIDADE, String(v));
-            narradorRef.current?.definirVelocidade(v);
+          aoAjustes={() => {
+            setElencoNoTopo(false);
+            abrirPainel('narracao');
           }}
-          aoAjustes={() => abrirPainel('narracao')}
           aoParar={fecharNarracao}
+          convite={
+            convidarVoz ? (
+              <ConviteDaVozNoAparelho
+                idioma={idiomaRef.current}
+                aoFicarPronta={() => void narradorRef.current?.anteciparVozLocal()}
+              />
+            ) : undefined
+          }
         />
       )}
 
@@ -1035,39 +1448,29 @@ export default function LeitorDoLivro({
       </p>
 
       {palavra && (
-        <VocabularyPanel
-          emFolha
-          viewKey="reading"
-          word={palavra.vocab}
+        <CartaoDaPalavra
+          vocab={palavra.vocab}
           mtNote={palavra.mtNote}
-          onClose={() => setPalavra(null)}
-          onSpeak={(w) => speak(w, { lang: toBcp47(palavra.idioma || langConfig.studying), rate: ttsSpeed })}
-          onAddToDeck={(w) => void salvarNoDeck(w)}
-          isAdded={noDeck.has(palavra.vocab.word.toLowerCase())}
-          ttsSpeed={ttsSpeed}
-          setTtsSpeed={setTtsSpeed}
+          contexto={palavra.contexto}
+          formaDeConsulta={palavra.forma}
+          destino={toBcp47(langConfig.mine)}
+          ancora={palavra.ancora}
+          porTeclado={palavra.porTeclado}
           podeOuvir={!!palavra.idioma && haVozPara(palavra.idioma)}
-          etiqueta={etiquetaDaPalavra(palavra.vocab.word, palavra.idioma)}
-          extra={
-            <>
-              {palavra.link && (
-                <button
-                  type="button"
-                  className="btn btn-outline leitor-alvo leitor-abrir-link"
-                  data-testid="abrir-link"
-                  title={palavra.link}
-                  onClick={() => {
-                    const url = linkExternoSeguro(palavra.link ?? '');
-                    if (url) window.open(url, '_blank', 'noopener,noreferrer');
-                  }}
-                >
-                  <ExternalLink aria-hidden /> {t('Abrir link')}
-                  <span className="leitor-link-destino">{new URL(palavra.link).host}</span>
-                </button>
-              )}
-              <HistoricoNaFolha palavra={palavra.vocab.word} idioma={palavra.idioma} />
-            </>
+          aoOuvir={() =>
+            speak(palavra.vocab.word, { lang: toBcp47(palavra.idioma || langConfig.studying), rate: ttsSpeed })
           }
+          velocidade={ttsSpeed}
+          aoMudarVelocidade={setTtsSpeed}
+          salva={noDeck.has(palavra.vocab.word.toLowerCase())}
+          aoSalvar={() => void salvarNoDeck(palavra.vocab)}
+          traduzirFrase={traduzirFrase}
+          imagens={palavra.imagens}
+          link={palavra.link}
+          etiqueta={etiquetaDaPalavra(palavra.vocab.word, palavra.idioma)}
+          extra={<HistoricoNaFolha palavra={palavra.vocab.word} idioma={palavra.idioma} />}
+          aoConhecerPlanos={perfilProtegido() ? undefined : aoConhecerPlanos}
+          aoFechar={fecharPalavra}
         />
       )}
     </div>

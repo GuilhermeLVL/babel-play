@@ -44,6 +44,8 @@ marcarQuestNovoNoDocumento();
 if (document.documentElement.dataset.semVoz === 'true') {
   void import('./lib/voz/haVoz').then((m) => m.instalarVozDoSite());
 }
+// A voz de alta qualidade (Supertonic) lê por `speak()` onde o modelo está baixado: intérprete, palavras, jogos.
+void import('./lib/voz/motorGlobal').then((m) => m.instalarMotorGlobalDaFala());
 // A voz escolhida por idioma acompanha a conta: quando as preferências chegam com vozes guardadas (em
 // outro aparelho), elas passam a valer aqui para tudo que fala. Só escuta; não pede nada ao servidor.
 void import('./lib/voz/preferenciaDeVoz').then((m) => m.ligarVozesAConta());

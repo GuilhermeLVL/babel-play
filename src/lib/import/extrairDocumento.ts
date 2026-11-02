@@ -46,7 +46,7 @@ async function extrairDocxComMammoth(arrayBuffer: ArrayBuffer): Promise<string> 
  * 1,4 GB de memória (reproduzido no servidor) e agora travaria a aba. Conta os bytes conforme saem da inflação,
  * sem confiar no cabeçalho do zip.
  */
-async function conferirTamanhoDoDocx(arquivo: File): Promise<void> {
+export async function conferirTamanhoDoDocx(arquivo: File): Promise<void> {
   try {
     await medirExpansaoDoZip(arquivo, TETO_DO_DOCX_POR_ENTRADA, TETO_DO_DOCX_TOTAL);
   } catch (e) {

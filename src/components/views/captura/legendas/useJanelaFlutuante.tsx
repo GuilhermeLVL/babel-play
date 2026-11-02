@@ -17,6 +17,7 @@ import {
   redimensionarJanela,
 } from '../../../../lib/legendas/janelaDoNavegador';
 import { criarLegendaEmVideo, type LegendaEmVideo as Controlador } from '../../../../lib/legendas/legendaEmVideo';
+import ComAvatarNoPip from '../../../avatar/ComAvatarNoPip';
 import DocumentPiP from '../../../DocumentPiP';
 import { toast } from '../../../Toast';
 import AbaDoAssistente from '../assistente/AbaDoAssistente';
@@ -318,6 +319,7 @@ export function useJanelaFlutuante(o: Opcoes) {
     <>
       {caminho === 'documento' && (
         <DocumentPiP janela={janela} aoFechar={fechar} backgroundColor="#141210">
+          <ComAvatarNoPip janela={janela}>
           <LegendasFlutuantes
             naJanela
             formatoInicial={formato}
@@ -335,6 +337,7 @@ export function useJanelaFlutuante(o: Opcoes) {
             assistente={doAssistente}
             aoMudarPausa={setPausaDaJanela}
           />
+          </ComAvatarNoPip>
         </DocumentPiP>
       )}
       {caminho === 'video' && (

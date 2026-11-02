@@ -1,6 +1,7 @@
-import { BookOpen, Library, Search, Trash2, Upload } from 'lucide-react';
+import { BookOpen, ImagePlus, Library, Search, Trash2, Upload } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 
+import { capaDoLivro } from '../../../core/livros/capas';
 import {
   contarPorStatus,
   filtrarMeus,
@@ -12,9 +13,11 @@ import {
 import type { LivroDoCatalogo } from '../../../core/livros/tipos';
 import { data, t, tp } from '../../../lib/i18n';
 import { estante } from '../../../lib/livros/armazem';
+import { faltaTentarCapa, garantirCapaDoArquivo } from '../../../lib/livros/capasLocais';
 import {
   filtrarMeusLivrosVisiveis,
   idNaEstante,
+  lerConteudo,
   type MeuLivro,
   mudarStatus,
   removerMeuLivro,
@@ -23,6 +26,7 @@ import {
 } from '../../../lib/livros/meusLivros';
 import { posicoes } from '../../../lib/livros/posicoesDoAparelho';
 import { CapaDesenhada, rotuloDoTempo } from './CartaoDoLivro';
+import TrocarCapa from './TrocarCapa';
 
 const STATUS: StatusDeLeitura[] = ['quero-ler', 'lendo', 'lido'];
 const rotuloDoStatus = (s: StatusDeLeitura) =>
@@ -83,6 +87,7 @@ export default function MeusLivros({
   const todos = filtrarMeusLivrosVisiveis(useMeusLivros(), visivel);
   const [texto, setTexto] = useState('');
   const [filtro, setFiltro] = useState<StatusDeLeitura | null>(null);
+  const [trocando, setTrocando] = useState<MeuLivro | null>(null);
 
   const porId = useMemo(() => new Map(catalogo.map((l) => [l.id, l])), [catalogo]);
   const anotacoes = useContagemDeAnotacoes(todos.map(idNaEstante));
@@ -103,6 +108,26 @@ export default function MeusLivros({
       ficha: livro.origem === 'catalogo' ? porId.get(livro.id) : undefined,
     };
   });
+
+  /* Os livros trazidos antes das capas (ou sem capa tirada ainda): tenta UMA vez, um de cada vez, fora da pressa. */
+  const aTentar = todos
+    .filter((l) => l.origem === 'arquivo' && (l.formato === 'epub' || l.formato === 'pdf'))
+    .map((l) => l.id)
+    .join('\n');
+  useEffect(() => {
+    let vivo = true;
+    void (async () => {
+      for (const id of aTentar.split('\n').filter(Boolean)) {
+        if (!vivo) return;
+        if (!(await faltaTentarCapa(id))) continue;
+        const conteudo = await lerConteudo(id);
+        await garantirCapaDoArquivo(id, conteudo?.arquivo);
+      }
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, [aTentar]);
 
   if (todos.length === 0) {
     return (
@@ -196,7 +221,21 @@ export default function MeusLivros({
             return (
               <li key={l.id} className="lv-meu" data-livro={l.id}>
                 <span className="lv-meu-capa">
-                  <CapaDesenhada id={idNaEstante(l)} titulo={l.titulo} autor={l.autor} idioma={l.idioma} />
+                  <CapaDesenhada
+                    id={idNaEstante(l)}
+                    titulo={l.titulo}
+                    autor={l.autor}
+                    idioma={l.idioma}
+                    imagemDoCatalogo={ficha ? capaDoLivro(ficha)?.url : undefined}
+                  />
+                  <button
+                    type="button"
+                    className="q-chip lv-meu-capa-acao"
+                    onClick={() => setTrocando(l)}
+                    aria-label={t('Trocar a capa de {titulo}', { titulo: l.titulo })}
+                  >
+                    <ImagePlus aria-hidden /> {t('Trocar capa')}
+                  </button>
                 </span>
                 <div className="lv-meu-texto">
                   <b lang={l.idioma}>{l.titulo}</b>
@@ -261,6 +300,9 @@ export default function MeusLivros({
             );
           })}
         </ul>
+      )}
+      {trocando && (
+        <TrocarCapa livroId={idNaEstante(trocando)} titulo={trocando.titulo} aoFechar={() => setTrocando(null)} />
       )}
     </section>
   );

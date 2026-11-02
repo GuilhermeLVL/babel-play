@@ -6,6 +6,7 @@
  * de várias, a opção com o botão de ouvir ao lado e o texto em duas linhas (o nome e a variante).
  */
 .voz-seletor {
+  container-type: inline-size;
   display: grid;
   gap: 12px;
   min-width: 0;
@@ -20,9 +21,6 @@
   max-height: none;
   overflow: visible;
   padding: 0;
-}
-.voz-lista {
-  grid-template-columns: minmax(0, 1fr);
 }
 .voz-linha {
   display: flex;
@@ -50,6 +48,11 @@
   white-space: nowrap;
   font: inherit;
 }
+/* O rótulo da voz no aparelho vai embaixo da descrição: ao lado dela roubaria a largura do texto no celular. */
+.voz-texto > .voz-texto-tag {
+  justify-self: start;
+  margin-top: 2px;
+}
 .voz-texto > small {
   font: 600 14px/1.3 var(--font-body, inherit);
   color: var(--ink-muted);
@@ -76,11 +79,102 @@
   gap: 8px;
   min-width: 0;
 }
+/* A folha já rola: lista com rolagem própria dentro dela travava o toque e cortava o fim. */
 .voz-lados .voz-lista {
-  max-height: min(30vh, 300px);
+  max-height: none;
+  overflow: visible;
 }
-@media (max-height: 560px) {
-  .voz-lados .voz-lista {
-    max-height: 26vh;
+/* A voz de alta qualidade no aparelho (`VozNoAparelho.tsx`): o custo, o progresso do download e a voz do narrador. */
+.voz-no-aparelho {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.voz-no-aparelho > progress {
+  width: 100%;
+}
+.voz-no-aparelho-narrador {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+/* O nome da voz no aparelho é longo: quebra a linha em vez de sumir em reticências no painel estreito. */
+.voz-linha > .q-opcao[data-voz='@no-aparelho'] .voz-texto > b {
+  white-space: normal;
+}
+
+/* Os grupos: o rótulo abre cada um. As 10 vozes do modelo ficam em duas colunas (só o nome e a amostra); o resto, uma por linha. */
+.voz-lista {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.voz-linha-grupo {
+  display: contents;
+}
+.voz-linha-grupo > .voz-linha:not([data-modelo]),
+.voz-grupo {
+  grid-column: 1 / -1;
+}
+.voz-grupo {
+  margin-top: 6px;
+}
+.voz-linha[data-modelo] {
+  gap: 6px;
+}
+.voz-linha[data-modelo] > .q-opcao {
+  padding: 8px 10px;
+  gap: 6px;
+}
+.voz-avatar {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.voz-linha[data-modelo] > .q-ctl {
+  width: 36px;
+  height: 36px;
+}
+/* Modelo pronto: uma linha só, com o texto e o botão de apagar. */
+.voz-no-aparelho-pronta {
+  grid-auto-flow: column;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Uma lista só rola por vez: quem rola é o painel ou o diálogo que a contém, nunca a lista dentro dele. */
+.voz-lista {
+  max-height: none;
+  overflow: visible;
+}
+.voz-estrela {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-left: 6px;
+  vertical-align: -2px;
+  color: var(--q-acento);
+  fill: currentColor;
+}
+/* Modelo pronto: o texto e o selo na mesma linha, "Apagar" ao lado, sem esticar. */
+.voz-no-aparelho-pronta > .q-aju-nota {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 0;
+}
+.voz-no-aparelho-pronta > .btn {
+  flex: none;
+  width: auto;
+  min-height: 40px;
+  padding-inline: 12px;
+}
+
+/* Painel estreito (o do leitor tem ~350 px): duas colunas cortariam os nomes; uma coluna mantém o alvo de toque inteiro. */
+@container (max-width: 420px) {
+  .voz-lista {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

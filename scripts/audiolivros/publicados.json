@@ -1,0 +1,11 @@
+{
+  "sobre": "Livros com audiolivro publicado (F2). Gerado por scripts/audiolivros/publicar-catalogo.mjs; montar-catalogo.mjs --audio escreve o campo audio em public/catalogo/livros.json.",
+  "livros": {
+    "ws-pt-dom-casmurro": {
+      "voz": "F1",
+      "versao": 1,
+      "capitulos": 1,
+      "horas": 0.04
+    }
+  }
+}

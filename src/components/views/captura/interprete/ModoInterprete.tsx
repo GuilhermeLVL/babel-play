@@ -17,7 +17,7 @@ import { data, t } from '../../../../lib/i18n';
 import { langLabel, toBcp47 } from '../../../../lib/languages';
 import { comNomeDoPlano, planoDeEntradaAgora, textoDoAutomaticoNoPlano } from '../../../../lib/planoDeEntrada';
 import { estadoDaTela, mudarEstadoDaTela, tomarPedidoDaConversa, tremer } from '../../../../lib/polimento/interprete';
-import { nativeTts, type TtsEngine } from '../../../../lib/tts';
+import { motorDaFala, type TtsEngine } from '../../../../lib/tts';
 import { aquecerInterprete } from '../../../../lib/voz/aquecimentoDoInterprete';
 import { ladosDaVoz } from '../../../../lib/voz/catalogoDeVozes';
 import { comoInstalarVoz, faltaVozNoAparelho, useVozesDoAparelho } from '../../../../lib/voz/faltaDeVoz';
@@ -37,6 +37,7 @@ import type { AssistenteDaJanela } from '../assistente/useAssistenteAoVivo';
 import ConversaDoPrototipo, {
   type AssistenteNaConversa,
   type FraseDaMetade,
+  type JanelaFlutuanteDoInterprete,
   type MetadeDaConversa,
 } from './ConversaDoPrototipo';
 import { guardarModo, type ModoDaConversa, modoGuardado } from './modoDaConversa';
@@ -49,6 +50,7 @@ import {
   textoDaPraticaNoToque,
   textoDaPraticaSemIdioma,
 } from './praticaNaConversa';
+import { useAvataresDoInterprete } from './useAvataresDoInterprete';
 
 /** A fala, no que a tela precisa. */
 export type FalaDoInterprete = Pick<SpeechSegment, 'id' | 'originalText' | 'translatedText' | 'isPartial' | 'lado'> &
@@ -126,6 +128,8 @@ export default function ModoInterprete({
   aoFalharMicrofone,
   aoEscolherIdiomas,
   aoConhecerOPremium,
+  aoEscolherOutroAvatar,
+  janelaFlutuante,
   comVirtual = false,
   assistente,
   aoOuvirSugestao,
@@ -161,6 +165,10 @@ export default function ModoInterprete({
   aoEscolherIdiomas?: (() => void) | undefined;
   /** Os Planos, a partir do aviso do cadeado (ausente no perfil protegido). */
   aoConhecerOPremium?: (() => void) | undefined;
+  /** Abre Perfil › Avatar (o atalho de soletrar oferece quando o avatar não serve; ausente = não oferece). */
+  aoEscolherOutroAvatar?: (() => void) | undefined;
+  /** O botão "Janela flutuante" (Alt+L) da faixa; ausente onde o navegador não abre a janela. */
+  janelaFlutuante?: JanelaFlutuanteDoInterprete | undefined;
   /** A conversa virtual existe neste aparelho; "Virtual" abre a folha dela. */
   comVirtual?: boolean;
   /**
@@ -195,6 +203,15 @@ export default function ModoInterprete({
   const [estado, setEstado] = useState<EstadoDoControle>(() =>
     estadoDaTela().trocados ? { ...ESTADO_DA_TELA, trocados: true } : ESTADO_DA_TELA,
   );
+  /* OS AVATARES (atrás da flag `avatar_3d`; sem ela este hook é inerte e a tela é a de sempre). */
+  const avatares = useAvataresDoInterprete({
+    estado,
+    layout,
+    idiomaDaOutra: idiomasDaConversa.outro || estado.detectado,
+    aoEscolherOutroAvatar,
+  });
+  const ponteDoAvatar = avatares.ponte;
+  const destravarDoAvatar = avatares.destravar;
   const velocidadeRef = useRef(velocidade);
   velocidadeRef.current = velocidade;
   const semVozRef = useRef(semVoz);
@@ -237,7 +254,7 @@ export default function ModoInterprete({
         abrir: () => microfoneRef.current.abrir(),
         fechar: () => microfoneRef.current.fechar(),
       },
-      motor: () => voz ?? (semVozRef.current ? MOTOR_SEM_VOZ : nativeTts),
+      motor: () => ponteDoAvatar.envolver(voz ?? (semVozRef.current ? MOTOR_SEM_VOZ : motorDaFala())),
       nomeDoMotor: () =>
         comVozDoSite
           ? voz?.motorDaUltimaFala() === 'voz-da-nuvem'
@@ -246,7 +263,7 @@ export default function ModoInterprete({
           : semVozRef.current
             ? 'sem-voz'
             : (voz?.motorDaUltimaFala() ?? 'voz-do-aparelho'),
-      ...(voz ? { destravarVoz: destravarVozDaNuvem } : {}),
+      ...(voz ? { destravarVoz: destravarDoAvatar(destravarVozDaNuvem) } : {}),
       ...(velocidadeInicial && velocidadeInicial !== 1 ? { opcoesDeFala: { rate: velocidadeInicial } } : {}),
       aoMudar: setEstado,
       aoFalharMicrofone: (erro) => {
@@ -269,7 +286,7 @@ export default function ModoInterprete({
       tempoAteAVoz.guardar();
       if (controleRef.current === controle) controleRef.current = null;
     };
-  }, [vozNaturalDisponivel, comVozDoSite, registrarPonte]);
+  }, [vozNaturalDisponivel, comVozDoSite, registrarPonte, ponteDoAvatar, destravarDoAvatar]);
   const atual = estado;
   const atualRef = useRef(atual);
   atualRef.current = atual;
@@ -557,7 +574,13 @@ export default function ModoInterprete({
             };
         break;
       }
+    const avatar = avatares.doLado(lado);
+    const soletracao = avatares.soletracaoDoLado(lado);
+    const estadoNoTopo = avatares.estadoNoTopoDoLado(lado);
     return {
+      ...(avatar ? { avatar } : {}),
+      ...(soletracao ? { soletracao } : {}),
+      ...(estadoNoTopo ? { estadoNoTopo } : {}),
       lado,
       dono: donoDe(lado),
       lang: d.direcao.fala,
@@ -806,6 +829,8 @@ export default function ModoInterprete({
       comTrilho
       fase={atual.fase}
       assistente={naConversa}
+      avatares={avatares.avatares}
+      janelaFlutuante={janelaFlutuante}
     >
       {assistente && (
         <ComoRespondoNaPagina

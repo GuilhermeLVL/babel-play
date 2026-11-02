@@ -47,6 +47,7 @@ export default function IdiomasDaSessao({
   resumo,
   avisos,
   aoFechar,
+  aoConfirmar,
 }: {
   sub: string;
   lados: [Lado, Lado];
@@ -55,6 +56,8 @@ export default function IdiomasDaSessao({
   /** Os avisos que valem para o par atual; cada um já no formato `.aviso-info`. */
   avisos: ReactNode;
   aoFechar: () => void;
+  /** A pessoa confirmou em "Usar estes idiomas" (não no fechar por Esc ou fundo). */
+  aoConfirmar?: () => void;
 }) {
   const [escolhendo, setEscolhendo] = useState<0 | 1 | null>(null);
   const [busca, setBusca] = useState('');
@@ -161,7 +164,14 @@ export default function IdiomasDaSessao({
         {avisos}
       </div>
       <div className="dlg-pe">
-        <button type="button" className="btn btn-solid" onClick={(e) => fecharDialogoDe(e.currentTarget)}>
+        <button
+          type="button"
+          className="btn btn-solid"
+          onClick={(e) => {
+            aoConfirmar?.();
+            fecharDialogoDe(e.currentTarget);
+          }}
+        >
           <Check aria-hidden /> Usar estes idiomas
         </button>
       </div>

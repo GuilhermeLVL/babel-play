@@ -283,6 +283,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: '1 liga o modo público, 0 desliga; sem valor, liga só em produção',
   },
   {
+    nome: 'AVATAR_GALERIA_TERCEIROS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'com `1`, a CSP libera `arweave.net` e `*.arweave.net` em `connect-src` para a galeria ao vivo de avatares (coleção 100Avatars, CC0), atrás da flag `avatar_3d` e do opt-in da pessoa; nunca para perfil protegido. Ausente: a galeria avisa que está indisponível',
+  },
+  {
     nome: 'BABEL_RUNTIME',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -440,6 +447,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue: 'diário de erros em disco (F5-04)',
+  },
+  {
+    nome: 'FLAGS_LIGADAS_NO_DEV',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'só dev local: flags (separadas por vírgula) forçadas LIGADAS no `npm run dev:local`; ignorada em produção, com AUTH_REQUIRED=1 e no Worker (`flagsLigadasNoDev`)',
   },
   {
     nome: 'GIT_SHA',
@@ -937,6 +951,20 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'quantos corpos grandes o MESMO usuário pode ter em voo ao mesmo tempo (server/lib/corposGrandes.ts). Ausente ou inválido: 1',
   },
   {
+    nome: 'VITE_AUDIO_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'base pública do bucket R2 dos audiolivros pré-gerados (`audiolivros/<livroId>/<voz>/atual.json`, `manifesto.json` e `<versao>/<nn>.opus|json`, flag `audiolivros`). Ausente: o "Ouvir" lê com a voz do aparelho, como sempre. Com ela, a CSP libera a origem em `connect-src` e `media-src`',
+  },
+  {
+    nome: 'VITE_AVATARES_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'base pública do bucket R2 com a coleção curada de avatares 3D (`colecao/<id>.vrm`, `familia/<id>.glb`), para o avatar atrás da flag `avatar_3d`. Ausente: os modelos saem do PRÓPRIO domínio (`/avatares`). Com ela, a CSP libera a origem em `connect-src` (dado, nunca `script-src`)',
+  },
+  {
     nome: 'VITE_BERGAMOT_MODELOS_URL',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -982,6 +1010,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'chave PÚBLICA do Cloudflare Turnstile: o convidado passa pelo captcha antes de o Supabase criar o usuário anônimo (Fase 7). Com ela a CSP libera challenges.cloudflare.com; sem ela o captcha fica desligado',
+  },
+  {
+    nome: 'VITE_VOZ_MODELO_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'raiz pública do bucket R2 com os pesos da voz no aparelho (Supertonic 3: `onnx/*.onnx|json` e `voice_styles/F1…M5.json`, ~401 MB, sha256 fixado em `src/core/voz/supertonic.ts`), para a flag `voz_no_aparelho`. Ausente: a opção "Voz de alta qualidade (no aparelho)" não aparece e a narração lê com a voz do sistema. Com ela, a CSP libera a origem em `connect-src` (dado, nunca `script-src`)',
   },
 ]
 

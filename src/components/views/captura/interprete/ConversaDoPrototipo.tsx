@@ -12,6 +12,7 @@ import {
   MessageCircleReply,
   Mic,
   Monitor,
+  PictureInPicture2,
   RotateCcw,
   Volume2,
   VolumeX,
@@ -72,6 +73,29 @@ export interface MetadeDaConversa {
   lendo?: boolean;
   /** A tecla que fala por esta metade no computador ("1", "2"); aparece embaixo do botão. */
   atalho?: string;
+  /** O avatar desta metade (atrás da flag `avatar_3d`): só imagem, ao lado do idioma. Ausente = a metade é a de sempre. */
+  avatar?: ReactNode;
+  /** A soletração do avatar-intérprete (flag `avatar_sinais`): os avisos fixos e as mãos, embaixo do idioma. */
+  soletracao?: ReactNode;
+  /** O estado do palco das mãos ("Aguardando…") no celular: embaixo do idioma, ao lado do círculo, sem gastar altura. */
+  estadoNoTopo?: ReactNode;
+}
+
+/** Os avatares da conversa: o botão da faixa e o painel (que abre o seletor de voz que já existe). */
+export interface AvataresDaConversa {
+  botao: ReactNode;
+  /** A linha embaixo da faixa: atalho de soletrar, explicação e a dica da primeira vez (pode ser `null`). */
+  linha?: ReactNode;
+  painel: (api: { escolherVoz?: (() => void) | undefined }) => ReactNode;
+}
+
+/** O botão "Janela flutuante" da faixa: o mesmo caminho do Alt+L (`useJanelaFlutuante.alternar`). */
+export interface JanelaFlutuanteDoInterprete {
+  aberta: boolean;
+  /** Abre ou fecha, dentro do toque (o navegador exige o gesto). */
+  aoAlternar: () => void;
+  /** O que a janela vai ser neste navegador (vem do hook, com o atalho). */
+  dica: string;
 }
 
 /**
@@ -184,6 +208,8 @@ export default function ConversaDoPrototipo({
   rotulo,
   rotuloDeSair,
   assistente,
+  avatares,
+  janelaFlutuante,
   children,
 }: {
   cima: MetadeDaConversa;
@@ -235,6 +261,10 @@ export default function ConversaDoPrototipo({
   rotuloDeSair?: string;
   /** O assistente ao vivo (Fase C3). Ausente = nada dele. */
   assistente?: AssistenteNaConversa | undefined;
+  /** Os avatares da conversa (atrás da flag `avatar_3d`): botão na faixa e painel de configuração. */
+  avatares?: AvataresDaConversa | undefined;
+  /** A janela flutuante (Alt+L) em botão visível. Só aparece junto dos avatares e onde o navegador abre a janela. */
+  janelaFlutuante?: JanelaFlutuanteDoInterprete | undefined;
   children?: ReactNode;
 }) {
   const raiz = useRef<HTMLDivElement>(null);
@@ -351,6 +381,27 @@ export default function ConversaDoPrototipo({
     );
   };
 
+  /** A linha do idioma da metade: quem é e o botão que troca o idioma. */
+  const idiomaDaMetade = (m: MetadeDaConversa) => (
+    <p className="int-idioma">
+      <span className="int-quem">{quem(m.dono)}</span>
+      {aoEscolherIdioma ? (
+        /* O NOME DO IDIOMA É O BOTÃO: o alvo é a palavra que a pessoa procura, e não um chevron ao lado. */
+        <button
+          type="button"
+          className="int-idioma-btn"
+          aria-label={t('{idioma}. Trocar este idioma', { idioma: m.nome })}
+          onClick={aoEscolherIdioma}
+        >
+          <span>{m.nome}</span>
+          <ChevronDown aria-hidden />
+        </button>
+      ) : (
+        <span className="int-idioma-nome">{m.nome}</span>
+      )}
+    </p>
+  );
+
   const metade = (m: MetadeDaConversa, virada: boolean) => (
     <section
       key={m.dono}
@@ -361,23 +412,24 @@ export default function ConversaDoPrototipo({
       aria-label={t('Lado de quem fala {idioma}', { idioma: m.nome })}
       data-testid={`interprete-${m.lado}`}
     >
-      <p className="int-idioma">
-        <span className="int-quem">{quem(m.dono)}</span>
-        {aoEscolherIdioma ? (
-          /* O NOME DO IDIOMA É O BOTÃO: o alvo é a palavra que a pessoa procura, e não um chevron ao lado. */
-          <button
-            type="button"
-            className="int-idioma-btn"
-            aria-label={t('{idioma}. Trocar este idioma', { idioma: m.nome })}
-            onClick={aoEscolherIdioma}
-          >
-            <span>{m.nome}</span>
-            <ChevronDown aria-hidden />
-          </button>
-        ) : (
-          <span className="int-idioma-nome">{m.nome}</span>
-        )}
-      </p>
+      {m.avatar ? (
+        <div className="int-topo">
+          {m.estadoNoTopo ? (
+            <div className="int-topo-texto">
+              {idiomaDaMetade(m)}
+              {m.estadoNoTopo}
+            </div>
+          ) : (
+            idiomaDaMetade(m)
+          )}
+          <div className="int-avatar" data-testid={`avatar-${m.lado}`}>
+            {m.avatar}
+          </div>
+        </div>
+      ) : (
+        idiomaDaMetade(m)
+      )}
+      {m.soletracao}
       <div className="int-frase" aria-live="polite">
         {frase(m)}
       </div>
@@ -497,7 +549,7 @@ export default function ConversaDoPrototipo({
       data-escuta={escuta ? '' : undefined}
     >
       {metade(cima, true)}
-      <div key="faixa" className="int-faixa" data-com-modo="">
+      <div key="faixa" className="int-faixa" data-com-modo="" data-com-avatares={avatares ? '' : undefined}>
         <div className="int-esq">
           <button type="button" className="int-ib peq" aria-label={t('Trocar os lados')} onClick={trocar}>
             {emColunas ? <ArrowLeftRight aria-hidden /> : <ArrowUpDown aria-hidden />}
@@ -546,6 +598,24 @@ export default function ConversaDoPrototipo({
               </span>
             </button>
           ))}
+          {avatares?.botao}
+          {avatares && janelaFlutuante && (
+            <button
+              type="button"
+              className="int-modo int-modo-avatar"
+              aria-pressed={janelaFlutuante.aberta}
+              aria-label={t('Janela flutuante')}
+              aria-keyshortcuts="Alt+L"
+              title={janelaFlutuante.dica}
+              onClick={janelaFlutuante.aoAlternar}
+              data-testid="janela-flutuante"
+            >
+              <PictureInPicture2 aria-hidden />
+              <span className="int-modo-visivel" aria-hidden>
+                {t('Janela flutuante')}
+              </span>
+            </button>
+          )}
           {aoVirtual && (
             <button
               type="button"
@@ -610,6 +680,7 @@ export default function ConversaDoPrototipo({
         >
           <X aria-hidden />
         </button>
+        {avatares?.linha}
       </div>
       {lista.aberta && (
         <section key="lista" className="int-conversa" aria-label={t('Conversa')} data-testid="interprete-conversa">
@@ -666,6 +737,7 @@ export default function ConversaDoPrototipo({
         <CartaoDaMarca marca={marcaAberta.marca} lang={marcaAberta.lang} aoFechar={() => setMarcaAberta(null)} />
       )}
       {vozes && escolhendoVoz && <FolhaDasVozes lados={vozes.lados} aoFechar={() => setEscolhendoVoz(false)} />}
+      {avatares?.painel({ escolherVoz: vozes ? () => setEscolhendoVoz(true) : undefined })}
     </div>
   );
 }

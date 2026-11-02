@@ -216,6 +216,9 @@ export default defineConfig(({ mode }) => {
             if (!id.includes('node_modules')) return
             if (/[\\/]node_modules[\\/](react-dom|react|scheduler)[\\/]/.test(id)) return 'vendor-react'
             if (/[\\/]node_modules[\\/](@supabase[\\/][^\\/]+|iceberg-js)[\\/]/.test(id)) return 'vendor-supabase'
+            /* O AVATAR 3D (`three` + `@pixiv/three-vrm`): só o `import()` de `src/lib/avatar/motor.ts` os alcança.
+               Em chunk próprio, fora do arranque; `tests/avatar-bundle.test.ts` reprova se voltarem a ele. */
+            if (/[\\/]node_modules[\\/](three|@pixiv[\\/][^\\/]+)[\\/]/.test(id)) return 'vendor-avatar'
           },
         },
       },
@@ -232,7 +235,15 @@ export default defineConfig(({ mode }) => {
       // `tests/viteDepsDosWorkers.test.ts` cobra esta lista.
       // `fflate`, `fzstd` e `sql.js` (CJS: precisa do pré-bundle para o `default`) só o leitor de `.apkg`
       // importa (`leitorDeApkg.worker.ts`).
-      include: ['@ricky0123/vad-web', 'onnxruntime-web', 'onnxruntime-web/wasm', 'fflate', 'fzstd', 'sql.js'],
+      include: [
+        '@ricky0123/vad-web',
+        'onnxruntime-web',
+        'onnxruntime-web/wasm',
+        'fflate',
+        'fzstd',
+        'sql.js',
+        'gltf-validator',
+      ],
       exclude: ['@huggingface/transformers'],
     },
     server: {

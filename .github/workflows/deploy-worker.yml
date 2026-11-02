@@ -25,6 +25,7 @@
 #            decidem os planos da página pública /planos; vazia = venda fechada, com aviso no build)
 #            ADSENSE_PUB_ID (opcional: `pub-…`; só com ele o build gera o /ads.txt)
 #            VITE_LIVROS_URL (opcional: raiz pública do bucket frasy-livros(-staging) com os EPUBs curados do Gutenberg)
+#            VITE_AVATARES_URL (opcional: raiz pública do bucket com a coleção curada de avatares 3D; só com a flag avatar_3d)
 #            VITE_ANUNCIOS_DEMONSTRACAO (só no `staging`: `1` liga a demonstração dos espaços de anúncio, R38;
 #            nunca no `production`, e o passo do build a ignora fora do staging)
 # Os secrets do Worker em si (SECRET_KEY, chaves de IA…) NÃO passam por aqui: `scripts/cloudflare/secrets.ts`.
@@ -143,6 +144,7 @@ jobs:
           # A raiz pública da cópia curada do Gutenberg no R2 (docs/livros-catalogo.md §3). Vazia, o livro do Gutenberg
           # aparece no catálogo e a leitura avisa que a cópia ainda não foi publicada; a CSP abre a origem sozinha.
           VITE_LIVROS_URL: ${{ vars.VITE_LIVROS_URL }}
+          VITE_AVATARES_URL: ${{ vars.VITE_AVATARES_URL }}
         run: npm run build
 
       # Migrações antes da versão nova existir (o schema é aditivo; o Worker antigo continua servindo). A conexão

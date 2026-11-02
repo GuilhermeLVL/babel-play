@@ -23,6 +23,7 @@ import {
   type PlanoDaFrase,
 } from '../../core/avatar/elenco';
 import type { EmocaoDoAvatar } from '../../core/avatar/estados';
+import { type FraseComTempo, frasesIntegras, type ManifestoDeAudio } from '../../core/leitura/audiolivro';
 import {
   dormirEm,
   frasesParaVoltar,
@@ -46,6 +47,7 @@ import type { MotorDeVozId } from '../../core/voz/portaDeVoz';
 import { motorDeVozRegistrado, neuralLocalPronto } from '../../gateway/registroDeMotoresDeVoz';
 import { aguardarVozes, codigoDeFala, nativeTts, type TtsEngine } from '../tts';
 import type { VozDaNuvem } from '../voz/vozDaNuvem';
+import type { ReprodutorDeCapitulo } from './audiolivro/reprodutor';
 import { type FraseNoCapitulo, frasesDoDocumento, indiceDaFraseEm } from './frasesDoCapitulo';
 import type { MotorDoLeitor } from './motor';
 import { gravarOpcoesDaNarracao, lerOpcoesDaNarracao } from './preferenciasDaNarracao';
@@ -65,7 +67,24 @@ export interface VistaDoNarrador {
    * `nome` é a personagem, ou `null` quando é o narrador.
    */
   fala?: { nome: string | null; emocao: EmocaoDoAvatar } | null;
+  /** A frase sai do áudio pré-gerado do catálogo (o chip "Voz sintetizada" aparece). */
+  gravado?: boolean;
 }
+
+/**
+ * O AUDIOLIVRO PRÉ-GERADO do livro aberto (F2, flag `audiolivros`): o manifesto já validado, onde fica cada capítulo
+ * (`nn` = índice da seção + 1, a ordem que o gerador recebeu), os tempos das frases e o reprodutor. Só existe com a
+ * flag ligada e o livro visível para quem lê; `flagLigada()` é relida a cada frase (o kill-switch vale no meio).
+ */
+export interface AudioGravadoDoLivro {
+  manifesto: ManifestoDeAudio;
+  urlDoCapitulo(nn: number): string;
+  tempos(nn: number): Promise<FraseComTempo[] | null>;
+  reprodutor: ReprodutorDeCapitulo;
+  flagLigada(): boolean;
+}
+
+export type AvisoDoNarrador = 'erro' | 'fim' | 'sem-texto' | 'sono' | 'audio-indisponivel';
 
 export interface DependenciasDoNarrador {
   motor: () => MotorDoLeitor | null;
@@ -82,8 +101,11 @@ export interface DependenciasDoNarrador {
   aoMudar: (v: VistaDoNarrador) => void;
   /** A narração vai mexer na página (o leitor ignora "toques" que a navegação produz). */
   aoNavegar?: () => void;
-  /** Uma frase não pôde ser lida, ou o livro acabou. */
-  aoAviso?: (aviso: 'erro' | 'fim' | 'sem-texto' | 'sono') => void;
+  /**
+   * Uma frase não pôde ser lida, ou o livro acabou. `audio-indisponivel`: o áudio gravado falhou e a voz do aparelho
+   * seguiu na mesma frase (uma vez por livro aberto).
+   */
+  aoAviso?: (aviso: AvisoDoNarrador) => void;
   /** A voz natural não serviu e a do aparelho leu (o plano, a cota): para avisar uma vez. */
   aoRecuoDaNuvem?: (motivo: string) => void;
   metadados?: () => { titulo: string; autor?: string };
@@ -105,6 +127,20 @@ export interface DependenciasDoNarrador {
    * avatar seguir a voz. Ausente = o motor como veio (o som e as chamadas não mudam).
    */
   envolverMotor?: (motor: TtsEngine) => TtsEngine;
+  /**
+   * O ÁUDIO PRÉ-GERADO (flag `audiolivros`): com áudio íntegro para o capítulo e o modo `original`, a frase sai do
+   * reprodutor; ausente (flag desligada, livro sem áudio, menor), o narrador de sempre, sem mudança.
+   */
+  audioGravado?: () => AudioGravadoDoLivro | null;
+}
+
+/** O capítulo com áudio gravado conferido (hash das frases = manifesto, tempos válidos). */
+interface CapituloGravado {
+  secao: number;
+  nn: number;
+  url: string;
+  tempos: FraseComTempo[];
+  carregado: boolean;
 }
 
 /** Quanto esperar sem novas mudanças antes de recomeçar a frase (a pessoa arrasta um controle). */
@@ -137,6 +173,16 @@ export class Narrador {
   /** Ao acabar de virar, seguir falando? (virar à mão numa narração pausada não toca sozinho) */
   private falarAoVirar = true;
   private viraAMao = false;
+  /* ── o áudio gravado (F2) ── */
+  /** O capítulo carregado tem áudio íntegro? (`null` = a voz do aparelho lê) */
+  private gravado: CapituloGravado | null = null;
+  /** A conferência do áudio do capítulo (hash + tempos), pedida em `carregarFrases`. */
+  private preparoDoGravado: Promise<void> = Promise.resolve();
+  /** A frase que o reprodutor está tocando AGORA (-1 = parado): a frase seguinte não recomeça o áudio. */
+  private fraseDoAudio = -1;
+  /** O áudio falhou neste livro: até fechar, só a voz do aparelho (e o aviso sai uma vez). */
+  private audioFalhou = false;
+  private fonteGravada: AudioGravadoDoLivro | null = null;
 
   constructor(private readonly d: DependenciasDoNarrador) {
     this.opcoes = d.opcoesIniciais ?? lerOpcoesDaNarracao();
@@ -160,6 +206,7 @@ export class Narrador {
       opcoes: this.opcoes,
       sono: this.sono,
       fala: this.falaDa(comDestaque ? e.indice : -1),
+      ...(this.d.audioGravado ? { gravado: comDestaque && this.usaGravado() } : {}),
     };
   }
 
@@ -216,7 +263,9 @@ export class Narrador {
 
   /** Velocidade, voz ou modo mudaram: a frase recomeça (o destaque fica). */
   reiniciarFrase() {
-    if (this.estado.fase === 'tocando') this.despachar({ tipo: 'tocar', indice: this.estado.indice });
+    if (this.estado.fase !== 'tocando') return;
+    this.pararAudio(); // o áudio gravado também recomeça a frase (velocidade nova, modo novo)
+    this.despachar({ tipo: 'tocar', indice: this.estado.indice });
   }
   definirVelocidade(v: number) {
     this.definirOpcoes({ velocidade: v }, { adiar: false });
@@ -313,6 +362,7 @@ export class Narrador {
     if (this.timerDoReinicio) clearTimeout(this.timerDoReinicio);
     this.estado = narrar(this.estado, { tipo: 'parar' });
     this.calar();
+    this.fonteGravada?.reprodutor.destruir();
     this.d.motor()?.destacarFrase(null);
     this.limparSessaoDeMidia();
   }
@@ -329,7 +379,8 @@ export class Narrador {
   }
 
   private aplicar(e: EstadoDaNarracao) {
-    this.calar();
+    /* O áudio gravado chegou sozinho à frase nova (`aoMudarFrase`): ele segue tocando, só o destaque muda. */
+    this.calar({ manterAudio: e.fase === 'tocando' && this.fraseDoAudio === e.indice && this.usaGravado() });
     const motor = this.d.motor();
     if (e.fase === 'parada') {
       motor?.destacarFrase(null);
@@ -411,7 +462,118 @@ export class Narrador {
     this.indiceDaSecao = atual.index;
     this.frases = frasesDoDocumento(atual.doc, this.d.idiomaDoLivro() || undefined);
     this.planejar();
+    if (this.d.audioGravado) {
+      if (this.gravado?.secao !== atual.index) {
+        this.pararAudio();
+        this.gravado = null;
+      }
+      this.preparoDoGravado = this.prepararGravado(
+        atual.index,
+        this.frases.map((f) => f.texto),
+      );
+    }
     return this.frases.length > 0;
+  }
+
+  /* ── o áudio gravado (F2) ── */
+
+  /**
+   * Confere o áudio do capítulo UMA vez: flag, capítulo no manifesto (`nn` = seção + 1), hash das frases do app e
+   * tempos válidos. Qualquer desvio: `gravado = null` e a voz do aparelho lê, sem aviso.
+   */
+  private async prepararGravado(secao: number, textos: string[]): Promise<void> {
+    if (this.gravado?.secao === secao || this.audioFalhou || !textos.length) return;
+    try {
+      const fonte = this.d.audioGravado?.() ?? null;
+      if (!fonte || !fonte.flagLigada()) return;
+      const nn = secao + 1;
+      const cap = fonte.manifesto.capitulos.find((c) => c.nn === nn);
+      if (!cap || cap.frases === 0) return;
+      if (!(await frasesIntegras(fonte.manifesto, nn, textos))) return;
+      const tempos = await fonte.tempos(nn);
+      if (!tempos || tempos.length !== textos.length || this.destruido || this.indiceDaSecao !== secao) return;
+      this.ligarReprodutor(fonte);
+      this.gravado = { secao, nn, url: fonte.urlDoCapitulo(nn), tempos, carregado: false };
+    } catch {
+      /* conferência falhou: a voz do aparelho lê */
+    }
+  }
+
+  /** O áudio gravado vale para a frase? (capítulo conferido, modo original, sem repetição, flag ligada) */
+  private usaGravado(): boolean {
+    return (
+      !!this.gravado &&
+      !this.audioFalhou &&
+      this.modo === 'original' &&
+      this.opcoes.repeticoes === 1 &&
+      !!this.fonteGravada?.flagLigada()
+    );
+  }
+
+  private ligarReprodutor(fonte: AudioGravadoDoLivro) {
+    if (this.fonteGravada === fonte) return;
+    this.fonteGravada = fonte;
+    const r = fonte.reprodutor;
+    r.aoMudarFrase = (j) => this.audioMudou(j);
+    r.aoFimDoCapitulo = () => {
+      const e = this.estado;
+      if (e.fase !== 'tocando' || this.fraseDoAudio < 0) return;
+      this.fraseDoAudio = -1;
+      this.despachar({ tipo: 'fimDaFrase', vez: e.vez });
+    };
+    r.aoErro = () => this.audioFalhouAgora();
+    r.aoPausarDeFora = () => {
+      if (this.estado.fase !== 'tocando') return;
+      this.fraseDoAudio = -1;
+      this.despachar({ tipo: 'pausar' });
+    };
+  }
+
+  /** O tempo do áudio cruzou para a frase `j`: o destaque anda junto, sem recomeçar o áudio. */
+  private audioMudou(j: number) {
+    const e = this.estado;
+    if (e.fase !== 'tocando' || this.fraseDoAudio < 0 || j === this.fraseDoAudio || j >= e.total) return;
+    if (!this.fonteGravada?.flagLigada()) {
+      /* KILL-SWITCH: a frase em curso acabou; daqui em diante, a voz do aparelho e nada novo do CDN. */
+      this.pararAudio();
+      this.gravado = null;
+    } else this.fraseDoAudio = j;
+    if (j === e.indice + 1) this.despachar({ tipo: 'fimDaFrase', vez: e.vez });
+    else this.despachar({ tipo: 'ir', indice: j });
+  }
+
+  /** O áudio falhou (rede, decodificação, autoplay): a MESMA frase segue pela voz do aparelho, sem silêncio. */
+  private audioFalhouAgora() {
+    if (!this.gravado || this.audioFalhou) return;
+    this.audioFalhou = true;
+    this.pararAudio();
+    this.gravado = null;
+    this.d.aoAviso?.('audio-indisponivel');
+    const e = this.estado;
+    if (e.fase === 'tocando') {
+      void this.falarFrase(e.indice, e.vez);
+      this.d.aoMudar(this.vista);
+    }
+  }
+
+  private pararAudio() {
+    if (this.fraseDoAudio < 0) return;
+    this.fraseDoAudio = -1;
+    this.fonteGravada?.reprodutor.parar();
+  }
+
+  /** Toca a frase pelo reprodutor (carrega o capítulo na primeira vez); falha chega por `aoErro`. */
+  private async tocarGravado(indice: number): Promise<void> {
+    const g = this.gravado;
+    const r = this.fonteGravada?.reprodutor;
+    if (!g || !r) return;
+    if (!g.carregado) {
+      await r.carregar(g.url, g.tempos);
+      g.carregado = true;
+    }
+    r.definirVelocidade(this.opcoes.velocidade);
+    this.fraseDoAudio = indice;
+    await r.tocarDe(indice);
   }
 
   /** A frase guardada (se estiver na página visível), senão a primeira da página. */
@@ -485,6 +647,17 @@ export class Narrador {
   }
 
   private async falarFrase(indice: number, vez: number) {
+    if (this.d.audioGravado) {
+      await this.preparoDoGravado;
+      if (this.estado.vez !== vez || this.destruido) return;
+      if (this.usaGravado()) {
+        if (this.fraseDoAudio !== indice) {
+          await this.tocarGravado(indice);
+          if (!this.destruido) this.d.aoMudar(this.vista); // o chip aparece com o áudio
+        }
+        return;
+      }
+    }
     const original = await this.passos(indice);
     /* `repeticoes` (modo Estudo): a frase inteira, com todos os seus passos, lida N vezes seguidas. */
     const passos = Array.from({ length: this.opcoes.repeticoes }, () => original).flat();
@@ -558,9 +731,13 @@ export class Narrador {
     }
   }
 
-  private calar() {
+  private calar(o: { manterAudio?: boolean } = {}) {
     if (this.timerDaPausa) clearTimeout(this.timerDaPausa);
     this.timerDaPausa = null;
+    if (!o.manterAudio && this.fraseDoAudio >= 0) {
+      this.fraseDoAudio = -1;
+      this.fonteGravada?.reprodutor.pausar();
+    }
     (this.d.aparelho ?? nativeTts).cancel();
     this.nuvem?.cancel();
   }

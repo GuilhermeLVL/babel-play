@@ -6010,5 +6010,15 @@
   "Traduzindo": "Translating",
   "Um avatar pode ler o livro com você, ao lado do texto.": "An avatar can read the book with you, next to the text.",
   "Um avatar pode ouvir a legenda com você, ao lado do texto.": "An avatar can listen to the captions with you, next to the text.",
-  "Um rosto diferente para cada personagem (com o avatar ligado)": "A different face for each character (with the avatar on)"
+  "Um rosto diferente para cada personagem (com o avatar ligado)": "A different face for each character (with the avatar on)",
+  "Voz sintetizada": "Synthesized voice",
+  "Áudio deste capítulo": "Audio for this chapter",
+  "Baixar este capítulo ({tamanho})": "Download this chapter ({tamanho})",
+  "Ele fica só neste aparelho e você apaga quando quiser.": "It stays only on this device, and you can delete it anytime.",
+  "Cerca de {n} min de áudio.": "About {n} min of audio.",
+  "Baixando: {n}%": "Downloading: {n}%",
+  "Capítulo baixado: dá para ouvir sem internet.": "Chapter downloaded: you can listen without internet.",
+  "Não deu para baixar agora. O capítulo continua tocando com internet.": "Couldn't download it right now. The chapter still plays with internet.",
+  "Apagar do aparelho": "Delete from this device",
+  "Não conseguimos tocar este capítulo agora. Vamos ler com a voz do seu aparelho.": "We couldn't play this chapter right now. We'll read it with your device's voice."
 }

@@ -13,7 +13,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   type AnotacaoDeLeitura,
@@ -41,6 +41,7 @@ import {
 import { type ModoDaNarracao, MODOS_DA_NARRACAO, mostraConviteDaVozNatural } from '../../../core/leitura/narracao';
 import { CORES_DOS_TEMAS } from '../../../core/leitura/perfilDeLeitura';
 import { ancorar } from '../../../core/leitura/reancorar';
+import { FLAG_AUDIOLIVROS } from '../../../core/planos';
 import { FLAG_VOZ_NATURAL } from '../../../core/vozNatural';
 import { fetchDeck } from '../../../data/api';
 import type { ModoDoParceiro } from '../../../data/rotas/parceiroDeLeitura';
@@ -51,15 +52,17 @@ import { criarPonteDaVoz, type PonteDaVoz } from '../../../lib/avatar/ponteDaVoz
 import { consentiuNuvem } from '../../../lib/consentimentoDeNuvem';
 import { getEntitlements } from '../../../lib/entitlements';
 import { baixar, baixarTexto } from '../../../lib/exportacao/baixar';
+import { useFlag } from '../../../lib/flags';
 import { flagLigada } from '../../../lib/flagsCache';
 import { t } from '../../../lib/i18n';
 import { useLangConfig } from '../../../lib/langConfig';
 import { detectLanguage } from '../../../lib/langDetect';
 import { baseLang, toBcp47 } from '../../../lib/languages';
+import { audiolivroDoLivro } from '../../../lib/leitor/audiolivroDoLivro';
 import { dicaDoElencoJaVista, marcarDicaDoElencoVista } from '../../../lib/leitor/dicaDoElenco';
 import type { Localizacao } from '../../../lib/leitor/foliate/view.js';
 import { type InfoDoLivro, MotorDoLeitor } from '../../../lib/leitor/motor';
-import { Narrador, type VistaDoNarrador } from '../../../lib/leitor/narrador';
+import { type AudioGravadoDoLivro, Narrador, type VistaDoNarrador } from '../../../lib/leitor/narrador';
 import { linkExternoSeguro } from '../../../lib/leitor/politicaDeRecursos';
 import {
   citacaoDoRange,
@@ -74,9 +77,12 @@ import {
 import { lerAnotacoes } from '../../../lib/leitura/anotacaoDaFrase';
 import { anotacoesDoLivro, type EstadoDaSincronizacao } from '../../../lib/livros/anotacoesDoLivro';
 import type { LivroGuardado } from '../../../lib/livros/armazem';
+import { carregarCatalogo } from '../../../lib/livros/catalogo';
 import { livroParaOMotor } from '../../../lib/livros/fontesDoLivro';
 import { idRemotoDoLivro } from '../../../lib/livros/idRemoto';
 import { posicoes } from '../../../lib/livros/posicoesDoAparelho';
+import { tetoDoLeitor } from '../../../lib/livros/quemLe';
+import { readAgeProfile } from '../../../lib/profile';
 import { perfilProtegido } from '../../../lib/protecaoDoMenor';
 import { getVoicePref, speak } from '../../../lib/tts';
 import { buildVocabWord, mtNoteFor, resolveWord } from '../../../lib/vocabWord';
@@ -100,6 +106,9 @@ import PainelDeTipografia from './PainelDeTipografia';
 import PainelDoElenco from './PainelDoElenco';
 import PainelDoParceiro from './PainelDoParceiro';
 import PainelDoSumario from './PainelDoSumario';
+
+/* "Baixar este capítulo" puxa o código do CDN de áudio: só com o áudio gravado em uso (flag `audiolivros`). */
+const BotaoBaixarCapitulo = lazy(() => import('./BotaoBaixarCapitulo'));
 import { useElencoDoLivro } from './useElencoDoLivro';
 import { useFatosDasFerramentas } from './useFatosDasFerramentas';
 import { usePerfilDeLeitura } from './usePerfilDeLeitura';
@@ -275,6 +284,28 @@ export default function LeitorDoLivro({
     ponte.ativar(avatarNaTela);
   }, [ponte, avatarNaTela]);
   useEffect(() => () => ponte.dispose(), [ponte]);
+  /* O AUDIOLIVRO PRÉ-GERADO (flag `audiolivros`): só para livro do catálogo com áudio publicado e visível para quem lê
+     (`audiolivroDoLivro`). Desligada a flag, nada é lido nem baixado; o narrador lê com a voz do aparelho. */
+  const audiolivrosLigados = useFlag(FLAG_AUDIOLIVROS);
+  const audioGravadoRef = useRef<AudioGravadoDoLivro | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    audioGravadoRef.current = null;
+    if (!audiolivrosLigados || !guardado) return;
+    void audiolivroDoLivro({
+      livroId,
+      origem: guardado.origem,
+      flagLigada: audiolivrosLigados,
+      teto: tetoDoLeitor(readAgeProfile()),
+      catalogo: carregarCatalogo,
+    }).then((a) => {
+      if (vivo) audioGravadoRef.current = a;
+      else a?.reprodutor.destruir();
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [audiolivrosLigados, guardado, livroId]);
   const toqueEmAnotacao = useRef(0);
   const capituloRef = useRef('');
   capituloRef.current = local?.tocItem?.label?.trim() ?? '';
@@ -446,6 +477,7 @@ export default function LeitorDoLivro({
       aoMudar: setVistaNarrador,
       elenco: () => elencoRef.current.config(),
       envolverMotor: (m) => ponte.envolver(m),
+      audioGravado: () => audioGravadoRef.current,
       aoNavegar: () => {
         ignorarToquesAte.current = Date.now() + 900;
       },
@@ -453,6 +485,8 @@ export default function LeitorDoLivro({
         if (aviso === 'fim') setAnuncio(t('Fim do livro.'));
         else if (aviso === 'sono') setAnuncio(t('Temporizador de sono: narração pausada.'));
         else if (aviso === 'sem-texto') toast.warn(t('Esta página não tem texto para ler.'));
+        else if (aviso === 'audio-indisponivel')
+          toast.warn(t('Não conseguimos tocar este capítulo agora. Vamos ler com a voz do seu aparelho.'));
         else toast.warn(t('Não deu para ler esta frase com a voz do aparelho. Escolha outra voz em "Voz e modo".'));
       },
       aoRecuoDaNuvem: (motivo) => {
@@ -1075,6 +1109,14 @@ export default function LeitorDoLivro({
               {painel === 'narracao' && elencoNoTopo && painelDoElenco}
               {painel === 'narracao' && (
                 <PainelDaNarracao
+                  audioDoCapitulo={(() => {
+                    const a = vistaNarrador.gravado ? narradorRef.current?.audioDoCapitulo : null;
+                    return a ? (
+                      <Suspense fallback={null}>
+                        <BotaoBaixarCapitulo url={a.url} bytes={a.bytes} minutos={Math.round(a.duracaoS / 60)} />
+                      </Suspense>
+                    ) : undefined;
+                  })()}
                   modo={modoNarracao}
                   seguir={seguirNarracao}
                   opcoes={vistaNarrador.opcoes}

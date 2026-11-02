@@ -210,6 +210,13 @@ export class Narrador {
     };
   }
 
+  /** O capítulo de áudio gravado em uso (para o "Baixar este capítulo"), ou `null`. */
+  get audioDoCapitulo(): { url: string; bytes: number; duracaoS: number } | null {
+    const g = this.gravado;
+    const cap = g && this.usaGravado() ? this.fonteGravada?.manifesto.capitulos.find((c) => c.nn === g.nn) : null;
+    return g && cap ? { url: g.url, bytes: cap.bytes, duracaoS: cap.duracaoS } : null;
+  }
+
   /** O falante e a emoção da frase `indice` (só com o elenco ligado). */
   private falaDa(indice: number): VistaDoNarrador['fala'] {
     const p = this.planos?.[indice];

@@ -1077,6 +1077,24 @@
   align-items: flex-start;
   gap: 6px;
 }
+/* O rótulo "Voz sintetizada" (áudio pré-gerado, F2): sempre visível enquanto o áudio gravado toca; não fecha. */
+.leitor-chip-voz-sintetizada {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border: 1px solid var(--leitor-borda);
+  border-radius: 999px;
+  background: var(--leitor-fundo);
+  color: var(--leitor-texto);
+  font: 600 12px var(--font-display, system-ui);
+  white-space: nowrap;
+}
+.leitor-baixar-capitulo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
 @media (max-width: 640px) {
   .leitor-narrador {
     padding: 4px 6px;

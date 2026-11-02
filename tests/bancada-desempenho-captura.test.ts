@@ -170,6 +170,7 @@ describe('janelas e métricas de uma rodada', () => {
     expect(m.framesLongos).toEqual({ n50: 2, n100: 1, somaMs: 180, maiorMs: 120 })
     // início da fala 0 (5000) → 1º texto de verdade na tela (6200; o balão em branco não conta)
     expect(m.primeiraLegendaMs).toBe(1200)
+    expect(m.primeiroTextoNaTelaMs).toBe(1200)
     expect(m.sttProntoMs).toBe(1500)
     expect(m.rtf.valores).toEqual([0.1, 0.2])
     expect(m.memoriaPicoMb).toBe(520)
@@ -183,6 +184,19 @@ describe('janelas e métricas de uma rodada', () => {
     expect(m.rendersPorS.silencio).toBeCloseTo(4 / 9, 5)
     expect(m.commitsPorS.fala).toBeCloseTo(3 / 6, 5)
     expect(m.valida).toBe(true)
+  })
+
+  it('1º texto na tela conta o texto da tradução; a legenda completa espera o original; "…" não conta', () => {
+    const d = rodadaSintetica()
+    // tela de hoje: o texto já aparece em `tr` (860 ms depois da voz) e o original só vem no fim da fala
+    d.lat.dom = [
+      { t: 5300, i: 0, o: '', tr: '…', nova: true },
+      { t: 5860, i: 0, o: '', tr: 'Leões são', nova: true },
+      { t: 10300, i: 0, o: 'Lions are social.', tr: 'Leões são sociais.', nova: false },
+    ]
+    const m = metricasDaRodada(d)
+    expect(m.primeiroTextoNaTelaMs).toBe(860)
+    expect(m.primeiraLegendaMs).toBe(5300)
   })
 
   it('regulador: trocas de modelo no meio da sessão (a descida do A6) e os modelos carregados', () => {

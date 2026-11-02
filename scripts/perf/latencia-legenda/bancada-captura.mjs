@@ -200,7 +200,7 @@ function rodar(alvo, perfil, rotulo) {
   writeFileSync(path.join(SAIDA, 'metricas', `${rotulo}.json`), JSON.stringify(m, null, 1))
   if (m.valida)
     log(
-      `   ${rotulo}: ${m.modeloStt?.split('/').pop()} · frames>50 ${m.framesLongos.n50} (>100 ${m.framesLongos.n100}, Σ ${m.framesLongos.somaMs} ms) · 1ª legenda ${m.primeiraLegendaMs} ms · RTF p50 ${m.rtf.p50?.toFixed(3)} · memória ${m.memoriaPicoMb} MB · CPU no silêncio ${m.cpuSilencio.processoPct?.toFixed(1)}% · renders/s ${m.rendersPorS.silencio?.toFixed(1)} (silêncio) ${m.rendersPorS.fala?.toFixed(1)} (fala) · trocas de modelo ${m.regulador.trocasDeModelo} · pedidos ao Hub ${m.pedidosAoHub}`,
+      `   ${rotulo}: ${m.modeloStt?.split('/').pop()} · frames>50 ${m.framesLongos.n50} (>100 ${m.framesLongos.n100}, Σ ${m.framesLongos.somaMs} ms) · 1º texto na tela ${m.primeiroTextoNaTelaMs} ms · legenda completa ${m.primeiraLegendaMs} ms · RTF p50 ${m.rtf.p50?.toFixed(3)} · memória ${m.memoriaPicoMb} MB · CPU no silêncio ${m.cpuSilencio.processoPct?.toFixed(1)}% · renders/s ${m.rendersPorS.silencio?.toFixed(1)} (silêncio) ${m.rendersPorS.fala?.toFixed(1)} (fala) · trocas de modelo ${m.regulador.trocasDeModelo} · pedidos ao Hub ${m.pedidosAoHub}`,
     )
   else log(`   ${rotulo}: INVÁLIDA — ${m.motivo}`)
   return m

@@ -951,6 +951,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'quantos corpos grandes o MESMO usuário pode ter em voo ao mesmo tempo (server/lib/corposGrandes.ts). Ausente ou inválido: 1',
   },
   {
+    nome: 'VITE_AUDIO_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'base pública do bucket R2 dos audiolivros pré-gerados (`audiolivros/<livroId>/<voz>/atual.json`, `manifesto.json` e `<versao>/<nn>.opus|json`, flag `audiolivros`). Ausente: o "Ouvir" lê com a voz do aparelho, como sempre. Com ela, a CSP libera a origem em `connect-src` e `media-src`',
+  },
+  {
     nome: 'VITE_AVATARES_URL',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -970,13 +977,6 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'base pública do bucket R2 com a cópia curada dos livros do Gutenberg (`livros/pg-<id>.epub`, publicada por `scripts/livros/curar-gutenberg.mjs`). Ausente: os livros do Gutenberg aparecem no catálogo e a leitura diz que a cópia ainda não foi publicada; Standard Ebooks e Wikisource abrem direto da fonte. Com ela, a CSP libera a origem em `connect-src`',
-  },
-  {
-    nome: 'VITE_AUDIO_URL',
-    exigencia: 'opcional',
-    criticidade: 'degrada-capacidade',
-    paraQue:
-      'base pública do bucket R2 dos audiolivros pré-gerados (`audiolivros/<livroId>/<voz>/atual.json`, `manifesto.json` e `<versao>/<nn>.opus|json`, flag `audiolivros`). Ausente: o "Ouvir" lê com a voz do aparelho, como sempre. Com ela, a CSP libera a origem em `connect-src` e `media-src`',
   },
   {
     nome: 'VITE_ORT_WASM_URL',

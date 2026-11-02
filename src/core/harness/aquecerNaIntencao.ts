@@ -33,14 +33,14 @@ export interface DecisaoDoAquecimento {
 
 /**
  * Ordem das regras:
- *  1. desktop sem isolamento (Safari no Mac: WASM em 1 thread, memória alta) nunca aquece, até a
- *     medição do dono ser registrada;
+ *  1. aparelho sem isolamento de origem (Safari no Mac, iPhone e iPad: WASM em 1 thread, memória alta,
+ *     aba que morre perto de 0,5 a 1,5 GB no iOS) nunca aquece, até a medição do dono ser registrada;
  *  2. a confirmação dos idiomas aquece nos demais perfis (a intenção é explícita);
  *  3. o ponteiro (sinal fraco) só aquece com memória folgada e fora do modo leve.
  */
 export function deveAquecerNaIntencao(e: EntradaDoAquecimento): DecisaoDoAquecimento {
-  if (e.tipo.startsWith('desktop') && !e.isolado) {
-    return { aquecer: false, motivo: 'desktop sem isolamento (Safari): desligado até medir a memória' };
+  if (!e.isolado) {
+    return { aquecer: false, motivo: 'sem isolamento de origem (Safari): desligado até medir a memória' };
   }
   if (e.gatilho === 'idiomas') {
     return { aquecer: true, motivo: 'idiomas confirmados: intenção explícita' };

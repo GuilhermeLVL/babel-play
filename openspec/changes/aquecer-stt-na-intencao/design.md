@@ -19,7 +19,7 @@
    tela e a liberação existente encerra os workers.
 3. **Decisão pura no core** (`deveAquecerNaIntencao`): recebe o perfil do aparelho, modo leve, motor do navegador e o
    gatilho, devolve `{ aquecer: boolean, motivo }`. Regra inicial: pouca memória (Quest/celular) e modo leve → só a
-   confirmação dos idiomas; Safari/WebKit e 6 GB → desligado até a medição do dono; desktop com ≥ 8 GB → os dois gatilhos.
+   confirmação dos idiomas; qualquer aparelho sem isolamento de origem (Safari no Mac, iPhone, iPad) → desligado até a medição do dono; desktop com ≥ 8 GB → os dois gatilhos.
    Os limites exatos saem da medição, não do palpite.
 4. **Flag desligada** (mecanismo de flags já usado pelo app; nome a definir na implementação). Ligar é ato do dono depois de
    medir Safari e o aparelho de 6 GB. Sem flag, o comportamento é idêntico ao de hoje.

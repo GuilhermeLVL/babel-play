@@ -53,8 +53,18 @@ describe('deveAquecerNaIntencao', () => {
     }
   })
 
-  it('celular sem isolamento não cai na regra do desktop (idiomas ainda aquece)', () => {
-    const e = { ...base, tipo: 'celular-bom' as const, isolado: false, poucaMemoria: true, gatilho: 'idiomas' as const }
+  it('qualquer aparelho sem isolamento (Safari do iPhone e do iPad incluído) nunca aquece', () => {
+    for (const tipo of ['quest', 'celular-fraco', 'celular-bom'] as const) {
+      for (const gatilho of ['ponteiro', 'idiomas'] as const) {
+        const r = deveAquecerNaIntencao({ ...base, tipo, gatilho, poucaMemoria: true, isolado: false })
+        expect(r.aquecer).toBe(false)
+        expect(r.motivo).toMatch(/isolamento|Safari/i)
+      }
+    }
+  })
+
+  it('celular ISOLADO (Chrome no Android) ainda aquece na confirmação dos idiomas', () => {
+    const e = { ...base, tipo: 'celular-bom' as const, isolado: true, poucaMemoria: true, gatilho: 'idiomas' as const }
     expect(deveAquecerNaIntencao(e).aquecer).toBe(true)
   })
 

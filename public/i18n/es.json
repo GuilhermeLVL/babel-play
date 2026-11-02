@@ -2558,7 +2558,6 @@
   "A voz de alta qualidade não está disponível neste navegador.": "La voz de alta calidad no está disponible en este navegador.",
   "Baixando a voz de alta qualidade": "Descargando la voz de alta calidad",
   "Baixando: {feito} de {total} MB.": "Descargando: {feito} de {total} MB.",
-  "A voz de alta qualidade está pronta neste aparelho.": "La voz de alta calidad está lista en este dispositivo.",
   "Apagar do aparelho": "Borrar del dispositivo",
   "Baixa uma vez, ≈ {mb} MB; fica só neste aparelho; funciona sem internet depois; você apaga quando quiser.": "Se descarga una vez, ≈ {mb} MB; queda solo en este dispositivo; funciona sin internet después; la borras cuando quieras.",
   "Usa cerca de 2 a 3 GB de memória enquanto lê. Se o computador ficar lento, feche outras abas.": "Usa unos 2 a 3 GB de memoria mientras lee. Si el ordenador se pone lento, cierra otras pestañas.",
@@ -2581,5 +2580,6 @@
   "Voz de leitura": "Voz de lectura",
   "Escolha a voz de cada idioma. Ela vale no narrador, no intérprete, nas palavras e nos jogos.": "Elige la voz de cada idioma. Vale para el narrador, el intérprete, las palabras y los juegos.",
   "Vozes de alta qualidade": "Voces de alta calidad",
-  "Vozes deste aparelho": "Voces de este dispositivo"
+  "Vozes deste aparelho": "Voces de este dispositivo",
+  "Voz de alta qualidade pronta neste aparelho.": "Voz de alta calidad lista en este dispositivo."
 }

@@ -57,12 +57,15 @@ export default function SeletorDeVoz({
   idioma,
   nuvem,
   aoEscolher,
+  comModelo = true,
 }: {
   /** O idioma das vozes (`en` ou `en-US`). */
   idioma: string;
   /** O plano tem a voz natural ligada? Padrão: a capacidade `vozNatural` com a flag `voz_natural`. */
   nuvem?: boolean;
   aoEscolher?: (voz: string) => void;
+  /** Mostra o cartão de baixar/apagar o modelo (a folha do intérprete mostra uma vez só, no primeiro lado). */
+  comModelo?: boolean;
 }) {
   useVozesPreferidas(); // a lista acompanha a escolha feita em outra tela, a conta e as vozes do sistema
   useFlag(FLAG_VOZ_NO_APARELHO); // a voz no aparelho aparece (ou some) quando a flag chega
@@ -159,12 +162,14 @@ export default function SeletorDeVoz({
 
   return (
     <div className="voz-seletor" data-testid="seletor-de-voz" data-idioma={idioma}>
-      <VozNoAparelho
-        idioma={idioma}
-        aoFicarPronta={() =>
-          escolher({ id: VOZ_NO_APARELHO, tipo: 'no-aparelho', nome: '', detalhe: '', etiquetas: [] })
-        }
-      />
+      {comModelo && (
+        <VozNoAparelho
+          idioma={idioma}
+          aoFicarPronta={() =>
+            escolher({ id: VOZ_NO_APARELHO, tipo: 'no-aparelho', nome: '', detalhe: '', etiquetas: [] })
+          }
+        />
+      )}
       <div
         ref={lista}
         className="q-seletor-lista voz-lista"
@@ -185,7 +190,7 @@ export default function SeletorDeVoz({
                   {grupo === 'qualidade' ? t('Vozes de alta qualidade') : t('Vozes deste aparelho')}
                 </span>
               )}
-              <div className="voz-linha">
+              <div className="voz-linha" data-modelo={o.vozDoModelo ? 'true' : undefined}>
                 <button
                   type="button"
                   role="radio"
@@ -197,8 +202,13 @@ export default function SeletorDeVoz({
                   <Icone aria-hidden />
                   <span className="voz-texto">
                     <b>{o.nome}</b>
-                    <small>{o.tipo === 'aparelho' ? [o.detalhe, ...o.etiquetas].join(' · ') : o.detalhe}</small>
+                    {o.vozDoModelo ? (
+                      o.etiquetas.includes(t('Recomendada')) && <small>{t('Recomendada')}</small>
+                    ) : (
+                      <small>{o.tipo === 'aparelho' ? [o.detalhe, ...o.etiquetas].join(' · ') : o.detalhe}</small>
+                    )}
                     {o.tipo === 'no-aparelho' &&
+                      !o.vozDoModelo &&
                       o.etiquetas.map((e) => (
                         <span key={e} className="q-tag voz-texto-tag">
                           {e}

@@ -64,12 +64,12 @@ export default function VozNoAparelho({ idioma, aoFicarPronta }: { idioma: strin
 
   if (pronta) {
     return (
-      <div className="voz-no-aparelho" data-testid="voz-no-aparelho" data-estado="pronta">
+      <div className="voz-no-aparelho voz-no-aparelho-pronta" data-testid="voz-no-aparelho" data-estado="pronta">
         <p className="q-aju-nota" role="status">
-          {t('A voz de alta qualidade está pronta neste aparelho.')} <ChipVozSintetizada />
+          {t('Voz de alta qualidade pronta neste aparelho.')} <ChipVozSintetizada />
         </p>
-        <button type="button" className="btn btn-outline" onClick={() => void apagarVozNoAparelho()}>
-          {t('Apagar do aparelho')}
+        <button type="button" className="btn btn-ghost" onClick={() => void apagarVozNoAparelho()}>
+          {t('Apagar')}
         </button>
       </div>
     );

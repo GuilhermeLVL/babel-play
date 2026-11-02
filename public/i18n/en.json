@@ -6054,7 +6054,6 @@
   "A voz de alta qualidade não está disponível neste navegador.": "The high-quality voice isn't available in this browser.",
   "Baixando a voz de alta qualidade": "Downloading the high-quality voice",
   "Baixando: {feito} de {total} MB.": "Downloading: {feito} of {total} MB.",
-  "A voz de alta qualidade está pronta neste aparelho.": "The high-quality voice is ready on this device.",
   "Baixa uma vez, ≈ {mb} MB; fica só neste aparelho; funciona sem internet depois; você apaga quando quiser.": "Downloads once, ≈ {mb} MB; stays only on this device; works offline afterwards; you can delete it anytime.",
   "Usa cerca de 2 a 3 GB de memória enquanto lê. Se o computador ficar lento, feche outras abas.": "Uses about 2 to 3 GB of memory while reading. If your computer slows down, close other tabs.",
   "Neste navegador ela roda mais devagar: a primeira frase pode levar alguns segundos.": "In this browser it runs slower: the first sentence may take a few seconds.",
@@ -6075,5 +6074,6 @@
   "Começa com a voz Feminina 1; as outras 9 ficam em Voz e modo.": "Starts with the Female 1 voice; the other 9 are in Voice and mode.",
   "Escolha a voz de cada idioma. Ela vale no narrador, no intérprete, nas palavras e nos jogos.": "Pick the voice for each language. It applies to the narrator, the interpreter, words and games.",
   "Vozes de alta qualidade": "High-quality voices",
-  "Vozes deste aparelho": "Voices on this device"
+  "Vozes deste aparelho": "Voices on this device",
+  "Voz de alta qualidade pronta neste aparelho.": "High-quality voice ready on this device."
 }

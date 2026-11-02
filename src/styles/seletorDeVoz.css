@@ -21,9 +21,6 @@
   overflow: visible;
   padding: 0;
 }
-.voz-lista {
-  grid-template-columns: minmax(0, 1fr);
-}
 .voz-linha {
   display: flex;
   align-items: stretch;
@@ -81,13 +78,10 @@
   gap: 8px;
   min-width: 0;
 }
+/* A folha já rola: lista com rolagem própria dentro dela travava o toque e cortava o fim. */
 .voz-lados .voz-lista {
-  max-height: min(30vh, 300px);
-}
-@media (max-height: 560px) {
-  .voz-lados .voz-lista {
-    max-height: 26vh;
-  }
+  max-height: none;
+  overflow: visible;
 }
 /* A voz de alta qualidade no aparelho (`VozNoAparelho.tsx`): o custo, o progresso do download e a voz do narrador. */
 .voz-no-aparelho {
@@ -109,12 +103,31 @@
   white-space: normal;
 }
 
-/* Os grupos da lista: o rótulo abre cada um; a linha dentro dele segue a `.voz-linha`. */
+/* Os grupos: o rótulo abre cada um. As 10 vozes do modelo ficam em duas colunas (só o nome e a amostra); o resto, uma por linha. */
+.voz-lista {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
 .voz-linha-grupo {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
+  display: contents;
+}
+.voz-linha-grupo > .voz-linha:not([data-modelo]),
+.voz-grupo {
+  grid-column: 1 / -1;
 }
 .voz-grupo {
   margin-top: 6px;
+}
+.voz-linha[data-modelo] > .q-opcao {
+  padding: 8px 10px;
+  gap: 8px;
+}
+.voz-linha[data-modelo] > .q-ctl {
+  width: 40px;
+  height: 40px;
+}
+/* Modelo pronto: uma linha só, com o texto e o botão de apagar. */
+.voz-no-aparelho-pronta {
+  grid-auto-flow: column;
+  align-items: center;
+  justify-content: space-between;
 }

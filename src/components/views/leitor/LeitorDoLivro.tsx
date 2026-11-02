@@ -4,7 +4,6 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
   Headphones,
   Highlighter,
   ListTree,
@@ -31,7 +30,9 @@ import {
 } from '../../../core/leitura/exportar';
 import { type ModoDaNarracao, MODOS_DA_NARRACAO, mostraConviteDaVozNatural } from '../../../core/leitura/narracao';
 import { CORES_DOS_TEMAS } from '../../../core/leitura/perfilDeLeitura';
+import type { Retangulo } from '../../../core/leitura/posicaoDoCartao';
 import { ancorar } from '../../../core/leitura/reancorar';
+import { type ContextoDaPalavra, formaDeConsulta } from '../../../core/leitura/sentidoNoContexto';
 import { FLAG_VOZ_NATURAL } from '../../../core/vozNatural';
 import { fetchDeck } from '../../../data/api';
 import { buildGateway } from '../../../gateway';
@@ -42,13 +43,14 @@ import { getEntitlements } from '../../../lib/entitlements';
 import { baixar, baixarTexto } from '../../../lib/exportacao/baixar';
 import { flagLigada } from '../../../lib/flagsCache';
 import { t } from '../../../lib/i18n';
+import type { ImagemDaPalavra } from '../../../lib/imagens/criterios';
+import { buscarImagensDaPalavra } from '../../../lib/imagens/imagensDaPalavra';
 import { useLangConfig } from '../../../lib/langConfig';
 import { detectLanguage } from '../../../lib/langDetect';
 import { baseLang, toBcp47 } from '../../../lib/languages';
 import type { Localizacao } from '../../../lib/leitor/foliate/view.js';
 import { type InfoDoLivro, MotorDoLeitor } from '../../../lib/leitor/motor';
 import { Narrador, type VistaDoNarrador } from '../../../lib/leitor/narrador';
-import { linkExternoSeguro } from '../../../lib/leitor/politicaDeRecursos';
 import {
   citacaoDoRange,
   ehUmaPalavra,
@@ -73,9 +75,9 @@ import { useVozesPreferidas, VOZ_DA_NUVEM, vozDaNuvemDisponivel, vozEmUso } from
 import { destravarVozDaNuvem } from '../../../lib/voz/vozDaNuvem';
 import type { VocabWord } from '../../../types';
 import { toast } from '../../Toast';
-import VocabularyPanel from '../../VocabularyPanel';
 import BarraDaSelecao, { type TrechoSelecionado } from './BarraDaSelecao';
 import BarraDoNarrador, { PainelDaNarracao } from './BarraDoNarrador';
+import CartaoDaPalavra from './CartaoDaPalavra';
 import { etiquetaDaPalavra, HistoricoNaFolha } from './ganchosDaPalavra';
 import PainelDeAnotacoes, { type FormatoDeExportacao } from './PainelDeAnotacoes';
 import PainelDeTipografia from './PainelDeTipografia';
@@ -123,6 +125,30 @@ interface PalavraAberta {
   capitulo: string;
   /** A palavra está num link EXTERNO do livro: a folha oferece "Abrir link" (o capítulo nunca navega). */
   link?: string;
+  /** A palavra na frase (escolhe a forma consultada e a ordem dos sentidos) e a forma consultada. */
+  contexto: ContextoDaPalavra;
+  forma: string;
+  /** Onde a palavra está na janela do app, para o cartão ficar perto sem cobri-la. */
+  ancora: Retangulo | null;
+  /** Aberta pelo teclado: o foco vai ao cartão e, ao fechar, volta à palavra. */
+  porTeclado: boolean;
+  range: Range;
+  /** As imagens da palavra; ausente no perfil protegido (nada de imagem externa para menor). */
+  imagens?: { lista: ImagemDaPalavra[]; carregando: boolean };
+}
+
+/** O retângulo do trecho na janela do APP: o do documento do capítulo somado ao do iframe dele. */
+function retanguloNaJanela(range: Range): Retangulo | null {
+  try {
+    const r = range.getBoundingClientRect();
+    if (!r.width && !r.height) return null;
+    const quadro = range.startContainer.ownerDocument?.defaultView?.frameElement?.getBoundingClientRect();
+    const dx = quadro?.left ?? 0;
+    const dy = quadro?.top ?? 0;
+    return { top: r.top + dy, left: r.left + dx, bottom: r.bottom + dy, right: r.right + dx };
+  } catch {
+    return null;
+  }
 }
 
 const novoId = () =>
@@ -176,6 +202,8 @@ export default function LeitorDoLivro({
   const [sinc, setSinc] = useState<EstadoDaSincronizacao | 'carregando'>('carregando');
   const [selecao, setSelecao] = useState<Selecao | null>(null);
   const [palavra, setPalavra] = useState<PalavraAberta | null>(null);
+  const palavraRef = useRef<PalavraAberta | null>(null);
+  palavraRef.current = palavra;
   const [noDeck, setNoDeck] = useState<Set<string>>(new Set());
   const [avisoPdf, setAvisoPdf] = useState<string | null>(null);
   const [anuncio, setAnuncio] = useState('');
@@ -429,6 +457,14 @@ export default function LeitorDoLivro({
       .catch(() => {});
   }, []);
 
+  /* Virar a página fecha o cartão: a palavra saiu da vista. (Repaginar sem sair dela, como quando as fontes
+     chegam, não fecha.) */
+  useEffect(() => {
+    const p = palavraRef.current;
+    if (!p || !local || motorRef.current?.trechoVisivel(p.range) !== false) return;
+    setPalavra(null);
+  }, [local]);
+
   /* A posição falada para o leitor de tela (uma vez por parada, não a cada pixel de rolagem). */
   const narrando = vistaNarrador.fase === 'tocando' || vistaNarrador.fase === 'virando';
   useEffect(() => {
@@ -494,9 +530,10 @@ export default function LeitorDoLivro({
          seleção e nunca abrem a folha da palavra. */
       aoTocar: (r: Range, alvo: Node) => {
         if (Date.now() - toqueEmAnotacao.current < 700 || Date.now() < ignorarToquesAte.current) return;
-        if (seguirLinkInterno(alvo)) return;
+        if (seguirLinkInterno(alvo)) return setPalavra(null);
         const texto = r.toString();
-        if (!/\p{L}/u.test(texto) || texto.length < 2) return;
+        /* Toque fora de palavra (no texto do livro) fecha o cartão; outra palavra troca o conteúdo. */
+        if (!/\p{L}/u.test(texto) || texto.length < 2) return setPalavra(null);
         void abrirPalavra(texto, r, indice, linkExternoDe(alvo));
       },
       aoLimpar: () => setSelecao(null),
@@ -530,7 +567,7 @@ export default function LeitorDoLivro({
       if (!r) continue;
       const texto = r.toString().trim();
       if (!/\p{L}/u.test(texto) || texto.length < 2) continue;
-      void abrirPalavra(texto, r, index, linkExternoDe(r.startContainer));
+      void abrirPalavra(texto, r, index, linkExternoDe(r.startContainer), true);
       return true;
     }
     return false;
@@ -549,12 +586,16 @@ export default function LeitorDoLivro({
     return link && 'externo' in link ? link.externo : undefined;
   }
 
-  async function abrirPalavra(texto: string, range: Range, indice: number, link?: string) {
+  async function abrirPalavra(texto: string, range: Range, indice: number, link?: string, porTeclado = false) {
     const motor = motorRef.current;
     if (!motor) return;
     const frase = fraseDoRange(range, idiomaRef.current);
+    const contexto: ContextoDaPalavra = { palavra: texto.trim(), frase, idioma: idiomaRef.current };
+    /* "Call" no começo da frase é consultado como "call": a página "Call" é a do sobrenome. */
+    const forma = formaDeConsulta(contexto);
+    const imagens = perfilProtegido() ? undefined : { lista: [], carregando: true };
     const base: PalavraAberta = {
-      vocab: { word: texto, translation: '', example: frase, lang: idiomaRef.current || undefined },
+      vocab: { word: forma, translation: '', example: frase, lang: idiomaRef.current || undefined },
       mtNote: null,
       frase,
       idioma: idiomaRef.current,
@@ -562,17 +603,67 @@ export default function LeitorDoLivro({
       citacao: citacaoDoRange(range),
       capitulo: capituloRef.current,
       ...(link ? { link } : {}),
+      contexto,
+      forma,
+      ancora: retanguloNaJanela(range),
+      porTeclado,
+      range: range.cloneRange(),
+      ...(imagens ? { imagens } : {}),
     };
     setSelecao(null);
     setPalavra(base);
-    const { vocab, resolved } = await buildVocabWord(
-      { word: texto, context: frase, declaredLang: idiomaRef.current || undefined, config: langConfig },
-      gateway.mt,
+    const mesma = (atual: PalavraAberta | null): atual is PalavraAberta => !!atual && atual.cfi === base.cfi;
+    const origem = { word: forma, context: frase, declaredLang: idiomaRef.current || undefined, config: langConfig };
+    const traducao = buildVocabWord(origem, gateway.mt);
+    void traducao.then(({ vocab, resolved }) =>
+      setPalavra((atual) =>
+        mesma(atual) ? { ...atual, vocab, mtNote: mtNoteFor(resolved, vocab.translation) } : atual,
+      ),
     );
-    setPalavra((atual) =>
-      atual && atual.cfi === base.cfi ? { ...atual, vocab, mtNote: mtNoteFor(resolved, vocab.translation) } : atual,
-    );
+    /* A imagem nunca segura o cartão: chega quando chegar, e só para quem pode ver imagem externa. */
+    if (!imagens) return;
+    const lista = await resolveWord(origem)
+      .then((resolved) =>
+        buscarImagensDaPalavra({
+          palavra: forma,
+          idioma: resolved.lang,
+          traducao: () => traducao.then((r) => r.vocab.translation || null),
+          idiomaDaTraducao: resolved.targetLang,
+        }),
+      )
+      .catch((): ImagemDaPalavra[] => []);
+    setPalavra((atual) => (mesma(atual) ? { ...atual, imagens: { lista, carregando: false } } : atual));
   }
+
+  /** O cartão da palavra fecha; aberto pelo teclado, o caret volta à palavra no livro. */
+  function fecharPalavra() {
+    const p = palavraRef.current;
+    setPalavra(null);
+    if (!p?.porTeclado) return;
+    try {
+      const janela = p.range.startContainer.ownerDocument?.defaultView;
+      const sel = janela?.getSelection();
+      ignorarToquesAte.current = Date.now() + 900; // o caret posto aqui não é toque na palavra
+      const caret = p.range.cloneRange();
+      caret.collapse(true);
+      sel?.removeAllRanges();
+      sel?.addRange(caret);
+      (janela?.frameElement as HTMLElement | null)?.focus({ preventScroll: true });
+      janela?.focus();
+    } catch {
+      /* o capítulo saiu da tela: o foco fica onde estava */
+    }
+  }
+
+  /* A tradução de cada frase, uma vez por livro aberto (o cartão pede de novo ao reabrir a palavra). */
+  const frasesTraduzidas = useRef(new Map<string, string>());
+  const traduzirFrase = async (frase: string): Promise<string | null> => {
+    const guardada = frasesTraduzidas.current.get(frase);
+    if (guardada) return guardada;
+    const r = await traduzir(frase);
+    if (r) frasesTraduzidas.current.set(frase, r);
+    return r;
+  };
 
   /* ── teclado (ACE07): ← → PageUp PageDown viram a página; "/" abre a busca; Esc fecha ── */
   const aoTeclar = (e: KeyboardEvent) => {
@@ -587,6 +678,8 @@ export default function LeitorDoLivro({
     else if (e.key === '/') setPainel('sumario');
     else if (e.key === 'Enter' && dentroDoLivro(e.target) && abrirPalavraNoCursor()) {
       /* a folha da palavra abriu */
+    } else if (e.key === 'Escape' && palavraRef.current) {
+      fecharPalavra();
     } else if (e.key === 'Escape') {
       setPainel(null);
       setSelecao(null);
@@ -961,7 +1054,14 @@ export default function LeitorDoLivro({
             selecao.palavra
               ? () => {
                   const p = selecao.palavra!;
-                  void abrirPalavra(selecao.trecho.texto, p.range, p.indice, linkExternoDe(p.range.startContainer));
+                  /* A barra some ao abrir o cartão: o foco vai para o cartão (este é o caminho do teclado). */
+                  void abrirPalavra(
+                    selecao.trecho.texto,
+                    p.range,
+                    p.indice,
+                    linkExternoDe(p.range.startContainer),
+                    true,
+                  );
                 }
               : undefined
           }
@@ -1035,39 +1135,29 @@ export default function LeitorDoLivro({
       </p>
 
       {palavra && (
-        <VocabularyPanel
-          emFolha
-          viewKey="reading"
-          word={palavra.vocab}
+        <CartaoDaPalavra
+          vocab={palavra.vocab}
           mtNote={palavra.mtNote}
-          onClose={() => setPalavra(null)}
-          onSpeak={(w) => speak(w, { lang: toBcp47(palavra.idioma || langConfig.studying), rate: ttsSpeed })}
-          onAddToDeck={(w) => void salvarNoDeck(w)}
-          isAdded={noDeck.has(palavra.vocab.word.toLowerCase())}
-          ttsSpeed={ttsSpeed}
-          setTtsSpeed={setTtsSpeed}
+          contexto={palavra.contexto}
+          formaDeConsulta={palavra.forma}
+          destino={toBcp47(langConfig.mine)}
+          ancora={palavra.ancora}
+          porTeclado={palavra.porTeclado}
           podeOuvir={!!palavra.idioma && haVozPara(palavra.idioma)}
-          etiqueta={etiquetaDaPalavra(palavra.vocab.word, palavra.idioma)}
-          extra={
-            <>
-              {palavra.link && (
-                <button
-                  type="button"
-                  className="btn btn-outline leitor-alvo leitor-abrir-link"
-                  data-testid="abrir-link"
-                  title={palavra.link}
-                  onClick={() => {
-                    const url = linkExternoSeguro(palavra.link ?? '');
-                    if (url) window.open(url, '_blank', 'noopener,noreferrer');
-                  }}
-                >
-                  <ExternalLink aria-hidden /> {t('Abrir link')}
-                  <span className="leitor-link-destino">{new URL(palavra.link).host}</span>
-                </button>
-              )}
-              <HistoricoNaFolha palavra={palavra.vocab.word} idioma={palavra.idioma} />
-            </>
+          aoOuvir={() =>
+            speak(palavra.vocab.word, { lang: toBcp47(palavra.idioma || langConfig.studying), rate: ttsSpeed })
           }
+          velocidade={ttsSpeed}
+          aoMudarVelocidade={setTtsSpeed}
+          salva={noDeck.has(palavra.vocab.word.toLowerCase())}
+          aoSalvar={() => void salvarNoDeck(palavra.vocab)}
+          traduzirFrase={traduzirFrase}
+          imagens={palavra.imagens}
+          link={palavra.link}
+          etiqueta={etiquetaDaPalavra(palavra.vocab.word, palavra.idioma)}
+          extra={<HistoricoNaFolha palavra={palavra.vocab.word} idioma={palavra.idioma} />}
+          aoConhecerPlanos={perfilProtegido() ? undefined : aoConhecerPlanos}
+          aoFechar={fecharPalavra}
         />
       )}
     </div>

@@ -169,6 +169,10 @@ test.describe('Leitor', () => {
       .click({ position: { x: 4, y: 6 } })
     const folha = page.getByTestId('folha-da-palavra')
     await expect(folha).toBeVisible({ timeout: 15_000 })
+    // O cartão da palavra não é modal: sem <dialog> aberto, e o livro continua virável por trás.
+    await expect(folha).toHaveAttribute('aria-modal', 'false')
+    expect(await page.locator('dialog[open]').count()).toBe(0)
+    await expect(page.getByRole('button', { name: 'Próxima página' })).toBeEnabled()
     await page.keyboard.press('Escape')
     await expect(folha).toBeHidden()
 

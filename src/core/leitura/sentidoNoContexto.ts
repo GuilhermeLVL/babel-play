@@ -160,6 +160,8 @@ function palavrasDaFrase(frase: string): string[] {
 
 function ondeEsta(ctx: ContextoDaPalavra, palavras: string[]): number {
   if (ctx.posicao != null && ctx.posicao >= 0 && ctx.posicao < palavras.length) return ctx.posicao;
+  const exata = palavras.indexOf(ctx.palavra.trim());
+  if (exata >= 0) return exata;
   const alvo = ctx.palavra.trim().toLocaleLowerCase();
   const i = palavras.findIndex((p) => p.toLocaleLowerCase() === alvo);
   return i < 0 ? 0 : i;

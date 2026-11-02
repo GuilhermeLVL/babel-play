@@ -44,6 +44,16 @@ Beta: `ids` dos convidados, `percentual: 0`. Gradual: `percentual` 5 → 25 → 
 - Elenco: `elenco/<livro>/<cap>.json`. **[PREENCHER na F3]**
 - Segredos (`CLOUDFLARE_API_TOKEN`, `DEEPINFRA_API_KEY`, chaves de GPU): só `.env`/secrets do host, nunca versionados.
 
+### Demonstração local (branch de demo, não mesclar)
+
+- Dom Casmurro é `ws-pt-dom-casmurro` (Wikisource, ortografia de 1899). Só o capítulo 1 tem áudio (22 frases, voz `F1`
+  PROVISÓRIA: `demo.json` ao lado do manifesto); os demais capítulos leem com a voz do aparelho, sem aviso.
+- Servidor de áudio mínimo (fora do repo) com CORS `*`, `Range` (206), `Cache-Control` e
+  `Cross-Origin-Resource-Policy: cross-origin` (o `<audio>` não usa `crossorigin`; com COEP ligado o R2 também
+  precisa desse cabeçalho). `VITE_AUDIO_URL=http://localhost:3176`.
+- **Pendência:** o título do capítulo ("I") é falado como frase e o primeiro parágrafo também começa com "I" (ouve-se
+  "I. I."). Não corrigido nesta entrega: decidir se o título entra no áudio ou se o pré-processador o pula.
+
 ## 4. Gerar um livro
 
 **[PREENCHER na F2]** Esboço:

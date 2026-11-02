@@ -108,3 +108,13 @@
 .voz-linha > .q-opcao[data-voz='@no-aparelho'] .voz-texto > b {
   white-space: normal;
 }
+
+/* Os grupos da lista: o rótulo abre cada um; a linha dentro dele segue a `.voz-linha`. */
+.voz-linha-grupo {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.voz-grupo {
+  margin-top: 6px;
+}

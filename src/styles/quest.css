@@ -147,7 +147,7 @@ html[data-quest-novo='true'][data-theme='babel']:not(.dark) {
   font: 700 14px/1 var(--font-mono, monospace);
   color: var(--ink-muted);
 }
-.q-item:is(.q-mais-botao, .q-busca-botao, .q-ajustes-botao):hover {
+.q-item:is(.q-mais-botao, .q-busca-botao, .q-ajustes-botao, .q-voz-botao):hover {
   background: color-mix(in srgb, var(--q-acento) 10%, var(--surface));
 }
 .q-item.q-mais-botao:is([aria-current='page'], [aria-expanded='true']) {

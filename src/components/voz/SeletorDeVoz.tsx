@@ -33,6 +33,9 @@ import { zoomDoCorpo } from '../../lib/zoomDoCorpo';
 import { toast } from '../Toast';
 import VozNoAparelho from './VozNoAparelho';
 
+const grupoDe = (o: OpcaoDeVoz) =>
+  o.tipo === 'aparelho' ? 'aparelho' : o.tipo === 'automatica' ? 'automatica' : 'qualidade';
+
 const ICONE = { automatica: Sparkles, nuvem: Cloud, 'no-aparelho': Cpu, aparelho: AudioLines } as const;
 
 /**
@@ -156,67 +159,76 @@ export default function SeletorDeVoz({
 
   return (
     <div className="voz-seletor" data-testid="seletor-de-voz" data-idioma={idioma}>
-      <div
-        ref={lista}
-        className="q-seletor-lista voz-lista"
-        role="radiogroup"
-        aria-label={t('Voz para {idioma}', { idioma: nomeDoIdioma })}
-      >
-        {opcoes.map((o) => {
-          const Icone = ICONE[o.tipo];
-          const chave = o.vozDoModelo ? `${o.id}:${o.vozDoModelo}` : o.id;
-          const escolhida = o.id === emUso && (!o.vozDoModelo || o.vozDoModelo === vozDoNarradorNoAparelho());
-          const amostra = tocando === chave;
-          return (
-            <div key={chave || 'automatica'} className="voz-linha">
-              <button
-                type="button"
-                role="radio"
-                className="q-opcao"
-                aria-checked={escolhida}
-                data-voz={chave || 'automatica'}
-                onClick={() => escolher(o)}
-              >
-                <Icone aria-hidden />
-                <span className="voz-texto">
-                  <b>{o.nome}</b>
-                  <small>{o.tipo === 'aparelho' ? [o.detalhe, ...o.etiquetas].join(' · ') : o.detalhe}</small>
-                  {o.tipo === 'no-aparelho' &&
-                    o.etiquetas.map((e) => (
-                      <span key={e} className="q-tag voz-texto-tag">
-                        {e}
-                      </span>
-                    ))}
-                </span>
-                {o.tipo === 'nuvem' &&
-                  o.etiquetas.map((e) => (
-                    <span key={e} className="q-tag">
-                      {e}
-                    </span>
-                  ))}
-                {escolhida && <Check aria-hidden className="q-opcao-ok" />}
-              </button>
-              <button
-                type="button"
-                className="q-ctl"
-                aria-pressed={amostra}
-                aria-label={amostra ? t('Parar a amostra') : t('Ouvir uma amostra da voz {voz}', { voz: o.nome })}
-                data-amostra={chave || 'automatica'}
-                disabled={o.tipo === 'no-aparelho' && !vozNoAparelhoUtilizavel()}
-                onClick={() => void ouvir(o)}
-              >
-                {amostra ? <Square aria-hidden /> : <Volume2 aria-hidden />}
-              </button>
-            </div>
-          );
-        })}
-      </div>
       <VozNoAparelho
         idioma={idioma}
         aoFicarPronta={() =>
           escolher({ id: VOZ_NO_APARELHO, tipo: 'no-aparelho', nome: '', detalhe: '', etiquetas: [] })
         }
       />
+      <div
+        ref={lista}
+        className="q-seletor-lista voz-lista"
+        role="radiogroup"
+        aria-label={t('Voz para {idioma}', { idioma: nomeDoIdioma })}
+      >
+        {opcoes.map((o, i) => {
+          const Icone = ICONE[o.tipo];
+          const chave = o.vozDoModelo ? `${o.id}:${o.vozDoModelo}` : o.id;
+          const escolhida = o.id === emUso && (!o.vozDoModelo || o.vozDoModelo === vozDoNarradorNoAparelho());
+          const amostra = tocando === chave;
+          const grupo = grupoDe(o);
+          const abreGrupo = i === 0 || grupoDe(opcoes[i - 1]) !== grupo;
+          return (
+            <div key={chave || 'automatica'} className="voz-linha-grupo">
+              {abreGrupo && grupo !== 'automatica' && (
+                <span className="q-rotulo voz-grupo" data-grupo={grupo}>
+                  {grupo === 'qualidade' ? t('Vozes de alta qualidade') : t('Vozes deste aparelho')}
+                </span>
+              )}
+              <div className="voz-linha">
+                <button
+                  type="button"
+                  role="radio"
+                  className="q-opcao"
+                  aria-checked={escolhida}
+                  data-voz={chave || 'automatica'}
+                  onClick={() => escolher(o)}
+                >
+                  <Icone aria-hidden />
+                  <span className="voz-texto">
+                    <b>{o.nome}</b>
+                    <small>{o.tipo === 'aparelho' ? [o.detalhe, ...o.etiquetas].join(' · ') : o.detalhe}</small>
+                    {o.tipo === 'no-aparelho' &&
+                      o.etiquetas.map((e) => (
+                        <span key={e} className="q-tag voz-texto-tag">
+                          {e}
+                        </span>
+                      ))}
+                  </span>
+                  {o.tipo === 'nuvem' &&
+                    o.etiquetas.map((e) => (
+                      <span key={e} className="q-tag">
+                        {e}
+                      </span>
+                    ))}
+                  {escolhida && <Check aria-hidden className="q-opcao-ok" />}
+                </button>
+                <button
+                  type="button"
+                  className="q-ctl"
+                  aria-pressed={amostra}
+                  aria-label={amostra ? t('Parar a amostra') : t('Ouvir uma amostra da voz {voz}', { voz: o.nome })}
+                  data-amostra={chave || 'automatica'}
+                  disabled={o.tipo === 'no-aparelho' && !vozNoAparelhoUtilizavel()}
+                  onClick={() => void ouvir(o)}
+                >
+                  {amostra ? <Square aria-hidden /> : <Volume2 aria-hidden />}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
       {avisoDoSumico && (
         <p className="q-aju-nota" role="status" data-testid="voz-que-sumiu">
           {avisoDoSumico}

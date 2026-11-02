@@ -10,6 +10,7 @@ import '../../styles/polimentoCelular.css';
 
 import {
   Activity,
+  AudioLines,
   Bell,
   BellOff,
   ChevronRight,
@@ -32,7 +33,7 @@ import {
   VolumeX,
   X,
 } from 'lucide-react';
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { PLAN_MATRIX } from '../../core/planos';
@@ -289,6 +290,8 @@ const ROTULO_DA_VIBRACAO: Record<VibracaoDoQuest, () => string> = {
   forte: () => t('Vibração ao apontar: forte'),
 };
 
+const DialogoDaVoz = lazy(() => import('../voz/DialogoDaVoz'));
+
 export default function TrilhoDoQuest({
   activeView,
   onChangeView,
@@ -306,6 +309,7 @@ export default function TrilhoDoQuest({
 }: TrilhoDoQuestProps) {
   const [maisAberto, setMaisAberto] = useState(false);
   const [vivoAberto, setVivoAberto] = useState(false);
+  const [vozAberta, setVozAberta] = useState(false);
   const botaoVivo = useRef<HTMLButtonElement | null>(null);
   const [aba, setAba] = useState<'destinos' | 'avisos'>('destinos');
   const avisos = useListaDeNotificacoes();
@@ -599,6 +603,24 @@ export default function TrilhoDoQuest({
     </button>
   );
 
+  /* A VOZ DE QUALQUER TELA: no pé do trilho lateral, junto de Buscar e Ajustes (na barra de cinco não há lugar:
+     lá ela fica em Ajustes → Idiomas). Abre o painel das vozes por idioma. */
+  const botaoDaVoz = lateral && (
+    <button
+      type="button"
+      className="q-item q-voz-botao"
+      aria-haspopup="dialog"
+      aria-expanded={vozAberta}
+      aria-label={t('Voz de leitura')}
+      data-dica={t('Voz de leitura')}
+      onClick={() => setVozAberta(true)}
+      data-testid="voz-no-trilho"
+    >
+      <AudioLines aria-hidden />
+      <span>{t('Voz')}</span>
+    </button>
+  );
+
   const botaoMais = (
     <button
       type="button"
@@ -639,6 +661,7 @@ export default function TrilhoDoQuest({
             </div>
             <div className="q-trilho-pe">
               {botaoDeBusca}
+              {botaoDaVoz}
               {botaoAjustes}
               {botaoMais}
             </div>
@@ -652,6 +675,12 @@ export default function TrilhoDoQuest({
         )}
       </nav>
       {pecaDaDica}
+
+      {vozAberta && (
+        <Suspense fallback={null}>
+          <DialogoDaVoz aoFechar={() => setVozAberta(false)} />
+        </Suspense>
+      )}
 
       {vivoAberto && (
         <EscolhaAoVivo

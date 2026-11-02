@@ -384,6 +384,7 @@ async function abrirRuntime(threads: number): Promise<RuntimeDaVoz> {
       ort.InferenceSession.create(bytes, {
         executionProviders: [ep],
         graphOptimizationLevel: 'all',
+        logSeverityLevel: 3, // o aviso de "nós de forma na CPU" do WebGPU é esperado e só poluía o console
       }) as unknown as Promise<SessaoDaVoz>,
     tensor: (tipo, dados, dims) => new ort.Tensor(tipo, dados as never, dims),
   };

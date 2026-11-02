@@ -65,7 +65,7 @@ interface Pedido {
   reject: (e: unknown) => void;
 }
 
-function medir(texto: string, c: ClipeDaVoz) {
+function medir(texto: string, c: ClipeDaVoz, voz: string) {
   const audioS = c.pcm.length / c.taxa;
   try {
     const fim = performance.now();
@@ -74,6 +74,7 @@ function medir(texto: string, c: ClipeDaVoz) {
       end: fim,
       detail: {
         caracteres: texto.length,
+        voz,
         ms: Math.round(c.ms),
         audioS,
         rtf: audioS ? c.ms / 1000 / audioS : 0,
@@ -162,7 +163,8 @@ export function criarMotorNoAparelho(o: OpcoesDoMotorNoAparelho): MotorNoAparelh
   }
 
   const motor: MotorNoAparelho = {
-    speak(texto, opts) {
+    speak(texto, opcoes) {
+      const opts: SpeakOptions = opcoes ?? { lang: '' }; // sem idioma: o motor não serve e a reserva decide
       const minha = ++vez;
       calarSom();
       cancelarSoltura();
@@ -171,7 +173,7 @@ export function criarMotorNoAparelho(o: OpcoesDoMotorNoAparelho): MotorNoAparelh
       obter(texto, idioma, voz, velocidade, true).then(
         (c) => {
           if (minha !== vez) return;
-          medir(texto, c);
+          medir(texto, c, voz);
           fimDaFala = marcarFalaExterna(); // o guarda anti-eco da captura também vale para esta voz
           falando = true;
           opts.onStart?.();

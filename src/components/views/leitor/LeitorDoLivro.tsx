@@ -91,7 +91,13 @@ import { buildVocabWord, mtNoteFor, resolveWord } from '../../../lib/vocabWord';
 import { haVozPara } from '../../../lib/voz/haVoz';
 import { useVozesPreferidas, VOZ_DA_NUVEM, vozDaNuvemDisponivel, vozEmUso } from '../../../lib/voz/preferenciaDeVoz';
 import { destravarVozDaNuvem } from '../../../lib/voz/vozDaNuvem';
-import { carregarMotor, destravarVozNoAparelho, vozNoAparelhoPronta } from '../../../lib/voz/vozNoAparelho';
+import {
+  carregarMotor,
+  destravarVozNoAparelho,
+  VOZ_NO_APARELHO,
+  vozDoNarradorNoAparelho,
+  vozNoAparelhoPronta,
+} from '../../../lib/voz/vozNoAparelho';
 import type { VocabWord } from '../../../types';
 import { BotaoDoAvatar, DicaDoAvatar } from '../../avatar/modo/BotaoDoAvatar';
 import { useAvatarDoModo } from '../../avatar/modo/useAvatarDoModo';
@@ -1002,7 +1008,11 @@ export default function LeitorDoLivro({
   const painelDoElenco = (
     <PainelDoElenco
       elenco={elenco}
-      vozDoNarrador={getVoicePref(idiomaRef.current) ?? ''}
+      vozDoNarrador={
+        vozEmUso(idiomaRef.current) === VOZ_NO_APARELHO
+          ? vozDoNarradorNoAparelho()
+          : (getVoicePref(idiomaRef.current) ?? '')
+      }
       nuvem={vozEmUso(idiomaRef.current) === VOZ_DA_NUVEM}
     />
   );

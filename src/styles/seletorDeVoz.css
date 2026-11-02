@@ -99,3 +99,7 @@
   align-items: center;
   gap: 8px;
 }
+/* O nome da voz no aparelho é longo: quebra a linha em vez de sumir em reticências no painel estreito. */
+.voz-linha > .q-opcao[data-voz='@no-aparelho'] .voz-texto > b {
+  white-space: normal;
+}

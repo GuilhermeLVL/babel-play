@@ -1,10 +1,12 @@
 import '../../styles/questAjustes.css';
 import '../../styles/seletorDeVoz.css';
 
-import { AudioLines, Check, Cloud, Sparkles, Square, Volume2 } from 'lucide-react';
+import { AudioLines, Check, Cloud, Cpu, Sparkles, Square, Volume2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
+import { FLAG_VOZ_NO_APARELHO } from '../../core/harness/vozNoAparelho';
 import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
+import { useFlag } from '../../lib/flags';
 import { t } from '../../lib/i18n';
 import { langLabelNaUI } from '../../lib/languages';
 import { cancelSpeech, codigoDeFala, speak, vozesCarregadas } from '../../lib/tts';
@@ -20,10 +22,12 @@ import {
   vozEmUso,
   vozGuardada,
 } from '../../lib/voz/preferenciaDeVoz';
+import { motorDaVozNoAparelho, VOZ_NO_APARELHO, vozNoAparelhoUtilizavel } from '../../lib/voz/vozNoAparelho';
 import { zoomDoCorpo } from '../../lib/zoomDoCorpo';
 import { toast } from '../Toast';
+import VozNoAparelho from './VozNoAparelho';
 
-const ICONE = { automatica: Sparkles, nuvem: Cloud, aparelho: AudioLines } as const;
+const ICONE = { automatica: Sparkles, nuvem: Cloud, 'no-aparelho': Cpu, aparelho: AudioLines } as const;
 
 /**
  * O SELETOR DE VOZ — um só, para a Leitura ("Voz, idioma e tom"), o intérprete e a conversa virtual (a
@@ -52,6 +56,7 @@ export default function SeletorDeVoz({
   aoEscolher?: (voz: string) => void;
 }) {
   useVozesPreferidas(); // a lista acompanha a escolha feita em outra tela, a conta e as vozes do sistema
+  useFlag(FLAG_VOZ_NO_APARELHO); // a voz no aparelho aparece (ou some) quando a flag chega
   const comNuvem = nuvem ?? vozDaNuvemDisponivel();
   const opcoes = opcoesDeVoz(idioma, comNuvem);
   const emUso = vozEmUso(idioma, comNuvem);
@@ -63,11 +68,13 @@ export default function SeletorDeVoz({
       ? ''
       : guardada === VOZ_DA_NUVEM
         ? t('A voz natural não faz parte do seu plano agora. Lendo com a voz automática.')
-        : vozesCarregadas() && !vozDoAparelhoExiste(guardada)
-          ? t('A voz {voz} não existe neste aparelho. Lendo com a voz automática.', {
-              voz: nomeLegivelDaVoz(guardada),
-            })
-          : '';
+        : guardada === VOZ_NO_APARELHO
+          ? t('A voz de alta qualidade não está pronta neste aparelho. Lendo com a voz automática.')
+          : vozesCarregadas() && !vozDoAparelhoExiste(guardada)
+            ? t('A voz {voz} não existe neste aparelho. Lendo com a voz automática.', {
+                voz: nomeLegivelDaVoz(guardada),
+              })
+            : '';
   const semVozDoAparelho = !opcoes.some((o) => o.tipo === 'aparelho');
   const nomeDoIdioma = langLabelNaUI(idioma);
 
@@ -117,12 +124,22 @@ export default function SeletorDeVoz({
       motor.speak(texto, fala);
       return;
     }
+    if (o.tipo === 'no-aparelho') {
+      /* A amostra da voz no aparelho sai do próprio motor (o worker carrega o modelo já baixado). */
+      const motor = await motorDaVozNoAparelho().catch(() => null);
+      if (meu !== pedido.current) return;
+      if (!motor) return fim();
+      calar.current = () => motor.cancel();
+      motor.speak(texto, fala);
+      return;
+    }
     calar.current = cancelSpeech;
     /* `voiceName: ''` é a automática de verdade: sem ele, a amostra sairia com a voz já escolhida. */
     speak(texto, { ...fala, voiceName: o.id });
   };
 
   const escolher = (o: OpcaoDeVoz) => {
+    if (o.id === VOZ_NO_APARELHO && !vozNoAparelhoUtilizavel()) return; // antes de baixar, só o botão de baixar vale
     aoEscolher?.(o.id);
     void escolherVoz(idioma, o.id).then(
       (ok) => ok || toast.warn(t('A voz já vale neste aparelho, mas não deu para guardar na conta agora.')),
@@ -156,7 +173,7 @@ export default function SeletorDeVoz({
                   <b>{o.nome}</b>
                   <small>{o.tipo === 'aparelho' ? [o.detalhe, ...o.etiquetas].join(' · ') : o.detalhe}</small>
                 </span>
-                {o.tipo === 'nuvem' &&
+                {(o.tipo === 'nuvem' || o.tipo === 'no-aparelho') &&
                   o.etiquetas.map((e) => (
                     <span key={e} className="q-tag">
                       {e}
@@ -170,6 +187,7 @@ export default function SeletorDeVoz({
                 aria-pressed={amostra}
                 aria-label={amostra ? t('Parar a amostra') : t('Ouvir uma amostra da voz {voz}', { voz: o.nome })}
                 data-amostra={o.id || 'automatica'}
+                disabled={o.tipo === 'no-aparelho' && !vozNoAparelhoUtilizavel()}
                 onClick={() => void ouvir(o)}
               >
                 {amostra ? <Square aria-hidden /> : <Volume2 aria-hidden />}
@@ -178,6 +196,12 @@ export default function SeletorDeVoz({
           );
         })}
       </div>
+      <VozNoAparelho
+        idioma={idioma}
+        aoFicarPronta={() =>
+          escolher({ id: VOZ_NO_APARELHO, tipo: 'no-aparelho', nome: '', detalhe: '', etiquetas: [] })
+        }
+      />
       {avisoDoSumico && (
         <p className="q-aju-nota" role="status" data-testid="voz-que-sumiu">
           {avisoDoSumico}

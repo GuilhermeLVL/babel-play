@@ -6047,5 +6047,20 @@
   "Capítulo baixado: dá para ouvir sem internet.": "Chapter downloaded: you can listen without internet.",
   "Não deu para baixar agora. O capítulo continua tocando com internet.": "Couldn't download it right now. The chapter still plays with internet.",
   "Apagar do aparelho": "Delete from this device",
-  "Não conseguimos tocar este capítulo agora. Vamos ler com a voz do seu aparelho.": "We couldn't play this chapter right now. We'll read it with your device's voice."
+  "Não conseguimos tocar este capítulo agora. Vamos ler com a voz do seu aparelho.": "We couldn't play this chapter right now. We'll read it with your device's voice.",
+  "Voz de alta qualidade (no aparelho)": "High-quality voice (on this device)",
+  "Lê os livros com uma voz sintetizada que roda neste aparelho. Nas outras telas, lê a voz do sistema.": "Reads books with a synthesized voice that runs on this device. On other screens, the system voice reads.",
+  "A voz de alta qualidade não está disponível neste aparelho: ela precisa de mais memória do que celulares e tablets costumam ter.": "The high-quality voice isn't available on this device: it needs more memory than phones and tablets usually have.",
+  "A voz de alta qualidade não está disponível neste navegador.": "The high-quality voice isn't available in this browser.",
+  "Baixando a voz de alta qualidade": "Downloading the high-quality voice",
+  "Baixando: {feito} de {total} MB.": "Downloading: {feito} of {total} MB.",
+  "A voz de alta qualidade está pronta neste aparelho.": "The high-quality voice is ready on this device.",
+  "Voz do narrador": "Narrator voice",
+  "Baixa uma vez, ≈ {mb} MB; fica só neste aparelho; funciona sem internet depois; você apaga quando quiser.": "Downloads once, ≈ {mb} MB; stays only on this device; works offline afterwards; you can delete it anytime.",
+  "Usa cerca de 2 a 3 GB de memória enquanto lê. Se o computador ficar lento, feche outras abas.": "Uses about 2 to 3 GB of memory while reading. If your computer slows down, close other tabs.",
+  "Neste navegador ela roda mais devagar: a primeira frase pode levar alguns segundos.": "In this browser it runs slower: the first sentence may take a few seconds.",
+  "Não deu para baixar agora. Você pode tentar de novo: o que já veio fica guardado.": "Couldn't download it right now. You can try again: what already arrived is kept.",
+  "Baixar a voz ({mb} MB)": "Download the voice ({mb} MB)",
+  "A voz de alta qualidade não está pronta neste aparelho. Lendo com a voz automática.": "The high-quality voice isn't ready on this device. Reading with the automatic voice.",
+  "A voz de alta qualidade não conseguiu ler agora. Seguimos com a voz do aparelho.": "The high-quality voice couldn't read right now. We'll continue with your device's voice."
 }

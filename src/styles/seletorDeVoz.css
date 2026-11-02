@@ -84,3 +84,18 @@
     max-height: 26vh;
   }
 }
+/* A voz de alta qualidade no aparelho (`VozNoAparelho.tsx`): o custo, o progresso do download e a voz do narrador. */
+.voz-no-aparelho {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.voz-no-aparelho > progress {
+  width: 100%;
+}
+.voz-no-aparelho-narrador {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}

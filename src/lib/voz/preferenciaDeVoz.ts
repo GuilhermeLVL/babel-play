@@ -27,6 +27,7 @@ import { getEntitlements, onPlanChange } from '../entitlements';
 import { flagLigada } from '../flagsCache';
 import { aoMudarPreferencias, carregarPreferencias, lerPreferencias, salvarPreferencias } from '../preferencias';
 import { aoMudarVozes, getVoicePrefs, getVoices, onVoicePrefsChange, setVoicePref, setVoicePrefs } from '../tts';
+import { aoMudarVozNoAparelho, VOZ_NO_APARELHO, vozNoAparelhoPronta } from './vozNoAparelho';
 
 /** Nada escolhido: o app decide (a melhor voz do aparelho; no intérprete, a da nuvem quando o plano tem). */
 export const VOZ_AUTOMATICA = '';
@@ -57,6 +58,8 @@ export function vozGuardada(idioma: string): string {
 export function vozEmUso(idioma: string, nuvem: boolean = vozDaNuvemDisponivel()): string {
   const guardada = vozGuardada(idioma);
   if (guardada === VOZ_DA_NUVEM) return nuvem ? VOZ_DA_NUVEM : VOZ_AUTOMATICA;
+  /* A voz de alta qualidade no aparelho: só com a flag, o perfil, o modelo baixado e o idioma do motor. */
+  if (guardada === VOZ_NO_APARELHO) return vozNoAparelhoPronta(idioma) ? VOZ_NO_APARELHO : VOZ_AUTOMATICA;
   return vozDoAparelhoExiste(guardada) ? guardada : VOZ_AUTOMATICA;
 }
 
@@ -131,6 +134,7 @@ export function useVozesPreferidas(): Record<string, string> {
       onVoicePrefsChange((p) => setVozes({ ...p })),
       aoMudarVozes(() => repintar((n) => n + 1)),
       onPlanChange(() => repintar((n) => n + 1)),
+      aoMudarVozNoAparelho(() => repintar((n) => n + 1)),
     ];
     return () => soltar.forEach((f) => f());
   }, []);

@@ -9,15 +9,17 @@
  * O que o navegador NÃO informa não é inventado: a Web Speech só dá nome, idioma e `localService`.
  * "Natural" é a heurística de nome de `isNeuralVoice` (a mesma que escolhe a automática).
  */
+import { idiomaDoSupertonic } from '../../core/voz/supertonic';
 import { vozesUteis } from '../../core/voz/vozesUteis';
 import { idiomaDaInterface, t } from '../i18n';
 import { codigoDeFala, type VoiceInfo, voicesFor } from '../tts';
 import { VOZ_AUTOMATICA, VOZ_DA_NUVEM, vozDaNuvemDisponivel, vozEmUso } from './preferenciaDeVoz';
+import { VOZ_NO_APARELHO, vozNoAparelhoOferecida } from './vozNoAparelho';
 
 export interface OpcaoDeVoz {
   /** O que vai para a preferência: `''` (automática), `@nuvem`, ou o nome exato da voz do aparelho. */
   id: string;
-  tipo: 'automatica' | 'nuvem' | 'aparelho';
+  tipo: 'automatica' | 'nuvem' | 'no-aparelho' | 'aparelho';
   nome: string;
   /** A variante (o país do sotaque) ou a frase que diz o que a opção é. */
   detalhe: string;
@@ -62,8 +64,15 @@ function opcaoDoAparelho(v: VoiceInfo, recomendada = false): OpcaoDeVoz {
   return { id: v.name, tipo: 'aparelho', nome: nomeLegivelDaVoz(v.name), detalhe: varianteDaVoz(v.lang), etiquetas };
 }
 
-/** As opções de voz de um idioma (aceita `en` ou `en-US`). `nuvem`: o plano tem a voz natural ligada. */
-export function opcoesDeVoz(idioma: string, nuvem: boolean = vozDaNuvemDisponivel()): OpcaoDeVoz[] {
+/**
+ * As opções de voz de um idioma (aceita `en` ou `en-US`). `nuvem`: o plano tem a voz natural ligada. `noAparelho`: a voz
+ * de alta qualidade no aparelho (flag `voz_no_aparelho` + perfil) pode ser oferecida; só aparece nos idiomas do motor.
+ */
+export function opcoesDeVoz(
+  idioma: string,
+  nuvem: boolean = vozDaNuvemDisponivel(),
+  noAparelho: boolean = vozNoAparelhoOferecida(),
+): OpcaoDeVoz[] {
   const opcoes: OpcaoDeVoz[] = [
     {
       id: VOZ_AUTOMATICA,
@@ -82,6 +91,17 @@ export function opcoesDeVoz(idioma: string, nuvem: boolean = vozDaNuvemDisponive
       etiquetas: [t('Nuvem')],
     });
   }
+  if (noAparelho && idiomaDoSupertonic(idioma)) {
+    opcoes.push({
+      id: VOZ_NO_APARELHO,
+      tipo: 'no-aparelho',
+      nome: t('Voz de alta qualidade (no aparelho)'),
+      detalhe: t(
+        'Lê os livros com uma voz sintetizada que roda neste aparelho. Nas outras telas, lê a voz do sistema.',
+      ),
+      etiquetas: [t('No aparelho')],
+    });
+  }
   /* A recomendada é a que a "Automática" lê: natural, no aparelho e do país exato do idioma (`core/voz/melhorVoz.ts`). */
   /* A ordem da lista é a da recomendação: a melhor primeiro, depois as outras do mesmo idioma. */
   const vozes = vozesUteis(voicesFor(idioma), codigoDeFala(idioma));
@@ -94,6 +114,7 @@ export function nomeDaVozEmUso(idioma: string, nuvem: boolean = vozDaNuvemDispon
   const id = vozEmUso(idioma, nuvem);
   if (id === VOZ_AUTOMATICA) return t('Automática');
   if (id === VOZ_DA_NUVEM) return t('Voz natural');
+  if (id === VOZ_NO_APARELHO) return t('Voz de alta qualidade (no aparelho)');
   return nomeLegivelDaVoz(id);
 }
 

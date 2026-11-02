@@ -227,7 +227,7 @@ export default function BarraDoNarrador({
             ? t('Frase {n} de {total}', { n: vista.indice + 1, total: vista.total })
             : t('Pronto para ouvir')}
       </p>
-      {vista.gravado && <ChipVozSintetizada />}
+      {(vista.gravado || vista.vozLocal) && <ChipVozSintetizada />}
       <div className="leitor-narrador-velocidade" role="group" aria-label={t('Velocidade da narração')}>
         <button
           type="button"

@@ -91,6 +91,7 @@ import { buildVocabWord, mtNoteFor, resolveWord } from '../../../lib/vocabWord';
 import { haVozPara } from '../../../lib/voz/haVoz';
 import { useVozesPreferidas, VOZ_DA_NUVEM, vozDaNuvemDisponivel, vozEmUso } from '../../../lib/voz/preferenciaDeVoz';
 import { destravarVozDaNuvem } from '../../../lib/voz/vozDaNuvem';
+import { carregarMotor, destravarVozNoAparelho, vozNoAparelhoPronta } from '../../../lib/voz/vozNoAparelho';
 import type { VocabWord } from '../../../types';
 import { BotaoDoAvatar, DicaDoAvatar } from '../../avatar/modo/BotaoDoAvatar';
 import { useAvatarDoModo } from '../../avatar/modo/useAvatarDoModo';
@@ -506,6 +507,10 @@ export default function LeitorDoLivro({
       elenco: () => elencoRef.current.config(),
       envolverMotor: (m) => ponte.envolver(m),
       audioGravado: () => audioGravadoRef.current,
+      /* A VOZ NO APARELHO (flag `voz_no_aparelho`): o motor só chega por import() quando a pessoa o escolheu e ele serve. */
+      garantirVozLocal: async (idioma) => {
+        if (vozNoAparelhoPronta(idioma)) await carregarMotor();
+      },
       aoNavegar: () => {
         ignorarToquesAte.current = Date.now() + 900;
       },
@@ -513,6 +518,8 @@ export default function LeitorDoLivro({
         if (aviso === 'fim') setAnuncio(t('Fim do livro.'));
         else if (aviso === 'sono') setAnuncio(t('Temporizador de sono: narração pausada.'));
         else if (aviso === 'sem-texto') toast.warn(t('Esta página não tem texto para ler.'));
+        else if (aviso === 'voz-local-indisponivel')
+          toast.warn(t('A voz de alta qualidade não conseguiu ler agora. Seguimos com a voz do aparelho.'));
         else if (aviso === 'audio-indisponivel')
           toast.warn(t('Não conseguimos tocar este capítulo agora. Vamos ler com a voz do seu aparelho.'));
         else toast.warn(t('Não deu para ler esta frase com a voz do aparelho. Escolha outra voz em "Voz e modo".'));
@@ -553,6 +560,7 @@ export default function LeitorDoLivro({
     }
     setNarracaoAberta(true);
     if (vozDaNuvemDisponivel()) destravarVozDaNuvem(); // o iPhone só toca áudio liberado num toque
+    destravarVozNoAparelho(); // idem para a voz no aparelho (só age com ela pronta)
     narradorRef.current?.tocar();
   };
   /* "Avatar" na barra: liga/desliga em um toque. Ligar com a narração fechada abre a faixa (sem começar a tocar). */

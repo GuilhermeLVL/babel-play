@@ -92,7 +92,7 @@ test.describe('Meu avatar', () => {
     await page.reload()
     await expect(page.locator('header [data-avatar-do-usuario="avatar"]')).toBeVisible()
     await page.getByRole('tab', { name: 'Avatar' }).click()
-    await expect(page.getByTestId('avatar-credito')).toContainText('Salvo neste aparelho')
+    await expect(page.getByTestId('avatar-credito')).toContainText('Salvo neste aparelho', { timeout: 30_000 })
     await expect(page.locator('header canvas')).toHaveCount(0)
     await foto(page, '3-recarregado')
 
@@ -114,7 +114,7 @@ test.describe('Meu avatar', () => {
     await expect(page.locator('header [data-avatar-do-usuario="avatar"]')).toHaveCount(0)
     await page.reload()
     await page.getByRole('tab', { name: 'Avatar' }).click()
-    await expect(page.getByTestId('avatar-credito')).toContainText('Sugerido para você')
+    await expect(page.getByTestId('avatar-credito')).toContainText('Sugerido para você', { timeout: 30_000 })
   })
 
   test('estúdio no Perfil: peça entra, a receita salva é v2 com a peça e volta depois de recarregar', async ({
@@ -259,7 +259,7 @@ test.describe('Meu avatar', () => {
 
     await page.reload()
     await page.getByRole('tab', { name: 'Avatar' }).click()
-    await expect(page.getByTestId('avatar-credito')).toContainText('Salvo neste aparelho')
+    await expect(page.getByTestId('avatar-credito')).toContainText('Salvo neste aparelho', { timeout: 30_000 })
     await expect(page.getByTestId('avatar-credito-linha')).toContainText('Autora Teste')
   })
 

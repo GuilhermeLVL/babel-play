@@ -69,6 +69,24 @@ async function soltarLease(nome: string, carimbo: number): Promise<void> {
   }
 }
 
+/**
+ * O FIM DA ÚLTIMA PASSADA BEM-SUCEDIDA, em `travas` (a linha `g:fim:<nome>`, `criado_em` = o instante do fim).
+ * Sem tabela nova: a lease acima some ao terminar, então nada guardava "quando esse job rodou pela última vez" e
+ * um cron parado só se notava pelo efeito (áudio que não é apagado, cache que não é podado). O endpoint de saúde
+ * (`server/lib/saudeDoNegocio.ts`) lê estas linhas. Falhar em marcar nunca derruba o job.
+ */
+export const PREFIXO_DO_FIM = 'g:fim:'
+export const chaveDoFim = (nome: string) => `${PREFIXO_DO_FIM}${nome}`
+
+async function marcarFim(nome: string): Promise<void> {
+  try {
+    await db.execute(sql`INSERT INTO travas (chave, criado_em) VALUES (${chaveDoFim(nome)}, ${Date.now()})
+      ON CONFLICT (chave) DO UPDATE SET criado_em = EXCLUDED.criado_em`)
+  } catch (err) {
+    log('warn', { event: 'job_fim_nao_marcado', job: nome, error: mensagem(err) })
+  }
+}
+
 const mensagem = (err: unknown) => String((err as Error)?.message ?? err).slice(0, 300)
 
 /** Só números e booleanos do resumo vão para o log (nada de id de usuário, por construção). */
@@ -104,6 +122,7 @@ export async function executarJob(nome: string, o: OpcoesDoExecutor = {}): Promi
   try {
     const resumo = resumoNumerico(await job.rodar({ agora: o.agora ?? Date.now(), env }))
     const ms = Date.now() - inicio
+    await marcarFim(nome)
     log('info', { event: 'job_fim', job: nome, latencyMs: ms, resumo })
     observarJob(nome, ms, 'ok')
     return { nome, estado: 'ok', resumo, ms }

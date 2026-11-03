@@ -1,6 +1,6 @@
 # Guias do Frasy: como revisar e publicar
 
-Esta pasta tem 12 rascunhos de guias em pt-BR. Todos nascem com `revisado: false`, e só o que tiver
+Esta pasta tem 13 rascunhos de guias em pt-BR. Todos nascem com `revisado: false`, e só o que tiver
 `revisado: true` entra no build e no `sitemap.xml` (ver `docs/specs/2026-10-25-site-publico-seo-e-anuncios.md`).
 Este arquivo (`LEIA-ME.md`) não é um guia e não é publicado.
 
@@ -78,6 +78,7 @@ palavrasChave: ["...", "..."]
 | `phrasal-verbs-mais-comuns.md`                 | Phrasal verbs por situação                      |
 | `repeticao-espacada-explicada.md`              | Curva do esquecimento, intervalos, cartões      |
 | `treinar-listening-do-zero.md`                 | Roteiro para iniciantes                         |
+| `aprender-ingles-com-jogos.md`                 | Jogos, legendas em etapas, frases e privacidade |
 | `espanhol-com-series-e-musicas.md`             | Espanhol para brasileiros                       |
 | `falsos-cognatos-ingles-portugues.md`          | Armadilhas de palavras parecidas                |
 | `rotina-de-15-minutos-para-estudar-idiomas.md` | Hábito diário curto                             |

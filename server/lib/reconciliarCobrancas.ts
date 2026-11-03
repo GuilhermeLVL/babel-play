@@ -130,7 +130,7 @@ export async function reconciliarCobrancas(opts: {
           event: c.status === 'CONFIRMED' ? 'PAYMENT_CONFIRMED' : 'PAYMENT_RECEIVED',
           payment: {
             id: c.id,
-            externalReference: l.userId,
+            externalReference: l.userId ?? undefined,
             ...(l.sub ? { subscription: l.sub } : {}),
             ...(!l.sub && l.parcelamento ? { installment: l.parcelamento } : {}),
             value: c.value,

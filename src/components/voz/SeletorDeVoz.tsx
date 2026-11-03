@@ -185,7 +185,7 @@ export default function SeletorDeVoz({
           const grupo = grupoDe(o);
           const abreGrupo = i === 0 || grupoDe(opcoes[i - 1]) !== grupo;
           return (
-            <div key={chave || 'automatica'} className="voz-linha-grupo">
+            <div key={`${chave || 'automatica'}#${i}`} className="voz-linha-grupo">
               {abreGrupo && grupo !== 'automatica' && (
                 <span className="q-rotulo voz-grupo" data-grupo={grupo}>
                   {grupo === 'qualidade' ? t('Vozes de alta qualidade') : t('Vozes deste aparelho')}

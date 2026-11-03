@@ -1220,7 +1220,9 @@ export function configDoAlertaPorEmail(
   const chave = env.RESEND_API_KEY?.trim()
   const remetente = env.EMAIL_REMETENTE?.trim()
   if (!destino || !chave || !remetente) return null
-  return { chave, remetente, destino, ambiente: env.SENTRY_ENVIRONMENT?.trim() || env.NODE_ENV || undefined }
+  /* O Worker de staging também roda com NODE_ENV=production; quem o distingue é o Asaas em sandbox. */
+  const ambiente = env.SENTRY_ENVIRONMENT?.trim() || (env.ASAAS_SANDBOX === '1' ? 'staging' : env.NODE_ENV) || undefined
+  return { chave, remetente, destino, ambiente }
 }
 
 /** Sentry do servidor: `null` sem `SENTRY_DSN`. O DSN é validado por quem monta o sink. */

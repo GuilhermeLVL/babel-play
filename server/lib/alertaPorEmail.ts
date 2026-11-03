@@ -8,7 +8,7 @@
  * requisição que ela observa, e no Worker o `waitUntil` mantém a promessa viva depois da resposta.
  *
  * RUÍDO CONTROLADO (um laço de erro não pode virar centenas de e-mails):
- *   - no máximo UM e-mail por evento por hora, por isolate, e o mesmo `Idempotency-Key` (evento + hora UTC) faz o
+ *   - no máximo UM e-mail por evento por hora (por dia, nos avisos de estado), por isolate, e o mesmo `Idempotency-Key` (evento + hora UTC) faz o
  *     Resend descartar a duplicata vinda de outro isolate;
  *   - teto de `maximoPorHora` e-mails no total (padrão 20) — acima disso o alerta é descartado em silêncio e o
  *     próximo ciclo de hora recomeça;
@@ -36,6 +36,8 @@ const URL_DO_RESEND = 'https://api.resend.com/emails'
 const HORA_MS = 3_600_000
 /** Eventos do próprio caminho de envio: nunca alertam, para não fechar um laço. */
 const NUNCA_ALERTAM: ReadonlySet<string> = new Set(['segundo_plano_falhou', 'alerta_email_falhou'])
+/** Avisos de ESTADO (só mudam quando alguém configura algo): no máximo um por dia, não por hora. */
+const JANELA_DO_DIA: ReadonlySet<string> = new Set(['ia_sem_reserva'])
 /** Campos da linha que entram no corpo (enum, número ou id: texto livre só em `error`/`stack`, já redigidos). */
 const CAMPOS = ['route', 'provider', 'status', 'requestId'] as const
 
@@ -67,8 +69,9 @@ export function sinkDeAlertaPorEmail(o: OpcoesDoAlerta): SinkDeErro {
   const relogio = o.relogio ?? (() => Date.now())
   const buscar = o.buscar ?? fetch
   const maximo = o.maximoPorHora ?? 20
-  const ultimoPorEvento = new Map<string, number>()
-  let janela = -1
+  /** evento → o balde (hora ou dia) em que já alertou; um balde novo libera de novo. */
+  const baldeDoEvento = new Map<string, number>()
+  let janelaDoTeto = -1
   let enviados = 0
 
   return (linha) => {
@@ -76,13 +79,13 @@ export function sinkDeAlertaPorEmail(o: OpcoesDoAlerta): SinkDeErro {
     if (NUNCA_ALERTAM.has(evento)) return
     const agora = relogio()
     const hora = Math.floor(agora / HORA_MS)
-    if (hora !== janela) {
-      janela = hora
+    if (hora !== janelaDoTeto) {
+      janelaDoTeto = hora
       enviados = 0
-      ultimoPorEvento.clear()
     }
-    if (ultimoPorEvento.has(evento) || enviados >= maximo) return
-    ultimoPorEvento.set(evento, agora)
+    const balde = JANELA_DO_DIA.has(evento) ? Math.floor(agora / (24 * HORA_MS)) : hora
+    if (baldeDoEvento.get(evento) === balde || enviados >= maximo) return
+    baldeDoEvento.set(evento, balde)
     enviados += 1
 
     const { assunto, texto } = montarAlerta(linha, o.ambiente, new Date(agora))
@@ -92,8 +95,8 @@ export function sinkDeAlertaPorEmail(o: OpcoesDoAlerta): SinkDeErro {
         headers: {
           Authorization: `Bearer ${o.chave}`,
           'Content-Type': 'application/json',
-          /* Evento + hora UTC: o Resend descarta o mesmo alerta vindo de outro isolate na mesma hora. */
-          'Idempotency-Key': `alerta-${evento}-${hora}`.slice(0, 250),
+          /* Evento + hora (ou dia) UTC: o Resend descarta o mesmo alerta vindo de outro isolate na mesma hora. */
+          'Idempotency-Key': `alerta-${evento}-${JANELA_DO_DIA.has(evento) ? `d${balde}` : balde}`.slice(0, 250),
         },
         body: JSON.stringify({ from: o.remetente, to: [o.destino], subject: assunto, text: texto }),
         signal: AbortSignal.timeout(8_000),

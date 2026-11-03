@@ -107,6 +107,21 @@ describe('ruído controlado', () => {
     expect(pedidos[1].headers['Idempotency-Key']).not.toBe(pedidos[0].headers['Idempotency-Key'])
   })
 
+  it('aviso de estado (ia_sem_reserva) sai no máximo uma vez por dia, não por hora', async () => {
+    const { pedidos, buscar } = resendFalso()
+    let agora = Date.UTC(2026, 10, 3, 1, 0)
+    desregistrar = registrarSinkDeErro(sinkDeAlertaPorEmail(opcoes(buscar, { relogio: () => agora })))
+    log('warn', { event: 'ia_sem_reserva' })
+    agora += 3 * 3_600_000
+    log('warn', { event: 'ia_sem_reserva' })
+    await solta()
+    expect(pedidos).toHaveLength(1)
+    agora += 24 * 3_600_000
+    log('warn', { event: 'ia_sem_reserva' })
+    await solta()
+    expect(pedidos).toHaveLength(2)
+  })
+
   it('o teto por hora segura uma enxurrada de eventos diferentes', async () => {
     const { pedidos, buscar } = resendFalso()
     desregistrar = registrarSinkDeErro(sinkDeAlertaPorEmail(opcoes(buscar, { maximoPorHora: 3 })))
@@ -158,6 +173,17 @@ describe('saneamento e falha', () => {
 })
 
 describe('ligar no Worker', () => {
+  it('o ambiente distingue staging (Asaas em sandbox) de produção', () => {
+    const base = {
+      ALERTA_EMAIL_DESTINO: 'a@b.c',
+      RESEND_API_KEY: 'k',
+      EMAIL_REMETENTE: 'F <a@b.c>',
+      NODE_ENV: 'production',
+    }
+    expect(configDoAlertaPorEmail({ ...base, ASAAS_SANDBOX: '1' } as NodeJS.ProcessEnv)?.ambiente).toBe('staging')
+    expect(configDoAlertaPorEmail(base as NodeJS.ProcessEnv)?.ambiente).toBe('production')
+  })
+
   it('sem as três variáveis, nada liga', () => {
     expect(configDoAlertaPorEmail({} as NodeJS.ProcessEnv)).toBeNull()
     expect(

@@ -243,6 +243,11 @@ export default defineConfig(({ mode }) => {
         'fzstd',
         'sql.js',
         'gltf-validator',
+        // O avatar 3D (`carregarAvatar`) importa estes três por `import()`: sem eles aqui, o primeiro teste de avatar num
+        // servidor frio (a CI) os descobre com a página aberta, o Vite re-otimiza (504 "Outdated Optimize Dep") e recarrega.
+        'three',
+        'three/examples/jsm/loaders/GLTFLoader.js',
+        '@pixiv/three-vrm',
       ],
       exclude: ['@huggingface/transformers'],
     },

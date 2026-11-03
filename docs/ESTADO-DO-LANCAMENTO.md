@@ -7,6 +7,8 @@ de linha, está em [auditoria/2026-10-21-lancamento-inventario.md](auditoria/202
 plano em
 [superpowers/plans/2026-10-21-lancamento-estado-3.md](superpowers/plans/2026-10-21-lancamento-estado-3.md).
 
+> **02/11/2026 (0-bis):** a produção `frasy.com.br` JÁ está implantada (Worker, migrações e rollback automático), com quase todas as flags desligadas, e a lista atual do que falta para abrir tudo está em [planejamento/2026-11-02-pendencias-para-100-por-cento.md](planejamento/2026-11-02-pendencias-para-100-por-cento.md). Onde este arquivo disser que a produção não foi implantada, vale aquela lista.
+
 ## 0. O que mudou desde 18/10 (ramo `lancamento/estado-3`)
 
 - **Recorte do lançamento (P1–P6 do plano):** Grátis, **Essencial** e **Premium** à venda (flag `venda_planos_v3`
@@ -86,8 +88,8 @@ importação), furos P0 de 13/09 fechados, a migração para Cloudflare + Supaba
 a passo do dono ([LANCAMENTO.md](LANCAMENTO.md)) e a operação ([runbook.md](runbook.md), [deploy.md](deploy.md),
 [escala.md](escala.md)).
 
-**No ar hoje:** só a edição estática, sem conta nem cobrança ([edicao-estatica.md](edicao-estatica.md)). O servidor
-(Worker da Cloudflare) roda só no staging; a produção ainda não foi implantada.
+**No ar hoje (atualizado em 02/11):** o Worker de produção em `frasy.com.br`, com as flags de venda, anúncios e voz desligadas e
+cadastro/checkout fechados por padrão. Ver [a lista de pendências](planejamento/2026-11-02-pendencias-para-100-por-cento.md).
 
 ## 3. O que falta
 

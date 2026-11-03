@@ -197,6 +197,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'gasto anômalo por usuário: teto ABSOLUTO em US$ por usuário por dia acima do qual sai o alerta ia_gasto_anomalo_usuario (não bloqueia — quem bloqueia é a cota do plano). Padrão US$ 0,50 (um Essencial típico gasta ~US$ 0,03/dia)',
   },
   {
+    nome: 'ALERTA_EMAIL_DESTINO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'e-mail que recebe os alertas do servidor (todo `log(error)` saneado e os avisos de `AVISOS_QUE_ALERTAM`: orçamento de IA a 80%, cobrança divergente, token do webhook inválido, cron que falhou). Usa RESEND_API_KEY e EMAIL_REMETENTE; sem qualquer um dos três, não envia nada. No Worker é o único destino de alerta (o diário em disco não existe lá).',
+  },
+  {
     nome: 'ALIVIO_POOL_USD_DIA',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -1200,6 +1207,20 @@ export function erroDeTrustProxyEmProducao(env: NodeJS.ProcessEnv = process.env)
 export function segredoDeOrigem(env: NodeJS.ProcessEnv = process.env): string | undefined {
   const bruto = env.ORIGEM_SEGREDO?.trim()
   return bruto ? bruto : undefined
+}
+
+/**
+ * Alerta por e-mail (Resend): `null` sem `ALERTA_EMAIL_DESTINO`, `RESEND_API_KEY` ou `EMAIL_REMETENTE`.
+ * O remetente é o mesmo do convite do responsável (`EMAIL_REMETENTE`).
+ */
+export function configDoAlertaPorEmail(
+  env: NodeJS.ProcessEnv = process.env,
+): { chave: string; remetente: string; destino: string; ambiente?: string } | null {
+  const destino = env.ALERTA_EMAIL_DESTINO?.trim()
+  const chave = env.RESEND_API_KEY?.trim()
+  const remetente = env.EMAIL_REMETENTE?.trim()
+  if (!destino || !chave || !remetente) return null
+  return { chave, remetente, destino, ambiente: env.SENTRY_ENVIRONMENT?.trim() || env.NODE_ENV || undefined }
 }
 
 /** Sentry do servidor: `null` sem `SENTRY_DSN`. O DSN é validado por quem monta o sink. */

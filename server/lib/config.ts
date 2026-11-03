@@ -204,13 +204,6 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'e-mail que recebe os alertas do servidor (todo `log(error)` saneado e os avisos de `AVISOS_QUE_ALERTAM`: orçamento de IA a 80%, cobrança divergente, token do webhook inválido, cron que falhou). Usa RESEND_API_KEY e EMAIL_REMETENTE; sem qualquer um dos três, não envia nada. No Worker é o único destino de alerta (o diário em disco não existe lá).',
   },
   {
-    nome: 'OPS_SAUDE_TOKEN',
-    exigencia: 'opcional',
-    criticidade: 'degrada-capacidade',
-    paraQue:
-      'segredo do vigia de saúde (`GET /api/ops/saude`, `Authorization: Bearer`): o workflow agendado `saude-do-negocio.yml` o usa para abrir uma issue quando cobrança pendente, cron parado ou orçamento de IA no fim. Sem ele a rota responde 501.',
-  },
-  {
     nome: 'ALIVIO_POOL_USD_DIA',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -768,6 +761,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'atalho da RESERVA do LLM: base do OpenRouter e o modelo de LLM_RESERVA_MODEL (ou o padrão). As três LLM_RESERVA_* completas vencem o atalho',
+  },
+  {
+    nome: 'OPS_SAUDE_TOKEN',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'segredo do vigia de saúde (`GET /api/ops/saude`, `Authorization: Bearer`): o workflow agendado `saude-do-negocio.yml` o usa para abrir uma issue quando cobrança pendente, cron parado ou orçamento de IA no fim. Sem ele a rota responde 501.',
   },
   {
     nome: 'ORIGEM_SEGREDO',

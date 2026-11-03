@@ -3,7 +3,7 @@ titulo: 'Aprender inglês com jogos: como transformar o que você já joga em es
 descricao: 'Jogar em inglês pode treinar listening e vocabulário de verdade. Veja como escolher o jogo, configurar legendas e anotar frases sem estragar a diversão.'
 slug: 'aprender-ingles-com-jogos'
 publicado: '2026-11-03'
-revisado: false
+revisado: true
 palavrasChave:
   [
     'aprender inglês com jogos',

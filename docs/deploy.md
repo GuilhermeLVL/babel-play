@@ -139,6 +139,7 @@ primeira passada alguns minutos depois do boot e as seguintes no intervalo da ta
 | `podaDasMarcasDeTeste`     | `13 3 * * *` | 13 min / 24 h                | modo público                          | 1 instrução                         |
 | `podaDasJanelasDiarias`    | `17 3 * * *` | 17 min / 24 h                | modo público                          | 1 instrução por métrica             |
 | `limpezaDiaria`            | `23 3 * * *` | 17 min / 24 h                | `LIMPEZA_DIARIA=1` (e fora de teste)  | 200 lotes de 500 linhas             |
+| `reconciliarCobrancas`     | `29 3 * * *` | 29 min / 24 h                | modo público + `ASAAS_API_KEY`        | 150 assinaturas, 45 dias            |
 | `reconciliarArmazenamento` | `19 * * * *` | 19 min / 1 h                 | `STORAGE_RECONCILE_MODE=job`          | 200 usuários                        |
 
 A reconciliação é a única horária: ela cobre todo usuário a cada `STORAGE_RECONCILE_HOURS` (padrão 24 h), e com teto de 200 usuários por passada uma vez por dia só daria conta de 200 usuários por dia; de hora em hora são até 4.800, em passadas curtas (cada uma faz `stat`/`HEAD` por arquivo) espalhadas pelo dia. O minuto do cron repete o atraso do Node, para a ordem ser a mesma; a `limpezaDiaria` vai para `:23` no

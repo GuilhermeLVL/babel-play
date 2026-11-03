@@ -1,10 +1,17 @@
 ---
-titulo: "Rotina de 15 minutos por dia para estudar um idioma"
-descricao: "Monte uma rotina de 15 minutos por dia para estudar inglês ou espanhol: blocos curtos, exemplos de semana, como recomeçar após faltas e medir progresso."
-slug: "rotina-de-15-minutos-para-estudar-idiomas"
-publicado: "2026-10-25"
-revisado: false
-palavrasChave: ["rotina de estudo", "estudar 15 minutos por dia", "hábito de estudo", "constância", "aprender idiomas"]
+titulo: 'Rotina de 15 minutos por dia para estudar um idioma'
+descricao: 'Monte uma rotina de 15 minutos por dia para estudar inglês ou espanhol: blocos curtos, exemplos de semana, como recomeçar após faltas e medir progresso.'
+slug: 'rotina-de-15-minutos-para-estudar-idiomas'
+publicado: '2026-10-25'
+revisado: true
+palavrasChave:
+  [
+    'rotina de estudo',
+    'estudar 15 minutos por dia',
+    'hábito de estudo',
+    'constância',
+    'aprender idiomas',
+  ]
 ---
 
 "Não tenho tempo para estudar inglês." Quase todo mundo já pensou isso. Escola, trabalho, trajetos, família, treino: a agenda enche. A boa notícia é que 15 minutos por dia, bem usados, podem ser suficientes para manter o progresso, desde que haja regularidade.

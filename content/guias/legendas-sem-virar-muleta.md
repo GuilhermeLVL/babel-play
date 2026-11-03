@@ -1,10 +1,17 @@
 ---
-titulo: "Como usar legendas sem virar muleta"
-descricao: "Legendas ajudam ou atrapalham? Veja uma progressão em etapas para usar legendas ao aprender idiomas e, aos poucos, depender menos delas."
-slug: "legendas-sem-virar-muleta"
-publicado: "2026-10-25"
-revisado: false
-palavrasChave: ["legendas para aprender inglês", "assistir sem legenda", "legenda em inglês", "listening", "estudar com filmes"]
+titulo: 'Como usar legendas sem virar muleta'
+descricao: 'Legendas ajudam ou atrapalham? Veja uma progressão em etapas para usar legendas ao aprender idiomas e, aos poucos, depender menos delas.'
+slug: 'legendas-sem-virar-muleta'
+publicado: '2026-10-25'
+revisado: true
+palavrasChave:
+  [
+    'legendas para aprender inglês',
+    'assistir sem legenda',
+    'legenda em inglês',
+    'listening',
+    'estudar com filmes',
+  ]
 ---
 
 "Devo assistir com legenda ou sem?" É uma das perguntas mais comuns de quem estuda um idioma com séries e filmes. A resposta honesta é: depende do seu nível e do que você quer treinar. Legenda não é inimiga nem salvadora. O problema aparece quando ela vira muleta, isto é, quando você nunca mais consegue acompanhar sem ela.
@@ -88,7 +95,7 @@ Se você assiste no computador, o Frasy pode capturar o som do vídeo e mostrar 
 
 ## Quanto tempo em cada degrau?
 
-Não há prazo fixo. Em geral, vale a pena passar algumas semanas em cada degrau, vendo se você já consegue entender cerca de 70% do que escuta antes de avançar. Se estiver muito difícil, volte um degrau sem culpa. Voltar não é retroceder; é ajustar a dificuldade.
+Não há prazo fixo. Em geral, vale a pena passar algumas semanas em cada degrau, vendo se você já consegue entender a maior parte do que escuta antes de avançar. Se estiver muito difícil, volte um degrau sem culpa. Voltar não é retroceder; é ajustar a dificuldade.
 
 ## Erros comuns
 

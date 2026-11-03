@@ -76,6 +76,7 @@ import { meRouter } from '../routes/me'
 import { metricasCapturaRouter } from '../routes/metricasCaptura'
 import { metricasOfertasRouter } from '../routes/metricasOfertas'
 import { metricsRouter } from '../routes/metrics'
+import { opsRouter } from '../routes/ops'
 import { rankRouter } from '../routes/rank'
 import { responsavelRouter } from '../routes/responsavel'
 import { sessionsRouter } from '../routes/sessions'
@@ -399,6 +400,10 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
      evento que não recebeu 200, e a idempotência por id garante que a reentrega não duplica. */
   if (authRequired()) app.use('/api/billing/webhook/asaas', writeLimiter)
   app.use('/api/billing/webhook/asaas', capturarAssincrono(asaasWebhookRouter))
+  /* A saúde do negócio, para o vigia agendado (`saude-do-negocio.yml`): antes do login, com token próprio
+     (`OPS_SAUDE_TOKEN`, ver `server/routes/ops.ts`) e o teto de leituras por minuto (a rota é GET). */
+  if (authRequired()) app.use('/api/ops', limitadorDeLeitura())
+  app.use('/api/ops', capturarAssincrono(opsRouter))
 
   /* RANKING GLOBAL — público, e por isso ANTES do auth, como o health e o webhook.
      Ele veio do Cloudflare quando a edição leve foi encerrada (07/09). O placar é anônimo por

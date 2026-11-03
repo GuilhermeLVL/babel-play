@@ -1,0 +1,110 @@
+# VIGIA DA SAÚDE DO NEGÓCIO — o irmão do `uptime.yml`. O uptime responde "o site está de pé?"; este responde "algo que
+# importa quebrou SEM o usuário ter reclamado?": pagamento do Asaas que não concedeu o plano, cron parado, orçamento de
+# IA no fim, e o backup que deixou de ser feito. De hora em hora ele consulta `GET /api/ops/saude` (server/routes/ops.ts)
+# e confere a idade do último dump em `frasy-backups/semanal/`; se algo está vermelho, abre UMA issue
+# (`saude-do-negocio`, e o GitHub manda o e-mail), atualiza o corpo enquanto o problema durar e a fecha sozinho ao
+# normalizar. Sem conta nova, sem custo.
+#
+# SEGREDOS (Settings → Secrets and variables → Actions): `OPS_SAUDE_TOKEN` (o mesmo do Worker de produção),
+# `R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`, `R2_S3_SECRET_ACCESS_KEY` (os do backup). Variável opcional `OPS_SAUDE_URL`
+# (padrão: https://frasy.com.br/api/ops/saude). Faltando um segredo, o workflow FALHA dizendo o nome: um vigia desarmado
+# que termina verde dá a sensação de cobertura que não existe.
+name: saude-do-negocio
+
+on:
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+
+concurrency:
+  group: saude-do-negocio
+  cancel-in-progress: false
+
+jobs:
+  vigiar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Conferir os segredos
+        env:
+          OPS_SAUDE_TOKEN: ${{ secrets.OPS_SAUDE_TOKEN }}
+          R2_S3_ENDPOINT: ${{ secrets.R2_S3_ENDPOINT }}
+          R2_S3_ACCESS_KEY_ID: ${{ secrets.R2_S3_ACCESS_KEY_ID }}
+          R2_S3_SECRET_ACCESS_KEY: ${{ secrets.R2_S3_SECRET_ACCESS_KEY }}
+        run: |
+          for n in OPS_SAUDE_TOKEN R2_S3_ENDPOINT R2_S3_ACCESS_KEY_ID R2_S3_SECRET_ACCESS_KEY; do
+            [ -n "${!n}" ] || { echo "::error::vigia desarmado: falta o secret $n"; exit 1; }
+          done
+
+      - name: Consultar a saúde do negócio
+        env:
+          OPS_SAUDE_TOKEN: ${{ secrets.OPS_SAUDE_TOKEN }}
+          URL: ${{ vars.OPS_SAUDE_URL || 'https://frasy.com.br/api/ops/saude' }}
+        run: |
+          : > problemas.txt
+          # 3 tentativas: um blip de rede do runner não pode virar alarme falso.
+          for i in 1 2 3; do
+            code=$(curl -s -o saude.json -w "%{http_code}" --max-time 25 -H "Authorization: Bearer $OPS_SAUDE_TOKEN" "$URL" || echo 000)
+            [ "$code" = "200" ] && break
+            sleep 20
+          done
+          if [ "$code" != "200" ]; then
+            echo "- **vigia**: /api/ops/saude respondeu HTTP $code (o servidor não consegue se avaliar)" >> problemas.txt
+          else
+            python3 - <<'PY' >> problemas.txt
+          import json
+          d = json.load(open('saude.json'))
+          for c in d.get('checagens', []):
+              if not c.get('ok'):
+                  print(f"- **{c['nome']}**: {c['detalhe']}")
+          PY
+          fi
+
+      - name: Conferir a idade do último backup
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_S3_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_S3_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_EC2_METADATA_DISABLED: 'true'
+          ENDPOINT: ${{ secrets.R2_S3_ENDPOINT }}
+        run: |
+          ultimo=$(aws s3api list-objects-v2 --bucket frasy-backups --prefix semanal/ --endpoint-url "$ENDPOINT" \
+            --query 'sort_by(Contents,&LastModified)[-1].LastModified' --output text 2>/dev/null || echo erro)
+          if [ -z "$ultimo" ] || [ "$ultimo" = "None" ] || [ "$ultimo" = "erro" ]; then
+            echo "- **backup**: nenhum dump encontrado em frasy-backups/semanal/ (ou o bucket não respondeu)" >> problemas.txt
+            exit 0
+          fi
+          idade=$(( ( $(date -u +%s) - $(date -u -d "$ultimo" +%s) ) / 3600 ))
+          echo "último dump: $ultimo (há ${idade} h)"
+          # Semanal + folga de 2 dias: acima de 9 dias o backup deixou de ser feito.
+          if [ "$idade" -gt 216 ]; then
+            echo "- **backup**: o último dump tem ${idade} h (mais de 9 dias): o backup semanal parou" >> problemas.txt
+          fi
+
+      - name: Abrir, atualizar ou fechar a issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          existente=$(gh issue list --label saude-do-negocio --state open --json number --jq '.[0].number // empty')
+          if [ -s problemas.txt ]; then
+            {
+              echo "O vigia de saúde encontrou problema(s) em $(date -u +%Y-%m-%dT%H:%MZ):"
+              echo
+              cat problemas.txt
+              echo
+              echo "- **Run**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              echo "- **O que fazer**: docs/runbook.md. Cobrança pendente: Admin › Cobrança. Esta issue fecha sozinha quando tudo voltar ao verde."
+            } > corpo.md
+            if [ -n "$existente" ]; then
+              gh issue edit "$existente" --body-file corpo.md
+            else
+              gh label create saude-do-negocio --color D93F0B --description "aberta pelo vigia de saúde do negócio" 2>/dev/null || true
+              gh issue create --title "🟠 Saúde do negócio: algo precisa de atenção ($(date -u +%Y-%m-%dT%H:%MZ))" --label saude-do-negocio --body-file corpo.md
+            fi
+          elif [ -n "$existente" ]; then
+            gh issue close "$existente" --comment "Tudo voltou ao verde em $(date -u +%Y-%m-%dT%H:%MZ). Fechando."
+          fi

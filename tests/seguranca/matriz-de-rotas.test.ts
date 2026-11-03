@@ -33,6 +33,8 @@ const PUBLICAS_POR_DESENHO: Record<string, string> = {
     'probe de PRONTIDÃO (Fase 5), pública pelo mesmo motivo do health: um orquestrador não tem token de ninguém. Responde se o processo consegue ATENDER — banco, migrações e armazenamento externo — e nomeia só a dependência, nunca o erro: nem caminho, nem driver, nem endpoint.',
   'POST /api/billing/webhook/asaas':
     'o Asaas não tem JWT de usuário nenhum. A autenticação é própria (header `asaas-access-token`, comparação em tempo constante) e sem o segredo configurado ela recusa tudo.',
+  'GET /api/ops/saude':
+    'o vigia agendado da saúde do negócio (workflow `saude-do-negocio.yml`) não tem JWT de ninguém. A autenticação é própria (`Authorization: Bearer` com `OPS_SAUDE_TOKEN`, comparação em tempo constante) e sem o segredo configurado ela recusa tudo (501). A resposta é só checagens e contagens, nenhum dado de pessoa.',
   'GET /api/rank/:jogo':
     'placar global, anônimo por desenho: sai apelido, pontos e combo, e precisa funcionar igual com e sem conta. Exigir token o quebraria no modo para o qual ele foi feito.',
   'POST /api/rank/:jogo':

@@ -263,6 +263,12 @@ export async function aplicarEvento(
         if (!real) {
           return { estado: 'nao-aplicado', motivo: `pagamento ${vId} não encontrado no Asaas (evento não confere)` }
         }
+        /* O Asaas REENTREGA: um `CONFIRMED` que só chega depois de o pagamento ter sido estornado (ou de virar
+           chargeback) não tem o que conceder — e é um caso RESOLVIDO, não uma pendência. Como `nao-aplicado` ele
+           ficaria para sempre na fila do admin (e deixaria `cobranca_pendente` vermelha no vigia de saúde). */
+        if (PAGAMENTO_JA_DESFEITO.has(real.status)) {
+          return { estado: 'ignorado', motivo: `pagamento ${vId} já ${real.status} no Asaas: nada a conceder` }
+        }
         if (real.status !== 'CONFIRMED' && real.status !== 'RECEIVED') {
           return {
             estado: 'nao-aplicado',
@@ -769,6 +775,16 @@ function planoDesteParcelamento(atual: Subscription | null, parcelamento: string
   const plano = normalizarPlano(atual.planoDaCobranca ?? atual.plan)
   return ehPlanoPago(plano) ? plano : null
 }
+
+/** Estados do pagamento no Asaas em que o dinheiro voltou (ou está voltando): um confirmado tardio não concede nada. */
+const PAGAMENTO_JA_DESFEITO: ReadonlySet<string> = new Set([
+  'REFUNDED',
+  'REFUND_REQUESTED',
+  'REFUND_IN_PROGRESS',
+  'CHARGEBACK_REQUESTED',
+  'CHARGEBACK_DISPUTE',
+  'AWAITING_CHARGEBACK_REVERSAL',
+])
 
 /**
  * Os planos que este valor paga, numa cobrança única (`parcelas` 1: mensalidade ou ano à vista) ou como parcela

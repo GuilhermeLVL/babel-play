@@ -36,13 +36,13 @@ Levantado a partir de produção (`frasy.com.br`, sondada em 02/11) e dos docume
 
 ## IA
 
-| Item                                                                                                                  | Quem                                 |
-| --------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| Chaves pagas (OpenRouter + reserva Groq) com retenção zero e teto de gasto; sem reserva o boot avisa `ia_sem_reserva` | dono (contas) + assistente (secrets) |
-| Ligar `ia_de_estudo` e `nuvem_gratuita_alivio`                                                                        | dono                                 |
-| Teto em dólar por conta (`TETO_USD_MES_*`) e alerta do pool da amostra grátis                                         | dono decide números                  |
-| Subir o limite da chave do OpenRouter e preencher a planilha de calibração (fecha a medição de qualidade)             | dono                                 |
-| `voz_natural`: registrar a retenção do provedor na LGPD antes                                                         | dono                                 |
+| Item                                                                                                                  | Quem                                                       |
+| --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Chaves pagas (OpenRouter + reserva Groq) com retenção zero e teto de gasto; sem reserva o boot avisa `ia_sem_reserva` | dono (contas) + assistente (secrets)                       |
+| Ligar `ia_de_estudo` e `nuvem_gratuita_alivio`                                                                        | dono                                                       |
+| Teto em dólar por conta (`TETO_USD_MES_*`) e alerta do pool da amostra grátis                                         | números aprovados (×1,25, runbook §0.6); ligar com a venda |
+| Subir o limite da chave do OpenRouter e preencher a planilha de calibração (fecha a medição de qualidade)             | dono                                                       |
+| `voz_natural`: registrar a retenção do provedor na LGPD antes                                                         | dono                                                       |
 
 ## Anúncios
 

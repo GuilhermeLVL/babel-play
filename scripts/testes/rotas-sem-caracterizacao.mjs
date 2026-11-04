@@ -46,6 +46,8 @@ const SEM_CARACTERIZACAO = {
   'GET /api/vocab/resumo':
     'as contagens da tela Cartões são cobertas em `tests/integration/vocab-resumo.test.ts` (26 casos: totais por estado, por idioma, sessão e baralho, previsão, retenção, calendário, virada do dia, ETag e 304, outra conta)',
   'POST /api/billing/webhook/asaas': 'idem (é o próprio webhook)',
+  'GET /api/ops/saude':
+    'o vigia da saúde do negócio (token próprio, antes do login); coberto por `tests/integration/saude-do-negocio.test.ts` (501 sem segredo, 401 com o errado, 200 com as checagens e o limite de cada job)',
   'GET /api/images/search':
     'proxy do Openverse; `tests/integration/audit-s13-image-url.test.ts` e `images` com cache em memória — Fase 5 troca o cache e escreve o teste HTTP',
   'POST /api/erros-do-cliente':
@@ -91,6 +93,7 @@ const PREFIXOS = {
   'server/routes/erros.ts': '/api/erros-do-cliente',
   'server/routes/rank.ts': '/api/rank',
   'server/routes/health.ts': '/api/health',
+  'server/routes/ops.ts': '/api/ops',
   'server/audio/loopback.ts': '/api/audio',
   /* O tutor (antes `server/routes/gemini.ts`) nunca esteve nesta lista — era invisivel ao portao.
      Entrou na Fase 2 do lancamento, quando virou `tutor.ts`. */

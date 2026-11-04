@@ -197,6 +197,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'gasto anômalo por usuário: teto ABSOLUTO em US$ por usuário por dia acima do qual sai o alerta ia_gasto_anomalo_usuario (não bloqueia — quem bloqueia é a cota do plano). Padrão US$ 0,50 (um Essencial típico gasta ~US$ 0,03/dia)',
   },
   {
+    nome: 'ALERTA_EMAIL_DESTINO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'e-mail que recebe os alertas do servidor (todo `log(error)` saneado e os avisos de `AVISOS_QUE_ALERTAM`: orçamento de IA a 80%, cobrança divergente, token do webhook inválido, cron que falhou). Usa RESEND_API_KEY e EMAIL_REMETENTE; sem qualquer um dos três, não envia nada. No Worker é o único destino de alerta (o diário em disco não existe lá).',
+  },
+  {
     nome: 'ALIVIO_POOL_USD_DIA',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -302,6 +309,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'só para TESTE: `1` faz o Node responder como o Worker em `temDisco()` (server/lib/runtime.ts) — upload em stream para o R2, sem temporário em disco. Nunca em produção',
+  },
+  {
+    nome: 'BILLING_RECONCILE_MODE',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'reconciliação diária Asaas × banco: `apply` reaplica pagamentos confirmados que nunca geraram evento; qualquer outro valor (padrão) só avisa por e-mail',
   },
   {
     nome: 'CEREBRAS_API_KEY',
@@ -756,6 +770,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'atalho da RESERVA do LLM: base do OpenRouter e o modelo de LLM_RESERVA_MODEL (ou o padrão). As três LLM_RESERVA_* completas vencem o atalho',
   },
   {
+    nome: 'OPS_SAUDE_TOKEN',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'segredo do vigia de saúde (`GET /api/ops/saude`, `Authorization: Bearer`): o workflow agendado `saude-do-negocio.yml` o usa para abrir uma issue quando cobrança pendente, cron parado ou orçamento de IA no fim. Sem ele a rota responde 501.',
+  },
+  {
     nome: 'ORIGEM_SEGREDO',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -1200,6 +1221,22 @@ export function erroDeTrustProxyEmProducao(env: NodeJS.ProcessEnv = process.env)
 export function segredoDeOrigem(env: NodeJS.ProcessEnv = process.env): string | undefined {
   const bruto = env.ORIGEM_SEGREDO?.trim()
   return bruto ? bruto : undefined
+}
+
+/**
+ * Alerta por e-mail (Resend): `null` sem `ALERTA_EMAIL_DESTINO`, `RESEND_API_KEY` ou `EMAIL_REMETENTE`.
+ * O remetente é o mesmo do convite do responsável (`EMAIL_REMETENTE`).
+ */
+export function configDoAlertaPorEmail(
+  env: NodeJS.ProcessEnv = process.env,
+): { chave: string; remetente: string; destino: string; ambiente?: string } | null {
+  const destino = env.ALERTA_EMAIL_DESTINO?.trim()
+  const chave = env.RESEND_API_KEY?.trim()
+  const remetente = env.EMAIL_REMETENTE?.trim()
+  if (!destino || !chave || !remetente) return null
+  /* O Worker de staging também roda com NODE_ENV=production; quem o distingue é o Asaas em sandbox. */
+  const ambiente = env.SENTRY_ENVIRONMENT?.trim() || (env.ASAAS_SANDBOX === '1' ? 'staging' : env.NODE_ENV) || undefined
+  return { chave, remetente, destino, ambiente }
 }
 
 /** Sentry do servidor: `null` sem `SENTRY_DSN`. O DSN é validado por quem monta o sink. */

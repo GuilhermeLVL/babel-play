@@ -222,6 +222,22 @@ Sete portas decidem o que a produção oferece. Quatro são secrets do Worker (o
 | `anuncios`         | flag (+ `ANUNCIOS_ORIGEM`) | `flags ligar anuncios`, só depois do jurídico e da rede (LANCAMENTO §11-bis, passo 6)     | `flags desligar anuncios` (a CSP volta ao normal em até 60 s)                  | nenhum espaço renderiza e nada é pedido a terceiros                                                                                        |
 | `AI_ENABLED`       | secret                     | `1` ou sem o secret                                                                       | `0`                                                                            | toda IA de nuvem para; o app segue com os modelos locais                                                                                   |
 
+**Tetos em dólar por conta (aprovados em 03/11/2026, ainda NÃO ligados).** Última rede de gasto por plano pago
+(`server/lib/tetoUsdDaConta.ts`; ao atingir: 402 `teto_usd_da_conta`, a legenda segue no aparelho). Valor = custo no pior caso
+da cota cheia (`npm run ia:custo`, câmbio 5,6) × 1,25. Ligue **junto com a venda** (começa a contar do momento em que o
+secret existe), com `npx wrangler secret put NOME -c wrangler.jsonc`:
+
+| secret                   | US$/mês |
+| ------------------------ | ------- |
+| `TETO_USD_MES_ESSENCIAL` | 0,40    |
+| `TETO_USD_MES_PREMIUM`   | 2,20    |
+| `TETO_USD_MES_PLUS`      | 2,00    |
+| `TETO_USD_MES_FAMILIA`   | 3,40    |
+| `TETO_USD_MES_PRO4`      | 5,50    |
+
+O Pro fica acima da receita líquida do anual (~US$ 4,8/mês): o pior caso é ~US$ 0,7 de prejuízo, só com a cota inteira usada.
+Plano `aovivo` ainda sem número (o simulador não o traz).
+
 Regras de bolso: **abra na ordem** cadastro → venda → anual → anúncios e **feche na ordem inversa do problema** (cobrança
 errada: `CHECKOUT_ENABLED=0`; conta falsa em massa: `SIGNUP_ENABLED=0`; IA gastando: `AI_ENABLED=0`, §0 item 2). Fechar
 `CHECKOUT_ENABLED` ou `venda_planos_v3` nunca tira o plano de quem já pagou. As chaves de emergência e o orçamento de IA

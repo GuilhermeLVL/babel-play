@@ -147,4 +147,17 @@ export const JOBS: Job[] = [
       return { candidatos, reconciliados, falhas }
     },
   },
+  {
+    /* Reconciliação Asaas × banco (Fase 2 da garantia de cobrança): pagamentos dos últimos 45 dias que não geraram
+       evento. `BILLING_RECONCILE_MODE=apply` reaplica; o padrão só avisa. Só com Asaas configurado e modo público.
+       Ver `server/lib/reconciliarCobrancas.ts`. */
+    nome: 'reconciliarCobrancas',
+    cron: '29 3 * * *',
+    node: { atrasoInicialMs: 29 * MIN, intervaloMs: DIA },
+    condicao: (env) => authRequired(env) && Boolean(env.ASAAS_API_KEY),
+    async rodar({ agora, env }) {
+      const { modoDaReconciliacao, reconciliarCobrancas } = await import('../lib/reconciliarCobrancas')
+      return { ...(await reconciliarCobrancas({ agora, modo: modoDaReconciliacao(env) })) }
+    },
+  },
 ]

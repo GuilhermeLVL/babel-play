@@ -311,6 +311,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'só para TESTE: `1` faz o Node responder como o Worker em `temDisco()` (server/lib/runtime.ts) — upload em stream para o R2, sem temporário em disco. Nunca em produção',
   },
   {
+    nome: 'BILLING_RECONCILE_MODE',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'reconciliação diária Asaas × banco: `apply` reaplica pagamentos confirmados que nunca geraram evento; qualquer outro valor (padrão) só avisa por e-mail',
+  },
+  {
     nome: 'CEREBRAS_API_KEY',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',

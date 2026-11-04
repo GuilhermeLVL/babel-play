@@ -168,6 +168,8 @@ export const AVISOS_QUE_ALERTAM: ReadonlySet<string> = new Set([
   'billing_parcela_ambigua',
   'billing_valor_ambiguo',
   'billing_webhook_sem_referencia',
+  'billing_reconciliacao_divergente',
+  'billing_reconciliacao_aplicacao_falhou',
 ])
 
 /** Registra um destino externo para eventos `error`. Devolve como desregistrar. */

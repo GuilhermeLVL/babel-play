@@ -14,5 +14,11 @@
 # workflow entram so como referencia a secrets.
 57214fc7472d90dbe310c8b4585e9a002da8b163:.github/workflows/bancada-nuvem.yml:generic-api-key:129
 
+# O primeiro commit deste arquivo (ad94cffb) trazia comentarios que casavam com a regra; ja corrigidos,
+# mas o commit fica no historico. Mesmos 3 achados, fingerprint exato:
+ad94cffb134a0b84535d5bf343634a10b7307e7a:.gitleaksignore:generic-api-key:5
+ad94cffb134a0b84535d5bf343634a10b7307e7a:.gitleaksignore:generic-api-key:12
+ad94cffb134a0b84535d5bf343634a10b7307e7a:.gitleaksignore:generic-api-key:16
+
 # funil-login.test.tsx: senha de exemplo em teste com o Supabase mockado.
 914115d09e51d6eda9fb021b268b77545a1b47de:tests/funil-login.test.tsx:generic-api-key:211

@@ -1,0 +1,17 @@
+# Falsos positivos do gitleaks no HISTORICO, um fingerprint exato por linha (commit:arquivo:regra:linha).
+# Estreito de proposito: so estes 4 achados deixam de ser acusados; qualquer outro commit, arquivo ou
+# linha continua sendo varrido. A allowlist por valor fica em `.gitleaks.toml`.
+
+# construir.sh: `export ... VITE_SUPABASE_ANON_KEY= BERGAMOT_BAIXAR=0` — a variavel e atribuida VAZIA.
+40f7f95cefdbe17123f2eeabb233a4bfee237b93:docs/auditoria/eval/desempenho-2026-10/scripts/aplicado/construir.sh:generic-api-key:16
+
+# preflight-producao.test.ts: `SECRET_KEY: 'curta-demais'`/similar — texto de teste (valor curto de proposito); os
+# demais valores do arquivo sao gerados na hora por `randomBytes`.
+1baca24d42315d04e879ec02a05f3f2f89312171:tests/preflight-producao.test.ts:generic-api-key:261
+
+# bancada-nuvem.yml: `restore-keys: bancada-nuvem-comet-v1-` — prefixo de chave de cache do actions/cache,
+# nao credencial. Os segredos do workflow entram so como `${{ secrets.X }}`.
+57214fc7472d90dbe310c8b4585e9a002da8b163:.github/workflows/bancada-nuvem.yml:generic-api-key:129
+
+# funil-login.test.tsx: `password: 'senha-forte-123'` — senha de exemplo de um teste com Supabase mockado.
+914115d09e51d6eda9fb021b268b77545a1b47de:tests/funil-login.test.tsx:generic-api-key:211

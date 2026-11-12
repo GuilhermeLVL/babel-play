@@ -254,7 +254,8 @@ export const makePDF = async file => {
         useSystemFonts: true,
     }).promise
 
-    const book = { rendition: { layout: 'pre-paginated' } }
+    // FRASY: livro do Frasy (páginas renderizadas por nós como imagem), sem marcação do arquivo.
+    const book = { rendition: { layout: 'pre-paginated' }, frasyConfiavel: true }
     const { metadata, info } = await pdf.getMetadata() ?? {}
     book.metadata = {
         title: metadata?.get('dc:title') ?? info?.Title,

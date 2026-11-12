@@ -124,11 +124,12 @@ describe('a lista de vozes', () => {
     const linhas = opcoes().map((o) => o.textContent)
     expect(linhas[0]).toContain('Automática')
     expect(marcada()?.textContent).toContain('Automática')
-    // As naturais antes; "Microsoft", "Online (Natural)" e o nome do idioma saem do nome.
+    // A ordem é a da recomendação (país exato, natural, no aparelho); a melhor leva a etiqueta "Recomendada".
+    // "Microsoft", "Online (Natural)" e o nome do idioma saem do nome.
     expect(linhas.slice(1)).toEqual([
-      'Google UK English FemaleReino Unido · Natural · Pela internet',
-      'AriaEstados Unidos · Natural · Pela internet',
+      'AriaEstados Unidos · Recomendada · Natural · Pela internet',
       'DavidEstados Unidos · No aparelho',
+      'Google UK English FemaleReino Unido · Natural · Pela internet',
     ])
     expect(document.body.textContent).not.toContain('Maria')
   })
@@ -140,10 +141,22 @@ describe('a lista de vozes', () => {
     expect(nomeLegivelDaVoz('Microsoft')).toBe('Microsoft')
   })
 
-  it('idioma sem voz no aparelho: só a "Automática", e a nota diz que não há voz instalada', () => {
+  it('idioma sem voz no aparelho: só a "Automática", e a nota diz o que houve e o que fazer', () => {
     render(<SeletorDeVoz idioma="ja" />)
     expect(opcoes()).toHaveLength(1)
-    expect(screen.getByTestId('sem-voz-do-aparelho').textContent).toBe('Nenhuma voz instalada para este idioma.')
+    const nota = screen.getByTestId('sem-voz-do-aparelho').textContent ?? ''
+    expect(nota).toContain('Este aparelho não tem voz em japonês.')
+    expect(nota).toMatch(/Para ouvir, (instale|baixe)/)
+  })
+
+  it('avisa que "Natural" é estimativa pelo nome quando há vozes assim', () => {
+    render(<SeletorDeVoz idioma="en-US" />)
+    expect(screen.getByTestId('nota-natural').textContent).toMatch(/estimativa pelo nome/)
+  })
+
+  it('a melhor voz por idioma exato: pt-BR recebe a Recomendada, e o ouvir uma amostra continua valendo', () => {
+    render(<SeletorDeVoz idioma="pt-BR" />)
+    expect(opcoes()[1].textContent).toContain('Recomendada')
   })
 })
 

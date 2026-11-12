@@ -1,7 +1,7 @@
 import '../../../styles/avatar.css';
 
-import { AlertTriangle, Check, RotateCcw, Save, Trash2 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AlertTriangle, BookOpen, Check, RotateCcw, Save, Trash2 } from 'lucide-react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { SEM_SUPORTE, type SuporteDaPaleta } from '../../../core/avatar/aparencia';
 import {
@@ -23,6 +23,7 @@ import type { CreditoDoModelo } from '../../../core/avatar/importador/validar';
 import type { ReceitaDeAvatar } from '../../../core/avatar/receita';
 import { sugerirModelo } from '../../../core/avatar/sugestao';
 import { permissoesDoAvatar } from '../../../core/avatar/sugestao';
+import { FLAG_AVATAR_SINAIS } from '../../../core/planos';
 import { COLECAO_SUGERIVEL, type ModeloDaColecao, modeloDaColecao } from '../../../data/avatar/colecao';
 import { lerModeloImportado } from '../../../lib/avatar/armazem';
 import { detectarTier } from '../../../lib/avatar/detectarTier';
@@ -35,6 +36,7 @@ import {
   salvarMeuAvatar,
 } from '../../../lib/avatar/meuAvatar';
 import { useProtegidoParaAvatar } from '../../../lib/avatar/protegido';
+import { useFlag } from '../../../lib/flags';
 import { t } from '../../../lib/i18n';
 import { usePerfil } from '../../../lib/usePerfil';
 import { PainelDeAba } from '../../ui';
@@ -44,6 +46,8 @@ import EstudioDoAvatar from '../EstudioDoAvatar';
 import Escolher from './Escolher';
 import Personalizar from './Personalizar';
 import TragaOSeu, { type ModeloPreparado } from './TragaOSeu';
+
+const GuiaDoAlfabeto = lazy(() => import('../GuiaDoAlfabeto'));
 
 type Visao = 'escolher' | 'personalizar' | 'estudio' | 'traga';
 
@@ -116,6 +120,8 @@ export default function AbaAvatar({ nivel = 1, saldoSeeds = 0 }: { nivel?: numbe
   const [modo, setModo] = useState<ModoDeCamera>('corpo');
   const [previaImportada, setPreviaImportada] = useState<PreviaImportada | null>(null);
   const celular = useCelular();
+  const sinais = useFlag(FLAG_AVATAR_SINAIS);
+  const [guiaAberto, setGuiaAberto] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [aviso, setAviso] = useState<{ tom: 'ok' | 'erro'; texto: string } | null>(null);
   const [apagando, setApagando] = useState(false);
@@ -265,6 +271,11 @@ export default function AbaAvatar({ nivel = 1, saldoSeeds = 0 }: { nivel?: numbe
 
   return (
     <div className="av-tela" data-testid="aba-avatar">
+      {guiaAberto && sinais && (
+        <Suspense fallback={null}>
+          <GuiaDoAlfabeto aoFechar={() => setGuiaAberto(false)} />
+        </Suspense>
+      )}
       <p className="qc-nota">
         {t('O avatar é opcional e fica só neste aparelho. Nada dele é enviado para o servidor.')}
       </p>
@@ -369,6 +380,24 @@ export default function AbaAvatar({ nivel = 1, saldoSeeds = 0 }: { nivel?: numbe
         </section>
 
         <div className="av-extra">
+          {sinais && (
+            <div className="av-credito" data-testid="avatar-guia-linha">
+              <p style={{ margin: '0 0 8px' }}>
+                {t(
+                  'Alfabeto manual de Libras e ASL: veja cada letra e número e soletre uma palavra. É soletração, não tradução; as poses são de demonstração e ainda não foram revisadas por pessoas surdas.',
+                )}
+              </p>
+              <button
+                type="button"
+                className="q-ctl"
+                aria-haspopup="dialog"
+                onClick={() => setGuiaAberto(true)}
+                data-testid="avatar-abrir-guia"
+              >
+                <BookOpen aria-hidden /> {t('Alfabeto manual')}
+              </button>
+            </div>
+          )}
           {credito && (
             <div className="av-credito" data-testid="avatar-credito-linha">
               <p style={{ margin: 0 }}>{credito}</p>

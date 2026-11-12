@@ -368,12 +368,12 @@
       "fidelidade": "baixa",
       "movimento": false,
       "movimento_descricao": null,
-      "obs": "Polimento: polegar estendido, paralelo ao indicador (antes ficava deitado e sumia). Pose de demonstração, não revisada por pessoas surdas.",
+      "obs": "Polimento: polegar estendido, paralelo ao indicador (antes ficava deitado e sumia). Pose de demonstração, não revisada por pessoas surdas. Polimento de 29/10 (lacunas): ajuste de orientação para a forma aparecer melhor na câmera; sem referência nova e sem revisão de pessoas surdas. Mão girada para o polegar aparecer abaixo do indicador.",
       "referencia": "{L}: descrição da forma [?]; sem gráfico livre reaberto nesta rodada",
       "mao": {
         "polegar": {
-          "cmc_flex": -30,
-          "cmc_abd": 65,
+          "cmc_flex": -8,
+          "cmc_abd": 32,
           "mcp": 0,
           "ip": 0,
           "oposicao": 0
@@ -407,12 +407,12 @@
         "dedos": [
           1,
           0.05,
-          0.25
+          0.1
         ],
         "palma": [
           0,
-          0,
-          -1
+          -0.55,
+          -0.83
         ]
       },
       "posicao": [
@@ -428,7 +428,7 @@
       "fidelidade": "baixa",
       "movimento": false,
       "movimento_descricao": null,
-      "obs": "Indicador e médio juntos apontando para o lado; mesma orientação e mesma ressalva do G.",
+      "obs": "Indicador e médio juntos apontando para o lado; mesma orientação e mesma ressalva do G. Polimento de 29/10 (lacunas): ajuste de orientação para a forma aparecer melhor na câmera; sem referência nova e sem revisão de pessoas surdas. Mão girada para o polegar aparecer abaixo do indicador.",
       "referencia": "ASL: Commons \"ABC pict.png\" (domínio público, fotos) e \"Asl alphabet gallaudet.png\" (Ds13, domínio público)",
       "mao": {
         "polegar": {
@@ -467,12 +467,12 @@
         "dedos": [
           1,
           0.05,
-          0.25
+          0.1
         ],
         "palma": [
           0,
-          0,
-          -1
+          -0.55,
+          -0.83
         ]
       },
       "posicao": [
@@ -764,31 +764,31 @@
       "fidelidade": "baixa",
       "movimento": false,
       "movimento_descricao": null,
-      "obs": "Polimento: mão virada para baixo e três dedos (indicador, médio e anelar) caídos sobre o polegar, mindinho recolhido; distingue de N e do punho. Sem colisão. Pose de demonstração, não revisada por pessoas surdas.",
+      "obs": "Polimento: mão virada para baixo e três dedos (indicador, médio e anelar) caídos sobre o polegar, mindinho recolhido; distingue de N e do punho. Sem colisão. Pose de demonstração, não revisada por pessoas surdas. Polimento de 29/10 (lacunas): ajuste de orientação para a forma aparecer melhor na câmera; sem referência nova e sem revisão de pessoas surdas. Palma voltada a quem olha, dedos caídos sobre o polegar: M com três dedos, N com dois.",
       "referencia": "ASL: descrição da forma [?]; sem gráfico livre reaberto nesta rodada",
       "mao": {
         "polegar": {
-          "cmc_flex": 95,
-          "cmc_abd": -5,
-          "mcp": 45,
-          "ip": 20,
-          "oposicao": 25
+          "cmc_flex": 85,
+          "cmc_abd": -8,
+          "mcp": 14,
+          "ip": 14,
+          "oposicao": 20
         },
         "indicador": {
-          "mcp": 75,
-          "pip": 40,
+          "mcp": 20,
+          "pip": 32,
           "dip": null,
           "abd": 0
         },
         "medio": {
-          "mcp": 75,
-          "pip": 40,
+          "mcp": 20,
+          "pip": 32,
           "dip": null,
           "abd": 0
         },
         "anelar": {
-          "mcp": 75,
-          "pip": 40,
+          "mcp": 20,
+          "pip": 32,
           "dip": null,
           "abd": 0
         },
@@ -801,19 +801,19 @@
       },
       "orientacao": {
         "dedos": [
-          0,
-          -0.6,
-          0.8
+          0.1,
+          -1,
+          0.15
         ],
         "palma": [
           0,
-          -0.8,
-          -0.6
+          0,
+          1
         ]
       },
       "posicao": [
         -0.05,
-        0.05,
+        0.07,
         0.3
       ],
       "cotovelo": {
@@ -824,25 +824,25 @@
       "fidelidade": "baixa",
       "movimento": false,
       "movimento_descricao": null,
-      "obs": "Polimento: como o M, mas só indicador e médio caídos sobre o polegar; anelar e mindinho recolhidos. Sem colisão. Pose de demonstração, não revisada por pessoas surdas.",
+      "obs": "Polimento: como o M, mas só indicador e médio caídos sobre o polegar; anelar e mindinho recolhidos. Sem colisão. Pose de demonstração, não revisada por pessoas surdas. Polimento de 29/10 (lacunas): ajuste de orientação para a forma aparecer melhor na câmera; sem referência nova e sem revisão de pessoas surdas. Palma voltada a quem olha, dedos caídos sobre o polegar: M com três dedos, N com dois.",
       "referencia": "ASL: descrição da forma [?]; sem gráfico livre reaberto nesta rodada",
       "mao": {
         "polegar": {
-          "cmc_flex": 90,
-          "cmc_abd": -5,
-          "mcp": 40,
-          "ip": 20,
-          "oposicao": 25
+          "cmc_flex": 85,
+          "cmc_abd": -8,
+          "mcp": 14,
+          "ip": 14,
+          "oposicao": 20
         },
         "indicador": {
-          "mcp": 75,
-          "pip": 40,
+          "mcp": 20,
+          "pip": 32,
           "dip": null,
           "abd": 0
         },
         "medio": {
-          "mcp": 75,
-          "pip": 40,
+          "mcp": 20,
+          "pip": 32,
           "dip": null,
           "abd": 0
         },
@@ -861,19 +861,19 @@
       },
       "orientacao": {
         "dedos": [
-          0,
-          -0.6,
-          0.8
+          0.1,
+          -1,
+          0.15
         ],
         "palma": [
           0,
-          -0.8,
-          -0.6
+          0,
+          1
         ]
       },
       "posicao": [
         -0.05,
-        0.05,
+        0.07,
         0.3
       ],
       "cotovelo": {
@@ -1004,12 +1004,12 @@
       "fidelidade": "baixa",
       "movimento": false,
       "movimento_descricao": null,
-      "obs": "Indicador para baixo e polegar paralelo; o polegar quase não aparece.",
+      "obs": "Indicador para baixo e polegar paralelo; o polegar quase não aparece. Polimento de 29/10 (lacunas): ajuste de orientação para a forma aparecer melhor na câmera; sem referência nova e sem revisão de pessoas surdas. Polegar mais aberto para aparecer separado do indicador.",
       "referencia": "ASL: Commons \"ABC pict.png\" (domínio público, fotos) e \"Asl alphabet gallaudet.png\" (Ds13, domínio público)",
       "mao": {
         "polegar": {
-          "cmc_flex": -15,
-          "cmc_abd": 25,
+          "cmc_flex": -25,
+          "cmc_abd": 45,
           "mcp": 8,
           "ip": 8,
           "oposicao": 0
@@ -1544,7 +1544,7 @@
       "fidelidade": "baixa",
       "movimento": true,
       "movimento_descricao": "O indicador desenha um Z, da esquerda para a direita de quem vê.",
-      "obs": "Indicador apontando para a frente; o percurso do Z é aproximado e a mão sai do enquadramento no começo.",
+      "obs": "Indicador apontando para a frente; o percurso do Z é aproximado e a mão sai do enquadramento no começo. Polimento de 29/10 (lacunas): ajuste de orientação para a forma aparecer melhor na câmera; sem referência nova e sem revisão de pessoas surdas. Percurso menor e mais ao centro para a mão ficar no quadro.",
       "referencia": "ASL: Commons \"ABC pict.png\" (domínio público, fotos) e \"Asl alphabet gallaudet.png\" (Ds13, domínio público)",
       "mao": {
         "polegar": {
@@ -1592,7 +1592,7 @@
         ]
       },
       "posicao": [
-        0.04,
+        0.07,
         0.05,
         0.32
       ],
@@ -1603,7 +1603,7 @@
         {
           "t": 0.3,
           "dpos": [
-            -0.08,
+            -0.06,
             0,
             0
           ]
@@ -1612,15 +1612,15 @@
           "t": 0.65,
           "dpos": [
             0,
-            -0.07,
+            -0.055,
             0
           ]
         },
         {
           "t": 1,
           "dpos": [
-            -0.08,
-            -0.07,
+            -0.06,
+            -0.055,
             0
           ]
         }

@@ -11,9 +11,11 @@
  */
 import type { CorDeAnotacao, TipoDeAnotacao } from '../../core/leitura/anotacao';
 import { CORES_DOS_TEMAS, cssDoLivro, type PerfilDeLeitura } from '../../core/leitura/perfilDeLeitura';
+import { ErroDoLivro } from '../../core/livros/trazer';
 import type { ItemDoSumario, LivroDoFoliate, Localizacao, View } from './foliate/view.js';
 import { facesDaFonte } from './fontes';
 import { limparCapitulo, limparCss, limparSvgDeImagem, tipoDeMarcacao } from './limparHtml';
+import { indiceDoParagrafoNoRange, paragrafosDoDocumento } from './paragrafos';
 import { linkExternoSeguro, normalizarTipo, tipoPermitido } from './politicaDeRecursos';
 
 /**
@@ -158,7 +160,7 @@ export class MotorDoLeitor {
       }
     });
     await view.open(livro);
-    motor.blindar();
+    MotorDoLeitor.blindar(view.book);
     const b = view.book;
     const info: InfoDoLivro = {
       titulo: texto(b.metadata?.title),
@@ -172,10 +174,13 @@ export class MotorDoLeitor {
   }
 
   /** Nenhum script do livro roda: recurso de script recusado, HTML limpo antes de virar `blob:`. */
-  private blindar() {
-    const livro = this.view.book;
+  static blindar(livro: LivroDoFoliate) {
     const alvo = livro.transformTarget;
-    if (!alvo) return;
+    if (!alvo) {
+      /* FALHA FECHADA: livro sem o caminho de limpeza só abre se foi montado por nós (texto, PDF, CBZ). */
+      if (livro.frasyConfiavel) return;
+      throw new ErroDoLivro('formato', 'livro sem limpeza de capítulos: recusado');
+    }
     /* NEGAÇÃO POR PADRÃO: só entra o tipo da lista (`tipoPermitido`); script, XML/XSLT e o resto, não. */
     alvo.addEventListener('load', (e) => {
       const d = (e as CustomEvent<{ type: string; isScript: boolean; allow: boolean | Promise<boolean> }>).detail;
@@ -187,7 +192,8 @@ export class MotorDoLeitor {
      * passou na limpeza vira texto vazio (`text/plain`) — falha fechada. CSS passa por `limparCss`.
      */
     alvo.addEventListener('data', (e) => {
-      const d = (e as CustomEvent<{ data: unknown; type: unknown; name?: string }>).detail;
+      const d = (e as CustomEvent<{ data: unknown; type: unknown; name?: string; frasyLimpo?: boolean }>).detail;
+      d.frasyLimpo = true; /* quem não passa por aqui é recusado no vendor (frasy-limpeza.js) */
       const declarado = String(d.type ?? '');
       const ehCapitulo = livro.sections.some((s) => s.id === d.name);
       let fixarTipo: (t: string) => void = () => {};
@@ -290,6 +296,22 @@ export class MotorDoLeitor {
   /** Os documentos das seções carregadas agora (para ligar eventos e achar a seleção). */
   documentos(): Array<{ doc: Document; index: number }> {
     return this.view.renderer?.getContents?.() ?? [];
+  }
+
+  /**
+   * A SEÇÃO (capítulo) em exibição, só para LER: o texto dos parágrafos na ordem e o índice do que contém o começo do
+   * trecho visível. `null` = nenhum documento carregado (PDF sem camada de texto ainda, livro abrindo).
+   */
+  secaoAtual(): { indice: number; paragrafos: string[]; primeiroVisivel: number } | null {
+    const loc = this.view.lastLocation;
+    const docs = this.documentos();
+    const alvo = docs.find((d) => d.index === loc?.section?.current) ?? docs[0];
+    if (!alvo) return null;
+    return {
+      indice: alvo.index,
+      paragrafos: paragrafosDoDocumento(alvo.doc),
+      primeiroVisivel: Math.max(0, indiceDoParagrafoNoRange(alvo.doc, loc?.range)),
+    };
   }
 
   /**
@@ -433,6 +455,17 @@ export class MotorDoLeitor {
     const antes = this.documentos()[0]?.index;
     if (!r.nextSection) return false;
     await this.virar(() => r.nextSection!());
+    for (const { doc } of this.documentos()) doc.defaultView?.getSelection()?.removeAllRanges();
+    const depois = this.documentos()[0]?.index;
+    return depois != null && depois !== antes;
+  }
+
+  /** O capítulo anterior (botão do narrador). `false` = já era o primeiro. */
+  async capituloAnterior(): Promise<boolean> {
+    const r = this.view.renderer as unknown as { prevSection?: () => Promise<void> };
+    const antes = this.documentos()[0]?.index;
+    if (!r.prevSection) return false;
+    await this.virar(() => r.prevSection!());
     for (const { doc } of this.documentos()) doc.defaultView?.getSelection()?.removeAllRanges();
     const depois = this.documentos()[0]?.index;
     return depois != null && depois !== antes;

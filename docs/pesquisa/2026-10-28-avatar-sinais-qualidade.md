@@ -92,3 +92,14 @@ Continua valendo: nenhuma pose foi revisada por pessoas surdas; é soletração,
 - **ASL M e N:** a mão vira para baixo e os dedos caem sobre o polegar (M: três, N: dois), em vez de dois punhos de frente. **E** (ASL e Libras): garra com as quatro pontas à vista. **T**: polegar mais alto entre indicador e médio. **G**: polegar estendido (de frente quase não se vê: a mão mostra o dorso). **R**: mão 5 cm mais baixa, e o enquadramento "só mãos" sobe 2% da altura, para os dedos cruzados não saírem do quadro.
 - **Números 0 a 9** nos dois alfabetos, por descrição das formas; em Libras, 1 a 5 são contagem pelos dedos e 6 a 9 reusam a ASL por suposição. Sem colisão: nas formas 6 a 9 o polegar só se aproxima do dedo.
 - **Sem mudança:** H, P, Q, Z (não consegui melhorar sem colisão ou referência). Capturas: `$AVATAR_CAPTURAS` (`letras-*-antes/depois`).
+
+## Lacunas do modo Libras, 29/10/2026 (ramo `feat/avatar-libras-lacunas-2`)
+
+Continua valendo: nenhuma pose foi revisada por pessoas surdas; é soletração, não tradução. Sem referência nova: os ajustes partem de capturas do guia "Alfabeto manual" (antes e depois) e de uma medida de distância geométrica, não de comparação com gráficos de referência.
+
+- **G e H** (ASL e Libras): mão girada para o polegar do G aparecer abaixo do indicador (antes sumia atrás dele) e polegar menos aberto. O polegar agora aparece; a distância G-H caiu de 41,6 para 37,3 (piso do teste: 34).
+- **Q**: polegar mais aberto, separado do indicador (antes quase invisível).
+- **Z**: base e percurso menores e mais ao centro, para a mão ficar no quadro.
+- **M e N na ASL**: palma voltada a quem olha, dedos caídos sobre o polegar (M três, N dois, anelar recolhido); antes eram dois punhos quase iguais vistos de trás. A distância subiu de 16,1 para 23,2. Em Libras, M e N não mudaram.
+- **P**: NÃO melhorou. Os dois dedos seguem para baixo e o polegar fica atrás; qualquer giro que mostrasse o polegar apontava os dedos para a câmera. Fica para revisão humana.
+- Pisos por par em `tests/avatar-poses-distincao.test.ts` (regressão, não validação linguística). Pares idênticos por definição: I-J e C-Ç (só o movimento muda) e os algarismos que reusam formas de letras (0-O, 2-V, 9-F).

@@ -72,6 +72,17 @@ export interface FormatosDoLivro {
   pagina?: string;
 }
 
+/**
+ * A IMAGEM DE CAPA, só quando a licença foi verificada (hoje: Standard Ebooks, CC0). Ausente = a tela desenha a
+ * capa tipográfica. `url` é a miniatura da própria fonte (nada é copiado para o R2 ainda).
+ */
+export interface CapaDoCatalogo {
+  origem: 'standard-ebooks';
+  url: string;
+  licenca: 'CC0';
+  credito: string;
+}
+
 export interface LivroDoCatalogo {
   id: string;
   titulo: string;
@@ -109,6 +120,8 @@ export interface LivroDoCatalogo {
   obra?: string;
   /** Os rótulos da obra nos idiomas da trilha (e apelidos), sem o título desta edição: servem à busca. */
   titulosAlternativos?: string[];
+  /** A imagem de capa, quando há uma com licença verificada (ver `core/livros/capas`). */
+  capa?: CapaDoCatalogo;
 }
 
 /** Por que um livro que a fonte tem NÃO está no catálogo. A tela usa para responder "por que não está?". */

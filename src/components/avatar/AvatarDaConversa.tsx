@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { receitaNova } from '../../core/avatar/edicao';
-import type { EstadoDoAvatar } from '../../core/avatar/estados';
+import type { EmocaoDoAvatar, EstadoDoAvatar } from '../../core/avatar/estados';
 import { modeloDoInterprete, modeloPadraoDaPessoa } from '../../core/avatar/interprete';
 import type { ReceitaDeAvatar } from '../../core/avatar/receita';
 import type { TierDoAvatar } from '../../core/avatar/tiers';
@@ -42,6 +42,8 @@ export interface AvatarDaConversaProps {
   tamanho: number;
   tier: TierDoAvatar;
   anunciar: boolean;
+  /** A emoção da fala em curso (M5: o elenco do leitor). Ausente = neutra, como na conversa. */
+  emocao?: EmocaoDoAvatar;
   /** A janela do canvas, quando não é a página (o Document PiP). */
   janela?: JanelaDoMotor;
   /** A sessão aberta (ou `null` ao fechar): a ponte do PiP de vídeo liga o `aoQuadro` do motor aqui. */
@@ -78,6 +80,7 @@ export default function AvatarDaConversa({
   tamanho,
   tier,
   anunciar,
+  emocao = 'neutro',
   janela,
   aoSessao,
 }: AvatarDaConversaProps) {
@@ -95,7 +98,7 @@ export default function AvatarDaConversa({
     <AvatarFalante
       receita={receita}
       falando={estado === 'falando'}
-      emocao="neutro"
+      emocao={emocao}
       tamanho={tamanho}
       tier={tier}
       fonteDaBoca={fonteDaBoca}

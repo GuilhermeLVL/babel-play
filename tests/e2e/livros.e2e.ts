@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test'
 import { strToU8, zipSync } from 'fflate'
 
+import { cbzMinimo, docxMinimo, fb2Minimo, mobiMinimo } from '../harness/formatosDeTeste'
 import { abrirTela, clicarRobusto, fecharSobreposicoes, trilho } from './_helpers'
 
 /**
@@ -15,6 +16,13 @@ import { abrirTela, clicarRobusto, fecharSobreposicoes, trilho } from './_helper
  */
 
 const EPUB_DO_SE = 'https://standardebooks.org/ebooks/teste/pequena-viagem/downloads/teste_pequena-viagem.epub'
+
+const CAPA_DO_SE = 'https://standardebooks.org/ebooks/teste/pequena-viagem/downloads/cover-thumbnail.jpg'
+/** Um PNG 2 x 3 de verdade (a capa de teste e a imagem que a pessoa escolhe). */
+const PNG_2X3 = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAIAAAA2iEnWAAAAHklEQVR4nGM4YRMlsuAOw7SKqKgFdxhStkQtWHAHAF8VCbsNGBJZAAAAAElFTkSuQmCC',
+  'base64',
+)
 
 const livro = (o: Record<string, unknown>) => ({
   tradutores: [],
@@ -43,6 +51,7 @@ const CATALOGO = {
       fonte: 'standard-ebooks',
       fonteId: 'teste/pequena-viagem',
       formatos: { epub: EPUB_DO_SE, pagina: 'https://standardebooks.org/ebooks/teste/pequena-viagem' },
+      capa: { origem: 'standard-ebooks', url: CAPA_DO_SE, licenca: 'CC0', credito: 'Capa: Standard Ebooks (CC0)' },
       categorias: ['aventura', 'simples'],
       classificacao: 'livre',
       nivel: 'A2',
@@ -203,6 +212,10 @@ async function prepararFontes(page: Page) {
       body: epub('A Pequena Viagem', 'Era uma vez um barco pequeno que queria ver o mar.'),
     }),
   )
+  /* Registrada depois da genérica: o Playwright prefere a rota mais recente. */
+  await page.route('**/downloads/cover-thumbnail.jpg', (r) =>
+    r.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'image/png' }, body: PNG_2X3 }),
+  )
   await page.route('https://pt.wikisource.org/**', (r) =>
     r.fulfill({
       status: 200,
@@ -240,6 +253,20 @@ async function esperarNoLeitor(page: Page, frase: string) {
     await expect(capitulo!.getByText(frase)).toBeVisible({ timeout: 1000 })
   }).toPass({ timeout: 15_000 })
 }
+
+/** Solta de verdade: um DataTransfer com o arquivo, disparado como "drop" na zona. */
+async function soltar(page: Page, bytes: Uint8Array | Buffer, nome: string) {
+  await page.getByTestId('zona-de-soltar').evaluate(
+    (zona, [dados, n]) => {
+      const dt = new DataTransfer()
+      dt.items.add(new File([new Uint8Array(dados as number[])], n as string, { type: '' }))
+      zona.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }))
+    },
+    [[...bytes], nome] as const,
+  )
+}
+
+const abrirAgora = (page: Page) => page.getByTestId('trazido').getByRole('button', { name: 'Abrir agora' }).click()
 
 const cartao = (page: Page, id: string) => page.locator(`[data-livro="${id}"]`).first()
 
@@ -334,7 +361,9 @@ test.describe('Livros', () => {
     await expect(page.getByTestId('trazer-o-seu')).toBeVisible()
   })
 
-  test('"Trazer o seu": soltar um EPUB abre direto no leitor e o livro fica em Meus livros', async ({ page }) => {
+  test('"Trazer o seu": soltar um EPUB mostra "Pronto!", abre no leitor e o livro fica em Meus livros', async ({
+    page,
+  }) => {
     await prepararFontes(page)
     await abrirTela(page, '/livros')
     await page.getByRole('tab', { name: /Trazer o seu/ }).click()
@@ -342,17 +371,14 @@ test.describe('Livros', () => {
     const pedidos: string[] = []
     page.on('request', (r) => pedidos.push(`${r.method()} ${r.url()}`))
     /* Soltar de verdade: um DataTransfer com o arquivo, disparado como "drop" na zona. */
-    const bytes = [...epub('Meu Livro de Casa', 'Esta frase veio de um arquivo meu.')]
-    await page.getByTestId('zona-de-soltar').evaluate((zona, dados) => {
-      const dt = new DataTransfer()
-      dt.items.add(new File([new Uint8Array(dados)], 'sem-extensao', { type: '' }))
-      zona.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }))
-    }, bytes)
-    /* Sem clicar em nada: abre direto no leitor. */
+    await soltar(page, epub('Meu Livro de Casa', 'Esta frase veio de um arquivo meu.'), 'sem-extensao')
+    await expect(page.getByTestId('trazido')).toContainText('Pronto!')
+    await abrirAgora(page)
     await expect(page).toHaveURL(/\/livros\/meu-[a-z0-9-]+\/ler$/)
     await esperarNoLeitor(page, 'Esta frase veio de um arquivo meu.')
     /* O arquivo não sobe: nenhum POST saiu durante a importação. */
-    expect(pedidos.filter((p) => p.startsWith('POST'))).toEqual([])
+    /* (o POST de erro do cliente, por ruído do ResizeObserver do navegador, não leva o arquivo) */
+    expect(pedidos.filter((p) => p.startsWith('POST') && !p.includes('/api/erros-do-cliente'))).toEqual([])
     await page.getByRole('button', { name: 'Voltar', exact: true }).click()
     await page.getByRole('tab', { name: /Meus livros/ }).click()
     await expect(page.getByTestId('meus-livros')).toContainText('Meu Livro de Casa')
@@ -400,6 +426,7 @@ test.describe('Livros', () => {
 
     await page.getByTestId('link-do-livro').fill('https://raw.githubusercontent.com/usuario/repo/main/livro.epub')
     await page.getByRole('button', { name: 'Trazer livro' }).click()
+    await abrirAgora(page)
     await expect(page).toHaveURL(/\/livros\/meu-[a-z0-9-]+\/ler$/)
     await esperarNoLeitor(page, 'Esta frase veio de um repositório.')
     expect(pedidos).toEqual(['https://raw.githubusercontent.com/usuario/repo/main/livro.epub'])
@@ -601,5 +628,162 @@ test.describe('Livros', () => {
     await expect(outros.locator('[data-edicao="ws-pt-odisseia"]')).toBeVisible()
     await abrirTela(page, '/livros/pg-58221')
     await expect(page.getByTestId('livro-nao-encontrado')).toBeVisible()
+  })
+
+  test('capas: a vitrine mostra a imagem do Standard Ebooks e cai para a tipográfica se ela falhar', async ({
+    page,
+  }) => {
+    await prepararFontes(page)
+    await abrirTela(page, '/livros')
+    const capa = cartao(page, 'se-teste-pequena-viagem').locator('.lv-capa')
+    await expect(capa).toHaveAttribute('data-capa', 'catalogo')
+    const img = capa.locator('img.lv-capa-img')
+    await expect(img).toHaveAttribute('loading', 'lazy')
+    await expect(img).toHaveAttribute('referrerpolicy', 'no-referrer')
+    await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0)
+    /* A imagem falha (404): some em silêncio e fica a tipográfica. */
+    await page.route('**/downloads/cover-thumbnail.jpg', (r) => r.fulfill({ status: 404, body: 'nao' }))
+    await page.reload()
+    await expect(cartao(page, 'se-teste-pequena-viagem').locator('.lv-capa')).toHaveAttribute(
+      'data-capa',
+      'tipografica',
+    )
+  })
+
+  test('capas: "Trocar capa" no detalhe, aparece em Meus livros e "Voltar à capa original"', async ({ page }) => {
+    await prepararFontes(page)
+    await abrirTela(page, '/livros/se-teste-pequena-viagem')
+    await expect(page.getByTestId('livro-detalhe')).toBeVisible()
+    await page.getByRole('button', { name: /Guardar em Meus livros/ }).click()
+    await page.getByTestId('trocar-capa-abrir').click()
+    await expect(page.getByRole('dialog')).toContainText('Ela fica só no seu aparelho')
+    /* SVG é recusado. */
+    await page.getByTestId('capa-arquivo').setInputFiles({
+      name: 'a.svg',
+      mimeType: 'image/svg+xml',
+      buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'),
+    })
+    await expect(page.getByTestId('capa-erro')).toContainText('JPG, PNG, WebP ou GIF')
+    await page.getByTestId('capa-arquivo').setInputFiles({ name: 'capa.png', mimeType: 'image/png', buffer: PNG_2X3 })
+    await expect(page.getByTestId('capa-previa')).toBeVisible()
+    await page.getByTestId('capa-usar').click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(page.locator('.lv-detalhe-capa .lv-capa')).toHaveAttribute('data-capa', 'local')
+
+    await page.getByRole('button', { name: 'Voltar ao catálogo' }).click()
+    await page.getByRole('tab', { name: /Meus livros/ }).click()
+    await expect(
+      page.getByTestId('meus-livros').locator('[data-livro="se-teste-pequena-viagem"] .lv-capa'),
+    ).toHaveAttribute('data-capa', 'local')
+    await page.getByRole('button', { name: /Trocar a capa de/ }).click()
+    await page.getByRole('button', { name: /Voltar à capa original/ }).click()
+    await expect(
+      page.getByTestId('meus-livros').locator('[data-livro="se-teste-pequena-viagem"] .lv-capa'),
+    ).toHaveAttribute('data-capa', 'catalogo')
+  })
+
+  test('cabeçalho: "Trazer um livro seu" em todas as abas leva ao passo a passo com os formatos aceitos', async ({
+    page,
+  }) => {
+    await prepararFontes(page)
+    await abrirTela(page, '/livros')
+    const botao = page.getByTestId('trazer-um-livro-seu')
+    await expect(botao).toBeVisible()
+    await page.getByRole('tab', { name: /Meus livros/ }).click()
+    await expect(page.getByTestId('meus-livros')).toBeVisible()
+    await expect(botao).toBeVisible()
+    await botao.click()
+    await expect(page.getByTestId('trazer-o-seu')).toBeVisible()
+    await expect(page.getByTestId('passos-de-trazer')).toContainText('Tenha o arquivo')
+    await expect(page.getByTestId('formatos-livros')).toContainText('MOBI')
+    await expect(page.getByTestId('formatos-documentos')).toContainText('Markdown')
+    await expect(page.getByTestId('formatos-quadrinhos')).toContainText('CBZ')
+    await expect(page.getByTestId('linha-drm')).toContainText('Livros com proteção (DRM) não abrem')
+    await page.screenshot({ path: test.info().outputPath('trazer-o-seu.png'), fullPage: true })
+  })
+
+  test('"Trazer o seu": MOBI, TXT e DOCX abrem; MOBI com DRM e formato desconhecido são recusados com gentileza', async ({
+    page,
+  }) => {
+    await prepararFontes(page)
+    await abrirTela(page, '/livros')
+    await page.getByRole('tab', { name: /Trazer o seu/ }).click()
+
+    await soltar(page, mobiMinimo({ titulo: 'Livro Mobi de Teste' }), 'renomeado.bin')
+    await expect(page.getByTestId('trazido')).toContainText('Livro Mobi de Teste')
+    await abrirAgora(page)
+    await esperarNoLeitor(page, 'Era uma vez um barco pequeno')
+    await page.getByRole('button', { name: 'Voltar', exact: true }).click()
+
+    await page.getByRole('tab', { name: /Trazer o seu/ }).click()
+    await soltar(
+      page,
+      Buffer.from('Capítulo 1\n\nO texto do arquivo TXT começa aqui.\n\nCapítulo 2\n\nE continua.'),
+      'diario.txt',
+    )
+    await expect(page.getByTestId('trazido')).toContainText('diario')
+    await page.getByTestId('trazido').getByRole('button', { name: 'Ver em Meus livros' }).click()
+    await expect(page.getByTestId('meus-livros')).toContainText('Livro Mobi de Teste')
+    await expect(page.getByTestId('meus-livros')).toContainText('diario')
+
+    await page.getByRole('tab', { name: /Trazer o seu/ }).click()
+    await soltar(page, docxMinimo(), 'trabalho.docx')
+    await expect(page.getByTestId('trazido')).toContainText('trabalho')
+
+    await soltar(page, mobiMinimo({ encryption: 2 }), 'comprado.azw3')
+    await expect(page.getByTestId('erro-do-trazer')).toContainText('proteção (DRM)')
+    await page.screenshot({ path: test.info().outputPath('erro-drm.png'), fullPage: true })
+
+    await soltar(page, Buffer.from('AT&TFORM....DJVM'), 'livro.djvu')
+    await expect(page.getByTestId('erro-do-trazer')).toContainText('Ainda não abrimos arquivos DJVU')
+  })
+
+  test('"Trazer o seu": FB2 e CBZ abrem no leitor', async ({ page }) => {
+    await prepararFontes(page)
+    await abrirTela(page, '/livros')
+    await page.getByRole('tab', { name: /Trazer o seu/ }).click()
+    await soltar(page, fb2Minimo({ titulo: 'Livro FB2 de Teste' }), 'x.fb2')
+    await abrirAgora(page)
+    await esperarNoLeitor(page, 'Era uma vez um barco pequeno')
+    await page.getByRole('button', { name: 'Voltar', exact: true }).click()
+    await page.getByRole('tab', { name: /Trazer o seu/ }).click()
+    await soltar(page, cbzMinimo(), 'gibi.cbz')
+    await expect(page.getByTestId('trazido')).toContainText('gibi')
+    await abrirAgora(page)
+    await expect(page.locator('[data-testid=leitor][data-estado=pronto]')).toBeVisible({ timeout: 30_000 })
+  })
+
+  test('backup da estante e restauração: o livro volta depois de apagado', async ({ page }) => {
+    await prepararFontes(page)
+    await abrirTela(page, '/livros')
+    await page.getByRole('tab', { name: /Trazer o seu/ }).click()
+    await soltar(page, Buffer.from('Um texto para guardar no backup, bem simples e curto.'), 'cofre.txt')
+    await expect(page.getByTestId('trazido')).toBeVisible()
+    await page.getByTestId('trazido').getByRole('button', { name: 'Ver em Meus livros' }).click()
+    const [download] = await Promise.all([page.waitForEvent('download'), page.getByTestId('baixar-backup').click()])
+    const caminho = test.info().outputPath('backup.zip')
+    await download.saveAs(caminho)
+    await expect(page.getByTestId('aviso-do-backup')).toContainText('Backup pronto')
+
+    /* apaga o livro e restaura do arquivo */
+    await page.evaluate(() => localStorage.removeItem('frasy.livros.meus.v1'))
+    await abrirTela(page, '/livros')
+    await page.getByRole('tab', { name: /Meus livros/ }).click()
+    await expect(page.getByTestId('meus-livros')).not.toContainText('cofre')
+    await page.getByTestId('arquivo-do-backup').setInputFiles(caminho)
+    await expect(page.getByTestId('aviso-do-backup')).toContainText('Restaurados: 1')
+    await expect(page.getByTestId('meus-livros')).toContainText('cofre')
+  })
+
+  test('arquivo que não é backup é recusado, sem restaurar nada', async ({ page }) => {
+    await prepararFontes(page)
+    await abrirTela(page, '/livros')
+    await page.getByRole('tab', { name: /Meus livros/ }).click()
+    await page.getByTestId('arquivo-do-backup').setInputFiles({
+      name: 'falso.zip',
+      mimeType: 'application/zip',
+      buffer: Buffer.from(zipSync({ 'qualquer.txt': strToU8('oi') })),
+    })
+    await expect(page.getByTestId('aviso-do-backup')).toContainText('não é um backup do Frasy')
   })
 })

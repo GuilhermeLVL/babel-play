@@ -368,12 +368,12 @@
       "fidelidade": "baixa",
       "movimento": false,
       "movimento_descricao": null,
-      "obs": "Polimento: polegar estendido, paralelo ao indicador (antes ficava deitado e sumia). Pose de demonstração, não revisada por pessoas surdas.",
+      "obs": "Polimento: polegar estendido, paralelo ao indicador (antes ficava deitado e sumia). Pose de demonstração, não revisada por pessoas surdas. Polimento de 29/10 (lacunas): ajuste de orientação para a forma aparecer melhor na câmera; sem referência nova e sem revisão de pessoas surdas. Mão girada para o polegar aparecer abaixo do indicador.",
       "referencia": "{L}: descrição da forma [?]; sem gráfico livre reaberto nesta rodada",
       "mao": {
         "polegar": {
-          "cmc_flex": -30,
-          "cmc_abd": 65,
+          "cmc_flex": -8,
+          "cmc_abd": 32,
           "mcp": 0,
           "ip": 0,
           "oposicao": 0
@@ -407,12 +407,12 @@
         "dedos": [
           1,
           0.05,
-          0.25
+          0.1
         ],
         "palma": [
           0,
-          0,
-          -1
+          -0.55,
+          -0.83
         ]
       },
       "posicao": [
@@ -428,7 +428,7 @@
       "fidelidade": "baixa",
       "movimento": true,
       "movimento_descricao": "Pequeno balanço lateral da mão (informado por quem encomendou; a forma exata do percurso é desconhecida) [?].",
-      "obs": "Indicador e médio juntos apontando para o lado. Em Libras a letra tem movimento; o percurso aqui é um palpite. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "obs": "Indicador e médio juntos apontando para o lado. Em Libras a letra tem movimento; o percurso aqui é um palpite. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre. Polimento de 29/10 (lacunas): ajuste de orientação para a forma aparecer melhor na câmera; sem referência nova e sem revisão de pessoas surdas. Mão girada para o polegar aparecer abaixo do indicador.",
       "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
       "mao": {
         "polegar": {
@@ -467,12 +467,12 @@
         "dedos": [
           1,
           0.05,
-          0.25
+          0.1
         ],
         "palma": [
           0,
-          0,
-          -1
+          -0.55,
+          -0.83
         ]
       },
       "posicao": [
@@ -1022,12 +1022,12 @@
       "fidelidade": "baixa",
       "movimento": false,
       "movimento_descricao": null,
-      "obs": "Indicador para baixo e polegar paralelo; o polegar quase não aparece. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "obs": "Indicador para baixo e polegar paralelo; o polegar quase não aparece. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre. Polimento de 29/10 (lacunas): ajuste de orientação para a forma aparecer melhor na câmera; sem referência nova e sem revisão de pessoas surdas. Polegar mais aberto para aparecer separado do indicador.",
       "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
       "mao": {
         "polegar": {
-          "cmc_flex": -15,
-          "cmc_abd": 25,
+          "cmc_flex": -25,
+          "cmc_abd": 45,
           "mcp": 8,
           "ip": 8,
           "oposicao": 0
@@ -1586,7 +1586,7 @@
       "fidelidade": "baixa",
       "movimento": true,
       "movimento_descricao": "O indicador desenha um Z, da esquerda para a direita de quem vê.",
-      "obs": "Indicador apontando para a frente; o percurso do Z é aproximado e a mão sai do enquadramento no começo. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre.",
+      "obs": "Indicador apontando para a frente; o percurso do Z é aproximado e a mão sai do enquadramento no começo. Forma igual à da ASL por suposição [?]: não achei gráfico moderno de Libras com licença livre. Polimento de 29/10 (lacunas): ajuste de orientação para a forma aparecer melhor na câmera; sem referência nova e sem revisão de pessoas surdas. Percurso menor e mais ao centro para a mão ficar no quadro.",
       "referencia": "Libras: sem gráfico moderno livre achado; só o histórico \"Iconographia dos Signaes dos Surdos-Mudos\" (1875, domínio público) e conhecimento próprio [?]",
       "mao": {
         "polegar": {
@@ -1634,7 +1634,7 @@
         ]
       },
       "posicao": [
-        0.04,
+        0.07,
         0.05,
         0.32
       ],
@@ -1645,7 +1645,7 @@
         {
           "t": 0.3,
           "dpos": [
-            -0.08,
+            -0.06,
             0,
             0
           ]
@@ -1654,15 +1654,15 @@
           "t": 0.65,
           "dpos": [
             0,
-            -0.07,
+            -0.055,
             0
           ]
         },
         {
           "t": 1,
           "dpos": [
-            -0.08,
-            -0.07,
+            -0.06,
+            -0.055,
             0
           ]
         }

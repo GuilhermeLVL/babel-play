@@ -6,13 +6,8 @@ import { strToU8, zipSync } from 'fflate'
 import { describe, expect, it, vi } from 'vitest'
 
 import { FONTES_LEGAIS, HOSTS_DO_GUIA } from '../src/core/livros/fontesLegais'
-import {
-  epubTemDrm,
-  ErroDoLivro,
-  formatoPeloConteudo,
-  HOSTS_DE_LIVRO_POR_LINK,
-  TETO_DO_LINK_EM_BYTES,
-} from '../src/core/livros/trazer'
+import { formatoPeloConteudo } from '../src/core/livros/formatos'
+import { epubTemDrm, ErroDoLivro, HOSTS_DE_LIVRO_POR_LINK, TETO_DO_LINK_EM_BYTES } from '../src/core/livros/trazer'
 import { extrairEpub } from '../src/lib/import/epub'
 import { baixarLivroDoLink, comoErroDoLivro, lerArquivoTrazido, validarLinkDeLivro } from '../src/lib/livros/trazer'
 
@@ -36,14 +31,14 @@ const ENC_FONTE = `<encryption xmlns="urn:oasis:names:tc:opendocument:xmlns:cont
 const ENC_ADEPT = `<encryption xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><EncryptedData xmlns="http://www.w3.org/2001/04/xmlenc#"><EncryptionMethod Algorithm="http://www.w3.org/2001/04/xmlenc#aes128-cbc"/><CipherData><CipherReference URI="OEBPS/c1.xhtml"/></CipherData></EncryptedData></encryption>`
 
 describe('formatoPeloConteudo: pela assinatura, não pela extensão', () => {
-  it('zip → epub, %PDF → pdf, texto limpo → txt', () => {
-    expect(formatoPeloConteudo(new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0, 0]))).toBe('epub')
+  it('zip → zip (o que há dentro decide), %PDF → pdf, texto limpo → txt', () => {
+    expect(formatoPeloConteudo(new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0, 0]))).toBe('zip')
     expect(formatoPeloConteudo(bytes('%PDF-1.7\n...'))).toBe('pdf')
     expect(formatoPeloConteudo(bytes('Capítulo 1\n\nEra uma vez.'))).toBe('txt')
   })
-  it('binário qualquer, HTML solto e vazio não são livro', () => {
+  it('binário qualquer e vazio não são livro; HTML solto agora é um documento HTML', () => {
     expect(formatoPeloConteudo(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0, 0, 0]))).toBeNull()
-    expect(formatoPeloConteudo(bytes('<!DOCTYPE html><html><body>loja</body></html>'))).toBeNull()
+    expect(formatoPeloConteudo(bytes('<!DOCTYPE html><html><body>loja</body></html>'))).toBe('html')
     expect(formatoPeloConteudo(new Uint8Array())).toBeNull()
   })
 })
@@ -90,9 +85,10 @@ describe('extrairEpub e lerArquivoTrazido', () => {
 })
 
 describe('comoErroDoLivro', () => {
-  it('senha/criptografia → drm; digitalizado → pdf-imagem; teto → grande', () => {
+  it('senha → senha; criptografia → drm; digitalizado → pdf-imagem; teto → grande', () => {
     const senha = Object.assign(new Error('No password given'), { name: 'PasswordException' })
-    expect(comoErroDoLivro(senha).motivo).toBe('drm')
+    expect(comoErroDoLivro(senha).motivo).toBe('senha')
+    expect(comoErroDoLivro(new Error('arquivo encrypted')).motivo).toBe('drm')
     expect(comoErroDoLivro(new Error('PDF sem texto selecionável (parece digitalizado).')).motivo).toBe('pdf-imagem')
     expect(comoErroDoLivro(new Error('o documento passa do limite de 30 MB')).motivo).toBe('grande')
     expect(comoErroDoLivro(new Error('qualquer coisa')).motivo).toBe('corrompido')
@@ -117,7 +113,7 @@ describe('validarLinkDeLivro', () => {
   })
   it('página do GitHub, página de loja, release e outro host de arquivo têm motivos próprios', () => {
     expect(validarLinkDeLivro('https://github.com/usuario/repo').motivo).toBe('pagina')
-    expect(validarLinkDeLivro('https://github.com/usuario/repo/blob/main/README.md').motivo).toBe('pagina')
+    expect(validarLinkDeLivro('https://github.com/usuario/repo/blob/main/README').motivo).toBe('pagina')
     expect(validarLinkDeLivro('https://www.amazon.com.br/dp/B000').motivo).toBe('pagina')
     expect(validarLinkDeLivro('https://raw.githubusercontent.com/u/r/main/README').motivo).toBe('pagina')
     expect(validarLinkDeLivro('https://github.com/u/r/releases/download/v1/livro.epub').motivo).toBe('release')
@@ -172,9 +168,9 @@ describe('baixarLivroDoLink', () => {
         })) as unknown as typeof fetch),
     ).rejects.toMatchObject({ motivo: 'grande' })
   })
-  it('o que baixou é conferido pela assinatura: uma página HTML não vira livro', async () => {
+  it('o que baixou é conferido pela assinatura: um formato que não abrimos (RTF) não vira livro', async () => {
     const arquivo = await baixarLivroDoLink(RAW, (async () =>
-      resposta('<!doctype html><html></html>')) as unknown as typeof fetch)
+      resposta('{\\rtf1\\ansi texto}')) as unknown as typeof fetch)
     await expect(lerArquivoTrazido(arquivo, String)).rejects.toMatchObject({ motivo: 'formato' })
   })
 })

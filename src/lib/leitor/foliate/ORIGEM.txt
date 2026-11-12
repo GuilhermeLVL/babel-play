@@ -4,15 +4,18 @@ Origem: https://github.com/johnfactotum/foliate-js
 Commit: 78914aef4466eb960965702401634c2cb348e9b1 (2026-05-01)
 
 Arquivos copiados sem mudança: epub.js, epubcfi.js, paginator.js, fixed-layout.js, overlayer.js,
-progress.js, text-walker.js, search.js, LICENSE.
+progress.js, text-walker.js, search.js, fb2.js*, comic-book.js*, mobi.js*, LICENSE.
+(* com mudança do Frasy, ver abaixo.)
 
 Mudanças do Frasy (marcadas com "FRASY:" no código; o porquê de cada uma em PATCHES.md):
-  - view.js: makeBook só abre EPUB e PDF (MOBI, FB2, CBZ e pasta ficaram fora); o carregador de ZIP
+  - view.js: makeBook abre EPUB, PDF, MOBI/AZW3, FB2/FBZ e CBZ pelo conteúdo (pasta e CBR ficaram fora); o carregador de ZIP
     usa o `fflate` do app (carregadorZip.js, novo) no lugar do vendor/zip.js; initTTS desligado
     (tts.js não vendorizado — a narração do leitor é a fase L3).
   - pdf.js: reescrito sobre o `pdfjs-dist` do app (Apache-2.0), sem a camada de anotações do PDF e
     com o CSS da camada de texto do PDF.js 6.4 embutido; expõe `book.amostraDeTexto` para o aviso
     de PDF escaneado/duas colunas.
+  - mobi.js: recusa MOBI com `encryption` != 0 (DRMError); fb2.js: capa sem fetch de data:; comic-book.js:
+    extensões sem diferenciar maiúscula e sem __MACOSX.
   - carregadorZip.js: novo (Frasy, MIT como o resto do repositório).
 
   - paginator.js e fixed-layout.js: iframes com sandbox="allow-same-origin", SEM allow-scripts.

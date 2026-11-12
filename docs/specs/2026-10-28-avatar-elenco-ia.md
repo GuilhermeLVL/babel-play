@@ -170,3 +170,20 @@ Hoje `Narrador.passos(indice)` devolve `PassoDaFala[]` `{texto, idioma}` e `fala
 
 Função de servidor, rota, migração do cache, ligação ao Narrador, painel do elenco e avatar-narrador (dependem do PR de
 Livros). Tradução de falas por personagem. Clonagem de voz ou inferência de gênero pelo nome (nunca).
+
+## 10. Estado em 2026-10-29: o que foi ligado e o que espera o dono
+
+Ligado (branch `feat/avatar-m5-elenco-local`, atrás de `avatar_elenco`, desligada): heurística no Narrador
+(`src/core/avatar/elenco/narracao.ts`, `src/lib/leitor/narrador.ts`), mapa personagem para voz com escolha da pessoa
+guardada no aparelho (`src/lib/leitor/preferenciasDoElenco.ts`), painel do elenco dentro de "Voz e modo", personagens
+da ficha do catálogo (`src/lib/livros/elenco.ts`; livro trazido = só narrador) e avatar-narrador com legenda
+(`src/components/views/leitor/AvatarDoNarrador.tsx`, exige `avatar_3d`). Medição: `docs/pesquisa/2026-10-29-avatar-m5-elenco-no-narrador.md`.
+
+NÃO implementado, por exigir decisão de produto/custo do dono (a função de IA `leitura_elenco`): (1) opção A (arquivo
+gerado offline por `claude -p`/`agy -p`, zero de API) ou B (função no servidor); (2) em B, a nova função muda
+`PARAMETROS_DO_PARCEIRO`-like (entrada 9.000 caracteres, saída 1.500 tokens), cria subcota `elencoTokensMes` em
+`src/core/planos.ts` e uma migração de cache, o que mexe em custo e planos; (3) aprovar os limiares do juiz do documento
+2026-10-28 (itens do "Dono" lá); (4) ouro escrito por outra pessoa. PONTO DE EXTENSÃO pronto: `planejarElenco(textos,
+cfg, dist, previas)` aceita marcações prévias (`FraseMarcada | null`) que só valem com o mesmo texto, confiança >= 0,5 e
+personagem da lista; o resto cai na heurística. Quem carregar o arquivo do capítulo (A) ou chamar a função (B) só precisa
+passar `previas` em `Narrador.planejar()`.

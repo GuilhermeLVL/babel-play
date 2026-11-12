@@ -46,17 +46,21 @@ test.describe('Polimento no celular, tablet e desktop', () => {
     await page.addInitScript(() => localStorage.setItem('frasy.avatar.interprete.soletrar', '1'))
     await abrirPeloMenu(page)
     await comecarFalando(page, /Falar em Português/)
-    await expect(fase(page).getByTestId('avatar-outro').locator('[data-avatar-pronto="true"]')).toBeVisible({
+    await expect(fase(page).getByTestId('avatar-outro').locator('[data-avatar-pronto="true"]').first()).toBeVisible({
       timeout: 60_000,
     })
     const conversa = fase(page).getByTestId('soletracao-na-conversa')
     await expect(conversa.getByText(AVISO_1)).toBeVisible({ timeout: 30_000 })
     await expect(conversa.getByText(AVISO_2)).toBeVisible()
+    // os avisos já aparecem com as mãos em repouso, antes de a animação de entrada da tela acabar: espera-a para medir
+    await page.waitForTimeout(1_200)
     await foto(page, '1-conversa')
 
     // sem rolagem horizontal da página
     const sobra = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
     expect(sobra).toBeLessThanOrEqual(0)
+    // o `main` (overflow oculto) também não pode ter sido rolado de lado pelo foco/toque: tudo deslizaria para a esquerda
+    expect(await page.evaluate(() => document.querySelector('main')?.scrollLeft ?? 0)).toBe(0)
 
     // os dois avisos (os quatro, nas duas metades) cabem dentro da tela
     const dentro = await page.evaluate(() =>

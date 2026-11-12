@@ -39,7 +39,7 @@ const foto = (page: Page, nome: string) =>
   page.screenshot({ path: path.join(CAPTURAS, `interprete-sinais-${test.info().project.name}-${nome}.png`) })
 
 const pronto = (page: Page, lado: 'meu' | 'outro') =>
-  fase(page).getByTestId(`avatar-${lado}`).locator('[data-avatar-pronto="true"]')
+  fase(page).getByTestId(`avatar-${lado}`).locator('[data-avatar-pronto="true"]').first()
 
 /** Liga a opção antes da página abrir (a preferência é local), com a velocidade rápida para caber no teto. */
 const comSoletracaoLigada = (page: Page) =>
@@ -208,7 +208,7 @@ test.describe('Soletração no Intérprete', () => {
     if (emColunas) {
       const atual = fase(page).getByTestId('soletracao-atual')
       await expect(atual.locator('[data-palavra-atual]')).toHaveText('Conceição')
-      await expect(atual.locator('[data-sinais-letra-atual]')).toBeAttached()
+      await expect(atual.getByTestId('soletracao-rotulo')).toHaveText(/^Soletrando: /)
       // o nome soletrado NÃO conta como "não soletrado", nem as palavras comuns (a voz e a legenda as levam):
       // só aparece o aviso quando um NOME não coube no teto de tempo
       await expect(atual.getByTestId('soletracao-nao-soletradas')).toHaveCount(0)
@@ -226,15 +226,18 @@ test.describe('Soletração no Intérprete', () => {
     expect(t.legenda).toBeGreaterThan(0)
     expect(t.voz).toBeGreaterThan(0)
     expect(t.palco).toBeGreaterThan(0)
-    expect(t.legenda).toBeLessThanOrEqual(t.palco)
-    expect(t.voz).toBeLessThanOrEqual(t.palco)
+    // o palco das mãos já está à vista (em repouso); o que vem DEPOIS da legenda e da voz é a soletração em si
+    expect(t.letra).toBeGreaterThan(0)
+    expect(t.legenda).toBeLessThanOrEqual(t.letra)
+    expect(t.voz).toBeLessThanOrEqual(t.letra)
     // a voz leu a tradução inteira (a soletração não mexe nela)
     const lidas = await page.evaluate(() => (window as unknown as { __lidas: Array<{ texto: string }> }).__lidas)
     expect(lidas.map((l) => l.texto)).toEqual(['[trad] fale com Conceição amanhã'])
 
     // os avisos continuam durante e depois; termina sozinha e o quadro some
     await expect(fase(page).getByTestId('soletracao-na-conversa').getByText(AVISO_1)).toBeVisible()
-    await expect(palco).toBeHidden({ timeout: 40_000 })
+    // o palco das mãos continua (agora em repouso, "aguardando"); só a soletração acabou
+    await expect(palco).toHaveAttribute('data-palco-estado', 'aguardando', { timeout: 40_000 })
     await expect(fase(page).getByTestId('soletracao-na-conversa').getByText(AVISO_2)).toBeVisible()
     await expect(traducao).toBeVisible()
   })
@@ -251,7 +254,9 @@ test.describe('Soletração no Intérprete', () => {
     await expect(fase(page).getByTestId('interprete-outro').getByText('[trad] bom dia a todos')).toBeVisible({
       timeout: 30_000,
     })
-    await expect(fase(page).getByTestId('soletracao-palco')).toHaveCount(0)
+    // sem nome a soletrar, as mãos ficam em repouso (nada é soletrado) e os avisos seguem
+    await expect(fase(page).getByTestId('soletracao-palco')).toHaveAttribute('data-palco-estado', 'aguardando')
+    await expect(fase(page).locator('[data-sinais-estado="soletrando"]')).toHaveCount(0)
     await expect(fase(page).getByTestId('soletracao-na-conversa').getByText(AVISO_1)).toBeVisible()
   })
 

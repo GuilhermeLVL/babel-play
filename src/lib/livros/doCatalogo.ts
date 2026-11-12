@@ -11,9 +11,10 @@
  *
  * Nada passa pelo servidor do Frasy. A segunda abertura não baixa de novo (a estante já tem o livro).
  */
+import { ehFormatoDoMotor } from '../../core/livros/formatos';
 import type { LivroDoCatalogo } from '../../core/livros/tipos';
 import type { CapituloDeTexto } from '../leitor/livroDeTexto';
-import { ErroAoAbrirLivro, formatoDosBytes, idDoCatalogo, prepararLivro } from './abrir';
+import { ErroAoAbrirLivro, formatoDosBytes, idDoCatalogo, MIME_DO_FORMATO, prepararLivro } from './abrir';
 import { estante, type LivroGuardado } from './armazem';
 import { arquivoDosCapitulos, emParagrafos } from './capitulosGuardados';
 import { lerConteudo, lerDaMemoria, type MeuLivro } from './meusLivros';
@@ -99,13 +100,16 @@ export async function prepararMeuLivro(meu: MeuLivro): Promise<string | null> {
     abertoEm: agora,
   };
   if (conteudo.arquivo?.size) {
-    const formato = formatoDosBytes(new Uint8Array(await conteudo.arquivo.slice(0, 8).arrayBuffer()));
-    if (formato === 'epub' || formato === 'pdf') {
+    /* O formato que a tela guardou (já conferido pelo conteúdo); registro antigo sem ele: pelos bytes. */
+    const formato = ehFormatoDoMotor(meu.formato)
+      ? meu.formato
+      : formatoDosBytes(new Uint8Array(await conteudo.arquivo.slice(0, 4096).arrayBuffer()));
+    if (formato && formato !== 'txt') {
       /* O arquivo fica UMA vez, no banco de "Meus livros": aqui só a referência (`refMeuLivro`). */
       await estante.guardarLivro({
         ...comum,
         formato,
-        arquivo: new Blob([], { type: formato === 'epub' ? 'application/epub+zip' : 'application/pdf' }),
+        arquivo: new Blob([], { type: MIME_DO_FORMATO[formato] }),
         nomeDoArquivo: `${meu.id}.${formato}`,
         refMeuLivro: meu.id,
       });

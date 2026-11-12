@@ -77,3 +77,9 @@ Pensado para, depois, trocar as poses autoradas por poses CAPTURADAS de sinaliza
 6. **Caminho inverso (avatar para `.pose`):** cinemática direta com os comprimentos de osso do modelo, útil para comparar a pose do avatar com a captura (erro por articulação).
 
 Sem esses dados reais, nada aqui vale como Libras validada.
+
+## Guia "Alfabeto manual" e poses marcadas (29/10/2026)
+
+O app tem um guia (Intérprete e Perfil › Avatar) com a grade das letras e dos algarismos, a pose grande e o campo "Soletrar uma palavra". O botão "Marcar esta pose como incorreta" guarda, SÓ neste aparelho (`localStorage`, `frasy.avatar.sinais.marcacoes`), `{alfabeto, letra, espelhada, em}`; "Exportar lista (JSON)" baixa `frasy-poses-marcadas.json` (esquema `frasy-poses-marcadas/1`, com o aviso de que as poses NÃO foram revisadas por pessoas surdas) para levar a quem revisa. Nada vai ao servidor.
+
+Distinção entre poses: `tests/avatar-poses-distincao.test.ts` guarda um piso de distância geométrica (graus) por par que se confunde (G-H, G-Q, H-P, P-Q, M-N, Z-G, Z-D). É proteção contra regressão, NÃO validação linguística.

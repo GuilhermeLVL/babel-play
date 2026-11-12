@@ -104,13 +104,22 @@ export async function fecharSobreposicoes(page: Page) {
 /**
  * Clica robusto às recompensas que continuam surgindo: tenta clicar e, se um diálogo interceptar,
  * fecha as sobreposições e tenta de novo, em vez de martelar o mesmo clique por 30 s.
+ *
+ * O CLIQUE QUE ACERTOU E ESTOUROU O PRAZO (CI de 04/11/2026, trace do `avatar-descoberta`): o Playwright
+ * faz o clique ("click action done") e depois espera a navegação agendada; com o Intérprete desenhando
+ * em WebGL por software, essa espera passou dos 3 s e o `click` lançou mesmo tendo clicado. O item do menu
+ * já tinha sumido (a tela mudou), e o laço repetia o clique num alvo inexistente até o teste estourar. Se
+ * o alvo estava à vista antes e sumiu depois da tentativa, o clique valeu: quem chama confere o efeito
+ * (ex.: `toHaveURL` em `irAoInterpretePeloMenu`).
  */
 export async function clicarRobusto(page: Page, locator: Locator) {
   for (let i = 0; i < 10; i++) {
+    const estavaAVista = await locator.isVisible().catch(() => false)
     try {
       await locator.click({ timeout: 3000 })
       return
     } catch {
+      if (estavaAVista && (await locator.count().catch(() => 1)) === 0) return
       await fecharSobreposicoes(page)
       await page.waitForTimeout(200)
     }

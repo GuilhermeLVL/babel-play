@@ -489,8 +489,12 @@ jobs:
           - { projeto: mobile-375, fatia: 2, fatias: 2 }
           - { projeto: tablet-768, fatia: 1, fatias: 2 }
           - { projeto: tablet-768, fatia: 2, fatias: 2 }
-          - { projeto: desktop-1280, fatia: 1, fatias: 2 }
-          - { projeto: desktop-1280, fatia: 2, fatias: 2 }
+          # O desktop vai em TRÊS: a fatia 2/2 levava ~26 min dos 28 do passo (só ela roda os avatares em
+          # WebGL por software, ~25 min somados) e duas retentativas bastaram para estourar o prazo (main,
+          # 04/11/2026). Pelas durações da execução verde de 04/11, as três ficam em ~10, ~11 e ~19 min.
+          - { projeto: desktop-1280, fatia: 1, fatias: 3 }
+          - { projeto: desktop-1280, fatia: 2, fatias: 3 }
+          - { projeto: desktop-1280, fatia: 3, fatias: 3 }
     name: e2e (${{ matrix.projeto }} ${{ matrix.fatia }}/${{ matrix.fatias }})
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4

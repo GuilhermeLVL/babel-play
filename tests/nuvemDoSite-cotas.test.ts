@@ -352,10 +352,38 @@ describe('rajada simultânea (furo 2): a reserva vem ANTES do modelo', () => {
   })
 
   it('mais de quatro pedidos em curso do mesmo visitante: 429 `devagar`, sem tocar na IA', async () => {
-    const env = { AI: iaLenta(), LIMITES: kvFalso() }
-    const respostas = await Promise.all(
-      Array.from({ length: 7 }, () => onRequestPost({ request: pedido(wav(2)), env })),
+    /* A IA só responde quando o teste abre o portão. Com a `iaLenta` (15 ms de relógio), um runner carregado
+       (CI com cobertura) deixava o primeiro pedido terminar antes de o sétimo entrar, a vaga voltava e só 2
+       eram recusados. Com o portão, os quatro primeiros ficam EM CURSO de verdade até os outros três serem
+       recusados, seja qual for a velocidade da máquina. */
+    let abrir!: () => void
+    const portao = new Promise<void>((r) => (abrir = r))
+    const env = {
+      AI: {
+        run: vi.fn(async () => {
+          await portao
+          return { text: 'olá', transcription_info: { language: 'pt' } }
+        }),
+      },
+      LIMITES: kvFalso(),
+    }
+    let respondidas = 0
+    const emCurso = Array.from({ length: 7 }, () =>
+      onRequestPost({ request: pedido(wav(2)), env }).then((r) => {
+        respondidas += 1
+        return r
+      }),
     )
+    // Quatro chegaram ao modelo e três já voltaram (sem ele); só então os quatro terminam.
+    await vi.waitFor(
+      () => {
+        expect(env.AI.run).toHaveBeenCalledTimes(4)
+        expect(respondidas).toBe(3)
+      },
+      { timeout: 5_000 },
+    )
+    abrir()
+    const respostas = await Promise.all(emCurso)
     const recusadas = respostas.filter((r) => r.status === 429)
     expect(recusadas).toHaveLength(3)
     for (const r of recusadas) {
@@ -528,7 +556,10 @@ describe('origem (furo 4): barra outro SITE no navegador, não é controle de ab
 
   it('GET do próprio site passa: `Sec-Fetch-Site: same-origin`, `Origin` igual, ou nenhum dos dois', async () => {
     const env = { AI: ia(), LIMITES: kvFalso() }
-    for (const cabecalhos of [{ 'sec-fetch-site': 'same-origin' }, { origin: ORIGEM }, {}] as Record<string, string>[]) {
+    for (const cabecalhos of [{ 'sec-fetch-site': 'same-origin' }, { origin: ORIGEM }, {}] as Record<
+      string,
+      string
+    >[]) {
       expect((await onRequestGet({ request: consulta(cabecalhos), env })).status).toBe(200)
     }
   })

@@ -36,6 +36,7 @@ import { authMiddleware, authRequired, verificarTokenPadrao } from '../lib/auth'
 import type { UserId } from '../lib/authContext'
 import { metricasHabilitadas, segredoDeOrigem } from '../lib/config'
 import { exigirContaParaEscrever } from '../lib/convidado'
+import { requisicaoTrazCredencial } from '../lib/credencialDaRequisicao'
 import { capturarAssincrono } from '../lib/erroGlobal'
 import { exigirAdultoDeclarado, exigirContaLiberada } from '../lib/idade'
 import { criarLimitadorDeFalhas } from '../lib/limitadorDeFalhas'
@@ -496,6 +497,15 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
    * 30 falhas por 15 minutos: um token expirado que o cliente reenvia em algumas telas antes de
    * renovar cabe com folga; um laço de adivinhação, não. Só em modo público — no self-host o
    * `authMiddleware` injeta o dono e 401 não existe.
+   *
+   * SÓ CONTA QUEM TRAZ CREDENCIAL (incidente de 2026-11-12). Um visitante sem conta abre o app e o
+   * cliente dispara ~10 chamadas `/api/*` sem `Authorization`, todas 401; contadas como falha, na
+   * 3ª abertura o IP inteiro levava 429 por 15 minutos (numa escola atrás de NAT, na 1ª) e a home
+   * ficava no esqueleto. Quem não manda credencial não está adivinhando token: a requisição dele
+   * nem lê o balde (`seAplica`) — continua no 401 de sempre, sem tocar o banco, o que também deixa
+   * uma inundação anônima mais barata. Quem manda QUALQUER coisa no `Authorization` (o único canal
+   * do `authMiddleware`; ver `server/lib/credencialDaRequisicao.ts`) segue o desenho de antes: soma
+   * no 401 e, estourado o teto do IP, leva 429 — inclusive com token bom, como todo bloqueio por origem.
    */
   if (authRequired()) {
     app.use(
@@ -504,7 +514,8 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
         metric: METRIC_RATELIMIT_AUTH,
         janelaMs: 15 * 60_000,
         teto: 30,
-        falhou: (_req, res) => res.statusCode === 401,
+        seAplica: requisicaoTrazCredencial,
+        falhou: (req, res) => res.statusCode === 401 && requisicaoTrazCredencial(req),
         code: 'muitas_falhas_de_autenticacao',
         mensagem: 'muitas tentativas de autenticação falharam; tente de novo mais tarde',
       }),

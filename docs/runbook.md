@@ -470,7 +470,7 @@ entrada só, a constante de teste `segredo-e2e-hs256-marco1`, que nunca foi chav
 
 | balde                                                | teto               | chave  | protege              |
 | ---------------------------------------------------- | ------------------ | ------ | -------------------- |
-| autenticação                                         | 30 falhas / 15 min | IP     | adivinhação de token |
+| autenticação (só requisição com `Authorization`)     | 30 falhas / 15 min | IP     | adivinhação de token |
 | rotas caras (`/api/ai`, `/api/import`, `/api/tutor`) | 60 / min           | tenant | gasto com terceiros  |
 | escrita (CRUD, admin, áudio)                         | 120 / min          | tenant | memória do processo  |
 
@@ -482,6 +482,13 @@ proteção de verdade (recusa a requisição, em vez de só trocar a resposta). 
 estourado, ele bloqueia tudo daquela origem na janela, **inclusive requisição com token bom**. É o
 comportamento de qualquer bloqueio por origem — e é por isso que `TRUST_PROXY` precisa estar certo:
 sem ela, atrás de proxy, a chave é o IP do proxy e o bloqueio de um atacante pega todo mundo junto.
+
+**O balde só olha quem traz credencial** (desde 2026-11-12). Visitante sem conta abre o app e dispara
+~10 chamadas `/api/*` sem `Authorization`, todas 401; antes elas somavam, e na 3ª abertura o IP inteiro
+levava 429 (`muitas_falhas_de_autenticacao`) por 15 minutos. Agora requisição sem `Authorization` (ou com
+ele vazio) nem consulta o balde: recebe o 401 de sempre e não soma. Qualquer conteúdo no `Authorization`,
+até esquema errado, conta como tentativa. Com o IP bloqueado, quem traz credencial recebe 429; quem não
+traz continua no 401. A regra está em `server/lib/credencialDaRequisicao.ts`.
 
 `TRUST_PROXY` **não liga sozinha**, e o motivo é que o erro para o outro lado é pior: confiar em
 `X-Forwarded-For` sem proxy à frente entrega a chave do balde ao cliente, e o limitador deixa de

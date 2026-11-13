@@ -8,8 +8,9 @@
  * depois disso até uma conexão sozinha recebia 429 por 15 minutos. E todo request, inclusive os
  * bem-sucedidos, fazia duas escritas no SQLite.
  *
- * Os três casos abaixo são o contrato do limitador novo: sucesso não escreve nada e nunca é
- * barrado; 401 repetido acaba em 429; e o bloqueio é do IP, não do servidor.
+ * Os casos abaixo são o contrato do limitador novo: sucesso não escreve nada e nunca é
+ * barrado; 401 repetido COM credencial acaba em 429; 401 SEM credencial (visitante sem conta) nunca
+ * soma; e o bloqueio é do IP, não do servidor.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
@@ -22,6 +23,9 @@ let trustProxyAnterior: string | undefined
 const IP_DA_ESCOLA = '198.51.100.10'
 const IP_ATACANTE = '198.51.100.20'
 const IP_VIZINHO = '198.51.100.30'
+const IP_VISITANTE = '198.51.100.40'
+const IP_MISTO = '198.51.100.50'
+const IP_BLOQUEADO = '198.51.100.60'
 
 /** Linhas do balde de auth no banco — o limitador novo só pode escrever quando há 401. */
 async function linhasDoBaldeDeAuth(): Promise<number> {
@@ -93,6 +97,56 @@ describe('limitador de falhas de auth', () => {
     const corpo = await resposta429?.json()
     expect(typeof corpo.error).toBe('string')
     expect(corpo.code).toBe('muitas_falhas_de_autenticacao')
+  }, 60_000)
+
+  /* VISITANTE SEM CONTA (incidente de 2026-11-12): abrir o app sem login dispara ~10 chamadas `/api/*`
+     sem `Authorization`, todas 401. Elas somavam no balde e, na 3ª abertura, o IP inteiro levava 429
+     por 15 minutos. Requisição sem credencial não é tentativa de adivinhar token: não soma nem é barrada. */
+  it('100 requisições SEM credencial do mesmo IP: todas 401, nenhum 429 e nenhuma escrita no contador', async () => {
+    const antes = await linhasDoBaldeDeAuth()
+    for (let i = 1; i <= 100; i++) {
+      const r = await s.chamar('GET', '/api/settings', { headers: { 'x-forwarded-for': IP_VISITANTE } })
+      expect(r.status, `a chamada ${i} sem credencial`).toBe(401)
+    }
+    expect(await linhasDoBaldeDeAuth(), 'sem credencial não pode escrever no contador').toBe(antes)
+  }, 60_000)
+
+  it('mistura: 29 inválidas + 50 sem credencial não bloqueiam; a 31ª inválida bloqueia', async () => {
+    const invalida = { authorization: 'Bearer token-inventado', 'x-forwarded-for': IP_MISTO }
+    const semCredencial = { 'x-forwarded-for': IP_MISTO }
+    for (let i = 1; i <= 29; i++) {
+      expect((await s.chamar('GET', '/api/me', { headers: invalida })).status, `inválida ${i}`).toBe(401)
+    }
+    for (let i = 1; i <= 50; i++) {
+      expect((await s.chamar('GET', '/api/me', { headers: semCredencial })).status, `sem credencial ${i}`).toBe(401)
+    }
+    expect((await s.chamar('GET', '/api/me', { headers: invalida })).status, 'inválida 30').toBe(401)
+    const r31 = await s.chamar('GET', '/api/me', { headers: invalida })
+    expect(r31.status, 'a 31ª inválida passa do teto').toBe(429)
+    expect((await r31.json()).code).toBe('muitas_falhas_de_autenticacao')
+  }, 60_000)
+
+  it('IP bloqueado: quem traz credencial (até válida) leva 429; quem não traz continua no 401', async () => {
+    /* A decisão (ver `server/http/app.ts`): o bloqueio vale para toda requisição COM credencial daquele
+       IP — inclusive token bom, como antes —, e a sem credencial segue para o 401 de sempre, sem
+       consultar o balde: para ela 401 e 429 dão no mesmo (nada é servido), e não tocar o banco deixa a
+       inundação anônima mais barata. O caso estoura o balde de um IP só dele, sem depender dos outros. */
+    let bloqueado = false
+    for (let i = 1; i <= 40 && !bloqueado; i++) {
+      const r = await s.chamar('GET', '/api/me', {
+        headers: { authorization: 'Bearer token-inventado', 'x-forwarded-for': IP_BLOQUEADO },
+      })
+      bloqueado = r.status === 429
+    }
+    expect(bloqueado, 'o balde do IP deveria ter estourado com tokens inválidos').toBe(true)
+
+    const token = await s.token('colega-do-atacante')
+    const valida = await s.chamar('GET', '/api/me', {
+      headers: { authorization: `Bearer ${token}`, 'x-forwarded-for': IP_BLOQUEADO },
+    })
+    expect(valida.status).toBe(429)
+    const semCredencial = await s.chamar('GET', '/api/me', { headers: { 'x-forwarded-for': IP_BLOQUEADO } })
+    expect(semCredencial.status).toBe(401)
   }, 60_000)
 
   it('estourado o balde de um IP, outro IP continua livre', async () => {

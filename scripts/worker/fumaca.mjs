@@ -397,8 +397,10 @@ async function verificacoes(base, w, token, provedor) {
   const semToken = await fetch(`${base}/api/me`)
   confere(semToken.status === 401, `/api/me sem token deveria ser 401, veio ${semToken.status}`)
   /* O IP do cliente é o `CF-Connecting-IP`; um `X-Forwarded-For` forjado não muda a chave do balde. O
-     limitador de falhas soma o 401 depois da resposta (pelo `waitUntil`). */
-  const sem = (h) => fetch(`${base}/api/me`, { headers: h }).then((r) => r.status)
+     limitador de falhas soma o 401 depois da resposta (pelo `waitUntil`). Com token INVÁLIDO: requisição
+     sem credencial nenhuma não soma no balde (`server/lib/credencialDaRequisicao.ts`). */
+  const sem = (h) =>
+    fetch(`${base}/api/me`, { headers: { authorization: 'Bearer token-inventado', ...h } }).then((r) => r.status)
   await sem({ 'cf-connecting-ip': '203.0.113.1' })
   await sem({ 'cf-connecting-ip': '203.0.113.2' })
   await sem({ 'cf-connecting-ip': '203.0.113.1', 'x-forwarded-for': '198.51.100.9' })
@@ -414,6 +416,33 @@ async function verificacoes(base, w, token, provedor) {
     vistos.includes('ip:203.0.113.1=2') && vistos.includes('ip:203.0.113.2=1') && !vistos.includes('198.51.100.9'),
     `baldes do limitador por IP: ${vistos.replace(/\n/g, ', ')}`,
   )
+  /* O teto (30 falhas / 15 min) vale para quem traz credencial: 30 tokens inválidos de um IP e a próxima
+     tentativa recebe 429. A soma é assíncrona (`waitUntil`), então espera o balde chegar a 30 antes. */
+  const IP_FORCA_BRUTA = '203.0.113.3'
+  for (let i = 0; i < 30; i++) {
+    const s = await sem({ 'cf-connecting-ip': IP_FORCA_BRUTA })
+    confere(s === 401, `token inválido ${i + 1}/30 deveria ser 401, veio ${s}`)
+  }
+  for (let i = 0; i < 40 && !baldes().includes(`ip:${IP_FORCA_BRUTA}=30`); i++) await esperar(250)
+  const barrada = await fetch(`${base}/api/me`, {
+    headers: { authorization: 'Bearer token-inventado', 'cf-connecting-ip': IP_FORCA_BRUTA },
+  })
+  const corpoBarrada = await barrada.json().catch(() => ({}))
+  confere(
+    barrada.status === 429 && corpoBarrada.code === 'muitas_falhas_de_autenticacao',
+    `a 31ª tentativa com token inválido deveria ser 429, veio ${barrada.status} ${JSON.stringify(corpoBarrada)}`,
+  )
+  /* O visitante sem conta (incidente de 2026-11-12): acima do teto, sem token, continua 401, nunca 429, e
+     não escreve no balde. Inclusive do IP já bloqueado: sem credencial o balde nem é consultado. */
+  const IP_VISITANTE = '203.0.113.4'
+  for (let i = 0; i < 40; i++) {
+    const r = await fetch(`${base}/api/me`, { headers: { 'cf-connecting-ip': IP_VISITANTE } })
+    confere(r.status === 401, `sem token ${i + 1}/40 deveria ser 401, veio ${r.status}`)
+  }
+  const doBloqueado = await fetch(`${base}/api/me`, { headers: { 'cf-connecting-ip': IP_FORCA_BRUTA } })
+  confere(doBloqueado.status === 401, `sem token do IP bloqueado deveria ser 401, veio ${doBloqueado.status}`)
+  await esperar(500)
+  confere(!baldes().includes(`ip:${IP_VISITANTE}=`), `sem token não pode somar no balde: ${baldes()}`)
   const me = await fetch(`${base}/api/me`, { headers: auth })
   confere(me.status === 200, `/api/me: ${me.status} ${(await me.text()).slice(0, 300)}`)
   const idade = await fetch(`${base}/api/me/idade`, {
@@ -453,7 +482,7 @@ async function verificacoes(base, w, token, provedor) {
     resumoWeb = `import web: 200, ${corpoWeb.text.length} caracteres, "${corpoWeb.title}", ${Date.now() - t0} ms`
   }
   console.log(
-    '✔ 2/9 JWT ES256 (JWKS local) → GET /api/me 200 (sem token: 401, balde por CF-Connecting-IP, X-Forwarded-For forjado ignorado; ' +
+    '✔ 2/9 JWT ES256 (JWKS local) → GET /api/me 200 (sem token: 401, balde por CF-Connecting-IP, X-Forwarded-For forjado ignorado, 31ª inválida → 429, 40 sem token → 401 sem somar; ' +
       resumoWeb +
       ')',
   )

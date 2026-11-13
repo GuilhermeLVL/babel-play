@@ -25,6 +25,7 @@ const IP_ATACANTE = '198.51.100.20'
 const IP_VIZINHO = '198.51.100.30'
 const IP_VISITANTE = '198.51.100.40'
 const IP_MISTO = '198.51.100.50'
+const IP_BLOQUEADO = '198.51.100.60'
 
 /** Linhas do balde de auth no banco — o limitador novo só pode escrever quando há 401. */
 async function linhasDoBaldeDeAuth(): Promise<number> {
@@ -126,18 +127,27 @@ describe('limitador de falhas de auth', () => {
   }, 60_000)
 
   it('IP bloqueado: quem traz credencial (até válida) leva 429; quem não traz continua no 401', async () => {
-    /* O IP_ATACANTE estourou o balde no caso acima. A decisão (ver `server/http/app.ts`): o bloqueio vale
-       para toda requisição COM credencial daquele IP — inclusive token bom, como antes —, e a sem
-       credencial segue para o 401 de sempre, sem consultar o balde: para ela 401 e 429 dão no mesmo
-       (nada é servido), e não tocar o banco deixa a inundação anônima mais barata. */
+    /* A decisão (ver `server/http/app.ts`): o bloqueio vale para toda requisição COM credencial daquele
+       IP — inclusive token bom, como antes —, e a sem credencial segue para o 401 de sempre, sem
+       consultar o balde: para ela 401 e 429 dão no mesmo (nada é servido), e não tocar o banco deixa a
+       inundação anônima mais barata. O caso estoura o balde de um IP só dele, sem depender dos outros. */
+    let bloqueado = false
+    for (let i = 1; i <= 40 && !bloqueado; i++) {
+      const r = await s.chamar('GET', '/api/me', {
+        headers: { authorization: 'Bearer token-inventado', 'x-forwarded-for': IP_BLOQUEADO },
+      })
+      bloqueado = r.status === 429
+    }
+    expect(bloqueado, 'o balde do IP deveria ter estourado com tokens inválidos').toBe(true)
+
     const token = await s.token('colega-do-atacante')
     const valida = await s.chamar('GET', '/api/me', {
-      headers: { authorization: `Bearer ${token}`, 'x-forwarded-for': IP_ATACANTE },
+      headers: { authorization: `Bearer ${token}`, 'x-forwarded-for': IP_BLOQUEADO },
     })
     expect(valida.status).toBe(429)
-    const semCredencial = await s.chamar('GET', '/api/me', { headers: { 'x-forwarded-for': IP_ATACANTE } })
+    const semCredencial = await s.chamar('GET', '/api/me', { headers: { 'x-forwarded-for': IP_BLOQUEADO } })
     expect(semCredencial.status).toBe(401)
-  })
+  }, 60_000)
 
   it('estourado o balde de um IP, outro IP continua livre', async () => {
     const token = await s.token('vizinho')

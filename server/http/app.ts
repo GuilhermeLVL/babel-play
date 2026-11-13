@@ -480,7 +480,8 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
    * nunca chega a limitador nenhum**. Quem tenta adivinhar token — ou reusa um vazado contra várias
    * contas — não encontrava teto em lugar nenhum do servidor.
    *
-   * Este vem ANTES do auth e conta SÓ o que falhou (401). Um usuário legítimo, com token válido,
+   * Este vem ANTES do auth e conta SÓ o 401 de requisição que TRAZ credencial (ver "SÓ CONTA QUEM
+   * TRAZ CREDENCIAL" abaixo). Um usuário legítimo, com token válido,
    * nunca soma um ponto aqui, por mais que navegue — e, desde a auditoria de prontidão de
    * 2026-09-25 (fase 2 §2.5), também nunca ESCREVE nada nem é barrado por concorrência.
    *
@@ -515,7 +516,8 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
         janelaMs: 15 * 60_000,
         teto: 30,
         seAplica: requisicaoTrazCredencial,
-        falhou: (req, res) => res.statusCode === 401 && requisicaoTrazCredencial(req),
+        // Só chega aqui quem traz credencial: o `seAplica` acima já deixou o resto passar direto.
+        falhou: (_req, res) => res.statusCode === 401,
         code: 'muitas_falhas_de_autenticacao',
         mensagem: 'muitas tentativas de autenticação falharam; tente de novo mais tarde',
       }),

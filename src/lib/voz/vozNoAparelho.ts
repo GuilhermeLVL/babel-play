@@ -32,6 +32,7 @@ import { getEntitlements } from '../entitlements';
 import { flagLigada } from '../flagsCache';
 import { perfilProtegido } from '../protecaoDoMenor';
 import { getVoicePrefs, getVoices, type TtsEngine } from '../tts';
+import { opfsConhecido, opfsUtilizavel } from './opfsUtilizavel';
 
 /** A escolha "Voz de alta qualidade (no aparelho)" na preferência de voz. O `@` não existe em voz do sistema. */
 export const VOZ_NO_APARELHO = '@no-aparelho';
@@ -89,13 +90,33 @@ function entradaDoPortao(): EntradaDaVozNoAparelho {
     wasm: typeof WebAssembly !== 'undefined',
     isolado: p.sinais.isolado,
     ios: ehIos(p.sinais.userAgent, p.sinais.toques),
-    armazenamento: typeof nav?.storage?.getDirectory === 'function',
+    armazenamento: typeof nav?.storage?.getDirectory === 'function' ? opfsConhecido() : false,
   };
+}
+
+/**
+ * Pergunta ao OPFS (uma vez por sessão) se ele funciona e avisa quem desenha. Só pergunta com a flag ligada e a raiz dos
+ * pesos configurada (sem oferta possível, nenhum I/O). Nunca lança.
+ */
+export async function verificarArmazenamentoDaVoz(): Promise<void> {
+  if (raizDoModelo() === null || !flagLigada(FLAG_VOZ_NO_APARELHO)) return;
+  await opfsUtilizavel();
+  avisar();
 }
 
 /** A opção aparece (por padrão ou por escolha)? Sem a raiz dos pesos, nunca. */
 export const vozNoAparelhoOferecida = (): boolean =>
   raizDoModelo() !== null && decisaoDaVozNoAparelho().oferta !== 'nao';
+
+/**
+ * O aparelho serviria, mas o OPFS não funciona (Safari em navegação privada): a opção aparece DESABILITADA, com o motivo,
+ * em vez de oferecer um download que vai falhar.
+ */
+export const vozNoAparelhoSemArmazenamento = (): boolean => {
+  if (raizDoModelo() === null) return false;
+  const d = decisaoDaVozNoAparelho();
+  return d.oferta === 'nao' && d.motivo === 'sem-armazenamento';
+};
 
 export const modeloNoAparelho = (): boolean => ler(CHAVE_DO_MODELO) === REVISAO_DO_SUPERTONIC;
 

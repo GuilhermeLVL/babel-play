@@ -6052,6 +6052,7 @@
   "Voz sintetizada que roda neste aparelho. Baixa uma vez (≈ {mb} MB) e depois funciona sem internet.": "Synthesized voice that runs on this device. Downloads once (≈ {mb} MB), then works offline.",
   "A voz de alta qualidade não está disponível neste aparelho: ela precisa de mais memória do que celulares e tablets costumam ter.": "The high-quality voice isn't available on this device: it needs more memory than phones and tablets usually have.",
   "A voz de alta qualidade não está disponível neste navegador.": "The high-quality voice isn't available in this browser.",
+  "Esta janela não permite guardar a voz (navegação privada?). Abra uma janela normal para baixá-la.": "This window can't store the voice (private browsing?). Open a regular window to download it.",
   "Baixando a voz de alta qualidade": "Downloading the high-quality voice",
   "Baixando: {feito} de {total} MB.": "Downloading: {feito} of {total} MB.",
   "Baixa uma vez, ≈ {mb} MB; fica só neste aparelho; funciona sem internet depois; você apaga quando quiser.": "Downloads once, ≈ {mb} MB; stays only on this device; works offline afterwards; you can delete it anytime.",

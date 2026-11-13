@@ -2556,6 +2556,7 @@
   "Voz sintetizada que roda neste aparelho. Baixa uma vez (≈ {mb} MB) e depois funciona sem internet.": "Voz sintetizada que funciona en este dispositivo. Se descarga una vez (≈ {mb} MB) y luego funciona sin internet.",
   "A voz de alta qualidade não está disponível neste aparelho: ela precisa de mais memória do que celulares e tablets costumam ter.": "La voz de alta calidad no está disponible en este dispositivo: necesita más memoria de la que suelen tener los móviles y las tabletas.",
   "A voz de alta qualidade não está disponível neste navegador.": "La voz de alta calidad no está disponible en este navegador.",
+  "Esta janela não permite guardar a voz (navegação privada?). Abra uma janela normal para baixá-la.": "Esta ventana no permite guardar la voz (¿navegación privada?). Abre una ventana normal para descargarla.",
   "Baixando a voz de alta qualidade": "Descargando la voz de alta calidad",
   "Baixando: {feito} de {total} MB.": "Descargando: {feito} de {total} MB.",
   "Apagar do aparelho": "Borrar del dispositivo",

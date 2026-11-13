@@ -38,11 +38,12 @@ vi.mock('../src/lib/dispositivo/perfil', async (orig) => ({
 }))
 
 const vna = await import('../src/lib/voz/vozNoAparelho')
+const { esquecerOpfsSondado } = await import('../src/lib/voz/opfsUtilizavel')
 const { setVoicePref } = await import('../src/lib/tts')
 
 const modeloPronto = () => localStorage.setItem('frasy.vozNoAparelho.modelo', REVISAO_DO_SUPERTONIC)
 
-beforeEach(() => {
+beforeEach(async () => {
   localStorage.clear()
   Object.assign(sinais, {
     flag: true,
@@ -55,8 +56,10 @@ beforeEach(() => {
   vi.stubEnv('VITE_VOZ_MODELO_URL', 'http://localhost:3185/assets')
   Object.defineProperty(navigator, 'storage', {
     configurable: true,
-    value: { getDirectory: async () => ({}) },
+    value: { getDirectory: async () => ({ getFileHandle: async () => ({}), removeEntry: async () => undefined }) },
   })
+  esquecerOpfsSondado()
+  await vna.verificarArmazenamentoDaVoz() // o convite só vale depois da resposta da sonda do OPFS
 })
 afterEach(() => {
   cleanup()

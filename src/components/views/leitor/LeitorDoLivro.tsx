@@ -95,6 +95,7 @@ import {
   carregarMotor,
   conviteDaVozNoAparelho,
   destravarVozNoAparelho,
+  verificarArmazenamentoDaVoz,
   vozDoNarradorNoAparelho,
   vozNoAparelhoLe,
 } from '../../../lib/voz/vozNoAparelho';
@@ -558,8 +559,11 @@ export default function LeitorDoLivro({
   useEffect(() => {
     if (conviteAvaliado.current || !vistaNarrador.vozDoSistema) return;
     conviteAvaliado.current = true;
-    if (conviteDaVozNoAparelho(idiomaRef.current, !!audioGravadoRef.current || !!vistaNarrador.gravado))
-      setConvidarVoz(true);
+    const gravado = !!audioGravadoRef.current || !!vistaNarrador.gravado;
+    /* A leitura já começou; o convite espera a sonda do OPFS responder (sem OPFS que funcione, ele nem aparece). */
+    void verificarArmazenamentoDaVoz().then(() => {
+      if (conviteDaVozNoAparelho(idiomaRef.current, gravado)) setConvidarVoz(true);
+    });
   }, [vistaNarrador.vozDoSistema, vistaNarrador.gravado]);
 
   const faseAnunciada = useRef(vistaNarrador.fase);

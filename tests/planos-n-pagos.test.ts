@@ -16,7 +16,8 @@ vi.mock('../src/lib/supabase', () => ({
   supabase: null,
   authRequired: true,
   carregarSupabase: async () => null,
-  getAccessToken: async () => null,
+  // A conta destes testes tem token: no modo público, sem token o funil responde como sem conta.
+  getAccessToken: async () => 'tok',
 }))
 
 import { planoDeAdmissao } from '../server/ai/admissao'

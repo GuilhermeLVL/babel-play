@@ -11,12 +11,16 @@ import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/lib/supabase', () => ({
-  supabase: null, authRequired: true, carregarSupabase: async () => null, getAccessToken: async () => null,
+  // A conta destes testes tem token: no modo público, sem token o funil responde como sem conta.
+  supabase: null,
+  authRequired: true,
+  carregarSupabase: async () => null,
+  getAccessToken: async () => 'tok',
 }))
 
 import * as api from '../src/data/api'
 import { abrirStore, fecharStore, limparTudo } from '../src/data/efemero/store'
-import { inventarioLocal,migrarParaConta } from '../src/data/migracao'
+import { inventarioLocal, migrarParaConta } from '../src/data/migracao'
 import { definirIdentidade } from '../src/lib/identidade'
 
 interface Servidor {
@@ -29,34 +33,53 @@ interface Servidor {
 }
 
 function servidorFalso(): Servidor {
-  const s: Servidor = { sessoes: new Map(), audios: new Map(), cartoes: new Set(), recusarAudio: false, recusarSessao: false, chamadas: [] }
-  const json = (c: unknown, status = 200) => new Response(JSON.stringify(c), { status, headers: { 'content-type': 'application/json' } })
-  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
-    const metodo = init?.method ?? 'GET'
-    s.chamadas.push(`${metodo} ${url}`)
-    if (metodo === 'POST' && url === '/api/sessions') {
-      if (s.recusarSessao) return json({ error: 'indisponível' }, 503)
-      const p = JSON.parse(String(init!.body)) as { origemLocalId: string; title: string; utterances: unknown[] }
-      const existente = [...s.sessoes.values()].find((x) => x.origemLocalId === p.origemLocalId)
-      if (existente) return json({ ...existente, jaExistia: true })
-      const nova = { id: `srv-${s.sessoes.size + 1}`, origemLocalId: p.origemLocalId, title: p.title, falas: p.utterances.length }
-      s.sessoes.set(nova.id, nova)
-      return json(nova)
-    }
-    const audio = url.match(/^\/api\/sessions\/([^/]+)\/audio$/)
-    if (metodo === 'POST' && audio) {
-      if (s.recusarAudio) return json({ error: 'quota' }, 507)
-      s.audios.set(audio[1], (init!.body as ArrayBuffer).byteLength)
-      return json({ ok: true })
-    }
-    if (metodo === 'POST' && url === '/api/vocab/bulk-add') {
-      const p = JSON.parse(String(init!.body)) as { cards: Array<{ word: string; sessionId?: string }> }
-      const novos = p.cards.filter((c) => !s.cartoes.has(c.word))
-      for (const c of p.cards) s.cartoes.add(c.word)
-      return json({ cards: novos.map((c) => ({ id: `c-${c.word}`, word: c.word, sessionId: c.sessionId ?? null })), skipped: [] })
-    }
-    return json({ error: `rota não prevista: ${metodo} ${url}` }, 500)
-  }))
+  const s: Servidor = {
+    sessoes: new Map(),
+    audios: new Map(),
+    cartoes: new Set(),
+    recusarAudio: false,
+    recusarSessao: false,
+    chamadas: [],
+  }
+  const json = (c: unknown, status = 200) =>
+    new Response(JSON.stringify(c), { status, headers: { 'content-type': 'application/json' } })
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      const metodo = init?.method ?? 'GET'
+      s.chamadas.push(`${metodo} ${url}`)
+      if (metodo === 'POST' && url === '/api/sessions') {
+        if (s.recusarSessao) return json({ error: 'indisponível' }, 503)
+        const p = JSON.parse(String(init!.body)) as { origemLocalId: string; title: string; utterances: unknown[] }
+        const existente = [...s.sessoes.values()].find((x) => x.origemLocalId === p.origemLocalId)
+        if (existente) return json({ ...existente, jaExistia: true })
+        const nova = {
+          id: `srv-${s.sessoes.size + 1}`,
+          origemLocalId: p.origemLocalId,
+          title: p.title,
+          falas: p.utterances.length,
+        }
+        s.sessoes.set(nova.id, nova)
+        return json(nova)
+      }
+      const audio = url.match(/^\/api\/sessions\/([^/]+)\/audio$/)
+      if (metodo === 'POST' && audio) {
+        if (s.recusarAudio) return json({ error: 'quota' }, 507)
+        s.audios.set(audio[1], (init!.body as ArrayBuffer).byteLength)
+        return json({ ok: true })
+      }
+      if (metodo === 'POST' && url === '/api/vocab/bulk-add') {
+        const p = JSON.parse(String(init!.body)) as { cards: Array<{ word: string; sessionId?: string }> }
+        const novos = p.cards.filter((c) => !s.cartoes.has(c.word))
+        for (const c of p.cards) s.cartoes.add(c.word)
+        return json({
+          cards: novos.map((c) => ({ id: `c-${c.word}`, word: c.word, sessionId: c.sessionId ?? null })),
+          skipped: [],
+        })
+      }
+      return json({ error: `rota não prevista: ${metodo} ${url}` }, 500)
+    }),
+  )
   return s
 }
 
@@ -65,14 +88,22 @@ async function semearLocal() {
   const a = await api.createSession({ title: 'Aula 1', kind: 'live', utterances: [{ idx: 0, sourceText: 'one two' }] })
   const b = await api.createSession({ title: 'Aula 2', kind: 'live', utterances: [{ idx: 0, sourceText: 'three' }] })
   await api.uploadSessionAudio(a.id, new Blob([new Uint8Array(16)], { type: 'audio/webm' }))
-  await api.bulkAddCards([{ word: 'one', srcLang: 'en', sessionId: a.id }, { word: 'three', srcLang: 'en', sessionId: b.id }, { word: 'solo', srcLang: 'en' }])
+  await api.bulkAddCards([
+    { word: 'one', srcLang: 'en', sessionId: a.id },
+    { word: 'three', srcLang: 'en', sessionId: b.id },
+    { word: 'solo', srcLang: 'en' },
+  ])
   await api.salvarRodada({ roundId: 'r1', exerciseKind: 'termo', itens: [{ itemRef: 'one', correct: 1 }] })
   return { a, b }
 }
 
 describe('migração sem conta → conta', () => {
-  beforeEach(async () => { await limparTudo() })
-  afterEach(async () => { vi.unstubAllGlobals() })
+  beforeEach(async () => {
+    await limparTudo()
+  })
+  afterEach(async () => {
+    vi.unstubAllGlobals()
+  })
 
   it('sobe sessões, áudio e cartões; repetir não duplica; o navegador fica limpo', async () => {
     const { a } = await semearLocal()
@@ -142,4 +173,6 @@ describe('migração sem conta → conta', () => {
   })
 })
 
-afterEach(async () => { await fecharStore() })
+afterEach(async () => {
+  await fecharStore()
+})

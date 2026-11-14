@@ -3,7 +3,7 @@ import { Award, Eye, Megaphone, Receipt, Target } from 'lucide-react';
 import { useState } from 'react';
 
 import { t } from '../../../lib/i18n';
-import { pedirEntrada, semContaComPorta } from '../../../lib/pedirConta';
+import { pedirEntrada, useSemContaComPorta } from '../../../lib/pedirConta';
 import {
   type Canal,
   type Preferencias,
@@ -49,7 +49,7 @@ export default function AbaNotificacoes() {
   const p = usePreferencias();
   const { perfil } = usePerfil();
   const [exemplo, setExemplo] = useState(false);
-  const [semConta] = useState(semContaComPorta);
+  const semConta = useSemContaComPorta();
 
   /* QUEST: as mesmas quatro seções, uma decisão por linha. A matriz tipo × canal continua uma tabela:
      é assim que se lê "o que" contra "por onde". */

@@ -4,7 +4,7 @@ import { anonimoAceito, motivoDoGate } from '../../components/conta/exigeConta';
 /* `nucleo` e não `servidor`: o evento é uma constante da folha; importar o roteador puxaria o
    servidor em memória inteiro para o chunk de entrada (ver `data/funil.ts`). */
 import { EVENTO_EXIGE_CONTA } from '../../data/efemero/nucleo';
-import { aoMudarIdentidade, estaAnonimo } from '../identidade';
+import { aoMudarIdentidade, estaAnonimo, estadoDeIdentidade } from '../identidade';
 import { guardarIntencao, lerIntencao } from '../intencaoDeLogin';
 import { EVENTO_PEDIR_ENTRADA, type ModoDeEntrada } from '../pedirConta';
 
@@ -61,6 +61,9 @@ export function useGateDeConta({ adiarMigracao = false }: OpcoesDoGateDeConta = 
   const [semContaAceito, setSemContaAceito] = useState(anonimoAceito);
   const [pedindoLogin, setPedindoLoginDeFato] = useState<false | ModoDeEntrada>(false);
   const setPedindoLogin = useCallback((v: boolean | ModoDeEntrada) => {
+    /* Com sessão, não há porta a pedir: o pedido ficaria pendurado (a porta mostra o app) e voltaria como
+       "Criar conta" depois de um SIGNED_OUT, com uma intenção velha guardada. */
+    if (v && estadoDeIdentidade() === 'conta') return;
     if (v) lembrarDeOndeVeio();
     setPedindoLoginDeFato(v === true ? 'login' : v);
   }, []);
@@ -107,6 +110,7 @@ export function useGateDeConta({ adiarMigracao = false }: OpcoesDoGateDeConta = 
   // Os botões "Criar conta" e "Já tenho conta" de qualquer convite (`pedirEntrada`).
   useEffect(() => {
     const h = (ev: Event) => {
+      if (!estaAnonimo()) return;
       const modo = (ev as CustomEvent<{ modo?: ModoDeEntrada }>).detail?.modo;
       setGate(null);
       setPedindoLogin(modo === 'signup' ? 'signup' : 'login');

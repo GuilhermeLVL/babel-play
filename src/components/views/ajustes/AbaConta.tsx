@@ -19,7 +19,7 @@ import { useCallback, useEffect, useState } from 'react';
 import * as auth from '../../../lib/auth';
 import { edicaoEstatica } from '../../../lib/edicaoEstatica';
 import { t } from '../../../lib/i18n';
-import { semContaComPorta } from '../../../lib/pedirConta';
+import { useSemContaComPorta } from '../../../lib/pedirConta';
 import { authRequired, carregarSupabase } from '../../../lib/supabase';
 import CartaoDeConvite from '../../conta/CartaoDeConvite';
 import { askConfirm, toast } from '../../Toast';
@@ -105,7 +105,7 @@ export default function AbaConta({
   const [ocupado, setOcupado] = useState(false);
   const aparelho = descreverAparelho(typeof navigator === 'undefined' ? '' : navigator.userAgent);
   /* A edição estática também é `anonimo`, mas lá não há conta a criar: fica no ramo "sem login". */
-  const [semConta] = useState(semContaComPorta);
+  const semConta = useSemContaComPorta();
 
   const reler = useCallback(async () => {
     if (!authRequired || semConta) return;
@@ -145,13 +145,14 @@ export default function AbaConta({
     else toast.ok('Os outros aparelhos saíram da conta');
   };
 
-  /* O que este navegador guarda sem conta (sessões, palavras, progresso) — com confirmação, e a página
-     recarrega para nenhuma tela seguir mostrando o que já não existe. */
+  /* O que o modo sem conta guarda neste navegador (sessões, palavras, progresso: `limparTudo`) — com
+     confirmação, e a página recarrega para nenhuma tela seguir mostrando o que já não existe. Os livros da
+     estante, o avatar e as preferências moram em outros armazéns e FICAM: o texto diz isso. */
   const apagarDesteNavegador = async () => {
     const ok = await askConfirm({
-      title: t('Apagar os dados deste navegador?'),
+      title: t('Apagar sessões, palavras e progresso deste navegador?'),
       detail: t(
-        'As sessões, palavras e progresso guardados aqui somem deste navegador. Os seus ajustes de idioma e aparência continuam.',
+        'Somem deste navegador as sessões, as palavras e o progresso guardados sem conta, e não tem volta. Os livros da sua estante, o avatar e os ajustes de idioma e aparência continuam.',
       ),
       confirmLabel: t('Apagar'),
       danger: true,
@@ -219,11 +220,11 @@ export default function AbaConta({
 
         <section className="q-ajuste q-aju-perigo">
           <div>
-            <b>{t('Apagar os dados deste navegador')}</b>
-            <small>{t('Sessões, palavras e progresso guardados aqui, sem conta. Não tem volta.')}</small>
+            <b>{t('Dados deste navegador')}</b>
+            <small>{t('Sessões, palavras e progresso guardados aqui, sem conta. Os livros e o avatar ficam.')}</small>
           </div>
           <button type="button" className="q-ctl perigo" onClick={() => void apagarDesteNavegador()}>
-            <Trash2 aria-hidden /> {t('Apagar')}
+            <Trash2 aria-hidden /> {t('Apagar sessões, palavras e progresso deste navegador')}
           </button>
         </section>
       </>

@@ -8,7 +8,7 @@
 
 ## 2. Telas
 
-- [x] 2.1 Ajustes → Conta sem conta: convite + "Apagar os dados deste navegador"
+- [x] 2.1 Ajustes → Conta sem conta: convite + "Apagar sessões, palavras e progresso deste navegador" (livros e avatar ficam)
 - [x] 2.2 Ajustes → Privacidade: "Pedir uma cópia" vira convite
 - [x] 2.3 Cartões: Anki e o "…" convidam; Palavras mostra o convite do vocabulário
 - [x] 2.4 Personalizar: convite por aba; comentário de `exigeConta.ts`

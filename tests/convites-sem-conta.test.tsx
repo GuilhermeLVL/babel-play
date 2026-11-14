@@ -79,17 +79,43 @@ describe('Ajustes → Conta sem conta', () => {
     expect(screen.getByRole('button', { name: /Rever/ })).toBeTruthy()
   })
 
-  it('"Apagar os dados deste navegador" pergunta antes e só então apaga', async () => {
+  it('"Apagar sessões, palavras e progresso" pergunta antes, diz o que fica (livros, avatar) e só então apaga', async () => {
     render(<AbaConta onReplayTour={() => {}} aoIrParaPrivacidade={() => {}} />)
     toast.askConfirm.mockResolvedValueOnce(false)
-    fireEvent.click(screen.getByRole('button', { name: /^Apagar$/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Apagar sessões, palavras e progresso deste navegador' }))
     await waitFor(() => expect(toast.askConfirm).toHaveBeenCalledTimes(1))
     expect(store.limparTudo).not.toHaveBeenCalled()
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^Apagar$/ }))
+      fireEvent.click(screen.getByRole('button', { name: 'Apagar sessões, palavras e progresso deste navegador' }))
     })
     await waitFor(() => expect(store.limparTudo).toHaveBeenCalledTimes(1))
-    expect(toast.askConfirm.mock.calls[1][0]).toMatchObject({ title: 'Apagar os dados deste navegador?', danger: true })
+    const pedido = toast.askConfirm.mock.calls[1][0] as { title: string; detail?: string; danger?: boolean }
+    expect(pedido).toMatchObject({ title: 'Apagar sessões, palavras e progresso deste navegador?', danger: true })
+    expect(pedido.detail).toMatch(/livros da sua estante, o avatar/)
+  })
+
+  it('a sessão que chega depois (anonimo → conta) troca a aba para o ramo da conta, sem o botão de apagar', async () => {
+    render(<AbaConta onReplayTour={() => {}} aoIrParaPrivacidade={() => {}} />)
+    expect(screen.getByTestId('cartao-de-convite')).toBeTruthy()
+    act(() => definirIdentidade('conta'))
+    expect(screen.queryByTestId('cartao-de-convite')).toBeNull()
+    expect(screen.queryByRole('button', { name: /Apagar sessões/ })).toBeNull()
+    expect(screen.getByRole('button', { name: /Trocar senha/ })).toBeTruthy()
+    await waitFor(() => expect(supa.carregar).toHaveBeenCalled())
+  })
+
+  it('Privacidade e Notificações também acompanham a identidade', () => {
+    render(
+      <>
+        <AbaPrivacidade />
+        <AbaNotificacoes />
+      </>,
+    )
+    expect(screen.getByTestId('email-sem-conta')).toBeTruthy()
+    act(() => definirIdentidade('conta'))
+    expect(screen.queryByTestId('cartao-de-convite')).toBeNull()
+    expect(screen.queryByTestId('email-sem-conta')).toBeNull()
+    expect(screen.getByRole('button', { name: /Pedir uma cópia/ })).toBeTruthy()
   })
 
   it('com conta, o ramo de sempre (e-mail, senha, 2FA, sair, excluir)', async () => {

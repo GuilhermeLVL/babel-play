@@ -2591,13 +2591,15 @@
   "Criar, trazer e exportar cartões precisa de conta": "Crear, traer y exportar tarjetas necesita una cuenta",
   "Palavra nova à mão, baralho do Anki e exportação guardam cartões na sua conta. Jogar e capturar palavras continuam livres.": "Palabra nueva a mano, mazo de Anki y exportación guardan tarjetas en tu cuenta. Jugar y capturar palabras siguen libres.",
   "Já tenho conta": "Ya tengo cuenta",
-  "Apagar os dados deste navegador?": "¿Borrar los datos de este navegador?",
-  "As sessões, palavras e progresso guardados aqui somem deste navegador. Os seus ajustes de idioma e aparência continuam.": "Las sesiones, palabras y progreso guardados aquí se borran de este navegador. Tus ajustes de idioma y apariencia siguen.",
   "Não consegui apagar agora. Tente de novo.": "No pude borrar ahora. Inténtalo de nuevo.",
-  "Apagar os dados deste navegador": "Borrar los datos de este navegador",
-  "Sessões, palavras e progresso guardados aqui, sem conta. Não tem volta.": "Sesiones, palabras y progreso guardados aquí, sin cuenta. No se puede deshacer.",
   "Sem conta não há e-mail cadastrado, então os avisos por e-mail e o resumo semanal ficam desligados. Os avisos no app continuam valendo.": "Sin cuenta no hay correo registrado, así que los avisos por correo y el resumen semanal quedan apagados. Los avisos en la app siguen activos.",
   "**O tutor de IA precisa de conta.** Transcrever, traduzir e jogar continuam livres neste navegador.": "**El tutor de IA necesita una cuenta.** Transcribir, traducir y jugar siguen libres en este navegador.",
   "O parceiro de leitura precisa de conta. Ler, traduzir e ouvir o livro continuam livres.": "El compañero de lectura necesita una cuenta. Leer, traducir y escuchar el libro siguen libres.",
-  "Elas ficam só neste navegador. Com uma conta, vão com você.": "Quedan solo en este navegador. Con una cuenta, van contigo."
+  "Elas ficam só neste navegador. Com uma conta, vão com você.": "Quedan solo en este navegador. Con una cuenta, van contigo.",
+  "Apagar sessões, palavras e progresso deste navegador?": "¿Borrar sesiones, palabras y progreso de este navegador?",
+  "Somem deste navegador as sessões, as palavras e o progresso guardados sem conta, e não tem volta. Os livros da sua estante, o avatar e os ajustes de idioma e aparência continuam.": "Se borran de este navegador las sesiones, las palabras y el progreso guardados sin cuenta, y no se puede deshacer. Los libros de tu estante, el avatar y los ajustes de idioma y apariencia siguen.",
+  "Dados deste navegador": "Datos de este navegador",
+  "Sessões, palavras e progresso guardados aqui, sem conta. Os livros e o avatar ficam.": "Sesiones, palabras y progreso guardados aquí, sin cuenta. Los libros y el avatar se quedan.",
+  "Apagar sessões, palavras e progresso deste navegador": "Borrar sesiones, palabras y progreso de este navegador",
+  "Sua sessão expirou. Entre de novo para usar o parceiro de leitura.": "Tu sesión expiró. Inicia sesión de nuevo para usar el compañero de lectura."
 }

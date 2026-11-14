@@ -9,9 +9,11 @@
  *  · `pedirEntrada(modo)` vai direto à porta: "Criar conta" abre o Login no cadastro; "Já tenho conta",
  *    na entrada. É o que os dois botões de todo convite chamam.
  */
+import { useEffect, useState } from 'react';
+
 import { EVENTO_EXIGE_CONTA } from '../data/efemero/nucleo';
 import { edicaoEstatica } from './edicaoEstatica';
-import { estaAnonimo } from './identidade';
+import { aoMudarIdentidade, estaAnonimo } from './identidade';
 
 export type ModoDeEntrada = 'login' | 'signup';
 
@@ -22,6 +24,19 @@ export const EVENTO_PEDIR_ENTRADA = 'babel_pedir_entrada';
  * do Supabase). A edição estática também é `anonimo`, mas lá não há porta — e o self-host nunca é.
  */
 export const semContaComPorta = (): boolean => estaAnonimo() && !edicaoEstatica();
+
+/**
+ * O mesmo, acompanhando a identidade: a sessão restaurada tarde (ou o `USER_UPDATED` da conversão) troca
+ * a tela para o ramo da conta, e o ramo de visitante nunca fica à vista de uma conta de verdade.
+ */
+export function useSemContaComPorta(): boolean {
+  const [semConta, setSemConta] = useState(semContaComPorta);
+  useEffect(() => {
+    setSemConta(semContaComPorta());
+    return aoMudarIdentidade(() => setSemConta(semContaComPorta()));
+  }, []);
+  return semConta;
+}
 
 export function pedirConta(origem: string): void {
   window.dispatchEvent(new CustomEvent(EVENTO_EXIGE_CONTA, { detail: { rota: origem, explicito: true } }));
@@ -37,7 +52,7 @@ export function pedirEntrada(modo: ModoDeEntrada): void {
  */
 export function comConta<A extends unknown[]>(origem: string, acao: (...a: A) => void): (...a: A) => void {
   return (...a: A) => {
-    if (estaAnonimo()) pedirConta(origem);
+    if (semContaComPorta()) pedirConta(origem);
     else acao(...a);
   };
 }

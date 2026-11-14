@@ -2169,13 +2169,15 @@
   "Criar, trazer e exportar cartões precisa de conta": "إنشاء البطاقات واستيرادها وتصديرها يحتاج إلى حساب",
   "Palavra nova à mão, baralho do Anki e exportação guardam cartões na sua conta. Jogar e capturar palavras continuam livres.": "الكلمة الجديدة يدويًا ومجموعة Anki والتصدير تحفظ البطاقات في حسابك. اللعب والتقاط الكلمات يبقيان مجانيين.",
   "Já tenho conta": "لدي حساب بالفعل",
-  "Apagar os dados deste navegador?": "حذف البيانات في هذا المتصفح؟",
-  "As sessões, palavras e progresso guardados aqui somem deste navegador. Os seus ajustes de idioma e aparência continuam.": "تُحذف الجلسات والكلمات والتقدم المحفوظة هنا من هذا المتصفح. تبقى إعدادات اللغة والمظهر.",
   "Não consegui apagar agora. Tente de novo.": "تعذّر الحذف الآن. حاول مرة أخرى.",
-  "Apagar os dados deste navegador": "حذف البيانات في هذا المتصفح",
-  "Sessões, palavras e progresso guardados aqui, sem conta. Não tem volta.": "الجلسات والكلمات والتقدم المحفوظة هنا بدون حساب. لا يمكن التراجع عن ذلك.",
   "Sem conta não há e-mail cadastrado, então os avisos por e-mail e o resumo semanal ficam desligados. Os avisos no app continuam valendo.": "بدون حساب لا يوجد بريد إلكتروني مسجّل، لذا تبقى الإشعارات عبر البريد والملخص الأسبوعي متوقفة. إشعارات التطبيق تبقى فعّالة.",
   "**O tutor de IA precisa de conta.** Transcrever, traduzir e jogar continuam livres neste navegador.": "**مدرّس الذكاء الاصطناعي يحتاج إلى حساب.** النسخ والترجمة واللعب تبقى مجانية في هذا المتصفح.",
   "O parceiro de leitura precisa de conta. Ler, traduzir e ouvir o livro continuam livres.": "شريك القراءة يحتاج إلى حساب. القراءة والترجمة والاستماع إلى الكتاب تبقى مجانية.",
-  "Elas ficam só neste navegador. Com uma conta, vão com você.": "تبقى في هذا المتصفح فقط. مع حساب، ترافقك أينما ذهبت."
+  "Elas ficam só neste navegador. Com uma conta, vão com você.": "تبقى في هذا المتصفح فقط. مع حساب، ترافقك أينما ذهبت.",
+  "Apagar sessões, palavras e progresso deste navegador?": "حذف الجلسات والكلمات والتقدم من هذا المتصفح؟",
+  "Somem deste navegador as sessões, as palavras e o progresso guardados sem conta, e não tem volta. Os livros da sua estante, o avatar e os ajustes de idioma e aparência continuam.": "تُحذف من هذا المتصفح الجلسات والكلمات والتقدم المحفوظة بدون حساب، ولا يمكن التراجع عن ذلك. تبقى كتب رفّك والصورة الرمزية وإعدادات اللغة والمظهر.",
+  "Dados deste navegador": "بيانات هذا المتصفح",
+  "Sessões, palavras e progresso guardados aqui, sem conta. Os livros e o avatar ficam.": "الجلسات والكلمات والتقدم المحفوظة هنا بدون حساب. تبقى الكتب والصورة الرمزية.",
+  "Apagar sessões, palavras e progresso deste navegador": "حذف الجلسات والكلمات والتقدم من هذا المتصفح",
+  "Sua sessão expirou. Entre de novo para usar o parceiro de leitura.": "انتهت جلستك. سجّل الدخول مرة أخرى لاستخدام شريك القراءة."
 }

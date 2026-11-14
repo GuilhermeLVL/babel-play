@@ -79,7 +79,7 @@ export default function CartaoDeConvite({
       {onVoltar && (
         <button
           type="button"
-          className="mt-3 text-[12.5px] text-ink-muted underline underline-offset-2 hover:text-ink"
+          className="mt-1 min-h-[44px] px-3 text-[12.5px] text-ink-muted underline underline-offset-2 hover:text-ink"
           onClick={onVoltar}
         >
           {t('Continuar sem conta')}

@@ -315,6 +315,7 @@ describe('o convite explícito e a porta no cadastro', () => {
   it('pedirEntrada fecha o convite e pede a porta no modo certo, guardando de onde veio', () => {
     irPara('/ajustes/conta')
     const { result } = renderHook(() => useGateDeConta())
+    definirIdentidade('anonimo')
     act(() => pedirConta('conta'))
     act(() => pedirEntrada('signup'))
     expect(result.current.gate).toBeNull()
@@ -323,6 +324,19 @@ describe('o convite explícito e a porta no cadastro', () => {
     act(() => result.current.setPedindoLogin(false))
     act(() => pedirEntrada('login'))
     expect(result.current.pedindoLogin).toBe('login')
+  })
+
+  it('com sessão, pedirEntrada e setPedindoLogin não fazem nada (nada fica pendurado para depois do SIGNED_OUT)', () => {
+    irPara('/leitor/x')
+    definirIdentidade('conta')
+    const { result } = renderHook(() => useGateDeConta())
+    act(() => pedirEntrada('signup'))
+    expect(result.current.pedindoLogin).toBe(false)
+    act(() => result.current.setPedindoLogin('signup'))
+    expect(result.current.pedindoLogin).toBe(false)
+    expect(lerIntencao()).toBeNull()
+    act(() => definirIdentidade('anonimo'))
+    expect(result.current.pedindoLogin).toBe(false)
   })
 
   it('navigateTo("login", { modo: "signup" }) pede a porta no cadastro', () => {

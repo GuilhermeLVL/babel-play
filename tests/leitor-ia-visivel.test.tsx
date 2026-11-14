@@ -17,6 +17,7 @@ import {
   type FatosDasFerramentas,
 } from '../src/core/leitura/ferramentasDeIa'
 import type { ResultadoDoParceiro } from '../src/data/rotas/parceiroDeLeitura'
+import { _reiniciarIdentidade, definirIdentidade } from '../src/lib/identidade'
 import { EVENTO_PEDIR_ENTRADA } from '../src/lib/pedirConta'
 
 let consentiu = true
@@ -268,6 +269,7 @@ describe('PainelDoParceiro', () => {
     const pedidos: string[] = []
     const ouvir = (e: Event) => pedidos.push((e as CustomEvent<{ modo: string }>).detail.modo)
     window.addEventListener(EVENTO_PEDIR_ENTRADA, ouvir)
+    definirIdentidade('anonimo')
     try {
       montar(async () => ({ ok: false, motivo: 'sem_conta', status: 401 }))
       fireEvent.click(screen.getByTestId('parceiro-pedir'))
@@ -283,6 +285,24 @@ describe('PainelDoParceiro', () => {
       expect(pedidos).toEqual(['signup', 'login'])
     } finally {
       window.removeEventListener(EVENTO_PEDIR_ENTRADA, ouvir)
+      _reiniciarIdentidade()
+    }
+  })
+
+  it('com conta e 401 (sessão que caiu): "entre de novo", sem os botões de criar conta', async () => {
+    definirIdentidade('conta')
+    try {
+      montar(async () => ({ ok: false, motivo: 'sem_conta', status: 401 }))
+      fireEvent.click(screen.getByTestId('parceiro-pedir'))
+      await waitFor(() =>
+        expect(screen.getByTestId('parceiro-status').textContent).toBe(
+          'Sua sessão expirou. Entre de novo para usar o parceiro de leitura.',
+        ),
+      )
+      expect(screen.queryByTestId('parceiro-sem-conta')).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Criar conta' })).toBeNull()
+    } finally {
+      _reiniciarIdentidade()
     }
   })
 

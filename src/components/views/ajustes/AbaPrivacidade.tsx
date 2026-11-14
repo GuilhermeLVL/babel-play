@@ -3,7 +3,7 @@ import { useState } from 'react';
 
 import { CRIADOR } from '../../../lib/criador';
 import { t } from '../../../lib/i18n';
-import { semContaComPorta } from '../../../lib/pedirConta';
+import { useSemContaComPorta } from '../../../lib/pedirConta';
 import { type Consentimento, mudarConsentimento, salvarPreferencias, usePreferencias } from '../../../lib/preferencias';
 import AnunciosNosAjustes from '../../anuncios/AnunciosNosAjustes';
 import CartaoDeConvite from '../../conta/CartaoDeConvite';
@@ -69,7 +69,7 @@ export default function AbaPrivacidade() {
   const p = usePreferencias();
   const [copia, setCopia] = useState<'parado' | 'preparando' | { blob: Blob; nome: string }>('parado');
   const [legal, setLegal] = useState(false);
-  const [semConta] = useState(semContaComPorta);
+  const semConta = useSemContaComPorta();
 
   const autorizar = async (k: Consentimento, on: boolean) => {
     const ok = await mudarConsentimento(k, on);

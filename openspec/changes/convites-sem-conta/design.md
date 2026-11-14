@@ -23,7 +23,7 @@
 6. **`conviteNoLugarDaTela(view, anonimo)`** é a única condição do App para o convite e para as telas que exigem conta.
 7. **Sessões locais no Início, não na Biblioteca**: a Biblioteca e a Análise dependem do servidor; o Início já lista as
    recentes. O toque abre Jogar com a sessão (o mesmo destino de quem acabou de gravar sem conta).
-8. **Apagar os dados deste navegador** recarrega a página depois de `limparTudo()`, para nenhuma tela seguir mostrando o
+8. **Apagar sessões, palavras e progresso deste navegador** (livros e avatar ficam) recarrega a página depois de `limparTudo()`, para nenhuma tela seguir mostrando o
    que já não existe.
 
 ## Risks / Trade-offs

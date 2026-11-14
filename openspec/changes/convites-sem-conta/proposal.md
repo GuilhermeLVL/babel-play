@@ -15,7 +15,7 @@ ficavam invisíveis. O dono aprovou corrigir tudo, inclusive mostrar as sessões
   `Login modoInicial`) e "Já tenho conta". O `GateDeConta` mantém também "Continuar sem conta"; o `CartaoDeConvite` de tela
   cheia mantém "Continuar sem conta" como saída discreta; o inline (`inline`) não.
 - **Ajustes → Conta sem conta**: no lugar de Entrada, Aparelhos, Atividade, Sair e Excluir, o convite (`CONVITE.conta`) e
-  "Apagar os dados deste navegador" (`limparTudo`, com confirmação). "Rever a apresentação" e o cartão do plano ficam.
+  "Apagar sessões, palavras e progresso deste navegador" (livros e avatar ficam) (`limparTudo`, com confirmação). "Rever a apresentação" e o cartão do plano ficam.
   O convidado anônimo do Supabase cai aqui também (sem "Trocar e-mail", que vincularia a conta por caminho escondido).
 - **Privacidade**: "Pedir uma cópia" vira o convite `CONVITE.exportar`.
 - **Cartões**: "Trazer um baralho do Anki" e as linhas Palavra nova / Trazer e levar / Exportar do "…" continuam à vista e

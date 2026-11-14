@@ -39,8 +39,9 @@
    - o que não revoga: o estorno (ato do lojista) fica `ignorado`; o CHARGEBACK nunca fica `ignorado` — vai para revisão
      (`nao-aplicado`);
    - a revogação é uma escrita condicional ao `currentPeriodEnd` lido (`revogarSePeriodoIgual`); se o período mudou no meio,
-     relê e reavalia uma vez e, mudando de novo, não lança (sem rajada de 500 ao Asaas): estorno `ignorado`, chargeback
-     `nao-aplicado`, com o porquê, e a reconciliação reavalia;
+     relê e reavalia uma vez e, mudando de novo, não lança (sem rajada de 500 ao Asaas): estorno E chargeback ficam
+     `nao-aplicado`, com o porquê, na fila do admin. Não `ignorado`: a reconciliação pula a cobrança que já tem evento de
+     estorno em qualquer estado, e o reembolsado ficaria com o acesso sem ninguém ver;
    - `billing_events (user_id, event)` e `(provider_ref)` ganham índice (0019): a busca da duplicata e a da reconciliação.
 
 ## Risks / Trade-offs
@@ -61,5 +62,5 @@
 - **Duplicata sem verificador** (self-host, sem `ASAAS_API_KEY`): não há API para conferir a outra cobrança; o estorno
   revoga, como antes. E os candidatos vêm dos eventos já recebidos: uma duplicata cujo `CONFIRMED` se perdeu não é achada
   até a reconciliação aplicá-lo.
-- **Revogação que perde a corrida duas vezes** fica `ignorado` (estorno) ou `nao-aplicado` (chargeback) em vez de revogar:
-  o acesso segue até a reconciliação do dia seguinte ou o admin.
+- **Revogação que perde a corrida duas vezes** fica `nao-aplicado` (estorno e chargeback) em vez de revogar: o acesso segue
+  até o admin reprocessar o evento pela fila (`GET /api/admin/billing/pendentes`); a reconciliação não o reavalia.

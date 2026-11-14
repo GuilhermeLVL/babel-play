@@ -610,16 +610,19 @@ describe('revogação condicional sem rajada de 500', () => {
     espiao.mockRestore()
   })
 
-  it('o período mudou de novo: não lança; estorno fica `ignorado`, chargeback `nao-aplicado`', async () => {
+  it('o período mudou de novo: não lança; estorno E chargeback ficam `nao-aplicado` (fila do admin)', async () => {
+    /* `ignorado` não chegaria a ninguém: a reconciliação pula a cobrança que já tem evento de estorno em qualquer
+       estado, e o pagante ficaria com o acesso depois de reembolsado. `nao-aplicado` vai para a fila do admin. */
     const u = 'x-corrida-2'
     const p = await pagar(u, 'plus', 'sub_xc2', 14.9, Date.now() - 2 * DIA)
     const espiao = vi.spyOn(subs, 'revogarSePeriodoIgual').mockResolvedValue(false)
     const r = await aplicarEvento(ev('evt_xc2_r', 'PAYMENT_REFUNDED', p), 'req', asaas([{ ...p, status: 'REFUNDED' }]))
-    expect(r.estado).toBe('ignorado')
+    expect(r.estado).toBe('nao-aplicado')
     expect(r.motivo).toMatch(/período mudou/)
     const cbP = { ...p, status: 'CHARGEBACK_REQUESTED' }
     const cb = await aplicarEvento(ev('evt_xc2_cb', 'PAYMENT_CHARGEBACK_REQUESTED', p), 'req', asaas([cbP]))
     expect(cb.estado).toBe('nao-aplicado')
+    expect(cb.motivo).toMatch(/período mudou/)
     espiao.mockRestore()
   })
 })

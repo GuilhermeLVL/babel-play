@@ -739,8 +739,9 @@ async function aplicarDinheiroDevolvido(
       : { estado: 'ignorado', motivo: `estorno não revoga — ${porque}` }
   /* Até DUAS leituras: a revogação é uma escrita condicional ao período lido (`revogarSePeriodoIgual`). Se um
      pagamento confirmou entre a leitura e a escrita, relê e reavalia uma vez; mudando de novo, não lança (o Asaas
-     reentregaria em rajada de 500): o estorno fica `ignorado` e o chargeback `nao-aplicado`, com o porquê, e a
-     reconciliação reavalia. */
+     reentregaria em rajada de 500): estorno E chargeback ficam `nao-aplicado`, na fila do admin. NÃO `ignorado`: a
+     reconciliação pula a cobrança que já tem evento de estorno em qualquer estado (`reconciliarDesfeitas`), e o
+     reembolsado ficaria com o acesso sem ninguém saber. */
   for (let tentativa = 1; ; tentativa++) {
     const atual = await subscriptionsRepo.getActive(p.userId)
     if (!atual) return { estado: 'ignorado', motivo: `${oQue} sem assinatura registrada: nada a revogar` }
@@ -761,9 +762,10 @@ async function aplicarDinheiroDevolvido(
     }
     log('warn', { event: 'billing_estorno_periodo_mudou', error: `${oQue} ${p.id ?? '?'} tentativa ${tentativa}` })
     if (tentativa >= 2) {
-      return semRevogar(
-        'o período mudou durante a aplicação (outro pagamento confirmou no meio); a reconciliação reavalia',
-      )
+      return {
+        estado: 'nao-aplicado',
+        motivo: `${oQue} não revogado, para revisão — o período mudou durante a aplicação (outro pagamento confirmou no meio)`,
+      }
     }
   }
 }
@@ -810,7 +812,8 @@ function cobrancaForaDoPeriodoEmVigor(atual: Subscription, p: PagamentoConferido
     return `pagamento ${p.id ?? '?'} (vencimento ${p.vencimento}); o período em vigor foi concedido pela cobrança de ${new Date(atual.periodoPagoDesde).toISOString().slice(0, 10)} — mantido`
   }
   if (atual.currentPeriodEnd == null) return null
-  const ciclo = planoPeloPagamento(p.valor)?.ciclo ?? (atual.ciclo === 'anual' ? 'anual' : 'mensal')
+  const cicloDaLinha = atual.cicloDaCobranca ?? atual.ciclo
+  const ciclo = planoPeloPagamento(p.valor)?.ciclo ?? (cicloDaLinha === 'anual' ? 'anual' : 'mensal')
   const fimDela = vencimento + (ciclo === 'anual' ? DIAS_DO_PERIODO_ANUAL : DIAS_DO_PERIODO_MENSAL) * DIA_MS
   if (atual.currentPeriodEnd <= fimDela + folga) return null
   return `pagamento ${p.id ?? '?'} (vencimento ${p.vencimento}) cobria até ${new Date(fimDela).toISOString().slice(0, 10)}; o período em vigor vai até ${new Date(atual.currentPeriodEnd).toISOString().slice(0, 10)}, pago depois — mantido`

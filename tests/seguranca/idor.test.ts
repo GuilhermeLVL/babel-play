@@ -541,10 +541,12 @@ describe('IDOR — usuario B contra os recursos de A', () => {
       'PATCH /api/admin/users/:id/plan': { plan: 'pro' },
     }
     const fora: string[] = []
+    /* Com segundo fator (aal2): o que este teste prova é o PAPEL; sem aal2, a porta do 2FA (aal.ts) recusaria antes. */
+    const tbAal2 = await s.token('usuario-b', { aal: 'aal2' })
     for (const rota of rotas) {
       /* O id de A no lugar do parâmetro: é a tentativa realista — B mirando a conta de A. */
       const caminho = rota.caminho.replace(/:\w+/g, 'usuario-a')
-      const r = await s.chamar(rota.metodo, caminho, { body: corpos[rota.chave], token: tb })
+      const r = await s.chamar(rota.metodo, caminho, { body: corpos[rota.chave], token: tbAal2 })
       const texto = await r.text()
       if (r.status !== 403 || texto.includes(MARCADOR)) fora.push(`${rota.chave} → ${r.status}`)
     }

@@ -39,8 +39,14 @@ export function ehRotaSensivel(metodo: string, caminhoBruto: string): boolean {
   if (caminho === '/api/me' || caminho === '/api/me/') return metodo === 'DELETE'
   if (caminho === '/api/me/exportar') return true
   if (caminho === '/api/ai/credentials' || caminho.startsWith('/api/ai/credentials/')) return escreve
-  if (caminho === '/api/admin' || caminho.startsWith('/api/admin/')) return true
+  if (ehRotaDeAdmin(caminho)) return true
   return false
+}
+
+/** `/api/admin/*`: aqui o segundo fator é OBRIGATÓRIO, não só "exigido de quem ativou". */
+export function ehRotaDeAdmin(caminhoBruto: string): boolean {
+  const caminho = caminhoBruto.toLowerCase()
+  return caminho === '/api/admin' || caminho.startsWith('/api/admin/')
 }
 
 /** Resposta da pergunta "a conta tem 2FA?" — injetável para o teste. */
@@ -105,6 +111,15 @@ export function exigirAal2SeTiver2fa(consultar: ConsultaDeFatores = consultarFat
         .json(envelopeDeErro('não foi possível confirmar a verificação em duas etapas agora', 'aal_indisponivel'))
       return
     }
+    /* ADMIN: operações entre contas (dados de todos, inclusive menores) não passam com senha só. Quem não tem
+       2FA cadastrado é recusado, e a dúvida (sem a chave admin do Supabase) também fecha. */
+    const admin = ehRotaDeAdmin(req.baseUrl + req.path)
+    if (admin && tem === 'desconhecido') {
+      res
+        .status(503)
+        .json(envelopeDeErro('não foi possível confirmar a verificação em duas etapas agora', 'aal_indisponivel'))
+      return
+    }
     if (tem === 'desconhecido') {
       if (!avisouSemAdmin) {
         avisouSemAdmin = true
@@ -120,6 +135,17 @@ export function exigirAal2SeTiver2fa(consultar: ConsultaDeFatores = consultarFat
       res
         .status(403)
         .json(envelopeDeErro('confirme o código da verificação em duas etapas para continuar', 'aal2_requerido'))
+      return
+    }
+    if (admin) {
+      res
+        .status(403)
+        .json(
+          envelopeDeErro(
+            'a administração exige a verificação em duas etapas: ative-a em Ajustes → Conta e entre com o código',
+            'aal2_obrigatorio_admin',
+          ),
+        )
       return
     }
     next()

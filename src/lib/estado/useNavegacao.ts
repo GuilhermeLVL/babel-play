@@ -34,7 +34,7 @@ export interface DependenciasDaNavegacao {
   recordings: Recording[];
   lojaAba: string | null;
   setLojaAba: Dispatch<SetStateAction<string | null>>;
-  setPedindoLogin: (v: boolean) => void;
+  setPedindoLogin: (v: boolean | 'login' | 'signup') => void;
 }
 
 export interface EstadoDaNavegacao {
@@ -138,7 +138,8 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
     if (view === 'login') {
       // Edição estática: não há login. Nenhum botão leva aqui; se algo levar, não faz nada.
       if (edicaoEstatica()) return;
-      setPedindoLogin(true);
+      /* `{ modo: 'signup' }`: o "Criar conta" de um convite abre a porta já no cadastro. */
+      setPedindoLogin(data?.modo === 'signup' ? 'signup' : true);
       return;
     }
     // Tela que exige conta NAVEGA normalmente: lá o CartaoDeConvite (inline) explica. O modal

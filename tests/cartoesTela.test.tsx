@@ -54,12 +54,17 @@ vi.mock('../src/data/rotas/conteudo', () => ({
 }))
 vi.mock('../src/lib/langConfig', async (orig) => {
   const real = await orig<typeof import('../src/lib/langConfig')>()
-  return { ...real, useLangConfig: () => real.DEFAULT_LANG_CONFIG, fetchLangConfig: async () => real.DEFAULT_LANG_CONFIG }
+  return {
+    ...real,
+    useLangConfig: () => real.DEFAULT_LANG_CONFIG,
+    fetchLangConfig: async () => real.DEFAULT_LANG_CONFIG,
+  }
 })
 vi.mock('../src/lib/voz/haVoz', () => ({ haVozPara: () => true }))
 
 import Cartoes from '../src/components/views/Cartoes'
 import type { ContagensDeConteudo } from '../src/core/learning/contagensDeConteudo'
+import { EVENTO_EXIGE_CONTA } from '../src/data/efemero/nucleo'
 import { conteudoAtual, escolherConteudo, zerarConteudoParaTeste } from '../src/lib/conteudo/loja'
 import type { Recording } from '../src/types'
 
@@ -126,10 +131,39 @@ const contagensBase = (mudou: Partial<ContagensDeConteudo> = {}): ContagensDeCon
   tudo: { palavras: 318, frases: 236, paraHoje: 22 },
   dificeis: { palavras: 5, frases: 5, paraHoje: 2 },
   sessoes: [
-    { id: 's-reuniao', nome: SESSAO.nome, tipo: 'audio', quando: HOJE, duracaoMs: 38 * 60_000, palavras: 37, frases: 31, paraHoje: 9 },
-    { id: 's-podcast', nome: 'Podcast: The science of sleep', tipo: 'audio', quando: HOJE - 86_400_000, duracaoMs: null, palavras: 52, frases: 40, paraHoje: 0 },
+    {
+      id: 's-reuniao',
+      nome: SESSAO.nome,
+      tipo: 'audio',
+      quando: HOJE,
+      duracaoMs: 38 * 60_000,
+      palavras: 37,
+      frases: 31,
+      paraHoje: 9,
+    },
+    {
+      id: 's-podcast',
+      nome: 'Podcast: The science of sleep',
+      tipo: 'audio',
+      quando: HOJE - 86_400_000,
+      duracaoMs: null,
+      palavras: 52,
+      frases: 40,
+      paraHoje: 0,
+    },
   ],
-  anki: [{ id: 'a-pv', nome: ANKI.nome, tipo: null, quando: HOJE - 28 * 86_400_000, duracaoMs: null, palavras: 120, frases: 96, paraHoje: 2 }],
+  anki: [
+    {
+      id: 'a-pv',
+      nome: ANKI.nome,
+      tipo: null,
+      quando: HOJE - 28 * 86_400_000,
+      duracaoMs: null,
+      palavras: 120,
+      frases: 96,
+      paraHoje: 2,
+    },
+  ],
   trilha: { palavras: 60, frases: 0, paraHoje: 2 },
   ...mudou,
 })
@@ -188,13 +222,11 @@ describe('a tela', () => {
     const cab = screen.getByTestId('cartoes').querySelector('header.q-cab.ct-cab.fs-cab')!
     expect(cab.querySelector('h1')?.textContent).toBe('Cartões')
     /* A ordem é a do protótipo (`ctCab`): título, ficha, abas, espaço, "…". */
-    expect([...cab.children].map((x) => x.className.split(' ').find((c) => /^(fs-ficha|ct-abas|q-espaco|q-ctl)$/.test(c)) ?? x.tagName)).toEqual([
-      'H1',
-      'fs-ficha',
-      'ct-abas',
-      'q-espaco',
-      'q-ctl',
-    ])
+    expect(
+      [...cab.children].map(
+        (x) => x.className.split(' ').find((c) => /^(fs-ficha|ct-abas|q-espaco|q-ctl)$/.test(c)) ?? x.tagName,
+      ),
+    ).toEqual(['H1', 'fs-ficha', 'ct-abas', 'q-espaco', 'q-ctl'])
     expect(cab.querySelector('.fs-ficha .fs-nome')?.textContent).toBe('TudoInglês')
     const abas = within(screen.getByRole('tablist', { name: 'Seções de Cartões' })).getAllByRole('tab')
     /* O número de Palavras é o do conteúdo escolhido (tudo em inglês), não o da conta inteira. */
@@ -347,10 +379,9 @@ describe('a aba Hoje, no modo faixa, pelo dado real e pela fonte da ficha', () =
     await pronta()
     act(() => escolherConteudo({ tipo: 'sessao', id: 's-podcast', nome: 'Podcast: The science of sleep' }, 'en'))
     await waitFor(() =>
-      expect(within(screen.getByTestId('convite-de-hoje')).getByRole('button', { name: 'Nada vence aqui hoje' })).toHaveProperty(
-        'disabled',
-        true,
-      ),
+      expect(
+        within(screen.getByTestId('convite-de-hoje')).getByRole('button', { name: 'Nada vence aqui hoje' }),
+      ).toHaveProperty('disabled', true),
     )
     expect(screen.getByTestId('cartoes').dataset.ctHoje).toBe('normal')
     expect(screen.queryByText('Tudo em dia')).toBeNull()
@@ -385,7 +416,13 @@ describe('a aba Hoje, no modo faixa, pelo dado real e pela fonte da ficha', () =
       hoje: semFila,
       revisadasHoje: 26,
       guardadas: 3,
-      baralhos: { ...resumoBase().baralhos, idiomas: [{ id: 'en', total: 318, ...semFila }, { id: 'es', total: 104, ...semFila }] },
+      baralhos: {
+        ...resumoBase().baralhos,
+        idiomas: [
+          { id: 'en', total: 318, ...semFila },
+          { id: 'es', total: 104, ...semFila },
+        ],
+      },
     })
     const { ir } = montar()
     await pronta()
@@ -457,16 +494,41 @@ describe('a aba Hoje, no modo faixa, pelo dado real e pela fonte da ficha', () =
     expect(abriu).toHaveBeenCalledTimes(1)
   })
 
-  it('sem conta: o estado vazio, sem leitura do resumo, e o "…" só com o que não pede conta', async () => {
-    montar({ semConta: true })
-    expect(screen.getByTestId('cartoes').dataset.ctHoje).toBe('vazio')
-    expect(screen.getByText('Seus cartões aparecem aqui')).toBeTruthy()
-    expect(api.lerResumo).not.toHaveBeenCalled()
-    expect(api.baralho).not.toHaveBeenCalled()
-    expect(screen.queryByTestId('anki-arquivo')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: /^Mais opções/ }))
-    const menu = await folha('Mais opções')
-    expect([...menu.querySelectorAll('.q-linha b')].map((b) => b.textContent)).toEqual(['Ajustes da memória', 'Memória'])
+  it('sem conta: o estado vazio, sem leitura do resumo; o que pede conta continua à vista e abre o convite', async () => {
+    const pedidos: Array<{ rota?: string; explicito?: boolean }> = []
+    const ouvir = (e: Event) => pedidos.push((e as CustomEvent).detail)
+    window.addEventListener(EVENTO_EXIGE_CONTA, ouvir)
+    try {
+      montar({ semConta: true })
+      expect(screen.getByTestId('cartoes').dataset.ctHoje).toBe('vazio')
+      expect(screen.getByText('Seus cartões aparecem aqui')).toBeTruthy()
+      expect(api.lerResumo).not.toHaveBeenCalled()
+      expect(api.baralho).not.toHaveBeenCalled()
+      expect(screen.queryByTestId('anki-arquivo')).toBeNull()
+      /* "Trazer um baralho do Anki" era um botão morto (o campo de arquivo só existe com conta). */
+      fireEvent.click(screen.getByRole('button', { name: /Trazer um baralho do Anki/ }))
+      expect(pedidos.at(-1)).toEqual({ rota: 'POST /api/import/anki', explicito: true })
+      fireEvent.click(screen.getByRole('button', { name: /^Mais opções/ }))
+      const menu = await folha('Mais opções')
+      expect([...menu.querySelectorAll('.q-linha b')].map((b) => b.textContent)).toEqual([
+        'Palavra nova',
+        'Trazer e levar',
+        'Ajustes da memória',
+        'Memória',
+        'Exportar',
+      ])
+      fireEvent.click(within(menu).getByRole('button', { name: /Palavra nova/ }))
+      await waitFor(() => expect(pedidos.at(-1)).toEqual({ rota: 'baralho', explicito: true }))
+    } finally {
+      window.removeEventListener(EVENTO_EXIGE_CONTA, ouvir)
+    }
+  })
+
+  it('sem conta, a aba Palavras mostra o convite do vocabulário, não "caderno vazio"', () => {
+    montar({ semConta: true, aba: 'palavras' })
+    expect(screen.getByTestId('cartao-de-convite').textContent).toContain('Seu vocabulário fica na sua conta')
+    expect(screen.getByRole('button', { name: 'Criar conta' })).toBeTruthy()
+    expect(screen.queryByText('Seu caderno está vazio')).toBeNull()
   })
 
   /* O que o protótipo mostra e o app não mede ou não faz não aparece com número inventado. */
@@ -558,7 +620,9 @@ describe('o "…" do cabeçalho e as folhas', () => {
         'Exportar',
       ]),
     )
-    expect(within(daFonte).getByRole('button', { name: /Ativar mais 20/ }).textContent).toContain('120 de 480 já ativadas')
+    expect(within(daFonte).getByRole('button', { name: /Ativar mais 20/ }).textContent).toContain(
+      '120 de 480 já ativadas',
+    )
     /* O que o app não cumpre não vira botão. */
     expect(within(daFonte).queryByText(/Compartilhar por link/)).toBeNull()
     fireEvent.click(within(daFonte).getByRole('button', { name: /Ativar mais 20/ }))
@@ -572,7 +636,8 @@ describe('as ações que eram da aba Baralhos, no painel da fonte do catálogo',
     fireEvent.click(document.querySelector('[data-fs="abrir"]')!)
     return folha('Escolher o conteúdo')
   }
-  const naLista = (d: HTMLElement, chave: string) => d.querySelector<HTMLElement>(`.fx-linha[data-fx-fonte="${chave}"]`)!
+  const naLista = (d: HTMLElement, chave: string) =>
+    d.querySelector<HTMLElement>(`.fx-linha[data-fx-fonte="${chave}"]`)!
 
   it('Revisar, Praticar, Jogar e Ver palavras: a fonte vira a escolha e a ação leva', async () => {
     const { ir, trocar } = montar()
@@ -610,9 +675,14 @@ describe('as ações que eram da aba Baralhos, no painel da fonte do catálogo',
     await pronta()
     const d = await abrirCatalogo()
     fireEvent.click(naLista(d, 'sessao:s-reuniao'))
-    fireEvent.click(within(d.querySelector('.fx-cat-det') as HTMLElement).getByRole('button', { name: 'Mais ações deste conteúdo' }))
+    fireEvent.click(
+      within(d.querySelector('.fx-cat-det') as HTMLElement).getByRole('button', { name: 'Mais ações deste conteúdo' }),
+    )
     const daFonte = await folha(SESSAO.nome)
-    expect([...daFonte.querySelectorAll('.q-linha b')].map((b) => b.textContent)).toEqual(['Abrir a sessão', 'Exportar'])
+    expect([...daFonte.querySelectorAll('.q-linha b')].map((b) => b.textContent)).toEqual([
+      'Abrir a sessão',
+      'Exportar',
+    ])
     fireEvent.click(within(daFonte).getByRole('button', { name: /Abrir a sessão/ }))
     await waitFor(() => expect(ir).toHaveBeenLastCalledWith('analysis', { id: 's-reuniao' }))
   })
@@ -640,15 +710,11 @@ describe('a Memória, tela de dentro', () => {
     expect(seq.querySelector('h2')?.textContent).toBe('4 dias seguidos')
     expect(seq.textContent).toContain('Recorde: 11 dias.')
     /* O calendário da fixture: um dia sem revisão a cada três; hoje (índice 83) teve. */
-    expect([...seq.querySelectorAll('.ct-semana li')].map((li) => `${li.querySelector('small')?.textContent}:${li.className}`)).toEqual([
-      'dom:feito',
-      'seg:fora',
-      'ter:feito',
-      'qua:feito',
-      'qui:fora',
-      'sex:feito',
-      'sáb:feito',
-    ])
+    expect(
+      [...seq.querySelectorAll('.ct-semana li')].map(
+        (li) => `${li.querySelector('small')?.textContent}:${li.className}`,
+      ),
+    ).toEqual(['dom:feito', 'seg:fora', 'ter:feito', 'qua:feito', 'qui:fora', 'sex:feito', 'sáb:feito'])
     const colunas = [...screen.getByTestId('previsao-dos-proximos-dias').querySelectorAll('.qv-col')]
     expect(colunas.map((c) => `${c.querySelector('small')?.textContent} ${c.querySelector('b')?.textContent}`)).toEqual(
       ['dom 8', 'seg 14', 'ter 21', 'qua 9', 'qui 17', 'sex 12', 'sáb 26'],

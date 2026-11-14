@@ -19,8 +19,10 @@ import { useCallback, useEffect, useState } from 'react';
 import * as auth from '../../../lib/auth';
 import { edicaoEstatica } from '../../../lib/edicaoEstatica';
 import { t } from '../../../lib/i18n';
+import { semContaComPorta } from '../../../lib/pedirConta';
 import { authRequired, carregarSupabase } from '../../../lib/supabase';
-import { toast } from '../../Toast';
+import CartaoDeConvite from '../../conta/CartaoDeConvite';
+import { askConfirm, toast } from '../../Toast';
 import DialogosDaConta, { type DialogoDaConta } from './DialogosDaConta';
 
 /**
@@ -34,6 +36,11 @@ import DialogosDaConta, { type DialogoDaConta } from './DialogosDaConta';
  * funcionar), e a atividade recente mostra as datas que a conta tem (última entrada, criação).
  * Os códigos de recuperação do 2FA não existem no Supabase: com o 2FA ativo, o que aparece é
  * "Desativar". Sem login (self-host), a tela diz que não há conta a gerenciar.
+ *
+ * SEM CONTA no modo público (identidade `anonimo`, inclusive o convidado anônimo do Supabase): não há
+ * e-mail, senha, 2FA, aparelhos nem conta a excluir — e "Trocar e-mail" vincularia a sessão anônima
+ * por um caminho escondido. No lugar, o convite ("Criar conta" · "Já tenho conta") e a única ação de
+ * perigo que existe ali: apagar o que está guardado neste navegador.
  */
 
 interface EstadoDaConta {
@@ -97,9 +104,11 @@ export default function AbaConta({
   const [dialogo, setDialogo] = useState<DialogoDaConta | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const aparelho = descreverAparelho(typeof navigator === 'undefined' ? '' : navigator.userAgent);
+  /* A edição estática também é `anonimo`, mas lá não há conta a criar: fica no ramo "sem login". */
+  const [semConta] = useState(semContaComPorta);
 
   const reler = useCallback(async () => {
-    if (!authRequired) return;
+    if (!authRequired || semConta) return;
     const sb = await carregarSupabase();
     const { data } = (await sb?.auth.getUser()) ?? { data: { user: null } };
     const u = data.user;
@@ -111,7 +120,7 @@ export default function AbaConta({
       criadaEm: u?.created_at ?? null,
       fator: fatores.find((f) => f.verified) ?? null,
     });
-  }, []);
+  }, [semConta]);
 
   useEffect(() => {
     void reler();
@@ -136,6 +145,27 @@ export default function AbaConta({
     else toast.ok('Os outros aparelhos saíram da conta');
   };
 
+  /* O que este navegador guarda sem conta (sessões, palavras, progresso) — com confirmação, e a página
+     recarrega para nenhuma tela seguir mostrando o que já não existe. */
+  const apagarDesteNavegador = async () => {
+    const ok = await askConfirm({
+      title: t('Apagar os dados deste navegador?'),
+      detail: t(
+        'As sessões, palavras e progresso guardados aqui somem deste navegador. Os seus ajustes de idioma e aparência continuam.',
+      ),
+      confirmLabel: t('Apagar'),
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      const { limparTudo } = await import('../../../data/efemero/store');
+      await limparTudo();
+      window.location.reload();
+    } catch {
+      toast.warn(t('Não consegui apagar agora. Tente de novo.'));
+    }
+  };
+
   const atividade: Array<[LucideIcon, string, string]> = authRequired
     ? [
         ...(conta?.ultimaEntrada
@@ -156,6 +186,48 @@ export default function AbaConta({
      casa: mostrar e explicar). Excluir a conta é a única ação de perigo, separada no fim. */
   const semLoginDoQuest = <span className="q-tag off">{t('sem login')}</span>;
   const IconeDoAparelho = aparelho.icone;
+  if (semConta)
+    return (
+      <>
+        <section className="q-secao">
+          <header>
+            <div>
+              <h2>{t('Entrada')}</h2>
+            </div>
+          </header>
+          <CartaoDeConvite view="conta" inline />
+        </section>
+
+        <section className="q-secao">
+          <header>
+            <div>
+              <h2>{t('Recomeçar')}</h2>
+            </div>
+          </header>
+          <div className="q-ajustes">
+            <div className="q-ajuste">
+              <div>
+                <b>{t('Rever a apresentação')}</b>
+                <small>{t('Os passos do primeiro uso, de novo.')}</small>
+              </div>
+              <button type="button" className="q-ctl" onClick={onReplayTour}>
+                <RotateCcw aria-hidden /> {t('Rever')}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section className="q-ajuste q-aju-perigo">
+          <div>
+            <b>{t('Apagar os dados deste navegador')}</b>
+            <small>{t('Sessões, palavras e progresso guardados aqui, sem conta. Não tem volta.')}</small>
+          </div>
+          <button type="button" className="q-ctl perigo" onClick={() => void apagarDesteNavegador()}>
+            <Trash2 aria-hidden /> {t('Apagar')}
+          </button>
+        </section>
+      </>
+    );
   return (
     <>
       <section className="q-secao">

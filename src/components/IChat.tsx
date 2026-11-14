@@ -27,6 +27,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 
 import type { AppMetrics } from '../core/learning/contract';
 import { apiFetch } from '../data/api';
+import { CODIGO_EXIGE_CONTA } from '../data/efemero/nucleo';
 import { exportarApkg, fetchDeck } from '../data/rotas/vocabulario';
 import { consentiuNuvem } from '../lib/consentimentoDeNuvem';
 import { t } from '../lib/i18n';
@@ -61,6 +62,7 @@ import {
 import { construirContextoDaTela } from '../lib/ichatContext';
 import { movimentoReduzido } from '../lib/movimento/reduzido';
 import { sinalizarRecusaLida } from '../lib/ofertas/eventos';
+import { pedirConta } from '../lib/pedirConta';
 import { type AgeProfileType } from '../lib/profile';
 import { seedFromSelection } from '../lib/sentences';
 import { zoomDoCorpo } from '../lib/zoomDoCorpo';
@@ -99,6 +101,11 @@ function motivoDaResposta(res: Response, data: Record<string, unknown>): string 
   const reason = typeof data.reason === 'string' ? data.reason : undefined;
   const erro = typeof data.error === 'string' ? data.error : undefined;
 
+  /* Sem conta (o servidor em memória responde 501 `EXIGE_CONTA`): o convite abre por cima (`perguntar`), e a
+     conversa diz o fato e o que continua livre, em vez do erro cru. */
+  if (code === CODIGO_EXIGE_CONTA) {
+    return t('**O tutor de IA precisa de conta.** Transcrever, traduzir e jogar continuam livres neste navegador.');
+  }
   if (code === 'quota_exceeded') {
     return t(
       '**Você usou toda a IA de nuvem do seu plano neste mês.** Ela volta no dia 1º; a tradução e a transcrição locais continuam funcionando.',
@@ -604,6 +611,8 @@ export default function IChat({
       });
       const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
       const motivo = motivoDaResposta(res, data);
+      /* O pedido explícito abre o convite a cada pergunta, não só na primeira da visita. */
+      if (data.code === CODIGO_EXIGE_CONTA) pedirConta('POST /api/tutor/chat');
       /* Cota acabou ou o tutor é de plano pago: a MENSAGEM acima explica na conversa; a oferta
          (Fase 8) vem pelo host, com flag, frequência e sem cobrir o chat de modal durante o uso. */
       sinalizarRecusaLida(res.status, data, 'tutor');

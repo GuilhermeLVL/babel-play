@@ -18,6 +18,8 @@ const mocks = vi.hoisted(() => ({
   carteira: { creditos: 500 as number | null, disponivel: true, recarregar: () => {} },
   /** O aparelho: o headset, salvo nos casos "no computador com o desenho novo". */
   aparelho: 'quest' as string,
+  /** Sem conta: Maestria, Temporada, Conquistas e Loja mostram o convite no lugar. */
+  anonimo: false,
 }))
 
 vi.mock('../src/lib/dispositivo/perfil', async (orig) => {
@@ -35,7 +37,7 @@ vi.mock('../src/lib/recompensasV2', async (orig) => ({
 }))
 vi.mock('../src/lib/identidade', async (orig) => ({
   ...(await orig<typeof import('../src/lib/identidade')>()),
-  estaAnonimo: () => false,
+  estaAnonimo: () => mocks.anonimo,
 }))
 vi.mock('../src/lib/carteira', () => ({ useCarteira: () => mocks.carteira }))
 vi.mock('../src/lib/temporada', () => ({ useTemporada: () => null }))
@@ -92,6 +94,7 @@ function montar(abaInicial?: string) {
 beforeEach(() => {
   localStorage.clear()
   mocks.aparelho = 'quest'
+  mocks.anonimo = false
   mocks.v2 = true
   mocks.carteira = { creditos: 500, disponivel: true, recarregar: () => {} }
   vi.mocked(comprarPecaComCreditos).mockClear()
@@ -126,6 +129,29 @@ describe('Personalizar no Quest · recompensas v2', () => {
     expect(container.querySelector('.conq')).toBeNull()
     fireEvent.click(within(partes).getByRole('button', { name: /Como subir de nível/ }))
     expect(screen.getByText(/Cada nível custa 100 XP/)).toBeTruthy()
+  })
+})
+
+describe('Personalizar sem conta · cada aba com o seu convite', () => {
+  it('Maestria, Temporada (o Passe), Conquistas e Loja dizem o que a conta destrava ali', () => {
+    mocks.anonimo = true
+    const casos: Array<[string, string]> = [
+      ['maestria', 'A Maestria precisa de conta'],
+      ['temporada', 'O Passe precisa de conta'],
+      ['conquistas', 'Os Desafios precisam de conta'],
+      ['loja', 'A Loja precisa de conta'],
+    ]
+    for (const [aba, titulo] of casos) {
+      const { unmount } = montar(aba)
+      const cartao = screen.getByTestId('cartao-de-convite')
+      expect(cartao.textContent, aba).toContain(titulo)
+      expect(within(cartao).getByRole('button', { name: 'Criar conta' })).toBeTruthy()
+      expect(within(cartao).getByRole('button', { name: 'Já tenho conta' })).toBeTruthy()
+      unmount()
+    }
+    /* A Coleção continua aberta sem conta. */
+    montar('colecao')
+    expect(screen.queryByTestId('cartao-de-convite')).toBeNull()
   })
 })
 

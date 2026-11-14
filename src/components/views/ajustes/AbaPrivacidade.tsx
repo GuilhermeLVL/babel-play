@@ -3,8 +3,10 @@ import { useState } from 'react';
 
 import { CRIADOR } from '../../../lib/criador';
 import { t } from '../../../lib/i18n';
+import { semContaComPorta } from '../../../lib/pedirConta';
 import { type Consentimento, mudarConsentimento, salvarPreferencias, usePreferencias } from '../../../lib/preferencias';
 import AnunciosNosAjustes from '../../anuncios/AnunciosNosAjustes';
+import CartaoDeConvite from '../../conta/CartaoDeConvite';
 import { toast } from '../../Toast';
 import { baixarArquivo, prepararCopia } from '../perfil/AbaDados';
 import DialogoLegal from '../sobre/DialogoLegal';
@@ -15,7 +17,8 @@ import DialogoLegal from '../sobre/DialogoLegal';
  *
  * Os consentimentos são guardados com o registro de cada mudança (data e valor), como a nota da
  * tela promete. A cópia dos dados é a exportação REAL (`GET /api/me/exportar`, LGPD art. 18, V), em
- * JSON ou em CSV; ela é gerada na hora, então "preparando" dura o tempo da requisição.
+ * JSON ou em CSV; ela é gerada na hora, então "preparando" dura o tempo da requisição. Sem conta não há
+ * o que exportar do servidor (a rota responde 501): no lugar do botão, o convite.
  */
 
 const CONSENTIMENTOS: Array<[Consentimento, string, string, string]> = [
@@ -66,6 +69,7 @@ export default function AbaPrivacidade() {
   const p = usePreferencias();
   const [copia, setCopia] = useState<'parado' | 'preparando' | { blob: Blob; nome: string }>('parado');
   const [legal, setLegal] = useState(false);
+  const [semConta] = useState(semContaComPorta);
 
   const autorizar = async (k: Consentimento, on: boolean) => {
     const ok = await mudarConsentimento(k, on);
@@ -126,7 +130,9 @@ export default function AbaPrivacidade() {
             <p>{t('Uma cópia de tudo o que o app guarda sobre você: sessões, palavras, progresso, preferências.')}</p>
           </div>
         </header>
-        {typeof copia === 'object' ? (
+        {semConta ? (
+          <CartaoDeConvite view="exportar" inline />
+        ) : typeof copia === 'object' ? (
           <div className="q-ajuste" data-testid="copia-pronta">
             <div>
               <b>{t('Seu arquivo está pronto')}</b>

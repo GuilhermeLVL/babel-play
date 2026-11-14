@@ -3,6 +3,7 @@ import { Award, Eye, Megaphone, Receipt, Target } from 'lucide-react';
 import { useState } from 'react';
 
 import { t } from '../../../lib/i18n';
+import { pedirEntrada, semContaComPorta } from '../../../lib/pedirConta';
 import {
   type Canal,
   type Preferencias,
@@ -20,6 +21,9 @@ import RelatorioSemanal from './RelatorioSemanal';
  *
  * Tudo aqui é PREFERÊNCIA e é guardado de verdade (`lib/preferencias` → `settings.ui`). O "Ver
  * exemplo" abre o resumo da semana montado com os dados reais.
+ *
+ * SEM CONTA não há e-mail cadastrado: a coluna "E-mail" e o resumo semanal ficam desligados, com o
+ * convite logo abaixo da tabela. O aviso no app continua valendo.
  */
 
 const TIPOS: Array<[TipoDeAviso, string, LucideIcon]> = [
@@ -45,16 +49,18 @@ export default function AbaNotificacoes() {
   const p = usePreferencias();
   const { perfil } = usePerfil();
   const [exemplo, setExemplo] = useState(false);
+  const [semConta] = useState(semContaComPorta);
 
   /* QUEST: as mesmas quatro seções, uma decisão por linha. A matriz tipo × canal continua uma tabela:
      é assim que se lê "o que" contra "por onde". */
-  const liga = (ligado: boolean, rotulo: string, aoTrocar: (on: boolean) => void) => (
+  const liga = (ligado: boolean, rotulo: string, aoTrocar: (on: boolean) => void, desligado = false) => (
     <button
       type="button"
       className="q-interruptor"
       role="switch"
-      aria-checked={ligado}
+      aria-checked={ligado && !desligado}
       aria-label={rotulo}
+      disabled={desligado}
       onClick={() => aoTrocar(!ligado)}
     />
   );
@@ -142,6 +148,7 @@ export default function AbaNotificacoes() {
                         `${r} ${por}`,
                         (on) =>
                           void salvar((x) => ({ ...x, avisos: { ...x.avisos, [k]: { ...x.avisos[k], [c]: on } } })),
+                        semConta && c === 'email',
                       )}
                     </td>
                   ))}
@@ -150,6 +157,23 @@ export default function AbaNotificacoes() {
             </tbody>
           </table>
         </div>
+        {semConta && (
+          <div className="q-aviso" data-testid="email-sem-conta">
+            <span>
+              {t(
+                'Sem conta não há e-mail cadastrado, então os avisos por e-mail e o resumo semanal ficam desligados. Os avisos no app continuam valendo.',
+              )}
+            </span>
+            <span className="q-acoes">
+              <button type="button" className="q-ctl pri" onClick={() => pedirEntrada('signup')}>
+                {t('Criar conta')}
+              </button>
+              <button type="button" className="q-ctl" onClick={() => pedirEntrada('login')}>
+                {t('Já tenho conta')}
+              </button>
+            </span>
+          </div>
+        )}
       </section>
 
       <section className="q-secao">
@@ -212,9 +236,10 @@ export default function AbaNotificacoes() {
               p.semanal.on,
               t('Resumo semanal'),
               (on) => void salvar((x) => ({ ...x, semanal: { ...x.semanal, on } })),
+              semConta,
             )}
           </div>
-          {p.semanal.on && (
+          {p.semanal.on && !semConta && (
             <div className="q-ajuste">
               <div>
                 <b>{t('Dia')}</b>

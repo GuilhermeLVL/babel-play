@@ -25,6 +25,9 @@ type Pagamento = {
   subscription?: string
   externalReference: string
   dueDate?: string
+  installment?: string
+  installmentNumber?: number
+  billingType?: string
 }
 const asaas = (pagamentos: Pagamento[]) => {
   const porId = new Map(pagamentos.map((p) => [p.id, p]))
@@ -48,6 +51,7 @@ afterAll(async () => {
 })
 afterEach(() => {
   vi.useRealTimers()
+  vi.restoreAllMocks()
 })
 
 async function checkout(u: string, plano: string, sub: string, ciclo: 'mensal' | 'anual' = 'mensal') {
@@ -429,5 +433,223 @@ describe('reconciliação: filtro e atribuição', () => {
       expect(e.payment.installment).toBe('inst_dupla')
       expect(e.payment.subscription).toBeUndefined()
     }
+  })
+})
+
+/* ───────────── segunda revisão independente do PR #131 ───────────── */
+
+/** Aplica pelo caminho do webhook E grava o evento em `billing_events`, como a rota faz. */
+async function webhook(id: string, tipo: string, p: Pagamento, conhecidos: Pagamento[]) {
+  const { billingEventsRepo } = await h.load<any>('../../server/db/repositories/billingEvents')
+  const e = ev(id, tipo, p)
+  await billingEventsRepo.marcarSeNovo(e.id, 'asaas', e.event, p.externalReference, p.id, e)
+  const r = await aplicarEvento(e, 'req', asaas(conhecidos))
+  await billingEventsRepo.registrarResultado(e.id, r.estado, r.motivo)
+  return r
+}
+
+describe('12x: a isenção da duplicata nunca vale para parcela', () => {
+  async function anoEm12x(u: string, inst: string) {
+    await subs.upsert(asUserId(u), {
+      plan: 'plus',
+      planoDaCobranca: 'plus',
+      status: 'trialing',
+      provider: 'asaas',
+      providerInstallmentId: inst,
+      meio: 'parcelamento',
+      ciclo: 'anual',
+    })
+    const d0 = Date.now() - 2 * DIA
+    const parcelas: Pagamento[] = Array.from({ length: 12 }, (_, i) => ({
+      id: `${inst}_p${i + 1}`,
+      status: 'CONFIRMED',
+      value: 12.41,
+      installment: inst,
+      installmentNumber: i + 1,
+      billingType: 'CREDIT_CARD',
+      externalReference: u,
+      dueDate: diaIso(d0 + i * 30 * DIA),
+    }))
+    for (const p of parcelas.slice(0, 11)) {
+      const r = await webhook(`evt_${p.id}`, 'PAYMENT_CONFIRMED', p, parcelas)
+      expect(r.estado).toBe('aplicado')
+    }
+    expect(await ent.getPlanForUser(asUserId(u))).toBe('plus')
+    return parcelas
+  }
+
+  it('estorno de UMA parcela (as outras 10 confirmadas) revoga, como antes', async () => {
+    const u = 'x-12x-estorno'
+    const parcelas = await anoEm12x(u, 'inst_xe')
+    const p1 = { ...parcelas[0], status: 'REFUNDED' }
+    const r = await webhook('evt_xe_r', 'PAYMENT_REFUNDED', parcelas[0], [p1, ...parcelas.slice(1)])
+    expect(r.estado).toBe('aplicado')
+    expect(await ent.getPlanForUser(asUserId(u))).toBe('free')
+  })
+
+  it('chargeback de UMA parcela revoga, e nunca termina `ignorado`', async () => {
+    const u = 'x-12x-cb'
+    const parcelas = await anoEm12x(u, 'inst_xc')
+    const p1 = { ...parcelas[0], status: 'CHARGEBACK_REQUESTED' }
+    const r = await webhook('evt_xc_cb', 'PAYMENT_CHARGEBACK_REQUESTED', parcelas[0], [p1, ...parcelas.slice(1)])
+    expect(r.estado).toBe('aplicado')
+    expect(await ent.getPlanForUser(asUserId(u))).toBe('free')
+  })
+})
+
+describe('assinatura: duplicata é só a de MESMO vencimento', () => {
+  it('outra cobrança paga com vencimento DIFERENTE não segura o estorno da cobrança em vigor', async () => {
+    const u = 'x-venc-diferente'
+    await checkout(u, 'plus', 'sub_xvd')
+    const antes = {
+      id: 'pay_xvd_a',
+      status: 'RECEIVED',
+      value: 14.9,
+      subscription: 'sub_xvd',
+      externalReference: u,
+      dueDate: diaIso(Date.now() - 5 * DIA),
+    }
+    const vigor = { ...antes, id: 'pay_xvd_b', dueDate: diaIso(Date.now() - 1 * DIA) }
+    await webhook('evt_xvd_a', 'PAYMENT_RECEIVED', antes, [antes, vigor])
+    await webhook('evt_xvd_b', 'PAYMENT_RECEIVED', vigor, [antes, vigor])
+    const r = await webhook('evt_xvd_r', 'PAYMENT_REFUNDED', vigor, [antes, { ...vigor, status: 'REFUNDED' }])
+    expect(r.estado).toBe('aplicado')
+    expect(await ent.getPlanForUser(asUserId(u))).toBe('free')
+  })
+
+  it('CHARGEBACK de uma duplicata (mesmo vencimento) vai para revisão: nao-aplicado, nunca ignorado', async () => {
+    const u = 'x-dup-cb'
+    await checkout(u, 'plus', 'sub_xdc')
+    const venc = diaIso(Date.now() - 2 * DIA)
+    const a = {
+      id: 'pay_xdc_a',
+      status: 'RECEIVED',
+      value: 14.9,
+      subscription: 'sub_xdc',
+      externalReference: u,
+      dueDate: venc,
+    }
+    const b = { ...a, id: 'pay_xdc_b' }
+    await webhook('evt_xdc_a', 'PAYMENT_RECEIVED', a, [a, b])
+    await webhook('evt_xdc_b', 'PAYMENT_RECEIVED', b, [a, b])
+    const cbB = { ...b, status: 'CHARGEBACK_REQUESTED' }
+    const r = await webhook('evt_xdc_cb', 'PAYMENT_CHARGEBACK_REQUESTED', b, [a, cbB])
+    expect(r.estado).toBe('nao-aplicado')
+    expect(await ent.getPlanForUser(asUserId(u))).toBe('plus')
+  })
+})
+
+describe('/assinar troca o ciclo da cobrança registrada', () => {
+  it('A: mensal que assina o ANUAL por boleto e paga com juros recebe o ano, não 35 dias', async () => {
+    const u = 'x-mensal-para-anual'
+    await pagar(u, 'plus', 'sub_xma_m', 14.9, Date.now() - 20 * DIA)
+    // O patch de `/assinar` numa linha existente (billing.ts), agora com o ciclo da cobrança nova.
+    await subs.upsert(asUserId(u), {
+      provider: 'asaas',
+      providerSubscriptionId: 'sub_xma_a',
+      providerInstallmentId: null,
+      meio: 'assinatura',
+      cancelAtPeriodEnd: 0,
+      planoDaCobranca: 'premium',
+      cicloDaCobranca: 'anual',
+    })
+    const venc = Date.now() - 1 * DIA
+    const p = {
+      id: 'pay_xma_a',
+      status: 'RECEIVED',
+      value: 152.9,
+      subscription: 'sub_xma_a',
+      externalReference: u,
+      dueDate: diaIso(venc),
+    }
+    const r = await aplicarEvento(ev('evt_xma_a', 'PAYMENT_RECEIVED', p), 'req', asaas([p]))
+    expect(r.estado).toBe('aplicado')
+    const sub = await subs.getActive(asUserId(u))
+    expect(sub.plan).toBe('premium')
+    expect(sub.ciclo).toBe('anual')
+    expect(sub.currentPeriodEnd).toBe(Date.parse(`${diaIso(venc)}T12:00:00Z`) + 370 * DIA)
+  })
+
+  it('B: anual que assina o MENSAL e paga com juros recebe o mês, e não fica pendente', async () => {
+    const u = 'x-anual-para-mensal'
+    await subs.upsert(asUserId(u), {
+      plan: 'plus',
+      status: 'canceled',
+      ciclo: 'anual',
+      currentPeriodEnd: Date.now() - 5 * DIA,
+      provider: 'asaas',
+      providerSubscriptionId: 'sub_xam_a',
+    })
+    await subs.upsert(asUserId(u), {
+      provider: 'asaas',
+      providerSubscriptionId: 'sub_xam_m',
+      providerInstallmentId: null,
+      meio: 'assinatura',
+      cancelAtPeriodEnd: 0,
+      planoDaCobranca: 'plus',
+      cicloDaCobranca: 'mensal',
+    })
+    const p = { id: 'pay_xam_m', status: 'RECEIVED', value: 15.37, subscription: 'sub_xam_m', externalReference: u }
+    const r = await aplicarEvento(ev('evt_xam_m', 'PAYMENT_RECEIVED', p), 'req', asaas([p]))
+    expect(r.estado).toBe('aplicado')
+    const sub = await subs.getActive(asUserId(u))
+    expect(sub.plan).toBe('plus')
+    expect(sub.ciclo).toBe('mensal')
+  })
+})
+
+describe('revogação condicional sem rajada de 500', () => {
+  it('o período mudou UMA vez no meio: relê, reavalia e revoga', async () => {
+    const u = 'x-corrida-1'
+    const p = await pagar(u, 'plus', 'sub_xc1', 14.9, Date.now() - 2 * DIA)
+    const espiao = vi.spyOn(subs, 'revogarSePeriodoIgual').mockResolvedValueOnce(false)
+    const r = await aplicarEvento(ev('evt_xc1_r', 'PAYMENT_REFUNDED', p), 'req', asaas([{ ...p, status: 'REFUNDED' }]))
+    expect(espiao).toHaveBeenCalledTimes(2)
+    expect(r.estado).toBe('aplicado')
+    expect(await ent.getPlanForUser(asUserId(u))).toBe('free')
+    espiao.mockRestore()
+  })
+
+  it('o período mudou de novo: não lança; estorno fica `ignorado`, chargeback `nao-aplicado`', async () => {
+    const u = 'x-corrida-2'
+    const p = await pagar(u, 'plus', 'sub_xc2', 14.9, Date.now() - 2 * DIA)
+    const espiao = vi.spyOn(subs, 'revogarSePeriodoIgual').mockResolvedValue(false)
+    const r = await aplicarEvento(ev('evt_xc2_r', 'PAYMENT_REFUNDED', p), 'req', asaas([{ ...p, status: 'REFUNDED' }]))
+    expect(r.estado).toBe('ignorado')
+    expect(r.motivo).toMatch(/período mudou/)
+    const cbP = { ...p, status: 'CHARGEBACK_REQUESTED' }
+    const cb = await aplicarEvento(ev('evt_xc2_cb', 'PAYMENT_CHARGEBACK_REQUESTED', p), 'req', asaas([cbP]))
+    expect(cb.estado).toBe('nao-aplicado')
+    espiao.mockRestore()
+  })
+})
+
+describe('cancelar fora dos 7 dias e depois o dinheiro voltar', () => {
+  async function pagoECancelado(u: string, sub: string) {
+    const p = await pagar(u, 'plus', sub, 14.9, Date.now() - 19 * DIA)
+    // O patch do cancelamento fora dos 7 dias: o fim vira o fim do dia do próximo vencimento.
+    await subs.upsert(asUserId(u), {
+      status: 'canceled',
+      cancelAtPeriodEnd: 1,
+      currentPeriodEnd: Date.now() + 11 * DIA + 3_600_000,
+    })
+    return p
+  }
+
+  it('estorno da cobrança em vigor ainda revoga', async () => {
+    const u = 'x-cancelou-estorno'
+    const p = await pagoECancelado(u, 'sub_xce')
+    const r = await aplicarEvento(ev('evt_xce_r', 'PAYMENT_REFUNDED', p), 'req', asaas([{ ...p, status: 'REFUNDED' }]))
+    expect(r.estado).toBe('aplicado')
+    expect(await ent.getPlanForUser(asUserId(u))).toBe('free')
+  })
+
+  it('chargeback da cobrança em vigor revoga (nunca ignorado)', async () => {
+    const u = 'x-cancelou-cb'
+    const p = await pagoECancelado(u, 'sub_xcc')
+    const cbP = { ...p, status: 'CHARGEBACK_REQUESTED' }
+    const r = await aplicarEvento(ev('evt_xcc_cb', 'PAYMENT_CHARGEBACK_REQUESTED', p), 'req', asaas([cbP]))
+    expect(r.estado).toBe('aplicado')
+    expect(await ent.getPlanForUser(asUserId(u))).toBe('free')
   })
 })

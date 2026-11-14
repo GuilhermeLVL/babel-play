@@ -795,6 +795,11 @@ export const subscriptions = pgTable(
        (`aplicarEvento`), junto com `currentPeriodEnd` — o cancelamento, o estorno e o admin mexem no fim, nunca aqui.
        É a âncora da janela da cota de quem paga (`janelaDaCota`). Nulo = sem pagamento aplicado desde a 0019. */
     periodoPagoDesde: bigint('periodo_pago_desde', { mode: 'number' }),
+    /* O CICLO DA COBRANÇA REGISTRADA (migração 0019): `mensal` | `anual`, gravado por `/assinar` junto com o id e o
+       `planoDaCobranca`. `ciclo` é o do período CONCEDIDO e `/assinar` numa linha existente não o toca: o mensal que
+       assina o anual por boleto e paga com juros teria o valor lido contra o preço do mês. Nulo = linha de antes
+       da 0019 (vale `ciclo`).*/
+    cicloDaCobranca: text('ciclo_da_cobranca'),
   },
   (t) => [unique('uq_subscriptions_user').on(t.userId)],
 )
@@ -830,32 +835,41 @@ export const bootFalhas = pgTable('boot_falhas', {
   instancia: text('instancia'),
 })
 
-export const billingEvents = pgTable('billing_events', {
-  /** O id do EVENTO no provedor (`evt_…` no Asaas) — a chave da idempotência. */
-  id: text('id').primaryKey(),
-  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
-  provider: text('provider').notNull(), // 'asaas'
-  event: text('event').notNull(), // 'PAYMENT_CONFIRMED' | 'PAYMENT_OVERDUE' | …
-  userId: text('user_id'),
-  /** Id da cobrança/assinatura no provedor, para auditoria cruzada. */
-  providerRef: text('provider_ref'),
-  /**
-   * O QUE ACONTECEU com o evento (auditoria de 2026-09-07, achado A05). Antes, um pagamento
-   * confirmado cuja assinatura divergia da registrada, ou um avulso que não casava com compra
-   * nenhuma, caía num `break` e respondia 200: o Asaas não reentrega e o pagante ficava sem o
-   * plano, sem trilha para reprocessar. Agora todo evento termina `aplicado` ou `nao-aplicado`
-   * com `motivo`, e o payload fica guardado para um administrador reaplicar.
-   */
-  estado: text('estado').notNull().default('aplicado'), // 'aplicado' | 'nao-aplicado' | 'ignorado'
-  motivo: text('motivo'),
-  /**
-   * O JSON do evento REDUZIDO aos campos que a reaplicação usa — ids, evento, valor, status e datas
-   * (GAP-017 / S26-13). O corpo do Asaas traz dado pessoal do pagador (nome, CPF, cartão, link da
-   * fatura), e ele ficava aqui cru e sem prazo. A lista de campos permitidos está em
-   * `repositories/billingEvents.ts` (`reduzirPayload`); a migração 0047 limpou as linhas antigas.
-   */
-  payload: text('payload'),
-})
+export const billingEvents = pgTable(
+  'billing_events',
+  {
+    /** O id do EVENTO no provedor (`evt_…` no Asaas) — a chave da idempotência. */
+    id: text('id').primaryKey(),
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+    provider: text('provider').notNull(), // 'asaas'
+    event: text('event').notNull(), // 'PAYMENT_CONFIRMED' | 'PAYMENT_OVERDUE' | …
+    userId: text('user_id'),
+    /** Id da cobrança/assinatura no provedor, para auditoria cruzada. */
+    providerRef: text('provider_ref'),
+    /**
+     * O QUE ACONTECEU com o evento (auditoria de 2026-09-07, achado A05). Antes, um pagamento
+     * confirmado cuja assinatura divergia da registrada, ou um avulso que não casava com compra
+     * nenhuma, caía num `break` e respondia 200: o Asaas não reentrega e o pagante ficava sem o
+     * plano, sem trilha para reprocessar. Agora todo evento termina `aplicado` ou `nao-aplicado`
+     * com `motivo`, e o payload fica guardado para um administrador reaplicar.
+     */
+    estado: text('estado').notNull().default('aplicado'), // 'aplicado' | 'nao-aplicado' | 'ignorado'
+    motivo: text('motivo'),
+    /**
+     * O JSON do evento REDUZIDO aos campos que a reaplicação usa — ids, evento, valor, status e datas
+     * (GAP-017 / S26-13). O corpo do Asaas traz dado pessoal do pagador (nome, CPF, cartão, link da
+     * fatura), e ele ficava aqui cru e sem prazo. A lista de campos permitidos está em
+     * `repositories/billingEvents.ts` (`reduzirPayload`); a migração 0047 limpou as linhas antigas.
+     */
+    payload: text('payload'),
+  },
+  (t) => [
+    /* Migração 0019: os pagamentos de um titular por tipo de evento (a duplicata do estorno,
+       `pagamentosConfirmadosDoUsuario`) e os eventos de uma cobrança (a reconciliação procura por `provider_ref`). */
+    index('idx_billing_events_user_event').on(t.userId, t.event),
+    index('idx_billing_events_provider_ref').on(t.providerRef),
+  ],
+)
 
 export const usageCounters = pgTable(
   'usage_counters',

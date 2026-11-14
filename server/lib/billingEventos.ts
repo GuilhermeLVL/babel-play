@@ -349,7 +349,11 @@ export async function aplicarEvento(
       const destaCobranca = planoDestaAssinatura(atual, vSub)
       const planoDaIntencao: PlanoDeAssinatura =
         destaCobranca ?? (ehPlanoPago(planoGravado) ? planoGravado : planoPagoMaisBarato())
-      const cicloDaIntencao: CicloDeCobranca = atual?.ciclo === 'anual' ? 'anual' : 'mensal'
+      /* O CICLO DA COBRANÇA registrada vem de `cicloDaCobranca` (gravado por `/assinar` com o id), e não de `ciclo`, que
+         é o do período CONCEDIDO e não muda quando a pessoa assina outro ciclo numa linha existente. Linha de antes da
+         0019 (ou pagamento de outra assinatura): `ciclo`, como sempre. */
+      const cicloRegistrado = destaCobranca ? atual?.cicloDaCobranca : null
+      const cicloDaIntencao: CicloDeCobranca = (cicloRegistrado ?? atual?.ciclo) === 'anual' ? 'anual' : 'mensal'
 
       /**
        * A ASSINATURA QUE PAGOU TEM DE SER A QUE ESTÁ REGISTRADA — `POST /api/billing/assinar`
@@ -709,6 +713,12 @@ function divergenciaDaLinha(atual: Subscription, p: PagamentoConferido): string 
  *  - Parcela de assinatura ou do 12x: não há período pago, então o acesso termina AGORA. Sem zerar
  *    `currentPeriodEnd`, o "cancelado mantém até o fim do período" (entitlements) deixaria quem foi
  *    reembolsado com o mês de graça.
+ *
+ * As exceções (revisões do PR #131) só existem na ASSINATURA recorrente e nunca deixam um CHARGEBACK sumir como
+ * `ignorado`: o chargeback é do titular do cartão contra a operadora, e o que não revoga vai para revisão humana
+ * (`nao-aplicado`). O ESTORNO é ato do lojista (nós ou o painel), e o que ele não revoga fica `ignorado` com o porquê.
+ *  - a cobrança devolvida não é a do período em vigor (`cobrancaForaDoPeriodoEmVigor`);
+ *  - ela é uma DUPLICATA: outra cobrança paga da mesma assinatura, com o MESMO vencimento (`duplicataPaga`).
  */
 async function aplicarDinheiroDevolvido(
   ev: EventoAsaas,
@@ -723,86 +733,86 @@ async function aplicarDinheiroDevolvido(
     await creditsRepo.cancelarCompra(p.id)
     return { estado: 'aplicado', motivo: null }
   }
-  const atual = await subscriptionsRepo.getActive(p.userId)
-  if (!atual) return { estado: 'ignorado', motivo: `${oQue} sem assinatura registrada: nada a revogar` }
-  const divergencia = divergenciaDaLinha(atual, p)
-  if (divergencia) return { estado: 'nao-aplicado', motivo: `${oQue} não aplicado — ${divergencia}` }
-  const antiga = cobrancaAnteriorAoPeriodo(atual, p)
-  if (antiga) {
-    log('warn', { event: 'billing_estorno_de_cobranca_antiga', error: antiga })
-    /* O ESTORNO é ato do lojista (nós ou o painel): devolver uma cobrança antiga não tira o período pago depois.
-       O CHARGEBACK é do titular do cartão contra a operadora — contestar uma cobrança antiga com outra paga em
-       seguida pede olho humano, e não some como resolvido. */
-    if (oQue === 'chargeback') {
-      return { estado: 'nao-aplicado', motivo: `chargeback de cobrança antiga, para revisão — ${antiga}` }
+  const semRevogar = (porque: string): ResultadoDoEvento =>
+    oQue === 'chargeback'
+      ? { estado: 'nao-aplicado', motivo: `chargeback não revogado, para revisão — ${porque}` }
+      : { estado: 'ignorado', motivo: `estorno não revoga — ${porque}` }
+  /* Até DUAS leituras: a revogação é uma escrita condicional ao período lido (`revogarSePeriodoIgual`). Se um
+     pagamento confirmou entre a leitura e a escrita, relê e reavalia uma vez; mudando de novo, não lança (o Asaas
+     reentregaria em rajada de 500): o estorno fica `ignorado` e o chargeback `nao-aplicado`, com o porquê, e a
+     reconciliação reavalia. */
+  for (let tentativa = 1; ; tentativa++) {
+    const atual = await subscriptionsRepo.getActive(p.userId)
+    if (!atual) return { estado: 'ignorado', motivo: `${oQue} sem assinatura registrada: nada a revogar` }
+    const divergencia = divergenciaDaLinha(atual, p)
+    if (divergencia) return { estado: 'nao-aplicado', motivo: `${oQue} não aplicado — ${divergencia}` }
+    const fora = cobrancaForaDoPeriodoEmVigor(atual, p)
+    if (fora) {
+      log('warn', { event: 'billing_estorno_de_cobranca_antiga', error: fora })
+      return semRevogar(`cobrança antiga, não é a do período em vigor: ${fora}`)
     }
-    return { estado: 'ignorado', motivo: `${oQue} de cobrança antiga — ${antiga}` }
+    const duplicata = await duplicataPaga(p, verificar)
+    if (duplicata) {
+      log('warn', { event: 'billing_estorno_com_outra_paga', error: duplicata })
+      return semRevogar(`cobrança duplicada: ${duplicata}`)
+    }
+    if (await subscriptionsRepo.revogarSePeriodoIgual(p.userId, atual.currentPeriodEnd ?? null)) {
+      return { estado: 'aplicado', motivo: null }
+    }
+    log('warn', { event: 'billing_estorno_periodo_mudou', error: `${oQue} ${p.id ?? '?'} tentativa ${tentativa}` })
+    if (tentativa >= 2) {
+      return semRevogar(
+        'o período mudou durante a aplicação (outro pagamento confirmou no meio); a reconciliação reavalia',
+      )
+    }
   }
-  const outra = await outraCobrancaPagaCobre(atual, p, verificar)
-  if (outra) {
-    log('warn', { event: 'billing_estorno_com_outra_paga', error: outra })
-    return { estado: 'ignorado', motivo: `${oQue} de cobrança duplicada — ${outra}` }
-  }
-  /* A revogação é CONDICIONAL ao período lido: se um pagamento confirmou entre a leitura e aqui (e esticou o fim),
-     nada é apagado; o evento sobe como exceção e volta pela reentrega/reprocessamento, reavaliado com o período novo. */
-  if (!(await subscriptionsRepo.revogarSePeriodoIgual(p.userId, atual.currentPeriodEnd ?? null))) {
-    throw new Error(`${oQue}: o período mudou durante a aplicação; reavaliar`)
-  }
-  return { estado: 'aplicado', motivo: null }
 }
 
 /**
- * OUTRA COBRANÇA PAGA DO MESMO FLUXO AINDA COBRE O PERÍODO (a cobrança duplicada, com o mesmo vencimento)? Estornar
- * uma das duas não tira o período que a outra pagou. Os candidatos são os pagamentos confirmados que o servidor já
- * recebeu deste titular; quem decide é a API do Asaas (status pago, mesma assinatura ou parcelamento, e o período
- * dela alcança o fim em vigor, com a mesma folga de 7 dias). Sem verificador (self-host), nada a perguntar: revoga,
- * como sempre. Devolve o porquê, ou `null`.
+ * A DUPLICATA (só na assinatura recorrente): outra cobrança da MESMA assinatura, com o MESMO vencimento, que segue paga
+ * no Asaas. Estornar uma das duas não tira o período que a outra pagou. Os candidatos são os pagamentos confirmados que
+ * o servidor já recebeu deste titular (`billing_events`); quem decide é a API. Nunca no 12x: as 12 parcelas são o
+ * MESMO ano e uma não é duplicata da outra. Sem verificador (self-host) ou sem vencimento, não há duplicata a provar.
  */
-async function outraCobrancaPagaCobre(
-  atual: Subscription,
+async function duplicataPaga(
   p: PagamentoConferido,
   verificar: VerificadorDePagamento | undefined,
 ): Promise<string | null> {
-  if (!verificar || !p.id || atual.currentPeriodEnd == null) return null
+  if (!verificar || !p.id || !p.assinatura || p.parcelamento || !p.vencimento) return null
   const refs = await billingEventsRepo.pagamentosConfirmadosDoUsuario(String(p.userId), p.id)
   for (const ref of refs) {
     const real = await verificar(ref)
     if (!real || !STATUS_DE_PAGO.has(real.status)) continue
-    const mesmoFluxo = p.assinatura ? real.subscription === p.assinatura : real.installment === p.parcelamento
-    if (!mesmoFluxo) continue
-    const inicio = p.parcelamento
-      ? vencimentoDaPrimeiraParcela(real.dueDate, real.installmentNumber)
-      : meioDiaDo(real.dueDate)
-    if (!Number.isFinite(inicio)) continue
-    const anual = p.parcelamento || planoPeloPagamento(real.value)?.ciclo === 'anual'
-    const fimDela = inicio + (anual ? DIAS_DO_PERIODO_ANUAL : DIAS_DO_PERIODO_MENSAL) * DIA_MS
-    if (fimDela + 7 * DIA_MS >= atual.currentPeriodEnd) {
-      return `o pagamento ${ref} (vencimento ${real.dueDate}) segue pago no Asaas e cobre o período em vigor`
-    }
+    if (real.subscription !== p.assinatura || real.installment || real.dueDate !== p.vencimento) continue
+    return `o pagamento ${ref} (mesmo vencimento, ${real.dueDate}) segue pago no Asaas`
   }
   return null
 }
 
 /**
- * A COBRANÇA DEVOLVIDA É ANTERIOR AO PERÍODO EM VIGOR (auditoria de 14/11/2026)? O estorno de uma mensalidade
- * ANTIGA da assinatura registrada (a de outubro, cobrada em dobro) não pode levar o novembro, que segue pago: a
- * pessoa receberia MENOS do que pagou. O período que a cobrança devolvida concedeu é o vencimento dela mais o
- * ciclo (a mesma conta de quando ela confirmou); se o período gravado vai além disso com folga, quem o esticou foi
- * um pagamento POSTERIOR, e o estorno não revoga nada — fica no log e na tabela de eventos.
- *
- * Só a ASSINATURA recorrente: o 12x ancora as 12 parcelas no mesmo ano (estornar uma parcela é desfazer o ano), e
- * sem vencimento não há com o que comparar — nos dois casos vale a regra de sempre (revoga). Devolve o porquê, ou
- * `null` quando a cobrança é a do período em vigor.
+ * A COBRANÇA DEVOLVIDA NÃO É A DO PERÍODO EM VIGOR (auditoria de 14/11/2026)? O estorno de uma mensalidade ANTIGA da
+ * assinatura registrada (a de outubro) não pode levar o novembro, que segue pago: a pessoa receberia MENOS do que
+ * pagou.
+ *  - Com a âncora (`periodoPagoDesde`, o vencimento da cobrança que concedeu o período — só o pagamento a grava): a
+ *    cobrança é a do período se o vencimento dela bate com a âncora (folga de 7 dias, o ajuste de vencimento do Asaas).
+ *    É o critério certo mesmo depois do cancelamento, que move o `currentPeriodEnd` mas não a âncora.
+ *  - Sem âncora (linha de antes da 0019): o fim que ela concedeu (vencimento + ciclo) contra o `currentPeriodEnd`.
+ * Só a ASSINATURA recorrente: o 12x ancora as 12 parcelas no mesmo ano (estornar uma parcela é desfazer o ano), e sem
+ * vencimento não há com o que comparar — nos dois casos vale a regra de sempre (revoga). Devolve o porquê, ou `null`.
  */
-function cobrancaAnteriorAoPeriodo(atual: Subscription, p: PagamentoConferido): string | null {
+function cobrancaForaDoPeriodoEmVigor(atual: Subscription, p: PagamentoConferido): string | null {
   if (!p.assinatura || p.parcelamento) return null
   const vencimento = meioDiaDo(p.vencimento)
-  if (!Number.isFinite(vencimento) || atual.currentPeriodEnd == null) return null
+  if (!Number.isFinite(vencimento)) return null
+  const folga = 7 * DIA_MS
+  if (atual.periodoPagoDesde != null) {
+    if (Math.abs(vencimento - atual.periodoPagoDesde) <= folga) return null
+    return `pagamento ${p.id ?? '?'} (vencimento ${p.vencimento}); o período em vigor foi concedido pela cobrança de ${new Date(atual.periodoPagoDesde).toISOString().slice(0, 10)} — mantido`
+  }
+  if (atual.currentPeriodEnd == null) return null
   const ciclo = planoPeloPagamento(p.valor)?.ciclo ?? (atual.ciclo === 'anual' ? 'anual' : 'mensal')
   const fimDela = vencimento + (ciclo === 'anual' ? DIAS_DO_PERIODO_ANUAL : DIAS_DO_PERIODO_MENSAL) * DIA_MS
-  /* Folga de um ciclo de cobrança curto (7 dias): a mesma cobrança, gravada pelo `manterCancelada` ou com o
-     vencimento ajustado pelo Asaas, não pode passar por "anterior". Uma mensalidade posterior estica ~30 dias. */
-  if (atual.currentPeriodEnd <= fimDela + 7 * DIA_MS) return null
+  if (atual.currentPeriodEnd <= fimDela + folga) return null
   return `pagamento ${p.id ?? '?'} (vencimento ${p.vencimento}) cobria até ${new Date(fimDela).toISOString().slice(0, 10)}; o período em vigor vai até ${new Date(atual.currentPeriodEnd).toISOString().slice(0, 10)}, pago depois — mantido`
 }
 

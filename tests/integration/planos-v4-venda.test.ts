@@ -181,6 +181,30 @@ describe('POST /api/billing/assinar com `venda_planos_v4` ligada', () => {
     })
   })
 
+  it('numa linha EXISTENTE (mensal), assinar o anual grava o ciclo DA COBRANÇA e não toca no ciclo concedido', async () => {
+    await ligar(FLAG_VENDA_PLANOS_V4, true)
+    const u = asUserId('v4-ciclo-existente')
+    await subs.upsert(u, {
+      plan: 'plus',
+      status: 'canceled',
+      ciclo: 'mensal',
+      currentPeriodEnd: Date.now() - 86_400_000,
+      provider: 'asaas',
+      providerSubscriptionId: 'sub_antiga_mensal',
+    })
+    const { res } = await assinar(
+      'v4-ciclo-existente',
+      pedido('plus', { ciclo: 'anual', meio: 'parcelamento' }),
+      'ins_ciclo',
+    )
+    expect(res.statusCode).toBe(200)
+    expect(await subs.getActive(u)).toMatchObject({
+      ciclo: 'mensal',
+      planoDaCobranca: 'plus',
+      cicloDaCobranca: 'anual',
+    })
+  })
+
   it.each(['premium', 'essencial', 'familia', 'pro4'])(
     '%s: 503 sem falar com o Asaas nem gravar intenção',
     async (plano) => {

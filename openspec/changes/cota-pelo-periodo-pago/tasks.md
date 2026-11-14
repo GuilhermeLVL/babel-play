@@ -26,6 +26,15 @@
 - [x] 2b.6 Revogação condicional ao período lido (`revogarSePeriodoIgual`)
 - [x] 2b.7 Reconciliação: `active`/`past_due` também precisam de período recente; cobrança atribuída à lista de origem
 
+## 2c. Segunda revisão independente do PR #131
+
+- [x] 2c.1 Backfill da 0019 em `bigint` + teste da migração com assinaturas semeadas antes dela
+- [x] 2c.2 Duplicata só na assinatura e só com o mesmo vencimento; chargeback nunca `ignorado`; 12x revoga como antes
+- [x] 2c.3 `ciclo_da_cobranca` gravado por `/assinar` e usado no valor fora da matriz
+- [x] 2c.4 Índices `billing_events (user_id, event)` e `(provider_ref)`
+- [x] 2c.5 Revogação condicional relê e reavalia uma vez; não lança
+- [x] 2c.6 Cobrança devolvida comparada à âncora (o cancelamento move o fim, não a âncora)
+
 ## 3. Pendências
 
 - [ ] 3.1 Textos "volta no dia 1º" (`src/components/IChat.tsx`, `src/components/views/Planos.tsx`): para quem paga, dizer a

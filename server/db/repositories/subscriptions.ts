@@ -44,6 +44,8 @@ export interface SubscriptionPatch {
    * (`billingEventos.ts`); cancelamento, estorno e admin não passam este campo.
    */
   periodoPagoDesde?: number | null
+  /** O ciclo da cobrança registrada (migração 0019), gravado por `/assinar` com o id e o `planoDaCobranca`. */
+  cicloDaCobranca?: CicloDeCobranca | null
 }
 
 /**
@@ -141,6 +143,7 @@ export const subscriptionsRepo = {
       trocaAPartirDe: patch.trocaAPartirDe ?? null,
       planoDaCobranca: patch.planoDaCobranca ?? null,
       periodoPagoDesde: patch.periodoPagoDesde ?? null,
+      cicloDaCobranca: patch.cicloDaCobranca ?? null,
     }
     await db.insert(subscriptions).values(row)
     const r = await getActiveSub(userId)

@@ -1,5 +1,5 @@
 {
-  "id": "42791271-ea4a-4cfa-8c69-bbbd3593f226",
+  "id": "02c528fb-0e1e-4d8e-accb-e4da21b8e9e0",
   "prevId": "af027444-e42e-417d-943f-77cbae1a0489",
   "version": "7",
   "dialect": "postgresql",
@@ -1018,7 +1018,44 @@
           "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_billing_events_user_event": {
+          "name": "idx_billing_events_user_event",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "event",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_billing_events_provider_ref": {
+          "name": "idx_billing_events_provider_ref",
+          "columns": [
+            {
+              "expression": "provider_ref",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
@@ -3553,6 +3590,12 @@
         "periodo_pago_desde": {
           "name": "periodo_pago_desde",
           "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ciclo_da_cobranca": {
+          "name": "ciclo_da_cobranca",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         }

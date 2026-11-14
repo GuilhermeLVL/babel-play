@@ -499,7 +499,18 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_billing_events_provider_ref": {
+          "name": "idx_billing_events_provider_ref",
+          "columns": ["provider_ref"],
+          "isUnique": false
+        },
+        "idx_billing_events_user_event": {
+          "name": "idx_billing_events_user_event",
+          "columns": ["user_id", "event"],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
@@ -2260,6 +2271,13 @@
         "periodo_pago_desde": {
           "name": "periodo_pago_desde",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "ciclo_da_cobranca": {
+          "name": "ciclo_da_cobranca",
+          "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false

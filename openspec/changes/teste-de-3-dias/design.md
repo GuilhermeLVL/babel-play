@@ -62,9 +62,12 @@ Sem dependência nova nem download. Barra só o TESTE; a conta e o Grátis segue
 
 O limitador existente conta falhas e chaveia pelo usuário; aqui a régua é "testes que COMEÇARAM por IP no dia". Contador em
 `usage_counters` (métrica `teste_premium:ip`, janela `AAAA-MM-DD` UTC), chave = HMAC do IP com a chave do servidor e o dia
-(IPv6 agrupado por `ipKeyGenerator`), igual ao convidado. Lê antes de gravar, conta depois de `iniciado`, poda os dias
-passados ao contar. Ler-e-depois-contar não é atômico: numa rajada simultânea o teto pode passar pelo número de pedidos em
-voo — aceito, como no limitador de falhas. Padrão 5 por dia (uma casa com dois adultos e filhos vinculados); `0` desliga.
+(IPv6 agrupado por `ipKeyGenerator`), igual ao convidado. A vaga é RESERVADA numa instrução só
+(`usageCountersRepo.reserve`, o mesmo de cotas: soma só se ainda cabe no teto) logo antes de `testesPremiumRepo.iniciar`,
+depois de todas as recusas; se o teste não começar (`ja_existia`, marca na corrida, erro) a vaga volta (`refund`). Ler e
+depois contar deixava uma rajada do mesmo IP passar do teto (TOCTOU, revisão de segurança do PR #130); o teste de
+integração com N inícios simultâneos atrás de uma barreira prova o teto. Padrão 5 por dia (uma casa com dois adultos e
+filhos vinculados); `0` desliga.
 
 ## Risks / Trade-offs
 

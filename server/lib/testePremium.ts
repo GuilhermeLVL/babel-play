@@ -28,7 +28,7 @@
  * cartões. Além da marca, o início do teste exige: (1) o e-mail CONFIRMADO no Supabase (`emailConfirmado`,
  * Admin API — não basta o painel ter o "Confirm email" ligado: o servidor confere); (2) um e-mail que não seja
  * de caixa descartável (`dominiosDescartaveis.ts`); (3) no máximo `TESTES_PREMIUM_POR_IP_DIA` testes
- * começados pelo mesmo IP pseudonimizado no dia (`ipNoTetoDeTestes`/`contarTesteDoIp`).
+ * começados pelo mesmo IP pseudonimizado no dia (`reservarTesteDoIp`, reserva atômica).
  */
 import { createHmac } from 'node:crypto'
 
@@ -258,18 +258,31 @@ async function chaveDoIp(req: Pick<Request, 'ip'>, agora: number): Promise<UserI
   return asUserId(`ip:${h}`)
 }
 
-/** Este IP já começou o máximo de testes de hoje? Com o teto em 0 (desligado), nunca. */
-export async function ipNoTetoDeTestes(req: Pick<Request, 'ip'>, agora = Date.now()): Promise<boolean> {
-  const teto = testesPremiumPorIpNoDia()
-  if (teto <= 0) return false
-  const usados = await usageCountersRepo.get(await chaveDoIp(req, agora), METRIC_TESTES_POR_IP, diaUtc(agora))
-  return usados >= teto
+/** A vaga reservada de um teste por IP: `liberar` devolve a vaga quando o teste acaba não começando. */
+export interface VagaDeTesteDoIp {
+  liberar: () => Promise<void>
 }
 
-/** Conta um teste que COMEÇOU por este IP (só o que começou: recusa e 2º toque não contam) e poda os dias passados. */
-export async function contarTesteDoIp(req: Pick<Request, 'ip'>, agora = Date.now()): Promise<void> {
-  if (testesPremiumPorIpNoDia() <= 0) return
+/**
+ * RESERVA, numa instrução só, a vaga deste IP no dia (`usageCountersRepo.reserve`: soma só se ainda cabe no teto, o
+ * mesmo padrão das cotas). Ler e depois contar deixava uma rajada simultânea do mesmo IP passar do teto (TOCTOU,
+ * revisão de segurança do PR #130). `null` = o IP já está no teto. Com o teto em 0 (desligado), a vaga é de graça e
+ * não conta. Quem reserva e não chega a COMEÇAR o teste (marca na corrida, `ja_existia`, erro) chama `liberar`.
+ */
+export async function reservarTesteDoIp(req: Pick<Request, 'ip'>, agora = Date.now()): Promise<VagaDeTesteDoIp | null> {
+  const teto = testesPremiumPorIpNoDia()
+  if (teto <= 0) return { liberar: async () => {} }
   const dia = diaUtc(agora)
-  await usageCountersRepo.increment(await chaveDoIp(req, agora), METRIC_TESTES_POR_IP, dia)
-  await usageCountersRepo.prune(METRIC_TESTES_POR_IP, dia)
+  const chaveIp = await chaveDoIp(req, agora)
+  if (!(await usageCountersRepo.reserve(chaveIp, METRIC_TESTES_POR_IP, dia, teto))) return null
+  /* Poda dos dias passados: best-effort, fora do caminho da resposta. */
+  await usageCountersRepo.prune(METRIC_TESTES_POR_IP, dia).catch(() => {})
+  let liberada = false
+  return {
+    liberar: async () => {
+      if (liberada) return
+      liberada = true
+      await usageCountersRepo.refund(chaveIp, METRIC_TESTES_POR_IP, dia)
+    },
+  }
 }

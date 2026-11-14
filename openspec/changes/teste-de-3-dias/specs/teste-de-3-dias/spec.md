@@ -68,7 +68,13 @@ A marca já usada MUST responder 409 `teste_ja_usado` sem consultar o Supabase. 
 
 O servidor SHALL contar os testes que COMEÇARAM por IP pseudonimizado (HMAC do IP com a chave do servidor e o dia, IPv6 por
 prefixo) em `usage_counters` e SHALL recusar com 429 `teste_limite_por_ip` quando o IP já começou `TESTES_PREMIUM_POR_IP_DIA`
-testes no dia (padrão 5; `0` desliga). Recusas e o segundo toque da mesma conta MUST NOT contar.
+testes no dia (padrão 5; `0` desliga). Recusas e o segundo toque da mesma conta MUST NOT contar. A vaga MUST ser reservada numa operação atômica (soma só se
+couber), para que pedidos simultâneos do mesmo IP nunca passem do teto.
+
+#### Scenario: Rajada simultânea
+
+- **WHEN** o teto é 2 e 8 contas confirmadas do mesmo IP pedem o teste ao mesmo tempo
+- **THEN** exatamente 2 começam e as outras 6 recebem 429 `teste_limite_por_ip`
 
 #### Scenario: O terceiro teste com teto 2
 

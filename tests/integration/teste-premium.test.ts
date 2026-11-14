@@ -411,6 +411,75 @@ describe('o freio contra a fábrica de contas (change teste-de-3-dias)', () => {
   })
 })
 
+describe('o teto por IP sob concorrência (TOCTOU, revisão do PR #130)', () => {
+  async function contadorDoIp(): Promise<number> {
+    const { db } = await s.load('../../server/db/db')
+    const { usageCounters } = await s.load('../../server/db/schema')
+    const { METRIC_TESTES_POR_IP } = await s.load('../../server/lib/testePremium')
+    const { eq } = await import('drizzle-orm')
+    const linhas = await db.select().from(usageCounters).where(eq(usageCounters.metric, METRIC_TESTES_POR_IP))
+    return linhas.reduce((t: number, l: { count: number }) => t + Number(l.count), 0)
+  }
+  async function zerarContadorDoIp(): Promise<void> {
+    const { db } = await s.load('../../server/db/db')
+    const { usageCounters } = await s.load('../../server/db/schema')
+    const { METRIC_TESTES_POR_IP } = await s.load('../../server/lib/testePremium')
+    const { eq } = await import('drizzle-orm')
+    await db.delete(usageCounters).where(eq(usageCounters.metric, METRIC_TESTES_POR_IP))
+  }
+
+  it('N inícios SIMULTÂNEOS do mesmo IP, contas distintas e confirmadas: no máximo o teto começa', async () => {
+    const { _definirConsultaDeEmailConfirmado } = await s.load('../../server/lib/testePremium')
+    /* UMA BARREIRA na consulta da confirmação (o último passo antes da vaga do IP): os N pedidos só seguem juntos,
+       quando todos chegaram. É o pior caso da corrida — com ler-e-depois-contar, todos liam 0 e todos começavam. */
+    const N = 8
+    let chegaram = 0
+    let soltar: () => void = () => {}
+    const todosChegaram = new Promise<void>((r) => (soltar = r))
+    _definirConsultaDeEmailConfirmado(async () => {
+      if (++chegaram === N) soltar()
+      await todosChegaram
+      return true
+    })
+    process.env.TESTES_PREMIUM_POR_IP_DIA = '2'
+    onTestFinished(() => {
+      _definirConsultaDeEmailConfirmado(null)
+      process.env.TESTES_PREMIUM_POR_IP_DIA = '0'
+    })
+    await zerarContadorDoIp()
+    const contas = Array.from({ length: N }, (_, i) => `t-rajada-${i}`)
+    for (const sub of contas) await declarar(sub, 30)
+
+    const respostas = await Promise.all(contas.map((sub) => testar(sub)))
+    const comecaram = respostas.filter((r) => r.status === 200)
+    expect(comecaram.length, 'nunca passa do teto').toBeLessThanOrEqual(2)
+    expect(comecaram.length, 'e o teto inteiro é usado').toBe(2)
+    for (const r of respostas.filter((x) => x.status !== 200)) {
+      expect(r.status).toBe(429)
+      expect(r.corpo.code).toBe('teste_limite_por_ip')
+    }
+    const premium = await Promise.all(contas.map(async (sub) => (await entitlements(sub)).plan))
+    expect(premium.filter((p) => p === 'premium')).toHaveLength(2)
+    expect(await contadorDoIp()).toBe(2)
+  })
+
+  it('a vaga reservada volta quando o teste não começa (dois toques simultâneos da mesma conta)', async () => {
+    const { _definirConsultaDeEmailConfirmado } = await s.load('../../server/lib/testePremium')
+    _definirConsultaDeEmailConfirmado(async () => true)
+    process.env.TESTES_PREMIUM_POR_IP_DIA = '5'
+    onTestFinished(() => {
+      _definirConsultaDeEmailConfirmado(null)
+      process.env.TESTES_PREMIUM_POR_IP_DIA = '0'
+    })
+    await zerarContadorDoIp()
+    await declarar('t-toque-duplo', 30)
+    const [a, b] = await Promise.all([testar('t-toque-duplo'), testar('t-toque-duplo')])
+    expect([a.status, b.status]).toEqual([200, 200])
+    // Um começou; o outro devolveu o MESMO teste (ou perdeu a corrida e foi devolvido): só uma vaga fica gasta.
+    expect(await contadorDoIp()).toBe(1)
+  })
+})
+
 describe('retenção da marca (LGPD)', () => {
   it('a marca sai depois de 730 dias; a recente fica', async () => {
     const { db } = await s.load('../../server/db/db')

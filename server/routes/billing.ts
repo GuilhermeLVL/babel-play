@@ -65,13 +65,12 @@ import { log } from '../lib/logger'
 import { METRIC_RATELIMIT_AUTH } from '../lib/rateLimitStore'
 import { responderErro } from '../lib/respostaDeErro'
 import {
-  contarTesteDoIp,
   DURACAO_DO_TESTE_MS,
   emailConfirmado,
-  ipNoTetoDeTestes,
   marcaDoTeste,
   type OrigemDaMarca,
   planoDoTesteGravado,
+  reservarTesteDoIp,
   type SituacaoDoTeste,
   situacaoDoTeste,
   testeAtivo,
@@ -832,8 +831,8 @@ const testeSchema = z
  *
  * O FREIO CONTRA A FÁBRICA DE CONTAS (change `teste-de-3-dias`), entre a marca e a gravação: e-mail de caixa
  * descartável (409) → a marca já usada (409, sem gastar consulta) → e-mail não confirmado no Supabase (403; a
- * consulta falhou: 503, fechado) → o IP já começou `TESTES_PREMIUM_POR_IP_DIA` testes hoje (429). Só o teste que
- * COMEÇA conta para o IP.
+ * consulta falhou: 503, fechado) → a vaga do IP no dia, RESERVADA numa instrução só (`reservarTesteDoIp`; sem vaga,
+ * 429) e devolvida se o teste não começar. Só o teste que COMEÇA fica contado para o IP.
  */
 billingRouter.post('/teste', async (req, res) => {
   const dados = parseOr400(testeSchema, req.body ?? {}, res)
@@ -953,22 +952,31 @@ billingRouter.post('/teste', async (req, res) => {
       )
       return
     }
-    if (await ipNoTetoDeTestes(req)) {
+    /* A VAGA DO IP é reservada AGORA, numa instrução só (sem TOCTOU), depois de todas as recusas: descartável, marca
+       usada e e-mail não confirmado já saíram acima sem reservar nada. Daqui até `iniciar`, o que não virar teste
+       começado devolve a vaga (`liberar`, no `finally`). */
+    const vaga = await reservarTesteDoIp(req)
+    if (!vaga) {
       responderErro(res, 429, 'muitos testes começaram desta conexão hoje; tente de novo amanhã', 'teste_limite_por_ip')
       return
     }
-
-    /* O PLANO DO TESTE é decidido AGORA e gravado (planos v4): ligar ou desligar a v4 depois não muda o
-       teste de quem já começou. A flag é avaliada para quem PEDE (o responsável, quando ativa pelo menor). */
-    const plano = await planoDoTesteParaOPedido(req)
-    const agora = Date.now()
-    const r = await testesPremiumRepo.iniciar(destino, marca, agora, agora + DURACAO_DO_TESTE_MS, plano)
+    let comecou = false
+    let r: Awaited<ReturnType<typeof testesPremiumRepo.iniciar>>
+    try {
+      /* O PLANO DO TESTE é decidido AGORA e gravado (planos v4): ligar ou desligar a v4 depois não muda o
+         teste de quem já começou. A flag é avaliada para quem PEDE (o responsável, quando ativa pelo menor). */
+      const plano = await planoDoTesteParaOPedido(req)
+      const agora = Date.now()
+      r = await testesPremiumRepo.iniciar(destino, marca, agora, agora + DURACAO_DO_TESTE_MS, plano)
+      comecou = r.tipo === 'iniciado'
+    } finally {
+      if (!comecou)
+        await vaga.liberar().catch((err) => {
+          log('warn', { event: 'billing_teste_vaga_ip_nao_liberada', error: String(err).slice(0, 120) })
+        })
+    }
     if (r.tipo === 'iniciado') {
       log('info', { event: 'billing_teste_iniciado', route: '/api/billing/teste', requestId: req.requestId })
-      await contarTesteDoIp(req).catch((err) => {
-        /* Contar é freio, não caminho crítico: o teste já começou e a resposta tem de sair. */
-        log('warn', { event: 'billing_teste_contagem_ip_falhou', error: String(err).slice(0, 120) })
-      })
       res.json({
         teste: {
           iniciadoEm: r.teste.iniciadoEm,

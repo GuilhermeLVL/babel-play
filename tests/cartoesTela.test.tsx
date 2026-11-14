@@ -66,6 +66,7 @@ import Cartoes from '../src/components/views/Cartoes'
 import type { ContagensDeConteudo } from '../src/core/learning/contagensDeConteudo'
 import { EVENTO_EXIGE_CONTA } from '../src/data/efemero/nucleo'
 import { conteudoAtual, escolherConteudo, zerarConteudoParaTeste } from '../src/lib/conteudo/loja'
+import { _reiniciarIdentidade, definirIdentidade } from '../src/lib/identidade'
 import type { Recording } from '../src/types'
 
 const HOJE = new Date(2026, 9, 10).getTime() // sábado
@@ -213,6 +214,8 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+  vi.unstubAllEnvs()
+  _reiniciarIdentidade()
 })
 
 describe('a tela', () => {
@@ -498,6 +501,7 @@ describe('a aba Hoje, no modo faixa, pelo dado real e pela fonte da ficha', () =
     const pedidos: Array<{ rota?: string; explicito?: boolean }> = []
     const ouvir = (e: Event) => pedidos.push((e as CustomEvent).detail)
     window.addEventListener(EVENTO_EXIGE_CONTA, ouvir)
+    definirIdentidade('anonimo')
     try {
       montar({ semConta: true })
       expect(screen.getByTestId('cartoes').dataset.ctHoje).toBe('vazio')
@@ -525,10 +529,28 @@ describe('a aba Hoje, no modo faixa, pelo dado real e pela fonte da ficha', () =
   })
 
   it('sem conta, a aba Palavras mostra o convite do vocabulário, não "caderno vazio"', () => {
+    definirIdentidade('anonimo')
     montar({ semConta: true, aba: 'palavras' })
     expect(screen.getByTestId('cartao-de-convite').textContent).toContain('Seu vocabulário fica na sua conta')
     expect(screen.getByRole('button', { name: 'Criar conta' })).toBeTruthy()
     expect(screen.queryByText('Seu caderno está vazio')).toBeNull()
+  })
+
+  it('edição estática (sem conta a oferecer): o "…" sem as portas que gravam na conta, e o caderno vazio', async () => {
+    vi.stubEnv('VITE_EDICAO_ESTATICA', '1')
+    _reiniciarIdentidade()
+    const { unmount } = montar({ semConta: true })
+    fireEvent.click(screen.getByRole('button', { name: /^Mais opções/ }))
+    const menu = await folha('Mais opções')
+    expect([...menu.querySelectorAll('.q-linha b')].map((b) => b.textContent)).toEqual([
+      'Ajustes da memória',
+      'Memória',
+    ])
+    unmount()
+    montar({ semConta: true, aba: 'palavras' })
+    expect(screen.getByRole('heading', { name: 'Seu caderno está vazio' })).toBeTruthy()
+    expect(screen.queryByTestId('cartao-de-convite')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Criar conta' })).toBeNull()
   })
 
   /* O que o protótipo mostra e o app não mede ou não faz não aparece com número inventado. */

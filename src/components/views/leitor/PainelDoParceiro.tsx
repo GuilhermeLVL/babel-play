@@ -15,6 +15,7 @@ import { useConsentimentoDeNuvem } from '../../../lib/consentimentoDeNuvem';
 import { diaQueACotaVolta } from '../../../lib/diaQueACotaVolta';
 import { MODOS_COM_SELECAO, MODOS_DO_PARCEIRO, TETOS_DO_PARCEIRO } from '../../../lib/estudo/promptDoParceiro';
 import { t } from '../../../lib/i18n';
+import { estaAnonimo } from '../../../lib/identidade';
 import { indiceDoParagrafoComTexto } from '../../../lib/leitor/paragrafos';
 import { pedirEntrada, semContaComPorta } from '../../../lib/pedirConta';
 
@@ -49,7 +50,7 @@ export function fraseDaFalhaDoParceiro(m: FalhaDoParceiro): string {
       return t('O parceiro de leitura faz parte dos planos pagos. Traduzir e ouvir o livro seguem grátis.');
     case 'sem_conta':
       /* `sem_conta` também é qualquer 401: com conta, é a sessão que caiu, não falta de conta. */
-      return semContaComPorta()
+      return estaAnonimo()
         ? t('O parceiro de leitura precisa de conta. Ler, traduzir e ouvir o livro continuam livres.')
         : t('Sua sessão expirou. Entre de novo para usar o parceiro de leitura.');
     case 'fora_da_faixa':

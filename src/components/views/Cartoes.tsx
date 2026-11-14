@@ -30,7 +30,7 @@ import { numero, t, tp } from '../../lib/i18n';
 import { useLangConfig } from '../../lib/langConfig';
 import { baseLang } from '../../lib/languages';
 import { lazyComRecarga } from '../../lib/lazyComRecarga';
-import { pedirConta } from '../../lib/pedirConta';
+import { pedirConta, semContaComPorta } from '../../lib/pedirConta';
 import { useBarraDeCinco } from '../../lib/polimento/celular';
 import type { AgeProfileType } from '../../lib/profile';
 import type { RecorteDaPratica } from '../../lib/revisao/pratica';
@@ -187,7 +187,9 @@ export default function Cartoes({
   const escolherArquivoDoAnki = semConta
     ? () => pedirConta('POST /api/import/anki')
     : () => entradaDoAnki.current?.click();
-  const convidar = () => pedirConta('baralho');
+  /* O convite só existe onde há conta a oferecer: na edição estática (sem servidor) as portas que gravam na
+     conta somem do menu, como antes, e a aba Palavras mostra o caderno vazio. */
+  const convidar = semConta && semContaComPorta() ? () => pedirConta('baralho') : undefined;
 
   /* O baralho inteiro, só para o que precisa dele (exportar, gerenciar o Anki). */
   const [deck, setDeck] = useState<VocabCard[] | null>(null);
@@ -403,8 +405,16 @@ export default function Cartoes({
   if (aba === 'palavras') {
     /* A lista de palavras (busca presa no alto, estados, filtros, a palavra aberta). Sem conta, o estado
        vazio do protótipo (`cartoes.js:497-498`). */
-    painel = semConta ? (
+    painel = convidar ? (
       <CartaoDeConvite view="metrics" inline />
+    ) : semConta ? (
+      <div className="q-vazio">
+        <span className="q-ic">
+          <BookOpen aria-hidden />
+        </span>
+        <h2>{t('Seu caderno está vazio')}</h2>
+        <p>{t('Capture uma sessão ou toque numa palavra durante a leitura para começar.')}</p>
+      </div>
     ) : (
       <Suspense fallback={espera}>
         <Metrics

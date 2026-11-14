@@ -394,6 +394,7 @@ jobs:
         tests/integration/limpeza-analyze.test.ts
         tests/integration/lotes-em-uma-instrucao.test.ts
         tests/integration/medicao-de-transacao-pg.test.ts
+        tests/integration/migracao-periodo-pago-desde.test.ts
         tests/integration/migracoes-sem-prazo.test.ts
         tests/integration/palavras-vistas.test.ts
         tests/integration/parceiro-de-leitura.test.ts

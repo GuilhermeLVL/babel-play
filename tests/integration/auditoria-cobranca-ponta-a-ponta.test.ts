@@ -10,6 +10,8 @@
  * Quando o produto for corrigido, o `it.fails` passa a falhar e o marcador sai — o teste vira guarda.
  *   - `[BUG]`: o código contradiz a própria regra declarada no comentário dele.
  *   - `[LACUNA]`: decisão de projeto que hoje entrega mais (ou menos) do que um período pago.
+ * Os cinco casos foram corrigidos em 14/11/2026 (branch `fix/cobranca-e-cota-por-periodo`, change OpenSpec
+ * `cota-pelo-periodo-pago`) e viraram `it` com o marcador `[corrigido]`: o comentário de cada um guarda o defeito.
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
@@ -221,44 +223,41 @@ describe('elo 1 — pagamento → plano', () => {
     expect(await ent.getPlanForUser(asUserId(u))).toBe('free')
   })
 
-  it.fails(
-    '[BUG] valor fora da matriz cai no `plan` GRAVADO (de outra cobrança), e não no plano DESTA cobrança',
-    async () => {
-      /* A pessoa teve o Premium (linha `plan = premium`, cancelada e vencida). Assina o Plus: `/assinar` numa linha
+  it('[corrigido] valor fora da matriz cai no `plan` GRAVADO (de outra cobrança), e não no plano DESTA cobrança', async () => {
+    /* A pessoa teve o Premium (linha `plan = premium`, cancelada e vencida). Assina o Plus: `/assinar` numa linha
        existente troca os ids e grava `planoDaCobranca = plus`, mas NÃO toca em `plan` (billing.ts:479-489). Se o
        pagamento do Plus chegar com um valor que não casa com nenhum preço (juros/multa de boleto atrasado, desconto
        manual no painel), `billingEventos.ts:341` usa `normalizarPlano(atual.plan)` como intenção → concede o
        PREMIUM a quem assinou e pagou o PLUS. O desempate da parcela (`planoDesteParcelamento`, :773) já usa
        `planoDaCobranca`; o ramo da assinatura mensal não. */
-      const u = 'a-plano-velho'
-      await subs.upsert(asUserId(u), {
-        plan: 'premium',
-        status: 'canceled',
-        currentPeriodEnd: Date.now() - 10 * DIA,
-        provider: 'asaas',
-        providerSubscriptionId: 'sub_premium_antiga',
-      })
-      // `/assinar` do Plus numa linha existente (o mesmo patch de billing.ts:483-489).
-      await subs.upsert(asUserId(u), {
-        provider: 'asaas',
-        providerSubscriptionId: 'sub_plus_nova',
-        providerInstallmentId: null,
-        cancelAtPeriodEnd: 0,
-        planoDaCobranca: 'plus',
-      })
-      const p = {
-        id: 'pay_juros',
-        status: 'RECEIVED',
-        value: 15.37, // R$ 14,90 + multa/juros de atraso
-        subscription: 'sub_plus_nova',
-        externalReference: u,
-      }
-      await aplicarEvento(ev('evt_juros', 'PAYMENT_RECEIVED', p), 'req', asaas([p]))
-      expect(await ent.getPlanForUser(asUserId(u))).toBe('plus')
-    },
-  )
+    const u = 'a-plano-velho'
+    await subs.upsert(asUserId(u), {
+      plan: 'premium',
+      status: 'canceled',
+      currentPeriodEnd: Date.now() - 10 * DIA,
+      provider: 'asaas',
+      providerSubscriptionId: 'sub_premium_antiga',
+    })
+    // `/assinar` do Plus numa linha existente (o mesmo patch de billing.ts:483-489).
+    await subs.upsert(asUserId(u), {
+      provider: 'asaas',
+      providerSubscriptionId: 'sub_plus_nova',
+      providerInstallmentId: null,
+      cancelAtPeriodEnd: 0,
+      planoDaCobranca: 'plus',
+    })
+    const p = {
+      id: 'pay_juros',
+      status: 'RECEIVED',
+      value: 15.37, // R$ 14,90 + multa/juros de atraso
+      subscription: 'sub_plus_nova',
+      externalReference: u,
+    }
+    await aplicarEvento(ev('evt_juros', 'PAYMENT_RECEIVED', p), 'req', asaas([p]))
+    expect(await ent.getPlanForUser(asUserId(u))).toBe('plus')
+  })
 
-  it.fails('[LACUNA] o estorno de uma cobrança ANTIGA derruba o mês pago DEPOIS dela', async () => {
+  it('[corrigido] o estorno de uma cobrança ANTIGA derruba o mês pago DEPOIS dela', async () => {
     /* `aplicarDinheiroDevolvido` (billingEventos.ts:658) zera o período de qualquer estorno da assinatura
        registrada, sem olhar QUAL cobrança voltou: estornar a mensalidade de outubro (cobrança duplicada, por
        exemplo) tira o novembro que segue pago. É o inverso do "nada além": a pessoa recebe MENOS do que pagou. */
@@ -283,12 +282,14 @@ describe('elo 1 — pagamento → plano', () => {
 })
 
 describe('elo 2/3 — plano → cota no tempo', () => {
-  it.fails('[LACUNA] UM pagamento mensal libera a cota de até TRÊS meses-calendário', async () => {
+  it('[corrigido] UM pagamento mensal libera a cota de até TRÊS meses-calendário', async () => {
     /* A cota é por mês-CALENDÁRIO UTC (`currentWindow`, usageQuota.ts:213), e o período pago é vencimento + 35
        dias (billingEventos.ts:48). Quem paga no fim do mês atravessa duas viradas: pago com vencimento em 29/11,
        o acesso vai até 03/01 — e a cota zera em 01/12 e em 01/01. Um único R$ 14,90 compra a cota de novembro,
        a de dezembro e a de janeiro. No Essencial (sem teto no dia) é o triplo das 5 h vendidas; nos outros, o teto
-       do dia segura o ritmo, não o total. */
+       do dia segura o ritmo, não o total.
+       CORRIGIDO (change `cota-pelo-periodo-pago`): para quem paga, a janela da cota é a do PERÍODO PAGO
+       (`janelaDaCota`), e é nela que o contador é cheio — a mesma que a reserva usa. */
     const u = 'a-calendario'
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(Date.parse('2026-11-29T15:00:00Z'))
@@ -307,7 +308,7 @@ describe('elo 2/3 — plano → cota no tempo', () => {
     for (const quando of ['2026-11-30T12:00:00Z', '2026-12-15T12:00:00Z', '2027-01-02T12:00:00Z']) {
       vi.setSystemTime(Date.parse(quando))
       expect(await ent.getPlanForUser(asUserId(u)), quando).toBe('plus')
-      const janela = quota.currentWindow()
+      const janela = await quota.janelaDaCota(asUserId(u))
       // Gasta a cota inteira do mês até o teto…
       await counters.increment(asUserId(u), quota.METRIC_MANAGED, janela, cap - 1)
       // …e a última chamada do teto ainda passa: a janela estava cheia.
@@ -325,67 +326,61 @@ describe('reconciliação diária (o cinto do webhook perdido)', () => {
     aplicar: (e: any) => aplicarEvento(e, 'reconciliacao', verificar),
   })
 
-  it.fails(
-    '[LACUNA] o ESTORNO cujo webhook se perdeu nunca é reconciliado: o plano fica até o fim do período',
-    async () => {
-      /* `reconciliarCobrancas` só procura cobranças PAGAS sem evento (reconciliarCobrancas.ts:31,106). Se o
+  it('[corrigido] o ESTORNO cujo webhook se perdeu nunca é reconciliado: o plano fica até o fim do período', async () => {
+    /* `reconciliarCobrancas` só procura cobranças PAGAS sem evento (reconciliarCobrancas.ts:31,106). Se o
        `PAYMENT_REFUNDED` não chegar (webhook fora, token trocado), a conta segue com o plano até
        `currentPeriodEnd` — 35 dias no mensal, 370 no anual. */
-      const u = 'r-estorno-perdido'
-      await checkout(u, 'plus', 'sub_rp')
-      const pago = {
-        id: 'pay_rp',
-        status: 'CONFIRMED',
-        value: 14.9,
-        subscription: 'sub_rp',
-        externalReference: u,
-        dueDate: diaIso(Date.now()),
-      }
-      await eventos.marcarSeNovo('evt_rp', 'asaas', 'PAYMENT_CONFIRMED', u, 'pay_rp', {})
-      await aplicarEvento(ev('evt_rp', 'PAYMENT_CONFIRMED', pago), 'req', asaas([pago]))
-      const estornado = { ...pago, status: 'REFUNDED', paymentDate: diaIso(Date.now()) }
-      await reconciliar({
-        agora: Date.now(),
-        modo: 'apply',
-        deps: deps({ sub_rp: [estornado] }, asaas([estornado as Pagamento])),
-      })
-      expect(await ent.getPlanForUser(asUserId(u))).toBe('free')
-    },
-  )
+    const u = 'r-estorno-perdido'
+    await checkout(u, 'plus', 'sub_rp')
+    const pago = {
+      id: 'pay_rp',
+      status: 'CONFIRMED',
+      value: 14.9,
+      subscription: 'sub_rp',
+      externalReference: u,
+      dueDate: diaIso(Date.now()),
+    }
+    await eventos.marcarSeNovo('evt_rp', 'asaas', 'PAYMENT_CONFIRMED', u, 'pay_rp', {})
+    await aplicarEvento(ev('evt_rp', 'PAYMENT_CONFIRMED', pago), 'req', asaas([pago]))
+    const estornado = { ...pago, status: 'REFUNDED', paymentDate: diaIso(Date.now()) }
+    await reconciliar({
+      agora: Date.now(),
+      modo: 'apply',
+      deps: deps({ sub_rp: [estornado] }, asaas([estornado as Pagamento])),
+    })
+    expect(await ent.getPlanForUser(asUserId(u))).toBe('free')
+  })
 
-  it.fails(
-    '[BUG] passou de 150 assinaturas Asaas, as mais novas NUNCA são reconciliadas (LIMIT sem ordem nem rodízio)',
-    async () => {
-      /* reconciliarCobrancas.ts:81-89 lê `LIMIT 150` sem ORDER BY, sem cursor e sem filtrar status: as linhas
+  it('[corrigido] passou de 150 assinaturas Asaas, as mais novas NUNCA são reconciliadas (LIMIT sem ordem nem rodízio)', async () => {
+    /* reconciliarCobrancas.ts:81-89 lê `LIMIT 150` sem ORDER BY, sem cursor e sem filtrar status: as linhas
        canceladas e vencidas ficam no conjunto para sempre e ocupam o teto. Na 151ª conta com `provider = asaas`,
        o pagamento confirmado cujo webhook se perdeu não é achado — nem hoje, nem em passada nenhuma. */
-      const { LIMITE_DE_ASSINATURAS } = await h.load<any>('../../server/lib/reconciliarCobrancas')
-      for (let i = 0; i < LIMITE_DE_ASSINATURAS; i++) {
-        await subs.upsert(asUserId(`r-velha-${i}`), {
-          plan: 'premium',
-          status: 'canceled',
-          currentPeriodEnd: Date.now() - 400 * DIA,
-          provider: 'asaas',
-          providerSubscriptionId: `sub_velha_${i}`,
-        })
-      }
-      const u = 'r-nova'
-      await checkout(u, 'plus', 'sub_nova')
-      const pago = {
-        id: 'pay_nova',
-        status: 'CONFIRMED',
-        value: 14.9,
-        subscription: 'sub_nova',
-        externalReference: u,
-        dueDate: diaIso(Date.now()),
-        paymentDate: diaIso(Date.now()),
-      }
-      const r = await reconciliar({
-        agora: Date.now(),
-        modo: 'report',
-        deps: deps({ sub_nova: [pago] }, asaas([pago])),
+    const { LIMITE_DE_ASSINATURAS } = await h.load<any>('../../server/lib/reconciliarCobrancas')
+    for (let i = 0; i < LIMITE_DE_ASSINATURAS; i++) {
+      await subs.upsert(asUserId(`r-velha-${i}`), {
+        plan: 'premium',
+        status: 'canceled',
+        currentPeriodEnd: Date.now() - 400 * DIA,
+        provider: 'asaas',
+        providerSubscriptionId: `sub_velha_${i}`,
       })
-      expect(r.divergentes).toBe(1)
-    },
-  )
+    }
+    const u = 'r-nova'
+    await checkout(u, 'plus', 'sub_nova')
+    const pago = {
+      id: 'pay_nova',
+      status: 'CONFIRMED',
+      value: 14.9,
+      subscription: 'sub_nova',
+      externalReference: u,
+      dueDate: diaIso(Date.now()),
+      paymentDate: diaIso(Date.now()),
+    }
+    const r = await reconciliar({
+      agora: Date.now(),
+      modo: 'report',
+      deps: deps({ sub_nova: [pago] }, asaas([pago])),
+    })
+    expect(r.divergentes).toBe(1)
+  })
 })

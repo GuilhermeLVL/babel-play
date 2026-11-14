@@ -274,7 +274,12 @@ describe('3. a cota é por conta', () => {
     const ativo = { plan: 'plus', status: 'active', currentPeriodEnd: Date.now() + 30 * DIA }
     const tokenA = await contaCom('cota-a', ativo)
     const tokenB = await contaCom('cota-b', ativo)
-    await counters.increment(asUserId('cota-a'), quota.METRIC_MANAGED, quota.currentWindow(), quota.capForPlan('plus'))
+    await counters.increment(
+      asUserId('cota-a'),
+      quota.METRIC_MANAGED,
+      await quota.janelaDaCota(asUserId('cota-a')),
+      quota.capForPlan('plus'),
+    )
 
     const a = await pedir(tokenA, rotasPagas('x')[0])
     expect(a.status).toBe(402)
@@ -331,7 +336,9 @@ describe('4. dado alheio (IDOR)', () => {
       expect(await alheia.json()).toEqual(await inexistente.json())
     }
     expect(chamadasAoProvedor).toEqual([])
-    expect(await counters.get(asUserId('idor-b'), quota.METRIC_MANAGED, quota.currentWindow())).toBe(0)
+    expect(
+      await counters.get(asUserId('idor-b'), quota.METRIC_MANAGED, await quota.janelaDaCota(asUserId('idor-b'))),
+    ).toBe(0)
   })
 })
 

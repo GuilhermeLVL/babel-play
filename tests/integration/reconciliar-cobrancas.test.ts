@@ -93,14 +93,19 @@ describe('reconciliarCobrancas', () => {
     expect(r).toMatchObject({ cobrancas: 1, divergentes: 0 })
   })
 
-  it('ignora pendente, estornado e pagamento com mais de 45 dias', async () => {
-    const lista = [
-      paga('pay_e', { status: 'PENDING' }),
-      paga('pay_f', { status: 'REFUNDED' }),
-      paga('pay_g', { dueDate: dia(60), paymentDate: dia(60) }),
-    ]
+  it('ignora pendente e pagamento com mais de 45 dias', async () => {
+    const lista = [paga('pay_e', { status: 'PENDING' }), paga('pay_g', { dueDate: dia(60), paymentDate: dia(60) })]
     const r = await reconciliar({ agora: AGORA, modo: 'apply', deps: deps(lista) })
     expect(r).toMatchObject({ cobrancas: 0, divergentes: 0 })
+  })
+
+  it('o estornado sem evento NÃO é cobrança paga, mas é divergência (o estorno cujo webhook se perdeu)', async () => {
+    const r = await reconciliar({
+      agora: AGORA,
+      modo: 'report',
+      deps: deps([paga('pay_f', { status: 'REFUNDED' })]),
+    })
+    expect(r).toMatchObject({ cobrancas: 0, divergentes: 1, reaplicadas: 0 })
   })
 
   it('o Asaas fora do ar conta falha e não derruba a passada', async () => {

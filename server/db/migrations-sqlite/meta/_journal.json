@@ -428,6 +428,13 @@
       "when": 1793700000000,
       "tag": "0060_flag_voz_no_aparelho",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "6",
+      "when": 1794700000000,
+      "tag": "0061_periodo_pago_desde",
+      "breakpoints": true
     }
   ]
 }

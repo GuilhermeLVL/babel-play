@@ -76,6 +76,8 @@ describe.skipIf(SO_PGLITE)('rotas pequenas: uma leitura por tabela', () => {
       plan: PLANO_PAGO,
       status: 'active',
       currentPeriodEnd: AGORA + 20 * 86_400_000,
+      // A âncora que o pagamento grava (change `cota-pelo-periodo-pago`): o vencimento, 35 dias antes do fim.
+      periodoPagoDesde: AGORA - 15 * 86_400_000,
     })
     /* Um valor diferente em cada contador: trocar um pelo outro aparece no corpo. */
     const mes = new Date(AGORA).toISOString().slice(0, 7)

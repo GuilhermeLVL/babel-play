@@ -13,6 +13,12 @@ calendário. A reserva MUST continuar decidida e contabilizada numa única escri
 - **WHEN** o Plus é pago com vencimento em 29/11 (acesso até 03/01) e a pessoa esgota a cota em 30/11
 - **THEN** em 15/12 e em 02/01 a reserva é recusada, porque a janela é a mesma do período pago
 
+#### Scenario: Cancelar não zera a cota
+
+- **WHEN** a pessoa esgota a cota e cancela fora dos 7 dias (o fim do período passa a ser o próximo vencimento), ou o
+  admin muda o fim do período
+- **THEN** a janela não muda e a reserva segue recusada, porque a âncora da janela só é gravada por um pagamento
+
 #### Scenario: A renovação paga abre a janela seguinte
 
 - **WHEN** o pagamento seguinte confirma e estica o fim do período

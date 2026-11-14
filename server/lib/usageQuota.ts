@@ -220,16 +220,15 @@ const FATIAS_DO_ANUAL = 12
 
 /**
  * A JANELA DE UM PERÍODO PAGO (change `cota-pelo-periodo-pago`), `pAAAA-MM-DD`: a data em que a fatia da cota começa.
- *  - Mensal: o período é o vencimento + `DIAS_DO_PERIODO_MENSAL` (billingEventos), então a fatia é o período inteiro
- *    e começa no vencimento. UM pagamento = UMA cota mensal, por mais viradas de mês que o período atravesse; a
- *    renovação paga estica o fim e abre a janela seguinte.
- *  - Anual (à vista ou 12x): o período de `DIAS_DO_PERIODO_ANUAL` dias em `FATIAS_DO_ANUAL` fatias iguais (~30,8
- *    dias): doze cotas mensais por ano pago, nem uma a mais.
+ * `inicio` é a âncora gravada pelo pagamento (`periodoPagoDesde`: o vencimento da cobrança que concedeu o período).
+ *  - Mensal: a fatia é o período inteiro e começa no vencimento. UM pagamento = UMA cota mensal, por mais viradas de
+ *    mês que o período atravesse; só a próxima cobrança PAGA (âncora nova) abre a janela seguinte.
+ *  - Anual (à vista ou 12x): `DIAS_DO_PERIODO_ANUAL` dias em `FATIAS_DO_ANUAL` fatias iguais (~30,8 dias): doze cotas
+ *    mensais por ano pago, nem uma a mais. Depois da última, a última continua (nunca abre uma 13ª).
  * O prefixo `p` separa estas janelas das do calendário (`AAAA-MM`) e das do dia (`AAAA-MM-DD`). Pura.
  */
-export function janelaDoPeriodoPago(fim: number, ciclo: 'mensal' | 'anual', agora: number): string {
+export function janelaDoPeriodoPago(inicio: number, ciclo: 'mensal' | 'anual', agora: number): string {
   const duracao = (ciclo === 'anual' ? DIAS_DO_PERIODO_ANUAL : DIAS_DO_PERIODO_MENSAL) * DIA_MS
-  const inicio = fim - duracao
   const fatias = ciclo === 'anual' ? FATIAS_DO_ANUAL : 1
   const tamanho = duracao / fatias
   const n = Math.min(fatias - 1, Math.max(0, Math.floor((agora - inicio) / tamanho)))
@@ -237,17 +236,17 @@ export function janelaDoPeriodoPago(fim: number, ciclo: 'mensal' | 'anual', agor
 }
 
 /**
- * A JANELA DA COTA DO PLANO desta pessoa: a fatia do PERÍODO PAGO para quem paga (`janelaDoPeriodoPago`) e o mês do
- * calendário UTC (`currentWindow`) para o resto — Grátis, convidado, self-host, o teste de 14 dias e o plano dado
- * pelo admin, como sempre foi. Antes era o calendário para todos, e o período mensal pago (vencimento + 35 dias)
- * atravessava até DUAS viradas de mês: um pagamento comprava até três cotas mensais (auditoria de 14/11/2026).
- * Lida uma vez por requisição (a assinatura vem do mesmo `memoDoRequest` de `resolverPlano`). Erro SOBE: a reserva
- * falha fechada.
+ * A JANELA DA COTA DO PLANO desta pessoa: a fatia do PERÍODO PAGO para quem paga (`janelaDoPeriodoPago`, ancorada no
+ * pagamento) e o mês do calendário UTC (`currentWindow`) para o resto — Grátis, convidado, self-host, o teste de 14
+ * dias, o plano dado pelo admin e a linha paga antes da âncora existir, como sempre foi. Antes era o calendário para
+ * todos, e o período mensal pago (vencimento + 35 dias) atravessava até DUAS viradas de mês: um pagamento comprava até
+ * três cotas mensais (auditoria de 14/11/2026). Lida uma vez por requisição (a assinatura vem do mesmo
+ * `memoDoRequest` de `resolverPlano`). Erro SOBE: a reserva falha fechada.
  */
 export async function janelaDaCota(userId: UserId, agora = Date.now()): Promise<string> {
   const periodo = await periodoPagoEmVigor(userId)
   if (!periodo) return new Date(agora).toISOString().slice(0, 7)
-  return janelaDoPeriodoPago(periodo.fim, periodo.ciclo, agora)
+  return janelaDoPeriodoPago(periodo.inicio, periodo.ciclo, agora)
 }
 
 /** A janela de um contador do mês: a do plano (`janelaDaCota`) ou, no alívio do Grátis, o mês do calendário. */

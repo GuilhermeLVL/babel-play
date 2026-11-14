@@ -15,6 +15,17 @@
 - [x] 2.4 Reconciliação: filtro de relevância, ordem determinística e rodízio diário
 - [x] 2.5 Reconciliação de estornos e chargebacks sem evento
 
+## 2b. Revisão independente do PR #131
+
+- [x] 2b.1 Âncora `periodo_pago_desde` gravada só pelo pagamento (PG 0019, SQLite 0061, com backfill); cancelar, estornar
+      ou o admin mexer no fim não muda a janela
+- [x] 2b.2 Valor fora da matriz no ciclo da cobrança registrada (anual sem cobrir o anual → `nao-aplicado`)
+- [x] 2b.3 Troca pendente + valor fora da matriz: o mais caro coberto entre o plano da cobrança e o da troca
+- [x] 2b.4 Chargeback de cobrança antiga → `nao-aplicado`; só o estorno dela fica `ignorado`
+- [x] 2b.5 Estorno de cobrança duplicada: não revoga se outra paga do mesmo fluxo (na API) cobre o período
+- [x] 2b.6 Revogação condicional ao período lido (`revogarSePeriodoIgual`)
+- [x] 2b.7 Reconciliação: `active`/`past_due` também precisam de período recente; cobrança atribuída à lista de origem
+
 ## 3. Pendências
 
 - [ ] 3.1 Textos "volta no dia 1º" (`src/components/IChat.tsx`, `src/components/views/Planos.tsx`): para quem paga, dizer a

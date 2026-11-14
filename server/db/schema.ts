@@ -790,6 +790,11 @@ export const subscriptions = pgTable(
        NÃO concede nada (quem concede é `plan`, pelo webhook): só desempata a parcela de valor ambíguo do 12x
        (R$ 12,49 = Plus e Premium). Nulo = linha de antes da 0008. */
     planoDaCobranca: text('plano_da_cobranca'),
+    /* O INÍCIO DO PERÍODO PAGO (migração 0019, change `cota-pelo-periodo-pago`): o vencimento da cobrança que
+       concedeu o período em vigor (no 12x, o da 1ª parcela), em ms. Gravado SÓ pela aplicação de um pagamento
+       (`aplicarEvento`), junto com `currentPeriodEnd` — o cancelamento, o estorno e o admin mexem no fim, nunca aqui.
+       É a âncora da janela da cota de quem paga (`janelaDaCota`). Nulo = sem pagamento aplicado desde a 0019. */
+    periodoPagoDesde: bigint('periodo_pago_desde', { mode: 'number' }),
   },
   (t) => [unique('uq_subscriptions_user').on(t.userId)],
 )

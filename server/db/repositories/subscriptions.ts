@@ -39,6 +39,11 @@ export interface SubscriptionPatch {
    * Não concede; só desempata a parcela ambígua do 12x no webhook (`aplicarParcela`).
    */
   planoDaCobranca?: Plan | null
+  /**
+   * O INÍCIO DO PERÍODO PAGO (migração 0019): a âncora da janela da cota. SÓ a aplicação de um pagamento grava
+   * (`billingEventos.ts`); cancelamento, estorno e admin não passam este campo.
+   */
+  periodoPagoDesde?: number | null
 }
 
 /**
@@ -135,10 +140,39 @@ export const subscriptionsRepo = {
       trocaPara: patch.trocaPara ?? null,
       trocaAPartirDe: patch.trocaAPartirDe ?? null,
       planoDaCobranca: patch.planoDaCobranca ?? null,
+      periodoPagoDesde: patch.periodoPagoDesde ?? null,
     }
     await db.insert(subscriptions).values(row)
     const r = await getActiveSub(userId)
     if (!r) throw new Error('falha ao criar assinatura')
     return r
+  },
+
+  /**
+   * REVOGA O PERÍODO (estorno/chargeback) SÓ SE ELE AINDA FOR O QUE FOI LIDO: `canceled`, fim = agora, sem
+   * renovar — numa escrita condicional. Entre a leitura e a escrita, um pagamento confirmado pode ter esticado
+   * o período; aí nada é apagado e quem chamou devolve `false` (o evento é reavaliado, não aplicado às cegas).
+   */
+  async revogarSePeriodoIgual(userId: UserId, fimLido: number | null): Promise<boolean> {
+    const now = Date.now()
+    const linhas = await db
+      .update(subscriptions)
+      .set({
+        status: 'canceled',
+        currentPeriodEnd: now,
+        cancelAtPeriodEnd: 0,
+        trocaPara: null,
+        trocaAPartirDe: null,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(subscriptions.userId, userId),
+          isNull(subscriptions.deletedAt),
+          fimLido === null ? isNull(subscriptions.currentPeriodEnd) : eq(subscriptions.currentPeriodEnd, fimLido),
+        ),
+      )
+      .returning({ id: subscriptions.id })
+    return linhas.length > 0
   },
 }

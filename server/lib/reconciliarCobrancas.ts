@@ -14,8 +14,8 @@
  * e reaplicada pelo mesmo `aplicarEvento` (`PAYMENT_REFUNDED`/`PAYMENT_CHARGEBACK_REQUESTED`), que confere na API e
  * só revoga se a cobrança for a do período em vigor.
  *
- * QUAIS ASSINATURAS (auditoria de 14/11/2026): só as que ainda podem ter cobrança a reconciliar — em dia ou em
- * atraso, com período pago que terminou há menos de `JANELA_DE_DIAS`, ou com checkout recente. Em ordem
+ * QUAIS ASSINATURAS (auditoria de 14/11/2026): só as que ainda podem ter cobrança a reconciliar — com período
+ * pago em vigor ou que terminou há menos de `JANELA_DE_DIAS`, ou com checkout recente. Em ordem
  * determinística (`user_id`) e em RODÍZIO diário: com mais de `LIMITE_DE_ASSINATURAS` linhas, cada passada começa
  * onde a anterior parou, e toda linha é olhada a cada ⌈total / limite⌉ dias. O custo por passada segue limitado.
  * Antes era `LIMIT 150` sem ordem nem filtro: as canceladas e vencidas ocupavam o teto para sempre, e a 151ª
@@ -103,10 +103,18 @@ export async function reconciliarCobrancas(opts: {
   /* O estorno pode desfazer qualquer cobrança que ainda conceda período: até um ano (o anual) para trás. */
   const desdeDoDesfeito = agora - DIAS_DO_PERIODO_ANUAL * DIA
   for (const l of linhas) {
-    const fontes: Array<() => Promise<CobrancaListadaAsaas[]>> = []
-    if (l.sub) fontes.push(() => deps.listarDaAssinatura(l.sub as string))
-    if (l.parcelamento) fontes.push(() => deps.listarDoParcelamento(l.parcelamento as string))
-    for (const buscar of fontes) {
+    /* Cada lista carrega a SUA origem: a cobrança achada na lista do parcelamento é do parcelamento, mesmo que a
+       linha também guarde uma assinatura (e vice-versa) — o evento reaplicado diz de qual fluxo ela é. */
+    const fontes: Array<{ buscar: () => Promise<CobrancaListadaAsaas[]>; origem: OrigemDaCobranca }> = []
+    if (l.sub) {
+      const sub = l.sub
+      fontes.push({ buscar: () => deps.listarDaAssinatura(sub), origem: { subscription: sub } })
+    }
+    if (l.parcelamento) {
+      const parcelamento = l.parcelamento
+      fontes.push({ buscar: () => deps.listarDoParcelamento(parcelamento), origem: { installment: parcelamento } })
+    }
+    for (const { buscar, origem } of fontes) {
       let cobrancas: CobrancaListadaAsaas[]
       try {
         cobrancas = await buscar()
@@ -118,7 +126,7 @@ export async function reconciliarCobrancas(opts: {
       const desfeitas = cobrancas.filter(
         (c) => EVENTO_DO_DESFEITO[c.status] && (quandoPagou(c) ?? 0) >= desdeDoDesfeito,
       )
-      if (desfeitas.length) await reconciliarDesfeitas(l, desfeitas, modo, deps, resumo)
+      if (desfeitas.length) await reconciliarDesfeitas(l, origem, desfeitas, modo, deps, resumo)
       const recentes = cobrancas.filter((c) => PAGAS.has(c.status) && (quandoPagou(c) ?? 0) >= desde)
       resumo.cobrancas += recentes.length
       if (!recentes.length) continue
@@ -147,8 +155,7 @@ export async function reconciliarCobrancas(opts: {
           payment: {
             id: c.id,
             externalReference: l.userId ?? undefined,
-            ...(l.sub ? { subscription: l.sub } : {}),
-            ...(!l.sub && l.parcelamento ? { installment: l.parcelamento } : {}),
+            ...origem,
             value: c.value,
             ...(c.dueDate ? { dueDate: c.dueDate } : {}),
             ...(c.billingType ? { billingType: c.billingType } : {}),
@@ -172,6 +179,9 @@ export async function reconciliarCobrancas(opts: {
   return resumo
 }
 
+/** De qual fluxo do Asaas veio a lista em que a cobrança foi achada. */
+type OrigemDaCobranca = { subscription: string } | { installment: string }
+
 interface LinhaDaPassada {
   userId: string | null
   sub: string | null
@@ -180,8 +190,8 @@ interface LinhaDaPassada {
 
 /**
  * AS ASSINATURAS DESTA PASSADA: as que ainda podem ter cobrança a reconciliar, em rodízio.
- *  - `active`/`past_due`: o plano está de pé (renovação, estorno, chargeback);
- *  - período pago que acabou há menos de `JANELA_DE_DIAS`: um pagamento perdido pode tê-lo deixado vencer;
+ *  - período pago em vigor (renovação, estorno, chargeback) ou que acabou há menos de `JANELA_DE_DIAS` (um pagamento
+ *    perdido pode tê-lo deixado vencer) — qualquer status: `active` com o período vencido há muito não entra;
  *  - checkout recente (`trialing`, ou `/assinar` numa linha cancelada, que grava `cancelAtPeriodEnd = 0`) mexido
  *    nos últimos `JANELA_DE_DIAS`: é o primeiro pagamento, o que mais dói perder.
  * Fora disso (cancelada e vencida há tempo, checkout abandonado) não há o que reconciliar.
@@ -194,7 +204,6 @@ async function assinaturasDaPassada(agora: number, desde: number): Promise<Linha
     eq(subscriptions.provider, 'asaas'),
     isNull(subscriptions.deletedAt),
     or(
-      inArray(subscriptions.status, ['active', 'past_due']),
       gte(subscriptions.currentPeriodEnd, desde),
       and(
         gte(subscriptions.updatedAt, desde),
@@ -230,6 +239,7 @@ async function assinaturasDaPassada(agora: number, desde: number): Promise<Linha
  */
 async function reconciliarDesfeitas(
   l: LinhaDaPassada,
+  origem: OrigemDaCobranca,
   desfeitas: CobrancaListadaAsaas[],
   modo: ModoDaReconciliacao,
   deps: DependenciasDaReconciliacao,
@@ -261,8 +271,7 @@ async function reconciliarDesfeitas(
       payment: {
         id: c.id,
         externalReference: l.userId ?? undefined,
-        ...(l.sub ? { subscription: l.sub } : {}),
-        ...(!l.sub && l.parcelamento ? { installment: l.parcelamento } : {}),
+        ...origem,
         value: c.value,
         ...(c.dueDate ? { dueDate: c.dueDate } : {}),
       },

@@ -14,7 +14,9 @@ estorno de uma cobrança ANTIGA derrubava o mês pago depois dela.
 
 ## What Changes
 
-- **A janela da cota do plano passa a ser o PERÍODO PAGO** para quem paga (`janelaDaCota`, `server/lib/usageQuota.ts`):
+- **A janela da cota do plano passa a ser o PERÍODO PAGO** para quem paga (`janelaDaCota`, `server/lib/usageQuota.ts`),
+  ancorada em `subscriptions.periodo_pago_desde` — coluna nova (PG 0019, SQLite 0061) que SÓ a aplicação de um pagamento
+  grava; o cancelamento, o estorno e o admin mexem no `currentPeriodEnd` e não mudam a janela:
   - mensal: uma janela por período, que começa no vencimento da cobrança paga (`pAAAA-MM-DD`); a renovação paga abre a
     seguinte;
   - anual (à vista ou 12x): o período de 370 dias em 12 fatias iguais (~30,8 dias), 12 cotas mensais por ano pago.
@@ -36,10 +38,11 @@ estorno de uma cobrança ANTIGA derrubava o mês pago depois dela.
   duas franquias, como já registrado em `teste-por-uso`).
 - Teto em dólar por conta (`tetoUsdDaConta.ts`) e orçamento global (`orcamentoDeIa.ts`) seguem por mês do calendário: são
   proteção do dono, não cota vendida.
-- Migração de esquema: `usage_counters.window` é texto, e a janela nova é só outra chave.
 
 ## Impact
 
+- Migração `0019_periodo_pago_desde` (PG) e `0061_periodo_pago_desde` (SQLite): uma coluna anulável e o backfill das
+  linhas do Asaas em dia ou em atraso. `usage_counters` não muda (`window` é texto).
 - `server/lib/usageQuota.ts`, `server/lib/entitlements.ts` (`periodoPagoEmVigor`), `server/lib/iaDeEstudo.ts`,
   `server/lib/assistenteAoVivo.ts`, `server/lib/parceiroDeLeitura.ts`, `server/routes/me.ts`.
 - Efeito para quem paga: no dia do deploy, o contador do assinante recomeça na janela do período (o uso do mês do calendário

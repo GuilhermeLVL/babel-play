@@ -27,6 +27,7 @@ import {
   PLANOS_PAGOS,
   valoresCobraveis,
 } from '../../src/core/planos'
+import { billingEventsRepo } from '../db/repositories/billingEvents'
 import { creditsRepo } from '../db/repositories/credits'
 import { type Subscription, subscriptionsRepo } from '../db/repositories/subscriptions'
 import {
@@ -128,10 +129,13 @@ async function manterCancelada(
   userId: UserId,
   atual: Subscription,
   fimDoPagamento: number,
+  inicioDoPagamento: number,
   motivo: string | null,
   requestId: string | undefined,
 ): Promise<ResultadoDoEvento> {
-  if (atual.currentPeriodEnd == null) await subscriptionsRepo.upsert(userId, { currentPeriodEnd: fimDoPagamento })
+  if (atual.currentPeriodEnd == null) {
+    await subscriptionsRepo.upsert(userId, { currentPeriodEnd: fimDoPagamento, periodoPagoDesde: inicioDoPagamento })
+  }
   const nota = 'cancelada-sem-renovar: o pagamento é da assinatura cancelada; segue cancelada até o fim do período pago'
   log('info', { event: 'billing_pagamento_da_cancelada', requestId })
   return { estado: 'aplicado', motivo: motivo ? `${motivo}; ${nota}` : nota }
@@ -364,18 +368,23 @@ export async function aplicarEvento(
       }
 
       /* VALOR FORA DA MATRIZ (juros/multa de boleto atrasado, desconto manual no painel): o valor não diz o
-         plano, então vale o plano DESTA cobrança — e só se o que entrou cobre o preço dele. Sem vínculo com
-         esta cobrança, ou pago a menos, fica pendente para revisão humana: nunca se concede mais do que foi pago,
-         nem se cai no `plan` gravado de outra cobrança. */
+         plano. Os candidatos são o plano DESTA cobrança e, com troca pendente, o plano da troca — no CICLO da
+         cobrança registrada (`atual.ciclo`: a assinatura anual cobra o ano). Vale o MAIS CARO cujo preço o valor
+         cobre: a troca para cima paga com juros dá o plano novo; a fatura antiga da troca para baixo dá o antigo,
+         que foi o que se pagou. Nenhum coberto, ou sem vínculo com esta cobrança: pendente para revisão humana —
+         nunca mais do que foi pago, nunca o `plan` gravado de outra cobrança, nunca 35 dias por uma anuidade. */
+      const trocaPedida = atual?.trocaPara ? normalizarPlano(atual.trocaPara) : null
       let foraDaMatriz: { plano: PlanoPago; ciclo: CicloDeCobranca } | null = null
       if (!pago && typeof vValor === 'number') {
-        foraDaMatriz = destaCobranca ? cicloCobertoPeloValor(destaCobranca, vValor) : null
+        const candidatos: PlanoPago[] = destaCobranca ? [destaCobranca] : []
+        if (destaCobranca && cicloDaIntencao === 'mensal' && ehPlanoPago(trocaPedida)) candidatos.push(trocaPedida)
+        foraDaMatriz = maisCaroCoberto(candidatos, vValor, cicloDaIntencao)
         if (!foraDaMatriz) {
           log('warn', { event: 'billing_valor_fora_da_matriz', error: `R$ ${vValor}`, requestId })
           return {
             estado: 'nao-aplicado',
             motivo: destaCobranca
-              ? `valor-fora-da-matriz: R$ ${vValor} não cobre o preço de ${destaCobranca}, o plano desta cobrança; nada é concedido`
+              ? `valor-fora-da-matriz: R$ ${vValor} não cobre o preço ${cicloDaIntencao} de ${candidatos.join(' nem de ')}, o plano desta cobrança; nada é concedido`
               : `valor-fora-da-matriz: R$ ${vValor} não casa com plano nenhum e o pagamento não tem plano registrado; nada é concedido`,
           }
         }
@@ -396,8 +405,10 @@ export async function aplicarEvento(
          no ciclo combinado. Quem decide continua sendo o VALOR pago — a intenção gravada só explica o
          que aconteceu e é encerrada. Pago o valor ANTIGO (a fatura que já estava emitida), nada disto
          roda: o plano atual segue, e a troca continua pendente para a cobrança seguinte. */
-      const trocaPedida = atual?.trocaPara ? normalizarPlano(atual.trocaPara) : null
-      const trocaChegou = Boolean(pago && trocaPedida && pago.plano === trocaPedida && pago.ciclo === 'mensal')
+      const quemPagou = pago ?? foraDaMatriz
+      const trocaChegou = Boolean(
+        quemPagou && trocaPedida && quemPagou.plano === trocaPedida && quemPagou.ciclo === 'mensal',
+      )
       if (trocaChegou) {
         motivo = [motivo, `troca-de-plano: ${planoDaIntencao} → ${plano}, pedida pelo assinante`]
           .filter(Boolean)
@@ -421,7 +432,7 @@ export async function aplicarEvento(
         motivo = motivo ? `${motivo}; ${nota}` : nota
       }
       if (canceladaSemRenovar(atual, { assinatura: vSub })) {
-        return manterCancelada(userIdEfetivo, atual, vale.fim, motivo, requestId)
+        return manterCancelada(userIdEfetivo, atual, vale.fim, base, motivo, requestId)
       }
       await subscriptionsRepo.upsert(userIdEfetivo, {
         plan: plano,
@@ -429,6 +440,9 @@ export async function aplicarEvento(
         ciclo: vale.ciclo,
         currentPeriodEnd: vale.fim,
         cancelAtPeriodEnd: 0,
+        /* A ÂNCORA DA JANELA DA COTA (change `cota-pelo-periodo-pago`): só um pagamento a grava, e só quando ELE
+           concede o período (mantido o período maior pago antes, a âncora é a dele). */
+        ...(vale.manteve ? {} : { periodoPagoDesde: base }),
         /* Chegada a troca, a assinatura registrada passa a cobrar o plano novo: `planoDaCobranca` anda junto,
            ou o próximo valor fora da matriz (juros) seria lido contra o preço do plano antigo. */
         ...(trocaChegou ? { trocaPara: null, trocaAPartirDe: null, planoDaCobranca: plano } : {}),
@@ -716,10 +730,57 @@ async function aplicarDinheiroDevolvido(
   const antiga = cobrancaAnteriorAoPeriodo(atual, p)
   if (antiga) {
     log('warn', { event: 'billing_estorno_de_cobranca_antiga', error: antiga })
+    /* O ESTORNO é ato do lojista (nós ou o painel): devolver uma cobrança antiga não tira o período pago depois.
+       O CHARGEBACK é do titular do cartão contra a operadora — contestar uma cobrança antiga com outra paga em
+       seguida pede olho humano, e não some como resolvido. */
+    if (oQue === 'chargeback') {
+      return { estado: 'nao-aplicado', motivo: `chargeback de cobrança antiga, para revisão — ${antiga}` }
+    }
     return { estado: 'ignorado', motivo: `${oQue} de cobrança antiga — ${antiga}` }
   }
-  await subscriptionsRepo.upsert(p.userId, { status: 'canceled', currentPeriodEnd: Date.now(), cancelAtPeriodEnd: 0 })
+  const outra = await outraCobrancaPagaCobre(atual, p, verificar)
+  if (outra) {
+    log('warn', { event: 'billing_estorno_com_outra_paga', error: outra })
+    return { estado: 'ignorado', motivo: `${oQue} de cobrança duplicada — ${outra}` }
+  }
+  /* A revogação é CONDICIONAL ao período lido: se um pagamento confirmou entre a leitura e aqui (e esticou o fim),
+     nada é apagado; o evento sobe como exceção e volta pela reentrega/reprocessamento, reavaliado com o período novo. */
+  if (!(await subscriptionsRepo.revogarSePeriodoIgual(p.userId, atual.currentPeriodEnd ?? null))) {
+    throw new Error(`${oQue}: o período mudou durante a aplicação; reavaliar`)
+  }
   return { estado: 'aplicado', motivo: null }
+}
+
+/**
+ * OUTRA COBRANÇA PAGA DO MESMO FLUXO AINDA COBRE O PERÍODO (a cobrança duplicada, com o mesmo vencimento)? Estornar
+ * uma das duas não tira o período que a outra pagou. Os candidatos são os pagamentos confirmados que o servidor já
+ * recebeu deste titular; quem decide é a API do Asaas (status pago, mesma assinatura ou parcelamento, e o período
+ * dela alcança o fim em vigor, com a mesma folga de 7 dias). Sem verificador (self-host), nada a perguntar: revoga,
+ * como sempre. Devolve o porquê, ou `null`.
+ */
+async function outraCobrancaPagaCobre(
+  atual: Subscription,
+  p: PagamentoConferido,
+  verificar: VerificadorDePagamento | undefined,
+): Promise<string | null> {
+  if (!verificar || !p.id || atual.currentPeriodEnd == null) return null
+  const refs = await billingEventsRepo.pagamentosConfirmadosDoUsuario(String(p.userId), p.id)
+  for (const ref of refs) {
+    const real = await verificar(ref)
+    if (!real || !STATUS_DE_PAGO.has(real.status)) continue
+    const mesmoFluxo = p.assinatura ? real.subscription === p.assinatura : real.installment === p.parcelamento
+    if (!mesmoFluxo) continue
+    const inicio = p.parcelamento
+      ? vencimentoDaPrimeiraParcela(real.dueDate, real.installmentNumber)
+      : meioDiaDo(real.dueDate)
+    if (!Number.isFinite(inicio)) continue
+    const anual = p.parcelamento || planoPeloPagamento(real.value)?.ciclo === 'anual'
+    const fimDela = inicio + (anual ? DIAS_DO_PERIODO_ANUAL : DIAS_DO_PERIODO_MENSAL) * DIA_MS
+    if (fimDela + 7 * DIA_MS >= atual.currentPeriodEnd) {
+      return `o pagamento ${ref} (vencimento ${real.dueDate}) segue pago no Asaas e cobre o período em vigor`
+    }
+  }
+  return null
 }
 
 /**
@@ -810,7 +871,7 @@ async function aplicarParcela(
   /* As parcelas do cartão confirmam juntas, mas cada RECEIVED cai no mês dela: o 12x cancelado depois
      dos 7 dias recebe parcelas pelo ano todo, e nenhuma delas o reativa. */
   if (canceladaSemRenovar(atual, { parcelamento: p.parcelamento })) {
-    return manterCancelada(userId, atual, vale.fim, motivo, p.requestId)
+    return manterCancelada(userId, atual, vale.fim, base, motivo, p.requestId)
   }
   await subscriptionsRepo.upsert(userId, {
     plan: pago.plano,
@@ -825,6 +886,8 @@ async function aplicarParcela(
     planoDaCobranca: pago.plano,
     currentPeriodEnd: vale.fim,
     cancelAtPeriodEnd: 0,
+    // A âncora da janela da cota: o vencimento da 1ª parcela, o mesmo das 12 (change `cota-pelo-periodo-pago`).
+    ...(vale.manteve ? {} : { periodoPagoDesde: base }),
   })
   return { estado: 'aplicado', motivo }
 }
@@ -857,15 +920,23 @@ function planoDestaAssinatura(atual: Subscription | null, assinatura: string | u
 }
 
 /**
- * O CICLO QUE UM VALOR FORA DA MATRIZ PAGA, no plano desta cobrança: o maior preço do plano que o valor
- * cobre (o ano à vista, senão a mensalidade). `null` = pagou menos que a mensalidade — nada é concedido.
+ * O PLANO QUE UM VALOR FORA DA MATRIZ PAGA: entre os candidatos (o plano desta cobrança e o da troca pendente),
+ * o mais caro cujo preço NO CICLO DA COBRANÇA REGISTRADA o valor cobre. `null` = não cobre nenhum — nada é
+ * concedido. O ciclo não sobe pelo valor: R$ 150 numa assinatura mensal é mensalidade com algo a mais, não um ano.
  */
-function cicloCobertoPeloValor(plano: PlanoPago, valor: number): { plano: PlanoPago; ciclo: CicloDeCobranca } | null {
-  const { precoMensalBrl: mensal, precoAnualBrl: anual } = PLAN_MATRIX[plano]
-  const cobre = (preco: number | null) => preco !== null && valor + 0.005 >= preco
-  if (cobre(anual)) return { plano, ciclo: 'anual' }
-  if (cobre(mensal)) return { plano, ciclo: 'mensal' }
-  return null
+function maisCaroCoberto(
+  candidatos: readonly PlanoPago[],
+  valor: number,
+  ciclo: CicloDeCobranca,
+): { plano: PlanoPago; ciclo: CicloDeCobranca } | null {
+  let melhor: { plano: PlanoPago; preco: number } | null = null
+  for (const plano of candidatos) {
+    const { precoMensalBrl: mensal, precoAnualBrl: anual } = PLAN_MATRIX[plano]
+    const preco = ciclo === 'anual' ? anual : mensal
+    if (preco === null || valor + 0.005 < preco) continue
+    if (!melhor || preco > melhor.preco) melhor = { plano, preco }
+  }
+  return melhor ? { plano: melhor.plano, ciclo } : null
 }
 
 /** Estados do pagamento no Asaas em que o dinheiro voltou (ou está voltando): um confirmado tardio não concede nada. */

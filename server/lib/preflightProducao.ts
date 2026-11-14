@@ -249,7 +249,7 @@ export function conferirProducao(arquivo: NodeJS.ProcessEnv): Achado[] {
       'ABERTO (=1): o anual, à vista e em 12x, está à venda — o MVP sobe sem ele (ausente ou =0) até o jurídico validar os Termos §3–§4',
     )
   } else {
-    ok('ANUAL_ENABLED', 'FECHADO (ausente ou diferente de 1): só o mensal e o teste de 14 dias à venda, como no MVP')
+    ok('ANUAL_ENABLED', 'FECHADO (ausente ou diferente de 1): só o mensal e o teste de 3 dias à venda, como no MVP')
   }
 
   /* ─────────── mídia ─────────── */

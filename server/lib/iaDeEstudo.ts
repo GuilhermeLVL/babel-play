@@ -122,7 +122,7 @@ async function reservarNaAmostra(userId: UserId, tipo: TipoDeEstudo): Promise<Re
 
 /**
  * RESERVA uma explicação (ou um resumo) ANTES de chamar o provedor. `plano` é o plano EFETIVO já resolvido (o do
- * teste de 14 dias conta como o plano dele). Falha de infra → `ContadorIndisponivel`.
+ * teste de 3 dias conta como o plano dele). Falha de infra → `ContadorIndisponivel`.
  */
 export async function reservarUsoDeEstudo(
   userId: UserId,

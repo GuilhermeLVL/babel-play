@@ -92,10 +92,10 @@ Identidade (anônima ou com conta), plano e papel são eixos separados, e o plan
 
 ## Planos e IA na nuvem
 
-| Plano       | O que você recebe                                                                                                                                                                          |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Grátis**  | Tudo o que roda no aparelho (captura, modelos locais, estudo, jogos). Sem IA gerenciada na nuvem.                                                                                          |
-| **Premium** | Transcrição e tradução na nuvem com uso justo diário e mensal, voz natural no intérprete. Começa com um teste sem cartão, que acaba em 14 dias ou na franquia de uso, o que vier primeiro. |
+| Plano       | O que você recebe                                                                                                                                                                         |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Grátis**  | Tudo o que roda no aparelho (captura, modelos locais, estudo, jogos). Sem IA gerenciada na nuvem.                                                                                         |
+| **Premium** | Transcrição e tradução na nuvem com uso justo diário e mensal, voz natural no intérprete. Começa com um teste sem cartão, que acaba em 3 dias ou na franquia de uso, o que vier primeiro. |
 
 A IA na nuvem passa pelo OpenRouter com retenção zero de dados e só depois do consentimento. Preços, cotas e as decisões por trás estão em [docs/ESTADO-DO-LANCAMENTO.md](docs/ESTADO-DO-LANCAMENTO.md) e [docs/monetizacao.md](docs/monetizacao.md). O pagamento é pelo Asaas, e quem concede o plano é o webhook do pagamento.
 

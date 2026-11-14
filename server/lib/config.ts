@@ -949,6 +949,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'origem do JWKS e base da Admin API; também é o que faz o `iss` do JWT ser exigido',
   },
   {
+    nome: 'TESTES_PREMIUM_POR_IP_DIA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'quantos testes do Premium podem COMEÇAR pelo mesmo IP pseudonimizado no mesmo dia; acima disso `POST /api/billing/teste` responde 429 teste_limite_por_ip (change teste-de-3-dias, server/lib/testePremium.ts). Padrão 5; 0 desliga',
+  },
+  {
     nome: 'TRUST_PROXY',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -1584,7 +1591,7 @@ export function cadastroLigado(env: NodeJS.ProcessEnv = process.env): boolean {
 
 /**
  * O plano ANUAL (à vista e em 12x) está à venda? Só com `ANUAL_ENABLED=1`; desligado, ele sai da tela
- * e do `/assinar`, e o mensal e o teste de 14 dias seguem. Não é chave de emergência, é de LANÇAMENTO:
+ * e do `/assinar`, e o mensal e o teste de 3 dias seguem. Não é chave de emergência, é de LANÇAMENTO:
  * o MVP sobe só com o mensal até o jurídico validar os Termos §3–§4.
  *
  * FAIL-SAFE (auditoria de 15/10/2026, B4): ausente, vazia ou qualquer valor que não seja `1` = FECHADO.
@@ -1669,6 +1676,14 @@ export function limitesAntiabusoDoConvidado(env: NodeJS.ProcessEnv = process.env
     ipUsdDia: numeroDoEnv(env.CONVIDADO_IP_USD_DIA, 0.04, 'config_convidado_ip_usd_invalido'),
     ipTutorDia: Math.floor(numeroDoEnv(env.CONVIDADO_IP_TUTOR_DIA, 10, 'config_convidado_ip_tutor_invalido')),
   }
+}
+
+/**
+ * Quantos testes do Premium começam pelo mesmo IP (pseudonimizado) no mesmo dia (change `teste-de-3-dias`). `0` desliga
+ * o teto. 5 cobre uma casa (dois adultos e o responsável ativando para os filhos) e corta a fábrica de contas.
+ */
+export function testesPremiumPorIpNoDia(env: NodeJS.ProcessEnv = process.env): number {
+  return Math.floor(numeroDoEnv(env.TESTES_PREMIUM_POR_IP_DIA, 5, 'config_testes_premium_por_ip_invalido'))
 }
 
 /** O pool diário de IA gratuita (convidado + free): `max(piso, fração × receita líquida do mês ÷ 30)`. */

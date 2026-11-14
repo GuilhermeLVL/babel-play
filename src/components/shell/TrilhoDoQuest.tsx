@@ -36,7 +36,7 @@ import {
 import React, { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { PLAN_MATRIX } from '../../core/planos';
+import { DIAS_DO_TESTE_PREMIUM, PLAN_MATRIX } from '../../core/planos';
 import { tetoAnonimoDa } from '../../core/tetoAnonimo';
 import { ehAdmin } from '../../lib/admin';
 import * as auth from '../../lib/auth';
@@ -102,7 +102,7 @@ const NO_TRILHO_NO_CELULAR: ViewType[] = ['hub', 'capture', 'cartoes', 'play'];
 /** O estado do plano que o item "Planos" do trilho diz em texto pequeno: o teste, ou o nome do plano. */
 const estadoDoPlano = (): string => {
   const { plan } = getEntitlements();
-  if (plan === 'free' || plan === 'anonimo') return t('Grátis · teste 14 dias');
+  if (plan === 'free' || plan === 'anonimo') return t('Grátis · teste {dias} dias', { dias: DIAS_DO_TESTE_PREMIUM });
   return t(PLAN_MATRIX[plan].rotulo);
 };
 
@@ -278,7 +278,10 @@ const fraseDoPlano = (): string => {
   /* Planos v4: o nome é o do plano de quem assina (Plus) ou o de entrada (o teste, a oferta). */
   const doPlano = planoParaNome(plan);
   if (plan === 'free' || plan === 'anonimo')
-    return comNomeDoPlano(t('Você está no Grátis · teste o Premium por 14 dias, sem cartão'), planoDeEntradaAgora());
+    return comNomeDoPlano(
+      t('Você está no Grátis · teste o Premium por {dias} dias, sem cartão', { dias: DIAS_DO_TESTE_PREMIUM }),
+      planoDeEntradaAgora(),
+    );
   if (!teste) return comNomeDoPlano(t('Você está no Premium'), doPlano);
   const dias = Math.max(1, Math.ceil((teste.terminaEm - Date.now()) / 86_400_000));
   return comNomeDoPlano(tp(dias, 'Premium em teste · {n} dia', 'Premium em teste · {n} dias'), doPlano);

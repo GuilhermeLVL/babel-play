@@ -10,7 +10,7 @@ import { comNomeDoPlano, planoDeEntradaAgora } from '../../../../lib/planoDeEntr
  *
  * O CONVITE (`aoConhecer`) é oferta PROMOCIONAL: quem chama não o passa ao perfil protegido (menor, ou
  * idade não declarada no modo público) — ele vê o cadeado e o texto, sem botão de venda. Até o teste
- * de 14 dias existir (C6), o convite leva à tela de Planos.
+ * de 3 dias existir (C6), o convite leva à tela de Planos.
  */
 export default function ConviteDaNuance({ texto, aoConhecer }: { texto: string; aoConhecer?: () => void }) {
   return (

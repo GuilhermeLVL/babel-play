@@ -82,7 +82,7 @@ export interface EntradaDoMotor {
   momento: MomentoDeOferta;
   /** A CONTA de perfil protegido (menor, ou idade não declarada). O convidado não entra aqui. */
   protegido?: boolean;
-  /** O servidor deixa esta conta começar o teste de 14 dias (`lib/ofertas/teste.ts`). */
+  /** O servidor deixa esta conta começar o teste de 3 dias (`lib/ofertas/teste.ts`). */
   podeTestar?: boolean;
   /** A etapa do momento (o fim do teste: `d3` ou `d0`). Gatilho com `fase` só vale na dele. */
   fase?: string;
@@ -127,7 +127,7 @@ const recusa = (motivo: MotivoDeRecusa, adiar = false): DecisaoDeOferta => ({ mo
 /**
  * O plano que faz sentido sugerir. `nenhum` = não há o que vender (Premium, self-host) ou a quem
  * vender (o perfil protegido). O convidado ouve "crie a conta" antes de qualquer plano; o Grátis ouve
- * o TESTE de 14 dias sem cartão quando o servidor deixa testar, e o Premium quando não (ou quando não
+ * o TESTE de 3 dias sem cartão quando o servidor deixa testar, e o Premium quando não (ou quando não
  * se sabe: prometer um teste já usado seria mentir).
  */
 export function planoSugerido(

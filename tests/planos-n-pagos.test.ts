@@ -3,7 +3,7 @@
  * A MATRIZ SERVE A VÁRIOS PLANOS PAGOS (change `planos-v3-e-rota-inteligente`, etapa 1).
  *
  * Com um plano pago só, `'premium'` foi escrito à mão em meia dúzia de lugares: a faixa da admissão,
- * o "já assinou" do teste de 14 dias, a intenção padrão do webhook, a lista de planos das flags, o
+ * o "já assinou" do teste de 3 dias, a intenção padrão do webhook, a lista de planos das flags, o
  * tipo do plano pago no cliente — e os entitlements do cliente eram uma cópia campo a campo dos da
  * matriz. Cada um desses lugares esqueceria o segundo plano pago em silêncio. Estes testes prendem a
  * derivação: quem decide "é pagante?" e "que capacidades tem?" lê a matriz.
@@ -84,7 +84,7 @@ describe('os planos pagos saem da matriz', () => {
     }
   })
 
-  it('o teste de 14 dias concede um plano pago da matriz', () => {
+  it('o teste de 3 dias concede um plano pago da matriz', () => {
     expect(ehPlanoPago(PLANO_DO_TESTE)).toBe(true)
   })
 

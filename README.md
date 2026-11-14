@@ -92,10 +92,10 @@ Identity (anonymous or account), plan and role are separate axes, and the plan i
 
 ## Plans and cloud AI
 
-| Plan        | What you get                                                                                                                                                                                               |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Free**    | Everything that runs on the device (capture, local models, study, games). No managed cloud AI.                                                                                                             |
-| **Premium** | Cloud transcription and translation with fair daily and monthly use, natural interpreter voice. Starts with a trial with no card that ends after 14 days or at the usage allowance, whichever comes first. |
+| Plan        | What you get                                                                                                                                                                                              |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Free**    | Everything that runs on the device (capture, local models, study, games). No managed cloud AI.                                                                                                            |
+| **Premium** | Cloud transcription and translation with fair daily and monthly use, natural interpreter voice. Starts with a trial with no card that ends after 3 days or at the usage allowance, whichever comes first. |
 
 Cloud AI goes through OpenRouter with zero data retention and only after consent. Prices, quotas and the decisions behind them are in [docs/ESTADO-DO-LANCAMENTO.md](docs/ESTADO-DO-LANCAMENTO.md) and [docs/monetizacao.md](docs/monetizacao.md). Payment is handled by Asaas, and it is the payment webhook that grants the plan.
 

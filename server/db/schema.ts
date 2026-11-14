@@ -1190,7 +1190,7 @@ export const glossario = pgTable(
 )
 
 /**
- * O TESTE DE 14 DIAS DO PREMIUM (C6 da change `planos-v2`, migração 0043). Uma linha por conta que
+ * O TESTE DE 3 DIAS DO PREMIUM (C6 da change `planos-v2`, migração 0043). Uma linha por conta que
  * testou: quando começou e quando termina. Enquanto `termina_em` estiver no futuro, o servidor
  * concede o Premium nos entitlements (`resolverPlano`), mas a admissão da nuvem trata a conta como
  * GRÁTIS (`planoDeAdmissao(..., teste = true)`) — quem ainda não paga não disputa a capacidade de quem
@@ -1213,7 +1213,7 @@ export const testesPremium = pgTable('testes_premium', {
 
 /**
  * A MARCA DO TESTE (C6, migração 0043) — o que impede apagar a conta e criar outra para ganhar mais
- * 14 dias. `marca` é o HMAC-SHA256 do e-mail NORMALIZADO com a chave de hash do servidor
+ * 3 dias. `marca` é o HMAC-SHA256 do e-mail NORMALIZADO com a chave de hash do servidor
  * (`obterChaveDeHash()`, `server/lib/testePremium.ts`): não guarda o e-mail, não volta a ele sem o
  * segredo, e NÃO tem `user_id` — por isso sobrevive à exclusão da conta, que é exatamente o objetivo.
  *

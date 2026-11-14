@@ -72,7 +72,7 @@ describe('o plano do teste na conta', () => {
   const status = (plano: 'plus' | 'premium') => ({
     configurado: true,
     assinatura: null,
-    teste: { estado: 'ativo' as const, dias: 14, plano, iniciadoEm: agora - 1000, terminaEm: agora + 86_400_000 },
+    teste: { estado: 'ativo' as const, dias: 3, plano, iniciadoEm: agora - 1000, terminaEm: agora + 86_400_000 },
   })
   it('é o gravado pelo servidor: Plus com a v4, Premium nos testes de antes', () => {
     expect(estadoDaConta('plus', status('plus'), agora)).toMatchObject({ estado: 'teste', plano: 'plus' })
@@ -100,8 +100,8 @@ describe('ofertas com o Plus', () => {
 
   it('quem testa o Plus recebe o aviso do fim do teste, como quem testa o Premium', () => {
     for (const plano of ['plus', 'premium'] as const) {
-      const d = decidirOferta(entrada(plano, 'd3'))
-      expect(d, plano).toMatchObject({ mostrar: true, gatilho: { id: 'funcional_fim_do_teste_d3' } })
+      const d = decidirOferta(entrada(plano, 'd1'))
+      expect(d, plano).toMatchObject({ mostrar: true, gatilho: { id: 'funcional_fim_do_teste_d1' } })
     }
     expect(
       GATILHOS_FUNCIONAIS.filter((g) => g.momento === 'fim_do_teste').every((g) => g.planos.includes('plus')),
@@ -110,7 +110,7 @@ describe('ofertas com o Plus', () => {
 
   it('o perfil protegido não recebe oferta promocional de plano nenhum', () => {
     const d = decidirOferta({
-      ...entrada('plus', 'd3'),
+      ...entrada('plus', 'd1'),
       plano: 'free',
       momento: 'modelo_premium',
       flagLigada: true,

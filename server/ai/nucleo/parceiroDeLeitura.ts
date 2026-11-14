@@ -8,7 +8,7 @@
  * A ORDEM (a do assistente ao vivo, `assistenteAoVivo.ts`, com o cache no meio), e o porquê de cada passo:
  *   1. QUEM PEDE (fora do app, só adulto) e a FLAG `parceiro_de_leitura` — desligada (ou sem quem a responda), 404
  *      `recurso_indisponivel`, sem gastar nada;
- *   2. O PLANO: sem `parceiroDia` (Grátis, convidado), 402 `sem_plano`. O teste de 14 dias tem o plano dele;
+ *   2. O PLANO: sem `parceiroDia` (Grátis, convidado), 402 `sem_plano`. O teste de 3 dias tem o plano dele;
  *   3. O LIVRO E QUEM LÊ: livro do catálogo fora da lista é 404 `livro_inexistente`; o menor (ou quem não declarou a
  *      idade) só pede sobre o livro que a vitrine mostraria a ele (`visivelPara` com `tetoPelaFaixa`), senão 403
  *      `livro_fora_da_faixa`. A ficha vai ao prompt já filtrada para a idade (`fichaParaOPrompt`: sem spoiler, e sem o

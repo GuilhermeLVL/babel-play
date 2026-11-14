@@ -60,7 +60,7 @@ virar gargalo, em ordem de custo crescente.
 
 **IA não é CPU nem banco.** Os sinais de IA escalam o **provedor**, não a máquina. O rótulo `plano` das
 métricas de admissão é a FAIXA de prioridade de `server/ai/admissao.ts` — `premium`, `gratis` (Grátis,
-convidado e o teste de 14 dias) ou `alivio` —, não o nome do plano; até 29/09/2026 eram `pro`/`essencial`
+convidado e o teste de 3 dias) ou `alivio` —, não o nome do plano; até 29/09/2026 eram `pro`/`essencial`
 (matriz v2, ADR 0011):
 
 | Sinal                                                         | Ação                                                                                                  | Métrica / alerta                                                        |

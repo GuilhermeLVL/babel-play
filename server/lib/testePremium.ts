@@ -1,8 +1,8 @@
 /**
- * O TESTE DE 14 DIAS DO PREMIUM, SEM CARTÃO (C6 da change `planos-v2`; padrão do dono: começa com UM
+ * O TESTE DE 3 DIAS DO PREMIUM, SEM CARTÃO (C6 da change `planos-v2`; padrão do dono: começa com UM
  * toque, nunca cobra sozinho).
  *
- * O QUE ELE É: 14 dias com os entitlements do Premium (`resolverPlano`, em `entitlements.ts`), sem
+ * O QUE ELE É: 3 dias com os entitlements do Premium (`resolverPlano`, em `entitlements.ts`), sem
  * cartão, sem Asaas, sem renovação. No fim a conta volta ao Grátis sozinha — não há o que cancelar.
  * Na admissão da nuvem o teste é GRÁTIS (`planoDeAdmissao(..., teste = true)`): a capacidade de quem
  * paga não encolhe por causa de quem está testando.
@@ -23,8 +23,17 @@
  *
  * Trocar a `SECRET_KEY` do servidor troca a chave do HMAC: as marcas antigas deixam de casar e o
  * teste fica disponível de novo para todo mundo. É o preço aceito de não guardar o e-mail.
+ *
+ * O FREIO CONTRA A FÁBRICA DE CONTAS (change `teste-de-3-dias`). Sem cartão, o abuso é criar e-mails, não
+ * cartões. Além da marca, o início do teste exige: (1) o e-mail CONFIRMADO no Supabase (`emailConfirmado`,
+ * Admin API — não basta o painel ter o "Confirm email" ligado: o servidor confere); (2) um e-mail que não seja
+ * de caixa descartável (`dominiosDescartaveis.ts`); (3) no máximo `TESTES_PREMIUM_POR_IP_DIA` testes
+ * começados pelo mesmo IP pseudonimizado no dia (`ipNoTetoDeTestes`/`contarTesteDoIp`).
  */
 import { createHmac } from 'node:crypto'
+
+import type { Request } from 'express'
+import { ipKeyGenerator } from 'express-rate-limit'
 
 import {
   DIAS_DO_TESTE_PREMIUM,
@@ -34,8 +43,12 @@ import {
   type PlanoPago,
 } from '../../src/core/planos'
 import { type TestePremium, testesPremiumRepo } from '../db/repositories/testesPremium'
-import type { UserId } from './authContext'
+import { usageCountersRepo } from '../db/repositories/usageCounters'
+import { asUserId, type UserId } from './authContext'
+import { adminDoSupabase, testesPremiumPorIpNoDia } from './config'
 import { memoDoRequest } from './contextoDeConvidado'
+import { emailDescartavel } from './dominiosDescartaveis'
+import { log } from './logger'
 
 const DIA_MS = 86_400_000
 
@@ -126,6 +139,7 @@ export type MotivoSemTeste =
   | 'perfil_protegido'
   | 'ja_assinante'
   | 'sem_email'
+  | 'email_descartavel'
   | 'marca_usada'
 
 /**
@@ -169,6 +183,7 @@ export async function situacaoDoTeste(
   if (!ctx.idade.adulto) return semTeste('perfil_protegido')
   const marca = ctx.email ? await marcaDoTeste(ctx.email, 'conta') : null
   if (!marca) return semTeste('sem_email')
+  if (ctx.email && emailDescartavel(ctx.email)) return semTeste('email_descartavel')
   if (await testesPremiumRepo.marcaExiste(marca)) return semTeste('marca_usada')
   return { estado: 'disponivel', dias, plano }
 }
@@ -176,4 +191,85 @@ export async function situacaoDoTeste(
 /** A retenção: apaga as marcas com mais de `DIAS_DE_RETENCAO_DA_MARCA` dias. Devolve quantas saíram. */
 export async function podarMarcasDeTeste(agora = Date.now()): Promise<number> {
   return testesPremiumRepo.podarMarcas(agora - DIAS_DE_RETENCAO_DA_MARCA * DIA_MS)
+}
+
+/* ───────────────────────── o freio contra a fábrica de contas (change `teste-de-3-dias`) ───────────────────────── */
+
+/** "O e-mail desta conta está confirmado?" — injetável para o teste. `'desconhecido'` = sem Admin API configurada. */
+type ConsultaDeEmailConfirmado = (userId: UserId) => Promise<boolean | 'desconhecido'>
+
+/**
+ * Pergunta à Admin API do Supabase (`GET /auth/v1/admin/users/:id`, campo `email_confirmed_at`) — a mesma consulta
+ * de `aal.ts`. Só no INÍCIO do teste, que é raro: não entra no `/status`, que o checkout sonda a cada 5 s. O JWT não
+ * serve de prova: o `email_verified` dele mora no `user_metadata`, que a própria pessoa pode editar. Lança quando a
+ * API responde erro (quem chama falha FECHADO: sem confirmação, sem teste).
+ */
+const consultarEmailConfirmadoNoSupabase: ConsultaDeEmailConfirmado = async (userId) => {
+  const admin = adminDoSupabase()
+  if (!admin) return 'desconhecido'
+  const r = await fetch(`${admin.base}/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
+    headers: { apikey: admin.chave, authorization: `Bearer ${admin.chave}` },
+    signal: AbortSignal.timeout(5_000),
+  })
+  if (!r.ok) throw new Error(`admin users ${r.status}`)
+  const corpo = (await r.json()) as { email_confirmed_at?: string | null }
+  return typeof corpo.email_confirmed_at === 'string' && corpo.email_confirmed_at.length > 0
+}
+
+let consultaDeEmail: ConsultaDeEmailConfirmado = consultarEmailConfirmadoNoSupabase
+/** Para os testes: troca a consulta (`null` volta à real). */
+export function _definirConsultaDeEmailConfirmado(fn: ConsultaDeEmailConfirmado | null): void {
+  consultaDeEmail = fn ?? consultarEmailConfirmadoNoSupabase
+}
+
+let avisouSemAdmin = false
+/**
+ * O e-mail da conta está confirmado? Sem Admin API (self-host, dev) a resposta é `true` com um aviso no log: aí o
+ * freio é o "Confirm email" do painel do Supabase, e o inventário de configuração já acusa a chave ausente.
+ */
+export async function emailConfirmado(userId: UserId): Promise<boolean> {
+  const r = await consultaDeEmail(userId)
+  if (r !== 'desconhecido') return r
+  if (!avisouSemAdmin) {
+    avisouSemAdmin = true
+    log('warn', {
+      event: 'teste_sem_admin_do_supabase',
+      error: 'SUPABASE_SERVICE_ROLE_KEY ausente: o servidor não confere se o e-mail do teste está confirmado',
+    })
+  }
+  return true
+}
+
+/** O balde dos testes começados por IP, em `usage_counters` (a janela é o dia UTC, `AAAA-MM-DD`). */
+export const METRIC_TESTES_POR_IP = 'teste_premium:ip'
+
+const diaUtc = (agora: number): string => new Date(agora).toISOString().slice(0, 10)
+
+/**
+ * A chave do IP, PSEUDONIMIZADA como a do convidado (`ipPseudonimo`, em `convidado.ts`): HMAC com a chave do servidor
+ * e o dia, IPv6 agrupado por prefixo (`ipKeyGenerator`). Não volta ao IP e muda todo dia.
+ */
+async function chaveDoIp(req: Pick<Request, 'ip'>, agora: number): Promise<UserId> {
+  const ip = ipKeyGenerator(req.ip ?? '')
+  const h = createHmac('sha256', await chave())
+    .update(`babel-play:teste-premium-ip:v1:${diaUtc(agora)}:${ip}`)
+    .digest('hex')
+    .slice(0, 32)
+  return asUserId(`ip:${h}`)
+}
+
+/** Este IP já começou o máximo de testes de hoje? Com o teto em 0 (desligado), nunca. */
+export async function ipNoTetoDeTestes(req: Pick<Request, 'ip'>, agora = Date.now()): Promise<boolean> {
+  const teto = testesPremiumPorIpNoDia()
+  if (teto <= 0) return false
+  const usados = await usageCountersRepo.get(await chaveDoIp(req, agora), METRIC_TESTES_POR_IP, diaUtc(agora))
+  return usados >= teto
+}
+
+/** Conta um teste que COMEÇOU por este IP (só o que começou: recusa e 2º toque não contam) e poda os dias passados. */
+export async function contarTesteDoIp(req: Pick<Request, 'ip'>, agora = Date.now()): Promise<void> {
+  if (testesPremiumPorIpNoDia() <= 0) return
+  const dia = diaUtc(agora)
+  await usageCountersRepo.increment(await chaveDoIp(req, agora), METRIC_TESTES_POR_IP, dia)
+  await usageCountersRepo.prune(METRIC_TESTES_POR_IP, dia)
 }

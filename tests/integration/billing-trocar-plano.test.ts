@@ -526,7 +526,7 @@ describe('POST /api/billing/trocar — recusas', () => {
     await semEfeito('u-r-cancelada', chamadas)
   })
 
-  it('em teste de 14 dias (sem assinatura paga): 409 `em_teste`', async () => {
+  it('em teste de 3 dias (sem assinatura paga): 409 `em_teste`', async () => {
     await idades.declarar(asUserId('u-r-teste'), '1990-01-01')
     const agora = Date.now()
     await testes.iniciar(asUserId('u-r-teste'), 'marca-u-r-teste', agora - DIA, agora + 13 * DIA)
@@ -661,7 +661,7 @@ describe('a troca pendente não sobrevive à assinatura dela', () => {
   })
 })
 
-describe('o teste de 14 dias continua concedendo o Premium', () => {
+describe('o teste de 3 dias continua concedendo o Premium', () => {
   it('a matriz e o servidor dizem o mesmo, e nada desta etapa toca nisso', async () => {
     expect(PLANO_DO_TESTE).toBe('premium')
     const u = asUserId('u-teste-14')

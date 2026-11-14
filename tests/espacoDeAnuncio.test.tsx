@@ -198,7 +198,7 @@ describe('com um provedor, quem decide é a política', () => {
     ['conta de dois dias', () => Object.assign(mundo, { contaCriadaEm: Date.now() - 2 * DIA })],
     ['conta sem data', () => Object.assign(mundo, { contaCriadaEm: null })],
     ['assinante (`semAnuncios`)', () => Object.assign(mundo, { semAnuncios: true })],
-    ['teste de 14 dias', () => Object.assign(mundo, { teste: { terminaEm: Date.now() + DIA } })],
+    ['teste de 3 dias', () => Object.assign(mundo, { teste: { terminaEm: Date.now() + DIA } })],
     ['headset', () => Object.assign(mundo, { headset: true })],
     ['edição estática', () => Object.assign(mundo, { estatica: true })],
     ['captura ativa', () => Object.assign(mundo, { captura: true })],
@@ -292,7 +292,7 @@ describe('a demonstração (só em desenvolvimento, pela chave local)', () => {
 
   it.each([
     ['assinante (`semAnuncios`)', () => Object.assign(mundo, { semAnuncios: true })],
-    ['teste de 14 dias', () => Object.assign(mundo, { teste: { terminaEm: Date.now() + DIA } })],
+    ['teste de 3 dias', () => Object.assign(mundo, { teste: { terminaEm: Date.now() + DIA } })],
     ['headset', () => Object.assign(mundo, { headset: true })],
     ['edição estática', () => Object.assign(mundo, { estatica: true })],
     ['captura ativa', () => Object.assign(mundo, { captura: true })],

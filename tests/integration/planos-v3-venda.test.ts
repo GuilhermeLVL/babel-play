@@ -9,7 +9,7 @@
  *
  * Os contratos de DINHEIRO que mudam com vários planos pagos também ficam presos aqui, com o Asaas
  * simulado por URL: o plano concedido é o do VALOR pago (pagar R$ 9,90 com a intenção do Premium
- * concede o Essencial), e quem já assinou QUALQUER plano pago não ganha o teste de 14 dias.
+ * concede o Essencial), e quem já assinou QUALQUER plano pago não ganha o teste de 3 dias.
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
@@ -305,7 +305,7 @@ describe('o webhook concede o plano do VALOR pago', () => {
   })
 })
 
-describe('o teste de 14 dias', () => {
+describe('o teste de 3 dias', () => {
   it('quem já assinou QUALQUER plano pago não ganha o teste', async () => {
     for (const plano of ['essencial', 'aovivo'] as const) {
       const id = `u-ja-${plano}`

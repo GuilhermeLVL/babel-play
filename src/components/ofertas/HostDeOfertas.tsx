@@ -67,11 +67,11 @@ import ModalDeOferta from './ModalDeOferta';
  * COTA PRÓXIMA: com conta, pergunta `GET /api/me/uso` (cache de 1 h) ao montar, quando o plano muda
  * e a cada hora; ≥ 80% dispara `cota_proxima`, 100% dispara `fim_de_cota`.
  *
- * FIM DO TESTE (C6): nas mesmas horas, quem está no teste de 14 dias (o `teste` dos entitlements)
- * recebe `fim_do_teste` em D-3 e em D0 — informativo: o botão abre Planos sem destacar venda.
+ * FIM DO TESTE (C6): nas mesmas horas, quem está no teste de 3 dias (o `teste` dos entitlements)
+ * recebe `fim_do_teste` em D-1 e em D0 — informativo: o botão abre Planos sem destacar venda.
  *
  * A PESSOA (C8, `pessoaDaOferta`): a conta de perfil protegido só recebe o funcional, com o texto
- * embutido e sem venda; o Grátis que o servidor deixa testar ouve o teste de 14 dias sem cartão (a
+ * embutido e sem venda; o Grátis que o servidor deixa testar ouve o teste de 3 dias sem cartão (a
  * situação vem de `/api/billing/status`, lembrada por 1 h — `lib/ofertas/teste.ts`).
  */
 
@@ -199,7 +199,7 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
     };
   }, [avaliar]);
 
-  // 3. A cota perto do fim e o fim do teste de 14 dias (só com conta).
+  // 3. A cota perto do fim e o fim do teste de 3 dias (só com conta).
   useEffect(() => {
     const conferir = () => {
       if (estadoDeIdentidade() !== 'conta') return;
@@ -295,7 +295,7 @@ function renderizar(componente: ComponenteDeOferta, props: Parameters<typeof Mod
 
 /**
  * "Sugerido: Premium · R$ 19,90/mês" — o nome e o preço da matriz, nunca escritos à mão. Para quem
- * pode testar: "Sugerido: 14 dias de Premium grátis, sem cartão" (C8).
+ * pode testar: "Sugerido: 3 dias de Premium grátis, sem cartão" (C8).
  */
 function seloDoPlano(
   sugerido: PlanoSugerido,

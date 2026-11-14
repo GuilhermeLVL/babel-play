@@ -58,7 +58,7 @@ describe('podeMostrar — a tabela das negativas (uma mudança por linha)', () =
   const TABELA: Array<[string, Partial<PedidoDeAnuncio>, MotivoDoAnuncio]> = [
     ['flag `anuncios` desligada', { flagLigada: false }, 'flag_desligada'],
     ['plano com `semAnuncios`', { semAnuncios: true }, 'sem_anuncios_no_plano'],
-    ['teste de 14 dias valendo', { emTeste: true }, 'em_teste'],
+    ['teste de 3 dias valendo', { emTeste: true }, 'em_teste'],
     ['headset', { noHeadset: true }, 'headset'],
     ['sem rede', { semRede: true }, 'sem_rede'],
     ['edição estática', { edicaoEstatica: true }, 'edicao_estatica'],

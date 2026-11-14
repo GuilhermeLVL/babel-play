@@ -373,7 +373,7 @@ async function sintetizar(
   const portao = await portaoDaNuvem()
   if (!portao.ok) return decidir(recusaPortaoFechado(portao))
 
-  /* 7) A ADMISSÃO — o teste de 14 dias do Premium entra como grátis (C6). */
+  /* 7) A ADMISSÃO — o teste de 3 dias do Premium entra como grátis (C6). */
   const admitida = await admitirVoz(pernas, {
     userId: ctx.userId,
     plano: planoDeAdmissao(plano.plan, ctx.modo === 'alivio', ctx.emTeste),

@@ -132,7 +132,7 @@ function textosDaForma(plano: PlanoPago, f: FormaDeAssinar) {
 }
 
 /**
- * O TESTE DE 14 DIAS, COM UM TOQUE (C6) — sem nome, CPF nem cartão: nada é cobrado, nem no fim. Só
+ * O TESTE DE 3 DIAS, COM UM TOQUE (C6) — sem nome, CPF nem cartão: nada é cobrado, nem no fim. Só
  * aparece quando o SERVIDOR diz que dá (`teste.estado: 'disponivel'`), ou quando o responsável escolheu
  * o menor vinculado (ele ativa por ele; o servidor confere o vínculo). O perfil protegido recebe o
  * caminho do responsável, não o botão. O destaque do teste é o cartão do Premium na tela de Planos

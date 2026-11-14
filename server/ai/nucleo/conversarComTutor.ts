@@ -166,7 +166,7 @@ async function conversar(
       if (custo.degradacao !== 'nenhuma') rastro.anotar({ degradacao: custo.degradacao })
       /* ADMISSÃO antes da cota: sem saldo, o hospedado recusa 429 `nuvem_ocupada` (o cliente tenta de
          novo depois do `Retry-After`); o self-host cai no Ollama, como com o portão fechado. O teste de
-         14 dias (C6) tem o Premium nos entitlements, mas entra na faixa grátis. */
+         3 dias (C6) tem o Premium nos entitlements, mas entra na faixa grátis. */
       const faixa = planoDeAdmissao(plano.plan, ctx.modo === 'alivio', ctx.emTeste)
       const admitida =
         provedores.length > 0 && portao.ok

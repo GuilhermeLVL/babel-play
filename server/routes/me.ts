@@ -452,7 +452,7 @@ meRouter.get('/uso', async (req, res) => {
   try {
     const resolvido = await resolverPlano(req.userId)
     const plano = resolvido.plano
-    /* No teste de 14 dias a nuvem tem um teto de USO (`FRANQUIA_DO_TESTE`): a tela mostra o teto real. */
+    /* No teste de 3 dias a nuvem tem um teto de USO (`FRANQUIA_DO_TESTE`): a tela mostra o teto real. */
     const emTeste = resolvido.teste !== null
     const janela = new Date().toISOString().slice(0, 7)
     const dia = await diaDoUsoJusto(req.userId, plano)
@@ -528,7 +528,7 @@ meRouter.get('/entitlements', async (req, res) => {
        mostra nada nos três primeiros dias (`src/core/anuncios/politicaDeAnuncio.ts`). O convidado não tem
        conta, e portanto não tem data: `null`. É a linha que o `ensure` já lê, sem consulta a mais. */
     const conta = req.convidado ? null : await usersRepo.ensure(req.userId)
-    /* `resolverPlano` e não só o plano: o TESTE de 14 dias (C6) chega ao cliente com o fim dele, para
+    /* `resolverPlano` e não só o plano: o TESTE de 3 dias (C6) chega ao cliente com o fim dele, para
        o aviso de D-3 e D0 (`fim_do_teste`) e a tela dizerem "teste até <data>" em vez de "Premium". */
     const [entitlements, { plano, teste }] = await Promise.all([
       getEntitlementsForUser(req.userId),

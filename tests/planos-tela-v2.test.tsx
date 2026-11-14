@@ -11,7 +11,7 @@
  * 3. CÓDIGO DE DEFESA DO CONSUMIDOR: as horas de nuvem do mês nunca aparecem sem o teto do dia — no
  *    mesmo item do cartão e no pé da tabela, com os números da matriz.
  * 4. Sem "qualidade" e sem número de qualidade na tela; o único `%` é o desconto do anual.
- * 5. O teste de 14 dias começa com UM toque no cartão do Premium, para quem o servidor deixa testar;
+ * 5. O teste de 3 dias começa com UM toque no cartão do Premium, para quem o servidor deixa testar;
  *    o perfil protegido recebe o caminho do responsável, e quem está testando vê até quando vale.
  * 6. O período escolhido na tela é o período com que o checkout abre.
  */
@@ -51,7 +51,7 @@ function montarMocks(o: { status?: unknown; plano?: string; teste?: { terminaEm:
         return {
           ok: true,
           status: 200,
-          json: async () => ({ teste: { iniciadoEm: 1, terminaEm: TERMINA, dias: 14 } }),
+          json: async () => ({ teste: { iniciadoEm: 1, terminaEm: TERMINA, dias: 3 } }),
         }
       return { ok: false, status: 404, json: async () => ({}) }
     }),
@@ -195,14 +195,14 @@ describe('sem % e sem "qualidade"', () => {
   })
 })
 
-describe('o teste de 14 dias na tela', () => {
+describe('o teste de 3 dias na tela', () => {
   it('quem pode testar começa com UM toque, sem cartão, e a tela diz até quando vale', async () => {
     const chamadas = montarMocks({
-      status: { configurado: true, assinatura: null, teste: { estado: 'disponivel', dias: 14 } },
+      status: { configurado: true, assinatura: null, teste: { estado: 'disponivel', dias: 3 } },
     })
     await abrirPlanos()
     const premium = cartao('premium')
-    const botao = within(premium).getByRole('button', { name: 'Testar 14 dias grátis' })
+    const botao = within(premium).getByRole('button', { name: 'Testar 3 dias grátis' })
     expect(within(premium).getByRole('button', { name: 'Assinar Premium' })).toBeTruthy()
     expect(premium.textContent).toMatch(/Sem cartão/)
     fireEvent.click(botao)
@@ -221,7 +221,7 @@ describe('o teste de 14 dias na tela', () => {
       status: {
         configurado: true,
         assinatura: null,
-        teste: { estado: 'indisponivel', dias: 14, motivo: 'perfil_protegido' },
+        teste: { estado: 'indisponivel', dias: 3, motivo: 'perfil_protegido' },
       },
     })
     await abrirPlanos()
@@ -238,7 +238,7 @@ describe('o teste de 14 dias na tela', () => {
       status: {
         configurado: true,
         assinatura: null,
-        teste: { estado: 'ativo', dias: 14, iniciadoEm: TERMINA - 14 * 86_400_000, terminaEm: TERMINA },
+        teste: { estado: 'ativo', dias: 3, iniciadoEm: TERMINA - 3 * 86_400_000, terminaEm: TERMINA },
       },
     })
     await abrirPlanos()

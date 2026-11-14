@@ -217,7 +217,7 @@ ${emBreve}
 <section class="secao" aria-labelledby="teste">
 <h2 id="teste">Teste sem cartão</h2>
 <div class="aviso peca">
-<p>Com conta, você pode testar o ${escaparHtml(p.teste.plano)} por ${p.teste.dias} dias ou até ${p.teste.horas} horas de nuvem, o que acabar primeiro. Não pedimos cartão: quando o teste acaba, você volta ao Grátis e nada é cobrado sozinho.</p>
+<p>Com conta, você pode testar o ${escaparHtml(p.teste.plano)} por ${p.teste.dias} dias ou até ${p.teste.horas === 1 ? '1 hora' : `${p.teste.horas} horas`} de nuvem, o que acabar primeiro. Não pedimos cartão: quando o teste acaba, você volta ao Grátis e nada é cobrado sozinho.</p>
 </div>
 </section>
 <section class="secao" aria-labelledby="pagamento">

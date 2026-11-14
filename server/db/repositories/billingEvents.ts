@@ -17,7 +17,7 @@
  * status e datas: `reduzirPayload` é uma lista de campos PERMITIDOS aplicada dentro de
  * `marcarSeNovo`, a única porta de escrita, para nenhum chamador conseguir gravar o corpo cru.
  */
-import { and, eq } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNotNull, ne } from 'drizzle-orm'
 
 import { db, linhasAfetadas } from '../db'
 import { billingEvents } from '../schema'
@@ -184,5 +184,28 @@ export const billingEventsRepo = {
    */
   async desmarcar(id: string): Promise<void> {
     await db.delete(billingEvents).where(eq(billingEvents.id, id))
+  },
+
+  /**
+   * Os pagamentos CONFIRMADOS deste titular que o servidor já recebeu (fora o `exceto`), do mais recente ao mais
+   * antigo, sem repetir: os candidatos a "outra cobrança paga que ainda cobre o período" quando uma é estornada
+   * (a cobrança duplicada). Só ids — quem decide é a API do Asaas, consultada por quem chama.
+   */
+  async pagamentosConfirmadosDoUsuario(userId: string, exceto: string, limite = 10): Promise<string[]> {
+    const linhas = await db
+      .select({ ref: billingEvents.providerRef })
+      .from(billingEvents)
+      .where(
+        and(
+          eq(billingEvents.userId, userId),
+          isNotNull(billingEvents.providerRef),
+          ne(billingEvents.providerRef, exceto),
+          inArray(billingEvents.event, ['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED']),
+          ne(billingEvents.estado, 'nao-aplicado'),
+        ),
+      )
+      .orderBy(desc(billingEvents.createdAt))
+      .limit(limite * 2)
+    return [...new Set(linhas.map((l) => l.ref as string))].slice(0, limite)
   },
 }

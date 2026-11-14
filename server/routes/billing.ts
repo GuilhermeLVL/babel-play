@@ -476,7 +476,7 @@ billingRouter.post('/assinar', async (req, res) => {
          `cancelAtPeriodEnd` volta a 0: a marca diz que a assinatura REGISTRADA foi cancelada, e a
          registrada agora é esta, nova — o pagamento dela reativa; o atrasado da antiga, não
          (billingEventos `canceladaSemRenovar`).
-       - Nos DOIS casos grava `planoDaCobranca` (planos v4, migração 0008): o plano que ESTA cobrança cobra, junto
+       - Nos DOIS casos grava `planoDaCobranca` (planos v4, migração 0008) e `cicloDaCobranca` (0019): o plano e o ciclo que ESTA cobrança cobra, junto
          do id dela. Não concede nada; é o que o webhook usa para desempatar a parcela ambígua do 12x (R$ 12,49 =
          Plus e Premium) — `plan` da linha existente pode ser o de outra cobrança. */
     await subscriptionsRepo.upsert(
@@ -489,6 +489,7 @@ billingRouter.post('/assinar', async (req, res) => {
             meio,
             cancelAtPeriodEnd: 0,
             planoDaCobranca: plano,
+            cicloDaCobranca: ciclo,
           }
         : {
             provider: 'asaas',
@@ -499,6 +500,7 @@ billingRouter.post('/assinar', async (req, res) => {
             plan: plano,
             status: 'trialing',
             planoDaCobranca: plano,
+            cicloDaCobranca: ciclo,
           },
     )
 

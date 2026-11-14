@@ -10,7 +10,13 @@
  *
  * Sem `Date.now()` proibido aqui — é módulo Node normal (não script de workflow).
  */
-import { definicaoDoPlano, type EntitlementsDoPlano, normalizarPlano, type PlanoEfetivo } from '../../src/core/planos'
+import {
+  definicaoDoPlano,
+  ehPlanoPago,
+  type EntitlementsDoPlano,
+  normalizarPlano,
+  type PlanoEfetivo,
+} from '../../src/core/planos'
 import { type Subscription, subscriptionsRepo } from '../db/repositories/subscriptions'
 import { authRequired } from './auth'
 import type { UserId } from './authContext'
@@ -100,6 +106,23 @@ export async function resolverPlano(userId: UserId): Promise<PlanoResolvido> {
   //    cliente (PUT /api/settings) e concedê-lo seria escalada de privilégio/gasto (OWASP A01). Para
   //    conceder 'premium' sem billing, use a rota admin (semeia subscriptions).
   return { plano: 'free', teste: null }
+}
+
+/**
+ * O PERÍODO PAGO EM VIGOR (change `cota-pelo-periodo-pago`): o INÍCIO e o ciclo do período que um PAGAMENTO concedeu
+ * — a assinatura concede um plano pago agora e tem a âncora `periodoPagoDesde`, que só a aplicação de um pagamento
+ * grava. NÃO deriva do `currentPeriodEnd`: o cancelamento fora dos 7 dias, o estorno e o admin mexem no fim, e a
+ * janela da cota andaria junto (cancelar zeraria a cota). `null` para o resto: Grátis, convidado, self-host, teste
+ * de 14 dias, plano dado pelo admin e linha paga antes da âncora existir (seguem no mês do calendário).
+ */
+export async function periodoPagoEmVigor(
+  userId: UserId,
+): Promise<{ inicio: number; ciclo: 'mensal' | 'anual' } | null> {
+  const r = await resolverPlano(userId)
+  if (r.teste !== null || !ehPlanoPago(r.plano)) return null
+  const sub = await memoDoRequest(userId, 'assinatura', () => subscriptionsRepo.getActive(userId))
+  if (!sub || sub.currentPeriodEnd == null || sub.periodoPagoDesde == null || !subConcede(sub)) return null
+  return { inicio: sub.periodoPagoDesde, ciclo: sub.ciclo === 'anual' ? 'anual' : 'mensal' }
 }
 
 /** O plano EFETIVO do usuário, resolvido no servidor. */

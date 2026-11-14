@@ -41,6 +41,7 @@ import {
   capTokensDoDia,
   capTokensParaPlano,
   fusoDaCota,
+  janelaDaCota,
   METRIC_LLM_TOKENS,
   METRIC_LLM_TOKENS_DIA,
   METRIC_MANAGED,
@@ -454,7 +455,9 @@ meRouter.get('/uso', async (req, res) => {
     const plano = resolvido.plano
     /* No teste de 3 dias a nuvem tem um teto de USO (`FRANQUIA_DO_TESTE`): a tela mostra o teto real. */
     const emTeste = resolvido.teste !== null
-    const janela = new Date().toISOString().slice(0, 7)
+    /* A janela da cota do plano: a fatia do período pago para quem paga, o mês do calendário para o resto
+       (change `cota-pelo-periodo-pago`) — a MESMA que as reservas usam. */
+    const janela = await janelaDaCota(req.userId)
     const dia = await diaDoUsoJusto(req.userId, plano)
     /* UMA LEITURA de `usage_counters` para todos os contadores (auditoria de 10/10/2026, A11a): eram
        quatro `SELECT` do mês e mais dois do dia, o mesmo comando com a métrica trocada, e a tela de

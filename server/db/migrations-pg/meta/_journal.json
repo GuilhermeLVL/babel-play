@@ -134,6 +134,13 @@
       "when": 1793800000000,
       "tag": "0018_flag_voz_no_aparelho",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794683345865,
+      "tag": "0019_periodo_pago_desde",
+      "breakpoints": true
     }
   ]
 }

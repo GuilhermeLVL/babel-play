@@ -206,10 +206,10 @@ function planoDe(estado: string, id: string): { sub: SubscriptionPatch | null; a
   }
 }
 
-/** O teste de 14 dias de cada rótulo (início e fim), ou nada. */
+/** O teste de 3 dias de cada rótulo (início e fim), ou nada. */
 function testeDe(estado: string): { iniciadoEm: number; terminaEm: number } | null {
-  if (estado === 'teste') return { iniciadoEm: agora - 5 * DIA, terminaEm: agora + 9 * DIA };
-  if (estado === 'teste-vencido') return { iniciadoEm: agora - 20 * DIA, terminaEm: agora - 6 * DIA };
+  if (estado === 'teste') return { iniciadoEm: agora - DIA, terminaEm: agora + 2 * DIA };
+  if (estado === 'teste-vencido') return { iniciadoEm: agora - 10 * DIA, terminaEm: agora - 7 * DIA };
   return null;
 }
 

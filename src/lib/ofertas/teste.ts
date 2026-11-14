@@ -1,12 +1,12 @@
 /**
- * QUEM PODE TESTAR — o que o motor de ofertas sabe do teste de 14 dias do Premium (C8).
+ * QUEM PODE TESTAR — o que o motor de ofertas sabe do teste de 3 dias do Premium (C8).
  *
  * A autoridade é o servidor: `GET /api/billing/status` → `teste.estado` (`disponivel`, `ativo`,
  * `usado`, `indisponivel`). Guardado no aparelho por 1 hora, como a cota (`cota.ts`): a tela de Planos
  * e o checkout já perguntam o status (`carregarStatusDeBilling` lembra a resposta), e o host pergunta
  * por conta própria só com a lembrança vencida.
  *
- * SEM RESPOSTA, NÃO SE SABE — e o motor sugere o Premium, não o teste: prometer "teste 14 dias grátis"
+ * SEM RESPOSTA, NÃO SE SABE — e o motor sugere o Premium, não o teste: prometer "teste 3 dias grátis"
  * a quem já testou seria mentir. Falha de rede também não promete nada.
  */
 import { apiFetch } from '../../data/api';

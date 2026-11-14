@@ -20,7 +20,7 @@
  * ADR 0006), e a gravação é condicional (`utterancesRepo.gravarPolimento`).
  *
  * É DA TRADUÇÃO NUANCE, pelo ENTITLEMENT (`traducaoNuance`), nunca pelo nome do plano: sem ele, 402
- * `exige_nuance` antes de ler a sessão. O teste de 14 dias (C6) tem a capacidade, e entra na admissão
+ * `exige_nuance` antes de ler a sessão. O teste de 3 dias (C6) tem a capacidade, e entra na admissão
  * como grátis, como na tradução.
  *
  * O MESMO CAMINHO DAS OUTRAS FUNÇÕES DE IA (`polimento` em `FUNCOES_DE_IA`): portão da nuvem, política
@@ -335,7 +335,7 @@ async function polirPendentes(
 
   const admitida = await admitirCascata(custo.pernas, {
     userId: ctx.userId,
-    // O teste de 14 dias (C6) tem a Nuance nos entitlements, mas entra na faixa grátis da admissão.
+    // O teste de 3 dias (C6) tem a Nuance nos entitlements, mas entra na faixa grátis da admissão.
     plano: planoDeAdmissao(plano.plan, ctx.modo === 'alivio', ctx.emTeste),
     tokens: estimativa,
   })

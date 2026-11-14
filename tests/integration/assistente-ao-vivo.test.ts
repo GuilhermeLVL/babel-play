@@ -346,7 +346,7 @@ describe('plano pago (Plus): a saída estruturada', () => {
     expect(await doDia(quem)).toBe(0)
   })
 
-  it('o teste de 14 dias tem o assistente (é uma amostra do plano pago, como a IA de estudo)', async () => {
+  it('o teste de 3 dias tem o assistente (é uma amostra do plano pago, como a IA de estudo)', async () => {
     const quem = asUserId('assistente-em-teste')
     const entitlements = await h.load<any>('../../server/lib/entitlements')
     const espia = vi

@@ -10,7 +10,7 @@
  *  - prazo: exibição iniciada há mais de 10 min não credita (410);
  *  - duração mínima (R33): concluir menos de 15 s depois de iniciar é 409 `cedo_demais` — por isso os casos
  *    abaixo recuam `iniciado_em` 16 s antes de concluir, como faria um anúncio assistido;
- *  - plano sem anúncios (pagante, teste de 14 dias) → 403 `sem_anuncios`, nas duas pontas;
+ *  - plano sem anúncios (pagante, teste de 3 dias) → 403 `sem_anuncios`, nas duas pontas;
  *  - `nuvem-30`: só com a nuvem do Grátis ligada (409 `alivio_desligado`) e no máximo 2 por pessoa no dia;
  *  - 3 exibições pendentes nos últimos 10 min → 429 `exibicoes_pendentes`;
  *  - tetos do dia UTC, contados no `concluido_em`: 5 por pessoa e 2.000 no total → 429 `teto_do_dia`;
@@ -447,11 +447,11 @@ describe('plano sem anúncios', () => {
     expect(await seedsDe('ad-pagante')).toBe(0)
   })
 
-  it('no teste de 14 dias do Premium: 403 sem_anuncios', async () => {
+  it('no teste de 3 dias do Premium: 403 sem_anuncios', async () => {
     const { testesPremiumRepo } = await s.load('../../server/db/repositories/testesPremium')
     const t = await tokenAdulto('ad-em-teste')
     const agora = Date.now()
-    await testesPremiumRepo.iniciar('ad-em-teste', 'marca-ad-em-teste', agora, agora + 14 * 86_400_000)
+    await testesPremiumRepo.iniciar('ad-em-teste', 'marca-ad-em-teste', agora, agora + 3 * 86_400_000)
     const r = await iniciar(t, 'fim-premiado')
     expect(r.status).toBe(403)
     expect((await r.json()).code).toBe('sem_anuncios')

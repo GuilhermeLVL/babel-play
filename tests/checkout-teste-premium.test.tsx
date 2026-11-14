@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * O TESTE DE 14 DIAS COMEÇA COM UM TOQUE (C6) — no checkout, o único lugar de hoje onde se adquire o
+ * O TESTE DE 3 DIAS COMEÇA COM UM TOQUE (C6) — no checkout, o único lugar de hoje onde se adquire o
  * Premium (a tela de Planos nova, com o teste em destaque, é o C7).
  *
  * 1. Quem pode testar (`/api/billing/status` diz `teste.estado: 'disponivel'`) vê "Testar 14 dias
@@ -28,7 +28,7 @@ const TERMINA = new Date(2026, 9, 14, 15, 0).getTime()
 function mockApi(
   resposta: { status: number; corpo: unknown } = {
     status: 200,
-    corpo: { teste: { iniciadoEm: 1, terminaEm: TERMINA, dias: 14 } },
+    corpo: { teste: { iniciadoEm: 1, terminaEm: TERMINA, dias: 3 } },
   },
 ) {
   const chamadas: { url: string; corpo: any }[] = []
@@ -65,8 +65,8 @@ async function abrir(teste: unknown) {
 describe('um toque', () => {
   it('quem pode testar começa com um clique, sem CPF nem cartão, e vê até quando vale', async () => {
     const chamadas = mockApi()
-    await abrir({ estado: 'disponivel', dias: 14 })
-    fireEvent.click(screen.getByRole('button', { name: /Testar 14 dias grátis/ }))
+    await abrir({ estado: 'disponivel', dias: 3 })
+    fireEvent.click(screen.getByRole('button', { name: /Testar 3 dias grátis/ }))
     await waitFor(() => expect(screen.getByText(/14\/10\/2026/)).toBeTruthy())
     expect(screen.getByText(/nada é cobrado/i)).toBeTruthy()
     const pedidos = chamadas.filter((c) => c.url === '/api/billing/teste')
@@ -76,16 +76,16 @@ describe('um toque', () => {
 
   it('perfil protegido não recebe o botão: "peça ao seu responsável"', async () => {
     mockApi()
-    await abrir({ estado: 'indisponivel', dias: 14, motivo: 'perfil_protegido' })
-    expect(screen.queryByRole('button', { name: /Testar 14 dias grátis/ })).toBeNull()
+    await abrir({ estado: 'indisponivel', dias: 3, motivo: 'perfil_protegido' })
+    expect(screen.queryByRole('button', { name: /Testar 3 dias grátis/ })).toBeNull()
     expect(screen.getByText(/peça ao seu responsável/i)).toBeTruthy()
   })
 
   it('o responsável ativa o teste para o menor vinculado escolhido', async () => {
     sessionStorage.setItem('babel.checkout.para', JSON.stringify({ id: 'menor-1', nome: 'Bia' }))
     const chamadas = mockApi()
-    await abrir({ estado: 'usado', dias: 14, iniciadoEm: 1, terminaEm: 2 })
-    fireEvent.click(screen.getByRole('button', { name: /Ativar o teste de 14 dias para Bia/ }))
+    await abrir({ estado: 'usado', dias: 3, iniciadoEm: 1, terminaEm: 2 })
+    fireEvent.click(screen.getByRole('button', { name: /Ativar o teste de 3 dias para Bia/ }))
     await waitFor(() => expect(chamadas.some((c) => c.url === '/api/billing/teste')).toBe(true))
     expect(chamadas.find((c) => c.url === '/api/billing/teste')?.corpo).toEqual({ paraUsuario: 'menor-1' })
   })
@@ -95,8 +95,8 @@ describe('um toque', () => {
       status: 409,
       corpo: { error: 'o teste do Premium já foi usado por esta pessoa', code: 'teste_ja_usado' },
     })
-    await abrir({ estado: 'disponivel', dias: 14 })
-    fireEvent.click(screen.getByRole('button', { name: /Testar 14 dias grátis/ }))
+    await abrir({ estado: 'disponivel', dias: 3 })
+    fireEvent.click(screen.getByRole('button', { name: /Testar 3 dias grátis/ }))
     await waitFor(() => expect(screen.getByText(/já foi usado/)).toBeTruthy())
   })
 

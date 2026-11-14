@@ -75,7 +75,7 @@ export const PISO_DO_ALIVIO = 0.8
  * O plano da assinatura vira uma das faixas de prioridade. A faixa `premium` é a de QUEM PAGA — todo
  * plano pago da matriz (`ehPlanoPago`), e não um nome: um plano pago novo entra nela sem tocar aqui.
  * `selfhost` também: a chave é do próprio dono. A requisição da nuvem de alívio (A10: conta Grátis, oferta aceita, franquia conferida na porta)
- * é `alivio`. O TESTE de 14 dias do Premium (C6) tem os entitlements do Premium mas entra como
+ * é `alivio`. O TESTE de 3 dias do Premium (C6) tem os entitlements do Premium mas entra como
  * `gratis`: ele ainda não paga, e a capacidade de quem paga não pode encolher por causa de uma
  * campanha de teste. Todo o resto (free sem alívio, anônimo/convidado) é `gratis` — o seguro.
  * O nome antigo (`pro`) é lido como Premium, como em toda fronteira.

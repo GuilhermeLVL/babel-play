@@ -225,7 +225,7 @@ function tetoComEnv(padrao: number | null, envNome: string): number {
 }
 
 /**
- * O TESTE DE 14 DIAS limita a nuvem por USO (`FRANQUIA_DO_TESTE`): em teste, o teto é o MENOR entre o do plano (o Premium)
+ * O TESTE DE 3 DIAS limita a nuvem por USO (`FRANQUIA_DO_TESTE`): em teste, o teto é o MENOR entre o do plano (o Premium)
  * e o do teste. Fora do teste, é o do plano, como sempre.
  */
 const doTeste = (capDoPlano: number, capDoTeste: number, emTeste: boolean): number =>

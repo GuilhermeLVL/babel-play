@@ -34,7 +34,7 @@ for (const { nome, largura, altura } of TAMANHOS) {
           configurado: true,
           assinatura: null,
           planosAVenda: ['plus'],
-          teste: { estado: 'disponivel', dias: 14, plano: 'plus' },
+          teste: { estado: 'disponivel', dias: 3, plano: 'plus' },
         },
       }),
     )
@@ -91,7 +91,7 @@ for (const { nome, largura, altura } of TAMANHOS) {
 
     expect(await violacoesGraves(page)).toEqual([])
 
-    await clicar(page, plus.getByRole('button', { name: /Assinar Plus|Testar 14 dias grátis/ }).last())
+    await clicar(page, plus.getByRole('button', { name: /Assinar Plus|Testar 3 dias grátis/ }).last())
     expect(cobrancas).toEqual([])
   })
 }

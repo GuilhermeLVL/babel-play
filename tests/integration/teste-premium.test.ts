@@ -1,8 +1,8 @@
 /**
- * O TESTE DE 14 DIAS DO PREMIUM, SEM CARTÃO (C6 da change `planos-v2`).
+ * O TESTE DE 3 DIAS DO PREMIUM, SEM CARTÃO (C6 da change `planos-v2`).
  *
  * Os contratos presos aqui, pelo app inteiro (`criarApp()`, JWT ES256 de verdade):
- * 1. Começa com UM toque (`POST /api/billing/teste`), dura 14 dias e NUNCA fala com o Asaas — não há
+ * 1. Começa com UM toque (`POST /api/billing/teste`), dura 3 dias e NUNCA fala com o Asaas — não há
  *    cartão, cobrança nem renovação. O segundo toque não recomeça nada.
  * 2. O teste dá os entitlements do Premium, mas entra na admissão da nuvem como GRÁTIS: quem ainda não
  *    paga não disputa a capacidade de quem paga.
@@ -13,6 +13,8 @@
  * 5. Perfil protegido (menor, ou sem idade declarada) não inicia sozinho: "peça ao seu responsável". O
  *    responsável vinculado ativa pelo menor, pelo mesmo `paraUsuario` do checkout.
  * 6. Nenhum dado pessoal no log.
+ * 7. O freio contra a fábrica de contas (change `teste-de-3-dias`): e-mail confirmado no Supabase, sem caixa
+ *    descartável, e um teto de testes começados por IP no dia.
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it, onTestFinished, vi } from 'vitest'
 
@@ -62,11 +64,14 @@ function vigiarAsaas() {
 beforeAll(async () => {
   process.env.ASAAS_API_KEY = 'chave-de-teste'
   process.env.CONVITE_LINK_NA_TELA = '1'
+  /* Todo pedido daqui sai do mesmo IP (127.0.0.1): o teto por IP fica desligado, e o describe dele o liga. */
+  process.env.TESTES_PREMIUM_POR_IP_DIA = '0'
   s = await subirApp({ modo: 'publico' })
 })
 afterAll(async () => {
   delete process.env.ASAAS_API_KEY
   delete process.env.CONVITE_LINK_NA_TELA
+  delete process.env.TESTES_PREMIUM_POR_IP_DIA
   await s.encerrar()
 })
 afterEach(() => {
@@ -74,13 +79,13 @@ afterEach(() => {
   delete process.env.CHECKOUT_ENABLED
 })
 
-describe('um toque, 14 dias, sem cartão', () => {
-  it('começa na hora, dá o Premium por 14 dias e não fala com o Asaas', async () => {
+describe('um toque, 3 dias, sem cartão', () => {
+  it('começa na hora, dá o Premium por 3 dias e não fala com o Asaas', async () => {
     await declarar('t-adulta', 30)
     const asaas = vigiarAsaas()
     const r = await testar('t-adulta')
     expect(r.status).toBe(200)
-    expect(r.corpo.teste.terminaEm - r.corpo.teste.iniciadoEm).toBe(14 * DIA)
+    expect(r.corpo.teste.terminaEm - r.corpo.teste.iniciadoEm).toBe(3 * DIA)
     expect(asaas, 'sem cartão, sem cobrança: nada vai ao Asaas').toEqual([])
 
     const e = await entitlements('t-adulta')
@@ -137,9 +142,9 @@ describe('o teste tem teto de USO, não só de tempo (a nuvem é uma amostra)', 
     await declarar('t-uso', 30)
     expect((await testar('t-uso')).status).toBe(200)
     const doTeste = await (await s.get('/api/me/uso', await tk('t-uso'))).json()
-    expect(doTeste.segundosDeAudio.teto).toBe(10_800)
-    expect(doTeste.tokensDeLlm.teto).toBe(450_000)
-    expect(doTeste.chamadas.teto).toBe(4_000)
+    expect(doTeste.segundosDeAudio.teto).toBe(3_600)
+    expect(doTeste.tokensDeLlm.teto).toBe(150_000)
+    expect(doTeste.chamadas.teto).toBe(1_400)
 
     await declarar('t-paga', 30)
     const { subscriptionsRepo } = await s.load('../../server/db/repositories/subscriptions')
@@ -152,15 +157,15 @@ describe('o teste tem teto de USO, não só de tempo (a nuvem é uma amostra)', 
 
   it('a reserva de STT do teste recusa no teto do teste, e o assinante segue até o do plano', async () => {
     const { reservarSegundosDeStt, estornarSegundosDeStt } = await s.load('../../server/lib/usageQuota')
-    /* O uso justo do dia (2 h) recusaria antes do teto de 3 h do mês: aqui só o MÊS está em prova. */
+    /* O uso justo do dia (2 h) fica fora do caminho: aqui só o teto do TESTE (o do mês) está em prova. */
     process.env.PREMIUM_DAILY_STT_SECONDS = '1000000'
     onTestFinished(() => {
       delete process.env.PREMIUM_DAILY_STT_SECONDS
     })
     await declarar('t-reserva', 30)
     expect((await testar('t-reserva')).status).toBe(200)
-    // Cabem exatamente as 3 h do teste (10.800 s)...
-    expect((await reservarSegundosDeStt('t-reserva', 10_800)).cabe).toBe(true)
+    // Cabe exatamente a 1 h do teste (3.600 s)...
+    expect((await reservarSegundosDeStt('t-reserva', 3_600)).cabe).toBe(true)
     // ...e o próximo segundo já é recusado, no MÊS (402 `quota_exceeded`, que vira a oferta de plano).
     const recusa = await reservarSegundosDeStt('t-reserva', 1)
     expect(recusa).toEqual({ cabe: false, recusa: 'mes' })
@@ -170,14 +175,14 @@ describe('o teste tem teto de USO, não só de tempo (a nuvem é uma amostra)', 
 
     const { subscriptionsRepo } = await s.load('../../server/db/repositories/subscriptions')
     await subscriptionsRepo.upsert('t-assina', { plan: 'premium', status: 'active', provider: 'asaas' })
-    expect((await reservarSegundosDeStt('t-assina', 10_801)).cabe).toBe(true)
+    expect((await reservarSegundosDeStt('t-assina', 3_601)).cabe).toBe(true)
   })
 
-  it('a voz natural do teste também tem teto próprio (30.000 caracteres)', async () => {
+  it('a voz natural do teste também tem teto próprio (10.000 caracteres)', async () => {
     const { reservarCaracteresDeVoz } = await s.load('../../server/lib/usageQuota')
     await declarar('t-voz', 30)
     expect((await testar('t-voz')).status).toBe(200)
-    expect((await reservarCaracteresDeVoz('t-voz', 30_000)).cabe).toBe(true)
+    expect((await reservarCaracteresDeVoz('t-voz', 10_000)).cabe).toBe(true)
     expect((await reservarCaracteresDeVoz('t-voz', 1)).cabe).toBe(false)
   })
 })
@@ -312,6 +317,166 @@ describe('quem não pode testar sozinho', () => {
     const r = await testar('t-pausa')
     expect(r.status).toBe(503)
     expect(r.corpo.code).toBe('checkout_desligado')
+  })
+})
+
+describe('o freio contra a fábrica de contas (change teste-de-3-dias)', () => {
+  it('e-mail de caixa descartável: 409, e a tela já diz que não dá', async () => {
+    await declarar('t-descartavel', 30, 'alguem@mailinator.com')
+    expect(await statusDoTeste('t-descartavel', 'alguem@mailinator.com')).toMatchObject({
+      estado: 'indisponivel',
+      motivo: 'email_descartavel',
+    })
+    const r = await testar('t-descartavel', 'alguem@mailinator.com')
+    expect(r.status).toBe(409)
+    expect(r.corpo.code).toBe('teste_email_descartavel')
+    expect((await entitlements('t-descartavel')).plan).toBe('free')
+  })
+
+  it('e-mail não confirmado no Supabase: 403, nada é gravado e a marca fica livre', async () => {
+    const { _definirConsultaDeEmailConfirmado } = await s.load('../../server/lib/testePremium')
+    const perguntados: string[] = []
+    _definirConsultaDeEmailConfirmado(async (userId: string) => {
+      perguntados.push(userId)
+      return userId !== 't-nao-confirmou'
+    })
+    onTestFinished(() => _definirConsultaDeEmailConfirmado(null))
+
+    await declarar('t-nao-confirmou', 30, 'nao.confirmou@exemplo.com')
+    const r = await testar('t-nao-confirmou', 'nao.confirmou@exemplo.com')
+    expect(r.status).toBe(403)
+    expect(r.corpo.code).toBe('teste_email_nao_confirmado')
+    expect(perguntados).toEqual(['t-nao-confirmou'])
+    expect((await entitlements('t-nao-confirmou')).plan).toBe('free')
+    // A marca não foi gasta: confirmado o e-mail (outra conta, o mesmo endereço), o teste começa.
+    await declarar('t-confirmou', 30, 'nao.confirmou@exemplo.com')
+    expect((await testar('t-confirmou', 'nao.confirmou@exemplo.com')).status).toBe(200)
+  })
+
+  it('a consulta da confirmação falhou: 503, fechado (sem confirmação, sem teste)', async () => {
+    const { _definirConsultaDeEmailConfirmado } = await s.load('../../server/lib/testePremium')
+    _definirConsultaDeEmailConfirmado(async () => {
+      throw new Error('admin users 500')
+    })
+    onTestFinished(() => _definirConsultaDeEmailConfirmado(null))
+    await declarar('t-supabase-fora', 30)
+    const r = await testar('t-supabase-fora')
+    expect(r.status).toBe(503)
+    expect(r.corpo.code).toBe('teste_indisponivel_agora')
+    expect((await entitlements('t-supabase-fora')).plan).toBe('free')
+  })
+
+  it('a marca já usada responde 409 sem perguntar ao Supabase', async () => {
+    const { _definirConsultaDeEmailConfirmado } = await s.load('../../server/lib/testePremium')
+    const perguntados: string[] = []
+    _definirConsultaDeEmailConfirmado(async (userId: string) => {
+      perguntados.push(userId)
+      return true
+    })
+    onTestFinished(() => _definirConsultaDeEmailConfirmado(null))
+    await declarar('t-mesma-pessoa', 30, 'outra.pessoa+2@exemplo.com')
+    // `outra.pessoa@exemplo.com` já testou acima, e a `+etiqueta` sai da marca em qualquer domínio.
+    const r = await testar('t-mesma-pessoa', 'outra.pessoa+2@exemplo.com')
+    expect(r.status).toBe(409)
+    expect(r.corpo.code).toBe('teste_ja_usado')
+    expect(perguntados).toEqual([])
+  })
+
+  it('o teto por IP: com 2 por dia, o terceiro teste do mesmo IP recebe 429; recusas não contam', async () => {
+    process.env.TESTES_PREMIUM_POR_IP_DIA = '2'
+    onTestFinished(() => {
+      process.env.TESTES_PREMIUM_POR_IP_DIA = '0'
+    })
+    for (const sub of ['t-ip-1', 't-ip-2', 't-ip-3']) await declarar(sub, 30)
+    // Uma recusa antes (sem e-mail) não gasta o teto do IP.
+    expect((await testar('t-ip-1', null)).status).toBe(409)
+    expect((await testar('t-ip-1')).status).toBe(200)
+    // O 2º toque da mesma conta devolve o mesmo teste e não conta de novo.
+    expect((await testar('t-ip-1')).corpo.jaEstavaAtivo).toBe(true)
+    expect((await testar('t-ip-2')).status).toBe(200)
+    const r = await testar('t-ip-3')
+    expect(r.status).toBe(429)
+    expect(r.corpo.code).toBe('teste_limite_por_ip')
+    expect((await entitlements('t-ip-3')).plan).toBe('free')
+
+    // O contador guarda o IP PSEUDONIMIZADO (HMAC com o dia), nunca o IP.
+    const { db } = await s.load('../../server/db/db')
+    const { usageCounters } = await s.load('../../server/db/schema')
+    const { METRIC_TESTES_POR_IP } = await s.load('../../server/lib/testePremium')
+    const { eq } = await import('drizzle-orm')
+    const linhas = await db.select().from(usageCounters).where(eq(usageCounters.metric, METRIC_TESTES_POR_IP))
+    expect(linhas).toHaveLength(1)
+    expect(linhas[0].userId).toMatch(/^ip:[0-9a-f]{32}$/)
+    expect(linhas[0].count).toBe(2)
+  })
+})
+
+describe('o teto por IP sob concorrência (TOCTOU, revisão do PR #130)', () => {
+  async function contadorDoIp(): Promise<number> {
+    const { db } = await s.load('../../server/db/db')
+    const { usageCounters } = await s.load('../../server/db/schema')
+    const { METRIC_TESTES_POR_IP } = await s.load('../../server/lib/testePremium')
+    const { eq } = await import('drizzle-orm')
+    const linhas = await db.select().from(usageCounters).where(eq(usageCounters.metric, METRIC_TESTES_POR_IP))
+    return linhas.reduce((t: number, l: { count: number }) => t + Number(l.count), 0)
+  }
+  async function zerarContadorDoIp(): Promise<void> {
+    const { db } = await s.load('../../server/db/db')
+    const { usageCounters } = await s.load('../../server/db/schema')
+    const { METRIC_TESTES_POR_IP } = await s.load('../../server/lib/testePremium')
+    const { eq } = await import('drizzle-orm')
+    await db.delete(usageCounters).where(eq(usageCounters.metric, METRIC_TESTES_POR_IP))
+  }
+
+  it('N inícios SIMULTÂNEOS do mesmo IP, contas distintas e confirmadas: no máximo o teto começa', async () => {
+    const { _definirConsultaDeEmailConfirmado } = await s.load('../../server/lib/testePremium')
+    /* UMA BARREIRA na consulta da confirmação (o último passo antes da vaga do IP): os N pedidos só seguem juntos,
+       quando todos chegaram. É o pior caso da corrida — com ler-e-depois-contar, todos liam 0 e todos começavam. */
+    const N = 8
+    let chegaram = 0
+    let soltar: () => void = () => {}
+    const todosChegaram = new Promise<void>((r) => (soltar = r))
+    _definirConsultaDeEmailConfirmado(async () => {
+      if (++chegaram === N) soltar()
+      await todosChegaram
+      return true
+    })
+    process.env.TESTES_PREMIUM_POR_IP_DIA = '2'
+    onTestFinished(() => {
+      _definirConsultaDeEmailConfirmado(null)
+      process.env.TESTES_PREMIUM_POR_IP_DIA = '0'
+    })
+    await zerarContadorDoIp()
+    const contas = Array.from({ length: N }, (_, i) => `t-rajada-${i}`)
+    for (const sub of contas) await declarar(sub, 30)
+
+    const respostas = await Promise.all(contas.map((sub) => testar(sub)))
+    const comecaram = respostas.filter((r) => r.status === 200)
+    expect(comecaram.length, 'nunca passa do teto').toBeLessThanOrEqual(2)
+    expect(comecaram.length, 'e o teto inteiro é usado').toBe(2)
+    for (const r of respostas.filter((x) => x.status !== 200)) {
+      expect(r.status).toBe(429)
+      expect(r.corpo.code).toBe('teste_limite_por_ip')
+    }
+    const premium = await Promise.all(contas.map(async (sub) => (await entitlements(sub)).plan))
+    expect(premium.filter((p) => p === 'premium')).toHaveLength(2)
+    expect(await contadorDoIp()).toBe(2)
+  })
+
+  it('a vaga reservada volta quando o teste não começa (dois toques simultâneos da mesma conta)', async () => {
+    const { _definirConsultaDeEmailConfirmado } = await s.load('../../server/lib/testePremium')
+    _definirConsultaDeEmailConfirmado(async () => true)
+    process.env.TESTES_PREMIUM_POR_IP_DIA = '5'
+    onTestFinished(() => {
+      _definirConsultaDeEmailConfirmado(null)
+      process.env.TESTES_PREMIUM_POR_IP_DIA = '0'
+    })
+    await zerarContadorDoIp()
+    await declarar('t-toque-duplo', 30)
+    const [a, b] = await Promise.all([testar('t-toque-duplo'), testar('t-toque-duplo')])
+    expect([a.status, b.status]).toEqual([200, 200])
+    // Um começou; o outro devolveu o MESMO teste (ou perdeu a corrida e foi devolvido): só uma vaga fica gasta.
+    expect(await contadorDoIp()).toBe(1)
   })
 })
 

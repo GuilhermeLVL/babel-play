@@ -561,10 +561,10 @@ describe('Checkout no Quest', () => {
     expect(botao(/Ir para o pagamento/)).toBeTruthy()
   })
 
-  it('o teste de 14 dias continua oferecido no checkout', async () => {
-    montarCheckout({ status: { configurado: true, assinatura: null, teste: { estado: 'disponivel', dias: 14 } } })
+  it('o teste de 3 dias continua oferecido no checkout', async () => {
+    montarCheckout({ status: { configurado: true, assinatura: null, teste: { estado: 'disponivel', dias: 3 } } })
     await aguardar()
-    expect(botao(/Testar 14 dias grátis/).className).toContain('q-ctl')
+    expect(botao(/Testar 3 dias grátis/).className).toContain('q-ctl')
   })
 })
 

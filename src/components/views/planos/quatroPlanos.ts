@@ -135,7 +135,7 @@ export interface ContextoDosPlanos {
   anual?: boolean;
   /** Perfil protegido (menor ou idade não declarada): nenhum preço nem convite ao anual. */
   protegido?: boolean;
-  /** O plano que o teste de 14 dias concede (`teste.plano`); o Premium se não vier. */
+  /** O plano que o teste de 3 dias concede (`teste.plano`); o Premium se não vier. */
   planoDoTeste?: PlanoPago;
 }
 

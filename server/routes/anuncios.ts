@@ -13,7 +13,7 @@
  *   2. PERFIL PROTEGIDO (menor, idade não declarada, convidado) → 403 `perfil_protegido`. O premiado ("assista e
  *      ganhe") é só para adultos declarados (18+; `politicaDeAnuncio.ts`, decisão do dono de 25/10/2026: o perfil
  *      protegido vê só o anúncio comum, que não passa por esta rota), e o servidor não confia no cliente para isso.
- *   3. PLANO SEM ANÚNCIOS (`semAnuncios` do plano EFETIVO do servidor: quem paga, quem está no teste de 14 dias
+ *   3. PLANO SEM ANÚNCIOS (`semAnuncios` do plano EFETIVO do servidor: quem paga, quem está no teste de 3 dias
  *      do Premium, o self-host) → 403 `sem_anuncios`.
  *   4. ESPAÇO INATIVO (fora de `ESPACOS_PREMIADOS_ATIVOS`: a interface só monta `fim-premiado` e `loja-seeds`)
  *      → 400 `espaco_inativo`. No `concluir`, pelo espaço gravado na linha. Os testes trocam a lista com
@@ -137,7 +137,7 @@ async function portasDoPremiado(req: import('express').Request, res: import('exp
     responderErro(res, 403, MENSAGENS.protegido, 'perfil_protegido')
     return false
   }
-  /* O plano EFETIVO resolvido no servidor (assinatura, teste de 14 dias ou Grátis), nunca o que o cliente diz. */
+  /* O plano EFETIVO resolvido no servidor (assinatura, teste de 3 dias ou Grátis), nunca o que o cliente diz. */
   if (getEntitlements(await getPlanForUser(req.userId)).semAnuncios) {
     responderErro(res, 403, MENSAGENS.semAnuncios, 'sem_anuncios')
     return false

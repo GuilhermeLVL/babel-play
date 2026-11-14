@@ -4,7 +4,7 @@
  * nos proxies de IA. Espelha o shape do cliente + acrescenta `managedCloudLlm` (que o cliente não tem).
  *
  * Fonte do plano (ordem): (1) `subscriptions` (fonte da verdade; o billing escreve aqui); (2) o teste de
- * 14 dias do Premium (C6, `testes_premium`); (3) default por MODO — público → 'free' (conta nova sem
+ * 3 dias do Premium (C6, `testes_premium`); (3) default por MODO — público → 'free' (conta nova sem
  * assinatura), local/self-host → 'selfhost'. NÃO honramos
  * `settings.ui.plan` (gravável pelo cliente = escalada A01); para conceder 'premium' sem billing, use a rota admin.
  *
@@ -55,7 +55,7 @@ function subConcede(sub: Subscription): boolean {
 }
 
 /**
- * O plano efetivo E DE ONDE ELE VEM: `teste` não-nulo = o Premium é o do teste de 14 dias (C6), e só
+ * O plano efetivo E DE ONDE ELE VEM: `teste` não-nulo = o Premium é o do teste de 3 dias (C6), e só
  * então. A admissão da nuvem precisa da diferença (o teste entra como grátis); a tela, do fim.
  */
 export interface PlanoResolvido {
@@ -90,7 +90,7 @@ export async function resolverPlano(userId: UserId): Promise<PlanoResolvido> {
     /* Assinatura que não concede (cancelada, graça expirada, checkout não pago) segue para o teste. */
   }
 
-  // 2) O TESTE DE 14 DIAS (C6): sem assinatura que conceda, o teste ativo concede o plano GRAVADO no início
+  // 2) O TESTE DE 3 DIAS (C6): sem assinatura que conceda, o teste ativo concede o plano GRAVADO no início
   //    (`planoDoTesteGravado`: Plus com a v4, Premium antes dela). Vem DEPOIS da assinatura: quem assina
   //    durante o teste passa a ter o plano pago na mesma hora.
   const teste = await memoDoRequest(userId, 'teste_premium', () => testeAtivoDe(userId))

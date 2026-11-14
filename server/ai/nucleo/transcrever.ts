@@ -112,7 +112,7 @@ export async function admitirTranscricao(
   const pernas = pernasDoStt()
   if (pernas.length === 0)
     return recusar(501, { error: 'STT de nuvem não configurado: defina GROQ_API_KEY no servidor (.env)' })
-  // O teste de 14 dias (C6) tem o Premium nos entitlements, mas entra na faixa grátis.
+  // O teste de 3 dias (C6) tem o Premium nos entitlements, mas entra na faixa grátis.
   const faixa = planoDeAdmissao(plano.plan, alivio, ctx.emTeste)
   const admissao = await admitirStt(pernas, { userId: ctx.userId, plano: faixa })
   if (admissao.ok === false) return recusaNuvemOcupada(admissao.recusa)

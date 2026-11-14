@@ -89,8 +89,8 @@ const abrir = async () => {
   return tela
 }
 
-const FIM_DO_TESTE = Date.now() + 14 * 86_400_000 - 60_000
-const podeTestar = { configurado: true, assinatura: null, teste: { estado: 'disponivel', dias: 14 } }
+const FIM_DO_TESTE = Date.now() + 3 * 86_400_000 - 60_000
+const podeTestar = { configurado: true, assinatura: null, teste: { estado: 'disponivel', dias: 3 } }
 const usoDoGratis = {
   plano: 'free',
   janela: '2026-10',
@@ -497,12 +497,12 @@ describe('Planos: as perguntas', () => {
   })
 })
 
-describe('Planos: o teste de 14 dias', () => {
+describe('Planos: o teste de 3 dias', () => {
   it('é do Premium: o botão está no cartão dele, com "Assinar" ao lado', async () => {
     servidor.rotas['/api/billing/status'] = TODOS_A_VENDA
     await abrir()
     expect([...cartaoDe('premium').querySelectorAll('.pl-plano-pe > *')].map((x) => x.textContent)).toEqual([
-      'Testar 14 dias grátis',
+      'Testar 3 dias grátis',
       'Assinar Premium',
       'Sem cartão. No fim, volta ao Grátis sozinha.',
     ])
@@ -514,7 +514,7 @@ describe('Planos: o teste de 14 dias', () => {
     servidor.rotas['/api/billing/teste'] = { teste: { terminaEm: FIM_DO_TESTE } }
     await abrir()
     await act(async () => {
-      fireEvent.click(botao('Testar 14 dias grátis'))
+      fireEvent.click(botao('Testar 3 dias grátis'))
     })
     await aguardar()
     const pedido = servidor.chamadas.find((c) => c.url === '/api/billing/teste')
@@ -523,7 +523,7 @@ describe('Planos: o teste de 14 dias', () => {
     expect(texto('.px-meu-plano')).toBe('Premium · em teste')
     expect(texto('.px-assinatura h2')).toBe('Premium, em teste')
     expect(texto('.px-assinatura .q-d')).toBe(
-      'O teste termina em 14 dias. Depois dele a conta volta ao Grátis sozinha e nada é cobrado. A legenda no aparelho continua sem limite.',
+      'O teste termina em 3 dias. Depois dele a conta volta ao Grátis sozinha e nada é cobrado. A legenda no aparelho continua sem limite.',
     )
     /* O teste não se cancela nem se repete: sobra assinar. "Voltar ao Grátis agora" não existe no servidor. */
     expect([...document.querySelectorAll('.px-assinatura .q-acoes .q-ctl')].map((b) => b.textContent)).toEqual([
@@ -534,7 +534,7 @@ describe('Planos: o teste de 14 dias', () => {
     const premium = cartaoDe('premium')
     expect(premium.querySelector('.q-rotulo')!.textContent).toBe('Seu plano · em teste · indicado aqui')
     expect(premium.querySelector('.px-nota')!.textContent).toBe(
-      'Seu teste termina em 14 dias. Depois dele a conta volta ao Grátis sozinha.',
+      'Seu teste termina em 3 dias. Depois dele a conta volta ao Grátis sozinha.',
     )
     /* Em teste o cartão do Grátis não é "Seu plano", e o teste não se encerra por ali. */
     const gratis = cartaoDe('gratis')
@@ -547,7 +547,7 @@ describe('Planos: o teste de 14 dias', () => {
   it('o servidor recusou: o erro aparece no cartão e a tela não muda de aba', async () => {
     await abrir()
     await act(async () => {
-      fireEvent.click(botao('Testar 14 dias grátis'))
+      fireEvent.click(botao('Testar 3 dias grátis'))
     })
     await aguardar()
     expect(aba('Planos').getAttribute('aria-selected')).toBe('true')
@@ -558,7 +558,7 @@ describe('Planos: o teste de 14 dias', () => {
     servidor.rotas['/api/billing/status'] = {
       configurado: true,
       assinatura: null,
-      teste: { estado: 'usado', dias: 14, iniciadoEm: 1, terminaEm: 2 },
+      teste: { estado: 'usado', dias: 3, iniciadoEm: 1, terminaEm: 2 },
     }
     await abrir()
     expect(screen.queryByRole('button', { name: /Testar/ })).toBeNull()
@@ -597,10 +597,10 @@ describe('Planos: Sua assinatura e Consumo do mês', () => {
     expect(texto('.px-assinatura .q-rotulo')).toBe('Sua assinatura')
     expect(texto('.px-assinatura h2')).toBe('Você está no Grátis')
     expect(texto('.px-assinatura .q-d')).toBe(
-      'Ele continua inteiro: legenda no aparelho sem limite, jogos, vocabulário e revisão. Quando quiser ir além, o Premium tem teste de 14 dias, sem cartão.',
+      'Ele continua inteiro: legenda no aparelho sem limite, jogos, vocabulário e revisão. Quando quiser ir além, o Premium tem teste de 3 dias, sem cartão.',
     )
     expect([...document.querySelectorAll('.px-assinatura .q-acoes .q-ctl')].map((b) => b.textContent)).toEqual([
-      'Testar 14 dias grátis',
+      'Testar 3 dias grátis',
       'Comparar os planos',
     ])
     fireEvent.click(botao('Comparar os planos'))
@@ -761,7 +761,7 @@ describe('A oferta no desenho novo', () => {
         titulo="Mais uma conquista"
         texto="Quer ir além da tradução rápida?"
         cta="Conhecer o Premium"
-        selo="Sugerido: 14 dias de Premium grátis, sem cartão"
+        selo="Sugerido: 3 dias de Premium grátis, sem cartão"
         aoAgir={saidas.agir}
         aoDispensar={saidas.dispensar}
         aoNaoMostrar={saidas.naoMostrar}

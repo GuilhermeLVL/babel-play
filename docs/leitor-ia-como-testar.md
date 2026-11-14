@@ -67,6 +67,6 @@ ligada lá. Para aplicar sem fazer nada à mão:
 2. Ligue a flag no staging (ato do dono): `node dist-server/operacao.cjs flags ligar parceiro_de_leitura` com o
    `DATABASE_URL` do staging (ver `docs/flags.md`; sem regra de plano: quem pode é o plano).
 3. No staging há login: o Grátis e o convidado recebem "Faz parte dos planos pagos" no parceiro (o Grátis explica com a
-   amostra de 5 por dia). Para ver o parceiro funcionando use uma conta de plano pago ou o teste de 14 dias.
+   amostra de 5 por dia). Para ver o parceiro funcionando use uma conta de plano pago ou o teste de 3 dias.
 
 Nada disso foi executado por este trabalho.

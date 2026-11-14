@@ -80,7 +80,7 @@ async function conversar(req: Request, res: Response, rastro: RastroDeIa): Promi
 
 /**
  * O contexto do app. O tutor nunca usou a franquia do alívio (a oferta é da legenda) nem leu o
- * alívio na admissão: `modo: 'plano'` preserva isso. O teste de 14 dias entra na faixa grátis.
+ * alívio na admissão: `modo: 'plano'` preserva isso. O teste de 3 dias entra na faixa grátis.
  */
 function contextoDoApp(req: Request, rastro: RastroDeIa, gratuita: PortaGratuita) {
   return {

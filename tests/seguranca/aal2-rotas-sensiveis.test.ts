@@ -91,6 +91,31 @@ describe('AAL2 nas rotas sensíveis', () => {
     expect(consultasAdmin).toBe(antes)
   })
 
+  it('ADMIN: conta SEM 2FA e token aal1 é recusada com 403 aal2_obrigatorio_admin', async () => {
+    const r = await s.get('/api/admin/usuarios', await s.token(SEM_2FA, { aal: 'aal1' }))
+    expect(r.status).toBe(403)
+    expect((await r.json()).code).toBe('aal2_obrigatorio_admin')
+  })
+
+  it('ADMIN: caixa diferente na URL não escapa da exigência', async () => {
+    // O app roteia diferenciando maiúsculas (404); o que importa é nunca liberar.
+    const r = await s.get('/API/Admin/usuarios', await s.token(SEM_2FA, { aal: 'aal1' }))
+    expect([403, 404]).toContain(r.status)
+  })
+
+  it('ADMIN: conta COM 2FA e token aal1 pede o código (403 aal2_requerido)', async () => {
+    const r = await s.get('/api/admin/usuarios', await s.token(COM_2FA, { aal: 'aal1' }))
+    expect(r.status).toBe(403)
+    expect((await r.json()).code).toBe('aal2_requerido')
+  })
+
+  it('ADMIN: token aal2 passa a porta do segundo fator (o papel é conferido depois)', async () => {
+    const r = await s.get('/api/admin/usuarios', await s.token(SEM_2FA, { aal: 'aal2' }))
+    const corpo = await r.json().catch(() => ({}))
+    expect(corpo.code).not.toBe('aal2_obrigatorio_admin')
+    expect(corpo.code).not.toBe('aal2_requerido')
+  })
+
   it('Admin API fora do ar: falha FECHADA com 503 (não libera a rota sensível)', async () => {
     const r = await cancelar(await s.token(ADMIN_FORA, { aal: 'aal1' }))
     expect(r.status).toBe(503)

@@ -19,7 +19,12 @@
  *                                               (`src/data/rotas/imagens.ts`)
  *   api.mymemory.translated.net                 a tradução de reserva do cliente
  *                                               (`src/gateway/adapters/mymemory.ts`)
- *   localhost:11434 / 127.0.0.1:11434           o Ollama LOCAL de quem o tem (`src/gateway/profiles.ts`)
+ *   localhost:11434 / 127.0.0.1:11434           o Ollama LOCAL de quem o tem (`src/gateway/profiles.ts`). SÓ fora do
+ *                                               modo público (self-host, dev, edição estática): com
+ *                                               `AUTH_REQUIRED=1` (o Express e o Worker) ou `VITE_AUTH_REQUIRED=1`
+ *                                               (o build que gera o `dist/_headers`) sai, porque o servidor público
+ *                                               não usa o Ollama e um script injetado não tem o que ver na
+ *                                               máquina de quem visita
  *   standardebooks.org                          o EPUB dos livros do catálogo (CORS `*`), baixado direto
  *                                               pelo navegador (`src/lib/livros/textoDoLivro.ts`)
  *   *.wikisource.org                            o texto dos livros da Wikisource, pela API (`origin=*`)
@@ -95,8 +100,6 @@ const CONEXOES_FIXAS = [
   'https://*.wiktionary.org',
   'https://api.openverse.org',
   'https://api.mymemory.translated.net',
-  'http://localhost:11434',
-  'http://127.0.0.1:11434',
   'https://standardebooks.org',
   'https://*.wikisource.org',
   /* "Trazer o seu" por link: o arquivo de um repositório público, baixado pelo navegador. Conferido com
@@ -104,6 +107,16 @@ const CONEXOES_FIXAS = [
      fica de fora (github.com responde 302 sem CORS). */
   'https://raw.githubusercontent.com',
 ]
+
+/** O Ollama LOCAL de quem o tem (perfil "Privado/Local"): só entra fora do modo público (`modoPublico`). */
+const CONEXOES_DO_OLLAMA = ['http://localhost:11434', 'http://127.0.0.1:11434']
+
+/**
+ * O MODO PÚBLICO para a CSP: `AUTH_REQUIRED=1` no servidor (Express e Worker) ou `VITE_AUTH_REQUIRED=1` no build (o
+ * `dist/_headers` do Worker). Só o valor explícito: o build roda com `NODE_ENV=production` também na edição estática e
+ * no self-host, e ali o Ollama continua.
+ */
+const modoPublico = (env: NodeJS.ProcessEnv): boolean => env.AUTH_REQUIRED === '1' || env.VITE_AUTH_REQUIRED === '1'
 
 /**
  * O LEITOR DE LIVROS (L2 de Livros & Leitura): além das fontes do catálogo (acima, em `CONEXOES_FIXAS`), o EPUB
@@ -192,6 +205,7 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
       'blob:',
       'data:',
       ...CONEXOES_FIXAS,
+      ...(modoPublico(env) ? [] : CONEXOES_DO_OLLAMA),
       ...CONEXOES_DO_LEITOR,
       ...doDeploy,
       ...runtimeDoOnnx,
@@ -211,7 +225,7 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
     /* `blob:` CONTINUA (conferido em 26/10/2026, revisão do leitor): com várias threads e o runtime em outra
        origem (`VITE_ORT_WASM_URL`, o R2 de produção), o `importWasmModule` do onnxruntime-web 1.26 baixa o
        `.mjs`, faz `URL.createObjectURL` e `import()` desse `blob:` NA THREAD PRINCIPAL — `worker-src` não cobre
-       isso. Por isso o conteúdo dos livros NÃO depende desta diretiva: o iframe do capítulo não tem
+       isso (reconferido em 15/11/2026: `preload` + `dynamicImportDefault` em `onnxruntime-web/dist/ort.wasm.mjs`). Por isso o conteúdo dos livros NÃO depende desta diretiva: o iframe do capítulo não tem
        `allow-scripts` (`src/lib/leitor/foliate/PATCHES.md`). */
     scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'blob:', ...runtimeDoOnnx, ...turnstile],
     workerSrc: ["'self'", 'blob:', ...runtimeDoOnnx],

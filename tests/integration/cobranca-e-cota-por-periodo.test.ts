@@ -210,6 +210,40 @@ describe('cota pelo período pago', () => {
     expect(janelas.size).toBe(12)
   })
 
+  it('renovaEm: mensal no próximo vencimento, anual no fim da fatia, calendário no dia 1º', () => {
+    const venc = Date.parse('2026-11-03T12:00:00Z')
+    expect(quota.renovacaoDoPeriodoPago(venc, 'mensal', Date.parse('2026-11-20T10:00:00Z'))).toBe(
+      Date.parse('2026-12-03T12:00:00Z'),
+    )
+    // Fim de mês: 31/01 + 1 mês cai em 28/02, não em 03/03.
+    expect(
+      quota.renovacaoDoPeriodoPago(Date.parse('2027-01-31T12:00:00Z'), 'mensal', Date.parse('2027-02-10T00:00:00Z')),
+    ).toBe(Date.parse('2027-02-28T12:00:00Z'))
+    // Vencimento já passou (cobrança atrasada, ainda na folga): o fim do período.
+    expect(quota.renovacaoDoPeriodoPago(venc, 'mensal', Date.parse('2026-12-05T00:00:00Z'))).toBe(venc + 35 * DIA)
+    const fatia = (370 * DIA) / 12
+    expect(quota.renovacaoDoPeriodoPago(venc, 'anual', venc + DIA)).toBe(venc + fatia)
+    expect(quota.renovacaoDoPeriodoPago(venc, 'anual', venc + 5 * fatia + DIA)).toBe(venc + 6 * fatia)
+    // Na última fatia, a renovação é o vencimento do ano (365 dias), antes do fim da fatia (370).
+    expect(quota.renovacaoDoPeriodoPago(venc, 'anual', venc + 11 * fatia + DIA)).toBe(
+      Date.parse('2027-11-03T12:00:00Z'),
+    )
+    expect(quota.renovacaoDoCalendario(Date.parse('2026-11-15T23:59:00Z'))).toBe(Date.parse('2026-12-01T00:00:00Z'))
+    expect(quota.renovacaoDoCalendario(Date.parse('2026-12-31T23:59:00Z'))).toBe(Date.parse('2027-01-01T00:00:00Z'))
+  })
+
+  it('janelaERenovacaoDaCota: quem paga renova no vencimento seguinte; o Grátis no dia 1º', async () => {
+    const venc = Date.now() - 2 * DIA
+    await pagar('c-renova', 'plus', 'sub_crenova', 14.9, venc)
+    const { janela, renovaEm } = await quota.janelaERenovacaoDaCota(asUserId('c-renova'))
+    expect(janela).toBe(await quota.janelaDaCota(asUserId('c-renova')))
+    const ancora = Date.parse(`${diaIso(venc)}T12:00:00Z`)
+    expect(renovaEm).toBe(quota.renovacaoDoPeriodoPago(ancora, 'mensal', Date.now()))
+    expect(renovaEm).toBeGreaterThan(Date.now() + 20 * DIA)
+    const gratis = await quota.janelaERenovacaoDaCota(asUserId('c-gratis-renova'))
+    expect(gratis.renovaEm).toBe(quota.renovacaoDoCalendario(Date.now()))
+  })
+
   it('Grátis e plano do admin (sem período) seguem no mês do calendário', async () => {
     const mes = new Date().toISOString().slice(0, 7)
     expect(await quota.janelaDaCota(asUserId('c-gratis'))).toBe(mes)

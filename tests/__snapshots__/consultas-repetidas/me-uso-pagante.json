@@ -1,6 +1,7 @@
 {
   "plano": "premium",
   "janela": "p2026-09-20",
+  "renovaEm": 1792508400000,
   "chamadas": {
     "usado": 11,
     "teto": 26000

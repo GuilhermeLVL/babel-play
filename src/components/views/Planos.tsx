@@ -56,6 +56,7 @@ import {
   type StatusDeBilling,
   temAssinatura,
 } from '../../lib/assinatura';
+import { diaQueACotaVolta } from '../../lib/diaQueACotaVolta';
 import { useSondaGuardada } from '../../lib/dispositivo/useSondaGuardada';
 import { carregarEntitlements, getEntitlements, onPlanChange, PLAN_LABELS } from '../../lib/entitlements';
 import { flagLigada, useFlag } from '../../lib/flags';
@@ -1374,7 +1375,10 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
               <p className="px-nota pl-renova">
                 {/* A cor é a do ícone no protótipo (`text-accent`, vindo da captura de produção). */}
                 <CalendarClock className="text-accent" aria-hidden />{' '}
-                {t('As horas de nuvem voltam no dia 1º. O que roda no aparelho não entra nesta conta.')}
+                {/* A data é a do servidor (`renovaEm`): quem paga renova no vencimento, não no dia 1º. */}
+                {t('Sua cota renova em {data}. O que roda no aparelho não entra nesta conta.', {
+                  data: diaQueACotaVolta(new Date(), uso.renovaEm ?? null),
+                })}
                 {diaDoMeuPlano !== null && !uso.hoje
                   ? ` ${t('Por dia, a nuvem por trechos vai até {dia} h.', { dia: numero(diaDoMeuPlano) })}`
                   : ''}

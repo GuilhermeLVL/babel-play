@@ -10,6 +10,7 @@ import {
   type NivelNaTela,
 } from '../../../../lib/captura/nivelDeServico';
 import { type SeloDaFala, textoDoSelo } from '../../../../lib/captura/seloDaFala';
+import { diaQueACotaVolta } from '../../../../lib/diaQueACotaVolta';
 import { t } from '../../../../lib/i18n';
 import { langLabelNaUI } from '../../../../lib/languages';
 
@@ -173,7 +174,7 @@ export function ChipDoMedidor({
  * `notaDoPronto()` de `planos4.js:236-245`: uma nota por vez na tela "Pronto para legendar".
  *
  * As horas acabaram: NADA BLOQUEIA. A nota diz quanto era, que a legenda continua no aparelho e que as
- * horas voltam no dia 1º (os contadores do servidor zeram na virada do mês, `lib/uso.ts`). A porta
+ * horas voltam no dia em que a cota renova (`renovaEm` de `/api/me/uso`: o vencimento de quem paga). A porta
  * para o plano de cima só aparece quando ele existe e tem mais horas.
  */
 export function NotaDoPronto({
@@ -195,7 +196,7 @@ export function NotaDoPronto({
           <Server aria-hidden />
           <span>
             <b>{t('As {horas} de nuvem deste mês acabaram.', { horas: horas(medidores[0].total) })}</b>{' '}
-            {t('A legenda continua no aparelho, sem limite. As horas voltam no dia 1º.')}
+            {t('A legenda continua no aparelho, sem limite. As horas voltam em {data}.', { data: diaQueACotaVolta() })}
           </span>
         </span>
         {planoDeCima && aoVerPlano && (

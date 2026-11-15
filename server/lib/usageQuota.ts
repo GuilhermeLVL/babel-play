@@ -244,9 +244,57 @@ export function janelaDoPeriodoPago(inicio: number, ciclo: 'mensal' | 'anual', a
  * `memoDoRequest` de `resolverPlano`). Erro SOBE: a reserva falha fechada.
  */
 export async function janelaDaCota(userId: UserId, agora = Date.now()): Promise<string> {
+  return (await janelaERenovacaoDaCota(userId, agora)).janela
+}
+
+/** `ms` mais `meses` meses do calendário UTC, com o dia preso ao fim do mês (31/01 + 1 → 28 ou 29/02). Pura. */
+function somarMesesUtc(ms: number, meses: number): number {
+  const d = new Date(ms)
+  const alvo = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + meses, 1))
+  const ultimoDia = new Date(Date.UTC(alvo.getUTCFullYear(), alvo.getUTCMonth() + 1, 0)).getUTCDate()
+  alvo.setUTCDate(Math.min(d.getUTCDate(), ultimoDia))
+  return alvo.getTime() + (ms % DIA_MS)
+}
+
+/** O primeiro instante do mês UTC seguinte: quando a janela do calendário (`AAAA-MM`) vira. Pura. */
+export function renovacaoDoCalendario(agora: number): number {
+  const d = new Date(agora)
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1)
+}
+
+/**
+ * QUANDO A COTA DE QUEM PAGA RENOVA (tarefa 3.2 de `cota-pelo-periodo-pago`), em ms: o menor entre o fim da fatia em
+ * curso e o próximo vencimento (um mês ou um ano depois da âncora), porque a cobrança paga desse vencimento grava a
+ * âncora nova e abre a janela seguinte. No mensal é o próximo vencimento; no anual, o fim da fatia de ~30,8 dias, e na
+ * última fatia o vencimento do ano. Se o vencimento já passou (cobrança atrasada, ainda na folga), vale o fim da fatia.
+ * Pura.
+ */
+export function renovacaoDoPeriodoPago(inicio: number, ciclo: 'mensal' | 'anual', agora: number): number {
+  const duracao = (ciclo === 'anual' ? DIAS_DO_PERIODO_ANUAL : DIAS_DO_PERIODO_MENSAL) * DIA_MS
+  const fatias = ciclo === 'anual' ? FATIAS_DO_ANUAL : 1
+  const tamanho = duracao / fatias
+  const n = Math.min(fatias - 1, Math.max(0, Math.floor((agora - inicio) / tamanho)))
+  const fimDaFatia = inicio + (n + 1) * tamanho
+  const proximoVencimento = somarMesesUtc(inicio, ciclo === 'anual' ? 12 : 1)
+  const renova = Math.min(fimDaFatia, proximoVencimento)
+  return renova > agora ? renova : fimDaFatia
+}
+
+/**
+ * A janela da cota e QUANDO ELA RENOVA (`renovaEm`, ms), da mesma leitura do período pago: para quem paga, a fatia do
+ * período e `renovacaoDoPeriodoPago`; para o resto (Grátis, convidado, teste, admin), o mês do calendário UTC e o
+ * dia 1º do mês seguinte. É o que `GET /api/me/uso` devolve para a tela dizer a data certa.
+ */
+export async function janelaERenovacaoDaCota(
+  userId: UserId,
+  agora = Date.now(),
+): Promise<{ janela: string; renovaEm: number }> {
   const periodo = await periodoPagoEmVigor(userId)
-  if (!periodo) return new Date(agora).toISOString().slice(0, 7)
-  return janelaDoPeriodoPago(periodo.inicio, periodo.ciclo, agora)
+  if (!periodo) return { janela: new Date(agora).toISOString().slice(0, 7), renovaEm: renovacaoDoCalendario(agora) }
+  return {
+    janela: janelaDoPeriodoPago(periodo.inicio, periodo.ciclo, agora),
+    renovaEm: renovacaoDoPeriodoPago(periodo.inicio, periodo.ciclo, agora),
+  }
 }
 
 /** A janela de um contador do mês: a do plano (`janelaDaCota`) ou, no alívio do Grátis, o mês do calendário. */

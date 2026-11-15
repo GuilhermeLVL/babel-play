@@ -112,7 +112,8 @@ export const GATILHOS_FUNCIONAIS: readonly GatilhoDeOferta[] = Object.freeze([
     momento: 'fim_de_cota',
     componente: 'aviso_cota',
     titulo: 'A IA de nuvem do seu plano acabou neste mês',
-    texto: 'A tradução e a transcrição locais continuam funcionando. A cota volta no dia 1º.',
+    /* `{data}` é preenchido pelo host com o `renovaEm` de `/api/me/uso`: quem paga renova no vencimento, não no dia 1º. */
+    texto: 'A tradução e a transcrição locais continuam funcionando. A cota volta em {data}.',
     cta: 'Ver planos',
     maxPorDia: 1,
     maxPorSemana: 3,

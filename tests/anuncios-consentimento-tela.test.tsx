@@ -140,11 +140,25 @@ describe('a porta ao lado do anúncio', () => {
     Object.assign(mundo, { flag: true, consentimento: true, respondeu: true, contaCriadaEm: Date.now() - 10 * DIA })
     registrarProvedorDeAnuncios(criarProvedorPorIframe({ origem: 'https://ads.frasy.com.br' }))
   }
+  /* O espaço do provedor real fica recolhido (sem salto de layout) até a página avisar que o anúncio veio. */
+  function preencher() {
+    const f = document.querySelector('iframe')!
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          origin: 'https://ads.frasy.com.br',
+          source: f.contentWindow,
+          data: { tipo: 'frasy:anuncio', evento: 'preenchido' },
+        }),
+      )
+    })
+  }
 
   it('adulto: "Sem anúncios" chama a porta da tela (os planos)', () => {
     comAnuncioReal()
     const aoSemAnuncios = vi.fn()
     render(<EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" aoSemAnuncios={aoSemAnuncios} />)
+    preencher()
     fireEvent.click(screen.getByRole('button', { name: 'Sem anúncios' }))
     expect(aoSemAnuncios).toHaveBeenCalledTimes(1)
     expect(navegarPara).not.toHaveBeenCalled()
@@ -155,6 +169,7 @@ describe('a porta ao lado do anúncio', () => {
     mundo.protegido = true
     const aoSemAnuncios = vi.fn()
     render(<EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" aoSemAnuncios={aoSemAnuncios} />)
+    preencher()
     expect(screen.queryByRole('button', { name: 'Sem anúncios' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Não quero anúncios' }))
     expect(navegarPara).toHaveBeenCalledWith({ view: 'settings', ajustesAba: 'privacidade' })
@@ -246,9 +261,27 @@ describe('Ajustes → Privacidade → Anúncios', () => {
     expect(navegarPara).toHaveBeenCalledWith({ view: 'planos' })
   })
 
-  it('com o consentimento dado, diz que aceitou', () => {
+  it('com o consentimento dado, diz que aceitou, que anúncios podem aparecer e como desfazer', () => {
     Object.assign(mundo, { flag: true, consentimento: true })
     render(<AnunciosNosAjustes />)
     expect(screen.getByText('Você aceitou ver anúncios no plano Grátis.')).toBeTruthy()
+    expect(
+      screen.getByText(
+        'Alguns lugares do app podem mostrar anúncios. Para não ver mais, toque em "Rever" e escolha "Agora não".',
+      ),
+    ).toBeTruthy()
+    /* O texto de quem NÃO aceitou não aparece para quem aceitou (antes aparecia nos dois estados). */
+    expect(screen.queryByText('Sem a sua resposta "Aceitar", nenhum anúncio aparece.')).toBeNull()
+  })
+
+  it('sem o consentimento, diz que sem o "Aceitar" nenhum anúncio aparece (também no perfil protegido)', () => {
+    Object.assign(mundo, { flag: true, consentimento: false })
+    render(<AnunciosNosAjustes />)
+    expect(screen.getByText('Sem a sua resposta "Aceitar", nenhum anúncio aparece.')).toBeTruthy()
+    cleanup()
+    Object.assign(mundo, { protegido: true })
+    render(<AnunciosNosAjustes />)
+    expect(screen.getByText('Sem a sua resposta "Aceitar", nenhum anúncio aparece.')).toBeTruthy()
+    expect(screen.queryByText('Para não ver mais anúncios, toque em "Rever" e escolha "Agora não".')).toBeNull()
   })
 })

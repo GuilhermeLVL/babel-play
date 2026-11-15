@@ -150,6 +150,16 @@ describe('a página de anúncios', () => {
     expect(postar).toHaveBeenCalledWith(expect.objectContaining({ tipo: 'frasy:anuncio', evento: 'vazio' }), APP)
   })
 
+  it('nativo que veio (slot não vazio): avisa `preenchido`, e só então o app abre o espaço (sem salto de layout)', () => {
+    const g = gptFalso()
+    ;(window as unknown as Janela).googletag = g.googletag
+    rodar('espaco=inicio-nativo&formato=nativo&consentimento=1')
+    for (const f of g.googletag.cmd) f()
+    g.ouvintes.slotRenderEnded({ isEmpty: false, slot: g.slot })
+    expect(postar).toHaveBeenCalledWith({ tipo: 'frasy:anuncio', evento: 'preenchido' }, APP)
+    expect(postar).not.toHaveBeenCalledWith(expect.objectContaining({ evento: 'vazio' }), APP)
+  })
+
   it('premiado: formato premiado do GPT, SafeFrame também; recompensa e fechou vão ao app com a exibição', () => {
     const g = gptFalso()
     ;(window as unknown as Janela).googletag = g.googletag

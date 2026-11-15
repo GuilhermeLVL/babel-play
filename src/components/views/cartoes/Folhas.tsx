@@ -81,7 +81,7 @@ export function MenuDeCartoes({
   opcoes: Pick<OpcoesDaRevisao, 'retencao' | 'novas' | 'revisoes'>;
   /** A fonte da ficha, quando é uma sessão, um baralho do Anki ou a Trilha: "Opções de …". */
   fonte?: { Icone: LucideIcon; nome: string; detalhe: string; acao: () => void } | null;
-  /** Ausentes sem conta: não há palavra para criar, trazer nem levar. */
+  /** Sem conta, as três continuam no menu e abrem o convite (`Cartoes.tsx`). Ausente = a linha some. */
   aoPalavraNova?: () => void;
   aoTrazerELevar?: () => void;
   aoAjustes: () => void;

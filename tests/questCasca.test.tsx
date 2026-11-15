@@ -293,7 +293,7 @@ describe('InicioDoQuest', () => {
 })
 
 describe('InicioDoQuest sem conta', () => {
-  it('os Cartões levam ao estado vazio da tela, sem número; nada de sessão salva', () => {
+  it('os Cartões levam ao estado vazio da tela, sem número; a sessão local abre em Jogar', () => {
     const ir = vi.fn()
     render(
       <InicioDoQuest
@@ -308,9 +308,33 @@ describe('InicioDoQuest sem conta', () => {
     expect(screen.getByTestId('cartoes-no-inicio').querySelector('b')?.textContent).toBe('Cartões')
     fireEvent.click(screen.getByTestId('cartoes-no-inicio'))
     expect(ir).toHaveBeenLastCalledWith('cartoes')
-    expect(screen.queryByRole('button', { name: /Continuar/ })).toBeNull()
+    /* A sessão gravada sem conta vive neste navegador e aparece (decisão do dono, 14/11/2026). A análise
+       exige conta; o toque leva a Jogar com ela. */
+    fireEvent.click(screen.getByRole('button', { name: /Continuar: Aula 7/ }))
+    expect(ir).toHaveBeenLastCalledWith('play', { id: 'a' })
     fireEvent.click(screen.getByRole('button', { name: /Conversar/ }))
     expect(ir).toHaveBeenLastCalledWith('interprete')
+  })
+
+  it('as sessões locais aparecem até o teto (5), com o aviso honesto e "Criar conta"; sem "Ver biblioteca"', () => {
+    const ir = vi.fn()
+    const sete = Array.from({ length: 7 }, (_, i) => gravacao(`s${i}`, `Sessão ${i}`))
+    render(<InicioDoQuest onChangeView={ir} recordings={sete} progress={EMPTY_PROGRESS} metrics={null} semConta />)
+    const recentes = screen.getByTestId('recentes-no-inicio')
+    expect(recentes.querySelectorAll('.q-lista .q-linha')).toHaveLength(5)
+    expect(within(recentes).queryByText(/Sessão 5|Sessão 6/)).toBeNull()
+    expect(screen.getByTestId('sessoes-locais').textContent).toContain(
+      'Elas ficam só neste navegador. Com uma conta, vão com você.',
+    )
+    expect(within(recentes).queryByRole('button', { name: 'Ver biblioteca completa' })).toBeNull()
+    fireEvent.click(within(screen.getByTestId('sessoes-locais')).getByRole('button', { name: 'Criar conta' }))
+    expect(ir).toHaveBeenLastCalledWith('login', { modo: 'signup' })
+  })
+
+  it('sem sessão local, nada de lista nem de aviso', () => {
+    render(<InicioDoQuest onChangeView={vi.fn()} recordings={[]} progress={EMPTY_PROGRESS} metrics={null} semConta />)
+    expect(screen.queryByTestId('recentes-no-inicio')).toBeNull()
+    expect(screen.queryByTestId('sessoes-locais')).toBeNull()
   })
 })
 

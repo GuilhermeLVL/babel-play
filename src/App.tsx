@@ -107,7 +107,7 @@ const carregarHostDeOfertas = () => import('./components/ofertas/HostDeOfertas')
    pintura: é decoração e confirmação de gesto, não precisa estar no pacote inicial (teto de 180 KB gzip).
    Por `usePedacoDoQuest`: se o chunk não chegar, não há partícula e a página NÃO recarrega. */
 const carregarParticulas = () => import('./components/ParticleCanvas');
-import { aceitarAnonimo, exigeConta, porta } from './components/conta/exigeConta';
+import { aceitarAnonimo, conviteNoLugarDaTela, porta } from './components/conta/exigeConta';
 import { usePedacoDoQuest } from './components/conta/quest/usePedacoDoQuest';
 import FloatingScoreLayer from './components/FloatingScoreLayer';
 import IndicadorDeSalvamento from './components/IndicadorDeSalvamento';
@@ -379,6 +379,8 @@ export default function App() {
   /* Livros tem item próprio no menu (27/10/2026): o catálogo, o detalhe e o leitor acendem "Livros"; só a
      aula (analysis) vive na Biblioteca. */
   const viewDoMenu: ViewType = activeView === 'analysis' ? 'library' : activeView === 'leitor' ? 'livros' : activeView;
+  /* Sem conta, o convite fica NO LUGAR da tela que exige conta: uma regra só decide os dois lados. */
+  const conviteNaTela = conviteNoLugarDaTela(activeView, anonimo);
 
   // Marco 1: OAuth/recuperação voltando em /auth/callback — aguarda o supabase-js processar a URL.
   if (authRequired && processingCallback) {
@@ -426,7 +428,10 @@ export default function App() {
       </Suspense>
     );
   }
-  if (porta({ authRequired, temSessao: !!session, anonimoAceito: semContaAceito, pedindoLogin }) === 'login') {
+  if (
+    porta({ authRequired, temSessao: !!session, anonimoAceito: semContaAceito, pedindoLogin: !!pedindoLogin }) ===
+    'login'
+  ) {
     return (
       <Suspense
         fallback={
@@ -436,6 +441,7 @@ export default function App() {
         }
       >
         <Login
+          modoInicial={pedindoLogin === 'signup' ? 'signup' : 'login'}
           onContinuarSemConta={() => {
             aceitarAnonimo();
             setSemContaAceito(true);
@@ -581,12 +587,8 @@ export default function App() {
             >
               {/* Na edição estática, Estatísticas roda inteira no servidor em memória e a tela abaixo
                 já monta sem conta — o cartão por cima dela só contradiria o que aparece. */}
-              {anonimo && exigeConta(activeView) && !(edicaoEstatica() && activeView === 'estatisticas') && (
-                <CartaoDeConvite
-                  view={activeView}
-                  onEntrar={() => setPedindoLogin(true)}
-                  onVoltar={() => setActiveView('hub')}
-                />
+              {conviteNaTela && (
+                <CartaoDeConvite view={activeView} onEntrar={setPedindoLogin} onVoltar={() => setActiveView('hub')} />
               )}
               {activeView === 'hub' && (
                 <InicioDoQuest
@@ -617,7 +619,7 @@ export default function App() {
                   ageProfile={ageProfile}
                 />
               )}
-              {activeView === 'library' && !anonimo && (
+              {activeView === 'library' && !conviteNaTela && (
                 <Library
                   onChangeView={navigateTo}
                   recordings={recordings}
@@ -642,7 +644,7 @@ export default function App() {
                   toggleSound={toggleSound}
                 />
               )}
-              {activeView === 'analysis' && !anonimo && analiseAberta.tipo === 'carregando' && (
+              {activeView === 'analysis' && !conviteNaTela && analiseAberta.tipo === 'carregando' && (
                 <div
                   className="carregando-da-tela flex flex-1 items-center justify-center p-10 text-ink-muted text-sm"
                   role="status"
@@ -651,7 +653,7 @@ export default function App() {
                 </div>
               )}
               {activeView === 'analysis' &&
-                !anonimo &&
+                !conviteNaTela &&
                 (analiseAberta.tipo === 'nao-encontrada' || analiseAberta.tipo === 'vazia') && (
                   <div className="tela">
                     <Vazio
@@ -667,7 +669,7 @@ export default function App() {
                     />
                   </div>
                 )}
-              {activeView === 'analysis' && !anonimo && analiseAberta.tipo === 'sessao' && (
+              {activeView === 'analysis' && !conviteNaTela && analiseAberta.tipo === 'sessao' && (
                 <Analysis
                   onChangeView={navigateTo}
                   recording={analiseAberta.gravacao}
@@ -685,11 +687,7 @@ export default function App() {
               {/* CARTÕES abre também sem conta, no estado vazio (decisão do dono, 10/10/2026). A rodada de
                   revisão continua pedindo conta: sem ela, o convite de sempre. */}
               {activeView === 'cartoes' && anonimo && estudo && (
-                <CartaoDeConvite
-                  view="study"
-                  onEntrar={() => setPedindoLogin(true)}
-                  onVoltar={() => navigateTo('cartoes')}
-                />
+                <CartaoDeConvite view="study" onEntrar={setPedindoLogin} onVoltar={() => navigateTo('cartoes')} />
               )}
               {activeView === 'cartoes' && !(anonimo && estudo) && (
                 <Cartoes
@@ -706,7 +704,7 @@ export default function App() {
                 />
               )}
 
-              {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} />}
+              {activeView === 'profile' && !conviteNaTela && <Perfil progress={progress} ageProfile={ageProfile} />}
               {/* Plano e consumo. Diferente do Perfil, aparece TAMBÉM sem conta: é justamente
               quem não tem conta que precisa saber o que um plano daria. */}
               {/* Edição estática (sem servidor): não há plano a assinar. Quem chega por URL (/plano)
@@ -723,7 +721,7 @@ export default function App() {
                 ))}
               {/* Sem conta, o convite fica sozinho e centrado: a tela de trás não aparece por baixo dele
                   (na edição estática não há convite e ela monta normalmente). */}
-              {activeView === 'estatisticas' && (!anonimo || edicaoEstatica()) && (
+              {activeView === 'estatisticas' && !conviteNaTela && (
                 <Estatisticas metrics={metrics} onChangeView={(v) => navigateTo(v as ViewType)} />
               )}
               {activeView === 'ajuda' && <Ajuda />}
@@ -750,7 +748,7 @@ export default function App() {
                   ageProfile={ageProfile}
                   setAgeProfile={setAgeProfile}
                   abaInicial={lojaAba}
-                  onEntrar={() => setPedindoLogin(true)}
+                  onEntrar={(modo) => setPedindoLogin(modo ?? true)}
                   aoTrocarDeAba={setLojaAba}
                   equiparCtx={equiparCtx}
                 />
@@ -819,9 +817,9 @@ export default function App() {
             aberto={gate !== null}
             motivo={gate ?? ''}
             onFechar={fecharGate}
-            onEntrar={() => {
+            onEntrar={(modo) => {
               fecharGate();
-              setPedindoLogin(true);
+              setPedindoLogin(modo);
             }}
           />
         )}

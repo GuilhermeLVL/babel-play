@@ -14,6 +14,7 @@ import { useSondaGuardada } from '../lib/dispositivo/useSondaGuardada';
 import { edicaoEstatica } from '../lib/edicaoEstatica';
 import { escolherProcessamento, type PerfilDoAparelho, useLadoDoProcessamento } from '../lib/escolhaDoProcessamento';
 import { t } from '../lib/i18n';
+import { comConta } from '../lib/pedirConta';
 import { comNomeDoPlano, planoDeEntradaAgora } from '../lib/planoDeEntrada';
 import { perfilProtegido } from '../lib/protecaoDoMenor';
 import { toast } from './Toast';
@@ -131,6 +132,9 @@ export default function AiEnginePanel({
     avisarSeFalhou((await feito).salvo);
   };
 
+  /* A chave é cifrada no servidor, na conta: sem conta, o toque abre o convite (sempre, não só na 1ª vez). */
+  const pedirChave = comConta('POST /api/ai/credentials', () => setPedindoChave(true));
+
   const usarNuvem = async (credentialId: string) => {
     const feito = escolherProcessamento('nuvem', { credencial: credentialId });
     aplicar('cloud-quality');
@@ -143,7 +147,7 @@ export default function AiEnginePanel({
     if (bloqueadaNuvem) return;
     const r = await escolherProcessamento('nuvem');
     if (r.semChave) {
-      setPedindoChave(true);
+      pedirChave();
       return;
     }
     aplicar('cloud-quality');
@@ -256,7 +260,7 @@ export default function AiEnginePanel({
                 <b>{t('Chave de API')}</b>
                 <small>{t('A chave fica cifrada no servidor e nunca volta ao navegador.')}</small>
               </div>
-              <button type="button" className="q-ctl" onClick={() => setPedindoChave(true)}>
+              <button type="button" className="q-ctl" onClick={pedirChave}>
                 <KeyRound aria-hidden /> {t('Trocar a chave')}
               </button>
             </div>

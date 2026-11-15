@@ -21,6 +21,7 @@ import {
 import React, { useState } from 'react';
 
 import { FLAG_AVATAR_3D } from '../../../core/planos';
+import { tetoAnonimoDa } from '../../../core/tetoAnonimo';
 import type { AppMetrics } from '../../../data/api';
 import { abrirMeuAvatar } from '../../../lib/avatar/descoberta';
 import { contagemDaFonte, type Conteudo } from '../../../lib/conteudo/estado';
@@ -133,7 +134,7 @@ const RECENTES = 6;
 type TipoDeSessao = 'all' | Recording['type'];
 
 interface InicioDoQuestProps {
-  onChangeView: (view: string, data?: { id?: string }) => void;
+  onChangeView: (view: string, data?: { id?: string; modo?: 'signup' }) => void;
   recordings: Recording[];
   progress: DerivedProgress;
   metrics: AppMetrics | null;
@@ -194,7 +195,11 @@ export default function InicioDoQuest({
   const comFonte =
     !semConta && !!metrics && metrics.deckSize > 0 && metrics.reviews > 0 && conteudo.fonte.tipo !== 'tudo';
   const [tipo, setTipo] = useState<TipoDeSessao>('all');
-  const sessoes = semConta ? [] : recordings;
+  /* SEM CONTA as sessões vivem neste navegador (até o teto do modo sem conta) e aparecem aqui também:
+     escondê-las fazia parecer que nada tinha sido guardado. Abrem em Jogar, que roda sem conta. */
+  const sessoes = semConta
+    ? recordings.slice(0, tetoAnonimoDa({ edicaoEstatica: edicaoEstatica() }).sessoes)
+    : recordings;
   const recentes = sessoes.filter((r) => tipo === 'all' || r.type === tipo).slice(0, RECENTES);
   const quantas = (qual: TipoDeSessao) =>
     qual === 'all' ? sessoes.length : sessoes.filter((r) => r.type === qual).length;
@@ -469,10 +474,20 @@ export default function InicioDoQuest({
             <div>
               <h2>{t('Sessões recentes')}</h2>
             </div>
-            <button type="button" className="q-chip" onClick={() => onChangeView('library')}>
-              {t('Ver biblioteca completa')}
-            </button>
+            {!semConta && (
+              <button type="button" className="q-chip" onClick={() => onChangeView('library')}>
+                {t('Ver biblioteca completa')}
+              </button>
+            )}
           </header>
+          {semConta && !edicaoEstatica() && (
+            <div className="q-aviso" data-testid="sessoes-locais">
+              <span>{t('Elas ficam só neste navegador. Com uma conta, vão com você.')}</span>
+              <button type="button" className="q-ctl" onClick={() => onChangeView('login', { modo: 'signup' })}>
+                {t('Criar conta')}
+              </button>
+            </div>
+          )}
           <div className="q-abas q-seg" role="group" aria-label={t('Tipo de mídia')}>
             {(
               [
@@ -508,7 +523,7 @@ export default function InicioDoQuest({
                   key={rec.id}
                   type="button"
                   className="q-linha"
-                  onClick={() => onChangeView('analysis', { id: rec.id })}
+                  onClick={() => onChangeView(semConta ? 'play' : 'analysis', { id: rec.id })}
                 >
                   <span className="q-ic">
                     <Icone aria-hidden />
@@ -522,7 +537,7 @@ export default function InicioDoQuest({
                       {rec.status !== 'Processado' ? ` · ${t('processando')}` : ''}
                     </small>
                   </span>
-                  <span className="q-fim">{t('Abrir')}</span>
+                  <span className="q-fim">{semConta ? t('Jogar') : t('Abrir')}</span>
                 </button>
               );
             })}

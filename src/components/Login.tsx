@@ -56,10 +56,12 @@ interface LoginProps {
    * jogos sobre a sessão atual rodam inteiros no navegador. Ausente no fluxo de recuperação.
    */
   onContinuarSemConta?: () => void;
+  /** Onde a porta abre: o "Criar conta" de um convite chega direto no cadastro. */
+  modoInicial?: 'login' | 'signup';
 }
 
-export default function Login({ onContinuarSemConta }: LoginProps = {}) {
-  const [modo, setModo] = useState<Mode>('login');
+export default function Login({ onContinuarSemConta, modoInicial = 'login' }: LoginProps = {}) {
+  const [modo, setModo] = useState<Mode>(modoInicial);
   /* O e-mail lembrado neste aparelho já vem preenchido; a senha é do gerenciador do navegador. */
   const [email, setEmail] = useState(porta.emailLembrado);
   const [lembrar, setLembrar] = useState(true);

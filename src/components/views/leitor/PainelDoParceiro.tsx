@@ -15,7 +15,9 @@ import { useConsentimentoDeNuvem } from '../../../lib/consentimentoDeNuvem';
 import { diaQueACotaVolta } from '../../../lib/diaQueACotaVolta';
 import { MODOS_COM_SELECAO, MODOS_DO_PARCEIRO, TETOS_DO_PARCEIRO } from '../../../lib/estudo/promptDoParceiro';
 import { t } from '../../../lib/i18n';
+import { estaAnonimo } from '../../../lib/identidade';
 import { indiceDoParagrafoComTexto } from '../../../lib/leitor/paragrafos';
+import { pedirEntrada, semContaComPorta } from '../../../lib/pedirConta';
 
 /** O que o leitor sabe do capítulo no momento do pedido (lido na hora, nunca guardado). */
 export interface SecaoParaOParceiro {
@@ -47,7 +49,10 @@ export function fraseDaFalhaDoParceiro(m: FalhaDoParceiro): string {
     case 'sem_plano':
       return t('O parceiro de leitura faz parte dos planos pagos. Traduzir e ouvir o livro seguem grátis.');
     case 'sem_conta':
-      return t('Entre na sua conta para usar o parceiro de leitura.');
+      /* `sem_conta` também é qualquer 401: com conta, é a sessão que caiu, não falta de conta. */
+      return estaAnonimo()
+        ? t('O parceiro de leitura precisa de conta. Ler, traduzir e ouvir o livro continuam livres.')
+        : t('Sua sessão expirou. Entre de novo para usar o parceiro de leitura.');
     case 'fora_da_faixa':
       return t('O parceiro não responde sobre este livro para o seu perfil.');
     case 'cota_do_mes':
@@ -264,6 +269,17 @@ export default function PainelDoParceiro({
       <p id={idDoStatus} className="leitor-apoio" role="status" data-testid="parceiro-status">
         {estado.fase === 'carregando' ? t('Pensando…') : textoDaFalha}
       </p>
+      {/* Sem conta, a saída está ali mesmo: os dois botões de todo convite. */}
+      {estado.fase === 'erro' && estado.motivo === 'sem_conta' && semContaComPorta() && (
+        <div className="leitor-acoes" data-testid="parceiro-sem-conta">
+          <button type="button" className="btn btn-solid leitor-alvo" onClick={() => pedirEntrada('signup')}>
+            {t('Criar conta')}
+          </button>
+          <button type="button" className="btn btn-outline leitor-alvo" onClick={() => pedirEntrada('login')}>
+            {t('Já tenho conta')}
+          </button>
+        </div>
+      )}
       {estado.fase === 'erro' && !SEM_NOVA_TENTATIVA.has(estado.motivo) && (
         <button type="button" className="btn btn-outline leitor-alvo" onClick={() => void perguntar()}>
           <RefreshCw aria-hidden /> {t('Tentar de novo')}

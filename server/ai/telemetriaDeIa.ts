@@ -38,6 +38,7 @@ import {
 } from '../lib/langfuse'
 import { log } from '../lib/logger'
 import { salDoPseudonimo } from '../lib/pseudonimoDeUsuario'
+import type { CategoriaDeBloqueio } from './moderacao/listasParaMenores'
 import { fornecedorDaBase } from './registroDeProvedores'
 
 /** A função de produto que a requisição serve — a dimensão "feature" do painel. `tts`: a voz natural do intérprete (E4 da Fase E). */
@@ -88,6 +89,8 @@ export interface AnotacoesDoRastro {
   modoDoParceiro?: ModoDoParceiro
   /** Livro do catálogo ou trazido pela pessoa (o id do livro não vai ao rastro). */
   origemDoLivro?: 'catalogo' | 'proprio'
+  /** O filtro de saída de perfil protegido barrou a resposta: a CATEGORIA (lista fechada), nunca o texto. */
+  saidaFiltrada?: CategoriaDeBloqueio
 }
 
 /** O id da sessão de captura que o cliente PODE mandar. Formato fechado; fora dele, ignorado. */
@@ -277,6 +280,7 @@ export function abrirRastro(req: Request, funcao: FuncaoTelemetrada): RastroDeIa
             desfechoDoFluxo: anotacoes.desfechoDoFluxo,
             modoDoParceiro: anotacoes.modoDoParceiro,
             origemDoLivro: anotacoes.origemDoLivro,
+            saidaFiltrada: anotacoes.saidaFiltrada,
             custoUsd: somaDeCusto(geracoes),
           }
           cliente.enviar({

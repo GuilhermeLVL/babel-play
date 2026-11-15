@@ -70,6 +70,10 @@ export interface LogFields {
      números e booleanos (o executor descarta o resto: nada de id de usuário). */
   job?: string
   resumo?: Record<string, number | boolean>
+  /* Filtro de saída do tutor para perfil protegido (`server/ai/moderacao/`): a CATEGORIA barrada e a função de IA,
+     rótulos fixos do código. O texto do modelo nunca entra no log. */
+  categoria?: string
+  funcao?: string
 }
 
 const ALLOWED = new Set([
@@ -110,6 +114,9 @@ const ALLOWED = new Set([
   // Jobs (server/jobs/executar.ts): o nome do job e o resumo numérico da passada.
   'job',
   'resumo',
+  // Filtro de saída do tutor (server/ai/moderacao/): a categoria barrada e a função, rótulos fixos.
+  'categoria',
+  'funcao',
 ])
 
 /**

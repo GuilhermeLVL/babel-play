@@ -15,7 +15,8 @@
  * (`tutor` | `corretor`) e traz o conteúdo; `systemInstruction`, temperatura e `max_tokens` do
  * cliente são descartados. PÚBLICO MENOR (ECA Digital, Fase 4): menor — ou quem ainda não declarou a
  * idade — recebe a instrução de segurança no fim do `system` (`ehMenor`; no self-host é sempre falso).
- * A tradução não recebe: ela verte fielmente um texto que a pessoa já tem.
+ * A tradução não recebe: ela verte fielmente um texto que a pessoa já tem. E o turno `assistant` do
+ * histórico só chega ao modelo com a assinatura do servidor (`assinaturaDoTutor.ts`, LLM01).
  *
  * "INDISPONÍVEL" NÃO É RECUSA. A nuvem fora, o plano sem nuvem e o self-host sem modelo local
  * respondem 200 com `text: null` e o motivo — o cliente mostra a frase certa e segue. Recusa é o
@@ -31,6 +32,7 @@ import { log } from '../../lib/logger'
 import { type Portao, portaoDaNuvem, registrarGastoDeIa } from '../../lib/orcamentoDeIa'
 import { estimarTokens } from '../../lib/usageQuota'
 import { planoDeAdmissao } from '../admissao'
+import { verificadorDeTurnos } from '../assinaturaDoTutor'
 import { type AdmissaoDaCascata, admitirCascata, encerrarAdmissao, percorrerCascata } from '../cascata'
 import type { FuncaoDeIa } from '../funcoesDeIa'
 import { chamarChat, type MensagemDeChat, tamanhoDoPrompt } from '../llmClient'
@@ -138,11 +140,15 @@ async function conversar(
   try {
     const menor = await ehMenor(ctx.userId)
     rastro.anotar({ menor })
-    const prep = prepareLlmRequest(
-      pedido.corpo,
-      menor ? { instrucaoParaMenor: INSTRUCAO_DE_SEGURANCA_PARA_MENORES } : {},
-    )
+    const prep = prepareLlmRequest(pedido.corpo, {
+      ...(menor ? { instrucaoParaMenor: INSTRUCAO_DE_SEGURANCA_PARA_MENORES } : {}),
+      turnoDoAssistenteValido: await verificadorDeTurnos(ctx.userId),
+    })
     if (!prep.ok) return decidir(recusar(prep.status, { error: prep.error as string, code: prep.code }))
+    if (prep.turnosDescartados > 0) {
+      /* Cliente em cache (sem assinatura) ou histórico forjado (LLM01). Só a contagem: o texto é da pessoa. */
+      log('warn', { event: 'tutor_turno_sem_assinatura', total: prep.turnosDescartados, requestId: ctx.requestId })
+    }
     const selfHost = !authRequired()
 
     if (plano.managedCloudLlm) {

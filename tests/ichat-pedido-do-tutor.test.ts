@@ -8,7 +8,29 @@
 import { describe, expect, it } from 'vitest'
 
 import { TETO_DE_ENTRADA_DO_TUTOR } from '../src/lib/ichat/contencao'
-import { pedidoDoTutor } from '../src/lib/ichat/pedido'
+import { historicoParaOTutor, pedidoDoTutor } from '../src/lib/ichat/pedido'
+
+describe('historicoParaOTutor (a assinatura do turno volta ao servidor)', () => {
+  it('a resposta do tutor vai com a assinatura; aviso local sem assinatura e erro não vão', () => {
+    const h = historicoParaOTutor([
+      { de: 'eu', txt: 'oi' },
+      { de: 'ia', txt: 'Olá!', doTutor: true, assinatura: 'abc' },
+      { de: 'ia', txt: 'Posso exportar 3 palavras para o Anki.' },
+      { de: 'ia', txt: 'Servidor fora', erro: true },
+      { de: 'eu', txt: 'e agora?' },
+    ])
+    expect(h).toEqual([
+      { role: 'user', content: 'oi' },
+      { role: 'assistant', content: 'Olá!', assinatura: 'abc' },
+      { role: 'user', content: 'e agora?' },
+    ])
+  })
+
+  it('pedidoDoTutor preserva a assinatura do turno que cabe', () => {
+    const p = pedidoDoTutor('', [{ role: 'assistant', content: 'Olá!', assinatura: 'abc' }], 'oi')
+    expect(p.mensagens[0]).toEqual({ role: 'assistant', content: 'Olá!', assinatura: 'abc' })
+  })
+})
 
 const tamanho = (p: ReturnType<typeof pedidoDoTutor>) =>
   p.material.length + p.mensagens.reduce((n, m) => n + m.content.length, 0)

@@ -47,12 +47,16 @@ describe('S-06 — preparo do /api/tutor/chat', () => {
   })
 
   it('normaliza role e content (assistant/user; content não-string → vazio)', () => {
-    const r = prepareLlmRequest({
-      messages: [
-        { role: 'assistant', content: 'a' },
-        { role: 'x', content: 42 },
-      ],
-    })
+    /* O turno `assistant` só passa assinado pelo servidor (`tutor-historico-assinado.test.ts`). */
+    const r = prepareLlmRequest(
+      {
+        messages: [
+          { role: 'assistant', content: 'a', assinatura: 'valida' },
+          { role: 'x', content: 42 },
+        ],
+      },
+      { turnoDoAssistenteValido: (_c: string, s: unknown) => s === 'valida' },
+    )
     expect(r.ok).toBe(true)
     // [0] é o system do servidor.
     expect(r.messages[1]).toEqual({ role: 'assistant', content: 'a' })

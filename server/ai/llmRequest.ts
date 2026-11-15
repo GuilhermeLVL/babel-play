@@ -10,6 +10,8 @@
  *   - o cliente escolhe uma FUNÇÃO (`tutor` | `corretor`, ver `funcoesDeIa.ts`) e manda conteúdo;
  *   - `systemInstruction`, `temperature` e `maxTokens` do corpo são IGNORADOS;
  *   - mensagem de papel `system` vinda do cliente vira `user` — papel com autoridade é só nosso;
+ *   - mensagem de papel `assistant` só passa com a assinatura do servidor (`assinaturaDoTutor.ts`); sem
+ *     ela é descartada (LLM01: o cliente forjava respostas anteriores do tutor);
  *   - o material de tela vai cercado com nonce como DADO numa mensagem `user` (LLM01), e quem
  *     cerca é o servidor, porque é ele que escreve a cláusula que descreve a cerca;
  *   - o teto de entrada é o da função (413 acima dele).
@@ -61,6 +63,8 @@ export interface PreparedLlm {
   maxTokens: number
   /** Caracteres de conteúdo do cliente — é o que a reserva de tokens estima. */
   caracteresDeEntrada: number
+  /** Turnos `assistant` do cliente descartados por não terem a assinatura do servidor (LLM01). */
+  turnosDescartados: number
 }
 
 const falha = (status: number, error: string, code: string, funcao: FuncaoDeIa = 'tutor'): PreparedLlm => ({
@@ -73,6 +77,7 @@ const falha = (status: number, error: string, code: string, funcao: FuncaoDeIa =
   temperature: 0,
   maxTokens: 0,
   caracteresDeEntrada: 0,
+  turnosDescartados: 0,
 })
 
 const texto = (v: unknown): string => (typeof v === 'string' ? v : '')
@@ -86,6 +91,11 @@ export interface OpcoesDoPreparo {
    * pessoa é menor é a rota (`ehMenor`, que consulta o banco); este módulo continua puro.
    */
   instrucaoParaMenor?: string
+  /**
+   * Confere a assinatura de um turno `assistant` do histórico (`verificadorDeTurnos`, em
+   * `assinaturaDoTutor.ts`). Ausente, NENHUM turno `assistant` do cliente passa: o padrão é o seguro.
+   */
+  turnoDoAssistenteValido?: (conteudo: string, assinatura: unknown) => boolean
 }
 
 /** Acrescenta a instrução de menor ao `system`, quando houver. */
@@ -99,7 +109,7 @@ export function prepareLlmRequest(body: LlmChatBody | undefined, opcoes: OpcoesD
   }
   const funcao = pedida as FuncaoDeIa
   const def = FUNCOES_DE_IA[funcao]
-  const pronto = (messages: MensagemDeChat[], caracteres: number): PreparedLlm => ({
+  const pronto = (messages: MensagemDeChat[], caracteres: number, turnosDescartados = 0): PreparedLlm => ({
     ok: true,
     status: 200,
     funcao,
@@ -107,6 +117,7 @@ export function prepareLlmRequest(body: LlmChatBody | undefined, opcoes: OpcoesD
     temperature: def.temperatura,
     maxTokens: def.maxTokens,
     caracteresDeEntrada: caracteres,
+    turnosDescartados,
   })
 
   if (funcao === 'corretor') {
@@ -134,16 +145,28 @@ export function prepareLlmRequest(body: LlmChatBody | undefined, opcoes: OpcoesD
   // ─── tutor ───
   const brutas = body?.messages
   if (!Array.isArray(brutas)) return falha(400, 'O array de mensagens é obrigatório.', 'payload_invalido', funcao)
-  /* Papel `system` do cliente vira `user`: só o servidor escreve no papel que tem autoridade. */
-  const historico: MensagemDeChat[] = brutas.slice(-MAX_MENSAGENS).map((m: any) => ({
-    role: m?.role === 'assistant' ? 'assistant' : 'user',
-    content: texto(m?.content),
-  }))
+  const recebidas = brutas.slice(-MAX_MENSAGENS)
   const material = texto(body?.material)
-  const caracteres = material.length + historico.reduce((n, m) => n + m.content.length, 0)
-  if (caracteres > def.tetoEntrada) {
+  /* O teto vale sobre o que o cliente MANDOU (antes do descarte abaixo): é ele que mede o abuso. */
+  const recebidos = material.length + recebidas.reduce((n: number, m: any) => n + texto(m?.content).length, 0)
+  if (recebidos > def.tetoEntrada) {
     return falha(413, 'prompt grande demais (teto de entrada do tutor)', 'payload_grande', funcao)
   }
+  /* Papel `system` do cliente vira `user`: só o servidor escreve no papel que tem autoridade. E o papel
+     `assistant` só passa ASSINADO pelo servidor (LLM01, `assinaturaDoTutor.ts`): sem isso, o cliente forja
+     "respostas anteriores" do tutor. O forjado é DESCARTADO, não recusado com 400: o cliente em cache, que
+     ainda não devolve a assinatura, segue conversando — só sem o contexto das respostas. Quem chama loga. */
+  const valido = opcoes.turnoDoAssistenteValido
+  let turnosDescartados = 0
+  const historico: MensagemDeChat[] = []
+  for (const m of recebidas as any[]) {
+    const content = texto(m?.content)
+    if (m?.role === 'assistant') {
+      if (valido?.(content, m?.assinatura)) historico.push({ role: 'assistant', content })
+      else turnosDescartados++
+    } else historico.push({ role: 'user', content })
+  }
+  const caracteres = material.length + historico.reduce((n, m) => n + m.content.length, 0)
 
   const perfil = ehPerfil(body?.perfil) ? body.perfil : PERFIL_PADRAO
   let sistema = sistemaDoTutor(perfil)
@@ -159,5 +182,6 @@ export function prepareLlmRequest(body: LlmChatBody | undefined, opcoes: OpcoesD
   return pronto(
     [{ role: 'system', content: comInstrucaoDeMenor(sistema, opcoes.instrucaoParaMenor) }, ...mensagens, ...historico],
     caracteres,
+    turnosDescartados,
   )
 }

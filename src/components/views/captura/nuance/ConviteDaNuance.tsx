@@ -1,7 +1,8 @@
 import { Lock, Sparkles } from 'lucide-react';
 
 import { t } from '../../../../lib/i18n';
-import { comNomeDoPlano, planoDeEntradaAgora } from '../../../../lib/planoDeEntrada';
+import { usePlanoDeEntrada } from '../../../../lib/planoAVenda';
+import { comNomeDoPlano } from '../../../../lib/planoDeEntrada';
 
 /**
  * O QUE O GRÁTIS VÊ NO LUGAR DE UM RECURSO DA TRADUÇÃO NUANCE (Fase D) — decisão do dono: o recurso
@@ -13,6 +14,8 @@ import { comNomeDoPlano, planoDeEntradaAgora } from '../../../../lib/planoDeEntr
  * de 3 dias existir (C6), o convite leva à tela de Planos.
  */
 export default function ConviteDaNuance({ texto, aoConhecer }: { texto: string; aoConhecer?: () => void }) {
+  /* Acompanha as flags: o nome do plano à venda (Plus com a v4) chega mesmo se elas vierem depois. */
+  const planoDeEntrada = usePlanoDeEntrada();
   return (
     <div className="nuance-convite" data-testid="convite-da-nuance">
       <p className="folha-def">
@@ -22,7 +25,7 @@ export default function ConviteDaNuance({ texto, aoConhecer }: { texto: string; 
       <p className="folha-status">{t('Sua legenda já usa a Tradução rápida ao vivo, sem esperar.')}</p>
       {aoConhecer && (
         <button type="button" className="folha-acao" onClick={aoConhecer}>
-          <Sparkles aria-hidden /> {comNomeDoPlano(t('Conhecer o Premium'), planoDeEntradaAgora())}
+          <Sparkles aria-hidden /> {comNomeDoPlano(t('Conhecer o Premium'), planoDeEntrada)}
         </button>
       )}
     </div>

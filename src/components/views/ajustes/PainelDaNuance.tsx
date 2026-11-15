@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import type { EntradaDoGlossario, FalhaDaNuance } from '../../../data/apiDaNuance';
 import { getEntitlements } from '../../../lib/entitlements';
 import { t } from '../../../lib/i18n';
-import { comNomeDoPlano, planoDeEntradaAgora } from '../../../lib/planoDeEntrada';
+import { usePlanoDeEntrada } from '../../../lib/planoAVenda';
+import { comNomeDoPlano } from '../../../lib/planoDeEntrada';
 import { type PreferenciasDaNuance, salvarPreferencias, usePreferencias } from '../../../lib/preferencias';
 import { toast } from '../../Toast';
 
@@ -25,6 +26,8 @@ type Lista =
  * de pagar tem de poder ver e apagar o que guardou.
  */
 export default function PainelDaNuance({ aoConhecer }: { aoConhecer?: () => void }) {
+  /* Acompanha as flags: o nome do plano à venda (Plus com a v4) chega mesmo se elas vierem depois. */
+  const planoDeEntrada = usePlanoDeEntrada();
   const disponivel = getEntitlements().traducaoNuance;
   const { nuance } = usePreferencias();
   const [lista, setLista] = useState<Lista>({ estado: 'carregando' });
@@ -95,12 +98,12 @@ export default function PainelDaNuance({ aoConhecer }: { aoConhecer?: () => void
               t(
                 'Registro, variantes e glossário são da Tradução Nuance do Premium. Sua legenda já usa a Tradução rápida ao vivo.',
               ),
-              planoDeEntradaAgora(),
+              planoDeEntrada,
             )}
           </span>
           {aoConhecer && (
             <button type="button" className="q-ctl" onClick={aoConhecer}>
-              {comNomeDoPlano(t('Conhecer o Premium'), planoDeEntradaAgora())}
+              {comNomeDoPlano(t('Conhecer o Premium'), planoDeEntrada)}
             </button>
           )}
         </div>

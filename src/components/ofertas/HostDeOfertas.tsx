@@ -41,7 +41,8 @@ import {
 import { decidirOferta, type DecisaoDeOferta, type EstadoDaTela } from '../../lib/ofertas/motor';
 import { pessoaDaOferta, planoDaOferta } from '../../lib/ofertas/plano';
 import { verificarTeste } from '../../lib/ofertas/teste';
-import { comNomeDoPlano, planoDeEntradaAgora } from '../../lib/planoDeEntrada';
+import { usePlanoDeEntrada } from '../../lib/planoAVenda';
+import { comNomeDoPlano } from '../../lib/planoDeEntrada';
 import { planoDeProva } from '../../lib/polimento/planos';
 import { capturaAtiva } from '../../lib/sessaoDeCaptura';
 import { useI18n } from '../../lib/useI18n';
@@ -111,6 +112,8 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
   const { t, idioma } = useI18n();
   const flagLigada = useFlag('oferta_planos');
   const config = useConfigRemota('oferta_planos', OFERTAS_PADRAO, ehConfigDeOfertas);
+  /* O plano que o texto nomeia (Plus com a v4, Premium sem ela), acompanhando as flags. */
+  const planoDeEntrada = usePlanoDeEntrada();
   const [atual, setAtual] = useState<OfertaNaTela | null>(null);
 
   /* Refs: o ouvinte do evento é registrado uma vez e precisa ler o valor MAIS recente. */
@@ -261,11 +264,11 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
   /* O texto do fim do teste fala do plano que o teste deu: o Premium até aqui, o Plus na v4. */
   const planoDoTeste = ((): PlanoPago => {
     const { plan } = getEntitlements();
-    return ehPlanoPago(plan) ? plan : planoDeEntradaAgora();
+    return ehPlanoPago(plan) ? plan : planoDeEntrada;
   })();
   /* Com a v4 ligada NENHUMA oferta fala do Premium (as remotas da flag `oferta_planos` ainda o nomeiam):
      o fim do teste usa o plano que o teste deu; as demais, o plano de entrada. Sem a v4 o texto é o de hoje. */
-  const planoDoTexto = informativoDoTeste ? planoDoTeste : planoDeEntradaAgora();
+  const planoDoTexto = informativoDoTeste ? planoDoTeste : planoDeEntrada;
   const doPlano = (txt: string): string => comNomeDoPlano(txt, planoDoTexto);
   const titulo = doPlano(resolverTextoRemoto(g.titulo, idioma, t));
   /* `{data}` (o fim de cota): o dia em que a cota renova, do `renovaEm` que `verificarCota` acabou de ler. */
@@ -275,7 +278,7 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
     sugerido === 'nenhum' && !informativoDoTeste
       ? t('Ver consumo do mês')
       : doPlano(resolverTextoRemoto(g.cta, idioma, t));
-  const selo = seloDoPlano(sugerido, t, planoDeEntradaAgora());
+  const selo = seloDoPlano(sugerido, t, planoDeEntrada);
   const props = {
     /* O fim de sessão traz o livro aberto (`OFERTAS`, `telas.js:480`). */
     icone: momento === 'fim_de_sessao' ? BookOpen : ICONE[momento],

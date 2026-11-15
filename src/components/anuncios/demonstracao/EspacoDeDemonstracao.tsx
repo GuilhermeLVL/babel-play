@@ -26,6 +26,7 @@ import type { PropsDoEspacoDeAnuncio } from '../../../lib/anuncios/provedor';
 import { perfilProtegido } from '../../../lib/protecaoDoMenor';
 import { toast } from '../../Toast';
 import FluxoDoPremiado from './FluxoDoPremiado';
+import { useTextoSemAnuncios } from './semAnuncios';
 import type { MarcaDeExemplo, PremioDeExemplo } from './tipos';
 
 /**
@@ -132,10 +133,11 @@ function Rotulo({ texto = 'Patrocinado' }: { texto?: string }) {
 
 /** `semAds()` (`anuncios.js:87`): a porta para os planos, ao lado de todo anúncio. */
 function SemAnuncios({ aoSemAnuncios }: { aoSemAnuncios: () => void }) {
+  const texto = useTextoSemAnuncios();
   return (
     <button type="button" className="ad-sem" onClick={aoSemAnuncios}>
       {/* O perfil protegido não compra: a porta dele leva a Ajustes → Privacidade (`EspacoDeAnuncio`). */}
-      {perfilProtegido() ? 'Não quero anúncios' : 'Sem anúncios no Essencial'}
+      {perfilProtegido() ? 'Não quero anúncios' : texto}
     </button>
   );
 }

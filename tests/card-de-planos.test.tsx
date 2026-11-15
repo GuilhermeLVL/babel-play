@@ -27,11 +27,34 @@ async function montar(plan: string, armazenamento: { usados: number; teto: numbe
   return tela
 }
 
+/* As flags avaliadas como o servidor as devolve (todas, ligadas ou não), no cache do aparelho. */
+const flagsNoAparelho = (v4: boolean) =>
+  localStorage.setItem(
+    'babel.flags',
+    JSON.stringify({ venda_planos_v4: { ligada: v4 }, oferta_planos: { ligada: false } }),
+  )
+
 it('plano free vê o card, com o menor preço da matriz', async () => {
+  flagsNoAparelho(false)
   await montar('free')
   const card = screen.getByTestId('card-de-planos')
   const { menorPrecoDeAssinatura } = await import('../src/core/planos')
   expect(card.textContent).toContain(`R$ ${menorPrecoDeAssinatura()}`)
+})
+
+it('com a v4 ligada o preço é o do Plus (14,90), nunca o do Premium', async () => {
+  flagsNoAparelho(true)
+  await montar('free')
+  const card = screen.getByTestId('card-de-planos')
+  expect(card.textContent).toContain('R$ 14,90')
+  expect(card.textContent).not.toContain('19,90')
+})
+
+it('antes de as flags chegarem não há preço nenhum (nada de "R$ 19,90" que vira 14,90 depois)', async () => {
+  await montar('free')
+  const card = screen.getByTestId('card-de-planos')
+  expect(card.textContent).not.toContain('R$')
+  expect(card.textContent).toContain('Conheça os planos pagos')
 })
 
 it('anônimo também vê', async () => {

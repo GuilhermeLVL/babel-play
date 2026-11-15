@@ -92,7 +92,48 @@ describe('páginas públicas', () => {
     const html = site({ SITE_FLAGS_DE_VENDA: 'venda_planos_v4' }).get('planos.html')!
     expect(html).toContain(`R$ ${PLAN_MATRIX.plus.precoMensalBrl!.toFixed(2).replace('.', ',')}`)
     expect(html).not.toContain(`R$ ${PLAN_MATRIX.premium.precoMensalBrl!.toFixed(2).replace('.', ',')}`)
-    expect(html).toContain('Em breve: Família e Pro')
+    expect(html).toMatch(/<b>Família<\/b> · para até 4 pessoas · em breve/)
+    expect(html).toMatch(/<b>Pro<\/b> · conversa por voz com um tutor · em breve/)
+    /* Em breve não anuncia valor (nem a Família nem o Pro). */
+    for (const id of ['familia', 'pro4'] as const)
+      expect(html).not.toContain(`R$ ${PLAN_MATRIX[id].precoMensalBrl!.toFixed(2).replace('.', ',')}`)
+  })
+
+  it('FAQ: com o anual fechado não fala de pagar o ano à vista ou parcelado; aberto, fala', () => {
+    const fechado = site({ SITE_FLAGS_DE_VENDA: 'venda_planos_v4' }).get('planos.html')!
+    expect(fechado).not.toMatch(/anual/i)
+    const aberto = site({ SITE_FLAGS_DE_VENDA: 'venda_planos_v4', ANUAL_ENABLED: '1' }).get('planos.html')!
+    expect(aberto).toContain('No plano anual você pode pagar à vista ou parcelar')
+  })
+
+  it('v4: o Plus diz o mesmo que o cartão do app; sem `voz_natural` a voz é "em breve", sem números de cota', () => {
+    const html = site({ SITE_FLAGS_DE_VENDA: 'venda_planos_v4' }).get('planos.html')!
+    expect(html).not.toContain('Voz natural no modo intérprete')
+    expect(html).toContain('Voz natural para ouvir as frases (até 150 mil caracteres por mês) · em breve')
+    expect(html).not.toMatch(/300 explicações|60 resumos/)
+    expect(html).toContain('Nuance, polir a sessão e glossário')
+    expect(html).toContain('Tutor de IA por texto (iChat)')
+    expect(html).toContain('8 h de nuvem por mês (no nível Precisão, para o áudio difícil · até 2 h por dia)')
+    expect(html).toContain(
+      'Explicação da frase no contexto (por que essa tradução, gramática, formal ou informal, gíria) · em breve',
+    )
+    expect(html).toContain('Para quem quer transformar o que assiste em estudo')
+    /* O Grátis mostra a nuvem de alívio, como no app. */
+    expect(html).toContain('Nuvem: até 3 h por mês, para aparelho fraco, quando disponível')
+  })
+
+  it('v4 com `voz_natural` e `ia_de_estudo` na lista do build: os itens deixam de ser "em breve"', () => {
+    const html = site({ SITE_FLAGS_DE_VENDA: 'venda_planos_v4,ia_de_estudo,voz_natural' }).get('planos.html')!
+    expect(html).toContain('Voz natural para ouvir as frases (até 150 mil caracteres por mês)</li>')
+    expect(html).toContain(
+      'Explicação da frase no contexto (por que essa tradução, gramática, formal ou informal, gíria)</li>',
+    )
+    expect(html).toContain('Amostra da IA: 5 explicações por dia e 1 resumo por semana')
+  })
+
+  it('sem a v4, a voz natural só aparece com `voz_natural` na lista do build', () => {
+    expect(site().get('planos.html')!).not.toContain('Voz natural')
+    expect(site({ SITE_FLAGS_DE_VENDA: 'voz_natural' }).get('planos.html')!).toContain('Voz natural no modo intérprete')
   })
 
   it('404: noindex e sem canonical', () => {

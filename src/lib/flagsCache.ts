@@ -12,6 +12,9 @@ import type { FlagAvaliada, FlagsAvaliadas } from '../core/flags';
 
 export const CHAVE_DO_CACHE = 'babel.flags';
 
+/** O evento que `lib/flags.ts` dispara quando o servidor muda alguma flag (o mesmo nome escrito lá). */
+export const EVENTO_DAS_FLAGS = 'babel_flags_changed';
+
 /** Aceita só a forma do servidor; flag com forma estranha é descartada (e vira "desligada"). */
 export function normalizar(v: unknown): FlagsAvaliadas | null {
   if (!v || typeof v !== 'object') return null;

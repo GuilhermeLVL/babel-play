@@ -3,6 +3,7 @@ import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { LIMITE_DE_PREMIADOS_POR_DIA } from '../../../core/planos';
+import { useTextoSemAnuncios } from './semAnuncios';
 import type { PremioDeExemplo } from './tipos';
 
 /** No protótipo o anúncio dura 10 s e dá para pular aos 5 (`anuncios.js:520-521`); no app, até 30 s. */
@@ -69,6 +70,7 @@ function Confirmacao({
   aoSemAnuncios: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const textoSemAnuncios = useTextoSemAnuncios();
   /* Fechar pelo Esc ou pelo toque fora vale "Agora não"; seguir para o anúncio, não. */
   const seguiu = useRef(false);
   const recusar = useRef(aoRecusar);
@@ -144,7 +146,7 @@ function Confirmacao({
                 aoSemAnuncios();
               }}
             >
-              Sem anúncios no Essencial
+              {textoSemAnuncios}
             </button>
           </p>
         </div>

@@ -335,7 +335,7 @@ const TELAS: Array<{
       const ancora = raiz.querySelector('[data-ad="ancora"]')!
       expect(ancora.previousElementSibling?.classList.contains('ad-ancora-espaco')).toBe(true)
       expect(ancora.getAttribute('aria-label')).toBe('Anúncio')
-      expect(ancora.querySelector('button.ad-sem')?.textContent).toBe('Sem anúncios no Essencial')
+      expect(ancora.querySelector('button.ad-sem')?.textContent).toBe('Sem anúncios no Premium')
     },
   },
   {
@@ -624,7 +624,7 @@ describe('o intersticial entre rodadas', () => {
     const anuncio = document.querySelector('dialog [data-ad="intersticial"]')
     expect(anuncio).not.toBeNull()
     expect(anuncio?.textContent).toMatch(/Anúncio/)
-    expect(anuncio?.querySelector('.ad-sem')?.textContent).toBe('Sem anúncios no Essencial')
+    expect(anuncio?.querySelector('.ad-sem')?.textContent).toBe('Sem anúncios no Premium')
     expect(aoJogarDeNovo).not.toHaveBeenCalled()
     expect(Number(localStorage.getItem(CHAVE))).toBeGreaterThanOrEqual(antes)
 

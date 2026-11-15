@@ -25,7 +25,8 @@ import type { Etiquetador } from '../../../../lib/etiquetas/indiceDeEtiquetas';
 import { rotuloDaEtiqueta } from '../../../../lib/etiquetas/rotulos';
 import { t } from '../../../../lib/i18n';
 import { direcaoDoTexto } from '../../../../lib/languages';
-import { comNomeDoPlano, planoDeEntradaAgora } from '../../../../lib/planoDeEntrada';
+import { usePlanoDeEntrada } from '../../../../lib/planoAVenda';
+import { comNomeDoPlano } from '../../../../lib/planoDeEntrada';
 import { comemorarGuardada, entrarConteudoDaFolha, entrarFolha } from '../../../../lib/polimento/captura';
 import { haVozPara } from '../../../../lib/voz/haVoz';
 import { toast } from '../../../Toast';
@@ -81,6 +82,8 @@ function CorpoDaFrase({
   /** As ETIQUETAS DE PALAVRAS nos botões de palavra (`data-etiqueta` e a `aria-description`). */
   etiquetador?: Etiquetador | null;
 }) {
+  /* Acompanha as flags: o nome do plano à venda (Plus com a v4) chega mesmo se elas vierem depois. */
+  const planoDeEntrada = usePlanoDeEntrada();
   const [praticando, setPraticando] = useState(false);
   const palavras = palavrasDaFrase(fala.texto, fala.lang);
   /* Os destaques da frase, um por trecho (a mesma palavra de nível repetida aparece uma vez). */
@@ -225,7 +228,7 @@ function CorpoDaFrase({
           </span>
           {nuance.aoConhecer && (
             <button type="button" className="q-ctl" data-px="planos" onClick={nuance.aoConhecer}>
-              {comNomeDoPlano(t('Conhecer o Premium'), planoDeEntradaAgora())}
+              {comNomeDoPlano(t('Conhecer o Premium'), planoDeEntrada)}
             </button>
           )}
         </div>

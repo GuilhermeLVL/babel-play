@@ -176,7 +176,8 @@ describe('Planos: só aparece o que está à venda', () => {
     const gratis = cartaoDe('gratis')
     expect(gratis.querySelector('.q-rotulo')!.textContent).toBe('Seu plano')
     expect(gratis.querySelector('.px-preco')!.textContent).toBe('R$ 0para sempre')
-    expect(gratis.querySelector('.pl-preco-nota')!.textContent).toBe('sem cartão, sem conta')
+    /* Quem abre a tela tem conta: "sem conta" seria falso para ela. */
+    expect(gratis.querySelector('.pl-preco-nota')!.textContent).toBe('sem cartão')
     expect(itensDe('gratis')).toEqual([
       'Legenda bilíngue no aparelho, sem limite',
       'Tradução rápida ao vivo',
@@ -451,20 +452,19 @@ describe('Planos: o aparelho', () => {
     ])
   })
 
-  it('a comparação um contra um: o próprio plano não se escolhe, e a escolha troca a coluna', async () => {
+  it('a comparação um contra um: o próprio plano não se escolhe (nem aparece como botão apagado), e a escolha troca a coluna', async () => {
     servidor.rotas['/api/billing/status'] = TODOS_A_VENDA
     await abrir()
     const grupo = screen.getByRole('radiogroup', { name: 'Comparar o seu plano com' })
     const opcoes = [...grupo.querySelectorAll<HTMLButtonElement>('.q-aba')]
     expect(opcoes.map((b) => [b.textContent, b.disabled])).toEqual([
-      ['Grátis', true],
       ['Essencial', false],
       ['Premium', false],
       ['Ao Vivo', false],
     ])
-    fireEvent.click(opcoes[3])
+    fireEvent.click(opcoes[2])
     expect(document.querySelector<HTMLElement>('.pl-compara')!.dataset.ver).toBe('aovivo')
-    expect(opcoes[3].getAttribute('aria-checked')).toBe('true')
+    expect(opcoes[2].getAttribute('aria-checked')).toBe('true')
   })
 })
 

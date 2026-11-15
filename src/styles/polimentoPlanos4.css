@@ -57,3 +57,17 @@
 .pl-item-breve > span {
   color: var(--ink-muted, inherit);
 }
+
+/* O Pro "em breve" no celular: o cartão sai do carrossel (ficava escondido à direita, depois de arrastar) e
+   vira uma linha como a da Família. No computador vale o cartão e a linha some. */
+.pl-breve-celular {
+  display: none;
+}
+@media (max-width: 720px) {
+  .pl-breve-celular {
+    display: flex;
+  }
+  html[data-px='on'] .pl-planos-grade > .pl-plano[data-pl-em-breve] {
+    display: none;
+  }
+}

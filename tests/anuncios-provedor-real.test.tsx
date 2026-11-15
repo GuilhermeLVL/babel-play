@@ -93,6 +93,17 @@ function quemPodeVer() {
 
 const SANDBOX = 'allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox'
 const iframes = () => [...document.querySelectorAll('iframe')]
+/** A página de anúncios avisa que o anúncio veio: o espaço sai do estado recolhido (sem salto de layout). */
+const preencher = (f: HTMLIFrameElement) =>
+  act(() => {
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin: ORIGEM,
+        source: f.contentWindow,
+        data: { tipo: 'frasy:anuncio', evento: 'preenchido' },
+      }),
+    )
+  })
 
 beforeEach(() => {
   Object.assign(mundo, { flag: false, protegido: false, consentimento: false, contaCriadaEm: null, estado: null })
@@ -157,6 +168,7 @@ describe('o provedor real (iframe credentialless)', () => {
     expect(src.searchParams.has('rede')).toBe(false)
     expect(src.searchParams.get('tema')).toMatch(/^(claro|escuro)$/)
     expect(src.searchParams.get('idioma')).toBeTruthy()
+    preencher(f)
     expect(screen.getByText('Patrocinado')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Sem anúncios' }))
     expect(sem).toHaveBeenCalledTimes(1)
@@ -457,6 +469,29 @@ describe('o provedor real (iframe credentialless)', () => {
       expect(screen.getByRole('button', { name: /Ver um anúncio/ })).toBeTruthy()
     })
 
+    /* Sem salto de layout (CLS): até a página dizer que o anúncio VEIO, o espaço não reserva a altura do quadro nem
+       mostra o topo "Patrocinado"; o quadro existe (para o `loading="lazy"` carregar), mas recolhido. */
+    it('nativo: recolhido até a página avisar `preenchido`; aí abre com o topo', () => {
+      quemPodeVer()
+      const { container } = render(<EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" />)
+      const aside = () => container.querySelector('aside.anuncio-rede')!
+      expect(aside().getAttribute('data-estado')).toBe('aguardando')
+      expect(aside().getAttribute('aria-hidden')).toBe('true')
+      expect(iframes()).toHaveLength(1)
+      const [f] = iframes()
+      mandar(ORIGEM, { tipo: 'frasy:anuncio', evento: 'preenchido' }, f.contentWindow)
+      expect(aside().getAttribute('data-estado')).toBe('preenchido')
+      expect(aside().hasAttribute('aria-hidden')).toBe(false)
+    })
+
+    it('`preenchido` de outra origem não abre o espaço', () => {
+      quemPodeVer()
+      const { container } = render(<EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" />)
+      const [f] = iframes()
+      mandar('https://outra.example', { tipo: 'frasy:anuncio', evento: 'preenchido' }, f.contentWindow)
+      expect(container.querySelector('aside.anuncio-rede')!.getAttribute('data-estado')).toBe('aguardando')
+    })
+
     it('nativo vazio: o espaço some', () => {
       quemPodeVer()
       const { container } = render(<EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" />)
@@ -537,6 +572,7 @@ describe('o intersticial e a âncora no provedor real: sempre com saída', () =>
       <EspacoDeAnuncio espaco={espaco} formato={espaco === 'ancora' ? 'nativo' : 'intersticial'} aoFechar={aoFechar} />,
     )
     expect(iframes()).toHaveLength(1)
+    preencher(iframes()[0]) // a âncora fica invisível até o anúncio vir; o intersticial já abre preenchido
     fireEvent.click(screen.getByRole('button', { name: 'Fechar' }))
     expect(aoFechar).toHaveBeenCalledTimes(1)
   })

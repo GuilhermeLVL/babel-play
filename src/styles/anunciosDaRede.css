@@ -112,3 +112,27 @@
   height: 50px;
   border-radius: 8px;
 }
+/* Com a âncora no pé, o botão do iChat sobe para cima dela: os dois não se cobrem (topo + quadro de 50 px + folga). */
+html:has(.anuncio-rede[data-ad='ancora'][data-estado='preenchido']) .fab {
+  bottom: calc(max(12px, env(safe-area-inset-bottom)) + 76px + 100px + 10px);
+}
+/* SEM SALTO DE LAYOUT: até a página avisar `preenchido`, o espaço fica recolhido (sem topo, quadro de 1 px, sem margem);
+   o quadro continua no lugar para o `loading="lazy"` carregá-lo. Vazio, ele some sem ter ocupado lugar (`iframe.tsx`). */
+.anuncio-rede[data-estado='aguardando'] {
+  margin: 0;
+  gap: 0;
+  pointer-events: none;
+}
+.anuncio-rede[data-estado='aguardando'] .anuncio-rede-topo {
+  display: none;
+}
+.anuncio-rede[data-estado='aguardando'] .anuncio-rede-quadro {
+  height: 1px;
+  opacity: 0;
+}
+/* A âncora é fixa (não empurra nada), mas uma faixa vazia no pé também não: fica invisível até o anúncio vir. */
+.anuncio-rede[data-ad='ancora'][data-estado='aguardando'] {
+  padding: 0;
+  opacity: 0;
+  box-shadow: none;
+}

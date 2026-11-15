@@ -32,10 +32,16 @@ export default function AnunciosNosAjustes() {
       <div className="q-ajuste">
         <div>
           <b>{aceitou ? t('Você aceitou ver anúncios no plano Grátis.') : t('Você não aceitou anúncios.')}</b>
+          {/* O texto segue a resposta: quem aceitou lê que anúncios podem aparecer e como desfazer; quem não aceitou,
+              que nada aparece sem o "Aceitar". */}
           <small>
-            {protegido
-              ? t('Para não ver mais anúncios, toque em "Rever" e escolha "Agora não".')
-              : t('Sem a sua resposta "Aceitar", nenhum anúncio aparece.')}
+            {!aceitou
+              ? t('Sem a sua resposta "Aceitar", nenhum anúncio aparece.')
+              : protegido
+                ? t('Para não ver mais anúncios, toque em "Rever" e escolha "Agora não".')
+                : t(
+                    'Alguns lugares do app podem mostrar anúncios. Para não ver mais, toque em "Rever" e escolha "Agora não".',
+                  )}
           </small>
         </div>
         <button type="button" className="q-ctl" aria-expanded={aberta} onClick={() => setAberta((a) => !a)}>

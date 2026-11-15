@@ -1,12 +1,10 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useState } from 'react';
 
 import { podeMostrar } from '../../../core/anuncios/politicaDeAnuncio';
 import { demonstracaoAtiva, montarPedidoDeAnuncio } from '../../../lib/anuncios/pedido';
-import { assinarProvedorDeAnuncios, provedorDeAnuncios } from '../../../lib/anuncios/provedor';
 import { consultarAlivio } from '../../../lib/nuvemDeAlivio/consulta';
 import EspacoDeAnuncio from '../../anuncios/EspacoDeAnuncio';
-
-const semProvedor = () => null;
+import { useProvedorDeAnuncios } from '../../anuncios/useProvedorDeAnuncios';
 
 /**
  * "GANHE 30 MIN DE NUVEM" NA CAPTURA (espaço `nuvem-30`, premiado; protótipo `PLANTIO.aovivo`,
@@ -19,10 +17,11 @@ const semProvedor = () => null;
  * global"). Com o provedor de DEMONSTRAÇÃO registrado o lugar aparece sem perguntar ao servidor (é para ver onde
  * ele fica); com o provedor real, a pergunta vale sempre.
  *
- * Estado de fábrica: sem provedor, nada, e nenhuma pergunta à rede.
+ * Estado de fábrica: sem provedor, nada, e nenhuma pergunta à rede. QUEM REGISTRA o provedor é este encaixe também
+ * (`useProvedorDeAnuncios`): aberta a captura direto pelo endereço, nenhum outro espaço foi montado antes dele.
  */
 export default function NuvemPremiadaNaCaptura() {
-  const provedor = useSyncExternalStore(assinarProvedorDeAnuncios, provedorDeAnuncios, semProvedor);
+  const provedor = useProvedorDeAnuncios();
   const [disponivel, setDisponivel] = useState(false);
   useEffect(() => {
     if (!provedor) return;

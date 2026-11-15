@@ -66,6 +66,7 @@ const { default: NuvemPremiadaNaCaptura } = await import('../src/components/view
 const { default: EspacoDeAnuncio } = await import('../src/components/anuncios/EspacoDeAnuncio')
 const { JOGOS } = await import('../src/components/views/play/jogos')
 const { marcarAjudaEsgotada, rodadaComAjudas } = await import('../src/lib/jogos/ajudaEsgotada')
+const { marcarRecompensaAberta } = await import('../src/lib/filaDeRecompensas')
 const { registrarProvedorDeAnuncios, provedorDeAnuncios } = await import('../src/lib/anuncios/provedor')
 const { ligarDemonstracaoDeAnuncios } = await import('../src/components/anuncios/demonstracao/ligar')
 const { FORMATO_DO_ESPACO, INTERVALO_DO_INTERSTICIAL_MS } = await import('../src/core/anuncios/politicaDeAnuncio')
@@ -588,6 +589,26 @@ describe.each(NOVOS)('espaço $espaco', ({ espaco, tela, preparar, agir }) => {
     expect(document.querySelector(seletorDosPremiados('data-ad-falso'))).toBeNull()
     expect(document.querySelector('.consentimento-de-anuncios')).toBeNull()
     if (!ehPremiado(espaco)) expect(document.querySelector(`[data-ad-falso="${espaco}"]`), espaco).not.toBeNull()
+  })
+})
+
+/* O "Baú da rodada" (e qualquer modal de recompensa) abre por cima do fim da rodada. Escolha: o baú fica, e os espaços
+   do fim ESPERAM ele fechar, em vez de serem pedidos atrás do modal (um anúncio coberto não é visto, e a rede conta a
+   exibição do mesmo jeito). Fechado o baú, eles aparecem. */
+describe('fim de rodada com o baú aberto', () => {
+  afterEach(() => marcarRecompensaAberta(false))
+
+  it('os espaços do fim esperam o baú fechar e aparecem depois', async () => {
+    pedirDemonstracao()
+    registrarProvedorDeAnuncios(PROVEDOR_FALSO)
+    marcarAjudaEsgotada('memory')
+    marcarRecompensaAberta(true)
+    await fotografar(() => fimDaRodada(), true)
+    for (const e of ['fim-premiado', 'ajuda-premiada', 'fim-bloco'])
+      expect(document.querySelector(`[data-ad-falso="${e}"]`), e).toBeNull()
+    act(() => marcarRecompensaAberta(false))
+    for (const e of ['fim-premiado', 'ajuda-premiada', 'fim-bloco'])
+      expect(document.querySelector(`[data-ad-falso="${e}"]`), e).not.toBeNull()
   })
 })
 

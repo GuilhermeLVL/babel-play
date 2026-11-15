@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState, useSyncExternalStore } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 
 import {
   type EspacoDeAnuncio as Espaco,
@@ -7,17 +7,15 @@ import {
   podeMostrar,
 } from '../../core/anuncios/politicaDeAnuncio';
 import { concluirPremiado, type PremiadoConcluido } from '../../data/rotas/anuncios';
-import { ligarProvedorDeAnuncios } from '../../lib/anuncios/ligar';
 import { marcarIntersticial, montarPedidoDeAnuncio } from '../../lib/anuncios/pedido';
-import { assinarProvedorDeAnuncios, type ProvedorDeAnuncios, provedorDeAnuncios } from '../../lib/anuncios/provedor';
+import type { ProvedorDeAnuncios } from '../../lib/anuncios/provedor';
 import { onPlanChange } from '../../lib/entitlements';
 import { useFlag } from '../../lib/flags';
-import { flagLigada } from '../../lib/flagsCache';
 import { lerPreferencias, usePreferencias } from '../../lib/preferencias';
 import { aoMudarProtecao, perfilProtegido } from '../../lib/protecaoDoMenor';
 import { navegarPara } from '../../lib/rotas';
 import ConsentimentoDeAnuncios from './ConsentimentoDeAnuncios';
-import { ligarDemonstracaoDeAnuncios } from './demonstracao/ligar';
+import { useProvedorDeAnuncios } from './useProvedorDeAnuncios';
 
 /**
  * UM ESPAÇO DE ANÚNCIO (change `planos-v3-e-rota-inteligente`, spec `anuncios-no-gratis`) — o ÚNICO
@@ -51,8 +49,6 @@ interface EspacoDeAnuncioProps {
   aoFechar?: () => void;
 }
 
-/** O evento que `lib/flags.ts` dispara quando as flags mudam. */
-const EVENTO_DAS_FLAGS = 'babel_flags_changed';
 const irAosPlanos = () => navegarPara({ view: 'planos' });
 /**
  * A porta do PERFIL PROTEGIDO: ele não compra, então "Sem anúncios" apontando para os planos seria convite
@@ -61,7 +57,6 @@ const irAosPlanos = () => navegarPara({ view: 'planos' });
  * `demonstracao/EspacoDeDemonstracao.tsx`). Vale por cima do `aoSemAnuncios` que a tela passou.
  */
 export const irAosAjustesDeAnuncios = () => navegarPara({ view: 'settings', ajustesAba: 'privacidade' });
-const semProvedor = () => null;
 
 /**
  * O fim de um premiado: o servidor credita (`concluirPremiado`) e o que ele creditou volta ao provedor; a recusa
@@ -75,22 +70,8 @@ async function recompensar(exibicaoId: string): Promise<PremiadoConcluido> {
 }
 
 export default function EspacoDeAnuncio(props: EspacoDeAnuncioProps) {
-  const provedor = useSyncExternalStore(assinarProvedorDeAnuncios, provedorDeAnuncios, semProvedor);
-  /* O real só é pedido com a flag `anuncios` LIGADA (desligada, nem o módulo nem o CSS dele são baixados) e num
-     build com a origem de anúncios. A flag é lida do CACHE (`flagsCache`, sem pedir à rede: o estado de fábrica
-     não pode pedir nada a mais) e de novo quando as flags mudam. A demonstração, só em desenvolvimento e no build
-     de demonstração: a condição é a mesma, LITERAL, de `demonstracao/ligar.ts` (R38). */
-  useEffect(() => {
-    const tentar = () => {
-      void (flagLigada(FLAG_ANUNCIOS) ? ligarProvedorDeAnuncios() : Promise.resolve(false)).then((ligou) => {
-        if (!ligou && (import.meta.env.DEV || import.meta.env.VITE_ANUNCIOS_DEMONSTRACAO === '1'))
-          void ligarDemonstracaoDeAnuncios();
-      });
-    };
-    tentar();
-    window.addEventListener(EVENTO_DAS_FLAGS, tentar);
-    return () => window.removeEventListener(EVENTO_DAS_FLAGS, tentar);
-  }, []);
+  /* Quem registra o provedor (o real com a flag ligada, ou a demonstração) é o gancho, igual em todo encaixe. */
+  const provedor = useProvedorDeAnuncios();
   if (!provedor || provedor.disponivel?.() === false) return null;
   return <EspacoComProvedor provedor={provedor} {...props} />;
 }

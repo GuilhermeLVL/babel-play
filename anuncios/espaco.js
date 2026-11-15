@@ -38,7 +38,8 @@
  * `googletag.setConfig({ privacyTreatments })`); TFAT no lugar do TFCD/TFUA e "o mais conservador vale":
  * https://support.google.com/admanager/answer/9004919
  *
- * Mensagens ao app: `{ tipo: 'frasy:anuncio', evento: 'recompensa' | 'fechou' | 'vazio', exibicaoId }`.
+ * Mensagens ao app: `{ tipo: 'frasy:anuncio', evento: 'recompensa' | 'fechou' | 'vazio' | 'preenchido', exibicaoId }`
+ * (`preenchido`: o nativo veio; até lá o app deixa o espaço recolhido).
  * O app confere a origem e a exibição; quem credita é o servidor, com teto (não há SSV do Google na web).
  */
 /* global window, document, URL, URLSearchParams */
@@ -147,8 +148,9 @@
       return;
     }
     nativo.addService(pubads);
+    /* `preenchido`: o app só abre a altura do espaço quando o anúncio VEIO (sem salto de layout por um vazio). */
     pubads.addEventListener('slotRenderEnded', function (e) {
-      if (e.slot === nativo && e.isEmpty) avisar('vazio');
+      if (e.slot === nativo) avisar(e.isEmpty ? 'vazio' : 'preenchido');
     });
     googletag.enableServices();
     googletag.display('espaco');

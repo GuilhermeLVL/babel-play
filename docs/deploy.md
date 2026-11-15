@@ -607,7 +607,8 @@ volta com conferência de sha256. Sem algum secret o primeiro passo reprova dize
 # baixe semanal/AAAA-MM-DD.dump do R2 (dashboard ou aws s3 cp --endpoint-url $R2_S3_ENDPOINT), então:
 export PGHOST=… PGPORT=5432 PGUSER=… PGPASSWORD=… PGDATABASE=postgres_novo PGSSLMODE=verify-full PGSSLROOTCERT=ca.pem
 pg_restore --list AAAA-MM-DD.dump | head                 # abre e lista
-pg_restore --no-owner --schema=public --schema=drizzle --dbname="$PGDATABASE" AAAA-MM-DD.dump
+psql -c 'create schema if not exists drizzle'          # o --schema não restaura o CREATE SCHEMA
+pg_restore --no-owner --no-privileges --schema=public --schema=drizzle --dbname="$PGDATABASE" AAAA-MM-DD.dump
 ```
 
 #### Exercício de restauração

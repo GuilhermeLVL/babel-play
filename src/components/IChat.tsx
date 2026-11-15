@@ -49,6 +49,7 @@ import {
   ferramentasDaTela,
   type Ficha,
   focoNaPalavra,
+  historicoParaOTutor,
   type IdDaFerramenta,
   lerPedido,
   origemDaResposta,
@@ -582,13 +583,7 @@ export default function IChat({
        perfil de idade e o conteúdo; o servidor monta o `system` e cerca o material como dado
        (`server/ai/llmRequest.ts`). O material e o histórico são cortados aqui para caber no teto de
        entrada do tutor, em vez de a pergunta voltar com 413. */
-    const { material, mensagens } = pedidoDoTutor(
-      blocos.join('\n\n'),
-      historico
-        .filter((x) => !x.erro)
-        .map((m) => ({ role: m.de === 'eu' ? ('user' as const) : ('assistant' as const), content: m.txt })),
-      texto,
-    );
+    const { material, mensagens } = pedidoDoTutor(blocos.join('\n\n'), historicoParaOTutor(historico), texto);
 
     /* O tutor É nuvem: sem o consentimento (Ajustes → Privacidade), a pergunta não sai do aparelho.
        A resposta diz o motivo e onde autorizar, em vez de um erro genérico (Fase 2 do lançamento). */
@@ -624,6 +619,7 @@ export default function IChat({
               de: 'ia',
               txt: String(data.text ?? ''),
               doTutor: true,
+              ...(typeof data.assinatura === 'string' ? { assinatura: data.assinatura } : {}),
               origem,
               proposta: propostaDoPedido(pedido, pendentes),
             },

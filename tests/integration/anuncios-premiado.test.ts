@@ -25,7 +25,8 @@
  *    produção), e a lista volta ao padrão antes de cada caso;
  *  - `nuvem-30`: no máximo 10 por pessoa no mês UTC (5 h) → 429 `teto_do_mes`, nas duas pontas;
  *  - conta com menos de 3 dias (ou sem linha em `users`) → 403 `conta_nova` no `iniciar`. Por isso o
- *    `tokenAdulto` daqui provisiona a conta com 4 dias de idade.
+ *    `tokenAdulto` daqui provisiona a conta com 31 dias de idade (o `nuvem-30` exige 30; ver
+ *    `anuncios-premiado-antifraude.test.ts`, que também cobre os tetos por IP e por rede).
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
@@ -63,10 +64,10 @@ async function contaCriadaHa(sub: string, dias: number): Promise<void> {
   })
 }
 
-/** Adulto declarado, com conta de 4 dias: passa da porta `conta_nova`. */
+/** Adulto declarado, com conta de 31 dias: passa da porta `conta_nova` (inclusive a de 30 dias do `nuvem-30`). */
 async function tokenAdulto(sub: string): Promise<string> {
   const t = await s.tokenAdulto(sub)
-  await contaCriadaHa(sub, 4)
+  await contaCriadaHa(sub, 31)
   return t
 }
 
@@ -125,8 +126,10 @@ beforeEach(async () => {
   rota.definirEspacosAtivosParaTestes(null)
 })
 afterEach(async () => {
-  /* O teto global é do app inteiro: cada caso começa do zero. */
+  /* O teto global é do app inteiro: cada caso começa do zero. E todos os casos chegam do mesmo IP (127.0.0.1):
+     o teto por IP e por rede também recomeça. */
   await client.execute('DELETE FROM anuncios_premiados')
+  await client.execute(`DELETE FROM usage_counters WHERE metric = 'premiado:ip'`)
 })
 
 describe('os tetos ficam em src/core/planos.ts', () => {

@@ -97,6 +97,19 @@ export const anunciosPremiadosRepo = {
     return Number(c?.n ?? 0)
   },
 
+  /**
+   * O estado da exibição DESTA conta, sem trava: `pendente`, `concluida` ou `null` (não existe para ela). Só para a
+   * rota decidir se reserva o teto do IP; quem decide o crédito continua sendo `concluir`, sob as travas.
+   */
+  async estado(userId: UserId, exibicaoId: string): Promise<'pendente' | 'concluida' | null> {
+    const [linha] = linhas<{ concluido_em: number | null }>(
+      await db.execute(sql`
+        SELECT concluido_em FROM anuncios_premiados WHERE user_id = ${userId} AND exibicao_id = ${exibicaoId}`),
+    )
+    if (!linha) return null
+    return linha.concluido_em == null ? 'pendente' : 'concluida'
+  },
+
   async iniciar(userId: UserId, exibicaoId: string, espaco: string, agora: number): Promise<void> {
     await db.execute(sql`
       INSERT INTO anuncios_premiados (user_id, exibicao_id, espaco, dia, iniciado_em, concluido_em)

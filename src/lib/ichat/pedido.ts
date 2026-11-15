@@ -13,7 +13,7 @@
  */
 import type { ViewType } from '../../types';
 import { TETO_DE_ENTRADA_DO_TUTOR } from './contencao';
-import type { Proposta } from './conversas';
+import type { MensagemDoChat, Proposta } from './conversas';
 
 export type Sigilo = '@' | '#' | '!';
 
@@ -213,6 +213,25 @@ const TETO_DO_MATERIAL = 6_000;
 interface MensagemDoTutor {
   role: 'user' | 'assistant';
   content: string;
+  /** A assinatura que o servidor deu à resposta do tutor; sem ela o turno `assistant` não volta ao modelo. */
+  assinatura?: string;
+}
+
+/**
+ * O HISTÓRICO QUE VOLTA AO TUTOR. O servidor só aceita o turno `assistant` que ELE assinou
+ * (`server/ai/assinaturaDoTutor.ts`, LLM01: sem isso, quem chamasse a rota forjava "respostas anteriores"
+ * do tutor). Então a resposta do tutor vai com a assinatura dela, e a fala da tela que não veio do tutor
+ * (aviso local, proposta, lacuna) e o aviso de erro ficam de fora: o servidor os descartaria, e eles
+ * gastariam o teto de entrada à toa.
+ */
+export function historicoParaOTutor(msgs: readonly MensagemDoChat[]): MensagemDoTutor[] {
+  const h: MensagemDoTutor[] = [];
+  for (const m of msgs) {
+    if (m.erro) continue;
+    if (m.de === 'eu') h.push({ role: 'user', content: m.txt });
+    else if (m.assinatura) h.push({ role: 'assistant', content: m.txt, assinatura: m.assinatura });
+  }
+  return h;
 }
 
 /**

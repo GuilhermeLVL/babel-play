@@ -852,6 +852,22 @@ export const LIMITE_DE_NUVEM_30_POR_MES = 10;
  */
 export const LIMITE_DE_PREMIADOS_PENDENTES = 3;
 /**
+ * TETOS POR IP E POR REDE das exibições premiadas CONCLUÍDAS no dia UTC (revisão de segurança de 15/11/2026). Sem
+ * a verificação servidor a servidor (SSV) da rede de anúncios, um script conclui exibições sem anúncio nenhum, e os
+ * tetos por CONTA não seguram uma fazenda de contas: estes a prendem ao endereço (`server/lib/premiadoPorIp.ts`, IP
+ * pseudonimizado). 15 por IP = 3 adultos no teto de 5 atrás do mesmo IP; 60 por rede (/24 no IPv4, /48 no IPv6) =
+ * 3% do teto global. Folgados de propósito: o CGNAT das operadoras móveis põe muita gente no mesmo IP. Atingido,
+ * o `concluir` recusa (429 `teto_do_ip`) e não credita.
+ */
+export const LIMITE_DE_PREMIADOS_POR_IP_POR_DIA = 15;
+export const LIMITE_DE_PREMIADOS_POR_REDE_POR_DIA = 60;
+/**
+ * O `nuvem-30` é nuvem de verdade (custo nosso), não Seeds: só para conta com 30 dias ou mais (403 `conta_nova`),
+ * dez vezes a idade mínima das outras recompensas. Uma fazenda de contas precisa envelhecer um mês antes de render
+ * nuvem, e até lá os tetos por IP e o teto do mês valem. O espaço ainda nem está ativo (`ESPACOS_PREMIADOS_ATIVOS`).
+ */
+export const IDADE_MINIMA_DA_CONTA_PARA_NUVEM_30_MS = 30 * 86_400_000;
+/**
  * A DURAÇÃO MÍNIMA de uma exibição, por espaço premiado (R33): sem verificação servidor a servidor, concluir logo
  * depois de iniciar seria forjar a recompensa. O premiado da web dura até 30 s; abaixo de 15 s entre o `iniciar` e
  * o `concluir` o servidor recusa (409 `cedo_demais`).

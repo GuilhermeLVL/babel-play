@@ -777,6 +777,7 @@ export function contarFeedbackDeIa(funcao: string, nota: 'up' | 'down', motivo: 
 
 /** Uma resposta do tutor barrada pelo filtro de saída de perfil protegido. Os dois rótulos são valores fixos do código. */
 export function contarSaidaFiltrada(funcao: string, categoria: string): void {
+  if (ehWorker()) gravarPonto('saida_filtrada', [funcao, categoria], [1], funcao)
   if (!estado) return
   estado.saidaFiltrada.inc({ funcao, categoria })
 }
@@ -789,8 +790,9 @@ export function observarJob(nome: string, ms: number, resultado: 'ok' | 'falhou'
   if (ehWorker()) gravarPonto('job', [nome, resultado], [ms], nome)
 }
 
-/* As demais funções `contar*`/`observar*` ficam sem efeito no Worker de propósito: só as 6 famílias do R6 e as 3 da qualidade da IA
-   (requisicao, admissao_recusada, custo_por_plano, r2, provedor, job; resposta_invalida, tokens_de_entrada, feedback_ia) viram pontos do Analytics Engine. */
+/* As demais funções `contar*`/`observar*` ficam sem efeito no Worker de propósito: só as 6 famílias do R6, as 3 da qualidade da IA
+   e a do filtro de saída (requisicao, admissao_recusada, custo_por_plano, r2, provedor, job; resposta_invalida,
+   tokens_de_entrada, feedback_ia; saida_filtrada) viram pontos do Analytics Engine. */
 
 /** Um 429 do provedor. Rótulos fixos do código ou do env — ver o bloco da métrica. */
 export function contarLimiteDoProvedor(provedor: string, modelo: string): void {

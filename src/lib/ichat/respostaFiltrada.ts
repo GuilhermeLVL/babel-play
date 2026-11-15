@@ -13,11 +13,12 @@ export const RESPOSTA_FILTRADA_DO_TUTOR =
   'Vamos voltar ao idioma? Posso te ajudar com vocabulário, frases ou pronúncia.';
 
 /**
- * Automutilação: quem perguntou pode estar passando por algo difícil, e "vamos voltar ao idioma" sozinho seria frio.
- * A mesma orientação da instrução de segurança de menores (`server/lib/idade.ts`): adulto de confiança e o CVV (188).
+ * Automutilação: quem perguntou pode estar passando por algo difícil, então o cuidado vem PRIMEIRO e o idioma depois,
+ * sem pressa. A mesma orientação da instrução de segurança de menores (`server/lib/idade.ts`): adulto de confiança e o
+ * CVV (188, gratuito, 24 horas).
  */
 export const RESPOSTA_FILTRADA_DE_CUIDADO =
-  'Vamos voltar ao idioma? Se algo estiver pesado para você, converse com um adulto de confiança ou ligue 188 (CVV), a qualquer hora.';
+  'Se algo estiver pesado para você, converse com um adulto de confiança ou ligue 188 (CVV), de graça, a qualquer hora. Quando quiser, seguimos com o idioma.';
 
 /** As frases que o servidor pode mandar com `filtrada: true`. Fora delas, a tela usa a padrão. */
 export const RESPOSTAS_FILTRADAS: readonly string[] = [RESPOSTA_FILTRADA_DO_TUTOR, RESPOSTA_FILTRADA_DE_CUIDADO];

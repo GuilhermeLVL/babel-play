@@ -76,13 +76,28 @@ const BARRADOS: Array<[string, string]> = [
   ['contato_externo', 'Acesse https://exemplo.com/aula'],
   ['contato_externo', 'Veja em www.exemplo.net'],
   ['contato_externo', 'Entre em meusite.xyz para mais.'],
-  ['contato_externo', 'Escreva para professor@exemplo.com'],
+  ['contato_externo', 'Escreva para professor@meudominio.com'],
   ['contato_externo', 'Me liga: (11) 98765-4321'],
   ['contato_externo', 'Call me at +1 555 123 4567'],
   ['contato_externo', 'Me segue no insta: @professor.legal'],
   ['contato_externo', 'Me chama no zap!'],
   ['contato_externo', 'Add me on Discord.'],
   ['contato_externo', 'Escríbeme por WhatsApp.'],
+  // revisão do PR #135: o que tem de CONTINUAR barrado depois de afrouxar os falsos positivos
+  ['autolesao', 'Córtate las venas.'],
+  ['autolesao', 'Você deveria se machucar de propósito.'],
+  ['autolesao', 'Go hurt yourself.'],
+  ['dados_pessoais', 'Me diga, **qual é o seu endereço?**'],
+  ['dados_pessoais', '**What is your home address?**'],
+  ['dados_pessoais', 'Qual é o seu número?'],
+  ['aliciamento', "It's our little secret."],
+  ['aliciamento', 'Es nuestro secreto.'],
+  ['aliciamento', 'Meet me after school, alone.'],
+  ['aliciamento', '¿Estás sola en casa?'],
+  ['aliciamento', 'Vamos nos encontrar pessoalmente no sábado?'],
+  ['contato_externo', 'My phone number is (11) 98765-4321'],
+  ['contato_externo', 'Escreva para ana.silva@gmail.com'],
+  ['contato_externo', 'Ligue 11987654321'],
 ]
 
 /** Respostas típicas do tutor — com as palavras ambíguas de propósito. Nenhuma pode ser barrada. */
@@ -118,6 +133,25 @@ const AULA: string[] = [
   'No Node.js, e.g. em exemplos, o ponto não vira link.',
   'Ótimo! Sua frase está certa.Com prática, fica natural.',
   '{"aceita": true, "motivo": "A forma \\"went\\" é o passado de \\"go\\"."}',
+  // revisão do PR #135: falsos positivos que quebravam aula normal
+  'Córtate el pelo antes de la fiesta.',
+  '¿Sabes cómo cortarte el flequillo? Se dice **flequillo** = franja.',
+  '**You should cut yourself some slack** = pegue leve com você mesmo.',
+  'Ela se machuca jogando futebol. Como se machucar menos? Em inglês: **How to get hurt less?**',
+  'Qual é o seu número favorito? Em inglês: **What is your favorite number?**',
+  'E qual é a sua escola favorita?',
+  "What's your number one goal?",
+  'Podemos ver o jogo ao vivo no sábado.',
+  'Vamos ver o show ao vivo amanhã!',
+  "Let's meet after school at the library.",
+  'Estas solo palabras nuevas: **perro**, **gato**.',
+  'Our secret ingredient is love: **ingredient** = ingrediente.',
+  'En la receta, nuestro secreto es el amor.',
+  "Use 'What is your address?' to ask someone's address.",
+  'Use ‘Where do you live?’ para perguntar onde a pessoa mora.',
+  'Numbers: 100 200 300 400 500',
+  'My email is anna@example.com',
+  'Exemplo: escreva para ana@exemplo.com e visite example.org.',
 ]
 
 describe('filtro local: categorias barradas (pt/en/es, acento, leetspeak, espaçado)', () => {
@@ -145,6 +179,21 @@ describe('a cadeia de moderadores', () => {
   it('barra pelo filtro local e devolve a categoria', async () => {
     expect(await moderarSaidaDoTutor('How to make a bomb', PROTEGIDO)).toEqual({ ok: false, motivo: 'armas_violencia' })
     expect(await moderarSaidaDoTutor('**Hello** = olá', PROTEGIDO)).toEqual({ ok: true })
+  })
+})
+
+describe('teto do texto conferido', () => {
+  it('acima de 20 mil caracteres, perfil protegido é barrado sem conferir; adulto passa', () => {
+    const longo = 'a@'.repeat(10_001)
+    expect(motivo(longo)).toBe('texto_longo')
+    expect(filtroLocalParaMenores(longo, ADULTO)).toEqual({ ok: true })
+  })
+
+  it('texto patológico abaixo do teto é conferido rápido', () => {
+    const inicio = Date.now()
+    motivo('a'.repeat(19_000) + '@' + 'b.'.repeat(400))
+    motivo('x.'.repeat(9_900))
+    expect(Date.now() - inicio).toBeLessThan(1_000)
   })
 })
 

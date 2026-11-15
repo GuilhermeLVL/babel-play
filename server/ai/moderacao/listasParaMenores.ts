@@ -19,7 +19,8 @@
  *    (fresta), `crioulo` (a língua), `gozar` (gozar férias), `pelado`, `marica`;
  *  - DADO PESSOAL E ALICIAMENTO SÃO FRASES DE AULA ("Where do you live?", "Let's meet", "It's a secret"). Para essas duas
  *    categorias o trecho CITADO — entre `**…**`, aspas ou crase, que é como o tutor marca o idioma estudado
- *    (`sistemaDoTutor`) — é ignorado, e o pedido direto de dado precisa terminar em pergunta (`?`) ou ser imperativo
+ *    (`sistemaDoTutor`) — é ignorado QUANDO há explicação fora dele ("diga", "significa", "em inglês"; ver `EXPLICACAO`
+ *    em `moderarSaidaDoTutor.ts`), e o pedido direto de dado precisa terminar em pergunta (`?`) ou ser imperativo
  *    ("me passa o seu número"). As outras categorias valem até dentro da citação.
  *
  * O QUE ESTE FILTRO NÃO PEGA (e por isso a opção C, moderação por IA, fica para depois): paráfrase, eufemismo, idioma fora
@@ -37,6 +38,8 @@ export type CategoriaDeBloqueio =
   | 'dados_pessoais'
   | 'aliciamento'
   | 'contato_externo'
+  /** Texto acima do teto conferido (`TETO_DO_TEXTO_MODERADO`): barrado sem conferir. Não tem lista. */
+  | 'texto_longo'
 
 export interface ListaDeCategoria {
   categoria: CategoriaDeBloqueio
@@ -56,6 +59,10 @@ const DROGAS_PT =
   'maconha|cocaina|crack|heroina|metanfetamina|lsd|ecstasy|mdma|drogas?|baseados?|lanca perfume|ketamina|k9'
 const DROGAS_EN = 'weed|marijuana|cannabis|cocaine|crack|heroin|meth|lsd|ecstasy|mdma|molly|ketamine|fentanyl|drugs'
 const DROGAS_ES = 'marihuana|cocaina|crack|heroina|metanfetamina|lsd|extasis|mdma|drogas?|porros?|ketamina'
+
+/* ── Dado pessoal: "número favorito", "escola favorita", "number one goal", "número da sorte" são conversa de aula,
+   não pedido de dado. Vem logo depois do nome do dado. ── */
+const NAO_E_DADO = String.raw`(?! (?:favorit\w*|favourit\w*|preferid\w*|da sorte|de la suerte|lucky|one|um|uno|1)\b)`
 
 /* ── Armas: objetos que só são arma. "bomba de…" (chocolate, água, ar) e "pistola de…" (cola quente) ficam de fora. ── */
 const ARMAS_PT = String.raw`bombas?(?! de )|explosivos?|armas?(?: de fogo)?|revolver|pistolas?(?! de )|molotov|granadas?|silenciador`
@@ -94,21 +101,28 @@ export const LISTAS_PARA_MENORES: readonly ListaDeCategoria[] = [
     categoria: 'autolesao',
     padroes: [
       // pt
-      /\b(?:como|jeitos? de|formas? de|maneiras? de|metodos? de|metodos? para) (?:se (?:matar|suicidar|cortar|machucar|enforcar|ferir)|suicidar|tirar a (?:propria )?vida)\b/,
+      /* "machucar"/"ferir" sozinhos são acidente ("como se machucar menos no futebol"): só contam com intenção. */
+      /\b(?:como|jeitos? de|formas? de|maneiras? de|metodos? de|metodos? para) (?:se (?:matar|suicidar|cortar|enforcar)|suicidar|tirar a (?:propria )?vida)\b/,
+      /\bse (?:machucar|ferir|cortar|machuca|fere|corta) de proposito\b/,
       /\b(?:voce )?(?:deveria|devia|deve) (?:se matar|se suicidar|se cortar|se machucar|tirar (?:a )?sua (?:propria )?vida)\b/,
       /\bvoce (?:deveria|devia|deve) morrer\b/,
       /\b(?:se mata|vai se matar)\b(?! de )/,
       // en
       /\bkill (?:yourself|urself)\b/,
       /\bkys\b/,
-      /\b(?:how to|ways? to|you should|go) (?:kill|hurt|cut|harm|end) (?:yourself|myself|your life|my life)\b/,
+      /* "cut yourself some slack" é expressão (pegar leve consigo mesmo). */
+      /\b(?:how to|ways? to|you should|go) (?:kill|hurt|cut|harm|end) (?:yourself|myself|your life|my life)\b(?! some slack)/,
       /\b(?:how to|ways? to) commit suicide\b/,
       /\b(?:you should|go) die\b/,
       /\b(?:best|easiest|painless|quickest) way to die\b/,
       // es
-      /\b(?:matate|suicidate|cortate)\b/,
-      /\b(?:como|formas? de|maneras? de) (?:suicidarse|suicidarte|matarse|matarte|cortarse|cortarte|hacerse dano|hacerte dano)\b/,
-      /\bdeberias (?:morir|matarte|suicidarte|cortarte)\b/,
+      /* "córtate el pelo", "cómo cortarte el flequillo": cortar(se) seguido de objeto é cabelo/unha. Sozinho ou com
+         veia/pulso/braço, é automutilação. */
+      /\b(?:matate|suicidate)\b/,
+      /\bcort(?:ate|arte|arse)\b(?! (?:el|la|las|los|tu|tus|su|sus|pelo|unas|flequillo|barba|fleco)\b)/,
+      /\bcort(?:ate|arte|arse) (?:las |tus |sus )?(?:venas|munecas|brazos|piernas)\b/,
+      /\b(?:como|formas? de|maneras? de) (?:suicidarse|suicidarte|matarse|matarte|hacerse dano|hacerte dano)\b/,
+      /\bdeberias (?:morir|matarte|suicidarte|cortarte)\b(?! (?:el|la|las|los|tu|tus|su|sus|pelo|unas|flequillo)\b)/,
     ],
   },
   {
@@ -167,17 +181,23 @@ export const LISTAS_PARA_MENORES: readonly ListaDeCategoria[] = [
     ignoraCitacao: true,
     padroes: [
       // pt
-      /\b(?:qual|quais) (?:e |sao )?(?:o |a |os |as )?(?:seu|sua|seus|suas|teu|tua) (?:endereco|telefone|celular|numero|whats|whatsapp|zap|instagram|insta|email|e mail|nome completo|escola|cpf|senha|localizacao|bairro|rua)\b[^?]{0,40}\?/,
+      new RegExp(
+        String.raw`\b(?:qual|quais) (?:e |sao )?(?:o |a |os |as )?(?:seu|sua|seus|suas|teu|tua) (?:endereco|telefone|celular|numero|whats|whatsapp|zap|instagram|insta|email|e mail|nome completo|escola|cpf|senha|localizacao|bairro|rua)\b${NAO_E_DADO}[^?]{0,40}\?`,
+      ),
       /\b(?:onde|em que (?:cidade|bairro|rua|escola)|em qual (?:cidade|bairro|rua|escola)) (?:voce|tu|vc) (?:mora|moras|vive|estuda|estudas)\b[^?]{0,30}\?/,
       /\b(?:me )?(?:manda|mande|envia|envie|passa|passe) (?:pra mim |para mim )?(?:o |a |uma )?(?:seu|sua|teu|tua) (?:endereco|telefone|celular|numero|whats|whatsapp|zap|instagram|insta|email|e mail|foto|selfie|localizacao|senha)\b/,
       /\b(?:manda|mande|envia|envie|tira|tire) (?:uma )?(?:foto|selfie|video) (?:sua|de voce|do seu corpo)\b/,
       // en
-      /\b(?:what s|what is|whats) your (?:home )?(?:address|phone number|phone|number|cell|full name|school|instagram|snapchat|email|password|location)\b[^?]{0,30}\?/,
+      new RegExp(
+        String.raw`\b(?:what s|what is|whats) your (?:home )?(?:address|phone number|phone|number|cell|full name|school|instagram|snapchat|email|password|location)\b${NAO_E_DADO}[^?]{0,30}\?`,
+      ),
       /\bwhere do you (?:live|go to school|study)\b[^?]{0,20}\?/,
       /\b(?:send|give|tell) me your (?:home )?(?:address|phone number|number|phone|email|instagram|snapchat|location|password|full name|photo|picture|pic|selfie)\b/,
       /\bsend me (?:a )?(?:photo|picture|pic|selfie|video) of (?:yourself|you)\b/,
       // es
-      /\b(?:cual es|cuales son) (?:tu|tus) (?:direccion|telefono|numero|celular|nombre completo|escuela|colegio|instagram|correo|email|contrasena|ubicacion)\b[^?]{0,30}\?/,
+      new RegExp(
+        String.raw`\b(?:cual es|cuales son) (?:tu|tus) (?:direccion|telefono|numero|celular|nombre completo|escuela|colegio|instagram|correo|email|contrasena|ubicacion)\b${NAO_E_DADO}[^?]{0,30}\?`,
+      ),
       /\bdonde (?:vives|estudias)\b[^?]{0,20}\?/,
       /\b(?:enviame|mandame|pasame|dame) (?:tu|una) (?:direccion|telefono|numero|celular|correo|email|instagram|foto|selfie|ubicacion|contrasena)\b/,
     ],
@@ -195,22 +215,30 @@ export const LISTAS_PARA_MENORES: readonly ListaDeCategoria[] = [
       /\bsegredo (?:entre nos|so nosso|nosso e de mais ninguem)\b/,
       /\bnao (?:conta|conte|fala|fale|diga|diz) (?:isso |nada )?(?:pra|para|a|aos) (?:ninguem|seus pais|sua mae|seu pai|seus responsaveis)\b/,
       /\b(?:encontrar|conhecer|ver) (?:voce|te|vc) pessoalmente\b/,
-      /\b(?:vamos|podemos|quer|queria) (?:nos )?(?:encontrar|conhecer|ver)(?: \w+){0,3} (?:pessoalmente|ao vivo|sozinh[oa]s?)\b/,
+      /* "ao vivo" saiu: "ver o jogo ao vivo" é programa, não encontro. */
+      /\b(?:vamos|podemos|quer|queria) (?:nos )?(?:encontrar|conhecer|ver)(?: \w+){0,3} (?:pessoalmente|sozinh[oa]s?)\b/,
       /\b(?:voce|vc|tu) (?:esta|ta|estas) sozinh[ao] (?:em casa|agora)\b/,
       /\b(?:voce|vc|tu) (?:e|es) (?:muito |tao )?(?:sexy|sexi|gostos[ao]|sensual)\b/,
       /\b(?:apague|apaga|deleta|delete|borra|borre) (?:essa|esta|nossa) (?:conversa|mensagem|mensagens)\b/,
       // en
-      /\bour (?:little )?secret\b/,
+      /* "our secret ingredient/recipe" é receita: o segredo só conta quando é COMBINADO ("it's our secret"). */
+      /\bour little secret\b/,
+      /\b(?:it s|it is|this is|that s|that is|keep it|keep this|will be|stays) our secret\b(?! (?:ingredient|recipe|sauce|weapon|formula|spice|tip)s?\b)/,
       /\bdon t tell (?:your )?(?:parents|mom|dad|mum|anyone|anybody)\b/,
-      /\bmeet (?:me |you |up )?(?:in person|in real life|irl|alone|after school)\b/,
+      /* "meet after school at the library" é combinado de estudo; "meet ME after school" e "alone" não. */
+      /\bmeet (?:me |you |up )?(?:in person|in real life|irl|alone)\b/,
+      /\bmeet me after school\b/,
       /\bare you (?:home )?alone\b/,
       /\byou (?:are|re) (?:so |really |very )?sexy\b/,
       /\bdelete (?:this|our|the) (?:chat|conversation|messages?)\b/,
       // es
-      /\bnuestro secreto\b/,
+      /* "nuestro secreto es el amor" é receita; "es/será/queda (como) nuestro secreto" é combinado. */
+      /\b(?:es|sera|queda|quedara|como) nuestro secreto\b(?! (?:ingrediente|receta|salsa|truco|es|de|para)\b)/,
+      /\bnuestro secretito\b/,
       /\bno (?:se lo )?(?:digas|cuentes) a (?:nadie|tus padres|tu mama|tu papa)\b/,
       /\b(?:vernos|conocernos|encontrarnos) en persona\b/,
-      /\bestas sol[ao]\b/,
+      /* "Estas solo palabras" (estas = estas, demonstrativo): só a PERGUNTA "¿estás solo/sola?" conta. */
+      /\bestas sol[ao]\b[^?]{0,20}\?/,
       /\beres (?:muy |tan )?(?:sexy|sensual)\b/,
       /\bborra (?:esta|nuestra) (?:conversacion|mensajes?|chat)\b/,
     ],
@@ -229,5 +257,17 @@ export const LISTAS_PARA_MENORES: readonly ListaDeCategoria[] = [
 export const REDES_SOCIAIS =
   /\b(?:insta|instagram|ig|tiktok|twitter|snap|snapchat|discord|telegram|whats|whatsapp|zap|kik|facebook|threads|arroba)\b/
 
-/** Domínios que podem aparecer no texto do tutor sem virar "link para fora": o do próprio app. */
-export const DOMINIOS_PERMITIDOS: readonly string[] = ['frasy.com.br']
+/**
+ * Domínios (de link e de e-mail) que podem aparecer no texto do tutor sem virar "contato para fora": o do próprio app
+ * e os domínios de EXEMPLO, que aula usa para ensinar a escrever e-mail ("My email is anna@example.com").
+ */
+export const DOMINIOS_PERMITIDOS: readonly string[] = [
+  'frasy.com.br',
+  'example.com',
+  'example.org',
+  'example.net',
+  'exemplo.com',
+  'exemplo.com.br',
+  'ejemplo.com',
+  'test.com',
+]

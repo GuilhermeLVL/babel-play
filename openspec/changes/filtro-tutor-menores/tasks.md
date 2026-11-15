@@ -2,7 +2,10 @@
 
 - [x] 1.1 `server/ai/moderacao/listasParaMenores.ts`: categorias e padrões pt/en/es, comentados
 - [x] 1.2 `server/ai/moderacao/moderarSaidaDoTutor.ts`: normalização, detecção de contato, `ModeradorDeSaida`, cadeia
-- [x] 1.3 Testes do filtro (`tests/filtro-tutor-menores.test.ts`): categorias com variantes, adulto, 31 respostas de aula
+- [x] 1.3 Testes do filtro (`tests/filtro-tutor-menores.test.ts`): categorias com variantes, adulto, 49 respostas de aula
+- [x] 1.4 Revisão do PR #135: falsos positivos (automutilação, dado pessoal, aliciamento, contato), citação só com
+      explicação fora dela, aspas simples, domínios de exemplo, formato de telefone, teto de 20 mil caracteres, ponto
+      `saida_filtrada` no Worker e a frase de cuidado reescrita
 
 ## 2. Tutor
 

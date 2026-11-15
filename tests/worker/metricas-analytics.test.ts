@@ -11,6 +11,7 @@ import {
   contarCustoPorPlano,
   contarFeedbackDeIa,
   contarRespostaInvalida,
+  contarSaidaFiltrada,
   contarTokensDeEntrada,
   esquecerMetricas,
   medirUsoDoR2,
@@ -103,6 +104,11 @@ describe('famílias do Analytics Engine', () => {
       { blobs: ['feedback_ia', 'tutor', 'down', 'errado'], doubles: [1], indexes: ['tutor'] },
       { blobs: ['feedback_ia', 'nuance', 'up', 'nenhum'], doubles: [1], indexes: ['nuance'] },
     ])
+  })
+
+  it('saida_filtrada (filtro de saída do tutor para perfil protegido): função e categoria, nunca o texto', () => {
+    contarSaidaFiltrada('tutor', 'drogas')
+    expect(pontos).toEqual([{ blobs: ['saida_filtrada', 'tutor', 'drogas'], doubles: [1], indexes: ['tutor'] }])
   })
 
   it('requisicao (gravarPonto direto, o formato que o middleware usa)', () => {

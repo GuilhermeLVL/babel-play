@@ -351,6 +351,7 @@ Sem o binding (dev local, testes) nada é gravado. Falha do binding vira um úni
 | `resposta_invalida` | função                                      | modelo           |            |        | 1             |                               | função   |
 | `tokens_de_entrada` | função                                      | modelo           |            |        | tokens        | tokens em cache               | função   |
 | `feedback_ia`       | função                                      | `up` ou `down`   | motivo     |        | 1             |                               | função   |
+| `saida_filtrada`    | função                                      | categoria        |            |        | 1             |                               | função   |
 
 Consultas pela API SQL (`POST https://api.cloudflare.com/client/v4/accounts/<conta>/analytics_engine/sql`,
 token com "Account Analytics: Read"; o corpo é o SQL). Some `_sample_interval` para corrigir a amostragem:

@@ -31,24 +31,55 @@ filtro local (o barato decide primeiro e poupa a chamada), só para perfil prote
 
 ## Normalização e falso positivo
 
-Contatos (link, e-mail, telefone ≥ 9 dígitos com grupo de 3+, `@perfil` só com nome de rede no texto) são lidos no texto
-antes do leetspeak. O resto lê o texto normalizado: NFKD sem acento, invisíveis removidos, leetspeak só dentro de palavra
-com letra, pontuação vira espaço (o `?` fica), letras soltas espaçadas juntam, 3+ letras repetidas viram uma.
+Contatos são lidos no texto antes do leetspeak. O resto lê o texto normalizado: NFKD sem acento, invisíveis removidos,
+leetspeak só dentro de palavra com letra, pontuação vira espaço (o `?` fica), letras soltas espaçadas juntam, 3+ letras
+repetidas viram uma. Texto acima de 20 mil caracteres (`TETO_DO_TEXTO_MODERADO`) é barrado como `texto_longo` sem
+conferir — a resposta do tutor tem ~900 tokens, e acima disso as expressões de domínio/e-mail ficariam quadráticas.
 
 Contra falso positivo: frase de intenção em vez de palavra solta ("como comprar maconha", não "maconha"; "how to make a
-bomb", não "bomb"), palavras ambíguas fora da lista com o motivo anotado, e para dado pessoal/aliciamento o trecho citado
-(`**…**`, aspas, crase — como o tutor marca o idioma estudado) é ignorado e o pedido precisa ser pergunta (`?`) ou
-imperativo. O teste fixa 31 respostas de aula com as palavras ambíguas (drugstore, kill time, bomba de chocolate, coger el
-autobús, sexo no formulário, "Where do you live?" citado, números grandes, `@ficha`, CVV 188) que precisam passar.
+bomb", não "bomb") e palavras ambíguas fora da lista com o motivo anotado. Depois da revisão do PR #135:
+
+- **automutilação**: "machucar/ferir" só com intenção ("de propósito", "você deveria"); "córtate/cortarte" seguido de
+  objeto (el, la, tu, pelo, uñas, flequillo…) é cabelo, e "cortarse las venas/muñecas" continua barrado; "cut yourself
+  some slack" passa;
+- **dado pessoal**: o nome do dado seguido de "favorito/preferido/da sorte/one" não é pedido ("número favorito",
+  "number one goal");
+- **aliciamento**: "ver … ao vivo" saiu (é programa); "after school" só com "meet me"; "estás sola" só como pergunta;
+  "our secret" e "nuestro secreto" só quando combinados ("it's our secret", "es nuestro secreto"), não "our secret
+  ingredient" nem "nuestro secreto es el amor".
+
+O teste fixa 49 respostas de aula com as palavras ambíguas que precisam passar.
+
+## A citação, e o risco que sobra
+
+Para dado pessoal e aliciamento, o trecho citado (`**…**`, `__…__`, aspas duplas, `'…'`, `‘…’`, «…», crase — como o tutor
+marca o idioma estudado) é ignorado SÓ quando há explicação fora dele ("diga", "significa", "quer dizer", "use", "para
+perguntar", "frases", "em inglês", "means", "say", "se dice", "="). "Me diga" e "tell me" não contam. Sem explicação, o
+trecho citado é avaliado: "Me diga, **qual é o seu endereço?**" é barrado. Isso fecha o desvio mais simples — uma injeção
+no material da tela pedindo ao modelo para pôr o pedido em negrito.
+
+RISCO QUE SOBRA (para a opção C): com uma moldura de aula ("Em inglês: **qual é o seu endereço?**"), o pedido citado
+passa. O filtro local não sabe se a frase está sendo ensinada ou feita; só um moderador que entende contexto separa os dois.
+
+## Contato externo
+
+Link explícito (`http`, `www.`), domínio solto com TLD de convite, e-mail, `@perfil` com nome de rede no texto e
+telefone. Telefone exige FORMATO: 8+ dígitos colados, ou 9 a 15 dígitos com `+` de país, DDD entre parênteses ou
+hífen/ponto entre grupos — grupos separados só por espaço ("100 200 300 400 500") não contam. Domínios de exemplo
+(`example.com/.org/.net`, `exemplo.com(.br)`, `ejemplo.com`, `test.com`) e o do app são permitidos em domínio e e-mail.
+DECISÃO: um telefone real e bem escrito ("My phone number is (11) 98765-4321") continua barrado para menor mesmo numa
+frase de aula — o filtro não sabe se o número é de exemplo, e contato é o que mais importa segurar.
 
 ## Observabilidade
 
 `log('warn', { event: 'tutor_saida_filtrada', categoria, funcao, requestId })` — `categoria` e `funcao` entraram na
-allowlist do logger; o texto nunca. Prometheus `ia_saida_filtrada_total{funcao,categoria}` (com `METRICS_ENABLED`) e a
-anotação `saidaFiltrada` no rastro de telemetria. No Worker, o log é o que conta (a métrica Prometheus não roda lá).
+allowlist do logger; o texto nunca. Prometheus `ia_saida_filtrada_total{funcao,categoria}` (com `METRICS_ENABLED`), no
+Worker o ponto `saida_filtrada` do Analytics Engine (função, categoria; `docs/runbook.md`) e a anotação `saidaFiltrada`
+no rastro de telemetria.
 
 ## Limites conhecidos
 
 - Paráfrase, eufemismo e idiomas fora de pt/en/es (os contatos valem em qualquer idioma).
+- A moldura de aula em volta de um pedido citado (acima).
 - Com conteúdo de rastro ligado no Langfuse (`conteudoPermitido`), a `saida` da geração é gravada pela cascata antes do
   filtro — vale para todo texto do tutor, não só o barrado; está desligado por padrão.

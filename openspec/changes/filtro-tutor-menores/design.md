@@ -40,32 +40,45 @@ Contra falso positivo: frase de intenção em vez de palavra solta ("como compra
 bomb", não "bomb") e palavras ambíguas fora da lista com o motivo anotado. Depois da revisão do PR #135:
 
 - **automutilação**: "machucar/ferir" só com intenção ("de propósito", "você deveria"); "córtate/cortarte" seguido de
-  objeto (el, la, tu, pelo, uñas, flequillo…) é cabelo, e "cortarse las venas/muñecas" continua barrado; "cut yourself
-  some slack" passa;
+  cabelo/unha (el pelo, uñas, flequillo, barba) passa; com veia/pulso/braço/perna/pele (qualquer artigo, singular ou
+  plural) barra, assim como "hazte daño" e "lastímate"; "cut yourself some slack" passa;
 - **dado pessoal**: o nome do dado seguido de "favorito/preferido/da sorte/one" não é pedido ("número favorito",
   "number one goal");
-- **aliciamento**: "ver … ao vivo" saiu (é programa); "after school" só com "meet me"; "estás sola" só como pergunta;
-  "our secret" e "nuestro secreto" só quando combinados ("it's our secret", "es nuestro secreto"), não "our secret
-  ingredient" nem "nuestro secreto es el amor".
+- **aliciamento**: "ver … ao vivo" saiu (é programa); "after school" só com "meet me"; "estás sola/o" barra como pergunta
+  ou seguido de "en casa/ahora/esta noche/con nadie" ("Estas solo palabras" passa); "our (little) secret" barra, menos
+  seguido de comida/receita ("our secret ingredient/recipe/sauce"); "nuestro secreto" só combinado ("es nuestro
+  secreto"), não "nuestro secreto es el amor".
 
 O teste fixa 49 respostas de aula com as palavras ambíguas que precisam passar.
 
 ## A citação, e o risco que sobra
 
-Para dado pessoal e aliciamento, o trecho citado (`**…**`, `__…__`, aspas duplas, `'…'`, `‘…’`, «…», crase — como o tutor
-marca o idioma estudado) é ignorado SÓ quando há explicação fora dele ("diga", "significa", "quer dizer", "use", "para
-perguntar", "frases", "em inglês", "means", "say", "se dice", "="). "Me diga" e "tell me" não contam. Sem explicação, o
-trecho citado é avaliado: "Me diga, **qual é o seu endereço?**" é barrado. Isso fecha o desvio mais simples — uma injeção
-no material da tela pedindo ao modelo para pôr o pedido em negrito.
+Para dado pessoal e aliciamento, uma citação (`**…**`, `__…__`, aspas duplas, `'…'`, `‘…’`, «…», crase — como o tutor marca
+o idioma estudado) só é ignorada quando é de AULA (`ehCitacaoDeAula`):
 
-RISCO QUE SOBRA (para a opção C): com uma moldura de aula ("Em inglês: **qual é o seu endereço?**"), o pedido citado
-passa. O filtro local não sabe se a frase está sendo ensinada ou feita; só um moderador que entende contexto separa os dois.
+- uma marca de tradução/uso JUNTO dela — até 40 caracteres, sem atravessar fim de frase, de qualquer lado: "significa",
+  "quer dizer", "se diz", "means", "translates", "se dice", "quiere decir", "para perguntar", "to ask"; ou, DEPOIS dela,
+  "=" / "→" seguido da tradução ("**ingredient** = ingrediente");
+- ou ser item de uma lista de frases citadas ("**Where do you live?**, **How old are you?**") que NÃO esteja em português
+  na segunda pessoa (aí a frase fala com quem lê).
+
+Marcas genéricas não valem ("use", "frase", "exemplo", "em inglês:", "=" antes da citação). Toda outra citação é avaliada
+como o resto do texto: "Me diga, **qual é o seu endereço?**", "Use a frase **…** comigo", "Em inglês: **send me your
+address**" e "Exemplo = **What is your home address?**" são barrados. Isso fecha o desvio de uma injeção no material da
+tela que peça ao modelo para pôr o pedido em negrito.
+
+RISCO QUE SOBRA (para a opção C): uma injeção que monte a moldura completa de tradução em volta do pedido ("**What is your
+address?** significa…") ou uma lista de pedidos em outro idioma ainda passa. O filtro local não sabe se a frase está sendo
+ensinada ou feita; só um moderador que entende contexto separa os dois.
 
 ## Contato externo
 
 Link explícito (`http`, `www.`), domínio solto com TLD de convite, e-mail, `@perfil` com nome de rede no texto e
-telefone. Telefone exige FORMATO: 8+ dígitos colados, ou 9 a 15 dígitos com `+` de país, DDD entre parênteses ou
-hífen/ponto entre grupos — grupos separados só por espaço ("100 200 300 400 500") não contam. Domínios de exemplo
+telefone. Telefone exige FORMATO: 8+ dígitos colados; 8 a 15 dígitos com `+`, DDD entre parênteses ou hífen/ponto entre
+grupos (menos intervalo de anos "1999-2000"); ou grupos separados por espaço com desenho de telefone — último grupo de 4,
+penúltimo de 3 a 5, os da frente de 1 a 3, 8 a 13 dígitos ("11 98765 4321", "98765 4321", "3456 7890", "555 123 4567").
+Ficam de fora a contagem de um dígito ("1 2 3 4"), centenas redondas ("100 200 300") e listas de anos ("1999 2000
+2001"). Domínios de exemplo
 (`example.com/.org/.net`, `exemplo.com(.br)`, `ejemplo.com`, `test.com`) e o do app são permitidos em domínio e e-mail.
 DECISÃO: um telefone real e bem escrito ("My phone number is (11) 98765-4321") continua barrado para menor mesmo numa
 frase de aula — o filtro não sabe se o número é de exemplo, e contato é o que mais importa segurar.

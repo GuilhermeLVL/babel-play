@@ -19,8 +19,8 @@
  *    (fresta), `crioulo` (a língua), `gozar` (gozar férias), `pelado`, `marica`;
  *  - DADO PESSOAL E ALICIAMENTO SÃO FRASES DE AULA ("Where do you live?", "Let's meet", "It's a secret"). Para essas duas
  *    categorias o trecho CITADO — entre `**…**`, aspas ou crase, que é como o tutor marca o idioma estudado
- *    (`sistemaDoTutor`) — é ignorado QUANDO há explicação fora dele ("diga", "significa", "em inglês"; ver `EXPLICACAO`
- *    em `moderarSaidaDoTutor.ts`), e o pedido direto de dado precisa terminar em pergunta (`?`) ou ser imperativo
+ *    (`sistemaDoTutor`) — é ignorado só quando é de AULA: marca de tradução junto dele ("significa", "means", "=" depois)
+ *    ou item de lista de frases (`ehCitacaoDeAula` em `moderarSaidaDoTutor.ts`), e o pedido precisa ser pergunta (`?`) ou imperativo
  *    ("me passa o seu número"). As outras categorias valem até dentro da citação.
  *
  * O QUE ESTE FILTRO NÃO PEGA (e por isso a opção C, moderação por IA, fica para depois): paráfrase, eufemismo, idioma fora
@@ -120,7 +120,9 @@ export const LISTAS_PARA_MENORES: readonly ListaDeCategoria[] = [
          veia/pulso/braço, é automutilação. */
       /\b(?:matate|suicidate)\b/,
       /\bcort(?:ate|arte|arse)\b(?! (?:el|la|las|los|tu|tus|su|sus|pelo|unas|flequillo|barba|fleco)\b)/,
-      /\bcort(?:ate|arte|arse) (?:las |tus |sus )?(?:venas|munecas|brazos|piernas)\b/,
+      /\bcort(?:ate|arte|arse) (?:(?:el|la|las|los|tu|tus|su|sus) )?(?:venas?|munecas?|brazos?|piernas?|piel)\b/,
+      /* Imperativo de se ferir. "no quiero hacerte daño" (não quero te machucar) passa: só a ordem conta. */
+      /\b(?:hazte dano|lastimate)\b/,
       /\b(?:como|formas? de|maneras? de) (?:suicidarse|suicidarte|matarse|matarte|hacerse dano|hacerte dano)\b/,
       /\bdeberias (?:morir|matarte|suicidarte|cortarte)\b(?! (?:el|la|las|los|tu|tus|su|sus|pelo|unas|flequillo)\b)/,
     ],
@@ -221,9 +223,8 @@ export const LISTAS_PARA_MENORES: readonly ListaDeCategoria[] = [
       /\b(?:voce|vc|tu) (?:e|es) (?:muito |tao )?(?:sexy|sexi|gostos[ao]|sensual)\b/,
       /\b(?:apague|apaga|deleta|delete|borra|borre) (?:essa|esta|nossa) (?:conversa|mensagem|mensagens)\b/,
       // en
-      /* "our secret ingredient/recipe" é receita: o segredo só conta quando é COMBINADO ("it's our secret"). */
-      /\bour little secret\b/,
-      /\b(?:it s|it is|this is|that s|that is|keep it|keep this|will be|stays) our secret\b(?! (?:ingredient|recipe|sauce|weapon|formula|spice|tip)s?\b)/,
+      /* "our (little) secret" barra, MENOS seguido de comida/receita ("our secret ingredient/recipe/sauce"). */
+      /\bour (?:little )?secret\b(?! (?:ingredient|recipe|sauce|spice|formula|blend|dressing|seasoning|marinade|dish)s?\b)/,
       /\bdon t tell (?:your )?(?:parents|mom|dad|mum|anyone|anybody)\b/,
       /* "meet after school at the library" é combinado de estudo; "meet ME after school" e "alone" não. */
       /\bmeet (?:me |you |up )?(?:in person|in real life|irl|alone)\b/,
@@ -237,8 +238,10 @@ export const LISTAS_PARA_MENORES: readonly ListaDeCategoria[] = [
       /\bnuestro secretito\b/,
       /\bno (?:se lo )?(?:digas|cuentes) a (?:nadie|tus padres|tu mama|tu papa)\b/,
       /\b(?:vernos|conocernos|encontrarnos) en persona\b/,
-      /* "Estas solo palabras" (estas = estas, demonstrativo): só a PERGUNTA "¿estás solo/sola?" conta. */
+      /* "Estas solo palabras" (demonstrativo + substantivo) passa: conta a PERGUNTA "¿estás sola?" e a afirmação com
+         "en casa/ahora/esta noche/con nadie". */
       /\bestas sol[ao]\b[^?]{0,20}\?/,
+      /\bestas sol[ao] (?:en casa|ahora|esta noche|con nadie)\b/,
       /\beres (?:muy |tan )?(?:sexy|sensual)\b/,
       /\bborra (?:esta|nuestra) (?:conversacion|mensajes?|chat)\b/,
     ],

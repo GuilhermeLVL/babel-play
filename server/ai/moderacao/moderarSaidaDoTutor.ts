@@ -75,35 +75,6 @@ export function normalizar(texto: string): string {
   return ` ${s.trim()} `
 }
 
-/**
- * Tira o trecho CITADO (como o tutor marca o idioma estudado): `**…**`, `__…__`, aspas duplas retas/curvas/angulares,
- * crase e aspas SIMPLES retas/curvas. A aspa simples também é apóstrofo ("What's", "it’s"), então ela só abre depois de
- * espaço/início/parêntese e só fecha antes de espaço/pontuação/fim.
- */
-function semCitacoes(texto: string): string {
-  return texto
-    .replace(/\*\*[^*]{1,300}\*\*/g, ' ')
-    .replace(/__[^_]{1,300}__/g, ' ')
-    .replace(/"[^"\n]{1,300}"/g, ' ')
-    .replace(/“[^”\n]{1,300}”/g, ' ')
-    .replace(/«[^»\n]{1,300}»/g, ' ')
-    .replace(/`[^`\n]{1,300}`/g, ' ')
-    .replace(/(^|[\s(])'[^\n]{1,300}?'(?=[\s.,;:!?)]|$)/g, '$1 ')
-    .replace(/(^|[\s(])‘[^\n]{1,300}?’(?=[\s.,;:!?)]|$)/g, '$1 ')
-}
-
-/**
- * HÁ EXPLICAÇÃO FORA DA CITAÇÃO? A citação só é ignorada quando o texto em volta a apresenta como aula ("diga…",
- * "significa", "use…", "em inglês", "="). Sem isso, o trecho citado é o próprio pedido: "Me diga, **qual é o seu
- * endereço?**" — e uma injeção no material da tela pode pedir ao modelo para pôr o pedido em negrito. "me diga" e
- * "tell me" não contam como explicação.
- *
- * RISCO QUE SOBRA (para a opção C): "Em inglês: **qual é o seu endereço?**" ainda passa — o filtro local não sabe se a
- * frase citada está sendo ensinada ou feita. Só um moderador que entende contexto separa os dois.
- */
-const EXPLICACAO =
-  /(?:\bsignifica|\bquer dizer|\bse diz|\bse dice|\bse escreve|\btraduz|\bmeans?\b|\btranslat|\byou can say|(?<!\bme )\bdiga\b|(?<!\btell me )\bsay\b|\bdecir\b|\buse\b|\busa\b|\busar\b|\bpara perguntar|\bpara pedir|\bto ask\b|\bfrases?\b|\bexpress(?:ao|oes|ion)|\bexemplo|\bejemplo|\bexample|\bem ingles|\bem espanhol|\ben ingles|\ben espanol|\bin english|\bin spanish|=)/
-
 /* ─────────────────────── contato: link, e-mail, telefone, @ ─────────────────────── */
 
 const URL_EXPLICITA = /\b(?:https?:\/\/|www\.)\S+/
@@ -122,11 +93,32 @@ const MILHAR = /^\d{1,3}(?:\.\d{3})+$/
 const permitido = (dominio: string): boolean =>
   DOMINIOS_PERMITIDOS.some((d) => dominio === d || dominio.endsWith(`.${d}`))
 
+const ehAno = (g: string): boolean => /^(?:19|20)\d\d$/.test(g)
+
 /**
- * Tem FORMATO de telefone: 8+ dígitos colados, ou 9 a 15 dígitos com `+` de país, DDD entre parênteses ou hífen/ponto
- * entre grupos. Grupos separados só por espaço ("100 200 300 400 500", numa aula de números) não são telefone. Um
- * telefone real e bem escrito ("(11) 98765-4321") continua barrado para menor mesmo numa frase de aula ("My phone number
- * is…"): o filtro não sabe se o número é de exemplo, e contato é o que mais importa segurar.
+ * Grupos SÓ separados por espaço com desenho de telefone: o último com 4 dígitos, o penúltimo com 3 a 5 (número local:
+ * 4+4, 5+4, 3+3+4) e os da frente com 1 a 3 (país e DDD: 2+4+4, 2+5+4, 2+2+5+4), 8 a 13 dígitos no total. Fora, o que é
+ * claramente aula de número: contagem de um dígito ("1 2 3 4"), centenas redondas ("100 200 300") e lista de anos
+ * ("1999 2000 2001").
+ */
+function gruposDeTelefone(t: string): boolean {
+  const grupos = t.split(/\s+/)
+  if (grupos.length < 2 || grupos.length > 5 || grupos.some((g) => !/^\d+$/.test(g))) return false
+  const total = grupos.join('').length
+  if (total < 8 || total > 13) return false
+  if (grupos.every((g) => g.length === 1)) return false
+  if (grupos.every((g) => g.length >= 3 && g.endsWith('00'))) return false
+  if (grupos.every(ehAno)) return false
+  const n = grupos.length
+  if (grupos[n - 1].length !== 4 || grupos[n - 2].length < 3 || grupos[n - 2].length > 5) return false
+  return grupos.slice(0, n - 2).every((g) => g.length >= 1 && g.length <= 3)
+}
+
+/**
+ * Tem FORMATO de telefone: 8+ dígitos colados; 8 a 15 dígitos com `+` de país, DDD entre parênteses ou hífen/ponto entre
+ * grupos (menos "1999-2000", intervalo de anos); ou grupos separados por espaço no desenho de telefone
+ * (`gruposDeTelefone`). Um telefone real e bem escrito ("(11) 98765-4321") continua barrado para menor mesmo numa frase
+ * de aula ("My phone number is…"): o filtro não sabe se o número é de exemplo, e contato é o que mais importa segurar.
  */
 function pareceTelefone(trecho: string): boolean {
   const t = trecho.trim()
@@ -134,8 +126,12 @@ function pareceTelefone(trecho: string): boolean {
   if (digitos.length < 8 || digitos.length > 15) return false
   if (MILHAR.test(t)) return false
   if (/\d{8,}/.test(t)) return true
-  if (digitos.length < 9) return false
-  return t.startsWith('+') || /\(\d{2,3}\)/.test(t) || /\d[-.]\d/.test(t)
+  if (t.startsWith('+') || /\(\d{2,3}\)/.test(t)) return true
+  if (/\d[-.]\d/.test(t)) {
+    const partes = t.split(/[-.\s]+/)
+    return !(partes.length === 2 && partes.every(ehAno))
+  }
+  return gruposDeTelefone(t)
 }
 
 /** Link, e-mail, telefone ou `@perfil` de rede. Lê o texto ANTES do leetspeak, que estragaria dígito e `@`. */
@@ -167,16 +163,79 @@ export const filtroLocalParaMenores: ModeradorDeSaida = (texto, perfil) => {
   const completo = normalizar(texto)
   let citavel: string | null = null
   for (const lista of LISTAS_PARA_MENORES) {
-    const alvo = lista.ignoraCitacao ? (citavel ??= alvoSemCitacao(texto, completo)) : completo
+    const alvo = lista.ignoraCitacao ? (citavel ??= alvoSemCitacao(texto)) : completo
     if (lista.padroes.some((p) => p.test(alvo))) return { ok: false, motivo: lista.categoria }
   }
   return LIBERADO
 }
 
-/** O texto que dado pessoal e aliciamento leem: sem a citação quando há explicação fora dela; senão, o texto inteiro. */
-function alvoSemCitacao(texto: string, completo: string): string {
-  const fora = semCitacoes(texto)
-  return EXPLICACAO.test(base(fora)) ? normalizar(fora) : completo
+/* ─────────────────────────── a citação de aula ─────────────────────────── */
+
+/**
+ * Os trechos CITADOS (como o tutor marca o idioma estudado): `**…**`, `__…__`, aspas duplas retas/curvas/angulares,
+ * crase e aspas SIMPLES retas/curvas. A aspa simples também é apóstrofo ("What's", "it’s"), então ela só abre depois de
+ * espaço/início/parêntese e só fecha antes de espaço/pontuação/fim. O conteúdo vem num dos grupos.
+ */
+const CITACAO =
+  /\*\*([^*]{1,300})\*\*|__([^_]{1,300})__|"([^"\n]{1,300})"|“([^”\n]{1,300})”|«([^»\n]{1,300})»|`([^`\n]{1,300})`|(?<=^|[\s(])'([^\n]{1,300}?)'(?=[\s.,;:!?)]|$)|(?<=^|[\s(])‘([^\n]{1,300}?)’(?=[\s.,;:!?)]|$)/g
+
+/** Marcas de TRADUÇÃO ou de USO, de qualquer lado da citação: "X significa **Y**", "**Y** means X", "para perguntar…". */
+const MARCA_DE_AULA =
+  /\b(?:significa|quer dizer|se diz|se traduz|traduz-se|means|translates|se dice|quiere decir|para perguntar|para pedir|to ask)\b/
+/** Depois da citação, "=" ou "→" seguido da tradução: "**ingredient** = ingrediente". Antes dela não conta. */
+const TRADUCAO_DEPOIS = /^\s*(?:=|→|->)\s*[a-z]/
+/** Quanto do texto em volta conta como "junto da citação": até 40 caracteres, sem atravessar fim de frase. */
+const VIZINHANCA = 40
+/** Entre duas citações de uma LISTA de frases ("**Where do you live?**, **How old are you?**"). */
+const ENTRE_ITENS_DE_LISTA = /^\s*(?:[,;]|e|ou|and|or|y|o)?\s*$/
+/** Segunda pessoa em português: dirigida a quem lê, não frase de outro idioma sendo ensinada. */
+const SEGUNDA_PESSOA_PT = /\b(?:voce|vc|seu|sua|seus|suas|teu|tua|te|me passa|me manda|me envia)\b/
+
+interface Citacao {
+  inicio: number
+  fim: number
+  conteudo: string
+}
+
+/**
+ * A citação é de AULA quando está junto de uma marca de tradução/uso (no mesmo trecho de frase, até `VIZINHANCA`) ou
+ * quando é item de uma lista de frases — e, na lista, só se não é português em segunda pessoa (aí ela fala com quem lê).
+ * "Me diga, **qual é o seu endereço?**", "Use a frase **…** comigo" e "Em inglês: **send me your address**" NÃO são
+ * aula: o trecho citado é avaliado como o resto do texto.
+ */
+function ehCitacaoDeAula(b: string, c: Citacao, anterior: Citacao | undefined, proxima: Citacao | undefined): boolean {
+  const antes = b
+    .slice(Math.max(0, c.inicio - VIZINHANCA), c.inicio)
+    .split(/[.!?\n]/)
+    .pop()!
+  const depois = b.slice(c.fim, c.fim + VIZINHANCA).split(/[.!?\n]/)[0]
+  if (MARCA_DE_AULA.test(antes) || MARCA_DE_AULA.test(depois) || TRADUCAO_DEPOIS.test(depois)) return true
+  const naLista =
+    (anterior && ENTRE_ITENS_DE_LISTA.test(b.slice(anterior.fim, c.inicio))) ||
+    (proxima && ENTRE_ITENS_DE_LISTA.test(b.slice(c.fim, proxima.inicio)))
+  return Boolean(naLista) && !SEGUNDA_PESSOA_PT.test(c.conteudo)
+}
+
+/**
+ * O texto que dado pessoal e aliciamento leem: sem as citações de AULA (`ehCitacaoDeAula`); toda outra citação fica e é
+ * avaliada. RISCO QUE SOBRA (para a opção C): uma injeção que monte a moldura completa de tradução em volta do pedido
+ * ("**What is your address?** significa…") ainda passa — o filtro local não sabe se a frase está sendo ensinada ou feita.
+ */
+function alvoSemCitacao(texto: string): string {
+  const b = base(texto)
+  const citacoes: Citacao[] = [...b.matchAll(CITACAO)].map((m) => ({
+    inicio: m.index,
+    fim: m.index + m[0].length,
+    conteudo: m.slice(1).find((g) => g !== undefined) ?? '',
+  }))
+  let fora = ''
+  let cursor = 0
+  citacoes.forEach((c, i) => {
+    if (!ehCitacaoDeAula(b, c, citacoes[i - 1], citacoes[i + 1])) return
+    fora += `${b.slice(cursor, c.inicio)} `
+    cursor = c.fim
+  })
+  return normalizar(fora + b.slice(cursor))
 }
 
 /**

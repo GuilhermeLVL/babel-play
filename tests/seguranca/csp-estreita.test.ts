@@ -33,10 +33,16 @@ describe('diretivasDeCsp', () => {
 
   it('o Ollama local (localhost:11434) só fora do modo público: self-host e dev mantêm, AUTH_REQUIRED=1 tira', () => {
     const ollama = ['http://localhost:11434', 'http://127.0.0.1:11434']
-    for (const e of [{}, { AUTH_REQUIRED: '0' }, { AUTH_REQUIRED: '0', SELF_HOST: '1', NODE_ENV: 'production' }])
+    const foraDoPublico: Record<string, string>[] = [
+      {},
+      { AUTH_REQUIRED: '0' },
+      { AUTH_REQUIRED: '0', SELF_HOST: '1', NODE_ENV: 'production' },
+    ]
+    for (const e of foraDoPublico)
       for (const o of ollama) expect(diretivasDeCsp(env(e)).connectSrc, JSON.stringify(e)).toContain(o)
     // O Express/Worker público (AUTH_REQUIRED=1) e o build do Worker (VITE_AUTH_REQUIRED=1, que gera o `_headers`).
-    for (const e of [{ AUTH_REQUIRED: '1' }, { VITE_AUTH_REQUIRED: '1' }]) {
+    const publicos: Record<string, string>[] = [{ AUTH_REQUIRED: '1' }, { VITE_AUTH_REQUIRED: '1' }]
+    for (const e of publicos) {
       const c = diretivasDeCsp(env(e)).connectSrc
       for (const o of ollama) expect(c, JSON.stringify(e)).not.toContain(o)
       expect(c).toContain('https://huggingface.co')

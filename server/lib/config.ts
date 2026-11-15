@@ -986,6 +986,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'base pública do bucket R2 dos audiolivros pré-gerados (`audiolivros/<livroId>/<voz>/atual.json`, `manifesto.json` e `<versao>/<nn>.opus|json`, flag `audiolivros`). Ausente: o "Ouvir" lê com a voz do aparelho, como sempre. Com ela, a CSP libera a origem em `connect-src` e `media-src`',
   },
   {
+    nome: 'VITE_AUTH_REQUIRED',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '1 no BUILD do modo público (o deploy do Worker a fixa): o front sai com a porta de login, e a CSP do `dist/_headers` (`server/http/csp.ts`) deixa de fora o Ollama local (`localhost:11434`), como o servidor faz com `AUTH_REQUIRED=1`. Ausente ou vazia (self-host, edição estática): o Ollama continua em `connect-src`',
+  },
+  {
     nome: 'VITE_AVATARES_URL',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',

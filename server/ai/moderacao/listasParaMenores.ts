@@ -17,11 +17,12 @@
  *  - PALAVRAS AMBÍGUAS FICAM DE FORA, com o motivo anotado: `coke` (Coca-Cola), `pot`, `weed` sozinho (capinar), `coger`
  *    (pegar, na Espanha), `bicha` (fila, em Portugal), `veado` (o animal), `fag` (cigarro, no Reino Unido), `chink`
  *    (fresta), `crioulo` (a língua), `gozar` (gozar férias), `pelado`, `marica`;
- *  - DADO PESSOAL E ALICIAMENTO SÃO FRASES DE AULA ("Where do you live?", "Let's meet", "It's a secret"). Para essas duas
- *    categorias o trecho CITADO — entre `**…**`, aspas ou crase, que é como o tutor marca o idioma estudado
- *    (`sistemaDoTutor`) — é ignorado só quando é de AULA: marca de tradução junto dele ("significa", "means", "=" depois)
- *    ou item de lista de frases (`ehCitacaoDeAula` em `moderarSaidaDoTutor.ts`), e o pedido precisa ser pergunta (`?`) ou imperativo
- *    ("me passa o seu número"). As outras categorias valem até dentro da citação.
+ *  - DADO PESSOAL PRECISA SER PEDIDO: pergunta terminada em `?` ou imperativo ("me passa o seu número"), e o nome do
+ *    dado seguido de "favorito/da sorte/one" não conta.
+ *  - A CITAÇÃO NÃO ISENTA NADA: o trecho entre `**…**` ou aspas é conferido como o resto. Dado pessoal e aliciamento
+ *    são frases de aula ("Where do you live?", "Let's meet in person"), então ensiná-las a um menor vira a frase fixa
+ *    — falso positivo aceito pelo coordenador (revisão de segurança do PR #135): toda regra de "isto é aula" virou
+ *    desvio. Adulto não é filtrado.
  *
  * O QUE ESTE FILTRO NÃO PEGA (e por isso a opção C, moderação por IA, fica para depois): paráfrase, eufemismo, idioma fora
  * de pt/en/es (o leetspeak e os contatos — link, e-mail, telefone, @ — valem para qualquer idioma), ironia e contexto.
@@ -43,8 +44,6 @@ export type CategoriaDeBloqueio =
 
 export interface ListaDeCategoria {
   categoria: CategoriaDeBloqueio
-  /** Ignora o trecho citado (`**…**`, aspas, crase) antes de casar: a categoria é feita de frases que se ensinam. */
-  ignoraCitacao?: boolean
   padroes: readonly RegExp[]
 }
 
@@ -177,10 +176,9 @@ export const LISTAS_PARA_MENORES: readonly ListaDeCategoria[] = [
     ],
   },
   {
-    /* Pedido de dado pessoal ou de foto. Precisa ser PEDIDO: pergunta terminada em `?` ou imperativo. A frase de aula
-       vem citada ("**What's your address?**") e a citação é ignorada aqui. */
+    /* Pedido de dado pessoal ou de foto. Precisa ser PEDIDO: pergunta terminada em `?` ou imperativo. Vale também dentro
+       da citação: "**What's your address?**" ensinado a menor vira a frase fixa (falso positivo aceito). */
     categoria: 'dados_pessoais',
-    ignoraCitacao: true,
     padroes: [
       // pt
       new RegExp(
@@ -194,6 +192,7 @@ export const LISTAS_PARA_MENORES: readonly ListaDeCategoria[] = [
         String.raw`\b(?:what s|what is|whats) your (?:home )?(?:address|phone number|phone|number|cell|full name|school|instagram|snapchat|email|password|location)\b${NAO_E_DADO}[^?]{0,30}\?`,
       ),
       /\bwhere do you (?:live|go to school|study)\b[^?]{0,20}\?/,
+      /\bwhere (?:is|s) your (?:school|house|home|apartment|flat)\b[^?]{0,20}\?/,
       /\b(?:send|give|tell) me your (?:home )?(?:address|phone number|number|phone|email|instagram|snapchat|location|password|full name|photo|picture|pic|selfie)\b/,
       /\bsend me (?:a )?(?:photo|picture|pic|selfie|video) of (?:yourself|you)\b/,
       // es
@@ -206,9 +205,8 @@ export const LISTAS_PARA_MENORES: readonly ListaDeCategoria[] = [
   },
   {
     /* Aliciamento: segredo com adulto, encontro pessoalmente, "está sozinho?", elogio sexualizado, apagar a conversa.
-       Frases de aula ("It's our secret", "Are you alone?") vêm citadas e a citação é ignorada. */
+       Vale também dentro da citação: "**Are you alone?**" ensinado a menor vira a frase fixa (falso positivo aceito). */
     categoria: 'aliciamento',
-    ignoraCitacao: true,
     padroes: [
       // pt
       /* "é o nosso segredo" sozinho é a TRADUÇÃO de uma frase de aula (vem sem aspas, em português); o que barra é o

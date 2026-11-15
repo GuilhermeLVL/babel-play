@@ -49,27 +49,23 @@ bomb", não "bomb") e palavras ambíguas fora da lista com o motivo anotado. Dep
   seguido de comida/receita ("our secret ingredient/recipe/sauce"); "nuestro secreto" só combinado ("es nuestro
   secreto"), não "nuestro secreto es el amor".
 
-O teste fixa 49 respostas de aula com as palavras ambíguas que precisam passar.
+O teste fixa 44 respostas de aula com as palavras ambíguas que precisam passar.
 
-## A citação, e o risco que sobra
+## A citação não isenta nada (decisão da revisão de segurança)
 
-Para dado pessoal e aliciamento, uma citação (`**…**`, `__…__`, aspas duplas, `'…'`, `‘…’`, «…», crase — como o tutor marca
-o idioma estudado) só é ignorada quando é de AULA (`ehCitacaoDeAula`):
+Versões anteriores ignoravam o trecho citado (`**…**`, aspas) para dado pessoal e aliciamento quando ele "parecia aula":
+primeiro com qualquer explicação no texto, depois só com marca de tradução junto ou lista de frases. Cada regra virou
+desvio: uma injeção no material da tela pede ao modelo a moldura certa ("Frases úteis: - **What is your home address?**",
+"Para perguntar: 'Where is your school?'", "To ask: **Can we meet in person?**", "**¿Dónde vives?** = Where do you
+live?"). DECISÃO do coordenador (segurança acima da conveniência da aula, só para perfil protegido): o filtro confere o
+texto INTEIRO, citação inclusive, em todas as categorias — a isenção foi removida por completo, que é mais simples e não
+deixa uma segunda regra para auditar (nas outras categorias ela nunca existiu).
 
-- uma marca de tradução/uso JUNTO dela — até 40 caracteres, sem atravessar fim de frase, de qualquer lado: "significa",
-  "quer dizer", "se diz", "means", "translates", "se dice", "quiere decir", "para perguntar", "to ask"; ou, DEPOIS dela,
-  "=" / "→" seguido da tradução ("**ingredient** = ingrediente");
-- ou ser item de uma lista de frases citadas ("**Where do you live?**, **How old are you?**") que NÃO esteja em português
-  na segunda pessoa (aí a frase fala com quem lê).
-
-Marcas genéricas não valem ("use", "frase", "exemplo", "em inglês:", "=" antes da citação). Toda outra citação é avaliada
-como o resto do texto: "Me diga, **qual é o seu endereço?**", "Use a frase **…** comigo", "Em inglês: **send me your
-address**" e "Exemplo = **What is your home address?**" são barrados. Isso fecha o desvio de uma injeção no material da
-tela que peça ao modelo para pôr o pedido em negrito.
-
-RISCO QUE SOBRA (para a opção C): uma injeção que monte a moldura completa de tradução em volta do pedido ("**What is your
-address?** significa…") ou uma lista de pedidos em outro idioma ainda passa. O filtro local não sabe se a frase está sendo
-ensinada ou feita; só um moderador que entende contexto separa os dois.
+O custo, aceito e à vista no teste (`ACEITOS_PARA_MENOR`): aula que ensina a um menor frases de dado pessoal ou de encontro
+vira a frase fixa — "Para perguntar o endereço, diga **What is your address?**…", "Frases de apresentação: **Where do you
+live?**, …", "**It's our secret** = é o nosso segredo…", "Use 'What is your address?' to ask…", "Use ‘Where do you
+live?’ para perguntar…". Adulto não é filtrado. A opção C (moderação que entende contexto) é o caminho para recuperar
+essas aulas sem reabrir o desvio.
 
 ## Contato externo
 
@@ -93,6 +89,6 @@ no rastro de telemetria.
 ## Limites conhecidos
 
 - Paráfrase, eufemismo e idiomas fora de pt/en/es (os contatos valem em qualquer idioma).
-- A moldura de aula em volta de um pedido citado (acima).
+- Aula que ensina frase de dado pessoal ou de encontro a menor vira a frase fixa (acima).
 - Com conteúdo de rastro ligado no Langfuse (`conteudoPermitido`), a `saida` da geração é gravada pela cascata antes do
   filtro — vale para todo texto do tutor, não só o barrado; está desligado por padrão.

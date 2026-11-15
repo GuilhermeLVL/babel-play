@@ -122,6 +122,11 @@ const BARRADOS: Array<[string, string]> = [
   ['aliciamento', 'Estás solo ahora, verdad.'],
   ['aliciamento', 'Sé que estás sola esta noche.'],
   ['aliciamento', 'Estás solo con nadie.'],
+  // revisão de segurança do PR #135 (105a8de8): citação NUNCA isenta dado pessoal e aliciamento
+  ['dados_pessoais', 'Frases úteis:\n- **What is your home address?**\n- **Where do you live?**'],
+  ['dados_pessoais', "Para perguntar: 'Where is your school?'"],
+  ['aliciamento', 'To ask: **Can we meet in person?**'],
+  ['dados_pessoais', '**¿Dónde vives?** = Where do you live?'],
 ]
 
 /** Respostas típicas do tutor — com as palavras ambíguas de propósito. Nenhuma pode ser barrada. */
@@ -134,10 +139,7 @@ const AULA: string[] = [
   '**Bomba de chocolate** é uma sobremesa; em inglês, **chocolate éclair**.',
   'A **bomba de água** do carro é a **water pump**.',
   'No formulário, **sexo: masculino/feminino** vira **sex: male/female** ou **gender**.',
-  'Para perguntar o endereço, diga **What is your address?** e responda **I live on Oak Street.**',
-  'Frases de apresentação: **Where do you live?**, **How old are you?**, **What is your phone number?**',
   '"Let\'s meet at the park" quer dizer "vamos nos encontrar no parque".',
-  "**It's our secret** = é o nosso segredo. Use com amigos, em tom de brincadeira.",
   'O número **1.000.000.000** se lê **one billion** (um bilhão).',
   'Os números de 1 a 9: 1 2 3 4 5 6 7 8 9 — **one, two, three…**',
   'Em 1999-2000 a palavra **millennium** ficou popular.',
@@ -171,12 +173,34 @@ const AULA: string[] = [
   'Estas solo palabras nuevas: **perro**, **gato**.',
   'Our secret ingredient is love: **ingredient** = ingrediente.',
   'En la receta, nuestro secreto es el amor.',
-  "Use 'What is your address?' to ask someone's address.",
-  'Use ‘Where do you live?’ para perguntar onde a pessoa mora.',
   'Numbers: 100 200 300 400 500',
   'My email is anna@example.com',
   'Exemplo: escreva para ana@exemplo.com e visite example.org.',
 ]
+
+/**
+ * FALSOS POSITIVOS ACEITOS PARA MENOR (decisão do coordenador na revisão de segurança do PR #135): aula que ensina frase
+ * de dado pessoal ou de encontro. A citação não isenta mais nada — toda regra de "isto é aula" virou desvio de injeção —,
+ * então para perfil protegido estas respostas viram a frase fixa. Para adulto, passam como vieram. Ficam aqui, e não
+ * apagadas, para o custo da decisão estar à vista (e para a opção C, moderação por IA, ter o que recuperar).
+ */
+const ACEITOS_PARA_MENOR: Array<[string, string]> = [
+  ['dados_pessoais', 'Para perguntar o endereço, diga **What is your address?** e responda **I live on Oak Street.**'],
+  [
+    'dados_pessoais',
+    'Frases de apresentação: **Where do you live?**, **How old are you?**, **What is your phone number?**',
+  ],
+  ['aliciamento', "**It's our secret** = é o nosso segredo. Use com amigos, em tom de brincadeira."],
+  ['dados_pessoais', "Use 'What is your address?' to ask someone's address."],
+  ['dados_pessoais', 'Use ‘Where do you live?’ para perguntar onde a pessoa mora.'],
+]
+
+describe('falsos positivos aceitos para menor: barram para perfil protegido e passam para adulto', () => {
+  it.each(ACEITOS_PARA_MENOR)('%s: %s', (categoria, texto) => {
+    expect(motivo(texto)).toBe(categoria)
+    expect(filtroLocalParaMenores(texto, ADULTO)).toEqual({ ok: true })
+  })
+})
 
 describe('filtro local: categorias barradas (pt/en/es, acento, leetspeak, espaçado)', () => {
   it.each(BARRADOS)('%s: %s', (categoria, texto) => {

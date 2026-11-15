@@ -155,87 +155,24 @@ function detectarContato(texto: string): boolean {
  */
 export const TETO_DO_TEXTO_MODERADO = 20_000
 
-/** O FILTRO LOCAL (opção B): determinístico, sem rede, sem custo. Só confere perfil protegido. */
+/**
+ * O FILTRO LOCAL (opção B): determinístico, sem rede, sem custo. Só confere perfil protegido.
+ *
+ * O TEXTO INTEIRO É CONFERIDO, CITAÇÃO INCLUSIVE (decisão do coordenador, revisão de segurança do PR #135). Tentamos
+ * ignorar o trecho citado de aula (`**…**`, aspas) quando havia marca de tradução ou lista de frases, mas toda regra de
+ * "é aula" virou desvio: uma injeção no material da tela pede ao modelo a moldura certa em volta do pedido. Para perfil
+ * protegido, segurança vale mais que a conveniência da aula: "**What is your address?**" ensinado a um menor vira a frase
+ * fixa (falso positivo aceito, listado no teste). Adulto não é filtrado.
+ */
 export const filtroLocalParaMenores: ModeradorDeSaida = (texto, perfil) => {
   if (!perfil.protegido || !texto) return LIBERADO
   if (texto.length > TETO_DO_TEXTO_MODERADO) return { ok: false, motivo: 'texto_longo' }
   if (detectarContato(texto)) return { ok: false, motivo: 'contato_externo' }
-  const completo = normalizar(texto)
-  let citavel: string | null = null
+  const alvo = normalizar(texto)
   for (const lista of LISTAS_PARA_MENORES) {
-    const alvo = lista.ignoraCitacao ? (citavel ??= alvoSemCitacao(texto)) : completo
     if (lista.padroes.some((p) => p.test(alvo))) return { ok: false, motivo: lista.categoria }
   }
   return LIBERADO
-}
-
-/* ─────────────────────────── a citação de aula ─────────────────────────── */
-
-/**
- * Os trechos CITADOS (como o tutor marca o idioma estudado): `**…**`, `__…__`, aspas duplas retas/curvas/angulares,
- * crase e aspas SIMPLES retas/curvas. A aspa simples também é apóstrofo ("What's", "it’s"), então ela só abre depois de
- * espaço/início/parêntese e só fecha antes de espaço/pontuação/fim. O conteúdo vem num dos grupos.
- */
-const CITACAO =
-  /\*\*([^*]{1,300})\*\*|__([^_]{1,300})__|"([^"\n]{1,300})"|“([^”\n]{1,300})”|«([^»\n]{1,300})»|`([^`\n]{1,300})`|(?<=^|[\s(])'([^\n]{1,300}?)'(?=[\s.,;:!?)]|$)|(?<=^|[\s(])‘([^\n]{1,300}?)’(?=[\s.,;:!?)]|$)/g
-
-/** Marcas de TRADUÇÃO ou de USO, de qualquer lado da citação: "X significa **Y**", "**Y** means X", "para perguntar…". */
-const MARCA_DE_AULA =
-  /\b(?:significa|quer dizer|se diz|se traduz|traduz-se|means|translates|se dice|quiere decir|para perguntar|para pedir|to ask)\b/
-/** Depois da citação, "=" ou "→" seguido da tradução: "**ingredient** = ingrediente". Antes dela não conta. */
-const TRADUCAO_DEPOIS = /^\s*(?:=|→|->)\s*[a-z]/
-/** Quanto do texto em volta conta como "junto da citação": até 40 caracteres, sem atravessar fim de frase. */
-const VIZINHANCA = 40
-/** Entre duas citações de uma LISTA de frases ("**Where do you live?**, **How old are you?**"). */
-const ENTRE_ITENS_DE_LISTA = /^\s*(?:[,;]|e|ou|and|or|y|o)?\s*$/
-/** Segunda pessoa em português: dirigida a quem lê, não frase de outro idioma sendo ensinada. */
-const SEGUNDA_PESSOA_PT = /\b(?:voce|vc|seu|sua|seus|suas|teu|tua|te|me passa|me manda|me envia)\b/
-
-interface Citacao {
-  inicio: number
-  fim: number
-  conteudo: string
-}
-
-/**
- * A citação é de AULA quando está junto de uma marca de tradução/uso (no mesmo trecho de frase, até `VIZINHANCA`) ou
- * quando é item de uma lista de frases — e, na lista, só se não é português em segunda pessoa (aí ela fala com quem lê).
- * "Me diga, **qual é o seu endereço?**", "Use a frase **…** comigo" e "Em inglês: **send me your address**" NÃO são
- * aula: o trecho citado é avaliado como o resto do texto.
- */
-function ehCitacaoDeAula(b: string, c: Citacao, anterior: Citacao | undefined, proxima: Citacao | undefined): boolean {
-  const antes = b
-    .slice(Math.max(0, c.inicio - VIZINHANCA), c.inicio)
-    .split(/[.!?\n]/)
-    .pop()!
-  const depois = b.slice(c.fim, c.fim + VIZINHANCA).split(/[.!?\n]/)[0]
-  if (MARCA_DE_AULA.test(antes) || MARCA_DE_AULA.test(depois) || TRADUCAO_DEPOIS.test(depois)) return true
-  const naLista =
-    (anterior && ENTRE_ITENS_DE_LISTA.test(b.slice(anterior.fim, c.inicio))) ||
-    (proxima && ENTRE_ITENS_DE_LISTA.test(b.slice(c.fim, proxima.inicio)))
-  return Boolean(naLista) && !SEGUNDA_PESSOA_PT.test(c.conteudo)
-}
-
-/**
- * O texto que dado pessoal e aliciamento leem: sem as citações de AULA (`ehCitacaoDeAula`); toda outra citação fica e é
- * avaliada. RISCO QUE SOBRA (para a opção C): uma injeção que monte a moldura completa de tradução em volta do pedido
- * ("**What is your address?** significa…") ainda passa — o filtro local não sabe se a frase está sendo ensinada ou feita.
- */
-function alvoSemCitacao(texto: string): string {
-  const b = base(texto)
-  const citacoes: Citacao[] = [...b.matchAll(CITACAO)].map((m) => ({
-    inicio: m.index,
-    fim: m.index + m[0].length,
-    conteudo: m.slice(1).find((g) => g !== undefined) ?? '',
-  }))
-  let fora = ''
-  let cursor = 0
-  citacoes.forEach((c, i) => {
-    if (!ehCitacaoDeAula(b, c, citacoes[i - 1], citacoes[i + 1])) return
-    fora += `${b.slice(cursor, c.inicio)} `
-    cursor = c.fim
-  })
-  return normalizar(fora + b.slice(cursor))
 }
 
 /**

@@ -75,7 +75,11 @@ function beneficios(id: PlanoPago, flags: Set<string>): string[] {
   return lista;
 }
 
-export function planosDoSite(flags: Set<string>): PlanosDoSite {
+/**
+ * `anualAberto`: o site só anuncia o preço anual quando a venda do anual está aberta (`ANUAL_ENABLED=1` no
+ * ambiente do build). Fechada, o checkout recusa o anual, e anunciá-lo seria oferta que não se vende.
+ */
+export function planosDoSite(flags: Set<string>, anualAberto = false): PlanosDoSite {
   const ligada = (f: string) => flags.has(f);
   const aVenda = planosAVenda(ligada);
   const teste = planoDoTeste(ligada);
@@ -87,8 +91,9 @@ export function planosDoSite(flags: Set<string>): PlanosDoSite {
         id,
         rotulo,
         mensal,
-        anual: precoAnualBrl,
-        economiaAnual: precoAnualBrl === null ? null : Math.round((1 - precoAnualBrl / (mensal * 12)) * 100),
+        anual: anualAberto ? precoAnualBrl : null,
+        economiaAnual:
+          !anualAberto || precoAnualBrl === null ? null : Math.round((1 - precoAnualBrl / (mensal * 12)) * 100),
         beneficios: beneficios(id, flags),
       };
     }),

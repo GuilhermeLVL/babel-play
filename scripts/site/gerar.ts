@@ -57,6 +57,8 @@ export interface OpcoesDoSite {
   guias: Guia[];
   /** Flags de venda ligadas (`SITE_FLAGS_DE_VENDA`). */
   flags: Set<string>;
+  /** A venda do anual está aberta (`ANUAL_ENABLED=1` no build)? Fechada, o site não anuncia preço anual. */
+  anualAberto?: boolean;
   adsensePubId: string | null;
   versaoDaFonte: string;
   /** Versão do pacote da Inter (padrão: a da Archivo). */
@@ -100,7 +102,7 @@ export function robots(url: string): string {
 export function gerarSite(o: OpcoesDoSite): Map<string, string> {
   const url = o.urlDoSite;
   const base = { urlDoSite: url, versaoDaFonte: o.versaoDaFonte, versaoDaFonteDoTexto: o.versaoDaFonteDoTexto };
-  const planos = planosDoSite(o.flags);
+  const planos = planosDoSite(o.flags, o.anualAberto ?? false);
   const arquivos = new Map<string, string>();
   const organizacao = {
     '@context': 'https://schema.org',
@@ -281,6 +283,7 @@ export function opcoesDoAmbiente(
       urlDoSite: urlDoSite(env),
       guias: publicados,
       flags: lerFlagsDoSite(env.SITE_FLAGS_DE_VENDA),
+      anualAberto: env.ANUAL_ENABLED === '1',
       adsensePubId: idDoAdsense(env.ADSENSE_PUB_ID),
       versaoDaFonte,
       versaoDaFonteDoTexto,

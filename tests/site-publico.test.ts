@@ -53,6 +53,12 @@ describe('páginas públicas', () => {
     }
   })
 
+  it('anual fechado (padrão): /planos não anuncia preço por ano; aberto (ANUAL_ENABLED=1), anuncia', () => {
+    expect(site().get('planos.html')!).not.toMatch(/por ano/)
+    expect(site({ SITE_FLAGS_DE_VENDA: 'venda_planos_v4' }).get('planos.html')!).not.toMatch(/por ano/)
+    expect(site({ ANUAL_ENABLED: '1' }).get('planos.html')!).toMatch(/por ano/)
+  })
+
   it('título e descrição não se repetem entre as páginas', () => {
     const htmls = PAGINAS.map(([a]) => arquivos.get(a)!)
     expect(new Set(htmls.map(titulo)).size).toBe(htmls.length)

@@ -76,6 +76,13 @@ describe('gerarHeaders', () => {
     expect(csp).not.toMatch(/frame-src [^;]*https:/)
   })
 
+  it('o build do Worker (VITE_AUTH_REQUIRED=1) sai sem o Ollama local; a edição estática (sem ela) o mantém', () => {
+    const publico = bloco(gerarHeaders(env({ VITE_AUTH_REQUIRED: '1' }), BASE), '/*')
+    expect(publico).not.toContain('11434')
+    const estatica = bloco(gerarHeaders(env({ VITE_AUTH_REQUIRED: '' }), BASE), '/*')
+    expect(estatica).toContain('http://localhost:11434')
+  })
+
   it('traz o isolamento e os demais cabeçalhos globais', () => {
     const g = bloco(gerarHeaders(env({}), BASE), '/*')
     expect(g).toContain('Cross-Origin-Opener-Policy: same-origin')

@@ -737,7 +737,7 @@ export function perguntasDosPlanos(c: ContextoDosPlanos, diasDoTeste = DIAS_DO_T
     [
       t('O que acontece quando as horas de nuvem acabam?'),
       t(
-        'Nada trava. A legenda volta para o aparelho e segue sem limite, e nada é cobrado a mais. As horas voltam no dia 1º. No Quest, a legenda em inglês segue no aparelho; os outros idiomas esperam até lá.',
+        'Nada trava. A legenda volta para o aparelho e segue sem limite, e nada é cobrado a mais. As horas voltam na renovação do seu plano. No Quest, a legenda em inglês segue no aparelho; os outros idiomas esperam até lá.',
       ),
     ],
     [

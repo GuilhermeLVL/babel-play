@@ -10,6 +10,7 @@ import {
   resolverTextoRemoto,
 } from '../../core/ofertas';
 import { DIAS_DO_TESTE_PREMIUM, ehPlanoPago, PLAN_MATRIX, type PlanoPago, precoDoPlano } from '../../core/planos';
+import { diaQueACotaVolta } from '../../lib/diaQueACotaVolta';
 import { getEntitlements, onPlanChange } from '../../lib/entitlements';
 import { ehConfigDeOfertas, useConfigRemota, useFlag } from '../../lib/flags';
 import { estadoDeIdentidade } from '../../lib/identidade';
@@ -267,7 +268,8 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
   const planoDoTexto = informativoDoTeste ? planoDoTeste : planoDeEntradaAgora();
   const doPlano = (txt: string): string => comNomeDoPlano(txt, planoDoTexto);
   const titulo = doPlano(resolverTextoRemoto(g.titulo, idioma, t));
-  const texto = doPlano(resolverTextoRemoto(g.texto, idioma, t));
+  /* `{data}` (o fim de cota): o dia em que a cota renova, do `renovaEm` que `verificarCota` acabou de ler. */
+  const texto = doPlano(resolverTextoRemoto(g.texto, idioma, t)).replace('{data}', diaQueACotaVolta());
   /* Quem não tem plano a subir (Premium) vê o consumo, não uma venda. */
   const cta =
     sugerido === 'nenhum' && !informativoDoTeste

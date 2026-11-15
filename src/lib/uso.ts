@@ -11,6 +11,7 @@
  */
 import type { NivelDaNuvem } from '../core/planos';
 import { apiFetch } from '../data/api';
+import { lembrarRenovacaoDaCota } from './diaQueACotaVolta';
 import type { Plan } from './entitlements';
 
 /** Um contador: quanto foi usado e qual o teto. `teto: null` = SEM teto (não "desconhecido"). */
@@ -26,8 +27,13 @@ export interface ContadorDoNivel extends Contador {
 
 export interface UsoDoMes {
   plano: Plan;
-  /** Janela 'YYYY-MM'. Os contadores zeram na virada do mês. */
+  /** Janela da cota: 'YYYY-MM' (calendário) ou 'pAAAA-MM-DD' (período pago). */
   janela: string;
+  /**
+   * QUANDO A COTA RENOVA (ms): para quem paga, o próximo vencimento ou o fim da fatia do anual; para o resto, o
+   * dia 1º do mês UTC seguinte. Ausente em servidor anterior.
+   */
+  renovaEm?: number;
   /** Chamadas à IA gerenciada — STT, tradução e tutor DIVIDEM este teto. */
   chamadas: Contador;
   /** Segundos de áudio faturáveis no STT de nuvem. É o teto que controla gasto de verdade. */
@@ -78,7 +84,9 @@ export async function carregarUso(): Promise<UsoDoMes | null> {
   try {
     const r = await apiFetch('/api/me/uso');
     if (!r.ok) return null;
-    return (await r.json()) as UsoDoMes;
+    const uso = (await r.json()) as UsoDoMes;
+    lembrarRenovacaoDaCota(uso.renovaEm);
+    return uso;
   } catch {
     return null;
   }

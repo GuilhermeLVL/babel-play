@@ -30,6 +30,7 @@ import { apiFetch } from '../data/api';
 import { CODIGO_EXIGE_CONTA } from '../data/efemero/nucleo';
 import { exportarApkg, fetchDeck } from '../data/rotas/vocabulario';
 import { consentiuNuvem } from '../lib/consentimentoDeNuvem';
+import { diaQueACotaVolta } from '../lib/diaQueACotaVolta';
 import { t } from '../lib/i18n';
 import {
   carregarConversas,
@@ -66,6 +67,7 @@ import { sinalizarRecusaLida } from '../lib/ofertas/eventos';
 import { pedirConta } from '../lib/pedirConta';
 import { type AgeProfileType } from '../lib/profile';
 import { seedFromSelection } from '../lib/sentences';
+import { carregarUso } from '../lib/uso';
 import { zoomDoCorpo } from '../lib/zoomDoCorpo';
 import { Recording, ViewType, VocabCard } from '../types';
 import { GavetaDeConversas, GavetaDoRastro } from './ichat/Gavetas';
@@ -108,8 +110,10 @@ function motivoDaResposta(res: Response, data: Record<string, unknown>): string 
     return t('**O tutor de IA precisa de conta.** Transcrever, traduzir e jogar continuam livres neste navegador.');
   }
   if (code === 'quota_exceeded') {
+    /* A data vem do `renovaEm` de `/api/me/uso` (lido antes desta frase): quem paga renova no vencimento, não no dia 1º. */
     return t(
-      '**Você usou toda a IA de nuvem do seu plano neste mês.** Ela volta no dia 1º; a tradução e a transcrição locais continuam funcionando.',
+      '**Você usou toda a IA de nuvem do seu plano.** Ela volta em {data}; a tradução e a transcrição locais continuam funcionando.',
+      { data: diaQueACotaVolta() },
     );
   }
   /* O uso justo do dia (matriz v2): é "hoje já deu", não "assine" — nenhuma venda a quem já assina. */
@@ -605,6 +609,8 @@ export default function IChat({
         body: JSON.stringify({ funcao: 'tutor', perfil: ageProfile, material, messages: mensagens }),
       });
       const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      /* Cota esgotada: pergunta quando ela renova antes de escrever a frase (sem resposta, cai no dia 1º). */
+      if (data.code === 'quota_exceeded') await carregarUso();
       const motivo = motivoDaResposta(res, data);
       /* O pedido explícito abre o convite a cada pergunta, não só na primeira da visita. */
       if (data.code === CODIGO_EXIGE_CONTA) pedirConta('POST /api/tutor/chat');

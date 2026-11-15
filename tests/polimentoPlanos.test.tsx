@@ -659,6 +659,8 @@ describe('Planos: Sua assinatura e Consumo do mês', () => {
     servidor.rotas['/api/me/uso'] = {
       ...usoDoGratis,
       plano: 'premium',
+      // Quem paga renova no vencimento (change `cota-pelo-periodo-pago`), não no dia 1º.
+      renovaEm: Date.now() + 18 * 86_400_000,
       segundosDeAudio: { usado: 23_760, teto: 72_000 },
       porNivel: {
         trechos: { usado: 23_760, teto: 72_000, restante: 48_240 },
@@ -680,7 +682,7 @@ describe('Planos: Sua assinatura e Consumo do mês', () => {
     expect(medidores[0].querySelector('[role="progressbar"]')!.getAttribute('aria-valuenow')).toBe('33')
     expect(medidores[1].querySelector('b')!.textContent).toBe('Incluída')
     expect(texto('.pl-renova')).toBe(
-      `As horas de nuvem voltam no dia 1º. O que roda no aparelho não entra nesta conta. Por dia, a nuvem por trechos vai até ${horasDoUsoJusto('premium')} h.`,
+      `Sua cota renova em ${new Date(Date.now() + 18 * 86_400_000).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}. O que roda no aparelho não entra nesta conta. Por dia, a nuvem por trechos vai até ${horasDoUsoJusto('premium')} h.`,
     )
   })
 

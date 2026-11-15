@@ -219,7 +219,7 @@ describe('o fim do teste por USO (a franquia de nuvem do teste)', () => {
       vi.advanceTimersByTime(6_000)
     })
     expect(screen.getByText('A nuvem do seu teste chegou ao fim')).toBeTruthy()
-    expect(screen.queryByText(/volta no dia 1º/)).toBeNull()
+    expect(screen.queryByText(/A cota volta em/)).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Ver planos' }))
     expect(aoVerPlanos).toHaveBeenCalledTimes(1)
     expect(consumirDestaqueEmPlanos()).toBeNull()

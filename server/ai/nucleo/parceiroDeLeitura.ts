@@ -67,7 +67,7 @@ import {
   restanteDoParceiroHoje,
   temParceiro,
 } from '../../lib/parceiroDeLeitura'
-import { ContadorIndisponivel, estimarTokens } from '../../lib/usageQuota'
+import { comQuandoVolta, ContadorIndisponivel, estimarTokens } from '../../lib/usageQuota'
 import { planoDeAdmissao } from '../admissao'
 import { type AdmissaoDaCascata, admitirCascata, encerrarAdmissao, percorrerCascata } from '../cascata'
 import { chaveDoParceiro, gravarNoCache, lerDoCache } from '../leitura/cacheDoParceiro'
@@ -189,7 +189,8 @@ export type ResultadoDoParceiro = RespostaEntregue | RecusaDeIa
 const MENSAGEM = {
   sem_plano: 'O parceiro de leitura não está disponível nesta conta; o livro, a ficha e as anotações continuam.',
   teto_do_dia: 'O parceiro de leitura de hoje chegou ao limite; ele volta amanhã. O livro e a ficha continuam.',
-  cota_do_mes: 'O parceiro de leitura deste mês chegou ao limite; ele volta no dia 1º. O livro e a ficha continuam.',
+  /* `{quando}`: `quandoACotaVolta` (quem paga renova no vencimento, não no dia 1º). */
+  cota_do_mes: 'O parceiro de leitura do seu plano chegou ao limite; ele volta {quando}. O livro e a ficha continuam.',
   livro_fora_da_faixa: 'Este livro não está disponível para este perfil.',
   livro_inexistente: 'livro fora do catálogo',
 } as const
@@ -353,7 +354,8 @@ async function atender(
 
     /* A SUBCOTA de tokens do parceiro (20% da `tokensMes`), ANTES da cota do plano: os mesmos tokens contam nas duas. */
     subcota = await reservarTokensDoParceiro(ctx.userId, plano.plan, estimativa)
-    if (!subcota) return decidir(recusaDeErro(402, MENSAGEM.cota_do_mes, 'cota_do_parceiro'))
+    if (!subcota)
+      return decidir(recusaDeErro(402, await comQuandoVolta(MENSAGEM.cota_do_mes, ctx.userId), 'cota_do_parceiro'))
 
     const reservada = await reservarLlm(ctx.userId, estimativa, 'plano', plano.plan)
     if (!(reservada instanceof ReservaDeLlm)) return decidir(reservada) // 402/429 da cota ou 503 do contador

@@ -216,33 +216,81 @@ export async function signOut(): Promise<void> {
 export interface MfaEnroll {
   ok: boolean;
   message?: string;
+  /** `SESSAO_EXPIRADA`: a tela oferece sair e entrar de novo. */
+  code?: string;
   factorId?: string;
   qrSvg?: string;
   secret?: string;
 }
 
+/**
+ * A SESSÃO DO NAVEGADOR NÃO VALE MAIS (token velho, de outra conta apagada ou sem `sub`): o Supabase responde em
+ * inglês cru ("invalid claim: missing sub claim") a qualquer chamada de MFA. A tela recebe este código e a frase
+ * abaixo, e oferece sair e entrar de novo — o login novo resolve.
+ */
+export const SESSAO_EXPIRADA = 'sessao_expirada';
+const SESSAO_EXPIRADA_MSG = 'Sua sessão expirou. Saia e entre de novo para configurar a verificação em duas etapas.';
+const sessaoExpirada = () => ({ ok: false, code: SESSAO_EXPIRADA, message: t(SESSAO_EXPIRADA_MSG) });
+
+/** Os erros do Supabase Auth que querem dizer "a sessão não vale": pelo código ou, nos antigos, pela frase. */
+const CODIGOS_DE_SESSAO = new Set(['session_not_found', 'session_expired', 'bad_jwt', 'no_authorization']);
+export function ehErroDeSessao(error: { message?: string; code?: string; name?: string } | null | undefined): boolean {
+  if (!error) return false;
+  if (error.name === 'AuthSessionMissingError') return true;
+  if (error.code && CODIGOS_DE_SESSAO.has(error.code)) return true;
+  return /missing sub claim|jwt expired|session[_ ]not[_ ]found|auth session missing|invalid jwt/i.test(
+    error.message ?? '',
+  );
+}
+
+/**
+ * Antes do MFA, a sessão do navegador ainda vale? Pergunta ao Supabase (`getUser`, que confere o token no servidor
+ * dele); se não valer, tenta UMA renovação (`refreshSession`). Falha de rede não é sessão vencida: segue, e o erro
+ * da própria chamada aparece.
+ */
+async function sessaoValidaParaMfa(): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (!error && data?.user) return true;
+    if (error?.name === 'AuthRetryableFetchError') return true;
+    const renovada = await supabase.auth.refreshSession();
+    return !renovada.error && !!renovada.data?.session;
+  } catch {
+    return false;
+  }
+}
+
+/** A mensagem de um erro de MFA: a sessão vencida ganha a frase nossa; o resto passa como veio. */
+const falhaDeMfa = (error: { message: string; code?: string; name?: string }) =>
+  ehErroDeSessao(error) ? sessaoExpirada() : { ok: false, message: error.message };
+
 /** Inicia o cadastro de um fator TOTP: devolve o QR (SVG) + segredo p/ o app autenticador. */
 export async function enrollTotp(friendlyName = 'App autenticador'): Promise<MfaEnroll> {
   if (!supabase) return naoConfigurado();
+  if (!(await sessaoValidaParaMfa())) return sessaoExpirada();
   const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName });
-  if (error) return { ok: false, message: error.message };
+  if (error) return falhaDeMfa(error);
   return { ok: true, factorId: data.id, qrSvg: data.totp.qr_code, secret: data.totp.secret };
 }
 
 /** Confirma o fator (challenge + verify) com o código do app — ativa o 2FA. */
 export async function confirmTotp(factorId: string, code: string): Promise<AuthResult> {
   if (!supabase) return naoConfigurado();
+  if (!(await sessaoValidaParaMfa())) return sessaoExpirada();
   const ch = await supabase.auth.mfa.challenge({ factorId });
-  if (ch.error) return { ok: false, message: ch.error.message };
+  if (ch.error) return falhaDeMfa(ch.error);
   const { error } = await supabase.auth.mfa.verify({ factorId, challengeId: ch.data.id, code });
+  if (error && ehErroDeSessao(error)) return sessaoExpirada();
   return error ? { ok: false, message: t(CODIGO_INVALIDO) } : { ok: true };
 }
 
 /** Remove um fator (desabilitar 2FA). */
 export async function unenrollTotp(factorId: string): Promise<AuthResult> {
   if (!supabase) return naoConfigurado();
+  if (!(await sessaoValidaParaMfa())) return sessaoExpirada();
   const { error } = await supabase.auth.mfa.unenroll({ factorId });
-  return error ? { ok: false, message: error.message } : { ok: true };
+  return error ? falhaDeMfa(error) : { ok: true };
 }
 
 /**
@@ -272,8 +320,12 @@ export async function verificarSegundoFator(code: string): Promise<AuthResult> {
     | undefined;
   if (!fator) return { ok: false, message: t('Nenhum app autenticador ativo nesta conta.') };
   const ch = await supabase.auth.mfa.challenge({ factorId: fator.id });
+  /* Sessão vencida no meio do login: a frase de "configurar" não serve aqui; é entrar de novo. */
+  const expirouNoLogin = { ok: false, code: SESSAO_EXPIRADA, message: t('Sua sessão expirou. Entre de novo.') };
+  if (ch.error && ehErroDeSessao(ch.error)) return expirouNoLogin;
   if (ch.error) return { ok: false, message: t('Não foi possível iniciar a verificação. Tente de novo.') };
   const { error } = await supabase.auth.mfa.verify({ factorId: fator.id, challengeId: ch.data.id, code });
+  if (error && ehErroDeSessao(error)) return expirouNoLogin;
   return error ? { ok: false, message: t(CODIGO_INVALIDO) } : { ok: true };
 }
 

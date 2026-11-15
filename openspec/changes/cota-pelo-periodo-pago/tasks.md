@@ -37,8 +37,11 @@
 
 ## 3. Pendências
 
-- [ ] 3.1 Textos "volta no dia 1º" (`src/components/IChat.tsx`, `src/components/views/Planos.tsx`): para quem paga, dizer a
+- [x] 3.1 Textos "volta no dia 1º" (`src/components/IChat.tsx`, `src/components/views/Planos.tsx`): para quem paga, dizer a
       data em que a cota renova (o fim da janela), com i18n
-- [ ] 3.2 Expor em `GET /api/me/uso` quando a janela renova (`renovaEm`) para a tela
+- [x] 3.2 Expor em `GET /api/me/uso` quando a janela renova (`renovaEm`) para a tela
+      (`renovaEm` em ms: `renovacaoDoPeriodoPago` = o menor entre o fim da fatia e o próximo vencimento; o dia 1º do mês
+      UTC seguinte para o resto. O cliente lembra o último em `lib/diaQueACotaVolta.ts`, e as frases de "volta em
+      {data}" — tutor, Planos, fim de cota, horas da Precisão, Nuance, explicação, resumo, parceiro — usam a data certa)
 - [ ] 3.3 Medir o tamanho do conjunto relevante da reconciliação em produção: com mais de 45 × 150 linhas o rodízio passa
       de 45 dias e convém subir `LIMITE_DE_ASSINATURAS`

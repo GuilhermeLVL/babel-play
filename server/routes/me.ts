@@ -41,7 +41,7 @@ import {
   capTokensDoDia,
   capTokensParaPlano,
   fusoDaCota,
-  janelaDaCota,
+  janelaERenovacaoDaCota,
   METRIC_LLM_TOKENS,
   METRIC_LLM_TOKENS_DIA,
   METRIC_MANAGED,
@@ -456,8 +456,9 @@ meRouter.get('/uso', async (req, res) => {
     /* No teste de 3 dias a nuvem tem um teto de USO (`FRANQUIA_DO_TESTE`): a tela mostra o teto real. */
     const emTeste = resolvido.teste !== null
     /* A janela da cota do plano: a fatia do período pago para quem paga, o mês do calendário para o resto
-       (change `cota-pelo-periodo-pago`) — a MESMA que as reservas usam. */
-    const janela = await janelaDaCota(req.userId)
+       (change `cota-pelo-periodo-pago`) — a MESMA que as reservas usam —, e QUANDO ela renova (`renovaEm`, ms): o fim
+       da fatia ou o próximo vencimento para quem paga, o dia 1º do mês UTC seguinte para o resto. */
+    const { janela, renovaEm } = await janelaERenovacaoDaCota(req.userId)
     const dia = await diaDoUsoJusto(req.userId, plano)
     /* UMA LEITURA de `usage_counters` para todos os contadores (auditoria de 10/10/2026, A11a): eram
        quatro `SELECT` do mês e mais dois do dia, o mesmo comando com a métrica trocada, e a tela de
@@ -502,6 +503,7 @@ meRouter.get('/uso', async (req, res) => {
     res.json({
       plano,
       janela,
+      renovaEm,
       chamadas: { usado: chamadas, teto: finito(capForPlan(plano, emTeste)) },
       segundosDeAudio: { usado: segundos, teto: finito(capSegundosParaPlano(plano, emTeste)) },
       porNivel,

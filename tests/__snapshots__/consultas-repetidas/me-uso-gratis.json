@@ -1,6 +1,7 @@
 {
   "plano": "free",
   "janela": "2026-10",
+  "renovaEm": 1793491200000,
   "chamadas": {
     "usado": 7,
     "teto": 0

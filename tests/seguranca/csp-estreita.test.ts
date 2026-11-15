@@ -31,6 +31,28 @@ describe('diretivasDeCsp', () => {
     expect(c).toContain('https://api.mymemory.translated.net')
   })
 
+  it('o Ollama local (localhost:11434) só fora do modo público: self-host e dev mantêm, AUTH_REQUIRED=1 tira', () => {
+    const ollama = ['http://localhost:11434', 'http://127.0.0.1:11434']
+    const foraDoPublico: Record<string, string>[] = [
+      {},
+      { AUTH_REQUIRED: '0' },
+      { AUTH_REQUIRED: '0', SELF_HOST: '1', NODE_ENV: 'production' },
+    ]
+    for (const e of foraDoPublico)
+      for (const o of ollama) expect(diretivasDeCsp(env(e)).connectSrc, JSON.stringify(e)).toContain(o)
+    // O Express/Worker público (AUTH_REQUIRED=1) e o build do Worker (VITE_AUTH_REQUIRED=1, que gera o `_headers`).
+    const publicos: Record<string, string>[] = [{ AUTH_REQUIRED: '1' }, { VITE_AUTH_REQUIRED: '1' }]
+    for (const e of publicos) {
+      const c = diretivasDeCsp(env(e)).connectSrc
+      for (const o of ollama) expect(c, JSON.stringify(e)).not.toContain(o)
+      expect(c).toContain('https://huggingface.co')
+    }
+  })
+
+  it('script-src mantém blob: (o onnxruntime-web importa o runtime de outra origem como blob: na thread principal)', () => {
+    expect(diretivasDeCsp(env({ AUTH_REQUIRED: '1' })).scriptSrc).toContain('blob:')
+  })
+
   it('o Supabase entra pela origem configurada, e só ela', () => {
     const c = diretivasDeCsp(
       env({ SUPABASE_URL: 'https://abcd.supabase.co/', VITE_SUPABASE_URL: 'https://abcd.supabase.co' }),

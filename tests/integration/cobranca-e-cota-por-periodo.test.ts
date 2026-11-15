@@ -244,6 +244,21 @@ describe('cota pelo período pago', () => {
     expect(gratis.renovaEm).toBe(quota.renovacaoDoCalendario(Date.now()))
   })
 
+  it('quandoACotaVolta: a data do vencimento de quem paga, o dia 1º de quem não paga', async () => {
+    const venc = Date.now() - 3 * DIA
+    await pagar('c-quando', 'plus', 'sub_cquando', 14.9, venc)
+    const ancora = Date.parse(`${diaIso(venc)}T12:00:00Z`)
+    const esperado = new Date(quota.renovacaoDoPeriodoPago(ancora, 'mensal', Date.now())).toLocaleDateString('pt-BR', {
+      day: 'numeric',
+      month: 'long',
+      timeZone: 'UTC',
+    })
+    expect(await quota.quandoACotaVolta(asUserId('c-quando'))).toBe(`em ${esperado}`)
+    expect(await quota.quandoACotaVolta(asUserId('c-quando-gratis'))).toMatch(/^em 1 de \S+$/)
+    expect(await quota.comQuandoVolta('volta {quando}.', asUserId('c-quando'))).toBe(`volta em ${esperado}.`)
+    expect(await quota.comQuandoVolta('sem marcador', asUserId('c-quando'))).toBe('sem marcador')
+  })
+
   it('Grátis e plano do admin (sem período) seguem no mês do calendário', async () => {
     const mes = new Date().toISOString().slice(0, 7)
     expect(await quota.janelaDaCota(asUserId('c-gratis'))).toBe(mes)

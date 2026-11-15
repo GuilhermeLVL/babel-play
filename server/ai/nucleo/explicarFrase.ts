@@ -45,7 +45,7 @@ import {
 import { ehMenor, INSTRUCAO_DE_SEGURANCA_PARA_MENORES } from '../../lib/idade'
 import { log } from '../../lib/logger'
 import { portaoDaNuvem, registrarGastoDeIa } from '../../lib/orcamentoDeIa'
-import { ContadorIndisponivel, estimarTokens } from '../../lib/usageQuota'
+import { comQuandoVolta, ContadorIndisponivel, estimarTokens } from '../../lib/usageQuota'
 import { planoDeAdmissao } from '../admissao'
 import { type AdmissaoDaCascata, admitirCascata, encerrarAdmissao, percorrerCascata } from '../cascata'
 import { FUNCOES_DE_IA } from '../funcoesDeIa'
@@ -129,7 +129,8 @@ export type ResultadoDaExplicacao = ExplicacaoEntregue | RecusaDeIa
 const MENSAGEM_SEM_ESTUDO = {
   sem_plano: 'A explicação da frase não está disponível nesta conta; a legenda e a tradução continuam.',
   amostra_acabou: 'As explicações de hoje acabaram; a legenda e a tradução continuam, e elas voltam amanhã.',
-  cota_do_mes: 'As explicações deste mês acabaram; a legenda e a tradução continuam, e elas voltam no dia 1º.',
+  /* `{quando}`: `quandoACotaVolta` (quem paga renova no vencimento, não no dia 1º). */
+  cota_do_mes: 'As explicações do seu plano acabaram; a legenda e a tradução continuam, e elas voltam {quando}.',
 } as const
 
 export async function explicarFrase(
@@ -164,7 +165,8 @@ async function explicar(
   try {
     /* 2) A FRANQUIA: o plano ou a amostra — antes de qualquer custo. */
     const r = await reservarUsoDeEstudo(ctx.userId, plano.plan, 'explicacao')
-    if (r.ok === false) return decidir(recusaDeErro(402, MENSAGEM_SEM_ESTUDO[r.motivo], r.motivo))
+    if (r.ok === false)
+      return decidir(recusaDeErro(402, await comQuandoVolta(MENSAGEM_SEM_ESTUDO[r.motivo], ctx.userId), r.motivo))
     estudo = r
 
     /* 3) Público menor. */

@@ -48,7 +48,7 @@ import {
 import { ehMenor, INSTRUCAO_DE_SEGURANCA_PARA_MENORES } from '../../lib/idade'
 import { log } from '../../lib/logger'
 import { portaoDaNuvem, registrarGastoDeIa } from '../../lib/orcamentoDeIa'
-import { ContadorIndisponivel, estimarTokens } from '../../lib/usageQuota'
+import { comQuandoVolta, ContadorIndisponivel, estimarTokens } from '../../lib/usageQuota'
 import { planoDeAdmissao } from '../admissao'
 import { type AdmissaoDaCascata, admitirCascata, encerrarAdmissao, percorrerCascata } from '../cascata'
 import { FUNCOES_DE_IA } from '../funcoesDeIa'
@@ -105,7 +105,8 @@ export type ResultadoDoResumo = ResumoEntregue | RecusaDeIa
 const MENSAGEM_SEM_ESTUDO = {
   sem_plano: 'O resumo da sessão não está disponível nesta conta; a transcrição e as palavras continuam.',
   amostra_acabou: 'O resumo desta semana já foi usado; a transcrição e as palavras continuam.',
-  cota_do_mes: 'Os resumos deste mês acabaram; a transcrição e as palavras continuam, e eles voltam no dia 1º.',
+  /* `{quando}`: `quandoACotaVolta` (quem paga renova no vencimento, não no dia 1º). */
+  cota_do_mes: 'Os resumos do seu plano acabaram; a transcrição e as palavras continuam, e eles voltam {quando}.',
 } as const
 
 /** O idioma mais frequente entre os destinos das falas (as traduções que a pessoa leu). */
@@ -187,7 +188,8 @@ async function resumir(
 
     /* 3) A FRANQUIA: o plano ou a amostra da semana. */
     const r = await reservarUsoDeEstudo(ctx.userId, plano.plan, 'resumo')
-    if (r.ok === false) return decidir(recusaDeErro(402, MENSAGEM_SEM_ESTUDO[r.motivo], r.motivo))
+    if (r.ok === false)
+      return decidir(recusaDeErro(402, await comQuandoVolta(MENSAGEM_SEM_ESTUDO[r.motivo], ctx.userId), r.motivo))
     estudo = r
 
     /* 4) Público menor. */

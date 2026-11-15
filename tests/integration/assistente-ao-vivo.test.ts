@@ -340,6 +340,7 @@ describe('plano pago (Plus): a saída estruturada', () => {
     const res = await pedir('expressoes', quem)
     expect(res.statusCode).toBe(402)
     expect(res.body?.code).toBe('cota_do_assistente')
+    expect(res.body?.error).toMatch(/ele volta em \d+ de \S+\.$/)
     expect(chamadas).toHaveLength(0)
     /* Nada foi tirado da cota do plano (a da legenda), e o uso do dia voltou. */
     expect(await contador(quem, 'llm_tokens', mes())).toBe(0)

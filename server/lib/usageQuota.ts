@@ -297,6 +297,27 @@ export async function janelaERenovacaoDaCota(
   }
 }
 
+/**
+ * A FRASE DE QUANDO A COTA VOLTA, para as recusas `cota_do_mes` do servidor: "em 3 de dezembro" (a data de
+ * `janelaERenovacaoDaCota`, em UTC como a janela). Quem paga renova no vencimento, não no dia 1º; o Grátis segue no
+ * dia 1º do calendário. Se a leitura falhar, a frase neutra "na renovação do seu plano" — a recusa não pode cair por
+ * causa do texto.
+ */
+export async function quandoACotaVolta(userId: UserId, agora = Date.now()): Promise<string> {
+  try {
+    const { renovaEm } = await janelaERenovacaoDaCota(userId, agora)
+    const data = new Date(renovaEm).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', timeZone: 'UTC' })
+    return `em ${data}`
+  } catch {
+    return 'na renovação do seu plano'
+  }
+}
+
+/** Preenche `{quando}` de uma mensagem de recusa com `quandoACotaVolta`; sem `{quando}`, devolve a mensagem como veio. */
+export async function comQuandoVolta(mensagem: string, userId: UserId): Promise<string> {
+  return mensagem.includes('{quando}') ? mensagem.replace('{quando}', await quandoACotaVolta(userId)) : mensagem
+}
+
 /** A janela de um contador do mês: a do plano (`janelaDaCota`) ou, no alívio do Grátis, o mês do calendário. */
 const janelaDoModo = (userId: UserId, modo: ModoDaCota): Promise<string> | string =>
   modo === 'plano' ? janelaDaCota(userId) : currentWindow()

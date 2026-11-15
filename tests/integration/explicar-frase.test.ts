@@ -245,6 +245,8 @@ describe('plano pago (Plus)', () => {
     const res = await pedir(outro)
     expect(res.statusCode).toBe(402)
     expect(res.body?.code).toBe('cota_do_mes')
+    // A data da renovação (sem período pago: o dia 1º do calendário), nunca o "dia 1º" fixo.
+    expect(res.body?.error).toMatch(/voltam em 1 de \S+\.$/)
     expect(chamadas).toHaveLength(0)
   })
 })

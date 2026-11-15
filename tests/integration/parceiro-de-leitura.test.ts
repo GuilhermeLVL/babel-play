@@ -506,6 +506,7 @@ describe('as cotas', () => {
     const res = await pedir(quem, corpoBase({ selecao: 'fair Verona' }))
     expect(res.statusCode).toBe(402)
     expect(res.body?.code).toBe('cota_do_parceiro')
+    expect(res.body?.error).toMatch(/ele volta em \d+ de \S+\. O livro/)
     expect(chamadas).toHaveLength(0)
     expect(await doDia(quem)).toBe(0)
     expect(await contador(quem, 'llm_tokens', mes())).toBe(0)

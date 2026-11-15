@@ -26,6 +26,9 @@ import { asUserId, type UserId } from './authContext'
 /** O balde em `usage_counters` (a janela é o dia UTC, `AAAA-MM-DD`); IP e rede na mesma métrica, chaves distintas. */
 export const METRIC_PREMIADOS_POR_IP = 'premiado:ip'
 
+/** A poda dos dias passados roda em 1 de cada tantas reservas. */
+const AMOSTRA_DA_PODA = 50
+
 const diaUtc = (agora: number): string => new Date(agora).toISOString().slice(0, 10)
 
 let chaveDeHash: string | null = null
@@ -59,7 +62,7 @@ export async function chavesDoPremiado(ip: string, agora: number): Promise<{ ip:
 }
 
 export interface VagaDoPremiadoNoIp {
-  /** Devolve a vaga do IP e da rede: a conclusão não creditou. Idempotente. */
+  /** Devolve a vaga do IP e da rede: a conclusão não creditou. Idempotente por contador (ver o corpo). */
   estornar: () => Promise<void>
 }
 
@@ -77,14 +80,23 @@ export async function reservarConclusaoNoIp(ip: string, agora = Date.now()): Pro
     await usageCountersRepo.refund(c.ip, METRIC_PREMIADOS_POR_IP, c.dia)
     return null
   }
-  await usageCountersRepo.prune(METRIC_PREMIADOS_POR_IP, c.dia).catch(() => {})
-  let estornada = false
+  /* Poda dos dias passados por AMOSTRA (1 em `AMOSTRA_DA_PODA`): best-effort, sem um DELETE a cada conclusão. */
+  if (Math.random() < 1 / AMOSTRA_DA_PODA) await usageCountersRepo.prune(METRIC_PREMIADOS_POR_IP, c.dia).catch(() => {})
+  /* Cada contador estorna UMA vez e por conta própria: se o do IP volta e o da rede falha, chamar de novo
+     estorna só o da rede (nada vaza, nada estorna duas vezes). Tenta os dois e relança a primeira falha. */
+  const pendentes = new Set<UserId>([c.ip, c.rede])
   return {
     estornar: async () => {
-      if (estornada) return
-      estornada = true
-      await usageCountersRepo.refund(c.ip, METRIC_PREMIADOS_POR_IP, c.dia)
-      await usageCountersRepo.refund(c.rede, METRIC_PREMIADOS_POR_IP, c.dia)
+      let falha: unknown = null
+      for (const chaveDoContador of [...pendentes]) {
+        try {
+          await usageCountersRepo.refund(chaveDoContador, METRIC_PREMIADOS_POR_IP, c.dia)
+          pendentes.delete(chaveDoContador)
+        } catch (err) {
+          falha ??= err
+        }
+      }
+      if (falha) throw falha
     },
   }
 }

@@ -48,6 +48,21 @@ function responderTutor(res: Response, r: ResultadoDoTutor, assinar: ((texto: st
 }
 
 /**
+ * O assinador desta resposta: a assinatura cobre o PAR (a pergunta, que é a última mensagem do corpo, e a
+ * resposta), para o turno só valer depois da mesma pergunta (`assinaturaDoTutor.ts`). Sem pergunta no fim (o
+ * corpo termina num `assistant`) ou no corretor, não assina.
+ */
+async function assinadorDoPedido(req: Request, pedido: PedidoDoTutor): Promise<((texto: string) => string) | null> {
+  if (pedido.funcao !== 'tutor') return null
+  const msgs = pedido.corpo.messages
+  const ultima = Array.isArray(msgs) ? (msgs[msgs.length - 1] as { role?: unknown; content?: unknown }) : undefined
+  if (!ultima || ultima.role === 'assistant') return null
+  const pergunta = typeof ultima.content === 'string' ? ultima.content : ''
+  const assinar = await assinadorDoTutor(req.userId)
+  return (texto) => assinar(pergunta, texto)
+}
+
+/**
  * A rota, embrulhada no rastro de telemetria (`server/ai/telemetriaDeIa.ts`). A função (`tutor` ou
  * `corretor`) só é conhecida depois de validar o corpo; até lá o rastro nasce como `tutor`, que é o
  * que o corpo inválido pedia de qualquer jeito.
@@ -75,7 +90,7 @@ async function conversar(req: Request, res: Response, rastro: RastroDeIa): Promi
   try {
     gratuita = await abrirPortaGratuita(req, res, 'tutor')
     if (!gratuita) return // já respondeu: 403 `exige_conta`, 429, 402 ou 503
-    const assinar = lido.pedido.funcao === 'tutor' ? await assinadorDoTutor(req.userId) : null
+    const assinar = await assinadorDoPedido(req, lido.pedido)
     const r = await conversarComTutor(contextoDoApp(req, rastro, gratuita), lido.pedido satisfies PedidoDoTutor, {
       aoDecidir: (resultado) => responderTutor(res, resultado, assinar),
     })

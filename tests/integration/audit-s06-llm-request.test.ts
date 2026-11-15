@@ -51,15 +51,19 @@ describe('S-06 — preparo do /api/tutor/chat', () => {
     const r = prepareLlmRequest(
       {
         messages: [
+          { role: 'user', content: 'p' },
           { role: 'assistant', content: 'a', assinatura: 'valida' },
           { role: 'x', content: 42 },
         ],
       },
-      { turnoDoAssistenteValido: (_c: string, s: unknown) => s === 'valida' },
+      {
+        turnoDoAssistenteValido: (_c: string, s: unknown, anterior: string | null) =>
+          s === 'valida' && anterior === 'p',
+      },
     )
     expect(r.ok).toBe(true)
     // [0] é o system do servidor.
-    expect(r.messages[1]).toEqual({ role: 'assistant', content: 'a' })
-    expect(r.messages[2]).toEqual({ role: 'user', content: '' })
+    expect(r.messages[2]).toEqual({ role: 'assistant', content: 'a' })
+    expect(r.messages[3]).toEqual({ role: 'user', content: '' })
   })
 })

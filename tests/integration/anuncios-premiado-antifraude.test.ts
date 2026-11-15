@@ -177,6 +177,56 @@ describe('o nonce (exibicaoId) é do servidor, de uso único e preso à conta', 
   })
 })
 
+describe('replay com o IP no teto (a resposta se perdeu, ou o crédito falhou)', () => {
+  /** Enche o teto do IP do dia (15) por fora, como se outras contas do mesmo IP tivessem concluído. */
+  async function encherOIp(ip: string): Promise<void> {
+    const { ip: chaveIp, dia } = await porIp.chavesDoPremiado(ip, Date.now())
+    while (await contadores.reserve(chaveIp, porIp.METRIC_PREMIADOS_POR_IP, dia, 15));
+  }
+
+  it('replay de exibição já concluída, com o IP em 15/15, devolve 200 jaCreditado (e não 429)', async () => {
+    const t = await tokenAdulto('af-replay-teto')
+    const id = await exibicao(t, 'fim-premiado', '198.51.100.40')
+    expect((await concluir(t, id, '198.51.100.40')).status).toBe(200)
+    await encherOIp('198.51.100.40')
+    const r = await concluir(t, id, '198.51.100.40')
+    expect(r.status).toBe(200)
+    expect((await r.json()).jaCreditado).toBe(true)
+    expect(await seedsDe('af-replay-teto')).toBe(10)
+  })
+
+  it('o crédito falhou depois da conclusão (500); a nova tentativa com o IP em 15/15 credita', async () => {
+    const t = await tokenAdulto('af-credito-falhou')
+    const id = await exibicao(t, 'fim-premiado', '198.51.100.41')
+    const original = economia.creditar
+    economia.creditar = async () => {
+      throw new Error('banco fora (encenado)')
+    }
+    try {
+      expect((await concluir(t, id, '198.51.100.41')).status).toBe(500)
+    } finally {
+      economia.creditar = original
+    }
+    expect(await seedsDe('af-credito-falhou')).toBe(0)
+    await encherOIp('198.51.100.41')
+    const r = await concluir(t, id, '198.51.100.41')
+    expect(r.status).toBe(200)
+    expect((await r.json()).jaCreditado).toBe(true)
+    expect(await seedsDe('af-credito-falhou')).toBe(10)
+  })
+
+  it('o replay de uma concluída vale depois dos 10 min do prazo (completa o crédito; não credita de novo)', async () => {
+    const t = await tokenAdulto('af-replay-tarde')
+    const id = await exibicao(t, 'fim-premiado', '198.51.100.42')
+    expect((await concluir(t, id, '198.51.100.42')).status).toBe(200)
+    await recuar(id, 60 * 60_000)
+    const r = await concluir(t, id, '198.51.100.42')
+    expect(r.status).toBe(200)
+    expect((await r.json()).jaCreditado).toBe(true)
+    expect(await seedsDe('af-replay-tarde')).toBe(10)
+  })
+})
+
 describe('teto por IP (atômico)', () => {
   it('rajada de 16 conclusões de 4 contas no MESMO IP: passam 15, a outra é 429 teto_do_ip', async () => {
     const pedidos: Promise<Response>[] = []
@@ -212,6 +262,35 @@ describe('teto por IP (atômico)', () => {
     expect((await r.json()).code).toBe('teto_do_ip')
     expect((await concluir(t, await exibicao(t, 'fim-premiado', '192.0.3.8'), '192.0.3.8')).status).toBe(200)
     expect(await seedsDe('af-rede')).toBe(20)
+  })
+})
+
+describe('o estorno da vaga', () => {
+  it('o do IP volta e o da rede falha: chamar de novo estorna só a rede (sem vazar nem estornar duas vezes)', async () => {
+    const ip = '198.51.100.60'
+    const { ip: chaveIp, rede, dia } = await porIp.chavesDoPremiado(ip, Date.now())
+    /* Outra conclusão já contada no IP e na rede: o estorno duplo apareceria como 0. */
+    expect(await contadores.reserve(chaveIp, porIp.METRIC_PREMIADOS_POR_IP, dia, 15)).toBe(true)
+    expect(await contadores.reserve(rede, porIp.METRIC_PREMIADOS_POR_IP, dia, 60)).toBe(true)
+    const vaga = await porIp.reservarConclusaoNoIp(ip)
+    const original = contadores.refund
+    let falhar = true
+    contadores.refund = async (k: string, ...resto: unknown[]) => {
+      if (k === rede && falhar) {
+        falhar = false
+        throw new Error('rede fora (encenado)')
+      }
+      return original.call(contadores, k, ...resto)
+    }
+    try {
+      await expect(vaga.estornar()).rejects.toThrow('rede fora')
+      await vaga.estornar()
+      await vaga.estornar()
+    } finally {
+      contadores.refund = original
+    }
+    expect(await contadores.get(chaveIp, porIp.METRIC_PREMIADOS_POR_IP, dia)).toBe(1)
+    expect(await contadores.get(rede, porIp.METRIC_PREMIADOS_POR_IP, dia)).toBe(1)
   })
 })
 

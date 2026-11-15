@@ -10,8 +10,9 @@
  *   - o cliente escolhe uma FUNÇÃO (`tutor` | `corretor`, ver `funcoesDeIa.ts`) e manda conteúdo;
  *   - `systemInstruction`, `temperature` e `maxTokens` do corpo são IGNORADOS;
  *   - mensagem de papel `system` vinda do cliente vira `user` — papel com autoridade é só nosso;
- *   - mensagem de papel `assistant` só passa com a assinatura do servidor (`assinaturaDoTutor.ts`); sem
- *     ela é descartada (LLM01: o cliente forjava respostas anteriores do tutor);
+ *   - mensagem de papel `assistant` só passa com a assinatura do servidor (`assinaturaDoTutor.ts`), logo
+ *     depois da pergunta que a gerou e dentro do prazo; senão é descartada (LLM01: o cliente forjava
+ *     respostas anteriores do tutor);
  *   - o material de tela vai cercado com nonce como DADO numa mensagem `user` (LLM01), e quem
  *     cerca é o servidor, porque é ele que escreve a cláusula que descreve a cerca;
  *   - o teto de entrada é o da função (413 acima dele).
@@ -95,7 +96,7 @@ export interface OpcoesDoPreparo {
    * Confere a assinatura de um turno `assistant` do histórico (`verificadorDeTurnos`, em
    * `assinaturaDoTutor.ts`). Ausente, NENHUM turno `assistant` do cliente passa: o padrão é o seguro.
    */
-  turnoDoAssistenteValido?: (conteudo: string, assinatura: unknown) => boolean
+  turnoDoAssistenteValido?: (conteudo: string, assinatura: unknown, anterior: string | null) => boolean
 }
 
 /** Acrescenta a instrução de menor ao `system`, quando houver. */
@@ -159,12 +160,20 @@ export function prepareLlmRequest(body: LlmChatBody | undefined, opcoes: OpcoesD
   const valido = opcoes.turnoDoAssistenteValido
   let turnosDescartados = 0
   const historico: MensagemDeChat[] = []
+  /* O turno `assistant` só vale logo depois da MESMA pergunta que o gerou (a assinatura cobre o par): a
+     mensagem anterior no que o cliente mandou, se ela não for outro `assistant`. */
+  let anterior: string | null = null
   for (const m of recebidas as any[]) {
     const content = texto(m?.content)
     if (m?.role === 'assistant') {
-      if (valido?.(content, m?.assinatura)) historico.push({ role: 'assistant', content })
+      if (anterior !== null && valido?.(content, m?.assinatura, anterior))
+        historico.push({ role: 'assistant', content })
       else turnosDescartados++
-    } else historico.push({ role: 'user', content })
+      anterior = null
+    } else {
+      historico.push({ role: 'user', content })
+      anterior = content
+    }
   }
   const caracteres = material.length + historico.reduce((n, m) => n + m.content.length, 0)
 

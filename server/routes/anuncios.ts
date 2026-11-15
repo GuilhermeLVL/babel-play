@@ -35,7 +35,8 @@
  *      `concluir` confere de novo, sob trava, para as pendentes não furarem.
  *   9. Só no `concluir`: TETOS POR IP E POR REDE no dia UTC (`LIMITE_DE_PREMIADOS_POR_IP_POR_DIA`,
  *      `LIMITE_DE_PREMIADOS_POR_REDE_POR_DIA`; `server/lib/premiadoPorIp.ts`, IP pseudonimizado, reserva atômica)
- *      → 429 `teto_do_ip`. A vaga é reservada antes da conclusão e estornada se ela não creditar.
+ *      → 429 `teto_do_ip`. A vaga é reservada antes da conclusão (só de exibição pendente: o replay de uma
+ *      concluída não reserva) e estornada se ela não creditar.
  *
  * O `exibicaoId` É O NONCE: 128 bits aleatórios do servidor, gravados com a conta e o espaço, concluídos uma vez só.
  * O `concluir` credita só se a exibição é DESTA conta (senão 404 `exibicao_desconhecida`, sem dizer se existe
@@ -81,6 +82,7 @@ import { getEntitlements, getPlanForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { flagLigada } from '../lib/flags'
 import { ehAdultoDeclarado } from '../lib/idade'
+import { log } from '../lib/logger'
 import { reservarConclusaoNoIp } from '../lib/premiadoPorIp'
 import { responderErro } from '../lib/respostaDeErro'
 import { parseOr400 } from '../validation'
@@ -227,10 +229,14 @@ anunciosRouter.post('/premiado/concluir', async (req, res) => {
     if (!(await portasDoPremiado(req, res))) return
     const agora = Date.now()
     const bloqueados: ReadonlySet<string> = (await alivioLigado(req)) ? new Set() : new Set([ESPACO_DE_NUVEM])
-    /* A vaga do IP e da rede ANTES da conclusão (reserva atômica): quem perde a corrida não conclui. Devolvida se a
-       conclusão não creditar — repetir um `exibicaoId` já concluído não gasta o teto do IP. */
-    const vaga = await reservarConclusaoNoIp(req.ip ?? '', agora)
-    if (!vaga) {
+    /* A vaga do IP e da rede ANTES da conclusão (reserva atômica): quem perde a corrida não conclui. Só para
+       exibição PENDENTE: a já concluída por esta conta (a resposta se perdeu, ou o crédito falhou com 500) vai
+       direto ao `ja-creditada`, que completa o crédito idempotente sem gastar o teto — mesmo com o IP em 15/15 e
+       depois dos 10 min do prazo. A desconhecida também não reserva (vira 404). Duas conclusões da mesma pendente
+       ao mesmo tempo reservam as duas; a que não credita devolve a vaga. */
+    const pendente = (await anunciosPremiadosRepo.estado(req.userId, corpo.exibicaoId)) === 'pendente'
+    const vaga = pendente ? await reservarConclusaoNoIp(req.ip ?? '', agora) : null
+    if (pendente && !vaga) {
       responderErro(res, 429, MENSAGENS.tetoDoIp, 'teto_do_ip')
       return
     }
@@ -248,10 +254,17 @@ anunciosRouter.post('/premiado/concluir', async (req, res) => {
         espacosBloqueados: bloqueados,
       })
     } catch (err) {
-      await vaga.estornar()
+      /* O erro que vale é o da conclusão: uma falha no estorno vai ao log, não o esconde. */
+      await vaga?.estornar().catch((e: unknown) =>
+        log('error', {
+          event: 'premiado_estorno_do_ip_falhou',
+          error: String((e as Error)?.message ?? e).slice(0, 120),
+          requestId: req.requestId,
+        }),
+      )
       throw err
     }
-    if (r.tipo !== 'creditada') await vaga.estornar()
+    if (r.tipo !== 'creditada') await vaga?.estornar()
     if (r.tipo === 'desconhecida') {
       responderErro(res, 404, MENSAGENS.desconhecida, 'exibicao_desconhecida')
       return

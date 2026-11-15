@@ -132,6 +132,7 @@ interface Estado {
   tokensDeEntrada: Counter<'funcao' | 'modelo'>
   tokensEmCache: Counter<'funcao' | 'modelo'>
   feedbackDeIa: Counter<'funcao' | 'nota' | 'motivo'>
+  saidaFiltrada: Counter<'funcao' | 'categoria'>
 }
 
 let estado: Estado | undefined
@@ -424,6 +425,13 @@ function criarEstadoProm(): Estado {
       name: 'ia_feedback_total',
       help: 'Avaliações das respostas de IA (nota=up|down), por função e motivo (lista fechada; `nenhum` sem motivo).',
       labelNames: ['funcao', 'nota', 'motivo'] as const,
+    }),
+    /* O FILTRO DE SAÍDA PARA PERFIL PROTEGIDO (change `filtro-tutor-menores`): quantas respostas do tutor foram
+       trocadas pela frase fixa, por função e categoria (rótulos fixos de `listasParaMenores.ts`). Nunca o texto. */
+    saidaFiltrada: new Counter({
+      name: 'ia_saida_filtrada_total',
+      help: 'Respostas do tutor barradas pelo filtro local de saída para perfil protegido (menor ou idade não declarada), por função e categoria.',
+      labelNames: ['funcao', 'categoria'] as const,
     }),
     uploadsRecusados: new Counter({
       name: 'uploads_grandes_recusados_total',
@@ -765,6 +773,12 @@ export function contarFeedbackDeIa(funcao: string, nota: 'up' | 'down', motivo: 
   if (ehWorker()) gravarPonto('feedback_ia', [funcao, nota, motivo ?? 'nenhum'], [1], funcao)
   if (!estado) return
   estado.feedbackDeIa.inc({ funcao, nota, motivo: motivo ?? 'nenhum' })
+}
+
+/** Uma resposta do tutor barrada pelo filtro de saída de perfil protegido. Os dois rótulos são valores fixos do código. */
+export function contarSaidaFiltrada(funcao: string, categoria: string): void {
+  if (!estado) return
+  estado.saidaFiltrada.inc({ funcao, categoria })
 }
 
 /**

@@ -43,6 +43,12 @@ function responderTutor(res: Response, r: ResultadoDoTutor, assinar: ((texto: st
     res.json({ text: null, unavailable: true, reason: r.indisponivel })
     return
   }
+  /* A frase do filtro de saída (`filtrada`) não se assina: ela não é fala do modelo, e o cliente não a devolve no
+     histórico — nada que o filtro barrou volta ao modelo como turno assinado. */
+  if (r.filtrada) {
+    res.json({ text: r.texto, engine: r.motor, local: r.motor === 'ollama', filtrada: true })
+    return
+  }
   const assinatura = assinar && typeof r.texto === 'string' ? assinar(r.texto) : undefined
   res.json({ text: r.texto, engine: r.motor, local: r.motor === 'ollama', ...(assinatura ? { assinatura } : {}) })
 }

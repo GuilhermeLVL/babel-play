@@ -61,6 +61,7 @@ import {
   rotuloDaFerramenta,
   type Sigilo,
 } from '../lib/ichat/pedido';
+import { RESPOSTA_FILTRADA_DO_TUTOR, RESPOSTAS_FILTRADAS } from '../lib/ichat/respostaFiltrada';
 import { construirContextoDaTela } from '../lib/ichatContext';
 import { movimentoReduzido } from '../lib/movimento/reduzido';
 import { sinalizarRecusaLida } from '../lib/ofertas/eventos';
@@ -621,14 +622,18 @@ export default function IChat({
         id,
         motivo
           ? { de: 'ia', txt: motivo, erro: true }
-          : {
-              de: 'ia',
-              txt: String(data.text ?? ''),
-              doTutor: true,
-              ...(typeof data.assinatura === 'string' ? { assinatura: data.assinatura } : {}),
-              origem,
-              proposta: propostaDoPedido(pedido, pendentes),
-            },
+          : data.filtrada === true
+            ? /* O filtro de saída de perfil protegido trocou a resposta (change `filtro-tutor-menores`): a frase fixa,
+                 traduzida, sem assinatura — ela não volta ao modelo no histórico (`historicoParaOTutor`). */
+              { de: 'ia', txt: t(RESPOSTAS_FILTRADAS.find((f) => f === data.text) ?? RESPOSTA_FILTRADA_DO_TUTOR) }
+            : {
+                de: 'ia',
+                txt: String(data.text ?? ''),
+                doTutor: true,
+                ...(typeof data.assinatura === 'string' ? { assinatura: data.assinatura } : {}),
+                origem,
+                proposta: propostaDoPedido(pedido, pendentes),
+              },
       );
     } catch {
       responderNaConversa(id, {

@@ -18,6 +18,10 @@
  * A tradução não recebe: ela verte fielmente um texto que a pessoa já tem. E o turno `assistant` do
  * histórico só chega ao modelo com a assinatura do servidor (`assinaturaDoTutor.ts`, LLM01).
  *
+ * A SAÍDA PARA PERFIL PROTEGIDO É CONFERIDA (change `filtro-tutor-menores`): a instrução é persuasão, então o texto do
+ * modelo passa por `moderarSaidaDoTutor` antes de sair. Barrado, sai a frase fixa de `respostaFiltrada.ts` com
+ * `filtrada: true` — o texto do modelo não sai, não é assinado e não vai ao log (só a categoria e o `requestId`).
+ *
  * "INDISPONÍVEL" NÃO É RECUSA. A nuvem fora, o plano sem nuvem e o self-host sem modelo local
  * respondem 200 com `text: null` e o motivo — o cliente mostra a frase certa e segue. Recusa é o
  * 400/413/422 do corpo, o 402 da cota, o 429 da nuvem ocupada, o 503 do portão e o 502 do erro.
@@ -25,6 +29,8 @@
  * E O TUTOR NÃO É FUNÇÃO DA API nesta fase (change `api-e-mcp`): expô-lo em `/v1` é decisão do dono.
  * O núcleo já recusa o perfil protegido fora do app, como as outras.
  */
+import { RESPOSTA_FILTRADA_DE_CUIDADO, RESPOSTA_FILTRADA_DO_TUTOR } from '../../../src/lib/ichat/respostaFiltrada'
+import { contarSaidaFiltrada } from '../../http/metricas'
 import { authRequired } from '../../lib/auth'
 import { erroDeRota } from '../../lib/erroDeRota'
 import { ehMenor, INSTRUCAO_DE_SEGURANCA_PARA_MENORES } from '../../lib/idade'
@@ -37,6 +43,7 @@ import { type AdmissaoDaCascata, admitirCascata, encerrarAdmissao, percorrerCasc
 import type { FuncaoDeIa } from '../funcoesDeIa'
 import { chamarChat, type MensagemDeChat, tamanhoDoPrompt } from '../llmClient'
 import { type LlmChatBody, prepareLlmRequest } from '../llmRequest'
+import { moderarSaidaDoTutor } from '../moderacao/moderarSaidaDoTutor'
 import { cascataDoPlano } from '../niveis'
 import { aplicarPoliticaDeCusto } from '../politicaDeCusto'
 import { llmLocal } from '../provedores'
@@ -81,6 +88,8 @@ export interface ConversaDoTutor {
   texto: string | null
   motor: 'nuvem' | 'ollama' | null
   indisponivel?: MotivoDoTutorIndisponivel
+  /** O filtro de saída barrou o texto do modelo: `texto` é a frase fixa, que NÃO se assina. */
+  filtrada?: boolean
 }
 
 export type ResultadoDoTutor = ConversaDoTutor | RecusaDeIa
@@ -122,6 +131,30 @@ async function tentarLocal(messages: MensagemDeChat[], maxTokens: number, rastro
     return null
   }
   return r.texto ?? null
+}
+
+/**
+ * A resposta que sai: o texto do modelo, ou — para perfil protegido, quando o filtro barra — a frase fixa. O log e a
+ * métrica levam só a categoria, a função e o `requestId`; o texto barrado morre aqui.
+ */
+async function entregar(
+  ctx: ContextoDeIa,
+  funcao: FuncaoDeIa,
+  menor: boolean,
+  texto: string,
+  motor: 'nuvem' | 'ollama',
+): Promise<ConversaDoTutor> {
+  const veredicto = await moderarSaidaDoTutor(texto, { protegido: menor })
+  if (veredicto.ok !== false) return { ok: true, texto, motor }
+  log('warn', { event: 'tutor_saida_filtrada', categoria: veredicto.motivo, funcao, requestId: ctx.requestId })
+  contarSaidaFiltrada(funcao, veredicto.motivo)
+  ctx.rastro.anotar({ saidaFiltrada: veredicto.motivo })
+  return {
+    ok: true,
+    texto: veredicto.motivo === 'autolesao' ? RESPOSTA_FILTRADA_DE_CUIDADO : RESPOSTA_FILTRADA_DO_TUTOR,
+    motor,
+    filtrada: true,
+  }
 }
 
 async function conversar(
@@ -207,7 +240,7 @@ async function conversar(
           /* B2: o custo de quem respondeu, pelo preço dele e com o cache — calculado na cascata. */
           await registrarGastoDeIa(entregue.custoUsd, { userId: ctx.userId, plano: plano.plan })
           await ctx.registrarCusto?.(entregue.custoUsd)
-          return decidir({ ok: true, texto: entregue.texto, motor: 'nuvem' })
+          return decidir(await entregar(ctx, prep.funcao, menor, entregue.texto, 'nuvem'))
         }
         log('error', {
           event: 'tutor_nuvem_indisponivel',
@@ -224,7 +257,7 @@ async function conversar(
 
     // Self-host: o Ollama da máquina do dono é o piso.
     const local = await tentarLocal(prep.messages, prep.maxTokens, rastro)
-    if (local) return decidir({ ok: true, texto: local, motor: 'ollama' })
+    if (local) return decidir(await entregar(ctx, prep.funcao, menor, local, 'ollama'))
     return decidir(indisponivel('no_local_model'))
   } catch (error) {
     log('error', { event: 'tutor_erro', error: erroDeRota(error, { event: 'tutor_erro' }), requestId: ctx.requestId })

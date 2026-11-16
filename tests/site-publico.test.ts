@@ -42,7 +42,8 @@ describe('páginas públicas', () => {
     expect(html).toContain(trecho)
     expect(canonical(html)).toBe(`${URL_SITE}${caminho}`)
     expect(html).toContain('<html lang="pt-BR">')
-    expect(html).not.toMatch(/<script(?![^>]*application\/ld\+json)/)
+    // Só JSON-LD e, na home, os scripts do próprio domínio do filme (`/site/…`).
+    expect(html).not.toMatch(/<script(?![^>]*application\/ld\+json)(?! src="\/site\/)/)
   })
 
   it('nenhuma promessa de privacidade que a flag nuvem_convidado desmentiria', () => {
@@ -182,12 +183,30 @@ describe('sitemap, robots e ads.txt', () => {
 })
 
 describe('layout do site', () => {
-  it('home: a cena da legenda tem frase real, tradução e a descrição para leitor de tela', () => {
+  it('home: seis capítulos com legenda real, aviso de IA, texto na página e mídia que existe', () => {
     const html = site().get('inicio.html')!
-    expect(html).toContain('Estou bem cansado depois do trabalho')
-    expect(html).toContain('<span class="salva">beat</span>')
-    expect(html).toMatch(/<figcaption class="so-leitor">[^<]*beat/)
-    expect(html).toContain('prefers-reduced-motion')
+    const caps = [...html.matchAll(/data-clipe="([^"]+)" data-clipe-celular="([^"]+)"/g)]
+    expect(caps).toHaveLength(6)
+    expect(html).toContain('Não acredito que escondeu isso de mim. Éramos uma equipe!')
+    expect(html).toContain('Filmes gerados por IA · legenda e tradução geradas pelo Frasy')
+    expect(html).toContain('<span class="chip breve">Em breve</span>')
+    // sem JavaScript, o texto de todos os capítulos já está no HTML
+    expect(html).toContain('<h1>Entenda o que você assiste.</h1>')
+    expect(html).toContain('Cada palavra que você toca fica com você.')
+    // toda mídia citada existe em public/
+    const midias = [...html.matchAll(/(?:src|poster|data-clipe|data-clipe-celular)="(\/site\/[^"]+)"/g)].map(
+      (m) => m[1],
+    )
+    expect(midias.length).toBeGreaterThan(20)
+    for (const m of midias) expect(() => readFileSync(path.join(__dirname, '..', 'public', m))).not.toThrow()
+  })
+
+  it('home: scripts só do próprio domínio, com defer; as outras páginas seguem sem JavaScript', () => {
+    const html = site().get('inicio.html')!
+    expect(html).toContain('<script src="/site/lenis.min.js" defer></script>')
+    expect(html).toContain('<script src="/site/rolo.js" defer></script>')
+    expect(html).not.toMatch(/<script src="https?:/)
+    expect(site().get('planos.html')!).not.toMatch(/<script src=/)
   })
 
   it('as duas fontes do app, pré-carregadas', () => {

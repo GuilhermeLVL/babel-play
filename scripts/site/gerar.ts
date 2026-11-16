@@ -15,10 +15,10 @@
  * Função pura sobre as opções (os guias vêm lidos): os testes chamam `gerarSite` direto.
  */
 import { type Guia, lerGuias } from './guias';
+import { corpoDaHome, CSS_DA_HOME } from './home';
 import { pagina } from './layout';
 import {
   corpoDaAjuda,
-  corpoDaHome,
   corpoDoContato,
   corpoDo404,
   corpoDoGuia,
@@ -120,6 +120,9 @@ export function gerarSite(o: OpcoesDoSite): Map<string, string> {
       descricao:
         'Legenda e tradução ao vivo em vídeos, aulas, podcasts e chamadas, rodando no seu navegador. As palavras que você salva viram revisão espaçada e jogos curtos.',
       corpo: corpoDaHome(o.guias),
+      inteira: true,
+      estilo: CSS_DA_HOME,
+      scripts: ['/site/lenis.min.js', '/site/rolo.js'],
       jsonLd: [
         organizacao,
         { '@context': 'https://schema.org', '@type': 'WebSite', name: 'Frasy', url: `${url}/`, inLanguage: 'pt-BR' },

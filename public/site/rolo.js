@@ -17,6 +17,7 @@
 (() => {
   const rolo = document.getElementById('rolo');
   if (!rolo) return;
+  document.documentElement.classList.add('js');
   const menos = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const toque = matchMedia('(hover: none) and (pointer: coarse)').matches;
   const pequena = matchMedia('(max-width: 860px)');
@@ -261,6 +262,59 @@
   medir();
   requestAnimationFrame(tique);
 
+  // Entradas suaves (títulos e cartões) e o marca-texto: a classe `js` no <html> só esconde o que este
+  // arquivo vai revelar; sem ele, tudo fica visível.
+  const revelar = new IntersectionObserver(
+    (itens) => {
+      for (const it of itens) {
+        if (!it.isIntersecting) continue;
+        it.target.classList.add('visto');
+        revelar.unobserve(it.target);
+      }
+    },
+    { rootMargin: '0px 0px -12% 0px' },
+  );
+  document.querySelectorAll('[data-revelar]').forEach((el) => revelar.observe(el));
+
+  // O fluxo (computador): o passo no meio da tela troca a tela da janela fixa e só ela toca.
+  const quadros = [...document.querySelectorAll('[data-quadro]')];
+  const passos = [...document.querySelectorAll('[data-passo]')];
+  const pontos = [...document.querySelectorAll('.fluxo-pontos span')];
+  const largo = matchMedia('(min-width: 901px)');
+  let passoAtivo = -1;
+  const ativarPasso = (i) => {
+    if (i === passoAtivo) return;
+    passoAtivo = i;
+    quadros.forEach((q, j) => {
+      const v = q.querySelector('video');
+      q.classList.toggle('ativo', j === i);
+      if (j === i && largo.matches) {
+        if (v.preload === 'none') v.preload = 'auto';
+        v.currentTime = 0;
+        if (!menos) v.play().catch(() => {});
+      } else v.pause();
+    });
+    passos.forEach((p, j) => p.classList.toggle('ativo', j === i));
+    pontos.forEach((p, j) => p.classList.toggle('ativo', j === i));
+  };
+  if (passos.length) {
+    passos[0].classList.add('ativo');
+    const obs = new IntersectionObserver(
+      (itens) => {
+        for (const it of itens) if (it.isIntersecting) ativarPasso(passos.indexOf(it.target));
+      },
+      { rootMargin: '-45% 0px -45% 0px' },
+    );
+    passos.forEach((p) => obs.observe(p));
+    // A janela só toca enquanto aparece.
+    const tela = document.querySelector('.fluxo-tela');
+    new IntersectionObserver(([it]) => {
+      const v = quadros[passoAtivo]?.querySelector('video');
+      if (!v || !largo.matches) return;
+      if (it.isIntersecting && !menos) v.play().catch(() => {});
+      else v.pause();
+    }).observe(tela);
+  }
   // Telas do app: só tocam quando aparecem.
   const visor = new IntersectionObserver(
     (itens) => {

@@ -93,81 +93,64 @@ const capitulo = (c: Capitulo, i: number): string => {
   );
 };
 
-type Peca = {
-  tam: 2 | 3 | 4;
-  chip: string;
-  titulo: string;
-  texto: string;
-  video?: string;
-  imagem?: string;
-  alt: string;
-};
+type Passo = { nome: string; titulo: string; texto: string; clipe: string; alt: string };
 
-const PECAS: Peca[] = [
+// O fluxo do app, na ordem em que a pessoa usa. Cada clipe é uma tela real, gravada em produção e recortada
+// no componente (roteiro em `reports/landing/gravar-fluxo.mjs`, fora do git).
+const PASSOS_DO_FLUXO: Passo[] = [
   {
-    tam: 4,
-    chip: 'Toque e guarde',
+    nome: 'Ouça',
+    titulo: 'A legenda chega enquanto a pessoa fala.',
+    texto:
+      'Ligue o Frasy num vídeo, numa aula ou numa conversa. O original e a tradução aparecem juntos, frase por frase.',
+    clipe: 'fluxo-1-ouvir',
+    alt: 'Tela real: falas em inglês chegando ao vivo, cada uma com a tradução em português',
+  },
+  {
+    nome: 'Toque e guarde',
     titulo: 'A palavra vai com a frase de onde veio.',
-    texto: 'Toque na fala, escolha a palavra e pronto: ela entra no seu caderno, sem sair da cena.',
-    video: 'rec-guardar',
-    alt: 'Tela real: tocar na fala, escolher a palavra flight e guardar',
+    texto: 'Toque na fala, escolha a palavra e guarde. Sem pausar, sem copiar e colar.',
+    clipe: 'fluxo-2-guardar',
+    alt: 'Tela real: tocar na fala da raposa, escolher a palavra fox e guardar; ela fica marcada na legenda',
   },
   {
-    tam: 2,
-    chip: 'Revisão',
-    titulo: 'Volta na hora certa.',
-    texto: 'A revisão espaçada traz a palavra quando você estaria esquecendo, num jogo curto.',
-    video: 'rec-memoria',
-    alt: 'Tela real: o jogo da memória com as palavras',
+    nome: 'Revise',
+    titulo: 'Ela volta na frase de onde veio.',
+    texto:
+      'A revisão espaçada traz a palavra quando você estaria esquecendo, de novo dentro da frase. Você completa a lacuna e ela fica.',
+    clipe: 'fluxo-3-revisar',
+    alt: 'Tela real: a frase da raposa com uma lacuna; tocar em found completa e fica verde',
   },
   {
-    tam: 2,
-    chip: '17 jogos',
+    nome: 'Jogue',
     titulo: 'Revisar virou jogar.',
-    texto: 'Memória, caça-palavras, Soletrar, frase embaralhada e mais.',
-    video: 'rec-jogos',
-    alt: 'Tela real: a grade de jogos',
+    texto: '17 jogos curtos com as suas palavras: memória, caça-palavras, frase embaralhada e mais.',
+    clipe: 'fluxo-4-jogar',
+    alt: 'Tela real: o jogo da memória encontrando os pares palavra e tradução',
   },
   {
-    tam: 2,
-    chip: 'Soletrar',
-    titulo: 'Escreva a palavra.',
-    texto: 'A pista é o significado; as cores dizem quais letras estão certas.',
-    video: 'rec-soletrar',
-    alt: 'Tela real: o jogo Soletrar',
+    nome: 'Escreva',
+    titulo: 'De reconhecer a escrever.',
+    texto: 'No Soletrar, a pista é o significado e as cores mostram quais letras estão certas.',
+    clipe: 'fluxo-5-escrever',
+    alt: 'Tela real: no Soletrar, a pista semana; WEAK quase acerta e WEEK fica toda verde',
   },
   {
-    tam: 2,
-    chip: 'Nível e recompensas',
+    nome: 'Avance',
     titulo: 'Cada rodada conta.',
-    texto: 'Monte a frase, ganhe XP, suba de nível e libere visuais novos.',
-    video: 'rec-frase',
-    alt: 'Tela real: frase embaralhada e a subida de nível',
-  },
-  {
-    tam: 3,
-    chip: 'Progresso',
-    titulo: 'Missões do dia e o seu nível.',
-    texto: 'Revise 10 palavras, salve 5 de uma captura, feche uma rodada: pequenas metas para todo dia.',
-    imagem: 'rec-inicio.png',
-    alt: 'Tela real: o início do app com nível, XP, Seeds e missões do dia',
-  },
-  {
-    tam: 3,
-    chip: 'Livros',
-    titulo: '215 clássicos no seu nível.',
-    texto: 'Leia e ouça livros em domínio público, ou traga o seu. O nível estimado ajuda a escolher.',
-    imagem: 'rec-leitor.png',
-    alt: 'Tela real: o leitor de livros com The Blue Castle',
+    texto: 'XP, nível, missões do dia e visuais novos para destravar. Um pouco por dia já faz diferença.',
+    clipe: 'fluxo-6-progresso',
+    alt: 'Tela real: ao fechar a rodada, o nível sobe e libera visuais novos',
   },
 ];
 
-const peca = (p: Peca): string => {
-  const midia = p.video
-    ? `<video data-quando-visivel src="${M}/${p.video}.mp4" poster="${M}/${p.video}.jpg" muted loop playsinline preload="none" aria-label="${p.alt}"></video>`
-    : `<img src="${M}/${p.imagem}" alt="${p.alt}" loading="lazy">`;
-  return `<article class="peca-v g${p.tam}"><div class="midia">${midia}</div><div class="info"><span class="chip">${p.chip}</span><h3>${p.titulo}</h3><p>${p.texto}</p></div></article>`;
-};
+const videoDoPasso = (p: Passo, atributo: string): string =>
+  `<video ${atributo} src="${M}/${p.clipe}.mp4" poster="${M}/${p.clipe}.jpg" muted loop playsinline preload="none" aria-label="${p.alt}"></video>`;
+
+const passoDoFluxo = (p: Passo, i: number): string =>
+  `<li class="passo" data-passo><span class="passo-n" aria-hidden="true">${String(i + 1).padStart(2, '0')}</span>` +
+  `<div class="passo-texto"><p class="passo-nome">${p.nome}</p><h3>${p.titulo}</h3><p>${p.texto}</p></div>` +
+  `<div class="passo-midia">${videoDoPasso(p, 'data-quando-visivel')}</div></li>`;
 
 export function corpoDaHome(guias: Guia[]): string {
   const recentes = guias.slice(0, 3);
@@ -184,21 +167,31 @@ ${CAPITULOS.map(capitulo).join('\n')}
 </div>
 </section>
 
-<section class="secao-v" id="alem" aria-labelledby="t-alem">
+<section class="secao-v fluxo" id="alem" aria-labelledby="t-alem">
 <div class="larg-v">
-<p class="rotulo-v">Além da legenda</p>
-<h2 id="t-alem">A legenda é só o começo.</h2>
-<p class="lead-v">O Frasy transforma o que você ouviu em prática: jogos, revisão no dia certo, livros no seu nível e o seu progresso. Todas as telas abaixo são do app de verdade.</p>
-<div class="bento">
-${PECAS.map(peca).join('\n')}
-<article class="peca-v ia gtodo"><div class="midia"><div class="bolha"><b>"Circle back"</b> quer dizer retomar um assunto depois. Nesta frase, a pessoa propõe voltar ao orçamento em outra reunião. Outras formas de dizer: <i lang="en">revisit</i>, <i lang="en">come back to</i>.</div></div><div class="info"><span class="chip breve">Em breve</span><h3>A IA que explica a frase, do seu jeito.</h3><p>Por que essa palavra aqui, outras formas de dizer, o tom da frase. Para quem quer ir além da tradução.</p></div></article>
+<p class="rotulo-v" data-revelar>Além da legenda</p>
+<h2 id="t-alem" data-revelar>Do vídeo ao <mark class="marca-texto">vocabulário</mark>, em seis passos.</h2>
+<p class="lead-v" data-revelar>O que você ouviu vira prática: revisão no dia certo, jogos e progresso. Todas as telas abaixo são do app de verdade.</p>
+<div class="fluxo-grade">
+<div class="fluxo-tela" aria-hidden="true">
+<div class="janela"><div class="janela-barra"><i></i><i></i><i></i><span>frasy.com.br/app</span></div>
+<div class="janela-quadros">${PASSOS_DO_FLUXO.map((p, i) => `<div class="quadro${i === 0 ? ' ativo' : ''}" data-quadro>${videoDoPasso(p, 'tabindex="-1"')}</div>`).join('')}</div></div>
+<div class="fluxo-pontos">${PASSOS_DO_FLUXO.map((p, i) => `<span${i === 0 ? ' class="ativo"' : ''}>${p.nome}</span>`).join('')}</div>
+</div>
+<ol class="fluxo-passos">
+${PASSOS_DO_FLUXO.map(passoDoFluxo).join('\n')}
+</ol>
+</div>
+<div class="tambem">
+<article class="peca-v" data-revelar><div class="midia"><video data-quando-visivel src="${M}/fluxo-7-ler.mp4" poster="${M}/fluxo-7-ler.jpg" muted loop playsinline preload="none" aria-label="Tela real: no leitor, tocar numa palavra do livro mostra a tradução"></video></div><div class="info"><span class="chip">Livros</span><h3>215 clássicos no seu nível.</h3><p>Leia e ouça livros em domínio público, ou traga o seu. Toque numa palavra e ela vai para o caderno.</p></div></article>
+<article class="peca-v ia" data-revelar><div class="midia"><div class="bolha"><b>"Circle back"</b> quer dizer retomar um assunto depois. Nesta frase, a pessoa propõe voltar ao orçamento em outra reunião. Outras formas de dizer: <i lang="en">revisit</i>, <i lang="en">come back to</i>.</div></div><div class="info"><span class="chip breve">Em breve</span><h3>A IA que explica a frase, do seu jeito.</h3><p>Por que essa palavra aqui, outras formas de dizer, o tom da frase. Para quem quer ir além da tradução.</p></div></article>
 </div>
 </div>
 </section>
 
 <section class="interprete-v" id="interprete" aria-labelledby="t-int">
 <div class="larg-v grade">
-<div><p class="rotulo-v">Modo intérprete</p><h2 id="t-int">Um celular. <em>Duas línguas.</em></h2><p class="lead-v">Cada pessoa fala no seu idioma. A tradução aparece do outro lado e é lida em voz alta.</p></div>
+<div><p class="rotulo-v">Modo intérprete</p><h2 id="t-int" data-revelar>Um celular. <em>Duas línguas.</em></h2><p class="lead-v">Cada pessoa fala no seu idioma. A tradução aparece do outro lado e é lida em voz alta.</p></div>
 <video src="${M}/interprete.mp4" controls playsinline preload="metadata" aria-label="Vídeo: um brasileiro pergunta onde fica o metrô e a moradora responde em inglês, com a tradução do Frasy"></video>
 </div>
 </section>
@@ -206,7 +199,7 @@ ${PECAS.map(peca).join('\n')}
 <section class="secao-v" aria-labelledby="t-comparar">
 <div class="larg-v">
 <p class="rotulo-v">Antes e depois</p>
-<h2 id="t-comparar">Mesma cena. Agora você entende.</h2>
+<h2 id="t-comparar" data-revelar>Mesma cena. Agora você entende.</h2>
 <p class="lead-v">Arraste para comparar.</p>
 <div class="comparar" id="comparar">
 <video class="sem" id="cmp-sem" src="${M}/antes-depois.mp4" muted loop playsinline preload="metadata" aria-hidden="true"></video>
@@ -223,7 +216,7 @@ ${PECAS.map(peca).join('\n')}
 <section class="secao-v" aria-labelledby="t-conf">
 <div class="larg-v">
 <p class="rotulo-v">Feito com cuidado</p>
-<h2 id="t-conf">Estudo tranquilo, do jeito certo.</h2>
+<h2 id="t-conf" data-revelar>Estudo tranquilo, do jeito certo.</h2>
 <div class="tres">
 <div><h3>No seu aparelho primeiro</h3><p>Transcrição e tradução rodam no navegador. A nuvem só entra com o seu consentimento, com provedores que se comprometem a não guardar o que recebem nem usar para treinar modelos. Veja <a href="/privacidade">como tratamos os dados</a>.</p></div>
 <div><h3>Perfil protegido para menores</h3><p>Menores de 18 anos não fazem compras nem recebem ofertas de plano. Quem decide qualquer pagamento é o responsável, pela conta dele.</p></div>
@@ -237,7 +230,7 @@ ${
     : ''
 }
 <section class="final-v" aria-labelledby="comece">
-<div class="larg-v"><h2 id="comece">Abra um vídeo que você já queria ver.</h2>
+<div class="larg-v"><h2 id="comece" data-revelar>Abra um vídeo que você já queria ver.</h2>
 <p>Clique em Legendar agora e guarde a primeira palavra. Leva um minuto.</p>
 <a class="botao" href="/app">Abrir o Frasy · grátis</a></div>
 </section>
@@ -285,7 +278,6 @@ export const CSS_DA_HOME = `
 .leg .t.oculta{opacity:0;transform:translateY(6px)}
 .secao-v{padding:110px 0 0}
 .secao-v h2{font-size:clamp(36px,5vw,64px);margin:14px 0 18px;max-width:15em}
-.bento{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:18px;margin-top:44px}
 .peca-v{background:var(--superficie);border-radius:24px;overflow:hidden;box-shadow:0 0 0 1px var(--borda-fraca),var(--sombra-alta);display:flex;flex-direction:column}
 .peca-v .midia{background:var(--superficie-2);aspect-ratio:16/10;overflow:hidden}
 .peca-v .midia video,.peca-v .midia img{width:100%;height:100%;object-fit:cover;object-position:top left}
@@ -294,7 +286,38 @@ export const CSS_DA_HOME = `
 .peca-v p{color:var(--suave);font-size:16px;margin:0}
 .peca-v .chip{display:inline-block;margin-bottom:10px;font:700 12px/1 var(--texto);letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;border-radius:999px;background:var(--acao);color:var(--acao-tinta)}
 .peca-v .chip.breve{background:#211E19;color:#fff}
-.g2{grid-column:span 2}.g3{grid-column:span 3}.g4{grid-column:span 4}.gtodo{grid-column:1/-1}
+.capitulo h1,.capitulo h2,.secao-v h2,.interprete-v h2,.final-v h2,.peca-v h3,.passo h3{font-stretch:112%}
+.marca-texto{color:inherit;padding:0 .12em;border-radius:.12em;background:linear-gradient(var(--marcador),var(--marcador)) no-repeat 0 100%/0% 100%;box-shadow:inset 0 -.1em 0 transparent;transition:background-size .9s cubic-bezier(.2,.7,.2,1) .25s,box-shadow .3s 1.1s,color .3s .5s}
+.visto .marca-texto,.marca-texto.visto{background-size:100% 100%;box-shadow:inset 0 -.1em 0 var(--marcador-verde);color:var(--marcador-tinta)}
+.js [data-revelar]{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
+.js [data-revelar].visto{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.js [data-revelar]{opacity:1;transform:none;transition:none}.marca-texto{transition:none}}
+.fluxo-grade{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);gap:56px;margin-top:40px;align-items:start}
+.fluxo-tela{position:sticky;top:max(88px,calc(50vh - 300px));display:flex;flex-direction:column;gap:16px}
+.janela{border-radius:18px;overflow:hidden;background:var(--superficie);box-shadow:0 0 0 1px var(--borda-fraca),0 30px 60px -24px rgba(38,36,31,.35)}
+.janela-barra{display:flex;align-items:center;gap:7px;padding:11px 14px;background:var(--superficie-2);border-bottom:1px solid var(--borda-fraca)}
+.janela-barra i{width:11px;height:11px;border-radius:50%;background:var(--borda-fraca)}
+.janela-barra span{margin-left:10px;font:600 12px/1 var(--texto);color:var(--suave);letter-spacing:.01em}
+.janela-quadros{position:relative;aspect-ratio:4/3;background:var(--superficie-2)}
+.quadro{position:absolute;inset:0;opacity:0;transition:opacity .45s ease}
+.quadro.ativo{opacity:1}
+.quadro video{width:100%;height:100%;object-fit:cover;display:block}
+.fluxo-pontos{display:flex;flex-wrap:wrap;gap:6px 14px;font:600 13px/1 var(--texto);color:var(--suave)}
+.fluxo-pontos span{display:flex;align-items:center;gap:7px;transition:color .3s}
+.fluxo-pontos span::before{content:"";width:18px;height:3px;border-radius:2px;background:var(--borda-fraca);transition:background .3s,width .3s}
+.fluxo-pontos .ativo{color:var(--tinta)}
+.fluxo-pontos .ativo::before{width:30px;background:var(--acao)}
+.fluxo-passos{list-style:none;margin:0;padding:0;counter-reset:passo}
+.passo{min-height:68vh;display:flex;flex-direction:column;justify-content:center;gap:12px;position:relative;padding-left:30px;border-left:2px solid var(--borda-fraca);transition:border-color .3s}
+.passo.ativo{border-left-color:var(--acao)}
+.passo-n{font:800 15px/1 var(--titulo);font-stretch:112%;color:var(--acento-texto);letter-spacing:.04em}
+.passo-nome{margin:0;font:700 13px/1 var(--texto);letter-spacing:.12em;text-transform:uppercase;color:var(--suave)}
+.passo h3{font-size:clamp(28px,2.8vw,40px);margin:8px 0 10px;letter-spacing:-.03em}
+.passo .passo-texto>p:last-child{margin:0;color:var(--suave);font-size:17px;max-width:30em}
+.passo:not(.ativo) .passo-texto{opacity:.42;transition:opacity .35s}
+.passo.ativo .passo-texto{opacity:1;transition:opacity .35s}
+.passo-midia{display:none}
+.tambem{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:72px}
 .peca-v.ia{background:#0E0B09;color:#F3ECE0}
 .peca-v.ia h3{color:#fff}
 .peca-v.ia p{color:#C9BFAE}
@@ -339,7 +362,12 @@ export const CSS_DA_HOME = `
 .camada:nth-child(3) :is(img,video){object-position:74% 50%}
 .camada:nth-child(4) :is(img,video){object-position:30% 50%}
 .camada:nth-child(5) :is(img,video){object-position:52% 50%}
-.bento{grid-template-columns:1fr}
-.g2,.g3,.g4{grid-column:auto}
+.fluxo-grade{grid-template-columns:1fr;gap:0}
+.fluxo-tela{display:none}
+.passo{min-height:0;padding:28px 0 28px 20px}
+.passo:not(.ativo) .passo-texto{opacity:1}
+.passo-midia{display:block;border-radius:14px;overflow:hidden;box-shadow:0 0 0 1px var(--borda-fraca),var(--sombra-alta);aspect-ratio:4/3;background:var(--superficie-2)}
+.passo-midia video{width:100%;height:100%;object-fit:cover;display:block}
+.tambem{grid-template-columns:1fr;margin-top:40px}
 .interprete-v .grade,.tres{grid-template-columns:1fr}}
 `;

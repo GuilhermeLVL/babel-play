@@ -211,7 +211,7 @@ describe('layout do site', () => {
 
   it('as duas fontes do app, pré-carregadas', () => {
     const html = site().get('planos.html')!
-    expect(html).toContain('<link rel="preload" href="/fontes/archivo-5.3.0.woff2"')
+    expect(html).toContain('<link rel="preload" href="/fontes/archivo-wdth-5.3.0.woff2"')
     expect(html).toContain('<link rel="preload" href="/fontes/inter-5.3.0.woff2"')
   })
 

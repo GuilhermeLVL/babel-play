@@ -19,7 +19,7 @@
 import { escaparHtml } from './markdown';
 
 /** O caminho público da fonte dos títulos (com a versão do pacote no nome: o cache pode ser `immutable`). */
-export const caminhoDaFonte = (versao: string): string => `/fontes/archivo-${versao}.woff2`;
+export const caminhoDaFonte = (versao: string): string => `/fontes/archivo-wdth-${versao}.woff2`;
 /** O caminho público da fonte do texto (Inter), no mesmo esquema. */
 export const caminhoDaFonteDoTexto = (versao: string): string => `/fontes/inter-${versao}.woff2`;
 
@@ -56,7 +56,7 @@ export interface OpcoesDaPagina {
  * o vermelhão de ação (#C93A15) 5,1:1, papel escuro sobre o vermelhão do escuro (#FF6B3D) 6,5:1.
  */
 const CSS_BRUTO = `
-@font-face{font-family:Archivo;font-style:normal;font-weight:100 900;font-display:swap;src:url(%FONTE%) format("woff2")}
+@font-face{font-family:Archivo;font-style:normal;font-weight:100 900;font-stretch:62% 125%;font-display:swap;src:url(%FONTE%) format("woff2")}
 @font-face{font-family:Inter;font-style:normal;font-weight:100 900;font-display:swap;src:url(%FONTE_TEXTO%) format("woff2")}
 :root{color-scheme:light dark;
 --papel:#E6E2D6;--superficie:#F5F2EA;--superficie-2:#EBE7DB;--tinta:#26241F;--suave:#5E5A50;--borda:#C6BFAC;--borda-fraca:#D8D2C2;

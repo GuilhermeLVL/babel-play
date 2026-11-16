@@ -30,7 +30,19 @@ const ICONE_MIC = icone('<rect x="9" y="3" width="6" height="11" rx="3"/><path d
 const ICONE_VOZ = icone('<path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>');
 
 /**
- * A CENA DA HOME: um quadro de vídeo desenhado (SVG) onde a fala em inglês aparece palavra por palavra,
+ * O VÍDEO DA HOME (`public/video/`): cenas geradas por IA com fala em inglês e, por cima, a legenda no visual
+ * das Legendas flutuantes com a tradução que o Frasy gerou em produção ao ouvir essas falas, mais a tela real
+ * do app. O aviso de IA vai na legenda do vídeo. Mudo e em laço por padrão (autoplay só toca sem som);
+ * `preload="metadata"` e a capa seguram o peso até o vídeo começar.
+ */
+const VIDEO_DA_HOME = `
+<figure class="video-home">
+<video src="/video/frasy-em-qualquer-lugar.mp4" poster="/video/frasy-em-qualquer-lugar.jpg" autoplay muted loop playsinline controls preload="metadata" width="1280" height="720" aria-describedby="video-home-desc"></video>
+<figcaption id="video-home-desc">Série, jogo, aula, viagem e desenho em inglês, com a legenda e a tradução do Frasy aparecendo ao vivo. Cenas geradas por IA; legenda, tradução e telas do app são reais.</figcaption>
+</figure>`;
+
+/**
+ * A CENA DE "COMO FUNCIONA": um quadro de vídeo desenhado (SVG) onde a fala em inglês aparece palavra por palavra,
  * a tradução surge embaixo, "beat" ganha o marca-texto e voa para a pilha de cartões. CSS puro, roda uma
  * vez (`layout.ts`, `.cena`); sem movimento, o quadro final. A frase é real e a tradução, correta.
  */
@@ -168,12 +180,13 @@ export function corpoDaHome(guias: Guia[]): string {
 <div class="acoes"><a class="botao" href="/app">Abrir o Frasy</a><a class="botao contorno" href="/planos">Ver os planos</a></div>
 <p class="nota">Grátis e sem conta para começar. Funciona no navegador; no computador, o Chrome e o Edge capturam o som de uma aba.</p>
 </div>
-${CENA}
+${VIDEO_DA_HOME}
 </section>
 
 <section class="secao" aria-labelledby="como-funciona">
 <h2 id="como-funciona">Como funciona</h2>
 <p class="secao-lead">Três passos, do som que você já ouve até a palavra que fica.</p>
+${CENA}
 ${PASSOS}
 </section>
 

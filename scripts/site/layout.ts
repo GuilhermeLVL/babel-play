@@ -148,6 +148,10 @@ details.pergunta p{margin:0;padding:0 0 20px;color:var(--suave);max-width:62ch}
 
 .heroi{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:48px;align-items:center;padding:40px 0 16px}
 .heroi h1{font-size:clamp(42px,5.4vw,70px);line-height:.96;letter-spacing:-.045em;margin-bottom:24px}
+.video-home{margin:0}
+.video-home video{display:block;width:100%;height:auto;aspect-ratio:16/9;border-radius:22px;background:var(--tela);box-shadow:var(--sombra-alta)}
+.video-home figcaption{margin-top:10px;font-size:14px;line-height:1.45;color:var(--suave)}
+.secao>.cena{max-width:640px;margin:0 auto 44px}
 .cena{position:relative;margin:0;container-type:inline-size;aspect-ratio:10/7.8}
 .tela{position:relative;aspect-ratio:16/10.4;border-radius:22px;overflow:hidden;background:var(--tela);box-shadow:var(--sombra-alta),0 0 0 1px rgba(0,0,0,.08);color:var(--tela-tinta);width:90cqw}
 .tela svg{position:absolute;inset:0;width:100%;height:100%}

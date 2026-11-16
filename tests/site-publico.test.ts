@@ -190,6 +190,13 @@ describe('layout do site', () => {
     expect(html).toContain('prefers-reduced-motion')
   })
 
+  it('home: o vídeo do topo é mudo, tem capa leve e diz que as cenas são de IA', () => {
+    const html = site().get('inicio.html')!
+    expect(html).toMatch(/<video src="\/video\/frasy-em-qualquer-lugar\.mp4"[^>]*\bmuted\b[^>]*preload="metadata"/)
+    expect(html).toContain('poster="/video/frasy-em-qualquer-lugar.jpg"')
+    expect(html).toContain('Cenas geradas por IA; legenda, tradução e telas do app são reais.')
+  })
+
   it('as duas fontes do app, pré-carregadas', () => {
     const html = site().get('planos.html')!
     expect(html).toContain('<link rel="preload" href="/fontes/archivo-5.3.0.woff2"')

@@ -115,6 +115,51 @@ describe('criarProgressoDosPacotesNativos', () => {
     expect(estado).toBeNull()
   })
 
+  /* COMP-03 (auditoria de 17/11/2026): a captura prepara en|pt e pt|en; en|pt falhou e pt|en ficou em 0% para sempre, e o
+     cartão "Tradutor do navegador 0%" cobriu a primeira legenda a sessão inteira. */
+  it('um par falha e o outro fica parado: em 20 s o cartão some', () => {
+    const p = criar()
+    p.tradutor.progresso(0, 'en|pt')
+    p.tradutor.progresso(0, 'pt|en')
+    p.tradutor.falhou('en|pt')
+    expect(estado?.nativos?.tradutor).toBe(0)
+    vi.advanceTimersByTime(19_999)
+    expect(estado?.nativos?.tradutor).toBe(0)
+    vi.advanceTimersByTime(1)
+    expect(estado).toBeNull()
+  })
+
+  it('os ouvintes vão soltos (como o `prepararNativo` os chama): o prazo não depende de `this`', () => {
+    const { progresso, falhou } = criar().tradutor
+    progresso(0, 'en|pt')
+    progresso(0, 'pt|en')
+    falhou('en|pt')
+    vi.advanceTimersByTime(20_000)
+    expect(estado).toBeNull()
+  })
+
+  it('o par que progride não vence o prazo (o relógio recomeça a cada progresso)', () => {
+    const p = criar()
+    p.tradutor.progresso(0.1, 'en|pt')
+    vi.advanceTimersByTime(15_000)
+    p.tradutor.progresso(0.5, 'en|pt')
+    vi.advanceTimersByTime(15_000)
+    expect(estado?.nativos?.tradutor).toBe(0.5)
+    vi.advanceTimersByTime(5_000)
+    expect(estado).toBeNull()
+  })
+
+  it('o tradutor local assumiu (primeira tradução no aparelho): o cartão do nativo some na hora e não volta', () => {
+    const p = criar()
+    p.tradutor.progresso(0.2, 'en|pt')
+    p.tradutor.localAssumiu()
+    expect(estado).toBeNull()
+    p.tradutor.progresso(0.4, 'en|pt')
+    expect(estado).toBeNull()
+    vi.advanceTimersByTime(30_000)
+    expect(estado).toBeNull()
+  })
+
   it('captura parada (ou cancelada): o progresso que chega depois não reabre o painel', () => {
     const p = criar()
     p.tradutor.progresso(0.1, 'en|pt')

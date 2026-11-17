@@ -7,22 +7,22 @@
 
 ## 2. Honestidade
 
-- [ ] 2.1 `traducaoDaFala.ts` (`degrade`): `translatedText: ''` e `semTraducao` com o motivo; o balão mostra o texto do motivo e "Tentar de novo". Verificar: teste de unidade (o DOM não contém `(original)`) e e2e do balão.
-- [ ] 2.2 Exportação, voz do intérprete e "Guardar" tratam a tradução vazia como ausente. Verificar: testes de `exportarConversa.ts` e do vocabulário.
-- [ ] 2.3 Aviso de par sem rota na escolha de idiomas e no Iniciar de Legendar, por `coberturaNoAparelho`. Verificar: teste de componente com hindi→pt e es→pt; texto revisado pela skill `copy-br-etica`; portões de i18n da CI.
+- [x] 2.1 `traducaoDaFala.ts` (`degrade`): `translatedText: ''` e `semTraducao` com o motivo; o balão mostra o texto do motivo e "Tentar de novo". Verificar: teste de unidade (o DOM não contém `(original)`) e e2e do balão.
+- [x] 2.2 Exportação, voz do intérprete e "Guardar" tratam a tradução vazia como ausente. Verificar: testes de `exportarConversa.ts` e do vocabulário.
+- [x] 2.3 Aviso de par sem rota na escolha de idiomas e no Iniciar de Legendar, por `coberturaNoAparelho`. Verificar: teste de componente com hindi→pt e es→pt; texto revisado pela skill `copy-br-etica`; portões de i18n da CI.
 
 ## 3. Cartão de preparo
 
-- [ ] 3.1 `pacotesNativos.ts`: prazo de 20 s sem progresso por par e falha quando o disjuntor `chrome-translator` abre; a primeira tradução local tira o `tradutor` do cartão. Verificar: teste com relógio falso (um par falha, o outro parado: o cartão some em 20 s).
+- [x] 3.1 `pacotesNativos.ts`: prazo de 20 s sem progresso por par e falha quando o disjuntor `chrome-translator` abre; a primeira tradução local tira o `tradutor` do cartão. Verificar: teste com relógio falso (um par falha, o outro parado: o cartão some em 20 s).
 - [ ] 3.2 `ModelPrepPanel.tsx` na faixa de avisos, sem sobrepor a lista. Verificar: e2e que compara os retângulos em 375×667, 412×915 e 1280×800.
-- [ ] 3.3 `ModoInterprete.tsx:768-780`: `comoInstalarVoz` antes do progresso de preparo. Verificar: teste de componente com voz ausente e preparo em curso.
+- [x] 3.3 `ModoInterprete.tsx:768-780`: `comoInstalarVoz` antes do progresso de preparo. Verificar: teste de componente com voz ausente e preparo em curso.
 
 ## 4. 2ª sessão
 
 - [ ] 4.1 Marcas `performance.mark` na carga do STT, na carga do MT e na fila do worker de tradução, expostas ao harness. Verificar: as marcas aparecem em `resultado.json` de `celular/medir-celular.mjs`.
 - [ ] 4.2 Medir 5 pares de sessões com ordem alternada (`celular/rodar-visitante.sh` + `celular/latencias.mjs`) e registrar a causa em `openspec/audits/`. Verificar: relatório com p50/p95 por sessão e a causa sustentada pelas marcas.
 - [ ] 4.3 Aplicar a correção que a medição apontar (adiar o `preload` do MT até o STT estar pronto, ou serializar as cargas sem isolamento). Verificar: p50 da 2ª sessão no máximo 1,2× o da 1ª e máximo abaixo de 8 s, nos dois aparelhos.
-- [ ] 4.4 `oferecerNativoOuNuvem`: mostrar o aviso sempre que for registrado. Verificar: teste do regulador (log e aviso andam juntos).
+- [x] 4.4 `oferecerNativoOuNuvem`: mostrar o aviso sempre que for registrado. Verificar: teste do regulador (log e aviso andam juntos).
 
 ## 5. Verificação ponta a ponta
 

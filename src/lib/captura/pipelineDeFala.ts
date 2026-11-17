@@ -75,6 +75,7 @@ import { direcaoDoLado as direcaoDeUmLado } from './interprete';
 import type { PistasDoIdioma } from './interpreteAutomatico';
 import { umModeloDeCadaVez } from './memoriaDosModelos';
 import { disponibilidadeDaSondaParaIdioma, escolherMotorDoMic, webSpeechBipaAoReligar } from './motorDoMicrofone';
+import { oferecerNoFimDaEscada } from './ofertaDoFimDaEscada';
 import { nuvemDoSttDisponivel } from './ofertaDoPreciso';
 import { preparoConcluido, semPacotePendente } from './pacotesNativos';
 import { criarTradutorDeParciais, type TradutorDeParciais } from './parcialEstavel';
@@ -413,21 +414,19 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         });
     },
     oferecerNativoOuNuvem: () => {
-      clog('regulador: fim da escada local, oferecendo nativo/nuvem');
-      const avisoDeSempre = () => {
-        setFeedbackMsg(
-          'O aparelho não está acompanhando a fala nem com o modelo menor. Para a legenda chegar a tempo, use o Chrome no computador ou autorize a transcrição em nuvem em Ajustes, Privacidade.',
-        );
-        setTimeout(() => setFeedbackMsg(''), 10000);
-      };
       /* A NUVEM DE ALÍVIO (A10): no Grátis, o chão da escada é exatamente o caso dela. A tela pergunta
-         ao servidor se há franquia; sem ela (ou fora do Grátis), o aviso de sempre. */
-      if (!pedirNuvemDeAlivio) return avisoDeSempre();
-      void pedirNuvemDeAlivio('travamento', { leve: aparelhoLeve(), travamento: true, gpuReal: null })
-        .then((mostrou) => {
-          if (!mostrou) avisoDeSempre();
-        })
-        .catch(avisoDeSempre);
+         ao servidor se há franquia; sem ela (ou fora do Grátis), o aviso de sempre. O log sai junto com o
+         que a tela mostra (`ofertaDoFimDaEscada.ts`). */
+      void oferecerNoFimDaEscada({
+        clog,
+        avisar: (msg) => {
+          setFeedbackMsg(msg);
+          setTimeout(() => setFeedbackMsg(''), 10000);
+        },
+        pedirNuvemDeAlivio: pedirNuvemDeAlivio
+          ? () => pedirNuvemDeAlivio('travamento', { leve: aparelhoLeve(), travamento: true, gpuReal: null })
+          : undefined,
+      });
     },
   };
 

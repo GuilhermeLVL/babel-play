@@ -33,12 +33,19 @@ import type { MotivoDaOfertaDeAlivio, SinaisDoAparelhoParaAlivio } from '../../c
 import type { DecisaoDeRota } from '../../core/rota/politicaDeRota';
 import { estadoDoTeto } from '../../core/tetoAnonimo';
 import { chaveDaPalavra as chaveDoNucleo } from '../../core/texto/palavra';
+import { coberturaNoAparelho } from '../../core/traducao/coberturaNoAparelho';
 import { FLAG_VOZ_NATURAL } from '../../core/vozNatural';
 import { deleteSession, fetchSessionTranscript, fetchSettings, patchUiSettings } from '../../data/api';
 import { buildGateway } from '../../gateway';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
 import { temAdaptadorWebGpu, webGpuProvavel } from '../../gateway/adaptadorWebGpu';
-import { parDoId } from '../../gateway/adapters/bergamotModelo';
+import {
+  ambienteRodaBergamot,
+  bergamotCdnNoBuild,
+  bergamotOferecido,
+  parDoId,
+} from '../../gateway/adapters/bergamotModelo';
+import { ChromeTranslatorMt } from '../../gateway/adapters/chromeTranslator';
 import { ID_DO_PARAKEET, MB_DO_PARAKEET } from '../../gateway/adapters/parakeetModelo';
 import { baixarModelo } from '../../gateway/baixarModelo';
 import type { SttSession } from '../../gateway/capabilities';
@@ -110,6 +117,7 @@ import {
 import { cancelarLiberacaoDosModelos, liberarAoSairDaCaptura } from '../../lib/captura/memoriaDosModelos';
 import { type EscolhaDoMic, webSpeechBipaAoReligar } from '../../lib/captura/motorDoMicrofone';
 import { baixarSemEmpilhar, nuvemDoSttDisponivel, ofereceOPreciso } from '../../lib/captura/ofertaDoPreciso';
+import type { PacotesNativos } from '../../lib/captura/pacotesNativos';
 import { preparoConcluido } from '../../lib/captura/pacotesNativos';
 import { linhaDaTraducao, linhaDaTranscricao } from '../../lib/captura/painelDoProcessamento';
 // Vocabulário dentro da captura: examinar a palavra, fichar no deck, mandar praticar.
@@ -146,7 +154,13 @@ import { usePalavrasConhecidas } from '../../lib/captura/usePalavrasConhecidas';
 import { usePreparoDoInicio } from '../../lib/captura/usePreparoDoInicio';
 import { useSemRede } from '../../lib/captura/useSemRede';
 import { cenarioDasFontes, type CenarioDeCaptura } from '../../lib/cenarioDeCaptura';
-import { rapidoDoMicPermitido, useConsentimentoDeNuvem, useEscolhaDoMic } from '../../lib/consentimentoDeNuvem';
+import {
+  consentiuNuvem,
+  protegidoSemResponsavel,
+  rapidoDoMicPermitido,
+  useConsentimentoDeNuvem,
+  useEscolhaDoMic,
+} from '../../lib/consentimentoDeNuvem';
 import { DominantLangTracker } from '../../lib/convoLang';
 import { classificarDispositivo, dispositivoDaRota, lerSinaisDoDispositivo } from '../../lib/dispositivo/perfil';
 import {
@@ -235,6 +249,7 @@ import AjustesDoAssistente from './captura/assistente/AjustesDoAssistente';
 import { ComoRespondoNaPagina } from './captura/assistente/AssistenteNaPagina';
 import { rotuloDaMarca } from './captura/assistente/TextoComMarcas';
 import { useAssistenteAoVivo } from './captura/assistente/useAssistenteAoVivo';
+import AvisoDaCoberturaDoPar from './captura/AvisoDaCoberturaDoPar';
 import AvisoDoTradutorLocal from './captura/AvisoDoTradutorLocal';
 import AvisoDoUsoDoDia from './captura/AvisoDoUsoDoDia';
 import CapturaNaoSalva from './captura/CapturaNaoSalva';
@@ -1299,7 +1314,7 @@ export default function LiveCapture({
   const conhecidasRef = useRef(conhecidas);
   conhecidasRef.current = conhecidas;
   const pedidosSobDemandaRef = useRef(new Map<string, PedidoSobDemanda>());
-  const { translateSegment, retraduzirDegradados, revelarTraducao } = criarTraducaoDaFala({
+  const { translateSegment, retraduzirDegradados, revelarTraducao, tentarTraduzirDeNovo } = criarTraducaoDaFala({
     gateway,
     ordemMtRef,
     sourceLangRef,
@@ -1317,9 +1332,12 @@ export default function LiveCapture({
     conhecidasRef,
     pedidosSobDemandaRef,
     aoFalharOTradutorLocal: () => setTradutorLocalFalhou(true),
+    aoTraduzirNoAparelho: () => pacotesNativosRef.current?.tradutor.localAssumiu(),
     aoTraduzirFinal: (f) => ponteDoInterpreteRef.current?.aoTraduzirFinal(f),
   });
 
+  /** Os ouvintes do cartão dos pacotes do navegador da sessão atual (`salvarSessao` os cria no Iniciar). */
+  const pacotesNativosRef = useRef<PacotesNativos | null>(null);
   // Enunciados que chegaram ENQUANTO o modelo carregava — transcritos no flush (nada se perde).
   const pendingUtterancesRef = useRef<EnunciadoPendente[]>([]);
   // ANTI-ECO: seqs cuja fala começou enquanto o TTS do app tocava (é o nosso áudio voltando).
@@ -1889,6 +1907,7 @@ export default function LiveCapture({
     aoTetoAtingido: avisarTeto,
     soNoToque: () => sessaoDoInterpreteRef.current && !interpreteVirtualRef.current,
     micNoInicio: () => (interpreteVirtualRef.current ? virtualComMicRef.current : undefined),
+    pacotesNativosRef,
     cenarioDaSessao: () => (sessaoDoInterpreteRef.current ? 'interprete' : undefined),
   });
 
@@ -2144,6 +2163,7 @@ export default function LiveCapture({
   });
   const ouvirNaConversa = useFuncaoEstavel(speakWord);
   const revelarNaConversa = useFuncaoEstavel(revelarTraducao);
+  const tentarTraducaoDeNovo = useFuncaoEstavel(tentarTraduzirDeNovo);
   /* AS LEGENDAS FLUTUANTES (ei/leg): tocar uma palavra consulta a glosa e ficha; ouvir usa a voz do
      navegador, com "devagar" a 70% do ritmo escolhido. Identidade fixa, como os da conversa. */
   const consultarNaLegenda = useFuncaoEstavel(glosaDaPalavra);
@@ -2401,6 +2421,20 @@ export default function LiveCapture({
   /* OS AVISOS DO PAR — os que a pessoa precisa ver sem clicar em nada (ficam também no Espaço de
      gravação) e, no diálogo de idiomas, no formato `.aviso-info` do protótipo. */
   const coberturaDoPar = autoDetectLang ? null : mtCoverage(sourceLang, targetLang);
+  /* A ROTA DO PAR NESTE APARELHO (CEL-01): no sentido em que a captura traduz (o mesmo de `modelosDaCaptura`), com o
+     que o aparelho tem — o tradutor nativo, a nuvem autorizada e o Bergamot do build. */
+  const [deDoAviso, paraDoAviso] = captureScenario === 'mic' ? [sourceLang, targetLang] : [targetLang, sourceLang];
+  const nuvemTrancada = protegidoSemResponsavel();
+  const rotaDoPar =
+    autoDetectLang || coberturaDoPar === 'unknown'
+      ? null
+      : coberturaNoAparelho(deDoAviso, paraDoAviso, {
+          nativo: ChromeTranslatorMt.isPresent(),
+          nuvemAutorizada: consentiuNuvem() && !nuvemTrancada,
+          bergamotNoCdn: bergamotCdnNoBuild() && ambienteRodaBergamot(),
+          bergamotPtEn: bergamotOferecido('pt', 'en'),
+          mbDoModelo: (id) => tamanhoDoDownloadMb(id),
+        });
   const avisosDoPar = (
     <>
       {mesmoIdioma && (
@@ -2420,11 +2454,13 @@ export default function LiveCapture({
           <span>{t('Detectar sozinho precisa do Whisper. Troque em Ajustes da captura → Microfone.')}</span>
         </div>
       )}
-      {coberturaDoPar === 'online' && !mesmoIdioma && (
-        <div className="aviso-info warn">
-          <TriangleAlert aria-hidden />
-          <span>{t('Ainda não há tradutor no aparelho para este par: a tradução usa a internet.')}</span>
-        </div>
+      {!mesmoIdioma && (
+        <AvisoDaCoberturaDoPar
+          de={deDoAviso}
+          para={paraDoAviso}
+          cobertura={rotaDoPar}
+          podeAutorizarNuvem={!nuvemTrancada && !consentiuNuvem()}
+        />
       )}
       {coberturaDoPar === 'unknown' && !mesmoIdioma && (
         <div className="aviso-info warn">
@@ -3487,6 +3523,7 @@ export default function LiveCapture({
               temAudioDaFala(fala.id) ? tocarAudioDaFala(fala.id) : ouvirNaLegenda(fala.originalText, lang, false)
             }
             aoPararAudio={pararAudioDasFalas}
+            aoTentarTraducaoDeNovo={tentarTraducaoDeNovo}
           />
         }
       />
@@ -4307,6 +4344,7 @@ export default function LiveCapture({
                   onExamineWord={examinarNoFoco}
                   onSpeakWord={ouvirNaConversa}
                   onRevelarTraducao={revelarNaConversa}
+                  onTentarTraducaoDeNovo={tentarTraducaoDeNovo}
                   conhecidas={conhecidas}
                   progressoDoTradutor={modelPrep?.mt ?? null}
                   aoAbrirMenuDaFala={tocarFala}
@@ -4480,7 +4518,7 @@ export default function LiveCapture({
             semVoz={semVozDeLeitura}
             vozDoSite={nuvemDoQuestAtiva()}
             abrindo={micAbrindo}
-            aviso={avisoDoPreparo(modelPrep)}
+            preparo={modelPrep}
             automatico={automaticoDoInterprete}
             aoSair={sairDoInterprete}
             aoEscolherIdiomas={() => setIdiomasAbertos(true)}

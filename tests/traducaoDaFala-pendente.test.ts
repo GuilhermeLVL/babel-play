@@ -43,6 +43,7 @@ function montar() {
   })
   const avisos: string[] = []
   const aoFalharOTradutorLocal = vi.fn()
+  const aoTraduzirNoAparelho = vi.fn()
   const gateway = {
     mt: {
       translate,
@@ -78,12 +79,14 @@ function montar() {
     setFeedbackMsg: (m) => avisos.push(m),
     memoriaPersistente: null,
     aoFalharOTradutorLocal,
+    aoTraduzirNoAparelho,
   })
   return {
     traducao,
     translate,
     avisos,
     aoFalharOTradutorLocal,
+    aoTraduzirNoAparelho,
     segs: () => segs,
     ficarPronto: () => {
       pronto = true
@@ -92,6 +95,53 @@ function montar() {
     falharCarga: () => avisarFalha!(),
   }
 }
+
+describe('a linha sem tradução diz o motivo (CEL-01)', () => {
+  it('par sem rota no aparelho (hindi): "sem-rota", e o DOM da linha não teria o original repetido', async () => {
+    const m = montar()
+    m.translate.mockRejectedValueOnce(new NoRouteError('mt', new Error('sem adaptador'), false))
+    m.traducao.translateSegment('a', 'o carro azul', 'pt', 'hi', { falada: true })
+    await esperar()
+    await esperar()
+    expect(m.segs()[0]).toMatchObject({ translatedText: '', semTraducao: 'sem-rota' })
+  })
+
+  it('a linha que falhou volta a ser traduzida quando o tradutor fica pronto (e perde o motivo)', async () => {
+    const m = montar()
+    m.translate.mockRejectedValueOnce(new NoRouteError('mt', new Error('rede'), false))
+    m.traducao.translateSegment('a', 'o carro azul', 'pt', 'en', { falada: true })
+    await esperar()
+    await esperar()
+    expect(m.segs()[0].semTraducao).toBe('falhou')
+    m.ficarPronto()
+    for (let i = 0; i < 10; i++) await esperar()
+    expect(m.segs()[0].translatedText).toBe('[mt] o carro azul')
+    expect(m.segs()[0].semTraducao).toBeUndefined()
+  })
+
+  it('"Tentar de novo" de uma linha: traduz só ela de novo', async () => {
+    const m = montar()
+    m.translate.mockRejectedValueOnce(new NoRouteError('mt', new Error('rede'), false))
+    m.traducao.translateSegment('a', 'o carro azul', 'pt', 'en', { falada: true })
+    await esperar()
+    await esperar()
+    m.ficarPronto()
+    m.translate.mockClear()
+    m.traducao.tentarTraduzirDeNovo('a')
+    for (let i = 0; i < 10; i++) await esperar()
+    expect(m.segs()[0].translatedText).toBe('[mt] o carro azul')
+  })
+})
+
+describe('o tradutor local assumiu (COMP-03)', () => {
+  it('a primeira tradução de um final pelo opus-mt avisa a tela (o cartão do nativo some)', async () => {
+    const m = montar()
+    m.ficarPronto()
+    m.traducao.translateSegment('a', 'o carro azul', 'pt', 'en', { falada: true })
+    for (let i = 0; i < 5; i++) await esperar()
+    expect(m.aoTraduzirNoAparelho).toHaveBeenCalled()
+  })
+})
 
 describe('tradução pendente enquanto o tradutor local carrega', () => {
   it('o final fica PENDENTE (sem o original entre parênteses) e a faixa de falha não aparece', async () => {
@@ -121,19 +171,21 @@ describe('tradução pendente enquanto o tradutor local carrega', () => {
     m.traducao.translateSegment('a', 'o carro azul', 'pt', 'en', { falada: true })
     await esperar()
     await esperar()
-    expect(m.segs()[0].translatedText).toBe('(o carro azul)')
+    // A linha não finge que traduziu (CEL-01): sem o original entre parênteses, com o motivo.
+    expect(m.segs()[0]).toMatchObject({ translatedText: '', semTraducao: 'falhou' })
     expect(m.segs()[0].traducaoPendente).toBeFalsy()
     expect(m.avisos).toHaveLength(1)
+    expect(m.avisos[0]).not.toMatch(/parênteses/)
   })
 
-  it('o tradutor local NÃO carregou: os pendentes mostram o original e a tela é avisada UMA vez', async () => {
+  it('o tradutor local NÃO carregou: os pendentes ficam sem tradução (com o motivo) e a tela é avisada UMA vez', async () => {
     const m = montar()
     m.traducao.translateSegment('a', 'o carro azul', 'pt', 'en', { falada: true })
     await esperar()
     await esperar()
     m.falharCarga()
     m.falharCarga()
-    expect(m.segs()[0]).toMatchObject({ translatedText: '(o carro azul)' })
+    expect(m.segs()[0]).toMatchObject({ translatedText: '', semTraducao: 'falhou' })
     expect(m.segs()[0].traducaoPendente).toBeFalsy()
     expect(m.aoFalharOTradutorLocal).toHaveBeenCalledTimes(1)
     // A mensagem clara substitui a faixa genérica.

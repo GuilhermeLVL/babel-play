@@ -10,7 +10,7 @@ import type { Dispatch, RefObject, SetStateAction } from 'react';
 
 import { capMetrics } from '../../gateway/capture/captureMetrics';
 import { getEntitlements } from '../entitlements';
-import { baseLang, langLabel } from '../languages';
+import { baseLang, langLabel, mtCoverage } from '../languages';
 import { OrdemDasTraducoes } from '../ordemDaTraducao';
 import type { PerfilAdaptativoDeIdioma } from '../perfilDeIdioma';
 // Fala do MIC em português → português claro antes de traduzir (vícios, contrações, gíria).
@@ -23,7 +23,13 @@ import {
 } from '../traducao/memoriaDeTraducao';
 import { buscarNaMemoria, memoriaPadrao } from '../traducao/memoriaEmCamadas';
 import { chaveNormalizada, prepararFala } from '../traducao/prepararFala';
-import { clog, type GatewayDaCaptura, type SpeechSegment } from './tiposDaFala';
+import {
+  clog,
+  ehMotivoSemTraducao,
+  type GatewayDaCaptura,
+  type MotivoSemTraducao,
+  type SpeechSegment,
+} from './tiposDaFala';
 import {
   type ConhecidasDaFala,
   type ModoDeTraducao,
@@ -151,6 +157,8 @@ export interface DepsDaTraducaoDaFala {
    * consentimento, nunca ligado sozinho).
    */
   aoFalharOTradutorLocal?: () => void;
+  /** A tradução de um FINAL veio do tradutor local (opus-mt/Bergamot): o cartão do nativo não espera mais (COMP-03). */
+  aoTraduzirNoAparelho?: () => void;
   /**
    * O FINAL DE UMA FALA TEM TRADUÇÃO (ou não terá): o modo intérprete (Fase E) lê a tradução em voz
    * alta (`lib/voz/filaDeFala.ts`). SÓ FINAIS e UMA VEZ SÓ POR FALA — a retradução, o final que cresce
@@ -427,6 +435,7 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
                 translatedText: capitalized,
                 traducaoPendente: undefined,
                 traducaoProvisoria: undefined,
+                ...(ehMotivoSemTraducao(seg.semTraducao) ? { semTraducao: undefined } : {}),
               }
             : seg,
         ),
@@ -461,27 +470,35 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
           : undefined;
 
       // Rede de segurança: a tradução NUNCA pode deixar o balão preso em "…". Se vier vazia, der
-      // erro, OU travar (timeout) — degrada para o texto ORIGINAL entre parênteses (honesto e útil
-      // offline: você ao menos lê o que foi dito). Só degrada se ainda estiver em "…" (não sobrescreve
-      // uma tradução já mostrada). `settled` evita corrida entre resposta tardia e o timeout.
+      // erro, OU travar (timeout) — o balão fica SEM tradução, com o motivo (`semTraducao`). Antes ia
+      // o original entre parênteses no lugar da tradução: no celular, o espanhol em letra grande parecia
+      // a tradução, e ninguém percebia o aviso (CEL-01, 17/11/2026). Só degrada se ainda estiver em "…"
+      // (não sobrescreve uma tradução já mostrada). `settled` evita corrida entre resposta tardia e o timeout.
       // O PARCIAL nunca degrada: o balão dele espera o final, que traduz (e degrada, se for o caso).
       let settled = false;
-      const degrade = () => {
+      const degrade = (motivo: MotivoSemTraducao = 'falhou') => {
         if (parcial) return;
         setSpeechSegments((prev) =>
           prev.map((seg) =>
             seg.id === segId && seg.translatedText === '…'
-              ? { ...seg, translatedText: `(${text})`, traducaoPendente: undefined, traducaoProvisoria: undefined }
+              ? {
+                  ...seg,
+                  translatedText: '',
+                  semTraducao: motivo,
+                  traducaoPendente: undefined,
+                  traducaoProvisoria: undefined,
+                }
               : seg,
           ),
         );
         avisarFinal(finalSemTraducao(segId, text, origem, tgt, opts?.falada === true));
-        // Degradação NUNCA mais é silenciosa (achado da auditoria): avisa UMA vez por sessão
-        // que a tradução caiu e o que o usuário está vendo é o texto original.
+        // Degradação NUNCA é silenciosa (achado da auditoria): avisa UMA vez por sessão. A linha já diz o motivo.
         if (!mtFailNotifiedRef.current) {
           mtFailNotifiedRef.current = true;
           setFeedbackMsg(
-            'Tradução indisponível agora (motores locais e web falharam), mostrando o texto original entre parênteses.',
+            motivo === 'sem-rota'
+              ? 'Sem tradução neste aparelho para este par: as falas seguem só transcritas.'
+              : 'Tradução indisponível agora: as falas seguem transcritas. Toque em "Tentar de novo" na fala.',
           );
           setTimeout(() => setFeedbackMsg(''), 8000);
         }
@@ -535,6 +552,8 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
           capMetrics.mt(Math.round(performance.now() - mtT0), engine || 'mt', parcial ? undefined : segId);
           // O parcial nunca vai à nuvem: vir do motor local é o esperado, não degradação.
           if (!parcial) avisarSeDegradou(engine, opts?.falada === true || nuvemPrimeiro);
+          if (!parcial && translated && (engine === 'opus-mt-local' || engine === 'bergamot-local'))
+            deps.aoTraduzirNoAparelho?.();
           if (!translated) {
             if (atual) degrade();
             return;
@@ -578,7 +597,11 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
             `${origem || '?'}→${tgt}`,
             String((err as Error)?.message ?? err).slice(0, 120),
           );
-          if (ordemMtRef.current.encerrar(segId, selo)) degrade();
+          /* NoRouteError num par que o aparelho não cobre (nem modelo local; o nativo e a nuvem também não
+             atenderam): "sem tradução neste aparelho", não "falhou agora". */
+          const semRota =
+            (err as { name?: string } | null)?.name === 'NoRouteError' && mtCoverage(origem || '', tgt) !== 'local';
+          if (ordemMtRef.current.encerrar(segId, selo)) degrade(semRota ? 'sem-rota' : 'falhou');
         });
     };
 
@@ -619,12 +642,31 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
     );
   };
 
-  /** A fala precisa de tradução de novo: degradou para "(texto original)" ou esperava o tradutor. */
+  /** A fala precisa de tradução de novo: ficou sem tradução (com o motivo; ou "(original)", de antes) ou esperava o tradutor. */
   const semTraducao = (seg: SpeechSegment) =>
     !seg.isPartial &&
     !!seg.originalText &&
     !seg.traducaoSobDemanda &&
-    (seg.translatedText === `(${seg.originalText})` || (seg.traducaoPendente === true && seg.translatedText === '…'));
+    (ehMotivoSemTraducao(seg.semTraducao) ||
+      seg.translatedText === `(${seg.originalText})` ||
+      (seg.traducaoPendente === true && seg.translatedText === '…'));
+
+  /** "Tentar de novo" na linha que ficou sem tradução: só ela, pelo caminho normal (cache, memória, cascata). */
+  const tentarTraduzirDeNovo = (segId: string) => {
+    const seg = speechSegmentsRef.current.find((s) => s.id === segId);
+    if (!seg || !semTraducao(seg) || ordemMtRef.current.ocupado(segId)) return;
+    const doSistema = seg.source === 'system';
+    setSpeechSegments((prev) =>
+      prev.map((s) => (s.id === segId ? { ...s, translatedText: '…', semTraducao: undefined } : s)),
+    );
+    translateSegment(
+      segId,
+      seg.originalText,
+      doSistema ? targetLangRef.current : sourceLangRef.current,
+      doSistema ? sourceLangRef.current : targetLangRef.current,
+      { falada: !doSistema },
+    );
+  };
 
   /**
    * Balões sem tradução (degradados e PENDENTES) — TODOS os da sessão — voltam a "…" pendente e pedem
@@ -658,7 +700,16 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
         }, 0);
       }
       const ids = new Set(alvo.map((seg) => seg.id));
-      return prev.map((seg) => (ids.has(seg.id) ? { ...seg, translatedText: '…', traducaoPendente: true } : seg));
+      return prev.map((seg) =>
+        ids.has(seg.id)
+          ? {
+              ...seg,
+              translatedText: '…',
+              traducaoPendente: true,
+              ...(ehMotivoSemTraducao(seg.semTraducao) ? { semTraducao: undefined } : {}),
+            }
+          : seg,
+      );
     });
   };
 
@@ -680,7 +731,7 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
               ? {
                   ...seg,
                   traducaoPendente: undefined,
-                  translatedText: seg.translatedText === '…' ? `(${seg.originalText})` : seg.translatedText,
+                  ...(seg.translatedText === '…' ? { translatedText: '', semTraducao: 'falhou' as const } : {}),
                 }
               : seg,
           )
@@ -723,5 +774,5 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
   }
   ouvintesDoGateway.set(gateway, { pronto: retraduzirDegradados, falhou: tradutorLocalFalhou });
 
-  return { translateSegment, retraduzirDegradados, revelarTraducao };
+  return { translateSegment, retraduzirDegradados, revelarTraducao, tentarTraduzirDeNovo };
 }

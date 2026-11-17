@@ -119,7 +119,7 @@ function chaveAnonimaDoIp(req: Request): string {
     .slice(0, 24)}`
 }
 
-const tetoDeFalhas = rateLimit({
+export const tetoDeFalhas = rateLimit({
   windowMs: 60_000,
   limit: 20,
   standardHeaders: false,
@@ -133,7 +133,7 @@ const tetoDeFalhas = rateLimit({
 
 export const falhasDoClienteRouter = Router()
 
-falhasDoClienteRouter.post('/', tetoDeFalhas, (req, res) => {
+falhasDoClienteRouter.post('/', (req, res) => {
   const r = falhaSchema.safeParse(req.body)
   if (!r.success) {
     res.status(400).json({ error: 'falha fora do contrato', code: 'payload_invalido' })

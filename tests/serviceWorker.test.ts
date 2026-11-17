@@ -102,7 +102,7 @@ function rodarSw(
   }
   /** Um `fetch` do navegador: devolve a resposta do SW, ou `null` se ele deixou passar. */
   const pedir = async (url: string, modo: 'navigate' | 'no-cors' = 'no-cors', method = 'GET') => {
-    let resposta: Promise<Response> | null = null
+    let resposta = null as Promise<Response> | null
     ouvintes.fetch({ request: { url, method, mode: modo }, respondWith: (r: Promise<Response>) => (resposta = r) })
     return resposta ? await resposta : null
   }

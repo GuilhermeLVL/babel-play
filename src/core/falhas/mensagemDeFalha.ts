@@ -40,6 +40,15 @@ export const MODELOS_DO_CONTADOR = [
 
 export type ModeloDoContador = (typeof MODELOS_DO_CONTADOR)[number];
 
+/** Os tipos de aparelho do contador: os de `perfilDoDispositivo().tipo` (`lib/dispositivo/perfil.ts`). */
+export const APARELHOS_DO_CONTADOR = [
+  'quest',
+  'celular-fraco',
+  'celular-bom',
+  'desktop-sem-gpu',
+  'desktop-com-gpu',
+] as const;
+
 /** `onnx-community/whisper-base` → `whisper-base`; o que não está na lista vira `nenhum`. */
 export function modeloDoContador(id: string | null | undefined): ModeloDoContador {
   const s = String(id ?? '').toLowerCase();

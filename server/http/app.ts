@@ -66,7 +66,7 @@ import { aiRouter } from '../routes/ai'
 import { ankiRouter } from '../routes/anki'
 import { anunciosRouter } from '../routes/anuncios'
 import { asaasWebhookRouter, billingRouter } from '../routes/billing'
-import { errosRouter } from '../routes/erros'
+import { errosRouter, falhasDoClienteRouter } from '../routes/erros'
 import { exercisesRouter } from '../routes/exercises'
 import { criarRotaDeFlags } from '../routes/flags'
 import { healthHandler, readyHandler } from '../routes/health'
@@ -447,6 +447,11 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   /* O FUNIL DAS OFERTAS (Fase 8): o mesmo desenho — anônimo, antes do auth, corpo de 8 KB e o mesmo
      balde por IP de `/api/metricas`. Ver `server/routes/metricasOfertas.ts`. */
   app.use('/api/metricas', capturarAssincrono(metricasOfertasRouter))
+  /* O CONTADOR ANÔNIMO DE FALHAS DO VISITANTE (change `modelos-confiaveis-e-offline`): a sub-rota `/falha` dos
+     erros do cliente, ANTES do auth, pelo mesmo motivo da telemetria (sem conta também conta, e com conta a rota
+     nem sabe quem é). Corpo de 8 KB (`ROTAS_DE_CORPO_MINIMO`), balde próprio por chave derivada do IP, só enum.
+     O relatório de erros (`/api/erros-do-cliente`) continua depois do auth, com conta. */
+  app.use('/api/erros-do-cliente/falha', capturarAssincrono(falhasDoClienteRouter))
 
   /* AS PORTAS DE EMERGÊNCIA (Fase 3): a tela de login e a de planos perguntam aqui, antes de
      haver sessão, se o cadastro e a venda estão abertos. Pública pelo mesmo motivo do health. */

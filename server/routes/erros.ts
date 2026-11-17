@@ -13,12 +13,21 @@
  * O relatório entra no MESMO funil dos erros do servidor (logger → diário em disco), então o mesmo
  * `GET /api/admin/erros` lê os dois lados.
  */
-import { Router } from 'express'
-import rateLimit from 'express-rate-limit'
+import { createHmac } from 'node:crypto'
+
+import { type Request, Router } from 'express'
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit'
 import { z } from 'zod'
 
+import { APARELHOS_DO_CONTADOR, MODELOS_DO_CONTADOR, TIPOS_DE_FALHA } from '../../src/core/falhas/mensagemDeFalha'
+import { contarFalhaDoCliente } from '../http/metricas'
 import { log } from '../lib/logger'
-import { chaveDoRequest, createDbRateLimitStore, METRIC_RATELIMIT_ERROS } from '../lib/rateLimitStore'
+import {
+  chaveDoRequest,
+  createDbRateLimitStore,
+  METRIC_RATELIMIT_ERROS,
+  METRIC_RATELIMIT_FALHAS,
+} from '../lib/rateLimitStore'
 import { parseOr400 } from '../validation'
 
 export const errosRouter = Router()
@@ -79,6 +88,60 @@ const tetoDeRelatorios = rateLimit({
 /* O teto passou a valer ANTES da validação de forma — como middleware, ele roda antes do handler,
    e antes o `Map` era consultado depois do `parseOr400`. A mudança é na direção certa: um cliente
    despejando payload inválido é a mesma avalanche, e agora ele também encontra teto. */
+
+/**
+ * O CONTADOR ANÔNIMO DE FALHAS DO VISITANTE (`POST /api/erros-do-cliente/falha`, change
+ * `modelos-confiaveis-e-offline`, DISP-06; opção "a" aprovada pelo dono).
+ *
+ * O relatório acima exige conta (fica depois do `authMiddleware`), e o visitante sem conta é justamente quem o
+ * time não via: download que cai, modelo corrompido, sem internet. Esta sub-rota é montada ANTES do auth
+ * (`server/http/app.ts`) e não conhece identidade nenhuma — nem com token existe `req.userId` aqui.
+ *
+ * O CORPO é só `{ tipo, aparelho, modelo }`, de listas FECHADAS (`src/core/falhas/mensagemDeFalha.ts`), com
+ * `.strict()`: qualquer outro campo (um texto, um id, a tela) é 400 e não conta. Nada vai ao diário nem ao banco:
+ * só `cliente_falha_total{tipo,aparelho,modelo}` sobe. O limite de taxa conta por uma chave DERIVADA do IP (HMAC
+ * com o segredo do servidor): o IP em si nunca é gravado. Estourado, 202 sem contar (o cliente não reage).
+ */
+const falhaSchema = z
+  .object({
+    tipo: z.enum(TIPOS_DE_FALHA),
+    aparelho: z.enum(APARELHOS_DO_CONTADOR),
+    modelo: z.enum(MODELOS_DO_CONTADOR),
+  })
+  .strict()
+
+/** A chave do balde: um HMAC do IP (normalizado por `ipKeyGenerator`), nunca o IP. */
+function chaveAnonimaDoIp(req: Request): string {
+  const ip = ipKeyGenerator(req.ip ?? '')
+  return `f:${createHmac('sha256', process.env.SECRET_KEY || 'frasy-falhas')
+    .update(ip)
+    .digest('hex')
+    .slice(0, 24)}`
+}
+
+const tetoDeFalhas = rateLimit({
+  windowMs: 60_000,
+  limit: 20,
+  standardHeaders: false,
+  legacyHeaders: false,
+  keyGenerator: chaveAnonimaDoIp,
+  store: createDbRateLimitStore(METRIC_RATELIMIT_FALHAS),
+  handler: (_req, res) => {
+    res.status(202).end()
+  },
+})
+
+export const falhasDoClienteRouter = Router()
+
+falhasDoClienteRouter.post('/', tetoDeFalhas, (req, res) => {
+  const r = falhaSchema.safeParse(req.body)
+  if (!r.success) {
+    res.status(400).json({ error: 'falha fora do contrato', code: 'payload_invalido' })
+    return
+  }
+  contarFalhaDoCliente(r.data.tipo, r.data.aparelho, r.data.modelo)
+  res.status(204).end()
+})
 
 errosRouter.post('/', tetoDeRelatorios, (req, res) => {
   const r = parseOr400(relatorioSchema, req.body, res)

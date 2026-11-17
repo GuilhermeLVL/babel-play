@@ -193,7 +193,7 @@ describe('layout do site', () => {
     expect(html).toContain('Não acredito que você escondeu isso de mim. Era para a gente ser uma equipe!')
     expect(html).toContain('Cenas de exemplo criadas com IA. A legenda mostra o visual real do Frasy.')
     // a tradução de exemplo usa a palavra do contexto (aeroporto: portão)
-    expect(html).toContain('portão 12')
+    expect(html).toContain('<span class="chave">portão</span> 12')
     // números que o site afirma: os jogos da grade e nenhum total de livros que a produção não tem
     expect(html).toContain('18 jogos curtos')
     expect(html).not.toMatch(/\d+ clássicos/)

@@ -26,8 +26,18 @@ type Capitulo = {
   kicker: string;
   titulo: string;
   corpo: string;
+  /** A fala de exemplo; `[[palavra]]` marca a palavra que a cena explica (e que vai para "Suas palavras"). */
   original?: string;
   traducao?: string;
+  /** Como o Frasy ouve esta cena: Microfone, Som do computador ou Conversa. */
+  modo?: string;
+  /** Nota curta sobre a palavra marcada, quando a tradução precisa do contexto. */
+  nota?: string;
+  /**
+   * Onde está quem fala, no quadro do filme: `segundo:x%:y%` separados por vírgula (a câmera anda, então
+   * são pontos no tempo e a marca é interpolada entre eles). Fora desse intervalo, a marca some.
+   */
+  fonte?: string;
   extra?: string;
 };
 
@@ -43,8 +53,9 @@ const CAPITULOS: Capitulo[] = [
     titulo: 'Ouviu outra língua? Entenda e guarde a palavra.',
     corpo:
       'Desenho, série, jogo, aula ou conversa: legenda e tradução ao vivo. No perfil das crianças, sem compras e sem ofertas.',
-    original: "Come on! Let's build a rocket to the Moon!",
-    traducao: 'Vem! Vamos construir um foguete até a Lua!',
+    original: "Come on! Let's build a [[rocket]] to the Moon!",
+    traducao: 'Vem! Vamos construir um [[foguete]] até a Lua!',
+    modo: 'Microfone',
     extra: '<div class="acoes"><a class="botao" href="/app">Abrir o Frasy · grátis</a></div>',
   },
   {
@@ -55,8 +66,10 @@ const CAPITULOS: Capitulo[] = [
     titulo: 'Professor rápido? A legenda acompanha.',
     corpo:
       'Aula, palestra ou reunião online: original e tradução aparecem frase por frase. Você presta atenção, sem caçar palavra no dicionário.',
-    original: 'For tomorrow, please read chapter 4 and write a short summary.',
-    traducao: 'Para amanhã, leiam o capítulo 4 e escrevam um resumo curto.',
+    original: 'For tomorrow, please read chapter 4 and write a short [[summary]].',
+    traducao: 'Para amanhã, leiam o capítulo 4 e escrevam um [[resumo]] curto.',
+    modo: 'Microfone',
+    fonte: '7.6:93:28,8.2:92:28,9.2:97:26',
   },
   {
     de: 10.5,
@@ -65,8 +78,10 @@ const CAPITULOS: Capitulo[] = [
     kicker: 'Compras lá fora',
     titulo: 'Chega de sorrir e acenar sem entender.',
     corpo: 'No celular, o Frasy ouve pelo microfone e traduz o que o atendente diz. Você lê, entende e responde.',
-    original: 'Do you need a bag, or are you all set?',
-    traducao: 'Precisa de sacola ou já está tudo certo?',
+    original: 'Do you need a [[bag]], or are you all set?',
+    traducao: 'Precisa de [[sacola]] ou já está tudo certo?',
+    modo: 'Microfone',
+    fonte: '12:55:52,13:55:50,14.5:69:24',
   },
   {
     de: 15,
@@ -75,8 +90,10 @@ const CAPITULOS: Capitulo[] = [
     kicker: 'Aeroporto e viagem',
     titulo: 'Mudaram o portão? Você fica sabendo.',
     corpo: 'O atendente avisa, a legenda traduz: portão, horário, embarque. Tudo em português, sem pedir para repetir.',
-    original: 'Your flight was moved to Gate 12. Boarding starts in 20 minutes.',
-    traducao: 'Seu voo mudou para o portão 12. O embarque começa em 20 minutos.',
+    original: 'Your flight was moved to [[Gate]] 12. Boarding starts in 20 minutes.',
+    traducao: 'Seu voo mudou para o [[portão]] 12. O embarque começa em 20 minutos.',
+    modo: 'Microfone',
+    nota: 'No aeroporto, gate é portão, não porta: o Frasy lê a frase inteira.',
   },
   {
     de: 20,
@@ -85,8 +102,10 @@ const CAPITULOS: Capitulo[] = [
     kicker: 'Conversa à mesa',
     titulo: 'Um celular no meio da mesa resolve.',
     corpo: 'Na conversa, cada pessoa fala no seu idioma. O Frasy traduz e lê em voz alta para o outro lado.',
-    original: "You have to try this. It's my grandma's recipe!",
-    traducao: 'Você tem que provar isso. É receita da minha avó!',
+    original: "You have to try this. It's my grandma's [[recipe]]!",
+    traducao: 'Você tem que provar isso. É [[receita]] da minha avó!',
+    modo: 'Conversa',
+    fonte: '21:42:52,22:37:51,23.5:16:50',
   },
   {
     de: 24,
@@ -96,8 +115,10 @@ const CAPITULOS: Capitulo[] = [
     titulo: 'Série ou jogo, sem pausar nada.',
     corpo:
       'O Frasy legenda o som do computador enquanto a história segue. Gostou de uma palavra? Um toque e ela fica guardada.',
-    original: "Don't open that door. Not tonight.",
-    traducao: 'Não abra essa porta. Hoje não.',
+    original: "Don't open that [[door]]. Not tonight.",
+    traducao: 'Não abra essa [[porta]]. Hoje não.',
+    modo: 'Som do computador',
+    fonte: '25.2:79:56,25.5:77:56,26.5:61:56,27.5:45:47,28:42:46',
   },
   {
     de: 28,
@@ -111,15 +132,21 @@ const CAPITULOS: Capitulo[] = [
   },
 ];
 
+// A palavra que a cena explica: sublinhada no original e com marca-texto na tradução (`[[...]]` no texto).
+const marcar = (t: string): string => t.replace(/\[\[(.+?)\]\]/g, '<span class="chave">$1</span>');
+const semMarca = (t: string): string => t.replace(/\[\[(.+?)\]\]/g, '$1');
+
 const legenda = (c: Capitulo): string =>
   c.original && c.traducao
-    ? `<div class="leg" data-leg><span class="selo"><i></i>AO VIVO · EN → PT</span><p class="o" lang="en">${c.original}</p><p class="t">${c.traducao}</p></div>`
+    ? `<div class="leg" data-leg><span class="selo"><i></i>AO VIVO · EN → PT</span>${c.modo ? `<span class="modo">${c.modo}</span>` : ''}` +
+      `<p class="o" lang="en"${c.original.includes('[[') ? ` data-chave="${/\[\[(.+?)\]\]/.exec(c.original)![1]}"` : ''}>${semMarca(c.original)}</p>` +
+      `<p class="t">${marcar(c.traducao)}</p>${c.nota ? `<p class="nota-chave">${c.nota}</p>` : ''}</div>`
     : '';
 
 const capitulo = (c: Capitulo, i: number): string => {
   const titulo = i === 0 ? `<h1>${c.titulo}</h1>` : `<h2>${c.titulo}</h2>`;
   return (
-    `<article class="capitulo" data-capitulo data-rotulo="${c.rotulo}" data-de="${c.de}" data-ate="${c.ate}">` +
+    `<article class="capitulo" data-capitulo data-rotulo="${c.rotulo}" data-de="${c.de}" data-ate="${c.ate}"${c.fonte ? ` data-fonte="${c.fonte}"` : ''}>` +
     `<div class="capitulo-fixo"><div class="texto"><p class="kicker">${c.kicker}</p>${titulo}<p class="corpo">${c.corpo}</p>${legenda(c)}${c.extra ?? ''}</div></div></article>`
   );
 };
@@ -189,6 +216,8 @@ export function corpoDaHome(guias: Guia[]): string {
 ${CAPITULOS.map((_, i) => `<figure class="camada" data-camada aria-hidden="true"><img src="${M}/filme-${i + 1}.jpg" alt=""${i === 0 ? ' fetchpriority="high"' : ' loading="lazy"'}></figure>`).join('\n')}
 <figure class="camada filme" data-filme-camada aria-hidden="true"></figure>
 <div class="rolo-veu" aria-hidden="true"></div><div class="rolo-barra" aria-hidden="true"></div>
+<div class="marcas" aria-hidden="true"><svg class="fio-do-som"><path d=""/></svg><span class="pulso-do-som"></span></div>
+<p class="contador-de-palavras" aria-live="polite">Suas palavras <b data-contador>0</b></p>
 <nav class="rota" aria-label="Capítulos" id="rota"></nav>
 <p class="nota-ia">Cenas de exemplo criadas com IA. A legenda mostra o visual real do Frasy.</p>
 </div>
@@ -307,6 +336,27 @@ export const CSS_DA_HOME = `
 .leg .o span{transition:opacity .12s}
 .leg .t{margin:6px 0 0;font:800 24px/1.2 var(--titulo);color:#FFEA00;transition:opacity .2s,transform .2s}
 .leg .t.oculta{opacity:0;transform:translateY(6px)}
+.leg .modo{display:inline-flex;align-items:center;margin:0 0 10px 6px;padding:6px 9px;border-radius:999px;background:rgba(255,255,255,.92);color:#26241F;font:700 11px/1 var(--texto);letter-spacing:.04em}
+.leg .o .chave{position:relative;display:inline-block}
+.leg .o .chave::after{content:"";position:absolute;left:0;right:6px;bottom:-2px;height:3px;border-radius:2px;background:#FFD166;transform-origin:left;transform:scaleX(0);transition:transform .45s cubic-bezier(.2,.7,.2,1)}
+.leg .o .chave.acesa::after{transform:scaleX(1)}
+.leg .t .chave{border-radius:4px;padding:0 3px;margin:0 -3px;transition:background .35s .15s,color .35s .15s}
+.leg .t:not(.oculta) .chave{background:#FFD166;color:#26241F}
+.leg .nota-chave{margin:8px 0 0;font:500 13px/1.35 var(--texto);color:#F3ECE0;opacity:.85;transition:opacity .3s .3s}
+.leg .t.oculta+.nota-chave{opacity:0}
+.marcas{position:absolute;inset:0;z-index:3;pointer-events:none}
+.fio-do-som{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.fio-do-som path{fill:none;stroke:#FF9A75;stroke-width:2;stroke-dasharray:6 6;animation:fio-anda 1.2s linear infinite;opacity:0;transition:opacity .3s}
+.marcas.ligadas .fio-do-som path{opacity:.9}
+@keyframes fio-anda{to{stroke-dashoffset:-24}}
+.pulso-do-som{position:absolute;left:0;top:0;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#EF4E22;box-shadow:0 0 0 0 rgba(239,78,34,.7);opacity:0;transition:opacity .3s;animation:pulso-som 1.6s infinite}
+.marcas.ligadas .pulso-do-som{opacity:1}
+@keyframes pulso-som{to{box-shadow:0 0 0 26px rgba(239,78,34,0)}}
+.contador-de-palavras{position:absolute;z-index:4;top:max(20px,env(safe-area-inset-top,0px));right:max(20px,env(safe-area-inset-right,0px));margin:0;display:flex;align-items:center;gap:8px;padding:8px 10px 8px 14px;border-radius:999px;background:rgba(255,255,255,.94);color:#26241F;font:700 13px/1 var(--texto);box-shadow:0 10px 24px rgba(0,0,0,.3)}
+.contador-de-palavras b{display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 6px;border-radius:999px;background:#EF4E22;color:#fff;font-size:13px;font-variant-numeric:tabular-nums;transition:transform .25s}
+.contador-de-palavras b.bateu{transform:scale(1.35)}
+.palavra-voando{position:fixed;z-index:50;left:0;top:0;margin:0;padding:3px 7px;border-radius:6px;background:#FFD166;color:#26241F;font:800 18px/1.1 var(--titulo);pointer-events:none;transition:transform .7s cubic-bezier(.5,0,.2,1),opacity .7s}
+@media (prefers-reduced-motion:reduce){.fio-do-som path,.pulso-do-som{animation:none}.leg .o .chave::after{transition:none}}
 .secao-v{padding:110px 0 0}
 .secao-v h2{font-size:clamp(36px,5vw,64px);margin:14px 0 18px;max-width:15em}
 .peca-v{background:var(--superficie);border-radius:24px;overflow:hidden;box-shadow:0 0 0 1px var(--borda-fraca),var(--sombra-alta);display:flex;flex-direction:column}
@@ -384,6 +434,8 @@ export const CSS_DA_HOME = `
 .final-v p{color:#C9BFAE;font-size:20px;margin:0 0 30px}
 @media (max-width:900px){
 .rota{display:none}
+.fio-do-som{display:none}
+.contador-de-palavras{font-size:12px;padding:6px 8px 6px 12px}
 .rolo-veu{background:linear-gradient(0deg,rgba(14,11,9,.9) 0%,rgba(14,11,9,.25) 55%,rgba(14,11,9,.1) 100%)}
 .capitulo-fixo{align-items:flex-end;padding-bottom:max(36px,env(safe-area-inset-bottom,0px))}
 .capitulo h1,.capitulo h2{font-size:clamp(34px,10vw,52px)}

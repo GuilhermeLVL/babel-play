@@ -65,14 +65,102 @@
     const leg = el.querySelector('[data-leg]');
     if (leg) {
       const o = leg.querySelector('.o');
+      const chave = o.dataset.chave;
       o.replaceChildren(
-        ...o.textContent.split(' ').map((p) => Object.assign(document.createElement('span'), { textContent: p + ' ' })),
+        ...o.textContent.split(' ').map((p) => {
+          const w = Object.assign(document.createElement('span'), { textContent: p + ' ' });
+          // A palavra que a cena explica ganha o sublinhado e é a que voa para "Suas palavras".
+          if (chave && p.replace(/[^\p{L}\p{N}'-]/gu, '') === chave) {
+            w.textContent = p.replace(chave, '');
+            const c = Object.assign(document.createElement('span'), { className: 'chave', textContent: chave });
+            w.prepend(c);
+            w.append(' ');
+            s.chave = c;
+          }
+          return w;
+        }),
       );
       s.palavras = [...o.children];
       s.trad = leg.querySelector('.t');
+      s.leg = leg;
     }
+    // Onde está quem fala, no quadro do filme, em pontos no tempo: [[segundo, x%, y%], ...].
+    s.fonte = (el.dataset.fonte || '')
+      .split(',')
+      .filter(Boolean)
+      .map((p) => p.split(':').map(Number));
     return s;
   });
+
+  // Marcas por cima do filme: o pulso na fonte do som, o fio até a legenda e o contador de palavras.
+  const palco = rolo.querySelector('.rolo-palco');
+  const marcas = rolo.querySelector('.marcas');
+  const fio = marcas.querySelector('path');
+  const pulso = marcas.querySelector('.pulso-do-som');
+  const contador = rolo.querySelector('[data-contador]');
+  let contadas = 0;
+  const LIMIAR_DE_GUARDAR = 0.62;
+
+  // Um ponto do quadro (em % do vídeo 16:9) na tela, com o recorte do `object-fit: cover`.
+  function naTela(x, y) {
+    const r = palco.getBoundingClientRect();
+    const k = Math.max(r.width / 16, r.height / 9);
+    const w = 16 * k;
+    const h = 9 * k;
+    return [(r.width - w) / 2 + (x / 100) * w, (r.height - h) / 2 + (y / 100) * h, r];
+  }
+
+  function fonteNoTempo(f, t) {
+    if (!f.length || t < f[0][0] || t > f[f.length - 1][0]) return null;
+    for (let i = 1; i < f.length; i++) {
+      if (t <= f[i][0]) {
+        const [t0, x0, y0] = f[i - 1];
+        const [t1, x1, y1] = f[i];
+        const a = (t - t0) / Math.max(t1 - t0, 0.001);
+        return [x0 + (x1 - x0) * a, y0 + (y1 - y0) * a];
+      }
+    }
+    return f[f.length - 1].slice(1);
+  }
+
+  function desenharMarcas() {
+    const s = seg[ativo];
+    const pintado = filme.camada.dataset.pintado !== undefined;
+    const ponto = s && pintado && !menos ? fonteNoTempo(s.fonte, filme.atual) : null;
+    marcas.classList.toggle('ligadas', !!ponto);
+    if (!ponto) return;
+    const [px, py, r] = naTela(ponto[0], ponto[1]);
+    pulso.style.transform = `translate(${px}px, ${py}px)`;
+    if (!s.leg) return;
+    const l = s.leg.getBoundingClientRect();
+    const lx = l.right - r.left;
+    const ly = l.top - r.top + 18;
+    const meioX = (lx + px) / 2;
+    fio.setAttribute('d', `M${lx} ${ly} C ${meioX} ${ly}, ${meioX} ${py}, ${px} ${py}`);
+  }
+
+  // A palavra da cena "voa" da legenda até o contador, que sobe. Voltando a rolagem, o número só desce.
+  function voar(de) {
+    const a = de.getBoundingClientRect();
+    const b = contador.getBoundingClientRect();
+    const v = Object.assign(document.createElement('span'), {
+      className: 'palavra-voando',
+      textContent: de.textContent,
+    });
+    v.style.transform = `translate(${a.left}px, ${a.top}px)`;
+    document.body.append(v);
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        v.style.transform = `translate(${b.left}px, ${b.top}px) scale(.6)`;
+        v.style.opacity = '0.2';
+      }),
+    );
+    setTimeout(() => {
+      v.remove();
+      contador.classList.add('bateu');
+      setTimeout(() => contador.classList.remove('bateu'), 260);
+    }, 700);
+  }
   const fonteDe = (f) => (celular() && f.clipeCelular ? f.clipeCelular : f.clipe);
 
   let topoDoRolo = 0;
@@ -209,8 +297,19 @@
           p.style.opacity = j < n ? '1' : '0';
         });
         s.trad.classList.toggle('oculta', k < 0.5);
+        if (s.chave) s.chave.classList.toggle('acesa', k >= 0.5);
+        s.guardada = !!s.chave && k >= LIMIAR_DE_GUARDAR;
       }
     });
+    const agora = seg.filter((s) => s.guardada).length;
+    if (agora !== contadas) {
+      if (agora > contadas && !menos) {
+        const nova = seg.filter((s) => s.guardada).pop();
+        if (nova?.chave) voar(nova.chave);
+      }
+      contadas = agora;
+      contador.textContent = String(contadas);
+    }
     if (atual !== ativo) {
       ativo = atual;
       botoes.forEach((b, j) =>
@@ -251,6 +350,7 @@
       lerRolagem();
     }
     videos();
+    desenharMarcas();
     requestAnimationFrame(tique);
   }
 

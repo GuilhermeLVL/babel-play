@@ -1,9 +1,9 @@
 ## 1. Cobertura e rota pelo inglês
 
-- [ ] 1.1 Criar `src/core/traducao/coberturaNoAparelho.ts` (pura: par + `{ nativo, nuvemAutorizada, bergamotNoCdn }` → rota e MB). Verificar: `tests/coberturaNoAparelho.test.ts` com a matriz de 20 pares entre {pt, es, fr, it, de} (nenhum `sem-rota`) e o hindi→pt (`sem-rota`).
-- [ ] 1.2 Em `viaIngles.ts`, `opusMtLocal.ts` (`modelFor`/`viaIngles`/`pernasViaIngles`) e `bergamotModelo.ts` (`parDoPivo`), aceitar es/fr/it/de/pt como origem do pivô quando não há modelo direto para o alvo; perna X→en pelo Bergamot com CDN, senão opus-mt. Verificar: testes de `opusMtLocal`/`bergamotModelo` atualizados (`npx vitest run tests/` dos dois) e o teste que prende as listas.
-- [ ] 1.3 `src/gateway/modelCache.ts` e `src/lib/languages.ts` leem a mesma tabela; o aviso de download soma as pernas. Verificar: teste do tamanho anunciado para es→pt com e sem o CDN.
-- [ ] 1.4 Garantir que a cascata só usa o pivô depois do nativo e da nuvem autorizada. Verificar: teste da cascata com o nativo pronto (0 downloads de modelo local).
+- [x] 1.1 Criar `src/core/traducao/coberturaNoAparelho.ts` (pura: par + `{ nativo, nuvemAutorizada, bergamotNoCdn }` → rota e MB). Verificar: `tests/coberturaNoAparelho.test.ts` com a matriz de 20 pares entre {pt, es, fr, it, de} (nenhum `sem-rota`) e o hindi→pt (`sem-rota`).
+- [x] 1.2 Em `viaIngles.ts`, `opusMtLocal.ts` (`modelFor`/`viaIngles`/`pernasViaIngles`) e `bergamotModelo.ts` (`parDoPivo`), aceitar es/fr/it/de/pt como origem do pivô quando não há modelo direto para o alvo; perna X→en pelo Bergamot com CDN, senão opus-mt. Verificar: testes de `opusMtLocal`/`bergamotModelo` atualizados (`npx vitest run tests/` dos dois) e o teste que prende as listas.
+- [x] 1.3 `src/gateway/modelCache.ts` e `src/lib/languages.ts` leem a mesma tabela; o aviso de download soma as pernas. Verificar: teste do tamanho anunciado para es→pt com e sem o CDN.
+- [x] 1.4 Garantir que a cascata só usa o pivô depois do nativo e da nuvem autorizada. Verificar: teste da cascata com o nativo pronto (0 downloads de modelo local).
 
 ## 2. Honestidade
 

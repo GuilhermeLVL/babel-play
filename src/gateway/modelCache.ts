@@ -8,8 +8,8 @@
  * impressão de "re-download a cada captura" (a barra reaparecia mesmo em cache-hit).
  */
 
-import { modeloParaOIngles } from '../core/traducao/viaIngles';
-import { bergamotOferecido, idDoBergamot, parDoBergamot, parDoPivo } from './adapters/bergamotModelo';
+import { modelosDoParNoAparelho } from '../core/traducao/coberturaNoAparelho';
+import { bergamotOferecido } from './adapters/bergamotModelo';
 import { modeloDisponivel } from './modelManifest';
 
 /**
@@ -39,22 +39,13 @@ function activeWhisperModelId(): string {
 
 /** Ids dos modelos que a preparação da captura vai tocar, dado o par de idiomas.
  *  `whisperModel` explícito (vindo do sttRouter) vence o override/default.
- *  pt→en com o Bergamot oferecido (`adapters/bergamotModelo.ts`) espera o Bergamot: é ele que o
- *  tradutor local carrega (`adapters/bergamotLocal.ts`), e o opus-mt só entra se ele falhar. */
+ *  A lista do tradutor é a de `modelosDoParNoAparelho` (`core/traducao/coberturaNoAparelho.ts`), a mesma que o tradutor
+ *  local carrega: o Bergamot oferecido (`adapters/bergamotModelo.ts`) toma a perna `X→en` (pt→en embutido, os outros do
+ *  CDN), e o par sem modelo direto passa pelo inglês (es→pt: es→en e en→pt — o aviso de download soma as duas). */
 export function expectedModelIds(src: string, tgt: string, whisperModel?: string): string[] {
-  const ids = [whisperModel || activeWhisperModelId()];
-  const s = (src || '').toLowerCase().split('-')[0];
-  const t = (tgt || '').toLowerCase().split('-')[0];
-  const ROMANCE = new Set(['pt', 'es', 'fr', 'it', 'ro', 'ca', 'gl']);
-  if (s === 'en' && ROMANCE.has(t)) ids.push('Xenova/opus-mt-en-ROMANCE');
-  else if (modeloParaOIngles(s) && t !== s) {
-    /* Passa pelo inglês (pivô do `OpusMtLocal`, `core/traducao/viaIngles.ts`): X→en e, se o alvo não é o inglês, en→alvo (o mesmo modelo que o adaptador escolhe).
-       A perna X→en é do Bergamot quando o CDN a oferece (`adapters/bergamotLocal.ts`); senão, do opus-mt. */
-    const perna = t === 'en' ? parDoBergamot(s, 'en') : parDoPivo(s, t);
-    ids.push(perna && bergamotOferecido(s, 'en') ? idDoBergamot(perna) : modeloParaOIngles(s)!);
-    if (t === 'pt') ids.push('Xenova/opus-mt-en-ROMANCE');
-    else if (['es', 'fr', 'it', 'de'].includes(t)) ids.push(`Xenova/opus-mt-en-${t}`);
-  } else if (bergamotOferecido(s, t)) ids.push(idDoBergamot(parDoBergamot(s, t)!));
-  else if (ROMANCE.has(s) && t === 'en') ids.push('Xenova/opus-mt-ROMANCE-en');
-  return ids;
+  const bergamot = (par: string): boolean => {
+    const [de, para] = par.split('-');
+    return bergamotOferecido(de, para);
+  };
+  return [whisperModel || activeWhisperModelId(), ...modelosDoParNoAparelho(src, tgt, { bergamot })];
 }

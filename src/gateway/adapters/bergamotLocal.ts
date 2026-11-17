@@ -18,6 +18,22 @@ import type { OpusMtLocal } from './opusMtLocal';
 type AoProgresso = (p: number, label?: string, bytes?: { loaded: number; total: number }) => void;
 
 /**
+ * O progresso de um par que passa pelo inglês, com duas pernas carregando ao mesmo tempo: a barra mostra a média, e o
+ * "pronto" (1) só sai quando AS DUAS chegam a 1. Uma perna pronta não solta quem espera o par (`gateway.mt.preload`).
+ */
+function progressoDeDuasPernas(fn: AoProgresso): [AoProgresso, AoProgresso] {
+  const feito = [0, 0];
+  const perna =
+    (i: 0 | 1): AoProgresso =>
+    (p, label, bytes) => {
+      feito[i] = p;
+      if (feito[0] >= 1 && feito[1] >= 1) fn(1, label, bytes);
+      else fn(Math.min((feito[0] + feito[1]) / 2, 0.99), label, bytes);
+    };
+  return [perna(0), perna(1)];
+}
+
+/**
  * Tradução LOCAL pt→en com o BERGAMOT (o motor do Firefox Translations, WASM num Web Worker) —
  * o mesmo contrato do `OpusMtLocal`: carga em segundo plano com barra, `MotorAindaCarregando`
  * enquanto não fica pronto (um PULO, não uma falha do disjuntor), parcial que nunca dispara
@@ -305,10 +321,11 @@ export class TradutorLocalComBergamot implements TranslationProvider {
     // X→alvo pelo inglês: a primeira perna é do Bergamot, a segunda (en→alvo) do opus-mt, que já existia.
     const pivo = parDoPivo(src, tgt);
     if (pivo && this.bergamot.supports(src, 'en') && this.opus.supports('en', tgt)) {
-      this.progressoDoPar.set(pivo, onProgress);
+      const [primeira, segunda] = onProgress ? progressoDeDuasPernas(onProgress) : [undefined, undefined];
+      this.progressoDoPar.set(pivo, primeira);
       this.alvoDoPar.set(pivo, tgt);
-      this.bergamot.preload(src, 'en', onProgress);
-      if (onProgress) this.opus.preload('en', tgt, onProgress);
+      this.bergamot.preload(src, 'en', primeira);
+      if (segunda) this.opus.preload('en', tgt, segunda);
       else this.opus.preload('en', tgt);
       return;
     }

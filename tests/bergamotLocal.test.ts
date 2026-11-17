@@ -199,11 +199,71 @@ describe('X→en e X→alvo com os modelos do CDN', () => {
     expect(local.bergamot.supports('pt', 'en')).toBe(true)
   })
 
-  it('es→pt e en→ja não usam o Bergamot (o opus-mt direto escreve melhor)', async () => {
+  it('o Bergamot sozinho só faz X→en: es→pt e en→ja não são dele', async () => {
     const { bergamot } = await montar()
     expect(bergamot.supports('es', 'pt')).toBe(false)
     expect(bergamot.supports('en', 'ja')).toBe(false)
     expect(bergamot.supports('es', 'en')).toBe(true)
+  })
+
+  /* CEL-01: o visitante no celular (sem nativo, sem nuvem) não tinha rota para es→pt. A perna es→en é do Bergamot
+     (CDN, ~32 MB) e a en→pt do opus-mt. */
+  it('es→pt: a primeira perna é o Bergamot es-en, a segunda o opus-mt en→pt', async () => {
+    const { local } = await montar()
+    expect(local.supports('es', 'pt')).toBe(true)
+    local.preload('es', 'pt')
+    expect(WorkerFalso.de('bergamot')[0].recebidas[0]).toMatchObject({ type: 'carregar', plano: { par: 'es-en' } })
+    expect(WorkerFalso.de('opus')[0].recebidas[0]).toMatchObject({ type: 'preload', src: 'en', tgt: 'pt' })
+    WorkerFalso.de('bergamot')[0].responder({ type: 'ready', model: 'bergamot/es-en' })
+    WorkerFalso.de('opus')[0].responder({ type: 'ready', model: 'Xenova/opus-mt-en-ROMANCE' })
+    const r = await local.translate('Perdón, ¿dónde está la salida?', 'es', 'pt')
+    expect(r.text).toBe('[opus] [bergamot] Perdón, ¿dónde está la salida?')
+  })
+
+  it('es→pt: "pronto" (1) só quando as DUAS pernas ficam prontas (a barra não mente nem solta a espera cedo)', async () => {
+    const { local } = await montar()
+    const progresso: number[] = []
+    local.preload('es', 'pt', (p) => progresso.push(p))
+    WorkerFalso.de('bergamot')[0].responder({ type: 'ready', model: 'bergamot/es-en' })
+    expect(progresso.filter((p) => p >= 1)).toHaveLength(0)
+    WorkerFalso.de('opus')[0].responder({ type: 'ready', model: 'Xenova/opus-mt-en-ROMANCE' })
+    expect(progresso.at(-1)).toBe(1)
+  })
+
+  it('pt→es: a perna pt→en é o Bergamot embutido, a en→es o opus-mt dedicado', async () => {
+    const { local } = await montar()
+    local.preload('pt', 'es')
+    expect(WorkerFalso.de('bergamot')[0].recebidas[0]).toMatchObject({ plano: { par: 'pt-en' } })
+    expect(WorkerFalso.de('opus')[0].recebidas[0]).toMatchObject({ type: 'preload', src: 'en', tgt: 'es' })
+  })
+})
+
+describe('es→pt sem o CDN do Bergamot (CEL-01)', () => {
+  beforeEach(() => {
+    vi.stubGlobal('__BERGAMOT_CDN__', false)
+  })
+
+  it('as duas pernas no opus-mt: es-en dedicado e en→pt', async () => {
+    const { local } = await montar()
+    expect(local.supports('es', 'pt')).toBe(true)
+    await expect(local.translate('Hola', 'es', 'pt')).rejects.toMatchObject({ name: 'MotorAindaCarregando' })
+    expect(WorkerFalso.de('bergamot')).toHaveLength(0)
+    const pedidos = WorkerFalso.de('opus').flatMap((w) => w.recebidas.map((m) => `${m.src}>${m.tgt}`))
+    expect(pedidos).toEqual(['es>en', 'en>pt'])
+    WorkerFalso.de('opus')[0].responder({ type: 'ready', model: 'Xenova/opus-mt-es-en' })
+    WorkerFalso.de('opus')[0].responder({ type: 'ready', model: 'Xenova/opus-mt-en-ROMANCE' })
+    const r = await local.translate('Hola', 'es', 'pt')
+    expect(r.text).toBe('[opus] [opus] Hola')
+  })
+
+  it('o opus-mt sozinho: "pronto" só com as duas pernas', async () => {
+    const { local } = await montar()
+    const progresso: number[] = []
+    local.preload('es', 'pt', (p) => progresso.push(p))
+    WorkerFalso.de('opus')[0].responder({ type: 'ready', model: 'Xenova/opus-mt-es-en' })
+    expect(progresso.filter((p) => p >= 1)).toHaveLength(0)
+    WorkerFalso.de('opus')[0].responder({ type: 'ready', model: 'Xenova/opus-mt-en-ROMANCE' })
+    expect(progresso.at(-1)).toBe(1)
   })
 })
 

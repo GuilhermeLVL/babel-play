@@ -12,8 +12,8 @@
  * SÓ ENTRA QUEM FOI TESTADO (17/10/2026, mesma frase em cada idioma, motor real em q8): zh, ja, ko, ru, ar, tr, pl, nl, uk,
  * sv, fi, cs, hu, id e th saíram em inglês sensato. Ficaram de fora o hindi ("Today's weather good, let's walk in park") e o
  * vietnamita ("I loved learning the language"): pior que a internet (Chrome Translator, MyMemory, LLM), que hoje os atende.
- * Não entram os idiomas que já têm modelo direto (pt, es, fr, it, de, ro, ca, gl) nem o par entre eles: o inglês no meio
- * piora o que o tradutor direto da web faz bem.
+ * Não entram aqui os idiomas que já têm modelo direto até o inglês (pt, es, fr, it, de, ro, ca, gl): esses estão em
+ * `MODELOS_DIRETOS_PARA_O_INGLES`, logo abaixo.
  */
 export const MODELOS_PARA_O_INGLES: Readonly<Record<string, string>> = {
   zh: 'Xenova/opus-mt-zh-en',
@@ -43,6 +43,58 @@ export function modeloParaOIngles(lang: string): string | null {
 
 /** Os alvos que o aparelho alcança saindo do inglês (os mesmos do `opus-mt` direto). */
 export const ALVOS_DO_INGLES: ReadonlySet<string> = new Set(['pt', 'es', 'fr', 'it', 'de']);
+
+/**
+ * OS IDIOMAS COM MODELO DIRETO ATÉ O INGLÊS (espelho de `modelFor` em `opusMtLocal.ts` e de `dirConfig` no worker):
+ * os dedicados (es/fr/it/de) e o grupo ROMANCE (pt/ro/ca/gl) pelo `opus-mt-ROMANCE-en`.
+ *
+ * Entre eles NÃO há modelo direto (não existe opus-mt `es-pt` com revisão testada). Antes, o par entre eles (es→pt…) não
+ * passava pelo inglês porque "o inglês no meio piora o que o tradutor da web faz bem" — mas a web exige consentimento de
+ * nuvem, e o visitante no celular (perfil protegido, sem Translator nativo no Chrome Android nem no Safari) ficava SEM
+ * tradução nenhuma: 9 de 9 falas na auditoria de 17/11/2026 (CEL-01). Agora o pivô é o ÚLTIMO recurso local: o nativo e a
+ * nuvem autorizada vêm antes (a ordem da cascata, `coberturaNoAparelho.ts`).
+ */
+export const MODELOS_DIRETOS_PARA_O_INGLES: Readonly<Record<string, string>> = {
+  es: 'Xenova/opus-mt-es-en',
+  fr: 'Xenova/opus-mt-fr-en',
+  it: 'Xenova/opus-mt-it-en',
+  de: 'Xenova/opus-mt-de-en',
+  pt: 'Xenova/opus-mt-ROMANCE-en',
+  ro: 'Xenova/opus-mt-ROMANCE-en',
+  ca: 'Xenova/opus-mt-ROMANCE-en',
+  gl: 'Xenova/opus-mt-ROMANCE-en',
+};
+
+/** O modelo opus-mt `idioma → inglês` (direto ou o da tabela do pivô), ou `null`. */
+export function modeloDaPernaParaOIngles(lang: string): string | null {
+  const b = baseDoIdioma(lang);
+  if (Object.hasOwn(MODELOS_DIRETOS_PARA_O_INGLES, b)) return MODELOS_DIRETOS_PARA_O_INGLES[b];
+  return modeloParaOIngles(b);
+}
+
+/**
+ * O modelo opus-mt `inglês → alvo`, ou `null`: dedicado para es/fr/it/de e o `en-ROMANCE` (com o token `>>pt_br<<`) para
+ * o português. ro/ca/gl ficam de fora (sem o id do token, o modelo responde em qualquer língua latina).
+ */
+export function modeloDoInglesPara(alvo: string): string | null {
+  const t = baseDoIdioma(alvo);
+  if (t === 'pt') return 'Xenova/opus-mt-en-ROMANCE';
+  return ALVOS_DO_INGLES.has(t) ? `Xenova/opus-mt-en-${t}` : null;
+}
+
+/**
+ * O par traduz no aparelho PASSANDO PELO INGLÊS (`X → en → alvo`)? Vale para quem não tem modelo direto até o alvo: os
+ * idiomas da tabela do pivô (zh, ja…) e, desde CEL-01, também os pares entre pt, es, fr, it e de. Quem chama decide a
+ * ORDEM: o pivô só entra depois do nativo e da nuvem autorizada.
+ */
+export function passaPeloIngles(de: string, para: string): boolean {
+  const s = baseDoIdioma(de);
+  const t = baseDoIdioma(para);
+  if (!s || s === t || s === 'en' || t === 'en') return false;
+  // ro/ca/gl só chegam ao inglês: o pivô deles para pt/es… não foi avaliado (fora do escopo de CEL-01).
+  const origem = ALVOS_DO_INGLES.has(s) || modeloParaOIngles(s) !== null;
+  return origem && modeloDoInglesPara(t) !== null;
+}
 
 /**
  * Os idiomas com modelo do Bergamot (X→inglês) no CDN (`VITE_BERGAMOT_MODELOS_URL`): `paresDoCdn` de

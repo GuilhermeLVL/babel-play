@@ -9,7 +9,7 @@ import { temAdaptadorWebGpu } from '../adaptadorWebGpu';
 import type { AvisoDeDegradacaoDoStt, SttFinal, SttProvider } from '../capabilities';
 import { pareceErroDeRede } from '../erroDeRede';
 import { gravarManifesto, MENSAGEM_DO_MANIFESTO } from '../modelManifest';
-import { WHISPER_MODELS } from '../sttRouter';
+import { MOONSHINE_MODELS, WHISPER_MODELS } from '../sttRouter';
 import { criarWatchdogDeEstagnacao } from './modelProgress';
 import { ehMoonshine, moonshineAceita } from './moonshine';
 
@@ -39,6 +39,14 @@ function erroDeAborto(): Error {
  */
 function modeloParaWasm(modelo: string): string {
   return modelo === WHISPER_MODELS.small ? WHISPER_MODELS.base : modelo;
+}
+
+/** O degrau de baixo quando um modelo veio com defeito (`rebaixarModelo`). O menor de cada família não tem. */
+export function modeloMenor(modelo: string): string | null {
+  if (modelo === WHISPER_MODELS.small) return WHISPER_MODELS.base;
+  if (modelo === WHISPER_MODELS.base) return WHISPER_MODELS.tiny;
+  if (modelo === MOONSHINE_MODELS.base) return MOONSHINE_MODELS.tiny;
+  return null;
 }
 
 export class WhisperLocalStt implements SttProvider {
@@ -253,6 +261,24 @@ export class WhisperLocalStt implements SttProvider {
     }
   }
 
+  /**
+   * O MODELO VEIO COM DEFEITO e a cura não resolveu: recria o worker com o modelo menor (mesmo backend) e
+   * AVISA. Quem esperava a preparação continua esperando a mesma promessa.
+   */
+  private rebaixarModelo(menor: string, detalhe: string): void {
+    const modeloAntes = this.model;
+    const armada = this.readyPromise;
+    const device = this.deviceDaCarga ?? 'wasm';
+    console.warn('[whisper] modelo com defeito → seguindo com', menor, ':', detalhe.slice(0, 160));
+    this.derrubarWorker(new Error('modelo com defeito, trocando pelo menor'));
+    this.routedModel = menor;
+    this.aoDegradar?.({ motivo: 'modelo-corrompido', modeloAntes, modelo: menor, device, detalhe });
+    if (armada && !this.asrReady) {
+      this.ensureWorker();
+      void this.iniciarCarga(armada);
+    }
+  }
+
   /** O worker está ocupado (há decode em andamento)? Base do idle-gating dos partials. */
   get busy(): boolean {
     return this.pending.size > 0;
@@ -379,6 +405,14 @@ export class WhisperLocalStt implements SttProvider {
              preparação cair: "no available backend found" no headless era captura sem legenda.
              Falha de REDE não é falta de GPU ("Load failed" no Safari): rejeita a preparação, e a
              tela mostra "Não foi possível preparar o modelo · Tentar de novo" (`erroDeRede.ts`). */
+          /* O MODELO NÃO ABRE nem depois da cura do cache (`cacheDePesos.ts`: apagou e baixou de novo): segue
+             com o modelo menor, no mesmo backend, e avisa. Não é GPU ruim (não cai para o WASM por isso), e a
+             escada é finita (o tiny não tem menor): sem laço. */
+          const menor = String(message || '').startsWith('[falha:modelo-corrompido]') ? modeloMenor(this.model) : null;
+          if (menor) {
+            this.rebaixarModelo(menor, String(message));
+            break;
+          }
           if (this.deviceDaCarga === 'webgpu' && !pareceErroDeRede(String(message || ''))) {
             this.recarregarEmWasm('sem-gpu', String(message));
             break;

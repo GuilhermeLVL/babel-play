@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest'
 import manifesto from '../src/gateway/manifestoDosPesos.json'
 import { REVISOES_DOS_MODELOS } from '../src/gateway/revisoesDosModelos'
 
-const m = manifesto as Record<string, Record<string, [number] | [number, string]>>
+const m = manifesto as unknown as Record<string, Record<string, [number] | [number, string]>>
 
 describe('manifestoDosPesos.json', () => {
   it('cada modelo das revisões tem o seu bloco, no commit fixado', () => {

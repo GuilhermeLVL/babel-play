@@ -16,6 +16,7 @@ import { env, pipeline, Tensor, TextStreamer } from '@huggingface/transformers';
 
 import { temAdaptadorWebGpu } from '../adaptadorWebGpu';
 import { filtrarAlucinacao, tokensPorSegundo } from '../alucinacao';
+import { carregarComCura } from '../cacheDePesos';
 import { registrarModeloBaixado } from '../modelManifest';
 import { FilaSerial, processadorDeCancelamento, type SinalDeCancelamento } from './filaDoWorker';
 import { detectarIdiomaDoAudio } from './idiomaDoWhisper';
@@ -157,14 +158,19 @@ async function ensurePipeline(model?: string, dtypeKey?: string, device?: string
   const sessaoQ8 = { session_options: { ...SESSAO_MOONSHINE } };
   let dtypeEfetivo = chaveDtype;
   let progresso = novoProgresso(moonshine ? 'Moonshine' : 'Whisper');
+  /* A CURA DO CACHE (DISP-01, `cacheDePesos.ts`): a sessão que não abre (peso truncado ou corrompido no
+     cache) apaga as entradas deste modelo e carrega de novo da rede, uma vez por página. */
+  const modeloDaCarga = asrModel;
   try {
-    asr = await pipeline('automatic-speech-recognition', asrModel, {
-      device: dev,
-      dtype: wantDtype,
-      // Moonshine e Whisper q8: sem isto a sessão q8 não abre no ORT-web (ver `SESSAO_MOONSHINE`).
-      ...(moonshine || chaveDtype === 'q8' ? sessaoQ8 : {}),
-      progress_callback: progresso,
-    });
+    asr = await carregarComCura(modeloDaCarga, () =>
+      pipeline('automatic-speech-recognition', modeloDaCarga, {
+        device: dev,
+        dtype: wantDtype,
+        // Moonshine e Whisper q8: sem isto a sessão q8 não abre no ORT-web (ver `SESSAO_MOONSHINE`).
+        ...(moonshine || chaveDtype === 'q8' ? sessaoQ8 : {}),
+        progress_callback: progresso,
+      }),
+    );
   } catch (err) {
     // O moonshine já pediu q8: repetir a mesma carga só dobraria a espera antes do erro real.
     if (moonshine) throw err;
@@ -180,12 +186,15 @@ async function ensurePipeline(model?: string, dtypeKey?: string, device?: string
     );
     self.postMessage({ type: 'progress', progress: 0, loaded: 0, total: 0, label: 'usando formato alternativo (q8)…' });
     progresso = novoProgresso('Whisper (q8)');
-    asr = await pipeline('automatic-speech-recognition', asrModel, {
-      device: dev,
-      dtype: 'q8',
-      ...sessaoQ8,
-      progress_callback: progresso,
-    });
+    const progressoQ8 = progresso;
+    asr = await carregarComCura(modeloDaCarga, () =>
+      pipeline('automatic-speech-recognition', modeloDaCarga, {
+        device: dev,
+        dtype: 'q8',
+        ...sessaoQ8,
+        progress_callback: progressoQ8,
+      }),
+    );
   }
 
   // Manifesto: só agora existe verdade a gravar — o modelo carregou, com ESTE dtype e ESTE device.

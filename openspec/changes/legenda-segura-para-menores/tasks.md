@@ -8,20 +8,20 @@
 
 ## 2. Integração na captura
 
-- [ ] 2.1 Em `LiveCapture.tsx`, envolver `setSpeechSegments` com `comLegendaSegura` (memoização por string) e passar só a versão envolvida ao pipeline, à tradução e à Web Speech. Verificar: teste de unidade do envoltório (parcial, final, tradução, `traducaoProvisoria`, `(texto)` da degradação).
-- [ ] 2.2 Teste de arquitetura: falha se `setSpeechSegments` cru sair de `LiveCapture.tsx`. Verificar: o teste falha quando se injeta o setter cru.
-- [ ] 2.3 Campo `ocultadas?: number` em `SpeechSegment` (`tiposDaFala.ts`); o componente da fala renderiza `•••` como `<span aria-label>` traduzido. Verificar: teste de componente com Testing Library (o `aria-label` está presente).
-- [ ] 2.4 Aviso de uma vez por sessão no canal de avisos da captura. Verificar: teste com 3 falas seguidas, 1 aviso.
-- [ ] 2.5 `vocabularioDaSessao.ts` e "Guardar palavra" ignoram `•••`; a voz do intérprete retira o marcador antes da síntese; `exportarConversa.ts` mantém `•••`. Verificar: testes de unidade dos três.
+- [x] 2.1 Em `LiveCapture.tsx`, envolver `setSpeechSegments` com `comLegendaSegura` (memoização por string) e passar só a versão envolvida ao pipeline, à tradução e à Web Speech. Verificar: teste de unidade do envoltório (parcial, final, tradução, `traducaoProvisoria`, `(texto)` da degradação).
+- [x] 2.2 Teste de arquitetura: falha se `setSpeechSegments` cru sair de `LiveCapture.tsx`. Verificar: o teste falha quando se injeta o setter cru.
+- [x] 2.3 Campo `ocultadas?: number` em `SpeechSegment` (`tiposDaFala.ts`); o componente da fala renderiza `•••` como `<span aria-label>` traduzido. Verificar: teste de componente com Testing Library (o `aria-label` está presente).
+- [x] 2.4 Aviso de uma vez por sessão no canal de avisos da captura. Verificar: teste com 3 falas seguidas, 1 aviso.
+- [x] 2.5 `vocabularioDaSessao.ts` e "Guardar palavra" ignoram `•••`; a voz do intérprete retira o marcador antes da síntese; `exportarConversa.ts` mantém `•••`. Verificar: testes de unidade dos três.
 
 ## 3. Política e Ajustes
 
-- [ ] 3.1 Política derivada de `perfilProtegido()` e da faixa; chave do adulto em `src/lib/preferencias.ts` (padrão desligado). Verificar: teste da tabela perfil → política (protegido, `menor-12`, adulto com e sem a opção, self-host).
-- [ ] 3.2 Opção em Ajustes, travada e explicada para o perfil protegido. Verificar: teste de componente e catálogos `public/i18n/*.json` com os portões de i18n da CI (`node scripts/i18n/pseudo.mjs --check`, `npm run i18n:orfas`, `node scripts/i18n/cobertura.mjs --check`).
+- [x] 3.1 Política derivada de `perfilProtegido()` e da faixa; chave do adulto em `src/lib/preferencias.ts` (padrão desligado). Verificar: teste da tabela perfil → política (protegido, `menor-12`, adulto com e sem a opção, self-host). (Decisão do dono de 17/11: a faixa não muda a política; todo perfil protegido tem `sexual`, `odio` e `palavrao`. Self-host = `perfilProtegido()` falso = adulto.)
+- [x] 3.2 Opção em Ajustes, travada e explicada para o perfil protegido. Verificar: teste de componente e catálogos `public/i18n/*.json` com os portões de i18n da CI (`node scripts/i18n/pseudo.mjs --check`, `npm run i18n:orfas`, `node scripts/i18n/cobertura.mjs --check`).
 
 ## 4. Verificação ponta a ponta
 
-- [ ] 4.1 E2E Playwright (`tests/e2e/legenda-segura.spec.ts`) com o microfone falso tocando a fala que gerou o caso (trecho de `reports/auditoria-qualidade/computador/audio/aula.wav`, ou um TTS da frase "reveal the porn quest together" quando o STT não reproduzir o erro) num perfil sem conta. Verificar: 0 ocorrências de termos das listas no DOM da lista e do PiP, e pelo menos 1 `•••`.
+- [x] 4.1 E2E Playwright (`tests/e2e/legenda-segura.spec.ts`) com o microfone falso tocando a fala que gerou o caso (trecho de `reports/auditoria-qualidade/computador/audio/aula.wav`, ou um TTS da frase "reveal the porn quest together" quando o STT não reproduzir o erro) num perfil sem conta. Verificar: 0 ocorrências de termos das listas no DOM da lista e do PiP, e pelo menos 1 `•••`. (Feito em `tests/e2e/legenda-segura.e2e.ts`, a convenção da pasta. A fala entra pela bancada `__simFalas`, que escreve pelo setter envolvido: o STT não reproduz o erro sob demanda. O servidor do e2e é self-host, onde `perfilProtegido()` é falso; a suíte liga a opção do adulto em Ajustes. O perfil protegido fica coberto pelos testes de unidade.)
 - [ ] 4.2 Repetir a rodada da auditoria `node computador/medir.mjs aula <perfil> <saída> webkit` contra o staging. Verificar: `analise.json` da rodada sem termos das listas (script de contagem anexado ao PR).
 - [ ] 4.3 `npm run typecheck`, `npm run lint` e `npm test` verdes.
 

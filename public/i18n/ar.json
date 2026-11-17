@@ -2182,5 +2182,12 @@
   "Apagar sessões, palavras e progresso deste navegador": "حذف الجلسات والكلمات والتقدم من هذا المتصفح",
   "Sua sessão expirou. Entre de novo para usar o parceiro de leitura.": "انتهت جلستك. سجّل الدخول مرة أخرى لاستخدام شريك القراءة.",
   "Vamos voltar ao idioma? Posso te ajudar com vocabulário, frases ou pronúncia.": "هل نعود إلى اللغة؟ يمكنني مساعدتك في المفردات أو العبارات أو النطق.",
-  "Se algo estiver pesado para você, converse com um adulto de confiança ou ligue 188 (CVV), de graça, a qualquer hora. Quando quiser, seguimos com o idioma.": "إذا كان هناك ما يثقل عليك، فتحدّث مع شخص بالغ تثق به أو اتصل بالرقم 188 (CVV، البرازيل) مجانًا وفي أي وقت. وعندما تريد، نكمل مع اللغة."
+  "Se algo estiver pesado para você, converse com um adulto de confiança ou ligue 188 (CVV), de graça, a qualquer hora. Quando quiser, seguimos com o idioma.": "إذا كان هناك ما يثقل عليك، فتحدّث مع شخص بالغ تثق به أو اتصل بالرقم 188 (CVV، البرازيل) مجانًا وفي أي وقت. وعندما تريد، نكمل مع اللغة.",
+  "Uma palavra foi ocultada pela proteção. O reconhecimento automático às vezes entende errado.": "أخفت الحماية كلمة. التعرّف التلقائي يخطئ أحيانًا.",
+  "Palavra ocultada: o reconhecimento pode ter entendido errado": "كلمة مخفية: ربما أخطأ التعرّف في فهمها",
+  "O que aparece na legenda e na tradução ao vivo.": "ما يظهر في الترجمة النصية والترجمة المباشرة.",
+  "Ocultar palavras sensíveis na legenda": "إخفاء الكلمات الحساسة في الترجمة النصية",
+  "Sempre ligada: é uma proteção do perfil. Palavrões, termos sexuais e ofensas aparecem como •••, porque o reconhecimento automático às vezes entende errado.": "مفعّلة دائمًا: إنها حماية للملف الشخصي. تظهر الشتائم والألفاظ الجنسية والإهانات على شكل •••، لأن التعرّف التلقائي يخطئ أحيانًا.",
+  "Termos sexuais e ofensas aparecem como •••. O reconhecimento automático às vezes entende errado, e o marcador mostra que algo foi ocultado.": "تظهر الألفاظ الجنسية والإهانات على شكل •••. التعرّف التلقائي يخطئ أحيانًا، والعلامة تُظهر أن شيئًا ما قد أُخفي.",
+  "Não consegui salvar a preferência. Verifique a conexão e tente de novo.": "تعذّر حفظ التفضيل. تحقّق من الاتصال وحاول مرة أخرى."
 }

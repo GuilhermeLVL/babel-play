@@ -2606,5 +2606,12 @@
   "Sua sessão expirou. Saia e entre de novo para configurar a verificação em duas etapas.": "Tu sesión expiró. Cierra sesión y vuelve a entrar para configurar la verificación en dos pasos.",
   "Sua sessão expirou. Entre de novo.": "Tu sesión expiró. Vuelve a entrar.",
   "Vamos voltar ao idioma? Posso te ajudar com vocabulário, frases ou pronúncia.": "¿Volvemos al idioma? Puedo ayudarte con vocabulario, frases o pronunciación.",
-  "Se algo estiver pesado para você, converse com um adulto de confiança ou ligue 188 (CVV), de graça, a qualquer hora. Quando quiser, seguimos com o idioma.": "Si algo te pesa, habla con un adulto de confianza o llama al 188 (CVV, Brasil), gratis, a cualquier hora. Cuando quieras, seguimos con el idioma."
+  "Se algo estiver pesado para você, converse com um adulto de confiança ou ligue 188 (CVV), de graça, a qualquer hora. Quando quiser, seguimos com o idioma.": "Si algo te pesa, habla con un adulto de confianza o llama al 188 (CVV, Brasil), gratis, a cualquier hora. Cuando quieras, seguimos con el idioma.",
+  "Uma palavra foi ocultada pela proteção. O reconhecimento automático às vezes entende errado.": "La protección ocultó una palabra. El reconocimiento automático a veces se equivoca.",
+  "Palavra ocultada: o reconhecimento pode ter entendido errado": "Palabra oculta: el reconocimiento pudo haber entendido mal",
+  "O que aparece na legenda e na tradução ao vivo.": "Lo que aparece en los subtítulos y la traducción en vivo.",
+  "Ocultar palavras sensíveis na legenda": "Ocultar palabras sensibles en los subtítulos",
+  "Sempre ligada: é uma proteção do perfil. Palavrões, termos sexuais e ofensas aparecem como •••, porque o reconhecimento automático às vezes entende errado.": "Siempre activada: es una protección del perfil. Las groserías, los términos sexuales y los insultos aparecen como •••, porque el reconocimiento automático a veces se equivoca.",
+  "Termos sexuais e ofensas aparecem como •••. O reconhecimento automático às vezes entende errado, e o marcador mostra que algo foi ocultado.": "Los términos sexuales y los insultos aparecen como •••. El reconocimiento automático a veces se equivoca, y el marcador muestra que algo se ocultó.",
+  "Não consegui salvar a preferência. Verifique a conexão e tente de novo.": "No pude guardar la preferencia. Revisa la conexión e inténtalo de nuevo."
 }

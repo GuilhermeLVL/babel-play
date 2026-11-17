@@ -20,6 +20,37 @@ export const TIPOS_DE_FALHA = [
 ] as const;
 
 export type TipoDeFalha = (typeof TIPOS_DE_FALHA)[number];
+
+/**
+ * O MODELO no contador anônimo: uma família curta e fechada (cardinalidade baixa na métrica), nunca o id
+ * cru. `nenhum` quando a falha não é de um modelo (worker, compartilhamento negado).
+ */
+export const MODELOS_DO_CONTADOR = [
+  'whisper-tiny',
+  'whisper-base',
+  'whisper-small',
+  'moonshine-tiny',
+  'moonshine-base',
+  'opus-mt',
+  'parakeet',
+  'wespeaker',
+  'vad',
+  'nenhum',
+] as const;
+
+export type ModeloDoContador = (typeof MODELOS_DO_CONTADOR)[number];
+
+/** `onnx-community/whisper-base` → `whisper-base`; o que não está na lista vira `nenhum`. */
+export function modeloDoContador(id: string | null | undefined): ModeloDoContador {
+  const s = String(id ?? '').toLowerCase();
+  if (s.includes('opus-mt')) return 'opus-mt';
+  if (s.includes('parakeet')) return 'parakeet';
+  if (s.includes('wespeaker')) return 'wespeaker';
+  if (s.includes('silero') || s === 'vad') return 'vad';
+  for (const m of ['whisper-tiny', 'whisper-base', 'whisper-small', 'moonshine-tiny', 'moonshine-base'] as const)
+    if (s.includes(m)) return m;
+  return 'nenhum';
+}
 export type ClasseDeFalha = TipoDeFalha | 'desconhecida';
 
 export type TipoDeAcao = 'baixar-de-novo' | 'tentar-de-novo' | 'recarregar' | 'escolher-de-novo';
@@ -143,6 +174,28 @@ export function erroDoDetectorDeFala(tecnico: boolean): string {
       '(silero_vad_legacy.onnx e ort-wasm) não estão sendo servidos pelo app. Recarregue a página; ' +
       'se continuar, quem instalou o app precisa rodar "npm install" (que os copia para public/).',
   );
+}
+
+/** O que a tela mostra: a mensagem do mapa, mais o detalhe técnico onde ele é permitido. */
+export interface FalhaNaTela extends MensagemDeFalha {
+  tipo: ClasseDeFalha;
+  /** A mensagem original, só em dev e self-host (`mostraDetalheTecnico`). */
+  detalhe?: string;
+}
+
+/**
+ * A falha como a tela a mostra. Quando a classe é desconhecida mas a mensagem já é NOSSA, em português
+ * (os textos da captura: loopback ausente, janela sem áudio…), ela vale mais que a genérica; o que vem
+ * em inglês do navegador ou do runtime vira a genérica.
+ */
+export function falhaParaATela(erro: unknown, contexto: { online?: boolean; tecnico?: boolean } = {}): FalhaNaTela {
+  const { mensagem } = textoDe(erro);
+  const base = mensagemDaFalha(erro, contexto);
+  const limpa = semMarcaDeFalha(mensagem).trim();
+  const emPortugues = /[áéíóúâêôãõç]|\b(nenhum|nenhuma|neste|nesta|deste|desta|escolha|clique|selecione|existe)\b/i;
+  const nossa = base.tipo === 'desconhecida' && emPortugues.test(limpa) && !/npm install/i.test(limpa);
+  const detalhe = contexto.tecnico && limpa ? { detalhe: limpa } : {};
+  return nossa ? { ...base, texto: limpa, ...detalhe } : { ...base, ...detalhe };
 }
 
 /** A mensagem sem a marca `[falha:…]` (o detalhe técnico, mostrado só em dev e self-host). */

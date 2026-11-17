@@ -7,6 +7,7 @@
  * Aqui o mesmo estado vira a frase da faixa do meio. Puro: a tela só desenha o texto.
  */
 import type { ModelPrepState } from '../../components/ModelPrepPanel';
+import { falhaDaCaptura } from '../falhas/falhaNaTela';
 import { t } from '../i18n';
 
 const pct = (p: number) => `${Math.max(0, Math.min(99, Math.round(p * 100)))}%`;
@@ -14,7 +15,8 @@ const pct = (p: number) => `${Math.max(0, Math.min(99, Math.round(p * 100)))}%`;
 /** A linha do preparo, ou `null` quando não há nada a esperar. O erro vence; depois, a voz; depois, a tradução. */
 export function avisoDoPreparo(prep: ModelPrepState | null | undefined): string | null {
   if (!prep) return null;
-  if (prep.error) return prep.error;
+  // O erro cru ("Failed to fetch", "Worker error") nunca chega à tela: o mapa de falhas (DISP-03).
+  if (prep.error) return t(falhaDaCaptura(prep.error).texto);
   const voz = prep.nativos?.voz;
   if (voz !== undefined)
     return typeof voz === 'number'

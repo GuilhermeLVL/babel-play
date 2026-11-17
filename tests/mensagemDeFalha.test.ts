@@ -4,6 +4,7 @@ import {
   classificarFalha,
   comMarcaDeFalha,
   erroDoDetectorDeFala,
+  falhaParaATela,
   mensagemDaFalha,
   mensagemDeFalha,
   mostraDetalheTecnico,
@@ -95,6 +96,24 @@ describe('mensagemDeFalha', () => {
     const m = mensagemDaFalha(new Error('Worker error'))
     expect(m.tipo).toBe('worker-indisponivel')
     expect(m.texto).not.toMatch(TECNICO)
+  })
+})
+
+describe('falhaParaATela', () => {
+  it('erro técnico em inglês vira o texto do mapa, sem detalhe em produção', () => {
+    const f = falhaParaATela(new Error('Worker error'), { tecnico: false })
+    expect(f.texto).toBe('Não deu para iniciar a legenda neste navegador agora.')
+    expect(f.detalhe).toBeUndefined()
+  })
+
+  it('a mensagem nossa, em português, sobrevive quando a classe é desconhecida', () => {
+    const msg = 'Nenhum dispositivo de loopback (Stereo Mix / VB-Cable) existe neste computador.'
+    expect(falhaParaATela(new Error(msg)).texto).toBe(msg)
+  })
+
+  it('o inglês desconhecido vira a genérica; o detalhe só com tecnico', () => {
+    expect(falhaParaATela(new Error('boom'), { tecnico: false }).texto).toBe('Algo deu errado ao preparar a legenda.')
+    expect(falhaParaATela(new Error('boom'), { tecnico: true }).detalhe).toBe('boom')
   })
 })
 

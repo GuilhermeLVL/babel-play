@@ -53,6 +53,7 @@ import { dispositivoDaRota, medirPerfilDoDispositivo, perfilDoDispositivo } from
 import { edicaoEstatica } from '../edicaoEstatica';
 import { getEntitlements } from '../entitlements';
 import { consentiuNuvemNaFala, soNoAparelho } from '../escolhaDoProcessamento';
+import { contarFalhaDoErro } from '../falhas/contadorDeFalhas';
 import { flagLigada } from '../flags';
 import { t } from '../i18n';
 import { detectLanguage } from '../langDetect';
@@ -1926,6 +1927,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             // Agora o estado de erro do ModelPrepPanel é alcançável nesta rota também.
             clog('reserva local falhou (nuvem segue como principal):', String(e));
             const msg = String((e as Error)?.message ?? e);
+            contarFalhaDoErro(e);
             setModelPrep((s) => (s ? { ...s, error: msg } : s));
           });
       };
@@ -2019,6 +2021,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     } catch (e) {
       clog('preparação do modelo FALHOU:', String(e));
       const msg = String((e as Error)?.message ?? e);
+      contarFalhaDoErro(e);
       setModelPrep((s) =>
         s ? { ...s, error: msg } : { whisper: null, mt: null, fromCache: cached, error: msg, done: false },
       );

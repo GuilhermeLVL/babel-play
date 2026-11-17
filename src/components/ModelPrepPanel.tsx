@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, Download, HardDriveDownload, Loader2, RotateCw } from 'lucide-react';
 import React from 'react';
 
+import { falhaDaCaptura } from '../lib/falhas/falhaNaTela';
 import { t } from '../lib/i18n';
 
 /**
@@ -170,21 +171,30 @@ function PainelDoPreparo({
   const nativosProntos = Object.values(nativos).every((p) => p != null && p >= 1);
 
   if (error) {
+    /* O erro cru do runtime ("Failed to fetch", "Can't create a session") nunca vai à tela: o mapa de falhas
+       dá o texto em pt-BR e a ação (DISP-03). O original só aparece em dev e no self-host. */
+    const falha = falhaDaCaptura(error);
+    const recarregar = falha.acao.tipo === 'recarregar';
     return (
-      <div className={`rounded-xl border border-error/30 bg-error-soft/10 p-4 ${compact ? 'max-w-sm mx-auto' : ''}`}>
+      <div
+        className={`rounded-xl border border-error/30 bg-error-soft/10 p-4 ${compact ? 'max-w-sm mx-auto' : ''}`}
+        data-testid="erro-do-preparo"
+        data-falha={falha.tipo}
+      >
         <div className="flex items-start gap-2 text-error text-[13px] font-semibold">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <div>
-            <p>Não foi possível preparar o modelo.</p>
-            <p className="font-normal text-ink-muted mt-0.5 text-[12px]">{error}</p>
+            <p>{t('Não foi possível preparar o modelo.')}</p>
+            <p className="font-normal text-ink-muted mt-0.5 text-[12px]">{t(falha.texto)}</p>
+            {falha.detalhe && <p className="font-normal text-ink-muted mt-0.5 text-[11px]">{falha.detalhe}</p>}
           </div>
         </div>
-        {onRetry && (
+        {(onRetry || recarregar) && (
           <button
-            onClick={onRetry}
+            onClick={recarregar ? () => window.location.reload() : onRetry}
             className="mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent hover:bg-accent-ink text-white text-[12px] font-bold cursor-pointer"
           >
-            <RotateCw className="w-3.5 h-3.5" /> Tentar de novo
+            <RotateCw className="w-3.5 h-3.5" /> {t(falha.acao.rotulo)}
           </button>
         )}
       </div>

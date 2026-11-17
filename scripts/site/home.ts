@@ -324,7 +324,7 @@ export const CSS_DA_HOME = `
 .js [data-revelar].visto{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){.js [data-revelar]{opacity:1;transform:none;transition:none}.marca-texto{transition:none}}
 .fluxo-grade{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);gap:56px;margin-top:40px;align-items:start}
-.fluxo-tela{position:sticky;top:max(88px,calc(50vh - 300px));display:flex;flex-direction:column;gap:16px}
+.fluxo-tela{position:sticky;top:0;height:100vh;height:100svh;display:flex;flex-direction:column;justify-content:center;gap:16px}
 .janela{border-radius:18px;overflow:hidden;background:var(--superficie);box-shadow:0 0 0 1px var(--borda-fraca),0 30px 60px -24px rgba(38,36,31,.35)}
 .janela-barra{display:flex;align-items:center;gap:7px;padding:11px 14px;background:var(--superficie-2);border-bottom:1px solid var(--borda-fraca)}
 .janela-barra i{width:11px;height:11px;border-radius:50%;background:var(--borda-fraca)}
@@ -338,8 +338,8 @@ export const CSS_DA_HOME = `
 .fluxo-pontos span::before{content:"";width:18px;height:3px;border-radius:2px;background:var(--borda-fraca);transition:background .3s,width .3s}
 .fluxo-pontos .ativo{color:var(--tinta)}
 .fluxo-pontos .ativo::before{width:30px;background:var(--acao)}
-.fluxo-passos{list-style:none;margin:0;padding:0;counter-reset:passo}
-.passo{min-height:68vh;display:flex;flex-direction:column;justify-content:center;gap:12px;position:relative;padding-left:30px;border-left:2px solid var(--borda-fraca);transition:border-color .3s}
+.fluxo-passos{list-style:none;margin:0;padding:10vh 0;counter-reset:passo}
+.passo{min-height:80vh;display:flex;flex-direction:column;justify-content:center;gap:12px;position:relative;padding-left:30px;border-left:2px solid var(--borda-fraca);transition:border-color .3s}
 .passo.ativo{border-left-color:var(--acao)}
 .passo-n{font:800 15px/1 var(--titulo);font-stretch:112%;color:var(--acento-texto);letter-spacing:.04em}
 .passo-nome{margin:0;font:700 13px/1 var(--texto);letter-spacing:.12em;text-transform:uppercase;color:var(--suave)}

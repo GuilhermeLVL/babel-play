@@ -313,13 +313,40 @@
   };
   if (passos.length) {
     passos[0].classList.add('ativo');
-    const obs = new IntersectionObserver(
-      (itens) => {
-        for (const it of itens) if (it.isIntersecting) ativarPasso(passos.indexOf(it.target));
+    // Ativo = o passo cujo TEXTO está mais perto do meio da tela (onde fica a janela), e não o primeiro
+    // cuja caixa cruzou o meio: assim o título que você lê é o da tela que está tocando.
+    const textos = passos.map((p) => p.querySelector('.passo-texto'));
+    let pedido = false;
+    const escolher = () => {
+      pedido = false;
+      const meio = innerHeight / 2;
+      let melhor = 0;
+      let menor = Infinity;
+      textos.forEach((t, i) => {
+        const r = t.getBoundingClientRect();
+        const d = Math.abs(r.top + r.height / 2 - meio);
+        if (d < menor) {
+          menor = d;
+          melhor = i;
+        }
+      });
+      ativarPasso(melhor);
+    };
+    const secao = document.getElementById('alem');
+    let naSecao = false;
+    new IntersectionObserver(([it]) => {
+      naSecao = it.isIntersecting;
+      if (naSecao) escolher();
+    }).observe(secao);
+    addEventListener(
+      'scroll',
+      () => {
+        if (!naSecao || pedido) return;
+        pedido = true;
+        requestAnimationFrame(escolher);
       },
-      { rootMargin: '-45% 0px -45% 0px' },
+      { passive: true },
     );
-    passos.forEach((p) => obs.observe(p));
     // A janela só toca enquanto aparece.
     const tela = document.querySelector('.fluxo-tela');
     new IntersectionObserver(([it]) => {

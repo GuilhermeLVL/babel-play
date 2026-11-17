@@ -1,15 +1,15 @@
 /*
  * O FILME DA HOME, ROLADO PELA PÁGINA (motor portado do scroll-scrub do Higgsfield, em JS puro).
  *
- *  - Cada capítulo (`[data-capitulo]`) tem um clipe; a camada dele (`[data-camada]`) aparece por distância,
- *    numa passagem suave entre capítulos.
- *  - O clipe é baixado inteiro (Blob) quando o capítulo está a 1,5 tela: pular de quadro não depende do
- *    servidor aceitar pedidos por partes, e voltar a rolagem não baixa de novo.
+ *  - Um plano-sequência só (`data-filme` no rolo); cada capítulo (`[data-capitulo]`) é um trecho dele
+ *    (`data-de`/`data-ate`, em segundos) e a rolagem anda pelo filme sem corte. As capas (`[data-camada]`,
+ *    um quadro de cada trecho) se revezam por distância até o filme pintar.
+ *  - O filme é baixado inteiro (Blob) ao abrir a página: pular de quadro não depende do servidor aceitar
+ *    pedidos por partes, e voltar a rolagem não baixa de novo.
  *  - Pulos enfileirados: nunca pede um quadro novo enquanto o anterior ainda decodifica (`video.seeking`).
  *  - Suavização (0,2 por quadro) e limiar por aparelho, para não tremer.
- *  - Celular, tela pequena ou economia de dados: o clipe de 720p (`data-clipe-celular`).
- *  - A capa (primeiro quadro do mesmo clipe) fica até o vídeo pintar o primeiro quadro.
- *  - iPhone: o primeiro toque "acorda" os vídeos (play/pause); sem isso o Safari não pinta o quadro pedido.
+ *  - Celular, tela pequena ou economia de dados: o filme de 720p (`data-filme-celular`).
+ *  - iPhone: o primeiro toque "acorda" o vídeo (play/pause); sem isso o Safari não pinta o quadro pedido.
  *  - Movimento reduzido: só as capas, nenhum vídeo baixado.
  *  - Roda de mouse em degraus: Lenis suaviza a rolagem (se carregou); toque e trackpad seguem nativos.
  * Sem este arquivo, a home continua inteira: as capas paradas e todo o texto.
@@ -43,16 +43,24 @@
   const rota = document.getElementById('rota');
   const camadas = [...rolo.querySelectorAll('[data-camada]')];
   const caps = [...rolo.querySelectorAll('[data-capitulo]')];
+  // UM filme para o rolo inteiro: cada capítulo é um trecho dele (`data-de`/`data-ate`, em segundos) e a
+  // rolagem anda pelo filme sem corte. As capas (`[data-camada]`, um quadro de cada trecho) ficam por baixo
+  // até o filme pintar o primeiro quadro.
+  const filme = {
+    camada: rolo.querySelector('[data-filme-camada]'),
+    clipe: rolo.dataset.filme,
+    clipeCelular: rolo.dataset.filmeCelular,
+    alvo: 0,
+    atual: 0,
+  };
   const seg = caps.map((el, i) => {
     const s = {
       el,
       camada: camadas[i],
-      clipe: el.dataset.clipe,
-      clipeCelular: el.dataset.clipeCelular,
+      de: Number(el.dataset.de),
+      ate: Number(el.dataset.ate),
       ini: 0,
       fim: 0,
-      alvo: 0,
-      atual: 0,
     };
     const leg = el.querySelector('[data-leg]');
     if (leg) {
@@ -65,7 +73,7 @@
     }
     return s;
   });
-  const fonteDe = (s) => (celular() && s.clipeCelular ? s.clipeCelular : s.clipe);
+  const fonteDe = (f) => (celular() && f.clipeCelular ? f.clipeCelular : f.clipe);
 
   let topoDoRolo = 0;
   let total = 1;
@@ -101,8 +109,8 @@
     topoDoRolo = rolo.getBoundingClientRect().top + y;
     alturaTela = innerHeight;
     largura = innerWidth;
+    if (filme.fonte && filme.fonte !== fonteDe(filme)) descarregar(filme);
     for (const s of seg) {
-      if (s.fonte && s.fonte !== fonteDe(s)) descarregar(s);
       const r = s.el.getBoundingClientRect();
       s.ini = r.top + y - topoDoRolo;
       s.fim = s.ini + r.height - alturaTela;
@@ -189,12 +197,10 @@
     seg.forEach((s, i) => {
       if (y >= s.ini - alturaTela * 0.5) atual = i;
       const local = lim((y - s.ini) / Math.max(s.fim - s.ini, 1));
-      s.alvo = local;
       const fora = y < s.ini ? s.ini - y : y > s.fim ? y - s.fim : 0;
       const op = menos ? (fora === 0 ? 1 : 0) : suave(1 - fora / passagem);
       s.camada.style.opacity = i === 0 && y <= s.ini ? '1' : String(op);
       s.camada.style.zIndex = i === atual ? '2' : '1';
-      if (y > s.ini - 1.5 * alturaTela && y < s.fim + 1.5 * alturaTela) carregar(s);
       if (s.palavras) {
         // O primeiro capítulo abre a página: a frase já vem adiantada, com a tradução à vista.
         const k = i === 0 ? lim(local + 0.6) : local;
@@ -212,21 +218,29 @@
       );
     }
     rolo.style.setProperty('--progresso', String(lim(y / total)));
+    // O tempo do filme: cada capítulo vai do seu `de` ao seu `ate` enquanto a caixa dele passa (até o
+    // começo da próxima), então a passagem entre capítulos é o próprio filme andando.
+    let t = seg[0].de;
+    seg.forEach((s, i) => {
+      const prox = seg[i + 1];
+      const fimDaCaixa = prox ? prox.ini : s.fim;
+      if (y >= s.ini) t = s.de + lim((y - s.ini) / Math.max(fimDaCaixa - s.ini, 1)) * (s.ate - s.de);
+    });
+    filme.alvo = t;
+    if (y < total + 1.5 * alturaTela) carregar(filme);
   }
 
   function videos() {
-    for (const s of seg) {
-      const v = s.video;
-      if (!v || !s.pronto || v.seeking) continue;
-      if (Math.abs(s.atual - s.alvo) < 0.0015 && s.camada.dataset.pintado !== undefined) continue;
-      s.atual += (s.alvo - s.atual) * 0.2;
-      const t = lim(s.atual, 0, 0.999) * (v.duration || 1);
-      if (Math.abs(v.currentTime - t) > (celular() ? 0.02 : 0.008)) {
-        try {
-          v.currentTime = t;
-        } catch {
-          /* segue o último quadro pintado */
-        }
+    const v = filme.video;
+    if (!v || !filme.pronto || v.seeking) return;
+    if (Math.abs(filme.atual - filme.alvo) < 0.01 && filme.camada.dataset.pintado !== undefined) return;
+    filme.atual += (filme.alvo - filme.atual) * 0.2;
+    const t = lim(filme.atual, 0, (v.duration || 1) - 0.05);
+    if (Math.abs(v.currentTime - t) > (celular() ? 0.04 : 0.02)) {
+      try {
+        v.currentTime = t;
+      } catch {
+        /* segue o último quadro pintado */
       }
     }
   }
@@ -255,7 +269,7 @@
   const primeiroGesto = () => {
     if (gesto) return;
     gesto = true;
-    seg.forEach((s) => acordar(s.video));
+    acordar(filme.video);
   };
   addEventListener('pointerdown', primeiroGesto, { once: true, passive: true });
   addEventListener('touchstart', primeiroGesto, { once: true, passive: true });

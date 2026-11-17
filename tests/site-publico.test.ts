@@ -183,15 +183,17 @@ describe('sitemap, robots e ads.txt', () => {
 })
 
 describe('layout do site', () => {
-  it('home: seis capítulos com legenda real, aviso de IA, texto na página e mídia que existe', () => {
+  it('home: um filme em sete trechos contínuos, legenda de exemplo, aviso de IA, texto na página e mídia que existe', () => {
     const html = site().get('inicio.html')!
-    const caps = [...html.matchAll(/data-clipe="([^"]+)" data-clipe-celular="([^"]+)"/g)]
-    expect(caps).toHaveLength(6)
+    expect(html).toContain('data-filme="/site/midia/filme.mp4" data-filme-celular="/site/midia/filme-m.mp4"')
+    const trechos = [...html.matchAll(/data-de="([\d.]+)" data-ate="([\d.]+)"/g)].map((m) => [+m[1], +m[2]])
+    expect(trechos).toHaveLength(7)
+    // os trechos cobrem o filme sem buraco nem sobreposição: um começa onde o outro termina
+    trechos.slice(1).forEach(([de], i) => expect(de).toBe(trechos[i][1]))
     expect(html).toContain('Não acredito que você escondeu isso de mim. Era para a gente ser uma equipe!')
-    expect(html).toContain('Cenas de exemplo criadas com IA, com a legenda no visual do Frasy')
-    // a tradução de exemplo usa a palavra do contexto (aeroporto: portão) e o imperativo da fala
+    expect(html).toContain('Cenas de exemplo criadas com IA. A legenda mostra o visual real do Frasy.')
+    // a tradução de exemplo usa a palavra do contexto (aeroporto: portão)
     expect(html).toContain('portão 12')
-    expect(html).toContain('Encontre outro caminho')
     // números que o site afirma: os jogos da grade e nenhum total de livros que a produção não tem
     expect(html).toContain('18 jogos curtos')
     expect(html).not.toMatch(/\d+ clássicos/)
@@ -199,10 +201,10 @@ describe('layout do site', () => {
     expect(html).not.toMatch(/\b(deck|FSRS|SRS|XP|modo intérprete|revisão espaçada)\b/)
     expect(html).toContain('<span class="chip breve">Em breve</span>')
     // sem JavaScript, o texto de todos os capítulos já está no HTML
-    expect(html).toContain('<h1>Entenda o que você assiste.</h1>')
-    expect(html).toContain('Cada palavra que você toca fica com você.')
+    expect(html).toContain('<h1>Ouviu outra língua? Entenda e guarde a palavra.</h1>')
+    expect(html).toContain('As palavras do dia ficam com você.')
     // toda mídia citada existe em public/
-    const midias = [...html.matchAll(/(?:src|poster|data-clipe|data-clipe-celular)="(\/site\/[^"]+)"/g)].map(
+    const midias = [...html.matchAll(/(?:src|poster|data-filme|data-filme-celular)="(\/site\/[^"]+)"/g)].map(
       (m) => m[1],
     )
     expect(midias.length).toBeGreaterThan(20)

@@ -378,7 +378,8 @@ describe('voz: a escolha por idioma', () => {
   let tts: typeof import('../src/lib/tts')
   let voz: typeof import('../src/lib/voz/faltaDeVoz')
   const instalar = (langs: string[]) => {
-    vozes = langs.map((lang) => ({ name: `Voz ${lang}`, lang, localService: true, default: false, voiceURI: lang }))
+    /* "Google <código>": nome de voz ACEITA (a lista de permissão de `core/voz/melhorVoz.ts` recusa nome desconhecido). */
+    vozes = langs.map((lang) => ({ name: `Google ${lang}`, lang, localService: true, default: false, voiceURI: lang }))
     // O app guarda a lista e só a relê quando o navegador avisa que ela mudou.
     for (const ouvinte of ouvintes) ouvinte()
   }

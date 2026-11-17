@@ -8,10 +8,8 @@
  * próprio domínio e pré-carregadas. O JSON-LD é `application/ld+json`: bloco de dados, que o navegador não
  * executa (a CSP não se aplica a ele).
  *
- * A IDENTIDADE é a do app (`src/index.css`, tema padrão "babel"): papel, tinta e o vermelhão em ação e
- * destaque. As outras cores do logo e do app (âmbar, verde, índigo, azul, roxo: `--marca-*`) marcam
- * cada etapa do uso, sempre a mesma etapa com a mesma cor; as faixas escuras são a noite índigo
- * (`--noite`). O amarelo e o verde do logo seguem como o marca-texto da palavra salva. O escuro espelha o
+ * A IDENTIDADE é a do app (`src/index.css`, tema padrão "babel"): papel, tinta, o vermelhão só em ação e
+ * destaque, e o amarelo e o verde do logo só como o marca-texto da palavra salva. O escuro espelha o
  * `.dark` do app, por `prefers-color-scheme`. A única animação que roda sozinha é a da legenda da home
  * (CSS puro, uma vez; com `prefers-reduced-motion`, o quadro final parado).
  *
@@ -65,11 +63,6 @@ const CSS_BRUTO = `
 --acento:#F04E23;--acento-2:#F86E44;--acao:#C93A15;--acao-tinta:#FFFFFF;--acento-texto:#A8300E;--acento-suave:#FBDDD3;
 --marcador:#FFD166;--marcador-tinta:#26241F;--marcador-verde:#3E8E4E;
 --tela:#221B15;--tela-tinta:#FFFFFF;--tela-suave:#F1E3D2;
---noite:#1B1F3B;--noite-2:#262B4D;--noite-suave:#C9CCE6;--noite-tinta:#F3F1FA;
---logo-laranja:#F04E23;--logo-laranja-claro:#FF9A75;--logo-amarelo:#FFD166;
---marca-laranja:#C93A15;--marca-laranja-claro:#FBDDD3;--marca-ambar:#8A5A00;--marca-ambar-claro:#FBEBC8;
---marca-verde:#2F6E3C;--marca-verde-claro:#DCEBD8;--marca-indigo:#4146A0;--marca-indigo-claro:#E1E3F4;
---marca-azul:#1F5FA8;--marca-azul-claro:#DCE8F6;--marca-roxo:#6E3FB0;--marca-roxo-claro:#EADFF6;
 --sombra:inset 0 1px 0 rgba(255,255,255,.6),0 2px 5px rgba(38,36,31,.08);
 --sombra-alta:inset 0 1px 0 rgba(255,255,255,.7),0 2px 4px rgba(38,36,31,.06),0 16px 36px -14px rgba(38,36,31,.28);
 --titulo:Archivo,"Arial Narrow",system-ui,sans-serif;--texto:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
@@ -78,10 +71,6 @@ const CSS_BRUTO = `
 --papel:#17130F;--superficie:#211C17;--superficie-2:#2B251F;--tinta:#F3ECE0;--suave:#B5AA98;--borda:#3A3229;--borda-fraca:#2E2721;
 --acento:#FF6B3D;--acento-2:#FF8C66;--acao:#FF6B3D;--acao-tinta:#17130F;--acento-texto:#FF8C66;--acento-suave:#3B2219;
 --marcador-verde:#6DBE6F;--tela:#0F0C09;
---noite:#12152B;--noite-2:#1C2040;--noite-suave:#B9BCDD;
---marca-laranja:#FF8C66;--marca-laranja-claro:#3B2219;--marca-ambar:#F5B544;--marca-ambar-claro:#33280F;
---marca-verde:#6DBE6F;--marca-verde-claro:#1E2E20;--marca-indigo:#9195E6;--marca-indigo-claro:#23243A;
---marca-azul:#7DB3F0;--marca-azul-claro:#182638;--marca-roxo:#BE96F2;--marca-roxo-claro:#2A1F3A;
 --sombra:inset 0 1px 0 rgba(255,240,220,.04),0 1px 2px rgba(0,0,0,.35),0 6px 18px -8px rgba(0,0,0,.55);
 --sombra-alta:inset 0 1px 0 rgba(255,240,220,.05),0 2px 4px rgba(0,0,0,.35),0 18px 40px -14px rgba(0,0,0,.7)}}
 *,*::before,*::after{box-sizing:border-box}

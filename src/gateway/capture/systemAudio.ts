@@ -1,5 +1,6 @@
 import type { MicVAD, RealTimeVADOptions } from '@ricky0123/vad-web';
 
+import { erroDoDetectorDeFala, mostraDetalheTecnico } from '../../core/falhas/mensagemDeFalha';
 import { apiFetch } from '../../data/api';
 import { navegadorSemAudioDaTela } from '../../lib/captura/navegadorSemAudioDaTela';
 import { marcarAberturaDoVad } from '../../lib/captura/vigiaDoMainThread';
@@ -756,11 +757,9 @@ async function startCaptureFromStream(
   } catch (e) {
     vlog(label, 'Silero VAD NÃO subiu:', String(e));
     await desfazerAbertura();
-    throw new Error(
-      'O detector de fala não pôde ser carregado, então a captura não começou. Os arquivos dele ' +
-        '(silero_vad_legacy.onnx e ort-wasm) não estão sendo servidos pelo app. Recarregue a página; ' +
-        'se continuar, quem instalou o app precisa rodar "npm install" (que os copia para public/).',
-    );
+    /* "npm install" só em dev e no self-host (DISP-03): em produção a tela mostra "Não deu para carregar o
+       detector de fala." pelo mapa de `core/falhas/mensagemDeFalha.ts`. */
+    throw new Error(erroDoDetectorDeFala(mostraDetalheTecnico(import.meta.env)));
   }
 
   vad.start();

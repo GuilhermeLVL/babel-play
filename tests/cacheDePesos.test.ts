@@ -127,34 +127,23 @@ describe('apagarModeloDoCache', () => {
 describe('carregarComCura (cache envenenado simulado)', () => {
   const erroDeSessao = () => new Error("Can't create a session. ERROR_CODE: 7, ERROR_MESSAGE: protobuf parsing failed.")
 
-  it('a sessão que não abre apaga o modelo e carrega de novo, uma vez', async () => {
-    const apagar = vi.fn(async () => 1)
-    let tentativas = 0
-    const r = await carregarComCura(
-      MODELO,
-      async () => {
-        tentativas += 1
-        if (tentativas === 1) throw erroDeSessao()
-        return 'pronto'
-      },
-      apagar,
-    )
-    expect(r).toBe('pronto')
-    expect(apagar).toHaveBeenCalledWith(MODELO)
-    expect(tentativas).toBe(2)
-  })
-
-  it('falhou de novo: marca "modelo-corrompido" e não entra em laço', async () => {
+  it('a sessão que não abre apaga o modelo do cache e sai marcada (a nova tentativa é do adaptador)', async () => {
     const apagar = vi.fn(async () => 1)
     const carregar = vi.fn(async () => {
       throw erroDeSessao()
     })
-    await expect(carregarComCura(MODELO, carregar, apagar)).rejects.toThrow(/^\[falha:modelo-corrompido\]/)
-    expect(carregar).toHaveBeenCalledTimes(2)
-    // A mesma página não cura de novo o mesmo modelo.
-    await expect(carregarComCura(MODELO, carregar, apagar)).rejects.toThrow(/modelo-corrompido/)
-    expect(carregar).toHaveBeenCalledTimes(3)
-    expect(apagar).toHaveBeenCalledTimes(1)
+    await expect(carregarComCura(MODELO, carregar, apagar)).rejects.toThrow(
+      /^\[falha:modelo-corrompido\] onnx-community\/moonshine-tiny-ONNX/,
+    )
+    // Uma carga só neste worker: a transformers.js envenena as sessões seguintes dele (`webInitChain`).
+    expect(carregar).toHaveBeenCalledTimes(1)
+    expect(apagar).toHaveBeenCalledWith(MODELO)
+  })
+
+  it('a carga boa passa direto, sem apagar nada', async () => {
+    const apagar = vi.fn(async () => 1)
+    expect(await carregarComCura(MODELO, async () => 'pronto', apagar)).toBe('pronto')
+    expect(apagar).not.toHaveBeenCalled()
   })
 
   it('com um arquivo recusado nesta página, a falha é de download, não de modelo', async () => {

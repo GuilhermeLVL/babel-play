@@ -150,9 +150,6 @@ export async function apagarModeloDoCache(modelo: string, abrir: () => Promise<C
   return apagadas;
 }
 
-/** Uma cura por modelo por página: a segunda falha não tenta de novo (sem laço). */
-const curados = new Set<string>();
-
 const ehFalhaDeSessao = (e: unknown) => classificarFalha(e) === 'modelo-corrompido';
 
 /** O erro final, com a classe na frente da mensagem: a tela e o contador leem a marca. */
@@ -165,8 +162,15 @@ function marcado(e: unknown, modelo: string): unknown {
 }
 
 /**
- * Carrega um modelo e, se a SESSÃO não abrir (protobuf, `ERROR_CODE`), apaga as entradas dele do cache e
- * carrega mais uma vez da rede. Erro que não é de sessão (rede, memória) passa direto.
+ * Carrega um modelo e, se a SESSÃO não abrir (protobuf, `ERROR_CODE`), APAGA as entradas dele do cache e
+ * devolve o erro MARCADO (`[falha:modelo-corrompido]`, ou `[falha:download-interrompido]` se o cache recusou um
+ * arquivo cortado). Erro que não é de sessão (rede, memória) passa direto.
+ *
+ * A nova tentativa NÃO é feita aqui, no mesmo worker: a transformers.js 4.2 encadeia a criação das sessões numa
+ * promessa do módulo (`webInitChain` em `backends/onnx.js`) e, depois de uma rejeição, toda sessão seguinte
+ * NAQUELE worker rejeita com o mesmo erro, sem nem tentar (medido no aceite de 17/11/2026: o modelo íntegro
+ * baixava de novo e a legenda seguia com 0 falas). Quem tenta de novo é o adaptador, num worker NOVO
+ * (`whisperLocal.ts`, uma vez por modelo por página), com o cache já limpo.
  */
 export async function carregarComCura<T>(
   modelo: string,
@@ -177,20 +181,15 @@ export async function carregarComCura<T>(
   try {
     return await carregar();
   } catch (e) {
-    if (!ehFalhaDeSessao(e) || curados.has(modelo)) throw marcado(e, modelo);
-    curados.add(modelo);
-    console.warn('[cacheDePesos] a sessão de', modelo, 'não abriu: apagando a cópia e baixando de novo');
-    await apagar(modelo).catch(() => 0);
-    try {
-      return await carregar();
-    } catch (e2) {
-      throw marcado(e2, modelo);
+    if (ehFalhaDeSessao(e)) {
+      console.warn('[cacheDePesos] a sessão de', modelo, 'não abriu: a cópia sai do cache');
+      await apagar(modelo).catch(() => 0);
     }
+    throw marcado(e, modelo);
   }
 }
 
 /** Só para os testes: uma página nova. */
 export function _zerarCacheDePesos(): void {
   recusados.clear();
-  curados.clear();
 }

@@ -56,19 +56,20 @@ beforeEach(async () => {
 const carregar = () => onmessage({ data: { type: 'load', model: MODELO, dtype: 'q8', device: 'wasm' } } as MessageEvent)
 
 describe('whisperWorker com o cache envenenado', () => {
-  it('apaga as entradas do modelo, carrega de novo e fica pronto', async () => {
-    estado.falhasAntesDeAbrir = 1
-    await carregar()
-    expect(estado.cargas).toBe(2)
-    expect(chaves).toEqual(['https://huggingface.co/onnx-community/whisper-tiny/resolve/main/config.json'])
-    expect(postadas.some((m) => m.type === 'ready')).toBe(true)
-  })
-
-  it('falha persistente: erro marcado modelo-corrompido, sem laço', async () => {
+  it('a sessão que não abre: as entradas do modelo saem do cache e o erro sai marcado, sem tentar no mesmo worker', async () => {
     estado.falhasAntesDeAbrir = 99
     await carregar()
-    expect(estado.cargas).toBe(2)
+    // O q8 do moonshine não tem cascata: uma carga só (o worker envenenado não serve para tentar de novo).
+    expect(estado.cargas).toBe(1)
+    expect(chaves).toEqual(['https://huggingface.co/onnx-community/whisper-tiny/resolve/main/config.json'])
     const erro = postadas.find((m) => m.type === 'error')
     expect(String(erro?.message)).toMatch(/^\[falha:modelo-corrompido\] onnx-community\/moonshine-tiny-ONNX/)
+  })
+
+  it('a carga boa fica pronta e não apaga nada', async () => {
+    estado.falhasAntesDeAbrir = 0
+    await carregar()
+    expect(chaves).toHaveLength(3)
+    expect(postadas.some((m) => m.type === 'ready')).toBe(true)
   })
 })

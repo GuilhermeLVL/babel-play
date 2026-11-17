@@ -261,6 +261,26 @@ export class WhisperLocalStt implements SttProvider {
     }
   }
 
+  /** Os modelos que já tiveram a cura (worker novo + download de novo) nesta página: uma vez por modelo. */
+  private curados = new Set<string>();
+  /** A próxima rejeição da carga também descarta o worker (a sessão dele ficou envenenada). */
+  private descartarWorkerNaProxima = false;
+
+  /**
+   * A CURA: o cache já está limpo; recria o worker com o MESMO modelo e baixa de novo. Quem esperava a preparação
+   * continua esperando a mesma promessa.
+   */
+  private recarregarDoZero(detalhe: string): void {
+    const armada = this.readyPromise;
+    console.warn('[whisper] sessão não abriu → worker novo, baixando', this.model, 'de novo:', detalhe.slice(0, 160));
+    this.derrubarWorker(new Error('sessão do modelo não abriu, recarregando'));
+    this.onProgress?.(0, 'Baixando o modelo de novo…');
+    if (armada && !this.asrReady) {
+      this.ensureWorker();
+      void this.iniciarCarga(armada);
+    }
+  }
+
   /**
    * O MODELO VEIO COM DEFEITO e a cura não resolveu: recria o worker com o modelo menor (mesmo backend) e
    * AVISA. Quem esperava a preparação continua esperando a mesma promessa.
@@ -405,16 +425,38 @@ export class WhisperLocalStt implements SttProvider {
              preparação cair: "no available backend found" no headless era captura sem legenda.
              Falha de REDE não é falta de GPU ("Load failed" no Safari): rejeita a preparação, e a
              tela mostra "Não foi possível preparar o modelo · Tentar de novo" (`erroDeRede.ts`). */
-          /* O MODELO NÃO ABRE nem depois da cura do cache (`cacheDePesos.ts`: apagou e baixou de novo): segue
-             com o modelo menor, no mesmo backend, e avisa. Não é GPU ruim (não cai para o WASM por isso), e a
-             escada é finita (o tiny não tem menor): sem laço. */
-          const menor = String(message || '').startsWith('[falha:modelo-corrompido]') ? modeloMenor(this.model) : null;
-          if (menor) {
-            this.rebaixarModelo(menor, String(message));
-            break;
+          /* A SESSÃO NÃO ABRIU (`cacheDePesos.ts` já apagou a cópia do modelo e marcou o erro). O worker que viu
+             isso não serve mais: a transformers.js rejeita toda sessão seguinte nele (`carregarComCura`). Então:
+               1ª vez deste modelo na página → worker NOVO, mesmo modelo, baixando de novo (a cura);
+               de novo, com o modelo corrompido → o modelo menor, no mesmo backend, com aviso (o tiny não tem menor);
+               de novo, com o download cortado → a preparação falha ("Baixar de novo"), e o worker sai, para o
+               próximo pedido nascer limpo. Escada finita: sem laço. */
+          const marca = /^\[falha:(modelo-corrompido|download-interrompido)\]/.exec(String(message || ''))?.[1];
+          if (marca) {
+            if (!this.curados.has(this.model)) {
+              this.curados.add(this.model);
+              this.recarregarDoZero(String(message));
+              break;
+            }
+            const menor = marca === 'modelo-corrompido' ? modeloMenor(this.model) : null;
+            if (menor) {
+              this.rebaixarModelo(menor, String(message));
+              break;
+            }
+            this.descartarWorkerNaProxima = true;
           }
           if (this.deviceDaCarga === 'webgpu' && !pareceErroDeRede(String(message || ''))) {
             this.recarregarEmWasm('sem-gpu', String(message));
+            break;
+          }
+          if (this.descartarWorkerNaProxima) {
+            this.descartarWorkerNaProxima = false;
+            const rejeitar = this.readyReject;
+            this.readyReject = null;
+            this.derrubarWorker(err);
+            this.readyPromise = null;
+            this.readyResolve = null;
+            rejeitar?.(err);
             break;
           }
           if (this.readyReject) {

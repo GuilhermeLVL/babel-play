@@ -43,6 +43,13 @@ export const ehVozDeEfeito = (nome: string): boolean => EFEITOS.has(nomeBase(nom
 export const ehVozRobotica = (nome: string): boolean => ROBOTICAS.has(nomeBase(nome));
 
 /**
+ * Há, para o idioma, uma voz ACEITA (nem de efeito nem robótica)? Diferente de `vozesUteis`, aqui voz ruim NÃO conta:
+ * com a voz natural no aparelho ligada (flag `voz_kitten`), sem voz aceita o texto fica na tela em vez de sair robótico.
+ */
+export const haVozAceita = (vozes: readonly VozDescrita[], idioma: string): boolean =>
+  ordenarPorQualidade(vozes, idioma).some((v) => !ehVozDeEfeito(v.name) && !ehVozRobotica(v.name));
+
+/**
  * As vozes do idioma que valem a pena, da melhor para a pior. Se o filtro esvaziasse a lista (um aparelho só com
  * efeito e voz robótica), devolve as do idioma sem filtrar: voz ruim ainda é melhor que nenhuma.
  */

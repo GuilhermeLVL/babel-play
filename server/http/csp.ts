@@ -42,6 +42,7 @@
  *   VITE_AUDIO_URL                              os audiolivros pré-gerados no R2 (manifesto e tempos por
  *                                               `connect-src`, o `.opus` por `media-src`)
  *   VITE_VOZ_MODELO_URL                         os pesos da voz no aparelho (Supertonic 3) num R2: só `connect-src`
+ *   VITE_VOZ_KITTEN_URL                         os pesos da voz natural no aparelho (Kitten TTS 2) num R2: só `connect-src`
  *   VITE_AVATARES_URL                           a coleção curada de avatares (VRM/GLB) num R2/CDN
  *                                               (`src/lib/avatar/fontes.ts`). Dado, não código: só `connect-src`
  *   AVATAR_GALERIA_TERCEIROS=1                  a galeria ao vivo do avatar (coleção 100Avatars, CC0, da ToxSam): os
@@ -197,7 +198,9 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
 
   /* A VOZ NO APARELHO (flag `voz_no_aparelho`): os pesos do Supertonic baixados pelo worker por `fetch` (`connect-src`).
      Dado, nunca código. Sem a variável, nada entra. */
-  const vozNoAparelho = [origemDe(env.VITE_VOZ_MODELO_URL)].filter((o): o is string => o !== null)
+  const vozNoAparelho = [origemDe(env.VITE_VOZ_MODELO_URL), origemDe(env.VITE_VOZ_KITTEN_URL)].filter(
+    (o): o is string => o !== null,
+  )
 
   const conexoes = [
     ...new Set([

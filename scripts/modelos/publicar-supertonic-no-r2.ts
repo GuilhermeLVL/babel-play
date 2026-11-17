@@ -47,7 +47,7 @@ export function conferir(caminho: string, corpo: Buffer, bytes: number, sha256: 
     );
 }
 
-async function chamarS3(cfg: ConfigS3, metodo: string, chave: string, corpo: Buffer | '' = '', tipo?: string) {
+export async function chamarS3(cfg: ConfigS3, metodo: string, chave: string, corpo: Buffer | '' = '', tipo?: string) {
   const caminho = chave.split('/').map(encodeURIComponent).join('/');
   const url = new URL(`/${cfg.bucket}/${caminho}`, cfg.endpoint);
   const cab = assinarSigV4({ metodo, url, corpo, contentType: tipo, cfg, agora: new Date() });
@@ -58,7 +58,7 @@ async function chamarS3(cfg: ConfigS3, metodo: string, chave: string, corpo: Buf
   });
 }
 
-function enviarPorWrangler(bucket: string, chave: string, corpo: Buffer, tipo: string): void {
+export function enviarPorWrangler(bucket: string, chave: string, corpo: Buffer, tipo: string): void {
   const dir = mkdtempSync(join(tmpdir(), 'supertonic-'));
   try {
     const arquivo = join(dir, 'objeto');

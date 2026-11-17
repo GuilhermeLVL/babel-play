@@ -256,6 +256,22 @@ describe('es→pt sem o CDN do Bergamot (CEL-01)', () => {
     expect(r.text).toBe('[opus] [opus] Hola')
   })
 
+  /* CEL-08: a bancada lê a carga e a fila do tradutor na linha do tempo (`marcasDeDesempenho.ts`). */
+  it('as marcas de desempenho: carga, pronto, pedido e resposta do final (o parcial não marca)', async () => {
+    performance.clearMarks()
+    const { local } = await montar()
+    local.preload('es', 'pt')
+    WorkerFalso.de('opus')[0].responder({ type: 'ready', model: 'Xenova/opus-mt-es-en' })
+    WorkerFalso.de('opus')[0].responder({ type: 'ready', model: 'Xenova/opus-mt-en-ROMANCE' })
+    await local.translate('Hola', 'es', 'pt')
+    await local.translate('Ho', 'es', 'pt', { parcial: true })
+    const nomes = performance.getEntriesByType('mark').map((m) => m.name)
+    expect(nomes.filter((n) => n === 'frasy:mt:carga:inicio')).toHaveLength(2)
+    expect(nomes.filter((n) => n === 'frasy:mt:pronto')).toHaveLength(2)
+    expect(nomes.filter((n) => n === 'frasy:mt:pedido')).toHaveLength(2) // as duas pernas do final
+    expect(nomes.filter((n) => n === 'frasy:mt:resposta')).toHaveLength(2)
+  })
+
   it('o opus-mt sozinho: "pronto" só com as duas pernas', async () => {
     const { local } = await montar()
     const progresso: number[] = []

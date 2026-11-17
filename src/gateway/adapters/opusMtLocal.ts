@@ -4,6 +4,7 @@ import { modeloParaOIngles, passaPeloIngles } from '../../core/traducao/viaIngle
 import { distribuirThreads } from '../../lib/dispositivo/orcamentoDeThreads';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import type { MtOptions, MtResult, TranslationProvider } from '../capabilities';
+import { marcar } from '../marcasDeDesempenho';
 import { gravarManifesto, MENSAGEM_DO_MANIFESTO } from '../modelManifest';
 
 /**
@@ -137,6 +138,7 @@ export class OpusMtLocal implements TranslationProvider {
         return;
       }
       if (type === 'ready') {
+        marcar('mt:pronto', { modelo: model });
         this.ready.add(model);
         this.loading.delete(model);
         // Antes do progresso: o disjuntor fecha ANTES de a captura pedir as retraduções.
@@ -221,6 +223,7 @@ export class OpusMtLocal implements TranslationProvider {
     }
     if (this.loading.has(model)) return;
     this.loading.add(model);
+    marcar('mt:carga:inicio', { modelo: model });
     this.worker!.postMessage({ type: 'preload', src, tgt, threads: this.threads });
   }
 
@@ -242,12 +245,15 @@ export class OpusMtLocal implements TranslationProvider {
     if (!this.ready.has(model)) {
       if (!this.loading.has(model)) {
         this.loading.add(model);
+        marcar('mt:carga:inicio', { modelo: model });
         this.worker!.postMessage({ type: 'preload', src, tgt, threads: this.threads });
       }
       throw new MotorAindaCarregando(this.id, 'opus-mt ainda carregando (usando fallback)');
     }
 
     const id = Math.random().toString(36).slice(2);
+    /* A fila do worker na linha do tempo (só o final: o parcial é descartável). */
+    if (!opts?.parcial) marcar('mt:pedido', { id, modelo: model, fila: this.pending.size });
     /* PRIORIDADE: a tradução de um parcial vai atrás das de final e é interrompida quando um final
        chega (o worker responde `cancelado`) — ver `mtWorker.ts`. */
     const translated = await new Promise<string>((resolve, reject) => {
@@ -262,6 +268,7 @@ export class OpusMtLocal implements TranslationProvider {
         threads: this.threads,
       });
     });
+    if (!opts?.parcial) marcar('mt:resposta', { id, modelo: model });
     if (!translated) throw new Error('opus-mt devolveu vazio');
     return { text: translated, detectedSourceLang: src, engine: 'opus-mt-local' };
   }

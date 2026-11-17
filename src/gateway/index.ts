@@ -40,6 +40,7 @@ import type {
   TranslationProvider,
 } from './capabilities';
 import { capMetrics } from './capture/captureMetrics';
+import { marcar } from './marcasDeDesempenho';
 import { WHISPER_MODELS } from './sttRouter';
 
 const LOCAL_RE = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])/i;
@@ -663,35 +664,46 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
         onProgress?: (p: number, label?: string, bytes?: { loaded: number; total: number }) => void,
         opts?: { aoDegradar?: (aviso: AvisoDeDegradacaoDoStt) => void },
       ): Promise<void> {
-        const doPerfil = (): Promise<void> => {
-          for (const b of core.getProfile().bindings.stt ?? []) {
-            try {
-              const a = resolveStt(b);
-              if (a.supportsBlob && a.isAvailable() && a.preload) return a.preload(onProgress, opts);
-            } catch {
-              /* próximo binding */
+        const carregar = (): Promise<void> => {
+          const doPerfil = (): Promise<void> => {
+            for (const b of core.getProfile().bindings.stt ?? []) {
+              try {
+                const a = resolveStt(b);
+                if (a.supportsBlob && a.isAvailable() && a.preload) return a.preload(onProgress, opts);
+              } catch {
+                /* próximo binding */
+              }
             }
-          }
-          return Promise.resolve();
+            return Promise.resolve();
+          };
+          if (!parakeet.ativo) return doPerfil();
+          /* A rota escolheu o Parakeet: é ele que carrega. Se não carregar (rede, integridade, o WASM
+             ou a memória), a preparação NÃO falha: o Parakeet sai da cadeia até a próxima rota e o
+             Whisper de reserva carrega no lugar, com a mesma barra. */
+          return obterParakeet()
+            .then((a) => {
+              if (!a.isAvailable() || !a.preload) throw new Error('Parakeet indisponível neste aparelho');
+              return a.preload(onProgress, opts);
+            })
+            .catch((e: unknown) => {
+              // Trocado de rota no meio da carga (o worker foi encerrado de propósito): nada a reportar.
+              if (!parakeet.ativo) return doPerfil();
+              console.warn('[stt] Parakeet não carregou; seguindo com o Whisper local:', String(e));
+              capMetrics.fallback(`stt:${ADAPTADOR_DO_PARAKEET}`);
+              usarParakeet(false);
+              onProgress?.(0, 'Trocando para o modelo de reserva (Whisper)…');
+              return doPerfil();
+            });
         };
-        if (!parakeet.ativo) return doPerfil();
-        /* A rota escolheu o Parakeet: é ele que carrega. Se não carregar (rede, integridade, o WASM
-           ou a memória), a preparação NÃO falha: o Parakeet sai da cadeia até a próxima rota e o
-           Whisper de reserva carrega no lugar, com a mesma barra. */
-        return obterParakeet()
-          .then((a) => {
-            if (!a.isAvailable() || !a.preload) throw new Error('Parakeet indisponível neste aparelho');
-            return a.preload(onProgress, opts);
-          })
-          .catch((e: unknown) => {
-            // Trocado de rota no meio da carga (o worker foi encerrado de propósito): nada a reportar.
-            if (!parakeet.ativo) return doPerfil();
-            console.warn('[stt] Parakeet não carregou; seguindo com o Whisper local:', String(e));
-            capMetrics.fallback(`stt:${ADAPTADOR_DO_PARAKEET}`);
-            usarParakeet(false);
-            onProgress?.(0, 'Trocando para o modelo de reserva (Whisper)…');
-            return doPerfil();
-          });
+        /* A carga do STT na linha do tempo (`marcasDeDesempenho.ts`): a bancada a compara com a do tradutor. */
+        marcar('stt:carga:inicio');
+        return carregar().then(
+          () => marcar('stt:carga:fim', { ok: true }),
+          (e: unknown) => {
+            marcar('stt:carga:fim', { ok: false });
+            throw e;
+          },
+        );
       },
 
       /**

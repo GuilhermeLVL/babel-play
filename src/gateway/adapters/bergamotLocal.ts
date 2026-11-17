@@ -1,6 +1,7 @@
 import { ChamadaCancelada, ehCancelamento, ehMotorCarregando, MotorAindaCarregando } from '@core';
 
 import type { MtOptions, MtResult, TranslationProvider } from '../capabilities';
+import { marcar } from '../marcasDeDesempenho';
 import { gravarManifesto, MENSAGEM_DO_MANIFESTO } from '../modelManifest';
 import {
   bergamotOferecido,
@@ -155,6 +156,7 @@ export class BergamotLocal implements TranslationProvider {
           );
           return;
         case 'ready': {
+          marcar('mt:pronto', { modelo: m.model });
           const par = parDoId(m.model);
           if (par) {
             this.prontos.add(par);
@@ -203,6 +205,7 @@ export class BergamotLocal implements TranslationProvider {
   private pedirCarga(par: ParDoBergamot): void {
     if (this.prontos.has(par) || this.emCarga.has(par)) return;
     this.emCarga.add(par);
+    marcar('mt:carga:inicio', { modelo: idDoBergamot(par) });
     this.ensureWorker(par).postMessage({ type: 'carregar', plano: planoDaPagina(par) } satisfies MensagemParaOWorker);
   }
 

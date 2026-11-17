@@ -19,7 +19,7 @@
 
 ## 4. 2ª sessão
 
-- [ ] 4.1 Marcas `performance.mark` na carga do STT, na carga do MT e na fila do worker de tradução, expostas ao harness. Verificar: as marcas aparecem em `resultado.json` de `celular/medir-celular.mjs`.
+- [x] 4.1 Marcas `performance.mark` na carga do STT, na carga do MT e na fila do worker de tradução, expostas ao harness. Verificar: as marcas aparecem em `resultado.json` de `celular/medir-celular.mjs`.
 - [ ] 4.2 Medir 5 pares de sessões com ordem alternada (`celular/rodar-visitante.sh` + `celular/latencias.mjs`) e registrar a causa em `openspec/audits/`. Verificar: relatório com p50/p95 por sessão e a causa sustentada pelas marcas.
 - [ ] 4.3 Aplicar a correção que a medição apontar (adiar o `preload` do MT até o STT estar pronto, ou serializar as cargas sem isolamento). Verificar: p50 da 2ª sessão no máximo 1,2× o da 1ª e máximo abaixo de 8 s, nos dois aparelhos.
 - [x] 4.4 `oferecerNativoOuNuvem`: mostrar o aviso sempre que for registrado. Verificar: teste do regulador (log e aviso andam juntos).

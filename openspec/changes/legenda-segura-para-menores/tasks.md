@@ -22,8 +22,8 @@
 ## 4. Verificação ponta a ponta
 
 - [x] 4.1 E2E Playwright (`tests/e2e/legenda-segura.spec.ts`) com o microfone falso tocando a fala que gerou o caso (trecho de `reports/auditoria-qualidade/computador/audio/aula.wav`, ou um TTS da frase "reveal the porn quest together" quando o STT não reproduzir o erro) num perfil sem conta. Verificar: 0 ocorrências de termos das listas no DOM da lista e do PiP, e pelo menos 1 `•••`. (Feito em `tests/e2e/legenda-segura.e2e.ts`, a convenção da pasta. A fala entra pela bancada `__simFalas`, que escreve pelo setter envolvido: o STT não reproduz o erro sob demanda. O servidor do e2e é self-host, onde `perfilProtegido()` é falso; a suíte liga a opção do adulto em Ajustes. O perfil protegido fica coberto pelos testes de unidade.)
-- [ ] 4.2 Repetir a rodada da auditoria `node computador/medir.mjs aula <perfil> <saída> webkit` contra o staging. Verificar: `analise.json` da rodada sem termos das listas (script de contagem anexado ao PR).
-- [ ] 4.3 `npm run typecheck`, `npm run lint` e `npm test` verdes.
+- [ ] 4.2 Repetir a rodada da auditoria `node computador/medir.mjs aula <perfil> <saída> webkit` contra o staging. Verificar: `analise.json` da rodada sem termos das listas (script de contagem anexado ao PR). (Pendente: depende do deploy no staging, que não foi feito nesta branch.)
+- [x] 4.3 `npm run typecheck`, `npm run lint` e `npm test` verdes. (17/11: typecheck e lint limpos; `npx vitest run` 1232 arquivos, 16 539 testes verdes.)
 
 ## Workflow follow-up
 

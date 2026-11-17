@@ -39,6 +39,11 @@
           "funcoes": ["traducao", "tutor"],
           "niveis": ["nuance", "polimento"],
           "preco": { "entrada": 0.15, "entradaEmCache": 0.075, "saida": 0.6 }
+        },
+        {
+          "id": "hexgrad/kokoro-82m",
+          "funcoes": ["tts"],
+          "preco": { "milhaoDeCaracteres": 4 }
         }
       ]
     }

@@ -17,9 +17,12 @@ import {
   custoDoAssistenteNoPiorCaso,
   custoDoPlanoNoPiorCaso,
   custoDoPoolDaAmostraNoMes,
+  margemDaVozBoa,
   margemDoAnual,
   PIOR_CUSTO_BRL_POR_HORA_DE_NUVEM,
   TAXA_DO_ANUAL,
+  USD_POR_MILHAO_DE_CARACTERES_DA_VOZ_BOA,
+  USD_POR_MILHAO_DE_CARACTERES_DE_VOZ,
 } from './modeloDeCusto';
 
 const arg = (nome: string, padrao: number): number => {
@@ -42,7 +45,7 @@ const gratis = Math.max(0, usuarios - essencial - premium - plus - familia - pro
 const amostra = arg('amostra', 0.3); // fração dos grátis que usa a amostra de IA de estudo inteira (pior caso; hipótese)
 
 const HORA = { conservador: 0.04 * 1.08 + 0.0149, esperado: 0.012 * 1.08 + 0.0149 }; // US$ por hora de legenda
-const VOZ_USD_POR_CARACTERE = 1 / 1_000_000; // US$ 1,00 por 1M de caracteres
+const VOZ_USD_POR_CARACTERE = USD_POR_MILHAO_DE_CARACTERES_DE_VOZ / 1_000_000; // Kokoro pelo OpenRouter, pior endpoint
 const horas = (segundos: number | null) => (segundos ?? 0) / 3600;
 const TAXA_DO_CREDITO = 1.055; // hipótese: não verificada
 const FOLGA = 1.2;
@@ -138,5 +141,15 @@ for (const plano of ['plus', 'familia', 'pro4'] as const) {
   const m = margemDoAnual(plano);
   console.log(
     `${PLAN_MATRIX[plano].rotulo.padEnd(9)} ${a.chamadasMes} chamadas/mês no teto, ${(a.tokensMes / 1e6).toFixed(2)} M tokens (${(a.fracaoDaCota * 100).toFixed(0)}% da cota) = ${r(a.brlMes)}/mês, dentro dos ${r(m.iaDeTextoBrl)} da IA de texto`,
+  );
+}
+
+// A VOZ BOA (MAI-Voice pelo OpenRouter) nos planos de nível boa: fecha a conta no pior caso? (change voz-natural-openrouter)
+console.log(
+  `\nVOZ BOA (MAI-Voice 2.1 Flash, US$ ${USD_POR_MILHAO_DE_CARACTERES_DA_VOZ_BOA}/1M) nos planos de nível boa, mensal, cota cheia, pior caso; a básica (Kokoro) a US$ ${USD_POR_MILHAO_DE_CARACTERES_DE_VOZ}/1M`,
+);
+for (const v of margemDaVozBoa()) {
+  console.log(
+    `${PLAN_MATRIX[v.plano].rotulo.padEnd(9)} líq./mês ${r(v.receitaLiquidaMensalBrl)}  sem voz ${r(v.custoSemVozBrl)}  voz boa ${r(v.vozBoaBrl)}  margem ${r(v.margemMensalBrl)}  fecha até ${Math.round(v.caracteresQueFecham / 1000)} mil caracteres/mês${v.margemMensalBrl < 0 ? '  <-- NEGATIVA: MAI desligado por padrão' : ''}`,
   );
 }

@@ -158,7 +158,7 @@ import {
 import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
 import { useSondaGuardada } from '../../lib/dispositivo/useSondaGuardada';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
-import { getEntitlements } from '../../lib/entitlements';
+import { getEntitlements, temVozDaNuvem } from '../../lib/entitlements';
 import { consentiuNuvemNaFala, EVENTO_DO_PROCESSAMENTO } from '../../lib/escolhaDoProcessamento';
 import {
   estaNoCaderno,
@@ -4439,7 +4439,7 @@ export default function LiveCapture({
             }}
             abrirSistema={() => void handleStartSystemCapture()}
             alternarMicrofone={alternarMicrofone}
-            vozNaturalDisponivel={getEntitlements().vozNatural && flagLigada(FLAG_VOZ_NATURAL)}
+            vozNaturalDisponivel={temVozDaNuvem() && flagLigada(FLAG_VOZ_NATURAL)}
             velocidade={ttsSpeed}
             abrindo={micAbrindo}
             aviso={avisoDoPreparo(modelPrep)}
@@ -4474,7 +4474,7 @@ export default function LiveCapture({
               fechar: fecharMicrofoneDoLado,
             }}
             registrarPonte={registrarPonteDoInterprete}
-            vozNaturalDisponivel={getEntitlements().vozNatural && flagLigada(FLAG_VOZ_NATURAL)}
+            vozNaturalDisponivel={temVozDaNuvem() && flagLigada(FLAG_VOZ_NATURAL)}
             velocidade={ttsSpeed}
             layout={noQuest ? 'quest' : noCelular ? 'celular' : 'computador'}
             semVoz={semVozDeLeitura}

@@ -22,6 +22,10 @@
  * do design), e o app deixa de registrar. Na página, `?sw=desligar` ou o botão do Diagnóstico fazem o mesmo para
  * um navegador só (`src/lib/registrarSw.ts`).
  */
+import { createHash } from 'node:crypto';
+import { existsSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+
 import type { OutputBundle } from 'rollup';
 import type { Plugin } from 'vite';
 
@@ -173,19 +177,22 @@ function itensDo(bundle: OutputBundle): ItemDoBundle[] {
   });
 }
 
-/** O plugin: grava `dist/sw.js` no fim do build do app. */
+/**
+ * O plugin: grava `dist/sw.js` DEPOIS de o bundle ir para o disco (`writeBundle`). Antes disso a lista ainda tem
+ * chunks que o Vite descarta (o JS vazio de um chunk só de CSS): um 404 no precache derruba a instalação inteira
+ * (`cache.addAll`), então só entra o que existe no `dist`. A versão leva um hash da lista: build novo, cache novo.
+ */
 export function serviceWorkerDoBuild(opcoes: { versao: string; ligado: boolean }): Plugin {
   return {
     name: 'service-worker-do-app',
     apply: 'build',
-    generateBundle(_saida, bundle) {
+    writeBundle(saida, bundle) {
       if (!Object.values(bundle).some((b) => b.type === 'chunk' && b.isEntry)) return;
-      const precache = listaDePrecache(itensDo(bundle));
-      this.emitFile({
-        type: 'asset',
-        fileName: 'sw.js',
-        source: gerarServiceWorker({ versao: opcoes.versao, precache, ligado: opcoes.ligado }),
-      });
+      const dir = saida.dir ?? 'dist';
+      const precache = listaDePrecache(itensDo(bundle)).filter((p) => existsSync(path.join(dir, p)));
+      const hash = createHash('sha256').update(precache.join('\n')).digest('hex').slice(0, 10);
+      const versao = `${opcoes.versao}-${hash}`;
+      writeFileSync(path.join(dir, 'sw.js'), gerarServiceWorker({ versao, precache, ligado: opcoes.ligado }));
     },
   };
 }

@@ -28,40 +28,43 @@ type Capitulo = {
   extra?: string;
 };
 
-// O original e a tradução são os que o Frasy gerou em produção (16/11/2026).
+// Falas de exemplo, no visual das Legendas flutuantes. A tradução foi revisada à mão (a do motor dizia
+// "porta 12" e "Encontrar outro caminho"); a auditoria de texto de 17/11/2026 explica por quê.
 const CAPITULOS: Capitulo[] = [
   {
     rotulo: 'Série',
     kicker: 'Séries e filmes',
     titulo: 'Entenda o que você assiste.',
-    corpo: 'Legenda e tradução ao vivo do som de qualquer aba. Você continua vendo, e as palavras novas ficam.',
+    corpo:
+      'Legenda e tradução ao vivo do som do computador ou do microfone. Você segue assistindo, e as palavras novas ficam guardadas.',
     original: "I can't believe you kept this from me. We were supposed to be a team!",
-    traducao: 'Não acredito que escondeu isso de mim. Éramos uma equipe!',
+    traducao: 'Não acredito que você escondeu isso de mim. Era para a gente ser uma equipe!',
     extra: '<div class="acoes"><a class="botao" href="/app">Abrir o Frasy · grátis</a></div>',
   },
   {
     rotulo: 'Jogo',
     kicker: 'Jogos',
     titulo: 'A missão em inglês, entendida na hora.',
-    corpo: 'Diálogos de jogo passam rápido. O Frasy legenda por cima, sem pausar a partida.',
+    corpo: 'Diálogo de jogo passa rápido. A legenda aparece enquanto você joga, sem pausar a partida.',
     original: 'The bridge is guarded. Find another way into the castle before sunset.',
-    traducao: 'A ponte está guardada. Encontrar outro caminho para o castelo antes do pôr do sol.',
+    traducao: 'A ponte está vigiada. Encontre outro caminho para o castelo antes do pôr do sol.',
   },
   {
     rotulo: 'Aula',
     kicker: 'Aulas e reuniões',
-    titulo: 'Aula rápida? A legenda acompanha.',
-    corpo: 'Aula online, reunião ou curso: você lê junto quando apertar e revisa os termos depois.',
+    titulo: 'Aula, curso ou reunião? A legenda acompanha.',
+    corpo: 'Você lê junto o que o professor fala e guarda as palavras novas para rever depois.',
     original: 'For tomorrow, please read chapter 4 and write a short summary.',
-    traducao: 'Para amanhã, leia o capítulo 4 e escreva um breve resumo.',
+    traducao: 'Para amanhã, leiam o capítulo 4 e escrevam um breve resumo.',
   },
   {
     rotulo: 'Viagem',
     kicker: 'Viagem',
     titulo: 'No balcão, no táxi, no hotel.',
-    corpo: 'Pelo microfone do celular, ou no modo intérprete: cada um fala no seu idioma.',
+    corpo:
+      'O microfone do celular entende o que falam ao seu redor. Para conversar, cada pessoa fala no seu idioma no mesmo celular.',
     original: 'Your flight was moved to Gate 12, boarding starts in 20 minutes.',
-    traducao: 'Seu voo foi transferido para a porta 12, embarque começa em 20 minutos.',
+    traducao: 'Seu voo mudou para o portão 12. O embarque começa em 20 minutos.',
   },
   {
     rotulo: 'Família',
@@ -69,13 +72,14 @@ const CAPITULOS: Capitulo[] = [
     titulo: 'O desenho favorito vira lição.',
     corpo: 'Perfil protegido para menores: sem compras e sem ofertas. Quem decide é o responsável.',
     original: 'Look! The little fox found his way back home.',
-    traducao: 'Veja! A raposa encontrou o caminho de volta para casa.',
+    traducao: 'Olha! A raposa achou o caminho de volta para casa.',
   },
   {
     rotulo: 'Palavras',
     kicker: 'E depois?',
     titulo: 'Cada palavra que você toca fica com você.',
-    corpo: 'Ela vira cartão, volta em jogos curtos e aparece de novo nas próximas séries. É assim que o idioma fica.',
+    corpo:
+      'Ela entra nas suas palavras, volta numa revisão rápida e em jogos curtos. Sem tempo para jogar? Dá para só revisar.',
     extra: '<div class="acoes"><a class="botao vidro" href="#alem">Ver o que mais o Frasy faz</a></div>',
   },
 ];
@@ -93,7 +97,8 @@ const capitulo = (c: Capitulo, i: number): string => {
   );
 };
 
-type Passo = { nome: string; titulo: string; texto: string; clipe: string; alt: string };
+// `cor`: cada passo tem a sua cor da marca (`--marca-*` em `layout.ts`), igual no site e, depois, no app.
+type Passo = { nome: string; titulo: string; texto: string; clipe: string; alt: string; cor: string };
 
 // O fluxo do app, na ordem em que a pessoa usa. Cada clipe é uma tela real, gravada em produção e recortada
 // no componente (roteiro em `reports/landing/gravar-fluxo.mjs`, fora do git).
@@ -101,46 +106,51 @@ const PASSOS_DO_FLUXO: Passo[] = [
   {
     nome: 'Ouça',
     titulo: 'A legenda chega enquanto a pessoa fala.',
-    texto:
-      'Ligue o Frasy num vídeo, numa aula ou numa conversa. O original e a tradução aparecem juntos, frase por frase.',
+    texto: 'Abra um vídeo, uma aula ou uma conversa. O original e a tradução aparecem juntos, frase por frase.',
     clipe: 'fluxo-1-ouvir',
     alt: 'Tela real: falas em inglês chegando ao vivo, cada uma com a tradução em português',
+    cor: 'laranja',
   },
   {
-    nome: 'Toque e guarde',
+    nome: 'Guarde',
     titulo: 'A palavra vai com a frase de onde veio.',
-    texto: 'Toque na fala, escolha a palavra e guarde. Sem pausar, sem copiar e colar.',
+    texto: 'Toque na fala, escolha a palavra e guarde. Sem pausar o vídeo, sem copiar e colar.',
     clipe: 'fluxo-2-guardar',
     alt: 'Tela real: tocar na fala da raposa, escolher a palavra fox e guardar; ela fica marcada na legenda',
+    cor: 'ambar',
   },
   {
     nome: 'Revise',
-    titulo: 'Ela volta na frase de onde veio.',
-    texto:
-      'A revisão espaçada traz a palavra quando você estaria esquecendo, de novo dentro da frase. Você completa a lacuna e ela fica.',
+    titulo: 'Ela volta pouco antes de você esquecer.',
+    texto: 'A palavra reaparece dentro da frase em que você a ouviu. A cada acerto, ela demora mais para voltar.',
     clipe: 'fluxo-3-revisar',
     alt: 'Tela real: a frase da raposa com uma lacuna; tocar em found completa e fica verde',
+    cor: 'verde',
   },
   {
     nome: 'Jogue',
-    titulo: 'Revisar virou jogar.',
-    texto: '17 jogos curtos com as suas palavras: memória, caça-palavras, frase embaralhada e mais.',
+    titulo: 'Revisar vira jogo.',
+    texto: '18 jogos curtos com as suas palavras: memória, frase com lacuna, frase embaralhada e mais.',
     clipe: 'fluxo-4-jogar',
     alt: 'Tela real: o jogo da memória encontrando os pares palavra e tradução',
+    cor: 'indigo',
   },
   {
     nome: 'Escreva',
     titulo: 'De reconhecer a escrever.',
-    texto: 'No Soletrar, a pista é o significado e as cores mostram quais letras estão certas.',
+    texto: 'A pista é o significado. As cores mostram quais letras você já acertou.',
     clipe: 'fluxo-5-escrever',
-    alt: 'Tela real: no Soletrar, a pista semana; WEAK quase acerta e WEEK fica toda verde',
+    alt: 'Tela real: a pista semana; WEAK quase acerta e WEEK fica toda verde',
+    cor: 'azul',
   },
   {
     nome: 'Avance',
     titulo: 'Cada rodada conta.',
-    texto: 'XP, nível, missões do dia e visuais novos para destravar. Um pouco por dia já faz diferença.',
+    texto:
+      'Pontos, nível e missões do dia. Praticando, você ganha visuais novos para o app. Um pouco por dia já ajuda.',
     clipe: 'fluxo-6-progresso',
     alt: 'Tela real: ao fechar a rodada, o nível sobe e libera visuais novos',
+    cor: 'roxo',
   },
 ];
 
@@ -148,7 +158,7 @@ const videoDoPasso = (p: Passo, atributo: string): string =>
   `<video ${atributo} src="${M}/${p.clipe}.mp4" poster="${M}/${p.clipe}.jpg" muted loop playsinline preload="none" aria-label="${p.alt}"></video>`;
 
 const passoDoFluxo = (p: Passo, i: number): string =>
-  `<li class="passo" data-passo><span class="passo-n" aria-hidden="true">${String(i + 1).padStart(2, '0')}</span>` +
+  `<li class="passo cor-${p.cor}" data-passo><span class="passo-n" aria-hidden="true">${String(i + 1).padStart(2, '0')}</span>` +
   `<div class="passo-texto"><p class="passo-nome">${p.nome}</p><h3>${p.titulo}</h3><p>${p.texto}</p></div>` +
   `<div class="passo-midia">${videoDoPasso(p, 'data-quando-visivel')}</div></li>`;
 
@@ -160,7 +170,7 @@ export function corpoDaHome(guias: Guia[]): string {
 ${CAPITULOS.map((_, i) => `<figure class="camada" data-camada aria-hidden="true"><img src="${M}/cap-${i + 1}.jpg" alt=""${i === 0 ? ' fetchpriority="high"' : ' loading="lazy"'}></figure>`).join('\n')}
 <div class="rolo-veu" aria-hidden="true"></div><div class="rolo-barra" aria-hidden="true"></div>
 <nav class="rota" aria-label="Capítulos" id="rota"></nav>
-<p class="nota-ia">Filmes gerados por IA · legenda e tradução geradas pelo Frasy</p>
+<p class="nota-ia">Cenas de exemplo criadas com IA, com a legenda no visual do Frasy</p>
 </div>
 <div class="historia-do-rolo">
 ${CAPITULOS.map(capitulo).join('\n')}
@@ -171,27 +181,27 @@ ${CAPITULOS.map(capitulo).join('\n')}
 <div class="larg-v">
 <p class="rotulo-v" data-revelar>Além da legenda</p>
 <h2 id="t-alem" data-revelar>Do vídeo ao <mark class="marca-texto">vocabulário</mark>, em seis passos.</h2>
-<p class="lead-v" data-revelar>O que você ouviu vira prática: revisão no dia certo, jogos e progresso. Todas as telas abaixo são do app de verdade.</p>
+<p class="lead-v" data-revelar>O que você ouviu vira prática: revisão rápida, jogos e o seu progresso. Todas as telas abaixo são do app de verdade.</p>
 <div class="fluxo-grade">
 <div class="fluxo-tela" aria-hidden="true">
 <div class="janela"><div class="janela-barra"><i></i><i></i><i></i><span>frasy.com.br/app</span></div>
 <div class="janela-quadros">${PASSOS_DO_FLUXO.map((p, i) => `<div class="quadro${i === 0 ? ' ativo' : ''}" data-quadro>${videoDoPasso(p, 'tabindex="-1"')}</div>`).join('')}</div></div>
-<div class="fluxo-pontos">${PASSOS_DO_FLUXO.map((p, i) => `<span${i === 0 ? ' class="ativo"' : ''}>${p.nome}</span>`).join('')}</div>
+<div class="fluxo-pontos">${PASSOS_DO_FLUXO.map((p, i) => `<span class="cor-${p.cor}${i === 0 ? ' ativo' : ''}">${p.nome}</span>`).join('')}</div>
 </div>
 <ol class="fluxo-passos">
 ${PASSOS_DO_FLUXO.map(passoDoFluxo).join('\n')}
 </ol>
 </div>
 <div class="tambem">
-<article class="peca-v" data-revelar><div class="midia"><video data-quando-visivel src="${M}/fluxo-7-ler.mp4" poster="${M}/fluxo-7-ler.jpg" muted loop playsinline preload="none" aria-label="Tela real: no leitor, tocar numa palavra do livro mostra a tradução"></video></div><div class="info"><span class="chip">Livros</span><h3>215 clássicos no seu nível.</h3><p>Leia e ouça livros em domínio público, ou traga o seu. Toque numa palavra e ela vai para o caderno.</p></div></article>
-<article class="peca-v ia" data-revelar><div class="midia"><div class="bolha"><b>"Circle back"</b> quer dizer retomar um assunto depois. Nesta frase, a pessoa propõe voltar ao orçamento em outra reunião. Outras formas de dizer: <i lang="en">revisit</i>, <i lang="en">come back to</i>.</div></div><div class="info"><span class="chip breve">Em breve</span><h3>A IA que explica a frase, do seu jeito.</h3><p>Por que essa palavra aqui, outras formas de dizer, o tom da frase. Para quem quer ir além da tradução.</p></div></article>
+<article class="peca-v" data-revelar><div class="midia"><video data-quando-visivel src="${M}/fluxo-7-ler.mp4" poster="${M}/fluxo-7-ler.jpg" muted loop playsinline preload="none" aria-label="Tela real: no leitor, tocar numa palavra do livro mostra a tradução"></video></div><div class="info"><span class="chip">Livros</span><h3>Clássicos para ler de graça.</h3><p>Livros que qualquer pessoa pode ler sem pagar, com o nível de cada um para você escolher. Ou traga o seu. Toque numa palavra e ela vai para as suas palavras.</p></div></article>
+<article class="peca-v ia" data-revelar><div class="midia"><div class="bolha"><b>"Circle back"</b> quer dizer retomar um assunto depois. Nesta frase, a pessoa propõe voltar ao orçamento em outra reunião. Outras formas de dizer: <i lang="en">revisit</i>, <i lang="en">come back to</i>.</div></div><div class="info"><span class="chip breve">Em breve</span><h3>Uma explicação da frase, do seu jeito.</h3><p>Por que essa palavra aqui, outras formas de dizer, o tom da frase. Ainda não está disponível.</p></div></article>
 </div>
 </div>
 </section>
 
 <section class="interprete-v" id="interprete" aria-labelledby="t-int">
 <div class="larg-v grade">
-<div><p class="rotulo-v">Modo intérprete</p><h2 id="t-int" data-revelar>Um celular. <em>Duas línguas.</em></h2><p class="lead-v">Cada pessoa fala no seu idioma. A tradução aparece do outro lado e é lida em voz alta.</p></div>
+<div><p class="rotulo-v">Conversa</p><h2 id="t-int" data-revelar>Um celular. <em>Duas línguas.</em></h2><p class="lead-v">Cada pessoa fala no seu idioma, no mesmo celular. A tradução aparece do outro lado e é lida em voz alta.</p></div>
 <video src="${M}/interprete.mp4" controls playsinline preload="metadata" aria-label="Vídeo: um brasileiro pergunta onde fica o metrô e a moradora responde em inglês, com a tradução do Frasy"></video>
 </div>
 </section>
@@ -205,7 +215,7 @@ ${PASSOS_DO_FLUXO.map(passoDoFluxo).join('\n')}
 <video class="sem" id="cmp-sem" src="${M}/antes-depois.mp4" muted loop playsinline preload="metadata" aria-hidden="true"></video>
 <div class="confuso" aria-hidden="true">???</div>
 <div class="com-camada" id="cmp-camada"><video id="cmp-com" src="${M}/antes-depois.mp4" muted loop playsinline preload="metadata" aria-hidden="true"></video>
-<div class="lg"><p class="o" lang="en">I can't believe you kept this from me. We were supposed to be a team!</p><p class="t">Não acredito que escondeu isso de mim. Éramos uma equipe!</p></div></div>
+<div class="lg"><p class="o" lang="en">I can't believe you kept this from me. We were supposed to be a team!</p><p class="t">Não acredito que você escondeu isso de mim. Era para a gente ser uma equipe!</p></div></div>
 <span class="marca-lado marca-sem">Sem o Frasy</span><span class="marca-lado marca-com">Com o Frasy</span>
 <div class="divisor" id="cmp-divisor"></div>
 <input type="range" id="cmp-controle" min="5" max="95" value="50" aria-label="Arraste para comparar sem e com o Frasy">
@@ -218,9 +228,9 @@ ${PASSOS_DO_FLUXO.map(passoDoFluxo).join('\n')}
 <p class="rotulo-v">Feito com cuidado</p>
 <h2 id="t-conf" data-revelar>Estudo tranquilo, do jeito certo.</h2>
 <div class="tres">
-<div><h3>No seu aparelho primeiro</h3><p>Transcrição e tradução rodam no navegador. A nuvem só entra com o seu consentimento, com provedores que se comprometem a não guardar o que recebem nem usar para treinar modelos. Veja <a href="/privacidade">como tratamos os dados</a>.</p></div>
-<div><h3>Perfil protegido para menores</h3><p>Menores de 18 anos não fazem compras nem recebem ofertas de plano. Quem decide qualquer pagamento é o responsável, pela conta dele.</p></div>
-<div><h3>Sem pressão</h3><p>O Frasy não promete fluência em poucos dias. Ele ajuda você a entender um pouco mais a cada episódio, aula ou conversa.</p></div>
+<div><h3>Neste aparelho, sempre que dá</h3><p>A legenda e a tradução rodam no seu navegador. Quando algo precisa ir pela internet, só com a sua permissão, e os serviços que usamos não guardam o que recebem nem treinam IA com isso. Veja <a href="/privacidade">como cuidamos dos seus dados</a>.</p></div>
+<div><h3>Perfil protegido para menores</h3><p>Menores de 18 anos não compram nada e não recebem ofertas de plano. Qualquer pagamento é decidido pelo responsável, na conta dele.</p></div>
+<div><h3>Um pouco mais a cada dia</h3><p>Cada episódio, aula ou conversa ajuda você a entender um pouco mais. No seu ritmo, sem pressa e sem promessa de milagre.</p></div>
 </div>
 </div>
 </section>
@@ -231,7 +241,7 @@ ${
 }
 <section class="final-v" aria-labelledby="comece">
 <div class="larg-v"><h2 id="comece" data-revelar>Abra um vídeo que você já queria ver.</h2>
-<p>Clique em Legendar agora e guarde a primeira palavra. Leva um minuto.</p>
+<p>Abra o Frasy, toque em Legendar agora e guarde a primeira palavra.</p>
 <a class="botao" href="/app">Abrir o Frasy · grátis</a></div>
 </section>
 `;
@@ -244,37 +254,37 @@ export const CSS_DA_HOME = `
 .rotulo-v{font:700 13px/1.2 var(--texto);letter-spacing:.14em;text-transform:uppercase;color:var(--acento-texto);margin:0}
 .lead-v{font-size:clamp(17px,1.6vw,20px);color:var(--suave);max-width:38em}
 .botao.vidro{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.4);box-shadow:none}
-.rolo{position:relative;background:#0E0B09;color:#fff}
+.rolo{position:relative;background:var(--noite);color:#fff}
 .rolo-palco{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;z-index:0}
 .camada{position:absolute;inset:0;margin:0;opacity:0;will-change:opacity}
 .camada:first-child{opacity:1}
 .camada img,.camada video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .camada video{opacity:0}
 .camada[data-pintado] video{opacity:1}
-.rolo-veu{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(14,11,9,.74) 0%,rgba(14,11,9,.2) 46%,rgba(14,11,9,0) 65%),linear-gradient(0deg,rgba(14,11,9,.55) 0%,rgba(14,11,9,0) 30%)}
-.rolo-barra{position:absolute;left:0;bottom:0;height:3px;width:100%;transform-origin:left;transform:scaleX(var(--progresso,0));background:#EF4E22}
+.rolo-veu{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(16,18,40,.74) 0%,rgba(16,18,40,.2) 46%,rgba(16,18,40,0) 65%),linear-gradient(0deg,rgba(16,18,40,.55) 0%,rgba(16,18,40,0) 30%)}
+.rolo-barra{position:absolute;left:0;bottom:0;height:3px;width:100%;transform-origin:left;transform:scaleX(var(--progresso,0));background:var(--logo-laranja)}
 .rota{position:absolute;right:max(16px,env(safe-area-inset-right,0px));top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;z-index:3}
 .rota button{all:unset;cursor:pointer;display:flex;align-items:center;justify-content:flex-end;gap:10px;font:600 13px/1 var(--texto);color:rgba(255,255,255,.6);padding:6px 0}
 .rota button::after{content:"";width:22px;height:2px;border-radius:2px;background:currentColor;transition:width .25s}
 .rota button[aria-current]{color:#fff}
-.rota button[aria-current]::after{width:40px;background:#EF4E22}
-.rota button:focus-visible{outline:2px solid #EF4E22;outline-offset:4px}
+.rota button[aria-current]::after{width:40px;background:var(--logo-laranja)}
+.rota button:focus-visible{outline:2px solid var(--logo-laranja);outline-offset:4px}
 .nota-ia{position:absolute;left:max(20px,env(safe-area-inset-left,0px));bottom:14px;margin:0;font:500 12px/1.3 var(--texto);color:rgba(255,255,255,.7);z-index:3}
 .historia-do-rolo{position:relative;z-index:2;margin-top:-100vh;margin-top:-100svh;pointer-events:none}
 .historia-do-rolo .texto{pointer-events:auto}
 .capitulo{min-height:150vh;min-height:150svh;position:relative}
 .capitulo-fixo{position:sticky;top:0;height:100vh;height:100svh;display:flex;align-items:center}
 .texto{max-width:560px;padding:0 max(24px,env(safe-area-inset-left,0px));margin-left:max(0px,calc((100vw - 1200px)/2))}
-.capitulo .kicker{font:700 13px/1 var(--texto);letter-spacing:.12em;text-transform:uppercase;color:#F4774F;margin:0 0 16px}
+.capitulo .kicker{font:700 13px/1 var(--texto);letter-spacing:.12em;text-transform:uppercase;color:var(--logo-laranja-claro);margin:0 0 16px}
 .capitulo h1,.capitulo h2{font-size:clamp(40px,5.6vw,82px);line-height:.98;letter-spacing:-.04em;margin:0 0 18px;color:#fff;text-shadow:0 8px 40px rgba(0,0,0,.45)}
-.capitulo .corpo{font-size:clamp(17px,1.5vw,20px);color:#F3ECE0;max-width:30em;margin:0;text-shadow:0 2px 16px rgba(0,0,0,.5)}
+.capitulo .corpo{font-size:clamp(17px,1.5vw,20px);color:var(--noite-tinta);max-width:30em;margin:0;text-shadow:0 2px 16px rgba(0,0,0,.5)}
 .capitulo .acoes{margin-top:26px}
 .leg{margin-top:28px;max-width:560px;padding:18px 22px 20px;border-radius:18px;background:rgba(20,17,14,.8)}
-.leg .selo{display:inline-flex;align-items:center;gap:8px;font:700 11px/1 var(--texto);letter-spacing:.1em;color:#fff;background:#EF4E22;padding:6px 9px;border-radius:999px;margin-bottom:10px}
+.leg .selo{display:inline-flex;align-items:center;gap:8px;font:700 11px/1 var(--texto);letter-spacing:.1em;color:#fff;background:var(--logo-laranja);padding:6px 9px;border-radius:999px;margin-bottom:10px}
 .leg .selo i{width:7px;height:7px;border-radius:50%;background:#fff}
 .leg .o{font:600 18px/1.35 var(--texto);color:#fff;margin:0}
 .leg .o span{transition:opacity .12s}
-.leg .t{margin:6px 0 0;font:800 24px/1.2 var(--titulo);color:#FFEA00;transition:opacity .2s,transform .2s}
+.leg .t{margin:6px 0 0;font:800 24px/1.2 var(--titulo);color:var(--logo-amarelo);transition:opacity .2s,transform .2s}
 .leg .t.oculta{opacity:0;transform:translateY(6px)}
 .secao-v{padding:110px 0 0}
 .secao-v h2{font-size:clamp(36px,5vw,64px);margin:14px 0 18px;max-width:15em}
@@ -285,7 +295,7 @@ export const CSS_DA_HOME = `
 .peca-v h3{font-size:26px;margin:0 0 8px}
 .peca-v p{color:var(--suave);font-size:16px;margin:0}
 .peca-v .chip{display:inline-block;margin-bottom:10px;font:700 12px/1 var(--texto);letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;border-radius:999px;background:var(--acao);color:var(--acao-tinta)}
-.peca-v .chip.breve{background:#211E19;color:#fff}
+.peca-v .chip.breve{background:var(--noite);color:#fff}
 .capitulo h1,.capitulo h2,.secao-v h2,.interprete-v h2,.final-v h2,.peca-v h3,.passo h3{font-stretch:112%}
 .marca-texto{color:inherit;padding:0 .12em;border-radius:.12em;background:linear-gradient(var(--marcador),var(--marcador)) no-repeat 0 100%/0% 100%;box-shadow:inset 0 -.1em 0 transparent;transition:background-size .9s cubic-bezier(.2,.7,.2,1) .25s,box-shadow .3s 1.1s,color .3s .5s}
 .visto .marca-texto,.marca-texto.visto{background-size:100% 100%;box-shadow:inset 0 -.1em 0 var(--marcador-verde);color:var(--marcador-tinta)}
@@ -318,29 +328,40 @@ export const CSS_DA_HOME = `
 .passo.ativo .passo-texto{opacity:1;transition:opacity .35s}
 .passo-midia{display:none}
 .tambem{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:72px}
-.peca-v.ia{background:#0E0B09;color:#F3ECE0}
+.cor-laranja{--cor:var(--marca-laranja);--cor-claro:var(--marca-laranja-claro)}
+.cor-ambar{--cor:var(--marca-ambar);--cor-claro:var(--marca-ambar-claro)}
+.cor-verde{--cor:var(--marca-verde);--cor-claro:var(--marca-verde-claro)}
+.cor-indigo{--cor:var(--marca-indigo);--cor-claro:var(--marca-indigo-claro)}
+.cor-azul{--cor:var(--marca-azul);--cor-claro:var(--marca-azul-claro)}
+.cor-roxo{--cor:var(--marca-roxo);--cor-claro:var(--marca-roxo-claro)}
+.passo.ativo{border-left-color:var(--cor)}
+.passo .passo-n{color:var(--cor)}
+.passo .passo-nome{display:inline-block;align-self:flex-start;color:var(--cor);background:var(--cor-claro);padding:6px 10px;border-radius:999px;letter-spacing:.1em}
+.fluxo-pontos .ativo{color:var(--cor)}
+.fluxo-pontos .ativo::before{background:var(--cor)}
+.peca-v.ia{background:var(--noite);color:var(--noite-tinta)}
 .peca-v.ia h3{color:#fff}
-.peca-v.ia p{color:#C9BFAE}
-.peca-v.ia .midia{aspect-ratio:auto;min-height:200px;background:radial-gradient(120% 90% at 30% 20%,#3a2a1f 0%,#0E0B09 70%);display:flex;align-items:center;justify-content:center;padding:28px}
+.peca-v.ia p{color:var(--noite-suave)}
+.peca-v.ia .midia{aspect-ratio:auto;min-height:200px;background:radial-gradient(120% 90% at 30% 20%,var(--noite-2) 0%,var(--noite) 70%);display:flex;align-items:center;justify-content:center;padding:28px}
 .bolha{background:#F3F0E8;color:#211E19;border-radius:16px;padding:16px 18px;max-width:440px;font-size:15px;line-height:1.5}
-.interprete-v{margin-top:110px;background:#0E0B09;color:#F3ECE0;padding:100px 0}
+.interprete-v{margin-top:110px;background:var(--noite);color:var(--noite-tinta);padding:100px 0}
 .interprete-v .grade{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:48px;align-items:center}
 .interprete-v h2{color:#fff;font-size:clamp(40px,5.4vw,72px);margin:14px 0 0}
-.interprete-v h2 em{font-style:normal;color:#F4774F}
-.interprete-v .lead-v{color:#C9BFAE;margin-top:18px}
-.interprete-v .rotulo-v{color:#F4774F}
+.interprete-v h2 em{font-style:normal;color:var(--logo-laranja-claro)}
+.interprete-v .lead-v{color:var(--noite-suave);margin-top:18px}
+.interprete-v .rotulo-v{color:var(--logo-laranja-claro)}
 .interprete-v video{width:100%;border-radius:20px}
-.comparar{position:relative;margin-top:36px;border-radius:22px;overflow:hidden;aspect-ratio:16/9;background:#0E0B09}
+.comparar{position:relative;margin-top:36px;border-radius:22px;overflow:hidden;aspect-ratio:16/9;background:var(--noite)}
 .comparar video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .comparar .sem{filter:grayscale(.65) brightness(.75)}
 .comparar .com-camada{position:absolute;inset:0;clip-path:inset(0 0 0 50%)}
 .comparar .marca-lado{position:absolute;top:18px;padding:10px 16px;border-radius:999px;font:800 15px/1 var(--texto);color:#fff}
 .comparar .marca-sem{left:18px;background:rgba(40,40,40,.85)}
-.comparar .marca-com{right:18px;background:#EF4E22}
+.comparar .marca-com{right:18px;background:var(--logo-laranja)}
 .comparar .confuso{position:absolute;left:0;width:50%;bottom:16%;text-align:center;font:900 clamp(40px,8vw,110px)/1 var(--titulo);color:#fff}
 .comparar .lg{position:absolute;right:3%;width:44%;bottom:7%;padding:14px 18px;border-radius:14px;background:rgba(20,17,14,.82);text-align:center}
 .comparar .lg .o{font:600 clamp(12px,1.4vw,18px)/1.3 var(--texto);color:#fff;margin:0}
-.comparar .lg .t{margin:4px 0 0;font:800 clamp(14px,1.8vw,24px)/1.2 var(--titulo);color:#FFEA00}
+.comparar .lg .t{margin:4px 0 0;font:800 clamp(14px,1.8vw,24px)/1.2 var(--titulo);color:var(--logo-amarelo)}
 .comparar .divisor{position:absolute;top:0;bottom:0;left:50%;width:3px;margin-left:-1.5px;background:#fff;pointer-events:none}
 .comparar .divisor::after{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:#fff}
 .comparar input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:ew-resize;margin:0}
@@ -348,12 +369,12 @@ export const CSS_DA_HOME = `
 .tres>div{border-top:3px solid var(--tinta);padding-top:18px}
 .tres h3{font-size:24px;margin:0 0 8px}
 .tres p{color:var(--suave);font-size:16px;margin:0}
-.final-v{margin-top:120px;background:#0E0B09;color:#fff;padding:110px 0;text-align:center}
+.final-v{margin-top:120px;background:var(--noite);color:#fff;padding:110px 0;text-align:center}
 .final-v h2{font-size:clamp(42px,6.4vw,92px);margin:0 auto 20px;max-width:12em;color:#fff}
-.final-v p{color:#C9BFAE;font-size:20px;margin:0 0 30px}
+.final-v p{color:var(--noite-suave);font-size:20px;margin:0 0 30px}
 @media (max-width:900px){
 .rota{display:none}
-.rolo-veu{background:linear-gradient(0deg,rgba(14,11,9,.9) 0%,rgba(14,11,9,.25) 55%,rgba(14,11,9,.1) 100%)}
+.rolo-veu{background:linear-gradient(0deg,rgba(16,18,40,.9) 0%,rgba(16,18,40,.25) 55%,rgba(16,18,40,.1) 100%)}
 .capitulo-fixo{align-items:flex-end;padding-bottom:max(36px,env(safe-area-inset-bottom,0px))}
 .capitulo h1,.capitulo h2{font-size:clamp(34px,10vw,52px)}
 .leg{margin-top:18px}.leg .t{font-size:20px}
@@ -364,7 +385,7 @@ export const CSS_DA_HOME = `
 .camada:nth-child(5) :is(img,video){object-position:52% 50%}
 .fluxo-grade{grid-template-columns:1fr;gap:0}
 .fluxo-tela{display:none}
-.passo{min-height:0;padding:28px 0 28px 20px}
+.passo{min-height:0;padding:28px 0 28px 20px;border-left-color:var(--cor)}
 .passo:not(.ativo) .passo-texto{opacity:1}
 .passo-midia{display:block;border-radius:14px;overflow:hidden;box-shadow:0 0 0 1px var(--borda-fraca),var(--sombra-alta);aspect-ratio:4/3;background:var(--superficie-2)}
 .passo-midia video{width:100%;height:100%;object-fit:cover;display:block}

@@ -187,8 +187,16 @@ describe('layout do site', () => {
     const html = site().get('inicio.html')!
     const caps = [...html.matchAll(/data-clipe="([^"]+)" data-clipe-celular="([^"]+)"/g)]
     expect(caps).toHaveLength(6)
-    expect(html).toContain('Não acredito que escondeu isso de mim. Éramos uma equipe!')
-    expect(html).toContain('Filmes gerados por IA · legenda e tradução geradas pelo Frasy')
+    expect(html).toContain('Não acredito que você escondeu isso de mim. Era para a gente ser uma equipe!')
+    expect(html).toContain('Cenas de exemplo criadas com IA, com a legenda no visual do Frasy')
+    // a tradução de exemplo usa a palavra do contexto (aeroporto: portão) e o imperativo da fala
+    expect(html).toContain('portão 12')
+    expect(html).toContain('Encontre outro caminho')
+    // números que o site afirma: os jogos da grade e nenhum total de livros que a produção não tem
+    expect(html).toContain('18 jogos curtos')
+    expect(html).not.toMatch(/\d+ clássicos/)
+    // sem jargão de ferramenta no texto da home
+    expect(html).not.toMatch(/\b(deck|FSRS|SRS|XP|modo intérprete|revisão espaçada)\b/)
     expect(html).toContain('<span class="chip breve">Em breve</span>')
     // sem JavaScript, o texto de todos os capítulos já está no HTML
     expect(html).toContain('<h1>Entenda o que você assiste.</h1>')

@@ -118,7 +118,7 @@ export function gerarSite(o: OpcoesDoSite): Map<string, string> {
       caminho: '/',
       titulo: 'Frasy: aprenda idiomas com o que você já assiste e escuta',
       descricao:
-        'Legenda e tradução ao vivo em vídeos, aulas, podcasts e chamadas, rodando no seu navegador. As palavras que você salva viram revisão espaçada e jogos curtos.',
+        'Legenda e tradução ao vivo em vídeos, aulas, podcasts e conversas, no seu navegador. As palavras que você guarda voltam numa revisão rápida e em jogos curtos.',
       corpo: corpoDaHome(o.guias),
       inteira: true,
       estilo: CSS_DA_HOME,

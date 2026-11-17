@@ -1,10 +1,10 @@
 ## 1. Núcleo e listas
 
-- [ ] 1.1 Mover `normalizar` (e `base`, `LEET`, `INVISIVEIS`) de `server/ai/moderacao/moderarSaidaDoTutor.ts` para `src/core/moderacao/normalizar.ts`; o servidor passa a importar do núcleo. Verificar: `npx vitest run tests/` dos testes do filtro do tutor verdes, sem mudança de comportamento.
-- [ ] 1.2 Criar `src/core/moderacao/termosDaLegenda.ts` com as categorias `sexual` e `odio` (e `palavrao` se o dono aprovar), em pt/en/es, e a lista comentada de ambíguos excluídos. Verificar: revisão do dono (Open Questions do design).
-- [ ] 1.3 Criar `src/core/moderacao/legendaSegura.ts`: `ocultarTermos(texto, politica) → { texto, ocultadas, categorias }`, com casamento por palavra, por par de palavras e por janela de letras soltas. Verificar: `tests/legendaSegura.test.ts` com os cenários da spec (a fala COMP-02, as variantes e os ambíguos).
-- [ ] 1.4 Montar o corpus `tests/fixtures/legenda-segura/negativos.json` (pelo menos 300 frases: `computador/falas.json`, `conversa/falas`, as falas de `celular/audios` da auditoria, frases de aula e do glossário) e `positivos.json` (pelo menos 20 por idioma). Verificar: o teste cobra 0 ocultações nos negativos e 100% nos positivos.
-- [ ] 1.5 Bench `tests/legendaSegura.bench.ts`. Verificar: p95 abaixo de 0,2 ms por fala de 30 palavras (`npx vitest bench`).
+- [x] 1.1 Mover `normalizar` (e `base`, `LEET`, `INVISIVEIS`) de `server/ai/moderacao/moderarSaidaDoTutor.ts` para `src/core/moderacao/normalizar.ts`; o servidor passa a importar do núcleo. Verificar: `npx vitest run tests/` dos testes do filtro do tutor verdes, sem mudança de comportamento.
+- [x] 1.2 Criar `src/core/moderacao/termosDaLegenda.ts` com as categorias `sexual` e `odio` (e `palavrao` se o dono aprovar), em pt/en/es, e a lista comentada de ambíguos excluídos. Verificar: revisão do dono (Open Questions do design). (Feito com os padrões do dono de 17/11: `palavrao` entra para todo perfil protegido; a revisão de texto da lista pelo dono segue pendente.)
+- [x] 1.3 Criar `src/core/moderacao/legendaSegura.ts`: `ocultarTermos(texto, politica) → { texto, ocultadas, categorias }`, com casamento por palavra, por par de palavras e por janela de letras soltas. Verificar: `tests/legendaSegura.test.ts` com os cenários da spec (a fala COMP-02, as variantes e os ambíguos).
+- [x] 1.4 Montar o corpus `tests/fixtures/legenda-segura/negativos.json` (pelo menos 300 frases: `computador/falas.json`, `conversa/falas`, as falas de `celular/audios` da auditoria, frases de aula e do glossário) e `positivos.json` (pelo menos 20 por idioma). Verificar: o teste cobra 0 ocultações nos negativos e 100% nos positivos.
+- [x] 1.5 Bench `tests/legendaSegura.bench.ts`. Verificar: p95 abaixo de 0,2 ms por fala de 30 palavras (`npx vitest bench`).
 
 ## 2. Integração na captura
 

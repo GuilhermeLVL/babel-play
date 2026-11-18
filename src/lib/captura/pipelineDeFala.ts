@@ -1742,7 +1742,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       /* UM SENTIDO SÓ: o par que a preparação carrega (`mtDe → mtPara`), se já baixado. Antes eram os
          dois sentidos — ~113 MB a mais na memória antes de a pessoa apertar Iniciar. O outro sentido
          carrega quando é pedido (o microfone da conversa). */
-      const mt = expectedModelIds(mtDe, mtPara, route.localModel).slice(1);
+      const mt = expectedModelIds(mtDe, mtPara, route.localModel, { nuvemConsentida: consentiuNuvemNaFala() }).slice(1);
       if (mt.length && (await areModelsCached(mt))) gateway.mt.warmup([[mtDe, mtPara]]);
     } catch (e) {
       clog('pré-aquecimento ignorado:', String(e));
@@ -1872,7 +1872,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
        Translator API) deixava a resposta em "não" para sempre, e a tela dizia "Baixando modelo (uma vez
        só)" a cada abertura, com o Whisper vindo do cache. Agora o título segue o Whisper, e o tradutor
        tem a resposta dele. */
-    const idsEsperados = expectedModelIds(mtDe, mtPara, rotaAgora.localModel);
+    const idsEsperados = expectedModelIds(mtDe, mtPara, rotaAgora.localModel, {
+      nuvemConsentida: consentiuNuvemNaFala(),
+    });
     const cached = await areModelsCached(idsEsperados.slice(0, 1));
     const mtCached = idsEsperados.length < 2 || (await areModelsCached(idsEsperados.slice(1)));
 

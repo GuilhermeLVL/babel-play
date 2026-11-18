@@ -118,3 +118,12 @@ export const ORIGENS_DO_BERGAMOT_NO_CDN: ReadonlySet<string> = new Set([
   'pl',
   'th',
 ]);
+
+/**
+ * O par passa pelo inglês SÓ porque não há modelo direto entre dois idiomas que já têm modelo direto até o inglês
+ * (es→pt, pt→fr…; o pivô de CEL-01). É o pivô que vem por ÚLTIMO: com a nuvem consentida, quem traduz esses pares é a
+ * nuvem/o tradutor da web, como antes (o inglês no meio perde nuance, e as duas pernas baixam até 226 MB).
+ */
+export function pivoEntreDiretos(de: string, para: string): boolean {
+  return passaPeloIngles(de, para) && ALVOS_DO_INGLES.has(baseDoIdioma(de));
+}

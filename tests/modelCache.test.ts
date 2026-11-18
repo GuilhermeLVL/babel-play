@@ -64,6 +64,11 @@ describe('expectedModelIds com o Bergamot', () => {
     ])
   })
 
+  it('com a nuvem consentida, es→pt não espera modelo de tradução (o gateway tira o pivô da cascata)', () => {
+    expect(expectedModelIds('es', 'pt', undefined, { nuvemConsentida: true })).toEqual(['onnx-community/whisper-tiny'])
+    expect(expectedModelIds('en', 'pt', undefined, { nuvemConsentida: true })).toContain('Xenova/opus-mt-en-ROMANCE')
+  })
+
   it('sem o CDN: es→pt espera as duas pernas do opus-mt (es-en dedicado e en→pt)', () => {
     vi.stubGlobal('__BERGAMOT_CDN__', false)
     expect(expectedModelIds('es', 'pt')).toEqual([

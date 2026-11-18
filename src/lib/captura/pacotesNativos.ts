@@ -84,8 +84,10 @@ export function criarProgressoDosPacotesNativos({
   const prazos = new Map<string, ReturnType<typeof setTimeout>>();
   /** O tradutor local já traduziu nesta sessão: o nativo não é mais esperado, e a linha dele não volta. */
   let localAssumiu = false;
+  /** Uma sessão nova tomou o lugar desta: nada que ainda chegue daqui (um prazo vencendo) mexe no cartão dela. */
+  let descartado = false;
   const aplicar = (qual: PacoteNativo, p: number | null | undefined) => {
-    if (!ativo()) return;
+    if (descartado || !ativo()) return;
     setModelPrep((s) => comPacoteNativo(s, qual, p));
   };
   const soltarPrazo = (par: string) => {
@@ -143,6 +145,11 @@ export function criarProgressoDosPacotesNativos({
   };
 
   return {
+    /** A sessão acabou (outra começou): solta os prazos e silencia os ouvintes desta. */
+    descartar() {
+      descartado = true;
+      for (const par of [...prazos.keys()]) soltarPrazo(par);
+    },
     /* Os métodos vão soltos (`pacotes.tradutor.progresso` como ouvinte): nada de `this`. */
     tradutor,
     voz(estado: EstadoDaInstalacaoDoMic) {

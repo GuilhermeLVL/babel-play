@@ -230,6 +230,23 @@ describe('X→en e X→alvo com os modelos do CDN', () => {
     expect(progresso.at(-1)).toBe(1)
   })
 
+  it('es→pt: o Bergamot falha a carga e a reserva (o pivô do opus-mt) chega a 1 com as duas pernas', async () => {
+    const { local } = await montar()
+    const progresso: number[] = []
+    local.preload('es', 'pt', (p) => progresso.push(p))
+    WorkerFalso.de('bergamot')[0].responder({
+      type: 'loadError',
+      model: 'bergamot/es-en',
+      motivo: 'rede',
+      message: 'x',
+    })
+    const opus = WorkerFalso.de('opus')[0]
+    opus.responder({ type: 'ready', model: 'Xenova/opus-mt-en-ROMANCE' })
+    expect(progresso.filter((p) => p >= 1)).toHaveLength(0)
+    opus.responder({ type: 'ready', model: 'Xenova/opus-mt-es-en' })
+    expect(progresso.at(-1)).toBe(1)
+  })
+
   it('pt→es: a perna pt→en é o Bergamot embutido, a en→es o opus-mt dedicado', async () => {
     const { local } = await montar()
     local.preload('pt', 'es')

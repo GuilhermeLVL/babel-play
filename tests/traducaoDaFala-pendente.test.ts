@@ -32,7 +32,7 @@ const balao = (id: string, texto: string): SpeechSegment => ({
   words: [],
 })
 
-function montar() {
+function montar(o: { nuvemConsentida?: boolean } = {}) {
   let segs: SpeechSegment[] = [balao('a', 'o carro azul'), balao('b', 'a mesa grande')]
   let pronto = false
   let avisarPronto: (() => void) | null = null
@@ -80,6 +80,7 @@ function montar() {
     memoriaPersistente: null,
     aoFalharOTradutorLocal,
     aoTraduzirNoAparelho,
+    nuvemConsentida: () => o.nuvemConsentida === true,
   })
   return {
     traducao,
@@ -104,6 +105,15 @@ describe('a linha sem tradução diz o motivo (CEL-01)', () => {
     await esperar()
     await esperar()
     expect(m.segs()[0]).toMatchObject({ translatedText: '', semTraducao: 'sem-rota' })
+  })
+
+  it('com a nuvem consentida, a mesma queda é "falhou" (a web pode voltar: "Tentar de novo" serve)', async () => {
+    const m = montar({ nuvemConsentida: true })
+    m.translate.mockRejectedValueOnce(new NoRouteError('mt', new Error('cota'), false))
+    m.traducao.translateSegment('a', 'o carro azul', 'pt', 'hi', { falada: true })
+    await esperar()
+    await esperar()
+    expect(m.segs()[0].semTraducao).toBe('falhou')
   })
 
   it('a linha que falhou volta a ser traduzida quando o tradutor fica pronto (e perde o motivo)', async () => {

@@ -41,5 +41,7 @@ export function avisoComAVozPrimeiro(
   avisoDaVoz: string | null | undefined,
 ): string | null {
   if (prep?.error) return prep.error;
-  return avisoDaVoz || avisoDoPreparo(prep);
+  /* Só disputa com o PROGRESSO: sem preparo em curso, a faixa segue a ordem de sempre da tela (prática, cadeado, voz…). */
+  const progresso = avisoDoPreparo(prep);
+  return progresso ? avisoDaVoz || progresso : null;
 }

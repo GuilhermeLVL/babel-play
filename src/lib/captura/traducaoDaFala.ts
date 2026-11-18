@@ -8,6 +8,7 @@
 import { ehCancelamento, soFaltaCarregar } from '@core';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 
+import { ChromeTranslatorMt } from '../../gateway/adapters/chromeTranslator';
 import { capMetrics } from '../../gateway/capture/captureMetrics';
 import { getEntitlements } from '../entitlements';
 import { baseLang, langLabel, mtCoverage } from '../languages';
@@ -157,6 +158,8 @@ export interface DepsDaTraducaoDaFala {
    * consentimento, nunca ligado sozinho).
    */
   aoFalharOTradutorLocal?: () => void;
+  /** A nuvem está consentida (a mesma pergunta do gateway): sem ela e sem modelo local, o par não tem rota. */
+  nuvemConsentida?: () => boolean;
   /** A tradução de um FINAL veio do tradutor local (opus-mt/Bergamot): o cartão do nativo não espera mais (COMP-03). */
   aoTraduzirNoAparelho?: () => void;
   /**
@@ -597,10 +600,15 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
             `${origem || '?'}→${tgt}`,
             String((err as Error)?.message ?? err).slice(0, 120),
           );
-          /* NoRouteError num par que o aparelho não cobre (nem modelo local; o nativo e a nuvem também não
-             atenderam): "sem tradução neste aparelho", não "falhou agora". */
+          /* SEM ROTA DE VERDADE: o par não tem modelo local, não há o tradutor do navegador e a nuvem não está
+             consentida — "sem tradução neste aparelho". Qualquer outra queda (cota da web, rede, disjuntor,
+             idioma ainda não detectado) é "falhou agora", e "Tentar de novo" pode resolver. */
           const semRota =
-            (err as { name?: string } | null)?.name === 'NoRouteError' && mtCoverage(origem || '', tgt) !== 'local';
+            (err as { name?: string } | null)?.name === 'NoRouteError' &&
+            !!origem &&
+            mtCoverage(origem, tgt) !== 'local' &&
+            !deps.nuvemConsentida?.() &&
+            !ChromeTranslatorMt.isPresent();
           if (ordemMtRef.current.encerrar(segId, selo)) degrade(semRota ? 'sem-rota' : 'falhou');
         });
     };

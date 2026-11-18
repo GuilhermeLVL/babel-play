@@ -9,6 +9,7 @@
  */
 
 import { modelosDoParNoAparelho } from '../core/traducao/coberturaNoAparelho';
+import { pivoEntreDiretos } from '../core/traducao/viaIngles';
 import { bergamotOferecido } from './adapters/bergamotModelo';
 import { modeloDisponivel } from './modelManifest';
 
@@ -42,10 +43,18 @@ function activeWhisperModelId(): string {
  *  A lista do tradutor é a de `modelosDoParNoAparelho` (`core/traducao/coberturaNoAparelho.ts`), a mesma que o tradutor
  *  local carrega: o Bergamot oferecido (`adapters/bergamotModelo.ts`) toma a perna `X→en` (pt→en embutido, os outros do
  *  CDN), e o par sem modelo direto passa pelo inglês (es→pt: es→en e en→pt — o aviso de download soma as duas). */
-export function expectedModelIds(src: string, tgt: string, whisperModel?: string): string[] {
+export function expectedModelIds(
+  src: string,
+  tgt: string,
+  whisperModel?: string,
+  opcoes?: { nuvemConsentida?: boolean },
+): string[] {
+  const stt = whisperModel || activeWhisperModelId();
+  /* Com a nuvem consentida, o pivô entre pt/es/fr/it/de não é usado (o gateway o tira da cascata): nada a baixar. */
+  if (opcoes?.nuvemConsentida && pivoEntreDiretos(src, tgt)) return [stt];
   const bergamot = (par: string): boolean => {
     const [de, para] = par.split('-');
     return bergamotOferecido(de, para);
   };
-  return [whisperModel || activeWhisperModelId(), ...modelosDoParNoAparelho(src, tgt, { bergamot })];
+  return [stt, ...modelosDoParNoAparelho(src, tgt, { bergamot })];
 }

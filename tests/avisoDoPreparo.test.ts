@@ -45,6 +45,11 @@ describe('avisoComAVozPrimeiro (CONV-06)', () => {
     expect(avisoComAVozPrimeiro(instalando, null)).toBe(avisoDoPreparo(instalando))
   })
 
+  it('sem preparo em curso: nada aqui (a tela segue a ordem dela: prática, cadeado, a voz…)', () => {
+    expect(avisoComAVozPrimeiro(null, VOZ)).toBeNull()
+    expect(avisoComAVozPrimeiro({ ...instalando, nativos: undefined }, VOZ)).toBeNull()
+  })
+
   it('o erro do preparo continua vencendo', () => {
     expect(avisoComAVozPrimeiro({ ...instalando, error: 'falhou o modelo' }, VOZ)).toBe('falhou o modelo')
   })

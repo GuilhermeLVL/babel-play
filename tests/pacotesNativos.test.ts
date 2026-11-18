@@ -138,6 +138,16 @@ describe('criarProgressoDosPacotesNativos', () => {
     expect(estado).toBeNull()
   })
 
+  it('sessão descartada (parou e começou outra em menos de 20 s): o prazo velho não mexe no cartão novo', () => {
+    const velha = criar()
+    velha.tradutor.progresso(0, 'en|pt')
+    velha.descartar()
+    const nova = criar()
+    nova.tradutor.progresso(0.3, 'es|pt')
+    vi.advanceTimersByTime(19_000)
+    expect(estado?.nativos?.tradutor).toBe(0.3)
+  })
+
   it('o par que progride não vence o prazo (o relógio recomeça a cada progresso)', () => {
     const p = criar()
     p.tradutor.progresso(0.1, 'en|pt')

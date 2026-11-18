@@ -325,7 +325,9 @@ export class TradutorLocalComBergamot implements TranslationProvider {
     const pivo = parDoPivo(src, tgt);
     if (pivo && this.bergamot.supports(src, 'en') && this.opus.supports('en', tgt)) {
       const [primeira, segunda] = onProgress ? progressoDeDuasPernas(onProgress) : [undefined, undefined];
-      this.progressoDoPar.set(pivo, primeira);
+      /* A reserva (o Bergamot não carregou) é o pivô INTEIRO do opus-mt, que já junta as duas pernas: ela recebe o
+         ouvinte do par, não o da 1ª perna (senão a 2ª nunca chegaria a 1 e a barra pararia em 99%). */
+      this.progressoDoPar.set(pivo, onProgress);
       this.alvoDoPar.set(pivo, tgt);
       this.bergamot.preload(src, 'en', primeira);
       if (segunda) this.opus.preload('en', tgt, segunda);

@@ -314,7 +314,11 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
       ativo: () => isRecordingRef.current,
       clog,
     });
-    if (deps.pacotesNativosRef) deps.pacotesNativosRef.current = pacotes;
+    if (deps.pacotesNativosRef) {
+      // O prazo da sessão anterior (parar e iniciar em menos de 20 s) não tira o cartão desta.
+      deps.pacotesNativosRef.current?.descartar();
+      deps.pacotesNativosRef.current = pacotes;
+    }
     void gateway.mt.prepararNativo(
       [
         [s, t],

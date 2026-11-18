@@ -1333,6 +1333,7 @@ export default function LiveCapture({
     pedidosSobDemandaRef,
     aoFalharOTradutorLocal: () => setTradutorLocalFalhou(true),
     aoTraduzirNoAparelho: () => pacotesNativosRef.current?.tradutor.localAssumiu(),
+    nuvemConsentida: consentiuNuvemNaFala,
     aoTraduzirFinal: (f) => ponteDoInterpreteRef.current?.aoTraduzirFinal(f),
   });
 
@@ -2490,7 +2491,7 @@ export default function LiveCapture({
     });
     // Só microfone: o tradutor é o da SUA fala (o mesmo sentido que `prepareModels` carrega).
     const [mtDe, mtPara] = captureScenario === 'mic' ? [meu, ouvir] : [ouvir, meu];
-    return expectedModelIds(mtDe, mtPara, rota.localModel).map((id) =>
+    return expectedModelIds(mtDe, mtPara, rota.localModel, { nuvemConsentida: consentiuNuvemNaFala() }).map((id) =>
       id === rota.localModel
         ? {
             id,
@@ -2689,7 +2690,9 @@ export default function LiveCapture({
       ...entradaDoParakeet(parakeetVetado, temCopiaNoAparelho(ID_DO_PARAKEET), lerModeloFixo()),
     });
     const [mtDe, mtPara] = captureScenario === 'mic' ? [meu, ouvir] : [ouvir, meu];
-    const tradutores = expectedModelIds(mtDe, mtPara, rota.localModel).filter((id) => id !== rota.localModel);
+    const tradutores = expectedModelIds(mtDe, mtPara, rota.localModel, {
+      nuvemConsentida: consentiuNuvemNaFala(),
+    }).filter((id) => id !== rota.localModel);
     return {
       stt: rota.localModel,
       mbStt: tamanhoDoDownloadMb(rota.localModel, rota.dtype) ?? 0,
@@ -2714,7 +2717,10 @@ export default function LiveCapture({
   const tradutoresDoInterprete = useMemo(() => {
     const a = baseLang(sourceLang);
     const b = baseLang(targetLang);
-    const ids = new Set([...expectedModelIds(a, b, pecasDoInicio.stt), ...expectedModelIds(b, a, pecasDoInicio.stt)]);
+    const ids = new Set([
+      ...expectedModelIds(a, b, pecasDoInicio.stt, { nuvemConsentida: consentiuNuvemNaFala() }),
+      ...expectedModelIds(b, a, pecasDoInicio.stt, { nuvemConsentida: consentiuNuvemNaFala() }),
+    ]);
     ids.delete(pecasDoInicio.stt);
     return [...ids].map((id) => ({ id, mb: tamanhoDoDownloadMb(id) ?? 0 }));
   }, [sourceLang, targetLang, pecasDoInicio.stt]);

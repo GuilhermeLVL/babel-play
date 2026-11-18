@@ -577,14 +577,25 @@ export default function ModoInterprete({
         if (item.traduzindo) continue;
         frase = item.propria
           ? { tipo: 'fala', texto: item.original, lang: d.direcao.fala, aoVivo: false, id: item.id }
-          : {
-              tipo: 'traducao',
-              id: item.id,
-              traducao: item.traducao.trim() ? item.traducao : item.original,
-              original: item.traducao.trim() ? item.original.trim() : '',
-              lang: d.direcao.fala,
-              langDoOriginal: direcaoDoOutro.fala,
-            };
+          : item.semTraducao
+            ? /* Sem tradução (CEL-01): o motivo no lugar da tradução, e o original pequeno embaixo, como sempre. */
+              {
+                tipo: 'traducao',
+                id: item.id,
+                traducao:
+                  item.semTraducao === 'sem-rota' ? t('Sem tradução neste aparelho') : t('Tradução indisponível agora'),
+                original: item.original.trim(),
+                lang: d.direcao.fala,
+                langDoOriginal: direcaoDoOutro.fala,
+              }
+            : {
+                tipo: 'traducao',
+                id: item.id,
+                traducao: item.traducao.trim() ? item.traducao : item.original,
+                original: item.traducao.trim() ? item.original.trim() : '',
+                lang: d.direcao.fala,
+                langDoOriginal: direcaoDoOutro.fala,
+              };
         break;
       }
     const avatar = avatares.doLado(lado);

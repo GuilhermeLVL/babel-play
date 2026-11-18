@@ -293,6 +293,35 @@ export interface ArrayDoNpy {
   dados: Float32Array;
 }
 
+/**
+ * UTF-8 → texto sem `TextDecoder` (o core não depende de DOM; ver `tsconfig.core.json`). Sequência inválida
+ * vira U+FFFD, como no `TextDecoder` padrão. Serve ao cabeçalho do `.npy` e aos nomes do `.npz`, que são curtos.
+ */
+function textoDeUtf8(b: Uint8Array): string {
+  let out = '';
+  for (let i = 0; i < b.length; ) {
+    const c = b[i];
+    const n = c < 0x80 ? 0 : c >= 0xc2 && c < 0xe0 ? 1 : c >= 0xe0 && c < 0xf0 ? 2 : c >= 0xf0 && c < 0xf5 ? 3 : -1;
+    let cp = n === 0 ? c : n === 1 ? c & 0x1f : n === 2 ? c & 0x0f : c & 0x07;
+    let ok = n >= 0;
+    for (let k = 1; ok && k <= n; k++) {
+      const d = b[i + k];
+      if (d === undefined || (d & 0xc0) !== 0x80) ok = false;
+      else cp = (cp << 6) | (d & 0x3f);
+    }
+    if (ok && n > 0 && (cp < [0, 0x80, 0x800, 0x10000][n] || cp > 0x10ffff || (cp >= 0xd800 && cp <= 0xdfff)))
+      ok = false;
+    if (ok) {
+      out += String.fromCodePoint(cp);
+      i += n + 1;
+    } else {
+      out += '\ufffd';
+      i += 1;
+    }
+  }
+  return out;
+}
+
 /** Lê um `.npy` (v1/v2/v3) float32 little-endian, ordem C. */
 export function lerNpy(b: Uint8Array): ArrayDoNpy {
   if (b[0] !== 0x93 || String.fromCharCode(...b.subarray(1, 6)) !== 'NUMPY') throw new Error('npy inválido');
@@ -300,7 +329,7 @@ export function lerNpy(b: Uint8Array): ArrayDoNpy {
   const dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
   const tamCab = maior === 1 ? dv.getUint16(8, true) : dv.getUint32(8, true);
   const ini = maior === 1 ? 10 : 12;
-  const cab = new TextDecoder().decode(b.subarray(ini, ini + tamCab));
+  const cab = textoDeUtf8(b.subarray(ini, ini + tamCab));
   if (!/'descr':\s*'<f4'/.test(cab)) throw new Error(`npy: tipo não suportado (${cab})`);
   if (/'fortran_order':\s*True/.test(cab)) throw new Error('npy: ordem Fortran não suportada');
   const forma = (/'shape':\s*\(([^)]*)\)/.exec(cab)?.[1] ?? '')
@@ -325,7 +354,7 @@ export function lerNpz(b: Uint8Array): Map<string, ArrayDoNpy> {
     let tamanho = dv.getUint32(p + 18, true);
     const nNome = dv.getUint16(p + 26, true);
     const nExtra = dv.getUint16(p + 28, true);
-    const nome = new TextDecoder().decode(b.subarray(p + 30, p + 30 + nNome));
+    const nome = textoDeUtf8(b.subarray(p + 30, p + 30 + nNome));
     const ini = p + 30 + nNome + nExtra;
     if (metodo !== 0) throw new Error(`npz: ${nome} comprimido (método ${metodo})`);
     if (tamanho === 0xffffffff) {

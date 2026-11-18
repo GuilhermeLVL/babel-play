@@ -144,6 +144,11 @@ describe('lerNpz', () => {
     expect(Array.from(m.get('caio')!.dados)).toEqual([9])
   })
 
+  it('nome com acento sai em UTF-8, igual ao TextDecoder', () => {
+    const m = lerNpz(npz({ 'joão-ñ-€-𝄞': { forma: [1], dados: [7] } }))
+    expect([...m.keys()]).toEqual(['joão-ñ-€-𝄞'])
+  })
+
   it('arquivo que não é npz lança', () => {
     expect(() => lerNpz(new Uint8Array(40))).toThrow()
   })

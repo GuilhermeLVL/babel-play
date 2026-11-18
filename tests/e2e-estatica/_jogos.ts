@@ -131,9 +131,22 @@ export async function vozFalsa(page: Page) {
     w.__falas = []
     const s = window.speechSynthesis
     if (s) {
+      /* Vozes padrão do macOS que a lista de permissão (`core/voz/melhorVoz.ts`) aceita: nome inventado deixa o app mudo. */
       const vozes = [
-        { name: 'Teste en', lang: 'en-US', localService: true, default: true, voiceURI: 'en' },
-        { name: 'Teste pt', lang: 'pt-BR', localService: true, default: false, voiceURI: 'pt' },
+        {
+          name: 'Samantha',
+          lang: 'en-US',
+          localService: true,
+          default: true,
+          voiceURI: 'com.apple.voice.compact.en-US.Samantha',
+        },
+        {
+          name: 'Luciana',
+          lang: 'pt-BR',
+          localService: true,
+          default: false,
+          voiceURI: 'com.apple.voice.compact.pt-BR.Luciana',
+        },
       ]
       try {
         Object.defineProperty(SpeechSynthesisUtterance.prototype, 'voice', {

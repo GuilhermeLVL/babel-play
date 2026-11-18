@@ -193,6 +193,8 @@ await page.evaluate(() => {
   const ui = s.ui ? JSON.parse(s.ui) : {}
   s.ui = JSON.stringify({ ...ui, uiLang: 'pt-BR' })
   localStorage.setItem(k, JSON.stringify(s))
+  /* A conversa POR TOQUE (a da auditoria): no app local o plano tem o automático, que abriria nele. */
+  localStorage.setItem('babel.interprete.modo', 'toque')
 })
 const tCarga0 = Date.now()
 await page.goto(`${BASE}/interprete`)
@@ -240,14 +242,30 @@ for (let i = 0; i < turnos.length; i++) {
     if (s?.dialogos?.length) {
       dialogo = s.dialogos
       const baixar = page.getByRole('button', { name: /Baixar e iniciar/ })
-      if (/Baixar e iniciar/.test(s.dialogos.join(' ')) && (await baixar.isVisible().catch(() => false))) {
+      /* O adulto do app local responde antes "Rápido ou Privado?": a auditoria (visitante) só viu o Privado. */
+      const privado = page.getByRole('button', { name: /Privado/ }).first()
+      if (/Como transcrever a sua voz/.test(s.dialogos.join(' ')) && (await privado.isVisible().catch(() => false))) {
+        if ((await privado.getAttribute('aria-pressed')) !== 'true') {
+          await privado.click()
+          resultado.toquesExtras.push({ i, motivo: 'escolher o Privado (adulto no app local)' })
+        }
+      }
+      if (!r.tBaixar && (await baixar.isVisible().catch(() => false))) {
         await foto(`turno${i}-dialogo-baixar`)
+        /* O tamanho que o diálogo anuncia (CONV-11): o texto inteiro, sem o corte de 300 caracteres do gravador. */
+        r.mbDoDialogo = (
+          await page
+            .locator('dialog[open]')
+            .last()
+            .innerText()
+            .catch(() => '')
+        ).match(/(\d+)\s*MB/g)
         r.tBaixar = await agora()
         if (O.celular) await baixar.tap()
         else await baixar.click()
         toques++
         r.toques++
-        resultado.toquesExtras.push({ i, motivo: 'Baixar e iniciar (modelos de 353 MB)' })
+        resultado.toquesExtras.push({ i, motivo: 'Baixar e iniciar' })
         r.fotosDoDownload = 0
       } else if (!r.fotoDialogo) {
         r.fotoDialogo = true

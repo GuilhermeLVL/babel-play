@@ -91,7 +91,7 @@ import {
   temAudioDaFala,
   tocarAudioDaFala,
 } from '../../lib/captura/audioDasFalas';
-import { avisoDoPreparo, progressoDoReconhecimento } from '../../lib/captura/avisoDoPreparo';
+import { avisoDoPreparo, preparoDoInterprete } from '../../lib/captura/avisoDoPreparo';
 // Ciclo da sessão: começar, retomar, parar e salvar (falas, áudio e vocabulário).
 import { baixarCaptura } from '../../lib/captura/baixarCaptura';
 import { conferirAntesDeLer } from '../../lib/captura/conferenciaDaTranscricao';
@@ -2704,6 +2704,14 @@ export default function LiveCapture({
   /* O INTÉRPRETE CARREGA O RECONHECIMENTO AO ABRIR (conversa-de-verdade, 4.2): com o modelo desta conversa já no
      aparelho, ele sobe do cache antes do primeiro "Falar", e a primeira fala não espera a carga. Sem o modelo, nada
      é baixado antes do toque (`downloadDoInterprete.ts`). */
+  /* O reconhecimento ficou pronto NESTA sessão (o preparo chegou ao fim): o "Preparando" antes do primeiro número
+     (`preparoDoInterprete`) não volta depois que o painel do preparo some. Zera quando a sessão acaba. */
+  const [reconhecimentoProntoNaSessao, setReconhecimentoProntoNaSessao] = useState(false);
+  const preparoConcluidoAgora = !!modelPrep?.done;
+  useEffect(() => {
+    if (!isRecording) setReconhecimentoProntoNaSessao(false);
+    else if (preparoConcluidoAgora) setReconhecimentoProntoNaSessao(true);
+  }, [isRecording, preparoConcluidoAgora]);
   const carregarNoInterprete = carregarAoEntrarNoInterprete({
     noInterprete: entrada === 'interprete',
     gravando: isRecording,
@@ -4560,7 +4568,15 @@ export default function LiveCapture({
             semVoz={semVozDeLeitura}
             vozDoSite={nuvemDoQuestAtiva()}
             abrindo={micAbrindo}
-            preparo={progressoDoReconhecimento(modelPrep)}
+            preparo={preparoDoInterprete(modelPrep, {
+              esperandoModelo:
+                isRecording &&
+                !reconhecimentoProntoNaSessao &&
+                escolhaDoMic !== 'rapido' &&
+                getProviderMode() !== 'cloud' &&
+                !nuvemDoQuestAtiva() &&
+                !preparoDoInicio.completos?.has(pecasDoInicio.stt),
+            })}
             conferirAntesDeLer={(idiomaDaFala) =>
               conferirAntesDeLer({
                 celular: noCelular,

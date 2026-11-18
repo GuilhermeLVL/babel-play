@@ -42,3 +42,18 @@ export function progressoDoReconhecimento(prep: ModelPrepState | null | undefine
   if (!prep || prep.error || prep.done || prep.whisper === null) return null;
   return Math.max(0, Math.min(1, prep.whisper));
 }
+
+/**
+ * O PREPARO ANTES DO PRIMEIRO NÚMERO: entre o toque em "Falar" e o primeiro aviso do download, a preparação ainda lê a
+ * rota e o cache, e o `modelPrep` vem vazio (ou só com o tradutor do navegador) — a tela dizia "Ouvindo…" por ~0,2 s (medido na rodada local). Enquanto o
+ * modelo desta conversa não está no aparelho e ainda não ficou pronto nesta sessão, o preparo é 0.
+ */
+export function preparoDoInterprete(
+  prep: ModelPrepState | null | undefined,
+  o: { esperandoModelo: boolean },
+): number | null {
+  const p = progressoDoReconhecimento(prep);
+  if (p !== null) return p;
+  /* Com o painel já aberto por outra peça (o tradutor do navegador instalando) e o número da transcrição ainda vazio. */
+  return o.esperandoModelo && !prep?.error && !prep?.done ? 0 : null;
+}

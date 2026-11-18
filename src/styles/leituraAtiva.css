@@ -1,0 +1,370 @@
+/*
+ * A LEITURA ATIVA (`/leitura`; openspec `leitura-ativa-textos-simples`, ux T1–T6). Peças próprias com o prefixo `la-`;
+ * o resto vem do Quest (`q-palco`, `q-cab`, `q-chip`, `q-ctl`, `q-cartao`, `q-vazio`).
+ *
+ * AS MARCAS DA VOZ ALTA são uma CAMADA por cima das etiquetas (`data-etiqueta`, `etiquetas.css`), nunca no lugar delas,
+ * e não dependem só de cor: lida = sublinhado sólido; não ouvida = pontilhado neutro (âmbar, nunca vermelho); atual =
+ * fundo suave. Com `prefers-reduced-motion`, nada anima.
+ */
+.la {
+  --la-lida: color-mix(in srgb, var(--ink) 45%, transparent);
+  --la-pulada: #b7791f;
+  --la-atual: var(--q-suave, var(--accent-soft));
+  --la-medida: 680px;
+}
+
+.la-sub {
+  margin: 6px 0 0;
+  font: 600 17px/1.45 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+
+.la-filtros {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.la-filtros .q-chip {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1.5px solid var(--border-subtle);
+  font-weight: 700;
+}
+
+.la-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+}
+.la-cartao {
+  width: 100%;
+  min-height: 44px;
+  text-align: start;
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.la-cartao:hover {
+  border-color: var(--q-acento);
+}
+.la-cartao:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 3px;
+}
+.la-cartao h3 {
+  margin: 0;
+  font: 800 19px/1.25 var(--font-display, inherit);
+}
+.la-meta {
+  font: 600 14px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.la-cobertura {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font: 700 15px/1.3 var(--font-body, inherit);
+}
+.la-rotulo {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  border: 1.5px solid currentColor;
+}
+.la-rotulo[data-rotulo='tranquila'] {
+  color: #2f7d4f;
+}
+.la-rotulo[data-rotulo='desafio'] {
+  color: #2b6cb0;
+}
+.la-rotulo[data-rotulo='puxado'] {
+  color: #9c5a12;
+}
+.la-selo {
+  font: 600 13px/1.3 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.la-lido {
+  font-weight: 800;
+  color: #2f7d4f;
+}
+
+/* ── antes de ler ── */
+.la-coluna {
+  width: 100%;
+  max-width: var(--la-medida);
+  margin-inline: auto;
+  display: grid;
+  gap: 18px;
+}
+.la-modos {
+  display: grid;
+  gap: 10px;
+}
+@media (min-width: 900px) {
+  .la-modos {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.la-modo {
+  display: grid;
+  gap: 4px;
+  min-height: 44px;
+  padding: 14px 16px;
+  text-align: start;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.la-modo[aria-checked='true'] {
+  border-color: var(--q-acento);
+  background: var(--q-suave);
+}
+.la-modo[aria-disabled='true'] {
+  opacity: 0.6;
+  border-style: dashed;
+  cursor: default;
+}
+.la-modo strong {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font: 800 17px/1.3 var(--font-display, inherit);
+}
+.la-modo span {
+  font: 600 14px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.la-novas {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.la-credito {
+  margin: 0;
+  font: 600 13px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+
+/* ── o texto ── */
+.la-texto {
+  margin: 0;
+  font: 500 clamp(20px, 2.4vw, 24px) / 1.9 var(--font-body, Georgia, serif);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.la-palavra {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0 1px;
+  margin: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
+}
+.la-palavra:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 1px;
+}
+.la-palavra[data-leitura='lida'] {
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+  text-decoration-color: var(--la-lida);
+}
+.la-palavra[data-leitura='pulada'] {
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: var(--la-pulada);
+}
+.la-palavra[data-leitura='atual'] {
+  background: var(--la-atual);
+  transition: background-color 140ms ease;
+}
+.la-frase[data-atual='true'] {
+  background: var(--la-atual);
+  border-radius: 8px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.la-estrela {
+  margin-inline-start: 2px;
+  color: #b7791f;
+  font-size: 0.8em;
+}
+@media (prefers-reduced-motion: reduce) {
+  .la-palavra,
+  .la-palavra[data-leitura='atual'] {
+    transition: none;
+  }
+}
+
+.la-barra {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 18px;
+  background: var(--surface);
+  z-index: 2;
+}
+.la-barra .la-estado {
+  flex: 1 1 200px;
+  min-width: 0;
+  font: 700 15px/1.35 var(--font-body, inherit);
+}
+.la-ponto {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #c53030;
+  margin-inline-end: 6px;
+  vertical-align: middle;
+}
+.la-ponto.grande {
+  width: 16px;
+  height: 16px;
+}
+.la-aviso {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--q-suave, var(--accent-soft));
+  font: 600 15px/1.45 var(--font-body, inherit);
+}
+.la-legenda {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font: 600 13px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+
+/* ── aviso do microfone (folha no celular, diálogo no computador) ── */
+.la-veu {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: color-mix(in srgb, #000 40%, transparent);
+}
+@media (min-width: 700px) {
+  .la-veu {
+    align-items: center;
+  }
+}
+.la-dialogo {
+  width: min(100%, 520px);
+  display: grid;
+  gap: 14px;
+  padding: 22px 20px calc(22px + env(safe-area-inset-bottom, 0px));
+  border-radius: 22px 22px 0 0;
+  background: var(--surface);
+  color: var(--ink);
+}
+@media (min-width: 700px) {
+  .la-dialogo {
+    border-radius: 22px;
+  }
+}
+.la-dialogo h2 {
+  margin: 0;
+  font: 800 22px/1.25 var(--font-display, inherit);
+}
+.la-dialogo p {
+  margin: 0;
+  font: 600 16px/1.5 var(--font-body, inherit);
+}
+
+/* ── perguntas ── */
+.la-pergunta {
+  display: grid;
+  gap: 12px;
+}
+.la-pergunta h3 {
+  margin: 0;
+  font: 800 20px/1.3 var(--font-display, inherit);
+}
+.la-traducao {
+  margin: 0;
+  font: 600 15px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.la-opcoes {
+  display: grid;
+  gap: 8px;
+}
+.la-opcao {
+  min-height: 48px;
+  padding: 10px 16px;
+  text-align: start;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 700 16px/1.35 var(--font-body, inherit);
+  cursor: pointer;
+}
+.la-opcao[data-certa='true'] {
+  border-color: #2f7d4f;
+  background: color-mix(in srgb, #2f7d4f 12%, var(--surface));
+}
+.la-retorno {
+  margin: 0;
+  font: 700 16px/1.45 var(--font-body, inherit);
+}
+
+/* ── resumo ── */
+.la-fatos {
+  margin: 0;
+  font: 700 17px/1.6 var(--font-body, inherit);
+}
+.la-praticar {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.la-praticar label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font: 700 16px/1.3 var(--font-body, inherit);
+}
+.la-praticar input {
+  width: 22px;
+  height: 22px;
+}
+.la-praticar small {
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+.la-titulo {
+  margin: 0;
+  font: 900 30px/1.1 var(--font-display, inherit);
+}

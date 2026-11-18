@@ -10,6 +10,7 @@ import {
   Library,
   type LucideIcon,
   Mic,
+  NotebookText,
   Settings as SettingsIcon,
   ShieldCheck,
   Shirt,
@@ -172,6 +173,19 @@ export const ITEM_ADMIN: NavItemDef = {
   icon: ShieldCheck,
   short: 'Administração',
   labels: { kids: 'Administração', pro: 'Administração', senior: 'Administração' },
+};
+
+/**
+ * AS LEITURAS (`/leitura`, a Leitura ativa) — o item que só aparece com a flag `leitura_ativa` ligada.
+ *
+ * Fica FORA de `NAV_ITEMS`, como a administração: quem desenha o menu acrescenta este item ao grupo "Mais" SÓ
+ * quando `useFlag(FLAG_LEITURA_ATIVA)` diz que sim. Entrar no trilho é decisão do dono.
+ */
+export const ITEM_LEITURA_ATIVA: NavItemDef = {
+  id: 'leituraAtiva',
+  icon: NotebookText,
+  short: 'Leituras',
+  labels: { kids: 'Leituras', pro: 'Leituras', senior: 'Leituras' },
 };
 
 /**

@@ -36,7 +36,7 @@ import {
 import React, { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { DIAS_DO_TESTE_PREMIUM, PLAN_MATRIX } from '../../core/planos';
+import { DIAS_DO_TESTE_PREMIUM, FLAG_LEITURA_ATIVA, PLAN_MATRIX } from '../../core/planos';
 import { tetoAnonimoDa } from '../../core/tetoAnonimo';
 import { ehAdmin } from '../../lib/admin';
 import * as auth from '../../lib/auth';
@@ -79,7 +79,7 @@ import type { ViewType } from '../../types';
 import { exigeConta } from '../conta/exigeConta';
 import { useListaDeNotificacoes } from './CentralDeNotificacoes';
 import { type DestinoAoVivo, EscolhaAoVivo } from './EscolhaAoVivo';
-import { type AgeProfileType, ITEM_ADMIN, ITEM_AO_VIVO, NAV_ITEMS, navLabel } from './navItems';
+import { type AgeProfileType, ITEM_ADMIN, ITEM_AO_VIVO, ITEM_LEITURA_ATIVA, NAV_ITEMS, navLabel } from './navItems';
 import { MarcaBabel } from './ShellBits';
 
 /**
@@ -354,6 +354,8 @@ export default function TrilhoDoQuest({
   const [anonimo, setAnonimo] = useState(estaAnonimo);
   useEffect(() => aoMudarIdentidade(() => setAnonimo(estaAnonimo())), []);
   const convidado = useFlag('modo_convidado') && anonimo;
+  /* A Leitura ativa entra no "Mais" só com a flag (`leitura_ativa`, desligada por padrão). */
+  const leituraAtiva = useFlag(FLAG_LEITURA_ATIVA);
   const semServidor = edicaoEstatica();
   const nome = perfil?.displayName?.trim() || null;
   const email = perfil?.email?.trim() || null;
@@ -427,6 +429,7 @@ export default function TrilhoDoQuest({
         i.id !== 'planos' &&
         !(NO_MAIS_NO_CELULAR as readonly ViewType[]).includes(i.id),
     ),
+    ...(leituraAtiva ? [ITEM_LEITURA_ATIVA] : []),
     ...(ehAdmin(perfil) ? [ITEM_ADMIN] : []),
   ];
   const foraDoTrilho = !noTrilho.includes(activeView) && !AO_VIVO.includes(activeView);

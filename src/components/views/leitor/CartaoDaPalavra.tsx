@@ -56,6 +56,8 @@ export interface CartaoDaPalavraProps {
   link?: string;
   /** Um bloco a mais dentro do "Mais" (o histórico da palavra). */
   extra?: ReactNode;
+  /** Uma linha à vista logo abaixo da palavra (a Leitura ativa: "Praticar esta palavra no fim"). */
+  destaque?: ReactNode;
   etiqueta?: string;
   aoConhecerPlanos?: () => void;
   aoFechar: () => void;
@@ -252,6 +254,7 @@ export default function CartaoDaPalavra(props: CartaoDaPalavraProps) {
           </button>
         </div>
       </div>
+      {props.destaque}
 
       <div className="cartao-palavra-acoes" role="group" aria-label={t('Ações da palavra')}>
         <button

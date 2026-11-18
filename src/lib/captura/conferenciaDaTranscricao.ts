@@ -5,7 +5,7 @@
  * ("Minha vôminhe ensinou" virou "My vomiting taught when I was a kid.", CONV-04), e a bancada do conjunto de teste
  * repetiu os erros nas falas da auditoria ("vir o tinto", "vônia"). O Whisper small venceu no texto, mas o download
  * (252 MB contra 80) e a memória e a latência num celular de verdade dependem do dono e de um aparelho real
- * (`openspec/audits/2026-11-18-modelo-do-interprete-no-celular.md`). Até lá vale a regra da spec: sem modelo que
+ * (`openspec/audits/2026-11-18-conversa-de-verdade/README.md`). Até lá vale a regra da spec: sem modelo que
  * atenda, a pessoa confere o que o app entendeu antes de a tradução ser lida — um toque lê, corrige ou descarta.
  *
  * Só onde o modelo falhou: o celular com o Whisper base, fora do inglês (o inglês saiu certo nas duas medições).

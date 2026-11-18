@@ -41,10 +41,11 @@ const ctxOpts = {
     '--use-fake-device-for-media-stream',
   ],
 }
-if (O.celular) Object.assign(ctxOpts, devices['Pixel 7'])
-/* Outra tela de celular (ex.: 375×667, o iPhone SE), com o resto do Pixel 7 (toque, escala, user agent). */
-if (O.celular && O.viewport) ctxOpts.viewport = O.viewport
-else ctxOpts.viewport = { width: 1280, height: 800 }
+if (O.celular) {
+  Object.assign(ctxOpts, devices['Pixel 7'])
+  /* Outra tela de celular (ex.: 375×667, o iPhone SE), com o resto do Pixel 7 (toque, escala, user agent). */
+  if (O.viewport) ctxOpts.viewport = O.viewport
+} else ctxOpts.viewport = { width: 1280, height: 800 }
 const ctx = await chromium.launchPersistentContext(perfil, ctxOpts)
 const page = ctx.pages()[0] ?? (await ctx.newPage())
 const consoleLog = []
@@ -297,6 +298,13 @@ for (let i = 0; i < turnos.length; i++) {
   r.falaIni = toc.ini
   r.falaFim = toc.fim
   r.falaDurMs = Math.round(toc.dur * 1000)
+  /* `terminei`: a pessoa toca "Terminei" 300 ms depois de parar de falar (o segundo toque fecha o turno na hora). */
+  if (O.terminei) {
+    await page.waitForTimeout(300)
+    r.tTerminei = await clicar(`falar-${lado}`)
+    toques++
+    r.toques++
+  }
   // espera: tradução aparecer no outro lado e a voz ler (ou não)
   const ttsAntes = await page.evaluate(() => window.__tts.length)
   let tradu = null
@@ -339,6 +347,7 @@ for (let i = 0; i < turnos.length; i++) {
   r.traducaoPrimeira = primeira?.[outro]?.frase ?? null
   const fechou = tela.find((x) => x.t > r.falaIni && !micAberto(x, lado))
   r.tMicFechou = fechou?.t ?? null
+  if (r.tTerminei && r.tMicFechou) r.termineiAteMicFecharMs = Math.round(r.tMicFechou - r.tTerminei)
   r.statusAntesDoPronto = [
     ...new Set(
       tela

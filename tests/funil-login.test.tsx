@@ -188,6 +188,9 @@ describe('o login termina onde a pessoa ia', () => {
   })
 
   it('recarregar já logado não sequestra a tela (carregando → conta fora do callback)', () => {
+    /* Já logado = sessão guardada no navegador: a identidade nasce `carregando` (carga-rapida-no-celular). */
+    localStorage.setItem('sb-teste-auth-token', '{}')
+    _reiniciarIdentidade()
     irPara('/capturar')
     const { setActiveView } = montarNavegacao()
     setActiveView.mockClear()

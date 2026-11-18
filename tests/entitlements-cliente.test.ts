@@ -7,6 +7,10 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+/* A conta destes testes tem sessão guardada no navegador (`sb-*-auth-token`): sem ela o visitante já nasce
+   `anonimo` e não espera o SDK (carga-rapida-no-celular). */
+vi.hoisted(() => localStorage.setItem('sb-teste-auth-token', '{}'))
+
 vi.mock('../src/lib/supabase', () => ({
   supabase: null,
   authRequired: true,
@@ -23,6 +27,7 @@ const resposta = (corpo: unknown, status = 200) =>
 describe('entitlements do cliente', () => {
   beforeEach(() => {
     localStorage.clear()
+    localStorage.setItem('sb-teste-auth-token', '{}')
     limparEntitlements()
   })
   afterEach(() => {

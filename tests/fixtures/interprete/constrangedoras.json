@@ -1,0 +1,40 @@
+{
+  "_sobre": "Saídas CONSTRANGEDORAS do reconhecimento no Intérprete (conversa-de-verdade, 5.2): o que, lido em voz alta para a outra pessoa num jantar, constrange quem falou. Lista revisada à mão. `termos`: palavras que nenhuma frase do conjunto contém e que, se aparecem na transcrição ou na tradução, a tornam constrangedora (CONV-04: 'Minha vôminhe ensinou' virou 'My vomiting taught when I was a kid.'). `porFrase`: trocas específicas de uma frase que mudam o sentido de um jeito embaraçoso. A comparação ignora caixa e acentos.",
+  "termos": [
+    "vomit",
+    "vômit",
+    "vomit",
+    "vomiting",
+    "vôminhe",
+    "merda",
+    "porra",
+    "caralho",
+    "puta",
+    "sexo",
+    "sex",
+    "shit",
+    "fuck",
+    "bitch",
+    "ass",
+    "bunda",
+    "peido",
+    "fart",
+    "pee",
+    "xixi",
+    "cocô",
+    "poop",
+    "nude",
+    "pelad",
+    "gostosa",
+    "morte",
+    "morreu",
+    "dead",
+    "kill",
+    "matar"
+  ],
+  "porFrase": {
+    "pt02": ["vir o tinto", "come to red"],
+    "pt03": ["vôminhe", "vomit"],
+    "en09": ["slowly die"]
+  }
+}

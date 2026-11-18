@@ -89,7 +89,23 @@ Nenhuma chamada de IA paga: testes com IA simulada.
 - [x] 10.1 Resultado das perguntas como linhas `exerciseKind: 'leituraAtiva'` com um `roundId` por leitura, pelo cliente das rodadas (aceitar o tipo novo na validação do servidor); verificar com teste de integração que só acerto de 1ª/2ª/nenhum chega, sem texto da pessoa
 - [x] 10.2 Palavras marcadas viram cartões via `ficharCartao` + `marcarSalva`, sem duplicar; sem conta, só o aviso; verificar com teste de componente e com o cartão aparecendo na fila de `due.ts`
 - [x] 10.3 `TipoDeMissao 'leitura'` (alvo `[1]`) em `src/core/missoes.ts`, contado por rodada `leituraAtiva` do dia, sorteado só com `incluirLeitura`; verificar com `tests/missoes.test.ts`: com a flag desligada o sorteio é idêntico ao de hoje para 200 sementes, e com ligada a missão fecha com uma rodada
-- [ ] 10.4 Gate final: `npm run typecheck` (×3), `npm run lint`, `npm test`, `npm run build`, i18n (pseudo, órfãs, cobertura, piso), `npm run morto:arquivos`, `npm run morto:ciclos` e os dois e2e verdes; capturas da tela em 375 px e 1280 px para o dono
+- [x] 10.4 Gate final: `npm run typecheck` (×3), `npm run lint`, `npm test`, `npm run build`, i18n (pseudo, órfãs, cobertura, piso), `npm run morto:arquivos`, `npm run morto:ciclos` e os dois e2e verdes; capturas da tela em 375 px e 1280 px para o dono
+
+### Notas da Parte 2 (o que mudou em relação ao planejado)
+
+- 7.3: o teste de 3 dias também fica sem o retorno (403 no núcleo, `reservarEscrita`), além do Grátis e do convidado.
+- 8.3: a resposta fora do esquema ESTORNA o retorno do mês (a spec pede), ao contrário da explicação; os tokens
+  cobrados continuam na `tokensMes`. O texto lido e o enunciado vêm do acervo pelo `textoId`, não do cliente.
+- 9.x: o Grátis no e2e é simulado pelo 403 do servidor (o app do e2e é self-host, que tem o retorno). O modo offline
+  e o "Está demorando" estão na tela, sem teste próprio. "Ver uma versão reescrita" (ux T5b) ficou de fora: o
+  esquema não tem texto reescrito, de propósito.
+- 10.2: o teste de componente prova `ficharCartao` com a frase do texto, `marcarSalva` e nada duplicado; a entrada na
+  fila do `due.ts` não tem teste próprio (o cartão novo usa o caminho de sempre do leitor).
+- 10.3: o servidor lê as rodadas `leituraAtiva` dos últimos 3 dias à parte das de jogo (`linhasDeLeituraAtiva`); o
+  espelho sem conta não sorteia a missão.
+- Custo: estimado no `design.md` ("Custo da escrita"); o `npm run ia:custo` não rodou (o ambiente recusou o comando)
+  e ainda não modela a escrita.
+- Capturas para o dono em `reports/leitura-ativa-prototipo/capturas/` (fora do git).
 
 ## Workflow follow-up
 

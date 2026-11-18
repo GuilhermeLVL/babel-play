@@ -64,6 +64,9 @@ export const IA_NIVEIS: Readonly<Record<FuncaoDeIa, NiveisDaFuncao>> = {
   /* O parceiro de leitura (L4 de Livros & Leitura): a rápida para todo plano, até a bancada com o modelo de produção
      (`scripts/eval-ia/parceiro.mjs`) dizer que algum modo precisa da nuance. */
   leitura: { semNuance: 'rapida', comNuance: 'rapida' },
+  /* A escrita da Leitura ativa (openspec `leitura-ativa-textos-simples`): a rápida, como o parceiro, até os juízes
+     (`claude -p` com 30–50 textos próprios) dizerem que precisa da nuance. */
+  escrita: { semNuance: 'rapida', comNuance: 'rapida' },
 }
 
 /** O nível que a função entrega a este plano — pela capacidade `traducaoNuance`. */

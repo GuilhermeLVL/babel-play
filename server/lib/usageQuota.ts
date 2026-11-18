@@ -95,6 +95,8 @@ export const METRIC_TTS_CARACTERES_DIA = 'tts_chars_dia'
  */
 export const METRIC_EXPLICACOES_MES = 'explicacoes_mes'
 export const METRIC_RESUMOS_MES = 'resumos_mes'
+/** Os retornos da escrita da Leitura ativa por mês (janela da cota do plano), contra `escritasMes`. */
+export const METRIC_ESCRITAS_MES = 'escritas_mes'
 export const METRIC_AMOSTRA_EXPLICACOES_DIA = 'amostra_explicacoes_dia'
 export const METRIC_AMOSTRA_RESUMOS_SEMANA = 'amostra_resumos_semana'
 /**

@@ -37,6 +37,7 @@ import {
   METRIC_AMOSTRA_EXPLICACOES_DIA,
   METRIC_AMOSTRA_POOL_DIA,
   METRIC_AMOSTRA_RESUMOS_SEMANA,
+  METRIC_ESCRITAS_MES,
   METRIC_EXPLICACOES_MES,
   METRIC_RESUMOS_MES,
 } from './usageQuota'
@@ -47,6 +48,7 @@ export {
   METRIC_AMOSTRA_EXPLICACOES_DIA,
   METRIC_AMOSTRA_POOL_DIA,
   METRIC_AMOSTRA_RESUMOS_SEMANA,
+  METRIC_ESCRITAS_MES,
   METRIC_EXPLICACOES_MES,
   METRIC_RESUMOS_MES,
 }
@@ -142,6 +144,39 @@ export async function reservarUsoDeEstudo(
     return { ok: true, origem: 'plano', restanteNaAmostra: null, metrica, janela, janelaDoPool: null }
   } catch (err) {
     log('error', { event: 'ia_de_estudo_contador_falhou', error: String((err as Error)?.message ?? err).slice(0, 120) })
+    throw new ContadorIndisponivel(err)
+  }
+}
+
+/**
+ * RESERVA UM RETORNO DA ESCRITA da Leitura ativa (`escritasMes`), antes de chamar o provedor. Sem amostra: o Grátis, o
+ * convidado e o teste de 3 dias (`emTeste`) recebem `sem_plano` e ficam com a conferência no aparelho. Esgotada, a
+ * `cota_do_mes`. Self-host (`null`) não conta. Falha de infra → `ContadorIndisponivel`. Devolve-se com
+ * `estornarUsoDeEstudo`, como as outras.
+ */
+export async function reservarEscrita(
+  userId: UserId,
+  plano: PlanoEfetivo,
+  emTeste: boolean,
+): Promise<ResultadoDaReservaDeEstudo> {
+  const teto = definicaoDoPlano(plano).quotas.escritasMes
+  if (plano === 'free' || emTeste || (teto !== null && !(teto > 0))) return { ok: false, motivo: 'sem_plano' }
+  if (teto === null)
+    return { ok: true, origem: 'plano', restanteNaAmostra: null, metrica: null, janela: null, janelaDoPool: null }
+  try {
+    const janela = await janelaDaCota(userId)
+    if (!(await usageCountersRepo.reserve(userId, METRIC_ESCRITAS_MES, janela, teto, 1)))
+      return { ok: false, motivo: 'cota_do_mes' }
+    return {
+      ok: true,
+      origem: 'plano',
+      restanteNaAmostra: null,
+      metrica: METRIC_ESCRITAS_MES,
+      janela,
+      janelaDoPool: null,
+    }
+  } catch (err) {
+    log('error', { event: 'escrita_contador_falhou', error: String((err as Error)?.message ?? err).slice(0, 120) })
     throw new ContadorIndisponivel(err)
   }
 }

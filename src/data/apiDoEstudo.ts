@@ -138,6 +138,93 @@ function modeloDaResposta(res: Response): { modelo?: string } {
   return modelo ? { modelo } : {};
 }
 
+/* ─────────────── a escrita da Leitura ativa (`POST /api/ai/escrita`, flag `leitura_ativa`) ─────────────── */
+
+export type TipoDePonto = 'sentido' | 'tempoVerbal' | 'concordancia' | 'ortografia' | 'palavra' | 'outro';
+
+export interface RetornoDaEscrita {
+  elogio: string;
+  pontos: { trecho: string; tipo: TipoDePonto; dica: string; exemplo: string }[];
+  /** Os trechos da versão anterior que esta resolveu. */
+  resolvidos: string[];
+}
+
+export interface PedidoDeRetorno {
+  textoId: string;
+  tarefa: 'reescrever' | 'opinar';
+  escrita: string;
+  /** Os trechos dos pontos da primeira versão (o reenvio, um por texto). */
+  anteriores?: ReadonlyArray<string>;
+}
+
+/**
+ * Por que não veio o retorno: o 403 do Grátis (`sem_plano`), a cota do mês (429 `cota_esgotada`, com `voltam`: "em 1 de
+ * dezembro"), o dado pessoal que escapou do filtro local (422), e o resto ("Não deu para ler seu texto agora.").
+ */
+export type FalhaDaEscrita =
+  | { motivo: 'sem_plano' | 'sem_conta' | 'fora' | 'dado_pessoal' | 'invalido' | 'indisponivel' }
+  | { motivo: 'cota_esgotada'; limite: number | null; voltam: string | null };
+
+const TIPOS_DE_PONTO: readonly TipoDePonto[] = ['sentido', 'tempoVerbal', 'concordancia', 'ortografia', 'palavra', 'outro'];
+
+/** Leitura defensiva (o servidor já cortou em 3 e conferiu os trechos). */
+function lerRetorno(c: unknown): RetornoDaEscrita | null {
+  const r = ((c ?? {}) as { retorno?: Record<string, unknown> }).retorno;
+  if (!r || typeof r !== 'object') return null;
+  const elogio = textoCheio(r.elogio);
+  if (!elogio || !Array.isArray(r.pontos)) return null;
+  const pontos = r.pontos.flatMap((x: unknown) => {
+    const p = (x ?? {}) as Record<string, unknown>;
+    const trecho = textoCheio(p.trecho);
+    const dica = textoCheio(p.dica);
+    if (!trecho || !dica) return [];
+    const tipo = TIPOS_DE_PONTO.includes(p.tipo as TipoDePonto) ? (p.tipo as TipoDePonto) : 'outro';
+    return [{ trecho, tipo, dica, exemplo: typeof p.exemplo === 'string' ? p.exemplo : '' }];
+  });
+  const resolvidos = Array.isArray(r.resolvidos) ? r.resolvidos.filter((x): x is string => typeof x === 'string') : [];
+  return { elogio, pontos: pontos.slice(0, 3), resolvidos };
+}
+
+/** Pede o retorno da IA sobre a escrita. Nunca lança. */
+export async function pedirRetornoDaEscrita(
+  p: PedidoDeRetorno,
+): Promise<{ ok: true; valor: RetornoDaEscrita } | ({ ok: false } & FalhaDaEscrita)> {
+  let res: Response;
+  try {
+    res = await apiFetch('/api/ai/escrita', {
+      method: 'POST',
+      timeoutMs: TEMPO_DA_EXPLICACAO_MS,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        textoId: p.textoId,
+        tarefa: p.tarefa,
+        escrita: p.escrita,
+        ...(p.anteriores?.length ? { anteriores: p.anteriores.slice(0, 3) } : {}),
+      }),
+    });
+  } catch {
+    return { ok: false, motivo: 'indisponivel' };
+  }
+  if (!res.ok) {
+    const erro = await lerErro(res);
+    if (erro.code === 'cota_esgotada') {
+      const d = erro.detalhes ?? {};
+      return {
+        ok: false,
+        motivo: 'cota_esgotada',
+        limite: typeof d.limite === 'number' ? d.limite : null,
+        voltam: typeof d.voltam === 'string' ? d.voltam : null,
+      };
+    }
+    if (erro.code === 'dado_pessoal') return { ok: false, motivo: 'dado_pessoal' };
+    if (res.status === 403) return { ok: false, motivo: 'sem_plano' };
+    const m = motivoDaFalha(res.status, erro.code, erro.detalhes);
+    return { ok: false, motivo: m === 'sem_plano' || m === 'sem_conta' || m === 'fora' || m === 'invalido' ? m : 'indisponivel' };
+  }
+  const valor = lerRetorno(await res.json().catch(() => null));
+  return valor === null ? { ok: false, motivo: 'indisponivel' } : { ok: true, valor };
+}
+
 /** Um cartão proposto pelo resumo, já no formato do bulk-add (o servidor já filtrou). */
 export interface CartaoDoResumo {
   word: string;

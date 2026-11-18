@@ -61,6 +61,8 @@ export type FuncaoTelemetrada =
   | 'assistente-correcao'
   /* O parceiro de leitura (L4 de Livros & Leitura): um rótulo só; o modo vai em `modoDoParceiro`. */
   | 'parceiro-de-leitura'
+  /* A escrita da Leitura ativa (openspec `leitura-ativa-textos-simples`). */
+  | 'escrita'
 
 /** Os metadados de RASTRO que as rotas podem anotar. Lista fechada: nada de texto livre. */
 export interface AnotacoesDoRastro {

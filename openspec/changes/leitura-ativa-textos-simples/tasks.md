@@ -66,16 +66,16 @@ Nenhuma chamada de IA paga: testes com IA simulada.
 
 ## 7. Parte 2 — Núcleo puro da escrita
 
-- [ ] 7.1 `src/core/leitura/dadosPessoais.ts`: e-mail, telefone, @usuário, URL e nome de escola, devolvendo trechos; verificar com `tests/leitura-ativa-dados-pessoais.test.ts` (positivos da spec e negativos como "2 bananas", "six red apples", "at 7 o'clock")
-- [ ] 7.2 `src/core/leitura/conferenciaLocal.ts`: contagem, palavras-alvo usadas por lema, frases sem ponto; verificar com `tests/leitura-ativa-conferencia.test.ts`
-- [ ] 7.3 Cota `escritasMes` em `QuotasDoPlano` e em todos os planos (0 no grátis, `ESCRITAS_MES_DOS_PAGOS = 30`, `null` no selfhost), depois de passar pela skill `custo-de-ia`; verificar com `tests/planos-matriz.test.ts`, `planos-capacidades.test.ts` e `planos-so-o-que-existe.test.ts` atualizados
+- [x] 7.1 `src/core/leitura/dadosPessoais.ts`: e-mail, telefone, @usuário, URL e nome de escola, devolvendo trechos; verificar com `tests/leitura-ativa-dados-pessoais.test.ts` (positivos da spec e negativos como "2 bananas", "six red apples", "at 7 o'clock")
+- [x] 7.2 `src/core/leitura/conferenciaLocal.ts`: contagem, palavras-alvo usadas por lema, frases sem ponto; verificar com `tests/leitura-ativa-conferencia.test.ts`
+- [x] 7.3 Cota `escritasMes` em `QuotasDoPlano` e em todos os planos (0 no grátis, `ESCRITAS_MES_DOS_PAGOS = 30`, `null` no selfhost), depois de passar pela skill `custo-de-ia`; verificar com `tests/planos-matriz.test.ts`, `planos-capacidades.test.ts` e `planos-so-o-que-existe.test.ts` atualizados
 
 ## 8. Parte 2 — Servidor (função `escrita`)
 
-- [ ] 8.1 `escrita` em `FuncaoDeIa`/`FUNCOES_DE_IA` (teto de entrada ~1.500, `maxTokens` 500 ≤ 1.500, temperatura 0,2) e docblock de custo; verificar com `tests/integration/funcoes-de-ia.test.ts`
-- [ ] 8.2 Esquema de saída em `src/lib/esquemasDeSaida.ts` (elogio, até 3 pontos com trecho/tipo/dica/exemplo, resolvidos) e prompt `src/lib/estudo/promptDaEscrita.ts` com texto delimitado como dado, prioridade dos pontos e sem texto reescrito; verificar com teste unitário do prompt (delimitadores, sem `system` vindo do cliente)
-- [ ] 8.3 Núcleo `server/ai/nucleo/escrita.ts` (quem pede → flag 404 → dados pessoais 422 → plano 403 → cota 429 → menor → cascata só ZDR → esquema → corte em 3 e descarte de trecho inexistente → estorno em falha), sem cache e sem gravar texto; verificar com `tests/integration/escrita.test.ts` com `fetch` simulado cobrindo todos os cenários da spec, inclusive provedor `SEM_ZDR` nunca chamado, `system` com instrução de menor e nenhuma linha de log ou tabela com o texto
-- [ ] 8.4 Adaptador `server/ai/escrita.ts`, rota `POST /api/ai/escrita` em `server/routes/ai.ts`, teste de caracterização em `tests/caracterizacao/` e consumidor em `src/data/apiDoEstudo.ts`; verificar com `scripts/testes/rotas-sem-caracterizacao.mjs`, `rotas-sem-consumidor.mjs` e `npm run contrato:api`
+- [x] 8.1 `escrita` em `FuncaoDeIa`/`FUNCOES_DE_IA` (teto de entrada ~1.500, `maxTokens` 500 ≤ 1.500, temperatura 0,2) e docblock de custo; verificar com `tests/integration/funcoes-de-ia.test.ts`
+- [x] 8.2 Esquema de saída em `src/lib/esquemasDeSaida.ts` (elogio, até 3 pontos com trecho/tipo/dica/exemplo, resolvidos) e prompt `src/lib/estudo/promptDaEscrita.ts` com texto delimitado como dado, prioridade dos pontos e sem texto reescrito; verificar com teste unitário do prompt (delimitadores, sem `system` vindo do cliente)
+- [x] 8.3 Núcleo `server/ai/nucleo/escrita.ts` (quem pede → flag 404 → dados pessoais 422 → plano 403 → cota 429 → menor → cascata só ZDR → esquema → corte em 3 e descarte de trecho inexistente → estorno em falha), sem cache e sem gravar texto; verificar com `tests/integration/escrita.test.ts` com `fetch` simulado cobrindo todos os cenários da spec, inclusive provedor `SEM_ZDR` nunca chamado, `system` com instrução de menor e nenhuma linha de log ou tabela com o texto
+- [x] 8.4 Adaptador `server/ai/escrita.ts`, rota `POST /api/ai/escrita` em `server/routes/ai.ts`, teste de caracterização em `tests/caracterizacao/` e consumidor em `src/data/apiDoEstudo.ts`; verificar com `scripts/testes/rotas-sem-caracterizacao.mjs`, `rotas-sem-consumidor.mjs` e `npm run contrato:api`
 
 ## 9. Parte 2 — Tela de escrita (T5/T5b)
 

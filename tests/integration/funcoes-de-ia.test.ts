@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest'
 
 import { FUNCOES_DE_IA } from '../../server/ai/funcoesDeIa'
 import { prepareLlmRequest } from '../../server/ai/llmRequest'
+import { PARAMETROS_DA_ESCRITA } from '../../src/lib/estudo/promptDaEscrita'
 
 const oi = [{ role: 'user', content: 'oi' }]
 
@@ -74,6 +75,14 @@ describe('teto de entrada por função', () => {
     expect(FUNCOES_DE_IA.corretor.tetoEntrada).toBeLessThan(FUNCOES_DE_IA.tutor.tetoEntrada)
     const r = prepareLlmRequest({ funcao: 'corretor', frase: 'y'.repeat(5_000), palavra: 'casa', resposta: 'casa' })
     expect(r.status).toBe(413)
+  })
+
+  it('a escrita da Leitura ativa: 1.500 de entrada (120 palavras com folga), 500 de saída, temperatura 0,2', () => {
+    expect(FUNCOES_DE_IA.escrita).toEqual({ tetoEntrada: 1_500, maxTokens: 500, temperatura: 0.2 })
+    expect(FUNCOES_DE_IA.escrita.maxTokens).toBe(PARAMETROS_DA_ESCRITA.maxTokens)
+    expect(FUNCOES_DE_IA.escrita.temperatura).toBe(PARAMETROS_DA_ESCRITA.temperatura)
+    /* A escrita não é função de conversa: só a rota própria a pede. */
+    expect(prepareLlmRequest({ funcao: 'escrita', messages: oi }).ok).toBe(false)
   })
 })
 

@@ -114,3 +114,34 @@ export const SAIDA_DO_PARCEIRO: FormatoDeSaida = {
     naoEstaNoTrecho: { type: 'boolean' },
   }),
 };
+
+/* A ESCRITA DA LEITURA ATIVA (`promptDaEscrita.ts`; spec `leitura-ativa-escrita`). De propósito, NÃO há campo de
+   texto reescrito: o retorno aponta, a pessoa corrige. */
+
+/** Os tipos de ponto da escrita (a tela diz cada um em português simples). */
+export const TIPOS_DE_PONTO_DA_ESCRITA = [
+  'sentido',
+  'tempoVerbal',
+  'concordancia',
+  'ortografia',
+  'palavra',
+  'outro',
+] as const;
+
+/** `{"elogio", "pontos": [{"trecho", "tipo", "dica", "exemplo"}], "resolvidos": [trechos]}` — `lerRetornoDaEscrita`. */
+export const SAIDA_DA_ESCRITA: FormatoDeSaida = {
+  nome: 'leitura_escrita',
+  esquema: objeto({
+    elogio: texto,
+    pontos: {
+      type: 'array',
+      items: objeto({
+        trecho: texto,
+        tipo: { type: 'string', enum: [...TIPOS_DE_PONTO_DA_ESCRITA] },
+        dica: texto,
+        exemplo: texto,
+      }),
+    },
+    resolvidos: { type: 'array', items: texto },
+  }),
+};

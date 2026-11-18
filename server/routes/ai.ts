@@ -7,6 +7,7 @@ import { raw, Router } from 'express'
 
 import { alternativasProxy } from '../ai/alternativas'
 import { exigirFlagDoAssistente, rotaDoAssistente, tetoDoAssistente } from '../ai/assistente'
+import { escritaProxy } from '../ai/escrita'
 import { explicarProxy } from '../ai/explicar'
 import { registrarFeedback, tetoDoFeedback } from '../ai/feedback'
 import { mtTranslateProxy } from '../ai/mtProxy'
@@ -70,6 +71,11 @@ aiRouter.post('/assistente/correcao', exigirFlagDoAssistente, tetoDoAssistente, 
    `recurso_indisponivel`), só nos pagos e no teste (`parceiroDia`; Grátis 402 `sem_plano`, teto do dia 429
    `teto_do_parceiro`), com cache compartilhado nos livros PD, o menor, a retenção zero, a admissão e o orçamento. */
 aiRouter.post('/leitura/parceiro', parceiroProxy)
+/* A ESCRITA DA LEITURA ATIVA (openspec `leitura-ativa-textos-simples`): 1 elogio e até 3 pontos sobre o texto que a
+   pessoa escreveu depois de ler. Atrás da flag `leitura_ativa` (404), dados pessoais recusados (422 `dado_pessoal`),
+   só nos pagos (`escritasMes`; Grátis/convidado/teste 403, esgotada 429 `cota_esgotada`), com o menor, a retenção
+   zero, a admissão e o orçamento. Nada do texto é guardado. */
+aiRouter.post('/escrita', escritaProxy)
 /* O FEEDBACK DE IA (Fase B da IA paga): 👍/👎 com função, modelo, nível e motivo de LISTA FECHADA — nada de texto
    livre nem conteúdo da frase. Vira métrica e nota no Langfuse; nenhuma tabela. Adulto, menor e convidado. */
 aiRouter.post('/feedback', tetoDoFeedback, registrarFeedback)

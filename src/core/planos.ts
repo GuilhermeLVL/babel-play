@@ -297,6 +297,13 @@ export const FRACAO_DA_COTA_DO_ASSISTENTE = 0.25;
 export const FLAG_PARCEIRO_DE_LEITURA = 'parceiro_de_leitura';
 
 /**
+ * A LEITURA ATIVA (openspec `leitura-ativa-textos-simples`; migrações PG 0020 e SQLite 0062): a tela "Leituras"
+ * (`/leitura`), textos curtos para ouvir, ler em voz alta e responder perguntas. Nasce DESLIGADA e sem regra de plano:
+ * desligada, o menu não mostra o item e a URL cai no início. Liga o microfone para menores, por isso é sensível no painel.
+ */
+export const FLAG_LEITURA_ATIVA = 'leitura_ativa';
+
+/**
  * OS AVATARES (`docs/specs/2026-10-28-avatar-interprete.md`; migração PG 0016). Três flags que nascem DESLIGADAS:
  * `avatar_3d` (a base: o avatar da pessoa e o do intérprete, em 3D com fallback 2D), `avatar_sinais` (soletração
  * rotulada como demonstração, nunca "tradução para Libras") e `avatar_elenco` (narrador e personagens nos livros).

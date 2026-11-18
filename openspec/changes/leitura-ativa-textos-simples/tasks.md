@@ -6,16 +6,16 @@ Nenhuma chamada de IA paga: testes com IA simulada.
 
 ## 1. Parte 1 — Flag `leitura_ativa`
 
-- [ ] 1.1 `FLAG_LEITURA_ATIVA` em `src/core/planos.ts`; migrações `server/db/migrations-pg/0020_flag_leitura_ativa.sql` e `server/db/migrations-sqlite/0062_flag_leitura_ativa.sql` com journal e snapshot; verificar com `tests/leitura-ativa-flag.test.ts` (modelo `voz-no-aparelho-flag.test.ts`: as duas cadeias, desligada, `ON CONFLICT DO NOTHING`) e a contagem atualizada em `tests/integration/schema-pg-baseline.test.ts`
-- [ ] 1.2 `leitura_ativa` em `FLAGS_SENSIVEIS` (`PainelFlags.tsx`); verificar com o teste do painel que ligar pede confirmação
+- [x] 1.1 `FLAG_LEITURA_ATIVA` em `src/core/planos.ts`; migrações `server/db/migrations-pg/0020_flag_leitura_ativa.sql` e `server/db/migrations-sqlite/0062_flag_leitura_ativa.sql` com journal e snapshot; verificar com `tests/leitura-ativa-flag.test.ts` (modelo `voz-no-aparelho-flag.test.ts`: as duas cadeias, desligada, `ON CONFLICT DO NOTHING`) e a contagem atualizada em `tests/integration/schema-pg-baseline.test.ts`
+- [x] 1.2 `leitura_ativa` em `FLAGS_SENSIVEIS` (`PainelFlags.tsx`); verificar com o teste do painel que ligar pede confirmação
 
 ## 2. Parte 1 — Núcleo puro (`src/core/leitura/`)
 
-- [ ] 2.1 `fichaDeTexto.ts`: tipo `FichaDeTexto` e `validarFicha` (campos, 3 perguntas × 3 opções, `correta` válido, palavras-alvo presentes no texto por lema); verificar com `tests/leitura-ativa-ficha.test.ts` cobrindo os cenários de ficha inválida
-- [ ] 2.2 `coberturaDoTexto.ts`: cobertura por etiquetas + funcionais + nomes próprios, com lema, e rótulo (≥98 / 95–97 / <95 / sem número abaixo de 3 sessões); verificar com `tests/leitura-ativa-cobertura.test.ts` (40/38 = 95%, "apples" ↔ "apple", conta nova sem número)
-- [ ] 2.3 `alinhadorDeLeitura.ts`: estado imutável, `aplicarParcial` com cursor monotônico e janela de 6, `reposicionar` sem puladas, fim de frase e estrela ≥ 80%; verificar com `tests/leitura-ativa-alinhador.test.ts` com os cenários da spec (completa, pulada, repetição/recuo, fora da janela, reposicionar) e um teste de propriedade "o cursor nunca recua"
-- [ ] 2.4 `palavrasParaPraticar.ts`: ordem puladas → tocadas → alvo desconhecidas, dedupe por lema, até 5, já no caderno desmarcada; verificar com `tests/leitura-ativa-praticar.test.ts`
-- [ ] 2.5 Conferir as camadas: `npm run typecheck:core` e `npm run lint` passam (nada de DOM nem import de `src/lib`/`src/gateway`)
+- [x] 2.1 `fichaDeTexto.ts`: tipo `FichaDeTexto` e `validarFicha` (campos, 3 perguntas × 3 opções, `correta` válido, palavras-alvo presentes no texto por lema); verificar com `tests/leitura-ativa-ficha.test.ts` cobrindo os cenários de ficha inválida
+- [x] 2.2 `coberturaDoTexto.ts`: cobertura por etiquetas + funcionais + nomes próprios, com lema, e rótulo (≥98 / 95–97 / <95 / sem número abaixo de 3 sessões); verificar com `tests/leitura-ativa-cobertura.test.ts` (40/38 = 95%, "apples" ↔ "apple", conta nova sem número)
+- [x] 2.3 `alinhadorDeLeitura.ts`: estado imutável, `aplicarParcial` com cursor monotônico e janela de 6, `reposicionar` sem puladas, fim de frase e estrela ≥ 80%; verificar com `tests/leitura-ativa-alinhador.test.ts` com os cenários da spec (completa, pulada, repetição/recuo, fora da janela, reposicionar) e um teste de propriedade "o cursor nunca recua"
+- [x] 2.4 `palavrasParaPraticar.ts`: ordem puladas → tocadas → alvo desconhecidas, dedupe por lema, até 5, já no caderno desmarcada; verificar com `tests/leitura-ativa-praticar.test.ts`
+- [x] 2.5 Conferir as camadas: `npm run typecheck:core` e `npm run lint` passam (nada de DOM nem import de `src/lib`/`src/gateway`)
 
 ## 3. Parte 1 — Dados (acervo)
 

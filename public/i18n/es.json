@@ -2624,5 +2624,39 @@
   "O app ainda não abre sem internet neste navegador.": "La app todavía no abre sin internet en este navegador.",
   "Desligar o modo offline neste navegador": "Desactivar el modo sin conexión en este navegador",
   "Modo offline desligado neste navegador. Ele volta na próxima abertura do app.": "Modo sin conexión desactivado en este navegador. Vuelve la próxima vez que abras la app.",
-  "Não deu para desligar o modo offline agora.": "No se pudo desactivar el modo sin conexión ahora."
+  "Não deu para desligar o modo offline agora.": "No se pudo desactivar el modo sin conexión ahora.",
+  "na fila": "en cola",
+  "O tradutor começa a baixar quando a transcrição terminar. As falas são traduzidas quando ele chegar.": "El traductor empieza a descargarse cuando termine la transcripción. Las frases se traducen cuando llegue.",
+  "A legenda começa em {faixa}.": "Los subtítulos empiezan en {faixa}.",
+  "Velocidade medida: {v} Mbit/s.": "Velocidad medida: {v} Mbit/s.",
+  "A conexão está lenta. Quer começar antes?": "La conexión está lenta. ¿Quieres empezar antes?",
+  "Usar um modelo menor": "Usar un modelo más pequeño",
+  "Baixa menos da metade e a legenda começa antes; ela erra um pouco mais. Dá para voltar em Ajustes.": "Descarga menos de la mitad y los subtítulos empiezan antes; se equivocan un poco más. Puedes volver en Ajustes.",
+  "Começar só com a transcrição": "Empezar solo con la transcripción",
+  "O tradutor baixa depois. As falas são traduzidas quando ele chegar.": "El traductor se descarga después. Las frases se traducen cuando llegue.",
+  "Preparando para legendar": "Preparando los subtítulos",
+  "O modelo já está neste aparelho. A legenda começa em instantes.": "El modelo ya está en este dispositivo. Los subtítulos empiezan en un momento.",
+  "Baixando para legendar": "Descargando para subtitular",
+  "Uma vez só, e fica guardado neste aparelho. A legenda começa em {quando}.": "Solo una vez, y queda guardado en este dispositivo. Los subtítulos empiezan en {quando}.",
+  "Uma vez só, e fica guardado neste aparelho. A legenda começa quando o download terminar.": "Solo una vez, y queda guardado en este dispositivo. Los subtítulos empiezan cuando termine la descarga.",
+  "Baixando: pode falar, suas falas ficam guardadas.": "Descargando: puedes hablar, tus frases quedan guardadas.",
+  "A legenda começa em {quando}.": "Los subtítulos empiezan en {quando}.",
+  "Nesta conexão, o download deve levar {faixa}.": "Con esta conexión, la descarga debería tardar {faixa}.",
+  "A conexão parece lenta: o download pode demorar.": "La conexión parece lenta: la descarga puede tardar.",
+  "Num Wi-Fi ele termina antes e não gasta o seu plano de dados.": "Con Wi-Fi termina antes y no gasta tu plan de datos.",
+  "Usar a legenda do navegador": "Usar los subtítulos del navegador",
+  "A transcrição não baixa nada; só o tradutor ({mb} MB).": "La transcripción no descarga nada; solo el traductor ({mb} MB).",
+  "Não baixa nada.": "No descarga nada.",
+  "O áudio da sua voz vai para o reconhecimento do navegador (Google ou Apple) enquanto você fala.": "El audio de tu voz va al reconocimiento del navegador (Google o Apple) mientras hablas.",
+  "menos de 1 min": "menos de 1 min",
+  "cerca de {n} min": "unos {n} min",
+  "cerca de {a} a {b} min": "unos {a} a {b} min",
+  "{n} falas guardadas: elas viram legenda quando o download terminar.": {
+    "one": "{n} frase guardada: se convierte en subtítulo cuando termine la descarga.",
+    "other": "{n} frases guardadas: se convierten en subtítulos cuando termine la descarga."
+  },
+  "Baixando: suas falas ficam guardadas ({n} trechos).": {
+    "one": "Descargando: tu frase queda guardada ({n} fragmento).",
+    "other": "Descargando: tus frases quedan guardadas ({n} fragmentos)."
+  }
 }

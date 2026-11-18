@@ -6118,5 +6118,39 @@
   "O app ainda não abre sem internet neste navegador.": "The app can't open offline in this browser yet.",
   "Desligar o modo offline neste navegador": "Turn off offline mode in this browser",
   "Modo offline desligado neste navegador. Ele volta na próxima abertura do app.": "Offline mode turned off in this browser. It comes back the next time you open the app.",
-  "Não deu para desligar o modo offline agora.": "Couldn't turn off offline mode right now."
+  "Não deu para desligar o modo offline agora.": "Couldn't turn off offline mode right now.",
+  "na fila": "queued",
+  "O tradutor começa a baixar quando a transcrição terminar. As falas são traduzidas quando ele chegar.": "The translator starts downloading when the transcription finishes. Speech is translated once it arrives.",
+  "A legenda começa em {faixa}.": "Captions start in {faixa}.",
+  "Velocidade medida: {v} Mbit/s.": "Measured speed: {v} Mbit/s.",
+  "A conexão está lenta. Quer começar antes?": "The connection is slow. Want to start sooner?",
+  "Usar um modelo menor": "Use a smaller model",
+  "Baixa menos da metade e a legenda começa antes; ela erra um pouco mais. Dá para voltar em Ajustes.": "Downloads less than half and captions start sooner; they make a few more mistakes. You can switch back in Settings.",
+  "Começar só com a transcrição": "Start with transcription only",
+  "O tradutor baixa depois. As falas são traduzidas quando ele chegar.": "The translator downloads later. Speech is translated once it arrives.",
+  "Preparando para legendar": "Getting ready to caption",
+  "O modelo já está neste aparelho. A legenda começa em instantes.": "The model is already on this device. Captions start in a moment.",
+  "Baixando para legendar": "Downloading to caption",
+  "Uma vez só, e fica guardado neste aparelho. A legenda começa em {quando}.": "Only once, and it stays on this device. Captions start in {quando}.",
+  "Uma vez só, e fica guardado neste aparelho. A legenda começa quando o download terminar.": "Only once, and it stays on this device. Captions start when the download finishes.",
+  "Baixando: pode falar, suas falas ficam guardadas.": "Downloading: go ahead and speak, your speech is kept.",
+  "A legenda começa em {quando}.": "Captions start in {quando}.",
+  "Nesta conexão, o download deve levar {faixa}.": "On this connection, the download should take {faixa}.",
+  "A conexão parece lenta: o download pode demorar.": "The connection seems slow: the download may take a while.",
+  "Num Wi-Fi ele termina antes e não gasta o seu plano de dados.": "On Wi-Fi it finishes sooner and doesn't use your data plan.",
+  "Usar a legenda do navegador": "Use the browser's captions",
+  "A transcrição não baixa nada; só o tradutor ({mb} MB).": "Transcription downloads nothing; only the translator ({mb} MB).",
+  "Não baixa nada.": "Downloads nothing.",
+  "O áudio da sua voz vai para o reconhecimento do navegador (Google ou Apple) enquanto você fala.": "Your voice audio goes to the browser's speech recognition (Google or Apple) while you speak.",
+  "menos de 1 min": "less than 1 min",
+  "cerca de {n} min": "about {n} min",
+  "cerca de {a} a {b} min": "about {a} to {b} min",
+  "{n} falas guardadas: elas viram legenda quando o download terminar.": {
+    "one": "{n} phrase kept: it becomes a caption when the download finishes.",
+    "other": "{n} phrases kept: they become captions when the download finishes."
+  },
+  "Baixando: suas falas ficam guardadas ({n} trechos).": {
+    "one": "Downloading: your speech is kept ({n} phrase).",
+    "other": "Downloading: your speech is kept ({n} phrases)."
+  }
 }

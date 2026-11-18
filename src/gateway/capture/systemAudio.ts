@@ -801,8 +801,13 @@ async function startCaptureFromStream(
     const soFar = concatFrames();
     vlog(label, 'VAD → parcial (seq', currentSeq, '):', soFar.length, 'amostras');
     const seqDoParcial = currentSeq;
+    const eraOPrimeiro = primeiro;
     const devolverCota = () => {
       if (seqDoParcial === currentSeq && parciaisNestaFala > 0) parciaisNestaFala -= 1;
+      /* O 1º parcial voltou sem texto (0,6 s de fala ainda não dá palavra): o próximo sai com mais 0,6 s de
+         fala, sem o espaçamento de 2 s. Sem isto o 1º texto na tela ia de ~1,1 s para ~3,1 s conforme a sorte
+         do 1º decode (a bimodalidade da bancada no desktop; carga-rapida-no-celular, 5.2). */
+      if (eraOPrimeiro && seqDoParcial === currentSeq) ultimoParcialTs = -Infinity;
     };
     const aceito = cb.onPartialAudio(soFar, 16000, currentSeq);
     if (aceito === false) devolverCota();

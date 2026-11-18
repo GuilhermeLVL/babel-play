@@ -1,8 +1,9 @@
 import { AlertTriangle, CheckCircle2, Download, HardDriveDownload, Loader2, RotateCw } from 'lucide-react';
 import React from 'react';
 
+import { estimarTempo, faixaEmTexto } from '../lib/dispositivo/vazao';
 import { falhaDaCaptura } from '../lib/falhas/falhaNaTela';
-import { t } from '../lib/i18n';
+import { numeroCom, t, tp } from '../lib/i18n';
 
 /**
  * Painel de PREPARAÇÃO DO MODELO local — honesto e visível (antes: uma barrinha de 1.5px no
@@ -33,6 +34,38 @@ export interface ModelPrepState {
    * Quem mexe é `lib/captura/pacotesNativos.ts`.
    */
   nativos?: { tradutor?: number | null; voz?: number | null };
+  /**
+   * O tradutor ainda não começou, mas vai baixar depois da transcrição (carga-rapida-no-celular, 4.2): a barra dele
+   * aparece desde o aceite, "na fila", em vez de surgir do nada quando a transcrição termina.
+   */
+  mtNaFila?: boolean;
+  /** O tamanho do tradutor (MB), para a barra na fila e para a estimativa. */
+  mbTradutor?: number;
+  /** A vazão medida no download (Mbit/s, média de 10 s; `vazao.ts`). */
+  vazaoMbps?: number | null;
+  /** As falas guardadas enquanto o reconhecimento não está pronto (viram legenda quando ele chegar). */
+  trechosGuardados?: number;
+}
+
+/** As saídas da rede lenta (estimativa acima de 2 min). Ausente = o painel não oferece nada. */
+export interface SaidasDaRedeLenta {
+  /** Trocar para o modelo menor (o whisper-tiny): chega antes, erra um pouco mais. */
+  aoModeloMenor?: () => void;
+  /** Adiar o tradutor que baixa JUNTO com a transcrição: a legenda começa antes, e as falas são traduzidas depois. */
+  aoSoTranscricao?: () => void;
+}
+
+/** Acima disto (s) até a legenda, a tela oferece as saídas da rede lenta. */
+export const LIMITE_DA_REDE_LENTA_S = 120;
+
+/** Quanto falta da transcrição (bytes) e quando a legenda começa, pela vazão medida. Pura. */
+export function estimativaDaLegenda(s: ModelPrepState): {
+  faixa: ReturnType<typeof estimarTempo>;
+  restanteBytes: number;
+} {
+  const b = s.whisperBytes;
+  const restanteBytes = b && b.total > 0 && s.whisper !== null && s.whisper < 1 ? Math.max(0, b.total - b.loaded) : 0;
+  return { faixa: estimarTempo(restanteBytes, s.vazaoMbps ?? null), restanteBytes };
 }
 
 function Bar({
@@ -68,6 +101,25 @@ function Bar({
       <div className="h-2 bg-canvas rounded-full overflow-hidden border border-border-subtle">
         <div className={`h-full transition-all ${complete ? 'bg-good' : 'bg-accent'}`} style={{ width: `${pct}%` }} />
       </div>
+    </div>
+  );
+}
+
+/** A barra de quem ainda não começou: o tamanho e "na fila", sem porcentagem inventada. */
+function BarraNaFila({ label, mb }: { label: string; mb?: number }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between text-[11px] font-semibold mb-1">
+        <span className="text-ink-muted flex items-center gap-1.5">
+          <Download className="w-3.5 h-3.5 text-ink-muted" />
+          {label}
+        </span>
+        <span className="text-ink-muted tabular-nums">
+          {mb ? <span className="opacity-70 me-1.5">{`0/${Math.round(mb)} MB`}</span> : null}
+          {t('na fila')}
+        </span>
+      </div>
+      <div className="h-2 bg-canvas rounded-full overflow-hidden border border-border-subtle" />
     </div>
   );
 }
@@ -132,13 +184,16 @@ export default function ModelPrepPanel({
   onRetry,
   compact = false,
   ofertaDoPreciso,
+  saidas,
 }: {
   state: ModelPrepState;
   onRetry?: () => void;
   compact?: boolean;
   ofertaDoPreciso?: OfertaDoPreciso;
+  /** As saídas da rede lenta (carga-rapida-no-celular, 4.3). */
+  saidas?: SaidasDaRedeLenta;
 }) {
-  const painel = <PainelDoPreparo state={state} onRetry={onRetry} compact={compact} />;
+  const painel = <PainelDoPreparo state={state} onRetry={onRetry} compact={compact} saidas={saidas} />;
   if (!ofertaDoPreciso) return painel;
   return (
     <div className={`space-y-2 ${compact ? 'max-w-sm mx-auto' : ''}`}>
@@ -152,12 +207,20 @@ function PainelDoPreparo({
   state,
   onRetry,
   compact,
+  saidas,
 }: {
   state: ModelPrepState;
   onRetry?: () => void;
   compact: boolean;
+  saidas?: SaidasDaRedeLenta;
 }) {
   const { whisper, mt, fromCache, error, done, whisperBytes, mtBytes } = state;
+  const naFila = mt === null && !!state.mtNaFila;
+  const { faixa } = estimativaDaLegenda(state);
+  const lenta = !!faixa && faixa.minS > LIMITE_DA_REDE_LENTA_S;
+  /* O tradutor baixa JUNTO com a transcrição (rede ou memória sobrando): adiar dá a banda toda à transcrição. */
+  const tradutorJunto = mt !== null && mt < 1 && whisper !== null && whisper < 1;
+  const trechos = state.trechosGuardados ?? 0;
   const mtFromCache = state.mtFromCache ?? fromCache;
   /* Só o tradutor baixa de verdade (a transcrição veio do cache): o título diz isso, e não "Baixando
      modelo" — o que dava a impressão de baixar tudo de novo a cada abertura. */
@@ -235,6 +298,65 @@ function PainelDoPreparo({
         <Bar label="Transcrição (Whisper)" progress={whisper} bytes={whisperBytes} />
       )}
       {mt !== null && <Bar label="Tradutor (opus-mt)" progress={mt} bytes={mtBytes} />}
+      {naFila && <BarraNaFila label="Tradutor (opus-mt)" mb={state.mbTradutor} />}
+      {naFila && (
+        <p className="text-[11px] text-ink-muted leading-relaxed">
+          {t('O tradutor começa a baixar quando a transcrição terminar. As falas são traduzidas quando ele chegar.')}
+        </p>
+      )}
+      {faixa && (
+        <p className="text-[12px] font-semibold text-ink" data-testid="estimativa-do-preparo" aria-live="polite">
+          {t('A legenda começa em {faixa}.', { faixa: faixaEmTexto(faixa, t) })}{' '}
+          <span className="font-normal text-ink-muted">
+            {t('Velocidade medida: {v} Mbit/s.', {
+              v: numeroCom(state.vazaoMbps ?? 0, { maximumFractionDigits: 1, minimumFractionDigits: 1 }),
+            })}
+          </span>
+        </p>
+      )}
+      {trechos > 0 && (
+        <p className="text-[12px] text-ink-muted" data-testid="falas-guardadas">
+          {tp(
+            trechos,
+            '{n} fala guardada: ela vira legenda quando o download terminar.',
+            '{n} falas guardadas: elas viram legenda quando o download terminar.',
+          )}
+        </p>
+      )}
+      {lenta && saidas && (saidas.aoModeloMenor || (tradutorJunto && saidas.aoSoTranscricao)) && (
+        <div
+          className="rounded-lg border border-border-subtle bg-canvas p-3 space-y-2"
+          data-testid="saidas-da-rede-lenta"
+        >
+          <p className="text-[12px] font-semibold text-ink">{t('A conexão está lenta. Quer começar antes?')}</p>
+          {saidas.aoModeloMenor && (
+            <button
+              type="button"
+              onClick={saidas.aoModeloMenor}
+              className="min-h-[44px] w-full text-left px-3 py-2 rounded-lg border border-border-subtle bg-surface text-[13px] font-semibold text-ink cursor-pointer hover:bg-canvas"
+            >
+              {t('Usar um modelo menor')}
+              <span className="block font-normal text-[12px] text-ink-muted">
+                {t(
+                  'Baixa menos da metade e a legenda começa antes; ela erra um pouco mais. Dá para voltar em Ajustes.',
+                )}
+              </span>
+            </button>
+          )}
+          {tradutorJunto && saidas.aoSoTranscricao && (
+            <button
+              type="button"
+              onClick={saidas.aoSoTranscricao}
+              className="min-h-[44px] w-full text-left px-3 py-2 rounded-lg border border-border-subtle bg-surface text-[13px] font-semibold text-ink cursor-pointer hover:bg-canvas"
+            >
+              {t('Começar só com a transcrição')}
+              <span className="block font-normal text-[12px] text-ink-muted">
+                {t('O tradutor baixa depois. As falas são traduzidas quando ele chegar.')}
+              </span>
+            </button>
+          )}
+        </div>
+      )}
       {nativos.voz !== undefined && <Bar label={t('Reconhecimento de voz do navegador')} progress={nativos.voz} />}
       {nativos.tradutor !== undefined && <Bar label={t('Tradutor do navegador')} progress={nativos.tradutor} />}
       <p className="text-[11px] text-ink-muted leading-relaxed">

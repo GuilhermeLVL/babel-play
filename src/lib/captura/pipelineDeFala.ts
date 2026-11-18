@@ -36,7 +36,7 @@ import type { EspeculacaoDoFinal } from '../../gateway/capture/systemAudio';
 import { aoFalharANuvemDoStt, aoResponderANuvemDoStt } from '../../gateway/falhaDaNuvemDoStt';
 import { areModelsCached, expectedModelIds } from '../../gateway/modelCache';
 import { temCopiaNoAparelho } from '../../gateway/modelManifest';
-import { entradaDoParakeet, lerModeloFixo } from '../../gateway/modeloFixo';
+import { entradaDoParakeet, gravarModeloFixo, lerModeloFixo } from '../../gateway/modeloFixo';
 import type { ContextoDoStt } from '../../gateway/promptDeStt';
 import {
   getSttQuality,
@@ -50,6 +50,7 @@ import {
 import { consentiuReconhecimentoDoNavegador, rapidoDoMicPermitido } from '../consentimentoDeNuvem';
 import { DominantLangTracker } from '../convoLang';
 import { dispositivoDaRota, medirPerfilDoDispositivo, perfilDoDispositivo } from '../dispositivo/perfil';
+import { MedidorDeVazao } from '../dispositivo/vazao';
 import { edicaoEstatica } from '../edicaoEstatica';
 import { getEntitlements } from '../entitlements';
 import { consentiuNuvemNaFala, soNoAparelho } from '../escolhaDoProcessamento';
@@ -314,6 +315,16 @@ const registrarOuvinteDaCaptura = (soltar: () => void): (() => void) => {
 export function soltarOuvintesDaCaptura(): void {
   for (const solta of [...ouvintesDaCaptura]) solta();
 }
+
+/**
+ * As SAÍDAS DA REDE LENTA em curso (carga-rapida-no-celular, 4.3). No módulo, como os ouvintes acima: a fábrica roda
+ * a cada render, e o toque na saída chega por outra fábrica que a preparação em voo.
+ */
+const trocaDoModelo: { trocando: boolean; tradutorAdiado: boolean; tradutorEmVoo: Promise<void> | null } = {
+  trocando: false,
+  tradutorAdiado: false,
+  tradutorEmVoo: null,
+};
 
 export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   const {
@@ -773,7 +784,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
              com a tradução do final. */
           if (lastPartialTextRef.current.get(seq) === FALA_FECHADA) return;
           const clean = naEscritaEscolhida((res.text ?? '').trim(), undefined, hint);
-          if (!clean) return;
+          /* Sem texto: a captura libera o próximo parcial sem esperar os 2 s (`systemAudio.ts`, 5.2). */
+          if (!clean) return false;
           capMetrics.partial(seq);
           // No quadro seguinte, junto com o que mais chegar nele (ver `falasNoQuadro`).
           falasNoQuadro((prev) => prev.map((s) => (s.id === uttId && s.isPartial ? { ...s, originalText: clean } : s)));
@@ -840,6 +852,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         // Limite de ~24 trechos (~2 min de fala) para não crescer sem fim se a carga travar.
         if (pendingUtterancesRef.current.length < 24) {
           pendingUtterancesRef.current.push({ pcm: pcm.slice(), sr, rawSeq, source });
+          /* A tela conta as falas guardadas enquanto baixa (carga-rapida-no-celular, 4.1). */
+          const guardadas = pendingUtterancesRef.current.length;
+          setModelPrep((s) => (s ? { ...s, trechosGuardados: guardadas } : s));
           clog(
             'modelo ainda carregando, trecho',
             rawSeq,
@@ -1374,6 +1389,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     const pending = pendingUtterancesRef.current;
     if (!pending.length) return;
     pendingUtterancesRef.current = [];
+    setModelPrep((s) => (s?.trechosGuardados ? { ...s, trechosGuardados: 0 } : s));
     clog('modelo pronto, transcrevendo', pending.length, 'trecho(s) guardado(s) durante a carga');
     for (const u of pending) {
       (u.source === 'system' ? sysHandlers : micHandlers).onUtterance(u.pcm, u.sr, u.rawSeq);
@@ -1990,19 +2006,26 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     }
 
     modelReadyRef.current = false;
+    /* O tradutor que vai baixar DEPOIS da transcrição aparece desde já, "na fila" (carga-rapida-no-celular, 4.2). */
+    const tradutorDepois = umDeCadaVez && idsEsperados.length >= 2 && !mtCached;
+    trocaDoModelo.tradutorAdiado = false;
     setModelPrep((s) => ({
       whisper: 0,
       mt: null,
+      mtNaFila: tradutorDepois,
       fromCache: cached,
       mtFromCache: mtCached,
       error: null,
       done: false,
       ...manterPacotes(s),
     }));
+    /* A vazão medida no download da transcrição: a estimativa da tela e a guardada para a próxima confirmação. */
+    const medidor = new MedidorDeVazao();
     try {
       // Tradutor local (best-effort; direção "ouço → meu idioma"). Emite barra própria.
-      const iniciarTradutor = () =>
-        gateway.mt.preload(mtDe, mtPara, (p, _l, bytes) => {
+      const iniciarTradutor = () => {
+        setModelPrep((s) => (s?.mtNaFila ? { ...s, mtNaFila: false } : s));
+        return gateway.mt.preload(mtDe, mtPara, (p, _l, bytes) => {
           prepNoQuadro((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s));
           if (p >= 1) {
             /* O tradutor local (113 MB) fica pronto DEPOIS do Whisper. Tudo que foi falado nesse
@@ -2012,12 +2035,29 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             setTimeout(() => setModelPrep((s) => (s?.done && semPacotePendente(s) ? null : s)), 1800);
           }
         });
-      // Aparelho com pouca memória: o tradutor só começa DEPOIS do Whisper pronto (pico menor).
-      if (!umDeCadaVez) iniciarTradutor();
+      };
+      /* Aparelho com pouca memória: o tradutor só começa DEPOIS do Whisper pronto (pico menor). Junto, ele pode
+         ser ADIADO pela pessoa na rede lenta ("Começar só com a transcrição"): aí o download dele é cancelado e
+         recomeça quando a transcrição terminar. */
+      if (!umDeCadaVez)
+        trocaDoModelo.tradutorEmVoo = iniciarTradutor().catch((e: unknown) => {
+          if (!trocaDoModelo.tradutorAdiado) clog('tradutor local indisponível (a cascata segue):', String(e));
+        });
       // Whisper (obrigatório para transcrever o áudio do sistema/aba).
       await gateway.stt.preloadModel(
-        (p, _l, bytes) =>
-          prepNoQuadro((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)),
+        (p, _l, bytes) => {
+          if (bytes) medidor.registrar(bytes.loaded, performance.now());
+          prepNoQuadro((s) =>
+            s
+              ? {
+                  ...s,
+                  whisper: p >= 1 ? 1 : p,
+                  whisperBytes: bytes ?? s.whisperBytes,
+                  vazaoMbps: medidor.vazao() ?? s.vazaoMbps ?? null,
+                }
+              : s,
+          );
+        },
         { aoDegradar: avisarDegradacao },
       );
       // O Parakeet não carregou e o gateway o tirou da cadeia: no "aparelho primeiro", a nuvem volta à frente.
@@ -2025,7 +2065,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       /* Pouca memória: o tradutor logo DEPOIS do Whisper pronto — não depois da primeira legenda
          (relato do dono no celular, 2026-09-29: as primeiras falas saíam sem tradução enquanto ele
          nem tinha começado a baixar). */
-      if (umDeCadaVez) iniciarTradutor();
+      if (umDeCadaVez || trocaDoModelo.tradutorAdiado)
+        void iniciarTradutor().catch((e: unknown) => clog('tradutor local indisponível (a cascata segue):', String(e)));
       clog('modelos locais prontos ✓');
       modelReadyRef.current = true;
       flushPendingUtterances();
@@ -2033,6 +2074,11 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       // O painel só some quando o tradutor (e o pacote do navegador) também acabou (ou não existe).
       setTimeout(() => setModelPrep((s) => (s && preparoConcluido(s) ? null : s)), 1800);
     } catch (e) {
+      /* A pessoa trocou para o modelo menor no meio do download: o worker foi encerrado de propósito. */
+      if (trocaDoModelo.trocando) {
+        clog('download da transcrição interrompido: trocando para o modelo menor');
+        return;
+      }
       clog('preparação do modelo FALHOU:', String(e));
       const msg = String((e as Error)?.message ?? e);
       contarFalhaDoErro(e);
@@ -2120,6 +2166,35 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     return true;
   };
 
+  /**
+   * "USAR UM MODELO MENOR" (rede lenta, 4.3): o whisper-tiny fica fixado (a tela de modelos mostra e desfaz), o
+   * download em curso é cancelado (o worker sai) e a preparação recomeça com ele. As falas guardadas continuam na
+   * fila e viram legenda quando o menor chegar.
+   */
+  const usarModeloMenor = async (): Promise<void> => {
+    gravarModeloFixo('whisper-tiny');
+    trocaDoModelo.trocando = true;
+    try {
+      gateway.stt.liberarModelo();
+      for (let i = 0; i < 50 && prepareEmVooRef.current; i++) await new Promise((r) => setTimeout(r, 100));
+    } finally {
+      trocaDoModelo.trocando = false;
+    }
+    setModelPrep((s) => (s ? { ...s, whisper: 0, whisperBytes: null, vazaoMbps: s.vazaoMbps } : s));
+    await prepareModels();
+  };
+
+  /**
+   * "COMEÇAR SÓ COM A TRANSCRIÇÃO" (rede lenta, 4.3): o tradutor que baixava junto para (o worker sai) e recomeça
+   * quando a transcrição terminar; a banda toda vai para ela. As falas são traduzidas quando ele chegar
+   * (`retraduzirDegradados`).
+   */
+  const adiarTradutor = (): void => {
+    trocaDoModelo.tradutorAdiado = true;
+    gateway.mt.liberarModelos();
+    setModelPrep((s) => (s ? { ...s, mt: null, mtBytes: null, mtNaFila: true } : s));
+  };
+
   return {
     sysHandlers,
     micHandlers,
@@ -2128,5 +2203,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     decidirMotorDoSistema,
     prepararTradutorDaFala,
     ligarNuvemDeAlivio,
+    usarModeloMenor,
+    adiarTradutor,
   };
 }

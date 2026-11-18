@@ -223,6 +223,7 @@ import {
   falasDoAssistente as falasParaOAssistente,
   paginaMostraOAssistente,
 } from '../../lib/assistente/falasDoAssistente';
+import { esperaDaLegenda, mioloDoPreparo } from '../../lib/captura/esperaDoPreparo';
 import { useFlag } from '../../lib/flags';
 import { estabilizarFalas } from '../../lib/legendas/estabilizarFalas';
 import { aoMudarEstadoDaTela, estadoDaTela, mudarEstadoDaTela } from '../../lib/polimento/interprete';
@@ -237,6 +238,7 @@ import AjustesDoAssistente from './captura/assistente/AjustesDoAssistente';
 import { ComoRespondoNaPagina } from './captura/assistente/AssistenteNaPagina';
 import { rotuloDaMarca } from './captura/assistente/TextoComMarcas';
 import { useAssistenteAoVivo } from './captura/assistente/useAssistenteAoVivo';
+import AvisoDaRedeNoDownload from './captura/AvisoDaRedeNoDownload';
 import AvisoDeFalha from './captura/AvisoDeFalha';
 import AvisoDoTradutorLocal from './captura/AvisoDoTradutorLocal';
 import AvisoDoUsoDoDia from './captura/AvisoDoUsoDoDia';
@@ -1349,6 +1351,8 @@ export default function LiveCapture({
     decidirMotorDoSistema,
     prepararTradutorDaFala,
     ligarNuvemDeAlivio,
+    usarModeloMenor,
+    adiarTradutor,
   } = criarPipelineDeFala({
     gateway,
     sourceLang,
@@ -3391,6 +3395,18 @@ export default function LiveCapture({
     }),
     { nuvemPorChavePropria: getProviderMode() === 'cloud' },
   );
+  /* O PRIMEIRO DOWNLOAD HONESTO (carga-rapida-no-celular, 4.1 a 4.3): o tamanho do tradutor para a barra "na
+     fila", e as saídas da rede lenta (o modelo menor, se o da rota não é o menor; adiar o tradutor que baixa junto). */
+  const estadoDoPreparo: ModelPrepState | null = modelPrep
+    ? {
+        ...modelPrep,
+        mbTradutor: modelPrep.mbTradutor ?? pecasDoInicio.tradutores.reduce((soma, m) => soma + m.mb, 0),
+      }
+    : null;
+  const saidasDaRedeLenta = {
+    aoModeloMenor: /tiny/i.test(pecasDoInicio.stt) ? undefined : () => void usarModeloMenor(),
+    aoSoTranscricao: adiarTradutor,
+  };
   const telaDoPrototipo = resumoNoQuest ?? (
     <>
       <CapturaDoPrototipo
@@ -3427,6 +3443,7 @@ export default function LiveCapture({
           noMaximo: escalaDaLegenda >= ESCALAS_DA_LEGENDA[ESCALAS_DA_LEGENDA.length - 1],
         }}
         noQuest={noQuest}
+        preparo={mioloDoPreparo(estadoDoPreparo)}
         avatar={noQuest ? undefined : avatarDaLegenda}
         pausa={telasEnxutas() ? { pausada: pausado, aoAlternar: alternarPausa } : undefined}
         /* O NÍVEL DE SERVIÇO (`captura/niveis/`): escolher um nível grava a preferência que já existia
@@ -3485,7 +3502,12 @@ export default function LiveCapture({
             {avisoDoBipe}
             {modelPrep && !preparoConcluido(modelPrep) && (
               <div style={{ margin: '10px 16px 0' }}>
-                <ModelPrepPanel state={modelPrep} onRetry={prepareModels} compact />
+                <ModelPrepPanel
+                  state={estadoDoPreparo ?? modelPrep}
+                  onRetry={prepareModels}
+                  compact
+                  saidas={saidasDaRedeLenta}
+                />
               </div>
             )}
             {ofertaDoPreciso}
@@ -3505,6 +3527,7 @@ export default function LiveCapture({
               temAudioDaFala(fala.id) ? tocarAudioDaFala(fala.id) : ouvirNaLegenda(fala.originalText, lang, false)
             }
             aoPararAudio={pararAudioDasFalas}
+            espera={esperaDaLegenda(estadoDoPreparo)}
           />
         }
       />
@@ -4303,7 +4326,11 @@ export default function LiveCapture({
               {/* Primeiro contato: o download do modelo acontece aqui, onde a pessoa olha. */}
               {isRecording && modelPrep && !preparoConcluido(modelPrep) && (
                 <div className="mb-3">
-                  <ModelPrepPanel state={modelPrep} onRetry={prepareModels} />
+                  <ModelPrepPanel
+                    state={estadoDoPreparo ?? modelPrep}
+                    onRetry={prepareModels}
+                    saidas={saidasDaRedeLenta}
+                  />
                 </div>
               )}
               {speechSegments.length || isRecording ? (
@@ -4392,16 +4419,34 @@ export default function LiveCapture({
                 <span>{t('A economia de dados está ligada neste navegador.')}</span>
               </p>
             )}
-            {perfilDoAparelho.sinais.tipoDeRede && perfilDoAparelho.sinais.tipoDeRede !== '4g' && (
-              <p className="aviso-info warn">
-                <TriangleAlert aria-hidden />
-                <span>
-                  {t('A conexão parece lenta ({rede}): o download pode demorar.', {
-                    rede: perfilDoAparelho.sinais.tipoDeRede,
-                  })}
-                </span>
-              </p>
-            )}
+            {/* A rede (carga-rapida-no-celular, 3.3): a estimativa pela vazão medida, o aviso também no iPhone e,
+                para o adulto no microfone, a legenda do navegador (a transcrição não baixa; o áudio vai ao navegador). */}
+            <AvisoDaRedeNoDownload
+              mb={folhaDoInicio.mb}
+              redeLenta={perfilDoAparelho.redeLenta}
+              tipoDeRede={perfilDoAparelho.sinais.tipoDeRede}
+              vazaoMbps={perfilDoAparelho.sinais.vazaoMbps ?? null}
+              legendaDoNavegador={
+                micEnabled &&
+                !systemEnabled &&
+                webSpeechSupported &&
+                !perfilProtegido() &&
+                rapidoDoMicPermitido() &&
+                folhaDoInicio.mbSeRapido < folhaDoInicio.mb
+                  ? {
+                      mbTradutor: folhaDoInicio.mbSeRapido,
+                      aoUsar: () => {
+                        /* Tocar aqui É o consentimento (o texto diz para onde vai o áudio) e o "sim" ao que ainda
+                           baixa: a escolha "Rápido" fica guardada, como na folha "Rápido ou Privado?". */
+                        trocarEscolhaDoMic('rapido');
+                        downloadConfirmadoRef.current = true;
+                        setFolhaDoInicio(null);
+                        comecarCaptura();
+                      },
+                    }
+                  : undefined
+              }
+            />
           </div>
           <div className="dlg-pe">
             <button type="button" className="btn btn-outline" onClick={(e) => fecharDialogoDe(e.currentTarget)}>

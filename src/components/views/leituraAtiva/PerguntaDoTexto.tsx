@@ -1,10 +1,11 @@
 import { useState } from 'react';
 
 import type { PerguntaDoTexto as Pergunta } from '../../../core/leitura/fichaDeTexto';
+import type { ResultadoDaPergunta } from '../../../core/leitura/rodadaDaLeitura';
 import { t } from '../../../lib/i18n';
 
-/** Como a pergunta terminou: certa de primeira, de segunda, não acertou, ou pulada. */
-export type ResultadoDaPergunta = 'primeira' | 'segunda' | 'nenhuma' | 'pulada';
+/** Como a pergunta terminou: certa de primeira, de segunda, não acertou, ou pulada (a regra mora no core). */
+export type { ResultadoDaPergunta };
 
 /**
  * T4 — UMA PERGUNTA DE COMPREENSÃO (spec `leitura-ativa-perguntas-e-pratica`; Duolingo Stories, Read Along).

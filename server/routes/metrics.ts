@@ -22,8 +22,9 @@ import {
   valorDoRepetido,
 } from '../../src/core/economiaAutoridade'
 import { diaLocal, diaNoFuso, sequencias } from '../../src/core/learning/economia'
-import { maestriaPorJogo, nivelDeMaestria } from '../../src/core/maestria'
+import { type LinhaDeMaestria, maestriaPorJogo, nivelDeMaestria } from '../../src/core/maestria'
 import { estadoDasMissoes, metaConcluida, missoesComProgresso } from '../../src/core/missoes'
+import { FLAG_LEITURA_ATIVA } from '../../src/core/planos'
 import {
   ehAssinanteDaTemporada,
   nivelDaTemporada,
@@ -45,6 +46,7 @@ import { seedSpendsRepo } from '../db/repositories/seedSpends'
 import { getPlanForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { casaComIfNoneMatch } from '../lib/etagPorVersao'
+import { flagLigada } from '../lib/flags'
 import { fusoDoUsuario } from '../lib/fusoDoUsuario'
 import { reembolsarCorteDoCatalogo } from '../lib/reembolsoDoCorte'
 import { responderErro } from '../lib/respostaDeErro'
@@ -468,17 +470,31 @@ metricsRouter.get('/maestria', async (req, res) => {
  * fechou e se `meta:<dia>` já foi creditada, e a ofensiva com os congelamentos guardados. Só
  * leitura: o crédito continua pela rota de crédito, que confere tudo de novo.
  */
+/**
+ * As rodadas que as missões leem: as de jogo e, com a flag `leitura_ativa` ligada, as da Leitura ativa ("Leia 1
+ * texto"). A rota das missões e o crédito da meta usam ESTA função, para os dois sortearem as mesmas três.
+ */
+async function rodadasDasMissoes(req: Request): Promise<{ rodadas: LinhaDeMaestria[]; incluirLeitura: boolean }> {
+  const [jogos, incluirLeitura] = await Promise.all([
+    exerciseResultsRepo.linhasDeMaestria(req.userId),
+    flagLigada(req, FLAG_LEITURA_ATIVA),
+  ])
+  if (!incluirLeitura) return { rodadas: jogos, incluirLeitura }
+  return { rodadas: [...jogos, ...(await exerciseResultsRepo.linhasDeLeituraAtiva(req.userId))], incluirLeitura }
+}
+
 metricsRouter.get('/missoes', async (req, res) => {
   try {
     const fuso = await fusoDoUsuario(req.userId, typeof req.query.fuso === 'string' ? req.query.fuso : undefined)
-    const [dados, rodadas] = await Promise.all([
+    const [dados, { rodadas, incluirLeitura }] = await Promise.all([
       dadosDasMissoes(req.userId, fuso),
-      exerciseResultsRepo.linhasDeMaestria(req.userId),
+      rodadasDasMissoes(req),
     ])
     res.json(
       estadoDasMissoes({
         agora: Date.now(),
         fuso,
+        incluirLeitura,
         fontes: { revisoes: dados.revisoes, palavrasSalvas: dados.palavrasSalvas, rodadas },
         metasCreditadas: dados.metasCreditadas,
         ofensiva: dados.ofensiva,
@@ -611,15 +627,16 @@ metricsRouter.post('/seeds/creditar', async (req, res) => {
           responderErro(res, 400, 'dia da meta fora da janela', 'dia_fora_da_janela', { dia: credito.metaDoDia })
           return
         }
-        const [dados, rodadas] = await Promise.all([
+        const [dados, { rodadas, incluirLeitura }] = await Promise.all([
           dadosDasMissoes(req.userId, fuso),
-          exerciseResultsRepo.linhasDeMaestria(req.userId),
+          rodadasDasMissoes(req),
         ])
-        const missoes = missoesComProgresso(credito.metaDoDia, fuso, {
-          revisoes: dados.revisoes,
-          palavrasSalvas: dados.palavrasSalvas,
-          rodadas,
-        })
+        const missoes = missoesComProgresso(
+          credito.metaDoDia,
+          fuso,
+          { revisoes: dados.revisoes, palavrasSalvas: dados.palavrasSalvas, rodadas },
+          { incluirLeitura },
+        )
         if (!metaConcluida(missoes)) {
           responderErro(res, 400, 'meta do dia ainda não cumprida', 'meta_nao_cumprida', { missoes })
           return

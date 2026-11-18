@@ -107,6 +107,38 @@ ligar a flag em qualquer ambiente; o leitor EPUB (`/leitor`) não muda.
     marcas e a lista de palavras para praticar. A IA da escrita é simulada por `page.route('**/api/ai/escrita')`
     e `semIaDeVerdade(page)`.
 
+## Custo da escrita (Parte 2, estimado em 18/11/2026)
+
+Medido no código, sem chamada de IA: o prompt mais longo possível (system da função + instrução de menor + o maior
+texto do acervo, 994 caracteres + escrita de 120 palavras + 3 trechos anteriores) tem 4.675 caracteres, ~1.400
+tokens de entrada; a saída tem teto de 500 tokens. A função usa o nível `rapida` (`IA_NIVEIS.escrita`), as pernas do
+tutor e só retenção zero. Com os preços de referência de `scripts/ia/modeloDeCusto.ts`:
+
+| Cenário                     | Preço (US$/1M entrada/saída) | Por retorno | 30 retornos/mês (teto) |
+| --------------------------- | ---------------------------- | ----------- | ---------------------- |
+| esperado (Gemma 4 26B)      | 0,0675 / 0,225               | US$ 0,00021 | US$ 0,0062 (~R$ 0,035) |
+| conservador (Llama 3.3 70B) | 0,10 / 0,32                  | US$ 0,00030 | US$ 0,0090 (~R$ 0,05)  |
+| pior perna (gpt-oss-120b)   | 0,15 / 0,60                  | US$ 0,00051 | US$ 0,0153 (~R$ 0,09)  |
+
+No pior caso, o assinante que usa os 30 retornos custa menos de R$ 0,10 por mês (0,6% do Plus de R$ 14,90), e os
+tokens saem da `tokensMes` do plano: o teto de custo do plano não muda. O Grátis, o convidado e o teste de 3 dias
+custam zero (403 antes de qualquer provedor). O `npm run ia:custo` não foi rodado nesta rodada (o ambiente recusou o
+comando); ele não modela a escrita ainda, e incluí-la é uma pendência pequena em `modeloDeCusto.ts`.
+
+### Decisões tomadas na Parte 2 (provisórias, para o dono validar)
+
+- **Resposta fora do esquema estorna o retorno do mês** (spec: "a cota é estornada"), diferente da explicação, que
+  consome. O laço "texto que quebra o JSON" continua contido: cada tentativa gasta tokens da `tokensMes` e passa pelo
+  uso justo do dia.
+- **O teste de 3 dias não tem o retorno** (403, como o Grátis): o pedido desta rodada dizia "grátis/teste/convidado =
+  0". O cliente não sabe que está em teste; o 403 do servidor faz a tela cair em "Conferir sozinho".
+- **O texto lido e o enunciado vêm do acervo pelo servidor** (`textoId`), nunca do cliente: menos superfície de injeção
+  e o teto de 1.500 caracteres vale só para a escrita da pessoa.
+- **No log**, só quantos pontos e de que tipos (`total`, `situacao`), nunca o texto.
+- **Missão "Leia 1 texto"**: o servidor lê as rodadas `leituraAtiva` dos últimos 3 dias à parte das de jogo
+  (`linhasDeLeituraAtiva`), então elas não entram em maestria, recorde nem "jogo novo". O espelho sem conta não sorteia
+  a missão (a leitura sem conta não grava rodada).
+
 ## Riscos / Trade-offs
 
 - [Reconhecimento local ruim com sotaque brasileiro faz o cursor travar] → janela de 6, lema na comparação,

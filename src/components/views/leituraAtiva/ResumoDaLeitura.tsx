@@ -37,6 +37,8 @@ export default function ResumoDaLeitura(props: {
   fatos: FatosDaLeitura;
   palavras: PalavraParaPraticar[];
   temConta: boolean;
+  /** A missão do dia "Leia 1 texto" fechou com esta leitura (a flag ligada e a missão sorteada hoje). */
+  missaoFeita?: boolean;
   aoPraticar: (palavras: string[]) => Promise<number>;
   aoLerOutro: () => void;
   aoLerDeNovo: () => void;
@@ -66,6 +68,11 @@ export default function ResumoDaLeitura(props: {
       <p className="la-fatos">{partes.join(' · ')}</p>
       {fatos.palavrasPorMinuto !== null && (
         <p className="la-meta">{t('cerca de {n} palavras por minuto', { n: fatos.palavrasPorMinuto })}</p>
+      )}
+      {props.missaoFeita && (
+        <p className="la-meta" role="status" data-testid="missao-da-leitura">
+          {t('Missão do dia: Leia 1 texto ✓')}
+        </p>
       )}
 
       <section className="q-secao" aria-labelledby="la-praticar">

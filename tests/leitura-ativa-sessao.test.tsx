@@ -22,10 +22,51 @@ vi.mock('../src/lib/tts', async (orig) => ({
   cancelSpeech: () => {},
 }))
 
+/* As rodadas, a missão e o caderno: simulados (nenhuma rede). */
+const servidor = vi.hoisted(() => ({
+  rodadas: [] as unknown[],
+  missaoLeitura: { atual: 1, alvo: 1 } as { atual: number; alvo: number } | null,
+  fichados: [] as Array<{ word: string; sentence: string }>,
+  salvas: [] as string[],
+}))
+vi.mock('../src/data/api', async (orig) => ({
+  ...(await orig<typeof import('../src/data/api')>()),
+  salvarRodada: async (r: unknown) => {
+    servidor.rodadas.push(r)
+    return { ok: true }
+  },
+  lerMissoes: async () => ({
+    missoes: servidor.missaoLeitura ? [{ id: 'leitura', tipo: 'leitura', ...servidor.missaoLeitura }] : [],
+  }),
+}))
+vi.mock('../src/lib/adicionarAoDeck', async (orig) => ({
+  ...(await orig<typeof import('../src/lib/adicionarAoDeck')>()),
+  ficharCartao: async (c: { word: string; sentence: string }) => {
+    servidor.fichados.push({ word: c.word, sentence: c.sentence })
+    return [{ id: `c-${c.word}` }]
+  },
+}))
+vi.mock('../src/lib/vocabWord', async (orig) => ({
+  ...(await orig<typeof import('../src/lib/vocabWord')>()),
+  buildVocabWord: async (o: { word: string; context: string }) => ({
+    vocab: { word: o.word, translation: '', example: o.context, lang: 'en' },
+    resolved: null,
+  }),
+}))
+vi.mock('../src/lib/etiquetas/indiceDeEtiquetas', async (orig) => ({
+  ...(await orig<typeof import('../src/lib/etiquetas/indiceDeEtiquetas')>()),
+  marcarSalva: (w: string) => void servidor.salvas.push(w),
+}))
+
 const { default: SessaoDeLeitura } = await import('../src/components/views/leituraAtiva/SessaoDeLeitura')
 
 const MERCADO = textos.find((t) => t.id === 'a1-no-mercado') as FichaDeTexto
-const conhecimento = { conhecidas: new Set<string>(), sessoes: 0, temConta: true, noCaderno: () => false }
+const conhecimento = {
+  conhecidas: new Set<string>(),
+  sessoes: 0,
+  temConta: true,
+  noCaderno: (_chave: string): boolean => false,
+}
 const iniciados: string[] = []
 
 function abrir(protegido = false) {
@@ -58,6 +99,10 @@ function comReconhecimentoLocal() {
 beforeEach(() => {
   falas.length = 0
   iniciados.length = 0
+  servidor.rodadas.length = 0
+  servidor.fichados.length = 0
+  servidor.salvas.length = 0
+  servidor.missaoLeitura = { atual: 1, alvo: 1 }
   try {
     localStorage.clear()
   } catch {
@@ -135,6 +180,62 @@ describe('ler em voz alta no perfil protegido', () => {
     expect(screen.getByTestId('leitura-ativa-resumo')).toBeTruthy()
     expect(container.textContent).not.toContain('palavras por minuto')
     expect(container.textContent).not.toMatch(/plano|ranking|mais lidos/i)
+  })
+})
+
+describe('o fim da leitura: rodada, missão e caderno', () => {
+  /** Lê em silêncio, acerta a 1ª de primeira, pula as outras duas e pula a escrita. */
+  async function lerAteOResumo(c = conhecimento) {
+    render(
+      <SessaoDeLeitura ficha={MERCADO} conhecimento={c} protegido={false} aoVoltar={() => {}} aoTerminar={() => {}} />,
+    )
+    fireEvent.click(screen.getByRole('radio', { name: /Ler em silêncio/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Começar' }))
+    fireEvent.click(screen.getByTestId('terminei'))
+    const p1 = MERCADO.perguntas[0]
+    fireEvent.click(screen.getByRole('button', { name: p1.opcoes[p1.correta] }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }))
+    for (let i = 0; i < 2; i++) fireEvent.click(screen.getByRole('button', { name: 'Pular' }))
+    await act(async () => {})
+    fireEvent.click(screen.getByRole('button', { name: 'Pular' }))
+  }
+
+  it('com conta: uma rodada leituraAtiva só com o resultado; a missão fechada aparece no resumo', async () => {
+    await lerAteOResumo()
+    expect(servidor.rodadas).toHaveLength(1)
+    const r = servidor.rodadas[0] as { exerciseKind: string; roundId: string; itens: unknown[] }
+    expect(r.exerciseKind).toBe('leituraAtiva')
+    expect(r.roundId).toMatch(/^leitura-a1-no-mercado-/)
+    expect(r.itens).toEqual([
+      { itemRef: 'a1-no-mercado#1', correct: 1, attempts: 1, kind: 'leitura' },
+      { itemRef: 'a1-no-mercado#2', attempts: 0, kind: 'leitura' },
+      { itemRef: 'a1-no-mercado#3', attempts: 0, kind: 'leitura' },
+    ])
+    expect(screen.getByTestId('missao-da-leitura').textContent).toBe('Missão do dia: Leia 1 texto ✓')
+  })
+
+  it('missão não sorteada: o resumo não fala dela', async () => {
+    servidor.missaoLeitura = null
+    await lerAteOResumo()
+    expect(screen.queryByTestId('missao-da-leitura')).toBeNull()
+  })
+
+  it('sem conta: nenhuma rodada sai', async () => {
+    await lerAteOResumo({ ...conhecimento, temConta: false })
+    expect(servidor.rodadas).toHaveLength(0)
+    expect(screen.getByText('Entre para guardar estas palavras e ganhar XP.')).toBeTruthy()
+  })
+
+  it('"Praticar estas palavras": cartão com a frase do texto e etiqueta salva; o que já está no caderno não duplica', async () => {
+    /* "morning" já está no caderno; "friend" e "happy" são novas. */
+    const noCaderno = (k: string) => k === 'morning'
+    await lerAteOResumo({ ...conhecimento, noCaderno })
+    const lista = screen.getByTestId('leitura-ativa-praticar')
+    expect(lista.textContent).toContain('friend')
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Praticar estas palavras' })))
+    expect(servidor.fichados.map((f) => f.word)).not.toContain('morning')
+    expect(servidor.fichados.find((f) => f.word === 'friend')?.sentence).toBe('Then Lia sees her friend Ben.')
+    expect(servidor.salvas).toEqual(servidor.fichados.map((f) => f.word))
   })
 })
 

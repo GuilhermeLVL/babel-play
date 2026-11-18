@@ -18,9 +18,11 @@ import type { FichaDeTexto } from '../../../core/leitura/fichaDeTexto';
 import { NARRACAO_PARADA, narrar } from '../../../core/leitura/narracao';
 import { palavrasParaPraticar } from '../../../core/leitura/palavrasParaPraticar';
 import type { Retangulo } from '../../../core/leitura/posicaoDoCartao';
+import { rodadaDaLeitura } from '../../../core/leitura/rodadaDaLeitura';
 import { type ContextoDaPalavra, formaDeConsulta } from '../../../core/leitura/sentidoNoContexto';
 import { chavesDeLema, mesmoLema } from '../../../core/leitura/textoDaLeitura';
 import { chaveDaPalavra } from '../../../core/texto/palavra';
+import { lerMissoes, salvarRodada } from '../../../data/api';
 import { creditoDoTexto } from '../../../data/leitura/acervo';
 import { buildGateway } from '../../../gateway';
 import { getActiveProfile } from '../../../gateway/activeProfile';
@@ -108,6 +110,7 @@ export default function SessaoDeLeitura(props: {
   const [palavra, setPalavra] = useState<PalavraAberta | null>(null);
   const [tocadas, setTocadas] = useState<string[]>([]);
   const [resultados, setResultados] = useState<ResultadoDaPergunta[]>([]);
+  const [missaoFeita, setMissaoFeita] = useState(false);
   const inicio = useRef(0);
   const [duracao, setDuracao] = useState(0);
   const ouvinte = useRef<OuvinteLocal | null>(null);
@@ -306,6 +309,28 @@ export default function SessaoDeLeitura(props: {
     }
   };
 
+  /* ── o resultado das perguntas vira uma rodada `leituraAtiva` (só com conta): XP de sempre e a missão "Leia 1
+     texto". Só o acerto de cada pergunta sai; depois, a missão do dia é relida para o resumo dizer se fechou. ── */
+  const gravarRodada = (todos: ResultadoDaPergunta[]) => {
+    if (!conhecimento.temConta) return;
+    void salvarRodada(
+      rodadaDaLeitura({
+        textoId: ficha.id,
+        resultados: todos,
+        roundId: `leitura-${ficha.id}-${inicio.current || Date.now()}`,
+        duracaoMs: Date.now() - (inicio.current || Date.now()),
+      }),
+    )
+      .then((g) => (g.ok ? lerMissoes() : null))
+      .then((estado) => {
+        const leitura = estado?.missoes.find((m) => m.tipo === 'leitura');
+        if (leitura && leitura.atual >= leitura.alvo) setMissaoFeita(true);
+      })
+      .catch(() => {
+        /* best-effort: o resumo segue sem a linha da missão */
+      });
+  };
+
   /* ── salvar as palavras para praticar (o caminho de salvar palavra do leitor) ── */
   const salvarPalavras = async (lista: string[]): Promise<number> => {
     let n = 0;
@@ -412,6 +437,7 @@ export default function SessaoDeLeitura(props: {
           fatos={fatos}
           palavras={praticar}
           temConta={conhecimento.temConta}
+          missaoFeita={missaoFeita}
           aoPraticar={salvarPalavras}
           aoLerOutro={props.aoVoltar}
           aoLerDeNovo={lerDeNovo}
@@ -572,6 +598,7 @@ export default function SessaoDeLeitura(props: {
               setResultados(todos);
               if (todos.length >= ficha.perguntas.length) {
                 props.aoTerminar(ficha.id);
+                gravarRodada(todos);
                 setFase('escrita');
               }
             }}

@@ -86,9 +86,9 @@ Nenhuma chamada de IA paga: testes com IA simulada.
 
 ## 10. Parte 2 — Revisão, XP e missões
 
-- [ ] 10.1 Resultado das perguntas como linhas `exerciseKind: 'leituraAtiva'` com um `roundId` por leitura, pelo cliente das rodadas (aceitar o tipo novo na validação do servidor); verificar com teste de integração que só acerto de 1ª/2ª/nenhum chega, sem texto da pessoa
-- [ ] 10.2 Palavras marcadas viram cartões via `ficharCartao` + `marcarSalva`, sem duplicar; sem conta, só o aviso; verificar com teste de componente e com o cartão aparecendo na fila de `due.ts`
-- [ ] 10.3 `TipoDeMissao 'leitura'` (alvo `[1]`) em `src/core/missoes.ts`, contado por rodada `leituraAtiva` do dia, sorteado só com `incluirLeitura`; verificar com `tests/missoes.test.ts`: com a flag desligada o sorteio é idêntico ao de hoje para 200 sementes, e com ligada a missão fecha com uma rodada
+- [x] 10.1 Resultado das perguntas como linhas `exerciseKind: 'leituraAtiva'` com um `roundId` por leitura, pelo cliente das rodadas (aceitar o tipo novo na validação do servidor); verificar com teste de integração que só acerto de 1ª/2ª/nenhum chega, sem texto da pessoa
+- [x] 10.2 Palavras marcadas viram cartões via `ficharCartao` + `marcarSalva`, sem duplicar; sem conta, só o aviso; verificar com teste de componente e com o cartão aparecendo na fila de `due.ts`
+- [x] 10.3 `TipoDeMissao 'leitura'` (alvo `[1]`) em `src/core/missoes.ts`, contado por rodada `leituraAtiva` do dia, sorteado só com `incluirLeitura`; verificar com `tests/missoes.test.ts`: com a flag desligada o sorteio é idêntico ao de hoje para 200 sementes, e com ligada a missão fecha com uma rodada
 - [ ] 10.4 Gate final: `npm run typecheck` (×3), `npm run lint`, `npm test`, `npm run build`, i18n (pseudo, órfãs, cobertura, piso), `npm run morto:arquivos`, `npm run morto:ciclos` e os dois e2e verdes; capturas da tela em 375 px e 1280 px para o dono
 
 ## Workflow follow-up

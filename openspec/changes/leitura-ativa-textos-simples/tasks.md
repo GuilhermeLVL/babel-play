@@ -44,7 +44,7 @@ Nenhuma chamada de IA paga: testes com IA simulada.
 
 - [x] 6.1 Componente de pergunta inline (T4): uma por vez, "Ver em português" (A1 bilíngue por padrão), segunda tentativa, resposta com `explicacao`, "Pular", sem "errado"; verificar com teste de componente dos três cenários
 - [x] 6.2 Resumo (T6): frases lidas, tempo, estrelas, perguntas; palavras/min só para adulto em voz alta; lista de palavras para praticar com marcar/desmarcar; verificar com teste de componente (72 palavras em 45 s → "cerca de 96 palavras por minuto"; menor sem palavras/min)
-- [ ] 6.3 Gate de Parte 1: `npm run typecheck`, `npm run typecheck:estrito`, `npm run lint`, `npm run morto:arquivos`, `npx vitest run tests/leitura-ativa-*` e o e2e 5.6 verdes
+- [x] 6.3 Gate de Parte 1: `npm run typecheck`, `npm run typecheck:estrito`, `npm run lint`, `npm run morto:arquivos`, `npx vitest run tests/leitura-ativa-*` e o e2e 5.6 verdes
 
 ### Notas da Parte 1 (o que mudou em relação ao planejado)
 

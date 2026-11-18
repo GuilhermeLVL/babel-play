@@ -33,6 +33,19 @@ const ALLOWLIST = {
     reevaluateBy: '2026-11-07',
     reason: 'só node_modules/miniflare/node_modules/undici (dev); também GHSA-f72v-6w45-q472 e GHSA-xjj6-f33q-929c',
   },
+  /* 18/11/2026, aprovado pelo dono: ReDoS no `picomatch` <= 4.0.7 (GHSA-fc5q-39xc-vjpf), sem versão corrigida
+     publicada (a 4.0.7 é a última). Só ferramenta de dev e build: `npm ls picomatch --omit=dev` sai vazio, nada
+     disso vai para o servidor nem para o bundle do app. Os outros nomes entram só porque dependem dele. Sair
+     daqui quando sair o `picomatch` corrigido (forçar pelo `overrides` e apagar estas entradas). */
+  picomatch: { ghsa: 'GHSA-fc5q-39xc-vjpf', reevaluateBy: '2026-12-02', reason: 'ReDoS sem fix; só dev/build' },
+  fdir: { ghsa: null, reevaluateBy: '2026-12-02', reason: 'via picomatch (dev/build)' },
+  tinyglobby: { ghsa: null, reevaluateBy: '2026-12-02', reason: 'via picomatch (dev/build)' },
+  vite: { ghsa: null, reevaluateBy: '2026-12-02', reason: 'via picomatch/tinyglobby (dev/build)' },
+  vitest: { ghsa: null, reevaluateBy: '2026-12-02', reason: 'via picomatch/tinyglobby (testes)' },
+  '@vitest/coverage-v8': { ghsa: null, reevaluateBy: '2026-12-02', reason: 'via vitest (testes)' },
+  knip: { ghsa: null, reevaluateBy: '2026-12-02', reason: 'via picomatch/tinyglobby (dev)' },
+  'lint-staged': { ghsa: null, reevaluateBy: '2026-12-02', reason: 'via picomatch (dev)' },
+  '@typescript-eslint/typescript-estree': { ghsa: null, reevaluateBy: '2026-12-02', reason: 'via tinyglobby (lint)' },
 }
 
 let report

@@ -58,3 +58,24 @@ export function avisoDoMicrofoneVisto(): boolean {
 export function marcarAvisoDoMicrofoneVisto(): void {
   gravar(CHAVE_AVISO, '1');
 }
+
+/**
+ * O RASCUNHO DA ESCRITA, por texto e tarefa (spec `leitura-ativa-escrita`: "o rascunho fica só no aparelho"). Nunca vai
+ * ao servidor sozinho: só o toque em "Pedir retorno" o envia.
+ */
+const chaveDoRascunho = (textoId: string, tarefa: string) => `frasy.leituraAtiva.rascunho.${textoId}.${tarefa}`;
+
+export function lerRascunho(textoId: string, tarefa: string): string {
+  return ler(chaveDoRascunho(textoId, tarefa)) ?? '';
+}
+
+export function gravarRascunho(textoId: string, tarefa: string, texto: string): void {
+  if (texto.trim()) gravar(chaveDoRascunho(textoId, tarefa), texto);
+  else {
+    try {
+      localStorage.removeItem(chaveDoRascunho(textoId, tarefa));
+    } catch {
+      /* sem armazenamento: só não lembra */
+    }
+  }
+}

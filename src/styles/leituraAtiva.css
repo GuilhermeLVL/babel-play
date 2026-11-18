@@ -368,3 +368,128 @@
   margin: 0;
   font: 900 30px/1.1 var(--font-display, inherit);
 }
+
+/* ── escrita (T5) e retorno (T5b) ── */
+.la-escrita {
+  display: grid;
+  gap: 12px;
+}
+.la-escrita h2 {
+  margin: 0;
+  font: 800 22px/1.25 var(--font-display, inherit);
+}
+.la-enunciado {
+  margin: 0;
+  font: 700 16px/1.45 var(--font-body, inherit);
+}
+.la-original summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+}
+.la-original p {
+  margin: 0;
+  font: 500 16px/1.6 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.la-campo {
+  width: 100%;
+  min-height: 150px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 500 17px/1.55 var(--font-body, inherit);
+  resize: vertical;
+  box-sizing: border-box;
+}
+.la-campo:focus-visible {
+  outline: 3px solid var(--accent, #3b6fd6);
+  outline-offset: 2px;
+}
+.la-campo[aria-invalid='true'] {
+  border-color: #b5651d;
+}
+.la-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.la-chips .q-chip[data-usada='true'] {
+  border-color: #2f7d4f;
+}
+.la-pessoal {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, #b5651d 10%, var(--surface));
+}
+.la-pessoal p {
+  margin: 0 0 6px;
+  font: 600 15px/1.45 var(--font-body, inherit);
+}
+.la-sublinhado {
+  background: none;
+  color: inherit;
+  text-decoration: underline wavy #b5651d 2px;
+  text-underline-offset: 3px;
+}
+.la-link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--accent, #3b6fd6);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  min-height: 24px;
+}
+.la-elogio {
+  margin: 0;
+  font: 700 17px/1.45 var(--font-body, inherit);
+}
+.la-texto-da-pessoa {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 14px;
+  font: 500 17px/1.7 var(--font-body, inherit);
+  white-space: pre-wrap;
+}
+.la-ponto-marcado {
+  background: color-mix(in srgb, #e0a100 22%, transparent);
+  color: inherit;
+  border-radius: 4px;
+  padding: 0 2px;
+}
+.la-ponto-marcado sup {
+  font-weight: 800;
+  margin-inline-start: 2px;
+}
+.la-pontos,
+.la-resolvidos {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  font: 600 16px/1.5 var(--font-body, inherit);
+}
+.la-resolvidos [data-resolvido='true'] {
+  color: #2f7d4f;
+}
+.la-exemplo {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, #2f7d4f 10%, var(--surface));
+}
+.la-selo {
+  margin: 0;
+  font: 600 13px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}

@@ -201,6 +201,9 @@ test.describe('Leitura ativa', () => {
     await expect(pergunta).not.toContainText(/errad|errou/i)
     await pergunta.getByRole('button', { name: 'Continuar' }).click()
 
+    /* A escrita vem depois das perguntas; aqui ela é pulada (o e2e dela é `leitura-ativa-escrita.e2e.ts`). */
+    await page.getByTestId('leitura-ativa-escrita').getByRole('button', { name: 'Pular' }).click()
+
     /* O resumo: fatos, sem nota; "six" para praticar, marcada, com o motivo neutro. */
     const resumo = page.getByTestId('leitura-ativa-resumo')
     await expect(resumo.getByText('Texto concluído')).toBeVisible()

@@ -79,10 +79,10 @@ Nenhuma chamada de IA paga: testes com IA simulada.
 
 ## 9. Parte 2 — Tela de escrita (T5/T5b)
 
-- [ ] 9.1 Escrever: duas tarefas, limites 20–120, chips de palavras-alvo, rascunho local, filtro de dados pessoais com sublinhado; verificar com teste de componente (12 palavras desativa; e-mail bloqueia sem requisição)
-- [ ] 9.2 Grátis e conta restrita: "Conferir sozinho" com a conferência local e a linha "O retorno com IA faz parte dos planos pagos." (sem "Ver planos" no perfil protegido); revisar a copy com a skill `copy-br-etica`; verificar com teste de componente e o teste de copy
-- [ ] 9.3 Retorno: frases marcadas 1–3, elogio, dicas, "Ver um exemplo", selo "Retorno feito por IA. Ela pode errar.", erro com "Tentar de novo", cota esgotada, um reenvio com "✓ Resolvido"; verificar com teste de componente usando a API simulada
-- [ ] 9.4 E2E `tests/e2e/leitura-ativa-escrita.e2e.ts` com `page.route('**/api/ai/escrita')` e `semIaDeVerdade(page)`: plano pago recebe retorno; grátis só confere; nos 3 viewports
+- [x] 9.1 Escrever: duas tarefas, limites 20–120, chips de palavras-alvo, rascunho local, filtro de dados pessoais com sublinhado; verificar com teste de componente (12 palavras desativa; e-mail bloqueia sem requisição)
+- [x] 9.2 Grátis e conta restrita: "Conferir sozinho" com a conferência local e a linha "O retorno com IA faz parte dos planos pagos." (sem "Ver planos" no perfil protegido); revisar a copy com a skill `copy-br-etica`; verificar com teste de componente e o teste de copy
+- [x] 9.3 Retorno: frases marcadas 1–3, elogio, dicas, "Ver um exemplo", selo "Retorno feito por IA. Ela pode errar.", erro com "Tentar de novo", cota esgotada, um reenvio com "✓ Resolvido"; verificar com teste de componente usando a API simulada
+- [x] 9.4 E2E `tests/e2e/leitura-ativa-escrita.e2e.ts` com `page.route('**/api/ai/escrita')` e `semIaDeVerdade(page)`: plano pago recebe retorno; grátis só confere; nos 3 viewports
 
 ## 10. Parte 2 — Revisão, XP e missões
 

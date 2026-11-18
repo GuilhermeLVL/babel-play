@@ -49,13 +49,14 @@ import { haVozPara } from '../../../lib/voz/haVoz';
 import type { VocabWord } from '../../../types';
 import CartaoDaPalavra from '../leitor/CartaoDaPalavra';
 import AvisoDoMicrofone from './AvisoDoMicrofone';
+import EscritaDoTexto, { acessoDaEscrita } from './EscritaDoTexto';
 import PerguntaDoTexto, { type ResultadoDaPergunta } from './PerguntaDoTexto';
 import ResumoDaLeitura, { type FatosDaLeitura } from './ResumoDaLeitura';
 import { minutosDoTexto, nomeDaCategoria, rotuloDoNivel, SELO_DE_ORIGEM } from './rotulos';
 import TextoComPalavras from './TextoComPalavras';
 import { type Conhecimento, IDIOMA_DOS_TEXTOS } from './useConhecimento';
 
-type Fase = 'antes' | 'lendo' | 'perguntas' | 'resumo';
+type Fase = 'antes' | 'lendo' | 'perguntas' | 'escrita' | 'resumo';
 /** O microfone na voz alta. Começa desligado; só `ouvindo` tem o motor aberto. */
 type Microfone = 'desligado' | 'ouvindo' | 'pausado' | 'fora' | FalhaDoOuvinte;
 
@@ -242,7 +243,7 @@ export default function SessaoDeLeitura(props: {
     setNarracao((e) => narrar(e, { tipo: 'parar' }));
     setDuracao(Date.now() - inicio.current);
     setPalavra(null);
-    setFase(ficha.perguntas.length ? 'perguntas' : 'resumo');
+    setFase(ficha.perguntas.length ? 'perguntas' : 'escrita');
     if (!ficha.perguntas.length) props.aoTerminar(ficha.id);
   };
   const lerDeNovo = () => {
@@ -542,6 +543,17 @@ export default function SessaoDeLeitura(props: {
     );
   }
 
+  if (fase === 'escrita') {
+    return (
+      <div className="q-palco la" data-testid="leitura-ativa">
+        {cabecalho}
+        <div className="la-coluna">
+          <EscritaDoTexto ficha={ficha} acesso={acessoDaEscrita(protegido)} aoTerminar={() => setFase('resumo')} />
+        </div>
+      </div>
+    );
+  }
+
   if (fase === 'perguntas') {
     const i = resultados.length;
     return (
@@ -560,7 +572,7 @@ export default function SessaoDeLeitura(props: {
               setResultados(todos);
               if (todos.length >= ficha.perguntas.length) {
                 props.aoTerminar(ficha.id);
-                setFase('resumo');
+                setFase('escrita');
               }
             }}
           />

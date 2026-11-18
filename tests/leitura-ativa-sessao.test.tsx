@@ -128,6 +128,10 @@ describe('ler em voz alta no perfil protegido', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ligar o microfone' }))
     fireEvent.click(screen.getByTestId('terminei'))
     for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole('button', { name: 'Pular' }))
+    /* A escrita vem depois das perguntas, sem falar de plano para o menor. */
+    expect(screen.getByTestId('leitura-ativa-escrita')).toBeTruthy()
+    expect(container.textContent).not.toMatch(/plano/i)
+    fireEvent.click(screen.getByRole('button', { name: 'Pular' }))
     expect(screen.getByTestId('leitura-ativa-resumo')).toBeTruthy()
     expect(container.textContent).not.toContain('palavras por minuto')
     expect(container.textContent).not.toMatch(/plano|ranking|mais lidos/i)

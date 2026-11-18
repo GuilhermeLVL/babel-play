@@ -88,7 +88,7 @@ describe('criarControleDoInterprete', () => {
     controle.tocar('outro')
     expect(destravar).toHaveBeenCalledTimes(1)
     expect(abrir).toHaveBeenCalledTimes(1)
-    expect(controle.direcao()).toEqual({ lado: 'outro', fala: 'en-US', de: 'en', para: 'pt' })
+    expect(controle.direcao()).toEqual({ lado: 'outro', fala: 'en-US', de: 'en', para: 'pt', dono: 'outro', turno: 1 })
     expect(controle.estado().fase).toBe('ouvindo')
   })
 
@@ -123,7 +123,8 @@ describe('criarControleDoInterprete', () => {
     controle.tocar('meu')
     controle.aoFimDaFala({ segId: 's1', source: 'mic', lado: 'meu' })
     controle.aoTraduzirFinal(traduzida('s1', 'good morning'))
-    expect(etapa).toHaveBeenCalledWith('s1', 'vad', 800, 'vad-fixo')
+    /* Por toque, o turno fecha com 2,5 s de silêncio (conversa-de-verdade, 2.1): é essa a espera nominal. */
+    expect(etapa).toHaveBeenCalledWith('s1', 'vad', 2500, 'vad-fixo')
     expect(etapa).toHaveBeenCalledWith('s1', 'stt', 400, 'groq-whisper', 3000)
     expect(etapa).toHaveBeenCalledWith('s1', 'mt', 700, 'server-llm-mt')
     expect(etapa).toHaveBeenCalledWith('s1', 'tts', 0, 'voz-do-aparelho')
@@ -508,5 +509,104 @@ describe('praticar a conversa: a pessoa fala o idioma da outra (`falaDoMeu`)', (
       /* Sem o aviso velho, a fala espera a tradução dela (como qualquer fala). */
       expect(m.controle.estado().fase).toBe('traduzindo')
     }
+  })
+})
+
+/* ─────────────── conversa-de-verdade: o turno, a fala guardada e a leitura só com o microfone fechado ─────────────── */
+
+describe('o turno do microfone (conversa-de-verdade, 1.2 e 2)', () => {
+  /** O microfone como a captura o vê: aberto ou fechado; e a voz registra se começou com ele aberto. */
+  function comMicrofone() {
+    let aberto = false
+    const lidasComMicAberto: string[] = []
+    const m = montar({
+      microfone: {
+        abrir: () => void (aberto = true),
+        fechar: () => void (aberto = false),
+      },
+    })
+    const speak = m.voz.motor.speak.bind(m.voz.motor)
+    m.voz.motor.speak = (texto, opts) => {
+      if (aberto) lidasComMicAberto.push(texto)
+      speak(texto, opts)
+    }
+    return { ...m, lidasComMicAberto, aberto: () => aberto }
+  }
+
+  it('cada abertura do microfone é um turno novo; o "Terminei" não muda o turno', () => {
+    const { controle } = montar()
+    controle.tocar('meu')
+    expect(controle.direcao()).toMatchObject({ lado: 'meu', turno: 1 })
+    controle.tocar('meu') // Terminei
+    expect(controle.direcao()).toMatchObject({ turno: 1 })
+    controle.tocar('outro')
+    expect(controle.direcao()).toMatchObject({ lado: 'outro', turno: 2 })
+  })
+
+  it('o fim de uma fala de outro turno (guardada no download) não fecha o microfone de quem fala nem é lido', () => {
+    const m = comMicrofone()
+    m.controle.tocar('meu') // turno 1: pt1, guardada; o turno fecha no silêncio
+    m.controle.aoFimDaFala({ segId: 'pt1', source: 'mic', lado: 'meu', turno: 1 })
+    expect(m.aberto()).toBe(false)
+    m.controle.tocar('outro') // turno 2: a outra pessoa começa a falar
+    expect(m.aberto()).toBe(true)
+    /* O modelo ficou pronto: pt1 é transcrita e o fim dela chega de novo, no turno 2. */
+    m.controle.aoFimDaFala({ segId: 'pt1', source: 'mic', lado: 'meu', turno: 1 })
+    m.controle.aoTraduzirFinal(traduzida('pt1', 'Good evening'))
+    expect(m.aberto()).toBe(true)
+    expect(m.controle.estado()).toMatchObject({ fase: 'ouvindo', lado: 'outro' })
+    expect(m.voz.falas).toHaveLength(0)
+  })
+
+  it('a fala guardada no MESMO turno é lida quando a tradução chega, com o microfone já fechado', () => {
+    const m = comMicrofone()
+    m.controle.tocar('meu')
+    m.controle.aoFimDaFala({ segId: 'pt1', source: 'mic', lado: 'meu', turno: 1 })
+    expect(m.controle.estado().fase).toBe('traduzindo')
+    m.controle.aoFimDaFala({ segId: 'pt1', source: 'mic', lado: 'meu', turno: 1 }) // o mesmo fim, na transcrição
+    m.controle.aoTraduzirFinal(traduzida('pt1', 'Good evening'))
+    expect(m.voz.falas.map((f) => f.texto)).toEqual(['Good evening'])
+    expect(m.lidasComMicAberto).toEqual([])
+  })
+
+  it('o fim de fala do outro lado, com um microfone aberto, não o fecha (o final atrasado de quem falou antes)', () => {
+    const m = comMicrofone()
+    m.controle.tocar('meu')
+    m.controle.tocar('outro') // troca de lado no meio
+    m.controle.aoFimDaFala({ segId: 'a1', source: 'mic', lado: 'meu' })
+    expect(m.aberto()).toBe(true)
+    expect(m.controle.estado()).toMatchObject({ fase: 'ouvindo', lado: 'outro' })
+  })
+
+  it('"Terminei" fecha o microfone na hora, sem esperar o silêncio, e a leitura vem depois', () => {
+    const m = comMicrofone()
+    m.controle.tocar('meu')
+    m.controle.tocar('meu')
+    expect(m.aberto()).toBe(false)
+    m.controle.aoFimDaFala({ segId: 'a1', source: 'mic', lado: 'meu', turno: 1 })
+    m.controle.aoTraduzirFinal(traduzida('a1', 'Hello'))
+    expect(m.voz.falas.map((f) => f.texto)).toEqual(['Hello'])
+    expect(m.lidasComMicAberto).toEqual([])
+  })
+
+  it('a leitura nunca começa com o microfone aberto, em nenhuma ordem de eventos', () => {
+    const m = comMicrofone()
+    /* A tradução chega antes do fim (cache), o fim chega, outra pessoa toca, um final atrasado chega... */
+    m.controle.tocar('meu')
+    m.controle.aoTraduzirFinal(traduzida('a1', 'One'))
+    m.controle.aoFimDaFala({ segId: 'a1', source: 'mic', lado: 'meu', turno: 1 })
+    m.controle.tocar('outro')
+    m.controle.aoTraduzirFinal(traduzida('b0', 'Zero'))
+    m.controle.aoFimDaFala({ segId: 'b0', source: 'mic', lado: 'meu', turno: 1 })
+    m.controle.aoFimDaFala({ segId: 'b1', source: 'mic', lado: 'outro', turno: 2 })
+    m.controle.aoTraduzirFinal(traduzida('b1', 'Two'))
+    m.controle.repetir()
+    m.voz.terminar()
+    m.controle.ouvir()
+    m.controle.aoFimDaFala({ segId: 'c1', source: 'mic' })
+    m.controle.ladoDaFala('c1', { idiomaDoMotor: 'pt', confianca: 0.99, idiomaDoTexto: '', audioMs: 3000 })
+    m.controle.aoTraduzirFinal(traduzida('c1', 'Three'))
+    expect(m.voz.falas.length).toBeGreaterThan(0)
+    expect(m.lidasComMicAberto).toEqual([])
   })
 })

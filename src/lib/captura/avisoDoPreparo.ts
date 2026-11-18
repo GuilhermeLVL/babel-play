@@ -32,3 +32,13 @@ export function avisoDoPreparo(prep: ModelPrepState | null | undefined): string 
   if (prep.mt !== null && prep.mt < 1) return t('Preparando a tradução dos dois lados · {p}', { p: pct(prep.mt) });
   return null;
 }
+
+/**
+ * O RECONHECIMENTO AINDA NÃO OUVE (conversa-de-verdade, 4.1): o progresso do modelo de transcrição (0..1) enquanto ele
+ * baixa ou carrega, ou `null` quando está pronto, falhou ou não há modelo a esperar (a Web Speech, a nuvem). É o que
+ * troca o "Ouvindo…" do Intérprete por "Preparando N%": dizer que ouve antes de poder ouvir era mentir (CONV-09).
+ */
+export function progressoDoReconhecimento(prep: ModelPrepState | null | undefined): number | null {
+  if (!prep || prep.error || prep.done || prep.whisper === null) return null;
+  return Math.max(0, Math.min(1, prep.whisper));
+}

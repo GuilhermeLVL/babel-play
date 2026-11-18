@@ -2242,5 +2242,10 @@
     "few": "جارٍ التنزيل: كلامك محفوظ ({n} مقاطع).",
     "many": "جارٍ التنزيل: كلامك محفوظ ({n} مقطعًا).",
     "other": "جارٍ التنزيل: كلامك محفوظ ({n} مقطع)."
-  }
+  },
+  "Terminei": "انتهيت",
+  "Terminei de falar": "انتهيت من الكلام",
+  "Preparando {p}": "جارٍ التجهيز {p}",
+  "Sua fala fica guardada e é traduzida quando o reconhecimento ficar pronto.": "يُحفظ كلامك ويُترجم عندما يصبح التعرّف على الكلام جاهزًا.",
+  "Não parece {idioma} — repetir?": "لا يبدو أنها {idioma}. هل تعيد؟"
 }

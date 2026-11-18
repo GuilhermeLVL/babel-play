@@ -24,14 +24,25 @@ vi.mock('../src/lib/dispositivo/perfil', async (original) => {
   const m = await original<typeof import('../src/lib/dispositivo/perfil')>()
   return { ...m, perfilDoDispositivo: () => ({ ...m.perfilDoDispositivo(), leve: false }) }
 })
-const captura = vi.hoisted(() => ({ cbDoMic: null as null | Record<string, unknown> }))
+const captura = vi.hoisted(() => ({
+  cbDoMic: null as null | Record<string, unknown>,
+  opcoesDoMic: null as null | { redencaoMs?: number },
+  ordem: [] as string[],
+}))
 vi.mock('../src/gateway/capture/systemAudio', () => ({
   MAX_SPEECH_MS_LOCAL: 6000,
   MAX_SPEECH_MS_NUVEM: 12000,
   startSystemAudioCapture: vi.fn(),
-  startMicCapture: vi.fn(async (_id: unknown, cb: Record<string, unknown>) => {
+  startMicCapture: vi.fn(async (_id: unknown, cb: Record<string, unknown>, opcoes: { redencaoMs?: number }) => {
     captura.cbDoMic = cb
-    return { setMuted: vi.fn(), startedAtMs: 1, stop: vi.fn() }
+    captura.opcoesDoMic = opcoes
+    return {
+      setMuted: vi.fn((m: boolean) => captura.ordem.push(`mudo:${m}`)),
+      encerrarFala: vi.fn(() => captura.ordem.push('encerrarFala')),
+      setRedencaoMs: vi.fn(),
+      startedAtMs: 1,
+      stop: vi.fn(),
+    }
   }),
   startServerLoopbackCapture: vi.fn(),
   startSystemLoopbackCapture: vi.fn(),
@@ -201,6 +212,129 @@ describe('pipeline: a direção vem do lado', () => {
     expect(m.translateSegment).toHaveBeenCalledWith(expect.any(String), expect.any(String), 'pt', 'en', {
       falada: true,
     })
+  })
+
+  it('a fala nasce com o autor do instante: com os lados trocados, a metade de baixo é da outra pessoa', () => {
+    const m = montarPipeline({
+      lado: ref<LadoDoInterprete>('meu'),
+      extra: { direcaoDoMicrofone: () => direcaoDoLado('meu', IDIOMAS, true) },
+    })
+    m.p.micHandlers.onSpeechStart(1)
+    expect(m.falas.ler()[0]).toMatchObject({ lado: 'meu', dono: 'outro' })
+  })
+})
+
+/* ─────────────────────── a fala fora do par: sem tradução inventada (3.1 e 3.2) ─────────────────────── */
+
+describe('pipeline: o idioma do turno por toque é conferido (CONV-03)', () => {
+  const PCM_3S = new Float32Array(16000 * 3)
+
+  it('o final do toque pede a conferência do idioma; o automático e fora do intérprete, não', async () => {
+    const m = montarPipeline({ lado: ref<LadoDoInterprete>('outro') })
+    m.p.micHandlers.onSpeechStart(1)
+    m.p.micHandlers.onUtterance(PCM_3S, 16000, 1)
+    await esperar()
+    expect(m.transcribePcm).toHaveBeenCalledWith(PCM_3S, 16000, expect.objectContaining({ conferirIdioma: true }))
+    const fora = montarPipeline({ cenario: 'mic', lado: ref<LadoDoInterprete>('outro') })
+    fora.p.micHandlers.onUtterance(PCM_3S, 16000, 1)
+    await esperar()
+    expect(fora.transcribePcm).toHaveBeenCalledWith(
+      PCM_3S,
+      16000,
+      expect.not.objectContaining({ conferirIdioma: true }),
+    )
+  })
+
+  it('espanhol no lado do inglês: a fala fica marcada, sem tradução, e o turno devolve a vez sem leitura', async () => {
+    const m = montarPipeline({
+      lado: ref<LadoDoInterprete>('outro'),
+      resultado: { text: 'Sorry, I want to go to the bathroom.', idiomaConferido: { idioma: 'es', confianca: 0.96 } },
+    })
+    m.p.micHandlers.onSpeechStart(1)
+    m.p.micHandlers.onUtterance(PCM_3S, 16000, 1)
+    await esperar()
+    expect(m.translateSegment).not.toHaveBeenCalled()
+    expect(m.falas.ler()[0]).toMatchObject({
+      lado: 'outro',
+      isPartial: false,
+      foraDoPar: { detectado: 'es' },
+      translatedText: '',
+      semTraducao: true,
+    })
+    expect(m.aoFimDaFala).toHaveBeenLastCalledWith({ segId: `mic-${MIC + 1}`, source: 'mic', semTexto: true })
+  })
+
+  it('o idioma do lado conferido (ou com confiança baixa) segue normal', async () => {
+    for (const idiomaConferido of [
+      { idioma: 'en', confianca: 0.99 },
+      { idioma: 'es', confianca: 0.5 },
+    ]) {
+      const m = montarPipeline({ lado: ref<LadoDoInterprete>('outro'), resultado: { idiomaConferido } })
+      m.p.micHandlers.onSpeechStart(1)
+      m.p.micHandlers.onUtterance(PCM_3S, 16000, 1)
+      await esperar()
+      expect(m.translateSegment).toHaveBeenCalledWith(`mic-${MIC + 1}`, 'Where is the station?', 'en', 'pt', {
+        falada: true,
+      })
+    }
+  })
+})
+
+/* ──────────────── a fala guardada durante o download leva a direção de quando foi dita (1.2) ──────────────── */
+
+describe('pipeline: a fala guardada enquanto o reconhecimento baixa (CONV-01)', () => {
+  /** O intérprete como a máquina o vê: o lado tocado e o turno do microfone. */
+  const turno = { lado: 'meu' as LadoDoInterprete, n: 1 }
+  const direcaoAgora = (): DirecaoDaFala => ({ ...direcaoDoLado(turno.lado, IDIOMAS), turno: turno.n })
+  /** O que `flushPendingUtterances` faz quando o modelo fica pronto. */
+  const transcreverGuardados = (m: ReturnType<typeof montarPipeline>, pendentes: { current: never[] }) => {
+    const guardados = pendentes.current as Array<{
+      pcm: Float32Array
+      sr: number
+      rawSeq: number
+      direcao?: DirecaoDaFala | null
+    }>
+    pendentes.current = []
+    for (const u of guardados)
+      m.p.micHandlers.onUtterance(u.pcm, u.sr, u.rawSeq, undefined, { direcao: u.direcao ?? null })
+  }
+
+  it('pt dita no lado "Você" durante o download sai em pt, traduzida para o inglês, mesmo com o en falando depois', async () => {
+    turno.lado = 'meu'
+    turno.n = 1
+    const pronto = ref(false)
+    const pendentes = ref([] as never[])
+    const m = montarPipeline({
+      lado: ref<LadoDoInterprete>('meu'),
+      resultado: { text: 'Boa noite! Que bom que você veio.' },
+      extra: { modelReadyRef: pronto, pendingUtterancesRef: pendentes, direcaoDoMicrofone: direcaoAgora },
+    })
+    m.p.micHandlers.onSpeechStart(1)
+    m.p.micHandlers.onUtterance(PCM, 16000, 1)
+    /* O turno fecha no mesmo silêncio, com o modelo ainda baixando: o microfone não fica aberto à espera. */
+    expect(m.aoFimDaFala).toHaveBeenLastCalledWith({ segId: `mic-${MIC + 1}`, source: 'mic', lado: 'meu', turno: 1 })
+    expect(m.transcribePcm).not.toHaveBeenCalled()
+    /* A outra pessoa toca o lado dela (turno 2) e o modelo fica pronto. */
+    turno.lado = 'outro'
+    turno.n = 2
+    pronto.current = true
+    transcreverGuardados(m, pendentes)
+    await esperar()
+    expect(m.transcribePcm).toHaveBeenCalledWith(PCM, 16000, expect.objectContaining({ languageHint: 'pt' }))
+    expect(m.translateSegment).toHaveBeenCalledWith(`mic-${MIC + 1}`, expect.any(String), 'pt', 'en', { falada: true })
+    expect(m.falas.ler()[0]).toMatchObject({ lado: 'meu', dono: 'meu', lang: 'pt' })
+    /* O fim do trecho velho leva o turno 1: o controle não o entrega à máquina do turno 2. */
+    expect(m.aoFimDaFala).toHaveBeenLastCalledWith({ segId: `mic-${MIC + 1}`, source: 'mic', lado: 'meu', turno: 1 })
+  })
+
+  it('o trecho que não cabe na fila devolve a vez (sem texto), em vez de deixar o turno esperando', () => {
+    const pendentes = ref(Array.from({ length: 24 }, () => ({})) as never[])
+    const m = montarPipeline({
+      lado: ref<LadoDoInterprete>('meu'),
+      extra: { modelReadyRef: ref(false), pendingUtterancesRef: pendentes, direcaoDoMicrofone: direcaoAgora },
+    })
+    m.p.micHandlers.onUtterance(PCM, 16000, 7)
+    expect(m.aoFimDaFala).toHaveBeenLastCalledWith(expect.objectContaining({ segId: `mic-${MIC + 7}`, semTexto: true }))
   })
 })
 
@@ -428,5 +562,39 @@ describe('fontes: a Web Speech abre e reinicia no idioma do lado', () => {
     await m.fontes.abrirMicrofoneNoLado()
     expect(mic.setMuted).toHaveBeenLastCalledWith(false)
     expect(ReconhecedorFalso.todos).toHaveLength(0)
+  })
+
+  it('no turno por toque, o silêncio que fecha a fala é de 2,5 s; o automático volta ao de sempre (CONV-02)', async () => {
+    const lado = ref<LadoDoInterprete>('meu')
+    const automatico = ref(false)
+    const m = montarFontes(lado, {
+      micEngine: 'whisper',
+      consentiuNavegador: () => false,
+      escolhaDoMic: () => 'privado',
+      interpreteAutomatico: () => automatico.current,
+    })
+    await m.fontes.startMic()
+    expect(captura.opcoesDoMic?.redencaoMs).toBe(2500)
+    const mic = m.d.micCaptureRef.current as unknown as { setRedencaoMs: ReturnType<typeof vi.fn> }
+    m.fontes.fecharMicrofoneDoLado()
+    await m.fontes.abrirMicrofoneNoLado()
+    expect(mic.setRedencaoMs).toHaveBeenLastCalledWith(2500)
+    automatico.current = true
+    m.fontes.fecharMicrofoneDoLado()
+    m.d.micCaptureRef.current = mic as never
+    await m.fontes.abrirMicrofoneNoLado()
+    expect(mic.setRedencaoMs).toHaveBeenLastCalledWith(undefined)
+  })
+
+  it('"Terminei" entrega a fala em curso ANTES do mudo (o mudo a descartaria)', async () => {
+    const m = montarFontes(ref<LadoDoInterprete>('meu'), {
+      micEngine: 'whisper',
+      consentiuNavegador: () => false,
+      escolhaDoMic: () => 'privado',
+    })
+    await m.fontes.startMic()
+    captura.ordem.length = 0
+    m.fontes.fecharMicrofoneDoLado()
+    expect(captura.ordem).toEqual(['encerrarFala', 'mudo:true'])
   })
 })

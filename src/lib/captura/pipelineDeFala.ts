@@ -71,6 +71,7 @@ import { setterNoQuadro } from './agendarNoQuadro';
 import { guardarAudioDaFala } from './audioDasFalas';
 import { conferirRotaDoStt, type EntradaDaConferencia, montarPedidoDeRota } from './conferenciaDaRota';
 import { converterEscritaChinesa, escritaDoIdioma, prepararEscritaChinesa } from './escritaChinesa';
+import { idiomaForaDoPar } from './idiomaForaDoPar';
 import { decidirNaVirtual, ESTADO_DA_VIRTUAL, type EstadoDaVirtual } from './idiomasDaConversaVirtual';
 import { idiomasDoModelo } from './idiomasDoModelo';
 import { direcaoDoLado as direcaoDeUmLado } from './interprete';
@@ -182,6 +183,13 @@ export interface EnunciadoPendente {
   sr: number;
   rawSeq: number;
   source: CapSource;
+  /**
+   * A DIREÇÃO DO INSTANTE EM QUE FOI DITO (conversa-de-verdade, 1.2): o lado, os idiomas e o turno do intérprete.
+   * Sem ela, a fala dita durante o download era transcrita com a direção de quando o modelo ficava pronto — o lado
+   * errado, traduzida às avessas — e o fim dela fechava o microfone de quem falava agora (CONV-01). `null` = fora do
+   * intérprete (ou o automático, que mede o idioma no final).
+   */
+  direcao?: DirecaoDaFala | null;
 }
 
 /** Tudo que o pipeline precisa da tela — por parâmetro, sem contexto novo nem store global. */
@@ -666,7 +674,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
                 words: [],
                 isPartial: true,
                 tStartMs: nowRel(),
-                ...(doLado ? { lado: doLado.lado } : {}),
+                ...(doLado ? { lado: doLado.lado, ...(doLado.dono ? { dono: doLado.dono } : {}) } : {}),
               },
             ],
       );
@@ -830,15 +838,30 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       if (perfModeRef.current || reguladorRef?.current.parciaisCortados || aparelhoLeve()) return null;
       const { hint } = langs(seq);
       const ctl = new AbortController();
-      const promessa = gateway.stt.transcribePcm(pcm, sr, { languageHint: hint, signal: ctl.signal });
+      const promessa = gateway.stt.transcribePcm(pcm, sr, {
+        languageHint: hint,
+        signal: ctl.signal,
+        ...(confereOIdioma(seq) ? { conferirIdioma: true } : {}),
+      });
       promessa.catch(() => {
         /* cancelado (a fala continuou) ou falhou: quem usar a promessa trata */
       });
       return { promessa, cancelar: () => ctl.abort() };
     };
 
+    /** O turno por toque do Intérprete: o idioma do lado é conferido no áudio (conversa-de-verdade, 3.1). */
+    const confereOIdioma = (seq: number): boolean =>
+      !isSys && !virtual() && !automaticoDoInterprete() && !!direcaoDoLado(seq);
+
     // Fim da fala → decode FINAL (autoritativo) → commit do texto + tradução.
-    const onUtterance = (pcm: Float32Array, sr: number, rawSeq: number, especulacao?: EspeculacaoDoFinal) => {
+    const onUtterance = (
+      pcm: Float32Array,
+      sr: number,
+      rawSeq: number,
+      especulacao?: EspeculacaoDoFinal,
+      /** O trecho guardado durante o download, com a direção de quando foi dito (`flushPendingUtterances`). */
+      guardado?: Pick<EnunciadoPendente, 'direcao'>,
+    ) => {
       // O decode especulativo feito sobre ESTE pcm (conferido pela captura) é o final.
       const especulativo = (especulacao as FinalEspeculativo | undefined)?.promessa;
       // anti-eco: o enunciado inteiro era o NOSSO TTS voltando — descarta e limpa.
@@ -848,10 +871,14 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         return;
       }
       if (!modelReadyRef.current) {
+        /* A direção (e o turno) de AGORA, que é o instante em que a pessoa falou. */
+        const direcao = direcaoDoLado(rawSeq + offset);
+        direcoesPorSeq.delete(rawSeq + offset);
         // NÃO descarta: guarda o enunciado e transcreve assim que o modelo ficar pronto.
         // Limite de ~24 trechos (~2 min de fala) para não crescer sem fim se a carga travar.
-        if (pendingUtterancesRef.current.length < 24) {
-          pendingUtterancesRef.current.push({ pcm: pcm.slice(), sr, rawSeq, source });
+        const guardou = pendingUtterancesRef.current.length < 24;
+        if (guardou) {
+          pendingUtterancesRef.current.push({ pcm: pcm.slice(), sr, rawSeq, source, direcao });
           /* A tela conta as falas guardadas enquanto baixa (carga-rapida-no-celular, 4.1). */
           const guardadas = pendingUtterancesRef.current.length;
           setModelPrep((s) => (s ? { ...s, trechosGuardados: guardadas } : s));
@@ -872,14 +899,29 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         } else {
           clog('modelo ainda carregando, fila cheia, trecho', rawSeq, source, 'descartado');
         }
+        /* O TURNO DO INTÉRPRETE ACABA AQUI, com ou sem modelo (conversa-de-verdade, 4.1): o mesmo silêncio que
+           fecha a fala fecha o microfone, e a fala fica guardada. Sem isto o microfone seguia aberto até um toque
+           a mais (CONV-09). A tradução vem quando o reconhecimento ficar pronto; o trecho que não coube na fila
+           não terá tradução, e o intérprete devolve a vez. */
+        if (direcao && !isSys && captureScenarioRef.current === 'interprete')
+          aoFimDaFala?.({
+            segId: `${idPrefix}-${rawSeq + offset}`,
+            source,
+            lado: direcao.lado,
+            ...(direcao.turno !== undefined ? { turno: direcao.turno } : {}),
+            ...(guardou ? {} : { semTexto: true }),
+          });
         return;
       }
       const seq = rawSeq + offset;
       const uttId = seqToSegmentRef.current.get(seq) ?? `${idPrefix}-${seq}`;
+      /* O trecho guardado vale a direção de quando foi dito, não a de agora. */
+      if (guardado?.direcao) direcoesPorSeq.set(seq, guardado.direcao);
       /* O lado desta fala (o do começo, se o VAD o viu; senão o de agora) — e ele sai do mapa: daqui
          em diante a direção vai nas variáveis deste final. */
       const doLado = direcaoDoLado(seq);
       const idiomasDaFala = langs(seq);
+      const conferir = confereOIdioma(seq);
       /* Esta fala é do automático: o lado e a direção saem do idioma medido, no final. */
       const falaAutomatica = !doLado && automaticoDoInterprete() && !!ladoDaFalaAutomatica;
       direcoesPorSeq.delete(seq);
@@ -904,13 +946,17 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
                 words: [],
                 isPartial: true,
                 tStartMs: nowRel(),
-                ...(doLado ? { lado: doLado.lado } : {}),
+                ...(doLado ? { lado: doLado.lado, ...(doLado.dono ? { dono: doLado.dono } : {}) } : {}),
               },
             ],
       );
       /* A fala ACABOU (o VAD fechou): no intérprete é aqui que o microfone fecha — a voz que lê a
          tradução vem depois, e o guarda de eco cobre a cauda. */
-      aoFimDaFala?.({ segId: uttId, source, ...(doLado ? { lado: doLado.lado } : {}) });
+      aoFimDaFala?.({
+        segId: uttId,
+        source,
+        ...(doLado ? { lado: doLado.lado, ...(doLado.turno !== undefined ? { turno: doLado.turno } : {}) } : {}),
+      });
 
       // IDENTIFICAÇÃO DE VOZ (paralela ao decode; nunca atrasa a legenda): quem falou?
       // Só nas vozes do SISTEMA em Conversa — a sua voz já é "Você" por definição.
@@ -1000,6 +1046,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           prompt,
           // A nuvem do site devolve a tradução na mesma viagem (o aparelho fraco não traduz sozinho).
           traduzirPara: to || undefined,
+          ...(conferir ? { conferirIdioma: true } : {}),
           // STREAMING: mostra os tokens do decode final crescendo no balão em tempo real — um
           // setState por quadro, não um por token (ver `falasNoQuadro`); o final vem por `agora`.
           onUpdate: (streamed) => {
@@ -1031,7 +1078,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           clog('porta do STT: trecho', seq, 'subiu à nuvem (', porta.motivos.join(','), ')');
           return nuvem;
         })
-        .then(({ text, engine, language, confiancaDoIdioma, alucinacaoDescartada }) => {
+        .then(({ text, engine, language, confiancaDoIdioma, alucinacaoDescartada, idiomaConferido }) => {
           const clean = naEscritaEscolhida((text ?? '').trim(), language, hint);
           if (!clean && alucinacaoDescartada) capMetrics.alucinacao();
           const decodeMs = Math.round(performance.now() - t0);
@@ -1073,6 +1120,41 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             setSpeechSegments((prev) => prev.filter((s) => s.id !== uttId));
             /* O fim desta fala já foi anunciado (o intérprete fechou o microfone e espera a tradução):
                sem texto não há tradução, e ele precisa saber para devolver a vez. */
+            aoFimDaFala?.({ segId: uttId, source, semTexto: true });
+            return;
+          }
+          /* FORA DO PAR (conversa-de-verdade, 3.2): a fala do turno saiu noutro idioma. Ela fica na tela com o pedido
+             para repetir, sem tradução e sem leitura; a tradução que sairia dela seria inventada (CONV-03). */
+          const foraDoPar = conferir ? idiomaForaDoPar({ esperado: from, conferido: idiomaConferido, audioMs }) : null;
+          if (foraDoPar) {
+            capMetrics.final(seq, { decodeMs, queueDepth, text: clean, audioMs, engine });
+            clog(
+              'intérprete: fala',
+              seq,
+              'fora do par: o lado é',
+              from,
+              ', o áudio parece',
+              foraDoPar,
+              `(${Math.round((idiomaConferido?.confianca ?? 0) * 100)}%)`,
+            );
+            setSpeechSegments((prev) =>
+              prev.map((s) =>
+                s.id === uttId
+                  ? {
+                      ...s,
+                      originalText: clean,
+                      translatedText: '',
+                      semTraducao: true,
+                      foraDoPar: { detectado: foraDoPar },
+                      words: [],
+                      isPartial: false,
+                      tEndMs: nowRel(),
+                      lang: foraDoPar,
+                      engine,
+                    }
+                  : s,
+              ),
+            );
             aoFimDaFala?.({ segId: uttId, source, semTexto: true });
             return;
           }
@@ -1392,7 +1474,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     setModelPrep((s) => (s?.trechosGuardados ? { ...s, trechosGuardados: 0 } : s));
     clog('modelo pronto, transcrevendo', pending.length, 'trecho(s) guardado(s) durante a carga');
     for (const u of pending) {
-      (u.source === 'system' ? sysHandlers : micHandlers).onUtterance(u.pcm, u.sr, u.rawSeq);
+      (u.source === 'system' ? sysHandlers : micHandlers).onUtterance(u.pcm, u.sr, u.rawSeq, undefined, {
+        direcao: u.direcao ?? null,
+      });
     }
   };
 

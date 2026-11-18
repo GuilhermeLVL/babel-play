@@ -28,6 +28,7 @@ import {
   type EstadoDoInterprete,
   idiomasDaConversa,
   type IdiomasDoInterprete,
+  SILENCIO_DO_TURNO_MS,
 } from './interprete';
 import {
   decidirLadoDaFala,
@@ -160,6 +161,11 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
   /** Cortar a voz para ler um trecho tocado não é "fim da voz": o automático não reabre o microfone. */
   let cortandoParaTrecho = false;
   let trechos = 0;
+  /**
+   * O microfone do turno está aberto (entre o `abrirMicrofone` e o `fecharMicrofone`). A tradução NUNCA é lida com
+   * ele aberto: a voz falaria por cima de quem ainda fala, e o eco entraria na fala (conversa-de-verdade, 2.2).
+   */
+  let micAberto = false;
 
   const estado = (): EstadoDoControle => ({
     ...maquina.estado(),
@@ -206,13 +212,19 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
     if (t?.traducao) enfileiradoEm.set(segId, agora());
     const entrou =
       !!t?.traducao &&
+      !micAberto &&
       fila.enfileirar({ id: segId, texto: t.traducao, lang, lado, ...(fim ? { criadoEm: fim.em } : {}) });
     if (!entrou) enfileiradoEm.delete(segId);
     if (entrou) {
       /* O MEDIDOR POR ETAPA: STT e tradução já medidos pela captura, o VAD nominal e, daqui, o início
          da voz. Só números e nomes de motor. */
       const e = etapasDaFala(segId);
-      registrarEtapa(segId, 'vad', ESPERA_NOMINAL_DO_VAD_MS, 'vad-fixo');
+      registrarEtapa(
+        segId,
+        'vad',
+        maquina.estado().automatico ? ESPERA_NOMINAL_DO_VAD_MS : SILENCIO_DO_TURNO_MS,
+        'vad-fixo',
+      );
       if (e?.stt) registrarEtapa(segId, 'stt', e.stt.ms, e.stt.motor, e.stt.audioMs);
       if (e?.mt) registrarEtapa(segId, 'mt', e.mt.ms, e.mt.motor);
     }
@@ -222,6 +234,7 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
   const executar = (e: EfeitoDoInterprete) => {
     switch (e.tipo) {
       case 'abrirMicrofone': {
+        micAberto = true;
         const lado = e.direcao?.lado ?? null;
         const falhou = (erro: unknown) => {
           if (desligado) return;
@@ -245,6 +258,7 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
         return;
       }
       case 'fecharMicrofone':
+        micAberto = false;
         o.microfone.fechar();
         return;
       case 'interromperVoz':
@@ -355,6 +369,12 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
         if (maquina.estado().pendentes.includes(fim.segId)) maquina.enviar({ tipo: 'semTraducao', segId: fim.segId });
         return;
       }
+      /* UM TRECHO DE OUTRO TURNO (a fala guardada durante o download, transcrita depois): ela aparece na tela, mas
+         não fecha o microfone de quem fala agora nem é lida por cima dele (conversa-de-verdade, 1.2). */
+      if (fim.turno !== undefined && fim.turno !== maquina.estado().turno) {
+        esquecerFala(fim.segId);
+        return;
+      }
       const lado = fim.lado ?? maquina.estado().lado;
       /* Sem lado só no automático: o idioma medido o dirá (`ladoDaFala`), antes de a tradução chegar. Fora dele,
          a fala não será lida: o que estava guardado para ela sai junto. */
@@ -363,7 +383,7 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
         return;
       }
       if (!fins.has(fim.segId)) fins.set(fim.segId, { em: agora(), lado: lado ?? null });
-      maquina.enviar({ tipo: 'fimDaFala', segId: fim.segId });
+      maquina.enviar({ tipo: 'fimDaFala', segId: fim.segId, ...(fim.lado ? { lado: fim.lado } : {}) });
       /* A tradução já tinha chegado (cache): entrega agora, na ordem que a máquina espera. */
       const chegou = traducoes.get(fim.segId);
       if (chegou) aoTraduzirFinal(chegou);

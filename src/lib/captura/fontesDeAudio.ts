@@ -36,6 +36,7 @@ import { t } from '../i18n';
 import { nuvemDoQuestAtiva } from '../nuvemDoQuest';
 import { isTtsActive } from '../tts';
 import { abrirContextoDoClique, descartarContextoDoClique, tomarContextoDoClique } from './contextoDoClique';
+import { SILENCIO_DO_TURNO_MS } from './interprete';
 import { type EscolhaDoMic, resolverMotorDoMic } from './motorDoMicrofone';
 import { criarProgressoDosPacotesNativos } from './pacotesNativos';
 import type { OpcoesDaPreparacao } from './pipelineDeFala';
@@ -244,6 +245,17 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
      (500 ms) da legenda de vídeo cortariam a frase da pessoa no meio. Ali vale o teto da nuvem (a frase
      inteira) e a pausa de sempre. */
   const noInterprete = (): boolean => !!deps.direcaoDoMicrofone?.() || !!deps.interpreteAutomatico?.();
+  /**
+   * O SILÊNCIO QUE FECHA A FALA NO MICROFONE. No intérprete por toque é o fim do TURNO: 2,5 s, para a pausa natural
+   * no meio da frase não fechar o microfone nem a voz ler por cima (conversa-de-verdade, 2.1; "Terminei" fecha na
+   * hora). No automático e fora do intérprete, o de sempre (o Quest, 500 ms). `undefined` = o padrão da captura.
+   */
+  const redencaoDoMicrofone = (): number | undefined =>
+    !!deps.direcaoDoMicrofone?.() && !deps.interpreteAutomatico?.()
+      ? SILENCIO_DO_TURNO_MS
+      : perfilDoDispositivo().tipo === 'quest' && !noInterprete()
+        ? 500
+        : undefined;
   const opcoesDeCaptura: OpcoesDeCaptura = {
     /* FIM DE FALA INTELIGENTE: atrás da chave de teste (desligada de fábrica) e fora do Quest, onde a
        pausa de 500 ms e a falta de parcial pedem outra medida. Todos os idiomas da conversa precisam estar na
@@ -253,7 +265,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       idiomas: () => deps.idiomasDaConversa?.() ?? [sourceLangRef.current],
     },
     get redencaoMs() {
-      return perfilDoDispositivo().tipo === 'quest' && !noInterprete() ? 500 : undefined;
+      return redencaoDoMicrofone();
     },
     maxSpeechMs: () =>
       noInterprete()
@@ -611,8 +623,10 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
         falada: true,
         // O modo com que ESTA sessão abre: é ele que diz se o áudio da fala saiu do aparelho.
         engine: motorDoMicrofoneNoNavegador(noAparelho),
-        ...(direcao ? { lado: direcao.lado } : {}),
+        ...(direcao ? { lado: direcao.lado, ...(direcao.dono ? { dono: direcao.dono } : {}) } : {}),
         aoFinalComprometido: (segId) =>
+          /* Sem o turno: a sessão da Web Speech pode durar mais de um turno (o mesmo idioma não reabre), e a fala dela
+             nunca fica guardada à espera de modelo. */
           deps.aoFimDaFala?.({ segId, source: 'mic', ...(direcao ? { lado: direcao.lado } : {}) }),
         idDoParcialRef: webSpeechPartialIdRef,
         timerRef,
@@ -874,6 +888,8 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
    */
   const abrirMicrofoneNoLado = async (): Promise<void> => {
     if (micCaptureRef.current) {
+      /* O silêncio do turno vale para ESTA abertura: o toque (2,5 s) e o automático (o de sempre) dividem a captura. */
+      micCaptureRef.current.setRedencaoMs?.(redencaoDoMicrofone());
       micCaptureRef.current.setMuted(false);
       return;
     }
@@ -909,6 +925,9 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
    * Speech: a sessão acaba (nada de religar sozinha a cada silêncio, que no Android apita).
    */
   const fecharMicrofoneDoLado = (): void => {
+    /* "Terminei" no meio da fala: o trecho em curso vai ao reconhecimento antes do mudo (que o descartaria). Depois do
+       fim pelo silêncio, não há trecho em curso e nada muda. */
+    micCaptureRef.current?.encerrarFala?.();
     micCaptureRef.current?.setMuted(true);
     encerrarWebSpeechDoMic();
   };

@@ -60,6 +60,14 @@ export interface AudioCapture {
    */
   setPaused(paused: boolean): void;
   /**
+   * ENTREGA A FALA EM CURSO AGORA, sem esperar o silêncio (o "Terminei" do intérprete, conversa-de-verdade 2.1): o
+   * VAD fecha o trecho e ele vai ao `onUtterance` como qualquer fim de fala. Sem fala em curso, não faz nada. Mutar
+   * direto DESCARTARIA a frase (ver `setMuted`), e com o silêncio de 2,5 s do turno o toque chega quase sempre antes.
+   */
+  encerrarFala?(): void;
+  /** O silêncio que fecha a fala (ms), em tempo de execução: o turno por toque do intérprete usa 2,5 s. `undefined` = o padrão. */
+  setRedencaoMs?(ms: number | undefined): void;
+  /**
    * Instante (Date.now(), epoch-ms) em que o MediaRecorder REALMENTE começou a gravar — a
    * ORIGEM (t=0) do áudio salvo. A UI ancora o relógio das legendas a este valor: sem isso, o
    * t0 do clique em START fica ADIANTADO do t0 do recorder por todo o tempo da caixa de
@@ -510,7 +518,7 @@ async function startCaptureFromStream(
    * forma síncrona durante o `new`, a referência cai na TDZ e a captura de áudio quebra em tempo de
    * execução — algo que nenhum teste daqui pega. Declarar antes e atribuir depois é imune a isso.
    */
-  let vad: Pick<MicVAD, 'start' | 'pause'>;
+  let vad: Pick<MicVAD, 'start' | 'pause' | 'setOptions'>;
 
   // Estado do enunciado em andamento (para partials + seq).
   let seqCounter = 0;
@@ -825,6 +833,20 @@ async function startCaptureFromStream(
   return {
     startedAtMs,
     trilhaDeAudio: audioTracks[0],
+    encerrarFala(): void {
+      if (!speaking || muted || paused) return;
+      vlog(label, 'VAD → fim de fala pedido (Terminei)');
+      fecharAgora();
+    },
+    setRedencaoMs(ms: number | undefined): void {
+      const alvo = ms ?? REDENCAO_MS;
+      try {
+        vad.setOptions({ redemptionMs: alvo });
+        espelho.mudarRedencao(alvo);
+      } catch (e) {
+        vlog(label, 'redenção não mudou:', String(e));
+      }
+    },
     setMuted(next: boolean): void {
       if (next === muted) return;
       muted = next;

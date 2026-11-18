@@ -348,8 +348,20 @@ export class WhisperLocalStt implements SttProvider {
     });
 
     this.worker.onmessage = (msg: MessageEvent) => {
-      const { type, id, text, progress, label, message, loaded, total, descartado, language, confiancaDoIdioma } =
-        msg.data;
+      const {
+        type,
+        id,
+        text,
+        progress,
+        label,
+        message,
+        loaded,
+        total,
+        descartado,
+        language,
+        confiancaDoIdioma,
+        idiomaConferido,
+      } = msg.data;
 
       switch (type) {
         case MENSAGEM_DO_MANIFESTO:
@@ -398,7 +410,10 @@ export class WhisperLocalStt implements SttProvider {
             /* `language` SÓ quando o worker MEDIU (trecho sem dica, "Detectar"): o contrato de
                `SttFinal.language` é "o que o motor identificou". Com dica, o worker obedece e não
                devolve idioma — ecoar a dica faria o chamador confundir palpite com medição. */
-            const medido = typeof language === 'string' && language ? { language, confiancaDoIdioma } : {};
+            const medido = {
+              ...(typeof language === 'string' && language ? { language, confiancaDoIdioma } : {}),
+              ...(idiomaConferido ? { idiomaConferido } : {}),
+            };
             this.pending.delete(id);
             pending.resolve(descartado ? { text, alucinacaoDescartada: true, ...medido } : { text, ...medido });
           }
@@ -580,6 +595,7 @@ export class WhisperLocalStt implements SttProvider {
       prioridade: 'final' | 'parcial';
       signal?: AbortSignal;
       onUpdate?: (text: string) => void;
+      conferirIdioma?: boolean;
     },
   ): Promise<SttFinal | null> {
     const id = Math.random().toString(36).slice(2);
@@ -614,6 +630,7 @@ export class WhisperLocalStt implements SttProvider {
           language: opts.languageHint,
           device: this.deviceDaCarga ?? this.device,
           prioridade: opts.prioridade,
+          ...(opts.conferirIdioma ? { conferirIdioma: true } : {}),
         },
         [pcm.buffer],
       );
@@ -628,7 +645,12 @@ export class WhisperLocalStt implements SttProvider {
   async transcribePcm(
     pcm: Float32Array,
     _sampleRate: number,
-    opts?: { languageHint?: string; signal?: AbortSignal; onUpdate?: (text: string) => void },
+    opts?: {
+      languageHint?: string;
+      signal?: AbortSignal;
+      onUpdate?: (text: string) => void;
+      conferirIdioma?: boolean;
+    },
   ): Promise<SttFinal> {
     // GUARDA DO MOONSHINE (só inglês): o roteador não o escolhe fora do inglês, mas quem vê a dica
     // de CADA trecho é este adapter. Com o moonshine carregado (rota antiga, override manual em
@@ -650,6 +672,7 @@ export class WhisperLocalStt implements SttProvider {
       prioridade: 'final',
       signal: opts?.signal,
       onUpdate: opts?.onUpdate,
+      ...(opts?.conferirIdioma ? { conferirIdioma: true } : {}),
     });
     if (!r) throw erroDeAborto();
     return r;

@@ -8,6 +8,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
+import { conversaEmMarkdown } from '../src/lib/captura/exportarConversa'
 import {
   type FalaDoHistorico,
   historicoDoInterprete,
@@ -15,7 +16,13 @@ import {
   subirJanela,
 } from '../src/lib/captura/historicoDoInterprete'
 
-const fala = (id: string, lado: 'meu' | 'outro', original: string, traducao = '', extra: Partial<FalaDoHistorico> = {}) => ({
+const fala = (
+  id: string,
+  lado: 'meu' | 'outro',
+  original: string,
+  traducao = '',
+  extra: Partial<FalaDoHistorico> = {},
+) => ({
   id,
   lado,
   originalText: original,
@@ -25,10 +32,7 @@ const fala = (id: string, lado: 'meu' | 'outro', original: string, traducao = ''
 
 describe('historicoDoInterprete', () => {
   it('cada metade lê no idioma dela: o outro traduzido, o meu no original', () => {
-    const falas = [
-      fala('1', 'outro', 'I want rice', 'Eu quero arroz'),
-      fala('2', 'meu', 'Quanto custa?', 'How much?'),
-    ]
+    const falas = [fala('1', 'outro', 'I want rice', 'Eu quero arroz'), fala('2', 'meu', 'Quanto custa?', 'How much?')]
     const h = historicoDoInterprete(falas, 'meu')
     expect(h.itens).toEqual([
       {
@@ -86,7 +90,11 @@ describe('historicoDoInterprete', () => {
   })
 
   it('ignora fala sem lado (fora do intérprete) e fala vazia', () => {
-    const falas = [fala('1', 'outro', '   ', 'x'), { id: '2', originalText: 'a', translatedText: 'b' }, fala('3', 'outro', 'Hi', 'Oi')]
+    const falas = [
+      fala('1', 'outro', '   ', 'x'),
+      { id: '2', originalText: 'a', translatedText: 'b' },
+      fala('3', 'outro', 'Hi', 'Oi'),
+    ]
     expect(historicoDoInterprete(falas as never, 'meu').itens.map((i) => i.id)).toEqual(['3'])
   })
 
@@ -106,5 +114,59 @@ describe('historicoDoInterprete', () => {
     expect(subirJanela(50, 120)).toBe(100)
     expect(subirJanela(100, 120)).toBe(120)
     expect(subirJanela(120, 120)).toBe(120)
+  })
+})
+
+describe('o autor gravado na fala (conversa-de-verdade, 1.1)', () => {
+  /* A conversa: 2 falas antes de "Trocar os lados" (eu em pt na metade de baixo, a outra pessoa em en na de cima) e
+     2 depois (agora a outra pessoa segura o aparelho: a metade de baixo é dela). O `dono` é gravado quando a fala
+     nasce, e trocar os lados não muda o autor das de antes (CONV-07). */
+  const conversa = [
+    fala('1', 'meu', 'Boa noite', 'Good evening', { dono: 'meu' }),
+    fala('2', 'outro', 'Thank you', 'Obrigado', { dono: 'outro' }),
+    fala('3', 'meu', 'Red wine, please', 'Vinho tinto, por favor', { dono: 'outro' }),
+    fala('4', 'outro', 'Minha avó me ensinou', 'My grandmother taught me', { dono: 'meu' }),
+  ]
+
+  it('cada item leva o autor da fala, antes e depois da troca', () => {
+    const h = historicoDoInterprete(conversa, 'meu', { janela: Number.MAX_SAFE_INTEGER })
+    expect(h.itens.map((i) => [i.id, i.dono])).toEqual([
+      ['1', 'meu'],
+      ['2', 'outro'],
+      ['3', 'outro'],
+      ['4', 'meu'],
+    ])
+  })
+
+  it('a exportação usa o mesmo autor da lista, e não o lado', () => {
+    const md = conversaEmMarkdown(conversa, {
+      titulo: 'Jantar',
+      rotulos: { meu: 'Você', outro: 'A outra pessoa' },
+      idiomas: { meu: 'Português', outro: 'English' },
+      donoDoLado: (lado) => (lado === 'meu' ? 'outro' : 'meu'),
+    })
+    expect(md.split('\n').filter((l) => l.startsWith('**'))).toEqual([
+      '**Você** (Português)',
+      '**A outra pessoa** (English)',
+      '**A outra pessoa** (English)',
+      '**Você** (Português)',
+    ])
+  })
+
+  it('a sessão antiga, sem autor gravado, cai no cálculo pelo lado', () => {
+    const md = conversaEmMarkdown([fala('1', 'meu', 'Oi', 'Hi')], {
+      titulo: 'x',
+      rotulos: { meu: 'Você', outro: 'A outra pessoa' },
+      idiomas: { meu: 'Português', outro: 'English' },
+      donoDoLado: () => 'outro',
+    })
+    expect(md).toContain('**A outra pessoa** (English)')
+  })
+
+  it('a fala fora do par não é o destaque do outro lado e não espera tradução', () => {
+    const falas = [fala('1', 'outro', 'Hi', 'Oi'), fala('2', 'outro', 'Perdón', '', { foraDoPar: { detectado: 'es' } })]
+    const h = historicoDoInterprete(falas, 'meu')
+    expect(h.destaque?.id).toBe('1')
+    expect(h.itens[1]).toMatchObject({ id: '2', foraDoPar: 'es', traduzindo: false })
   })
 })

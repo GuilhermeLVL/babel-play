@@ -14,7 +14,7 @@ import { direcaoDoLado, ESTADO_INICIAL, type IdiomasDoInterprete } from '../../.
 import { chaveLigada } from '../../../../lib/captura/testesDoInterprete';
 import type { LadoDoInterprete, SpeechSegment } from '../../../../lib/captura/tiposDaFala';
 import { data, t } from '../../../../lib/i18n';
-import { langLabel, toBcp47 } from '../../../../lib/languages';
+import { langLabel, langLabelNaUI, toBcp47 } from '../../../../lib/languages';
 import { comNomeDoPlano, planoDeEntradaAgora, textoDoAutomaticoNoPlano } from '../../../../lib/planoDeEntrada';
 import { estadoDaTela, mudarEstadoDaTela, tomarPedidoDaConversa, tremer } from '../../../../lib/polimento/interprete';
 import { motorDaFala, type TtsEngine } from '../../../../lib/tts';
@@ -54,7 +54,7 @@ import { useAvataresDoInterprete } from './useAvataresDoInterprete';
 
 /** A fala, no que a tela precisa. */
 export type FalaDoInterprete = Pick<SpeechSegment, 'id' | 'originalText' | 'translatedText' | 'isPartial' | 'lado'> &
-  Partial<Pick<SpeechSegment, 'lang' | 'paraLang' | 'semTraducao'>> &
+  Partial<Pick<SpeechSegment, 'lang' | 'paraLang' | 'semTraducao' | 'dono' | 'foraDoPar'>> &
   Partial<Pick<SpeechSegment, 'timestamp'>>;
 
 /** Uma frase que a pessoa quer guardar para estudar (a folha da frase da captura a abre). */
@@ -122,6 +122,7 @@ export default function ModoInterprete({
   semVoz = false,
   vozDoSite = false,
   abrindo,
+  preparo = null,
   aviso,
   automatico = 'oculto',
   aoSair,
@@ -152,6 +153,12 @@ export default function ModoInterprete({
   vozDoSite?: boolean;
   /** O microfone está abrindo (a permissão, o modelo): o botão de quem fala mostra a espera. */
   abrindo?: boolean;
+  /**
+   * O RECONHECIMENTO AINDA NÃO ESTÁ PRONTO (o modelo baixando ou carregando; 0..1). Enquanto houver número, o lado
+   * ativo diz "Preparando N%" e a faixa diz que a fala fica guardada — nunca "Ouvindo…" sem poder ouvir (CONV-09).
+   * `null`/ausente = pronto (ou nada a baixar: a Web Speech, a nuvem).
+   */
+  preparo?: number | null;
   /**
    * O que a captura diria por baixo (o tradutor do outro sentido baixando, um aviso do microfone): a
    * tela do intérprete a cobre inteira, então a linha aparece aqui, na faixa do meio.
@@ -310,6 +317,13 @@ export default function ModoInterprete({
     return () => clearTimeout(relogio);
   }, []);
 
+  /* "TROCAR OS LADOS" limpa as metades: as falas de antes da troca ficam só na lista (conversa-de-verdade, 1.1). */
+  const [antesDaTroca, setAntesDaTroca] = useState<ReadonlySet<string>>(() => new Set());
+  const falasDasMetades = useMemo(
+    () => (antesDaTroca.size ? falas.filter((f) => !antesDaTroca.has(f.id)) : falas),
+    [falas, antesDaTroca],
+  );
+
   /* A TELA: a conversa abre sempre nas duas metades (`telas2.js:170-182`); a lista é uma escolha da vez. */
   const [tela, setTela] = useState<TelaDoInterprete>('frente');
   const alternarTela = () => setTela(tela === 'frente' ? 'conversa' : 'frente');
@@ -389,13 +403,15 @@ export default function ModoInterprete({
   /** EXPORTAR: o Markdown da conversa, baixado no aparelho (nada sai dele). */
   const exportar = () => {
     const titulo = t('Conversa de {data}', { data: data(new Date()) });
+    /* O AUTOR de cada fala é o gravado nela (`dono`), o mesmo da lista; o idioma, o da pessoa. */
     const md = conversaEmMarkdown(falas, {
       titulo,
       rotulos: { meu: t('Você'), outro: t('A outra pessoa') },
       idiomas: {
-        meu: langLabel(direcaoDoLado('meu', idiomasDaTela, atualRef.current.trocados).fala),
-        outro: langLabel(direcaoDoLado('outro', idiomasDaTela, atualRef.current.trocados).fala) || t('Detectando…'),
+        meu: langLabel(direcaoDoLado('meu', idiomasDaTela).fala),
+        outro: langLabel(direcaoDoLado('outro', idiomasDaTela).fala) || t('Detectando…'),
       },
+      donoDoLado: (lado) => (atualRef.current.trocados ? outro(lado) : lado),
     });
     baixarTexto(nomeDoArquivoDaConversa(titulo), md);
   };
@@ -491,7 +507,7 @@ export default function ModoInterprete({
   /** O que cada lado precisa para se desenhar, igual nas duas telas (frente a frente e conversa). */
   const dadosDoLado = (lado: LadoDoInterprete) => {
     const direcao = direcaoDoLado(lado, idiomasDaTela, atual.trocados);
-    const historico = historicoDoInterprete(falas, lado, {
+    const historico = historicoDoInterprete(falasDasMetades, lado, {
       janela: JANELA_DO_HISTORICO,
       parcialDoOutro: chaveLigada('parcialTraduzido'),
     });
@@ -536,21 +552,33 @@ export default function ModoInterprete({
             : t('Toque em Falar e fale. A tradução aparece do outro lado e é lida em voz alta.');
 
   /** A linha de estado de um lado (Ouvindo, Traduzindo, Lendo a tradução). */
+  /** O reconhecimento ainda não está pronto: o número do preparo ("Preparando 37%"). */
+  const preparando = typeof preparo === 'number';
+  const textoDoPreparo = () =>
+    t('Preparando {p}', { p: `${Math.max(0, Math.min(99, Math.round((preparo ?? 0) * 100)))}%` });
   const statusDoLado = (d: DadosDoLado) =>
     d.ouvindo || d.escutando
       ? abrindo
         ? t('Abrindo o microfone…')
-        : d.escutando
-          ? t('Ouvindo a conversa…')
-          : t('Ouvindo…')
+        : preparando
+          ? textoDoPreparo()
+          : d.escutando
+            ? t('Ouvindo a conversa…')
+            : t('Ouvindo…')
       : d.traduzindo
-        ? t('Traduzindo…')
+        ? preparando
+          ? textoDoPreparo()
+          : t('Traduzindo…')
         : d.vozParaMim && !d.semVozAqui
           ? t('Lendo a tradução')
           : '';
 
   const tudo = historicoDoInterprete(falas, 'meu', { janela: Number.MAX_SAFE_INTEGER });
+  /** Quem está nesta METADE agora (com os lados trocados, a de baixo é da outra pessoa). */
   const donoDe = (lado: LadoDoInterprete): LadoDoInterprete => (atual.trocados ? outro(lado) : lado);
+  /** O AUTOR de uma fala: o gravado nela; a sessão antiga, sem ele, cai no cálculo pelo lado. */
+  const autorDe = (item: { lado: LadoDoInterprete; dono?: LadoDoInterprete }): LadoDoInterprete =>
+    item.dono ?? donoDe(item.lado);
   const metadeNova = (lado: LadoDoInterprete): MetadeDaConversa => {
     const d = dadosDoLado(lado);
     const direcaoDoOutro = direcaoDoLado(outro(lado), idiomasDaTela, atual.trocados);
@@ -562,6 +590,18 @@ export default function ModoInterprete({
       for (let i = d.historico.itens.length - 1; i >= 0; i--) {
         const item = d.historico.itens[i];
         if (item.traduzindo) continue;
+        /* FORA DO PAR (conversa-de-verdade, 3.2): quem falou vê o pedido para repetir; quem ouve não vê nada dela. */
+        if (item.foraDoPar) {
+          if (!item.propria) continue;
+          frase = {
+            tipo: 'foraDoPar',
+            id: item.id,
+            texto: t('Não parece {idioma} — repetir?', { idioma: langLabelNaUI(d.direcao.fala) }),
+            original: item.original.trim(),
+            langDoOriginal: item.foraDoPar,
+          };
+          break;
+        }
         frase = item.propria
           ? { tipo: 'fala', texto: item.original, lang: d.direcao.fala, aoVivo: false, id: item.id }
           : {
@@ -587,13 +627,15 @@ export default function ModoInterprete({
       nome: d.nome,
       frase,
       status: statusDoLado(d),
-      rotulo: noAutomatico ? (atual.automatico ? t('Parar') : t('Ouvir')) : d.ouvindo ? t('Parar') : t('Falar'),
+      /* No toque, quem tocou é quem fala: o segundo toque é o "Terminei" (o microfone fecha na hora, sem esperar o
+         silêncio de 2,5 s do turno). */
+      rotulo: noAutomatico ? (atual.automatico ? t('Parar') : t('Ouvir')) : d.ouvindo ? t('Terminei') : t('Falar'),
       rotuloParaLeitor: noAutomatico
         ? atual.automatico
           ? t('Parar de ouvir a conversa')
           : t('Ouvir a conversa')
         : d.ouvindo
-          ? t('Parar de ouvir')
+          ? t('Terminei de falar')
           : t('Falar em {idioma}', { idioma: d.nome }),
       ouvindo: noAutomatico ? d.escutando : d.ouvindo,
       aoFalar: noAutomatico ? alternarEscuta : () => controle.tocar(lado),
@@ -608,7 +650,7 @@ export default function ModoInterprete({
   /* O ASSISTENTE: "Como respondo?" responde à ÚLTIMA fala da outra pessoa (a metade e a lista mostram o botão nela). */
   let responderA: string | undefined;
   for (let i = tudo.itens.length - 1; i >= 0 && !responderA; i--)
-    if (donoDe(tudo.itens[i].lado) === 'outro') responderA = tudo.itens[i].id;
+    if (autorDe(tudo.itens[i]) === 'outro') responderA = tudo.itens[i].id;
   const pedirResposta = assistente?.recursos.comoRespondo ? assistente.pedirComoRespondo : undefined;
 
   /** A outra pessoa ainda está falando (o microfone na metade dela, a fala dela a caminho, ou a tradução dela sendo
@@ -750,10 +792,10 @@ export default function ModoInterprete({
         aberta: tela === 'conversa',
         bolhas: tudo.itens.map((item) => ({
           id: item.id,
-          dono: donoDe(item.lado),
+          dono: autorDe(item),
           fala: item.original.trim(),
           traducao: item.traduzindo ? '…' : item.traducao,
-          lang: item.idioma || direcaoDoLado(item.lado, idiomasDaTela, atual.trocados).fala || undefined,
+          lang: item.idioma || direcaoDoLado(autorDe(item), idiomasDaTela).fala || undefined,
         })),
         aoAlternar: alternarTela,
         aoExportar: () => {
@@ -766,6 +808,9 @@ export default function ModoInterprete({
       voz={{ rotulo: rotuloDaVoz, natural: vozNatural, muda: mudos.length === 2 }}
       vozes={semVoz ? undefined : { lados: ladosDaVoz(idiomasDaTela).filter((l) => l.idioma) }}
       aviso={
+        (preparando && (atual.fase === 'ouvindo' || atual.fase === 'traduzindo')
+          ? t('Sua fala fica guardada e é traduzida quando o reconhecimento ficar pronto.')
+          : null) ??
         aviso ??
         (presoNaPratica === 'sem-idioma'
           ? textoDaPraticaSemIdioma()
@@ -801,6 +846,9 @@ export default function ModoInterprete({
       }
       aoTrocarLados={() => {
         mudarEstadoDaTela({ trocados: !atual.trocados });
+        /* As frases em exibição nas metades eram das pessoas que estavam nelas: com a troca, elas saem (a lista
+           continua com tudo, cada fala com o autor de quando foi dita). */
+        setAntesDaTroca(new Set(falas.map((f) => f.id)));
         controle.trocarLados();
       }}
       aoVirtual={

@@ -101,14 +101,18 @@ describe('ModoInterprete', () => {
     expect(screen.getByTestId('voz-em-uso').textContent).toContain('Voz do aparelho')
   })
 
-  it('tocar Falar abre o microfone e o botão vira Parar', () => {
-    const { abrir, ponte } = montar()
+  it('tocar Falar abre o microfone e o botão vira Terminei (o segundo toque fecha na hora)', () => {
+    const { abrir, fechar, ponte } = montar()
     expect(ponte.atual).not.toBeNull()
     fireEvent.click(screen.getByRole('button', { name: /Falar em Português/i }))
     expect(abrir).toHaveBeenCalledTimes(1)
-    const parar = screen.getByRole('button', { name: 'Parar de ouvir' })
-    expect(parar.getAttribute('aria-pressed')).toBe('true')
+    const terminei = screen.getByRole('button', { name: 'Terminei de falar' })
+    expect(terminei.getAttribute('aria-pressed')).toBe('true')
+    expect(terminei.textContent).toContain('Terminei')
     expect(ponte.atual!.direcao()).toMatchObject({ lado: 'meu', fala: 'pt-BR', para: 'en' })
+    fireEvent.click(terminei)
+    expect(fechar).toHaveBeenCalledTimes(1)
+    expect(fase()).toBe('parado')
   })
 
   it('a fala traduzida aparece do outro lado, é lida, Repetir a lê de novo e Parar voz cala', () => {
@@ -326,6 +330,41 @@ describe('ModoInterprete: histórico e exportação', () => {
     expect(texto).toContain('Quanto custa?')
   })
 
+  it('"Trocar os lados" não reatribui o histórico: a lista e o Markdown mantêm o autor de cada fala (CONV-07)', () => {
+    exportacao.baixarTexto.mockClear()
+    const antes: FalaDoInterprete[] = [
+      { id: 'a', originalText: 'Boa noite', translatedText: 'Good evening', lado: 'meu', dono: 'meu' },
+      { id: 'b', originalText: 'Thank you', translatedText: 'Obrigado', lado: 'outro', dono: 'outro' },
+    ]
+    const { trocarFalas } = montar({ falas: antes })
+    expect(screen.getByTestId('interprete-meu').querySelector('.int-traducao')?.textContent).toBe('Obrigado')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Trocar os lados' })[0])
+    /* As metades são limpas: a frase de antes era da pessoa que estava ali. */
+    expect(screen.getByTestId('interprete-meu').querySelector('.int-traducao')).toBeNull()
+    /* Depois da troca, a outra pessoa segura o aparelho: a metade de baixo é dela. */
+    trocarFalas([
+      ...antes,
+      { id: 'c', originalText: 'Red wine', translatedText: 'Vinho tinto', lado: 'meu', dono: 'outro' },
+      { id: 'd', originalText: 'Minha avó', translatedText: 'My grandma', lado: 'outro', dono: 'meu' },
+    ])
+    fireEvent.click(screen.getByTestId('tela-conversa'))
+    const bolhas = Array.from(screen.getByTestId('interprete-conversa').querySelectorAll('.int-bolha'))
+    expect(bolhas.map((b) => b.getAttribute('data-lado'))).toEqual(['meu', 'outro', 'outro', 'meu'])
+    fireEvent.click(screen.getByTestId('exportar-conversa'))
+    const texto: string = exportacao.baixarTexto.mock.calls[0][1]
+    expect(
+      texto
+        .split('\n')
+        .filter((l) => l.startsWith('**'))
+        .map((l) => l.replace(/ \((Português|English).*$/, ' ($1)')),
+    ).toEqual([
+      '**Você** (Português)',
+      '**A outra pessoa** (English)',
+      '**A outra pessoa** (English)',
+      '**Você** (Português)',
+    ])
+  })
+
   it('sem falas, não há o que exportar', () => {
     exportacao.baixarTexto.mockClear()
     montar()
@@ -440,5 +479,47 @@ describe('ModoInterprete: o assistente ao vivo (Fase C3)', () => {
     const folha = screen.getByRole('dialog', { name: 'Como respondo?' })
     expect(screen.getByTestId('modo-interprete').contains(folha)).toBe(true)
     expect(folha.textContent).toContain('Foi ótimo!')
+  })
+})
+
+describe('ModoInterprete: conversa de verdade', () => {
+  it('o primeiro uso não diz "Ouvindo…" antes de poder ouvir: "Preparando N%" e a fala guardada (CONV-09)', () => {
+    const { ponte } = montar({ extra: { preparo: 0.37 } })
+    fireEvent.click(screen.getByRole('button', { name: /Falar em Português/i }))
+    const meu = screen.getByTestId('interprete-meu')
+    expect(meu.querySelector('.int-status')?.textContent).toBe('Preparando 37%')
+    expect(screen.getByTestId('modo-interprete').textContent).not.toContain('Ouvindo')
+    expect(screen.getByTestId('aviso-do-interprete').textContent).toContain('Sua fala fica guardada')
+    /* O turno fechou no silêncio, com o modelo ainda baixando: segue "Preparando", não "Traduzindo…". */
+    act(() => ponte.atual!.aoFimDaFala({ segId: 'a1', source: 'mic', lado: 'meu', turno: 1 }))
+    expect(meu.querySelector('.int-status')?.textContent).toBe('Preparando 37%')
+  })
+
+  it('com o reconhecimento pronto, volta o "Ouvindo…"', () => {
+    montar({ extra: { preparo: null } })
+    fireEvent.click(screen.getByRole('button', { name: /Falar em Português/i }))
+    expect(screen.getByTestId('interprete-meu').querySelector('.int-status')?.textContent).toBe('Ouvindo…')
+  })
+
+  it('a fala fora do par pede para repetir na metade de quem falou, e não aparece como tradução do outro lado', () => {
+    montar({
+      falas: [
+        {
+          id: 'e1',
+          originalText: 'Sorry, I want to go to the bathroom.',
+          translatedText: '',
+          semTraducao: true,
+          lado: 'outro',
+          dono: 'outro',
+          foraDoPar: { detectado: 'es' },
+        },
+      ],
+    })
+    const deCima = screen.getByTestId('interprete-outro')
+    expect(deCima.querySelector('.int-fora-do-par')?.textContent).toBe('Não parece inglês — repetir?')
+    const deBaixo = screen.getByTestId('interprete-meu')
+    expect(deBaixo.querySelector('.int-traducao')).toBeNull()
+    expect(deBaixo.textContent).not.toContain('bathroom')
+    expect(voz.falas).toHaveLength(0)
   })
 })

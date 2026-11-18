@@ -25,4 +25,10 @@ describe('conferirAntesDeLer', () => {
     expect(conferirAntesDeLer({ ...celular, modeloLocal: WHISPER_MODELS.small, idiomaDaFala: 'pt' })).toBe(false)
     expect(conferirAntesDeLer({ ...celular, modeloLocal: '', idiomaDaFala: 'pt' })).toBe(false)
   })
+
+  it('a fala do reconhecedor do navegador (Web Speech) não passou pelo Whisper: lê direto', () => {
+    expect(conferirAntesDeLer({ ...celular, idiomaDaFala: 'pt', motorDaFala: 'web-speech' })).toBe(false)
+    expect(conferirAntesDeLer({ ...celular, idiomaDaFala: 'zh', motorDaFala: 'web-speech-local' })).toBe(false)
+    expect(conferirAntesDeLer({ ...celular, idiomaDaFala: 'pt', motorDaFala: 'whisper-local' })).toBe(true)
+  })
 })

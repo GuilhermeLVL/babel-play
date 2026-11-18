@@ -627,7 +627,12 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
         aoFinalComprometido: (segId) =>
           /* Sem o turno: a sessão da Web Speech pode durar mais de um turno (o mesmo idioma não reabre), e a fala dela
              nunca fica guardada à espera de modelo. */
-          deps.aoFimDaFala?.({ segId, source: 'mic', ...(direcao ? { lado: direcao.lado } : {}) }),
+          deps.aoFimDaFala?.({
+            segId,
+            source: 'mic',
+            motor: motorDoMicrofoneNoNavegador(noAparelho),
+            ...(direcao ? { lado: direcao.lado } : {}),
+          }),
         idDoParcialRef: webSpeechPartialIdRef,
         timerRef,
         nowRel,

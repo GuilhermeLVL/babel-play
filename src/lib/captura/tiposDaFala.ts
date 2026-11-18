@@ -174,6 +174,8 @@ export interface FimDaFala {
    * "Traduzindo…" para sempre, com o microfone fechado).
    */
   semTexto?: boolean;
+  /** O motor que transcreveu a fala (`SpeechSegment.engine`, ex.: `web-speech`). Ausente = o da rota (o Whisper). */
+  motor?: string;
 }
 
 /** mm:ss a partir de segundos — o carimbo de tempo de cada fala e o cronômetro da sessão. */

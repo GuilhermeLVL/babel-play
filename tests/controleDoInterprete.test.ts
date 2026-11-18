@@ -657,4 +657,20 @@ describe('a conferência da transcrição antes de ler (conversa-de-verdade, 5.4
     n.controle.confirmarLeitura('a1')
     expect(n.voz.falas).toHaveLength(0)
   })
+
+  it('o motor que transcreveu a fala chega à decisão: a do navegador (Web Speech) é lida direto', () => {
+    const motores: Array<string | undefined> = []
+    const m = montar({
+      conferirAntesDeLer: (_idioma, motor) => {
+        motores.push(motor)
+        return !motor?.startsWith('web-speech')
+      },
+    })
+    m.controle.tocar('meu')
+    m.controle.aoFimDaFala({ segId: 'w1', source: 'mic', lado: 'meu', turno: 1, motor: 'web-speech' })
+    m.controle.aoTraduzirFinal(traduzida('w1', 'Good morning'))
+    expect(m.voz.falas.map((f) => f.texto)).toEqual(['Good morning'])
+    expect(m.controle.estado().conferindo).toBeNull()
+    expect(motores).toEqual(['web-speech'])
+  })
 })

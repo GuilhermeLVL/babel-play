@@ -517,7 +517,7 @@ describe('fontes: a Web Speech abre e reinicia no idioma do lado', () => {
     /* O idioma do lado vai na fala: a sessão salva narra e estuda cada lado no idioma dele. */
     expect(fala).toMatchObject({ lado: 'outro', lang: 'en', originalText: 'where is the station' })
     expect(m.translateSegment).toHaveBeenCalledWith(fala.id, 'where is the station', 'en', 'pt', { falada: true })
-    expect(m.aoFimDaFala).toHaveBeenCalledWith({ segId: fala.id, source: 'mic', lado: 'outro' })
+    expect(m.aoFimDaFala).toHaveBeenCalledWith({ segId: fala.id, source: 'mic', lado: 'outro', motor: 'web-speech' })
   })
 
   it('tocar o outro lado reinicia a Web Speech no idioma dele; o mesmo idioma não reinicia', async () => {

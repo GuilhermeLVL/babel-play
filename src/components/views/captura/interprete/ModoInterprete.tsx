@@ -165,9 +165,9 @@ export default function ModoInterprete({
   preparo?: number | null;
   /**
    * CONFERIR A TRANSCRIÇÃO ANTES DE LER (conversa-de-verdade, 5.4): esta fala (pelo idioma dela) é lida só depois de a
-   * pessoa conferir o que o app entendeu? Ausente = lê direto.
+   * pessoa conferir o que o app entendeu? `motorDaFala`: o que a transcreveu. Ausente = lê direto.
    */
-  conferirAntesDeLer?: (idiomaDaFala: string) => boolean;
+  conferirAntesDeLer?: (idiomaDaFala: string, motorDaFala?: string) => boolean;
   /** "Corrigir" na conferência: o texto novo é traduzido de novo (e lido). */
   aoCorrigirFala?: (id: string, texto: string, direcao: { de: string; para: string }) => void;
   /** "Descartar" na conferência: a fala sai da conversa. */
@@ -288,7 +288,7 @@ export default function ModoInterprete({
       ...(voz ? { destravarVoz: destravarDoAvatar(destravarVozDaNuvem) } : {}),
       ...(velocidadeInicial && velocidadeInicial !== 1 ? { opcoesDeFala: { rate: velocidadeInicial } } : {}),
       aoMudar: setEstado,
-      conferirAntesDeLer: (idioma) => conferirRef.current?.(idioma) ?? false,
+      conferirAntesDeLer: (idioma, motor) => conferirRef.current?.(idioma, motor) ?? false,
       aoFalharMicrofone: (erro) => {
         /* O microfone não abriu: a sugestão que esperava a fala não fica pendurada. */
         setEnsaio(null);

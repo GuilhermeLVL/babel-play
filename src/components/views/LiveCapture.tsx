@@ -4577,11 +4577,12 @@ export default function LiveCapture({
                 !nuvemDoQuestAtiva() &&
                 !preparoDoInicio.completos?.has(pecasDoInicio.stt),
             })}
-            conferirAntesDeLer={(idiomaDaFala) =>
+            conferirAntesDeLer={(idiomaDaFala, motorDaFala) =>
               conferirAntesDeLer({
                 celular: noCelular,
                 modeloLocal: getProviderMode() === 'cloud' || nuvemDoQuestAtiva() ? '' : pecasDoInicio.stt,
                 idiomaDaFala,
+                ...(motorDaFala ? { motorDaFala } : {}),
               })
             }
             aoCorrigirFala={corrigirFalaDoInterprete}

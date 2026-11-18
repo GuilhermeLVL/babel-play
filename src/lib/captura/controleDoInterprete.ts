@@ -81,8 +81,9 @@ export interface OpcoesDoControle {
   /**
    * CONFERIR ANTES DE LER (conversa-de-verdade, 5.4): esta fala (pelo idioma dela, ISO-639-1) é lida só depois de a
    * pessoa confirmar a transcrição? No celular com o modelo que errou o português na medição, sim; nos outros, não.
+   * `motorDaFala` é o que a transcreveu (`FimDaFala.motor`): a do navegador não passou pelo modelo.
    */
-  conferirAntesDeLer?: (idiomaDaFala: string) => boolean;
+  conferirAntesDeLer?: (idiomaDaFala: string, motorDaFala?: string) => boolean;
 }
 
 export interface ControleDoInterprete {
@@ -165,7 +166,7 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
   const enfileiradoEm = new Map<string, number>();
 
   /** Por fala: quando ela terminou e de que lado veio (`null` no automático, até o idioma ser medido). */
-  const fins = new Map<string, { em: number; lado: LadoDoInterprete | null }>();
+  const fins = new Map<string, { em: number; lado: LadoDoInterprete | null; motor?: string }>();
   /** AUTOMÁTICO: o que o idioma medido decidiu, por fala, e o estado da conversa (quem falou por último). */
   const decisoes = new Map<string, DecisaoDoLado>();
   let conversa: EstadoDoAutomatico = ESTADO_DO_AUTOMATICO;
@@ -230,7 +231,7 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
     const lado = decisao?.lado ?? fim?.lado ?? maquina.estado().lado ?? 'meu';
     const lang = decisao?.fala ?? direcaoDoLado(outroLado(lado), o.idiomas(), maquina.estado().trocados).fala;
     /* CONFERIR ANTES DE LER: a tradução fica na espera do "Ler a tradução"; o turno acaba aqui (a vez volta). */
-    if (t?.traducao && !micAberto && o.conferirAntesDeLer?.(t.de)) {
+    if (t?.traducao && !micAberto && o.conferirAntesDeLer?.(t.de, fim?.motor)) {
       conferindo = { id: segId, texto: t.traducao, lang, lado }; // sem `criadoEm`: a idade conta da confirmação
       avisar();
       depois(() => maquina.enviar({ tipo: 'fimDaVoz' }));
@@ -424,7 +425,8 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
         esquecerFala(fim.segId);
         return;
       }
-      if (!fins.has(fim.segId)) fins.set(fim.segId, { em: agora(), lado: lado ?? null });
+      if (!fins.has(fim.segId))
+        fins.set(fim.segId, { em: agora(), lado: lado ?? null, ...(fim.motor ? { motor: fim.motor } : {}) });
       maquina.enviar({ tipo: 'fimDaFala', segId: fim.segId, ...(fim.lado ? { lado: fim.lado } : {}) });
       /* A tradução já tinha chegado (cache): entrega agora, na ordem que a máquina espera. */
       const chegou = traducoes.get(fim.segId);

@@ -92,17 +92,24 @@ test('a fala da auditoria chega com ••• na lista e no PiP, e o aviso apare
   await expect(main).toContainText('•••')
   await expect(page.getByText('Uma palavra foi ocultada pela proteção.', { exact: false })).toBeVisible()
 
-  /* O painel flutuante (PiP). */
-  await clicarRobusto(
-    page,
-    page.getByRole('toolbar', { name: 'Controles da captura' }).getByRole('button', { name: 'Legendas flutuantes' }),
-  )
-  const pip = page.frameLocator('#pip-simulada')
-  const regiao = pip.getByRole('region', { name: 'Legendas flutuantes' })
-  await expect(regiao).toBeVisible()
-  await expect(regiao).toContainText('•••', { timeout: 20_000 })
-  await expect(regiao).not.toContainText(TERMO)
-  expect(await pip.getByRole('img', { name: /Palavra ocultada/ }).count()).toBeGreaterThanOrEqual(1)
+  /* O painel flutuante (PiP). ABAIXO DE 720 px a faixa da captura não tem o botão das Legendas flutuantes e a
+     janela não tem porta no celular (ver `legendas-flutuantes.e2e.ts`): lá a lista acima é a única saída da legenda,
+     e o que se confere é que nenhuma janela abriu. */
+  const botaoFlutuantes = page
+    .getByRole('toolbar', { name: 'Controles da captura' })
+    .getByRole('button', { name: 'Legendas flutuantes' })
+  if ((page.viewportSize()?.width ?? 0) < 720) {
+    await expect(botaoFlutuantes).toBeHidden()
+    await expect(page.locator('#pip-simulada')).toHaveCount(0)
+  } else {
+    await clicarRobusto(page, botaoFlutuantes)
+    const pip = page.frameLocator('#pip-simulada')
+    const regiao = pip.getByRole('region', { name: 'Legendas flutuantes' })
+    await expect(regiao).toBeVisible()
+    await expect(regiao).toContainText('•••', { timeout: 20_000 })
+    await expect(regiao).not.toContainText(TERMO)
+    expect(await pip.getByRole('img', { name: /Palavra ocultada/ }).count()).toBeGreaterThanOrEqual(1)
+  }
 
   /* Desliga de novo: o padrão do adulto é desligado, e a suíte não deixa a opção ligada para as outras. */
   await abrirTela(page, '/ajustes/privacidade')

@@ -27,19 +27,23 @@ describe('vazão pelos arquivos do app', () => {
     expect(v).toBeLessThan(1.4)
   })
 
-  it('ignora o pequeno, o do cache e o sem tempo; fica a maior', () => {
-    expect(
-      vazaoPelosRecursos([
-        { transferSize: 2 * 1024, responseStart: 0, responseEnd: 500 },
-        { transferSize: 0, encodedBodySize: 90 * 1024, responseStart: 0, responseEnd: 3 },
-      ]),
-    ).toBeNull()
+  it('downloads em paralelo (HTTP/2) somam: a banda é a do link, não a de cada arquivo', () => {
+    /* Dois de 100 KB chegando juntos em 1 s: 200 KB/s ≈ 1,64 Mbit/s (um por um daria 0,82). */
     expect(
       vazaoPelosRecursos([
         { transferSize: 100 * 1024, responseStart: 0, responseEnd: 1000 },
-        { transferSize: 0, encodedBodySize: 100 * 1024, responseStart: 0, responseEnd: 100 },
+        { transferSize: 100 * 1024, responseStart: 0, responseEnd: 1000 },
       ]),
-    ).toBeCloseTo(8.19, 1)
+    ).toBeCloseTo(1.64, 1)
+  })
+
+  it('ignora o do cache e o sem tempo; sem amostra suficiente, não diz nada', () => {
+    expect(
+      vazaoPelosRecursos([
+        { transferSize: 2 * 1024, responseStart: 0, responseEnd: 500 },
+        { transferSize: 0, encodedBodySize: 90 * 1024, responseStart: 0, responseEnd: 0 },
+      ]),
+    ).toBeNull()
   })
 })
 

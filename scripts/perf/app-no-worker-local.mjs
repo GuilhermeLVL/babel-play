@@ -5,7 +5,7 @@
  *
  *   VITE_AUTH_REQUIRED=1 VITE_SUPABASE_URL=https://exemplo-local.supabase.co VITE_SUPABASE_ANON_KEY=anon npx vite build
  *   node scripts/perf/app-no-worker-local.mjs [--porta=8799] [--lighthouse] [--execucoes=3] [--rota=/app]
- *        [--throttling-method=devtools] [--saida=<pasta>] [--manter]
+ *        [--throttling-method=devtools] [--saida=<pasta>] [--manter] [--sem-banco]
  *
  * Sobe:
  *   - Postgres 17 em Docker (container `pg-worker-lcp`, porta 5435), migrado: o `/api/flags` e o `/api/ready` do
@@ -37,6 +37,7 @@ const arg = (n, d) => process.argv.find((x) => x.startsWith(`--${n}=`))?.slice(n
 const flag = (n) => process.argv.includes(`--${n}`)
 const PORTA = Number(arg('porta', 8799))
 const PORTA_WRANGLER = PORTA + 1
+const SEM_BANCO = flag('sem-banco')
 const CONTAINER = 'pg-worker-lcp'
 const PORTA_PG = 5435
 const URL_PG = `postgres://postgres:teste@localhost:${PORTA_PG}/postgres`
@@ -219,21 +220,25 @@ function derrubar() {
       /* já saiu */
     }
   }
-  spawnSync('docker', ['rm', '-f', CONTAINER], { stdio: 'ignore' })
+  if (!SEM_BANCO) spawnSync('docker', ['rm', '-f', CONTAINER], { stdio: 'ignore' })
 }
 
 async function principal() {
   if (!existsSync(join(RAIZ, 'dist', 'index.html'))) throw new Error('sem dist/: rode o build (ver o cabeçalho)')
   const persistir = mkdtempSync(join(tmpdir(), 'babel-lcp-worker-'))
-  console.log(`· Postgres 17 em Docker (${CONTAINER}, porta ${PORTA_PG})`)
-  await subirPostgres()
-  console.log('· migrações')
-  rodar('npx', ['tsx', 'server/db/migrate.ts'], { env: { ...process.env, DATABASE_URL: URL_PG } })
+  /* `--sem-banco`: sem Docker (o visitante do Início não precisa do banco; o `/api/flags` responde erro e o app
+     segue com as flags de fábrica). Pronto = o `/app` respondendo, no lugar do `/api/ready`. */
+  if (!SEM_BANCO) {
+    console.log(`· Postgres 17 em Docker (${CONTAINER}, porta ${PORTA_PG})`)
+    await subirPostgres()
+    console.log('· migrações')
+    rodar('npx', ['tsx', 'server/db/migrate.ts'], { env: { ...process.env, DATABASE_URL: URL_PG } })
+  }
   console.log(`· wrangler dev na porta ${PORTA_WRANGLER}`)
   const saida = subirWrangler(persistir)
   for (let t0 = Date.now(); ; ) {
     try {
-      if ((await fetch(`http://127.0.0.1:${PORTA_WRANGLER}/api/ready`)).ok) break
+      if ((await fetch(`http://127.0.0.1:${PORTA_WRANGLER}${SEM_BANCO ? '/app' : '/api/ready'}`)).ok) break
     } catch {
       /* ainda subindo */
     }

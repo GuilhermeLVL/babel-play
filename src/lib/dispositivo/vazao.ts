@@ -33,21 +33,32 @@ export interface EntradaDeRecurso {
 }
 
 /**
- * A vazão pelos arquivos que a página já baixou (Mbit/s), ou `null` sem medida que preste. Só os maiores que 30 KB
- * (os pequenos medem a latência, não a banda) e com tempo de corpo de verdade (cache e memória respondem em 0 ms).
- * Fica a MAIOR: com vários downloads juntos, cada um vê só uma parte da banda. Pura.
+ * A vazão pelos arquivos que a página já baixou (Mbit/s), ou `null` sem medida que preste: TODOS os bytes que vieram
+ * da rede divididos pelo tempo em que havia corpo chegando (a UNIÃO dos intervalos `responseStart`→`responseEnd`).
+ * Com HTTP/2 os arquivos chegam juntos e cada um vê só uma parte da banda: medir um por um subestimava a rede em
+ * até 5× (no 3G da auditoria, 193 MB "levariam" 70 a 131 min). Cache e memória (0 byte ou 0 ms) ficam fora; pede ao
+ * menos 64 KB e 200 ms de corpo para não medir a latência. Pura.
  */
 export function vazaoPelosRecursos(entradas: readonly EntradaDeRecurso[]): number | null {
-  let melhor: number | null = null;
+  const trechos: Array<[number, number]> = [];
+  let bytes = 0;
   for (const e of entradas) {
     /* O Safari antigo não dá `transferSize`: o corpo codificado é o que passou pela rede. */
-    const bytes = e.transferSize || e.encodedBodySize || 0;
-    const ms = e.responseEnd - e.responseStart;
-    if (bytes < 30 * 1024 || ms < 20) continue;
-    const v = mbps(bytes, ms);
-    if (melhor === null || v > melhor) melhor = v;
+    const b = e.transferSize || e.encodedBodySize || 0;
+    if (b <= 0 || e.responseEnd - e.responseStart < 1) continue;
+    bytes += b;
+    trechos.push([e.responseStart, e.responseEnd]);
   }
-  return melhor === null ? null : Math.round(melhor * 100) / 100;
+  trechos.sort((x, y) => x[0] - y[0]);
+  let ms = 0;
+  let fim = -Infinity;
+  for (const [a, b] of trechos) {
+    if (a > fim) ms += b - a;
+    else if (b > fim) ms += b - fim;
+    fim = Math.max(fim, b);
+  }
+  if (bytes < 64 * 1024 || ms < 200) return null;
+  return Math.round(mbps(bytes, ms) * 100) / 100;
 }
 
 /** A vazão guardada, se ainda vale (24 h). */
@@ -70,16 +81,24 @@ export function guardarVazao(valor: number, agora = Date.now()): void {
   }
 }
 
-/** A melhor estimativa AGORA, sem rede: a guardada, ou a dos arquivos do próprio app. */
-export function vazaoConhecida(): number | null {
-  const guardada = vazaoGuardada();
-  if (guardada !== null) return guardada;
-  try {
-    const entradas = performance.getEntriesByType('resource') as unknown as EntradaDeRecurso[];
-    return vazaoPelosRecursos(entradas);
-  } catch {
-    return null;
+let lembrada: { valor: number | null; em: number } | null = null;
+
+/**
+ * A melhor estimativa AGORA, sem rede: a guardada, ou a dos arquivos do próprio app. Lembrada por 2 s: o perfil do
+ * aparelho (`perfilDoDispositivo`) é lido a cada quadro do detector de fala, e a Resource Timing cresce com a sessão.
+ */
+export function vazaoConhecida(agora = Date.now()): number | null {
+  if (lembrada && agora - lembrada.em < 2000) return lembrada.valor;
+  let valor = vazaoGuardada(agora);
+  if (valor === null) {
+    try {
+      valor = vazaoPelosRecursos(performance.getEntriesByType('resource') as unknown as EntradaDeRecurso[]);
+    } catch {
+      valor = null;
+    }
   }
+  lembrada = { valor, em: agora };
+  return valor;
 }
 
 /** A rede é lenta? `null` = não sei. O tipo que o navegador declara vence; sem ele, a vazão medida. Pura. */

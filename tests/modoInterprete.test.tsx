@@ -522,4 +522,39 @@ describe('ModoInterprete: conversa de verdade', () => {
     expect(deBaixo.textContent).not.toContain('bathroom')
     expect(voz.falas).toHaveLength(0)
   })
+
+  it('no celular com o modelo que errou o português, a pessoa confere a transcrição antes da leitura (CONV-04)', () => {
+    const aoDescartarFala = vi.fn()
+    const { ponte, trocarFalas } = montar({ extra: { conferirAntesDeLer: (i: string) => i === 'pt', aoDescartarFala } })
+    fireEvent.click(screen.getByRole('button', { name: /Falar em Português/i }))
+    act(() => ponte.atual!.aoFimDaFala({ segId: 'a1', source: 'mic', lado: 'meu', turno: 1 }))
+    trocarFalas([
+      {
+        id: 'a1',
+        originalText: 'Minha vôminhe ensinou',
+        translatedText: 'My vomiting taught',
+        lado: 'meu',
+        dono: 'meu',
+      },
+    ])
+    act(() => ponte.atual!.aoTraduzirFinal(traduzida('a1', 'Minha vôminhe ensinou', 'My vomiting taught', 'pt', 'en')))
+    const minha = screen.getByTestId('conferir-meu')
+    expect(minha.textContent).toContain('Minha vôminhe ensinou')
+    /* Quem ouve ainda não vê a tradução, e nada foi lido. */
+    expect(screen.getByTestId('interprete-outro').textContent).not.toContain('vomiting')
+    expect(voz.falas).toHaveLength(0)
+    fireEvent.click(screen.getByRole('button', { name: 'Descartar' }))
+    expect(aoDescartarFala).toHaveBeenCalledWith('a1')
+    expect(voz.falas).toHaveLength(0)
+  })
+
+  it('"Ler a tradução" na conferência lê', () => {
+    const { ponte, trocarFalas } = montar({ extra: { conferirAntesDeLer: () => true } })
+    fireEvent.click(screen.getByRole('button', { name: /Falar em Português/i }))
+    act(() => ponte.atual!.aoFimDaFala({ segId: 'a1', source: 'mic', lado: 'meu', turno: 1 }))
+    trocarFalas([{ id: 'a1', originalText: 'Minha avó', translatedText: 'My grandma', lado: 'meu', dono: 'meu' }])
+    act(() => ponte.atual!.aoTraduzirFinal(traduzida('a1', 'Minha avó', 'My grandma', 'pt', 'en')))
+    fireEvent.click(screen.getByRole('button', { name: 'Ler a tradução' }))
+    expect(voz.falas).toEqual([expect.objectContaining({ texto: 'My grandma', lang: 'en-US' })])
+  })
 })

@@ -6156,5 +6156,8 @@
   "Terminei de falar": "Done speaking",
   "Preparando {p}": "Getting ready {p}",
   "Sua fala fica guardada e é traduzida quando o reconhecimento ficar pronto.": "What you say is kept and translated as soon as speech recognition is ready.",
-  "Não parece {idioma} — repetir?": "That didn't sound like {idioma}. Say it again?"
+  "Não parece {idioma} — repetir?": "That didn't sound like {idioma}. Say it again?",
+  "O app entendeu:": "The app heard:",
+  "Ler a tradução": "Read the translation",
+  "Corrigir": "Fix"
 }

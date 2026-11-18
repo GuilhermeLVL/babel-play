@@ -2663,5 +2663,8 @@
   "Terminei de falar": "Terminé de hablar",
   "Preparando {p}": "Preparando {p}",
   "Sua fala fica guardada e é traduzida quando o reconhecimento ficar pronto.": "Lo que dices queda guardado y se traduce cuando el reconocimiento esté listo.",
-  "Não parece {idioma} — repetir?": "No parece {idioma}. ¿Repetir?"
+  "Não parece {idioma} — repetir?": "No parece {idioma}. ¿Repetir?",
+  "O app entendeu:": "La app entendió:",
+  "Ler a tradução": "Leer la traducción",
+  "Corrigir": "Corregir"
 }

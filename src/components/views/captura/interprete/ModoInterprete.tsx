@@ -40,6 +40,7 @@ import ConversaDoPrototipo, {
   type JanelaFlutuanteDoInterprete,
   type MetadeDaConversa,
 } from './ConversaDoPrototipo';
+import FolhaDeEdicao from './FolhaDeEdicao';
 import { guardarModo, type ModoDaConversa, modoGuardado } from './modoDaConversa';
 import {
   avisoDaPratica,
@@ -123,6 +124,9 @@ export default function ModoInterprete({
   vozDoSite = false,
   abrindo,
   preparo = null,
+  conferirAntesDeLer,
+  aoCorrigirFala,
+  aoDescartarFala,
   aviso,
   automatico = 'oculto',
   aoSair,
@@ -159,6 +163,15 @@ export default function ModoInterprete({
    * `null`/ausente = pronto (ou nada a baixar: a Web Speech, a nuvem).
    */
   preparo?: number | null;
+  /**
+   * CONFERIR A TRANSCRIÇÃO ANTES DE LER (conversa-de-verdade, 5.4): esta fala (pelo idioma dela) é lida só depois de a
+   * pessoa conferir o que o app entendeu? Ausente = lê direto.
+   */
+  conferirAntesDeLer?: (idiomaDaFala: string) => boolean;
+  /** "Corrigir" na conferência: o texto novo é traduzido de novo (e lido). */
+  aoCorrigirFala?: (id: string, texto: string, direcao: { de: string; para: string }) => void;
+  /** "Descartar" na conferência: a fala sai da conversa. */
+  aoDescartarFala?: (id: string) => void;
   /**
    * O que a captura diria por baixo (o tradutor do outro sentido baixando, um aviso do microfone): a
    * tela do intérprete a cobre inteira, então a linha aparece aqui, na faixa do meio.
@@ -199,6 +212,8 @@ export default function ModoInterprete({
   idiomasRef.current = idiomasDaConversa;
   const microfoneRef = useRef(microfone);
   microfoneRef.current = microfone;
+  const conferirRef = useRef(conferirAntesDeLer);
+  conferirRef.current = conferirAntesDeLer;
   const aoFalharRef = useRef(aoFalharMicrofone);
   aoFalharRef.current = aoFalharMicrofone;
 
@@ -273,6 +288,7 @@ export default function ModoInterprete({
       ...(voz ? { destravarVoz: destravarDoAvatar(destravarVozDaNuvem) } : {}),
       ...(velocidadeInicial && velocidadeInicial !== 1 ? { opcoesDeFala: { rate: velocidadeInicial } } : {}),
       aoMudar: setEstado,
+      conferirAntesDeLer: (idioma) => conferirRef.current?.(idioma) ?? false,
       aoFalharMicrofone: (erro) => {
         /* O microfone não abriu: a sugestão que esperava a fala não fica pendurada. */
         setEnsaio(null);
@@ -323,6 +339,9 @@ export default function ModoInterprete({
     () => (antesDaTroca.size ? falas.filter((f) => !antesDaTroca.has(f.id)) : falas),
     [falas, antesDaTroca],
   );
+
+  /** A fala sendo corrigida na conferência (a folha de edição aberta). */
+  const [corrigindo, setCorrigindo] = useState<{ id: string; texto: string; lado: LadoDoInterprete } | null>(null);
 
   /* A TELA: a conversa abre sempre nas duas metades (`telas2.js:170-182`); a lista é uma escolha da vez. */
   const [tela, setTela] = useState<TelaDoInterprete>('frente');
@@ -591,6 +610,23 @@ export default function ModoInterprete({
         const item = d.historico.itens[i];
         if (item.traduzindo) continue;
         /* FORA DO PAR (conversa-de-verdade, 3.2): quem falou vê o pedido para repetir; quem ouve não vê nada dela. */
+        /* CONFERINDO: quem falou vê o que o app entendeu e decide; quem ouve ainda não vê a tradução. */
+        if (atual.conferindo === item.id) {
+          if (!item.propria) continue;
+          frase = {
+            tipo: 'conferir',
+            id: item.id,
+            texto: item.original.trim(),
+            lang: d.direcao.fala,
+            aoLer: () => controleRef.current?.confirmarLeitura(item.id),
+            aoCorrigir: () => setCorrigindo({ id: item.id, texto: item.original.trim(), lado }),
+            aoDescartar: () => {
+              controleRef.current?.descartarLeitura(item.id);
+              aoDescartarFala?.(item.id);
+            },
+          };
+          break;
+        }
         if (item.foraDoPar) {
           if (!item.propria) continue;
           frase = {
@@ -880,6 +916,19 @@ export default function ModoInterprete({
       avatares={avatares.avatares}
       janelaFlutuante={janelaFlutuante}
     >
+      {corrigindo && (
+        <FolhaDeEdicao
+          texto={corrigindo.texto}
+          lang={direcaoDoLado(corrigindo.lado, idiomasDaTela, atual.trocados).fala}
+          aoCancelar={() => setCorrigindo(null)}
+          aoConfirmar={(novo) => {
+            const direcao = direcaoDoLado(corrigindo.lado, idiomasDaTela, atual.trocados);
+            controleRef.current?.corrigirAntesDeLer(corrigindo.id);
+            aoCorrigirFala?.(corrigindo.id, novo, { de: direcao.de, para: direcao.para });
+            setCorrigindo(null);
+          }}
+        />
+      )}
       {assistente && (
         <ComoRespondoNaPagina
           assistente={assistente}

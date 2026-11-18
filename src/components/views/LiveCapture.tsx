@@ -94,6 +94,7 @@ import {
 import { avisoDoPreparo, progressoDoReconhecimento } from '../../lib/captura/avisoDoPreparo';
 // Ciclo da sessão: começar, retomar, parar e salvar (falas, áudio e vocabulário).
 import { baixarCaptura } from '../../lib/captura/baixarCaptura';
+import { conferirAntesDeLer } from '../../lib/captura/conferenciaDaTranscricao';
 import { abrirContextoDoClique } from '../../lib/captura/contextoDoClique';
 import type { PonteDoInterprete } from '../../lib/captura/controleDoInterprete';
 // Callbacks estáveis e o texto da conversa para o App, sem re-renderizar a conversa à toa.
@@ -4560,6 +4561,15 @@ export default function LiveCapture({
             vozDoSite={nuvemDoQuestAtiva()}
             abrindo={micAbrindo}
             preparo={progressoDoReconhecimento(modelPrep)}
+            conferirAntesDeLer={(idiomaDaFala) =>
+              conferirAntesDeLer({
+                celular: noCelular,
+                modeloLocal: getProviderMode() === 'cloud' || nuvemDoQuestAtiva() ? '' : pecasDoInicio.stt,
+                idiomaDaFala,
+              })
+            }
+            aoCorrigirFala={corrigirFalaDoInterprete}
+            aoDescartarFala={(id) => setSpeechSegments((prev) => prev.filter((s) => s.id !== id))}
             aviso={avisoDoPreparo(modelPrep)}
             automatico={automaticoDoInterprete}
             aoSair={sairDoInterprete}

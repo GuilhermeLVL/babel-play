@@ -610,3 +610,51 @@ describe('o turno do microfone (conversa-de-verdade, 1.2 e 2)', () => {
     expect(m.lidasComMicAberto).toEqual([])
   })
 })
+
+describe('a conferência da transcrição antes de ler (conversa-de-verdade, 5.4)', () => {
+  const conferindo = () => montar({ conferirAntesDeLer: (idioma) => idioma !== 'en' })
+  const turno = (m: ReturnType<typeof montar>, id: string, traducao: string) => {
+    m.controle.tocar('meu')
+    m.controle.aoFimDaFala({ segId: id, source: 'mic', lado: 'meu', turno: 1 })
+    m.controle.aoTraduzirFinal(traduzida(id, traducao))
+  }
+
+  it('a tradução espera o "Ler a tradução": nada é lido antes, e a vez volta', async () => {
+    const m = conferindo()
+    turno(m, 'a1', 'My grandmother taught me')
+    await Promise.resolve()
+    expect(m.voz.falas).toHaveLength(0)
+    expect(m.controle.estado()).toMatchObject({ conferindo: 'a1', fase: 'parado' })
+    m.controle.confirmarLeitura('a1')
+    expect(m.voz.falas.map((f) => f.texto)).toEqual(['My grandmother taught me'])
+    expect(m.controle.estado().conferindo).toBeNull()
+  })
+
+  it('"Descartar" não lê nada; "Corrigir" lê a tradução da correção quando ela chega', () => {
+    const m = conferindo()
+    turno(m, 'a1', 'My vomiting taught')
+    m.controle.descartarLeitura('a1')
+    expect(m.voz.falas).toHaveLength(0)
+    const n = conferindo()
+    turno(n, 'b1', 'My vomiting taught')
+    n.controle.corrigirAntesDeLer('b1')
+    n.controle.aoTraduzirFinal(traduzida('b1', 'My grandmother taught me'))
+    expect(n.voz.falas.map((f) => ({ texto: f.texto, lang: f.opts.lang }))).toEqual([
+      { texto: 'My grandmother taught me', lang: 'en-US' },
+    ])
+  })
+
+  it('o idioma que não pede conferência é lido direto; falar de novo deixa a conferência para trás', () => {
+    const m = montar({ conferirAntesDeLer: (idioma) => idioma === 'pt' })
+    m.controle.tocar('outro')
+    m.controle.aoFimDaFala({ segId: 'e1', source: 'mic', lado: 'outro', turno: 1 })
+    m.controle.aoTraduzirFinal({ ...traduzida('e1', 'Obrigado'), de: 'en', para: 'pt' })
+    expect(m.voz.falas.map((f) => f.texto)).toEqual(['Obrigado'])
+    const n = conferindo()
+    turno(n, 'a1', 'Hi')
+    n.controle.tocar('outro')
+    expect(n.controle.estado().conferindo).toBeNull()
+    n.controle.confirmarLeitura('a1')
+    expect(n.voz.falas).toHaveLength(0)
+  })
+})

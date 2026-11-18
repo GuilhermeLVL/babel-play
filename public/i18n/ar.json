@@ -2247,5 +2247,8 @@
   "Terminei de falar": "انتهيت من الكلام",
   "Preparando {p}": "جارٍ التجهيز {p}",
   "Sua fala fica guardada e é traduzida quando o reconhecimento ficar pronto.": "يُحفظ كلامك ويُترجم عندما يصبح التعرّف على الكلام جاهزًا.",
-  "Não parece {idioma} — repetir?": "لا يبدو أنها {idioma}. هل تعيد؟"
+  "Não parece {idioma} — repetir?": "لا يبدو أنها {idioma}. هل تعيد؟",
+  "O app entendeu:": "فهم التطبيق:",
+  "Ler a tradução": "اقرأ الترجمة",
+  "Corrigir": "تصحيح"
 }

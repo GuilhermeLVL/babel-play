@@ -114,6 +114,38 @@
   font-size: var(--int-fonte, clamp(22px, 6.4vw, 34px));
   overflow-wrap: anywhere;
 }
+/* A conferência da transcrição (conversa-de-verdade, 5.4): o que o app entendeu e os três toques, alvos de 48 px. */
+.int-conferir {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.int-conferir-rotulo {
+  margin: 0;
+  font: 700 11px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--int-acento);
+}
+.int-conferir-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.int-conferir-acoes > button {
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--int-linha);
+  border-radius: 999px;
+  background: var(--int-escuro-2);
+  color: var(--int-tinta);
+  font: 700 14px var(--font-body);
+}
+.int-conferir-acoes > .int-conferir-ler {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--ink-contrast);
+}
 /* A fala em outro idioma (conversa-de-verdade, 3.2): o pedido para repetir, no lugar da tradução. */
 .int-fora-do-par {
   margin: 0;

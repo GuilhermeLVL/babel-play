@@ -105,6 +105,17 @@ const ESPERA_DA_REDE_MS = 3000;
 const urlDaBase = () => BASE || '/';
 const ehDoApp = (p) => (BASE ? p === BASE || p.startsWith(BASE + '/') : true);
 
+/* A saída de emergência (\`?sw=desligar\`, Diagnóstico): a página desregistra e avisa. Daqui em diante este SW
+   não responde nem guarda mais nada (ele ainda controla a página aberta) e apaga os caches dele. */
+let desligado = false;
+self.addEventListener('message', (e) => {
+  if (e.data !== 'desligar') return;
+  desligado = true;
+  e.waitUntil((async () => {
+    for (const k of await caches.keys()) if (k.startsWith(${JSON.stringify(PREFIXO_DO_CACHE)})) await caches.delete(k);
+  })());
+});
+
 self.addEventListener('install', (e) => {
   e.waitUntil((async () => {
     const c = await caches.open(CACHE);
@@ -121,35 +132,43 @@ self.addEventListener('activate', (e) => {
   })());
 });
 
+/* Guardar só quando ainda ligado, e abrir o cache SÓ para guardar: \`caches.open\` recria um cache apagado, e um
+   pedido que já estava no meio quando a página mandou "desligar" o traria de volta. Ler é por \`caches.match\`. */
+async function guardar(chave, r) {
+  // Só num cache que JÁ existe (criado pela instalação): apagado pelo "desligar", ninguém o recria.
+  if (desligado || !(await caches.has(CACHE))) return;
+  try {
+    await (await caches.open(CACHE)).put(chave, r);
+  } catch {}
+}
+
 async function navegar(req) {
-  const c = await caches.open(CACHE);
   try {
     const rede = fetch(req);
     const r = await Promise.race([
       rede,
       new Promise((_, nao) => setTimeout(() => nao(new Error('rede lenta')), ESPERA_DA_REDE_MS)),
     ]);
-    if (r && r.ok && r.type === 'basic') c.put(urlDaBase(), r.clone()).catch(() => {});
+    if (r && r.ok && r.type === 'basic') guardar(urlDaBase(), r.clone());
     return r;
   } catch (erro) {
-    const guardado = await c.match(urlDaBase());
+    const guardado = await caches.match(urlDaBase(), { cacheName: CACHE });
     if (guardado) return guardado;
     throw erro;
   }
 }
 
 async function estatico(req) {
-  const c = await caches.open(CACHE);
-  const guardado = await c.match(req, { ignoreSearch: true });
+  const guardado = await caches.match(req, { cacheName: CACHE, ignoreSearch: true });
   if (guardado) return guardado;
   const r = await fetch(req);
-  if (r.ok && r.type === 'basic' && r.status === 200) c.put(req, r.clone()).catch(() => {});
+  if (r.ok && r.type === 'basic' && r.status === 200) guardar(req, r.clone());
   return r;
 }
 
 self.addEventListener('fetch', (e) => {
   const req = e.request;
-  if (req.method !== 'GET') return;
+  if (desligado || req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
   const p = url.pathname;

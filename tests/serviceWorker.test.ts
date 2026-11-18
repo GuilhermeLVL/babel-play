@@ -75,6 +75,10 @@ function rodarSw(
   }
   const caches = {
     open: async (n: string) => loja(n),
+    has: async (n: string) => lojas.has(n),
+    // Como o navegador: ler por `caches.match` com `cacheName` NÃO cria o cache.
+    match: async (r: string | Request, o: { cacheName: string }) =>
+      lojas.has(o.cacheName) ? loja(o.cacheName).match(r) : undefined,
     keys: async () => [...lojas.keys()],
     delete: async (n: string) => lojas.delete(n),
   }
@@ -106,7 +110,12 @@ function rodarSw(
     ouvintes.fetch({ request: { url, method, mode: modo }, respondWith: (r: Promise<Response>) => (resposta = r) })
     return resposta ? await resposta : null
   }
-  return { esperar, pedir, lojas, fetch, claim, unregister }
+  const mensagem = async (data: unknown) => {
+    let p: Promise<unknown> = Promise.resolve()
+    ouvintes.message({ data, waitUntil: (x: Promise<unknown>) => (p = x) })
+    await p
+  }
+  return { esperar, mensagem, pedir, lojas, fetch, claim, unregister }
 }
 
 const fonte = gerarServiceWorker({
@@ -158,6 +167,15 @@ describe('sw.js', () => {
     expect(await (await sw.pedir('https://frasy.test/assets/vadWorker-x.js'))!.text()).toMatch(/^rede/)
     online = false
     expect(await (await sw.pedir('https://frasy.test/assets/vadWorker-x.js'))!.text()).toMatch(/vadWorker-x\.js/)
+  })
+
+  it('a saída de emergência: a página avisa "desligar", o SW apaga os caches dele e para de responder', async () => {
+    const sw = rodarSw(fonte, { cachesIniciais: ['transformers-cache'] })
+    await sw.esperar('install')
+    await sw.mensagem('desligar')
+    expect([...sw.lojas.keys()]).toEqual(['transformers-cache'])
+    expect(await sw.pedir('https://frasy.test/assets/index-a.js')).toBeNull()
+    expect(await sw.pedir('https://frasy.test/app', 'navigate')).toBeNull()
   })
 
   it('o interruptor (VITE_SERVICE_WORKER=0): o SW apaga os caches dele e se desregistra', async () => {

@@ -37,6 +37,8 @@ const temSw = () => typeof navigator !== 'undefined' && 'serviceWorker' in navig
 export async function desligarServiceWorker(): Promise<number> {
   if (!temSw()) return 0;
   let saiu = 0;
+  // O SW que controla esta página para de guardar (senão recriaria o cache com o que a página ainda pede).
+  navigator.serviceWorker.controller?.postMessage('desligar');
   for (const r of await navigator.serviceWorker.getRegistrations()) if (await r.unregister()) saiu += 1;
   if (typeof caches !== 'undefined')
     for (const k of await caches.keys()) if (k.startsWith(PREFIXO_DO_CACHE)) await caches.delete(k);

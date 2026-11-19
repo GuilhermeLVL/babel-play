@@ -3,7 +3,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 
 import { type ExerciseId, seedFromSelection } from '../lib/sentences';
 import { resolveSpokenLang } from '../lib/spokenLang';
-import { speak as ttsSpeak } from '../lib/tts';
 import { zoomDoCorpo } from '../lib/zoomDoCorpo';
 
 /**
@@ -113,10 +112,12 @@ export default function PracticeMenu({ onChangeView, sessionId, studyLang = '' }
   const listen = async () => {
     const text = menu.text;
     close();
-    const spoken = await resolveSpokenLang(text, studyLang);
+    /* O motor de voz vem sob demanda, junto com a detecção do idioma (que já era assíncrona): estático, ele
+       entrava no JS inicial por este menu (orçamento do bundle). */
+    const [spoken, { speak }] = await Promise.all([resolveSpokenLang(text, studyLang), import('../lib/tts')]);
     // `bcp47` já é string ('' quando o idioma não foi resolvido); o motor trata '' e undefined
     // do mesmo jeito, e o `|| undefined` era resquício de quando `lang` era opcional.
-    ttsSpeak(text, { lang: spoken.bcp47 });
+    speak(text, { lang: spoken.bcp47 });
   };
 
   const preview = menu.text.length > 52 ? menu.text.slice(0, 52) + '…' : menu.text;

@@ -31,7 +31,7 @@ import { perfilDoDispositivo } from '../dispositivo/perfil';
 import { getEntitlements } from '../entitlements';
 import { flagLigada } from '../flagsCache';
 import { perfilProtegido } from '../protecaoDoMenor';
-import { getVoicePrefs, getVoices, type TtsEngine } from '../tts';
+import { getVoicePrefs, getVoices, type TtsEngine, vozAceitaExiste } from '../tts';
 import { opfsConhecido, opfsUtilizavel } from './opfsUtilizavel';
 
 /** A escolha "Voz de alta qualidade (no aparelho)" na preferência de voz. O `@` não existe em voz do sistema. */
@@ -140,9 +140,9 @@ function escolhaDaVoz(idioma: string): EscolhaDaVoz {
   if (guardada === '@nuvem')
     return getEntitlements().vozNatural && flagLigada(FLAG_VOZ_NATURAL) ? 'nuvem' : 'automatica';
   if (!guardada) return 'automatica';
-  /* Antes de o sistema entregar a lista de vozes, não dá para saber se a escolhida sumiu: ela vale. */
-  const vozes = getVoices();
-  return !vozes.length || vozes.some((v) => v.name === guardada) ? 'sistema' : 'automatica';
+  /* Antes de o sistema entregar a lista de vozes, não dá para saber se a escolhida sumiu: ela vale. Uma voz recusada
+     (robótica) vale como sumida. */
+  return !getVoices().length || vozAceitaExiste(guardada) ? 'sistema' : 'automatica';
 }
 
 function entradaDaLeitura(idioma: string): EntradaDaVozDaLeitura {

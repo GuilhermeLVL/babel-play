@@ -6,14 +6,24 @@
  *
  * Se o motor ainda não carregou nesta página, a fala espera o carregamento (a primeira pode demorar); se ele falhar,
  * a MESMA frase sai pela reserva. Nunca silêncio.
+ *
+ * Com a voz natural do Kitten (flag `voz_kitten`, openspec `voz-natural-no-aparelho-kitten`), quem decide é
+ * `vozKitten.quemLe`: a voz natural no aparelho → a Supertonic escolhida → a voz boa do sistema → NENHUMA (sem voz
+ * aceita, a fala não sai e `onError` avisa: o texto fica na tela, em vez de uma voz robótica).
  */
 import { nativeTts, setTtsEngine, type TtsEngine } from '../tts';
+
+export type QuemFala = 'neural' | 'kitten' | 'reserva' | 'nenhuma';
 
 export interface OpcoesDoMotorGlobal {
   /** A Supertonic lê este idioma agora? (padrão: `vozNoAparelhoLe`) */
   le: (idioma: string) => boolean;
   /** Entrega o motor neural, carregando-o se preciso; `null` se não der. */
   neural: () => Promise<TtsEngine | null>;
+  /** Quem fala o idioma (com a voz natural do Kitten). Sem ele, `le` decide entre a Supertonic e a reserva. */
+  quem?: (idioma: string) => QuemFala;
+  /** Entrega o motor do Kitten, carregando-o se preciso; `null` se não der. */
+  kitten?: () => Promise<TtsEngine | null>;
   /** O motor de antes (padrão: o `nativeTts`). */
   reserva?: TtsEngine;
 }
@@ -25,13 +35,19 @@ export function criarMotorGlobal(o: OpcoesDoMotorGlobal): TtsEngine {
   return {
     speak(texto, opts) {
       const minha = ++vez;
-      if (!opts || !o.le(opts.lang)) {
+      const quem: QuemFala = !opts ? 'reserva' : o.quem ? o.quem(opts.lang) : o.le(opts.lang) ? 'neural' : 'reserva';
+      if (quem === 'nenhuma') {
+        if (ultimo !== reserva) ultimo.cancel();
+        ultimo = reserva;
+        opts?.onError?.();
+        return;
+      }
+      if (quem === 'reserva' || (quem === 'kitten' && !o.kitten)) {
         ultimo = reserva;
         reserva.speak(texto, opts);
         return;
       }
-      void o
-        .neural()
+      void (quem === 'kitten' ? o.kitten!() : o.neural())
         .catch(() => null)
         .then((m) => {
           if (minha !== vez) return; // outra fala (ou um cancelar) veio antes
@@ -51,10 +67,20 @@ export function criarMotorGlobal(o: OpcoesDoMotorGlobal): TtsEngine {
   };
 }
 
-/** O motor global da página, ligado à voz no aparelho. Importa o módulo leve só ao ser chamado. */
+const PARA_QUEM_FALA = { supertonic: 'neural', kitten: 'kitten', sistema: 'reserva', nenhuma: 'nenhuma' } as const;
+
+/** O motor global da página, ligado às vozes no aparelho. Importa os módulos leves só ao ser chamado. */
 export async function instalarMotorGlobalDaFala(): Promise<boolean> {
-  const { raizDoModelo, vozNoAparelhoLe, motorDaVozNoAparelho } = await import('./vozNoAparelho');
-  if (!raizDoModelo()) return false;
-  setTtsEngine(criarMotorGlobal({ le: vozNoAparelhoLe, neural: motorDaVozNoAparelho }));
+  const [{ raizDoModelo, vozNoAparelhoLe, motorDaVozNoAparelho }, { raizDoKitten, quemLe, motorDoKitten }] =
+    await Promise.all([import('./vozNoAparelho'), import('./vozKitten')]);
+  if (!raizDoModelo() && !raizDoKitten()) return false;
+  setTtsEngine(
+    criarMotorGlobal({
+      le: vozNoAparelhoLe,
+      neural: motorDaVozNoAparelho,
+      quem: (idioma) => PARA_QUEM_FALA[quemLe(idioma)],
+      kitten: motorDoKitten,
+    }),
+  );
   return true;
 }

@@ -435,6 +435,13 @@
       "when": 1794700000000,
       "tag": "0061_periodo_pago_desde",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "6",
+      "when": 1794800000000,
+      "tag": "0062_flag_voz_kitten",
+      "breakpoints": true
     }
   ]
 }

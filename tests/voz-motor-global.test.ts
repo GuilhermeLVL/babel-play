@@ -42,3 +42,45 @@ describe('criarMotorGlobal', () => {
     expect(reserva.falas).toEqual([])
   })
 })
+
+describe('criarMotorGlobal com a voz natural do Kitten (flag voz_kitten)', () => {
+  it('quem decide: kitten, Supertonic, reserva; "nenhuma" não fala e avisa por onError', async () => {
+    const kitten = motor()
+    const neural = motor()
+    const reserva = motor()
+    const quem = { pt: 'kitten', en: 'neural', es: 'reserva', ja: 'nenhuma' } as const
+    const m = criarMotorGlobal({
+      le: () => false,
+      neural: async () => neural,
+      kitten: async () => kitten,
+      quem: (i) => quem[i as keyof typeof quem],
+      reserva,
+    })
+    const erro = vi.fn()
+    m.speak('olá', { lang: 'pt' })
+    await solta()
+    m.speak('hi', { lang: 'en' })
+    await solta()
+    m.speak('hola', { lang: 'es' })
+    m.speak('こんにちは', { lang: 'ja', onError: erro })
+    await solta()
+    expect(kitten.falas).toEqual(['olá'])
+    expect(neural.falas).toEqual(['hi'])
+    expect(reserva.falas).toEqual(['hola'])
+    expect(erro).toHaveBeenCalledOnce()
+  })
+
+  it('o Kitten que não carrega: a mesma frase sai pela reserva', async () => {
+    const reserva = motor()
+    const m = criarMotorGlobal({
+      le: () => false,
+      neural: async () => null,
+      kitten: async () => null,
+      quem: () => 'kitten',
+      reserva,
+    })
+    m.speak('olá', { lang: 'pt' })
+    await solta()
+    expect(reserva.falas).toEqual(['olá'])
+  })
+})

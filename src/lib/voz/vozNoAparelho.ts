@@ -244,24 +244,32 @@ export function destravarVozNoAparelho(): void {
   }
 }
 
-/** Importa o motor (uma vez) e registra o `neural-local` na porta. Recusa sem a flag, sem o perfil ou sem a raiz. */
+type AdaptadorSupertonic = ReturnType<Modulo['adaptadorDoSupertonic']>;
+let adaptador: AdaptadorSupertonic | null = null;
+
+/**
+ * Importa o motor (uma vez) e registra o `neural-local` na porta. Recusa sem a flag, sem o perfil ou sem a raiz.
+ * Registra a CADA chamada (o mesmo adaptador): a voz natural do Kitten (`vozKitten.ts`) divide a vaga `neural-local`, e
+ * quem vai ler registra a sua antes.
+ */
 export function carregarMotor(): Promise<Modulo> {
   if (!vozNoAparelhoOferecida()) return Promise.reject(new Error('voz no aparelho indisponível'));
   modulo ??= import('../../gateway/adapters/supertonicLocal').then((m) => {
     const d = decisaoDaVozNoAparelho();
-    registrarMotorDeVoz(
-      m.adaptadorDoSupertonic({
-        threads: d.threadsWasm,
-        webgpu: d.backend === 'webgpu',
-        pronto: vozNoAparelhoLe,
-        vozPadrao: vozDoNarradorNoAparelho,
-        contexto: contextoDaVozNoAparelho,
-        soltarAposMs: perfilDoDispositivo().poucaMemoria ? 0 : SOLTAR_APOS_MS,
-      }),
-    );
+    adaptador = m.adaptadorDoSupertonic({
+      threads: d.threadsWasm,
+      webgpu: d.backend === 'webgpu',
+      pronto: vozNoAparelhoLe,
+      vozPadrao: vozDoNarradorNoAparelho,
+      contexto: contextoDaVozNoAparelho,
+      soltarAposMs: perfilDoDispositivo().poucaMemoria ? 0 : SOLTAR_APOS_MS,
+    });
     return m;
   });
-  return modulo;
+  return modulo.then((m) => {
+    if (adaptador) registrarMotorDeVoz(adaptador);
+    return m;
+  });
 }
 
 /** O motor registrado, pronto para falar (para a amostra do seletor e do elenco), ou `null`. */

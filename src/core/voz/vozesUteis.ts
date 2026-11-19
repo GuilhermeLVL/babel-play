@@ -10,3 +10,10 @@ import { ordenarPorQualidade, type VozDescrita } from './melhorVoz';
 export function vozesUteis<T extends VozDescrita>(vozes: readonly T[], idioma: string): T[] {
   return ordenarPorQualidade(vozes, idioma);
 }
+
+/**
+ * Há, para o idioma, uma voz ACEITA pela lista de permissão de `melhorVoz.ts`? Com a voz natural no aparelho ligada
+ * (flag `voz_kitten`), sem voz aceita a Kitten lê no lugar da voz do sistema (`vozKitten.ts`).
+ */
+export const haVozAceita = (vozes: readonly VozDescrita[], idioma: string): boolean =>
+  vozesUteis(vozes, idioma).length > 0;

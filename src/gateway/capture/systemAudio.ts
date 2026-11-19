@@ -1,5 +1,6 @@
 import type { MicVAD, RealTimeVADOptions } from '@ricky0123/vad-web';
 
+import { erroDoDetectorDeFala, mostraDetalheTecnico } from '../../core/falhas/mensagemDeFalha';
 import { apiFetch } from '../../data/api';
 import { navegadorSemAudioDaTela } from '../../lib/captura/navegadorSemAudioDaTela';
 import { marcarAberturaDoVad } from '../../lib/captura/vigiaDoMainThread';
@@ -58,6 +59,14 @@ export interface AudioCapture {
    * pausa, para elas continuarem coladas no áudio.
    */
   setPaused(paused: boolean): void;
+  /**
+   * ENTREGA A FALA EM CURSO AGORA, sem esperar o silêncio (o "Terminei" do intérprete, conversa-de-verdade 2.1): o
+   * VAD fecha o trecho e ele vai ao `onUtterance` como qualquer fim de fala. Sem fala em curso, não faz nada. Mutar
+   * direto DESCARTARIA a frase (ver `setMuted`), e com o silêncio de 2,5 s do turno o toque chega quase sempre antes.
+   */
+  encerrarFala?(): void;
+  /** O silêncio que fecha a fala (ms), em tempo de execução: o turno por toque do intérprete usa 2,5 s. `undefined` = o padrão. */
+  setRedencaoMs?(ms: number | undefined): void;
   /**
    * Instante (Date.now(), epoch-ms) em que o MediaRecorder REALMENTE começou a gravar — a
    * ORIGEM (t=0) do áudio salvo. A UI ancora o relógio das legendas a este valor: sem isso, o
@@ -509,7 +518,7 @@ async function startCaptureFromStream(
    * forma síncrona durante o `new`, a referência cai na TDZ e a captura de áudio quebra em tempo de
    * execução — algo que nenhum teste daqui pega. Declarar antes e atribuir depois é imune a isso.
    */
-  let vad: Pick<MicVAD, 'start' | 'pause'>;
+  let vad: Pick<MicVAD, 'start' | 'pause' | 'setOptions'>;
 
   // Estado do enunciado em andamento (para partials + seq).
   let seqCounter = 0;
@@ -756,11 +765,9 @@ async function startCaptureFromStream(
   } catch (e) {
     vlog(label, 'Silero VAD NÃO subiu:', String(e));
     await desfazerAbertura();
-    throw new Error(
-      'O detector de fala não pôde ser carregado, então a captura não começou. Os arquivos dele ' +
-        '(silero_vad_legacy.onnx e ort-wasm) não estão sendo servidos pelo app. Recarregue a página; ' +
-        'se continuar, quem instalou o app precisa rodar "npm install" (que os copia para public/).',
-    );
+    /* "npm install" só em dev e no self-host (DISP-03): em produção a tela mostra "Não deu para carregar o
+       detector de fala." pelo mapa de `core/falhas/mensagemDeFalha.ts`. */
+    throw new Error(erroDoDetectorDeFala(mostraDetalheTecnico(import.meta.env)));
   }
 
   vad.start();
@@ -802,8 +809,13 @@ async function startCaptureFromStream(
     const soFar = concatFrames();
     vlog(label, 'VAD → parcial (seq', currentSeq, '):', soFar.length, 'amostras');
     const seqDoParcial = currentSeq;
+    const eraOPrimeiro = primeiro;
     const devolverCota = () => {
       if (seqDoParcial === currentSeq && parciaisNestaFala > 0) parciaisNestaFala -= 1;
+      /* O 1º parcial voltou sem texto (0,6 s de fala ainda não dá palavra): o próximo sai com mais 0,6 s de
+         fala, sem o espaçamento de 2 s. Sem isto o 1º texto na tela ia de ~1,1 s para ~3,1 s conforme a sorte
+         do 1º decode (a bimodalidade da bancada no desktop; carga-rapida-no-celular, 5.2). */
+      if (eraOPrimeiro && seqDoParcial === currentSeq) ultimoParcialTs = -Infinity;
     };
     const aceito = cb.onPartialAudio(soFar, 16000, currentSeq);
     if (aceito === false) devolverCota();
@@ -821,6 +833,20 @@ async function startCaptureFromStream(
   return {
     startedAtMs,
     trilhaDeAudio: audioTracks[0],
+    encerrarFala(): void {
+      if (!speaking || muted || paused) return;
+      vlog(label, 'VAD → fim de fala pedido (Terminei)');
+      fecharAgora();
+    },
+    setRedencaoMs(ms: number | undefined): void {
+      const alvo = ms ?? REDENCAO_MS;
+      try {
+        vad.setOptions({ redemptionMs: alvo });
+        espelho.mudarRedencao(alvo);
+      } catch (e) {
+        vlog(label, 'redenção não mudou:', String(e));
+      }
+    },
     setMuted(next: boolean): void {
       if (next === muted) return;
       muted = next;

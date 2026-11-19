@@ -7,7 +7,7 @@ import React, { useEffect, useState } from 'react';
 
 import * as auth from '../../lib/auth';
 import { t } from '../../lib/i18n';
-import { supabase } from '../../lib/supabase';
+import { supabase, supabaseConfigurado } from '../../lib/supabase';
 
 function QrView({ svg }: { svg?: string }) {
   if (!svg) return null;
@@ -17,7 +17,7 @@ function QrView({ svg }: { svg?: string }) {
 }
 
 export default function SecurityPanel() {
-  const configurado = !!supabase;
+  const configurado = !!supabase || supabaseConfigurado;
   const [factors, setFactors] = useState<auth.TotpFactor[]>([]);
   const [loading, setLoading] = useState(true);
   const [enroll, setEnroll] = useState<auth.MfaEnroll | null>(null);

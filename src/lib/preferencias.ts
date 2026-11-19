@@ -73,6 +73,12 @@ export interface Preferencias {
    * vozes: aí valem as do aparelho (`babel_voice_prefs`, `lib/voz/preferenciaDeVoz.ts`).
    */
   vozes: Record<string, string> | null;
+  /**
+   * "Ocultar palavras sensíveis na legenda" (Ajustes → Privacidade, change `legenda-segura-para-menores`): a opção do
+   * ADULTO declarado. Desligada por padrão. O perfil protegido não lê esta chave: para ele a ocultação vem ligada e
+   * travada (`lib/politicaDaLegenda.ts`).
+   */
+  legendaSegura: boolean;
 }
 
 export type RegistroPadrao = 'automatico' | 'formal' | 'informal';
@@ -107,6 +113,7 @@ export const PADRAO: Preferencias = {
   micEscolhido: false,
   nuance: { registro: 'automatico', variantes: { pt: 'pt-BR', es: 'es-419' } },
   vozes: null,
+  legendaSegura: false,
 };
 
 const ESPELHO = 'babel.preferencias';
@@ -130,6 +137,7 @@ export function normalizar(bruto: unknown): Preferencias {
     micEscolhido: p.micEscolhido === true,
     nuance: normalizarNuance(p.nuance),
     vozes: normalizarVozes(p.vozes),
+    legendaSegura: p.legendaSegura === true,
   };
 }
 

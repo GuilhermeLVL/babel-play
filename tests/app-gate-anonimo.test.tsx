@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/lib/supabase', () => ({
   supabase: null,
+  supabaseConfigurado: false,
   authRequired: true,
   carregarSupabase: async () => null,
   getAccessToken: async () => null,

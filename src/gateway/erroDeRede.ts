@@ -1,3 +1,5 @@
+import { PADROES_DE_REDE } from '../core/falhas/mensagemDeFalha';
+
 /**
  * A mensagem de erro é de REDE (download que não veio), e não do motor? (correção C do diagnóstico
  * do Safari, 22/10/2026.)
@@ -8,9 +10,7 @@
  * "GPU ruim" e recriada em WASM — que falhava de novo, sem aviso. Rede que falha pede "Tentar de novo",
  * não outro motor.
  */
-const PADROES_DE_REDE =
-  /load failed|failed to fetch|networkerror|network error|network connection was lost|access control|could not locate file|err_(internet|network|connection|name_not_resolved)/i;
-
 export function pareceErroDeRede(mensagem: string): boolean {
-  return PADROES_DE_REDE.test(mensagem);
+  // A marca do worker (`comMarcaDeFalha`): o cache recusou o arquivo cortado, é rede e não GPU.
+  return PADROES_DE_REDE.test(mensagem) || mensagem.startsWith('[falha:download-interrompido]');
 }

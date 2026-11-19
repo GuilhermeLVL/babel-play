@@ -1,7 +1,8 @@
-import { Home,RefreshCw } from 'lucide-react';
+import { Home, RefreshCw } from 'lucide-react';
 import React from 'react';
 
 import { comBaseDoApp } from '../lib/baseDoApp';
+import { tirarEsqueleto } from '../lib/esqueleto';
 import { reportarErro } from '../lib/relatorioDeErros';
 
 /**
@@ -12,15 +13,21 @@ import { reportarErro } from '../lib/relatorioDeErros';
  *
  * Nada de detalhe técnico para o usuário; o erro vai para o console, onde quem depura o acha.
  */
-interface Estado { erro: Error | null; idDoErro: string | null }
+interface Estado {
+  erro: Error | null;
+  idDoErro: string | null;
+}
 
 export default class ErroDaTela extends React.Component<{ children: React.ReactNode }, Estado> {
   state: Estado = { erro: null, idDoErro: null };
 
-  static getDerivedStateFromError(erro: Error): Partial<Estado> { return { erro }; }
+  static getDerivedStateFromError(erro: Error): Partial<Estado> {
+    return { erro };
+  }
 
   componentDidCatch(erro: Error, info: React.ErrorInfo): void {
     console.error('[babel] erro de render', erro, info.componentStack);
+    tirarEsqueleto();
     /* E4 — o erro deixou de morrer no console: vai para o diário do servidor, e o ID volta para a
        TELA. É o que o usuário cita no suporte, e o que o dono procura em /api/admin/erros. */
     const id = reportarErro('render', erro.message, info.componentStack?.split('\n')[1]?.trim());
@@ -35,8 +42,8 @@ export default class ErroDaTela extends React.Component<{ children: React.ReactN
           <p className="label-mono mb-2">Algo deu errado</p>
           <h1 className="font-display font-black text-xl text-ink">Esta tela não conseguiu abrir</h1>
           <p className="text-[13px] text-ink-muted mt-2 leading-snug">
-            Costuma ser uma versão nova do app chegando enquanto a antiga ainda estava aberta.
-            Recarregar resolve na maioria das vezes; nada do que você gravou se perde.
+            Costuma ser uma versão nova do app chegando enquanto a antiga ainda estava aberta. Recarregar resolve na
+            maioria das vezes; nada do que você gravou se perde.
           </p>
           {this.state.idDoErro && (
             <p className="text-[11px] text-ink-faint mt-2">
@@ -47,7 +54,12 @@ export default class ErroDaTela extends React.Component<{ children: React.ReactN
             <button onClick={() => window.location.reload()} className="btn-solid">
               <RefreshCw className="w-4 h-4" aria-hidden /> Recarregar
             </button>
-            <button onClick={() => { window.location.href = comBaseDoApp('/'); }} className="btn-outline">
+            <button
+              onClick={() => {
+                window.location.href = comBaseDoApp('/');
+              }}
+              className="btn-outline"
+            >
               <Home className="w-4 h-4" aria-hidden /> Voltar ao início
             </button>
           </div>

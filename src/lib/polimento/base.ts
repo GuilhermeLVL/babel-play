@@ -252,7 +252,12 @@ export function instalarPolimento(): () => void {
       }),
     )
     /* Sem o CSS a camada só não enfeita: a tela continua inteira. */
-    .catch(() => undefined);
+    .catch(() => undefined)
+    /* A marca que o esqueleto do HTML espera para sair (`lib/esqueleto.ts`): o Início só tem a forma final com a camada. */
+    .finally(() => {
+      raiz.dataset.pxEstilos = 'ok';
+      document.dispatchEvent(new Event(EVENTO_DOS_ESTILOS));
+    });
   const observador = new MutationObserver(marcar);
   observador.observe(document.body, { attributes: true, attributeFilter: ['class'] });
   /* Cada tela traz a sua folha de estilo quando abre: as regras novas são acertadas quando chegam, e a

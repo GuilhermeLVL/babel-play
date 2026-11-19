@@ -171,14 +171,16 @@ describe('melhor voz recomendada', () => {
   describe('tabela dos idiomas do catálogo', () => {
     const SINONIMOS: Record<string, string> = { zh: 'cmn-Hans-CN', he: 'iw-IL', id: 'in-ID', nb: 'no-NO' }
     it.each(LANGUAGES.map((l) => [l.code, l.short] as const))('%s escolhe a voz do idioma certo', (code, short) => {
-      const doIdioma = v(`Voz ${code}`, code.replace('-', '_'))
+      /* Nome de voz ACEITA (a lista de permissão recusa nome desconhecido): "Google <código>". */
+      const doIdioma = v(`Google ${code}`, code.replace('-', '_'))
       const ruido = [v('Alex', 'en-US'), v('Luciana', 'pt-BR'), v('Sinji', 'zh-HK'), v('Filipina', 'fil-PH')]
       const r = recomendarVoz([...ruido, doIdioma], code)
       /* en/pt/zh-HK do ruído só valem para o seu próprio idioma. */
       if (short === 'en') expect(['Alex', doIdioma.name]).toContain(r?.name)
       else if (short === 'pt') expect(['Luciana', doIdioma.name]).toContain(r?.name)
       else expect(r?.name).toBe(doIdioma.name)
-      if (SINONIMOS[short]) expect(recomendarVoz([v('Sistema', SINONIMOS[short])], code)?.name).toBe('Sistema')
+      if (SINONIMOS[short])
+        expect(recomendarVoz([v('Google Sistema', SINONIMOS[short])], code)?.name).toBe('Google Sistema')
     })
   })
 })

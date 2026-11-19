@@ -44,6 +44,18 @@
     bottom: calc(92px + env(safe-area-inset-bottom, 0px));
     padding-bottom: 0;
   }
+  /* COM A CONVERSA EM CURSO, a barra de cinco sai (conversa-de-verdade, 5.1): o microfone dela ficava a ~100 px do
+     "Falar" da metade de baixo (CONV-08), e um toque errado abria a captura. A conversa fica com a tela toda; o "Sair"
+     do Intérprete, na faixa do meio, é a volta. A página pronta (antes de falar) continua com a barra. */
+  /* `!important` e mais específica que a regra do polimento que segura a barra sobre a tela pronta da captura
+     (`polimento/paineis.css`: `.q-casca:has(.px-pronto) .q-trilho { display: flex !important }`), que fica por baixo. */
+  :root:has(.int[data-pagina][data-em-curso]) .q-casca .q-trilho.q-trilho {
+    display: none !important;
+  }
+  .int[data-pagina][data-em-curso] {
+    bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }
 .dark .int {
   --int-escuro: var(--surface-sunken);
@@ -93,12 +105,54 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  /* `safe`: a frase maior que a metade começa no topo e rola, em vez de ser cortada em cima (CONV-08). A fonte
+     encolhe antes até 18 px (`fonteQueCabe.ts`, a variável `--int-fonte`). */
+  justify-content: safe center;
   gap: 6px;
 }
 .int-traducao {
   margin: 0;
   font: 800 clamp(22px, 6.4vw, 34px) / 1.2 var(--font-display);
+  font-size: var(--int-fonte, clamp(22px, 6.4vw, 34px));
+  overflow-wrap: anywhere;
+}
+/* A conferência da transcrição (conversa-de-verdade, 5.4): o que o app entendeu e os três toques, alvos de 48 px. */
+.int-conferir {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.int-conferir-rotulo {
+  margin: 0;
+  font: 700 11px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--int-acento);
+}
+.int-conferir-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.int-conferir-acoes > button {
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--int-linha);
+  border-radius: 999px;
+  background: var(--int-escuro-2);
+  color: var(--int-tinta);
+  font: 700 14px var(--font-body);
+}
+.int-conferir-acoes > .int-conferir-ler {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--ink-contrast);
+}
+/* A fala em outro idioma (conversa-de-verdade, 3.2): o pedido para repetir, no lugar da tradução. */
+.int-fora-do-par {
+  margin: 0;
+  font: 700 var(--int-fonte, clamp(18px, 5vw, 24px)) / 1.25 var(--font-display);
+  color: var(--int-acento);
   overflow-wrap: anywhere;
 }
 .int-original,

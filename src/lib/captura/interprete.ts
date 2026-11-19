@@ -40,6 +40,13 @@ import type { DirecaoDaFala, LadoDoInterprete } from './tiposDaFala';
 
 export type FaseDoInterprete = 'parado' | 'ouvindo' | 'traduzindo' | 'falando';
 
+/**
+ * O SILÊNCIO QUE ENCERRA O TURNO POR TOQUE (conversa-de-verdade, 2.1): 2,5 s. Com os 800 ms da legenda, uma pausa
+ * natural de 1,5 s no meio da frase fechava o microfone e a voz lia por cima de quem ainda falava (CONV-02). Quem
+ * terminou antes toca "Terminei", e o microfone fecha na hora. O automático segue com o silêncio de sempre.
+ */
+export const SILENCIO_DO_TURNO_MS = 2500;
+
 export interface EstadoDoInterprete {
   fase: FaseDoInterprete;
   /** Quem fala (ouvindo) ou quem falou por último; `null` antes da primeira fala. */
@@ -54,6 +61,12 @@ export interface EstadoDoInterprete {
    * tradução lida. Fora dele (`false`), o ciclo termina em "parado" e espera o toque.
    */
   automatico: boolean;
+  /**
+   * O TURNO do microfone: sobe a cada abertura (toque num lado ou escuta do automático). A fala guardada durante o
+   * download leva o turno dela, e o fim que chega num turno posterior não fecha o microfone de quem fala agora
+   * (conversa-de-verdade, 1.2).
+   */
+  turno: number;
 }
 
 export type EventoDoInterprete =
@@ -63,8 +76,11 @@ export type EventoDoInterprete =
   | { tipo: 'ouvir' }
   /** "Parar" do automático: fecha o microfone, cala a voz e não reabre. */
   | { tipo: 'parar' }
-  /** O microfone ouviu o fim da fala (o VAD fechou, ou a Web Speech comprometeu o final). */
-  | { tipo: 'fimDaFala'; segId: string }
+  /**
+   * O microfone ouviu o fim da fala (o VAD fechou, ou a Web Speech comprometeu o final). `lado`: de quem era a fala;
+   * a fala de OUTRO lado, chegando com um microfone aberto, não fecha o microfone de quem fala agora.
+   */
+  | { tipo: 'fimDaFala'; segId: string; lado?: LadoDoInterprete }
   /** A tradução do final chegou (`aoTraduzirFinal`, resultado `traduzida`). */
   | { tipo: 'traduziu'; segId: string }
   /** Não haverá tradução a ler: mesmo idioma, falhou ou ficou sob demanda (`aoTraduzirFinal`). */
@@ -111,6 +127,7 @@ export const ESTADO_INICIAL: EstadoDoInterprete = Object.freeze({
   pendentes: Object.freeze([]) as readonly string[],
   trocados: false,
   automatico: false,
+  turno: 0,
 });
 
 /** O BCP-47 que o reconhecedor recebe: `pt` → `pt-BR`; código com região fica como veio. */
@@ -124,7 +141,9 @@ export function direcaoDoLado(lado: LadoDoInterprete, idiomas: IdiomasDoInterpre
   const doMeuLado = (lado === 'meu') !== trocados;
   const fala = doMeuLado ? idiomas.falaDoMeu || idiomas.meu : idiomas.outro;
   const ouve = doMeuLado ? idiomas.outro : idiomas.meu;
-  return { lado, fala: bcp47(fala), de: baseLang(fala), para: baseLang(ouve) };
+  /* `dono`: QUEM está neste lado agora — com os lados trocados, a metade de baixo é da outra pessoa. A fala grava
+     o dono quando nasce, e trocar os lados depois não a reatribui (conversa-de-verdade, 1.1). */
+  return { lado, fala: bcp47(fala), de: baseLang(fala), para: baseLang(ouve), dono: doMeuLado ? 'meu' : 'outro' };
 }
 
 /**
@@ -143,7 +162,7 @@ export function idiomasDaConversa(idiomas: IdiomasDoInterprete): string[] {
  */
 export function direcaoAtual(estado: EstadoDoInterprete, idiomas: IdiomasDoInterprete): DirecaoDaFala | null {
   if (estado.automatico) return null;
-  return estado.lado ? direcaoDoLado(estado.lado, idiomas, estado.trocados) : null;
+  return estado.lado ? { ...direcaoDoLado(estado.lado, idiomas, estado.trocados), turno: estado.turno } : null;
 }
 
 /**
@@ -166,12 +185,12 @@ export function transicao(
   const nada: Transicao = { estado, efeitos: [] };
   /* Tocar um lado é sempre o modo por toque: sai do automático. */
   const ouvir = (lado: LadoDoInterprete, antes: EfeitoDoInterprete[] = []): Transicao => ({
-    estado: { ...estado, fase: 'ouvindo', lado, pendentes: [], automatico: false },
+    estado: { ...estado, fase: 'ouvindo', lado, pendentes: [], automatico: false, turno: estado.turno + 1 },
     efeitos: [...antes, { tipo: 'abrirMicrofone', direcao: direcaoDoLado(lado, idiomas, estado.trocados) }],
   });
   /** O automático (re)abre o microfone sem lado: o idioma de cada fala é medido. */
   const ouvirTudo = (antes: EfeitoDoInterprete[] = []): Transicao => ({
-    estado: { ...estado, fase: 'ouvindo', lado: null, pendentes: [], automatico: true },
+    estado: { ...estado, fase: 'ouvindo', lado: null, pendentes: [], automatico: true, turno: estado.turno + 1 },
     efeitos: [...antes, { tipo: 'abrirMicrofone', direcao: null }],
   });
 
@@ -207,6 +226,9 @@ export function transicao(
 
     case 'fimDaFala': {
       if (estado.pendentes.includes(evento.segId)) return nada;
+      /* A fala de OUTRO lado terminou com este microfone aberto (o final dela demorou, ou veio guardada do download):
+         fechar agora cortaria quem fala, e lê-la falaria por cima dele. Ela fica só na tela. */
+      if (estado.fase === 'ouvindo' && !estado.automatico && evento.lado && evento.lado !== estado.lado) return nada;
       const pendentes = [...estado.pendentes, evento.segId];
       if (estado.fase === 'ouvindo')
         return { estado: { ...estado, fase: 'traduzindo', pendentes }, efeitos: [{ tipo: 'fecharMicrofone' }] };

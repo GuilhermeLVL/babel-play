@@ -8,7 +8,7 @@ import { caminhoDaFonte, caminhoDaFonteDoTexto } from '../site/layout';
 
 /** As fontes do site público: Archivo (títulos) e Inter (texto), variáveis e latin, já dependências do app. */
 const PACOTE_DA_FONTE = '@fontsource-variable/archivo';
-const ARQUIVO_DA_FONTE = 'files/archivo-latin-wght-normal.woff2';
+const ARQUIVO_DA_FONTE = 'files/archivo-latin-wdth-normal.woff2';
 const PACOTE_DA_FONTE_DO_TEXTO = '@fontsource-variable/inter';
 const ARQUIVO_DA_FONTE_DO_TEXTO = 'files/inter-latin-wght-normal.woff2';
 

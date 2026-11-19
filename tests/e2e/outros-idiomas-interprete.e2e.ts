@@ -95,12 +95,14 @@ async function falsos(page: Page, vozes: readonly string[] | null = null) {
       const lidas: Array<{ texto: string; lang: string }> = []
       w.__lidas = lidas
       let falando = false
+      /* Nome no formato das vozes do Google TTS no Android (`pt-BR-language`), que a lista de permissão
+         (`core/voz/melhorVoz.ts`) aceita para qualquer idioma: nome inventado deixa o app mudo. */
       const lista = (vozes ?? []).map((lang) => ({
-        name: `Voz ${lang}`,
+        name: `${lang}-language`,
         lang,
         default: false,
         localService: true,
-        voiceURI: `voz-${lang}`,
+        voiceURI: `${lang}-language`,
       }))
       const synth = {
         get speaking() {

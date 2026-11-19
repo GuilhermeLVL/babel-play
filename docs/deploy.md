@@ -730,6 +730,42 @@ VITE_ORT_WASM_URL=https://modelos.frasy.com.br/ort/1.26.0/ npm run build  # a CS
 A troca efetiva espera o domínio público do bucket (`r2.dev` não é para produção). Valor inválido (sem `https://`, ou
 `http://` fora de localhost) derruba o carregamento com `VITE_ORT_WASM_URL inválida: …` (`src/gateway/baseDoWasm.ts`).
 
+**Espelho próprio em produção (change `modelos-confiaveis-e-offline`).** Com `VITE_SELF_HOST_MODELS=<url>` a CSP sai
+SEM `huggingface.co`, `*.huggingface.co`, `*.hf.co` e `cdn.jsdelivr.net` (`server/http/csp.ts`, `CONEXOES_DO_HUB`).
+O runtime do ONNX da transformers.js (Whisper, opus-mt) já não vem do jsDelivr em ambiente nenhum: `transformersEnv.ts`
+aponta `wasmPaths` para `baseDoWasm()` (a variante `asyncify`, copiada para `public/` por
+`scripts/copiar-assets-runtime.mjs`). Sequência do dono:
+
+```bash
+# 1. pesos (Whisper, Moonshine, opus-mt, WeSpeaker e, agora, o Parakeet) e runtime, no bucket de produção
+S3_ENDPOINT=… S3_ACCESS_KEY_ID=… S3_SECRET_ACCESS_KEY=… npx tsx scripts/modelos/publicar-no-r2.ts --bucket=frasy-modelos
+S3_ENDPOINT=… S3_ACCESS_KEY_ID=… S3_SECRET_ACCESS_KEY=… npx tsx scripts/modelos/publicar-no-r2.ts --prefixo=ort/1.26.0
+# 2. conferir (é o mesmo portão que o deploy roda antes do build)
+npx tsx scripts/modelos/conferir-espelho.ts --base=https://modelos.frasy.com.br --ort=https://modelos.frasy.com.br/ort/1.26.0/
+# 3. vars do Environment `production`: VITE_SELF_HOST_MODELS e VITE_ORT_WASM_URL; deploy pelo workflow
+```
+
+Sem as variáveis, produção continua como hoje. O portão (`conferir-espelho.ts`) reprova o deploy se qualquer arquivo
+do manifesto (`src/gateway/manifestoDosPesos.json`), do Parakeet ou do runtime não responder 200 no bucket. Depois:
+monitor do UptimeRobot num peso pequeno e no `.wasm` do bucket.
+
+**Manifesto dos pesos.** `src/gateway/manifestoDosPesos.json` (bytes e sha256 de cada arquivo na revisão fixada) é
+GERADO por `npx tsx scripts/modelos/gerar-manifesto-dos-pesos.ts` (`--check` confere). Trocou uma revisão em
+`revisoesDosModelos.ts`? Regenere: `tests/manifestoDosPesos.test.ts` reprova sem isso. O navegador usa o manifesto para
+NÃO gravar no cache um peso truncado ou trocado (`src/gateway/cacheDePesos.ts`).
+
+**Service worker.** `dist/sw.js` é gerado no build (`scripts/vite/serviceWorker.ts`) e registrado só no build do Worker
+(produção e staging), depois do LCP, com escopo `/`. Ele guarda a casca do app e os chunks da captura; `/api/*`, outras
+origens e pesos nunca passam por ele. Versão nova entra na próxima abertura (sem `skipWaiting`). Desligar:
+`VITE_SERVICE_WORKER=0` no build (o `sw.js` se desregistra em quem já o tem), ou, num navegador só, `?sw=desligar` ou
+Diagnóstico → Uso sem internet. O `/sw.js` sai com `Cache-Control: no-cache` (`_headers.base` e `estaticos.ts`).
+
+**Contador anônimo de falhas.** `POST /api/erros-do-cliente/falha` (antes do auth) recebe só `{tipo, aparelho, modelo}`
+de listas fechadas e incrementa `cliente_falha_total` (Prometheus; no Worker, família `cliente_falha` do Analytics
+Engine). Sem IP gravado (o balde do limite usa um HMAC do IP com o `SECRET_KEY`). O cliente respeita "Métricas de uso
+anônimas" e o perfil de menor restrito (`src/lib/falhas/contadorDeFalhas.ts`). O beacon do Cloudflare Web Analytics
+NÃO foi liberado na CSP: o dono desliga a injeção automática na zona (painel da Cloudflare).
+
 ### Modelos no R2
 
 Os modelos do Bergamot (16 pares X→en: o pt e os 15 de `paresDoCdn`, ~450 MB) sobem pelo workflow `publicar-modelos` (manual; inputs `ambiente` e

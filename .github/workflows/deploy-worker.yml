@@ -119,6 +119,15 @@ jobs:
             exit 1
           fi
 
+      # O PORTÃO DO ESPELHO (change `modelos-confiaveis-e-offline`): com VITE_SELF_HOST_MODELS=<url>, a CSP do build
+      # sai SEM o Hugging Face e sem o jsDelivr; então cada peso do manifesto, o Parakeet e o runtime do ONNX têm de
+      # responder 200 no bucket ANTES de publicar. Sem a variável (deploy sem espelho), o script não confere nada.
+      - name: Portão do espelho dos modelos
+        env:
+          VITE_SELF_HOST_MODELS: ${{ vars.VITE_SELF_HOST_MODELS }}
+          VITE_ORT_WASM_URL: ${{ vars.VITE_ORT_WASM_URL }}
+        run: npx tsx scripts/modelos/conferir-espelho.ts --base="$VITE_SELF_HOST_MODELS" --ort="$VITE_ORT_WASM_URL"
+
       # Os VITE_* entram no bundle do front (assets servidos pelo Worker). Os valores vêm do Environment.
       # VITE_AUTH_REQUIRED=1 é fixo: o Worker é sempre o modo público (AUTH_REQUIRED=1 nos `vars`); sem ele o front
       # sai em self-host, sem porta de login, e "Você está no Premium" (foi o que o staging mostrou em 21/10/2026).

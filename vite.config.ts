@@ -12,6 +12,7 @@ import { cabecalhosDoDeploy } from './scripts/vite/cabecalhos'
 import { preCarregarEfemeroNaEdicaoEstatica } from './scripts/vite/preCarregarEfemero'
 import { preCarregarFontes } from './scripts/vite/preCarregarFontes'
 import { precomprimir } from './scripts/vite/precomprimir'
+import { serviceWorkerDoBuild } from './scripts/vite/serviceWorker'
 import { siteDoBuild } from './scripts/vite/site'
 import { aplicarUrlPublica } from './scripts/vite/urlPublica'
 import { montarVersao } from './server/lib/versao'
@@ -162,6 +163,12 @@ export default defineConfig(({ mode }) => {
       preCarregarFontes(),
       // O site público estático (páginas, sitemap, robots, ads.txt): antes do `precomprimir`.
       siteDoBuild(env),
+      /* O service worker mínimo (`dist/sw.js`, offline do app já visitado). `VITE_SERVICE_WORKER=0` gera o SW
+         que se desregistra (o interruptor). Antes do `precomprimir`. */
+      serviceWorkerDoBuild({
+        versao,
+        ligado: (env.VITE_SERVICE_WORKER ?? process.env.VITE_SERVICE_WORKER ?? '').trim() !== '0',
+      }),
       precomprimir(),
       // `dist/_headers` com a CSP bloqueante do Express; depois do `precomprimir` para não virar `.br`/`.gz`.
       cabecalhosDoDeploy(env),

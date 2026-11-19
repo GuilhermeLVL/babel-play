@@ -53,6 +53,7 @@ import { dispositivoDaRota, medirPerfilDoDispositivo, perfilDoDispositivo } from
 import { edicaoEstatica } from '../edicaoEstatica';
 import { getEntitlements } from '../entitlements';
 import { consentiuNuvemNaFala, soNoAparelho } from '../escolhaDoProcessamento';
+import { contarFalha, contarFalhaDoErro } from '../falhas/contadorDeFalhas';
 import { flagLigada } from '../flags';
 import { t } from '../i18n';
 import { detectLanguage } from '../langDetect';
@@ -1414,6 +1415,20 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       regulador.reiniciar({ modelo: aviso.modelo, backend: aviso.device }); // `soIngles` fica o da rota
       if (aviso.motivo === 'falha-gpu') regulador.registrarFalha('device-lost', aviso.modeloAntes);
     }
+    /* O modelo veio com defeito e a cura do cache não resolveu: o menor assumiu (`whisperLocal.rebaixarModelo`).
+       Conta para o time (anônimo) e diz em pt-BR, sem falar de GPU. */
+    if (aviso.motivo === 'modelo-corrompido') {
+      contarFalha('modelo-corrompido', aviso.modeloAntes);
+      setSttRouteLabel(`local · ${aviso.modelo.split('-').pop()}`);
+      setFeedbackMsg(
+        t('O modelo {antes} veio com defeito e não abriu. A legenda segue com o {modelo}, menor.', {
+          antes: nomeLegivelDoModelo(aviso.modeloAntes),
+          modelo: nomeLegivelDoModelo(aviso.modelo),
+        }),
+      );
+      setTimeout(() => setFeedbackMsg(''), 9000);
+      return;
+    }
     setSttRouteLabel(`local · modo compatível (${aviso.modelo.split('-').pop()})`);
     setFeedbackMsg(
       t(
@@ -1927,6 +1942,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             // Agora o estado de erro do ModelPrepPanel é alcançável nesta rota também.
             clog('reserva local falhou (nuvem segue como principal):', String(e));
             const msg = String((e as Error)?.message ?? e);
+            contarFalhaDoErro(e);
             setModelPrep((s) => (s ? { ...s, error: msg } : s));
           });
       };
@@ -2020,6 +2036,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     } catch (e) {
       clog('preparação do modelo FALHOU:', String(e));
       const msg = String((e as Error)?.message ?? e);
+      contarFalhaDoErro(e);
       setModelPrep((s) =>
         s ? { ...s, error: msg } : { whisper: null, mt: null, fromCache: cached, error: msg, done: false },
       );

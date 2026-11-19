@@ -85,6 +85,27 @@ describe('diretivasDeCsp', () => {
     expect(base.workerSrc).toEqual(["'self'", 'blob:'])
   })
 
+  it('espelho próprio (VITE_SELF_HOST_MODELS é URL): sem Hub e sem jsDelivr (DISP-05)', () => {
+    const c = diretivasDeCsp(
+      env({
+        VITE_SELF_HOST_MODELS: 'https://modelos.frasy.com.br',
+        VITE_ORT_WASM_URL: 'https://modelos.frasy.com.br/ort/1.26.0/',
+      }),
+    ).connectSrc
+    expect(c).toContain('https://modelos.frasy.com.br')
+    for (const fora of [
+      'https://huggingface.co',
+      'https://*.huggingface.co',
+      'https://*.hf.co',
+      'https://cdn.jsdelivr.net',
+    ])
+      expect(c, fora).not.toContain(fora)
+    // Sem a variável (dev, testes, self-host), o Hub continua: o caminho de hoje.
+    const sem = diretivasDeCsp(env({})).connectSrc
+    expect(sem).toContain('https://huggingface.co')
+    expect(sem).toContain('https://*.hf.co')
+  })
+
   it('VITE_SELF_HOST_MODELS=1 (mesmo domínio) não acrescenta host', () => {
     const base = diretivasDeCsp(env({})).connectSrc
     expect(diretivasDeCsp(env({ VITE_SELF_HOST_MODELS: '1' })).connectSrc).toEqual(base)

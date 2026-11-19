@@ -30,6 +30,8 @@ import {
   rapidoDoMicPermitido,
 } from '../consentimentoDeNuvem';
 import { perfilDoDispositivo } from '../dispositivo/perfil';
+import { contarFalha } from '../falhas/contadorDeFalhas';
+import { falhaDaCaptura, type FalhaNaTela } from '../falhas/falhaNaTela';
 import { t } from '../i18n';
 import { nuvemDoQuestAtiva } from '../nuvemDoQuest';
 import { isTtsActive } from '../tts';
@@ -103,6 +105,11 @@ export interface DepsDasFontesDeAudio {
   setModelPrep: Dispatch<SetStateAction<ModelPrepState | null>>;
   setIsRecording: Dispatch<SetStateAction<boolean>>;
   setMicAbrindo: Dispatch<SetStateAction<boolean>>;
+  /**
+   * A falha que impediu a captura de começar, em pt-BR e com a ação (DISP-04): a tela a mostra num aviso
+   * junto ao Iniciar até a PRÓXIMA tentativa (`null` limpa). Sem ele, só o toast.
+   */
+  setFalhaDoInicio?: (falha: FalhaNaTela | null) => void;
   /* --- rota do STT --- */
   /** O decode final vai para a nuvem AGORA? Decide o teto de fala contínua (ver `OpcoesDeCaptura`). */
   finalNaNuvem?: () => boolean;
@@ -274,6 +281,11 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       return;
     }
     // O estado de gravação (isRecording/timer) já foi ligado por handleStartRecording (captura dupla).
+    // Nova tentativa: o aviso da falha anterior sai agora (DISP-04).
+    deps.setFalhaDoInicio?.(null);
+    /* A captura avisa pelo `onError` E lança quando NÃO abre: antes de abrir, quem fala é o `catch` abaixo
+       (um toast só); depois, o `onError` é a falha assíncrona de uma captura em curso. */
+    let aberta = false;
     const source = systemSourceRef.current;
     const decidir = deps.decidirMotorDoSistema;
     let rota: 'decidindo' | 'navegador' | 'pipeline' = decidir ? 'decidindo' : 'pipeline';
@@ -374,7 +386,8 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
         },
         onError: (err: Error) => {
           clog('sistema ERRO assíncrono:', err.message);
-          setFeedbackMsg('Erro na captura do sistema: ' + err.message);
+          if (!aberta) return; // a captura não abriu: o `catch` deste início mostra a falha, uma vez
+          setFeedbackMsg(t(falhaDaCaptura(err).texto));
           setTimeout(() => setFeedbackMsg(''), 6000);
         },
       };
@@ -398,6 +411,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
                 return startSystemLoopbackCapture(loopbackDeviceIdRef.current || undefined, cb, opcoesDeCaptura);
               })()
             : await startSystemAudioCapture(cb, opcoesDeCaptura);
+      aberta = true;
       /* A captura com a Web Speech junto: parar/pausar/mudar a captura faz o mesmo com o reconhecedor. */
       systemCaptureRef.current = {
         ...captura,
@@ -455,8 +469,13 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
         setIsFocusMode(false);
         setGuiaDeAudio(code);
       } else {
-        setFeedbackMsg((err as Error).message);
+        /* Em pt-BR e com a ação (DISP-03): um toast, e o aviso persistente junto ao Iniciar até a próxima
+           tentativa (DISP-04). O tipo vai ao contador anônimo (`contadorDeFalhas.ts`). */
+        const falha = falhaDaCaptura(err);
+        setFeedbackMsg(t(falha.texto));
         setTimeout(() => setFeedbackMsg(''), 7000);
+        deps.setFalhaDoInicio?.(falha);
+        if (falha.tipo !== 'desconhecida') contarFalha(falha.tipo);
       }
       // mantém o painel se estava em erro de modelo; só limpa se não havia erro
       setModelPrep((s) => (s?.error ? s : null));
@@ -503,7 +522,9 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
           },
           onError: (err) => {
             clog('mic ERRO assíncrono:', err.message);
-            setFeedbackMsg('Erro no microfone: ' + err.message);
+            // Antes de abrir, quem mostra a falha é o `catch` abaixo (a ajuda do microfone): um aviso só.
+            if (!micCaptureRef.current) return;
+            setFeedbackMsg(t(falhaDaCaptura(err).texto));
             setTimeout(() => setFeedbackMsg(''), 6000);
           },
         },

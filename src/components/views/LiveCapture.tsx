@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
+import type { TipoDeAcao } from '../../core/falhas/mensagemDeFalha';
 import { configDoReguladorPara } from '../../core/harness/reguladorDeDesempenho';
 import type { MotivoDaOfertaDeAlivio, SinaisDoAparelhoParaAlivio } from '../../core/nuvemDeAlivio';
 import type { DecisaoDeRota } from '../../core/rota/politicaDeRota';
@@ -182,6 +183,7 @@ import {
   useEtiquetador,
   useSnapshotDasEtiquetas,
 } from '../../lib/etiquetas/indiceDeEtiquetas';
+import type { FalhaNaTela } from '../../lib/falhas/falhaNaTela';
 import { marcarOcupacaoDaCaptura } from '../../lib/filaDeRecompensas';
 import { flagLigada } from '../../lib/flagsCache';
 import { t } from '../../lib/i18n';
@@ -252,6 +254,7 @@ import { ComoRespondoNaPagina } from './captura/assistente/AssistenteNaPagina';
 import { rotuloDaMarca } from './captura/assistente/TextoComMarcas';
 import { useAssistenteAoVivo } from './captura/assistente/useAssistenteAoVivo';
 import AvisoDaCoberturaDoPar from './captura/AvisoDaCoberturaDoPar';
+import AvisoDeFalha from './captura/AvisoDeFalha';
 import AvisoDoTradutorLocal from './captura/AvisoDoTradutorLocal';
 import AvisoDoUsoDoDia from './captura/AvisoDoUsoDoDia';
 import CapturaNaoSalva from './captura/CapturaNaoSalva';
@@ -715,6 +718,8 @@ export default function LiveCapture({
   const [folhaDoInicio, setFolhaDoInicio] = useState<Extract<PassoDoInicio, { tipo: 'folha' }> | null>(null);
   /** O microfone não abriu: a ajuda daquele aparelho (`ajudaDoMicrofone.ts`). */
   const [falhaDoMic, setFalhaDoMic] = useState<AjudaDoMic | null>(null);
+  /** A captura não começou: o aviso em pt-BR, com a ação, até a próxima tentativa (DISP-04). */
+  const [falhaDoInicio, setFalhaDoInicio] = useState<FalhaNaTela | null>(null);
   /** Fechou (ou já aceitou) o aviso do bipe do Android nesta tela. */
   const [dispensouBipe, setDispensouBipe] = useState(false);
   /* AS FOLHAS DA CAPTURA (`captura/celular/*`): a fala e a palavra tocadas (as folhas de baixo), as
@@ -1509,6 +1514,7 @@ export default function LiveCapture({
       setIsFocusMode,
       setGuiaDeAudio,
       setModelPrep,
+      setFalhaDoInicio,
       // Uma fonte que falha e encerra a gravação também encerra o "Abrindo…".
       setIsRecording: (v) => {
         if (v === false) setAbrindoCaptura(false);
@@ -2872,6 +2878,17 @@ export default function LiveCapture({
     iniciarCaptura();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando as fontes viram "só o microfone"
   }, [systemEnabled, micEnabled]);
+  /** A ação do aviso da falha do início (DISP-04): tentar de novo é o mesmo toque do Iniciar. */
+  const agirNaFalhaDoInicio = (acao: TipoDeAcao) => {
+    setFalhaDoInicio(null);
+    if (acao === 'recarregar') return window.location.reload();
+    if (acao === 'baixar-de-novo' && isRecordingRef.current) return void prepareModels();
+    iniciarCaptura();
+  };
+  const avisoDaFalhaDoInicio =
+    falhaDoInicio && !isRecording ? (
+      <AvisoDeFalha falha={falhaDoInicio} aoAgir={agirNaFalhaDoInicio} aoFechar={() => setFalhaDoInicio(null)} />
+    ) : null;
   /* O MODO INTÉRPRETE: a sessão começa sem abrir nada (o microfone abre no toque de um lado, dentro
      da tela) e só com o microfone — o som do computador não entra. O relógio liga já: não há fonte
      que avise a abertura antes do primeiro toque. */
@@ -3520,6 +3537,7 @@ export default function LiveCapture({
               />
             )}
             {avisoDoFim}
+            {avisoDaFalhaDoInicio}
             {avisoDePermissao}
             {avisoDoBipe}
             {modelPrep && !preparoConcluido(modelPrep) && (
@@ -4405,6 +4423,7 @@ export default function LiveCapture({
             {botaoDoMicrofone()}
             {botaoDasLegendas()}
           </div>
+          {avisoDaFalhaDoInicio}
           {avisoDePermissao}
           {avisoDoBipe}
         </div>

@@ -148,11 +148,15 @@ export interface StreamingSttOptions {
  * legenda continua, mais lenta ou menos precisa, e a pessoa precisa saber por quê.
  */
 export interface AvisoDeDegradacaoDoStt {
-  /** 'sem-gpu': não há adaptador / a sessão WebGPU não abriu; 'gpu-travada': watchdog; 'falha-gpu': caiu em uso. */
-  motivo: 'sem-gpu' | 'gpu-travada' | 'falha-gpu';
+  /**
+   * 'sem-gpu': não há adaptador / a sessão WebGPU não abriu; 'gpu-travada': watchdog; 'falha-gpu': caiu em uso;
+   * 'modelo-corrompido': a sessão não abriu nem depois de apagar o cache e baixar de novo (`cacheDePesos.ts`),
+   * e o motor seguiu com o modelo menor, no mesmo backend.
+   */
+  motivo: 'sem-gpu' | 'gpu-travada' | 'falha-gpu' | 'modelo-corrompido';
   modeloAntes: string;
   modelo: string;
-  device: 'wasm';
+  device: 'wasm' | 'webgpu';
   detalhe: string;
 }
 

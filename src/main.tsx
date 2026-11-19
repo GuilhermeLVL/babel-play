@@ -32,6 +32,9 @@ import { bootTheme } from './lib/theme';
 // Fase 4: o link do convite ao responsável sai da barra antes que o login ou o roteador o apaguem.
 capturarTokenDoConvite();
 
+// O service worker mínimo (abrir e legendar offline o app já visitado): registra depois do LCP, só no Worker.
+void import('./lib/registrarSw').then((m) => m.registrarServiceWorker());
+
 // Antes do primeiro render: pinta `data-theme` e `.dark` a partir do localStorage.
 // O servidor reconcilia depois (App → hydrateTheme), mas sem isto haveria um
 // flash do tema padrão em cada carregamento.

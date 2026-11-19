@@ -15,7 +15,13 @@ import {
   subirJanela,
 } from '../src/lib/captura/historicoDoInterprete'
 
-const fala = (id: string, lado: 'meu' | 'outro', original: string, traducao = '', extra: Partial<FalaDoHistorico> = {}) => ({
+const fala = (
+  id: string,
+  lado: 'meu' | 'outro',
+  original: string,
+  traducao = '',
+  extra: Partial<FalaDoHistorico> = {},
+) => ({
   id,
   lado,
   originalText: original,
@@ -25,10 +31,7 @@ const fala = (id: string, lado: 'meu' | 'outro', original: string, traducao = ''
 
 describe('historicoDoInterprete', () => {
   it('cada metade lê no idioma dela: o outro traduzido, o meu no original', () => {
-    const falas = [
-      fala('1', 'outro', 'I want rice', 'Eu quero arroz'),
-      fala('2', 'meu', 'Quanto custa?', 'How much?'),
-    ]
+    const falas = [fala('1', 'outro', 'I want rice', 'Eu quero arroz'), fala('2', 'meu', 'Quanto custa?', 'How much?')]
     const h = historicoDoInterprete(falas, 'meu')
     expect(h.itens).toEqual([
       {
@@ -86,7 +89,11 @@ describe('historicoDoInterprete', () => {
   })
 
   it('ignora fala sem lado (fora do intérprete) e fala vazia', () => {
-    const falas = [fala('1', 'outro', '   ', 'x'), { id: '2', originalText: 'a', translatedText: 'b' }, fala('3', 'outro', 'Hi', 'Oi')]
+    const falas = [
+      fala('1', 'outro', '   ', 'x'),
+      { id: '2', originalText: 'a', translatedText: 'b' },
+      fala('3', 'outro', 'Hi', 'Oi'),
+    ]
     expect(historicoDoInterprete(falas as never, 'meu').itens.map((i) => i.id)).toEqual(['3'])
   })
 
@@ -106,5 +113,18 @@ describe('historicoDoInterprete', () => {
     expect(subirJanela(50, 120)).toBe(100)
     expect(subirJanela(100, 120)).toBe(120)
     expect(subirJanela(120, 120)).toBe(120)
+  })
+})
+
+/* CEL-01: a fala do outro sem tradução leva o motivo; a metade o mostra, nunca o original no lugar da tradução. */
+describe('historicoDoInterprete: fala sem tradução', () => {
+  it('o motivo vai no item do outro, e ele não fica "traduzindo"', () => {
+    const h = historicoDoInterprete([fala('1', 'outro', 'Hola', '', { semTraducao: 'falhou' })], 'meu')
+    expect(h.itens[0]).toMatchObject({ semTraducao: 'falhou', traduzindo: false, traducao: '' })
+  })
+
+  it('a fala que só não precisava de tradução (mesmo idioma) não ganha motivo', () => {
+    const h = historicoDoInterprete([fala('1', 'outro', 'Olá', '', { semTraducao: true })], 'meu')
+    expect(h.itens[0].semTraducao).toBeUndefined()
   })
 })

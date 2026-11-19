@@ -351,7 +351,12 @@ describe('Os textos novos passam pelos catálogos', () => {
     'Ainda não há tradutor no aparelho para este par: a tradução usa a internet.',
     'Não há tradutor para este par: as falas são transcritas, mas ficam sem tradução.',
   ]
-  const fontes = ['src/components/views/Play.tsx', 'src/components/views/LiveCapture.tsx']
+  // O aviso do par mora em `AvisoDaCoberturaDoPar.tsx` desde CEL-01 (a LiveCapture o usa).
+  const fontes = [
+    'src/components/views/Play.tsx',
+    'src/components/views/LiveCapture.tsx',
+    'src/components/views/captura/AvisoDaCoberturaDoPar.tsx',
+  ]
     .map((f) => readFileSync(f, 'utf8'))
     .join('\n')
 

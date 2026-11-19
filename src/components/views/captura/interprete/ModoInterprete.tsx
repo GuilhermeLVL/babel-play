@@ -2,6 +2,7 @@ import '../../../../styles/modoInterprete.css';
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
+import { avisoComAVozPrimeiro } from '../../../../lib/captura/avisoDoPreparo';
 import {
   type ControleDoInterprete,
   criarControleDoInterprete,
@@ -32,6 +33,7 @@ import {
   MOTOR_MUDO,
   vozDoQuestFala,
 } from '../../../../lib/voz/vozDoQuest';
+import type { ModelPrepState } from '../../../ModelPrepPanel';
 import { ComoRespondoNaPagina } from '../assistente/AssistenteNaPagina';
 import type { AssistenteDaJanela } from '../assistente/useAssistenteAoVivo';
 import ConversaDoPrototipo, {
@@ -122,7 +124,8 @@ export default function ModoInterprete({
   semVoz = false,
   vozDoSite = false,
   abrindo,
-  aviso,
+  aviso: avisoDeFora,
+  preparo,
   automatico = 'oculto',
   aoSair,
   aoFalharMicrofone,
@@ -157,6 +160,11 @@ export default function ModoInterprete({
    * tela do intérprete a cobre inteira, então a linha aparece aqui, na faixa do meio.
    */
   aviso?: string | null;
+  /**
+   * O PREPARO da captura, no lugar do `aviso` pronto: a tela escolhe a linha, e a instrução de instalar a voz que falta
+   * vence o progresso do preparo (CONV-06; `avisoComAVozPrimeiro`). Presente, vence o `aviso`.
+   */
+  preparo?: ModelPrepState | null;
   /** O modo automático nesta conta (o entitlement `interpreteAutomatico`). Ausente = não aparece. */
   automatico?: AutomaticoNoPlano;
   aoSair: () => void;
@@ -474,6 +482,11 @@ export default function ModoInterprete({
   const mudos = (['meu', 'outro'] as const).filter((l) => mudo(idiomaDoLado(l)));
   /** O idioma sem voz NESTE aparelho (que tem as de outros): a faixa diz como instalar a dele. */
   const idiomaSemVoz = (['outro', 'meu'] as const).map(idiomaDoLado).find(semVozDoIdioma);
+  /* A voz que falta vem ANTES do progresso do preparo (CONV-06): era trocada em 2 s pelo "Instalando o tradutor". */
+  const aviso =
+    preparo !== undefined
+      ? avisoComAVozPrimeiro(preparo, idiomaSemVoz ? comoInstalarVoz(idiomaSemVoz) : null)
+      : avisoDeFora;
   const rotuloDaVoz =
     mudos.length === 2
       ? t('Tradução em texto neste aparelho')
@@ -564,14 +577,25 @@ export default function ModoInterprete({
         if (item.traduzindo) continue;
         frase = item.propria
           ? { tipo: 'fala', texto: item.original, lang: d.direcao.fala, aoVivo: false, id: item.id }
-          : {
-              tipo: 'traducao',
-              id: item.id,
-              traducao: item.traducao.trim() ? item.traducao : item.original,
-              original: item.traducao.trim() ? item.original.trim() : '',
-              lang: d.direcao.fala,
-              langDoOriginal: direcaoDoOutro.fala,
-            };
+          : item.semTraducao
+            ? /* Sem tradução (CEL-01): o motivo no lugar da tradução, e o original pequeno embaixo, como sempre. */
+              {
+                tipo: 'traducao',
+                id: item.id,
+                traducao:
+                  item.semTraducao === 'sem-rota' ? t('Sem tradução neste aparelho') : t('Tradução indisponível agora'),
+                original: item.original.trim(),
+                lang: d.direcao.fala,
+                langDoOriginal: direcaoDoOutro.fala,
+              }
+            : {
+                tipo: 'traducao',
+                id: item.id,
+                traducao: item.traducao.trim() ? item.traducao : item.original,
+                original: item.traducao.trim() ? item.original.trim() : '',
+                lang: d.direcao.fala,
+                langDoOriginal: direcaoDoOutro.fala,
+              };
         break;
       }
     const avatar = avatares.doLado(lado);

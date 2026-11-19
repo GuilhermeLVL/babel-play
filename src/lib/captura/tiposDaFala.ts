@@ -67,13 +67,24 @@ export interface SpeechSegment {
    * é o dela) e se ela nem precisou de tradução porque já estava no idioma de quem lê.
    */
   paraLang?: string;
-  semTraducao?: boolean;
+  /**
+   * A fala ficou SEM tradução. `true`: nem precisava (já estava no idioma de quem lê, conversa virtual). O MOTIVO
+   * (`MotivoSemTraducao`): a tradução não veio, e a linha diz por quê em vez de mostrar o original entre parênteses
+   * como se fosse a tradução (CEL-01, auditoria de 17/11/2026). `translatedText` fica vazio.
+   */
+  semTraducao?: boolean | MotivoSemTraducao;
   /**
    * LEGENDA SEGURA (`legendaSeguraDasFalas.ts`): quantos termos sensíveis viraram `•••` no original e na tradução.
    * Ausente = nenhum.
    */
   ocultadas?: number;
 }
+
+/** Por que a fala ficou sem tradução: o par não tem rota neste aparelho, ou a cadeia falhou agora. */
+export type MotivoSemTraducao = 'sem-rota' | 'falhou';
+
+/** A fala ficou sem tradução por um motivo (e não por estar no idioma de quem lê)? */
+export const ehMotivoSemTraducao = (v: unknown): v is MotivoSemTraducao => v === 'sem-rota' || v === 'falhou';
 
 // `VocabWord` agora vive em `src/types.ts` — é o contrato compartilhado do <VocabularyPanel/>,
 // usado por Captura, Análise, Leitura, Estudo e Métricas. A invariante de honestidade (campos

@@ -30,3 +30,18 @@ export function avisoDoPreparo(prep: ModelPrepState | null | undefined): string 
   if (prep.mt !== null && prep.mt < 1) return t('Preparando a tradução dos dois lados · {p}', { p: pct(prep.mt) });
   return null;
 }
+
+/**
+ * A FAIXA DO INTÉRPRETE quando falta a voz do idioma (CONV-06, auditoria de 17/11/2026): a instrução de instalar a voz
+ * ("Este aparelho não tem voz em inglês… Gerenciar vozes") é o que a pessoa precisa fazer, e ficava escondida pelo
+ * progresso do pacote do tradutor em 2 s. Ela vence o PROGRESSO do preparo; o ERRO do preparo continua vencendo.
+ */
+export function avisoComAVozPrimeiro(
+  prep: ModelPrepState | null | undefined,
+  avisoDaVoz: string | null | undefined,
+): string | null {
+  if (prep?.error) return prep.error;
+  /* Só disputa com o PROGRESSO: sem preparo em curso, a faixa segue a ordem de sempre da tela (prática, cadeado, voz…). */
+  const progresso = avisoDoPreparo(prep);
+  return progresso ? avisoDaVoz || progresso : null;
+}

@@ -92,6 +92,12 @@ export interface SttFinal {
    * no "Detectar"). Ausente = o motor não informa (nuvem) — não é "confiança baixa".
    */
   confiancaDoIdioma?: number;
+  /**
+   * O idioma MEDIDO no áudio quando a dica foi dada e o chamador pediu a conferência (`conferirIdioma`). À parte do
+   * `language` (que segue sendo "o que o motor identificou sem dica"): a fala foi transcrita na dica, e isto só diz
+   * se ela parecia mesmo daquele idioma. Ausente = não conferido (trecho curto, motor que não mede).
+   */
+  idiomaConferido?: { idioma: string; confianca: number };
   confidence?: number;
   /**
    * Tempo de DECODE no motor, em ms, SEM a espera na fila (o Parakeet mede no worker). Ausente = o motor
@@ -185,6 +191,11 @@ export interface SttProvider extends AdapterMeta {
       prompt?: string;
       /** Idioma para o qual a fala será traduzida: a nuvem do site devolve a tradução junto. */
       traduzirPara?: string;
+      /**
+       * CONFERIR O IDIOMA mesmo com a dica (o turno por toque do Intérprete, conversa-de-verdade 3.1): o motor mede o
+       * idioma do áudio e devolve em `idiomaConferido`, sem deixar de transcrever na dica. Quem não sabe medir ignora.
+       */
+      conferirIdioma?: boolean;
     },
   ): Promise<SttFinal>;
   /**

@@ -10,12 +10,16 @@ import { ehMotivoSemTraducao, type LadoDoInterprete, type MotivoSemTraducao, typ
 
 /** A fala, no que o histórico precisa (o mesmo recorte que a tela do intérprete recebe). */
 export type FalaDoHistorico = Pick<SpeechSegment, 'id' | 'originalText' | 'translatedText'> &
-  Partial<Pick<SpeechSegment, 'isPartial' | 'lado' | 'lang' | 'paraLang' | 'semTraducao'>>;
+  Partial<Pick<SpeechSegment, 'isPartial' | 'lado' | 'dono' | 'foraDoPar' | 'lang' | 'paraLang' | 'semTraducao'>>;
 
 export interface ItemDoHistorico {
   id: string;
   /** De que metade veio a fala. */
   lado: LadoDoInterprete;
+  /** Quem a disse, gravado quando ela nasceu (`SpeechSegment.dono`); ausente na sessão antiga. */
+  dono?: LadoDoInterprete;
+  /** A fala saiu num idioma fora do par (ISO-639-1 ouvido): não tem tradução, e a metade pede para repetir. */
+  foraDoPar?: string;
   /** O que foi dito, e a tradução crua (vazia enquanto não vem): a lista em bolhas usa os dois. */
   original: string;
   traducao: string;
@@ -39,7 +43,7 @@ export interface Historico {
   itens: ItemDoHistorico[];
   /** Quantas falas finais ficaram de fora da janela. */
   escondidas: number;
-  /** A última fala do outro: a frase grande da metade. */
+  /** A última fala do outro (sem as de idioma fora do par, que não têm tradução): a frase grande da metade. */
   destaque?: ItemDoHistorico;
   /** A fala em andamento desta metade (só a dela). */
   parcial?: { id: string; texto: string };
@@ -81,10 +85,13 @@ export function historicoDoInterprete(
     }
     const propria = f.lado === lado;
     const traducao = f.translatedText?.trim() ?? '';
-    const traduzindo = !propria && !f.semTraducao && (!traducao || traducao === SEM_TRADUCAO);
+    const foraDoPar = f.foraDoPar?.detectado;
+    const traduzindo = !propria && !f.semTraducao && !foraDoPar && (!traducao || traducao === SEM_TRADUCAO);
     const item: ItemDoHistorico = {
       id: f.id,
       lado: f.lado,
+      ...(f.dono ? { dono: f.dono } : {}),
+      ...(foraDoPar ? { foraDoPar } : {}),
       original: f.originalText,
       traducao: traduzindo ? '' : (f.translatedText ?? ''),
       propria,
@@ -96,7 +103,7 @@ export function historicoDoInterprete(
       ...(!propria && ehMotivoSemTraducao(f.semTraducao) ? { semTraducao: f.semTraducao } : {}),
     };
     todos.push(item);
-    if (!propria) destaque = item;
+    if (!propria && !foraDoPar) destaque = item;
   }
 
   const itens = todos.slice(-janela);

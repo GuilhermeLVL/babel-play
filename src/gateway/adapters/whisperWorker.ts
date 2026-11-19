@@ -229,6 +229,9 @@ async function ensurePipeline(model?: string, dtypeKey?: string, device?: string
  */
 const INTERVALO_DOS_UPDATES_MS = 120;
 
+/** Abaixo disto (s) o idioma do turno não é conferido: a detecção em trecho curto erra demais. */
+const SEGUNDOS_PARA_CONFERIR = 2;
+
 /** A fila serial deste worker: uma tarefa por vez, o final na frente (ver `filaDoWorker.ts`). */
 const fila = new FilaSerial();
 let cargas = 0;
@@ -238,7 +241,7 @@ const responderCancelado = (id: string) => self.postMessage({ type: 'cancelado',
 
 /** Um decode (parcial ou final) — o corpo que antes rodava direto no `onmessage`. */
 async function transcrever(dados: any, sinal: SinalDeCancelamento): Promise<void> {
-  const { id, pcm, language, model, dtype, device, maxNewTokens } = dados;
+  const { id, pcm, language, model, dtype, device, maxNewTokens, conferirIdioma } = dados;
   await ensurePipeline(model, dtype, device);
   if (sinal.cancelado) return responderCancelado(id);
 
@@ -312,6 +315,16 @@ async function transcrever(dados: any, sinal: SinalDeCancelamento): Promise<void
      ecoada — e é com ele que o perfil da sessão converge e passa a mandar a dica. */
   let idioma: string | undefined = language || undefined;
   let confiancaDoIdioma: number | undefined;
+  /* CONFERIR O IDIOMA DO TURNO (conversa-de-verdade, 3.1): no Intérprete por toque o idioma vem do lado, e a fala em
+     outro idioma era transcrita à força como se fosse dele ("Perdón, ¿alguien quiere más pan?" virou "Sorry, I want to
+     go to the bathroom", CONV-03). Com a fala de 2 s ou mais (abaixo disso a detecção erra demais: 12/20 em pt com
+     1,5 s), um passe a mais do encoder mede o idioma; a transcrição segue na dica, e quem decide é o pipeline. */
+  let idiomaConferido: { idioma: string; confianca: number } | undefined;
+  if (idioma && conferirIdioma && audioSec >= SEGUNDOS_PARA_CONFERIR) {
+    const det = await detectarIdiomaDoAudio(asr, pcm, Tensor as never).catch(() => null);
+    if (det) idiomaConferido = det;
+    if (sinal.cancelado) return responderCancelado(id);
+  }
   if (!idioma) {
     const det = await detectarIdiomaDoAudio(asr, pcm, Tensor as never);
     if (det) {
@@ -357,6 +370,7 @@ async function transcrever(dados: any, sinal: SinalDeCancelamento): Promise<void
     descartado: !!bruto && !filtrado,
     // Só quando MEDIDO (sem dica): devolver a dica seria confundir pergunta com resposta.
     ...(confiancaDoIdioma !== undefined ? { language: idioma, confiancaDoIdioma } : {}),
+    ...(idiomaConferido ? { idiomaConferido } : {}),
   });
 }
 

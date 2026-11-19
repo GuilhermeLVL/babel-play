@@ -914,6 +914,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
           onUpdate?: (text: string) => void;
           prompt?: string;
           traduzirPara?: string;
+          conferirIdioma?: boolean;
         },
       ): Promise<SttFinal> {
         let lastErr: Error | null = null;

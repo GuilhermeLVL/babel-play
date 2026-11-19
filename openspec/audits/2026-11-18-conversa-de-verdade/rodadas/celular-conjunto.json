@@ -1,0 +1,1136 @@
+{
+ "rodada": "celular-conjunto",
+ "opcoes": {
+  "raiz": "/tmp/conversa-de-verdade/jantar",
+  "saida": "rodadas/celular-conjunto",
+  "base": "http://localhost:3100",
+  "celular": true,
+  "falas": "/Users/guilhermepinheirodeoliveira/dev/personal/babel/babel-play/.claude/worktrees/agent-a3436c9da7e51b24f/tests/fixtures/interprete/falas",
+  "perfil": "/tmp/conversa-de-verdade/jantar/perfil-base-celular",
+  "turnos": [
+   "pt01",
+   "en01",
+   "pt02",
+   "en02",
+   "pt03",
+   "en03",
+   "pt04",
+   "en04",
+   "pt05",
+   "en05",
+   "pt06",
+   "en06",
+   "pt07",
+   "en07",
+   "pt08",
+   "en08",
+   "pt09",
+   "en09",
+   "pt10",
+   "en10"
+  ],
+  "esperaMicMs": 180000
+ },
+ "cargaAteBotaoMs": 905,
+ "toquesTotais": 20,
+ "turnos": 20,
+ "toquesPorTurno": 1,
+ "toquesExtras": [],
+ "troca": null,
+ "mediana": {
+  "toqueAteMicProntoMs": 438,
+  "fimDaFalaAteMicFecharMs": 2293,
+  "fimDaFalaAteTraducaoMs": -3353,
+  "fimDaFalaAteVozMs": 2355,
+  "toqueAteVozTerminarMs": 8968
+ },
+ "avisosVistos": [
+  "Instalando o tradutor · N%"
+ ],
+ "ouvindoAntesDoPronto": {
+  "ultimoPreparoMs": null,
+  "primeiroOuvindoMs": 2656.75,
+  "ouvindoComPreparo": false
+ },
+ "lista": [
+  {
+   "dono": "meu",
+   "fala": "Boa noite, que bom que você veio jantar com a gente.",
+   "lang": "pt",
+   "trad": "Good evening, glad you came to dinner with us."
+  },
+  {
+   "dono": "outro",
+   "fala": "Thank you so much for inviting me. The food smells amazing!",
+   "lang": "en",
+   "trad": "Muito obrigado por me convidar. A comida cheira incrível!"
+  },
+  {
+   "dono": "meu",
+   "fala": "Você preferiu ver o Chintou Sua Silva.",
+   "lang": "pt",
+   "trad": "You preferred to see Chinto Your Silva."
+  },
+  {
+   "dono": "outro",
+   "fala": "Red wine, please. Where did you learn to cook like this?",
+   "lang": "en",
+   "trad": "Vinho tinto, por favor. Onde aprendeu a cozinhar assim?"
+  },
+  {
+   "dono": "meu",
+   "fala": "Minha avô me ensinou quando eu era criança.",
+   "lang": "pt",
+   "trad": "My grandfather taught me when I was a child."
+  },
+  {
+   "dono": "outro",
+   "fala": "That is beautiful. Could you pass me the salt, please?",
+   "lang": "en",
+   "trad": "Isso é lindo. Poderia me passar o sal, por favor?"
+  },
+  {
+   "dono": "meu",
+   "fala": "Então, acho que vou pedir a sobremesa de chocolate.",
+   "lang": "pt",
+   "trad": "So I guess I'll order chocolate dessert."
+  },
+  {
+   "dono": "outro",
+   "fala": "I have never tried this dish before.",
+   "lang": "en",
+   "trad": "Nunca experimentei este prato antes."
+  },
+  {
+   "dono": "meu",
+   "fala": "Você já experimentou o pano de queijo daqui?",
+   "lang": "pt",
+   "trad": "Have you tried the cheese cloth from here?"
+  },
+  {
+   "dono": "outro",
+   "fala": "How long does it take to get the airport?",
+   "lang": "en",
+   "trad": "Quanto tempo leva para chegar ao aeroporto?"
+  },
+  {
+   "dono": "meu",
+   "fala": "A gente pode dividir a conta no final.",
+   "lang": "pt",
+   "trad": "We can split the bill at the end."
+  },
+  {
+   "dono": "outro",
+   "fala": "My flight leaves early tomorrow morning.",
+   "lang": "en",
+   "trad": "Meu voo parte amanhã cedo."
+  },
+  {
+   "dono": "meu",
+   "fala": "Amanhã eu vou levar meus filhos ao parque.",
+   "lang": "pt",
+   "trad": "Tomorrow I will take my children to the park."
+  },
+  {
+   "dono": "outro",
+   "fala": "Could we split the bill at the end?",
+   "lang": "en",
+   "trad": "Podemos dividir a conta no final?"
+  },
+  {
+   "dono": "meu",
+   "fala": "Desculpe, pode repetir mais de vagar.",
+   "lang": "pt",
+   "trad": "Sorry, you can repeat more wandering."
+  },
+  {
+   "dono": "outro",
+   "fala": "I would love to visit your family next summer.",
+   "lang": "en",
+   "trad": "Adoraria visitar sua família no próximo verão."
+  },
+  {
+   "dono": "meu",
+   "fala": "o restaurante Feshazons e horas da noite.",
+   "lang": "pt",
+   "trad": "The Feshazons restaurant and hours of the night."
+  },
+  {
+   "dono": "outro",
+   "fala": "Sorry, could you say that again more slowly?",
+   "lang": "en",
+   "trad": "Desculpe, pode dizer isso mais devagar?"
+  },
+  {
+   "dono": "meu",
+   "fala": "Quanto tempo você vai ficar no Brasil?",
+   "lang": "pt",
+   "trad": "How long will you stay in Brazil?"
+  },
+  {
+   "dono": "outro",
+   "fala": "This is the best dinner I have had in weeks.",
+   "lang": "en",
+   "trad": "Este é o melhor jantar que já tive em semanas."
+  }
+ ],
+ "vozesUsadas": [
+  "Eddy (Portuguese (Brazil))|pt-BR"
+ ],
+ "vozesPadraoDoSistema": [
+  {
+   "nome": "Samantha",
+   "lang": "en-US",
+   "padrao": true
+  }
+ ],
+ "gum": [
+  {
+   "t": 2628.6449999809265,
+   "audio": true,
+   "video": false
+  }
+ ],
+ "turnosDetalhe": [
+  {
+   "i": 0,
+   "fala": "pt01",
+   "lado": "meu",
+   "toques": 1,
+   "toqueAteMicProntoMs": 535,
+   "falaDurMs": 4020,
+   "fimDaFalaAteMicFecharMs": 2352,
+   "fimDaFalaAteTraducaoMs": null,
+   "fimDaFalaAteVozMs": null,
+   "toqueAteVozTerminarMs": null,
+   "vozDurMs": null,
+   "traducaoNaTela": "",
+   "lidoEmVoz": null,
+   "vozUsada": null,
+   "langDaVoz": null,
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "O APP ENTENDEU:",
+   "fraseFinalOutro": "Toque em Falar e fale. A tradução aparece do outro lado e é lida em voz alta.",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 14
+     },
+     "outro": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 14
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 1,
+   "fala": "en01",
+   "lado": "outro",
+   "toques": 1,
+   "toqueAteMicProntoMs": 447,
+   "falaDurMs": 3635,
+   "fimDaFalaAteMicFecharMs": 2387,
+   "fimDaFalaAteTraducaoMs": -4346,
+   "fimDaFalaAteVozMs": 2538,
+   "toqueAteVozTerminarMs": 11346,
+   "vozDurMs": 4418,
+   "traducaoNaTela": "Boa noite, que bom que você veio jantar com a gente.",
+   "lidoEmVoz": "Muito obrigado por me convidar. A comida cheira incrível!",
+   "vozUsada": "Eddy (Portuguese (Brazil))|pt-BR",
+   "langDaVoz": "pt-BR",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "Thank you so much for inviting me. The food smells amazing!",
+   "fraseFinalOutro": "Muito obrigado por me convidar. A comida cheira incrível!",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 26.368
+     },
+     "outro": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 2,
+   "fala": "pt02",
+   "lado": "meu",
+   "toques": 1,
+   "toqueAteMicProntoMs": 456,
+   "falaDurMs": 3190,
+   "fimDaFalaAteMicFecharMs": 2246,
+   "fimDaFalaAteTraducaoMs": null,
+   "fimDaFalaAteVozMs": null,
+   "toqueAteVozTerminarMs": null,
+   "vozDurMs": null,
+   "traducaoNaTela": "",
+   "lidoEmVoz": null,
+   "vozUsada": null,
+   "langDaVoz": null,
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "O APP ENTENDEU:",
+   "fraseFinalOutro": "Thank you so much for inviting me. The food smells amazing!",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 14
+     },
+     "outro": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 3,
+   "fala": "en02",
+   "lado": "outro",
+   "toques": 1,
+   "toqueAteMicProntoMs": 436,
+   "falaDurMs": 4300,
+   "fimDaFalaAteMicFecharMs": 2005,
+   "fimDaFalaAteTraducaoMs": -4996,
+   "fimDaFalaAteVozMs": 2182,
+   "toqueAteVozTerminarMs": 11368,
+   "vozDurMs": 4135,
+   "traducaoNaTela": "Você preferiu ver o Chintou Sua Silva.",
+   "lidoEmVoz": "Vinho tinto, por favor. Onde aprendeu a cozinhar assim?",
+   "vozUsada": "Eddy (Portuguese (Brazil))|pt-BR",
+   "langDaVoz": "pt-BR",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "Red wine, please. Where did you learn to cook like this?",
+   "fraseFinalOutro": "Vinho tinto, por favor. Onde aprendeu a cozinhar assim?",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 26.368
+     },
+     "outro": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 4,
+   "fala": "pt03",
+   "lado": "meu",
+   "toques": 1,
+   "toqueAteMicProntoMs": 440,
+   "falaDurMs": 2761,
+   "fimDaFalaAteMicFecharMs": 2357,
+   "fimDaFalaAteTraducaoMs": null,
+   "fimDaFalaAteVozMs": null,
+   "toqueAteVozTerminarMs": null,
+   "vozDurMs": null,
+   "traducaoNaTela": "",
+   "lidoEmVoz": null,
+   "vozUsada": null,
+   "langDaVoz": null,
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "O APP ENTENDEU:",
+   "fraseFinalOutro": "Red wine, please. Where did you learn to cook like this?",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 14
+     },
+     "outro": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 5,
+   "fala": "en03",
+   "lado": "outro",
+   "toques": 1,
+   "toqueAteMicProntoMs": 431,
+   "falaDurMs": 3319,
+   "fimDaFalaAteMicFecharMs": 2298,
+   "fimDaFalaAteTraducaoMs": -4003,
+   "fimDaFalaAteVozMs": 2423,
+   "toqueAteVozTerminarMs": 10293,
+   "vozDurMs": 3813,
+   "traducaoNaTela": "Minha avô me ensinou quando eu era criança.",
+   "lidoEmVoz": "Isso é lindo. Poderia me passar o sal, por favor?",
+   "vozUsada": "Eddy (Portuguese (Brazil))|pt-BR",
+   "langDaVoz": "pt-BR",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "That is beautiful. Could you pass me the salt, please?",
+   "fraseFinalOutro": "Isso é lindo. Poderia me passar o sal, por favor?",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 26.368
+     },
+     "outro": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 6,
+   "fala": "pt04",
+   "lado": "meu",
+   "toques": 1,
+   "toqueAteMicProntoMs": 426,
+   "falaDurMs": 3756,
+   "fimDaFalaAteMicFecharMs": 2288,
+   "fimDaFalaAteTraducaoMs": null,
+   "fimDaFalaAteVozMs": null,
+   "toqueAteVozTerminarMs": null,
+   "vozDurMs": null,
+   "traducaoNaTela": "",
+   "lidoEmVoz": null,
+   "vozUsada": null,
+   "langDaVoz": null,
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "O APP ENTENDEU:",
+   "fraseFinalOutro": "That is beautiful. Could you pass me the salt, please?",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 14
+     },
+     "outro": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 7,
+   "fala": "en04",
+   "lado": "outro",
+   "toques": 1,
+   "toqueAteMicProntoMs": 440,
+   "falaDurMs": 2473,
+   "fimDaFalaAteMicFecharMs": 2101,
+   "fimDaFalaAteTraducaoMs": -3150,
+   "fimDaFalaAteVozMs": 2196,
+   "toqueAteVozTerminarMs": 8157,
+   "vozDurMs": 2744,
+   "traducaoNaTela": "Então, acho que vou pedir a sobremesa de chocolate.",
+   "lidoEmVoz": "Nunca experimentei este prato antes.",
+   "vozUsada": "Eddy (Portuguese (Brazil))|pt-BR",
+   "langDaVoz": "pt-BR",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "I have never tried this dish before.",
+   "fraseFinalOutro": "Nunca experimentei este prato antes.",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 26.368
+     },
+     "outro": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 8,
+   "fala": "pt05",
+   "lado": "meu",
+   "toques": 1,
+   "toqueAteMicProntoMs": 437,
+   "falaDurMs": 3124,
+   "fimDaFalaAteMicFecharMs": 2363,
+   "fimDaFalaAteTraducaoMs": null,
+   "fimDaFalaAteVozMs": null,
+   "toqueAteVozTerminarMs": null,
+   "vozDurMs": null,
+   "traducaoNaTela": "",
+   "lidoEmVoz": null,
+   "vozUsada": null,
+   "langDaVoz": null,
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "O APP ENTENDEU:",
+   "fraseFinalOutro": "I have never tried this dish before.",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 14
+     },
+     "outro": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 9,
+   "fala": "en05",
+   "lado": "outro",
+   "toques": 1,
+   "toqueAteMicProntoMs": 441,
+   "falaDurMs": 2447,
+   "fimDaFalaAteMicFecharMs": 2354,
+   "fimDaFalaAteTraducaoMs": -3147,
+   "fimDaFalaAteVozMs": 2434,
+   "toqueAteVozTerminarMs": 8790,
+   "vozDurMs": 3160,
+   "traducaoNaTela": "Você já experimentou o pano de queijo daqui?",
+   "lidoEmVoz": "Quanto tempo leva para chegar ao aeroporto?",
+   "vozUsada": "Eddy (Portuguese (Brazil))|pt-BR",
+   "langDaVoz": "pt-BR",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "How long does it take to get the airport?",
+   "fraseFinalOutro": "Quanto tempo leva para chegar ao aeroporto?",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 26.368
+     },
+     "outro": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 10,
+   "fala": "pt06",
+   "lado": "meu",
+   "toques": 1,
+   "toqueAteMicProntoMs": 428,
+   "falaDurMs": 3051,
+   "fimDaFalaAteMicFecharMs": 2134,
+   "fimDaFalaAteTraducaoMs": null,
+   "fimDaFalaAteVozMs": null,
+   "toqueAteVozTerminarMs": null,
+   "vozDurMs": null,
+   "traducaoNaTela": "",
+   "lidoEmVoz": null,
+   "vozUsada": null,
+   "langDaVoz": null,
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "O APP ENTENDEU:",
+   "fraseFinalOutro": "How long does it take to get the airport?",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 14
+     },
+     "outro": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 11,
+   "fala": "en06",
+   "lado": "outro",
+   "toques": 1,
+   "toqueAteMicProntoMs": 438,
+   "falaDurMs": 2704,
+   "fimDaFalaAteMicFecharMs": 2120,
+   "fimDaFalaAteTraducaoMs": -3380,
+   "fimDaFalaAteVozMs": 2193,
+   "toqueAteVozTerminarMs": 7982,
+   "vozDurMs": 2344,
+   "traducaoNaTela": "A gente pode dividir a conta no final.",
+   "lidoEmVoz": "Meu voo parte amanhã cedo.",
+   "vozUsada": "Eddy (Portuguese (Brazil))|pt-BR",
+   "langDaVoz": "pt-BR",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "My flight leaves early tomorrow morning.",
+   "fraseFinalOutro": "Meu voo parte amanhã cedo.",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 26.368
+     },
+     "outro": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 12,
+   "fala": "pt07",
+   "lado": "meu",
+   "toques": 1,
+   "toqueAteMicProntoMs": 428,
+   "falaDurMs": 2938,
+   "fimDaFalaAteMicFecharMs": 2401,
+   "fimDaFalaAteTraducaoMs": null,
+   "fimDaFalaAteVozMs": null,
+   "toqueAteVozTerminarMs": null,
+   "vozDurMs": null,
+   "traducaoNaTela": "",
+   "lidoEmVoz": null,
+   "vozUsada": null,
+   "langDaVoz": null,
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "O APP ENTENDEU:",
+   "fraseFinalOutro": "My flight leaves early tomorrow morning.",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 14
+     },
+     "outro": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 13,
+   "fala": "en07",
+   "lado": "outro",
+   "toques": 1,
+   "toqueAteMicProntoMs": 428,
+   "falaDurMs": 1728,
+   "fimDaFalaAteMicFecharMs": 2343,
+   "fimDaFalaAteTraducaoMs": -2409,
+   "fimDaFalaAteVozMs": 2431,
+   "toqueAteVozTerminarMs": 7432,
+   "vozDurMs": 2541,
+   "traducaoNaTela": "Amanhã eu vou levar meus filhos ao parque.",
+   "lidoEmVoz": "Podemos dividir a conta no final?",
+   "vozUsada": "Eddy (Portuguese (Brazil))|pt-BR",
+   "langDaVoz": "pt-BR",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "Could we split the bill at the end?",
+   "fraseFinalOutro": "Podemos dividir a conta no final?",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 26.368
+     },
+     "outro": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 14,
+   "fala": "pt08",
+   "lado": "meu",
+   "toques": 1,
+   "toqueAteMicProntoMs": 427,
+   "falaDurMs": 3074,
+   "fimDaFalaAteMicFecharMs": 2095,
+   "fimDaFalaAteTraducaoMs": null,
+   "fimDaFalaAteVozMs": null,
+   "toqueAteVozTerminarMs": null,
+   "vozDurMs": null,
+   "traducaoNaTela": "",
+   "lidoEmVoz": null,
+   "vozUsada": null,
+   "langDaVoz": null,
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "O APP ENTENDEU:",
+   "fraseFinalOutro": "Could we split the bill at the end?",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 14
+     },
+     "outro": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 15,
+   "fala": "en08",
+   "lado": "outro",
+   "toques": 1,
+   "toqueAteMicProntoMs": 437,
+   "falaDurMs": 3040,
+   "fimDaFalaAteMicFecharMs": 2133,
+   "fimDaFalaAteTraducaoMs": -3724,
+   "fimDaFalaAteVozMs": 2286,
+   "toqueAteVozTerminarMs": 9459,
+   "vozDurMs": 3383,
+   "traducaoNaTela": "Desculpe, pode repetir mais de vagar.",
+   "lidoEmVoz": "Adoraria visitar sua família no próximo verão.",
+   "vozUsada": "Eddy (Portuguese (Brazil))|pt-BR",
+   "langDaVoz": "pt-BR",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "I would love to visit your family next summer.",
+   "fraseFinalOutro": "Adoraria visitar sua família no próximo verão.",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 26.368
+     },
+     "outro": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 16,
+   "fala": "pt09",
+   "lado": "meu",
+   "toques": 1,
+   "toqueAteMicProntoMs": 447,
+   "falaDurMs": 3075,
+   "fimDaFalaAteMicFecharMs": 2411,
+   "fimDaFalaAteTraducaoMs": null,
+   "fimDaFalaAteVozMs": null,
+   "toqueAteVozTerminarMs": null,
+   "vozDurMs": null,
+   "traducaoNaTela": "",
+   "lidoEmVoz": null,
+   "vozUsada": null,
+   "langDaVoz": null,
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "O APP ENTENDEU:",
+   "fraseFinalOutro": "I would love to visit your family next summer.",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 14
+     },
+     "outro": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 17,
+   "fala": "en09",
+   "lado": "outro",
+   "toques": 1,
+   "toqueAteMicProntoMs": 455,
+   "falaDurMs": 2604,
+   "fimDaFalaAteMicFecharMs": 2315,
+   "fimDaFalaAteTraducaoMs": -3326,
+   "fimDaFalaAteVozMs": 2515,
+   "toqueAteVozTerminarMs": 9146,
+   "vozDurMs": 3254,
+   "traducaoNaTela": "o restaurante Feshazons e horas da noite.",
+   "lidoEmVoz": "Desculpe, pode dizer isso mais devagar?",
+   "vozUsada": "Eddy (Portuguese (Brazil))|pt-BR",
+   "langDaVoz": "pt-BR",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "Sorry, could you say that again more slowly?",
+   "fraseFinalOutro": "Desculpe, pode dizer isso mais devagar?",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 26.368
+     },
+     "outro": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 18,
+   "fala": "pt10",
+   "lado": "meu",
+   "toques": 1,
+   "toqueAteMicProntoMs": 431,
+   "falaDurMs": 2906,
+   "fimDaFalaAteMicFecharMs": 2275,
+   "fimDaFalaAteTraducaoMs": null,
+   "fimDaFalaAteVozMs": null,
+   "toqueAteVozTerminarMs": null,
+   "vozDurMs": null,
+   "traducaoNaTela": "",
+   "lidoEmVoz": null,
+   "vozUsada": null,
+   "langDaVoz": null,
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "O APP ENTENDEU:",
+   "fraseFinalOutro": "Sorry, could you say that again more slowly?",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 14
+     },
+     "outro": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 19,
+   "fala": "en10",
+   "lado": "outro",
+   "toques": 1,
+   "toqueAteMicProntoMs": 442,
+   "falaDurMs": 2542,
+   "fimDaFalaAteMicFecharMs": 2042,
+   "fimDaFalaAteTraducaoMs": -3266,
+   "fimDaFalaAteVozMs": 2230,
+   "toqueAteVozTerminarMs": 8733,
+   "vozDurMs": 3200,
+   "traducaoNaTela": "Quanto tempo você vai ficar no Brasil?",
+   "lidoEmVoz": "Este é o melhor jantar que já tive em semanas.",
+   "vozUsada": "Eddy (Portuguese (Brazil))|pt-BR",
+   "langDaVoz": "pt-BR",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "This is the best dinner I have had in weeks.",
+   "fraseFinalOutro": "Este é o melhor jantar que já tive em semanas.",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 26.368
+     },
+     "outro": {
+      "scrollHeight": 158,
+      "clientHeight": 158,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  }
+ ]
+}

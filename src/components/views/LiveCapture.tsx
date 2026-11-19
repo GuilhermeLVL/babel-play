@@ -98,13 +98,15 @@ import {
   temAudioDaFala,
   tocarAudioDaFala,
 } from '../../lib/captura/audioDasFalas';
-import { avisoDoPreparo } from '../../lib/captura/avisoDoPreparo';
+import { avisoDoPreparo, preparoDoInterprete } from '../../lib/captura/avisoDoPreparo';
 // Ciclo da sessão: começar, retomar, parar e salvar (falas, áudio e vocabulário).
 import { baixarCaptura } from '../../lib/captura/baixarCaptura';
+import { conferirAntesDeLer } from '../../lib/captura/conferenciaDaTranscricao';
 import { abrirContextoDoClique } from '../../lib/captura/contextoDoClique';
 import type { PonteDoInterprete } from '../../lib/captura/controleDoInterprete';
 // Callbacks estáveis e o texto da conversa para o App, sem re-renderizar a conversa à toa.
 import { useFuncaoEstavel, useTextoDaConversa } from '../../lib/captura/conversaEstavel';
+import { carregarAoEntrarNoInterprete } from '../../lib/captura/downloadDoInterprete';
 import { assinarSalvamento, capturaEmRisco, lerSalvamento } from '../../lib/captura/estadoDoSalvamento';
 import { criarFontesDeAudio } from '../../lib/captura/fontesDeAudio';
 import { type PassoDoInicio, planejarInicio } from '../../lib/captura/inicioDaCaptura';
@@ -2756,6 +2758,28 @@ export default function LiveCapture({
     gravando: isRecording,
     parDoTradutor: pecasDoInicio.par,
   });
+  /* O INTÉRPRETE CARREGA O RECONHECIMENTO AO ABRIR (conversa-de-verdade, 4.2): com o modelo desta conversa já no
+     aparelho, ele sobe do cache antes do primeiro "Falar", e a primeira fala não espera a carga. Sem o modelo, nada
+     é baixado antes do toque (`downloadDoInterprete.ts`). */
+  /* O reconhecimento ficou pronto NESTA sessão (o preparo chegou ao fim): o "Preparando" antes do primeiro número
+     (`preparoDoInterprete`) não volta depois que o painel do preparo some. Zera quando a sessão acaba. */
+  const [reconhecimentoProntoNaSessao, setReconhecimentoProntoNaSessao] = useState(false);
+  const preparoConcluidoAgora = !!modelPrep?.done;
+  useEffect(() => {
+    if (!isRecording) setReconhecimentoProntoNaSessao(false);
+    else if (preparoConcluidoAgora) setReconhecimentoProntoNaSessao(true);
+  }, [isRecording, preparoConcluidoAgora]);
+  const carregarNoInterprete = carregarAoEntrarNoInterprete({
+    noInterprete: entrada === 'interprete',
+    gravando: isRecording,
+    noAparelho: !!preparoDoInicio.completos?.has(pecasDoInicio.stt),
+    semModeloLocal: getProviderMode() === 'cloud' || nuvemDoQuestAtiva(),
+  });
+  useEffect(() => {
+    if (!carregarNoInterprete) return;
+    const relogio = setTimeout(() => void preaquecerRef.current(), 400);
+    return () => clearTimeout(relogio);
+  }, [carregarNoInterprete]);
   /* "LEGENDA SEM BAIXAR NADA: ESCOLHA O IDIOMA DO VÍDEO" (`lib/captura/legendaSemBaixar.ts`, A9a). No
      desktop fraco, com a detecção automática ligada, a captura cairia no Whisper local; com o idioma
      escolhido, o próprio navegador transcreve a aba no aparelho. A oferta aparece só quando a MESMA
@@ -4603,6 +4627,25 @@ export default function LiveCapture({
             semVoz={semVozDeLeitura}
             vozDoSite={nuvemDoQuestAtiva()}
             abrindo={micAbrindo}
+            progressoDoPreparo={preparoDoInterprete(modelPrep, {
+              esperandoModelo:
+                isRecording &&
+                !reconhecimentoProntoNaSessao &&
+                escolhaDoMic !== 'rapido' &&
+                getProviderMode() !== 'cloud' &&
+                !nuvemDoQuestAtiva() &&
+                !preparoDoInicio.completos?.has(pecasDoInicio.stt),
+            })}
+            conferirAntesDeLer={(idiomaDaFala, motorDaFala) =>
+              conferirAntesDeLer({
+                celular: noCelular,
+                modeloLocal: getProviderMode() === 'cloud' || nuvemDoQuestAtiva() ? '' : pecasDoInicio.stt,
+                idiomaDaFala,
+                ...(motorDaFala ? { motorDaFala } : {}),
+              })
+            }
+            aoCorrigirFala={corrigirFalaDoInterprete}
+            aoDescartarFala={(id) => setSpeechSegments((prev) => prev.filter((s) => s.id !== id))}
             preparo={modelPrep}
             automatico={automaticoDoInterprete}
             aoSair={sairDoInterprete}

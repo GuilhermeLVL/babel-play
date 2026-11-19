@@ -165,6 +165,12 @@ jobs:
       - if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: npm run build
         timeout-minutes: 10
+      # Catalogos a mao em ordem alfabetica: inserir sempre no FIM fazia todo par de PRs conflitar
+      # nas mesmas ultimas linhas. Em ordem, cada chave cai no seu lugar. Corrige com `npm run i18n`.
+      - name: Catalogos de i18n em ordem
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        run: node scripts/i18n/ordenar.mjs --check
+
       # O catalogo pseudo tem que estar em dia, senao o teste de layout roda sobre um mapa velho
       # e deixa de ver as strings novas — falha silenciosa, do tipo que este repo ja documenta.
       - name: Catalogo pseudo em dia

@@ -25,11 +25,16 @@ import { asUserId } from '../../server/lib/authContext'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 import { PLANO_PAGO } from '../harness/planoPago'
 
-const forja = vi.hoisted(() => ({ semVoz: false }))
+const forja = vi.hoisted(() => ({ semVoz: false, emTeste: false, plano: null as string | null }))
 vi.mock('../../server/lib/entitlements', async (original) => {
   const real = await original<typeof import('../../server/lib/entitlements')>()
   return {
     ...real,
+    resolverPlano: async (userId: Parameters<typeof real.resolverPlano>[0]) => {
+      const r = await real.resolverPlano(userId)
+      const plano = (forja.plano ?? r.plano) as typeof r.plano
+      return forja.emTeste ? { plano, teste: { terminaEm: Date.now() + 86_400_000 } } : { ...r, plano }
+    },
     getEntitlements: (plano: Parameters<typeof real.getEntitlements>[0]) => {
       const e = real.getEntitlements(plano)
       return forja.semVoz ? { ...e, vozNatural: false } : e
@@ -133,6 +138,8 @@ beforeEach(async () => {
 })
 afterEach(async () => {
   forja.semVoz = false
+  forja.emTeste = false
+  forja.plano = null
   vi.unstubAllGlobals()
   esquecerDisjuntores()
   await esquecerAdmissao()
@@ -158,6 +165,18 @@ describe('a porta da voz natural', () => {
     const res = await pedir({ texto: 'Good morning', idioma: 'en' })
     expect(res.statusCode).toBe(402)
     expect(res.body).toMatchObject({ code: 'exige_voz_natural', entitlement: 'vozNatural' })
+    expect(chamadas).toHaveLength(0)
+    expect(await contador('tts_chars')).toBe(antes)
+  })
+
+  it('no TESTE de 3 dias a voz da nuvem não vem: 402, sem provedor e sem cota (a voz do aparelho lê)', async () => {
+    forja.emTeste = true
+    const chamadas = provedor()
+    const antes = await contador('tts_chars')
+    const res = await pedir({ texto: 'Good morning', idioma: 'en' })
+    expect(res.statusCode).toBe(402)
+    expect(res.body).toMatchObject({ code: 'exige_voz_natural', entitlement: 'vozNatural' })
+    expect(res.body.error).toMatch(/voz do aparelho/)
     expect(chamadas).toHaveLength(0)
     expect(await contador('tts_chars')).toBe(antes)
   })
@@ -294,6 +313,86 @@ describe('a cascata', () => {
     const res = await pedir({ texto: 'Server is down', idioma: 'en' })
     expect(res.statusCode).toBe(502)
     expect(res.body.code).toBe('provedor_indisponivel')
+    expect(await contador('tts_chars')).toBe(antes)
+  })
+})
+
+describe('pelo OpenRouter (change voz-natural-openrouter)', () => {
+  const ROTEAMENTO = { data_collection: 'deny', zdr: true, ignore: ['google-ai-studio', 'google-vertex'] }
+  const openrouter = (modelos: Array<Record<string, unknown>>) => ({
+    id: 'openrouter',
+    formato: 'openai',
+    base: 'https://openrouter.ai/api/v1',
+    chave: 'OPENROUTER_API_KEY',
+    retencao: 'zdr',
+    roteamento: ROTEAMENTO,
+    modelos,
+  })
+  const KOKORO = { id: 'hexgrad/kokoro-82m', funcoes: ['tts'], preco: { milhaoDeCaracteres: 4 } }
+  const MAI = { id: 'microsoft/mai-voice-2.1-flash', funcoes: ['tts'], preco: { milhaoDeCaracteres: 15 } }
+
+  beforeEach(() => {
+    process.env.DEEPINFRA_API_KEY = ''
+    process.env.OPENROUTER_API_KEY = 'chave-openrouter-falsa'
+  })
+
+  it('Kokoro com a chave do app: o pedido leva zdr e a voz do idioma, e o custo vai ao gasto', async () => {
+    process.env.IA_PROVEDORES = JSON.stringify({ provedores: [openrouter([KOKORO])] })
+    const chamadas = provedor()
+    const gastoAntes = (await gasto.ler(mes()))?.microUsd ?? 0
+    const res = await pedir({ texto: 'Onde fica a estação de trem?', idioma: 'pt-BR' })
+    expect(res.statusCode).toBe(200)
+    expect(res.headers['x-voz-modelo']).toBe('hexgrad/kokoro-82m')
+    expect(chamadas).toHaveLength(1)
+    expect(chamadas[0].url).toBe('https://openrouter.ai/api/v1/audio/speech')
+    expect(chamadas[0].corpo).toEqual({
+      model: 'hexgrad/kokoro-82m',
+      input: 'Onde fica a estação de trem?',
+      response_format: 'mp3',
+      voice: 'pf_dora',
+      provider: { zdr: true, data_collection: 'deny' },
+    })
+    /* 28 caracteres a US$ 4/1M = US$ 0,000112 = 112 micro-dólares. */
+    expect(((await gasto.ler(mes()))?.microUsd ?? 0) - gastoAntes).toBeCloseTo(112, 0)
+  })
+
+  it('o plano de voz básica nunca chega ao MAI, mesmo com ele primeiro no registro', async () => {
+    process.env.IA_PROVEDORES = JSON.stringify({ provedores: [openrouter([MAI, KOKORO])] })
+    const chamadas = provedor()
+    const res = await pedir({ texto: 'Bom dia', idioma: 'pt' })
+    expect(res.statusCode).toBe(200)
+    expect(chamadas.map((c) => c.corpo.model)).toEqual(['hexgrad/kokoro-82m'])
+  })
+
+  it('o plano de voz boa usa o MAI quando o registro o declara, com o id inteiro da voz', async () => {
+    forja.plano = 'aovivo'
+    process.env.IA_PROVEDORES = JSON.stringify({ provedores: [openrouter([MAI, KOKORO])] })
+    const chamadas = provedor()
+    const res = await pedir({ texto: 'Bom dia, tudo bem?', idioma: 'pt-BR', voz: 'Luana' })
+    expect(res.statusCode).toBe(200)
+    expect(chamadas[0].corpo).toMatchObject({
+      model: 'microsoft/mai-voice-2.1-flash',
+      voice: 'pt-BR-Luana:MAI-Voice-2.1-Flash',
+      provider: { zdr: true, data_collection: 'deny' },
+    })
+  })
+
+  it('só o MAI declarado e plano de voz básica: 501, e a voz do aparelho segue', async () => {
+    process.env.IA_PROVEDORES = JSON.stringify({ provedores: [openrouter([MAI])] })
+    const chamadas = provedor()
+    const res = await pedir({ texto: 'Bom dia', idioma: 'pt' })
+    expect(res.statusCode).toBe(501)
+    expect(res.body.code).toBe('voz_nao_configurada')
+    expect(chamadas).toHaveLength(0)
+  })
+
+  it('o OpenRouter falhou: 502, os caracteres voltam e o cliente lê com a voz do aparelho', async () => {
+    process.env.IA_PROVEDORES = JSON.stringify({ provedores: [openrouter([KOKORO])] })
+    provedor(() => ({ status: 503 }))
+    const antes = await contador('tts_chars')
+    const res = await pedir({ texto: 'Servidor fora', idioma: 'pt' })
+    expect(res.statusCode).toBe(502)
+    expect(res.body.error).toMatch(/voz do aparelho segue/)
     expect(await contador('tts_chars')).toBe(antes)
   })
 })

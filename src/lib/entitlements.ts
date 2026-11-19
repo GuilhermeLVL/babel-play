@@ -24,6 +24,7 @@ import {
   type PlanoDeAssinatura,
   PLANOS_DE_ASSINATURA,
 } from '../core/planos';
+import { vozDaNuvemLiberada } from '../core/vozNatural';
 import { apiFetch } from '../data/api';
 import { edicaoEstatica } from './edicaoEstatica';
 import { authRequired } from './supabase';
@@ -158,6 +159,14 @@ export async function carregarEntitlements(): Promise<Entitlements> {
   } catch {
     return getEntitlements();
   }
+}
+
+/**
+ * A VOZ NATURAL DA NUVEM vale para esta pessoa? A mesma régua do servidor (`vozDaNuvemLiberada`): a capacidade
+ * `vozNatural` num plano pago, fora do teste de 3 dias. Sem ela, nem se pede à nuvem: a voz do aparelho lê.
+ */
+export function temVozDaNuvem(e: Entitlements = getEntitlements()): boolean {
+  return vozDaNuvemLiberada({ plan: e.plan, vozNatural: e.vozNatural, emTeste: !!e.teste });
 }
 
 /** Esquece o cache (logout / troca de identidade) e avisa as telas. */

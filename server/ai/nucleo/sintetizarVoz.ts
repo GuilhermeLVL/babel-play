@@ -11,10 +11,12 @@
  *   1. pedido (400, `lerPedidoDeVoz`): `texto` até 600 caracteres, `idioma`, a `voz` pronta e a
  *      `velocidade` — e só isso. Campo de áudio de referência ou de voz criada é 400
  *      `clonagem_de_voz_recusada`: NÃO HÁ CLONAGEM;
- *   2. ENTITLEMENT `vozNatural` (402 `exige_voz_natural`), nunca o nome do plano;
+ *   2. ENTITLEMENT `vozNatural` E plano PAGO fora do teste (402 `exige_voz_natural`; `vozDaNuvemLiberada`): o
+ *      Grátis, o convidado e o teste de 3 dias nunca chegam à nuvem da voz (change `voz-natural-openrouter`);
  *   3. FLAG `voz_natural` (503 `voz_natural_desligada`): nasce desligada (migração 0046), e só liga com
  *      a retenção do provedor registrada em `docs/lgpd/operadores.md` e `docs/lgpd/ropa.csv`;
- *   4. CONFIGURAÇÃO (501 `voz_nao_configurada`): nenhuma perna `tts` com a chave no ambiente; nenhuma
+ *   4. CONFIGURAÇÃO (501 `voz_nao_configurada`): nenhuma perna `tts` com a chave no ambiente (e, no OpenRouter, com
+ *      retenção zero conferida) que o NÍVEL DE VOZ do plano possa usar (a voz `boa` só no nível `boa`); nenhuma
  *      que fale o idioma: 422;
  *   5. CACHE L1 (em memória, curto, por bytes): a mesma fala no mesmo idioma e na mesma voz não vai ao
  *      provedor de novo — nem gasta cota, porque não custa nada a ninguém;
@@ -43,6 +45,7 @@ import {
   FLAG_VOZ_NATURAL,
   TETO_DE_CARACTERES_DA_VOZ,
   VELOCIDADE_DA_VOZ,
+  vozDaNuvemLiberada,
 } from '../../../src/core/vozNatural'
 import { contarAdmissaoRecusada, observarChamadaDeProvedor } from '../../http/metricas'
 import { erroDeRota } from '../../lib/erroDeRota'
@@ -71,6 +74,7 @@ import {
   montarPedidoDeVoz,
   type PedidoDeVoz,
   pernasDeVoz,
+  pernasDoNivelDeVoz,
   vozDoModelo,
 } from '../provedoresDeVoz'
 import type { Provedor } from '../registroDeProvedores'
@@ -175,7 +179,7 @@ function chaveDaVoz(perna: Provedor, pedido: PedidoDeVoz): string {
     perna.fornecedor ?? nomeDoProvedor(perna.base),
     perna.model,
     pedido.idioma,
-    vozDoModelo(perna.model, pedido.voz) ?? '',
+    vozDoModelo(perna.model, pedido.voz, pedido.idioma, pedido.bcp47) ?? '',
     String(pedido.velocidade ?? 1),
     pedido.texto,
   ]
@@ -307,11 +311,15 @@ async function sintetizar(
   const idioma = lido.idioma.split('-')[0].toLowerCase()
   const bcp47 = bcp47DaVoz(lido.idioma)
 
-  /* 2) A CAPACIDADE. */
-  if (plano.vozNatural !== true)
+  /* 2) A CAPACIDADE, só de quem PAGA: o teste e o plano sem preço ficam com a voz do aparelho. A recusa diz o fato e o
+     que segue de graça, sem vender nada (o cliente lê a mesma fala com a voz do aparelho). */
+  if (!vozDaNuvemLiberada({ plan: plano.plan, vozNatural: plano.vozNatural === true, emTeste: ctx.emTeste }))
     return decidir(
       recusar(402, {
-        error: 'a voz natural do intérprete é do Premium; a voz do aparelho segue lendo a tradução',
+        error:
+          plano.vozNatural === true && ctx.emTeste
+            ? 'a voz natural da nuvem não faz parte do teste; a voz do aparelho segue lendo a tradução, de graça'
+            : 'a voz natural da nuvem é dos planos pagos; a voz do aparelho segue lendo a tradução, de graça',
         code: CODIGOS_DA_VOZ_NATURAL.exige,
         entitlement: 'vozNatural',
       }),
@@ -327,8 +335,8 @@ async function sintetizar(
       ),
     )
 
-  /* 4) A CONFIGURAÇÃO. */
-  const todas = pernasDeVoz()
+  /* 4) A CONFIGURAÇÃO: as pernas com chave que o nível de voz do plano pode usar. */
+  const todas = pernasDoNivelDeVoz(pernasDeVoz(), plano.nivelDeVoz)
   if (todas.length === 0)
     return decidir(
       recusaDeErro(

@@ -93,15 +93,15 @@ describe('o motor apaga a provisória quando a tradução do final se resolve', 
     expect(m.seg().traducaoProvisoria).toBeUndefined()
   })
 
-  it('falhou: o original entre parênteses (o de sempre), sem a parcial velha', async () => {
+  it('falhou: sem tradução e sem a parcial velha (nunca o original entre parênteses, CEL-01)', async () => {
     const m = montar(async () => {
       throw new Error('sem tradutor')
     })
     vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     await m.traducao.translateSegment('a', 'onde fica a estação', 'pt', 'en', { falada: true })
     await esperar()
-    expect(m.seg().translatedText).toBe('(onde fica a estação)')
+    expect(m.seg().translatedText).toBe('')
     expect(m.seg().traducaoProvisoria).toBeUndefined()
-    expect(traducaoNaLegenda(m.seg()).texto).toBe('(onde fica a estação)')
+    expect(traducaoNaLegenda(m.seg()).texto).toBe('')
   })
 })

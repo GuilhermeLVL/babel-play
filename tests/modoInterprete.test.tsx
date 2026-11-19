@@ -484,7 +484,7 @@ describe('ModoInterprete: o assistente ao vivo (Fase C3)', () => {
 
 describe('ModoInterprete: conversa de verdade', () => {
   it('o primeiro uso não diz "Ouvindo…" antes de poder ouvir: "Preparando N%" e a fala guardada (CONV-09)', () => {
-    const { ponte } = montar({ extra: { preparo: 0.37 } })
+    const { ponte } = montar({ extra: { progressoDoPreparo: 0.37 } })
     fireEvent.click(screen.getByRole('button', { name: /Falar em Português/i }))
     const meu = screen.getByTestId('interprete-meu')
     expect(meu.querySelector('.int-status')?.textContent).toBe('Preparando 37%')
@@ -496,7 +496,7 @@ describe('ModoInterprete: conversa de verdade', () => {
   })
 
   it('com o reconhecimento pronto, volta o "Ouvindo…"', () => {
-    montar({ extra: { preparo: null } })
+    montar({ extra: { progressoDoPreparo: null } })
     fireEvent.click(screen.getByRole('button', { name: /Falar em Português/i }))
     expect(screen.getByTestId('interprete-meu').querySelector('.int-status')?.textContent).toBe('Ouvindo…')
   })

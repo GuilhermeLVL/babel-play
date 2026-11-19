@@ -42,7 +42,8 @@ describe('páginas públicas', () => {
     expect(html).toContain(trecho)
     expect(canonical(html)).toBe(`${URL_SITE}${caminho}`)
     expect(html).toContain('<html lang="pt-BR">')
-    expect(html).not.toMatch(/<script(?![^>]*application\/ld\+json)/)
+    // Só JSON-LD e, na home, os scripts do próprio domínio do filme (`/site/…`).
+    expect(html).not.toMatch(/<script(?![^>]*application\/ld\+json)(?! src="\/site\/)/)
   })
 
   it('nenhuma promessa de privacidade que a flag nuvem_convidado desmentiria', () => {
@@ -182,17 +183,45 @@ describe('sitemap, robots e ads.txt', () => {
 })
 
 describe('layout do site', () => {
-  it('home: a cena da legenda tem frase real, tradução e a descrição para leitor de tela', () => {
+  it('home: um filme em sete trechos contínuos, legenda de exemplo, aviso de IA, texto na página e mídia que existe', () => {
     const html = site().get('inicio.html')!
-    expect(html).toContain('Estou bem cansado depois do trabalho')
-    expect(html).toContain('<span class="salva">beat</span>')
-    expect(html).toMatch(/<figcaption class="so-leitor">[^<]*beat/)
-    expect(html).toContain('prefers-reduced-motion')
+    expect(html).toContain('data-filme="/site/midia/filme.mp4" data-filme-celular="/site/midia/filme-m.mp4"')
+    const trechos = [...html.matchAll(/data-de="([\d.]+)" data-ate="([\d.]+)"/g)].map((m) => [+m[1], +m[2]])
+    expect(trechos).toHaveLength(7)
+    // os trechos cobrem o filme sem buraco nem sobreposição: um começa onde o outro termina
+    trechos.slice(1).forEach(([de], i) => expect(de).toBe(trechos[i][1]))
+    expect(html).toContain('Não acredito que você escondeu isso de mim. Era para a gente ser uma equipe!')
+    expect(html).toContain('Cenas de exemplo criadas com IA. A legenda mostra o visual real do Frasy.')
+    // a tradução de exemplo usa a palavra do contexto (aeroporto: portão)
+    expect(html).toContain('<span class="chave">portão</span> 12')
+    // números que o site afirma: os jogos da grade e nenhum total de livros que a produção não tem
+    expect(html).toContain('18 jogos curtos')
+    expect(html).not.toMatch(/\d+ clássicos/)
+    // sem jargão de ferramenta no texto da home
+    expect(html).not.toMatch(/\b(deck|FSRS|SRS|XP|modo intérprete|revisão espaçada)\b/)
+    expect(html).toContain('<span class="chip breve">Em breve</span>')
+    // sem JavaScript, o texto de todos os capítulos já está no HTML
+    expect(html).toContain('<h1>Ouviu outra língua? Entenda e guarde a palavra.</h1>')
+    expect(html).toContain('As palavras do dia ficam com você.')
+    // toda mídia citada existe em public/
+    const midias = [...html.matchAll(/(?:src|poster|data-filme|data-filme-celular)="(\/site\/[^"]+)"/g)].map(
+      (m) => m[1],
+    )
+    expect(midias.length).toBeGreaterThan(20)
+    for (const m of midias) expect(() => readFileSync(path.join(__dirname, '..', 'public', m))).not.toThrow()
+  })
+
+  it('home: scripts só do próprio domínio, com defer; as outras páginas seguem sem JavaScript', () => {
+    const html = site().get('inicio.html')!
+    expect(html).toContain('<script src="/site/lenis.min.js" defer></script>')
+    expect(html).toContain('<script src="/site/rolo.js" defer></script>')
+    expect(html).not.toMatch(/<script src="https?:/)
+    expect(site().get('planos.html')!).not.toMatch(/<script src=/)
   })
 
   it('as duas fontes do app, pré-carregadas', () => {
     const html = site().get('planos.html')!
-    expect(html).toContain('<link rel="preload" href="/fontes/archivo-5.3.0.woff2"')
+    expect(html).toContain('<link rel="preload" href="/fontes/archivo-wdth-5.3.0.woff2"')
     expect(html).toContain('<link rel="preload" href="/fontes/inter-5.3.0.woff2"')
   })
 

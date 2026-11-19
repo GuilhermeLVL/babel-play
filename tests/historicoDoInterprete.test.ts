@@ -170,3 +170,16 @@ describe('o autor gravado na fala (conversa-de-verdade, 1.1)', () => {
     expect(h.itens[1]).toMatchObject({ id: '2', foraDoPar: 'es', traduzindo: false })
   })
 })
+
+/* CEL-01: a fala do outro sem tradução leva o motivo; a metade o mostra, nunca o original no lugar da tradução. */
+describe('historicoDoInterprete: fala sem tradução', () => {
+  it('o motivo vai no item do outro, e ele não fica "traduzindo"', () => {
+    const h = historicoDoInterprete([fala('1', 'outro', 'Hola', '', { semTraducao: 'falhou' })], 'meu')
+    expect(h.itens[0]).toMatchObject({ semTraducao: 'falhou', traduzindo: false, traducao: '' })
+  })
+
+  it('a fala que só não precisava de tradução (mesmo idioma) não ganha motivo', () => {
+    const h = historicoDoInterprete([fala('1', 'outro', 'Olá', '', { semTraducao: true })], 'meu')
+    expect(h.itens[0].semTraducao).toBeUndefined()
+  })
+})

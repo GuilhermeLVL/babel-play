@@ -33,7 +33,8 @@ export function conversaEmMarkdown(falas: ReadonlyArray<FalaParaExportar>, o: Op
     const dono = f.dono ?? o.donoDoLado?.(f.lado) ?? f.lado;
     linhas.push(`**${o.rotulos[dono]}** (${o.idiomas[dono]})${hora}`, '', f.originalText.trim(), '');
     const traducao = f.translatedText?.trim();
-    if (traducao && traducao !== '…') linhas.push(`> ${traducao}`, '');
+    // Sem tradução (vazia) ou a degradação antiga, o original entre parênteses: a fala sai sem linha de tradução.
+    if (traducao && traducao !== '…' && traducao !== `(${f.originalText.trim()})`) linhas.push(`> ${traducao}`, '');
   }
   if (!escreveu) linhas.push('Nenhuma fala nesta conversa.', '');
   return linhas.join('\n');

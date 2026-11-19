@@ -544,6 +544,11 @@ body:has(.cel) .fab {
   font-size: calc(20px * var(--q-escala, 1));
   font-weight: 700;
 }
+/* A fala ficou sem tradução (CEL-01): o motivo, pequeno, embaixo do original — nunca o original entre parênteses. */
+.q-sem-traducao {
+  font: 600 calc(15px * var(--q-escala, 1)) / 1.3 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
 .q-acoes-da-fala {
   flex: none;
   display: flex;

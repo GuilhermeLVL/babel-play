@@ -29,7 +29,7 @@ import { play } from '../soundFx';
 import { SpeakerClusterer } from '../speakerCluster';
 import { preloadSpeakerId } from '../speakerId';
 import { aguardarFinaisEmVoo, prazoDaMistura } from './finaisEmVoo';
-import { criarProgressoDosPacotesNativos } from './pacotesNativos';
+import { criarProgressoDosPacotesNativos, type PacotesNativos } from './pacotesNativos';
 import type { RascunhoDaCaptura } from './rascunhoDaCaptura';
 import {
   type CaptureScenario,
@@ -141,6 +141,11 @@ export interface DepsDeSalvarSessao {
    * vale o `micEnabled` da tela, como sempre.
    */
   micNoInicio?: () => boolean | undefined;
+  /**
+   * Onde guardar os ouvintes do cartão dos pacotes do navegador desta sessão: a tradução avisa por ele quando o tradutor
+   * LOCAL assume (`localAssumiu`), e o cartão do nativo some (COMP-03).
+   */
+  pacotesNativosRef?: { current: PacotesNativos | null };
   /** O cenário que vai ao `meta` da sessão salva (`scenario: interprete`). */
   cenarioDaSessao?: () => 'interprete' | undefined;
 }
@@ -309,6 +314,11 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
       ativo: () => isRecordingRef.current,
       clog,
     });
+    if (deps.pacotesNativosRef) {
+      // O prazo da sessão anterior (parar e iniciar em menos de 20 s) não tira o cartão desta.
+      deps.pacotesNativosRef.current?.descartar();
+      deps.pacotesNativosRef.current = pacotes;
+    }
     void gateway.mt.prepararNativo(
       [
         [s, t],

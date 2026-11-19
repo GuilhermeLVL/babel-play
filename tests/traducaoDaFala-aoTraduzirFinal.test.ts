@@ -119,13 +119,13 @@ describe('aoTraduzirFinal', () => {
     expect(m.finais).toEqual([expect.objectContaining({ segId: 's1', resultado: 'sem-traducao', traducao: '' })])
   })
 
-  it('a tradução falhou (o balão degrada para o original): `sem-traducao` uma vez', async () => {
+  it('a tradução falhou (o balão fica sem tradução, com o motivo): `sem-traducao` uma vez', async () => {
     const m = montar(async () => {
       throw new Error('sem rota')
     })
     await m.fabrica().translateSegment('s1', 'bom dia', 'pt', 'en', { falada: true })
     await esperar()
     expect(m.finais).toEqual([expect.objectContaining({ segId: 's1', resultado: 'sem-traducao' })])
-    expect(m.segs()[0].translatedText).toBe('(bom dia)')
+    expect(m.segs()[0]).toMatchObject({ translatedText: '', semTraducao: 'falhou' })
   })
 })

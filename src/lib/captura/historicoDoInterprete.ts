@@ -6,7 +6,7 @@
  * PARCIAL é só o da própria metade (a fala que ela está dizendo) e fica à parte da lista. A JANELA limita
  * o que a tela desenha; o histórico inteiro continua em `speechSegments`, para salvar e exportar.
  */
-import type { LadoDoInterprete, SpeechSegment } from './tiposDaFala';
+import { ehMotivoSemTraducao, type LadoDoInterprete, type MotivoSemTraducao, type SpeechSegment } from './tiposDaFala';
 
 /** A fala, no que o histórico precisa (o mesmo recorte que a tela do intérprete recebe). */
 export type FalaDoHistorico = Pick<SpeechSegment, 'id' | 'originalText' | 'translatedText'> &
@@ -34,6 +34,8 @@ export interface ItemDoHistorico {
   /** Os idiomas medidos desta fala e da tradução (conversa virtual com detecção); ausentes = os da configuração. */
   idioma?: string;
   idiomaDaTraducao?: string;
+  /** A tradução não veio, e o motivo (CEL-01): a metade mostra o motivo, nunca o original no lugar da tradução. */
+  semTraducao?: MotivoSemTraducao;
 }
 
 export interface Historico {
@@ -98,6 +100,7 @@ export function historicoDoInterprete(
       traduzindo,
       ...(f.lang ? { idioma: f.lang } : {}),
       ...(f.paraLang ? { idiomaDaTraducao: f.paraLang } : {}),
+      ...(!propria && ehMotivoSemTraducao(f.semTraducao) ? { semTraducao: f.semTraducao } : {}),
     };
     todos.push(item);
     if (!propria && !foraDoPar) destaque = item;

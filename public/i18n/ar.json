@@ -2250,5 +2250,17 @@
   "Não parece {idioma} — repetir?": "لا يبدو أنها {idioma}. هل تعيد؟",
   "O app entendeu:": "فهم التطبيق:",
   "Ler a tradução": "اقرأ الترجمة",
-  "Corrigir": "تصحيح"
+  "Corrigir": "تصحيح",
+  "Sem tradução neste aparelho": "لا توجد ترجمة على هذا الجهاز",
+  "Tradução indisponível agora": "الترجمة غير متاحة الآن",
+  "Sem tradução neste aparelho para {de} → {para}. A legenda segue só com a transcrição.": "لا توجد ترجمة على هذا الجهاز من {de} إلى {para}. تستمر الترجمة النصية بالنص المكتوب فقط.",
+  "Para traduzir, autorize a tradução pela internet em Ajustes → Privacidade.": "للترجمة، اسمح بالترجمة عبر الإنترنت من الإعدادات ← الخصوصية.",
+  "A tradução de {de} → {para} passa pelo inglês, no aparelho: cerca de {mb} MB na primeira vez.": "تمر الترجمة من {de} إلى {para} عبر الإنجليزية على هذا الجهاز: نحو {mb} ميغابايت في المرة الأولى.",
+  "Uma palavra foi ocultada pela proteção. O reconhecimento automático às vezes entende errado.": "أخفت الحماية كلمة. التعرّف التلقائي يخطئ أحيانًا.",
+  "Palavra ocultada: o reconhecimento pode ter entendido errado": "كلمة مخفية: ربما أخطأ التعرّف في فهمها",
+  "O que aparece na legenda e na tradução ao vivo.": "ما يظهر في الترجمة النصية والترجمة المباشرة.",
+  "Ocultar palavras sensíveis na legenda": "إخفاء الكلمات الحساسة في الترجمة النصية",
+  "Sempre ligada: é uma proteção do perfil. Palavrões, termos sexuais e ofensas aparecem como •••, porque o reconhecimento automático às vezes entende errado.": "مفعّلة دائمًا: إنها حماية للملف الشخصي. تظهر الشتائم والألفاظ الجنسية والإهانات على شكل •••، لأن التعرّف التلقائي يخطئ أحيانًا.",
+  "Termos sexuais e ofensas aparecem como •••. O reconhecimento automático às vezes entende errado, e o marcador mostra que algo foi ocultado.": "تظهر الألفاظ الجنسية والإهانات على شكل •••. التعرّف التلقائي يخطئ أحيانًا، والعلامة تُظهر أن شيئًا ما قد أُخفي.",
+  "Não consegui salvar a preferência. Verifique a conexão e tente de novo.": "تعذّر حفظ التفضيل. تحقّق من الاتصال وحاول مرة أخرى."
 }

@@ -34,6 +34,7 @@ import {
 } from '../../../../lib/polimento/captura';
 import { CorrecaoNaPagina } from '../assistente/AssistenteNaPagina';
 import { marcaDoAlvo, TextoComMarcas, tituloDaMarca } from '../assistente/TextoComMarcas';
+import { TextoComOcultas } from '../legendas/TextoComOcultas';
 
 /** A esta distância do fim (px) a lista ainda conta como "no fim" e segue acompanhando. */
 const FOLGA_DO_FIM = 80;
@@ -88,7 +89,7 @@ function Palavra({
       data-etiqueta={etiqueta}
       title={marca ? tituloDaMarca(marca) : undefined}
     >
-      {texto}
+      <TextoComOcultas texto={texto} />
     </span>
   );
 }
@@ -291,7 +292,7 @@ const Linha = memo(function Linha({
             {comMarcas || etiquetador ? (
               <TextoComMarcas texto={original} lang={lang} marcas={marcas} etiquetador={etiquetador} />
             ) : (
-              original
+              <TextoComOcultas texto={original} />
             )}
           </span>
         )}
@@ -302,7 +303,7 @@ const Linha = memo(function Linha({
             dir={langDaTraducao ? direcaoDoTexto(langDaTraducao) : undefined}
             ref={alvo}
           >
-            {mostrada}
+            <TextoComOcultas texto={mostrada} />
           </span>
         ) : ouvindo ? (
           /* Os mesmos três pontos de "Transcrevendo…", no lugar do texto que ainda não chegou. */

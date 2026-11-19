@@ -1,5 +1,6 @@
 import '../styles/legendas.css';
 
+import { MARCADOR } from '@core/moderacao/legendaSegura';
 import {
   ChevronUp,
   Headphones,
@@ -22,6 +23,7 @@ import type { AgeProfileType } from '../lib/profile';
 import { getTranscriptStyleClasses, type TranscriptSettings } from '../lib/transcriptUtils';
 import type { VocabWord } from '../types';
 import { IconeEmBloco } from './ui';
+import { TextoComOcultas } from './views/captura/legendas/TextoComOcultas';
 
 /**
  * A CONVERSA — transcrição ao vivo em balões, com os dois lados em posições opostas
@@ -313,6 +315,15 @@ const FalaDaConversa = React.memo(function FalaDaConversa({
             // A pontuação de um pedaço partido (，。！) fica como texto: não é palavra para tocar.
             return <React.Fragment key={wIdx}>{wordStr}</React.Fragment>;
           }
+          /* O marcador da legenda segura: rótulo acessível, sem tocar nem guardar. */
+          if (wordStr.includes(MARCADOR)) {
+            return (
+              <React.Fragment key={wIdx}>
+                <TextoComOcultas texto={wordStr} />
+                {colar ? null : ' '}
+              </React.Fragment>
+            );
+          }
           const cleanWord = wordStr.replace(/[,.:?!]/g, '').toLowerCase();
           const vocabMatch = segment.words.find((vw) => vw.word.toLowerCase() === cleanWord);
           if (vocabMatch) {
@@ -378,7 +389,9 @@ const FalaDaConversa = React.memo(function FalaDaConversa({
       {pendente}
     </span>
   ) : segment.translatedText ? (
-    <span className={`trad mut ${tamTraducao}`}>{segment.translatedText}</span>
+    <span className={`trad mut ${tamTraducao}`}>
+      <TextoComOcultas texto={segment.translatedText} />
+    </span>
   ) : segment.semTraducao === 'sem-rota' || segment.semTraducao === 'falhou' ? (
     /* SEM TRADUÇÃO, COM O MOTIVO (CEL-01): o original fica onde sempre esteve, e esta linha não o repete. */
     <span className={`trad mut ${tamTraducao}`} data-testid="sem-traducao">

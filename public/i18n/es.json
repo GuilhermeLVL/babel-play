@@ -2611,5 +2611,12 @@
   "Tradução indisponível agora": "Traducción no disponible ahora",
   "Sem tradução neste aparelho para {de} → {para}. A legenda segue só com a transcrição.": "Sin traducción en este dispositivo para {de} → {para}. Los subtítulos siguen solo con la transcripción.",
   "Para traduzir, autorize a tradução pela internet em Ajustes → Privacidade.": "Para traducir, autoriza la traducción por internet en Ajustes → Privacidad.",
-  "A tradução de {de} → {para} passa pelo inglês, no aparelho: cerca de {mb} MB na primeira vez.": "La traducción de {de} → {para} pasa por el inglés, en el dispositivo: unos {mb} MB la primera vez."
+  "A tradução de {de} → {para} passa pelo inglês, no aparelho: cerca de {mb} MB na primeira vez.": "La traducción de {de} → {para} pasa por el inglés, en el dispositivo: unos {mb} MB la primera vez.",
+  "Uma palavra foi ocultada pela proteção. O reconhecimento automático às vezes entende errado.": "La protección ocultó una palabra. El reconocimiento automático a veces se equivoca.",
+  "Palavra ocultada: o reconhecimento pode ter entendido errado": "Palabra oculta: el reconocimiento pudo haber entendido mal",
+  "O que aparece na legenda e na tradução ao vivo.": "Lo que aparece en los subtítulos y la traducción en vivo.",
+  "Ocultar palavras sensíveis na legenda": "Ocultar palabras sensibles en los subtítulos",
+  "Sempre ligada: é uma proteção do perfil. Palavrões, termos sexuais e ofensas aparecem como •••, porque o reconhecimento automático às vezes entende errado.": "Siempre activada: es una protección del perfil. Las groserías, los términos sexuales y los insultos aparecen como •••, porque el reconocimiento automático a veces se equivoca.",
+  "Termos sexuais e ofensas aparecem como •••. O reconhecimento automático às vezes entende errado, e o marcador mostra que algo foi ocultado.": "Los términos sexuales y los insultos aparecen como •••. El reconocimiento automático a veces se equivoca, y el marcador muestra que algo se ocultó.",
+  "Não consegui salvar a preferência. Verifique a conexão e tente de novo.": "No pude guardar la preferencia. Revisa la conexión e inténtalo de nuevo."
 }

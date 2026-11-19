@@ -3,6 +3,7 @@ import { type KeyboardEvent, memo, useMemo } from 'react';
 import type { MarcaNaLinha } from '../../../../core/assistente/telaDoAssistente';
 import { palavrasDoPedaco } from '../../../../lib/captura/trechosTocaveis';
 import type { Etiquetador } from '../../../../lib/etiquetas/indiceDeEtiquetas';
+import { TextoComOcultas } from '../legendas/TextoComOcultas';
 import { rotuloDoNivel, rotuloDoTipo } from './copyDoAssistente';
 
 /** Um pedaço do texto com a posição dele na linha (para casar com as marcas, que vêm em posições). */
@@ -115,7 +116,7 @@ export const TextoComMarcas = memo(function TextoComMarcas({
         if (k < 0)
           return (
             <span key={i} data-etiqueta={etiqueta}>
-              {p.texto}
+              <TextoComOcultas texto={p.texto} />
             </span>
           );
         const m = lista[k];

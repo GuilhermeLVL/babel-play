@@ -73,6 +73,11 @@ export interface SpeechSegment {
    * como se fosse a tradução (CEL-01, auditoria de 17/11/2026). `translatedText` fica vazio.
    */
   semTraducao?: boolean | MotivoSemTraducao;
+  /**
+   * LEGENDA SEGURA (`legendaSeguraDasFalas.ts`): quantos termos sensíveis viraram `•••` no original e na tradução.
+   * Ausente = nenhum.
+   */
+  ocultadas?: number;
 }
 
 /** Por que a fala ficou sem tradução: o par não tem rota neste aparelho, ou a cadeia falhou agora. */

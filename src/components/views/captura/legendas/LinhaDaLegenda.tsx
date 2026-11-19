@@ -1,3 +1,4 @@
+import { MARCADOR } from '@core/moderacao/legendaSegura';
 import { BookmarkPlus, Copy, Languages, Snail, Sparkles, Volume2 } from 'lucide-react';
 import { Fragment, memo, type MouseEvent, type ReactNode, useMemo } from 'react';
 
@@ -12,6 +13,7 @@ import { t } from '../../../../lib/i18n';
 import { direcaoDoTexto } from '../../../../lib/languages';
 import { rotuloDoNivel, rotuloDoTipo } from '../assistente/copyDoAssistente';
 import type { Modo, Traducao } from './aparenciaDaLegenda';
+import { TextoComOcultas } from './TextoComOcultas';
 
 /** Uma fala real da captura, pronta para a legenda. `lado` = de quem é (sistema = eles). */
 export interface LegendaAoVivo {
@@ -66,7 +68,7 @@ function Palavras({
   const pedacos = texto.split(/(\s+)/).flatMap((p) => palavrasDoPedaco(p, lang));
   const palavraDe = (p: string, i: number | string, aprendida = marcadas.has(p)) => {
     const palavra = limparPalavra(p);
-    if (!palavra) return p;
+    if (!palavra) return p.includes(MARCADOR) ? <TextoComOcultas key={i} texto={p} /> : p;
     return (
       <span
         key={i}
@@ -237,7 +239,9 @@ function LinhaDaLegenda({
     >
       {modo === 'conversa' && <span className="leg-quem">{fala.quem}</span>}
       {soTraducao && fala.traducao ? (
-        <span className="leg-o leg-o-traducao">{fala.traducao}</span>
+        <span className="leg-o leg-o-traducao">
+          <TextoComOcultas texto={fala.traducao} />
+        </span>
       ) : (
         <span
           className="leg-o"
@@ -270,7 +274,9 @@ function LinhaDaLegenda({
       ) : (
         traducaoVisivel &&
         fala.traducao && (
-          <span className={`leg-t ${modoDaTraducao === 'discreta' ? 'discreta' : 'sempre'}`}>{fala.traducao}</span>
+          <span className={`leg-t ${modoDaTraducao === 'discreta' ? 'discreta' : 'sempre'}`}>
+            <TextoComOcultas texto={fala.traducao} />
+          </span>
         )
       )}
       {correcao && !correcao.ok && correcao.corrigida.trim() && (

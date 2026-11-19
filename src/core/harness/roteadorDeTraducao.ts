@@ -31,7 +31,7 @@
  */
 import { chaveDaPalavra } from '../texto/palavra';
 import { palavrasDoTexto } from '../texto/segmentacao';
-import { ALVOS_DO_INGLES, modeloParaOIngles, ORIGENS_DO_BERGAMOT_NO_CDN } from '../traducao/viaIngles';
+import { ORIGENS_DO_BERGAMOT_NO_CDN, passaPeloIngles } from '../traducao/viaIngles';
 
 export type DegrauMt = 'pular' | 'dicionario' | 'memoria' | 'nativo' | 'local' | 'nuvem' | 'terceiro';
 
@@ -117,15 +117,14 @@ const idiomaBase = (l: string): string => l.toLowerCase().split('-')[0];
 
 /**
  * Onde o Bergamot entra: português → inglês (bancada Etapa 5) e, com os modelos no CDN, `X → inglês` dos idiomas
- * de `ORIGENS_DO_BERGAMOT_NO_CDN` — direto, ou como primeira perna do pivô quando o alvo sai do inglês
+ * de `ORIGENS_DO_BERGAMOT_NO_CDN` — direto, ou como primeira perna do pivô quando o alvo sai do inglês (também pt→es…)
  * (`core/traducao/viaIngles.ts`). Saindo do inglês, nunca: o opus-mt escreve o português do Brasil.
  */
 export function bergamotVenceNoPar(origem: string, destino: string): boolean {
   const s = idiomaBase(origem);
   const t = idiomaBase(destino);
-  if (s === 'pt') return t === 'en';
-  if (!ORIGENS_DO_BERGAMOT_NO_CDN.has(s) || t === s) return false;
-  return t === 'en' || (modeloParaOIngles(s) !== null && ALVOS_DO_INGLES.has(t));
+  if (s !== 'pt' && !ORIGENS_DO_BERGAMOT_NO_CDN.has(s)) return false;
+  return t === 'en' || passaPeloIngles(s, t);
 }
 
 export function routeMt(e: EntradaDaRotaMt): RotaMt {

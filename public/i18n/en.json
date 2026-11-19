@@ -6152,5 +6152,16 @@
   "Baixando: suas falas ficam guardadas ({n} trechos).": {
     "one": "Downloading: your speech is kept ({n} phrase).",
     "other": "Downloading: your speech is kept ({n} phrases)."
-  }
+  },
+  "Sem tradução neste aparelho": "No translation on this device",
+  "Tradução indisponível agora": "Translation unavailable right now",
+  "Sem tradução neste aparelho para {de} → {para}. A legenda segue só com a transcrição.": "No translation on this device for {de} → {para}. Captions continue with the transcription only.",
+  "Para traduzir, autorize a tradução pela internet em Ajustes → Privacidade.": "To translate, allow online translation in Settings → Privacy.",
+  "A tradução de {de} → {para} passa pelo inglês, no aparelho: cerca de {mb} MB na primeira vez.": "Translation from {de} → {para} goes through English, on this device: about {mb} MB the first time.",
+  "Uma palavra foi ocultada pela proteção. O reconhecimento automático às vezes entende errado.": "A word was hidden by the protection. Automatic recognition sometimes gets things wrong.",
+  "Palavra ocultada: o reconhecimento pode ter entendido errado": "Hidden word: recognition may have misheard",
+  "O que aparece na legenda e na tradução ao vivo.": "What shows up in live captions and translation.",
+  "Ocultar palavras sensíveis na legenda": "Hide sensitive words in captions",
+  "Sempre ligada: é uma proteção do perfil. Palavrões, termos sexuais e ofensas aparecem como •••, porque o reconhecimento automático às vezes entende errado.": "Always on: it is a profile protection. Swear words, sexual terms and slurs show up as •••, because automatic recognition sometimes gets things wrong.",
+  "Termos sexuais e ofensas aparecem como •••. O reconhecimento automático às vezes entende errado, e o marcador mostra que algo foi ocultado.": "Sexual terms and slurs show up as •••. Automatic recognition sometimes gets things wrong, and the marker shows that something was hidden."
 }

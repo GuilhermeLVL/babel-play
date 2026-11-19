@@ -309,7 +309,9 @@ describe('Ajustes no Quest: Processamento', () => {
 describe('Ajustes no Quest: Privacidade', () => {
   it('os cinco consentimentos, a cópia em JSON ou CSV com os três estados, política e encarregado', async () => {
     const { container } = montar('privacidade')
-    expect(container.querySelectorAll('.q-ajustes [role="switch"]')).toHaveLength(5)
+    /* Os cinco consentimentos e a legenda segura (`legenda-segura-para-menores`). */
+    expect(container.querySelectorAll('.q-ajustes [role="switch"]')).toHaveLength(6)
+    expect(interruptor('Ocultar palavras sensíveis na legenda')).toBeTruthy()
     fireEvent.click(interruptor('Métricas de uso'))
     expect(prefs.salvar).toHaveBeenCalledTimes(1)
 

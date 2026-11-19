@@ -114,7 +114,8 @@ describe('expectedModelIds: chinês', () => {
 
   it('os pares que já existiam seguem iguais', () => {
     expect(sem(expectedModelIds('en', 'pt', 'whisper-x'))).toEqual(['Xenova/opus-mt-en-ROMANCE'])
-    expect(sem(expectedModelIds('es', 'en', 'whisper-x'))).toEqual(['Xenova/opus-mt-ROMANCE-en'])
+    // es→en é o modelo DEDICADO, o mesmo que o adaptador e o worker carregam (a lista dizia ROMANCE-en, e o cache nunca batia).
+    expect(sem(expectedModelIds('es', 'en', 'whisper-x'))).toEqual(['Xenova/opus-mt-es-en'])
   })
 
   it('todo modelo do pivô tem revisão fixada (cadeia de suprimentos)', () => {

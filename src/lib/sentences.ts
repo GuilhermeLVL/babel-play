@@ -66,9 +66,9 @@ export interface PracticeSeed {
  * existia.
  */
 export type ExerciseId =
-  | 'review'            // Revisão espaçada (SRS), Estudo
+  | 'review' // Revisão espaçada (SRS), Estudo
   | 'active_production' // Produção ativa, Estudo
-  | MinigameId;         // os jogos, Jogar
+  | MinigameId; // os jogos, Jogar
 
 /**
  * EM QUE TELA aquele exercício mora.
@@ -82,18 +82,27 @@ export function telaDoExercicio(e: ExerciseId): 'study' | 'play' {
   return e === 'review' || e === 'active_production' ? 'study' : 'play';
 }
 
+const semOriginalEntreParenteses = (
+  traducao: string | null | undefined,
+  original: string | null | undefined,
+): string => {
+  const t = (traducao ?? '').trim();
+  return t && t === `(${(original ?? '').trim()})` ? '' : t;
+};
+
 /**
  * Normaliza as utterances cruas do backend numa lista de `Sentence` ordenada.
  * Descarta as sem texto (não há o que praticar) — mas NÃO inventa idioma nem tradução.
  */
 export function toSentences(utterances: UtteranceRow[]): Sentence[] {
   return (utterances ?? [])
-    .filter(u => (u.sourceText ?? '').trim().length > 0)
+    .filter((u) => (u.sourceText ?? '').trim().length > 0)
     .sort((a, b) => (a.idx ?? 0) - (b.idx ?? 0))
     .map((u, i) => ({
       id: u.id,
       text: (u.sourceText ?? '').trim(),
-      translation: (u.translatedText ?? '').trim(),
+      // A degradação antiga (até 17/11/2026) gravava "(original)" no lugar da tradução: não é tradução (CEL-01).
+      translation: semOriginalEntreParenteses(u.translatedText, u.sourceText),
       lang: baseLang(u.sourceLang ?? ''),
       translationLang: baseLang(u.targetLang ?? ''),
       speaker: u.speakerName ?? '',

@@ -77,6 +77,7 @@ import { direcaoDoLado as direcaoDeUmLado } from './interprete';
 import type { PistasDoIdioma } from './interpreteAutomatico';
 import { umModeloDeCadaVez } from './memoriaDosModelos';
 import { disponibilidadeDaSondaParaIdioma, escolherMotorDoMic, webSpeechBipaAoReligar } from './motorDoMicrofone';
+import { oferecerNoFimDaEscada } from './ofertaDoFimDaEscada';
 import { nuvemDoSttDisponivel } from './ofertaDoPreciso';
 import { preparoConcluido, semPacotePendente } from './pacotesNativos';
 import { criarTradutorDeParciais, type TradutorDeParciais } from './parcialEstavel';
@@ -425,21 +426,19 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         });
     },
     oferecerNativoOuNuvem: () => {
-      clog('regulador: fim da escada local, oferecendo nativo/nuvem');
-      const avisoDeSempre = () => {
-        setFeedbackMsg(
-          'O aparelho não está acompanhando a fala nem com o modelo menor. Para a legenda chegar a tempo, use o Chrome no computador ou autorize a transcrição em nuvem em Ajustes, Privacidade.',
-        );
-        setTimeout(() => setFeedbackMsg(''), 10000);
-      };
       /* A NUVEM DE ALÍVIO (A10): no Grátis, o chão da escada é exatamente o caso dela. A tela pergunta
-         ao servidor se há franquia; sem ela (ou fora do Grátis), o aviso de sempre. */
-      if (!pedirNuvemDeAlivio) return avisoDeSempre();
-      void pedirNuvemDeAlivio('travamento', { leve: aparelhoLeve(), travamento: true, gpuReal: null })
-        .then((mostrou) => {
-          if (!mostrou) avisoDeSempre();
-        })
-        .catch(avisoDeSempre);
+         ao servidor se há franquia; sem ela (ou fora do Grátis), o aviso de sempre. O log sai junto com o
+         que a tela mostra (`ofertaDoFimDaEscada.ts`). */
+      void oferecerNoFimDaEscada({
+        clog,
+        avisar: (msg) => {
+          setFeedbackMsg(msg);
+          setTimeout(() => setFeedbackMsg(''), 10000);
+        },
+        pedirNuvemDeAlivio: pedirNuvemDeAlivio
+          ? () => pedirNuvemDeAlivio('travamento', { leve: aparelhoLeve(), travamento: true, gpuReal: null })
+          : undefined,
+      });
     },
   };
 
@@ -1774,7 +1773,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       /* UM SENTIDO SÓ: o par que a preparação carrega (`mtDe → mtPara`), se já baixado. Antes eram os
          dois sentidos — ~113 MB a mais na memória antes de a pessoa apertar Iniciar. O outro sentido
          carrega quando é pedido (o microfone da conversa). */
-      const mt = expectedModelIds(mtDe, mtPara, route.localModel).slice(1);
+      const mt = expectedModelIds(mtDe, mtPara, route.localModel, { nuvemConsentida: consentiuNuvemNaFala() }).slice(1);
       if (mt.length && (await areModelsCached(mt))) gateway.mt.warmup([[mtDe, mtPara]]);
     } catch (e) {
       clog('pré-aquecimento ignorado:', String(e));
@@ -1904,7 +1903,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
        Translator API) deixava a resposta em "não" para sempre, e a tela dizia "Baixando modelo (uma vez
        só)" a cada abertura, com o Whisper vindo do cache. Agora o título segue o Whisper, e o tradutor
        tem a resposta dele. */
-    const idsEsperados = expectedModelIds(mtDe, mtPara, rotaAgora.localModel);
+    const idsEsperados = expectedModelIds(mtDe, mtPara, rotaAgora.localModel, {
+      nuvemConsentida: consentiuNuvemNaFala(),
+    });
     const cached = await areModelsCached(idsEsperados.slice(0, 1));
     const mtCached = idsEsperados.length < 2 || (await areModelsCached(idsEsperados.slice(1)));
 

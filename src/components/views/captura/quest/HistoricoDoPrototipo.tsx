@@ -1,6 +1,6 @@
 import '../../../../styles/etiquetas.css';
 
-import { ArrowDown, Ellipsis, Square, Volume2 } from 'lucide-react';
+import { ArrowDown, Ellipsis, RotateCcw, Square, Volume2 } from 'lucide-react';
 import { memo, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 
 import type { MarcaNaLinha } from '../../../../core/assistente/telaDoAssistente';
@@ -17,7 +17,7 @@ import {
   type MedidaDoBloco,
   toposDosBlocos,
 } from '../../../../lib/captura/janelaDasFalas';
-import type { SpeechSegment } from '../../../../lib/captura/tiposDaFala';
+import { ehMotivoSemTraducao, type MotivoSemTraducao, type SpeechSegment } from '../../../../lib/captura/tiposDaFala';
 import { traducaoNaLegenda } from '../../../../lib/captura/traducaoDaFala';
 import { palavrasDoPedaco } from '../../../../lib/captura/trechosTocaveis';
 import type { Etiquetador } from '../../../../lib/etiquetas/indiceDeEtiquetas';
@@ -34,6 +34,7 @@ import {
 } from '../../../../lib/polimento/captura';
 import { CorrecaoNaPagina } from '../assistente/AssistenteNaPagina';
 import { marcaDoAlvo, TextoComMarcas, tituloDaMarca } from '../assistente/TextoComMarcas';
+import { TextoComOcultas } from '../legendas/TextoComOcultas';
 
 /** A esta distância do fim (px) a lista ainda conta como "no fim" e segue acompanhando. */
 const FOLGA_DO_FIM = 80;
@@ -88,7 +89,7 @@ function Palavra({
       data-etiqueta={etiqueta}
       title={marca ? tituloDaMarca(marca) : undefined}
     >
-      {texto}
+      <TextoComOcultas texto={texto} />
     </span>
   );
 }
@@ -139,6 +140,8 @@ const Linha = memo(function Linha({
   correcao,
   aoTocarMarca,
   etiquetador,
+  semTraducao,
+  aoTentarDeNovo,
 }: {
   id: string;
   hora: string;
@@ -172,6 +175,10 @@ const Linha = memo(function Linha({
   aoTocarMarca?: (id: string, marca: MarcaNaLinha) => void;
   /** As ETIQUETAS DE PALAVRAS (a mesma identidade enquanto o caderno e os ajustes não mudam: o `memo` segura). */
   etiquetador?: Etiquetador | null;
+  /** A fala ficou sem tradução: o motivo vai embaixo do original (nunca o original entre parênteses, CEL-01). */
+  semTraducao?: MotivoSemTraducao;
+  /** "Tentar de novo" na fala cuja tradução falhou. */
+  aoTentarDeNovo?: (id: string) => void;
 }) {
   const linha = useRef<HTMLDivElement>(null);
   const alvo = useRef<HTMLSpanElement>(null);
@@ -285,7 +292,7 @@ const Linha = memo(function Linha({
             {comMarcas || etiquetador ? (
               <TextoComMarcas texto={original} lang={lang} marcas={marcas} etiquetador={etiquetador} />
             ) : (
-              original
+              <TextoComOcultas texto={original} />
             )}
           </span>
         )}
@@ -296,7 +303,7 @@ const Linha = memo(function Linha({
             dir={langDaTraducao ? direcaoDoTexto(langDaTraducao) : undefined}
             ref={alvo}
           >
-            {mostrada}
+            <TextoComOcultas texto={mostrada} />
           </span>
         ) : ouvindo ? (
           /* Os mesmos três pontos de "Transcrevendo…", no lugar do texto que ainda não chegou. */
@@ -322,10 +329,20 @@ const Linha = memo(function Linha({
             })}
           </span>
         )}
+        {semTraducao && !mostrada && (
+          <span className="q-sem-traducao" data-testid="sem-traducao">
+            {semTraducao === 'sem-rota' ? t('Sem tradução neste aparelho') : t('Tradução indisponível agora')}
+          </span>
+        )}
         <CorrecaoNaPagina correcao={correcao} lang={lang} />
       </button>
       {/* Na escuta os botões guardam o lugar (a linha não muda de tamanho quando o texto chega), sem aparecer. */}
       <div className="q-acoes-da-fala" style={ouvindo ? { visibility: 'hidden' } : undefined}>
+        {semTraducao === 'falhou' && !mostrada && aoTentarDeNovo && (
+          <button type="button" className="q-ctl" aria-label={t('Tentar de novo')} onClick={() => aoTentarDeNovo(id)}>
+            <RotateCcw aria-hidden />
+          </button>
+        )}
         {aoOuvir && (
           <button
             type="button"
@@ -432,6 +449,7 @@ export default function HistoricoDoPrototipo({
   assistente,
   etiquetador,
   espera,
+  aoTentarTraducaoDeNovo,
 }: {
   falas: readonly SpeechSegment[];
   /** Multiplicador do tamanho do texto (0,75 a 2), escolhido na faixa. */
@@ -459,6 +477,8 @@ export default function HistoricoDoPrototipo({
    * quando a legenda começa, no lugar de "Ouvindo…" (carga-rapida-no-celular, 4.1). Ausente = "Ouvindo…".
    */
   espera?: string | null;
+  /** "Tentar de novo" na fala cuja tradução falhou (pelo id). Ausente = sem o botão. */
+  aoTentarTraducaoDeNovo?: (id: string) => void;
 }) {
   /* "…" é só o marcador de tradução a caminho: sozinho, não é texto para mostrar (e enquanto a do
      final não chega, fica a parcial que a linha já tinha: `traducaoNaLegenda`). */
@@ -548,6 +568,8 @@ export default function HistoricoDoPrototipo({
   ouvir.current = aoOuvir;
   const tocarMarca = useRef(assistente?.aoTocarMarca);
   tocarMarca.current = assistente?.aoTocarMarca;
+  const tentarDeNovo = useRef(aoTentarTraducaoDeNovo);
+  tentarDeNovo.current = aoTentarTraducaoDeNovo;
   const padrao = useRef(idiomaPadrao);
   padrao.current = idiomaPadrao;
   const [fixos] = useState(() => ({
@@ -559,6 +581,7 @@ export default function HistoricoDoPrototipo({
       const f = porId.current.get(id);
       if (f) ouvir.current?.(f, f.lang ?? padrao.current);
     },
+    tentarDeNovo: (id: string) => tentarDeNovo.current?.(id),
     tocarMarca: (id: string, m: MarcaNaLinha) => {
       const f = porId.current.get(id);
       if (f) tocarMarca.current?.(f, m, f.lang ?? padrao.current);
@@ -857,6 +880,8 @@ export default function HistoricoDoPrototipo({
                     correcao={assistente?.correcoes.get(fala.id)}
                     aoTocarMarca={assistente?.aoTocarMarca ? fixos.tocarMarca : undefined}
                     etiquetador={etiquetador}
+                    semTraducao={ehMotivoSemTraducao(fala.semTraducao) ? fala.semTraducao : undefined}
+                    aoTentarDeNovo={aoTentarTraducaoDeNovo ? fixos.tentarDeNovo : undefined}
                   />
                 );
               })}

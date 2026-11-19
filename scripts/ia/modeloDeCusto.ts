@@ -6,7 +6,8 @@
  * Os números de referência são os da spec (`docs/specs/2026-10-24-planos-v4.md`, "Custos"):
  *   - PIOR CASO de nuvem: R$ 0,65 por hora (transcrição + tradução; o esperado é ~R$ 0,16 a R$ 0,33);
  *   - IA de texto fora da legenda (explicação da frase, resumo→cartões, tutor): R$ 1,40 por 1M de tokens da cota;
- *   - voz natural: US$ 1,00 por 1M de caracteres, câmbio de R$ 5,60;
+ *   - voz natural: US$ 4,00 por 1M de caracteres (o Kokoro pelo OpenRouter no endpoint mais caro com retenção zero, a
+ *     Together; o esperado é ~US$ 0,62 na DeepInfra; change `voz-natural-openrouter`, 17/11/2026), câmbio de R$ 5,60;
  *   - o ANUAL são 10 mensalidades, pagas de uma vez (ou em 12x) e cobrindo 12 meses de serviço.
  * A taxa do anual (cartão em 12x) é calibrada na tabela da spec (6,3% a 6,7% do valor); usa-se 7%, do lado
  * conservador. É estimativa: o uso real precisa ser medido (docs/alternativas-de-custo-e-eficiencia.md).
@@ -19,7 +20,10 @@ export const CAMBIO_BRL_POR_USD = 5.6;
 export const PIOR_CUSTO_BRL_POR_HORA_DE_NUVEM = 0.65;
 /** Tokens da cota de IA de texto: R$ por milhão. Calibrado no Plus da spec (2 M tokens ≈ R$ 2,80). */
 export const CUSTO_BRL_POR_MILHAO_DE_TOKENS = 1.4;
-export const USD_POR_MILHAO_DE_CARACTERES_DE_VOZ = 1;
+/** A voz `basica` (o Kokoro pelo OpenRouter) no PIOR endpoint de retenção zero: o OpenRouter não aceita `order` na voz. */
+export const USD_POR_MILHAO_DE_CARACTERES_DE_VOZ = 4;
+/** A voz `boa` (MAI-Voice 2.1 Flash pelo OpenRouter, só a Azure): desligada por padrão; a conta está em `margemDaVozBoa`. */
+export const USD_POR_MILHAO_DE_CARACTERES_DA_VOZ_BOA = 15;
 /** Taxa do anual (cartão em 12x), sobre o valor bruto. */
 export const TAXA_DO_ANUAL = 0.07;
 /** O anual são 10 mensalidades de preço e cobre 12 meses de serviço. */
@@ -78,6 +82,37 @@ export function margemDoAnual(plano: PlanoDeAssinatura): MargemDoAnual {
     margemMensalBrl,
     margemAnualBrl: margemMensalBrl * MESES_DO_ANUAL,
   };
+}
+
+/** A margem de um plano de voz `boa` se a voz dele fosse o MAI-Voice (mensal, uma conta, cota cheia, pior caso). */
+export interface MargemDaVozBoa {
+  plano: PlanoDeAssinatura;
+  receitaLiquidaMensalBrl: number;
+  custoSemVozBrl: number;
+  vozBoaBrl: number;
+  margemMensalBrl: number;
+  /** Os caracteres de voz boa por mês que a margem aguenta (≥ 0), no pior caso. */
+  caracteresQueFecham: number;
+}
+
+/**
+ * A VOZ BOA FECHA A CONTA? (change `voz-natural-openrouter`, 17/11/2026) Para cada plano VENDÁVEL de `nivelDeVoz: 'boa'`,
+ * a margem mensal com a cota de voz inteira no MAI-Voice (US$ 15/1M) e a mesma taxa do modelo. Margem < 0 = o MAI fica
+ * desligado por padrão (fora dos `ops/ia-provedores*.json`).
+ */
+export function margemDaVozBoa(): MargemDaVozBoa[] {
+  return (Object.keys(PLAN_MATRIX) as PlanoDeAssinatura[])
+    .filter((p) => PLAN_MATRIX[p].entitlements.nivelDeVoz === 'boa' && PLAN_MATRIX[p].precoMensalBrl !== null)
+    .map((plano) => {
+      const custo = custoDoPlanoNoPiorCaso(plano);
+      const receitaLiquidaMensalBrl = (PLAN_MATRIX[plano].precoMensalBrl as number) * (1 - TAXA_DO_ANUAL);
+      const custoSemVozBrl = custo.totalMensalBrl - custo.vozBrl;
+      const brlPorCaractere = (USD_POR_MILHAO_DE_CARACTERES_DA_VOZ_BOA * CAMBIO_BRL_POR_USD) / 1_000_000;
+      const vozBoaBrl = (PLAN_MATRIX[plano].quotas.vozCaracteresMes ?? 0) * brlPorCaractere;
+      const margemMensalBrl = receitaLiquidaMensalBrl - custoSemVozBrl - vozBoaBrl;
+      const caracteresQueFecham = Math.max(0, Math.floor((receitaLiquidaMensalBrl - custoSemVozBrl) / brlPorCaractere));
+      return { plano, receitaLiquidaMensalBrl, custoSemVozBrl, vozBoaBrl, margemMensalBrl, caracteresQueFecham };
+    });
 }
 
 /**

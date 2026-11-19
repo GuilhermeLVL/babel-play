@@ -4,8 +4,8 @@
  * O FILME: seis planos contínuos gerados por IA (série, jogo, aula, viagem, família e "a palavra que fica"),
  * rolados pela página por `public/site/rolo.js` (motor portado do scroll-scrub do Higgsfield). Cada capítulo
  * traz a legenda ao vivo no visual das Legendas flutuantes, com o original e a tradução que o Frasy gerou em
- * produção ao ouvir falas assim. Sem JavaScript (ou com movimento reduzido), as capas ficam paradas e todo o
- * texto continua na página.
+ * produção ao ouvir falas assim. Sem JavaScript, as capas ficam paradas e todo o texto continua na página;
+ * com movimento reduzido, o filme segue a rolagem, sem nada que se mexa sozinho (ver `rolo.js`).
  *
  * ALÉM DA LEGENDA: só telas reais do app (gravadas em produção), em laço, tocando quando aparecem. A IA que
  * explica a frase está marcada "em breve" (`ia_de_estudo` ainda não está à venda).
@@ -296,7 +296,14 @@ ${
 `;
 }
 
-/** Os estilos só da home (cores explícitas: o filme é sempre noite; o resto segue os tokens do site). */
+/**
+ * Os estilos só da home (cores explícitas: o filme é sempre noite; o resto segue os tokens do site).
+ *
+ * Telas baixas (notebook 1366×768, 1536×730 com escala 125%): no topo da página o primeiro capítulo divide
+ * a tela com o cabeçalho, então a caixa dele desconta `--altura-do-topo` (76px; 111px quando o menu desce
+ * para a segunda linha, até 640px), e o título escala também pela altura (`7.8vh`), não só pela largura.
+ * Sem isso o texto centralizado transbordava para cima do logo e o cartão da legenda saía da tela.
+ */
 export const CSS_DA_HOME = `
 #conteudo.inteiro{padding:0}
 .larg-v{max-width:1200px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
@@ -324,12 +331,14 @@ export const CSS_DA_HOME = `
 .historia-do-rolo .texto{pointer-events:auto}
 .capitulo{min-height:150vh;min-height:150svh;position:relative}
 .capitulo-fixo{position:sticky;top:0;height:100vh;height:100svh;display:flex;align-items:center}
-.texto{max-width:560px;padding:0 max(24px,env(safe-area-inset-left,0px));margin-left:max(0px,calc((100vw - 1200px)/2))}
-.capitulo .kicker{font:700 13px/1 var(--texto);letter-spacing:.12em;text-transform:uppercase;color:#F4774F;margin:0 0 16px}
-.capitulo h1,.capitulo h2{font-size:clamp(40px,5.6vw,82px);line-height:.98;letter-spacing:-.04em;margin:0 0 18px;color:#fff;text-shadow:0 8px 40px rgba(0,0,0,.45)}
+.capitulo:first-child .capitulo-fixo{height:calc(100vh - var(--altura-do-topo));height:calc(100svh - var(--altura-do-topo))}
+.rolo{--altura-do-topo:76px}
+.texto{max-width:620px;padding:0 max(24px,env(safe-area-inset-left,0px));margin-left:max(0px,calc((100vw - 1200px)/2))}
+.capitulo .kicker{font:700 13px/1 var(--texto);letter-spacing:.12em;text-transform:uppercase;color:#F4774F;margin:0 0 clamp(10px,1.8vh,16px)}
+.capitulo h1,.capitulo h2{font-size:clamp(34px,min(5.6vw,7.8vh),82px);line-height:.98;letter-spacing:-.04em;margin:0 0 18px;color:#fff;text-shadow:0 8px 40px rgba(0,0,0,.45)}
 .capitulo .corpo{font-size:clamp(17px,1.5vw,20px);color:#F3ECE0;max-width:30em;margin:0;text-shadow:0 2px 16px rgba(0,0,0,.5)}
-.capitulo .acoes{margin-top:26px}
-.leg{margin-top:28px;max-width:560px;padding:18px 22px 20px;border-radius:18px;background:rgba(20,17,14,.8)}
+.capitulo .acoes{margin-top:clamp(14px,2.4vh,26px)}
+.leg{margin-top:clamp(14px,2.6vh,28px);max-width:560px;padding:18px 22px 20px;border-radius:18px;background:rgba(20,17,14,.8)}
 .leg .selo{display:inline-flex;align-items:center;gap:8px;font:700 11px/1 var(--texto);letter-spacing:.1em;color:#fff;background:#EF4E22;padding:6px 9px;border-radius:999px;margin-bottom:10px}
 .leg .selo i{width:7px;height:7px;border-radius:50%;background:#fff}
 .leg .o{font:600 18px/1.35 var(--texto);color:#fff;margin:0}
@@ -448,4 +457,5 @@ export const CSS_DA_HOME = `
 .passo-midia video{width:100%;height:100%;object-fit:cover;display:block}
 .tambem{grid-template-columns:1fr;margin-top:40px}
 .interprete-v .grade,.tres{grid-template-columns:1fr}}
+@media (max-width:640px){.rolo{--altura-do-topo:111px}}
 `;

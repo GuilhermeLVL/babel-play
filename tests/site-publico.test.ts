@@ -219,6 +219,21 @@ describe('layout do site', () => {
     expect(site().get('planos.html')!).not.toMatch(/<script src=/)
   })
 
+  it('home: o filme não depende de movimento (reduzido também carrega) e o de 720p vem primeiro', () => {
+    // O motor é JS puro em `public/` (fora do lint e do build); aqui, o contrato que o e2e da home mede.
+    const rolo = readFileSync(path.join(__dirname, '..', 'public', 'site', 'rolo.js'), 'utf8')
+    const carregar = /async function carregar\(s\) \{\n\s*(.*)\n/.exec(rolo)?.[1] ?? ''
+    expect(carregar).toContain('return')
+    expect(carregar).not.toContain('menos')
+    expect(rolo).toContain('const fonteDe = (f) => f.clipeCelular || f.clipe;')
+  })
+
+  it('home: em tela baixa, o primeiro capítulo desconta o cabeçalho e o título escala pela altura', () => {
+    const html = site().get('inicio.html')!
+    expect(html).toContain('.capitulo:first-child .capitulo-fixo{height:calc(100vh - var(--altura-do-topo))')
+    expect(html).toMatch(/\.capitulo h1,\.capitulo h2\{font-size:clamp\(34px,min\(5\.6vw,7\.8vh\),82px\)/)
+  })
+
   it('as duas fontes do app, pré-carregadas', () => {
     const html = site().get('planos.html')!
     expect(html).toContain('<link rel="preload" href="/fontes/archivo-wdth-5.3.0.woff2"')

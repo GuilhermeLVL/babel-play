@@ -107,6 +107,24 @@ Nenhuma chamada de IA paga: testes com IA simulada.
   e ainda não modela a escrita.
 - Capturas para o dono em `reports/leitura-ativa-prototipo/capturas/` (fora do git).
 
+## 11. Rodada de correções (revisão adversarial e teste de uso)
+
+- [x] 11.1 Microfone só por toque: "Ouvir esta frase" religa no `onEnd` e só com a tela montada, em `lendo`, com a
+      aba visível e o mesmo pedido; erro, cancelamento, "Terminei", sair da tela e aba em segundo plano não religam;
+      verificar com `tests/leitura-ativa-microfone.test.tsx` (unmount, Terminei, erro, aba escondida)
+- [x] 11.2 Alinhador: a revisão de uma palavra já casada ("lia" → "leah") não anda o cursor (`casadas` por posição da
+      hipótese); testes com a palavra repetida dentro da janela
+- [x] 11.3 Servidor da escrita: o filtro de dados pessoais também nos `anteriores` (422 sem cota nem provedor)
+- [x] 11.4 Escrita: perfil protegido nunca vê "Ver planos" depois do 403; o teste de 3 dias não oferece o pedido
+- [x] 11.5 Testes dos cenários da spec que faltavam: "Pausamos enquanto você estava fora.", "O microfone parou." com
+      "Ligar de novo"/"Seguir em silêncio", "O Frasy se perdeu" + toque que reposiciona, nada vai à rede na voz alta
+- [x] 11.6 Filtro de dados pessoais: fixo de 8 dígitos, escola em minúsculas, "the Lincoln school", e-mail por
+      extenso; sem falso positivo em "read.me", "apples.Me", dois anos seguidos
+- [x] 11.7 Texto pelo teclado: uma parada de Tab, setas/Home/End entre as palavras (tabindex itinerante)
+- [x] 11.8 Teste de uso: cartão da palavra com fundo (tokens `--leitor-*` em `.la`, conferido no e2e); "Ver um
+      exemplo" com contraste e alvo de 44 px; "✓ Resolvido" com `--good-ink`; a tarefa escolhida visível; iChat
+      escondido em `/leitura`; palavras por minuto com teto de 300 e a missão só com tempo de leitura possível
+
 ## Workflow follow-up
 
 - O dono valida as suposições do `proposal.md` antes de ligar a flag no staging.

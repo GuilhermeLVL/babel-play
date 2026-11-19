@@ -11,6 +11,15 @@
   --la-pulada: #b7791f;
   --la-atual: var(--q-suave, var(--accent-soft));
   --la-medida: 680px;
+  /* O cartão da palavra é o do leitor de livros (`CartaoDaPalavra`, `leitor.css`), que pinta com `--leitor-*`. Aqui
+     não há tema de leitura: os tokens vêm do tema do app (sem eles o cartão nasce transparente). */
+  --leitor-fundo: var(--surface);
+  --leitor-texto: var(--ink);
+  --leitor-suave: var(--ink-muted);
+  --leitor-link: var(--q-acento, var(--accent));
+  --leitor-borda: color-mix(in srgb, var(--ink) 14%, transparent);
+  --leitor-sutil: color-mix(in srgb, var(--ink) 6%, var(--surface));
+  --leitor-acento: var(--q-acento, var(--accent));
 }
 
 .la-sub {
@@ -29,6 +38,12 @@
   padding: 0 14px;
   border: 1.5px solid var(--border-subtle);
   font-weight: 700;
+}
+/* A escolhida se vê sem depender só da cor: borda dupla, além do fundo. */
+.la-filtros .q-chip:is([aria-pressed='true'], [aria-checked='true']) {
+  background: var(--q-suave);
+  border-color: var(--q-acento);
+  box-shadow: inset 0 0 0 1.5px var(--q-acento);
 }
 
 .la-lista {
@@ -441,12 +456,18 @@
   border: 0;
   padding: 0;
   background: none;
-  color: var(--accent, #3b6fd6);
+  /* A cor do texto (contraste garantido); o sublinhado e o peso dizem que é tocável. Alvo de 44 px. */
+  color: var(--ink);
   font: inherit;
   font-weight: 700;
   text-decoration: underline;
+  text-decoration-color: var(--q-acento, var(--accent));
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
   cursor: pointer;
-  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
 }
 .la-elogio {
   margin: 0;
@@ -480,7 +501,7 @@
   font: 600 16px/1.5 var(--font-body, inherit);
 }
 .la-resolvidos [data-resolvido='true'] {
-  color: #2f7d4f;
+  color: var(--good-ink, var(--ink));
 }
 .la-exemplo {
   display: inline-block;

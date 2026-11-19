@@ -35,6 +35,8 @@ export function acessoDaEscrita(protegido: boolean): AcessoDaEscrita {
   const identidade = estadoDeIdentidade();
   const temConta = identidade === 'conta' || identidade === 'selfhost';
   if (!temConta || estadoDaProtecao()?.restrita === true) return 'restrito';
+  /* O teste de 3 dias não tem o retorno (o servidor recusa a reserva): nem oferece o pedido. */
+  if (e.teste) return protegido ? 'restrito' : 'conferir';
   const escritas = definicaoDoPlano(e.plan === 'anonimo' ? 'convidado' : e.plan).quotas.escritasMes;
   if (escritas === null || escritas > 0) return 'retorno';
   return protegido ? 'restrito' : 'conferir';
@@ -69,9 +71,11 @@ const DEMORA_MS = 15_000;
 export default function EscritaDoTexto(props: {
   ficha: FichaDeTexto;
   acesso: AcessoDaEscrita;
+  /** Perfil protegido (menor): nunca se fala de plano, nem quando o servidor recusa. */
+  protegido: boolean;
   aoTerminar: () => void;
 }) {
-  const { ficha } = props;
+  const { ficha, protegido } = props;
   const [acesso, setAcesso] = useState(props.acesso);
   const [tarefa, setTarefa] = useState<Tarefa>('reescrever');
   const [texto, setTexto] = useState(() => lerRascunho(ficha.id, 'reescrever'));
@@ -141,8 +145,8 @@ export default function EscritaDoTexto(props: {
     }
     const falha: FalhaDaEscrita = r;
     if (falha.motivo === 'sem_plano' || falha.motivo === 'sem_conta' || falha.motivo === 'fora') {
-      /* O servidor sabe melhor (teste de 3 dias, plano mudou): fica a conferência no aparelho. */
-      setAcesso((a) => (a === 'retorno' ? 'conferir' : a));
+      /* O servidor sabe melhor (teste de 3 dias, plano mudou): fica a conferência no aparelho; o protegido não vê plano. */
+      setAcesso((a) => (a === 'retorno' ? (protegido ? 'restrito' : 'conferir') : a));
       setEstado({ fase: 'escrevendo' });
       return;
     }

@@ -854,8 +854,9 @@ export default function App() {
           {/* Global iChat assistant with layout capabilities. O tutor é IA de NUVEM (`/api/tutor`):
               na edição estática, sem servidor, ele não monta — melhor ausente que um botão que só
               responde "não deu". */}
-          {/* No leitor de livros o botão flutuante cobria a virada de página: lá o iChat não monta. */}
-          {!edicaoEstatica() && activeView !== 'leitor' && (
+          {/* No leitor de livros o botão flutuante cobria a virada de página, e na leitura ativa cobria os créditos,
+              os chips e "Ler de novo": nas duas o iChat não monta. */}
+          {!edicaoEstatica() && activeView !== 'leitor' && activeView !== 'leituraAtiva' && (
             <IChat
               activeView={mappedActiveViewForChat}
               selectedRecording={selectedRecording}

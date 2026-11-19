@@ -62,6 +62,28 @@ describe('dadosPessoaisNoTexto', () => {
     }
   })
 
+  it('o jeito de criança escrever: minúsculas, e-mail por extenso, telefone fixo de 8 dígitos', () => {
+    expect(trechos('my phone is 9876 5432')).toEqual([['telefone', '9876 5432']])
+    expect(trechos('I study at escola estadual monteiro lobato every day')).toEqual([
+      ['escola', 'escola estadual monteiro lobato'],
+    ])
+    expect(trechos('I study at the Lincoln school.')).toEqual([['escola', 'Lincoln school']])
+    expect(trechos('write to lia at gmail dot com please')).toEqual([['email', 'lia at gmail dot com']])
+  })
+
+  it('sem falso positivo: "read.me", ponto sem espaço entre frases, dois anos seguidos, "the school"', () => {
+    for (const ok of [
+      'Open the read.me file.',
+      'I like apples.Me too.',
+      'She went with us.Us and them.',
+      'In 2024 2025 we read books.',
+      'The school is big. Sunday school is fun.',
+      'I looked at it and it was fun.',
+    ]) {
+      expect(dadosPessoaisNoTexto(ok), ok).toEqual([])
+    }
+  })
+
   it('devolve os trechos em ordem e temDadoPessoal diz sim', () => {
     const t = 'Call 98765-4321 or mail lia@exemplo.com'
     expect(trechos(t)).toEqual([

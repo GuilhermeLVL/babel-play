@@ -176,6 +176,12 @@ test.describe('Leitura ativa', () => {
     /* Tocar na palavra pulada abre o cartão com "Praticar esta palavra no fim". */
     await six.click()
     await expect(page.getByTestId('praticar-no-fim')).toBeVisible()
+    /* O cartão tem fundo de verdade (não se mistura com o texto atrás) e borda. */
+    const corDoCartao = await page
+      .locator('.cartao-palavra')
+      .evaluate((el) => ({ fundo: getComputedStyle(el).backgroundColor, texto: getComputedStyle(el).color }))
+    expect(corDoCartao.fundo).not.toMatch(/^(transparent|rgba\(0, 0, 0, 0\))$/)
+    expect(corDoCartao.fundo).not.toBe(corDoCartao.texto)
     await page.locator('.cartao-palavra').getByRole('button', { name: 'Fechar' }).click()
     await expect(page.getByTestId('praticar-no-fim')).toHaveCount(0)
 

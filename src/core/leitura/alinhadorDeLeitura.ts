@@ -5,7 +5,8 @@
  * COMO. O estado é imutável: as palavras do texto, a marca de cada uma (`pendente`, `lida`, `pulada`) e o cursor.
  * Cada parcial é a hipótese da fala corrente ("lia" → "lia likes" → "lia likes apples"); as palavras novas são as
  * que vêm depois do prefixo igual ao parcial anterior (assim uma palavra que o reconhecedor corrige por baixo —
- * "sick" → "six" — é tentada de novo). Cada palavra nova procura a primeira igual na janela `[cursor, cursor+6)`:
+ * "sick" → "six" — é tentada de novo). Só volta a ser tentada a posição da hipótese que ainda não tinha casado: a
+ * revisão de uma palavra já lida ("lia" → "leah") não anda o cursor. Cada palavra nova procura a primeira igual na janela `[cursor, cursor+6)`:
  * casou → as de antes viram `pulada`, ela vira `lida`, o cursor anda. Não casou → nada muda (ruído, hesitação,
  * palavra fora da janela). O final de uma fala zera a hipótese: a fala seguinte começa do zero.
  *
@@ -41,6 +42,12 @@ export interface EstadoDoAlinhador {
   readonly cursor: number;
   /** As palavras (já normalizadas) da hipótese da fala corrente que já foram aplicadas. */
   readonly hipotese: readonly string[];
+  /**
+   * Por posição da hipótese da fala corrente: aquela posição já casou com uma palavra do texto. Uma revisão do
+   * reconhecedor nessa posição ("lia" → "leah") não é tentada de novo, senão casaria mais adiante e o cursor
+   * pularia o que ninguém leu. Só cresce durante a fala; o final zera.
+   */
+  readonly casadas: readonly boolean[];
 }
 
 /** Hesitações que o reconhecedor às vezes escreve: nunca casam e nunca contam. */
@@ -106,19 +113,20 @@ function casa(ouvida: string, p: PalavraDaLeitura, lang: string): boolean {
 
 export function criarAlinhador(texto: string, lang = 'en'): EstadoDoAlinhador {
   const { frases, palavras } = dividirTexto(texto, lang);
-  return { lang, frases, palavras, marcas: palavras.map(() => 'pendente'), cursor: 0, hipotese: [] };
+  return { lang, frases, palavras, marcas: palavras.map(() => 'pendente'), cursor: 0, hipotese: [], casadas: [] };
 }
 
 /** Uma palavra ouvida, na janela à frente do cursor. */
-function ouvir(e: { marcas: MarcaDaPalavra[]; cursor: number }, ouvida: string, s: EstadoDoAlinhador): void {
+function ouvir(e: { marcas: MarcaDaPalavra[]; cursor: number }, ouvida: string, s: EstadoDoAlinhador): boolean {
   const fim = Math.min(s.palavras.length, e.cursor + JANELA_DO_ALINHADOR);
   for (let i = e.cursor; i < fim; i++) {
     if (!casa(ouvida, s.palavras[i], s.lang)) continue;
     for (let k = e.cursor; k < i; k++) if (e.marcas[k] === 'pendente') e.marcas[k] = 'pulada';
     e.marcas[i] = 'lida';
     e.cursor = i + 1;
-    return;
+    return true;
   }
+  return false;
 }
 
 /**
@@ -137,14 +145,22 @@ export function aplicarParcial(
   let comum = 0;
   while (comum < ouvidas.length && comum < s.hipotese.length && ouvidas[comum] === s.hipotese[comum]) comum++;
   const trabalho = { marcas: [...s.marcas], cursor: s.cursor };
-  for (const w of ouvidas.slice(comum)) ouvir(trabalho, w, s);
+  const casadas = [...s.casadas];
+  for (let i = comum; i < ouvidas.length; i++) {
+    /* Posição que já casou nesta fala: é revisão do reconhecedor, não palavra nova. */
+    if (casadas[i]) continue;
+    if (ouvir(trabalho, ouvidas[i], s)) casadas[i] = true;
+  }
   const hipotese = opcoes.final ? [] : ouvidas;
+  const casadasAgora = opcoes.final ? [] : casadas;
   const mudou =
     trabalho.cursor !== s.cursor ||
     trabalho.marcas.some((m, i) => m !== s.marcas[i]) ||
     hipotese.length !== s.hipotese.length ||
-    hipotese.some((w, i) => w !== s.hipotese[i]);
-  return mudou ? { ...s, marcas: trabalho.marcas, cursor: trabalho.cursor, hipotese } : s;
+    hipotese.some((w, i) => w !== s.hipotese[i]) ||
+    casadasAgora.length !== s.casadas.length ||
+    casadasAgora.some((c, i) => c !== s.casadas[i]);
+  return mudou ? { ...s, marcas: trabalho.marcas, cursor: trabalho.cursor, hipotese, casadas: casadasAgora } : s;
 }
 
 /**
@@ -153,7 +169,7 @@ export function aplicarParcial(
  */
 export function reposicionar(s: EstadoDoAlinhador, i: number): EstadoDoAlinhador {
   const cursor = Math.max(0, Math.min(Math.trunc(i), s.palavras.length));
-  return { ...s, cursor, hipotese: [] };
+  return { ...s, cursor, hipotese: [], casadas: [] };
 }
 
 export function estadoDaPalavra(s: EstadoDoAlinhador, i: number): EstadoDaPalavra {
@@ -195,8 +211,15 @@ export function palavrasPuladas(s: EstadoDoAlinhador): string[] {
   return out;
 }
 
-/** "Cerca de N palavras por minuto" (só para adulto em voz alta). `null` sem tempo medido. */
+/**
+ * Acima disto ninguém está lendo o texto (leitura rápida de nativo fica perto de 250–300 por minuto): o número não
+ * aparece e a leitura não conta para a missão.
+ */
+export const TETO_DE_PALAVRAS_POR_MINUTO = 300;
+
+/** "Cerca de N palavras por minuto" (só para adulto em voz alta). `null` sem tempo medido ou acima do teto. */
 export function palavrasPorMinuto(palavras: number, ms: number): number | null {
   if (!(ms > 0) || !(palavras > 0)) return null;
-  return Math.round((palavras * 60_000) / ms);
+  const ppm = Math.round((palavras * 60_000) / ms);
+  return ppm > TETO_DE_PALAVRAS_POR_MINUTO ? null : ppm;
 }

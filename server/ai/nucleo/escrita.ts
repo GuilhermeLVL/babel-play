@@ -152,7 +152,8 @@ async function retornar(
     return decidir(recusaDeErro(404, 'recurso indisponível', 'recurso_indisponivel'))
 
   /* 2) DADOS PESSOAIS: a mesma regra do cliente, antes de qualquer custo. Só os tipos vão no corpo, nunca o trecho. */
-  const pessoais = dadosPessoaisNoTexto(pedido.escrita)
+  /* Os trechos anteriores também vão ao prompt: o cliente não é confiável, então passam pela mesma régua. */
+  const pessoais = [pedido.escrita, ...pedido.anteriores].flatMap((t) => dadosPessoaisNoTexto(t))
   if (pessoais.length > 0)
     return decidir(
       recusaDeErro(422, 'o texto tem dados pessoais; tire essa parte antes de enviar', 'dado_pessoal', {

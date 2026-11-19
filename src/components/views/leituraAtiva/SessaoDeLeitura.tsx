@@ -18,7 +18,7 @@ import type { FichaDeTexto } from '../../../core/leitura/fichaDeTexto';
 import { NARRACAO_PARADA, narrar } from '../../../core/leitura/narracao';
 import { palavrasParaPraticar } from '../../../core/leitura/palavrasParaPraticar';
 import type { Retangulo } from '../../../core/leitura/posicaoDoCartao';
-import { rodadaDaLeitura } from '../../../core/leitura/rodadaDaLeitura';
+import { leituraValeAMissao, rodadaDaLeitura } from '../../../core/leitura/rodadaDaLeitura';
 import { type ContextoDaPalavra, formaDeConsulta } from '../../../core/leitura/sentidoNoContexto';
 import { chavesDeLema, mesmoLema } from '../../../core/leitura/textoDaLeitura';
 import { chaveDaPalavra } from '../../../core/texto/palavra';
@@ -133,8 +133,22 @@ export default function SessaoDeLeitura(props: {
     [ficha.palavrasAlvo, conhecimento.conhecidas],
   );
 
+  /* A tela montada e a fase corrente, para quem responde depois (o fim de uma fala). */
+  const montada = useRef(true);
+  const faseAtual = useRef<Fase>(fase);
+  useEffect(() => {
+    faseAtual.current = fase;
+  }, [fase]);
+  /**
+   * O pedido de "Ouvir esta frase" que pode religar o microfone no fim da fala (`null` = nenhum). Qualquer outro
+   * gesto (pausar, continuar, terminar, sair, a aba em segundo plano) o esquece: o microfone só liga por toque.
+   */
+  const religarAoFimDaFala = useRef<number | null>(null);
+  const pedidosDeFala = useRef(0);
+
   /* ── o ouvido local ── */
   const pararMic = () => {
+    religarAoFimDaFala.current = null;
     ouvinte.current?.parar();
     ouvinte.current = null;
   };
@@ -155,18 +169,22 @@ export default function SessaoDeLeitura(props: {
     });
     if (ouvinte.current) setMic('ouvindo');
   };
-  /* Sair da tela solta o microfone e a voz. */
-  useEffect(
-    () => () => {
+  /* Sair da tela solta o microfone e a voz (e o cancelamento da fala não religa nada). */
+  useEffect(() => {
+    montada.current = true;
+    return () => {
+      montada.current = false;
+      religarAoFimDaFala.current = null;
       ouvinte.current?.parar();
+      ouvinte.current = null;
       cancelSpeech();
-    },
-    [],
-  );
-  /* Aba em segundo plano: o microfone para na hora e só religa com o toque em "Continuar". */
+    };
+  }, []);
+  /* Aba em segundo plano: o microfone para na hora (e a fala de "Ouvir esta frase" não o religa); só volta com o
+     toque em "Continuar". */
   useEffect(() => {
     const f = () => {
-      if (document.visibilityState === 'hidden' && ouvinte.current) {
+      if (document.visibilityState === 'hidden' && (ouvinte.current || religarAoFimDaFala.current !== null)) {
         pararMic();
         setMic('fora');
       }
@@ -312,7 +330,8 @@ export default function SessaoDeLeitura(props: {
   /* ── o resultado das perguntas vira uma rodada `leituraAtiva` (só com conta): XP de sempre e a missão "Leia 1
      texto". Só o acerto de cada pergunta sai; depois, a missão do dia é relida para o resumo dizer se fechou. ── */
   const gravarRodada = (todos: ResultadoDaPergunta[]) => {
-    if (!conhecimento.temConta) return;
+    /* Sem conta, nada sai; rápido demais para ter lido (o teto de palavras por minuto), a missão não conta. */
+    if (!conhecimento.temConta || !leituraValeAMissao(alinhador.palavras.length, duracao)) return;
     void salvarRodada(
       rodadaDaLeitura({
         textoId: ficha.id,
@@ -574,7 +593,12 @@ export default function SessaoDeLeitura(props: {
       <div className="q-palco la" data-testid="leitura-ativa">
         {cabecalho}
         <div className="la-coluna">
-          <EscritaDoTexto ficha={ficha} acesso={acessoDaEscrita(protegido)} aoTerminar={() => setFase('resumo')} />
+          <EscritaDoTexto
+            ficha={ficha}
+            acesso={acessoDaEscrita(protegido)}
+            protegido={protegido}
+            aoTerminar={() => setFase('resumo')}
+          />
         </div>
       </div>
     );
@@ -615,10 +639,27 @@ export default function SessaoDeLeitura(props: {
     total - 1,
     alinhador.palavras[Math.min(alinhador.cursor, alinhador.palavras.length - 1)]?.frase ?? 0,
   );
+  /* A pausa para ouvir faz parte do toque em "Ouvir esta frase": o microfone volta só no FIM da fala, e só se nada
+     mudou (a mesma fala, a tela aberta, ainda lendo, a aba visível). Erro ou cancelamento deixa o "Continuar". */
   const ouvirEstaFrase = () => {
     pararMic();
     setMic('pausado');
-    falar(alinhador.frases[fraseNoCursor].texto, IDIOMA_DOS_TEXTOS, { onEnd: ligarMic, onError: ligarMic });
+    const pedido = ++pedidosDeFala.current;
+    religarAoFimDaFala.current = pedido;
+    const aindaVale = () =>
+      religarAoFimDaFala.current === pedido &&
+      montada.current &&
+      faseAtual.current === 'lendo' &&
+      document.visibilityState === 'visible';
+    const falou = falar(alinhador.frases[fraseNoCursor].texto, IDIOMA_DOS_TEXTOS, {
+      onEnd: () => {
+        if (aindaVale()) ligarMic();
+      },
+      onError: () => {
+        if (religarAoFimDaFala.current === pedido) religarAoFimDaFala.current = null;
+      },
+    });
+    if (!falou) religarAoFimDaFala.current = null;
   };
   return (
     <div className="q-palco la" data-testid="leitura-ativa">

@@ -212,6 +212,17 @@ describe('dados pessoais', () => {
     })
   }
 
+  it('dado pessoal nos trechos anteriores (cliente adulterado): 422, sem cota nem provedor', async () => {
+    const chamadas = provedor(() => ({ texto: OK }))
+    const quem = await pagante('escrita-pessoal-anteriores')
+    const res = await pedir(quem, { escrita: ESCRITA, anteriores: ['She pick', 'mail lia@exemplo.com'] })
+    expect(res.statusCode).toBe(422)
+    expect(res.body?.code).toBe('dado_pessoal')
+    expect(JSON.stringify(res.body)).not.toMatch(/lia@/)
+    expect(chamadas).toHaveLength(0)
+    expect(await usados(quem)).toBe(0)
+  })
+
   it('"six red apples and 2 bananas" não bloqueia', async () => {
     provedor(() => ({ texto: OK }))
     const res = await pedir(await pagante('escrita-bananas'), { escrita: `${ESCRITA} She has 2 bananas.` })

@@ -3,8 +3,9 @@
  * os dois lados: o cliente sublinha o trecho e bloqueia o envio; o servidor repete e recusa com 422 `dado_pessoal`
  * sem chamar a IA (o cliente não é confiável).
  *
- * Procura e-mail, telefone (≥ 8 dígitos, com ou sem separadores), `@usuario`, endereço web e nome de escola
- * ("Escola/Colégio/Instituto …" ou "… School" seguido ou precedido de nome próprio). As regras são ESTREITAS de
+ * Procura e-mail (também por extenso, "lia at gmail dot com"), telefone (≥ 8 dígitos, com ou sem separadores),
+ * `@usuario`, endereço web e nome de escola ("Escola/Colégio/Instituto …" ou "… School" seguido ou precedido de nome
+ * próprio; "the Lincoln school"; e em minúsculas, "escola estadual monteiro lobato"). As regras são ESTREITAS de
  * propósito: falso positivo irrita quem está aprendendo, e número curto ("2 bananas", "7 o'clock", "2012") não
  * dispara.
  *
@@ -21,10 +22,17 @@ export interface TrechoPessoal {
 }
 
 const EMAIL = /[\p{L}\p{N}._%+-]+@[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)+/gu;
+/** O e-mail por extenso, do jeito de quem não acha o "@": "lia at gmail dot com", "lia arroba gmail ponto com". */
+const EMAIL_POR_EXTENSO =
+  /(?<![\p{L}\p{N}])[\p{L}\p{N}._-]+\s+(?:at|arroba)\s+[\p{L}\p{N}-]+(?:\s+(?:dot|ponto)\s+[\p{L}]{2,4})+(?![\p{L}\p{N}])/giu;
 const URL_COM_ESQUEMA = /\b(?:https?:\/\/|www\.)[^\s<>"']+/giu;
-/** Domínio sem "http": só com os sufixos comuns, para "Mr." ou "3.5" não virarem endereço. */
+/**
+ * Domínio sem "http": só com os sufixos comuns e em minúsculas (endereço se digita assim), para "Mr.", "3.5" ou o
+ * ponto sem espaço entre frases ("apples.Me too") não virarem endereço. Fora os sufixos que são palavras do inglês
+ * ("me", "us"): "read.me" não é endereço.
+ */
 const DOMINIO =
-  /\b[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)*\.(?:com|net|org|edu|gov|io|me|app|dev|info|br|pt|us|uk|es)(?:\.br)?\b(?:\/[^\s<>"']*)?/giu;
+  /\b[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)*\.(?:com|net|org|edu|gov|io|app|dev|info|br|pt|uk|es)(?:\.br)?\b(?:\/[^\s<>"']*)?/gu;
 const USUARIO = /(?<![\p{L}\p{N}._%+-])@[A-Za-z0-9_](?:[A-Za-z0-9_.]*[A-Za-z0-9_])?/gu;
 /** Começa com dígito, "+" ou "(": dígitos com separadores simples entre eles. Conta os dígitos depois. */
 const CANDIDATO_A_TELEFONE = /(?<![\p{L}\p{N}])(?:\+\s?)?\(?\d(?:[\d]|[\s.-]\(?\d|\)\s?\d|\(\d)*\d(?![\p{L}\p{N}])/gu;
@@ -40,6 +48,17 @@ const ESCOLA_ANTES = new RegExp(
 );
 /** "Lincoln High School", "Saint Mary College". */
 const ESCOLA_DEPOIS = new RegExp(`(?<![\\p{L}])${NOME_LONGO}\\s+(?:School|College|Academy)(?![\\p{L}])`, 'gu');
+/** "the Lincoln school": o nome próprio depois de "the" e "school" em minúscula (sem o "the", "The school" casaria). */
+const ESCOLA_COM_THE = new RegExp(
+  `(?<=(?<![\\p{L}])[Tt]he\\s+)${NOME_LONGO}\\s+(?:school|college|academy)(?![\\p{L}])`,
+  'gu',
+);
+/**
+ * Escola pública escrita em minúsculas, como criança escreve: "escola estadual monteiro lobato". O tipo da escola
+ * ("estadual", "municipal"…) é o que torna o trecho um nome; seguem até 3 palavras que não sejam do inglês corrente.
+ */
+const ESCOLA_MINUSCULA =
+  /(?<![\p{L}])(?:escola|col[eé]gio|instituto)\s+(?:estadual|municipal|federal|particular|t[eé]cnic[ao])(?:\s+(?!(?:every|and|in|on|at|the|is|it|i|with|to|near|because|but|for|day|today)(?![\p{L}]))[\p{L}'’-]+){0,3}/giu;
 
 function todos(re: RegExp, texto: string, tipo: TipoDeDadoPessoal, aceitar?: (s: string) => boolean): TrechoPessoal[] {
   const out: TrechoPessoal[] = [];
@@ -61,6 +80,7 @@ export function dadosPessoaisNoTexto(texto: string): TrechoPessoal[] {
   if (!texto) return [];
   const achados = [
     ...todos(EMAIL, texto, 'email'),
+    ...todos(EMAIL_POR_EXTENSO, texto, 'email'),
     ...todos(URL_COM_ESQUEMA, texto, 'url'),
     ...todos(DOMINIO, texto, 'url'),
     ...todos(USUARIO, texto, 'usuario'),
@@ -68,10 +88,13 @@ export function dadosPessoaisNoTexto(texto: string): TrechoPessoal[] {
       CANDIDATO_A_TELEFONE,
       texto,
       'telefone',
-      (s) => digitos(s) >= MINIMO_DE_DIGITOS_DO_TELEFONE && !/^\d{4}\s\d{4}$/.test(s),
+      /* "2024 2025" são dois anos, não um telefone fixo ("9876 5432" é). */
+      (s) => digitos(s) >= MINIMO_DE_DIGITOS_DO_TELEFONE && !/^(?:19|20)\d\d\s(?:19|20)\d\d$/.test(s),
     ),
     ...todos(ESCOLA_ANTES, texto, 'escola'),
     ...todos(ESCOLA_DEPOIS, texto, 'escola'),
+    ...todos(ESCOLA_COM_THE, texto, 'escola'),
+    ...todos(ESCOLA_MINUSCULA, texto, 'escola'),
   ];
   const aceitos: TrechoPessoal[] = [];
   for (const t of achados) {

@@ -16,6 +16,7 @@ import {
   palavrasPuladas,
   reposicionar,
   temEstrela,
+  TETO_DE_PALAVRAS_POR_MINUTO,
 } from '../src/core/leitura/alinhadorDeLeitura'
 
 const MERCADO =
@@ -72,8 +73,46 @@ describe('alinhadorDeLeitura', () => {
   it('o reconhecedor corrige uma palavra já lida: nada volta a pendente e o cursor não recua', () => {
     let e = ateAFrase(criarAlinhador(MERCADO, 'en'), 5)
     e = aplicarParcial(e, 'she picks')
+    const cursor = e.cursor
     e = aplicarParcial(e, 'she pick')
-    expect(frase(e, 5).slice(0, 2)).toEqual(['she:lida', 'picks:lida'])
+    expect(frase(e, 5).slice(0, 3)).toEqual(['she:lida', 'picks:lida', 'six:atual'])
+    expect(e.cursor).toBe(cursor)
+  })
+
+  it('a correção de uma palavra já lida não reaplica as seguintes mais adiante (palavra repetida na janela)', () => {
+    let e = criarAlinhador('Lia likes apples. Tom likes pears.', 'en')
+    e = aplicarParcial(e, 'lia likes apples')
+    expect(e.cursor).toBe(3)
+    e = aplicarParcial(e, 'leah likes apples')
+    expect(e.cursor).toBe(3)
+    expect(e.palavras.map((_, i) => estadoDaPalavra(e, i))).toEqual([
+      'lida',
+      'lida',
+      'lida',
+      'atual',
+      'pendente',
+      'pendente',
+    ])
+    e = aplicarParcial(e, 'leah likes apples tom likes')
+    expect(e.marcas.slice(3, 5)).toEqual(['lida', 'lida'])
+    expect(palavrasPuladas(e)).toEqual([])
+  })
+
+  it('a hipótese que encolhe e cresce de novo na mesma fala não reaplica o que já casou', () => {
+    let e = criarAlinhador('Lia likes apples. Tom likes pears.', 'en')
+    e = aplicarParcial(e, 'lia likes')
+    e = aplicarParcial(e, 'lia')
+    e = aplicarParcial(e, 'lia likes')
+    expect(e.cursor).toBe(2)
+    expect(e.marcas).toEqual(['lida', 'lida', 'pendente', 'pendente', 'pendente', 'pendente'])
+  })
+
+  it('repetição na mesma fala com a palavra repetida na janela: a revisão não avança', () => {
+    let e = criarAlinhador('She picks six. She picks red.', 'en')
+    e = aplicarParcial(e, 'she picks six')
+    e = aplicarParcial(e, 'she pick six')
+    expect(e.cursor).toBe(3)
+    expect(palavrasPuladas(e)).toEqual([])
   })
 
   it('o parcial revisado por baixo acerta a palavra: "sick" vira "six" e ela fica lida, não pulada', () => {
@@ -193,5 +232,11 @@ describe('palavrasPorMinuto', () => {
   })
   it('sem tempo, sem número', () => {
     expect(palavrasPorMinuto(72, 0)).toBeNull()
+  })
+  it('acima do teto (leitura impossível, como 894 por minuto) não mostra número', () => {
+    expect(palavrasPorMinuto(72, 4_830)).toBeNull()
+  })
+  it('no teto ainda mostra', () => {
+    expect(palavrasPorMinuto(TETO_DE_PALAVRAS_POR_MINUTO, 60_000)).toBe(TETO_DE_PALAVRAS_POR_MINUTO)
   })
 })

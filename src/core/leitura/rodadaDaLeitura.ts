@@ -7,6 +7,17 @@
  * Puro: sem DOM, sem rede.
  */
 import { RODADA_DE_LEITURA } from '../missoes';
+import { TETO_DE_PALAVRAS_POR_MINUTO } from './alinhadorDeLeitura';
+
+/**
+ * A leitura vale a missão "Leia 1 texto"? Só se o tempo na leitura cabe numa leitura de verdade: no máximo o teto de
+ * palavras por minuto. Abrir e tocar "Terminei" em 1 s não vale (as perguntas ainda podem ser respondidas, mas a
+ * rodada não sai).
+ */
+export function leituraValeAMissao(palavrasDoTexto: number, msLendo: number): boolean {
+  if (!(msLendo > 0) || !(palavrasDoTexto > 0)) return false;
+  return (palavrasDoTexto * 60_000) / msLendo <= TETO_DE_PALAVRAS_POR_MINUTO;
+}
 
 export type ResultadoDaPergunta = 'primeira' | 'segunda' | 'nenhuma' | 'pulada';
 

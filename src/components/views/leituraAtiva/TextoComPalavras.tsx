@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, type KeyboardEvent, type ReactNode, useState } from 'react';
 
 import type { EstadoDaPalavra } from '../../../core/leitura/alinhadorDeLeitura';
 import type { TextoDividido } from '../../../core/leitura/textoDaLeitura';
@@ -26,6 +26,29 @@ export default function TextoComPalavras(props: {
   aoTocar: (i: number, alvo: HTMLElement, porTeclado: boolean) => void;
 }) {
   const { texto, dividido } = props;
+  /* TABINDEX ITINERANTE: o texto é UMA parada de Tab (a palavra da vez); as setas andam de palavra em palavra, Home e
+     End vão às pontas. Sem isso, um texto de 80 palavras eram 80 paradas. */
+  const [foco, setFoco] = useState(0);
+  const total = dividido.palavras.length;
+  const daVez = Math.min(foco, Math.max(0, total - 1));
+  const mover = (e: KeyboardEvent<HTMLParagraphElement>) => {
+    const atual = Number((e.target as HTMLElement).dataset?.i);
+    if (!Number.isInteger(atual)) return;
+    const destino =
+      e.key === 'ArrowRight' || e.key === 'ArrowDown'
+        ? Math.min(total - 1, atual + 1)
+        : e.key === 'ArrowLeft' || e.key === 'ArrowUp'
+          ? Math.max(0, atual - 1)
+          : e.key === 'Home'
+            ? 0
+            : e.key === 'End'
+              ? total - 1
+              : null;
+    if (destino === null) return;
+    e.preventDefault();
+    setFoco(destino);
+    e.currentTarget.querySelector<HTMLButtonElement>(`.la-palavra[data-i="${destino}"]`)?.focus();
+  };
   const blocos: ReactNode[] = [];
   let cursor = 0;
   dividido.frases.forEach((f, iFrase) => {
@@ -42,6 +65,8 @@ export default function TextoComPalavras(props: {
           type="button"
           className="la-palavra"
           data-i={i}
+          tabIndex={i === daVez ? 0 : -1}
+          onFocus={() => setFoco(i)}
           data-leitura={marca && marca !== 'pendente' ? marca : undefined}
           data-etiqueta={props.etiqueta?.(p.texto)}
           aria-current={marca === 'atual' ? 'true' : undefined}
@@ -70,7 +95,8 @@ export default function TextoComPalavras(props: {
   });
   if (cursor < texto.length) blocos.push(texto.slice(cursor));
   return (
-    <p className="la-texto" lang="en" data-testid="leitura-ativa-texto">
+    /* As setas dos botões de dentro sobem até aqui. */
+    <p className="la-texto" lang="en" data-testid="leitura-ativa-texto" onKeyDown={mover}>
       {blocos}
     </p>
   );

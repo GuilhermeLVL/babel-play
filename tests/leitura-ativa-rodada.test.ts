@@ -5,7 +5,8 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { itensDaRodadaDeLeitura, rodadaDaLeitura } from '../src/core/leitura/rodadaDaLeitura'
+import { TETO_DE_PALAVRAS_POR_MINUTO } from '../src/core/leitura/alinhadorDeLeitura'
+import { itensDaRodadaDeLeitura, leituraValeAMissao, rodadaDaLeitura } from '../src/core/leitura/rodadaDaLeitura'
 
 describe('itensDaRodadaDeLeitura', () => {
   it('2 certas de primeira e 1 pulada: 2 linhas certas e 1 sem resposta', () => {
@@ -37,5 +38,20 @@ describe('itensDaRodadaDeLeitura', () => {
       duracaoMs: 45_000,
       itens: [{ itemRef: 'a1-no-mercado#1', correct: 1, attempts: 1, kind: 'leitura' }],
     })
+  })
+})
+
+describe('leituraValeAMissao', () => {
+  it('80 palavras em 1 s não vale (ninguém lê a 4800 por minuto); em 20 s, vale', () => {
+    expect(leituraValeAMissao(80, 1_000)).toBe(false)
+    expect(leituraValeAMissao(80, 20_000)).toBe(true)
+  })
+  it('o limite é o teto de palavras por minuto', () => {
+    const ms = (80 * 60_000) / TETO_DE_PALAVRAS_POR_MINUTO
+    expect(leituraValeAMissao(80, ms)).toBe(true)
+    expect(leituraValeAMissao(80, ms - 1_000)).toBe(false)
+  })
+  it('sem tempo medido, não vale', () => {
+    expect(leituraValeAMissao(80, 0)).toBe(false)
   })
 })

@@ -133,6 +133,29 @@ describe('antes de ler', () => {
   })
 })
 
+describe('o texto pelo teclado', () => {
+  it('o texto é uma parada de Tab só; as setas, Home e End andam de palavra em palavra', () => {
+    const { container } = abrir()
+    fireEvent.click(screen.getByRole('radio', { name: /Ler em silêncio/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Começar' }))
+    const palavras = [...container.querySelectorAll<HTMLButtonElement>('.la-palavra')]
+    expect(palavras.length).toBeGreaterThan(50)
+    expect(palavras.filter((b) => b.tabIndex === 0)).toHaveLength(1)
+    expect(palavras[0].tabIndex).toBe(0)
+    palavras[0].focus()
+    fireEvent.keyDown(palavras[0], { key: 'ArrowRight' })
+    expect(document.activeElement).toBe(palavras[1])
+    expect(palavras[1].tabIndex).toBe(0)
+    expect(palavras[0].tabIndex).toBe(-1)
+    fireEvent.keyDown(palavras[1], { key: 'End' })
+    expect(document.activeElement).toBe(palavras.at(-1))
+    fireEvent.keyDown(palavras.at(-1)!, { key: 'Home' })
+    expect(document.activeElement).toBe(palavras[0])
+    fireEvent.keyDown(palavras[0], { key: 'ArrowLeft' })
+    expect(document.activeElement).toBe(palavras[0])
+  })
+})
+
 describe('ouvir primeiro', () => {
   it('a voz do aparelho lê frase a frase e a frase da vez fica destacada', async () => {
     const { container } = abrir()
@@ -184,14 +207,18 @@ describe('ler em voz alta no perfil protegido', () => {
 })
 
 describe('o fim da leitura: rodada, missão e caderno', () => {
-  /** Lê em silêncio, acerta a 1ª de primeira, pula as outras duas e pula a escrita. */
-  async function lerAteOResumo(c = conhecimento) {
+  /** Lê em silêncio (por `msLendo`), acerta a 1ª de primeira, pula as outras duas e pula a escrita. */
+  async function lerAteOResumo(c = conhecimento, msLendo = 60_000) {
     render(
       <SessaoDeLeitura ficha={MERCADO} conhecimento={c} protegido={false} aoVoltar={() => {}} aoTerminar={() => {}} />,
     )
     fireEvent.click(screen.getByRole('radio', { name: /Ler em silêncio/ }))
+    const agora = Date.now()
+    const relogio = vi.spyOn(Date, 'now').mockReturnValue(agora)
     fireEvent.click(screen.getByRole('button', { name: 'Começar' }))
+    relogio.mockReturnValue(agora + msLendo)
     fireEvent.click(screen.getByTestId('terminei'))
+    relogio.mockRestore()
     const p1 = MERCADO.perguntas[0]
     fireEvent.click(screen.getByRole('button', { name: p1.opcoes[p1.correta] }))
     fireEvent.click(screen.getByRole('button', { name: 'Continuar' }))
@@ -212,6 +239,12 @@ describe('o fim da leitura: rodada, missão e caderno', () => {
       { itemRef: 'a1-no-mercado#3', attempts: 0, kind: 'leitura' },
     ])
     expect(screen.getByTestId('missao-da-leitura').textContent).toBe('Missão do dia: Leia 1 texto ✓')
+  })
+
+  it('"Terminei" em 1 s: rápido demais para ter lido; nenhuma rodada sai e a missão não fecha', async () => {
+    await lerAteOResumo(conhecimento, 1_000)
+    expect(servidor.rodadas).toHaveLength(0)
+    expect(screen.queryByTestId('missao-da-leitura')).toBeNull()
   })
 
   it('missão não sorteada: o resumo não fala dela', async () => {

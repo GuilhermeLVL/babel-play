@@ -26,14 +26,24 @@ vi.mock('../src/data/apiDoEstudo', async (orig) => ({
   },
 }))
 
-const { default: EscritaDoTexto } = await import('../src/components/views/leituraAtiva/EscritaDoTexto')
+const conta = vi.hoisted(() => ({ plan: 'plus' as string, teste: null as { terminaEm: number } | null }))
+vi.mock('../src/lib/entitlements', async (orig) => {
+  const real = await orig<typeof import('../src/lib/entitlements')>()
+  return { ...real, getEntitlements: () => ({ ...real.getEntitlements(), plan: conta.plan, teste: conta.teste }) }
+})
+vi.mock('../src/lib/identidade', async (orig) => ({
+  ...(await orig<typeof import('../src/lib/identidade')>()),
+  estadoDeIdentidade: () => 'conta',
+}))
+
+const { default: EscritaDoTexto, acessoDaEscrita } = await import('../src/components/views/leituraAtiva/EscritaDoTexto')
 
 const MERCADO = textos.find((t) => t.id === 'a1-no-mercado') as FichaDeTexto
 const VINTE_E_DUAS =
   'In the morning I go to the market with my dad. I buy six green apples. I see my friend Ben and his happy dog.'
 
-function abrir(acesso: 'retorno' | 'conferir' | 'restrito', aoTerminar = () => {}) {
-  return render(<EscritaDoTexto ficha={MERCADO} acesso={acesso} aoTerminar={aoTerminar} />)
+function abrir(acesso: 'retorno' | 'conferir' | 'restrito', aoTerminar = () => {}, protegido = false) {
+  return render(<EscritaDoTexto ficha={MERCADO} acesso={acesso} protegido={protegido} aoTerminar={aoTerminar} />)
 }
 const escrever = (texto: string) => fireEvent.change(screen.getByRole('textbox'), { target: { value: texto } })
 const ok = (retorno: unknown) => ({ ok: true, valor: retorno })
@@ -187,6 +197,36 @@ describe('o retorno da IA (simulada)', () => {
     escrever(VINTE_E_DUAS)
     await act(async () => fireEvent.click(screen.getByTestId('pedir-retorno')))
     expect(screen.getByTestId('conferir-sozinho')).toBeTruthy()
+  })
+
+  it('o 403 com perfil protegido (plano vencido no cache) vira só a conferência, sem falar de plano', async () => {
+    api.respostas.push({ ok: false, motivo: 'sem_plano' })
+    const { container } = abrir('retorno', () => {}, true)
+    escrever(VINTE_E_DUAS)
+    await act(async () => fireEvent.click(screen.getByTestId('pedir-retorno')))
+    expect(screen.getByTestId('conferir-sozinho')).toBeTruthy()
+    expect(screen.queryByTestId('linha-dos-planos')).toBeNull()
+    expect(container.textContent).not.toMatch(/plano/i)
+  })
+})
+
+describe('acessoDaEscrita', () => {
+  afterEach(() => {
+    conta.plan = 'plus'
+    conta.teste = null
+  })
+  it('plano pago com conta: retorno', () => {
+    expect(acessoDaEscrita(false)).toBe('retorno')
+  })
+  it('no teste de 3 dias o servidor recusa: conferência (adulto) ou restrito (protegido), nunca o pedido', () => {
+    conta.teste = { terminaEm: Date.now() + 86_400_000 }
+    expect(acessoDaEscrita(false)).toBe('conferir')
+    expect(acessoDaEscrita(true)).toBe('restrito')
+  })
+  it('Grátis: conferência para adulto e restrito para protegido', () => {
+    conta.plan = 'free'
+    expect(acessoDaEscrita(false)).toBe('conferir')
+    expect(acessoDaEscrita(true)).toBe('restrito')
   })
 })
 

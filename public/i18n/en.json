@@ -6100,5 +6100,11 @@
   "Sua sessão expirou. Saia e entre de novo para configurar a verificação em duas etapas.": "Your session has expired. Sign out and sign in again to set up two-step verification.",
   "Sua sessão expirou. Entre de novo.": "Your session has expired. Please sign in again.",
   "Vamos voltar ao idioma? Posso te ajudar com vocabulário, frases ou pronúncia.": "Shall we get back to the language? I can help you with vocabulary, phrases or pronunciation.",
-  "Se algo estiver pesado para você, converse com um adulto de confiança ou ligue 188 (CVV), de graça, a qualquer hora. Quando quiser, seguimos com o idioma.": "If something feels heavy for you, talk to an adult you trust or call 188 (CVV, Brazil), free, any time. Whenever you want, we can keep going with the language."
+  "Se algo estiver pesado para você, converse com um adulto de confiança ou ligue 188 (CVV), de graça, a qualquer hora. Quando quiser, seguimos com o idioma.": "If something feels heavy for you, talk to an adult you trust or call 188 (CVV, Brazil), free, any time. Whenever you want, we can keep going with the language.",
+  "Uma palavra foi ocultada pela proteção. O reconhecimento automático às vezes entende errado.": "A word was hidden by the protection. Automatic recognition sometimes gets things wrong.",
+  "Palavra ocultada: o reconhecimento pode ter entendido errado": "Hidden word: recognition may have misheard",
+  "O que aparece na legenda e na tradução ao vivo.": "What shows up in live captions and translation.",
+  "Ocultar palavras sensíveis na legenda": "Hide sensitive words in captions",
+  "Sempre ligada: é uma proteção do perfil. Palavrões, termos sexuais e ofensas aparecem como •••, porque o reconhecimento automático às vezes entende errado.": "Always on: it is a profile protection. Swear words, sexual terms and slurs show up as •••, because automatic recognition sometimes gets things wrong.",
+  "Termos sexuais e ofensas aparecem como •••. O reconhecimento automático às vezes entende errado, e o marcador mostra que algo foi ocultado.": "Sexual terms and slurs show up as •••. Automatic recognition sometimes gets things wrong, and the marker shows that something was hidden."
 }

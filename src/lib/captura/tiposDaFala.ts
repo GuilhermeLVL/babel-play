@@ -68,6 +68,11 @@ export interface SpeechSegment {
    */
   paraLang?: string;
   semTraducao?: boolean;
+  /**
+   * LEGENDA SEGURA (`legendaSeguraDasFalas.ts`): quantos termos sensíveis viraram `•••` no original e na tradução.
+   * Ausente = nenhum.
+   */
+  ocultadas?: number;
 }
 
 // `VocabWord` agora vive em `src/types.ts` — é o contrato compartilhado do <VocabularyPanel/>,

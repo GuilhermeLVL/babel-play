@@ -6,15 +6,17 @@
  * closures que substituiu, e o estado da tela entra por PARÂMETRO explícito.
  */
 import { makeCloze, motivoLegivel } from '@core';
-import type { Dispatch, RefObject,SetStateAction } from 'react';
+import type { Dispatch, RefObject, SetStateAction } from 'react';
 
 import { bulkAddCards } from '../../data/api';
 import { type VocabWord } from '../../types';
 import type { LangConfig } from '../langConfig';
 import { baseLang } from '../languages';
-import type { ExerciseId,PracticeSeed } from '../sentences';
+import { politicaDaLegendaAtual } from '../politicaDaLegenda';
+import type { ExerciseId, PracticeSeed } from '../sentences';
 import { seedFromSelection, telaDoExercicio } from '../sentences';
 import { buildVocabWord, cardLangs, resolveWord, type WordOrigin } from '../vocabWord';
+import { palavraOcultada } from './legendaSeguraDasFalas';
 import type { GatewayDaCaptura } from './tiposDaFala';
 
 /** Tudo que o vocabulário da captura precisa da tela — por parâmetro, sem contexto novo. */
@@ -37,8 +39,16 @@ export interface DepsDaPalavraDaFala {
 
 export function criarPalavraDaFala(deps: DepsDaPalavraDaFala) {
   const {
-    gateway, langConfigRef, targetLangRef, selectedWordLangRef, speakWord,
-    setSelectedExamWord, addedWords, setAddedWords, setFeedbackMsg, onChangeView,
+    gateway,
+    langConfigRef,
+    targetLangRef,
+    selectedWordLangRef,
+    speakWord,
+    setSelectedExamWord,
+    addedWords,
+    setAddedWords,
+    setFeedbackMsg,
+    onChangeView,
   } = deps;
 
   /**
@@ -74,12 +84,11 @@ export function criarPalavraDaFala(deps: DepsDaPalavraDaFala) {
     //    honestamente, em vez de um "traduzindo…" eterno).
     const { vocab } = await buildVocabWord(origin, gateway.mt);
     if (vocab.translation) {
-      setSelectedExamWord(prev => (prev && prev.word === w.word
-        ? { ...prev, translation: vocab.translation, mtEngine: vocab.mtEngine }
-        : prev));
+      setSelectedExamWord((prev) =>
+        prev && prev.word === w.word ? { ...prev, translation: vocab.translation, mtEngine: vocab.mtEngine } : prev,
+      );
     }
   };
-
 
   /**
    * Add word to study deck (SRS) — grava no BACKEND (mesmo deck do Study/FSRS).
@@ -94,7 +103,9 @@ export function criarPalavraDaFala(deps: DepsDaPalavraDaFala) {
    */
   const handleAddWordToDeck = async (wordObj: any): Promise<string> => {
     const word: string = wordObj.word;
-    setAddedWords(prev => prev.includes(word) ? prev : [...prev, word]);
+    /* LEGENDA SEGURA: o marcador `•••` e um termo da política não viram cartão (`legendaSeguraDasFalas.ts`). */
+    if (palavraOcultada(String(word ?? ''), politicaDaLegendaAtual())) return '';
+    setAddedWords((prev) => (prev.includes(word) ? prev : [...prev, word]));
     let msg: string;
     try {
       const sentence: string = wordObj.sentence || wordObj.example || '';
@@ -112,17 +123,23 @@ export function criarPalavraDaFala(deps: DepsDaPalavraDaFala) {
       let back: string = wordObj.translation || '';
       if (!back && resolved.coverage !== 'same' && resolved.coverage !== 'unknown') {
         // Direção decidida pelo idioma DA PALAVRA, não pelo par da sessão.
-        try { back = (await gateway.mt.translate(word, resolved.lang, resolved.targetLang)).text || ''; } catch { back = ''; }
+        try {
+          back = (await gateway.mt.translate(word, resolved.lang, resolved.targetLang)).text || '';
+        } catch {
+          back = '';
+        }
       }
       const cloze = sentence ? makeCloze(sentence, word) : null;
-      const r = await bulkAddCards([{
-        word,
-        back,
-        sentence: sentence || undefined,
-        ...cardLangs(resolved),
-        clozePrompt: cloze?.prompt,
-        clozeAnswer: cloze?.answer,
-      }]);
+      const r = await bulkAddCards([
+        {
+          word,
+          back,
+          sentence: sentence || undefined,
+          ...cardLangs(resolved),
+          clozePrompt: cloze?.prompt,
+          clozeAnswer: cloze?.answer,
+        },
+      ]);
       /* Confirmar antes de saber é o defeito mais fácil de cometer aqui: a régua pode recusar a
          palavra (repetida, sem tradução) e a tela dizia "adicionado" do mesmo jeito. A pessoa
          então procura no baralho o que nunca entrou e conclui que o app perde coisa. */

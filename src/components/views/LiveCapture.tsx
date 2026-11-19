@@ -101,6 +101,7 @@ import { assinarSalvamento, capturaEmRisco, lerSalvamento } from '../../lib/capt
 import { criarFontesDeAudio } from '../../lib/captura/fontesDeAudio';
 import { type PassoDoInicio, planejarInicio } from '../../lib/captura/inicioDaCaptura';
 import { idiomasDaConversa } from '../../lib/captura/interprete';
+import { comLegendaSegura, finalParaAVoz, semMarcador } from '../../lib/captura/legendaSeguraDasFalas';
 import {
   desktopFraco,
   podePerguntarLegendaSemBaixar,
@@ -191,6 +192,7 @@ import { usePalavrasAprendidas } from '../../lib/palavrasAprendidas';
 import { destinoDaTraducao, PerfilAdaptativoDeIdioma } from '../../lib/perfilDeIdioma';
 import { telasEnxutas } from '../../lib/polimento/base';
 import { sentir } from '../../lib/polimento/sentidos';
+import { politicaDaLegendaAtual } from '../../lib/politicaDaLegenda';
 import { coreOnly } from '../../lib/profile';
 import { perfilProtegido } from '../../lib/protecaoDoMenor';
 import { play } from '../../lib/soundFx';
@@ -617,7 +619,19 @@ export default function LiveCapture({
   const [targetLang, setTargetLang] = useState(DEFAULT_LANG_CONFIG.studying);
 
   // Segmentos de fala capturados AO VIVO (começa vazio; sem simulação).
-  const [speechSegments, setSpeechSegments] = useState<SpeechSegment[]>([]);
+  const [speechSegments, setSpeechSegmentsCru] = useState<SpeechSegment[]>([]);
+  /* LEGENDA SEGURA (change `legenda-segura-para-menores`): TODA escrita das falas passa pela política do perfil, e só
+     esta versão envolvida sai da tela (pipeline, tradução, Web Speech, intérprete). O setter cru fica nestas duas linhas;
+     `tests/legendaSeguraArquitetura.test.ts` falha se ele for usado em outro lugar. */
+  const setSpeechSegments = useMemo(
+    () =>
+      comLegendaSegura(setSpeechSegmentsCru, politicaDaLegendaAtual, () =>
+        setFeedbackMsg(
+          t('Uma palavra foi ocultada pela proteção. O reconhecimento automático às vezes entende errado.'),
+        ),
+      ),
+    [setFeedbackMsg],
+  );
   // Espelho para os handlers assíncronos lerem as últimas falas (contexto da tradução comunicativa).
   const speechSegmentsRef = useRef<SpeechSegment[]>([]);
   useEffect(() => {
@@ -1317,7 +1331,7 @@ export default function LiveCapture({
     conhecidasRef,
     pedidosSobDemandaRef,
     aoFalharOTradutorLocal: () => setTradutorLocalFalhou(true),
-    aoTraduzirFinal: (f) => ponteDoInterpreteRef.current?.aoTraduzirFinal(f),
+    aoTraduzirFinal: (f) => ponteDoInterpreteRef.current?.aoTraduzirFinal(finalParaAVoz(f, politicaDaLegendaAtual())),
   });
 
   // Enunciados que chegaram ENQUANTO o modelo carregava — transcritos no flush (nada se perde).
@@ -2148,7 +2162,8 @@ export default function LiveCapture({
      navegador, com "devagar" a 70% do ritmo escolhido. Identidade fixa, como os da conversa. */
   const consultarNaLegenda = useFuncaoEstavel(glosaDaPalavra);
   const ouvirNaLegenda = useFuncaoEstavel((texto: string, lang: string | undefined, lenta: boolean) => {
-    ttsSpeak(texto, { lang: lang || targetLangRef.current, rate: lenta ? ttsSpeed * 0.7 : ttsSpeed });
+    /* A voz pula a palavra ocultada pela legenda segura (não lê o marcador). */
+    ttsSpeak(semMarcador(texto), { lang: lang || targetLangRef.current, rate: lenta ? ttsSpeed * 0.7 : ttsSpeed });
   });
   const salvarNaLegenda = useFuncaoEstavel(
     (item: { palavra: string; frase?: string; lang?: string; traducao?: string }) =>

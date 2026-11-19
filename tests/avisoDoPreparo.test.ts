@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { ModelPrepState } from '../src/components/ModelPrepPanel'
-import { avisoDoPreparo } from '../src/lib/captura/avisoDoPreparo'
+import { avisoComAVozPrimeiro, avisoDoPreparo } from '../src/lib/captura/avisoDoPreparo'
 
 const base: ModelPrepState = { whisper: null, mt: null, fromCache: false, error: null, done: false }
 
@@ -30,5 +30,27 @@ describe('avisoDoPreparo', () => {
 
   it('nunca promete 100% antes de acabar', () => {
     expect(avisoDoPreparo({ ...base, mt: 0.999 })).toBe('Preparando a tradução dos dois lados · 99%')
+  })
+})
+
+describe('avisoComAVozPrimeiro (CONV-06)', () => {
+  const VOZ = 'Este aparelho não tem voz em inglês. Gerenciar vozes'
+  const instalando = { whisper: null, mt: null, fromCache: false, error: null, done: true, nativos: { tradutor: 0 } }
+
+  it('sem voz e o pacote do tradutor em preparo: a instrução da voz fica', () => {
+    expect(avisoComAVozPrimeiro(instalando, VOZ)).toBe(VOZ)
+  })
+
+  it('com voz: o progresso do preparo, como antes', () => {
+    expect(avisoComAVozPrimeiro(instalando, null)).toBe(avisoDoPreparo(instalando))
+  })
+
+  it('sem preparo em curso: nada aqui (a tela segue a ordem dela: prática, cadeado, a voz…)', () => {
+    expect(avisoComAVozPrimeiro(null, VOZ)).toBeNull()
+    expect(avisoComAVozPrimeiro({ ...instalando, nativos: undefined }, VOZ)).toBeNull()
+  })
+
+  it('o erro do preparo continua vencendo', () => {
+    expect(avisoComAVozPrimeiro({ ...instalando, error: 'falhou o modelo' }, VOZ)).toBe('falhou o modelo')
   })
 })

@@ -61,6 +61,8 @@ describe('ChromeTranslatorMt.preparar', () => {
   })
 })
 
+const OpusMtLocalDe = (m: typeof import('../src/gateway/adapters/opusMtLocal')) => m.OpusMtLocal.prototype
+
 describe('gateway: opus-mt não aquece o par que o nativo traduz', () => {
   async function montar() {
     const { buildGateway } = await import('../src/gateway/index')
@@ -88,6 +90,28 @@ describe('gateway: opus-mt não aquece o par que o nativo traduz', () => {
     await gw.mt.preload('en', 'pt')
     await new Promise((r) => setTimeout(r, 0))
     expect(preload).not.toHaveBeenCalled()
+  })
+
+  /* CEL-01: es→pt agora tem rota no aparelho pelo inglês, mas ela é o ÚLTIMO recurso local. Com o nativo pronto,
+     nenhum modelo do pivô baixa, e a fala é traduzida pelo nativo. */
+  it('es→pt com o nativo pronto: a fala vai ao nativo e nenhum modelo do pivô baixa', async () => {
+    stubTranslator('available')
+    const { gw, preload } = await montar()
+    const { BergamotLocal } = await import('../src/gateway/adapters/bergamotLocal')
+    const preloadBergamot = vi.spyOn(BergamotLocal.prototype, 'preload').mockImplementation(() => {})
+    const traduzLocal = vi.spyOn(OpusMtLocalDe(await import('../src/gateway/adapters/opusMtLocal')), 'translate')
+    const workers = vi.fn()
+    vi.stubGlobal('Worker', workers)
+    void gw.mt.prepararNativo([['es', 'pt']])
+    gw.mt.warmup([['es', 'pt']])
+    await gw.mt.preload('es', 'pt')
+    await new Promise((r) => setTimeout(r, 0))
+    const r = await gw.mt.translate('Perdón, ¿dónde está la salida?', 'es', 'pt')
+    expect(r.text).toBe('nativo: Perdón, ¿dónde está la salida?')
+    expect(preload).not.toHaveBeenCalled()
+    expect(preloadBergamot).not.toHaveBeenCalled()
+    expect(traduzLocal).not.toHaveBeenCalled()
+    expect(workers).not.toHaveBeenCalled()
   })
 
   it('nativo indisponível → o opus-mt aquece como antes', async () => {

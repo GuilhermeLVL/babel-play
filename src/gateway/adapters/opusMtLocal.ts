@@ -1,9 +1,10 @@
 import { ChamadaCancelada, MotorAindaCarregando } from '@core';
 
-import { ALVOS_DO_INGLES, modeloParaOIngles } from '../../core/traducao/viaIngles';
+import { modeloParaOIngles, passaPeloIngles } from '../../core/traducao/viaIngles';
 import { distribuirThreads } from '../../lib/dispositivo/orcamentoDeThreads';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import type { MtOptions, MtResult, TranslationProvider } from '../capabilities';
+import { marcar } from '../marcasDeDesempenho';
 import { gravarManifesto, MENSAGEM_DO_MANIFESTO } from '../modelManifest';
 
 /**
@@ -62,19 +63,12 @@ export class OpusMtLocal implements TranslationProvider {
    * PASSA PELO INGLÊS. Não há modelo local de chinês, japonês, coreano, russo… para pt/es/fr/it/de, e o tradutor da
    * web (MyMemory) exige o consentimento de nuvem: sem ele a fala saía transcrita e SEM tradução. O pivô X→en→alvo
    * usa dois modelos (o do idioma e o en→alvo que já existia), como a cascata faz com qualquer par sem modelo direto.
-   * Quais idiomas entram, e por quê: `core/traducao/viaIngles.ts`. Os pares entre idiomas que já têm modelo direto
-   * (pt↔es…) ficam como estavam: o inglês no meio piora o que o tradutor da web faz bem.
+   * Quais idiomas entram, e por quê: `core/traducao/viaIngles.ts`. Desde CEL-01 (17/11/2026) os pares entre idiomas que
+   * têm modelo direto até o inglês (es→pt…) também passam por ele: sem nativo e sem nuvem não havia rota nenhuma. A
+   * cascata põe este tradutor depois do nativo e da nuvem autorizada, então o pivô só atende quando nada melhor atende.
    */
   private viaIngles(src: string, tgt: string): boolean {
-    const s = src.toLowerCase().split('-')[0];
-    const t = tgt.toLowerCase().split('-')[0];
-    return (
-      modeloParaOIngles(s) !== null &&
-      t !== 'en' &&
-      t !== s &&
-      ALVOS_DO_INGLES.has(t) &&
-      this.modelFor('en', t) !== null
-    );
+    return passaPeloIngles(src, tgt) && this.modelFor(src, 'en') !== null && this.modelFor('en', tgt) !== null;
   }
 
   /** Os dois modelos de um par que passa pelo inglês (X→en e en→alvo). */
@@ -144,6 +138,7 @@ export class OpusMtLocal implements TranslationProvider {
         return;
       }
       if (type === 'ready') {
+        marcar('mt:pronto', { modelo: model });
         this.ready.add(model);
         this.loading.delete(model);
         // Antes do progresso: o disjuntor fecha ANTES de a captura pedir as retraduções.
@@ -205,8 +200,17 @@ export class OpusMtLocal implements TranslationProvider {
     onProgress?: (p: number, label?: string, bytes?: { loaded: number; total: number }) => void,
   ): void {
     if (this.viaIngles(src, tgt)) {
-      this.preload(src, 'en', onProgress);
-      this.preload('en', tgt, onProgress);
+      /* O "pronto" (1) de UMA perna não é o do par: quem espera (`gateway.mt.preload`, a barra do cartão) só ouve o 1
+         com as duas carregadas. Sem isto a espera soltava com o en→alvo ainda baixando. */
+      const pernas = this.pernasViaIngles(src, tgt);
+      const doPar =
+        onProgress &&
+        ((p: number, label?: string, bytes?: { loaded: number; total: number }) => {
+          if (p >= 1 && !pernas.every((m) => this.ready.has(m))) return;
+          onProgress(p, label, bytes);
+        });
+      this.preload(src, 'en', doPar);
+      this.preload('en', tgt, doPar);
       return;
     }
     if (onProgress) this.onProgress = onProgress;
@@ -219,6 +223,7 @@ export class OpusMtLocal implements TranslationProvider {
     }
     if (this.loading.has(model)) return;
     this.loading.add(model);
+    marcar('mt:carga:inicio', { modelo: model });
     this.worker!.postMessage({ type: 'preload', src, tgt, threads: this.threads });
   }
 
@@ -240,12 +245,15 @@ export class OpusMtLocal implements TranslationProvider {
     if (!this.ready.has(model)) {
       if (!this.loading.has(model)) {
         this.loading.add(model);
+        marcar('mt:carga:inicio', { modelo: model });
         this.worker!.postMessage({ type: 'preload', src, tgt, threads: this.threads });
       }
       throw new MotorAindaCarregando(this.id, 'opus-mt ainda carregando (usando fallback)');
     }
 
     const id = Math.random().toString(36).slice(2);
+    /* A fila do worker na linha do tempo (só o final: o parcial é descartável). */
+    if (!opts?.parcial) marcar('mt:pedido', { id, modelo: model, fila: this.pending.size });
     /* PRIORIDADE: a tradução de um parcial vai atrás das de final e é interrompida quando um final
        chega (o worker responde `cancelado`) — ver `mtWorker.ts`. */
     const translated = await new Promise<string>((resolve, reject) => {
@@ -260,6 +268,7 @@ export class OpusMtLocal implements TranslationProvider {
         threads: this.threads,
       });
     });
+    if (!opts?.parcial) marcar('mt:resposta', { id, modelo: model });
     if (!translated) throw new Error('opus-mt devolveu vazio');
     return { text: translated, detectedSourceLang: src, engine: 'opus-mt-local' };
   }

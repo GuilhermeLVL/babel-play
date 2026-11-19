@@ -218,6 +218,8 @@ describe('a sondagem das flags com a aba oculta', () => {
   let visibilidade: DocumentVisibilityState
   beforeEach(() => {
     localStorage.clear()
+    /* Com sessão guardada: sem ela o visitante já nasce `anonimo` (carga-rapida-no-celular). */
+    localStorage.setItem('sb-teste-auth-token', '{}')
     visibilidade = 'visible'
     vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibilidade)
     vi.doMock('../src/lib/supabase', () => ({

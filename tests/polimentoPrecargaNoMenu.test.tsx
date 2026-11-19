@@ -14,7 +14,18 @@ import { registrarTelas, zerarPrecargaParaTeste } from '../src/lib/polimento/pre
 import { medirOPulso } from '../src/lib/polimento/pulso'
 
 const pedidos: Record<string, ReturnType<typeof vi.fn<() => Promise<unknown>>>> = {}
-const TELAS = ['capture', 'interprete', 'library', 'cartoes', 'play', 'estatisticas', 'loja', 'settings', 'profile', 'planos']
+const TELAS = [
+  'capture',
+  'interprete',
+  'library',
+  'cartoes',
+  'play',
+  'estatisticas',
+  'loja',
+  'settings',
+  'profile',
+  'planos',
+]
 
 beforeEach(() => {
   window.matchMedia = (() => ({ matches: false, addEventListener() {}, removeEventListener() {} })) as never
@@ -23,6 +34,8 @@ beforeEach(() => {
   document.documentElement.dataset.px = 'on'
   document.body.className = 'animations-on'
   zerarPrecargaParaTeste()
+  /* O palpite (foco do teclado) só vale com o 4G declarado (carga-rapida-no-celular). */
+  Object.defineProperty(navigator, 'connection', { configurable: true, value: { effectiveType: '4g' } })
   for (const t of TELAS) pedidos[t] = vi.fn<() => Promise<unknown>>(() => Promise.resolve({}))
   registrarTelas(pedidos)
 })
@@ -30,6 +43,7 @@ afterEach(() => {
   cleanup()
   document.body.innerHTML = ''
   localStorage.clear()
+  Object.defineProperty(navigator, 'connection', { configurable: true, value: undefined })
   delete document.documentElement.dataset.px
 })
 
@@ -85,7 +99,7 @@ describe('o toque no item do menu', () => {
       fireEvent.pointerDown(item(container, 'play'))
       expect(pedidos.play).toHaveBeenCalledTimes(1)
     } finally {
-      Object.defineProperty(navigator, 'connection', { configurable: true, value: undefined })
+      Object.defineProperty(navigator, 'connection', { configurable: true, value: { effectiveType: '4g' } })
     }
     fireEvent.focus(item(container, 'cartoes'))
     expect(pedidos.cartoes).toHaveBeenCalledTimes(1)

@@ -1,0 +1,291 @@
+{
+ "rodada": "desktop-vazio-limpo",
+ "opcoes": {
+  "raiz": "/tmp/conversa-de-verdade/jantar",
+  "saida": "rodadas/desktop-vazio-limpo",
+  "base": "http://localhost:3100",
+  "falas": "/Users/guilhermepinheirodeoliveira/dev/personal/babel/babel-play/.claude/worktrees/pendencias-ao-alcance/reports/auditoria-qualidade/conversa/falas",
+  "turnos": [
+   "pt1",
+   "en1",
+   "pt2",
+   "en2"
+  ],
+  "esperaMicMs": 300000
+ },
+ "cargaAteBotaoMs": 573,
+ "toquesTotais": 5,
+ "turnos": 4,
+ "toquesPorTurno": 1.25,
+ "toquesExtras": [
+  {
+   "i": 0,
+   "motivo": "Baixar e iniciar"
+  }
+ ],
+ "troca": null,
+ "mediana": {
+  "toqueAteMicProntoMs": 434,
+  "fimDaFalaAteMicFecharMs": 2376,
+  "fimDaFalaAteTraducaoMs": 2574,
+  "fimDaFalaAteVozMs": 2555,
+  "toqueAteVozTerminarMs": 10976
+ },
+ "avisosVistos": [
+  "Instalando o tradutor · N%",
+  "Baixando o reconhecimento de voz · N%"
+ ],
+ "ouvindoAntesDoPronto": {
+  "ultimoPreparoMs": 30264.82000017166,
+  "primeiroOuvindoMs": 34167.125,
+  "ouvindoComPreparo": false
+ },
+ "lista": [
+  {
+   "dono": "meu",
+   "fala": "Boa noite! Que bom que você veio jantar com a gente.",
+   "lang": "pt",
+   "trad": "Good night! Glad you came to dinner with us."
+  },
+  {
+   "dono": "outro",
+   "fala": "Thank you so much for inviting me. The food smells amazing!",
+   "lang": "en",
+   "trad": "Muito obrigado por me convidar. A comida cheira incrível!"
+  },
+  {
+   "dono": "meu",
+   "fala": "Você prefere vinho tinto ou suco de uva?",
+   "lang": "pt",
+   "trad": "Do you prefer red wine or grape juice?"
+  },
+  {
+   "dono": "outro",
+   "fala": "Red wine, please. Where did you learn to cook like this?",
+   "lang": "en",
+   "trad": "Vinho tinto, por favor. Onde aprendeu a cozinhar assim?"
+  }
+ ],
+ "vozesUsadas": [
+  "Eddy (Portuguese (Brazil))|pt-BR",
+  "Albert|en-US"
+ ],
+ "vozesPadraoDoSistema": [
+  {
+   "nome": "Samantha",
+   "lang": "en-US",
+   "padrao": true
+  }
+ ],
+ "gum": [
+  {
+   "t": 3107.8650000095367,
+   "audio": true,
+   "video": false
+  }
+ ],
+ "turnosDetalhe": [
+  {
+   "i": 0,
+   "fala": "pt1",
+   "lado": "meu",
+   "toques": 2,
+   "toqueAteMicProntoMs": 1132,
+   "falaDurMs": 4020,
+   "fimDaFalaAteMicFecharMs": 2433,
+   "fimDaFalaAteTraducaoMs": 24677,
+   "fimDaFalaAteVozMs": null,
+   "toqueAteVozTerminarMs": null,
+   "vozDurMs": null,
+   "traducaoNaTela": "Good night! Glad you came to dinner with us.",
+   "lidoEmVoz": null,
+   "vozUsada": null,
+   "langDaVoz": null,
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Preparando 0%",
+    "Preparando 1%",
+    "Preparando 2%",
+    "Preparando 3%",
+    "Preparando 4%",
+    "Preparando 5%",
+    "Preparando 6%"
+   ],
+   "fraseFinalLado": "Boa noite! Que bom que você veio jantar com a gente.",
+   "fraseFinalOutro": "Good night! Glad you came to dinner with us.",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 17
+     },
+     "outro": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 33.28
+     }
+    },
+    "microfonesFora": [
+     "Ao vivo"
+    ],
+    "barraVisivel": true
+   }
+  },
+  {
+   "i": 1,
+   "fala": "en1",
+   "lado": "outro",
+   "toques": 1,
+   "toqueAteMicProntoMs": 439,
+   "falaDurMs": 3635,
+   "fimDaFalaAteMicFecharMs": 2388,
+   "fimDaFalaAteTraducaoMs": 2588,
+   "fimDaFalaAteVozMs": 2586,
+   "toqueAteVozTerminarMs": 11473,
+   "vozDurMs": 4477,
+   "traducaoNaTela": "Muito obrigado por me convidar. A comida cheira incrível!",
+   "lidoEmVoz": "Muito obrigado por me convidar. A comida cheira incrível!",
+   "vozUsada": "Eddy (Portuguese (Brazil))|pt-BR",
+   "langDaVoz": "pt-BR",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "Thank you so much for inviting me. The food smells amazing!",
+   "fraseFinalOutro": "Muito obrigado por me convidar. A comida cheira incrível!",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 33.28
+     },
+     "outro": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 17
+     }
+    },
+    "microfonesFora": [
+     "Ao vivo"
+    ],
+    "barraVisivel": true
+   }
+  },
+  {
+   "i": 2,
+   "fala": "pt2",
+   "lado": "meu",
+   "toques": 1,
+   "toqueAteMicProntoMs": 428,
+   "falaDurMs": 3171,
+   "fimDaFalaAteMicFecharMs": 2344,
+   "fimDaFalaAteTraducaoMs": 2377,
+   "fimDaFalaAteVozMs": 2376,
+   "toqueAteVozTerminarMs": 9453,
+   "vozDurMs": 3168,
+   "traducaoNaTela": "Do you prefer red wine or grape juice?",
+   "lidoEmVoz": "Do you prefer red wine or grape juice?",
+   "vozUsada": "Albert|en-US",
+   "langDaVoz": "en-US",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "Você prefere vinho tinto ou suco de uva?",
+   "fraseFinalOutro": "Do you prefer red wine or grape juice?",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 17
+     },
+     "outro": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 33.28
+     }
+    },
+    "microfonesFora": [
+     "Ao vivo"
+    ],
+    "barraVisivel": true
+   }
+  },
+  {
+   "i": 3,
+   "fala": "en2",
+   "lado": "outro",
+   "toques": 1,
+   "toqueAteMicProntoMs": 423,
+   "falaDurMs": 3560,
+   "fimDaFalaAteMicFecharMs": 2363,
+   "fimDaFalaAteTraducaoMs": 2559,
+   "fimDaFalaAteVozMs": 2555,
+   "toqueAteVozTerminarMs": 10976,
+   "vozDurMs": 4128,
+   "traducaoNaTela": "Vinho tinto, por favor. Onde aprendeu a cozinhar assim?",
+   "lidoEmVoz": "Vinho tinto, por favor. Onde aprendeu a cozinhar assim?",
+   "vozUsada": "Eddy (Portuguese (Brazil))|pt-BR",
+   "langDaVoz": "pt-BR",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "Red wine, please. Where did you learn to cook like this?",
+   "fraseFinalOutro": "Vinho tinto, por favor. Onde aprendeu a cozinhar assim?",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 33.28
+     },
+     "outro": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 17
+     }
+    },
+    "microfonesFora": [
+     "Ao vivo"
+    ],
+    "barraVisivel": true
+   }
+  }
+ ]
+}

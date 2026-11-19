@@ -361,10 +361,16 @@ describe('tradução: a cobertura que a tela anuncia é a do tradutor local de v
   it.each(['ro', 'ca', 'gl'])('zh → %s não tem tradutor no aparelho (sem modelo en→%s)', (alvo) => {
     expect(opus.supports('zh', alvo)).toBe(false)
   })
-  it('o par entre idiomas que já têm modelo direto não ganha pivô (o inglês no meio piora o tradutor da web)', () => {
-    expect(opus.supports('pt', 'es')).toBe(false)
-    expect(opus.supports('es', 'pt')).toBe(false)
-    expect(opus.supports('de', 'fr')).toBe(false)
+  /* CEL-01 (auditoria de 17/11/2026): sem nativo e sem nuvem, es→pt ficava sem tradução nenhuma no celular. O par entre
+     idiomas com modelo direto até o inglês também passa por ele — como último recurso local (`coberturaNoAparelho.ts`). */
+  it('o par entre idiomas que já têm modelo direto passa pelo inglês no aparelho (CEL-01)', () => {
+    expect(opus.supports('pt', 'es')).toBe(true)
+    expect(opus.supports('es', 'pt')).toBe(true)
+    expect(opus.supports('de', 'fr')).toBe(true)
+    expect(mtCoverage('es', 'pt')).toBe('local')
+  })
+  it.each(['ro', 'ca', 'gl'])('%s → pt continua sem pivô (só chega ao inglês)', (de) => {
+    expect(opus.supports(de, 'pt')).toBe(false)
   })
 
   it.todo('hi e vi → pt sem internet: os modelos existem, mas a tradução saiu pior que a da internet (17/10/2026)')

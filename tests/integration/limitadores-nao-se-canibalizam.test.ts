@@ -14,9 +14,9 @@
  * O teste é sobre o STORE, não sobre o Express: é o store que decide onde contar, e testá-lo
  * direto dispensa subir servidor para provar um fato de contabilidade.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let store: any
@@ -25,7 +25,9 @@ beforeAll(async () => {
   h = await setupEphemeralDb()
   store = await h.load('../../server/lib/rateLimitStore')
 })
-afterAll(async () => { await h?.cleanup?.() })
+afterAll(async () => {
+  await h?.cleanup?.()
+})
 
 describe('limitadores independentes', () => {
   it('contar numa família não move o contador da outra', async () => {
@@ -35,6 +37,10 @@ describe('limitadores independentes', () => {
     escrita.init({ windowMs: 60_000 })
 
     const chave = 'u:limite-u1'
+    /* A janela é FIXA (`rl:<minuto>`): se a virada do minuto cair no meio das onze escritas, a conta recomeça e o
+       teste mede o relógio, não o balde (a CI viu 10 em vez de 11). Perto da virada, espera a janela nova. */
+    const ateAVirada = 60_000 - (Date.now() % 60_000)
+    if (ateAVirada < 5_000) await new Promise((r) => setTimeout(r, ateAVirada + 50))
     // Dez escritas — o volume de quem está salvando uma transcrição longa.
     for (let i = 0; i < 10; i++) await escrita.increment(chave)
 

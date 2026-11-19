@@ -180,11 +180,14 @@ export function ChipDoMedidor({
 export function NotaDoPronto({
   medidores,
   semRede,
+  prontoOffline = false,
   planoDeCima,
   aoVerPlano,
 }: {
   medidores: readonly Medidor[];
   semRede: boolean;
+  /** Dá para legendar sem rede neste navegador (`prontoParaLegendarSemRede`)? Só então a promessa aparece. */
+  prontoOffline?: boolean;
   /** O plano à venda com mais horas de Precisão: o nome e as horas dele. */
   planoDeCima?: { nome: string; horas: string } | null;
   aoVerPlano?: () => void;
@@ -208,14 +211,24 @@ export function NotaDoPronto({
     );
   }
   if (semRede) {
+    /* A promessa só quando é verdade NESTE navegador (DISP-02): o app em cache (service worker) e um modelo de
+       transcrição baixado (`prontoSemRede.ts`). Sem isso, o caminho para chegar lá. */
     return (
-      <div className="q-aviso pl-nota" data-testid="nota-sem-internet">
+      <div
+        className="q-aviso pl-nota"
+        data-testid="nota-sem-internet"
+        data-pronto-offline={prontoOffline ? 'sim' : 'nao'}
+      >
         <span>
           <WifiOff aria-hidden />
-          <span>
-            <b>{t('Você está sem internet.')}</b>{' '}
-            {t('A legenda roda no aparelho e nada se perde. A nuvem volta sozinha com a conexão.')}
-          </span>
+          {prontoOffline ? (
+            <span>
+              <b>{t('Você está sem internet.')}</b>{' '}
+              {t('A legenda roda no aparelho e nada se perde. A nuvem volta sozinha com a conexão.')}
+            </span>
+          ) : (
+            <span>{t('Sem internet. Para legendar sem rede, abra a legenda uma vez com internet.')}</span>
+          )}
         </span>
       </div>
     );

@@ -2,7 +2,8 @@
 /**
  * O PEDAÇO DA TELA DESCE ANTES DE ELA SER PEDIDA (`src/lib/polimento/precarga.ts`; auditoria de desempenho
  * de 10/10/2026, G6): uma vez por tela, no toque sempre, e por palpite (foco do teclado, navegador
- * ocioso) só quando a pessoa não pediu economia de dados e a conexão não é lenta.
+ * ocioso) só quando a pessoa não pediu economia de dados e a conexão é 4G (carga-rapida-no-celular: sem a
+ * informação, como no Safari, o palpite não pede nada).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -29,7 +30,7 @@ const vez = () => new Promise<void>((r) => setTimeout(r, 0))
 beforeEach(() => {
   zerarPrecargaParaTeste()
   ociosos = []
-  conexao(undefined)
+  conexao({ effectiveType: '4g' })
   vi.stubGlobal('requestIdleCallback', (f: () => void) => ociosos.push(f))
   vi.stubGlobal('cancelIdleCallback', () => undefined)
 })
@@ -51,10 +52,7 @@ describe('pedir o pedaço de uma tela', () => {
   })
 
   it('o pedido que falhou não trava a tela: a falha não sobe e o próximo toque pede de novo', async () => {
-    const captura = vi
-      .fn<() => Promise<unknown>>()
-      .mockRejectedValueOnce(new Error('sem rede'))
-      .mockResolvedValue({})
+    const captura = vi.fn<() => Promise<unknown>>().mockRejectedValueOnce(new Error('sem rede')).mockResolvedValue({})
     registrarTelas({ capture: captura })
     await expect(pedirTela('capture')).resolves.toBeUndefined()
     expect(pedirTela('capture')).toBeInstanceOf(Promise)
@@ -72,15 +70,16 @@ describe('pedir o pedaço de uma tela', () => {
     expect(ajustes).toHaveBeenCalledTimes(1)
   })
 
-  it('conexão lenta (2G e 3G) conta como economia; 4G e navegador sem a informação, não', () => {
+  it('conexão lenta (2G e 3G) e navegador sem a informação contam como economia; 4G, não', () => {
     for (const tipo of ['slow-2g', '2g', '3g']) {
       conexao({ effectiveType: tipo })
       expect(conexaoPoupada()).toBe(true)
     }
     conexao({ effectiveType: '4g' })
     expect(conexaoPoupada()).toBe(false)
+    /* Sem `navigator.connection` (Safari, Firefox) não há como saber: o palpite não gasta o plano de dados. */
     conexao(undefined)
-    expect(conexaoPoupada()).toBe(false)
+    expect(conexaoPoupada()).toBe(true)
   })
 })
 

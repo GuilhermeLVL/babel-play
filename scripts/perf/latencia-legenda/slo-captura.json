@@ -1,7 +1,7 @@
 {
   "versao": 1,
   "documento": "openspec/audits/2026-09-29-bancada-captura/relatorio.md",
-  "comentario": "Linha de base da bancada de desempenho da captura (A0). Cada ambiente tem a sua: a base só vale no mesmo tipo de máquina. Os números de cada perfil são a mediana de N rodadas (RTF: p50/p95 das falas somadas). Tolerâncias do ruído medido entre duas execuções seguidas (ver o relatório): frames longos contados e a 1ª legenda (o tique dos parciais a faz saltar ~1,2 s) levam folga absoluta; a base do ci-ubuntu sai do workflow desempenho com gravar_linha_de_base. A 1ª legenda do fraco no local-win32 foi regravada no A6b (a6b-primeira-legenda.md): o parcial único do modo desempenho automático a trouxe de ~5,0 s (o final da frase) para ~2,0 s; a tolerância e a folga ficam, e o teto (2 004 × 1,25 + 1 500 ≈ 4,0 s) reprova a volta aos 5 s.",
+  "comentario": "Linha de base da bancada de desempenho da captura (A0). Cada ambiente tem a sua: a base só vale no mesmo tipo de máquina. Os números de cada perfil são a mediana de N rodadas (RTF: p50/p95 das falas somadas). Tolerâncias do ruído medido entre duas execuções seguidas (ver o relatório): frames longos contados e a 1ª legenda (o tique dos parciais a faz saltar ~1,2 s) levam folga absoluta; a base do ci-ubuntu sai do workflow desempenho com gravar_linha_de_base. A 1ª legenda do fraco no local-win32 foi regravada no A6b (a6b-primeira-legenda.md): o parcial único do modo desempenho automático a trouxe de ~5,0 s (o final da frase) para ~2,0 s; a tolerância e a folga ficam, e o teto (2 004 × 1,25 + 1 500 ≈ 4,0 s) reprova a volta aos 5 s. carga-rapida-no-celular (17/11/2026): primeiraLegendaMs mede a legenda COMPLETA desde o d87ca02d (o rótulo dizia \"1º texto\"); o 1º texto na tela é primeiroTextoNaTelaMs (25% + 500 ms: o tique de 2 s que o atrasava para ~3,1 s reprova). Base local-darwin adicionada (o Mac da auditoria), sem apagar a local-win32.",
   "metricas": {
     "framesLongos.n50": {
       "rotulo": "frames > 50 ms na sessão",
@@ -22,10 +22,16 @@
       "folgaAbs": 500
     },
     "primeiraLegendaMs": {
-      "rotulo": "início da 1ª fala → 1º texto (ms)",
+      "rotulo": "início da 1ª fala → legenda completa (ms)",
       "sentido": "menor",
       "toleranciaPct": 25,
       "folgaAbs": 1500
+    },
+    "primeiroTextoNaTelaMs": {
+      "rotulo": "início da 1ª fala → 1º texto na tela (ms)",
+      "sentido": "menor",
+      "toleranciaPct": 25,
+      "folgaAbs": 500
     },
     "rtf.p50": {
       "rotulo": "RTF do STT local, p50",
@@ -97,6 +103,41 @@
           "cpuSilencio.processoPct": 7.32,
           "rendersPorS.silencio": 30.55,
           "rendersPorS.fala": 89.43
+        }
+      }
+    },
+    "local-darwin": {
+      "descricao": "Darwin 27.0.0 · Apple M5 Pro · 15 núcleos · 24 GB · Chrome/156.0.8078.4 — a base da auditoria de 17/11/2026 (aceita pelo dono). primeiroTextoNaTelaMs: provisória, do comportamento sem a bimodalidade (o desktop deu 1 067 ms na rodada boa; o fraco ~1,9 s) até uma bancada válida neste Mac regravar (em 18/11 a bancada saiu INVÁLIDA aqui, \"bipe não encontrado\", também no commit anterior a esta change)",
+      "medidoEm": "2026-11-17T16:42:36.971Z",
+      "commit": "976b90be",
+      "rodadas": {
+        "desktop": 3,
+        "fraco": 3
+      },
+      "perfis": {
+        "desktop": {
+          "framesLongos.n50": 0,
+          "framesLongos.n100": 0,
+          "framesLongos.somaMs": 0,
+          "primeiraLegendaMs": 5580,
+          "rtf.p50": 0.038,
+          "rtf.p95": 0.046,
+          "cpuSilencio.processoPct": 7.67,
+          "rendersPorS.silencio": 22.93,
+          "rendersPorS.fala": 85.98,
+          "primeiroTextoNaTelaMs": 1067
+        },
+        "fraco": {
+          "framesLongos.n50": 0,
+          "framesLongos.n100": 0,
+          "framesLongos.somaMs": 0,
+          "primeiraLegendaMs": 5881,
+          "rtf.p50": 0.07,
+          "rtf.p95": 0.075,
+          "cpuSilencio.processoPct": 13.44,
+          "rendersPorS.silencio": 27.16,
+          "rendersPorS.fala": 92.37,
+          "primeiroTextoNaTelaMs": 1900
         }
       }
     }

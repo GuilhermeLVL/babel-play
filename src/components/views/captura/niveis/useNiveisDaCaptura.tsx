@@ -33,6 +33,7 @@ import { getEntitlements } from '../../../../lib/entitlements';
 import { escolherProcessamento, useLadoDoProcessamento } from '../../../../lib/escolhaDoProcessamento';
 import { flagLigada } from '../../../../lib/flags';
 import { numero, t } from '../../../../lib/i18n';
+import { prontoParaLegendarSemRede } from '../../../../lib/offline/prontoSemRede';
 import { celular } from '../../../../lib/polimento/captura';
 import { provaDosPlanos } from '../../../../lib/polimento/planos';
 import { sentir } from '../../../../lib/polimento/sentidos';
@@ -398,6 +399,7 @@ export function useNiveisDaCaptura(
     <NotaDoPronto
       medidores={medidores}
       semRede={semRede}
+      prontoOffline={semRede && prontoParaLegendarSemRede()}
       planoDeCima={deCima ? { nome: nomeDoPlano(deCima), horas: `${numero(horasDeTranscricao(deCima) ?? 0)} h` } : null}
       aoVerPlano={deCima && verPlanos ? () => verPlanos(deCima) : undefined}
     />

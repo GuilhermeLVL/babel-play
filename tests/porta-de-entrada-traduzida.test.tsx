@@ -57,6 +57,10 @@ vi.mock('../src/lib/supabase', () => ({
   get supabase() {
     return estado.configurado ? supa : null
   },
+  /* O SDK desce sob demanda (carga-rapida-no-celular): "configurado" não depende de ele já ter chegado. */
+  get supabaseConfigurado() {
+    return estado.configurado
+  },
   authRequired: true,
   carregarSupabase: async () => (estado.configurado ? supa : null),
   getAccessToken: async () => null,

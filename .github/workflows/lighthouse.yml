@@ -20,6 +20,10 @@ on:
         description: 'URL já publicada para medir (vazio: sobe o servidor Node local)'
         required: false
         default: ''
+      estrangulamento:
+        description: 'simulate (padrão do Lighthouse) ou devtools (estrangulamento real; a meta do /app no celular, carga-rapida-no-celular)'
+        required: false
+        default: 'simulate'
 
 permissions:
   contents: read
@@ -50,9 +54,17 @@ jobs:
         env:
           EXECUCOES: ${{ github.event.inputs.execucoes }}
           URL_MEDIDA: ${{ github.event.inputs.url }}
+          ESTRANGULAMENTO: ${{ github.event.inputs.estrangulamento }}
         run: |
           # Com URL: mede a publicada (sem servidor local); sem: o servidor de produção do `dist-server`.
-          node scripts/perf/frontend.mjs --execucoes="${EXECUCOES:-3}" --saida=lighthouse-resultado ${URL_MEDIDA:+--url="$URL_MEDIDA"}
+          # Com `devtools` e URL: mede o /app e COBRA a meta do celular (slo.json → frontend.appMobile).
+          if [ "${ESTRANGULAMENTO}" = "devtools" ] && [ -n "${URL_MEDIDA}" ]; then
+            node scripts/perf/frontend.mjs --execucoes="${EXECUCOES:-3}" --saida=lighthouse-resultado --url="$URL_MEDIDA" \
+              --rotas=/app --presets=mobile --throttling-method=devtools --sem-cwv --cobrar-app
+          else
+            node scripts/perf/frontend.mjs --execucoes="${EXECUCOES:-3}" --saida=lighthouse-resultado ${URL_MEDIDA:+--url="$URL_MEDIDA"} \
+              --throttling-method="${ESTRANGULAMENTO:-simulate}"
+          fi
       - name: Mediana por rota e preset
         if: always()
         run: node scripts/perf/resumir-lighthouse.mjs lighthouse-resultado --md >> "$GITHUB_STEP_SUMMARY"

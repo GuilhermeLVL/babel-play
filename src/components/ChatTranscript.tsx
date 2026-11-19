@@ -1,5 +1,6 @@
 import '../styles/legendas.css';
 
+import { MARCADOR } from '@core/moderacao/legendaSegura';
 import {
   ChevronUp,
   Headphones,
@@ -22,6 +23,7 @@ import type { AgeProfileType } from '../lib/profile';
 import { getTranscriptStyleClasses, type TranscriptSettings } from '../lib/transcriptUtils';
 import type { VocabWord } from '../types';
 import { IconeEmBloco } from './ui';
+import { TextoComOcultas } from './views/captura/legendas/TextoComOcultas';
 
 /**
  * A CONVERSA — transcrição ao vivo em balões, com os dois lados em posições opostas
@@ -60,6 +62,8 @@ export interface ChatSegment {
   traducaoSobDemanda?: boolean;
   /** A tradução espera o tradutor local carregar: a linha diz "Baixando o tradutor…". */
   traducaoPendente?: boolean;
+  /** Ficou sem tradução: o motivo vai na linha da tradução (nunca o original entre parênteses, CEL-01). */
+  semTraducao?: boolean | 'sem-rota' | 'falhou';
 }
 
 interface ChatTranscriptProps {
@@ -97,6 +101,8 @@ interface ChatTranscriptProps {
   onSpeakWord: (word: string, lang: string) => void;
   /** "Mostrar tradução" de uma fala deixada sob demanda. Ausente = sem o botão. */
   onRevelarTraducao?: (segId: string) => void;
+  /** "Tentar de novo" na fala cuja tradução falhou. Ausente = sem o botão. */
+  onTentarTraducaoDeNovo?: (segId: string) => void;
   /**
    * Palavras que o aluno já sabe (modo "Só frases com palavra nova"): nas falas DESTE idioma, a
    * palavra que ele ainda não sabe ganha `data-nova`, um sublinhado pontilhado discreto. Ausente =
@@ -250,6 +256,7 @@ interface FalaProps {
   aoExaminar: (segment: ChatSegment, word: VocabWord, lang: string) => void;
   aoOuvir: (segId: string, word: string, lang: string) => void;
   aoRevelar?: (segId: string) => void;
+  aoTentarDeNovo?: (segId: string) => void;
   /** O que a linha da tradução diz enquanto ela espera o tradutor (só nas falas pendentes). */
   pendente?: string;
   /** O menu do balão (D4). */
@@ -277,6 +284,7 @@ const FalaDaConversa = React.memo(function FalaDaConversa({
   aoExaminar,
   aoOuvir,
   aoRevelar,
+  aoTentarDeNovo,
   pendente,
   aoMenu,
 }: FalaProps) {
@@ -306,6 +314,15 @@ const FalaDaConversa = React.memo(function FalaDaConversa({
           if (partido && !/[\p{L}\p{N}]/u.test(wordStr)) {
             // A pontuação de um pedaço partido (，。！) fica como texto: não é palavra para tocar.
             return <React.Fragment key={wIdx}>{wordStr}</React.Fragment>;
+          }
+          /* O marcador da legenda segura: rótulo acessível, sem tocar nem guardar. */
+          if (wordStr.includes(MARCADOR)) {
+            return (
+              <React.Fragment key={wIdx}>
+                <TextoComOcultas texto={wordStr} />
+                {colar ? null : ' '}
+              </React.Fragment>
+            );
           }
           const cleanWord = wordStr.replace(/[,.:?!]/g, '').toLowerCase();
           const vocabMatch = segment.words.find((vw) => vw.word.toLowerCase() === cleanWord);
@@ -372,7 +389,22 @@ const FalaDaConversa = React.memo(function FalaDaConversa({
       {pendente}
     </span>
   ) : segment.translatedText ? (
-    <span className={`trad mut ${tamTraducao}`}>{segment.translatedText}</span>
+    <span className={`trad mut ${tamTraducao}`}>
+      <TextoComOcultas texto={segment.translatedText} />
+    </span>
+  ) : segment.semTraducao === 'sem-rota' || segment.semTraducao === 'falhou' ? (
+    /* SEM TRADUÇÃO, COM O MOTIVO (CEL-01): o original fica onde sempre esteve, e esta linha não o repete. */
+    <span className={`trad mut ${tamTraducao}`} data-testid="sem-traducao">
+      {segment.semTraducao === 'sem-rota' ? t('Sem tradução neste aparelho') : t('Tradução indisponível agora')}
+      {segment.semTraducao === 'falhou' && aoTentarDeNovo && (
+        <>
+          {' · '}
+          <button type="button" className="link" style={{ minHeight: 0 }} onClick={() => aoTentarDeNovo(segment.id)}>
+            {t('Tentar de novo')}
+          </button>
+        </>
+      )}
+    </span>
   ) : (
     segment.traducaoSobDemanda &&
     !segment.isPartial &&
@@ -445,12 +477,19 @@ function ChatTranscript({
   onExamineWord,
   onSpeakWord,
   onRevelarTraducao,
+  onTentarTraducaoDeNovo,
   conhecidas,
   progressoDoTradutor,
   aoAbrirMenuDaFala,
 }: ChatTranscriptProps) {
-  const callbacks = React.useRef({ onExamineWord, onSpeakWord, onRevelarTraducao, aoAbrirMenuDaFala });
-  callbacks.current = { onExamineWord, onSpeakWord, onRevelarTraducao, aoAbrirMenuDaFala };
+  const callbacks = React.useRef({
+    onExamineWord,
+    onSpeakWord,
+    onRevelarTraducao,
+    onTentarTraducaoDeNovo,
+    aoAbrirMenuDaFala,
+  });
+  callbacks.current = { onExamineWord, onSpeakWord, onRevelarTraducao, onTentarTraducaoDeNovo, aoAbrirMenuDaFala };
   /* A fala em que a pessoa tocou por último: a janela não a tira do DOM enquanto ela lê a ficha. */
   const [fixadaId, setFixadaId] = React.useState<string | null>(null);
   const [limite, setLimite] = React.useState(JANELA_DA_CONVERSA);
@@ -465,6 +504,8 @@ function ChatTranscript({
   }, []);
   const aoRevelarEstavel = React.useCallback((segId: string) => callbacks.current.onRevelarTraducao?.(segId), []);
   const aoRevelar = onRevelarTraducao ? aoRevelarEstavel : undefined;
+  const aoTentarEstavel = React.useCallback((segId: string) => callbacks.current.onTentarTraducaoDeNovo?.(segId), []);
+  const aoTentarDeNovo = onTentarTraducaoDeNovo ? aoTentarEstavel : undefined;
   const aoMenuEstavel = React.useCallback((segment: ChatSegment, lang: string) => {
     setFixadaId(segment.id);
     callbacks.current.aoAbrirMenuDaFala?.(segment, lang);
@@ -555,6 +596,7 @@ function ChatTranscript({
           aoExaminar={aoExaminar}
           aoOuvir={aoOuvir}
           aoRevelar={aoRevelar}
+          aoTentarDeNovo={aoTentarDeNovo}
           pendente={segment.traducaoPendente && segment.translatedText === '…' ? rotuloPendente : undefined}
           aoMenu={aoMenu}
         />

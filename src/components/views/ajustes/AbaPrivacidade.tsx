@@ -5,6 +5,7 @@ import { CRIADOR } from '../../../lib/criador';
 import { t } from '../../../lib/i18n';
 import { useSemContaComPorta } from '../../../lib/pedirConta';
 import { type Consentimento, mudarConsentimento, salvarPreferencias, usePreferencias } from '../../../lib/preferencias';
+import { perfilProtegido } from '../../../lib/protecaoDoMenor';
 import AnunciosNosAjustes from '../../anuncios/AnunciosNosAjustes';
 import CartaoDeConvite from '../../conta/CartaoDeConvite';
 import { toast } from '../../Toast';
@@ -77,6 +78,13 @@ export default function AbaPrivacidade() {
     else toast.ok(on ? t('Autorização registrada') : 'Autorização retirada');
   };
 
+  const protegido = perfilProtegido();
+  const alternarLegendaSegura = async () => {
+    if (protegido) return;
+    const ok = await salvarPreferencias((x) => ({ ...x, legendaSegura: !x.legendaSegura }));
+    if (!ok) toast.warn(t('Não consegui salvar a preferência. Verifique a conexão e tente de novo.'));
+  };
+
   const pedirCopia = async () => {
     setCopia('preparando');
     const pronta = await prepararCopia(p.formatoDaCopia);
@@ -118,6 +126,42 @@ export default function AbaPrivacidade() {
           ))}
         </div>
         <p className="q-aju-nota">{t('Cada mudança fica registrada com data, para você e para nós.')}</p>
+      </section>
+
+      {/* LEGENDA SEGURA (change `legenda-segura-para-menores`): no perfil protegido a ocultação vem ligada e travada; o
+          adulto declarado escolhe (desligada por padrão). */}
+      <section className="q-secao">
+        <header>
+          <div>
+            <h2>{t('Legenda')}</h2>
+            <p>{t('O que aparece na legenda e na tradução ao vivo.')}</p>
+          </div>
+        </header>
+        <div className="q-ajustes">
+          <div className="q-ajuste" data-testid="opcao-legenda-segura">
+            <div>
+              <b>{t('Ocultar palavras sensíveis na legenda')}</b>
+              <small>
+                {protegido
+                  ? t(
+                      'Sempre ligada: é uma proteção do perfil. Palavrões, termos sexuais e ofensas aparecem como •••, porque o reconhecimento automático às vezes entende errado.',
+                    )
+                  : t(
+                      'Termos sexuais e ofensas aparecem como •••. O reconhecimento automático às vezes entende errado, e o marcador mostra que algo foi ocultado.',
+                    )}
+              </small>
+            </div>
+            <button
+              type="button"
+              className="q-interruptor"
+              role="switch"
+              aria-checked={protegido || p.legendaSegura}
+              aria-label={t('Ocultar palavras sensíveis na legenda')}
+              disabled={protegido}
+              onClick={() => void alternarLegendaSegura()}
+            />
+          </div>
+        </div>
       </section>
 
       {/* Só com a flag `anuncios` ligada (o perfil protegido também vê); desligada, nada muda aqui. */}

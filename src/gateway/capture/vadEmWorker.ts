@@ -262,6 +262,11 @@ export class VadEmWorker {
     }
   }
 
+  /** As opções do `FrameProcessor` em tempo de execução (o contrato do `MicVAD.setOptions`). */
+  setOptions(update: Parameters<FrameProcessorTipo['setOptions']>[0]): void {
+    this.frameProcessor.setOptions(update);
+  }
+
   async pause(): Promise<void> {
     if (!this.ouvindo) return;
     this.ouvindo = false;

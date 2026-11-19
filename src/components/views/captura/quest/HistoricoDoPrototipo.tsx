@@ -448,6 +448,7 @@ export default function HistoricoDoPrototipo({
   escolhida,
   assistente,
   etiquetador,
+  espera,
   aoTentarTraducaoDeNovo,
 }: {
   falas: readonly SpeechSegment[];
@@ -471,6 +472,11 @@ export default function HistoricoDoPrototipo({
   assistente?: AssistenteNaLegenda;
   /** As ETIQUETAS DE PALAVRAS (`lib/etiquetas`): `null`/ausente = desligadas. */
   etiquetador?: Etiquetador | null;
+  /**
+   * O que a legenda vazia diz enquanto o reconhecimento ainda baixa (`esperaDoPreparo.ts`): as falas guardadas e
+   * quando a legenda começa, no lugar de "Ouvindo…" (carga-rapida-no-celular, 4.1). Ausente = "Ouvindo…".
+   */
+  espera?: string | null;
   /** "Tentar de novo" na fala cuja tradução falhou (pelo id). Ausente = sem o botão. */
   aoTentarTraducaoDeNovo?: (id: string) => void;
 }) {
@@ -822,7 +828,11 @@ export default function HistoricoDoPrototipo({
         onPointerDown={(e) => e.target === e.currentTarget && fixos.soltar()}
         aria-live="polite"
       >
-        {comTexto.length === 0 && <p className="q-espera">{t('Ouvindo… a legenda aparece aqui.')}</p>}
+        {comTexto.length === 0 && (
+          <p className="q-espera" data-testid="espera-da-legenda">
+            {espera ?? t('Ouvindo… a legenda aparece aqui.')}
+          </p>
+        )}
         {pedacos.map((p) => {
           if (p.tipo === 'vao')
             return (

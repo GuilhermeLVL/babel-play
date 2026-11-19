@@ -9,6 +9,7 @@ import { defineConfig, loadEnv, type Plugin } from 'vite'
 
 import { bergamotNoPublic } from './scripts/baixar-modelos-bergamot.mjs'
 import { cabecalhosDoDeploy } from './scripts/vite/cabecalhos'
+import { esqueletoDoInicio } from './scripts/vite/esqueletoDoInicio'
 import { preCarregarEfemeroNaEdicaoEstatica } from './scripts/vite/preCarregarEfemero'
 import { preCarregarFontes } from './scripts/vite/preCarregarFontes'
 import { precomprimir } from './scripts/vite/precomprimir'
@@ -161,6 +162,12 @@ export default defineConfig(({ mode }) => {
       // Edição estática: o servidor em memória vem como modulepreload (sem cascata no arranque).
       preCarregarEfemeroNaEdicaoEstatica(env.VITE_EDICAO_ESTATICA === '1' || process.env.VITE_EDICAO_ESTATICA === '1'),
       preCarregarFontes(),
+      /* O Início no HTML do `/app` para o visitante (carga-rapida-no-celular): só no modo público, com Supabase. */
+      esqueletoDoInicio(
+        (env.VITE_AUTH_REQUIRED ?? process.env.VITE_AUTH_REQUIRED) === '1' &&
+          !!(env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL) &&
+          (env.VITE_EDICAO_ESTATICA ?? process.env.VITE_EDICAO_ESTATICA) !== '1',
+      ),
       // O site público estático (páginas, sitemap, robots, ads.txt): antes do `precomprimir`.
       siteDoBuild(env),
       /* O service worker mínimo (`dist/sw.js`, offline do app já visitado). `VITE_SERVICE_WORKER=0` gera o SW

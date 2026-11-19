@@ -7,6 +7,10 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
+/* A conta destes testes tem sessão guardada no navegador (`sb-*-auth-token`): sem ela o visitante já nasce
+   `anonimo` e não espera o SDK (carga-rapida-no-celular). */
+vi.hoisted(() => localStorage.setItem('sb-teste-auth-token', '{}'))
+
 type Ouvinte = (evento: string, s: unknown) => void
 const supa = vi.hoisted(() => {
   const ouvintes: Ouvinte[] = []

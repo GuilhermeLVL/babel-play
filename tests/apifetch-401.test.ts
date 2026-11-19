@@ -2,6 +2,10 @@
 /** apiFetch: em modo público, 401 tenta 1 refresh e retry; se persistir, faz signOut. Local não mexe. */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+/* A conta destes testes tem sessão guardada no navegador (`sb-*-auth-token`): sem ela o visitante já nasce
+   `anonimo` e não espera o SDK (carga-rapida-no-celular). */
+vi.hoisted(() => localStorage.setItem('sb-teste-auth-token', '{}'))
+
 const supa = vi.hoisted(() => ({
   refreshSession: vi.fn(),
   signOut: vi.fn(async () => {}),
@@ -16,8 +20,13 @@ import { apiFetch } from '../src/data/api'
 
 const R = (status: number) => new Response(status === 200 ? '{}' : 'no', { status })
 
-beforeEach(() => { supa.refreshSession.mockReset(); supa.signOut.mockClear() })
-afterEach(() => { vi.unstubAllGlobals() })
+beforeEach(() => {
+  supa.refreshSession.mockReset()
+  supa.signOut.mockClear()
+})
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 describe('apiFetch 401', () => {
   it('401 → refresh ok → retry 200; sem signOut', async () => {

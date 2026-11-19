@@ -26,6 +26,7 @@ import { ligarAvisoDeNovaVersao } from './lib/avisoDeNovaVersao';
 import { capturarTokenDoConvite } from './lib/conviteNaUrl';
 import { marcarDispositivoNoDocumento } from './lib/dispositivo/perfil';
 import { marcarQuestNovoNoDocumento } from './lib/dispositivo/telaNovaDoQuest';
+import { quandoPassarOLcp } from './lib/polimento/depoisDoLcp';
 import { instalarRelatorioDeErros } from './lib/relatorioDeErros';
 import { bootTheme } from './lib/theme';
 
@@ -33,7 +34,7 @@ import { bootTheme } from './lib/theme';
 capturarTokenDoConvite();
 
 // O service worker mínimo (abrir e legendar offline o app já visitado): registra depois do LCP, só no Worker.
-void import('./lib/registrarSw').then((m) => m.registrarServiceWorker());
+quandoPassarOLcp(() => void import('./lib/registrarSw').then((m) => m.registrarServiceWorker()));
 
 // Antes do primeiro render: pinta `data-theme` e `.dark` a partir do localStorage.
 // O servidor reconcilia depois (App → hydrateTheme), mas sem isto haveria um
@@ -48,10 +49,11 @@ if (document.documentElement.dataset.semVoz === 'true') {
   void import('./lib/voz/haVoz').then((m) => m.instalarVozDoSite());
 }
 // A voz de alta qualidade (Supertonic) lê por `speak()` onde o modelo está baixado: intérprete, palavras, jogos.
-void import('./lib/voz/motorGlobal').then((m) => m.instalarMotorGlobalDaFala());
+// Depois do LCP (carga-rapida-no-celular): nada fala antes de a pessoa tocar em alguma coisa.
+quandoPassarOLcp(() => void import('./lib/voz/motorGlobal').then((m) => m.instalarMotorGlobalDaFala()));
 // A voz escolhida por idioma acompanha a conta: quando as preferências chegam com vozes guardadas (em
 // outro aparelho), elas passam a valer aqui para tudo que fala. Só escuta; não pede nada ao servidor.
-void import('./lib/voz/preferenciaDeVoz').then((m) => m.ligarVozesAConta());
+quandoPassarOLcp(() => void import('./lib/voz/preferenciaDeVoz').then((m) => m.ligarVozesAConta()));
 // E4 — erro de runtime do navegador deixou de morrer no console: window.onerror e
 // unhandledrejection reportam ao diário do servidor (só erro; nenhum dado do usuário).
 instalarRelatorioDeErros();
@@ -75,4 +77,4 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 );
 
-void import('./styles/fontes/base-ext.css');
+quandoPassarOLcp(() => void import('./styles/fontes/base-ext.css'));

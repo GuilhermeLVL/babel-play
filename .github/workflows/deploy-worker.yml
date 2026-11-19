@@ -224,15 +224,29 @@ jobs:
           node scripts/cloudflare/fumaca-remota.mjs "$PREVIEW" "$SHA"
 
       # Vira 100% do tráfego para a versão que passou na fumaça. Daqui em diante, falha = rollback.
+      # CONSISTÊNCIA EVENTUAL: segundos depois do upload, o GET `/versions/<id>` da API ainda pode responder
+      # "Worker version could not be found [code: 100146]" para a versão que acabou de subir (e já serve o preview;
+      # deploys de 19/11/2026). Só ESSE erro tenta de novo (até 4 vezes: 15 s, 30 s, 45 s); qualquer outro falha na hora.
       - name: Promover a versão (100% do tráfego)
         if: ${{ steps.existe.outputs.existe == 'true' }}
         id: implantar
         env:
           VERSAO: ${{ steps.subir.outputs.versao }}
         run: |
+          set -uo pipefail
           env_args=(); [ "$AMBIENTE" = "production" ] || env_args=(--env "$AMBIENTE")
-          npx wrangler versions deploy "$VERSAO@100%" -y -c wrangler.jsonc "${env_args[@]}" \
-            --message "$SHA7 $AMBIENTE"
+          for tentativa in 1 2 3 4; do
+            if npx wrangler versions deploy "$VERSAO@100%" -y -c wrangler.jsonc "${env_args[@]}" \
+              --message "$SHA7 $AMBIENTE" 2>&1 | tee "$RUNNER_TEMP/promover.log"; then
+              exit 0
+            fi
+            if ! grep -q 'code: 100146' "$RUNNER_TEMP/promover.log" || [ "$tentativa" = 4 ]; then
+              exit 1
+            fi
+            espera=$((tentativa * 15))
+            echo "::warning::a API ainda não acha a versão $VERSAO (100146, tentativa $tentativa de 4): nova tentativa em ${espera}s"
+            sleep "$espera"
+          done
 
       - name: Fumaça na URL final
         if: ${{ steps.existe.outputs.existe == 'true' }}

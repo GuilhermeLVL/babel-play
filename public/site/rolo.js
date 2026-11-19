@@ -5,12 +5,19 @@
  *    (`data-de`/`data-ate`, em segundos) e a rolagem anda pelo filme sem corte. As capas (`[data-camada]`,
  *    um quadro de cada trecho) se revezam por distância até o filme pintar.
  *  - O filme é baixado inteiro (Blob) ao abrir a página: pular de quadro não depende do servidor aceitar
- *    pedidos por partes, e voltar a rolagem não baixa de novo.
+ *    pedidos por partes (a produção responde 200 a `Range`, e o Safari não toca vídeo assim), e voltar a
+ *    rolagem não baixa de novo.
+ *  - Começa SEMPRE pelo de 720p (`data-filme-celular`, metade do tamanho): o filme aparece na metade do
+ *    tempo. Depois, só em tela com muitos pixels de verdade e conexão boa, baixa o de 1080p (`data-filme`)
+ *    por trás e troca no mesmo quadro.
+ *  - Topo vivo: parado no topo, o trecho do primeiro capítulo toca sozinho, mudo, em laço (com um esmaecer
+ *    para a capa na volta). Ao rolar, a rolagem manda, partindo de onde o filme estava, sem salto.
  *  - Pulos enfileirados: nunca pede um quadro novo enquanto o anterior ainda decodifica (`video.seeking`).
  *  - Suavização (0,2 por quadro) e limiar por aparelho, para não tremer.
- *  - Celular, tela pequena ou economia de dados: o filme de 720p (`data-filme-celular`).
  *  - iPhone: o primeiro toque "acorda" o vídeo (play/pause); sem isso o Safari não pinta o quadro pedido.
- *  - Movimento reduzido: só as capas, nenhum vídeo baixado.
+ *  - Movimento reduzido: o filme carrega e SEGUE A ROLAGEM, porque é movimento que a própria pessoa
+ *    comanda (como rolar uma foto). Sai o que se mexe sozinho: sem topo vivo, sem suavização (o quadro
+ *    acompanha a rolagem sem inércia), sem o voo das palavras e sem Lenis.
  *  - Roda de mouse em degraus: Lenis suaviza a rolagem (se carregou); toque e trackpad seguem nativos.
  * Sem este arquivo, a home continua inteira: as capas paradas e todo o texto.
  */
@@ -52,7 +59,12 @@
     clipeCelular: rolo.dataset.filmeCelular,
     alvo: 0,
     atual: 0,
+    // Ao sair do topo vivo, a diferença entre onde o filme estava e onde a rolagem manda; some aos poucos.
+    desvio: 0,
   };
+  // Parado no topo (e sem movimento reduzido): o primeiro trecho toca sozinho.
+  let noTopo = true;
+  let vivo = false;
   const seg = caps.map((el, i) => {
     const s = {
       el,
@@ -161,7 +173,13 @@
       setTimeout(() => contador.classList.remove('bateu'), 260);
     }, 700);
   }
-  const fonteDe = (f) => (celular() && f.clipeCelular ? f.clipeCelular : f.clipe);
+  // O de 720p primeiro, em todo lugar; o de 1080p só vale a troca com mais de ~1400 pixels físicos na
+  // largura (1366×768 com escala 100% fica no 720p) e sem sinal de conexão fraca.
+  const fonteDe = (f) => f.clipeCelular || f.clipe;
+  const vale1080 = () => {
+    if (!filme.clipeCelular || celular() || innerWidth * (devicePixelRatio || 1) < 1400) return false;
+    return !con || (con.effectiveType === '4g' && !(con.downlink < 5));
+  };
 
   let topoDoRolo = 0;
   let total = 1;
@@ -184,20 +202,11 @@
   });
   const botoes = [...rota.children];
 
-  function descarregar(s) {
-    if (s.abort) s.abort.abort();
-    if (s.video) s.video.remove();
-    if (s.url) URL.revokeObjectURL(s.url);
-    Object.assign(s, { video: null, url: null, fonte: null, carregando: false, pronto: false, falhou: false });
-    delete s.camada.dataset.pintado;
-  }
-
   function medir() {
     const y = scrollY;
     topoDoRolo = rolo.getBoundingClientRect().top + y;
     alturaTela = innerHeight;
     largura = innerWidth;
-    if (filme.fonte && filme.fonte !== fonteDe(filme)) descarregar(filme);
     for (const s of seg) {
       const r = s.el.getBoundingClientRect();
       s.ini = r.top + y - topoDoRolo;
@@ -217,25 +226,34 @@
     }
   }
 
+  async function baixar(fonte) {
+    const r = await fetch(fonte);
+    if (!r.ok) throw new Error(String(r.status));
+    return URL.createObjectURL(await r.blob());
+  }
+
+  function novoVideo(url, fonte) {
+    const v = document.createElement('video');
+    v.muted = true;
+    v.playsInline = true;
+    v.preload = 'auto';
+    v.setAttribute('muted', '');
+    v.setAttribute('playsinline', '');
+    v.dataset.fonte = fonte;
+    v.src = url;
+    return v;
+  }
+
   async function carregar(s) {
-    if (menos || s.carregando || s.pronto || s.falhou) return;
-    const fonte = fonteDe(s);
+    if (s.carregando || s.pronto || s.falhou) return;
     s.carregando = true;
-    s.fonte = fonte;
-    s.abort = new AbortController();
     try {
-      const r = await fetch(fonte, { signal: s.abort.signal });
-      if (!r.ok) throw new Error(String(r.status));
-      const blob = await r.blob();
-      if (s.fonte !== fonte) return;
-      const v = document.createElement('video');
-      v.muted = true;
-      v.playsInline = true;
-      v.preload = 'auto';
-      v.setAttribute('muted', '');
-      v.setAttribute('playsinline', '');
-      s.url = URL.createObjectURL(blob);
-      v.src = s.url;
+      const fonte = fonteDe(s);
+      const url = await baixar(fonte);
+      const v = novoVideo(url, fonte);
+      const pintou = () => {
+        s.camada.dataset.pintado = '';
+      };
       v.addEventListener(
         'loadedmetadata',
         () => {
@@ -252,13 +270,8 @@
         },
         { once: true },
       );
-      v.addEventListener(
-        'seeked',
-        () => {
-          s.camada.dataset.pintado = '';
-        },
-        { once: true },
-      );
+      v.addEventListener('seeked', pintou, { once: true });
+      v.addEventListener('playing', pintou, { once: true });
       v.addEventListener(
         'error',
         () => {
@@ -270,11 +283,46 @@
       );
       s.camada.append(v);
       s.video = v;
-    } catch (e) {
-      if (e.name !== 'AbortError') {
-        s.falhou = true;
-        s.carregando = false;
-      }
+      s.url = url;
+    } catch {
+      s.falhou = true;
+      s.carregando = false;
+    }
+  }
+
+  // O de 1080p, baixado por trás depois do 720p já na tela. Troca quando o novo tem o mesmo quadro pintado.
+  async function melhorar(s) {
+    s.melhorando = true;
+    try {
+      const url = await baixar(s.clipe);
+      const v = novoVideo(url, s.clipe);
+      v.style.opacity = '0';
+      v.addEventListener(
+        'loadedmetadata',
+        () => {
+          v.currentTime = s.video.currentTime;
+        },
+        { once: true },
+      );
+      v.addEventListener(
+        'seeked',
+        () => {
+          const velho = s.video;
+          const urlVelha = s.url;
+          if (!velho.paused) v.play().catch(() => {});
+          v.style.opacity = velho.style.opacity;
+          s.video = v;
+          s.url = url;
+          velho.remove();
+          URL.revokeObjectURL(urlVelha);
+          if (gesto) acordar(v);
+        },
+        { once: true },
+      );
+      v.addEventListener('error', () => v.remove(), { once: true });
+      s.camada.append(v);
+    } catch {
+      /* fica o de 720p */
     }
   }
 
@@ -326,16 +374,59 @@
       if (y >= s.ini) t = s.de + lim((y - s.ini) / Math.max(fimDaCaixa - s.ini, 1)) * (s.ate - s.de);
     });
     filme.alvo = t;
+    noTopo = y < 2;
     if (y < total + 1.5 * alturaTela) carregar(filme);
+    if (filme.pronto && !filme.melhorando && vale1080()) melhorar(filme);
+  }
+
+  // Topo vivo: o trecho do primeiro capítulo em laço. Esmaece para a capa (quase o primeiro quadro) no fim
+  // e volta dela no começo, então a emenda do laço não aparece.
+  const ESMAECER = 0.5;
+  function topoVivo(v) {
+    const { de, ate } = seg[0];
+    if (v.paused) {
+      if (v.currentTime < de || v.currentTime >= ate - 0.05) v.currentTime = de;
+      // Autoplay recusado (economia de bateria, por exemplo): fica a rolagem.
+      v.play().catch(() => {
+        filme.semVivo = true;
+      });
+    }
+    if (v.currentTime >= ate - 0.05) v.currentTime = de;
+    if (filme.camada.dataset.pintado !== undefined) {
+      const t = v.currentTime;
+      v.style.opacity = String(lim(Math.min((t - de) / 0.3, (ate - t) / ESMAECER)));
+    }
+    filme.atual = v.currentTime;
   }
 
   function videos() {
     const v = filme.video;
-    if (!v || !filme.pronto || v.seeking) return;
-    if (Math.abs(filme.atual - filme.alvo) < 0.01 && filme.camada.dataset.pintado !== undefined) return;
-    filme.atual += (filme.alvo - filme.atual) * 0.2;
+    if (!v || !filme.pronto) return;
+    const querVivo = !menos && noTopo && !document.hidden && !filme.semVivo;
+    if (querVivo) {
+      vivo = true;
+      if (!v.seeking) topoVivo(v);
+      return;
+    }
+    if (vivo) {
+      // Saiu do topo: a rolagem manda, a partir de onde o filme estava (o desvio some em ~1 s).
+      vivo = false;
+      v.pause();
+      v.style.opacity = '';
+      filme.atual = v.currentTime;
+      filme.desvio = v.currentTime - filme.alvo;
+    }
+    if (v.seeking) return;
+    filme.desvio *= 0.94;
+    if (Math.abs(filme.desvio) < 0.01) filme.desvio = 0;
+    const alvo = filme.alvo + filme.desvio;
+    if (Math.abs(filme.atual - alvo) < 0.01 && filme.camada.dataset.pintado !== undefined) return;
+    // Movimento reduzido: o quadro vai direto aonde a rolagem manda, sem inércia.
+    filme.atual = menos ? alvo : filme.atual + (alvo - filme.atual) * 0.2;
     const t = lim(filme.atual, 0, (v.duration || 1) - 0.05);
-    if (Math.abs(v.currentTime - t) > (celular() ? 0.04 : 0.02)) {
+    // Ainda sem quadro pintado (movimento reduzido abre no topo, sem tocar): um pulo pinta o primeiro.
+    const semQuadro = filme.camada.dataset.pintado === undefined;
+    if (semQuadro || Math.abs(v.currentTime - t) > (celular() ? 0.04 : 0.02)) {
       try {
         v.currentTime = t;
       } catch {

@@ -214,7 +214,10 @@ describe('layout do site', () => {
   it('home: scripts só do próprio domínio, com defer; as outras páginas seguem sem JavaScript', () => {
     const html = site().get('inicio.html')!
     expect(html).toContain('<script src="/site/lenis.min.js" defer></script>')
-    expect(html).toContain('<script src="/site/rolo.js" defer></script>')
+    // A ordem importa: `rolo.js` usa o `FrasyRoda` de `roda.js` (defer executa na ordem do documento).
+    expect(html).toContain(
+      '<script src="/site/lenis.min.js" defer></script>\n<script src="/site/roda.js" defer></script>\n<script src="/site/rolo.js" defer></script>',
+    )
     expect(html).not.toMatch(/<script src="https?:/)
     expect(site().get('planos.html')!).not.toMatch(/<script src=/)
   })

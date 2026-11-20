@@ -18,7 +18,9 @@
  *  - Movimento reduzido: o filme carrega e SEGUE A ROLAGEM, porque é movimento que a própria pessoa
  *    comanda (como rolar uma foto). Sai o que se mexe sozinho: sem topo vivo, sem suavização (o quadro
  *    acompanha a rolagem sem inércia), sem o voo das palavras e sem Lenis.
- *  - Roda de mouse em degraus: Lenis suaviza a rolagem (se carregou); toque e trackpad seguem nativos.
+ *  - Roda de mouse em degraus (Windows): normalizada por `roda.js` (linhas e páginas em pixels, teto por
+ *    clique e de velocidade no filme), depois suavizada pelo Lenis; com movimento reduzido, rola na hora com
+ *    os mesmos tetos. O toque segue nativo. O filme anda no máximo 12 s por segundo (sem teleporte).
  * Sem este arquivo, a home continua inteira: as capas paradas e todo o texto.
  */
 (() => {
@@ -37,15 +39,70 @@
     return x * x * (3 - 2 * x);
   };
 
+  // A roda normalizada (`roda.js`): degraus do Windows (linhas, páginas, rajadas) viram passos com teto, e
+  // dentro do filme a velocidade tem teto, para nenhum capítulo passar sem ser visto. Três modos:
+  //  - suave: Lenis (lerp 0,1) recebe o delta já normalizado pelo `virtualScroll`;
+  //  - direta (movimento reduzido ou Lenis ausente): a roda é interceptada e rola na hora, sem suavizar,
+  //    com os mesmos tetos; o trackpad segue nativo enquanto não estoura o teto;
+  //  - nativa (toque): nada é interceptado.
+  const roda = window.FrasyRoda;
+  const estadoDaRoda = roda && roda.novoEstadoDaRoda();
+  // O teto de velocidade só vale no filme (e uma tela depois); o resto da página rola livre.
+  const noFilme = () => scrollY < topoDoRolo + total + 2 * alturaTela;
   let lenis = null;
   if (!menos && !toque && window.Lenis) {
-    lenis = new window.Lenis({ lerp: 0.1, wheelMultiplier: 0.9, smoothWheel: true });
+    lenis = new window.Lenis({
+      lerp: 0.1,
+      smoothWheel: true,
+      virtualScroll: (d) => {
+        const e = d.event;
+        if (!roda || !e.type.includes('wheel') || e.ctrlKey) return true;
+        const r = roda.normalizarRoda(e, estadoDaRoda, {
+          alturaTela,
+          limitar: noFilme(),
+          adiante: lenis.targetScroll - lenis.animatedScroll,
+        });
+        d.deltaY = r.px;
+        // Delta zerado pelo teto: o Lenis deixaria passar para a rolagem nativa.
+        if (!r.px && r.bruto) {
+          e.preventDefault();
+          return false;
+        }
+        return true;
+      },
+    });
     const passo = (t) => {
       lenis.raf(t);
       requestAnimationFrame(passo);
     };
     requestAnimationFrame(passo);
+    // Home/End: em vez do salto, uma rolagem com velocidade limitada, para o filme e os capítulos passarem.
+    addEventListener('keydown', (e) => {
+      if ((e.key !== 'End' && e.key !== 'Home') || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+      const destino = e.key === 'End' ? lenis.limit : 0;
+      e.preventDefault();
+      lenis.scrollTo(destino, {
+        duration: lim(Math.abs(destino - scrollY) / (6 * alturaTela), 0.6, 3),
+        easing: suave,
+      });
+    });
+  } else if (!toque && roda) {
+    addEventListener(
+      'wheel',
+      (e) => {
+        if (e.ctrlKey || e.defaultPrevented || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+        const limitar = noFilme();
+        const r = roda.normalizarRoda(e, estadoDaRoda, { alturaTela, limitar });
+        if (r.tipo === 'trackpad' && Math.abs(r.px - r.bruto) < 0.5) return;
+        if (!limitar && e.deltaMode === 0 && Math.abs(r.px - r.bruto) < 0.5) return;
+        e.preventDefault();
+        if (r.px) scrollBy({ top: r.px, behavior: 'instant' });
+      },
+      { passive: false },
+    );
   }
+  rolo.dataset.rolagem = lenis ? 'suave' : !toque && roda ? 'direta' : 'nativa';
 
   const rota = document.getElementById('rota');
   const camadas = [...rolo.querySelectorAll('[data-camada]')];
@@ -399,7 +456,11 @@
     filme.atual = v.currentTime;
   }
 
-  function videos() {
+  // Teto do filme: no máximo 12 s de filme por segundo de tela (0,2 s por quadro a 60 Hz). Na rolagem mais
+  // rápida que a roda permite (~3 telas/s), o filme acompanha; num salto (End, barra de rolagem, PageDown),
+  // ele corre até lá em vez de teleportar, passando pelos capítulos do meio.
+  const FILME_POR_SEGUNDO = 12;
+  function videos(dt) {
     const v = filme.video;
     if (!v || !filme.pronto) return;
     const querVivo = !menos && noTopo && !document.hidden && !filme.semVivo;
@@ -421,8 +482,9 @@
     if (Math.abs(filme.desvio) < 0.01) filme.desvio = 0;
     const alvo = filme.alvo + filme.desvio;
     if (Math.abs(filme.atual - alvo) < 0.01 && filme.camada.dataset.pintado !== undefined) return;
-    // Movimento reduzido: o quadro vai direto aonde a rolagem manda, sem inércia.
-    filme.atual = menos ? alvo : filme.atual + (alvo - filme.atual) * 0.2;
+    // Movimento reduzido: o quadro vai direto aonde a rolagem manda, sem inércia (só com o teto).
+    const teto = FILME_POR_SEGUNDO * dt;
+    filme.atual += lim(menos ? alvo - filme.atual : (alvo - filme.atual) * 0.2, -teto, teto);
     const t = lim(filme.atual, 0, (v.duration || 1) - 0.05);
     // Ainda sem quadro pintado (movimento reduzido abre no topo, sem tocar): um pulo pinta o primeiro.
     const semQuadro = filme.camada.dataset.pintado === undefined;
@@ -435,12 +497,16 @@
     }
   }
 
-  function tique() {
+  let antes = 0;
+  function tique(agora) {
+    // Intervalo do quadro, com teto de 1/30 s (aba que volta do fundo não ganha um salto de uma vez).
+    const dt = antes ? lim((agora - antes) / 1000, 0, 1 / 30) : 1 / 60;
+    antes = agora;
     if (sujo) {
       sujo = false;
       lerRolagem();
     }
-    videos();
+    videos(dt);
     desenharMarcas();
     requestAnimationFrame(tique);
   }

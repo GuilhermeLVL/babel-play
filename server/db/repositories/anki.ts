@@ -10,18 +10,18 @@
  */
 import { randomUUID } from 'node:crypto'
 
-import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, lt, sql } from 'drizzle-orm'
 
 import { cursorDeNotas, type FiltroDeNotaAnki, lerCursorDeNotas } from '../../../src/core/learning/contract'
 import type { UserId } from '../../lib/authContext'
-import { db } from '../db'
+import { db, linhasAfetadas } from '../db'
 import {
   emLotes,
   type InstrucaoDeBatch,
   INSTRUCOES_POR_BATCH,
+  rodarLote,
   tamanhoDoLote,
   tamanhoDoLoteDeInsert,
-  tuplaDeBatch,
 } from '../lotes'
 import { ankiDecks, ankiImports, ankiNotes } from '../schema'
 
@@ -86,6 +86,17 @@ export interface ContagensBaralho {
   descartadas: number
   /** Sumiu do arquivo mais recente. História do baralho, não defeito — nunca some do acervo. */
   ausentes: number
+}
+
+/** `por_motivo` é JSON em texto; ausente ou ilegível vale como nenhum descarte. */
+export function lerPorMotivo(texto: string | null | undefined): Record<string, number> {
+  if (!texto) return {}
+  try {
+    const v = JSON.parse(texto) as unknown
+    return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, number>) : {}
+  } catch {
+    return {}
+  }
 }
 
 function serializarCampos(c: NotaParaGravar['camposBrutos']): string | null {
@@ -323,10 +334,10 @@ export const ankiRepo = {
    * LOTES (P1 da auditoria de prontidão): o `inArray(guid)` com a lista inteira passava do teto de
    * 32.766 variáveis do SQLite a partir de ~32 mil notas, e o import aceita 50.000. E cada nota era
    * uma ida ao banco — 30 mil notas levavam 48 s. Agora a leitura vai em lotes de guids, as notas
-   * novas entram em INSERT multi-VALUES e as alteradas em UPDATEs agrupados em `db.batch`.
+   * novas entram em INSERT multi-VALUES e as alteradas em UPDATEs agrupados em lotes (`rodarLote`).
    *
-   * A escrita NÃO é uma transação única de propósito: um batch de 50 mil instruções seguraria o
-   * lock de escrita por segundos, e os outros processos esperam só 5 s (`busy_timeout`). O que
+   * A escrita NÃO é uma transação única de propósito: uma transação de 50 mil instruções seguraria
+   * as travas de linha por segundos. O que
    * torna uma interrupção no meio inofensiva é a idempotência por `(deckId, guid)`: reimportar
    * completa o que faltou, sem duplicar.
    */
@@ -358,6 +369,8 @@ export const ankiRepo = {
     const ids: string[] = []
     const linhasNovas: (typeof ankiNotes.$inferInsert)[] = []
     const alteracoes: InstrucaoDeBatch[] = []
+    /** Notas sem mudança nenhuma: só recebem o carimbo deste import (ver abaixo). */
+    const idsIguais: string[] = []
 
     for (const n of notas) {
       const camposBrutos = serializarCampos(n.camposBrutos)
@@ -404,11 +417,12 @@ export const ankiRepo = {
       if (!mudou && !reapareceu) {
         iguais++
         ids.push(existente.id)
+        if (existente.importId !== importId) idsIguais.push(existente.id)
         continue
       }
 
-      alteracoes.push(
-        db
+      alteracoes.push((tx) =>
+        tx
           .update(ankiNotes)
           .set({
             updatedAt: now,
@@ -432,54 +446,156 @@ export const ankiRepo = {
     }
 
     const instrucoes: InstrucaoDeBatch[] = [
-      ...emLotes(linhasNovas, tamanhoDoLoteDeInsert(ankiNotes)).map((linhas) => db.insert(ankiNotes).values(linhas)),
+      ...emLotes(linhasNovas, tamanhoDoLoteDeInsert(ankiNotes)).map(
+        (linhas): InstrucaoDeBatch =>
+          (tx) =>
+            tx.insert(ankiNotes).values(linhas),
+      ),
       ...alteracoes,
+      /* AS IGUAIS TAMBÉM LEVAM O CARIMBO DO IMPORT. Na importação em lotes (`/api/anki/imports`) o
+         servidor nunca vê o arquivo inteiro de uma vez, então o `fechar` acha as ausentes pelo carimbo:
+         nota do baralho cujo `import_id` não é o deste import não veio no arquivo
+         (`marcarAusentesForaDoImport`). Sem isto, uma nota idêntica à do import anterior ficaria com o
+         carimbo velho e seria marcada ausente sem ter sumido. Só o `import_id` muda: nem `updated_at`
+         (não houve mudança de conteúdo) nem os contadores (ela continua sendo "igual"). A variável fixa
+         de cada lote é o `import_id` do SET. */
+      ...emLotes(idsIguais, tamanhoDoLote(1, 1)).map(
+        (lote): InstrucaoDeBatch =>
+          (tx) =>
+            tx.update(ankiNotes).set({ importId }).where(inArray(ankiNotes.id, lote)),
+      ),
     ]
-    for (const bloco of emLotes(instrucoes, INSTRUCOES_POR_BATCH)) await db.batch(tuplaDeBatch(bloco))
+    for (const bloco of emLotes(instrucoes, INSTRUCOES_POR_BATCH)) await rodarLote(bloco)
 
     return { novas, atualizadas, iguais, ids }
   },
 
   /**
-   * Notas do baralho cujo `guid` NÃO está em `guidsPresentes` (o arquivo mais recente) viram
-   * `ausente_no_arquivo`. NUNCA deleta — é assim que "esse cartão sumiu do Anki" vira estado
-   * inspecionável em vez de perda silenciosa. Notas já `ausente_no_arquivo` não são retocadas
-   * (idempotente); notas com `guid` presente também não, mesmo que já estejam marcadas — só as
-   * que estão fora da lista mudam.
+   * AUSENTES PELO CARIMBO.
+   *
+   * No protocolo em lotes o servidor nunca tem a lista inteira de guids do arquivo na mão (ela chega
+   * em até 100 requisições), mas cada nota que veio NESTE import ficou com `import_id = importId`
+   * (`gravarNotas` carimba novas, atualizadas e iguais). Então "não veio no arquivo" é "o carimbo é
+   * de outro import, ou não há carimbo" — um UPDATE só, sem lista nenhuma em memória nem variável
+   * por nota. `ausente_no_arquivo` é estado inspecionável, não perda silenciosa: nunca apaga, e quem já está ausente não é
+   * retocado. Devolve quantas notas mudaram.
    */
-  async marcarAusentes(userId: UserId, deckId: string, guidsPresentes: string[]): Promise<number> {
-    const now = Date.now()
-    const cond = [
-      eq(ankiNotes.deckId, deckId),
-      eq(ankiNotes.userId, userId),
-      isNull(ankiNotes.deletedAt),
-      sql`${ankiNotes.estado} != 'ausente_no_arquivo'`,
-    ]
-    /* MARCAR-E-VARRER em vez de `NOT IN (lista)`: a lista é o arquivo inteiro (até 50.000 guids)
-       e passava do teto de 32.766 variáveis do SQLite. As candidatas são as notas DESTE baralho
-       — conjunto que o banco já delimita pelo índice `(deck_id, estado)` — e a diferença contra
-       o arquivo é feita aqui, num Set. Mesma semântica, inclusive para lista vazia (todas as
-       candidatas somem), que o `NOT IN ()` nem aceitava. */
-    const presentes = new Set(guidsPresentes)
-    const candidatas = await db
-      .select({ id: ankiNotes.id, guid: ankiNotes.guid })
-      .from(ankiNotes)
-      .where(and(...cond))
-    const alvo = candidatas.filter((c) => !presentes.has(c.guid))
-    if (!alvo.length) return 0
-    // Um batch só (atômico): ou o baralho inteiro reflete o arquivo novo, ou nada muda. As duas
-    // variáveis fixas são as do SET (`estado`, `updated_at`).
-    await db.batch(
-      tuplaDeBatch(
-        emLotes(
-          alvo.map((a) => a.id),
-          tamanhoDoLote(1, 2),
-        ).map((lote) =>
-          db.update(ankiNotes).set({ estado: 'ausente_no_arquivo', updatedAt: now }).where(inArray(ankiNotes.id, lote)),
+  async marcarAusentesForaDoImport(userId: UserId, deckId: string, importId: string): Promise<number> {
+    const r = await db
+      .update(ankiNotes)
+      .set({ estado: 'ausente_no_arquivo', updatedAt: Date.now() })
+      .where(
+        and(
+          eq(ankiNotes.deckId, deckId),
+          eq(ankiNotes.userId, userId),
+          isNull(ankiNotes.deletedAt),
+          sql`${ankiNotes.estado} != 'ausente_no_arquivo'`,
+          sql`(${ankiNotes.importId} IS NULL OR ${ankiNotes.importId} <> ${importId})`,
         ),
-      ),
-    )
-    return alvo.length
+      )
+    return linhasAfetadas(r)
+  },
+
+  /**
+   * Soma a contagem por motivo de descarte de UM lote à do import. `atualizarImport` grava o objeto
+   * inteiro (`porMotivo` não é incremento), então a soma é ler-somar-gravar aqui. Sem trava de
+   * propósito: o cliente manda os lotes de um import EM SEQUÊNCIA (um só espera o anterior
+   * responder — ruling R1 da Fase 3), então não há dois lotes do mesmo import somando ao mesmo tempo.
+   */
+  async somarPorMotivo(id: string, porMotivo: Record<string, number>): Promise<void> {
+    const rows = await db
+      .select({ porMotivo: ankiImports.porMotivo })
+      .from(ankiImports)
+      .where(eq(ankiImports.id, id))
+      .limit(1)
+    const total = lerPorMotivo(rows[0]?.porMotivo)
+    for (const [motivo, n] of Object.entries(porMotivo)) total[motivo] = (total[motivo] ?? 0) + n
+    await ankiRepo.atualizarImport(id, { porMotivo: total })
+  },
+
+  /**
+   * REIVINDICA o fechamento do import: `gravando` → `concluido` num `UPDATE` condicional só. Devolve se
+   * ESTA chamada trocou o estado — dois `fechar` em paralelo não passam juntos (o banco serializa a
+   * linha), e só quem reivindicou marca as ausentes e ativa o lote.
+   */
+  async reivindicarFechamento(userId: UserId, importId: string): Promise<boolean> {
+    const r = await db
+      .update(ankiImports)
+      .set({ estado: 'concluido', updatedAt: Date.now() })
+      .where(and(eq(ankiImports.id, importId), eq(ankiImports.userId, userId), eq(ankiImports.estado, 'gravando')))
+    return linhasAfetadas(r) > 0
+  },
+
+  /**
+   * RESERVA o espaço de um lote no teto do import, ANTES de gravar — numa instrução só.
+   *
+   * Ler `notas_lidas`, conferir o teto e somar depois de gravar deixava uma janela: lotes disparados
+   * em paralelo liam todos o mesmo contador e furavam o teto juntos (TOCTOU, revisão de segurança da
+   * Task 3). Aqui a conferência e a soma são o MESMO `UPDATE` condicional, e o banco serializa as
+   * linhas: de três lotes de 500 contra 49.000 lidas, exatamente dois cabem. Zero linhas afetadas diz
+   * que algo barrou, e a releitura diz o quê (import sumiu, fechou, ou não cabe).
+   *
+   * A reserva não é devolvida se a gravação falhar depois: a rota fecha o import como `falhou`, e o
+   * contador de um import morto não conta mais nada.
+   */
+  async reservarNotasDoImport(
+    userId: UserId,
+    importId: string,
+    n: number,
+    teto: number,
+  ): Promise<'ok' | 'inexistente' | 'fechado' | 'teto'> {
+    const r = await db
+      .update(ankiImports)
+      .set({ notasLidas: sql`${ankiImports.notasLidas} + ${n}`, updatedAt: Date.now() })
+      .where(
+        and(
+          eq(ankiImports.id, importId),
+          eq(ankiImports.userId, userId),
+          eq(ankiImports.estado, 'gravando'),
+          sql`${ankiImports.notasLidas} + ${n} <= ${teto}`,
+        ),
+      )
+    if (linhasAfetadas(r) > 0) return 'ok'
+    const imp = await ankiRepo.lerImport(userId, importId)
+    if (!imp) return 'inexistente'
+    return imp.estado !== 'gravando' ? 'fechado' : 'teto'
+  },
+
+  /**
+   * UM IMPORT ABERTO POR BARALHO. Abrir um import novo fecha como `falhou` os outros ainda abertos
+   * (`lendo`/`gravando`) do mesmo baralho e da mesma conta: dois imports abertos no mesmo deck se
+   * atropelariam no carimbo `import_id` das notas, e o `fechar` de um marcaria ausentes as notas que
+   * só o outro trouxe. O mais novo é o que a pessoa está fazendo agora; lote ou `fechar` atrasado do
+   * antigo recebe 409 `import_fechado`. Devolve quantos foram fechados.
+   */
+  async marcarSubstituidos(userId: UserId, deckId: string, exceto: string): Promise<number> {
+    const r = await db
+      .update(ankiImports)
+      .set({ estado: 'falhou', erro: 'substituído por um import mais novo', updatedAt: Date.now() })
+      .where(
+        and(
+          eq(ankiImports.userId, userId),
+          eq(ankiImports.deckId, deckId),
+          inArray(ankiImports.estado, ['lendo', 'gravando']),
+          sql`${ankiImports.id} <> ${exceto}`,
+        ),
+      )
+    return linhasAfetadas(r)
+  },
+
+  /**
+   * IMPORTS ABANDONADOS. Na importação em lotes quem conduz é o navegador: se a aba fecha no meio, o
+   * import fica `lendo`/`gravando` para sempre e a tela de progresso (`GET /imports/:id`) mostraria
+   * "gravando" eternamente. A limpeza diária fecha como `falhou` o que foi aberto antes de `corte`.
+   * As notas que já entraram ficam (são idempotentes por guid: reimportar completa o que faltou).
+   * Devolve quantos imports foram fechados.
+   */
+  async marcarImportsAbandonados(corte: number): Promise<number> {
+    const r = await db
+      .update(ankiImports)
+      .set({ estado: 'falhou', erro: 'abandonado: o navegador não concluiu o envio', updatedAt: Date.now() })
+      .where(and(inArray(ankiImports.estado, ['lendo', 'gravando']), lt(ankiImports.createdAt, corte)))
+    return linhasAfetadas(r)
   },
 
   /**
@@ -509,9 +625,7 @@ export const ankiRepo = {
     else if (opts.estado) cond.push(eq(ankiNotes.estado, opts.estado))
     if (opts.busca?.trim()) {
       const q = `%${opts.busca.trim().toLowerCase()}%`
-      cond.push(
-        sql`(lower(COALESCE(${ankiNotes.frente},'')) LIKE ${q} OR lower(COALESCE(${ankiNotes.verso},'')) LIKE ${q})`,
-      )
+      cond.push(sql`(COALESCE(${ankiNotes.frente},'') ILIKE ${q} OR COALESCE(${ankiNotes.verso},'') ILIKE ${q})`)
     }
     const cursor = lerCursorDeNotas(opts.cursor)
     if (cursor) {

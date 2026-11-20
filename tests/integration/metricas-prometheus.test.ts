@@ -33,6 +33,9 @@ function fixar(nome: string, valor: string | undefined) {
 beforeAll(async () => {
   fixar('METRICS_ENABLED', '1')
   fixar('METRICS_TOKEN', undefined)
+  /* A porta interna (9091) foi aposentada: a variável de uma instalação antiga é ignorada e NÃO tira mais
+     o `/metrics` da porta pública (antes, definida, ele respondia 404 aqui). Ver o caso abaixo. */
+  fixar('METRICS_PORTA_INTERNA', '9091')
   s = await subirApp({ modo: 'self-host' })
 })
 
@@ -62,6 +65,10 @@ describe('GET /metrics', () => {
     const r = await s.get('/metrics')
     expect(r.headers.get('x-metrics-processo')).toMatch(/^(primario|worker):\d+$/)
     expect(await r.text()).toContain('processo_info')
+  })
+
+  it('a porta interna (METRICS_PORTA_INTERNA) deixou de existir: o /metrics segue na porta do app', async () => {
+    expect((await s.get('/metrics')).status).toBe(200)
   })
 
   it('fica FORA do authMiddleware: no modo self-host e sem token, 200 direto', async () => {

@@ -3,14 +3,13 @@ import { expect, type Locator, type Page } from '@playwright/test'
 /**
  * O QUE AS SUÍTES DIVIDEM, no desenho que virou o único (09/10/2026).
  *
- * A casca é o trilho de ícones (`nav.q-trilho`): Início, Capturar, Intérprete, Biblioteca, Cartões,
- * Jogar, Buscar e "Mais" (navegação de 10/10/2026). Abaixo de 720 px ele vira uma barra de cinco
- * destinos (Início, Praticar, Capturar, Intérprete, Mais): "Praticar" abre a última das duas telas
- * de praticar (Cartões de início, `localStorage['babel.praticar']`), e no alto das duas há as abas
- * `abas-de-praticar` ("Cartões" e "Jogos") para ir de uma à outra; o Jogar não tem botão próprio na
- * barra, e a Biblioteca vira o primeiro ladrilho do "Mais". O painel "Mais" (`.q-mais`, o diálogo
- * "Mais destinos") traz, em todo aparelho, Estatísticas, Personalizar, Ajustes, o perfil, a ajuda,
- * Sobre e Planos — e, no pé, o tema claro/escuro, o som dos toques e o Modo desempenho. O
+ * A casca é o trilho de ícones (`nav.q-trilho`): Início, Ao vivo (Capturar e Intérprete), Cartões, Jogar,
+ * Biblioteca, Progresso, Planos, Buscar e "Mais" (R40, 22/10/2026). Abaixo de 720 px ele vira uma barra
+ * de cinco destinos (Início, Cartões, Ao vivo, Jogar, Mais); no alto das duas telas de praticar há as
+ * abas `abas-de-praticar` ("Cartões" e "Jogos"), e Intérprete e Biblioteca viram os primeiros ladrilhos
+ * do "Mais" (e cartões no Início). O painel "Mais" (`.q-mais`, o diálogo "Mais destinos") traz
+ * Personalizar, Ajustes, o perfil, a ajuda, Sobre (no celular, também Progresso) e a faixa "Planos e
+ * Premium" — e, no pé, o tema claro/escuro, o som dos toques e o Modo desempenho. O
  * Vocabulário deixou de ser destino: é a aba "Palavras" da tela Cartões (`/cartoes/palavras`).
  *
  * O Jogar abre no lobby (`data-testid="lobby-do-quest"`), direto: a sala da primeira visita saiu em
@@ -89,6 +88,10 @@ export async function fecharSobreposicoes(page: Page) {
     await recompensa.click({ force: true, timeout: 2000 }).catch(() => {})
     await page.waitForTimeout(250)
   }
+  /* A NOVIDADE DISCRETA (22/10/2026): a recompensa sem peça é um cartão no canto, não um diálogo. Ele
+     some sozinho em 6 s, mas até lá cobre o que estiver embaixo (os Ajustes da captura, no tablet). */
+  const cartao = page.getByTestId('novidade-discreta').getByRole('button', { name: 'Fechar' })
+  if (await cartao.isVisible().catch(() => false)) await cartao.click({ timeout: 2000 }).catch(() => {})
   /* O CLIQUE PRECISA DE PRAZO: uma recompensa pode estar POR CIMA deste botão, e um `click()` sem
      prazo espera a interceptação sumir até o teste inteiro estourar. Com prazo curto e a falha
      engolida, quem chama tenta de novo (o laço de `irParaPraticar`). */
@@ -101,13 +104,22 @@ export async function fecharSobreposicoes(page: Page) {
 /**
  * Clica robusto às recompensas que continuam surgindo: tenta clicar e, se um diálogo interceptar,
  * fecha as sobreposições e tenta de novo, em vez de martelar o mesmo clique por 30 s.
+ *
+ * O CLIQUE QUE ACERTOU E ESTOUROU O PRAZO (CI de 04/11/2026, trace do `avatar-descoberta`): o Playwright
+ * faz o clique ("click action done") e depois espera a navegação agendada; com o Intérprete desenhando
+ * em WebGL por software, essa espera passou dos 3 s e o `click` lançou mesmo tendo clicado. O item do menu
+ * já tinha sumido (a tela mudou), e o laço repetia o clique num alvo inexistente até o teste estourar. Se
+ * o alvo estava à vista antes e sumiu depois da tentativa, o clique valeu: quem chama confere o efeito
+ * (ex.: `toHaveURL` em `irAoInterpretePeloMenu`).
  */
 export async function clicarRobusto(page: Page, locator: Locator) {
   for (let i = 0; i < 10; i++) {
+    const estavaAVista = await locator.isVisible().catch(() => false)
     try {
       await locator.click({ timeout: 3000 })
       return
     } catch {
+      if (estavaAVista && (await locator.count().catch(() => 1)) === 0) return
       await fecharSobreposicoes(page)
       await page.waitForTimeout(200)
     }
@@ -274,20 +286,39 @@ export async function abrirMais(page: Page): Promise<Locator> {
 
 /**
  * VAI AO JOGAR PELO MENU, como a pessoa vai em cada largura: no trilho (computador e tablet) o Jogar
- * tem botão próprio; na barra de cinco do celular ele mora atrás do "Praticar", que abre a última das
- * duas telas de praticar — e, se abrir os Cartões, a aba "Jogos" do alto leva ao Jogar.
+ * tem botão próprio, e na barra de cinco do celular também (R40: Início, Cartões, Ao vivo, Jogar, Mais).
  */
 export async function irAoJogarPeloMenu(page: Page) {
-  if (!naBarraDeCinco(page)) {
-    await clicarRobusto(page, trilho(page).locator('.q-item[data-px-rota="play"]'))
-  } else {
-    await clicarRobusto(page, trilho(page).getByRole('button', { name: 'Praticar', exact: true }))
-    await expect(page).toHaveURL(/\/(cartoes|jogar)/, { timeout: 10_000 })
-    if (!/\/jogar/.test(new URL(page.url()).pathname)) {
-      await clicarRobusto(page, abasDePraticar(page).getByRole('tab', { name: 'Jogos' }))
-    }
-  }
-  await expect(page).toHaveURL(/\/jogar/, { timeout: 10_000 })
+  await clicarRobusto(page, trilho(page).locator('.q-item[data-px-rota="play"]'))
+  await expect(page).toHaveURL(naUrl(/\/jogar/), { timeout: 10_000 })
+}
+
+/**
+ * A URL CONFERIDA SÓ PELO ENDEREÇO. `toHaveURL(/regex/)` (Playwright 1.64), a cada tentativa que ainda
+ * não bate, gera a árvore de acessibilidade da PÁGINA INTEIRA na thread da página (para o relatório). Numa
+ * captura com 600 falas isso custa de 10 a 20 s de CPU na CI, e prende justamente o relógio da troca de
+ * tela (`trocarDeTela`, até 400 ms): a URL não muda porque o próprio teste trava a página. Com uma
+ * função, o matcher só lê o endereço (`waitForURL`). A conferência é a mesma.
+ */
+const naUrl = (padrao: RegExp) => (url: URL) => padrao.test(url.href)
+
+/**
+ * ABRE A ESCOLHA DO "AO VIVO" (o item único que juntou Capturar e Intérprete) e devolve o menu. No
+ * computador é um cartão ao lado do trilho; na barra de cinco do celular, uma folha embaixo.
+ */
+export async function abrirAoVivo(page: Page): Promise<Locator> {
+  const menu = page.getByRole('menu', { name: 'Ao vivo: escolha o que fazer' })
+  if (!(await menu.isVisible().catch(() => false)))
+    await clicarRobusto(page, trilho(page).locator('.q-item[data-px-rota="capture"]'))
+  await expect(menu).toBeVisible()
+  return menu
+}
+
+/** VAI AO INTÉRPRETE PELO MENU: "Ao vivo" → "Intérprete", no trilho e na folha do celular. */
+export async function irAoInterpretePeloMenu(page: Page) {
+  const menu = await abrirAoVivo(page)
+  await clicarRobusto(page, menu.getByRole('menuitem', { name: /^Intérprete/ }))
+  await expect(page).toHaveURL(naUrl(/\/interprete$/), { timeout: 10_000 })
 }
 
 /**

@@ -27,8 +27,10 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 
 import type { AppMetrics } from '../core/learning/contract';
 import { apiFetch } from '../data/api';
+import { CODIGO_EXIGE_CONTA } from '../data/efemero/nucleo';
 import { exportarApkg, fetchDeck } from '../data/rotas/vocabulario';
 import { consentiuNuvem } from '../lib/consentimentoDeNuvem';
+import { diaQueACotaVolta } from '../lib/diaQueACotaVolta';
 import { t } from '../lib/i18n';
 import {
   carregarConversas,
@@ -48,6 +50,7 @@ import {
   ferramentasDaTela,
   type Ficha,
   focoNaPalavra,
+  historicoParaOTutor,
   type IdDaFerramenta,
   lerPedido,
   origemDaResposta,
@@ -58,11 +61,15 @@ import {
   rotuloDaFerramenta,
   type Sigilo,
 } from '../lib/ichat/pedido';
+import { RESPOSTA_FILTRADA_DO_TUTOR, RESPOSTAS_FILTRADAS } from '../lib/ichat/respostaFiltrada';
 import { construirContextoDaTela } from '../lib/ichatContext';
 import { movimentoReduzido } from '../lib/movimento/reduzido';
 import { sinalizarRecusaLida } from '../lib/ofertas/eventos';
+import { pedirConta } from '../lib/pedirConta';
 import { type AgeProfileType } from '../lib/profile';
 import { seedFromSelection } from '../lib/sentences';
+import { carregarUso } from '../lib/uso';
+import { zoomDoCorpo } from '../lib/zoomDoCorpo';
 import { Recording, ViewType, VocabCard } from '../types';
 import { GavetaDeConversas, GavetaDoRastro } from './ichat/Gavetas';
 import { camposDaTela, nomeDaTela } from './ichat/telaDoChat';
@@ -98,9 +105,16 @@ function motivoDaResposta(res: Response, data: Record<string, unknown>): string 
   const reason = typeof data.reason === 'string' ? data.reason : undefined;
   const erro = typeof data.error === 'string' ? data.error : undefined;
 
+  /* Sem conta (o servidor em memória responde 501 `EXIGE_CONTA`): o convite abre por cima (`perguntar`), e a
+     conversa diz o fato e o que continua livre, em vez do erro cru. */
+  if (code === CODIGO_EXIGE_CONTA) {
+    return t('**O tutor de IA precisa de conta.** Transcrever, traduzir e jogar continuam livres neste navegador.');
+  }
   if (code === 'quota_exceeded') {
+    /* A data vem do `renovaEm` de `/api/me/uso` (lido antes desta frase): quem paga renova no vencimento, não no dia 1º. */
     return t(
-      '**Você usou toda a IA de nuvem do seu plano neste mês.** Ela volta no dia 1º; a tradução e a transcrição locais continuam funcionando.',
+      '**Você usou toda a IA de nuvem do seu plano.** Ela volta em {data}; a tradução e a transcrição locais continuam funcionando.',
+      { data: diaQueACotaVolta() },
     );
   }
   /* O uso justo do dia (matriz v2): é "hoje já deu", não "assine" — nenhuma venda a quem já assina. */
@@ -379,7 +393,7 @@ export default function IChat({
       const direita = (document.querySelector('main')?.parentElement ?? document.body).getBoundingClientRect().right;
       const menuADireita = Math.max(0, direita - (alca.parentElement?.getBoundingClientRect().right ?? direita));
       document.body.style.cursor = 'ew-resize';
-      mover = (ev) => guardarLargura(direita - menuADireita - ev.clientX);
+      mover = (ev) => guardarLargura((direita - menuADireita - ev.clientX) / zoomDoCorpo()); // px da janela → px do body
     } else {
       const x0 = e.clientX;
       const y0 = e.clientY;
@@ -387,8 +401,8 @@ export default function IChat({
       document.body.style.cursor = 'nwse-resize';
       mover = (ev) => {
         const novo = {
-          w: limitar(w0 + (x0 - ev.clientX), JANELA.wMin, JANELA.wMax),
-          h: limitar(h0 + (y0 - ev.clientY), JANELA.hMin, JANELA.hMax),
+          w: limitar(w0 + (x0 - ev.clientX) / zoomDoCorpo(), JANELA.wMin, JANELA.wMax),
+          h: limitar(h0 + (y0 - ev.clientY) / zoomDoCorpo(), JANELA.hMin, JANELA.hMax),
         };
         setTamanho(novo);
         try {
@@ -574,13 +588,7 @@ export default function IChat({
        perfil de idade e o conteúdo; o servidor monta o `system` e cerca o material como dado
        (`server/ai/llmRequest.ts`). O material e o histórico são cortados aqui para caber no teto de
        entrada do tutor, em vez de a pergunta voltar com 413. */
-    const { material, mensagens } = pedidoDoTutor(
-      blocos.join('\n\n'),
-      historico
-        .filter((x) => !x.erro)
-        .map((m) => ({ role: m.de === 'eu' ? ('user' as const) : ('assistant' as const), content: m.txt })),
-      texto,
-    );
+    const { material, mensagens } = pedidoDoTutor(blocos.join('\n\n'), historicoParaOTutor(historico), texto);
 
     /* O tutor É nuvem: sem o consentimento (Ajustes → Privacidade), a pergunta não sai do aparelho.
        A resposta diz o motivo e onde autorizar, em vez de um erro genérico (Fase 2 do lançamento). */
@@ -602,7 +610,11 @@ export default function IChat({
         body: JSON.stringify({ funcao: 'tutor', perfil: ageProfile, material, messages: mensagens }),
       });
       const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      /* Cota esgotada: pergunta quando ela renova antes de escrever a frase (sem resposta, cai no dia 1º). */
+      if (data.code === 'quota_exceeded') await carregarUso();
       const motivo = motivoDaResposta(res, data);
+      /* O pedido explícito abre o convite a cada pergunta, não só na primeira da visita. */
+      if (data.code === CODIGO_EXIGE_CONTA) pedirConta('POST /api/tutor/chat');
       /* Cota acabou ou o tutor é de plano pago: a MENSAGEM acima explica na conversa; a oferta
          (Fase 8) vem pelo host, com flag, frequência e sem cobrir o chat de modal durante o uso. */
       sinalizarRecusaLida(res.status, data, 'tutor');
@@ -610,12 +622,18 @@ export default function IChat({
         id,
         motivo
           ? { de: 'ia', txt: motivo, erro: true }
-          : {
-              de: 'ia',
-              txt: String(data.text ?? ''),
-              origem,
-              proposta: propostaDoPedido(pedido, pendentes),
-            },
+          : data.filtrada === true
+            ? /* O filtro de saída de perfil protegido trocou a resposta (change `filtro-tutor-menores`): a frase fixa,
+                 traduzida, sem assinatura — ela não volta ao modelo no histórico (`historicoParaOTutor`). */
+              { de: 'ia', txt: t(RESPOSTAS_FILTRADAS.find((f) => f === data.text) ?? RESPOSTA_FILTRADA_DO_TUTOR) }
+            : {
+                de: 'ia',
+                txt: String(data.text ?? ''),
+                doTutor: true,
+                ...(typeof data.assinatura === 'string' ? { assinatura: data.assinatura } : {}),
+                origem,
+                proposta: propostaDoPedido(pedido, pendentes),
+              },
       );
     } catch {
       responderNaConversa(id, {
@@ -715,7 +733,7 @@ export default function IChat({
       try {
         const blob = await exportarApkg(
           saem.map((c) => ({ frente: c.word, verso: c.translation, exemplo: c.sentence })),
-          'Babel Play',
+          'Frasy',
         );
         baixar(blob, `babel-ichat-${new Date().toISOString().slice(0, 10)}.apkg`);
         avisar(`${t('Baralho do Anki exportado:')} ${saem.length} ${t('cartões')}`);
@@ -729,8 +747,19 @@ export default function IChat({
     const m = conv.msgs[idx];
     const novo = m.av === v ? null : v;
     naAtual((c) => ({ ...c, msgs: c.msgs.map((x, i) => (i === idx ? { ...x, av: novo } : x)) }));
+    /* A NOTA CHEGA AO SERVIDOR (Fase B da IA paga): só função, nota e motivo de lista fechada — nunca a pergunta
+       nem a resposta. Só das respostas do tutor de verdade (as do caderno local não são de IA); desmarcar não manda. */
+    if (novo && m.doTutor) {
+      void import('../data/apiDoFeedback').then(({ enviarFeedback }) =>
+        enviarFeedback({
+          funcao: 'tutor',
+          nota: novo === 'bom' ? 'up' : 'down',
+          ...(novo === 'ruim' ? { motivo: 'nao_ajudou' as const } : {}),
+        }),
+      );
+    }
     if (novo === 'ruim') {
-      // A "lista de casos para melhorar" é local: não existe rota de servidor para receber isto.
+      // A "lista de casos para melhorar" com o texto continua LOCAL: ao servidor vai só a nota, acima.
       const casos = lerJson<unknown[]>('ichat_avaliacoes', []);
       casos.push({
         pergunta: conv.msgs[idx - 1]?.txt ?? '',

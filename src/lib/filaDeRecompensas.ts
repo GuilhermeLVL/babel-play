@@ -134,10 +134,36 @@ export function marcarOcupacaoDaCaptura(dono: keyof typeof MARCAS_DA_CAPTURA, oc
  * baú, maestria e conquista), o modal continua abrindo uma por vez, mas diz "3 novidades · 1 de 3".
  * O lote é o que estava na fila quando a primeira abriu, mais o que entrar antes de ela esvaziar.
  */
-export function posicaoNoLote(lote: readonly string[], fila: readonly Recompensa[]): { lote: string[]; posicao: number; total: number } {
+export function posicaoNoLote(
+  lote: readonly string[],
+  fila: readonly Recompensa[],
+): { lote: string[]; posicao: number; total: number } {
   const chaves = fila.map(chaveDaRecompensa);
   const atual = chaves[0];
   if (!atual) return { lote: [], posicao: 0, total: 0 };
   const novo = lote.includes(atual) ? [...lote, ...chaves.filter((c) => !lote.includes(c))] : chaves;
   return { lote: novo, posicao: novo.indexOf(atual) + 1, total: novo.length };
+}
+
+/**
+ * O MODAL DE RECOMPENSA ESTÁ ABERTO? (`RecompensaDesbloqueada` marca o `body` enquanto o `Resgate` está na tela.) O fim
+ * da rodada lê isto: com o "Baú da rodada" por cima, os espaços de anúncio de lá esperam ele fechar, em vez de serem
+ * pedidos atrás do modal, onde ninguém os vê (`FimDaRodada`).
+ */
+const EVENTO_RECOMPENSA_ABERTA = 'babel:recompensa-aberta';
+const MARCA_DA_RECOMPENSA_ABERTA = 'data-recompensa-aberta';
+
+export function recompensaAberta(): boolean {
+  return typeof document !== 'undefined' && document.body.hasAttribute(MARCA_DA_RECOMPENSA_ABERTA);
+}
+
+export function marcarRecompensaAberta(aberta: boolean): void {
+  if (typeof document === 'undefined' || recompensaAberta() === aberta) return;
+  document.body.toggleAttribute(MARCA_DA_RECOMPENSA_ABERTA, aberta);
+  window.dispatchEvent(new Event(EVENTO_RECOMPENSA_ABERTA));
+}
+
+export function assinarRecompensaAberta(f: () => void): () => void {
+  window.addEventListener(EVENTO_RECOMPENSA_ABERTA, f);
+  return () => window.removeEventListener(EVENTO_RECOMPENSA_ABERTA, f);
 }

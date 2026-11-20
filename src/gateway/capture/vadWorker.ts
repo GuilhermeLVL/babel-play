@@ -13,6 +13,7 @@
  */
 import * as ort from 'onnxruntime-web/wasm';
 
+import { baseDoWasm } from '../baseDoWasm';
 import type { MensagemDoVad, MensagemParaOVad } from './vadEmWorker';
 
 let sessao: ort.InferenceSession | null = null;
@@ -31,7 +32,7 @@ const zerarEstado = (): void => {
 
 async function carregar(url: string): Promise<void> {
   ort.env.logLevel = 'error';
-  ort.env.wasm.wasmPaths = '/';
+  ort.env.wasm.wasmPaths = baseDoWasm();
   ort.env.wasm.numThreads = 1;
   ort.env.wasm.simd = true;
   const resposta = await fetch(url);

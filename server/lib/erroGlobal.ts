@@ -25,6 +25,7 @@ import type { NextFunction, Request, Response, Router } from 'express'
 import { cadeiaDeCausas } from './cadeiaDeCausas'
 import { log } from './logger'
 import { envelopeDeErro } from './respostaDeErro'
+import { ehWorker, emSegundoPlano } from './runtime'
 
 /**
  * Embrulha um router para que rejeição de handler `async` vire `next(err)`.
@@ -48,6 +49,11 @@ export function capturarAssincrono(router: Router): Router {
           // `Promise.resolve` cobre tanto `async function` quanto retorno de thenable.
           if (r && typeof (r as Promise<unknown>).catch === 'function') {
             ;(r as Promise<unknown>).catch(next)
+            /* NO WORKER, O HANDLER INTEIRO SEGURA A REQUISIÇÃO (revisão final da Fase 2, C1). As rotas
+               respondem e só depois, no `finally`, devolvem a vaga de IA ou estornam a cota; a promessa de
+               uma `async function` só assenta depois do `finally`. No `waitUntil` (via `emSegundoPlano`),
+               ela mantém o `Client` da requisição aberto até lá. A rejeição já foi para o `next` acima. */
+            if (ehWorker()) emSegundoPlano((r as Promise<unknown>).then(undefined, () => undefined))
           }
         } catch (err) {
           next(err)
@@ -95,6 +101,21 @@ export function erroGlobal(err: unknown, req: Request, res: Response, _next: Nex
           { requestId: (req as Request & { requestId?: string }).requestId ?? null },
         ),
       )
+    return
+  }
+  /* BANCO SEM CONFIGURAÇÃO NÃO É ERRO INTERNO (Fase 2, boot preguiçoso). Sem `DATABASE_URL` num runtime
+     sem disco (Worker), o primeiro acesso a `db` lança `BancoIndisponivel` (`server/db/db.ts`): 503
+     `banco_indisponivel`, como uma probe com o banco fora do ar. Reconhecido pelo `code`, e não por
+     `instanceof`, para não importar o módulo do banco aqui. */
+  if ((err as { code?: unknown })?.code === 'banco_indisponivel') {
+    log('error', { event: 'banco_indisponivel', route: req.path, status: 503, requestId: req.requestId })
+    if (res.headersSent) {
+      res.end()
+      return
+    }
+    res
+      .status(503)
+      .json(envelopeDeErro('banco indisponível', 'banco_indisponivel', { requestId: req.requestId ?? null }))
     return
   }
   const causa = cadeiaDeCausas(err, ' <- ')

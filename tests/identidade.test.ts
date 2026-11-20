@@ -7,15 +7,34 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/lib/supabase', () => ({
-  supabase: null, authRequired: true, carregarSupabase: async () => null, getAccessToken: async () => null,
+  supabase: null,
+  authRequired: true,
+  carregarSupabase: async () => null,
+  getAccessToken: async () => null,
 }))
 
 import {
-  _reiniciarIdentidade, aguardarIdentidade, aoMudarIdentidade, armarIdentidade, definirIdentidade, estadoDeIdentidade,
+  _reiniciarIdentidade,
+  aguardarIdentidade,
+  aoMudarIdentidade,
+  armarIdentidade,
+  definirIdentidade,
+  estadoDeIdentidade,
 } from '../src/lib/identidade'
 
 describe('identidade', () => {
-  beforeEach(() => _reiniciarIdentidade())
+  /* A espera pelo SDK é de quem tem sessão guardada (carga-rapida-no-celular). */
+  beforeEach(() => {
+    localStorage.setItem('sb-teste-auth-token', '{}')
+    _reiniciarIdentidade()
+  })
+
+  it('visitante sem sessão guardada nasce `anonimo`: não espera o SDK', async () => {
+    localStorage.removeItem('sb-teste-auth-token')
+    _reiniciarIdentidade()
+    expect(estadoDeIdentidade()).toBe('anonimo')
+    expect(await aguardarIdentidade()).toBe('anonimo')
+  })
 
   it('no modo público começa carregando; sem a espera armada, aguardar devolve o estado na hora', async () => {
     expect(estadoDeIdentidade()).toBe('carregando')
@@ -25,7 +44,9 @@ describe('identidade', () => {
   it('com a espera armada, aguardar fica pendente até o App definir', async () => {
     armarIdentidade()
     let resolvida: string | null = null
-    const p = aguardarIdentidade().then((e) => { resolvida = e })
+    const p = aguardarIdentidade().then((e) => {
+      resolvida = e
+    })
     await new Promise((r) => setTimeout(r, 10))
     expect(resolvida).toBeNull()
     definirIdentidade('anonimo')
@@ -42,12 +63,20 @@ describe('identidade', () => {
     definirIdentidade('conta')
     parar()
     definirIdentidade('anonimo')
-    expect(visto).toEqual([['carregando', 'anonimo'], ['anonimo', 'conta']])
+    expect(visto).toEqual([
+      ['carregando', 'anonimo'],
+      ['anonimo', 'conta'],
+    ])
   })
 
   it('build sem login nasce self-host, sem esperar ninguém', async () => {
     vi.resetModules()
-    vi.doMock('../src/lib/supabase', () => ({ supabase: null, authRequired: false, carregarSupabase: async () => null, getAccessToken: async () => null }))
+    vi.doMock('../src/lib/supabase', () => ({
+      supabase: null,
+      authRequired: false,
+      carregarSupabase: async () => null,
+      getAccessToken: async () => null,
+    }))
     const m = await import('../src/lib/identidade')
     expect(m.estadoDeIdentidade()).toBe('selfhost')
     m.armarIdentidade()

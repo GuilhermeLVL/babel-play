@@ -103,7 +103,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     console.log(`versão: ${r.anterior} → ${r.versao} (${tipo}), CHANGELOG datado ${data}`)
     console.log('\nNada foi commitado nem marcado. Para publicar:\n')
     for (const c of r.comandos) console.log(`  ${c}`)
-    console.log('\nDepois: Actions → "Deploy (Fly.io)" em staging com este commit (docs/deploy-checklist.md).')
+    console.log('\nDepois: Actions → "deploy-worker" em staging com este commit (docs/deploy-checklist.md).')
   } catch (err) {
     console.error(`release recusada: ${err.message}`)
     process.exit(1)

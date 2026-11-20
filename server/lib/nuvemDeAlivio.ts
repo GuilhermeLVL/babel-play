@@ -48,6 +48,7 @@ import { custoEfetivoDaPerna, ordenarPorCustoEfetivo, pernasDoStt } from '../ai/
 import { gastoDeIaRepo } from '../db/repositories/gastoDeIa'
 import { usageCountersRepo } from '../db/repositories/usageCounters'
 import { asUserId, type UserId } from './authContext'
+import { segundosDeBonusDoAlivio } from './bonusDeNuvemDoPremiado'
 import { modeloDoSttGerenciado, parametrosDoAlivio } from './config'
 import { flagLigada } from './flags'
 import { estadoDeProtecao } from './idade'
@@ -113,6 +114,15 @@ function segundosAteVirarOMes(agora: number): number {
   return Math.max(1, Math.ceil((Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1) - agora) / 1000))
 }
 
+/**
+ * A franquia do mês com o bônus do anúncio premiado (`bonusDeNuvemDoPremiado.ts`): os segundos ganhos somam ao
+ * teto, e o teto em dólar cresce na mesma proporção (o custo por segundo da franquia não muda).
+ */
+function franquiaComBonus(tetoUsdMes: number, bonusSegundos: number): { sttSegundosMes: number; tetoUsdMes: number } {
+  const sttSegundosMes = FRANQUIA_DE_ALIVIO.sttSegundosMes + bonusSegundos
+  return { sttSegundosMes, tetoUsdMes: (tetoUsdMes * sttSegundosMes) / FRANQUIA_DE_ALIVIO.sttSegundosMes }
+}
+
 /** O uso do alívio da conta no mês, para a tela (`GET /api/me/uso`). */
 export interface UsoDoAlivio {
   segundosDeAudio: { usado: number; teto: number }
@@ -169,28 +179,31 @@ export async function avaliarAlivio(req: Request, agora = Date.now()): Promise<V
   }
 
   const janela = currentWindow()
-  const [gastoDaConta, sttUsados, tokensUsados, gastoDoPool, gastoGlobalDoDia, gastoGlobalDoMes] = await Promise.all([
-    usageCountersRepo.get(userId, METRIC_ALIVIO_GASTO_MICRO_USD, janela),
-    usageCountersRepo.get(userId, METRIC_ALIVIO_STT_SEGUNDOS, janela),
-    usageCountersRepo.get(userId, METRIC_ALIVIO_TOKENS, janela),
-    usageCountersRepo.get(asUserId(CHAVE_POOL_DO_ALIVIO), METRIC_GASTO_DO_POOL, diaDe(agora)),
-    gastoDeIaRepo.ler(diaDe(agora)),
-    gastoDeIaRepo.ler(mesDe(agora)),
-  ])
-  const { tetoUsdMes } = parametrosDoAlivio()
+  const [gastoDaConta, sttUsados, tokensUsados, gastoDoPool, gastoGlobalDoDia, gastoGlobalDoMes, bonus] =
+    await Promise.all([
+      usageCountersRepo.get(userId, METRIC_ALIVIO_GASTO_MICRO_USD, janela),
+      usageCountersRepo.get(userId, METRIC_ALIVIO_STT_SEGUNDOS, janela),
+      usageCountersRepo.get(userId, METRIC_ALIVIO_TOKENS, janela),
+      usageCountersRepo.get(asUserId(CHAVE_POOL_DO_ALIVIO), METRIC_GASTO_DO_POOL, diaDe(agora)),
+      gastoDeIaRepo.ler(diaDe(agora)),
+      gastoDeIaRepo.ler(mesDe(agora)),
+      segundosDeBonusDoAlivio(userId, agora),
+    ])
+  const franquia = franquiaComBonus(parametrosDoAlivio().tetoUsdMes, bonus)
   const uso: UsoDoAlivio = {
-    segundosDeAudio: { usado: sttUsados, teto: FRANQUIA_DE_ALIVIO.sttSegundosMes },
+    segundosDeAudio: { usado: sttUsados, teto: franquia.sttSegundosMes },
     tokensDeLlm: { usado: tokensUsados, teto: FRANQUIA_DE_ALIVIO.tokensMes },
   }
   const restanteSegundos = segundosRestantesDoAlivio({
     sttUsados,
     gastoUsd: gastoDaConta / 1_000_000,
     custoPorSegundoUsd: custoPorSegundoDoAlivio(),
-    franquia: { sttSegundosMes: FRANQUIA_DE_ALIVIO.sttSegundosMes, tetoUsdMes },
+    franquia,
   })
 
-  /* 3) A franquia do mês: o dólar é o aceite do plano (≤ US$ 0,13 por conta); os segundos, a promessa. */
-  if (gastoDaConta >= micro(tetoUsdMes) || sttUsados >= FRANQUIA_DE_ALIVIO.sttSegundosMes) {
+  /* 3) A franquia do mês: o dólar é o aceite do plano (≤ US$ 0,13 por conta); os segundos, a promessa. Os
+     dois crescem com o bônus do anúncio premiado (`nuvem-30`). */
+  if (gastoDaConta >= micro(franquia.tetoUsdMes) || sttUsados >= franquia.sttSegundosMes) {
     return {
       ok: false,
       status: 402,
@@ -255,8 +268,12 @@ export async function resumoDoAlivio(req: Request): Promise<{
   tokensDeLlm: { usado: number; teto: number }
 }> {
   const v = await avaliarAlivio(req)
+  /* Sem o veredicto da franquia (flag desligada, perfil protegido), o teto mostrado ainda leva o bônus ganho. */
   const uso = v.uso ?? {
-    segundosDeAudio: { usado: 0, teto: FRANQUIA_DE_ALIVIO.sttSegundosMes },
+    segundosDeAudio: {
+      usado: 0,
+      teto: FRANQUIA_DE_ALIVIO.sttSegundosMes + (await segundosDeBonusDoAlivio(req.userId)),
+    },
     tokensDeLlm: { usado: 0, teto: FRANQUIA_DE_ALIVIO.tokensMes },
   }
   return {

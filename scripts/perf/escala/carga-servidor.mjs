@@ -15,7 +15,7 @@
  *
  * O bundle é o MESMO comando de build do package.json (`esbuild server.ts --bundle --platform=node
  * --format=cjs --packages=external`), gerado fora do repositório; roda com NODE_ENV=production, que
- * é como o Fly roda (sem o middleware do Vite, que inflaria RSS e CPU).
+ * é como o servidor roda em produção (sem o middleware do Vite, que inflaria RSS e CPU).
  *
  * MODOS
  *   selfhost  AUTH_REQUIRED=0 + SELF_HOST=1: todo request vira `local-owner` (o perfil "mega" do
@@ -24,7 +24,7 @@
  *             novo) é servido em porta+1 e SUPABASE_URL aponta para ele: o `authMiddleware` de
  *             produção verifica cada token de verdade. Cada requisição usa o token de um usuário do
  *             pool (u-p-* nas leituras, u-l-* nas escritas) e, salvo `--mesmo-ip`, um
- *             X-Forwarded-For próprio por conexão (TRUST_PROXY=1), como atrás do proxy do Fly.
+ *             X-Forwarded-For próprio por conexão (TRUST_PROXY=1), como atrás de um proxy.
  *
  * MEDIDAS por rota × conexões: req/s, p50/p95/p99 (de CADA resposta, não do histograma resumido do
  * autocannon, que não tem p95), erros de socket/timeout, distribuição de status, e — pela sonda
@@ -48,7 +48,7 @@ const bundle = arg('bundle', '')
 const banco = arg('db', '')
 if (!bundle || !banco) {
   console.error(
-    'uso: node scripts/perf/escala/carga-servidor.mjs --bundle=<server.cjs> --db=<cópia.db> [--modo=publico]',
+    'uso: node scripts/perf/escala/carga-servidor.mjs --bundle=<server.cjs> --db=<cópia do diretório do pglite> [--modo=publico]',
   )
   process.exit(2)
 }
@@ -65,6 +65,12 @@ const rotas = arg('rotas', 'abertura,settings,vocab,profile,sessions,review,gast
 const mesmoIp = flag('mesmo-ip')
 const saida = arg('saida', '')
 const coletorDir = arg('coletor-dir', '') && path.resolve(arg('coletor-dir', ''))
+if (coletorDir) {
+  console.error(
+    '--coletor-dir não é suportado: o coletor mede só o driver libsql (file:) e o banco do app agora é PGlite/Postgres. Rode sem ele.',
+  )
+  process.exit(2)
+}
 const RAIZ = path.resolve(import.meta.dirname, '..', '..', '..')
 const tmp = path.dirname(path.resolve(banco))
 const sonda = path.join(tmp, `sonda-${modo}-${porta}.jsonl`)
@@ -140,9 +146,8 @@ const env = {
   NODE_ENV: 'production',
   PORT: String(porta),
   HOST: '127.0.0.1',
-  DATABASE_URL: `file:${path.resolve(banco).replace(/\\/g, '/')}`,
+  DATABASE_URL: `pglite:${path.resolve(banco).replace(/\\/g, '/')}`,
   AUDIO_DIR: audioDir,
-  BACKUP_DIARIO: '0',
   SECRET_KEY: randomBytes(32).toString('hex'), // exigido em produção (server/crypto.ts); descartável
   TRUST_PROXY: '1',
   LOG_LEVEL: 'error',

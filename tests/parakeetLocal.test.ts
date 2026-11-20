@@ -111,6 +111,34 @@ describe('ParakeetLocalStt', () => {
     expect(pcm.length).toBe(1600)
   })
 
+  it('a confiança média do worker chega como `confidence` do final (o sinal do áudio difícil)', async () => {
+    const stt = new ParakeetLocalStt()
+    await stt.preload()
+    criados[0].postMessage = function (msg: Msg) {
+      queueMicrotask(() =>
+        this.responder({ type: 'result', id: msg.id, text: 'olá', descartado: false, confianca: 0.6 }),
+      )
+    }
+    expect(await stt.transcribePcm(new Float32Array(1600), 16000, { languageHint: 'pt' })).toEqual({
+      text: 'olá',
+      confidence: 0.6,
+    })
+  })
+
+  it('o tempo de DECODE do worker (sem a fila) chega como `decodeMs` (o sinal `lento` do áudio difícil)', async () => {
+    const stt = new ParakeetLocalStt()
+    await stt.preload()
+    criados[0].postMessage = function (msg: Msg) {
+      queueMicrotask(() =>
+        this.responder({ type: 'result', id: msg.id, text: 'olá', descartado: false, ms: 420, audioS: 1 }),
+      )
+    }
+    expect(await stt.transcribePcm(new Float32Array(1600), 16000, { languageHint: 'pt' })).toEqual({
+      text: 'olá',
+      decodeMs: 420,
+    })
+  })
+
   it('texto que o filtro de alucinação esvaziou chega marcado, para a telemetria contar', async () => {
     const stt = new ParakeetLocalStt()
     await stt.preload()
@@ -223,6 +251,22 @@ describe('ParakeetLocalStt', () => {
     expect(doTipo('carregar')).toHaveLength(2)
   })
 
+  it('sentinela: marca ao carregar os pesos e apaga ao liberar', async () => {
+    const g = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      setItem: (k: string, v: string) => void g.set(k, v),
+      getItem: (k: string) => g.get(k) ?? null,
+      removeItem: (k: string) => void g.delete(k),
+    })
+    const stt = new ParakeetLocalStt()
+    const marcas = () => [...g.keys()].filter((k) => k.startsWith(`babel.sentinela.${ID_DO_PARAKEET}.`))
+    expect(marcas()).toHaveLength(0)
+    await stt.preload()
+    expect(marcas()).toHaveLength(1)
+    stt.liberar()
+    expect(marcas()).toHaveLength(0)
+  })
+
   it('o manifesto que o worker manda é gravado na janela (o Worker não tem localStorage)', async () => {
     const gravados = new Map<string, string>()
     vi.stubGlobal('localStorage', {
@@ -244,6 +288,9 @@ describe('ParakeetLocalStt', () => {
       w.responder({ type: 'ready', model: ID_DO_PARAKEET, cargaMs: 1 })
     }
     await new ParakeetLocalStt().preload()
-    expect([...gravados.keys()]).toEqual([`babel.modelManifest.${ID_DO_PARAKEET}|int8|wasm`])
+    // A sentinela de queda (`babel.sentinela.*`) também grava na janela ao começar a carregar; aqui só o manifesto conta.
+    expect([...gravados.keys()].filter((k) => !k.startsWith('babel.sentinela.'))).toEqual([
+      `babel.modelManifest.${ID_DO_PARAKEET}|int8|wasm`,
+    ])
   })
 })

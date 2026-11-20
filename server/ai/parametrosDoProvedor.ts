@@ -42,10 +42,70 @@ export interface RoteamentoOpenRouter {
   only?: string[]
   order?: string[]
   allow_fallbacks?: boolean
+  /** Só os endpoints que aceitam TODOS os parâmetros do pedido (o `response_format`, aqui). */
+  require_parameters?: boolean
+  /** `price`: o endpoint mais barato primeiro (a legenda ao vivo, com o teto de latência abaixo). */
+  sort?: 'latency' | 'price' | 'throughput'
+  /** Endpoints com latência (p50, em segundos) acima disto vão para o fim da fila — não saem dela. */
+  preferred_max_latency?: { p50?: number; p90?: number }
+}
+
+/**
+ * A LEGENDA AO VIVO: o mais BARATO primeiro, desde que responda em até 1,5 s no p50 (o SLO da legenda no plano de
+ * qualidade da IA paga). Diretriz do dono (24/10/2026): "modelos baratos sempre que possível, pensando na
+ * experiência do usuário". `sort: 'latency'` puro mandaria a legenda ao endpoint mais rápido — e, no Gemma 4 com
+ * retenção zero, o mais rápido custa até ~1,8× o mais barato (`/api/v1/endpoints/zdr`, 24/10/2026). Com o preço
+ * na frente e a latência como preferência, o barato lento demais cai para o fim, sem que o caro passe à frente
+ * de um barato que responde a tempo.
+ */
+export const ROTEAMENTO_DA_LEGENDA = { sort: 'price', preferred_max_latency: { p50: 1.5 } } as const
+
+/**
+ * O QUE O PEDIDO QUER ALÉM DO TEXTO (Fase B do plano de qualidade da IA paga, itens 2 e 3). Estrutural, sem import
+ * (este módulo não importa nada — ver o topo): o `FormatoDeSaida` de `src/lib/esquemasDeSaida.ts` cabe aqui.
+ *
+ *   - `formato`: a SAÍDA ESTRUTURADA. No OpenRouter vira `response_format: { type: 'json_schema', json_schema:
+ *     { name, strict: true, schema } }` com `provider.require_parameters: true` — sem o segundo, o roteador pode
+ *     mandar o pedido a um endpoint que IGNORA o esquema. Fora do OpenRouter, nada: cada perna da cascata monta o
+ *     seu pedido, e a reserva de outro provedor segue como sempre (o `ler*` defensivo continua valendo).
+ *   - `legenda: true`: a tradução RÁPIDA (a legenda ao vivo) pede o endpoint mais barato que responde a tempo
+ *     (`ROTEAMENTO_DA_LEGENDA`). Só no OpenRouter; com `order` declarado no registro, a ordem declarada manda.
+ */
+export interface OpcoesDoPedido {
+  formato?: { nome: string; esquema: Readonly<Record<string, unknown>> }
+  legenda?: boolean
 }
 
 /** Os dois provedores do Google no OpenRouter — `google-vertex` casa também as regiões dele. */
 export const PROVEDORES_DO_GOOGLE_NO_OPENROUTER = ['google-ai-studio', 'google-vertex'] as const
+
+/**
+ * OS MODELOS QUE VÃO SEM RACIOCÍNIO NO OPENROUTER (25/10/2026). O DeepSeek V4.1 Flash pensa por padrão — na bancada
+ * gastou até 1.111 tokens raciocinando, com p95 de 9 s na explicação — e SEM raciocínio (`reasoning: { enabled:
+ * false }`, o formato unificado do OpenRouter, docs "Reasoning Tokens") explica melhor e mais rápido
+ * (`docs/auditoria/eval-ia-paga-v1.md`: gramática 50% → 91%, p95 3,0 s). A lista é dos modelos MEDIDOS assim; outro
+ * modelo só entra com a bancada.
+ */
+export const MODELOS_SEM_RACIOCINIO_NO_OPENROUTER: ReadonlySet<string> = new Set(['deepseek/deepseek-v4.1-flash'])
+
+/**
+ * Provedores que dizem aceitar `reasoning` mas IGNORAM `reasoning.enabled: false` (o modelo pensa do mesmo jeito,
+ * achado da bancada — `scripts/eval-ia/openrouter.mjs`). Saem do roteamento de quem vai sem raciocínio, senão o
+ * "sem raciocínio" vira sorteio de provedor (e a conta e a latência voltam).
+ */
+export const IGNORAM_RACIOCINIO_DESLIGADO = ['novita'] as const
+
+/**
+ * AS VOZES (TTS) DO OPENROUTER COM RETENÇÃO ZERO CONFERIDA (change `voz-natural-openrouter`, 17/11/2026): o modelo tem
+ * endpoint na lista pública `GET /api/v1/endpoints/zdr` (o Kokoro na DeepInfra e na Together, o MAI-Voice na Azure).
+ * Para a voz o OpenRouter só aplica `zdr` e `data_collection` (o `order`/`only`/`ignore` não valem), então quem não
+ * está aqui não vira perna (`provedoresDeVoz.ts`) e o registro o recusa. Nunca `:free`. Outro modelo entra só depois
+ * de conferido no `/endpoints/zdr`.
+ */
+export const VOZES_COM_RETENCAO_ZERO_NO_OPENROUTER: ReadonlySet<string> = new Set([
+  'hexgrad/kokoro-82m',
+  'microsoft/mai-voice-2.1-flash',
+])
 
 /** O mínimo que todo pedido ao OpenRouter leva, declarado ou não. */
 export const ROTEAMENTO_OPENROUTER: RoteamentoOpenRouter = {
@@ -99,14 +159,32 @@ export function parametrosDoProvedor(
   base: string,
   model: string,
   roteamento?: RoteamentoOpenRouter,
+  opcoes: OpcoesDoPedido = {},
 ): Record<string, unknown> {
   const host = hostDe(base)
   const raciocinio = /gpt-oss/i.test(model)
   /* Direto ou pelo AI Gateway da Cloudflare: o roteamento de retenção zero vai nos dois caminhos. */
   if (ehBaseDoOpenRouter(base)) {
+    const provider = roteamentoEndurecido(roteamento)
+    const semRaciocinio = MODELOS_SEM_RACIOCINIO_NO_OPENROUTER.has(model.toLowerCase())
+    if (semRaciocinio) provider.ignore = [...new Set([...provider.ignore, ...IGNORAM_RACIOCINIO_DESLIGADO])]
+    if (opcoes.formato) provider.require_parameters = true
+    if (opcoes.legenda && !provider.order?.length) {
+      provider.sort = ROTEAMENTO_DA_LEGENDA.sort
+      provider.preferred_max_latency = { ...ROTEAMENTO_DA_LEGENDA.preferred_max_latency }
+    }
     return {
-      provider: roteamentoEndurecido(roteamento),
+      provider,
       ...(raciocinio ? { reasoning: { effort: 'low', exclude: true } } : {}),
+      ...(semRaciocinio ? { reasoning: { enabled: false } } : {}),
+      ...(opcoes.formato
+        ? {
+            response_format: {
+              type: 'json_schema',
+              json_schema: { name: opcoes.formato.nome, strict: true, schema: opcoes.formato.esquema },
+            },
+          }
+        : {}),
     }
   }
   if (!raciocinio) return {}

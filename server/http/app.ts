@@ -34,8 +34,9 @@ import { exigirAal2SeTiver2fa } from '../lib/aal'
 import { abertura, portaDoCadastro } from '../lib/abertura'
 import { authMiddleware, authRequired, verificarTokenPadrao } from '../lib/auth'
 import type { UserId } from '../lib/authContext'
-import { metricasHabilitadas, portaInternaDeMetricas, segredoDeOrigem } from '../lib/config'
+import { metricasHabilitadas, segredoDeOrigem } from '../lib/config'
 import { exigirContaParaEscrever } from '../lib/convidado'
+import { requisicaoTrazCredencial } from '../lib/credencialDaRequisicao'
 import { capturarAssincrono } from '../lib/erroGlobal'
 import { exigirAdultoDeclarado, exigirContaLiberada } from '../lib/idade'
 import { criarLimitadorDeFalhas } from '../lib/limitadorDeFalhas'
@@ -53,25 +54,30 @@ import {
   METRIC_RATELIMIT_CARO,
   METRIC_RATELIMIT_ESCRITA,
   METRIC_RATELIMIT_FLAGS,
+  METRIC_RATELIMIT_LOTE_ANKI,
   METRIC_RATELIMIT_TELEMETRIA,
 } from '../lib/rateLimitStore'
 import { requestIdMiddleware } from '../lib/requestId'
 import { responderErro } from '../lib/respostaDeErro'
+import { ehWorker } from '../lib/runtime'
 import { CABECALHO_DA_VERSAO, versaoDoApp } from '../lib/versao'
 import { adminRouter } from '../routes/admin'
 import { aiRouter } from '../routes/ai'
 import { ankiRouter } from '../routes/anki'
+import { anunciosRouter } from '../routes/anuncios'
 import { asaasWebhookRouter, billingRouter } from '../routes/billing'
-import { errosRouter } from '../routes/erros'
+import { errosRouter, falhasDoClienteRouter, tetoDeFalhas } from '../routes/erros'
 import { exercisesRouter } from '../routes/exercises'
 import { criarRotaDeFlags } from '../routes/flags'
 import { healthHandler, readyHandler } from '../routes/health'
 import { imagesRouter } from '../routes/images'
 import { importRouter } from '../routes/import'
+import { leituraRouter } from '../routes/leitura'
 import { meRouter } from '../routes/me'
 import { metricasCapturaRouter } from '../routes/metricasCaptura'
 import { metricasOfertasRouter } from '../routes/metricasOfertas'
 import { metricsRouter } from '../routes/metrics'
+import { opsRouter } from '../routes/ops'
 import { rankRouter } from '../routes/rank'
 import { responsavelRouter } from '../routes/responsavel'
 import { sessionsRouter } from '../routes/sessions'
@@ -80,7 +86,13 @@ import { tutorRouter } from '../routes/tutor'
 import { vocabRouter } from '../routes/vocab'
 import { diretivasDeCsp } from './csp'
 import { isolamentoDeOrigem } from './isolamento'
-import { jsonAntesDoAuth, jsonDepoisDoAuth, ROTAS_DE_CORPO_GRANDE } from './limitesDeCorpo'
+import {
+  jsonAntesDoAuth,
+  jsonDepoisDoAuth,
+  jsonMedioDepoisDoAuth,
+  ROTAS_DE_CORPO_GRANDE,
+  ROTAS_DE_CORPO_MEDIO,
+} from './limitesDeCorpo'
 import { handlerDeMetricas, middlewareDeMetricas } from './metricas'
 import { exigirOrigem } from './origemProtegida'
 
@@ -116,6 +128,15 @@ function interpretarTrustProxy(valor: string): boolean | number | string {
   return valor
 }
 
+/**
+ * `POST /api/anki/imports/:id/notas` — o lote da importação do Anki, isento do `writeLimiter` (ver lá).
+ * Pelo caminho COMPLETO (`baseUrl + path`): o limitador é montado sobre uma lista de prefixos, e dentro
+ * dele `req.path` é relativo ao prefixo que casou.
+ */
+function ehLoteDaImportacaoAnki(req: express.Request): boolean {
+  return req.method === 'POST' && /^\/api\/anki\/imports\/[^/]+\/notas\/?$/.test(req.baseUrl + req.path)
+}
+
 export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   const app = express()
   /* `/API/admin` e `/api/admin` são rotas DIFERENTES: as listas de rota (segundo fator, teto de corpo, origem, convidado)
@@ -147,7 +168,10 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
    * `false`, `loopback`, ou uma lista de sub-redes confiáveis. Ausente, nada é confiado.
    */
   const trustProxy = process.env.TRUST_PROXY?.trim()
-  if (trustProxy) app.set('trust proxy', interpretarTrustProxy(trustProxy))
+  /* NO WORKER a postura é fixa: o `worker.ts` APAGA o `X-Forwarded-For` que o cliente mandou e põe nele só o
+     `CF-Connecting-IP` da borda. Confiar num salto lê exatamente esse valor; `TRUST_PROXY` não vale lá. */
+  if (ehWorker()) app.set('trust proxy', 1)
+  else if (trustProxy) app.set('trust proxy', interpretarTrustProxy(trustProxy))
 
   /* PARSER DE QUERY SIMPLES (auditoria de segurança 2026-09-26). O padrão do Express 4 é o
      "extended", que passa TODA query string pelo `qs` — antes do auth, em toda requisição — e o
@@ -172,7 +196,7 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   })
 
   /* ORIGEM PROTEGIDA (GAP-004): com `ORIGEM_SEGREDO`, só quem passou pelo Cloudflare entra — o acesso
-     direto a `<app>.fly.dev` pularia o WAF e forjaria o `X-Forwarded-For` em que o `TRUST_PROXY`
+     direto ao endereço de origem pularia o WAF e forjaria o `X-Forwarded-For` em que o `TRUST_PROXY`
      confia. Ver `server/http/origemProtegida.ts`. */
   const segredo = segredoDeOrigem()
   if (segredo) app.use(exigirOrigem(segredo))
@@ -197,15 +221,15 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
    * anti-força-bruta e do `writeLimiter` de `/api/*`: um scraper não tem JWT de ninguém, e um
    * scrape a cada 15 s consumindo cota de rate limit derrubaria a própria observabilidade.
    */
+  /* No Worker o middleware roda sempre: ele grava o ponto `requisicao` no Analytics Engine (no-op sem o
+     binding); só o `/metrics` (Prometheus) depende de `METRICS_ENABLED`. */
+  if (metricasHabilitadas() || ehWorker()) app.use(middlewareDeMetricas())
   if (metricasHabilitadas()) {
-    app.use(middlewareDeMetricas())
     /* Sem `capturarAssincrono`: ele embrulha um ROUTER (`server/lib/erroGlobal.ts:35`), e isto é um
        handler solto no app — o mesmo caso de `/api/health` logo abaixo. O handler trata a própria
        falha e devolve 500; telemetria que derruba o request que observa é pior que telemetria
        nenhuma. */
-    /* Com `METRICS_PORTA_INTERNA` o scrape mora num listener próprio (`server.ts`), e a porta
-       PÚBLICA não tem `/metrics` nenhum — 404 como qualquer caminho. Menos superfície que um token. */
-    if (portaInternaDeMetricas() === undefined) app.get('/metrics', handlerDeMetricas())
+    app.get('/metrics', handlerDeMetricas())
   }
 
   /* GAP-015: o teto de 5 MB valia ANTES do login. Agora o topo aceita só 100 KB, e as poucas rotas
@@ -222,7 +246,10 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   // só se os routers viessem antes — o que manda é estar ANTES de quem escreve o corpo. Daqui ele
   // alcança tanto as rotas `/api/*` quanto os estáticos servidos mais abaixo.
   // `tests/integration/compressao-http.test.ts` trava essa ordem.
-  app.use(compression())
+  //
+  // SÓ NO NODE (Fase 2): no Worker quem comprime é a borda da Cloudflare, e o middleware só gastaria
+  // CPU do isolate (a que se paga) para comprimir o que a borda recomprimiria.
+  if (!ehWorker()) app.use(compression())
 
   /**
    * Headers de segurança (achado da auditoria: nenhum header de hardening).
@@ -274,6 +301,15 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
     /* BALDE PROPRIO. Os dois limitadores compartilhavam a metrica, entao compartilhavam o contador:
        60 salvamentos de transcricao esgotavam a cota de IA da pessoa (achado A27). */
     store: createDbRateLimitStore(METRIC_RATELIMIT_CARO),
+    /* O 👍/👎 (`POST /api/ai/feedback`) não chama provedor e tem balde próprio (`METRIC_RATELIMIT_FEEDBACK`):
+       avaliar uma resposta não pode gastar o teto das chamadas de IA da pessoa (o mesmo A27). */
+    /* O ASSISTENTE AO VIVO (`POST /api/ai/assistente/*`) também tem balde próprio (`METRIC_RATELIMIT_ASSISTENTE`,
+       30/min em `server/ai/assistente.ts`): as glosas automáticas acompanham a legenda, e dividir este balde com a
+       tradução de cada fala cortaria a legenda. O custo dele é contido pelo teto do dia e pela cota de tokens. */
+    skip: (req) =>
+      req.method === 'POST' &&
+      (/^\/api\/ai\/feedback\/?(\?|$)/.test(req.originalUrl) ||
+        /^\/api\/ai\/assistente\/(expressoes|termos|como-respondo|correcao)\/?(\?|$)/.test(req.originalUrl)),
   })
 
   /**
@@ -301,12 +337,34 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
     store: createDbRateLimitStore(METRIC_RATELIMIT_ESCRITA),
     // GET e HEAD não alocam corpo; limitá-los penalizaria a navegação sem fechar o vetor. A
     // leitura tem teto próprio, em memória: `limitadorDeLeitura` (auditoria de 2026-09-26).
-    skip: (req) => req.method === 'GET' || req.method === 'HEAD',
+    // O LOTE DA IMPORTAÇÃO DO ANKI também fica de fora: um import de 50.000 notas são 100 lotes
+    // mandados em sequência em menos de um minuto, e 120/min o cortaria no meio. Ele conta no
+    // balde PRÓPRIO (`loteDeImportLimiter`, abaixo), além dos tetos da rota — 500 notas por lote,
+    // 50.000 por import, corpo sob `LIMITE_GRANDE`, só import aberto pela própria conta (abrir e
+    // fechar continuam contando aqui).
+    skip: (req) => req.method === 'GET' || req.method === 'HEAD' || ehLoteDaImportacaoAnki(req),
   })
   /* A marca de verbos é o que a matriz rota × guarda lê para não contar este limitador em GET
      (`server/lib/limitesDeLeitura.ts`). Separada da declaração porque
      `tests/integration/rate-limit-escrita.test.ts` lê a forma `const writeLimiter = rateLimit({`. */
   marcarVerbos(writeLimiter, 'escrita')
+
+  /**
+   * O BALDE DO LOTE DA IMPORTAÇÃO DO ANKI (`POST /api/anki/imports/:id/notas`), que o `writeLimiter`
+   * pula. 200 por minuto e por usuário: o dobro do maior import (100 lotes), de modo que nenhum import
+   * legítimo é cortado, e um laço de lotes não fica sem teto. Balde próprio pelo mesmo A27 — os lotes
+   * não gastam a escrita da pessoa, e a escrita não gasta os lotes. Só em modo público, como o de cima.
+   */
+  const loteDeImportLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: 200,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: chaveDoRequest,
+    store: createDbRateLimitStore(METRIC_RATELIMIT_LOTE_ANKI),
+    skip: (req) => !ehLoteDaImportacaoAnki(req),
+  })
+  marcarVerbos(loteDeImportLimiter, 'escrita')
 
   /* ISOLAMENTO DE ORIGEM, LIGADO DE FÁBRICA (A8). Dá `SharedArrayBuffer` e, com ele, as threads do
      WASM do Whisper/opus-mt — sem isto o orçamento do A3 põe todo motor em 1 thread. Era opt-in
@@ -343,6 +401,10 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
      evento que não recebeu 200, e a idempotência por id garante que a reentrega não duplica. */
   if (authRequired()) app.use('/api/billing/webhook/asaas', writeLimiter)
   app.use('/api/billing/webhook/asaas', capturarAssincrono(asaasWebhookRouter))
+  /* A saúde do negócio, para o vigia agendado (`saude-do-negocio.yml`): antes do login, com token próprio
+     (`OPS_SAUDE_TOKEN`, ver `server/routes/ops.ts`) e o teto de leituras por minuto (a rota é GET). */
+  if (authRequired()) app.use('/api/ops', limitadorDeLeitura())
+  app.use('/api/ops', capturarAssincrono(opsRouter))
 
   /* RANKING GLOBAL — público, e por isso ANTES do auth, como o health e o webhook.
      Ele veio do Cloudflare quando a edição leve foi encerrada (07/09). O placar é anônimo por
@@ -385,6 +447,11 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   /* O FUNIL DAS OFERTAS (Fase 8): o mesmo desenho — anônimo, antes do auth, corpo de 8 KB e o mesmo
      balde por IP de `/api/metricas`. Ver `server/routes/metricasOfertas.ts`. */
   app.use('/api/metricas', capturarAssincrono(metricasOfertasRouter))
+  /* O CONTADOR ANÔNIMO DE FALHAS DO VISITANTE (change `modelos-confiaveis-e-offline`): a sub-rota `/falha` dos
+     erros do cliente, ANTES do auth, pelo mesmo motivo da telemetria (sem conta também conta, e com conta a rota
+     nem sabe quem é). Corpo de 8 KB (`ROTAS_DE_CORPO_MINIMO`), balde próprio por chave derivada do IP, só enum.
+     O relatório de erros (`/api/erros-do-cliente`) continua depois do auth, com conta. */
+  app.use('/api/erros-do-cliente/falha', tetoDeFalhas, capturarAssincrono(falhasDoClienteRouter))
 
   /* AS PORTAS DE EMERGÊNCIA (Fase 3): a tela de login e a de planos perguntam aqui, antes de
      haver sessão, se o cadastro e a venda estão abertos. Pública pelo mesmo motivo do health. */
@@ -418,7 +485,8 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
    * nunca chega a limitador nenhum**. Quem tenta adivinhar token — ou reusa um vazado contra várias
    * contas — não encontrava teto em lugar nenhum do servidor.
    *
-   * Este vem ANTES do auth e conta SÓ o que falhou (401). Um usuário legítimo, com token válido,
+   * Este vem ANTES do auth e conta SÓ o 401 de requisição que TRAZ credencial (ver "SÓ CONTA QUEM
+   * TRAZ CREDENCIAL" abaixo). Um usuário legítimo, com token válido,
    * nunca soma um ponto aqui, por mais que navegue — e, desde a auditoria de prontidão de
    * 2026-09-25 (fase 2 §2.5), também nunca ESCREVE nada nem é barrado por concorrência.
    *
@@ -435,6 +503,15 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
    * 30 falhas por 15 minutos: um token expirado que o cliente reenvia em algumas telas antes de
    * renovar cabe com folga; um laço de adivinhação, não. Só em modo público — no self-host o
    * `authMiddleware` injeta o dono e 401 não existe.
+   *
+   * SÓ CONTA QUEM TRAZ CREDENCIAL (incidente de 2026-11-12). Um visitante sem conta abre o app e o
+   * cliente dispara ~10 chamadas `/api/*` sem `Authorization`, todas 401; contadas como falha, na
+   * 3ª abertura o IP inteiro levava 429 por 15 minutos (numa escola atrás de NAT, na 1ª) e a home
+   * ficava no esqueleto. Quem não manda credencial não está adivinhando token: a requisição dele
+   * nem lê o balde (`seAplica`) — continua no 401 de sempre, sem tocar o banco, o que também deixa
+   * uma inundação anônima mais barata. Quem manda QUALQUER coisa no `Authorization` (o único canal
+   * do `authMiddleware`; ver `server/lib/credencialDaRequisicao.ts`) segue o desenho de antes: soma
+   * no 401 e, estourado o teto do IP, leva 429 — inclusive com token bom, como todo bloqueio por origem.
    */
   if (authRequired()) {
     app.use(
@@ -443,6 +520,8 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
         metric: METRIC_RATELIMIT_AUTH,
         janelaMs: 15 * 60_000,
         teto: 30,
+        seAplica: requisicaoTrazCredencial,
+        // Só chega aqui quem traz credencial: o `seAplica` acima já deixou o resto passar direto.
         falhou: (_req, res) => res.statusCode === 401,
         code: 'muitas_falhas_de_autenticacao',
         mensagem: 'muitas tentativas de autenticação falharam; tente de novo mais tarde',
@@ -463,6 +542,7 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
 
   // GAP-015: o corpo grande só é lido depois de o token ser aceito (ver `limitesDeCorpo.ts`).
   app.use([...ROTAS_DE_CORPO_GRANDE], jsonDepoisDoAuth())
+  app.use([...ROTAS_DE_CORPO_MEDIO], jsonMedioDepoisDoAuth())
 
   /* Fase 6 — 2FA de verdade: quem ativou a verificação em duas etapas precisa de sessão AAL2 nas
      rotas de cobrança, exclusão/exportação de conta, credencial BYOK e admin (`server/lib/aal.ts`). */
@@ -487,6 +567,8 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
       '/api/settings',
       '/api/images',
       '/api/tutor',
+      /* As anotações do leitor guardam trecho do livro e nota da pessoa: dado de estudo na nuvem, como o deck. */
+      '/api/leitura',
     ],
     exigirContaLiberada,
   )
@@ -526,9 +608,12 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
         '/api/admin',
         '/api/audio',
         '/api/responsavel',
+        '/api/anuncios',
+        '/api/leitura',
       ],
       writeLimiter,
     )
+    app.use('/api/anki/imports', loteDeImportLimiter)
 
     /* TETOS DE LEITURA (auditoria de segurança 2026-09-26). O `writeLimiter` pula GET por desenho,
        e nenhuma leitura autenticada tinha teto — inclusive as que montam a conta inteira em memória
@@ -545,15 +630,9 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
 
   // Dados (Fase 2) — sessões/transcrições + vocabulário/SRS (FSRS persistido).
   app.use('/api/sessions', capturarAssincrono(sessionsRouter))
-  // Importação (Fase nova) — YouTube (yt-dlp: áudio + legenda) · documento (.txt/.pdf/.docx) · link web.
+  // Importação (Fase nova) — documento (.txt/.pdf/.docx) · link web · Anki.
   // Produz sessões no formato canônico → reaproveita Análise/vocabulário/exercícios.
-  // A importação de YouTube roda yt-dlp NO SERVIDOR (capacidade local perigosa): no modo público
-  // ela é bloqueada mesmo autenticado; só existe no self-host. O guard vem ANTES do router.
-  if (authRequired()) {
-    app.post('/api/import/youtube', (_req, res) =>
-      res.status(403).json({ error: 'importação de YouTube indisponível no modo hospedado' }),
-    )
-  }
+  // O YouTube (yt-dlp) saiu na Task 10 da Fase 2: `POST /api/import/youtube` responde 410 no próprio router.
   app.use('/api/import', capturarAssincrono(importRouter))
   app.use('/api/vocab', capturarAssincrono(vocabRouter))
   // Acervo Anki (motor-anki-acervo) — decks/notas/ativação, escopado por userId (auth já resolvido acima).
@@ -572,10 +651,15 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   app.use('/api/erros-do-cliente', capturarAssincrono(errosRouter))
   // E3 — assinar/cancelar (atrás do auth; a PROMOÇÃO do plano é só do webhook acima).
   app.use('/api/billing', capturarAssincrono(billingRouter))
+  // Anúncios — a recompensa do premiado, creditada pelo servidor (spec `anuncios-no-gratis`).
+  app.use('/api/anuncios', capturarAssincrono(anunciosRouter))
+  // Leitor (L2 de Livros & Leitura) — grifos, notas e palavras do livro, grátis; o arquivo do livro nunca sobe.
+  app.use('/api/leitura', capturarAssincrono(leituraRouter))
   // Áudio do sistema via WASAPI loopback do PRÓPRIO servidor local (Windows) — a rota sem
   // fricção para capturar o que o computador toca; o navegador só consome o PCM.
-  // Capacidade local: no modo público (AUTH_REQUIRED) ela some (403), mesmo autenticado.
-  if (authRequired()) {
+  // Capacidade local: no modo público (AUTH_REQUIRED) ela some (403), mesmo autenticado. No Worker também:
+  // não há dispositivo de som no isolate (o `loopback-capture` é stub no bundle de lá).
+  if (authRequired() || ehWorker()) {
     app.use('/api/audio', (_req, res) =>
       res.status(403).json({ error: 'captura de áudio do sistema indisponível no modo hospedado' }),
     )

@@ -94,6 +94,8 @@ export const ROUTERS_PRIVADOS: Array<[string, string, string]> = [
   ['/api/admin', '../../server/routes/admin', 'adminRouter'],
   ['/api/erros-do-cliente', '../../server/routes/erros', 'errosRouter'],
   ['/api/billing', '../../server/routes/billing', 'billingRouter'],
+  ['/api/anuncios', '../../server/routes/anuncios', 'anunciosRouter'],
+  ['/api/leitura', '../../server/routes/leitura', 'leituraRouter'],
   /* So no self-host: no modo publico o `app.ts` responde 403 no lugar dele. */
   ['/api/audio', '../../server/audio/loopback', 'audioRouter'],
   /* Ultimo a ser montado, como no `app.ts`: a rota de chat saiu do `server.ts` na Fase 3. */
@@ -303,7 +305,14 @@ export async function semear(s: AppDeTeste, userId: string) {
     { word: 'garden', srcLang: 'en', back: 'jardim', sentence: 'A small garden.' },
     { word: 'bridge', srcLang: 'en', back: 'ponte', sentence: 'Cross the bridge.' },
   ])
-  const cartoes = await vocabRepo.list(U)
+  /* A ORDEM DOS QUATRO É FIXADA AQUI, e não pela lista: eles nascem no mesmo milissegundo, sem
+     `added_at`, e a lista desempata por `id` (um uuid sorteado). Os testes usam `cartoes[0..3]` com
+     a ordem que o SQLite devolvia — o último inserido primeiro —, e o snapshot de cada um depende
+     de qual cartão é (`harvest` não tem nível CEFR; os outros três têm). */
+  const ORDEM_DA_SEMENTE = ['bridge', 'garden', 'water', 'harvest']
+  const cartoes = (await vocabRepo.list(U)).sort(
+    (a: { word: string }, b: { word: string }) => ORDEM_DA_SEMENTE.indexOf(a.word) - ORDEM_DA_SEMENTE.indexOf(b.word),
+  )
   const sessao = await sessionsRepo.createWithUtterances(
     U,
     { title: 'Sessão semeada', kind: 'live', sourceLang: 'en', targetLang: 'pt', status: 'done', durationMs: 60_000 },

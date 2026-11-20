@@ -23,7 +23,7 @@ import {
   listarBaralhosAnki,
   type ResultadoAtivar,
 } from '../../data/apiAnki';
-import { type ImportAnkiResposta, importarBaralhoAnki, soAColecao } from '../../data/importarAnki';
+import { type ImportAnkiResposta, importarBaralhoAnki, type ProgressoDaImportacao } from '../../data/importarAnki';
 import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
 import { numero, t } from '../../lib/i18n';
 import { langLabelNaUI } from '../../lib/languages';
@@ -44,7 +44,7 @@ import GerenciarBaralhos from './BaralhosAnki';
  * app que só aceita entrada prende; poder levar embora é o que torna a escolha de ficar uma
  * escolha de verdade.
  *
- * A IMPORTAÇÃO GRAVA O ACERVO DE UMA VEZ — a rota `/api/import/anki` já lê, aplica a régua de
+ * A IMPORTAÇÃO GRAVA O ACERVO DE UMA VEZ — o protocolo em lotes (`/api/anki/imports`) aplica a régua de
  * qualidade e grava o baralho, as notas e o ledger de import no servidor; quando a resposta
  * chega, a importação JÁ aconteceu. O que esta tela decide depois é outra coisa: quantas dessas
  * notas viram cartão jogável AGORA. Um baralho de 3.600 notas não pode despejar 3.600 cartões
@@ -118,10 +118,11 @@ export default function BaralhoAnki({
     void recarregarBaralhos();
   }, [recarregarBaralhos]);
   const [enviando, setEnviando] = useState(false);
+  const [progresso, setProgresso] = useState<ProgressoDaImportacao | null>(null);
   /** Gerando o `.apkg` para levar — separado de `enviando` (importar), que muda a aba "Trazer". */
   const [gerando, setGerando] = useState(false);
-  // "Babel Play inglês" (protótipo): o nome do idioma, não o código.
-  const nomePadrao = `Babel Play ${idioma ? langLabelNaUI(idioma).toLowerCase() : ''}`.trim();
+  // "Frasy inglês" (protótipo): o nome do idioma, não o código.
+  const nomePadrao = `Frasy ${idioma ? langLabelNaUI(idioma).toLowerCase() : ''}`.trim();
   const [nomeExp, setNomeExp] = useState(nomePadrao);
   const [incluirFrase, setIncluirFrase] = useState(true);
   const [nomeArquivo, setNomeArquivo] = useState('');
@@ -139,9 +140,10 @@ export default function BaralhoAnki({
     setAtivacao(null);
     setErroAtivar(null);
     setNomeArquivo(arquivo.name);
+    setProgresso(null);
     setEnviando(true);
     try {
-      const resp = await importarBaralhoAnki(await soAColecao(arquivo), idioma, idiomaNativo);
+      const resp = await importarBaralhoAnki(arquivo, idioma, idiomaNativo, setProgresso);
       setResultado(resp);
       void recarregarBaralhos();
       await onImportou();
@@ -321,8 +323,16 @@ export default function BaralhoAnki({
               <i style={{ animationDelay: '.2s' }} />
               <i style={{ animationDelay: '.4s' }} />
             </span>
-            <span role="status">
-              Lendo <b>{nomeArquivo}</b>…
+            <span role="status" data-testid="anki-progresso">
+              {progresso?.etapa === 'enviando'
+                ? t('Enviando {feitas} de {total} notas…', {
+                    feitas: numero(progresso.feitas),
+                    total: numero(progresso.total),
+                  })
+                : progresso?.etapa === 'concluindo'
+                  ? t('Concluindo…')
+                  : t('Lendo o arquivo…')}{' '}
+              <b>{nomeArquivo}</b>
             </span>
           </div>
           <div className="barra" style={{ marginTop: 14 }}>

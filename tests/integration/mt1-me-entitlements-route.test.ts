@@ -65,6 +65,6 @@ describe('SaaS Fatia 1a — GET /api/me/entitlements', () => {
   it('usuário sem plano (público) → free, tudo bloqueado', async () => {
     const { status, body } = await pedirEntitlements(asUserId('free-user'))
     expect(status).toBe(200)
-    expect(body).toMatchObject({ plan: 'free', managedCloudStt: false, youtubeImport: false })
+    expect(body).toMatchObject({ plan: 'free', managedCloudStt: false })
   })
 })

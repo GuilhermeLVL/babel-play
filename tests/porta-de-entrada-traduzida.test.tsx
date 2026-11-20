@@ -27,6 +27,9 @@ const { supa, estado } = vi.hoisted(() => {
     supa: {
       auth: {
         getSession: vi.fn(async () => ({ data: { session: null } })),
+        /* O MFA confere a sessão antes (`sessaoValidaParaMfa`): aqui ela vale. */
+        getUser: vi.fn(async () => ({ data: { user: { id: 'u1' } }, error: null })),
+        refreshSession: vi.fn(async () => ({ data: { session: null }, error: null })),
         signInWithPassword: vi.fn(async () => ({ error: { message: 'Invalid login credentials' } })),
         signUp: vi.fn(async () => ({ data: { session: null }, error: null })),
         signInWithOAuth: vi.fn(async () => ({ error: { message: 'provider disabled' } })),
@@ -54,6 +57,10 @@ vi.mock('../src/lib/supabase', () => ({
   get supabase() {
     return estado.configurado ? supa : null
   },
+  /* O SDK desce sob demanda (carga-rapida-no-celular): "configurado" não depende de ele já ter chegado. */
+  get supabaseConfigurado() {
+    return estado.configurado
+  },
   authRequired: true,
   carregarSupabase: async () => (estado.configurado ? supa : null),
   getAccessToken: async () => null,
@@ -78,7 +85,7 @@ const PSEUDO = JSON.parse(readFileSync(join(__dirname, '..', 'public', 'i18n', '
 const px = (frase: string) => PSEUDO[frase] ?? `(sem pseudo) ${frase}`
 
 /** Marca não se traduz. */
-const NAO_SE_TRADUZ = new Set(['Babel Play'])
+const NAO_SE_TRADUZ = new Set(['Frasy'])
 /** O pseudo acentua toda vogal minúscula; sobrou uma, a frase não passou por `t()`. */
 const VOGAL_LIMPA = /[aeiou]/
 

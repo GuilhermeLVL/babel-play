@@ -23,8 +23,9 @@
  */
 import { FRANQUIA_DE_ALIVIO, PLAN_MATRIX } from '../../src/core/planos'
 import { authRequired } from './auth'
-import { registrarFalhaDeBoot } from './bootStatus'
+import { registrarFalhaDeBoot, registrarSucessoDeBoot } from './bootStatus'
 import { log } from './logger'
+import { ehWorker } from './runtime'
 
 /** Quando uma variável é obrigatória. */
 type Exigencia =
@@ -196,6 +197,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'gasto anômalo por usuário: teto ABSOLUTO em US$ por usuário por dia acima do qual sai o alerta ia_gasto_anomalo_usuario (não bloqueia — quem bloqueia é a cota do plano). Padrão US$ 0,50 (um Essencial típico gasta ~US$ 0,03/dia)',
   },
   {
+    nome: 'ALERTA_EMAIL_DESTINO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'e-mail que recebe os alertas do servidor (todo `log(error)` saneado e os avisos de `AVISOS_QUE_ALERTAM`: orçamento de IA a 80%, cobrança divergente, token do webhook inválido, cron que falhou). Usa RESEND_API_KEY e EMAIL_REMETENTE; sem qualquer um dos três, não envia nada. No Worker é o único destino de alerta (o diário em disco não existe lá).',
+  },
+  {
     nome: 'ALIVIO_POOL_USD_DIA',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -215,6 +223,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'chave de venda do plano ANUAL (à vista e em 12x): só `1` o põe à venda. Ausente, vazia ou qualquer outro valor = FECHADA (fail-safe): o anual sai da tela e `/api/billing/assinar` recusa `ciclo: anual` (503 `anual_indisponivel`); o mensal e o teste seguem, e quem já tem o anual não é afetado. O MVP sobe sem ela até o jurídico validar os Termos §3–§4',
+  },
+  {
+    nome: 'ANUNCIOS_ORIGEM',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'origem do Worker PRÓPRIO de anúncios `frasy-anuncios` (`https://ads.<domínio>`; no staging `https://frasy-anuncios-staging.<conta>.workers.dev`), rulings R32/R35 — NUNCA a origem do app (igual = recusada). Com ela E a flag `anuncios` ligada, o Worker do app sobrepõe a CSP dos documentos e põe a origem em `frame-src` (só ali; nada em `script-src`), lendo a flag uma vez por isolate a cada 60 s. Ausente: a CSP fica como no build e nenhum quadro de anúncio carrega. As do BUILD (só o navegador e a página de anúncios as leem, por isso não estão neste inventário do servidor): `VITE_ANUNCIOS_ORIGEM` (a mesma origem; registra o provedor real, `src/lib/anuncios/ligar.ts`) e `VITE_ANUNCIOS_REDE_CONTA` (o código da rede no Ad Manager, gravado no `config.js` da página por `scripts/anuncios/build.mjs`)',
   },
   {
     nome: 'APP_URL',
@@ -275,31 +290,32 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: '1 liga o modo público, 0 desliga; sem valor, liga só em produção',
   },
   {
-    nome: 'BACKUP_DIARIO',
+    nome: 'AVATAR_GALERIA_TERCEIROS',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      '1 liga o snapshot diário do banco (VACUUM INTO + integrity_check + gzip) enviado ao R2 em `backups/diario/AAAA-MM-DD.db.gz` (server/operacao/snapshot.ts). Exige as `S3_*`',
+      'com `1`, a CSP libera `arweave.net` e `*.arweave.net` em `connect-src` para a galeria ao vivo de avatares (coleção 100Avatars, CC0), atrás da flag `avatar_3d` e do opt-in da pessoa; nunca para perfil protegido. Ausente: a galeria avisa que está indisponível',
   },
   {
-    nome: 'BACKUP_HEARTBEAT_URL',
+    nome: 'BABEL_RUNTIME',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'URL chamada (GET) só depois de um snapshot diário enviado E conferido — o heartbeat do UptimeRobot alerta quando ela deixa de ser chamada',
+      'só para TESTE: `worker` faz o Node responder como o Worker em `ehWorker()` (server/lib/runtime.ts) — a fachada de métricas usa o backend vazio e não carrega o prom-client. Nunca em produção',
   },
   {
-    nome: 'BACKUP_HORA_UTC',
-    exigencia: 'opcional',
-    criticidade: 'degrada-capacidade',
-    paraQue: 'hora UTC (0–23) do snapshot diário; sem ela, 6 (03h em Brasília, o vale do tráfego)',
-  },
-  {
-    nome: 'BACKUP_S3_BUCKET',
+    nome: 'BABEL_SEM_DISCO',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'bucket dos snapshots diários; sem ela, o mesmo `S3_BUCKET` da mídia. Um bucket próprio deixa a regra de retenção (30 dias) separada da mídia',
+      'só para TESTE: `1` faz o Node responder como o Worker em `temDisco()` (server/lib/runtime.ts) — upload em stream para o R2, sem temporário em disco. Nunca em produção',
+  },
+  {
+    nome: 'BILLING_RECONCILE_MODE',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'reconciliação diária Asaas × banco: `apply` reaplica pagamentos confirmados que nunca geraram evento; qualquer outro valor (padrão) só avisa por e-mail',
   },
   {
     nome: 'CEREBRAS_API_KEY',
@@ -328,12 +344,6 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'token do Workers AI (só a permissão "Workers AI"), lido quando um provedor de IA_PROVEDORES declara "chave": "CLOUDFLARE_API_TOKEN". Ausente, a perna não existe',
-  },
-  {
-    nome: 'CLUSTER_WORKERS',
-    exigencia: 'opcional',
-    criticidade: 'degrada-capacidade',
-    paraQue: 'nº de processos do cluster; sem ela, processo único (ver F6-01)',
   },
   {
     nome: 'CONVIDADOS_POR_IP_DIA',
@@ -371,22 +381,59 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'isolamento de origem (SharedArrayBuffer → WASM com threads na inferência local), LIGADO por padrão: ausente ou `1` = COOP same-origin + COEP credentialless + Document-Isolation-Policy; `dip` = só o DIP (Chromium; para quando um iframe de terceiro não aceitar COEP); `0` desliga (server/http/isolamento.ts)',
   },
   {
-    nome: 'DATABASE_AUTH_TOKEN',
-    exigencia: 'opcional',
-    criticidade: 'degrada-capacidade',
-    paraQue: 'token do banco libsql REMOTO (Turso); ignorado com arquivo local',
-  },
-  {
     nome: 'DATABASE_URL',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
-    paraQue: 'URL do libsql; sem ela, arquivo local em DATA_DIR',
+    paraQue:
+      'URL do banco: `pglite:<diretório>` (Postgres embutido, uma máquina só), `pglite://memory` ou `postgres://…`; sem ela, `pglite:./data/pg` (server/db/db.ts)',
   },
   {
     nome: 'DATA_DIR',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue: 'raiz dos dados persistentes',
+  },
+  {
+    nome: 'DB_CONNECT_TIMEOUT_MS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'prazo em ms para o `pg.Pool` abrir uma conexão nova (ou esperar uma livre) com `DATABASE_URL=postgres://` (padrão 5.000). Sem prazo, um Postgres inalcançável pendurava `/api/health` e `/api/ready` em vez de responder 503. Inteiro positivo; outro valor ABORTA o boot (server/db/configDoPool.ts)',
+  },
+  {
+    nome: 'DB_IDLE_TX_TIMEOUT_MS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '`idle_in_transaction_session_timeout` da sessão no Postgres, em ms (padrão 60.000): transação aberta e parada é encerrada pelo servidor e solta as travas. Só `postgres://`. Inteiro positivo; outro valor ABORTA o boot (server/db/configDoPool.ts)',
+  },
+  {
+    nome: 'DB_LOCK_TIMEOUT_MS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '`lock_timeout` da sessão no Postgres, em ms (padrão 10.000): esperar trava de linha ou a trava do usuário (`travarUsuario`) além disso falha com SQLSTATE 55P03 em vez de prender a conexão. Só `postgres://`. Inteiro positivo; outro valor ABORTA o boot (server/db/configDoPool.ts)',
+  },
+  {
+    nome: 'DB_POOL_MAX',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'conexões do `pg.Pool` por processo com `postgres://` (padrão 5). Conte processos × este número contra o limite do Postgres/pooler (Supabase: o do plano). Inteiro positivo; outro valor ABORTA o boot (server/db/configDoPool.ts)',
+  },
+  {
+    nome: 'DB_SESSION_OPTIONS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '`0` deixa de mandar `options: -c …` (prazos de sessão) na abertura da conexão `postgres://`; ausente ou `1` manda. Pooler do Supabase e Hyperdrive ignoram o `options`: ali os prazos vêm do papel do banco (migration 0004). Outro valor ABORTA o boot (server/db/configDoPool.ts)',
+  },
+  {
+    nome: 'DB_STATEMENT_TIMEOUT_MS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '`statement_timeout` da sessão no Postgres, em ms (padrão 30.000): uma instrução que passe disso é cancelada pelo servidor. Só `postgres://`. Inteiro positivo; outro valor ABORTA o boot (server/db/configDoPool.ts)',
   },
   {
     nome: 'DEEPINFRA_API_KEY',
@@ -407,13 +454,20 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'remetente do e-mail do convite ao responsável, no formato `Babel Play <nao-responda@dominio>`; o domínio precisa estar verificado no Resend (SPF/DKIM). Só vale junto com `RESEND_API_KEY`',
+      'remetente do e-mail do convite ao responsável, no formato `Frasy <nao-responda@dominio>`; o domínio precisa estar verificado no Resend (SPF/DKIM). Só vale junto com `RESEND_API_KEY`',
   },
   {
     nome: 'ERROS_DIR',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue: 'diário de erros em disco (F5-04)',
+  },
+  {
+    nome: 'FLAGS_LIGADAS_NO_DEV',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'só dev local: flags (separadas por vírgula) forçadas LIGADAS no `npm run dev:local`; ignorada em produção, com AUTH_REQUIRED=1 e no Worker (`flagsLigadasNoDev`)',
   },
   {
     nome: 'GIT_SHA',
@@ -456,11 +510,18 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'só diagnóstico: identifica a instância que registrou uma falha de boot',
   },
   {
+    nome: 'HOST_DE_PRODUCAO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'só no Worker: o(s) host(s) indexável(is) do site público (lista por vírgula, sem porta; `frasy.com.br` nos `vars` do topo do `wrangler.jsonc`, o staging não herda). Outro host (staging, preview, `wrangler dev`) recebe `X-Robots-Tag: noindex, nofollow` e robots `Disallow: /` (`server/http/siteNoWorker.ts`). Ausente: nenhum host é indexável',
+  },
+  {
     nome: 'HTTP_KEEP_ALIVE_TIMEOUT_MS',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'quanto o servidor HTTP mantem um socket ocioso, em ms (padrao 65.000: acima dos 60 s do proxy do Fly, para quem fecha a conexao parada ser o proxy). O tempo dos cabecalhos e derivado: este valor + 1 s. Ver server/http/temposLimite.ts',
+      'quanto o servidor HTTP mantem um socket ocioso, em ms (padrao 65.000: acima dos 60 s presumidos para o proxy da frente, para quem fecha a conexao parada ser o proxy). O tempo dos cabecalhos e derivado: este valor + 1 s. Ver server/http/temposLimite.ts',
   },
   {
     nome: 'HTTP_REQUEST_TIMEOUT_MS',
@@ -598,18 +659,11 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'chave secreta do projeto Langfuse (par da LANGFUSE_PUBLIC_KEY)',
   },
   {
-    nome: 'LIMPEZA_CHECKPOINT',
-    exigencia: 'opcional',
-    criticidade: 'degrada-capacidade',
-    paraQue:
-      '`1` faz a limpeza diária terminar com `PRAGMA wal_checkpoint(TRUNCATE)`. Desligado por padrão: com o Litestream replicando, quem faz o checkpoint do WAL é ele, e um checkpoint manual pode obrigá-lo a recomeçar a réplica com uma cópia inteira. Ligue só onde NÃO há Litestream (dev, self-host) (server/lib/limpezaDiaria.ts)',
-  },
-  {
     nome: 'LIMPEZA_DIARIA',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      '`1` liga a limpeza diária do banco: o apagamento físico do que foi apagado há mais de `LIMPEZA_RETENCAO_DIAS`, a conferência dos agregados diários e o `PRAGMA optimize`. Sem ela, desligada: apagar de vez não tem volta, e ligar é ato do dono, depois de um backup (server/lib/limpezaDiaria.ts)',
+      '`1` liga a limpeza diária do banco: o apagamento físico do que foi apagado há mais de `LIMPEZA_RETENCAO_DIAS`, e a conferência dos agregados diários. Sem ela, desligada: apagar de vez não tem volta, e ligar é ato do dono, depois de um backup (server/lib/limpezaDiaria.ts)',
   },
   {
     nome: 'LIMPEZA_RETENCAO_DIAS',
@@ -675,13 +729,6 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       '1 MONTA `GET /metrics` (Prometheus, na raiz — não confundir com `/api/metrics`, que é a rota de negócio). Ausente, a rota não existe e responde 404 como qualquer caminho desconhecido: um 403 confirmaria a existência do endpoint a quem sonda',
   },
   {
-    nome: 'METRICS_PORTA_INTERNA',
-    exigencia: 'opcional',
-    criticidade: 'degrada-capacidade',
-    paraQue:
-      'porta de um listener SÓ de métricas (`GET /metrics`, sem token), para o raspador gerenciado do Fly (`[metrics]` do fly.toml), que não manda `Authorization`. Definida, o `/metrics` SAI da porta pública. Só use numa porta que não esteja publicada (fora de `[http_service]`/`[[services]]`)',
-  },
-  {
     nome: 'METRICS_TOKEN',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -723,11 +770,18 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'atalho da RESERVA do LLM: base do OpenRouter e o modelo de LLM_RESERVA_MODEL (ou o padrão). As três LLM_RESERVA_* completas vencem o atalho',
   },
   {
+    nome: 'OPS_SAUDE_TOKEN',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'segredo do vigia de saúde (`GET /api/ops/saude`, `Authorization: Bearer`): o workflow agendado `saude-do-negocio.yml` o usa para abrir uma issue quando cobrança pendente, cron parado ou orçamento de IA no fim. Sem ele a rota responde 501.',
+  },
+  {
     nome: 'ORIGEM_SEGREDO',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'segredo que o Cloudflare injeta no cabeçalho `x-origem-segredo` (Transform Rule). Definido, requisição sem ele é recusada com 403 — fecha o acesso direto a `<app>.fly.dev`, que pularia o WAF e forjaria o `X-Forwarded-For`. `/api/health` e `/api/ready` ficam de fora (as sondas do Fly não passam pelo Cloudflare)',
+      'segredo que o Cloudflare injeta no cabeçalho `x-origem-segredo` (Transform Rule). Definido, requisição sem ele é recusada com 403 — fecha o acesso direto ao endereço de origem, que pularia o WAF e forjaria o `X-Forwarded-For`. `/api/health` e `/api/ready` ficam de fora (as sondas de saúde do orquestrador não passam pelo Cloudflare)',
   },
   {
     nome: 'POOL_GRATUITO_FRACAO_RECEITA',
@@ -744,6 +798,27 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'piso do pool diário de IA de nuvem de convidado + free, em US$: pool = max(piso, fração da receita líquida ÷ 30). Esgotado, só o convidado/free cai no motor local (Fase 7). Padrão 0,50',
   },
   { nome: 'PORT', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'porta de escuta' },
+  {
+    nome: 'R2_TETO_MB',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'teto de bytes GUARDADOS no R2 somando a conta inteira, em MB (server/lib/tetoDoR2.ts). Só vale com S3_* configurado. A 80% sai r2_teto_alerta_80; acima do teto o upload novo recebe 507 e a retenção segue apagando. Ausente: 9216 (90% dos 10 GB grátis). 0 recusa todo upload novo; `ilimitado` desliga. Outro valor ABORTA o boot',
+  },
+  {
+    nome: 'R2_TETO_OPS_A_MES',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'teto de operações de classe A do R2 (PUT/DELETE) no mês UTC, contadas no adaptador S3 (server/lib/tetoDoR2.ts). No teto, gravar recusa (o áudio responde 503); remover sempre passa. Ausente: 900000 (90% do grátis). 0 fecha a gravação; `ilimitado` desliga. Outro valor ABORTA o boot',
+  },
+  {
+    nome: 'R2_TETO_OPS_B_MES',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'teto de operações de classe B do R2 (GET/HEAD) no mês UTC, contadas no adaptador S3 (server/lib/tetoDoR2.ts). No teto, ler o áudio responde 503. Ausente: 9000000 (90% do grátis). 0 fecha a leitura; `ilimitado` desliga. Outro valor ABORTA o boot',
+  },
   {
     nome: 'REPLICAS',
     exigencia: 'opcional',
@@ -792,7 +867,8 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     nome: 'SECRET_KEY',
     exigencia: 'producao',
     criticidade: 'impede-servico',
-    paraQue: 'cifra os segredos de credencial de IA guardados no banco (server/crypto.ts)',
+    paraQue:
+      'cifra os segredos de credencial de IA guardados no banco (server/crypto.ts); no Worker use `hkdf:` + 64 hex: dispensa o scrypt de 90–160 ms por isolate',
   },
   {
     nome: 'SELF_HOST',
@@ -873,11 +949,18 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'origem do JWKS e base da Admin API; também é o que faz o `iss` do JWT ser exigido',
   },
   {
+    nome: 'TESTES_PREMIUM_POR_IP_DIA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'quantos testes do Premium podem COMEÇAR pelo mesmo IP pseudonimizado no mesmo dia; acima disso `POST /api/billing/teste` responde 429 teste_limite_por_ip (change teste-de-3-dias, server/lib/testePremium.ts). Padrão 5; 0 desliga',
+  },
+  {
     nome: 'TRUST_PROXY',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'em quantos saltos de proxy reverso confiar para resolver `req.ip` (`1`, `true`, `false`, `loopback` ou lista de sub-redes). OBRIGATÓRIA com NODE_ENV=production — o boot aborta sem ela (GAP-004); Cloudflare → Fly.io são 2 saltos. Ausente fora de produção, o Express não confia em `X-Forwarded-For` — atrás de proxy isso faz TODA origem virar a mesma chave do limitador e da trava do ranking; ligada sem proxy à frente, o cliente escolhe a própria chave e o limitador deixa de existir',
+      'em quantos saltos de proxy reverso confiar para resolver `req.ip` (`1`, `true`, `false`, `loopback` ou lista de sub-redes). OBRIGATÓRIA com NODE_ENV=production — o boot aborta sem ela (GAP-004); Cloudflare → Worker: 1; Cloudflare → Caddy/Nginx → Node: 2. Ausente fora de produção, o Express não confia em `X-Forwarded-For` — atrás de proxy isso faz TODA origem virar a mesma chave do limitador e da trava do ranking; ligada sem proxy à frente, o cliente escolhe a própria chave e o limitador deixa de existir',
   },
   /* As três `VITE_*` abaixo são de BUILD (o Vite as embute no bundle). O servidor as lê só para a
      CSP enxergar os mesmos hosts que o bundle chama; o `Dockerfile` as repete como `ENV` do runtime. */
@@ -896,11 +979,46 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'quantos corpos grandes o MESMO usuário pode ter em voo ao mesmo tempo (server/lib/corposGrandes.ts). Ausente ou inválido: 1',
   },
   {
+    nome: 'VITE_AUDIO_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'base pública do bucket R2 dos audiolivros pré-gerados (`audiolivros/<livroId>/<voz>/atual.json`, `manifesto.json` e `<versao>/<nn>.opus|json`, flag `audiolivros`). Ausente: o "Ouvir" lê com a voz do aparelho, como sempre. Com ela, a CSP libera a origem em `connect-src` e `media-src`',
+  },
+  {
+    nome: 'VITE_AUTH_REQUIRED',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '1 no BUILD do modo público (o deploy do Worker a fixa): o front sai com a porta de login, e a CSP do `dist/_headers` (`server/http/csp.ts`) deixa de fora o Ollama local (`localhost:11434`), como o servidor faz com `AUTH_REQUIRED=1`. Ausente ou vazia (self-host, edição estática): o Ollama continua em `connect-src`',
+  },
+  {
+    nome: 'VITE_AVATARES_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'base pública do bucket R2 com a coleção curada de avatares 3D (`colecao/<id>.vrm`, `familia/<id>.glb`), para o avatar atrás da flag `avatar_3d`. Ausente: os modelos saem do PRÓPRIO domínio (`/avatares`). Com ela, a CSP libera a origem em `connect-src` (dado, nunca `script-src`)',
+  },
+  {
     nome: 'VITE_BERGAMOT_MODELOS_URL',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
       'base de onde o navegador baixa os modelos do Bergamot (tradução pt→en no aparelho, A9b). Ausente: os modelos saem do PRÓPRIO domínio (o build os baixa com sha256 conferido). Com ela, a CSP libera a origem em `connect-src`',
+  },
+  {
+    nome: 'VITE_LIVROS_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'base pública do bucket R2 com a cópia curada dos livros do Gutenberg (`livros/pg-<id>.epub`, publicada por `scripts/livros/curar-gutenberg.mjs`). Ausente: os livros do Gutenberg aparecem no catálogo e a leitura diz que a cópia ainda não foi publicada; Standard Ebooks e Wikisource abrem direto da fonte. Com ela, a CSP libera a origem em `connect-src`',
+  },
+  {
+    nome: 'VITE_ORT_WASM_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'base pública de onde o navegador carrega o runtime WASM do ONNX (`ort-wasm-*`, até 26 MB; Fase 4, bucket R2 `frasy-modelos`). Ausente: sai do PRÓPRIO domínio. Com ela, a CSP libera a origem em `connect-src`, `script-src` e `worker-src` (o ORT faz `import()` do `.mjs`)',
   },
   {
     nome: 'VITE_SELF_HOST_MODELS',
@@ -929,12 +1047,38 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'chave PÚBLICA do Cloudflare Turnstile: o convidado passa pelo captcha antes de o Supabase criar o usuário anônimo (Fase 7). Com ela a CSP libera challenges.cloudflare.com; sem ela o captcha fica desligado',
   },
   {
-    nome: 'YTDLP_PATH',
+    nome: 'VITE_VOZ_KITTEN_URL',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
-    paraQue: 'binário do yt-dlp para importação do YouTube; ausente, a capacidade se declara indisponível',
+    paraQue:
+      'raiz pública do bucket R2 com os pesos da voz natural no aparelho (Kitten TTS 2, Apache-2.0: `<raiz>/mini/…` ~90 MB e `<raiz>/pico/…` ~10 MB por idioma, sha256 fixado em `src/core/voz/kitten.ts`), para a flag `voz_kitten`. Ausente: a voz natural não aparece e quem lê segue a ordem de antes. Com ela, a CSP libera a origem em `connect-src` (dado, nunca `script-src`)',
+  },
+  {
+    nome: 'VITE_VOZ_MODELO_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'raiz pública do bucket R2 com os pesos da voz no aparelho (Supertonic 3: `onnx/*.onnx|json` e `voice_styles/F1…M5.json`, ~401 MB, sha256 fixado em `src/core/voz/supertonic.ts`), para a flag `voz_no_aparelho`. Ausente: a opção "Voz de alta qualidade (no aparelho)" não aparece e a narração lê com a voz do sistema. Com ela, a CSP libera a origem em `connect-src` (dado, nunca `script-src`)',
   },
 ]
+
+/**
+ * Os nomes que o operador PRECISA entregar como secret: exigidos em produção/modo público ou que, ausentes,
+ * impedem o serviço. É a lista do `.secrets.example.json` e do `scripts/cloudflare/secrets.ts`.
+ * (O config.ts não marca "recomendada": `.env.production.example` é prosa, então ela fica de fora.)
+ * `REPLICAS` e `ASAAS_SANDBOX` impedem o serviço mas NÃO são secrets: são `vars` do wrangler (o sandbox só
+ * existe no staging; em produção ele é justamente o que o boot recusa).
+ */
+const NAO_SECRETAS = new Set(['REPLICAS', 'ASAAS_SANDBOX'])
+export function nomesDosSecretsObrigatorios(): string[] {
+  return VARIAVEIS.filter(
+    (v) =>
+      !NAO_SECRETAS.has(v.nome) &&
+      (v.exigencia === 'producao' || v.exigencia === 'modo-publico' || v.criticidade === 'impede-servico'),
+  )
+    .map((v) => v.nome)
+    .sort()
+}
 
 export interface ResultadoDaConferencia {
   ok: boolean
@@ -985,7 +1129,12 @@ export function verificarConfiguracaoNoBoot(): ResultadoDaConferencia {
   const r = conferirConfiguracao()
   if (!r.ok) {
     registrarFalhaDeBoot('configuracao', `variáveis CRÍTICAS ausentes: ${r.faltandoCriticas.join(', ')}`)
-  } else if (r.faltando.length) {
+    return r
+  }
+  /* Nenhuma crítica ausente: apaga a falha `configuracao` de um boot anterior (memória e `boot_falhas`),
+     senão a variável corrigida deixaria o health em `degraded` para sempre. */
+  registrarSucessoDeBoot('configuracao')
+  if (r.faltando.length) {
     /* Visível, mas sem derrubar a saúde: são capacidades que se declaram indisponíveis sozinhas. */
     log('warn', { event: 'config_capacidade_degradada', error: `ausentes: ${r.faltando.join(', ')}` })
   }
@@ -1029,18 +1178,9 @@ export function tokenDeMetricas(env: NodeJS.ProcessEnv = process.env): string | 
  * fechada) exigir token é fricção sem ameaça. Retorna a mensagem de aborto de boot, ou `null` se ok.
  */
 export function erroDeMetricasEmProducao(env: NodeJS.ProcessEnv = process.env): string | null {
-  const porta = portaInternaDeMetricas(env)
-  if (env.METRICS_PORTA_INTERNA?.trim() && porta === undefined) {
-    return 'METRICS_PORTA_INTERNA não é uma porta válida (1–65535).'
-  }
-  if (porta !== undefined && String(porta) === (env.PORT?.trim() || '3000')) {
-    /* A mesma porta do app seria justamente a porta PÚBLICA — o scrape sem token ficaria na internet. */
-    return 'METRICS_PORTA_INTERNA não pode ser a mesma porta do app (PORT): o /metrics sem token ficaria público.'
-  }
-  /* Com a porta interna, o `/metrics` nem é montado na porta pública — o token deixa de ser a
-     única barreira e passa a ser desnecessário (o raspador do Fly não o manda). */
-  if (env.NODE_ENV === 'production' && metricasHabilitadas(env) && porta === undefined && !tokenDeMetricas(env)) {
-    return 'METRICS_ENABLED=1 em produção exige METRICS_TOKEN (ou METRICS_PORTA_INTERNA): recusando expor /metrics sem autenticação.'
+  /* Sem a porta interna (aposentada na Task 10 da Fase 2), o `/metrics` mora sempre na porta do app. */
+  if (env.NODE_ENV === 'production' && metricasHabilitadas(env) && !tokenDeMetricas(env)) {
+    return 'METRICS_ENABLED=1 em produção exige METRICS_TOKEN: recusando expor /metrics sem autenticação.'
   }
   return null
 }
@@ -1069,24 +1209,6 @@ export function erroDeAsaasSandboxEmProducao(env: NodeJS.ProcessEnv = process.en
 }
 
 /**
- * A porta do listener SÓ de métricas, ou `undefined` (Fase 5 de prontidão, 25/09/2026).
- *
- * POR QUE EXISTE. O Fly raspa o `[metrics]` do `fly.toml` a cada 15 s com o Prometheus gerenciado
- * dele, e a documentação (fly.io/docs/monitoring/metrics, consultada em 25/09/2026) não oferece
- * NENHUM campo de autenticação: só `port` e `path`. Com o `/metrics` na porta pública, isso
- * obrigaria a escolher entre scrape aberto na internet (GAP-013) e nenhum scrape. A saída é a que a
- * própria doc sugere: uma porta que o Fly raspa por dentro da VM e que NÃO está publicada — o proxy
- * do Fly só encaminha as portas de `[http_service]`/`[[services]]`, então esta não tem rota de fora.
- * O token continua valendo para quem raspa pela porta pública (self-host com agente próprio).
- */
-export function portaInternaDeMetricas(env: NodeJS.ProcessEnv = process.env): number | undefined {
-  const bruto = env.METRICS_PORTA_INTERNA?.trim()
-  if (!bruto) return undefined
-  const n = Number(bruto)
-  return Number.isInteger(n) && n > 0 && n < 65536 ? n : undefined
-}
-
-/**
  * GAP-004 (auditoria 2026-09-13): em produção, `TRUST_PROXY` precisa ser uma DECISÃO declarada.
  *
  * Os dois erros possíveis desligam proteção em silêncio, e nenhum falha alto: sem `TRUST_PROXY`
@@ -1099,10 +1221,13 @@ export function portaInternaDeMetricas(env: NodeJS.ProcessEnv = process.env): nu
  */
 export function erroDeTrustProxyEmProducao(env: NodeJS.ProcessEnv = process.env): string | null {
   if (env.NODE_ENV !== 'production') return null
+  /* No Worker a postura é FIXA, não declarada: o `worker.ts` reescreve o `X-Forwarded-For` com o
+     `CF-Connecting-IP` e o app confia num salto só (`server/http/app.ts`). `TRUST_PROXY` lá é ignorada. */
+  if (ehWorker()) return null
   if (env.TRUST_PROXY?.trim()) return null
   return (
     'TRUST_PROXY é obrigatória em produção (NODE_ENV=production): declare quantos proxies há na frente ' +
-    '(ex.: 2 para Cloudflare → Fly.io, 1 para um Caddy/Nginx) ou TRUST_PROXY=false se o app recebe a ' +
+    '(ex.: 1 para o Worker atrás do Cloudflare ou para um Caddy/Nginx; 2 para Cloudflare → Nginx → Node) ou TRUST_PROXY=false se o app recebe a ' +
     'conexão direto. Sem ela, o limitador por IP enxerga todo mundo como o proxy.'
   )
 }
@@ -1111,12 +1236,28 @@ export function erroDeTrustProxyEmProducao(env: NodeJS.ProcessEnv = process.env)
  * O segredo que o proxy da frente (Cloudflare) injeta em toda requisição, ou `undefined`.
  *
  * Existe porque `TRUST_PROXY` confia no `X-Forwarded-For` montado pela cadeia da frente — e quem
- * chega DIRETO no endereço do Fly (`<app>.fly.dev`), pulando o Cloudflare, monta o cabeçalho que
+ * chega DIRETO no endereço de origem, pulando o Cloudflare, monta o cabeçalho que
  * quiser. Com o segredo definido, requisição sem ele é recusada (ver `server/http/origemProtegida.ts`).
  */
 export function segredoDeOrigem(env: NodeJS.ProcessEnv = process.env): string | undefined {
   const bruto = env.ORIGEM_SEGREDO?.trim()
   return bruto ? bruto : undefined
+}
+
+/**
+ * Alerta por e-mail (Resend): `null` sem `ALERTA_EMAIL_DESTINO`, `RESEND_API_KEY` ou `EMAIL_REMETENTE`.
+ * O remetente é o mesmo do convite do responsável (`EMAIL_REMETENTE`).
+ */
+export function configDoAlertaPorEmail(
+  env: NodeJS.ProcessEnv = process.env,
+): { chave: string; remetente: string; destino: string; ambiente?: string } | null {
+  const destino = env.ALERTA_EMAIL_DESTINO?.trim()
+  const chave = env.RESEND_API_KEY?.trim()
+  const remetente = env.EMAIL_REMETENTE?.trim()
+  if (!destino || !chave || !remetente) return null
+  /* O Worker de staging também roda com NODE_ENV=production; quem o distingue é o Asaas em sandbox. */
+  const ambiente = env.SENTRY_ENVIRONMENT?.trim() || (env.ASAAS_SANDBOX === '1' ? 'staging' : env.NODE_ENV) || undefined
+  return { chave, remetente, destino, ambiente }
 }
 
 /** Sentry do servidor: `null` sem `SENTRY_DSN`. O DSN é validado por quem monta o sink. */
@@ -1130,21 +1271,6 @@ export function configDoSentry(
     ambiente: env.SENTRY_ENVIRONMENT?.trim() || env.NODE_ENV || undefined,
     release: env.SENTRY_RELEASE?.trim() || undefined,
   }
-}
-
-/**
- * O snapshot diário está ligado? Devolve a hora UTC e o heartbeat, ou `null`.
- *
- * `'1'` exato, pelo mesmo motivo de `metricasHabilitadas`: `BACKUP_DIARIO=0` é como se DESLIGA.
- * Hora fora de 0–23 cai no padrão em vez de virar um temporizador de horas negativas.
- */
-export function configDoBackupDiario(
-  env: NodeJS.ProcessEnv = process.env,
-): { horaUtc: number; heartbeatUrl?: string } | null {
-  if (env.BACKUP_DIARIO !== '1') return null
-  const hora = Number(env.BACKUP_HORA_UTC)
-  const heartbeatUrl = env.BACKUP_HEARTBEAT_URL?.trim() || undefined
-  return { horaUtc: Number.isInteger(hora) && hora >= 0 && hora <= 23 ? hora : 6, heartbeatUrl }
 }
 
 /**
@@ -1180,11 +1306,6 @@ export function diasAteApagarDeVez(env: NodeJS.ProcessEnv = process.env): number
     quem liga é o dono, depois de um backup. Em teste ela nunca agenda. */
 export function limpezaDiariaLigada(env: NodeJS.ProcessEnv = process.env): boolean {
   return env.LIMPEZA_DIARIA?.trim() === '1' && env.NODE_ENV !== 'test'
-}
-
-/** O checkpoint manual do WAL no fim da limpeza: só com `LIMPEZA_CHECKPOINT=1` (ver o inventário). */
-export function checkpointNaLimpeza(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env.LIMPEZA_CHECKPOINT?.trim() === '1'
 }
 
 /** O modelo de STT gerenciado quando `STT_MODEL` não diz outro (medido: docs/auditoria/eval/bancada-2026-09.md). */
@@ -1484,11 +1605,11 @@ export function cadastroLigado(env: NodeJS.ProcessEnv = process.env): boolean {
 
 /**
  * O plano ANUAL (à vista e em 12x) está à venda? Só com `ANUAL_ENABLED=1`; desligado, ele sai da tela
- * e do `/assinar`, e o mensal e o teste de 14 dias seguem. Não é chave de emergência, é de LANÇAMENTO:
+ * e do `/assinar`, e o mensal e o teste de 3 dias seguem. Não é chave de emergência, é de LANÇAMENTO:
  * o MVP sobe só com o mensal até o jurídico validar os Termos §3–§4.
  *
  * FAIL-SAFE (auditoria de 15/10/2026, B4): ausente, vazia ou qualquer valor que não seja `1` = FECHADO.
- * Antes ausente era aberto, e esquecer a variável no `fly secrets` punha à venda, de uma vez, o anual
+ * Antes ausente era aberto, e esquecer a variável nos secrets do host punha à venda, de uma vez, o anual
  * com os Termos ainda não validados. Ao contrário de `CHECKOUT_ENABLED`/`SIGNUP_ENABLED` (emergência:
  * nascer fechadas seria um lançamento que não vende sem ninguém saber por quê), abrir o anual é um ato
  * deliberado. Só fecha a VENDA: quem já tem o anual segue com ele, e o webhook continua concedendo o ano
@@ -1569,6 +1690,14 @@ export function limitesAntiabusoDoConvidado(env: NodeJS.ProcessEnv = process.env
     ipUsdDia: numeroDoEnv(env.CONVIDADO_IP_USD_DIA, 0.04, 'config_convidado_ip_usd_invalido'),
     ipTutorDia: Math.floor(numeroDoEnv(env.CONVIDADO_IP_TUTOR_DIA, 10, 'config_convidado_ip_tutor_invalido')),
   }
+}
+
+/**
+ * Quantos testes do Premium começam pelo mesmo IP (pseudonimizado) no mesmo dia (change `teste-de-3-dias`). `0` desliga
+ * o teto. 5 cobre uma casa (dois adultos e o responsável ativando para os filhos) e corta a fábrica de contas.
+ */
+export function testesPremiumPorIpNoDia(env: NodeJS.ProcessEnv = process.env): number {
+  return Math.floor(numeroDoEnv(env.TESTES_PREMIUM_POR_IP_DIA, 5, 'config_testes_premium_por_ip_invalido'))
 }
 
 /** O pool diário de IA gratuita (convidado + free): `max(piso, fração × receita líquida do mês ÷ 30)`. */

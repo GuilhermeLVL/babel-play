@@ -4,7 +4,7 @@
  * nos proxies de IA. Espelha o shape do cliente + acrescenta `managedCloudLlm` (que o cliente não tem).
  *
  * Fonte do plano (ordem): (1) `subscriptions` (fonte da verdade; o billing escreve aqui); (2) o teste de
- * 14 dias do Premium (C6, `testes_premium`); (3) default por MODO — público → 'free' (conta nova sem
+ * 3 dias do Premium (C6, `testes_premium`); (3) default por MODO — público → 'free' (conta nova sem
  * assinatura), local/self-host → 'selfhost'. NÃO honramos
  * `settings.ui.plan` (gravável pelo cliente = escalada A01); para conceder 'premium' sem billing, use a rota admin.
  *
@@ -12,9 +12,9 @@
  */
 import {
   definicaoDoPlano,
+  ehPlanoPago,
   type EntitlementsDoPlano,
   normalizarPlano,
-  PLANO_DO_TESTE,
   type PlanoEfetivo,
 } from '../../src/core/planos'
 import { type Subscription, subscriptionsRepo } from '../db/repositories/subscriptions'
@@ -22,7 +22,7 @@ import { authRequired } from './auth'
 import type { UserId } from './authContext'
 import { ehConvidadoNoContexto, memoDoRequest } from './contextoDeConvidado'
 import { log } from './logger'
-import { testeAtivoDe } from './testePremium'
+import { planoDoTesteGravado, testeAtivoDe } from './testePremium'
 
 /* O shape é o da MATRIZ, mais o plano: um entitlement novo (`traducaoNuance`, `vozNatural` na matriz
    v2) chega ao servidor, ao `/api/me/entitlements` e ao `hasEntitlement` sem mais uma lista à mão. */
@@ -61,7 +61,7 @@ function subConcede(sub: Subscription): boolean {
 }
 
 /**
- * O plano efetivo E DE ONDE ELE VEM: `teste` não-nulo = o Premium é o do teste de 14 dias (C6), e só
+ * O plano efetivo E DE ONDE ELE VEM: `teste` não-nulo = o Premium é o do teste de 3 dias (C6), e só
  * então. A admissão da nuvem precisa da diferença (o teste entra como grátis); a tela, do fim.
  */
 export interface PlanoResolvido {
@@ -96,15 +96,33 @@ export async function resolverPlano(userId: UserId): Promise<PlanoResolvido> {
     /* Assinatura que não concede (cancelada, graça expirada, checkout não pago) segue para o teste. */
   }
 
-  // 2) O TESTE DE 14 DIAS (C6): sem assinatura que conceda, o teste ativo concede `PLANO_DO_TESTE`. Vem
-  //    DEPOIS da assinatura: quem assina durante o teste passa a ser Premium pago na mesma hora.
+  // 2) O TESTE DE 3 DIAS (C6): sem assinatura que conceda, o teste ativo concede o plano GRAVADO no início
+  //    (`planoDoTesteGravado`: Plus com a v4, Premium antes dela). Vem DEPOIS da assinatura: quem assina
+  //    durante o teste passa a ter o plano pago na mesma hora.
   const teste = await memoDoRequest(userId, 'teste_premium', () => testeAtivoDe(userId))
-  if (teste) return { plano: PLANO_DO_TESTE, teste: { terminaEm: teste.terminaEm } }
+  if (teste) return { plano: planoDoTesteGravado(teste), teste: { terminaEm: teste.terminaEm } }
 
   // 3) Público sem assinatura nem teste → free. NÃO honramos settings.ui.plan: é gravável pelo
   //    cliente (PUT /api/settings) e concedê-lo seria escalada de privilégio/gasto (OWASP A01). Para
   //    conceder 'premium' sem billing, use a rota admin (semeia subscriptions).
   return { plano: 'free', teste: null }
+}
+
+/**
+ * O PERÍODO PAGO EM VIGOR (change `cota-pelo-periodo-pago`): o INÍCIO e o ciclo do período que um PAGAMENTO concedeu
+ * — a assinatura concede um plano pago agora e tem a âncora `periodoPagoDesde`, que só a aplicação de um pagamento
+ * grava. NÃO deriva do `currentPeriodEnd`: o cancelamento fora dos 7 dias, o estorno e o admin mexem no fim, e a
+ * janela da cota andaria junto (cancelar zeraria a cota). `null` para o resto: Grátis, convidado, self-host, teste
+ * de 14 dias, plano dado pelo admin e linha paga antes da âncora existir (seguem no mês do calendário).
+ */
+export async function periodoPagoEmVigor(
+  userId: UserId,
+): Promise<{ inicio: number; ciclo: 'mensal' | 'anual' } | null> {
+  const r = await resolverPlano(userId)
+  if (r.teste !== null || !ehPlanoPago(r.plano)) return null
+  const sub = await memoDoRequest(userId, 'assinatura', () => subscriptionsRepo.getActive(userId))
+  if (!sub || sub.currentPeriodEnd == null || sub.periodoPagoDesde == null || !subConcede(sub)) return null
+  return { inicio: sub.periodoPagoDesde, ciclo: sub.ciclo === 'anual' ? 'anual' : 'mensal' }
 }
 
 /** O plano EFETIVO do usuário, resolvido no servidor. */

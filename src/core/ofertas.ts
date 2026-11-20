@@ -32,7 +32,7 @@ export type ComponenteDeOferta = (typeof COMPONENTES_DE_OFERTA)[number];
 
 /**
  * OS MOMENTOS FUNCIONAIS — avisos que INFORMAM um fato da conta (a cota acabou, a cota está
- * acabando, o teste de 14 dias do Premium termina em 3 dias ou hoje), e não vendem. Valem com a flag
+ * acabando, o teste de 3 dias do Premium termina amanhã ou hoje), e não vendem. Valem com a flag
  * `oferta_planos` DESLIGADA (com os textos embutidos em `GATILHOS_FUNCIONAIS`) e não entram no teto
  * global de ofertas promocionais — só no teto de frequência do próprio gatilho. Todos os outros
  * momentos são PROMOCIONAIS: só com a flag ligada.
@@ -64,7 +64,7 @@ export interface GatilhoDeOferta {
    */
   variante?: string;
   /**
-   * A ETAPA do momento, para o que acontece em mais de um dia — o fim do teste em D-3 (`d3`) e em D0
+   * A ETAPA do momento, para o que acontece em mais de um dia — o fim do teste em D-1 (`d1`) e em D0
    * (`d0`). Só os gatilhos embutidos a usam; sem ela, o gatilho vale em qualquer etapa.
    */
   fase?: string;
@@ -91,11 +91,17 @@ export function resolverTextoRemoto(texto: TextoRemoto, idioma: string, traduzir
 }
 
 /**
+ * Os planos que um teste de 3 dias concede: o Premium (matriz v3) e o Plus (v4). Quem começou o teste
+ * com a v4 tem o Plus nos entitlements, e o fim do teste dele é o mesmo momento.
+ */
+const PLANOS_DO_TESTE: PlanoDaFlag[] = [PLANO_DO_TESTE, 'plus'];
+
+/**
  * OS AVISOS FUNCIONAIS EMBUTIDOS — o que aparece com a flag desligada (e, com ela ligada, quando o
  * payload não define um gatilho para o mesmo momento). Os textos são CHAVES do i18n (português),
  * traduzidas pelo catálogo (`public/i18n/*.json`). `planos` não inclui `selfhost`: lá não há cota. Os
  * pagos vêm de `PLANOS_PAGOS` (todo plano com cota recebe o aviso da cota dele), e o fim do teste é de
- * quem tem o plano que o teste concede (`PLANO_DO_TESTE`).
+ * quem tem o plano que o teste concede (`PLANOS_DO_TESTE`: o Premium, ou o Plus na v4).
  *
  * Frequência conservadora: fim de cota no máximo 1 vez por dia e 3 por semana, 12 h entre um e
  * outro; cota próxima 1 por dia, 2 por semana, 24 h entre um e outro.
@@ -106,7 +112,8 @@ export const GATILHOS_FUNCIONAIS: readonly GatilhoDeOferta[] = Object.freeze([
     momento: 'fim_de_cota',
     componente: 'aviso_cota',
     titulo: 'A IA de nuvem do seu plano acabou neste mês',
-    texto: 'A tradução e a transcrição locais continuam funcionando. A cota volta no dia 1º.',
+    /* `{data}` é preenchido pelo host com o `renovaEm` de `/api/me/uso`: quem paga renova no vencimento, não no dia 1º. */
+    texto: 'A tradução e a transcrição locais continuam funcionando. A cota volta em {data}.',
     cta: 'Ver planos',
     maxPorDia: 1,
     maxPorSemana: 3,
@@ -125,21 +132,21 @@ export const GATILHOS_FUNCIONAIS: readonly GatilhoDeOferta[] = Object.freeze([
     intervaloMinHoras: 24,
     planos: ['convidado', 'free', ...PLANOS_PAGOS],
   },
-  /* O FIM DO TESTE DE 14 DIAS (C6): quem testa tem o Premium nos entitlements (`premium`), e só quem
+  /* O FIM DO TESTE DE 3 DIAS (C6): quem testa tem o Premium nos entitlements (`premium`), e só quem
      testa recebe o momento (o host o dispara pelo `teste` de `/api/me/entitlements`). Informativo: diz
      quando acaba e que NADA é cobrado — o teste nunca cobra sozinho. Uma vez em cada fase. */
   {
-    id: 'funcional_fim_do_teste_d3',
+    id: 'funcional_fim_do_teste_d1',
     momento: 'fim_do_teste',
-    fase: 'd3',
+    fase: 'd1',
     componente: 'banner',
-    titulo: 'Seu teste do Premium termina em 3 dias',
+    titulo: 'Seu teste do Premium termina amanhã',
     texto: 'Depois dele a conta volta ao Grátis sozinha e nada é cobrado. A legenda no aparelho continua sem limite.',
     cta: 'Ver planos',
     maxPorDia: 1,
     maxPorSemana: 1,
     intervaloMinHoras: 24,
-    planos: [PLANO_DO_TESTE],
+    planos: PLANOS_DO_TESTE,
   },
   {
     id: 'funcional_fim_do_teste_d0',
@@ -152,9 +159,9 @@ export const GATILHOS_FUNCIONAIS: readonly GatilhoDeOferta[] = Object.freeze([
     maxPorDia: 1,
     maxPorSemana: 1,
     intervaloMinHoras: 24,
-    planos: [PLANO_DO_TESTE],
+    planos: PLANOS_DO_TESTE,
   },
-  /* O FIM DO TESTE POR USO: o teste acaba nos 14 dias OU na franquia de nuvem (`FRANQUIA_DO_TESTE`, 3 h), o que vier
+  /* O FIM DO TESTE POR USO: o teste acaba nos 3 dias OU na franquia de nuvem (`FRANQUIA_DO_TESTE`, 1 h), o que vier
      primeiro. A autoridade é `GET /api/me/uso`, que já traz o teto do teste: ≥ 80% (`uso_perto`) e 100% (`uso_acabou`).
      No lugar de `cota_proxima`/`fim_de_cota`, que falam do MÊS do plano ("volta no dia 1º"), o que não é verdade
      para quem testa. Informativo, sem contagem regressiva nem pressão: diz o fato, o que segue funcionando e a saída. */
@@ -170,7 +177,7 @@ export const GATILHOS_FUNCIONAIS: readonly GatilhoDeOferta[] = Object.freeze([
     maxPorDia: 1,
     maxPorSemana: 1,
     intervaloMinHoras: 24,
-    planos: [PLANO_DO_TESTE],
+    planos: PLANOS_DO_TESTE,
   },
   {
     id: 'funcional_fim_do_teste_uso_acabou',
@@ -184,7 +191,7 @@ export const GATILHOS_FUNCIONAIS: readonly GatilhoDeOferta[] = Object.freeze([
     maxPorDia: 1,
     maxPorSemana: 2,
     intervaloMinHoras: 24,
-    planos: [PLANO_DO_TESTE],
+    planos: PLANOS_DO_TESTE,
   },
 ] satisfies GatilhoDeOferta[]);
 
@@ -208,7 +215,7 @@ export type EventoDeOferta = (typeof EVENTOS_DE_OFERTA)[number];
 
 /**
  * O plano que a oferta sugere: `conta` é "crie a conta" (o convidado vem antes de qualquer plano);
- * `teste` é o teste de 14 dias do Premium, sem cartão, para quem o servidor deixa testar (C8);
+ * `teste` é o teste de 3 dias do Premium, sem cartão, para quem o servidor deixa testar (C8);
  * `premium` é assinar; `nenhum` é quem não tem para onde subir — e o perfil protegido, a quem nada se
  * vende.
  */

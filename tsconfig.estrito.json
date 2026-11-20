@@ -19,5 +19,5 @@
     "strict": true,
     "noEmit": true
   },
-  "exclude": ["_graveyard", "node_modules", "dist", "dist-server", "coverage"]
+  "exclude": ["_graveyard", "scripts/spikes", "node_modules", "dist", "dist-server", "coverage"]
 }

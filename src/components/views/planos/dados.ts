@@ -9,6 +9,7 @@ import {
   type LucideIcon,
   ShieldCheck,
   Sparkles,
+  Users,
 } from 'lucide-react';
 
 import {
@@ -69,7 +70,7 @@ export interface ItemDoPlano {
 }
 
 export interface Plano {
-  id: Coluna;
+  id: Coluna | 'plus';
   /** A chave do plano na matriz do servidor. */
   chave: PlanoDeAssinatura;
   icone: LucideIcon;
@@ -137,6 +138,28 @@ export const PLANOS: Plano[] = [
     ],
     destaque: true,
   },
+  /* PLANOS v4: o que o Plus tem (e o assinante que cancela deixa de ter), da matriz. O que ainda não
+     existe (explicação da frase no contexto, resumo→cartões) não entra: nada é "perdido" antes de existir. */
+  {
+    id: 'plus',
+    chave: 'plus',
+    icone: Sparkles,
+    nome: 'Plus',
+    tag: 'Do que você assiste ao estudo',
+    para: 'Para transformar o que você assiste em estudo.',
+    base: 'Grátis',
+    itens: [
+      { icone: Languages, texto: 'Nuance, polir a sessão e glossário' },
+      { icone: Bot, texto: 'Tutor de IA por texto (iChat)' },
+      {
+        icone: Cloud,
+        texto: '{horas} h de nuvem por mês',
+        nota: 'até {dia} h de nuvem por dia; passando disso, a legenda segue no aparelho',
+        vars: { horas: USO_JUSTO('plus').mes, dia: USO_JUSTO('plus').dia },
+      },
+    ],
+    destaque: true,
+  },
 ];
 
 /** A frase do item no idioma da tela. */
@@ -168,15 +191,21 @@ export const PLANO_NOME: Record<Coluna | PlanoPago, string> = {
   premium: 'Premium',
   essencial: PLAN_MATRIX.essencial.rotulo,
   aovivo: PLAN_MATRIX.aovivo.rotulo,
+  plus: PLAN_MATRIX.plus.rotulo,
+  familia: PLAN_MATRIX.familia.rotulo,
+  pro4: PLAN_MATRIX.pro4.rotulo,
 };
 export const PLANO_ICO: Record<Coluna | PlanoPago, LucideIcon> = {
   gratis: Cpu,
   premium: Sparkles,
   essencial: Sparkles,
   aovivo: Sparkles,
+  plus: Sparkles,
+  familia: Users,
+  pro4: AudioLines,
 };
 
-// planos-v3: tela na etapa 9 — plano pago sem coluna própria mostra os itens do Premium.
+// Plano pago sem coluna própria (Essencial, Ao Vivo, Família, Pro) mostra os itens do Premium.
 export const planoPorId = (id: Coluna | PlanoPago): Plano =>
   PLANOS.find((p) => p.id === id) ?? PLANOS.find((p) => p.id === 'premium')!;
 

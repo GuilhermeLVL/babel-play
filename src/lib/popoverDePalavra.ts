@@ -23,6 +23,7 @@
 import React from 'react';
 
 import { posicaoPopoverPalavra } from './posicaoFlutuante';
+import { zoomDoCorpo } from './zoomDoCorpo';
 
 /** Milissegundos entre sair da palavra e o cartão fechar. É a travessia até o cartão. */
 const ATRASO_DE_FECHAMENTO = 300;
@@ -58,7 +59,10 @@ export function usePopoverDePalavra(): PopoverDePalavra {
   const abrirEm = (alvo: HTMLElement, palavraLimpa: string) => {
     const rect = alvo.getBoundingClientRect();
     // M-08: o cálculo de posição já era compartilhado (`posicaoFlutuante`); o estado, não.
-    setPosicao(posicaoPopoverPalavra(rect, { width: window.innerWidth, height: window.innerHeight }));
+    // Tudo em px do body: o retângulo e a janela vêm em px da janela (zoom do A±) e o resultado vira `top/left`.
+    const z = zoomDoCorpo();
+    const emBody = { left: rect.left / z, top: rect.top / z, bottom: rect.bottom / z, width: rect.width / z };
+    setPosicao(posicaoPopoverPalavra(emBody, { width: window.innerWidth / z, height: window.innerHeight / z }));
     setPalavra(palavraLimpa);
   };
 

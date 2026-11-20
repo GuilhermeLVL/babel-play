@@ -140,11 +140,9 @@ metricsRouter.get('/xp', async (req, res) => {
  * compra ainda NÃO foi cobrada: sem essa guarda, quem gastou as últimas 40 Seeds veria o retry da
  * própria compra ser recusado por saldo insuficiente.
  *
- * CORRIDA CONHECIDA: duas compras DIFERENTES em voo ao mesmo tempo podem passar as duas pela
- * conferência e estourar o saldo em uma delas. Fechar isso exigiria rodar `computeProfile` inteiro
- * dentro de transação — conexão nova, `synchronous=FULL`, fsync por commit (ver `emTransacao` em
- * `db.ts`) — e o ganho seria impedir um item além da conta, contra o que a rota permitia antes:
- * qualquer item por 1 Seed. O ledger continua íntegro e auditável nos dois casos.
+ * DUAS COMPRAS DIFERENTES EM VOO passam as duas por esta conferência antecipada, mas não pelo
+ * débito: `seedSpendsRepo.debitar` cobra o teto dentro do INSERT, sob a trava do usuário
+ * (`gasto-concorrente.test.ts`). A que perder a corrida recebe o mesmo 402.
  */
 metricsRouter.post('/seeds/gastar', async (req, res) => {
   const payload = parseOr400(seedSpendSchema, req.body, res)
@@ -179,7 +177,12 @@ metricsRouter.post('/seeds/gastar', async (req, res) => {
       saldo = economia.saldo
       /* Recusa ANTECIPADA, para o 402 poder dizer quanto falta: o teto dentro do INSERT sabe
          barrar, mas não sabe explicar. As duas conferências usam o mesmo número. */
-      if (saldo < autorizacao.preco) {
+      /* A CONFERÊNCIA DE `jaGastou` PODE TER CORRIDO ANTES DO COMMIT DE UM CLIQUE GÊMEO (mesmo
+         spendId) e a economia, DEPOIS: o saldo já desconta este próprio gasto, e o reenvio de uma
+         compra paga levaria 402. Antes de recusar, a pergunta é refeita — agora depois da leitura do
+         saldo, então quem pousou antes dela aparece aqui. Só no caminho do 402: não custa nada a
+         quem tem saldo. `debitar` decide o resto (devolve a linha original com `jaExistia`). */
+      if (saldo < autorizacao.preco && !(await seedSpendsRepo.jaGastou(req.userId, payload.spendId))) {
         responderErro(res, 402, 'saldo insuficiente', 'saldo_insuficiente', {
           falta: autorizacao.preco - saldo,
           saldo,

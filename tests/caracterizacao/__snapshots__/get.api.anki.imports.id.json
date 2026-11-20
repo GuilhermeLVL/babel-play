@@ -14,7 +14,7 @@
     "notasDescartadas": "number",
     "notasLidas": "number",
     "notasNovas": "number",
-    "porMotivo": "string",
+    "porMotivo": "null",
     "updatedAt": "number",
     "userId": "string"
   }

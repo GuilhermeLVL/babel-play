@@ -2,18 +2,21 @@ import type { Capability } from '@core';
 import { AlertTriangle, Cpu, KeyRound, ListChecks, Loader2, Zap } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { createCredential, fetchSettings, patchUiSettings, testProvider } from '../data/api';
+import { createCredential, testProvider } from '../data/api';
 import { buildGateway } from '../gateway';
-import { CREDENTIAL_KEY, setProviderChoice } from '../gateway/activeProfile';
 import { webGpuProvavel } from '../gateway/adaptadorWebGpu';
 import { DEFAULT_PROFILE_ID, getBuiltinProfile } from '../gateway/profiles';
 import { getSttQuality, routeStt, tamanhoDoDownloadMb } from '../gateway/sttRouter';
-import { consentiuNuvem } from '../lib/consentimentoDeNuvem';
+import { consentiuNuvem, protegidoSemResponsavel } from '../lib/consentimentoDeNuvem';
 import { dispositivoDaRota, perfilDoDispositivo } from '../lib/dispositivo/perfil';
 import type { SondaDoAparelho } from '../lib/dispositivo/sonda';
 import { useSondaGuardada } from '../lib/dispositivo/useSondaGuardada';
 import { edicaoEstatica } from '../lib/edicaoEstatica';
+import { escolherProcessamento, type PerfilDoAparelho, useLadoDoProcessamento } from '../lib/escolhaDoProcessamento';
 import { t } from '../lib/i18n';
+import { comConta } from '../lib/pedirConta';
+import { comNomeDoPlano, planoDeEntradaAgora } from '../lib/planoDeEntrada';
+import { perfilProtegido } from '../lib/protecaoDoMenor';
 import { toast } from './Toast';
 import { Dialogo, fecharDialogoDe } from './ui';
 
@@ -40,14 +43,6 @@ const PROVEDORES: Record<string, { rotulo: string; baseUrl: string; modelo: stri
   openrouter: { rotulo: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', modelo: '' },
   custom: { rotulo: 'Outro', baseUrl: '', modelo: '' },
 };
-
-function lerCredencial(): string | null {
-  try {
-    return localStorage.getItem(CREDENTIAL_KEY);
-  } catch {
-    return null;
-  }
-}
 
 /** O tamanho do modelo local, estimado como a apresentação estima (o download é na 1ª captura). */
 function mbDoModelo(sonda: SondaDoAparelho | null): number | null {
@@ -95,7 +90,12 @@ export default function AiEnginePanel({
     () => localStorage.getItem(PROFILE_STORAGE_KEY) ?? DEFAULT_PROFILE_ID,
   );
   const activeId = controladoId ?? internoId;
-  const nuvem = activeId === 'cloud-quality';
+  /* O lado marcado é o de `ladoDoProcessamento`: o mesmo que o painel da Captura mostra. */
+  const nuvem = useLadoDoProcessamento(!bloqueados.includes('cloud-quality') && !edicaoEstatica()) === 'nuvem';
+  /* Protegido: nunca há oferta de plano (sem etiqueta, sem frase de venda). Sem o responsável, a nuvem
+     também fica trancada, como no painel da Captura. */
+  const protegido = perfilProtegido();
+  const bloqueadaNuvem = bloqueados.includes('cloud-quality') || protegidoSemResponsavel();
   const [pedindoChave, setPedindoChave] = useState(false);
   const [text, setText] = useState('Good morning, my friend. How are you today?');
   const [result, setResult] = useState<{ text: string; engine: string } | null>(null);
@@ -121,42 +121,37 @@ export default function AiEnginePanel({
     setError('');
   };
 
-  const escolherAparelho = async (perfil: 'free-web' | 'local-private' = 'free-web') => {
-    const cred = lerCredencial();
-    setProviderChoice({ mode: 'local', profileId: perfil });
-    aplicar(perfil);
-    const ok = await patchUiSettings({
-      providerMode: 'local',
-      credentialId: null,
-      ...(cred ? { credencialDaNuvem: cred } : {}),
-    });
-    if (!ok) toast.warn('Não consegui salvar a escolha. Verifique a conexão e tente de novo.');
+  /* A escolha mora em `lib/escolhaDoProcessamento` (a MESMA do painel de processamento da Captura): o
+     modo, a chave e a qualidade da transcrição, juntos. O lado marcado vem de lá também. */
+  const avisarSeFalhou = (salvo: boolean) => {
+    if (!salvo) toast.warn('Não consegui salvar a escolha. Verifique a conexão e tente de novo.');
   };
+  const escolherAparelho = async (perfil: PerfilDoAparelho = 'free-web') => {
+    const feito = escolherProcessamento('aparelho', { perfil });
+    aplicar(perfil);
+    avisarSeFalhou((await feito).salvo);
+  };
+
+  /* A chave é cifrada no servidor, na conta: sem conta, o toque abre o convite (sempre, não só na 1ª vez). */
+  const pedirChave = comConta('POST /api/ai/credentials', () => setPedindoChave(true));
 
   const usarNuvem = async (credentialId: string) => {
-    setProviderChoice({ mode: 'cloud', profileId: 'cloud-quality', credentialId });
+    const feito = escolherProcessamento('nuvem', { credencial: credentialId });
     aplicar('cloud-quality');
-    const ok = await patchUiSettings({ providerMode: 'cloud', credentialId, credencialDaNuvem: credentialId });
-    if (!ok) toast.warn('Não consegui salvar a escolha. Verifique a conexão e tente de novo.');
+    avisarSeFalhou((await feito).salvo);
   };
 
+  /* Sem chave própria, a nuvem do plano já vale (a qualidade foi para `cloud`); o formulário da chave
+     abre como antes, para quem quer usar a dele. */
   const escolherNuvem = async () => {
-    if (bloqueados.includes('cloud-quality')) return;
-    let cred = lerCredencial();
-    if (!cred) {
-      const s = await fetchSettings();
-      try {
-        const ui = s?.ui ? (JSON.parse(s.ui) as Record<string, unknown>) : {};
-        cred = (ui.credencialDaNuvem as string | undefined) ?? (ui.credentialId as string | undefined) ?? null;
-      } catch {
-        cred = null;
-      }
-    }
-    if (!cred) {
-      setPedindoChave(true);
+    if (bloqueadaNuvem) return;
+    const r = await escolherProcessamento('nuvem');
+    if (r.semChave) {
+      pedirChave();
       return;
     }
-    await usarNuvem(cred);
+    aplicar('cloud-quality');
+    avisarSeFalhou(r.salvo);
   };
 
   const runTest = async () => {
@@ -179,8 +174,6 @@ export default function AiEnginePanel({
     const where = first.baseUrl ? ' · local' : first.credentialId ? ' · nuvem' : '';
     return first.adapterId + where;
   };
-
-  const bloqueadaNuvem = bloqueados.includes('cloud-quality');
 
   /* QUEST: as mesmas duas opções como cartões-alvo, a IA do computador num interruptor, e o detalhe
      (o que este jeito faz, o teste ao vivo) recolhido atrás de um alvo de 60 px. */
@@ -229,14 +222,17 @@ export default function AiEnginePanel({
               <span className="q-ic">
                 <KeyRound aria-hidden />
               </span>
-              <b>{t('Usar a sua chave (nuvem)')}</b>
+              <b>{comNomeDoPlano(t('Usar a sua chave (nuvem)'), planoDeEntradaAgora())}</b>
               <span className="q-aju-tags">
-                <span className="q-tag">{bloqueadaNuvem ? t('Premium') : t('Sua chave')}</span>
+                {!(bloqueadaNuvem && protegido) && (
+                  <span className="q-tag">{bloqueadaNuvem ? t('Premium') : t('Sua chave')}</span>
+                )}
                 {nuvem && <span className="q-tag">{t('Em uso')}</span>}
               </span>
               <span className="q-d">
                 {t('OpenAI, Groq, OpenRouter… Melhor qualidade, sem baixar modelo. A chave fica cifrada no servidor.')}
-                {bloqueadaNuvem && ` ${t('Disponível no plano Premium.')}`}
+                {bloqueadaNuvem &&
+                  ` ${protegido ? t('A nuvem não está disponível neste perfil.') : comNomeDoPlano(t('Disponível no plano Premium.'), planoDeEntradaAgora())}`}
               </span>
             </button>
           )}
@@ -264,7 +260,7 @@ export default function AiEnginePanel({
                 <b>{t('Chave de API')}</b>
                 <small>{t('A chave fica cifrada no servidor e nunca volta ao navegador.')}</small>
               </div>
-              <button type="button" className="q-ctl" onClick={() => setPedindoChave(true)}>
+              <button type="button" className="q-ctl" onClick={pedirChave}>
                 <KeyRound aria-hidden /> {t('Trocar a chave')}
               </button>
             </div>

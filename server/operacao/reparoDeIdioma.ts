@@ -18,9 +18,11 @@ import { and, eq, isNull } from 'drizzle-orm'
 
 import { chaveDedup } from '../../src/core/texto/palavra'
 import { planejarReparoDeIdioma, planoVazio } from '../../src/core/texto/reparoDeIdioma'
-import { db } from '../db/db'
-import { tuplaDeBatch } from '../db/lotes'
+import { db, type ExecutorDb, travarUsuario } from '../db/db'
+import { type InstrucaoDeBatch, rodarLote } from '../db/lotes'
+import { palavrasVistasRepo } from '../db/repositories/palavrasVistas'
 import { sessions, utterances, vocabCards } from '../db/schema'
+import { asUserId } from '../lib/authContext'
 
 export interface RelatorioDoReparo {
   usuarios: number
@@ -35,9 +37,17 @@ async function repararUsuario(userId: string | null, aplicar: boolean): Promise<
   const doDono = <T extends { userId: unknown; deletedAt: unknown }>(t: T) =>
     and(userId === null ? isNull(t.userId as never) : eq(t.userId as never, userId), isNull(t.deletedAt as never))
   const [ss, fs, cs] = await Promise.all([
-    db.select({ id: sessions.id, sourceLang: sessions.sourceLang, targetLang: sessions.targetLang }).from(sessions).where(doDono(sessions)),
     db
-      .select({ id: utterances.id, sessionId: utterances.sessionId, sourceLang: utterances.sourceLang, sourceText: utterances.sourceText })
+      .select({ id: sessions.id, sourceLang: sessions.sourceLang, targetLang: sessions.targetLang })
+      .from(sessions)
+      .where(doDono(sessions)),
+    db
+      .select({
+        id: utterances.id,
+        sessionId: utterances.sessionId,
+        sourceLang: utterances.sourceLang,
+        sourceText: utterances.sourceText,
+      })
       .from(utterances)
       .where(doDono(utterances)),
     db
@@ -60,13 +70,18 @@ async function repararUsuario(userId: string | null, aplicar: boolean): Promise<
   const donoDaChave = new Map(cs.map((c) => [c.normKey, c.id]))
   const palavraDe = new Map(cs.map((c) => [c.id, c.word]))
   const agora = Date.now()
-  const instrucoes = []
+  const instrucoes: InstrucaoDeBatch[] = []
   for (const t of plano.falas) {
-    instrucoes.push(db.update(utterances).set({ sourceLang: t.para, updatedAt: agora }).where(eq(utterances.id, t.id)))
+    instrucoes.push((tx) =>
+      tx.update(utterances).set({ sourceLang: t.para, updatedAt: agora }).where(eq(utterances.id, t.id)),
+    )
   }
   for (const t of plano.sessoes) {
-    instrucoes.push(
-      db.update(sessions).set({ sourceLang: t.sourcePara, targetLang: t.targetPara, updatedAt: agora }).where(eq(sessions.id, t.id)),
+    instrucoes.push((tx) =>
+      tx
+        .update(sessions)
+        .set({ sourceLang: t.sourcePara, targetLang: t.targetPara, updatedAt: agora })
+        .where(eq(sessions.id, t.id)),
     )
   }
   for (const t of plano.cartoes) {
@@ -78,11 +93,33 @@ async function repararUsuario(userId: string | null, aplicar: boolean): Promise<
     }
     donoDaChave.set(normKey, t.id)
     r.cartoes++
-    instrucoes.push(
-      db.update(vocabCards).set({ srcLang: t.srcPara, tgtLang: t.tgtPara, normKey, updatedAt: agora }).where(eq(vocabCards.id, t.id)),
+    instrucoes.push((tx) =>
+      tx
+        .update(vocabCards)
+        .set({ srcLang: t.srcPara, tgtLang: t.tgtPara, normKey, updatedAt: agora })
+        .where(eq(vocabCards.id, t.id)),
     )
   }
-  if (aplicar && instrucoes.length) await db.batch(tuplaDeBatch(instrucoes))
+  /* A mesma trava por usuário dos lotes de vocab.ts: com o servidor de pé, uma rodada de exercício
+     deste usuário toma as linhas de versão/agregados na ordem inversa e o Postgres aborta um dos
+     dois (40P01). */
+  if (aplicar && instrucoes.length) {
+    const trava = userId === null ? [] : [(tx: ExecutorDb) => travarUsuario(tx, userId)]
+    /* O idioma da fala (ou o da sessão, para as falas sem o próprio) decide a chave das palavras vistas:
+       as sessões tocadas são reconstruídas NO MESMO lote, depois dos UPDATEs (ou repara e reindexa tudo, ou
+       nada). Sem dono não há índice (a chave dele é o usuário). */
+    const reindexar: InstrucaoDeBatch[] = []
+    if (userId !== null) {
+      const sessaoDaFala = new Map(fs.map((f) => [f.id, f.sessionId]))
+      const tocadas = new Set<string>(plano.sessoes.map((t) => t.id))
+      for (const t of plano.falas) {
+        const sessao = sessaoDaFala.get(t.id)
+        if (sessao) tocadas.add(sessao)
+      }
+      for (const sessao of tocadas) reindexar.push(palavrasVistasRepo.stmtReconstruirLendo(asUserId(userId), sessao))
+    }
+    await rodarLote([...trava, ...instrucoes, ...reindexar])
+  }
   return r
 }
 

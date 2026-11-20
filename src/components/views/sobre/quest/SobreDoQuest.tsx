@@ -81,7 +81,7 @@ export default function SobreDoQuest({
       <header className="q-cab">
         <div>
           <p className="q-sobre">{t('Quem faz o app')}</p>
-          <h1>{t('Sobre o Babel Play')}</h1>
+          <h1>{t('Sobre o Frasy')}</h1>
         </div>
         {VERSAO_DO_APP && <span className="q-chip">{t('Versão {versao}', { versao: VERSAO_DO_APP })}</span>}
       </header>
@@ -102,7 +102,7 @@ export default function SobreDoQuest({
               <h2>{t('Oi, eu sou o {nome}.', { nome: CRIADOR.nome })}</h2>
               <p className="q-texto">
                 {t(
-                  'Sou desenvolvedor independente e faço o Babel Play sozinho, nas noites e nos fins de semana. Se quiser conhecer o resto do meu trabalho, ou só trocar uma ideia, é por aqui:',
+                  'Sou desenvolvedor independente e faço o Frasy sozinho, nas noites e nos fins de semana. Se quiser conhecer o resto do meu trabalho, ou só trocar uma ideia, é por aqui:',
                 )}
               </p>
               {redes.length > 0 ? (
@@ -139,7 +139,7 @@ export default function SobreDoQuest({
           <section className="q-secao">
             <header>
               <div>
-                <h2>{t('Por que eu fiz o Babel Play')}</h2>
+                <h2>{t('Por que eu fiz o Frasy')}</h2>
               </div>
             </header>
             <p className="q-texto">
@@ -149,7 +149,7 @@ export default function SobreDoQuest({
             </p>
             <p className="q-texto">
               {t(
-                'Então fiz a ferramenta que eu queria ter. Você dá play em qualquer coisa e o Babel Play escuta junto: mostra a legenda, traduz do lado e guarda as palavras novas para você revisar e jogar depois.',
+                'Então fiz a ferramenta que eu queria ter. Você dá play em qualquer coisa e o Frasy escuta junto: mostra a legenda, traduz do lado e guarda as palavras novas para você revisar e jogar depois.',
               )}
             </p>
             <p className="q-texto">

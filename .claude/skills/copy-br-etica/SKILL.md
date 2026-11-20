@@ -1,6 +1,6 @@
 ---
 name: copy-br-etica
-description: Use ao escrever ou revisar texto de produto do Babel Play que fala de plano, preço, teste, cota, upgrade, cancelamento ou onboarding, em português do Brasil. Garante linguagem de benefício, tom de ajuda e ausência de manipulação (ECA Digital, LGPD, menores). Palavras-chave - copy, oferta, gatilho, paywall, upgrade, preço, teste grátis, mensagem de cota.
+description: Use ao escrever ou revisar texto de produto do Frasy que fala de plano, preço, teste, cota, upgrade, cancelamento ou onboarding, em português do Brasil. Garante linguagem de benefício, tom de ajuda e ausência de manipulação (ECA Digital, LGPD, menores). Palavras-chave - copy, oferta, gatilho, paywall, upgrade, preço, teste grátis, mensagem de cota.
 ---
 
 # Texto de produto, PT-BR, sem manipular

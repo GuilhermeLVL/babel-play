@@ -30,12 +30,15 @@
  * quatro. Medido na bancada: 2,0 GB de RAM somando os processos do Chrome, com o modelo carregado.
  */
 import { filtrarAlucinacao } from '../alucinacao';
+import { baseDoWasm } from '../baseDoWasm';
 import { gravarManifesto, type ManifestoDeModelo } from '../modelManifest';
+import { comPoliticaDoHub } from '../semReferer';
 import { FilaSerial, type SinalDeCancelamento } from './filaDoWorker';
 import { criarRastreadorDeProgresso, rotuloDeBytes } from './modelProgress';
 import type { ArquivoDaCargaDoParakeet, PlanoDeCargaDoParakeet } from './parakeetArquivos';
 import { DEVICE_DO_PARAKEET, DTYPE_DO_PARAKEET, JANELA_DO_PARAKEET_S } from './parakeetModelo';
 import {
+  confiancaMedia,
   decodificarTdt,
   destokenizar,
   dividirEmJanelas,
@@ -56,7 +59,16 @@ export type MensagemDoParakeet =
   | { type: 'progress'; progress: number; loaded: number; total: number; label: string }
   | { type: 'ready'; model: string; cargaMs: number }
   | { type: 'loadError'; model: string; motivo: MotivoDaFalhaDoParakeet; message: string }
-  | { type: 'result'; id: string; text: string; descartado: boolean; ms: number; audioS: number }
+  | {
+      type: 'result';
+      id: string;
+      text: string;
+      descartado: boolean;
+      ms: number;
+      audioS: number;
+      /** Confiança média dos tokens (0–1), o sinal do áudio difícil. Ausente = nenhum token (silêncio). */
+      confianca?: number;
+    }
   | { type: 'error'; id: string; message: string }
   | { type: 'cancelado'; id: string };
 
@@ -216,7 +228,12 @@ export function criarWorkerDoParakeet(deps: DependenciasDoParakeet) {
   }
 
   /** O trecho inteiro por um pedaço que cabe na janela: extrator, encoder e o laço TDT. `null` = cancelado. */
-  async function rodar(m: Modelo, pcm: Float32Array, cancelado: () => boolean): Promise<string | null> {
+  async function rodar(
+    m: Modelo,
+    pcm: Float32Array,
+    cancelado: () => boolean,
+    confiancas: number[],
+  ): Promise<string | null> {
     const { rt, vocab } = m;
     const p = await m.pre.run({
       waveforms: rt.tensor('float32', pcm, [1, pcm.length]),
@@ -244,6 +261,7 @@ export function criarWorkerDoParakeet(deps: DependenciasDoParakeet) {
       [zeros(), zeros()] as [unknown, unknown],
       { tamanho: vocab.pecas.length, branco: vocab.branco },
       cancelado,
+      confiancas,
     );
     return tokens ? destokenizar(tokens.map((t) => vocab.pecas[t] ?? '')) : null;
   }
@@ -294,7 +312,7 @@ export function criarWorkerDoParakeet(deps: DependenciasDoParakeet) {
     const m: Modelo = { rt, pre, encoder, joint, vocab };
     try {
       // Aquecimento: 1 s de silêncio pelo caminho inteiro, para o 1º trecho real não pagar a 1ª execução.
-      await rodar(m, new Float32Array(16000), () => false);
+      await rodar(m, new Float32Array(16000), () => false, []);
     } catch (e) {
       throw new FalhaDeCarga('motor', `aquecimento falhou: ${String((e as Error)?.message ?? e)}`);
     }
@@ -355,10 +373,11 @@ export function criarWorkerDoParakeet(deps: DependenciasDoParakeet) {
       const t0 = agora();
       const audioS = pcm.length / 16000;
       const textos: string[] = [];
+      const confiancas: number[] = [];
       if (pcm.length >= MINIMO_DE_AMOSTRAS && !ehSilencioDigital(pcm)) {
         const pedacos = dividirEmJanelas(pcm, JANELA_DO_PARAKEET_S * 16000, BUSCA_DO_CORTE_S * 16000);
         for (const pedaco of pedacos) {
-          const texto = await rodar(m, pedaco, () => sinal.cancelado);
+          const texto = await rodar(m, pedaco, () => sinal.cancelado, confiancas);
           if (texto === null || sinal.cancelado) {
             deps.enviar({ type: 'cancelado', id });
             return;
@@ -368,7 +387,16 @@ export function criarWorkerDoParakeet(deps: DependenciasDoParakeet) {
       }
       const bruto = textos.join(' ');
       const filtrado = filtrarAlucinacao(bruto, audioS, idioma);
-      deps.enviar({ type: 'result', id, text: filtrado, descartado: !!bruto && !filtrado, ms: agora() - t0, audioS });
+      const confianca = confiancaMedia(confiancas);
+      deps.enviar({
+        type: 'result',
+        id,
+        text: filtrado,
+        descartado: !!bruto && !filtrado,
+        ms: agora() - t0,
+        audioS,
+        ...(confianca !== undefined ? { confianca } : {}),
+      });
     } catch (e) {
       deps.enviar({ type: 'error', id, message: String((e as Error)?.message ?? e).slice(0, 300) });
     }
@@ -404,11 +432,12 @@ const TETO_DE_THREADS = 4;
 
 /**
  * O `onnxruntime-web` de `node_modules`, por `import()`: só é avaliado quando alguém manda carregar.
- * O `.wasm` e o loader vêm de `/` (o que o app já serve para o VAD), nunca de CDN.
+ * O `.wasm` e o loader vêm de `baseDoWasm()`: `/` (o que o app já serve para o VAD) ou o R2 de `VITE_ORT_WASM_URL`,
+ * nunca do jsDelivr.
  */
 async function abrirRuntime(threads: number): Promise<RuntimeDoParakeet> {
   const ort = await import('onnxruntime-web/wasm');
-  ort.env.wasm.wasmPaths = '/';
+  ort.env.wasm.wasmPaths = baseDoWasm();
   ort.env.wasm.numThreads = Math.max(1, Math.min(TETO_DE_THREADS, Math.floor(threads) || 1));
   return {
     criarSessao: (bytes) =>
@@ -423,7 +452,7 @@ async function abrirRuntime(threads: number): Promise<RuntimeDoParakeet> {
 declare const WorkerGlobalScope: unknown;
 if (typeof WorkerGlobalScope !== 'undefined' && typeof self !== 'undefined') {
   const worker = criarWorkerDoParakeet({
-    buscar: (url) => fetch(url),
+    buscar: (url) => fetch(url, comPoliticaDoHub(url)),
     abrirCache: async () => (typeof caches === 'undefined' ? null : caches.open('transformers-cache')),
     abrirRuntime,
     enviar: (m) => self.postMessage(m),

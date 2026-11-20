@@ -7,6 +7,7 @@
 import type { Response } from 'express'
 import { z } from 'zod'
 
+import { TETOS_DA_NOTA as T } from '../src/core/anki/tetos'
 import { FILTROS_DE_NOTA_ANKI } from '../src/core/learning/contract'
 import { subtipoDeCapaAceito } from './lib/capaDeSessao'
 
@@ -617,6 +618,24 @@ export const vocabConteudoQuerySchema = z
   })
   .strip()
 
+/** Idioma das etiquetas de palavras (`en`, ou `pt-BR`, que o handler reduz à base). Obrigatório. */
+const idiomaDaPalavra = z
+  .string()
+  .trim()
+  .regex(/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/, 'idioma inválido')
+
+/** `GET /api/vocab/vistas?lang=xx`: as chaves das palavras já vistas nesse idioma. */
+export const palavrasVistasQuerySchema = z.object({ lang: idiomaDaPalavra }).strip()
+
+/**
+ * `GET /api/vocab/palavra?lang=xx&chave=yy`: o histórico de UMA palavra. `chave` pode vir como a palavra
+ * escrita (`Água`): o servidor a reduz com `chaveDaPalavra`.
+ */
+export const palavraQuerySchema = z.object({ lang: idiomaDaPalavra, chave: z.string().trim().min(1).max(100) }).strip()
+
+/** `PUT /api/vocab/:id/nota`: a nota pessoal do cartão, até 500 caracteres; `''` limpa. */
+export const notaDoCartaoSchema = z.object({ nota: z.string().max(500) }).strip()
+
 /**
  * PATCH de cartão: o handler fazia `typeof` + `slice(0,2000)` à mão.
  *
@@ -663,57 +682,10 @@ export const metricsXpQuerySchema = z
   })
   .strip()
 
-/**
- * Exportação de baralho: o handler cortava em 5.000/120 depois de já ter o array inteiro na mão.
- *
- * A forma do cartão espelha `CartaoParaExportar` (server/import/ankiExport.ts:26) — o typecheck
- * denunciou a primeira versão, que aceitava `Record<string, unknown>` e teria empurrado objetos
- * sem `frente`/`verso` para dentro do gerador do `.apkg`.
- */
-export const ankiExportSchema = z
-  .object({
-    cartoes: z
-      .array(
-        z
-          .object({
-            frente: z.string().max(2_000),
-            verso: z.string().max(2_000),
-            exemplo: z.string().max(2_000).optional(),
-          })
-          .strip(),
-      )
-      .min(1)
-      .max(5_000),
-    nome: z.string().max(120).optional(),
-  })
-  .strip()
-
 /** Importação por URL (YouTube e web). O `assertPublicUrl` continua sendo a guarda de SSRF. */
 export const importUrlSchema = z
   .object({
     url: z.string().min(1).max(2_048),
-  })
-  .strip()
-
-/**
- * Cabeçalhos dos uploads brutos. `x-filename` nunca vira caminho (o nome do arquivo é gerado pelo
- * servidor a partir do id da sessão — S-14), mas vira TÍTULO e chega ao banco.
- */
-export const uploadHeadersSchema = z
-  .object({
-    'x-filename': z.string().max(400).optional(),
-    'content-type': z.string().max(200).optional(),
-    /* O IDIOMA DO BARALHO vem por cabeçalho porque o `.apkg` não o declara de forma confiável — quem
-     sabe é a tela, que já tem o idioma praticado e o nativo. Sem isto o cartão importado nasce sem
-     `srcLang`, a triagem o marca `idioma-incerto` e o baralho inteiro fica fora das rodadas. */
-    'x-src-lang': z
-      .string()
-      .regex(/^[A-Za-z-]{2,20}$/)
-      .optional(),
-    'x-tgt-lang': z
-      .string()
-      .regex(/^[A-Za-z-]{2,20}$/)
-      .optional(),
   })
   .strip()
 
@@ -752,6 +724,90 @@ export const ankiAtivarSchema = z
 export const ankiPurgarSchema = z
   .object({
     confirmar: z.literal(true),
+  })
+  .strip()
+
+/* ══════════════════ Fase 3 da migração · importação do Anki EM LOTES (`/api/anki/imports`) ══════════════════
+ *
+ * O navegador lê o `.apkg` e manda as notas; estes schemas são o teto de cada pedaço do protocolo
+ * (abrir, um lote, fechar). O CONTEÚDO de cada nota ainda passa pela limpeza, identidade e régua do
+ * servidor na rota (`server/routes/ankiImports.ts`) — o schema só garante forma e tamanho.
+ */
+
+/** Código de idioma como o cliente manda (`en`, `pt-BR`): o mesmo formato dos antigos cabeçalhos `x-src-lang`. */
+const idiomaDoBaralho = z.string().regex(/^[A-Za-z-]{2,20}$/)
+
+/** `POST /api/anki/imports` — o que o leitor do navegador sabe do arquivo antes do primeiro lote. */
+export const abrirImportAnkiSchema = z
+  .object({
+    arquivo: z.string().min(1).max(400),
+    bytes: z.number().int().min(0),
+    formato: z.string().max(80),
+    nomeNoArquivo: z.string().max(400).nullable().optional(),
+    baralhos: z.array(z.string().max(400)).max(200).optional(),
+    campos: z.array(z.string().max(T.nomeDeCampo)).max(T.campos),
+    totalNoArquivo: z.number().int().min(0),
+    truncado: z.boolean(),
+    idiomaOrigem: idiomaDoBaralho.nullable().optional(),
+    idiomaAlvo: idiomaDoBaralho.nullable().optional(),
+    /** Até 200 notas para conferir o idioma (S11) e detectar baralho monolíngue. */
+    amostra: z.array(z.object({ frente: z.string().max(T.frente), verso: z.string().max(T.verso) }).strip()).max(200),
+  })
+  .strip()
+
+/**
+ * Uma nota como o leitor do navegador a monta (`NotaAnki` de `src/core/anki`). Os tetos vêm de
+ * `TETOS_DA_NOTA` (`src/core/anki/tetos.ts`), a mesma fonte em que `notaParaOFio` corta no cliente:
+ * o cliente corta para o import nunca morrer por tamanho, e o servidor continua RECUSANDO acima deles
+ * porque o cliente não é confiável.
+ */
+export const notaRecebidaSchema = z
+  .object({
+    guid: z.string().max(T.guid).optional(),
+    notetype: z.string().max(T.notetype).nullable().optional(),
+    campos: z.array(z.string().max(T.nomeDeCampo)).max(T.campos),
+    /* Por NOME do campo e ainda com HTML: sustenta remapear sem reimportar. Nomes livres (um baralho
+       pode ter `campo7`), por isso `record` com teto de chaves em vez de lista fechada. */
+    camposBrutos: z
+      .record(z.string().max(T.nomeDeCampo), z.string().max(T.campoBruto))
+      .refine((c) => Object.keys(c).length <= T.chavesDeCamposBrutos, {
+        message: `no máximo ${T.chavesDeCamposBrutos} campos por nota`,
+      }),
+    frente: z.string().min(1).max(T.frente),
+    verso: z.string().min(1).max(T.verso),
+    exemplo: z.string().max(T.exemplo).optional(),
+    tags: z.array(z.string().max(T.tag)).max(T.tags),
+    midia: z
+      .object({
+        sons: z.array(z.string().max(T.nomeDeMidia)).max(T.midia),
+        imagens: z.array(z.string().max(T.nomeDeMidia)).max(T.midia),
+      })
+      .strip()
+      .optional(),
+    lacunas: z
+      .array(
+        z
+          .object({
+            ordinal: z.number().int().min(0),
+            resposta: z.string().max(T.lacuna),
+            dica: z.string().max(T.lacuna).optional(),
+          })
+          .strip(),
+      )
+      .max(T.lacunas)
+      .optional(),
+  })
+  .strip()
+
+/**
+ * `POST /api/anki/imports/:id/notas` — um lote de até 500 notas. O PIOR CASO deste schema (500 notas
+ * com 60 campos brutos de 50.000 caracteres) passa MUITO de 5 MB: o teto real do corpo é o
+ * `LIMITE_GRANDE` do parser (`server/http/limitesDeCorpo.ts`), e um lote acima dele recebe 413 antes
+ * de chegar aqui. Por isso o cliente fatia o lote também por BYTES, não só por contagem.
+ */
+export const lotesDeNotasSchema = z
+  .object({
+    notas: z.array(notaRecebidaSchema).min(1).max(500),
   })
   .strip()
 

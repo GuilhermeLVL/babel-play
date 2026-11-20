@@ -1,0 +1,22 @@
+pt01 0.00 Boa noite, que bom que você veio jantar com a gente. 
+en01 0.00 Thank you so much for inviting me. The food smells amazing! 
+pt02 0.88 Você preferiu ver o Chintou Sua Silva. 
+en02 0.00 Red wine, please. Where did you learn to cook like this? 
+pt03 0.13 Minha avô me ensinou quando eu era criança. 
+en03 0.00 That is beautiful. Could you pass me the salt, please? 
+pt04 0.00 Então, acho que vou pedir a sobremesa de chocolate. 
+en04 0.00 I have never tried this dish before. 
+pt05 0.13 Você já experimentou o pano de queijo daqui? 
+en05 0.10 How long does it take to get the airport? 
+pt06 0.00 A gente pode dividir a conta no final. 
+en06 0.00 My flight leaves early tomorrow morning. 
+pt07 0.00 Amanhã eu vou levar meus filhos ao parque. 
+en07 0.00 Could we split the bill at the end? 
+pt08 0.40 Desculpe, pode repetir mais de vagar. 
+en08 0.00 I would love to visit your family next summer. 
+pt09 0.38 o restaurante Feshazons e horas da noite. 
+en09 0.00 Sorry, could you say that again more slowly? 
+pt10 0.00 Quanto tempo você vai ficar no Brasil? 
+en10 0.00 This is the best dinner I have had in weeks. 
+WER pt 0.175 constrangedoras 0 (20 falas na lista)
+WER en 0.011 constrangedoras 0 (20 falas na lista)

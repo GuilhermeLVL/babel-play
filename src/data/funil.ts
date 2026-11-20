@@ -119,6 +119,60 @@ export function geracaoDeEscritas(): number {
   return escritas
 }
 
+/**
+ * HÁ SESSÃO PARA LEVAR À REDE? (fix/cliente-sem-sessao, 13/11/2026). No modo público o servidor
+ * exige `Authorization` em toda `/api` que não seja pública, e cada 401 soma um ponto no limitador
+ * de falhas de autenticação do IP (30 por 15 minutos). Uma chamada sem token é um 401 certo: quem
+ * não tem token é respondido como sem conta. No self-host o servidor não exige token. Pura, para o teste.
+ */
+export function temSessao(p: { authRequired: boolean; token: string | null }): boolean {
+  return !p.authRequired || !!p.token
+}
+
+/** O que o modo sem conta responde: o servidor em memória, e a oferta de conta quando a ação pede. */
+async function comoSemConta(input: string, init: RequestInit): Promise<Response> {
+  const local = await servidorEfemero(input, init)
+  void ofertaPelaResposta(local, input)
+  return local
+}
+
+/**
+ * UM 401 TRATADO UMA VEZ SÓ. O arranque dispara uma dúzia de chamadas quase juntas; com uma sessão
+ * que o servidor recusa (token revogado, conta apagada, sessão velha no aparelho), cada uma fazia o
+ * seu refresh e o seu `signOut`, e as que saíam depois iam sem token: medido, 13 respostas 401 por
+ * abertura, e na terceira abertura o IP inteiro levava 429. Agora o primeiro 401 abre UMA renovação,
+ * quem recebe 401 junto espera a mesma, e quem começa enquanto ela corre espera o desfecho: sessão
+ * nova segue para a rede; sessão encerrada cai no `temSessao` e vira sem conta.
+ */
+let renovacaoEmVoo: Promise<boolean> | null = null
+let saidaEmVoo: Promise<void> | null = null
+
+/** Só este aparelho (`scope: 'local'`): um 401 transitório não derruba os outros. */
+function sairUmaVez(sb: NonNullable<typeof supabase>): Promise<void> {
+  saidaEmVoo ??= sb.auth
+    .signOut({ scope: 'local' })
+    .then(() => {})
+    .finally(() => {
+      saidaEmVoo = null
+    })
+  return saidaEmVoo
+}
+
+/** Renova a sessão (uma vez para todas as chamadas que receberam 401 juntas). `true`: há token novo. */
+function renovarUmaVez(sb: NonNullable<typeof supabase>): Promise<boolean> {
+  renovacaoEmVoo ??= (async () => {
+    // Outra chamada já encerrou a sessão: nada a renovar, e nenhum refresh à toa.
+    if (!(await authHeaders()).Authorization) return false
+    const { data } = await sb.auth.refreshSession()
+    if (data?.session) return true
+    await sairUmaVez(sb)
+    return false
+  })().finally(() => {
+    renovacaoEmVoo = null
+  })
+  return renovacaoEmVoo
+}
+
 export async function apiFetch(input: string, init?: ApiInit): Promise<Response> {
   const { timeoutMs, ...rest } = init ?? {}
   const metodo = (rest.method ?? 'GET').toUpperCase()
@@ -137,11 +191,7 @@ export async function apiFetch(input: string, init?: ApiInit): Promise<Response>
     ehRotaDeNuvemDoConvidado(input, rest.method) &&
     nuvemDoConvidadoLigada() &&
     (await garantirSessaoDeConvidado())
-  if (identidade === 'anonimo' && !nuvemDoConvidado) {
-    const local = await servidorEfemero(input, rest)
-    void ofertaPelaResposta(local, input)
-    return local
-  }
+  if (identidade === 'anonimo' && !nuvemDoConvidado) return comoSemConta(input, rest)
   /* CONTA DE MENOR SEM O RESPONSÁVEL (Fase 4 — ECA Digital art. 24): até o vínculo ser aceito, os
      dados ficam no aparelho, pelo MESMO servidor em memória do modo sem conta. A conta, o convite e
      a cobrança seguem para a rede. O servidor também recusa (403 `responsavel_pendente`) — aqui é a
@@ -150,19 +200,29 @@ export async function apiFetch(input: string, init?: ApiInit): Promise<Response>
     const protecao = await aguardarProtecao()
     if (protecao?.restrita) return servidorEfemero(input, rest)
   }
+  /* Outra chamada está tratando um 401 (refresh ou saída): espera o desfecho antes de mandar o mesmo
+     token que o servidor acabou de recusar. */
+  if (renovacaoEmVoo || saidaEmVoo) await Promise.allSettled([renovacaoEmVoo, saidaEmVoo])
+  // Marco 1: injeta o Authorization quando há sessão (no-op no uso local sem login).
+  let auth = await authHeaders()
+  /* SEM TOKEN, SEM REDE. A identidade foi lida no começo da chamada; até aqui a sessão pode ter
+     acabado (o refresh falhou e o `signOut` local rodou) ou nunca ter existido (chamada antes de o
+     App armar a identidade). Mandar sem token era um 401 certo, e cada um conta como falha de
+     autenticação no limitador do IP: responde como sem conta. O convidado com nuvem tem token. */
+  if (!temSessao({ authRequired, token: auth.Authorization ?? null })) return comoSemConta(input, rest)
   const signal = rest.signal ?? AbortSignal.timeout(timeoutMs ?? DEFAULT_TIMEOUT_MS)
-  const send = async (): Promise<Response> => {
-    // Marco 1: injeta o Authorization quando há sessão (no-op no uso local sem login).
-    const auth = await authHeaders()
+  const send = (): Promise<Response> =>
     // A sessão de captura agrupa as chamadas de IA de uma aula no Langfuse (ver `lib/sessaoDeCaptura`).
-    return fetch(input, { ...rest, headers: { ...auth, ...cabecalhoDaSessaoDeCaptura(input), ...(rest.headers ?? {}) }, signal })
-  }
+    fetch(input, { ...rest, headers: { ...auth, ...cabecalhoDaSessaoDeCaptura(input), ...(rest.headers ?? {}) }, signal })
   let res = await send()
-  // Sessão expirada (modo público): 1 refresh + retry; persistindo, encerra a sessão (→ tela de login).
+  // Sessão expirada (modo público): 1 refresh + retry; persistindo, encerra a sessão (→ sem conta).
   if (res.status === 401 && authRequired && supabase) {
-    const { data } = await supabase.auth.refreshSession()
-    if (data?.session) res = await send()
-    if (res.status === 401) await supabase.auth.signOut({ scope: 'local' }) // só este aparelho: um 401 transitório não derruba os outros
+    const sb = supabase
+    if (await renovarUmaVez(sb)) {
+      auth = await authHeaders()
+      res = await send()
+      if (res.status === 401) await sairUmaVez(sb)
+    }
   }
   // P0-7b: o servidor diz a versão em toda resposta `/api`; diferente da do bundle, avisa (uma vez).
   conferirVersaoDoServidor(res.headers?.get?.(CABECALHO_DA_VERSAO) ?? null)

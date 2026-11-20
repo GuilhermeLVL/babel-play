@@ -64,6 +64,13 @@ const DADOS_ABERTOS: Array<{ nome: string; licenca: string; uso: string; href: s
     uso: 'Frequência das palavras, que ordena a trilha',
     href: 'https://github.com/hermitdave/FrequencyWords',
   },
+  /* O Parakeet não é dado, mas a CC-BY-4.0 pede o crédito onde ele é usado, e ele roda por padrão. */
+  {
+    nome: 'Parakeet TDT v3 · NVIDIA',
+    licenca: 'CC-BY-4.0',
+    uso: 'Modelo de transcrição no aparelho, para português e espanhol',
+    href: 'https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3',
+  },
 ];
 
 const hrefDe = (v: string) => (v.includes('@') && !v.startsWith('http') ? `mailto:${v}` : v);

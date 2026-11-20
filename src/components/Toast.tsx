@@ -22,10 +22,10 @@ import type { LucideIcon } from 'lucide-react';
 import { VolumeX, X } from 'lucide-react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 
+import { t } from '../lib/i18n';
 import { useAviso } from '../lib/polimento/useAviso';
 import { play } from '../lib/soundFx';
-import { aoFaltarVoz } from '../lib/tts';
-import { comoInstalarVoz } from '../lib/voz/faltaDeVoz';
+import { aoFaltarVoz } from '../lib/voz/avisoDeFaltaDeVoz';
 import { DialogoBase } from './ui/Dialogo';
 
 export type ToastKind = 'error' | 'warn' | 'ok' | 'info';
@@ -116,8 +116,12 @@ export const toast = {
    aviso — discreto (info, some sozinho) e uma vez por idioma. */
 aoFaltarVoz((lang) => {
   /* O que houve e o caminho no sistema deste aparelho (`faltaDeVoz.ts`): "instale uma voz" sem dizer
-     onde deixava a pessoa procurando. Fica na tela mais tempo, porque é uma instrução a seguir. */
-  push('info', comoInstalarVoz(lang), { icone: VolumeX, duration: 12000 });
+     onde deixava a pessoa procurando. Fica na tela mais tempo, porque é uma instrução a seguir.
+     Sob demanda: o aviso só dispara quando o motor de voz já falou (ou tentou), e ele já carregou
+     o mesmo módulo; importar estático puxava o motor de voz para o JS inicial (orçamento do bundle). */
+  void import('../lib/voz/faltaDeVoz').then(({ comoInstalarVoz }) =>
+    push('info', comoInstalarVoz(lang), { icone: VolumeX, duration: 12000 }),
+  );
 });
 
 /* ─────────────────────────────── Confirmação ─────────────────────────────── */
@@ -205,7 +209,7 @@ function AvisoAtual({ item }: { item: ToastItem | undefined }) {
               type="button"
               className="link"
               style={{ color: 'inherit', display: 'grid', placeItems: 'center' }}
-              aria-label="Fechar aviso"
+              aria-label={t('Fechar aviso')}
               onClick={() => dismissToast(item.id)}
             >
               <X size={14} aria-hidden />

@@ -7,7 +7,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const A = asUserId('origem-local-a')
 const B = asUserId('origem-local-b')
@@ -26,9 +26,14 @@ beforeAll(async () => {
   schema = await h.load('../../server/db/schema')
   ;({ eq } = await h.load('drizzle-orm'))
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
-const falas = [{ idx: 0, sourceText: 'hello there' }, { idx: 1, sourceText: 'bye' }]
+const falas = [
+  { idx: 0, sourceText: 'hello there' },
+  { idx: 1, sourceText: 'bye' },
+]
 
 describe('criarOuReusar por origemLocalId', () => {
   it('mesmo usuário, mesma origem → UMA sessão, a segunda chamada diz jaExistia', async () => {
@@ -67,7 +72,10 @@ describe('criarOuReusar por origemLocalId', () => {
     const ORIGEM2 = '22222222-2222-4333-8444-555555555555'
     const primeira = await sessionsRepo.createWithUtterances(A, { title: 'Aba 1', origemLocalId: ORIGEM2 }, falas)
     // Uma segunda aba que não viu a primeira chega ao insert — o catch re-lê a vencedora.
-    await expect(sessionsRepo.createWithUtterances(A, { title: 'Aba 2', origemLocalId: ORIGEM2 }, falas)).rejects.toThrow(/UNIQUE/i)
+    // A violação vem na `cause` (o drizzle põe "Failed query" na mensagem): 23505 = unique_violation.
+    await expect(
+      sessionsRepo.createWithUtterances(A, { title: 'Aba 2', origemLocalId: ORIGEM2 }, falas),
+    ).rejects.toMatchObject({ cause: { code: '23505' } })
     const r = await sessionsRepo.criarOuReusar(A, { title: 'Aba 2', origemLocalId: ORIGEM2 }, falas)
     expect(r.jaExistia).toBe(true)
     expect(r.session.id).toBe(primeira.id)

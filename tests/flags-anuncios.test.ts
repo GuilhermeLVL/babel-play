@@ -6,6 +6,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { FLAG_ANUNCIOS } from '../src/core/anuncios/politicaDeAnuncio'
+import { clienteSql } from './harness/clienteSql'
 import { type EphemeralDb, setupEphemeralDb } from './harness/ephemeralDb'
 
 describe('flag anuncios no servidor', () => {
@@ -22,9 +23,7 @@ describe('flag anuncios no servidor', () => {
   })
 
   it('a migração semeia a flag desligada, sem regra e sem payload', async () => {
-    const { client } = (await h.load('../../server/db/db')) as {
-      client: { execute: (q: string) => Promise<{ rows: Array<Record<string, unknown>> }> }
-    }
+    const client = clienteSql(await h.load('../../server/db/db'))
     const { rows } = await client.execute(
       `SELECT habilitada, regras, payload FROM flags WHERE chave = '${FLAG_ANUNCIOS}'`,
     )

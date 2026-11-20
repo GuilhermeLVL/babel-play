@@ -82,8 +82,8 @@ beforeAll(async () => {
   ;({ subscriptionsRepo: subs } = await h.load<any>('../../server/db/repositories/subscriptions'))
   await subs.upsert(asUserId('u-pro-coerente'), { plan: 'pro', status: 'active' })
 })
-afterEach(() => {
-  esquecerAdmissao()
+afterEach(async () => {
+  await esquecerAdmissao()
   configurar({})
 })
 afterAll(async () => {
@@ -131,7 +131,7 @@ describe('B0 — /stt/available e a porta da transcrição concordam', () => {
       configurar(env)
       const r = await asDuasRotas('u-pro-coerente')
       expect(r.disponivel === 200, JSON.stringify(env)).toBe(r.portaSeguiu)
-      esquecerAdmissao()
+      await esquecerAdmissao()
     }
   })
 })

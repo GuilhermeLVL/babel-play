@@ -22,6 +22,7 @@
  */
 import { z } from 'zod'
 
+import { SAIDA_DAS_ALTERNATIVAS } from '../../../src/lib/esquemasDeSaida'
 import {
   type OpcoesDaNuance,
   REGISTROS_DA_TRADUCAO,
@@ -33,7 +34,9 @@ import {
   systemDasAlternativas,
   userDasAlternativas,
 } from '../../../src/lib/traducao/promptDasAlternativas'
+import { contarRespostaInvalida } from '../../http/metricas'
 import { erroDeRota } from '../../lib/erroDeRota'
+import { ehMenor, INSTRUCAO_DE_SEGURANCA_PARA_MENORES } from '../../lib/idade'
 import { log } from '../../lib/logger'
 import { portaoDaNuvem, registrarGastoDeIa } from '../../lib/orcamentoDeIa'
 import { estimarTokens } from '../../lib/usageQuota'
@@ -42,6 +45,7 @@ import { admitirCascata, encerrarAdmissao, percorrerCascata } from '../cascata'
 import { FUNCOES_DE_IA } from '../funcoesDeIa'
 import { glossarioDoPedido } from '../glossario'
 import { type MensagemDeChat, tamanhoDoPrompt } from '../llmClient'
+import { comInstrucaoDeMenor } from '../llmRequest'
 import { cascataDoPlano } from '../niveis'
 import { aplicarNuance } from '../nuanceDaTraducao'
 import { aplicarPoliticaDeCusto } from '../politicaDeCusto'
@@ -139,14 +143,23 @@ async function sugerir(
     ...(nuance.registro ? { registro: nuance.registro } : {}),
     ...(glossario.length ? { glossario } : {}),
   }
+  /* Público menor (idade não declarada conta como menor): a instrução vai no FIM do system. */
+  const menor = await ehMenor(ctx.userId)
+  rastro.anotar({ menor })
   const messages: MensagemDeChat[] = [
-    { role: 'system', content: systemDasAlternativas(nuance.tgt, nuance.src, opcoes) },
+    {
+      role: 'system',
+      content: comInstrucaoDeMenor(
+        systemDasAlternativas(nuance.tgt, nuance.src, opcoes),
+        menor ? INSTRUCAO_DE_SEGURANCA_PARA_MENORES : undefined,
+      ),
+    },
     { role: 'user', content: userDasAlternativas(text, traducaoAtual, contexto, opcoes) },
   ]
   const maxTokens = ALTERNATIVAS.maxTokens
   const estimativa = estimarTokens(tamanhoDoPrompt(messages), maxTokens)
 
-  const custo = aplicarPoliticaDeCusto({
+  const custo = await aplicarPoliticaDeCusto({
     pernas,
     nivel,
     fracaoDoOrcamento: portao.fracaoDoOrcamento ?? 0,
@@ -155,7 +168,7 @@ async function sugerir(
   })
   if (custo.degradacao !== 'nenhuma') rastro.anotar({ degradacao: custo.degradacao })
 
-  const admitida = admitirCascata(custo.pernas, {
+  const admitida = await admitirCascata(custo.pernas, {
     userId: ctx.userId,
     plano: planoDeAdmissao(plano.plan, ctx.modo === 'alivio', ctx.emTeste),
     tokens: estimativa,
@@ -171,7 +184,13 @@ async function sugerir(
 
     const { entregue, ultimaFalha, limitadoPeloProvedor } = await percorrerCascata(
       custo.pernas,
-      { messages, temperature: ALTERNATIVAS.temperatura, maxTokens, timeoutMs: TIMEOUT_MS },
+      {
+        messages,
+        temperature: ALTERNATIVAS.temperatura,
+        maxTokens,
+        timeoutMs: TIMEOUT_MS,
+        formatoDeSaida: SAIDA_DAS_ALTERNATIVAS,
+      },
       {
         evento: 'mt_alternativas',
         route: ROTA,
@@ -203,6 +222,7 @@ async function sugerir(
 
     const lidas = lerAlternativas(entregue.texto, traducaoAtual)
     if (!lidas) {
+      contarRespostaInvalida('alternativas', entregue.model)
       log('warn', { event: 'mt_alternativas_resposta_invalida', route: ROTA, status: 502, requestId: ctx.requestId })
       return decidir(
         recusaDeErro(502, 'o modelo não devolveu outras formas utilizáveis; tente de novo', 'resposta_invalida'),
@@ -222,8 +242,11 @@ async function sugerir(
       recusar(502, { error: `falha nas outras formas: ${erroDeRota(err, { event: 'mt_alternativas_erro' })}` }),
     )
   } finally {
-    encerrarAdmissao(admitida.admissao)
-    // Todo caminho que NÃO consumiu devolve chamada e tokens.
-    await reserva?.estornar()
+    try {
+      await encerrarAdmissao(admitida.admissao)
+    } finally {
+      // Todo caminho que NÃO consumiu devolve chamada e tokens.
+      await reserva?.estornar()
+    }
   }
 }

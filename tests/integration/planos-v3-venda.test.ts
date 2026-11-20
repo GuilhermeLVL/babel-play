@@ -9,12 +9,13 @@
  *
  * Os contratos de DINHEIRO que mudam com vários planos pagos também ficam presos aqui, com o Asaas
  * simulado por URL: o plano concedido é o do VALOR pago (pagar R$ 9,90 com a intenção do Premium
- * concede o Essencial), e quem já assinou QUALQUER plano pago não ganha o teste de 14 dias.
+ * concede o Essencial), e quem já assinou QUALQUER plano pago não ganha o teste de 3 dias.
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
 import { FLAG_STT_AO_VIVO, FLAG_VENDA_PLANOS_V3, PLAN_MATRIX } from '../../src/core/planos'
+import { clienteSql } from '../harness/clienteSql'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
@@ -112,9 +113,7 @@ beforeAll(async () => {
   ;({ subscriptionsRepo: subs } = (await h.load('../../server/db/repositories/subscriptions')) as any)
   ;({ idadesRepo: idades } = (await h.load('../../server/db/repositories/idades')) as any)
   ;({ usersRepo: users } = (await h.load('../../server/db/repositories/users')) as any)
-  const { client } = (await h.load('../../server/db/db')) as {
-    client: { execute: (q: string) => Promise<{ rows: Array<Record<string, unknown>> }> }
-  }
+  const client = clienteSql(await h.load('../../server/db/db'))
   sementes = (
     await client.execute(
       `SELECT chave, habilitada, regras, atualizado_por FROM flags WHERE chave IN ('${FLAG_VENDA_PLANOS_V3}', '${FLAG_STT_AO_VIVO}')`,
@@ -306,7 +305,7 @@ describe('o webhook concede o plano do VALOR pago', () => {
   })
 })
 
-describe('o teste de 14 dias', () => {
+describe('o teste de 3 dias', () => {
   it('quem já assinou QUALQUER plano pago não ganha o teste', async () => {
     for (const plano of ['essencial', 'aovivo'] as const) {
       const id = `u-ja-${plano}`

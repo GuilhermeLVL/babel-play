@@ -1,0 +1,15 @@
+{
+  // Tipos só do spike, isolados do projeto (o tsconfig raiz exclui scripts/spikes).
+  // Gere os tipos do runtime antes: `npx wrangler types -c wrangler.jsonc` (worker-configuration.d.ts, ignorado no git).
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["worker.ts", "worker-configuration.d.ts"]
+}

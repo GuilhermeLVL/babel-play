@@ -17,7 +17,7 @@
 import type { NextFunction, Request, Response } from 'express'
 import { createRemoteJWKSet, decodeJwt, jwtVerify } from 'jose'
 
-import { asUserId, LOCAL_OWNER, type UserId } from './authContext'
+import { asUserId, donoLocal, type UserId } from './authContext'
 import { comIdentidade, ehTokenAnonimo } from './contextoDeConvidado'
 import { log } from './logger'
 
@@ -203,7 +203,7 @@ export function makeAuthMiddleware(
 ) {
   return async function authMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
     if (!authRequired()) {
-      req.userId = LOCAL_OWNER
+      req.userId = donoLocal()
       next()
       return
     }

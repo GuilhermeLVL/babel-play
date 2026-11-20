@@ -27,10 +27,13 @@ import { armazenamentoDoAmbiente } from './armazenamento'
 import { asUserId } from './authContext'
 import { log } from './logger'
 import { diretorioDeAudio, liberarArmazenamento } from './storageQuota'
+import { semTeto } from './tetoDoR2'
 
 const DIA_MS = 86_400_000
 /** Sessões por consulta. A varredura repete o lote enquanto ele vier cheio e produtivo. */
 const LOTE = 200
+/** Teto de lotes por passada (10 mil sessões): o que sobrar sai na passada seguinte. */
+const MAX_LOTES = 50
 
 export interface ResultadoDaLimpeza {
   removidos: number
@@ -56,15 +59,17 @@ export async function limparAudiosVencidos(o: {
   dias: number
   agora?: number
   store?: Armazenamento
+  maxLotes?: number
 }): Promise<ResultadoDaLimpeza> {
   const r: ResultadoDaLimpeza = { removidos: 0, bytes: 0, falhas: 0 }
   if (!(o.dias > 0)) return r
-  const store = o.store ?? armazenamentoDoAmbiente(path.resolve(diretorioDeAudio()))
+  // Sem teto: a retenção apaga e mede mesmo com o teto mensal do R2 batido (`tetoDoR2.ts`).
+  const store = o.store ?? semTeto(armazenamentoDoAmbiente(path.resolve(diretorioDeAudio())))
   const limite = (o.agora ?? Date.now()) - o.dias * DIA_MS
 
-  /* O laço termina de dois jeitos: lote incompleto (acabou) ou lote em que NADA saiu (só sobraram
-     falhas, que voltariam no mesmo lugar da fila para sempre). */
-  for (;;) {
+  /* O laço termina de três jeitos: lote incompleto (acabou), lote em que NADA saiu (só sobraram
+     falhas, que voltariam no mesmo lugar da fila para sempre) ou o teto de lotes da passada. */
+  for (let i = 0; i < (o.maxLotes ?? MAX_LOTES); i++) {
     const lote = await sessionsRepo.comAudioCriadasAntesDe(limite, LOTE)
     let saiuAlgo = false
     for (const s of lote) {
@@ -94,34 +99,4 @@ export async function limparAudiosVencidos(o: {
     log('info', { event: 'retencao_audio_ok', total: r.removidos, status: r.falhas > 0 ? 207 : 200 })
   }
   return r
-}
-
-/**
- * Liga a limpeza diária. Devolve como desligar (o teste usa; o servidor não precisa).
- *
- * Mesmo padrão do snapshot diário (`server/operacao/snapshot.ts`): dentro do processo que prepara
- * os dados (o primário, no cluster — N processos fariam N varreduras), temporizadores com `unref()`
- * para a limpeza nunca ser o motivo de o processo não sair num SIGTERM. A primeira passada roda
- * alguns minutos depois do boot, e não no boot: subir é o momento em que o banco mais trabalha.
- */
-export function agendarLimpezaDeAudio(o: { dias: number; atrasoInicialMs?: number; intervaloMs?: number }): () => void {
-  if (!(o.dias > 0)) return () => {}
-  let relogio: NodeJS.Timeout | undefined
-  const rodar = async () => {
-    try {
-      await limparAudiosVencidos({ dias: o.dias })
-    } catch (err) {
-      log('error', { event: 'retencao_audio_erro', error: String((err as Error)?.message ?? err).slice(0, 300) })
-    }
-  }
-  const armar = (ms: number) => {
-    relogio = setTimeout(() => {
-      void rodar().finally(() => armar(o.intervaloMs ?? DIA_MS))
-    }, ms)
-    relogio.unref?.()
-  }
-  armar(o.atrasoInicialMs ?? 5 * 60_000)
-  return () => {
-    if (relogio) clearTimeout(relogio)
-  }
 }

@@ -7,7 +7,7 @@ import { randomUUID } from 'node:crypto'
 import { and, eq, inArray, lt, sql } from 'drizzle-orm'
 
 import type { UserId } from '../../lib/authContext'
-import { db } from '../db'
+import { db, linhasAfetadas } from '../db'
 import { usageCounters } from '../schema'
 
 export const usageCountersRepo = {
@@ -99,7 +99,7 @@ export const usageCountersRepo = {
         // teto (count 99 + 60 segundos passaria por 99 < 100).
         setWhere: sql`${usageCounters.count} <= ${cap - by}`,
       })
-    return r.rowsAffected > 0
+    return linhasAfetadas(r) > 0
   },
 
   /**
@@ -141,7 +141,7 @@ export const usageCountersRepo = {
   async refund(userId: UserId, metric: string, window: string, by = 1): Promise<void> {
     await db
       .update(usageCounters)
-      .set({ count: sql`max(0, ${usageCounters.count} - ${by})`, updatedAt: Date.now() })
+      .set({ count: sql`GREATEST(0, ${usageCounters.count} - ${by})`, updatedAt: Date.now() })
       .where(and(eq(usageCounters.userId, userId), eq(usageCounters.metric, metric), eq(usageCounters.window, window)))
   },
 }

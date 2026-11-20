@@ -90,6 +90,8 @@ describe('adulto compra um item da vitrine', () => {
       CATALOGO_DA_LOJA.find((i) => i.exclusivoDe)!,
       CATALOGO_DA_LOJA.find((i) => i.origemTemporada)!,
       CATALOGO_DA_LOJA.find((i) => i.precoSeeds !== undefined)!,
+      // M6: peças do avatar são Seeds; com dinheiro (Créditos) não se compra nenhuma.
+      ...CATALOGO_DA_LOJA.filter((i) => i.tipo === 'avatar'),
     ].map((i) => `premium:${i.id}`)
     for (const [n, reason] of [...fora, 'premium:dourada-1', 'bau', 'seeds:100'].entries()) {
       const r = await gastar('lc-adulto', { spendId: `lc-fora-000${n}`, amount: 150, reason })
@@ -104,6 +106,16 @@ describe('perfil protegido não compra com Créditos (403 no servidor)', () => {
     await declarar('lc-menor', 15)
     await darCreditos('lc-menor', 300)
     const r = await gastar('lc-menor', { spendId: 'lc-menor-0001', amount: ITEM.precoCreditos, reason: `premium:${ITEM.id}` })
+    expect(r.status).toBe(403)
+    expect(r.body.code).toBe('menor_nao_compra')
+    expect(await saldo('lc-menor')).toBe(300)
+    expect(await creditsRepo.itensPremium(asUserId('lc-menor'))).toEqual([])
+  })
+
+  it('M6: o menor também não compra peça de avatar com Créditos (403, nada debitado)', async () => {
+    const peca = CATALOGO_DA_LOJA.find((i) => i.tipo === 'avatar')!
+    expect(peca).toBeDefined()
+    const r = await gastar('lc-menor', { spendId: 'lc-menor-avatar', amount: 100, reason: `premium:${peca.id}` })
     expect(r.status).toBe(403)
     expect(r.body.code).toBe('menor_nao_compra')
     expect(await saldo('lc-menor')).toBe(300)

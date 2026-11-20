@@ -1,12 +1,13 @@
 import { sql } from 'drizzle-orm'
 import type { Request, Response } from 'express'
 
-import { db } from '../db/db'
+import { bancoEmbutido, db } from '../db/db'
 import { migracoesAplicadas } from '../db/manutencao'
 import { contarDependenciaDegradada } from '../http/metricas'
-import { armazenamentoDoAmbiente, configDoS3 } from '../lib/armazenamento'
+import { armazenamentoDoAmbiente, armazenamentoExterno } from '../lib/armazenamento'
 import { bootStatus } from '../lib/bootStatus'
 import { log } from '../lib/logger'
+import { ehWorker } from '../lib/runtime'
 import { versaoDoApp } from '../lib/versao'
 
 /**
@@ -24,7 +25,14 @@ import { versaoDoApp } from '../lib/versao'
  * A ÚNICA ADIÇÃO depois disso é `versao` (P0-7b, auditoria de prontidão): um campo novo, sem mudar
  * nenhum dos existentes — o `HEALTHCHECK` e o `uptime.yml` leem o status HTTP e ignoram o resto.
  * Serve para quem opera confirmar, pelo domínio público, qual build está no ar depois de um deploy.
+ *
+ * E `banco: 'pglite' | 'postgres'` (Fase 1 da migração para o Postgres): o TIPO do banco, nunca a URL.
+ * Substitui o que se conferia no SQLite pelo `journal_mode`; diz se o processo subiu no PGlite
+ * embutido (uma máquina só) ou num Postgres de verdade.
  */
+/* Na chamada, não no import (Fase 2, boot preguiçoso): o tipo depende da `DATABASE_URL`. */
+const tipoDeBanco = (): 'pglite' | 'postgres' => (bancoEmbutido() ? 'pglite' : 'postgres')
+
 export async function healthHandler(_req: Request, res: Response): Promise<void> {
   const boot = await bootStatus()
   const bootPayload = boot.ok
@@ -36,12 +44,19 @@ export async function healthHandler(_req: Request, res: Response): Promise<void>
     // re-auditoria: com a tabela `sessions` ausente, toda escrita devolvia 400 e o health
     // respondia 200 — o orquestrador manteria a réplica quebrada no balanceador.
     // Sondar uma tabela real custa o mesmo e detecta o caso.
-    await db.run(sql`SELECT 1 FROM sessions LIMIT 1`)
+    await db.execute(sql`SELECT 1 FROM sessions LIMIT 1`)
     if (!boot.ok) {
-      res.status(503).json({ status: 'degraded', db: 'up', ...bootPayload, versao: versaoDoApp(), at: Date.now() })
+      res.status(503).json({
+        status: 'degraded',
+        db: 'up',
+        banco: tipoDeBanco(),
+        ...bootPayload,
+        versao: versaoDoApp(),
+        at: Date.now(),
+      })
       return
     }
-    res.json({ status: 'ok', db: 'up', ...bootPayload, versao: versaoDoApp(), at: Date.now() })
+    res.json({ status: 'ok', db: 'up', banco: tipoDeBanco(), ...bootPayload, versao: versaoDoApp(), at: Date.now() })
   } catch (err) {
     // Detalhe do erro só no log do servidor — a resposta não vaza caminho/driver do banco.
     // `db: 'down'` cobre os dois casos (inacessível e schema quebrado); distinguir na
@@ -54,7 +69,9 @@ export async function healthHandler(_req: Request, res: Response): Promise<void>
       status: 503,
       error: String(err).slice(0, 300),
     })
-    res.status(503).json({ status: 'degraded', db: 'down', ...bootPayload, versao: versaoDoApp() })
+    res
+      .status(503)
+      .json({ status: 'degraded', db: 'down', banco: tipoDeBanco(), ...bootPayload, versao: versaoDoApp() })
   }
 }
 
@@ -89,7 +106,7 @@ export async function healthHandler(_req: Request, res: Response): Promise<void>
  *   boot           — um passo de boot falho já degrada o `health`; aqui ele também impede o ready,
  *                    porque `backfill-tenancy` incompleto significa servir dados incompletos.
  *   armazenamento  — SÓ quando há S3/R2 configurado, e ele NÃO REPROVA (ADR 0009). Com uma máquina
- *                    só, o R2 fora do ar tirava o serviço INTEIRO do roteamento do Fly — "o áudio
+ *                    só, o R2 fora do ar tirava o serviço INTEIRO do roteamento — "o áudio
  *                    não grava" virava "o site caiu". É dependência degradável, como a IA: o upload
  *                    responde 503 sozinho e o resto do app segue. O ready continua 200, o corpo diz
  *                    `status: 'degradado'` + `armazenamento: 'indisponivel'`, e o operador fica
@@ -116,7 +133,7 @@ export async function healthHandler(_req: Request, res: Response): Promise<void>
  * `VALIDADE_DO_VEREDICTO_MS` limita as sondas a uma por janela, venha quantas chamadas vierem, e o
  * `emVoo` junta as chamadas simultâneas numa sonda só.
  *
- * 5 s não muda nada para quem decide: o Fly sonda a cada 15 s (`fly.toml`), então toda sonda
+ * 5 s não muda nada para quem decide: um orquestrador sonda a cada ~15 s, então toda sonda
  * dele continua vendo um veredicto novo. Não é rate limit por IP de propósito: atrás de proxy sem
  * `TRUST_PROXY` todo mundo divide um balde, e um 429 aqui TIRARIA a máquina do balanceador.
  */
@@ -139,10 +156,15 @@ export function esquecerVereditoDeProntidao(): void {
 
 export async function readyHandler(_req: Request, res: Response): Promise<void> {
   if (!guardado || guardado.ate <= Date.now()) {
-    emVoo ??= avaliarProntidao().finally(() => {
-      emVoo = null
-    })
-    guardado = await emVoo
+    /* No Worker, o `emVoo` não é dividido: uma promessa criada numa requisição não pode ser esperada por
+       outra (o workerd não a resolve entre requisições). Cada uma avalia; o veredicto guardado vale igual. */
+    if (ehWorker()) guardado = await avaliarProntidao()
+    else {
+      emVoo ??= avaliarProntidao().finally(() => {
+        emVoo = null
+      })
+      guardado = await emVoo
+    }
   }
   res.status(guardado.codigo).json(guardado.corpo)
 }
@@ -159,7 +181,7 @@ async function avaliarProntidao(): Promise<Veredicto> {
        do `healthHandler` acima.
        Tabela REAL e não `SELECT 1` puro: medido em P1-N2, `SELECT 1` passa com o schema inteiro
        faltando, e a probe manteria no balanceador uma réplica que devolve 400 em toda escrita. */
-    await db.run(sql`SELECT 1 FROM sessions LIMIT 1`)
+    await db.execute(sql`SELECT 1 FROM sessions LIMIT 1`)
     banco = 'up'
   } catch (err) {
     log('error', { event: 'ready_db_indisponivel', route: '/api/ready', status: 503, error: String(err).slice(0, 300) })
@@ -170,16 +192,16 @@ async function avaliarProntidao(): Promise<Veredicto> {
   const migracoes = banco === 'up' ? await migracoesAplicadas() : 'desconhecida'
 
   let armazenamento: 'nao-configurado' | 'ok' | 'indisponivel' = 'nao-configurado'
-  if (configDoS3()) {
+  if (armazenamentoExterno()) {
     try {
-      /* O diretório passado é irrelevante e não é usado: com S3 configurado, `armazenamentoDoAmbiente`
-         nunca cai no ramo de arquivos. Passá-lo mesmo assim evita duplicar aqui a montagem do
+      /* O diretório passado é irrelevante e não é usado: com o binding R2 ou o S3 configurado,
+         `armazenamentoDoAmbiente` nunca cai no ramo de arquivos. Passá-lo mesmo assim evita duplicar aqui a montagem do
          cliente S3 — a regra de qual armazenamento vale mora num lugar só. */
       await armazenamentoDoAmbiente('').sondar()
       armazenamento = 'ok'
     } catch (err) {
       /* `warn` e não `error`: é degradação PREVISTA, com resposta própria na rota de upload — não
-         é queda. Um `error` aqui iria ao Sentry a cada sonda do Fly (a cada poucos segundos). */
+         é queda. Um `error` aqui iria ao Sentry a cada sonda de saúde (a cada poucos segundos). */
       log('warn', {
         event: 'ready_armazenamento_indisponivel',
         route: '/api/ready',

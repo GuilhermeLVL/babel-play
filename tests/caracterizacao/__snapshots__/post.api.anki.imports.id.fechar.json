@@ -1,0 +1,16 @@
+{
+  "status": 200,
+  "forma": {
+    "deckId": "string",
+    "importId": "string",
+    "resumo": {
+      "ativadas": "number",
+      "atualizadas": "number",
+      "descartadas": "number",
+      "iguais": "number",
+      "notas": "number",
+      "novas": "number",
+      "porMotivo": {}
+    }
+  }
+}

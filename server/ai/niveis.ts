@@ -53,6 +53,17 @@ export const IA_NIVEIS: Readonly<Record<FuncaoDeIa, NiveisDaFuncao>> = {
   /* "Polir a sessão" (D5): blocos inteiros, sem pressa de legenda — o nível mais alto da escada. Como
      as "Outras formas", a rota recusa (402) quem não tem a capacidade. */
   polimento: { semNuance: 'rapida', comNuance: 'polimento' },
+  /* A IA de estudo (planos v4, etapa 2): segue o tutor, com quem divide os modelos. O Grátis (a amostra) recebe a
+     rápida; quem paga, a nuance — como no tutor. */
+  explicacao: { semNuance: 'rapida', comNuance: 'nuance' },
+  resumo: { semNuance: 'rapida', comNuance: 'nuance' },
+  /* O assistente ao vivo (spec `docs/specs/2026-10-25-assistente-ao-vivo.md`): o MAIS BARATO que não piora a experiência
+     — a rápida para todo plano. O recurso que precisa de outro nível o pede no núcleo
+     (`NIVEL_DO_RECURSO` em `server/ai/nucleo/assistenteAoVivo.ts`), sempre pelo `rebaixarNivel`. */
+  assistente: { semNuance: 'rapida', comNuance: 'rapida' },
+  /* O parceiro de leitura (L4 de Livros & Leitura): a rápida para todo plano, até a bancada com o modelo de produção
+     (`scripts/eval-ia/parceiro.mjs`) dizer que algum modo precisa da nuance. */
+  leitura: { semNuance: 'rapida', comNuance: 'rapida' },
 }
 
 /** O nível que a função entrega a este plano — pela capacidade `traducaoNuance`. */

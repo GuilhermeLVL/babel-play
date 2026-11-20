@@ -89,18 +89,18 @@ const selo = () => screen.getByTestId('selo-da-fala')
 describe('o selo da fala no diálogo "Modelo no dispositivo"', () => {
   it('antes da primeira fala, diz o previsto sem afirmar; o rótulo técnico fica só no title', () => {
     render(<Dialogo falas={[]} />)
-    expect(selo().textContent).toContain('Vai pela Nuvem do Babel · o áudio vai para o nosso servidor')
+    expect(selo().textContent).toContain('Vai pela Nuvem do Frasy · o áudio vai para o nosso servidor')
     expect(selo().textContent).not.toContain('large-v3-turbo')
     const title = selo().getAttribute('title') ?? ''
     expect(title).toContain(ROTULO_TECNICO)
-    expect(title.indexOf('Vai pela Nuvem do Babel')).toBeLessThan(title.indexOf(ROTULO_TECNICO))
+    expect(title.indexOf('Vai pela Nuvem do Frasy')).toBeLessThan(title.indexOf(ROTULO_TECNICO))
   })
 
   it('o selo TROCA quando o motor da última fala muda', () => {
     const { rerender } = render(<Dialogo falas={[]} />)
 
     rerender(<Dialogo falas={[{ source: 'system', engine: 'groq-whisper' }]} />)
-    expect(selo().textContent).toContain('Nuvem do Babel · o áudio vai para o nosso servidor')
+    expect(selo().textContent).toContain('Nuvem do Frasy · o áudio vai para o nosso servidor')
     expect(selo().textContent).not.toContain('Vai pela')
 
     // A nuvem caiu e o modelo local atendeu a fala seguinte.
@@ -126,7 +126,7 @@ describe('o selo da fala no diálogo "Modelo no dispositivo"', () => {
         ]}
       />,
     )
-    expect(selo().textContent).toContain('Nuvem do Babel · o áudio vai para o nosso servidor')
+    expect(selo().textContent).toContain('Nuvem do Frasy · o áudio vai para o nosso servidor')
   })
 
   it('o leitor de tela lê a frase clara e o motivo, nunca o rótulo técnico', () => {

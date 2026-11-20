@@ -25,6 +25,7 @@ import { NonRealTimeVAD } from '@ricky0123/vad-web';
 
 import { ortDoVadNumaThread } from '../lib/dispositivo/orcamentoDeThreads';
 import { WhisperLocalStt } from './adapters/whisperLocal';
+import { baseDoWasm } from './baseDoWasm';
 import type { SttFinal } from './capabilities';
 import { cortarPrompt } from './promptDeStt';
 import { modeloLocalDaImportacao } from './sttRouter';
@@ -166,13 +167,15 @@ export async function offlineTranscribe(blob: Blob, opts: OfflineOptions = {}): 
   onProgress?.({ phase: 'decode', progress: 1 });
 
   // 2) VAD em batch — assets locais (mesma origem servida em /public que a captura usa).
+  // Fora do `try` abaixo: `VITE_ORT_WASM_URL` inválida é erro de configuração, não "usa default".
+  const wasmPaths = baseDoWasm();
   const vad = await NonRealTimeVAD.new({
     modelURL: '/silero_vad_legacy.onnx',
     ortConfig: (ort: any) => {
       // 1 thread, como o VAD ao vivo: roda na thread principal (ver `ortDoVadNumaThread`).
       ortDoVadNumaThread(ort);
       try {
-        ort.env.wasm.wasmPaths = '/';
+        ort.env.wasm.wasmPaths = wasmPaths;
       } catch {
         /* usa default */
       }

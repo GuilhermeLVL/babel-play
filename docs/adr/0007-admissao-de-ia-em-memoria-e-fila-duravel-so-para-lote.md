@@ -9,6 +9,17 @@
 > paga e o self-host), depois `gratis` (Grátis, convidado e o teste de 14 dias), e `alivio` (a nuvem de alívio do
 > Grátis, que não alcança os 80 % de baixo do balde). A decisão não mudou; a fila durável do lote continua aberta.
 
+> **Substituído em parte (19/10/2026, Fase 2 da migração para Cloudflare, tarefa 8):** o "em memória" deste ADR
+> caiu. Num Worker cada isolate teria o próprio balde e a soma passaria do limite da conta; os baldes (pedidos e
+> tokens, por minuto e por dia), o bloqueio do 429 e as vagas em voo por usuário moram agora na tabela
+> `admissao_de_ia` (migração `0005`, `server/db/repositories/admissaoDeIa.ts`), reservados numa instrução atômica
+> (`INSERT … ON CONFLICT DO UPDATE … WHERE usado + custo <= teto`), sem Durable Object
+> (`docs/specs/2026-10-19-migracao-cloudflare.md`). O minuto segue **token bucket contínuo**, com o reabastecimento
+> calculado na própria instrução (`usado` e `atualizado_em` por balde); o dia segue janela fixa UTC. Na memória fica
+> só um cache de recusa de até 1 s por instância, conferido antes até da vaga em voo. Vaga em voo parada além do
+> prazo do tipo (STT e voz 2 min, LLM 5 min) é ignorada (isolate que caiu). O 429 do provedor fecha o balde até o
+> `Retry-After` mas não zera mais o saldo. Prioridade por plano, `Retry-After` e o resto da decisão continuam valendo.
+
 ## Contexto
 
 Toda chamada de IA é síncrona dentro do request, sem fila (`server/ai/sttProxy.ts`, `mtProxy.ts`). A conta Groq

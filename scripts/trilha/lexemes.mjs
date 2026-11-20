@@ -38,7 +38,7 @@ async function sparql(query, arquivo) {
   if (existsSync(caminho)) return readFileSync(caminho, 'utf8')
   const url = `${ENDPOINT}?query=${encodeURIComponent(query)}`
   const r = await fetch(url, {
-    headers: { Accept: 'text/csv', 'User-Agent': 'BabelPlay/1.0 (trilha educacional)' },
+    headers: { Accept: 'text/csv', 'User-Agent': 'Frasy/1.0 (trilha educacional)' },
   })
   if (!r.ok) throw new Error(`SPARQL ${r.status}: ${arquivo}`)
   const csv = await r.text()

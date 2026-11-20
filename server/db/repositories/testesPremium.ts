@@ -1,19 +1,20 @@
 /**
- * O TESTE DE 14 DIAS DO PREMIUM E A MARCA QUE IMPEDE REPETI-LO (C6, migração 0043).
+ * O TESTE DE 3 DIAS DO PREMIUM E A MARCA QUE IMPEDE REPETI-LO (C6, migração 0043).
  *
  * Dois escritos que precisam andar JUNTOS: a marca do e-mail (`marcas_de_teste`) e o teste da conta
  * (`testes_premium`). Marca sem teste gastaria o teste de alguém sem dar nada; teste sem marca deixaria
  * apagar a conta e recomeçar. Por isso o início é uma TRANSAÇÃO — uma das poucas do projeto, e cabe
  * aqui: é lógica condicional (a marca já existe?) num caminho frio, um toque por pessoa na vida da
- * conta (`db.ts` explica por que o caminho quente usa `batch`).
+ * conta.
  *
  * A MARCA É A TRAVA: o INSERT com a PK da marca e `DO NOTHING` decide e grava numa instrução — duas
  * contas com o mesmo e-mail tocando ao mesmo tempo, só uma ganha.
  */
 import { eq, lt } from 'drizzle-orm'
 
+import type { PlanoPago } from '../../../src/core/planos'
 import type { UserId } from '../../lib/authContext'
-import { db, emTransacao } from '../db'
+import { db, emTransacao, linhasAfetadas, travarUsuario } from '../db'
 import { marcasDeTeste, testesPremium } from '../schema'
 
 export type TestePremium = typeof testesPremium.$inferSelect
@@ -41,17 +42,29 @@ export const testesPremiumRepo = {
     return rows.length > 0
   },
 
-  /** Começa o teste: a marca e o teste da conta, os dois ou nenhum. */
-  async iniciar(userId: UserId, marca: string, inicio: number, fim: number): Promise<InicioDoTeste> {
+  /**
+   * Começa o teste: a marca e o teste da conta, os dois ou nenhum. `plano` é o plano do teste avaliado AGORA
+   * (`planoDoTeste`), gravado para valer até o fim; ausente = `null` (lido como Premium).
+   */
+  async iniciar(
+    userId: UserId,
+    marca: string,
+    inicio: number,
+    fim: number,
+    plano: PlanoPago | null = null,
+  ): Promise<InicioDoTeste> {
     return emTransacao(async (tx) => {
+      /* Trava do usuário: dois toques simultâneos da MESMA conta não passam os dois pelo "já existe?"
+         (o segundo veria a marca do primeiro e responderia `marca_usada` em vez de `ja_existia`). */
+      await travarUsuario(tx, userId)
       const existente = await tx.select().from(testesPremium).where(eq(testesPremium.userId, userId)).limit(1)
       if (existente[0]) return { tipo: 'ja_existia', teste: existente[0] }
       const marcou = await tx
         .insert(marcasDeTeste)
         .values({ marca, criadoEm: inicio })
         .onConflictDoNothing({ target: marcasDeTeste.marca })
-      if (marcou.rowsAffected === 0) return { tipo: 'marca_usada' }
-      const teste = { userId, iniciadoEm: inicio, terminaEm: fim }
+      if (linhasAfetadas(marcou) === 0) return { tipo: 'marca_usada' }
+      const teste = { userId, iniciadoEm: inicio, terminaEm: fim, plano }
       await tx.insert(testesPremium).values(teste)
       return { tipo: 'iniciado', teste }
     })
@@ -60,6 +73,6 @@ export const testesPremiumRepo = {
   /** A retenção da marca: apaga as criadas antes de `antesDe`. Devolve quantas saíram. */
   async podarMarcas(antesDe: number): Promise<number> {
     const r = await db.delete(marcasDeTeste).where(lt(marcasDeTeste.criadoEm, antesDe))
-    return r.rowsAffected
+    return linhasAfetadas(r)
   },
 }

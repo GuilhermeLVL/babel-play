@@ -1,6 +1,6 @@
 # corpus-anki — medição do gate G2
 
-Ferramentas para medir baralhos Anki REAIS contra o importador (`server/import/anki.ts`), a régua
+Ferramentas para medir baralhos Anki REAIS contra o importador (`src/core/anki` e `src/lib/anki/lerApkg.ts`), a régua
 de qualidade (`src/core/learning/quality.ts`) e a elegibilidade de minigames
 (`src/core/minigames/types.ts`). Existe para responder, com número, as perguntas do gate G2:
 quantas notas, quanto tempo, quanta memória, quantas passam na régua, quantas alimentam cada jogo.
@@ -21,15 +21,15 @@ diretório inexistente sai com código 1; um diretório vazio sai com código 0 
 
 ## O que cada coluna da tabela significa
 
-| coluna | significado |
-|---|---|
-| `arquivo` | nome do arquivo (truncado a 32 chars) |
-| `notas` | notas lidas do baralho (antes da régua) |
-| `aprov.` | quantas passam em `avaliarCartao` (a régua de qualidade do app) |
-| `%` | `aprov. / notas` |
-| `jogos` | quantos dos 9 minigames (`MINIGAMES` em `types.ts`) têm material suficiente |
-| `ms` | tempo de leitura (`lerApkg`/`lerTextoAnki`), em milissegundos |
-| `MB` | pico de `process.memoryUsage().rss` amostrado durante a leitura |
+| coluna    | significado                                                                 |
+| --------- | --------------------------------------------------------------------------- |
+| `arquivo` | nome do arquivo (truncado a 32 chars)                                       |
+| `notas`   | notas lidas do baralho (antes da régua)                                     |
+| `aprov.`  | quantas passam em `avaliarCartao` (a régua de qualidade do app)             |
+| `%`       | `aprov. / notas`                                                            |
+| `jogos`   | quantos dos 9 minigames (`MINIGAMES` em `types.ts`) têm material suficiente |
+| `ms`      | tempo de leitura (`lerApkg`/`lerTextoAnki`), em milissegundos               |
+| `MB`      | pico de `process.memoryUsage().rss` amostrado durante a leitura             |
 
 O JSON de saída (`--saida`) carrega tudo isso mais: `formatoInterno` (qual `collection.anki2/21/
 21b` o baralho usa), `campos` (nomes dos campos do baralho), `temMidia`, o histograma de descarte

@@ -1,9 +1,9 @@
-import { Headphones, Mic, Plus, Volume2,Zap } from 'lucide-react';
-import React, { useCallback,useEffect, useState } from 'react';
+import { Headphones, Mic, Plus, Volume2, Zap } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
 
-import { type ExerciseId,seedFromSelection } from '../lib/sentences';
+import { type ExerciseId, seedFromSelection } from '../lib/sentences';
 import { resolveSpokenLang } from '../lib/spokenLang';
-import { speak as ttsSpeak } from '../lib/tts';
+import { zoomDoCorpo } from '../lib/zoomDoCorpo';
 
 /**
  * MENU DE PRÁTICA — selecione qualquer texto, em qualquer tela, e clique com o botão direito.
@@ -56,8 +56,12 @@ export default function PracticeMenu({ onChangeView, sessionId, studyLang = '' }
       e.preventDefault();
 
       // Mantém o menu dentro da viewport (mesma matemática do popover do Analysis).
-      const x = Math.min(Math.max(8, e.clientX), window.innerWidth - MENU_W - 8);
-      const y = e.clientY + MENU_H > window.innerHeight ? Math.max(8, e.clientY - MENU_H) : e.clientY;
+      // Tudo em px do body (onde vale o zoom do tamanho do texto): a janela e o ponteiro são divididos por ele.
+      const z = zoomDoCorpo();
+      const cx = e.clientX / z;
+      const cy = e.clientY / z;
+      const x = Math.min(Math.max(8, cx), window.innerWidth / z - MENU_W - 8);
+      const y = cy + MENU_H > window.innerHeight / z ? Math.max(8, cy - MENU_H) : cy;
 
       setMenu({ x, y, text });
     };
@@ -108,10 +112,12 @@ export default function PracticeMenu({ onChangeView, sessionId, studyLang = '' }
   const listen = async () => {
     const text = menu.text;
     close();
-    const spoken = await resolveSpokenLang(text, studyLang);
+    /* O motor de voz vem sob demanda, junto com a detecção do idioma (que já era assíncrona): estático, ele
+       entrava no JS inicial por este menu (orçamento do bundle). */
+    const [spoken, { speak }] = await Promise.all([resolveSpokenLang(text, studyLang), import('../lib/tts')]);
     // `bcp47` já é string ('' quando o idioma não foi resolvido); o motor trata '' e undefined
     // do mesmo jeito, e o `|| undefined` era resquício de quando `lang` era opcional.
-    ttsSpeak(text, { lang: spoken.bcp47 });
+    speak(text, { lang: spoken.bcp47 });
   };
 
   const preview = menu.text.length > 52 ? menu.text.slice(0, 52) + '…' : menu.text;

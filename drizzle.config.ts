@@ -1,13 +1,12 @@
-import 'dotenv/config';
-import { defineConfig } from 'drizzle-kit';
+import 'dotenv/config'
+import { defineConfig } from 'drizzle-kit'
 
-// Dialeto SQLite agora; portável a Postgres/Supabase trocando `dialect` + driver.
-// Só tipos de coluna portáveis no schema (ver server/db/schema.ts).
+// Postgres: `generate` não conecta; a URL só serve a `push`/`studio`.
 export default defineConfig({
   schema: './server/db/schema.ts',
-  out: './server/db/migrations',
-  dialect: 'sqlite',
+  out: './server/db/migrations-pg',
+  dialect: 'postgresql',
   dbCredentials: {
-    url: (process.env.DATABASE_URL ?? 'file:./data/babel.db').replace(/^file:/, ''),
+    url: process.env.DATABASE_URL ?? 'postgres://localhost/babel',
   },
-});
+})

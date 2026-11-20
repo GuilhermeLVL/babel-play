@@ -1,0 +1,1590 @@
+{
+  "versao": 1,
+  "nota": "Conjunto de ouro do elenco (M5). Passagens ORIGINAIS, escritas para este teste (nenhum trecho protegido). `falante`: \"narrador\" ou o nome da ficha. `pistaFalante`/`pistaEmocao`: explicita (há pista no próprio texto), implicita (só o contexto/alternância), ambigua (um leitor também hesitaria), fraca (emoção só sugerida). Os pisos de regressão medem a pista explicita; as demais são informativas.",
+  "passagens": [
+    {
+      "id": "pt-01",
+      "idioma": "pt",
+      "tema": "travessão alternado",
+      "personagens": ["Marta", "Caio"],
+      "frases": [
+        {
+          "texto": "Marta abriu o portão e encontrou Caio sentado na calçada.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "narração com dois nomes"
+        },
+        {
+          "texto": "— Você demorou — disse Marta.",
+          "falante": "Marta",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "marca depois do travessão"
+        },
+        {
+          "texto": "— O ônibus quebrou no meio do caminho.",
+          "falante": "Caio",
+          "emocao": "neutro",
+          "pistaFalante": "implicita",
+          "pistaEmocao": "explicita",
+          "nota": "sem marca: alternância"
+        },
+        {
+          "texto": "— De novo?",
+          "falante": "Marta",
+          "emocao": "neutro",
+          "pistaFalante": "implicita",
+          "pistaEmocao": "explicita",
+          "nota": "alternância"
+        },
+        {
+          "texto": "— De novo. Vim andando os últimos três quilômetros.",
+          "falante": "Caio",
+          "emocao": "neutro",
+          "pistaFalante": "implicita",
+          "pistaEmocao": "explicita",
+          "nota": "alternância"
+        }
+      ]
+    },
+    {
+      "id": "pt-02",
+      "idioma": "pt",
+      "tema": "aspas com verbo de fala",
+      "personagens": ["Helena", "Otávio"],
+      "frases": [
+        {
+          "texto": "Helena entregou o envelope ao irmão sem dizer nada.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"Abra só depois do jantar\", pediu Helena.",
+          "falante": "Helena",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "aspas retas + verbo + nome"
+        },
+        {
+          "texto": "Otávio guardou o envelope no bolso do casaco.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"Prometo\", respondeu ele.",
+          "falante": "Otávio",
+          "emocao": "neutro",
+          "pistaFalante": "ambigua",
+          "pistaEmocao": "explicita",
+          "nota": "pronome: só o contexto diz quem"
+        }
+      ]
+    },
+    {
+      "id": "pt-03",
+      "idioma": "pt",
+      "tema": "fala indireta",
+      "personagens": ["Rui"],
+      "frases": [
+        {
+          "texto": "Rui disse que chegaria tarde por causa da reunião.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "indireta é narração"
+        },
+        {
+          "texto": "Perguntou se alguém podia guardar o jantar dele.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "A mãe respondeu que sim, mas pediu que ele avisasse.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "Ele prometeu avisar assim que saísse.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "pt-04",
+      "idioma": "pt",
+      "tema": "narrador puro",
+      "personagens": [],
+      "frases": [
+        {
+          "texto": "A chuva começou ao entardecer e não parou durante toda a noite.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "As ruas ficaram desertas, e as janelas, uma a uma, acenderam-se.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "No fim da rua, um cachorro velho procurava abrigo debaixo de uma marquise.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "Quando amanheceu, o céu estava limpo e a cidade cheirava a terra molhada.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "pt-05",
+      "idioma": "pt",
+      "tema": "grito",
+      "personagens": ["Lúcia", "Bento"],
+      "frases": [
+        {
+          "texto": "Bento viu a panela no chão e a sopa espalhada pela cozinha inteira.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"QUEM DEIXOU A PANELA AÍ?!\", gritou Bento.",
+          "falante": "Bento",
+          "emocao": "bravo",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "caixa alta + verbo de grito"
+        },
+        {
+          "texto": "\"Fui eu, desculpe\", disse Lúcia, com a voz fraca.",
+          "falante": "Lúcia",
+          "emocao": "triste",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "fraca",
+          "nota": "só a marca sugere tristeza"
+        },
+        {
+          "texto": "Lúcia limpou o chão em silêncio.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "pt-06",
+      "idioma": "pt",
+      "tema": "sussurro",
+      "personagens": ["Dona Irene", "Davi"],
+      "frases": [
+        {
+          "texto": "Davi encostou a boca no ouvido da avó.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"A senhora está ouvindo esse barulho?\", sussurrou Davi.",
+          "falante": "Davi",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "ambigua",
+          "nota": "sussurro de medo: não é calmo"
+        },
+        {
+          "texto": "\"Calma, respire devagar\", respondeu Dona Irene num sussurro.",
+          "falante": "Dona Irene",
+          "emocao": "relaxado",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "calma + devagar"
+        },
+        {
+          "texto": "Davi respirou fundo e fechou os olhos.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "pt-07",
+      "idioma": "pt",
+      "tema": "ironia ambígua",
+      "personagens": ["Paula", "Tiago"],
+      "frases": [
+        {
+          "texto": "Tiago derrubou o café sobre o relatório que Paula tinha acabado de imprimir.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"Que ótimo, simplesmente perfeito\", disse Paula.",
+          "falante": "Paula",
+          "emocao": "bravo",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "ambigua",
+          "nota": "ironia: palavras alegres, emoção brava"
+        },
+        {
+          "texto": "\"Eu limpo tudo agora mesmo\", respondeu Tiago, encolhido.",
+          "falante": "Tiago",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "ambigua",
+          "nota": "tenso, mas sem pista clara"
+        },
+        {
+          "texto": "Paula suspirou e foi buscar papel.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "pt-08",
+      "idioma": "pt",
+      "tema": "três personagens",
+      "personagens": ["Nina", "Ícaro", "Vó Cecília"],
+      "frases": [
+        {
+          "texto": "Nina, Ícaro e a avó esperavam o bolo esfriar.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"Está com um cheiro maravilhoso!\", exclamou Ícaro.",
+          "falante": "Ícaro",
+          "emocao": "feliz",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "maravilhoso + exclamação"
+        },
+        {
+          "texto": "\"Ainda não está pronto\", avisou Vó Cecília.",
+          "falante": "Vó Cecília",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"Eu só quero uma fatia pequena\", disse Nina.",
+          "falante": "Nina",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "Ícaro riu.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"Pequena nada! Pegue duas\", insistiu a avó.",
+          "falante": "Vó Cecília",
+          "emocao": "feliz",
+          "pistaFalante": "ambigua",
+          "pistaEmocao": "fraca",
+          "nota": "a avó = Vó Cecília: exige entender o epíteto"
+        }
+      ]
+    },
+    {
+      "id": "pt-09",
+      "idioma": "pt",
+      "tema": "pronome sem nome",
+      "personagens": ["Sérgio", "Clara"],
+      "frases": [
+        {
+          "texto": "Sérgio e Clara chegaram juntos à estação.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"O trem já saiu\", disse ele.",
+          "falante": "Sérgio",
+          "emocao": "neutro",
+          "pistaFalante": "ambigua",
+          "pistaEmocao": "explicita",
+          "nota": "pronome"
+        },
+        {
+          "texto": "\"Então vamos esperar o próximo\", respondeu ela.",
+          "falante": "Clara",
+          "emocao": "neutro",
+          "pistaFalante": "ambigua",
+          "pistaEmocao": "explicita",
+          "nota": "pronome"
+        },
+        {
+          "texto": "Ele olhou o relógio, e ela abriu o livro.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "pt-10",
+      "idioma": "pt",
+      "tema": "mudança de falante sem verbo",
+      "personagens": ["Jonas", "Elisa"],
+      "frases": [
+        {
+          "texto": "Jonas encontrou Elisa na porta da biblioteca.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"Você trouxe o livro?\", perguntou Elisa.",
+          "falante": "Elisa",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"Trouxe, mas está molhado.\"",
+          "falante": "Jonas",
+          "emocao": "neutro",
+          "pistaFalante": "implicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"Molhado como?\"",
+          "falante": "Elisa",
+          "emocao": "neutro",
+          "pistaFalante": "implicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"Caiu na poça.\"",
+          "falante": "Jonas",
+          "emocao": "neutro",
+          "pistaFalante": "implicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "Elisa balançou a cabeça.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "pt-11",
+      "idioma": "pt",
+      "tema": "aspas desbalanceadas",
+      "personagens": ["Vitor", "Sofia"],
+      "frases": [
+        {
+          "texto": "Vitor leu o bilhete duas vezes.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"Não me espere para o almoço, escreveu Sofia.",
+          "falante": "Sofia",
+          "emocao": "neutro",
+          "pistaFalante": "ambigua",
+          "pistaEmocao": "explicita",
+          "nota": "aspas abertas e nunca fechadas"
+        },
+        {
+          "texto": "Ele guardou o papel e fechou a porta.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "Mais tarde, Sofia ligou: \"Esqueci as chaves, pode abrir?",
+          "falante": "Sofia",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "aspas abertas, nome na marca"
+        },
+        {
+          "texto": "Vitor desceu correndo.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "pt-12",
+      "idioma": "pt",
+      "tema": "aspas francesas e curvas, vocativo",
+      "personagens": ["Rosa", "Miguel"],
+      "frases": [
+        {
+          "texto": "Rosa segurava a carta com as duas mãos.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "«Sinto muito, Miguel, eu nunca quis te deixar sozinho», leu Rosa em voz alta.",
+          "falante": "Rosa",
+          "emocao": "triste",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "Miguel é vocativo, não falante"
+        },
+        {
+          "texto": "“Que carta mais bonita!”, disse Miguel, secando os olhos.",
+          "falante": "Miguel",
+          "emocao": "feliz",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "fraca",
+          "nota": "ternura sem palavra-chave"
+        },
+        {
+          "texto": "Rosa sorriu e guardou a carta no bolso.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "en-01",
+      "idioma": "en",
+      "tema": "dash dialogue, alternating",
+      "personagens": ["Mara", "Joel"],
+      "frases": [
+        {
+          "texto": "Mara found Joel waiting on the porch with a suitcase.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "— You are leaving — Mara said.",
+          "falante": "Mara",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "tag after the dash"
+        },
+        {
+          "texto": "— Only for a week.",
+          "falante": "Joel",
+          "emocao": "neutro",
+          "pistaFalante": "implicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "— A week is long enough.",
+          "falante": "Mara",
+          "emocao": "neutro",
+          "pistaFalante": "implicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "— Then come with me.",
+          "falante": "Joel",
+          "emocao": "neutro",
+          "pistaFalante": "implicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "en-02",
+      "idioma": "en",
+      "tema": "quotes with speech verb",
+      "personagens": ["Edith", "Walter"],
+      "frases": [
+        {
+          "texto": "Edith put the kettle on and turned to her brother.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"Did you finish the repairs?\" she asked.",
+          "falante": "Edith",
+          "emocao": "neutro",
+          "pistaFalante": "ambigua",
+          "pistaEmocao": "explicita",
+          "nota": "pronoun: only context says who"
+        },
+        {
+          "texto": "\"Almost,\" replied Walter, drying his hands.",
+          "falante": "Walter",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"Almost is not finished,\" said Edith.",
+          "falante": "Edith",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "en-03",
+      "idioma": "en",
+      "tema": "indirect speech",
+      "personagens": ["Carlos"],
+      "frases": [
+        {
+          "texto": "Carlos said he would be late because of the meeting.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "He asked whether anyone could keep dinner warm.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "His mother answered that she would, but told him to call.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "He promised to call as soon as he left.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "en-04",
+      "idioma": "en",
+      "tema": "pure narration",
+      "personagens": [],
+      "frases": [
+        {
+          "texto": "Rain began at dusk and did not stop all night.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "The streets emptied, and the windows lit up one by one.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "At the end of the road, an old dog looked for shelter under an awning.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "By morning the sky was clear and the city smelled of wet earth.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "en-05",
+      "idioma": "en",
+      "tema": "shout",
+      "personagens": ["Greta", "Hugo"],
+      "frases": [
+        {
+          "texto": "Hugo saw the pot on the floor and the soup spread across the whole kitchen.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"WHO LEFT THIS HERE?!\" shouted Hugo.",
+          "falante": "Hugo",
+          "emocao": "bravo",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "all caps + shout verb"
+        },
+        {
+          "texto": "\"It was me, I am sorry,\" said Greta in a small voice.",
+          "falante": "Greta",
+          "emocao": "triste",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "fraca",
+          "nota": "only the tag hints at sadness"
+        },
+        {
+          "texto": "Greta wiped the floor in silence.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "en-06",
+      "idioma": "en",
+      "tema": "whisper",
+      "personagens": ["Ivy", "Gran"],
+      "frases": [
+        {
+          "texto": "Ivy leaned toward her grandmother's ear.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"Do you hear that noise?\" whispered Ivy.",
+          "falante": "Ivy",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "ambigua",
+          "nota": "frightened whisper, not calm"
+        },
+        {
+          "texto": "\"Easy now, breathe slowly,\" Gran whispered back.",
+          "falante": "Gran",
+          "emocao": "relaxado",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "easy now + slowly"
+        },
+        {
+          "texto": "Ivy took a deep breath and closed her eyes.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "en-07",
+      "idioma": "en",
+      "tema": "ambiguous irony",
+      "personagens": ["Pam", "Theo"],
+      "frases": [
+        {
+          "texto": "Theo spilled coffee over the report Pam had just printed.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"Great, simply perfect,\" said Pam.",
+          "falante": "Pam",
+          "emocao": "bravo",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "ambigua",
+          "nota": "irony: cheerful words, angry intent"
+        },
+        {
+          "texto": "\"I will clean it right now,\" answered Theo, shrinking back.",
+          "falante": "Theo",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "ambigua",
+          "nota": ""
+        },
+        {
+          "texto": "Pam sighed and went to fetch paper towels.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "en-08",
+      "idioma": "en",
+      "tema": "three characters",
+      "personagens": ["Nora", "Ike", "Aunt Cecily"],
+      "frases": [
+        {
+          "texto": "Nora, Ike and their aunt waited for the cake to cool.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"It smells wonderful!\" exclaimed Ike.",
+          "falante": "Ike",
+          "emocao": "feliz",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "wonderful + exclamation"
+        },
+        {
+          "texto": "\"It is not ready yet,\" warned Aunt Cecily.",
+          "falante": "Aunt Cecily",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"I only want a small slice,\" said Nora.",
+          "falante": "Nora",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "Ike laughed.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"Small nothing! Take two,\" insisted the aunt.",
+          "falante": "Aunt Cecily",
+          "emocao": "feliz",
+          "pistaFalante": "ambigua",
+          "pistaEmocao": "fraca",
+          "nota": "the aunt = Aunt Cecily"
+        }
+      ]
+    },
+    {
+      "id": "en-09",
+      "idioma": "en",
+      "tema": "pronoun without name",
+      "personagens": ["Silas", "Clara"],
+      "frases": [
+        {
+          "texto": "Silas and Clara reached the station together.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"The train has already left,\" he said.",
+          "falante": "Silas",
+          "emocao": "neutro",
+          "pistaFalante": "ambigua",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"Then we will wait for the next one,\" she replied.",
+          "falante": "Clara",
+          "emocao": "neutro",
+          "pistaFalante": "ambigua",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "He checked his watch while she opened a book.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "en-10",
+      "idioma": "en",
+      "tema": "speaker change without verb",
+      "personagens": ["Jonah", "Elsie"],
+      "frases": [
+        {
+          "texto": "Jonah met Elsie at the library door.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"Did you bring the book?\" asked Elsie.",
+          "falante": "Elsie",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"I did, but it is wet.\"",
+          "falante": "Jonah",
+          "emocao": "neutro",
+          "pistaFalante": "implicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"Wet how?\"",
+          "falante": "Elsie",
+          "emocao": "neutro",
+          "pistaFalante": "implicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"It fell in a puddle.\"",
+          "falante": "Jonah",
+          "emocao": "neutro",
+          "pistaFalante": "implicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "Elsie shook her head.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "en-11",
+      "idioma": "en",
+      "tema": "unbalanced quotes",
+      "personagens": ["Victor", "Sophie"],
+      "frases": [
+        {
+          "texto": "Victor read the note twice.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "\"Do not wait for me at lunch, Sophie wrote.",
+          "falante": "Sophie",
+          "emocao": "neutro",
+          "pistaFalante": "ambigua",
+          "pistaEmocao": "explicita",
+          "nota": "quote opened and never closed"
+        },
+        {
+          "texto": "He pocketed the paper and shut the door.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "Later Sophie called: \"I forgot my keys, can you open up?",
+          "falante": "Sophie",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "open quote, name in the tag"
+        },
+        {
+          "texto": "Victor ran downstairs.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "en-12",
+      "idioma": "en",
+      "tema": "curly quotes, vocative",
+      "personagens": ["Rose", "Miles"],
+      "frases": [
+        {
+          "texto": "Rose held the letter with both hands.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "“I am so sorry, Miles, I never wanted to leave you alone,” Rose read aloud.",
+          "falante": "Rose",
+          "emocao": "triste",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "Miles is a vocative"
+        },
+        {
+          "texto": "“What a beautiful letter!” said Miles, wiping his eyes.",
+          "falante": "Miles",
+          "emocao": "feliz",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "fraca",
+          "nota": "tenderness, no keyword"
+        },
+        {
+          "texto": "Rose smiled and tucked the letter in her pocket.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "es-01",
+      "idioma": "es",
+      "tema": "raya alternada",
+      "personagens": ["Marta", "Hugo"],
+      "frases": [
+        {
+          "texto": "Marta abrió el portón y encontró a Hugo sentado en la acera.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "—Tardaste mucho —dijo Marta.",
+          "falante": "Marta",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "marca entre rayas"
+        },
+        {
+          "texto": "—El autobús se descompuso a mitad de camino.",
+          "falante": "Hugo",
+          "emocao": "neutro",
+          "pistaFalante": "implicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "—¿Otra vez?",
+          "falante": "Marta",
+          "emocao": "neutro",
+          "pistaFalante": "implicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "—Otra vez. Vine caminando los últimos tres kilómetros.",
+          "falante": "Hugo",
+          "emocao": "neutro",
+          "pistaFalante": "implicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "es-02",
+      "idioma": "es",
+      "tema": "comillas con verbo de habla",
+      "personagens": ["Elena", "Octavio"],
+      "frases": [
+        {
+          "texto": "Elena le entregó el sobre a su hermano sin decir nada.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "«Ábrelo solo después de cenar», pidió Elena.",
+          "falante": "Elena",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "Octavio guardó el sobre en el bolsillo del abrigo.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "«Lo prometo», respondió él.",
+          "falante": "Octavio",
+          "emocao": "neutro",
+          "pistaFalante": "ambigua",
+          "pistaEmocao": "explicita",
+          "nota": "pronombre"
+        }
+      ]
+    },
+    {
+      "id": "es-03",
+      "idioma": "es",
+      "tema": "habla indirecta",
+      "personagens": ["Raúl"],
+      "frases": [
+        {
+          "texto": "Raúl dijo que llegaría tarde por la reunión.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "Preguntó si alguien podía guardarle la cena.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "Su madre respondió que sí, pero le pidió que avisara.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "Él prometió avisar en cuanto saliera.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "es-04",
+      "idioma": "es",
+      "tema": "narrador puro",
+      "personagens": [],
+      "frases": [
+        {
+          "texto": "La lluvia empezó al atardecer y no paró en toda la noche.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "Las calles quedaron desiertas y las ventanas se fueron encendiendo una a una.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "Al final de la calle, un perro viejo buscaba refugio bajo un toldo.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "Cuando amaneció, el cielo estaba limpio y la ciudad olía a tierra mojada.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "es-05",
+      "idioma": "es",
+      "tema": "grito",
+      "personagens": ["Lucía", "Benito"],
+      "frases": [
+        {
+          "texto": "Benito vio la olla en el suelo y la sopa regada por toda la cocina.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "«¡¿QUIÉN DEJÓ LA OLLA AHÍ?!», gritó Benito.",
+          "falante": "Benito",
+          "emocao": "bravo",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "mayúsculas + verbo de grito"
+        },
+        {
+          "texto": "«Fui yo, lo siento», dijo Lucía con voz débil.",
+          "falante": "Lucía",
+          "emocao": "triste",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "lo siento"
+        },
+        {
+          "texto": "Lucía limpió el suelo en silencio.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "es-06",
+      "idioma": "es",
+      "tema": "susurro",
+      "personagens": ["Doña Irene", "David"],
+      "frases": [
+        {
+          "texto": "David acercó la boca al oído de su abuela.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "«¿Oye ese ruido?», susurró David.",
+          "falante": "David",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "ambigua",
+          "nota": "susurro de miedo, no de calma"
+        },
+        {
+          "texto": "«Calma, respira despacio», contestó doña Irene en un susurro.",
+          "falante": "Doña Irene",
+          "emocao": "relaxado",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "calma + despacio"
+        },
+        {
+          "texto": "David respiró hondo y cerró los ojos.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "es-07",
+      "idioma": "es",
+      "tema": "ironía ambigua",
+      "personagens": ["Paula", "Tomás"],
+      "frases": [
+        {
+          "texto": "Tomás derramó el café sobre el informe que Paula acababa de imprimir.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "—Qué estupendo, simplemente perfecto —dijo Paula.",
+          "falante": "Paula",
+          "emocao": "bravo",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "ambigua",
+          "nota": "ironía"
+        },
+        {
+          "texto": "—Lo limpio ahora mismo —respondió Tomás, encogido.",
+          "falante": "Tomás",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "ambigua",
+          "nota": ""
+        },
+        {
+          "texto": "Paula suspiró y fue a buscar papel.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "es-08",
+      "idioma": "es",
+      "tema": "tres personajes",
+      "personagens": ["Nina", "Ícaro", "Abuela Cecilia"],
+      "frases": [
+        {
+          "texto": "Nina, Ícaro y la abuela esperaban a que el pastel se enfriara.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "«¡Huele maravilloso!», exclamó Ícaro.",
+          "falante": "Ícaro",
+          "emocao": "feliz",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "maravilloso + exclamación"
+        },
+        {
+          "texto": "«Todavía no está listo», avisó Abuela Cecilia.",
+          "falante": "Abuela Cecilia",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "«Yo solo quiero una rebanada chica», dijo Nina.",
+          "falante": "Nina",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "\"solo\" aquí es \"únicamente\", no soledad"
+        },
+        {
+          "texto": "Ícaro se rio.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "«¡Chica nada! Toma dos», insistió la abuela.",
+          "falante": "Abuela Cecilia",
+          "emocao": "feliz",
+          "pistaFalante": "ambigua",
+          "pistaEmocao": "fraca",
+          "nota": "la abuela = Abuela Cecilia"
+        }
+      ]
+    },
+    {
+      "id": "es-09",
+      "idioma": "es",
+      "tema": "pronombre sin nombre",
+      "personagens": ["Sergio", "Clara"],
+      "frases": [
+        {
+          "texto": "Sergio y Clara llegaron juntos a la estación.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "«El tren ya salió», dijo él.",
+          "falante": "Sergio",
+          "emocao": "neutro",
+          "pistaFalante": "ambigua",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "«Entonces esperemos el próximo», respondió ella.",
+          "falante": "Clara",
+          "emocao": "neutro",
+          "pistaFalante": "ambigua",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "Él miró el reloj y ella abrió un libro.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "es-10",
+      "idioma": "es",
+      "tema": "cambio de hablante sin verbo",
+      "personagens": ["Jonás", "Elisa"],
+      "frases": [
+        {
+          "texto": "Jonás encontró a Elisa en la puerta de la biblioteca.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "«¿Trajiste el libro?», preguntó Elisa.",
+          "falante": "Elisa",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "«Lo traje, pero está mojado.»",
+          "falante": "Jonás",
+          "emocao": "neutro",
+          "pistaFalante": "implicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "«¿Mojado cómo?»",
+          "falante": "Elisa",
+          "emocao": "neutro",
+          "pistaFalante": "implicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "«Cayó en un charco.»",
+          "falante": "Jonás",
+          "emocao": "neutro",
+          "pistaFalante": "implicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "Elisa negó con la cabeza.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "es-11",
+      "idioma": "es",
+      "tema": "comillas desbalanceadas",
+      "personagens": ["Víctor", "Sofía"],
+      "frases": [
+        {
+          "texto": "Víctor leyó la nota dos veces.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "«No me esperes para almorzar, escribió Sofía.",
+          "falante": "Sofía",
+          "emocao": "neutro",
+          "pistaFalante": "ambigua",
+          "pistaEmocao": "explicita",
+          "nota": "comilla abierta y nunca cerrada"
+        },
+        {
+          "texto": "Guardó el papel y cerró la puerta.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "Más tarde, Sofía llamó: «Olvidé las llaves, ¿puedes abrir?",
+          "falante": "Sofía",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "comilla abierta, nombre en la marca"
+        },
+        {
+          "texto": "Víctor bajó corriendo.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    },
+    {
+      "id": "es-12",
+      "idioma": "es",
+      "tema": "comillas curvas, vocativo",
+      "personagens": ["Rosa", "Miguel"],
+      "frases": [
+        {
+          "texto": "Rosa sostenía la carta con las dos manos.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        },
+        {
+          "texto": "“Lo siento mucho, Miguel, nunca quise dejarte solo”, leyó Rosa en voz alta.",
+          "falante": "Rosa",
+          "emocao": "triste",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": "Miguel es vocativo"
+        },
+        {
+          "texto": "«¡Qué carta tan bonita!», dijo Miguel, secándose los ojos.",
+          "falante": "Miguel",
+          "emocao": "feliz",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "fraca",
+          "nota": "ternura sin palabra clave"
+        },
+        {
+          "texto": "Rosa sonrió y guardó la carta en el bolsillo.",
+          "falante": "narrador",
+          "emocao": "neutro",
+          "pistaFalante": "explicita",
+          "pistaEmocao": "explicita",
+          "nota": ""
+        }
+      ]
+    }
+  ]
+}

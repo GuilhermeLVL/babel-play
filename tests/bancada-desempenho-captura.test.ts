@@ -170,6 +170,7 @@ describe('janelas e métricas de uma rodada', () => {
     expect(m.framesLongos).toEqual({ n50: 2, n100: 1, somaMs: 180, maiorMs: 120 })
     // início da fala 0 (5000) → 1º texto de verdade na tela (6200; o balão em branco não conta)
     expect(m.primeiraLegendaMs).toBe(1200)
+    expect(m.primeiroTextoNaTelaMs).toBe(1200)
     expect(m.sttProntoMs).toBe(1500)
     expect(m.rtf.valores).toEqual([0.1, 0.2])
     expect(m.memoriaPicoMb).toBe(520)
@@ -183,6 +184,19 @@ describe('janelas e métricas de uma rodada', () => {
     expect(m.rendersPorS.silencio).toBeCloseTo(4 / 9, 5)
     expect(m.commitsPorS.fala).toBeCloseTo(3 / 6, 5)
     expect(m.valida).toBe(true)
+  })
+
+  it('1º texto na tela conta o texto da tradução; a legenda completa espera o original; "…" não conta', () => {
+    const d = rodadaSintetica()
+    // tela de hoje: o texto já aparece em `tr` (860 ms depois da voz) e o original só vem no fim da fala
+    d.lat.dom = [
+      { t: 5300, i: 0, o: '', tr: '…', nova: true },
+      { t: 5860, i: 0, o: '', tr: 'Leões são', nova: true },
+      { t: 10300, i: 0, o: 'Lions are social.', tr: 'Leões são sociais.', nova: false },
+    ]
+    const m = metricasDaRodada(d)
+    expect(m.primeiroTextoNaTelaMs).toBe(860)
+    expect(m.primeiraLegendaMs).toBe(5300)
   })
 
   it('regulador: trocas de modelo no meio da sessão (a descida do A6) e os modelos carregados', () => {
@@ -368,6 +382,24 @@ describe('slo-captura.json versionado', () => {
         'rendersPorS.fala',
       ]),
     )
+  })
+
+  /* carga-rapida-no-celular (5.3, LB-03): `primeiraLegendaMs` mede a legenda COMPLETA desde o d87ca02d; o 1º texto
+     na tela é outra métrica, agora vigiada, e o Mac da auditoria tem base própria (`local-darwin`). */
+  it('vigia o 1º texto na tela; a 1ª legenda diz que é a legenda completa; há base local-darwin', () => {
+    expect(doc.metricas.primeiroTextoNaTelaMs).toMatchObject({ sentido: 'menor', toleranciaPct: 25, folgaAbs: 500 })
+    expect(doc.metricas.primeiraLegendaMs.rotulo).toMatch(/legenda completa/)
+    for (const perfil of ['desktop', 'fraco'])
+      expect(doc.ambientes['local-darwin'].perfis[perfil].primeiroTextoNaTelaMs).toBeGreaterThan(0)
+    expect(doc.ambientes['local-win32']).toBeTruthy()
+  })
+
+  it('o 1º parcial atrasado de propósito para 3 s reprova pela métrica primeiroTextoNaTelaMs', () => {
+    const base = doc.ambientes['local-darwin'].perfis.desktop
+    const resultado = { perfis: { desktop: { metricas: { ...base, primeiroTextoNaTelaMs: 3000 } } } }
+    const r = comparar(doc, resultado, 'local-darwin')
+    expect(r.piorou).toBe(true)
+    expect(r.linhas.filter((l) => l.status === 'piorou').map((l) => l.metrica)).toEqual(['primeiroTextoNaTelaMs'])
   })
 
   it('validarSlo acusa sentido desconhecido e métrica fora da lista', () => {

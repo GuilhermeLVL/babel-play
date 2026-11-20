@@ -19,8 +19,12 @@ import type { PerfilDoDispositivo } from '../dispositivo/perfil';
  * ser no desktop com GPU e ≥ 8 GB. `deviceMemory` ausente (Firefox, Safari) conta como 8: o Chromium
  * informa no máximo 8, e sem o sinal não há por que presumir o pior num desktop com GPU.
  */
-export function umModeloDeCadaVez(perfil: Pick<PerfilDoDispositivo, 'poucaMemoria' | 'tipo' | 'sinais'>): boolean {
-  return perfil.poucaMemoria || perfil.tipo !== 'desktop-com-gpu' || (perfil.sinais.memoriaGb ?? 8) < 8;
+export function umModeloDeCadaVez(
+  perfil: Pick<PerfilDoDispositivo, 'poucaMemoria' | 'tipo' | 'sinais'>,
+  sttPesado = false,
+): boolean {
+  // `sttPesado` (o Parakeet, ~2x a memória do Whisper): o tradutor espera mesmo no desktop com GPU e 8 GB.
+  return sttPesado || perfil.poucaMemoria || perfil.tipo !== 'desktop-com-gpu' || (perfil.sinais.memoriaGb ?? 8) < 8;
 }
 
 /**
@@ -28,7 +32,7 @@ export function umModeloDeCadaVez(perfil: Pick<PerfilDoDispositivo, 'poucaMemori
  * pouca memória, que solta na hora). Sair para conferir o histórico e voltar não paga a recarga; ficar
  * fora devolve os pesos do Whisper e dos tradutores, e o heap das sessões.
  */
-export const LIBERAR_MODELOS_APOS_MS = 90_000;
+export const LIBERAR_MODELOS_APOS_MS = 20_000;
 
 /* Fica no MÓDULO, não no componente: a tela da captura desmonta ao sair, e é a próxima montagem
    (a pessoa voltou) que precisa encontrar e cancelar o agendamento. */
@@ -49,4 +53,13 @@ export function cancelarLiberacaoDosModelos(): boolean {
   clearTimeout(relogio);
   relogio = null;
   return true;
+}
+
+/**
+ * Ao SAIR da captura: no aparelho de pouca memória (móvel, Quest e todo navegador sem
+ * `crossOriginIsolated`, como o Safari no Mac) solta os modelos na hora; no resto, 20 s depois (eram 90: dono, 22/10/2026 — os modelos presos na aba esquentavam o computador fora da captura).
+ */
+export function liberarAoSairDaCaptura(perfil: Pick<PerfilDoDispositivo, 'poucaMemoria'>, liberar: () => void): void {
+  if (perfil.poucaMemoria) liberar();
+  else liberarModelosDepois(liberar);
 }

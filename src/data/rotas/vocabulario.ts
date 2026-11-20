@@ -1,13 +1,16 @@
 /**
  * O CLIENTE DAS ROTAS DE VOCABULÁRIO — o baralho, a revisão FSRS e a saída para o Anki.
  *
- * Espelho de `src/data/efemero/rotas/vocabulario.ts`, com o mesmo recorte. Duas coisas daqui NÃO
- * têm par do outro lado, e a ausência é declarada em `tests/contratos/rotas-espelhadas.test.ts`:
- * `relabelCards` (escrita cruzada no acervo) e `exportarApkg` (o `.apkg` nasce no servidor).
+ * Espelho de `src/data/efemero/rotas/vocabulario.ts`, com o mesmo recorte. Uma coisa daqui NÃO
+ * tem par do outro lado, e a ausência é declarada em `tests/contratos/rotas-espelhadas.test.ts`:
+ * `relabelCards` (escrita cruzada no acervo). `exportarApkg` também não tem par, mas por outro motivo: o
+ * `.apkg` nasce no navegador (`montarApkg`) e não chama rota nenhuma.
  *
  * Rotas: GET `/api/vocab`, PATCH `/api/vocab/:id`, POST `/api/vocab/bulk-add`,
- * POST `/api/vocab/relabel`, POST `/api/vocab/:id/review`, POST `/api/import/anki/export`.
+ * POST `/api/vocab/relabel`, POST `/api/vocab/:id/review`.
  */
+import { montarApkg } from '../../lib/anki/montarApkg'
+import { abrirSqliteNoNavegador } from '../../lib/anki/sqlite'
 import { play } from '../../lib/soundFx'
 import type { VocabCard } from '../../types'
 import { apiFetch } from '../funil'
@@ -219,7 +222,7 @@ export async function fetchOcorrencias(id: string): Promise<OcorrenciaDoCartao[]
 }
 
 /**
- * Gera um `.apkg` no servidor e devolve o arquivo para download.
+ * Gera um `.apkg` NO NAVEGADOR (`montarApkg`: `sql.js` + `fflate`) e devolve o arquivo para download.
  *
  * O `.txt` é o caminho garantido (o Anki o importa nativamente e sem plugin); o `.apkg` é o que
  * abre com duplo clique e chega com nome de baralho. A tela oferece os dois de propósito.
@@ -228,16 +231,8 @@ export async function exportarApkg(
   cartoes: Array<{ frente: string; verso: string; exemplo?: string }>,
   nome: string,
 ): Promise<Blob> {
-  const res = await apiFetch('/api/import/anki/export', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ cartoes, nome }),
-  })
-  if (!res.ok) {
-    const e = await res.json().catch(() => ({ error: 'falha ao gerar o baralho' }))
-    throw new Error(e.error ?? 'falha ao gerar o baralho')
-  }
-  return await res.blob()
+  const bytes = await montarApkg(cartoes, nome, abrirSqliteNoNavegador)
+  return new Blob([bytes], { type: 'application/octet-stream' })
 }
 
 export interface NewCardPayload {

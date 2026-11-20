@@ -1,0 +1,4 @@
+# en-nomes-estrangeiros | en | nomes-estrangeiros | dominio-publico
+# origem: escrita pela equipe, dedicada ao domínio público (CC0).
+# licença: CC0 / domínio público.
+The library keeps letters from Gabriel García Márquez, Machado de Assis and Marie Skłodowska-Curie, and a map of Kraków.

@@ -1,6 +1,6 @@
 # Edição estática (Cloudflare Pages)
 
-A edição estática é o Babel Play publicado **só como arquivos**, sem o servidor Node: é o que roda
+A edição estática é o Frasy publicado **só como arquivos**, sem o servidor Node: é o que roda
 em <https://babel-play.pages.dev/>. Tudo acontece no navegador — transcrição e tradução locais
 (Whisper/Moonshine + Opus-MT via WebGPU/WASM), jogos, repetição espaçada — e os dados ficam no
 IndexedDB do próprio navegador (`babel-local`).
@@ -22,7 +22,7 @@ npx wrangler pages deploy dist --project-name babel-play
   variáveis `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` e `VITE_AUTH_REQUIRED` **vazias**, mesmo
   que o ambiente de quem compila as tenha;
 - confere o `dist/` e falha se algo estiver fora do lugar: `index.html` e `_headers` presentes
-  (COOP `same-origin` + COEP `credentialless`, vindos de `public/_headers`), nenhum arquivo de
+  (COOP `same-origin` + COEP `credentialless`, gerados por `scripts/vite/cabecalhos.ts`), nenhum arquivo de
   protótipo nem `lucide.min.js`, nenhuma URL de projeto Supabase no bundle.
 
 ### A saída para a versão completa (`VITE_URL_APP_COMPLETO`)

@@ -220,7 +220,7 @@ describe('idade e convite ao responsavel (modo publico)', () => {
     function simularResend(status: number) {
       pedidosAoResend = []
       process.env.RESEND_API_KEY = 're_teste'
-      process.env.EMAIL_REMETENTE = 'Babel Play <nao-responda@exemplo.com>'
+      process.env.EMAIL_REMETENTE = 'Frasy <nao-responda@exemplo.com>'
       vi.spyOn(globalThis, 'fetch').mockImplementation(async (entrada, init) => {
         const url = String(entrada instanceof Request ? entrada.url : entrada)
         if (url.startsWith(s.base)) return real(entrada, init)

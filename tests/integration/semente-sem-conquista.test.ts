@@ -32,7 +32,9 @@ const PRIMEIRA_PALAVRA = CONQUISTAS.find((c) => c.id === 'primeira-palavra')!
 describe('semente de demonstração × "Primeira palavra"', () => {
   it('banco novo semeado: caderno vazio e a conquista não está cumprida; a primeira palavra real cumpre', async () => {
     const { seedIfEmpty } = await h.load<typeof import('../../server/db/seed')>('../../server/db/seed')
-    const { LOCAL_OWNER } = await h.load<typeof import('../../server/lib/authContext')>('../../server/lib/authContext')
+    const LOCAL_OWNER = (
+      await h.load<typeof import('../../server/lib/authContext')>('../../server/lib/authContext')
+    ).donoLocal()
     const { computeProfile } = await h.load<typeof import('../../server/db/repositories/metrics')>(
       '../../server/db/repositories/metrics',
     )
@@ -81,7 +83,9 @@ const POLIGLOTA = CONQUISTAS.find((c) => c.id === 'poliglota')!
 describe('semente de demonstração × "Primeira captura"', () => {
   async function carregar() {
     const { seedIfEmpty } = await h.load<typeof import('../../server/db/seed')>('../../server/db/seed')
-    const { LOCAL_OWNER } = await h.load<typeof import('../../server/lib/authContext')>('../../server/lib/authContext')
+    const LOCAL_OWNER = (
+      await h.load<typeof import('../../server/lib/authContext')>('../../server/lib/authContext')
+    ).donoLocal()
     const { computeProfile } = await h.load<typeof import('../../server/db/repositories/metrics')>(
       '../../server/db/repositories/metrics',
     )
@@ -137,7 +141,7 @@ describe('semente de demonstração × "Primeira captura"', () => {
   it('banco semeado ANTES da correção: a demonstração antiga é reconhecida na próxima subida', async () => {
     const { seedIfEmpty, LOCAL_OWNER, sessionsRepo, db, sql, ctx } = await carregar()
     // A semente antiga não marcava nada: é o estado de quem já tinha o banco criado.
-    await db.run(sql`UPDATE sessions SET origem_local_id = NULL WHERE title = 'Reunião de Alinhamento (Q3) — demo'`)
+    await db.execute(sql`UPDATE sessions SET origem_local_id = NULL WHERE title = 'Reunião de Alinhamento (Q3) — demo'`)
     const todas = (await sessionsRepo.list(LOCAL_OWNER)).length
     expect((await ctx()).metricas.sessions, 'sem a marca, a demonstração contava').toBe(todas)
 

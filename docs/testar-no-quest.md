@@ -1,4 +1,4 @@
-# Testar o Babel Play no Meta Quest (e no celular)
+# Testar o Frasy no Meta Quest (e no celular)
 
 Roteiro para medir no aparelho de verdade o que a emulação não mede. Cada item abaixo responde a uma
 lacuna da pesquisa (`docs/pesquisa/2026-09-auditoria-seguranca-performance-dispositivos.md`, "Lacunas
@@ -75,11 +75,11 @@ Fonte do passo a passo: https://developers.meta.com/horizon/documentation/web/br
 
 ## 2. Abrir o DevTools do Quest no PC
 
-1. No Quest, abra o **Meta Quest Browser** no endereço do Babel Play (o do Pages, ou o do seu PC).
+1. No Quest, abra o **Meta Quest Browser** no endereço do Frasy (o do Pages, ou o do seu PC).
    - Para testar o seu PC local: `adb reverse tcp:5173 tcp:5173` (troque pela porta que você usa) e
      abra `http://localhost:5173` no Quest.
 2. No Chrome do PC, abra `chrome://inspect/#devices`. O Quest aparece com as abas abertas; clique em
-   **inspect** na aba do Babel Play.
+   **inspect** na aba do Frasy.
 3. A partir daqui, "Console" e "Performance" são do Quest, não do PC.
 
 ## 3. Sonda de capacidades (cole no Console e dê Enter)
@@ -162,7 +162,7 @@ O que olhar no resultado:
 
 ## 4. Latência da legenda e memória com o modelo carregado
 
-1. No Babel Play (Quest): **Capturar**. Confira que a tela diz que a legenda vem do microfone e que o
+1. No Frasy (Quest): **Capturar**. Confira que a tela diz que a legenda vem do microfone e que o
    selo mostra **80 MB** (Whisper base q8). Idiomas: fale português, traduzir para inglês.
 2. Clique **Iniciar captura**. Se aparecer "Baixar os modelos desta captura? ... cerca de 193 MB",
    aceite (é uma vez só).

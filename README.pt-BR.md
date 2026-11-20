@@ -1,6 +1,6 @@
 <div align="center">
 
-# Babel Play
+# Frasy
 
 **Aprenda um idioma com o que você já assiste, joga e conversa.**
 Legendas e tradução ao vivo de qualquer áudio do seu computador, rodando **no seu próprio aparelho**, transformadas em jogos de vocabulário e repetição espaçada.
@@ -16,7 +16,7 @@ Legendas e tradução ao vivo de qualquer áudio do seu computador, rodando **no
 
 </div>
 
-> **Estado (18/10/2026):** pré-lançamento. Cobrança, login e o deploy no Fly.io estão implementados e testados, mas ainda não rodaram em ambiente real. O [estado do lançamento](docs/ESTADO-DO-LANCAMENTO.md) é a fonte única do que vale hoje.
+> **Estado (18/10/2026):** pré-lançamento. Cobrança e login estão implementados e testados, e o deploy no Cloudflare Workers roda no staging; a produção ainda não entrou no ar. O [estado do lançamento](docs/ESTADO-DO-LANCAMENTO.md) é a fonte única do que vale hoje.
 
 **Sumário:** [O que é](#o-que-é) · [Como rodar](#como-rodar) · [Arquitetura](#arquitetura) · [Planos e IA na nuvem](#planos-e-ia-na-nuvem) · [Self-host](#self-host) · [Deploy](#deploy) · [Segurança e privacidade](#segurança-e-privacidade) · [Contribuição](#contribuição) · [Licença](#licença)
 
@@ -92,10 +92,10 @@ Identidade (anônima ou com conta), plano e papel são eixos separados, e o plan
 
 ## Planos e IA na nuvem
 
-| Plano       | O que você recebe                                                                                                                                                                          |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Grátis**  | Tudo o que roda no aparelho (captura, modelos locais, estudo, jogos). Sem IA gerenciada na nuvem.                                                                                          |
-| **Premium** | Transcrição e tradução na nuvem com uso justo diário e mensal, voz natural no intérprete. Começa com um teste sem cartão, que acaba em 14 dias ou na franquia de uso, o que vier primeiro. |
+| Plano       | O que você recebe                                                                                                                                                                         |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Grátis**  | Tudo o que roda no aparelho (captura, modelos locais, estudo, jogos). Sem IA gerenciada na nuvem.                                                                                         |
+| **Premium** | Transcrição e tradução na nuvem com uso justo diário e mensal, voz natural no intérprete. Começa com um teste sem cartão, que acaba em 3 dias ou na franquia de uso, o que vier primeiro. |
 
 A IA na nuvem passa pelo OpenRouter com retenção zero de dados e só depois do consentimento. Preços, cotas e as decisões por trás estão em [docs/ESTADO-DO-LANCAMENTO.md](docs/ESTADO-DO-LANCAMENTO.md) e [docs/monetizacao.md](docs/monetizacao.md). O pagamento é pelo Asaas, e quem concede o plano é o webhook do pagamento.
 
@@ -113,7 +113,7 @@ O HTTPS fica por conta do proxy reverso na frente (Caddy, Traefik, nginx). Detal
 
 ## Deploy
 
-O destino de produção é o Fly.io (GRU, uma máquina, SQLite replicado pelo Litestream para o Cloudflare R2), com Supabase para o login, Cloudflare na frente, Resend e Sentry. O passo a passo do dono é [docs/LANCAMENTO.md](docs/LANCAMENTO.md); operar é [docs/runbook.md](docs/runbook.md); o staging é [docs/STAGING.md](docs/STAGING.md). O deploy passa pelo `deploy.yml`, que só aceita um commit com a CI verde.
+O destino de produção é o Cloudflare Workers (o mesmo servidor Express, Postgres no Supabase em São Paulo pelo Hyperdrive, R2 para mídia e backup semanal por `pg_dump`; ver [ADR 0015](docs/adr/0015-cloudflare-workers-no-lugar-do-fly.md)), com Supabase para o login, Resend e Sentry. O self-host continua por Docker/Node. O passo a passo do dono é [docs/LANCAMENTO.md](docs/LANCAMENTO.md); operar é [docs/runbook.md](docs/runbook.md); o staging é [docs/STAGING.md](docs/STAGING.md). O deploy passa pelo `deploy-worker.yml`, por versões da Cloudflare, com fumaça e rollback automático.
 
 ## Segurança e privacidade
 

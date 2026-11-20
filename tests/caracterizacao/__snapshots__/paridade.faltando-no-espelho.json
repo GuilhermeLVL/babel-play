@@ -56,7 +56,8 @@
       "[].daTrilha",
       "[].difficultyScore",
       "[].firstSeenAt",
-      "[].lastSeenAt"
+      "[].lastSeenAt",
+      "[].nota"
     ]
   },
   "GET /api/vocab/pagina?limite=10": {
@@ -72,6 +73,7 @@
       ".itens[].difficultyScore",
       ".itens[].firstSeenAt",
       ".itens[].lastSeenAt",
+      ".itens[].nota",
       ".itens[].phonetics",
       ".itens[].srcLangBase",
       ".itens[].updatedAt",

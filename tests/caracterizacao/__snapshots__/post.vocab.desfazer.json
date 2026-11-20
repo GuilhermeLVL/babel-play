@@ -22,6 +22,7 @@
     "lapses": "number",
     "lastReview": "null",
     "lastSeenAt": "number",
+    "nota": "null",
     "occurrences": "number",
     "phonetics": "null",
     "reps": "number",

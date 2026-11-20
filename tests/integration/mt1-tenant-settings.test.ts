@@ -5,10 +5,10 @@
  * a CONTINUIDADE — a linha legada 'app' (user_id NULL) tem de continuar visível ao dono local
  * depois do backfill, com onboarding/plano preservados.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { asUserId, LOCAL_OWNER } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { asUserId, donoLocal } from '../../server/lib/authContext'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const A = asUserId('user-A')
 const B = asUserId('user-B')
@@ -26,7 +26,9 @@ beforeAll(async () => {
   ;({ db } = await h.load('../../server/db/db'))
   schema = await h.load('../../server/db/schema')
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 describe('Marco 1 — settings por usuário', () => {
   it('A e B têm settings independentes (linhas distintas, não a singleton)', async () => {
@@ -52,15 +54,17 @@ describe('Marco 1 — settings por usuário', () => {
   it('CONTINUIDADE: a linha legada "app" (NULL) fica com o dono local após o backfill', async () => {
     const now = Date.now()
     await db.insert(schema.settings).values({
-      id: 'app', createdAt: now, updatedAt: now,
+      id: 'app',
+      createdAt: now,
+      updatedAt: now,
       ui: JSON.stringify({ onboarded: true, plan: 'selfhost', ageProfile: 'adult' }),
       targetLanguage: 'pt',
     })
-    await backfillNullOwner(LOCAL_OWNER)
-    const local = await settingsRepo.get(LOCAL_OWNER)
+    await backfillNullOwner(donoLocal())
+    const local = await settingsRepo.get(donoLocal())
     expect(local).toBeDefined()
-    expect(local.id).toBe('app')                        // mesma linha; id inofensivo
-    expect(JSON.parse(local.ui).plan).toBe('selfhost')  // onboarding/plano preservados
+    expect(local.id).toBe('app') // mesma linha; id inofensivo
+    expect(JSON.parse(local.ui).plan).toBe('selfhost') // onboarding/plano preservados
     expect(local.targetLanguage).toBe('pt')
   })
 })

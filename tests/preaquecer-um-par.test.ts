@@ -92,9 +92,11 @@ function montar(cenario: 'media' | 'mic', sttPronto: Promise<void> = Promise.res
   return { p, warmup, preloadModel }
 }
 
-/** Desktop Chrome com GPU de verdade e 8 GB: o único perfil em que STT e tradutor carregam juntos. */
-const desktopComGpu = () =>
-  vi.stubGlobal('navigator', {
+/** Desktop Chrome com GPU de verdade e 8 GB: o único perfil em que STT e tradutor carregam juntos. Isolado
+    (`crossOriginIsolated`), como o Chrome no app: sem isolamento o perfil conta como pouca memória. */
+const desktopComGpu = () => {
+  vi.stubGlobal('crossOriginIsolated', true)
+  return vi.stubGlobal('navigator', {
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/150.0.0.0',
     hardwareConcurrency: 8,
     deviceMemory: 8,
@@ -102,6 +104,7 @@ const desktopComGpu = () =>
     gpu: { requestAdapter: async () => ({ info: { vendor: 'amd' } }) },
     mediaDevices: { getDisplayMedia: () => undefined },
   })
+}
 
 beforeEach(() => esquecerAdaptadorWebGpu())
 afterEach(() => {

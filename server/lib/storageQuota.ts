@@ -14,20 +14,22 @@
  * reescreve o contador a partir do disco quando se quiser conferir.
  */
 import { randomUUID } from 'node:crypto'
-import { statfsSync, statSync } from 'node:fs'
+import { statfsSync } from 'node:fs'
 import path from 'node:path'
 
-import { and, eq, lte, sql } from 'drizzle-orm'
+import { and, eq, isNull, lte, or, sql } from 'drizzle-orm'
 
 import { definicaoDoPlano, type PlanoEfetivo } from '../../src/core/planos'
-import { db } from '../db/db'
+import { db, emTransacao, type ExecutorDb, linhas, linhasAfetadas, travarGlobal, travarUsuario } from '../db/db'
 import { sessionsRepo } from '../db/repositories/sessions'
-import { usageCounters } from '../db/schema'
-import { armazenamentoDoAmbiente, configDoS3 } from './armazenamento'
+import { usageCounters, users } from '../db/schema'
+import { armazenamentoDoAmbiente, armazenamentoExterno, NomeDeArquivoInvalido } from './armazenamento'
 import type { UserId } from './authContext'
 import { getPlanForUser } from './entitlements'
 import { log } from './logger'
 import { type EnvelopeDeErro, envelopeDeErro } from './respostaDeErro'
+import { temDisco } from './runtime'
+import { lerTetoDoR2, observarUsoDoR2, registrarRecusaDoR2, semTeto } from './tetoDoR2'
 
 export const METRIC_STORAGE = 'storage_bytes'
 export const WINDOW_STORAGE = 'total'
@@ -50,22 +52,16 @@ export interface ResultadoDeCota {
   ok: boolean
   capBytes: number
   usadoBytes: number
-  /** 'cheio' = teto atingido; 'indisponivel' = não deu para decidir (degradou fechado). */
-  motivo?: 'cheio' | 'indisponivel'
+  /**
+   * 'usuario' = o teto do plano da pessoa; 'conta' = o teto global do R2 (`R2_TETO_MB`), que não é
+   * culpa dela; 'indisponivel' = não deu para decidir (degradou fechado).
+   */
+  motivo?: 'usuario' | 'conta' | 'indisponivel'
 }
 
 /** Espelha `AUDIO_DIR` de server/routes/sessions.ts, lido em CHAMADA — importá-lo criaria ciclo. */
 export function diretorioDeAudio(): string {
   return process.env.AUDIO_DIR ? path.resolve(process.env.AUDIO_DIR) : path.join(process.cwd(), 'data', 'audio')
-}
-
-/** Tamanho de um arquivo, 0 se ele não existe. */
-export function tamanhoNoDisco(caminho: string): number {
-  try {
-    return statSync(caminho).size
-  } catch {
-    return 0
-  }
 }
 
 async function lerUso(userId: UserId): Promise<number | null> {
@@ -89,7 +85,8 @@ async function lerUso(userId: UserId): Promise<number | null> {
  * e não importado de `routes/sessions`, porque aquele módulo importa ESTE (ciclo).
  */
 export async function somarBytesEmDisco(userId: UserId, audioDir = diretorioDeAudio()): Promise<number> {
-  const store = armazenamentoDoAmbiente(path.resolve(audioDir))
+  // Sem teto: medir para a cota não pode depender do teto mensal do R2 (subcontagem burlaria a cota).
+  const store = semTeto(armazenamentoDoAmbiente(path.resolve(audioDir)))
   let total = 0
   for (const s of await sessionsRepo.list(userId)) {
     let nome: unknown
@@ -99,11 +96,14 @@ export async function somarBytesEmDisco(userId: UserId, audioDir = diretorioDeAu
       continue
     }
     if (typeof nome !== 'string' || !nome) continue
-    // S-14: nome que escaparia do diretório lança no store e não entra na conta.
+    /* S-14: nome que escaparia do diretório lança no store e não entra na conta. Objeto ausente já
+       volta `null`. QUALQUER OUTRA falha (rede, R2) sobe: somar 0 gravaria subcontagem na
+       reconciliação, e a pessoa ganharia cota que não tem. */
     try {
       total += (await store.tamanho(nome)) ?? 0
-    } catch {
-      continue
+    } catch (err) {
+      if (err instanceof NomeDeArquivoInvalido) continue
+      throw err
     }
   }
   return total
@@ -135,9 +135,9 @@ async function semearSeAusente(userId: UserId): Promise<number> {
 }
 
 /** Decide e contabiliza numa instrução só: quem perde a corrida não afeta linha nenhuma. */
-async function reservaAtomica(userId: UserId, bytes: number, cap: number): Promise<boolean> {
+async function reservaAtomica(userId: UserId, bytes: number, cap: number, ex: ExecutorDb = db): Promise<boolean> {
   const now = Date.now()
-  const r = await db
+  const r = await ex
     .insert(usageCounters)
     .values({
       id: randomUUID(),
@@ -153,7 +153,49 @@ async function reservaAtomica(userId: UserId, bytes: number, cap: number): Promi
       set: { count: sql`${usageCounters.count} + ${bytes}`, updatedAt: now },
       setWhere: sql`${usageCounters.count} + ${bytes} <= ${cap}`,
     })
-  return r.rowsAffected > 0
+  return linhasAfetadas(r) > 0
+}
+
+/** Nome da trava global do teto da conta no R2 (`travarGlobal`). */
+const TRAVA_DO_TETO_DA_CONTA = 'r2-teto-armazenamento'
+
+/** Teto da CONTA em bytes: só com o R2 (binding ou S3; no disco a folga do volume é quem protege). */
+function tetoDaConta(): number {
+  return armazenamentoExterno() ? lerTetoDoR2().bytes : Infinity
+}
+
+/**
+ * Reserva com o TETO DA CONTA (decisão 2 de `openspec/changes/r2-teto-de-uso`). Ler a soma da conta e
+ * depois reservar é read-then-write: dois uploads de usuários diferentes leriam a mesma soma e passariam
+ * juntos pelo teto. Por isso a soma e a reserva vão numa transação com a trava do usuário e, depois
+ * dela, a trava GLOBAL — quem chega segundo espera e já lê a soma com a reserva do primeiro.
+ */
+async function reservaComTetoDaConta(
+  userId: UserId,
+  bytes: number,
+  cap: number,
+  teto: number,
+): Promise<'ok' | 'usuario' | 'conta'> {
+  const { resultado, soma } = await emTransacao(async (tx) => {
+    await travarUsuario(tx, userId)
+    await travarGlobal(tx, TRAVA_DO_TETO_DA_CONTA)
+    const soma = await somaDaConta(tx)
+    if (soma + bytes > teto) return { resultado: 'conta' as const, soma }
+    const ok = await reservaAtomica(userId, bytes, cap, tx)
+    return ok ? { resultado: 'ok' as const, soma: soma + bytes } : { resultado: 'usuario' as const, soma }
+  })
+  // Aviso e métrica FORA da transação: log não segura trava.
+  if (resultado === 'conta') registrarRecusaDoR2('armazenamento', teto)
+  observarUsoDoR2('armazenamento', soma, teto, WINDOW_STORAGE)
+  return resultado
+}
+
+/** Bytes guardados somando todos os usuários (o contador de cada um, metric `storage_bytes`). */
+async function somaDaConta(ex: ExecutorDb): Promise<number> {
+  const r = await ex.execute(
+    sql`select coalesce(sum(${usageCounters.count}), 0)::bigint as total from ${usageCounters} where ${usageCounters.metric} = ${METRIC_STORAGE} and ${usageCounters.window} = ${WINDOW_STORAGE}`,
+  )
+  return Number(linhas<{ total: number | string }>(r)[0]?.total ?? 0)
 }
 
 /**
@@ -163,12 +205,13 @@ async function reservaAtomica(userId: UserId, bytes: number, cap: number): Promi
 /**
  * FOLGA DO VOLUME. Sem S3 o áudio mora no MESMO volume do banco, e o teto é por conta: várias contas
  * dentro do teto enchem o disco e derrubam o SQLite junto. Abaixo desta folga o upload é recusado
- * (`indisponivel`) e o resto do app segue. Com S3, ou sem `AUDIO_DIR` legível, não se aplica.
+ * (`indisponivel`) e o resto do app segue. Com S3 ou o binding R2, sem disco (Worker: não há `statfs`), ou
+ * sem `AUDIO_DIR` legível, não se aplica.
  */
 const FOLGA_MINIMA_DO_VOLUME = 200 * 1024 * 1024
 
 export function volumeSemFolga(bytes: number, env: NodeJS.ProcessEnv = process.env): boolean {
-  if (configDoS3(env) || !env.AUDIO_DIR) return false
+  if (!temDisco() || armazenamentoExterno(env) || !env.AUDIO_DIR) return false
   try {
     const s = statfsSync(env.AUDIO_DIR)
     return s.bavail * s.bsize - bytes < FOLGA_MINIMA_DO_VOLUME
@@ -190,11 +233,18 @@ export async function reservarArmazenamento(userId: UserId, bytes: number): Prom
       if (b < 0) await liberarArmazenamento(userId, -b)
       return { ok: true, capBytes: cap, usadoBytes: (await lerUso(userId)) ?? 0 }
     }
+    const teto = tetoDaConta()
     const usado = await semearSeAusente(userId)
     // Guarda do caminho de INSERT (linha ausente), que não passa pelo `setWhere`.
-    if (b > cap) return { ok: false, capBytes: cap, usadoBytes: usado, motivo: 'cheio' }
-    if (await reservaAtomica(userId, b, cap)) return { ok: true, capBytes: cap, usadoBytes: usado + b }
-    return { ok: false, capBytes: cap, usadoBytes: (await lerUso(userId)) ?? usado, motivo: 'cheio' }
+    if (b > cap) return { ok: false, capBytes: cap, usadoBytes: usado, motivo: 'usuario' }
+    const r = Number.isFinite(teto)
+      ? await reservaComTetoDaConta(userId, b, cap, teto)
+      : (await reservaAtomica(userId, b, cap))
+        ? 'ok'
+        : 'usuario'
+    if (r === 'ok') return { ok: true, capBytes: cap, usadoBytes: usado + b }
+    if (r === 'conta') return { ok: false, capBytes: cap, usadoBytes: usado, motivo: 'conta' }
+    return { ok: false, capBytes: cap, usadoBytes: (await lerUso(userId)) ?? usado, motivo: 'usuario' }
   } catch (err) {
     log('error', { event: 'storage_quota_failed_closed', error: String((err as Error)?.message || err).slice(0, 120) })
     return { ok: false, capBytes: 0, usadoBytes: 0, motivo: 'indisponivel' }
@@ -208,7 +258,7 @@ export async function liberarArmazenamento(userId: UserId, bytes: number): Promi
   try {
     await db
       .update(usageCounters)
-      .set({ count: sql`max(0, ${usageCounters.count} - ${b})`, updatedAt: Date.now() })
+      .set({ count: sql`GREATEST(0, ${usageCounters.count} - ${b})`, updatedAt: Date.now() })
       .where(
         and(
           eq(usageCounters.userId, userId),
@@ -301,6 +351,54 @@ function horasDeReconciliacao(): number {
 }
 
 /**
+ * A RECONCILIAÇÃO EM LOTE (`STORAGE_RECONCILE_MODE=job`): os até `limite` usuários cujo contador está
+ * mais velho que `horas` (ou nem existe), do mais velho para o mais novo, reconciliados em sequência.
+ * Quem chama: o job `reconciliarArmazenamento` do registro (com teto por passada; o que sobrar sai na
+ * seguinte) e `POST /api/admin/armazenamento/reconciliar` (todo mundo, `horas: 0`).
+ *
+ * Sequencial de propósito: é trabalho de limpeza, e paralelizar `stat`/`HEAD` sobre o mesmo disco ou
+ * balde só antecipa a contenção que o modo `job` existe para evitar. A falha de um usuário é logada e
+ * a varredura segue.
+ */
+export async function reconciliarVencidos(o: { limite: number; horas?: number; audioDir?: string }): Promise<{
+  candidatos: number
+  reconciliados: number
+  falhas: number
+  porUsuario: Array<{ userId: string; bytes: number }>
+}> {
+  const horas = o.horas ?? (horasDeReconciliacao() || 24)
+  const corte = Math.floor(Date.now() - horas * 3_600_000)
+  const candidatos = await db
+    .select({ id: users.id })
+    .from(users)
+    .leftJoin(
+      usageCounters,
+      and(
+        eq(usageCounters.userId, users.id),
+        eq(usageCounters.metric, METRIC_STORAGE),
+        eq(usageCounters.window, WINDOW_STORAGE),
+      ),
+    )
+    .where(or(isNull(usageCounters.updatedAt), lte(usageCounters.updatedAt, corte)))
+    .orderBy(sql`${usageCounters.updatedAt} ASC NULLS FIRST`, users.id)
+    .limit(o.limite)
+  const porUsuario: Array<{ userId: string; bytes: number }> = []
+  let falhas = 0
+  for (const { id } of candidatos) {
+    try {
+      porUsuario.push({ userId: id, bytes: await reconciliarArmazenamento(id as UserId, o.audioDir) })
+    } catch (err) {
+      falhas++
+      log('warn', {
+        event: 'storage_reconcile_job_failed',
+        error: String((err as Error)?.message ?? err).slice(0, 120),
+      })
+    }
+  }
+  return { candidatos: candidatos.length, reconciliados: porUsuario.length, falhas, porUsuario }
+}
+
+/**
  * Reivindica a janela de varredura. Devolve `true` para NO MÁXIMO um chamador por janela.
  *
  * O carimbo de `updatedAt` é a própria reserva: um `UPDATE ... WHERE updated_at <= limite` só
@@ -318,7 +416,8 @@ function horasDeReconciliacao(): number {
  */
 export async function reivindicarJanela(userId: UserId, horas: number): Promise<boolean> {
   const agora = Date.now()
-  const limite = agora - horas * 3_600_000
+  // Inteiro: `updated_at` é bigint e o Postgres recusa um parâmetro fracionário (horas como 0,5).
+  const limite = Math.floor(agora - horas * 3_600_000)
   const criado = await db
     .insert(usageCounters)
     .values({
@@ -331,7 +430,7 @@ export async function reivindicarJanela(userId: UserId, horas: number): Promise<
       count: 0,
     })
     .onConflictDoNothing({ target: [usageCounters.userId, usageCounters.metric, usageCounters.window] })
-  if (Number((criado as { rowsAffected?: number })?.rowsAffected ?? 0) > 0) return true
+  if (linhasAfetadas(criado) > 0) return true
 
   const marcado = await db
     .update(usageCounters)
@@ -344,7 +443,7 @@ export async function reivindicarJanela(userId: UserId, horas: number): Promise<
         lte(usageCounters.updatedAt, limite),
       ),
     )
-  return Number((marcado as { rowsAffected?: number })?.rowsAffected ?? 0) > 0
+  return linhasAfetadas(marcado) > 0
 }
 
 /**
@@ -389,18 +488,19 @@ export async function reconciliarSeVencido(userId: UserId, audioDir = diretorioD
   }
 }
 
-/** O yt-dlp não informa o tamanho antes de baixar: 16 KB/s (~128 kbps), piso de 1 MB. */
-export function estimarBytesDeAudio(durationMs?: number | null): number {
-  const s = Number(durationMs) > 0 ? Number(durationMs) / 1000 : 0
-  return Math.max(MB, Math.ceil(s * 16 * 1024))
-}
-
 /** Resposta HTTP da recusa, igual nas duas rotas que gravam arquivo. */
 export function corpoDeRecusa(r: ResultadoDeCota): { status: number; body: EnvelopeDeErro } {
   if (r.motivo === 'indisponivel') {
     return {
       status: 503,
       body: envelopeDeErro('não foi possível verificar a cota de armazenamento agora', 'storage_quota_unavailable'),
+    }
+  }
+  if (r.motivo === 'conta') {
+    // Neutra de propósito: não é culpa da pessoa e não revela números da conta.
+    return {
+      status: 507,
+      body: envelopeDeErro('o serviço está no limite de armazenamento; tente mais tarde', 'r2_teto_armazenamento'),
     }
   }
   const mb = (b: number) => Math.round((b / MB) * 10) / 10

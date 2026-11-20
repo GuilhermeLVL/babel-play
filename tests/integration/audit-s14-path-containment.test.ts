@@ -7,9 +7,9 @@
  */
 import path from 'node:path'
 
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let resolveInAudioDir: (name: string) => string
@@ -17,11 +17,16 @@ let AUDIO_DIR: string
 
 beforeAll(async () => {
   h = await setupEphemeralDb()
-  ;({ resolveInAudioDir, AUDIO_DIR } = await h.load<{
-    resolveInAudioDir: (name: string) => string; AUDIO_DIR: string
-  }>('../../server/routes/sessions'))
+  const m = await h.load<{
+    resolveInAudioDir: (name: string) => string
+    audioDir: () => string
+  }>('../../server/routes/sessions')
+  resolveInAudioDir = m.resolveInAudioDir
+  AUDIO_DIR = m.audioDir()
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 describe('S-14 — contenção de caminho de áudio', () => {
   it('resolve um nome normal dentro de AUDIO_DIR', () => {

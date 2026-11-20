@@ -13,7 +13,7 @@ que frequência, como mudar textos e gatilhos sem deploy, e como medir a convers
 | Cota perto do fim (`GET /api/me/uso`, cache de 1 h)  | `src/lib/ofertas/cota.ts`                                                            |
 | Quem pode testar (`/api/billing/status`, 1 h)        | `src/lib/ofertas/teste.ts`                                                           |
 | Quem é a pessoa (plano, perfil protegido, teste)     | `src/lib/ofertas/plano.ts` (`planoDaOferta`, `pessoaDaOferta`)                       |
-| Fim do teste de 14 dias (D-3 e D0)                   | `src/lib/ofertas/fimDoTeste.ts`                                                      |
+| Fim do teste de 3 dias (D-1 e D0)                    | `src/lib/ofertas/fimDoTeste.ts`                                                      |
 | Instrumentação (funil anônimo)                       | `src/lib/ofertas/instrumentacao.ts` → `POST /api/metricas/ofertas`                   |
 | Host único + componentes                             | `src/components/ofertas/` (`HostDeOfertas`, `CartaoDeOferta`, `ModalDeOferta`)       |
 | Comparação de planos (não duplicada)                 | `src/components/views/Planos.tsx`, aberta com o plano sugerido destacado             |
@@ -41,15 +41,15 @@ que frequência, como mudar textos e gatilhos sem deploy, e como medir a convers
 
 ## Momentos (gatilhos)
 
-| Momento                | Quem dispara                                                                                                                                     | Tipo        |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- |
-| `fim_de_cota`          | 402 `quota_exceeded` da nuvem (Tradutor IA, STT de nuvem, tutor) e a checagem de consumo quando um contador chega a 100%                         | funcional   |
-| `cota_proxima`         | checagem de consumo (`GET /api/me/uso`, com conta, cache de 1 h): qualquer contador ≥ 80%                                                        | funcional   |
-| `modelo_premium`       | 402 com `entitlement` (STT/LLM gerenciado é de plano pago) e o tutor respondendo `managed_requires_plan`                                         | promocional |
-| `conquista`            | ao **fechar** a celebração de uma conquista (`RecompensaDesbloqueada`) — nunca sobre ela                                                         | promocional |
-| `fim_de_sessao`        | depois de **salvar** uma captura; ao **sair** do Jogar depois de ter fechado ao menos uma rodada — nunca no meio nem sobre o resumo              | promocional |
-| `convidado_para_conta` | a Fase 7 (modo convidado) com `window.dispatchEvent(new CustomEvent('babel:oferta', { detail: { momento: 'convidado_para_conta', contexto } }))` | promocional |
-| `fim_do_teste`         | o host, a cada hora, para quem está no teste de 14 dias (o `teste` dos entitlements): D-3 e D0 (`fase`) e, pelo uso da franquia do teste, `uso_perto` (80%) e `uso_acabou` (`cota.ts`), só com os avisos embutidos            | funcional   |
+| Momento                | Quem dispara                                                                                                                                                                                                      | Tipo        |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `fim_de_cota`          | 402 `quota_exceeded` da nuvem (Tradutor IA, STT de nuvem, tutor) e a checagem de consumo quando um contador chega a 100%                                                                                          | funcional   |
+| `cota_proxima`         | checagem de consumo (`GET /api/me/uso`, com conta, cache de 1 h): qualquer contador ≥ 80%                                                                                                                         | funcional   |
+| `modelo_premium`       | 402 com `entitlement` (STT/LLM gerenciado é de plano pago) e o tutor respondendo `managed_requires_plan`                                                                                                          | promocional |
+| `conquista`            | ao **fechar** a celebração de uma conquista (`RecompensaDesbloqueada`) — nunca sobre ela                                                                                                                          | promocional |
+| `fim_de_sessao`        | depois de **salvar** uma captura; ao **sair** do Jogar depois de ter fechado ao menos uma rodada — nunca no meio nem sobre o resumo                                                                               | promocional |
+| `convidado_para_conta` | a Fase 7 (modo convidado) com `window.dispatchEvent(new CustomEvent('babel:oferta', { detail: { momento: 'convidado_para_conta', contexto } }))`                                                                  | promocional |
+| `fim_do_teste`         | o host, a cada hora, para quem está no teste de 3 dias (o `teste` dos entitlements): D-1 e D0 (`fase`) e, pelo uso da franquia do teste, `uso_perto` (80%) e `uso_acabou` (`cota.ts`), só com os avisos embutidos | funcional   |
 
 Qualquer tela pode disparar um momento com `dispararOferta(momento, contexto)`
 (`src/lib/ofertas/eventos.ts`) ou com o evento cru acima. Quem decide se algo aparece é sempre o
@@ -73,10 +73,10 @@ Aplicadas pelo motor, nesta ordem:
    - O **convidado vê a conta antes de qualquer plano**: para ele, a única promocional é
      `convidado_para_conta`, e a ação dos avisos de cota é "criar conta".
    - O gatilho só vale para os planos listados em `planos`.
-   - Plano sugerido: Grátis → **teste** de 14 dias sem cartão quando o servidor deixa testar (`teste.estado`
+   - Plano sugerido: Grátis → **teste** de 3 dias sem cartão quando o servidor deixa testar (`teste.estado`
      de `/api/billing/status`, lembrado 1 h no aparelho; sem resposta, não se promete o teste) ou
      **Premium**; convidado → conta; Premium, self-host e perfil protegido → nenhum. O selo do componente diz
-     "Sugerido: 14 dias de Premium grátis, sem cartão" ou "Sugerido: Premium · R$ 19,90/mês" (da matriz).
+     "Sugerido: 3 dias de Premium grátis, sem cartão" ou "Sugerido: Premium · R$ 19,90/mês" (da matriz).
 3. **"Não mostrar novamente"**: permanente, por gatilho (vale também para os funcionais).
 4. **Tela ocupada** (captura, rodada, diálogo aberto): adia.
 5. **Teto global** (só promocionais): nenhuma nos **3 primeiros minutos** da sessão de uso; no
@@ -104,7 +104,7 @@ O card de planos do Hub (`CardDePlanos`) segue a mesma educação: a variante de
 | `comparacao` | O cartão de acento cuja ação abre a tela de **Planos** com o plano sugerido destacado (contorno de acento + "Sugerido para você"). |
 
 A ação de qualquer componente leva: convidado → login/criar conta; Grátis → Planos com o cartão do
-Premium destacado (quem pode testar vê ali o "Testar 14 dias grátis", um toque, sem cartão); Premium e
+Premium destacado (quem pode testar vê ali o "Testar 3 dias grátis", um toque, sem cartão); Premium e
 perfil protegido → aba "Consumo do mês"; o fim do teste → Planos, sem destaque de venda.
 
 ## Editar textos e gatilhos sem deploy
@@ -141,7 +141,7 @@ gatilho:
 - Vários gatilhos no mesmo momento: vale o primeiro, na ordem da lista, que passar nas regras.
 - **Texto honesto** (C7/C8): nada de "% de qualidade" nem de "mais precisa"; "sem limite no dia a dia" só
   com a nota do uso justo ao lado (CDC: até 2 h de nuvem por dia e 40 h por mês, depois a legenda segue no
-  aparelho); não prometa o teste de 14 dias no texto (nem todo mundo pode testar — o selo do host já diz a
+  aparelho); não prometa o teste de 3 dias no texto (nem todo mundo pode testar — o selo do host já diz a
   quem pode).
 
 Pela CLI de operação (na máquina de produção). Cada campo enviado (`regras`, `payload`) substitui o

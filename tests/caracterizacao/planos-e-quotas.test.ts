@@ -8,6 +8,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { PLAN_MATRIX } from '../../src/core/planos'
+import { clienteSql } from '../harness/clienteSql'
 import { type AppDeTeste, resposta, subirApp } from './_app'
 
 /* Toda chave que resolveria um provedor de nuvem — inclusive o atalho da reserva (OPENROUTER_API_KEY)
@@ -126,7 +127,6 @@ describe('planos e quotas (modo publico)', () => {
       managedCloudLlm: true,
       managedCloudStt: true,
       // Fase 2 do lançamento: YouTube só no self-host (no hospedado a rota responde 403).
-      youtubeImport: false,
       largerModels: true,
       // Matriz v2: os entitlements novos chegam ao cliente pela mesma rota.
       traducaoNuance: true,
@@ -143,7 +143,7 @@ describe('planos e quotas (modo publico)', () => {
   })
 
   it('matriz v2: a linha ANTIGA (pro) ainda no banco é lida como premium', async () => {
-    const { client } = await s.load('../../server/db/db')
+    const client = clienteSql(await s.load('../../server/db/db'))
     await client.execute({ sql: "UPDATE subscriptions SET plan = 'pro' WHERE user_id = ?", args: [A] })
     expect((await (await s.get('/api/me/entitlements', tokenA)).json()).plan).toBe('premium')
     await client.execute({ sql: "UPDATE subscriptions SET plan = 'premium' WHERE user_id = ?", args: [A] })
@@ -172,7 +172,9 @@ describe('planos e quotas (modo publico)', () => {
     const { reserveManagedCall, capForPlan, METRIC_MANAGED } = await s.load('../../server/lib/usageQuota')
     const { asUserId } = await s.load('../../server/lib/authContext')
     const U = asUserId(A)
-    const janela = new Date().toISOString().slice(0, 7)
+    // Quem paga conta na janela do período pago (change `cota-pelo-periodo-pago`).
+    const { janelaDaCota } = await s.load('../../server/lib/usageQuota')
+    const janela = await janelaDaCota(U)
     const cap = capForPlan('premium')
     expect(cap).toBe(PLAN_MATRIX.premium.quotas.chamadasMes)
 

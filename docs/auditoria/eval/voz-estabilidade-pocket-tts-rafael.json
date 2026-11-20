@@ -1,0 +1,36 @@
+{
+  "tipo": "estabilidade",
+  "origem": {
+    "versaoPreprocessador": "1",
+    "preprocessado": true
+  },
+  "geradoEm": "2026-11-01T23:10:32.322Z",
+  "motor": "pocket-tts",
+  "voz": "rafael",
+  "idioma": "pt",
+  "textoId": "longo.txt",
+  "textoSha256": "d792ebe8bf5a1f340f23738ec0d0e63e961286505e6db8c84a1d60d701b59dad",
+  "audioDuracaoS": 957.232125,
+  "palavrasNaReferencia": 2588,
+  "insercoes": 65,
+  "delecoes": 34,
+  "taxa": 0.038253477588871716,
+  "limite": 0.01,
+  "passou": false,
+  "chunks": 44,
+  "cortesSemPausa": 0,
+  "decodificador": {
+    "modelo": "onnx-community/whisper-small",
+    "no_repeat_ngram_size": 0,
+    "repetition_penalty": 1,
+    "max_new_tokens": 224
+  },
+  "notas": [],
+  "medidas": {
+    "porIdioma": {
+      "pt": {
+        "estabilidade": 0.038253477588871716
+      }
+    }
+  }
+}

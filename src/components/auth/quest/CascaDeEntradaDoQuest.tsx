@@ -38,7 +38,7 @@ export default function CascaDeEntradaDoQuest({
     <div className={semMarca ? 'qen qen-uma' : 'qen'} data-testid={testId}>
       {!semMarca && (
         <aside className="qen-marca">
-          <p className="qen-logo">Babel Play</p>
+          <p className="qen-logo">Frasy</p>
           <div className="qen-heroi">
             <h2>{hero?.title ?? <T txt="Capture.<br>Traduza.<br>Aprenda." />}</h2>
             <p className="qen-frase">

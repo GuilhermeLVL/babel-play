@@ -4,6 +4,8 @@ import React, { Suspense, useEffect, useRef, useState } from 'react';
 import type { AppMetrics, UtteranceRow } from '../../data/api';
 import { fetchDeck, fetchSessionTranscript, fetchSettings } from '../../data/api';
 import { applyOutputDevice } from '../../lib/audioDevices';
+import { MIN_FALAS_DO_RESUMO } from '../../lib/estudo/constantes';
+import { useEtiquetador } from '../../lib/etiquetas/indiceDeEtiquetas';
 import { useLangConfig } from '../../lib/langConfig';
 import { baseLang } from '../../lib/languages';
 import { lazyComRecarga } from '../../lib/lazyComRecarga';
@@ -57,6 +59,7 @@ import JogosDaSessao from './analise/quest/JogosDaSessao';
 import SessaoDoQuest from './analise/quest/SessaoDoQuest';
 import TranscricaoDoQuest, { type AjusteDeExibicao } from './analise/quest/TranscricaoDoQuest';
 import VisaoGeralDoQuest from './analise/quest/VisaoGeralDoQuest';
+import ResumoDaSessao from './analise/ResumoDaSessao';
 import type { FalaTocada } from './captura/celular/FolhaDaFrase';
 import FolhasDoPrototipo, { type PalavraNaFolha } from './captura/celular/FolhasDoPrototipo';
 
@@ -241,6 +244,11 @@ export default function Analysis({
   /* As palavras que a pessoa já conhece no idioma estudado: na folha da frase, as outras saem marcadas
      como novas (`telas.js:211`). */
   const conhecidas = usePalavrasConhecidas(langConfig.studying, true);
+  /* AS ETIQUETAS DE PALAVRAS na transcrição e na folha da frase (as mesmas da legenda da captura). */
+  const etiquetador = useEtiquetador({
+    langDaPessoa: langConfig.mine,
+    idiomas: [sessionLangs?.src || langConfig.studying],
+  });
 
   // FRASES CANÔNICAS (`Sentence[]`) — fonte única, normalizada em `lib/sentences.ts`. É o que
   // viaja para o Study/exercícios. Sem transcrição real → lista vazia (nada é fabricado).
@@ -781,12 +789,30 @@ export default function Analysis({
       aoTrocarAba={(id) => {
         /* `telas3.js:167`: trocar de aba para o player. */
         setIsPlaying(false);
+        /* O painel da frase não é modal: a aba muda com ele aberto, e ele fecha junto (a frase é da Transcrição). */
+        fecharFolhas();
         onSubTabChange(id);
       }}
       aoVoltar={() => onChangeView('library')}
       aoExportar={() => setShowExportModal(true)}
       repintar={['dashboard', 'lexical', 'fluency'].indexOf(overviewSubTab)}
     >
+      {/* O RESUMO DA SESSÃO (IA de estudo, etapa 2): na revisão, com a transcrição pronta e falas suficientes. Atrás
+          da flag `ia_de_estudo` (a porta não renderiza nada desligada). */}
+      {currentTab === 'transcript' &&
+        estadoDaTranscricao === 'pronta' &&
+        parsedSentences.length >= MIN_FALAS_DO_RESUMO && (
+          <ResumoDaSessao
+            sessionId={recording.id}
+            lang={langConfig.mine}
+            aoConhecer={perfilProtegido() ? undefined : () => onChangeView('planos')}
+            aoAdicionar={() => {
+              void fetchDeck()
+                .then(setVocabCards)
+                .catch(() => {});
+            }}
+          />
+        )}
       {currentTab === 'transcript' && (
         <TranscricaoDoQuest
           falas={parsedSentences}
@@ -825,7 +851,10 @@ export default function Analysis({
           aoOuvir={ouvirFala}
           aoAbrirFala={abrirFala}
           aoAbrirPalavra={abrirPalavra}
+          escolhida={falaNaFolha?.id ?? null}
           ajustes={ajustesDeExibicao}
+          etiquetador={etiquetador}
+          idiomaDasFalas={sentences[0]?.lang || sessionLangs?.src || undefined}
         />
       )}
 
@@ -885,12 +914,15 @@ export default function Analysis({
           palavra={palavraNaFolha}
           aoOuvir={ouvirNaFolha}
           semPratica={noHeadset()}
+          /* O painel da frase é sem modal; no headset fica a folha modal de antes. */
+          modal={noHeadset()}
           ehNova={
             falaNaFolha && conhecidas && baseLang(falaNaFolha.lang) === baseLang(conhecidas.idioma)
               ? (palavra) => !conhecidas.conhece(palavra)
               : undefined
           }
           guardada={palavraNoCaderno}
+          etiquetador={etiquetador}
           aoTocarPalavra={(palavra) =>
             falaNaFolha && setPalavraNaFolha({ palavra, frase: falaNaFolha.texto, lang: falaNaFolha.lang })
           }

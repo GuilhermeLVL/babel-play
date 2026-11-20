@@ -11,19 +11,24 @@
  *
  * Como em `planos-v2-migracao`: o banco nasce migrado, as linhas "antigas" são escritas DEPOIS, à mão,
  * e os UPDATEs da migração são reaplicados sobre elas. Reaplicar é idempotente.
+ *
+ * Postgres (Fase 1): a migração é da cadeia SQLITE legada e roda sobre ela (`sqliteLegado.ts`). O
+ * Postgres nasce no estado final, e o último bloco confere que as sementes dele são as mesmas.
  */
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { clienteSql } from '../harness/clienteSql'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
+import { abrirSqliteLegado, PASTA_SQLITE_LEGADO, type SqliteLegado } from '../harness/sqliteLegado'
 
 type Cliente = {
   execute: (q: string | { sql: string; args: unknown[] }) => Promise<{ rows: Array<Record<string, unknown>> }>
 }
 
-const MIGRACAO = path.join('server', 'db', 'migrations', '0049_planos_v3.sql')
+const MIGRACAO = path.join(PASTA_SQLITE_LEGADO, '0049_planos_v3.sql')
 const updatesDaMigracao = () =>
   readFileSync(MIGRACAO, 'utf8')
     .split(/-->\s*statement-breakpoint/)
@@ -31,13 +36,18 @@ const updatesDaMigracao = () =>
     .filter((c) => /^UPDATE\b/i.test(c))
 
 let h: EphemeralDb
+let legado: SqliteLegado
 let client: Cliente
 
 beforeAll(async () => {
+  /* O harness do Postgres só carrega os módulos do servidor (os schemas de flags e ofertas); o dado
+     migrado é o do SQLite legado, que é onde esta migração existe (ver `sqliteLegado.ts`). */
   h = await setupEphemeralDb()
-  client = ((await h.load('../../server/db/db')) as { client: Cliente }).client
+  legado = await abrirSqliteLegado()
+  client = legado.client as unknown as Cliente
 })
 afterAll(async () => {
+  legado.fechar()
   await h.cleanup()
 })
 
@@ -71,9 +81,9 @@ describe('a migração', () => {
 })
 
 describe('as sementes, depois da migração', () => {
-  it('`voz_natural` vale para os planos com voz neural: premium, selfhost e, agora, aovivo', async () => {
+  it('`voz_natural` vale para os planos com voz neural: premium, selfhost, aovivo e, na 0054, plus, familia e pro4', async () => {
     const { regras } = await lerFlag('voz_natural')
-    expect([...regras.planos].sort()).toEqual(['aovivo', 'premium', 'selfhost'])
+    expect([...regras.planos].sort()).toEqual(['aovivo', 'familia', 'plus', 'premium', 'pro4', 'selfhost'])
     // E são exatamente os planos com `vozNatural` na matriz.
     const { PLAN_MATRIX, PLANOS_DE_ASSINATURA } = await import('../../src/core/planos')
     expect([...regras.planos].sort()).toEqual(
@@ -208,7 +218,14 @@ describe('a reversão escrita desfaz a migração', () => {
     const comandos = [...comentario.matchAll(/`(UPDATE[\s\S]*?)`/g)].map((m) => m[1])
     expect(comandos).toHaveLength(2)
     for (const c of comandos) await client.execute(c)
-    expect((await lerFlag('voz_natural')).regras.planos.sort()).toEqual(['premium', 'selfhost'])
+    // A reversão da 0049 tira só o `aovivo`: o que a 0054 pôs (plus, familia, pro4) fica.
+    expect((await lerFlag('voz_natural')).regras.planos.sort()).toEqual([
+      'familia',
+      'plus',
+      'premium',
+      'pro4',
+      'selfhost',
+    ])
     expect((await lerFlag('teste_regras')).regras).toEqual({
       planos: ['free', 'premium'],
       percentual: 50,
@@ -221,6 +238,32 @@ describe('a reversão escrita desfaz a migração', () => {
     })
     // E a migração volta a valer por cima (ida e volta).
     await reaplicar()
-    expect((await lerFlag('voz_natural')).regras.planos.sort()).toEqual(['aovivo', 'premium', 'selfhost'])
+    expect((await lerFlag('voz_natural')).regras.planos.sort()).toEqual([
+      'aovivo',
+      'familia',
+      'plus',
+      'premium',
+      'pro4',
+      'selfhost',
+    ])
+  })
+})
+
+describe('as sementes no Postgres (baseline 0001) chegam ao mesmo estado final', () => {
+  const lerFlagPg = async (chave: string) => {
+    const pg = clienteSql(await h.load('../../server/db/db'))
+    const l = (await pg.execute({ sql: 'SELECT regras, payload FROM flags WHERE chave = ?', args: [chave] })).rows[0]
+    return { regras: JSON.parse(String(l.regras)), payload: l.payload === null ? null : JSON.parse(String(l.payload)) }
+  }
+
+  it('voz_natural, nuvem_gratuita_alivio, venda e ofertas como na cadeia SQLite', async () => {
+    for (const chave of ['voz_natural', 'nuvem_gratuita_alivio', 'venda_planos_v3', 'stt_ao_vivo', 'oferta_planos']) {
+      const pg = await lerFlagPg(chave)
+      const sqlite = await lerFlag(chave)
+      // A lista de planos é um CONJUNTO: a ida e volta da reversão acima reordena a do SQLite.
+      if (Array.isArray(pg.regras.planos)) pg.regras.planos.sort()
+      if (Array.isArray(sqlite.regras.planos)) sqlite.regras.planos.sort()
+      expect(pg, chave).toEqual(sqlite)
+    }
   })
 })

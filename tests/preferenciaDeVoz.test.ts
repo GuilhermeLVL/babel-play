@@ -31,9 +31,9 @@ interface VozFalsa {
   localService: boolean
 }
 const VOZES: VozFalsa[] = [
-  { name: 'Microsoft David - English (United States)', lang: 'en-US', localService: true },
+  { name: 'Alex', lang: 'en-US', localService: true },
   { name: 'Microsoft Aria Online (Natural) - English (United States)', lang: 'en-US', localService: false },
-  { name: 'Microsoft Maria - Portuguese (Brazil)', lang: 'pt-BR', localService: true },
+  { name: 'Luciana', lang: 'pt-BR', localService: true },
   { name: 'Google português do Brasil', lang: 'pt-BR', localService: false },
 ]
 const DAVID = VOZES[0].name

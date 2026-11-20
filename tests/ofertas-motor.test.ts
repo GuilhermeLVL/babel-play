@@ -253,7 +253,7 @@ describe('planos-alvo', () => {
   })
 })
 
-describe('C8 — o teste de 14 dias como sugestão', () => {
+describe('C8 — o teste de 3 dias como sugestão', () => {
   it('Grátis que pode testar → teste; que não pode (ou não se sabe) → Premium; o resto não muda', () => {
     expect(planoSugerido('free', { podeTestar: true })).toBe('teste')
     expect(planoSugerido('free', { podeTestar: false })).toBe('premium')
@@ -303,12 +303,12 @@ describe('C8 — perfil protegido: só o funcional, nunca o promocional', () => 
         protegido: true,
         plano: 'premium',
         momento: 'fim_do_teste',
-        fase: 'd3',
+        fase: 'd1',
         flagLigada: false,
         config: config(),
       }),
     )
-    expect(d).toMatchObject({ mostrar: true, planoSugerido: 'nenhum', gatilho: { id: 'funcional_fim_do_teste_d3' } })
+    expect(d).toMatchObject({ mostrar: true, planoSugerido: 'nenhum', gatilho: { id: 'funcional_fim_do_teste_d1' } })
   })
 })
 

@@ -8,6 +8,7 @@ import { env, pipeline, Tensor } from '@huggingface/transformers';
 
 import { juntarFrases, separarEmFrases } from '../../core/texto/frases';
 import { modeloParaOIngles } from '../../core/traducao/viaIngles';
+import { carregarComCura } from '../cacheDePesos';
 import { registrarModeloBaixado } from '../modelManifest';
 import { FilaSerial, processadorDeCancelamento, type SinalDeCancelamento } from './filaDoWorker';
 import { LruDePipes, type ReservaDePipe } from './lruDePipes';
@@ -195,12 +196,15 @@ async function carregarPipe(model: string): Promise<any> {
   for (const dtype of (diag.dtypes ?? MT_DTYPES) as readonly string[]) {
     try {
       const progresso = novoProgresso('Tradutor (opus-mt)');
-      const p = await pipeline('translation', model, {
-        device: 'wasm',
-        dtype: dtype as any,
-        progress_callback: progresso,
-        session_options: { graphOptimizationLevel: diag.graphOpt ?? ORT_GRAPH_OPT },
-      } as any);
+      // A cura do cache (`cacheDePesos.ts`): sessão que não abre apaga o modelo e baixa de novo, uma vez.
+      const p = await carregarComCura(model, () =>
+        pipeline('translation', model, {
+          device: 'wasm',
+          dtype: dtype as any,
+          progress_callback: progresso,
+          session_options: { graphOptimizationLevel: diag.graphOpt ?? ORT_GRAPH_OPT },
+        } as any),
+      );
       await pipes.guardar(model, p);
       console.log(`[mt:worker] ${model} carregado (dtype=${dtype})`);
       // Manifesto com o dtype que REALMENTE venceu o cascade (int8 ou fp16 baixam arquivos

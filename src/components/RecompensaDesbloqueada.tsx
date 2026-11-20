@@ -26,6 +26,7 @@ import {
   EVENTO_CAPTURA_LIBEROU,
   EVENTO_RODADA_FECHOU,
   jogoAtivo,
+  marcarRecompensaAberta,
   marcarVista,
   posicaoNoLote,
   type Recompensa,
@@ -38,6 +39,7 @@ import { movimentoReduzido } from '../lib/movimento/reduzido';
 import { play } from '../lib/soundFx';
 import { iconeDaConquista } from './iconesDaConquista';
 import MiniaturaDoItem from './MiniaturaDoItem';
+import NovidadeDiscreta, { loteDiscreto, precisaDeModal } from './NovidadeDiscreta';
 import PreviaRealDaPeca, { TIPOS_COM_PREVIA_REAL } from './PreviaRealDaPeca';
 import { DialogoBase } from './ui';
 
@@ -99,16 +101,30 @@ interface Props {
   /** Tira a recompensa da frente da fila (já marcada como vista aqui). */
   onFechar: (r: Recompensa) => void;
   onVerPersonalizar: () => void;
+  /** "Ver" do cartão discreto quando o lote tem conquista (a grade de Desafios). Ausente = Personalizar. */
+  onVerConquistas?: () => void;
 }
 
-export default function RecompensaDesbloqueada({ fila, onEquipar, onFechar, onVerPersonalizar }: Props) {
-  const atual = fila[0] ?? null;
+export default function RecompensaDesbloqueada({
+  fila,
+  onEquipar,
+  onFechar,
+  onVerPersonalizar,
+  onVerConquistas,
+}: Props) {
+  /* O LOTE DISCRETO (dono, 22/10/2026): o que não tem peça a equipar vira um cartão só, no canto, sem
+     véu nem festa (`NovidadeDiscreta`), AO MESMO TEMPO que o modal do que tem peça. O cartão não segura
+     o modal na fila: com o cartão na frente, o modal só abria 7 s depois, no meio do que a pessoa fazia
+     (o e2e do fim da captura pegou isso). */
+  const discretas = loteDiscreto(fila);
+  const modais = fila.filter(precisaDeModal);
+  const atual = modais[0] ?? null;
   /* Espera a rodada fechar e a CAPTURA liberar (gravando, no Encerrar ou salvando): a recompensa
      por cima do fim da captura era mais uma porta a fechar antes de conseguir sair. */
   const telaLivre = () => !jogoAtivo() && !capturaOcupada();
   const [pronta, setPronta] = useState(telaLivre);
   const lote = useRef<string[]>([]);
-  const grupo = posicaoNoLote(lote.current, fila);
+  const grupo = posicaoNoLote(lote.current, modais);
   lote.current = grupo.lote;
 
   // Espera a rodada fechar; enquanto isso o modal não existe na tela.
@@ -131,17 +147,30 @@ export default function RecompensaDesbloqueada({ fila, onEquipar, onFechar, onVe
     };
   }, [atual]);
 
-  if (!atual || !pronta) return null;
+  if (!pronta) return null;
+  const cartao =
+    discretas.length > 0 ? (
+      <NovidadeDiscreta
+        key={chaveDaRecompensa(discretas[0])}
+        novidades={discretas}
+        onFechar={onFechar}
+        onVer={(destino) => (destino === 'conquistas' && onVerConquistas ? onVerConquistas() : onVerPersonalizar())}
+      />
+    ) : null;
+  if (!atual) return cartao;
   // Uma recompensa por diálogo: a próxima da fila abre um diálogo novo (e um confete novo).
   return (
-    <Resgate
-      key={chaveDaRecompensa(atual)}
-      atual={atual}
-      onEquipar={onEquipar}
-      onFechar={onFechar}
-      onVerPersonalizar={onVerPersonalizar}
-      grupo={grupo}
-    />
+    <>
+      {cartao}
+      <Resgate
+        key={chaveDaRecompensa(atual)}
+        atual={atual}
+        onEquipar={onEquipar}
+        onFechar={onFechar}
+        onVerPersonalizar={onVerPersonalizar}
+        grupo={grupo}
+      />
+    </>
   );
 }
 
@@ -155,6 +184,12 @@ function Resgate({
   const [equipados, setEquipados] = useState<Set<string>>(new Set());
   const idTitulo = useId();
   const fechado = useRef(false);
+
+  /* Enquanto o modal está na tela, o fim da rodada segura os espaços de anúncio dele (`filaDeRecompensas`). */
+  useEffect(() => {
+    marcarRecompensaAberta(true);
+    return () => marcarRecompensaAberta(false);
+  }, []);
 
   /* A festa de quem abre o modal, pelo motor: nível, conquista ou baú (a raridade do baú escala). */
   useEffect(() => {

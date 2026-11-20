@@ -1,0 +1,276 @@
+{
+ "rodada": "celular-375-limpo",
+ "opcoes": {
+  "raiz": "/tmp/conversa-de-verdade/jantar",
+  "saida": "rodadas/celular-375-limpo",
+  "base": "http://localhost:3100",
+  "celular": true,
+  "falas": "/Users/guilhermepinheirodeoliveira/dev/personal/babel/babel-play/.claude/worktrees/pendencias-ao-alcance/reports/auditoria-qualidade/conversa/falas",
+  "perfil": "/tmp/conversa-de-verdade/jantar/perfil-base-celular",
+  "viewport": {
+   "width": 375,
+   "height": 667
+  },
+  "turnos": [
+   "pt1",
+   "en1",
+   "pt2",
+   "en2"
+  ],
+  "esperaMicMs": 180000
+ },
+ "cargaAteBotaoMs": 883,
+ "toquesTotais": 4,
+ "turnos": 4,
+ "toquesPorTurno": 1,
+ "toquesExtras": [],
+ "troca": null,
+ "mediana": {
+  "toqueAteMicProntoMs": 444,
+  "fimDaFalaAteMicFecharMs": 2382,
+  "fimDaFalaAteTraducaoMs": -4312,
+  "fimDaFalaAteVozMs": 2482,
+  "toqueAteVozTerminarMs": 11100
+ },
+ "avisosVistos": [
+  "Instalando o tradutor · N%"
+ ],
+ "ouvindoAntesDoPronto": {
+  "ultimoPreparoMs": null,
+  "primeiroOuvindoMs": 2571.8949999809265,
+  "ouvindoComPreparo": false
+ },
+ "lista": [
+  {
+   "dono": "meu",
+   "fala": "Boa noite, que bom que você veio jantar com a gente.",
+   "lang": "pt",
+   "trad": "Good evening, glad you came to dinner with us."
+  },
+  {
+   "dono": "outro",
+   "fala": "Thank you so much for inviting me. The food smells amazing!",
+   "lang": "en",
+   "trad": "Muito obrigado por me convidar. A comida cheira incrível!"
+  },
+  {
+   "dono": "meu",
+   "fala": "Você prefere ver o tinto ou suco de uva?",
+   "lang": "pt",
+   "trad": "Would you rather see the red or grape juice?"
+  },
+  {
+   "dono": "outro",
+   "fala": "Red wine, please. Where did you learn to cook like this?",
+   "lang": "en",
+   "trad": "Vinho tinto, por favor. Onde aprendeu a cozinhar assim?"
+  }
+ ],
+ "vozesUsadas": [
+  "Eddy (Portuguese (Brazil))|pt-BR"
+ ],
+ "vozesPadraoDoSistema": [
+  {
+   "nome": "Samantha",
+   "lang": "en-US",
+   "padrao": true
+  }
+ ],
+ "gum": [
+  {
+   "t": 2553.704999923706,
+   "audio": true,
+   "video": false
+  }
+ ],
+ "turnosDetalhe": [
+  {
+   "i": 0,
+   "fala": "pt1",
+   "lado": "meu",
+   "toques": 1,
+   "toqueAteMicProntoMs": 504,
+   "falaDurMs": 4020,
+   "fimDaFalaAteMicFecharMs": 2383,
+   "fimDaFalaAteTraducaoMs": null,
+   "fimDaFalaAteVozMs": null,
+   "toqueAteVozTerminarMs": null,
+   "vozDurMs": null,
+   "traducaoNaTela": "",
+   "lidoEmVoz": null,
+   "vozUsada": null,
+   "langDaVoz": null,
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "O APP ENTENDEU:",
+   "fraseFinalOutro": "Toque em Falar e fale. A tradução aparece do outro lado e é lida em voz alta.",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 129,
+      "clientHeight": 72,
+      "cabe": false,
+      "rola": true,
+      "cortadoNoTopo": false,
+      "fontePx": 14
+     },
+     "outro": {
+      "scrollHeight": 72,
+      "clientHeight": 72,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 14
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 1,
+   "fala": "en1",
+   "lado": "outro",
+   "toques": 1,
+   "toqueAteMicProntoMs": 444,
+   "falaDurMs": 3635,
+   "fimDaFalaAteMicFecharMs": 2289,
+   "fimDaFalaAteTraducaoMs": -4352,
+   "fimDaFalaAteVozMs": 2439,
+   "toqueAteVozTerminarMs": 11230,
+   "vozDurMs": 4399,
+   "traducaoNaTela": "Boa noite, que bom que você veio jantar com a gente.",
+   "lidoEmVoz": "Muito obrigado por me convidar. A comida cheira incrível!",
+   "vozUsada": "Eddy (Portuguese (Brazil))|pt-BR",
+   "langDaVoz": "pt-BR",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "Thank you so much for inviting me. The food smells amazing!",
+   "fraseFinalOutro": "Muito obrigado por me convidar. A comida cheira incrível!",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 88,
+      "clientHeight": 72,
+      "cabe": false,
+      "rola": true,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     },
+     "outro": {
+      "scrollHeight": 72,
+      "clientHeight": 72,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 2,
+   "fala": "pt2",
+   "lado": "meu",
+   "toques": 1,
+   "toqueAteMicProntoMs": 439,
+   "falaDurMs": 3171,
+   "fimDaFalaAteMicFecharMs": 2419,
+   "fimDaFalaAteTraducaoMs": null,
+   "fimDaFalaAteVozMs": null,
+   "toqueAteVozTerminarMs": null,
+   "vozDurMs": null,
+   "traducaoNaTela": "",
+   "lidoEmVoz": null,
+   "vozUsada": null,
+   "langDaVoz": null,
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "O APP ENTENDEU:",
+   "fraseFinalOutro": "Thank you so much for inviting me. The food smells amazing!",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 129,
+      "clientHeight": 72,
+      "cabe": false,
+      "rola": true,
+      "cortadoNoTopo": false,
+      "fontePx": 14
+     },
+     "outro": {
+      "scrollHeight": 72,
+      "clientHeight": 72,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  },
+  {
+   "i": 3,
+   "fala": "en2",
+   "lado": "outro",
+   "toques": 1,
+   "toqueAteMicProntoMs": 444,
+   "falaDurMs": 3560,
+   "fimDaFalaAteMicFecharMs": 2380,
+   "fimDaFalaAteTraducaoMs": -4272,
+   "fimDaFalaAteVozMs": 2525,
+   "toqueAteVozTerminarMs": 10969,
+   "vozDurMs": 4129,
+   "traducaoNaTela": "Você prefere ver o tinto ou suco de uva?",
+   "lidoEmVoz": "Vinho tinto, por favor. Onde aprendeu a cozinhar assim?",
+   "vozUsada": "Eddy (Portuguese (Brazil))|pt-BR",
+   "langDaVoz": "pt-BR",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "Red wine, please. Where did you learn to cook like this?",
+   "fraseFinalOutro": "Vinho tinto, por favor. Onde aprendeu a cozinhar assim?",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 88,
+      "clientHeight": 72,
+      "cabe": false,
+      "rola": true,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     },
+     "outro": {
+      "scrollHeight": 72,
+      "clientHeight": 72,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 18
+     }
+    },
+    "microfonesFora": [],
+    "barraVisivel": false
+   }
+  }
+ ]
+}

@@ -11,6 +11,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
+import { clienteSql } from '../harness/clienteSql'
 
 describe('ETag de GET /api/vocab por conta (modo público)', () => {
   let s: AppDeTeste
@@ -66,7 +67,7 @@ describe('ETag de GET /api/vocab por conta (modo público)', () => {
   })
 
   it('a exclusão da conta não deixa a linha de versões com o id da pessoa (LGPD)', async () => {
-    const { client } = await s.load('../../server/db/db')
+    const client = clienteSql(await s.load<any>('../../server/db/db'))
     const { contaRepo } = await s.load('../../server/db/repositories/conta')
     const { asUserId } = await s.load('../../server/lib/authContext')
     const linhas = async () =>

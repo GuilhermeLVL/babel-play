@@ -34,8 +34,10 @@
  *   · `reduzirEfeitos()` — O SINAL ÚNICO do "modo leve" para as telas e jogos (ver abaixo).
  */
 import { temAdaptadorWebGpu, webGpuProvavel } from '../../gateway/adaptadorWebGpu';
+import { navegadorSemAudioDaTela } from '../captura/navegadorSemAudioDaTela';
 import { recursosDoAparelho } from './recursos';
 import type { SondaDoAparelho } from './sonda';
+import { redeLentaPor, vazaoConhecida } from './vazao';
 
 export type TipoDeDispositivo = 'quest' | 'celular-fraco' | 'celular-bom' | 'desktop-sem-gpu' | 'desktop-com-gpu';
 
@@ -66,6 +68,11 @@ export interface SinaisDoDispositivo {
   memoriaDaAbaMb: number | null;
   /** Há ADAPTADOR WebGPU (não só `navigator.gpu`) — ver `adaptadorWebGpu.ts`. */
   webGpu: boolean;
+  /**
+   * A vazão MEDIDA da rede em Mbit/s (`vazao.ts`: a guardada nas últimas 24 h, ou a dos arquivos do próprio app).
+   * Decide a rede lenta quando o navegador não diz o tipo (Safari). Ausente/`null` = sem medida.
+   */
+  vazaoMbps?: number | null;
 }
 
 export interface PerfilDoDispositivo {
@@ -75,20 +82,23 @@ export interface PerfilDoDispositivo {
   /**
    * Pouca memória para modelos: carregar STT e tradutor UM DE CADA VEZ e liberar os workers ao sair
    * da captura. Vale para todo móvel e Quest: a aba do iOS pode morrer perto de 0,5–1,5 GB (WebKit,
-   * web-llm#386; arXiv 2605.20706) e o Quest divide 4,4/5,75 GiB com o navegador inteiro.
+   * web-llm#386; arXiv 2605.20706) e o Quest divide 4,4/5,75 GiB com o navegador inteiro. E todo
+   * aparelho sem `crossOriginIsolated` (Safari no Mac: WASM em 1 thread, 4,2 GB medidos na captura).
    */
   poucaMemoria: boolean;
   /** Threads do WASM do ONNX Runtime: 1 sem isolamento; até 4 com isolamento. */
   threadsWasm: number;
-  /** O Whisper small (589 MB, só tempo real com GPU) pode ser escolhido. Só desktop com GPU. */
+  /** O Whisper small (589 MB, só tempo real com GPU) pode ser escolhido. Só desktop com GPU e `crossOriginIsolated`. */
   permiteSmall: boolean;
-  /** A captura usa o áudio do sistema/aba (getDisplayMedia): no computador e no Quest. */
+  /** A captura usa o áudio do sistema/aba (getDisplayMedia): no computador e no Quest; não no Safari nem no Firefox. */
   capturaDoSistema: boolean;
   /**
    * Pedir confirmação antes de baixar modelos acima deste total (MB). `null` = não pedir;
-   * `0` = pedir sempre (economia de dados ligada ou rede abaixo de 4g).
+   * `0` = pedir sempre (economia de dados ligada ou rede lenta). Celular e Quest: 20; desktop: 300.
    */
   confirmarDownloadAcimaDeMb: number | null;
+  /** A rede é lenta (o tipo declarado abaixo de 4g ou, sem ele, a vazão medida abaixo de 1,5 Mbit/s). */
+  redeLenta: boolean;
   /** Alvo interativo mínimo (px CSS): 56 no Quest (Eyes Best Practices da Meta), 48 no resto. */
   alvoMinimoPx: 48 | 56;
   /** Por que este perfil — para o relatório/diagnóstico, nunca para decidir de novo. */
@@ -150,6 +160,7 @@ export function lerSinaisDoDispositivo(webGpu: boolean): SinaisDoDispositivo {
     movimentoReduzido: consulta('(prefers-reduced-motion: reduce)'),
     memoriaDaAbaMb,
     webGpu,
+    vazaoMbps: vazaoConhecida(),
   };
 }
 
@@ -182,8 +193,16 @@ export function classificarDispositivo(s: SinaisDoDispositivo): PerfilDoDisposit
   const leve = tipo === 'quest' || tipo === 'celular-fraco' || desktopModesto;
   const abaPequena = s.memoriaDaAbaMb != null && s.memoriaDaAbaMb < 1024;
   if (abaPequena) motivos.push(`heap da aba ${s.memoriaDaAbaMb} MB`);
+  /* SEM ISOLAMENTO, o WASM roda numa thread só e o pico de memória é o pior (correção F do diagnóstico
+     do Safari, 22/10/2026: o WebKit não implementa `COEP: credentialless`; medido 4,2 GB no processo da
+     página e queda da aba ao sair da Capturar). Conta como pouca memória: um modelo de cada vez e os
+     workers encerrados na hora ao sair da captura. */
   const poucaMemoria =
-    tipo === 'quest' || tipo.startsWith('celular') || (s.memoriaGb != null && s.memoriaGb <= 2) || abaPequena;
+    tipo === 'quest' ||
+    tipo.startsWith('celular') ||
+    (s.memoriaGb != null && s.memoriaGb <= 2) ||
+    abaPequena ||
+    !s.isolado;
 
   /* Teto 4 em todo perfil — o mesmo padrão que o worker já usava (`min(núcleos, 4)`). Um teto de 2 no
      celular fraco foi testado e não se sustentou: no Pixel 7 emulado o Whisper base q8 deu RTF 1,04
@@ -191,20 +210,30 @@ export function classificarDispositivo(s: SinaisDoDispositivo): PerfilDoDisposit
      para mudar o padrão (auditoria de dispositivos, 2026-09-26). */
   const threadsWasm = s.isolado ? Math.max(1, Math.min(s.nucleos ?? 4, 4)) : 1;
 
-  const redeLenta = s.tipoDeRede != null && s.tipoDeRede !== '4g';
+  /* Sem o tipo declarado (Safari, Firefox), a vazão medida (`vazao.ts`) decide (carga-rapida-no-celular, 3.2). */
+  const redeLenta = redeLentaPor({ tipoDeRede: s.tipoDeRede, vazaoMbps: s.vazaoMbps ?? null }) === true;
   if (s.economiaDeDados) motivos.push('economia de dados ligada');
-  if (redeLenta) motivos.push(`rede ${s.tipoDeRede}`);
+  if (redeLenta)
+    motivos.push(
+      s.tipoDeRede ? `rede ${s.tipoDeRede}` : `vazão medida ${String(s.vazaoMbps).replace('.', ',')} Mbit/s`,
+    );
+  /* Celular e Quest: todo download acima de 20 MB pergunta (carga-rapida-no-celular, CEL-04: 90 MB saíam do plano
+     de dados sem pergunta com o limite de 100 MB). */
   const confirmarDownloadAcimaDeMb =
-    s.economiaDeDados || redeLenta ? 0 : tipo === 'quest' || tipo.startsWith('celular') ? 100 : null;
+    s.economiaDeDados || redeLenta ? 0 : tipo === 'quest' || tipo.startsWith('celular') ? 20 : 300;
 
   return {
     tipo,
     leve,
     poucaMemoria,
     threadsWasm,
-    permiteSmall: tipo === 'desktop-com-gpu',
-    capturaDoSistema: s.capturaDeTela,
+    /* O small (589 MB) só com isolamento: em 1 thread e sem SharedArrayBuffer ele não cabe (Safari). */
+    permiteSmall: tipo === 'desktop-com-gpu' && s.isolado,
+    /* Safari e Firefox têm getDisplayMedia mas nunca entregam o som da aba/tela (correção E do diagnóstico
+       do Safari): ali a fonte padrão é o microfone, e o primeiro Iniciar não cai no aviso sem saída. */
+    capturaDoSistema: s.capturaDeTela && !navegadorSemAudioDaTela(s.userAgent),
     confirmarDownloadAcimaDeMb,
+    redeLenta,
     alvoMinimoPx: tipo === 'quest' ? 56 : 48,
     motivos,
     sinais: s,
@@ -329,9 +358,10 @@ export function dispositivoDaRota(
   economiaDeDados: boolean;
   memoriaGb: number | null;
   poucaMemoria: boolean;
+  fornecedorGpu?: string;
 } & CamposDaSondaNaRota {
   /* `memoriaGb` e `poucaMemoria`: o que a rota lê para saber se o Parakeet (672 MB, ~2 GB de RAM) cabe
-     (`parakeetCabeNoAparelho` em `sttRouter.ts`). Sem a chave dele ligada, ninguém os consulta. */
+     (`parakeetCabeNoAparelho` em `sttRouter.ts`). */
   const base = {
     tipo: p.tipo,
     permiteSmall: p.permiteSmall,
@@ -351,6 +381,7 @@ export function dispositivoDaRota(
     iOS: s.iOS,
     pontuacaoWasm: sonda.benchmark?.pontuacaoWasm ?? null,
     pontuacaoWebgpu: sonda.benchmark?.pontuacaoWebgpu ?? null,
+    fornecedorGpu: (s.webGpu?.fornecedor ?? '').toLowerCase(),
     adaptadorReal: !!s.webGpu && s.webGpu.reserva !== true,
     gpuCaiu: Object.values(sonda.motivosDaProibicao ?? {}).includes('device-lost'),
   };

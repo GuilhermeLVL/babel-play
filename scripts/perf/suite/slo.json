@@ -38,6 +38,13 @@
     "jsInicialGzipMaxKB": 180,
     "cssInicialGzipMaxKB": 55,
     "proibidosNoDist": ["prototipo-*.html", "lucide.min.js"],
+    "appMobile": {
+      "rota": "/app",
+      "lcpMaxMs": 2500,
+      "jsAteLcpMaxKB": 300,
+      "medicao": "Lighthouse mobile com --throttling-method=devtools (4G lento: 1,6 Mbps, RTT 150 ms, CPU 4x), mediana de 3 corridas, visitante sem sessão",
+      "comentario": "carga-rapida-no-celular (17/11/2026): a auditoria mediu LCP de 7442 ms e 555 KB de JS em produção. Medido no build local servido como o Worker (scripts/perf/app-no-worker-local.mjs). Cobrado por scripts/perf/frontend.mjs --cobrar-app e pelo harness local; não bloqueia PR (workflow lighthouse, manual)"
+    },
     "comentario": "teto = o medido + 10% (gzip nível 6, o do servidor). JS: 195,2 KB na Fase 4 → 215; 163,3 KB depois da auditoria de performance do frontend de 26/09/2026 (servidor em memória sob demanda, núcleo sem efeito colateral) → 180. CSS 49,5 KB → 55. scripts/perf/orcamento-bundle.mjs cobra no job `carga`"
   }
 }

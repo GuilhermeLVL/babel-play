@@ -21,7 +21,7 @@ import {
   CorpoInterrompido,
   receberCorpoEmArquivo,
   tamanhoDeclarado,
-} from '../../server/lib/corpoEmArquivo'
+} from '../../server/lib/corpoRecebido'
 import { criarSemaforoDeCorpos, limitesDeCorposGrandes } from '../../server/lib/corposGrandes'
 
 const dir = mkdtempSync(path.join(tmpdir(), 'babel-corpos-'))

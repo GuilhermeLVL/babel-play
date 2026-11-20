@@ -1,0 +1,399 @@
+{
+ "rodada": "desktop-cache-limpo",
+ "opcoes": {
+  "raiz": "/tmp/conversa-de-verdade/jantar",
+  "saida": "rodadas/desktop-cache-limpo",
+  "base": "http://localhost:3100",
+  "falas": "/Users/guilhermepinheirodeoliveira/dev/personal/babel/babel-play/.claude/worktrees/pendencias-ao-alcance/reports/auditoria-qualidade/conversa/falas",
+  "perfil": "/tmp/conversa-de-verdade/jantar/perfil-base-desktop",
+  "esperaMicMs": 180000,
+  "turnos": [
+   "pt1",
+   "en1",
+   "pt2",
+   "en2",
+   "pt3",
+   "en3"
+  ],
+  "trocarAntes": 4
+ },
+ "cargaAteBotaoMs": 622,
+ "toquesTotais": 7,
+ "turnos": 6,
+ "toquesPorTurno": 1.17,
+ "toquesExtras": [],
+ "troca": {
+  "antesDoTurno": 4,
+  "t": 51411.77999997139
+ },
+ "mediana": {
+  "toqueAteMicProntoMs": 427,
+  "fimDaFalaAteMicFecharMs": 2371,
+  "fimDaFalaAteTraducaoMs": 2499,
+  "fimDaFalaAteVozMs": 2476,
+  "toqueAteVozTerminarMs": 10642
+ },
+ "avisosVistos": [
+  "Instalando o tradutor · N%",
+  "Baixando o reconhecimento de voz · N%"
+ ],
+ "ouvindoAntesDoPronto": {
+  "ultimoPreparoMs": 3315.4649999141693,
+  "primeiroOuvindoMs": 2349.7649998664856,
+  "ouvindoComPreparo": false
+ },
+ "lista": [
+  {
+   "dono": "meu",
+   "fala": "Boa noite, que bom que você veio jantar com a gente!",
+   "lang": "pt",
+   "trad": "Good evening, glad you came to dinner with us!"
+  },
+  {
+   "dono": "outro",
+   "fala": "Thank you so much for inviting me. The food smells amazing!",
+   "lang": "en",
+   "trad": "Muito obrigado por me convidar. A comida cheira incrível!"
+  },
+  {
+   "dono": "meu",
+   "fala": "Você prefere vinho tinto ou suco de uva?",
+   "lang": "pt",
+   "trad": "Do you prefer red wine or grape juice?"
+  },
+  {
+   "dono": "outro",
+   "fala": "Red wine, please. Where did you learn to cook like this?",
+   "lang": "en",
+   "trad": "Vinho tinto, por favor. Onde aprendeu a cozinhar assim?"
+  },
+  {
+   "dono": "meu",
+   "fala": "Minha avó me ensinou quando eu era criança.",
+   "lang": "pt",
+   "trad": "My grandmother taught me when I was a kid."
+  },
+  {
+   "dono": "outro",
+   "fala": "That is beautiful. Could you pass me the salt, please?",
+   "lang": "en",
+   "trad": "Isso é lindo. Poderia me passar o sal, por favor?"
+  }
+ ],
+ "vozesUsadas": [
+  "Albert|en-US",
+  "Eddy (Portuguese (Brazil))|pt-BR"
+ ],
+ "vozesPadraoDoSistema": [
+  {
+   "nome": "Samantha",
+   "lang": "en-US",
+   "padrao": true
+  }
+ ],
+ "gum": [
+  {
+   "t": 2377.3099999427795,
+   "audio": true,
+   "video": false
+  }
+ ],
+ "turnosDetalhe": [
+  {
+   "i": 0,
+   "fala": "pt1",
+   "lado": "meu",
+   "toques": 1,
+   "toqueAteMicProntoMs": 537,
+   "falaDurMs": 4020,
+   "fimDaFalaAteMicFecharMs": 2416,
+   "fimDaFalaAteTraducaoMs": 2495,
+   "fimDaFalaAteVozMs": 2479,
+   "toqueAteVozTerminarMs": 11581,
+   "vozDurMs": 4232,
+   "traducaoNaTela": "Good evening, glad you came to dinner with us!",
+   "lidoEmVoz": "Good evening, glad you came to dinner with us!",
+   "vozUsada": "Albert|en-US",
+   "langDaVoz": "en-US",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…",
+    "Preparando 0%",
+    "Preparando 99%"
+   ],
+   "fraseFinalLado": "Boa noite, que bom que você veio jantar com a gente!",
+   "fraseFinalOutro": "Good evening, glad you came to dinner with us!",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 17
+     },
+     "outro": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 33.28
+     }
+    },
+    "microfonesFora": [
+     "Ao vivo"
+    ],
+    "barraVisivel": true
+   }
+  },
+  {
+   "i": 1,
+   "fala": "en1",
+   "lado": "outro",
+   "toques": 1,
+   "toqueAteMicProntoMs": 426,
+   "falaDurMs": 3635,
+   "fimDaFalaAteMicFecharMs": 2390,
+   "fimDaFalaAteTraducaoMs": 2638,
+   "fimDaFalaAteVozMs": 2614,
+   "toqueAteVozTerminarMs": 11351,
+   "vozDurMs": 4368,
+   "traducaoNaTela": "Muito obrigado por me convidar. A comida cheira incrível!",
+   "lidoEmVoz": "Muito obrigado por me convidar. A comida cheira incrível!",
+   "vozUsada": "Eddy (Portuguese (Brazil))|pt-BR",
+   "langDaVoz": "pt-BR",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "Thank you so much for inviting me. The food smells amazing!",
+   "fraseFinalOutro": "Muito obrigado por me convidar. A comida cheira incrível!",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 33.28
+     },
+     "outro": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 17
+     }
+    },
+    "microfonesFora": [
+     "Ao vivo"
+    ],
+    "barraVisivel": true
+   }
+  },
+  {
+   "i": 2,
+   "fala": "pt2",
+   "lado": "meu",
+   "toques": 1,
+   "toqueAteMicProntoMs": 426,
+   "falaDurMs": 3171,
+   "fimDaFalaAteMicFecharMs": 2356,
+   "fimDaFalaAteTraducaoMs": 2389,
+   "fimDaFalaAteVozMs": 2387,
+   "toqueAteVozTerminarMs": 9364,
+   "vozDurMs": 3068,
+   "traducaoNaTela": "Do you prefer red wine or grape juice?",
+   "lidoEmVoz": "Do you prefer red wine or grape juice?",
+   "vozUsada": "Albert|en-US",
+   "langDaVoz": "en-US",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "Você prefere vinho tinto ou suco de uva?",
+   "fraseFinalOutro": "Do you prefer red wine or grape juice?",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 17
+     },
+     "outro": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 33.28
+     }
+    },
+    "microfonesFora": [
+     "Ao vivo"
+    ],
+    "barraVisivel": true
+   }
+  },
+  {
+   "i": 3,
+   "fala": "en2",
+   "lado": "outro",
+   "toques": 1,
+   "toqueAteMicProntoMs": 432,
+   "falaDurMs": 3560,
+   "fimDaFalaAteMicFecharMs": 2321,
+   "fimDaFalaAteTraducaoMs": 2509,
+   "fimDaFalaAteVozMs": 2472,
+   "toqueAteVozTerminarMs": 10914,
+   "vozDurMs": 4128,
+   "traducaoNaTela": "Vinho tinto, por favor. Onde aprendeu a cozinhar assim?",
+   "lidoEmVoz": "Vinho tinto, por favor. Onde aprendeu a cozinhar assim?",
+   "vozUsada": "Eddy (Portuguese (Brazil))|pt-BR",
+   "langDaVoz": "pt-BR",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "Red wine, please. Where did you learn to cook like this?",
+   "fraseFinalOutro": "Vinho tinto, por favor. Onde aprendeu a cozinhar assim?",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 33.28
+     },
+     "outro": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 17
+     }
+    },
+    "microfonesFora": [
+     "Ao vivo"
+    ],
+    "barraVisivel": true
+   }
+  },
+  {
+   "i": 4,
+   "fala": "pt3",
+   "lado": "outro",
+   "toques": 1,
+   "toqueAteMicProntoMs": 427,
+   "falaDurMs": 2761,
+   "fimDaFalaAteMicFecharMs": 2371,
+   "fimDaFalaAteTraducaoMs": 2421,
+   "fimDaFalaAteVozMs": 2392,
+   "toqueAteVozTerminarMs": 9194,
+   "vozDurMs": 3302,
+   "traducaoNaTela": "My grandmother taught me when I was a kid.",
+   "lidoEmVoz": "My grandmother taught me when I was a kid.",
+   "vozUsada": "Albert|en-US",
+   "langDaVoz": "en-US",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "Minha avó me ensinou quando eu era criança.",
+   "fraseFinalOutro": "My grandmother taught me when I was a kid.",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 33.28
+     },
+     "outro": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 17
+     }
+    },
+    "microfonesFora": [
+     "Ao vivo"
+    ],
+    "barraVisivel": true
+   }
+  },
+  {
+   "i": 5,
+   "fala": "en3",
+   "lado": "meu",
+   "toques": 1,
+   "toqueAteMicProntoMs": 416,
+   "falaDurMs": 3319,
+   "fimDaFalaAteMicFecharMs": 2370,
+   "fimDaFalaAteTraducaoMs": 2502,
+   "fimDaFalaAteVozMs": 2501,
+   "toqueAteVozTerminarMs": 10369,
+   "vozDurMs": 3816,
+   "traducaoNaTela": "Isso é lindo. Poderia me passar o sal, por favor?",
+   "lidoEmVoz": "Isso é lindo. Poderia me passar o sal, por favor?",
+   "vozUsada": "Eddy (Portuguese (Brazil))|pt-BR",
+   "langDaVoz": "pt-BR",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "That is beautiful. Could you pass me the salt, please?",
+   "fraseFinalOutro": "Isso é lindo. Poderia me passar o sal, por favor?",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 17
+     },
+     "outro": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 33.28
+     }
+    },
+    "microfonesFora": [
+     "Ao vivo"
+    ],
+    "barraVisivel": true
+   }
+  }
+ ]
+}

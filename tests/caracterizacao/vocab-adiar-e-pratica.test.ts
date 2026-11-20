@@ -10,6 +10,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { clienteSql } from '../harness/clienteSql'
 import { type AppDeTeste, semear, subirApp } from './_app'
 
 describe('adiar um cartao e a nota das praticas (modo publico)', () => {
@@ -76,7 +77,7 @@ describe('adiar um cartao e a nota das praticas (modo publico)', () => {
     )
     expect(r.status).toBe(200)
     expect(await memoria()).toEqual({ revisoes: 2, acertos: 2 })
-    const { client } = await s.load('../../server/db/db')
+    const client = clienteSql(await s.load('../../server/db/db'))
     const linhas = await client.execute({
       sql: 'select origem, formato from review_logs where card_id = ? order by reviewed_at desc limit 1',
       args: [cartao.id],

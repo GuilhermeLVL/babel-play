@@ -1,3 +1,5 @@
+import '../../../../styles/etiquetas.css';
+
 import {
   AlertTriangle,
   BookOpen,
@@ -10,7 +12,11 @@ import {
 } from 'lucide-react';
 import { Fragment, type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 
+import { chaveDaPalavra } from '../../../../core/texto/palavra';
+import { type EstadoNoCaderno, estadoNoCaderno, resumoDasEtiquetas } from '../../../../core/vocabulario/etiquetas';
 import type { FalaDaAnalise } from '../../../../lib/analise/tiposDaAnalise';
+import { type Etiquetador, useSnapshotDasEtiquetas } from '../../../../lib/etiquetas/indiceDeEtiquetas';
+import { descricaoDaLinha } from '../../../../lib/etiquetas/rotulos';
 import { t } from '../../../../lib/i18n';
 import {
   criarMarcador,
@@ -37,7 +43,14 @@ interface PalavraDaSessao {
   translation?: string;
   cefrLevel?: string;
   sentence?: string;
+  /** O idioma da palavra (o do cartão): é com ele que o estado no caderno é lido. */
+  srcLang?: string;
 }
+
+type FiltroDasPalavras = 'todas' | EstadoNoCaderno;
+
+/** O estado no caderno com o nome da etiqueta (a cor da palavra na lista é a mesma da legenda). */
+const etiquetaDoEstado = (e: EstadoNoCaderno | undefined) => (e === 'nova' ? 'salva' : e);
 
 /**
  * A ABA TRANSCRIÇÃO DO DESENHO NOVO — a marcação do primeiro painel de `PAINEIS_DA_SESSAO`
@@ -76,6 +89,9 @@ export default function TranscricaoDoQuest({
   velocidade = 1,
   palavraFalada,
   vozAvisaPalavra = true,
+  escolhida,
+  etiquetador,
+  idiomaDasFalas,
 }: {
   falas: readonly FalaDaAnalise[];
   /** A transcrição ainda está vindo, chegou, ou o pedido falhou. */
@@ -119,8 +135,20 @@ export default function TranscricaoDoQuest({
   palavraFalada?: { current: ((posicao: number, charIndex: number) => void) | null };
   /** A voz que narra avisa a palavra? A voz do site (o headset) não avisa: vale só a cadência. */
   vozAvisaPalavra?: boolean;
+  /** O id da fala (`id`, ou o índice sem ele) em que o painel da frase está aberto: ela fica marcada. */
+  escolhida?: string | null;
+  /** As ETIQUETAS DE PALAVRAS (`lib/etiquetas`): `null`/ausente = desligadas. */
+  etiquetador?: Etiquetador | null;
+  /** O idioma das falas que não trazem o próprio (o da sessão). */
+  idiomaDasFalas?: string;
 }) {
   const [verPalavras, setVerPalavras] = useState(false);
+  const [filtro, setFiltro] = useState<FiltroDasPalavras>('todas');
+  /* O estado de cada palavra da sessão no caderno (vale com as etiquetas desligadas: é o filtro do diálogo). */
+  const caderno = useSnapshotDasEtiquetas();
+  const estadoDaPalavra = (c: PalavraDaSessao) =>
+    estadoNoCaderno(caderno.caderno, chaveDaPalavra(c.word), c.srcLang || idiomaDasFalas);
+  const filtradas = filtro === 'todas' ? palavras : palavras.filter((c) => estadoDaPalavra(c) === filtro);
   const [ajustando, setAjustando] = useState(false);
 
   /* O PLAYER MARCA PALAVRA POR PALAVRA (`tocar()` e `pararPlayer()`, `telas3.js:16-62`), e quem manda é
@@ -280,13 +308,21 @@ export default function TranscricaoDoQuest({
         >
           {falas.map((fala, i) => {
             const traducao = traducaoDe(fala);
+            const pedacos = pedacosDaFrase(fala.original);
+            const langDaFala = fala.lang || idiomaDasFalas;
+            const etiquetas = etiquetador ? pedacos.map((p) => etiquetador.etiqueta(p, langDaFala)) : null;
+            const descricao = etiquetas
+              ? descricaoDaLinha(resumoDasEtiquetas(pedacos.map((p, k) => [p, etiquetas[k]] as const)))
+              : undefined;
             const original = !ocultarOriginal && (
               <span className="qs-o" lang={fala.lang || undefined}>
-                {pedacosDaFrase(fala.original).map((p, k) => (
+                {pedacos.map((p, k) => (
                   // As palavras de uma fala não mudam de ordem: o índice é a identidade delas.
                   <Fragment key={k}>
                     {k > 0 && ' '}
-                    <span className="w">{p}</span>
+                    <span className="w" data-etiqueta={etiquetas?.[k]}>
+                      {p}
+                    </span>
                   </Fragment>
                 ))}
               </span>
@@ -301,13 +337,15 @@ export default function TranscricaoDoQuest({
               </span>
             );
             const ativa = i === posicao;
+            const marcada = !!escolhida && (fala.id ?? String(fala.index)) === escolhida;
             return (
               <div key={fala.index} className={ativa ? 'qs-fala ativa' : 'qs-fala'} data-fala={fala.index}>
                 <button
                   type="button"
                   className="qs-fala-texto"
-                  aria-haspopup="dialog"
-                  aria-current={ativa ? 'true' : undefined}
+                  aria-current={ativa || marcada ? 'true' : undefined}
+                  aria-description={descricao}
+                  data-frase-escolhida={marcada ? '' : undefined}
                   onClick={() => aoAbrirFala(fala)}
                 >
                   <span className="qs-meta">
@@ -343,7 +381,6 @@ export default function TranscricaoDoQuest({
                     type="button"
                     className="q-ctl"
                     aria-label={t('Opções da fala')}
-                    aria-haspopup="dialog"
                     data-px-opcoes={fala.index}
                     onClick={() => aoAbrirFala(fala)}
                   >
@@ -368,7 +405,28 @@ export default function TranscricaoDoQuest({
         >
           {palavras.length ? (
             <div className="dlg-corpo qs-miolo q-lista">
-              {palavras.map((c) => (
+              <div className="etq-filtros q-abas q-seg" role="group" aria-label={t('Mostrar')}>
+                {(
+                  [
+                    ['todas', t('Todas')],
+                    ['nova', t('Salvas')],
+                    ['aprendendo', t('Aprendendo')],
+                    ['dominada', t('Dominadas')],
+                  ] as Array<[FiltroDasPalavras, string]>
+                ).map(([valor, rotulo]) => (
+                  <button
+                    key={valor}
+                    type="button"
+                    className="q-aba"
+                    aria-pressed={filtro === valor}
+                    onClick={() => setFiltro(valor)}
+                  >
+                    {rotulo}
+                  </button>
+                ))}
+              </div>
+              {filtradas.length === 0 && <p className="q-texto">{t('Nenhuma palavra desta sessão neste grupo.')}</p>}
+              {filtradas.map((c) => (
                 <button
                   key={c.id}
                   type="button"
@@ -379,7 +437,7 @@ export default function TranscricaoDoQuest({
                   }}
                 >
                   <span>
-                    <b>{c.word}</b>
+                    <b data-etiqueta={etiquetaDoEstado(estadoDaPalavra(c))}>{c.word}</b>
                     {c.translation && <small>{c.translation}</small>}
                   </span>
                   {c.cefrLevel && <span className="q-fim">{c.cefrLevel}</span>}

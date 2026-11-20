@@ -35,10 +35,10 @@ interface Fala {
 /* A `speechSynthesis` falsa nasce ANTES dos módulos: `tts.ts` lê as vozes ao carregar. */
 const palco = vi.hoisted(() => {
   const vozes = [
-    { name: 'Microsoft David - English (United States)', lang: 'en-US', localService: true },
+    { name: 'Alex', lang: 'en-US', localService: true },
     { name: 'Microsoft Aria Online (Natural) - English (United States)', lang: 'en-US', localService: false },
     { name: 'Google UK English Female', lang: 'en-GB', localService: false },
-    { name: 'Microsoft Maria - Portuguese (Brazil)', lang: 'pt-BR', localService: true },
+    { name: 'Luciana', lang: 'pt-BR', localService: true },
   ]
   const faladas: unknown[] = []
   class FalaFalsa {
@@ -98,7 +98,7 @@ import { definirEstadoDasFlags } from '../src/lib/flagsCache'
 import { _reiniciarPreferencias } from '../src/lib/preferencias'
 import { fraseDeAmostra, ladosDaVoz, nomeLegivelDaVoz } from '../src/lib/voz/catalogoDeVozes'
 
-const DAVID = 'Microsoft David - English (United States)'
+const DAVID = 'Alex'
 const ARIA = 'Microsoft Aria Online (Natural) - English (United States)'
 const faladas = () => palco.faladas as Fala[]
 const opcoes = (raiz: HTMLElement = document.body) => within(raiz).getAllByRole('radio')
@@ -124,13 +124,14 @@ describe('a lista de vozes', () => {
     const linhas = opcoes().map((o) => o.textContent)
     expect(linhas[0]).toContain('Automática')
     expect(marcada()?.textContent).toContain('Automática')
-    // As naturais antes; "Microsoft", "Online (Natural)" e o nome do idioma saem do nome.
+    // A ordem é a da recomendação (país exato, natural, no aparelho); a melhor leva a etiqueta "Recomendada".
+    // "Microsoft", "Online (Natural)" e o nome do idioma saem do nome.
     expect(linhas.slice(1)).toEqual([
+      'AriaEstados Unidos · Recomendada · Natural · Pela internet',
+      'AlexEstados Unidos · No aparelho',
       'Google UK English FemaleReino Unido · Natural · Pela internet',
-      'AriaEstados Unidos · Natural · Pela internet',
-      'DavidEstados Unidos · No aparelho',
     ])
-    expect(document.body.textContent).not.toContain('Maria')
+    expect(document.body.textContent).not.toContain('Luciana')
   })
 
   it('o nome legível tira o fabricante e o sufixo do sistema, e não deixa o nome vazio', () => {
@@ -140,10 +141,22 @@ describe('a lista de vozes', () => {
     expect(nomeLegivelDaVoz('Microsoft')).toBe('Microsoft')
   })
 
-  it('idioma sem voz no aparelho: só a "Automática", e a nota diz que não há voz instalada', () => {
+  it('idioma sem voz no aparelho: só a "Automática", e a nota diz o que houve e o que fazer', () => {
     render(<SeletorDeVoz idioma="ja" />)
     expect(opcoes()).toHaveLength(1)
-    expect(screen.getByTestId('sem-voz-do-aparelho').textContent).toBe('Nenhuma voz instalada para este idioma.')
+    const nota = screen.getByTestId('sem-voz-do-aparelho').textContent ?? ''
+    expect(nota).toContain('Este aparelho não tem voz em japonês.')
+    expect(nota).toMatch(/Para ouvir, (instale|baixe)/)
+  })
+
+  it('avisa que "Natural" é estimativa pelo nome quando há vozes assim', () => {
+    render(<SeletorDeVoz idioma="en-US" />)
+    expect(screen.getByTestId('nota-natural').textContent).toMatch(/estimativa pelo nome/)
+  })
+
+  it('a melhor voz por idioma exato: pt-BR recebe a Recomendada, e o ouvir uma amostra continua valendo', () => {
+    render(<SeletorDeVoz idioma="pt-BR" />)
+    expect(opcoes()[1].textContent).toContain('Recomendada')
   })
 })
 
@@ -186,9 +199,9 @@ describe('escolher', () => {
   it('grava a voz do idioma no aparelho e na conta, e marca a opção', async () => {
     const aoEscolher = vi.fn()
     render(<SeletorDeVoz idioma="en-US" aoEscolher={aoEscolher} />)
-    await act(async () => void fireEvent.click(screen.getByRole('radio', { name: /David/ })))
+    await act(async () => void fireEvent.click(screen.getByRole('radio', { name: /Alex/ })))
     expect(guardadas()).toEqual({ en: DAVID })
-    expect(marcada()?.textContent).toContain('David')
+    expect(marcada()?.textContent).toContain('Alex')
     expect(aoEscolher).toHaveBeenCalledWith(DAVID)
     expect(palco.patch).toHaveBeenLastCalledWith({ preferencias: expect.objectContaining({ vozes: { en: DAVID } }) })
   })
@@ -196,7 +209,7 @@ describe('escolher', () => {
   it('voltar à "Automática" apaga a escolha', async () => {
     localStorage.setItem('babel_voice_prefs', JSON.stringify({ en: DAVID }))
     render(<SeletorDeVoz idioma="en" />)
-    expect(marcada()?.textContent).toContain('David')
+    expect(marcada()?.textContent).toContain('Alex')
     await act(async () => void fireEvent.click(screen.getByRole('radio', { name: /Automática/ })))
     expect(guardadas()).toEqual({})
     expect(marcada()?.textContent).toContain('Automática')
@@ -217,7 +230,7 @@ describe('escolher', () => {
 describe('a amostra', () => {
   it('toca uma frase curta no idioma com a voz daquela linha, e o botão vira "parar" enquanto toca', () => {
     render(<SeletorDeVoz idioma="en-US" />)
-    fireEvent.click(screen.getByRole('button', { name: 'Ouvir uma amostra da voz David' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Ouvir uma amostra da voz Alex' }))
     const fala = faladas().at(-1)!
     expect(fala.text).toBe(fraseDeAmostra('en'))
     expect(fala.voice?.name).toBe(DAVID)
@@ -264,9 +277,9 @@ describe('as portas', () => {
     expect(within(folha).getByText(/Para a outra pessoa · inglês/i)).toBeTruthy()
     const doPortugues = within(folha).getByRole('radiogroup', { name: 'Voz para português' })
     const doIngles = within(folha).getByRole('radiogroup', { name: 'Voz para inglês' })
-    await act(async () => void fireEvent.click(within(doPortugues).getByRole('radio', { name: /Maria/ })))
+    await act(async () => void fireEvent.click(within(doPortugues).getByRole('radio', { name: /Luciana/ })))
     await act(async () => void fireEvent.click(within(doIngles).getByRole('radio', { name: /Aria/ })))
-    expect(guardadas()).toEqual({ pt: 'Microsoft Maria - Portuguese (Brazil)', en: ARIA })
+    expect(guardadas()).toEqual({ pt: 'Luciana', en: ARIA })
   })
 
   it('Ajustes → Voz: uma linha por idioma que a pessoa usa, com a voz em uso, e o seletor num diálogo', async () => {
@@ -274,13 +287,13 @@ describe('as portas', () => {
     render(<PainelDaVoz estudando="en-US" meu="pt-BR" />)
     const painel = within(screen.getByTestId('painel-da-voz'))
     // O que estuda, o dela, e o idioma para o qual já escolheu uma voz (que não existe aqui: automática).
-    expect(painel.getByRole('button', { name: 'Voz para inglês: David' })).toBeTruthy()
+    expect(painel.getByRole('button', { name: 'Voz para inglês: Alex' })).toBeTruthy()
     expect(painel.getByRole('button', { name: 'Voz para português: Automática' })).toBeTruthy()
     expect(painel.getByRole('button', { name: 'Voz para espanhol: Automática' })).toBeTruthy()
 
     fireEvent.click(painel.getByRole('button', { name: 'Voz para português: Automática' }))
     const dialogo = screen.getByRole('dialog', { name: 'Voz para português' })
-    await act(async () => void fireEvent.click(within(dialogo).getByRole('radio', { name: /Maria/ })))
-    expect(painel.getByRole('button', { name: 'Voz para português: Maria' })).toBeTruthy()
+    await act(async () => void fireEvent.click(within(dialogo).getByRole('radio', { name: /Luciana/ })))
+    expect(painel.getByRole('button', { name: 'Voz para português: Luciana' })).toBeTruthy()
   })
 })

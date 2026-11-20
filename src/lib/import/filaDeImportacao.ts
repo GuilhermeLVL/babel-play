@@ -11,16 +11,16 @@
  */
 import { useSyncExternalStore } from 'react';
 
-import { createSession, importDocument, importWeb, importYoutube, uploadSessionAudio } from '../../data/api';
+import { createSession, importWeb, uploadSessionAudio } from '../../data/api';
 import type { OfflineProgress } from '../../gateway/offlineTranscribe';
 import { fetchLangConfig } from '../langConfig';
 import { buildDocumentSession, transcribeImportedAudio } from './buildSession';
+import { extrairDocumento } from './extrairDocumento';
 import { formatoDaLegenda, TAMANHO_MAXIMO_DA_LEGENDA_BYTES, textoDaLegenda } from './legendas';
 
-export type FonteDeImportacao = 'youtube' | 'doc' | 'web' | 'local' | 'texto';
+export type FonteDeImportacao = 'doc' | 'web' | 'local' | 'texto';
 
 export type Entrada =
-  | { fonte: 'youtube'; url: string }
   | { fonte: 'web'; url: string }
   | { fonte: 'doc'; arquivo: File }
   | { fonte: 'local'; arquivo: File }
@@ -63,7 +63,7 @@ function tituloDe(e: Entrada): string {
   if (e.fonte === 'texto') return 'Texto colado';
   try {
     const u = new URL(e.url);
-    return e.fonte === 'youtube' ? 'Vídeo do YouTube' : `Artigo: ${u.hostname.replace(/^www\./, '')}`;
+    return `Artigo: ${u.hostname.replace(/^www\./, '')}`;
   } catch {
     return e.url;
   }
@@ -85,12 +85,6 @@ async function executar(item: ItemDaFila): Promise<string> {
     passo(p, etapa);
   };
 
-  if (e.fonte === 'youtube') {
-    passo(10, 'Buscando o vídeo e a legenda…');
-    const r = await importYoutube(e.url);
-    if (r.needsClientStt) await transcribeImportedAudio(r.id, r.sourceLang, whisper);
-    return r.id;
-  }
   if (e.fonte === 'web') {
     passo(25, 'Baixando a página…');
     const art = await importWeb(e.url);
@@ -110,9 +104,9 @@ async function executar(item: ItemDaFila): Promise<string> {
       const { recording } = await buildDocumentSession({ title: e.arquivo.name.replace(/\.[^.]+$/, ''), text: texto });
       return recording.id;
     }
-    const doc = await importDocument(e.arquivo);
+    const doc = await extrairDocumento(e.arquivo);
     passo(55, 'Extraindo o texto…');
-    const { recording } = await buildDocumentSession({ title: doc.title, text: doc.text, langHint: doc.lang });
+    const { recording } = await buildDocumentSession({ title: doc.title, text: doc.text });
     return recording.id;
   }
   if (e.fonte === 'texto') {

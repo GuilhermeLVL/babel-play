@@ -70,7 +70,7 @@ afterAll(async () => {
   for (const e of ENVS) delete process.env[e]
   await h.cleanup()
 })
-afterEach(() => {
+afterEach(async () => {
   vi.unstubAllGlobals()
   for (const e of ENVS) delete process.env[e]
   /* O disjuntor (Fase 5) conta falhas SEGUIDAS por provedor e o estado é do processo. Estes casos
@@ -80,7 +80,7 @@ afterEach(() => {
   esquecerDisjuntores()
   /* A admissão de IA (ADR 0007) é estado de processo como o disjuntor: um 429 encenado fecha o
      balde do modelo, e os casos somados passariam do limite por minuto. Zerada entre casos. */
-  esquecerAdmissao()
+  await esquecerAdmissao()
   esquecerRegistro()
 })
 

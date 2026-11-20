@@ -15,6 +15,7 @@
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { clienteSql } from '../harness/clienteSql'
 import { type AppDeTeste, subirApp } from './_app'
 
 const CHAVES = [
@@ -122,7 +123,7 @@ beforeAll(async () => {
   flags = await s.load('../../server/lib/flags')
   ;({ usageCountersRepo: counters } = await s.load('../../server/db/repositories/usageCounters'))
   ;({ gastoDeIaRepo: gastoDeIa } = await s.load('../../server/db/repositories/gastoDeIa'))
-  ;({ client } = await s.load('../../server/db/db'))
+  client = clienteSql(await s.load('../../server/db/db'))
   quota = await s.load('../../server/lib/usageQuota')
   alivio = await s.load('../../server/lib/nuvemDeAlivio')
   admissao = await s.load('../../server/ai/admissao')
@@ -155,7 +156,7 @@ afterAll(async () => {
 })
 beforeEach(async () => {
   chamadasAoProvedor = 0
-  admissao.esquecerAdmissao()
+  await admissao.esquecerAdmissao()
   await cache.esvaziarCacheDeTraducao()
   await ligar(true)
 })
@@ -370,7 +371,9 @@ describe('quem não é afetado', () => {
     await ligar(false)
     const t = await adulto('pagante-alivio')
     expect((await stt(t)).status).toBe(200)
-    expect(await counters.get('pagante-alivio', quota.METRIC_STT_SEGUNDOS, janela())).toBe(1)
+    // O plano conta na janela do período pago (change `cota-pelo-periodo-pago`); o alívio, no mês do calendário.
+    const doPlano = await quota.janelaDaCota('pagante-alivio')
+    expect(await counters.get('pagante-alivio', quota.METRIC_STT_SEGUNDOS, doPlano)).toBe(1)
     expect(await counters.get('pagante-alivio', quota.METRIC_ALIVIO_STT_SEGUNDOS, janela())).toBe(0)
     const uso = await (await s.get('/api/me/uso', t)).json()
     expect(uso.alivio).toBeNull()

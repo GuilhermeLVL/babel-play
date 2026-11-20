@@ -5,16 +5,23 @@
  *  - ESTADO DE FÁBRICA: sem provedor registrado o componente não renderiza nada e não pede rede, com a
  *    flag ligada ou desligada. Não existe provedor de produção nesta etapa;
  *  - com um provedor, quem decide é a política: a flag, o consentimento e a idade da conta precisam
- *    estar lá, e assinante, perfil protegido, headset e tela ocupada nunca veem;
+ *    estar lá, e assinante, headset e tela ocupada nunca veem; o perfil protegido vê o comum e nunca o premiado
+ *    (decisão do dono, 25/10/2026; antes ele não via nada);
  *  - a DEMONSTRAÇÃO (só em desenvolvimento, pela chave local) desenha "Patrocinado · exemplo" com as
- *    classes do protótipo, sem rede, e continua negando para assinante, protegido, headset e tela ocupada;
+ *    classes do protótipo, sem rede, e continua negando para assinante, headset e tela ocupada (e o premiado
+ *    para o protegido);
  *  - o premiado é escolha: a folha diz antes o que se ganha, recusar não muda nada, e a recompensa da
  *    demonstração é simulada (nenhum pedido ao servidor).
  */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { EspacoDeAnuncio as Espaco, FormatoDeAnuncio } from '../src/core/anuncios/politicaDeAnuncio'
+import {
+  type EspacoDeAnuncio as Espaco,
+  ESPACOS_DE_ANUNCIO,
+  FORMATO_DO_ESPACO,
+  type FormatoDeAnuncio,
+} from '../src/core/anuncios/politicaDeAnuncio'
 import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
 
 const DIA = 24 * 60 * 60_000
@@ -53,6 +60,17 @@ vi.mock('../src/lib/preferencias', () => ({
   usePreferencias: () => ({ consentimentos: { anuncios: mundo.consentimento } }),
   lerPreferencias: () => ({ consentimentos: { anuncios: mundo.consentimento } }),
 }))
+/* A rota do premiado (o servidor credita): o retorno dela tem de chegar ao provedor por `aoRecompensar`. */
+const concluirPremiado = vi.hoisted(() =>
+  vi.fn(async (_id: string) => ({
+    ok: true as const,
+    tipo: 'tema-24h' as const,
+    ateEm: 1_900_000_000_000,
+    jaCreditado: false,
+    espaco: 'tema-24h' as const,
+  })),
+)
+vi.mock('../src/data/rotas/anuncios', () => ({ concluirPremiado }))
 vi.mock('../src/components/Toast', () => ({
   toast: { ok: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
@@ -164,14 +182,23 @@ describe('com um provedor, quem decide é a política', () => {
     expect(screen.getByTestId('anuncio-de-teste').dataset).toMatchObject({ espaco: 'inicio-nativo', formato: 'nativo' })
   })
 
+  it('perfil protegido: o comum o provedor desenha; o premiado, não', () => {
+    quemPodeVer()
+    Object.assign(mundo, { protegido: true })
+    montar()
+    expect(screen.getByTestId('anuncio-de-teste').dataset).toMatchObject({ espaco: 'inicio-nativo', formato: 'nativo' })
+    cleanup()
+    const { container } = render(<EspacoDeAnuncio espaco="fim-premiado" formato="premiado" />)
+    expect(container.innerHTML).toBe('')
+  })
+
   it.each([
     ['flag desligada', () => Object.assign(mundo, { flag: false })],
     ['sem consentimento', () => Object.assign(mundo, { consentimento: false })],
     ['conta de dois dias', () => Object.assign(mundo, { contaCriadaEm: Date.now() - 2 * DIA })],
     ['conta sem data', () => Object.assign(mundo, { contaCriadaEm: null })],
     ['assinante (`semAnuncios`)', () => Object.assign(mundo, { semAnuncios: true })],
-    ['teste de 14 dias', () => Object.assign(mundo, { teste: { terminaEm: Date.now() + DIA } })],
-    ['perfil protegido', () => Object.assign(mundo, { protegido: true })],
+    ['teste de 3 dias', () => Object.assign(mundo, { teste: { terminaEm: Date.now() + DIA } })],
     ['headset', () => Object.assign(mundo, { headset: true })],
     ['edição estática', () => Object.assign(mundo, { estatica: true })],
     ['captura ativa', () => Object.assign(mundo, { captura: true })],
@@ -237,10 +264,14 @@ describe('a demonstração (só em desenvolvimento, pela chave local)', () => {
     expect(el?.textContent).toMatch(/Patrocinado · exemplo|Anúncio premiado · exemplo|Ver anúncio/)
   })
 
-  it('espaço que não está encaixado no app não tem desenho', async () => {
+  it('os quinze espaços do protótipo têm desenho, cada um marcado com o próprio `data-ad`', async () => {
     await comDemonstracao()
-    const { container } = render(<EspacoDeAnuncio espaco="ancora" formato="nativo" />)
-    expect(container.innerHTML).toBe('')
+    for (const espaco of ESPACOS_DE_ANUNCIO) {
+      const { container, unmount } = render(<EspacoDeAnuncio espaco={espaco} formato={FORMATO_DO_ESPACO[espaco]} />)
+      const alvo = container.querySelector(`[data-ad="${espaco}"]`) ?? document.querySelector(`[data-ad="${espaco}"]`)
+      expect(alvo, espaco).not.toBeNull()
+      unmount()
+    }
   })
 
   it('não pede rede e não põe script, quadro nem imagem na página', async () => {
@@ -261,8 +292,7 @@ describe('a demonstração (só em desenvolvimento, pela chave local)', () => {
 
   it.each([
     ['assinante (`semAnuncios`)', () => Object.assign(mundo, { semAnuncios: true })],
-    ['teste de 14 dias', () => Object.assign(mundo, { teste: { terminaEm: Date.now() + DIA } })],
-    ['perfil protegido', () => Object.assign(mundo, { protegido: true })],
+    ['teste de 3 dias', () => Object.assign(mundo, { teste: { terminaEm: Date.now() + DIA } })],
     ['headset', () => Object.assign(mundo, { headset: true })],
     ['edição estática', () => Object.assign(mundo, { estatica: true })],
     ['captura ativa', () => Object.assign(mundo, { captura: true })],
@@ -279,6 +309,20 @@ describe('a demonstração (só em desenvolvimento, pela chave local)', () => {
       </>,
     )
     expect(container.innerHTML).toBe('')
+  })
+
+  it('perfil protegido, na demonstração: vê o comum e nunca o premiado', async () => {
+    await comDemonstracao()
+    Object.assign(mundo, { protegido: true })
+    render(
+      <>
+        <EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" />
+        <EspacoDeAnuncio espaco="fim-premiado" formato="premiado" />
+        <EspacoDeAnuncio espaco="loja-seeds" formato="premiado" />
+      </>,
+    )
+    expect(document.querySelector('[data-ad="inicio-nativo"]')).not.toBeNull()
+    expect(document.querySelector('[data-ad="fim-premiado"], [data-ad="loja-seeds"]')).toBeNull()
   })
 
   it('a porta "Sem anúncios" chama quem a tela passou', async () => {
@@ -360,5 +404,73 @@ describe('o premiado é sempre escolha (demonstração)', () => {
     expect(container.querySelector('.ad-fim-premio.feito')?.textContent).toMatch(/Simulado: nada foi creditado/)
     expect(toast.ok).toHaveBeenCalledWith(expect.stringMatching(/Demonstração: \+10 Seeds simuladas/))
     expect(rede).not.toHaveBeenCalled()
+  })
+})
+
+describe('aoRecompensar: o que o servidor creditou chega ao provedor', () => {
+  it('o premiado recebe aoRecompensar, que conclui no servidor e devolve a recompensa', async () => {
+    quemPodeVer()
+    let recebido: unknown = null
+    const Espaco = ({ aoRecompensar }: { aoRecompensar?: (id: string) => Promise<unknown> }) => (
+      <button
+        type="button"
+        data-testid="premiado-falso"
+        onClick={() => {
+          void aoRecompensar?.('x').then((r) => {
+            recebido = r
+          })
+        }}
+      />
+    )
+    registrarProvedorDeAnuncios({ id: 'falso', Espaco })
+    render(<EspacoDeAnuncio espaco="tema-24h" formato="premiado" />)
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('premiado-falso'))
+      await Promise.resolve()
+    })
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(concluirPremiado).toHaveBeenCalledWith('x')
+    expect(recebido).toEqual({ tipo: 'tema-24h', ateEm: 1_900_000_000_000, jaCreditado: false, espaco: 'tema-24h' })
+  })
+
+  it('a recusa do servidor rejeita com o code', async () => {
+    quemPodeVer()
+    concluirPremiado.mockResolvedValueOnce({ ok: false, status: 409, error: 'cedo', code: 'cedo_demais' } as never)
+    let erro: unknown = null
+    const Espaco = ({ aoRecompensar }: { aoRecompensar?: (id: string) => Promise<unknown> }) => (
+      <button
+        type="button"
+        data-testid="premiado-falso"
+        onClick={() => {
+          aoRecompensar?.('y').catch((e: Error) => {
+            erro = e.message
+          })
+        }}
+      />
+    )
+    registrarProvedorDeAnuncios({ id: 'falso', Espaco })
+    render(<EspacoDeAnuncio espaco="loja-seeds" formato="premiado" />)
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('premiado-falso'))
+      await Promise.resolve()
+    })
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(erro).toBe('cedo_demais')
+  })
+
+  it('nos formatos que não são premiados, aoRecompensar não vem', () => {
+    quemPodeVer()
+    let tem: boolean | null = null
+    const Espaco = ({ aoRecompensar }: { aoRecompensar?: unknown }) => {
+      tem = aoRecompensar !== undefined
+      return null
+    }
+    registrarProvedorDeAnuncios({ id: 'falso', Espaco })
+    render(<EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" />)
+    expect(tem).toBe(false)
   })
 })

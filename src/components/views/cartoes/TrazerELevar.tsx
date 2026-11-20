@@ -18,7 +18,7 @@ import {
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
 
 import { ativarNotasDoBaralho, purgarBaralho } from '../../../data/apiAnki';
-import { type ImportAnkiResposta, importarBaralhoAnki, soAColecao } from '../../../data/importarAnki';
+import { type ImportAnkiResposta, importarBaralhoAnki, type ProgressoDaImportacao } from '../../../data/importarAnki';
 import { numero, t, tp } from '../../../lib/i18n';
 import { polido, reduz } from '../../../lib/polimento/base';
 import { confete } from '../../../lib/polimento/planos';
@@ -34,7 +34,7 @@ import { fecharAFolhaDe, FolhaDeCartoes, LinhasDeMenu } from './pecas';
  * (`components/conteudo/CatalogoDeConteudo.tsx`), e o baralho novo já vira o conteúdo escolhido.
  *
  * O QUE O APP FAZ HOJE, dito como é (e por isso os passos não são os do protótipo ao pé da letra):
- *  · ler o arquivo JÁ GUARDA as notas no baralho (`POST /api/import/anki` grava ao ler); nenhuma vira
+ *  · ler o arquivo JÁ GUARDA as notas no baralho (o protocolo em lotes, `/api/anki/imports`, grava ao fechar); nenhuma vira
  *    cartão até a pessoa ativar. Não existe "ensaio sem gravar";
  *  · a agenda e o histórico do Anki NÃO vêm (o dono ainda não decidiu essa importação): não há a escolha
  *    "com a agenda | do zero", e o passo 1 diz que a agenda recomeça aqui;
@@ -106,6 +106,7 @@ export function FluxoDoAnki({
   const [erro, setErro] = useState<string | null>(null);
   const [ativar, setAtivar] = useState(ATIVAR_DE_INICIO);
   const [ocupado, setOcupado] = useState(false);
+  const [progresso, setProgresso] = useState<ProgressoDaImportacao | null>(null);
   /** `null` no passo 1; no passo 2, quantas viraram cartão. */
   const [ativadas, setAtivadas] = useState<number | null>(null);
   const [escolhido, setEscolhido] = useState(false);
@@ -124,7 +125,7 @@ export function FluxoDoAnki({
     if (leitura.current?.de !== de)
       leitura.current = {
         de,
-        pedido: soAColecao(arquivo).then((colecao) => importarBaralhoAnki(colecao, idioma, idiomaNativo)),
+        pedido: importarBaralhoAnki(arquivo, idioma, idiomaNativo, setProgresso),
       };
     const pedido = leitura.current.pedido;
     void (async () => {
@@ -263,7 +264,16 @@ export function FluxoDoAnki({
             <span className="q-ic">
               <Upload aria-hidden />
             </span>
-            <h2>{t('Lendo {nome}…', { nome })}</h2>
+            <h2>
+              {progresso?.etapa === 'enviando'
+                ? t('Enviando {feitas} de {total} notas…', {
+                    feitas: numero(progresso.feitas),
+                    total: numero(progresso.total),
+                  })
+                : progresso?.etapa === 'concluindo'
+                  ? t('Concluindo…')
+                  : t('Lendo {nome}…', { nome })}
+            </h2>
             <p>{t('Baralho grande leva alguns segundos.')}</p>
           </div>
         )}

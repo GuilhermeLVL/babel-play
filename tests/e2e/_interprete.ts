@@ -70,6 +70,34 @@ export async function falsos(
       const lidas: Array<{ texto: string; lang: string }> = []
       w.__lidas = lidas
       let falando = false
+      /* Vozes padrão do macOS que a lista de permissão (`core/voz/melhorVoz.ts`) aceita. Lista vazia seria "o navegador
+         ainda não enumerou as vozes", e aí o app espera por ela antes da primeira fala. O Chromium só aceita em
+         `u.voice` uma voz nativa: o setter abaixo guarda a de mentira. */
+      const vozes = [
+        {
+          name: 'Samantha',
+          lang: 'en-US',
+          localService: true,
+          default: true,
+          voiceURI: 'com.apple.voice.compact.en-US.Samantha',
+        },
+        {
+          name: 'Luciana',
+          lang: 'pt-BR',
+          localService: true,
+          default: false,
+          voiceURI: 'com.apple.voice.compact.pt-BR.Luciana',
+        },
+      ]
+      Object.defineProperty(SpeechSynthesisUtterance.prototype, 'voice', {
+        configurable: true,
+        get() {
+          return (this as { __v?: unknown }).__v ?? null
+        },
+        set(v) {
+          ;(this as { __v?: unknown }).__v = v
+        },
+      })
       const synth = {
         get speaking() {
           return falando
@@ -77,7 +105,7 @@ export async function falsos(
         paused: false,
         pending: false,
         onvoiceschanged: null,
-        getVoices: () => [],
+        getVoices: () => vozes,
         addEventListener: () => {},
         removeEventListener: () => {},
         cancel: () => {

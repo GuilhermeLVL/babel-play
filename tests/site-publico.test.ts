@@ -42,7 +42,8 @@ describe('páginas públicas', () => {
     expect(html).toContain(trecho)
     expect(canonical(html)).toBe(`${URL_SITE}${caminho}`)
     expect(html).toContain('<html lang="pt-BR">')
-    expect(html).not.toMatch(/<script(?![^>]*application\/ld\+json)/)
+    // Só JSON-LD e, na home, os scripts do próprio domínio do filme (`/site/…`).
+    expect(html).not.toMatch(/<script(?![^>]*application\/ld\+json)(?! src="\/site\/)/)
   })
 
   it('nenhuma promessa de privacidade que a flag nuvem_convidado desmentiria', () => {
@@ -61,7 +62,7 @@ describe('páginas públicas', () => {
 
   it('cabeçalho com Entrar → /app e rodapé com privacidade e termos', () => {
     const html = arquivos.get('inicio.html')!
-    expect(html).toContain('<a class="botao" href="/app">Entrar</a>')
+    expect(html).toContain('<a class="botao contorno" href="/app">Entrar</a>')
     for (const href of ['/sobre', '/contato', '/ajuda', '/privacidade', '/termos', '/guias'])
       expect(html).toContain(`href="${href}"`)
   })
@@ -87,6 +88,21 @@ describe('páginas públicas', () => {
     expect(html).toContain(`R$ ${PLAN_MATRIX.plus.precoMensalBrl!.toFixed(2).replace('.', ',')}`)
     expect(html).not.toContain(`R$ ${PLAN_MATRIX.premium.precoMensalBrl!.toFixed(2).replace('.', ',')}`)
     expect(html).toContain('Em breve: Família e Pro')
+  })
+
+  it('planos: com o anual fechado (o padrão), nenhum preço anual nem promessa de anual parcelado', () => {
+    for (const flags of ['', 'venda_planos_v4']) {
+      const html = site({ SITE_FLAGS_DE_VENDA: flags }).get('planos.html')!
+      expect(html, flags).not.toMatch(/por ano/)
+      expect(html, flags).not.toMatch(/anual/i)
+      expect(html, flags).not.toContain(PLAN_MATRIX.plus.precoAnualBrl!.toFixed(2).replace('.', ','))
+    }
+  })
+
+  it('planos: com SITE_ANUAL_A_VENDA=1, o preço anual e as perguntas do anual voltam', () => {
+    const html = site({ SITE_FLAGS_DE_VENDA: 'venda_planos_v4', SITE_ANUAL_A_VENDA: '1' }).get('planos.html')!
+    expect(html).toContain(`ou R$ ${PLAN_MATRIX.plus.precoAnualBrl!.toFixed(2).replace('.', ',')} por ano`)
+    expect(html).toContain('No plano anual você pode pagar à vista ou parcelar.')
   })
 
   it('404: noindex e sem canonical', () => {
@@ -182,17 +198,63 @@ describe('sitemap, robots e ads.txt', () => {
 })
 
 describe('layout do site', () => {
-  it('home: a cena da legenda tem frase real, tradução e a descrição para leitor de tela', () => {
+  it('home: um filme em sete trechos contínuos, legenda de exemplo, aviso de IA, texto na página e mídia que existe', () => {
     const html = site().get('inicio.html')!
-    expect(html).toContain('Estou bem cansado depois do trabalho')
-    expect(html).toContain('<span class="salva">beat</span>')
-    expect(html).toMatch(/<figcaption class="so-leitor">[^<]*beat/)
-    expect(html).toContain('prefers-reduced-motion')
+    expect(html).toContain('data-filme="/site/midia/filme.mp4" data-filme-celular="/site/midia/filme-m.mp4"')
+    const trechos = [...html.matchAll(/data-de="([\d.]+)" data-ate="([\d.]+)"/g)].map((m) => [+m[1], +m[2]])
+    expect(trechos).toHaveLength(7)
+    // os trechos cobrem o filme sem buraco nem sobreposição: um começa onde o outro termina
+    trechos.slice(1).forEach(([de], i) => expect(de).toBe(trechos[i][1]))
+    expect(html).toContain('Não acredito que você escondeu isso de mim. Era para a gente ser uma equipe!')
+    expect(html).toContain('Cenas de exemplo criadas com IA. A legenda mostra o visual real do Frasy.')
+    // a tradução de exemplo usa a palavra do contexto (aeroporto: portão)
+    expect(html).toContain('<span class="chave">portão</span> 12')
+    // números que o site afirma: os jogos da grade e nenhum total de livros que a produção não tem
+    expect(html).toContain('18 jogos curtos')
+    expect(html).not.toMatch(/\d+ clássicos/)
+    // sem jargão de ferramenta no texto da home
+    expect(html).not.toMatch(/\b(deck|FSRS|SRS|XP|modo intérprete|revisão espaçada)\b/)
+    expect(html).toContain('<span class="chip breve">Em breve</span>')
+    // sem JavaScript, o texto de todos os capítulos já está no HTML
+    expect(html).toContain('<h1>Ouviu outra língua? Entenda e <em>guarde a palavra.</em></h1>')
+    expect(html).toContain('O que você ouviu hoje <em>não se perde.</em>')
+    // toda mídia citada existe em public/
+    const midias = [...html.matchAll(/(?:src|poster|data-filme|data-filme-celular)="(\/site\/[^"]+)"/g)].map(
+      (m) => m[1],
+    )
+    expect(midias.length).toBeGreaterThan(20)
+    for (const m of midias) expect(() => readFileSync(path.join(__dirname, '..', 'public', m))).not.toThrow()
+  })
+
+  it('home: scripts só do próprio domínio, com defer; as outras páginas seguem sem JavaScript', () => {
+    const html = site().get('inicio.html')!
+    expect(html).toContain('<script src="/site/lenis.min.js" defer></script>')
+    // A ordem importa: `rolo.js` usa o `FrasyRoda` de `roda.js` (defer executa na ordem do documento).
+    expect(html).toContain(
+      '<script src="/site/lenis.min.js" defer></script>\n<script src="/site/roda.js" defer></script>\n<script src="/site/rolo.js" defer></script>',
+    )
+    expect(html).not.toMatch(/<script src="https?:/)
+    expect(site().get('planos.html')!).not.toMatch(/<script src=/)
+  })
+
+  it('home: o filme não depende de movimento (reduzido também carrega) e o de 720p vem primeiro', () => {
+    // O motor é JS puro em `public/` (fora do lint e do build); aqui, o contrato que o e2e da home mede.
+    const rolo = readFileSync(path.join(__dirname, '..', 'public', 'site', 'rolo.js'), 'utf8')
+    const carregar = /async function carregar\(s\) \{\n\s*(.*)\n/.exec(rolo)?.[1] ?? ''
+    expect(carregar).toContain('return')
+    expect(carregar).not.toContain('menos')
+    expect(rolo).toContain('const fonteDe = (f) => f.clipeCelular || f.clipe;')
+  })
+
+  it('home: em tela baixa, o primeiro capítulo desconta o cabeçalho e o título escala pela altura', () => {
+    const html = site().get('inicio.html')!
+    expect(html).toContain('.capitulo:first-child .capitulo-fixo{height:calc(100vh - var(--altura-do-topo))')
+    expect(html).toMatch(/\.capitulo h1,\.capitulo h2\{font-size:clamp\(34px,min\(5\.6vw,7\.8vh\),82px\)/)
   })
 
   it('as duas fontes do app, pré-carregadas', () => {
     const html = site().get('planos.html')!
-    expect(html).toContain('<link rel="preload" href="/fontes/archivo-5.3.0.woff2"')
+    expect(html).toContain('<link rel="preload" href="/fontes/archivo-wdth-5.3.0.woff2"')
     expect(html).toContain('<link rel="preload" href="/fontes/inter-5.3.0.woff2"')
   })
 
@@ -215,7 +277,7 @@ describe('páginas legais com o layout do site', () => {
     const miolo = /<main[^>]*>([\s\S]*?)<\/main>/.exec(fonte)![1]
     expect(html).toContain(miolo)
     expect(canonical(html)).toBe(`${URL_SITE}${caminho}`)
-    expect(html).toContain('<a class="botao" href="/app">Entrar</a>')
+    expect(html).toContain('<a class="botao contorno" href="/app">Entrar</a>')
     expect(html).toContain(`<a href="${caminho}" aria-current="page">`)
     expect(html.match(/<h1>/g)).toHaveLength(1)
   })

@@ -1047,6 +1047,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'chave PÚBLICA do Cloudflare Turnstile: o convidado passa pelo captcha antes de o Supabase criar o usuário anônimo (Fase 7). Com ela a CSP libera challenges.cloudflare.com; sem ela o captcha fica desligado',
   },
   {
+    nome: 'VITE_VOZ_KITTEN_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'raiz pública do bucket R2 com os pesos da voz natural no aparelho (Kitten TTS 2, Apache-2.0: `<raiz>/mini/…` ~90 MB e `<raiz>/pico/…` ~10 MB por idioma, sha256 fixado em `src/core/voz/kitten.ts`), para a flag `voz_kitten`. Ausente: a voz natural não aparece e quem lê segue a ordem de antes. Com ela, a CSP libera a origem em `connect-src` (dado, nunca `script-src`)',
+  },
+  {
     nome: 'VITE_VOZ_MODELO_URL',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',

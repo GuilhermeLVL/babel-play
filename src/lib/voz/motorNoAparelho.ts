@@ -53,6 +53,11 @@ export interface OpcoesDoMotorNoAparelho {
   aoRecuar?: (motivo: string) => void;
   /** Quanto esperar para soltar o worker depois de `liberar()` (0 = na hora). */
   soltarAposMs?: number;
+  /**
+   * Idioma do motor (ou `null`: a reserva lê), voz e velocidade a partir da fala. Padrão: o da Supertonic. O Kitten
+   * (`gateway/adapters/kittenLocal.ts`) passa o dele.
+   */
+  resolver?: (opts: SpeakOptions) => { idioma: string | null; voz: string; velocidade: number };
 }
 
 const TAMANHO_DO_CACHE = 4;
@@ -103,11 +108,12 @@ export function criarMotorNoAparelho(o: OpcoesDoMotorNoAparelho): MotorNoAparelh
     soltura = null;
   };
 
-  const resolver = (opts: SpeakOptions) => {
+  const resolver = o.resolver ?? resolverDaSupertonic;
+  function resolverDaSupertonic(opts: SpeakOptions) {
     const idioma = idiomaDoSupertonic(opts.lang);
     const voz = ehVozDoSupertonic(opts.voiceName) ? opts.voiceName : (o.vozPadrao?.() ?? VOZ_PADRAO_DO_NARRADOR);
     return { idioma, voz, velocidade: velocidadeDoModelo(opts.rate ?? 1) };
-  };
+  }
 
   function bombear() {
     if (emCurso) return;

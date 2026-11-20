@@ -26,7 +26,7 @@ import { FLAG_VOZ_NATURAL } from '../../core/vozNatural';
 import { getEntitlements, onPlanChange } from '../entitlements';
 import { flagLigada } from '../flagsCache';
 import { aoMudarPreferencias, carregarPreferencias, lerPreferencias, salvarPreferencias } from '../preferencias';
-import { aoMudarVozes, getVoicePrefs, getVoices, onVoicePrefsChange, setVoicePref, setVoicePrefs } from '../tts';
+import { aoMudarVozes, getVoicePrefs, onVoicePrefsChange, setVoicePref, setVoicePrefs, vozAceitaExiste } from '../tts';
 import { aoMudarVozNoAparelho, VOZ_NO_APARELHO, vozNoAparelhoPronta } from './vozNoAparelho';
 
 /** Nada escolhido: o app decide (a melhor voz do aparelho; no intérprete, a da nuvem quando o plano tem). */
@@ -41,9 +41,9 @@ export function vozDaNuvemDisponivel(): boolean {
   return getEntitlements().vozNatural && flagLigada(FLAG_VOZ_NATURAL);
 }
 
-/** Existe no aparelho, agora, uma voz com este nome? */
+/** Existe no aparelho, agora, uma voz ACEITA com este nome? (escolha antiga de voz robótica = automática) */
 export function vozDoAparelhoExiste(nome: string): boolean {
-  return !!nome && getVoices().some((v) => v.name === nome);
+  return vozAceitaExiste(nome);
 }
 
 /** O que está GUARDADO para o idioma (aceita `en` ou `en-US`), exista a voz aqui ou não. */

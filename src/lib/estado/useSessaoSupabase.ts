@@ -5,6 +5,7 @@ import { clearAuthCallbackUrl, isOnAuthCallback } from '../authCallback';
 import { ehSessaoAnonima } from '../convidado';
 import { limparEntitlements } from '../entitlements';
 import { armarIdentidade, definirIdentidade } from '../identidade';
+import { EVENTO_SUPABASE_PEDIDO, haSessaoOuVoltaDoLogin } from '../sessaoNoBoot';
 import { authRequired, carregarSupabase } from '../supabase';
 
 export interface EstadoDaSessaoSupabase {
@@ -39,9 +40,16 @@ export function useSessaoSupabase(): EstadoDaSessaoSupabase {
      `carregando` e NÃO armada — `aguardarIdentidade` devolvia na hora e o `GET /api/settings` saía sem token
      (401). Cada visita anônima gastava um ponto do limitador de falhas de autenticação do IP (30 por 15 min),
      e uma escola/NAT inteira ficava com 429. Idempotente. */
-  if (authRequired) armarIdentidade();
-  // Marco 1: sessão Supabase — só relevante no modo público (authRequired). No local fica null.
-  const [session, setSession] = useState<{ user?: unknown } | null | undefined>(authRequired ? undefined : null);
+  /* Lido uma vez por montagem: com sessão guardada (ou na volta do login), o SDK desce no boot. */
+  const [comSessaoNoBoot] = useState(() => authRequired && haSessaoOuVoltaDoLogin());
+  if (comSessaoNoBoot) armarIdentidade();
+  /* O VISITANTE SEM SESSÃO GUARDADA (carga-rapida-no-celular, 2.1) não espera o SDK: a sessão é `null` e a
+     identidade é `anonimo` desde o primeiro desenho, e o Início pinta sem o `vendor-supabase`. Se ele entrar
+     depois, a porta de login carrega o SDK e o efeito abaixo se inscreve no `onAuthStateChange`. */
+  const [session, setSession] = useState<{ user?: unknown } | null | undefined>(() => {
+    if (!authRequired) return null;
+    return haSessaoOuVoltaDoLogin() ? undefined : null;
+  });
   // Marco 1: fluxo de recuperação. O link do e-mail dispara PASSWORD_RECOVERY (com sessão temporária);
   // enquanto ativo, a tela de redefinir senha tem precedência sobre a porta de login e o app.
   const [recovery, setRecovery] = useState(false);
@@ -78,7 +86,7 @@ export function useSessaoSupabase(): EstadoDaSessaoSupabase {
    */
   useEffect(() => {
     if (!authRequired) return;
-    armarIdentidade();
+    if (comSessaoNoBoot) armarIdentidade();
     let vivo = true;
     let inscricao: { unsubscribe: () => void } | null = null;
     // Sem resposta do Supabase a identidade é `anonimo`, não `carregando`: ficar carregando para
@@ -91,6 +99,10 @@ export function useSessaoSupabase(): EstadoDaSessaoSupabase {
     };
     void (async () => {
       try {
+        /* Com sessão guardada, o SDK desce já; sem ela, espera alguém pedi-lo (a porta de login). */
+        if (!comSessaoNoBoot)
+          await new Promise<void>((ok) => window.addEventListener(EVENTO_SUPABASE_PEDIDO, () => ok(), { once: true }));
+        if (!vivo) return;
         const sb = await carregarSupabase();
         if (!sb || !vivo) {
           if (!sb) semSessao();
@@ -130,6 +142,7 @@ export function useSessaoSupabase(): EstadoDaSessaoSupabase {
       vivo = false;
       inscricao?.unsubscribe();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- uma vez por montagem, como antes
   }, []);
 
   return {

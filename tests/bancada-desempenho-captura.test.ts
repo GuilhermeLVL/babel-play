@@ -384,6 +384,24 @@ describe('slo-captura.json versionado', () => {
     )
   })
 
+  /* carga-rapida-no-celular (5.3, LB-03): `primeiraLegendaMs` mede a legenda COMPLETA desde o d87ca02d; o 1º texto
+     na tela é outra métrica, agora vigiada, e o Mac da auditoria tem base própria (`local-darwin`). */
+  it('vigia o 1º texto na tela; a 1ª legenda diz que é a legenda completa; há base local-darwin', () => {
+    expect(doc.metricas.primeiroTextoNaTelaMs).toMatchObject({ sentido: 'menor', toleranciaPct: 25, folgaAbs: 500 })
+    expect(doc.metricas.primeiraLegendaMs.rotulo).toMatch(/legenda completa/)
+    for (const perfil of ['desktop', 'fraco'])
+      expect(doc.ambientes['local-darwin'].perfis[perfil].primeiroTextoNaTelaMs).toBeGreaterThan(0)
+    expect(doc.ambientes['local-win32']).toBeTruthy()
+  })
+
+  it('o 1º parcial atrasado de propósito para 3 s reprova pela métrica primeiroTextoNaTelaMs', () => {
+    const base = doc.ambientes['local-darwin'].perfis.desktop
+    const resultado = { perfis: { desktop: { metricas: { ...base, primeiroTextoNaTelaMs: 3000 } } } }
+    const r = comparar(doc, resultado, 'local-darwin')
+    expect(r.piorou).toBe(true)
+    expect(r.linhas.filter((l) => l.status === 'piorou').map((l) => l.metrica)).toEqual(['primeiroTextoNaTelaMs'])
+  })
+
   it('validarSlo acusa sentido desconhecido e métrica fora da lista', () => {
     const erros = validarSlo({
       versao: 1,

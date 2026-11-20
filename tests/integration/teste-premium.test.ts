@@ -178,11 +178,10 @@ describe('o teste tem teto de USO, não só de tempo (a nuvem é uma amostra)', 
     expect((await reservarSegundosDeStt('t-assina', 3_601)).cabe).toBe(true)
   })
 
-  it('a voz natural do teste também tem teto próprio (10.000 caracteres)', async () => {
+  it('a voz natural da nuvem não faz parte do teste: teto de 0 caracteres (change voz-natural-openrouter)', async () => {
     const { reservarCaracteresDeVoz } = await s.load('../../server/lib/usageQuota')
     await declarar('t-voz', 30)
     expect((await testar('t-voz')).status).toBe(200)
-    expect((await reservarCaracteresDeVoz('t-voz', 10_000)).cabe).toBe(true)
     expect((await reservarCaracteresDeVoz('t-voz', 1)).cabe).toBe(false)
   })
 })

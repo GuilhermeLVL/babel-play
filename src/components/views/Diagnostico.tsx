@@ -43,6 +43,7 @@ import { cabecalhoDoDono, CHAVE_DO_DONO_NO_APARELHO, ENDPOINT_DA_NUVEM_DO_QUEST 
 import { descreverEtapas, lerUltimoDoInterprete } from '../../lib/voz/tempoAteAVoz';
 import AbasDoQuest from './ajustes/quest/AbasDoQuest';
 import { type NivelDaProva, textoDaProva, tocarSomDoApontar } from './ajustes/quest/vibracao';
+import UsoSemInternet from './diagnostico/UsoSemInternet';
 
 /**
  * DIAGNÓSTICO DO APARELHO (`/diagnostico`) — o que ESTE aparelho entrega, medido nele mesmo.
@@ -848,6 +849,7 @@ export default function Diagnostico() {
             </dl>
           )}
         </section>
+        <UsoSemInternet />
       </div>
 
       {/* ── HEADSET: a vibração do controle e a chave de dono. Só no headset. ── */}

@@ -222,6 +222,19 @@ test.describe('Captura: a fala em outra escrita aparece na tela', () => {
       await clicarRobusto(page, folha.getByRole('button', { name: /Rápido/ }).first())
       await clicarRobusto(page, folha.getByRole('button', { name: /Baixar e iniciar|^Iniciar$|Continuar/ }))
       await expect(folha).toBeHidden()
+    } else {
+      /* Com o "Rápido" já escolhido (a escolha fica na conta, de um teste para o outro), a folha não pergunta o
+         motor: no celular, o tradutor (~31 MB) passa do teto de 20 MB e a tela confirma o download antes
+         (carga-rapida-no-celular, CEL-04). */
+      const aviso = page.getByRole('dialog', { name: 'Baixar os modelos desta captura?' })
+      const perguntou = await aviso
+        .waitFor({ state: 'visible', timeout: 3_000 })
+        .then(() => true)
+        .catch(() => false)
+      if (perguntou) {
+        await clicarRobusto(page, aviso.getByRole('button', { name: /Baixar e iniciar/ }))
+        await expect(aviso).toBeHidden()
+      }
     }
     await expect(botaoEncerrar(page)).toBeVisible({ timeout: 20_000 })
   }

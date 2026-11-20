@@ -21,7 +21,7 @@
  * Os números (bytes, sha256, id da execução de treino) vêm de `modelosDoBergamot.json`, a MESMA
  * fonte que o script de build lê: um só lugar para trocar de modelo.
  */
-import { ALVOS_DO_INGLES, modeloParaOIngles, ORIGENS_DO_BERGAMOT_NO_CDN } from '../../core/traducao/viaIngles';
+import { ORIGENS_DO_BERGAMOT_NO_CDN, passaPeloIngles } from '../../core/traducao/viaIngles';
 import modelos from './modelosDoBergamot.json';
 
 declare const __BERGAMOT_PT_EN__: boolean | undefined;
@@ -59,15 +59,12 @@ export function parDoBergamot(src: string | null, tgt: string): ParDoBergamot | 
 }
 
 /**
- * A perna `X→en` de um par que passa pelo inglês (a outra, `en→alvo`, é do opus-mt). Só os idiomas que o opus-mt
- * já cobria saindo do inglês (`MODELOS_PARA_O_INGLES`): es/fr/it/de têm modelo direto até o português e ficam como estavam.
+ * A perna `X→en` de um par que passa pelo inglês (a outra, `en→alvo`, é do opus-mt): os idiomas da tabela do pivô e,
+ * desde CEL-01, os pares entre pt/es/fr/it/de (`passaPeloIngles`, `core/traducao/viaIngles.ts`).
  */
 export function parDoPivo(src: string | null, tgt: string): ParDoBergamot | null {
-  if (!src) return null;
-  const s = baseDoIdioma(src);
-  const t = baseDoIdioma(tgt);
-  if (t === 'en' || t === s || !ALVOS_DO_INGLES.has(t) || !modeloParaOIngles(s)) return null;
-  return parDoBergamot(s, 'en');
+  if (!src || !passaPeloIngles(src, tgt)) return null;
+  return parDoBergamot(baseDoIdioma(src), 'en');
 }
 
 /** O id do manifesto quando o `modelId` é de um par do Bergamot; `null` para os outros. */

@@ -20,7 +20,23 @@ import {
   trechosParaSintese,
   VOZES_DO_SUPERTONIC,
 } from '../../core/voz/supertonic';
-import { baseDoWasm } from '../baseDoWasm';
+import {
+  abrirRuntime,
+  type ArquivoDaPasta,
+  baixarArquivoConferido,
+  ehCancelamento,
+  lerConferido as lerArquivoConferido,
+  type PastaDaVoz,
+  pastaOpfs,
+  type RuntimeDaVoz,
+  type SessaoDaVoz,
+  sha256Hex,
+  temWebGpu,
+  type TensorDaVoz,
+} from './pesosNoAparelho';
+
+/* Os tipos do armazenamento e do runtime moram em `pesosNoAparelho.ts` (comuns ao Kitten); reexportados para o teste. */
+export type { ArquivoDaPasta, PastaDaVoz, RuntimeDaVoz, SessaoDaVoz, TensorDaVoz };
 
 /* ───────── protocolo ───────── */
 
@@ -36,39 +52,6 @@ export type MensagemDaVoz =
   | { tipo: 'ok'; id: number; backend?: string; pcm?: Float32Array; taxa?: number; ms?: number; trechos?: number }
   | { tipo: 'erro'; id: number; mensagem: string; cancelado?: boolean };
 
-/* ───────── armazenamento (OPFS) ───────── */
-
-export interface ArquivoDaPasta {
-  tamanho(): number;
-  escrever(b: Uint8Array, em: number): void;
-  ler(): Uint8Array;
-  truncar(n: number): void;
-  fechar(): void;
-}
-
-export interface PastaDaVoz {
-  abrir(nome: string): Promise<ArquivoDaPasta>;
-  /** O sha256 gravado ao conferir o arquivo, ou `null`. */
-  marca(nome: string): Promise<string | null>;
-  marcar(nome: string, sha256: string): Promise<void>;
-  apagarTudo(): Promise<void>;
-}
-
-/* ───────── runtime ───────── */
-
-export interface TensorDaVoz {
-  data: ArrayLike<number> | Float32Array;
-  dims: readonly number[];
-}
-export interface SessaoDaVoz {
-  run(entradas: Record<string, unknown>): Promise<Record<string, TensorDaVoz>>;
-  release(): Promise<void>;
-}
-export interface RuntimeDaVoz {
-  criarSessao(bytes: Uint8Array, ep: 'webgpu' | 'wasm'): Promise<SessaoDaVoz>;
-  tensor(tipo: 'float32' | 'int64', dados: Float32Array | BigInt64Array, dims: number[]): unknown;
-}
-
 export interface DependenciasDaVoz {
   buscar: (url: string, init: RequestInit) => Promise<Response>;
   abrirPasta: () => Promise<PastaDaVoz>;
@@ -80,8 +63,6 @@ export interface DependenciasDaVoz {
 }
 
 const nomeNoDisco = (a: ArquivoDoSupertonic) => a.caminho.replace(/\//g, '__');
-
-class Cancelado extends Error {}
 
 interface Modelo {
   backend: 'webgpu' | 'wasm';
@@ -107,53 +88,26 @@ export function criarWorkerDaVoz(d: DependenciasDaVoz) {
   let download: AbortController | null = null;
   let modelo: Modelo | null = null;
 
-  async function baixarArquivo(
+  const baixarArquivo = (
     pasta: PastaDaVoz,
     a: ArquivoDoSupertonic,
     raiz: string,
     sinal: AbortSignal,
     somar: (n: number) => void,
-  ): Promise<void> {
-    const nome = nomeNoDisco(a);
-    if ((await pasta.marca(nome)) === a.sha256) return somar(a.bytes);
-    const f = await pasta.abrir(nome);
-    try {
-      let tem = f.tamanho();
-      if (tem > a.bytes) {
-        f.truncar(0);
-        tem = 0;
-      }
-      if (tem < a.bytes) {
-        const url = `${raiz.replace(/\/+$/, '')}/${a.caminho}`;
-        const r = await d.buscar(url, { signal: sinal, ...(tem > 0 ? { headers: { Range: `bytes=${tem}-` } } : {}) });
-        if (r.status === 206) somar(tem);
-        else if (r.ok) {
-          f.truncar(0); // o servidor ignorou o Range: recomeça do zero
-          tem = 0;
-        } else throw new Error(`HTTP ${r.status} em ${a.caminho}`);
-        const leitor = r.body?.getReader();
-        if (!leitor) throw new Error(`resposta sem corpo em ${a.caminho}`);
-        for (;;) {
-          if (sinal.aborted) throw new Cancelado('cancelado');
-          const { done, value } = await leitor.read();
-          if (done) break;
-          if (tem + value.byteLength > a.bytes) throw new Error(`${a.caminho}: maior que o esperado`);
-          f.escrever(value, tem);
-          tem += value.byteLength;
-          somar(value.byteLength);
-        }
-      } else somar(a.bytes);
-      if (f.tamanho() !== a.bytes) throw new Error(`${a.caminho}: tamanho ${f.tamanho()} ≠ ${a.bytes}`);
-      const hash = await d.sha256(f.ler());
-      if (hash !== a.sha256) {
-        f.truncar(0);
-        throw new Error(`${a.caminho}: sha256 não confere`);
-      }
-      await pasta.marcar(nome, hash);
-    } finally {
-      f.fechar();
-    }
-  }
+  ) =>
+    baixarArquivoConferido(
+      d,
+      pasta,
+      {
+        nome: nomeNoDisco(a),
+        url: `${raiz.replace(/\/+$/, '')}/${a.caminho}`,
+        bytes: a.bytes,
+        sha256: a.sha256,
+        rotulo: a.caminho,
+      },
+      sinal,
+      somar,
+    );
 
   async function baixar(id: number, raiz: string): Promise<void> {
     download?.abort();
@@ -177,16 +131,8 @@ export function criarWorkerDaVoz(d: DependenciasDaVoz) {
     }
   }
 
-  async function lerConferido(pasta: PastaDaVoz, a: ArquivoDoSupertonic): Promise<Uint8Array> {
-    const nome = nomeNoDisco(a);
-    if ((await pasta.marca(nome)) !== a.sha256) throw new Error(`modelo não está no aparelho (${a.caminho})`);
-    const f = await pasta.abrir(nome);
-    try {
-      return f.ler();
-    } finally {
-      f.fechar();
-    }
-  }
+  const lerConferido = (pasta: PastaDaVoz, a: ArquivoDoSupertonic) =>
+    lerArquivoConferido(pasta, nomeNoDisco(a), a.sha256, a.caminho);
 
   const json = (b: Uint8Array) => JSON.parse(new TextDecoder().decode(b));
 
@@ -299,7 +245,7 @@ export function criarWorkerDaVoz(d: DependenciasDaVoz) {
         d.enviar({ tipo: 'ok', id: m.id });
       }
     } catch (e) {
-      const cancelado = e instanceof Cancelado || (e instanceof DOMException && e.name === 'AbortError');
+      const cancelado = ehCancelamento(e);
       d.enviar({ tipo: 'erro', id: m.id, mensagem: e instanceof Error ? e.message : String(e), cancelado });
     }
   }
@@ -311,100 +257,11 @@ export function criarWorkerDaVoz(d: DependenciasDaVoz) {
 
 const PASTA = 'voz-no-aparelho-supertonic3';
 
-interface AlcaSincrona {
-  getSize(): number;
-  write(b: Uint8Array, o: { at: number }): number;
-  read(b: Uint8Array, o: { at: number }): number;
-  truncate(n: number): void;
-  flush(): void;
-  close(): void;
-}
-type ArquivoOpfs = FileSystemFileHandle & { createSyncAccessHandle(): Promise<AlcaSincrona> };
-
-async function pastaOpfs(): Promise<PastaDaVoz> {
-  const raiz = await navigator.storage.getDirectory();
-  const pasta = await raiz.getDirectoryHandle(PASTA, { create: true });
-  const lerTexto = async (nome: string) => {
-    try {
-      const f = await (await pasta.getFileHandle(nome)).getFile();
-      return (await f.text()).trim();
-    } catch {
-      return null;
-    }
-  };
-  return {
-    async abrir(nome) {
-      const h = await ((await pasta.getFileHandle(nome, { create: true })) as ArquivoOpfs).createSyncAccessHandle();
-      return {
-        tamanho: () => h.getSize(),
-        escrever: (b, em) => void h.write(b, { at: em }),
-        ler: () => {
-          const b = new Uint8Array(h.getSize());
-          h.read(b, { at: 0 });
-          return b;
-        },
-        truncar: (n) => h.truncate(n),
-        fechar: () => {
-          h.flush();
-          h.close();
-        },
-      };
-    },
-    marca: (nome) => lerTexto(`${nome}.ok`),
-    async marcar(nome, sha) {
-      const h = await (
-        (await pasta.getFileHandle(`${nome}.ok`, { create: true })) as ArquivoOpfs
-      ).createSyncAccessHandle();
-      h.truncate(0);
-      h.write(new TextEncoder().encode(sha), { at: 0 });
-      h.flush();
-      h.close();
-    },
-    async apagarTudo() {
-      await raiz.removeEntry(PASTA, { recursive: true }).catch(() => undefined);
-    },
-  };
-}
-
-async function sha256Hex(b: Uint8Array): Promise<string> {
-  const h = new Uint8Array(await crypto.subtle.digest('SHA-256', b as BufferSource));
-  return Array.from(h, (x) => x.toString(16).padStart(2, '0')).join('');
-}
-
-/**
- * O `onnxruntime-web` padrão (runtime JSEP: WebGPU e WASM), o MESMO do transformers.js, por `import()`. O `.wasm` vem de
- * `baseDoWasm()` (o app já serve `ort-wasm-simd-threaded.jsep.*` na raiz).
- */
-async function abrirRuntime(threads: number): Promise<RuntimeDaVoz> {
-  const ort = await import('onnxruntime-web');
-  ort.env.wasm.wasmPaths = baseDoWasm();
-  ort.env.wasm.numThreads = Math.max(1, Math.min(4, Math.floor(threads) || 1));
-  return {
-    criarSessao: (bytes, ep) =>
-      ort.InferenceSession.create(bytes, {
-        executionProviders: [ep],
-        graphOptimizationLevel: 'all',
-        logSeverityLevel: 3, // o aviso de "nós de forma na CPU" do WebGPU é esperado e só poluía o console
-      }) as unknown as Promise<SessaoDaVoz>,
-    tensor: (tipo, dados, dims) => new ort.Tensor(tipo, dados as never, dims),
-  };
-}
-
-async function temWebGpu(): Promise<boolean> {
-  const gpu = (navigator as Navigator & { gpu?: { requestAdapter(): Promise<unknown> } }).gpu;
-  if (!gpu) return false;
-  try {
-    return !!(await gpu.requestAdapter());
-  } catch {
-    return false;
-  }
-}
-
 declare const WorkerGlobalScope: unknown;
 if (typeof WorkerGlobalScope !== 'undefined' && typeof self !== 'undefined') {
   const w = criarWorkerDaVoz({
     buscar: (url, init) => fetch(url, init),
-    abrirPasta: pastaOpfs,
+    abrirPasta: () => pastaOpfs(PASTA),
     abrirRuntime,
     temWebGpu,
     sha256: sha256Hex,

@@ -125,6 +125,7 @@ interface Estado {
   gastoAnomalo: Counter<'motivo'>
   cacheDeTraducao: Counter<'resultado'>
   cacheDeTraducaoPorNivel: Counter<'nivel' | 'resultado'>
+  clienteFalhas: Counter<'tipo' | 'aparelho' | 'modelo'>
   uploadsRecusados: Counter<'motivo'>
   r2UsoFracao: Gauge<'recurso'>
   /* Fase B do plano de qualidade da IA paga (item 7): o JSON que não serviu, o cache de prompt e o feedback. */
@@ -432,6 +433,13 @@ function criarEstadoProm(): Estado {
       name: 'ia_saida_filtrada_total',
       help: 'Respostas do tutor barradas pelo filtro local de saída para perfil protegido (menor ou idade não declarada), por função e categoria.',
       labelNames: ['funcao', 'categoria'] as const,
+    }),
+    /* AS FALHAS DE PREPARO DO VISITANTE (`POST /api/erros-do-cliente/falha`, change `modelos-confiaveis-e-offline`).
+       Anônimo: os três rótulos são listas fechadas de `src/core/falhas/mensagemDeFalha.ts` e do perfil do aparelho. */
+    clienteFalhas: new Counter({
+      name: 'cliente_falha_total',
+      help: 'Falhas de preparo da legenda no navegador do visitante (download interrompido, modelo corrompido, sem internet…), por tipo, aparelho e família do modelo. Anônimo, sem conteúdo.',
+      labelNames: ['tipo', 'aparelho', 'modelo'] as const,
     }),
     uploadsRecusados: new Counter({
       name: 'uploads_grandes_recusados_total',
@@ -773,6 +781,13 @@ export function contarFeedbackDeIa(funcao: string, nota: 'up' | 'down', motivo: 
   if (ehWorker()) gravarPonto('feedback_ia', [funcao, nota, motivo ?? 'nenhum'], [1], funcao)
   if (!estado) return
   estado.feedbackDeIa.inc({ funcao, nota, motivo: motivo ?? 'nenhum' })
+}
+
+/** Uma falha de preparo do visitante, já validada pela rota (os três rótulos são listas fechadas). */
+export function contarFalhaDoCliente(tipo: string, aparelho: string, modelo: string): void {
+  if (ehWorker()) gravarPonto('cliente_falha', [tipo, aparelho, modelo], [1], tipo)
+  if (!estado) return
+  estado.clienteFalhas.inc({ tipo, aparelho, modelo })
 }
 
 /** Uma resposta do tutor barrada pelo filtro de saída de perfil protegido. Os dois rótulos são valores fixos do código. */

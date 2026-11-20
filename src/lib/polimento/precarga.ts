@@ -9,8 +9,8 @@
  * deixa de ser tempo parado):
  *   - no toque (`pointerdown`) do item do menu, antes mesmo de o clique terminar, e no foco do teclado;
  *   - com o navegador ocioso depois da carga, um destino do menu por vez.
- * O que é palpite (o ocioso, o foco do teclado) não acontece com a economia de dados ligada nem em
- * conexão lenta; o toque é a própria navegação, e o arquivo seria pedido de qualquer jeito.
+ * O que é palpite (o ocioso, o foco do teclado) só acontece com o 4G declarado pelo navegador; o toque é a
+ * própria navegação, e o arquivo seria pedido de qualquer jeito.
  *
  * Quem decide QUAIS telas pedir é o menu (`TrilhoDoQuest`): ele sabe o que o toque vai abrir de verdade
  * (sem conta, a Biblioteca abre um convite, e o pedaço dela não desce).
@@ -31,12 +31,16 @@ interface Conexao {
   effectiveType?: string;
 }
 
-/** A pessoa pediu economia de dados, ou a conexão é lenta (2G e 3G na conta do navegador). */
+/**
+ * O palpite não deve gastar a rede: a pessoa pediu economia de dados, a conexão é lenta (2G e 3G na conta do
+ * navegador) ou o navegador NÃO DIZ como é a conexão (Safari, Firefox). Só o 4G declarado libera o palpite
+ * (carga-rapida-no-celular, 2.3: no celular, a pré-carga no ocioso disputava a banda com a primeira tela).
+ */
 export function conexaoPoupada(): boolean {
-  if (typeof navigator === 'undefined') return false;
+  if (typeof navigator === 'undefined') return true;
   const c = (navigator as Navigator & { connection?: Conexao }).connection;
-  if (!c) return false;
-  return c.saveData === true || /^(slow-2g|2g|3g)$/.test(c.effectiveType ?? '');
+  if (!c) return true;
+  return c.saveData === true || c.effectiveType !== '4g';
 }
 
 /**
@@ -79,7 +83,8 @@ export function precarregarNoOcioso(rotas: readonly string[]): () => void {
   let relogio = 0;
   const agendar = () => {
     if (!vivo || !fila.length) return;
-    if (typeof g.requestIdleCallback === 'function') ocioso = g.requestIdleCallback(proxima, { timeout: TETO_DO_OCIOSO });
+    if (typeof g.requestIdleCallback === 'function')
+      ocioso = g.requestIdleCallback(proxima, { timeout: TETO_DO_OCIOSO });
     else relogio = window.setTimeout(proxima, 1200);
   };
   const proxima = () => {

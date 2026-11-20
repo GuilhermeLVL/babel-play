@@ -70,6 +70,7 @@ import {
   ehBaseDoOpenRouter,
   PROVEDORES_DO_GOOGLE_NO_OPENROUTER,
   type RoteamentoOpenRouter,
+  VOZES_COM_RETENCAO_ZERO_NO_OPENROUTER,
 } from './parametrosDoProvedor'
 
 /* ─────────────────────────────── o vocabulário ─────────────────────────────── */
@@ -358,6 +359,12 @@ function errosDeNegocio(reg: z.infer<typeof registroSchema>, producao: boolean):
         const google = [...(p.roteamento.only ?? []), ...(p.roteamento.order ?? [])].filter((s) => /^google/i.test(s))
         if (google.length) erros.push(`${onde}: roteamento não pode pedir provedor do Google (${google.join(', ')})`)
       }
+      /* A voz no OpenRouter só aplica `zdr`/`data_collection`: o modelo precisa de endpoint de retenção zero conferido. */
+      for (const m of p.modelos)
+        if (m.funcoes.includes('tts') && !VOZES_COM_RETENCAO_ZERO_NO_OPENROUTER.has(m.id))
+          erros.push(
+            `${onde}: modelo "${m.id}": voz (tts) do OpenRouter sem retenção zero conferida (aceitas: ${[...VOZES_COM_RETENCAO_ZERO_NO_OPENROUTER].join(', ')})`,
+          )
     } else if (p.roteamento) {
       erros.push(`${onde}: "roteamento" só vale para o OpenRouter`)
     }

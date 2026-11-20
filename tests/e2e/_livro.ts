@@ -84,9 +84,13 @@ export function epub(): Buffer {
   )
 }
 
-/** A voz de mentira: 4 vozes em inglês; guarda o que foi falado (texto, voz, ritmo, tom). */
+/**
+ * A voz de mentira: 4 vozes em inglês; guarda o que foi falado (texto, voz, ritmo, tom). Os nomes são de vozes padrão
+ * do macOS que a lista de permissão (`core/voz/melhorVoz.ts`) aceita, em ordem alfabética: nome inventado é recusado,
+ * e o app fica mudo.
+ */
 export function vozDeMentira() {
-  const vozes = ['Teste A', 'Teste B', 'Teste C', 'Teste D'].map((name, i) => ({
+  const vozes = ['Alex', 'Daniel', 'Karen', 'Samantha'].map((name, i) => ({
     name,
     lang: 'en-US',
     localService: true,

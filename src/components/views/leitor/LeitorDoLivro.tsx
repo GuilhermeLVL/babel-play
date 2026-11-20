@@ -518,7 +518,12 @@ export default function LeitorDoLivro({
       /* A VOZ NO APARELHO (flag `voz_no_aparelho`): o motor só chega por import() quando ele lê o idioma (escolhido, ou a
          "Automática" com o modelo já pronto). */
       garantirVozLocal: async (idioma) => {
-        if (vozNoAparelhoLe(idioma)) await carregarMotor();
+        /* Quem lê (`vozKitten.quemLe`): a voz natural do Kitten (flag `voz_kitten`), a Supertonic ou o sistema. Quem lê
+           registra o seu motor na vaga `neural-local` antes de o Narrador perguntar. */
+        const { quemLe, carregarMotorKitten } = await import('../../../lib/voz/vozKitten');
+        const quem = quemLe(idioma);
+        if (quem === 'supertonic') await carregarMotor();
+        else if (quem === 'kitten') await carregarMotorKitten();
       },
       aoNavegar: () => {
         ignorarToquesAte.current = Date.now() + 900;

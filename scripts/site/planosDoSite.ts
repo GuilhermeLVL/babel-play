@@ -7,6 +7,9 @@
  * `venda_planos_v4,ia_de_estudo`); sem ela vale a venda fechada da matriz (o mesmo padrão de
  * `menorPrecoDeAssinatura`). A página pública e o checkout têm de dizer o mesmo: quem liga uma flag de venda
  * na produção ajusta a variável do build e publica de novo.
+ *
+ * O ANUAL. Vendido só com `ANUAL_ENABLED=1` no Worker (o app lê `/api/abertura`); o build não lê o Worker, então
+ * recebe `SITE_ANUAL_A_VENDA=1` quando o anual abrir. Sem ela, a página não mostra preço anual nem fala do anual.
  */
 import {
   DIAS_DO_TESTE_PREMIUM,
@@ -50,6 +53,8 @@ export interface PlanoNaPagina {
 
 export interface PlanosDoSite {
   aVenda: PlanoNaPagina[];
+  /** O anual está à venda (`SITE_ANUAL_A_VENDA=1`); fechado, `anual` é `null` em todos os planos. */
+  anualAVenda: boolean;
   emBreve: string[];
   teste: { plano: string; dias: number; horas: number };
   armazenamentoGratis: string;
@@ -75,13 +80,15 @@ function beneficios(id: PlanoPago, flags: Set<string>): string[] {
   return lista;
 }
 
-export function planosDoSite(flags: Set<string>): PlanosDoSite {
+export function planosDoSite(flags: Set<string>, anualAVenda = false): PlanosDoSite {
   const ligada = (f: string) => flags.has(f);
   const aVenda = planosAVenda(ligada);
   const teste = planoDoTeste(ligada);
   return {
+    anualAVenda,
     aVenda: aVenda.map((id) => {
-      const { rotulo, precoMensalBrl, precoAnualBrl } = PLAN_MATRIX[id];
+      const { rotulo, precoMensalBrl } = PLAN_MATRIX[id];
+      const precoAnualBrl = anualAVenda ? PLAN_MATRIX[id].precoAnualBrl : null;
       const mensal = precoMensalBrl as number;
       return {
         id,

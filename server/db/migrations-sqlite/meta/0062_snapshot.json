@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "53ef9932-7caf-4ace-aac5-f109526b4f06",
+  "id": "232c6b3e-9162-4a3a-811f-d7d277753820",
   "prevId": "1ba9785f-1994-48da-80c6-30b2319e4550",
   "tables": {
     "anki_decks": {

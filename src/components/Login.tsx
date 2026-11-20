@@ -12,7 +12,7 @@ import * as auth from '../lib/auth';
 import * as porta from '../lib/authPorta';
 import { t } from '../lib/i18n';
 import { lazyComRecarga } from '../lib/lazyComRecarga';
-import { supabase } from '../lib/supabase';
+import { carregarSupabase, supabase, supabaseConfigurado } from '../lib/supabase';
 import { T } from '../lib/T';
 import { chaveDoTurnstile } from '../lib/turnstile';
 import PasswordField from './auth/PasswordField';
@@ -89,7 +89,12 @@ export default function Login({ onContinuarSemConta, modoInicial = 'login' }: Lo
     };
   }, []);
 
-  const configurado = !!supabase;
+  /* O SDK desce quando a porta abre (o visitante não o baixa no boot; carga-rapida-no-celular). As ações
+     de `lib/auth` esperam por ele antes de chamar o Supabase. */
+  useEffect(() => {
+    void carregarSupabase();
+  }, []);
+  const configurado = !!supabase || supabaseConfigurado;
   /* CAPTCHA (Turnstile): só existe com a chave pública no build. A resposta do desafio vale para UM
      envio — depois dele `rodadaDoCaptcha` muda e o widget recomeça. Quem confere é o Supabase. */
   const chaveDoCaptcha = configurado ? chaveDoTurnstile() : null;

@@ -27,9 +27,13 @@ const DO_MOTOR = [
   'src/gateway/adapters/supertonicLocal.ts',
   'src/gateway/adapters/supertonicLocal.worker.ts',
   'src/lib/voz/motorNoAparelho.ts',
+  /* a voz natural do Kitten (openspec `voz-natural-no-aparelho-kitten`) usa o mesmo motor */
+  'src/gateway/adapters/kittenLocal.ts',
+  'src/gateway/adapters/kittenLocal.worker.ts',
 ]
-/** `import { x } from '…/supertonicLocal…'` ou `'…/motorNoAparelho'` (valor), não `import type`. */
-const ESTATICO = /^\s*import\s+(?!type\b)[^'"]*from\s+['"][^'"]*\/(supertonicLocal(\.worker)?|motorNoAparelho)['"]/m
+/** `import { x } from '…/supertonicLocal…'`, `'…/kittenLocal…'` ou `'…/motorNoAparelho'` (valor), não `import type`. */
+const ESTATICO =
+  /^\s*import\s+(?!type\b)[^'"]*from\s+['"][^'"]*\/(supertonicLocal(\.worker)?|kittenLocal(\.worker)?|motorNoAparelho)['"]/m
 
 describe('o motor da voz no aparelho fora do bundle principal', () => {
   const codigo = arquivos(path.join(RAIZ, 'src'))
@@ -49,6 +53,18 @@ describe('o motor da voz no aparelho fora do bundle principal', () => {
     expect(porta).toMatch(/flagLigada\(FLAG_VOZ_NO_APARELHO\)/)
   })
 
+  it('a voz natural do Kitten abre o motor por import() e só depois do portão (flag e raiz)', () => {
+    const porta = fonte('src/lib/voz/vozKitten.ts')
+    expect(porta).toMatch(/import\('\.\.\/\.\.\/gateway\/adapters\/kittenLocal'\)/)
+    const carregar = porta.slice(porta.indexOf('function carregarModulo'))
+    expect(carregar.indexOf('kittenOferecido()')).toBeGreaterThan(-1)
+    expect(carregar.indexOf('kittenOferecido()')).toBeLessThan(carregar.indexOf("import('"))
+    expect(porta).toMatch(/flagLigada\(FLAG_VOZ_KITTEN\)/)
+    expect(fonte('src/gateway/adapters/kittenLocal.ts')).toMatch(
+      /new Worker\(new URL\('\.\/kittenLocal\.worker\.ts', import\.meta\.url\)/,
+    )
+  })
+
   it('o worker é criado por new URL (chunk próprio), nunca importado', () => {
     expect(fonte('src/gateway/adapters/supertonicLocal.ts')).toMatch(
       /new Worker\(new URL\('\.\/supertonicLocal\.worker\.ts', import\.meta\.url\)/,
@@ -61,6 +77,7 @@ describe('o motor da voz no aparelho fora do bundle principal', () => {
       const conteudo = readFileSync(path.join(RAIZ, 'dist', f.replace(/^\//, '')), 'utf8')
       expect(conteudo, f).not.toContain('voz-no-aparelho:frase')
       expect(conteudo, f).not.toContain('voz-no-aparelho-supertonic3')
+      expect(conteudo, f).not.toContain('voz-natural-kitten2')
     }
   })
 })

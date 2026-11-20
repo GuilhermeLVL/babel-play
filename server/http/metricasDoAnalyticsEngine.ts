@@ -38,6 +38,8 @@ export type FamiliaDeMetrica =
   | 'feedback_ia'
   /* Filtro de saída do tutor para perfil protegido (change `filtro-tutor-menores`): função e categoria. */
   | 'saida_filtrada'
+  /* O contador anônimo de falhas do visitante (change `modelos-confiaveis-e-offline`): tipo, aparelho, modelo. */
+  | 'cliente_falha'
 
 /** O limite do índice e o que se aplica também aos blobs, para o rótulo ter o mesmo teto em toda parte. */
 const LIMITE_EM_BYTES = 96

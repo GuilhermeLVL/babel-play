@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { ehVozDeEfeito, ehVozRobotica, vozesUteis } from '../src/core/voz/vozesUteis'
+import { ehVozAceita } from '../src/core/voz/melhorVoz'
+import { vozesUteis } from '../src/core/voz/vozesUteis'
 
 const v = (name: string, lang = 'en-US', local = true) => ({ name, lang, local })
 
-describe('ehVozDeEfeito', () => {
+describe('vozes de efeito e robóticas são recusadas', () => {
   it.each([
     'Wobble',
     'Bells',
@@ -21,26 +22,22 @@ describe('ehVozDeEfeito', () => {
     'Superstar',
     'Trinoids',
     'Albert',
-  ])('%s é efeito', (nome) => expect(ehVozDeEfeito(nome)).toBe(true))
+    'Fred',
+    'Junior',
+    'Kathy',
+    'Ralph',
+  ])('%s é recusada', (nome) => expect(ehVozAceita({ name: nome })).toBe(false))
 
   it('ignora maiúsculas, acento e o que vem entre parênteses', () => {
-    expect(ehVozDeEfeito('WOBBLE')).toBe(true)
-    expect(ehVozDeEfeito('Wobble (English (US))')).toBe(true)
-    expect(ehVozDeEfeito('  bad news ')).toBe(true)
+    expect(ehVozAceita({ name: 'WOBBLE' })).toBe(false)
+    expect(ehVozAceita({ name: 'Wobble (English (US))' })).toBe(false)
+    expect(ehVozAceita({ name: '  bad news ' })).toBe(false)
+    expect(ehVozAceita({ name: 'Ralph (English (US))' })).toBe(false)
   })
 
-  it('vozes de verdade não são efeito', () => {
+  it('vozes de verdade são aceitas', () => {
     for (const n of ['Daniel', 'Moira', 'Samantha', 'Alex', 'Daniel (Enhanced)', 'Google US English'])
-      expect(ehVozDeEfeito(n)).toBe(false)
-  })
-})
-
-describe('ehVozRobotica', () => {
-  it('Fred, Junior, Kathy e Ralph', () => {
-    for (const n of ['Fred', 'junior', 'Kathy', 'Ralph (English (US))']) expect(ehVozRobotica(n)).toBe(true)
-  })
-  it('as outras não', () => {
-    for (const n of ['Samantha', 'Alex', 'Frederica', 'Daniel']) expect(ehVozRobotica(n)).toBe(false)
+      expect(ehVozAceita({ name: n })).toBe(true)
   })
 })
 
@@ -71,20 +68,14 @@ describe('vozesUteis', () => {
     expect(nomes.indexOf('Google US English')).toBeLessThan(nomes.indexOf('Samantha'))
   })
 
-  it('nunca esvazia: só há efeito e robótica, devolve as do idioma ordenadas', () => {
-    const lista = [v('Zarvox'), v('Fred'), v('Bells')]
-    const r = vozesUteis(lista, 'en')
-    expect(r.map((x) => x.name).sort()).toEqual(['Bells', 'Fred', 'Zarvox'])
+  it('só há efeito e robótica: lista vazia (voz de robô não é último recurso)', () => {
+    expect(vozesUteis([v('Zarvox'), v('Fred'), v('Bells')], 'en')).toEqual([])
   })
 
-  it('vozes de outro idioma não passam, nem no fallback', () => {
+  it('vozes de outro idioma não passam', () => {
     const lista = [v('Luciana', 'pt-BR'), v('Fred'), v('Wobble')]
     expect(vozesUteis(lista, 'pt').map((x) => x.name)).toEqual(['Luciana'])
-    expect(
-      vozesUteis(lista, 'en')
-        .map((x) => x.name)
-        .sort(),
-    ).toEqual(['Fred', 'Wobble'])
+    expect(vozesUteis(lista, 'en')).toEqual([])
     expect(vozesUteis(lista, 'fr')).toEqual([])
   })
 })

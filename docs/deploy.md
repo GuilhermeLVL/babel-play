@@ -447,7 +447,10 @@ app a embute por `<iframe credentialless sandbox>`.
   `APP_URL=<origem do app> VITE_ANUNCIOS_REDE_CONTA=<código> npm run anuncios:build && npx wrangler deploy -c wrangler.anuncios.jsonc [--env staging]`
   (`APP_URL` = a origem do app, passada só neste comando; o `deploy-worker.yml` não a lê).
   Staging: `https://frasy-anuncios-staging.<conta>.workers.dev`. Produção: domínio personalizado
-  `https://ads.<domínio>` no painel da Cloudflare, apontando para o Worker `frasy-anuncios`.
+  `https://ads.frasy.com.br`, declarado no `routes` do `wrangler.anuncios.jsonc` (o deploy cria DNS e certificado).
+  `VITE_ANUNCIOS_REDE_CONTA` é o **código da rede do Google Ad Manager** (só dígitos, o `/<rede>/` do GPT),
+  **não** o id do AdSense (`ca-pub-…`): com um `pub-` o build falha de propósito. Roteiro do dia da aprovação:
+  `docs/runbooks/anuncios-no-ar.md`.
 - **CSP do app:** com `ANUNCIOS_ORIGEM` (var do Worker do app) **e** a flag ligada, o Worker sobrepõe o
   `Content-Security-Policy` dos documentos (`Sec-Fetch-Dest: document` ou HTML, inclusive o 304) e põe a
   origem em `frame-src` (nada em `script-src`). A flag é lida uma vez por isolate a cada 60 s. Uma

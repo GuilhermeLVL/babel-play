@@ -24,6 +24,46 @@ updates:
       producao:
         dependency-type: production
         update-types: [minor, patch]
+    # Seguradas de propósito (20/11/2026); cada uma volta numa migração própria. Sem isto, os
+    # grupos reabrem toda semana trazendo-as junto e o PR inteiro fica impossível de mergear.
+    ignore:
+      # Runtime de IA: o ort-wasm-simd-threaded.jsep.wasm da 1.31 tem 28,2 MiB (Worker aceita 25 MiB).
+      - dependency-name: onnxruntime-web
+        versions: ['>=1.31.0']
+      - dependency-name: '@huggingface/transformers'
+        versions: ['>=4.3.2']
+      - dependency-name: '@ricky0123/vad-web'
+        versions: ['>=0.0.31']
+      # pglite 0.5.17: close() trava com transação aberta (tests/worker/ciclo-do-cliente.test.ts).
+      - dependency-name: '@electric-sql/pglite'
+        versions: ['>=0.5.17']
+      # Majors de ferramentas e do servidor: migração própria.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      - dependency-name: vite
+        update-types: [version-update:semver-major]
+      - dependency-name: vitest
+        update-types: [version-update:semver-major]
+      - dependency-name: '@vitest/*'
+        update-types: [version-update:semver-major]
+      - dependency-name: jsdom
+        update-types: [version-update:semver-major]
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+      - dependency-name: '@vitejs/plugin-react'
+        update-types: [version-update:semver-major]
+      - dependency-name: js-yaml
+        update-types: [version-update:semver-major]
+      - dependency-name: autocannon
+        update-types: [version-update:semver-major]
+      - dependency-name: '@dicebear/*'
+        update-types: [version-update:semver-major]
+      - dependency-name: express
+        update-types: [version-update:semver-major]
+      - dependency-name: '@types/express'
+        update-types: [version-update:semver-major]
+      - dependency-name: prettier
+        versions: ['>=3.9.0']
   - package-ecosystem: github-actions
     directory: /
     schedule:

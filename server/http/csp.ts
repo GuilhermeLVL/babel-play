@@ -11,7 +11,10 @@
  *                                               consulta de versão (`src/gateway/modelManifest.ts`)
  *   cdn.jsdelivr.net                            o runtime WASM do ONNX: sem `wasmPaths` próprio, o
  *                                               transformers.js baixa `ort-wasm-*.{mjs,wasm}` de lá
- *                                               (node_modules/@huggingface/transformers/src/backends/onnx.js)
+ *                                               (node_modules/@huggingface/transformers/src/backends/onnx.js).
+ *                                               Desde 17/11/2026 o `transformersEnv.ts` aponta `wasmPaths`
+ *                                               para `baseDoWasm()`; o host fica só sem espelho próprio
+ *   (os quatro acima SAEM quando VITE_SELF_HOST_MODELS é URL: ver `CONEXOES_DO_HUB`)
  *   *.wiktionary.org                            o verbete do dicionário (`src/lib/dictionary.ts`) e as
  *                                               figuras que ele traz, com autor e licença
  *                                               (`src/lib/imagens/imagensDaPalavra.ts`): é a mesma API
@@ -42,6 +45,7 @@
  *   VITE_AUDIO_URL                              os audiolivros pré-gerados no R2 (manifesto e tempos por
  *                                               `connect-src`, o `.opus` por `media-src`)
  *   VITE_VOZ_MODELO_URL                         os pesos da voz no aparelho (Supertonic 3) num R2: só `connect-src`
+ *   VITE_VOZ_KITTEN_URL                         os pesos da voz natural no aparelho (Kitten TTS 2) num R2: só `connect-src`
  *   VITE_AVATARES_URL                           a coleção curada de avatares (VRM/GLB) num R2/CDN
  *                                               (`src/lib/avatar/fontes.ts`). Dado, não código: só `connect-src`
  *   AVATAR_GALERIA_TERCEIROS=1                  a galeria ao vivo do avatar (coleção 100Avatars, CC0, da ToxSam): os
@@ -92,11 +96,25 @@ export interface DiretivasDeCsp {
 /** O host do Cloudflare Turnstile (script oficial, iframe do desafio e a verificação). */
 export const HOST_DO_TURNSTILE = 'https://challenges.cloudflare.com'
 
-const CONEXOES_FIXAS = [
+/**
+ * O Hub e o jsDelivr: os pesos e o runtime do ONNX quando o deploy NÃO tem espelho próprio (dev, testes,
+ * self-host). Com `VITE_SELF_HOST_MODELS=<url>` (o R2 de produção, change `modelos-confiaveis-e-offline`,
+ * DISP-05) eles SAEM: pesos e runtime vêm só de origens do Frasy, e uma queda ou bloqueio do Hub não derruba a
+ * legenda sem alarme. Antes de publicar a CSP sem eles, o portão do deploy confere o bucket
+ * (`scripts/modelos/conferir-espelho.ts`).
+ */
+const CONEXOES_DO_HUB = [
   'https://huggingface.co',
   'https://*.huggingface.co',
   'https://*.hf.co',
   'https://cdn.jsdelivr.net',
+]
+
+/** O deploy serve os pesos de um bucket próprio (`VITE_SELF_HOST_MODELS` é URL `https://`)? */
+export const temEspelhoProprio = (env: NodeJS.ProcessEnv): boolean =>
+  /^https:\/\//.test(env.VITE_SELF_HOST_MODELS?.trim() ?? '')
+
+const CONEXOES_FIXAS = [
   'https://*.wiktionary.org',
   'https://api.openverse.org',
   'https://api.mymemory.translated.net',
@@ -197,13 +215,16 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
 
   /* A VOZ NO APARELHO (flag `voz_no_aparelho`): os pesos do Supertonic baixados pelo worker por `fetch` (`connect-src`).
      Dado, nunca código. Sem a variável, nada entra. */
-  const vozNoAparelho = [origemDe(env.VITE_VOZ_MODELO_URL)].filter((o): o is string => o !== null)
+  const vozNoAparelho = [origemDe(env.VITE_VOZ_MODELO_URL), origemDe(env.VITE_VOZ_KITTEN_URL)].filter(
+    (o): o is string => o !== null,
+  )
 
   const conexoes = [
     ...new Set([
       "'self'",
       'blob:',
       'data:',
+      ...(temEspelhoProprio(env) ? [] : CONEXOES_DO_HUB),
       ...CONEXOES_FIXAS,
       ...(modoPublico(env) ? [] : CONEXOES_DO_OLLAMA),
       ...CONEXOES_DO_LEITOR,

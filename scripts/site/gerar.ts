@@ -15,10 +15,10 @@
  * Função pura sobre as opções (os guias vêm lidos): os testes chamam `gerarSite` direto.
  */
 import { type Guia, lerGuias } from './guias';
+import { corpoDaHome, CSS_DA_HOME } from './home';
 import { pagina } from './layout';
 import {
   corpoDaAjuda,
-  corpoDaHome,
   corpoDoContato,
   corpoDo404,
   corpoDoGuia,
@@ -57,8 +57,8 @@ export interface OpcoesDoSite {
   guias: Guia[];
   /** Flags de venda ligadas (`SITE_FLAGS_DE_VENDA`). */
   flags: Set<string>;
-  /** A venda do anual está aberta (`ANUAL_ENABLED=1` no build)? Fechada, o site não anuncia preço anual. */
-  anualAberto?: boolean;
+  /** O anual à venda (`SITE_ANUAL_A_VENDA=1`, o par do `ANUAL_ENABLED` do Worker); ausente = fechado. */
+  anualAVenda?: boolean;
   adsensePubId: string | null;
   versaoDaFonte: string;
   /** Versão do pacote da Inter (padrão: a da Archivo). */
@@ -102,7 +102,7 @@ export function robots(url: string): string {
 export function gerarSite(o: OpcoesDoSite): Map<string, string> {
   const url = o.urlDoSite;
   const base = { urlDoSite: url, versaoDaFonte: o.versaoDaFonte, versaoDaFonteDoTexto: o.versaoDaFonteDoTexto };
-  const planos = planosDoSite(o.flags, o.anualAberto ?? false);
+  const planos = planosDoSite(o.flags, o.anualAVenda === true);
   const arquivos = new Map<string, string>();
   const organizacao = {
     '@context': 'https://schema.org',
@@ -120,8 +120,11 @@ export function gerarSite(o: OpcoesDoSite): Map<string, string> {
       caminho: '/',
       titulo: 'Frasy: aprenda idiomas com o que você já assiste e escuta',
       descricao:
-        'Legenda e tradução ao vivo em vídeos, aulas, podcasts e chamadas, rodando no seu navegador. As palavras que você salva viram revisão espaçada e jogos curtos.',
+        'Legenda e tradução ao vivo de vídeos, aulas, jogos e conversas, no computador ou no celular. Toque numa palavra e ela volta para você revisar.',
       corpo: corpoDaHome(o.guias),
+      inteira: true,
+      estilo: CSS_DA_HOME,
+      scripts: ['/site/lenis.min.js', '/site/roda.js', '/site/rolo.js'],
       jsonLd: [
         organizacao,
         { '@context': 'https://schema.org', '@type': 'WebSite', name: 'Frasy', url: `${url}/`, inLanguage: 'pt-BR' },
@@ -283,7 +286,7 @@ export function opcoesDoAmbiente(
       urlDoSite: urlDoSite(env),
       guias: publicados,
       flags: lerFlagsDoSite(env.SITE_FLAGS_DE_VENDA),
-      anualAberto: env.ANUAL_ENABLED === '1',
+      anualAVenda: env.SITE_ANUAL_A_VENDA?.trim() === '1',
       adsensePubId: idDoAdsense(env.ADSENSE_PUB_ID),
       versaoDaFonte,
       versaoDaFonteDoTexto,

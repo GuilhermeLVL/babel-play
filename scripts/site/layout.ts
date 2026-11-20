@@ -2,7 +2,8 @@
  * O LAYOUT DO SITE PÚBLICO — o `<head>` (título, descrição, canonical, Open Graph, JSON-LD), o cabeçalho,
  * o rodapé e o CSS, iguais em todas as páginas estáticas (`scripts/site/gerar.ts`).
  *
- * Páginas LEVES: nada do bundle do app, nenhum JavaScript, CSS em linha (a CSP do app já permite
+ * Páginas LEVES: nada do bundle do app, nenhum JavaScript (exceto a home: o filme rolado pela página,
+ * `public/site/rolo.js`, do próprio domínio; sem ele a home funciona com as capas), CSS em linha (a CSP do app já permite
  * `style-src 'unsafe-inline'`) e as duas fontes do app (Archivo nos títulos, Inter no texto), servidas do
  * próprio domínio e pré-carregadas. O JSON-LD é `application/ld+json`: bloco de dados, que o navegador não
  * executa (a CSP não se aplica a ele).
@@ -18,7 +19,7 @@
 import { escaparHtml } from './markdown';
 
 /** O caminho público da fonte dos títulos (com a versão do pacote no nome: o cache pode ser `immutable`). */
-export const caminhoDaFonte = (versao: string): string => `/fontes/archivo-${versao}.woff2`;
+export const caminhoDaFonte = (versao: string): string => `/fontes/archivo-wdth-${versao}.woff2`;
 /** O caminho público da fonte do texto (Inter), no mesmo esquema. */
 export const caminhoDaFonteDoTexto = (versao: string): string => `/fontes/inter-${versao}.woff2`;
 
@@ -41,6 +42,12 @@ export interface OpcoesDaPagina {
   naoIndexar?: boolean;
   /** Item do menu (ou do rodapé) marcado como página atual. */
   atual?: string;
+  /** Conteúdo de borda a borda (a home e o filme dela): sem a coluna `.largura` em volta. */
+  inteira?: boolean;
+  /** CSS só desta página, depois do CSS do site. */
+  estilo?: string;
+  /** Scripts do próprio domínio (`script-src 'self'`), carregados com `defer`, nesta ordem. */
+  scripts?: string[];
 }
 
 /*
@@ -49,7 +56,7 @@ export interface OpcoesDaPagina {
  * o vermelhão de ação (#C93A15) 5,1:1, papel escuro sobre o vermelhão do escuro (#FF6B3D) 6,5:1.
  */
 const CSS_BRUTO = `
-@font-face{font-family:Archivo;font-style:normal;font-weight:100 900;font-display:swap;src:url(%FONTE%) format("woff2")}
+@font-face{font-family:Archivo;font-style:normal;font-weight:100 900;font-stretch:62% 125%;font-display:swap;src:url(%FONTE%) format("woff2")}
 @font-face{font-family:Inter;font-style:normal;font-weight:100 900;font-display:swap;src:url(%FONTE_TEXTO%) format("woff2")}
 :root{color-scheme:light dark;
 --papel:#E6E2D6;--superficie:#F5F2EA;--superficie-2:#EBE7DB;--tinta:#26241F;--suave:#5E5A50;--borda:#C6BFAC;--borda-fraca:#D8D2C2;
@@ -394,7 +401,7 @@ export function cabecalho(atual?: string): string {
     `<header class="topo"><div class="largura">` +
     `<a class="marca" href="/"><img src="/favicon.svg" alt="" width="30" height="30">Frasy</a>` +
     `<nav aria-label="Principal"><ul class="menu">${itensDe(MENU, atual)}</ul></nav>` +
-    `<a class="botao" href="/app">Entrar</a>` +
+    `<a class="botao contorno" href="/app">Entrar</a>` +
     `</div></header>`
   );
 }
@@ -442,12 +449,16 @@ export function pagina(o: OpcoesDaPagina): string {
     url ? `<meta property="og:url" content="${escaparHtml(url)}">` : '',
     `<meta property="og:image" content="${escaparHtml(o.urlDoSite)}/og.png">`,
     '<meta name="twitter:card" content="summary_large_image">',
-    `<style>${CSS.replace('%FONTE%', fonte).replace('%FONTE_TEXTO%', fonteDoTexto)}</style>`,
+    `<style>${CSS.replace('%FONTE%', fonte).replace('%FONTE_TEXTO%', fonteDoTexto)}${o.estilo ?? ''}</style>`,
     ...(o.jsonLd ?? []).map((j) => `<script type="application/ld+json">${jsonSeguro(j)}</script>`),
+    ...(o.scripts ?? []).map((s) => `<script src="${escaparHtml(s)}" defer></script>`),
   ].filter(Boolean);
+  const main = o.inteira
+    ? `<main id="conteudo" class="inteiro">\n${o.corpo}\n</main>`
+    : `<main id="conteudo"><div class="largura">\n${o.corpo}\n</div></main>`;
   return (
     `<!doctype html>\n<html lang="pt-BR">\n<head>\n${head.join('\n')}\n</head>\n<body>\n` +
     `<a class="pular" href="#conteudo">Pular para o conteúdo</a>\n` +
-    `${cabecalho(o.atual)}\n<main id="conteudo"><div class="largura">\n${o.corpo}\n</div></main>\n${rodape(o.atual)}\n</body>\n</html>\n`
+    `${cabecalho(o.atual)}\n${main}\n${rodape(o.atual)}\n</body>\n</html>\n`
   );
 }

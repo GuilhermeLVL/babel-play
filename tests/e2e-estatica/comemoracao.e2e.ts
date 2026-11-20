@@ -59,6 +59,14 @@ async function prepararPagina(page: Page, leve: boolean) {
 /** O "+N" de um acerto: o ganho que sobe do lugar da jogada ("+10", "+20 ×2"). */
 const maisN = (page: Page) => page.locator('span.ganho.good').filter({ hasText: /^\+\d+( ×\d+)?$/ })
 const multiplicador = (page: Page) => palco(page).locator('.hud [aria-label^="Multiplicador "]')
+/** Os acertos seguidos que o placar diz agora ("Multiplicador 1, 2 seguidas"), ou null sem placar à vista. */
+async function seguidas(page: Page): Promise<number | null> {
+  const rotulo = await multiplicador(page)
+    .getAttribute('aria-label', { timeout: 1000 })
+    .catch(() => null)
+  const n = /(\d+) seguidas/.exec(rotulo ?? '')?.[1]
+  return n === undefined ? null : Number(n)
+}
 const contador = (page: Page) =>
   page.evaluate(() => (window as unknown as { __comemoracoes?: Contador }).__comemoracoes ?? null)
 
@@ -134,7 +142,12 @@ for (const caso of CASOS) {
         }
         const v = await veredito(page, antes)
         if (v !== 'acerto') {
+          /* Sem veredito do motor, a jogada ainda pode ter quebrado a sequência: no Soletrar, a palavra errada
+             do resolvedor (tradução ambígua) zera o "N seguidas" do placar sem passar um 'erro' pelo motor. A
+             régua de "três SEGUIDOS" é a do placar; sem isso o teste contava três acertos que o jogo não
+             contou, e o ×2 nunca subia (a CI viu "1, 2 seguidas" → "1, 0" → "1, 1" com o teste em 3). */
           if (v === 'erro') acertos = 0
+          else acertos = Math.min(acertos, (await seguidas(page)) ?? acertos)
           await page.waitForTimeout(caso.pausa)
           continue
         }

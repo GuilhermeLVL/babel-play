@@ -436,16 +436,18 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       armazenamentoMb: 500,
       sttSegundosDia: 7_200,
       tokensDia: 300_000,
-      /* A VOZ NATURAL (E4 da Fase E). Chatterbox Multilingual na DeepInfra: US$ 1,00 por 1M de caracteres
-         (deepinfra.com, 30/09/2026). A voz lê ~15 caracteres por segundo → ~54.000 por hora de voz
-         → ~US$ 0,054 por hora.
-           dia  60.000 ≈ 1,1 h de voz — a tradução lida de ~2 h de conversa (o uso justo do dia,
-                a metade do tempo é a pessoa falando) → no máximo ~US$ 0,06 no dia;
-           mês 600.000 ≈ 11 h de voz → no máximo ~US$ 0,60 por assinante no mês.
+      /* A VOZ NATURAL (E4 da Fase E; pelo OpenRouter desde 17/11/2026, change `voz-natural-openrouter`). Kokoro 82M
+         com retenção zero: US$ 0,62/1M na DeepInfra, US$ 4/1M na Together, e o OpenRouter escolhe quem atende (a
+         voz não aceita `order`). A conta usa o PIOR, US$ 4/1M. A voz lê ~15 caracteres por segundo → ~54.000 por
+         hora de voz → no máximo ~US$ 0,22 por hora (~US$ 0,04 no esperado).
+           dia  15.000 ≈ 17 min de voz → no máximo ~US$ 0,06 no dia;
+           mês 150.000 ≈ 2,8 h de voz → no máximo ~US$ 0,60 por assinante no mês: o MESMO dinheiro dos 600.000 a
+                US$ 1/1M de antes, e o que mantém a mistura de 3% de pagantes do `npm run ia:custo` com margem ≥ 0.
          PROVISÓRIO: o teto liga com o custo medido no uso real (E6); `PREMIUM_*_TTS_CHARS` sobrepõe.
-         Passando dele, a voz do aparelho segue — o intérprete nunca para. */
-      vozCaracteresMes: 600_000,
-      vozCaracteresDia: 60_000,
+         Passando dele, a voz do aparelho segue — o intérprete nunca para. Os tetos de cada plano estão em
+         `openspec/changes/voz-natural-openrouter/design.md`. */
+      vozCaracteresMes: 150_000,
+      vozCaracteresDia: 15_000,
       sttAoVivoSegundosMes: 0,
       explicacoesMes: 300,
       resumosMes: 60,
@@ -488,8 +490,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       armazenamentoMb: 500,
       sttSegundosDia: 7_200,
       tokensDia: 600_000,
-      vozCaracteresMes: 600_000,
-      vozCaracteresDia: 60_000,
+      vozCaracteresMes: 300_000,
+      vozCaracteresDia: 30_000,
       sttAoVivoSegundosMes: 36_000,
       explicacoesMes: 300,
       resumosMes: 60,
@@ -563,8 +565,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       armazenamentoMb: 500,
       sttSegundosDia: 7_200,
       tokensDia: 300_000,
-      vozCaracteresMes: 600_000,
-      vozCaracteresDia: 60_000,
+      vozCaracteresMes: 300_000,
+      vozCaracteresDia: 30_000,
       sttAoVivoSegundosMes: 0,
       explicacoesMes: 300,
       resumosMes: 60,
@@ -600,8 +602,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       armazenamentoMb: 500,
       sttSegundosDia: 7_200,
       tokensDia: 300_000,
-      vozCaracteresMes: 600_000,
-      vozCaracteresDia: 60_000,
+      vozCaracteresMes: 200_000,
+      vozCaracteresDia: 20_000,
       sttAoVivoSegundosMes: 0,
       explicacoesMes: 300,
       resumosMes: 60,
@@ -890,8 +892,10 @@ export const DURACAO_MINIMA_DA_EXIBICAO_MS: Readonly<
  * A CONTA (17/10/2026; STT + tradução por hora de legenda: US$ 0,028 esperado a US$ 0,058 conservador — Whisper turbo e
  * Gemma 4 pelo OpenRouter, `ops/ia-provedores.openrouter.json`):
  *   1 h de legenda na nuvem        ≤ US$ 0,06 (conservador)  — 3.600 s
- *   voz natural, 10.000 caracteres ≤ US$ 0,01                — a US$ 1,00 por 1M de caracteres
- *   TOTAL POR TESTE                ≤ US$ 0,07, contra US$ 0,20 com as 3 h de antes e US$ 1,76 com o mês inteiro.
+ *   voz natural                    = US$ 0                   — o teste NÃO tem voz da nuvem (17/11/2026, change
+ *                                                                `voz-natural-openrouter`: só plano pago; a voz do
+ *                                                                aparelho lê a tradução no teste)
+ *   TOTAL POR TESTE                ≤ US$ 0,06, contra US$ 0,20 com as 3 h de antes e US$ 1,76 com o mês inteiro.
  *   1 h basta para sentir a diferença (a nuvem acerta o que o aparelho erra) sem torná-la uma assinatura grátis.
  * Tokens: 150 mil por hora de fala. Chamadas: 1 h ÷ 6 s × 2 = 1.200, com folga até 1.400.
  *
@@ -904,7 +908,7 @@ export const FRANQUIA_DO_TESTE = {
   sttSegundosMes: 3_600,
   tokensMes: 150_000,
   chamadasMes: 1_400,
-  vozCaracteresMes: 10_000,
+  vozCaracteresMes: 0,
 } as const;
 
 /** O plano EFETIVO que o servidor resolve: um de assinatura, ou `convidado` (anônimo com JWT). */

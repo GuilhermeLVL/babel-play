@@ -31,7 +31,7 @@ import { perfilDoDispositivo } from '../dispositivo/perfil';
 import { getEntitlements } from '../entitlements';
 import { flagLigada } from '../flagsCache';
 import { perfilProtegido } from '../protecaoDoMenor';
-import { getVoicePrefs, getVoices, type TtsEngine } from '../tts';
+import { getVoicePrefs, getVoices, type TtsEngine, vozAceitaExiste } from '../tts';
 import { opfsConhecido, opfsUtilizavel } from './opfsUtilizavel';
 
 /** A escolha "Voz de alta qualidade (no aparelho)" na preferência de voz. O `@` não existe em voz do sistema. */
@@ -140,9 +140,9 @@ function escolhaDaVoz(idioma: string): EscolhaDaVoz {
   if (guardada === '@nuvem')
     return getEntitlements().vozNatural && flagLigada(FLAG_VOZ_NATURAL) ? 'nuvem' : 'automatica';
   if (!guardada) return 'automatica';
-  /* Antes de o sistema entregar a lista de vozes, não dá para saber se a escolhida sumiu: ela vale. */
-  const vozes = getVoices();
-  return !vozes.length || vozes.some((v) => v.name === guardada) ? 'sistema' : 'automatica';
+  /* Antes de o sistema entregar a lista de vozes, não dá para saber se a escolhida sumiu: ela vale. Uma voz recusada
+     (robótica) vale como sumida. */
+  return !getVoices().length || vozAceitaExiste(guardada) ? 'sistema' : 'automatica';
 }
 
 function entradaDaLeitura(idioma: string): EntradaDaVozDaLeitura {
@@ -244,24 +244,32 @@ export function destravarVozNoAparelho(): void {
   }
 }
 
-/** Importa o motor (uma vez) e registra o `neural-local` na porta. Recusa sem a flag, sem o perfil ou sem a raiz. */
+type AdaptadorSupertonic = ReturnType<Modulo['adaptadorDoSupertonic']>;
+let adaptador: AdaptadorSupertonic | null = null;
+
+/**
+ * Importa o motor (uma vez) e registra o `neural-local` na porta. Recusa sem a flag, sem o perfil ou sem a raiz.
+ * Registra a CADA chamada (o mesmo adaptador): a voz natural do Kitten (`vozKitten.ts`) divide a vaga `neural-local`, e
+ * quem vai ler registra a sua antes.
+ */
 export function carregarMotor(): Promise<Modulo> {
   if (!vozNoAparelhoOferecida()) return Promise.reject(new Error('voz no aparelho indisponível'));
   modulo ??= import('../../gateway/adapters/supertonicLocal').then((m) => {
     const d = decisaoDaVozNoAparelho();
-    registrarMotorDeVoz(
-      m.adaptadorDoSupertonic({
-        threads: d.threadsWasm,
-        webgpu: d.backend === 'webgpu',
-        pronto: vozNoAparelhoLe,
-        vozPadrao: vozDoNarradorNoAparelho,
-        contexto: contextoDaVozNoAparelho,
-        soltarAposMs: perfilDoDispositivo().poucaMemoria ? 0 : SOLTAR_APOS_MS,
-      }),
-    );
+    adaptador = m.adaptadorDoSupertonic({
+      threads: d.threadsWasm,
+      webgpu: d.backend === 'webgpu',
+      pronto: vozNoAparelhoLe,
+      vozPadrao: vozDoNarradorNoAparelho,
+      contexto: contextoDaVozNoAparelho,
+      soltarAposMs: perfilDoDispositivo().poucaMemoria ? 0 : SOLTAR_APOS_MS,
+    });
     return m;
   });
-  return modulo;
+  return modulo.then((m) => {
+    if (adaptador) registrarMotorDeVoz(adaptador);
+    return m;
+  });
 }
 
 /** O motor registrado, pronto para falar (para a amostra do seletor e do elenco), ou `null`. */

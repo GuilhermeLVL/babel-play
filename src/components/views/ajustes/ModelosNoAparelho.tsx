@@ -24,6 +24,7 @@ import { useSondaGuardada } from '../../../lib/dispositivo/useSondaGuardada';
 import { data, numeroCom, t } from '../../../lib/i18n';
 import { langLabelNaUI } from '../../../lib/languages';
 import { Dialogo } from '../../ui';
+import VozNaturalNoAparelho from '../../voz/VozNaturalNoAparelho';
 
 /**
  * MODELOS NO APARELHO (Ajustes → Processamento): o que está guardado neste navegador, quanto ocupa, e
@@ -348,6 +349,8 @@ export default function ModelosNoAparelho({ estudando, meu }: { estudando: strin
           />
         ))}
       </ul>
+
+      <VozNaturalNoAparelho />
 
       <h3 className="mna-titulo">{t('Tradução')}</h3>
       {tradutores.length === 0 ? (

@@ -2,9 +2,10 @@
  * AVISO ANTES DE BAIXAR MODELOS — o tamanho real, antes do primeiro byte.
  *
  * Quem decide o limite é o perfil do aparelho (`perfil.ts`, `confirmarDownloadAcimaDeMb`):
- * `navigator.connection.saveData` ou rede abaixo de 4g → perguntar sempre; celular/Quest → acima de
- * 100 MB; desktop → não pergunta (o selo "modelo local · N MB" já mostra o tamanho). O limite de
- * 100 MB é uma escolha nossa, não um número normativo (a pesquisa não achou limite oficial, §4).
+ * `navigator.connection.saveData` ou rede lenta (o tipo declarado abaixo de 4g ou, no Safari, a vazão medida em
+ * `vazao.ts`) → perguntar sempre; celular/Quest → acima de 20 MB (era 100 até 17/11/2026: 90 MB saíam do plano
+ * de dados sem pergunta, CEL-04); desktop → acima de 300 MB. Os limites são escolha nossa (decisão do dono),
+ * não números normativos (a pesquisa não achou limite oficial, §4).
  */
 
 /** MB que ainda faltam: soma só os modelos que NÃO estão completos no navegador. */

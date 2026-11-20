@@ -24,8 +24,17 @@
  * (`conferirSemClonagem`), a voz é um NOME da lista fechada de vozes prontas do modelo (o Chatterbox não
  * tem: vai sem campo de voz nenhum), e a rota recusa o pedido que traga um campo de clonagem
  * (`ttsProxy.ts`). O teste `sem clonagem` cobre as três camadas.
+ *
+ * PELO OPENROUTER (change `voz-natural-openrouter`, 17/11/2026): o Kokoro 82M (o padrão, o mais barato) e o MAI-Voice
+ * 2.1 Flash (a voz `boa`, desligada por padrão) pelo MESMO `POST <base>/audio/speech`, com a chave `OPENROUTER_API_KEY`
+ * que o app já usa. Todo pedido a uma base do OpenRouter leva `provider: { zdr: true, data_collection: "deny" }` (o
+ * `order`/`only`/`ignore` não valem para a voz lá, docs "Text-to-Speech", 17/11/2026), e só os modelos com endpoint de
+ * retenção zero CONFERIDO (`VOZES_COM_RETENCAO_ZERO_NO_OPENROUTER`) viram perna. Nos dois a voz escolhe o idioma: a
+ * voz sai de `vozesPorIdioma`, e uma voz pedida de outro idioma cai na do idioma da fala.
  */
+import type { NivelDeVoz } from '../../src/core/planos'
 import { comTempoLimite } from './cancelamento'
+import { ehBaseDoOpenRouter, VOZES_COM_RETENCAO_ZERO_NO_OPENROUTER } from './parametrosDoProvedor'
 import { pernasDaFuncao, type Provedor } from './registroDeProvedores'
 import { despachanteSeguro, type InitSeguro } from './ssrf'
 
@@ -56,6 +65,8 @@ export const CAMPOS_DE_CLONAGEM: readonly string[] = [
   'voice_id',
   'voiceId',
   'voice_sample',
+  /* O OpenRouter: um a três áudios de referência para imitar a voz (docs "Voice Cloning"). */
+  'input_references',
 ]
 
 export interface ModeloDeVoz {
@@ -63,8 +74,20 @@ export interface ModeloDeVoz {
   idiomas: readonly string[]
   /** Vozes PRONTAS do modelo (nomes do provedor), a primeira é a padrão. Vazia = sem campo de voz. */
   vozes: readonly string[]
-  /** Como o idioma vai no pedido: no `extra_body.language`, em nada (o modelo detecta) ou no do Google. */
-  idiomaNoPedido: 'extra_body' | 'automatico' | 'google'
+  /**
+   * Como o idioma vai no pedido: no `extra_body.language`, em nada (o modelo detecta), no do Google, ou pela VOZ
+   * (Kokoro e MAI-Voice: cada voz é de um idioma, `vozesPorIdioma`).
+   */
+  idiomaNoPedido: 'extra_body' | 'automatico' | 'google' | 'voz'
+  /**
+   * As vozes PRONTAS de cada idioma (chave: o BCP-47 `pt-BR` ou a base `pt`), a primeira é a padrão. Quando existe,
+   * manda sobre `vozes`: a voz pedida só vale se é do idioma da fala.
+   */
+  vozesPorIdioma?: Readonly<Record<string, readonly string[]>>
+  /** O id da voz é `<região>-<voz><sufixo>` (MAI-Voice: `pt-BR-Luana:MAI-Voice-2.1-Flash`). */
+  sufixoDaVoz?: string
+  /** A voz `boa` (planos v3): só os planos com `nivelDeVoz: 'boa'` a usam. Ausente = a `basica`. */
+  nivel?: 'boa'
   /** O modelo aceita a velocidade (`speed`/`speakingRate`). */
   velocidade: boolean
   /** Opção declarável, não o padrão. */
@@ -139,6 +162,94 @@ export const MODELOS_DE_VOZ: Readonly<Record<string, ModeloDeVoz>> = {
     velocidade: true,
     opcao: true,
   },
+  /* KOKORO 82M (Apache-2.0) pelo OpenRouter, o PADRÃO da voz paga (17/11/2026): US$ 0,62/1M na DeepInfra e US$ 4/1M
+     na Together, os dois com retenção zero (`/api/v1/endpoints/zdr`). As vozes são as de `supported_voices` do
+     `/api/v1/models?output_modalities=speech`; a letra inicial diz o idioma (p = pt-BR, a = en-US, e = es…). Sem
+     velocidade: o OpenRouter não garante o `speed` fora da OpenAI (um provedor pode responder 400). */
+  'hexgrad/kokoro-82m': {
+    idiomas: ['en', 'es', 'fr', 'hi', 'it', 'ja', 'pt', 'zh'],
+    vozes: [],
+    vozesPorIdioma: {
+      pt: ['pf_dora', 'pm_alex'],
+      'en-GB': ['bf_emma', 'bm_george'],
+      en: ['af_heart', 'am_michael'],
+      es: ['ef_dora', 'em_alex'],
+      fr: ['ff_siwis'],
+      hi: ['hf_alpha', 'hm_omega'],
+      it: ['if_sara', 'im_nicola'],
+      ja: ['jf_alpha', 'jm_kumo'],
+      zh: ['zf_xiaoxiao', 'zm_yunxi'],
+    },
+    idiomaNoPedido: 'voz',
+    velocidade: false,
+  },
+  /* MAI-VOICE 2.1 FLASH (Microsoft, na Azure) pelo OpenRouter, a voz BOA: US$ 15/1M, retenção zero. DESLIGADA por
+     padrão (não está nos `ops/ia-provedores*.json`): no pior caso deixa a margem do plano de nível boa negativa
+     (`openspec/changes/voz-natural-openrouter/design.md`). O id da voz é `<região>-<voz>:MAI-Voice-2.1-Flash`, e a
+     região da voz é o idioma da síntese. As nativas primeiro; Grant e Harper são as multilíngues. */
+  'microsoft/mai-voice-2.1-flash': {
+    idiomas: [
+      'cs',
+      'da',
+      'de',
+      'en',
+      'es',
+      'fi',
+      'fr',
+      'hi',
+      'hu',
+      'id',
+      'it',
+      'ko',
+      'nb',
+      'nl',
+      'pl',
+      'pt',
+      'ro',
+      'ru',
+      'sv',
+      'th',
+      'tr',
+      'vi',
+      'zh',
+    ],
+    vozes: [],
+    vozesPorIdioma: {
+      'pt-BR': ['Luana', 'Pedro', 'Caio', 'Rafael', 'Grant', 'Harper'],
+      'pt-PT': ['Rui', 'Grant', 'Harper'],
+      'en-US': ['Harper', 'Ethan', 'Olivia', 'Jasper', 'Iris', 'Sage', 'Grant'],
+      'en-GB': ['Emily', 'Harry'],
+      'en-AU': ['Isla'],
+      'en-IN': ['Priya', 'Dhruv'],
+      'es-ES': ['Marta'],
+      'es-MX': ['Valeria', 'Alejo', 'Grant', 'Harper'],
+      'cs-CZ': ['Grant', 'Harper'],
+      'da-DK': ['Grant', 'Harper'],
+      'de-DE': ['Mia', 'Klaus', 'Grant', 'Harper'],
+      'fi-FI': ['Grant', 'Harper'],
+      'fr-FR': ['Soleil', 'Marc', 'Grant', 'Harper'],
+      'hi-IN': ['Kavya', 'Arjun', 'Priya', 'Dhruv', 'Grant', 'Harper'],
+      'hu-HU': ['Lilla', 'Bence', 'Reka', 'Levente', 'Grant', 'Harper'],
+      'id-ID': ['Grant', 'Harper'],
+      'it-IT': ['Rosa', 'Luca', 'Grant', 'Harper'],
+      'ko-KR': ['Haena', 'Junho', 'Grant', 'Harper'],
+      'nb-NO': ['Grant', 'Harper'],
+      'nl-NL': ['Sander', 'Grant', 'Harper'],
+      'pl-PL': ['Grant', 'Harper'],
+      'ro-RO': ['Elena', 'Andrei', 'Ioana', 'Radu', 'Grant', 'Harper'],
+      'ru-RU': ['Masha', 'Lev', 'Grant', 'Harper'],
+      'sv-SE': ['Grant', 'Harper'],
+      'th-TH': ['Krit', 'Nattapong', 'Grant', 'Harper'],
+      'tr-TR': ['Elif', 'Aydin', 'Grant', 'Harper'],
+      'vi-VN': ['Grant', 'Harper'],
+      'zh-CN': ['Lan', 'Mei', 'Bo', 'Wei', 'Grant', 'Harper'],
+    },
+    sufixoDaVoz: ':MAI-Voice-2.1-Flash',
+    idiomaNoPedido: 'voz',
+    velocidade: false,
+    nivel: 'boa',
+    opcao: true,
+  },
 }
 
 /** O modelo da voz natural que o `.env.production.example` e o `docs/LANCAMENTO.md` sugerem. */
@@ -186,9 +297,35 @@ export function bcp47DaVoz(idioma: string): string {
   return REGIAO_PADRAO_DA_VOZ[idioma] ?? idioma
 }
 
-/** A voz pronta que vai no pedido: a pedida, se é da lista do modelo; senão a padrão dele (ou nenhuma). */
-export function vozDoModelo(modelo: string, pedida?: string): string | undefined {
-  const vozes = MODELOS_DE_VOZ[modelo]?.vozes ?? []
+/**
+ * As vozes do idioma no catálogo por idioma: o BCP-47 exato (`pt-PT`), a base (`pt`) ou a primeira região da língua
+ * (`zh` → `zh-CN`, quando o pedido veio `cmn-CN`). Devolve a chave achada: no MAI ela é a região do id da voz.
+ */
+function vozesDoIdioma(
+  porIdioma: Readonly<Record<string, readonly string[]>>,
+  idioma: string,
+  bcp47: string,
+): { chave: string; vozes: readonly string[] } | null {
+  const base = idioma.split('-')[0].toLowerCase()
+  const chave =
+    [bcp47, base].find((c) => Object.hasOwn(porIdioma, c)) ??
+    Object.keys(porIdioma).find((c) => c.toLowerCase().startsWith(`${base}-`))
+  return chave ? { chave, vozes: porIdioma[chave] } : null
+}
+
+/**
+ * A voz pronta que vai no pedido: a pedida, se é da lista do modelo (do IDIOMA da fala, quando o modelo tem vozes por
+ * idioma); senão a padrão dele (ou nenhuma). No MAI-Voice, o id inteiro (`pt-BR-Luana:MAI-Voice-2.1-Flash`).
+ */
+export function vozDoModelo(modelo: string, pedida?: string, idioma = '', bcp47 = idioma): string | undefined {
+  const m = MODELOS_DE_VOZ[modelo]
+  if (m?.vozesPorIdioma) {
+    const achadas = vozesDoIdioma(m.vozesPorIdioma, idioma, bcp47)
+    if (!achadas) return undefined
+    const voz = pedida && achadas.vozes.includes(pedida) ? pedida : achadas.vozes[0]
+    return m.sufixoDaVoz ? `${achadas.chave}-${voz}${m.sufixoDaVoz}` : voz
+  }
+  const vozes = m?.vozes ?? []
   if (pedida && vozes.includes(pedida)) return pedida
   return vozes[0]
 }
@@ -199,15 +336,41 @@ export function falaOIdioma(perna: Pick<Provedor, 'model'>, idioma: string): boo
   return !m || m.idiomas.includes(idioma)
 }
 
+/**
+ * A voz do OpenRouter só com RETENÇÃO ZERO CONFERIDA: o modelo tem de estar na lista de quem tem endpoint ZDR
+ * (`VOZES_COM_RETENCAO_ZERO_NO_OPENROUTER`). O `zdr: true` do pedido já faz o OpenRouter recusar o que não tem; a
+ * lista recusa antes, aqui, e o registro recusa na validação.
+ */
+export const vozComRetencaoZero = (p: Pick<Provedor, 'base' | 'model'>): boolean =>
+  !ehBaseDoOpenRouter(p.base) || VOZES_COM_RETENCAO_ZERO_NO_OPENROUTER.has(p.model)
+
 /** As pernas da voz natural com a chave no ambiente (o registro já exclui o Gemini). */
 export function pernasDeVoz(env: NodeJS.ProcessEnv = process.env): Provedor[] {
-  return pernasDaFuncao('tts', {}, env).filter((p) => Boolean(p.apiKey))
+  return pernasDaFuncao('tts', {}, env).filter((p) => Boolean(p.apiKey) && vozComRetencaoZero(p))
+}
+
+/**
+ * As pernas que o NÍVEL DE VOZ do plano pode usar, na ordem do registro: a voz `boa` (MAI-Voice) só para quem tem o
+ * nível `boa`; a `basica` para os dois; o `aparelho` não chega à nuvem.
+ */
+export function pernasDoNivelDeVoz<P extends Pick<Provedor, 'model'>>(pernas: P[], nivel: NivelDeVoz): P[] {
+  if (nivel === 'aparelho') return []
+  return pernas.filter((p) => MODELOS_DE_VOZ[p.model]?.nivel !== 'boa' || nivel === 'boa')
 }
 
 /** As chaves que cada formato manda — e SÓ elas (ver `conferirSemClonagem`). `true` = valor; objeto = aninhado. */
 type Forma = { [chave: string]: true | Forma }
 export const CHAVES_PERMITIDAS: Readonly<Record<'openai' | 'google-tts', Forma>> = {
-  openai: { model: true, input: true, response_format: true, voice: true, speed: true, extra_body: { language: true } },
+  openai: {
+    model: true,
+    input: true,
+    response_format: true,
+    voice: true,
+    speed: true,
+    extra_body: { language: true },
+    /* Só no OpenRouter: a política de dados, e nada de `options` (é por ele que entra parâmetro de provedor). */
+    provider: { zdr: true, data_collection: true },
+  },
   'google-tts': {
     input: { text: true },
     voice: { languageCode: true, name: true },
@@ -240,10 +403,16 @@ export function endpointDaVoz(p: Pick<Provedor, 'base' | 'formato'>): string | n
   return null
 }
 
+/** A política de dados de TODO pedido de voz ao OpenRouter: só endpoint de retenção zero, sem coleta. */
+export const PROVIDER_DA_VOZ_NO_OPENROUTER = { zdr: true, data_collection: 'deny' } as const
+
 /** O corpo do pedido, só com o que o formato e o modelo aceitam. */
-export function corpoDoPedidoDeVoz(perna: Pick<Provedor, 'model' | 'formato'>, pedido: PedidoDeVoz): unknown {
+export function corpoDoPedidoDeVoz(
+  perna: Pick<Provedor, 'model' | 'formato'> & { base?: string },
+  pedido: PedidoDeVoz,
+): unknown {
   const m = MODELOS_DE_VOZ[perna.model]
-  const voz = vozDoModelo(perna.model, pedido.voz)
+  const voz = vozDoModelo(perna.model, pedido.voz, pedido.idioma, pedido.bcp47)
   const velocidade = m?.velocidade && pedido.velocidade && pedido.velocidade !== 1 ? pedido.velocidade : undefined
   if ((perna.formato ?? 'openai') === 'google-tts') {
     return {
@@ -262,7 +431,20 @@ export function corpoDoPedidoDeVoz(perna: Pick<Provedor, 'model' | 'formato'>, p
     ...(voz ? { voice: voz } : {}),
     ...(velocidade ? { speed: velocidade } : {}),
     ...(m?.idiomaNoPedido === 'extra_body' ? { extra_body: { language: pedido.idioma } } : {}),
+    ...(perna.base && ehBaseDoOpenRouter(perna.base) ? { provider: { ...PROVIDER_DA_VOZ_NO_OPENROUTER } } : {}),
   }
+}
+
+/**
+ * RETENÇÃO ZERO OU NADA: o pedido a uma base do OpenRouter sem `provider.zdr: true` e `data_collection: "deny"` não
+ * sai (lança: é defeito nosso), nem o de um modelo fora da lista conferida.
+ */
+function conferirRetencaoZero(perna: Pick<Provedor, 'base' | 'model'>, corpo: unknown): void {
+  if (!ehBaseDoOpenRouter(perna.base)) return
+  if (!vozComRetencaoZero(perna)) throw new Error(`voz do OpenRouter sem retenção zero conferida: ${perna.model}`)
+  const provider = (corpo as { provider?: { zdr?: unknown; data_collection?: unknown } }).provider
+  if (provider?.zdr !== true || provider.data_collection !== 'deny')
+    throw new Error('pedido de voz ao OpenRouter sem provider.zdr: true')
 }
 
 /**
@@ -281,6 +463,7 @@ export function montarPedidoDeVoz(
   const formato = perna.formato === 'google-tts' ? 'google-tts' : 'openai'
   const corpo = corpoDoPedidoDeVoz(perna, pedido)
   conferirSemClonagem(corpo, CHAVES_PERMITIDAS[formato])
+  conferirRetencaoZero(perna, corpo)
   const autorizacao: Record<string, string> =
     formato === 'google-tts'
       ? { 'X-Goog-Api-Key': perna.apiKey ?? '' }

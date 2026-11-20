@@ -27,7 +27,7 @@ let sessions: any
 let gastoDeIa: any
 let esquecerAdmissao: () => Promise<void>
 let esquecerRegistro: () => void
-let esvaziarCacheDeTraducao: () => void
+let esvaziarCacheDeTraducao: () => Promise<void>
 
 const DIA = 86_400_000
 const fetchOriginal = globalThis.fetch
@@ -166,9 +166,12 @@ afterAll(async () => {
   }
 })
 
-beforeEach(() => {
+beforeEach(async () => {
   espiarRede(s.base)
-  esvaziarCacheDeTraducao()
+  /* AGUARDADO: o L2 é uma tabela, e a tradução de 'hello world' do caso anterior fica nela. Sem o `await`, o
+     DELETE corre junto com o primeiro pedido do caso; no Postgres (pool, outra conexão) o pedido pode ler o L2
+     antes e sair 200 do cache, que vem antes da cota — o 429/402 esperado vira 200. */
+  await esvaziarCacheDeTraducao()
 })
 afterEach(async () => {
   globalThis.fetch = fetchOriginal

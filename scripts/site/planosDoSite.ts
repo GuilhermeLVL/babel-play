@@ -11,6 +11,8 @@
  * O QUE CADA PLANO TEM. Além das flags de venda, a lista leva as flags de RECURSO de que a página depende
  * (`ia_de_estudo`, `voz_natural`, `anuncios`): recurso com a flag fora da lista sai "em breve", como no app.
  * Com a v4 os itens vêm da mesma fonte do app (`src/core/oQueOPlanoTem.ts`).
+ * O ANUAL. Vendido só com `ANUAL_ENABLED=1` no Worker (o app lê `/api/abertura`); o build não lê o Worker, então
+ * recebe `SITE_ANUAL_A_VENDA=1` quando o anual abrir. Sem ela, a página não mostra preço anual nem fala do anual.
  */
 import {
   EM_BREVE_DA_V4,
@@ -83,13 +85,13 @@ export interface PlanoEmBreve {
 
 export interface PlanosDoSite {
   aVenda: PlanoNaPagina[];
+  /** O anual está à venda (`SITE_ANUAL_A_VENDA=1`); fechado, `anual` é `null` em todos os planos. */
+  anualAVenda: boolean;
   emBreve: PlanoEmBreve[];
   teste: { plano: string; dias: number; horas: number };
   armazenamentoGratis: string;
   /** O que o Grátis tem (v4: os itens do app; antes, a lista de sempre com a nuvem de alívio). */
   gratis: string[];
-  /** A venda do anual está aberta: só então o site fala de pagar o ano à vista ou parcelado. */
-  anualAberto: boolean;
 }
 
 const flagsDaVitrine = (flags: Set<string>) => ({
@@ -120,26 +122,23 @@ function beneficios(id: PlanoPago, flags: Set<string>): string[] {
   return lista;
 }
 
-/**
- * `anualAberto`: o site só anuncia o preço anual quando a venda do anual está aberta (`ANUAL_ENABLED=1` no
- * ambiente do build). Fechada, o checkout recusa o anual, e anunciá-lo seria oferta que não se vende.
- */
-export function planosDoSite(flags: Set<string>, anualAberto = false): PlanosDoSite {
+export function planosDoSite(flags: Set<string>, anualAVenda = false): PlanosDoSite {
   const ligada = (f: string) => flags.has(f);
   const aVenda = planosAVenda(ligada);
   const teste = planoDoTeste(ligada);
   const v4 = aVenda.includes('plus');
   return {
+    anualAVenda,
     aVenda: aVenda.map((id) => {
-      const { rotulo, precoMensalBrl, precoAnualBrl } = PLAN_MATRIX[id];
+      const { rotulo, precoMensalBrl } = PLAN_MATRIX[id];
+      const precoAnualBrl = anualAVenda ? PLAN_MATRIX[id].precoAnualBrl : null;
       const mensal = precoMensalBrl as number;
       return {
         id,
         rotulo,
         mensal,
-        anual: anualAberto ? precoAnualBrl : null,
-        economiaAnual:
-          !anualAberto || precoAnualBrl === null ? null : Math.round((1 - precoAnualBrl / (mensal * 12)) * 100),
+        anual: precoAnualBrl,
+        economiaAnual: precoAnualBrl === null ? null : Math.round((1 - precoAnualBrl / (mensal * 12)) * 100),
         quem:
           id === 'plus'
             ? PARA_QUEM_DA_V4.plus
@@ -165,7 +164,6 @@ export function planosDoSite(flags: Set<string>, anualAberto = false): PlanosDoS
           'Modo intérprete com a voz do aparelho',
           `Nuvem: até ${numeroBr(horasDoAlivioDoGratis())} h por mês, para aparelho fraco, quando disponível`,
         ],
-    anualAberto,
     teste: {
       plano: PLAN_MATRIX[teste].rotulo,
       dias: DIAS_DO_TESTE_PREMIUM,

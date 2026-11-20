@@ -12,7 +12,10 @@
 import { AUTH_CALLBACK_PATH } from './authCallback';
 import { ehSessaoAnonima } from './convidado';
 import { t } from './i18n';
-import { supabase } from './supabase';
+import { carregarSupabase, supabase as clienteCarregado } from './supabase';
+
+/** O cliente já carregado ou, sem ele, o pacote pedido agora (o visitante não o baixa no boot). */
+const clienteDoSupabase = async () => clienteCarregado ?? (await carregarSupabase());
 
 export type AuthProvider = 'google' | 'facebook';
 
@@ -99,6 +102,7 @@ function retornoDaConfirmacao(): string | undefined {
 
 /** E-mail + senha. Erro → mensagem genérica (anti-enumeração). */
 export async function signInEmail(email: string, password: string, options?: OpcoesDeCaptcha): Promise<AuthResult> {
+  const supabase = await clienteDoSupabase();
   if (!supabase) return naoConfigurado();
   const { error } = await supabase.auth.signInWithPassword({ email, password, options });
   return error ? { ok: false, message: t(INVALID_CREDS), code: codigoDe(error) } : { ok: true };
@@ -110,6 +114,7 @@ export async function signInEmail(email: string, password: string, options?: Opc
  * Um `signUp` comum criaria OUTRO usuário e deixaria o anônimo órfão (a limpeza de 30 dias o leva).
  */
 async function sessaoAnonimaAtiva(): Promise<boolean> {
+  const supabase = await clienteDoSupabase();
   if (!supabase) return false;
   try {
     const { data } = await supabase.auth.getSession();
@@ -137,6 +142,7 @@ export const googleLigado = (): boolean => import.meta.env.VITE_LOGIN_GOOGLE !==
  * senha"). Guardar a senha no aparelho até lá seria pior do que pedir de novo.
  */
 export async function signUpEmail(email: string, password: string, options?: OpcoesDeCaptcha): Promise<AuthResult> {
+  const supabase = await clienteDoSupabase();
   if (!supabase) return naoConfigurado();
   const emailRedirectTo = retornoDaConfirmacao();
   if (await sessaoAnonimaAtiva()) {
@@ -158,6 +164,7 @@ export async function signUpEmail(email: string, password: string, options?: Opc
 
 /** Login social (redireciona o browser). O `redirectTo` deve estar na allowlist do painel Supabase. */
 export async function signInWithProvider(provider: AuthProvider, redirectTo?: string): Promise<AuthResult> {
+  const supabase = await clienteDoSupabase();
   if (!supabase) return naoConfigurado();
   /* Convidado com sessão anônima: vincula o provedor ao MESMO usuário (exige "manual linking" no
      painel do Supabase). Se o Google já for de outra conta, o Supabase recusa — aí é LOGIN naquela
@@ -189,6 +196,7 @@ export async function sendPasswordReset(
   redirectTo?: string,
   options?: OpcoesDeCaptcha,
 ): Promise<AuthResult> {
+  const supabase = await clienteDoSupabase();
   if (!supabase) return naoConfigurado();
   let code: string | undefined;
   try {
@@ -203,12 +211,14 @@ export async function sendPasswordReset(
 
 /** Define a nova senha (a partir do link de recuperação, ou em Conta). */
 export async function updatePassword(newPassword: string): Promise<AuthResult> {
+  const supabase = await clienteDoSupabase();
   if (!supabase) return naoConfigurado();
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   return error ? { ok: false, message: mensagemDoErroDeSenha(error) } : { ok: true };
 }
 
 export async function signOut(): Promise<void> {
+  const supabase = await clienteDoSupabase();
   if (supabase) await supabase.auth.signOut();
 }
 
@@ -249,6 +259,7 @@ export function ehErroDeSessao(error: { message?: string; code?: string; name?: 
  * da própria chamada aparece.
  */
 async function sessaoValidaParaMfa(): Promise<boolean> {
+  const supabase = await clienteDoSupabase();
   if (!supabase) return false;
   try {
     const { data, error } = await supabase.auth.getUser();
@@ -267,6 +278,7 @@ const falhaDeMfa = (error: { message: string; code?: string; name?: string }) =>
 
 /** Inicia o cadastro de um fator TOTP: devolve o QR (SVG) + segredo p/ o app autenticador. */
 export async function enrollTotp(friendlyName = 'App autenticador'): Promise<MfaEnroll> {
+  const supabase = await clienteDoSupabase();
   if (!supabase) return naoConfigurado();
   if (!(await sessaoValidaParaMfa())) return sessaoExpirada();
   const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName });
@@ -276,6 +288,7 @@ export async function enrollTotp(friendlyName = 'App autenticador'): Promise<Mfa
 
 /** Confirma o fator (challenge + verify) com o código do app — ativa o 2FA. */
 export async function confirmTotp(factorId: string, code: string): Promise<AuthResult> {
+  const supabase = await clienteDoSupabase();
   if (!supabase) return naoConfigurado();
   if (!(await sessaoValidaParaMfa())) return sessaoExpirada();
   const ch = await supabase.auth.mfa.challenge({ factorId });
@@ -287,6 +300,7 @@ export async function confirmTotp(factorId: string, code: string): Promise<AuthR
 
 /** Remove um fator (desabilitar 2FA). */
 export async function unenrollTotp(factorId: string): Promise<AuthResult> {
+  const supabase = await clienteDoSupabase();
   if (!supabase) return naoConfigurado();
   if (!(await sessaoValidaParaMfa())) return sessaoExpirada();
   const { error } = await supabase.auth.mfa.unenroll({ factorId });
@@ -302,6 +316,7 @@ export async function unenrollTotp(factorId: string): Promise<AuthResult> {
  * do login, em vez de a pessoa descobrir o 2FA num 403 no meio de um cancelamento.
  */
 export async function precisaDoSegundoFator(): Promise<boolean> {
+  const supabase = await clienteDoSupabase();
   if (!supabase) return false;
   try {
     const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
@@ -313,6 +328,7 @@ export async function precisaDoSegundoFator(): Promise<boolean> {
 
 /** Verifica o código do app autenticador no login e eleva a sessão para `aal2`. */
 export async function verificarSegundoFator(code: string): Promise<AuthResult> {
+  const supabase = await clienteDoSupabase();
   if (!supabase) return naoConfigurado();
   const { data } = await supabase.auth.mfa.listFactors();
   const fator = (data?.totp ?? []).find((f: { status?: string }) => f.status === 'verified') as
@@ -337,6 +353,7 @@ export interface TotpFactor {
 
 /** Lista os fatores TOTP do usuário (p/ a tela de Conta/Segurança saber se o 2FA está ativo). */
 export async function listTotpFactors(): Promise<TotpFactor[]> {
+  const supabase = await clienteDoSupabase();
   if (!supabase) return [];
   const { data } = await supabase.auth.mfa.listFactors();
   const totp = (data?.totp ?? []) as Array<{ id: string; friendly_name?: string; status?: string }>;

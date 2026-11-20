@@ -115,3 +115,31 @@ describe('parciais por fala', () => {
     expect(finais).toHaveLength(1)
   })
 })
+
+/**
+ * O 1º TEXTO NÃO ESPERA O TIQUE DE 2 S (carga-rapida-no-celular, 5.2): com 0,6 s de fala, o 1º parcial às vezes volta
+ * vazio (o Whisper ainda não reconhece nada). Antes, o seguinte só saía 2 s depois, e o 1º texto na tela ia de ~1,1 s
+ * para ~3,1 s (a bimodalidade da bancada no desktop). Agora o 1º parcial vazio libera o próximo assim que houver mais
+ * 0,6 s de fala, sem gastar a cota.
+ */
+describe('o 1º parcial vazio', () => {
+  it('libera o próximo com mais 0,6 s de fala, sem esperar os 2 s', async () => {
+    const parciais: number[] = []
+    const cap = await startMicCapture(undefined, {
+      onPartialAudio: (pcm: Float32Array) => {
+        parciais.push(pcm.length)
+        return Promise.resolve(parciais.length > 1) // o 1º volta vazio
+      },
+      onUtterance: () => {},
+    } as never)
+    await alimentar(silencio(3))
+    await alimentar(fala(9)) // ~0,86 s
+    await vi.advanceTimersByTimeAsync(300)
+    expect(parciais).toHaveLength(1)
+    await alimentar(fala(8)) // mais ~0,77 s, ainda longe dos 2 s
+    await vi.advanceTimersByTimeAsync(400)
+    expect(parciais).toHaveLength(2)
+    expect(parciais[1]).toBeGreaterThan(parciais[0])
+    await cap.stop()
+  })
+})

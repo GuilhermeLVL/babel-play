@@ -79,7 +79,7 @@ describe('o tamanho do teste', () => {
       sttSegundosMes: 3_600,
       tokensMes: 150_000,
       chamadasMes: 1_400,
-      vozCaracteresMes: 10_000,
+      vozCaracteresMes: 0,
     })
   })
 

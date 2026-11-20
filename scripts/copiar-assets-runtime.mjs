@@ -24,34 +24,57 @@ const PUBLIC = join(RAIZ, 'public')
 function primeiroExistente(candidatos, arquivoDeProva) {
   return candidatos.find((d) => existsSync(join(d, 'dist', arquivoDeProva))) ?? null
 }
-const ortDir = primeiroExistente([
-  join(RAIZ, 'node_modules', 'onnxruntime-web'),
-  join(RAIZ, 'node_modules', '@huggingface', 'transformers', 'node_modules', 'onnxruntime-web'),
-  join(RAIZ, 'node_modules', '@ricky0123', 'vad-web', 'node_modules', 'onnxruntime-web'),
-], 'ort-wasm-simd-threaded.jsep.wasm')
+const ortDir = primeiroExistente(
+  [
+    join(RAIZ, 'node_modules', 'onnxruntime-web'),
+    join(RAIZ, 'node_modules', '@huggingface', 'transformers', 'node_modules', 'onnxruntime-web'),
+    join(RAIZ, 'node_modules', '@ricky0123', 'vad-web', 'node_modules', 'onnxruntime-web'),
+  ],
+  'ort-wasm-simd-threaded.jsep.wasm',
+)
 const vadDir = primeiroExistente([join(RAIZ, 'node_modules', '@ricky0123', 'vad-web')], 'silero_vad_v5.onnx')
 
 const ALVOS = [
-  ...['ort-wasm-simd-threaded.wasm', 'ort-wasm-simd-threaded.mjs', 'ort-wasm-simd-threaded.jsep.wasm', 'ort-wasm-simd-threaded.jsep.mjs']
-    .map((f) => ({ de: ortDir && join(ortDir, 'dist', f), para: join(PUBLIC, f), pacote: 'onnxruntime-web' })),
+  /* `asyncify`: a variante que a transformers.js usa fora do Safari (Whisper, opus-mt, WeSpeaker). Antes ela
+     vinha do jsDelivr; agora sai do próprio app ou do R2 (`transformersEnv.ts`, DISP-05). */
+  ...[
+    'ort-wasm-simd-threaded.wasm',
+    'ort-wasm-simd-threaded.mjs',
+    'ort-wasm-simd-threaded.jsep.wasm',
+    'ort-wasm-simd-threaded.jsep.mjs',
+    'ort-wasm-simd-threaded.asyncify.wasm',
+    'ort-wasm-simd-threaded.asyncify.mjs',
+  ].map((f) => ({ de: ortDir && join(ortDir, 'dist', f), para: join(PUBLIC, f), pacote: 'onnxruntime-web' })),
   /* So o `legacy`: os dois consumidores o pedem por nome (`systemAudio.ts:245` e
      `offlineTranscribe.ts:70`). O `v5` eram 2,3 MB copiados para o `dist` que ninguem carregava. */
-  ...['silero_vad_legacy.onnx', 'vad.worklet.bundle.min.js']
-    .map((f) => ({ de: vadDir && join(vadDir, 'dist', f), para: join(PUBLIC, f), pacote: '@ricky0123/vad-web' })),
+  ...['silero_vad_legacy.onnx', 'vad.worklet.bundle.min.js'].map((f) => ({
+    de: vadDir && join(vadDir, 'dist', f),
+    para: join(PUBLIC, f),
+    pacote: '@ricky0123/vad-web',
+  })),
 ]
 
 mkdirSync(PUBLIC, { recursive: true })
-let copiados = 0, pulados = 0
+let copiados = 0,
+  pulados = 0
 const faltando = []
 for (const a of ALVOS) {
-  if (!a.de || !existsSync(a.de)) { faltando.push(`${a.pacote}: ${a.para.split(/[\\/]/).pop()}`); continue }
-  if (existsSync(a.para) && statSync(a.para).size === statSync(a.de).size) { pulados += 1; continue }
+  if (!a.de || !existsSync(a.de)) {
+    faltando.push(`${a.pacote}: ${a.para.split(/[\\/]/).pop()}`)
+    continue
+  }
+  if (existsSync(a.para) && statSync(a.para).size === statSync(a.de).size) {
+    pulados += 1
+    continue
+  }
   copyFileSync(a.de, a.para)
   copiados += 1
 }
 console.log(`[assets-runtime] ${copiados} copiado(s), ${pulados} já existiam → public/`)
 if (faltando.length) {
   // Em `npm install` não pode derrubar a instalação; mas deixa claro o que falta e por quê.
-  console.warn(`[assets-runtime] NÃO encontrados em node_modules (o VAD/ORT não vão carregar do próprio domínio):\n  - ${faltando.join('\n  - ')}`)
+  console.warn(
+    `[assets-runtime] NÃO encontrados em node_modules (o VAD/ORT não vão carregar do próprio domínio):\n  - ${faltando.join('\n  - ')}`,
+  )
   if (process.argv.includes('--exigir')) process.exit(1)
 }

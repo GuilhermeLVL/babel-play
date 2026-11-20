@@ -34,6 +34,15 @@ describe('CSP da voz no aparelho (VITE_VOZ_MODELO_URL)', () => {
       expect(diretivasDeCsp(env({ VITE_VOZ_MODELO_URL: v })).connectSrc).toEqual(base.connectSrc)
   })
 
+  it('a voz natural do Kitten (VITE_VOZ_KITTEN_URL): só a origem, só em connect-src', () => {
+    expect(diretivasDeCsp(env({ VITE_VOZ_KITTEN_URL: '' }))).toEqual(diretivasDeCsp(env({})))
+    const d = diretivasDeCsp(env({ VITE_VOZ_KITTEN_URL: 'https://pesos.exemplo.dev/kitten-tts-2' }))
+    expect(d.connectSrc).toContain('https://pesos.exemplo.dev')
+    expect(d.scriptSrc).not.toContain('https://pesos.exemplo.dev')
+    expect(d.workerSrc).not.toContain('https://pesos.exemplo.dev')
+    expect(d.connectSrc.some((x) => x.includes('kitten'))).toBe(false)
+  })
+
   it('o dist/_headers gerado traz o mesmo host em connect-src', () => {
     const h = gerarHeaders(
       env({ VITE_VOZ_MODELO_URL: 'https://modelos.frasy.com.br/supertonic-3' }),

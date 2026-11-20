@@ -70,6 +70,7 @@ export default function CapturaDoPrototipo({
   noQuest = false,
   intencao,
   avatar,
+  preparo,
 }: {
   gravando: boolean;
   /** Já há falas na tela (mesmo parada). */
@@ -114,6 +115,11 @@ export default function CapturaDoPrototipo({
   intencao?: { entrou: () => void; saiu: () => void };
   /** O avatar do modo legendar (flag `avatar_3d`): botão, faixa de presença e dica. Ausente = a tela de antes. */
   avatar?: { botao: ReactNode; presenca: ReactNode; dica: ReactNode };
+  /**
+   * O reconhecimento ainda baixa depois do aceite (`esperaDoPreparo.ts`): o miolo diz isso e quando a legenda
+   * começa, no lugar de "Pronto para legendar" (carga-rapida-no-celular, 4.1). Ausente/`null` = o miolo de sempre.
+   */
+  preparo?: { titulo: string; texto: string } | null;
 }) {
   const raiz = useRef<HTMLDivElement>(null);
   const principal = useRef<HTMLButtonElement>(null);
@@ -260,17 +266,19 @@ export default function CapturaDoPrototipo({
                 <span className="q-ic">
                   <Mic aria-hidden />
                 </span>
-                <h2>{t('Pronto para legendar')}</h2>
-                <p>
-                  {celular()
-                    ? t('Toque em Iniciar e deixe o celular perto do som. A legenda nos dois idiomas aparece aqui.')
-                    : !perfilDoDispositivo().capturaDoSistema
-                      ? t(
-                          'Este navegador não captura o som do computador. Use o microfone perto do alto-falante ou abra o Frasy no Chrome ou no Edge. A legenda bilíngue aparece aqui.',
-                        )
-                      : t(
-                          'O som do computador entra sozinho. Dê play no vídeo, aula ou chamada e clique em Iniciar. A legenda bilíngue aparece aqui e nas Legendas flutuantes.',
-                        )}
+                <h2>{preparo ? preparo.titulo : t('Pronto para legendar')}</h2>
+                <p data-testid="miolo-da-captura">
+                  {preparo
+                    ? preparo.texto
+                    : celular()
+                      ? t('Toque em Iniciar e deixe o celular perto do som. A legenda nos dois idiomas aparece aqui.')
+                      : !perfilDoDispositivo().capturaDoSistema
+                        ? t(
+                            'Este navegador não captura o som do computador. Use o microfone perto do alto-falante ou abra o Frasy no Chrome ou no Edge. A legenda bilíngue aparece aqui.',
+                          )
+                        : t(
+                            'O som do computador entra sozinho. Dê play no vídeo, aula ou chamada e clique em Iniciar. A legenda bilíngue aparece aqui e nas Legendas flutuantes.',
+                          )}
                 </p>
                 {nivel.nota}
               </div>

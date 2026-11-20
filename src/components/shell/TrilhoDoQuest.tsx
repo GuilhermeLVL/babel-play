@@ -491,6 +491,10 @@ export default function TrilhoDoQuest({
     const marcado = activeView === item.id;
     const comEstado = item.id === 'planos' && !cinco;
     const aoVivo = item === ITEM_AO_VIVO;
+    const seloDoDia =
+      item.id === 'cartoes' && !!cartoesHoje && cartoesHoje > 0
+        ? tp(cartoesHoje, '{n} cartão para hoje', '{n} cartões para hoje')
+        : null;
     if (aoVivo) {
       return (
         <button
@@ -534,8 +538,9 @@ export default function TrilhoDoQuest({
         onPointerDown={() => pedir(item.id)}
         onFocus={() => pedir(item.id, true)}
         aria-current={marcado ? 'page' : undefined}
-        /* O nome não depende do rótulo visível: na barra do celular o de Capturar some (`display: none`). */
-        aria-label={rotulo}
+        /* O nome não depende do rótulo visível: na barra do celular o de Capturar some (`display: none`).
+           O número do selo vem no nome, depois do rótulo (o nome contém o texto visível, WCAG 2.5.3). */
+        aria-label={seloDoDia ? rotulo + ', ' + seloDoDia : rotulo}
         aria-describedby={comEstado ? 'q-estado-do-plano' : undefined}
       >
         <Icone aria-hidden />
@@ -546,15 +551,15 @@ export default function TrilhoDoQuest({
           </small>
         )}
         {/* O número do dia: some quando está em dia (`ctSelo`, `cartoes3.js:61-65`). */}
-        {item.id === 'cartoes' && !!cartoesHoje && cartoesHoje > 0 && (
+        {seloDoDia && (
           <i
             className="q-contagem ct-selo-do-dia"
             /* O anel que pulsa cresce 10 px para cada lado: a camada dele precisa do tamanho do selo. */
             ref={medirOPulso}
-            aria-label={tp(cartoesHoje, '{n} cartão para hoje', '{n} cartões para hoje')}
-          >
-            {cartoesHoje > 99 ? '99+' : cartoesHoje}
-          </i>
+            /* O número é desenhado pelo CSS (`::after`): é enfeite do ícone, não parte do rótulo; o nome já o diz. */
+            data-n={cartoesHoje! > 99 ? '99+' : cartoesHoje}
+            aria-hidden
+          />
         )}
       </button>
     );
@@ -632,7 +637,7 @@ export default function TrilhoDoQuest({
       type="button"
       className="q-item q-mais-botao"
       aria-haspopup="dialog"
-      aria-label={t('Mais')}
+      aria-label={novos > 0 ? t('Mais') + ', ' + t('{n} não lidas', { n: novos }) : t('Mais')}
       data-dica={t('Mais')}
       aria-expanded={maisAberto}
       aria-current={foraDoTrilho && !(lateral && activeView === 'settings') ? 'page' : undefined}
@@ -640,11 +645,7 @@ export default function TrilhoDoQuest({
     >
       <Ellipsis aria-hidden />
       <span>{t('Mais')}</span>
-      {novos > 0 && (
-        <i className="q-contagem" ref={medirOPulso} aria-label={t('{n} não lidas', { n: novos })}>
-          {novos}
-        </i>
-      )}
+      {novos > 0 && <i className="q-contagem" ref={medirOPulso} data-n={novos} aria-hidden />}
     </button>
   );
 

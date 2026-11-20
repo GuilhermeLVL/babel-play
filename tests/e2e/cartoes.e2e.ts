@@ -104,7 +104,7 @@ test.describe('Cartões: a porta', () => {
 
     /* O item próprio no trilho, em toda largura (R40: na barra de cinco também). As abas de praticar só
        existem na barra de cinco, e a última tela usada fica guardada. */
-    const item = nav.getByRole('button', { name: 'Cartões', exact: true })
+    const item = nav.getByRole('button', { name: /^Cartões(,|$)/ })
     await expect(item).toBeVisible()
     await clicarRobusto(page, item)
     await expect(page).toHaveURL(/\/cartoes$/)

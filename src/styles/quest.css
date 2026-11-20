@@ -232,6 +232,10 @@ html[data-quest-novo='true']:has(.quest-vivo) .q-trilho {
   font: 800 14px/1 var(--font-mono, monospace);
   font-style: normal;
 }
+/* O número fica no CSS: o botão já o diz no nome, e o texto visível do botão continua sendo só o rótulo. */
+.q-contagem[data-n]::after {
+  content: attr(data-n);
+}
 /* A faixa de preferências do painel "Mais" tem três botões com rótulo: quebra de linha, sem pílula. */
 .q-faixa.q-faixa-do-mais {
   flex-wrap: wrap;

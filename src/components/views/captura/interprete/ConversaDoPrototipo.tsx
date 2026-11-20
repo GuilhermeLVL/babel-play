@@ -553,7 +553,8 @@ export default function ConversaDoPrototipo({
           >
             {m.icone ? <m.icone aria-hidden /> : <Mic aria-hidden />}
             <span aria-hidden>{m.rotulo}</span>
-            {emColunas && m.atalho && <kbd aria-hidden>{m.atalho}</kbd>}
+            {/* A tecla é desenhada pelo CSS: é dica, não parte do rótulo (o nome contém o texto visível). */}
+            {emColunas && m.atalho && <kbd aria-hidden data-tecla={m.atalho} />}
           </button>
         )}
         {!m.semVoz && (
@@ -591,7 +592,7 @@ export default function ConversaDoPrototipo({
     >
       <Mic aria-hidden />
       <span aria-hidden>{escuta.rotulo}</span>
-      {emColunas && escuta.atalho && <kbd aria-hidden>{escuta.atalho}</kbd>}
+      {emColunas && escuta.atalho && <kbd aria-hidden data-tecla={escuta.atalho} />}
     </button>
   );
 

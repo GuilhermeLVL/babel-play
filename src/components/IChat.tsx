@@ -862,7 +862,8 @@ export default function IChat({
       >
         <Sparkles aria-hidden />
         <span className="rot">iChat</span>
-        <span className="ctx">Context</span>
+        {/* O selo é desenhado pelo CSS (`::after`): o texto visível do botão fica "iChat", que o nome contém. */}
+        <span className="ctx" data-rotulo="Context" aria-hidden />
       </button>
 
       <section

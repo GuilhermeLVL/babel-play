@@ -90,7 +90,8 @@ export default function PainelDeAnotacoes({
           <button
             type="button"
             className="btn btn-outline peq leitor-alvo"
-            aria-label={a.nota ? t('Editar a nota') : t('Escrever uma nota')}
+            /* Sem nota, o nome é o texto visível ("Anotar"): um rótulo à parte não o conteria (WCAG 2.5.3). */
+            aria-label={a.nota ? t('Editar a nota') : undefined}
             onClick={() => {
               setEditando(a.id);
               setTexto(a.nota);

@@ -505,6 +505,22 @@ test('Mala: a palavra nova fica à vista com a rodada andando, e a mala fecha 8 
   await expect(fim.locator('.fim-numeros')).toContainText('8 de 8')
 })
 
+/** Dá para montar `resto` com os pedaços ainda livres (sem usar o de índice `usado`)? Busca exaustiva: poucos pedaços. */
+function montaResto(resto: string, pedacos: string[], usado: number): boolean {
+  if (!resto) return true
+  return pedacos.some(
+    (t, j) =>
+      j !== usado &&
+      t &&
+      resto.startsWith(t) &&
+      montaResto(
+        resto.slice(t.length),
+        pedacos.map((x, k) => (k === j ? '' : x)),
+        usado,
+      ),
+  )
+}
+
 test('Bao: semeia os pedaços até o fim', async ({ page }) => {
   await abrirJogo(page, 'bao')
   const covas = palco(page).locator('.pj-covas .pj-cova')
@@ -532,7 +548,9 @@ test('Bao: semeia os pedaços até o fim', async ({ page }) => {
     }
     for (let k = 0; k < 8 && resto; k++) {
       const atual = (await textos(covas)).map((t) => t.toLowerCase())
-      const i = atual.findIndex((t) => t && resto.startsWith(t))
+      /* Pedaços que são prefixo um do outro ("e", "ev" em "believe") não se resolvem pela ordem das covas, que é
+         sorteada: vale o pedaço depois do qual os restantes ainda montam o resto da palavra. */
+      const i = atual.findIndex((t, j) => t && resto.startsWith(t) && montaResto(resto.slice(t.length), atual, j))
       if (i < 0) break
       await covas.nth(i).click()
       resto = resto.slice(atual[i].length)

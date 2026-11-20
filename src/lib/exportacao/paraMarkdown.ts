@@ -139,7 +139,7 @@ export function metricasParaMd(m: ModeloDoRelatorio): string {
 /** O relatório inteiro, só com as seções ligadas. */
 export function paraMarkdown(m: ModeloDoRelatorio): string {
   const s = m.secoes;
-  const out: string[] = [`# ${m.titulo}`, `_${t('Relatório da sessão')} · Babel Play · ${m.geradoEm}_`];
+  const out: string[] = [`# ${m.titulo}`, `_${t('Relatório da sessão')} · Frasy · ${m.geradoEm}_`];
 
   if (s.cabecalho) {
     const c = m.cabecalho;

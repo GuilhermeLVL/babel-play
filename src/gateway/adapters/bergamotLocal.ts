@@ -1,6 +1,7 @@
 import { ChamadaCancelada, ehCancelamento, ehMotorCarregando, MotorAindaCarregando } from '@core';
 
 import type { MtOptions, MtResult, TranslationProvider } from '../capabilities';
+import { marcar } from '../marcasDeDesempenho';
 import { gravarManifesto, MENSAGEM_DO_MANIFESTO } from '../modelManifest';
 import {
   bergamotOferecido,
@@ -16,6 +17,22 @@ import type { MensagemDoWorker, MensagemParaOWorker, MotivoDaFalha } from './ber
 import type { OpusMtLocal } from './opusMtLocal';
 
 type AoProgresso = (p: number, label?: string, bytes?: { loaded: number; total: number }) => void;
+
+/**
+ * O progresso de um par que passa pelo inglês, com duas pernas carregando ao mesmo tempo: a barra mostra a média, e o
+ * "pronto" (1) só sai quando AS DUAS chegam a 1. Uma perna pronta não solta quem espera o par (`gateway.mt.preload`).
+ */
+function progressoDeDuasPernas(fn: AoProgresso): [AoProgresso, AoProgresso] {
+  const feito = [0, 0];
+  const perna =
+    (i: 0 | 1): AoProgresso =>
+    (p, label, bytes) => {
+      feito[i] = p;
+      if (feito[0] >= 1 && feito[1] >= 1) fn(1, label, bytes);
+      else fn(Math.min((feito[0] + feito[1]) / 2, 0.99), label, bytes);
+    };
+  return [perna(0), perna(1)];
+}
 
 /**
  * Tradução LOCAL pt→en com o BERGAMOT (o motor do Firefox Translations, WASM num Web Worker) —
@@ -139,6 +156,7 @@ export class BergamotLocal implements TranslationProvider {
           );
           return;
         case 'ready': {
+          marcar('mt:pronto', { modelo: m.model });
           const par = parDoId(m.model);
           if (par) {
             this.prontos.add(par);
@@ -187,6 +205,7 @@ export class BergamotLocal implements TranslationProvider {
   private pedirCarga(par: ParDoBergamot): void {
     if (this.prontos.has(par) || this.emCarga.has(par)) return;
     this.emCarga.add(par);
+    marcar('mt:carga:inicio', { modelo: idDoBergamot(par) });
     this.ensureWorker(par).postMessage({ type: 'carregar', plano: planoDaPagina(par) } satisfies MensagemParaOWorker);
   }
 
@@ -305,10 +324,13 @@ export class TradutorLocalComBergamot implements TranslationProvider {
     // X→alvo pelo inglês: a primeira perna é do Bergamot, a segunda (en→alvo) do opus-mt, que já existia.
     const pivo = parDoPivo(src, tgt);
     if (pivo && this.bergamot.supports(src, 'en') && this.opus.supports('en', tgt)) {
+      const [primeira, segunda] = onProgress ? progressoDeDuasPernas(onProgress) : [undefined, undefined];
+      /* A reserva (o Bergamot não carregou) é o pivô INTEIRO do opus-mt, que já junta as duas pernas: ela recebe o
+         ouvinte do par, não o da 1ª perna (senão a 2ª nunca chegaria a 1 e a barra pararia em 99%). */
       this.progressoDoPar.set(pivo, onProgress);
       this.alvoDoPar.set(pivo, tgt);
-      this.bergamot.preload(src, 'en', onProgress);
-      if (onProgress) this.opus.preload('en', tgt, onProgress);
+      this.bergamot.preload(src, 'en', primeira);
+      if (segunda) this.opus.preload('en', tgt, segunda);
       else this.opus.preload('en', tgt);
       return;
     }

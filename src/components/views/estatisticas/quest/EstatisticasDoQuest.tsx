@@ -115,6 +115,7 @@ export default function EstatisticasDoQuest({
   aoExportarCsv,
   aoImprimir,
   aoPraticar,
+  anuncio,
 }: {
   /** Os dados ainda não chegaram: a tela mostra a forma do que vem. */
   carregando: boolean;
@@ -129,6 +130,11 @@ export default function EstatisticasDoQuest({
   aoExportarCsv: () => void;
   aoImprimir: () => void;
   aoPraticar: () => void;
+  /**
+   * Os espaços de anúncio do Grátis (a linha patrocinada e a âncora do celular): sempre o ÚLTIMO elemento da
+   * tela, depois de todos os gráficos (`PLANTIO.estatisticas`, `anuncios.js:190-199`). Na espera, nada.
+   */
+  anuncio?: ReactNode;
 }) {
   const [aba, setAba] = useState<string | null>(null);
   const [comoTabela, setComoTabela] = useState<Record<string, boolean>>({});
@@ -289,6 +295,8 @@ export default function EstatisticasDoQuest({
           ))}
         </>
       )}
+
+      {!carregando && anuncio}
 
       {exportando && (
         <Dialogo

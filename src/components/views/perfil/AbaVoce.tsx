@@ -2,7 +2,10 @@ import { INTERESSES, MAX_INTERESSES } from '@core';
 import { Camera, Check, CircleDot, Heart, Loader2, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import { FLAG_AVATAR_3D } from '../../../core/planos';
 import { fetchDeck } from '../../../data/api';
+import { useMiniaturaDoAvatar } from '../../../lib/avatar/meuAvatar';
+import { useFlag } from '../../../lib/flags';
 import { gravarFoto, reduzirFoto, useFotoDoPerfil } from '../../../lib/fotoDoPerfil';
 import { t } from '../../../lib/i18n';
 import { fetchLangConfig } from '../../../lib/langConfig';
@@ -74,6 +77,11 @@ export default function AbaVoce() {
   const { perfil, carregando } = usePerfil();
   const prefs = usePreferencias();
   const fotoSalva = useFotoDoPerfil(perfil?.id);
+  /* O AVATAR no círculo grande (atrás da flag `avatar_3d`): a miniatura de rosto que a pessoa salvou. Vale quando
+     não há foto; a foto que a pessoa envia continua mandando ("Enviar foto" é a alternativa), e sem nenhuma das
+     duas, as iniciais. */
+  const avatarLigado = useFlag(FLAG_AVATAR_3D);
+  const miniaturaDoAvatar = useMiniaturaDoAvatar(perfil?.id);
 
   const [nome, setNome] = useState('');
   const [bio, setBio] = useState('');
@@ -197,6 +205,15 @@ export default function AbaVoce() {
         <div className="qc-foto">
           {foto ? (
             <img src={foto} alt={t('Sua foto de perfil')} />
+          ) : avatarLigado && miniaturaDoAvatar ? (
+            <img
+              className="qc-foto-avatar"
+              src={miniaturaDoAvatar}
+              alt={t('Seu avatar')}
+              width={192}
+              height={192}
+              data-avatar-do-usuario="avatar"
+            />
           ) : (
             <span className="qc-inicial" aria-hidden>
               {inicial}

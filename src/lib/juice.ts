@@ -3,6 +3,7 @@ import { type BurstKind, emitBurst } from './effects';
 import { type EfeitoComposto, eventosCondicionais, marcarEventoVisto, sortearEventoRaro } from './eventosDeJogo';
 import { movimentoReduzido } from './movimento/reduzido';
 import { play } from './soundFx';
+import { zoomDoCorpo } from './zoomDoCorpo';
 
 /**
  * "JUICE" — a camada de retorno sensorial dos jogos.
@@ -107,8 +108,9 @@ export function ganho(el: Element | DOMRect | null | undefined, texto: string, t
   g.className = `ganho ${tom}`.trim();
   g.textContent = texto;
   g.setAttribute('aria-hidden', 'true');
-  g.style.left = `${r.left + r.width / 2}px`;
-  g.style.top = `${r.top - 4}px`;
+  const z = zoomDoCorpo(); // px da janela → px do body (zoom do A±)
+  g.style.left = `${(r.left + r.width / 2) / z}px`;
+  g.style.top = `${r.top / z - 4}px`;
   document.body.appendChild(g);
   setTimeout(() => g.remove(), 1200);
 }

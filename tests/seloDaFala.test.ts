@@ -124,7 +124,7 @@ describe('antes da primeira fala vale o previsto, sem afirmar o que ainda não a
   it('nuvem do Babel prevista', () => {
     expect(seloDaFala(naNuvem)).toMatchObject({
       onde: 'nuvem',
-      etiqueta: 'Vai pela Nuvem do Babel',
+      etiqueta: 'Vai pela Nuvem do Frasy',
       detalhe: 'o áudio vai para o nosso servidor',
       saiDoAparelho: true,
       confirmado: false,
@@ -170,10 +170,10 @@ describe('depois de uma fala vale o motor que a atendeu', () => {
     })
   })
 
-  it('previsto e real na nuvem: "Nuvem do Babel"', () => {
+  it('previsto e real na nuvem: "Nuvem do Frasy"', () => {
     expect(seloDaFala(naNuvem, 'groq-whisper')).toEqual({
       onde: 'nuvem',
-      etiqueta: 'Nuvem do Babel',
+      etiqueta: 'Nuvem do Frasy',
       detalhe: 'o áudio vai para o nosso servidor',
       motivo: naNuvem.explicacao,
       saiDoAparelho: true,
@@ -211,7 +211,7 @@ describe('depois de uma fala vale o motor que a atendeu', () => {
 
   it('REGRA DE OURO: previsto no aparelho, mas a fala foi à nuvem — vale o real e o motivo diz que mudou', () => {
     expect(seloDaFala(noAparelho, 'groq-whisper')).toMatchObject({
-      etiqueta: 'Nuvem do Babel',
+      etiqueta: 'Nuvem do Frasy',
       saiDoAparelho: true,
       confirmado: true,
       mudou: true,
@@ -265,7 +265,7 @@ describe('depois de uma fala vale o motor que a atendeu', () => {
     const chave = { nuvemPorChavePropria: true }
     // A política diria "no aparelho" (ela não vê a chave): antes da primeira fala o selo não afirma nada.
     expect(seloDaFala(noAparelho, null, chave)).toBeNull()
-    expect(seloDaFala(noAparelho, 'groq-whisper', chave)).toMatchObject({ etiqueta: 'Nuvem do Babel', mudou: false })
+    expect(seloDaFala(noAparelho, 'groq-whisper', chave)).toMatchObject({ etiqueta: 'Nuvem do Frasy', mudou: false })
     expect(seloDaFala(noAparelho, 'whisper-local', chave)).toMatchObject({
       etiqueta: 'No aparelho',
       detalhe: 'transcrita aqui, depois de tentar a nuvem',
@@ -298,7 +298,7 @@ describe('REGRA DE OURO, em todos os motores de transcrição do registro', () =
           expect(envia, id).toBe(false)
           expect(selo!.etiqueta).toBe('No aparelho')
         }
-        expect(['No aparelho', 'Pelo navegador', 'Nuvem do Babel']).toContain(selo!.etiqueta)
+        expect(['No aparelho', 'Pelo navegador', 'Nuvem do Frasy']).toContain(selo!.etiqueta)
       }
     }
   })
@@ -316,7 +316,7 @@ describe('o motivo vem da política', () => {
       mudou: false,
     })
     // E se, mesmo assim, uma fala saísse: o selo diz a verdade.
-    expect(seloDaFala(d, 'groq-whisper')).toMatchObject({ etiqueta: 'Nuvem do Babel', mudou: true })
+    expect(seloDaFala(d, 'groq-whisper')).toMatchObject({ etiqueta: 'Nuvem do Frasy', mudou: true })
   })
 
   it('cota do mês esgotada', () => {

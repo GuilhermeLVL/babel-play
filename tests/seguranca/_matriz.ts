@@ -163,9 +163,9 @@ export function lerMatriz(app: unknown): Matriz {
     }
   })
 
-  /* `POST /api/import/youtube` existe DUAS vezes: o stub 403 do modo público, registrado no app, e
-     a rota real dentro do router. O Express despacha para a PRIMEIRA, então é ela que a matriz
-     descreve — manter as duas faria a mesma rota aparecer com dois veredictos. */
+  /* Uma rota pode aparecer DUAS vezes (um guard registrado no app e a rota real dentro do router; era o
+     caso de `POST /api/import/youtube` com o stub 403, aposentado). O Express despacha para a PRIMEIRA,
+     então é ela que a matriz descreve — manter as duas faria a mesma rota aparecer com dois veredictos. */
   const vistas = new Set<string>()
   const rotas: RotaDaMatriz[] = cruas
     .filter((r) => {

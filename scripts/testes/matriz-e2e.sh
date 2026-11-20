@@ -31,7 +31,7 @@ rodar() { # $1 projeto  $2 numero do lote  $3... arquivos
   proj="$1"; n="$2"; shift 2
   saida="$S/lote-$proj-$n"
   rm -f "$saida.json" "$saida.log"
-  DATABASE_URL="file:$SW/lote-$proj.db" \
+  DATABASE_URL="pglite:$SW/lote-$proj-pg" \
   AUDIO_DIR="$SW/audio" ERROS_DIR="$SW/erros" \
   PLAYWRIGHT_JSON_OUTPUT_NAME="$saida.json" \
   node node_modules/@playwright/test/cli.js test "$@" --project="$proj" --reporter=json > "$saida.log" 2>&1
@@ -46,7 +46,7 @@ rodar() { # $1 projeto  $2 numero do lote  $3... arquivos
 }
 
 for proj in mobile-375 tablet-768 desktop-1280; do
-  rm -f "$S/lote-$proj.db"*
+  rm -rf "$S/lote-$proj-pg"
   rodar "$proj" 1 $LOTE1
   rodar "$proj" 2 $LOTE2
   rodar "$proj" 3 $LOTE3

@@ -23,8 +23,8 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { getTableName } from 'drizzle-orm'
-import { SQLiteTable } from 'drizzle-orm/sqlite-core'
-import { describe, expect,it } from 'vitest'
+import { PgTable } from 'drizzle-orm/pg-core'
+import { describe, expect, it } from 'vitest'
 
 import * as schema from '../../server/db/schema'
 
@@ -33,7 +33,10 @@ function arquivosDoServidor(dir = 'server'): string[] {
   const saida: string[] = []
   for (const nome of readdirSync(dir)) {
     const caminho = join(dir, nome)
-    if (statSync(caminho).isDirectory()) { saida.push(...arquivosDoServidor(caminho)); continue }
+    if (statSync(caminho).isDirectory()) {
+      saida.push(...arquivosDoServidor(caminho))
+      continue
+    }
     if (!nome.endsWith('.ts')) continue
     if (caminho.replace(/\\/g, '/') === 'server/db/schema.ts') continue
     saida.push(caminho)
@@ -41,11 +44,13 @@ function arquivosDoServidor(dir = 'server'): string[] {
   return saida
 }
 
-const CODIGO = arquivosDoServidor().map((f) => readFileSync(f, 'utf8')).join('\n')
+const CODIGO = arquivosDoServidor()
+  .map((f) => readFileSync(f, 'utf8'))
+  .join('\n')
 
 /** As tabelas declaradas, com o identificador exportado e o nome no banco. */
 const TABELAS = Object.entries(schema as Record<string, unknown>)
-  .filter((e): e is [string, SQLiteTable] => e[1] instanceof SQLiteTable)
+  .filter((e): e is [string, PgTable] => e[1] instanceof PgTable)
   .map(([ident, tabela]) => ({ ident, nome: getTableName(tabela) }))
 
 /* Uma escrita: `insert(tabela)`, `update(tabela)`, `delete(tabela)`, `INSERT INTO ${tabela}` /

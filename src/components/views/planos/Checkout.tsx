@@ -45,7 +45,8 @@ import {
 import { carregarEntitlements, type Plan } from '../../../lib/entitlements';
 import { t } from '../../../lib/i18n';
 import { registrarCheckoutIniciado } from '../../../lib/ofertas/instrumentacao';
-import { estadoDaProtecao } from '../../../lib/protecaoDoMenor';
+import { comNomeDoPlano } from '../../../lib/planoDeEntrada';
+import { estadoDaProtecao, perfilProtegido } from '../../../lib/protecaoDoMenor';
 import { T } from '../../../lib/T';
 import { irSub, PLANO_ICO, PLANO_NOME } from './dados';
 import Etapas, { rolarAoTopo } from './Etapas';
@@ -131,7 +132,7 @@ function textosDaForma(plano: PlanoPago, f: FormaDeAssinar) {
 }
 
 /**
- * O TESTE DE 14 DIAS, COM UM TOQUE (C6) — sem nome, CPF nem cartão: nada é cobrado, nem no fim. Só
+ * O TESTE DE 3 DIAS, COM UM TOQUE (C6) — sem nome, CPF nem cartão: nada é cobrado, nem no fim. Só
  * aparece quando o SERVIDOR diz que dá (`teste.estado: 'disponivel'`), ou quando o responsável escolheu
  * o menor vinculado (ele ativa por ele; o servidor confere o vínculo). O perfil protegido recebe o
  * caminho do responsável, não o botão. O destaque do teste é o cartão do Premium na tela de Planos
@@ -143,6 +144,8 @@ function TesteDoPremium({ teste, beneficiario }: { teste?: SituacaoDoTeste; bene
   const [erro, setErro] = useState('');
   if (!teste) return null;
   const dias = teste.dias;
+  /* O plano do teste é o que o servidor diz (o Plus com a v4, o Premium antes): o texto leva o nome dele. */
+  const doPlano = (texto: string): string => comNomeDoPlano(texto, teste.plano ?? 'premium');
   const aviso = { className: 'q-aviso' };
 
   const comecar = async () => {
@@ -163,9 +166,11 @@ function TesteDoPremium({ teste, beneficiario }: { teste?: SituacaoDoTeste; bene
       <p {...aviso} role="status">
         <Hourglass aria-hidden />
         <span>
-          {t('Pronto: o Premium vale até {data}. No fim a conta volta ao Grátis sozinha, e nada é cobrado.', {
-            data: dataCurta(feito),
-          })}
+          {doPlano(
+            t('Pronto: o Premium vale até {data}. No fim a conta volta ao Grátis sozinha, e nada é cobrado.', {
+              data: dataCurta(feito),
+            }),
+          )}
         </span>
       </p>
     );
@@ -175,11 +180,16 @@ function TesteDoPremium({ teste, beneficiario }: { teste?: SituacaoDoTeste; bene
       <p {...aviso}>
         <Hourglass aria-hidden />
         <span>
-          {t('Seu teste do Premium vale até {data}. No fim, nada é cobrado.', { data: dataCurta(teste.terminaEm) })}
+          {doPlano(
+            t('Seu teste do Premium vale até {data}. No fim, nada é cobrado.', { data: dataCurta(teste.terminaEm) }),
+          )}
         </span>
       </p>
     );
 
+  /* Planos v4: o perfil protegido não recebe convite nem "peça ao seu responsável" (ECA Digital). */
+  if (!beneficiario && teste.estado === 'indisponivel' && teste.motivo === 'perfil_protegido' && teste.plano === 'plus')
+    return null;
   if (!beneficiario && teste.estado === 'indisponivel' && teste.motivo === 'perfil_protegido')
     return (
       <p {...aviso}>
@@ -200,18 +210,22 @@ function TesteDoPremium({ teste, beneficiario }: { teste?: SituacaoDoTeste; bene
       <Hourglass aria-hidden />
       <span>
         {beneficiario
-          ? t(
-              'Teste o Premium na conta de {nome} por {dias} dias, sem cartão. No fim ela volta ao Grátis: nada é cobrado.',
-              {
-                nome: beneficiario.nome ?? t('quem está vinculado a você'),
-                dias,
-              },
+          ? doPlano(
+              t(
+                'Teste o Premium na conta de {nome} por {dias} dias, sem cartão. No fim ela volta ao Grátis: nada é cobrado.',
+                {
+                  nome: beneficiario.nome ?? t('quem está vinculado a você'),
+                  dias,
+                },
+              ),
             )
-          : t(
-              'Ou teste o Premium por {dias} dias, sem cartão. No fim a conta volta ao Grátis sozinha: nada é cobrado.',
-              {
-                dias,
-              },
+          : doPlano(
+              t(
+                'Ou teste o Premium por {dias} dias, sem cartão. No fim a conta volta ao Grátis sozinha: nada é cobrado.',
+                {
+                  dias,
+                },
+              ),
             )}
         {erro && (
           <small className="qc-erro-miudo" role="alert">
@@ -639,7 +653,7 @@ export default function Checkout({
           <p className="qc-nota">
             <Lock aria-hidden />
             {t(
-              'O número do cartão você digita na página segura do Asaas, que abre quando você continuar. O Babel Play não vê nem guarda esses dados.',
+              'O número do cartão você digita na página segura do Asaas, que abre quando você continuar. O Frasy não vê nem guarda esses dados.',
             )}
           </p>
         </div>
@@ -743,6 +757,33 @@ export default function Checkout({
     </section>
   );
 
+  /* PLANOS v4: o perfil protegido (menor, ou idade não declarada) que chega ao checkout por endereço não vê
+     preço, resumo nem "peça ao seu responsável": só a frase neutra e o caminho de volta. */
+  if (planos.includes('plus') && (menor || protecao?.protegido === true || perfilProtegido()))
+    return (
+      <div className="q-palco qc" data-testid="checkout-do-quest">
+        <header className="q-cab">
+          <button
+            type="button"
+            className="q-ctl q-voltar"
+            aria-label={t('Voltar para Planos')}
+            onClick={() => irSub(null)}
+          >
+            <ArrowLeft aria-hidden /> {t('Planos')}
+          </button>
+          <div>
+            <p className="q-sobre">{t('Assinatura')}</p>
+            <h1>{t('Planos')}</h1>
+          </div>
+        </header>
+        <section className="q-cartao" role="status">
+          <p className="q-texto">
+            {t('Os planos pagos não estão disponíveis neste perfil. Tudo no aparelho segue sem limite.')}
+          </p>
+        </section>
+      </div>
+    );
+
   const IconeDoResumo = PLANO_ICO[plano];
   return (
     <div className="q-palco qc" data-testid="checkout-do-quest">
@@ -771,7 +812,7 @@ export default function Checkout({
               <IconeDoResumo aria-hidden />
             </span>
             <div>
-              <b>Babel Play {P}</b>
+              <b>Frasy {P}</b>
               <small>{daForma.titulo}</small>
             </div>
           </div>

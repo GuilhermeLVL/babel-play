@@ -23,9 +23,6 @@ const SEM_CARACTERIZACAO = {
     'coberta por `tests/integration/metricas-prometheus.test.ts` (11 casos sobre o `criarApp()` real: formato de exposicao, ordem de montagem, cardinalidade da label de rota) e `metricas-token.test.ts`. Nao aparece aqui como "com teste" por limite deste script: ele so reconhece chamada de teste que comece por `/api/`, e a rota de operacao mora na RAIZ por convencao do Prometheus',
   'POST /api/import/web':
     'busca de página externa (SSRF); coberto por `tests/integration/audit-s13-image-url.test.ts` e `server/import/web.ts` tem teste próprio de redirecionamento',
-  'POST /api/import/document':
-    'PDF/DOCX exige fixtures binárias; `.txt` está coberto pela importação Anki e o parser tem teste unitário (`f4-04-tipo-por-conteudo`)',
-  'POST /api/import/anki/export': 'exportação inversa; coberta por `tests/integration/anki-rotas.test.ts`',
   'GET /api/audio/loopback/stream':
     'dispositivo da máquina (WASAPI); só existe no self-host e o 403 do modo público está em auth-e-conta',
   'POST /api/billing/comprar':
@@ -39,13 +36,18 @@ const SEM_CARACTERIZACAO = {
   'GET /api/billing/status': 'idem',
   'POST /api/billing/cancelar': 'idem',
   'POST /api/billing/teste':
-    'o teste de 14 dias (C6) é coberto pelo app inteiro, com JWT de verdade, em `tests/integration/teste-premium.test.ts` (um toque, vence, apagar e recriar, menor, responsável, sem e-mail, venda pausada)',
+    'o teste de 3 dias (C6) é coberto pelo app inteiro, com JWT de verdade, em `tests/integration/teste-premium.test.ts` (um toque, vence, apagar e recriar, menor, responsável, sem e-mail, venda pausada)',
   'POST /api/billing/trocar':
     'a troca de plano (planos v3, etapa 8) é coberta com o Asaas simulado em `tests/integration/billing-trocar-plano.test.ts` (subir, rebaixar, o webhook do valor novo e do antigo, recusas, Asaas fora do ar, repetição, chargeback)',
   'POST /api/billing/trocar/cancelar': 'idem',
+  'POST /api/anuncios/premiado/iniciar':
+    'a recompensa do anúncio premiado é coberta pelo app inteiro, com JWT de verdade, em `tests/integration/anuncios-premiado.test.ts` (idempotência e corrida, prazo de 10 min, tetos por pessoa e global no dia UTC, perfil protegido, flag desligada, exibição de outra conta, nuvem em `/api/me/uso`)',
+  'POST /api/anuncios/premiado/concluir': 'idem',
   'GET /api/vocab/resumo':
     'as contagens da tela Cartões são cobertas em `tests/integration/vocab-resumo.test.ts` (26 casos: totais por estado, por idioma, sessão e baralho, previsão, retenção, calendário, virada do dia, ETag e 304, outra conta)',
   'POST /api/billing/webhook/asaas': 'idem (é o próprio webhook)',
+  'GET /api/ops/saude':
+    'o vigia da saúde do negócio (token próprio, antes do login); coberto por `tests/integration/saude-do-negocio.test.ts` (501 sem segredo, 401 com o errado, 200 com as checagens e o limite de cada job)',
   'GET /api/images/search':
     'proxy do Openverse; `tests/integration/audit-s13-image-url.test.ts` e `images` com cache em memória — Fase 5 troca o cache e escreve o teste HTTP',
   'POST /api/erros-do-cliente':
@@ -63,7 +65,6 @@ const SEM_CARACTERIZACAO = {
     'capa embutida (data: URI); coberto por `f11-03-capa-mime.test.ts` e `capa-teto.test.ts`',
   'POST /api/sessions/:id/audio':
     'upload binário de áudio (120 MB); coberto por `delete-sessao-audio.test.ts` e `cota-armazenamento.test.ts`',
-  'GET /api/sessions/:id/audio': 'idem',
   'POST /api/sessions/utterances/relabel': 'reetiquetagem em lote; coberto por `tests/integration/sessions-*`',
 }
 
@@ -92,10 +93,15 @@ const PREFIXOS = {
   'server/routes/erros.ts': '/api/erros-do-cliente',
   'server/routes/rank.ts': '/api/rank',
   'server/routes/health.ts': '/api/health',
+  'server/routes/ops.ts': '/api/ops',
   'server/audio/loopback.ts': '/api/audio',
   /* O tutor (antes `server/routes/gemini.ts`) nunca esteve nesta lista — era invisivel ao portao.
      Entrou na Fase 2 do lancamento, quando virou `tutor.ts`. */
   'server/routes/tutor.ts': '/api/tutor',
+  /* A recompensa do anúncio premiado (spec `anuncios-no-gratis`). */
+  'server/routes/anuncios.ts': '/api/anuncios',
+  /* As anotações do leitor (L2 de Livros & Leitura). */
+  'server/routes/leitura.ts': '/api/leitura',
 }
 
 function rotasDoServidor() {

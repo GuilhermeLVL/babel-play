@@ -17,9 +17,9 @@ describe('URL pública no index.html', () => {
   })
 
   it('com VITE_PUBLIC_URL, canonical e og apontam para ela (sem barra dupla)', () => {
-    const saida = aplicarUrlPublica(HTML, 'https://babelplay.com.br/')
-    expect(saida).toContain('<link rel="canonical" href="https://babelplay.com.br/" />')
-    expect(saida).toContain('content="https://babelplay.com.br/og.png"')
+    const saida = aplicarUrlPublica(HTML, 'https://frasy.com.br/')
+    expect(saida).toContain('<link rel="canonical" href="https://frasy.com.br/" />')
+    expect(saida).toContain('content="https://frasy.com.br/og.png"')
     expect(saida).not.toContain(MARCA_DA_URL)
   })
 

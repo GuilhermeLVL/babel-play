@@ -35,7 +35,6 @@ vi.mock('../src/lib/entitlements', async (original) => {
   const real = (await original()) as typeof import('../src/lib/entitlements')
   const ents = {
     plan: 'premium',
-    youtubeImport: true,
     managedCloudStt: true,
     managedCloudLlm: true,
     largerModels: true,

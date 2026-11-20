@@ -83,7 +83,7 @@ export function _definirRelogio(fn: (() => number) | null): void {
 let chaveDeHash: string | null = null
 async function chave(): Promise<string> {
   // Import tardio, como em `telemetriaDeIa.ts`: carregar este módulo não decide quando a chave é lida.
-  chaveDeHash ??= (await import('../crypto')).CHAVE_DE_HASH
+  chaveDeHash ??= (await import('../crypto')).obterChaveDeHash()
   return chaveDeHash
 }
 
@@ -161,7 +161,7 @@ export interface PortaGratuita {
   /** O plano resolvido (um só `resolverPlano` por request). */
   plano: PlanoEfetivo
   /**
-   * O Premium é o do TESTE de 14 dias (C6): os entitlements são os do Premium, mas a admissão da nuvem
+   * O Premium é o do TESTE de 3 dias (C6): os entitlements são os do Premium, mas a admissão da nuvem
    * trata a conta como grátis (`planoDeAdmissao(..., teste = true)`) — quem ainda não paga não disputa
    * a capacidade de quem paga.
    */
@@ -369,6 +369,8 @@ async function somarGasto(usd: number, o: { agora: number; userId?: UserId; chav
 const ESCRITAS_DO_CONVIDADO: ReadonlyArray<{ metodo: string; caminho: RegExp }> = [
   { metodo: 'POST', caminho: /^\/api\/ai\/stt\/?$/ },
   { metodo: 'POST', caminho: /^\/api\/ai\/mt\/?$/ },
+  /* O 👍/👎 da IA (só listas fechadas, sem texto): o convidado também avalia o que a nuvem respondeu. */
+  { metodo: 'POST', caminho: /^\/api\/ai\/feedback\/?$/ },
   { metodo: 'POST', caminho: /^\/api\/tutor\/chat\/?$/ },
   { metodo: 'DELETE', caminho: /^\/api\/me\/?$/ },
 ]

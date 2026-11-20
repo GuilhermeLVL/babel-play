@@ -24,15 +24,16 @@ Uma hora de legenda na nuvem (transcrição + tradução), pelo OpenRouter com r
 
 Custo máximo por pessoa no mês, pelas cotas da matriz v3:
 
-|                      | Cota de nuvem                            | Custo máx. (cons. / esp.) | Receita líquida | Margem no pior caso |
-| -------------------- | ---------------------------------------- | ------------------------- | --------------- | ------------------- |
-| Grátis               | só alívio, aparelho fraco, teto US$ 0,13 | US$ 0,13                  | 0               | custo               |
-| Essencial R$ 9,90    | 5 h                                      | US$ 0,29 / 0,14           | US$ 1,47        | US$ 1,18 (80%)      |
-| Premium R$ 19,90     | 20 h + voz até US$ 0,60                  | US$ 1,76 / 1,16           | US$ 3,15        | US$ 1,39 (44%)      |
-| **Teste de 14 dias** | **3 h + voz 30 mil car.**                | **US$ 0,20 / 0,10**       | 0               | custo               |
+|                     | Cota de nuvem                            | Custo máx. (cons. / esp.) | Receita líquida | Margem no pior caso |
+| ------------------- | ---------------------------------------- | ------------------------- | --------------- | ------------------- |
+| Grátis              | só alívio, aparelho fraco, teto US$ 0,13 | US$ 0,13                  | 0               | custo               |
+| Essencial R$ 9,90   | 5 h                                      | US$ 0,29 / 0,14           | US$ 1,47        | US$ 1,18 (80%)      |
+| Premium R$ 19,90    | 20 h + voz até US$ 0,60                  | US$ 1,76 / 1,16           | US$ 3,15        | US$ 1,39 (44%)      |
+| **Teste de 3 dias** | **1 h + voz 10 mil car.**                | **US$ 0,07 / 0,04**       | 0               | custo               |
 
 A receita líquida é a do projeto (R$ 8,22 e R$ 17,62 após Asaas e Simples, a R$ 5,60/US$). O teste custava até US$ 1,76 por
-pessoa; **agora acaba no que vier primeiro, os 14 dias ou 3 h** (implementado, `FRANQUIA_DO_TESTE`).
+pessoa; **agora acaba no que vier primeiro, os 3 dias ou 1 h** (implementado, `FRANQUIA_DO_TESTE`; eram 14 dias ou 3 h até a
+change `teste-de-3-dias`, de 14/11/2026).
 
 Crédito a manter por 1.000 usuários ativos em 30 dias (teto conservador + 5,5% de taxa do OpenRouter _[hipótese: não verifiquei a taxa]_
 
@@ -60,13 +61,13 @@ Crédito a manter por 1.000 usuários ativos em 30 dias (teto conservador + 5,5%
 
 ## 4. O teste que não quebra o caixa
 
-**Por uso, não por tempo.** Dura o que vier primeiro: 14 dias ou 3 h de nuvem (e 30 mil caracteres de voz). Mantém os recursos
+**Por uso, não por tempo.** Dura o que vier primeiro: 3 dias ou 1 h de nuvem (e 10 mil caracteres de voz). Mantém os recursos
 do Premium (nuance, voz natural, intérprete) para a pessoa **sentir a diferença**; só a nuvem é amostra. Sem cartão, uma vez por
-e-mail (marca HMAC, já existe), volta ao Grátis sem perder nada. Custo ≤ US$ 0,20, contra US$ 1,76.
+e-mail (marca HMAC, já existe), volta ao Grátis sem perder nada. Custo ≤ US$ 0,07, contra US$ 1,76.
 
-Break-even: com custo de teste de US$ 0,10 a 0,20 e margem de US$ 1,0 a 1,4 por assinante/mês, o teste se paga com **cerca de
+Break-even: com custo de teste de US$ 0,04 a 0,07 (eram US$ 0,10 a 0,20 com 3 h) e margem de US$ 1,0 a 1,4 por assinante/mês, o teste se paga com **cerca de
 2 a 5% de conversão** em ~4 meses de retenção _[hipótese]_. Os 2 a 5% de freemium→pago de apps de idioma são estimativa fraca
-_[fonte]_; o benchmark de teste sem cartão não existe nas fontes que achei. **Meça antes de acreditar**: % que usa as 3 h,
+_[fonte]_; o benchmark de teste sem cartão não existe nas fontes que achei. **Meça antes de acreditar**: % que usa a 1 h,
 % que volta no dia 7, teste→pago.
 
 ## 5. Gatilhos e linguagem (benefício, não recurso; sem manipular)
@@ -115,7 +116,7 @@ planos pagos (hoje só convidado e alívio); (c) cache de transcrição: não h�
 | Horas de nuvem por plano vs. cota              | testar "mais horas pelo mesmo preço" | `GET /api/me/uso`, `usage_counters`  |
 | Acerto do cache de tradução                    | cada acerto é US$ 0                  | `ia_cache_traducao_total`            |
 | % de sessões só no aparelho                    | o grátis custa zero                  | métricas da captura                  |
-| Teste→pago, uso das 3 h, volta no dia 7        | break-even do §4                     | funil de ofertas (`oferta_exibida`…) |
+| Teste→pago, uso da 1 h, volta no dia 7         | break-even do §4                     | funil de ofertas (`oferta_exibida`…) |
 | Gasto anômalo por usuário                      | abuso                                | `ia_gasto_anomalo_usuario_total`     |
 | Pagamento por meio (cartão/Pix), inadimplência | taxa e churn                         | Asaas                                |
 

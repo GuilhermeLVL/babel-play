@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 /**
- * O FIM DO TESTE DE 14 DIAS NAS OFERTAS (C6) — o momento `fim_do_teste`, em D-3 e em D0.
+ * O FIM DO TESTE DE 3 DIAS NAS OFERTAS (C6) — o momento `fim_do_teste`, em D-1 e em D0.
  *
- * É FUNCIONAL, não promocional: informa um fato da conta ("o teste termina em 3 dias", "termina
+ * É FUNCIONAL, não promocional: informa um fato da conta ("o teste termina amanhã", "termina
  * hoje") e que nada será cobrado. Vale com a flag `oferta_planos` desligada, com os textos embutidos,
  * e o botão leva a Planos sem destacar venda nenhuma. Só dispara para quem está NO TESTE (o fim vem
  * de `GET /api/me/entitlements`): o Premium pago nunca ouve isso.
@@ -68,11 +68,13 @@ afterEach(() => {
 })
 
 describe('a fase do fim do teste, no calendário da pessoa', () => {
-  it('três dias antes do último dia é D-3; o último dia é D0; os outros dias, nada', () => {
+  it('a véspera do último dia é D-1; o último dia é D0; os outros dias, nada', () => {
     const agora = meioDia()
-    expect(faseDoFimDoTeste(meioDia(3), agora)).toBe('d3')
+    expect(faseDoFimDoTeste(meioDia(1), agora)).toBe('d1')
     expect(faseDoFimDoTeste(meioDia(0) + 3 * 3_600_000, agora)).toBe('d0')
     expect(faseDoFimDoTeste(meioDia(2), agora)).toBeNull()
+    // O teste de 3 dias acabou de começar (o fim cai daqui a 3 dias): nenhum aviso de fim no próprio dia do início.
+    expect(faseDoFimDoTeste(meioDia(3), agora)).toBeNull()
     expect(faseDoFimDoTeste(meioDia(10), agora)).toBeNull()
     // Já terminou: não há o que avisar (a conta já voltou ao Grátis).
     expect(faseDoFimDoTeste(agora - 60_000, agora)).toBeNull()
@@ -81,8 +83,8 @@ describe('a fase do fim do teste, no calendário da pessoa', () => {
   it('sem teste nos entitlements (Grátis, ou Premium pago) não há fase', () => {
     estado.teste = null
     expect(faseDoTesteAgora()).toBeNull()
-    estado.teste = { terminaEm: meioDia(3) }
-    expect(faseDoTesteAgora(meioDia())).toBe('d3')
+    estado.teste = { terminaEm: meioDia(1) }
+    expect(faseDoTesteAgora(meioDia())).toBe('d1')
   })
 })
 
@@ -101,19 +103,19 @@ describe('o motor', () => {
 
   it('é momento funcional: vale com a flag desligada, com o texto de cada fase', () => {
     expect(momentoFuncional('fim_do_teste')).toBe(true)
-    const d3 = decidirOferta(entrada('d3'))
+    const d1 = decidirOferta(entrada('d1'))
     const d0 = decidirOferta(entrada('d0'))
-    expect(d3.mostrar && d3.gatilho.id).toBe('funcional_fim_do_teste_d3')
+    expect(d1.mostrar && d1.gatilho.id).toBe('funcional_fim_do_teste_d1')
     expect(d0.mostrar && d0.gatilho.id).toBe('funcional_fim_do_teste_d0')
-    expect(d3.mostrar && d3.funcional).toBe(true)
+    expect(d1.mostrar && d1.funcional).toBe(true)
   })
 
   it('os textos embutidos dizem que nada é cobrado — e não vendem', () => {
     const doTeste = GATILHOS_FUNCIONAIS.filter((g) => g.momento === 'fim_do_teste')
-    expect(doTeste.map((g) => g.fase).sort()).toEqual(['d0', 'd3', 'uso_acabou', 'uso_perto'])
+    expect(doTeste.map((g) => g.fase).sort()).toEqual(['d0', 'd1', 'uso_acabou', 'uso_perto'])
     for (const g of doTeste) {
       expect(String(g.texto)).toMatch(/nada é cobrado|sem cobrança/)
-      expect(g.planos).toEqual(['premium'])
+      expect(g.planos).toEqual(['premium', 'plus']) // o teste do Premium (v3) e o do Plus (v4)
     }
   })
 })
@@ -143,15 +145,15 @@ describe('o host', () => {
     cleanup()
   })
 
-  it('D-3: o aviso aparece sozinho para quem está no teste, e "Ver planos" leva a Planos sem destaque de venda', async () => {
+  it('D-1: o aviso aparece sozinho para quem está no teste, e "Ver planos" leva a Planos sem destaque de venda', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval'] })
-    estado.teste = { terminaEm: meioDia(3) }
+    estado.teste = { terminaEm: meioDia(1) }
     const aoVerPlanos = vi.fn()
     render(<HostDeOfertas aoEntrar={() => {}} aoVerPlanos={aoVerPlanos} />)
     await act(async () => {
       vi.advanceTimersByTime(6_000)
     })
-    expect(screen.getByText('Seu teste do Premium termina em 3 dias')).toBeTruthy()
+    expect(screen.getByText('Seu teste do Premium termina amanhã')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Ver planos' }))
     expect(aoVerPlanos).toHaveBeenCalledTimes(1)
     expect(consumirDestaqueEmPlanos()).toBeNull()
@@ -191,7 +193,7 @@ describe('o fim do teste por USO (a franquia de nuvem do teste)', () => {
       expect(tudo).toMatch(/no aparelho/)
       expect(tudo).toMatch(/nada é cobrado/)
       expect(tudo).not.toMatch(/dia 1º|últim|só hoje|corra|perca|%/i)
-      expect(g.planos).toEqual(['premium'])
+      expect(g.planos).toEqual(['premium', 'plus']) // o teste do Premium (v3) e o do Plus (v4)
     }
   })
 
@@ -217,7 +219,7 @@ describe('o fim do teste por USO (a franquia de nuvem do teste)', () => {
       vi.advanceTimersByTime(6_000)
     })
     expect(screen.getByText('A nuvem do seu teste chegou ao fim')).toBeTruthy()
-    expect(screen.queryByText(/volta no dia 1º/)).toBeNull()
+    expect(screen.queryByText(/A cota volta em/)).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Ver planos' }))
     expect(aoVerPlanos).toHaveBeenCalledTimes(1)
     expect(consumirDestaqueEmPlanos()).toBeNull()

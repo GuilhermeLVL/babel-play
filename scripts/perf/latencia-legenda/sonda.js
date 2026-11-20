@@ -232,11 +232,13 @@ registerProcessor('sonda-lat', SondaLat);`;
   const ultimo = new WeakMap();
   const varrer = () => {
     const t = now();
-    const els = document.querySelectorAll('.fala');
+    // `.fala/.orig/.trad` = ChatTranscript (lista antiga); `.q-linha-da-fala/.q-o/.q-t` = HistoricoDoPrototipo
+    // (a legenda da tela de captura de hoje).
+    const els = document.querySelectorAll('.fala, .q-linha-da-fala');
     for (let i = 0; i < els.length; i++) {
       const el = els[i];
-      const o = (el.querySelector('.orig') || {}).textContent || '';
-      const tr = (el.querySelector('.trad') || {}).textContent || '';
+      const o = (el.querySelector('.orig, .q-o') || {}).textContent || '';
+      const tr = (el.querySelector('.trad, .q-t') || {}).textContent || '';
       const nova = el.classList.contains('nova');
       const chave = o + '\u0001' + tr + '\u0001' + nova;
       if (ultimo.get(el) === chave) continue;

@@ -1,0 +1,91 @@
+```json
+[
+  {
+    "persona": "Universitária de 23 anos que estuda com os próprios PDFs e papers em inglês no notebook; quer grifar, resumir, tirar dúvidas e levar tudo para o Anki/Notion.",
+    "dores": [
+      "Paper em inglês denso: leio um parágrafo três vezes e ainda não sei se entendi a ideia central.",
+      "Cada vez que encontro um termo técnico, saio do PDF para o dicionário e perco o fio.",
+      "Grifo no leitor de PDF e depois não consigo tirar os grifos de lá; refaço tudo à mão no Notion.",
+      "Apostilas escaneadas ou com duas colunas viram bagunça quando tento copiar o texto.",
+      "Faço cartões no Anki manualmente e isso consome mais tempo que estudar.",
+      "Tenho 30 artigos para a revisão bibliográfica e não sei quais valem leitura completa.",
+      "Ferramentas de IA que li dão resumo bonito, mas inventam coisas e não mostram de onde veio.",
+      "Minhas anotações ficam espalhadas por vários apps e dispositivos, sem sincronizar."
+    ],
+    "jobs_to_be_done": [
+      "Quando recebo um paper em inglês de 20 páginas para a aula de amanhã, quero um resumo por seção com a citação do trecho de origem, para decidir rápido o que ler com atenção.",
+      "Quando encontro um termo técnico ou uma frase confusa, quero clicar e ver tradução e explicação no contexto, para não quebrar a concentração.",
+      "Quando termino de grifar um artigo, quero exportar os grifos e notas para o Anki e o Notion de uma vez, para não retrabalhar.",
+      "Quando preciso confirmar o que o autor afirmou, quero perguntar ao documento e receber a resposta com o trecho citado, para ter segurança de que não é invenção.",
+      "Quando vou fazer a prova, quero transformar meus grifos em cartões de revisão espaçada, para memorizar sem montar tudo manualmente."
+    ],
+    "funcoes": [
+      {"nome": "Importar PDF/link/DOCX", "descricao": "Arrastar o arquivo ou colar a URL de um artigo e abrir direto no leitor, processado no navegador.", "tela": "catálogo", "plano": "grátis", "ia": "não", "esforco": "M"},
+      {"nome": "Leitor de PDF com texto selecionável", "descricao": "Abre PDF com PDF.js, busca, sumário, progresso e retomada da posição.", "tela": "leitor", "plano": "grátis", "ia": "não", "esforco": "M"},
+      {"nome": "Grifos coloridos com nota", "descricao": "Selecionar trecho, escolher cor e escrever nota, salvo no modelo W3C com trecho citado.", "tela": "leitor", "plano": "grátis", "ia": "não", "esforco": "M"},
+      {"nome": "Clique-para-traduzir palavra/frase", "descricao": "Toque numa palavra ou frase e veja tradução curta, com botão para criar cartão.", "tela": "leitor", "plano": "grátis", "ia": "não", "esforco": "P"},
+      {"nome": "Explicar esta frase", "descricao": "IA explica o trecho selecionado em linguagem simples, com o termo técnico destacado.", "tela": "painel de IA", "plano": "pago", "ia": "sim", "esforco": "M"},
+      {"nome": "Resumo por seção com citações", "descricao": "Resumo por capítulo/seção, cada ponto apontando para o trecho original.", "tela": "painel de IA", "plano": "pago", "ia": "sim", "esforco": "M"},
+      {"nome": "Perguntar ao documento", "descricao": "Pergunta com busca lexical no texto e resposta que cita o trecho clicável.", "tela": "painel de IA", "plano": "pago", "ia": "sim", "esforco": "G"},
+      {"nome": "Exportar grifos para Anki (.apkg/CSV)", "descricao": "Gera deck com trecho na frente e nota/tradução no verso, mais link de volta à posição.", "tela": "notas/exportar", "plano": "grátis", "ia": "não", "esforco": "M"},
+      {"nome": "Exportar para Notion/Markdown", "descricao": "Baixa grifos e notas em Markdown agrupados por seção, pronto para colar no Notion.", "tela": "notas/exportar", "plano": "grátis", "ia": "não", "esforco": "P"},
+      {"nome": "Grifos viram cartões FSRS", "descricao": "Um toque converte grifo em cartão dentro do próprio Frasy, com revisão espaçada.", "tela": "jogos/revisão", "plano": "grátis", "ia": "não", "esforco": "P"},
+      {"nome": "Cartões sugeridos pela IA", "descricao": "A IA propõe cartões (pergunta/resposta e cloze) a partir do resumo ou dos grifos, para aprovar.", "tela": "painel de IA", "plano": "pago", "ia": "sim", "esforco": "M"},
+      {"nome": "Glossário do documento", "descricao": "Lista dos termos mais frequentes/raros do paper, com tradução, para pré-estudar antes de ler.", "tela": "painel de IA", "plano": "grátis", "ia": "não", "esforco": "M"},
+      {"nome": "Sincronizar anotações entre aparelhos", "descricao": "Opção de guardar anotações na conta (opt-in), respeitando retenção zero para menores.", "tela": "ajustes", "plano": "pago", "ia": "não", "esforco": "G"},
+      {"nome": "Biblioteca de documentos com pastas e etiquetas", "descricao": "Organizar artigos por disciplina, com status lido/em andamento e busca no conteúdo.", "tela": "catálogo", "plano": "grátis", "ia": "não", "esforco": "M"}
+    ],
+    "me_faria_desistir": [
+      "Resumo ou resposta da IA sem citar o trecho de origem: se não consigo conferir, não uso para estudar.",
+      "Perder grifos e notas por ficarem presos no navegador sem como exportar ou fazer backup.",
+      "PDF de duas colunas ou com fórmulas que sai embaralhado, sem aviso e sem alternativa.",
+      "Cota de IA que acaba no meio da semana de provas sem aviso prévio, ou paywall em exportar minhas próprias anotações.",
+      "Exportação para Anki que gera cartões genéricos e precisa de limpeza manual, sem ser menos trabalho que fazer à mão."
+    ]
+  },
+  {
+    "persona": "Pessoa de 29 anos com dislexia e baixa visão leve, que aprende espanhol e precisa de fonte, espaçamento e contraste ajustáveis, voz com destaque sincronizado e textos simplificados.",
+    "dores": [
+      "Blocos de texto densos, com letras apertadas e justificadas, me fazem perder a linha e cansar em poucos minutos.",
+      "Muitos apps só deixam aumentar a fonte, mas não mexem em espaçamento entre letras, palavras e linhas.",
+      "Contraste branco puro sobre preto, ou o inverso, me ofusca; preciso de temas suaves como creme ou cinza escuro.",
+      "A leitura em voz alta não destaca o que está sendo dito, então me perco e não sei onde o áudio está.",
+      "Vocabulário e frases longas em espanhol me travam; preciso de versão mais simples antes de enfrentar o original.",
+      "Controles pequenos, textos de botão miúdos e telas poluídas são difíceis de ler e de tocar.",
+      "Voz robótica ou rápida demais piora a compreensão, e nem sempre dá para trocar de voz ou ritmo.",
+      "Tenho medo de errar na ortografia, e jogos com tempo curto me fazem sentir pressão e vergonha."
+    ],
+    "jobs_to_be_done": [
+      "Quando abro um texto em espanhol, quero ajustar fonte, espaçamento e tema antes de começar, para conseguir ler sem esforço visual.",
+      "Quando o texto está difícil, quero uma versão simplificada no meu nível ao lado do original, para entender primeiro e depois enfrentar o texto real.",
+      "Quando prefiro ouvir, quero voz clara em velocidade ajustável com a frase destacada em sincronia, para acompanhar com os olhos e os ouvidos juntos.",
+      "Quando encontro uma palavra nova, quero ouvi-la e vê-la separada em sílabas, para fixar a pronúncia e a escrita.",
+      "Quando reviso o vocabulário, quero jogos sem cronômetro obrigatório e com letras grandes, para treinar sem ansiedade."
+    ],
+    "funcoes": [
+      {"nome": "Painel de tipografia acessível", "descricao": "Ajusta fonte (inclui opção para dislexia), tamanho, espaçamento de letra/palavra/linha e largura da coluna, com prévia ao vivo.", "tela": "ajustes", "plano": "grátis", "ia": "não", "esforco": "M"},
+      {"nome": "Temas de contraste suave", "descricao": "Creme, cinza escuro, alto contraste e cores de fundo personalizadas, sem branco puro.", "tela": "ajustes", "plano": "grátis", "ia": "não", "esforco": "P"},
+      {"nome": "Régua de leitura / foco por linha", "descricao": "Destaca só a linha ou o parágrafo atual e escurece o resto, para não perder o lugar.", "tela": "leitor", "plano": "grátis", "ia": "não", "esforco": "M"},
+      {"nome": "Narração com destaque sincronizado", "descricao": "A voz do aparelho lê em voz alta e a frase (e a palavra, se possível) é destacada em tempo real.", "tela": "narração", "plano": "grátis", "ia": "não", "esforco": "M"},
+      {"nome": "Controle de voz e velocidade", "descricao": "Escolher voz, ritmo e pausas entre frases, com teste rápido de cada voz.", "tela": "narração", "plano": "grátis", "ia": "não", "esforco": "P"},
+      {"nome": "Voz natural na nuvem", "descricao": "Voz mais humana para narrar capítulos, com cota mensal e aviso de consumo.", "tela": "narração", "plano": "pago", "ia": "sim", "esforco": "M"},
+      {"nome": "Simplificar texto por nível", "descricao": "IA reescreve o capítulo em frases curtas e vocabulário do nível escolhido (A1–B2), guardando o original ao lado.", "tela": "painel de IA", "plano": "pago", "ia": "sim", "esforco": "M"},
+      {"nome": "Leituras simples no catálogo", "descricao": "Seção de textos de domínio público curtos e graduados, com classificação etária e sem custo de IA.", "tela": "catálogo", "plano": "grátis", "ia": "não", "esforco": "M"},
+      {"nome": "Modo bilíngue lado a lado", "descricao": "Original e tradução em colunas ou intercalados frase a frase, com fonte ajustável em ambos.", "tela": "leitor", "plano": "grátis", "ia": "não", "esforco": "M"},
+      {"nome": "Palavra em sílabas e áudio", "descricao": "Ao tocar numa palavra: separação silábica, pronúncia ouvida e botão de criar cartão.", "tela": "leitor", "plano": "grátis", "ia": "não", "esforco": "M"},
+      {"nome": "Explicar a frase em palavras simples", "descricao": "IA explica o trecho difícil em espanhol fácil ou em português, com exemplo curto.", "tela": "painel de IA", "plano": "pago", "ia": "sim", "esforco": "M"},
+      {"nome": "Jogos sem pressão de tempo", "descricao": "Modo calmo com letras grandes, sem cronômetro, sem punição por erro e com dica de áudio.", "tela": "jogos/revisão", "plano": "grátis", "ia": "não", "esforco": "M"},
+      {"nome": "Notas de áudio", "descricao": "Gravar uma nota falada no trecho, em vez de digitar, para quem escreve com dificuldade.", "tela": "notas/exportar", "plano": "grátis", "ia": "não", "esforco": "M"},
+      {"nome": "Perfil de acessibilidade salvo", "descricao": "Guarda todas as preferências e as aplica em qualquer livro ou documento, sem reconfigurar.", "tela": "ajustes", "plano": "grátis", "ia": "não", "esforco": "P"},
+      {"nome": "Navegação por teclado e leitor de tela", "descricao": "Alvos de toque grandes, foco visível, atalhos e rótulos corretos para tecnologia assistiva.", "tela": "outra", "plano": "grátis", "ia": "não", "esforco": "M"}
+    ],
+    "me_faria_desistir": [
+      "Acessibilidade escondida atrás de plano pago: fonte, espaçamento, contraste e leitura em voz alta precisam ser grátis.",
+      "Destaque da narração que fica fora de sincronia com a voz, ou pula de frase de forma errática.",
+      "Simplificação que muda o sentido ou empurra texto infantilizado, sem me deixar ver o original ao lado.",
+      "Jogos e cartões com cronômetro agressivo, sons de erro e mensagens que me fazem sentir burra ou burro.",
+      "Configurações que voltam ao padrão a cada livro, ou interface cheia de ícones pequenos e texto miúdo que ignora minhas preferências."
+    ]
+  }
+]
+```

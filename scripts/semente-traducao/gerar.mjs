@@ -186,7 +186,7 @@ export function escolher(pares, niveis) {
 
 export function cabecalho(a, b) {
   return [
-    `# Semente da memória de tradução do Babel Play (${a}-${b}). Gerada por scripts/semente-traducao/gerar.mjs.`,
+    `# Semente da memória de tradução do Frasy (${a}-${b}). Gerada por scripts/semente-traducao/gerar.mjs.`,
     '# Fonte: Tatoeba (https://tatoeba.org), licença CC BY 2.0 FR (https://creativecommons.org/licenses/by/2.0/fr/).',
     `# Frases e traduções dos colaboradores do Tatoeba; os ids de cada linha estão em ${a}-${b}.ids.tsv.`,
   ].join('\n')

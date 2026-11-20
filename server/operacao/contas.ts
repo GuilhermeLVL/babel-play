@@ -6,8 +6,8 @@
  *   node dist-server/operacao.cjs conta plano <e-mail-ou-id> <free|premium>
  *
  * POR QUE EXISTE: O PRIMEIRO ADMIN. `PATCH /api/admin/users/:id` exige um admin, e nenhuma porta
- * criava o primeiro — só um `UPDATE` à mão no SQLite de produção. A CLI roda dentro da máquina
- * (`fly ssh console`), que é exatamente o nível de acesso de quem já podia fazer o `UPDATE`; ela só
+ * criava o primeiro — só um `UPDATE` à mão no banco de produção. A CLI roda num shell com acesso ao
+ * servidor e ao `DATABASE_URL`, que é exatamente o nível de acesso de quem já podia fazer o `UPDATE`; ela só
  * tira o SQL solto do caminho e põe as mesmas travas da rota admin no lugar.
  *
  * SÓ CONTA EXISTENTE, como na rota: `usersRepo.setRole` chama `ensure`, e sem a conferência antes

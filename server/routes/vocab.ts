@@ -3,6 +3,7 @@ import { Router } from 'express'
 
 import type { Grade } from '../../src/core/learning/scheduler'
 import { contagensDeConteudo, versaoDosBaralhos } from '../db/repositories/contagensDeConteudo'
+import { palavrasVistasRepo } from '../db/repositories/palavrasVistas'
 import { resumoDosCartoes } from '../db/repositories/resumoDosCartoes'
 import { versoesRepo } from '../db/repositories/versoes'
 import { vocabRepo } from '../db/repositories/vocab'
@@ -14,6 +15,9 @@ import {
   bulkAddCardsSchema,
   desfazerRevisaoSchema,
   idParamSchema,
+  notaDoCartaoSchema,
+  palavraQuerySchema,
+  palavrasVistasQuerySchema,
   parseOr400,
   patchVocabSchema,
   relabelVocabSchema,
@@ -225,6 +229,57 @@ vocabRouter.get('/conteudo', async (req, res) => {
   }
 })
 
+/**
+ * ETIQUETAS DE PALAVRAS: as chaves das palavras que a pessoa já viu nas sessões dela, num idioma (base) —
+ * a legenda marca "já vi" sem pedir palavra por palavra. A chave é a de `src/core/texto/palavrasVistas.ts`.
+ *
+ * ETag pela versão `palavras` (`versoes_de_dados`), que sobe só quando o CONJUNTO de chaves pode ter
+ * mudado (linha nova ou que zerou no índice, reconstrução, sessão removida) — o lote da captura que só soma
+ * ocorrência, a tradução, o título e o polimento não invalidam. O idioma entra como variante.
+ * If-None-Match igual → 304 com UMA consulta de chave primária. Teto de `TETO_DE_CHAVES_VISTAS` chaves, das
+ * mais vistas: acima dele, `truncado: true`.
+ *
+ * PARA O CLIENTE: pedir ao abrir a tela e ao FIM da captura, nunca durante ela — durante a captura a legenda
+ * marca as palavras novas pelo que acabou de ouvir (as falas que ela mesma mostra).
+ */
+vocabRouter.get('/vistas', async (req, res) => {
+  const q = parseOr400(palavrasVistasQuerySchema, req.query, res)
+  if (!q) return
+  try {
+    const lang = q.lang.toLowerCase().split('-')[0]
+    const { palavras } = await versoesRepo.de(req.userId)
+    const etag = etagPorVersao('palavras-vistas', req.userId, palavras, lang)
+    res.setHeader('ETag', etag)
+    if (casaComIfNoneMatch(req.headers['if-none-match'], etag)) {
+      res.status(304).end()
+      return
+    }
+    res.json(await palavrasVistasRepo.chavesVistas(req.userId, lang))
+  } catch (err) {
+    res.removeHeader('ETag')
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
+/**
+ * O HISTÓRICO DE UMA PALAVRA (a gaveta da etiqueta): o cartão, se houver (estado na régua de
+ * `core/learning/estadoDoCartao.ts`), quantas vezes e em quantas sessões ela apareceu, até 10 sessões com a
+ * frase de exemplo, os jogos e a nota. Palavra nunca vista nem salva: 200 com tudo zerado.
+ */
+vocabRouter.get('/palavra', async (req, res) => {
+  const q = parseOr400(palavraQuerySchema, req.query, res)
+  if (!q) return
+  try {
+    res.json(await palavrasVistasRepo.historico(req.userId, q.lang, q.chave))
+  } catch (err) {
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
 /** Z3: instrumentação da distribuição por faixa — o drift precisa ser um número observável. */
 vocabRouter.get('/distribuicao-dificuldade', async (req, res) => {
   try {
@@ -345,6 +400,23 @@ vocabRouter.patch('/:id', async (req, res) => {
   } catch (err) {
     res.status(400).json({
       error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
+/** A nota pessoal do cartão (até 500 caracteres; `''` limpa). Cartão que não é seu: 404. */
+vocabRouter.put('/:id/nota', async (req, res) => {
+  const p = parseOr400(idParamSchema, req.params, res)
+  if (!p) return
+  const body = parseOr400(notaDoCartaoSchema, req.body, res)
+  if (!body) return
+  try {
+    const salvo = await vocabRepo.salvarNota(req.userId, p.id, body.nota)
+    if (!salvo) return res.status(404).json({ error: 'card não encontrado' })
+    res.json(salvo)
+  } catch (err) {
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
     })
   }
 })

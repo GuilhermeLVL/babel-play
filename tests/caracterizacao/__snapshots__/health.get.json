@@ -2,6 +2,7 @@
   "status": 200,
   "forma": {
     "at": "number",
+    "banco": "string",
     "boot": "string",
     "db": "string",
     "status": "string",

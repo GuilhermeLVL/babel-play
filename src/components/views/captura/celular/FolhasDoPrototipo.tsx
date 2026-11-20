@@ -1,21 +1,44 @@
 /* A folha traz o próprio CSS: ela abre também na Sessão, sem passar por Capturar. */
 import '../../../../styles/capturaNoCelular.css';
 import '../../../../styles/polimentoCaptura.css';
+import '../../../../styles/etiquetas.css';
 
-import { ArrowLeft, Check, Copy, Gauge, Languages, Lock, Mic, Plus, Sparkles, Volume2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  Check,
+  Copy,
+  Gauge,
+  Languages,
+  Lock,
+  MessageCircleReply,
+  Mic,
+  Plus,
+  Sparkles,
+  Volume2,
+} from 'lucide-react';
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+import type { MarcaNaLinha } from '../../../../core/assistente/telaDoAssistente';
+import type { CorrecaoDaFala } from '../../../../data/apiDoAssistente';
 import { type DictionaryResult, lookup } from '../../../../lib/dictionary';
+import type { Etiquetador } from '../../../../lib/etiquetas/indiceDeEtiquetas';
+import { rotuloDaEtiqueta } from '../../../../lib/etiquetas/rotulos';
 import { t } from '../../../../lib/i18n';
 import { direcaoDoTexto } from '../../../../lib/languages';
-import { comemorarGuardada, entrarFolha } from '../../../../lib/polimento/captura';
+import { comNomeDoPlano, planoDeEntradaAgora } from '../../../../lib/planoDeEntrada';
+import { comemorarGuardada, entrarConteudoDaFolha, entrarFolha } from '../../../../lib/polimento/captura';
 import { haVozPara } from '../../../../lib/voz/haVoz';
 import { toast } from '../../../Toast';
+import { CorrecaoNaPagina } from '../assistente/AssistenteNaPagina';
+import { rotuloDaMarca } from '../assistente/TextoComMarcas';
+import ExplicacaoDaFrase from '../estudo/ExplicacaoDaFrase';
 import { type FalaTocada, type NuanceNaFolhaDaFrase, palavrasDaFrase } from './FolhaDaFrase';
 import FolhaDeBaixo from './FolhaDeBaixo';
+import PainelDaFrase, { useModoDoPainel } from './PainelDaFrase';
 
 const SombraDaFala = lazy(() => import('../../analise/SombraDaFala'));
 const NuanceDaFrase = lazy(() => import('../nuance/NuanceDaFrase'));
+const HistoricoDaPalavra = lazy(() => import('../../../vocab/HistoricoDaPalavra'));
 
 /** Sem resposta nisto (MT fora, rede lenta), a folha diz "sem tradução" em vez de esperar para sempre. */
 const PACIENCIA_MS = 8000;
@@ -39,6 +62,8 @@ function CorpoDaFrase({
   guardada,
   aoPraticar,
   nuance,
+  assistente,
+  etiquetador,
 }: {
   fala: FalaTocada;
   aoOuvir: (texto: string, lang: string, lenta: boolean) => void;
@@ -52,9 +77,16 @@ function CorpoDaFrase({
   guardada?: (palavra: string) => boolean;
   aoPraticar?: () => void;
   nuance?: NuanceNaFolhaDaFrase;
+  assistente?: AssistenteNaFolha;
+  /** As ETIQUETAS DE PALAVRAS nos botões de palavra (`data-etiqueta` e a `aria-description`). */
+  etiquetador?: Etiquetador | null;
 }) {
   const [praticando, setPraticando] = useState(false);
   const palavras = palavrasDaFrase(fala.texto, fala.lang);
+  /* Os destaques da frase, um por trecho (a mesma palavra de nível repetida aparece uma vez). */
+  const destaques = (assistente?.destaques ?? []).filter(
+    (m, i, todas) => todas.findIndex((x) => x.tipo === m.tipo && x.texto.toLowerCase() === m.texto.toLowerCase()) === i,
+  );
   const temTraducao = !!fala.traducao && fala.traducao !== '…';
   const vozDoOriginal = haVozPara(fala.lang);
 
@@ -82,6 +114,7 @@ function CorpoDaFrase({
           {fala.traducao}
         </p>
       )}
+      <CorrecaoNaPagina correcao={assistente?.correcao} lang={fala.lang} className="asst-correcao folha-correcao" />
       <div className="folha-grade">
         <button
           type="button"
@@ -127,7 +160,38 @@ function CorpoDaFrase({
         <button type="button" className="folha-acao" onClick={copiar}>
           <Copy aria-hidden /> {t('Copiar')}
         </button>
+        {/* "Como respondo?" (Fase C3): ajuda de idioma, sob pedido — a folha das sugestões abre na página. */}
+        {assistente?.aoComoRespondo && (
+          <button
+            type="button"
+            className="folha-acao"
+            title={t('Sugestões para você responder com as suas palavras')}
+            onClick={assistente.aoComoRespondo}
+          >
+            <MessageCircleReply aria-hidden /> {t('Como respondo?')}
+          </button>
+        )}
       </div>
+      {destaques.length > 0 && assistente?.aoTocarDestaque && (
+        <>
+          <p className="folha-rotulo">{t('Destaques desta frase')}</p>
+          <div className="folha-palavras folha-destaques" dir={direcaoDoTexto(fala.lang)}>
+            {destaques.map((m) => (
+              <button
+                key={`${m.tipo}|${m.texto}`}
+                type="button"
+                lang={fala.lang}
+                className="asst-marca"
+                data-marca={m.tipo}
+                aria-label={`${m.texto}, ${rotuloDaMarca(m)}`}
+                onClick={() => assistente.aoTocarDestaque?.(m)}
+              >
+                {m.texto}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
       {praticando && (
         <Suspense fallback={null}>
           <SombraDaFala
@@ -136,6 +200,15 @@ function CorpoDaFrase({
             aoOuvirOriginal={() => aoOuvir(fala.texto, fala.lang, false)}
           />
         </Suspense>
+      )}
+      {/* Em coluna (o painel da frase, 24/10/2026): primeiro a explicação, depois as outras formas. */}
+      {nuance && (
+        <ExplicacaoDaFrase
+          fala={fala}
+          destino={nuance.destino}
+          contexto={nuance.contexto}
+          aoConhecer={nuance.aoConhecer}
+        />
       )}
       {/* `nuanceDaFrase()` de `telas.js:190-196`: no Grátis, com cadeado e um exemplo desfocado. */}
       {nuance && !nuance.disponivel && (
@@ -152,7 +225,7 @@ function CorpoDaFrase({
           </span>
           {nuance.aoConhecer && (
             <button type="button" className="q-ctl" data-px="planos" onClick={nuance.aoConhecer}>
-              {t('Conhecer o Premium')}
+              {comNomeDoPlano(t('Conhecer o Premium'), planoDeEntradaAgora())}
             </button>
           )}
         </div>
@@ -187,6 +260,7 @@ function CorpoDaFrase({
           <div className="folha-palavras" dir={direcaoDoTexto(fala.lang)}>
             {palavras.map((p) => {
               const ja = !!guardada?.(p);
+              const etiqueta = etiquetador?.etiqueta(p, fala.lang);
               return (
                 <button
                   key={p}
@@ -195,6 +269,8 @@ function CorpoDaFrase({
                   dir={direcaoDoTexto(fala.lang)}
                   data-nova={!ja && ehNova?.(p) ? '' : undefined}
                   data-aprendida={ja ? '' : undefined}
+                  data-etiqueta={etiqueta}
+                  aria-description={etiqueta && etiqueta !== 'dominada' ? rotuloDaEtiqueta(etiqueta) : undefined}
                   onClick={() => aoTocarPalavra(p)}
                 >
                   {p}
@@ -219,6 +295,7 @@ function CorpoDaPalavra({
   palavra,
   frase,
   lang,
+  realce,
   jaGuardada = false,
   aoConsultar,
   aoOuvir,
@@ -226,10 +303,12 @@ function CorpoDaPalavra({
   aoVoltar,
   aoPraticar,
   semPratica = false,
+  novaAba = false,
 }: {
   palavra: string;
   frase: string;
   lang: string;
+  realce?: RealceDaPalavra;
   jaGuardada?: boolean;
   aoConsultar: (palavra: string, frase: string, lang?: string) => Promise<{ traducao: string }>;
   aoOuvir: (texto: string, lang: string, lenta: boolean) => void;
@@ -237,6 +316,8 @@ function CorpoDaPalavra({
   aoVoltar?: () => void;
   aoPraticar?: () => void;
   semPratica?: boolean;
+  /** Os links do histórico abrem em nova aba (a captura não pode sair da tela). */
+  novaAba?: boolean;
 }) {
   const [glosa, setGlosa] = useState<string | null>(null);
   const [verbete, setVerbete] = useState<DictionaryResult | null>(null);
@@ -247,10 +328,22 @@ function CorpoDaPalavra({
   const botao = useRef<HTMLButtonElement>(null);
   const acabouDeGuardar = useRef(false);
 
+  /* O destaque do assistente que já traz o sentido (expressão, termo): ele é a glosa — a expressão não é a soma das
+     palavras, e o dicionário diria outra coisa. */
+  const sentidoPronto = realce?.sentido;
   useEffect(() => {
     let vivo = true;
-    setGlosa(null);
+    setGlosa(sentidoPronto ?? null);
     setStatus('');
+    if (sentidoPronto) {
+      void lookup(palavra, lang).then(
+        (r) => vivo && setVerbete(r),
+        () => undefined,
+      );
+      return () => {
+        vivo = false;
+      };
+    }
     const desistir = setTimeout(() => vivo && setGlosa((g) => g ?? ''), PACIENCIA_MS);
     aoConsultar(palavra, frase, lang).then(
       (r) => vivo && setGlosa(r.traducao || ''),
@@ -264,7 +357,7 @@ function CorpoDaPalavra({
       vivo = false;
       clearTimeout(desistir);
     };
-  }, [palavra, frase, lang, aoConsultar]);
+  }, [palavra, frase, lang, aoConsultar, sentidoPronto]);
 
   /* `telas.js:248-253`: depois que o botão já mostra "Guardada" (o ícone novo é o que gira). */
   useLayoutEffect(() => {
@@ -303,6 +396,11 @@ function CorpoDaPalavra({
       <p className="folha-pal" lang={lang} dir={direcaoDoTexto(lang)}>
         {palavra}
       </p>
+      {realce && (
+        <p className="folha-realce" data-marca={realce.tipo}>
+          {realce.rotulo}
+        </p>
+      )}
       {ipa && <p className="folha-ipa">{ipa}</p>}
       <p className="folha-glosa">
         {glosa === null ? t('Consultando…') : glosa || t('Sem tradução para esta palavra.')}
@@ -351,8 +449,28 @@ function CorpoDaPalavra({
           <SombraDaFala texto={palavra} idioma={lang} aoOuvirOriginal={() => aoOuvir(palavra, lang, false)} />
         </Suspense>
       )}
+      <Suspense fallback={null}>
+        <HistoricoDaPalavra palavra={palavra} lang={lang} novaAba={novaAba} />
+      </Suspense>
     </>
   );
+}
+
+/** O destaque do assistente ao vivo de onde a palavra veio (Fase C3): o tipo, o rótulo e, na expressão/termo, o sentido. */
+export interface RealceDaPalavra {
+  tipo: MarcaNaLinha['tipo'];
+  rotulo: string;
+  sentido?: string;
+}
+
+/** O que a folha da frase recebe do assistente ao vivo (Fase C3). Ausente = nada do assistente. */
+export interface AssistenteNaFolha {
+  /** As marcas da frase (expressões, termos, palavras acima do nível). */
+  destaques?: ReadonlyArray<MarcaNaLinha>;
+  correcao?: CorrecaoDaFala;
+  aoTocarDestaque?: (m: MarcaNaLinha) => void;
+  /** "Como respondo?" para esta frase; ausente = o recurso não existe nesta conta (ou a frase é sua). */
+  aoComoRespondo?: () => void;
 }
 
 /** A palavra aberta, no que a folha precisa. */
@@ -360,13 +478,19 @@ export interface PalavraNaFolha {
   palavra: string;
   frase: string;
   lang: string;
+  /** Veio de um destaque do assistente (Fase C3). */
+  realce?: RealceDaPalavra;
 }
 
 /**
- * AS DUAS FOLHAS DO DESENHO NOVO NUM `<dialog>` SÓ. No protótipo, ir da frase para a palavra (e
- * voltar) tira a folha antiga na hora e a nova sobe de baixo (`folhaDeBaixo()` de `telas.js:173-188`).
- * Aqui é o mesmo diálogo que troca de conteúdo e refaz a subida: dois diálogos fariam a antiga sair
- * devagar por baixo da nova.
+ * AS DUAS FOLHAS DO DESENHO NOVO NUM LUGAR SÓ. No protótipo, ir da frase para a palavra (e voltar) tira a
+ * folha antiga na hora e a nova sobe de baixo (`folhaDeBaixo()` de `telas.js:173-188`). Aqui é o mesmo
+ * lugar que troca de conteúdo: dois fariam o antigo sair devagar por baixo do novo.
+ *
+ * O LUGAR É O PAINEL DA FRASE (`PainelDaFrase`, 24/10/2026): sem modal, ao lado da legenda no computador e
+ * folha baixa no celular, com a legenda tocável. A folha MODAL de antes fica para onde o painel não cabe:
+ * o Quest e as camadas que já são modais (o Intérprete, o foco cheio) pedem `modal`; o celular deitado
+ * (baixo demais para a folha) cai nela sozinho.
  */
 export default function FolhasDoPrototipo({
   fala,
@@ -383,6 +507,10 @@ export default function FolhasDoPrototipo({
   aoSalvar,
   aoFechar,
   nuance,
+  modal = false,
+  assistente,
+  etiquetador,
+  novaAba = false,
 }: {
   /** A fala tocada; ausente quando a palavra não veio de uma frase. */
   fala: FalaTocada | null;
@@ -401,54 +529,99 @@ export default function FolhasDoPrototipo({
   aoSalvar: (item: { palavra: string; frase?: string; lang?: string; traducao?: string }) => Promise<string>;
   aoFechar: () => void;
   nuance?: NuanceNaFolhaDaFrase;
+  /** A folha modal de antes: o Quest e quem já está numa camada modal (o Intérprete, o foco cheio). */
+  modal?: boolean;
+  /** O assistente ao vivo na folha da frase: os destaques, a correção e o "Como respondo?" (Fase C3). */
+  assistente?: AssistenteNaFolha;
+  /** As ETIQUETAS DE PALAVRAS nas palavras da frase. */
+  etiquetador?: Etiquetador | null;
+  /** O histórico da palavra abre a sessão em nova aba (na captura). */
+  novaAba?: boolean;
 }) {
   const dialogo = useRef<HTMLDialogElement>(null);
+  const doPainel = useRef<HTMLElement>(null);
+  const modo = useModoDoPainel();
   const qual = palavra ? `palavra:${palavra.palavra}` : 'frase';
   const anterior = useRef(qual);
   useLayoutEffect(() => {
     if (anterior.current === qual) return;
     anterior.current = qual;
     if (dialogo.current) entrarFolha(dialogo.current);
+    const painel = doPainel.current;
+    if (!painel) return;
+    /* No painel, só o conteúdo entra: ele não sai do lugar. */
+    entrarConteudoDaFolha(painel);
+    /* O botão em foco (a palavra, o "Voltar") saiu com o conteúdo antigo: o foco não cai no <body>. Vai para
+       o "Voltar à frase" da palavra ou, de volta na frase, para o painel. */
+    const ativo = document.activeElement;
+    if (!ativo || ativo === document.body || painel.contains(ativo))
+      (painel.querySelector<HTMLElement>('.folha-voltar') ?? painel).focus({ preventScroll: true });
   }, [qual]);
 
   if (!palavra && !fala) return null;
+  const classe = palavra ? 'folha-da-palavra' : 'folha-da-frase';
+  const conteudo = palavra ? (
+    <CorpoDaPalavra
+      key={palavra.palavra}
+      palavra={palavra.palavra}
+      frase={palavra.frase}
+      lang={palavra.lang}
+      realce={palavra.realce}
+      jaGuardada={!!guardada?.(palavra.palavra)}
+      aoConsultar={aoConsultar}
+      aoOuvir={aoOuvir}
+      aoSalvar={aoSalvar}
+      aoVoltar={aoVoltar}
+      aoPraticar={aoPraticar}
+      semPratica={semPratica}
+      novaAba={novaAba}
+    />
+  ) : (
+    fala && (
+      <CorpoDaFrase
+        /* Outra frase no mesmo painel: a prática e a explicação da anterior não ficam. */
+        key={fala.id}
+        fala={fala}
+        aoOuvir={aoOuvir}
+        audioReal={audioReal}
+        semPratica={semPratica}
+        aoTocarPalavra={aoTocarPalavra}
+        ehNova={ehNova}
+        guardada={guardada}
+        aoPraticar={aoPraticar}
+        nuance={nuance}
+        assistente={assistente}
+        etiquetador={etiquetador}
+      />
+    )
+  );
+  if (!modal && modo !== 'nao-cabe')
+    return (
+      <PainelDaFrase
+        rotulo={palavra ? t('Palavra: {palavra}', { palavra: palavra.palavra }) : t('Frase escolhida')}
+        anuncio={
+          palavra
+            ? t('Palavra: {palavra}', { palavra: palavra.palavra })
+            : t('Frase escolhida: {frase}', { frase: fala?.texto ?? '' })
+        }
+        modo={modo}
+        chave={`${fala?.id ?? ''}|${qual}`}
+        aoFechar={aoFechar}
+        refDoPainel={doPainel}
+        classe={classe}
+      >
+        {conteudo}
+      </PainelDaFrase>
+    );
   return (
     <FolhaDeBaixo
       titulo={palavra ? t('Palavra: {palavra}', { palavra: palavra.palavra }) : t('Ações')}
       aoFechar={aoFechar}
-      classe={palavra ? 'folha-da-palavra' : 'folha-da-frase'}
+      classe={classe}
       refDaFolha={dialogo}
       doPrototipo
     >
-      {palavra ? (
-        <CorpoDaPalavra
-          key={palavra.palavra}
-          palavra={palavra.palavra}
-          frase={palavra.frase}
-          lang={palavra.lang}
-          jaGuardada={!!guardada?.(palavra.palavra)}
-          aoConsultar={aoConsultar}
-          aoOuvir={aoOuvir}
-          aoSalvar={aoSalvar}
-          aoVoltar={aoVoltar}
-          aoPraticar={aoPraticar}
-          semPratica={semPratica}
-        />
-      ) : (
-        fala && (
-          <CorpoDaFrase
-            fala={fala}
-            aoOuvir={aoOuvir}
-            audioReal={audioReal}
-            semPratica={semPratica}
-            aoTocarPalavra={aoTocarPalavra}
-            ehNova={ehNova}
-            guardada={guardada}
-            aoPraticar={aoPraticar}
-            nuance={nuance}
-          />
-        )
-      )}
+      {conteudo}
     </FolhaDeBaixo>
   );
 }

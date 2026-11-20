@@ -69,15 +69,15 @@ afterAll(async () => {
   for (const e of ENVS) process.env[e] = ''
   await h.cleanup()
 })
-beforeEach(() => {
+beforeEach(async () => {
   /* '' e não `delete`: o dotenv repõe a variável apagada a partir do .env de quem roda. */
   for (const e of ENVS) process.env[e] = ''
-  esvaziarCacheDeTraducao()
+  await esvaziarCacheDeTraducao()
 })
-afterEach(() => {
+afterEach(async () => {
   vi.unstubAllGlobals()
   esquecerDisjuntores()
-  esquecerAdmissao()
+  await esquecerAdmissao()
   esquecerRegistro()
 })
 

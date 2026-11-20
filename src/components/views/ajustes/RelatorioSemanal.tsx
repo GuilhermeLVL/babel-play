@@ -7,7 +7,7 @@ import { toast } from '../../Toast';
 import { Dialogo } from '../../ui';
 
 /**
- * "SUA SEMANA NO BABEL PLAY" — o exemplo do resumo semanal (`dialogoRelatorio()` do protótipo),
+ * "SUA SEMANA NO FRASY" — o exemplo do resumo semanal (`dialogoRelatorio()` do protótipo),
  * montado com os dados REAIS dos últimos 7 dias: resultados de exercício e cartões do caderno, as
  * mesmas fontes da tela de Estatísticas.
  *
@@ -201,21 +201,21 @@ export default function RelatorioSemanal({ nome, aoFechar }: { nome: string; aoF
       toast.warn('O navegador bloqueou a janela. Libere pop-ups para baixar o PDF.');
       return;
     }
-    imprimirTexto(w, 'Sua semana no Babel Play', textoDoResumo(resumo, nome));
+    imprimirTexto(w, 'Sua semana no Frasy', textoDoResumo(resumo, nome));
     w.focus();
     w.print();
   };
 
   const enviar = () => {
     if (!resumo) return;
-    const url = `mailto:?subject=${encodeURIComponent('Sua semana no Babel Play')}&body=${encodeURIComponent(textoDoResumo(resumo, nome))}`;
+    const url = `mailto:?subject=${encodeURIComponent('Sua semana no Frasy')}&body=${encodeURIComponent(textoDoResumo(resumo, nome))}`;
     window.location.href = url;
   };
 
   return (
     <Dialogo
       icone={Mail}
-      titulo="Sua semana no Babel Play"
+      titulo="Sua semana no Frasy"
       sub={resumo ? `${intervalo(resumo)} · é assim que chega no e-mail` : 'é assim que chega no e-mail'}
       aoFechar={aoFechar}
     >

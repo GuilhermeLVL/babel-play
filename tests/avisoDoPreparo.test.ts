@@ -5,7 +5,12 @@
 import { describe, expect, it } from 'vitest'
 
 import type { ModelPrepState } from '../src/components/ModelPrepPanel'
-import { avisoDoPreparo } from '../src/lib/captura/avisoDoPreparo'
+import {
+  avisoComAVozPrimeiro,
+  avisoDoPreparo,
+  preparoDoInterprete,
+  progressoDoReconhecimento,
+} from '../src/lib/captura/avisoDoPreparo'
 
 const base: ModelPrepState = { whisper: null, mt: null, fromCache: false, error: null, done: false }
 
@@ -30,5 +35,44 @@ describe('avisoDoPreparo', () => {
 
   it('nunca promete 100% antes de acabar', () => {
     expect(avisoDoPreparo({ ...base, mt: 0.999 })).toBe('Preparando a tradução dos dois lados · 99%')
+  })
+})
+
+describe('o preparo do reconhecimento no Intérprete (conversa-de-verdade, 4.1)', () => {
+  it('o número do download enquanto o modelo não está pronto; nada quando pronto, com erro ou sem modelo', () => {
+    expect(progressoDoReconhecimento({ ...base, whisper: 0.37 })).toBe(0.37)
+    expect(progressoDoReconhecimento({ ...base, whisper: 1, done: true })).toBeNull()
+    expect(progressoDoReconhecimento({ ...base, whisper: 0.2, error: 'x' })).toBeNull()
+    expect(progressoDoReconhecimento({ ...base, whisper: null })).toBeNull()
+    expect(progressoDoReconhecimento(null)).toBeNull()
+  })
+
+  it('antes do primeiro número, com o modelo a esperar, o preparo é 0 (nunca "Ouvindo…" sem poder ouvir)', () => {
+    expect(preparoDoInterprete(null, { esperandoModelo: true })).toBe(0)
+    expect(preparoDoInterprete(null, { esperandoModelo: false })).toBeNull()
+    expect(preparoDoInterprete({ ...base, nativos: { tradutor: 0 } }, { esperandoModelo: true })).toBe(0)
+    expect(preparoDoInterprete({ ...base, whisper: 1, done: true }, { esperandoModelo: true })).toBeNull()
+  })
+})
+
+describe('avisoComAVozPrimeiro (CONV-06)', () => {
+  const VOZ = 'Este aparelho não tem voz em inglês. Gerenciar vozes'
+  const instalando = { whisper: null, mt: null, fromCache: false, error: null, done: true, nativos: { tradutor: 0 } }
+
+  it('sem voz e o pacote do tradutor em preparo: a instrução da voz fica', () => {
+    expect(avisoComAVozPrimeiro(instalando, VOZ)).toBe(VOZ)
+  })
+
+  it('com voz: o progresso do preparo, como antes', () => {
+    expect(avisoComAVozPrimeiro(instalando, null)).toBe(avisoDoPreparo(instalando))
+  })
+
+  it('sem preparo em curso: nada aqui (a tela segue a ordem dela: prática, cadeado, a voz…)', () => {
+    expect(avisoComAVozPrimeiro(null, VOZ)).toBeNull()
+    expect(avisoComAVozPrimeiro({ ...instalando, nativos: undefined }, VOZ)).toBeNull()
+  })
+
+  it('o erro do preparo continua vencendo', () => {
+    expect(avisoComAVozPrimeiro({ ...instalando, error: 'falhou o modelo' }, VOZ)).toBe('falhou o modelo')
   })
 })

@@ -37,6 +37,8 @@ export interface DepsDosSegmentosDaWebSpeech {
   ignorar?: () => boolean;
   /** Modo intérprete: o lado de quem fala nesta sessão (vai em cada balão). */
   lado?: LadoDoInterprete;
+  /** Modo intérprete: QUEM fala neste lado (gravado na fala; trocar os lados depois não a reatribui). */
+  dono?: LadoDoInterprete;
   /**
    * Um final NOVO foi comprometido (não o reenvio que só cresce o anterior): no intérprete, é o fim da
    * fala — o microfone fecha aqui.
@@ -94,6 +96,7 @@ export function segmentosDaWebSpeech(d: DepsDosSegmentosDaWebSpeech) {
           isPartial: true,
           tStartMs: d.nowRel(),
           ...(d.lado ? { lado: d.lado } : {}),
+          ...(d.dono ? { dono: d.dono } : {}),
         },
       ];
     });
@@ -153,6 +156,7 @@ export function segmentosDaWebSpeech(d: DepsDosSegmentosDaWebSpeech) {
         /* No intérprete o idioma é o do lado (declarado, não detectado): a sessão salva narra e estuda
            cada lado no idioma dele. */
         ...(d.lado ? { lado: d.lado, lang: d.de() } : {}),
+        ...(d.dono ? { dono: d.dono } : {}),
       };
       const idx = prev.findIndex((s) => s.id === uttId);
       if (idx !== -1) {

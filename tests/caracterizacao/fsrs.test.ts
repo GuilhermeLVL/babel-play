@@ -11,6 +11,7 @@ import { randomUUID } from 'node:crypto'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { clienteSql } from '../harness/clienteSql'
 import { type AppDeTeste, resposta, semear, subirApp } from './_app'
 
 describe('vocabulario e FSRS (self-host)', () => {
@@ -25,7 +26,7 @@ describe('vocabulario e FSRS (self-host)', () => {
   })
 
   async function contarReviewLogs(): Promise<number> {
-    const { client } = await s.load('../../server/db/db')
+    const client = clienteSql(await s.load('../../server/db/db'))
     const r = await client.execute('select count(*) as n from review_logs')
     return Number(r.rows[0].n)
   }
@@ -89,7 +90,7 @@ describe('vocabulario e FSRS (self-host)', () => {
     const r = await s.post(`/api/vocab/${cartao.id}/review`, {})
     expect(r.status).toBe(200)
     expect(await contarReviewLogs()).toBe(antes + 1)
-    const { client } = await s.load('../../server/db/db')
+    const client = clienteSql(await s.load('../../server/db/db'))
     const log = await client.execute({
       sql: 'select grade from review_logs where card_id = ? order by reviewed_at desc limit 1',
       args: [cartao.id],

@@ -1,16 +1,19 @@
 name: CI
 
+# UMA EXECUÇÃO POR COMMIT (19/11/2026). Com `push` e `pull_request` para todo ramo, cada commit de PR
+# rodava a suíte DUAS vezes (42 de 88 execuções eram pares, ~280 h de runner em 14 PRs). Agora o `push`
+# só dispara na `main`; os ramos de trabalho rodam pelo `pull_request`. Ramo sem PR não roda CI.
 on:
   push:
+    branches: [main]
   pull_request:
 
-# UMA EXECUÇÃO POR RAMO (11/10/2026). Dois commits seguidos rodavam a suíte inteira duas vezes, lado a
-# lado. Agora o commit novo cancela a execução do anterior no mesmo ramo — menos na `main`, onde toda
-# execução termina: é o `ci.yml` verde do SHA que o `deploy.yml` exige. O evento entra no grupo para o
-# push e o pull_request do mesmo ramo não se cancelarem um ao outro.
+# UMA EXECUÇÃO POR RAMO (11/10/2026). O commit novo de um PR cancela a execução do anterior do mesmo PR
+# — menos na `main`, onde toda execução termina: é o `ci.yml` verde do SHA que o `deploy-worker.yml`
+# exige. O evento saiu do grupo: cada ramo dispara por um evento só, então não há par para proteger.
 concurrency:
-  group: ci-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # O `npm ci` do onnxruntime-node baixa do nuget.org, no Linux x64, os binários de CUDA — o runner
 # não tem GPU, e o nuget fora do ar derrubava o job antes de qualquer teste (ETIMEDOUT, 30/09/2026).
@@ -24,10 +27,11 @@ env:
 # Agora cada grupo é um job independente e paralelo, e nenhum portão barato espera um passo caro:
 #   estatico            YAML, typecheck ×3, lint, código morto, build, i18n, auditoria, rotas, ast-grep
 #   unidade (2 fatias)  vitest com cobertura, `--shard`; `unidade-cobertura` junta e cobra o piso
-#   e2e (5 fatias)      um job por viewport; celular e desktop em duas fatias (`--shard`)
+#   e2e (6 fatias)      um job por viewport; os três em duas fatias (`--shard`)
 #   e2e-estatica (4)    um job por viewport × duas fatias
-#   e2e-publico, migracoes, carga, imagem-construir → imagem e restauracao-litestream
-# O `deploy.yml` cobra a CONCLUSÃO da execução inteira (`conclusion == success`), não o nome de um
+#   e2e-publico, migracoes, carga, imagem-construir → imagem
+#   postgres-real       os testes que só rodam com TESTE_POSTGRES_URL, contra um postgres:17 de serviço
+# O `deploy-worker.yml` cobra a CONCLUSÃO da execução inteira (`conclusion == success`), não o nome de um
 # job: uma fatia vermelha reprova a execução como o `verify` reprovava.
 jobs:
   # O QUE MUDOU DESDE A ÚLTIMA EXECUÇÃO VERDE DESTE RAMO. Serve só para NÃO gastar: mudança só de
@@ -164,6 +168,12 @@ jobs:
       - if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: npm run build
         timeout-minutes: 10
+      # Catalogos a mao em ordem alfabetica: inserir sempre no FIM fazia todo par de PRs conflitar
+      # nas mesmas ultimas linhas. Em ordem, cada chave cai no seu lugar. Corrige com `npm run i18n`.
+      - name: Catalogos de i18n em ordem
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        run: node scripts/i18n/ordenar.mjs --check
+
       # O catalogo pseudo tem que estar em dia, senao o teste de layout roda sobre um mapa velho
       # e deixa de ver as strings novas — falha silenciosa, do tipo que este repo ja documenta.
       - name: Catalogo pseudo em dia
@@ -348,11 +358,131 @@ jobs:
           path: vitest-resultado.json
           if-no-files-found: ignore
 
+  # O DRIVER `pg` DE VERDADE (revisão final da Fase 1, I4). A suíte das fatias roda no PGlite; os testes
+  # que exigem um Postgres de verdade (duas transações ao mesmo tempo, vários processos no mesmo banco,
+  # int8 do `pg`, lock_timeout) se pulam sem `TESTE_POSTGRES_URL` — e nenhum job a definia, então o
+  # driver de produção nunca rodava no CI. Aqui um `postgres:17` de serviço e SÓ esses arquivos, na
+  # lista explícita abaixo; o passo "Lista completa" reprova se surgir arquivo novo com a variável e
+  # ele não entrar aqui.
+  #
+  # A SUÍTE DE INTEGRAÇÃO INTEIRA SOBRE O POSTGRES DE VERDADE (Fase 2, Task 13). Com `BANCO_DE_TESTE=postgres`,
+  # o `setupEphemeralDb()` (usado por ~230 arquivos, direto ou por `tests/caracterizacao/_app.ts`) cria um
+  # banco descartável neste Postgres, por arquivo, em vez de abrir o PGlite. Então rodam `tests/integration` e
+  # `tests/caracterizacao` inteiras, mais `ARQUIVOS` (que continua documentando quais arquivos exigem o Postgres
+  # de verdade e dependem de `TESTE_POSTGRES_URL`). Fora dessa lista só se pulam os arquivos que contam idas
+  # ao banco pelo PGlite embutido (`SO_PGLITE`, em `tests/harness/contadorDeConsultas.ts`); cada um tem o motivo.
+  postgres-real:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: babel
+          POSTGRES_PASSWORD: babel-ci
+          POSTGRES_DB: babel_teste
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U babel -d babel_teste"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      # Senha descartável de um contêiner de serviço que só existe neste job; não é segredo.
+      TESTE_POSTGRES_URL: postgres://babel:babel-ci@localhost:5432/babel_teste
+      BANCO_DE_TESTE: postgres
+      ARQUIVOS: >-
+        tests/integration/admissao-no-banco.test.ts
+        tests/integration/banco-de-teste-postgres.test.ts
+        tests/integration/agregados-concorrentes.test.ts
+        tests/integration/db-por-requisicao.test.ts
+        tests/integration/gasto-concorrente.test.ts
+        tests/integration/int8-no-pg.test.ts
+        tests/integration/jobs-idempotentes.test.ts
+        tests/integration/limpeza-analyze.test.ts
+        tests/integration/lotes-em-uma-instrucao.test.ts
+        tests/integration/medicao-de-transacao-pg.test.ts
+        tests/integration/migracao-periodo-pago-desde.test.ts
+        tests/integration/migracoes-sem-prazo.test.ts
+        tests/integration/palavras-vistas.test.ts
+        tests/integration/parceiro-de-leitura.test.ts
+        tests/integration/pool-lock-timeout-pg.test.ts
+        tests/integration/prazos-do-papel.test.ts
+        tests/integration/r2-teto-armazenamento.test.ts
+        tests/integration/rodada-e-glossario-concorrentes.test.ts
+        tests/integration/teto-de-erros-entre-instancias.test.ts
+        tests/integration/travas-de-linha.test.ts
+        tests/worker/ciclo-do-cliente.test.ts
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Lista completa (todo teste com TESTE_POSTGRES_URL está em ARQUIVOS)
+        run: |
+          achados=$(grep -rl TESTE_POSTGRES_URL tests --include='*.test.ts' | sort)
+          esperados=$(printf '%s\n' $ARQUIVOS | sort)
+          diff <(echo "$achados") <(echo "$esperados")
+      - run: npm ci
+        timeout-minutes: 5
+      - name: Integração e caracterização inteiras contra o Postgres de verdade
+        timeout-minutes: 30
+        run: npx vitest run tests/integration tests/caracterizacao $ARQUIVOS --maxWorkers=2
+
+  # O WORKER (Fase 4, T6): o bundle do Cloudflare Worker, os testes de `tests/worker` e a fumaça do app inteiro
+  # no `wrangler dev` (workerd local, sem credencial da Cloudflare). O Postgres vem do `services:` (porta 5434,
+  # a que o script usa) via FUMACA_PG_URL: sem `docker run` aqui. Só pula quando a mudança é SÓ documentação
+  # (o mesmo filtro `e2e` do `mudancas`); teste e código rodam sempre. O `psql` da fumaça já vem no runner.
+  worker:
+    needs: mudancas
+    if: needs.mudancas.outputs.e2e == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          # Senha descartável de um contêiner de serviço que só existe neste job; não é segredo.
+          POSTGRES_PASSWORD: teste
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      FUMACA_PG_URL: postgres://postgres:teste@localhost:5434/postgres
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        timeout-minutes: 5
+      # Build do Vite: a fumaça (8/8) confere o site público estático, o /app e o 404 de verdade no ASSETS
+      # real, então o `dist/` precisa existir com o site gerado.
+      - name: Build do Vite (site público + app)
+        run: npx vite build
+      - name: Bundle do Worker (tamanho e allowlist)
+        run: npm run worker:build
+      - name: Testes do Worker
+        run: npx vitest run tests/worker
+      - name: Fumaça do Worker no wrangler dev
+        timeout-minutes: 10
+        env:
+          WRANGLER_FUMACA: '1'
+        run: npm run fumaca:worker
+
   # E2E PRINCIPAL, UM JOB POR VIEWPORT. Os três projetos rodavam em série no `verify` (~33 min:
-  # celular 12, tablet 7, desktop 13). Cada fatia sobe o SEU servidor e o SEU banco vazio, então o
+  # celular 12, tablet 7, desktop 13 — antes dos avatares). Cada fatia sobe o SEU servidor e o SEU banco vazio, então o
   # `workers: 1` do playwright.config.ts continua valendo dentro dela (o motivo dele é o banco
-  # único, e aqui cada fatia tem o seu). Celular e desktop passam de 10 min e vão em duas fatias
-  # (`--shard`, que divide por ARQUIVO: os `beforeAll` que semeiam o banco ficam inteiros).
+  # único, e aqui cada fatia tem o seu). Os três passam de 10 min e vão em duas fatias
+  # (`--shard`, que divide por ARQUIVO: os `beforeAll` que semeiam o banco ficam inteiros). O tablet, com os 324 testes
+  # numa fatia só, estourava o teto de 20 min do passo (parou no teste 236) e o job caía por tempo, não por asserção.
   #
   # O e2e existia e nenhum workflow o chamava. E agora ele carrega o teste de layout com
   # pseudo-localizacao, que e o unico que ve texto cortado antes de haver traducao para cortar.
@@ -360,16 +490,21 @@ jobs:
     needs: mudancas
     if: needs.mudancas.outputs.e2e == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
         include:
           - { projeto: mobile-375, fatia: 1, fatias: 2 }
           - { projeto: mobile-375, fatia: 2, fatias: 2 }
-          - { projeto: tablet-768, fatia: 1, fatias: 1 }
-          - { projeto: desktop-1280, fatia: 1, fatias: 2 }
-          - { projeto: desktop-1280, fatia: 2, fatias: 2 }
+          - { projeto: tablet-768, fatia: 1, fatias: 2 }
+          - { projeto: tablet-768, fatia: 2, fatias: 2 }
+          # O desktop vai em TRÊS: a fatia 2/2 levava ~26 min dos 28 do passo (só ela roda os avatares em
+          # WebGL por software, ~25 min somados) e duas retentativas bastaram para estourar o prazo (main,
+          # 04/11/2026). Pelas durações da execução verde de 04/11, as três ficam em ~10, ~11 e ~19 min.
+          - { projeto: desktop-1280, fatia: 1, fatias: 3 }
+          - { projeto: desktop-1280, fatia: 2, fatias: 3 }
+          - { projeto: desktop-1280, fatia: 3, fatias: 3 }
     name: e2e (${{ matrix.projeto }} ${{ matrix.fatia }}/${{ matrix.fatias }})
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -393,12 +528,15 @@ jobs:
       # `npm ci` nao baixa o navegador do Playwright; sem esta linha o passo abaixo falha com
       # "browser not found" em toda maquina limpa — o gate parecia existir e nunca podia passar.
       - name: Navegador do Playwright
-        run: npx playwright install --with-deps chromium
-        timeout-minutes: 5
+        # Com o navegador no cache, o que demora é o `apt` das dependências do sistema: o espelho às vezes
+        # trava e estourava os 5 min. Três tentativas, com folga, antes de dar a máquina por perdida.
+        run: for i in 1 2 3; do npx playwright install --with-deps chromium && exit 0; echo "tentativa $i falhou"; sleep 15; done; exit 1
+        timeout-minutes: 12
       # `github` além do `list`: as falhas de todas as fatias aparecem juntas, como anotações, na
       # página da execução.
       - name: Testes de ponta a ponta
-        timeout-minutes: 20
+        # A fatia cresceu com os E2E do avatar (WebGL por software) e as repetições da CI: 20 min estouravam, com os testes passando.
+        timeout-minutes: 28
         run: npx playwright test --project=${{ matrix.projeto }} --shard=${{ matrix.fatia }}/${{ matrix.fatias }} --reporter=list,github
       # Trace e screenshot de falha ja eram configurados no playwright.config.ts e nunca saiam do
       # runner: a configuracao existia, a evidencia nao.
@@ -467,6 +605,8 @@ jobs:
         timeout-minutes: 10
       - name: Orçamento do bundle (slo.json → frontend)
         run: node scripts/perf/orcamento-bundle.mjs
+      - name: Avatar 3D fora do arranque (three não entra no JS inicial do dist)
+        run: AVATAR_BUNDLE_EXIGIR=1 npx vitest run tests/avatar-bundle.test.ts
       - name: Carga leve (autocannon; p95 e rotas do slo.json, zero erro)
         run: node scripts/perf/ci-carga.mjs
         timeout-minutes: 5
@@ -508,8 +648,10 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.pw.outputs.versao }}-chromium
       - name: Navegador do Playwright
-        run: npx playwright install --with-deps chromium
-        timeout-minutes: 5
+        # Com o navegador no cache, o que demora é o `apt` das dependências do sistema: o espelho às vezes
+        # trava e estourava os 5 min. Três tentativas, com folga, antes de dar a máquina por perdida.
+        run: for i in 1 2 3; do npx playwright install --with-deps chromium && exit 0; echo "tentativa $i falhou"; sleep 15; done; exit 1
+        timeout-minutes: 12
       - name: E2E com AUTH_REQUIRED=1
         run: npx playwright test -c playwright.publico.config.ts
         timeout-minutes: 10
@@ -564,8 +706,10 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.pw.outputs.versao }}-chromium
       - name: Navegador do Playwright
-        run: npx playwright install --with-deps chromium
-        timeout-minutes: 5
+        # Com o navegador no cache, o que demora é o `apt` das dependências do sistema: o espelho às vezes
+        # trava e estourava os 5 min. Três tentativas, com folga, antes de dar a máquina por perdida.
+        run: for i in 1 2 3; do npx playwright install --with-deps chromium && exit 0; echo "tentativa $i falhou"; sleep 15; done; exit 1
+        timeout-minutes: 12
       # O build baixa os modelos do Bergamot pt→en (~26 MB, `scripts/baixar-modelos-bergamot.mjs`) do
       # bucket da Mozilla e confere o sha256 de cada um. Os testes não dependem dele para passar (sem
       # rede, o build sai sem oferecê-lo e os totais são conferidos entre si, não fixados), mas o `dist`
@@ -593,16 +737,15 @@ jobs:
           path: test-results/
           if-no-files-found: ignore
 
-  # A IMAGEM, CONSTRUÍDA UMA VEZ. Os jobs `imagem` e `restauracao-litestream` faziam cada um o seu
-  # `docker build` (~2,3 min cada) da mesma imagem; agora este job constrói, e os dois recebem o
-  # arquivo da imagem como artefato (`docker load`) — a que a varredura examina é a mesma que restaura.
+  # A IMAGEM DO SELF-HOST, CONSTRUÍDA UMA VEZ. Este job constrói e o job `imagem` recebe o arquivo
+  # da imagem como artefato (`docker load`) — a que a varredura examina é a mesma que sobe no teste.
+  # A produção é o Worker (`deploy-worker.yml`); a imagem existe para quem hospeda por conta própria.
   #
-  # CACHE DE CAMADAS (buildx, `type=gha`, `mode=max` para guardar também os estágios `build` e
-  # `litestream`, que não vão na imagem final): num ramo, as camadas caras que não mudaram — os dois
-  # `npm ci` (chave: o `package-lock.json`), a compilação do Litestream (chave: os ARG fixados), o
-  # `apt-get upgrade` — vêm do cache, e só o que depende do código é refeito.
+  # CACHE DE CAMADAS (buildx, `type=gha`, `mode=max` para guardar também o estágio `build`, que não
+  # vai na imagem final): num ramo, as camadas caras que não mudaram — os dois `npm ci` (chave: o
+  # `package-lock.json`) e o `apt-get upgrade` — vêm do cache, e só o que depende do código é refeito.
   # NA `main` O CACHE NÃO É LIDO (`no-cache`): a construção é do zero, como era. Camada em cache não
-  # refaz o `apt-get upgrade` nem a conferência do commit do Litestream, e é da `main` que sai a
+  # refaz o `apt-get upgrade`, e é da `main` que sai a
   # produção — lá nada pode ser dado por conferido. A `main` ainda GRAVA o cache, que os ramos leem.
   #
   # Roda sempre na `main`; num ramo, só quando muda algo que entra na imagem (`mudancas`).
@@ -632,7 +775,7 @@ jobs:
           cache-to: type=gha,scope=imagem,mode=max
           no-cache: ${{ github.ref == 'refs/heads/main' }}
           provenance: false
-      - name: Artefato da imagem (para os dois jobs de baixo)
+      - name: Artefato da imagem (para o job de baixo)
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: imagem-docker
@@ -641,14 +784,30 @@ jobs:
           compression-level: 1
           if-no-files-found: error
 
-  # A IMAGEM DE PRODUÇÃO (Fase 5). Constrói o Dockerfile de verdade e sobe o container como o Fly
-  # sobe: NODE_ENV=production, AUTH_REQUIRED=1, TRUST_PROXY declarada. Depois confere o que só a
-  # imagem pode provar: /api/ready 200, a API fechada sem token, os cabeçalhos de cache e de CSP da
-  # SPA, e o desligamento gracioso (docker stop sai com 0).
+  # A IMAGEM DO SELF-HOST. Sobe o container do Dockerfile como um self-host sobe: NODE_ENV=production,
+  # AUTH_REQUIRED=1, TRUST_PROXY declarada e o Postgres por DATABASE_URL (um `postgres:17` de serviço,
+  # como no `postgres-real`). O container roda com `--network host` e alcança o serviço pela porta
+  # publicada. Confere o que só a imagem pode provar: o boot aplica as migrações, /api/ready 200, a
+  # API fechada sem token, os cabeçalhos de cache e de CSP da SPA, e o desligamento gracioso
+  # (docker stop sai com 0).
   imagem:
     needs: imagem-construir
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: babel
+          POSTGRES_PASSWORD: babel-ci
+          POSTGRES_DB: babel_imagem
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U babel -d babel_imagem"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Imagem construída no job de cima
@@ -658,13 +817,13 @@ jobs:
           path: ${{ runner.temp }}
       - name: docker load
         run: docker load --input "$RUNNER_TEMP/babel-play-ci.tar"
-      - name: Litestream fixado está na imagem
-        run: docker run --rm --entrypoint litestream babel-play:ci version
       - name: Fumaça do container
         timeout-minutes: 5
         run: |
-          docker run -d --name app -p 3000:3000 \
-            -e SECRET_KEY=chave-de-ci-com-mais-de-32-caracteres-xx \
+          # Chave gerada na hora, nunca um literal versionado (`hkdf:<64 hex>` deriva por HKDF).
+          docker run -d --name app --network host \
+            -e SECRET_KEY="hkdf:$(openssl rand -hex 32)" \
+            -e DATABASE_URL=postgres://babel:babel-ci@127.0.0.1:5432/babel_imagem \
             -e SUPABASE_URL=https://ci-exemplo.supabase.co \
             -e AUTH_REQUIRED=1 -e TRUST_PROXY=false -e NODE_ENV=production \
             babel-play:ci
@@ -687,7 +846,7 @@ jobs:
           docker stop -t 30 app
           test "$(docker inspect -f '{{.State.ExitCode}}' app)" = "0"
       # VARREDURA DA IMAGEM (Fase 6 da prontidão). O `npm audit` do job de cima vê as dependências do
-      # package.json; a imagem tem mais: o Debian de base, o Node, o binário do Litestream. Trivy em
+      # package.json; a imagem tem mais: o Debian de base e o Node. Trivy em
       # cima da imagem que acabou de ser construída, reprovando só HIGH/CRITICAL COM correção
       # disponível (`ignore-unfixed`): CVE sem fix não tem ação possível e só ensinaria a ignorar o
       # passo. Severidade abaixo de HIGH não reprova — sai no relatório.
@@ -735,74 +894,3 @@ jobs:
             trivy-imagem.json
             sbom-imagem.cdx.json
           if-no-files-found: ignore
-
-  # RESTAURAÇÃO DO LITESTREAM, DE VERDADE (Fase 5). Um MinIO faz o papel do R2: o container grava,
-  # replica e para; um SEGUNDO container, com volume VAZIO, restaura sozinho no boot (entrypoint) e o
-  # dado precisa estar lá, com integrity_check ok. Backup que nunca foi restaurado não é backup.
-  # A imagem é a do `imagem-construir` (antes este job construía a sua, sem VITE_PUBLIC_URL e sem
-  # VERSAO — argumentos que a restauração não usa).
-  restauracao-litestream:
-    needs: imagem-construir
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      AWS_ACCESS_KEY_ID: minio-ci
-      AWS_SECRET_ACCESS_KEY: minio-ci-segredo
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: Imagem construída no job de cima
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          name: imagem-docker
-          path: ${{ runner.temp }}
-      - name: docker load
-        run: docker load --input "$RUNNER_TEMP/babel-play-ci.tar"
-      # A imagem `minio/minio` saiu do Docker Hub (o pull passou a responder "repository does not
-      # exist", 30/09/2026). A `bitnamilegacy/minio` é o mesmo servidor MinIO, congelada — para um
-      # dublê de R2 no CI isso basta —, FIXADA pelo digest: se sumir ou mudar, o pull falha em vez de
-      # rodar outra coisa. A Bitnami sobe com o próprio entrypoint (sem `server /data`), lê as
-      # mesmas MINIO_ROOT_* e demora mais no primeiro boot: daí 60 s de espera, não 30.
-      - name: MinIO no lugar do R2
-        timeout-minutes: 5
-        run: |
-          docker network create rede
-          docker run -d --name minio --network rede -p 9000:9000 \
-            -e MINIO_ROOT_USER=$AWS_ACCESS_KEY_ID -e MINIO_ROOT_PASSWORD=$AWS_SECRET_ACCESS_KEY \
-            bitnamilegacy/minio:2025.7.23-debian-12-r5@sha256:6dabb4a2088c9a79908de3bc05f4586c23ad2182c8908e7e3acbf61c1467fb20
-          for i in $(seq 1 60); do curl -sf http://127.0.0.1:9000/minio/health/live && break; sleep 1; done
-          curl -sf http://127.0.0.1:9000/minio/health/live || { docker logs minio | tail -30; exit 1; }
-          aws --endpoint-url http://127.0.0.1:9000 s3 mb s3://litestream-ci
-      - name: Primeiro container grava e replica
-        timeout-minutes: 5
-        run: |
-          comum="-e SECRET_KEY=chave-de-ci-com-mais-de-32-caracteres-xx -e SUPABASE_URL=https://ci-exemplo.supabase.co \
-                 -e AUTH_REQUIRED=1 -e TRUST_PROXY=false -e NODE_ENV=production \
-                 -e LITESTREAM_BUCKET=litestream-ci -e LITESTREAM_ENDPOINT=http://minio:9000 \
-                 -e LITESTREAM_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e LITESTREAM_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
-          echo "comum=$comum" >> "$GITHUB_ENV"
-          docker run -d --name um --network rede -v dados-um:/data $comum babel-play:ci
-          for i in $(seq 1 60); do docker exec um node -e "fetch('http://127.0.0.1:3000/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" && break; sleep 2; done
-          docker exec -e MARCA="$GITHUB_SHA" um node -e "
-            const { createClient } = require('@libsql/client');
-            const c = createClient({ url: 'file:/data/babel.db' });
-            (async () => {
-              await c.execute('CREATE TABLE IF NOT EXISTS marca_ci (valor TEXT)');
-              await c.execute({ sql: 'INSERT INTO marca_ci VALUES (?)', args: [process.env.MARCA] });
-              c.close();
-            })();"
-          sleep 10
-          docker stop -t 30 um
-          docker logs um | tail -20
-          aws --endpoint-url http://127.0.0.1:9000 s3 ls --recursive s3://litestream-ci | head
-      - name: Segundo container, volume vazio, restaura sozinho
-        timeout-minutes: 5
-        run: |
-          docker run -d --name dois --network rede -v dados-dois:/data $comum babel-play:ci
-          for i in $(seq 1 60); do docker exec dois node -e "fetch('http://127.0.0.1:3000/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" && break; sleep 2; done
-          docker logs dois | head -20
-          docker exec dois node dist-server/operacao.cjs verificar --arquivo=/data/babel.db
-          valor=$(docker exec dois node -e "
-            const { createClient } = require('@libsql/client');
-            createClient({ url: 'file:/data/babel.db' }).execute('SELECT valor FROM marca_ci').then(r => console.log(r.rows[0].valor));")
-          echo "restaurado: $valor"
-          test "$valor" = "$GITHUB_SHA"

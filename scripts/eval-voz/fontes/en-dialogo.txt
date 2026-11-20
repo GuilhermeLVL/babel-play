@@ -1,0 +1,6 @@
+# en-dialogo | en | dialogo | dominio-publico
+# origem: Jane Austen, Pride and Prejudice, cap. 1, diálogo entre o casal Bennet. Project Gutenberg #1342, https://www.gutenberg.org/cache/epub/1342/pg1342.txt, obtido em 2026-10-31.
+# licença: domínio público (autora morreu em 1817). Só texto do original.
+“My dear Mr. Bennet,” said his lady to him one day, “have you heard that Netherfield Park is let at last?”
+Mr. Bennet replied that he had not.
+“But it is,” returned she; “for Mrs. Long has just been here, and she told me all about it.”

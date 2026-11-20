@@ -43,7 +43,7 @@ html[data-px='on'] .q-contagem.q-contagem::before {
   pointer-events: none;
   background: var(--q-acento, var(--accent));
   opacity: 0;
-  animation: px-pulso-composto calc(1.9s * var(--px-k)) ease-out infinite;
+  animation: px-pulso-composto calc(1.9s * var(--px-k)) ease-out 3; /* 3 ciclos, não infinito (22/10/2026) */
 }
 @media (max-width: 720px) {
   html[data-px='on'] .q-trilho .q-contagem.q-contagem::before {

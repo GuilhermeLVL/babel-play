@@ -1,5 +1,5 @@
 /**
- * `ANUAL_ENABLED=0` — O MVP VENDE SÓ O MENSAL (e o teste de 14 dias).
+ * `ANUAL_ENABLED=0` — O MVP VENDE SÓ O MENSAL (e o teste de 3 dias).
  *
  * O anual (à vista e em 12x) fica desligado até o jurídico validar os Termos §3–§4
  * (`docs/ESTADO-DO-LANCAMENTO.md`). É uma chave do mesmo molde de `CHECKOUT_ENABLED`:

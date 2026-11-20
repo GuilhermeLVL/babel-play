@@ -1,11 +1,13 @@
 import { randomUUID } from 'node:crypto'
 
-import { and, asc, eq, gte, isNotNull, isNull, lte } from 'drizzle-orm'
+import { and, asc, eq, gte, inArray, isNotNull, isNull, lte } from 'drizzle-orm'
 
+import { contarChaves, diferencaDeChaves } from '../../../src/core/texto/palavrasVistas'
 import type { UserId } from '../../lib/authContext'
-import { db, type ExecutorDb } from '../db'
-import { emLotes, tamanhoDoLoteDeInsert, tuplaDeBatch } from '../lotes'
-import { utterances } from '../schema'
+import { db, type ExecutorDb, linhasAfetadas, travarUsuario } from '../db'
+import { emLotes, type InstrucaoDeBatch, rodarLote, tamanhoDoLoteDeInsert } from '../lotes'
+import { sessions, utterances } from '../schema'
+import { palavrasVistasRepo } from './palavrasVistas'
 
 export type Utterance = typeof utterances.$inferSelect
 
@@ -71,24 +73,26 @@ function montarLinhas(
 // Marco 1: toda função exige `userId` (parâmetro branded) — o TS impede esquecer de escopar.
 export const utterancesRepo = {
   /**
-   * MONTA os inserts das falas sem executá-los — para o chamador juntar num `db.batch()`
+   * MONTA os inserts das falas sem executá-los — para o chamador juntar num lote (`rodarLote`)
    * atômico (P1-N3). Devolve lista vazia quando não há nada a inserir.
    *
    * É uma LISTA de instruções, e não uma só, por causa do teto de 32.766 variáveis do SQLite:
    * cada fala são 17 variáveis, e o schema aceita 5.000 falas — uma instrução única passava do
    * teto a partir de 1.928 falas e a sessão inteira era recusada. Os lotes vão todos no MESMO
-   * batch do chamador, então a atomicidade continua a da sessão inteira.
+   * lote (transação) do chamador, então a atomicidade continua a da sessão inteira.
    */
   stmtInsertMany(userId: UserId, sessionId: string, items: NewUtterance[], preservadas?: PolidasPreservadas) {
     const lote = tamanhoDoLoteDeInsert(utterances)
-    return emLotes(montarLinhas(userId, sessionId, items, preservadas), lote).map((linhas) =>
-      db.insert(utterances).values(linhas),
+    return emLotes(montarLinhas(userId, sessionId, items, preservadas), lote).map(
+      (linhas): InstrucaoDeBatch =>
+        (tx) =>
+          tx.insert(utterances).values(linhas),
     )
   },
 
   /**
    * As polidas da sessão (ou de uma faixa de `idx`) que devem sobreviver à troca das falas — ver
-   * `PolidasPreservadas`. Lida ANTES do batch que apaga e insere.
+   * `PolidasPreservadas`. Lida ANTES do lote que apaga e insere.
    */
   async polidasParaPreservar(
     userId: UserId,
@@ -121,17 +125,18 @@ export const utterancesRepo = {
     return mapa
   },
 
-  /** MONTA o delete das falas de uma sessão, para compor um batch atômico. */
-  stmtDeleteForSession(userId: UserId, sessionId: string) {
-    return db.delete(utterances).where(and(eq(utterances.sessionId, sessionId), eq(utterances.userId, userId)))
+  /** MONTA o delete das falas de uma sessão, para compor um lote atômico. */
+  stmtDeleteForSession(userId: UserId, sessionId: string): InstrucaoDeBatch {
+    return (tx) => tx.delete(utterances).where(and(eq(utterances.sessionId, sessionId), eq(utterances.userId, userId)))
   },
 
   /** MONTA a propagação do soft delete da sessão para as falas dela (F3-04). */
-  stmtSoftDeleteForSession(userId: UserId, sessionId: string, now: number) {
-    return db
-      .update(utterances)
-      .set({ deletedAt: now, updatedAt: now })
-      .where(and(eq(utterances.sessionId, sessionId), eq(utterances.userId, userId), isNull(utterances.deletedAt)))
+  stmtSoftDeleteForSession(userId: UserId, sessionId: string, now: number): InstrucaoDeBatch {
+    return (tx) =>
+      tx
+        .update(utterances)
+        .set({ deletedAt: now, updatedAt: now })
+        .where(and(eq(utterances.sessionId, sessionId), eq(utterances.userId, userId), isNull(utterances.deletedAt)))
   },
 
   /**
@@ -170,19 +175,38 @@ export const utterancesRepo = {
   async relabel(userId: UserId, items: Array<{ id: string; sourceLang: string; targetLang: string }>): Promise<number> {
     const now = Date.now()
     // Era um UPDATE por item num laço — até 5.000 idas ao banco por requisição. Agora é UM
-    // `db.batch`: uma ida só e atômico (ou reetiqueta tudo, ou nada). Cada UPDATE é pela chave
-    // primária, então a transação é curta mesmo no teto do schema.
-    const instrucoes = items
-      .filter((it) => it?.id && it.sourceLang && it.targetLang)
-      .map((it) =>
-        db
-          .update(utterances)
-          .set({ sourceLang: it.sourceLang, targetLang: it.targetLang, updatedAt: now })
-          .where(and(eq(utterances.id, it.id), eq(utterances.userId, userId))),
-      )
+    // lote (`rodarLote`): uma transação, atômico (ou reetiqueta tudo, ou nada). Cada UPDATE é pela
+    // chave primária, então a transação é curta mesmo no teto do schema.
+    const validos = items.filter((it) => it?.id && it.sourceLang && it.targetLang)
+    const instrucoes = validos.map(
+      (it): InstrucaoDeBatch =>
+        (tx) =>
+          tx
+            .update(utterances)
+            .set({ sourceLang: it.sourceLang, targetLang: it.targetLang, updatedAt: now })
+            .where(and(eq(utterances.id, it.id), eq(utterances.userId, userId))),
+    )
     if (!instrucoes.length) return 0
-    const resultados = await db.batch(tuplaDeBatch(instrucoes))
-    return resultados.reduce((n, r) => n + Number((r as { rowsAffected?: number }).rowsAffected ?? 0), 0)
+    /* O idioma da fala decide a chave das palavras vistas: as sessões tocadas (a sessão de uma fala não
+       muda) são reconstruídas NO MESMO lote, depois da trava e dos UPDATEs — ou reetiqueta e reindexa
+       tudo, ou nada. */
+    const tocadas = new Set<string>()
+    for (const fatia of emLotes(
+      validos.map((it) => it.id),
+      1_000,
+    )) {
+      const linhas = await db
+        .selectDistinct({ sessionId: utterances.sessionId })
+        .from(utterances)
+        .where(and(eq(utterances.userId, userId), inArray(utterances.id, fatia)))
+      for (const l of linhas) tocadas.add(l.sessionId)
+    }
+    const resultados = await rodarLote([
+      (tx) => travarUsuario(tx, userId),
+      ...instrucoes,
+      ...[...tocadas].map((sessao) => palavrasVistasRepo.stmtReconstruirLendo(userId, sessao)),
+    ])
+    return resultados.slice(1, 1 + instrucoes.length).reduce<number>((n, r) => n + linhasAfetadas(r), 0)
   },
 
   /** Troca TODAS as falas da sessão pelas novas (fluxo "retomar captura"). */
@@ -208,22 +232,57 @@ export const utterancesRepo = {
       if (patch[k] !== undefined) values[k] = patch[k]
     }
     const daFala = and(eq(utterances.id, id), eq(utterances.userId, userId))
-    /* A TRADUÇÃO POLIDA (D5) é derivada do texto e da tradução: corrigir um dos dois a apaga, com a
-       procedência dela — ela descrevia outro texto. Salvar sem mudar nada (a edição da Análise manda
-       os dois campos sempre) não apaga: a comparação é com o que está no banco. */
-    if (patch.sourceText !== undefined || patch.translatedText !== undefined) {
-      const [atual] = await db
-        .select({ sourceText: utterances.sourceText, translatedText: utterances.translatedText })
-        .from(utterances)
-        .where(daFala)
-        .limit(1)
-      const mudou =
-        !!atual &&
-        ((patch.sourceText !== undefined && patch.sourceText !== atual.sourceText) ||
-          (patch.translatedText !== undefined && patch.translatedText !== atual.translatedText))
-      if (mudou) Object.assign(values, SEM_POLIMENTO)
+    const mexeNoTexto = patch.sourceText !== undefined || patch.translatedText !== undefined
+    if (!mexeNoTexto) {
+      await db.update(utterances).set(values).where(daFala)
+    } else {
+      /* UM passo, depois da trava do usuário, com a leitura DENTRO da transação: duas edições da mesma fala
+         ao mesmo tempo se enfileiram, e a diferença das palavras vistas sai do texto que está no banco
+         naquele instante (lido antes, as duas somavam a mesma palavra nova). */
+      const editar: InstrucaoDeBatch = async (tx) => {
+        const [atual] = await tx
+          .select({
+            sourceText: utterances.sourceText,
+            translatedText: utterances.translatedText,
+            sourceLang: utterances.sourceLang,
+            sessionId: utterances.sessionId,
+            idx: utterances.idx,
+            deletedAt: utterances.deletedAt,
+            idiomaDaSessao: sessions.sourceLang,
+          })
+          .from(utterances)
+          .innerJoin(sessions, eq(sessions.id, utterances.sessionId))
+          .where(daFala)
+          .limit(1)
+        /* A TRADUÇÃO POLIDA (D5) é derivada do texto e da tradução: corrigir um dos dois a apaga, com a
+           procedência dela — ela descrevia outro texto. Salvar sem mudar nada (a edição da Análise manda
+           os dois campos sempre) não apaga: a comparação é com o que está no banco. */
+        const textoMudou = !!atual && patch.sourceText !== undefined && patch.sourceText !== atual.sourceText
+        const mudou =
+          textoMudou || (!!atual && patch.translatedText !== undefined && patch.translatedText !== atual.translatedText)
+        await tx
+          .update(utterances)
+          .set(mudou ? { ...values, ...SEM_POLIMENTO } : values)
+          .where(daFala)
+        /* O texto corrigido muda as palavras vistas da sessão: a diferença velha → nova, no mesmo passo. */
+        if (atual && textoMudou && atual.deletedAt == null) {
+          const idioma = atual.sourceLang || atual.idiomaDaSessao
+          const idx = atual.idx
+          await palavrasVistasRepo.ajustar(
+            tx,
+            userId,
+            atual.sessionId,
+            diferencaDeChaves(
+              contarChaves([{ texto: atual.sourceText, idioma, idx }]),
+              contarChaves([{ texto: patch.sourceText, idioma, idx }]),
+            ),
+            Number(values.updatedAt),
+            idx == null ? undefined : { de: idx, ate: idx },
+          )
+        }
+      }
+      await rodarLote([(tx) => travarUsuario(tx, userId), editar])
     }
-    await db.update(utterances).set(values).where(daFala)
     const rows = await db.select().from(utterances).where(daFala).limit(1)
     return rows[0]
   },
@@ -235,7 +294,7 @@ export const utterancesRepo = {
    *     que já foi polido não muda (o polimento é idempotente);
    *   - o texto e a tradução ainda são os que foram ao modelo: uma correção feita enquanto o bloco
    *     estava no provedor não recebe uma polida do texto velho.
-   * Um `db.batch` só (uma ida ao banco, atômico). Devolve os ids das falas que de fato gravou.
+   * Um lote só (`rodarLote`, uma transação: atômico). Devolve os ids das falas que de fato gravou.
    */
   async gravarPolimento(
     userId: UserId,
@@ -243,34 +302,34 @@ export const utterancesRepo = {
     itens: ReadonlyArray<{ id: string; sourceText: string | null; translatedText: string | null; polida: string }>,
     procedencia: { modelo: string; versao: string; em: number },
   ): Promise<string[]> {
-    const instrucoes = itens.map((it) =>
-      db
-        .update(utterances)
-        .set({
-          traducaoPolida: it.polida,
-          polimentoModelo: procedencia.modelo,
-          polimentoVersao: procedencia.versao,
-          polidoEm: procedencia.em,
-          updatedAt: procedencia.em,
-        })
-        .where(
-          and(
-            eq(utterances.id, it.id),
-            eq(utterances.userId, userId),
-            eq(utterances.sessionId, sessionId),
-            isNull(utterances.traducaoPolida),
-            it.sourceText === null ? isNull(utterances.sourceText) : eq(utterances.sourceText, it.sourceText),
-            it.translatedText === null
-              ? isNull(utterances.translatedText)
-              : eq(utterances.translatedText, it.translatedText),
-          ),
-        ),
+    const instrucoes = itens.map(
+      (it): InstrucaoDeBatch =>
+        (tx) =>
+          tx
+            .update(utterances)
+            .set({
+              traducaoPolida: it.polida,
+              polimentoModelo: procedencia.modelo,
+              polimentoVersao: procedencia.versao,
+              polidoEm: procedencia.em,
+              updatedAt: procedencia.em,
+            })
+            .where(
+              and(
+                eq(utterances.id, it.id),
+                eq(utterances.userId, userId),
+                eq(utterances.sessionId, sessionId),
+                isNull(utterances.traducaoPolida),
+                it.sourceText === null ? isNull(utterances.sourceText) : eq(utterances.sourceText, it.sourceText),
+                it.translatedText === null
+                  ? isNull(utterances.translatedText)
+                  : eq(utterances.translatedText, it.translatedText),
+              ),
+            ),
     )
     if (!instrucoes.length) return []
-    const resultados = await db.batch(tuplaDeBatch(instrucoes))
-    return itens
-      .filter((_, i) => Number((resultados[i] as { rowsAffected?: number }).rowsAffected ?? 0) > 0)
-      .map((it) => it.id)
+    const resultados = await rodarLote(instrucoes)
+    return itens.filter((_, i) => linhasAfetadas(resultados[i]) > 0).map((it) => it.id)
   },
 }
 

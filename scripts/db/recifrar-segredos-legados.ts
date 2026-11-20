@@ -87,9 +87,23 @@ export async function recifrarLegados(
 
 async function principal() {
   const aplicar = process.argv.includes('--aplicar');
-  const { client } = await import('../../server/db/db');
+  const { db, linhas } = await import('../../server/db/db');
+  const { sql } = await import('drizzle-orm');
   const { decryptSecret, encryptSecret } = await import('../../server/crypto');
-  const r = await recifrarLegados(client as unknown as ClienteSql, {
+  // Adaptador do `ClienteSql` (formato libsql) sobre o driver Postgres: `?` vira parâmetro do drizzle.
+  const cliente: ClienteSql = {
+    async execute(q) {
+      const texto = typeof q === 'string' ? q : q.sql;
+      const args = typeof q === 'string' ? [] : q.args;
+      const partes = texto.split('?');
+      const consulta = sql.join(
+        partes.map((p, i) => (i < args.length ? sql`${sql.raw(p)}${args[i]}` : sql.raw(p))),
+        sql.raw(''),
+      );
+      return { rows: linhas<Record<string, unknown>>(await db.execute(consulta)) };
+    },
+  };
+  const r = await recifrarLegados(cliente, {
     aplicar,
     decifrarAtual: decryptSecret,
     cifrar: encryptSecret,

@@ -6,7 +6,7 @@
  * `llmClient.ts` já documenta: uma correção num lugar e o defeito continuando no outro. O que
  * difere entre os dois chamadores — o prefixo do evento de log e a rota — entra por parâmetro.
  */
-import { contarAdmissaoRecusada, observarChamadaDeProvedor } from '../http/metricas'
+import { contarAdmissaoRecusada, contarTokensDeEntrada, observarChamadaDeProvedor } from '../http/metricas'
 import { log } from '../lib/logger'
 import { custoDeLlm } from '../lib/orcamentoDeIa'
 import {
@@ -14,19 +14,33 @@ import {
   ocuparVaga,
   type PlanoDeAdmissao,
   type Recusa,
+  recusaEmCacheDeTodas,
   registrarLimiteNaAdmissao,
   type TicketDeBalde,
 } from './admissao'
 import { clienteDesistiu } from './cancelamento'
 import { chaveDoProvedor, disjuntorPermite, registrarFalha, registrarSucesso } from './disjuntor'
-import { chamarChat, parametrosDoProvedor, type PedidoDeChat } from './llmClient'
+import {
+  chamarChat,
+  chamarChatEmFluxo,
+  parametrosDoProvedor,
+  type PedidoDeChat,
+  type RespostaDoFluxo,
+} from './llmClient'
 import { ehModeloDeRaciocinio } from './parametrosDoProvedor'
 import type { Provedor } from './provedores'
 import { nomeDoProvedor, type RastroDeIa, registrarLimiteDoProvedor, statusDaTentativa } from './telemetriaDeIa'
 
-/** O esforço de raciocínio que `parametrosDoProvedor` pediu — metadado da geração, nunca decisão. */
+/**
+ * O esforço de raciocínio que `parametrosDoProvedor` pediu — metadado da geração, nunca decisão. `none` = o
+ * raciocínio foi DESLIGADO no pedido (`reasoning: { enabled: false }`, o DeepSeek da explicação).
+ */
 function esforcoPedido(base: string, model: string): string | undefined {
-  const p = parametrosDoProvedor(base, model) as { reasoning_effort?: string; reasoning?: { effort?: string } }
+  const p = parametrosDoProvedor(base, model) as {
+    reasoning_effort?: string
+    reasoning?: { effort?: string; enabled?: boolean }
+  }
+  if (p.reasoning?.enabled === false) return 'none'
   return p.reasoning_effort ?? p.reasoning?.effort
 }
 
@@ -58,6 +72,17 @@ interface ResultadoDaCascata {
   limitadoPeloProvedor?: { retryAfterS: number }
   /** Quem pediu desistiu no meio (`cancelamento.ts`): a cascata parou, e não há a quem responder. */
   cancelado?: boolean
+  /**
+   * EM FLUXO: a perna falhou (ou quem pediu desistiu) DEPOIS do compromisso — o primeiro byte já tinha saído. A
+   * cascata parou ali (não há reserva depois do primeiro byte), e o que a perna já gerou foi cobrado: os tokens
+   * (do provedor, ou estimados pelo texto quando o fluxo caiu antes do uso) e o custo, para o chamador acertar a cota.
+   */
+  parcial?: { tokensEntrada: number; tokensSaida: number; custoUsd: number; rotulo: string; model: string }
+  /**
+   * EM FLUXO, quem pediu desistiu ANTES do primeiro byte: a pessoa não paga, mas o provedor cobrou o que leu e escreveu.
+   * A estimativa (US$) vai só ao orçamento global (`registrarGastoDeIa`), para o portão ver o gasto real.
+   */
+  gastoDescartadoUsd?: number
 }
 
 /**
@@ -72,7 +97,7 @@ export interface AdmissaoDaCascata {
   /** Índice da perna admitida já na entrada. */
   indice: number
   ticket: TicketDeBalde
-  liberar: () => void
+  liberar: () => Promise<void>
   /** A cascata chegou a rodar? Se não, o pedido volta ao balde em `encerrarAdmissao`. */
   usada: boolean
 }
@@ -95,11 +120,17 @@ export function alvoDaPerna(prov: Provedor): {
   }
 }
 
-export function admitirCascata(
+export async function admitirCascata(
   provedores: Provedor[],
   p: { userId: string; plano: PlanoDeAdmissao; tokens: number },
-): { ok: true; admissao: AdmissaoDaCascata } | { ok: false; recusa: Recusa } {
-  const liberar = ocuparVaga(p.userId, 'llm')
+): Promise<{ ok: true; admissao: AdmissaoDaCascata } | { ok: false; recusa: Recusa }> {
+  /* A rajada contra baldes já recusados nesta instância não vai ao banco — nem para a vaga em voo. */
+  const doCache = recusaEmCacheDeTodas('llm', provedores.map(alvoDaPerna), p.plano)
+  if (doCache) {
+    contarAdmissaoRecusada(doCache.motivo, p.plano)
+    return { ok: false, recusa: doCache }
+  }
+  const liberar = await ocuparVaga(p.userId, 'llm')
   if (!liberar) {
     contarAdmissaoRecusada('em_voo', p.plano)
     return { ok: false, recusa: { motivo: 'em_voo', retryAfterS: 1 } }
@@ -107,12 +138,15 @@ export function admitirCascata(
   let recusa: Recusa | null = null
   for (let i = 0; i < provedores.length; i++) {
     const prov = provedores[i]
-    const r = admitirNoBalde({
+    const r = await admitirNoBalde({
       tipo: 'llm',
       ...alvoDaPerna(prov),
       plano: p.plano,
       tokens: p.tokens,
       silenciosa: true,
+    }).catch(async (erro: unknown) => {
+      await liberar()
+      throw erro
     })
     if (r.ok === true) {
       return {
@@ -123,18 +157,25 @@ export function admitirCascata(
     // A espera que vale é a MENOR: a primeira perna que voltar atende.
     if (!recusa || r.recusa.retryAfterS < recusa.retryAfterS) recusa = r.recusa
   }
-  liberar()
+  await liberar()
   const final = recusa ?? { motivo: 'minuto' as const, retryAfterS: 1 }
   contarAdmissaoRecusada(final.motivo, p.plano)
   return { ok: false, recusa: final }
 }
 
-/** Fecha a admissão: solta a vaga e, se a cascata nem rodou, devolve o pedido ao balde. Idempotente. */
-export function encerrarAdmissao(a: AdmissaoDaCascata | null | undefined): void {
+/**
+ * Fecha a admissão: solta a vaga e, se a cascata nem rodou, devolve o pedido ao balde. Idempotente.
+ * A vaga sai mesmo que a devolução falhe (chame num `finally`).
+ */
+export async function encerrarAdmissao(a: AdmissaoDaCascata | null | undefined): Promise<void> {
   if (!a) return
-  if (!a.usada) a.ticket.devolver()
+  const devolver = !a.usada
   a.usada = true
-  a.liberar()
+  try {
+    if (devolver) await a.ticket.devolver()
+  } finally {
+    await a.liberar()
+  }
 }
 
 /**
@@ -169,6 +210,23 @@ export async function percorrerCascata(
      * das pernas SEM raciocínio. Ausente ou 1 = o teto inteiro.
      */
     fatorDeSaida?: number
+    /**
+     * O relógio PRÓPRIO da primeira perna da lista (a explicação: 8 s no DeepSeek, p95 medido de 3 s). As outras
+     * seguem com o `timeoutMs` do pedido. Ausente = todas com o `timeoutMs`.
+     */
+    timeoutDaPrimeiraPernaMs?: number
+    /**
+     * O PRAZO DA CASCATA INTEIRA, em ms desde a entrada: cada perna recebe o menor entre o relógio dela e o que
+     * sobra, e esgotado o prazo nenhuma perna a mais é chamada. Sem ele, o pior caso é a soma dos relógios.
+     */
+    prazoTotalMs?: number
+    /**
+     * EM FLUXO (o "Como respondo?"): cada perna é chamada com `stream: true` (`chamarChatEmFluxo`), e esta fábrica dá,
+     * para a perna (pelo modelo dela), quem lê o texto acumulado e diz quando a resposta foi COMPROMETIDA. Antes do
+     * compromisso, a cascata é a de sempre; depois, a falha da perna encerra a cascata (`parcial`). O relógio depois
+     * do compromisso é o `prazoTotalMs`.
+     */
+    emFluxo?: (modelo: string) => (acumulado: string, restanteMs: number) => boolean
   },
 ): Promise<ResultadoDaCascata> {
   const rastro = contexto.rastro
@@ -179,13 +237,25 @@ export async function percorrerCascata(
   let chamadas = 0
   let limitadas = 0
   let esperaDoLimite = Infinity
+  const prazoFinal = contexto.prazoTotalMs !== undefined ? Date.now() + contexto.prazoTotalMs : Infinity
   for (let i = 0; i < provedores.length; i++) {
     const prov = provedores[i]
     /* QUEM PEDIU DESISTIU: nenhuma perna a mais é chamada. Se nenhuma foi, o pedido volta ao balde. */
     if (clienteDesistiu(pedido.sinal)) {
-      if (adm && chamadas === 0) adm.ticket.devolver()
+      if (adm && chamadas === 0) await adm.ticket.devolver()
       return { entregue: null, ultimaFalha: 'cancelado por quem pediu', cancelado: true }
     }
+    /* O PRAZO TOTAL ESGOTADO: ninguém mais é chamado — a pessoa já esperou o que a função promete. Se nenhuma
+       perna foi chamada, o pedido volta ao balde, como no cancelamento. */
+    const restante = prazoFinal - Date.now()
+    if (restante <= 0) {
+      if (adm && chamadas === 0) await adm.ticket.devolver()
+      ultimaFalha = `prazo total de ${contexto.prazoTotalMs} ms esgotado (${ultimaFalha})`
+      break
+    }
+    const relogioDaPerna =
+      i === 0 && contexto.timeoutDaPrimeiraPernaMs !== undefined ? contexto.timeoutDaPrimeiraPernaMs : pedido.timeoutMs
+    const timeoutMs = Number.isFinite(restante) ? Math.min(relogioDaPerna ?? restante, restante) : relogioDaPerna
     /* A ADMISSÃO DA PERNA (ADR 0007). Antes da perna admitida na entrada: estava sem saldo, pula.
        A admitida: já tem o pedido. Depois dela (a reserva, quando o primário falhou): pede ao
        balde DELA agora — sem saldo, pula sem abrir socket. */
@@ -197,7 +267,7 @@ export async function percorrerCascata(
       }
       if (i === adm.indice) ticket = adm.ticket
       else {
-        const r = admitirNoBalde({ tipo: 'llm', ...alvoDaPerna(prov), plano: adm.plano, tokens: adm.tokens })
+        const r = await admitirNoBalde({ tipo: 'llm', ...alvoDaPerna(prov), plano: adm.plano, tokens: adm.tokens })
         if (r.ok === false) {
           ultimaFalha = `sem saldo na admissão para ${prov.rotulo} (${prov.model})`
           continue
@@ -209,7 +279,7 @@ export async function percorrerCascata(
        timeout dele antes de chegar à reserva. Aberto, a perna é pulada sem abrir socket. */
     const chave = chaveDoProvedor(prov)
     if (!disjuntorPermite(chave)) {
-      ticket?.devolver() // o provedor não foi chamado: o pedido volta ao balde
+      await ticket?.devolver() // o provedor não foi chamado: o pedido volta ao balde
       ultimaFalha = `disjuntor aberto para ${prov.rotulo} (${prov.model})`
       log('warn', {
         event: `${contexto.evento}_provedor_em_disjuntor`,
@@ -232,21 +302,31 @@ export async function percorrerCascata(
       continue
     }
     const inicio = Date.now()
-    const r = await chamarChat({
+    const pedidoDaPerna = {
       ...pedido,
+      ...(timeoutMs !== undefined ? { timeoutMs } : {}),
       maxTokens: maxTokensDaPerna(pedido.maxTokens, prov.model, contexto.fatorDeSaida),
       base: prov.base,
       apiKey: prov.apiKey,
       model: prov.model,
       roteamento: prov.roteamento,
-    })
+    }
+    const r: RespostaDoFluxo = contexto.emFluxo
+      ? await chamarChatEmFluxo(pedidoDaPerna, {
+          aoTexto: contexto.emFluxo(prov.model),
+          /* Sem prazo total, o da perna (`chamarChatEmFluxo`) — nunca "agora". */
+          ...(Number.isFinite(prazoFinal) ? { prazoFinal } : {}),
+        })
+      : await chamarChat(pedidoDaPerna)
     const fim = Date.now()
     const provedor = nomeDoProvedor(prov.base)
     const fornecedor = prov.fornecedor ?? provedor
     /* O CUSTO DA PERNA (B2 da Fase B): preço de `fornecedor:modelo` — o declarado no registro, se
        houver —, com os tokens do cache de prompt pelo preço de cache. Calculado aqui, uma vez, e usado
-       no rastro, na métrica e no orçamento: os três nunca discordam. Perna que falhou não custa. */
-    const custoUsd = r.ok
+       no rastro, na métrica e no orçamento: os três nunca discordam. Perna que falhou não custa — salvo a do fluxo
+       que falhou DEPOIS do primeiro byte: o que ela já gerou foi cobrado. */
+    const gerou = r.ok || r.comprometido === true
+    const custoUsd = gerou
       ? custoDeLlm(prov.model, r.tokensEntrada ?? 0, r.tokensSaida ?? 0, {
           fornecedor,
           preco: prov.preco,
@@ -257,7 +337,7 @@ export async function percorrerCascata(
     if (r.status === 429) {
       registrarLimiteDoProvedor(provedor, prov.model)
       /* O 429 do provedor fecha o balde até o `Retry-After` dele: a próxima fala nem tenta. */
-      const espera = registrarLimiteNaAdmissao(
+      const espera = await registrarLimiteNaAdmissao(
         'llm',
         provedor,
         prov.model,
@@ -269,7 +349,7 @@ export async function percorrerCascata(
       esperaDoLimite = Math.min(esperaDoLimite, espera)
     }
     /* Os tokens do dia saem da estimativa para o REAL; perna que falhou não gerou tokens. */
-    ticket?.acertarTokens(r.ok ? (r.tokensEntrada ?? 0) + (r.tokensSaida ?? 0) : 0)
+    await ticket?.acertarTokens(gerou ? (r.tokensEntrada ?? 0) + (r.tokensSaida ?? 0) : 0)
     /* UMA GERAÇÃO POR PERNA, inclusive a que falhou — é assim que o fallback aparece no painel. O
        custo é o `custoUsd` acima, o mesmo do orçamento e da métrica. O texto só entra quando o
        rastro permite (dev, `LANGFUSE_CONTEUDO=1`); em produção nem é montado. */
@@ -279,7 +359,7 @@ export async function percorrerCascata(
       provedor,
       modelo: prov.model,
       status: r.ok ? 'ok' : r.cancelado ? 'cancelado' : statusDaTentativa(r.status, r.causa),
-      uso: r.ok
+      uso: gerou
         ? { input: r.tokensEntrada ?? 0, output: r.tokensSaida ?? 0, cached_input: r.tokensEmCache ?? 0 }
         : undefined,
       custoUsd,
@@ -287,6 +367,8 @@ export async function percorrerCascata(
         rotulo: prov.rotulo,
         esforco: esforcoPedido(prov.base, prov.model),
         statusHttp: r.status,
+        /* A perna pediu saída estruturada e nenhum endpoint a aceitou: a resposta veio sem o esquema. */
+        semEsquema: r.semEsquema,
       },
       ...(rastro?.conteudoPermitido
         ? { entrada: JSON.stringify(pedido.messages), saida: r.texto ?? r.causa ?? '' }
@@ -305,6 +387,7 @@ export async function percorrerCascata(
     })
     if (r.ok) {
       registrarSucesso(chave)
+      contarTokensDeEntrada(contexto.funcao ?? contexto.evento, prov.model, r.tokensEntrada ?? 0, r.tokensEmCache ?? 0)
       return {
         entregue: {
           texto: r.texto ?? '',
@@ -318,11 +401,47 @@ export async function percorrerCascata(
         ultimaFalha: '',
       }
     }
+    /* O que a perna do fluxo já gerou antes de cair (ou de quem pediu desistir): cobrado, e sem reserva depois. */
+    const parcial = r.comprometido
+      ? {
+          tokensEntrada: r.tokensEntrada ?? 0,
+          tokensSaida: r.tokensSaida ?? 0,
+          custoUsd: custoUsd ?? 0,
+          rotulo: prov.rotulo,
+          model: prov.model,
+        }
+      : undefined
     /* Abortada porque quem pediu desistiu: não é falha do provedor (o disjuntor não conta) e a
        reserva não é tentada. */
-    if (r.cancelado) return { entregue: null, ultimaFalha: r.causa ?? 'cancelado por quem pediu', cancelado: true }
+    if (r.cancelado) {
+      const gastoDescartadoUsd =
+        !parcial && r.descartado
+          ? custoDeLlm(prov.model, r.descartado.tokensEntrada, r.descartado.tokensSaida, {
+              fornecedor,
+              preco: prov.preco,
+            })
+          : undefined
+      return {
+        entregue: null,
+        ultimaFalha: r.causa ?? 'cancelado por quem pediu',
+        cancelado: true,
+        ...(parcial ? { parcial } : {}),
+        ...(gastoDescartadoUsd ? { gastoDescartadoUsd } : {}),
+      }
+    }
     registrarFalha(chave, r.status)
     ultimaFalha = r.causa ?? 'falha sem causa declarada'
+    if (parcial) {
+      log('warn', {
+        event: `${contexto.evento}_fluxo_interrompido`,
+        route: contexto.route,
+        provider: prov.rotulo,
+        status: r.status,
+        error: ultimaFalha.slice(0, 120),
+        requestId: contexto.requestId,
+      })
+      return { entregue: null, ultimaFalha, parcial }
+    }
     /* Todo tipo de falha do primário tenta a reserva — inclusive 4xx: chave revogada ou modelo
        aposentado são exatamente os casos em que a reserva salva o assinante. */
     log('warn', {

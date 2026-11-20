@@ -86,7 +86,7 @@ afterAll(async () => {
   for (const e of ENVS) delete process.env[e]
   await h.cleanup()
 })
-afterEach(() => {
+afterEach(async () => {
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
   /* O disjuntor é estado de PROCESSO, de propósito (ver o módulo). Num arquivo de teste isso vira
@@ -94,7 +94,7 @@ afterEach(() => {
   esquecerDisjuntores()
   /* A admissão de IA (ADR 0007) é estado de processo como o disjuntor: um 429 encenado fecha o
      balde do modelo, e os casos somados passariam do limite por minuto. Zerada entre casos. */
-  esquecerAdmissao()
+  await esquecerAdmissao()
 })
 
 function configurarCascata() {

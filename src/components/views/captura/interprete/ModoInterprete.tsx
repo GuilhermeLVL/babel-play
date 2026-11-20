@@ -2,6 +2,7 @@ import '../../../../styles/modoInterprete.css';
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
+import { avisoComAVozPrimeiro } from '../../../../lib/captura/avisoDoPreparo';
 import {
   type ControleDoInterprete,
   criarControleDoInterprete,
@@ -14,9 +15,10 @@ import { direcaoDoLado, ESTADO_INICIAL, type IdiomasDoInterprete } from '../../.
 import { chaveLigada } from '../../../../lib/captura/testesDoInterprete';
 import type { LadoDoInterprete, SpeechSegment } from '../../../../lib/captura/tiposDaFala';
 import { data, t } from '../../../../lib/i18n';
-import { langLabel, toBcp47 } from '../../../../lib/languages';
+import { langLabel, langLabelNaUI, toBcp47 } from '../../../../lib/languages';
+import { comNomeDoPlano, planoDeEntradaAgora, textoDoAutomaticoNoPlano } from '../../../../lib/planoDeEntrada';
 import { estadoDaTela, mudarEstadoDaTela, tomarPedidoDaConversa, tremer } from '../../../../lib/polimento/interprete';
-import { nativeTts, type TtsEngine } from '../../../../lib/tts';
+import { motorDaFala, type TtsEngine } from '../../../../lib/tts';
 import { aquecerInterprete } from '../../../../lib/voz/aquecimentoDoInterprete';
 import { ladosDaVoz } from '../../../../lib/voz/catalogoDeVozes';
 import { comoInstalarVoz, faltaVozNoAparelho, useVozesDoAparelho } from '../../../../lib/voz/faltaDeVoz';
@@ -31,12 +33,31 @@ import {
   MOTOR_MUDO,
   vozDoQuestFala,
 } from '../../../../lib/voz/vozDoQuest';
-import ConversaDoPrototipo, { type FraseDaMetade, type MetadeDaConversa } from './ConversaDoPrototipo';
+import type { ModelPrepState } from '../../../ModelPrepPanel';
+import { ComoRespondoNaPagina } from '../assistente/AssistenteNaPagina';
+import type { AssistenteDaJanela } from '../assistente/useAssistenteAoVivo';
+import ConversaDoPrototipo, {
+  type AssistenteNaConversa,
+  type FraseDaMetade,
+  type JanelaFlutuanteDoInterprete,
+  type MetadeDaConversa,
+} from './ConversaDoPrototipo';
+import FolhaDeEdicao from './FolhaDeEdicao';
 import { guardarModo, type ModoDaConversa, modoGuardado } from './modoDaConversa';
+import {
+  avisoDaPratica,
+  dicaDaPratica,
+  modoDaPratica,
+  type PraticaNaConversa,
+  praticandoAgora,
+  textoDaPraticaNoToque,
+  textoDaPraticaSemIdioma,
+} from './praticaNaConversa';
+import { useAvataresDoInterprete } from './useAvataresDoInterprete';
 
 /** A fala, no que a tela precisa. */
 export type FalaDoInterprete = Pick<SpeechSegment, 'id' | 'originalText' | 'translatedText' | 'isPartial' | 'lado'> &
-  Partial<Pick<SpeechSegment, 'lang' | 'paraLang' | 'semTraducao'>> &
+  Partial<Pick<SpeechSegment, 'lang' | 'paraLang' | 'semTraducao' | 'dono' | 'foraDoPar'>> &
   Partial<Pick<SpeechSegment, 'timestamp'>>;
 
 /** Uma frase que a pessoa quer guardar para estudar (a folha da frase da captura a abre). */
@@ -58,6 +79,12 @@ const ESTADO_DA_TELA: EstadoDoControle = { ...ESTADO_INICIAL, falando: null, det
 const MOTOR_SEM_VOZ: TtsEngine = MOTOR_MUDO;
 
 const outro = (lado: LadoDoInterprete): LadoDoInterprete => (lado === 'meu' ? 'outro' : 'meu');
+
+/** "Falar esta": a sugestão que a pessoa vai ler. `esperando` a outra pessoa terminar, ou `ouvindo` a fala da pessoa
+    que começar depois do toque (`antes`: os ids que já existiam). */
+type Ensaio =
+  | { fase: 'esperando'; texto: string; lang?: string }
+  | { fase: 'ouvindo'; texto: string; lang?: string; antes: ReadonlySet<string> };
 
 export type { ModoDaConversa };
 /**
@@ -98,13 +125,23 @@ export default function ModoInterprete({
   semVoz = false,
   vozDoSite = false,
   abrindo,
-  aviso,
+  progressoDoPreparo = null,
+  conferirAntesDeLer,
+  aoCorrigirFala,
+  aoDescartarFala,
+  aviso: avisoDeFora,
+  preparo,
   automatico = 'oculto',
   aoSair,
   aoFalharMicrofone,
   aoEscolherIdiomas,
   aoConhecerOPremium,
+  aoEscolherOutroAvatar,
+  janelaFlutuante,
   comVirtual = false,
+  assistente,
+  aoOuvirSugestao,
+  pratica,
 }: {
   idiomas: IdiomasDoInterprete;
   falas: ReadonlyArray<FalaDoInterprete>;
@@ -124,10 +161,31 @@ export default function ModoInterprete({
   /** O microfone está abrindo (a permissão, o modelo): o botão de quem fala mostra a espera. */
   abrindo?: boolean;
   /**
+   * O RECONHECIMENTO AINDA NÃO ESTÁ PRONTO (o modelo baixando ou carregando; 0..1). Enquanto houver número, o lado
+   * ativo diz "Preparando N%" e a faixa diz que a fala fica guardada — nunca "Ouvindo…" sem poder ouvir (CONV-09).
+   * `null`/ausente = pronto (ou nada a baixar: a Web Speech, a nuvem). Não confundir com `preparo` (o estado inteiro,
+   * que escolhe a linha da faixa).
+   */
+  progressoDoPreparo?: number | null;
+  /**
+   * CONFERIR A TRANSCRIÇÃO ANTES DE LER (conversa-de-verdade, 5.4): esta fala (pelo idioma dela) é lida só depois de a
+   * pessoa conferir o que o app entendeu? `motorDaFala`: o que a transcreveu. Ausente = lê direto.
+   */
+  conferirAntesDeLer?: (idiomaDaFala: string, motorDaFala?: string) => boolean;
+  /** "Corrigir" na conferência: o texto novo é traduzido de novo (e lido). */
+  aoCorrigirFala?: (id: string, texto: string, direcao: { de: string; para: string }) => void;
+  /** "Descartar" na conferência: a fala sai da conversa. */
+  aoDescartarFala?: (id: string) => void;
+  /**
    * O que a captura diria por baixo (o tradutor do outro sentido baixando, um aviso do microfone): a
    * tela do intérprete a cobre inteira, então a linha aparece aqui, na faixa do meio.
    */
   aviso?: string | null;
+  /**
+   * O PREPARO da captura, no lugar do `aviso` pronto: a tela escolhe a linha, e a instrução de instalar a voz que falta
+   * vence o progresso do preparo (CONV-06; `avisoComAVozPrimeiro`). Presente, vence o `aviso`.
+   */
+  preparo?: ModelPrepState | null;
   /** O modo automático nesta conta (o entitlement `interpreteAutomatico`). Ausente = não aparece. */
   automatico?: AutomaticoNoPlano;
   aoSair: () => void;
@@ -136,13 +194,35 @@ export default function ModoInterprete({
   aoEscolherIdiomas?: (() => void) | undefined;
   /** Os Planos, a partir do aviso do cadeado (ausente no perfil protegido). */
   aoConhecerOPremium?: (() => void) | undefined;
+  /** Abre Perfil › Avatar (o atalho de soletrar oferece quando o avatar não serve; ausente = não oferece). */
+  aoEscolherOutroAvatar?: (() => void) | undefined;
+  /** O botão "Janela flutuante" (Alt+L) da faixa; ausente onde o navegador não abre a janela. */
+  janelaFlutuante?: JanelaFlutuanteDoInterprete | undefined;
   /** A conversa virtual existe neste aparelho; "Virtual" abre a folha dela. */
   comVirtual?: boolean;
+  /**
+   * O ASSISTENTE AO VIVO (Fase C3), a vista da página da instância da captura: marcas no que a outra pessoa diz,
+   * "Como respondo?" junto da última fala dela (e Alt+R) e a correção da própria fala (opt-in). Ausente = nada dele.
+   */
+  assistente?: AssistenteDaJanela;
+  /** "Ouvir" uma sugestão do "Como respondo?". */
+  aoOuvirSugestao?: (texto: string, lang: string | undefined, lenta: boolean) => void;
+  /**
+   * "PRATICAR A CONVERSA": a metade da pessoa fala o idioma que ela aprende (`falaDoMeu`) e a fala dela ganha a correção
+   * gentil. Praticando, a conversa é por toque (o idioma não separa as duas pessoas). Ausente = a prática não aparece.
+   */
+  pratica?: PraticaNaConversa;
 }) {
-  const idiomasRef = useRef(idiomas);
-  idiomasRef.current = idiomas;
+  const praticando = praticandoAgora(pratica);
+  /* Praticando, a metade da pessoa FALA o idioma que ela aprende e segue OUVINDO no dela. */
+  const idiomasDaConversa: IdiomasDoInterprete =
+    praticando && pratica ? { ...idiomas, falaDoMeu: pratica.idioma } : idiomas;
+  const idiomasRef = useRef(idiomasDaConversa);
+  idiomasRef.current = idiomasDaConversa;
   const microfoneRef = useRef(microfone);
   microfoneRef.current = microfone;
+  const conferirRef = useRef(conferirAntesDeLer);
+  conferirRef.current = conferirAntesDeLer;
   const aoFalharRef = useRef(aoFalharMicrofone);
   aoFalharRef.current = aoFalharMicrofone;
 
@@ -154,6 +234,15 @@ export default function ModoInterprete({
   const [estado, setEstado] = useState<EstadoDoControle>(() =>
     estadoDaTela().trocados ? { ...ESTADO_DA_TELA, trocados: true } : ESTADO_DA_TELA,
   );
+  /* OS AVATARES (atrás da flag `avatar_3d`; sem ela este hook é inerte e a tela é a de sempre). */
+  const avatares = useAvataresDoInterprete({
+    estado,
+    layout,
+    idiomaDaOutra: idiomasDaConversa.outro || estado.detectado,
+    aoEscolherOutroAvatar,
+  });
+  const ponteDoAvatar = avatares.ponte;
+  const destravarDoAvatar = avatares.destravar;
   const velocidadeRef = useRef(velocidade);
   velocidadeRef.current = velocidade;
   const semVozRef = useRef(semVoz);
@@ -196,7 +285,7 @@ export default function ModoInterprete({
         abrir: () => microfoneRef.current.abrir(),
         fechar: () => microfoneRef.current.fechar(),
       },
-      motor: () => voz ?? (semVozRef.current ? MOTOR_SEM_VOZ : nativeTts),
+      motor: () => ponteDoAvatar.envolver(voz ?? (semVozRef.current ? MOTOR_SEM_VOZ : motorDaFala())),
       nomeDoMotor: () =>
         comVozDoSite
           ? voz?.motorDaUltimaFala() === 'voz-da-nuvem'
@@ -205,10 +294,15 @@ export default function ModoInterprete({
           : semVozRef.current
             ? 'sem-voz'
             : (voz?.motorDaUltimaFala() ?? 'voz-do-aparelho'),
-      ...(voz ? { destravarVoz: destravarVozDaNuvem } : {}),
+      ...(voz ? { destravarVoz: destravarDoAvatar(destravarVozDaNuvem) } : {}),
       ...(velocidadeInicial && velocidadeInicial !== 1 ? { opcoesDeFala: { rate: velocidadeInicial } } : {}),
       aoMudar: setEstado,
-      aoFalharMicrofone: (erro) => aoFalharRef.current?.(erro),
+      conferirAntesDeLer: (idioma, motor) => conferirRef.current?.(idioma, motor) ?? false,
+      aoFalharMicrofone: (erro) => {
+        /* O microfone não abriu: a sugestão que esperava a fala não fica pendurada. */
+        setEnsaio(null);
+        aoFalharRef.current?.(erro);
+      },
     });
     controleRef.current = controle;
     vozRef.current = voz;
@@ -224,7 +318,7 @@ export default function ModoInterprete({
       tempoAteAVoz.guardar();
       if (controleRef.current === controle) controleRef.current = null;
     };
-  }, [vozNaturalDisponivel, comVozDoSite, registrarPonte]);
+  }, [vozNaturalDisponivel, comVozDoSite, registrarPonte, ponteDoAvatar, destravarDoAvatar]);
   const atual = estado;
   const atualRef = useRef(atual);
   atualRef.current = atual;
@@ -248,6 +342,16 @@ export default function ModoInterprete({
     return () => clearTimeout(relogio);
   }, []);
 
+  /* "TROCAR OS LADOS" limpa as metades: as falas de antes da troca ficam só na lista (conversa-de-verdade, 1.1). */
+  const [antesDaTroca, setAntesDaTroca] = useState<ReadonlySet<string>>(() => new Set());
+  const falasDasMetades = useMemo(
+    () => (antesDaTroca.size ? falas.filter((f) => !antesDaTroca.has(f.id)) : falas),
+    [falas, antesDaTroca],
+  );
+
+  /** A fala sendo corrigida na conferência (a folha de edição aberta). */
+  const [corrigindo, setCorrigindo] = useState<{ id: string; texto: string; lado: LadoDoInterprete } | null>(null);
+
   /* A TELA: a conversa abre sempre nas duas metades (`telas2.js:170-182`); a lista é uma escolha da vez. */
   const [tela, setTela] = useState<TelaDoInterprete>('frente');
   const alternarTela = () => setTela(tela === 'frente' ? 'conversa' : 'frente');
@@ -266,11 +370,36 @@ export default function ModoInterprete({
   }, [automatico]);
   /* "DETECTAR": o idioma da outra pessoa chega vazio e só o automático o mede; o toque fica fechado. */
   const detectar = !idiomas.outro;
-  const modo: ModoDaConversa = detectar ? 'automatico' : modoEscolhido;
+  /* Praticando, a conversa é por TOQUE: as duas pessoas falam o mesmo idioma, e só o toque diz quem falou. */
+  const modo: ModoDaConversa = detectar ? 'automatico' : praticando ? 'toque' : modoEscolhido;
   /** O aviso do cadeado fica na tela, com o botão dos Planos (`telas2.js:260-262`). */
   const [cadeado, setCadeado] = useState(false);
   /** Tocou em "Automático" com o "Detectar" ligado: a faixa diz por que o toque não abre. */
   const [presoNoDetectar, setPresoNoDetectar] = useState(false);
+  /** Tocou em "Automático" praticando, ou em "Praticar" sem o idioma da outra pessoa: a faixa diz por quê. */
+  const [presoNaPratica, setPresoNaPratica] = useState<'toque' | 'sem-idioma' | null>(null);
+  /* A prática ligou com o automático ouvindo: a escuta para (o modo agora é o toque, e o idioma da pessoa mudou). */
+  useEffect(() => {
+    if (!praticando) {
+      setPresoNaPratica((p) => (p === 'toque' ? null : p));
+      return;
+    }
+    setPresoNaPratica(null);
+    const c = controleRef.current;
+    if (c && c.estado().automatico) c.parar();
+  }, [praticando]);
+  const praticaBotao = () => document.querySelector<HTMLElement>('[data-testid="praticar-conversa"]') ?? undefined;
+  const alternarPratica = (botao?: HTMLElement) => {
+    if (!pratica) return;
+    if (!pratica.ligada && pratica.possivel !== 'ok') {
+      setPresoNaPratica('sem-idioma');
+      if (botao) tremer(botao);
+      return;
+    }
+    /* Trocar o idioma no meio de uma fala fecha o microfone: a fala nova começa no idioma novo. */
+    if (controleRef.current && controleRef.current.estado().fase !== 'parado') controleRef.current.parar();
+    pratica.aoMudar(!pratica.ligada);
+  };
   const trocarModo = () => {
     /* Trocar no meio da conversa fecha o microfone e cala a voz: o modo novo começa do zero. */
     if (controleRef.current && controleRef.current.estado().fase !== 'parado') controleRef.current.parar();
@@ -289,7 +418,7 @@ export default function ModoInterprete({
 
   /** Os idiomas como a TELA os mostra: no "Detectar", o da outra pessoa é o medido (vazio até ela falar). */
   const idiomasDaTela: IdiomasDoInterprete = {
-    meu: idiomas.meu,
+    ...idiomasDaConversa,
     outro: idiomas.outro || (atual.detectado ? toBcp47(atual.detectado) || atual.detectado : ''),
   };
   const nomeDoIdioma = (lang: string, dono: LadoDoInterprete) =>
@@ -302,19 +431,35 @@ export default function ModoInterprete({
   /** EXPORTAR: o Markdown da conversa, baixado no aparelho (nada sai dele). */
   const exportar = () => {
     const titulo = t('Conversa de {data}', { data: data(new Date()) });
+    /* O AUTOR de cada fala é o gravado nela (`dono`), o mesmo da lista; o idioma, o da pessoa. */
     const md = conversaEmMarkdown(falas, {
       titulo,
       rotulos: { meu: t('Você'), outro: t('A outra pessoa') },
       idiomas: {
-        meu: langLabel(direcaoDoLado('meu', idiomasDaTela, atualRef.current.trocados).fala),
-        outro: langLabel(direcaoDoLado('outro', idiomasDaTela, atualRef.current.trocados).fala) || t('Detectando…'),
+        meu: langLabel(direcaoDoLado('meu', idiomasDaTela).fala),
+        outro: langLabel(direcaoDoLado('outro', idiomasDaTela).fala) || t('Detectando…'),
       },
+      donoDoLado: (lado) => (atualRef.current.trocados ? outro(lado) : lado),
     });
     baixarTexto(nomeDoArquivoDaConversa(titulo), md);
   };
 
+  /* "FALAR ESTA" (a prática): a sugestão escolhida espera a PRÓXIMA fala da pessoa que COMEÇOU depois do toque (os ids
+     que já existiam não contam, nem a parcial em andamento); essa fala fica ligada a ela, e a comparação aparece
+     embaixo. `esperando`: a outra pessoa ainda fala — os lados não trocam no meio da fala dela. */
+  const [ensaio, setEnsaio] = useState<Ensaio | null>(null);
+  const ensaioRef = useRef(ensaio);
+  ensaioRef.current = ensaio;
+  const [ensaios, setEnsaios] = useState<ReadonlyMap<string, string>>(() => new Map());
+  /** A metade da pessoa, no lado do MOTOR (com os lados trocados, a de cima). */
+  const meuLadoAgora = (): LadoDoInterprete => ((controleRef.current?.estado().trocados ?? false) ? 'outro' : 'meu');
+
   const controle = {
-    tocar: (lado: LadoDoInterprete) => controleRef.current?.tocar(lado),
+    tocar: (lado: LadoDoInterprete) => {
+      /* Tocar a metade da OUTRA pessoa enquanto a pessoa ia ler a sugestão: a leitura fica para trás. */
+      if (lado !== meuLadoAgora() && ensaioRef.current?.fase === 'ouvindo') setEnsaio(null);
+      controleRef.current?.tocar(lado);
+    },
     repetir: () => controleRef.current?.repetir(),
     pararVoz: () => controleRef.current?.pararVoz(),
     trocarLados: () => controleRef.current?.trocarLados(),
@@ -373,6 +518,11 @@ export default function ModoInterprete({
   const mudos = (['meu', 'outro'] as const).filter((l) => mudo(idiomaDoLado(l)));
   /** O idioma sem voz NESTE aparelho (que tem as de outros): a faixa diz como instalar a dele. */
   const idiomaSemVoz = (['outro', 'meu'] as const).map(idiomaDoLado).find(semVozDoIdioma);
+  /* A voz que falta vem ANTES do progresso do preparo (CONV-06): era trocada em 2 s pelo "Instalando o tradutor". */
+  const aviso =
+    preparo !== undefined
+      ? avisoComAVozPrimeiro(preparo, idiomaSemVoz ? comoInstalarVoz(idiomaSemVoz) : null)
+      : avisoDeFora;
   const rotuloDaVoz =
     mudos.length === 2
       ? t('Tradução em texto neste aparelho')
@@ -384,13 +534,13 @@ export default function ModoInterprete({
         : comVozDoSite
           ? t('Voz do site')
           : vozNatural
-            ? t('Voz natural · Premium')
+            ? comNomeDoPlano(t('Voz natural · Premium'), planoDeEntradaAgora())
             : t('Voz do aparelho');
 
   /** O que cada lado precisa para se desenhar, igual nas duas telas (frente a frente e conversa). */
   const dadosDoLado = (lado: LadoDoInterprete) => {
     const direcao = direcaoDoLado(lado, idiomasDaTela, atual.trocados);
-    const historico = historicoDoInterprete(falas, lado, {
+    const historico = historicoDoInterprete(falasDasMetades, lado, {
       janela: JANELA_DO_HISTORICO,
       parcialDoOutro: chaveLigada('parcialTraduzido'),
     });
@@ -420,34 +570,48 @@ export default function ModoInterprete({
 
   /** A dica de começo, enquanto ninguém falou, no que a voz promete neste aparelho. */
   const dicaDeComeco = (d: DadosDoLado) =>
-    detectar && !atual.detectado
-      ? donoDe(d.lado) === 'meu'
-        ? t('Deixe a outra pessoa falar primeiro: o app descobre o idioma dela.')
-        : t('Fale no seu idioma: o app descobre qual é e traduz.')
-      : d.semVozParaOOutro
-        ? noAutomatico
-          ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e mostra a tradução.')
-          : t('Toque em Falar e fale. A tradução aparece do outro lado, em texto.')
-        : noAutomatico
-          ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e lê a tradução em voz alta.')
-          : t('Toque em Falar e fale. A tradução aparece do outro lado e é lida em voz alta.');
+    praticando && pratica && donoDe(d.lado) === 'meu'
+      ? dicaDaPratica(pratica.idioma)
+      : detectar && !atual.detectado
+        ? donoDe(d.lado) === 'meu'
+          ? t('Deixe a outra pessoa falar primeiro: o app descobre o idioma dela.')
+          : t('Fale no seu idioma: o app descobre qual é e traduz.')
+        : d.semVozParaOOutro
+          ? noAutomatico
+            ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e mostra a tradução.')
+            : t('Toque em Falar e fale. A tradução aparece do outro lado, em texto.')
+          : noAutomatico
+            ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e lê a tradução em voz alta.')
+            : t('Toque em Falar e fale. A tradução aparece do outro lado e é lida em voz alta.');
 
   /** A linha de estado de um lado (Ouvindo, Traduzindo, Lendo a tradução). */
+  /** O reconhecimento ainda não está pronto: o número do preparo ("Preparando 37%"). */
+  const preparando = typeof progressoDoPreparo === 'number';
+  const textoDoPreparo = () =>
+    t('Preparando {p}', { p: `${Math.max(0, Math.min(99, Math.round((progressoDoPreparo ?? 0) * 100)))}%` });
   const statusDoLado = (d: DadosDoLado) =>
     d.ouvindo || d.escutando
       ? abrindo
         ? t('Abrindo o microfone…')
-        : d.escutando
-          ? t('Ouvindo a conversa…')
-          : t('Ouvindo…')
+        : preparando
+          ? textoDoPreparo()
+          : d.escutando
+            ? t('Ouvindo a conversa…')
+            : t('Ouvindo…')
       : d.traduzindo
-        ? t('Traduzindo…')
+        ? preparando
+          ? textoDoPreparo()
+          : t('Traduzindo…')
         : d.vozParaMim && !d.semVozAqui
           ? t('Lendo a tradução')
           : '';
 
   const tudo = historicoDoInterprete(falas, 'meu', { janela: Number.MAX_SAFE_INTEGER });
+  /** Quem está nesta METADE agora (com os lados trocados, a de baixo é da outra pessoa). */
   const donoDe = (lado: LadoDoInterprete): LadoDoInterprete => (atual.trocados ? outro(lado) : lado);
+  /** O AUTOR de uma fala: o gravado nela; a sessão antiga, sem ele, cai no cálculo pelo lado. */
+  const autorDe = (item: { lado: LadoDoInterprete; dono?: LadoDoInterprete }): LadoDoInterprete =>
+    item.dono ?? donoDe(item.lado);
   const metadeNova = (lado: LadoDoInterprete): MetadeDaConversa => {
     const d = dadosDoLado(lado);
     const direcaoDoOutro = direcaoDoLado(outro(lado), idiomasDaTela, atual.trocados);
@@ -459,32 +623,80 @@ export default function ModoInterprete({
       for (let i = d.historico.itens.length - 1; i >= 0; i--) {
         const item = d.historico.itens[i];
         if (item.traduzindo) continue;
+        /* FORA DO PAR (conversa-de-verdade, 3.2): quem falou vê o pedido para repetir; quem ouve não vê nada dela. */
+        /* CONFERINDO: quem falou vê o que o app entendeu e decide; quem ouve ainda não vê a tradução. */
+        if (atual.conferindo === item.id) {
+          if (!item.propria) continue;
+          frase = {
+            tipo: 'conferir',
+            id: item.id,
+            texto: item.original.trim(),
+            lang: d.direcao.fala,
+            aoLer: () => controleRef.current?.confirmarLeitura(item.id),
+            aoCorrigir: () => setCorrigindo({ id: item.id, texto: item.original.trim(), lado }),
+            aoDescartar: () => {
+              controleRef.current?.descartarLeitura(item.id);
+              aoDescartarFala?.(item.id);
+            },
+          };
+          break;
+        }
+        if (item.foraDoPar) {
+          if (!item.propria) continue;
+          frase = {
+            tipo: 'foraDoPar',
+            id: item.id,
+            texto: t('Não parece {idioma} — repetir?', { idioma: langLabelNaUI(d.direcao.fala) }),
+            original: item.original.trim(),
+            langDoOriginal: item.foraDoPar,
+          };
+          break;
+        }
         frase = item.propria
-          ? { tipo: 'fala', texto: item.original, lang: d.direcao.fala, aoVivo: false }
-          : {
-              tipo: 'traducao',
-              id: item.id,
-              traducao: item.traducao.trim() ? item.traducao : item.original,
-              original: item.traducao.trim() ? item.original : '',
-              lang: d.direcao.fala,
-              langDoOriginal: direcaoDoOutro.fala,
-            };
+          ? { tipo: 'fala', texto: item.original, lang: d.direcao.fala, aoVivo: false, id: item.id }
+          : item.semTraducao
+            ? /* Sem tradução (CEL-01): o motivo no lugar da tradução, e o original pequeno embaixo, como sempre. */
+              {
+                tipo: 'traducao',
+                id: item.id,
+                traducao:
+                  item.semTraducao === 'sem-rota' ? t('Sem tradução neste aparelho') : t('Tradução indisponível agora'),
+                original: item.original.trim(),
+                lang: d.direcao.fala,
+                langDoOriginal: direcaoDoOutro.fala,
+              }
+            : {
+                tipo: 'traducao',
+                id: item.id,
+                traducao: item.traducao.trim() ? item.traducao : item.original,
+                original: item.traducao.trim() ? item.original.trim() : '',
+                lang: d.direcao.fala,
+                langDoOriginal: direcaoDoOutro.fala,
+              };
         break;
       }
+    const avatar = avatares.doLado(lado);
+    const soletracao = avatares.soletracaoDoLado(lado);
+    const estadoNoTopo = avatares.estadoNoTopoDoLado(lado);
     return {
+      ...(avatar ? { avatar } : {}),
+      ...(soletracao ? { soletracao } : {}),
+      ...(estadoNoTopo ? { estadoNoTopo } : {}),
       lado,
       dono: donoDe(lado),
       lang: d.direcao.fala,
       nome: d.nome,
       frase,
       status: statusDoLado(d),
-      rotulo: noAutomatico ? (atual.automatico ? t('Parar') : t('Ouvir')) : d.ouvindo ? t('Parar') : t('Falar'),
+      /* No toque, quem tocou é quem fala: o segundo toque é o "Terminei" (o microfone fecha na hora, sem esperar o
+         silêncio de 2,5 s do turno). */
+      rotulo: noAutomatico ? (atual.automatico ? t('Parar') : t('Ouvir')) : d.ouvindo ? t('Terminei') : t('Falar'),
       rotuloParaLeitor: noAutomatico
         ? atual.automatico
           ? t('Parar de ouvir a conversa')
           : t('Ouvir a conversa')
         : d.ouvindo
-          ? t('Parar de ouvir')
+          ? t('Terminei de falar')
           : t('Falar em {idioma}', { idioma: d.nome }),
       ouvindo: noAutomatico ? d.escutando : d.ouvindo,
       aoFalar: noAutomatico ? alternarEscuta : () => controle.tocar(lado),
@@ -495,6 +707,106 @@ export default function ModoInterprete({
     };
   };
   const avisoDoCadeado = cadeado && automatico === 'premium';
+
+  /* O ASSISTENTE: "Como respondo?" responde à ÚLTIMA fala da outra pessoa (a metade e a lista mostram o botão nela). */
+  let responderA: string | undefined;
+  for (let i = tudo.itens.length - 1; i >= 0 && !responderA; i--)
+    if (autorDe(tudo.itens[i]) === 'outro') responderA = tudo.itens[i].id;
+  const pedirResposta = assistente?.recursos.comoRespondo ? assistente.pedirComoRespondo : undefined;
+
+  /** A outra pessoa ainda está falando (o microfone na metade dela, a fala dela a caminho, ou a tradução dela sendo
+      lida): trocar de lado agora cortaria a fala dela. */
+  const outraOcupada = (): boolean => {
+    const c = controleRef.current;
+    if (!c) return false;
+    const e = c.estado();
+    const meuLado = meuLadoAgora();
+    const ouvindoEu = e.fase === 'ouvindo' && !e.automatico && e.lado === meuLado;
+    return (e.fase !== 'parado' && !ouvindoEu) || falas.some((f) => f.isPartial && f.lado && f.lado !== meuLado);
+  };
+  /** Abre (ou segue com) o microfone na metade da pessoa, e a sugestão passa a esperar a fala que começar agora. */
+  const ouvirOEnsaio = (texto: string, lang: string | undefined) => {
+    const c = controleRef.current;
+    setEnsaio({ fase: 'ouvindo', texto, ...(lang ? { lang } : {}), antes: new Set(falas.map((f) => f.id)) });
+    if (!c) return;
+    const e = c.estado();
+    const meuLado = meuLadoAgora();
+    if (!(e.fase === 'ouvindo' && e.lado === meuLado && !e.automatico)) c.tocar(meuLado);
+  };
+  const ouvirOEnsaioRef = useRef(ouvirOEnsaio);
+  ouvirOEnsaioRef.current = ouvirOEnsaio;
+  const outraOcupadaRef = useRef(outraOcupada);
+  outraOcupadaRef.current = outraOcupada;
+  useEffect(() => {
+    if (!ensaio) return;
+    const c = controleRef.current;
+    if (!c) return;
+    if (ensaio.fase === 'esperando') {
+      /* A fala dela chegou (e a tradução foi lida): agora os lados trocam. */
+      if (!outraOcupadaRef.current()) ouvirOEnsaioRef.current(ensaio.texto, ensaio.lang);
+      return;
+    }
+    const meuLado = meuLadoAgora();
+    const novas = falas.filter((f) => !ensaio.antes.has(f.id) && f.lado === meuLado);
+    const final = novas.find((f) => !f.isPartial && f.originalText.trim());
+    if (final) {
+      setEnsaios((m) => new Map(m).set(final.id, ensaio.texto));
+      setEnsaio(null);
+      return;
+    }
+    /* O microfone fechou sem fala nenhuma (o "terminei" sem falar, a permissão negada, o microfone que falhou): a
+       sugestão não fica esperando para sempre. */
+    if (c.estado().fase === 'parado' && !novas.length) setEnsaio(null);
+  }, [falas, ensaio, atual]);
+  /* A prática desligou: a sugestão que esperava a fala fica para trás. */
+  useEffect(() => {
+    if (!praticando) setEnsaio(null);
+  }, [praticando]);
+  const falarSugestao = (texto: string) => {
+    const lang = assistente?.comoRespondo.estado !== 'fechado' ? assistente?.comoRespondo.lang : undefined;
+    assistente?.fecharComoRespondo();
+    /* A outra pessoa ainda fala: os lados NÃO trocam no meio da fala dela; a sugestão espera, e a tela diz. */
+    if (outraOcupada()) setEnsaio({ fase: 'esperando', texto, ...(lang ? { lang } : {}) });
+    /* Dentro do toque (o áudio do iPhone): o microfone abre já. */ else ouvirOEnsaio(texto, lang);
+  };
+
+  const naConversa: AssistenteNaConversa | undefined = assistente
+    ? {
+        marcas: assistente.marcas,
+        correcoes: assistente.correcoes,
+        ...(pedirResposta && responderA ? { responderA, aoComoRespondo: pedirResposta } : {}),
+        comAtalho: layout === 'computador',
+        ...(praticando && ensaio
+          ? {
+              ensaiando: {
+                texto: ensaio.texto,
+                ...(ensaio.lang ? { lang: ensaio.lang } : {}),
+                esperando: ensaio.fase === 'esperando',
+              },
+              aoCancelarEnsaio: () => setEnsaio(null),
+            }
+          : {}),
+        ...(ensaios.size ? { ensaios } : {}),
+      }
+    : undefined;
+  /* Alt+R (Option+R no Mac), em todo aparelho com teclado: "Como respondo?" para a última fala da outra pessoa. */
+  const responderRef = useRef<(() => void) | null>(null);
+  responderRef.current = pedirResposta && responderA ? () => pedirResposta(responderA) : null;
+  useEffect(() => {
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
+      if (!e.altKey || e.ctrlKey || e.metaKey || e.repeat || e.code !== 'KeyR' || !responderRef.current) return;
+      /* Digitando (Option+R escreve "®" no Mac) ou com um diálogo por cima, o teclado é deles. */
+      const alvo = e.target as HTMLElement | null;
+      if (alvo?.closest?.('input,select,textarea,[contenteditable="true"]')) return;
+      if (document.querySelector('dialog[open]')) return;
+      e.preventDefault();
+      responderRef.current();
+    };
+    window.addEventListener('keydown', aoTeclar);
+    return () => window.removeEventListener('keydown', aoTeclar);
+  }, []);
+
   return (
     <ConversaDoPrototipo
       cima={metadeNova('outro')}
@@ -516,6 +828,12 @@ export default function ModoInterprete({
               ligado: noAutomatico,
               comCadeado: automatico === 'premium',
               aoTocar: (botao: HTMLElement) => {
+                /* Praticando, o toque é o modo: nem o cadeado nem a oferta, só a nota de por quê. */
+                if (praticando) {
+                  setPresoNaPratica('toque');
+                  tremer(botao);
+                  return;
+                }
                 if (automatico !== 'disponivel') {
                   setCadeado(true);
                   tremer(botao);
@@ -535,23 +853,35 @@ export default function ModoInterprete({
         aberta: tela === 'conversa',
         bolhas: tudo.itens.map((item) => ({
           id: item.id,
-          dono: donoDe(item.lado),
-          fala: item.original,
+          dono: autorDe(item),
+          fala: item.original.trim(),
           traducao: item.traduzindo ? '…' : item.traducao,
+          lang: item.idioma || direcaoDoLado(autorDe(item), idiomasDaTela).fala || undefined,
         })),
         aoAlternar: alternarTela,
         aoExportar: () => {
           if (totalDeFinais > 0) exportar();
         },
       }}
+      {...(pratica && pratica.possivel !== 'sem_idioma'
+        ? { modos: [modoDaPratica(pratica, () => alternarPratica(praticaBotao()))] }
+        : {})}
       voz={{ rotulo: rotuloDaVoz, natural: vozNatural, muda: mudos.length === 2 }}
       vozes={semVoz ? undefined : { lados: ladosDaVoz(idiomasDaTela).filter((l) => l.idioma) }}
       aviso={
+        (preparando && (atual.fase === 'ouvindo' || atual.fase === 'traduzindo')
+          ? t('Sua fala fica guardada e é traduzida quando o reconhecimento ficar pronto.')
+          : null) ??
         aviso ??
+        (presoNaPratica === 'sem-idioma'
+          ? textoDaPraticaSemIdioma()
+          : presoNaPratica === 'toque' && praticando
+            ? textoDaPraticaNoToque()
+            : avisoDaPratica(pratica)) ??
         (presoNoDetectar && detectar
           ? t('Para falar por toque, escolha o idioma da outra pessoa.')
           : avisoDoCadeado
-            ? t('O modo automático faz parte do Premium: o app reconhece sozinho quem fala qual idioma.')
+            ? textoDoAutomaticoNoPlano()
             : idiomaSemVoz
               ? comoInstalarVoz(idiomaSemVoz)
               : detectar
@@ -562,8 +892,13 @@ export default function ModoInterprete({
                   ? t('Automático ligado: é só conversar. O app reconhece quem fala qual idioma.')
                   : '')
       }
+      acaoDoAviso={
+        !aviso && praticando && pratica?.correcao === 'sem_consentimento'
+          ? { rotulo: t('Autorizar IA de nuvem'), aoTocar: pratica.aoAutorizar }
+          : undefined
+      }
       aoConhecerOPremium={
-        avisoDoCadeado && !aviso && aoConhecerOPremium && totalDeFinais === 0
+        avisoDoCadeado && !praticando && !aviso && aoConhecerOPremium && totalDeFinais === 0
           ? () => {
               mudarEstadoDaTela({ depois: 'planos' });
               sair();
@@ -572,6 +907,9 @@ export default function ModoInterprete({
       }
       aoTrocarLados={() => {
         mudarEstadoDaTela({ trocados: !atual.trocados });
+        /* As frases em exibição nas metades eram das pessoas que estavam nelas: com a troca, elas saem (a lista
+           continua com tudo, cada fala com o autor de quando foi dita). */
+        setAntesDaTroca(new Set(falas.map((f) => f.id)));
         controle.trocarLados();
       }}
       aoVirtual={
@@ -597,7 +935,32 @@ export default function ModoInterprete({
       aoPararVoz={() => controle.pararVoz()}
       aoSair={sairDaTela}
       emDialogo
+      comTrilho
       fase={atual.fase}
-    />
+      assistente={naConversa}
+      avatares={avatares.avatares}
+      janelaFlutuante={janelaFlutuante}
+    >
+      {corrigindo && (
+        <FolhaDeEdicao
+          texto={corrigindo.texto}
+          lang={direcaoDoLado(corrigindo.lado, idiomasDaTela, atual.trocados).fala}
+          aoCancelar={() => setCorrigindo(null)}
+          aoConfirmar={(novo) => {
+            const direcao = direcaoDoLado(corrigindo.lado, idiomasDaTela, atual.trocados);
+            controleRef.current?.corrigirAntesDeLer(corrigindo.id);
+            aoCorrigirFala?.(corrigindo.id, novo, { de: direcao.de, para: direcao.para });
+            setCorrigindo(null);
+          }}
+        />
+      )}
+      {assistente && (
+        <ComoRespondoNaPagina
+          assistente={assistente}
+          aoOuvir={aoOuvirSugestao}
+          {...(praticando ? { aoFalar: falarSugestao } : {})}
+        />
+      )}
+    </ConversaDoPrototipo>
   );
 }

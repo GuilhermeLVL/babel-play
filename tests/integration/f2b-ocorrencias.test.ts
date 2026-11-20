@@ -6,10 +6,10 @@
  * linhas, `sentence` guardando só a primeira frase, e nenhuma resposta para "quantas vezes vi" ou
  * "onde vi". A dedup também era 100% em JS, sem UNIQUE — e já tinha falhado 214 vezes.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const A = asUserId('user-A')
 const B = asUserId('user-B')
@@ -21,13 +21,17 @@ beforeAll(async () => {
   h = await setupEphemeralDb()
   vocabRepo = (await import('../../server/db/repositories/vocab')).vocabRepo
 })
-afterAll(async () => { await h?.cleanup?.() })
+afterAll(async () => {
+  await h?.cleanup?.()
+})
 
 describe('bulkAdd — repetição vira contagem, não descarte', () => {
   it('a 2ª ocorrência INCREMENTA o contador em vez de sumir', async () => {
     const u = asUserId('rep-1')
     await vocabRepo.bulkAdd(u, [{ word: 'leverage', back: 'alavancagem', srcLang: 'en', sentence: 'primeira frase' }])
-    const r2 = await vocabRepo.bulkAdd(u, [{ word: 'leverage', back: 'alavancagem', srcLang: 'en', sentence: 'segunda frase' }])
+    const r2 = await vocabRepo.bulkAdd(u, [
+      { word: 'leverage', back: 'alavancagem', srcLang: 'en', sentence: 'segunda frase' },
+    ])
 
     const deck = await vocabRepo.list(u)
     const card = deck.find((c: any) => c.word === 'leverage')
@@ -84,6 +88,26 @@ describe('bulkAdd — repetição vira contagem, não descarte', () => {
     expect(card.sessionId).toBeNull()
   })
 
+  it('a origem do LIVRO (leitor, L2) sobrevive: origin_kind=livro e o id do livro, com a frase', async () => {
+    // "Salvar no deck" no leitor manda sessionId='livro:<livroId>' e a frase do livro (critério 12 da spec).
+    const u = asUserId('rep-9')
+    await vocabRepo.bulkAdd(u, [
+      {
+        word: 'whale',
+        srcLang: 'en',
+        back: 'baleia',
+        sentence: 'Call me Ishmael, said the whale.',
+        sessionId: 'livro:se:moby-dick',
+      },
+    ])
+    const card = (await vocabRepo.list(u)).find((c: any) => c.word === 'whale')
+    expect(card.sentence).toBe('Call me Ishmael, said the whale.')
+    const occ = await vocabRepo.ocorrencias(u, card.id)
+    expect(occ[0].originKind).toBe('livro')
+    expect(occ[0].originRef).toBe('se:moby-dick')
+    expect(card.sessionId).toBeNull()
+  })
+
   it('normaliza acento e caixa: "Ação" e "acao" são a MESMA palavra', async () => {
     const u = asUserId('rep-5')
     await vocabRepo.bulkAdd(u, [{ word: 'Ação', srcLang: 'pt', back: 'action' }])
@@ -121,13 +145,16 @@ describe('bulkAdd — repetição vira contagem, não descarte', () => {
     // Sem dígitos: `avaliarCartao` rejeita palavra com número como 'palavra-ruido' — e um teste
     // que usa dado inválido mede a régua de qualidade, não o upsert.
     const letras = 'abcdefghij'
-    const muitas = Array.from({ length: 50 }, (_, i) =>
-      ({ word: `termo${letras[Math.floor(i / 10)]}${letras[i % 10]}`, srcLang: 'en', back: 'traducao' }))
+    const muitas = Array.from({ length: 50 }, (_, i) => ({
+      word: `termo${letras[Math.floor(i / 10)]}${letras[i % 10]}`,
+      srcLang: 'en',
+      back: 'traducao',
+    }))
     const r = await vocabRepo.bulkAdd(u, muitas)
     expect(r.cards).toHaveLength(50)
     const denovo = await vocabRepo.bulkAdd(u, muitas)
     expect(denovo.cards).toHaveLength(0)
-    expect((await vocabRepo.list(u))).toHaveLength(50)
+    expect(await vocabRepo.list(u)).toHaveLength(50)
   })
 })
 
@@ -136,7 +163,7 @@ describe('CEFR na escrita', () => {
     const u = asUserId('cefr-1')
     await vocabRepo.bulkAdd(u, [
       // Palavra de CONTEÚDO: 'about' é gramatical e a régua de qualidade a barra antes do CEFR.
-      { word: 'water', srcLang: 'en', back: 'água' },          // está na wordlist (A1)
+      { word: 'water', srcLang: 'en', back: 'água' }, // está na wordlist (A1)
       { word: 'zufolgen', srcLang: 'en', back: 'inexistente' }, // não está
     ])
     const deck = await vocabRepo.list(u)

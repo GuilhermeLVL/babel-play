@@ -22,10 +22,11 @@
 ## Operação, deploy e runbook
 
 - [LANCAMENTO.md](LANCAMENTO.md): o passo a passo do dono para colocar o app no ar, com o custo mensal.
+- [GUIA-DO-DONO.md](GUIA-DO-DONO.md): o roteiro ordenado do que só o dono pode fazer (painéis, chaves, jurídico, anúncios), com links e checklist.
 - [runbook.md](runbook.md): operar em produção (saúde, logs, métricas, rotação de segredos, sintomas conhecidos).
-- [deploy.md](deploy.md): deploy do modo público multiusuário (Docker, Fly e outros).
+- [deploy.md](deploy.md): deploy do modo público multiusuário (Worker da Cloudflare e Docker).
 - [deploy-checklist.md](deploy-checklist.md): checklist para cada ida à produção.
-- [STAGING.md](STAGING.md): subir e conferir o staging.
+- [STAGING.md](STAGING.md): o staging no Worker `frasy-staging`.
 - [escala.md](escala.md): critérios de escala, gatilhos e comandos.
 - [slo.md](slo.md): objetivos de nível de serviço iniciais.
 - [flags.md](flags.md): feature flags e configuração remota.

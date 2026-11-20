@@ -1,0 +1,156 @@
+```json
+{
+  "persona": "Vestibulando de 17 anos, celular na mão e pouco dinheiro, que precisa ler os clássicos cobrados no ENEM, treinar inglês/espanhol para a prova e, depois, estudar História do Brasil.",
+
+  "dores": [
+    "A lista de leituras obrigatórias (Machado, Alencar, Aluísio Azevedo, Graciliano etc.) está espalhada em PDFs ruins, sites cheios de anúncio e fotos de página; não sei qual versão é confiável nem se é legal.",
+    "Linguagem do século XIX (Machado, Alencar) trava minha leitura; paro a cada parágrafo e acabo lendo só resumo de internet, que não cobre o que a prova pede.",
+    "Não sei o que é importante no livro para o ENEM: personagens, movimento literário, contexto histórico, figuras de linguagem.",
+    "Não tenho tempo nem paciência para livro inteiro; preciso ler em pedaços de 10 a 15 minutos e retomar exatamente de onde parei, no celular.",
+    "Textos em inglês/espanhol da prova têm vocabulário que esqueço; leio, entendo na hora e na semana seguinte já não sei de nada.",
+    "Anotações e grifos ficam perdidos em prints e no bloco de notas; quero juntar tudo por livro e levar para a revisão antes da prova.",
+    "Não tenho dinheiro para assinatura cara, e app que bloqueia o básico (ler, grifar) me expulsa na hora.",
+    "Pouca memória e pouco 4G no celular: app pesado ou que exige internet o tempo todo não serve no ônibus."
+  ],
+
+  "jobs_to_be_done": [
+    "Quando vejo a lista de obras do vestibular, quero achar cada livro numa edição legal e gratuita, abrir e começar a ler em poucos toques, para não perder tempo caçando PDF.",
+    "Quando travo numa frase antiga ou difícil, quero uma explicação em português simples sem sair do texto, para entender e continuar lendo em vez de desistir.",
+    "Quando termino um capítulo, quero um resumo com os pontos que caem no ENEM (personagens, tema, contexto), para checar se entendi e não depender de resumo aleatório.",
+    "Quando leio um texto em inglês ou espanhol, quero tocar numa palavra e mandar para meus cartões, para revisar depois e não esquecer.",
+    "Quando chega a semana da prova, quero ver todos os meus grifos e notas por livro, exportáveis, para revisar rápido o que importa.",
+    "Quando estou no ônibus ou fazendo outra coisa, quero ouvir o capítulo narrado e retomar de onde parei lendo, para aproveitar tempo morto."
+  ],
+
+  "funcoes": [
+    {
+      "nome": "Trilha ENEM / vestibular",
+      "descricao": "Vitrine curada com as obras cobradas (domínio público), ordenadas por frequência de cobrança e com ano de morte do autor visível.",
+      "tela": "catálogo",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Catálogo com categorias e filtro de nível/idade",
+      "descricao": "Clássicos, leituras simples, didáticos e entretenimento, com classificação etária manual e filtro por idioma e dificuldade.",
+      "tela": "catálogo",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "G"
+    },
+    {
+      "nome": "Leitor EPUB com paginação e progresso",
+      "descricao": "Abre EPUB (Standard Ebooks, Gutenberg curado) com sumário, busca, temas, tamanho de fonte e posição salva por CFI.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "G"
+    },
+    {
+      "nome": "Retomar de onde parei + meta diária",
+      "descricao": "Botão de continuar na home e meta simples de minutos ou páginas por dia, com sequência discreta.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Toque na palavra: significado e enviar ao deck",
+      "descricao": "Toca numa palavra ou frase e vê tradução/definição do aparelho, com um toque para virar cartão FSRS com o trecho como contexto.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Grifos e notas com exportação",
+      "descricao": "Grifa trechos em cores, escreve notas e exporta tudo por livro em Markdown/TXT (modelo W3C com CFI e trecho citado).",
+      "tela": "notas/exportar",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Trazer meu livro ou artigo",
+      "descricao": "Importa EPUB, PDF ou link no navegador, sem enviar o arquivo ao servidor, e abre no mesmo leitor.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Narração com voz do aparelho e modo bilíngue",
+      "descricao": "Narra o capítulo com a voz do sistema, escolha de voz e velocidade, e modos original/tradução/bilíngue.",
+      "tela": "narração",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Simplificar trecho (português atual)",
+      "descricao": "Reescreve o parágrafo selecionado em linguagem atual, mostrando original e versão lado a lado, em nível escolhido.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Resumo do capítulo com pontos ENEM",
+      "descricao": "Resumo por capítulo (personagens, tema, contexto histórico, movimento literário), em cache compartilhado e com opção de virar cartões.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Pergunte ao livro com citação",
+      "descricao": "Pergunta sobre a obra e recebe resposta com o trecho citado, usando busca lexical, sem embeddings.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "G"
+    },
+    {
+      "nome": "Revisão e jogos com as palavras do livro",
+      "descricao": "Cartões FSRS e jogos de vocabulário montados só com palavras que grifei ou toquei no livro.",
+      "tela": "jogos/revisão",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Audiolivro LibriVox no leitor",
+      "descricao": "Para obras com gravação em domínio público, toca o áudio de cada capítulo ao lado do texto.",
+      "tela": "narração",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Voz natural e MP3 por capítulo em ZIP",
+      "descricao": "Narração com voz de nuvem dentro da cota e exportação de capítulos em MP3 para ouvir offline.",
+      "tela": "narração",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "G"
+    },
+    {
+      "nome": "Modo offline e economia de dados",
+      "descricao": "Baixa o livro para o aparelho e funciona sem internet, com ajustes de peso e tema escuro para economizar bateria.",
+      "tela": "ajustes",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    }
+  ],
+
+  "me_faria_desistir": [
+    "Esconder atrás do plano pago o básico: abrir os livros cobrados, grifar, exportar notas ou ter os cartões. Se a leitura precisa de cartão de crédito, saio.",
+    "Catálogo bagunçado, com obras que não são as da lista, edições com cabeçalho/marca de outro site ou traduções duvidosas: parece pirata e perco a confiança.",
+    "IA que inventa: resumo errado sobre o enredo ou personagens, sem citar o trecho. Se eu errar na prova por causa do app, não volto.",
+    "Cadastro longo, pedido de dados pessoais ou propaganda/cobrança agressiva por eu ser menor; também desconfio se não ficar claro o que é guardado sobre mim.",
+    "Leitor lento e pesado no meu celular, que perde minha posição ou meus grifos ao trocar de aparelho ou limpar o navegador, sem nenhum aviso ou backup."
+  ]
+}
+```

@@ -6,12 +6,17 @@
 import { raw, Router } from 'express'
 
 import { alternativasProxy } from '../ai/alternativas'
+import { exigirFlagDoAssistente, rotaDoAssistente, tetoDoAssistente } from '../ai/assistente'
+import { explicarProxy } from '../ai/explicar'
+import { registrarFeedback, tetoDoFeedback } from '../ai/feedback'
 import { mtTranslateProxy } from '../ai/mtProxy'
+import { parceiroProxy } from '../ai/parceiro'
 import { polirProxy } from '../ai/polimento'
 import { llmChatProxy, providerTest } from '../ai/proxy'
 // F14-02: a leitura de env sai do handler. B1 (Fase B): a pergunta é do registro de provedores, a
 // MESMA que a porta da transcrição faz — as duas discordavam (B0).
 import { sttDeNuvemConfigurado } from '../ai/registroDeProvedores'
+import { resumirProxy } from '../ai/resumir'
 import { apagarDoGlossario, gravarNoGlossario, listarGlossario } from '../ai/rotasDoGlossario'
 import { portaDoStt, sttTranscribeProxy } from '../ai/sttProxy'
 import { ttsProxy } from '../ai/ttsProxy'
@@ -44,6 +49,30 @@ aiRouter.post('/mt/alternativas', alternativasProxy)
 /* "Polir a tradução da sessão" (D5 da Fase D): um bloco de até 40 falas por pedido, lidas do banco,
    no nível `polimento`; a polida vai AO LADO da original, e o bloco já polido não é cobrado de novo. */
 aiRouter.post('/mt/polir', polirProxy)
+/* A EXPLICAÇÃO DA FRASE (IA de estudo, planos v4, etapa 2): o porquê, a gramática, o registro e as gírias de uma
+   frase tocada. Atrás da flag `ia_de_estudo` (404 `recurso_indisponivel`); o plano tem `explicacoesMes`, o Grátis a
+   amostra do dia (402 `amostra_acabou`), com a admissão, o orçamento e a retenção zero das outras funções. */
+aiRouter.post('/explicar', explicarProxy)
+/* O RESUMO DA SESSÃO (IA de estudo, etapa 2, Task 3): 3 pontos e até 10 cartões com a frase da cena, lidos das falas
+   da sessão DO DONO (alheia = 404 `sessao_inexistente`). Mesma flag, franquia (`resumosMes`; Grátis 1 por semana),
+   menor, retenção zero, admissão e orçamento da explicação. */
+aiRouter.post('/resumir', resumirProxy)
+/* O ASSISTENTE AO VIVO (`docs/specs/2026-10-25-assistente-ao-vivo.md`): expressões e gírias da linha, termo ou sigla em
+   uma linha, "Como respondo?" e a correção gentil da própria fala. Atrás da flag `assistente_ao_vivo` (404
+   `recurso_indisponivel`), só nos pagos (`assistenteDia`; Grátis 402 `sem_plano`, teto do dia 429
+   `teto_do_assistente`), com o balde próprio de 30/min, a admissão, o orçamento, o menor e a retenção zero. */
+aiRouter.post('/assistente/expressoes', exigirFlagDoAssistente, tetoDoAssistente, rotaDoAssistente('expressoes'))
+aiRouter.post('/assistente/termos', exigirFlagDoAssistente, tetoDoAssistente, rotaDoAssistente('termos'))
+aiRouter.post('/assistente/como-respondo', exigirFlagDoAssistente, tetoDoAssistente, rotaDoAssistente('comoRespondo'))
+aiRouter.post('/assistente/correcao', exigirFlagDoAssistente, tetoDoAssistente, rotaDoAssistente('correcao'))
+/* O PARCEIRO DE LEITURA (L4 de Livros & Leitura): explicar o trecho, analogia, pergunta com citação do capítulo,
+   curiosidade da ficha, ideia para discutir e o que observar. Atrás da flag `parceiro_de_leitura` (404
+   `recurso_indisponivel`), só nos pagos e no teste (`parceiroDia`; Grátis 402 `sem_plano`, teto do dia 429
+   `teto_do_parceiro`), com cache compartilhado nos livros PD, o menor, a retenção zero, a admissão e o orçamento. */
+aiRouter.post('/leitura/parceiro', parceiroProxy)
+/* O FEEDBACK DE IA (Fase B da IA paga): 👍/👎 com função, modelo, nível e motivo de LISTA FECHADA — nada de texto
+   livre nem conteúdo da frase. Vira métrica e nota no Langfuse; nenhuma tabela. Adulto, menor e convidado. */
+aiRouter.post('/feedback', tetoDoFeedback, registrarFeedback)
 /* A VOZ NATURAL do modo intérprete (E4 da Fase E): a tradução lida em voz alta pela nuvem, só com o
    `vozNatural` (402 pelo entitlement) e a flag `voz_natural` (503), com a admissão `tts`, a cota de
    caracteres no mês e no dia e o custo das outras funções. Sem clonagem de voz. O cliente cai na voz

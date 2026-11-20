@@ -75,7 +75,7 @@ const ambienteDoApp = {
   VITE_AUTH_REQUIRED: '1',
   VITE_SUPABASE_URL: SUPABASE,
   VITE_SUPABASE_ANON_KEY: 'anon-vitrine',
-  DATABASE_URL: `file:./${PASTA.replaceAll('\\', '/')}/vitrine.db`,
+  DATABASE_URL: `pglite:./${PASTA.replaceAll('\\', '/')}/pg`,
   ASAAS_BASE_URL: `${ASAAS}/v3`,
   ASAAS_API_KEY: 'chave-da-vitrine',
   ASAAS_WEBHOOK_TOKEN: tokenDoWebhook,
@@ -123,7 +123,7 @@ async function esperar(url, nome, limiteMs = 180_000) {
   encerrar(1)
 }
 
-console.log('\n  Babel Play — vitrine local (login e cobrança de mentira)\n')
+console.log('\n  Frasy — vitrine local (login e cobrança de mentira)\n')
 
 subir('o Supabase falso', [path.join('tests', 'e2e-publico', '_supabase-falso.mjs')], {
   ...process.env,

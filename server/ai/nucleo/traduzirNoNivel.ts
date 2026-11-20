@@ -261,7 +261,7 @@ async function traduzir(
   /* A POLÍTICA DE CUSTO (B4, `politicaDeCusto.ts`): com o orçamento a 70% (pagante com o primeiro
      balde baixo) ou a 90% (todos), a cascata começa no degrau mais barato e a saída dos modelos sem
      raciocínio cai para 75%. A fração vem do mesmo portão, sem outra leitura do banco. */
-  const custo = aplicarPoliticaDeCusto({
+  const custo = await aplicarPoliticaDeCusto({
     pernas: provedores,
     nivel,
     fracaoDoOrcamento: portao.fracaoDoOrcamento ?? 0,
@@ -272,9 +272,9 @@ async function traduzir(
 
   /* ADMISSÃO (ADR 0007) ANTES da cota do usuário: sem saldo no balde do modelo (ou com a 2ª
      tradução dele já em voo), 429 `nuvem_ocupada` com `Retry-After` — e o cliente traduz no local. */
-  const admitida = admitirCascata(custo.pernas, {
+  const admitida = await admitirCascata(custo.pernas, {
     userId: ctx.userId,
-    // O teste de 14 dias (C6) tem o Premium nos entitlements, mas entra na faixa grátis.
+    // O teste de 3 dias (C6) tem o Premium nos entitlements, mas entra na faixa grátis.
     plano: planoDeAdmissao(planoDoUsuario.plan, alivio, ctx.emTeste),
     tokens: estimativa,
   })
@@ -290,9 +290,11 @@ async function traduzir(
       consulta,
       usaCache,
       admissao: admitida.admissao,
+      /* A LEGENDA AO VIVO (a rápida) pede o endpoint mais barato que responde a tempo; a nuance, o de sempre. */
+      legenda: nivel === 'rapida',
     })
   } finally {
-    encerrarAdmissao(admitida.admissao)
+    await encerrarAdmissao(admitida.admissao)
   }
 }
 
@@ -312,6 +314,8 @@ async function traduzirAdmitido(
     /** `false` com glossário (D3): a tradução é desta pessoa e não vai ao cache compartilhado. */
     usaCache: boolean
     admissao: AdmissaoDaCascata
+    /** A tradução rápida: preço primeiro com teto de latência (`ROTEAMENTO_DA_LEGENDA`). */
+    legenda?: boolean
   },
 ): Promise<ResultadoDaTraducao> {
   const { provedores, messages, maxTokens, falada, consulta } = p
@@ -334,6 +338,7 @@ async function traduzirAdmitido(
         maxTokens,
         timeoutMs: 12_000,
         sinal: ctx.sinal,
+        legenda: p.legenda,
       },
       {
         evento: 'mt',

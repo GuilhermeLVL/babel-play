@@ -181,13 +181,13 @@ afterAll(async () => {
 })
 beforeEach(async () => {
   for (const e of ENVS) process.env[e] = ''
-  esvaziarCacheDeTraducao()
+  await esvaziarCacheDeTraducao()
   esvaziarCacheDeVoz()
 })
-afterEach(() => {
+afterEach(async () => {
   vi.unstubAllGlobals()
   esquecerDisjuntores()
-  esquecerAdmissao()
+  await esquecerAdmissao()
   esquecerRegistro()
 })
 

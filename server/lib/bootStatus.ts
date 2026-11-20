@@ -35,6 +35,22 @@ export interface FalhaDeBoot {
 /** Espelho local: resposta imediata e último recurso quando o banco não responde. */
 const falhas = new Map<string, FalhaDeBoot>()
 
+/**
+ * Gravações em voo em `boot_falhas`. As escritas são disparadas sem espera (quem registra está num `catch`
+ * no meio do boot), então só quem quer um estado determinístico, os testes, espera por elas — sem isto, um
+ * `DELETE` de reset podia chegar ao banco ANTES do `INSERT` que ainda estava em voo, e a linha sobrava.
+ */
+const emVoo = new Set<Promise<unknown>>()
+function rastrear(escrita: Promise<unknown>): void {
+  emVoo.add(escrita)
+  void escrita.finally(() => emVoo.delete(escrita))
+}
+
+/** Só para os testes: espera as gravações em `boot_falhas` já disparadas chegarem ao banco. */
+export async function aguardarGravacoesDeBoot(): Promise<void> {
+  await Promise.allSettled([...emVoo])
+}
+
 function instancia(): string {
   // `hostname` sem importar `node:os` no topo: este módulo é carregado no caminho quente do health.
   return `${process.env.HOSTNAME || 'local'}:${process.pid}`
@@ -51,11 +67,24 @@ export function registrarFalhaDeBoot(passo: string, err: unknown): void {
   const em = Date.now()
   falhas.set(passo, { passo, em })
   log('error', { event: 'boot_step_failed', error: `${passo}: ${String(err).slice(0, 120)}` })
-  void db
-    .insert(bootFalhas)
-    .values({ passo, em, instancia: instancia() })
-    .onConflictDoUpdate({ target: bootFalhas.passo, set: { em, instancia: instancia() } })
-    .catch((e) => log('warn', { event: 'boot_status_persist_failed', error: String(e).slice(0, 120) }))
+  /* No Worker o portão roda FORA de `comExecutor`, e o `db` lança de forma síncrona (`BancoIndisponivel`):
+     sem este `try`, registrar a falha derrubaria o próprio boot. O espelho acima já vale para este isolate. */
+  try {
+    rastrear(
+      db
+        .insert(bootFalhas)
+        .values({ passo, em, instancia: instancia() })
+        .onConflictDoUpdate({ target: bootFalhas.passo, set: { em, instancia: instancia() } })
+        .catch((e) => log('warn', { event: 'boot_status_persist_failed', error: String(e).slice(0, 120) })),
+    )
+  } catch (e) {
+    log('warn', { event: 'boot_status_persist_failed', error: String(e).slice(0, 120) })
+  }
+}
+
+function tabelaAindaNaoExiste(e: unknown): boolean {
+  const causa = (e as { cause?: { code?: string } } | undefined)?.cause
+  return causa?.code === '42P01' || /relation "boot_falhas" does not exist/i.test(String(e))
 }
 
 /**
@@ -66,10 +95,22 @@ export function registrarFalhaDeBoot(passo: string, err: unknown): void {
  */
 export function registrarSucessoDeBoot(passo: string): void {
   falhas.delete(passo)
-  void db
-    .delete(bootFalhas)
-    .where(sql`${bootFalhas.passo} = ${passo}`)
-    .catch((e) => log('warn', { event: 'boot_status_clear_failed', error: String(e).slice(0, 120) }))
+  /* Mesmo `try` de `registrarFalhaDeBoot`: no portão do Worker o `db` lança de forma síncrona. */
+  try {
+    rastrear(
+      db
+        .delete(bootFalhas)
+        .where(sql`${bootFalhas.passo} = ${passo}`)
+        .catch((e) => {
+          /* `configuracao` é conferida ANTES das migrations (server.ts): num banco novo a tabela ainda não
+             existe (42P01) e não há linha antiga a apagar — silêncio, não aviso a cada boot. */
+          if (tabelaAindaNaoExiste(e)) return
+          log('warn', { event: 'boot_status_clear_failed', error: String(e).slice(0, 120) })
+        }),
+    )
+  } catch (e) {
+    log('warn', { event: 'boot_status_clear_failed', error: String(e).slice(0, 120) })
+  }
 }
 
 /**
@@ -104,6 +145,12 @@ export function esquecerEmMemoria(): void {
 
 /** Só para os testes: zera o acumulado (memória e banco) entre casos. */
 export async function resetBootStatus(): Promise<void> {
+  /* Primeiro as gravações em voo pousam; só então o `DELETE` do reset (ordem garantida, sem sono fixo). */
+  await aguardarGravacoesDeBoot()
   falhas.clear()
-  try { await db.delete(bootFalhas) } catch { /* banco pode nem existir no teste */ }
+  try {
+    await db.delete(bootFalhas)
+  } catch {
+    /* banco pode nem existir no teste */
+  }
 }

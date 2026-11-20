@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * `ANUAL_ENABLED=0` NA TELA — o MVP vende só o mensal (R$ 19,90) e o teste de 14 dias.
+ * `ANUAL_ENABLED=0` NA TELA — o MVP vende só o mensal (R$ 19,90) e o teste de 3 dias.
  *
  * `GET /api/abertura` passa a dizer `anual`. Com `anual: false`, nos DOIS desenhos do app:
  * 1. Planos: some o seletor Mensal/Anual, e nada na aba promete o anual (nem "R$ 149,90", nem "12x",
@@ -68,7 +68,6 @@ function montarMocks(o: { anual?: boolean; status?: unknown; plano?: string } = 
     const real = (await original()) as typeof import('../src/lib/entitlements')
     const ents = {
       plan: o.plano ?? 'free',
-      youtubeImport: false,
       managedCloudStt: false,
       managedCloudLlm: false,
       largerModels: false,

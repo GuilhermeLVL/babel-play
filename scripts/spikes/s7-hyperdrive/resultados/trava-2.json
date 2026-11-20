@@ -1,0 +1,39 @@
+{
+  "colo": "GIG",
+  "advisory": {
+    "a": {
+      "obtidaMs": 17,
+      "totalMs": 1052
+    },
+    "b": {
+      "obtidaMs": 1049,
+      "totalMs": 2076
+    },
+    "paredeMs": 2080,
+    "serializou": true
+  },
+  "forUpdate": {
+    "a": {
+      "obtidaMs": 24,
+      "totalMs": 1055
+    },
+    "b": {
+      "obtidaMs": 1056,
+      "totalMs": 2099
+    },
+    "paredeMs": 2103,
+    "serializou": true
+  },
+  "upsert": {
+    "a": {
+      "obtidaMs": 19,
+      "totalMs": 1041
+    },
+    "b": {
+      "obtidaMs": 1040,
+      "totalMs": 2069
+    },
+    "paredeMs": 2076,
+    "serializou": true
+  }
+}

@@ -831,7 +831,7 @@ describe('A leitura com a voz do navegador: a marcação segue a fala', () => {
   it('narra com a voz escolhida do idioma, e trocá-la em "Voz, idioma e tom" vale já na frase atual', async () => {
     const VOZES = [
       { name: 'Microsoft Aria Online (Natural) - English (United States)', lang: 'en-US', localService: false },
-      { name: 'Microsoft David - English (United States)', lang: 'en-US', localService: true },
+      { name: 'Alex', lang: 'en-US', localService: true },
     ]
     const semVozes = voz.getVoices
     voz.getVoices = (() => VOZES) as unknown as typeof voz.getVoices
@@ -844,7 +844,7 @@ describe('A leitura com a voz do navegador: a marcação segue a fala', () => {
 
       fireEvent.click(narrador().getByRole('button', { name: /Voz, idioma e tom/ }))
       const ajustes = within(screen.getByTestId('ajustes-do-narrador'))
-      expect(ajustes.getByRole('radio', { name: /David/ }).getAttribute('aria-checked')).toBe('true')
+      expect(ajustes.getByRole('radio', { name: /Alex/ }).getAttribute('aria-checked')).toBe('true')
       await act(async () => void fireEvent.click(ajustes.getByRole('radio', { name: /Aria/ })))
       // A frase atual é relida com a voz nova; a narração não volta ao começo nem perde o lugar.
       expect(ultima().text).toBe(FALAS[0].sourceText)

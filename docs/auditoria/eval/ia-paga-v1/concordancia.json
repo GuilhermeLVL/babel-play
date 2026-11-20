@@ -1,0 +1,193 @@
+{
+  "explicacao": {
+    "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
+    "geral": {
+      "kappa": 0.28008642929552446,
+      "n": 2471,
+      "concordancia": 0.8717118575475516,
+      "acaso": 0.8218006331969666
+    },
+    "porCriterio": {
+      "sentido_correto": {
+        "kappa": 0.2763215697759555,
+        "n": 353,
+        "concordancia": 0.9206798866855525,
+        "acaso": 0.8903931497724884
+      },
+      "gramatica_correta": {
+        "kappa": 0.39609540102646706,
+        "n": 353,
+        "concordancia": 0.8073654390934845,
+        "acaso": 0.6810182250078244
+      },
+      "registro_correto": {
+        "kappa": 0.5000544721647234,
+        "n": 353,
+        "concordancia": 0.9631728045325779,
+        "acaso": 0.9263375839626352
+      },
+      "girias_corretas": {
+        "kappa": 0.337572977481234,
+        "n": 353,
+        "concordancia": 0.8980169971671388,
+        "acaso": 0.8460464332431847
+      },
+      "idioma_certo": {
+        "kappa": -0.004553215708592205,
+        "n": 353,
+        "concordancia": 0.9858356940509915,
+        "acaso": 0.9858998948711569
+      },
+      "adequada_aprendiz": {
+        "kappa": 0.07423615915563198,
+        "n": 353,
+        "concordancia": 0.5382436260623229,
+        "acaso": 0.5012158030318837
+      },
+      "segura": {
+        "kappa": 0,
+        "n": 353,
+        "concordancia": 0.9886685552407932,
+        "acaso": 0.9886685552407932
+      }
+    }
+  },
+  "resumo": {
+    "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
+    "geral": {
+      "kappa": 0.27447896185607484,
+      "n": 492,
+      "concordancia": 0.9695121951219512,
+      "acaso": 0.95797805539031
+    },
+    "porCriterio": {
+      "pontos_fieis": {
+        "kappa": 0.3195020746887977,
+        "n": 82,
+        "concordancia": 0.9512195121951219,
+        "acaso": 0.9283164782867339
+      },
+      "sem_invencao": {
+        "kappa": 0.259927797833935,
+        "n": 82,
+        "concordancia": 0.9390243902439024,
+        "acaso": 0.9176085663295657
+      },
+      "cartoes_uteis": {
+        "kappa": 1,
+        "n": 82,
+        "concordancia": 1,
+        "acaso": 0.9759071980963712
+      },
+      "cartoes_corretos": {
+        "kappa": -0.018633540372669424,
+        "n": 82,
+        "concordancia": 0.9512195121951219,
+        "acaso": 0.9521118381915525
+      },
+      "idioma_certo": {
+        "kappa": null,
+        "n": 82,
+        "concordancia": 1,
+        "acaso": 1,
+        "indefinido": true
+      },
+      "segura": {
+        "kappa": 0,
+        "n": 82,
+        "concordancia": 0.975609756097561,
+        "acaso": 0.975609756097561
+      }
+    }
+  },
+  "alternativas": {
+    "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
+    "geral": {
+      "kappa": 0.4886576482830389,
+      "n": 1404,
+      "concordancia": 0.9501424501424501,
+      "acaso": 0.9024967329810634
+    },
+    "porCriterio": {
+      "mesmo_sentido": {
+        "kappa": 0.5848303393213575,
+        "n": 234,
+        "concordancia": 0.9316239316239316,
+        "acaso": 0.8353057199211045
+      },
+      "diversidade": {
+        "kappa": 0.22516556291390746,
+        "n": 234,
+        "concordancia": 0.9487179487179487,
+        "acaso": 0.9338154722770107
+      },
+      "registro_certo": {
+        "kappa": 0.3840561544246676,
+        "n": 234,
+        "concordancia": 0.9102564102564102,
+        "acaso": 0.8542990722477902
+      },
+      "naturalidade": {
+        "kappa": 0.5519148936170215,
+        "n": 234,
+        "concordancia": 0.9230769230769231,
+        "acaso": 0.8283293155088027
+      },
+      "idioma_certo": {
+        "kappa": 0.6647564469914049,
+        "n": 234,
+        "concordancia": 0.9957264957264957,
+        "acaso": 0.9872525385345898
+      },
+      "segura": {
+        "kappa": 0,
+        "n": 234,
+        "concordancia": 0.9914529914529915,
+        "acaso": 0.9914529914529915
+      }
+    }
+  },
+  "legenda": {
+    "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
+    "geral": {
+      "kappa": 0.4603967599553763,
+      "n": 445,
+      "concordancia": 0.9438202247191011,
+      "acaso": 0.8958868829693221
+    },
+    "porCriterio": {
+      "adequacao": {
+        "kappa": 0.5870069605568445,
+        "n": 89,
+        "concordancia": 0.9101123595505618,
+        "acaso": 0.782350713293776
+      },
+      "naturalidade": {
+        "kappa": 0.3471882640586798,
+        "n": 89,
+        "concordancia": 0.898876404494382,
+        "acaso": 0.8450953162479484
+      },
+      "registro": {
+        "kappa": 0.2908366533864546,
+        "n": 89,
+        "concordancia": 0.9101123595505618,
+        "acaso": 0.8732483272314101
+      },
+      "idioma_certo": {
+        "kappa": null,
+        "n": 89,
+        "concordancia": 1,
+        "acaso": 1,
+        "indefinido": true
+      },
+      "segura": {
+        "kappa": null,
+        "n": 89,
+        "concordancia": 1,
+        "acaso": 1,
+        "indefinido": true
+      }
+    }
+  }
+}

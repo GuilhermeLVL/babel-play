@@ -10,6 +10,7 @@ import { type RefObject, useEffect } from 'react';
 
 import { getEntitlements } from '../entitlements';
 import { t } from '../i18n';
+import { comNomeDoPlano, planoParaNome } from '../planoDeEntrada';
 import { abaAVista } from './personalizar';
 import { planoDeProva } from './planos';
 
@@ -18,7 +19,7 @@ export function tituloDoPlanoNaConta(): string {
   const { plan, teste } = getEntitlements();
   const plano = planoDeProva() ?? plan;
   if (plano === 'free' || plano === 'anonimo') return t('Seu plano: Grátis');
-  return teste ? t('Seu plano: Premium, em teste') : t('Seu plano: Premium');
+  return comNomeDoPlano(teste ? t('Seu plano: Premium, em teste') : t('Seu plano: Premium'), planoParaNome(plano));
 }
 
 /** A frase do cartão (`telas2.js:142`). */

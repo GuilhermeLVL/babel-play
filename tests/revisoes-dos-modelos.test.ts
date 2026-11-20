@@ -6,7 +6,13 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { arquivoInteressa, chaveNoBucket } from '../scripts/modelos/publicar-no-r2'
+import {
+  arquivoInteressa,
+  arquivosDoRuntime,
+  chaveNoBucket,
+  prefixoValido,
+  tipoDe,
+} from '../scripts/modelos/publicar-no-r2'
 import { REVISOES_DOS_MODELOS, urlFixadaDoModelo } from '../src/gateway/revisoesDosModelos'
 
 const TINY = 'onnx-community/whisper-tiny'
@@ -96,5 +102,26 @@ describe('publicar-no-r2: o que sobe e onde', () => {
     expect(
       urlFixadaDoModelo(`https://huggingface.co/${TINY}/resolve/main/onnx/encoder_model.onnx`, 'https://b.exemplo'),
     ).toBe(`https://b.exemplo/${chave}`)
+  })
+})
+
+describe('publicar-no-r2 --prefixo: o runtime do ONNX', () => {
+  it('sobem só os ort-wasm-*.{wasm,mjs}, com o Content-Type que o navegador exige', () => {
+    expect(
+      arquivosDoRuntime([
+        'ort-wasm-simd-threaded.mjs',
+        'silero_vad_legacy.onnx',
+        'ort-wasm-simd-threaded.wasm',
+        'x.mjs',
+      ]),
+    ).toEqual(['ort-wasm-simd-threaded.mjs', 'ort-wasm-simd-threaded.wasm'])
+    expect(tipoDe('ort-wasm-simd-threaded.wasm')).toBe('application/wasm')
+    expect(tipoDe('ort-wasm-simd-threaded.jsep.mjs')).toBe('text/javascript')
+  })
+
+  it('o prefixo é normalizado e não escapa do bucket', () => {
+    expect(prefixoValido('/ort/1.26.0/')).toBe('ort/1.26.0')
+    for (const ruim of ['', '/', 'ort/../x', 'ort//1'])
+      expect(() => prefixoValido(ruim), ruim).toThrow(/--prefixo inválido/)
   })
 })

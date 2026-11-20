@@ -8,30 +8,43 @@
  * Efeito prático: o orquestrador mantém no balanceador uma réplica que falha em tudo.
  * O boot é fail-fast, o runtime era cego — a pior combinação.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { clienteSql } from '../harness/clienteSql'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let health: any
-let client: any
+let client: ReturnType<typeof clienteSql>
 let boot: any
 
 beforeAll(async () => {
   h = await setupEphemeralDb()
   ;({ healthHandler: health } = await h.load('../../server/routes/health'))
-  ;({ client } = await h.load('../../server/db/db') as any)
+  client = clienteSql(await h.load('../../server/db/db'))
   boot = await h.load('../../server/lib/bootStatus')
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 function fakeRes() {
   const r: any = { statusCode: 200, body: undefined }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    return r
+  }
   return r
 }
-const chamar = async () => { const res = fakeRes(); await health({} as any, res); return res }
+const chamar = async () => {
+  const res = fakeRes()
+  await health({} as any, res)
+  return res
+}
 
 describe('/api/health — detecção de schema', () => {
   it('banco íntegro: 200 e status ok', async () => {
@@ -67,7 +80,7 @@ describe('/api/health — detecção de schema', () => {
     try {
       const res = await chamar()
       const corpo = JSON.stringify(res.body)
-      expect(corpo).not.toMatch(/sessions_sumiu|SQLITE|no such table/i)
+      expect(corpo).not.toMatch(/sessions_sumiu|SQLITE|no such table|relation|does not exist|pglite:|postgres:/i)
     } finally {
       await client.execute('ALTER TABLE sessions_sumiu RENAME TO sessions')
     }

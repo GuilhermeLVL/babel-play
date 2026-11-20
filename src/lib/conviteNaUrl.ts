@@ -7,15 +7,17 @@
  * para `/` — o token não fica no histórico nem vaza em `Referer`. Depois do login, o App o encontra
  * aqui e mostra a tela de aceite.
  */
+import { caminhoInternoAtual, comBaseDoApp } from './baseDoApp';
+
 const CHAVE = 'babel.convite.token';
 
 export function capturarTokenDoConvite(): void {
   if (typeof window === 'undefined') return;
   try {
-    if (window.location.pathname !== '/responsavel') return;
+    if (caminhoInternoAtual() !== '/responsavel') return;
     const token = new URLSearchParams(window.location.search).get('token');
     if (token) sessionStorage.setItem(CHAVE, token);
-    window.history.replaceState({}, '', '/');
+    window.history.replaceState({}, '', comBaseDoApp('/'));
   } catch {
     /* sem armazenamento: o link precisa ser aberto de novo depois do login */
   }

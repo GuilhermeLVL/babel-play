@@ -4,7 +4,7 @@
  * encerrar sem digitação e o resumo da sessão. Só apresentação: cada teste confere o que aparece e para
  * onde cada toque leva.
  */
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -66,16 +66,20 @@ describe('TrilhoDoQuest', () => {
     return { ir, ...r }
   }
 
-  it('os seis destinos da navegação A (cartoes3.js:14) e "Mais", com o destino atual marcado', () => {
+  it('os oito destinos por prioridade (R40 e Livros, com Ao vivo no lugar de Capturar e Intérprete) e "Mais", com o destino atual marcado', () => {
     const { container } = montar('play')
     const itens = [...container.querySelectorAll('.q-trilho .q-item')]
-    expect(itens.map((i) => i.textContent)).toEqual([
+    expect(itens.map((i) => i.querySelector('span')?.textContent)).toEqual([
       'Início',
-      'Capturar',
-      'Intérprete',
-      'Biblioteca',
+      'Ao vivo',
       'Cartões',
       'Jogar',
+      'Biblioteca',
+      'Livros',
+      'Progresso',
+      'Planos',
+      'Voz',
+      'Ajustes',
       'Mais',
     ])
     expect(container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Jogar')
@@ -123,17 +127,21 @@ describe('TrilhoDoQuest', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
     const painel = screen.getByRole('dialog')
     expect(painel.textContent).toContain('Ajustes')
-    /* O conteúdo subiu para o trilho; o acessório desceu para cá (decisão do dono, 10/10/2026). */
-    expect(painel.textContent).toContain('Estatísticas')
+    /* Progresso e Planos subiram para o trilho (R40): o "Mais" não os repete como ladrilho. */
     expect(painel.textContent).toContain('Personalizar')
+    const nomes = [...painel.querySelectorAll('.q-grade .q-tile b')].map((b) => b.textContent)
+    expect(nomes).not.toContain('Progresso')
+    expect(nomes).not.toContain('Planos')
+    expect(nomes).not.toContain('Livros')
     expect(painel.textContent).not.toContain('Biblioteca')
     expect(painel.textContent).not.toContain('Vocabulário')
     expect(painel.textContent).toContain('Diagnóstico do aparelho')
     /* A ordem do protótipo (`CT_NAV.a.mais`, cartoes3.js:14): Sobre vem depois do perfil e da ajuda. */
     const ladrilhos = [...painel.querySelectorAll('.q-grade .q-tile b')].map((b) => b.textContent)
-    expect(ladrilhos.slice(0, 5)).toEqual(['Estatísticas', 'Personalizar', 'Ajustes', 'Seu perfil', 'Ajuda e suporte'])
+    expect(ladrilhos.slice(0, 4)).toEqual(['Personalizar', 'Ajustes', 'Seu perfil', 'Ajuda e suporte'])
     expect(ladrilhos.indexOf('Sobre')).toBeGreaterThan(ladrilhos.indexOf('Ajuda e suporte'))
-    fireEvent.click(screen.getByRole('button', { name: 'Ajustes' }))
+    /* Ajustes também mora no pé do trilho (23/10/2026): o do painel é o do `dialog`. */
+    fireEvent.click(within(painel).getByRole('button', { name: 'Ajustes' }))
     expect(ir).toHaveBeenCalledWith('settings')
     expect(screen.queryByRole('dialog')).toBeNull()
   })
@@ -151,18 +159,70 @@ describe('TrilhoDoQuest', () => {
         toggleSound={() => {}}
       />,
     )
-    const itens = [...container.querySelectorAll('.q-trilho .q-item')].map((i) => i.textContent)
-    expect(itens).toEqual(['Início', 'Capturar', 'Intérprete', 'Biblioteca', 'Cartões', 'Jogar', 'Mais'])
+    const itens = [...container.querySelectorAll('.q-trilho .q-item')].map((i) => i.querySelector('span')?.textContent)
+    expect(itens).toEqual([
+      'Início',
+      'Ao vivo',
+      'Cartões',
+      'Jogar',
+      'Biblioteca',
+      'Livros',
+      'Progresso',
+      'Planos',
+      'Voz',
+      'Ajustes',
+      'Mais',
+    ])
     fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
-    const estatisticas = [...screen.getByRole('dialog').querySelectorAll('.q-tile')].find((x) =>
-      x.textContent?.includes('Estatísticas'),
+    const tiles = [...screen.getByRole('dialog').querySelectorAll('.q-tile')]
+    expect(tiles.some((x) => x.textContent?.includes('Progresso'))).toBe(false)
+    const perfil = [...screen.getByRole('dialog').querySelectorAll('.q-tile')].find((x) =>
+      x.textContent?.includes('Seu perfil'),
     )
-    expect(estatisticas?.querySelector('.q-pede-conta')).toBeTruthy()
+    expect(perfil?.querySelector('.q-pede-conta')).toBeTruthy()
   })
 
-  it('numa tela que só existe no "Mais", é o "Mais" que fica marcado', () => {
+  it('no celular, sem conta, o ladrilho de Progresso no "Mais" diz que pede conta (R42: o trilho não leva o marcador)', () => {
+    const antes = window.matchMedia
+    window.matchMedia = ((q: string) => ({
+      matches: true,
+      media: q,
+      addEventListener() {},
+      removeEventListener() {},
+    })) as never
+    document.documentElement.dataset.px = 'on'
+    try {
+      render(
+        <TrilhoDoQuest
+          activeView="hub"
+          onChangeView={() => {}}
+          ageProfile="pro"
+          semConta
+          darkMode={false}
+          toggleDarkMode={() => {}}
+          soundEnabled
+          toggleSound={() => {}}
+        />,
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
+      const progresso = [...screen.getByRole('dialog').querySelectorAll('.q-tile')].find((x) =>
+        x.textContent?.includes('Progresso'),
+      )
+      expect(progresso?.querySelector('.q-pede-conta')).toBeTruthy()
+    } finally {
+      window.matchMedia = antes
+      delete document.documentElement.dataset.px
+    }
+  })
+
+  /* Premissa mudada (23/10/2026): Ajustes ganhou botão no pé do trilho do computador, então é ele que
+     fica marcado em Ajustes. Numa tela que só existe no "Mais" (Sobre), continua sendo o "Mais". */
+  it('em Ajustes é o botão Ajustes do pé que fica marcado; numa tela só do "Mais", é o "Mais"', () => {
     const { container } = montar('settings')
-    expect(container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Mais')
+    expect(container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Ajustes')
+    expect(container.querySelectorAll('.q-item[aria-current="page"]')).toHaveLength(1)
+    const outra = montar('sobre')
+    expect(outra.container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Mais')
   })
 })
 
@@ -194,6 +254,18 @@ describe('InicioDoQuest', () => {
     expect(ir).toHaveBeenLastCalledWith('analysis', { id: 'a' })
   })
 
+  it('no celular o Início traz a Biblioteca (que a barra de cinco não tem); no computador não', () => {
+    const desenhar = () =>
+      render(<InicioDoQuest onChangeView={vi.fn()} recordings={[]} progress={EMPTY_PROGRESS} metrics={metricas(1)} />)
+    aparelho.tipo = 'celular-bom'
+    const celular = desenhar()
+    expect(screen.getByTestId('biblioteca-no-inicio').textContent).toContain('Biblioteca')
+    celular.unmount()
+    aparelho.tipo = 'desktop-com-gpu'
+    desenhar()
+    expect(screen.queryByTestId('biblioteca-no-inicio')).toBeNull()
+  })
+
   it('o ladrilho diz o estado dos cartões: nenhum, primeiras palavras, em dia, e a forma enquanto carrega', () => {
     const casos: Array<[AppMetrics | null, string]> = [
       [{ dueToday: 0, deckSize: 0, reviews: 0 } as AppMetrics, 'Cartões'],
@@ -221,7 +293,7 @@ describe('InicioDoQuest', () => {
 })
 
 describe('InicioDoQuest sem conta', () => {
-  it('os Cartões levam ao estado vazio da tela, sem número; nada de sessão salva', () => {
+  it('os Cartões levam ao estado vazio da tela, sem número; a sessão local abre em Jogar', () => {
     const ir = vi.fn()
     render(
       <InicioDoQuest
@@ -236,9 +308,33 @@ describe('InicioDoQuest sem conta', () => {
     expect(screen.getByTestId('cartoes-no-inicio').querySelector('b')?.textContent).toBe('Cartões')
     fireEvent.click(screen.getByTestId('cartoes-no-inicio'))
     expect(ir).toHaveBeenLastCalledWith('cartoes')
-    expect(screen.queryByRole('button', { name: /Continuar/ })).toBeNull()
+    /* A sessão gravada sem conta vive neste navegador e aparece (decisão do dono, 14/11/2026). A análise
+       exige conta; o toque leva a Jogar com ela. */
+    fireEvent.click(screen.getByRole('button', { name: /Continuar: Aula 7/ }))
+    expect(ir).toHaveBeenLastCalledWith('play', { id: 'a' })
     fireEvent.click(screen.getByRole('button', { name: /Conversar/ }))
     expect(ir).toHaveBeenLastCalledWith('interprete')
+  })
+
+  it('as sessões locais aparecem até o teto (5), com o aviso honesto e "Criar conta"; sem "Ver biblioteca"', () => {
+    const ir = vi.fn()
+    const sete = Array.from({ length: 7 }, (_, i) => gravacao(`s${i}`, `Sessão ${i}`))
+    render(<InicioDoQuest onChangeView={ir} recordings={sete} progress={EMPTY_PROGRESS} metrics={null} semConta />)
+    const recentes = screen.getByTestId('recentes-no-inicio')
+    expect(recentes.querySelectorAll('.q-lista .q-linha')).toHaveLength(5)
+    expect(within(recentes).queryByText(/Sessão 5|Sessão 6/)).toBeNull()
+    expect(screen.getByTestId('sessoes-locais').textContent).toContain(
+      'Elas ficam só neste navegador. Com uma conta, vão com você.',
+    )
+    expect(within(recentes).queryByRole('button', { name: 'Ver biblioteca completa' })).toBeNull()
+    fireEvent.click(within(screen.getByTestId('sessoes-locais')).getByRole('button', { name: 'Criar conta' }))
+    expect(ir).toHaveBeenLastCalledWith('login', { modo: 'signup' })
+  })
+
+  it('sem sessão local, nada de lista nem de aviso', () => {
+    render(<InicioDoQuest onChangeView={vi.fn()} recordings={[]} progress={EMPTY_PROGRESS} metrics={null} semConta />)
+    expect(screen.queryByTestId('recentes-no-inicio')).toBeNull()
+    expect(screen.queryByTestId('sessoes-locais')).toBeNull()
   })
 })
 
@@ -336,7 +432,7 @@ describe('o que a primeira versão da casca tinha deixado de fora (auditoria de 
     rerender(
       <InicioDoQuest onChangeView={() => {}} recordings={[]} progress={progresso} metrics={null} ageProfile="senior" />,
     )
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Bem-vindo ao Babel Play')
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Bem-vindo ao Frasy')
   })
 
   const trilho = (extra: Record<string, unknown> = {}) => {
@@ -542,17 +638,30 @@ describe('a casca no computador com o desenho novo', () => {
     return { ir, aoBuscar, ...r }
   }
 
-  it('os mesmos seis destinos, e a busca no próprio trilho com o atalho à vista', () => {
+  it('Ajustes no trilho: engrenagem com o atalho no title, e um clique abre', () => {
+    const { ir } = montar()
+    const botao = screen.getByTestId('ajustes-no-trilho')
+    expect(botao.getAttribute('aria-keyshortcuts')).toBe('Control+, Meta+,')
+    expect(botao.getAttribute('title')).toMatch(/Ajustes \((Ctrl\+|⌘),\)/)
+    fireEvent.click(botao)
+    expect(ir).toHaveBeenCalledWith('settings')
+  })
+
+  it('os mesmos oito destinos, e a busca no próprio trilho com o atalho à vista', () => {
     const { container, aoBuscar } = montar()
     const itens = [...container.querySelectorAll('.q-trilho .q-item')]
     expect(itens.map((i) => i.querySelector('span')?.textContent)).toEqual([
       'Início',
-      'Capturar',
-      'Intérprete',
-      'Biblioteca',
+      'Ao vivo',
       'Cartões',
       'Jogar',
+      'Biblioteca',
+      'Livros',
+      'Progresso',
+      'Planos',
       'Buscar',
+      'Voz',
+      'Ajustes',
       'Mais',
     ])
     const busca = screen.getByTestId('busca-no-trilho')
@@ -572,7 +681,7 @@ describe('a casca no computador com o desenho novo', () => {
     expect(screen.queryByTestId('vibracao-do-quest')).toBeNull()
     expect(painel.textContent).not.toContain('Vibração')
     expect(painel.textContent).not.toContain('Diagnóstico do aparelho')
-    for (const destino of ['Estatísticas', 'Personalizar', 'Sobre', 'Ajustes', 'Seu perfil', 'Ajuda e suporte'])
+    for (const destino of ['Personalizar', 'Sobre', 'Ajustes', 'Seu perfil', 'Ajuda e suporte'])
       expect(painel.textContent).toContain(destino)
     expect(painel.textContent).toMatch(/Tema (claro|escuro)/)
     expect(painel.textContent).toContain('Som dos toques: ligado')

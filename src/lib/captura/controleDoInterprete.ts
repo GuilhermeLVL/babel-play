@@ -28,6 +28,7 @@ import {
   type EstadoDoInterprete,
   idiomasDaConversa,
   type IdiomasDoInterprete,
+  SILENCIO_DO_TURNO_MS,
 } from './interprete';
 import {
   decidirLadoDaFala,
@@ -47,6 +48,13 @@ export interface EstadoDoControle extends EstadoDoInterprete {
    * "Detectar", ou o terceiro idioma. `null` = o combinado, ou ainda nenhum. Zera quando a escuta recomeça.
    */
   detectado: string | null;
+  /** Quantas traduções esperam atrás da que está em voz (só a fila; a soletração do avatar pula quando atrasa). */
+  naFila?: number;
+  /**
+   * A fala esperando a CONFERÊNCIA da transcrição antes de a tradução ser lida (conversa-de-verdade, 5.4): o id dela,
+   * ou `null`. A metade de quem falou mostra o que o app entendeu, com "Ler a tradução", "Corrigir" e "Descartar".
+   */
+  conferindo?: string | null;
 }
 
 export interface OpcoesDoControle {
@@ -70,6 +78,12 @@ export interface OpcoesDoControle {
   opcoesDeFala?: Pick<SpeakOptions, 'rate' | 'pitch' | 'voiceName'>;
   aoMudar?: (estado: EstadoDoControle) => void;
   aoFalharMicrofone?: (erro: unknown) => void;
+  /**
+   * CONFERIR ANTES DE LER (conversa-de-verdade, 5.4): esta fala (pelo idioma dela, ISO-639-1) é lida só depois de a
+   * pessoa confirmar a transcrição? No celular com o modelo que errou o português na medição, sim; nos outros, não.
+   * `motorDaFala` é o que a transcreveu (`FimDaFala.motor`): a do navegador não passou pelo modelo.
+   */
+  conferirAntesDeLer?: (idiomaDaFala: string, motorDaFala?: string) => boolean;
 }
 
 export interface ControleDoInterprete {
@@ -111,6 +125,12 @@ export interface ControleDoInterprete {
    */
   microfoneFalhou(): void;
   estado(): EstadoDoControle;
+  /** A transcrição conferida está certa: a tradução é lida agora. */
+  confirmarLeitura(segId: string): void;
+  /** A pessoa vai corrigir a transcrição: a tradução nova (da correção) é lida quando chegar. */
+  corrigirAntesDeLer(segId: string): void;
+  /** A transcrição estava errada: nada é lido. */
+  descartarLeitura(segId: string): void;
 }
 
 /** O que a captura (`LiveCapture`) repassa ao intérprete aberto: a direção e os avisos do pipeline. */
@@ -128,6 +148,8 @@ export const VELOCIDADE_LENTA = 0.7;
  * de fala inteligente informar, o medidor recebe o valor medido no lugar deste (mesma etapa `vad`).
  */
 const ESPERA_NOMINAL_DO_VAD_MS = 800;
+/** Quantos avisos de tradução chegados ANTES do fim da fala o controle guarda (o resto é de falas que não terminaram). */
+const TETO_DE_TRADUCOES_GUARDADAS = 32;
 
 const relogioPadrao = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 const outroLado = (lado: LadoDoInterprete): LadoDoInterprete => (lado === 'meu' ? 'outro' : 'meu');
@@ -144,7 +166,7 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
   const enfileiradoEm = new Map<string, number>();
 
   /** Por fala: quando ela terminou e de que lado veio (`null` no automático, até o idioma ser medido). */
-  const fins = new Map<string, { em: number; lado: LadoDoInterprete | null }>();
+  const fins = new Map<string, { em: number; lado: LadoDoInterprete | null; motor?: string }>();
   /** AUTOMÁTICO: o que o idioma medido decidiu, por fala, e o estado da conversa (quem falou por último). */
   const decisoes = new Map<string, DecisaoDoLado>();
   let conversa: EstadoDoAutomatico = ESTADO_DO_AUTOMATICO;
@@ -152,11 +174,27 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
   const traducoes = new Map<string, TraducaoFinal>();
   let desligado = false;
   let falando: ItemDeFala | null = null;
+  let naFila = 0;
   /** Cortar a voz para ler um trecho tocado não é "fim da voz": o automático não reabre o microfone. */
   let cortandoParaTrecho = false;
   let trechos = 0;
+  /**
+   * O microfone do turno está aberto (entre o `abrirMicrofone` e o `fecharMicrofone`). A tradução NUNCA é lida com
+   * ele aberto: a voz falaria por cima de quem ainda fala, e o eco entraria na fala (conversa-de-verdade, 2.2).
+   */
+  let micAberto = false;
+  /** A leitura que espera a conferência da transcrição (o item pronto para a fila). */
+  let conferindo: ItemDeFala | null = null;
+  /** Falas corrigidas na conferência: a tradução da correção é lida quando chegar. */
+  const lerQuandoTraduzir = new Set<string>();
 
-  const estado = (): EstadoDoControle => ({ ...maquina.estado(), falando, detectado: conversa.estrangeiro });
+  const estado = (): EstadoDoControle => ({
+    ...maquina.estado(),
+    falando,
+    detectado: conversa.estrangeiro,
+    naFila,
+    conferindo: conferindo?.id ?? null,
+  });
   const avisar = () => {
     if (!desligado) o.aoMudar?.(estado());
   };
@@ -177,6 +215,7 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
     aoDescartar: (item) => void enfileiradoEm.delete(item.id),
     aoMudar: (f) => {
       falando = f.falando;
+      naFila = f.espera.length;
       if (!f.falando && f.espera.length === 0 && !cortandoParaTrecho) maquina.enviar({ tipo: 'fimDaVoz' });
       avisar();
     },
@@ -191,17 +230,30 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
     decisoes.delete(segId);
     const lado = decisao?.lado ?? fim?.lado ?? maquina.estado().lado ?? 'meu';
     const lang = decisao?.fala ?? direcaoDoLado(outroLado(lado), o.idiomas(), maquina.estado().trocados).fala;
+    /* CONFERIR ANTES DE LER: a tradução fica na espera do "Ler a tradução"; o turno acaba aqui (a vez volta). */
+    if (t?.traducao && !micAberto && o.conferirAntesDeLer?.(t.de, fim?.motor)) {
+      conferindo = { id: segId, texto: t.traducao, lang, lado }; // sem `criadoEm`: a idade conta da confirmação
+      avisar();
+      depois(() => maquina.enviar({ tipo: 'fimDaVoz' }));
+      return;
+    }
     /* O instante de entrada vem ANTES de enfileirar: a voz pode começar dentro da própria chamada. */
     if (t?.traducao) enfileiradoEm.set(segId, agora());
     const entrou =
       !!t?.traducao &&
+      !micAberto &&
       fila.enfileirar({ id: segId, texto: t.traducao, lang, lado, ...(fim ? { criadoEm: fim.em } : {}) });
     if (!entrou) enfileiradoEm.delete(segId);
     if (entrou) {
       /* O MEDIDOR POR ETAPA: STT e tradução já medidos pela captura, o VAD nominal e, daqui, o início
          da voz. Só números e nomes de motor. */
       const e = etapasDaFala(segId);
-      registrarEtapa(segId, 'vad', ESPERA_NOMINAL_DO_VAD_MS, 'vad-fixo');
+      registrarEtapa(
+        segId,
+        'vad',
+        maquina.estado().automatico ? ESPERA_NOMINAL_DO_VAD_MS : SILENCIO_DO_TURNO_MS,
+        'vad-fixo',
+      );
       if (e?.stt) registrarEtapa(segId, 'stt', e.stt.ms, e.stt.motor, e.stt.audioMs);
       if (e?.mt) registrarEtapa(segId, 'mt', e.mt.ms, e.mt.motor);
     }
@@ -211,6 +263,7 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
   const executar = (e: EfeitoDoInterprete) => {
     switch (e.tipo) {
       case 'abrirMicrofone': {
+        micAberto = true;
         const lado = e.direcao?.lado ?? null;
         const falhou = (erro: unknown) => {
           if (desligado) return;
@@ -234,6 +287,7 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
         return;
       }
       case 'fecharMicrofone':
+        micAberto = false;
         o.microfone.fechar();
         return;
       case 'interromperVoz':
@@ -255,14 +309,39 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
 
   const aoTraduzirFinal = (final: TraducaoFinal) => {
     if (desligado || !final.falada) return;
+    /* A tradução da CORREÇÃO feita na conferência: a pessoa já conferiu, e ela é lida (com o microfone fechado). */
+    if (lerQuandoTraduzir.has(final.segId) && final.resultado === 'traduzida' && final.traducao.trim()) {
+      lerQuandoTraduzir.delete(final.segId);
+      if (micAberto) return;
+      const lado = fins.get(final.segId)?.lado ?? maquina.estado().lado ?? 'meu';
+      const lang = direcaoDoLado(outroLado(lado), o.idiomas(), maquina.estado().trocados).fala;
+      fila.enfileirar({ id: final.segId, texto: final.traducao, lang, lado });
+      return;
+    }
     const pendente = maquina.estado().pendentes.includes(final.segId);
     if (final.resultado === 'traduzida' && final.traducao.trim()) {
       traducoes.set(final.segId, final);
       if (pendente) maquina.enviar({ tipo: 'traduziu', segId: final.segId });
       return;
     }
+    /* SEM TRADUÇÃO antes do fim da fala (o mesmo idioma dos dois lados — a prática da conversa — responde na hora, antes
+       de o VAD fechar): fica guardada, como a traduzida, e o `aoFimDaFala` a entrega. Sem isto a conversa ficava presa
+       em "Traduzindo…" esperando um aviso que já tinha passado. */
+    if (!pendente) {
+      traducoes.set(final.segId, final);
+      /* Com teto: um aviso cuja fala nunca terminou (interrompida, microfone fechado) não fica para sempre. */
+      while (traducoes.size > TETO_DE_TRADUCOES_GUARDADAS) traducoes.delete(traducoes.keys().next().value as string);
+      return;
+    }
     traducoes.delete(final.segId);
-    if (pendente) maquina.enviar({ tipo: 'semTraducao', segId: final.segId });
+    maquina.enviar({ tipo: 'semTraducao', segId: final.segId });
+  };
+
+  /** Uma fala que não vai mais ser lida: o que estava guardado para ela sai. */
+  const esquecerFala = (segId: string) => {
+    fins.delete(segId);
+    decisoes.delete(segId);
+    traducoes.delete(segId);
   };
 
   const destravar = () => {
@@ -276,6 +355,11 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
   return {
     tocar(lado) {
       if (desligado) return;
+      /* Falar de novo deixa a conferência para trás: a fala fica na tela, sem leitura. */
+      if (conferindo) {
+        conferindo = null;
+        avisar();
+      }
       destravar();
       maquina.enviar({ tipo: 'tocar', lado });
     },
@@ -289,7 +373,12 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
         : { ...ESTADO_DO_AUTOMATICO, estrangeiro: conversa.estrangeiro };
       maquina.enviar({ tipo: 'ouvir' });
     },
-    parar: () => void (desligado || maquina.enviar({ tipo: 'parar' })),
+    parar() {
+      if (desligado) return;
+      maquina.enviar({ tipo: 'parar' });
+      /* A conversa parou: os avisos guardados para falas que ainda não terminaram não valem mais. */
+      traducoes.clear();
+    },
     automatico: () => maquina.estado().automatico,
     ladoDaFala(segId, pistas) {
       const m = maquina.estado();
@@ -302,7 +391,10 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
         m.trocados && !detectar ? { meu: idiomas.outro, outro: idiomas.meu } : idiomas,
         conversa,
       );
-      const decisao = m.trocados && detectar ? { ...decidida, lado: outroLado(decidida.lado) } : decidida;
+      const virada = m.trocados && detectar ? { ...decidida, lado: outroLado(decidida.lado) } : decidida;
+      /* PRATICANDO (`falaDoMeu`), a pessoa fala o idioma da outra: o idioma medido não separa as duas, e todo lado do
+         automático é palpite (a tela põe a prática no toque; isto é a rede de segurança). */
+      const decisao = idiomas.falaDoMeu ? { ...virada, palpite: true } : virada;
       const mudou = decisao.estado.estrangeiro !== conversa.estrangeiro;
       conversa = decisao.estado;
       if (mudou) avisar();
@@ -316,17 +408,26 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
       /* A fala acabou SEM TEXTO (`FimDaFala.semTexto`): nenhuma tradução vem. É o mesmo "sem tradução"
          de sempre — o toque volta a "parado", o automático reabre o microfone. */
       if (fim.semTexto) {
-        fins.delete(fim.segId);
-        decisoes.delete(fim.segId);
-        traducoes.delete(fim.segId);
+        esquecerFala(fim.segId);
         if (maquina.estado().pendentes.includes(fim.segId)) maquina.enviar({ tipo: 'semTraducao', segId: fim.segId });
         return;
       }
+      /* UM TRECHO DE OUTRO TURNO (a fala guardada durante o download, transcrita depois): ela aparece na tela, mas
+         não fecha o microfone de quem fala agora nem é lida por cima dele (conversa-de-verdade, 1.2). */
+      if (fim.turno !== undefined && fim.turno !== maquina.estado().turno) {
+        esquecerFala(fim.segId);
+        return;
+      }
       const lado = fim.lado ?? maquina.estado().lado;
-      /* Sem lado só no automático: o idioma medido o dirá (`ladoDaFala`), antes de a tradução chegar. */
-      if (!lado && !maquina.estado().automatico) return;
-      if (!fins.has(fim.segId)) fins.set(fim.segId, { em: agora(), lado: lado ?? null });
-      maquina.enviar({ tipo: 'fimDaFala', segId: fim.segId });
+      /* Sem lado só no automático: o idioma medido o dirá (`ladoDaFala`), antes de a tradução chegar. Fora dele,
+         a fala não será lida: o que estava guardado para ela sai junto. */
+      if (!lado && !maquina.estado().automatico) {
+        esquecerFala(fim.segId);
+        return;
+      }
+      if (!fins.has(fim.segId))
+        fins.set(fim.segId, { em: agora(), lado: lado ?? null, ...(fim.motor ? { motor: fim.motor } : {}) });
+      maquina.enviar({ tipo: 'fimDaFala', segId: fim.segId, ...(fim.lado ? { lado: fim.lado } : {}) });
       /* A tradução já tinha chegado (cache): entrega agora, na ordem que a máquina espera. */
       const chegou = traducoes.get(fim.segId);
       if (chegou) aoTraduzirFinal(chegou);
@@ -353,7 +454,11 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
       });
       return 'lendo';
     },
-    trocarLados: () => void (desligado || maquina.enviar({ tipo: 'trocarLados' })),
+    trocarLados() {
+      if (desligado) return;
+      maquina.enviar({ tipo: 'trocarLados' });
+      traducoes.clear();
+    },
     sair() {
       if (desligado) return;
       maquina.enviar({ tipo: 'sair' });
@@ -379,5 +484,23 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
         maquina.enviar({ tipo: 'tocar', lado: agoraEstado.lado });
     },
     estado,
+    confirmarLeitura(segId) {
+      if (desligado || conferindo?.id !== segId || micAberto) return;
+      const item = conferindo;
+      conferindo = null;
+      fila.enfileirar(item);
+      avisar();
+    },
+    corrigirAntesDeLer(segId) {
+      if (desligado || conferindo?.id !== segId) return;
+      conferindo = null;
+      lerQuandoTraduzir.add(segId);
+      avisar();
+    },
+    descartarLeitura(segId) {
+      if (desligado || conferindo?.id !== segId) return;
+      conferindo = null;
+      avisar();
+    },
   };
 }

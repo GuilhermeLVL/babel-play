@@ -105,12 +105,10 @@ describe('a jornada inteira', () => {
        foi recalculada, sem nenhum leitor no cliente (ver `COLUNAS_DO_CARTAO` em
        server/db/repositories/vocab.ts). A pergunta do teste continua a mesma; o que muda e que
        ela e feita a coluna, que e onde o carimbo mora. */
-    const { client } = await import('../../server/db/db')
-    const carimbo = await client.execute({
-      sql: 'select difficulty_at from vocab_cards where id = ?',
-      args: [antes.id],
-    })
-    expect(Number(carimbo.rows[0].difficulty_at)).toBeGreaterThan(0)
+    const { db, linhas: linhasDe } = await import('../../server/db/db')
+    const { sql } = await import('drizzle-orm')
+    const carimbo = linhasDe<any>(await db.execute(sql`select difficulty_at from vocab_cards where id = ${antes.id}`))
+    expect(Number(carimbo[0].difficulty_at)).toBeGreaterThan(0)
   })
 
   it('errar repetidamente joga a palavra para DIFÍCIL, por precedência', async () => {

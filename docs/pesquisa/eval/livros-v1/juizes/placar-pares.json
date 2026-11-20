@@ -1,0 +1,105 @@
+{
+  "estabilidade": {
+    "b": 0.94,
+    "c": 0.94
+  },
+  "vies_posicao_A": {
+    "b": 0.52,
+    "c": 0.51
+  },
+  "pares_estaveis_nos_dois": 69,
+  "concordancia_entre_juizes": 0.91,
+  "ranking": [
+    {
+      "id": "LEI01",
+      "nome": "Leitor profissional (foliate-js)",
+      "vitorias_estaveis_b": 12,
+      "vitorias_estaveis_c": 12,
+      "vitorias_consenso": 12
+    },
+    {
+      "id": "LEI08",
+      "nome": "Toque na palavra: sentido e cartão",
+      "vitorias_estaveis_b": 11,
+      "vitorias_estaveis_c": 10,
+      "vitorias_consenso": 10
+    },
+    {
+      "id": "LEI02",
+      "nome": "Continuar de onde parei",
+      "vitorias_estaveis_b": 9,
+      "vitorias_estaveis_c": 11,
+      "vitorias_consenso": 9
+    },
+    {
+      "id": "INT01",
+      "nome": "Palavras do livro viram cartões",
+      "vitorias_estaveis_b": 10,
+      "vitorias_estaveis_c": 9,
+      "vitorias_consenso": 9
+    },
+    {
+      "id": "NAR01",
+      "nome": "Narração por frase com destaque",
+      "vitorias_estaveis_b": 6,
+      "vitorias_estaveis_c": 8,
+      "vitorias_consenso": 6
+    },
+    {
+      "id": "ACE01",
+      "nome": "Kit tipográfico de acessibilidade",
+      "vitorias_estaveis_b": 7,
+      "vitorias_estaveis_c": 4,
+      "vitorias_consenso": 4
+    },
+    {
+      "id": "NAR03",
+      "nome": "Ouvir e ler sem perder o lugar",
+      "vitorias_estaveis_b": 4,
+      "vitorias_estaveis_c": 7,
+      "vitorias_consenso": 4
+    },
+    {
+      "id": "ACE07",
+      "nome": "Teclado, leitor de tela e alvos grandes",
+      "vitorias_estaveis_b": 5,
+      "vitorias_estaveis_c": 4,
+      "vitorias_consenso": 4
+    },
+    {
+      "id": "IA01",
+      "nome": "Explicar esta frase/trecho",
+      "vitorias_estaveis_b": 3,
+      "vitorias_estaveis_c": 6,
+      "vitorias_consenso": 3
+    },
+    {
+      "id": "ACE04",
+      "nome": "Perfil de leitura salvo",
+      "vitorias_estaveis_b": 4,
+      "vitorias_estaveis_c": 2,
+      "vitorias_consenso": 2
+    },
+    {
+      "id": "ACE06",
+      "nome": "Jogos sem pressão",
+      "vitorias_estaveis_b": 1,
+      "vitorias_estaveis_c": 0,
+      "vitorias_consenso": 0
+    },
+    {
+      "id": "IA04",
+      "nome": "Resumo do capítulo com citações",
+      "vitorias_estaveis_b": 1,
+      "vitorias_estaveis_c": 0,
+      "vitorias_consenso": 0
+    },
+    {
+      "id": "IA10",
+      "nome": "Custo antes de gerar",
+      "vitorias_estaveis_b": 0,
+      "vitorias_estaveis_c": 0,
+      "vitorias_consenso": 0
+    }
+  ]
+}

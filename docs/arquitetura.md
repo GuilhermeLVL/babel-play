@@ -19,7 +19,7 @@ src/
     efemero/       o espelho do servidor sobre IndexedDB — é o que faz o modo sem conta existir
   lib/{captura,analise,estado,jogos}/   o que saiu dos arquivos-deus
   components/      telas
-server.ts          bootstrap: dotenv, config conferida, `iniciar()`/cluster (345 linhas; eram 703)
+server.ts          bootstrap: dotenv, config conferida, `startServer()` (o cluster foi aposentado)
 server/
   http/app.ts      `criarApp()` — a ordem de montagem, que é parte do comportamento
   http/metricas.ts `/metrics`
@@ -67,9 +67,9 @@ flowchart TB
         RG["/api/tutor/chat\nGroq → OpenRouter (Ollama só self-host)"]
     end
 
-    DB[("SQLite (Drizzle/libsql)\nsessions · utterances · cards\nreview_logs · settings · secrets")]
+    DB[("Postgres (Drizzle; PGlite em dev, pg em produção)\nsessions · utterances · cards\nreview_logs · settings · secrets")]
 
-    YT["yt-dlp (binário externo)"]
+    YT["yt-dlp (aposentado)"]
     CLOUD["Nuvem: Groq · OpenRouter · MyMemory\nWiktionary · Openverse · HF CDN"]
 
     Hub & LC & Lib & Ana & Met & Set & IChat --> API
@@ -250,6 +250,6 @@ revisão, vocabulário e perfil mostram um convite inline (`src/components/conta
 `origemLocalId` (índice parcial único por usuário; o servidor devolve `jaExistia`), áudio
 best-effort, cartões deduplicados, e só então apaga o local. Repetir não duplica.
 
-**Escala**: um processo atende ~300 req/s de escrita; mais workers de cluster pioram (escritor
-único do SQLite). Como o anônimo não escreve no servidor, o beta roda em free tier; escalar de
-verdade é trocar o banco (Postgres), não somar processos.
+**Escala**: um processo atende ~300 req/s de escrita; mais workers de cluster pioravam (medido em SQLite,
+escritor único; histórico). Hoje o PGlite mantém o limite de um processo por diretório e o `pg` remove esse teto. Como o anônimo não escreve no servidor, o beta roda em free tier; escalar de
+verdade é usar o Postgres (`pg`), não somar processos com PGlite.

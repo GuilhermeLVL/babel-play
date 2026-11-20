@@ -8,7 +8,8 @@
  *
  * Itens da lista `fidelidade/casca-e-telas.md`: D19 a D31.
  */
-import { anima, MOLA, MOLA_SUAVE, polido, reduz } from './base';
+import { zoomDoCorpo } from '../zoomDoCorpo';
+import { anima, MOLA, MOLA_SUAVE, polido, reduz, semMovimentoDeTela } from './base';
 import { sentir, vibrar } from './sentidos';
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string, r: ParentNode) => r.querySelector<T>(s);
@@ -18,7 +19,9 @@ const anda = () => polido() && !reduz();
 
 /** A entrada da conversa: metades, faixa e os botões de falar (`telas2.js:275-278`). */
 export function entradaDaConversa(raiz: ParentNode): void {
-  if (!anda()) return;
+  /* É a entrada da TELA do Intérprete (a camada de telas não anima a raiz dele): segue o "reduzir
+     movimento" do sistema como a troca de tela (`semMovimentoDeTela`, B2). */
+  if (!anda() || semMovimentoDeTela()) return;
   $$('.int-metade', raiz).forEach((m, i) =>
     anima(
       m,
@@ -139,7 +142,7 @@ export function trocaDeLados(raiz: ParentNode, antes: Map<string, number>): void
   for (const m of metades) {
     const topo = antes.get(m.dataset.lado ?? '');
     if (topo === undefined) continue;
-    anima(m, [{ translate: `0 ${topo - m.getBoundingClientRect().top}px` }, { translate: '0 0' }], {
+    anima(m, [{ translate: `0 ${(topo - m.getBoundingClientRect().top) / zoomDoCorpo()}px` }, { translate: '0 0' }], {
       d: 620,
       e: MOLA_SUAVE,
     });
@@ -181,8 +184,14 @@ export interface EstadoDaTela {
    * (com falas, o Encerrar decide antes). Quem age é a tela pronta.
    */
   depois: 'voltar' | 'planos' | 'virtual' | null;
+  /**
+   * "PRATICAR A CONVERSA": a metade da pessoa fala o idioma que ela aprende, e a fala dela ganha a correção gentil.
+   * DESLIGADA de fábrica e a cada visita (sair da tela pronta a desliga): mandar a própria fala à nuvem é uma escolha da
+   * vez, não um ajuste esquecido. Ausente = desligada.
+   */
+  praticar?: boolean;
 }
-let estado: EstadoDaTela = { emCurso: false, trocados: false, folhaVirtual: false, depois: null };
+let estado: EstadoDaTela = { emCurso: false, trocados: false, folhaVirtual: false, depois: null, praticar: false };
 const ouvintes = new Set<() => void>();
 
 export const estadoDaTela = (): EstadoDaTela => estado;
@@ -192,7 +201,8 @@ export function mudarEstadoDaTela(parte: Partial<EstadoDaTela>): void {
     novo.emCurso === estado.emCurso &&
     novo.trocados === estado.trocados &&
     novo.folhaVirtual === estado.folhaVirtual &&
-    novo.depois === estado.depois
+    novo.depois === estado.depois &&
+    !!novo.praticar === !!estado.praticar
   )
     return;
   estado = novo;

@@ -1,15 +1,15 @@
 /**
  * ORIGEM PROTEGIDA — só o proxy da frente fala com o servidor.
  *
- * Na produção, o caminho é visitante → Cloudflare (WAF, rate limit, HTTPS) → Fly.io → app. O Fly
- * também publica o app em `<app>.fly.dev`, e quem chega por ali pula o Cloudflare inteiro: sem WAF,
- * sem a regra de rate limit, e com o `X-Forwarded-For` que quiser — que o `TRUST_PROXY=2` aceitaria
- * como o IP do cliente, entregando a ele a chave dos baldes do limitador.
+ * Na produção, o caminho é visitante → Cloudflare (WAF, rate limit, HTTPS) → app. Se o app
+ * também responde por um endereço de origem alcançável sem passar pelo Cloudflare, quem chega por ali pula
+ * o Cloudflare inteiro: sem WAF, sem a regra de rate limit, e com o `X-Forwarded-For` que quiser — que o
+ * `TRUST_PROXY` aceitaria como o IP do cliente, entregando a ele a chave dos baldes do limitador.
  *
  * O Cloudflare injeta um cabeçalho com um segredo em toda requisição (Transform Rule, ver
  * `docs/LANCAMENTO.md`). Com `ORIGEM_SEGREDO` definido, o servidor recusa com 403 o que chega sem
- * ele. `/api/health` e `/api/ready` ficam de fora: as sondas do Fly batem direto na máquina, pela
- * rede interna, e nunca passam pelo Cloudflare.
+ * ele. `/api/health` e `/api/ready` ficam de fora: as sondas de saúde do orquestrador batem direto
+ * na máquina, pela rede interna, e nunca passam pelo Cloudflare.
  *
  * Sem `ORIGEM_SEGREDO` (dev, self-host, staging sem Cloudflare) o middleware não é montado.
  */
@@ -19,7 +19,7 @@ import type { RequestHandler } from 'express'
 
 export const CABECALHO_DE_ORIGEM = 'x-origem-segredo'
 
-/* `/metrics` tem token próprio (obrigatório em produção) e pode ser raspado de dentro da rede privada do Fly. */
+/* `/metrics` tem token próprio (obrigatório em produção) e pode ser raspado de dentro da rede privada. */
 const LIVRES = new Set(['/api/health', '/api/ready', '/metrics'])
 
 function iguais(a: string, b: string): boolean {

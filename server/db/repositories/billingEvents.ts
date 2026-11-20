@@ -17,9 +17,9 @@
  * status e datas: `reduzirPayload` é uma lista de campos PERMITIDOS aplicada dentro de
  * `marcarSeNovo`, a única porta de escrita, para nenhum chamador conseguir gravar o corpo cru.
  */
-import { and, eq } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNotNull, ne } from 'drizzle-orm'
 
-import { db } from '../db'
+import { db, linhasAfetadas } from '../db'
 import { billingEvents } from '../schema'
 
 export type EstadoDoEventoDeBilling = 'aplicado' | 'nao-aplicado' | 'ignorado'
@@ -37,12 +37,33 @@ export type EstadoDoEventoDeBilling = 'aplicado' | 'nao-aplicado' | 'ignorado'
  */
 const CAMPOS_DO_EVENTO = ['id', 'event', 'dateCreated'] as const
 const CAMPOS_DO_PAGAMENTO = [
-  'id', 'subscription', 'installment', 'installmentNumber', 'externalReference',
-  'value', 'netValue', 'status', 'billingType', 'deleted',
-  'dueDate', 'originalDueDate', 'paymentDate', 'clientPaymentDate', 'confirmedDate', 'dateCreated',
+  'id',
+  'subscription',
+  'installment',
+  'installmentNumber',
+  'externalReference',
+  'value',
+  'netValue',
+  'status',
+  'billingType',
+  'deleted',
+  'dueDate',
+  'originalDueDate',
+  'paymentDate',
+  'clientPaymentDate',
+  'confirmedDate',
+  'dateCreated',
 ] as const
 const CAMPOS_DA_ASSINATURA = [
-  'id', 'externalReference', 'value', 'status', 'cycle', 'billingType', 'deleted', 'nextDueDate', 'dateCreated',
+  'id',
+  'externalReference',
+  'value',
+  'status',
+  'cycle',
+  'billingType',
+  'deleted',
+  'nextDueDate',
+  'dateCreated',
 ] as const
 
 /** Texto maior que isto não é id, status nem data — não entra. */
@@ -83,7 +104,11 @@ export function reduzirPayload(bruto: unknown): Record<string, unknown> | null {
 export const billingEventsRepo = {
   /** @returns `true` se o evento é NOVO (e foi marcado); `false` se já tinha sido processado. */
   async marcarSeNovo(
-    id: string, provider: string, event: string, userId: string | null, providerRef: string | null,
+    id: string,
+    provider: string,
+    event: string,
+    userId: string | null,
+    providerRef: string | null,
     payload: unknown = null,
   ): Promise<boolean> {
     // GAP-017: só os campos permitidos chegam ao banco, venha o payload de onde vier.
@@ -91,13 +116,19 @@ export const billingEventsRepo = {
     const r = await db
       .insert(billingEvents)
       .values({
-        id, createdAt: Date.now(), provider, event, userId, providerRef,
+        id,
+        createdAt: Date.now(),
+        provider,
+        event,
+        userId,
+        providerRef,
         // Nasce `aplicado` por compatibilidade com as linhas antigas; o resultado real vem logo depois.
-        estado: 'aplicado', motivo: null,
+        estado: 'aplicado',
+        motivo: null,
         payload: reduzido ? JSON.stringify(reduzido) : null,
       })
       .onConflictDoNothing({ target: billingEvents.id })
-    return r.rowsAffected > 0
+    return linhasAfetadas(r) > 0
   },
 
   /** Grava o que aconteceu com o evento. Chamado sempre, inclusive quando aplicou sem ressalva. */
@@ -112,11 +143,19 @@ export const billingEventsRepo = {
 
   /** Os que deveriam ter tido efeito e não tiveram — a fila de revisão do administrador. */
   async listarPendentes() {
-    return db.select({
-      id: billingEvents.id, createdAt: billingEvents.createdAt, provider: billingEvents.provider,
-      event: billingEvents.event, userId: billingEvents.userId, providerRef: billingEvents.providerRef,
-      motivo: billingEvents.motivo,
-    }).from(billingEvents).where(eq(billingEvents.estado, 'nao-aplicado')).orderBy(billingEvents.createdAt)
+    return db
+      .select({
+        id: billingEvents.id,
+        createdAt: billingEvents.createdAt,
+        provider: billingEvents.provider,
+        event: billingEvents.event,
+        userId: billingEvents.userId,
+        providerRef: billingEvents.providerRef,
+        motivo: billingEvents.motivo,
+      })
+      .from(billingEvents)
+      .where(eq(billingEvents.estado, 'nao-aplicado'))
+      .orderBy(billingEvents.createdAt)
   },
 
   /**
@@ -125,10 +164,16 @@ export const billingEventsRepo = {
    * manual pendente se perderia junto.
    */
   async estornosPendentesDoUsuario(userId: string) {
-    return db.select({ id: billingEvents.id }).from(billingEvents).where(and(
-      eq(billingEvents.userId, userId), eq(billingEvents.estado, 'nao-aplicado'),
-      eq(billingEvents.event, 'ESTORNO_ARREPENDIMENTO'),
-    ))
+    return db
+      .select({ id: billingEvents.id })
+      .from(billingEvents)
+      .where(
+        and(
+          eq(billingEvents.userId, userId),
+          eq(billingEvents.estado, 'nao-aplicado'),
+          eq(billingEvents.event, 'ESTORNO_ARREPENDIMENTO'),
+        ),
+      )
   },
 
   /**
@@ -139,5 +184,28 @@ export const billingEventsRepo = {
    */
   async desmarcar(id: string): Promise<void> {
     await db.delete(billingEvents).where(eq(billingEvents.id, id))
+  },
+
+  /**
+   * Os pagamentos CONFIRMADOS deste titular que o servidor já recebeu (fora o `exceto`), do mais recente ao mais
+   * antigo, sem repetir: os candidatos a "outra cobrança paga que ainda cobre o período" quando uma é estornada
+   * (a cobrança duplicada). Só ids — quem decide é a API do Asaas, consultada por quem chama.
+   */
+  async pagamentosConfirmadosDoUsuario(userId: string, exceto: string, limite = 10): Promise<string[]> {
+    const linhas = await db
+      .select({ ref: billingEvents.providerRef })
+      .from(billingEvents)
+      .where(
+        and(
+          eq(billingEvents.userId, userId),
+          isNotNull(billingEvents.providerRef),
+          ne(billingEvents.providerRef, exceto),
+          inArray(billingEvents.event, ['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED']),
+          ne(billingEvents.estado, 'nao-aplicado'),
+        ),
+      )
+      .orderBy(desc(billingEvents.createdAt))
+      .limit(limite * 2)
+    return [...new Set(linhas.map((l) => l.ref as string))].slice(0, limite)
   },
 }

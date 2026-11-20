@@ -86,7 +86,7 @@ test('Grátis: na folha da frase a Nuance tem cadeado, texto positivo e o convit
 
   await abrirSessao(page, titulo)
   await clicar(page, page.locator('.qs-fala .qs-fala-texto').first())
-  const folha = page.getByRole('dialog', { name: 'Ações', exact: true })
+  const folha = page.getByRole('complementary', { name: 'Frase escolhida' })
   await expect(folha).toBeVisible()
   await expect(folha.locator('.folha-frase')).toHaveText('sentence number 0')
 

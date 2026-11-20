@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import { abrirContextoDoClique } from '../../../../lib/captura/contextoDoClique';
+import type { EstadoDoControle } from '../../../../lib/captura/controleDoInterprete';
+import { ESTADO_INICIAL } from '../../../../lib/captura/interprete';
 import type { LadoDoInterprete } from '../../../../lib/captura/tiposDaFala';
 import { t } from '../../../../lib/i18n';
 import { langLabel } from '../../../../lib/languages';
+import { textoDoAutomaticoNoPlano } from '../../../../lib/planoDeEntrada';
 import {
   aoMudarEstadoDaTela,
   estadoDaTela,
@@ -20,10 +23,20 @@ import {
   idiomasDaVozDoQuest,
   vozDoQuestFala,
 } from '../../../../lib/voz/vozDoQuest';
-import ConversaDoPrototipo, { type MetadeDaConversa } from './ConversaDoPrototipo';
+import ConversaDoPrototipo, { type JanelaFlutuanteDoInterprete, type MetadeDaConversa } from './ConversaDoPrototipo';
 import FolhaDaConversaVirtual from './FolhaDaConversaVirtual';
 import { guardarModo, type ModoDaConversa, modoGuardado } from './modoDaConversa';
 import type { AutomaticoNoPlano } from './ModoInterprete';
+import {
+  avisoDaPratica,
+  dicaDaPratica,
+  modoDaPratica,
+  type PraticaNaConversa,
+  praticandoAgora,
+  textoDaPraticaNoToque,
+  textoDaPraticaSemIdioma,
+} from './praticaNaConversa';
+import { useAvataresDoInterprete } from './useAvataresDoInterprete';
 
 interface PropsDaPagina {
   idiomas: { meu: string; outro: string };
@@ -54,7 +67,18 @@ interface PropsDaPagina {
   aoEscolherIdiomas: () => void;
   /** O X da conversa volta para a tela de onde a pessoa veio (`direto.js:94`). */
   aoVoltar?: (() => void) | undefined;
+  /** "Praticar a conversa" (o botão "Praticar" da faixa). Ausente = não aparece. */
+  pratica?: PraticaNaConversa;
+  /** O desenho da tela, para o tamanho dos avatares da prévia (o mesmo que o da conversa). Padrão: computador. */
+  layout?: 'celular' | 'computador' | 'quest';
+  /** Leva a Perfil › Avatar (o atalho de soletrar oferece quando o avatar não serve). */
+  aoEscolherOutroAvatar?: (() => void) | undefined;
+  /** O botão "Janela flutuante" (Alt+L); ausente onde o navegador não abre a janela. */
+  janelaFlutuante?: JanelaFlutuanteDoInterprete | undefined;
 }
+
+/** A tela pronta ainda não ouviu ninguém: os avatares da prévia ficam parados. */
+const ESTADO_PRONTO: EstadoDoControle = { ...ESTADO_INICIAL, falando: null, detectado: null };
 
 /** O tempo de a captura encerrar uma sessão vazia antes de a tela seguir para a origem ou os Planos. */
 const ESPERA_DA_VOLTA = 400;
@@ -83,10 +107,24 @@ export default function PaginaDoInterprete({
   aoComecarVirtual,
   aoEscolherIdiomas,
   aoVoltar,
+  pratica,
+  layout = 'computador',
+  aoEscolherOutroAvatar,
+  janelaFlutuante,
 }: PropsDaPagina) {
   const tela = useSyncExternalStore(aoMudarEstadoDaTela, estadoDaTela, estadoDaTela);
+  /* OS AVATARES JÁ NA TELA PRONTA (atrás de `avatar_3d`): botão Avatares, atalho de soletrar e a prévia dos dois avatares,
+     para a pessoa ver que existem ANTES de falar. Com a conversa em curso por cima, quem manda é o `ModoInterprete`. */
+  const estadoPronto = useMemo(() => ({ ...ESTADO_PRONTO, trocados: tela.trocados }), [tela.trocados]);
+  const avatares = useAvataresDoInterprete({
+    estado: estadoPronto,
+    layout,
+    idiomaDaOutra: idiomas.outro,
+    aoEscolherOutroAvatar,
+    suspenso: tela.emCurso,
+  });
   /* Sair da tela esquece os lados trocados e a folha pedida: a próxima visita começa do desenho. */
-  useEffect(() => () => mudarEstadoDaTela({ trocados: false, folhaVirtual: false, depois: null }), []);
+  useEffect(() => () => mudarEstadoDaTela({ trocados: false, folhaVirtual: false, depois: null, praticar: false }), []);
   /* O X (ou "Conhecer o Premium") de uma conversa em que ninguém falou: a sessão encerra e a tela
      segue para onde foi pedido. A captura segura a navegação enquanto ainda fecha o microfone; o
      intervalo deixa isso terminar. */
@@ -136,10 +174,27 @@ export default function PaginaDoInterprete({
   /* "DETECTAR": o idioma da outra pessoa chega vazio; só o automático o descobre. */
   const detectar = !idiomas.outro;
   const [presoNoDetectar, setPresoNoDetectar] = useState(false);
-  const modo: ModoDaConversa = detectar ? 'automatico' : modoEscolhido;
+  /* PRATICANDO: a metade da pessoa fala o idioma que ela aprende, e a conversa é por toque (`ModoInterprete`). */
+  const praticando = praticandoAgora(pratica);
+  const [presoNaPratica, setPresoNaPratica] = useState<'toque' | 'sem-idioma' | null>(null);
+  const modo: ModoDaConversa = detectar ? 'automatico' : praticando ? 'toque' : modoEscolhido;
   const noAutomatico = modo === 'automatico';
+  const alternarPratica = () => {
+    if (!pratica) return;
+    if (!pratica.ligada && pratica.possivel !== 'ok') {
+      setPresoNaPratica('sem-idioma');
+      const b = document.querySelector<HTMLElement>(
+        '[data-testid="conversa-pronta"] [data-testid="praticar-conversa"]',
+      );
+      if (b) tremer(b);
+      return;
+    }
+    setPresoNaPratica(null);
+    pratica.aoMudar(!pratica.ligada);
+  };
 
-  const idiomaDe = (dono: LadoDoInterprete) => (dono === 'meu' ? idiomas.meu : idiomas.outro);
+  const idiomaDe = (dono: LadoDoInterprete) =>
+    dono === 'meu' ? (praticando && pratica ? pratica.idioma : idiomas.meu) : idiomas.outro;
   const mudos = (['meu', 'outro'] as const).filter((l) => mudo(idiomaDe(l)));
   const idiomaSemVoz = (['outro', 'meu'] as const).map(idiomaDe).find(semVozDoIdioma);
   const rotuloDaVoz =
@@ -159,24 +214,33 @@ export default function PaginaDoInterprete({
     const lang = idiomaDe(dono);
     const nome = detectar && dono === 'outro' ? t('Detectar automaticamente') : langLabel(lang);
     const semVozParaOOutro = mudo(idiomaDe(outroLado(dono)));
+    const avatar = avatares.doLado(lado);
+    const soletracao = avatares.soletracaoDoLado(lado);
+    const estadoNoTopo = avatares.estadoNoTopoDoLado(lado);
     return {
+      ...(avatar ? { avatar } : {}),
+      ...(soletracao ? { soletracao } : {}),
+      ...(estadoNoTopo ? { estadoNoTopo } : {}),
       lado,
       dono,
       lang,
       nome,
       frase: {
         tipo: 'dica',
-        texto: detectar
-          ? dono === 'meu'
-            ? t('Toque em Ouvir. Deixe a outra pessoa falar primeiro: o app descobre o idioma dela.')
-            : t('Fale no seu idioma: o app descobre qual é e traduz.')
-          : semVozParaOOutro
-            ? noAutomatico
-              ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e mostra a tradução.')
-              : t('Toque em Falar e fale. A tradução aparece do outro lado, em texto.')
-            : noAutomatico
-              ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e lê a tradução em voz alta.')
-              : t('Toque em Falar e fale. A tradução aparece do outro lado e é lida em voz alta.'),
+        texto:
+          praticando && pratica && dono === 'meu'
+            ? dicaDaPratica(pratica.idioma)
+            : detectar
+              ? dono === 'meu'
+                ? t('Toque em Ouvir. Deixe a outra pessoa falar primeiro: o app descobre o idioma dela.')
+                : t('Fale no seu idioma: o app descobre qual é e traduz.')
+              : semVozParaOOutro
+                ? noAutomatico
+                  ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e mostra a tradução.')
+                  : t('Toque em Falar e fale. A tradução aparece do outro lado, em texto.')
+                : noAutomatico
+                  ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e lê a tradução em voz alta.')
+                  : t('Toque em Falar e fale. A tradução aparece do outro lado e é lida em voz alta.'),
       },
       status: '',
       rotulo: noAutomatico ? t('Ouvir') : t('Falar'),
@@ -224,6 +288,12 @@ export default function PaginaDoInterprete({
                   ligado: noAutomatico,
                   comCadeado: automatico === 'premium',
                   aoTocar: (botao: HTMLElement) => {
+                    /* Praticando, o toque é o modo: nem o cadeado nem a oferta, só a nota de por quê. */
+                    if (praticando) {
+                      setPresoNaPratica('toque');
+                      tremer(botao);
+                      return;
+                    }
                     if (automatico !== 'disponivel') {
                       setCadeado(true);
                       tremer(botao);
@@ -242,16 +312,24 @@ export default function PaginaDoInterprete({
               }
             : {})}
           lista={{ aberta: lista, bolhas: [], aoAlternar: () => setLista((v) => !v), aoExportar: () => undefined }}
+          {...(pratica && pratica.possivel !== 'sem_idioma'
+            ? { modos: [modoDaPratica(pratica, alternarPratica)] }
+            : {})}
           voz={{ rotulo: rotuloDaVoz, natural: false, muda: mudos.length === 2 }}
           vozes={semVoz ? undefined : { lados: ladosDaVoz(idiomas).filter((l) => l.idioma) }}
           aviso={
             !possivel
               ? t('Escolha dois idiomas diferentes: um para você, outro para a outra pessoa.')
               : (aviso ??
+                (presoNaPratica === 'sem-idioma'
+                  ? textoDaPraticaSemIdioma()
+                  : presoNaPratica === 'toque' && praticando
+                    ? textoDaPraticaNoToque()
+                    : avisoDaPratica(pratica)) ??
                 (presoNoDetectar && detectar
                   ? t('Para falar por toque, escolha o idioma da outra pessoa.')
                   : avisoDoCadeado
-                    ? t('O modo automático faz parte do Premium: o app reconhece sozinho quem fala qual idioma.')
+                    ? textoDoAutomaticoNoPlano()
                     : idiomaSemVoz
                       ? comoInstalarVoz(idiomaSemVoz)
                       : detectar
@@ -260,11 +338,18 @@ export default function PaginaDoInterprete({
                           ? t('Automático ligado: é só conversar. O app reconhece quem fala qual idioma.')
                           : ''))
           }
-          aoConhecerOPremium={avisoDoCadeado && possivel && !aviso ? aoConhecerOPremium : undefined}
+          aoConhecerOPremium={avisoDoCadeado && !praticando && possivel && !aviso ? aoConhecerOPremium : undefined}
+          acaoDoAviso={
+            possivel && !aviso && praticando && pratica?.correcao === 'sem_consentimento'
+              ? { rotulo: t('Autorizar IA de nuvem'), aoTocar: pratica.aoAutorizar }
+              : undefined
+          }
           aoTrocarLados={() => mudarEstadoDaTela({ trocados: !tela.trocados })}
           aoVirtual={aoComecarVirtual ? () => mudarEstadoDaTela({ folhaVirtual: true }) : undefined}
           aoEscolherIdioma={aoEscolherIdiomas}
           aoSair={() => aoVoltar?.()}
+          avatares={avatares.avatares}
+          janelaFlutuante={janelaFlutuante}
           comEntrada
           testid="conversa-pronta"
         />

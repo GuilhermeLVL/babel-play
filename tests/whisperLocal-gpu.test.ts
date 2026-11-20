@@ -228,3 +228,59 @@ describe('WhisperLocalStt: parcial e final', () => {
     expect(stt.busy).toBe(false)
   })
 })
+
+/*
+ * Correção C do diagnóstico do Safari (22/10/2026): o WebKit escreve a falha de rede como
+ * `TypeError: Load failed` (o Chromium, "Failed to fetch"). A carga no WebGPU que falhava por REDE
+ * era lida como GPU ruim: o worker era recriado em WASM, falhava de novo, e a tela ficava em
+ * "Legendando" sem legenda e sem aviso. Falha de rede rejeita a preparação (a tela mostra "Não foi
+ * possível preparar o modelo · Tentar de novo"); só erro de GPU troca de motor.
+ */
+describe('WhisperLocalStt: falha de REDE na carga não é falta de GPU', () => {
+  /** O worker real posta `err.message` do que o carregador lançou (`whisperWorker.ts`). */
+  const falhaDoCarregador = (erro: Error) => (_m: Msg, w: WorkerFalso) =>
+    w.responder({ type: 'error', id: null, message: erro.message })
+
+  for (const erro of [
+    new TypeError('Load failed'),
+    new TypeError('Failed to fetch'),
+    new TypeError('NetworkError when attempting to fetch resource.'),
+    new Error('Could not locate file: "https://huggingface.co/onnx-community/whisper-base/resolve/x/config.json".'),
+  ]) {
+    it(`WebGPU + "${erro.message.slice(0, 30)}": rejeita a preparação, sem recriar em WASM nem avisar "sem GPU"`, async () => {
+      comGpu({})
+      aoCarregar = falhaDoCarregador(erro)
+      const avisos: AvisoDeDegradacaoDoStt[] = []
+      const stt = new WhisperLocalStt()
+      stt.setModel(WHISPER_MODELS.base)
+      await expect(stt.preload(undefined, { aoDegradar: (a) => avisos.push(a) })).rejects.toThrow(erro.message)
+      expect(cargas()).toEqual(['base@webgpu'])
+      expect(avisos).toHaveLength(0)
+    })
+  }
+
+  it('GPU que não serve e, no WASM, a rede falha: a preparação REJEITA (nunca fica pendurada)', async () => {
+    comGpu({})
+    aoCarregar = (m, w) =>
+      w.responder({
+        type: 'error',
+        id: null,
+        message: m.device === 'webgpu' ? 'no available backend found. ERR: [webgpu] …' : 'Load failed',
+      })
+    const stt = new WhisperLocalStt()
+    stt.setModel(WHISPER_MODELS.base)
+    await expect(stt.preload()).rejects.toThrow('Load failed')
+    expect(cargas()).toEqual(['base@webgpu', 'base@wasm'])
+  })
+
+  it('"Tentar de novo" depois da falha de rede pede uma carga NOVA (e resolve quando a rede volta)', async () => {
+    comGpu({})
+    aoCarregar = falhaDoCarregador(new TypeError('Load failed'))
+    const stt = new WhisperLocalStt()
+    stt.setModel(WHISPER_MODELS.base)
+    await expect(stt.preload()).rejects.toThrow('Load failed')
+    aoCarregar = (_m, w) => w.responder({ type: 'ready' })
+    await expect(stt.preload()).resolves.toBeUndefined()
+    expect(cargas()).toEqual(['base@webgpu', 'base@webgpu'])
+  })
+})

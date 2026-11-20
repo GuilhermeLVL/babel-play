@@ -105,7 +105,7 @@ export default function AceiteDoResponsavel({ token, aoSair }: { token: string; 
           <p>
             {aceito
               ? t('A conta de {quem} agora está ligada à sua.', { quem })
-              : t('{quem} pediu para você ser o responsável pela conta no Babel Play.', { quem })}
+              : t('{quem} pediu para você ser o responsável pela conta no Frasy.', { quem })}
           </p>
         </div>
         <button type="button" className="qen-fechar" aria-label={t('Fechar')} onClick={sair}>

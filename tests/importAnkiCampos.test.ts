@@ -10,18 +10,27 @@
  * O parser JÁ LIA os nomes dos campos e já os usava para achar o exemplo; só nunca os usou para
  * os dois campos que decidem se a nota existe.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { indicePorNome, PADRAO_FRENTE, PADRAO_VERSO } from '../server/import/anki'
+import { indicePorNome, PADRAO_FRENTE, PADRAO_VERSO } from '../src/core/anki'
 
 /** Os dois tipos de nota REAIS do baralho que falhou. */
 const EEW = ['Word', 'Image', 'Sound', 'Sound_Meaning', 'Sound_Example', 'Meaning', 'Example', 'IPA']
-const EEW_EXTRA = ['№', 'IMG', 'English', 'Transcription', 'Audio', 'BrTranscription', 'AmTranscription', 'Am&BrTranscription']
+const EEW_EXTRA = [
+  '№',
+  'IMG',
+  'English',
+  'Transcription',
+  'Audio',
+  'BrTranscription',
+  'AmTranscription',
+  'Am&BrTranscription',
+]
 
 describe('a escolha de campo do baralho que não subia', () => {
   it('no tipo principal, acha Word e Meaning — não № e IMG', () => {
-    expect(indicePorNome(EEW, PADRAO_FRENTE)).toBe(0)   // Word
-    expect(indicePorNome(EEW, PADRAO_VERSO)).toBe(5)    // Meaning
+    expect(indicePorNome(EEW, PADRAO_FRENTE)).toBe(0) // Word
+    expect(indicePorNome(EEW, PADRAO_VERSO)).toBe(5) // Meaning
   })
 
   /**
@@ -33,7 +42,7 @@ describe('a escolha de campo do baralho que não subia', () => {
   })
 
   it('no tipo só de pronúncia, acha a palavra mas NÃO inventa um verso', () => {
-    expect(indicePorNome(EEW_EXTRA, PADRAO_FRENTE)).toBe(2)  // English
+    expect(indicePorNome(EEW_EXTRA, PADRAO_FRENTE)).toBe(2) // English
     // Não há significado nenhum neste tipo de nota — e é certo que ele seja descartado.
     expect(indicePorNome(EEW_EXTRA, PADRAO_VERSO)).toBe(-1)
   })
@@ -44,7 +53,13 @@ describe('a escolha de campo do baralho que não subia', () => {
   })
 
   it('reconhece os nomes que os baralhos de verdade usam, em português e inglês', () => {
-    for (const nomes of [['Front', 'Back'], ['Frente', 'Verso'], ['Termo', 'Definição'], ['Expression', 'Translation'], ['Palavra', 'Tradução']]) {
+    for (const nomes of [
+      ['Front', 'Back'],
+      ['Frente', 'Verso'],
+      ['Termo', 'Definição'],
+      ['Expression', 'Translation'],
+      ['Palavra', 'Tradução'],
+    ]) {
       expect(indicePorNome(nomes, PADRAO_FRENTE), nomes.join('/')).toBe(0)
       expect(indicePorNome(nomes, PADRAO_VERSO), nomes.join('/')).toBe(1)
     }

@@ -30,6 +30,8 @@ export const PREFIXOS = {
   'server/routes/import.ts': '/api/import',
   'server/routes/vocab.ts': '/api/vocab',
   'server/routes/anki.ts': '/api/anki',
+  /* A importação em lotes (Fase 3 da migração): router próprio, pendurado no `ankiRouter`. */
+  'server/routes/ankiImports.ts': '/api/anki',
   'server/routes/metrics.ts': '/api/metrics',
   'server/routes/exercises.ts': '/api/exercises',
   'server/routes/settings.ts': '/api/settings',
@@ -44,6 +46,10 @@ export const PREFIXOS = {
   'server/routes/metricasCaptura.ts': '/api/metricas',
   'server/routes/metricasOfertas.ts': '/api/metricas',
   'server/audio/loopback.ts': '/api/audio',
+  /* A recompensa do anúncio premiado (spec `anuncios-no-gratis`). */
+  'server/routes/anuncios.ts': '/api/anuncios',
+  /* As anotações do leitor (L2 de Livros & Leitura). */
+  'server/routes/leitura.ts': '/api/leitura',
 }
 
 export function rotasDoServidor() {

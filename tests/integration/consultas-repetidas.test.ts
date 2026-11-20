@@ -18,6 +18,7 @@ process.env.TZ = 'America/Sao_Paulo'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
+import { type ContadorDeConsultas, contarConsultas, SO_PGLITE } from '../harness/contadorDeConsultas'
 import { PLANO_PAGO } from '../harness/planoPago'
 import { semearRico } from './_semeaduraRica'
 
@@ -28,24 +29,27 @@ const GRATIS = 'consultas-gratis'
 const json = (v: unknown) => `${JSON.stringify(v, null, 2)}\n`
 const foto = (nome: string) => `../__snapshots__/consultas-repetidas/${nome}.json`
 
-describe('rotas pequenas: uma leitura por tabela', () => {
+describe.skipIf(SO_PGLITE)('rotas pequenas: uma leitura por tabela', () => {
   let s: AppDeTeste
   let pagante: string
   let gratis: string
-  let instrucoes: string[] = []
+  let contador: ContadorDeConsultas
 
   async function medir(f: () => Promise<Response>): Promise<{ r: Response; sql: string[] }> {
-    instrucoes = []
+    contador.zerar()
     const r = await f()
     await r.clone().arrayBuffer()
     /* DIAG_CONSULTAS=1 imprime o que cada chamada custou: é de onde saem os números do relatório. */
     if (process.env.DIAG_CONSULTAS === '1') {
       const tabela = (x: string) => /(?:from|into|update)\s+"?([a-z_]+)"?/i.exec(x)?.[1] ?? '?'
       const porTabela: Record<string, number> = {}
-      for (const x of instrucoes) porTabela[tabela(x)] = (porTabela[tabela(x)] ?? 0) + 1
-      console.log(`[consultas] ${new URL(r.url).pathname} ${r.status}: ${instrucoes.length}`, JSON.stringify(porTabela))
+      for (const x of contador.instrucoes) porTabela[tabela(x)] = (porTabela[tabela(x)] ?? 0) + 1
+      console.log(
+        `[consultas] ${new URL(r.url).pathname} ${r.status}: ${contador.instrucoes.length}`,
+        JSON.stringify(porTabela),
+      )
     }
-    return { r, sql: instrucoes }
+    return { r, sql: contador.instrucoes }
   }
   const leituras = (sql: string[], tabela: string) =>
     sql.filter((x) => /^\s*select/i.test(x) && x.includes(`"${tabela}"`)).length
@@ -72,15 +76,21 @@ describe('rotas pequenas: uma leitura por tabela', () => {
       plan: PLANO_PAGO,
       status: 'active',
       currentPeriodEnd: AGORA + 20 * 86_400_000,
+      // A âncora que o pagamento grava (change `cota-pelo-periodo-pago`): o vencimento, 35 dias antes do fim.
+      periodoPagoDesde: AGORA - 15 * 86_400_000,
     })
     /* Um valor diferente em cada contador: trocar um pelo outro aparece no corpo. */
     const mes = new Date(AGORA).toISOString().slice(0, 7)
     const dia = await quota.janelaDoDia(asUserId(PAGANTE))
     const u = asUserId(PAGANTE)
-    await usageCountersRepo.increment(u, quota.METRIC_MANAGED, mes, 11)
-    await usageCountersRepo.increment(u, quota.METRIC_STT_SEGUNDOS, mes, 222)
-    await usageCountersRepo.increment(u, quota.METRIC_STT_AO_VIVO_SEGUNDOS, mes, 33)
-    await usageCountersRepo.increment(u, quota.METRIC_LLM_TOKENS, mes, 4444)
+    /* Quem paga conta na janela do PERÍODO PAGO (change `cota-pelo-periodo-pago`), não no mês do calendário. */
+    const periodo = await quota.janelaDaCota(u)
+    await usageCountersRepo.increment(u, quota.METRIC_MANAGED, periodo, 11)
+    await usageCountersRepo.increment(u, quota.METRIC_STT_SEGUNDOS, periodo, 222)
+    await usageCountersRepo.increment(u, quota.METRIC_STT_AO_VIVO_SEGUNDOS, periodo, 33)
+    await usageCountersRepo.increment(u, quota.METRIC_LLM_TOKENS, periodo, 4444)
+    /* O mês do calendário NÃO conta para quem paga: o que estiver nele fica fora da soma. */
+    await usageCountersRepo.increment(u, quota.METRIC_MANAGED, mes, 5000)
     await usageCountersRepo.increment(u, quota.METRIC_STT_SEGUNDOS_DIA, dia, 55)
     await usageCountersRepo.increment(u, quota.METRIC_LLM_TOKENS_DIA, dia, 666)
     /* Mês passado e outra conta: não podem entrar na soma de ninguém. */
@@ -88,18 +98,9 @@ describe('rotas pequenas: uma leitura por tabela', () => {
     await usageCountersRepo.increment(asUserId(GRATIS), quota.METRIC_MANAGED, mes, 7)
     await semearRico(s, PAGANTE)
 
-    const { client } = await s.load('../../server/db/db')
-    const execute = client.execute.bind(client)
-    const batch = client.batch.bind(client)
-    const texto = (x: unknown) => (typeof x === 'string' ? x : ((x as { sql?: string }).sql ?? ''))
-    client.execute = ((...a: Parameters<typeof execute>) => {
-      instrucoes.push(texto(a[0]))
-      return execute(...a)
-    }) as typeof client.execute
-    client.batch = ((...a: Parameters<typeof batch>) => {
-      for (const x of a[0] as unknown[]) instrucoes.push(texto(x))
-      return batch(...a)
-    }) as typeof client.batch
+    /* Pelo observador do `db.ts` e pelas transações do PGlite (`contadorDeConsultas.ts`): o que era
+       embrulhar `client.execute`/`client.batch` do libsql. */
+    contador = await contarConsultas(s.load)
   }, 60_000)
 
   afterAll(async () => {

@@ -1,8 +1,8 @@
-# Babel Play
+# Frasy
 
 App web para aprender idioma com o que a pessoa já assiste e conversa: transcrição e tradução ao vivo de
 áudio (rodando no navegador quando possível) viram jogos de vocabulário e repetição espaçada. Atende
-menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servidor Express, SQLite/libsql.
+menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servidor Express, Postgres (PGlite em dev/testes, `pg` em produção).
 
 ## Mapa de camadas
 
@@ -11,10 +11,26 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
 - `src/gateway/`: adaptadores (motores locais, provedores, perfis de capacidade) que implementam o core.
 - `src/components/`: telas e peças de UI. `src/styles/`: CSS. `src/hooks/`: hooks compartilhados.
 - `src/lib/`: utilitários de app (áudio, dispositivo, polimento, captura, auth). Pode usar core e gateway.
+  `src/lib/anki/`: leitura do `.apkg` no navegador (zip com teto, zstd, `sql.js` num Web Worker) e exportação;
+  `src/lib/import/`: PDF/DOCX/legendas viram texto no navegador. O leitor puro do Anki fica em `src/core/anki/`.
+  O leitor de livros (`/leitor`): motor em `src/lib/leitor/` (foliate-js VENDORIZADO em `foliate/`, fora do
+  lint/prettier; mudanças só com `FRASY:` e registro em `foliate/PATCHES.md`), tela em `src/components/views/leitor/`,
+  regras puras (anotação W3C, exportações, CFI, perfil) em `src/core/leitura/`, estante e `abrirLivroNoLeitor` em `src/lib/livros/`.
 - `src/data/`: acesso a dados e clientes das rotas da API (`src/data/rotas/`), trilha de conteúdo.
-- `server/`: Express (`routes/`, `ai/` com proxies e núcleo de IA, `db/` com migrações Drizzle, `lib/`).
+  `public/catalogo/fichas/` (as fichas dos livros) e `src/data/livros/fichasDoParceiro.json` (a parte delas que o
+  servidor do parceiro de leitura empacota) são GERADOS por `scripts/livros/gerar-fichas.mjs`; não edite à mão.
+- `server/`: Express (`routes/`, `ai/` com proxies e núcleo de IA, `db/` com migrações Drizzle em `migrations-pg/`, `lib/`).
   `server/lib/config.ts` lista as variáveis de ambiente; `.env.production.example` é o modelo de produção.
+  `server/boot/`: passos do boot que o `server.ts` orquestra (validar, preparar, jobs) e o portão do Worker; nenhum módulo lê env ou disco ao ser importado.
+- `worker.ts`: ponto de entrada do Cloudflare Worker (o par do `server.ts`): `/api/*` pelo mesmo Express, resto pelos assets, cron.
+  `wrangler.jsonc` configura o Worker; o `wrangler.toml` é o projeto Pages da edição estática, então SEMPRE `-c wrangler.jsonc`.
 - `tests/` (vitest e e2e Playwright), `scripts/` (operação, perf, i18n), `ops/` (provedores, alertas), `docs/`, `openspec/`.
+  `scripts/cloudflare/`: infra reproduzível (buckets R2, Hyperdrive de staging, secrets do Worker — nunca commitar `.secrets.*.json`).
+  `scripts/vite/cabecalhos.ts` GERA o `dist/_headers` no build (CSP bloqueante = `diretivasDeCsp(env)` do Express); não existe mais `public/_headers`.
+  `scripts/site/` gera no build o SITE PÚBLICO estático (home `inicio.html`, planos, guias de `content/guias/*.md`
+  com `revisado: true`, sitemap, robots, ads.txt com `ADSENSE_PUB_ID`); o app (`index.html`) é servido em `/app`
+  pelo Worker (`server/http/siteNoWorker.ts`), e na raiz em dev/testes/self-host (`src/lib/baseDoApp.ts`).
+  `tests/harness/lerApkgNode.ts` lê um `.apkg` em Node com o mesmo leitor do navegador (testes e scripts).
 
 ## Comandos
 
@@ -23,6 +39,9 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
 - `npm run lint`: ESLint com `--max-warnings 0` (também ordena imports; use `npx eslint --fix`).
 - `npm test`: `vitest run` (um arquivo: `npx vitest run tests/<arquivo>`).
 - `npm run build`: Vite + bundle do servidor. `npx knip`: exports e arquivos sem uso.
+- `npm run worker:dev`: o app no `wrangler dev` local. `npm run worker:build`: bundle do Worker + tamanho.
+  `npm run fumaca:worker` (ou `WRANGLER_FUMACA=1`): fumaça do Worker com Postgres em Docker. Ver `docs/deploy.md`.
+- `npm run limpar`: encerra processos órfãos deixados por testes (hook `SessionEnd`; skill `/limpar-processos`).
 - Gerenciador: npm (`package-lock.json`).
 
 ## Convenções
@@ -39,7 +58,22 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
 
 - `ui.captureSourceLang` (idioma da pessoa) também define o idioma da interface enquanto `ui.uiLang` não
   foi escolhido (`src/lib/langConfig.ts`): trocar um muda o outro.
+- No Worker, trabalho depois da resposta (o `finally` que estorna, envio de telemetria) tem de passar por
+  `emSegundoPlano` ou pelo executor da requisição (`capturarAssincrono` já registra o handler): promessa solta
+  morre, e o `Client` fecha. E nenhuma promessa criada numa requisição pode ser esperada por outra.
 - Os testes ignoram o `.env` (`tests/setup-db-isolada.ts` aponta o dotenv para um arquivo inexistente e
   usa banco isolado): variável nova precisa ser definida no próprio teste.
+- `data/pg/` é o banco de dev (PGlite); os testes usam `pglite://memory`. PGlite aceita um processo por
+  diretório. Testes de concorrência/multiprocesso só rodam com `TESTE_POSTGRES_URL` (Postgres real).
+- `pglite:<dir>` é de um processo só: `db.ts` grava `<dir>/.babel-lock` e recusa um segundo processo vivo
+  (trava de pid morto é sobrescrita). Script que abre o diretório com `new PGlite()` direto não passa pela trava.
+- Importação pesada roda no NAVEGADOR: o servidor nunca recebe o `.apkg`/PDF/DOCX, só notas em lotes
+  (`server/routes/ankiImports.ts`: abrir → notas → fechar) ou texto, e reaplica limpeza, identidade (guid/hash)
+  e régua de qualidade — o cliente não é confiável. A página web (`/api/import/web`) é a única importação do
+  servidor (CORS + anti-SSRF), com `linkedom`, e roda também no Worker.
+- Catálogos de i18n: `public/i18n/{en,es,ar}.json` ficam em ordem alfabética (portão `ordenar.mjs --check` na CI);
+  insira a chave em qualquer lugar e rode `npm run i18n`, que ordena e regenera os GERADOS `public/i18n/xx.json` e
+  `src/data/i18n/cobertura.json` (versionados: o app importa a cobertura e serve o `xx`). Conflito num gerado depois
+  de um merge: resolva os catálogos à mão, rode `npm run i18n` e faça `git add` do resultado — nunca edite os gerados.
 - `git pull --rebase` antes de `git push`: há mais de uma frente de trabalho na `main`.
 - `docs/prototipos/*-src/`, `docs/prototipos/_comum/` e `public/` ficam fora do lint.

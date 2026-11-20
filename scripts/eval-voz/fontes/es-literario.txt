@@ -1,0 +1,4 @@
+# es-literario | es | literario | dominio-publico
+# origem: Miguel de Cervantes, Don Quijote de la Mancha, parte I, cap. 1, início. Project Gutenberg #2000, https://www.gutenberg.org/cache/epub/2000/pg2000.txt, obtido em 2026-10-31.
+# licença: domínio público (autor morreu em 1616). Só texto do original.
+En un lugar de la Mancha, de cuyo nombre no quiero acordarme, no ha mucho tiempo que vivía un hidalgo de los de lanza en astillero, adarga antigua, rocín flaco y galgo corredor. Una olla de algo más vaca que carnero, salpicón las más noches, duelos y quebrantos los sábados, lantejas los viernes, algún palomino de añadidura los domingos, consumían las tres partes de su hacienda.

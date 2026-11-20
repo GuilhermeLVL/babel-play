@@ -13,6 +13,7 @@ import { randomUUID } from 'node:crypto'
 import { redigirErro } from '../../src/core/redacao'
 import { criarLimitador, interpretarDsn, montarEnvelope, urlDoEnvelope } from '../../src/core/sentry'
 import type { SinkDeErro } from './logger'
+import { emSegundoPlano } from './runtime'
 
 export interface OpcoesDoSentry {
   dsn: string
@@ -61,12 +62,16 @@ export function sinkDoSentry(o: OpcoesDoSentry): SinkDeErro | null {
       },
       agora,
     )
-    /* Fogo e esquece: telemetria nunca segura nem derruba o request que ela observa. */
-    void buscar(url, {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-sentry-envelope' },
-      body: corpo,
-      signal: AbortSignal.timeout(5_000),
-    }).catch(() => {})
+    /* Fogo e esquece: telemetria nunca segura nem derruba o request que ela observa. `emSegundoPlano`
+       porque no Worker o POST solto morreria com o fim da requisição (vai para o `ctx.waitUntil`); o
+       `.catch` vazio fica: falha de envio do Sentry continua silenciosa, como sempre. */
+    emSegundoPlano(
+      buscar(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-sentry-envelope' },
+        body: corpo,
+        signal: AbortSignal.timeout(5_000),
+      }).catch(() => {}),
+    )
   }
 }

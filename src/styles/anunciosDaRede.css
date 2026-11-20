@@ -1,0 +1,138 @@
+/* O ESPAÇO DO PROVEDOR REAL (`src/lib/anuncios/provedores/iframe.tsx`, ruling R32): o quadro da página de
+   anúncios, o rótulo "Patrocinado" e a porta "Sem anúncios". Só carrega com o provedor, isto é, só num
+   build com `VITE_ANUNCIOS_ORIGEM`; os espaços em si só aparecem com a flag e o consentimento. */
+.anuncio-rede {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 12px auto;
+  max-width: 100%;
+}
+.anuncio-rede-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  width: min(300px, 100%);
+}
+.anuncio-rede-rotulo {
+  font: 700 11.5px/1.2 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.anuncio-rede-sem {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  padding: 6px 0;
+  font: 600 12.5px/1.2 var(--font-body, inherit);
+  color: var(--ink-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.anuncio-rede-sem:focus-visible,
+.anuncio-rede-ver:focus-visible {
+  outline: 2px solid var(--q-acento, var(--accent));
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+.anuncio-rede-quadro {
+  border: 0;
+  width: 300px;
+  max-width: 100%;
+  height: 250px;
+  border-radius: 12px;
+  background: transparent;
+}
+.anuncio-rede-ver {
+  cursor: pointer;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--ink-muted) 40%, transparent);
+  background: transparent;
+  color: inherit;
+  font: 600 14px/1.2 var(--font-body, inherit);
+}
+.anuncio-rede-aviso {
+  color: var(--ink-muted);
+  font-size: 12.5px;
+}
+/* O premiado ocupa a tela: o formato premiado do GPT desenha a sobreposição dentro do quadro. */
+.anuncio-rede-premiado {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  background: rgb(0 0 0 / 0.72);
+}
+.anuncio-rede-premiado iframe {
+  flex: 1;
+  border: 0;
+  width: 100%;
+}
+.anuncio-rede-premiado .anuncio-rede-fechar {
+  align-self: flex-end;
+  margin: 8px;
+}
+/* O intersticial cobre a tela, entre duas rodadas, e sai pelo "Fechar" do topo. */
+.anuncio-rede[data-ad='intersticial'] {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  margin: 0;
+  justify-content: center;
+  padding: 16px;
+  background: rgb(20 18 16 / 0.72);
+  color: #f3efe8;
+}
+.anuncio-rede[data-ad='intersticial'] :is(.anuncio-rede-rotulo, .anuncio-rede-sem) {
+  color: inherit;
+}
+/* A âncora do celular: uma faixa presa ao pé, acima da barra flutuante, com o "Fechar" ao lado. */
+.anuncio-rede[data-ad='ancora'] {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(max(12px, env(safe-area-inset-bottom)) + 76px);
+  z-index: 28;
+  margin: 0;
+  padding: 6px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 14px 30px -14px rgb(0 0 0 / 0.4);
+}
+.anuncio-rede[data-ad='ancora'] .anuncio-rede-topo {
+  width: min(320px, 100%);
+}
+.anuncio-rede[data-ad='ancora'] .anuncio-rede-quadro {
+  width: 320px;
+  height: 50px;
+  border-radius: 8px;
+}
+/* Com a âncora no pé, o botão do iChat sobe para cima dela: os dois não se cobrem (topo + quadro de 50 px + folga). */
+html:has(.anuncio-rede[data-ad='ancora'][data-estado='preenchido']) .fab {
+  bottom: calc(max(12px, env(safe-area-inset-bottom)) + 76px + 100px + 10px);
+}
+/* SEM SALTO DE LAYOUT: até a página avisar `preenchido`, o espaço fica recolhido (sem topo, quadro de 1 px, sem margem);
+   o quadro continua no lugar para o `loading="lazy"` carregá-lo. Vazio, ele some sem ter ocupado lugar (`iframe.tsx`). */
+.anuncio-rede[data-estado='aguardando'] {
+  margin: 0;
+  gap: 0;
+  pointer-events: none;
+}
+.anuncio-rede[data-estado='aguardando'] .anuncio-rede-topo {
+  display: none;
+}
+.anuncio-rede[data-estado='aguardando'] .anuncio-rede-quadro {
+  height: 1px;
+  opacity: 0;
+}
+/* A âncora é fixa (não empurra nada), mas uma faixa vazia no pé também não: fica invisível até o anúncio vir. */
+.anuncio-rede[data-ad='ancora'][data-estado='aguardando'] {
+  padding: 0;
+  opacity: 0;
+  box-shadow: none;
+}

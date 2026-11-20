@@ -7,8 +7,9 @@ import { distribuirThreads } from '../../lib/dispositivo/orcamentoDeThreads';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import { temAdaptadorWebGpu } from '../adaptadorWebGpu';
 import type { AvisoDeDegradacaoDoStt, SttFinal, SttProvider } from '../capabilities';
+import { pareceErroDeRede } from '../erroDeRede';
 import { gravarManifesto, MENSAGEM_DO_MANIFESTO } from '../modelManifest';
-import { WHISPER_MODELS } from '../sttRouter';
+import { MOONSHINE_MODELS, WHISPER_MODELS } from '../sttRouter';
 import { criarWatchdogDeEstagnacao } from './modelProgress';
 import { ehMoonshine, moonshineAceita } from './moonshine';
 
@@ -38,6 +39,14 @@ function erroDeAborto(): Error {
  */
 function modeloParaWasm(modelo: string): string {
   return modelo === WHISPER_MODELS.small ? WHISPER_MODELS.base : modelo;
+}
+
+/** O degrau de baixo quando um modelo veio com defeito (`rebaixarModelo`). O menor de cada família não tem. */
+export function modeloMenor(modelo: string): string | null {
+  if (modelo === WHISPER_MODELS.small) return WHISPER_MODELS.base;
+  if (modelo === WHISPER_MODELS.base) return WHISPER_MODELS.tiny;
+  if (modelo === MOONSHINE_MODELS.base) return MOONSHINE_MODELS.tiny;
+  return null;
 }
 
 export class WhisperLocalStt implements SttProvider {
@@ -252,6 +261,44 @@ export class WhisperLocalStt implements SttProvider {
     }
   }
 
+  /** Os modelos que já tiveram a cura (worker novo + download de novo) nesta página: uma vez por modelo. */
+  private curados = new Set<string>();
+  /** A próxima rejeição da carga também descarta o worker (a sessão dele ficou envenenada). */
+  private descartarWorkerNaProxima = false;
+
+  /**
+   * A CURA: o cache já está limpo; recria o worker com o MESMO modelo e baixa de novo. Quem esperava a preparação
+   * continua esperando a mesma promessa.
+   */
+  private recarregarDoZero(detalhe: string): void {
+    const armada = this.readyPromise;
+    console.warn('[whisper] sessão não abriu → worker novo, baixando', this.model, 'de novo:', detalhe.slice(0, 160));
+    this.derrubarWorker(new Error('sessão do modelo não abriu, recarregando'));
+    this.onProgress?.(0, 'Baixando o modelo de novo…');
+    if (armada && !this.asrReady) {
+      this.ensureWorker();
+      void this.iniciarCarga(armada);
+    }
+  }
+
+  /**
+   * O MODELO VEIO COM DEFEITO e a cura não resolveu: recria o worker com o modelo menor (mesmo backend) e
+   * AVISA. Quem esperava a preparação continua esperando a mesma promessa.
+   */
+  private rebaixarModelo(menor: string, detalhe: string): void {
+    const modeloAntes = this.model;
+    const armada = this.readyPromise;
+    const device = this.deviceDaCarga ?? 'wasm';
+    console.warn('[whisper] modelo com defeito → seguindo com', menor, ':', detalhe.slice(0, 160));
+    this.derrubarWorker(new Error('modelo com defeito, trocando pelo menor'));
+    this.routedModel = menor;
+    this.aoDegradar?.({ motivo: 'modelo-corrompido', modeloAntes, modelo: menor, device, detalhe });
+    if (armada && !this.asrReady) {
+      this.ensureWorker();
+      void this.iniciarCarga(armada);
+    }
+  }
+
   /** O worker está ocupado (há decode em andamento)? Base do idle-gating dos partials. */
   get busy(): boolean {
     return this.pending.size > 0;
@@ -301,8 +348,20 @@ export class WhisperLocalStt implements SttProvider {
     });
 
     this.worker.onmessage = (msg: MessageEvent) => {
-      const { type, id, text, progress, label, message, loaded, total, descartado, language, confiancaDoIdioma } =
-        msg.data;
+      const {
+        type,
+        id,
+        text,
+        progress,
+        label,
+        message,
+        loaded,
+        total,
+        descartado,
+        language,
+        confiancaDoIdioma,
+        idiomaConferido,
+      } = msg.data;
 
       switch (type) {
         case MENSAGEM_DO_MANIFESTO:
@@ -351,7 +410,10 @@ export class WhisperLocalStt implements SttProvider {
             /* `language` SÓ quando o worker MEDIU (trecho sem dica, "Detectar"): o contrato de
                `SttFinal.language` é "o que o motor identificou". Com dica, o worker obedece e não
                devolve idioma — ecoar a dica faria o chamador confundir palpite com medição. */
-            const medido = typeof language === 'string' && language ? { language, confiancaDoIdioma } : {};
+            const medido = {
+              ...(typeof language === 'string' && language ? { language, confiancaDoIdioma } : {}),
+              ...(idiomaConferido ? { idiomaConferido } : {}),
+            };
             this.pending.delete(id);
             pending.resolve(descartado ? { text, alucinacaoDescartada: true, ...medido } : { text, ...medido });
           }
@@ -375,9 +437,41 @@ export class WhisperLocalStt implements SttProvider {
           }
 
           /* ERRO NA CARGA. No WebGPU, a saída é o WASM (e o modelo que cabe nele), sem deixar a
-             preparação cair: "no available backend found" no headless era captura sem legenda. */
-          if (this.deviceDaCarga === 'webgpu') {
+             preparação cair: "no available backend found" no headless era captura sem legenda.
+             Falha de REDE não é falta de GPU ("Load failed" no Safari): rejeita a preparação, e a
+             tela mostra "Não foi possível preparar o modelo · Tentar de novo" (`erroDeRede.ts`). */
+          /* A SESSÃO NÃO ABRIU (`cacheDePesos.ts` já apagou a cópia do modelo e marcou o erro). O worker que viu
+             isso não serve mais: a transformers.js rejeita toda sessão seguinte nele (`carregarComCura`). Então:
+               1ª vez deste modelo na página → worker NOVO, mesmo modelo, baixando de novo (a cura);
+               de novo, com o modelo corrompido → o modelo menor, no mesmo backend, com aviso (o tiny não tem menor);
+               de novo, com o download cortado → a preparação falha ("Baixar de novo"), e o worker sai, para o
+               próximo pedido nascer limpo. Escada finita: sem laço. */
+          const marca = /^\[falha:(modelo-corrompido|download-interrompido)\]/.exec(String(message || ''))?.[1];
+          if (marca) {
+            if (!this.curados.has(this.model)) {
+              this.curados.add(this.model);
+              this.recarregarDoZero(String(message));
+              break;
+            }
+            const menor = marca === 'modelo-corrompido' ? modeloMenor(this.model) : null;
+            if (menor) {
+              this.rebaixarModelo(menor, String(message));
+              break;
+            }
+            this.descartarWorkerNaProxima = true;
+          }
+          if (this.deviceDaCarga === 'webgpu' && !pareceErroDeRede(String(message || ''))) {
             this.recarregarEmWasm('sem-gpu', String(message));
+            break;
+          }
+          if (this.descartarWorkerNaProxima) {
+            this.descartarWorkerNaProxima = false;
+            const rejeitar = this.readyReject;
+            this.readyReject = null;
+            this.derrubarWorker(err);
+            this.readyPromise = null;
+            this.readyResolve = null;
+            rejeitar?.(err);
             break;
           }
           if (this.readyReject) {
@@ -501,6 +595,7 @@ export class WhisperLocalStt implements SttProvider {
       prioridade: 'final' | 'parcial';
       signal?: AbortSignal;
       onUpdate?: (text: string) => void;
+      conferirIdioma?: boolean;
     },
   ): Promise<SttFinal | null> {
     const id = Math.random().toString(36).slice(2);
@@ -535,6 +630,7 @@ export class WhisperLocalStt implements SttProvider {
           language: opts.languageHint,
           device: this.deviceDaCarga ?? this.device,
           prioridade: opts.prioridade,
+          ...(opts.conferirIdioma ? { conferirIdioma: true } : {}),
         },
         [pcm.buffer],
       );
@@ -549,7 +645,12 @@ export class WhisperLocalStt implements SttProvider {
   async transcribePcm(
     pcm: Float32Array,
     _sampleRate: number,
-    opts?: { languageHint?: string; signal?: AbortSignal; onUpdate?: (text: string) => void },
+    opts?: {
+      languageHint?: string;
+      signal?: AbortSignal;
+      onUpdate?: (text: string) => void;
+      conferirIdioma?: boolean;
+    },
   ): Promise<SttFinal> {
     // GUARDA DO MOONSHINE (só inglês): o roteador não o escolhe fora do inglês, mas quem vê a dica
     // de CADA trecho é este adapter. Com o moonshine carregado (rota antiga, override manual em
@@ -571,6 +672,7 @@ export class WhisperLocalStt implements SttProvider {
       prioridade: 'final',
       signal: opts?.signal,
       onUpdate: opts?.onUpdate,
+      ...(opts?.conferirIdioma ? { conferirIdioma: true } : {}),
     });
     if (!r) throw erroDeAborto();
     return r;

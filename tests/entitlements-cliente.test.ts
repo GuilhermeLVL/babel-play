@@ -7,11 +7,16 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+/* A conta destes testes tem sessão guardada no navegador (`sb-*-auth-token`): sem ela o visitante já nasce
+   `anonimo` e não espera o SDK (carga-rapida-no-celular). */
+vi.hoisted(() => localStorage.setItem('sb-teste-auth-token', '{}'))
+
 vi.mock('../src/lib/supabase', () => ({
   supabase: null,
   authRequired: true,
   carregarSupabase: async () => null,
-  getAccessToken: async () => null,
+  // A conta destes testes tem token: no modo público, sem token o funil responde como sem conta.
+  getAccessToken: async () => 'tok',
 }))
 
 import { carregarEntitlements, getEntitlements, limparEntitlements, onPlanChange } from '../src/lib/entitlements'
@@ -22,6 +27,7 @@ const resposta = (corpo: unknown, status = 200) =>
 describe('entitlements do cliente', () => {
   beforeEach(() => {
     localStorage.clear()
+    localStorage.setItem('sb-teste-auth-token', '{}')
     limparEntitlements()
   })
   afterEach(() => {
@@ -31,7 +37,6 @@ describe('entitlements do cliente', () => {
   it('sem cache e sem rede, o default do modo público é FECHADO (não selfhost)', () => {
     const e = getEntitlements()
     expect(e.plan).toBe('free')
-    expect(e.youtubeImport).toBe(false)
     expect(e.managedCloudStt).toBe(false)
     expect(e.managedCloudLlm).toBe(false)
     expect(e.traducaoNuance).toBe(false)
@@ -45,7 +50,6 @@ describe('entitlements do cliente', () => {
       vi.fn(async () =>
         resposta({
           plan: 'premium',
-          youtubeImport: true,
           managedCloudStt: true,
           managedCloudLlm: true,
           largerModels: true,
@@ -64,7 +68,6 @@ describe('entitlements do cliente', () => {
     expect(e.traducaoNuance).toBe(true)
     expect(e.vozNatural).toBe(true)
     expect(e.interpreteAutomatico).toBe(true)
-    expect(getEntitlements().youtubeImport).toBe(true)
     expect(getEntitlements().armazenamento).toEqual({ usados: 1024, teto: 5_000_000_000 })
     expect(avisos).toHaveBeenCalledTimes(1)
     expect(JSON.parse(localStorage.getItem('babel.entitlements')!).plan).toBe('premium')
@@ -91,16 +94,16 @@ describe('entitlements do cliente', () => {
   it('resposta fora da forma ou erro de rede mantém o último valor conhecido', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => resposta({ plan: 'pro', youtubeImport: true })),
+      vi.fn(async () => resposta({ plan: 'pro', sttAoVivo: true })),
     )
     await carregarEntitlements()
-    expect(getEntitlements().youtubeImport).toBe(true)
+    expect(getEntitlements().sttAoVivo).toBe(true)
 
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => resposta({ error: 'x' }, 500)),
     )
-    expect((await carregarEntitlements()).youtubeImport).toBe(true)
+    expect((await carregarEntitlements()).sttAoVivo).toBe(true)
 
     vi.stubGlobal(
       'fetch',
@@ -108,7 +111,7 @@ describe('entitlements do cliente', () => {
         throw new Error('rede')
       }),
     )
-    expect((await carregarEntitlements()).youtubeImport).toBe(true)
+    expect((await carregarEntitlements()).sttAoVivo).toBe(true)
 
     /* CONTRATO NOVO (mudança planos-essencial): plano desconhecido NÃO descarta mais a resposta.
        O comportamento antigo jogava fora as flags VERDADEIRAS que vieram junto — um cliente antigo
@@ -116,18 +119,18 @@ describe('entitlements do cliente', () => {
        (`free`); as flags do servidor valem, porque a autoridade é ele. */
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => resposta({ plan: 'deus', youtubeImport: true })),
+      vi.fn(async () => resposta({ plan: 'deus', sttAoVivo: true })),
     )
     const comPlanoDesconhecido = await carregarEntitlements()
     expect(comPlanoDesconhecido.plan).toBe('free')
-    expect(comPlanoDesconhecido.youtubeImport).toBe(true)
+    expect(comPlanoDesconhecido.sttAoVivo).toBe(true)
   })
 
   it('cache durável sobrevive ao recarregar o módulo, mas só se tiver a forma certa', async () => {
-    localStorage.setItem('babel.entitlements', JSON.stringify({ plan: 'pro', youtubeImport: true }))
+    localStorage.setItem('babel.entitlements', JSON.stringify({ plan: 'pro', sttAoVivo: true }))
     limparEntitlements() // limpa memória E disco — então o próximo get volta ao default
     expect(getEntitlements().plan).toBe('free')
-    localStorage.setItem('babel.entitlements', '{"plan":"pro","youtubeImport":true}')
+    localStorage.setItem('babel.entitlements', '{"plan":"pro","sttAoVivo":true}')
     vi.resetModules()
     vi.doMock('../src/lib/supabase', () => ({
       supabase: null,
@@ -136,10 +139,10 @@ describe('entitlements do cliente', () => {
       getAccessToken: async () => null,
     }))
     const fresco = await import('../src/lib/entitlements')
-    expect(fresco.getEntitlements().youtubeImport).toBe(true)
+    expect(fresco.getEntitlements().sttAoVivo).toBe(true)
     localStorage.setItem('babel.entitlements', 'não é json')
     vi.resetModules()
     const quebrado = await import('../src/lib/entitlements')
-    expect(quebrado.getEntitlements().youtubeImport).toBe(false)
+    expect(quebrado.getEntitlements().sttAoVivo).toBe(false)
   })
 })

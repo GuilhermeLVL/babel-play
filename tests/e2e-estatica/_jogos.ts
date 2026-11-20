@@ -131,9 +131,22 @@ export async function vozFalsa(page: Page) {
     w.__falas = []
     const s = window.speechSynthesis
     if (s) {
+      /* Vozes padrão do macOS que a lista de permissão (`core/voz/melhorVoz.ts`) aceita: nome inventado deixa o app mudo. */
       const vozes = [
-        { name: 'Teste en', lang: 'en-US', localService: true, default: true, voiceURI: 'en' },
-        { name: 'Teste pt', lang: 'pt-BR', localService: true, default: false, voiceURI: 'pt' },
+        {
+          name: 'Samantha',
+          lang: 'en-US',
+          localService: true,
+          default: true,
+          voiceURI: 'com.apple.voice.compact.en-US.Samantha',
+        },
+        {
+          name: 'Luciana',
+          lang: 'pt-BR',
+          localService: true,
+          default: false,
+          voiceURI: 'com.apple.voice.compact.pt-BR.Luciana',
+        },
       ]
       try {
         Object.defineProperty(SpeechSynthesisUtterance.prototype, 'voice', {
@@ -187,6 +200,9 @@ export const ultimaFala = (page: Page, idioma = '') =>
 
 /** As recompensas (baú, conquista, nível) são diálogos por cima da tela: fecha um por um. */
 export async function dispensarRecompensas(page: Page) {
+  // A novidade discreta (cartão no canto, 22/10/2026) não é diálogo, mas cobre o que está embaixo.
+  const cartao = page.getByTestId('novidade-discreta').getByRole('button', { name: 'Fechar' })
+  if (await cartao.isVisible().catch(() => false)) await cartao.click({ timeout: 2000 }).catch(() => {})
   for (let i = 0; i < 6; i++) {
     const b = page
       .getByRole('dialog')

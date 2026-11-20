@@ -3,6 +3,7 @@ import { type ReactNode, useEffect, useState } from 'react';
 
 import { excluirConta, type ResultadoDaExclusao } from '../../../data/api';
 import * as auth from '../../../lib/auth';
+import { comBaseDoApp } from '../../../lib/baseDoApp';
 import { supabase } from '../../../lib/supabase';
 import { toast } from '../../Toast';
 import { Dialogo, fecharDialogoDe } from '../../ui';
@@ -124,8 +125,8 @@ function SemSenhaNaConta({ aoFechar }: { aoFechar: () => void }) {
   return (
     <Dialogo icone={Info} titulo="Conta entrou com o Google" aoFechar={aoFechar}>
       <p className="sub">
-        Esta conta não tem senha do Babel Play: o e-mail e o acesso são os da sua conta Google. Para criar uma senha,
-        saia e use “Esqueci minha senha” na tela de entrada.
+        Esta conta não tem senha do Frasy: o e-mail e o acesso são os da sua conta Google. Para criar uma senha, saia e
+        use “Esqueci minha senha” na tela de entrada.
       </p>
     </Dialogo>
   );
@@ -269,9 +270,15 @@ function AtivarDuasEtapas({ aoFechar, aoAtivar }: { aoFechar: () => void; aoAtiv
   const [enroll, setEnroll] = useState<auth.MfaEnroll | null>(null);
   const [codigo, setCodigo] = useState('');
   const [erro, setErro] = useState<string | null>(null);
+  /* Sessão vencida no navegador (`auth.SESSAO_EXPIRADA`): a saída é sair e entrar de novo, e o botão fica à mão. */
+  const [sessaoExpirada, setSessaoExpirada] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   useEffect(() => {
-    void auth.enrollTotp().then((r) => (r.ok ? setEnroll(r) : setErro(r.message ?? 'Não deu para iniciar agora.')));
+    void auth.enrollTotp().then((r) => {
+      if (r.ok) return setEnroll(r);
+      setSessaoExpirada(r.code === auth.SESSAO_EXPIRADA);
+      setErro(r.message ?? 'Não deu para iniciar agora.');
+    });
   }, []);
   const confirmar = async (el: HTMLElement) => {
     if (!enroll?.factorId) return;
@@ -279,7 +286,10 @@ function AtivarDuasEtapas({ aoFechar, aoAtivar }: { aoFechar: () => void; aoAtiv
     setOcupado(true);
     const r = await auth.confirmTotp(enroll.factorId, codigo.trim());
     setOcupado(false);
-    if (!r.ok) return setErro(r.message ?? 'Código inválido.');
+    if (!r.ok) {
+      setSessaoExpirada(r.code === auth.SESSAO_EXPIRADA);
+      return setErro(r.message ?? 'Código inválido.');
+    }
     toast.ok('Verificação em duas etapas ativada');
     aoAtivar();
     fecharDialogoDe(el);
@@ -330,6 +340,12 @@ function AtivarDuasEtapas({ aoFechar, aoAtivar }: { aoFechar: () => void; aoAtiv
         <Erro msg={erro} />
       </div>
       <Pe>
+        {sessaoExpirada && (
+          /* Sair leva à porta de entrada do app (o mesmo "Sair" de Ajustes → Conta). */
+          <button type="button" className="btn btn-outline" onClick={() => void auth.signOut()}>
+            Sair e entrar de novo
+          </button>
+        )}
         <button
           type="button"
           className="btn btn-solid"
@@ -414,7 +430,7 @@ function ExcluirConta({ aoFechar, aoIrParaPrivacidade }: { aoFechar: () => void;
             className="btn btn-solid"
             onClick={(e) => {
               fecharDialogoDe(e.currentTarget);
-              if (resultado.ok) window.location.assign('/');
+              if (resultado.ok) window.location.assign(comBaseDoApp('/'));
             }}
           >
             Fechar

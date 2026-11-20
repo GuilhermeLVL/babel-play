@@ -1,0 +1,293 @@
+{
+  "funcao": "legenda",
+  "base": "google/gemma-4-26b-a4b-it",
+  "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
+  "margem": 0.05,
+  "recomendado": "google/gemma-4-26b-a4b-it",
+  "motivo": "nenhum candidato mais barato que a produção sem piorar a experiência: manter",
+  "opcoesMaisCaras": [],
+  "autopreferencia": {
+    "mistralai/mistral-medium-3.1": 0.008474576271186446,
+    "deepseek/deepseek-v4.1-flash@none": null
+  },
+  "resumos": {
+    "google/gemma-4-26b-a4b-it": {
+      "sistema": "google/gemma-4-26b-a4b-it",
+      "modelo": "google/gemma-4-26b-a4b-it",
+      "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
+      "juizCompensado": false,
+      "n": 60,
+      "julgados": 60,
+      "nota": {
+        "valor": 0.9383333333333332,
+        "ic95": [0.9066249999999997, 0.965]
+      },
+      "taxas": {
+        "adequacao": 0.85,
+        "naturalidade": 0.9083333333333333,
+        "registro": 0.9333333333333333,
+        "idioma_certo": 1,
+        "segura": 1
+      },
+      "semResposta": 0,
+      "invalidas": 0,
+      "latenciaMs": {
+        "ttftP50": 975.2362499999999,
+        "ttftP95": 4204.046125,
+        "totalP50": 1038.2904170000002,
+        "totalP95": 4271.398959
+      },
+      "sloP95Ms": 1500,
+      "dentroDoSlo": false,
+      "acimaDoTimeout": 0,
+      "experiencia": {
+        "caracteresP50": 40,
+        "cabeSemRolar": null,
+        "palavrasPorFrase": 5.258333333333334,
+        "idiomaOk": 1,
+        "chrf": 77.92665939493223,
+        "razaoDeTamanho": 0.9919999999999999
+      },
+      "custo": {
+        "usdTotal": 0.00108787,
+        "usdPorUso": 0.000018131166666666663,
+        "usdPor1000Usos": 0.018131166666666663,
+        "usdPorMilhaoDeTokens": 0.06613995622568093,
+        "tokensPorUso": 274.1333333333333,
+        "usdPorHoraDeFala": 0.02250765517241379
+      },
+      "tokensDeRaciocinioP50": 0,
+      "foraDaProducao": false
+    },
+    "openai/gpt-oss-120b~groq+cerebras": {
+      "sistema": "openai/gpt-oss-120b~groq+cerebras",
+      "modelo": "openai/gpt-oss-120b",
+      "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
+      "juizCompensado": false,
+      "n": 60,
+      "julgados": 53,
+      "nota": {
+        "valor": 0.9433962264150944,
+        "ic95": [0.9056603773584907, 0.9716981132075471]
+      },
+      "taxas": {
+        "adequacao": 0.8867924528301887,
+        "naturalidade": 0.9339622641509434,
+        "registro": 0.8962264150943396,
+        "idioma_certo": 1,
+        "segura": 1
+      },
+      "semResposta": 0,
+      "invalidas": 0,
+      "latenciaMs": {
+        "ttftP50": 818.5899579999987,
+        "ttftP95": 1427.348208000003,
+        "totalP50": 851.463291,
+        "totalP95": 1457.473917000003
+      },
+      "sloP95Ms": 1500,
+      "dentroDoSlo": true,
+      "acimaDoTimeout": 0,
+      "experiencia": {
+        "caracteresP50": 38,
+        "cabeSemRolar": null,
+        "palavrasPorFrase": 5.1,
+        "idiomaOk": 1,
+        "chrf": 72.95497180266835,
+        "razaoDeTamanho": 0.9775000000000003
+      },
+      "custo": {
+        "usdTotal": 0.0034783500000000003,
+        "usdPorUso": 0.00005797250000000001,
+        "usdPor1000Usos": 0.05797250000000001,
+        "usdPorMilhaoDeTokens": 0.1610421778786055,
+        "tokensPorUso": 359.98333333333335,
+        "usdPorHoraDeFala": 0.07196586206896552
+      },
+      "tokensDeRaciocinioP50": 26,
+      "foraDaProducao": true
+    },
+    "mistralai/mistral-small-2603": {
+      "sistema": "mistralai/mistral-small-2603",
+      "modelo": "mistralai/mistral-small-2603",
+      "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
+      "juizCompensado": true,
+      "n": 55,
+      "julgados": 18,
+      "nota": {
+        "valor": 0.9555555555555557,
+        "ic95": [0.9111111111111112, 0.9890277777777776]
+      },
+      "taxas": {
+        "adequacao": 0.8888888888888888,
+        "naturalidade": 0.9722222222222222,
+        "registro": 0.9166666666666666,
+        "idioma_certo": 1,
+        "segura": 1
+      },
+      "semResposta": 0.08333333333333333,
+      "invalidas": 0,
+      "latenciaMs": {
+        "ttftP50": 903.6655830000018,
+        "ttftP95": 1326.3484160000007,
+        "totalP50": 1036.2015000000101,
+        "totalP95": 1555.2257079999981
+      },
+      "sloP95Ms": 1500,
+      "dentroDoSlo": false,
+      "acimaDoTimeout": 0,
+      "experiencia": {
+        "caracteresP50": 35,
+        "cabeSemRolar": null,
+        "palavrasPorFrase": 4.881818181818182,
+        "idiomaOk": 1,
+        "chrf": 63.85867729222464,
+        "razaoDeTamanho": 0.9276363636363637
+      },
+      "custo": {
+        "usdTotal": 0.0009672000000000002,
+        "usdPorUso": 0.000017585454545454548,
+        "usdPor1000Usos": 0.017585454545454546,
+        "usdPorMilhaoDeTokens": 0.059578662067266246,
+        "tokensPorUso": 295.1636363636364,
+        "usdPorHoraDeFala": 0.0216
+      },
+      "tokensDeRaciocinioP50": 0,
+      "foraDaProducao": false
+    }
+  },
+  "avaliacoes": [
+    {
+      "sistema": "openai/gpt-oss-120b~groq+cerebras",
+      "comparacao": {
+        "contra": "google/gemma-4-26b-a4b-it",
+        "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
+        "juizCompensado": false,
+        "nota": {
+          "n": 53,
+          "delta": -0.0037735849056603787,
+          "dp": 0.11923193969180622,
+          "valor": -0.0037735849056602655,
+          "ic95": [-0.03584905660377369, 0.024528301886792562],
+          "significativo": false
+        },
+        "criticos": {
+          "idioma_certo": {
+            "n": 53,
+            "delta": 0,
+            "dp": 0,
+            "valor": 0,
+            "ic95": [0, 0],
+            "significativo": false
+          },
+          "segura": {
+            "n": 53,
+            "delta": 0,
+            "dp": 0,
+            "valor": 0,
+            "ic95": [0, 0],
+            "significativo": false
+          }
+        }
+      },
+      "maisBarato": false,
+      "custoRelativo": 3.19739490931821,
+      "naoInferior": true,
+      "superiorNaNota": false,
+      "pioras": [],
+      "melhoras": [],
+      "chegaNoTempo": true,
+      "disponivel": true,
+      "latenciaNaoPiora": true,
+      "custoCabe": false,
+      "situacao": "mais-caro-sem-ganho-critico",
+      "poder": {},
+      "preferencia": null
+    },
+    {
+      "sistema": "mistralai/mistral-small-2603",
+      "comparacao": {
+        "contra": "google/gemma-4-26b-a4b-it",
+        "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
+        "juizCompensado": true,
+        "nota": {
+          "n": 18,
+          "delta": -0.016666666666666663,
+          "dp": 0.051449575542752646,
+          "valor": -0.016666666666666496,
+          "ic95": [-0.04444444444444429, 0],
+          "significativo": false
+        },
+        "criticos": {
+          "idioma_certo": {
+            "n": 18,
+            "delta": 0,
+            "dp": 0,
+            "valor": 0,
+            "ic95": [0, 0],
+            "significativo": false
+          },
+          "segura": {
+            "n": 18,
+            "delta": 0,
+            "dp": 0,
+            "valor": 0,
+            "ic95": [0, 0],
+            "significativo": false
+          }
+        }
+      },
+      "maisBarato": false,
+      "custoRelativo": 0.9699019852806613,
+      "naoInferior": true,
+      "superiorNaNota": false,
+      "pioras": [],
+      "melhoras": [],
+      "chegaNoTempo": true,
+      "disponivel": false,
+      "latenciaNaoPiora": true,
+      "custoCabe": true,
+      "situacao": "piora",
+      "poder": {},
+      "preferencia": null
+    }
+  ],
+  "contraProducao": [
+    {
+      "sistema": "openai/gpt-oss-120b~groq+cerebras",
+      "veredito": "nao-inferior",
+      "aprovado": false,
+      "reprovacoes": ["custo-acima-do-teto"],
+      "motivos": ["custo de US$ 0.0720/h de fala acima do teto de US$ 0.05/h de fala"],
+      "porCorpus": [
+        {
+          "corpus": "gold:legenda",
+          "metrica": "juiz",
+          "gold": true,
+          "delta": -0.0037735849056602655,
+          "ic95": [-0.03584905660377369, 0.024528301886792562],
+          "margem": 0.05,
+          "classe": "nao-inferior"
+        }
+      ]
+    },
+    {
+      "sistema": "mistralai/mistral-small-2603",
+      "veredito": "nao-inferior",
+      "aprovado": true,
+      "reprovacoes": [],
+      "motivos": [],
+      "porCorpus": [
+        {
+          "corpus": "gold:legenda",
+          "metrica": "juiz",
+          "gold": true,
+          "delta": -0.016666666666666496,
+          "ic95": [-0.04444444444444429, 0],
+          "margem": 0.05,
+          "classe": "nao-inferior"
+        }
+      ]
+    }
+  ]
+}

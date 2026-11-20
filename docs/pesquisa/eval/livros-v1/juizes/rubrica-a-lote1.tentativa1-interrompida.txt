@@ -1,0 +1,5 @@
+Minha resposta anterior foi interrompida por um filtro automático e parou no meio da avaliação de CAT10. Não vou regenerar esse conteúdo.
+
+O array JSON ficou incompleto: cobre de CAT01 a CAT09, mas CAT10, CAT11, CAT12 e LEI01 a LEI09 ficaram sem avaliação, então o arquivo não é um JSON válido como saída final.
+
+Se quiser seguir, você pode enviar o pedido de novo.

@@ -16,6 +16,8 @@
  * opus-mt baixam ARQUIVOS DIFERENTES, e a versão antiga classificava tudo isso como "em cache".
  */
 
+import { comPoliticaDoHub } from './semReferer';
+
 const PREFIXO = 'babel.modelManifest.';
 
 export interface ArquivoDoModelo {
@@ -65,7 +67,8 @@ export async function consultarRevisao(modelId: string, buscar: Buscar = fetch):
   try {
     const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     const t = ctl ? setTimeout(() => ctl.abort(), 8000) : null;
-    const r = await buscar(`https://huggingface.co/api/models/${modelId}`, ctl ? { signal: ctl.signal } : undefined);
+    const url = `https://huggingface.co/api/models/${modelId}`;
+    const r = await buscar(url, comPoliticaDoHub(url, ctl ? { signal: ctl.signal } : undefined));
     if (t) clearTimeout(t);
     if (!r.ok) return null;
     const j = (await r.json()) as { sha?: unknown; lastModified?: unknown };
@@ -204,8 +207,16 @@ export function lerManifesto(modelId: string, dtype: string, device: string): Ma
  * Sem `dtype`: qualquer um dos que as rotas usam. Não confere tamanhos — quem carrega confere.
  */
 export function temCopiaNoAparelho(modelId: string, dtype?: string): boolean {
-  const dtypes = dtype ? [dtype] : ['hybrid', 'hybrid-fp16', 'q8'];
-  return dtypes.some((d) => ['wasm', 'webgpu'].some((dev) => lerManifesto(modelId, d, dev) !== null));
+  // 'int8' é o do Parakeet: sem ele a cópia dele nunca era vista e a oferta de baixar reaparecia.
+  const dtypes = dtype ? [dtype] : ['hybrid', 'hybrid-fp16', 'q8', 'int8'];
+  return dtypes.some((d) =>
+    ['wasm', 'webgpu'].some((dev) => {
+      const m = lerManifesto(modelId, d, dev);
+      if (!m) return false;
+      // Cópia PARCIAL (cache.put falhou sob quota): não é cópia. Legado sem `bytesEsperados` segue valendo.
+      return !(typeof m.bytesEsperados === 'number' && m.bytesTotais < m.bytesEsperados);
+    }),
+  );
 }
 
 export interface EstadoDoCache {

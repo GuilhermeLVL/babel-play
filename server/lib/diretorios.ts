@@ -10,7 +10,8 @@
  * A ordem é a mesma de sempre, agora num lugar só:
  *
  *  1. `DATA_DIR`, quando declarado — é a resposta explícita e vence tudo.
- *  2. O diretório do próprio banco (`DATABASE_URL=file:…`). É o sinal mais confiável disponível:
+ *  2. O pai do diretório do próprio banco (`DATABASE_URL=pglite:<dir>`; `pglite:./data/pg` → `./data`).
+ *     É o sinal mais confiável disponível:
  *     se o banco escreve ali, o resto também escreve, e os dois viajam juntos quando alguém move
  *     o volume. O `docker-compose.yml` deste projeto passa exatamente isso e não passa `DATA_DIR`.
  *  3. O pai de `AUDIO_DIR`, pelo mesmo raciocínio.
@@ -18,10 +19,18 @@
  */
 import path from 'node:path'
 
+import { ehBancoEmbutido, ehBancoEmMemoria, URL_PADRAO_DO_BANCO } from '../db/tipoDoBanco'
+import { bucketDoR2Ligado } from './armazenamentoR2'
+
+/** O banco é o PGlite embutido (o padrão sem `DATABASE_URL`)? A regra é a de `server/db/tipoDoBanco.ts`. */
+function bancoEmbutidoNoAmbiente(): boolean {
+  return ehBancoEmbutido(process.env.DATABASE_URL ?? URL_PADRAO_DO_BANCO)
+}
+
 export function diretorioGravavel(): string {
   if (process.env.DATA_DIR) return process.env.DATA_DIR
   const url = process.env.DATABASE_URL ?? ''
-  if (url.startsWith('file:')) return path.dirname(url.slice('file:'.length))
+  if (ehBancoEmbutido(url) && !ehBancoEmMemoria(url)) return path.dirname(url.slice('pglite:'.length))
   if (process.env.AUDIO_DIR) return path.dirname(process.env.AUDIO_DIR)
   return 'data'
 }
@@ -33,17 +42,18 @@ export function diretorioGravavel(): string {
  * — e adivinhar errado é pior que perguntar: um servidor que se acha sozinho guarda estado local e
  * responde diferente conforme a réplica que atendeu. Então quem opera declara, e o boot verifica.
  *
- * `CLUSTER_WORKERS` é outra coisa e continua sendo: são processos do MESMO host, com o MESMO
- * disco. Vários processos não exigem armazenamento compartilhado; várias máquinas exigem.
+ * O modo cluster (vários processos no mesmo host) saiu na Task 10 da Fase 2: o PGlite é de processo
+ * único e, com Postgres, escala-se por instâncias — que é o que `REPLICAS` declara.
  */
 export function replicasDeclaradas(): number {
   const n = Number(process.env.REPLICAS)
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : 1
 }
 
-/** O armazenamento é alcançável por todas as réplicas? S3 configurado, ou declaração explícita. */
+/** O armazenamento é alcançável por todas as réplicas? Binding R2, S3 configurado, ou declaração explícita. */
 export function armazenamentoCompartilhado(): boolean {
   if (process.env.ARMAZENAMENTO_COMPARTILHADO === '1') return true
+  if (bucketDoR2Ligado()) return true
   // As quatro que `server/lib/armazenamento.ts:184` exige para ligar o seam de S3. Menos que isso
   // e o S3 nao esta ativo, entao dizer que o armazenamento e compartilhado seria falso.
   return !!(
@@ -71,13 +81,13 @@ export function erroDeMultiReplica(): string | null {
       'ARMAZENAMENTO_COMPARTILHADO=1 se as réplicas montam o MESMO volume.'
     )
   /* O BANCO TAMBÉM PRECISA SER UM SÓ (ADR 0006, auditoria de prontidão). Até aqui a trava só olhava o
-     áudio: `REPLICAS=2` com S3 passava no boot, e cada máquina subia com o SEU arquivo SQLite — dois
-     bancos divergentes, com rate limit, cotas e orçamento valendo por máquina. Banco em arquivo local
-     serve a uma máquina só; várias exigem banco remoto (`DATABASE_URL` libsql/Postgres). */
-  if ((process.env.DATABASE_URL ?? 'file:').startsWith('file:')) {
+     áudio: `REPLICAS=2` com S3 passava no boot, e cada máquina subia com o SEU banco local — dois
+     bancos divergentes, com rate limit, cotas e orçamento valendo por máquina. O PGlite embutido
+     serve a uma máquina só; várias exigem Postgres remoto (`DATABASE_URL=postgres://…`). */
+  if (bancoEmbutidoNoAmbiente()) {
     return (
-      `REPLICAS=${replicas} com banco em arquivo local (DATABASE_URL=file:…). Cada réplica teria o seu ` +
-      'SQLite: dados, cotas e rate limit divergiriam entre máquinas. Use um banco remoto ou uma réplica só ' +
+      `REPLICAS=${replicas} com banco local embutido (DATABASE_URL=pglite:…). Cada réplica teria o seu ` +
+      'banco: dados, cotas e rate limit divergiriam entre máquinas. Use um Postgres remoto ou uma réplica só ' +
       '(docs/adr/0006-sqlite-numa-maquina-ate-o-gatilho-de-postgres.md).'
     )
   }

@@ -1,0 +1,12 @@
+{
+  "colo": "GIG",
+  "connectMs": 6,
+  "lock_timeout": "0",
+  "statement_timeout": "2min",
+  "idle_tx": "0",
+  "current_user": "postgres",
+  "servidor": "2600:1f1e:b2a:a301::761f/128",
+  "version": "PostgreSQL 17.11 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 15.2.0, 64-bit",
+  "lock_timeout_apos_set": "0",
+  "lock_timeout_set_local_na_tx": "10s"
+}

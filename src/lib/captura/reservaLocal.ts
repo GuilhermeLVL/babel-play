@@ -14,6 +14,7 @@
  * No DESKTOP nada muda: disco, memória e rede sobram, e a reserva quente é o que deixa a queda da
  * nuvem invisível. Rota local (sem nuvem) em qualquer aparelho: o modelo local é o motor, carrega já.
  */
+import { ID_DO_PARAKEET } from '../../gateway/adapters/parakeetModelo';
 import type { TipoDeDispositivo } from '../dispositivo/perfil';
 
 export interface PlanoDaReservaLocal {
@@ -21,11 +22,77 @@ export interface PlanoDaReservaLocal {
   carregarAgora: boolean;
   /** Rodar os decodes PARCIAIS no modelo local. */
   parciaisLocais: boolean;
+  /**
+   * A reserva da nuvem é o PARAKEET (Fase B, item 5; só computador, só com a cópia no aparelho): o que
+   * carrega agora é o Whisper base de sempre (parciais e queda invisível iguais), e o Parakeet (~2 GB
+   * de RAM) só entra na cadeia quando a nuvem PAUSA (`parakeetDeReservaNaFalha`), no lugar do Whisper
+   * (que é liberado), e sai quando ela volta estável. A sessão sem pausa — a regra — não segura 2 GB
+   * por uma reserva que não usa.
+   */
+  parakeetNaFalha: boolean;
 }
 
-const APARELHOS_DE_RESERVA_PREGUICOSA: ReadonlySet<TipoDeDispositivo> = new Set(['celular-fraco', 'celular-bom', 'quest']);
+const APARELHOS_DE_RESERVA_PREGUICOSA: ReadonlySet<TipoDeDispositivo> = new Set([
+  'celular-fraco',
+  'celular-bom',
+  'quest',
+]);
 
-export function planoDaReservaLocal(p: { preferCloud: boolean; tipo: TipoDeDispositivo }): PlanoDaReservaLocal {
-  if (p.preferCloud && APARELHOS_DE_RESERVA_PREGUICOSA.has(p.tipo)) return { carregarAgora: false, parciaisLocais: false };
-  return { carregarAgora: true, parciaisLocais: true };
+export function planoDaReservaLocal(p: {
+  preferCloud: boolean;
+  tipo: TipoDeDispositivo;
+  /** O modelo local da rota (`SttRoute.localModel`). Ausente = não é o Parakeet. */
+  localModel?: string;
+}): PlanoDaReservaLocal {
+  if (p.preferCloud && APARELHOS_DE_RESERVA_PREGUICOSA.has(p.tipo))
+    return { carregarAgora: false, parciaisLocais: false, parakeetNaFalha: false };
+  return {
+    carregarAgora: true,
+    parciaisLocais: true,
+    parakeetNaFalha: p.preferCloud && p.localModel === ID_DO_PARAKEET,
+  };
+}
+
+/* ───────────── o ciclo do Parakeet de reserva (rodada de correção 1, item 2) ───────────── */
+
+/**
+ * Quantas respostas boas SEGUIDAS da nuvem soltam o Parakeet de reserva (a nuvem voltou estável). Na
+ * pausa a nuvem nem é chamada, então a contagem só anda depois que ela religa.
+ */
+export const RESPOSTAS_PARA_SOLTAR_O_PARAKEET = 5;
+
+export interface EstadoDoParakeetDeReserva {
+  ativo: boolean;
+  respostasSeguidas: number;
+  /** Já entrou uma vez nesta preparação: ~2 GB não ciclam a cada pausa. */
+  jaEntrou: boolean;
+}
+
+type PassoDoParakeetDeReserva<A> = { estado: EstadoDoParakeetDeReserva; acao: A | null };
+
+/**
+ * Uma falha da nuvem. O Parakeet de reserva entra SÓ quando a nuvem PAUSA por cota (402/teto),
+ * indisponibilidade (503) ou a 3ª 5xx seguida — nunca num soluço nem na nuvem OCUPADA (429
+ * `nuvem_ocupada`, a colisão da captura dupla, que passa em segundos) — e no máximo UMA vez por
+ * preparação. Carregar 2 GB de modelo por um soluço, ou várias vezes na mesma sessão, é o que não pode. Ao entrar, o gateway LIBERA o Whisper (`reservaParakeet`): com o Parakeet,
+ * `umModeloDeCadaVez(perfil, true)` é sempre verdadeiro — os três modelos (Whisper, Parakeet e o
+ * tradutor) não ficam juntos em aparelho nenhum. Pura.
+ */
+export function parakeetDeReservaNaFalha(
+  e: EstadoDoParakeetDeReserva,
+  falha: { pausou: boolean; motivo?: string },
+): PassoDoParakeetDeReserva<'ligar'> {
+  if (!falha.pausou || falha.motivo === 'ocupada' || e.ativo || e.jaEntrou) {
+    const estado = e.respostasSeguidas === 0 ? e : { ...e, respostasSeguidas: 0 };
+    return { estado, acao: null };
+  }
+  return { estado: { ativo: true, respostasSeguidas: 0, jaEntrou: true }, acao: 'ligar' };
+}
+
+/** Uma resposta boa da nuvem: depois de `RESPOSTAS_PARA_SOLTAR_O_PARAKEET` seguidas, o Parakeet sai. Pura. */
+export function parakeetDeReservaNaResposta(e: EstadoDoParakeetDeReserva): PassoDoParakeetDeReserva<'desligar'> {
+  if (!e.ativo) return { estado: e, acao: null };
+  const respostasSeguidas = e.respostasSeguidas + 1;
+  if (respostasSeguidas < RESPOSTAS_PARA_SOLTAR_O_PARAKEET) return { estado: { ...e, respostasSeguidas }, acao: null };
+  return { estado: { ativo: false, respostasSeguidas: 0, jaEntrou: true }, acao: 'desligar' };
 }

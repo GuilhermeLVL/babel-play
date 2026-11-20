@@ -1,0 +1,447 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1783372816167,
+      "tag": "0000_slim_edwin_jarvis",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1785350256015,
+      "tag": "0001_legal_rachel_grey",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1785365975607,
+      "tag": "0002_silky_anthem",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1785367702436,
+      "tag": "0003_milky_rick_jones",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1785941273018,
+      "tag": "0004_stormy_metal_master",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1786144372078,
+      "tag": "0005_tranquil_fantastic_four",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1786163627957,
+      "tag": "0006_chief_rick_jones",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1786208791171,
+      "tag": "0007_open_bloodstorm",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1786647699364,
+      "tag": "0008_greedy_katie_power",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1786732892881,
+      "tag": "0009_jittery_the_stranger",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1786743775354,
+      "tag": "0010_backfill_vocab_session_orfa",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1786743883357,
+      "tag": "0011_fk_e_cascata",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1786743962197,
+      "tag": "0012_cascata_soft_delete",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1787345204937,
+      "tag": "0013_futuristic_rawhide_kid",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1788185757319,
+      "tag": "0014_same_next_avengers",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1788192493490,
+      "tag": "0015_slim_stingray",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1788230826971,
+      "tag": "0016_charming_prima",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1788305583837,
+      "tag": "0017_warm_sprite",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1788306609034,
+      "tag": "0018_awesome_scarlet_spider",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1788357887272,
+      "tag": "0019_seletor_facetado",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1788358900000,
+      "tag": "0020_sonda_de_ocorrencias",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1788365000000,
+      "tag": "0021_anki_nasce_sem_agenda",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1788791725127,
+      "tag": "0022_eventos_de_billing_com_estado",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1788800000000,
+      "tag": "0023_um_idioma_alvo_so",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1788808605527,
+      "tag": "0024_falhas_de_boot_no_banco",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1788818000000,
+      "tag": "0025_combo_da_rodada",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1788820000000,
+      "tag": "0026_schema_sem_tabela_orfa",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "6",
+      "when": 1788830000000,
+      "tag": "0027_ranking_no_servidor",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "6",
+      "when": 1790290000000,
+      "tag": "0028_menores_e_responsaveis",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "6",
+      "when": 1790300000000,
+      "tag": "0029_gasto_de_ia",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1790310000000,
+      "tag": "0030_indices_de_escala",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1790320000000,
+      "tag": "0031_flags_remotas",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1790330000000,
+      "tag": "0032_versoes_de_dados",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1790340000000,
+      "tag": "0033_convidados",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1790350000000,
+      "tag": "0034_indices_das_chaves_estrangeiras",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "6",
+      "when": 1790360000000,
+      "tag": "0035_indice_da_migracao_leitner",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1790370000000,
+      "tag": "0036_flag_recompensas_v2",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "6",
+      "when": 1790380000000,
+      "tag": "0037_estado_da_conta",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "6",
+      "when": 1790390000000,
+      "tag": "0038_cache_de_traducao",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "6",
+      "when": 1790720000000,
+      "tag": "0039_oferta_planos_ligada",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "6",
+      "when": 1790730000000,
+      "tag": "0040_flag_nuvem_gratuita_alivio",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "6",
+      "when": 1790740000000,
+      "tag": "0041_planos_v2",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "6",
+      "when": 1790750000000,
+      "tag": "0042_glossario",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "6",
+      "when": 1790760000000,
+      "tag": "0043_teste_premium",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "6",
+      "when": 1790770000000,
+      "tag": "0044_traducao_polida",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "6",
+      "when": 1790780000000,
+      "tag": "0045_ofertas_v2",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "6",
+      "when": 1790790000000,
+      "tag": "0046_flag_voz_natural",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "6",
+      "when": 1790800000000,
+      "tag": "0047_billing_events_payload_minimo",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "6",
+      "when": 1790810000000,
+      "tag": "0048_flags_venda_planos_v3",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "6",
+      "when": 1790820000000,
+      "tag": "0049_planos_v3",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "6",
+      "when": 1790830000000,
+      "tag": "0050_troca_de_plano",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "6",
+      "when": 1790840000000,
+      "tag": "0051_flag_anuncios",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "6",
+      "when": 1790850000000,
+      "tag": "0052_medir_revisoes_e_rodadas",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "6",
+      "when": 1790860000000,
+      "tag": "0053_agregados_diarios",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "6",
+      "when": 1790870000000,
+      "tag": "0054_flags_venda_planos_v4",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "6",
+      "when": 1792900000000,
+      "tag": "0055_flag_ia_de_estudo",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "6",
+      "when": 1793000000000,
+      "tag": "0056_flag_stt_aparelho_primeiro",
+      "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "6",
+      "when": 1793100000000,
+      "tag": "0057_flag_assistente_ao_vivo",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "6",
+      "when": 1793200000000,
+      "tag": "0058_flag_aquecer_stt_na_intencao",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "6",
+      "when": 1793600000000,
+      "tag": "0059_flags_audiolivros",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "6",
+      "when": 1793700000000,
+      "tag": "0060_flag_voz_no_aparelho",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "6",
+      "when": 1794700000000,
+      "tag": "0061_periodo_pago_desde",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "6",
+      "when": 1794800000000,
+      "tag": "0062_flag_voz_kitten",
+      "breakpoints": true
+    }
+  ]
+}

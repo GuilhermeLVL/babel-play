@@ -155,7 +155,7 @@ describe('edição estática ligada', () => {
     const { getEntitlements } = await import('../src/lib/entitlements')
     const e = getEntitlements()
     expect(e.plan).toBe('anonimo')
-    expect(e.managedCloudStt || e.managedCloudLlm || e.youtubeImport).toBe(false)
+    expect(e.managedCloudStt || e.managedCloudLlm).toBe(false)
   })
 
   it('planos saem da navegação principal', async () => {

@@ -1,6 +1,6 @@
 <div align="center">
 
-# Babel Play
+# Frasy
 
 **Learn a language from what you already watch, play and talk about.**
 Live captions and translation of any audio on your computer, running **on your own device**, turned into vocabulary games and spaced repetition.
@@ -16,7 +16,7 @@ Live captions and translation of any audio on your computer, running **on your o
 
 </div>
 
-> **Status (2026-10-18):** pre-launch. Billing, login and the Fly.io deploy are implemented and tested but have not run in a real environment yet. See the [launch status](docs/ESTADO-DO-LANCAMENTO.md) (Portuguese), the single source for what holds today.
+> **Status (2026-10-18):** pre-launch. Billing and login are implemented and tested, and the Cloudflare Workers deploy runs in staging; production has not gone live yet. See the [launch status](docs/ESTADO-DO-LANCAMENTO.md) (Portuguese), the single source for what holds today.
 
 **Contents:** [What it is](#what-it-is) · [Run it](#run-it) · [Architecture](#architecture) · [Plans and cloud AI](#plans-and-cloud-ai) · [Self-hosting](#self-hosting) · [Deploy](#deploy) · [Security and privacy](#security-and-privacy) · [Contributing](#contributing) · [License](#license)
 
@@ -86,16 +86,16 @@ The code is split in layers:
 | `src/lib/`        | client services: capture, audio, voice, import, auth                                                                                                                       |
 | `src/data/`       | the data layer. `apiFetch` is the **single HTTP funnel**; without an account an in-memory server over IndexedDB (`src/data/efemero`) answers with the same response shapes |
 | `src/components/` | React UI                                                                                                                                                                   |
-| `server/`         | Express API: Supabase JWT, per-user isolation, rate limits, Zod validation, libsql/SQLite (Drizzle), billing, AI routing                                                   |
+| `server/`         | Express API: Supabase JWT, per-user isolation, rate limits, Zod validation, Postgres (Drizzle; PGlite in dev/tests, `pg` in production), billing, AI routing               |
 
 Identity (anonymous or account), plan and role are separate axes, and the plan is decided **only** on the server; the client just paints it. An ast-grep rule forbids `fetch('/api/…')` outside the funnel. More in [docs/arquitetura.md](docs/arquitetura.md) (historical) and in the living specs under [`openspec/specs/`](openspec/specs/).
 
 ## Plans and cloud AI
 
-| Plan        | What you get                                                                                                                                                                                               |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Free**    | Everything that runs on the device (capture, local models, study, games). No managed cloud AI.                                                                                                             |
-| **Premium** | Cloud transcription and translation with fair daily and monthly use, natural interpreter voice. Starts with a trial with no card that ends after 14 days or at the usage allowance, whichever comes first. |
+| Plan        | What you get                                                                                                                                                                                              |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Free**    | Everything that runs on the device (capture, local models, study, games). No managed cloud AI.                                                                                                            |
+| **Premium** | Cloud transcription and translation with fair daily and monthly use, natural interpreter voice. Starts with a trial with no card that ends after 3 days or at the usage allowance, whichever comes first. |
 
 Cloud AI goes through OpenRouter with zero data retention and only after consent. Prices, quotas and the decisions behind them are in [docs/ESTADO-DO-LANCAMENTO.md](docs/ESTADO-DO-LANCAMENTO.md) and [docs/monetizacao.md](docs/monetizacao.md). Payment is handled by Asaas, and it is the payment webhook that grants the plan.
 
@@ -113,7 +113,7 @@ HTTPS is up to the reverse proxy in front (Caddy, Traefik, nginx). Details in [`
 
 ## Deploy
 
-The production target is Fly.io (GRU, one machine, SQLite replicated by Litestream to Cloudflare R2), with Supabase for login, Cloudflare in front, Resend and Sentry. The owner's step-by-step is [docs/LANCAMENTO.md](docs/LANCAMENTO.md); operating it is [docs/runbook.md](docs/runbook.md); staging is [docs/STAGING.md](docs/STAGING.md). Deploys go through `deploy.yml`, which only accepts a commit with a green CI.
+The production target is Cloudflare Workers (the same Express server, Postgres on Supabase in São Paulo through Hyperdrive, R2 for media and weekly `pg_dump` backups; see [ADR 0014](docs/adr/0014-postgres-agora-pelo-cloudflare.md) and [ADR 0015](docs/adr/0015-cloudflare-workers-no-lugar-do-fly.md)), with Supabase for login, Resend and Sentry. Self-hosting stays available through Docker/Node. The owner's step-by-step is [docs/LANCAMENTO.md](docs/LANCAMENTO.md); operating it is [docs/runbook.md](docs/runbook.md); staging is [docs/STAGING.md](docs/STAGING.md). Deploys go through `deploy-worker.yml`, by Cloudflare versions with a smoke test and automatic rollback.
 
 ## Security and privacy
 
@@ -127,7 +127,7 @@ The production target is Fly.io (GRU, one machine, SQLite replicated by Litestre
 
 - Opus-MT int8/fp16 fails to build a session on some devices; the app falls back to the next translator.
 - Screen-share audio on Windows can raise `NotReadableError`; use tab share or the loopback route.
-- Single-writer database (SQLite): fine for a beta; scaling means changing the database, see [docs/escala.md](docs/escala.md).
+- Dev/test database is PGlite (one process per directory); production needs Postgres, see [docs/escala.md](docs/escala.md).
 - Bergamot models are served from a CDN that the owner still has to publish; until then Opus-MT does the work.
 
 ## Contributing

@@ -9,15 +9,16 @@
  * Aqui o contrato fica explícito no nome do arquivo: NADA daqui é chamável por rota.
  * Chamado apenas por `startServer()` (server.ts).
  */
-import { mkdirSync, readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 import { eq, sql } from 'drizzle-orm'
-import { migrate } from 'drizzle-orm/libsql/migrator'
+import { migrate as migrarNode } from 'drizzle-orm/node-postgres/migrator'
+import { migrate as migrarPglite } from 'drizzle-orm/pglite/migrator'
 
 import { migrateLeitnerToFsrs } from '../../src/core/learning/scheduler'
-import { client, db } from './db'
-import { emLotes, type InstrucaoDeBatch, tuplaDeBatch } from './lotes'
+import { analisarBancoEmbutido, bancoEmbutido, comConexaoDeMigracao, db, emLote, linhas } from './db'
+import { emLotes } from './lotes'
 import { toState } from './repositories/vocab'
 import { vocabCards } from './schema'
 
@@ -30,33 +31,38 @@ import { vocabCards } from './schema'
  * na imagem de produção. Agora o próprio boot as aplica.
  *
  * A pasta é resolvível por env (`MIGRATIONS_DIR`) porque o caminho relativo depende de
- * onde o processo roda: `server/db/migrations` a partir do repo em dev, e o mesmo caminho
+ * onde o processo roda: `server/db/migrations-pg` a partir do repo em dev, e o mesmo caminho
  * copiado para dentro da imagem em produção.
  */
 export async function aplicarMigrations(): Promise<void> {
-  const url = process.env.DATABASE_URL ?? 'file:./data/babel.db'
-  if (url.startsWith('file:')) {
-    // O libsql não cria o diretório do arquivo; num volume novo ele não existe.
-    mkdirSync(dirname(url.replace(/^file:/, '')), { recursive: true })
-  }
-  const migrationsFolder = process.env.MIGRATIONS_DIR ?? join(process.cwd(), 'server', 'db', 'migrations')
+  const migrationsFolder = process.env.MIGRATIONS_DIR ?? join(process.cwd(), 'server', 'db', 'migrations-pg')
 
-  try {
-    await migrate(db, { migrationsFolder })
-  } catch (err) {
-    // P1-N1: "não CONSIGO migrar" e "não PRECISO migrar" eram tratados igual, e o boot
-    // matava o processo nos dois casos. Uma réplica apontada para um banco já migrado, sem
-    // a pasta no disco, entrava em crash-loop — justamente a topologia "um nó migra, os
-    // outros servem". Se o schema já está lá, seguir é o certo; só falhar se não estiver.
+  /* P1-N1: "não CONSIGO migrar" e "não PRECISO migrar" eram tratados igual, e o boot matava o
+     processo nos dois casos. Uma réplica apontada para um banco já migrado, sem a pasta no disco,
+     entrava em crash-loop — justamente a topologia "um nó migra, os outros servem". Se o schema já
+     está lá, seguir é o certo; só falhar se não estiver.
+
+     SÓ A PASTA AUSENTE cai nesse caminho (revisão final da Fase 1, M3). Antes o `catch` pegava
+     QUALQUER erro, e uma migração com SQL quebrado num banco que já tinha `sessions` virava um aviso:
+     o boot seguia com o schema pela metade. O teste é o mesmo do migrator do Drizzle (o journal). */
+  if (!existsSync(join(migrationsFolder, 'meta', '_journal.json'))) {
     if (await schemaPresente()) {
       console.warn(
-        `[db] migrations não aplicadas (${String((err as Error)?.message || err).slice(0, 120)}), ` +
+        `[db] migrations não aplicadas (pasta ${migrationsFolder} sem meta/_journal.json), ` +
           'mas o schema já está presente — seguindo. Defina MIGRATIONS_DIR se esta instância deve migrar.',
       )
       return
     }
-    throw err
+    throw new Error(`migrations ausentes em ${migrationsFolder} (meta/_journal.json) e o banco não tem schema`)
   }
+
+  /* `statement_timeout = 0` na conexão das migrations: o papel do banco tem 30 s (migration 0004). */
+  await comConexaoDeMigracao(async (dbm) => {
+    if (bancoEmbutido()) await migrarPglite(dbm as Parameters<typeof migrarPglite>[0], { migrationsFolder })
+    else await migrarNode(dbm as Parameters<typeof migrarNode>[0], { migrationsFolder })
+  })
+  // Estatística para o planejador no PGlite, que não tem autoanalyze (ver `analisarBancoEmbutido`).
+  await analisarBancoEmbutido()
 }
 
 /**
@@ -68,8 +74,8 @@ export async function aplicarMigrations(): Promise<void> {
  * `sessions` de sobra e ainda assim não consegue atender — a coluna que o código novo lê não
  * existe. Esse é o modo de falha real de um deploy contínuo, e `SELECT 1` não o vê.
  *
- * A CONTA É JOURNAL x APLICADAS. O drizzle guarda em `__drizzle_migrations` uma linha por
- * migração já rodada, e `migrations/meta/_journal.json` lista as que o código traz. Iguais em
+ * A CONTA É JOURNAL x APLICADAS. O drizzle guarda em `drizzle.__drizzle_migrations` uma linha por
+ * migração já rodada, e `migrations-pg/meta/_journal.json` lista as que o código traz. Iguais em
  * número, o banco está na versão deste binário.
  *
  * O CASO EM QUE ELA NÃO SABE, e por que isso NÃO reprova a instância: `aplicarMigrations()` já
@@ -83,7 +89,7 @@ export type VeredictoDasMigracoes = 'aplicadas' | 'atrasadas' | 'desconhecida'
 export async function migracoesAplicadas(): Promise<VeredictoDasMigracoes> {
   let esperadas: number
   try {
-    const pasta = process.env.MIGRATIONS_DIR ?? join(process.cwd(), 'server', 'db', 'migrations')
+    const pasta = process.env.MIGRATIONS_DIR ?? join(process.cwd(), 'server', 'db', 'migrations-pg')
     const journal = JSON.parse(readFileSync(join(pasta, 'meta', '_journal.json'), 'utf8')) as {
       entries?: unknown[]
     }
@@ -95,8 +101,8 @@ export async function migracoesAplicadas(): Promise<VeredictoDasMigracoes> {
   }
 
   try {
-    const r = await client.execute('SELECT count(*) AS n FROM __drizzle_migrations')
-    const n = Number(r.rows[0]?.n ?? -1)
+    const r = await db.execute(sql`select count(*) as n from drizzle.__drizzle_migrations`)
+    const n = Number(linhas<{ n: number }>(r)[0]?.n ?? -1)
     return n >= esperadas ? 'aplicadas' : 'atrasadas'
   } catch {
     /* A tabela só não existe em banco NUNCA migrado — e aí o journal tem entradas e o banco tem
@@ -106,11 +112,15 @@ export async function migracoesAplicadas(): Promise<VeredictoDasMigracoes> {
   }
 }
 
-/** O schema já existe neste banco? Usado para decidir se a falha de migração é fatal. */
+/**
+ * O schema já existe neste banco? Usado para decidir se a falha de migração é fatal e, no Worker, na
+ * primeira requisição do isolate: dentro de `comExecutor` a pergunta vai ao `Client` da requisição (`db`
+ * resolve para o executor do escopo).
+ */
 export async function schemaPresente(): Promise<boolean> {
   try {
-    const r = await client.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='sessions' LIMIT 1")
-    return r.rows.length > 0
+    const r = await db.execute(sql`select to_regclass('public.sessions') is not null as ok`)
+    return linhas<{ ok: boolean }>(r)[0]?.ok === true
   } catch {
     return false // banco inacessível: não dá para afirmar que está pronto
   }
@@ -133,7 +143,7 @@ export async function schemaPresente(): Promise<boolean> {
  */
 const TETO_DA_MIGRACAO_LEITNER = 5_000
 
-/** Instruções por `db.batch` (uma transação cada) ao gravar os migrados. */
+/** Instruções por `emLote` (uma transação cada) ao gravar os migrados. */
 const LOTE_DA_MIGRACAO_LEITNER = 1_000
 
 export async function migrarLeitnerParaFsrs(): Promise<number> {
@@ -153,33 +163,31 @@ export async function migrarLeitnerParaFsrs(): Promise<number> {
     .from(vocabCards)
     /* `box > 1` na CONSULTA, e não só no laço: as cartas novas são a maioria de um acervo em
        crescimento e eram lidas inteiras a cada boot para serem descartadas linha a linha.
-       PREDICADO LITERAL, e não `gt(box, 1)` (que vira `box > ?`): é o texto do índice parcial
-       `idx_vocab_leitner_pendente` (migração 0035), e o SQLite só usa um índice parcial quando
-       consegue PROVAR o WHERE dele a partir do da consulta — com um parâmetro, não consegue, e o
-       boot voltava a varrer o acervo inteiro (504 ms em 453.000 cartões para achar zero). */
+       PREDICADO LITERAL, e não `gt(box, 1)` (que vira `box > $n`): é o texto do índice parcial
+       `idx_vocab_leitner_pendente`, e o Postgres só usa um índice parcial quando consegue PROVAR o WHERE
+       dele a partir do da consulta — com um parâmetro, pode não conseguir e voltar a varrer o acervo. */
     .where(sql`${vocabCards.deletedAt} is null and ${vocabCards.stability} is null and ${vocabCards.box} > 1`)
     .limit(TETO_DA_MIGRACAO_LEITNER)
-  const atualizacoes: InstrucaoDeBatch[] = []
+  const atualizacoes: Array<{ id: string; set: Partial<typeof vocabCards.$inferInsert> }> = []
   for (const card of candidatos) {
     const antes = toState(card)
     const depois = migrateLeitnerToFsrs(antes, now)
     if (depois.stability === antes.stability) continue // box<=1: nada a migrar
-    atualizacoes.push(
-      db
-        .update(vocabCards)
-        .set({
-          stability: depois.stability ?? null,
-          difficulty: depois.difficulty ?? null,
-          reps: depois.reps ?? null,
-          lapses: depois.lapses ?? null,
-          lastReview: depois.lastReview ?? null,
-          updatedAt: now,
-        })
-        .where(eq(vocabCards.id, card.id)),
-    )
+    atualizacoes.push({
+      id: card.id,
+      set: {
+        stability: depois.stability ?? null,
+        difficulty: depois.difficulty ?? null,
+        reps: depois.reps ?? null,
+        lapses: depois.lapses ?? null,
+        lastReview: depois.lastReview ?? null,
+        updatedAt: now,
+      },
+    })
   }
   /* EM LOTE, e não um `await` por cartão: eram até 5.000 idas ao banco em série no boot, cada uma
-     um commit próprio. Um `db.batch` é uma transação na mesma conexão (ver `emTransacao` em db.ts). */
-  for (const lote of emLotes(atualizacoes, LOTE_DA_MIGRACAO_LEITNER)) await db.batch(tuplaDeBatch(lote))
+     um commit próprio. Um `emLote` é uma transação numa conexão só, instruções em sequência (ver db.ts). */
+  for (const lote of emLotes(atualizacoes, LOTE_DA_MIGRACAO_LEITNER))
+    await emLote((tx) => lote.map((u) => () => tx.update(vocabCards).set(u.set).where(eq(vocabCards.id, u.id))))
   return atualizacoes.length
 }

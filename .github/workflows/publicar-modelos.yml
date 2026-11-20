@@ -1,0 +1,60 @@
+# PUBLICAR OS MODELOS DO BERGAMOT NO R2 — MANUAL, pelo runner do GitHub.
+#
+# Por quê: são ~423 MB (15 pares X→en) e a rede doméstica sobe a ~14 KB/s. O runner baixa do bucket da Mozilla,
+# confere o sha256 de cada `.gz` contra `src/gateway/adapters/modelosDoBergamot.json` e sobe para o bucket
+# `frasy-modelos` com `wrangler r2 object put` (`--via=wrangler` de `scripts/modelos/publicar-bergamot-no-r2.ts`):
+# só o token da Cloudflare, sem chaves S3. Idempotente (o caminho é imutável: `bergamot/<par>/<execução>/<arquivo>`).
+#
+# GITHUB ENVIRONMENT (`staging` e `production`): secrets CLOUDFLARE_API_TOKEN (R2 Edit) e CLOUDFLARE_ACCOUNT_ID.
+# Depois de publicar, a variável `VITE_BERGAMOT_MODELOS_URL` do Environment aponta para a raiz pública do bucket
+# (staging: o r2.dev; produção: domínio próprio `modelos.<domínio>`). Ver docs/deploy.md ("Modelos no R2").
+name: publicar-modelos
+
+on:
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        description: 'Ambiente (GitHub Environment com o token da Cloudflare)'
+        type: choice
+        options: [staging, production]
+        default: staging
+      pares:
+        description: 'Pares a publicar, separados por vírgula (ex.: ja-en,zh-en) ou all'
+        required: false
+        default: all
+
+permissions:
+  contents: read
+
+env:
+  ONNXRUNTIME_NODE_INSTALL: skip
+
+concurrency:
+  group: publicar-modelos-${{ inputs.ambiente }}
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: ${{ inputs.ambiente }}
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: 'false'
+      PARES: ${{ inputs.pares }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        timeout-minutes: 5
+      - name: Conferir credenciais
+        run: |
+          for n in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+            [ -n "${!n}" ] || { echo "::error::falta o secret $n no Environment ${{ inputs.ambiente }}"; exit 1; }
+          done
+      - name: Publicar os pares no frasy-modelos
+        run: npx tsx scripts/modelos/publicar-bergamot-no-r2.ts --bucket=frasy-modelos --via=wrangler --pares="${PARES:-all}"

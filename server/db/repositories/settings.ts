@@ -37,7 +37,7 @@ export const settingsRepo = {
     const now = Date.now()
     // SQL cru pelo mesmo motivo do `seedSpends.debitar`: `uq_settings_user` é índice PARCIAL
     // e o builder do drizzle 0.45 põe o predicado depois do `do nothing`, gerando SQL inválido.
-    await db.run(sql`
+    await db.execute(sql`
       INSERT INTO ${settings} (id, created_at, updated_at, user_id)
       VALUES (${randomUUID()}, ${now}, ${now}, ${userId})
       ON CONFLICT (user_id) WHERE deleted_at IS NULL DO NOTHING
@@ -55,7 +55,10 @@ export const settingsRepo = {
     if (patch.activeProfileId !== undefined) set.activeProfileId = patch.activeProfileId
     if (patch.targetLanguage !== undefined) set.targetLanguage = patch.targetLanguage
     if (patch.ui !== undefined) set.ui = patch.ui === null ? null : JSON.stringify(patch.ui)
-    await db.update(settings).set(set).where(and(eq(settings.userId, userId), isNull(settings.deletedAt)))
+    await db
+      .update(settings)
+      .set(set)
+      .where(and(eq(settings.userId, userId), isNull(settings.deletedAt)))
     const updated = await this.get(userId)
     if (!updated) throw new Error('falha ao atualizar settings')
     return updated

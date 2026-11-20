@@ -12,7 +12,8 @@
  */
 import type { EstadoDeNotaAnki, FiltroDeNotaAnki } from '@core'
 
-import { apiFetch } from './api'
+import { type NotaAnki, TETOS_DA_NOTA as TETOS } from '../core/anki'
+import { apiFetch, IMPORT_TIMEOUT_MS, lerErro } from './api'
 
 // ───────────────────────────── tipos do contrato ─────────────────────────────
 
@@ -139,4 +140,148 @@ export async function purgarBaralho(deckId: string): Promise<{ notasApagadas: nu
   })
   if (!res.ok) throw new Error(`não consegui apagar o baralho (HTTP ${res.status})`)
   return (await res.json()) as { ok: true; notasApagadas: number }
+}
+
+
+// ───────────────────────────── importação em lotes (`/api/anki/imports`) ─────────────────────────────
+// Espelha `abrirImportAnkiSchema` / `notaRecebidaSchema` de `server/validation.ts`. Quem lê o arquivo é o
+// navegador; o servidor recebe as notas em lotes (abrir → notas × N → fechar).
+
+export interface AberturaDeImport {
+  arquivo: string
+  bytes: number
+  formato: string
+  nomeNoArquivo?: string | null
+  baralhos?: string[]
+  campos: string[]
+  totalNoArquivo: number
+  truncado: boolean
+  idiomaOrigem?: string | null
+  idiomaAlvo?: string | null
+  /** Até 200 notas para o servidor conferir o idioma e detectar baralho monolíngue. */
+  amostra: Array<{ frente: string; verso: string }>
+}
+
+export interface ImportAberto {
+  importId: string
+  deckId: string
+  idiomaOrigem: string | null
+  /** Só quando o idioma declarado e a escrita da amostra se contradisseram. */
+  avisoIdioma?: string
+}
+
+export interface ResumoDoLote {
+  novas: number
+  atualizadas: number
+  iguais: number
+  descartadas: number
+  porMotivo: Record<string, number>
+}
+
+export interface FechamentoDeImport {
+  importId: string
+  deckId: string
+  resumo: ResumoDoLote & { ativadas: number; notas: number }
+  /** A primeira leva não virou cartão jogável; o import em si NÃO foi desfeito. */
+  erroDeAtivacao?: string
+  code?: string
+}
+
+/** 429 do limitador de lotes: `segundos` vem do `Retry-After` (ou `null` se o cabeçalho faltou). */
+export class LimiteDeLotes extends Error {
+  constructor(
+    mensagem: string,
+    readonly segundos: number | null,
+  ) {
+    super(mensagem)
+    this.name = 'LimiteDeLotes'
+  }
+}
+
+async function jsonOuErro<T>(res: Response, padrao: string): Promise<T> {
+  if (res.ok) return (await res.json()) as T
+  const e = await lerErro(res)
+  const mensagem = e.error || padrao
+  if (res.status === 429) {
+    const s = Number(res.headers?.get?.('Retry-After'))
+    throw new LimiteDeLotes(mensagem, Number.isFinite(s) && s > 0 ? s : null)
+  }
+  throw new Error(mensagem)
+}
+
+/** Marca de corte de um campo bruto — conta DENTRO do teto, para o valor final caber nele. */
+const MARCA_DE_CORTE = '…[cortado]'
+
+function cortarBruto(valor: string): string {
+  return valor.length <= TETOS.campoBruto ? valor : valor.slice(0, TETOS.campoBruto - MARCA_DE_CORTE.length) + MARCA_DE_CORTE
+}
+
+/**
+ * A nota como o schema do servidor a quer: `campos` e `camposBrutos` obrigatórios, `guid` só quando há.
+ *
+ * O CLIENTE CORTA NOS TETOS (`TETOS_DA_NOTA`, a mesma fonte do `notaRecebidaSchema`): `montarNota`
+ * nunca corta, e um baralho real tem verso de 2.600 caracteres ou campo bruto de 21 KB. Sem o corte o
+ * lote voltava 400 e o import morria no meio, preso em `gravando` — a importação nunca pode morrer
+ * por tamanho. O servidor continua RECUSANDO acima dos tetos porque o cliente não é confiável.
+ */
+export function notaParaOFio(n: NotaAnki): Record<string, unknown> {
+  const camposBrutos: Record<string, string> = {}
+  for (const [nome, valor] of Object.entries(n.camposBrutos ?? {}).slice(0, TETOS.chavesDeCamposBrutos)) {
+    camposBrutos[nome.slice(0, TETOS.nomeDeCampo)] = cortarBruto(valor ?? '')
+  }
+  const guid = n.guid ? n.guid.slice(0, TETOS.guid) : ''
+  return {
+    ...(guid ? { guid } : {}),
+    ...(n.notetype !== undefined ? { notetype: n.notetype.slice(0, TETOS.notetype) } : {}),
+    campos: (n.campos ?? []).slice(0, TETOS.campos).map((c) => c.slice(0, TETOS.nomeDeCampo)),
+    camposBrutos,
+    frente: n.frente.slice(0, TETOS.frente),
+    verso: n.verso.slice(0, TETOS.verso),
+    ...(n.exemplo !== undefined ? { exemplo: n.exemplo.slice(0, TETOS.exemplo) } : {}),
+    tags: n.tags.slice(0, TETOS.tags).map((t) => t.slice(0, TETOS.tag)),
+    ...(n.midia
+      ? {
+          midia: {
+            sons: n.midia.sons.slice(0, TETOS.midia).map((m) => m.slice(0, TETOS.nomeDeMidia)),
+            imagens: n.midia.imagens.slice(0, TETOS.midia).map((m) => m.slice(0, TETOS.nomeDeMidia)),
+          },
+        }
+      : {}),
+    ...(n.lacunas
+      ? {
+          lacunas: n.lacunas.slice(0, TETOS.lacunas).map((l) => ({
+            ordinal: l.ordinal,
+            resposta: l.resposta.slice(0, TETOS.lacuna),
+            ...(l.dica !== undefined ? { dica: l.dica.slice(0, TETOS.lacuna) } : {}),
+          })),
+        }
+      : {}),
+  }
+}
+
+const comoJson = (corpo: unknown): RequestInit => ({
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(corpo),
+})
+
+export async function abrirImportAnki(dados: AberturaDeImport): Promise<ImportAberto> {
+  const res = await apiFetch('/api/anki/imports', { ...comoJson(dados), timeoutMs: IMPORT_TIMEOUT_MS })
+  return jsonOuErro<ImportAberto>(res, 'não consegui abrir a importação')
+}
+
+export async function enviarNotasDoImport(importId: string, notas: NotaAnki[]): Promise<ResumoDoLote> {
+  const res = await apiFetch(`/api/anki/imports/${encodeURIComponent(importId)}/notas`, {
+    ...comoJson({ notas: notas.map(notaParaOFio) }),
+    timeoutMs: IMPORT_TIMEOUT_MS,
+  })
+  return jsonOuErro<ResumoDoLote>(res, 'não consegui enviar as notas')
+}
+
+export async function fecharImportAnki(importId: string): Promise<FechamentoDeImport> {
+  const res = await apiFetch(`/api/anki/imports/${encodeURIComponent(importId)}/fechar`, {
+    method: 'POST',
+    timeoutMs: IMPORT_TIMEOUT_MS,
+  })
+  return jsonOuErro<FechamentoDeImport>(res, 'não consegui concluir a importação')
 }

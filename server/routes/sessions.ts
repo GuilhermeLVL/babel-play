@@ -14,14 +14,17 @@ import {
   CorpoInterrompido,
   descartarRestoDoCorpo,
   fonteDoCorpo,
+  receberCorpo,
   receberCorpoEmArquivo,
   tamanhoDeclarado,
-} from '../lib/corpoEmArquivo'
+} from '../lib/corpoRecebido'
 import { vagaDeCorpoGrande } from '../lib/corposGrandes'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
 import { envelopeDeErro } from '../lib/respostaDeErro'
+import { temDisco } from '../lib/runtime'
 import { ajustarArmazenamento, corpoDeRecusa, liberarArmazenamento, reservarArmazenamento } from '../lib/storageQuota'
+import { respostaDoTetoDoR2, semTeto } from '../lib/tetoDoR2'
 import { detectarAudio, FORMATOS_DE_AUDIO_ACEITOS } from '../lib/tipoDeArquivo'
 import {
   appendUtterancesSchema,
@@ -55,7 +58,7 @@ export const sessionsRouter = Router()
 /**
  * Resolve o diretorio de audio a partir do ambiente. PURA, e isso conserta um teste instavel.
  *
- * `AUDIO_DIR` continua sendo resolvida UMA vez no carregamento do modulo (logo abaixo) — esse e o
+ * `AUDIO_DIR` continua sendo resolvida UMA vez por processo (`audioDir()`, logo abaixo) — esse e o
  * padrao correto e nao mudou. O que mudou e existir uma forma de verificar a REGRA sem reimportar
  * o modulo: `tests/integration/audio-dir-config.test.ts` usava `vi.resetModules()` + `await
  * import(...)`, e este modulo puxa a pilha inteira do banco. Sob carga da maquina, a importacao
@@ -67,14 +70,25 @@ export function resolverAudioDir(env: NodeJS.ProcessEnv = process.env): string {
   return env.AUDIO_DIR ? path.resolve(env.AUDIO_DIR) : path.join(process.cwd(), 'data', 'audio')
 }
 
-export const AUDIO_DIR = resolverAudioDir()
+/* Resolvidos no PRIMEIRO USO e memoizados (Fase 2, boot preguiçoso): num Worker o ambiente não existe
+   no carregamento do módulo. O valor continua um só por processo, como era a const de módulo. */
+let audioDirResolvido: string | undefined
+let armazenamento: ReturnType<typeof armazenamentoDoAmbiente> | undefined
+
+export function audioDir(): string {
+  audioDirResolvido ??= resolverAudioDir()
+  return audioDirResolvido
+}
 
 /**
  * F5-02 — a mídia passa a sair por UM seam. O filesystem continua sendo o padrão; com as quatro
  * `S3_*` no ambiente, as MESMAS chamadas vão para object storage sem tocar nas rotas.
  * Exportado porque `me.ts` apaga a mídia do titular pelo mesmo store (uma instância só).
  */
-export const armazenamentoDeMidia = armazenamentoDoAmbiente(AUDIO_DIR)
+export function armazenamentoDeMidia(): ReturnType<typeof armazenamentoDoAmbiente> {
+  armazenamento ??= armazenamentoDoAmbiente(audioDir())
+  return armazenamento
+}
 
 /**
  * S-14: resolve um nome de arquivo DENTRO de `AUDIO_DIR` e recusa qualquer coisa que ESCAPE do
@@ -85,7 +99,7 @@ export const armazenamentoDeMidia = armazenamentoDoAmbiente(AUDIO_DIR)
  * store, e é o que distingue "nome inválido" (400) de "objeto ausente" (404).
  */
 export function resolveInAudioDir(name: string): string {
-  const base = path.resolve(AUDIO_DIR)
+  const base = path.resolve(audioDir())
   const resolved = path.resolve(base, name)
   if (resolved !== base && !resolved.startsWith(base + path.sep)) {
     throw new Error('caminho de áudio fora do diretório permitido')
@@ -226,6 +240,12 @@ sessionsRouter.post('/', async (req, res) => {
  *      segurado aqui, com 413 no byte que passa do teto);
  *   4. o tipo sai dos magic bytes da cabeça guardada na recepção (F4-04);
  *   5. o temporário vira o objeto: `rename` no disco local, PUT em stream no S3.
+ *
+ * SEM DISCO (Worker; Fase 2, Task 7) os passos 3–5 viram um só: lida a cabeça (tipo, F4-04), o corpo
+ * segue do request para o bucket em stream (`receberCorpo(...).paraStream()` + `gravarDeStream`,
+ * multipart de 5 MiB), contado do mesmo jeito. O `chunked` reserva o TETO antes (o objeto já está no
+ * bucket quando o tamanho real aparece) e devolve a diferença no fim. Na prática o Worker ainda tem o
+ * limite de corpo da zona da Cloudflare (100 MB nos planos Free/Pro), abaixo dos 120 MB daqui.
  */
 export const LIMITE_DO_AUDIO = 120 * 1024 * 1024
 
@@ -234,7 +254,7 @@ export const LIMITE_DO_AUDIO = 120 * 1024 * 1024
  * final por `rename` (mesmo volume, sem cópia). O ponto no nome separa a pasta dos áudios, e nada
  * nela é referenciado por sessão — a reconciliação de cota soma só o que o `meta` aponta.
  */
-const DIR_DE_RECEPCAO = path.join(AUDIO_DIR, '.recebendo')
+const dirDeRecepcao = (): string => path.join(audioDir(), '.recebendo')
 
 /** O que o `express.raw` aceitava. Outro tipo continua sendo "corpo vazio", como antes. */
 function ehCorpoDeAudio(headers: Record<string, string | string[] | undefined>): boolean {
@@ -294,8 +314,8 @@ sessionsRouter.post('/:id/audio', vagaDeCorpoGrande(), async (req, res) => {
      * de o corpo sequer ser lido. Reupload conta só o DELTA: o arquivo é sobrescrito, não somado.
      */
     const anterior = String(readMeta(session.meta).audioFile || '')
-    const bytesAnteriores = anterior ? ((await armazenamentoDeMidia.tamanho(anterior)) ?? 0) : 0
-    const reservar = async (bytes: number): Promise<boolean> => {
+    const bytesAnteriores = anterior ? ((await armazenamentoDeMidia().tamanho(anterior)) ?? 0) : 0
+    const reservar = async (bytes: number, antesDeDescartar?: () => void): Promise<boolean> => {
       const cota = await reservarArmazenamento(req.userId, bytes - bytesAnteriores)
       if (cota.ok) {
         // Sem teto (self-host) nada foi contabilizado, e o estorno do `finally` não pode inventar conta.
@@ -305,14 +325,99 @@ sessionsRouter.post('/:id/audio', vagaDeCorpoGrande(), async (req, res) => {
       }
       const r = corpoDeRecusa(cota)
       log('warn', { event: 'storage_quota_denied', route: req.path, status: r.status, requestId: req.requestId })
+      antesDeDescartar?.()
       descartarRestoDoCorpo(req)
       res.status(r.status).json(r.body)
       return false
     }
     if (declarado !== null && !(await reservar(declarado))) return
 
-    await mkdir(DIR_DE_RECEPCAO, { recursive: true })
-    temporario = path.join(DIR_DE_RECEPCAO, `${p.id}.${randomUUID()}.parcial`)
+    /** Depois que o objeto está no store: o antigo sai, a sessão aponta para o novo, e a resposta. */
+    const concluir = async (file: string, contentType: string): Promise<void> => {
+      /**
+       * O ARQUIVO ANTIGO QUE NAO SAIU E DITO, nao engolido (auditoria de 2026-09-07, achado A29).
+       *
+       * O `catch` vazio dizia "orfao; a reconciliacao corrige" — e a reconciliacao de fato
+       * corrige a COTA. O que ela nao faz e avisar: o upload respondia `{ok:true}` e o byte
+       * continuava no disco, ocupando espaco que a pessoa acha que liberou. O upload nao falha
+       * por causa disso (o audio novo esta gravado e e o que importa), mas a resposta conta.
+       */
+      let orfaoNaoRemovido: string | null = null
+      if (anterior && anterior !== file) {
+        try {
+          await armazenamentoDeMidia().remover(anterior)
+        } catch (err) {
+          orfaoNaoRemovido = String((err as Error)?.message ?? err).slice(0, 160)
+          log('warn', { event: 'audio_anterior_nao_removido', route: req.path, error: orfaoNaoRemovido })
+        }
+      }
+      await sessionsRepo.setAudio(req.userId, p.id, file, contentType)
+      confirmado = true
+      res.json({
+        ok: true,
+        audioUrl: `/api/sessions/${p.id}/audio`,
+        ...(orfaoNaoRemovido
+          ? { aviso: 'o áudio anterior não pôde ser removido e ainda ocupa espaço', code: 'orfao_nao_removido' }
+          : {}),
+      })
+    }
+
+    if (!temDisco()) {
+      /* Toda saída deste ramo SOLTA o leitor do corpo (`largar`) antes do descarte: os ouvintes dele pausam
+         o request a cada pedaço, e com eles registrados o `descartarRestoDoCorpo` travava até o prazo. */
+      let corpo: Awaited<ReturnType<ReturnType<typeof receberCorpo>['paraStream']>> | undefined
+      try {
+        corpo = await receberCorpo(req, { limite: LIMITE_DO_AUDIO }).paraStream()
+        if (!corpo.cabeca.length) {
+          res.status(400).json({ error: 'corpo de áudio vazio' })
+          return
+        }
+        const detectado = detectarAudio(corpo.cabeca)
+        if (!detectado) {
+          log('warn', { event: 'audio_upload_tipo_invalido', route: req.path, status: 400, requestId: req.requestId })
+          corpo.largar()
+          descartarRestoDoCorpo(req)
+          res.status(400).json({
+            error: `o conteúdo enviado não é um áudio reconhecido (${FORMATOS_DE_AUDIO_ACEITOS})`,
+            code: 'audio_content_invalid',
+          })
+          return
+        }
+        const file = `${p.id}.${detectado.ext}`
+        // `chunked`: o objeto estará no bucket antes de o tamanho existir — reserva o teto e acerta no fim.
+        const reservadoPara = declarado ?? LIMITE_DO_AUDIO
+        // Na recusa, `reservar` descarta o resto: o leitor é solto antes, senão ele pausaria o descarte.
+        const solto = corpo
+        if (declarado === null && !(await reservar(reservadoPara, () => solto.largar()))) return
+        await armazenamentoDeMidia().gravarDeStream(file, corpo.fluxo, detectado.mime, declarado ?? undefined)
+        const bytes = corpo.recebidos()
+        if (contabiliza && bytes !== reservadoPara) {
+          await ajustarArmazenamento(req.userId, bytes - reservadoPara)
+          reservado += bytes - reservadoPara
+        }
+        await concluir(file, detectado.mime)
+      } catch (err) {
+        if (err instanceof CorpoGrandeDemais) {
+          log('warn', { event: 'audio_upload_grande_demais', route: req.path, status: 413, requestId: req.requestId })
+          responderAudioGrandeDemais(req, res)
+          return
+        }
+        if (err instanceof CorpoInterrompido) {
+          log('info', { event: 'audio_upload_interrompido', route: req.path, requestId: req.requestId })
+          return
+        }
+        // O bucket (ou o teto) falhou com o corpo ainda chegando: descarta o resto para a resposta chegar.
+        corpo?.largar()
+        descartarRestoDoCorpo(req)
+        throw err
+      } finally {
+        corpo?.largar()
+      }
+      return
+    }
+
+    await mkdir(dirDeRecepcao(), { recursive: true })
+    temporario = path.join(dirDeRecepcao(), `${p.id}.${randomUUID()}.parcial`)
     let recebido: Awaited<ReturnType<typeof receberCorpoEmArquivo>>
     try {
       recebido = await receberCorpoEmArquivo(fonteDoCorpo(req), temporario, LIMITE_DO_AUDIO)
@@ -360,34 +465,15 @@ sessionsRouter.post('/:id/audio', vagaDeCorpoGrande(), async (req, res) => {
       reservado += recebido.bytes - declarado
     }
 
-    await armazenamentoDeMidia.gravarDeArquivo(file, temporario, contentType)
-    /**
-     * O ARQUIVO ANTIGO QUE NAO SAIU E DITO, nao engolido (auditoria de 2026-09-07, achado A29).
-     *
-     * O `catch` vazio dizia "orfao; a reconciliacao corrige" — e a reconciliacao de fato
-     * corrige a COTA. O que ela nao faz e avisar: o upload respondia `{ok:true}` e o byte
-     * continuava no disco, ocupando espaco que a pessoa acha que liberou. O upload nao falha
-     * por causa disso (o audio novo esta gravado e e o que importa), mas a resposta conta.
-     */
-    let orfaoNaoRemovido: string | null = null
-    if (anterior && anterior !== file) {
-      try {
-        await armazenamentoDeMidia.remover(anterior)
-      } catch (err) {
-        orfaoNaoRemovido = String((err as Error)?.message ?? err).slice(0, 160)
-        log('warn', { event: 'audio_anterior_nao_removido', route: req.path, error: orfaoNaoRemovido })
-      }
-    }
-    await sessionsRepo.setAudio(req.userId, p.id, file, contentType)
-    confirmado = true
-    res.json({
-      ok: true,
-      audioUrl: `/api/sessions/${p.id}/audio`,
-      ...(orfaoNaoRemovido
-        ? { aviso: 'o áudio anterior não pôde ser removido e ainda ocupa espaço', code: 'orfao_nao_removido' }
-        : {}),
-    })
+    await armazenamentoDeMidia().gravarDeArquivo(file, temporario, contentType)
+    await concluir(file, contentType)
   } catch (err) {
+    // Teto mensal de operações do R2 (`server/lib/tetoDoR2.ts`): o serviço, não o pedido, está no limite.
+    const teto = respostaDoTetoDoR2(err)
+    if (teto) {
+      res.status(teto.status).json(teto.body)
+      return
+    }
     res.status(500).json({
       error: erroDeRota(err, {
         status: 500,
@@ -431,7 +517,15 @@ sessionsRouter.get('/:id/audio', async (req, res) => {
     res.status(400).json({ error: 'caminho de áudio inválido' })
     return
   }
-  const size = await armazenamentoDeMidia.tamanho(nome)
+  let size: number | null
+  try {
+    size = await armazenamentoDeMidia().tamanho(nome)
+  } catch (err) {
+    const teto = respostaDoTetoDoR2(err)
+    if (!teto) throw err
+    res.status(teto.status).json(teto.body)
+    return
+  }
   if (size === null) {
     res.status(404).json({ error: 'arquivo ausente' })
     return
@@ -463,8 +557,15 @@ sessionsRouter.get('/:id/audio', async (req, res) => {
   res.setHeader('Content-Type', type)
 
   try {
-    ;(await armazenamentoDeMidia.lerFaixa(nome, start, end)).pipe(res)
+    ;(await armazenamentoDeMidia().lerFaixa(nome, start, end)).pipe(res)
   } catch (err) {
+    const teto = respostaDoTetoDoR2(err)
+    if (teto && !res.headersSent) {
+      // Os cabeçalhos do ÁUDIO já estavam postos (tipo, faixa, tamanho): o JSON de erro não os herda.
+      for (const k of ['Content-Type', 'Content-Range', 'Content-Length', 'Accept-Ranges']) res.removeHeader(k)
+      res.status(teto.status).json(teto.body)
+      return
+    }
     log('error', {
       event: 'audio_leitura_falhou',
       route: req.path,
@@ -673,8 +774,10 @@ sessionsRouter.delete('/:id', async (req, res) => {
         // O store já ignora "objeto não existe" — chegar ao catch é falha real
         // (permissão, lock do antivírus/OneDrive) ou caminho inválido.
         const nome = String(meta.audioFile)
-        const bytes = (await armazenamentoDeMidia.tamanho(nome)) ?? 0
-        await armazenamentoDeMidia.remover(nome)
+        // Apagar não passa pelo teto do R2 (`semTeto`): o HEAD que mede a cota a devolver também não.
+        const store = semTeto(armazenamentoDeMidia())
+        const bytes = (await store.tamanho(nome)) ?? 0
+        await store.remover(nome)
         await liberarArmazenamento(req.userId, bytes) // F4-03: só libera cota se o arquivo saiu
       } catch (err) {
         audioErro = String((err as Error)?.message || err).slice(0, 160)

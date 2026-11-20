@@ -12,6 +12,7 @@ import { AiGateway, BreakerRegistry, BudgetLedger, MotorAindaCarregando, NoRoute
 import { avaliarTraducaoLocal } from '@core/harness/portasDeQualidade';
 import { bindingExigeConsentimento } from '@core/harness/registroDeMotores';
 
+import { pivoEntreDiretos } from '../core/traducao/viaIngles';
 import { getEntitlements } from '../lib/entitlements';
 import { detectLanguage } from '../lib/langDetect';
 import { alivioAceito } from '../lib/nuvemDeAlivio/estado';
@@ -40,6 +41,7 @@ import type {
   TranslationProvider,
 } from './capabilities';
 import { capMetrics } from './capture/captureMetrics';
+import { marcar } from './marcasDeDesempenho';
 import { WHISPER_MODELS } from './sttRouter';
 
 const LOCAL_RE = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])/i;
@@ -171,6 +173,11 @@ function obterParakeet(): Promise<SttDoParakeet> {
   return parakeet.carga;
 }
 
+/** A reserva do Parakeet (`reservaParakeet`): a geração cancela a ligação em curso; `ligada` diz se ela está de pé. */
+const reservaDoParakeet = { geracao: 0, ligada: false, whisperLiberado: false };
+/** De quanto em quanto tempo a reserva confere se o Whisper terminou as falas em voo. */
+const ESPERA_DO_WHISPER_OCIOSO_MS = 50;
+
 /** Liga ou desliga o Parakeet na cadeia. Desligado, o worker dele é encerrado (devolve a memória). */
 function usarParakeet(ativo: boolean): void {
   parakeet.ativo = ativo;
@@ -188,6 +195,13 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
   const ledger = new BudgetLedger(profile.budget);
   const core = new AiGateway(profile, breakers, ledger, cloudConsent ?? (() => true));
   const consentiu = (): boolean => cloudConsent?.() !== false;
+  /**
+   * O TRADUTOR LOCAL ATENDE O PAR, NESTA ORDEM DA CASCATA? O pivô entre pt/es/fr/it/de (CEL-01) é o último recurso: com a
+   * nuvem consentida ele sai da conta (nem aquece, nem traduz), e a nuvem/o tradutor da web atendem como antes. Sem o
+   * consentimento (o visitante protegido no celular) é a única rota, e atende.
+   */
+  const localAtende = (b: CapabilityBinding, a: TranslationProvider, src: string | null, tgt: string): boolean =>
+    a.supports(src, tgt) && !(b.adapterId === 'opus-mt-local' && !!src && pivoEntreDiretos(src, tgt) && consentiu());
   // Rota ativa do sttRouter (nuvem-primeiro?) — mutável via stt.setRoute sem recriar o gateway.
   const sttPreferCloudRef = { value: false };
 
@@ -268,7 +282,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
     for (const b of core.getProfile().bindings.mt ?? []) {
       try {
         const a = resolverMt(b);
-        if (a.preload && a.supports(src, tgt)) {
+        if (a.preload && localAtende(b, a, src, tgt)) {
           return new Promise<void>((resolve) => {
             let done = false;
             // Failsafe POR ESTAGNAÇÃO, não por prazo fixo. O prazo de 30 s resolvia a promise
@@ -359,7 +373,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             'mt',
             async (b) => {
               const adapter = resolverMt(b);
-              if (!adapter.supports(src, tgt)) {
+              if (!localAtende(b, adapter, src, tgt)) {
                 /* O pacote do navegador BAIXANDO tira o par da cascata, mas ele vai voltar: é "só falta
                    carregar" (a fala fica pendente), não "não há motor". */
                 if (src && adapter.carregando?.(src, tgt))
@@ -563,7 +577,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             for (const b of core.getProfile().bindings.mt ?? []) {
               try {
                 const a = resolverMt(b);
-                if (a.preload && a.supports(src, tgt)) a.preload(src, tgt);
+                if (a.preload && localAtende(b, a, src, tgt)) a.preload(src, tgt);
               } catch {
                 /* próximo binding */
               }
@@ -658,35 +672,46 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
         onProgress?: (p: number, label?: string, bytes?: { loaded: number; total: number }) => void,
         opts?: { aoDegradar?: (aviso: AvisoDeDegradacaoDoStt) => void },
       ): Promise<void> {
-        const doPerfil = (): Promise<void> => {
-          for (const b of core.getProfile().bindings.stt ?? []) {
-            try {
-              const a = resolveStt(b);
-              if (a.supportsBlob && a.isAvailable() && a.preload) return a.preload(onProgress, opts);
-            } catch {
-              /* próximo binding */
+        const carregar = (): Promise<void> => {
+          const doPerfil = (): Promise<void> => {
+            for (const b of core.getProfile().bindings.stt ?? []) {
+              try {
+                const a = resolveStt(b);
+                if (a.supportsBlob && a.isAvailable() && a.preload) return a.preload(onProgress, opts);
+              } catch {
+                /* próximo binding */
+              }
             }
-          }
-          return Promise.resolve();
+            return Promise.resolve();
+          };
+          if (!parakeet.ativo) return doPerfil();
+          /* A rota escolheu o Parakeet: é ele que carrega. Se não carregar (rede, integridade, o WASM
+             ou a memória), a preparação NÃO falha: o Parakeet sai da cadeia até a próxima rota e o
+             Whisper de reserva carrega no lugar, com a mesma barra. */
+          return obterParakeet()
+            .then((a) => {
+              if (!a.isAvailable() || !a.preload) throw new Error('Parakeet indisponível neste aparelho');
+              return a.preload(onProgress, opts);
+            })
+            .catch((e: unknown) => {
+              // Trocado de rota no meio da carga (o worker foi encerrado de propósito): nada a reportar.
+              if (!parakeet.ativo) return doPerfil();
+              console.warn('[stt] Parakeet não carregou; seguindo com o Whisper local:', String(e));
+              capMetrics.fallback(`stt:${ADAPTADOR_DO_PARAKEET}`);
+              usarParakeet(false);
+              onProgress?.(0, 'Trocando para o modelo de reserva (Whisper)…');
+              return doPerfil();
+            });
         };
-        if (!parakeet.ativo) return doPerfil();
-        /* A rota escolheu o Parakeet: é ele que carrega. Se não carregar (rede, integridade, o WASM
-           ou a memória), a preparação NÃO falha: o Parakeet sai da cadeia até a próxima rota e o
-           Whisper de reserva carrega no lugar, com a mesma barra. */
-        return obterParakeet()
-          .then((a) => {
-            if (!a.isAvailable() || !a.preload) throw new Error('Parakeet indisponível neste aparelho');
-            return a.preload(onProgress, opts);
-          })
-          .catch((e: unknown) => {
-            // Trocado de rota no meio da carga (o worker foi encerrado de propósito): nada a reportar.
-            if (!parakeet.ativo) return doPerfil();
-            console.warn('[stt] Parakeet não carregou; seguindo com o Whisper local:', String(e));
-            capMetrics.fallback(`stt:${ADAPTADOR_DO_PARAKEET}`);
-            usarParakeet(false);
-            onProgress?.(0, 'Trocando para o modelo de reserva (Whisper)…');
-            return doPerfil();
-          });
+        /* A carga do STT na linha do tempo (`marcasDeDesempenho.ts`): a bancada a compara com a do tradutor. */
+        marcar('stt:carga:inicio');
+        return carregar().then(
+          () => marcar('stt:carga:fim', { ok: true }),
+          (e: unknown) => {
+            marcar('stt:carga:fim', { ok: false });
+            throw e;
+          },
+        );
       },
 
       /**
@@ -705,6 +730,10 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
       setRoute(route: { preferCloud: boolean; localModel?: string; dtype?: string; device?: 'wasm' | 'webgpu' }): void {
         sttPreferCloudRef.value = route.preferCloud;
         if (route.localModel) {
+          // Rota nova (nova preparação): a reserva do Parakeet da rota anterior acaba aqui.
+          reservaDoParakeet.geracao++;
+          reservaDoParakeet.ligada = false;
+          reservaDoParakeet.whisperLiberado = false;
           /* PARAKEET: entra na cadeia antes do Whisper local, que fica de RESERVA com o base (o
              multilíngue que cabe em qualquer computador), sem dtype nem backend forçados. Nada do
              Whisper é carregado aqui: só se o Parakeet falhar. Qualquer outro modelo o tira da cadeia. */
@@ -725,6 +754,74 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             }
           }
         }
+      },
+
+      /** O Parakeet está na cadeia agora? (Sai sozinho se não carregar, ou se o regulador descer a um Whisper.) */
+      parakeetAtivo(): boolean {
+        return parakeet.ativo;
+      },
+
+      /**
+       * O PARAKEET DE RESERVA da nuvem (Fase B, item 5; rodadas de correção 1 e 2).
+       *
+       * LIGAR acontece DENTRO do aviso de pausa, antes de a nuvem lançar: a cadeia de `transcribePcm` já
+       * montada leva a fala da pausa ao Whisper, e há falas em voo nele (a captura dupla). Então o Whisper
+       * segue QUENTE atendendo; o Parakeet carrega em segundo plano; quando ele fica pronto, entra na
+       * cadeia (as falas NOVAS vão a ele); e só quando o Whisper está ocioso (fila vazia) ele é liberado —
+       * uma vez, sem nunca recarregar enquanto o Parakeet atende. O Parakeet (~2 GB), o Whisper e o
+       * tradutor juntos não cabem (`memoriaDosModelos.ts`), por isso o Whisper sai. O modelo do Whisper
+       * NÃO é tocado (o regulador pode tê-lo descido). Se o Parakeet não carregar, nada mudou.
+       *
+       * DESLIGAR: o Parakeet sai (o worker é encerrado) e o Whisper recarrega, com o modelo que tinha —
+       * só se a reserva estava ligada (um ouvinte atrasado depois da saída da captura não recarrega nada).
+       * `liberarModelo` (sair da captura) cancela uma ligação em curso.
+       */
+      async reservaParakeet(ativa: boolean): Promise<void> {
+        const whispers = (): SttProvider[] =>
+          (core.getProfile().bindings.stt ?? []).flatMap((b) => {
+            if (b.adapterId !== 'whisper-local') return [];
+            try {
+              return [resolveStt(b)];
+            } catch {
+              return [];
+            }
+          });
+        const geracao = ++reservaDoParakeet.geracao;
+        const vale = () => geracao === reservaDoParakeet.geracao;
+        if (!ativa) {
+          if (!reservaDoParakeet.ligada) return;
+          reservaDoParakeet.ligada = false;
+          reservaDoParakeet.whisperLiberado = false;
+          usarParakeet(false);
+          for (const a of whispers()) if (a.isAvailable() && a.preload) await a.preload().catch(() => undefined);
+          return;
+        }
+        reservaDoParakeet.ligada = true;
+        try {
+          const a = await obterParakeet();
+          if (!a.isAvailable() || !a.preload) throw new Error('Parakeet indisponível neste aparelho');
+          await a.preload();
+        } catch (e) {
+          if (!vale()) return;
+          reservaDoParakeet.ligada = false;
+          console.warn('[stt] Parakeet de reserva não carregou; o Whisper segue de reserva:', String(e));
+          capMetrics.fallback(`stt:${ADAPTADOR_DO_PARAKEET}`);
+          parakeet.adaptador?.liberar();
+          return;
+        }
+        if (!vale()) {
+          if (!parakeet.ativo) parakeet.adaptador?.liberar();
+          return;
+        }
+        usarParakeet(true); // as falas NOVAS vão ao Parakeet; o Whisper termina as que tem
+        const ocioso = () => whispers().every((a) => ((a as { queueDepth?: number }).queueDepth ?? 0) === 0);
+        while (!ocioso()) {
+          await new Promise((r) => setTimeout(r, ESPERA_DO_WHISPER_OCIOSO_MS));
+          if (!vale() || !parakeet.ativo) return;
+        }
+        if (!vale() || !parakeet.ativo) return;
+        for (const a of whispers()) (a as { liberar?: () => void }).liberar?.();
+        reservaDoParakeet.whisperLiberado = true;
       },
 
       /**
@@ -753,6 +850,11 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
        * A captura chama ao sair, em aparelho com pouca memória (`perfilDoDispositivo().poucaMemoria`).
        */
       liberarModelo(): void {
+        // Sair da captura cancela a reserva do Parakeet (em curso ou ligada): nada recarrega depois.
+        reservaDoParakeet.geracao++;
+        if (reservaDoParakeet.ligada) parakeet.ativo = false; // a reserva sai da cadeia (a rota local fica)
+        reservaDoParakeet.ligada = false;
+        reservaDoParakeet.whisperLiberado = false;
         parakeet.adaptador?.liberar();
         for (const b of core.getProfile().bindings.stt ?? []) {
           try {
@@ -812,6 +914,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
           onUpdate?: (text: string) => void;
           prompt?: string;
           traduzirPara?: string;
+          conferirIdioma?: boolean;
         },
       ): Promise<SttFinal> {
         let lastErr: Error | null = null;
@@ -823,21 +926,16 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             ...bindings.filter((b) => b.adapterId !== 'groq-whisper'),
           ];
         }
-        /* PARAKEET na frente do Whisper local (e atrás da nuvem, se a rota a pôs primeiro). Só com
-           um `whisper-local` no perfil: perfil sem transcrição no aparelho não ganha uma por aqui. */
-        if (parakeet.ativo) {
-          const i = bindings.findIndex((b) => b.adapterId === 'whisper-local');
-          if (i >= 0) bindings.splice(i, 0, BINDING_DO_PARAKEET);
-        }
-        for (const b of bindings) {
+        /** Tenta um motor; `null` = pulado ou falhou (o próximo assume). Cancelamento sobe. */
+        const tentar = async (b: CapabilityBinding): Promise<SttFinal | null> => {
           let a: SttProvider;
           try {
             a = b === BINDING_DO_PARAKEET ? await obterParakeet() : resolveStt(b);
           } catch {
-            continue;
+            return null;
           }
-          if (!a.supportsBlob || !a.transcribePcm || !a.isAvailable()) continue;
-          if (exigeConsentimento(b) && !consentiu()) continue;
+          if (!a.supportsBlob || !a.transcribePcm || !a.isAvailable()) return null;
+          if (exigeConsentimento(b) && !consentiu()) return null;
           try {
             // AWAIT: se este adapter (ex.: Groq sem chave/erro de rede) REJEITAR, cai para o
             // próximo binding (ex.: Whisper local) em vez de propagar a falha.
@@ -850,7 +948,29 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             lastErr = e instanceof Error ? e : new Error(String(e));
             // Telemetria: este motor caiu e o próximo da cadeia (se houver) assume.
             capMetrics.fallback(`stt:${b.adapterId}`);
+            return null;
           }
+        };
+        /* PARAKEET na frente do Whisper local (e atrás da nuvem, se a rota a pôs primeiro). Só com um
+           `whisper-local` no perfil: perfil sem transcrição no aparelho não ganha uma por aqui. Decidido
+           NA HORA de chegar ao Whisper, não na montagem: uma fala que estava na nuvem quando o Parakeet
+           de reserva entrou (e o Whisper foi liberado) cai no Parakeet, e não no Whisper liberado, que
+           recarregaria o worker (três modelos juntos). Se o Parakeet também falhar nessa fala, o Whisper
+           é o ÚLTIMO recurso (perder a fala é pior que o pico de memória): ele recarrega e volta a contar
+           como quente — uma próxima liberação segue a regra da fila vazia (`reservaParakeet`). */
+        let parakeetTentado = false;
+        for (const b of bindings) {
+          if (b.adapterId === 'whisper-local') {
+            if (parakeet.ativo && !parakeetTentado) {
+              parakeetTentado = true;
+              const r = await tentar(BINDING_DO_PARAKEET);
+              if (r) return r;
+            }
+            // Chegou aqui: o Parakeet falhou (ou não estava). O Whisper atende e, se estava liberado, recarrega.
+            reservaDoParakeet.whisperLiberado = false;
+          }
+          const r = await tentar(b);
+          if (r) return r;
         }
         throw lastErr ?? new Error('nenhum STT de blob disponível neste perfil');
       },

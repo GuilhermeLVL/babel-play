@@ -29,12 +29,12 @@ beforeAll(async () => {
 afterAll(async () => {
   await h.cleanup()
 })
-afterEach(() => {
+afterEach(async () => {
   delete process.env.AUTH_REQUIRED
   delete process.env.PREMIUM_MONTHLY_MANAGED_CALLS
   delete process.env.IA_EM_VOO_LLM
   vi.restoreAllMocks()
-  esquecerAdmissao()
+  await esquecerAdmissao()
 })
 
 function fakeRes() {

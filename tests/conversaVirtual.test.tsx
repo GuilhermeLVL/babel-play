@@ -19,17 +19,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const voz = vi.hoisted(() => ({ falas: [] as Array<{ texto: string; lang: string; fim?: () => void }> }))
 vi.mock('../src/lib/tts', async (original) => {
   const real = await original<typeof import('../src/lib/tts')>()
-  return {
-    ...real,
-    nativeTts: {
-      speak: (texto: string, opts: { lang: string; onStart?: () => void; onEnd?: () => void }) => {
-        voz.falas.push({ texto, lang: opts.lang, fim: opts.onEnd })
-        opts.onStart?.()
-      },
-      cancel: () => {},
-      isSpeaking: () => false,
+  const nativeTts = {
+    speak: (texto: string, opts: { lang: string; onStart?: () => void; onEnd?: () => void }) => {
+      voz.falas.push({ texto, lang: opts.lang, fim: opts.onEnd })
+      opts.onStart?.()
     },
+    cancel: () => {},
+    isSpeaking: () => false,
   }
+  return { ...real, nativeTts, motorDaFala: () => nativeTts }
 })
 const exportacao = vi.hoisted(() => ({ baixarTexto: vi.fn() }))
 vi.mock('../src/lib/captura/exportarConversa', async (original) => ({

@@ -46,10 +46,22 @@ vi.mock('../src/lib/rotas', async (original) => ({
   navegarPara: nav.navegarPara,
 }))
 /* O aparelho é o do perfil medido: cada teste diz qual (o padrão é o computador sem placa de vídeo). */
-const aparelho = vi.hoisted(() => ({ tipo: 'desktop-sem-gpu' }))
+const aparelho = vi.hoisted(() => ({ tipo: 'desktop-sem-gpu', memoriaGb: null as number | null }))
 vi.mock('../src/lib/dispositivo/perfil', async (original) => {
   const real = await original<typeof import('../src/lib/dispositivo/perfil')>()
-  return { ...real, perfilDoDispositivo: () => ({ ...real.perfilDoDispositivo(), tipo: aparelho.tipo }) }
+  return {
+    ...real,
+    perfilDoDispositivo: () => {
+      const p = real.perfilDoDispositivo()
+      /* `memoriaGb` e `poucaMemoria` são o que a rota lê para saber se o Preciso (Parakeet) cabe. */
+      return {
+        ...p,
+        tipo: aparelho.tipo,
+        poucaMemoria: aparelho.memoriaGb === null,
+        sinais: { ...p.sinais, memoriaGb: aparelho.memoriaGb },
+      }
+    },
+  }
 })
 /* `ANUAL_ENABLED` do servidor: cada teste diz se o anual está à venda. */
 const venda = vi.hoisted(() => ({ anual: false }))
@@ -77,8 +89,8 @@ const abrir = async () => {
   return tela
 }
 
-const FIM_DO_TESTE = Date.now() + 14 * 86_400_000 - 60_000
-const podeTestar = { configurado: true, assinatura: null, teste: { estado: 'disponivel', dias: 14 } }
+const FIM_DO_TESTE = Date.now() + 3 * 86_400_000 - 60_000
+const podeTestar = { configurado: true, assinatura: null, teste: { estado: 'disponivel', dias: 3 } }
 const usoDoGratis = {
   plano: 'free',
   janela: '2026-10',
@@ -91,6 +103,7 @@ beforeEach(() => {
   ents.plan = 'free'
   venda.anual = false
   aparelho.tipo = 'desktop-sem-gpu'
+  aparelho.memoriaGb = null
   definirEstadoDasFlags(null)
   /* "Assinar" leva ao checkout pelo endereço: cada teste começa na tela de Planos. */
   window.history.replaceState({}, '', '/')
@@ -147,6 +160,8 @@ describe('Planos: só aparece o que está à venda', () => {
   })
 
   it('o Premium sem o Essencial à vista diz "Tudo do Grátis" e herda a Nuance; horas e preço são da matriz', async () => {
+    /* A voz neural só entra no cartão com a flag `voz_natural` ligada. */
+    definirEstadoDasFlags({ voz_natural: { ligada: true } })
     await abrir()
     const premium = cartaoDe('premium')
     expect(premium.querySelector('.px-preco b')!.textContent).toBe(mensal('premium'))
@@ -223,6 +238,7 @@ describe('Planos: os números vêm da matriz', () => {
     /* No computador com placa o recomendado é o Essencial: o Premium mostra o rótulo dele. */
     aparelho.tipo = 'desktop-com-gpu'
     servidor.rotas['/api/billing/status'] = TODOS_A_VENDA
+    definirEstadoDasFlags({ voz_natural: { ligada: true } })
     await abrir()
     for (const id of ['essencial', 'premium', 'aovivo'] as const)
       expect(cartaoDe(id).querySelector('.px-preco b')!.textContent, id).toBe(mensal(id))
@@ -381,6 +397,42 @@ describe('Planos: o aparelho', () => {
     )
   })
 
+  /* O Grátis ganhou o modelo local Preciso (Parakeet v3, ~6 erros em 100 palavras em pt/es): o computador
+     com 8 GB ou mais NÃO "erra mais" e não vai para o Premium por isso. A regra é a da captura
+     (`parakeetCabeNoAparelho`); o que estes testes prendem é que a TELA diga a mesma verdade. */
+  it('computador com 8 GB (sem placa de vídeo) roda o Preciso: a nota diz isso, não "erra mais", e recomenda o Essencial', async () => {
+    servidor.rotas['/api/billing/status'] = TODOS_A_VENDA
+    aparelho.tipo = 'desktop-sem-gpu'
+    aparelho.memoriaGb = 8
+    await abrir()
+    expect(document.querySelector<HTMLElement>('.pl-aparelho')!.dataset.plAparelho).toBe('pc')
+    expect(texto('.pl-aparelho .q-rotulo')).toBe('Você está num computador que roda o modelo Preciso')
+    const nota = document.querySelector<HTMLElement>('.pl-aparelho')!.textContent!
+    expect(nota).toMatch(/cerca de 6 erros a cada 100 palavras em português e espanhol/)
+    expect(nota).not.toMatch(/modelo leve|erra mais|placa de vídeo/)
+    expect(document.querySelector<HTMLElement>('.pl-plano.px-premium')!.dataset.plPlano).toBe('essencial')
+  })
+
+  it('computador com menos de 8 GB e sem placa de vídeo continua "fraco": modelo leve, que erra mais, e o Premium', async () => {
+    servidor.rotas['/api/billing/status'] = TODOS_A_VENDA
+    aparelho.tipo = 'desktop-sem-gpu'
+    aparelho.memoriaGb = 4
+    await abrir()
+    expect(document.querySelector<HTMLElement>('.pl-aparelho')!.dataset.plAparelho).toBe('fraco')
+    expect(texto('.pl-aparelho-frase')).toMatch(
+      /modelo leve, que erra mais\. O modelo Preciso pede 8 GB de memória ou um Mac/,
+    )
+    expect(document.querySelector<HTMLElement>('.pl-plano.px-premium')!.dataset.plPlano).toBe('premium')
+  })
+
+  it('placa de vídeo com pouca memória (o Preciso não cabe): a frase segue sendo a da placa de vídeo', async () => {
+    aparelho.tipo = 'desktop-com-gpu'
+    aparelho.memoriaGb = 4
+    await abrir()
+    expect(texto('.pl-aparelho .q-rotulo')).toBe('Você está num computador com placa de vídeo')
+    expect(texto('.pl-aparelho-frase')).toMatch(/^Este computador tem placa de vídeo: a legenda roda aqui mesmo/)
+  })
+
   it('no Quest a frase não diz que não há legenda no Grátis: o inglês roda no aparelho', async () => {
     aparelho.tipo = 'quest'
     await abrir()
@@ -445,12 +497,12 @@ describe('Planos: as perguntas', () => {
   })
 })
 
-describe('Planos: o teste de 14 dias', () => {
+describe('Planos: o teste de 3 dias', () => {
   it('é do Premium: o botão está no cartão dele, com "Assinar" ao lado', async () => {
     servidor.rotas['/api/billing/status'] = TODOS_A_VENDA
     await abrir()
     expect([...cartaoDe('premium').querySelectorAll('.pl-plano-pe > *')].map((x) => x.textContent)).toEqual([
-      'Testar 14 dias grátis',
+      'Testar 3 dias grátis',
       'Assinar Premium',
       'Sem cartão. No fim, volta ao Grátis sozinha.',
     ])
@@ -462,7 +514,7 @@ describe('Planos: o teste de 14 dias', () => {
     servidor.rotas['/api/billing/teste'] = { teste: { terminaEm: FIM_DO_TESTE } }
     await abrir()
     await act(async () => {
-      fireEvent.click(botao('Testar 14 dias grátis'))
+      fireEvent.click(botao('Testar 3 dias grátis'))
     })
     await aguardar()
     const pedido = servidor.chamadas.find((c) => c.url === '/api/billing/teste')
@@ -471,7 +523,7 @@ describe('Planos: o teste de 14 dias', () => {
     expect(texto('.px-meu-plano')).toBe('Premium · em teste')
     expect(texto('.px-assinatura h2')).toBe('Premium, em teste')
     expect(texto('.px-assinatura .q-d')).toBe(
-      'O teste termina em 14 dias. Depois dele a conta volta ao Grátis sozinha e nada é cobrado. A legenda no aparelho continua sem limite.',
+      'O teste termina em 3 dias. Depois dele a conta volta ao Grátis sozinha e nada é cobrado. A legenda no aparelho continua sem limite.',
     )
     /* O teste não se cancela nem se repete: sobra assinar. "Voltar ao Grátis agora" não existe no servidor. */
     expect([...document.querySelectorAll('.px-assinatura .q-acoes .q-ctl')].map((b) => b.textContent)).toEqual([
@@ -482,7 +534,7 @@ describe('Planos: o teste de 14 dias', () => {
     const premium = cartaoDe('premium')
     expect(premium.querySelector('.q-rotulo')!.textContent).toBe('Seu plano · em teste · indicado aqui')
     expect(premium.querySelector('.px-nota')!.textContent).toBe(
-      'Seu teste termina em 14 dias. Depois dele a conta volta ao Grátis sozinha.',
+      'Seu teste termina em 3 dias. Depois dele a conta volta ao Grátis sozinha.',
     )
     /* Em teste o cartão do Grátis não é "Seu plano", e o teste não se encerra por ali. */
     const gratis = cartaoDe('gratis')
@@ -495,7 +547,7 @@ describe('Planos: o teste de 14 dias', () => {
   it('o servidor recusou: o erro aparece no cartão e a tela não muda de aba', async () => {
     await abrir()
     await act(async () => {
-      fireEvent.click(botao('Testar 14 dias grátis'))
+      fireEvent.click(botao('Testar 3 dias grátis'))
     })
     await aguardar()
     expect(aba('Planos').getAttribute('aria-selected')).toBe('true')
@@ -506,7 +558,7 @@ describe('Planos: o teste de 14 dias', () => {
     servidor.rotas['/api/billing/status'] = {
       configurado: true,
       assinatura: null,
-      teste: { estado: 'usado', dias: 14, iniciadoEm: 1, terminaEm: 2 },
+      teste: { estado: 'usado', dias: 3, iniciadoEm: 1, terminaEm: 2 },
     }
     await abrir()
     expect(screen.queryByRole('button', { name: /Testar/ })).toBeNull()
@@ -545,10 +597,10 @@ describe('Planos: Sua assinatura e Consumo do mês', () => {
     expect(texto('.px-assinatura .q-rotulo')).toBe('Sua assinatura')
     expect(texto('.px-assinatura h2')).toBe('Você está no Grátis')
     expect(texto('.px-assinatura .q-d')).toBe(
-      'Ele continua inteiro: legenda no aparelho sem limite, jogos, vocabulário e revisão. Quando quiser ir além, o Premium tem teste de 14 dias, sem cartão.',
+      'Ele continua inteiro: legenda no aparelho sem limite, jogos, vocabulário e revisão. Quando quiser ir além, o Premium tem teste de 3 dias, sem cartão.',
     )
     expect([...document.querySelectorAll('.px-assinatura .q-acoes .q-ctl')].map((b) => b.textContent)).toEqual([
-      'Testar 14 dias grátis',
+      'Testar 3 dias grátis',
       'Comparar os planos',
     ])
     fireEvent.click(botao('Comparar os planos'))
@@ -607,6 +659,8 @@ describe('Planos: Sua assinatura e Consumo do mês', () => {
     servidor.rotas['/api/me/uso'] = {
       ...usoDoGratis,
       plano: 'premium',
+      // Quem paga renova no vencimento (change `cota-pelo-periodo-pago`), não no dia 1º.
+      renovaEm: Date.now() + 18 * 86_400_000,
       segundosDeAudio: { usado: 23_760, teto: 72_000 },
       porNivel: {
         trechos: { usado: 23_760, teto: 72_000, restante: 48_240 },
@@ -628,7 +682,7 @@ describe('Planos: Sua assinatura e Consumo do mês', () => {
     expect(medidores[0].querySelector('[role="progressbar"]')!.getAttribute('aria-valuenow')).toBe('33')
     expect(medidores[1].querySelector('b')!.textContent).toBe('Incluída')
     expect(texto('.pl-renova')).toBe(
-      `As horas de nuvem voltam no dia 1º. O que roda no aparelho não entra nesta conta. Por dia, a nuvem por trechos vai até ${horasDoUsoJusto('premium')} h.`,
+      `Sua cota renova em ${new Date(Date.now() + 18 * 86_400_000).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}. O que roda no aparelho não entra nesta conta. Por dia, a nuvem por trechos vai até ${horasDoUsoJusto('premium')} h.`,
     )
   })
 
@@ -709,7 +763,7 @@ describe('A oferta no desenho novo', () => {
         titulo="Mais uma conquista"
         texto="Quer ir além da tradução rápida?"
         cta="Conhecer o Premium"
-        selo="Sugerido: 14 dias de Premium grátis, sem cartão"
+        selo="Sugerido: 3 dias de Premium grátis, sem cartão"
         aoAgir={saidas.agir}
         aoDispensar={saidas.dispensar}
         aoNaoMostrar={saidas.naoMostrar}

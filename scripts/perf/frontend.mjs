@@ -6,6 +6,12 @@
  *   npm run build
  *   node scripts/perf/frontend.mjs [--rotas=/,/capturar,/jogar,/planos] [--execucoes=3]
  *        [--sem-lighthouse] [--sem-cwv] [--porta=3180] [--saida=<pasta>] [--raiz=<pasta com dist/>]
+ *        [--url=https://…] [--throttling-method=simulate|devtools] [--presets=mobile,desktop]
+ *
+ * `--throttling-method=devtools` é o ESTRANGULAMENTO REAL (4G lento: 1,6 Mbps, RTT 150 ms, CPU 4×) que a auditoria
+ * de 17/11/2026 usou para o LCP do `/app` (carga-rapida-no-celular): o `simulate` padrão estima o LCP a partir de
+ * uma carga sem freio e conta as pré-cargas do ocioso como se fossem do caminho crítico. No fim, para cada preset e
+ * rota, a MEDIANA do LCP e do JS transferido até o LCP (`scripts/perf/chunks-antes-do-lcp.mjs`).
  *
  * Sobe o SERVIDOR DE PRODUÇÃO (`dist-server/server.cjs`, NODE_ENV=production, que serve o `dist`
  * com `server/http/estaticos.ts` e o `compression`) em modo self-host, com um banco preparado pela
@@ -24,13 +30,15 @@
  */
 import { spawn, spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { chromium, devices } from 'playwright'
 
+import { analisar, avaliarAppMobile } from './chunks-antes-do-lcp.mjs'
+import { carregarSlo } from './suite/slo.mjs'
 import { preparar } from './suite/preparar.mjs'
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -42,52 +50,61 @@ const porta = Number(arg('porta', 3180))
 // `--raiz`: pasta com `dist/` e `dist-server/` a servir (padrão: o repositório) — p.ex. uma cópia do build de antes.
 const SERVIDA = path.resolve(arg('raiz', RAIZ))
 const saida = path.resolve(arg('saida', path.join(os.tmpdir(), `frontend-${Date.now()}`)))
-const base = `http://127.0.0.1:${porta}`
+// `--url=https://…`: mede uma URL JÁ PUBLICADA (ex.: o Worker de staging) em vez de subir o servidor local. Sem
+// banco, sem servidor e sem o PUT de configurações (a URL remota exige login; mede-se só o que é público).
+const remoto = arg('url', '').replace(/\/+$/, '')
+const estrangulamento = arg('throttling-method', 'simulate')
+const presets = arg('presets', 'mobile,desktop').split(',')
+const base = remoto || `http://127.0.0.1:${porta}`
 mkdirSync(saida, { recursive: true })
 
-const banco = path.join(saida, 'frontend.db')
-if (!existsSync(banco)) console.log(`# banco: ${JSON.stringify(await preparar({ db: banco, pesados: 0, medios: 0 }))}`)
+if (remoto) {
+  console.log(`# medindo a URL publicada ${base}; saída em ${saida}`)
+} else {
+  const banco = path.join(saida, 'frontend-pg')
+  if (!existsSync(banco))
+    console.log(`# banco: ${JSON.stringify(await preparar({ db: banco, pesados: 0, medios: 0 }))}`)
 
-const filho = spawn(process.execPath, [path.join(SERVIDA, 'dist-server/server.cjs')], {
-  cwd: SERVIDA,
-  env: {
-    PATH: process.env.PATH,
-    SystemRoot: process.env.SystemRoot,
-    TEMP: process.env.TEMP,
-    TMP: process.env.TMP,
-    NODE_ENV: 'production',
-    PORT: String(porta),
-    HOST: '127.0.0.1',
-    DATABASE_URL: `file:${banco.replace(/\\/g, '/')}`,
-    MIGRATIONS_DIR: path.join(RAIZ, 'server/db/migrations'),
-    AUDIO_DIR: path.join(saida, 'audio'),
-    BACKUP_DIARIO: '0',
-    SECRET_KEY: randomBytes(32).toString('hex'),
-    AUTH_REQUIRED: '0',
-    SELF_HOST: '1',
-    TRUST_PROXY: 'false',
-    LOG_LEVEL: 'error',
-  },
-  stdio: ['ignore', 'pipe', 'pipe'],
-})
-let morreu = null
-filho.on('exit', (c, s) => (morreu = { c, s }))
-process.on('exit', () => !morreu && filho.kill()) // só o processo que este script iniciou
-for (let t0 = Date.now(); ; ) {
-  if (morreu) throw new Error(`servidor morreu no boot: ${JSON.stringify(morreu)}`)
-  try {
-    if ((await fetch(`${base}/api/ready`, { signal: AbortSignal.timeout(2000) })).ok) break
-  } catch {}
-  if (Date.now() - t0 > 90_000) throw new Error('servidor não ficou pronto em 90 s')
-  await new Promise((r) => setTimeout(r, 300))
+  const filho = spawn(process.execPath, [path.join(SERVIDA, 'dist-server/server.cjs')], {
+    cwd: SERVIDA,
+    env: {
+      PATH: process.env.PATH,
+      SystemRoot: process.env.SystemRoot,
+      TEMP: process.env.TEMP,
+      TMP: process.env.TMP,
+      NODE_ENV: 'production',
+      PORT: String(porta),
+      HOST: '127.0.0.1',
+      DATABASE_URL: `pglite:${banco.replace(/\\/g, '/')}`,
+      MIGRATIONS_DIR: path.join(RAIZ, 'server/db/migrations-pg'),
+      AUDIO_DIR: path.join(saida, 'audio'),
+      SECRET_KEY: randomBytes(32).toString('hex'),
+      AUTH_REQUIRED: '0',
+      SELF_HOST: '1',
+      TRUST_PROXY: 'false',
+      LOG_LEVEL: 'error',
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  let morreu = null
+  filho.on('exit', (c, s) => (morreu = { c, s }))
+  process.on('exit', () => !morreu && filho.kill()) // só o processo que este script iniciou
+  for (let t0 = Date.now(); ; ) {
+    if (morreu) throw new Error(`servidor morreu no boot: ${JSON.stringify(morreu)}`)
+    try {
+      if ((await fetch(`${base}/api/ready`, { signal: AbortSignal.timeout(2000) })).ok) break
+    } catch {}
+    if (Date.now() - t0 > 90_000) throw new Error('servidor não ficou pronto em 90 s')
+    await new Promise((r) => setTimeout(r, 300))
+  }
+  const r = await fetch(`${base}/api/settings`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ ui: { onboarded: true, providerMode: 'local', credentialId: null } }),
+  })
+  if (!r.ok) throw new Error(`PUT /api/settings ${r.status}`)
+  console.log(`# servidor de produção PID ${filho.pid} em ${base}; saída em ${saida}`)
 }
-const r = await fetch(`${base}/api/settings`, {
-  method: 'PUT',
-  headers: { 'content-type': 'application/json' },
-  body: JSON.stringify({ ui: { onboarded: true, providerMode: 'local', credentialId: null } }),
-})
-if (!r.ok) throw new Error(`PUT /api/settings ${r.status}`)
-console.log(`# servidor de produção PID ${filho.pid} em ${base}; saída em ${saida}`)
 
 const nomeDaRota = (r) => (r === '/' ? 'inicio' : r.replace(/^\//, '').replace(/\//g, '-'))
 
@@ -96,7 +113,8 @@ if (!flag('sem-lighthouse')) {
   const cli = path.join(RAIZ, 'node_modules/lighthouse/cli/index.js')
   const cliPai = path.resolve(RAIZ, '../../../node_modules/lighthouse/cli/index.js')
   const lh = existsSync(cli) ? cli : cliPai
-  for (const preset of ['mobile', 'desktop'])
+  const medidos = []
+  for (const preset of presets)
     for (const rota of rotas)
       for (let n = 1; n <= execucoes; n++) {
         const arquivo = path.join(saida, `${preset}-${nomeDaRota(rota)}-${n}.json`)
@@ -110,14 +128,55 @@ if (!flag('sem-lighthouse')) {
             '--only-categories=performance,accessibility,best-practices',
             '--chrome-flags=--headless=new --no-first-run',
             '--quiet',
+            `--throttling-method=${estrangulamento}`,
             ...(preset === 'desktop' ? ['--preset=desktop'] : []),
           ],
           { cwd: RAIZ, encoding: 'utf8', timeout: 180_000 },
         )
+        let resumo = ''
+        if (p.status === 0) {
+          const r = analisar(JSON.parse(readFileSync(arquivo, 'utf8')))
+          medidos.push({ preset, rota, ...r })
+          resumo = ` LCP ${r.lcp} ms, ${r.jsAteLcpKB} KB de JS até o LCP${r.vigiadosAntes.length ? `, antes do LCP: ${r.vigiadosAntes.join(', ')}` : ''}`
+        }
         console.log(
-          `lighthouse ${preset} ${rota} #${n}: ${p.status === 0 ? 'ok' : `falhou (${p.status}) ${p.stderr?.slice(-300)}`}`,
+          `lighthouse ${preset} ${rota} #${n}: ${p.status === 0 ? `ok${resumo}` : `falhou (${p.status}) ${p.stderr?.slice(-300)}`}`,
         )
       }
+  const med = (xs) => {
+    const o = xs.filter((x) => typeof x === 'number').sort((a, b) => a - b)
+    return o.length ? o[Math.floor(o.length / 2)] : null
+  }
+  console.log(
+    `\n| preset | rota | estrangulamento | LCP mediano ms | JS até o LCP mediano KB |\n|---|---|---|---:|---:|`,
+  )
+  for (const preset of presets)
+    for (const rota of rotas) {
+      const xs = medidos.filter((m) => m.preset === preset && m.rota === rota)
+      if (!xs.length) continue
+      console.log(
+        `| ${preset} | ${rota} | ${estrangulamento} | ${med(xs.map((x) => x.lcp))} | ${med(xs.map((x) => x.jsAteLcpKB))} |`,
+      )
+    }
+  /* `--cobrar-app`: a mediana do `/app` no mobile contra `slo.json` → `frontend.appMobile` (carga-rapida-no-celular). */
+  if (flag('cobrar-app')) {
+    const metas = carregarSlo().frontend.appMobile
+    const xs = medidos.filter((m) => m.preset === 'mobile' && m.rota === metas.rota)
+    const falhas = xs.length
+      ? avaliarAppMobile({ lcp: med(xs.map((x) => x.lcp)), jsAteLcpKB: med(xs.map((x) => x.jsAteLcpKB)) }, metas)
+      : [`sem medição mobile de ${metas.rota} (passe --rotas com ${metas.rota})`]
+    if (estrangulamento !== 'devtools') falhas.push('a meta é com --throttling-method=devtools')
+    console.log(falhas.length ? `\nAPP MOBILE FORA DA META:\n  ${falhas.join('\n  ')}` : '\napp mobile dentro da meta')
+    if (falhas.length) process.exitCode = 1
+  }
+  writeFileSync(
+    path.join(saida, 'lighthouse-resumo.json'),
+    JSON.stringify(
+      medidos.map(({ pedidos: _p, ...m }) => m),
+      null,
+      2,
+    ),
+  )
 }
 
 // ── 2. Core Web Vitals no Playwright ──────────────────────────────────────────────────────────
@@ -210,12 +269,22 @@ if (!flag('sem-cwv')) {
 }
 
 // ── 3. Cabeçalhos de um chunk e do index ──────────────────────────────────────────────────────
-const html = await (await fetch(base + '/')).text()
-const chunk = /src="(\/assets\/[^"]+\.js)"/.exec(html)?.[1]
+/* O 1º `/assets/*.js` vem da primeira rota que tiver um: no Worker a raiz é a home estática (sem script) e o app
+   mora em `/app` (LB-07: o modo `--url` quebrava com a URL do chunk `undefined`). Sem chunk, o par é pulado. */
+let chunk
+for (const rota of ['/', ...rotas, '/app']) {
+  const html = await (await fetch(base + rota)).text()
+  chunk = /src="(\/assets\/[^"]+\.js)"/.exec(html)?.[1]
+  if (chunk) break
+}
 const cabecalhos = {}
 for (const [nome, url, ae] of [
-  ['chunk-br', chunk, 'br, gzip'],
-  ['chunk-gzip', chunk, 'gzip'],
+  ...(chunk
+    ? [
+        ['chunk-br', chunk, 'br, gzip'],
+        ['chunk-gzip', chunk, 'gzip'],
+      ]
+    : []),
   ['index', '/', 'br, gzip'],
   ['api-settings', '/api/settings', 'br, gzip'],
 ]) {
@@ -231,4 +300,4 @@ for (const [nome, url, ae] of [
 }
 console.log(`\n# cabeçalhos: ${JSON.stringify(cabecalhos, null, 2)}`)
 writeFileSync(path.join(saida, 'cabecalhos.json'), JSON.stringify(cabecalhos, null, 2))
-process.exit(0)
+process.exit(process.exitCode ?? 0)

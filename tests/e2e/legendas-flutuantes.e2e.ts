@@ -5,7 +5,7 @@ import { abrirTela, clicarRobusto } from './_helpers'
 
 /**
  * AS LEGENDAS FLUTUANTES na janela que flutua DENTRO do app (o caminho sem Document
- * Picture-in-Picture: Firefox, Safari), com a captura de verdade e as falas entrando por
+ * Picture-in-Picture nem PiP de vídeo: Firefox), com a captura de verdade e as falas entrando por
  * `window.__simFalas`.
  *
  * NO DESENHO NOVO (09/10/2026) essa janela é a do protótipo (`LegendaFlutuanteDoPrototipo`): vidro
@@ -43,6 +43,8 @@ test.beforeEach(async ({ page }) => {
   // Sem a API da janela sempre-no-topo: a janelinha flutua dentro do app, que é o que se testa.
   await page.addInitScript(() => {
     delete (window as unknown as { documentPictureInPicture?: unknown }).documentPictureInPicture
+    /* Nem o PiP de vídeo (o caminho do Safari): sem os dois, a legenda flutua dentro da página. */
+    Object.defineProperty(document, 'pictureInPictureEnabled', { configurable: true, get: () => false })
   })
   // Nenhum modelo de fala/tradução é baixado: as falas entram prontas.
   await page.route(/huggingface\.co|hf\.co|cdn-lfs/, (r) => r.abort())

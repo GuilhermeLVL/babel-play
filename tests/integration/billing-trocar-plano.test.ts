@@ -196,13 +196,13 @@ describe('alterarValorDaAssinatura (server/lib/asaas.ts)', () => {
 
   it('PUT na assinatura com o valor, a descrição e as cobranças pendentes — sem mexer no vencimento', async () => {
     const chamadas = asaasSimulado()
-    const r = await asaas.alterarValorDaAssinatura('sub_x/1', 19.9, 'Babel Play Premium')
+    const r = await asaas.alterarValorDaAssinatura('sub_x/1', 19.9, 'Frasy Premium')
     expect(chamadas).toHaveLength(1)
     expect(chamadas[0].metodo).toBe('PUT')
     expect(chamadas[0].url).toMatch(/\/subscriptions\/sub_x%2F1$/)
     expect(chamadas[0].corpo).toEqual({
       value: 19.9,
-      description: 'Babel Play Premium',
+      description: 'Frasy Premium',
       updatePendingPayments: true,
     })
     expect(r).toMatchObject({ value: 19.9, nextDueDate: SEGUINTE })
@@ -222,7 +222,8 @@ describe('alterarValorDaAssinatura (server/lib/asaas.ts)', () => {
 })
 
 describe('a migração 0050', () => {
-  const sql = readFileSync(path.join('server', 'db', 'migrations', '0050_troca_de_plano.sql'), 'utf8')
+  /* Da cadeia SQLite legada; no Postgres as duas colunas já nascem na baseline (o segundo caso é o que vale lá). */
+  const sql = readFileSync(path.join('server', 'db', 'migrations-sqlite', '0050_troca_de_plano.sql'), 'utf8')
 
   it('só acrescenta as duas colunas da intenção de troca, e traz a reversão escrita', () => {
     const comandos = sql.replace(/--[^\n]*/g, '')
@@ -251,7 +252,7 @@ describe('POST /api/billing/trocar — subir', () => {
     expect(put).toHaveLength(1)
     expect(put[0].url).toMatch(/\/subscriptions\/sub_u-sobe$/)
     expect(put[0].corpo).toMatchObject({ value: 19.9, updatePendingPayments: true })
-    expect(put[0].corpo.description).toBe('Babel Play Premium')
+    expect(put[0].corpo.description).toBe('Frasy Premium')
     // Nada de cobrança nova, cancelamento ou estorno: só a alteração e a leitura das cobranças.
     expect(chamadas.filter((c) => c.metodo !== 'PUT' && c.metodo !== 'GET')).toEqual([])
 
@@ -304,7 +305,7 @@ describe('POST /api/billing/trocar — rebaixar segue a mesma regra', () => {
     await assinante('u-desce', 'premium')
     const { res, chamadas } = await trocar('u-desce', 'essencial')
     expect(res.statusCode).toBe(200)
-    expect(alteracoes(chamadas)[0].corpo).toMatchObject({ value: 9.9, description: 'Babel Play Essencial' })
+    expect(alteracoes(chamadas)[0].corpo).toMatchObject({ value: 9.9, description: 'Frasy Essencial' })
     expect(await linha('u-desce')).toMatchObject({ plan: 'premium', trocaPara: 'essencial', trocaAPartirDe: PROXIMA })
     expect(await ent.getPlanForUser(asUserId('u-desce'))).toBe('premium')
     expect(await ent.hasEntitlement(asUserId('u-desce'), 'interpreteAutomatico')).toBe(true)
@@ -407,7 +408,7 @@ describe('POST /api/billing/trocar/cancelar — desistir da troca antes da virad
     expect(put).toHaveLength(1)
     expect(put[0].corpo).toMatchObject({
       value: 9.9,
-      description: 'Babel Play Essencial',
+      description: 'Frasy Essencial',
       updatePendingPayments: true,
     })
     expect(await linha('u-desiste')).toMatchObject({ plan: 'essencial', trocaPara: null, trocaAPartirDe: null })
@@ -525,7 +526,7 @@ describe('POST /api/billing/trocar — recusas', () => {
     await semEfeito('u-r-cancelada', chamadas)
   })
 
-  it('em teste de 14 dias (sem assinatura paga): 409 `em_teste`', async () => {
+  it('em teste de 3 dias (sem assinatura paga): 409 `em_teste`', async () => {
     await idades.declarar(asUserId('u-r-teste'), '1990-01-01')
     const agora = Date.now()
     await testes.iniciar(asUserId('u-r-teste'), 'marca-u-r-teste', agora - DIA, agora + 13 * DIA)
@@ -660,7 +661,7 @@ describe('a troca pendente não sobrevive à assinatura dela', () => {
   })
 })
 
-describe('o teste de 14 dias continua concedendo o Premium', () => {
+describe('o teste de 3 dias continua concedendo o Premium', () => {
   it('a matriz e o servidor dizem o mesmo, e nada desta etapa toca nisso', async () => {
     expect(PLANO_DO_TESTE).toBe('premium')
     const u = asUserId('u-teste-14')

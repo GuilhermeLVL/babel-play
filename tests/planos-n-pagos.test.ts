@@ -3,7 +3,7 @@
  * A MATRIZ SERVE A VÁRIOS PLANOS PAGOS (change `planos-v3-e-rota-inteligente`, etapa 1).
  *
  * Com um plano pago só, `'premium'` foi escrito à mão em meia dúzia de lugares: a faixa da admissão,
- * o "já assinou" do teste de 14 dias, a intenção padrão do webhook, a lista de planos das flags, o
+ * o "já assinou" do teste de 3 dias, a intenção padrão do webhook, a lista de planos das flags, o
  * tipo do plano pago no cliente — e os entitlements do cliente eram uma cópia campo a campo dos da
  * matriz. Cada um desses lugares esqueceria o segundo plano pago em silêncio. Estes testes prendem a
  * derivação: quem decide "é pagante?" e "que capacidades tem?" lê a matriz.
@@ -12,11 +12,16 @@ import { readFileSync } from 'node:fs'
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+/* A conta destes testes tem sessão guardada no navegador (`sb-*-auth-token`): sem ela o visitante já nasce
+   `anonimo` e não espera o SDK (carga-rapida-no-celular). */
+vi.hoisted(() => localStorage.setItem('sb-teste-auth-token', '{}'))
+
 vi.mock('../src/lib/supabase', () => ({
   supabase: null,
   authRequired: true,
   carregarSupabase: async () => null,
-  getAccessToken: async () => null,
+  // A conta destes testes tem token: no modo público, sem token o funil responde como sem conta.
+  getAccessToken: async () => 'tok',
 }))
 
 import { planoDeAdmissao } from '../server/ai/admissao'
@@ -42,6 +47,7 @@ const CAMPOS = Object.keys(PLAN_MATRIX.free.entitlements).sort()
 afterEach(() => {
   vi.unstubAllGlobals()
   localStorage.clear()
+  localStorage.setItem('sb-teste-auth-token', '{}')
   limparEntitlements()
 })
 
@@ -64,7 +70,13 @@ describe('os planos pagos saem da matriz', () => {
   })
 
   it('à venda é o plano pago com TODAS as chaves de venda ligadas', () => {
-    expect(planosAVenda(() => true)).toEqual([...PLANOS_PAGOS])
+    // Ligar TUDO liga também as chaves de ENCERRAMENTO (v4), que tiram da venda os planos que elas encerram.
+    const encerradores = new Set(PLANOS_PAGOS.flatMap((p) => PLAN_MATRIX[p].encerradoPor ?? []))
+    // Sem as de encerramento: todos os que não dependem delas (os v4 pedem a própria `venda_planos_v4`).
+    expect(planosAVenda((chave) => !encerradores.has(chave))).toEqual(
+      PLANOS_PAGOS.filter((p) => !PLAN_MATRIX[p].flagsDeVenda.some((f) => encerradores.has(f))),
+    )
+    expect(planosAVenda(() => true)).toEqual(PLANOS_PAGOS.filter((p) => !PLAN_MATRIX[p].encerradoPor))
     const semChave = PLANOS_PAGOS.filter((p) => PLAN_MATRIX[p].flagsDeVenda.length === 0)
     expect(planosAVenda(() => false)).toEqual(semChave)
     for (const p of PLANOS_PAGOS) {
@@ -77,7 +89,7 @@ describe('os planos pagos saem da matriz', () => {
     }
   })
 
-  it('o teste de 14 dias concede um plano pago da matriz', () => {
+  it('o teste de 3 dias concede um plano pago da matriz', () => {
     expect(ehPlanoPago(PLANO_DO_TESTE)).toBe(true)
   })
 

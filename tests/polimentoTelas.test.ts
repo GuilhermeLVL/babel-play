@@ -71,7 +71,9 @@ describe('a saída da tela', () => {
     trocarDeTela('play', 'hub', trocar)
     const saida = chamadas.find((c) => c.el.classList.contains('px-tela'))!
     expect(saida.o).toMatchObject({ duration: 150, easing: 'ease-out', fill: 'forwards' })
-    expect(saida.quadros[0]).toEqual({ opacity: 0, transform: 'translateY(-18px) scale(0.985)', filter: 'blur(5px)' })
+    /* Sem o `blur(5px)` do protótipo: a troca de tela nunca desfoca a tela inteira (auditoria de
+       23/10/2026, B2; a regra mudou, o resto da saída é o mesmo). */
+    expect(saida.quadros[0]).toEqual({ opacity: 0, transform: 'translateY(-18px) scale(0.985)' })
     expect(trocar).not.toHaveBeenCalled()
     // A pílula responde no toque: o trilho já marca o destino.
     expect(document.querySelector('.q-item[aria-current="page"]')?.getAttribute('data-px-rota')).toBe('play')
@@ -143,6 +145,55 @@ describe('a entrada da tela e a pílula', () => {
     expect(blocos[0].quadros[0]).toEqual({ opacity: 0, transform: 'translateY(30px) scale(0.96)', filter: 'blur(8px)' })
   })
 
+  /* Auditoria de 23/10/2026, B1/B2: a tela sem peças entrava com escala e `blur(8px)` na `.px-tela` inteira
+     por 620 ms, e o Intérprete recebia essa entrada junto com a dele. */
+  describe('uma entrada só, sem desfocar a tela inteira', () => {
+    const chegar = async (html: string) => {
+      desinstalar = instalarTelas()
+      await quadro()
+      window.dispatchEvent(new Event('pointerdown'))
+      trocarDeTela('play', 'hub', () => undefined)
+      chamadas = []
+      document.querySelector('.px-tela')!.innerHTML = html
+      await quadro()
+      await quadro()
+      return chamadas.filter((c) => c.el.classList.contains('px-tela'))
+    }
+
+    it('tela sem peças: só opacidade e um passo curto (≤ 12 px, ≤ 240 ms), sem filtro nem escala', async () => {
+      const [entrada, ...outras] = await chegar('<div class="flex-1"><p>captura</p></div>')
+      expect(outras).toEqual([])
+      expect(entrada.o.duration).toBeLessThanOrEqual(240)
+      for (const q of entrada.quadros) {
+        expect(q.filter).toBeUndefined()
+        expect(String(q.transform)).not.toContain('scale')
+        const y = Math.abs(Number(/translateY\((-?[\d.]+)px\)/.exec(String(q.transform))?.[1] ?? 0))
+        expect(y).toBeLessThanOrEqual(12)
+      }
+    })
+
+    it('o Intérprete fica com a entrada dele: a camada não anima a raiz', async () => {
+      const daTela = await chegar(
+        '<div class="flex-1"><div class="rolagem"><div class="int" data-pagina></div></div></div>',
+      )
+      expect(daTela).toEqual([])
+    })
+
+    it('com "reduzir movimento" no sistema, nem saída nem entrada, mesmo com as animações ligadas', async () => {
+      const original = window.matchMedia
+      window.matchMedia = ((q: string) => ({ matches: q.includes('reduce'), media: q })) as never
+      try {
+        const trocar = vi.fn()
+        trocarDeTela('play', 'hub', trocar)
+        expect(trocar).toHaveBeenCalledOnce()
+        expect(chamadas.some((c) => c.el.classList.contains('px-tela'))).toBe(false)
+        expect(await chegar('<div class="flex-1"><p>captura</p></div>')).toEqual([])
+      } finally {
+        window.matchMedia = original
+      }
+    })
+  })
+
   it('o trilho e as abas ganham a pílula do protótipo', async () => {
     desinstalar = instalarTelas()
     await quadro()
@@ -153,6 +204,64 @@ describe('a entrada da tela e a pílula', () => {
     desinstalar()
     desinstalar = undefined
     expect(document.querySelector('.px-pilula')).toBeNull()
+  })
+
+  /* Revisão final (23/10/2026): a pílula é filha de `.q-trilho`, mas o item mora no grupo que ROLA. */
+  describe('a pílula do trilho some com o item rolado para fora do grupo', () => {
+    const original = Element.prototype.getBoundingClientRect
+    const caixa = (top: number, bottom: number) =>
+      ({
+        top,
+        bottom,
+        left: 0,
+        right: 96,
+        width: 96,
+        height: bottom - top,
+        x: 0,
+        y: top,
+        toJSON: () => ({}),
+      }) as DOMRect
+    afterEach(() => {
+      Element.prototype.getBoundingClientRect = original
+    })
+
+    it('esconde fora da área visível, reaparece ao rolar de volta e não mexe nos itens do pé', async () => {
+      document.body.innerHTML = `
+        <nav class="q-trilho">
+          <div class="q-trilho-topo">
+            <button class="q-item" data-px-rota="hub" aria-current="page"><svg></svg></button>
+            <button class="q-item" data-px-rota="play"><svg></svg></button>
+          </div>
+          <div class="q-trilho-pe"><button class="q-item q-mais-botao"><svg></svg></button></div>
+        </nav>
+        <main><div class="px-tela"></div></main>`
+      let topoDoItem = 120
+      Element.prototype.getBoundingClientRect = function (this: Element) {
+        if (this.matches('.q-trilho')) return caixa(0, 600)
+        if (this.matches('.q-trilho-topo')) return caixa(100, 300)
+        if (this.matches('.q-item[aria-current="page"]')) return caixa(topoDoItem, topoDoItem + 64)
+        return caixa(0, 0)
+      }
+      desinstalar = instalarTelas()
+      await quadro()
+      await quadro()
+      const pilula = document.querySelector<HTMLElement>('.q-trilho > .px-pilula')!
+      expect(pilula.style.opacity).toBe('1')
+
+      const topo = document.querySelector('.q-trilho-topo')!
+      topoDoItem = 20 // rolou: o item saiu por cima, para o lado do logo
+      topo.dispatchEvent(new Event('scroll'))
+      expect(pilula.style.opacity).toBe('0')
+
+      topoDoItem = 260 // cortado embaixo, por baixo do pé
+      topo.dispatchEvent(new Event('scroll'))
+      expect(pilula.style.opacity).toBe('0')
+
+      topoDoItem = 150 // de volta, inteiro à vista
+      topo.dispatchEvent(new Event('scroll'))
+      expect(pilula.style.opacity).toBe('1')
+      expect(pilula.style.transform).toBe('translate(0px, 150px)')
+    })
   })
 
   /* Auditoria de desempenho de 10/10/2026, G5: antes toda mutação do documento media todas as barras. */
@@ -234,7 +343,9 @@ describe('a entrada da tela e a pílula', () => {
         }),
       ).toBeGreaterThan(0)
       expect(document.querySelectorAll('.q-abas > .px-pilula')).toHaveLength(2)
-      expect(await mediu(() => b.append(Object.assign(document.createElement('span'), { className: 'n' })))).toBeGreaterThan(0)
+      expect(
+        await mediu(() => b.append(Object.assign(document.createElement('span'), { className: 'n' }))),
+      ).toBeGreaterThan(0)
       expect(
         await mediu(() => {
           document.documentElement.dataset.px = 'off'

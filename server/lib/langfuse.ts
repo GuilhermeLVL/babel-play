@@ -51,6 +51,8 @@
 import { createHmac, randomBytes } from 'node:crypto'
 import { appendFile } from 'node:fs/promises'
 
+import { ehWorker, emSegundoPlano } from './runtime'
+
 /** Resultado de UMA tentativa contra o provedor — o que o painel agrupa como "status". */
 export type StatusDaChamada =
   | 'ok'
@@ -105,10 +107,24 @@ export interface DadosDoRastro {
   geracoes: DadosDaGeracao[]
 }
 
+/**
+ * UMA NOTA (score) sobre um rastro — o feedback 👍/👎 que chega por `POST /api/ai/feedback`. Numérica (1 = útil,
+ * 0 = não ajudou), com metadados de lista fechada. Nunca texto do usuário: não há campo para isso.
+ */
+export interface DadosDaNota {
+  /** 32 hex: o rastro a que a nota se prende. */
+  traceId: string
+  nome: string
+  valor: number
+  momento: number
+  metadados: Record<string, ValorDeMetadado | undefined>
+}
+
 /** O evento na fila: é também a linha do arquivo JSONL (depois de `paraLinha`). */
 export type EventoNaFila =
   | { tipo: 'trace-create'; corpo: Omit<DadosDoRastro, 'geracoes'> }
   | { tipo: 'generation-create'; corpo: DadosDaGeracao & { traceId: string } }
+  | { tipo: 'score-create'; corpo: DadosDaNota & { id: string } }
 
 export interface OpcoesDoLangfuse {
   chavePublica?: string
@@ -148,7 +164,7 @@ export function opcoesDoAmbiente(
   if (pediuConteudo && producao) {
     /* RECUSA, não aviso. O público inclui menores (LGPD art. 14): a fala de uma criança mandada a
        um terceiro "só para depurar" é exatamente o tratamento que a política de privacidade diz que
-       não fazemos. Uma variável esquecida no painel do Fly não pode mudar isso. */
+       não fazemos. Uma variável esquecida no painel do host não pode mudar isso. */
     avisar(
       JSON.stringify({
         ts: Date.now(),
@@ -236,73 +252,76 @@ function metadadosDaGeracao(g: DadosDaGeracao): Record<string, ValorDeMetadado |
 
 /** A fila em OTLP/JSON (`ExportTraceServiceRequest`). Exportada para o teste do formato. */
 export function paraOtlp(eventos: EventoNaFila[], o: { ambiente?: string; conteudo?: boolean }) {
-  const spans = eventos.map((e) => {
-    if (e.tipo === 'trace-create') {
-      const t = e.corpo
+  /* A nota não é span: vai pela ingestão de scores (`paraIngestaoDeNotas`). */
+  const spans = eventos
+    .flatMap((e) => (e.tipo === 'score-create' ? [] : [e]))
+    .map((e) => {
+      if (e.tipo === 'trace-create') {
+        const t = e.corpo
+        const attributes: AtributoOtlp[] = [
+          { key: 'langfuse.trace.name', value: { stringValue: t.nome } },
+          { key: 'langfuse.observation.type', value: { stringValue: 'span' } },
+          ...(t.usuario ? [{ key: 'langfuse.user.id', value: { stringValue: t.usuario } }] : []),
+          ...(t.sessao ? [{ key: 'langfuse.session.id', value: { stringValue: t.sessao } }] : []),
+          {
+            key: 'langfuse.trace.tags',
+            value: { arrayValue: { values: t.tags.map((s) => ({ stringValue: s })) } },
+          },
+          ...metadadosComoAtributos('langfuse.trace.metadata.', t.metadados),
+          ...(o.ambiente ? [{ key: 'langfuse.environment', value: { stringValue: o.ambiente } }] : []),
+        ]
+        return {
+          traceId: t.id,
+          spanId: spanRaizDe(t.id),
+          name: t.nome,
+          kind: 2, // SERVER: é a requisição HTTP que o servidor atendeu
+          startTimeUnixNano: nano(t.inicio),
+          endTimeUnixNano: nano(t.fim),
+          attributes,
+          status: { code: 1 },
+        }
+      }
+      const g = e.corpo
+      const nivel = nivelDe(g.status)
       const attributes: AtributoOtlp[] = [
-        { key: 'langfuse.trace.name', value: { stringValue: t.nome } },
-        { key: 'langfuse.observation.type', value: { stringValue: 'span' } },
-        ...(t.usuario ? [{ key: 'langfuse.user.id', value: { stringValue: t.usuario } }] : []),
-        ...(t.sessao ? [{ key: 'langfuse.session.id', value: { stringValue: t.sessao } }] : []),
-        {
-          key: 'langfuse.trace.tags',
-          value: { arrayValue: { values: t.tags.map((s) => ({ stringValue: s })) } },
-        },
-        ...metadadosComoAtributos('langfuse.trace.metadata.', t.metadados),
+        { key: 'langfuse.observation.type', value: { stringValue: 'generation' } },
+        { key: 'langfuse.observation.model.name', value: { stringValue: g.modelo } },
+        { key: 'langfuse.observation.level', value: { stringValue: nivel } },
+        ...(g.status !== 'ok'
+          ? [{ key: 'langfuse.observation.status_message', value: { stringValue: `status ${g.status}` } }]
+          : []),
+        ...(g.uso && Object.keys(g.uso).length
+          ? [{ key: 'langfuse.observation.usage_details', value: { stringValue: JSON.stringify(g.uso) } }]
+          : []),
+        ...(g.custoUsd !== undefined && Number.isFinite(g.custoUsd)
+          ? [
+              {
+                key: 'langfuse.observation.cost_details',
+                value: { stringValue: JSON.stringify({ total: g.custoUsd }) },
+              },
+            ]
+          : []),
+        ...metadadosComoAtributos('langfuse.observation.metadata.', metadadosDaGeracao(g)),
         ...(o.ambiente ? [{ key: 'langfuse.environment', value: { stringValue: o.ambiente } }] : []),
+        ...(o.conteudo && g.entrada !== undefined
+          ? [{ key: 'langfuse.observation.input', value: { stringValue: g.entrada } }]
+          : []),
+        ...(o.conteudo && g.saida !== undefined
+          ? [{ key: 'langfuse.observation.output', value: { stringValue: g.saida } }]
+          : []),
       ]
       return {
-        traceId: t.id,
-        spanId: spanRaizDe(t.id),
-        name: t.nome,
-        kind: 2, // SERVER: é a requisição HTTP que o servidor atendeu
-        startTimeUnixNano: nano(t.inicio),
-        endTimeUnixNano: nano(t.fim),
+        traceId: g.traceId,
+        spanId: g.id ?? novoIdDeSpan(),
+        parentSpanId: spanRaizDe(g.traceId),
+        name: g.nome,
+        kind: 3, // CLIENT: a chamada que o servidor fez ao provedor
+        startTimeUnixNano: nano(g.inicio),
+        endTimeUnixNano: nano(g.fim),
         attributes,
-        status: { code: 1 },
+        status: nivel === 'ERROR' ? { code: 2, message: `status ${g.status}` } : { code: 1 },
       }
-    }
-    const g = e.corpo
-    const nivel = nivelDe(g.status)
-    const attributes: AtributoOtlp[] = [
-      { key: 'langfuse.observation.type', value: { stringValue: 'generation' } },
-      { key: 'langfuse.observation.model.name', value: { stringValue: g.modelo } },
-      { key: 'langfuse.observation.level', value: { stringValue: nivel } },
-      ...(g.status !== 'ok'
-        ? [{ key: 'langfuse.observation.status_message', value: { stringValue: `status ${g.status}` } }]
-        : []),
-      ...(g.uso && Object.keys(g.uso).length
-        ? [{ key: 'langfuse.observation.usage_details', value: { stringValue: JSON.stringify(g.uso) } }]
-        : []),
-      ...(g.custoUsd !== undefined && Number.isFinite(g.custoUsd)
-        ? [
-            {
-              key: 'langfuse.observation.cost_details',
-              value: { stringValue: JSON.stringify({ total: g.custoUsd }) },
-            },
-          ]
-        : []),
-      ...metadadosComoAtributos('langfuse.observation.metadata.', metadadosDaGeracao(g)),
-      ...(o.ambiente ? [{ key: 'langfuse.environment', value: { stringValue: o.ambiente } }] : []),
-      ...(o.conteudo && g.entrada !== undefined
-        ? [{ key: 'langfuse.observation.input', value: { stringValue: g.entrada } }]
-        : []),
-      ...(o.conteudo && g.saida !== undefined
-        ? [{ key: 'langfuse.observation.output', value: { stringValue: g.saida } }]
-        : []),
-    ]
-    return {
-      traceId: g.traceId,
-      spanId: g.id ?? novoIdDeSpan(),
-      parentSpanId: spanRaizDe(g.traceId),
-      name: g.nome,
-      kind: 3, // CLIENT: a chamada que o servidor fez ao provedor
-      startTimeUnixNano: nano(g.inicio),
-      endTimeUnixNano: nano(g.fim),
-      attributes,
-      status: nivel === 'ERROR' ? { code: 2, message: `status ${g.status}` } : { code: 1 },
-    }
-  })
+    })
   return {
     resourceSpans: [
       {
@@ -315,8 +334,39 @@ export function paraOtlp(eventos: EventoNaFila[], o: { ambiente?: string; conteu
   }
 }
 
+/**
+ * As NOTAS no formato da ingestão do Langfuse (`POST /api/public/ingestion`, evento `score-create`). É o caminho que
+ * o Langfuse mantém para scores depois de aposentar a ingestão clássica de traces (16/11/2026, ver o topo).
+ * Exportada para o teste do formato.
+ */
+export function paraIngestaoDeNotas(eventos: EventoNaFila[], o: { ambiente?: string }) {
+  return {
+    batch: eventos.flatMap((e) =>
+      e.tipo === 'score-create'
+        ? [
+            {
+              id: e.corpo.id,
+              timestamp: new Date(e.corpo.momento).toISOString(),
+              type: 'score-create',
+              body: {
+                id: e.corpo.id,
+                traceId: e.corpo.traceId,
+                name: e.corpo.nome,
+                value: e.corpo.valor,
+                dataType: 'NUMERIC',
+                ...(o.ambiente ? { environment: o.ambiente } : {}),
+                metadata: Object.fromEntries(Object.entries(e.corpo.metadados).filter(([, v]) => v !== undefined)),
+              },
+            },
+          ]
+        : [],
+    ),
+  }
+}
+
 /** A linha do arquivo: o formato de ingestão do Langfuse, que se lê sem conhecer OTLP. */
 function paraLinha(e: EventoNaFila, conteudo: boolean): string {
+  if (e.tipo === 'score-create') return JSON.stringify(paraIngestaoDeNotas([e], {}).batch[0])
   if (e.tipo === 'trace-create') {
     const t = e.corpo
     return JSON.stringify({
@@ -372,6 +422,7 @@ export class ClienteLangfuse {
 
   private readonly rede: boolean
   private readonly url: string
+  private readonly urlDasNotas: string
   private readonly auth: string
   private readonly fila: EventoNaFila[] = []
   private readonly buscar: typeof fetch
@@ -386,6 +437,7 @@ export class ClienteLangfuse {
     this.ligado = this.rede || Boolean(o.arquivo)
     this.conteudoPermitido = Boolean(o.conteudo)
     this.url = (o.baseUrl || BASE_PADRAO).replace(/\/+$/, '') + '/api/public/otel/v1/traces'
+    this.urlDasNotas = (o.baseUrl || BASE_PADRAO).replace(/\/+$/, '') + '/api/public/ingestion'
     this.auth = 'Basic ' + Buffer.from(`${o.chavePublica ?? ''}:${o.chaveSecreta ?? ''}`).toString('base64')
     /* Resolvido NA CHAMADA, não na construção: quem troca o `fetch` global depois (testes) é visto. */
     this.buscar = o.buscar ?? ((url, init) => fetch(url, init))
@@ -393,7 +445,10 @@ export class ClienteLangfuse {
     this.teto = Math.max(1, o.filaMaxima ?? FILA_PADRAO)
     this.timeoutMs = o.timeoutMs ?? TIMEOUT_PADRAO_MS
     const intervalo = o.intervaloMs ?? INTERVALO_PADRAO_MS
-    if (this.ligado && intervalo > 0) {
+    /* NO WORKER NÃO HÁ RELÓGIO: o isolate não sobrevive entre requisições de forma confiável, e um
+       `setInterval` lá não descarrega nada. Cada `enviar` descarrega pelo `emSegundoPlano` (o
+       `ctx.waitUntil` da requisição) — ver `enviar`. */
+    if (this.ligado && intervalo > 0 && !ehWorker()) {
       this.relogio = setInterval(() => void this.descarregar(), intervalo)
       /* `unref`: o relógio da telemetria nunca é o motivo de o processo continuar vivo. */
       this.relogio.unref?.()
@@ -418,7 +473,25 @@ export class ClienteLangfuse {
         }
         this.enfileirar({ tipo: 'generation-create', corpo })
       }
-      if (this.fila.length >= this.lote) void this.descarregar()
+      if (ehWorker()) emSegundoPlano(this.descarregar())
+      else if (this.fila.length >= this.lote) void this.descarregar()
+    } catch {
+      /* telemetria quebrada não derruba o request que ela observa */
+    }
+  }
+
+  /**
+   * Enfileira UMA NOTA com o rastro dela (um span raiz sem gerações, para a nota ter onde se prender e o painel
+   * filtrar pelos metadados). Síncrono; NUNCA lança. Quem chama garante que nada aqui é texto do usuário.
+   */
+  pontuar(r: Omit<DadosDoRastro, 'geracoes' | 'id'>, nota: Omit<DadosDaNota, 'traceId'>): void {
+    if (!this.ligado) return
+    try {
+      const id = novoIdDeRastro()
+      this.enfileirar({ tipo: 'trace-create', corpo: { ...r, id } })
+      this.enfileirar({ tipo: 'score-create', corpo: { ...nota, traceId: id, id: novoIdDeRastro() } })
+      if (ehWorker()) emSegundoPlano(this.descarregar())
+      else if (this.fila.length >= this.lote) void this.descarregar()
     } catch {
       /* telemetria quebrada não derruba o request que ela observa */
     }
@@ -438,23 +511,30 @@ export class ClienteLangfuse {
     while (this.emCurso) await this.emCurso
   }
 
-  /** Esvazia a fila, em lotes. Nunca lança. Chamadas concorrentes esperam a mesma. */
+  /**
+   * Esvazia a fila, em lotes. Nunca lança. No Node, chamadas concorrentes esperam a mesma. No Worker, não: uma
+   * promessa criada numa requisição não pode ser esperada por outra (o workerd não a resolve entre
+   * requisições) — cada chamada esvazia o que achar (o `splice` é síncrono: nenhum lote sai duas vezes).
+   */
   async descarregar(): Promise<void> {
+    if (ehWorker()) return await this.esvaziar()
     if (this.emCurso) return await this.emCurso
     if (this.fila.length === 0) return
-    this.emCurso = (async () => {
-      try {
-        while (this.fila.length > 0) {
-          const lote = this.fila.splice(0, this.lote)
-          await Promise.all([this.gravarArquivo(lote), this.mandar(lote)])
-        }
-      } catch {
-        /* idem */
-      } finally {
-        this.emCurso = undefined
-      }
-    })()
+    this.emCurso = this.esvaziar().finally(() => {
+      this.emCurso = undefined
+    })
     return await this.emCurso
+  }
+
+  private async esvaziar(): Promise<void> {
+    try {
+      while (this.fila.length > 0) {
+        const lote = this.fila.splice(0, this.lote)
+        await Promise.all([this.gravarArquivo(lote), this.mandar(lote)])
+      }
+    } catch {
+      /* idem */
+    }
   }
 
   private async gravarArquivo(lote: EventoNaFila[]): Promise<void> {
@@ -468,17 +548,33 @@ export class ClienteLangfuse {
 
   private async mandar(lote: EventoNaFila[]): Promise<void> {
     if (!this.rede) return
-    const corpo = JSON.stringify(paraOtlp(lote, { ambiente: this.o.ambiente, conteudo: this.conteudoPermitido }))
+    const notas = lote.filter((e) => e.tipo === 'score-create')
+    const spans = lote.filter((e) => e.tipo !== 'score-create')
+    await Promise.all([
+      spans.length
+        ? this.postar(
+            this.url,
+            JSON.stringify(paraOtlp(spans, { ambiente: this.o.ambiente, conteudo: this.conteudoPermitido })),
+            { 'x-langfuse-ingestion-version': '4' },
+          )
+        : undefined,
+      notas.length
+        ? this.postar(this.urlDasNotas, JSON.stringify(paraIngestaoDeNotas(notas, { ambiente: this.o.ambiente })), {})
+        : undefined,
+    ])
+  }
+
+  private async postar(url: string, corpo: string, extras: Record<string, string>): Promise<void> {
     /* UMA retentativa, imediata. O destino fora do ar custa duas tentativas por lote — e o lote
        seguinte, 5 s depois, é a próxima "retentativa" natural, sem fila de reenvio crescendo. */
     for (let tentativa = 1; tentativa <= 2; tentativa++) {
       try {
-        const r = await this.buscar(this.url, {
+        const r = await this.buscar(url, {
           method: 'POST',
           headers: {
             authorization: this.auth,
             'content-type': 'application/json',
-            'x-langfuse-ingestion-version': '4',
+            ...extras,
           },
           body: corpo,
           signal: AbortSignal.timeout(this.timeoutMs),
@@ -534,7 +630,9 @@ const fechamentos = new Set<Promise<void>>()
 
 export function registrarFechamento(p: Promise<void>): void {
   fechamentos.add(p)
-  void p.finally(() => fechamentos.delete(p))
+  /* No Worker o fechamento corre DEPOIS da resposta: sem o `waitUntil`, o rastro morreria antes do
+     `enviar`. No Node só não espera — e a rejeição, se houver, vai para o log em vez de ficar solta. */
+  emSegundoPlano(p.finally(() => fechamentos.delete(p)))
 }
 
 export async function aguardarRastrosPendentes(): Promise<void> {

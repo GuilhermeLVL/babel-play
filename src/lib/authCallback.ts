@@ -3,6 +3,8 @@
  * (detectSessionInUrl) disparando SIGNED_IN / PASSWORD_RECOVERY; aqui só limpamos a URL depois, para
  * não deixar tokens no histórico nem a app presa nessa rota. Sem router: navegação é por estado no App.
  */
+import { comBaseDoApp } from './baseDoApp'
+
 export const AUTH_CALLBACK_PATH = '/auth/callback'
 
 /**
@@ -26,9 +28,10 @@ function guardarErroDoLink(): void {
 if (typeof window !== 'undefined') guardarErroDoLink()
 
 export function isOnAuthCallback(): boolean {
-  return typeof window !== 'undefined' && window.location.pathname === AUTH_CALLBACK_PATH
+  return typeof window !== 'undefined' && window.location.pathname.replace(/\/+$/, '') === AUTH_CALLBACK_PATH
 }
 
+/** Limpa a URL do callback: volta ao início do app (`/app` no build de produção, a raiz em dev e testes). */
 export function clearAuthCallbackUrl(): void {
-  if (isOnAuthCallback()) window.history.replaceState({}, '', '/')
+  if (isOnAuthCallback()) window.history.replaceState({}, '', comBaseDoApp('/'))
 }

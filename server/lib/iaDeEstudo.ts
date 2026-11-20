@@ -31,7 +31,7 @@ import { log } from './logger'
 import {
   CHAVE_DO_POOL_DA_AMOSTRA,
   ContadorIndisponivel,
-  currentWindow,
+  janelaDaCota,
   janelaDaSemana,
   janelaDoDia,
   METRIC_AMOSTRA_EXPLICACOES_DIA,
@@ -122,7 +122,7 @@ async function reservarNaAmostra(userId: UserId, tipo: TipoDeEstudo): Promise<Re
 
 /**
  * RESERVA uma explicação (ou um resumo) ANTES de chamar o provedor. `plano` é o plano EFETIVO já resolvido (o do
- * teste de 14 dias conta como o plano dele). Falha de infra → `ContadorIndisponivel`.
+ * teste de 3 dias conta como o plano dele). Falha de infra → `ContadorIndisponivel`.
  */
 export async function reservarUsoDeEstudo(
   userId: UserId,
@@ -136,7 +136,7 @@ export async function reservarUsoDeEstudo(
       return { ok: true, origem: 'plano', restanteNaAmostra: null, metrica: null, janela: null, janelaDoPool: null }
     if (!(teto > 0)) return { ok: false, motivo: 'sem_plano' }
     const metrica = METRICA_DO_MES[tipo]
-    const janela = currentWindow()
+    const janela = await janelaDaCota(userId)
     if (!(await usageCountersRepo.reserve(userId, metrica, janela, teto, 1)))
       return { ok: false, motivo: 'cota_do_mes' }
     return { ok: true, origem: 'plano', restanteNaAmostra: null, metrica, janela, janelaDoPool: null }

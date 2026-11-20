@@ -26,12 +26,14 @@ import type { LinhaDoMotor } from '../../../../lib/captura/painelDoProcessamento
 import { type SeloDaFala, seloDaFala } from '../../../../lib/captura/seloDaFala';
 import { useSemRede } from '../../../../lib/captura/useSemRede';
 import { consentiuNuvem, responsavelAutorizou } from '../../../../lib/consentimentoDeNuvem';
+import { diaQueACotaVolta } from '../../../../lib/diaQueACotaVolta';
 import type { TipoDeDispositivo } from '../../../../lib/dispositivo/perfil';
 import { edicaoEstatica } from '../../../../lib/edicaoEstatica';
 import { getEntitlements } from '../../../../lib/entitlements';
 import { escolherProcessamento, useLadoDoProcessamento } from '../../../../lib/escolhaDoProcessamento';
 import { flagLigada } from '../../../../lib/flags';
 import { numero, t } from '../../../../lib/i18n';
+import { prontoParaLegendarSemRede } from '../../../../lib/offline/prontoSemRede';
 import { celular } from '../../../../lib/polimento/captura';
 import { provaDosPlanos } from '../../../../lib/polimento/planos';
 import { sentir } from '../../../../lib/polimento/sentidos';
@@ -275,7 +277,9 @@ export function useNiveisDaCaptura(
       return false;
     }
     if (n === 'precisao' && medidores.find((m) => m.nivel === 'precisao')?.acabou) {
-      toast.info(t('As horas do nível {nivel} deste mês acabaram. Elas voltam no dia 1º.', { nivel: t(N.nome) }));
+      toast.info(
+        t('As horas do nível {nivel} acabaram. Elas voltam em {data}.', { nivel: t(N.nome), data: diaQueACotaVolta() }),
+      );
       return false;
     }
     /* A escolha inteira (modo, chave e qualidade) é a dos Ajustes: `escolherProcessamento`. A Captura
@@ -395,6 +399,7 @@ export function useNiveisDaCaptura(
     <NotaDoPronto
       medidores={medidores}
       semRede={semRede}
+      prontoOffline={semRede && prontoParaLegendarSemRede()}
       planoDeCima={deCima ? { nome: nomeDoPlano(deCima), horas: `${numero(horasDeTranscricao(deCima) ?? 0)} h` } : null}
       aoVerPlano={deCima && verPlanos ? () => verPlanos(deCima) : undefined}
     />

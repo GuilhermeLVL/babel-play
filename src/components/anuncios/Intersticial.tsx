@@ -4,6 +4,7 @@ import { podeMostrar } from '../../core/anuncios/politicaDeAnuncio';
 import { montarPedidoDeAnuncio } from '../../lib/anuncios/pedido';
 import { provedorDeAnuncios } from '../../lib/anuncios/provedor';
 import EspacoDeAnuncio from './EspacoDeAnuncio';
+import { useProvedorDeAnuncios } from './useProvedorDeAnuncios';
 
 /**
  * O INTERSTICIAL ENTRE RODADAS (espaço `intersticial`; protótipo `abrirIntersticial`/`mostrar`,
@@ -27,6 +28,8 @@ export function intersticialCabe(): boolean {
 }
 
 export function useIntersticial(): { entre: (seguir: () => void) => void; tela: ReactNode } {
+  /* O intersticial pergunta pelo provedor ANTES de montar o espaço: ele mesmo pede o registro. */
+  useProvedorDeAnuncios();
   const [pendente, setPendente] = useState<{ seguir: () => void } | null>(null);
   const caixa = useRef<HTMLSpanElement>(null);
   /* A ação segurada mora num ref: fechar duas vezes (o "×" e o Esc) não a roda duas vezes. */

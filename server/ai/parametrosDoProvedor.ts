@@ -95,6 +95,18 @@ export const MODELOS_SEM_RACIOCINIO_NO_OPENROUTER: ReadonlySet<string> = new Set
  */
 export const IGNORAM_RACIOCINIO_DESLIGADO = ['novita'] as const
 
+/**
+ * AS VOZES (TTS) DO OPENROUTER COM RETENÇÃO ZERO CONFERIDA (change `voz-natural-openrouter`, 17/11/2026): o modelo tem
+ * endpoint na lista pública `GET /api/v1/endpoints/zdr` (o Kokoro na DeepInfra e na Together, o MAI-Voice na Azure).
+ * Para a voz o OpenRouter só aplica `zdr` e `data_collection` (o `order`/`only`/`ignore` não valem), então quem não
+ * está aqui não vira perna (`provedoresDeVoz.ts`) e o registro o recusa. Nunca `:free`. Outro modelo entra só depois
+ * de conferido no `/endpoints/zdr`.
+ */
+export const VOZES_COM_RETENCAO_ZERO_NO_OPENROUTER: ReadonlySet<string> = new Set([
+  'hexgrad/kokoro-82m',
+  'microsoft/mai-voice-2.1-flash',
+])
+
 /** O mínimo que todo pedido ao OpenRouter leva, declarado ou não. */
 export const ROTEAMENTO_OPENROUTER: RoteamentoOpenRouter = {
   data_collection: 'deny',

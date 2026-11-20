@@ -442,16 +442,36 @@ html dialog.ad-tela.ad-tela.ad-tela {
   box-shadow: none;
   transform: none;
 }
+/* app: no celular a camada de polimento faz de todo diálogo uma folha de baixo (`html[data-px='on'] dialog:not(…)`:
+   cantos de 28 px, sombra, 92dvh, margem no alto), e ela empatava com a regra de cima e vencia pela ordem. Aí a tela
+   de anúncio aparecia como uma segunda moldura atrás do cartão. A tela é a janela inteira, sem moldura: o cartão
+   (`.ad-inter`, `.ad-player`) é a única folha. O `[open]` é para vencer também a sombra da folha
+   (`polimento/telas2.css`, que vem depois e tem o mesmo peso). */
+html dialog.ad-tela.ad-tela.ad-tela.ad-tela[open] {
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  display: grid;
+  place-items: center;
+}
 html dialog.ad-tela.ad-tela.ad-tela[open] {
   display: grid;
   place-items: center;
   animation: none;
 }
-dialog.ad-tela::backdrop {
+dialog.ad-tela::backdrop,
+html dialog.ad-tela.ad-tela.ad-tela.ad-tela::backdrop {
   background: rgb(20 18 16 / 0.62);
   -webkit-backdrop-filter: blur(12px) saturate(120%);
   backdrop-filter: blur(12px) saturate(120%);
 }
+html dialog.ad-video.ad-tela.ad-tela.ad-tela.ad-tela::backdrop,
 dialog.ad-video::backdrop {
   background: rgb(14 12 11 / 0.9);
 }
@@ -777,6 +797,12 @@ dialog.ad-video::backdrop {
 .ad-oferece-linha .ad-oferece {
   margin-left: 0;
   white-space: normal;
+  /* app: no celular o selo quebra em duas linhas dentro da margem (com `0 0 auto` ele ficava na largura do texto e
+     passava da borda direita) */
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 .ad-jogo-caixa {
   display: grid;
@@ -864,11 +890,13 @@ html:not([data-px='on']) .ad-jogo .px-mini {
   right: 12px;
   bottom: calc(max(12px, env(safe-area-inset-bottom)) + 68px + 8px);
   z-index: 28;
-  height: 58px;
+  /* app: a altura acompanha o texto (título e rótulo em até duas linhas cada, e a porta "Sem anúncios" embaixo),
+     sem reticências no meio; até ~104 px */
+  min-height: 58px;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 6px 6px 8px;
+  padding: 8px 6px 8px 8px;
   border-radius: 20px;
   border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
   background: color-mix(in srgb, var(--surface) 82%, transparent);
@@ -901,16 +929,21 @@ html.dark .ad-ancora {
   gap: 3px;
 }
 .ad-ancora-texto b {
-  font: 800 14px/1.15 var(--font-display, inherit);
+  font: 800 13.5px/1.15 var(--font-display, inherit);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .ad-ancora-texto small {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   font-size: 11px;
+  line-height: 1.2;
   color: var(--ink-muted);
 }
 .ad-ancora-texto .ad-rotulo {
@@ -923,8 +956,8 @@ html.dark .ad-ancora {
 }
 /* app: a porta "Sem anúncios" também na âncora (spec, "Identificação e saída"), curta para caber na faixa */
 .ad-ancora .ad-sem {
-  flex: 0 1 auto;
-  max-width: 8.5em;
+  justify-self: start;
+  min-height: 0;
   padding: 0;
   font-size: 11px;
   line-height: 1.15;
@@ -948,7 +981,11 @@ html.dark .ad-ancora {
 }
 .ad-ancora-espaco {
   flex: 0 0 auto;
-  height: 58px;
+  height: 104px; /* a altura máxima da âncora */
+}
+/* app: com a âncora no pé, o botão do iChat sobe para cima dela (antes ele cobria a ponta direita da faixa) */
+html:has(.ad-ancora) .fab {
+  bottom: calc(max(12px, env(safe-area-inset-bottom)) + 68px + 8px + 104px + 10px);
 }
 /* some quando um painel sobe ou a sugestão do Premium aparece: um convite por vez */
 [data-raiz-do-app]:has(.qc-oferta) .ad-ancora,

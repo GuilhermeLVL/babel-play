@@ -59,6 +59,11 @@ export const METRIC_RATELIMIT_TELEMETRIA = 'ratelimit:telemetria'
  */
 export const METRIC_RATELIMIT_FLAGS = 'ratelimit:flags'
 /**
+ * O balde do contador anônimo de falhas do visitante (`POST /api/erros-do-cliente/falha`). Próprio pelo A27, e
+ * por uma chave DERIVADA do IP (HMAC com o `SECRET_KEY`, `server/routes/erros.ts`): o IP nunca vai ao banco.
+ */
+export const METRIC_RATELIMIT_FALHAS = 'ratelimit:falhas'
+/**
  * O balde do LOTE da importação do Anki (`POST /api/anki/imports/:id/notas`, Fase 3 da migração).
  * Próprio pelo mesmo A27: os lotes ficam fora do `writeLimiter` (100 lotes de um import cortariam a
  * escrita da pessoa), mas não ficam sem teto.

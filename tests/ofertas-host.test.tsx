@@ -327,7 +327,7 @@ describe('C8 — o perfil protegido e o teste no host', () => {
     montar()
     disparar('conquista')
     const dialogo = screen.getByRole('dialog')
-    expect(dialogo.textContent).toMatch(/Sugerido: 14 dias de Premium grátis, sem cartão/)
+    expect(dialogo.textContent).toMatch(/Sugerido: 3 dias de Premium grátis, sem cartão/)
     fireEvent.click(screen.getByRole('button', { name: 'Ver planos' }))
     expect(consumirDestaqueEmPlanos()).toEqual({ plano: 'teste' })
   })

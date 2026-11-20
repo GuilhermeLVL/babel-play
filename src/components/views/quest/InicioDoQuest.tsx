@@ -1,3 +1,11 @@
+/* O CSS das telas do Quest vem também com o Início (e não só com o trilho): o Início é a primeira tela e chegava
+   antes do trilho, desenhado sem as regras dele por um instante (o texto dos ladrilhos na largura toda virava um
+   LCP novo, depois do esqueleto do HTML; carga-rapida-no-celular). O Vite carrega cada folha uma vez só. */
+import '../../../styles/quest.css';
+import '../../../styles/questBase.css';
+import '../../../styles/questMovimento.css';
+import '../../../styles/polimentoCelular.css';
+
 import type { EstadoDasMissoes } from '@core';
 import {
   BookOpen,
@@ -18,9 +26,10 @@ import {
   Upload,
   Youtube,
 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { FLAG_AVATAR_3D } from '../../../core/planos';
+import { tetoAnonimoDa } from '../../../core/tetoAnonimo';
 import type { AppMetrics } from '../../../data/api';
 import { abrirMeuAvatar } from '../../../lib/avatar/descoberta';
 import { contagemDaFonte, type Conteudo } from '../../../lib/conteudo/estado';
@@ -29,10 +38,12 @@ import { useContagensDeConteudo } from '../../../lib/conteudo/useContagens';
 import { noCelular } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../../lib/edicaoEstatica';
 import { getEntitlements } from '../../../lib/entitlements';
+import { tirarEsqueletoQuandoOInicioEstiverPronto } from '../../../lib/esqueleto';
 import { useFlag } from '../../../lib/flags';
 import { proximaRecompensa } from '../../../lib/galeria/progressao';
 import { numero, t, tp } from '../../../lib/i18n';
 import { comNomeDoPlano, planoParaNome } from '../../../lib/planoDeEntrada';
+import { pedirTela } from '../../../lib/polimento/precarga';
 import type { AgeProfileType } from '../../../lib/profile';
 import type { DerivedProgress } from '../../../lib/progress';
 import { perfilProtegido } from '../../../lib/protecaoDoMenor';
@@ -133,7 +144,7 @@ const RECENTES = 6;
 type TipoDeSessao = 'all' | Recording['type'];
 
 interface InicioDoQuestProps {
-  onChangeView: (view: string, data?: { id?: string }) => void;
+  onChangeView: (view: string, data?: { id?: string; modo?: 'signup' }) => void;
   recordings: Recording[];
   progress: DerivedProgress;
   metrics: AppMetrics | null;
@@ -163,6 +174,18 @@ const rotuloDoPlano = (): string => {
   return comNomeDoPlano(teste ? t('Premium · em teste') : t('Premium'), doPlano);
 };
 
+/**
+ * A INTENÇÃO PEDE O PEDAÇO DA TELA (carga-rapida-no-celular, 2.3): a Captura e o Jogar não descem mais no boot.
+ * O toque (`touchstart`/`pointerdown`) pede sempre: é a própria navegação. Passar o ponteiro ou o foco do
+ * teclado é palpite, e só pede com o 4G declarado (`conexaoPoupada`).
+ */
+const intencaoDe = (rota: string) => ({
+  onTouchStart: () => void pedirTela(rota),
+  onPointerDown: () => void pedirTela(rota),
+  onPointerEnter: () => void pedirTela(rota, true),
+  onFocus: () => void pedirTela(rota, true),
+});
+
 const iconeDaSessao = (tipo: Recording['type']) =>
   tipo === 'video' ? Youtube : tipo === 'document' ? FileText : Headphones;
 
@@ -188,13 +211,19 @@ export default function InicioDoQuest({
   missoesPendentes = false,
 }: InicioDoQuestProps) {
   const avatarLigado = useFlag(FLAG_AVATAR_3D);
+  /* O Início de verdade pintou: o esqueleto do HTML (carga-rapida-no-celular) sai. */
+  useEffect(() => tirarEsqueletoQuandoOInicioEstiverPronto(), []);
   const cartoes = ladrilhoDosCartoes(semConta ? 'sem-conta' : metrics);
   /* O conteúdo escolhido no app (um só, o mesmo da ficha de Cartões, Jogar e Biblioteca). */
   const conteudo = useConteudo();
   const comFonte =
     !semConta && !!metrics && metrics.deckSize > 0 && metrics.reviews > 0 && conteudo.fonte.tipo !== 'tudo';
   const [tipo, setTipo] = useState<TipoDeSessao>('all');
-  const sessoes = semConta ? [] : recordings;
+  /* SEM CONTA as sessões vivem neste navegador (até o teto do modo sem conta) e aparecem aqui também:
+     escondê-las fazia parecer que nada tinha sido guardado. Abrem em Jogar, que roda sem conta. */
+  const sessoes = semConta
+    ? recordings.slice(0, tetoAnonimoDa({ edicaoEstatica: edicaoEstatica() }).sessoes)
+    : recordings;
   const recentes = sessoes.filter((r) => tipo === 'all' || r.type === tipo).slice(0, RECENTES);
   const quantas = (qual: TipoDeSessao) =>
     qual === 'all' ? sessoes.length : sessoes.filter((r) => r.type === qual).length;
@@ -242,7 +271,7 @@ export default function InicioDoQuest({
       </div>
 
       <div className="q-grade g3 q-cresce ct-g4">
-        <button type="button" className="q-tile pri" onClick={() => onChangeView('capture')}>
+        <button type="button" className="q-tile pri" onClick={() => onChangeView('capture')} {...intencaoDe('capture')}>
           <span className="q-ic">
             <Mic aria-hidden />
           </span>
@@ -268,14 +297,19 @@ export default function InicioDoQuest({
             <TextoDoLadrilho {...cartoes} />
           )}
         </button>
-        <button type="button" className="q-tile" onClick={() => onChangeView('interprete')}>
+        <button
+          type="button"
+          className="q-tile"
+          onClick={() => onChangeView('interprete')}
+          {...intencaoDe('interprete')}
+        >
           <span className="q-ic">
             <Languages aria-hidden />
           </span>
           <b>{t('Conversar')}</b>
           <span className="q-d">{t('Intérprete frente a frente: cada pessoa fala no seu idioma.')}</span>
         </button>
-        <button type="button" className="q-tile" onClick={() => onChangeView('play')}>
+        <button type="button" className="q-tile" onClick={() => onChangeView('play')} {...intencaoDe('play')}>
           <span className="q-ic">
             <Gamepad2 aria-hidden />
           </span>
@@ -469,10 +503,20 @@ export default function InicioDoQuest({
             <div>
               <h2>{t('Sessões recentes')}</h2>
             </div>
-            <button type="button" className="q-chip" onClick={() => onChangeView('library')}>
-              {t('Ver biblioteca completa')}
-            </button>
+            {!semConta && (
+              <button type="button" className="q-chip" onClick={() => onChangeView('library')}>
+                {t('Ver biblioteca completa')}
+              </button>
+            )}
           </header>
+          {semConta && !edicaoEstatica() && (
+            <div className="q-aviso" data-testid="sessoes-locais">
+              <span>{t('Elas ficam só neste navegador. Com uma conta, vão com você.')}</span>
+              <button type="button" className="q-ctl" onClick={() => onChangeView('login', { modo: 'signup' })}>
+                {t('Criar conta')}
+              </button>
+            </div>
+          )}
           <div className="q-abas q-seg" role="group" aria-label={t('Tipo de mídia')}>
             {(
               [
@@ -508,7 +552,7 @@ export default function InicioDoQuest({
                   key={rec.id}
                   type="button"
                   className="q-linha"
-                  onClick={() => onChangeView('analysis', { id: rec.id })}
+                  onClick={() => onChangeView(semConta ? 'play' : 'analysis', { id: rec.id })}
                 >
                   <span className="q-ic">
                     <Icone aria-hidden />
@@ -522,7 +566,7 @@ export default function InicioDoQuest({
                       {rec.status !== 'Processado' ? ` · ${t('processando')}` : ''}
                     </small>
                   </span>
-                  <span className="q-fim">{t('Abrir')}</span>
+                  <span className="q-fim">{semConta ? t('Jogar') : t('Abrir')}</span>
                 </button>
               );
             })}

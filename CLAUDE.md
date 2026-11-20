@@ -71,5 +71,9 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
   (`server/routes/ankiImports.ts`: abrir → notas → fechar) ou texto, e reaplica limpeza, identidade (guid/hash)
   e régua de qualidade — o cliente não é confiável. A página web (`/api/import/web`) é a única importação do
   servidor (CORS + anti-SSRF), com `linkedom`, e roda também no Worker.
+- Catálogos de i18n: `public/i18n/{en,es,ar}.json` ficam em ordem alfabética (portão `ordenar.mjs --check` na CI);
+  insira a chave em qualquer lugar e rode `npm run i18n`, que ordena e regenera os GERADOS `public/i18n/xx.json` e
+  `src/data/i18n/cobertura.json` (versionados: o app importa a cobertura e serve o `xx`). Conflito num gerado depois
+  de um merge: resolva os catálogos à mão, rode `npm run i18n` e faça `git add` do resultado — nunca edite os gerados.
 - `git pull --rebase` antes de `git push`: há mais de uma frente de trabalho na `main`.
 - `docs/prototipos/*-src/`, `docs/prototipos/_comum/` e `public/` ficam fora do lint.

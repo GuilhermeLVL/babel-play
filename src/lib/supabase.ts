@@ -22,6 +22,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { edicaoEstatica } from './edicaoEstatica';
+import { EVENTO_SUPABASE_PEDIDO, haSessaoOuVoltaDoLogin } from './sessaoNoBoot';
 
 // O tsconfig raiz não carrega os tipos do Vite (vite/client); `import.meta.env` existe em runtime.
 const env: Record<string, string | undefined> =
@@ -56,6 +57,9 @@ let carga: Promise<SupabaseClient | null> | null = null;
  */
 export function carregarSupabase(): Promise<SupabaseClient | null> {
   if (!configurado) return Promise.resolve(null);
+  /* Quem espera a sessão sem pedir o pacote (`useSessaoSupabase`, no visitante) fica sabendo. */
+  if (!carga && typeof window !== 'undefined')
+    queueMicrotask(() => window.dispatchEvent(new Event(EVENTO_SUPABASE_PEDIDO)));
   carga ??= import('@supabase/supabase-js').then(({ createClient }) => {
     supabase = createClient(url, anonKey, {
       // Intenção explícita (todos já são default do supabase-js) — trava o comportamento de sessão.
@@ -67,16 +71,25 @@ export function carregarSupabase(): Promise<SupabaseClient | null> {
   return carga;
 }
 
-// Dispara já: onde há projeto configurado o pacote É necessário, e adiar o download até o primeiro
-// `await` só atrasaria o login. O que muda é que ele deixou de BLOQUEAR o arranque de todo mundo.
-if (configurado) void carregarSupabase();
+/** Há projeto Supabase neste build (mesmo que o pacote ainda não tenha chegado)? */
+export const supabaseConfigurado: boolean = configurado;
+
+/** O boot deste navegador precisa do SDK (`sessaoNoBoot.ts`)? Lido uma vez, na carga do módulo. */
+export const supabaseNoBoot: boolean = configurado && haSessaoOuVoltaDoLogin();
+
+// Com sessão guardada (ou na volta do login), dispara já: o pacote É necessário e adiar só atrasaria a
+// pessoa logada. Sem sessão, fica para quando alguém pedir (a porta de login chama `carregarSupabase`).
+if (supabaseNoBoot) void carregarSupabase();
 
 /** Auth exigida no cliente? Espelha o AUTH_REQUIRED do servidor. Só é `true` se houver projeto. */
 export const authRequired: boolean = env.VITE_AUTH_REQUIRED === '1' && configurado;
 
 /** Token de acesso da sessão atual, ou null (sem login / não configurado). */
 export async function getAccessToken(): Promise<string | null> {
-  const sb = await carregarSupabase();
+  /* Sem o SDK carregado não há sessão neste navegador (ela chega pelo login, que o carrega): não baixa
+     o pacote só para responder "sem token" no boot do visitante. */
+  if (!carga) return null;
+  const sb = await carga;
   if (!sb) return null;
   const { data } = await sb.auth.getSession();
   return data.session?.access_token ?? null;

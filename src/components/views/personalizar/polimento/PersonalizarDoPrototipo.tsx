@@ -50,6 +50,13 @@ import TemporadaDoPrototipo from './TemporadaDoPrototipo';
 const ABAS: AbaDaLojaV2[] = ['colecao', 'maestria', 'temporada', 'conquistas', 'loja'];
 /* Coleção, Temporada e Loja são as redesenhadas (`telas2.js:404-408`). */
 const REDESENHADA: ReadonlySet<AbaDaLojaV2> = new Set(['colecao', 'temporada', 'loja']);
+/* Sem conta, o convite de cada aba diz o que a conta destrava ALI (`CONVITE`; a Temporada é o Passe). */
+const VIEW_DO_CONVITE: Partial<Record<AbaDaLojaV2, string>> = {
+  maestria: 'maestria',
+  temporada: 'passe',
+  conquistas: 'conquistas',
+  loja: 'loja',
+};
 
 export default function PersonalizarDoPrototipo({
   progress,
@@ -225,7 +232,11 @@ export default function PersonalizarDoPrototipo({
   };
 
   const convite = (
-    <CartaoDeConvite view="conquistas" onEntrar={() => onEntrar?.()} onVoltar={() => setAba('colecao')} />
+    <CartaoDeConvite
+      view={VIEW_DO_CONVITE[aba] ?? 'conquistas'}
+      onEntrar={onEntrar}
+      onVoltar={() => setAba('colecao')}
+    />
   );
   /* As abas que ficam como em produção moram no miolo de sempre (`.tela` é o escopo de `questBase.css`). */
   const comoEmProducao = (miolo: ReactNode) => (

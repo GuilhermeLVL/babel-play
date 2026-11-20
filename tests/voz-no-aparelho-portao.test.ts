@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  convidarParaVozNoAparelho,
   type EntradaDaVozNoAparelho,
   FLAG_VOZ_NO_APARELHO,
   ofertaDaVozNoAparelho,
+  supertonicLe,
 } from '../src/core/harness/vozNoAparelho'
 
 /** O Mac com Chrome isolado, WebGPU e 8 GB informados: a oferta padrão. */
@@ -93,5 +95,42 @@ describe('ofertaDaVozNoAparelho (portão por perfil)', () => {
     const o = com({ webGpu: false, tipo: 'desktop-sem-gpu' })
     expect(o).toMatchObject({ oferta: 'padrao', backend: 'wasm', threadsWasm: 4 })
     expect(o.rtfEstimado).toBeCloseTo(0.31, 2)
+  })
+})
+
+describe('ofertaDaVozNoAparelho — OPFS (false, true, "desconhecido")', () => {
+  it('OPFS inutilizável (a sonda falhou): não oferece, com o motivo de armazenamento', () => {
+    expect(com({ armazenamento: false })).toMatchObject({ oferta: 'nao', motivo: 'sem-armazenamento' })
+  })
+  it('OPFS funcionando: oferece como antes', () => {
+    expect(com({ armazenamento: true })).toMatchObject({ oferta: 'padrao', motivo: 'aparelho-capaz' })
+  })
+  it('OPFS ainda "desconhecido": não bloqueia a oferta nem a leitura', () => {
+    expect(com({ armazenamento: 'desconhecido' })).toMatchObject({ oferta: 'padrao', motivo: 'aparelho-capaz' })
+  })
+  it('o OPFS vem depois das regras de aparelho: iOS segue dizendo "ios"', () => {
+    expect(com({ ios: true, armazenamento: false }).motivo).toBe('ios')
+  })
+})
+
+describe('convidarParaVozNoAparelho — OPFS', () => {
+  const entrada = {
+    ...base,
+    idiomaSuportado: true,
+    modeloPronto: false,
+    escolha: 'automatica' as const,
+    audioGravado: false,
+    recusadoEm: null,
+    agora: 1_000,
+  }
+  it('com OPFS funcionando, convida', () => {
+    expect(convidarParaVozNoAparelho({ ...entrada, armazenamento: true })).toBe(true)
+  })
+  it('sem OPFS utilizável, não convida', () => {
+    expect(convidarParaVozNoAparelho({ ...entrada, armazenamento: false })).toBe(false)
+  })
+  it('antes da resposta da sonda ("desconhecido"), não convida, mas a leitura não é bloqueada', () => {
+    expect(convidarParaVozNoAparelho({ ...entrada, armazenamento: 'desconhecido' })).toBe(false)
+    expect(supertonicLe({ ...entrada, armazenamento: 'desconhecido', modeloPronto: true })).toBe(true)
   })
 })

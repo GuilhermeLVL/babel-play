@@ -10,6 +10,7 @@ import {
   type NivelNaTela,
 } from '../../../../lib/captura/nivelDeServico';
 import { type SeloDaFala, textoDoSelo } from '../../../../lib/captura/seloDaFala';
+import { diaQueACotaVolta } from '../../../../lib/diaQueACotaVolta';
 import { t } from '../../../../lib/i18n';
 import { langLabelNaUI } from '../../../../lib/languages';
 
@@ -173,17 +174,20 @@ export function ChipDoMedidor({
  * `notaDoPronto()` de `planos4.js:236-245`: uma nota por vez na tela "Pronto para legendar".
  *
  * As horas acabaram: NADA BLOQUEIA. A nota diz quanto era, que a legenda continua no aparelho e que as
- * horas voltam no dia 1º (os contadores do servidor zeram na virada do mês, `lib/uso.ts`). A porta
+ * horas voltam no dia em que a cota renova (`renovaEm` de `/api/me/uso`: o vencimento de quem paga). A porta
  * para o plano de cima só aparece quando ele existe e tem mais horas.
  */
 export function NotaDoPronto({
   medidores,
   semRede,
+  prontoOffline = false,
   planoDeCima,
   aoVerPlano,
 }: {
   medidores: readonly Medidor[];
   semRede: boolean;
+  /** Dá para legendar sem rede neste navegador (`prontoParaLegendarSemRede`)? Só então a promessa aparece. */
+  prontoOffline?: boolean;
   /** O plano à venda com mais horas de Precisão: o nome e as horas dele. */
   planoDeCima?: { nome: string; horas: string } | null;
   aoVerPlano?: () => void;
@@ -195,7 +199,7 @@ export function NotaDoPronto({
           <Server aria-hidden />
           <span>
             <b>{t('As {horas} de nuvem deste mês acabaram.', { horas: horas(medidores[0].total) })}</b>{' '}
-            {t('A legenda continua no aparelho, sem limite. As horas voltam no dia 1º.')}
+            {t('A legenda continua no aparelho, sem limite. As horas voltam em {data}.', { data: diaQueACotaVolta() })}
           </span>
         </span>
         {planoDeCima && aoVerPlano && (
@@ -207,14 +211,24 @@ export function NotaDoPronto({
     );
   }
   if (semRede) {
+    /* A promessa só quando é verdade NESTE navegador (DISP-02): o app em cache (service worker) e um modelo de
+       transcrição baixado (`prontoSemRede.ts`). Sem isso, o caminho para chegar lá. */
     return (
-      <div className="q-aviso pl-nota" data-testid="nota-sem-internet">
+      <div
+        className="q-aviso pl-nota"
+        data-testid="nota-sem-internet"
+        data-pronto-offline={prontoOffline ? 'sim' : 'nao'}
+      >
         <span>
           <WifiOff aria-hidden />
-          <span>
-            <b>{t('Você está sem internet.')}</b>{' '}
-            {t('A legenda roda no aparelho e nada se perde. A nuvem volta sozinha com a conexão.')}
-          </span>
+          {prontoOffline ? (
+            <span>
+              <b>{t('Você está sem internet.')}</b>{' '}
+              {t('A legenda roda no aparelho e nada se perde. A nuvem volta sozinha com a conexão.')}
+            </span>
+          ) : (
+            <span>{t('Sem internet. Para legendar sem rede, abra a legenda uma vez com internet.')}</span>
+          )}
         </span>
       </div>
     );

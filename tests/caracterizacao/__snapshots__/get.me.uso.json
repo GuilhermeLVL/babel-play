@@ -38,6 +38,7 @@
         "usado": "number"
       }
     },
+    "renovaEm": "number",
     "segundosDeAudio": {
       "teto": "number",
       "usado": "number"

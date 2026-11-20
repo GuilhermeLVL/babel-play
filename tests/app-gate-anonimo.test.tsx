@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/lib/supabase', () => ({
   supabase: null,
+  supabaseConfigurado: false,
   authRequired: true,
   carregarSupabase: async () => null,
   getAccessToken: async () => null,
@@ -65,15 +66,25 @@ describe('as telas do gate', () => {
     expect(screen.queryByRole('button', { name: 'Continuar sem conta' })).toBeNull()
   })
 
-  it('o convite diz o que a conta desbloqueia NAQUELA tela e tem as duas saídas', () => {
+  it('o convite diz o que a conta desbloqueia NAQUELA tela: criar conta, já tenho conta e continuar sem conta', () => {
     const entrar = vi.fn()
     const voltar = vi.fn()
     render(<CartaoDeConvite view="library" onEntrar={entrar} onVoltar={voltar} />)
     expect(screen.getByText('Sua biblioteca fica na sua conta')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Entrar ou criar conta' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Criar conta' }))
+    expect(entrar).toHaveBeenLastCalledWith('signup')
+    fireEvent.click(screen.getByRole('button', { name: 'Já tenho conta' }))
+    expect(entrar).toHaveBeenLastCalledWith('login')
     fireEvent.click(screen.getByRole('button', { name: 'Continuar sem conta' }))
-    expect(entrar).toHaveBeenCalledTimes(1)
+    expect(entrar).toHaveBeenCalledTimes(2)
     expect(voltar).toHaveBeenCalledTimes(1)
+  })
+
+  it('o convite inline (dentro de uma tela) não tem "Continuar sem conta"', () => {
+    render(<CartaoDeConvite view="conta" inline />)
+    expect(screen.getByRole('button', { name: 'Criar conta' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Já tenho conta' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Continuar sem conta' })).toBeNull()
   })
 
   it('o gate é um diálogo com o motivo, fecha no Escape e não perde a tela', () => {
@@ -82,8 +93,10 @@ describe('as telas do gate', () => {
     render(<GateDeConta aberto motivo="Importar do YouTube precisa de conta." onFechar={fechar} onEntrar={entrar} />)
     const dialogo = screen.getByRole('dialog')
     expect(dialogo.textContent).toContain('Importar do YouTube precisa de conta.')
-    fireEvent.click(screen.getByRole('button', { name: 'Entrar ou criar conta' }))
-    expect(entrar).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Criar conta' }))
+    expect(entrar).toHaveBeenLastCalledWith('signup')
+    fireEvent.click(screen.getByRole('button', { name: 'Já tenho conta' }))
+    expect(entrar).toHaveBeenLastCalledWith('login')
     // O Esc é do <dialog> nativo: fecha e dispara `close`.
     ;(dialogo as HTMLDialogElement).close()
     expect(fechar).toHaveBeenCalledTimes(1)

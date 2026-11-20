@@ -26,6 +26,7 @@ import {
   EVENTO_CAPTURA_LIBEROU,
   EVENTO_RODADA_FECHOU,
   jogoAtivo,
+  marcarRecompensaAberta,
   marcarVista,
   posicaoNoLote,
   type Recompensa,
@@ -183,6 +184,12 @@ function Resgate({
   const [equipados, setEquipados] = useState<Set<string>>(new Set());
   const idTitulo = useId();
   const fechado = useRef(false);
+
+  /* Enquanto o modal está na tela, o fim da rodada segura os espaços de anúncio dele (`filaDeRecompensas`). */
+  useEffect(() => {
+    marcarRecompensaAberta(true);
+    return () => marcarRecompensaAberta(false);
+  }, []);
 
   /* A festa de quem abre o modal, pelo motor: nível, conquista ou baú (a raridade do baú escala). */
   useEffect(() => {

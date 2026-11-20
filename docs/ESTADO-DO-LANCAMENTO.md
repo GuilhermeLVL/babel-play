@@ -7,6 +7,8 @@ de linha, está em [auditoria/2026-10-21-lancamento-inventario.md](auditoria/202
 plano em
 [superpowers/plans/2026-10-21-lancamento-estado-3.md](superpowers/plans/2026-10-21-lancamento-estado-3.md).
 
+> **02/11/2026 (0-bis):** a produção `frasy.com.br` JÁ está implantada (Worker, migrações e rollback automático), com quase todas as flags desligadas, e a lista atual do que falta para abrir tudo está em [planejamento/2026-11-02-pendencias-para-100-por-cento.md](planejamento/2026-11-02-pendencias-para-100-por-cento.md). Onde este arquivo disser que a produção não foi implantada, vale aquela lista.
+
 ## 0. O que mudou desde 18/10 (ramo `lancamento/estado-3`)
 
 - **Recorte do lançamento (P1–P6 do plano):** Grátis, **Essencial** e **Premium** à venda (flag `venda_planos_v3`
@@ -49,7 +51,7 @@ plano em
 | Matriz de quatro planos (**Grátis, Essencial, Premium, Ao Vivo**) em `PLAN_MATRIX`; no lançamento **vendem Essencial e Premium**. `pro` lê como `premium`.            | [ADR 0013](adr/0013-quatro-planos-por-nivel-de-servico.md) · `src/core/planos.ts` (`PLANOS_LEGADOS`)                                                                                                                                     |
 | Preços: Essencial R$ 9,90/mês e R$ 79,90/ano; Premium R$ 19,90/mês e R$ 149,90/ano (à vista ou 12x só no cartão); Ao Vivo R$ 39,90 (**fora da venda**).               | `PLAN_MATRIX`, `PARCELAS_DO_ANUAL` · [monetizacao.md](monetizacao.md)                                                                                                                                                                    |
 | Nuvem: Essencial 5 h/mês; Premium 20 h/mês (teto de 2 h por dia). Passou, a legenda segue no aparelho, sem venda (429, nunca 402).                                    | `PLAN_MATRIX` · [spec `matriz-de-planos`](../openspec/specs/matriz-de-planos/spec.md)                                                                                                                                                    |
-| **Teste de 14 dias** sem cartão, um por pessoa, nunca cobra sozinho.                                                                                                  | `DIAS_DO_TESTE_PREMIUM` · `server/lib/testePremium.ts`                                                                                                                                                                                   |
+| **Teste de 3 dias** sem cartão, um por pessoa, nunca cobra sozinho.                                                                                                   | `DIAS_DO_TESTE_PREMIUM` · `server/lib/testePremium.ts`                                                                                                                                                                                   |
 | Quem concede o plano é o webhook do Asaas, **pelo valor pago**, mesmo de plano que não está à venda (o dinheiro entrou). Pix Automático desligado.                    | [LANCAMENTO.md §6](LANCAMENTO.md) · [spec `pagamento-nunca-perdido`](../openspec/specs/pagamento-nunca-perdido/spec.md)                                                                                                                  |
 | Anúncios só no Grátis, por escolha e com a porta "Sem anúncios"; nunca para perfil protegido, headset, captura ativa, conta com menos de 3 dias ou sem consentimento. | [spec `anuncios-no-gratis`](../openspec/specs/anuncios-no-gratis/spec.md) · `src/core/anuncios/politicaDeAnuncio.ts`                                                                                                                     |
 | Infra: Cloudflare Workers (Hyperdrive) + Postgres do Supabase em SP + R2 (mídia e backup semanal) + Resend + Sentry.                                                  | [LANCAMENTO.md](LANCAMENTO.md) · [ADR 0015](adr/0015-cloudflare-workers-no-lugar-do-fly.md) · ADRs [0006](adr/0006-sqlite-numa-maquina-ate-o-gatilho-de-postgres.md), [0009](adr/0009-audio-no-r2-com-retencao-e-varredura-de-orfaos.md) |
@@ -86,8 +88,8 @@ importação), furos P0 de 13/09 fechados, a migração para Cloudflare + Supaba
 a passo do dono ([LANCAMENTO.md](LANCAMENTO.md)) e a operação ([runbook.md](runbook.md), [deploy.md](deploy.md),
 [escala.md](escala.md)).
 
-**No ar hoje:** só a edição estática, sem conta nem cobrança ([edicao-estatica.md](edicao-estatica.md)). O servidor
-(Worker da Cloudflare) roda só no staging; a produção ainda não foi implantada.
+**No ar hoje (atualizado em 02/11):** o Worker de produção em `frasy.com.br`, com as flags de venda, anúncios e voz desligadas e
+cadastro/checkout fechados por padrão. Ver [a lista de pendências](planejamento/2026-11-02-pendencias-para-100-por-cento.md).
 
 ## 3. O que falta
 
@@ -123,7 +125,7 @@ A lista completa e atualizada é a seção **"Você (dono)"** do plano
 - **Advogado: Termos §3–§4** (anual, 12x, teste, uso justo, cancelamento sem reembolso proporcional depois dos
   7 dias) — `public/termos.html` está marcado "texto a validar". Sem isso, não abrir a venda do anual.
   Por isso **o MVP sobe com `ANUAL_ENABLED` ausente ou `0`** (só `=1` abre o anual): vende só o mensal e o teste de
-  14 dias; o anual, à vista e em 12x, some da tela e o servidor o recusa (503 `anual_indisponivel`). Quem já tem o
+  3 dias; o anual, à vista e em 12x, some da tela e o servidor o recusa (503 `anual_indisponivel`). Quem já tem o
   anual não é afetado (`anualLigado` em `server/lib/config.ts`, [STAGING.md §5](STAGING.md)). O §4 ainda cita o
   limite antigo do Premium (2 h/dia e 40 h/mês); a matriz atual é 20 h/mês.
 - **ECA Digital (Lei 15.211/2025, Decreto 12.880/2026) antes de ligar `anuncios`**, e o parágrafo de transferência

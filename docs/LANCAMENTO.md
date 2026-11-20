@@ -47,7 +47,7 @@ O Asaas não tem mensalidade: cobra por transação (cartão ~R$ 0,49 + 1,99 % a
 
 **O que se vende (planos v2, ADR 0011):** Grátis + **Premium** — R$ 19,90/mês, **R$ 179/ano** à vista (Pix,
 boleto ou cartão; renova em um ano) ou em **12x no cartão** (11 × R$ 14,91 + R$ 14,99; não renova), e o
-**teste de 14 dias sem cartão** (um toque, um por pessoa, nunca cobra). "Sem limite no dia a dia" com **uso
+**teste de 3 dias sem cartão** (um toque, um por pessoa, nunca cobra). "Sem limite no dia a dia" com **uso
 justo** de 2 h/dia e 40 h/mês de nuvem (o empate de custo na pilha de hoje; 60 h só depois do B7). A conta
 de custo por assinante está em `scripts/custo/modelo.mjs` (`node scripts/custo/modelo.mjs`).
 
@@ -253,7 +253,7 @@ ausente, 20 % do orçamento diário — o valor só baixa esse pool, os 80 % res
 6. **Pix Automático** fica DESLIGADO (o `/assinar` responde 501 `pix_automatico_indisponivel`): em produção o
    Asaas exige conta **PJ com CNPJ ativo há 6 meses ou mais** e sem restrição de Pix. Quando a conta for
    elegível, a integração entra atrás de flag (change `planos-v2`, C5).
-7. **Teste de 14 dias:** nada a configurar no Asaas (o teste não cria cobrança). A marca "um por pessoa" é
+7. **Teste de 3 dias:** nada a configurar no Asaas (o teste não cria cobrança). A marca "um por pessoa" é
    o HMAC do e-mail com a chave derivada da `SECRET_KEY`: **trocar a `SECRET_KEY` invalida as marcas** — quem
    já testou poderia testar de novo. Mais um motivo para guardá-la no cofre (passo 8).
 
@@ -426,7 +426,7 @@ próxima requisição, sem deploy). As mesmas portas, para fechar de volta, est�
 3. **Cadastro — `SIGNUP_ENABLED`.** Primeiro o app: `npx wrangler secret put SIGNUP_ENABLED -c wrangler.jsonc` e digite
    `1` (ou apague o secret com `npx wrangler secret delete SIGNUP_ENABLED -c wrangler.jsonc`: ausente = aberto).
    **Em seguida o Supabase:** Authentication → Providers → Email → _Allow new users to sign up_ **ligado**. Teste criando
-   uma conta nova: o e-mail chega, o login entra, o teste de 14 dias aparece em Planos.
+   uma conta nova: o e-mail chega, o login entra, o teste de 3 dias aparece em Planos.
 4. **Venda — `CHECKOUT_ENABLED`.** Ainda sem anual: `npx wrangler secret put CHECKOUT_ENABLED -c wrangler.jsonc` com `1`.
    `venda_planos_v3` já está ligada (passo 2), então o Essencial e o Premium **mensais** passam a vender. Teste com a
    sua conta: assinar o mensal, o webhook concede o plano pelo valor, e `GET /api/billing/status` confere.

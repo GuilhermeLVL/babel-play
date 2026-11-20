@@ -8,6 +8,7 @@ import PracticeMenu from './components/PracticeMenu';
 // Agora cada view puxa o seu chunk quando aberta → app leve e dinâmica.
 import { PaginaDoInterprete } from './components/views/captura/interprete/paginaSobDemanda';
 import { lazyComRecarga } from './lib/lazyComRecarga';
+import { quandoPassarOLcp, useDepoisDoLcp } from './lib/polimento/depoisDoLcp';
 import { registrarTelas } from './lib/polimento/precarga';
 /* As telas do menu têm o `import()` com nome: é o mesmo pedido que a pré-carga faz no toque do item do
    menu e com o navegador ocioso (`lib/polimento/precarga.ts`), para a tela não esperar o arquivo. */
@@ -67,6 +68,14 @@ registrarTelas({
 // A casca e o Início: pedaços à parte, fora do JS inicial.
 const TrilhoDoQuest = lazyComRecarga(() => import('./components/shell/TrilhoDoQuest'));
 const InicioDoQuest = lazyComRecarga(() => import('./components/views/quest/InicioDoQuest'));
+/* PEDIDOS JÁ NA CARGA DESTE MÓDULO (carga-rapida-no-celular, 2.2): a casca e o Início são a primeira pintura de
+   todo mundo (o elemento do LCP é o cartão "Legendar agora"). Antes eles só eram pedidos quando o React os
+   montava, depois da sessão e das configurações: uma ida à rede a mais no 4G lento. Na rota do Início, saem
+   em paralelo com o resto do boot; nas outras telas, a casca. */
+if (typeof window !== 'undefined') {
+  void TrilhoDoQuest.carregar().catch(() => undefined);
+  if (/^\/(app\/?)?$/.test(window.location.pathname)) void InicioDoQuest.carregar().catch(() => undefined);
+}
 /* O modal de resgate: só quando há recompensa na fila (a fila em si mora em `lib/filaDeRecompensas`).
    O chunk é PEDIDO NO ARRANQUE (efeito abaixo), fora do JS inicial: sob demanda pura, o download só
    começava quando a fila enchia, e o modal abria atrasado pelo tempo do chunk — já com a pessoa
@@ -107,7 +116,7 @@ const carregarHostDeOfertas = () => import('./components/ofertas/HostDeOfertas')
    pintura: é decoração e confirmação de gesto, não precisa estar no pacote inicial (teto de 180 KB gzip).
    Por `usePedacoDoQuest`: se o chunk não chegar, não há partícula e a página NÃO recarrega. */
 const carregarParticulas = () => import('./components/ParticleCanvas');
-import { aceitarAnonimo, exigeConta, porta } from './components/conta/exigeConta';
+import { aceitarAnonimo, conviteNoLugarDaTela, porta } from './components/conta/exigeConta';
 import { usePedacoDoQuest } from './components/conta/quest/usePedacoDoQuest';
 import FloatingScoreLayer from './components/FloatingScoreLayer';
 import IndicadorDeSalvamento from './components/IndicadorDeSalvamento';
@@ -117,6 +126,7 @@ import { carregarProtecao, fetchSessions } from './data/api';
 import { lerTokenDoConvite } from './lib/conviteNaUrl';
 import { edicaoEstatica } from './lib/edicaoEstatica';
 import { carregarEntitlements } from './lib/entitlements';
+import { tirarEsqueleto } from './lib/esqueleto';
 import { useAparencia, useHidratacaoDeAjustes } from './lib/estado/useAparencia';
 import { useEmCheckout } from './lib/estado/useEmCheckout';
 import { useGateDeConta } from './lib/estado/useGateDeConta';
@@ -131,6 +141,7 @@ import { useSessaoSupabase } from './lib/estado/useSessaoSupabase';
 import { tirarDaFila } from './lib/filaDeRecompensas';
 import { equiparItem } from './lib/galeria/equipar';
 import { t } from './lib/i18n';
+import { estaAnonimo } from './lib/identidade';
 import { useIdiomaDaInterfaceEscolhido } from './lib/langConfig';
 import { dispararOferta } from './lib/ofertas/eventos';
 import {
@@ -154,7 +165,9 @@ export default function App() {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [selectedRecordingId, setSelectedRecordingId] = useState<string | null>(null);
   const [resumingRecordingId, setResumingRecordingId] = useState<string | null>(null);
-  const [onboarded, setOnboarded] = useState<boolean | null>(null);
+  /* O visitante sem conta não tem apresentação (`useHidratacaoDeAjustes` sempre devolve `true` para ele): sem
+     esperar o servidor em memória, o Início pinta no primeiro desenho (carga-rapida-no-celular, 2.4). */
+  const [onboarded, setOnboarded] = useState<boolean | null>(() => (authRequired && estaAnonimo() ? true : null));
 
   const { session, recovery, setRecovery, processingCallback, segundoFatorPendente, reconferirSegundoFator } =
     useSessaoSupabase();
@@ -177,7 +190,9 @@ export default function App() {
   /* O gate só desce quando o evento `babel_exige_conta` abre (gate !== null); o host das ofertas
      desce já no primeiro desenho, porque escuta eventos desde o começo. */
   const { Componente: GateDeConta } = usePedacoDoQuest(carregarGateDeConta, gate !== null);
-  const { Componente: HostDeOfertas } = usePedacoDoQuest(carregarHostDeOfertas, !edicaoEstatica());
+  /* As ofertas, as partículas, o modal de recompensa e o iChat não desenham o Início: descem depois do LCP. */
+  const passouLcp = useDepoisDoLcp();
+  const { Componente: HostDeOfertas } = usePedacoDoQuest(carregarHostDeOfertas, !edicaoEstatica() && passouLcp);
 
   const {
     theme,
@@ -207,11 +222,11 @@ export default function App() {
     setDarkMode,
     setAgeProfileState,
   } = useAparencia();
-  const { Componente: ParticleCanvas } = usePedacoDoQuest(carregarParticulas, !performanceMode);
+  const { Componente: ParticleCanvas } = usePedacoDoQuest(carregarParticulas, !performanceMode && passouLcp);
   const { Componente: BuscaGlobal } = usePedacoDoQuest(carregarBuscaGlobal, buscaAberta);
 
   useEffect(() => {
-    void carregarRecompensaDesbloqueada().catch(() => undefined);
+    quandoPassarOLcp(() => void carregarRecompensaDesbloqueada().catch(() => undefined));
   }, []);
 
   // Entitlements: o servidor decide o plano; o cliente só cacheia para pintar. Recarrega quando a
@@ -357,6 +372,20 @@ export default function App() {
     }
   };
 
+  /* Fora do Início, o esqueleto do HTML (carga-rapida-no-celular) não é a tela: sai na hora (outra tela, a porta
+     de login, a apresentação, a recuperação, o desafio do 2FA, o convite). */
+  const outraTela =
+    activeView !== 'hub' ||
+    !!pedindoLogin ||
+    recovery ||
+    onboarded === false ||
+    !!tokenDoConvite ||
+    segundoFatorPendente ||
+    (authRequired && processingCallback);
+  useEffect(() => {
+    if (outraTela) tirarEsqueleto();
+  }, [outraTela]);
+
   const selectedRecording = recordings.find((r) => r.id === selectedRecordingId) || recordings[0];
   const analiseAberta = sessaoAberta({
     carregadas: gravacoesCarregadas,
@@ -379,6 +408,8 @@ export default function App() {
   /* Livros tem item próprio no menu (27/10/2026): o catálogo, o detalhe e o leitor acendem "Livros"; só a
      aula (analysis) vive na Biblioteca. */
   const viewDoMenu: ViewType = activeView === 'analysis' ? 'library' : activeView === 'leitor' ? 'livros' : activeView;
+  /* Sem conta, o convite fica NO LUGAR da tela que exige conta: uma regra só decide os dois lados. */
+  const conviteNaTela = conviteNoLugarDaTela(activeView, anonimo);
 
   // Marco 1: OAuth/recuperação voltando em /auth/callback — aguarda o supabase-js processar a URL.
   if (authRequired && processingCallback) {
@@ -426,7 +457,10 @@ export default function App() {
       </Suspense>
     );
   }
-  if (porta({ authRequired, temSessao: !!session, anonimoAceito: semContaAceito, pedindoLogin }) === 'login') {
+  if (
+    porta({ authRequired, temSessao: !!session, anonimoAceito: semContaAceito, pedindoLogin: !!pedindoLogin }) ===
+    'login'
+  ) {
     return (
       <Suspense
         fallback={
@@ -436,6 +470,7 @@ export default function App() {
         }
       >
         <Login
+          modoInicial={pedindoLogin === 'signup' ? 'signup' : 'login'}
           onContinuarSemConta={() => {
             aceitarAnonimo();
             setSemContaAceito(true);
@@ -581,12 +616,8 @@ export default function App() {
             >
               {/* Na edição estática, Estatísticas roda inteira no servidor em memória e a tela abaixo
                 já monta sem conta — o cartão por cima dela só contradiria o que aparece. */}
-              {anonimo && exigeConta(activeView) && !(edicaoEstatica() && activeView === 'estatisticas') && (
-                <CartaoDeConvite
-                  view={activeView}
-                  onEntrar={() => setPedindoLogin(true)}
-                  onVoltar={() => setActiveView('hub')}
-                />
+              {conviteNaTela && (
+                <CartaoDeConvite view={activeView} onEntrar={setPedindoLogin} onVoltar={() => setActiveView('hub')} />
               )}
               {activeView === 'hub' && (
                 <InicioDoQuest
@@ -617,7 +648,7 @@ export default function App() {
                   ageProfile={ageProfile}
                 />
               )}
-              {activeView === 'library' && !anonimo && (
+              {activeView === 'library' && !conviteNaTela && (
                 <Library
                   onChangeView={navigateTo}
                   recordings={recordings}
@@ -642,7 +673,7 @@ export default function App() {
                   toggleSound={toggleSound}
                 />
               )}
-              {activeView === 'analysis' && !anonimo && analiseAberta.tipo === 'carregando' && (
+              {activeView === 'analysis' && !conviteNaTela && analiseAberta.tipo === 'carregando' && (
                 <div
                   className="carregando-da-tela flex flex-1 items-center justify-center p-10 text-ink-muted text-sm"
                   role="status"
@@ -651,7 +682,7 @@ export default function App() {
                 </div>
               )}
               {activeView === 'analysis' &&
-                !anonimo &&
+                !conviteNaTela &&
                 (analiseAberta.tipo === 'nao-encontrada' || analiseAberta.tipo === 'vazia') && (
                   <div className="tela">
                     <Vazio
@@ -667,7 +698,7 @@ export default function App() {
                     />
                   </div>
                 )}
-              {activeView === 'analysis' && !anonimo && analiseAberta.tipo === 'sessao' && (
+              {activeView === 'analysis' && !conviteNaTela && analiseAberta.tipo === 'sessao' && (
                 <Analysis
                   onChangeView={navigateTo}
                   recording={analiseAberta.gravacao}
@@ -685,11 +716,7 @@ export default function App() {
               {/* CARTÕES abre também sem conta, no estado vazio (decisão do dono, 10/10/2026). A rodada de
                   revisão continua pedindo conta: sem ela, o convite de sempre. */}
               {activeView === 'cartoes' && anonimo && estudo && (
-                <CartaoDeConvite
-                  view="study"
-                  onEntrar={() => setPedindoLogin(true)}
-                  onVoltar={() => navigateTo('cartoes')}
-                />
+                <CartaoDeConvite view="study" onEntrar={setPedindoLogin} onVoltar={() => navigateTo('cartoes')} />
               )}
               {activeView === 'cartoes' && !(anonimo && estudo) && (
                 <Cartoes
@@ -706,7 +733,7 @@ export default function App() {
                 />
               )}
 
-              {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} />}
+              {activeView === 'profile' && !conviteNaTela && <Perfil progress={progress} ageProfile={ageProfile} />}
               {/* Plano e consumo. Diferente do Perfil, aparece TAMBÉM sem conta: é justamente
               quem não tem conta que precisa saber o que um plano daria. */}
               {/* Edição estática (sem servidor): não há plano a assinar. Quem chega por URL (/plano)
@@ -723,7 +750,7 @@ export default function App() {
                 ))}
               {/* Sem conta, o convite fica sozinho e centrado: a tela de trás não aparece por baixo dele
                   (na edição estática não há convite e ela monta normalmente). */}
-              {activeView === 'estatisticas' && (!anonimo || edicaoEstatica()) && (
+              {activeView === 'estatisticas' && !conviteNaTela && (
                 <Estatisticas metrics={metrics} onChangeView={(v) => navigateTo(v as ViewType)} />
               )}
               {activeView === 'ajuda' && <Ajuda />}
@@ -750,7 +777,7 @@ export default function App() {
                   ageProfile={ageProfile}
                   setAgeProfile={setAgeProfile}
                   abaInicial={lojaAba}
-                  onEntrar={() => setPedindoLogin(true)}
+                  onEntrar={(modo) => setPedindoLogin(modo ?? true)}
                   aoTrocarDeAba={setLojaAba}
                   equiparCtx={equiparCtx}
                 />
@@ -819,9 +846,9 @@ export default function App() {
             aberto={gate !== null}
             motivo={gate ?? ''}
             onFechar={fecharGate}
-            onEntrar={() => {
+            onEntrar={(modo) => {
               fecharGate();
-              setPedindoLogin(true);
+              setPedindoLogin(modo);
             }}
           />
         )}
@@ -848,7 +875,7 @@ export default function App() {
               na edição estática, sem servidor, ele não monta — melhor ausente que um botão que só
               responde "não deu". */}
           {/* No leitor de livros o botão flutuante cobria a virada de página: lá o iChat não monta. */}
-          {!edicaoEstatica() && activeView !== 'leitor' && (
+          {!edicaoEstatica() && activeView !== 'leitor' && passouLcp && (
             <IChat
               activeView={mappedActiveViewForChat}
               selectedRecording={selectedRecording}

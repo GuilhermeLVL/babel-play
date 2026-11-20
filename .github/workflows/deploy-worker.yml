@@ -23,8 +23,11 @@
 #            à parte, ver docs/deploy.md "Anúncios")
 #            SITE_FLAGS_DE_VENDA (opcional: as flags de venda ligadas no banco, ex. `venda_planos_v4,ia_de_estudo`;
 #            decidem os planos da página pública /planos; vazia = venda fechada, com aviso no build)
+#            SITE_ANUAL_A_VENDA (opcional: `1` quando o Worker tiver ANUAL_ENABLED=1; sem ela, /planos não mostra o anual)
 #            ADSENSE_PUB_ID (opcional: `pub-…`; só com ele o build gera o /ads.txt)
 #            VITE_LIVROS_URL (opcional: raiz pública do bucket frasy-livros(-staging) com os EPUBs curados do Gutenberg)
+#            VITE_VOZ_MODELO_URL (opcional: `<raiz pública do bucket frasy-modelos>/supertonic-3`, os pesos da voz no aparelho;
+#            sem ela a voz de alta qualidade nunca é oferecida, nem com a flag `voz_no_aparelho` ligada)
 #            VITE_AVATARES_URL (opcional: raiz pública do bucket com a coleção curada de avatares 3D; só com a flag avatar_3d)
 #            VITE_ANUNCIOS_DEMONSTRACAO (só no `staging`: `1` liga a demonstração dos espaços de anúncio, R38;
 #            nunca no `production`, e o passo do build a ignora fora do staging)
@@ -117,6 +120,15 @@ jobs:
             exit 1
           fi
 
+      # O PORTÃO DO ESPELHO (change `modelos-confiaveis-e-offline`): com VITE_SELF_HOST_MODELS=<url>, a CSP do build
+      # sai SEM o Hugging Face e sem o jsDelivr; então cada peso do manifesto, o Parakeet e o runtime do ONNX têm de
+      # responder 200 no bucket ANTES de publicar. Sem a variável (deploy sem espelho), o script não confere nada.
+      - name: Portão do espelho dos modelos
+        env:
+          VITE_SELF_HOST_MODELS: ${{ vars.VITE_SELF_HOST_MODELS }}
+          VITE_ORT_WASM_URL: ${{ vars.VITE_ORT_WASM_URL }}
+        run: npx tsx scripts/modelos/conferir-espelho.ts --base="$VITE_SELF_HOST_MODELS" --ort="$VITE_ORT_WASM_URL"
+
       # Os VITE_* entram no bundle do front (assets servidos pelo Worker). Os valores vêm do Environment.
       # VITE_AUTH_REQUIRED=1 é fixo: o Worker é sempre o modo público (AUTH_REQUIRED=1 nos `vars`); sem ele o front
       # sai em self-host, sem porta de login, e "Você está no Premium" (foi o que o staging mostrou em 21/10/2026).
@@ -140,10 +152,12 @@ jobs:
           # O site público (scripts/site): as flags de venda ligadas no banco deste ambiente (decidem os planos e preços
           # de /planos; vazia = venda fechada, e o build avisa) e o id do AdSense (só com ele sai o /ads.txt).
           SITE_FLAGS_DE_VENDA: ${{ vars.SITE_FLAGS_DE_VENDA }}
+          SITE_ANUAL_A_VENDA: ${{ vars.SITE_ANUAL_A_VENDA }}
           ADSENSE_PUB_ID: ${{ vars.ADSENSE_PUB_ID }}
           # A raiz pública da cópia curada do Gutenberg no R2 (docs/livros-catalogo.md §3). Vazia, o livro do Gutenberg
           # aparece no catálogo e a leitura avisa que a cópia ainda não foi publicada; a CSP abre a origem sozinha.
           VITE_LIVROS_URL: ${{ vars.VITE_LIVROS_URL }}
+          VITE_VOZ_MODELO_URL: ${{ vars.VITE_VOZ_MODELO_URL }}
           VITE_AVATARES_URL: ${{ vars.VITE_AVATARES_URL }}
         run: npm run build
 
@@ -212,15 +226,29 @@ jobs:
           node scripts/cloudflare/fumaca-remota.mjs "$PREVIEW" "$SHA"
 
       # Vira 100% do tráfego para a versão que passou na fumaça. Daqui em diante, falha = rollback.
+      # CONSISTÊNCIA EVENTUAL: segundos depois do upload, o GET `/versions/<id>` da API ainda pode responder
+      # "Worker version could not be found [code: 100146]" para a versão que acabou de subir (e já serve o preview;
+      # deploys de 19/11/2026). Só ESSE erro tenta de novo (até 4 vezes: 15 s, 30 s, 45 s); qualquer outro falha na hora.
       - name: Promover a versão (100% do tráfego)
         if: ${{ steps.existe.outputs.existe == 'true' }}
         id: implantar
         env:
           VERSAO: ${{ steps.subir.outputs.versao }}
         run: |
+          set -uo pipefail
           env_args=(); [ "$AMBIENTE" = "production" ] || env_args=(--env "$AMBIENTE")
-          npx wrangler versions deploy "$VERSAO@100%" -y -c wrangler.jsonc "${env_args[@]}" \
-            --message "$SHA7 $AMBIENTE"
+          for tentativa in 1 2 3 4; do
+            if npx wrangler versions deploy "$VERSAO@100%" -y -c wrangler.jsonc "${env_args[@]}" \
+              --message "$SHA7 $AMBIENTE" 2>&1 | tee "$RUNNER_TEMP/promover.log"; then
+              exit 0
+            fi
+            if ! grep -q 'code: 100146' "$RUNNER_TEMP/promover.log" || [ "$tentativa" = 4 ]; then
+              exit 1
+            fi
+            espera=$((tentativa * 15))
+            echo "::warning::a API ainda não acha a versão $VERSAO (100146, tentativa $tentativa de 4): nova tentativa em ${espera}s"
+            sleep "$espera"
+          done
 
       - name: Fumaça na URL final
         if: ${{ steps.existe.outputs.existe == 'true' }}

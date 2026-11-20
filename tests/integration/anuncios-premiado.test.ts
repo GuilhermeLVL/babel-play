@@ -10,7 +10,7 @@
  *  - prazo: exibição iniciada há mais de 10 min não credita (410);
  *  - duração mínima (R33): concluir menos de 15 s depois de iniciar é 409 `cedo_demais` — por isso os casos
  *    abaixo recuam `iniciado_em` 16 s antes de concluir, como faria um anúncio assistido;
- *  - plano sem anúncios (pagante, teste de 14 dias) → 403 `sem_anuncios`, nas duas pontas;
+ *  - plano sem anúncios (pagante, teste de 3 dias) → 403 `sem_anuncios`, nas duas pontas;
  *  - `nuvem-30`: só com a nuvem do Grátis ligada (409 `alivio_desligado`) e no máximo 2 por pessoa no dia;
  *  - 3 exibições pendentes nos últimos 10 min → 429 `exibicoes_pendentes`;
  *  - tetos do dia UTC, contados no `concluido_em`: 5 por pessoa e 2.000 no total → 429 `teto_do_dia`;
@@ -25,7 +25,8 @@
  *    produção), e a lista volta ao padrão antes de cada caso;
  *  - `nuvem-30`: no máximo 10 por pessoa no mês UTC (5 h) → 429 `teto_do_mes`, nas duas pontas;
  *  - conta com menos de 3 dias (ou sem linha em `users`) → 403 `conta_nova` no `iniciar`. Por isso o
- *    `tokenAdulto` daqui provisiona a conta com 4 dias de idade.
+ *    `tokenAdulto` daqui provisiona a conta com 31 dias de idade (o `nuvem-30` exige 30; ver
+ *    `anuncios-premiado-antifraude.test.ts`, que também cobre os tetos por IP e por rede).
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
@@ -63,10 +64,10 @@ async function contaCriadaHa(sub: string, dias: number): Promise<void> {
   })
 }
 
-/** Adulto declarado, com conta de 4 dias: passa da porta `conta_nova`. */
+/** Adulto declarado, com conta de 31 dias: passa da porta `conta_nova` (inclusive a de 30 dias do `nuvem-30`). */
 async function tokenAdulto(sub: string): Promise<string> {
   const t = await s.tokenAdulto(sub)
-  await contaCriadaHa(sub, 4)
+  await contaCriadaHa(sub, 31)
   return t
 }
 
@@ -125,8 +126,10 @@ beforeEach(async () => {
   rota.definirEspacosAtivosParaTestes(null)
 })
 afterEach(async () => {
-  /* O teto global é do app inteiro: cada caso começa do zero. */
+  /* O teto global é do app inteiro: cada caso começa do zero. E todos os casos chegam do mesmo IP (127.0.0.1):
+     o teto por IP e por rede também recomeça. */
   await client.execute('DELETE FROM anuncios_premiados')
+  await client.execute(`DELETE FROM usage_counters WHERE metric = 'premiado:ip'`)
 })
 
 describe('os tetos ficam em src/core/planos.ts', () => {
@@ -447,11 +450,11 @@ describe('plano sem anúncios', () => {
     expect(await seedsDe('ad-pagante')).toBe(0)
   })
 
-  it('no teste de 14 dias do Premium: 403 sem_anuncios', async () => {
+  it('no teste de 3 dias do Premium: 403 sem_anuncios', async () => {
     const { testesPremiumRepo } = await s.load('../../server/db/repositories/testesPremium')
     const t = await tokenAdulto('ad-em-teste')
     const agora = Date.now()
-    await testesPremiumRepo.iniciar('ad-em-teste', 'marca-ad-em-teste', agora, agora + 14 * 86_400_000)
+    await testesPremiumRepo.iniciar('ad-em-teste', 'marca-ad-em-teste', agora, agora + 3 * 86_400_000)
     const r = await iniciar(t, 'fim-premiado')
     expect(r.status).toBe(403)
     expect((await r.json()).code).toBe('sem_anuncios')

@@ -139,6 +139,7 @@ primeira passada alguns minutos depois do boot e as seguintes no intervalo da ta
 | `podaDasMarcasDeTeste`     | `13 3 * * *` | 13 min / 24 h                | modo público                          | 1 instrução                         |
 | `podaDasJanelasDiarias`    | `17 3 * * *` | 17 min / 24 h                | modo público                          | 1 instrução por métrica             |
 | `limpezaDiaria`            | `23 3 * * *` | 17 min / 24 h                | `LIMPEZA_DIARIA=1` (e fora de teste)  | 200 lotes de 500 linhas             |
+| `reconciliarCobrancas`     | `29 3 * * *` | 29 min / 24 h                | modo público + `ASAAS_API_KEY`        | 150 assinaturas, 45 dias            |
 | `reconciliarArmazenamento` | `19 * * * *` | 19 min / 1 h                 | `STORAGE_RECONCILE_MODE=job`          | 200 usuários                        |
 
 A reconciliação é a única horária: ela cobre todo usuário a cada `STORAGE_RECONCILE_HOURS` (padrão 24 h), e com teto de 200 usuários por passada uma vez por dia só daria conta de 200 usuários por dia; de hora em hora são até 4.800, em passadas curtas (cada uma faz `stat`/`HEAD` por arquivo) espalhadas pelo dia. O minuto do cron repete o atraso do Node, para a ordem ser a mesma; a `limpezaDiaria` vai para `:23` no
@@ -386,6 +387,7 @@ portão volta a ser só a fumaça final + rollback, e o passo 5 da produção pr
 | `VITE_PUBLIC_URL`, `VITE_ORT_WASM_URL`                                                                                                                                                             | var    | canônica/og e base do WASM (R2)                                                                                                                                                                                          |
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SELF_HOST_MODELS`, `VITE_SENTRY_DSN`, `VITE_TURNSTILE_SITE_KEY`, `VITE_LOGIN_GOOGLE`, `VITE_DESENHO_NOVO_PADRAO`, `VITE_BERGAMOT_MODELOS_URL` | var    | os mesmos do build da imagem Docker; todos públicos                                                                                                                                                                      |
 | `SITE_FLAGS_DE_VENDA`                                                                                                                                                                              | var    | opcional: as flags de venda ligadas no banco deste ambiente (ex.: `venda_planos_v4,ia_de_estudo`); decidem os planos e preços da página pública `/planos`. Vazia = venda fechada (Grátis + Premium) e o build avisa      |
+| `SITE_ANUAL_A_VENDA`                                                                                                                                                                               | var    | opcional: `1` quando o Worker tiver `ANUAL_ENABLED=1`. Sem ela, `/planos` não mostra preço anual nem fala do anual (o app já segue o `/api/abertura`)                                                                    |
 | `ADSENSE_PUB_ID`                                                                                                                                                                                   | var    | opcional: o id `pub-…` do AdSense; só com ele o build gera o `/ads.txt`                                                                                                                                                  |
 
 Os secrets do Worker (`SECRET_KEY`, chaves de IA…) continuam por `scripts/cloudflare/secrets.ts`, não pelo CI.
@@ -446,7 +448,10 @@ app a embute por `<iframe credentialless sandbox>`.
   `APP_URL=<origem do app> VITE_ANUNCIOS_REDE_CONTA=<código> npm run anuncios:build && npx wrangler deploy -c wrangler.anuncios.jsonc [--env staging]`
   (`APP_URL` = a origem do app, passada só neste comando; o `deploy-worker.yml` não a lê).
   Staging: `https://frasy-anuncios-staging.<conta>.workers.dev`. Produção: domínio personalizado
-  `https://ads.<domínio>` no painel da Cloudflare, apontando para o Worker `frasy-anuncios`.
+  `https://ads.frasy.com.br`, declarado no `routes` do `wrangler.anuncios.jsonc` (o deploy cria DNS e certificado).
+  `VITE_ANUNCIOS_REDE_CONTA` é o **código da rede do Google Ad Manager** (só dígitos, o `/<rede>/` do GPT),
+  **não** o id do AdSense (`ca-pub-…`): com um `pub-` o build falha de propósito. Roteiro do dia da aprovação:
+  `docs/runbooks/anuncios-no-ar.md`.
 - **CSP do app:** com `ANUNCIOS_ORIGEM` (var do Worker do app) **e** a flag ligada, o Worker sobrepõe o
   `Content-Security-Policy` dos documentos (`Sec-Fetch-Dest: document` ou HTML, inclusive o 304) e põe a
   origem em `frame-src` (nada em `script-src`). A flag é lida uma vez por isolate a cada 60 s. Uma
@@ -606,7 +611,8 @@ volta com conferência de sha256. Sem algum secret o primeiro passo reprova dize
 # baixe semanal/AAAA-MM-DD.dump do R2 (dashboard ou aws s3 cp --endpoint-url $R2_S3_ENDPOINT), então:
 export PGHOST=… PGPORT=5432 PGUSER=… PGPASSWORD=… PGDATABASE=postgres_novo PGSSLMODE=verify-full PGSSLROOTCERT=ca.pem
 pg_restore --list AAAA-MM-DD.dump | head                 # abre e lista
-pg_restore --no-owner --schema=public --schema=drizzle --dbname="$PGDATABASE" AAAA-MM-DD.dump
+psql -c 'create schema if not exists drizzle'          # o --schema não restaura o CREATE SCHEMA
+pg_restore --no-owner --no-privileges --schema=public --schema=drizzle --dbname="$PGDATABASE" AAAA-MM-DD.dump
 ```
 
 #### Exercício de restauração
@@ -727,6 +733,42 @@ VITE_ORT_WASM_URL=https://modelos.frasy.com.br/ort/1.26.0/ npm run build  # a CS
 
 A troca efetiva espera o domínio público do bucket (`r2.dev` não é para produção). Valor inválido (sem `https://`, ou
 `http://` fora de localhost) derruba o carregamento com `VITE_ORT_WASM_URL inválida: …` (`src/gateway/baseDoWasm.ts`).
+
+**Espelho próprio em produção (change `modelos-confiaveis-e-offline`).** Com `VITE_SELF_HOST_MODELS=<url>` a CSP sai
+SEM `huggingface.co`, `*.huggingface.co`, `*.hf.co` e `cdn.jsdelivr.net` (`server/http/csp.ts`, `CONEXOES_DO_HUB`).
+O runtime do ONNX da transformers.js (Whisper, opus-mt) já não vem do jsDelivr em ambiente nenhum: `transformersEnv.ts`
+aponta `wasmPaths` para `baseDoWasm()` (a variante `asyncify`, copiada para `public/` por
+`scripts/copiar-assets-runtime.mjs`). Sequência do dono:
+
+```bash
+# 1. pesos (Whisper, Moonshine, opus-mt, WeSpeaker e, agora, o Parakeet) e runtime, no bucket de produção
+S3_ENDPOINT=… S3_ACCESS_KEY_ID=… S3_SECRET_ACCESS_KEY=… npx tsx scripts/modelos/publicar-no-r2.ts --bucket=frasy-modelos
+S3_ENDPOINT=… S3_ACCESS_KEY_ID=… S3_SECRET_ACCESS_KEY=… npx tsx scripts/modelos/publicar-no-r2.ts --prefixo=ort/1.26.0
+# 2. conferir (é o mesmo portão que o deploy roda antes do build)
+npx tsx scripts/modelos/conferir-espelho.ts --base=https://modelos.frasy.com.br --ort=https://modelos.frasy.com.br/ort/1.26.0/
+# 3. vars do Environment `production`: VITE_SELF_HOST_MODELS e VITE_ORT_WASM_URL; deploy pelo workflow
+```
+
+Sem as variáveis, produção continua como hoje. O portão (`conferir-espelho.ts`) reprova o deploy se qualquer arquivo
+do manifesto (`src/gateway/manifestoDosPesos.json`), do Parakeet ou do runtime não responder 200 no bucket. Depois:
+monitor do UptimeRobot num peso pequeno e no `.wasm` do bucket.
+
+**Manifesto dos pesos.** `src/gateway/manifestoDosPesos.json` (bytes e sha256 de cada arquivo na revisão fixada) é
+GERADO por `npx tsx scripts/modelos/gerar-manifesto-dos-pesos.ts` (`--check` confere). Trocou uma revisão em
+`revisoesDosModelos.ts`? Regenere: `tests/manifestoDosPesos.test.ts` reprova sem isso. O navegador usa o manifesto para
+NÃO gravar no cache um peso truncado ou trocado (`src/gateway/cacheDePesos.ts`).
+
+**Service worker.** `dist/sw.js` é gerado no build (`scripts/vite/serviceWorker.ts`) e registrado só no build do Worker
+(produção e staging), depois do LCP, com escopo `/`. Ele guarda a casca do app e os chunks da captura; `/api/*`, outras
+origens e pesos nunca passam por ele. Versão nova entra na próxima abertura (sem `skipWaiting`). Desligar:
+`VITE_SERVICE_WORKER=0` no build (o `sw.js` se desregistra em quem já o tem), ou, num navegador só, `?sw=desligar` ou
+Diagnóstico → Uso sem internet. O `/sw.js` sai com `Cache-Control: no-cache` (`_headers.base` e `estaticos.ts`).
+
+**Contador anônimo de falhas.** `POST /api/erros-do-cliente/falha` (antes do auth) recebe só `{tipo, aparelho, modelo}`
+de listas fechadas e incrementa `cliente_falha_total` (Prometheus; no Worker, família `cliente_falha` do Analytics
+Engine). Sem IP gravado (o balde do limite usa um HMAC do IP com o `SECRET_KEY`). O cliente respeita "Métricas de uso
+anônimas" e o perfil de menor restrito (`src/lib/falhas/contadorDeFalhas.ts`). O beacon do Cloudflare Web Analytics
+NÃO foi liberado na CSP: o dono desliga a injeção automática na zona (painel da Cloudflare).
 
 ### Modelos no R2
 

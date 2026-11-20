@@ -45,7 +45,8 @@ async function abrirAvatar(page: Page) {
   await page.goto('/perfil')
   await expect(page.getByTestId('perfil-do-quest')).toBeVisible()
   await page.getByRole('tab', { name: 'Avatar' }).click()
-  await expect(page.getByTestId('aba-avatar')).toBeVisible()
+  /* O chunk do avatar (three + VRM) compila no 1º acesso de um servidor frio: 5 s não bastam na CI. */
+  await expect(page.getByTestId('aba-avatar')).toBeVisible({ timeout: 20_000 })
 }
 
 /** A razão de contraste WCAG entre duas cores CSS quaisquer (resolvidas por um canvas, inclusive `color-mix`). */

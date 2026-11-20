@@ -1,0 +1,606 @@
+{
+ "quando": "2026-11-18T13:23:32.310Z",
+ "modelos": {
+  "small@q8": {
+   "werPt": 0.05,
+   "werEn": 0.022,
+   "constrangedoras": [],
+   "decodeP50Ms": 507,
+   "deteccaoP50Ms": 360,
+   "rss": 2007,
+   "conferencia": {
+    "0.6": {
+     "falsosBloqueiosNoPar": [],
+     "esPegos": [
+      "es01",
+      "es02",
+      "es03",
+      "aud-es1",
+      "aud-es1.ruido"
+     ]
+    },
+    "0.7": {
+     "falsosBloqueiosNoPar": [],
+     "esPegos": [
+      "es01",
+      "es02",
+      "es03",
+      "aud-es1",
+      "aud-es1.ruido"
+     ]
+    },
+    "0.8": {
+     "falsosBloqueiosNoPar": [],
+     "esPegos": [
+      "es02",
+      "es03"
+     ]
+    },
+    "0.9": {
+     "falsosBloqueiosNoPar": [],
+     "esPegos": [
+      "es02",
+      "es03"
+     ]
+    }
+   },
+   "linhas": [
+    {
+     "id": "pt01",
+     "idioma": "pt",
+     "audioMs": 4020,
+     "referencia": "Boa noite! Que bom que você veio jantar com a gente.",
+     "saida": "Boa noite, que bom que você veio jantar com a gente.",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 614,
+     "deteccao": {
+      "idioma": "pt",
+      "confianca": 0.874,
+      "ms": 364
+     }
+    },
+    {
+     "id": "pt02",
+     "idioma": "pt",
+     "audioMs": 3190,
+     "referencia": "Você prefere vinho tinto ou suco de uva?",
+     "saida": "Você preferir vinho tinto ou suco de uva?",
+     "wer": 0.125,
+     "constrangedora": null,
+     "decodeMs": 520,
+     "deteccao": {
+      "idioma": "pt",
+      "confianca": 0.83,
+      "ms": 360
+     }
+    },
+    {
+     "id": "pt03",
+     "idioma": "pt",
+     "audioMs": 2761,
+     "referencia": "Minha avó me ensinou quando eu era criança.",
+     "saida": "Minha avó me ensinou quando eu era criança.",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 510,
+     "deteccao": {
+      "idioma": "pt",
+      "confianca": 0.95,
+      "ms": 361
+     }
+    },
+    {
+     "id": "pt04",
+     "idioma": "pt",
+     "audioMs": 3756,
+     "referencia": "Então, acho que vou pedir a sobremesa de chocolate.",
+     "saida": "Então, acho que vou pedir a sobremesa de chocolate.",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 511,
+     "deteccao": {
+      "idioma": "pt",
+      "confianca": 0.983,
+      "ms": 353
+     }
+    },
+    {
+     "id": "pt05",
+     "idioma": "pt",
+     "audioMs": 3124,
+     "referencia": "Você já experimentou o pão de queijo daqui?",
+     "saida": "Você já experimentou o pão de queijo daqui?",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 501,
+     "deteccao": {
+      "idioma": "pt",
+      "confianca": 0.966,
+      "ms": 360
+     }
+    },
+    {
+     "id": "pt06",
+     "idioma": "pt",
+     "audioMs": 3051,
+     "referencia": "A gente pode dividir a conta no final.",
+     "saida": "a gente pode dividir a conta no final.",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 477,
+     "deteccao": {
+      "idioma": "pt",
+      "confianca": 0.979,
+      "ms": 354
+     }
+    },
+    {
+     "id": "pt07",
+     "idioma": "pt",
+     "audioMs": 2938,
+     "referencia": "Amanhã eu vou levar meus filhos ao parque.",
+     "saida": "Amanhã eu vou levar meus filhos ao parque.",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 504,
+     "deteccao": {
+      "idioma": "pt",
+      "confianca": 0.946,
+      "ms": 351
+     }
+    },
+    {
+     "id": "pt08",
+     "idioma": "pt",
+     "audioMs": 3074,
+     "referencia": "Desculpe, pode repetir mais devagar?",
+     "saida": "Desculpe, pode repetir mais de vagar?",
+     "wer": 0.4,
+     "constrangedora": null,
+     "decodeMs": 497,
+     "deteccao": {
+      "idioma": "pl",
+      "confianca": 0.381,
+      "ms": 356
+     }
+    },
+    {
+     "id": "pt09",
+     "idioma": "pt",
+     "audioMs": 3075,
+     "referencia": "O restaurante fecha às onze horas da noite.",
+     "saida": "O restaurante fecha às 11 horas da noite.",
+     "wer": 0.125,
+     "constrangedora": null,
+     "decodeMs": 483,
+     "deteccao": {
+      "idioma": "pt",
+      "confianca": 0.984,
+      "ms": 355
+     }
+    },
+    {
+     "id": "pt10",
+     "idioma": "pt",
+     "audioMs": 2906,
+     "referencia": "Quanto tempo você vai ficar no Brasil?",
+     "saida": "Quanto tempo você vai ficar no Brasil?",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 461,
+     "deteccao": {
+      "idioma": "pt",
+      "confianca": 0.964,
+      "ms": 376
+     }
+    },
+    {
+     "id": "en01",
+     "idioma": "en",
+     "audioMs": 3635,
+     "referencia": "Thank you so much for inviting me. The food smells amazing.",
+     "saida": "Thank you so much for inviting me. The food smells amazing!",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 509,
+     "deteccao": {
+      "idioma": "en",
+      "confianca": 0.995,
+      "ms": 359
+     }
+    },
+    {
+     "id": "en02",
+     "idioma": "en",
+     "audioMs": 4300,
+     "referencia": "Red wine, please. Where did you learn to cook like this?",
+     "saida": "Red wine, please? Where did you learn to coat like this?!",
+     "wer": 0.091,
+     "constrangedora": null,
+     "decodeMs": 522,
+     "deteccao": {
+      "idioma": "en",
+      "confianca": 0.96,
+      "ms": 356
+     }
+    },
+    {
+     "id": "en03",
+     "idioma": "en",
+     "audioMs": 3319,
+     "referencia": "That is beautiful. Could you pass me the salt, please?",
+     "saida": "That is beautiful. Could you pass me the salt, please?",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 515,
+     "deteccao": {
+      "idioma": "en",
+      "confianca": 0.995,
+      "ms": 361
+     }
+    },
+    {
+     "id": "en04",
+     "idioma": "en",
+     "audioMs": 2473,
+     "referencia": "I have never tried this dish before.",
+     "saida": "I have never tried this dish before.",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 460,
+     "deteccao": {
+      "idioma": "en",
+      "confianca": 0.982,
+      "ms": 361
+     }
+    },
+    {
+     "id": "en05",
+     "idioma": "en",
+     "audioMs": 2447,
+     "referencia": "How long does it take to get to the airport?",
+     "saida": "How long does it take to get the airport?",
+     "wer": 0.1,
+     "constrangedora": null,
+     "decodeMs": 477,
+     "deteccao": {
+      "idioma": "en",
+      "confianca": 0.996,
+      "ms": 358
+     }
+    },
+    {
+     "id": "en06",
+     "idioma": "en",
+     "audioMs": 2704,
+     "referencia": "My flight leaves early tomorrow morning.",
+     "saida": "my flight leaves early tomorrow morning.",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 443,
+     "deteccao": {
+      "idioma": "en",
+      "confianca": 0.939,
+      "ms": 361
+     }
+    },
+    {
+     "id": "en07",
+     "idioma": "en",
+     "audioMs": 1728,
+     "referencia": "Could we split the bill at the end?",
+     "saida": "Could we split the bill at the end?",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 464,
+     "deteccao": {
+      "idioma": "en",
+      "confianca": 0.992,
+      "ms": 359
+     }
+    },
+    {
+     "id": "en08",
+     "idioma": "en",
+     "audioMs": 3040,
+     "referencia": "I would love to visit your family next summer.",
+     "saida": "I would love to visit your family next summer.",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 478,
+     "deteccao": {
+      "idioma": "en",
+      "confianca": 0.989,
+      "ms": 362
+     }
+    },
+    {
+     "id": "en09",
+     "idioma": "en",
+     "audioMs": 2604,
+     "referencia": "Sorry, could you say that again more slowly?",
+     "saida": "Sorry, could you say that again more slowly?",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 478,
+     "deteccao": {
+      "idioma": "en",
+      "confianca": 0.996,
+      "ms": 362
+     }
+    },
+    {
+     "id": "en10",
+     "idioma": "en",
+     "audioMs": 2542,
+     "referencia": "This is the best dinner I have had in weeks.",
+     "saida": "This is the best dinner I have had in weeks.",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 492,
+     "deteccao": {
+      "idioma": "en",
+      "confianca": 0.987,
+      "ms": 356
+     }
+    },
+    {
+     "id": "es01",
+     "idioma": "es",
+     "audioMs": 2120,
+     "referencia": "Perdón, ¿alguien quiere más pan?",
+     "saida": "Sorry, I want more money.",
+     "wer": null,
+     "constrangedora": null,
+     "decodeMs": 445,
+     "deteccao": {
+      "idioma": "es",
+      "confianca": 0.794,
+      "ms": 361
+     }
+    },
+    {
+     "id": "es02",
+     "idioma": "es",
+     "audioMs": 3132,
+     "referencia": "La comida está muy rica, muchas gracias.",
+     "saida": "The food is very delicious, thank you.",
+     "wer": null,
+     "constrangedora": null,
+     "decodeMs": 465,
+     "deteccao": {
+      "idioma": "es",
+      "confianca": 0.994,
+      "ms": 359
+     }
+    },
+    {
+     "id": "es03",
+     "idioma": "es",
+     "audioMs": 2126,
+     "referencia": "¿Dónde está el baño, por favor?",
+     "saida": "Where is the bathroom please?",
+     "wer": null,
+     "constrangedora": null,
+     "decodeMs": 451,
+     "deteccao": {
+      "idioma": "es",
+      "confianca": 0.946,
+      "ms": 368
+     }
+    },
+    {
+     "id": "aud-pt1",
+     "idioma": "pt",
+     "audioMs": 4020,
+     "referencia": "Boa noite! Que bom que você veio jantar com a gente.",
+     "saida": "Boa noite, que bom que você veio jantar com a gente.",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 557,
+     "deteccao": {
+      "idioma": "pt",
+      "confianca": 0.874,
+      "ms": 365
+     }
+    },
+    {
+     "id": "aud-pt1.ruido",
+     "idioma": "pt",
+     "audioMs": 4080,
+     "referencia": "Boa noite! Que bom que você veio jantar com a gente.",
+     "saida": "Boa noite, que bom que você veio jantar com a gente.",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 564,
+     "deteccao": {
+      "idioma": "pt",
+      "confianca": 0.925,
+      "ms": 371
+     }
+    },
+    {
+     "id": "aud-en1",
+     "idioma": "en",
+     "audioMs": 3635,
+     "referencia": "Thank you so much for inviting me. The food smells amazing.",
+     "saida": "Thank you so much for inviting me. The food smells amazing!",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 523,
+     "deteccao": {
+      "idioma": "en",
+      "confianca": 0.995,
+      "ms": 360
+     }
+    },
+    {
+     "id": "aud-en1.ruido",
+     "idioma": "en",
+     "audioMs": 3695,
+     "referencia": "Thank you so much for inviting me. The food smells amazing.",
+     "saida": "Thank you so much for inviting me. The food smells amazing!",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 524,
+     "deteccao": {
+      "idioma": "en",
+      "confianca": 0.99,
+      "ms": 364
+     }
+    },
+    {
+     "id": "aud-pt2",
+     "idioma": "pt",
+     "audioMs": 3171,
+     "referencia": "Você prefere vinho tinto ou suco de uva?",
+     "saida": "Você prefere vinho tinto ou suco de uva?",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 536,
+     "deteccao": {
+      "idioma": "pt",
+      "confianca": 0.987,
+      "ms": 373
+     }
+    },
+    {
+     "id": "aud-pt2.ruido",
+     "idioma": "pt",
+     "audioMs": 3231,
+     "referencia": "Você prefere vinho tinto ou suco de uva?",
+     "saida": "Você prefere vinho tinto ou suco de uva?",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 539,
+     "deteccao": {
+      "idioma": "pt",
+      "confianca": 0.978,
+      "ms": 361
+     }
+    },
+    {
+     "id": "aud-en2",
+     "idioma": "en",
+     "audioMs": 3560,
+     "referencia": "Red wine, please. Where did you learn to cook like this?",
+     "saida": "Red wine, please. Where did you learn to cook like this?",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 535,
+     "deteccao": {
+      "idioma": "en",
+      "confianca": 0.996,
+      "ms": 363
+     }
+    },
+    {
+     "id": "aud-en2.ruido",
+     "idioma": "en",
+     "audioMs": 3620,
+     "referencia": "Red wine, please. Where did you learn to cook like this?",
+     "saida": "red wine, please. Where did you learn to cook like this?",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 530,
+     "deteccao": {
+      "idioma": "en",
+      "confianca": 0.995,
+      "ms": 365
+     }
+    },
+    {
+     "id": "aud-pt3",
+     "idioma": "pt",
+     "audioMs": 2761,
+     "referencia": "Minha avó me ensinou quando eu era criança.",
+     "saida": "Minha avó me ensinou quando eu era criança.",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 516,
+     "deteccao": {
+      "idioma": "pt",
+      "confianca": 0.95,
+      "ms": 362
+     }
+    },
+    {
+     "id": "aud-pt3.ruido",
+     "idioma": "pt",
+     "audioMs": 2821,
+     "referencia": "Minha avó me ensinou quando eu era criança.",
+     "saida": "Minha avó me ensinou quando eu era criança.",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 507,
+     "deteccao": {
+      "idioma": "pt",
+      "confianca": 0.909,
+      "ms": 352
+     }
+    },
+    {
+     "id": "aud-en3",
+     "idioma": "en",
+     "audioMs": 3319,
+     "referencia": "That is beautiful. Could you pass me the salt, please?",
+     "saida": "That is beautiful. Could you pass me the salt, please?",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 512,
+     "deteccao": {
+      "idioma": "en",
+      "confianca": 0.995,
+      "ms": 346
+     }
+    },
+    {
+     "id": "aud-en3.ruido",
+     "idioma": "en",
+     "audioMs": 3379,
+     "referencia": "That is beautiful. Could you pass me the salt, please?",
+     "saida": "That is beautiful. Could you pass me the salt, please?",
+     "wer": 0,
+     "constrangedora": null,
+     "decodeMs": 515,
+     "deteccao": {
+      "idioma": "en",
+      "confianca": 0.992,
+      "ms": 353
+     }
+    },
+    {
+     "id": "aud-es1",
+     "idioma": "es",
+     "audioMs": 2120,
+     "referencia": "Perdón, ¿alguien quiere más pan?",
+     "saida": "Sorry, I want more money.",
+     "wer": null,
+     "constrangedora": null,
+     "decodeMs": 442,
+     "deteccao": {
+      "idioma": "es",
+      "confianca": 0.794,
+      "ms": 352
+     }
+    },
+    {
+     "id": "aud-es1.ruido",
+     "idioma": "es",
+     "audioMs": 2180,
+     "referencia": "Perdón, ¿alguien quiere más pan?",
+     "saida": "I'm sorry, I want to be more fun",
+     "wer": null,
+     "constrangedora": null,
+     "decodeMs": 477,
+     "deteccao": {
+      "idioma": "es",
+      "confianca": 0.782,
+      "ms": 356
+     }
+    }
+   ]
+  }
+ }
+}

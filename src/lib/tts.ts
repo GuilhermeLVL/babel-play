@@ -5,10 +5,11 @@
  * por idioma (padrão do Reading.tsx) e deixa um SEAM para uma voz neural (nuvem)
  * ser plugada depois, atrás de consentimento — sem nada fabricado agora.
  */
-import { baseDaVoz, ehVozNatural, recomendarVoz } from '../core/voz/melhorVoz';
+import { baseDaVoz, ehVozAceita, ehVozNatural, nivelDaVoz, recomendarVoz } from '../core/voz/melhorVoz';
 import { idiomaDaInterface } from './i18n';
 import { toBcp47 } from './languages';
 import { play } from './soundFx';
+import { aoFaltarVoz, avisarSemVoz } from './voz/avisoDeFaltaDeVoz';
 import { criarGuardaDaFala, type GuardaDaFala } from './voz/guardaDaFala';
 
 export interface SpeakOptions {
@@ -172,21 +173,32 @@ export function getVoices(): SpeechSynthesisVoice[] {
 /* As regras puras de idioma e de qualidade das vozes moram em `core/voz/melhorVoz.ts`. */
 export { baseDaVoz };
 
-/** Melhor voz instalada para um idioma; prefere região exata, vozes "Natural/Neural" e vozes locais. */
+/** A voz do sistema é de qualidade aceita (lista de permissão de `core/voz/melhorVoz.ts`)? */
+const vozAceita = (v: SpeechSynthesisVoice): boolean => ehVozAceita({ name: v.name, voiceURI: v.voiceURI });
+
+/**
+ * Melhor voz ACEITA para um idioma (região exata, nível de qualidade, no aparelho), ou `null`. Uma voz recusada
+ * (Eloquence, novidade, eSpeak, SAPI…) nunca sai daqui, nem quando é a preferência gravada: a preferência é ignorada.
+ */
 export function pickVoice(lang: string, preferredName?: string): SpeechSynthesisVoice | null {
   const voices = getVoices();
   if (!voices.length) return null;
   if (preferredName) {
     const named = voices.find((v) => v.name === preferredName);
-    if (named) return named;
+    if (named && vozAceita(named)) return named;
   }
   /* MESMA BASE, e não "começa com": `fi` casava com a voz filipina (`fil-PH`), e `zh-CN` com a cantonesa. */
   return (
     recomendarVoz(
-      voices.map((v) => ({ name: v.name, lang: v.lang, local: v.localService, voz: v })),
+      voices.map((v) => ({ name: v.name, lang: v.lang, local: v.localService, voiceURI: v.voiceURI, voz: v })),
       lang,
     )?.voz ?? null
   );
+}
+
+/** Existe no aparelho uma voz ACEITA com este nome? (uma preferência para voz recusada vale como "sumiu") */
+export function vozAceitaExiste(nome: string): boolean {
+  return !!nome && getVoices().some((v) => v.name === nome && vozAceita(v));
 }
 
 // ─────────────────────── Catálogo de vozes (para os seletores) ───────────────────────
@@ -209,6 +221,8 @@ export interface VoiceInfo {
   local: boolean;
   /** Provável voz de alta qualidade (Natural/Neural/Google). */
   neural: boolean;
+  /** O identificador do sistema, quando o navegador informa (o "Premium" do Chrome no Mac só aparece aqui). */
+  voiceURI?: string;
 }
 
 function toInfo(v: SpeechSynthesisVoice): VoiceInfo {
@@ -219,27 +233,27 @@ function toInfo(v: SpeechSynthesisVoice): VoiceInfo {
     base: baseDaVoz(lang),
     local: v.localService,
     neural: isNeuralVoice(v),
+    ...(v.voiceURI ? { voiceURI: v.voiceURI } : {}),
   };
 }
 
 /**
- * TODAS as vozes instaladas, agrupadas por idioma (ISO-639-1) e ordenadas por qualidade provável.
- * Antes o seletor filtrava só `en`/`pt` e escondia dezenas de vozes que o usuário já tem no SO —
- * era a principal causa de "poucas vozes / voz ruim".
+ * As vozes ACEITAS instaladas, agrupadas por idioma (ISO-639-1) e ordenadas por qualidade (nível, no aparelho, nome).
+ * Uma voz recusada (`core/voz/melhorVoz.ts`) não entra: o seletor nunca a oferece, e o idioma que só tem vozes
+ * recusadas conta como "sem voz".
  */
 export function voicesByLang(): Map<string, VoiceInfo[]> {
   const out = new Map<string, VoiceInfo[]>();
   for (const v of getVoices()) {
+    if (!vozAceita(v)) continue;
     const info = toInfo(v);
     const list = out.get(info.base) ?? [];
     list.push(info);
     out.set(info.base, list);
   }
   for (const list of out.values()) {
-    // Neural primeiro; depois locais (offline); depois alfabética.
     list.sort(
-      (a, b) =>
-        Number(b.neural) - Number(a.neural) || Number(b.local) - Number(a.local) || a.name.localeCompare(b.name),
+      (a, b) => nivelDaVoz(b) - nivelDaVoz(a) || Number(b.local) - Number(a.local) || a.name.localeCompare(b.name),
     );
   }
   return out;
@@ -361,9 +375,33 @@ export function onVoicePrefsChange(cb: (prefs: Record<string, string>) => void):
   return () => window.removeEventListener('babel_voice_prefs_changed', handler);
 }
 
+/* A lista de vozes não chegou no prazo: o navegador não enumera vozes (raro). Aí não há o que filtrar, e a fala segue
+   pelo `u.lang` como antes, sem esperar de novo a cada frase. */
+let semListaDeVozes = false;
+const PRAZO_DA_LISTA_MS = 1000;
+
 class NativeTts implements TtsEngine {
+  /** Cada `speak()`/`cancel()` avança o contador: a fala que esperava a lista de vozes só sai se ainda for a última. */
+  private pedido = 0;
+
   speak(text: string, opts: SpeakOptions): void {
     if (!text || !text.trim() || !isTtsSupported()) return;
+    const meu = ++this.pedido;
+    /* A LISTA AINDA NÃO CHEGOU (o Chrome a entrega depois, no `voiceschanged`): falar agora deixaria o navegador escolher
+       a voz padrão do idioma, que no Mac pode ser uma Eloquence. Espera a lista e escolhe uma voz aceita. */
+    if (!vozesCarregadas() && !semListaDeVozes) {
+      this.guarda?.parar();
+      window.speechSynthesis.cancel();
+      void aguardarVozes(PRAZO_DA_LISTA_MS).then((chegou) => {
+        if (!chegou) semListaDeVozes = true;
+        if (meu === this.pedido) this.falarAgora(text, opts);
+      });
+      return;
+    }
+    this.falarAgora(text, opts);
+  }
+
+  private falarAgora(text: string, opts: SpeakOptions): void {
     const synth = window.speechSynthesis;
     synth.cancel(); // interrompe a fala anterior (não sobrepõe)
     // Quirk do Chrome: `cancel()` não limpa o flag `paused`. Se alguém pausou e depois pediu uma
@@ -387,10 +425,10 @@ class NativeTts implements TtsEngine {
     // Sem `voiceName` explícito, herda a voz que o usuário escolheu para ESTE idioma no narrador.
     // É isto que faz clicar numa palavra (em qualquer tela) soar com a mesma voz do narrador.
     const voice = pickVoice(lang, opts.voiceName ?? getVoicePref(lang));
-    /* SEM VOZ DO IDIOMA, NÃO FALA. Com `u.voice` vazio o navegador lê com a voz PADRÃO do sistema
-       — em geral inglesa: a palavra portuguesa saía com pronúncia americana (relato de 2026-09-26).
-       Só quando a lista de vozes JÁ chegou: lista vazia é "ainda não sei", e aí o navegador escolhe
-       pelo `u.lang`, que agora é BCP-47 certo. */
+    /* SEM VOZ ACEITA DO IDIOMA, NÃO FALA. Com `u.voice` vazio o navegador lê com a voz PADRÃO do sistema
+       — em geral inglesa (relato de 2026-09-26), ou robótica (Eloquence no Mac, relato de 2026-11-17). O texto
+       continua na tela e o aviso de "sem voz" diz o que houve. Só quando a lista de vozes chegou: sem lista
+       nenhuma (o navegador não enumera vozes), o navegador escolhe pelo `u.lang`. */
     if (!voice && vozesCarregadas()) {
       avisarSemVoz(lang);
       opts.onError?.();
@@ -431,6 +469,7 @@ class NativeTts implements TtsEngine {
   }
   private guarda: GuardaDaFala | null = null;
   cancel(): void {
+    this.pedido++;
     this.guarda?.parar();
     this.guarda = null;
     if (isTtsSupported()) {
@@ -469,28 +508,8 @@ export function codigoDeFala(lang: string): string {
   return l.includes('-') ? l : toBcp47(l) || l;
 }
 
-/* ───────── Aviso de "sem voz neste idioma" ─────────
-   Discreto e UMA vez por idioma por carregamento: quem joga uma rodada inteira em japonês sem voz
-   instalada não precisa de dez avisos iguais. Quem mostra é quem se inscreve (o `Toast`), para este
-   módulo não depender de componente. */
-const semVozAvisado = new Set<string>();
-const ouvintesDeSemVoz = new Set<(lang: string) => void>();
-
-/** Inscreve quem mostra o aviso de que falta voz para um idioma. Devolve o cancelamento. */
-export function aoFaltarVoz(cb: (lang: string) => void): () => void {
-  ouvintesDeSemVoz.add(cb);
-  return () => {
-    ouvintesDeSemVoz.delete(cb);
-  };
-}
-
-function avisarSemVoz(lang: string): void {
-  const base = lang.toLowerCase().split('-')[0];
-  console.warn('[tts] sem voz instalada para', lang, '— a fala foi omitida em vez de sair com voz de outro idioma.');
-  if (semVozAvisado.has(base)) return;
-  semVozAvisado.add(base);
-  for (const cb of ouvintesDeSemVoz) cb(lang);
-}
+/* Aviso de "sem voz neste idioma": mora em `voz/avisoDeFaltaDeVoz.ts` (fora do JS inicial junto com este motor). */
+export { aoFaltarVoz, avisarSemVoz };
 
 export const nativeTts: TtsEngine = new NativeTts();
 

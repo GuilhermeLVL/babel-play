@@ -27,6 +27,7 @@ import {
   type LivroLido,
   validarLinkDeLivro,
 } from '../../../lib/livros/trazer';
+import { pedirConta, semContaComPorta } from '../../../lib/pedirConta';
 import AjudaDoKindle from './AjudaDoKindle';
 import OndeAcharLivros from './OndeAcharLivros';
 
@@ -293,6 +294,11 @@ export default function TrazerOSeu({
         motivo: 'invalido',
         mensagem: t('Cole o endereço completo, começando com https://'),
       });
+      return;
+    }
+    /* A página passa pelo servidor (CORS e anti-SSRF), que só existe com conta: o toque abre o convite. */
+    if (semContaComPorta()) {
+      pedirConta('POST /api/import/web');
       return;
     }
     setEstado({ tipo: 'lendo', oQue: endereco, etapa: 'abrindo' });

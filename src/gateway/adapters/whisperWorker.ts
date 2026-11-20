@@ -16,6 +16,7 @@ import { env, pipeline, Tensor, TextStreamer } from '@huggingface/transformers';
 
 import { temAdaptadorWebGpu } from '../adaptadorWebGpu';
 import { filtrarAlucinacao, tokensPorSegundo } from '../alucinacao';
+import { carregarComCura } from '../cacheDePesos';
 import { registrarModeloBaixado } from '../modelManifest';
 import { FilaSerial, processadorDeCancelamento, type SinalDeCancelamento } from './filaDoWorker';
 import { detectarIdiomaDoAudio } from './idiomaDoWhisper';
@@ -157,14 +158,19 @@ async function ensurePipeline(model?: string, dtypeKey?: string, device?: string
   const sessaoQ8 = { session_options: { ...SESSAO_MOONSHINE } };
   let dtypeEfetivo = chaveDtype;
   let progresso = novoProgresso(moonshine ? 'Moonshine' : 'Whisper');
+  /* A CURA DO CACHE (DISP-01, `cacheDePesos.ts`): a sessão que não abre (peso truncado ou corrompido no
+     cache) apaga as entradas deste modelo e carrega de novo da rede, uma vez por página. */
+  const modeloDaCarga = asrModel;
   try {
-    asr = await pipeline('automatic-speech-recognition', asrModel, {
-      device: dev,
-      dtype: wantDtype,
-      // Moonshine e Whisper q8: sem isto a sessão q8 não abre no ORT-web (ver `SESSAO_MOONSHINE`).
-      ...(moonshine || chaveDtype === 'q8' ? sessaoQ8 : {}),
-      progress_callback: progresso,
-    });
+    asr = await carregarComCura(modeloDaCarga, () =>
+      pipeline('automatic-speech-recognition', modeloDaCarga, {
+        device: dev,
+        dtype: wantDtype,
+        // Moonshine e Whisper q8: sem isto a sessão q8 não abre no ORT-web (ver `SESSAO_MOONSHINE`).
+        ...(moonshine || chaveDtype === 'q8' ? sessaoQ8 : {}),
+        progress_callback: progresso,
+      }),
+    );
   } catch (err) {
     // O moonshine já pediu q8: repetir a mesma carga só dobraria a espera antes do erro real.
     if (moonshine) throw err;
@@ -180,12 +186,15 @@ async function ensurePipeline(model?: string, dtypeKey?: string, device?: string
     );
     self.postMessage({ type: 'progress', progress: 0, loaded: 0, total: 0, label: 'usando formato alternativo (q8)…' });
     progresso = novoProgresso('Whisper (q8)');
-    asr = await pipeline('automatic-speech-recognition', asrModel, {
-      device: dev,
-      dtype: 'q8',
-      ...sessaoQ8,
-      progress_callback: progresso,
-    });
+    const progressoQ8 = progresso;
+    asr = await carregarComCura(modeloDaCarga, () =>
+      pipeline('automatic-speech-recognition', modeloDaCarga, {
+        device: dev,
+        dtype: 'q8',
+        ...sessaoQ8,
+        progress_callback: progressoQ8,
+      }),
+    );
   }
 
   // Manifesto: só agora existe verdade a gravar — o modelo carregou, com ESTE dtype e ESTE device.
@@ -220,6 +229,9 @@ async function ensurePipeline(model?: string, dtypeKey?: string, device?: string
  */
 const INTERVALO_DOS_UPDATES_MS = 120;
 
+/** Abaixo disto (s) o idioma do turno não é conferido: a detecção em trecho curto erra demais. */
+const SEGUNDOS_PARA_CONFERIR = 2;
+
 /** A fila serial deste worker: uma tarefa por vez, o final na frente (ver `filaDoWorker.ts`). */
 const fila = new FilaSerial();
 let cargas = 0;
@@ -229,7 +241,7 @@ const responderCancelado = (id: string) => self.postMessage({ type: 'cancelado',
 
 /** Um decode (parcial ou final) — o corpo que antes rodava direto no `onmessage`. */
 async function transcrever(dados: any, sinal: SinalDeCancelamento): Promise<void> {
-  const { id, pcm, language, model, dtype, device, maxNewTokens } = dados;
+  const { id, pcm, language, model, dtype, device, maxNewTokens, conferirIdioma } = dados;
   await ensurePipeline(model, dtype, device);
   if (sinal.cancelado) return responderCancelado(id);
 
@@ -303,6 +315,16 @@ async function transcrever(dados: any, sinal: SinalDeCancelamento): Promise<void
      ecoada — e é com ele que o perfil da sessão converge e passa a mandar a dica. */
   let idioma: string | undefined = language || undefined;
   let confiancaDoIdioma: number | undefined;
+  /* CONFERIR O IDIOMA DO TURNO (conversa-de-verdade, 3.1): no Intérprete por toque o idioma vem do lado, e a fala em
+     outro idioma era transcrita à força como se fosse dele ("Perdón, ¿alguien quiere más pan?" virou "Sorry, I want to
+     go to the bathroom", CONV-03). Com a fala de 2 s ou mais (abaixo disso a detecção erra demais: 12/20 em pt com
+     1,5 s), um passe a mais do encoder mede o idioma; a transcrição segue na dica, e quem decide é o pipeline. */
+  let idiomaConferido: { idioma: string; confianca: number } | undefined;
+  if (idioma && conferirIdioma && audioSec >= SEGUNDOS_PARA_CONFERIR) {
+    const det = await detectarIdiomaDoAudio(asr, pcm, Tensor as never).catch(() => null);
+    if (det) idiomaConferido = det;
+    if (sinal.cancelado) return responderCancelado(id);
+  }
   if (!idioma) {
     const det = await detectarIdiomaDoAudio(asr, pcm, Tensor as never);
     if (det) {
@@ -348,6 +370,7 @@ async function transcrever(dados: any, sinal: SinalDeCancelamento): Promise<void
     descartado: !!bruto && !filtrado,
     // Só quando MEDIDO (sem dica): devolver a dica seria confundir pergunta com resposta.
     ...(confiancaDoIdioma !== undefined ? { language: idioma, confiancaDoIdioma } : {}),
+    ...(idiomaConferido ? { idiomaConferido } : {}),
   });
 }
 

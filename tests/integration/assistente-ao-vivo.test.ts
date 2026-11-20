@@ -340,13 +340,14 @@ describe('plano pago (Plus): a saída estruturada', () => {
     const res = await pedir('expressoes', quem)
     expect(res.statusCode).toBe(402)
     expect(res.body?.code).toBe('cota_do_assistente')
+    expect(res.body?.error).toMatch(/ele volta em \d+ de \S+\.$/)
     expect(chamadas).toHaveLength(0)
     /* Nada foi tirado da cota do plano (a da legenda), e o uso do dia voltou. */
     expect(await contador(quem, 'llm_tokens', mes())).toBe(0)
     expect(await doDia(quem)).toBe(0)
   })
 
-  it('o teste de 14 dias tem o assistente (é uma amostra do plano pago, como a IA de estudo)', async () => {
+  it('o teste de 3 dias tem o assistente (é uma amostra do plano pago, como a IA de estudo)', async () => {
     const quem = asUserId('assistente-em-teste')
     const entitlements = await h.load<any>('../../server/lib/entitlements')
     const espia = vi

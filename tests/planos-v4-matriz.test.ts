@@ -189,17 +189,19 @@ describe('as cotas e capacidades dos planos novos', () => {
     expect(PLAN_MATRIX.pro4.entitlements).toEqual(PLAN_MATRIX.premium.entitlements)
   })
 
-  it('Família 12 h / 3 M tokens / 600 mil de voz; Pro 20 h / 3 M / 600 mil', () => {
+  /* Voz: 300 mil e 200 mil desde a voz pelo OpenRouter (Kokoro a US$ 4/1M no pior endpoint; change
+     `voz-natural-openrouter`): com 600 mil a margem do anual ficava negativa. */
+  it('Família 12 h / 3 M tokens / 300 mil de voz; Pro 20 h / 3 M / 200 mil', () => {
     expect(PLAN_MATRIX.familia.quotas).toMatchObject({
       sttSegundosMes: 43_200,
       tokensMes: 3_000_000,
-      vozCaracteresMes: 600_000,
+      vozCaracteresMes: 300_000,
     })
     expect(PLAN_MATRIX.pro4.quotas).toMatchObject({
       sttSegundosMes: 72_000,
       sttSegundosDia: 7_200,
       tokensMes: 3_000_000,
-      vozCaracteresMes: 600_000,
+      vozCaracteresMes: 200_000,
     })
   })
 })

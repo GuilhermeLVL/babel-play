@@ -64,7 +64,7 @@ export const LIMITE_MINIMO = '8kb'
  *   listas de até 200 números e dois nomes de motor — ~6 KB no pior caso legítimo. Sem conta e sem
  *   token, é a rota em que o custo de um corpo grande cai inteiro sobre o servidor.
  */
-export const ROTAS_DE_CORPO_MINIMO: readonly string[] = ['/api/metricas']
+export const ROTAS_DE_CORPO_MINIMO: readonly string[] = ['/api/metricas', '/api/erros-do-cliente/falha']
 
 const casaPrefixo = (lista: readonly string[], caminho: string): boolean =>
   lista.some((p) => caminho === p || caminho.startsWith(`${p}/`))

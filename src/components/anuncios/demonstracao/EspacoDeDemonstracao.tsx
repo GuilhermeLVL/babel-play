@@ -96,6 +96,9 @@ const ROTA: MarcaDeExemplo = {
   acao: 'Saber mais',
 };
 
+/** A marca da âncora: outra que a das linhas das telas onde ela aparece (Estatísticas e Biblioteca). */
+const MARCA_DA_ANCORA: MarcaDeExemplo = CADERNO;
+
 /* `PREMIOS` (`anuncios.js:413-419`). A ajuda vale para a PRÓXIMA rodada: anúncio nunca entra no meio de uma. */
 const PREMIO_DO_FIM: PremioDeExemplo = { frase: 'ganhar +10 Seeds', premio: '+10 Seeds', marca: ESCOLA };
 const PREMIO_DA_LOJA: PremioDeExemplo = { frase: 'ganhar +15 Seeds', premio: '+15 Seeds', marca: CURSO };
@@ -539,7 +542,9 @@ function LinhaNasEstatisticas({ aoSemAnuncios }: { aoSemAnuncios: () => void }) 
 
 /** A faixa âncora do celular (`plantarAncora`, `anuncios.js:281-304`), com o respiro que ela pede no fim da tela. */
 function Ancora({ aoSemAnuncios, aoFechar }: { aoSemAnuncios: () => void; aoFechar?: () => void }) {
-  const m = FONES;
+  /* Nunca a mesma marca de outro espaço das telas onde a âncora mora: Estatísticas (`estat-faixa`, FONES) e
+     Biblioteca (`bib-infeed`, CURSO); `tests/anuncios-demonstracao-acabamento.test.tsx` confere. */
+  const m = MARCA_DA_ANCORA;
   const Icone = m.icone;
   return (
     <>
@@ -553,9 +558,10 @@ function Ancora({ aoSemAnuncios, aoFechar }: { aoSemAnuncios: () => void; aoFech
           <small>
             <Rotulo texto="Anúncio" /> · {m.nome}
           </small>
+          {/* app: a porta fica sob o texto (numa coluna própria ela espremia o título até as reticências) */}
+          <SemAnuncios aoSemAnuncios={aoSemAnuncios} />
         </span>
         <Cta m={m}>Ver</Cta>
-        <SemAnuncios aoSemAnuncios={aoSemAnuncios} />
         <button
           type="button"
           className="ad-ancora-x"

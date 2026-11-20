@@ -35,6 +35,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { assinarSigV4, type ConfigS3 } from '../../server/lib/armazenamento';
+import { ARQUIVOS_DO_PARAKEET } from '../../src/gateway/adapters/parakeetArquivos';
 import { REVISOES_DOS_MODELOS } from '../../src/gateway/revisoesDosModelos';
 
 /** Os dtypes que os workers carregam (ver o comentário em `scripts/fetch-models.mjs`). */
@@ -189,6 +190,33 @@ async function principal() {
       bytes += corpo.length;
       console.log(`  ↑ ${chave} (${(corpo.length / 1048576).toFixed(1)} MB)`);
     }
+  }
+
+  /* O PARAKEET (change `modelos-confiaveis-e-offline`): os arquivos fixados de `parakeetArquivos.ts`, no MESMO
+     layout (`<repo>/<revisao>/<arquivo>`, o que `planoDeCargaDoParakeet` monta com o bucket). Sem eles, a CSP de
+     produção sem o Hub deixaria o Parakeet sem pesos; o portão (`conferir-espelho.ts`) também os confere. */
+  for (const a of ARQUIVOS_DO_PARAKEET) {
+    if (so && so !== a.repo) continue;
+    const chave = chaveNoBucket(a.repo, a.revisao, a.nome);
+    if (seco) {
+      console.log(`  ${chave} (${(a.bytes / 1048576).toFixed(1)} MB)`);
+      continue;
+    }
+    const existente = await chamarS3(cfg, 'HEAD', chave);
+    if (existente.ok && Number(existente.headers.get('content-length')) === a.bytes) {
+      pulados += 1;
+      continue;
+    }
+    const r = await fetch(`https://huggingface.co/${a.repo}/resolve/${a.revisao}/${a.nome}`);
+    if (!r.ok) throw new Error(`${a.repo}/${a.nome}: HTTP ${r.status}`);
+    const corpo = Buffer.from(await r.arrayBuffer());
+    const hex = createHash('sha256').update(corpo).digest('hex');
+    if (hex !== a.sha256) throw new Error(`INTEGRIDADE: ${a.repo}/${a.nome} veio com sha256 ${hex.slice(0, 12)}…`);
+    const put = await chamarS3(cfg, 'PUT', chave, corpo, tipoDe(a.nome));
+    if (!put.ok) throw new Error(`PUT ${chave}: HTTP ${put.status} ${(await put.text()).slice(0, 200)}`);
+    enviados += 1;
+    bytes += corpo.length;
+    console.log(`  ↑ ${chave} (${(corpo.length / 1048576).toFixed(1)} MB)`);
   }
   if (!seco)
     console.log(`[modelos] ${enviados} enviado(s), ${pulados} já estavam lá, ${(bytes / 1048576).toFixed(0)} MB`);

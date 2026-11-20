@@ -40,6 +40,8 @@ export interface MensagemDoChat {
   av?: 'bom' | 'ruim' | null;
   /** A resposta veio do tutor do servidor (`/api/tutor/chat`): o 👍/👎 dela vai a `POST /api/ai/feedback`. */
   doTutor?: boolean;
+  /** A assinatura do servidor para esta resposta do tutor: volta com ela no histórico (`historicoParaOTutor`). */
+  assinatura?: string;
   /** Resposta que é um aviso de falha (sem plano, sem modelo, servidor fora): não se avalia. */
   erro?: boolean;
 }

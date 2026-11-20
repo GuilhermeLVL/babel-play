@@ -26,7 +26,7 @@
 import { ROTA_DA_VOZ_NATURAL } from '../../core/vozNatural';
 import { apiFetch } from '../../data/funil';
 import { chaveLigada } from '../captura/testesDoInterprete';
-import { getEntitlements } from '../entitlements';
+import { temVozDaNuvem } from '../entitlements';
 import { marcarFalaExterna, nativeTts, type SpeakOptions, type TtsEngine } from '../tts';
 import { cacheDeVozDoAparelho, type GuardadosDaVoz } from './cacheDeVoz';
 import { elemento } from './elementoDaVoz';
@@ -78,7 +78,7 @@ export interface OpcoesDaVozDaNuvem {
   /**
    * Esta pessoa tem a voz natural AGORA? Lido a cada fala: sem o direito, o aparelho não serve áudio
    * guardado nem guarda (quem perdeu o Premium ouve a voz do aparelho, como quem nunca teve). Padrão: a
-   * capacidade `vozNatural` do plano.
+   * capacidade `vozNatural` num plano pago, fora do teste (`temVozDaNuvem`).
    */
   temDireito?: () => boolean;
 }
@@ -108,7 +108,6 @@ export interface VozDaNuvem extends TtsEngine {
 }
 
 /* ─────────────────────────── o reprodutor padrão ─────────────────────────── */
-
 
 /** Um silêncio de 1 amostra (WAV), para liberar o elemento de áudio dentro do toque. */
 const SILENCIO = 'data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQIAAAAAAA==';
@@ -194,9 +193,12 @@ export function criarVozDaNuvem(o: OpcoesDaVozDaNuvem = {}): VozDaNuvem {
   };
   const porFrase = o.porFrase ?? (() => chaveLigada('vozPorFrase'));
   const guardados = o.guardados === undefined ? cacheDeVozDoAparelho() : o.guardados;
-  const temDireito = o.temDireito ?? (() => getEntitlements().vozNatural);
+  const temDireito = o.temDireito ?? (() => temVozDaNuvem());
   /** O áudio guardado no aparelho, ou `null` (não tem, ou demorou): aí quem responde é a nuvem. */
-  const doAparelho = (de: GuardadosDaVoz, pedido: { texto: string; idioma: string; voz?: string; velocidade?: number }) =>
+  const doAparelho = (
+    de: GuardadosDaVoz,
+    pedido: { texto: string; idioma: string; voz?: string; velocidade?: number },
+  ) =>
     Promise.race([
       de.ler(pedido).catch(() => null),
       new Promise<null>((ok) => setTimeout(() => ok(null), PRAZO_DO_AUDIO_GUARDADO_MS)),

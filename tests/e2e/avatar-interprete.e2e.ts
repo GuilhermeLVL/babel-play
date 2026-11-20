@@ -42,8 +42,16 @@ test.use({
   permissions: ['microphone'],
 })
 
+/* A CAPTURA É REGISTRO, NÃO ASSERÇÃO. Na CI de 04/11/2026 ("sem WebGL", duas tentativas) todas as
+   asserções passaram e o `page.screenshot` ficou parado depois de "fonts loaded" (esperando um quadro do
+   compositor, com o Chromium em software) até o teste estourar os 30 s. Com prazo, a captura que não vem
+   vira anotação no relatório em vez de reprovar um teste cujo comportamento já foi conferido. */
 const foto = (page: Page, nome: string) =>
-  page.screenshot({ path: path.join(CAPTURAS, `interprete-${test.info().project.name}-${nome}.png`) })
+  page
+    .screenshot({ path: path.join(CAPTURAS, `interprete-${test.info().project.name}-${nome}.png`), timeout: 10_000 })
+    .catch((e: Error) => {
+      test.info().annotations.push({ type: 'captura-sem-quadro', description: `${nome}: ${e.message.split('\n')[0]}` })
+    })
 
 const avatar = (page: Page, lado: 'meu' | 'outro') => fase(page).getByTestId(`avatar-${lado}`)
 const prontoDoAvatar = (page: Page, lado: 'meu' | 'outro') => avatar(page, lado).locator('[data-avatar-pronto="true"]')

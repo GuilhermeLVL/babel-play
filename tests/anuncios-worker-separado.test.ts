@@ -16,6 +16,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 import {
   construir,
   cspDaPaginaDeAnuncios,
+  erroDaRede,
   gerarCabecalhosDosAnuncios,
   gerarConfig,
 } from '../scripts/anuncios/build.mjs'
@@ -49,6 +50,26 @@ describe('a página de anúncios fora do app', () => {
     expect(texto).not.toMatch(/hyperdrive|r2_buckets|analytics_engine/)
     expect(c.env.staging.name).toBe('frasy-anuncios-staging')
     expect(c.env.staging.workers_dev).toBe(true)
+  })
+
+  it('produção no domínio personalizado ads.frasy.com.br; o staging fica no workers.dev, sem rota', () => {
+    const c = ts.parseConfigFileTextToJson('w', readFileSync('wrangler.anuncios.jsonc', 'utf8')).config as {
+      workers_dev: boolean
+      routes: unknown
+      env: { staging: Record<string, unknown> }
+    }
+    expect(c.workers_dev).toBe(false)
+    expect(c.routes).toEqual([{ pattern: 'ads.frasy.com.br', custom_domain: true }])
+    expect(c.env.staging).not.toHaveProperty('routes')
+  })
+
+  it('a rede preenchida fora da forma é erro de build (o id do AdSense não é o código da rede do Ad Manager)', () => {
+    expect(erroDaRede(undefined)).toBeNull()
+    expect(erroDaRede('')).toBeNull()
+    expect(erroDaRede('21234567890')).toBeNull()
+    expect(erroDaRede('ca-pub-1486600930788406')).toMatch(/AdSense.*Ad Manager/)
+    expect(erroDaRede('pub-1486600930788406')).toMatch(/AdSense/)
+    expect(erroDaRede('12; alert(1)')).toMatch(/Ad Manager/)
   })
 
   it('o _headers: sem COOP/COEP/DIP; CSP da página com frame-ancestors só do APP_URL; nosniff e Referrer-Policy', () => {

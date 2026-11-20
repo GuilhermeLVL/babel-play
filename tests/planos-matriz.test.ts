@@ -196,7 +196,7 @@ describe('a matriz v3', () => {
     contem('aovivo', 'premium')
   })
 
-  it('o teste de 14 dias continua sendo do Premium', () => {
+  it('o teste de 3 dias continua sendo do Premium', () => {
     expect(PLANO_DO_TESTE).toBe('premium')
   })
 

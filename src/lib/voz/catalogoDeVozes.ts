@@ -21,7 +21,12 @@ import { vozesUteis } from '../../core/voz/vozesUteis';
 import { idiomaDaInterface, t } from '../i18n';
 import { codigoDeFala, type VoiceInfo, voicesFor } from '../tts';
 import { VOZ_AUTOMATICA, VOZ_DA_NUVEM, vozDaNuvemDisponivel, vozEmUso } from './preferenciaDeVoz';
-import { modeloNoAparelho, VOZ_NO_APARELHO, vozNoAparelhoOferecida } from './vozNoAparelho';
+import {
+  modeloNoAparelho,
+  VOZ_NO_APARELHO,
+  vozNoAparelhoOferecida,
+  vozNoAparelhoSemArmazenamento,
+} from './vozNoAparelho';
 
 export interface OpcaoDeVoz {
   /** O que vai para a preferência: `''` (automática), `@nuvem`, ou o nome exato da voz do aparelho. */
@@ -80,7 +85,7 @@ function opcaoDoAparelho(v: VoiceInfo, recomendada = false): OpcaoDeVoz {
 export function opcoesDeVoz(
   idioma: string,
   nuvem: boolean = vozDaNuvemDisponivel(),
-  noAparelho: boolean = vozNoAparelhoOferecida(),
+  noAparelho: boolean = vozNoAparelhoOferecida() || vozNoAparelhoSemArmazenamento(),
 ): OpcaoDeVoz[] {
   const opcoes: OpcaoDeVoz[] = [
     {

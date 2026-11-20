@@ -1,10 +1,17 @@
 ---
-titulo: "Como treinar listening do zero: um roteiro para iniciantes"
-descricao: "Roteiro prático para treinar compreensão auditiva em inglês partindo do zero: material certo, ditado, repetição de trechos curtos e progressão por etapas."
-slug: "treinar-listening-do-zero"
-publicado: "2026-10-25"
-revisado: false
-palavrasChave: ["listening", "compreensão auditiva", "entender inglês falado", "ditado", "inglês para iniciantes"]
+titulo: 'Como treinar listening do zero: um roteiro para iniciantes'
+descricao: 'Roteiro prático para treinar compreensão auditiva em inglês partindo do zero: material certo, ditado, repetição de trechos curtos e progressão por etapas.'
+slug: 'treinar-listening-do-zero'
+publicado: '2026-10-25'
+revisado: true
+palavrasChave:
+  [
+    'listening',
+    'compreensão auditiva',
+    'entender inglês falado',
+    'ditado',
+    'inglês para iniciantes',
+  ]
 ---
 
 Muita gente consegue ler em inglês razoavelmente bem, mas trava quando precisa entender alguém falando. Se isso acontece com você, não significa que o seu inglês é fraco. Entender fala é uma habilidade própria, e ela se treina separada da leitura.
@@ -72,7 +79,7 @@ Quando os áudios curtos ficarem confortáveis, suba um degrau por vez:
 3. séries e vídeos sem legenda, em cenas curtas;
 4. podcasts e conversas mais longas.
 
-Só avance quando entender cerca de 70% do que ouve com um pouco de esforço. Se entende quase tudo sem esforço, suba; se entende menos da metade, desça. Ambos os extremos rendem pouco.
+Só avance quando entender a maior parte do que ouve, com um pouco de esforço. Se entende quase tudo sem esforço, suba; se entende bem menos da metade, desça. Ambos os extremos rendem pouco.
 
 ## Passo 6: registre e revise
 

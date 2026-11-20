@@ -81,9 +81,22 @@ function vozDeMentira() {
     paused: false,
     pending: false,
     onvoiceschanged: null,
+    /* Vozes padrão do macOS que a lista de permissão (`core/voz/melhorVoz.ts`) aceita: nome inventado deixa o app mudo. */
     getVoices: () => [
-      { name: 'Teste en', lang: 'en-US', localService: true, default: true, voiceURI: 'Teste en' },
-      { name: 'Teste pt', lang: 'pt-BR', localService: true, default: false, voiceURI: 'Teste pt' },
+      {
+        name: 'Samantha',
+        lang: 'en-US',
+        localService: true,
+        default: true,
+        voiceURI: 'com.apple.voice.compact.en-US.Samantha',
+      },
+      {
+        name: 'Luciana',
+        lang: 'pt-BR',
+        localService: true,
+        default: false,
+        voiceURI: 'com.apple.voice.compact.pt-BR.Luciana',
+      },
     ],
     addEventListener: () => {},
     removeEventListener: () => {},

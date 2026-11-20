@@ -7,12 +7,14 @@
  * o fundo inerte e o foco preso são do `<dialog>` nativo.
  *
  * Nunca perde o que está na tela: fecha e a pessoa segue onde estava. As três saídas são as do
- * desenho (D10): entrar · criar conta · continuar sem conta.
+ * desenho (D10): criar conta (a porta abre no cadastro) · já tenho conta (abre na entrada) · continuar
+ * sem conta.
  */
 import { Lock } from 'lucide-react';
 
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { t } from '../../lib/i18n';
+import type { ModoDeEntrada } from '../../lib/pedirConta';
 import Dialogo from '../ui/Dialogo';
 
 interface GateDeContaProps {
@@ -20,7 +22,7 @@ interface GateDeContaProps {
   /** O que motivou o gate, em linguagem de gente ("Importar do YouTube precisa de conta"). */
   motivo: string;
   onFechar: () => void;
-  onEntrar: () => void;
+  onEntrar: (modo: ModoDeEntrada) => void;
 }
 
 export default function GateDeConta({ aberto, motivo, onFechar, onEntrar }: GateDeContaProps) {
@@ -55,8 +57,11 @@ export default function GateDeConta({ aberto, motivo, onFechar, onEntrar }: Gate
             <button type="button" className="btn btn-outline" onClick={onFechar}>
               {t('Continuar sem conta')}
             </button>
-            <button type="button" className="btn btn-solid" data-autofocus onClick={onEntrar}>
-              {t('Entrar ou criar conta')}
+            <button type="button" className="btn btn-outline" onClick={() => onEntrar('login')}>
+              {t('Já tenho conta')}
+            </button>
+            <button type="button" className="btn btn-solid" data-autofocus onClick={() => onEntrar('signup')}>
+              {t('Criar conta')}
             </button>
           </>
         )}

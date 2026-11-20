@@ -1,16 +1,19 @@
 name: CI
 
+# UMA EXECUÇÃO POR COMMIT (19/11/2026). Com `push` e `pull_request` para todo ramo, cada commit de PR
+# rodava a suíte DUAS vezes (42 de 88 execuções eram pares, ~280 h de runner em 14 PRs). Agora o `push`
+# só dispara na `main`; os ramos de trabalho rodam pelo `pull_request`. Ramo sem PR não roda CI.
 on:
   push:
+    branches: [main]
   pull_request:
 
-# UMA EXECUÇÃO POR RAMO (11/10/2026). Dois commits seguidos rodavam a suíte inteira duas vezes, lado a
-# lado. Agora o commit novo cancela a execução do anterior no mesmo ramo — menos na `main`, onde toda
-# execução termina: é o `ci.yml` verde do SHA que o `deploy-worker.yml` exige. O evento entra no grupo para o
-# push e o pull_request do mesmo ramo não se cancelarem um ao outro.
+# UMA EXECUÇÃO POR RAMO (11/10/2026). O commit novo de um PR cancela a execução do anterior do mesmo PR
+# — menos na `main`, onde toda execução termina: é o `ci.yml` verde do SHA que o `deploy-worker.yml`
+# exige. O evento saiu do grupo: cada ramo dispara por um evento só, então não há par para proteger.
 concurrency:
-  group: ci-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # O `npm ci` do onnxruntime-node baixa do nuget.org, no Linux x64, os binários de CUDA — o runner
 # não tem GPU, e o nuget fora do ar derrubava o job antes de qualquer teste (ETIMEDOUT, 30/09/2026).
@@ -165,6 +168,12 @@ jobs:
       - if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: npm run build
         timeout-minutes: 10
+      # Catalogos a mao em ordem alfabetica: inserir sempre no FIM fazia todo par de PRs conflitar
+      # nas mesmas ultimas linhas. Em ordem, cada chave cai no seu lugar. Corrige com `npm run i18n`.
+      - name: Catalogos de i18n em ordem
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        run: node scripts/i18n/ordenar.mjs --check
+
       # O catalogo pseudo tem que estar em dia, senao o teste de layout roda sobre um mapa velho
       # e deixa de ver as strings novas — falha silenciosa, do tipo que este repo ja documenta.
       - name: Catalogo pseudo em dia
@@ -394,6 +403,7 @@ jobs:
         tests/integration/limpeza-analyze.test.ts
         tests/integration/lotes-em-uma-instrucao.test.ts
         tests/integration/medicao-de-transacao-pg.test.ts
+        tests/integration/migracao-periodo-pago-desde.test.ts
         tests/integration/migracoes-sem-prazo.test.ts
         tests/integration/palavras-vistas.test.ts
         tests/integration/parceiro-de-leitura.test.ts
@@ -480,7 +490,7 @@ jobs:
     needs: mudancas
     if: needs.mudancas.outputs.e2e == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
@@ -489,8 +499,12 @@ jobs:
           - { projeto: mobile-375, fatia: 2, fatias: 2 }
           - { projeto: tablet-768, fatia: 1, fatias: 2 }
           - { projeto: tablet-768, fatia: 2, fatias: 2 }
-          - { projeto: desktop-1280, fatia: 1, fatias: 2 }
-          - { projeto: desktop-1280, fatia: 2, fatias: 2 }
+          # O desktop vai em TRÊS: a fatia 2/2 levava ~26 min dos 28 do passo (só ela roda os avatares em
+          # WebGL por software, ~25 min somados) e duas retentativas bastaram para estourar o prazo (main,
+          # 04/11/2026). Pelas durações da execução verde de 04/11, as três ficam em ~10, ~11 e ~19 min.
+          - { projeto: desktop-1280, fatia: 1, fatias: 3 }
+          - { projeto: desktop-1280, fatia: 2, fatias: 3 }
+          - { projeto: desktop-1280, fatia: 3, fatias: 3 }
     name: e2e (${{ matrix.projeto }} ${{ matrix.fatia }}/${{ matrix.fatias }})
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -521,7 +535,8 @@ jobs:
       # `github` além do `list`: as falhas de todas as fatias aparecem juntas, como anotações, na
       # página da execução.
       - name: Testes de ponta a ponta
-        timeout-minutes: 20
+        # A fatia cresceu com os E2E do avatar (WebGL por software) e as repetições da CI: 20 min estouravam, com os testes passando.
+        timeout-minutes: 28
         run: npx playwright test --project=${{ matrix.projeto }} --shard=${{ matrix.fatia }}/${{ matrix.fatias }} --reporter=list,github
       # Trace e screenshot de falha ja eram configurados no playwright.config.ts e nunca saiam do
       # runner: a configuracao existia, a evidencia nao.

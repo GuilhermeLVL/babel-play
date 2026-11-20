@@ -1,10 +1,17 @@
 ---
-titulo: "Repetição espaçada explicada: como parar de esquecer o que estuda"
-descricao: "Entenda a curva do esquecimento e como a repetição espaçada ajuda a fixar vocabulário de idiomas com revisões curtas, em intervalos crescentes."
-slug: "repeticao-espacada-explicada"
-publicado: "2026-10-25"
-revisado: false
-palavrasChave: ["repetição espaçada", "curva do esquecimento", "como memorizar vocabulário", "flashcards", "revisão"]
+titulo: 'Repetição espaçada explicada: como parar de esquecer o que estuda'
+descricao: 'Entenda a curva do esquecimento e como a repetição espaçada ajuda a fixar vocabulário de idiomas com revisões curtas, em intervalos crescentes.'
+slug: 'repeticao-espacada-explicada'
+publicado: '2026-10-25'
+revisado: true
+palavrasChave:
+  [
+    'repetição espaçada',
+    'curva do esquecimento',
+    'como memorizar vocabulário',
+    'flashcards',
+    'revisão',
+  ]
 ---
 
 Você estuda uma lista de palavras, acha que aprendeu e, uma semana depois, não lembra de metade. Parece falta de talento, mas é o funcionamento normal da memória. A boa notícia é que existe um método para trabalhar a favor dela: a repetição espaçada.

@@ -4,7 +4,7 @@
  * O que se prova:
  *   - a flag `parceiro_de_leitura` nasce DESLIGADA na migração; desligada, 404 sem provedor, sem contador e sem ler o
  *     plano (mesmo com corpo inválido);
- *   - quem pode: Grátis e convidado 402 `sem_plano`; Plus e o teste de 14 dias, 200;
+ *   - quem pode: Grátis e convidado 402 `sem_plano`; Plus e o teste de 3 dias, 200;
  *   - a saída estruturada (`json_schema` estrito `parceiro_de_leitura`): a citação que não está no trecho sai; a
  *     pergunta sem citação válida vira "não está neste trecho"; citação inventada no texto é 502;
  *   - o CACHE compartilhado: o mesmo pedido sobre um livro PD, por OUTRA pessoa, não chama o provedor nem conta no dia;
@@ -319,7 +319,7 @@ describe('quem pode', () => {
     }
   })
 
-  it('o teste de 14 dias tem o parceiro', async () => {
+  it('o teste de 3 dias tem o parceiro', async () => {
     const quem = asUserId('parceiro-em-teste')
     await idades.declarar(quem, '1990-01-01')
     const entitlements = await h.load<any>('../../server/lib/entitlements')
@@ -506,6 +506,7 @@ describe('as cotas', () => {
     const res = await pedir(quem, corpoBase({ selecao: 'fair Verona' }))
     expect(res.statusCode).toBe(402)
     expect(res.body?.code).toBe('cota_do_parceiro')
+    expect(res.body?.error).toMatch(/ele volta em \d+ de \S+\. O livro/)
     expect(chamadas).toHaveLength(0)
     expect(await doDia(quem)).toBe(0)
     expect(await contador(quem, 'llm_tokens', mes())).toBe(0)

@@ -177,7 +177,12 @@ metricsRouter.post('/seeds/gastar', async (req, res) => {
       saldo = economia.saldo
       /* Recusa ANTECIPADA, para o 402 poder dizer quanto falta: o teto dentro do INSERT sabe
          barrar, mas não sabe explicar. As duas conferências usam o mesmo número. */
-      if (saldo < autorizacao.preco) {
+      /* A CONFERÊNCIA DE `jaGastou` PODE TER CORRIDO ANTES DO COMMIT DE UM CLIQUE GÊMEO (mesmo
+         spendId) e a economia, DEPOIS: o saldo já desconta este próprio gasto, e o reenvio de uma
+         compra paga levaria 402. Antes de recusar, a pergunta é refeita — agora depois da leitura do
+         saldo, então quem pousou antes dela aparece aqui. Só no caminho do 402: não custa nada a
+         quem tem saldo. `debitar` decide o resto (devolve a linha original com `jaExistia`). */
+      if (saldo < autorizacao.preco && !(await seedSpendsRepo.jaGastou(req.userId, payload.spendId))) {
         responderErro(res, 402, 'saldo insuficiente', 'saldo_insuficiente', {
           falta: autorizacao.preco - saldo,
           saldo,

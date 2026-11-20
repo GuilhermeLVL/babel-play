@@ -5,7 +5,7 @@
  * O MODO DE PROVA, SÓ EM DESENVOLVIMENTO (`provaDosPlanos`, no fim do arquivo, com a explicação). As
  * chaves do `localStorage`:
  *   babel.px.planoDeProva         free | essencial | premium | aovivo   (o plano que a tela trata como seu)
- *   babel.px.testeDeProva         1                                      (em teste de 14 dias do Premium)
+ *   babel.px.testeDeProva         1                                      (em teste de 3 dias do Premium)
  *   babel.px.planosAVendaDeProva  premium | essencial,premium | essencial,premium,aovivo
  *   babel.px.aparelhoDeProva      pc | fraco | celular | quest
  *   babel.px.anunciosDeProva      1                                      (como se a flag `anuncios` existisse)
@@ -252,7 +252,7 @@ export function arrumarPlanos(palco: HTMLElement | null, alvo: string | null, de
  *
  *   babel.px.planoDeProva          o plano que a tela trata como o seu:
  *                                  free | essencial | premium | aovivo
- *   babel.px.testeDeProva          1 = em teste de 14 dias (o plano vira o Premium, "em teste")
+ *   babel.px.testeDeProva          1 = em teste de 3 dias (o plano vira o Premium, "em teste")
  *   babel.px.planosAVendaDeProva   os planos pagos à venda, separados por vírgula, na ordem que for:
  *                                  "premium" (o estado de fábrica) · "essencial,premium" (com
  *                                  venda_planos_v3) · "essencial,premium,aovivo" (com stt_ao_vivo também)

@@ -61,6 +61,7 @@ import {
 import { executarJobsDoCron } from './server/jobs/executar'
 import { ligarAnalyticsEngine, type BindingDeMetricas } from './server/http/metricasDoAnalyticsEngine'
 import { ligarAssetsDoParceiro } from './server/ai/leitura/manifestos'
+import { ligarAlertaDoWorker } from './server/boot/alertaDoWorker'
 import { type BucketR2, ligarBucketDoR2 } from './server/lib/armazenamentoR2'
 import { erroGlobal } from './server/lib/erroGlobal'
 import { rodarNoEscopoDaRequisicao } from './server/lib/escopoDaRequisicao'
@@ -241,6 +242,7 @@ async function servirSite(request: Request, url: URL, env: Env, ctx: Contexto): 
 export default {
   async fetch(request: Request, env: Env, ctx: Contexto): Promise<Response> {
     fixarModo()
+    ligarAlertaDoWorker() // antes de tudo: o erro do boot mal configurado também sai por e-mail
     const url = new URL(request.url)
     const { pathname } = url
     /* `www.` → o domínio sem `www`, antes de tudo (API inclusive): um endereço só por página. */
@@ -294,6 +296,7 @@ export default {
 
   async scheduled(controller: ControladorDoCron, env: Env, ctx: Contexto): Promise<void> {
     fixarModo()
+    ligarAlertaDoWorker()
     ligarAnalyticsEngine(env.METRICAS)
     ligarBucketDoR2(env.MIDIA)
     if (conferirBootDoWorker()) {

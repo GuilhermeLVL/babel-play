@@ -1,0 +1,59 @@
+# PUBLICAR OS PESOS DA SUPERTONIC 3 NO R2 — MANUAL, pelo runner do GitHub (≈401 MB; a rede doméstica sobe a ~14 KB/s).
+#
+# O runner baixa do Hugging Face na revisão FIXADA (`REVISAO_DO_SUPERTONIC`), confere tamanho e sha256 de cada arquivo contra
+# `src/core/voz/supertonic.ts` e sobe para `frasy-modelos/supertonic-3/<caminho>` com `wrangler r2 object put`
+# (`scripts/modelos/publicar-supertonic-no-r2.ts`). Idempotente: o caminho é imutável.
+#
+# GITHUB ENVIRONMENT: secrets CLOUDFLARE_API_TOKEN (R2 Edit) e CLOUDFLARE_ACCOUNT_ID. Depois, `VITE_VOZ_MODELO_URL` do Environment
+# aponta para `<raiz pública do bucket>/supertonic-3` (staging: o r2.dev; produção: `modelos.<domínio>`). A flag `voz_no_aparelho`
+# continua DESLIGADA até o dono ligar.
+name: publicar-supertonic
+
+on:
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        description: 'Ambiente (GitHub Environment com o token da Cloudflare)'
+        type: choice
+        options: [staging, production]
+        default: staging
+
+permissions:
+  contents: read
+
+env:
+  ONNXRUNTIME_NODE_INSTALL: skip
+
+concurrency:
+  group: publicar-supertonic-${{ inputs.ambiente }}
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: ${{ inputs.ambiente }}
+    env:
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      # Sem o token no ambiente: scripts de instalação das dependências não o enxergam.
+      - run: npm ci
+        timeout-minutes: 5
+      - name: Conferir credenciais
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          for n in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+            [ -n "${!n}" ] || { echo "::error::falta o secret $n no Environment ${{ inputs.ambiente }}"; exit 1; }
+          done
+      - name: Publicar os pesos no frasy-modelos
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx tsx scripts/modelos/publicar-supertonic-no-r2.ts --bucket=frasy-modelos --via=wrangler

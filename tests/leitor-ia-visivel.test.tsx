@@ -4,7 +4,7 @@
  * quatro com o motivo; a barra do trecho mostra Explicar e Perguntar mesmo indisponíveis; o parceiro cobre sucesso,
  * recusas e "tentar de novo"; a tradução do capítulo tem progresso, cancelamento e o aviso de mesmo idioma.
  */
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import BarraDaSelecao from '../src/components/views/leitor/BarraDaSelecao'
@@ -17,6 +17,8 @@ import {
   type FatosDasFerramentas,
 } from '../src/core/leitura/ferramentasDeIa'
 import type { ResultadoDoParceiro } from '../src/data/rotas/parceiroDeLeitura'
+import { _reiniciarIdentidade, definirIdentidade } from '../src/lib/identidade'
+import { EVENTO_PEDIR_ENTRADA } from '../src/lib/pedirConta'
 
 let consentiu = true
 vi.mock('../src/lib/consentimentoDeNuvem', () => ({
@@ -261,6 +263,47 @@ describe('PainelDoParceiro', () => {
     await waitFor(() => expect(screen.getByTestId('parceiro-status').textContent).toContain(frase))
     expect(!!screen.queryByText('Tentar de novo')).toBe(retenta)
     expect(screen.queryByTestId('parceiro-resposta')).toBeNull()
+  })
+
+  it('sem conta: o fato, o que continua livre e os dois botões do convite (Criar conta abre o cadastro)', async () => {
+    const pedidos: string[] = []
+    const ouvir = (e: Event) => pedidos.push((e as CustomEvent<{ modo: string }>).detail.modo)
+    window.addEventListener(EVENTO_PEDIR_ENTRADA, ouvir)
+    definirIdentidade('anonimo')
+    try {
+      montar(async () => ({ ok: false, motivo: 'sem_conta', status: 401 }))
+      fireEvent.click(screen.getByTestId('parceiro-pedir'))
+      await waitFor(() =>
+        expect(screen.getByTestId('parceiro-status').textContent).toBe(
+          'O parceiro de leitura precisa de conta. Ler, traduzir e ouvir o livro continuam livres.',
+        ),
+      )
+      expect(screen.queryByText('Tentar de novo')).toBeNull()
+      const saida = screen.getByTestId('parceiro-sem-conta')
+      fireEvent.click(within(saida).getByRole('button', { name: 'Criar conta' }))
+      fireEvent.click(within(saida).getByRole('button', { name: 'Já tenho conta' }))
+      expect(pedidos).toEqual(['signup', 'login'])
+    } finally {
+      window.removeEventListener(EVENTO_PEDIR_ENTRADA, ouvir)
+      _reiniciarIdentidade()
+    }
+  })
+
+  it('com conta e 401 (sessão que caiu): "entre de novo", sem os botões de criar conta', async () => {
+    definirIdentidade('conta')
+    try {
+      montar(async () => ({ ok: false, motivo: 'sem_conta', status: 401 }))
+      fireEvent.click(screen.getByTestId('parceiro-pedir'))
+      await waitFor(() =>
+        expect(screen.getByTestId('parceiro-status').textContent).toBe(
+          'Sua sessão expirou. Entre de novo para usar o parceiro de leitura.',
+        ),
+      )
+      expect(screen.queryByTestId('parceiro-sem-conta')).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Criar conta' })).toBeNull()
+    } finally {
+      _reiniciarIdentidade()
+    }
   })
 
   it('"Tentar de novo" repete o pedido e, desta vez, mostra a resposta', async () => {

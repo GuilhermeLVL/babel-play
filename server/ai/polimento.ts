@@ -5,7 +5,7 @@
  * A regra mora no núcleo (`server/ai/nucleo/polirLote.ts`): a capacidade (`traducaoNuance`), as falas
  * lidas do banco pelo dono, a idempotência por bloco, o 409 do bloco em voo, o portão, a política de
  * custo, a admissão, a reserva, a cascata, a gravação ao lado da original e o custo. Aqui fica o que é
- * do HTTP do app: ler o corpo, resolver o plano e o teste de 14 dias (fail-closed: erro ao ler é 502),
+ * do HTTP do app: ler o corpo, resolver o plano e o teste de 3 dias (fail-closed: erro ao ler é 502),
  * montar o contexto e responder o que o núcleo decidiu, no instante em que ele decide.
  */
 import type { Request, Response } from 'express'

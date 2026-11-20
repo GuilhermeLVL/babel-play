@@ -555,13 +555,13 @@
    a única explicação do estado ("Avatar já salvo") não se lia. Agora: contorno de 3:1 ou mais nos secundários, e o
    desabilitado deixa de ser "apagado": é um botão quieto, de texto cheio, com o contorno tracejado. */
 .av-tela .q-ctl:not(.pri):not(:hover):not([aria-pressed='true']) {
-  border-color: color-mix(in srgb, var(--ink) 55%, var(--canvas));
+  border-color: color-mix(in srgb, var(--ink) 70%, var(--canvas));
 }
 .av-tela .q-ctl:disabled,
 .av-tela .q-ctl.pri:disabled {
   opacity: 1;
   background: var(--surface-sunken);
   color: var(--ink);
-  border: 2px dashed color-mix(in srgb, var(--ink) 55%, var(--canvas));
+  border: 2px dashed color-mix(in srgb, var(--ink) 70%, var(--canvas));
   box-shadow: none;
 }

@@ -31,7 +31,8 @@ import { perfilDoDispositivo } from '../dispositivo/perfil';
 import { getEntitlements } from '../entitlements';
 import { flagLigada } from '../flagsCache';
 import { perfilProtegido } from '../protecaoDoMenor';
-import { getVoicePrefs, getVoices, type TtsEngine } from '../tts';
+import { getVoicePrefs, getVoices, type TtsEngine, vozAceitaExiste } from '../tts';
+import { opfsConhecido, opfsUtilizavel } from './opfsUtilizavel';
 
 /** A escolha "Voz de alta qualidade (no aparelho)" na preferência de voz. O `@` não existe em voz do sistema. */
 export const VOZ_NO_APARELHO = '@no-aparelho';
@@ -89,13 +90,33 @@ function entradaDoPortao(): EntradaDaVozNoAparelho {
     wasm: typeof WebAssembly !== 'undefined',
     isolado: p.sinais.isolado,
     ios: ehIos(p.sinais.userAgent, p.sinais.toques),
-    armazenamento: typeof nav?.storage?.getDirectory === 'function',
+    armazenamento: typeof nav?.storage?.getDirectory === 'function' ? opfsConhecido() : false,
   };
+}
+
+/**
+ * Pergunta ao OPFS (uma vez por sessão) se ele funciona e avisa quem desenha. Só pergunta com a flag ligada e a raiz dos
+ * pesos configurada (sem oferta possível, nenhum I/O). Nunca lança.
+ */
+export async function verificarArmazenamentoDaVoz(): Promise<void> {
+  if (raizDoModelo() === null || !flagLigada(FLAG_VOZ_NO_APARELHO)) return;
+  await opfsUtilizavel();
+  avisar();
 }
 
 /** A opção aparece (por padrão ou por escolha)? Sem a raiz dos pesos, nunca. */
 export const vozNoAparelhoOferecida = (): boolean =>
   raizDoModelo() !== null && decisaoDaVozNoAparelho().oferta !== 'nao';
+
+/**
+ * O aparelho serviria, mas o OPFS não funciona (Safari em navegação privada): a opção aparece DESABILITADA, com o motivo,
+ * em vez de oferecer um download que vai falhar.
+ */
+export const vozNoAparelhoSemArmazenamento = (): boolean => {
+  if (raizDoModelo() === null) return false;
+  const d = decisaoDaVozNoAparelho();
+  return d.oferta === 'nao' && d.motivo === 'sem-armazenamento';
+};
 
 export const modeloNoAparelho = (): boolean => ler(CHAVE_DO_MODELO) === REVISAO_DO_SUPERTONIC;
 
@@ -119,9 +140,9 @@ function escolhaDaVoz(idioma: string): EscolhaDaVoz {
   if (guardada === '@nuvem')
     return getEntitlements().vozNatural && flagLigada(FLAG_VOZ_NATURAL) ? 'nuvem' : 'automatica';
   if (!guardada) return 'automatica';
-  /* Antes de o sistema entregar a lista de vozes, não dá para saber se a escolhida sumiu: ela vale. */
-  const vozes = getVoices();
-  return !vozes.length || vozes.some((v) => v.name === guardada) ? 'sistema' : 'automatica';
+  /* Antes de o sistema entregar a lista de vozes, não dá para saber se a escolhida sumiu: ela vale. Uma voz recusada
+     (robótica) vale como sumida. */
+  return !getVoices().length || vozAceitaExiste(guardada) ? 'sistema' : 'automatica';
 }
 
 function entradaDaLeitura(idioma: string): EntradaDaVozDaLeitura {
@@ -223,24 +244,32 @@ export function destravarVozNoAparelho(): void {
   }
 }
 
-/** Importa o motor (uma vez) e registra o `neural-local` na porta. Recusa sem a flag, sem o perfil ou sem a raiz. */
+type AdaptadorSupertonic = ReturnType<Modulo['adaptadorDoSupertonic']>;
+let adaptador: AdaptadorSupertonic | null = null;
+
+/**
+ * Importa o motor (uma vez) e registra o `neural-local` na porta. Recusa sem a flag, sem o perfil ou sem a raiz.
+ * Registra a CADA chamada (o mesmo adaptador): a voz natural do Kitten (`vozKitten.ts`) divide a vaga `neural-local`, e
+ * quem vai ler registra a sua antes.
+ */
 export function carregarMotor(): Promise<Modulo> {
   if (!vozNoAparelhoOferecida()) return Promise.reject(new Error('voz no aparelho indisponível'));
   modulo ??= import('../../gateway/adapters/supertonicLocal').then((m) => {
     const d = decisaoDaVozNoAparelho();
-    registrarMotorDeVoz(
-      m.adaptadorDoSupertonic({
-        threads: d.threadsWasm,
-        webgpu: d.backend === 'webgpu',
-        pronto: vozNoAparelhoLe,
-        vozPadrao: vozDoNarradorNoAparelho,
-        contexto: contextoDaVozNoAparelho,
-        soltarAposMs: perfilDoDispositivo().poucaMemoria ? 0 : SOLTAR_APOS_MS,
-      }),
-    );
+    adaptador = m.adaptadorDoSupertonic({
+      threads: d.threadsWasm,
+      webgpu: d.backend === 'webgpu',
+      pronto: vozNoAparelhoLe,
+      vozPadrao: vozDoNarradorNoAparelho,
+      contexto: contextoDaVozNoAparelho,
+      soltarAposMs: perfilDoDispositivo().poucaMemoria ? 0 : SOLTAR_APOS_MS,
+    });
     return m;
   });
-  return modulo;
+  return modulo.then((m) => {
+    if (adaptador) registrarMotorDeVoz(adaptador);
+    return m;
+  });
 }
 
 /** O motor registrado, pronto para falar (para a amostra do seletor e do elenco), ou `null`. */

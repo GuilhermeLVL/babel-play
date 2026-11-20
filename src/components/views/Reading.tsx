@@ -53,7 +53,7 @@ import { criarMarcador, type GuiaDaFala, seguirFala } from '../../lib/polimento/
 import { usePopoverDePalavra } from '../../lib/popoverDePalavra';
 import type { ExerciseId, PracticeSeed } from '../../lib/sentences';
 import { seedFromSelection, telaDoExercicio } from '../../lib/sentences';
-import { cancelSpeech, hasVoiceFor, pickVoice, speak as ttsSpeak } from '../../lib/tts';
+import { avisarSemVoz, cancelSpeech, hasVoiceFor, pickVoice, speak as ttsSpeak, vozesCarregadas } from '../../lib/tts';
 import type { ResolvedWord, WordOrigin } from '../../lib/vocabWord';
 import { buildVocabWord, mtNoteFor, resolveWord, tokenizarTexto } from '../../lib/vocabWord';
 import { aparelhoTemVoz, haVozPara } from '../../lib/voz/haVoz';
@@ -807,11 +807,18 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
         });
         return;
       }
+      const voice = voiceFor(step.lang);
+      /* Sem voz ACEITA no idioma (só robóticas, ou nenhuma), o trecho é pulado: o texto segue na tela e o aviso de
+         "sem voz" diz o que houve. Nunca lê com a voz padrão do navegador. */
+      if (!voice && vozesCarregadas()) {
+        avisarSemVoz(toBcp47(step.lang));
+        speakStep(stepIndex + 1);
+        return;
+      }
       const utterance = new SpeechSynthesisUtterance(step.text);
       narrationPausedRef.current = false;
       currentUtteranceRef.current = utterance;
 
-      const voice = voiceFor(step.lang);
       utterance.lang = voice?.lang || toBcp47(step.lang);
       if (voice) utterance.voice = voice;
       utterance.rate = narrationRate;

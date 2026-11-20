@@ -37,6 +37,7 @@ import { temAdaptadorWebGpu, webGpuProvavel } from '../../gateway/adaptadorWebGp
 import { navegadorSemAudioDaTela } from '../captura/navegadorSemAudioDaTela';
 import { recursosDoAparelho } from './recursos';
 import type { SondaDoAparelho } from './sonda';
+import { redeLentaPor, vazaoConhecida } from './vazao';
 
 export type TipoDeDispositivo = 'quest' | 'celular-fraco' | 'celular-bom' | 'desktop-sem-gpu' | 'desktop-com-gpu';
 
@@ -67,6 +68,11 @@ export interface SinaisDoDispositivo {
   memoriaDaAbaMb: number | null;
   /** Há ADAPTADOR WebGPU (não só `navigator.gpu`) — ver `adaptadorWebGpu.ts`. */
   webGpu: boolean;
+  /**
+   * A vazão MEDIDA da rede em Mbit/s (`vazao.ts`: a guardada nas últimas 24 h, ou a dos arquivos do próprio app).
+   * Decide a rede lenta quando o navegador não diz o tipo (Safari). Ausente/`null` = sem medida.
+   */
+  vazaoMbps?: number | null;
 }
 
 export interface PerfilDoDispositivo {
@@ -88,9 +94,11 @@ export interface PerfilDoDispositivo {
   capturaDoSistema: boolean;
   /**
    * Pedir confirmação antes de baixar modelos acima deste total (MB). `null` = não pedir;
-   * `0` = pedir sempre (economia de dados ligada ou rede abaixo de 4g).
+   * `0` = pedir sempre (economia de dados ligada ou rede lenta). Celular e Quest: 20; desktop: 300.
    */
   confirmarDownloadAcimaDeMb: number | null;
+  /** A rede é lenta (o tipo declarado abaixo de 4g ou, sem ele, a vazão medida abaixo de 1,5 Mbit/s). */
+  redeLenta: boolean;
   /** Alvo interativo mínimo (px CSS): 56 no Quest (Eyes Best Practices da Meta), 48 no resto. */
   alvoMinimoPx: 48 | 56;
   /** Por que este perfil — para o relatório/diagnóstico, nunca para decidir de novo. */
@@ -152,6 +160,7 @@ export function lerSinaisDoDispositivo(webGpu: boolean): SinaisDoDispositivo {
     movimentoReduzido: consulta('(prefers-reduced-motion: reduce)'),
     memoriaDaAbaMb,
     webGpu,
+    vazaoMbps: vazaoConhecida(),
   };
 }
 
@@ -201,11 +210,17 @@ export function classificarDispositivo(s: SinaisDoDispositivo): PerfilDoDisposit
      para mudar o padrão (auditoria de dispositivos, 2026-09-26). */
   const threadsWasm = s.isolado ? Math.max(1, Math.min(s.nucleos ?? 4, 4)) : 1;
 
-  const redeLenta = s.tipoDeRede != null && s.tipoDeRede !== '4g';
+  /* Sem o tipo declarado (Safari, Firefox), a vazão medida (`vazao.ts`) decide (carga-rapida-no-celular, 3.2). */
+  const redeLenta = redeLentaPor({ tipoDeRede: s.tipoDeRede, vazaoMbps: s.vazaoMbps ?? null }) === true;
   if (s.economiaDeDados) motivos.push('economia de dados ligada');
-  if (redeLenta) motivos.push(`rede ${s.tipoDeRede}`);
+  if (redeLenta)
+    motivos.push(
+      s.tipoDeRede ? `rede ${s.tipoDeRede}` : `vazão medida ${String(s.vazaoMbps).replace('.', ',')} Mbit/s`,
+    );
+  /* Celular e Quest: todo download acima de 20 MB pergunta (carga-rapida-no-celular, CEL-04: 90 MB saíam do plano
+     de dados sem pergunta com o limite de 100 MB). */
   const confirmarDownloadAcimaDeMb =
-    s.economiaDeDados || redeLenta ? 0 : tipo === 'quest' || tipo.startsWith('celular') ? 100 : 300;
+    s.economiaDeDados || redeLenta ? 0 : tipo === 'quest' || tipo.startsWith('celular') ? 20 : 300;
 
   return {
     tipo,
@@ -218,6 +233,7 @@ export function classificarDispositivo(s: SinaisDoDispositivo): PerfilDoDisposit
        do Safari): ali a fonte padrão é o microfone, e o primeiro Iniciar não cai no aviso sem saída. */
     capturaDoSistema: s.capturaDeTela && !navegadorSemAudioDaTela(s.userAgent),
     confirmarDownloadAcimaDeMb,
+    redeLenta,
     alvoMinimoPx: tipo === 'quest' ? 56 : 48,
     motivos,
     sinais: s,

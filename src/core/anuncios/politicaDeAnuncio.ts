@@ -16,7 +16,7 @@
  *     `ESPACOS`, mais `jogar-faixa` de `cartoes-enxuto-src/fontes.js:152-164`: a faixa no alto do Jogar,
  *     no lugar que era da "Sugestão para hoje"); um nome de fora, ou um formato que não é o do espaço, não aparece.
  *  3. EDIÇÃO ESTÁTICA: sem anúncio (ali todo mundo é "sem conta"; decisão 13 do design).
- *  4. PLANO com `semAnuncios` (os pagos e o self-host) e o TESTE de 14 dias: nada.
+ *  4. PLANO com `semAnuncios` (os pagos e o self-host) e o TESTE de 3 dias: nada.
  *  5. PERFIL PROTEGIDO (menor, idade não declarada, sem conta) e PREMIADO: nada. O premiado ("assista e ganhe")
  *     é só para adultos (18+): recompensa por atenção é pressão comercial que o ECA Digital veda ao menor. O
  *     anúncio COMUM (nativo, âncora, intersticial) o perfil protegido vê, com as mesmas regras de todo mundo,
@@ -107,7 +107,7 @@ export interface PedidoDeAnuncio {
   flagLigada: boolean;
   /** A capacidade `semAnuncios` do plano (`getEntitlements()`), nunca o nome do plano. */
   semAnuncios: boolean;
-  /** O teste de 14 dias do Premium está valendo. */
+  /** O teste de 3 dias do Premium está valendo. */
   emTeste: boolean;
   /** Menor, idade não declarada ou sem conta (`perfilProtegido()`). */
   perfilProtegido: boolean;

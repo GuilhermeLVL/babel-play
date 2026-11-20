@@ -27,6 +27,9 @@ const { supa, estado } = vi.hoisted(() => {
     supa: {
       auth: {
         getSession: vi.fn(async () => ({ data: { session: null } })),
+        /* O MFA confere a sessão antes (`sessaoValidaParaMfa`): aqui ela vale. */
+        getUser: vi.fn(async () => ({ data: { user: { id: 'u1' } }, error: null })),
+        refreshSession: vi.fn(async () => ({ data: { session: null }, error: null })),
         signInWithPassword: vi.fn(async () => ({ error: { message: 'Invalid login credentials' } })),
         signUp: vi.fn(async () => ({ data: { session: null }, error: null })),
         signInWithOAuth: vi.fn(async () => ({ error: { message: 'provider disabled' } })),
@@ -53,6 +56,10 @@ const { supa, estado } = vi.hoisted(() => {
 vi.mock('../src/lib/supabase', () => ({
   get supabase() {
     return estado.configurado ? supa : null
+  },
+  /* O SDK desce sob demanda (carga-rapida-no-celular): "configurado" não depende de ele já ter chegado. */
+  get supabaseConfigurado() {
+    return estado.configurado
   },
   authRequired: true,
   carregarSupabase: async () => (estado.configurado ? supa : null),

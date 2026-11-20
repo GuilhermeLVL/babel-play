@@ -13,6 +13,8 @@ package-lock.json
 server/db/migrations
 src/data/trilha/niveis
 src/data/i18n
+# o manifesto dos pesos (`npx tsx scripts/modelos/gerar-manifesto-dos-pesos.ts`, com `--check`)
+src/gateway/manifestoDosPesos.json
 tests/caracterizacao/__snapshots__
 tests/__snapshots__
 openspec/audits

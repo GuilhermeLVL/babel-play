@@ -69,7 +69,7 @@
   // (teto de 5), agrupar os diários das 03h numa expressão só — executarJobsDoCron roda em sequência.
   // Local: GET /cdn-cgi/local/scheduled?cron=<expressão>.
   "triggers": {
-    "crons": ["5 3 * * *", "7 3 * * *", "11 3 * * *", "13 3 * * *", "17 3 * * *", "23 3 * * *", "19 * * * *"],
+    "crons": ["5 3 * * *", "7 3 * * *", "11 3 * * *", "13 3 * * *", "17 3 * * *", "23 3 * * *", "29 3 * * *", "19 * * * *"],
   },
 
   // O que só existe no Node fica fora do bundle: cada pacote vira um stub que lança se for usado

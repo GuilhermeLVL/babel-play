@@ -5,7 +5,7 @@
     "estado": "nova",
     "rotulo": "Conta recém-criada",
     "rota": "/",
-    "oQueVer": "Primeiro acesso: apresentação, pergunta da idade, Início vazio. O teste de 14 dias só aparece depois de informar a idade."
+    "oQueVer": "Primeiro acesso: apresentação, pergunta da idade, Início vazio. O teste de 3 dias só aparece depois de informar a idade."
   },
   {
     "email": "gratis@vitrine.test",
@@ -13,13 +13,13 @@
     "estado": "gratis",
     "rotulo": "Grátis",
     "rota": "/plano",
-    "oQueVer": "Planos com o teste de 14 dias disponível, travas \"Conhecer o Premium\" (Nuance, intérprete automático, tutor), cartão de planos no Início."
+    "oQueVer": "Planos com o teste de 3 dias disponível, travas \"Conhecer o Premium\" (Nuance, intérprete automático, tutor), cartão de planos no Início."
   },
   {
     "email": "teste@vitrine.test",
     "id": "00000000-0000-4000-8000-00000000b003",
     "estado": "teste",
-    "rotulo": "Teste de 14 dias em curso",
+    "rotulo": "Teste de 3 dias em curso",
     "rota": "/plano",
     "oQueVer": "Faixa \"Premium · teste\" com a data do fim (faltam 9 dias), recursos do Premium liberados, convite para assinar."
   },

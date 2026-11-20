@@ -135,10 +135,10 @@ describe('Planos v4 ligada: Grátis, Plus e Pro, com a Família numa linha', () 
     expect(preco.querySelector('[data-c="plus"]')!.textContent).toBe('R$ 14,90')
   })
 
-  it('o teste de 14 dias é do Plus, sem cartão; não cita Pix Automático (o checkout não o oferece)', async () => {
+  it('o teste de 3 dias é do Plus, sem cartão; não cita Pix Automático (o checkout não o oferece)', async () => {
     await abrir('plus')
     const faq = document.querySelector('.pl-faq')!.textContent ?? ''
-    expect(faq).toContain('São 14 dias de Plus, sem cartão')
+    expect(faq).toContain('São 3 dias de Plus, sem cartão')
     expect(faq).not.toMatch(/Premium|Pix Autom/)
   })
 
@@ -162,7 +162,7 @@ describe('Planos v4 desligada: a tela de hoje', () => {
 
   it('o teste continua sendo do Premium', async () => {
     await abrir('premium')
-    expect(document.querySelector('.pl-faq')!.textContent).toContain('São 14 dias de Premium, sem cartão')
+    expect(document.querySelector('.pl-faq')!.textContent).toContain('São 3 dias de Premium, sem cartão')
   })
 })
 

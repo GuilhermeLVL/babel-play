@@ -76,15 +76,21 @@ describe.skipIf(SO_PGLITE)('rotas pequenas: uma leitura por tabela', () => {
       plan: PLANO_PAGO,
       status: 'active',
       currentPeriodEnd: AGORA + 20 * 86_400_000,
+      // A âncora que o pagamento grava (change `cota-pelo-periodo-pago`): o vencimento, 35 dias antes do fim.
+      periodoPagoDesde: AGORA - 15 * 86_400_000,
     })
     /* Um valor diferente em cada contador: trocar um pelo outro aparece no corpo. */
     const mes = new Date(AGORA).toISOString().slice(0, 7)
     const dia = await quota.janelaDoDia(asUserId(PAGANTE))
     const u = asUserId(PAGANTE)
-    await usageCountersRepo.increment(u, quota.METRIC_MANAGED, mes, 11)
-    await usageCountersRepo.increment(u, quota.METRIC_STT_SEGUNDOS, mes, 222)
-    await usageCountersRepo.increment(u, quota.METRIC_STT_AO_VIVO_SEGUNDOS, mes, 33)
-    await usageCountersRepo.increment(u, quota.METRIC_LLM_TOKENS, mes, 4444)
+    /* Quem paga conta na janela do PERÍODO PAGO (change `cota-pelo-periodo-pago`), não no mês do calendário. */
+    const periodo = await quota.janelaDaCota(u)
+    await usageCountersRepo.increment(u, quota.METRIC_MANAGED, periodo, 11)
+    await usageCountersRepo.increment(u, quota.METRIC_STT_SEGUNDOS, periodo, 222)
+    await usageCountersRepo.increment(u, quota.METRIC_STT_AO_VIVO_SEGUNDOS, periodo, 33)
+    await usageCountersRepo.increment(u, quota.METRIC_LLM_TOKENS, periodo, 4444)
+    /* O mês do calendário NÃO conta para quem paga: o que estiver nele fica fora da soma. */
+    await usageCountersRepo.increment(u, quota.METRIC_MANAGED, mes, 5000)
     await usageCountersRepo.increment(u, quota.METRIC_STT_SEGUNDOS_DIA, dia, 55)
     await usageCountersRepo.increment(u, quota.METRIC_LLM_TOKENS_DIA, dia, 666)
     /* Mês passado e outra conta: não podem entrar na soma de ninguém. */

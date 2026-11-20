@@ -27,9 +27,9 @@ const docs = readdirSync(join(raiz, 'docs'))
 const readmes = readdirSync(raiz)
   .filter((n) => /^README.*\.md$/.test(n))
   .map((n) => join(raiz, n))
-const arquivos = [...docs, ...readmes].map((c) => relative(raiz, c))
+const arquivos = [...docs, ...readmes, join(raiz, 'public/privacidade.html')].map((c) => relative(raiz, c))
 
-describe('documentação sem Fly nem Litestream', () => {
+describe('documentação e política de privacidade sem Fly nem Litestream', () => {
   it.each(arquivos)('%s', (arquivo) => {
     expect(readFileSync(join(raiz, arquivo), 'utf8')).not.toMatch(PROIBIDO)
   })

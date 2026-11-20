@@ -70,6 +70,10 @@ export interface LogFields {
      números e booleanos (o executor descarta o resto: nada de id de usuário). */
   job?: string
   resumo?: Record<string, number | boolean>
+  /* Filtro de saída do tutor para perfil protegido (`server/ai/moderacao/`): a CATEGORIA barrada e a função de IA,
+     rótulos fixos do código. O texto do modelo nunca entra no log. */
+  categoria?: string
+  funcao?: string
 }
 
 const ALLOWED = new Set([
@@ -110,6 +114,9 @@ const ALLOWED = new Set([
   // Jobs (server/jobs/executar.ts): o nome do job e o resumo numérico da passada.
   'job',
   'resumo',
+  // Filtro de saída do tutor (server/ai/moderacao/): a categoria barrada e a função, rótulos fixos.
+  'categoria',
+  'funcao',
 ])
 
 /**
@@ -148,6 +155,8 @@ const sinks: SinkDeErro[] = []
  *     ruído.
  *   - `r2_teto_alerta_80`: 80% de um teto do R2 (armazenamento ou operações do mês). Sai uma vez por
  *     processo e janela (`server/lib/tetoDoR2.ts`); a 100% o upload/leitura é recusado.
+ *   - `billing_*_divergente`, `billing_parcela_ambigua`, `billing_valor_ambiguo` e `billing_webhook_sem_referencia`:
+ *     o pagamento do Asaas não casou com o plano/parcela/assinatura (server/lib/billingEventos.ts).
  * O resto dos `warn` fica no stdout: mandar todos viraria ruído e gastaria a cota do Sentry.
  */
 export const AVISOS_QUE_ALERTAM: ReadonlySet<string> = new Set([
@@ -158,6 +167,16 @@ export const AVISOS_QUE_ALERTAM: ReadonlySet<string> = new Set([
   'ia_sem_reserva',
   'billing_webhook_token_invalido',
   'r2_teto_alerta_80',
+  /* Cobrança que NÃO bate com o Asaas ou com o que foi pago: o cliente pode ter pago e não receber (ou o contrário).
+     São `warn` de propósito (a requisição segue), mas alguém precisa ver antes de o cliente reclamar. */
+  'billing_assinatura_divergente',
+  'billing_plano_divergente',
+  'billing_parcelamento_divergente',
+  'billing_parcela_ambigua',
+  'billing_valor_ambiguo',
+  'billing_webhook_sem_referencia',
+  'billing_reconciliacao_divergente',
+  'billing_reconciliacao_aplicacao_falhou',
 ])
 
 /** Registra um destino externo para eventos `error`. Devolve como desregistrar. */

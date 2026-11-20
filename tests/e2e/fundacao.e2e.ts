@@ -1,7 +1,7 @@
 import { expect, type Page, test } from '@playwright/test'
 
 import { violacoesGraves } from './_acessibilidade'
-import { abasDePraticar, abrirMais, clicarRobusto, fecharSobreposicoes, trilho } from './_helpers'
+import { abasDePraticar, abrirAoVivo, abrirMais, clicarRobusto, fecharSobreposicoes, trilho } from './_helpers'
 
 /**
  * FUNDAÇÃO (23/09/2026) — o que o shell novo promete e o que as duas telas-molde garantem.
@@ -9,9 +9,10 @@ import { abasDePraticar, abrirMais, clicarRobusto, fecharSobreposicoes, trilho }
  * - Início e Ajustes sem violação WCAG 2.2 AA séria ou crítica (`_acessibilidade.ts`: `axe-core`
  *   já é dependência, e o wrapper do Playwright seria um pacote a mais para a mesma coisa).
  * - Nenhuma tela rola de lado, em nenhum dos três tamanhos.
- * - O trilho de ícones leva a todo destino: no computador e no tablet, seis no trilho (Início,
- *   Capturar, Intérprete, Biblioteca, Cartões, Jogar) e o resto no 'Mais'; abaixo de 720 px, a barra
- *   de cinco, com o "Praticar" no lugar de Cartões e Jogar e a Biblioteca também no 'Mais'.
+ * - O trilho de ícones leva a todo destino: no computador e no tablet, oito no trilho (Início,
+ *   Ao vivo, Cartões, Jogar, Biblioteca, Progresso, Planos) e o resto no 'Mais'; abaixo de
+ *   720 px, a barra de cinco (Início, Cartões, Ao vivo, Jogar, Mais), com Biblioteca e
+ *   Progresso também no 'Mais'.
  * - iChat fixo: divide a linha com o conteúdo, a largura muda pela alça e volta a flutuar sozinho
  *   quando a janela fica estreita demais.
  */
@@ -56,28 +57,30 @@ test('o trilho leva a todo destino: os do trilho direto, o resto pelo "Mais"', a
   const nav = trilho(page)
   await expect(nav).toBeVisible()
 
-  /* A NAVEGAÇÃO DE 10/10/2026. No computador e no tablet o trilho é Início, Capturar, Intérprete,
-     Biblioteca, Cartões e Jogar. Abaixo de 720 px ele é a barra de cinco (Início, Praticar, Capturar,
-     Intérprete, Mais): Cartões e Jogar dividem o "Praticar", e a Biblioteca passa ao "Mais".
-     Estatísticas e Personalizar moram no "Mais" em todo aparelho. */
+  /* A NAVEGAÇÃO DE 22/10/2026 (R40). No computador e no tablet o trilho tem oito destinos: Início,
+     Ao vivo (Capturar e Intérprete), Cartões, Jogar, Biblioteca, Livros, Progresso e Planos. Abaixo de 720 px ele é a barra
+     de cinco (Início, Cartões, Ao vivo, Jogar, Mais): Biblioteca e Progresso passam ao
+     "Mais" e Planos fica na faixa "Planos e Premium" dele. Personalizar mora no "Mais" em todo aparelho. */
   const noTrilho: Array<[RegExp, RegExp]> = [
     [/^(Início|Página Inicial)$/, /\/$/],
     // O Jogar antes dos outros: a sala da primeira visita abre por cima, e sair da tela a leva junto.
-    ...(estreito ? [] : ([[/^Jogar$/, /\/jogar/]] as Array<[RegExp, RegExp]>)),
-    [/^(Capturar|Gravar|Gravar Áudio)$/, /\/capturar/],
+    [/^(Jogar|Praticar)$/, /\/jogar/],
+    [/^Cartões$/, /\/cartoes$/],
   ]
-  /** No trilho acima de 720 px; na barra de cinco, um vai para o "Mais" e o outro vira o "Praticar". */
+  /** Não é item do trilho: mora dentro do "Ao vivo" (a escolha rápida). */
+  const interprete: [RegExp, RegExp] = [/^Intérprete/, /\/interprete/]
   const biblioteca: [RegExp, RegExp] = [/^(Biblioteca|Minhas Mídias)/, /\/biblioteca/]
-  const cartoes: [RegExp, RegExp] = [/^Cartões$/, /\/cartoes$/]
+  /* Livros (27/10/2026): destino do trilho no computador; no celular mora no "Mais", ao lado da Biblioteca. */
+  const livros: [RegExp, RegExp] = [/^Livros/, /\/livros/]
+  const progresso: [RegExp, RegExp] = [/^(Progresso|Meu progresso)/, /\/estatisticas/]
+  const planos: [RegExp, RegExp] = [/^(Planos|Planos e preços)/, /\/plano/]
   const soNoMais: Array<[RegExp, RegExp]> = [
-    [/^(Estatísticas|Meu progresso)/, /\/estatisticas/],
     [/^(Personalizar|Meu visual)/, /\/loja/],
     [/^Sobre/, /\/sobre/],
-    [/^Planos/, /\/plano/],
     [/^(Ajustes|Configurações)/, /\/ajustes/],
   ]
 
-  for (const [nome, url] of [...noTrilho, ...(estreito ? [] : [biblioteca, cartoes])]) {
+  for (const [nome, url] of [...noTrilho, ...(estreito ? [] : [biblioteca, livros, progresso, planos])]) {
     const item = nav.getByRole('button', { name: nome })
     await expect(item, `${nome} deveria estar no trilho`).toBeVisible()
     await clicarRobusto(page, item)
@@ -85,35 +88,60 @@ test('o trilho leva a todo destino: os do trilho direto, o resto pelo "Mais"', a
     await expect(page.getByRole('main')).toBeVisible()
     await expect(item).toHaveAttribute('aria-current', 'page')
   }
-  if (estreito) {
-    for (const nome of [biblioteca[0], cartoes[0], /^Jogar$/])
-      await expect(nav.getByRole('button', { name: nome })).toBeHidden()
-    await expect(nav.locator('.q-item:visible')).toHaveCount(5)
+  /* AO VIVO: um item só no lugar de Capturar e Intérprete; abre a escolha e cada opção leva à sua tela. */
+  const aoVivo = nav.getByRole('button', { name: /^(Ao vivo|Gravar e conversar)$/ })
+  await expect(aoVivo).toBeVisible()
+  await expect(nav.getByRole('button', { name: /^(Capturar|Gravar Áudio)$/ })).toHaveCount(0)
+  for (const [opcao, url] of [
+    [interprete[0], interprete[1]],
+    /* Legendar por último: a captura abre, uns segundos depois, o convite para baixar os modelos, que
+       cobre a tela. Seguir logo para outra tela (como antes, com Capturar no meio do trilho) o evita. */
+    [/^Legendar/, /\/capturar/],
+  ] as Array<[RegExp, RegExp]>) {
+    await clicarRobusto(page, aoVivo)
+    const menu = page.getByRole('menu', { name: 'Ao vivo: escolha o que fazer' })
+    await expect(menu).toBeVisible()
+    await clicarRobusto(page, menu.getByRole('menuitem', { name: opcao }))
+    await expect(page).toHaveURL(url)
+    await expect(page.getByRole('main')).toBeVisible()
+    await expect(aoVivo).toHaveAttribute('aria-current', 'page')
+  }
+  await clicarRobusto(page, nav.getByRole('button', { name: 'Cartões', exact: true }))
+  await expect(page).toHaveURL(/\/cartoes$/)
 
-    /* O "PRATICAR" é um destino só para as duas telas: abre os Cartões (navegador novo, nada guardado
-       em `babel.praticar`), as abas do alto levam aos Jogos e de volta, e ele fica marcado nas duas. */
-    const praticar = nav.getByRole('button', { name: 'Praticar', exact: true })
-    await clicarRobusto(page, praticar)
-    await expect(page).toHaveURL(/\/cartoes$/)
-    await expect(praticar).toHaveAttribute('aria-current', 'page')
-    await clicarRobusto(page, abasDePraticar(page).getByRole('tab', { name: 'Jogos' }))
-    await expect(page).toHaveURL(/\/jogar/)
-    await expect(praticar).toHaveAttribute('aria-current', 'page')
-    await fecharSobreposicoes(page)
-    await clicarRobusto(page, abasDePraticar(page).getByRole('tab', { name: 'Cartões' }))
+  if (estreito) {
+    for (const nome of [interprete[0], biblioteca[0], livros[0], progresso[0], planos[0]])
+      await expect(nav.getByRole('button', { name: nome })).toHaveCount(0)
+    await expect(nav.locator('.q-item:visible')).toHaveCount(5)
+    await clicarRobusto(page, nav.getByRole('button', { name: 'Cartões', exact: true }))
     await expect(page).toHaveURL(/\/cartoes$/)
     /* A TELA, e não só o endereço: a URL muda antes de a troca de tela terminar, e o "Mais" fecha
        sozinho em toda troca. Abri-lo no meio dela deixava o teste procurando um painel que já saiu. */
     await expect(page.getByTestId('cartoes')).toBeVisible()
-    await expect(abasDePraticar(page).getByRole('tab', { name: 'Cartões' })).toHaveAttribute('aria-selected', 'true')
+    await clicarRobusto(page, abasDePraticar(page).getByRole('tab', { name: 'Jogos' }))
+    await expect(page).toHaveURL(/\/jogar/)
+    /* A sala e as recompensas do Jogar engolem o primeiro toque: fecha e repete até a troca acontecer. */
+    await expect(async () => {
+      await fecharSobreposicoes(page)
+      await clicarRobusto(page, abasDePraticar(page).getByRole('tab', { name: 'Cartões' }))
+      await expect(page).toHaveURL(/\/cartoes$/, { timeout: 2500 })
+    }).toPass({ timeout: 20_000 })
+    await expect(page.getByTestId('cartoes')).toBeVisible()
   } else {
     // Acima de 720 px cada tela tem o seu item no trilho, e as abas de praticar não existem.
     await expect(abasDePraticar(page)).toHaveCount(0)
-    for (const nome of [/^(Estatísticas|Meu progresso)/, /^(Personalizar|Meu visual)/])
+    for (const nome of [/^(Personalizar|Meu visual)/])
       await expect(nav.getByRole('button', { name: nome }), `${nome} saiu do trilho`).toHaveCount(0)
+    /* O "Mais" não repete o que o trilho já tem: nem Progresso, nem Biblioteca, nem o ladrilho de Planos. */
+    const mais = await abrirMais(page)
+    const destinos = mais.getByRole('tabpanel', { name: 'Destinos' })
+    for (const [nome] of [interprete, biblioteca, livros, progresso, planos])
+      await expect(destinos.getByRole('button', { name: nome }), `${nome} só no trilho`).toHaveCount(0)
+    await page.keyboard.press('Escape')
+    await expect(mais).toBeHidden()
   }
 
-  for (const [nome, url] of [...(estreito ? [biblioteca] : []), ...soNoMais]) {
+  for (const [nome, url] of [...(estreito ? [biblioteca, livros, progresso] : []), ...soNoMais]) {
     const mais = await abrirMais(page)
     const porta = mais.getByRole('tabpanel', { name: 'Destinos' }).getByRole('button', { name: nome })
     await expect(porta, `${nome} deveria estar no "Mais"`).toBeVisible()
@@ -121,8 +149,27 @@ test('o trilho leva a todo destino: os do trilho direto, o resto pelo "Mais"', a
     await expect(mais, 'escolher um destino fecha o painel').toBeHidden()
     await expect(page).toHaveURL(url)
     await expect(page.getByRole('main')).toBeVisible()
-    // Fora do trilho, quem fica marcado é o "Mais".
-    await expect(nav.locator('.q-mais-botao')).toHaveAttribute('aria-current', 'page')
+    /* Fora do trilho, quem fica marcado é o "Mais" — exceto Ajustes acima de 720 px: desde 23/10/2026 ele
+       tem botão próprio no pé do trilho (engrenagem), e é esse que fica marcado. A porta pelo "Mais"
+       continua valendo e é a que este laço acabou de usar; a garantia (todo destino alcançável) é a mesma. */
+    const ajustesNoPe = !estreito && /Ajustes/.test(String(nome))
+    await expect(nav.locator(ajustesNoPe ? '.q-ajustes-botao' : '.q-mais-botao')).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+  }
+  if (!estreito) {
+    // E o botão Ajustes do pé também leva à tela, direto.
+    await clicarRobusto(page, nav.getByTestId('ajustes-no-trilho'))
+    await expect(page).toHaveURL(/\/ajustes/)
+    await expect(nav.getByTestId('ajustes-no-trilho')).toHaveAttribute('aria-current', 'page')
+  }
+
+  // A faixa "Planos e Premium" do "Mais" segue levando aos planos, sem ladrilho repetido.
+  if (estreito) {
+    const mais = await abrirMais(page)
+    await mais.getByTestId('planos-no-mais').click()
+    await expect(page).toHaveURL(planos[1])
   }
 
   // O pé do "Mais" guarda os três ajustes rápidos, e Esc fecha o painel.
@@ -136,8 +183,10 @@ test('o trilho leva a todo destino: os do trilho direto, o resto pelo "Mais"', a
 
   /* O INTÉRPRETE, por último: ele abre direto na conversa frente a frente, que ocupa a tela INTEIRA —
      o trilho sai de cena, e a saída é o "Sair do modo intérprete" da própria tela, que devolve o menu. */
-  await clicarRobusto(page, nav.getByRole('button', { name: /^Intérprete/ }))
-  await expect(page).toHaveURL(/\/interprete/)
+  /* Pelo "Ao vivo" (o item que juntou Capturar e Intérprete), no trilho e na folha da barra de cinco. */
+  await abrirAoVivo(page)
+  await clicarRobusto(page, page.getByRole('menuitem', { name: interprete[0] }))
+  await expect(page).toHaveURL(interprete[1])
   await expect(page.getByTestId('conversa-pronta')).toBeVisible({ timeout: 15_000 })
   await clicarRobusto(page, page.getByRole('button', { name: 'Sair do modo intérprete' }))
   await expect(page.getByTestId('conversa-pronta')).toHaveCount(0)

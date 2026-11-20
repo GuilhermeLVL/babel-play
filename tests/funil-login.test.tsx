@@ -30,12 +30,14 @@ vi.mock('../src/lib/supabase', () => ({
 vi.mock('../src/data/efemero/store', () => store)
 
 import Login from '../src/components/Login'
+import { EVENTO_EXIGE_CONTA } from '../src/data/efemero/nucleo'
 import * as auth from '../src/lib/auth'
 import { useEmCheckout } from '../src/lib/estado/useEmCheckout'
 import { useGateDeConta } from '../src/lib/estado/useGateDeConta'
 import { useNavegacao } from '../src/lib/estado/useNavegacao'
 import { _reiniciarIdentidade, definirIdentidade } from '../src/lib/identidade'
 import { guardarIntencao, lerIntencao } from '../src/lib/intencaoDeLogin'
+import { pedirConta, pedirEntrada } from '../src/lib/pedirConta'
 import { ehRotaDeCheckout, estadoDaIntencao } from '../src/lib/rotas'
 
 const irPara = (caminho: string) => window.history.replaceState({}, '', caminho)
@@ -88,7 +90,8 @@ describe('pedir o login guarda de onde a pessoa veio', () => {
     irPara('/capturar')
     const { result } = renderHook(() => useGateDeConta())
     act(() => result.current.setPedindoLogin(true))
-    expect(result.current.pedindoLogin).toBe(true)
+    /* O pedido genérico abre a porta em "Entrar". */
+    expect(result.current.pedindoLogin).toBe('login')
     expect(lerIntencao()?.rota).toBe('/capturar')
   })
 
@@ -185,6 +188,9 @@ describe('o login termina onde a pessoa ia', () => {
   })
 
   it('recarregar já logado não sequestra a tela (carregando → conta fora do callback)', () => {
+    /* Já logado = sessão guardada no navegador: a identidade nasce `carregando` (carga-rapida-no-celular). */
+    localStorage.setItem('sb-teste-auth-token', '{}')
+    _reiniciarIdentidade()
     irPara('/capturar')
     const { setActiveView } = montarNavegacao()
     setActiveView.mockClear()
@@ -286,5 +292,82 @@ describe('o plano da intenção chega ao checkout', () => {
     expect(sessionStorage.getItem(CHAVE_DO_PLANO_DO_CHECKOUT)).toBeNull()
     lembrarPlanoDoCheckout('aovivo')
     expect(sessionStorage.getItem(CHAVE_DO_PLANO_DO_CHECKOUT)).toBeNull()
+  })
+})
+
+/* CONVITES SEM CONTA (14/11/2026): o clique explícito abre o convite sempre; o aviso automático do
+   servidor em memória, uma vez por visita. "Criar conta" abre a porta no cadastro. */
+describe('o convite explícito e a porta no cadastro', () => {
+  const avisoDoServidor = () =>
+    window.dispatchEvent(new CustomEvent(EVENTO_EXIGE_CONTA, { detail: { rota: 'POST /api/tutor/chat' } }))
+
+  it('o aviso automático abre uma vez por visita; o clique explícito reabre no 2º toque', () => {
+    const { result } = renderHook(() => useGateDeConta())
+    act(avisoDoServidor)
+    expect(result.current.gate).toBeTruthy()
+    act(() => result.current.fecharGate())
+    act(avisoDoServidor)
+    expect(result.current.gate).toBeNull()
+    act(() => pedirConta('POST /api/import/anki'))
+    expect(result.current.gate).toBe('Importar conteúdo para a biblioteca precisa de conta.')
+    act(() => result.current.fecharGate())
+    act(() => pedirConta('POST /api/import/anki'))
+    expect(result.current.gate).toBe('Importar conteúdo para a biblioteca precisa de conta.')
+  })
+
+  it('pedirEntrada fecha o convite e pede a porta no modo certo, guardando de onde veio', () => {
+    irPara('/ajustes/conta')
+    const { result } = renderHook(() => useGateDeConta())
+    definirIdentidade('anonimo')
+    act(() => pedirConta('conta'))
+    act(() => pedirEntrada('signup'))
+    expect(result.current.gate).toBeNull()
+    expect(result.current.pedindoLogin).toBe('signup')
+    expect(lerIntencao()?.rota).toBe('/ajustes/conta')
+    act(() => result.current.setPedindoLogin(false))
+    act(() => pedirEntrada('login'))
+    expect(result.current.pedindoLogin).toBe('login')
+  })
+
+  it('com sessão, pedirEntrada e setPedindoLogin não fazem nada (nada fica pendurado para depois do SIGNED_OUT)', () => {
+    irPara('/leitor/x')
+    definirIdentidade('conta')
+    const { result } = renderHook(() => useGateDeConta())
+    act(() => pedirEntrada('signup'))
+    expect(result.current.pedindoLogin).toBe(false)
+    act(() => result.current.setPedindoLogin('signup'))
+    expect(result.current.pedindoLogin).toBe(false)
+    expect(lerIntencao()).toBeNull()
+    act(() => definirIdentidade('anonimo'))
+    expect(result.current.pedindoLogin).toBe(false)
+  })
+
+  it('navigateTo("login", { modo: "signup" }) pede a porta no cadastro', () => {
+    const setPedindoLogin = vi.fn()
+    const { result } = renderHook(() =>
+      useNavegacao({
+        activeView: 'hub',
+        setActiveView: vi.fn(),
+        selectedRecordingId: null,
+        setSelectedRecordingId: vi.fn(),
+        setResumingRecordingId: vi.fn(),
+        recordings: [],
+        lojaAba: null,
+        setLojaAba: vi.fn(),
+        setPedindoLogin,
+      }),
+    )
+    act(() => result.current.navigateTo('login', { modo: 'signup' }))
+    expect(setPedindoLogin).toHaveBeenLastCalledWith('signup')
+    act(() => result.current.navigateTo('login'))
+    expect(setPedindoLogin).toHaveBeenLastCalledWith(true)
+  })
+
+  it('Login com modoInicial="signup" abre em "Criar conta"; sem ele, em "Entrar"', () => {
+    const { unmount } = render(<Login modoInicial="signup" />)
+    expect(screen.getByRole('heading', { level: 1, name: 'Criar conta' })).toBeTruthy()
+    unmount()
+    render(<Login />)
+    expect(screen.getByRole('heading', { level: 1, name: 'Entrar' })).toBeTruthy()
   })
 })

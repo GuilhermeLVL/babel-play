@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   ChartColumn,
   CreditCard,
   Gamepad2,
@@ -81,6 +82,15 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     short: 'Biblioteca',
     labels: { kids: 'Biblioteca', pro: 'Biblioteca', senior: 'Minhas Mídias' },
   },
+  {
+    /* LIVROS NO MENU (pedido do dono, 27/10/2026): "a categoria Livros deve ficar no menu lateral, não sendo
+       algo secundário". Era só uma porta dentro da Biblioteca e do Início. Fica logo depois da Biblioteca:
+       as duas são o que a pessoa guarda e lê. */
+    id: 'livros',
+    icon: BookOpen,
+    short: 'Livros',
+    labels: { kids: 'Livros', pro: 'Livros', senior: 'Livros para ler' },
+  },
   /* 'analysis' SAIU do menu de topo (decisão do dono, 31/08): uma aula/sessão sempre vive
      DENTRO de uma mídia capturada — o caminho é Biblioteca → mídia → aula. A rota continua
      existindo; só a porta redundante no topo foi removida. */
@@ -97,8 +107,8 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     // Estatísticas (protótipo aprovado, 23/09/2026): o primeiro do grupo "Mais".
     id: 'estatisticas',
     icon: ChartColumn,
-    short: 'Estatísticas',
-    labels: { kids: 'Meu progresso', pro: 'Estatísticas', senior: 'Estatísticas' },
+    short: 'Progresso',
+    labels: { kids: 'Meu progresso', pro: 'Progresso', senior: 'Meu progresso' },
   },
   {
     // A vitrine da progressão: desbloqueios por nível e compras com Seeds.
@@ -137,6 +147,18 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     labels: { kids: 'Ajustes', pro: 'Ajustes', senior: 'Configurações' },
   },
 ];
+
+/**
+ * O "AO VIVO" DO TRILHO: um só botão no lugar de Capturar e Intérprete (as duas portas da mesma captura),
+ * que abre a escolha rápida. Fica FORA de `NAV_ITEMS` de propósito: a busca e o resto do app continuam
+ * achando "Capturar" e "Intérprete" como destinos; só o trilho junta os dois. O `id` é o de Capturar.
+ */
+export const ITEM_AO_VIVO: NavItemDef = {
+  id: 'capture',
+  icon: Mic,
+  short: 'Ao vivo',
+  labels: { kids: 'Ao vivo', pro: 'Ao vivo', senior: 'Gravar e conversar' },
+};
 
 /**
  * A ADMINISTRAÇÃO (`/admin`) — o item que só o papel admin vê.

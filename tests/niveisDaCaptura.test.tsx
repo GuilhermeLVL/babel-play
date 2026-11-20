@@ -19,6 +19,15 @@ vi.mock('../src/components/Toast', () => ({
   toast: { info: avisos.info, ok: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
 vi.mock('../src/lib/polimento/sentidos', () => ({ sentir: vi.fn(), vibrar: vi.fn() }))
+/* Task 4, correção 1: escolher um nível grava a escolha INTEIRA por `escolherProcessamento` (a mesma dos
+   Ajustes). Aqui ela é observada; o que ela grava é testado em `tests/escolhaDoProcessamento.test.tsx`. */
+const processamento = vi.hoisted(() => ({
+  escolher: vi.fn(async () => ({ qualidade: 'accurate', semChave: true, salvo: true })),
+}))
+vi.mock('../src/lib/escolhaDoProcessamento', async (orig) => {
+  const real = await orig<typeof import('../src/lib/escolhaDoProcessamento')>()
+  return { ...real, escolherProcessamento: processamento.escolher }
+})
 
 import {
   type AmbienteDosNiveis,
@@ -29,11 +38,16 @@ import type { PlanoPago } from '../src/core/planos'
 import { decidirRota, type PedidoDeRota } from '../src/core/rota/politicaDeRota'
 import type { SttQuality } from '../src/gateway/sttRouter'
 import { type SeloDaFala, seloDaFala } from '../src/lib/captura/seloDaFala'
+import { diaQueACotaVolta } from '../src/lib/diaQueACotaVolta'
+import { definirProtecao, type EstadoDeProtecao } from '../src/lib/protecaoDoMenor'
 import type { UsoDoMes } from '../src/lib/uso'
 import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
 
 beforeAll(prepararDialogoNoJsdom)
-beforeEach(() => avisos.info.mockClear())
+beforeEach(() => {
+  avisos.info.mockClear()
+  processamento.escolher.mockClear()
+})
 afterEach(cleanup)
 
 const pedido = (nuvem: boolean): PedidoDeRota => ({
@@ -166,12 +180,11 @@ describe('o seletor de nível, por capacidade do plano', () => {
   })
 
   it('escolher "Precisão" grava a preferência de nuvem; "No aparelho", a do modelo local', () => {
-    const gravar = vi.fn()
-    render(<Tela ambiente={{ capacidades: COM_NUVEM }} aoEscolherQualidade={gravar} />)
+    render(<Tela ambiente={{ capacidades: COM_NUVEM }} />)
     fireEvent.click(nivel('Precisão'))
-    expect(gravar).toHaveBeenLastCalledWith('cloud')
+    expect(processamento.escolher).toHaveBeenLastCalledWith('nuvem', expect.anything())
     fireEvent.click(nivel('No aparelho'))
-    expect(gravar).toHaveBeenLastCalledWith('accurate')
+    expect(processamento.escolher).toHaveBeenLastCalledWith('aparelho', expect.anything())
     expect(screen.queryByTestId('folha-do-cadeado')).toBeNull()
   })
 
@@ -184,11 +197,10 @@ describe('o seletor de nível, por capacidade do plano', () => {
 
 describe('o cadeado', () => {
   it('tocar no nível com cadeado NÃO grava nada e abre a folha: o que é, quando vale, quem tem, a porta', () => {
-    const gravar = vi.fn()
     const verPlanos = vi.fn()
-    render(<Tela ambiente={{ capacidades: GRATIS }} aoEscolherQualidade={gravar} aoVerPlanos={verPlanos} />)
+    render(<Tela ambiente={{ capacidades: GRATIS }} aoVerPlanos={verPlanos} />)
     fireEvent.click(nivel('Precisão'))
-    expect(gravar).not.toHaveBeenCalled()
+    expect(processamento.escolher).not.toHaveBeenCalled()
 
     const folha = within(screen.getByTestId('folha-do-cadeado'))
     expect(folha.getByRole('heading', { name: 'A Precisão começa no plano Essencial' })).toBeTruthy()
@@ -257,6 +269,36 @@ describe('o perfil protegido', () => {
   })
 })
 
+describe('o perfil protegido COM o responsável', () => {
+  afterEach(() => definirProtecao(null))
+  const comResponsavel = () =>
+    definirProtecao({
+      nascimentoInformado: true,
+      faixa: '16-17',
+      protegido: true,
+      exigeResponsavel: false,
+      exigeConsentimentoEspecifico: false,
+      vinculo: { estado: 'aceito' } as EstadoDeProtecao['vinculo'],
+      restrita: false,
+    })
+
+  it('no Grátis: só "No aparelho", sem nível trancado nem nome de plano', () => {
+    comResponsavel()
+    render(<Tela ambiente={{ capacidades: GRATIS, protegido: true }} />)
+    const radios = screen.getAllByRole('radio')
+    expect(radios.map((r) => r.textContent)).toEqual(['No aparelho'])
+    for (const r of radios) expect(r.title).not.toMatch(/Essencial|Premium|Ao Vivo|plano/)
+  })
+
+  it('com nuvem no plano: "Precisão" livre, e o "Ao vivo" trancado não aparece', () => {
+    comResponsavel()
+    render(<Tela ambiente={{ capacidades: COM_NUVEM, protegido: true }} />)
+    expect(temCadeado(nivel('Precisão'))).toBe(false)
+    expect(screen.queryByRole('radio', { name: /^Ao vivo/ })).toBeNull()
+    for (const r of screen.getAllByRole('radio')) expect(r.title).not.toMatch(/Essencial|Premium|Ao Vivo|plano/)
+  })
+})
+
 describe('o medidor das horas de nuvem', () => {
   it('some para quem não tem nuvem no plano (e nem pergunta ao servidor)', async () => {
     const carregarUso = vi.fn(async () => usoDe(0, 0))
@@ -316,7 +358,9 @@ describe('as horas acabaram', () => {
     render(<Tela ambiente={{ capacidades: COM_NUVEM, carregarUso: esgotado }} aoVerPlanos={verPlanos} />)
     const nota = await screen.findByTestId('nota-das-horas')
     expect(nota.textContent).toContain('As 5 h de nuvem deste mês acabaram.')
-    expect(nota.textContent).toContain('A legenda continua no aparelho, sem limite. As horas voltam no dia 1º.')
+    expect(nota.textContent).toContain(
+      `A legenda continua no aparelho, sem limite. As horas voltam em ${diaQueACotaVolta()}.`,
+    )
     const chip = screen.getByTestId('medidor-de-nuvem')
     expect(chip.textContent).toBe('Nuvem do mês acabou · no aparelho')
     expect(chip.dataset.tom).toBe('fim')
@@ -331,13 +375,12 @@ describe('as horas acabaram', () => {
   })
 
   it('escolher "Precisão" sem horas avisa e não grava', async () => {
-    const gravar = vi.fn()
-    render(<Tela ambiente={{ capacidades: COM_NUVEM, carregarUso: esgotado }} aoEscolherQualidade={gravar} />)
+    render(<Tela ambiente={{ capacidades: COM_NUVEM, carregarUso: esgotado }} />)
     await screen.findByTestId('nota-das-horas')
     fireEvent.click(nivel('Precisão'))
-    expect(gravar).not.toHaveBeenCalled()
+    expect(processamento.escolher).not.toHaveBeenCalled()
     expect(avisos.info).toHaveBeenLastCalledWith(
-      'As horas do nível Precisão deste mês acabaram. Elas voltam no dia 1º.',
+      `As horas do nível Precisão acabaram. Elas voltam em ${diaQueACotaVolta()}.`,
     )
   })
 

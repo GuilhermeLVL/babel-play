@@ -30,6 +30,7 @@ import { numero, t, tp } from '../../lib/i18n';
 import { useLangConfig } from '../../lib/langConfig';
 import { baseLang } from '../../lib/languages';
 import { lazyComRecarga } from '../../lib/lazyComRecarga';
+import { pedirConta, semContaComPorta } from '../../lib/pedirConta';
 import { useBarraDeCinco } from '../../lib/polimento/celular';
 import type { AgeProfileType } from '../../lib/profile';
 import type { RecorteDaPratica } from '../../lib/revisao/pratica';
@@ -43,6 +44,7 @@ import { type AbaDeCartoes, navegarPara } from '../../lib/rotas';
 import type { PracticeSeed } from '../../lib/sentences';
 import { haVozPara } from '../../lib/voz/haVoz';
 import type { Recording, VocabCard } from '../../types';
+import CartaoDeConvite from '../conta/CartaoDeConvite';
 import { CabecalhoComFicha } from '../conteudo/FichaDeConteudo';
 import { iconeDaFonte, idiomaNaFicha, nomeCurtoDaFonte } from '../conteudo/fontes';
 import { type ControleDoSeletor, SeletorDeConteudo } from '../conteudo/SeletorDeConteudo';
@@ -80,7 +82,8 @@ const ExportarVocabulario = lazyComRecarga(() => import('./vocab/ExportarVocabul
  * a rodada de revisão ou a exportação.
  *
  * SEM CONTA a tela abre no estado vazio (decisão do dono): não há leitura do resumo, e o que pede conta
- * (trazer, revisar) chama o convite de sempre.
+ * (trazer do Anki, palavra nova, trazer e levar, exportar, revisar) continua à vista e chama o convite
+ * de sempre a cada toque (`pedirConta`). A aba Palavras mostra o convite do vocabulário.
  */
 
 const ABAS: Array<[Exclude<AbaDeCartoes, 'memoria'>, LucideIcon]> = [
@@ -181,7 +184,12 @@ export default function Cartoes({
   const [doAnki, setDoAnki] = useState<BaralhoAnkiResumo[] | null>(null);
   const [arquivoDoAnki, setArquivoDoAnki] = useState<File | null>(null);
   const entradaDoAnki = useRef<HTMLInputElement>(null);
-  const escolherArquivoDoAnki = () => entradaDoAnki.current?.click();
+  const escolherArquivoDoAnki = semConta
+    ? () => pedirConta('POST /api/import/anki')
+    : () => entradaDoAnki.current?.click();
+  /* O convite só existe onde há conta a oferecer: na edição estática (sem servidor) as portas que gravam na
+     conta somem do menu, como antes, e a aba Palavras mostra o caderno vazio. */
+  const convidar = semConta && semContaComPorta() ? () => pedirConta('baralho') : undefined;
 
   /* O baralho inteiro, só para o que precisa dele (exportar, gerenciar o Anki). */
   const [deck, setDeck] = useState<VocabCard[] | null>(null);
@@ -397,7 +405,9 @@ export default function Cartoes({
   if (aba === 'palavras') {
     /* A lista de palavras (busca presa no alto, estados, filtros, a palavra aberta). Sem conta, o estado
        vazio do protótipo (`cartoes.js:497-498`). */
-    painel = semConta ? (
+    painel = convidar ? (
+      <CartaoDeConvite view="metrics" inline />
+    ) : semConta ? (
       <div className="q-vazio">
         <span className="q-ic">
           <BookOpen aria-hidden />
@@ -640,11 +650,11 @@ export default function Cartoes({
                 }
               : null
           }
-          aoPalavraNova={semConta ? undefined : palavraNova}
-          aoTrazerELevar={semConta ? undefined : () => setFolha('trazer')}
+          aoPalavraNova={semConta ? convidar : palavraNova}
+          aoTrazerELevar={semConta ? convidar : () => setFolha('trazer')}
           aoAjustes={() => setFolha('ajustes')}
           aoMemoria={abrirMemoria}
-          aoExportar={semConta || !resumo?.total ? undefined : () => void levar()}
+          aoExportar={semConta ? convidar : !resumo?.total ? undefined : () => void levar()}
           aoFechar={() => setFolha((f) => (f === 'menu' ? null : f))}
         />
       )}

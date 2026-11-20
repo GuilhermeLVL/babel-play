@@ -1,11 +1,27 @@
-import { ArrowDown, Ellipsis, Square, Volume2 } from 'lucide-react';
-import { memo, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import '../../../../styles/etiquetas.css';
 
+import { ArrowDown, Ellipsis, RotateCcw, Square, Volume2 } from 'lucide-react';
+import { memo, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react';
+
+import type { MarcaNaLinha } from '../../../../core/assistente/telaDoAssistente';
+import { type Etiqueta, resumoDasEtiquetas } from '../../../../core/vocabulario/etiquetas';
+import type { CorrecaoDaFala } from '../../../../data/apiDoAssistente';
 import { aoMudarAudioDasFalas, falaTocando } from '../../../../lib/captura/audioDasFalas';
 import { agruparEmBlocos, blocosDasFalas } from '../../../../lib/captura/blocosDasFalas';
-import type { SpeechSegment } from '../../../../lib/captura/tiposDaFala';
+import {
+  ajusteDaRolagem,
+  alturaDoBloco,
+  alturaMediaDaFala,
+  ancoraDaLeitura,
+  janelaDasFalas,
+  type MedidaDoBloco,
+  toposDosBlocos,
+} from '../../../../lib/captura/janelaDasFalas';
+import { ehMotivoSemTraducao, type MotivoSemTraducao, type SpeechSegment } from '../../../../lib/captura/tiposDaFala';
 import { traducaoNaLegenda } from '../../../../lib/captura/traducaoDaFala';
 import { palavrasDoPedaco } from '../../../../lib/captura/trechosTocaveis';
+import type { Etiquetador } from '../../../../lib/etiquetas/indiceDeEtiquetas';
+import { descricaoDaLinha } from '../../../../lib/etiquetas/rotulos';
 import { t } from '../../../../lib/i18n';
 import { direcaoDoTexto } from '../../../../lib/languages';
 import {
@@ -16,21 +32,82 @@ import {
   sairLinhaVazia,
   sairOriginal,
 } from '../../../../lib/polimento/captura';
+import { CorrecaoNaPagina } from '../assistente/AssistenteNaPagina';
+import { marcaDoAlvo, TextoComMarcas, tituloDaMarca } from '../assistente/TextoComMarcas';
+import { TextoComOcultas } from '../legendas/TextoComOcultas';
 
 /** A esta distância do fim (px) a lista ainda conta como "no fim" e segue acompanhando. */
 const FOLGA_DO_FIM = 80;
+
+/** O `gap` da coluna de falas (`capturaNoCelular.css`) antes de a lista ser medida. */
+const ESPACO_ENTRE_FALAS = 10;
+
+/** O navegador ancora a rolagem sozinho quando o que está acima muda de altura (Chrome, Firefox). */
+const ancoraNativa = () =>
+  typeof CSS !== 'undefined' && typeof CSS.supports === 'function' && CSS.supports('overflow-anchor', 'auto');
+
+/** O que a janela sabe da área visível da lista: atualizado na rolagem e quando a lista muda de tamanho. */
+interface Vista {
+  rolagem: number;
+  visivel: number;
+  largura: number;
+  /** O `padding-top` da lista: o primeiro bloco começa abaixo dele. */
+  margem: number;
+  espaco: number;
+}
 
 /**
  * Uma palavra da fala que ainda está chegando: entra desfocada e assenta (`telas.js:131-134`).
  * `texto` já traz o espaço de depois, quando a escrita tem espaço entre as palavras.
  */
-function Palavra({ texto, anima }: { texto: string; anima: boolean }) {
+function Palavra({
+  texto,
+  anima,
+  marca,
+  indice,
+  etiqueta,
+}: {
+  texto: string;
+  anima: boolean;
+  /** A marca do assistente que cai nesta palavra (Fase C3): só atributos, a palavra é a mesma. */
+  marca?: MarcaNaLinha;
+  indice?: number;
+  /** A etiqueta da palavra (salva, aprendendo, nova para você): também só atributo. */
+  etiqueta?: Etiqueta;
+}) {
   const ref = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
     if (anima && ref.current) entrarPalavra(ref.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- só na chegada da palavra
   }, []);
-  return <span ref={ref}>{texto}</span>;
+  return (
+    <span
+      ref={ref}
+      className={marca ? 'asst-marca' : undefined}
+      data-marca={marca?.tipo}
+      data-marca-i={marca ? indice : undefined}
+      data-etiqueta={etiqueta}
+      title={marca ? tituloDaMarca(marca) : undefined}
+    >
+      <TextoComOcultas texto={texto} />
+    </span>
+  );
+}
+
+/** As palavras de uma fala que ainda está só no original, cada uma com a marca que cai nela (se houver). */
+function marcasDasPalavras(original: string, palavras: string[], marcas: ReadonlyArray<MarcaNaLinha> | undefined) {
+  if (!marcas?.length) return null;
+  let cursor = 0;
+  return palavras.map((p) => {
+    const limpa = p.trim();
+    const ini = original.indexOf(limpa, cursor);
+    if (ini < 0) return -1;
+    cursor = ini + limpa.length;
+    const nucleo = /[\p{L}\p{N}][\s\S]*[\p{L}\p{N}]|[\p{L}\p{N}]/u.exec(limpa);
+    const a = ini + (nucleo?.index ?? 0);
+    const b = a + (nucleo?.[0].length ?? limpa.length);
+    return marcas.findIndex((m) => a < m.fim && m.inicio < b);
+  });
 }
 
 /**
@@ -51,12 +128,20 @@ const Linha = memo(function Linha({
   lang,
   langDaTraducao,
   atual,
+  escolhida,
   nova,
   tocando,
   aoTocar,
   aoOuvir,
   aoPararAudio,
   aoMudar,
+  comMarcas = false,
+  marcas,
+  correcao,
+  aoTocarMarca,
+  etiquetador,
+  semTraducao,
+  aoTentarDeNovo,
 }: {
   id: string;
   hora: string;
@@ -67,6 +152,8 @@ const Linha = memo(function Linha({
   lang: string;
   langDaTraducao?: string;
   atual: boolean;
+  /** O painel da frase está aberto nesta fala: ela fica marcada. */
+  escolhida: boolean;
   /** Chegou com a tela já aberta: entra animada. */
   nova: boolean;
   tocando: boolean;
@@ -75,6 +162,23 @@ const Linha = memo(function Linha({
   aoPararAudio?: () => void;
   /** O texto mudou de tamanho: a lista acompanha o fim. */
   aoMudar: () => void;
+  /**
+   * O ASSISTENTE AO VIVO está nesta tela (Fase C3): o original já nasce em pedaços, e as marcas que chegarem depois
+   * só mudam atributos — nada novo para a região `aria-live` anunciar.
+   */
+  comMarcas?: boolean;
+  /** As marcas desta fala (o MESMO array enquanto nada muda: o `memo` segura a linha). */
+  marcas?: MarcaNaLinha[];
+  /** A correção gentil da própria fala (opt-in). */
+  correcao?: CorrecaoDaFala;
+  /** Tocou numa palavra marcada: abre o cartão da palavra com o sentido. */
+  aoTocarMarca?: (id: string, marca: MarcaNaLinha) => void;
+  /** As ETIQUETAS DE PALAVRAS (a mesma identidade enquanto o caderno e os ajustes não mudam: o `memo` segura). */
+  etiquetador?: Etiquetador | null;
+  /** A fala ficou sem tradução: o motivo vai embaixo do original (nunca o original entre parênteses, CEL-01). */
+  semTraducao?: MotivoSemTraducao;
+  /** "Tentar de novo" na fala cuja tradução falhou. */
+  aoTentarDeNovo?: (id: string) => void;
 }) {
   const linha = useRef<HTMLDivElement>(null);
   const alvo = useRef<HTMLSpanElement>(null);
@@ -96,6 +200,19 @@ const Linha = memo(function Linha({
       const partes = palavrasDoPedaco(pedaco, lang);
       return partes.map((p, i) => (i === partes.length - 1 ? `${p} ` : p));
     });
+  const indicesDasMarcas = marcasDasPalavras(original, palavras, marcas);
+  /* A etiqueta de cada palavra e o resumo da linha (a `aria-description` do botão: atributo, a região viva não o lê). */
+  const etiquetas = useMemo(
+    () => (etiquetador ? palavras.map((p) => etiquetador.etiqueta(p, lang)) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `palavras` sai de `original` e `lang`
+    [original, lang, etiquetador],
+  );
+  const descricao = useMemo(
+    () =>
+      etiquetas ? descricaoDaLinha(resumoDasEtiquetas(palavras.map((p, i) => [p, etiquetas[i]] as const))) : undefined,
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `palavras` sai de `original` e `lang`
+    [etiquetas],
+  );
   /* A fala abriu e nada chegou ainda: a linha de escuta. */
   const ouvindo = !mostrada && !traducao && palavras.length === 0;
   const aindaOuvindo = useRef(ouvindo);
@@ -157,14 +274,26 @@ const Linha = memo(function Linha({
         type="button"
         className="q-fala"
         aria-disabled={ouvindo || undefined}
-        onClick={() => !ouvindo && aoTocar(id)}
+        aria-current={escolhida ? 'true' : undefined}
+        aria-description={descricao}
+        data-frase-escolhida={escolhida ? '' : undefined}
+        onClick={(e) => {
+          if (ouvindo) return;
+          const marca = aoTocarMarca ? marcaDoAlvo(e.target, marcas) : undefined;
+          if (marca && aoTocarMarca) aoTocarMarca(id, marca);
+          else aoTocar(id);
+        }}
       >
         <span className="q-meta">
           <span className="tn">{hora}</span>
         </span>
         {mostrada && original && (
           <span className="q-o" lang={lang} dir={direcaoDoTexto(lang)} ref={pequena}>
-            {original}
+            {comMarcas || etiquetador ? (
+              <TextoComMarcas texto={original} lang={lang} marcas={marcas} etiquetador={etiquetador} />
+            ) : (
+              <TextoComOcultas texto={original} />
+            )}
           </span>
         )}
         {mostrada ? (
@@ -174,7 +303,7 @@ const Linha = memo(function Linha({
             dir={langDaTraducao ? direcaoDoTexto(langDaTraducao) : undefined}
             ref={alvo}
           >
-            {mostrada}
+            <TextoComOcultas texto={mostrada} />
           </span>
         ) : ouvindo ? (
           /* Os mesmos três pontos de "Transcrevendo…", no lugar do texto que ainda não chegou. */
@@ -185,14 +314,35 @@ const Linha = memo(function Linha({
           </span>
         ) : (
           <span className="q-t" lang={lang} dir={direcaoDoTexto(lang)} ref={alvo}>
-            {palavras.map((p, i) => (
-              <Palavra key={i} texto={p} anima={nova} />
-            ))}
+            {palavras.map((p, i) => {
+              const k = indicesDasMarcas?.[i] ?? -1;
+              return (
+                <Palavra
+                  key={i}
+                  texto={p}
+                  anima={nova}
+                  marca={k >= 0 ? marcas?.[k] : undefined}
+                  indice={k}
+                  etiqueta={etiquetas?.[i]}
+                />
+              );
+            })}
           </span>
         )}
+        {semTraducao && !mostrada && (
+          <span className="q-sem-traducao" data-testid="sem-traducao">
+            {semTraducao === 'sem-rota' ? t('Sem tradução neste aparelho') : t('Tradução indisponível agora')}
+          </span>
+        )}
+        <CorrecaoNaPagina correcao={correcao} lang={lang} />
       </button>
       {/* Na escuta os botões guardam o lugar (a linha não muda de tamanho quando o texto chega), sem aparecer. */}
       <div className="q-acoes-da-fala" style={ouvindo ? { visibility: 'hidden' } : undefined}>
+        {semTraducao === 'falhou' && !mostrada && aoTentarDeNovo && (
+          <button type="button" className="q-ctl" aria-label={t('Tentar de novo')} onClick={() => aoTentarDeNovo(id)}>
+            <RotateCcw aria-hidden />
+          </button>
+        )}
         {aoOuvir && (
           <button
             type="button"
@@ -212,6 +362,50 @@ const Linha = memo(function Linha({
   );
 });
 
+type BlocoDaLista = { bloco: number; falas: SpeechSegment[] };
+
+/** A janela da lista com o que a tela sabe agora: as medidas dos blocos e a área visível. */
+function montarJanela(
+  blocos: readonly BlocoDaLista[],
+  medidas: ReadonlyMap<number, MedidaDoBloco>,
+  v: Vista,
+  noFim: boolean,
+  fixos: readonly number[],
+) {
+  const porFala = alturaMediaDaFala(medidas.values(), v.espaco);
+  const alturas = blocos.map((g) => alturaDoBloco(medidas.get(g.bloco), g.falas.length, porFala, v.espaco));
+  /* Antes da primeira medida (ou sem layout), a área visível é a da janela do navegador. */
+  const visivel = v.visivel > 0 ? v.visivel : typeof window !== 'undefined' ? window.innerHeight : 800;
+  const pedacos = janelaDasFalas({
+    alturas,
+    espaco: v.espaco,
+    topo: noFim ? null : Math.max(0, v.rolagem - v.margem),
+    visivel,
+    folga: Math.max(600, visivel),
+    fixos,
+  });
+  return { pedacos, alturas };
+}
+
+/**
+ * Quais blocos uma janela monta e a altura de cada vão, como texto: duas janelas com a mesma chave desenham a mesma
+ * lista. A altura entra porque um vão reestimado (outra letra, outra largura) muda a tela sem mudar os blocos.
+ */
+const chaveDaJanela = (pedacos: ReturnType<typeof janelaDasFalas>, blocos: readonly BlocoDaLista[]) =>
+  pedacos.map((p) => (p.tipo === 'bloco' ? blocos[p.i].bloco : `_${Math.round(p.altura)}`)).join(',');
+
+/** O que a legenda da página recebe do assistente ao vivo (Fase C3). */
+export interface AssistenteNaLegenda {
+  marcas: ReadonlyMap<string, MarcaNaLinha[]>;
+  correcoes: ReadonlyMap<string, CorrecaoDaFala>;
+  aoTocarMarca?: (fala: SpeechSegment, marca: MarcaNaLinha, lang: string) => void;
+  /**
+   * A fala com o "Como respondo?" aberto na página: o bloco dela fica montado, e o foco tem para onde voltar
+   * quando a folha fecha (`ComoRespondoNaPagina`).
+   */
+  falaFixa?: string | null;
+}
+
 /**
  * A LEGENDA AO VIVO NO DESENHO NOVO — a marcação e o movimento do protótipo de polimento
  * (`telas.js:78-160`, `telas.css:11-20`; itens D11 e D12 de `fidelidade/casca-e-telas.md`).
@@ -221,6 +415,25 @@ const Linha = memo(function Linha({
  *
  * A lista acompanha o fim sozinha. Se a pessoa rolar para cima para reler, ela para de acompanhar e
  * aparece "Ir para a fala atual" (isso o protótipo não tem: lá ninguém relê no meio da fala).
+ *
+ * A SESSÃO LONGA (26/10/2026): só os blocos de falas perto da área visível ficam no DOM
+ * (`lib/captura/janelaDasFalas`); os outros viram um vão com a altura medida (ou estimada) deles. Com 600 falas
+ * a árvore de acessibilidade da página caiu de ~40 s para ~0,5 s (CPU 4×, `scripts/perf/telas/legenda-longa.mjs`).
+ * O que a janela preserva e o que ela troca:
+ *  - acompanhar ao vivo e parar quando a pessoa rola para cima. Subir e se afastar do fim, mesmo dentro da folga
+ *    de 80 px, já é sair dele; com o dedo na lista, a fala nova não puxa nada. A rolagem LONGA nossa até o fim (o
+ *    vão de cima que cresceu com a primeira medida, "Ir para a fala atual") não conta como a pessoa saindo dele;
+ *  - a rolagem não pula quando um bloco acima é medido ou um vão acima é reestimado (A−/A+, outra largura): o
+ *    navegador ancora (`overflow-anchor`); no Safari, sem âncora, a lista corrige ela mesma (`ajusteDaRolagem` na
+ *    medida, `ancoraDaLeitura` a cada desenho);
+ *  - o bloco da fala com foco, da escolhida (o painel aberto), da que está tocando e da do "Como respondo?"
+ *    (`falaFixa`) nunca sai: o foco não cai no
+ *    vazio e o Esc do painel tem para onde devolvê-lo;
+ *  - a região `aria-live` é a mesma; o bloco que VOLTA para a janela entra com `aria-live="off"` (não são falas
+ *    novas) e sem refazer a entrada animada. Uma tradução que chegar tarde numa fala desse bloco também não é
+ *    anunciada — é uma fala que a pessoa já rolou para longe;
+ *  - BUSCA DA PÁGINA (Ctrl+F): só acha o que está montado (a área visível e a folga); é a troca que a janela faz.
+ *    A sessão inteira fica na Biblioteca depois de salva. Nada lê a legenda do DOM: salvar usa as falas do estado.
  *
  * Só apresentação: recebe as falas prontas da `LiveCapture`. O tamanho vem da faixa (A− / A+).
  */
@@ -232,6 +445,11 @@ export default function HistoricoDoPrototipo({
   aoTocar,
   aoOuvir,
   aoPararAudio,
+  escolhida,
+  assistente,
+  etiquetador,
+  espera,
+  aoTentarTraducaoDeNovo,
 }: {
   falas: readonly SpeechSegment[];
   /** Multiplicador do tamanho do texto (0,75 a 2), escolhido na faixa. */
@@ -245,6 +463,22 @@ export default function HistoricoDoPrototipo({
   /** "Ouvir de novo": o áudio real da fala onde foi guardado, ou a voz de leitura. */
   aoOuvir?: (fala: SpeechSegment, lang: string) => void;
   aoPararAudio?: () => void;
+  /** O id da fala em que o painel da frase está aberto: ela fica marcada (`aria-current`). */
+  escolhida?: string | null;
+  /**
+   * O ASSISTENTE AO VIVO na legenda da página (Fase C3): as marcas silenciosas (sublinhado pontilhado, sentido no
+   * `title` e no cartão da palavra), a correção da própria fala. A instância é a mesma da janela flutuante.
+   */
+  assistente?: AssistenteNaLegenda;
+  /** As ETIQUETAS DE PALAVRAS (`lib/etiquetas`): `null`/ausente = desligadas. */
+  etiquetador?: Etiquetador | null;
+  /**
+   * O que a legenda vazia diz enquanto o reconhecimento ainda baixa (`esperaDoPreparo.ts`): as falas guardadas e
+   * quando a legenda começa, no lugar de "Ouvindo…" (carga-rapida-no-celular, 4.1). Ausente = "Ouvindo…".
+   */
+  espera?: string | null;
+  /** "Tentar de novo" na fala cuja tradução falhou (pelo id). Ausente = sem o botão. */
+  aoTentarTraducaoDeNovo?: (id: string) => void;
 }) {
   /* "…" é só o marcador de tradução a caminho: sozinho, não é texto para mostrar (e enquanto a do
      final não chega, fica a parcial que a linha já tinha: `traducaoNaLegenda`). */
@@ -271,7 +505,7 @@ export default function HistoricoDoPrototipo({
     comTexto.map((f) => f.id),
     blocoDaFala.current,
   );
-  const blocos = agruparEmBlocos(comTexto, blocoDaFala.current);
+  const blocos: BlocoDaLista[] = agruparEmBlocos(comTexto, blocoDaFala.current);
   /* O último bloco aberto continua na lista mesmo vazio (sem tamanho: `:empty` no CSS). A linha de escuta
      que acaba sem texto sai apagando DENTRO do pai dela (`sairLinhaVazia`); se ela era a única do bloco e
      o bloco saísse junto, sumiria de uma vez. */
@@ -279,10 +513,63 @@ export default function HistoricoDoPrototipo({
   for (const g of blocos) if (g.bloco > blocoAberto.current) blocoAberto.current = g.bloco;
   if (blocoAberto.current >= 0 && (blocos[blocos.length - 1]?.bloco ?? -1) < blocoAberto.current)
     blocos.push({ bloco: blocoAberto.current, falas: [] });
+
+  /* A JANELA (`lib/captura/janelaDasFalas`): só os blocos perto da área visível ficam no DOM; os outros viram um
+     vão com a altura deles. A conta é refeita a cada desenho; a rolagem e as medidas só pedem um desenho novo
+     quando o conjunto de blocos montados muda. */
+  const medidas = useRef(new Map<number, MedidaDoBloco>());
+  const vista = useRef<Vista>({ rolagem: 0, visivel: 0, largura: 0, margem: 0, espaco: ESPACO_ENTRE_FALAS });
+  const [, redesenhar] = useReducer((x: number) => x + 1, 0);
+  /* A fala com foco DENTRO da lista: o bloco dela fica, para o foco não cair no vazio. Sai quando o foco sai. */
+  const focada = useRef<string | null>(null);
+  /* Os blocos que já ficaram fora da janela: quando voltam, entram calados (`aria-live="off"`) — não são falas
+     novas, e a região viva só anuncia as novas — e as falas deles não refazem a entrada animada. Um por bloco que
+     ainda existe: o conjunto não cresce além da lista. */
+  const calados = useRef(new Set<number>());
+  const montados = useRef(new Set<number>());
+  const indiceDoBloco = (id: string | null | undefined) => {
+    const b = id ? blocoDaFala.current.get(id) : undefined;
+    return b === undefined ? -1 : blocos.findIndex((g) => g.bloco === b);
+  };
+  const fixosDaJanela = [
+    indiceDoBloco(escolhida),
+    indiceDoBloco(tocando),
+    indiceDoBloco(focada.current),
+    indiceDoBloco(assistente?.falaFixa),
+  ];
+  const { pedacos, alturas } = montarJanela(blocos, medidas.current, vista.current, noFim.current, fixosDaJanela);
+  montados.current = new Set();
+  const indicesMontados: number[] = [];
+  for (const p of pedacos) {
+    if (p.tipo === 'bloco') {
+      montados.current.add(blocos[p.i].bloco);
+      indicesMontados.push(p.i);
+      continue;
+    }
+    for (let i = p.de; i <= p.ate; i++) calados.current.add(blocos[i].bloco);
+  }
+  if (calados.current.size > blocos.length) {
+    const existem = new Set(blocos.map((g) => g.bloco));
+    for (const b of calados.current) if (!existem.has(b)) calados.current.delete(b);
+  }
+  const topos = toposDosBlocos(alturas, vista.current.espaco);
+  const janela = useRef({ blocos, fixos: fixosDaJanela, chave: '', topos, alturas, indicesMontados });
+  janela.current = {
+    blocos,
+    fixos: fixosDaJanela,
+    chave: chaveDaJanela(pedacos, blocos),
+    topos,
+    alturas,
+    indicesMontados,
+  };
   const tocar = useRef(aoTocar);
   tocar.current = aoTocar;
   const ouvir = useRef(aoOuvir);
   ouvir.current = aoOuvir;
+  const tocarMarca = useRef(assistente?.aoTocarMarca);
+  tocarMarca.current = assistente?.aoTocarMarca;
+  const tentarDeNovo = useRef(aoTentarTraducaoDeNovo);
+  tentarDeNovo.current = aoTentarTraducaoDeNovo;
   const padrao = useRef(idiomaPadrao);
   padrao.current = idiomaPadrao;
   const [fixos] = useState(() => ({
@@ -294,64 +581,313 @@ export default function HistoricoDoPrototipo({
       const f = porId.current.get(id);
       if (f) ouvir.current?.(f, f.lang ?? padrao.current);
     },
+    tentarDeNovo: (id: string) => tentarDeNovo.current?.(id),
+    tocarMarca: (id: string, m: MarcaNaLinha) => {
+      const f = porId.current.get(id);
+      if (f) tocarMarca.current?.(f, m, f.lang ?? padrao.current);
+    },
     seguir: () => {
-      if (noFim.current && lista.current) irAoFim(lista.current);
+      /* Com o dedo na lista, nada a puxa: a pessoa está rolando, e a decisão é dela. */
+      if (noFim.current && !fixos.dedo && lista.current) irAoFim(lista.current);
+    },
+    /** Um dedo está na lista (do toque ao fim dele). */
+    dedo: false,
+    /** A última rolagem vista e a distância ao fim nela: subir e se afastar é a pessoa saindo do fim. */
+    ultimaRolagem: 0,
+    ultimaDistancia: 0,
+    /**
+     * A âncora da leitura sem `overflow-anchor` (`ancoraDaLeitura`): o bloco e onde a janela o pôs. Se um desenho
+     * o põe em outro lugar (um vão acima reestimado), a rolagem anda a diferença.
+     */
+    ancora: null as { bloco: number; topo: number } | null,
+    marcarAncora: () => {
+      const j = janela.current;
+      const v = vista.current;
+      const i = ancoraDaLeitura(j.indicesMontados, j.topos, j.alturas, Math.max(0, v.rolagem - v.margem));
+      fixos.ancora = i < 0 ? null : { bloco: j.blocos[i].bloco, topo: j.topos[i] };
+    },
+    /** Depois de cada desenho: a âncora saiu do lugar? A rolagem vai junto (só sem a âncora do navegador). */
+    segurarAncora: () => {
+      const l = lista.current;
+      const a = fixos.ancora;
+      if (l && a && !noFim.current && !ancoraNativa()) {
+        const j = janela.current;
+        const i = j.blocos.findIndex((g) => g.bloco === a.bloco);
+        const d = i < 0 ? 0 : j.topos[i] - a.topo;
+        if (Math.abs(d) >= 0.5) {
+          l.scrollTop += d;
+          vista.current.rolagem = l.scrollTop;
+          fixos.ultimaRolagem = l.scrollTop;
+        }
+      }
+      fixos.marcarAncora();
+    },
+    /**
+     * A ROLAGEM NOSSA A CAMINHO DO FIM. Enquanto ela anda (a rolagem suave leva alguns quadros), a lista ainda não
+     * está no fim, e isso não é a pessoa saindo dele; e se o fim se afasta no caminho (um bloco medido maior que a
+     * estimativa, o vão de cima recalculado), ela é refeita até o fim novo. Termina ao chegar, quando a pessoa mexe
+     * na lista (roda, toque, tecla, barra de rolagem, foco) ou, por garantia, num prazo.
+     */
+    indoAoFim: false,
+    prazoDaIda: 0,
+    /** A rolagem longa até o fim (o vão de cima cresceu, ou "Ir para a fala atual"): marcada como nossa. */
+    irAoFimLonge: () => {
+      if (!lista.current) return;
+      fixos.indoAoFim = true;
+      fixos.prazoDaIda = performance.now() + 1500;
+      irAoFim(lista.current);
+    },
+    soltar: () => {
+      fixos.indoAoFim = false;
+    },
+    /** A janela de agora monta outros blocos que a do último desenho? Então desenha de novo. */
+    conferir: () => {
+      const j = janela.current;
+      const { pedacos: p } = montarJanela(j.blocos, medidas.current, vista.current, noFim.current, j.fixos);
+      if (chaveDaJanela(p, j.blocos) !== j.chave) redesenhar();
+    },
+    /** O tamanho da lista (área visível, largura, margem e espaço da coluna). */
+    medirVista: () => {
+      const el = lista.current;
+      if (!el) return;
+      const estilo = getComputedStyle(el);
+      const largura = el.clientWidth;
+      /* Mudou a largura: as linhas quebram em outro lugar, e a medida de um bloco fora da tela não vale mais. */
+      if (vista.current.largura && largura !== vista.current.largura) fixos.esquecerForaDaTela();
+      vista.current = {
+        rolagem: el.scrollTop,
+        visivel: el.clientHeight,
+        largura,
+        margem: parseFloat(estilo.paddingTop) || 0,
+        espaco: parseFloat(estilo.rowGap) || ESPACO_ENTRE_FALAS,
+      };
+    },
+    esquecerForaDaTela: () => {
+      for (const b of [...medidas.current.keys()]) if (!montados.current.has(b)) medidas.current.delete(b);
+    },
+    /** Um observador só, para a lista e para cada bloco montado. */
+    observador: null as ResizeObserver | null,
+    observar: (el: HTMLElement | null) => {
+      if (!el || typeof ResizeObserver === 'undefined') return;
+      fixos.observador ??= new ResizeObserver((entradas) => fixos.aoMedir(entradas));
+      const obs = fixos.observador;
+      obs.observe(el);
+      return () => obs.unobserve(el);
+    },
+    aoMedir: (entradas: ResizeObserverEntry[]) => {
+      const l = lista.current;
+      let mudou = false;
+      for (const e of entradas) {
+        const alvo = e.target as HTMLElement;
+        if (alvo === l) {
+          fixos.medirVista();
+          mudou = true;
+          continue;
+        }
+        if (!alvo.isConnected) continue;
+        const falas = alvo.querySelectorAll(':scope > [data-fala]').length;
+        if (!falas) continue;
+        const b = Number(alvo.dataset.bloco);
+        const altura = e.borderBoxSize?.[0]?.blockSize ?? alvo.getBoundingClientRect().height;
+        const antes = medidas.current.get(b);
+        medidas.current.set(b, { altura, falas });
+        if (antes?.altura === altura) continue;
+        mudou = true;
+        /* Sem âncora do navegador (Safari): o bloco que cresceu ou encolheu INTEIRO acima do que a pessoa lê
+           empurraria a leitura; a rolagem anda a mesma diferença. */
+        if (antes && l && !noFim.current && !ancoraNativa()) {
+          const topoDoBloco = alvo.getBoundingClientRect().top - l.getBoundingClientRect().top + l.scrollTop;
+          const ajuste = ajusteDaRolagem(topoDoBloco, antes.altura, altura, l.scrollTop);
+          if (ajuste) {
+            l.scrollTop += ajuste;
+            fixos.ultimaRolagem = l.scrollTop;
+          }
+          /* A âncora depois deste bloco já andou na tela: o próximo desenho não a anda de novo. */
+          const j = janela.current;
+          const a = fixos.ancora;
+          const ia = a ? j.blocos.findIndex((g) => g.bloco === a.bloco) : -1;
+          if (a && ia > j.blocos.findIndex((g) => g.bloco === b)) a.topo += altura - antes.altura;
+        }
+      }
+      if (!mudou) return;
+      fixos.conferir();
+      fixos.seguir();
+    },
+    /* O toque e o arrasto (o arrasto também: o dedo pode ter encostado fora da lista e entrado nela). */
+    aoTocarNaLista: () => {
+      fixos.dedo = true;
+      fixos.soltar();
+    },
+    aoSoltarDaLista: () => {
+      fixos.dedo = false;
+    },
+    quadro: 0,
+    /** A rolagem confere a janela uma vez por quadro, não a cada evento. */
+    agendar: () => {
+      if (fixos.quadro || typeof requestAnimationFrame === 'undefined') return;
+      fixos.quadro = requestAnimationFrame(() => {
+        fixos.quadro = 0;
+        fixos.conferir();
+      });
     },
   }));
+  useLayoutEffect(() => {
+    fixos.medirVista();
+    if (lista.current) fixos.observar(lista.current);
+    fixos.conferir();
+    return () => {
+      fixos.observador?.disconnect();
+      fixos.observador = null;
+      if (fixos.quadro) cancelAnimationFrame(fixos.quadro);
+      fixos.quadro = 0;
+    };
+  }, [fixos]);
+  /* Outro tamanho de letra: as medidas de fora da tela não valem mais (as de dentro o observador refaz). */
+  const escalaMedida = useRef(escala);
+  useEffect(() => {
+    if (escalaMedida.current === escala) return;
+    escalaMedida.current = escala;
+    fixos.esquecerForaDaTela();
+    fixos.conferir();
+  }, [escala, fixos]);
 
   const irParaOFim = () => {
     if (!lista.current) return;
-    irAoFim(lista.current);
+    fixos.irAoFimLonge();
     noFim.current = true;
     setLongeDoFim(false);
+    fixos.conferir();
   };
   const aoRolar = () => {
     const el = lista.current;
     if (!el) return;
-    noFim.current = el.scrollHeight - el.scrollTop - el.clientHeight <= FOLGA_DO_FIM;
+    vista.current.rolagem = el.scrollTop;
+    fixos.agendar();
+    fixos.marcarAncora();
+    const distancia = el.scrollHeight - el.scrollTop - el.clientHeight;
+    /* A rolagem nossa só DESCE até o fim. Subir e ficar mais longe dele é a pessoa (dedo, inércia, roda, barra,
+       teclado), mesmo dentro da folga: ela sai do fim no primeiro movimento. Subir sem se afastar não é ela: é a
+       lista que encolheu embaixo (a linha de escuta que sai) ou a âncora do navegador. */
+    const subiu = el.scrollTop < fixos.ultimaRolagem - 1 && distancia > fixos.ultimaDistancia + 1;
+    const desceu = el.scrollTop > fixos.ultimaRolagem + 1;
+    fixos.ultimaRolagem = el.scrollTop;
+    fixos.ultimaDistancia = distancia;
+    /* Na folga, volta a acompanhar quem DESCE até ela (ou encosta no fim); quem saiu subindo e parou ali, não. */
+    const chegou = !subiu && (distancia <= 1 || (distancia <= FOLGA_DO_FIM && (noFim.current || desceu)));
+    if (chegou || subiu || performance.now() > fixos.prazoDaIda) fixos.soltar();
+    /* A caminho do fim pela rolagem nossa: ainda acompanhando. */
+    if (fixos.indoAoFim) return;
+    noFim.current = chegou;
     setLongeDoFim(!noFim.current);
   };
+  /* A roda para cima já é a pessoa saindo do fim: a fala que chegar antes do evento de rolagem não puxa a lista. */
+  const aoRodar = (e: React.WheelEvent) => {
+    fixos.soltar();
+    if (e.deltaY >= 0 || !noFim.current) return;
+    noFim.current = false;
+    setLongeDoFim(true);
+  };
+  /* O foco numa fala prende o bloco dela na janela (o desenho que vem depois já o conta). */
+  const aoFocar = (e: React.FocusEvent) => {
+    fixos.soltar();
+    const id = (e.target as Element).closest?.('[data-fala]')?.getAttribute('data-fala') ?? null;
+    if (id && id !== focada.current) focada.current = id;
+  };
+  /* O foco saiu da lista (para o painel, para a faixa): a fala deixa de segurar o bloco. A escolhida e a do
+     "Como respondo?" seguram por conta própria, e o foco volta para elas. */
+  const aoDesfocar = (e: React.FocusEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) focada.current = null;
+  };
   useLayoutEffect(() => fixos.seguir(), [comTexto.length, transcrevendo, escala, fixos]);
+  /* Os vãos mudaram de altura (a estimativa melhorou com a primeira medida): o fim se afastou, e quem
+     acompanha vai até o fim novo. */
+  const alturaDosVaos = pedacos.map((p) => (p.tipo === 'vao' ? Math.round(p.altura) : '')).join(',');
+  useLayoutEffect(() => {
+    if (noFim.current && !fixos.dedo) fixos.irAoFimLonge();
+  }, [alturaDosVaos, fixos]);
+  /* Sem `overflow-anchor` (Safari): o desenho que mexeu nos vãos acima não pode mexer no que a pessoa lê. */
+  useLayoutEffect(() => fixos.segurarAncora());
   useEffect(() => {
     if (!noFim.current) setLongeDoFim(true);
   }, [comTexto.length]);
 
   return (
     <div className="q-leg" style={{ '--q-escala': escala } as React.CSSProperties}>
-      <div className="q-historico" ref={lista} onScroll={aoRolar} aria-live="polite">
-        {comTexto.length === 0 && <p className="q-espera">{t('Ouvindo… a legenda aparece aqui.')}</p>}
-        {blocos.map((grupo, i) => (
-          /* O último bloco é o que está recebendo falas: fica inteiro à vista do navegador (a linha que
-             entra animada não pode ser cortada pela borda do bloco). Os de antes podem ser pulados. */
-          <div
-            key={grupo.bloco}
-            className={i === blocos.length - 1 ? 'q-bloco-de-falas' : 'q-bloco-de-falas antigo'}
-          >
-            {grupo.falas.map((fala) => {
-              const lang = fala.lang ?? idiomaPadrao;
-              const traducao = traducaoNaLegenda(fala);
-              return (
-                <Linha
-                  key={fala.id}
-                  id={fala.id}
-                  hora={fala.timestamp}
-                  original={fala.originalText.trim()}
-                  traducao={traducao.texto}
-                  provisoria={traducao.provisoria || !!fala.isPartial}
-                  lang={lang}
-                  langDaTraducao={idiomaDaTraducao?.(lang)}
-                  atual={fala === atual}
-                  nova={!deAntes.has(fala.id)}
-                  tocando={tocando === fala.id}
-                  aoTocar={fixos.tocar}
-                  aoOuvir={aoOuvir ? fixos.ouvir : undefined}
-                  aoPararAudio={aoPararAudio}
-                  aoMudar={fixos.seguir}
-                />
-              );
-            })}
-          </div>
-        ))}
+      <div
+        className="q-historico"
+        ref={lista}
+        onScroll={aoRolar}
+        onFocus={aoFocar}
+        onBlur={aoDesfocar}
+        onWheel={aoRodar}
+        onTouchStart={fixos.aoTocarNaLista}
+        onTouchMove={fixos.aoTocarNaLista}
+        onTouchEnd={fixos.aoSoltarDaLista}
+        onTouchCancel={fixos.aoSoltarDaLista}
+        onKeyDown={fixos.soltar}
+        onPointerDown={(e) => e.target === e.currentTarget && fixos.soltar()}
+        aria-live="polite"
+      >
+        {comTexto.length === 0 && (
+          <p className="q-espera" data-testid="espera-da-legenda">
+            {espera ?? t('Ouvindo… a legenda aparece aqui.')}
+          </p>
+        )}
+        {pedacos.map((p) => {
+          if (p.tipo === 'vao')
+            return (
+              <div
+                key={`vao-${blocos[p.de].bloco}`}
+                className="q-vao-das-falas"
+                aria-hidden="true"
+                style={{ height: p.altura }}
+              />
+            );
+          const grupo = blocos[p.i];
+          /* O último bloco é o que está recebendo falas (sempre montado); os de antes são `antigo`. O bloco observado
+             dá à janela a altura dele; o que volta para a janela entra calado para a região viva. */
+          return (
+            <div
+              key={grupo.bloco}
+              ref={fixos.observar}
+              data-bloco={grupo.bloco}
+              aria-live={calados.current.has(grupo.bloco) ? 'off' : undefined}
+              className={p.i === blocos.length - 1 ? 'q-bloco-de-falas' : 'q-bloco-de-falas antigo'}
+            >
+              {grupo.falas.map((fala) => {
+                const lang = fala.lang ?? idiomaPadrao;
+                const traducao = traducaoNaLegenda(fala);
+                return (
+                  <Linha
+                    key={fala.id}
+                    id={fala.id}
+                    hora={fala.timestamp}
+                    original={fala.originalText.trim()}
+                    traducao={traducao.texto}
+                    provisoria={traducao.provisoria || !!fala.isPartial}
+                    lang={lang}
+                    langDaTraducao={idiomaDaTraducao?.(lang)}
+                    atual={fala === atual}
+                    escolhida={fala.id === escolhida}
+                    nova={!deAntes.has(fala.id) && !calados.current.has(grupo.bloco)}
+                    tocando={tocando === fala.id}
+                    aoTocar={fixos.tocar}
+                    aoOuvir={aoOuvir ? fixos.ouvir : undefined}
+                    aoPararAudio={aoPararAudio}
+                    aoMudar={fixos.seguir}
+                    comMarcas={!!assistente}
+                    marcas={assistente?.marcas.get(fala.id)}
+                    correcao={assistente?.correcoes.get(fala.id)}
+                    aoTocarMarca={assistente?.aoTocarMarca ? fixos.tocarMarca : undefined}
+                    etiquetador={etiquetador}
+                    semTraducao={ehMotivoSemTraducao(fala.semTraducao) ? fala.semTraducao : undefined}
+                    aoTentarDeNovo={aoTentarTraducaoDeNovo ? fixos.tentarDeNovo : undefined}
+                  />
+                );
+              })}
+            </div>
+          );
+        })}
         {transcrevendo && (
           <p className="q-transcrevendo">
             <span className="q-pontos">

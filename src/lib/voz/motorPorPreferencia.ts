@@ -11,7 +11,7 @@
  *
  * Sem a voz da nuvem não há o que rotear: a fila usa o `nativeTts`, que já lê a preferência.
  */
-import { nativeTts, type SpeakOptions, type TtsEngine } from '../tts';
+import { motorDaFala, type SpeakOptions, type TtsEngine } from '../tts';
 import { prefereVozDoAparelho } from './preferenciaDeVoz';
 import type { MotorDaVoz, VozDaNuvem } from './vozDaNuvem';
 
@@ -22,7 +22,11 @@ export function criarMotorPorPreferencia(o: {
   /** Padrão: a preferência guardada. */
   prefereOAparelho?: (idioma: string) => boolean;
 }): VozDaNuvem {
-  const aparelho = o.aparelho ?? nativeTts;
+  const aparelho: TtsEngine = o.aparelho ?? {
+    speak: (t, p) => motorDaFala().speak(t, p),
+    cancel: () => motorDaFala().cancel(),
+    isSpeaking: () => motorDaFala().isSpeaking?.() ?? false,
+  };
   const prefere = o.prefereOAparelho ?? prefereVozDoAparelho;
   let ultima: MotorDaVoz | null = null;
   return {

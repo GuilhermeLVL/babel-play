@@ -1,0 +1,4 @@
+# pt-nomes-estrangeiros | pt | nomes-estrangeiros | dominio-publico
+# origem: escrita pela equipe, dedicada ao domínio público (CC0).
+# licença: CC0 / domínio público.
+A biblioteca guarda cartas de Friedrich Nietzsche, Marie Curie e Mahatma Gandhi, além de uma edição de Dostoiévski vinda de Zurique.

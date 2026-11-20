@@ -35,6 +35,24 @@
  *               raciocínio "low". Temperatura 0,2: reescrever com liberdade de expressão, sem variar à
  *               toa. Um bloco típico: ~1.500 de entrada + ~1.200 de saída ≈ US$ 0,001 no gpt-oss-120b;
  *               uma hora de conversa (~600 falas, 15 blocos) ≈ US$ 0,015, uma vez só (é idempotente).
+ *   explicacao  2.000 caracteres: a frase tocada (até 400), a tradução (até 400) e até 3 falas de contexto (até 400
+ *               cada) — IA de estudo, planos v4, etapa 2 (`server/ai/nucleo/explicarFrase.ts`). 1.200 de saída: o
+ *               JSON com o "por quê", a gramática, o registro e as gírias (~300 tokens) mais a folga do raciocínio.
+ *               É também o teto por chamada da AMOSTRA do Grátis (`AMOSTRA_DE_IA`). Temperatura 0,3. Pior caso:
+ *               ~1.000 de entrada + 1.200 de saída ≈ US$ 0,0005 no Llama 3.3 70B, ≈ US$ 0,0009 no gpt-oss-120b.
+ *   resumo      12.000 caracteres: as falas de uma sessão para o resumo que vira cartões (Task 3 da etapa 2).
+ *               1.500 de saída: dentro do teto da amostra para o resumo (≤ 2.000) e do teto geral de 1.500 por
+ *               chamada que vale para toda função (`tests/integration/funcoes-de-ia.test.ts`). Temperatura 0,2.
+ *   assistente  1.500 caracteres: a linha da legenda (até 300) ou a fala da pessoa (até 400), mais até 2 linhas de
+ *               contexto no "Como respondo?" (`docs/specs/2026-10-25-assistente-ao-vivo.md`). 600 de saída no teto;
+ *               cada recurso manda o seu (`PARAMETROS_DO_ASSISTENTE`, `src/lib/estudo/promptDoAssistente.ts`): 400 nas
+ *               glosas e na correção, 600 no "Como respondo?". Pior caso: ~800 de entrada + 600 de saída ≈ US$ 0,0002
+ *               no Gemma 4 26B, ≈ US$ 0,0005 no gpt-oss-120b.
+ *   leitura     12.000 caracteres: o PARCEIRO DE LEITURA (L4 de Livros & Leitura, `server/ai/nucleo/parceiroDeLeitura.ts`)
+ *               — até 8.000 do capítulo em volta (livro PD; 1.500 no livro trazido), a seleção (até 1.000), a pergunta
+ *               (até 300), até 2.000 da ficha do livro e os títulos. 900 de saída no teto; cada modo manda o seu
+ *               (`PARAMETROS_DO_PARCEIRO`, `src/lib/estudo/promptDoParceiro.ts`). Pior caso: ~3.500 de entrada + 900 de
+ *               saída ≈ US$ 0,0011 no DeepSeek V4.1 Flash, ≈ US$ 0,0004 no Gemma 4 26B.
  *
  * O teto ABSOLUTO continua em `llmClient.ts` (`MAX_PROMPT_CHARS`): é a rede de segurança para
  * qualquer caminho que um dia chame o provedor sem passar por aqui.
@@ -42,7 +60,16 @@
 import { TETO_DE_ENTRADA_DO_TUTOR } from '../../src/lib/ichat/contencao'
 import type { AgeProfileType } from '../../src/lib/profile'
 
-export type FuncaoDeIa = 'tutor' | 'corretor' | 'traducao' | 'alternativas' | 'polimento'
+export type FuncaoDeIa =
+  | 'tutor'
+  | 'corretor'
+  | 'traducao'
+  | 'alternativas'
+  | 'polimento'
+  | 'explicacao'
+  | 'resumo'
+  | 'assistente'
+  | 'leitura'
 
 interface DefinicaoDeFuncao {
   /** Caracteres de conteúdo do cliente aceitos (o `system` é nosso e não conta). */
@@ -58,6 +85,12 @@ export const FUNCOES_DE_IA: Readonly<Record<FuncaoDeIa, DefinicaoDeFuncao>> = {
   traducao: { tetoEntrada: 4_000, maxTokens: 1_200, temperatura: 0 },
   alternativas: { tetoEntrada: 500, maxTokens: 900, temperatura: 0.5 },
   polimento: { tetoEntrada: 12_000, maxTokens: 1_500, temperatura: 0.2 },
+  explicacao: { tetoEntrada: 2_000, maxTokens: 1_200, temperatura: 0.3 },
+  resumo: { tetoEntrada: 12_000, maxTokens: 1_500, temperatura: 0.2 },
+  /* O teto da FUNÇÃO; cada recurso do assistente manda o seu (`PARAMETROS_DO_ASSISTENTE`), sempre ≤ este. */
+  assistente: { tetoEntrada: 1_500, maxTokens: 600, temperatura: 0.3 },
+  /* O teto da FUNÇÃO; cada modo do parceiro manda o seu (`PARAMETROS_DO_PARCEIRO`), sempre ≤ este. */
+  leitura: { tetoEntrada: 12_000, maxTokens: 900, temperatura: 0.3 },
 }
 
 /**

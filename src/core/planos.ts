@@ -62,7 +62,7 @@
  */
 
 /** Planos que o servidor pode atribuir. Derive listas com `PLANOS_DE_ASSINATURA`, nunca à mão. */
-export type PlanoDeAssinatura = 'free' | 'essencial' | 'premium' | 'aovivo' | 'selfhost';
+export type PlanoDeAssinatura = 'free' | 'essencial' | 'premium' | 'aovivo' | 'plus' | 'familia' | 'pro4' | 'selfhost';
 
 /**
  * OS NOMES QUE JÁ EXISTIRAM, e o plano que eles são hoje. Existe porque o nome antigo vive FORA do
@@ -94,8 +94,11 @@ export const PARCELAS_DO_ANUAL = 12;
  * O TESTE DO PREMIUM (C6): quantos dias ele dura. Sem cartão e sem cobrança automática nunca — no
  * fim a conta volta ao Grátis sozinha. Um por pessoa (o servidor guarda a marca do e-mail, ver
  * `server/lib/testePremium.ts`). A tela diz o número a partir daqui, nunca à mão.
+ *
+ * 3 dias desde 14/11/2026 (change `teste-de-3-dias`, decisão do dono): eram 14, e o negócio não
+ * banca teste longo agora. Mudar o número muda tela, site e termos juntos (todos leem daqui).
  */
-export const DIAS_DO_TESTE_PREMIUM = 14;
+export const DIAS_DO_TESTE_PREMIUM = 3;
 
 /**
  * EM QUE NÍVEL O PLANO FALA (planos v3): a voz do `aparelho` (a do sistema, de graça), a neural
@@ -173,6 +176,42 @@ export interface QuotasDoPlano {
    * `sttAoVivo`; `null` = sem teto.
    */
   sttAoVivoSegundosMes: number | null;
+  /**
+   * A IA DE ESTUDO (planos v4, etapa 2): explicações de frase e resumos de sessão por mês, com contadores
+   * PRÓPRIOS (`server/lib/iaDeEstudo.ts`). Os tokens de cada chamada saem da cota `tokensMes` do plano (a conta do
+   * Plus já os inclui). `0` = o plano não tem (o Grátis usa a `AMOSTRA_DE_IA`, à parte); `null` = sem teto.
+   */
+  explicacoesMes: number | null;
+  resumosMes: number | null;
+  /**
+   * O ASSISTENTE AO VIVO (`docs/specs/2026-10-25-assistente-ao-vivo.md`): chamadas de nuvem POR DIA LOCAL, somando
+   * expressões, termos, "Como respondo?" e a correção da fala (contador próprio, `server/lib/assistenteAoVivo.ts`). Os
+   * tokens de cada chamada saem da `tokensMes` do plano (como a IA de estudo), então o custo já está na conta do plano;
+   * o teto do dia é o uso justo. As palavras acima do nível são locais e não contam. `0` = o plano não tem (Grátis e
+   * convidado); `null` = sem teto.
+   */
+  assistenteDia: number | null;
+  /**
+   * A SUBCOTA DE TOKENS DO ASSISTENTE AO VIVO por mês: 25% da `tokensMes` (`FRACAO_DA_COTA_DO_ASSISTENTE`). Os tokens do
+   * assistente contam AQUI e TAMBÉM na `tokensMes` (o custo continua dentro do que o plano já paga), e esta subcota é
+   * checada antes: o assistente nunca passa de 25% da cota, então a legenda e o resto da IA de texto ficam com pelo
+   * menos 75% (decisão de 25/10/2026, spec `docs/specs/2026-10-25-assistente-ao-vivo.md`, "Cota e custo"). Contador
+   * próprio (`server/lib/assistenteAoVivo.ts`). `0` = o plano não tem; `null` = sem teto.
+   */
+  assistenteTokensMes: number | null;
+  /**
+   * O PARCEIRO DE LEITURA (L4 de Livros & Leitura, `POST /api/ai/leitura/parceiro`): explicar o trecho, analogia,
+   * pergunta sobre o capítulo, curiosidade, ideia para discutir e "o que observar". Chamadas de nuvem POR DIA LOCAL
+   * (contador próprio, `server/lib/parceiroDeLeitura.ts`); a resposta que sai do CACHE compartilhado (livro PD) não
+   * conta. `0` = o plano não tem (Grátis e convidado); `null` = sem teto.
+   */
+  parceiroDia: number | null;
+  /**
+   * A SUBCOTA DE TOKENS DO PARCEIRO por mês: 20% da `tokensMes` (`FRACAO_DA_COTA_DO_PARCEIRO`), no molde da do
+   * assistente. Os tokens contam AQUI e TAMBÉM na `tokensMes`; o parceiro para nos 20% e a legenda fica com o resto.
+   * `0` = o plano não tem; `null` = sem teto.
+   */
+  parceiroTokensMes: number | null;
 }
 
 /**
@@ -195,6 +234,12 @@ export interface DefinicaoDePlano {
    * (pagou antes, ou o admin concedeu) continua com ele, flag ligada ou não.
    */
   flagsDeVenda: readonly string[];
+  /**
+   * O FIM DE VENDA (planos v4): o plano SAI de `planosAVenda` quando QUALQUER flag desta lista está ligada.
+   * Diferente de `flagsDeVenda` (que abre), isto fecha — e só a venda: quem já tem o plano o mantém, e
+   * entitlements, cotas e o reconhecimento do valor pago no webhook seguem valendo. Ausente = nunca encerra.
+   */
+  encerradoPor?: readonly string[];
   entitlements: EntitlementsDoPlano;
   quotas: QuotasDoPlano;
 }
@@ -205,6 +250,82 @@ export interface DefinicaoDePlano {
  */
 export const FLAG_VENDA_PLANOS_V3 = 'venda_planos_v3';
 export const FLAG_STT_AO_VIVO = 'stt_ao_vivo';
+
+/**
+ * AS CHAVES DA VENDA V4 (`docs/specs/2026-10-24-planos-v4.md`; migração 0054). `venda_planos_v4` vende o Plus e
+ * ENCERRA a venda do Essencial, do Premium e do Ao Vivo (`encerradoPor`). `venda_familia` e `venda_pro4` abrem a
+ * Família e o Pro (junto com a v4): nascem desligadas e nenhuma é ligada na etapa 1, então os dois planos são
+ * "em breve" — existem na matriz, mas `planosAVenda` nunca os devolve.
+ */
+export const FLAG_VENDA_PLANOS_V4 = 'venda_planos_v4';
+export const FLAG_VENDA_FAMILIA = 'venda_familia';
+export const FLAG_VENDA_PRO4 = 'venda_pro4';
+
+/**
+ * A IA DE ESTUDO (planos v4, etapa 2): a explicação da frase (`POST /api/ai/explicar`) e o resumo da sessão que
+ * vira cartões. Nasce DESLIGADA (migração 0055 / PG 0009): desligada, as rotas respondem 404 `recurso_indisponivel`
+ * e as telas ficam como estão. Não é permissão nem cota: quem pode é o plano (`explicacoesMes`/`resumosMes`) ou a
+ * `AMOSTRA_DE_IA` do Grátis.
+ */
+export const FLAG_IA_DE_ESTUDO = 'ia_de_estudo';
+
+/**
+ * O ASSISTENTE AO VIVO (`docs/specs/2026-10-25-assistente-ao-vivo.md`): expressões e gírias da legenda, termo técnico ou
+ * sigla em uma linha, "Como respondo?" e a correção gentil da própria fala (`POST /api/ai/assistente/*`). Nasce
+ * DESLIGADA (migração SQLite 0057 / PG 0011): desligada, as rotas respondem 404 `recurso_indisponivel`. Não é
+ * permissão nem cota: quem pode é o plano (`assistenteDia`). As palavras acima do nível são locais e valem também no
+ * Grátis, sem flag de servidor.
+ */
+export const FLAG_ASSISTENTE_AO_VIVO = 'assistente_ao_vivo';
+
+/**
+ * O TETO DO DIA do assistente nos planos pagos: 200 chamadas por dia local. A conta (spec, "Custo"): o uso cheio
+ * estimado é de ~450 mil tokens por mês (~22% da `tokensMes` do Plus), uns 25 usos por hora em 40 min por dia; 200 por
+ * dia cobre o dia mais intenso (≈3 h de vídeo com glosa) e corta o uso automático em laço. Os tokens saem da
+ * `tokensMes`, então o teto não muda a margem (`npm run ia:custo`).
+ */
+export const ASSISTENTE_DIA_DOS_PAGOS = 200;
+
+/** A fração da `tokensMes` que o assistente ao vivo pode usar no mês (`assistenteTokensMes` = 25% em todo plano). */
+export const FRACAO_DA_COTA_DO_ASSISTENTE = 0.25;
+
+/**
+ * O PARCEIRO DE LEITURA (L4 de Livros & Leitura; `server/ai/nucleo/parceiroDeLeitura.ts`). Nasce DESLIGADO (migração
+ * PG 0014): desligado, a rota responde 404 `recurso_indisponivel`. Não é permissão nem cota: quem pode é o plano
+ * (`parceiroDia`), e o teste de 3 dias, que tem o plano dele.
+ */
+export const FLAG_PARCEIRO_DE_LEITURA = 'parceiro_de_leitura';
+
+/**
+ * OS AVATARES (`docs/specs/2026-10-28-avatar-interprete.md`; migração PG 0016). Três flags que nascem DESLIGADAS:
+ * `avatar_3d` (a base: o avatar da pessoa e o do intérprete, em 3D com fallback 2D), `avatar_sinais` (soletração
+ * rotulada como demonstração, nunca "tradução para Libras") e `avatar_elenco` (narrador e personagens nos livros).
+ * Desligadas, nada muda na tela. Não são permissão nem cota: avatar é recurso livre e a acessibilidade não depende dele.
+ */
+export const FLAG_AVATAR_3D = 'avatar_3d';
+export const FLAG_AVATAR_SINAIS = 'avatar_sinais';
+export const FLAG_AVATAR_ELENCO = 'avatar_elenco';
+
+/**
+ * OS AUDIOLIVROS (`docs/specs/2026-10-31-audiolivros-e-leitura.md` §9.1; migrações PG 0017 e SQLite 0059). Nascem
+ * DESLIGADAS e sem regra de plano: `audiolivros` (o áudio pré-gerado do catálogo no "Ouvir"), `audiolivros_nuvem`
+ * (voz natural para livro próprio) e `audiolivros_elenco` (voz por personagem). Nenhuma cota aqui.
+ */
+export const FLAG_AUDIOLIVROS = 'audiolivros';
+export const FLAG_AUDIOLIVROS_NUVEM = 'audiolivros_nuvem';
+export const FLAG_AUDIOLIVROS_ELENCO = 'audiolivros_elenco';
+
+/**
+ * O TETO DO DIA do parceiro nos planos pagos: 40 pedidos por dia local. A conta: um pedido leva até ~8 mil caracteres
+ * do capítulo (~2,3 mil tokens), ~600 tokens da ficha e o system, e até 900 de saída — ~4 mil tokens, ≈ US$ 0,0011 no
+ * DeepSeek V4.1 Flash (US$ 0,15/0,65 por 1M) e menos no Gemma 4. 40 por dia cobrem uma tarde inteira de leitura com
+ * perguntas; quem vai além é uso automático. O mês é segurado pela subcota (`parceiroTokensMes`, 20% da `tokensMes`:
+ * no Plus, 400 mil tokens ≈ 100 pedidos sem cache ≈ US$ 0,11), e a resposta em cache (livro PD) não conta em nada.
+ */
+export const PARCEIRO_DIA_DOS_PAGOS = 40;
+
+/** A fração da `tokensMes` que o parceiro de leitura pode usar no mês (`parceiroTokensMes` = 20% em todo plano). */
+export const FRACAO_DA_COTA_DO_PARCEIRO = 0.2;
 
 export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
   free: {
@@ -235,6 +356,12 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       vozCaracteresMes: 0,
       vozCaracteresDia: null,
       sttAoVivoSegundosMes: 0,
+      explicacoesMes: 0,
+      resumosMes: 0,
+      assistenteDia: 0,
+      assistenteTokensMes: 0,
+      parceiroDia: 0,
+      parceiroTokensMes: 0,
     },
   },
   essencial: {
@@ -242,6 +369,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
     precoMensalBrl: 9.9,
     precoAnualBrl: 79.9,
     flagsDeVenda: [FLAG_VENDA_PLANOS_V3],
+    encerradoPor: [FLAG_VENDA_PLANOS_V4],
     /* NO APARELHO, com a nuvem por trechos SOB DEMANDA (5 h no mês para transcrever e traduzir, não
        por padrão — quem decide quando usar é a política de rota) e a Tradução Nuance. Sem anúncios.
        Fala com a voz do aparelho e o intérprete é por toque. `largerModels` fica de fora: além dos
@@ -268,6 +396,12 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       vozCaracteresMes: 0,
       vozCaracteresDia: null,
       sttAoVivoSegundosMes: 0,
+      explicacoesMes: 300,
+      resumosMes: 60,
+      assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
+      assistenteTokensMes: 187_500,
+      parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
+      parceiroTokensMes: 150_000,
     },
   },
   premium: {
@@ -275,10 +409,11 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
     precoMensalBrl: 19.9,
     precoAnualBrl: 149.9,
     flagsDeVenda: [],
+    encerradoPor: [FLAG_VENDA_PLANOS_V4],
     /* A nuvem por trechos POR PADRÃO onde compensa. A importação do YouTube foi removida (a rota
        responde 410), então nenhum plano a vende. `largerModels` vem do Pro (quem pagava por ele não
        perde nada); `LLM_MODEL_GRANDE` continua ausente por padrão, e o modelo mais forte chega pelo
-       nível `nuance` (B3/D1). É o plano do TESTE de 14 dias (`PLANO_DO_TESTE`). */
+       nível `nuance` (B3/D1). É o plano do TESTE de 3 dias (`PLANO_DO_TESTE`). */
     entitlements: {
       managedCloudStt: true,
       managedCloudLlm: true,
@@ -301,17 +436,25 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       armazenamentoMb: 500,
       sttSegundosDia: 7_200,
       tokensDia: 300_000,
-      /* A VOZ NATURAL (E4 da Fase E). Chatterbox Multilingual na DeepInfra: US$ 1,00 por 1M de caracteres
-         (deepinfra.com, 30/09/2026). A voz lê ~15 caracteres por segundo → ~54.000 por hora de voz
-         → ~US$ 0,054 por hora.
-           dia  60.000 ≈ 1,1 h de voz — a tradução lida de ~2 h de conversa (o uso justo do dia,
-                a metade do tempo é a pessoa falando) → no máximo ~US$ 0,06 no dia;
-           mês 600.000 ≈ 11 h de voz → no máximo ~US$ 0,60 por assinante no mês.
+      /* A VOZ NATURAL (E4 da Fase E; pelo OpenRouter desde 17/11/2026, change `voz-natural-openrouter`). Kokoro 82M
+         com retenção zero: US$ 0,62/1M na DeepInfra, US$ 4/1M na Together, e o OpenRouter escolhe quem atende (a
+         voz não aceita `order`). A conta usa o PIOR, US$ 4/1M. A voz lê ~15 caracteres por segundo → ~54.000 por
+         hora de voz → no máximo ~US$ 0,22 por hora (~US$ 0,04 no esperado).
+           dia  15.000 ≈ 17 min de voz → no máximo ~US$ 0,06 no dia;
+           mês 150.000 ≈ 2,8 h de voz → no máximo ~US$ 0,60 por assinante no mês: o MESMO dinheiro dos 600.000 a
+                US$ 1/1M de antes, e o que mantém a mistura de 3% de pagantes do `npm run ia:custo` com margem ≥ 0.
          PROVISÓRIO: o teto liga com o custo medido no uso real (E6); `PREMIUM_*_TTS_CHARS` sobrepõe.
-         Passando dele, a voz do aparelho segue — o intérprete nunca para. */
-      vozCaracteresMes: 600_000,
-      vozCaracteresDia: 60_000,
+         Passando dele, a voz do aparelho segue — o intérprete nunca para. Os tetos de cada plano estão em
+         `openspec/changes/voz-natural-openrouter/design.md`. */
+      vozCaracteresMes: 150_000,
+      vozCaracteresDia: 15_000,
       sttAoVivoSegundosMes: 0,
+      explicacoesMes: 300,
+      resumosMes: 60,
+      assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
+      assistenteTokensMes: 750_000,
+      parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
+      parceiroTokensMes: 600_000,
     },
   },
   aovivo: {
@@ -323,6 +466,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
     /* Duas chaves: a venda dos planos novos E a nuvem ao vivo existir — vender o plano sem a rota
        seria cobrar por uma promessa (§11, item 12). */
     flagsDeVenda: [FLAG_VENDA_PLANOS_V3, FLAG_STT_AO_VIVO],
+    encerradoPor: [FLAG_VENDA_PLANOS_V4],
     /* Tudo do Premium, MAIS o texto durante a fala (`sttAoVivo`) e a voz neural boa. Até a medição de
        custo escolher as vozes, a "boa" e a "básica" saem do mesmo provedor (§11, item 10). */
     entitlements: {
@@ -346,9 +490,127 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       armazenamentoMb: 500,
       sttSegundosDia: 7_200,
       tokensDia: 600_000,
-      vozCaracteresMes: 600_000,
-      vozCaracteresDia: 60_000,
+      vozCaracteresMes: 300_000,
+      vozCaracteresDia: 30_000,
       sttAoVivoSegundosMes: 36_000,
+      explicacoesMes: 300,
+      resumosMes: 60,
+      assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
+      assistenteTokensMes: 1_125_000,
+      parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
+      parceiroTokensMes: 900_000,
+    },
+  },
+  /* PLUS (planos v4): o plano de entrada pago. Tudo do Premium, menos o intérprete automático (que é do Pro).
+     8 h por trechos; o dia é o uso justo de 2 h. Tokens: 150 mil por hora de fala × 8 h = 1,2 M, com folga até 2 M
+     (explicação da frase e resumo→cartões, etapa 2). Voz natural até 150 mil caracteres (≈ 2,8 h de voz).
+     Chamadas: no meio entre o Essencial (6.500) e o Premium (26.000). Armazenamento: o do Grátis (MVP). */
+  plus: {
+    rotulo: 'Plus',
+    precoMensalBrl: 14.9,
+    precoAnualBrl: 149.0,
+    flagsDeVenda: [FLAG_VENDA_PLANOS_V4],
+    entitlements: {
+      managedCloudStt: true,
+      managedCloudLlm: true,
+      largerModels: true,
+      traducaoNuance: true,
+      vozNatural: true,
+      interpreteAutomatico: false,
+      semAnuncios: true,
+      sttAoVivo: false,
+      nivelDeVoz: 'basica',
+    },
+    quotas: {
+      chamadasMes: 16_250,
+      sttSegundosMes: 28_800,
+      tokensMes: 2_000_000,
+      armazenamentoMb: 500,
+      sttSegundosDia: 7_200,
+      tokensDia: 200_000,
+      vozCaracteresMes: 150_000,
+      vozCaracteresDia: 15_000,
+      sttAoVivoSegundosMes: 0,
+      explicacoesMes: 300,
+      resumosMes: 60,
+      assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
+      assistenteTokensMes: 500_000,
+      parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
+      parceiroTokensMes: 400_000,
+    },
+  },
+  /* FAMÍLIA (planos v4, "em breve"): as capacidades do Plus com 12 h compartilhadas. Só existe como produto
+     quando houver grupo, convite do responsável e painel; até lá `venda_familia` fica desligada. Dia, chamadas
+     e armazenamento seguem o Premium (a Família divide as horas, não relaxa o uso justo de cada dia). */
+  familia: {
+    rotulo: 'Família',
+    precoMensalBrl: 24.9,
+    precoAnualBrl: 249.0,
+    flagsDeVenda: [FLAG_VENDA_PLANOS_V4, FLAG_VENDA_FAMILIA],
+    entitlements: {
+      managedCloudStt: true,
+      managedCloudLlm: true,
+      largerModels: true,
+      traducaoNuance: true,
+      vozNatural: true,
+      interpreteAutomatico: false,
+      semAnuncios: true,
+      sttAoVivo: false,
+      nivelDeVoz: 'basica',
+    },
+    quotas: {
+      chamadasMes: 26_000,
+      sttSegundosMes: 43_200,
+      tokensMes: 3_000_000,
+      armazenamentoMb: 500,
+      sttSegundosDia: 7_200,
+      tokensDia: 300_000,
+      vozCaracteresMes: 300_000,
+      vozCaracteresDia: 30_000,
+      sttAoVivoSegundosMes: 0,
+      explicacoesMes: 300,
+      resumosMes: 60,
+      assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
+      assistenteTokensMes: 750_000,
+      parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
+      parceiroTokensMes: 600_000,
+    },
+  },
+  /* PRO (planos v4, "em breve"; id \`pro4\`, NUNCA \`pro\`, que é o apelido antigo do Premium): 20 h e o intérprete
+     automático. A conversa por voz com o tutor (5 h de voz) ainda não existe: sem quota própria aqui até a
+     medição de custo; \`venda_pro4\` fica desligada até lá. */
+  pro4: {
+    rotulo: 'Pro',
+    precoMensalBrl: 34.9,
+    precoAnualBrl: 349.0,
+    flagsDeVenda: [FLAG_VENDA_PLANOS_V4, FLAG_VENDA_PRO4],
+    entitlements: {
+      managedCloudStt: true,
+      managedCloudLlm: true,
+      largerModels: true,
+      traducaoNuance: true,
+      vozNatural: true,
+      interpreteAutomatico: true,
+      semAnuncios: true,
+      sttAoVivo: false,
+      nivelDeVoz: 'basica',
+    },
+    quotas: {
+      chamadasMes: 26_000,
+      sttSegundosMes: 72_000,
+      tokensMes: 3_000_000,
+      armazenamentoMb: 500,
+      sttSegundosDia: 7_200,
+      tokensDia: 300_000,
+      vozCaracteresMes: 200_000,
+      vozCaracteresDia: 20_000,
+      sttAoVivoSegundosMes: 0,
+      explicacoesMes: 300,
+      resumosMes: 60,
+      assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
+      assistenteTokensMes: 750_000,
+      parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
+      parceiroTokensMes: 600_000,
     },
   },
   selfhost: {
@@ -378,6 +640,12 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       vozCaracteresMes: null,
       vozCaracteresDia: null,
       sttAoVivoSegundosMes: null,
+      explicacoesMes: null,
+      resumosMes: null,
+      assistenteDia: null,
+      assistenteTokensMes: null,
+      parceiroDia: null,
+      parceiroTokensMes: null,
     },
   },
 };
@@ -432,6 +700,12 @@ export const PLANO_CONVIDADO: DefinicaoDePlano = {
     vozCaracteresMes: 0,
     vozCaracteresDia: null,
     sttAoVivoSegundosMes: 0,
+    explicacoesMes: 0,
+    resumosMes: 0,
+    assistenteDia: 0,
+    assistenteTokensMes: 0,
+    parceiroDia: 0,
+    parceiroTokensMes: 0,
   },
 };
 
@@ -521,26 +795,120 @@ export const FRANQUIA_DE_ALIVIO = {
 } as const;
 
 /**
- * O TETO DO TESTE DE 14 DIAS, EM USO (não em tempo). O teste dá os recursos do Premium, mas a nuvem dele é uma AMOSTRA:
+ * A AMOSTRA DA IA DE ESTUDO DO GRÁTIS (planos v4, etapa 2). NÃO é cota de plano nem muda o `free` da matriz (que
+ * continua sem `managedCloudLlm` e com `tokensMes: 0`, e por isso sem tutor, Nuance ou polimento): é uma franquia à
+ * parte, com contadores próprios por conta (`server/lib/iaDeEstudo.ts`), que passa pela admissão (faixa `gratis`) e
+ * pelo orçamento global de IA como qualquer chamada. A janela do dia é o dia LOCAL da pessoa (o fuso da cota); a da
+ * semana começa na segunda-feira desse dia.
+ *
+ * O teto de tokens por chamada é o `maxTokens` da função (`server/ai/funcoesDeIa.ts`): 1.200 de saída na explicação
+ * e 1.500 no resumo (o teto geral por chamada; a amostra admitia até 2.000). A amostra usa o nível `rapida` (o Grátis não tem `traducaoNuance`).
+ *
+ * A CONTA DE CUSTO (pior caso: uma conta que usa TODA a amostra do mês, todo pedido no teto de entrada e de saída,
+ * `ops/ia-provedores.openrouter.json`; `scripts/ia/modeloDeCusto.ts` a calcula a partir destes números — o
+ * `npm run ia:custo` de 25/10/2026):
+ *   explicação  no DeepSeek V4.1 Flash (a primeira perna desde 25/10/2026; preço declarado conservador, US$ 0,15/1M de
+ *               entrada e US$ 0,65 de saída): ~2.000 tokens de entrada + 1.200 de saída ≈ US$ 0,0011; 5/dia × 30 =
+ *               150/mês ≈ US$ 0,162
+ *   resumo      no Llama 3.3 70B (a perna mais cara da cascata rápida do tutor, US$ 0,10/0,32): ~7.000 tokens de
+ *               entrada + 1.500 de saída ≈ US$ 0,0012; 1/semana × ~4,3 ≈ US$ 0,0051 (no Gemma 4, ≈ US$ 0,0035)
+ *   TETO POR CONTA GRÁTIS QUE USA TUDO ≈ US$ 0,167/mês (conservador) e ≈ US$ 0,166 (esperado: o mesmo DeepSeek na
+ *   explicação, o resumo no Gemma 4). Na base, o `npm run ia:custo` supõe 30% dos grátis no teto no pior caso
+ *   (`--amostra`).
+ *
+ * O POOL DIÁRIO GLOBAL (`poolChamadasDia`, no molde do pool do alívio): somando TODAS as contas Grátis, no máximo
+ * 120 chamadas da amostra (explicações + resumos) por dia UTC. É ele que fecha o custo da amostra, qualquer que seja
+ * o tamanho da base: no pior caso, toda chamada no preço do resumo (~US$ 0,0012) → 120 × 30 × 0,0012 ≈ US$ 4,25/mês.
+ * O número veio do `npm run ia:custo`: com 3% de pagantes (1.000 usuários, 15 Essencial + 15 Premium) a margem no
+ * pior caso sem a amostra é ~US$ 5,0, e 120 é o maior pool redondo que a mantém ≥ 0 (~US$ 0,8). Esgotado, a conta
+ * recebe o mesmo 402 `amostra_acabou` da franquia individual; volta à meia-noite UTC.
+ */
+export const AMOSTRA_DE_IA = {
+  explicacoesDia: 5,
+  resumosSemana: 1,
+  poolChamadasDia: 120,
+} as const;
+
+/**
+ * OS TETOS DO ANÚNCIO PREMIADO (spec `anuncios-no-gratis`, "Amostra de nuvem com teto global"). A recompensa
+ * é creditada pelo servidor (`server/routes/anuncios.ts`), e os dois tetos contam as exibições CONCLUÍDAS no
+ * dia UTC: o da pessoa (somando todos os espaços premiados) e o de todas as contas juntas — este segura o
+ * custo da amostra de nuvem (`nuvem-30`) e das Seeds num dia de pico. Atingido qualquer um, a exibição nem
+ * começa (429 `teto_do_dia`) e a captura segue no aparelho.
+ */
+export const LIMITE_DE_PREMIADOS_POR_DIA = 5;
+export const TETO_GLOBAL_DE_PREMIADOS_POR_DIA = 2_000;
+/**
+ * O `nuvem-30` tem custo de nuvem do nosso lado: dentro dos 5 do dia, no máximo 2 deles (1 h de nuvem por dia
+ * por pessoa), contados nas exibições desse espaço concluídas no dia UTC.
+ */
+export const LIMITE_DE_NUVEM_30_POR_DIA = 2;
+/**
+ * E no MÊS UTC: no máximo 10 `nuvem-30` concluídos por pessoa (10 × 30 min = 5 h de nuvem a mais no mês), para o
+ * dia a dia não virar 2 por dia × 31 = 31 h. Atingido, o `iniciar` e o `concluir` recusam (429 `teto_do_mes`).
+ */
+export const LIMITE_DE_NUVEM_30_POR_MES = 10;
+/**
+ * Exibições PENDENTES (iniciadas e não concluídas) por pessoa nos últimos 10 min: acima disto o `iniciar` recusa
+ * (429 `exibicoes_pendentes`). Sem ele, um laço abriria linhas sem fim, e cada uma poderia virar recompensa.
+ */
+export const LIMITE_DE_PREMIADOS_PENDENTES = 3;
+/**
+ * TETOS POR IP E POR REDE das exibições premiadas CONCLUÍDAS no dia UTC (revisão de segurança de 15/11/2026). Sem
+ * a verificação servidor a servidor (SSV) da rede de anúncios, um script conclui exibições sem anúncio nenhum, e os
+ * tetos por CONTA não seguram uma fazenda de contas: estes a prendem ao endereço (`server/lib/premiadoPorIp.ts`, IP
+ * pseudonimizado). 15 por IP = 3 adultos no teto de 5 atrás do mesmo IP; 60 por rede (/24 no IPv4, /48 no IPv6) =
+ * 3% do teto global. Folgados de propósito: o CGNAT das operadoras móveis põe muita gente no mesmo IP. Atingido,
+ * o `concluir` recusa (429 `teto_do_ip`) e não credita.
+ */
+export const LIMITE_DE_PREMIADOS_POR_IP_POR_DIA = 15;
+export const LIMITE_DE_PREMIADOS_POR_REDE_POR_DIA = 60;
+/**
+ * O `nuvem-30` é nuvem de verdade (custo nosso), não Seeds: só para conta com 30 dias ou mais (403 `conta_nova`),
+ * dez vezes a idade mínima das outras recompensas. Uma fazenda de contas precisa envelhecer um mês antes de render
+ * nuvem, e até lá os tetos por IP e o teto do mês valem. O espaço ainda nem está ativo (`ESPACOS_PREMIADOS_ATIVOS`).
+ */
+export const IDADE_MINIMA_DA_CONTA_PARA_NUVEM_30_MS = 30 * 86_400_000;
+/**
+ * A DURAÇÃO MÍNIMA de uma exibição, por espaço premiado (R33): sem verificação servidor a servidor, concluir logo
+ * depois de iniciar seria forjar a recompensa. O premiado da web dura até 30 s; abaixo de 15 s entre o `iniciar` e
+ * o `concluir` o servidor recusa (409 `cedo_demais`).
+ */
+export const DURACAO_MINIMA_DA_EXIBICAO_MS: Readonly<
+  Record<'fim-premiado' | 'ajuda-premiada' | 'tema-24h' | 'nuvem-30' | 'loja-seeds', number>
+> = {
+  'fim-premiado': 15_000,
+  'ajuda-premiada': 15_000,
+  'tema-24h': 15_000,
+  'nuvem-30': 15_000,
+  'loja-seeds': 15_000,
+};
+
+/**
+ * O TETO DO TESTE DE 3 DIAS, EM USO (não em tempo). O teste dá os recursos do Premium, mas a nuvem dele é uma AMOSTRA:
  * antes ele herdava as 20 h do mês inteiro (US$ 1,16 a US$ 1,76 por pessoa no teto, sem receita), e quem testa e some é
- * a maioria. Agora o teste acaba no que vier primeiro: os 14 dias ou este teto.
+ * a maioria. Agora o teste acaba no que vier primeiro: os 3 dias ou este teto.
  *
  * A CONTA (17/10/2026; STT + tradução por hora de legenda: US$ 0,028 esperado a US$ 0,058 conservador — Whisper turbo e
  * Gemma 4 pelo OpenRouter, `ops/ia-provedores.openrouter.json`):
- *   3 h de legenda na nuvem        ≤ US$ 0,17 (conservador)  — 10.800 s, o mesmo tamanho da franquia do alívio
- *   voz natural, 30.000 caracteres ≤ US$ 0,03                — a US$ 1,00 por 1M de caracteres
- *   TOTAL POR TESTE                ≤ US$ 0,20, contra US$ 1,76 antes. 3 h bastam para sentir a diferença (a nuvem acerta
- *   o que o aparelho erra) sem torná-la uma assinatura grátis; o uso justo do dia (2 h) continua valendo por cima.
- * Tokens: 150 mil por hora de fala, 450 mil nas 3 h. Chamadas: 3 h ÷ 6 s × 2 = 3.600, com folga.
+ *   1 h de legenda na nuvem        ≤ US$ 0,06 (conservador)  — 3.600 s
+ *   voz natural                    = US$ 0                   — o teste NÃO tem voz da nuvem (17/11/2026, change
+ *                                                                `voz-natural-openrouter`: só plano pago; a voz do
+ *                                                                aparelho lê a tradução no teste)
+ *   TOTAL POR TESTE                ≤ US$ 0,06, contra US$ 0,20 com as 3 h de antes e US$ 1,76 com o mês inteiro.
+ *   1 h basta para sentir a diferença (a nuvem acerta o que o aparelho erra) sem torná-la uma assinatura grátis.
+ * Tokens: 150 mil por hora de fala. Chamadas: 1 h ÷ 6 s × 2 = 1.200, com folga até 1.400.
+ *
+ * 1 h desde 14/11/2026 (change `teste-de-3-dias`): eram 3 h para 14 dias; o teto encolheu na proporção do prazo.
  *
  * Usa os MESMOS contadores do plano (o teto vale o menor entre os dois): quem assina no meio do teste continua com
  * o mês do plano, descontado do que gastou no teste. O mês de um teste que cruza a virada recomeça o contador.
  */
 export const FRANQUIA_DO_TESTE = {
-  sttSegundosMes: 10_800,
-  tokensMes: 450_000,
-  chamadasMes: 4_000,
-  vozCaracteresMes: 30_000,
+  sttSegundosMes: 3_600,
+  tokensMes: 150_000,
+  chamadasMes: 1_400,
+  vozCaracteresMes: 0,
 } as const;
 
 /** O plano EFETIVO que o servidor resolve: um de assinatura, ou `convidado` (anônimo com JWT). */
@@ -589,20 +957,51 @@ export const PLANOS_PAGOS: readonly PlanoPago[] = PLANOS_DE_ASSINATURA.filter(eh
  * OS PLANOS À VENDA AGORA: os pagos cujas `flagsDeVenda` estão TODAS ligadas — quem pergunta diz como
  * ler uma flag (o servidor, pelo request; a tela, pelo cache de `GET /api/flags`). É a régua única de
  * `POST /api/billing/assinar` e do que a tela oferece. Com tudo desligado (a venda fechada da matriz
- * v3) sobra o que nunca teve chave: o Premium.
+ * v3) sobra o que nunca teve chave: o Premium. Com `venda_planos_v4` ligada, os v3 saem (`encerradoPor`) e
+ * entra o Plus; a Família e o Pro só com as flags próprias (nunca ligadas na etapa 1: "em breve").
  */
 export function planosAVenda(flagLigada: (chave: string) => boolean): PlanoPago[] {
-  return PLANOS_PAGOS.filter((p) => PLAN_MATRIX[p].flagsDeVenda.every(flagLigada));
+  return PLANOS_PAGOS.filter(
+    (p) => PLAN_MATRIX[p].flagsDeVenda.every(flagLigada) && !(PLAN_MATRIX[p].encerradoPor ?? []).some(flagLigada),
+  );
 }
 
 /** Nenhuma chave de venda ligada: a venda dos planos novos fechada, como nasce. */
 const VENDA_FECHADA = (): boolean => false;
 
 /**
- * O plano que o TESTE de 14 dias concede (`DIAS_DO_TESTE_PREMIUM`). É uma decisão comercial, e por
+ * O plano que o TESTE de 3 dias concede (`DIAS_DO_TESTE_PREMIUM`). É uma decisão comercial, e por
  * isso mora ao lado da matriz: o servidor (`resolverPlano`) e a tela leem daqui.
  */
 export const PLANO_DO_TESTE: PlanoPago = 'premium';
+
+/**
+ * O plano que o teste concede AGORA, dada a leitura das flags (planos v4): o Plus com `venda_planos_v4`
+ * ligada, o Premium sem. Quem começou o teste num plano o segue até acabar: o servidor grava o plano na
+ * concessão. `PLANO_DO_TESTE` fica para os chamadores que não leem flags (valor da v3, o de hoje).
+ */
+export function planoDoTeste(flagLigada: (chave: string) => boolean): PlanoPago {
+  return flagLigada(FLAG_VENDA_PLANOS_V4) ? 'plus' : PLANO_DO_TESTE;
+}
+
+/**
+ * O plano que as ofertas e os "Ver o plano" SUGEREM (planos v4): o Plus com `venda_planos_v4` ligada, o
+ * Premium sem ela. Hoje coincide com o do teste (a entrada paga é a mesma porta), mas é outra decisão:
+ * se o teste um dia for de outro plano, as ofertas continuam apontando para o que se vende primeiro.
+ */
+export function planoDeEntrada(flagLigada: (chave: string) => boolean): PlanoPago {
+  return flagLigada(FLAG_VENDA_PLANOS_V4) ? 'plus' : PLANO_DO_TESTE;
+}
+
+/**
+ * Os planos "em breve" com a v4 ligada: os que dependem da `venda_planos_v4` (estão no desenho da v4) e
+ * ainda não estão à venda (Família e Pro, cujas chaves próprias seguem desligadas). Sem a v4 ligada
+ * (`aVenda` sem o Plus), a lista é vazia: a tela de hoje não anuncia nada que não vende.
+ */
+export function planosEmBreve(aVenda: readonly PlanoPago[]): PlanoPago[] {
+  if (!aVenda.includes('plus')) return [];
+  return PLANOS_PAGOS.filter((p) => PLAN_MATRIX[p].flagsDeVenda.includes(FLAG_VENDA_PLANOS_V4) && !aVenda.includes(p));
+}
 
 /**
  * O plano pago de MENOR mensalidade. É o que o webhook concede quando um pagamento confirmado chega
@@ -651,29 +1050,65 @@ export function valoresDasParcelas(total: number, parcelas: number): { padrao: n
  * mensalidade seria o Premium por menos que o Essencial. Com VÁRIOS planos pagos (matriz v3) o valor
  * também diz QUAL: por isso todo valor cobrável é distinto dos outros, e pagar R$ 9,90 com a intenção
  * do Premium concede o Essencial.
+ *
+ * UMA COLISÃO CONHECIDA (v4): a última parcela do 12x do Plus (R$ 149,00 → 11 × 12,41 + 12,49) é igual à parcela
+ * padrão do Premium (R$ 149,90 → 11 × 12,49 + 12,51). Valor que casa com MAIS DE UM plano só concede se
+ * `preferido` (a intenção gravada do pagador) estiver entre os candidatos; senão devolve `null` — ambíguo, e o
+ * chamador não concede por palpite. `tests/planos-v4-matriz.test.ts` falha se surgir outra colisão.
  */
 export function planoPeloPagamento(
   valor: number | undefined,
-  opcoes: { parcelas?: number } = {},
+  opcoes: { parcelas?: number; preferido?: PlanoPago | null } = {},
 ): { plano: PlanoDeAssinatura; ciclo: CicloDeCobranca } | null {
   if (typeof valor !== 'number' || !Number.isFinite(valor) || valor <= 0) return null;
   const parcelas = opcoes.parcelas ?? 1;
-  if (parcelas > 1) {
-    if (parcelas !== PARCELAS_DO_ANUAL) return null;
-    for (const plano of PLANOS_DE_ASSINATURA) {
-      const anual = PLAN_MATRIX[plano].precoAnualBrl;
-      if (anual === null) continue;
-      const { padrao, ultima } = valoresDasParcelas(anual, parcelas);
-      if (casa(valor, padrao) || casa(valor, ultima)) return { plano, ciclo: 'anual' };
-    }
-    return null;
-  }
+  if (parcelas > 1 && parcelas !== PARCELAS_DO_ANUAL) return null;
+  const candidatos: Array<{ plano: PlanoDeAssinatura; ciclo: CicloDeCobranca }> = [];
   for (const plano of PLANOS_DE_ASSINATURA) {
     const { precoMensalBrl: mensal, precoAnualBrl: anual } = PLAN_MATRIX[plano];
-    if (mensal !== null && casa(valor, mensal)) return { plano, ciclo: 'mensal' };
-    if (anual !== null && casa(valor, anual)) return { plano, ciclo: 'anual' };
+    if (parcelas > 1) {
+      if (anual === null) continue;
+      const { padrao, ultima } = valoresDasParcelas(anual, parcelas);
+      if (casa(valor, padrao) || casa(valor, ultima)) candidatos.push({ plano, ciclo: 'anual' });
+      continue;
+    }
+    if (mensal !== null && casa(valor, mensal)) candidatos.push({ plano, ciclo: 'mensal' });
+    else if (anual !== null && casa(valor, anual)) candidatos.push({ plano, ciclo: 'anual' });
   }
-  return null;
+  if (candidatos.length <= 1) return candidatos[0] ?? null;
+  /* AMBÍGUO (a parcela de R$ 12,49 é do Plus e do Premium): quem decide é a intenção, mas só ENTRE os
+     candidatos que o dinheiro permite. Sem intenção, ou com uma que não está entre eles, não se concede por
+     palpite: `null`, e o webhook registra e mantém o estado. */
+  const preferido = opcoes.preferido ? candidatos.find((c) => c.plano === opcoes.preferido) : undefined;
+  return preferido ?? null;
+}
+
+/** Um valor que o Asaas pode cobrar por um plano, com o que ele tem de pagar. */
+export interface ValorCobravel {
+  plano: PlanoDeAssinatura;
+  ciclo: CicloDeCobranca;
+  valor: number;
+  /** 1 = cobrança única (mensalidade ou ano à vista); `PARCELAS_DO_ANUAL` = parcela do 12x. */
+  parcelas: number;
+  oQue: 'mensalidade' | 'ano à vista' | 'parcela do 12x' | 'última parcela do 12x';
+}
+
+/**
+ * TODO VALOR que o Asaas pode cobrar por um plano: a mensalidade, o ano à vista e as duas parcelas do 12x
+ * (padrão e última). É o que o webhook casa em `planoPeloPagamento` e o que os testes enumeram para provar que
+ * nenhum valor novo colide com outro plano. Plano sem preço (Grátis, self-host) devolve `[]`; sem anual (Ao Vivo),
+ * só a mensalidade.
+ */
+export function valoresCobraveis(plano: PlanoDeAssinatura): ValorCobravel[] {
+  const { precoMensalBrl: mensal, precoAnualBrl: anual } = PLAN_MATRIX[plano];
+  const lista: ValorCobravel[] = [];
+  if (mensal !== null) lista.push({ plano, ciclo: 'mensal', valor: mensal, parcelas: 1, oQue: 'mensalidade' });
+  if (anual === null) return lista;
+  const { padrao, ultima } = valoresDasParcelas(anual, PARCELAS_DO_ANUAL);
+  lista.push({ plano, ciclo: 'anual', valor: anual, parcelas: 1, oQue: 'ano à vista' });
+  lista.push({ plano, ciclo: 'anual', valor: padrao, parcelas: PARCELAS_DO_ANUAL, oQue: 'parcela do 12x' });
+  lista.push({ plano, ciclo: 'anual', valor: ultima, parcelas: PARCELAS_DO_ANUAL, oQue: 'última parcela do 12x' });
+  return lista;
 }
 
 /**

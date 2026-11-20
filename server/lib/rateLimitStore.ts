@@ -59,6 +59,11 @@ export const METRIC_RATELIMIT_TELEMETRIA = 'ratelimit:telemetria'
  */
 export const METRIC_RATELIMIT_FLAGS = 'ratelimit:flags'
 /**
+ * O balde do contador anônimo de falhas do visitante (`POST /api/erros-do-cliente/falha`). Próprio pelo A27, e
+ * por uma chave DERIVADA do IP (HMAC com o `SECRET_KEY`, `server/routes/erros.ts`): o IP nunca vai ao banco.
+ */
+export const METRIC_RATELIMIT_FALHAS = 'ratelimit:falhas'
+/**
  * O balde do LOTE da importação do Anki (`POST /api/anki/imports/:id/notas`, Fase 3 da migração).
  * Próprio pelo mesmo A27: os lotes ficam fora do `writeLimiter` (100 lotes de um import cortariam a
  * escrita da pessoa), mas não ficam sem teto.
@@ -69,6 +74,13 @@ export const METRIC_RATELIMIT_LOTE_ANKI = 'ratelimit:lote-anki'
    Baldes próprios, no banco, pelo mesmo motivo do A27. */
 export const METRIC_RATELIMIT_EXPORTAR = 'ratelimit:exportar'
 export const METRIC_RATELIMIT_IMAGENS = 'ratelimit:imagens'
+/** O balde do feedback de IA (`POST /api/ai/feedback`, Fase B da IA paga): próprio pelo mesmo A27. */
+export const METRIC_RATELIMIT_FEEDBACK = 'ratelimit:feedback'
+/**
+ * O balde do ASSISTENTE AO VIVO (`POST /api/ai/assistente/*`): próprio pelo mesmo A27 — as glosas automáticas
+ * acompanham a legenda, e dividir o balde caro com a tradução de cada fala cortaria a legenda.
+ */
+export const METRIC_RATELIMIT_ASSISTENTE = 'ratelimit:assistente'
 
 /**
  * A chave do balde: o TENANT, não o IP. Cai no IP só onde não há usuário resolvido

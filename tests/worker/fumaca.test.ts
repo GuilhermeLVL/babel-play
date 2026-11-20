@@ -25,7 +25,7 @@ describe('fumaça do Worker em wrangler dev', () => {
       })
       if (r.status !== 0) console.error(r.stdout, r.stderr)
       expect(r.status).toBe(0)
-      expect(r.stdout).toContain('fumaça do Worker: 7/7')
+      expect(r.stdout).toContain('fumaça do Worker: 8/8')
     },
     300_000,
   )

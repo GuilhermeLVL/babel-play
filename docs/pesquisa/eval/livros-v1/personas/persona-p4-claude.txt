@@ -1,0 +1,51 @@
+```json
+{
+  "persona": "Leitor de 58 anos, apaixonado por clássicos em português (Machado, Alencar, Eça), que quer reler com conforto, ouvir narrados e anotar; pouco íntimo de tecnologia; quer também ler clássicos em espanhol.",
+
+  "dores": [
+    "Letra pequena e tela cansativa: em PDFs e sites de domínio público não consigo aumentar a fonte sem o texto se embaralhar.",
+    "Achar edição boa e gratuita de Machado ou Eça é uma bagunça: sites com anúncio, formatação quebrada, versões com erros de digitalização.",
+    "Perco o lugar onde parei quando troco de aparelho ou fecho a janela.",
+    "Vocabulário e construções de época (português do século XIX) me travam, e dicionário comum não explica o sentido naquele contexto.",
+    "Quero ouvir o livro enquanto caminho ou cozinho, mas a voz do celular é robótica e atropela pontuação e nomes antigos.",
+    "Minhas anotações ficam presas em um lugar só; se eu trocar de computador, perco tudo, e não consigo levar para um caderno ou arquivo.",
+    "Em espanhol leio devagar: preciso de ajuda pontual sem perder o fio, sem ter de abrir outro aplicativo de tradução.",
+    "Medo de apertar algo errado e perder o que fiz; menus cheios de ícones sem texto me intimidam."
+  ],
+
+  "jobs_to_be_done": [
+    "Quando quero reler Dom Casmurro numa noite tranquila, quero abrir o livro com letra grande, fundo confortável e continuar de onde parei, para ler sem esforço e sem me perder.",
+    "Quando estou caminhando ou fazendo outra coisa, quero ouvir o capítulo narrado com voz agradável e pausas corretas, para aproveitar o livro sem olhar a tela.",
+    "Quando encontro uma passagem bonita ou uma palavra que não conheço, quero grifar, anotar e pedir uma explicação simples do trecho, para entender e guardar sem interromper a leitura.",
+    "Quando termino uma leitura, quero exportar meus grifos e notas num arquivo que eu possa imprimir ou guardar, para ter meu próprio caderno do livro.",
+    "Quando quero tentar um clássico em espanhol como Don Quijote ou Bécquer, quero ver ajuda sob demanda (palavra ou frase traduzida) e ouvir a pronúncia, para ler sem desistir na primeira página.",
+    "Quando acho um livro que tenho em casa em arquivo, quero abri-lo no mesmo leitor com o mesmo conforto, para não depender só do catálogo."
+  ],
+
+  "funcoes": [
+    {"nome": "Catálogo de clássicos por autor e idioma", "descricao": "Vitrine simples com Machado, Alencar, Eça, Cervantes etc., com capa, autor, ano e filtro português/espanhol; só obras comprovadamente em domínio público no Brasil.", "tela": "catálogo", "plano": "grátis", "ia": "não", "esforco": "G"},
+    {"nome": "Selo de domínio público e fonte", "descricao": "Em cada livro, mostra a edição, a fonte, o ano de morte do autor e do tradutor, para dar confiança sobre a legalidade.", "tela": "catálogo", "plano": "grátis", "ia": "não", "esforco": "M"},
+    {"nome": "Leitor com letra grande e temas", "descricao": "Ajuste de tamanho, espaçamento, fonte com serifa, tema claro/sépia/escuro, com botões grandes e rotulados em texto.", "tela": "leitor", "plano": "grátis", "ia": "não", "esforco": "M"},
+    {"nome": "Continuar de onde parei", "descricao": "Retoma a posição exata ao abrir, com botão grande 'Continuar lendo' na tela inicial e barra de progresso por capítulo.", "tela": "leitor", "plano": "grátis", "ia": "não", "esforco": "P"},
+    {"nome": "Sumário e busca no livro", "descricao": "Lista de capítulos e busca por palavra ou nome de personagem dentro da obra.", "tela": "leitor", "plano": "grátis", "ia": "não", "esforco": "M"},
+    {"nome": "Toque na palavra para ver o sentido", "descricao": "Toca numa palavra e vê significado simples e tradução (em espanhol), com opção de guardar como cartão.", "tela": "leitor", "plano": "grátis", "ia": "não", "esforco": "M"},
+    {"nome": "Narração com escolha de voz do aparelho", "descricao": "Play/pausa grande, velocidade, escolha entre as vozes instaladas, com o trecho lido destacado na página.", "tela": "narração", "plano": "grátis", "ia": "não", "esforco": "M"},
+    {"nome": "Voz natural na nuvem", "descricao": "Narração com voz mais humana e pausas corretas, com cota mensal e aviso claro de quanto resta.", "tela": "narração", "plano": "pago", "ia": "sim", "esforco": "M"},
+    {"nome": "Link para audiolivro LibriVox", "descricao": "Quando existir gravação humana em domínio público da obra, oferece ouvir a gravação sincronizada por capítulo.", "tela": "narração", "plano": "grátis", "ia": "não", "esforco": "G"},
+    {"nome": "Exportar audiolivro em MP3 por capítulo", "descricao": "Gera ZIP com os capítulos narrados para ouvir offline em qualquer aparelho.", "tela": "narração", "plano": "pago", "ia": "sim", "esforco": "G"},
+    {"nome": "Explicar este trecho", "descricao": "Seleciona uma passagem e recebe explicação em linguagem simples do sentido, do contexto histórico e das expressões de época.", "tela": "painel de IA", "plano": "pago", "ia": "sim", "esforco": "M"},
+    {"nome": "Resumo do capítulo e 'quem é quem'", "descricao": "Resumo curto por capítulo e lista de personagens até o ponto lido, sem spoilers do que vem depois.", "tela": "painel de IA", "plano": "pago", "ia": "sim", "esforco": "M"},
+    {"nome": "Grifos e notas sincronizados", "descricao": "Grifa em cores, escreve notas e as acessa em qualquer aparelho, com aviso claro de onde ficam guardadas.", "tela": "notas/exportar", "plano": "grátis", "ia": "não", "esforco": "G"},
+    {"nome": "Exportar meu caderno do livro", "descricao": "Gera arquivo (texto, Markdown ou PDF para imprimir) com trechos grifados, notas e a posição no livro.", "tela": "notas/exportar", "plano": "grátis", "ia": "não", "esforco": "M"},
+    {"nome": "Trazer meu próprio arquivo (EPUB/PDF)", "descricao": "Arrastar ou escolher arquivo do computador, com passo a passo curto, e ler no mesmo leitor confortável.", "tela": "outra", "plano": "grátis", "ia": "não", "esforco": "M"}
+  ],
+
+  "me_faria_desistir": [
+    "Livro com tradução ou edição de legalidade duvidosa, ou erros de digitalização visíveis: perco a confiança no catálogo inteiro.",
+    "Perder minhas anotações ou o ponto de leitura ao trocar de aparelho ou limpar o navegador, sem aviso claro disso.",
+    "Interface cheia de jogos, pontos, cartões e notificações empurrados no meio da leitura: eu vim ler um romance, não treinar vocabulário.",
+    "Voz robótica que lê errado nomes e pontuação sem alternativa melhor, ou um paywall surpresa no meio da narração.",
+    "Cadastro longo, menus com ícones sem texto e mensagens técnicas de erro (CORS, arquivo inválido) sem me dizer o que fazer."
+  ]
+}
+```

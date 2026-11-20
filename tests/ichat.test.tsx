@@ -34,6 +34,9 @@ vi.mock('../src/lib/consentimentoDeNuvem', () => ({
   consentiuNuvem: () => consentiu,
   useConsentimentoDeNuvem: () => ({ consentiu, autorizar: async () => true }),
 }))
+/* O 👍/👎 do tutor chega ao servidor (Fase B da IA paga): só a nota, nunca o texto. */
+const feedback = vi.hoisted(() => ({ enviarFeedback: vi.fn(async () => true) }))
+vi.mock('../src/data/apiDoFeedback', () => feedback)
 vi.mock('../src/lib/ichatContext', async (orig) => ({
   ...(await orig<typeof import('../src/lib/ichatContext')>()),
   construirContextoDaTela: async () => 'Tela: Vocabulário (conteúdo real).',
@@ -150,6 +153,29 @@ describe('iChat', () => {
     expect(apiFetch).not.toHaveBeenCalled()
   })
 
+  it('👍/👎 de uma resposta do tutor manda só a nota ao servidor; o caso com texto fica no aparelho', async () => {
+    feedback.enviarFeedback.mockClear()
+    const campo = await abrir()
+    responder('Leverage é alavancar.')
+    fireEvent.change(campo, { target: { value: 'o que é leverage?' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+    expect(await screen.findByText(/Leverage é alavancar/, {}, { timeout: 3000 })).toBeTruthy()
+
+    fireEvent.click(await screen.findByRole('button', { name: /Não faz sentido aqui/ }, { timeout: 3000 }))
+    await waitFor(() =>
+      expect(feedback.enviarFeedback).toHaveBeenCalledWith({ funcao: 'tutor', nota: 'down', motivo: 'nao_ajudou' }),
+    )
+    expect(JSON.stringify(feedback.enviarFeedback.mock.calls)).not.toMatch(/leverage|alavancar/i)
+    expect(localStorage.getItem('ichat_avaliacoes')).toMatch(/alavancar/)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Resposta útil' }))
+    await waitFor(() => expect(feedback.enviarFeedback).toHaveBeenLastCalledWith({ funcao: 'tutor', nota: 'up' }))
+    // Desmarcar não manda nada.
+    fireEvent.click(screen.getByRole('button', { name: 'Resposta útil' }))
+    await new Promise((r) => setTimeout(r, 20))
+    expect(feedback.enviarFeedback).toHaveBeenCalledTimes(2)
+  })
+
   it('falha do tutor aparece como aviso, sem origem nem avaliação', async () => {
     const campo = await abrir()
     apiFetch.mockResolvedValueOnce({
@@ -163,6 +189,36 @@ describe('iChat', () => {
     await waitFor(() => expect(campo.disabled).toBe(false), { timeout: 3000 })
     expect(screen.queryByText(/Origem:/)).toBeNull()
     expect(screen.queryByRole('button', { name: /Não faz sentido aqui/ })).toBeNull()
+  })
+
+  it('resposta barrada pelo filtro de saída (`filtrada`): a frase fixa, sem origem, e ela não volta no histórico', async () => {
+    feedback.enviarFeedback.mockClear()
+    const campo = await abrir()
+    apiFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        text: 'Vamos voltar ao idioma? Posso te ajudar com vocabulário, frases ou pronúncia.',
+        engine: 'nuvem',
+        filtrada: true,
+      }),
+    } as unknown as Response)
+    fireEvent.change(campo, { target: { value: 'oi' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+    expect(await screen.findByText(/Vamos voltar ao idioma\?/, {}, { timeout: 3000 })).toBeTruthy()
+    await waitFor(() => expect(campo.disabled).toBe(false), { timeout: 3000 })
+    expect(screen.queryByText(/Origem:/)).toBeNull()
+    // A avaliação fica no aparelho: a frase fixa não é resposta do tutor, então a nota não vai ao servidor.
+    fireEvent.click(screen.getByRole('button', { name: /Não faz sentido aqui/ }))
+    await new Promise((r) => setTimeout(r, 20))
+    expect(feedback.enviarFeedback).not.toHaveBeenCalled()
+
+    responder('Olá!')
+    fireEvent.change(campo, { target: { value: 'e agora?' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+    await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(2), { timeout: 3000 })
+    const corpo = JSON.parse(apiFetch.mock.calls[1][1].body as string)
+    expect(corpo.messages.filter((m: { role: string }) => m.role === 'assistant')).toEqual([])
   })
 
   it('sem consentimento de nuvem, a pergunta não sai do aparelho e a resposta diz onde autorizar', async () => {

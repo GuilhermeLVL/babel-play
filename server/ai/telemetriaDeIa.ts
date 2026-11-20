@@ -21,6 +21,7 @@
 import type { Request } from 'express'
 
 import type { NivelDaTraducao } from '../../src/core/nivelDeTraducao'
+import type { ModoDoParceiro } from '../../src/lib/estudo/promptDoParceiro'
 import { contarLimiteDoProvedor } from '../http/metricas'
 import type { UserId } from '../lib/authContext'
 import { getPlanForUser } from '../lib/entitlements'
@@ -37,6 +38,7 @@ import {
 } from '../lib/langfuse'
 import { log } from '../lib/logger'
 import { salDoPseudonimo } from '../lib/pseudonimoDeUsuario'
+import type { CategoriaDeBloqueio } from './moderacao/listasParaMenores'
 import { fornecedorDaBase } from './registroDeProvedores'
 
 /** A função de produto que a requisição serve — a dimensão "feature" do painel. `tts`: a voz natural do intérprete (E4 da Fase E). */
@@ -50,6 +52,15 @@ export type FuncaoTelemetrada =
   | 'corretor'
   | 'byok-chat'
   | 'tts'
+  | 'explicacao'
+  | 'resumo'
+  /* O assistente ao vivo (spec `docs/specs/2026-10-25-assistente-ao-vivo.md`): um rótulo por recurso de nuvem. */
+  | 'assistente-expressoes'
+  | 'assistente-termos'
+  | 'assistente-como-respondo'
+  | 'assistente-correcao'
+  /* O parceiro de leitura (L4 de Livros & Leitura): um rótulo só; o modo vai em `modoDoParceiro`. */
+  | 'parceiro-de-leitura'
 
 /** Os metadados de RASTRO que as rotas podem anotar. Lista fechada: nada de texto livre. */
 export interface AnotacoesDoRastro {
@@ -66,6 +77,20 @@ export interface AnotacoesDoRastro {
   degradacao?: 'orcamento_70' | 'orcamento_90'
   /** Quantas entradas do glossário pessoal foram ao pedido (D3 da Fase D) — o número, nunca o texto. */
   glossario?: number
+  /** "Como respondo?" em fluxo: ms da entrada até a primeira sugestão sair (o que a pessoa sente). */
+  primeiraSugestaoMs?: number
+  /**
+   * Como o fluxo DEPOIS do primeiro byte terminou — o HTTP já era 200, então a falha no meio só aparece aqui (e no log
+   * `assistente_comoRespondo_fluxo_interrompido`): `completo`, `interrompido` (o provedor caiu), `invalido` (o fim fora
+   * do formato), `cancelado` (quem pediu fechou a conexão).
+   */
+  desfechoDoFluxo?: 'completo' | 'interrompido' | 'invalido' | 'cancelado'
+  /** O modo do parceiro de leitura (lista fechada) — nunca o trecho, a pergunta nem o livro trazido. */
+  modoDoParceiro?: ModoDoParceiro
+  /** Livro do catálogo ou trazido pela pessoa (o id do livro não vai ao rastro). */
+  origemDoLivro?: 'catalogo' | 'proprio'
+  /** O filtro de saída de perfil protegido barrou a resposta: a CATEGORIA (lista fechada), nunca o texto. */
+  saidaFiltrada?: CategoriaDeBloqueio
 }
 
 /** O id da sessão de captura que o cliente PODE mandar. Formato fechado; fora dele, ignorado. */
@@ -174,7 +199,13 @@ export function taxaDeAmostragem(env: NodeJS.ProcessEnv = process.env): number {
 }
 
 /** O rastro precisa ir, independentemente da amostra? */
-export function rastroObrigatorio(statusHttp: number, geracoes: Pick<DadosDaGeracao, 'status'>[]): boolean {
+export function rastroObrigatorio(
+  statusHttp: number,
+  geracoes: Pick<DadosDaGeracao, 'status'>[],
+  /* O fluxo que falhou DEPOIS do 200 também vai sempre: é erro, só que sem status HTTP para dizer. */
+  desfechoDoFluxo?: AnotacoesDoRastro['desfechoDoFluxo'],
+): boolean {
+  if (desfechoDoFluxo !== undefined && desfechoDoFluxo !== 'completo') return true
   return statusHttp >= 400 || geracoes.length > 1 || geracoes.some((g) => g.status !== 'ok')
 }
 
@@ -219,7 +250,8 @@ export function abrirRastro(req: Request, funcao: FuncaoTelemetrada): RastroDeIa
     encerrar(statusHttp) {
       if (fechado) return
       fechado = true
-      if (!rastroObrigatorio(statusHttp, geracoes) && Math.random() >= taxaDeAmostragem()) return
+      if (!rastroObrigatorio(statusHttp, geracoes, anotacoes.desfechoDoFluxo) && Math.random() >= taxaDeAmostragem())
+        return
       const fim = Date.now()
       const p = (async () => {
         try {
@@ -244,6 +276,11 @@ export function abrirRastro(req: Request, funcao: FuncaoTelemetrada): RastroDeIa
             nivel: anotacoes.nivel,
             degradacao: anotacoes.degradacao,
             glossario: anotacoes.glossario,
+            primeiraSugestaoMs: anotacoes.primeiraSugestaoMs,
+            desfechoDoFluxo: anotacoes.desfechoDoFluxo,
+            modoDoParceiro: anotacoes.modoDoParceiro,
+            origemDoLivro: anotacoes.origemDoLivro,
+            saidaFiltrada: anotacoes.saidaFiltrada,
             custoUsd: somaDeCusto(geracoes),
           }
           cliente.enviar({

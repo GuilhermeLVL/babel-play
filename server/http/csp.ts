@@ -11,7 +11,10 @@
  *                                               consulta de versão (`src/gateway/modelManifest.ts`)
  *   cdn.jsdelivr.net                            o runtime WASM do ONNX: sem `wasmPaths` próprio, o
  *                                               transformers.js baixa `ort-wasm-*.{mjs,wasm}` de lá
- *                                               (node_modules/@huggingface/transformers/src/backends/onnx.js)
+ *                                               (node_modules/@huggingface/transformers/src/backends/onnx.js).
+ *                                               Desde 17/11/2026 o `transformersEnv.ts` aponta `wasmPaths`
+ *                                               para `baseDoWasm()`; o host fica só sem espelho próprio
+ *   (os quatro acima SAEM quando VITE_SELF_HOST_MODELS é URL: ver `CONEXOES_DO_HUB`)
  *   *.wiktionary.org                            o verbete do dicionário (`src/lib/dictionary.ts`) e as
  *                                               figuras que ele traz, com autor e licença
  *                                               (`src/lib/imagens/imagensDaPalavra.ts`): é a mesma API
@@ -19,7 +22,15 @@
  *                                               (`src/data/rotas/imagens.ts`)
  *   api.mymemory.translated.net                 a tradução de reserva do cliente
  *                                               (`src/gateway/adapters/mymemory.ts`)
- *   localhost:11434 / 127.0.0.1:11434           o Ollama LOCAL de quem o tem (`src/gateway/profiles.ts`)
+ *   localhost:11434 / 127.0.0.1:11434           o Ollama LOCAL de quem o tem (`src/gateway/profiles.ts`). SÓ fora do
+ *                                               modo público (self-host, dev, edição estática): com
+ *                                               `AUTH_REQUIRED=1` (o Express e o Worker) ou `VITE_AUTH_REQUIRED=1`
+ *                                               (o build que gera o `dist/_headers`) sai, porque o servidor público
+ *                                               não usa o Ollama e um script injetado não tem o que ver na
+ *                                               máquina de quem visita
+ *   standardebooks.org                          o EPUB dos livros do catálogo (CORS `*`), baixado direto
+ *                                               pelo navegador (`src/lib/livros/textoDoLivro.ts`)
+ *   *.wikisource.org                            o texto dos livros da Wikisource, pela API (`origin=*`)
  *
  * E os que dependem do deploy, lidos do ambiente (origem só — caminho e chave não entram):
  *
@@ -29,6 +40,20 @@
  *                                               código, vem sempre do próprio domínio: `script-src`
  *                                               não muda)
  *   VITE_SENTRY_DSN                             o envio de erro do navegador
+ *   VITE_LIVROS_URL                             a cópia curada dos livros do Gutenberg no R2
+ *                                               (`scripts/livros/curar-gutenberg.mjs`)
+ *   VITE_AUDIO_URL                              os audiolivros pré-gerados no R2 (manifesto e tempos por
+ *                                               `connect-src`, o `.opus` por `media-src`)
+ *   VITE_VOZ_MODELO_URL                         os pesos da voz no aparelho (Supertonic 3) num R2: só `connect-src`
+ *   VITE_VOZ_KITTEN_URL                         os pesos da voz natural no aparelho (Kitten TTS 2) num R2: só `connect-src`
+ *   VITE_AVATARES_URL                           a coleção curada de avatares (VRM/GLB) num R2/CDN
+ *                                               (`src/lib/avatar/fontes.ts`). Dado, não código: só `connect-src`
+ *   AVATAR_GALERIA_TERCEIROS=1                  a galeria ao vivo do avatar (coleção 100Avatars, CC0, da ToxSam): os
+ *                                               MODELOS saem do `arweave.net` (e do subdomínio para onde ele
+ *                                               redireciona) por `connect-src`. O registro vem do
+ *                                               `raw.githubusercontent.com` (já liberado) e as miniaturas por
+ *                                               `img-src`, que já é `https:`. Sem a variável, nada entra e a galeria
+ *                                               avisa que está indisponível. Só `connect-src`, nunca script/worker.
  *   VITE_ORT_WASM_URL                           o runtime do ONNX (`ort-wasm-*.{wasm,mjs}`) num R2/CDN
  *                                               (`src/gateway/baseDoWasm.ts`). ESTE é código: entra
  *                                               também em `script-src` e `worker-src` (ver abaixo)
@@ -71,17 +96,54 @@ export interface DiretivasDeCsp {
 /** O host do Cloudflare Turnstile (script oficial, iframe do desafio e a verificação). */
 export const HOST_DO_TURNSTILE = 'https://challenges.cloudflare.com'
 
-const CONEXOES_FIXAS = [
+/**
+ * O Hub e o jsDelivr: os pesos e o runtime do ONNX quando o deploy NÃO tem espelho próprio (dev, testes,
+ * self-host). Com `VITE_SELF_HOST_MODELS=<url>` (o R2 de produção, change `modelos-confiaveis-e-offline`,
+ * DISP-05) eles SAEM: pesos e runtime vêm só de origens do Frasy, e uma queda ou bloqueio do Hub não derruba a
+ * legenda sem alarme. Antes de publicar a CSP sem eles, o portão do deploy confere o bucket
+ * (`scripts/modelos/conferir-espelho.ts`).
+ */
+const CONEXOES_DO_HUB = [
   'https://huggingface.co',
   'https://*.huggingface.co',
   'https://*.hf.co',
   'https://cdn.jsdelivr.net',
+]
+
+/** O deploy serve os pesos de um bucket próprio (`VITE_SELF_HOST_MODELS` é URL `https://`)? */
+export const temEspelhoProprio = (env: NodeJS.ProcessEnv): boolean =>
+  /^https:\/\//.test(env.VITE_SELF_HOST_MODELS?.trim() ?? '')
+
+const CONEXOES_FIXAS = [
   'https://*.wiktionary.org',
   'https://api.openverse.org',
   'https://api.mymemory.translated.net',
-  'http://localhost:11434',
-  'http://127.0.0.1:11434',
+  'https://standardebooks.org',
+  'https://*.wikisource.org',
+  /* "Trazer o seu" por link: o arquivo de um repositório público, baixado pelo navegador. Conferido com
+     `curl -sI -H 'Origin: https://frasy.com.br'`: responde `access-control-allow-origin: *`. Release do GitHub
+     fica de fora (github.com responde 302 sem CORS). */
+  'https://raw.githubusercontent.com',
 ]
+
+/** O Ollama LOCAL de quem o tem (perfil "Privado/Local"): só entra fora do modo público (`modoPublico`). */
+const CONEXOES_DO_OLLAMA = ['http://localhost:11434', 'http://127.0.0.1:11434']
+
+/**
+ * O MODO PÚBLICO para a CSP: `AUTH_REQUIRED=1` no servidor (Express e Worker) ou `VITE_AUTH_REQUIRED=1` no build (o
+ * `dist/_headers` do Worker). Só o valor explícito: o build roda com `NODE_ENV=production` também na edição estática e
+ * no self-host, e ali o Ollama continua.
+ */
+const modoPublico = (env: NodeJS.ProcessEnv): boolean => env.AUTH_REQUIRED === '1' || env.VITE_AUTH_REQUIRED === '1'
+
+/**
+ * O LEITOR DE LIVROS (L2 de Livros & Leitura): além das fontes do catálogo (acima, em `CONEXOES_FIXAS`), o EPUB
+ * do Wikisource sai do ws-export, baixado pelo NAVEGADOR por CORS, sem passar pelo servidor.
+ */
+const CONEXOES_DO_LEITOR = ['https://ws-export.wmcloud.org']
+
+/** Onde moram os modelos da galeria 100Avatars (o `arweave.net` redireciona para um subdomínio). */
+const HOSTS_DA_GALERIA_DE_AVATARES = ['https://arweave.net', 'https://*.arweave.net']
 
 /** A ORIGEM (`https://host[:porta]`) de uma URL, ou `null` se ela não for http(s) válida. */
 function origemDe(valor: string | undefined): string | null {
@@ -96,7 +158,27 @@ function origemDe(valor: string | undefined): string | null {
   }
 }
 
-export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env): DiretivasDeCsp {
+/**
+ * A ORIGEM DE ANÚNCIOS (`ANUNCIOS_ORIGEM`, rulings R32 e R35): o Worker próprio `frasy-anuncios` que o app
+ * embute por `<iframe credentialless>`. Só a origem; só `https` (ou `http` em localhost, para o
+ * `worker:dev`). NUNCA a origem do app (`app`, a da requisição, ou a de `APP_URL`): igual = falha fechada.
+ * Inválida, ausente ou igual = `null`, e nada muda na CSP.
+ */
+export function origemDosAnuncios(env: NodeJS.ProcessEnv = process.env, app: string | null = null): string | null {
+  const o = origemDe(env.ANUNCIOS_ORIGEM)
+  if (!o) return null
+  if (o === app || o === origemDe(env.APP_URL)) return null
+  const u = new URL(o)
+  if (u.protocol === 'https:' || u.hostname === 'localhost' || u.hostname === '127.0.0.1') return o
+  return null
+}
+
+export interface OpcoesDaCsp {
+  /** A flag `anuncios` está ligada (quem lê é o chamador: o Worker, com cache de 60 s). */
+  anuncios?: boolean
+}
+
+export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: OpcoesDaCsp = {}): DiretivasDeCsp {
   const doDeploy = [
     origemDe(env.SUPABASE_URL),
     origemDe(env.VITE_SUPABASE_URL),
@@ -105,6 +187,14 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env): DiretivasD
     origemDe(env.VITE_SELF_HOST_MODELS),
     /* A9b: sem ela, os `.gz` do Bergamot saem do próprio domínio (`'self'`). */
     origemDe(env.VITE_BERGAMOT_MODELOS_URL),
+    /* Os livros do Gutenberg, na cópia curada do R2 (sem ela, o detalhe diz que a cópia não foi publicada). */
+    origemDe(env.VITE_LIVROS_URL),
+    /* Os modelos de avatar da coleção curada (sem ela, saem do próprio domínio). O arquivo é dado: nunca
+       entra em `script-src` nem `worker-src`. O avatar do usuário (traga-o-seu) nunca sai do aparelho. */
+    origemDe(env.VITE_AVATARES_URL),
+    /* A galeria de avatares de terceiros (opt-in da pessoa, desligada para perfil protegido na UI): só liga com a
+       variável. Dado, nunca código. */
+    ...(env.AVATAR_GALERIA_TERCEIROS === '1' ? HOSTS_DA_GALERIA_DE_AVATARES : []),
     /* O DSN tem a chave pública no userinfo; `origin` a descarta e fica só o host de ingestão. */
     origemDe(env.VITE_SENTRY_DSN),
   ].filter((o): o is string => o !== null)
@@ -119,27 +209,81 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env): DiretivasD
   /* Fase 7: o captcha do convidado só entra na CSP quando a chave pública existe no deploy. */
   const turnstile = env.VITE_TURNSTILE_SITE_KEY?.trim() ? [HOST_DO_TURNSTILE] : []
 
+  /* Os AUDIOLIVROS pré-gerados (F2, flag `audiolivros`): manifesto e tempos por `fetch` (`connect-src`) e o
+     capítulo pelo `<audio>` (`media-src`). Dado, nunca código. Sem a variável, nada entra. */
+  const audio = [origemDe(env.VITE_AUDIO_URL)].filter((o): o is string => o !== null)
+
+  /* A VOZ NO APARELHO (flag `voz_no_aparelho`): os pesos do Supertonic baixados pelo worker por `fetch` (`connect-src`).
+     Dado, nunca código. Sem a variável, nada entra. */
+  const vozNoAparelho = [origemDe(env.VITE_VOZ_MODELO_URL), origemDe(env.VITE_VOZ_KITTEN_URL)].filter(
+    (o): o is string => o !== null,
+  )
+
   const conexoes = [
-    ...new Set(["'self'", 'blob:', 'data:', ...CONEXOES_FIXAS, ...doDeploy, ...runtimeDoOnnx, ...turnstile]),
+    ...new Set([
+      "'self'",
+      'blob:',
+      'data:',
+      ...(temEspelhoProprio(env) ? [] : CONEXOES_DO_HUB),
+      ...CONEXOES_FIXAS,
+      ...(modoPublico(env) ? [] : CONEXOES_DO_OLLAMA),
+      ...CONEXOES_DO_LEITOR,
+      ...doDeploy,
+      ...runtimeDoOnnx,
+      ...turnstile,
+      ...audio,
+      ...vozNoAparelho,
+    ]),
   ]
+
+  /* R32: com a flag ligada E a origem configurada, a página de anúncios entra SÓ em `frame-src`. Nada em
+     `script-src`: o GPT roda lá, nunca no documento do app. */
+  const anuncios = opcoes.anuncios ? [origemDosAnuncios(env)].filter((o): o is string => o !== null) : []
+  const quadros = [...turnstile, ...anuncios]
 
   return {
     defaultSrc: ["'self'"],
+    /* `blob:` CONTINUA (conferido em 26/10/2026, revisão do leitor): com várias threads e o runtime em outra
+       origem (`VITE_ORT_WASM_URL`, o R2 de produção), o `importWasmModule` do onnxruntime-web 1.26 baixa o
+       `.mjs`, faz `URL.createObjectURL` e `import()` desse `blob:` NA THREAD PRINCIPAL — `worker-src` não cobre
+       isso (reconferido em 15/11/2026: `preload` + `dynamicImportDefault` em `onnxruntime-web/dist/ort.wasm.mjs`). Por isso o conteúdo dos livros NÃO depende desta diretiva: o iframe do capítulo não tem
+       `allow-scripts` (`src/lib/leitor/foliate/PATCHES.md`). */
     scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'blob:', ...runtimeDoOnnx, ...turnstile],
     workerSrc: ["'self'", 'blob:', ...runtimeDoOnnx],
     connectSrc: conexoes,
     imgSrc: ["'self'", 'https:', 'data:', 'blob:'],
-    mediaSrc: ["'self'", 'blob:', 'data:'],
+    mediaSrc: ["'self'", 'blob:', 'data:', ...audio],
     styleSrc: ["'self'", "'unsafe-inline'"],
     // `data:`: o Vite embute no CSS as faces pequenas (Silkscreen, < 4 KB) como data URI; sem isto o
     // navegador as recusa e a marca cai na fonte de reserva (visto no staging, 03/10/2026).
-    fontSrc: ["'self'", 'data:'],
+    /* `blob:`: as fontes EMBUTIDAS num EPUB viram `blob:` (o foliate-js reescreve as URLs do livro). */
+    fontSrc: ["'self'", 'data:', 'blob:'],
     objectSrc: ["'none'"],
     frameAncestors: ["'self'"],
     baseUri: ["'self'"],
     formAction: ["'self'"],
-    ...(turnstile.length ? { frameSrc: ["'self'", ...turnstile] } : {}),
+    /* `blob:`: cada capítulo do leitor é um documento `blob:` num iframe (foliate-js). A CSP NÃO é a barreira do
+       conteúdo do livro: o iframe não tem `allow-scripts`, o motor só aceita os tipos da lista e limpa toda
+       marcação (`src/lib/leitor/foliate/PATCHES.md`). */
+    frameSrc: ["'self'", 'blob:', ...quadros],
   }
+}
+
+/**
+ * A SOBREPOSIÇÃO DO WORKER (ruling R31): a CSP do `_headers` é fixa no build; com os anúncios ligados o
+ * Worker acrescenta a origem de anúncios em `frame-src` do cabeçalho que veio do `ASSETS` — e só ali.
+ * Sem `frame-src`, cria `frame-src 'self' <origem>` (antes valia o `default-src 'self'`). Idempotente.
+ */
+export function cspComAnuncios(cabecalho: string, origem: string): string {
+  const diretivas = cabecalho
+    .split(';')
+    .map((d) => d.trim())
+    .filter(Boolean)
+  const i = diretivas.findIndex((d) => d.split(/\s+/)[0].toLowerCase() === 'frame-src')
+  if (i < 0) return [...diretivas, `frame-src 'self' ${origem}`].join('; ')
+  const valores = diretivas[i].split(/\s+/)
+  if (!valores.includes(origem)) diretivas[i] = [...valores, origem].join(' ')
+  return diretivas.join('; ')
 }
 
 /**

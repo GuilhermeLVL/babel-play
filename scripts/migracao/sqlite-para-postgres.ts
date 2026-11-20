@@ -68,9 +68,32 @@ const TABELAS_DE_CONTROLE = new Set(['__drizzle_migrations']);
 /**
  * Tabelas do schema que só existem no Postgres e não guardam dado a migrar: `travas` (as travas de linha de
  * `travarUsuario`/`travarGlobal`, que nascem sob demanda) e `admissao_de_ia` (os contadores da admissão de IA,
- * que viviam na memória do processo). O SQLite nunca as teve; ficam fora da cópia.
+ * que viviam na memória do processo) e `anuncios_premiados` (as exibições do anúncio premiado, que nasceram depois
+ * da migração) e `anotacoes_de_leitura` (as anotações do leitor, L2, também posteriores) e `cache_do_parceiro` (o
+ * cache compartilhado do parceiro de leitura, L4, PG 0014). O SQLite nunca as teve; ficam fora da cópia.
  */
-export const TABELAS_SO_DO_POSTGRES: ReadonlySet<string> = new Set(['travas', 'admissao_de_ia']);
+export const TABELAS_SO_DO_POSTGRES: ReadonlySet<string> = new Set([
+  'travas',
+  'admissao_de_ia',
+  'anuncios_premiados',
+  // Etiquetas de palavras, migração PG 0012: índice derivado das falas, refeito por `palavras reindexar`.
+  'palavras_vistas',
+  'anotacoes_de_leitura',
+  'cache_do_parceiro',
+]);
+
+/**
+ * Colunas (`tabela.coluna`) que nasceram no Postgres depois da migração e que o SQLite nunca teve: ficam fora da
+ * leitura da origem, da cópia e do checksum (no destino, a linha copiada as recebe nulas — o "antes da coluna").
+ * `plano_da_cobranca` e `testes_premium.plano`: planos v4, migração PG 0008. `vocab_cards.nota`: a nota pessoal
+ * da palavra e `versoes_de_dados.palavras` (a versão das palavras vistas), etiquetas de palavras, migração PG 0012.
+ */
+export const COLUNAS_SO_DO_POSTGRES: ReadonlySet<string> = new Set([
+  'subscriptions.plano_da_cobranca',
+  'testes_premium.plano',
+  'vocab_cards.nota',
+  'versoes_de_dados.palavras',
+]);
 
 interface Tabela {
   nome: string;
@@ -98,7 +121,8 @@ function tabelasEmOrdem(): Tabela[] {
     .filter((tabela) => !TABELAS_SO_DO_POSTGRES.has(getTableConfig(tabela).name))
     .map((tabela) => {
       const cfg = getTableConfig(tabela);
-      const chaves = Object.entries(getTableColumns(tabela));
+      const daOrigem = (nome: string) => !COLUNAS_SO_DO_POSTGRES.has(`${cfg.name}.${nome}`);
+      const chaves = Object.entries(getTableColumns(tabela)).filter(([, c]) => daOrigem(c.name));
       const pais = new Set(cfg.foreignKeys.map((fk) => getTableConfig(fk.reference().foreignTable).name));
       pais.delete(cfg.name);
       const pk = cfg.primaryKeys[0]?.columns ?? cfg.columns.filter((c) => c.primary);
@@ -108,7 +132,7 @@ function tabelasEmOrdem(): Tabela[] {
         t: {
           nome: cfg.name,
           tabela,
-          colunas: cfg.columns.map((c) => c.name),
+          colunas: cfg.columns.map((c) => c.name).filter(daOrigem),
           inseriveis: chaves
             .filter(([, c]) => !c.generated)
             .map(([chave, c]) => ({ nome: c.name, chave, booleana: c.columnType === 'PgBoolean' })),

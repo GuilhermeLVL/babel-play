@@ -139,6 +139,7 @@ primeira passada alguns minutos depois do boot e as seguintes no intervalo da ta
 | `podaDasMarcasDeTeste`     | `13 3 * * *` | 13 min / 24 h                | modo público                          | 1 instrução                         |
 | `podaDasJanelasDiarias`    | `17 3 * * *` | 17 min / 24 h                | modo público                          | 1 instrução por métrica             |
 | `limpezaDiaria`            | `23 3 * * *` | 17 min / 24 h                | `LIMPEZA_DIARIA=1` (e fora de teste)  | 200 lotes de 500 linhas             |
+| `reconciliarCobrancas`     | `29 3 * * *` | 29 min / 24 h                | modo público + `ASAAS_API_KEY`        | 150 assinaturas, 45 dias            |
 | `reconciliarArmazenamento` | `19 * * * *` | 19 min / 1 h                 | `STORAGE_RECONCILE_MODE=job`          | 200 usuários                        |
 
 A reconciliação é a única horária: ela cobre todo usuário a cada `STORAGE_RECONCILE_HOURS` (padrão 24 h), e com teto de 200 usuários por passada uma vez por dia só daria conta de 200 usuários por dia; de hora em hora são até 4.800, em passadas curtas (cada uma faz `stat`/`HEAD` por arquivo) espalhadas pelo dia. O minuto do cron repete o atraso do Node, para a ordem ser a mesma; a `limpezaDiaria` vai para `:23` no
@@ -385,6 +386,9 @@ portão volta a ser só a fumaça final + rollback, e o passo 5 da produção pr
 | `URL_DO_WORKER`                                                                                                                                                                                    | var    | URL final (staging: `https://frasy-staging.guigui-cruzeiro.workers.dev`; a produção entra com o domínio)                                                                                                                 |
 | `VITE_PUBLIC_URL`, `VITE_ORT_WASM_URL`                                                                                                                                                             | var    | canônica/og e base do WASM (R2)                                                                                                                                                                                          |
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SELF_HOST_MODELS`, `VITE_SENTRY_DSN`, `VITE_TURNSTILE_SITE_KEY`, `VITE_LOGIN_GOOGLE`, `VITE_DESENHO_NOVO_PADRAO`, `VITE_BERGAMOT_MODELOS_URL` | var    | os mesmos do build da imagem Docker; todos públicos                                                                                                                                                                      |
+| `SITE_FLAGS_DE_VENDA`                                                                                                                                                                              | var    | opcional: as flags de venda ligadas no banco deste ambiente (ex.: `venda_planos_v4,ia_de_estudo`); decidem os planos e preços da página pública `/planos`. Vazia = venda fechada (Grátis + Premium) e o build avisa      |
+| `SITE_ANUAL_A_VENDA`                                                                                                                                                                               | var    | opcional: `1` quando o Worker tiver `ANUAL_ENABLED=1`. Sem ela, `/planos` não mostra preço anual nem fala do anual (o app já segue o `/api/abertura`)                                                                    |
+| `ADSENSE_PUB_ID`                                                                                                                                                                                   | var    | opcional: o id `pub-…` do AdSense; só com ele o build gera o `/ads.txt`                                                                                                                                                  |
 
 Os secrets do Worker (`SECRET_KEY`, chaves de IA…) continuam por `scripts/cloudflare/secrets.ts`, não pelo CI.
 
@@ -405,6 +409,77 @@ npx wrangler rollback -c wrangler.jsonc --env staging --message "motivo" -y   # 
 
 Para a produção, tire o `--env staging`. O Lighthouse manual (`lighthouse.yml`) aceita o input `url` para medir
 uma versão publicada (sem servidor local e sem o onboarding pré-marcado).
+
+## Site público
+
+A raiz do domínio é um site estático gerado no build (`scripts/site/`, plugin `scripts/vite/site.ts`): `/`
+(`dist/inicio.html`), `/planos`, `/sobre`, `/contato`, `/ajuda`, `/guias` e `/guias/<slug>` (de `content/guias/*.md`,
+só `revisado: true`), `404.html`, `sitemap.xml`, `robots.txt` e, com `ADSENSE_PUB_ID`, `ads.txt`. O app (`dist/index.html`)
+é servido em `/app` e `/app/*`, e também em `/auth/callback` (o endereço de volta do login cadastrado no Supabase). O
+roteamento é do Worker (`server/http/siteNoWorker.ts`):
+
+- `www.` → domínio sem `www` (301; exige DNS e rota do `www` apontando para o Worker);
+- endereços antigos do app (`/jogar`, `/plano/assinado`, `/responsavel?token=…`…) → `/app/…` (302);
+- caminho desconhecido → `404.html` com status 404 (`not_found_handling: "404-page"`);
+- host diferente de `HOST_DE_PRODUCAO` (só nos `vars` do topo do `wrangler.jsonc`; o staging não herda) →
+  `X-Robots-Tag: noindex, nofollow` em tudo e `robots.txt` com `Disallow: /`.
+
+Variáveis do BUILD (Environment do `deploy-worker.yml`): `VITE_PUBLIC_URL` (canonical, sitemap, linha `Sitemap:`;
+sem ela, `https://frasy.com.br`), `SITE_FLAGS_DE_VENDA` (os planos de `/planos` têm de bater com o checkout: quem
+liga uma flag de venda no banco atualiza a var e publica de novo; vazia, o build emite um aviso) e `ADSENSE_PUB_ID`.
+A edição estática (`VITE_EDICAO_ESTATICA=1`) não gera o site.
+
+## Anúncios
+
+Desligados por padrão (flag `anuncios`, `docs/flags.md`). Desenho dos rulings R32 e R35
+(`docs/pesquisa/2026-10-21-rede-de-anuncios.md`): o GPT do Google não suporta COEP e só aceita CSP por nonce,
+então a página de anúncios roda num **Worker próprio, `frasy-anuncios`**, numa origem que nunca é a do app, e o
+app a embute por `<iframe credentialless sandbox>`.
+
+- **Página de anúncios:** `anuncios/espaco.html` + `espaco.js` (fora de `public/`: o `dist` do app nunca a
+  leva). `npm run anuncios:build` (`scripts/anuncios/build.mjs`) gera `dist-anuncios/` com `config.js` (o código
+  da rede `VITE_ANUNCIOS_REDE_CONTA` e a origem do app `APP_URL`, do BUILD, nunca da query) e `_headers` (sem
+  COOP/COEP/DIP, CSP larga com `'unsafe-inline'` e os hosts do Google, `frame-ancestors` só a origem de
+  `APP_URL`, sem ela `'none'`). A página só roda dentro de um quadro e fora da origem do app; só carrega o GPT
+  com `consentimento=1`; tira a query do endereço antes do GPT; liga `childDirectedTreatment`,
+  `underAgeOfConsent`, `restrictDataProcessing`, `nonPersonalizedAds` e o SafeFrame antes de qualquer bloco;
+  nunca `setPublisherProvidedId`. O premiado avisa o app por `postMessage` (`recompensa`/`fechou`/`vazio`).
+- **Publicar a página** (manual, passo do dono; o `deploy-worker.yml` não a publica):
+  `APP_URL=<origem do app> VITE_ANUNCIOS_REDE_CONTA=<código> npm run anuncios:build && npx wrangler deploy -c wrangler.anuncios.jsonc [--env staging]`
+  (`APP_URL` = a origem do app, passada só neste comando; o `deploy-worker.yml` não a lê).
+  Staging: `https://frasy-anuncios-staging.<conta>.workers.dev`. Produção: domínio personalizado
+  `https://ads.frasy.com.br`, declarado no `routes` do `wrangler.anuncios.jsonc` (o deploy cria DNS e certificado).
+  `VITE_ANUNCIOS_REDE_CONTA` é o **código da rede do Google Ad Manager** (só dígitos, o `/<rede>/` do GPT),
+  **não** o id do AdSense (`ca-pub-…`): com um `pub-` o build falha de propósito. Roteiro do dia da aprovação:
+  `docs/runbooks/anuncios-no-ar.md`.
+- **CSP do app:** com `ANUNCIOS_ORIGEM` (var do Worker do app) **e** a flag ligada, o Worker sobrepõe o
+  `Content-Security-Policy` dos documentos (`Sec-Fetch-Dest: document` ou HTML, inclusive o 304) e põe a
+  origem em `frame-src` (nada em `script-src`). A flag é lida uma vez por isolate a cada 60 s. Uma
+  `ANUNCIOS_ORIGEM` igual à origem do app é recusada. Por isso o `run_worker_first` do `wrangler.jsonc` é `/*`
+  menos os estáticos pesados.
+- **Build do app:** `VITE_ANUNCIOS_ORIGEM` (a mesma origem) registra o provedor real
+  (`src/lib/anuncios/ligar.ts`), e só com a flag ligada o módulo dele é baixado.
+- **Demonstração no staging (R38):** com a var `VITE_ANUNCIOS_DEMONSTRACAO=1` no Environment `staging`
+  (`gh variable set VITE_ANUNCIOS_DEMONSTRACAO --env staging --body 1`), o build do `deploy-worker.yml` liga o
+  provedor de DEMONSTRAÇÃO: os 15 espaços do protótipo aparecem com "Patrocinado · exemplo", marcas inventadas,
+  nada da rede e recompensa simulada, sem precisar de flag nem de `localStorage`. O perfil protegido, o plano pago,
+  o teste, o headset e a tela ocupada continuam negando. O workflow só passa a var quando o ambiente é o
+  `staging`; **nunca a defina no `production`**. Sem ela o Vite tira a demonstração do pacote:
+  `npm run build && node scripts/anuncios/conferir-demonstracao.mjs --espera ausente` (e, com a var,
+  `--espera presente`). Os premiados fora de `ESPACOS_PREMIADOS_ATIVOS` (`nuvem-30`, `tema-24h`,
+  `ajuda-premiada`) só a demonstração desenha; o provedor real os esconde (R39).
+- **Limitações:** Firefox não tem `credentialless` (sem anúncio, aceito). A recompensa do premiado não tem
+  verificação do Google na web: o servidor credita por exibição com teto (Task 5). O Express (Node) não
+  sobrepõe a CSP: anúncios só com o Worker.
+
+### Bancada (staging, 21/10/2026)
+
+Provado no Chromium contra o staging isolado (COOP/COEP/DIP), sem código da rede: a folha de consentimento, o
+quadro `credentialless sandbox` carregando com 200, nenhuma violação de CSP nem bloqueio de COEP, e a página
+postando `vazio` (com o aviso "sem código da rede" no console). O 304 de um documento já sai com a CSP
+sobreposta. Sem `VITE_ANUNCIOS_REDE_CONTA` nada vai ao Google: o anúncio real aguarda a aprovação do domínio e da
+rede. Relatório: `docs/auditoria/2026-10-21-anuncios-bancada.md`; e2e local:
+`npx playwright test -c playwright.publico.config.ts bancada-anuncios`.
 
 ## O que fica desativado por design
 
@@ -536,7 +611,8 @@ volta com conferência de sha256. Sem algum secret o primeiro passo reprova dize
 # baixe semanal/AAAA-MM-DD.dump do R2 (dashboard ou aws s3 cp --endpoint-url $R2_S3_ENDPOINT), então:
 export PGHOST=… PGPORT=5432 PGUSER=… PGPASSWORD=… PGDATABASE=postgres_novo PGSSLMODE=verify-full PGSSLROOTCERT=ca.pem
 pg_restore --list AAAA-MM-DD.dump | head                 # abre e lista
-pg_restore --no-owner --schema=public --schema=drizzle --dbname="$PGDATABASE" AAAA-MM-DD.dump
+psql -c 'create schema if not exists drizzle'          # o --schema não restaura o CREATE SCHEMA
+pg_restore --no-owner --no-privileges --schema=public --schema=drizzle --dbname="$PGDATABASE" AAAA-MM-DD.dump
 ```
 
 #### Exercício de restauração
@@ -657,6 +733,55 @@ VITE_ORT_WASM_URL=https://modelos.frasy.com.br/ort/1.26.0/ npm run build  # a CS
 
 A troca efetiva espera o domínio público do bucket (`r2.dev` não é para produção). Valor inválido (sem `https://`, ou
 `http://` fora de localhost) derruba o carregamento com `VITE_ORT_WASM_URL inválida: …` (`src/gateway/baseDoWasm.ts`).
+
+**Espelho próprio em produção (change `modelos-confiaveis-e-offline`).** Com `VITE_SELF_HOST_MODELS=<url>` a CSP sai
+SEM `huggingface.co`, `*.huggingface.co`, `*.hf.co` e `cdn.jsdelivr.net` (`server/http/csp.ts`, `CONEXOES_DO_HUB`).
+O runtime do ONNX da transformers.js (Whisper, opus-mt) já não vem do jsDelivr em ambiente nenhum: `transformersEnv.ts`
+aponta `wasmPaths` para `baseDoWasm()` (a variante `asyncify`, copiada para `public/` por
+`scripts/copiar-assets-runtime.mjs`). Sequência do dono:
+
+```bash
+# 1. pesos (Whisper, Moonshine, opus-mt, WeSpeaker e, agora, o Parakeet) e runtime, no bucket de produção
+S3_ENDPOINT=… S3_ACCESS_KEY_ID=… S3_SECRET_ACCESS_KEY=… npx tsx scripts/modelos/publicar-no-r2.ts --bucket=frasy-modelos
+S3_ENDPOINT=… S3_ACCESS_KEY_ID=… S3_SECRET_ACCESS_KEY=… npx tsx scripts/modelos/publicar-no-r2.ts --prefixo=ort/1.26.0
+# 2. conferir (é o mesmo portão que o deploy roda antes do build)
+npx tsx scripts/modelos/conferir-espelho.ts --base=https://modelos.frasy.com.br --ort=https://modelos.frasy.com.br/ort/1.26.0/
+# 3. vars do Environment `production`: VITE_SELF_HOST_MODELS e VITE_ORT_WASM_URL; deploy pelo workflow
+```
+
+Sem as variáveis, produção continua como hoje. O portão (`conferir-espelho.ts`) reprova o deploy se qualquer arquivo
+do manifesto (`src/gateway/manifestoDosPesos.json`), do Parakeet ou do runtime não responder 200 no bucket. Depois:
+monitor do UptimeRobot num peso pequeno e no `.wasm` do bucket.
+
+**Manifesto dos pesos.** `src/gateway/manifestoDosPesos.json` (bytes e sha256 de cada arquivo na revisão fixada) é
+GERADO por `npx tsx scripts/modelos/gerar-manifesto-dos-pesos.ts` (`--check` confere). Trocou uma revisão em
+`revisoesDosModelos.ts`? Regenere: `tests/manifestoDosPesos.test.ts` reprova sem isso. O navegador usa o manifesto para
+NÃO gravar no cache um peso truncado ou trocado (`src/gateway/cacheDePesos.ts`).
+
+**Service worker.** `dist/sw.js` é gerado no build (`scripts/vite/serviceWorker.ts`) e registrado só no build do Worker
+(produção e staging), depois do LCP, com escopo `/`. Ele guarda a casca do app e os chunks da captura; `/api/*`, outras
+origens e pesos nunca passam por ele. Versão nova entra na próxima abertura (sem `skipWaiting`). Desligar:
+`VITE_SERVICE_WORKER=0` no build (o `sw.js` se desregistra em quem já o tem), ou, num navegador só, `?sw=desligar` ou
+Diagnóstico → Uso sem internet. O `/sw.js` sai com `Cache-Control: no-cache` (`_headers.base` e `estaticos.ts`).
+
+**Contador anônimo de falhas.** `POST /api/erros-do-cliente/falha` (antes do auth) recebe só `{tipo, aparelho, modelo}`
+de listas fechadas e incrementa `cliente_falha_total` (Prometheus; no Worker, família `cliente_falha` do Analytics
+Engine). Sem IP gravado (o balde do limite usa um HMAC do IP com o `SECRET_KEY`). O cliente respeita "Métricas de uso
+anônimas" e o perfil de menor restrito (`src/lib/falhas/contadorDeFalhas.ts`). O beacon do Cloudflare Web Analytics
+NÃO foi liberado na CSP: o dono desliga a injeção automática na zona (painel da Cloudflare).
+
+### Modelos no R2
+
+Os modelos do Bergamot (16 pares X→en: o pt e os 15 de `paresDoCdn`, ~450 MB) sobem pelo workflow `publicar-modelos` (manual; inputs `ambiente` e
+`pares`, padrão `all`): o runner baixa da Mozilla, confere o sha256 e faz `wrangler r2 object put --remote` no bucket
+`frasy-modelos` (`scripts/modelos/publicar-bergamot-no-r2.ts --via=wrangler`), só com o token da Cloudflare do
+Environment. O CORS do bucket (GET/HEAD para as origens do app) vem de `scripts/cloudflare/r2.mjs`.
+
+- **Staging:** URL pública do r2.dev (`wrangler r2 bucket dev-url enable frasy-modelos`):
+  `https://pub-e3b1825500e2432d831539425d18ec1a.r2.dev`. É o valor de `VITE_BERGAMOT_MODELOS_URL` no Environment
+  `staging` (a raiz do bucket, sem sufixo); vale a partir do próximo build/deploy do Worker.
+- **Produção:** domínio próprio `modelos.<domínio>` ligado ao bucket (`wrangler r2 bucket domain add`), não o r2.dev,
+  que tem limite de taxa e não é para produção. O mesmo vale para `VITE_ORT_WASM_URL` (abaixo).
 
 ### Binding R2 × S3 × disco (Fase 2)
 

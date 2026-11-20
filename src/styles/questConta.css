@@ -13,6 +13,43 @@
  * `quest.css`, ela leva uma classe a mais: a ordem em que os arquivos chegam não decide nada.
  */
 
+/* ── O convite "Crie seu avatar" (topo do Perfil, flag avatar_3d, sem avatar salvo) ───────────── */
+.qc-convite {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-block: 18px;
+  padding: 16px 20px;
+  border: 2px solid var(--q-acento, var(--accent));
+  border-radius: 20px;
+  background: var(--q-suave, var(--accent-soft));
+}
+.qc-convite > svg {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  color: var(--q-acento, var(--accent));
+}
+.qc-convite-txt {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.qc-convite-txt h2 {
+  margin: 0;
+  font: 800 20px/1.2 var(--font-display, inherit);
+}
+.qc-convite-txt p {
+  margin: 4px 0 0;
+  font: 600 15px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.qc-convite-acoes {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 /* ── A TELA: subtítulo, painel da aba, pilhas ─────────────────────────────────────────────────── */
 .qc-sub {
   margin: 8px 0 0;
@@ -370,6 +407,13 @@
 .qc-foto img {
   object-fit: cover;
   border: 3px solid var(--q-acento);
+}
+/* A miniatura do avatar (rosto, 192 px): no tamanho em que foi gerada, suavizada (nada de pixel esticado). */
+.qc-foto img.qc-foto-avatar {
+  width: 192px;
+  height: 192px;
+  image-rendering: auto;
+  background: var(--q-suave, var(--surface));
 }
 .qc-inicial {
   display: grid;
@@ -1154,6 +1198,10 @@ html[data-quest-novo='true'] dialog .dlg-corpo ol {
     width: 96px;
     height: 96px;
     grid-row: span 2;
+  }
+  .qc-foto img.qc-foto-avatar {
+    width: 128px;
+    height: 128px;
   }
   .qc-inicial {
     font-size: 36px;

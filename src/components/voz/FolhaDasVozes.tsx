@@ -56,12 +56,12 @@ export default function FolhaDasVozes({
           {t('Cada lado ouve a tradução em um idioma. Escolha a voz de cada um; ela vale no app inteiro.')}
         </p>
         <div className="voz-lados">
-          {unicos.map((l) => (
+          {unicos.map((l, i) => (
             <section key={l.idioma} className="voz-lado" data-voz-lado={l.idioma}>
               <span className="q-rotulo">
                 {l.quem} · {langLabelNaUI(l.idioma)}
               </span>
-              <SeletorDeVoz idioma={l.idioma} {...(nuvem === undefined ? {} : { nuvem })} />
+              <SeletorDeVoz idioma={l.idioma} comModelo={i === 0} {...(nuvem === undefined ? {} : { nuvem })} />
             </section>
           ))}
         </div>

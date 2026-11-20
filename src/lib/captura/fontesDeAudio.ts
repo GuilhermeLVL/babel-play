@@ -30,10 +30,13 @@ import {
   rapidoDoMicPermitido,
 } from '../consentimentoDeNuvem';
 import { perfilDoDispositivo } from '../dispositivo/perfil';
+import { contarFalha } from '../falhas/contadorDeFalhas';
+import { falhaDaCaptura, type FalhaNaTela } from '../falhas/falhaNaTela';
 import { t } from '../i18n';
 import { nuvemDoQuestAtiva } from '../nuvemDoQuest';
 import { isTtsActive } from '../tts';
 import { abrirContextoDoClique, descartarContextoDoClique, tomarContextoDoClique } from './contextoDoClique';
+import { SILENCIO_DO_TURNO_MS } from './interprete';
 import { type EscolhaDoMic, resolverMotorDoMic } from './motorDoMicrofone';
 import { criarProgressoDosPacotesNativos } from './pacotesNativos';
 import type { OpcoesDaPreparacao } from './pipelineDeFala';
@@ -103,6 +106,11 @@ export interface DepsDasFontesDeAudio {
   setModelPrep: Dispatch<SetStateAction<ModelPrepState | null>>;
   setIsRecording: Dispatch<SetStateAction<boolean>>;
   setMicAbrindo: Dispatch<SetStateAction<boolean>>;
+  /**
+   * A falha que impediu a captura de começar, em pt-BR e com a ação (DISP-04): a tela a mostra num aviso
+   * junto ao Iniciar até a PRÓXIMA tentativa (`null` limpa). Sem ele, só o toast.
+   */
+  setFalhaDoInicio?: (falha: FalhaNaTela | null) => void;
   /* --- rota do STT --- */
   /** O decode final vai para a nuvem AGORA? Decide o teto de fala contínua (ver `OpcoesDeCaptura`). */
   finalNaNuvem?: () => boolean;
@@ -237,6 +245,17 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
      (500 ms) da legenda de vídeo cortariam a frase da pessoa no meio. Ali vale o teto da nuvem (a frase
      inteira) e a pausa de sempre. */
   const noInterprete = (): boolean => !!deps.direcaoDoMicrofone?.() || !!deps.interpreteAutomatico?.();
+  /**
+   * O SILÊNCIO QUE FECHA A FALA NO MICROFONE. No intérprete por toque é o fim do TURNO: 2,5 s, para a pausa natural
+   * no meio da frase não fechar o microfone nem a voz ler por cima (conversa-de-verdade, 2.1; "Terminei" fecha na
+   * hora). No automático e fora do intérprete, o de sempre (o Quest, 500 ms). `undefined` = o padrão da captura.
+   */
+  const redencaoDoMicrofone = (): number | undefined =>
+    !!deps.direcaoDoMicrofone?.() && !deps.interpreteAutomatico?.()
+      ? SILENCIO_DO_TURNO_MS
+      : perfilDoDispositivo().tipo === 'quest' && !noInterprete()
+        ? 500
+        : undefined;
   const opcoesDeCaptura: OpcoesDeCaptura = {
     /* FIM DE FALA INTELIGENTE: atrás da chave de teste (desligada de fábrica) e fora do Quest, onde a
        pausa de 500 ms e a falta de parcial pedem outra medida. Todos os idiomas da conversa precisam estar na
@@ -246,7 +265,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       idiomas: () => deps.idiomasDaConversa?.() ?? [sourceLangRef.current],
     },
     get redencaoMs() {
-      return perfilDoDispositivo().tipo === 'quest' && !noInterprete() ? 500 : undefined;
+      return redencaoDoMicrofone();
     },
     maxSpeechMs: () =>
       noInterprete()
@@ -274,6 +293,11 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
       return;
     }
     // O estado de gravação (isRecording/timer) já foi ligado por handleStartRecording (captura dupla).
+    // Nova tentativa: o aviso da falha anterior sai agora (DISP-04).
+    deps.setFalhaDoInicio?.(null);
+    /* A captura avisa pelo `onError` E lança quando NÃO abre: antes de abrir, quem fala é o `catch` abaixo
+       (um toast só); depois, o `onError` é a falha assíncrona de uma captura em curso. */
+    let aberta = false;
     const source = systemSourceRef.current;
     const decidir = deps.decidirMotorDoSistema;
     let rota: 'decidindo' | 'navegador' | 'pipeline' = decidir ? 'decidindo' : 'pipeline';
@@ -374,7 +398,8 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
         },
         onError: (err: Error) => {
           clog('sistema ERRO assíncrono:', err.message);
-          setFeedbackMsg('Erro na captura do sistema: ' + err.message);
+          if (!aberta) return; // a captura não abriu: o `catch` deste início mostra a falha, uma vez
+          setFeedbackMsg(t(falhaDaCaptura(err).texto));
           setTimeout(() => setFeedbackMsg(''), 6000);
         },
       };
@@ -398,6 +423,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
                 return startSystemLoopbackCapture(loopbackDeviceIdRef.current || undefined, cb, opcoesDeCaptura);
               })()
             : await startSystemAudioCapture(cb, opcoesDeCaptura);
+      aberta = true;
       /* A captura com a Web Speech junto: parar/pausar/mudar a captura faz o mesmo com o reconhecedor. */
       systemCaptureRef.current = {
         ...captura,
@@ -455,8 +481,13 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
         setIsFocusMode(false);
         setGuiaDeAudio(code);
       } else {
-        setFeedbackMsg((err as Error).message);
+        /* Em pt-BR e com a ação (DISP-03): um toast, e o aviso persistente junto ao Iniciar até a próxima
+           tentativa (DISP-04). O tipo vai ao contador anônimo (`contadorDeFalhas.ts`). */
+        const falha = falhaDaCaptura(err);
+        setFeedbackMsg(t(falha.texto));
         setTimeout(() => setFeedbackMsg(''), 7000);
+        deps.setFalhaDoInicio?.(falha);
+        if (falha.tipo !== 'desconhecida') contarFalha(falha.tipo);
       }
       // mantém o painel se estava em erro de modelo; só limpa se não havia erro
       setModelPrep((s) => (s?.error ? s : null));
@@ -503,7 +534,9 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
           },
           onError: (err) => {
             clog('mic ERRO assíncrono:', err.message);
-            setFeedbackMsg('Erro no microfone: ' + err.message);
+            // Antes de abrir, quem mostra a falha é o `catch` abaixo (a ajuda do microfone): um aviso só.
+            if (!micCaptureRef.current) return;
+            setFeedbackMsg(t(falhaDaCaptura(err).texto));
             setTimeout(() => setFeedbackMsg(''), 6000);
           },
         },
@@ -552,7 +585,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
         let s = 0;
         for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i];
         pushLevel(Math.min(1, Math.sqrt(s / buf.length) * 4));
-      }, 50);
+      }, 100); // 10 Hz, como a sonda da captura
       meterRef.current = {
         stop: () => {
           clearInterval(iv);
@@ -590,9 +623,16 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
         falada: true,
         // O modo com que ESTA sessão abre: é ele que diz se o áudio da fala saiu do aparelho.
         engine: motorDoMicrofoneNoNavegador(noAparelho),
-        ...(direcao ? { lado: direcao.lado } : {}),
+        ...(direcao ? { lado: direcao.lado, ...(direcao.dono ? { dono: direcao.dono } : {}) } : {}),
         aoFinalComprometido: (segId) =>
-          deps.aoFimDaFala?.({ segId, source: 'mic', ...(direcao ? { lado: direcao.lado } : {}) }),
+          /* Sem o turno: a sessão da Web Speech pode durar mais de um turno (o mesmo idioma não reabre), e a fala dela
+             nunca fica guardada à espera de modelo. */
+          deps.aoFimDaFala?.({
+            segId,
+            source: 'mic',
+            motor: motorDoMicrofoneNoNavegador(noAparelho),
+            ...(direcao ? { lado: direcao.lado } : {}),
+          }),
         idDoParcialRef: webSpeechPartialIdRef,
         timerRef,
         nowRel,
@@ -853,6 +893,8 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
    */
   const abrirMicrofoneNoLado = async (): Promise<void> => {
     if (micCaptureRef.current) {
+      /* O silêncio do turno vale para ESTA abertura: o toque (2,5 s) e o automático (o de sempre) dividem a captura. */
+      micCaptureRef.current.setRedencaoMs?.(redencaoDoMicrofone());
       micCaptureRef.current.setMuted(false);
       return;
     }
@@ -888,6 +930,9 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
    * Speech: a sessão acaba (nada de religar sozinha a cada silêncio, que no Android apita).
    */
   const fecharMicrofoneDoLado = (): void => {
+    /* "Terminei" no meio da fala: o trecho em curso vai ao reconhecimento antes do mudo (que o descartaria). Depois do
+       fim pelo silêncio, não há trecho em curso e nada muda. */
+    micCaptureRef.current?.encerrarFala?.();
     micCaptureRef.current?.setMuted(true);
     encerrarWebSpeechDoMic();
   };

@@ -16,6 +16,10 @@
  *       Reetiqueta o idioma de falas, sessões e cartões gravados errado (ver `reparoDeIdioma.ts`).
  *       Sem `--aplicar` só mostra o plano.
  *
+ *   node dist-server/operacao.cjs palavras reindexar [--usuario <id>]
+ *       Reconstrói o índice das palavras vistas (`palavras_vistas`) a partir das falas vivas — o legado de
+ *       antes da migração PG 0012, ou um reparo. Idempotente. Ver `server/operacao/palavras.ts`.
+ *
  * Sai com 0 quando deu certo; 1 em falha; 2 em uso errado.
  */
 async function principal(): Promise<number> {
@@ -30,6 +34,11 @@ async function principal(): Promise<number> {
     const { comandoDeContas } = await import('./contas')
     return comandoDeContas(process.argv.slice(3))
   }
+  if (comando === 'palavras') {
+    // Import dinâmico, como `flags`: só este comando precisa do banco da aplicação.
+    const { comandoDePalavras } = await import('./palavras')
+    return comandoDePalavras(process.argv.slice(3))
+  }
   if (comando === 'reparar-idiomas') {
     // Import dinâmico, como `flags`: só este comando precisa do banco da aplicação.
     const { repararIdiomasNoBanco } = await import('./reparoDeIdioma')
@@ -43,7 +52,7 @@ async function principal(): Promise<number> {
 
 function uso(): number {
   console.error(
-    'uso: operacao.cjs flags listar|ligar|desligar|definir | conta listar|papel|plano | reparar-idiomas [--aplicar]',
+    'uso: operacao.cjs flags listar|ligar|desligar|definir | conta listar|papel|plano | reparar-idiomas [--aplicar] | palavras reindexar [--usuario <id>]',
   )
   return 2
 }

@@ -6,6 +6,7 @@ import {
   CalendarClock,
   Check,
   ChevronDown,
+  Clock,
   Gauge,
   Info,
   LoaderCircle,
@@ -20,12 +21,17 @@ import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useLayoutEf
 import {
   DIAS_DO_TESTE_PREMIUM,
   ehPlanoPago,
+  FLAG_IA_DE_ESTUDO,
   FLAG_STT_AO_VIVO,
   FLAG_VENDA_PLANOS_V3,
+  FLAG_VENDA_PLANOS_V4,
   PLAN_MATRIX,
-  PLANO_DO_TESTE,
+  planoDeEntrada,
   planosAVenda,
+  planosEmBreve,
 } from '../../core/planos';
+import { FLAG_VOZ_NATURAL } from '../../core/vozNatural';
+import { ID_DO_PARAKEET } from '../../gateway/adapters/parakeetModelo';
 import {
   brl,
   carregarFaturas,
@@ -50,10 +56,13 @@ import {
   type StatusDeBilling,
   temAssinatura,
 } from '../../lib/assinatura';
+import { diaQueACotaVolta } from '../../lib/diaQueACotaVolta';
+import { useSondaGuardada } from '../../lib/dispositivo/useSondaGuardada';
 import { carregarEntitlements, getEntitlements, onPlanChange, PLAN_LABELS } from '../../lib/entitlements';
-import { useFlag } from '../../lib/flags';
+import { flagLigada, useFlag } from '../../lib/flags';
 import { numero, t, tp } from '../../lib/i18n';
 import { consumirDestaqueEmPlanos } from '../../lib/ofertas/destaque';
+import { comNomeDoPlano, planoDeEntradaAgora } from '../../lib/planoDeEntrada';
 import {
   alternarPergunta,
   arrumarPlanos,
@@ -62,7 +71,7 @@ import {
   repintarPlanos,
 } from '../../lib/polimento/planos';
 import { sentir } from '../../lib/polimento/sentidos';
-import { estadoDaProtecao } from '../../lib/protecaoDoMenor';
+import { estadoDaProtecao, perfilProtegido } from '../../lib/protecaoDoMenor';
 import {
   esquecerPlanosTelaDoBoot,
   EVENTO_SUBTELA_DE_PLANOS,
@@ -88,8 +97,10 @@ import {
   type ContextoDosPlanos,
   horasEmTexto,
   horasPorDia,
+  linhaDaFamilia,
   linhasDaComparacao,
   maiorEconomia,
+  mesesGratisDoAnual,
   nomeDoPlano,
   notaDaComparacao,
   notaDoAparelho,
@@ -97,6 +108,7 @@ import {
   ordemDoPlano,
   perguntasDosPlanos,
   type PlanoDaTela,
+  precisoCabeAqui,
   recomendadoPara,
   type Sinal,
 } from './planos/quatroPlanos';
@@ -144,9 +156,9 @@ const CHAVE_DO_CHECKOUT = CHAVE_DO_PLANO_DO_CHECKOUT;
 /** O plano do checkout desta aba; o nome antigo guardado antes do deploy é o Premium, e o padrão também. */
 function planoGuardado(): PlanoPago {
   try {
-    return planoPagoDe(sessionStorage.getItem(CHAVE_DO_CHECKOUT)) ?? 'premium';
+    return planoPagoDe(sessionStorage.getItem(CHAVE_DO_CHECKOUT)) ?? planoDeEntradaAgora();
   } catch {
-    return 'premium';
+    return planoDeEntradaAgora();
   }
 }
 
@@ -195,8 +207,9 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
         setAbaLocal('consumo');
         return;
       }
-      /* A oferta sugere o Premium (ou o teste dele): é o cartão que a tela aponta. */
-      destaque.current = PLANO_DO_TESTE;
+      /* A oferta sugere o plano de entrada (o Plus com a v4, o Premium sem ela) ou o teste dele: é o cartão
+         que a tela aponta. */
+      destaque.current = planoDeEntrada(flagLigada);
       setPedidosDeDestaque((n) => n + 1);
       setAbaLocal('planos');
     };
@@ -249,9 +262,36 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
      ser simulados — as chaves estão no topo de `lib/polimento/planos.ts`. Fora dele, tudo vazio. */
   const prova = provaDosPlanos();
   const meuPlano = prova.plano ?? entitlements.plan;
+  /* OS PLANOS À VENDA: o servidor diz (`planosAVenda` do status); sem ele, as duas chaves da venda no
+     cache de flags. Com tudo desligado sobra o que nunca teve chave: o Premium. */
+  const vendaV3 = useFlag(FLAG_VENDA_PLANOS_V3);
+  /* Com a v4 ligada, antes do `/status` chegar (ou se ele falhar) a tela já é a v4: nunca o Premium. */
+  const vendaV4 = useFlag(FLAG_VENDA_PLANOS_V4);
+  const aoVivoExiste = useFlag(FLAG_STT_AO_VIVO);
+  const vozNatural = useFlag(FLAG_VOZ_NATURAL);
+  const iaDeEstudo = useFlag(FLAG_IA_DE_ESTUDO);
+  const anunciosLigados = useFlag('anuncios');
+  const comAnuncios = anunciosLigados || prova.anuncios;
+  const aVenda: readonly PlanoPago[] =
+    prova.aVenda ??
+    status?.planosAVenda?.filter(ehPlanoPago) ??
+    planosAVenda((chave) =>
+      chave === FLAG_VENDA_PLANOS_V3
+        ? vendaV3
+        : chave === FLAG_VENDA_PLANOS_V4
+          ? vendaV4
+          : chave === FLAG_STT_AO_VIVO && aoVivoExiste,
+    );
   const contaReal = estadoDaConta(meuPlano, status, Date.now(), entitlements.teste);
+  /* PLANOS v4: a venda do Plus aberta (o servidor diz pelo `planosAVenda`) muda a tela para Grátis, Plus e
+     Pro, com a Família numa linha. Fechada, é a tela de hoje. O Pro e a Família ficam "em breve". */
+  const modoV4 = aVenda.includes('plus');
+  const emBreve: readonly PlanoDaTela[] = planosEmBreve(aVenda);
+  /* O plano do teste: o que o servidor diz (o gravado, ou o que daria agora); sem ele, o de entrada. */
+  const planoDoTesteTela: PlanoPago =
+    status?.teste?.plano ?? planoDeEntrada((chave) => chave === FLAG_VENDA_PLANOS_V4 && modoV4);
   const conta: Conta = prova.teste
-    ? { estado: 'teste', plano: PLANO_DO_TESTE, valeAte: Date.now() + DIAS_DO_TESTE_PREMIUM * 86_400_000 - 60_000 }
+    ? { estado: 'teste', plano: planoDoTesteTela, valeAte: Date.now() + DIAS_DO_TESTE_PREMIUM * 86_400_000 - 60_000 }
     : contaReal;
   const assina = temAssinatura(conta.estado);
   const formaAtual = assina ? formaDaConta(conta) : null;
@@ -261,26 +301,38 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
      as frases do anual; quem JÁ assina o anual continua vendo o plano dele como é. */
   const anualAVenda = useAnualAVenda();
   const jaTemOAnual = formaAtual === 'anual' || formaAtual === 'anual_12x';
-  /* OS PLANOS À VENDA: o servidor diz (`planosAVenda` do status); sem ele, as duas chaves da venda no
-     cache de flags. Com tudo desligado sobra o que nunca teve chave: o Premium. */
-  const vendaV3 = useFlag(FLAG_VENDA_PLANOS_V3);
-  const aoVivoExiste = useFlag(FLAG_STT_AO_VIVO);
-  const anunciosLigados = useFlag('anuncios');
-  const comAnuncios = anunciosLigados || prova.anuncios;
-  const aVenda: readonly PlanoPago[] =
-    prova.aVenda ??
-    status?.planosAVenda?.filter(ehPlanoPago) ??
-    planosAVenda((chave) => (chave === FLAG_VENDA_PLANOS_V3 ? vendaV3 : chave === FLAG_STT_AO_VIVO && aoVivoExiste));
   /* `meu`: o plano da pessoa entre os da tela (`conta.plano` do protótipo). No self-host não há. Quem
      acabou de tocar em "Testar" já está em teste, antes de o servidor responder de novo. */
   const selfhost = conta.estado === 'selfhost';
   const testando = conta.estado === 'teste' || testeFeito !== null;
-  const meu: PlanoDaTela | null = selfhost ? null : testando ? PLANO_DO_TESTE : (conta.plano ?? 'gratis');
+  const meu: PlanoDaTela | null = selfhost ? null : testando ? planoDoTesteTela : (conta.plano ?? 'gratis');
   const meuPago: PlanoPago | null = meu !== null && meu !== 'gratis' ? meu : null;
   const pago = meuPago !== null;
   /* SÓ O QUE ESTÁ À VENDA, mais o plano que a pessoa já tem (mesmo fora de venda). */
-  const visiveis = ORDEM_DOS_PLANOS.filter((id) => id === 'gratis' || aVenda.includes(id) || id === meu);
-  const aparelho = prova.aparelho ?? aparelhoAtual();
+  const visiveis = ORDEM_DOS_PLANOS.filter(
+    (id) =>
+      id === 'gratis' ||
+      id === meu ||
+      /* v4: três cartões (Grátis, Plus, Pro); a Família é a linha abaixo, nunca um cartão. */
+      (modoV4 ? id === 'plus' || id === 'pro4' : aVenda.includes(id)),
+  );
+  /* O Preciso (Parakeet) no aparelho: a sonda guardada reconhece o Mac Apple e o veto da sentinela o tira. */
+  const sondaGuardada = useSondaGuardada();
+  const [precisoVetado, setPrecisoVetado] = useState(false);
+  useEffect(() => {
+    let vivo = true;
+    void import('../../lib/dispositivo/sonda')
+      .then((m) => m.modeloProibido(ID_DO_PARAKEET))
+      .then(
+        (v) => vivo && setPrecisoVetado(v),
+        () => undefined,
+      );
+    return () => {
+      vivo = false;
+    };
+  }, []);
+  const preciso = precisoCabeAqui(sondaGuardada, precisoVetado);
+  const aparelho = prova.aparelho ?? aparelhoAtual(preciso);
   const recomendado = recomendadoPara(aparelho, visiveis);
   /* O que o protótipo guarda em `PL` (`planos4.js:122-131`): com quem a tabela compara no celular, e o
      cartão que a oferta pediu para destacar. */
@@ -352,9 +404,12 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
     dirDaAba.current = 1;
     setAbaLocal('assinatura');
     toast.ok(
-      t('Premium ativado por {dias} dias. Sem cartão; no fim volta ao Grátis sozinho.', {
-        dias: status?.teste?.dias ?? DIAS_DO_TESTE_PREMIUM,
-      }),
+      comNomeDoPlano(
+        t('Premium ativado por {dias} dias. Sem cartão; no fim volta ao Grátis sozinho.', {
+          dias: status?.teste?.dias ?? DIAS_DO_TESTE_PREMIUM,
+        }),
+        planoDoTesteTela,
+      ),
     );
     festejarTeste();
     await carregarEntitlements();
@@ -415,7 +470,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
   if (sub === 'assinar')
     return (
       <Checkout
-        plano={planoDoCheckout}
+        plano={modoV4 && !aVenda.includes(planoDoCheckout) ? 'plus' : planoDoCheckout}
         planos={aVenda}
         aoTrocarPlano={escolherPlano}
         formaInicial={formaDoCheckout}
@@ -457,11 +512,25 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
     fimDoTeste === null ? diasDoTeste : Math.max(1, Math.ceil((fimDoTeste - Date.now()) / 86_400_000));
 
   /* ── O QUE A TELA MOSTRA (`planos4.js:594-683`) ───────────────────────────────────────────────── */
-  const contexto: ContextoDosPlanos = { visiveis, comAnuncios };
+  /* Perfil protegido na v4: nenhum preço, nenhum convite ao anual, nenhuma linha da Família. */
+  const protegidoNaV4 = modoV4 && (menor || protecao?.protegido === true || perfilProtegido());
+  const contexto: ContextoDosPlanos = {
+    visiveis,
+    comAnuncios,
+    vozNatural,
+    iaDeEstudo,
+    preciso,
+    v4: modoV4,
+    emBreve,
+    anual: anualAVenda,
+    protegido: protegidoNaV4,
+    planoDoTeste: planoDoTesteTela,
+  };
   const nota = notaDoAparelho(aparelho, contexto);
   const IconeDoAparelho = nota.icone;
   const temAnual = (id: PlanoDaTela): boolean => id !== 'gratis' && PLAN_MATRIX[id].precoAnualBrl !== null;
-  const comCiclo = !selfhost && anualAVenda && visiveis.some(temAnual);
+  const comCiclo =
+    !selfhost && anualAVenda && !protegidoNaV4 && visiveis.some((id) => temAnual(id) && !emBreve.includes(id));
   const anual = periodo === 'anual' && comCiclo;
   const nomeDoGratis = meuPlano === 'anonimo' ? t(PLAN_LABELS[meuPlano]) : nomeDoPlano('gratis');
   const nome = (id: PlanoDaTela): string => (id === 'gratis' ? nomeDoGratis : nomeDoPlano(id));
@@ -509,7 +578,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
       if (!vendaAberta) return parado(t('Vendas reabrem em breve'), notaDoTeste);
       return (
         <>
-          <button type="button" className="q-ctl pri" onClick={() => assinar(PLANO_DO_TESTE)}>
+          <button type="button" className="q-ctl pri" onClick={() => assinar(planoDoTesteTela)}>
             {t('Assinar {plano}', { plano: nome(id) })}
           </button>
           <p className="px-nota">{notaDoTeste}</p>
@@ -528,11 +597,16 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
     }
     /* Venda pausada (`CHECKOUT_ENABLED=0` ou a flag `vender_planos` desligada): o cartão continua
        mostrando o plano, sem um botão que levaria a um checkout fechado. O teste pausa junto. */
+    /* v4: o Pro (e a Família) ainda não se vendem. Sem botão de compra: só o fato. */
+    if (modoV4 && emBreve.includes(id))
+      return <p className="px-nota pl-em-breve">{t('Em breve. Ainda não está à venda.')}</p>;
     if (!vendaAberta) return parado(t('Vendas reabrem em breve'));
+    /* v4: o perfil protegido não recebe oferta nem "peça ao responsável": a tela só descreve. */
+    if (protegidoNaV4) return null;
     if (menor)
       return parado(
         t('Quem assina é o seu responsável'),
-        id === PLANO_DO_TESTE
+        id === planoDoTesteTela
           ? t(
               'Quer testar? Peça ao seu responsável: pela conta dele, vinculada à sua, ele ativa o teste de {dias} dias para você.',
               { dias: diasDoTeste },
@@ -562,7 +636,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
         </button>
       );
     /* O TESTE no cartão do plano que ele concede, para quem o servidor deixa testar (`planos4.js:604`). */
-    if (id === PLANO_DO_TESTE && podeTestar)
+    if (id === planoDoTesteTela && podeTestar)
       return (
         <>
           <button type="button" className={`q-ctl${pri}`} disabled={testeOcupado} onClick={() => void comecarTeste()}>
@@ -588,6 +662,9 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
     const rec = recomendado === id;
     const souEu = meu === id;
     const noAnual = anual && p.preco.anual !== null;
+    /* Sem preço: o perfil protegido na v4 (nenhum "R$" em tela) e o Pro, que ainda não tem preço público. */
+    const semPreco = (protegidoNaV4 && id !== 'gratis') || (modoV4 && p.emBreve);
+    const gratisSemPreco = protegidoNaV4 && id === 'gratis';
     return (
       <section
         key={id}
@@ -605,17 +682,27 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
           )}
         </p>
         <h3>{nome(id)}</h3>
-        {noAnual ? (
+        {gratisSemPreco ? (
+          <p className="px-preco">
+            <b>{nome(id)}</b>
+            <span>{t('para sempre')}</span>
+          </p>
+        ) : semPreco ? null : noAnual ? (
           <>
             <p className="px-preco">
               <b>{p.preco.anual}</b>
               <span>{t('por ano')}</span>
             </p>
             <p className="pl-preco-nota">
-              {t('dá {valor} por mês · {pct}% a menos', {
-                valor: p.preco.porMesNoAnual ?? '',
-                pct: p.preco.economia ?? 0,
-              })}
+              {modoV4
+                ? t('dá {valor} por mês · {n} meses grátis', {
+                    valor: p.preco.porMesNoAnual ?? '',
+                    n: mesesGratisDoAnual(),
+                  })
+                : t('dá {valor} por mês · {pct}% a menos', {
+                    valor: p.preco.porMesNoAnual ?? '',
+                    pct: p.preco.economia ?? 0,
+                  })}
             </p>
           </>
         ) : (
@@ -637,10 +724,15 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
         {p.base && <p className="px-tudo">{p.base}</p>}
         <ul>
           {p.itens.map((i) => (
-            <li key={i.texto}>
-              <Check aria-hidden />
+            <li
+              key={i.texto}
+              className={i.emBreve ? 'pl-item-breve' : undefined}
+              data-em-breve={i.emBreve ? '' : undefined}
+            >
+              {i.emBreve ? <Clock aria-hidden /> : <Check aria-hidden />}
               <span>
                 {i.texto}
+                {i.emBreve && <em className="pl-em-breve-tag">{t('em breve')}</em>}
                 {i.nota && <small>{i.nota}</small>}
               </span>
             </li>
@@ -648,7 +740,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
         </ul>
         <div className="pl-plano-pe">
           {acoesDoCartao(id)}
-          {id === PLANO_DO_TESTE && testeErro && (
+          {id === planoDoTesteTela && testeErro && (
             <p className="qc-erro" role="alert">
               <TriangleAlert aria-hidden />
               <span>{testeErro}</span>
@@ -667,6 +759,11 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
       : recomendado && recomendado !== meu
         ? recomendado
         : outro;
+  /* Marcas de cada coluna da comparação: o CSS escolhe pelas marcas, não por uma lista de planos. */
+  const marcas = (id: string) => ({
+    'data-seu': id === meu ? 'sim' : undefined,
+    'data-mostra': id === meu || id === ver ? 'sim' : undefined,
+  });
   const celula = (v: Celula): ReactNode =>
     v === 1 ? (
       <span className="px-sim">
@@ -699,7 +796,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
   const rotuloDaAba = { planos: t('Planos'), assinatura: t('Sua assinatura'), consumo: t('Consumo do mês') };
 
   /* ── Sua assinatura (`suaAssinatura`, `planos4.js:644-662`) ── */
-  const planoPago: PlanoPago = conta.plano ?? PLANO_DO_TESTE;
+  const planoPago: PlanoPago = conta.plano ?? planoDoTesteTela;
   const parcelas = parcelasDoAnual(planoPago);
   const valorDaAssinatura =
     formaAtual === 'anual'
@@ -926,7 +1023,11 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
                   onClick={() => trocarPeriodo('anual')}
                 >
                   {t('Anual')}{' '}
-                  <span className="ad-mini-tag">{t('até {pct}% a menos', { pct: maiorEconomia(visiveis) })}</span>
+                  <span className="ad-mini-tag">
+                    {modoV4
+                      ? t('{n} meses grátis', { n: mesesGratisDoAnual() })
+                      : t('até {pct}% a menos', { pct: maiorEconomia(visiveis) })}
+                  </span>
                 </button>
               </div>
             )}
@@ -937,9 +1038,33 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
           <div className={`q-grade g${visiveis.length} px-planos-grade pl-planos-grade`} data-pl-n={visiveis.length}>
             {visiveis.map(cartao)}
           </div>
-          <p className="px-garantia">
-            <Lock aria-hidden /> {t('Pagamento seguro · 7 dias para desistir com reembolso · cancele quando quiser')}
-          </p>
+          {/* A Família é uma linha sob o Plus (três cartões, não quatro). Sem preço nem linha para o perfil
+              protegido. Sem botão enquanto a venda dela não abre. */}
+          {modoV4 && !protegidoNaV4 && meu !== 'familia' && (
+            <section
+              className="q-cartao pl-familia"
+              data-pl-familia
+              aria-label={t('Plano {plano}', { plano: nome('familia') })}
+            >
+              <div>
+                <h3>
+                  {nome('familia')} <span className="pl-familia-resumo">{linhaDaFamilia(contexto).resumo}</span>
+                </h3>
+                <p className="q-d">{linhaDaFamilia(contexto).detalhe}</p>
+              </div>
+              {!emBreve.includes('familia') && <div className="pl-plano-pe">{acoesDoCartao('familia')}</div>}
+            </section>
+          )}
+          {protegidoNaV4 ? (
+            <p className="px-garantia" role="status">
+              <Lock aria-hidden />{' '}
+              {t('Os planos pagos não estão disponíveis neste perfil. Tudo no aparelho segue sem limite.')}
+            </p>
+          ) : (
+            <p className="px-garantia">
+              <Lock aria-hidden /> {t('Pagamento seguro · 7 dias para desistir com reembolso · cancele quando quiser')}
+            </p>
+          )}
           <section className="q-secao pl-comparar">
             <header>
               <div>
@@ -975,9 +1100,10 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
                   <tr>
                     <th scope="col">&nbsp;</th>
                     {visiveis.map((id) => (
-                      <th key={id} scope="col" data-c={id}>
+                      <th key={id} scope="col" data-c={id} {...marcas(id)}>
                         {nome(id)}
                         {id === meu && <small>{t('seu plano')}</small>}
+                        {modoV4 && emBreve.includes(id) && <small>{t('em breve')}</small>}
                       </th>
                     ))}
                   </tr>
@@ -987,26 +1113,30 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
                     <tr key={rotulo}>
                       <th scope="row">{rotulo}</th>
                       {celulas.map((v, i) => (
-                        <td key={visiveis[i]} data-c={visiveis[i]}>
+                        <td key={visiveis[i]} data-c={visiveis[i]} {...marcas(visiveis[i])}>
                           {celula(v)}
                         </td>
                       ))}
                     </tr>
                   ))}
-                  <tr className="pl-compara-preco">
-                    <th scope="row">{t('Por mês')}</th>
-                    {visiveis.map((id, i) => (
-                      <td key={id} data-c={id}>
-                        <b>{precos[i].mensal}</b>
-                      </td>
-                    ))}
-                  </tr>
+                  {!protegidoNaV4 && (
+                    <tr className="pl-compara-preco">
+                      <th scope="row">{t('Por mês')}</th>
+                      {visiveis.map((id, i) => (
+                        <td key={id} data-c={id} {...marcas(id)}>
+                          <b>{modoV4 && emBreve.includes(id) ? t('em breve') : precos[i].mensal}</b>
+                        </td>
+                      ))}
+                    </tr>
+                  )}
                   {comCiclo && (
                     <tr className="pl-compara-preco">
                       <th scope="row">{t('Por ano')}</th>
                       {visiveis.map((id, i) => (
-                        <td key={id} data-c={id}>
-                          {precos[i].anual ?? (id === 'gratis' ? celula(0) : t('só mensal'))}
+                        <td key={id} data-c={id} {...marcas(id)}>
+                          {modoV4 && emBreve.includes(id)
+                            ? t('em breve')
+                            : (precos[i].anual ?? (id === 'gratis' ? celula(0) : t('só mensal')))}
                         </td>
                       ))}
                     </tr>
@@ -1050,7 +1180,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
                 {selfhost
                   ? 'Self-host'
                   : testando
-                    ? t('{plano}, em teste', { plano: nome(PLANO_DO_TESTE) })
+                    ? t('{plano}, em teste', { plano: nome(planoDoTesteTela) })
                     : assina
                       ? t('Plano {plano}', { plano: nome(planoPago) })
                       : t('Você está no Grátis')}
@@ -1066,9 +1196,12 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
                       ? textoDaAssinatura
                       : `${t('Ele continua inteiro: legenda no aparelho sem limite, jogos, vocabulário e revisão.')}${
                           podeTestar
-                            ? ` ${t('Quando quiser ir além, o Premium tem teste de {dias} dias, sem cartão.', {
-                                dias: diasDoTeste,
-                              })}`
+                            ? ` ${comNomeDoPlano(
+                                t('Quando quiser ir além, o Premium tem teste de {dias} dias, sem cartão.', {
+                                  dias: diasDoTeste,
+                                }),
+                                planoDoTesteTela,
+                              )}`
                             : ''
                         }`}
               </p>
@@ -1096,8 +1229,8 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
                   </>
                 )}
                 {!assina && testando && vendaAberta && (
-                  <button type="button" className="q-ctl pri" onClick={() => assinar(PLANO_DO_TESTE)}>
-                    {t('Assinar {plano}', { plano: nome(PLANO_DO_TESTE) })}
+                  <button type="button" className="q-ctl pri" onClick={() => assinar(planoDoTesteTela)}>
+                    {t('Assinar {plano}', { plano: nome(planoDoTesteTela) })}
                   </button>
                 )}
                 {!assina && !testando && !selfhost && (
@@ -1242,7 +1375,10 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
               <p className="px-nota pl-renova">
                 {/* A cor é a do ícone no protótipo (`text-accent`, vindo da captura de produção). */}
                 <CalendarClock className="text-accent" aria-hidden />{' '}
-                {t('As horas de nuvem voltam no dia 1º. O que roda no aparelho não entra nesta conta.')}
+                {/* A data é a do servidor (`renovaEm`): quem paga renova no vencimento, não no dia 1º. */}
+                {t('Sua cota renova em {data}. O que roda no aparelho não entra nesta conta.', {
+                  data: diaQueACotaVolta(new Date(), uso.renovaEm ?? null),
+                })}
                 {diaDoMeuPlano !== null && !uso.hoje
                   ? ` ${t('Por dia, a nuvem por trechos vai até {dia} h.', { dia: numero(diaDoMeuPlano) })}`
                   : ''}

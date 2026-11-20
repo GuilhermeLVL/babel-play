@@ -53,13 +53,13 @@
   }
   html[data-px='on'] .q-trilho > .q-item svg { width: 22px; height: 22px; }
   html[data-px='on'] .q-trilho > .q-item[aria-current='page'] { color: var(--q-acento); }
-  /* Ordem: Início · Jogar · [Capturar] · Intérprete · Mais. Estatísticas, Personalizar e Buscar vão para o Mais. */
+  /* Ordem (R40): Início · Cartões · [Capturar] · Jogar · Mais. No celular o DOM só tem esses cinco
+     botões (`TrilhoDoQuest`: Início, Capturar, Cartões, Jogar, Mais); Capturar é o 2.º e vai ao centro. */
   html[data-px='on'] .q-trilho > .q-item:nth-of-type(1) { order: 1; }
-  html[data-px='on'] .q-trilho > .q-item:nth-of-type(4) { order: 2; }
+  html[data-px='on'] .q-trilho > .q-item:nth-of-type(3) { order: 2; }
   html[data-px='on'] .q-trilho > .q-item:nth-of-type(2) { order: 3; }
-  html[data-px='on'] .q-trilho > .q-item:nth-of-type(3) { order: 4; }
-  html[data-px='on'] .q-trilho > .q-item:nth-of-type(8) { order: 5; }
-  html[data-px='on'] .q-trilho > .q-item:is(:nth-of-type(5), :nth-of-type(6), :nth-of-type(7)) { display: none; }
+  html[data-px='on'] .q-trilho > .q-item:nth-of-type(4) { order: 4; }
+  html[data-px='on'] .q-trilho > .q-item:nth-of-type(5) { order: 5; }
   /* Capturar: o botão que mais importa fica no centro, maior e elevado. */
   html[data-px='on'] .q-trilho > .q-item:nth-of-type(2) {
     flex: 0 0 62px;
@@ -224,8 +224,8 @@
 /* ============================================================================
    Rodada 5 — passada de correção no celular (sobreposição, texto vazando, espaço)
    ============================================================================ */
-/* A conversa do intérprete ocupa a tela toda: a barra de navegação sai (nos dois tamanhos). */
-html[data-px='on'] .q-casca:has(.px-int) .q-trilho { display: none; }
+/* A conversa do intérprete convive com a barra de navegação (pedido do dono, 22/10/2026): antes a
+   barra saía "nos dois tamanhos" e a pessoa ficava sem caminho de volta além do botão do navegador. */
 @media (max-width: 720px) {
   /* Abas: sempre uma linha só, que rola de lado. Empilhar gastava meia tela. */
   html[data-px='on'] .q-abas { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; align-self: stretch; }

@@ -14,6 +14,7 @@
  * A POSSE é a mesma régua da Loja (`estadoDoItem`): a clássica é livre; as outras são itens
  * `tipo: 'legenda'` de `src/core/catalogoV2.ts`, só com Seeds.
  */
+import { chaveDaPalavra as chaveDoNucleo } from '../core/texto/palavra';
 import { movimentoReduzido } from './juice';
 import { CATALOGO_DA_LOJA, estadoDoItem } from './loja';
 import { DEFAULT_TRANSCRIPT_SETTINGS } from './transcriptUtils';
@@ -111,18 +112,28 @@ export function equiparEstiloDeLegenda(id: string): void {
 
 /* ── a palavra já aprendida ── */
 
-/** Forma de comparar palavra da legenda com palavra do caderno: sem pontuação, minúscula. */
+/**
+ * Forma de comparar palavra da legenda com palavra do caderno. DELEGA à chave do núcleo (`core/texto/palavra`: sem
+ * acento, sem caixa, sem pontuação), a mesma do `norm_key` do acervo e das etiquetas de palavras. Era uma régua
+ * própria que mantinha o acento: "água" na legenda não casava com o cartão "agua", e a etiqueta e o destaque de
+ * aprendida discordavam sobre a mesma palavra.
+ */
 export function chaveDaPalavra(palavra: string): string {
-  return palavra.replace(/[,.:;?!¿¡"“”'’()[\]]/g, '').toLowerCase();
+  return chaveDoNucleo(palavra);
 }
 
 /**
  * A fala em pedaços, marcando as palavras aprendidas. Os espaços continuam no texto, então a
  * legenda lê exatamente igual; sem nenhuma aprendida, volta um pedaço só (nada muda no DOM).
  */
-export function pedacosDaLegenda(texto: string, aprendidas: ReadonlySet<string> | undefined): { texto: string; aprendida: boolean }[] {
+export function pedacosDaLegenda(
+  texto: string,
+  aprendidas: ReadonlySet<string> | undefined,
+): { texto: string; aprendida: boolean }[] {
   if (!aprendidas?.size) return [{ texto, aprendida: false }];
   const partes = texto.split(/(\s+)/);
   if (!partes.some((p) => aprendidas.has(chaveDaPalavra(p)))) return [{ texto, aprendida: false }];
-  return partes.filter((p) => p !== '').map((p) => ({ texto: p, aprendida: !/^\s+$/.test(p) && aprendidas.has(chaveDaPalavra(p)) }));
+  return partes
+    .filter((p) => p !== '')
+    .map((p) => ({ texto: p, aprendida: !/^\s+$/.test(p) && aprendidas.has(chaveDaPalavra(p)) }));
 }

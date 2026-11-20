@@ -45,6 +45,17 @@ describe('verificarRemoto', () => {
     await expect(verificarRemoto(base, SHA, opcoes)).rejects.toThrow(/versão.*1234567.*abcdef0/s)
   })
 
+  it('espera a borda trocar a versão anterior pela do commit e passa', async () => {
+    let health = 0
+    const base = await subir((u) => {
+      if (!u.startsWith('/api/health')) return { status: 200, corpo: {} }
+      health++
+      return { status: 200, corpo: health < 3 ? { status: 'ok', versao: '0.1.0+1234567' } : saudavel }
+    })
+    await expect(verificarRemoto(base, SHA, opcoes)).resolves.toMatchObject({ versao: '0.1.0+abcdef0' })
+    expect(health).toBe(3)
+  })
+
   it('tenta de novo depois de um 503 e passa', async () => {
     const base = await subir((u, n) =>
       u.startsWith('/api/ready') && n === 1 ? { status: 503 } : { status: 200, corpo: saudavel },

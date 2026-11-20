@@ -241,7 +241,9 @@
     --ink-faint: #696459; /* o protótipo usa #7A7568, que mede 3,55:1 no canvas (abaixo do AA). */
     --accent: #F04E23;
     --accent-soft: #FBDDD3;
-    --accent-ink: #AE300E;
+    /* #A82E0D, não #AE300E (22/10/2026): sobre a superfície rebaixada (#d9d5c8) o kicker de 12 px dava
+       4,42:1 e o axe reprovava; 4,67:1 agora, sem diferença visível. */
+    --accent-ink: #A82E0D;
     --good: #3E6B44;
     --good-soft: #DCE7DB;
     --warn: #C98A12;

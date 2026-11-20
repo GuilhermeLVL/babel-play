@@ -1,0 +1,625 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import { palavrasAcimaDoNivel } from '../../../../core/assistente/palavrasAcimaDoNivel';
+import {
+  type AvisoDoIdioma,
+  avisoDoIdiomaProprio,
+  type FalaDoAssistente,
+  glosaParaOVideo,
+  type MarcaNaLinha,
+  marcasDaLinha,
+  planejarChamadas,
+  type RecursosDoAssistente,
+  recursosDoAssistente,
+  temChamada,
+  type TipoDeMarca,
+} from '../../../../core/assistente/telaDoAssistente';
+import { FLAG_ASSISTENTE_AO_VIVO, PLAN_MATRIX } from '../../../../core/planos';
+import type {
+  CorrecaoDaFala,
+  ExpressaoDestacada,
+  FalhaDoAssistente,
+  SugestaoDeResposta,
+  TermoExplicado,
+} from '../../../../data/apiDoAssistente';
+import { type AgendaDoAssistente, criarAgenda } from '../../../../lib/assistente/agendaDoAssistente';
+import { useAjustesDoAssistente } from '../../../../lib/assistente/ajustesDoAssistente';
+import { useConsentimentoDeNuvem } from '../../../../lib/consentimentoDeNuvem';
+import { getEntitlements, onPlanChange } from '../../../../lib/entitlements';
+import { useFlag } from '../../../../lib/flags';
+import { perfilProtegido } from '../../../../lib/protecaoDoMenor';
+
+/* O cliente chega por `import()` UMA vez (como a explicação da frase): quem nunca abre a janela não o baixa. */
+/* Falhou (rede caiu ao baixar o chunk): a promessa é esquecida, e o próximo pedido tenta de novo. */
+let apiDoAssistente: Promise<typeof import('../../../../data/apiDoAssistente')> | null = null;
+const carregarApi = () =>
+  (apiDoAssistente ??= import('../../../../data/apiDoAssistente').catch((e: unknown) => {
+    apiDoAssistente = null;
+    throw e;
+  }));
+let niveisDoIdioma: Promise<typeof import('../../../../data/trilha/carregar')> | null = null;
+const carregarNiveis = () =>
+  (niveisDoIdioma ??= import('../../../../data/trilha/carregar').catch((e: unknown) => {
+    niveisDoIdioma = null;
+    throw e;
+  }));
+
+/**
+ * Depois disto sem a PRIMEIRA sugestão, a folha do "Como respondo?" diz que está demorando (as sugestões chegam em
+ * fluxo; `docs/auditoria/eval-assistente-v1.md` tem o tempo até a primeira).
+ */
+export const COMO_RESPONDO_LENTO_MS = 2500;
+/**
+ * O RECUO: com a nuvem ocupada ou fora (`nuvem_ocupada`, `indisponivel`), as chamadas AUTOMÁTICAS param por este tempo
+ * (pedir de novo a cada linha só somaria recusas). O "Como respondo?" segue: é pedido explícito.
+ */
+export const RECUO_DO_ASSISTENTE_MS = 60_000;
+/** Quantos itens o glossário da sessão guarda (os mais novos primeiro). */
+export const TETO_DO_GLOSSARIO = 40;
+
+export type EstadoDoComoRespondo =
+  | { estado: 'fechado' }
+  | ({ estado: 'consentimento' } & AlvoDaResposta)
+  | ({ estado: 'carregando'; lento: boolean } & AlvoDaResposta)
+  /**
+   * `parcial`: as sugestões ainda estão chegando (em fluxo); a lista cresce até a final. `incompleta`: o fluxo falhou
+   * depois de alguma sugestão — as que chegaram ficam (com Copiar e Ouvir), e a folha diz que não deu para completar.
+   */
+  | ({ estado: 'ok'; sugestoes: SugestaoDeResposta[]; parcial?: boolean; incompleta?: boolean } & AlvoDaResposta)
+  | ({ estado: 'erro'; motivo: FalhaDoAssistente } & AlvoDaResposta);
+
+/**
+ * ONDE a folha do "Como respondo?" abre (Fase C3): na janela flutuante ou na página (captura, Intérprete). A instância
+ * é UMA para as duas; cada lugar só desenha a folha que foi pedida nele. Ausente = a janela (o contrato da C2).
+ */
+export type OndeDoAssistente = 'janela' | 'pagina';
+
+/** A fala a que se responde. */
+interface AlvoDaResposta {
+  falaId: string;
+  frase: string;
+  lang?: string;
+  onde?: OndeDoAssistente;
+}
+
+export interface ItemDoGlossario {
+  chave: string;
+  tipo: TipoDeMarca;
+  texto: string;
+  sentido?: string;
+  nivel?: MarcaNaLinha['nivel'];
+  escala?: MarcaNaLinha['escala'];
+  frase: string;
+  lang?: string;
+}
+
+/**
+ * O que uma VISTA do assistente recebe — a janela (Document PiP) ou a página (captura, Intérprete): tudo pronto para
+ * pintar, nenhuma regra. As duas vêm da MESMA instância (as marcas, o cache e o glossário são um só).
+ */
+export interface AssistenteDaJanela {
+  recursos: RecursosDoAssistente;
+  protegido: boolean;
+  marcas: ReadonlyMap<string, MarcaNaLinha[]>;
+  correcoes: ReadonlyMap<string, CorrecaoDaFala>;
+  comoRespondo: EstadoDoComoRespondo;
+  pedirComoRespondo: (falaId?: string) => void;
+  fecharComoRespondo: () => void;
+  /** A folha pediu o consentimento de nuvem: autoriza (com data, como Ajustes) e pede. */
+  autorizarEPedir: () => void;
+  /** A conversa está no idioma da pessoa e o assistente não ajuda nela (`avisoDoIdiomaProprio`). Ausente = sem aviso. */
+  avisoDoIdioma?: AvisoDoIdioma | null;
+  /** O idioma da pessoa: o "Como respondo?" fica desligado quando a última fala está nele. */
+  langDaPessoa?: string;
+}
+
+interface Glosas {
+  expressoes: ExpressaoDestacada[];
+  termos: TermoExplicado[];
+}
+
+const base = (lang: string | undefined) => (lang || '').toLowerCase().split('-')[0];
+
+/** O teto do dia do plano que a tela conhece (`0` = sem assistente; `null` = sem teto, self-host). */
+export function assistenteDiaDoPlano(plano: string): number | null {
+  const def = (PLAN_MATRIX as Record<string, (typeof PLAN_MATRIX)['free'] | undefined>)[plano];
+  return def ? def.quotas.assistenteDia : 0;
+}
+
+/** O plano que o servidor disse por último, ACOMPANHADO: muda na hora em que o cache dos entitlements muda. */
+function usePlanoAtual(): string {
+  const [plano, setPlano] = useState(() => getEntitlements().plan);
+  useEffect(() => {
+    setPlano(getEntitlements().plan);
+    return onPlanChange(() => setPlano(getEntitlements().plan));
+  }, []);
+  return plano;
+}
+
+/** Os recursos de nuvem do assistente existem para esta conta (flag + plano)? Para os Ajustes, que não têm a janela. */
+export function useNuvemDoAssistente(): boolean {
+  const flagLigada = useFlag(FLAG_ASSISTENTE_AO_VIVO);
+  const plano = usePlanoAtual();
+  return flagLigada && assistenteDiaDoPlano(plano) !== 0;
+}
+
+/**
+ * O ASSISTENTE AO VIVO DA JANELA FLUTUANTE (Fase C2): decide o que aparece (flag, plano, recusa do servidor,
+ * consentimento), agenda as chamadas automáticas pelo orçamento (`criarAgenda` + `planejarChamadas`), guarda as
+ * glosas, as correções, o glossário da sessão e o "Como respondo?".
+ *
+ * Nada aqui avisa por cima da legenda: o automático é SILENCIOSO (marca na palavra, sentido ao tocar). Falha de
+ * chamada automática não vira aviso; a cota esgotada só para as chamadas e deixa uma nota na aba.
+ */
+export function useAssistenteAoVivo(o: {
+  /** A janela que mostra o assistente está aberta (Document PiP ou PiP de vídeo). Fechada, nada sai. */
+  aberta: boolean;
+  /** Pausada, escondida ou recolhida: nada automático sai. */
+  pausado: boolean;
+  falas: ReadonlyArray<FalaDoAssistente>;
+  /** O idioma da pessoa (explicações e traduções vêm nele). */
+  langDaPessoa: string;
+  /** O idioma que a pessoa aprende: só para o aviso de "esta conversa está no seu idioma". */
+  langQueAprende?: string;
+  /** A janela é SÓ LEITURA (PiP de vídeo): nada que precise de toque — sem "Como respondo?" e sem correção. */
+  soLeitura?: boolean;
+  /**
+   * A PÁGINA (Fase C3): a captura ou o Intérprete à vista (a aba visível). Ela também mostra as marcas e tem o "Como
+   * respondo?" e a correção; com ela à vista, as chamadas automáticas saem mesmo com a janela fechada — UMA por linha,
+   * não importa quantas vistas a mostrem. Ausente = só a janela (o contrato da C2).
+   */
+  pagina?: { aberta: boolean };
+  /**
+   * Muda quando a tela TROCA as falas de uma vez (a sessão retomada): as que chegaram junto contam como vistas e
+   * nenhuma vai à nuvem. Só as que chegarem depois são oferecidas. Com ela definida, as falas que já existem quando a
+   * instância nasce também contam como vistas (a captura); sem ela, a linha à vista na montagem é oferecida (a C2).
+   */
+  semente?: number;
+  /**
+   * "PRATICAR A CONVERSA" (o Intérprete): a pessoa escolheu, na vez, que a fala dela no idioma que aprende seja
+   * corrigida — vale como o opt-in da correção nesta conversa, mesmo com o ajuste desligado. As regras são as de
+   * sempre: só a fala de "você", só fora do idioma da pessoa, só com a nuvem do plano e o consentimento. Ausente = não.
+   */
+  praticando?: boolean;
+  /**
+   * O idioma das falas que chegam SEM o próprio (o reconhecimento nem sempre o diz): o mesmo `idiomaPadrao` da legenda
+   * da página. Sem ele, uma fala sem `lang` não ganhava as marcas de nível nem tinha a lista do idioma carregada.
+   */
+  idiomaPadrao?: string;
+}) {
+  const ajustesGuardados = useAjustesDoAssistente();
+  const ajustes = useMemo(
+    () => (o.praticando && !ajustesGuardados.correcao ? { ...ajustesGuardados, correcao: true } : ajustesGuardados),
+    [ajustesGuardados, o.praticando],
+  );
+  const flagLigada = useFlag(FLAG_ASSISTENTE_AO_VIVO);
+  const { consentiu, autorizar } = useConsentimentoDeNuvem();
+  const [recusado, setRecusado] = useState(false);
+  /** As glosas automáticas pararam nesta sessão por cota (a aba conta por quê). */
+  const [paradoPorCota, setParadoPorCota] = useState<FalhaDoAssistente | null>(null);
+  /** A nuvem recusou há pouco (ocupada, fora): as automáticas esperam `RECUO_DO_ASSISTENTE_MS`. */
+  const [recuando, setRecuando] = useState(false);
+  const protegido = perfilProtegido();
+  const soLeitura = !!o.soLeitura;
+  const plano = usePlanoAtual();
+  /* Os recursos da PÁGINA (completos) e os da JANELA (sem toque no PiP de vídeo). */
+  const recursosDaPagina = useMemo(
+    () =>
+      recursosDoAssistente(ajustes, {
+        flagLigada,
+        assistenteDiaDoPlano: assistenteDiaDoPlano(plano),
+        recusadoNaSessao: recusado,
+        consentiuNuvem: consentiu,
+      }),
+    [ajustes, flagLigada, plano, recusado, consentiu],
+  );
+  const recursos = useMemo(
+    () => (soLeitura ? { ...recursosDaPagina, comoRespondo: false, correcao: false } : recursosDaPagina),
+    [recursosDaPagina, soLeitura],
+  );
+  const paginaAberta = !!o.pagina?.aberta;
+  /** Alguma vista mostra o assistente agora (a janela ou a página). */
+  const algumaAberta = o.aberta || paginaAberta;
+  /* O que a AGENDA planeja: com a página à vista, os recursos completos (a correção também); só com o PiP de vídeo,
+     os dele. */
+  const recursosDaAgenda = paginaAberta ? recursosDaPagina : recursos;
+
+  const [glosas, setGlosas] = useState<Record<string, Glosas>>({});
+  const [correcoes, setCorrecoes] = useState<ReadonlyMap<string, CorrecaoDaFala>>(new Map());
+
+  /* As listas de nível dos idiomas fora do inglês chegam por `import()`; quando chegam, as marcas são refeitas. */
+  const [versaoDosNiveis, setVersaoDosNiveis] = useState(0);
+  const idiomas = useMemo(
+    () => [...new Set(o.falas.map((f) => base(f.lang || o.idiomaPadrao)).filter((l) => l && l !== 'en'))].join(','),
+    [o.falas, o.idiomaPadrao],
+  );
+  useEffect(() => {
+    if (!recursos.niveis || !idiomas) return;
+    let vivo = true;
+    void carregarNiveis()
+      .then((m) => Promise.all(idiomas.split(',').map((l) => m.precarregarNiveis(l))))
+      .then(() => vivo && setVersaoDosNiveis((n) => n + 1))
+      .catch(() => {
+        /* sem a lista, o honesto é não marcar */
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [idiomas, recursos.niveis]);
+
+  /* ── A AGENDA: uma chamada por linha final, com espera, nunca pausada ──────────────────────────── */
+  const estado = useRef({ recursos: recursosDaAgenda, langDaPessoa: o.langDaPessoa });
+  estado.current = { recursos: recursosDaAgenda, langDaPessoa: o.langDaPessoa };
+  const vivo = useRef(true);
+  useEffect(() => {
+    vivo.current = true;
+    return () => {
+      vivo.current = false;
+    };
+  }, []);
+
+  const falhou = useCallback((m: FalhaDoAssistente) => {
+    if (m === 'sem_plano' || m === 'fora' || m === 'sem_conta') setRecusado(true);
+    else if (m === 'uso_justo' || m === 'cota_do_mes') setParadoPorCota(m);
+    else if (m === 'nuvem_ocupada' || m === 'indisponivel') setRecuando(true);
+  }, []);
+  useEffect(() => {
+    if (!recuando) return;
+    const id = setTimeout(() => setRecuando(false), RECUO_DO_ASSISTENTE_MS);
+    return () => clearTimeout(id);
+  }, [recuando]);
+
+  const executar = useCallback(
+    async (f: FalaDoAssistente) => {
+      const { recursos: r, langDaPessoa } = estado.current;
+      const plano = planejarChamadas(f, r, langDaPessoa);
+      if (!temChamada(plano)) return;
+      const api = await carregarApi();
+      const idiomas = { lang: f.lang || 'en', langDaPessoa };
+      const frase = f.original.trim().slice(0, 300);
+      const [ex, te, co] = await Promise.all([
+        plano.expressoes ? api.destacarExpressoes({ ...idiomas, frase }) : null,
+        plano.termos.length ? api.explicarTermos({ ...idiomas, frase, termos: plano.termos }) : null,
+        plano.correcao ? api.corrigirMinhaFala({ ...idiomas, minhaFala: f.original.trim().slice(0, 400) }) : null,
+      ]);
+      if (!vivo.current) return;
+      for (const res of [ex, te, co]) if (res && res.ok === false) falhou(res.motivo);
+      const expressoes = ex?.ok ? ex.valor.expressoes : [];
+      const termos = te?.ok ? te.valor.termos : [];
+      if (expressoes.length || termos.length) setGlosas((g) => ({ ...g, [f.id]: { expressoes, termos } }));
+      if (co?.ok) setCorrecoes((m) => new Map(m).set(f.id, co.valor.correcao));
+    },
+    [falhou],
+  );
+
+  /* A agenda nasce e morre com o EFEITO (não num `useMemo`): no StrictMode o efeito monta, desmonta e monta de novo, e
+     uma agenda destruída na primeira desmontagem ficaria morta para sempre. */
+  const [agenda, setAgenda] = useState<AgendaDoAssistente<FalaDoAssistente> | null>(null);
+  useEffect(() => {
+    /* Nenhuma rejeição solta: o que lançar (o chunk do cliente que não baixou) vira o recuo. */
+    const a = criarAgenda<FalaDoAssistente>({
+      executar: (f) => void executar(f).catch(() => vivo.current && setRecuando(true)),
+      pausado: true,
+    });
+    setAgenda(a);
+    return () => a.destruir();
+  }, [executar]);
+
+  const automatico =
+    (recursosDaAgenda.expressoes || recursosDaAgenda.termos || recursosDaAgenda.correcao) && !paradoPorCota;
+  /* Uma vista ATIVA basta: a janela aberta e não pausada, ou a página à vista. */
+  const ativa = (o.aberta && !o.pausado) || paginaAberta;
+  const parado = !ativa || !automatico || recuando;
+  useEffect(() => agenda?.pausar(parado), [agenda, parado]);
+
+  /* A linha final mais nova ainda não pedida vai para a agenda (a anterior, atropelada, sai da fila). */
+  const ultimaFinal = useMemo(() => {
+    for (let i = o.falas.length - 1; i >= 0; i--)
+      if (!o.falas[i].parcial && o.falas[i].original.trim()) return o.falas[i];
+    return undefined;
+  }, [o.falas]);
+  /* Cada linha é oferecida UMA vez, quando chega: ligar um recurso (ou o consentimento) depois não manda à nuvem a
+     linha velha que estava à vista quando ele estava desligado.
+     As linhas que JÁ ESTAVAM ali quando a instância nasceu, ou quando a tela trocou as falas de uma vez (`semente`: a
+     sessão retomada), contam como vistas: nenhuma linha velha vai à nuvem.
+     A REGRA CONTRA O ENVIO DUPLO: um id é oferecido no máximo UMA vez na vida da instância (o conjunto guarda todos),
+     com o lado que tinha naquela hora. A fala que muda de lado depois (ou volta a ser a última porque outra sumiu) não
+     é pedida de novo. A fala do Intérprete sem metade nem chega aqui: espera pendente (`falasDoAssistente`). */
+  const finaisDe = (falas: ReadonlyArray<FalaDoAssistente>) =>
+    falas.filter((f) => !f.parcial && f.original.trim()).map((f) => f.id);
+  const oferecidas = useRef<Set<string>>(new Set(o.semente !== undefined ? finaisDe(o.falas) : []));
+  const falasAgora = useRef(o.falas);
+  falasAgora.current = o.falas;
+  const sementeVista = useRef(o.semente);
+  useEffect(() => {
+    if (sementeVista.current === o.semente) return;
+    sementeVista.current = o.semente;
+    for (const id of finaisDe(falasAgora.current)) oferecidas.current.add(id);
+  }, [o.semente]);
+  useEffect(() => {
+    if (!agenda || !ultimaFinal || oferecidas.current.has(ultimaFinal.id)) return;
+    const vistas = oferecidas.current;
+    vistas.add(ultimaFinal.id);
+    /* O conjunto não cresce sem fim: passou do teto, fica só com as falas que ainda estão na tela. */
+    if (vistas.size > 400) {
+      const vivas = new Set(falasAgora.current.map((f) => f.id));
+      for (const id of [...vistas]) if (!vivas.has(id)) vistas.delete(id);
+    }
+    if (automatico && temChamada(planejarChamadas(ultimaFinal, recursosDaAgenda, o.langDaPessoa)))
+      agenda.oferecer(ultimaFinal);
+  }, [ultimaFinal, agenda, automatico, recursosDaAgenda, o.langDaPessoa]);
+
+  /* ── AS MARCAS de cada linha (nível local + glosas da nuvem) ───────────────────────────────── */
+  /* O CACHE das marcas por linha: a mesma linha com o mesmo texto, nível, glosas e recursos devolve O MESMO array —
+     assim o `memo` de `LinhaDaLegenda` segura as linhas que não mudaram enquanto a parcial de outra cresce. */
+  const cacheDeMarcas = useRef(new Map<string, { chave: string; glosa: Glosas | undefined; lista: MarcaNaLinha[] }>());
+  const marcas = useMemo(() => {
+    const m = new Map<string, MarcaNaLinha[]>();
+    /* Nenhuma vista aberta: nada a pintar, e nenhum trabalho a cada fala (a captura segue sem a janela). */
+    if (!algumaAberta) return m;
+    const cache = cacheDeMarcas.current;
+    const vivas = new Set<string>();
+    for (const f of o.falas) {
+      if (f.parcial || !f.original.trim()) continue;
+      vivas.add(f.id);
+      const g = glosas[f.id];
+      const lang = f.lang || o.idiomaPadrao;
+      const chave = [
+        f.original,
+        lang,
+        o.langDaPessoa,
+        ajustes.nivel,
+        recursos.niveis,
+        recursos.expressoes,
+        recursos.termos,
+        versaoDosNiveis,
+      ].join('\u0000');
+      const guardada = cache.get(f.id);
+      let lista: MarcaNaLinha[];
+      if (guardada && guardada.chave === chave && guardada.glosa === g) lista = guardada.lista;
+      else {
+        const doIdiomaDaPessoa = !!lang && base(lang) === base(o.langDaPessoa);
+        const niveis =
+          recursos.niveis && lang && !doIdiomaDaPessoa ? palavrasAcimaDoNivel(f.original, lang, ajustes.nivel) : [];
+        lista = marcasDaLinha(f.original, {
+          expressoes: recursos.expressoes ? g?.expressoes : undefined,
+          termos: recursos.termos ? g?.termos : undefined,
+          niveis,
+        });
+        cache.set(f.id, { chave, glosa: g, lista });
+      }
+      if (lista.length) m.set(f.id, lista);
+    }
+    /* As falas que saíram da janela da captura saem do cache. */
+    for (const id of [...cache.keys()]) if (!vivas.has(id)) cache.delete(id);
+    return m;
+  }, [algumaAberta, o.falas, o.idiomaPadrao, glosas, recursos, ajustes.nivel, o.langDaPessoa, versaoDosNiveis]);
+
+  /* ── O GLOSSÁRIO da sessão (a aba): os destaques mais novos primeiro, sem repetir ───────────── */
+  const historico = useRef(new Map<string, ItemDoGlossario>());
+  const glossario = useMemo(() => {
+    const porFala = new Map(o.falas.map((f) => [f.id, f]));
+    for (const [id, lista] of marcas) {
+      const f = porFala.get(id);
+      if (!f) continue;
+      for (const mk of lista) {
+        const chave = `${mk.tipo}|${mk.texto.toLowerCase()}`;
+        historico.current.delete(chave);
+        historico.current.set(chave, {
+          chave,
+          tipo: mk.tipo,
+          texto: mk.texto,
+          sentido: mk.sentido,
+          nivel: mk.nivel,
+          escala: mk.escala,
+          frase: f.original,
+          lang: f.lang,
+        });
+      }
+    }
+    while (historico.current.size > TETO_DO_GLOSSARIO)
+      historico.current.delete(historico.current.keys().next().value as string);
+    /* Expressões e termos primeiro (dizem mais), depois as palavras; dentro de cada grupo, a mais nova primeiro. */
+    const todos = [...historico.current.values()].reverse();
+    return [...todos.filter((i) => i.tipo !== 'nivel'), ...todos.filter((i) => i.tipo === 'nivel')];
+  }, [marcas, o.falas]);
+
+  /* A glosa do PiP de vídeo, por linha (uma só, curta). */
+  const glosasDoVideo = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const [id, lista] of marcas) {
+      const g = glosaParaOVideo(lista);
+      if (g) m.set(id, g);
+    }
+    return m;
+  }, [marcas]);
+
+  /* ── "COMO RESPONDO?" ─────────────────────────────────────────────────────────────────────── */
+  const [comoRespondo, setComoRespondo] = useState<EstadoDoComoRespondo>({ estado: 'fechado' });
+  const pedido = useRef(0);
+  const falasRef = useRef(o.falas);
+  falasRef.current = o.falas;
+  const contextoPendente = useRef<string[]>([]);
+  /* O pedido em voo: fechar a folha (ou o Cancelar) o aborta — a conexão fecha e o servidor para o provedor. */
+  const emVoo = useRef<AbortController | null>(null);
+  useEffect(() => () => emVoo.current?.abort(), []);
+
+  const pedirAgora = useCallback(async (alvo: AlvoDaResposta, contexto: string[]) => {
+    const { frase, lang } = alvo;
+    const id = ++pedido.current;
+    emVoo.current?.abort();
+    const controle = new AbortController();
+    emVoo.current = controle;
+    /* As que já chegaram em fluxo: se o fim falhar, elas ficam na folha. */
+    let chegaram: SugestaoDeResposta[] = [];
+    setComoRespondo({ estado: 'carregando', ...alvo, lento: false });
+    const relogio = setTimeout(() => {
+      if (pedido.current === id) setComoRespondo((c) => (c.estado === 'carregando' ? { ...c, lento: true } : c));
+    }, COMO_RESPONDO_LENTO_MS);
+    let api: Awaited<ReturnType<typeof carregarApi>>;
+    try {
+      api = await carregarApi();
+    } catch {
+      clearTimeout(relogio);
+      if (vivo.current && pedido.current === id) setComoRespondo({ estado: 'erro', ...alvo, motivo: 'indisponivel' });
+      return;
+    }
+    const res = await api.comoRespondo(
+      {
+        frase: frase.slice(0, 400),
+        /* O servidor já descarta o contexto do perfil protegido; aqui ele nem sai. */
+        contexto: perfilProtegido() ? undefined : contexto,
+        lang: lang || 'en',
+        langDaPessoa: estado.current.langDaPessoa,
+      },
+      {
+        sinal: controle.signal,
+        /* EM FLUXO: a primeira sugestão já troca o "Pensando…" pela lista, e as outras completam. */
+        aoSugerir: (sugestoes) => {
+          if (!vivo.current || pedido.current !== id) return;
+          clearTimeout(relogio);
+          chegaram = sugestoes.slice(0, 3);
+          setComoRespondo({ estado: 'ok', ...alvo, sugestoes: chegaram, parcial: true });
+        },
+      },
+    );
+    clearTimeout(relogio);
+    if (emVoo.current === controle) emVoo.current = null;
+    if (!vivo.current || pedido.current !== id) return;
+    /* O fluxo falhou DEPOIS de alguma sugestão (decisão do dono): as que chegaram ficam, com a nota discreta. */
+    const incompleta = res.ok !== true && chegaram.length > 0;
+    if (res.ok === true) setComoRespondo({ estado: 'ok', ...alvo, sugestoes: res.valor.sugestoes.slice(0, 3) });
+    else if (incompleta) setComoRespondo({ estado: 'ok', ...alvo, sugestoes: chegaram, incompleta: true });
+    else {
+      if (res.motivo === 'sem_plano' || res.motivo === 'fora' || res.motivo === 'sem_conta') setRecusado(true);
+      setComoRespondo({ estado: 'erro', ...alvo, motivo: res.motivo });
+    }
+  }, []);
+
+  const pedirComoRespondo = useCallback(
+    (falaId?: string, onde: OndeDoAssistente = 'janela') => {
+      const falas = falasRef.current.filter((f) => !f.parcial && f.original.trim());
+      /* A fala pedida; sem ela, a última de quem está do outro lado (a quem se responde); sem ela, a última. */
+      const alvo =
+        (falaId ? falas.find((f) => f.id === falaId) : undefined) ??
+        [...falas].reverse().find((f) => f.lado === 'eles') ??
+        falas[falas.length - 1];
+      if (!alvo) return;
+      const i = falas.indexOf(alvo);
+      const contexto = falas.slice(Math.max(0, i - 2), i).map((f) => f.original);
+      const resposta = { falaId: alvo.id, frase: alvo.original, lang: alvo.lang, onde };
+      if (!consentiu) {
+        setComoRespondo({ estado: 'consentimento', ...resposta });
+        contextoPendente.current = contexto;
+        return;
+      }
+      void pedirAgora(resposta, contexto);
+    },
+    [consentiu, pedirAgora],
+  );
+
+  const autorizarEPedir = useCallback(async () => {
+    const c = comoRespondo;
+    if (c.estado !== 'consentimento') return;
+    if (await autorizar())
+      void pedirAgora({ falaId: c.falaId, frase: c.frase, lang: c.lang, onde: c.onde }, contextoPendente.current);
+  }, [comoRespondo, autorizar, pedirAgora]);
+
+  const fecharComoRespondo = useCallback(() => {
+    pedido.current++;
+    emVoo.current?.abort();
+    emVoo.current = null;
+    setComoRespondo({ estado: 'fechado' });
+  }, []);
+
+  /* A janela fechou: a folha DELA fecha junto (e a resposta atrasada é descartada). A da página fica. */
+  const ondeDaFolha = comoRespondo.estado === 'fechado' ? null : (comoRespondo.onde ?? 'janela');
+  useEffect(() => {
+    if (!o.aberta && ondeDaFolha === 'janela') fecharComoRespondo();
+  }, [o.aberta, ondeDaFolha, fecharComoRespondo]);
+
+  /* Cada vista vê só a folha pedida nela (a mesma instância, um pedido por vez). */
+  const folhaDe = useCallback(
+    (onde: OndeDoAssistente): EstadoDoComoRespondo => (ondeDaFolha === onde ? comoRespondo : FECHADO),
+    [ondeDaFolha, comoRespondo],
+  );
+  const autorizarDaFolha = useCallback(() => void autorizarEPedir(), [autorizarEPedir]);
+  /* O aviso é refeito a cada fala; a vista recebe O MESMO objeto enquanto os idiomas forem os mesmos (o `memo` segura). */
+  const aviso = avisoDoIdiomaProprio(o.falas, recursosDaPagina, o.langDaPessoa, o.langQueAprende);
+  const chaveDoAviso = aviso ? `${aviso.aprende}|${aviso.fala}` : '';
+  const avisoEstavel: AvisoDoIdioma | null = useMemo(() => {
+    if (!chaveDoAviso) return null;
+    const [aprende, fala] = chaveDoAviso.split('|');
+    return { aprende, fala };
+  }, [chaveDoAviso]);
+  const comoRespondoDaJanela = folhaDe('janela');
+  const janela: AssistenteDaJanela = useMemo(
+    () => ({
+      recursos,
+      protegido,
+      marcas,
+      correcoes,
+      comoRespondo: comoRespondoDaJanela,
+      pedirComoRespondo: (falaId?: string) => pedirComoRespondo(falaId, 'janela'),
+      fecharComoRespondo,
+      autorizarEPedir: autorizarDaFolha,
+      avisoDoIdioma: avisoEstavel,
+      langDaPessoa: o.langDaPessoa,
+    }),
+    [
+      avisoEstavel,
+      o.langDaPessoa,
+      recursos,
+      protegido,
+      marcas,
+      correcoes,
+      comoRespondoDaJanela,
+      pedirComoRespondo,
+      fecharComoRespondo,
+      autorizarDaFolha,
+    ],
+  );
+  const comoRespondoDaPagina = folhaDe('pagina');
+  const pagina: AssistenteDaJanela = useMemo(
+    () => ({
+      recursos: recursosDaPagina,
+      protegido,
+      marcas,
+      correcoes,
+      comoRespondo: comoRespondoDaPagina,
+      pedirComoRespondo: (falaId?: string) => pedirComoRespondo(falaId, 'pagina'),
+      fecharComoRespondo,
+      autorizarEPedir: autorizarDaFolha,
+      avisoDoIdioma: avisoEstavel,
+      langDaPessoa: o.langDaPessoa,
+    }),
+    [
+      avisoEstavel,
+      o.langDaPessoa,
+      recursosDaPagina,
+      protegido,
+      marcas,
+      correcoes,
+      comoRespondoDaPagina,
+      pedirComoRespondo,
+      fecharComoRespondo,
+      autorizarDaFolha,
+    ],
+  );
+
+  return {
+    recursos,
+    /* Os ajustes GUARDADOS (a prática da vez não liga a correção nos Ajustes). */
+    ajustes: ajustesGuardados,
+    janela,
+    pagina,
+    glossario,
+    glosasDoVideo,
+    paradoPorCota,
+  };
+}
+
+const FECHADO: EstadoDoComoRespondo = Object.freeze({ estado: 'fechado' }) as EstadoDoComoRespondo;
+
+/** A instância do assistente ao vivo: UMA por captura, dividida entre a janela flutuante e a página (Fase C3). */
+export type AssistenteAoVivo = ReturnType<typeof useAssistenteAoVivo>;

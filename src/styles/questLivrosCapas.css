@@ -1,0 +1,183 @@
+/* AS CAPAS DOS LIVROS (spec docs/specs/2026-10-28-livros-capas.md). A caixa é SEMPRE 2:3: a tipográfica (SVG)
+   preenche e a imagem, quando chega, cobre por cima, então nada se mexe. As cores da tipográfica vêm de
+   variáveis (--cl-* no claro, --ce-* no escuro) calculadas em core/livros/capaTipografica.ts com contraste AA. */
+.lv-capa {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: 6px 10px 10px 6px;
+  overflow: hidden;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-subtle);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.12),
+    0 6px 14px -8px rgb(0 0 0 / 0.35);
+}
+.lv-capa-tip,
+.lv-capa-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.lv-capa-img {
+  object-fit: cover;
+  background: transparent;
+}
+
+.lv-capa-tip {
+  --cp-f: var(--cl-fundo);
+  --cp-t: var(--cl-tinta);
+  --cp-e: var(--cl-enfeite);
+  font-family: var(--font-display, Georgia, 'Times New Roman', serif);
+}
+.dark .lv-capa-tip {
+  --cp-f: var(--ce-fundo);
+  --cp-t: var(--ce-tinta);
+  --cp-e: var(--ce-enfeite);
+}
+.lv-capa-tip .cp-fundo {
+  fill: var(--cp-f);
+}
+.lv-capa-tip .cp-enf {
+  stroke: var(--cp-e);
+  fill: none;
+}
+.lv-capa-tip .cp-enf-cheio {
+  fill: var(--cp-e);
+}
+.lv-capa-tip .cp-tinta {
+  fill: var(--cp-t);
+}
+.lv-capa-tip .cp-titulo {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.lv-capa-tip .cp-autor {
+  font-family: var(--font-body, system-ui, sans-serif);
+  font-weight: 600;
+}
+.lv-capa-tip .cp-selo {
+  fill: var(--cp-t);
+}
+.lv-capa-tip .cp-selo-texto {
+  fill: var(--cp-f);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+/* Tamanhos: a fileira e a grade deixam a capa na largura do cartão; o detalhe e "Meus livros" têm a sua. */
+.lv-cartao .lv-capa {
+  width: min(100%, 150px);
+  margin-inline: auto;
+}
+.lv-capa.grande {
+  width: min(240px, 100%);
+}
+.lv-meu-capa {
+  flex: 0 0 84px;
+  width: 84px;
+  align-self: flex-start;
+}
+.lv-detalhe-capa {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  justify-items: start;
+}
+.lv-capa-credito {
+  font: 600 12px/1.3 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.lv-meu-capa-acao {
+  margin-top: 6px;
+  width: 100%;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1.15;
+  padding: 6px 4px;
+  white-space: normal;
+  text-align: center;
+}
+.lv-meu-capa-acao svg {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .lv-capa.grande {
+    width: 150px;
+  }
+}
+
+/* ── "Trocar capa" ───────────────────────────────────────────────────────────────────────────── */
+.lvc-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(0 0 0 / 0.5);
+}
+.lvc-caixa {
+  width: min(480px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1.5px solid var(--border-subtle);
+}
+.lvc-caixa h2 {
+  margin: 0;
+  font: 800 20px/1.25 var(--font-display, inherit);
+}
+.lvc-aviso {
+  margin: 0;
+  font: 600 14px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.lvc-soltar {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  padding: 18px;
+  border: 2px dashed var(--border-subtle);
+  border-radius: 16px;
+  text-align: center;
+  font: 600 14px/1.4 var(--font-body, inherit);
+}
+.lvc-soltar.sobre {
+  border-color: var(--q-acento, var(--accent));
+  background: color-mix(in srgb, var(--q-acento, var(--accent)) 8%, var(--surface));
+}
+.lvc-previa {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.lvc-previa .lv-capa {
+  width: 112px;
+}
+.lvc-modos {
+  display: grid;
+  gap: 8px;
+}
+.lvc-erro {
+  margin: 0;
+  color: var(--danger, #b3261e);
+  font: 700 14px/1.4 var(--font-body, inherit);
+}
+.lvc-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}

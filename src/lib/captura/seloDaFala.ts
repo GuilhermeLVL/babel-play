@@ -180,6 +180,7 @@ export function seloDaFala(
     const l = lugarDoPrevisto(p);
     return l.onde === real.onde && l.envia === real.envia;
   });
+
   const mesmaEtiqueta = exato ?? previstos.find((p) => etiquetaDoLugar(lugarDoPrevisto(p)) === onde);
   const mudou = previstos.length > 0 && !mesmaEtiqueta;
   const motivo: MotivoDoSelo | null = mudou

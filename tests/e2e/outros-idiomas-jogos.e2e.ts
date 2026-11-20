@@ -222,6 +222,19 @@ test.describe('Captura: a fala em outra escrita aparece na tela', () => {
       await clicarRobusto(page, folha.getByRole('button', { name: /Rápido/ }).first())
       await clicarRobusto(page, folha.getByRole('button', { name: /Baixar e iniciar|^Iniciar$|Continuar/ }))
       await expect(folha).toBeHidden()
+    } else {
+      /* Com o "Rápido" já escolhido (a escolha fica na conta, de um teste para o outro), a folha não pergunta o
+         motor: no celular, o tradutor (~31 MB) passa do teto de 20 MB e a tela confirma o download antes
+         (carga-rapida-no-celular, CEL-04). */
+      const aviso = page.getByRole('dialog', { name: 'Baixar os modelos desta captura?' })
+      const perguntou = await aviso
+        .waitFor({ state: 'visible', timeout: 3_000 })
+        .then(() => true)
+        .catch(() => false)
+      if (perguntou) {
+        await clicarRobusto(page, aviso.getByRole('button', { name: /Baixar e iniciar/ }))
+        await expect(aviso).toBeHidden()
+      }
     }
     await expect(botaoEncerrar(page)).toBeVisible({ timeout: 20_000 })
   }
@@ -282,7 +295,7 @@ test.describe('Captura: a fala em outra escrita aparece na tela', () => {
 
     // Na folha da frase, a mesma direção.
     await clicarRobusto(page, fala.locator('xpath=ancestor::button[1]'))
-    const folha = page.getByRole('dialog', { name: 'Ações', exact: true })
+    const folha = page.getByRole('complementary', { name: 'Frase escolhida' })
     await expect(folha).toBeVisible()
     expect(await folha.locator('.folha-frase').evaluate((el) => getComputedStyle(el).direction)).toBe('rtl')
     await foto(page, 'arabe-na-folha')
@@ -299,7 +312,7 @@ test.describe('Captura: a fala em outra escrita aparece na tela', () => {
     const fala = tela.getByText(CHINES, { exact: false }).first()
     await expect(fala).toBeVisible({ timeout: 10_000 })
     await clicarRobusto(page, fala.locator('xpath=ancestor::button[1]'))
-    const folha = page.getByRole('dialog', { name: 'Ações', exact: true })
+    const folha = page.getByRole('complementary', { name: 'Frase escolhida' })
     await expect(folha).toBeVisible()
 
     const palavras = folha.locator('.folha-palavras button')
@@ -312,7 +325,7 @@ test.describe('Captura: a fala em outra escrita aparece na tela', () => {
     await foto(page, 'chines-palavras-da-frase')
 
     await clicarRobusto(page, palavras.filter({ hasText: /^中文$/ }))
-    await expect(page.getByRole('dialog', { name: 'Palavra: 中文' })).toBeVisible()
+    await expect(page.getByRole('complementary', { name: 'Palavra: 中文' })).toBeVisible()
     await foto(page, 'chines-folha-da-palavra')
   })
 })

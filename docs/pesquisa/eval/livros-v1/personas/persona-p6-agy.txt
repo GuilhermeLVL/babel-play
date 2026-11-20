@@ -1,0 +1,135 @@
+```json
+{
+  "persona": "Tenho 29 anos, convivo com dislexia e baixa visão leve, e estou tentando aprender espanhol sem que as letras embaralhem, minha vista canse em 10 minutos ou o espanhol arcaico de livros antigos me trave.",
+  "dores": [
+    "As linhas e letras 'dançam' ou se misturam quando o texto está em bloco denso, justificado ou com espaçamento apertado.",
+    "PDFs e leitores web com layout fixo me obrigam a dar zoom e rolar a tela para os lados a cada frase, o que destrói meu foco e cansa minha vista.",
+    "Quando escuto a leitura em voz alta sem destaque sincronizado palavra por palavra, me perco na página e não consigo associar o som à escrita em espanhol.",
+    "Clássicos em domínio público em espanhol (autores mortos até 1955) têm vocabulário antigo e frases enormes; sem uma versão simplificada, desisto no primeiro parágrafo.",
+    "Digitar anotações quando encontro uma palavra ou ideia difícil em espanhol é lento e frustrante por causa da dislexia — erro muito a ortografia e perco o fio da meada.",
+    "A voz robótica padrão do navegador cansa o ouvido em leituras longas e às vezes engole a entonação do espanhol, dificultando a compreensão.",
+    "Mudar da tela do livro para um dicionário ou app de cartões quebra minha orientação visual; quando volto, não sei mais em que linha eu estava.",
+    "Fundo branco estourado ou modo escuro com contraste mal calibrado (preto puro com branco puro) gera efeito de halo/borrão nas letras para a minha baixa visão."
+  ],
+  "jobs_to_be_done": [
+    "Quando abro um livro em espanhol no navegador, quero ajustar fonte sem serifa/OpenDyslexic, espaçamento entre linhas e letras, largura de coluna e cor de fundo em tela paginada, para ler sem fadiga visual e sem que as linhas se misturem.",
+    "Quando não consigo decodificar um trecho longo sozinho, quero ouvir a narração com destaque visual sincronizado na palavra e na frase atual, para acompanhar o ritmo do espanhol sem perder minha posição na página.",
+    "Quando escolho um clássico em domínio público no catálogo (como obras de autores falecidos até 1955), quero ver uma versão simplificada ou resumo por capítulo em espanhol acessível, para entender a história mesmo no meu nível atual.",
+    "Quando quero registrar o que entendi ou uma dúvida sobre um trecho, quero gravar uma nota de áudio rápida vinculada àquela frase, para não precisar digitar nem sofrer com erros ortográficos.",
+    "Quando clico numa palavra ou frase difícil durante a leitura, quero ouvir a pronúncia, ver uma explicação direta ou analogia simples e mandá-la para meus cartões FSRS sem sair da página, para revisar depois sem perder o foco no capítulo."
+  ],
+  "funcoes": [
+    {
+      "nome": "Kit Tipográfico para Dislexia e Baixa Visão",
+      "descricao": "Controles no leitor (foliate-js) para fonte (OpenDyslexic, Atkinson Hyperlegible), tamanho grande, espaçamento de letras/linhas/parágrafos, alinhamento à esquerda (nunca justificado) e temas sépia/creme/alto contraste suave.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Régua de Leitura e Foco no Parágrafo",
+      "descricao": "Faixa horizontal que acompanha o cursor/toque ou escurece suavemente os parágrafos vizinhos para evitar que eu pule de linha por engano.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Karaokê de Leitura Sincronizado (Grátis e Natural)",
+      "descricao": "Narração com destaque visual simultâneo da frase (cor suave) e da palavra exata (sublinhado forte), funcionando tanto na voz do aparelho (speechSynthesis) quanto na voz natural da nuvem.",
+      "tela": "narração",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Narração Bilíngue Inteligente por Frase",
+      "descricao": "Modo que lê a frase em espanhol em velocidade ajustável (ex.: 0.85x) e, só quando eu pedir ou em frases marcadas como difíceis, lê a tradução curta em português sem perder a posição (CFI).",
+      "tela": "narração",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Voz Natural em Espanhol + Sincronia + Audiolivro LibriVox",
+      "descricao": "Opção de usar voz neural da nuvem (com cota do plano) ou vincular gravação humana do LibriVox nos livros de domínio público, além de exportar o capítulo em MP3 (ZIP) para ouvir com os olhos fechados.",
+      "tela": "narração",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "G"
+    },
+    {
+      "nome": "Simplificador de Capítulo em Nível A2/B1 (com Cache)",
+      "descricao": "Reescreve ou exibe lado a lado os parágrafos de clássicos em espanhol (domínio público BR, mortos até 1955) em espanhol moderno e frases curtas, usando cache compartilhado por capítulo para custar quase nada.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Resumo Visual em Tópicos + Analogia Simples",
+      "descricao": "Gera um resumo pré-leitura do capítulo em 5 tópicos curtos com ícones e explica trechos confusos ou metáforas antigas com analogias do dia a dia, sem paredão de texto.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "P"
+    },
+    {
+      "nome": "Notas de Áudio Ancoradas no Trecho (W3C CFI)",
+      "descricao": "Botão de microfone ao selecionar uma frase para gravar um comentário falado meu em segundos, salvo junto ao grifo (modelo W3C Annotation) sem exigir que eu digite uma única palavra.",
+      "tela": "notas/exportar",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Grifo por Cores com 1 Toque + Exportação Limpa",
+      "descricao": "Grifar com código de cores (ex.: amarelo = vocabulário, azul = ideia principal) e exportar todos os grifos e notas em Markdown, HTML legível ou pacote Anki.",
+      "tela": "notas/exportar",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Toque para Cartão FSRS com Áudio da Frase",
+      "descricao": "Clicar em uma palavra em espanhol abre um mini-card flutuante com som, tradução no contexto e botão de 1 clique para criar cartão FSRS já com a frase do livro e áudio.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Catálogo Curado com Filtro de Legibilidade e Espanhol",
+      "descricao": "Vitrine de livros em espanhol (Standard Ebooks, Wikisource, Gutenberg higienizado, respeitando a lei de 70 anos pós-1955) com selo de 'frases curtas / leitura amigável' e duração de áudio.",
+      "tela": "catálogo",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Importador 'Limpa-Vista' de EPUB, PDF e Links",
+      "descricao": "Permite abrir meu próprio EPUB ou artigo web extraindo só o texto limpo para o leitor paginado com minha fonte e espaçamento, evitando o sofrimento de ler PDF escaneado ou site poluído.",
+      "tela": "catálogo",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Revisão Falada e Auditiva das Palavras do Capítulo",
+      "descricao": "Jogos de revisão (escutar a palavra em espanhol e escolher o significado com botões grandes, sem exigir digitação exata que penalize minha dislexia) usando as palavras grifadas no capítulo.",
+      "tela": "jogos/revisão",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    }
+  ],
+  "me_faria_desistir": [
+    "Texto preso em tamanho pequeno, justificado ou que reseta minhas configurações de fonte, espaçamento e cor de fundo toda vez que troco de capítulo ou reabro o navegador.",
+    "Leitura em voz alta que não destaca a palavra/frase na tela em tempo real ou que perde o sincronismo quando eu mudo a velocidade para 0.8x.",
+    "Exercícios ou buscas que me punem por trocar duas letras ao digitar (ex.: exigir ortografia perfeita sem tolerância a dislexia ou sem opção de responder por voz/múltipla escolha).",
+    "Painel de IA que responde minhas dúvidas com outro 'paredão de texto' acadêmico e letra miúda, em vez de frases curtas, tópicos espaçados e opção de ouvir a explicação.",
+    "Perder todos os meus grifos, notas de áudio e posição de leitura porque troquei de dispositivo ou limpei o cache do navegador sem ter um botão óbvio de exportar/sincronizar."
+  ]
+}
+```

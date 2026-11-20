@@ -20,7 +20,7 @@
  * ADR 0006), e a gravação é condicional (`utterancesRepo.gravarPolimento`).
  *
  * É DA TRADUÇÃO NUANCE, pelo ENTITLEMENT (`traducaoNuance`), nunca pelo nome do plano: sem ele, 402
- * `exige_nuance` antes de ler a sessão. O teste de 14 dias (C6) tem a capacidade, e entra na admissão
+ * `exige_nuance` antes de ler a sessão. O teste de 3 dias (C6) tem a capacidade, e entra na admissão
  * como grátis, como na tradução.
  *
  * O MESMO CAMINHO DAS OUTRAS FUNÇÕES DE IA (`polimento` em `FUNCOES_DE_IA`): portão da nuvem, política
@@ -33,6 +33,7 @@ import { createHash } from 'node:crypto'
 
 import { z } from 'zod'
 
+import { SAIDA_DO_POLIMENTO } from '../../../src/lib/esquemasDeSaida'
 import {
   type EntradaDoGlossarioNoPrompt,
   nomeDoIdioma,
@@ -53,9 +54,11 @@ import {
 } from '../../../src/lib/traducao/promptDoPolimento'
 import { sessionsRepo } from '../../db/repositories/sessions'
 import { utterancesRepo } from '../../db/repositories/utterances'
+import { contarRespostaInvalida } from '../../http/metricas'
 import type { UserId } from '../../lib/authContext'
 import type { Entitlements } from '../../lib/entitlements'
 import { erroDeRota } from '../../lib/erroDeRota'
+import { ehMenor, INSTRUCAO_DE_SEGURANCA_PARA_MENORES } from '../../lib/idade'
 import { log } from '../../lib/logger'
 import { portaoDaNuvem, registrarGastoDeIa } from '../../lib/orcamentoDeIa'
 import { estimarTokens } from '../../lib/usageQuota'
@@ -64,6 +67,7 @@ import { admitirCascata, encerrarAdmissao, percorrerCascata } from '../cascata'
 import { FUNCOES_DE_IA } from '../funcoesDeIa'
 import { glossarioDoPedido, MAX_GLOSSARIO_POR_PEDIDO } from '../glossario'
 import { type MensagemDeChat, tamanhoDoPrompt } from '../llmClient'
+import { comInstrucaoDeMenor } from '../llmRequest'
 import { cascataDoPlano } from '../niveis'
 import { aplicarNuance } from '../nuanceDaTraducao'
 import { aplicarPoliticaDeCusto } from '../politicaDeCusto'
@@ -307,8 +311,14 @@ async function polirPendentes(
     original: l.original,
     traducao: l.traducaoPolida ?? l.traducao,
   }))
+  /* Público menor (idade não declarada conta como menor): a instrução vai no FIM do system. */
+  const menor = await ehMenor(ctx.userId)
+  rastro.anotar({ menor })
   const messages: MensagemDeChat[] = [
-    { role: 'system', content: systemDoPolimento(opcoes) },
+    {
+      role: 'system',
+      content: comInstrucaoDeMenor(systemDoPolimento(opcoes), menor ? INSTRUCAO_DE_SEGURANCA_PARA_MENORES : undefined),
+    },
     { role: 'user', content: userDoPolimento(contexto, linhasNoPrompt, opcoes) },
   ]
   const maxTokens = POLIMENTO.maxTokens
@@ -325,7 +335,7 @@ async function polirPendentes(
 
   const admitida = await admitirCascata(custo.pernas, {
     userId: ctx.userId,
-    // O teste de 14 dias (C6) tem a Nuance nos entitlements, mas entra na faixa grátis da admissão.
+    // O teste de 3 dias (C6) tem a Nuance nos entitlements, mas entra na faixa grátis da admissão.
     plano: planoDeAdmissao(plano.plan, ctx.modo === 'alivio', ctx.emTeste),
     tokens: estimativa,
   })
@@ -343,7 +353,13 @@ async function polirPendentes(
        núcleo gravaria quando o lote voltasse. Aqui é a chamada síncrona de sempre, um bloco por pedido. */
     const { entregue, ultimaFalha, limitadoPeloProvedor } = await percorrerCascata(
       custo.pernas,
-      { messages, temperature: POLIMENTO.temperatura, maxTokens, timeoutMs: TIMEOUT_MS },
+      {
+        messages,
+        temperature: POLIMENTO.temperatura,
+        maxTokens,
+        timeoutMs: TIMEOUT_MS,
+        formatoDeSaida: SAIDA_DO_POLIMENTO,
+      },
       {
         evento: 'mt_polimento',
         route: ROTA,
@@ -375,6 +391,7 @@ async function polirPendentes(
 
     const lidas = lerPolimento(entregue.texto, pendentes)
     if (!lidas) {
+      contarRespostaInvalida('polimento', entregue.model)
       log('warn', { event: 'mt_polimento_resposta_invalida', route: ROTA, status: 502, requestId: ctx.requestId })
       return decidir(
         recusaDeErro(502, 'o modelo não devolveu uma tradução polida utilizável; tente de novo', 'resposta_invalida'),

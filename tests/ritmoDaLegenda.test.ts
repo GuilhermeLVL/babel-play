@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   avancar,
+  ESPERA_MAXIMA_MS,
   FILA_MAXIMA,
   iniciarRitmo,
   janelaDaLegenda,
@@ -93,6 +94,67 @@ describe('avancar — a fila', () => {
     const e = iniciarRitmo([fala('a'), fala('b')], 0)
     const r = avancar(e, [fala('b'), fala('c')], 100, 'normal')
     expect(r.estado.reveladas).toEqual(['b'])
+  })
+})
+
+describe('avancar — seguindo ao vivo (fala rápida não deixa a legenda para trás)', () => {
+  const aoVivo = { aoVivo: true }
+
+  it('mais de UMA fala esperando: alcança a mais recente na hora, mesmo com a atual longa', () => {
+    let e = avancar(RITMO_VAZIO, [fala('a', 150)], 0, 'normal', aoVivo).estado // 10 s de leitura
+    const falas = [fala('a', 150), fala('b'), fala('c')]
+    const r = avancar(e, falas, 300, 'normal', aoVivo)
+    e = r.estado
+    expect(e.reveladas).toEqual(['a', 'b', 'c'])
+    expect(e.atual).toBe('c')
+    expect(e.desdeMs).toBe(300)
+    expect(pendentes(e, falas)).toBe(0)
+    expect(r.proximaEmMs).toBeNull()
+  })
+
+  it('uma fala só esperando: entra no tempo de leitura OU em ESPERA_MAXIMA_MS, o que vier antes', () => {
+    let e = avancar(RITMO_VAZIO, [fala('a', 150)], 0, 'normal', aoVivo).estado
+    const falas = [fala('a', 150), fala('b')]
+    const r1 = avancar(e, falas, 500, 'normal', aoVivo)
+    expect(r1.estado.atual).toBe('a')
+    expect(r1.proximaEmMs).toBe(ESPERA_MAXIMA_MS) // e não os 9,5 s que faltam da leitura
+    e = avancar(r1.estado, falas, 500 + ESPERA_MAXIMA_MS - 1, 'normal', aoVivo).estado
+    expect(e.atual).toBe('a')
+    e = avancar(e, falas, 500 + ESPERA_MAXIMA_MS, 'normal', aoVivo).estado
+    expect(e.atual).toBe('b')
+    expect(e.chegadas).toBeUndefined()
+  })
+
+  it('fala lenta: o ritmo de leitura continua valendo quando a atual é curta', () => {
+    let e = avancar(RITMO_VAZIO, [fala('a', 15)], 0, 'normal', aoVivo).estado // 1,5 s (o mínimo)
+    const falas = [fala('a', 15), fala('b')]
+    const r = avancar(e, falas, 200, 'normal', aoVivo)
+    expect(r.estado.atual).toBe('a')
+    expect(r.proximaEmMs).toBe(1300) // a leitura (1,5 s) vence a espera máxima (2 s)
+    e = avancar(r.estado, falas, 1500, 'normal', aoVivo).estado
+    expect(e.atual).toBe('b')
+  })
+
+  it('a chegada guardada é a da PRIMEIRA vez que a fala apareceu (o parcial que cresce não reinicia a conta)', () => {
+    let e = avancar(RITMO_VAZIO, [fala('a', 150)], 0, 'normal', aoVivo).estado
+    e = avancar(e, [fala('a', 150), fala('b', 5)], 100, 'normal', aoVivo).estado
+    e = avancar(e, [fala('a', 150), fala('b', 20)], 1500, 'normal', aoVivo).estado
+    expect(e.chegadas).toEqual({ b: 100 })
+    e = avancar(e, [fala('a', 150), fala('b', 30)], 2100, 'normal', aoVivo).estado
+    expect(e.atual).toBe('b')
+  })
+
+  it('nada mudou: devolve o MESMO estado (o chamador compara por identidade)', () => {
+    const falas = [fala('a', 150), fala('b')]
+    const e = avancar(avancar(RITMO_VAZIO, [falas[0]], 0, 'normal', aoVivo).estado, falas, 100, 'normal', aoVivo).estado
+    expect(avancar(e, falas, 200, 'normal', aoVivo).estado).toBe(e)
+  })
+
+  it('sem `aoVivo` (voltando no histórico) a fila segue o ritmo de leitura de antes', () => {
+    const e = avancar(RITMO_VAZIO, [fala('a', 150)], 0, 'normal').estado
+    const r = avancar(e, [fala('a', 150), fala('b'), fala('c')], 300, 'normal')
+    expect(r.estado.atual).toBe('a')
+    expect(r.estado.chegadas).toBeUndefined()
   })
 })
 

@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import {
   FLAG_STT_AO_VIVO,
@@ -9,6 +9,7 @@ import {
   planosAVenda,
 } from '../../../../core/planos';
 import type { DecisaoDeRota, NivelDeServico } from '../../../../core/rota/politicaDeRota';
+import { getActiveProfile } from '../../../../gateway/activeProfile';
 import type { SttQuality } from '../../../../gateway/sttRouter';
 import { estadoDoChip } from '../../../../lib/captura/estadoDaCaptura';
 import {
@@ -19,24 +20,28 @@ import {
   NIVEIS,
   niveisDaTela,
   nivelDoSelo,
-  qualidadeDoNivel,
   quemTemONivel,
 } from '../../../../lib/captura/nivelDeServico';
-import { type SeloDaFala, seloDaFala, textoDoSelo } from '../../../../lib/captura/seloDaFala';
+import type { LinhaDoMotor } from '../../../../lib/captura/painelDoProcessamento';
+import { type SeloDaFala, seloDaFala } from '../../../../lib/captura/seloDaFala';
 import { useSemRede } from '../../../../lib/captura/useSemRede';
-import { consentiuNuvem } from '../../../../lib/consentimentoDeNuvem';
+import { consentiuNuvem, responsavelAutorizou } from '../../../../lib/consentimentoDeNuvem';
+import { diaQueACotaVolta } from '../../../../lib/diaQueACotaVolta';
 import type { TipoDeDispositivo } from '../../../../lib/dispositivo/perfil';
 import { edicaoEstatica } from '../../../../lib/edicaoEstatica';
 import { getEntitlements } from '../../../../lib/entitlements';
+import { escolherProcessamento, useLadoDoProcessamento } from '../../../../lib/escolhaDoProcessamento';
 import { flagLigada } from '../../../../lib/flags';
 import { numero, t } from '../../../../lib/i18n';
-import { langLabelNaUI } from '../../../../lib/languages';
+import { prontoParaLegendarSemRede } from '../../../../lib/offline/prontoSemRede';
+import { celular } from '../../../../lib/polimento/captura';
 import { provaDosPlanos } from '../../../../lib/polimento/planos';
 import { sentir } from '../../../../lib/polimento/sentidos';
 import { perfilProtegido } from '../../../../lib/protecaoDoMenor';
 import { carregarUso, type UsoDoMes } from '../../../../lib/uso';
 import { toast } from '../../../Toast';
 import { ChipDeEstado } from '../enxuta/pecas';
+import PainelDeProcessamento from '../PainelDeProcessamento';
 import FolhaComoFunciona from './FolhaComoFunciona';
 import FolhaDoCadeado, { type AparelhoDoNivel } from './FolhaDoCadeado';
 import { ChipDoMedidor, MarcaDeOnde, type NivelDoSeletor, NotaDoPronto, SeletorDeNivel } from './pecas';
@@ -52,6 +57,16 @@ export interface NiveisDaCaptura {
   tipoDoAparelho: TipoDeDispositivo;
   /** A porta para a tela Planos. Ausente = sem oferta (perfil protegido, edição estática). */
   aoVerPlanos?: (plano: PlanoPago | null) => void;
+  /**
+   * O que o painel de processamento mostra (tela enxuta): quem transcreve e quem traduz, e a porta para
+   * Ajustes → Processamento. Ausente = o painel sem as linhas dos motores.
+   */
+  processamento?: {
+    transcricao: LinhaDoMotor;
+    traducao: LinhaDoMotor | null;
+    /** Ausente (gravando, sem navegação) = sem o link "Modelos no aparelho". */
+    aoVerModelosNoAparelho?: () => void;
+  };
   /** O que a tela lê do app. Os testes passam o deles; em uso, vem de `ambienteReal()`. */
   ambiente?: Partial<AmbienteDosNiveis>;
 }
@@ -127,14 +142,14 @@ const nomeDoPlano = (p: PlanoPago): string => t(PLAN_MATRIX[p].rotulo);
  */
 let ultimoUso: { de: AmbienteDosNiveis['carregarUso']; uso: UsoDoMes } | null = null;
 
-type FolhaAberta = { qual: 'como' } | { qual: 'tranca'; nivel: 'precisao' | 'aovivo' } | null;
+type FolhaAberta = { qual: 'como' } | { qual: 'painel' } | { qual: 'tranca'; nivel: 'precisao' | 'aovivo' } | null;
 
 export interface PecasDosNiveis {
   /** A fileira `.pl-linha`: seletor, marca (estreita) e medidor. Vai logo abaixo do topo. Na tela enxuta, nada. */
   linha: ReactNode;
   /**
-   * O CHIP DE ESTADO da tela enxuta (`enxuto.js:62-65`): junta o chip do modelo, a marca e o seletor, e
-   * abre a folha. `null` fora da tela enxuta.
+   * O SELO COMPACTO da tela enxuta (era o chip de estado de `enxuto.js:62-65`): só o ícone, que abre o
+   * painel de processamento (no computador, o popover vem junto, ancorado nele). `null` fora da tela enxuta.
    */
   chipDeEstado: ReactNode;
   /** A marca do topo (`pl-so-largo`). */
@@ -195,9 +210,14 @@ export function useNiveisDaCaptura(
   const lerDoApp = dados?.ambiente?.carregarUso ?? carregarUso;
   const [uso, setUso] = useState<UsoDoMes | null>(() => (ultimoUso?.de === lerDoApp ? ultimoUso.uso : null));
   const [folha, setFolha] = useState<FolhaAberta>(null);
+  const seloRef = useRef<HTMLButtonElement>(null);
 
   const amb: AmbienteDosNiveis | null = dados ? { ...ambienteReal(), ...dados.ambiente } : null;
+  /* O perfil que TRANCA a nuvem: protegido SEM o responsável (a regra da política de rota). */
+  const trancadoPeloPerfil = !!amb && amb.protegido && !responsavelAutorizou();
   const temNuvem = !!amb && amb.capacidades.managedCloudStt && !amb.semPlanos;
+  /* O lado Aparelho | Nuvem marcado: o MESMO dos Ajustes (`lib/escolhaDoProcessamento`). */
+  const lado = useLadoDoProcessamento(temNuvem && !trancadoPeloPerfil);
   const ler = amb?.carregarUso;
 
   /* As horas do mês: só para quem tem nuvem no plano, e de novo quando uma captura termina. */
@@ -228,35 +248,45 @@ export function useNiveisDaCaptura(
     precisao: quemTemONivel('precisao', amb.aVenda),
     aovivo: quemTemONivel('aovivo', amb.aVenda),
   };
-  const niveis: NivelDoSeletor[] = niveisDaTela(amb).map((n) => ({
-    ...n,
-    plano:
-      !n.tranca || n.nivel === 'aparelho' || (n.nivel === 'aovivo' && amb.capacidades.sttAoVivo)
-        ? null
-        : quem[n.nivel][0]
-          ? nomeDoPlano(quem[n.nivel][0].plano)
-          : null,
-  }));
+  /* Protegido COM o responsável: só o que ele já pode usar. Nível trancado é oferta de plano, e perfil
+     protegido não recebe oferta (ECA Digital), então nem aparece. */
+  const niveis: NivelDoSeletor[] = niveisDaTela({ ...amb, protegido: trancadoPeloPerfil })
+    .filter((n) => !(amb.protegido && n.tranca && n.nivel !== 'aparelho'))
+    .map((n) => ({
+      ...n,
+      plano:
+        amb.protegido || !n.tranca || n.nivel === 'aparelho' || (n.nivel === 'aovivo' && amb.capacidades.sttAoVivo)
+          ? null
+          : quem[n.nivel][0]
+            ? nomeDoPlano(quem[n.nivel][0].plano)
+            : null,
+    }));
 
-  /** `escolherNivel()` de `planos4.js:317-328`: grava a preferência que já existia. */
-  const escolher = (n: NivelDeServico) => {
+  /** `escolherNivel()` de `planos4.js:317-328`: grava a preferência que já existia. Diz se gravou. */
+  const escolher = (n: NivelDeServico): boolean => {
     const item = niveis.find((x) => x.nivel === n);
-    if (!item) return;
+    if (!item) return false;
     if (item.tranca) {
       if (n !== 'aparelho') setFolha({ qual: 'tranca', nivel: n });
-      return;
+      return false;
     }
-    if (n === 'aovivo') return; // sem transporte não há o que gravar (e hoje ele sempre tem cadeado)
+    if (n === 'aovivo') return false; // sem transporte não há o que gravar (e hoje ele sempre tem cadeado)
     const N = NIVEIS[n];
     if (semRede && n !== 'aparelho') {
       toast.info(t('Sem internet: agora só o nível No aparelho funciona.'));
-      return;
+      return false;
     }
     if (n === 'precisao' && medidores.find((m) => m.nivel === 'precisao')?.acabou) {
-      toast.info(t('As horas do nível {nivel} deste mês acabaram. Elas voltam no dia 1º.', { nivel: t(N.nome) }));
-      return;
+      toast.info(
+        t('As horas do nível {nivel} acabaram. Elas voltam em {data}.', { nivel: t(N.nome), data: diaQueACotaVolta() }),
+      );
+      return false;
     }
-    dados.aoEscolherQualidade(qualidadeDoNivel(n, dados.qualidade));
+    /* A escolha inteira (modo, chave e qualidade) é a dos Ajustes: `escolherProcessamento`. A Captura
+       recebe a qualidade nova pelo aviso dele (`EVENTO_DO_PROCESSAMENTO`). */
+    void escolherProcessamento(n === 'precisao' ? 'nuvem' : 'aparelho', {
+      perfil: getActiveProfile().id === 'local-private' ? 'local-private' : 'free-web',
+    });
     sentir('aba');
     /* O protótipo diz a razão quando o nível pedido não é o que fica valendo (`planos4.js:326-327`).
        Aqui a razão que a tela já conhece é a do aceite: sem ele a nuvem não recebe nada. */
@@ -265,6 +295,7 @@ export function useNiveisDaCaptura(
         ? t('Você ainda não autorizou o envio para fora do aparelho.')
         : `${t(N.nome)}: ${t(N.curto)}`,
     );
+    return true;
   };
 
   const abrirComo = () => setFolha({ qual: 'como' });
@@ -289,16 +320,55 @@ export function useNiveisDaCaptura(
     !tela.enxuta && selo && marca ? (
       <MarcaDeOnde selo={selo} marca={marca} classe="pl-so-largo" aoAbrir={abrirComo} />
     ) : null;
-  const chipDeEstado = tela.enxuta ? (
-    <ChipDeEstado
-      estado={estadoDoChip(
-        { selo, gravando: tela.gravando, pausada: !!tela.pausada, medidores, emUso, par: tela.par ?? '' },
-        t,
-      )}
-      marca={marca}
-      motivo={selo ? textoDoSelo(selo, t, langLabelNaUI).motivo : ''}
-      aoAbrir={abrirComo}
+  /* O PAINEL DE PROCESSAMENTO (plano 2026-10-23, Task 4): o segmentado grava a MESMA escolha da aba
+     Processamento dos Ajustes (`lib/escolhaDoProcessamento`) e, junto, a preferência do nível — sem ela,
+     quem tem nuvem no plano continuaria indo à nuvem no automático. A nuvem com chave própria só muda
+     quando há chave cadastrada; sem chave, fica a nuvem do plano. */
+  const nuvemTrancada: { trancada: true; porque: string } | null = trancadoPeloPerfil
+    ? { trancada: true, porque: t('A nuvem não está disponível neste perfil.') }
+    : amb.semPlanos
+      ? { trancada: true, porque: t('A nuvem não está disponível nesta versão.') }
+      : !amb.capacidades.managedCloudStt
+        ? { trancada: true, porque: t('O seu plano não tem horas de nuvem: a legenda roda no aparelho, sem limite.') }
+        : null;
+  const escolherNoPainel = (e: 'aparelho' | 'nuvem') => {
+    if (e === 'nuvem' && nuvemTrancada) return;
+    escolher(e === 'nuvem' ? 'precisao' : 'aparelho');
+  };
+  const noCelular = celular();
+  const aberto = folha?.qual === 'painel';
+  const painel = aberto ? (
+    <PainelDeProcessamento
+      onde={selo?.onde ?? null}
+      escolha={lado}
+      nuvem={nuvemTrancada}
+      aoEscolher={escolherNoPainel}
+      transcricao={dados.processamento?.transcricao ?? null}
+      traducao={dados.processamento?.traducao ?? null}
+      aoVerModelo={tela.aoAbrirModelo}
+      carregarUso={amb.carregarUso}
+      aoModelosNoAparelho={dados.processamento?.aoVerModelosNoAparelho}
+      aoUsoEPlano={verPlanos && (() => verPlanos(null))}
+      aoComoFunciona={abrirComo}
+      celular={noCelular}
+      ancora={seloRef}
+      aoFechar={() => setFolha((f) => (f?.qual === 'painel' ? null : f))}
     />
+  ) : null;
+  const chipDeEstado = tela.enxuta ? (
+    <span className="ex-selo-ancora">
+      <ChipDeEstado
+        ref={seloRef}
+        estado={estadoDoChip(
+          { selo, gravando: tela.gravando, pausada: !!tela.pausada, medidores, emUso, par: tela.par ?? '' },
+          t,
+        )}
+        marca={marca}
+        aberto={aberto}
+        aoAbrir={() => setFolha(aberto ? null : { qual: 'painel' })}
+      />
+      {!noCelular && painel}
+    </span>
   ) : null;
   /* `enxuto.js:171-173`: a folha diz que não há nuvem a quem não a tem no plano, com as horas dos planos
      À VENDA (as de verdade, de `quemTemONivel`). Sem oferta (perfil protegido, edição estática), nada. */
@@ -329,13 +399,18 @@ export function useNiveisDaCaptura(
     <NotaDoPronto
       medidores={medidores}
       semRede={semRede}
+      prontoOffline={semRede && prontoParaLegendarSemRede()}
       planoDeCima={deCima ? { nome: nomeDoPlano(deCima), horas: `${numero(horasDeTranscricao(deCima) ?? 0)} h` } : null}
       aoVerPlano={deCima && verPlanos ? () => verPlanos(deCima) : undefined}
     />
   );
 
   const folhas =
-    folha?.qual === 'como' ? (
+    folha?.qual === 'painel' ? (
+      noCelular ? (
+        painel
+      ) : null
+    ) : folha?.qual === 'como' ? (
       <FolhaComoFunciona
         selo={selo}
         marca={marca}

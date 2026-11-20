@@ -4,6 +4,7 @@ import React, { useRef, useState } from 'react';
 import { useLayout } from '../hooks/useLayout';
 import { ThemeType } from '../lib/appearance';
 import { AppLayoutConfig } from '../lib/layoutStore';
+import { zoomDoCorpo } from '../lib/zoomDoCorpo';
 
 interface EditablePanelProps {
   viewKey: keyof AppLayoutConfig;
@@ -41,7 +42,7 @@ export default function EditablePanel({
   className = '',
   positionClass = 'relative',
   defaultWidth = 100,
-  defaultHeight = 400
+  defaultHeight = 400,
 }: EditablePanelProps) {
   // Use windowSize to dynamically respond to screen resizes
   const { layout, editMode, updatePanel, windowSize } = useLayout();
@@ -99,7 +100,7 @@ export default function EditablePanel({
     const handlePointerUp = (upEvent: PointerEvent) => {
       document.removeEventListener('pointermove', handlePointerMove);
       document.removeEventListener('pointerup', handlePointerUp);
-      
+
       const deltaX = upEvent.clientX - startX;
       const adjustedDeltaX = resizeHandlePosition === 'left' ? -deltaX : deltaX;
       const deltaPercent = (adjustedDeltaX / parentWidth) * 100;
@@ -121,7 +122,7 @@ export default function EditablePanel({
     const startHeightPx = currentHeight;
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
-      const deltaY = moveEvent.clientY - startY;
+      const deltaY = (moveEvent.clientY - startY) / zoomDoCorpo(); // px da janela → px do body
       let newHeight = startHeightPx + deltaY;
       newHeight = Math.max(50, Math.min(2000, newHeight)); // Clamp
       setLocalHeight(newHeight);
@@ -130,8 +131,8 @@ export default function EditablePanel({
     const handlePointerUp = (upEvent: PointerEvent) => {
       document.removeEventListener('pointermove', handlePointerMove);
       document.removeEventListener('pointerup', handlePointerUp);
-      
-      const deltaY = upEvent.clientY - startY;
+
+      const deltaY = (upEvent.clientY - startY) / zoomDoCorpo();
       let newHeight = startHeightPx + deltaY;
       newHeight = Math.max(50, Math.min(2000, newHeight));
       setLocalHeight(null);
@@ -142,8 +143,7 @@ export default function EditablePanel({
     document.addEventListener('pointerup', handlePointerUp);
   };
 
-
-  // If the panel is hidden, we render nothing (even in edit mode) 
+  // If the panel is hidden, we render nothing (even in edit mode)
   // so the layout flows naturally. It can be restored via the Toolbar.
   if (!show) {
     return null;
@@ -164,9 +164,7 @@ export default function EditablePanel({
       ref={panelRef}
       data-theme={activeTheme}
       className={`${positionClass} transition-all ${isDragging ? 'duration-0' : 'duration-300'} ${
-        editMode
-          ? 'rounded-3xl border-2 border-dashed border-rare/60 bg-rare-soft/5 shadow-lg ring-4 ring-rare/5'
-          : ''
+        editMode ? 'rounded-3xl border-2 border-dashed border-rare/60 bg-rare-soft/5 shadow-lg ring-4 ring-rare/5' : ''
       } ${className}`}
       style={{
         width: responsiveWidthStyle,
@@ -179,9 +177,7 @@ export default function EditablePanel({
         <div className="absolute -top-3 left-4 z-40 bg-ink text-surface rounded-lg px-3 py-1 flex items-center gap-2 shadow-xl border border-ink-muted/40 animate-in fade-in zoom-in-95 duration-200">
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-rare animate-pulse" />
-            <span className="text-[10px] font-display font-black tracking-widest uppercase text-surface">
-              {title}
-            </span>
+            <span className="text-[10px] font-display font-black tracking-widest uppercase text-surface">{title}</span>
           </div>
 
           {/* Theme Mixing Selector */}
@@ -216,7 +212,7 @@ export default function EditablePanel({
 
       {/* Resize Handles */}
       {editMode && canResizeWidth && (
-        <div 
+        <div
           className={`absolute ${resizeHandlePosition === 'left' ? '-left-2 rounded-s-3xl' : '-right-2 rounded-e-3xl'} top-0 bottom-0 w-4 cursor-col-resize z-50 hover:bg-rare/20 flex flex-col justify-center items-center group`}
           onPointerDown={handlePointerDownRight}
         >
@@ -225,7 +221,7 @@ export default function EditablePanel({
       )}
 
       {editMode && canResizeHeight && (
-        <div 
+        <div
           className="absolute -bottom-2 left-0 right-0 h-4 cursor-row-resize z-50 hover:bg-rare/20 rounded-b-3xl flex justify-center items-center group"
           onPointerDown={handlePointerDownBottom}
         >

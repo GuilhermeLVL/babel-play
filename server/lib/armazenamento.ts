@@ -248,7 +248,9 @@ export function armazenamentoS3(
   const prazoBase = opcoes.prazoMs ?? PRAZO_BASE_MS
   const urlDe = (nome: string) => {
     if (nome.includes('..') || nome.startsWith('/')) throw new NomeDeArquivoInvalido('nome de objeto inválido')
-    return new URL(`/${cfg.bucket}/${encodeURIComponent(nome)}`, cfg.endpoint)
+    /* Por SEGMENTO: a barra do nome (`semanal/2026-11-03.dump`) é separador de pasta e fica como `/`. Com o nome inteiro
+       em `encodeURIComponent` ela virava `%2F` e o R2 recusava a assinatura (403) no backup semanal. */
+    return new URL(`/${cfg.bucket}/${nome.split('/').map(encodeURIComponent).join('/')}`, cfg.endpoint)
   }
 
   const chamar = async (

@@ -82,7 +82,7 @@ afterAll(async () => {
   await h.cleanup()
 })
 beforeEach(async () => {
-  esvaziarCacheDeTraducao()
+  await esvaziarCacheDeTraducao()
   await adm.esquecerAdmissao()
   // IP público literal: `assertPublicUrl` resolve DNS de verdade, e o provedor não é assunto aqui.
   process.env.GROQ_BASE_URL = 'http://203.0.113.20/v1'

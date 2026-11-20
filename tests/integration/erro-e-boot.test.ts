@@ -27,6 +27,8 @@ afterAll(async () => {
   await h.cleanup()
 })
 afterEach(async () => {
+  /* `registrarFalhaDeBoot` grava sem esperar. O reset espera as gravações em voo pousarem antes do `DELETE`
+     (`aguardarGravacoesDeBoot`): sem isso, no Postgres de verdade a linha vazava para o teste seguinte. */
   await boot.resetBootStatus()
   vi.restoreAllMocks()
 })
@@ -108,21 +110,41 @@ describe('bootStatus + /api/health — P2-5', () => {
    */
   it('a falha registrada por um processo é vista por outro que lê o mesmo banco', async () => {
     boot.registrarFalhaDeBoot('backfill-tenancy', new Error('b'))
-    await new Promise((r) => setTimeout(r, 20)) // a escrita no banco é disparada, não aguardada
+    await boot.aguardarGravacoesDeBoot() // a escrita no banco é disparada, não aguardada
     boot.esquecerEmMemoria()
     const visto = await boot.bootStatus()
     expect(visto.ok).toBe(false)
     expect(visto.erros.map((e: any) => e.passo)).toContain('backfill-tenancy')
   })
 
-  /** Passo que volta a dar certo apaga a linha — senão a instância fica em 503 para sempre. */
+  /**
+   * Passo que volta a dar certo apaga a linha — senão a instância fica em 503 para sempre.
+   *
+   * ESPERA PELA GRAVAÇÃO, NÃO POR 20 ms. Eram dois sonos fixos: no Postgres de verdade o `INSERT` da
+   * falha e o `DELETE` do sucesso saem por conexões diferentes do pool, e quando o `INSERT` levava
+   * mais de 20 ms o `DELETE` chegava antes e a linha sobrava (job `postgres-real`, 2 em 3 execuções;
+   * com sono de 0 ms, 4 em 5 localmente). Em produção cada passo grava uma vez por boot, então a
+   * ordem só importa aqui.
+   */
   it('sucesso posterior limpa a falha, e a saúde volta', async () => {
     boot.registrarFalhaDeBoot('migracao-fsrs', new Error('a'))
-    await new Promise((r) => setTimeout(r, 20))
+    await boot.aguardarGravacoesDeBoot()
     boot.registrarSucessoDeBoot('migracao-fsrs')
-    await new Promise((r) => setTimeout(r, 20))
+    await boot.aguardarGravacoesDeBoot()
     boot.esquecerEmMemoria()
     expect((await boot.bootStatus()).ok).toBe(true)
+  })
+
+  /* As gravações em `boot_falhas` são disparadas sem espera; `aguardarGravacoesDeBoot` é o que torna o estado
+     determinístico (e o reset dos testes). Sem sono fixo: depois de esperar, só o banco vale e já reflete o passo. */
+  it('aguardarGravacoesDeBoot: depois de esperar, a linha já está no banco, e some quando o passo dá certo', async () => {
+    boot.registrarFalhaDeBoot('backfill-tenancy', new Error('x'))
+    await boot.aguardarGravacoesDeBoot()
+    boot.esquecerEmMemoria()
+    expect((await boot.bootStatus()).erros.map((e: any) => e.passo)).toEqual(['backfill-tenancy'])
+    boot.registrarSucessoDeBoot('backfill-tenancy')
+    await boot.aguardarGravacoesDeBoot()
+    expect((await boot.bootStatus()).erros).toEqual([])
   })
 
   it('não vaza o texto do erro na resposta (só o passo que falhou)', async () => {
@@ -145,13 +167,17 @@ describe('bootStatus + /api/health — P2-5', () => {
       expect(criticas.length).toBeGreaterThan(0)
       verificarConfiguracaoNoBoot()
       expect((await boot.bootStatus()).erros.map((e: any) => e.passo)).toContain('configuracao')
+      /* A gravação e a remoção em `boot_falhas` são disparadas sem espera: no Postgres de verdade a remoção
+         podia chegar ANTES da inserção e a linha ficava. Espera cada gravação pousar, na ordem. */
+      await boot.aguardarGravacoesDeBoot()
 
       for (const n of criticas) process.env[n] = 'x'
       expect(verificarConfiguracaoNoBoot().ok).toBe(true)
-      await new Promise((r) => setTimeout(r, 20))
-      boot.esquecerEmMemoria()
+      await boot.aguardarGravacoesDeBoot()
+      boot.esquecerEmMemoria() // só o banco vale: o espelho local escondia a corrida
       const res = fakeRes()
       await health({} as any, res)
+      expect(res.body.bootErros ?? []).toEqual([])
       expect(res.body.boot).toBe('ok')
     } finally {
       for (const k of Object.keys(process.env)) if (!(k in antes)) delete process.env[k]

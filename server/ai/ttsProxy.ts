@@ -5,7 +5,7 @@
  * A regra mora no núcleo (`server/ai/nucleo/sintetizarVoz.ts`), na ordem de sempre: corpo e clonagem
  * (400), entitlement `vozNatural` (402), flag `voz_natural` (503), configuração (501/422), cache L1,
  * portão, admissão `tts`, cota de caracteres no mês e no dia, cascata das pernas e custo. Aqui fica o
- * que é do HTTP do app: ler o corpo, resolver o plano e o teste de 14 dias (fail-closed: erro ao ler é
+ * que é do HTTP do app: ler o corpo, resolver o plano e o teste de 3 dias (fail-closed: erro ao ler é
  * 502), dar ao núcleo as flags DESTE request, e enviar o áudio.
  *
  * A RESPOSTA é o próprio áudio, com `Cache-Control: no-store` e `nosniff`.

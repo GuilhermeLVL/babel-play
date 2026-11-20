@@ -8,18 +8,24 @@
  * 0,8 KB gzip de um orçamento que o funil deixou com 0,1 KB de folga (30/09/2026). A matriz
  * (`core/planos`) já está no arranque, pelos entitlements: daqui só se usa a régua dela.
  */
-import { normalizarPlano, type PlanoDeAssinatura, planosAVenda } from '../core/planos';
+import { FLAG_VENDA_PLANOS_V4, normalizarPlano, type PlanoDeAssinatura, planosAVenda } from '../core/planos';
 
 export const CHAVE_DO_PLANO_DO_CHECKOUT = 'babel.checkout.plano';
 
 /**
  * O nome antigo guardado por uma intenção de antes do deploy (`pro`) é o Premium. E só se guarda plano
  * À VENDA (`planosAVenda`): com a venda dos planos novos fechada (matriz v3), abrir o checkout num
- * plano que `/api/billing/assinar` recusa seria um botão que sempre falha.
+ * plano que `/api/billing/assinar` recusa seria um botão que sempre falha. Com a v4, o Plus também vale: a
+ * intenção guardada por quem escolheu o Plus (ou o plano de entrada) volta ao checkout dele; o servidor
+ * ainda decide se vende (o checkout só lista o que está à venda).
  */
 export function lembrarPlanoDoCheckout(plano: string | undefined): void {
   const pago = normalizarPlano(plano);
-  if (!pago || !(planosAVenda(() => false) as PlanoDeAssinatura[]).includes(pago)) return;
+  const vendaveis: PlanoDeAssinatura[] = [
+    ...planosAVenda(() => false),
+    ...planosAVenda((chave) => chave === FLAG_VENDA_PLANOS_V4),
+  ];
+  if (!pago || !vendaveis.includes(pago)) return;
   try {
     sessionStorage.setItem(CHAVE_DO_PLANO_DO_CHECKOUT, pago);
   } catch {

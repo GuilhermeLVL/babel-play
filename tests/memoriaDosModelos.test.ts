@@ -13,9 +13,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   cancelarLiberacaoDosModelos,
   LIBERAR_MODELOS_APOS_MS,
+  liberarAoSairDaCaptura,
   liberarModelosDepois,
   umModeloDeCadaVez,
 } from '../src/lib/captura/memoriaDosModelos'
+import { classificarDispositivo, type SinaisDoDispositivo } from '../src/lib/dispositivo/perfil'
 
 const perfil = (tipo: string, memoriaGb: number | null, poucaMemoria = false) =>
   ({ tipo, poucaMemoria, sinais: { memoriaGb } }) as never
@@ -32,6 +34,12 @@ describe('umModeloDeCadaVez', () => {
   ])('%s', (_n, p, esperado) => {
     expect(umModeloDeCadaVez(p)).toBe(esperado)
   })
+
+  // Parakeet (~2x a memória do Whisper): o tradutor espera mesmo no desktop com GPU e 8 GB.
+  it('STT pesado (Parakeet): um de cada vez até no desktop com GPU e 8 GB', () => {
+    expect(umModeloDeCadaVez(perfil('desktop-com-gpu', 8), true)).toBe(true)
+    expect(umModeloDeCadaVez(perfil('desktop-com-gpu', 8), false)).toBe(false)
+  })
 })
 
 describe('liberarModelosDepois', () => {
@@ -40,12 +48,12 @@ describe('liberarModelosDepois', () => {
     vi.useRealTimers()
   })
 
-  it('libera 90 s depois de sair', () => {
+  it('libera 20 s depois de sair (eram 90; 22/10/2026)', () => {
     vi.useFakeTimers()
     const liberar = vi.fn()
     liberarModelosDepois(liberar)
-    expect(LIBERAR_MODELOS_APOS_MS).toBe(90_000)
-    vi.advanceTimersByTime(89_999)
+    expect(LIBERAR_MODELOS_APOS_MS).toBe(20_000)
+    vi.advanceTimersByTime(LIBERAR_MODELOS_APOS_MS - 1)
     expect(liberar).not.toHaveBeenCalled()
     vi.advanceTimersByTime(1)
     expect(liberar).toHaveBeenCalledTimes(1)
@@ -55,7 +63,7 @@ describe('liberarModelosDepois', () => {
     vi.useFakeTimers()
     const liberar = vi.fn()
     liberarModelosDepois(liberar)
-    vi.advanceTimersByTime(30_000)
+    vi.advanceTimersByTime(10_000)
     expect(cancelarLiberacaoDosModelos()).toBe(true)
     vi.advanceTimersByTime(120_000)
     expect(liberar).not.toHaveBeenCalled()
@@ -67,12 +75,56 @@ describe('liberarModelosDepois', () => {
     const primeira = vi.fn()
     const segunda = vi.fn()
     liberarModelosDepois(primeira)
-    vi.advanceTimersByTime(60_000)
+    vi.advanceTimersByTime(15_000)
     liberarModelosDepois(segunda)
-    vi.advanceTimersByTime(60_000)
+    vi.advanceTimersByTime(15_000)
     expect(primeira).not.toHaveBeenCalled()
     expect(segunda).not.toHaveBeenCalled()
-    vi.advanceTimersByTime(30_000)
+    vi.advanceTimersByTime(10_000)
     expect(segunda).toHaveBeenCalledTimes(1)
+  })
+})
+
+/* Correção F do diagnóstico do Safari (22/10/2026): no Safari do Mac (sem `crossOriginIsolated`, WASM em
+   1 thread) a aba caía ao sair da Capturar com os workers vivos. Sem isolamento conta como pouca
+   memória, e os workers do STT e do tradutor são encerrados NA HORA ao sair. */
+describe('liberarAoSairDaCaptura', () => {
+  const macComSafari: SinaisDoDispositivo = {
+    userAgent:
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15',
+    nucleos: 8,
+    memoriaGb: null,
+    isolado: false,
+    capturaDeTela: true,
+    ponteiroGrosso: false,
+    toques: 0,
+    temXr: false,
+    economiaDeDados: false,
+    tipoDeRede: null,
+    movimentoReduzido: false,
+    memoriaDaAbaMb: null,
+    webGpu: true,
+  }
+
+  afterEach(() => {
+    cancelarLiberacaoDosModelos()
+    vi.useRealTimers()
+  })
+
+  it('Safari no Mac (sem isolamento): solta os modelos na hora, sem agendar', () => {
+    vi.useFakeTimers()
+    const liberar = vi.fn()
+    liberarAoSairDaCaptura(classificarDispositivo(macComSafari), liberar)
+    expect(liberar).toHaveBeenCalledTimes(1)
+    expect(cancelarLiberacaoDosModelos()).toBe(false)
+  })
+
+  it('desktop isolado (Chrome): agenda para 20 s depois', () => {
+    vi.useFakeTimers()
+    const liberar = vi.fn()
+    liberarAoSairDaCaptura(classificarDispositivo({ ...macComSafari, isolado: true, memoriaGb: 8 }), liberar)
+    expect(liberar).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(LIBERAR_MODELOS_APOS_MS)
+    expect(liberar).toHaveBeenCalledTimes(1)
   })
 })

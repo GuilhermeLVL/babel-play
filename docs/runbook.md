@@ -26,7 +26,7 @@ vão pedir a linha do tempo.
 
 **2. CONTER — as chaves de emergência** (cada uma é um secret do Worker; para trocar UMA, rode
 `npx wrangler secret put NOME -c wrangler.jsonc` (produção é o ambiente raiz do `wrangler.jsonc`; o staging leva
-`--env staging`) e digite o valor; vale a partir da próxima requisição, sem reiniciar nada):
+`--env staging`) e digite o valor; vale a partir da próxima requisição, sem reiniciar nada. Para VOLTAR uma chave posta pelo `scripts/cloudflare/secrets.ts`, use `wrangler secret put NOME` com `1` ou `wrangler secret delete NOME [--env staging]`; tirar a chave do `.secrets.*.json` e reenviar NÃO apaga o secret (o `secret bulk` só cria ou atualiza).):
 
 | situação                                                       | chave                                               |
 | -------------------------------------------------------------- | --------------------------------------------------- |
@@ -78,6 +78,39 @@ reais), causa raiz, o que detectou (e o que deveria ter detectado antes), açõe
 
 Os erros de aplicação (Sentry) não são alerta de página: são revisados todo dia útil.
 
+### 0.1-bis Os alertas do servidor: o que chega, de onde, e o que fazer
+
+No Worker (produção e staging) os erros e avisos do servidor chegam por **e-mail** (`ALERTA_EMAIL_DESTINO`, via
+Resend; `server/lib/alertaPorEmail.ts`) e o vigia `saude-do-negocio.yml` abre uma **issue** `saude-do-negocio` quando
+algo importante está vermelho (cobrança pendente, cron parado, orçamento de IA, backup velho). Um e-mail por evento por
+hora (por dia nos avisos de estado); o `requestId` do e-mail amarra a linha nos **Workers Logs** (Cloudflare → Workers →
+`frasy` → Logs). O Sentry não está configurado; o diário em disco não existe no Worker.
+
+| O que chegou (assunto do e-mail ou item da issue)                                              | O que significa                                                                                                                                           | O que fazer                                                                                                                                                                                                                          |
+| ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `billing_webhook_token_invalido`                                                               | O Asaas (ou alguém) chamou o webhook com token errado. 15 falhas seguidas **param a fila do Asaas**: nenhum pagamento concede plano.                      | Confira `ASAAS_WEBHOOK_TOKEN` no Worker contra o token do webhook no painel do Asaas (Integrações → Webhooks). Se a fila foi pausada, reative-a no Asaas e reaplique os eventos pendentes (item abaixo).                             |
+| `cobranca_pendente` (issue) ou `billing_evento_nao_aplicado`                                   | Um pagamento chegou e o plano **não** foi concedido (compra não encontrada, parcela desconhecida…).                                                       | Admin › Cobrança lista os pendentes; corrija a causa (ex.: registrar a compra) e use "Reprocessar". É idempotente. Se o cliente pagou e não recebeu, conceda o plano à mão (Admin › Contas) e registre o motivo.                     |
+| `billing_assinatura_divergente`, `billing_plano_divergente`, `billing_parcelamento_divergente` | O que o Asaas diz não bate com o que está no banco (valor, ciclo, assinatura).                                                                            | Abra a cobrança no Asaas pelo `requestId`/id do evento nos logs; vale o que foi **pago**. Se o plano ficou errado, corrija em Admin › Contas e anote.                                                                                |
+| `billing_parcela_ambigua`, `billing_valor_ambiguo`                                             | O valor pago serve a dois planos (a parcela de R$ 12,49 é do Plus e do Premium). O sistema não adivinha.                                                  | Veja qual plano a pessoa escolheu (histórico da compra) e reaplique o evento ou conceda o plano certo.                                                                                                                               |
+| `billing_reconciliacao_divergente`                                                             | A reconciliação diária achou um pagamento confirmado no Asaas (últimos 45 dias) que nunca gerou evento: o webhook se perdeu.                              | Em `BILLING_RECONCILE_MODE=report` (padrão) confira o pagamento no Asaas e reaplique em Admin › Cobrança; com `apply` o job já reaplica e o log `job_fim` traz `reaplicadas`. Se repetir, o webhook está fora: veja o token e a URL. |
+| `billing_webhook_marca_presa`                                                                  | Falhou aplicar o pagamento **e** falhou desmarcar o evento: o Asaas não vai reentregar.                                                                   | Reprocesse o evento em Admin › Cobrança. É o único caso em que um pagamento pode ficar sem efeito sem aviso na tela.                                                                                                                 |
+| `job:<nome>` (issue) ou `job_falhou` / `cron_falhou`                                           | Um cron não termina há mais de 1,5 ciclo + 2 h, ou lançou erro.                                                                                           | Veja `job_falhou` nos logs (campo `error`); rode o job à mão (`npm run job -- <nome>`) e confira a lease (linha `g:job:<nome>` em `travas`). Falha repetida de retenção de áudio é questão de LGPD: não deixe passar.                |
+| `ia_orcamento_alerta_80`, `ia_orcamento_diario_alerta_80`                                      | O orçamento de IA do mês/dia chegou a 80%. A 100% a nuvem fecha para todos (a legenda segue no aparelho).                                                 | Veja `0.5` abaixo; suba `AI_BUDGET_USD_*` ou investigue o gasto (`ia_gasto_anomalo_usuario`).                                                                                                                                        |
+| `ia_sem_reserva`                                                                               | Produção sobe com a IA de nuvem **sem provedor de reserva** (ADR 0008): a próxima queda do principal chega a todo assinante. Sai no máximo 1 vez por dia. | Configure o provedor de reserva (`LLM_RESERVA_*` ou um segundo em `IA_PROVEDORES`) ou aceite o risco por escrito.                                                                                                                    |
+| `ia_provedor_limite`                                                                           | O provedor de IA respondeu 429: a camada contratada não aguenta o tráfego.                                                                                | Suba o limite/plano no provedor ou ative a reserva.                                                                                                                                                                                  |
+| `r2_teto_alerta_80`                                                                            | 80% de um teto do R2 (armazenamento ou operações do mês).                                                                                                 | Veja `docs/deploy.md` ("R2"); apague o que venceu ou suba o teto.                                                                                                                                                                    |
+| `erro_do_cliente`                                                                              | Erro do **navegador** de alguém (tela, promessa, modelo vetado). Um e-mail por hora; a contagem real está nos logs.                                       | Procure `erro_do_cliente` nos Workers Logs, agrupe por `tela`/`route` e reproduza.                                                                                                                                                   |
+| `backup` (issue)                                                                               | O último dump em `frasy-backups/semanal/` tem mais de 9 dias, ou o bucket não respondeu.                                                                  | Rode `backup-pg-dump.yml` à mão e leia o motivo; confira os segredos `R2_S3_*` e `SUPABASE_DB_*`.                                                                                                                                    |
+| `vigia` (issue)                                                                                | `/api/ops/saude` não respondeu 200: o servidor não consegue se avaliar (banco fora, deploy quebrado, token trocado).                                      | `/api/health` e `/api/ready` primeiro; depois `OPS_SAUDE_TOKEN` (Worker × secret do repositório).                                                                                                                                    |
+
+**Como ler um evento.** Pegue o `requestId` do e-mail; nos Workers Logs filtre por ele para ver a requisição inteira (as
+linhas são JSON saneado: sem e-mail, sem token, só o pseudônimo `u_…` da pessoa). Retenção dos Workers Logs: confira o
+prazo do plano no painel da Cloudflare (Workers → Observability) — se for curto, anote o `requestId` na hora.
+
+**Webhook do Asaas falhando de forma repetida.** Sintoma: `billing_webhook_token_invalido` ou o Asaas mostrando o webhook
+"interrompido". (1) token certo nos dois lados; (2) `/api/health` 200; (3) no painel do Asaas, reative a fila; (4) os
+eventos que ele reentregar entram idempotentes; (5) os que ficaram `nao-aplicado` você reaplica em Admin › Cobrança.
+
 ### 0.2 Restaurar o banco
 
 O banco é o Postgres do Supabase (ADR 0014). Restaure um dump semanal do R2 (`frasy-backups`,
@@ -93,6 +126,11 @@ pg_restore --list <arquivo> | head          # abre e lista, antes de tocar em qu
 pg_restore --clean --if-exists --schema=public --schema=drizzle -d "$PGDATABASE" <arquivo>
 ```
 
+Num banco NOVO (ensaio ou troca de banco), o `--schema` não restaura o `CREATE SCHEMA drizzle`: rode antes
+`psql -c 'create schema if not exists drizzle'`, senão `drizzle.__drizzle_migrations` some e o boot reaplicaria todas as
+migrações. Fora do Supabase, some `--no-owner --no-privileges` (os GRANT citam `anon`, `service_role`,
+`supabase_admin`, que não existem num Postgres comum); no próprio Supabase os papéis existem e não precisa.
+
 Com `pglite:<dir>` (dev), pare o servidor e copie de volta o diretório do backup.
 
 **Antes de trocar o banco vivo**, restaure num banco NOVO e confira: `pg_restore --list` sem erro e as contagens das
@@ -107,9 +145,9 @@ tabelas principais (`usuarios`, `sessoes`, …) compatíveis com o esperado. Só
 Para ensaiar a restauração sem tocar na produção, repita o `pg_restore` acima num banco descartável e registre o
 resultado na tabela abaixo (um ensaio por mês, como em §8).
 
-| data                            | exercício | quem | resultado |
-| ------------------------------- | --------- | ---- | --------- |
-| _(ainda não feito em produção)_ |           |      |           |
+| data       | exercício                                                                                                                                                                         | quem                          | resultado                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 15/11/2026 | dump `semanal/2026-11-09.dump` (155 055 bytes, o mais recente de 2 no bucket) restaurado num Postgres 17.11 descartável (Docker, OrbStack); dump de PG 17.11, 363 entradas no TOC | Claude Code, a pedido do dono | **OK.** Comando do runbook ao pé da letra: 62 erros (9 por falta do schema `drizzle`, 53 de GRANT a papéis do Supabase). Com `create schema drizzle` antes e `--no-owner --no-privileges`: 0 erros, 0,34 s. 44 tabelas em `public` + 1 em `drizzle`, 120 índices, 12 FKs; 16 tabelas com linhas, 767 linhas no total; `__drizzle_migrations` com 19 entradas, a última `0018_flag_voz_no_aparelho` (a `0019_periodo_pago_desde`, de 14/11, é posterior ao dump: esperado, o boot aplica). Dump e container apagados no fim. |
 
 ### 0.3 Rollback de deploy
 
@@ -168,6 +206,31 @@ Ao receber o de 80 %: olhe o painel do Groq/OpenRouter (quem está gastando? abu
 subir o orçamento (`npx wrangler secret put AI_BUDGET_USD_MONTH -c wrangler.jsonc`) ou deixar fechar. O teto do painel do
 Groq e o crédito pré-pago sem recarga da OpenRouter são a segunda e a terceira barreira: mesmo que a
 estimativa erre, o provedor corta.
+
+### 0.6 Abrir e fechar portas
+
+Sete portas decidem o que a produção oferece. Quatro são secrets do Worker (o inventário está em
+`server/lib/config.ts`) e três são flags de banco. Trocar um secret: `npx wrangler secret put NOME -c wrangler.jsonc`
+(produção é o ambiente raiz; staging leva `--env staging`), vale na próxima requisição; apagar:
+`npx wrangler secret delete NOME -c wrangler.jsonc`. Para VOLTAR uma chave posta pelo `scripts/cloudflare/secrets.ts`, use `wrangler secret put NOME` com `1` ou `wrangler secret delete NOME [--env staging]`; tirar a chave do `.secrets.*.json` e reenviar NÃO apaga o secret (o `secret bulk` só cria ou atualiza). Flag: **Admin → Flags** no app (admin com 2FA) ou
+`node dist-server/operacao.cjs flags ligar|desligar <chave>` com a `DATABASE_URL` de produção; vale em até 30 s
+([flags.md](flags.md)). O procedimento ordenado de **abrir** pela primeira vez é o
+[LANCAMENTO.md §11-bis](LANCAMENTO.md#11-bis-abrir-a-venda--passo-a-passo).
+
+| porta              | onde                       | abrir                                                                                     | fechar                                                                         | o que acontece fechada                                                                                                                     |
+| ------------------ | -------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `SIGNUP_ENABLED`   | secret                     | `1` ou sem o secret (ausente = aberto) **e** Supabase "Allow new users to sign up" ligado | `0` **e** desligar o cadastro no Supabase (Authentication → Providers → Email) | conta nova recebe 403 `cadastro_fechado`; a tela esconde "Criar conta"; quem já tem conta entra normalmente                                |
+| `CHECKOUT_ENABLED` | secret                     | `1` ou sem o secret                                                                       | `0`                                                                            | assinar e comprar respondem 503 com mensagem; quem já paga segue; o webhook do Asaas continua processando; força `vender_planos` desligada |
+| `ANUAL_ENABLED`    | secret                     | `1` (**só depois dos Termos §3–§4 validados**)                                            | `0` ou apagar o secret (ausente = fechado)                                     | o anual (à vista e 12x) some da tela e o servidor responde 503 `anual_indisponivel`; quem já tem o anual não é afetado                     |
+| `venda_planos_v3`  | flag                       | `flags ligar venda_planos_v3` (Essencial à venda)                                         | `flags desligar venda_planos_v3`                                               | `POST /api/billing/assinar` recusa o Essencial com 503 `plano_indisponivel`; o Premium segue; quem já tem o Essencial o mantém             |
+| `stt_ao_vivo`      | flag                       | `flags ligar stt_ao_vivo`, só com o serviço de fluxo (a rota ao vivo) escolhido e no ar   | `flags desligar stt_ao_vivo`                                                   | o Ao Vivo some da venda (`POST /api/billing/assinar` recusa com 503 `plano_indisponivel`); quem já tem o plano o mantém                    |
+| `anuncios`         | flag (+ `ANUNCIOS_ORIGEM`) | `flags ligar anuncios`, só depois do jurídico e da rede (LANCAMENTO §11-bis, passo 6)     | `flags desligar anuncios` (a CSP volta ao normal em até 60 s)                  | nenhum espaço renderiza e nada é pedido a terceiros                                                                                        |
+| `AI_ENABLED`       | secret                     | `1` ou sem o secret                                                                       | `0`                                                                            | toda IA de nuvem para; o app segue com os modelos locais                                                                                   |
+
+Regras de bolso: **abra na ordem** cadastro → venda → anual → anúncios e **feche na ordem inversa do problema** (cobrança
+errada: `CHECKOUT_ENABLED=0`; conta falsa em massa: `SIGNUP_ENABLED=0`; IA gastando: `AI_ENABLED=0`, §0 item 2). Fechar
+`CHECKOUT_ENABLED` ou `venda_planos_v3` nunca tira o plano de quem já pagou. As chaves de emergência e o orçamento de IA
+(`AI_BUDGET_USD_MONTH`) estão no §0 e no §0.5.
 
 ## Cloudflare, Supabase e Sentry têm alerta de fatura no painel — ligue os três (LANCAMENTO.md).
 
@@ -275,7 +338,7 @@ cai num balde `desconhecida`. É o que impede um scanner de porta de criar mil s
 
 ### 3.1 Métricas do Worker: Analytics Engine
 
-No Worker não há `/metrics` (404). Seis famílias saem como pontos de dados para o dataset `frasy_metricas`
+No Worker não há `/metrics` (404). Nove famílias saem como pontos de dados para o dataset `frasy_metricas`
 (`frasy_metricas_staging` no staging), binding `METRICAS`, gravados por `server/http/metricasDoAnalyticsEngine.ts`.
 Sem o binding (dev local, testes) nada é gravado. Falha do binding vira um único `analytics_engine_falhou`
 (`warn`) por isolate. Blobs e índice são cortados em 96 bytes; um número não finito derruba o ponto.
@@ -290,6 +353,10 @@ Sem o binding (dev local, testes) nada é gravado. Falha do binding vira um úni
 | `r2`                | recurso (`armazenamento`, `ops_a`, `ops_b`) |                  |            |        | fração de uso |                               | recurso  |
 | `provedor`          | provedor                                    | função           | fornecedor | modelo | ms            | custo (USD, 0 se não cobrado) | provedor |
 | `job`               | nome                                        | `ok` ou `falhou` |            |        | ms            |                               | nome     |
+| `resposta_invalida` | função                                      | modelo           |            |        | 1             |                               | função   |
+| `tokens_de_entrada` | função                                      | modelo           |            |        | tokens        | tokens em cache               | função   |
+| `feedback_ia`       | função                                      | `up` ou `down`   | motivo     |        | 1             |                               | função   |
+| `saida_filtrada`    | função                                      | categoria        |            |        | 1             |                               | função   |
 
 Consultas pela API SQL (`POST https://api.cloudflare.com/client/v4/accounts/<conta>/analytics_engine/sql`,
 token com "Account Analytics: Read"; o corpo é o SQL). Some `_sample_interval` para corrigir a amostragem:
@@ -409,7 +476,7 @@ entrada só, a constante de teste `segredo-e2e-hs256-marco1`, que nunca foi chav
 
 | balde                                                | teto               | chave  | protege              |
 | ---------------------------------------------------- | ------------------ | ------ | -------------------- |
-| autenticação                                         | 30 falhas / 15 min | IP     | adivinhação de token |
+| autenticação (só requisição com `Authorization`)     | 30 falhas / 15 min | IP     | adivinhação de token |
 | rotas caras (`/api/ai`, `/api/import`, `/api/tutor`) | 60 / min           | tenant | gasto com terceiros  |
 | escrita (CRUD, admin, áudio)                         | 120 / min          | tenant | memória do processo  |
 
@@ -421,6 +488,13 @@ proteção de verdade (recusa a requisição, em vez de só trocar a resposta). 
 estourado, ele bloqueia tudo daquela origem na janela, **inclusive requisição com token bom**. É o
 comportamento de qualquer bloqueio por origem — e é por isso que `TRUST_PROXY` precisa estar certo:
 sem ela, atrás de proxy, a chave é o IP do proxy e o bloqueio de um atacante pega todo mundo junto.
+
+**O balde só olha quem traz credencial** (desde 2026-11-12). Visitante sem conta abre o app e dispara
+~10 chamadas `/api/*` sem `Authorization`, todas 401; antes elas somavam, e na 3ª abertura o IP inteiro
+levava 429 (`muitas_falhas_de_autenticacao`) por 15 minutos. Agora requisição sem `Authorization` (ou com
+ele vazio) nem consulta o balde: recebe o 401 de sempre e não soma. Qualquer conteúdo no `Authorization`,
+até esquema errado, conta como tentativa. Com o IP bloqueado, quem traz credencial recebe 429; quem não
+traz continua no 401. A regra está em `server/lib/credencialDaRequisicao.ts`.
 
 `TRUST_PROXY` **não liga sozinha**, e o motivo é que o erro para o outro lado é pior: confiar em
 `X-Forwarded-For` sem proxy à frente entrega a chave do balde ao cliente, e o limitador deixa de
@@ -437,7 +511,7 @@ node scripts/backup.mjs                        # cópia consistente
 
 **Exercício de restauração do dump semanal (Postgres).** Uma vez por mês: baixe o `semanal/AAAA-MM-DD.dump` mais
 recente do bucket `frasy-backups`, crie um banco VAZIO (nunca o de produção), restaure com
-`pg_restore --no-owner --schema=public --schema=drizzle` (credenciais por `PG*`, passo a passo em `docs/deploy.md`,
+`create schema drizzle` e `pg_restore --no-owner --no-privileges --schema=public --schema=drizzle` (ver §0.2; credenciais por `PG*`, passo a passo em `docs/deploy.md`,
 "Backup semanal do Postgres no R2"), compare `select count(*)` das tabelas grandes e de `drizzle.__drizzle_migrations`
 com o banco vivo e apague o banco do exercício (ele guarda dados pessoais). Se o último dump tiver mais de 8 dias, o
 workflow `backup-pg-dump.yml` falhou: veja a execução em Actions antes de qualquer outra coisa.

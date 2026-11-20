@@ -1,7 +1,7 @@
 /**
  * A VOLTA DO ASAAS E A PRÓXIMA COBRANÇA (funil de venda, 2026-09-29).
  *
- * 1. `criarAssinatura` pede ao Asaas para devolver o pagador a `/plano/assinado` (`callback`) SÓ
+ * 1. `criarAssinatura` pede ao Asaas para devolver o pagador a `/app/plano/assinado` (`callback`) SÓ
  *    quando o endereço público do app é https de verdade: o Asaas recusa localhost e domínio que
  *    não esteja cadastrado, e uma assinatura recusada é venda perdida.
  * 2. `GET /api/billing/status` devolve `proximaCobranca` (o `nextDueDate` do Asaas) para a
@@ -36,10 +36,10 @@ describe('criarAssinatura — callback de volta ao app', () => {
     return JSON.parse(String(f.mock.calls[0][1]?.body))
   }
 
-  it('APP_URL https: manda o callback para /plano/assinado com autoRedirect', async () => {
+  it('APP_URL https: manda o callback para /app/plano/assinado com autoRedirect', async () => {
     process.env.APP_URL = 'https://babel.exemplo.com.br/'
     const corpo = await corpoEnviado()
-    expect(corpo.callback).toEqual({ successUrl: 'https://babel.exemplo.com.br/plano/assinado', autoRedirect: true })
+    expect(corpo.callback).toEqual({ successUrl: 'https://babel.exemplo.com.br/app/plano/assinado', autoRedirect: true })
     expect(corpo.billingType).toBe('UNDEFINED')
   })
 
@@ -51,6 +51,13 @@ describe('criarAssinatura — callback de volta ao app', () => {
       expect(corpo.callback).toBeUndefined()
     },
   )
+
+  it('manda User-Agent: o Asaas recusa pedido sem ele, e o fetch do Worker não põe um sozinho', async () => {
+    const f = vi.spyOn(globalThis, 'fetch').mockResolvedValue(json({ id: 'sub_ua' }))
+    await asaas.criarAssinatura(asUserId('u-cb'), 'cus_1', 9.9, 'Frasy Essencial')
+    const cabecalhos = f.mock.calls[0][1]?.headers as Record<string, string>
+    expect(cabecalhos['User-Agent']).toMatch(/\S/)
+  })
 
   it('Asaas recusa o callback (400): cria de novo sem ele, e a venda não se perde', async () => {
     process.env.APP_URL = 'https://babel.exemplo.com.br'

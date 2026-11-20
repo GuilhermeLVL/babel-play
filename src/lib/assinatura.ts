@@ -75,7 +75,7 @@ export interface StatusDeBilling {
    * atraso, até quando o acesso vale.
    */
   proximaCobranca?: string;
-  /** O teste de 14 dias do Premium desta conta (C6). Ausente em servidor anterior. */
+  /** O teste de 3 dias do Premium desta conta (C6). Ausente em servidor anterior. */
   teste?: SituacaoDoTeste;
   /**
    * Os planos que o servidor vende AGORA a esta conta (planos v3): os pagos cujas chaves de venda estão
@@ -103,13 +103,14 @@ export type MotivoSemTeste =
   | 'perfil_protegido'
   | 'ja_assinante'
   | 'sem_email'
+  | 'email_descartavel'
   | 'marca_usada';
 
-/** O teste de 14 dias como o servidor o vê — `GET /api/billing/status` → `teste`. */
+/** O teste de 3 dias como o servidor o vê — `GET /api/billing/status` → `teste`. */
 export type SituacaoDoTeste =
-  | { estado: 'disponivel'; dias: number }
-  | { estado: 'ativo' | 'usado'; dias: number; iniciadoEm: number; terminaEm: number }
-  | { estado: 'indisponivel'; dias: number; motivo: MotivoSemTeste };
+  | { estado: 'disponivel'; dias: number; plano?: PlanoPago }
+  | { estado: 'ativo' | 'usado'; dias: number; plano?: PlanoPago; iniciadoEm: number; terminaEm: number }
+  | { estado: 'indisponivel'; dias: number; plano?: PlanoPago; motivo: MotivoSemTeste };
 
 export interface Fatura {
   id: string;
@@ -126,7 +127,7 @@ export interface Fatura {
 }
 
 /**
- * `teste` (C6/C7): o teste de 14 dias do Premium, sem cartão. NÃO é assinatura — não tem aba "Sua
+ * `teste` (C6/C7): o teste de 3 dias do Premium, sem cartão. NÃO é assinatura — não tem aba "Sua
  * assinatura", não se cancela e nunca cobra: no fim a conta volta ao Grátis sozinha.
  */
 export type EstadoDaConta = 'selfhost' | 'gratis' | 'teste' | 'ativa' | 'falhou' | 'cancelada';
@@ -159,7 +160,7 @@ export interface Conta {
  * O TESTE (C7): quem testa tem o Premium nos entitlements, mas não tem assinatura. Antes disto ele
  * caía no "plano pago sem cobrança" e a tela o tratava como assinante (aba "Sua assinatura", "Voltar
  * ao Grátis" levando a um cancelamento que não existe). O teste vem do status (`teste.estado`) ou,
- * sem ele, dos entitlements (`teste.terminaEm`, o que o aviso de D-3/D0 já lê).
+ * sem ele, dos entitlements (`teste.terminaEm`, o que o aviso de D-1/D0 já lê).
  */
 export function estadoDaConta(
   plan: Plan,
@@ -195,7 +196,14 @@ export function estadoDaConta(
       : !status?.teste && testeDosEntitlements
         ? testeDosEntitlements.terminaEm
         : null;
-  if (terminaEm !== null && terminaEm > agora) return { estado: 'teste', plano: PLANO_DO_TESTE, valeAte: terminaEm };
+  /* O plano do teste é o GRAVADO (v4: o Plus; antes, o Premium). Sem o status, o plano que o servidor já
+     dá aos entitlements durante o teste. */
+  if (terminaEm !== null && terminaEm > agora)
+    return {
+      estado: 'teste',
+      plano: (t?.estado === 'ativo' ? t.plano : null) ?? planoPagoDe(plan) ?? PLANO_DO_TESTE,
+      valeAte: terminaEm,
+    };
   // Plano pago sem cobrança no provedor (concedido pelo administrador): ativo, sem data.
   const pagoNoPlano = planoPagoDe(plan);
   if (pagoNoPlano) return { estado: 'ativa', plano: pagoNoPlano, valeAte: null };
@@ -348,7 +356,7 @@ export async function carregarStatusDeBilling(): Promise<StatusDeBilling | null>
     if (!r.ok) return null;
     const s = (await r.json()) as StatusDeBilling;
     /* O motor de ofertas sugere o teste só a quem o servidor deixa testar (C8): toda resposta nova
-       atualiza o que ele sabe — quem acabou de começar o teste deixa de ouvir "teste 14 dias". */
+       atualiza o que ele sabe — quem acabou de começar o teste deixa de ouvir "teste 3 dias". */
     lembrarSituacaoDoTeste(s?.teste?.estado);
     return s;
   } catch {
@@ -401,7 +409,7 @@ export async function iniciarAssinatura(dados: {
 }
 
 /**
- * COMEÇA O TESTE DE 14 DIAS — um toque, sem cartão (C6). Não pede nome, CPF nem cartão: nada é
+ * COMEÇA O TESTE DE 3 DIAS — um toque, sem cartão (C6). Não pede nome, CPF nem cartão: nada é
  * cobrado, nem no fim. `paraUsuario` = o responsável ativando para o menor vinculado. Quem concede é
  * o servidor; a tela recarrega os entitlements depois.
  */

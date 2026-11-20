@@ -50,6 +50,9 @@ describe('gerarHeaders', () => {
     expect(dir('connect-src')).toContain('https://abcd.supabase.co')
     expect(dir('connect-src')).toContain('https://o1.ingest.sentry.io')
     expect(dir('connect-src')).toContain('https://modelos.exemplo.dev')
+    /* "Trazer o seu" por link: só o raw do GitHub, nunca o curinga. */
+    expect(dir('connect-src')).toContain('https://raw.githubusercontent.com')
+    expect(dir('connect-src').split(/\s+/)).not.toContain('https:')
   })
 
   it('VITE_ORT_WASM_URL abre a origem do runtime do ONNX em connect-src, script-src e worker-src', () => {
@@ -61,6 +64,15 @@ describe('gerarHeaders', () => {
     expect(dir('connect-src')).not.toContain('/ort/')
   })
 
+  it('com o espelho próprio, o _headers sai sem Hub e sem jsDelivr (o mesmo de diretivasDeCsp)', () => {
+    const e = env({ VITE_SELF_HOST_MODELS: 'https://modelos.frasy.com.br', VITE_AUTH_REQUIRED: '1' })
+    const csp = bloco(gerarHeaders(e, BASE), '/*')
+    expect(csp).toContain(serializarCsp(diretivasDeCsp(e)))
+    expect(csp).not.toContain('huggingface')
+    expect(csp).not.toContain('hf.co')
+    expect(csp).not.toContain('jsdelivr')
+  })
+
   it('sem variáveis, a política é a mínima do app (self, wasm-unsafe-eval, blob:, jsdelivr, huggingface…)', () => {
     const csp = bloco(gerarHeaders(env({}), BASE), '/*')
     expect(csp).toContain("default-src 'self'")
@@ -68,7 +80,16 @@ describe('gerarHeaders', () => {
     expect(csp).toContain('https://cdn.jsdelivr.net')
     expect(csp).toContain('https://huggingface.co')
     expect(csp).not.toContain('challenges.cloudflare.com')
-    expect(csp).not.toContain('frame-src')
+    // O leitor de livros (L2): cada capítulo é um documento `blob:` num iframe — e só isso entra em frame-src.
+    expect(csp).toContain("frame-src 'self' blob:")
+    expect(csp).not.toMatch(/frame-src [^;]*https:/)
+  })
+
+  it('o build do Worker (VITE_AUTH_REQUIRED=1) sai sem o Ollama local; a edição estática (sem ela) o mantém', () => {
+    const publico = bloco(gerarHeaders(env({ VITE_AUTH_REQUIRED: '1' }), BASE), '/*')
+    expect(publico).not.toContain('11434')
+    const estatica = bloco(gerarHeaders(env({ VITE_AUTH_REQUIRED: '' }), BASE), '/*')
+    expect(estatica).toContain('http://localhost:11434')
   })
 
   it('traz o isolamento e os demais cabeçalhos globais', () => {
@@ -93,6 +114,15 @@ describe('gerarHeaders', () => {
 
   it('diagnostico-audio.html fica sem CSP', () => {
     expect(bloco(gerarHeaders(env({}), BASE), '/diagnostico-audio.html')).toBe('! Content-Security-Policy')
+  })
+
+  /* Ruling R35: a página de anúncios mora no Worker próprio `frasy-anuncios`; o `_headers` do app não tem
+     bloco para ela e não abre mão do isolamento em caminho nenhum. */
+  it('o _headers do app não tem bloco /anuncios/* nem host do Google', () => {
+    const h = gerarHeaders(env({ APP_URL: 'https://frasy.com.br' }), BASE)
+    expect(h).not.toContain('/anuncios')
+    expect(h).not.toMatch(/doubleclick|googlesyndication/)
+    expect(h).not.toMatch(/! Cross-Origin/)
   })
 
   it('não existe Content-Security-Policy-Report-Only', () => {

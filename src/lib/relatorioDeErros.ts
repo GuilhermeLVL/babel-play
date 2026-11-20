@@ -14,6 +14,11 @@
  * memória, que não conhece a rota — ou seja, quem não tem conta não reporta nada para fora, o que
  * é coerente com a promessa de privacidade daquele modo. Se o próprio reporte falhar, morre em
  * silêncio: reagir a erro de reporte só gera mais reporte.
+ *
+ * A EXCEÇÃO, decidida pelo dono (change `modelos-confiaveis-e-offline`, opção "a"): o CONTADOR ANÔNIMO de falhas
+ * de preparo (`falhas/contadorDeFalhas.ts`) sai também sem conta — só um tipo, o tipo de aparelho e a família do
+ * modelo, de listas fechadas, sem texto, id, tela nem IP gravado. Respeita "Métricas de uso anônimas" e o perfil
+ * de menor restrito. O texto de privacidade da tela precisa ser revisto com o dono antes de ligar em produção.
  */
 import { redigirErro } from '../core/redacao';
 import { criarLimitador, interpretarDsn, montarEnvelope, urlDoEnvelope } from '../core/sentry';
@@ -87,7 +92,11 @@ export function novoIdDeErro(): string {
   return `e-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
-export function reportarErro(tipo: 'render' | 'promise' | 'erro-global', mensagem: string, origem?: string): string {
+export function reportarErro(
+  tipo: 'render' | 'promise' | 'erro-global' | 'modelo-vetado',
+  mensagem: string,
+  origem?: string,
+): string {
   const id = novoIdDeErro();
   const msg = String(mensagem || 'erro sem mensagem').slice(0, 300);
 

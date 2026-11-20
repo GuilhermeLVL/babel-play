@@ -9,6 +9,10 @@
  * Gera `openspec/changes/planos-v2/custo/custo-v2.csv` (formato longo, uma linha por número) e
  * `custo-v2-tabelas.md` (as tabelas), e imprime as tabelas.
  *
+ * ATENÇÃO — A INFRA REAL NÃO É O FLY. Produção é Cloudflare Workers + Hyperdrive + Postgres do Supabase
+ * (sa-east-1) + R2; o Fly nunca foi implantado. Os preços do Fly abaixo (`fly*`, `flyMaquinaUsd`) são só um
+ * CENÁRIO DE COMPARAÇÃO de uma hospedagem em máquina própria, não o custo de hoje. Custo real: `docs/deploy.md`.
+ *
  * DE ONDE VEIO. A 1ª versão (Fase 3 da auditoria de prontidão, 25/09/2026) modelava Essencial e Pro; as
  * tabelas dela continuam em `openspec/audits/2026-09-25-prontidao/fase3-custo*` como o retrato daquela
  * matriz (o relatório `fase3-custo.md` as cita) — este script não as sobrescreve mais. A matriz v2

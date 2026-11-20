@@ -182,6 +182,12 @@ export const vocabCards = pgTable(
      * mantido pelo banco a cada escrita, então não há linha "desatualizada" possível.
      */
     srcLangBase: text('src_lang_base').generatedAlwaysAs(sql`lower(substr(coalesce(src_lang,''),1,2))`),
+    /**
+     * A NOTA PESSOAL da palavra (etiquetas de palavras, migração PG 0012): o que a pessoa escreveu para
+     * si sobre ela, até 500 caracteres (`PUT /api/vocab/:id/nota`). Nula = sem nota. Sai com o cartão
+     * em `GET /api/vocab` e na exportação da conta.
+     */
+    nota: text('nota'),
   },
   (t) => [
     /* UNIQUE que destrava o upsert atômico. Parcial (`deleted_at is null`) porque um cartão
@@ -779,6 +785,21 @@ export const subscriptions = pgTable(
        cobrança no valor novo. `plan` continua sendo o que está PAGO; as duas nulas = sem troca pendente. */
     trocaPara: text('troca_para'),
     trocaAPartirDe: text('troca_a_partir_de'),
+    /* O PLANO DA COBRANÇA REGISTRADA (planos v4, migração 0008): o plano que o fluxo do Asaas guardado nesta
+       linha (`providerSubscriptionId`/`providerInstallmentId`) cobra, gravado por `/assinar` junto com o id.
+       NÃO concede nada (quem concede é `plan`, pelo webhook): só desempata a parcela de valor ambíguo do 12x
+       (R$ 12,49 = Plus e Premium). Nulo = linha de antes da 0008. */
+    planoDaCobranca: text('plano_da_cobranca'),
+    /* O INÍCIO DO PERÍODO PAGO (migração 0019, change `cota-pelo-periodo-pago`): o vencimento da cobrança que
+       concedeu o período em vigor (no 12x, o da 1ª parcela), em ms. Gravado SÓ pela aplicação de um pagamento
+       (`aplicarEvento`), junto com `currentPeriodEnd` — o cancelamento, o estorno e o admin mexem no fim, nunca aqui.
+       É a âncora da janela da cota de quem paga (`janelaDaCota`). Nulo = sem pagamento aplicado desde a 0019. */
+    periodoPagoDesde: bigint('periodo_pago_desde', { mode: 'number' }),
+    /* O CICLO DA COBRANÇA REGISTRADA (migração 0019): `mensal` | `anual`, gravado por `/assinar` junto com o id e o
+       `planoDaCobranca`. `ciclo` é o do período CONCEDIDO e `/assinar` numa linha existente não o toca: o mensal que
+       assina o anual por boleto e paga com juros teria o valor lido contra o preço do mês. Nulo = linha de antes
+       da 0019 (vale `ciclo`).*/
+    cicloDaCobranca: text('ciclo_da_cobranca'),
   },
   (t) => [unique('uq_subscriptions_user').on(t.userId)],
 )
@@ -814,32 +835,41 @@ export const bootFalhas = pgTable('boot_falhas', {
   instancia: text('instancia'),
 })
 
-export const billingEvents = pgTable('billing_events', {
-  /** O id do EVENTO no provedor (`evt_…` no Asaas) — a chave da idempotência. */
-  id: text('id').primaryKey(),
-  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
-  provider: text('provider').notNull(), // 'asaas'
-  event: text('event').notNull(), // 'PAYMENT_CONFIRMED' | 'PAYMENT_OVERDUE' | …
-  userId: text('user_id'),
-  /** Id da cobrança/assinatura no provedor, para auditoria cruzada. */
-  providerRef: text('provider_ref'),
-  /**
-   * O QUE ACONTECEU com o evento (auditoria de 2026-09-07, achado A05). Antes, um pagamento
-   * confirmado cuja assinatura divergia da registrada, ou um avulso que não casava com compra
-   * nenhuma, caía num `break` e respondia 200: o Asaas não reentrega e o pagante ficava sem o
-   * plano, sem trilha para reprocessar. Agora todo evento termina `aplicado` ou `nao-aplicado`
-   * com `motivo`, e o payload fica guardado para um administrador reaplicar.
-   */
-  estado: text('estado').notNull().default('aplicado'), // 'aplicado' | 'nao-aplicado' | 'ignorado'
-  motivo: text('motivo'),
-  /**
-   * O JSON do evento REDUZIDO aos campos que a reaplicação usa — ids, evento, valor, status e datas
-   * (GAP-017 / S26-13). O corpo do Asaas traz dado pessoal do pagador (nome, CPF, cartão, link da
-   * fatura), e ele ficava aqui cru e sem prazo. A lista de campos permitidos está em
-   * `repositories/billingEvents.ts` (`reduzirPayload`); a migração 0047 limpou as linhas antigas.
-   */
-  payload: text('payload'),
-})
+export const billingEvents = pgTable(
+  'billing_events',
+  {
+    /** O id do EVENTO no provedor (`evt_…` no Asaas) — a chave da idempotência. */
+    id: text('id').primaryKey(),
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+    provider: text('provider').notNull(), // 'asaas'
+    event: text('event').notNull(), // 'PAYMENT_CONFIRMED' | 'PAYMENT_OVERDUE' | …
+    userId: text('user_id'),
+    /** Id da cobrança/assinatura no provedor, para auditoria cruzada. */
+    providerRef: text('provider_ref'),
+    /**
+     * O QUE ACONTECEU com o evento (auditoria de 2026-09-07, achado A05). Antes, um pagamento
+     * confirmado cuja assinatura divergia da registrada, ou um avulso que não casava com compra
+     * nenhuma, caía num `break` e respondia 200: o Asaas não reentrega e o pagante ficava sem o
+     * plano, sem trilha para reprocessar. Agora todo evento termina `aplicado` ou `nao-aplicado`
+     * com `motivo`, e o payload fica guardado para um administrador reaplicar.
+     */
+    estado: text('estado').notNull().default('aplicado'), // 'aplicado' | 'nao-aplicado' | 'ignorado'
+    motivo: text('motivo'),
+    /**
+     * O JSON do evento REDUZIDO aos campos que a reaplicação usa — ids, evento, valor, status e datas
+     * (GAP-017 / S26-13). O corpo do Asaas traz dado pessoal do pagador (nome, CPF, cartão, link da
+     * fatura), e ele ficava aqui cru e sem prazo. A lista de campos permitidos está em
+     * `repositories/billingEvents.ts` (`reduzirPayload`); a migração 0047 limpou as linhas antigas.
+     */
+    payload: text('payload'),
+  },
+  (t) => [
+    /* Migração 0019: os pagamentos de um titular por tipo de evento (a duplicata do estorno,
+       `pagamentosConfirmadosDoUsuario`) e os eventos de uma cobrança (a reconciliação procura por `provider_ref`). */
+    index('idx_billing_events_user_event').on(t.userId, t.event),
+    index('idx_billing_events_provider_ref').on(t.providerRef),
+  ],
+)
 
 export const usageCounters = pgTable(
   'usage_counters',
@@ -1179,7 +1209,7 @@ export const glossario = pgTable(
 )
 
 /**
- * O TESTE DE 14 DIAS DO PREMIUM (C6 da change `planos-v2`, migração 0043). Uma linha por conta que
+ * O TESTE DE 3 DIAS DO PREMIUM (C6 da change `planos-v2`, migração 0043). Uma linha por conta que
  * testou: quando começou e quando termina. Enquanto `termina_em` estiver no futuro, o servidor
  * concede o Premium nos entitlements (`resolverPlano`), mas a admissão da nuvem trata a conta como
  * GRÁTIS (`planoDeAdmissao(..., teste = true)`) — quem ainda não paga não disputa a capacidade de quem
@@ -1194,11 +1224,15 @@ export const testesPremium = pgTable('testes_premium', {
   userId: text('user_id').primaryKey(),
   iniciadoEm: bigint('iniciado_em', { mode: 'number' }).notNull(),
   terminaEm: bigint('termina_em', { mode: 'number' }).notNull(),
+  /* O PLANO DO TESTE (planos v4, migração 0008): `planoDoTeste(flag)` avaliado no INÍCIO e gravado — quem
+     começou no Premium segue nele até o fim, mesmo com a v4 ligada depois. Nulo = teste de antes da 0008
+     (Premium). */
+  plano: text('plano'),
 })
 
 /**
  * A MARCA DO TESTE (C6, migração 0043) — o que impede apagar a conta e criar outra para ganhar mais
- * 14 dias. `marca` é o HMAC-SHA256 do e-mail NORMALIZADO com a chave de hash do servidor
+ * 3 dias. `marca` é o HMAC-SHA256 do e-mail NORMALIZADO com a chave de hash do servidor
  * (`obterChaveDeHash()`, `server/lib/testePremium.ts`): não guarda o e-mail, não volta a ele sem o
  * segredo, e NÃO tem `user_id` — por isso sobrevive à exclusão da conta, que é exatamente o objetivo.
  *
@@ -1227,6 +1261,12 @@ export const versoesDeDados = pgTable('versoes_de_dados', {
   userId: text('user_id').primaryKey(),
   vocab: bigint('vocab', { mode: 'number' }).notNull().default(0),
   atividade: bigint('atividade', { mode: 'number' }).notNull().default(0),
+  /**
+   * A versão do CONJUNTO de palavras vistas (etiquetas de palavras, migração PG 0012): o ETag de
+   * `GET /api/vocab/vistas`. Não é gatilho: sobe em `palavrasVistasRepo` só quando nasce ou some uma linha
+   * do índice (ou numa reconstrução) — somar ocorrência numa palavra já vista não invalida a lista.
+   */
+  palavras: bigint('palavras', { mode: 'number' }).notNull().default(0),
 })
 
 /** Uma linha por (usuário, idioma, dia local): agregados derivados de review_logs e exercise_results. */
@@ -1322,4 +1362,143 @@ export const admissaoDeIa = pgTable(
     atualizadoEm: bigint('atualizado_em', { mode: 'number' }).notNull(),
   },
   (t) => [primaryKey({ columns: [t.chave, t.janela] })],
+)
+
+/**
+ * AS EXIBIÇÕES DO ANÚNCIO PREMIADO (spec `anuncios-no-gratis`; `server/routes/anuncios.ts`). Na web não há
+ * verificação servidor a servidor da rede de anúncios: a recompensa é um aperto de mão em dois passos. `iniciar`
+ * cria a linha com um `exibicao_id` aleatório; `concluir` credita só se a linha é desta conta, ainda não foi
+ * concluída e foi iniciada há menos de 10 minutos — e grava `concluido_em` e `dia` (o dia UTC da CONCLUSÃO,
+ * nulo enquanto pendente). Os tetos do dia (`LIMITE_DE_PREMIADOS_POR_DIA`, `TETO_GLOBAL_DE_PREMIADOS_POR_DIA`)
+ * contam as linhas concluídas por `dia`; o bônus de nuvem do mês (`nuvem-30`) também sai daqui, e por isso
+ * creditar a nuvem e marcar a conclusão são a MESMA escrita.
+ *
+ * DADO DO TITULAR (`user_id`): sai com a exclusão da conta e entra na exportação. A limpeza diária poda as
+ * pendentes de mais de um dia e as concluídas antes do mês anterior.
+ */
+export const anunciosPremiados = pgTable(
+  'anuncios_premiados',
+  {
+    userId: text('user_id').notNull(),
+    /** 32 hex aleatórios, gerados pelo servidor no `iniciar`. */
+    exibicaoId: text('exibicao_id').notNull(),
+    /** O espaço premiado (`fim-premiado`, `loja-seeds`, `nuvem-30`, `tema-24h`, `ajuda-premiada`). */
+    espaco: text('espaco').notNull(),
+    /** `AAAA-MM-DD` UTC da conclusão; nulo enquanto pendente. */
+    dia: text('dia'),
+    iniciadoEm: bigint('iniciado_em', { mode: 'number' }).notNull(),
+    concluidoEm: bigint('concluido_em', { mode: 'number' }),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.exibicaoId] }), index('idx_anuncios_premiados_dia').on(t.dia)],
+)
+
+/**
+ * O ÍNDICE DAS PALAVRAS VISTAS (etiquetas de palavras, migração PG 0012): por sessão, quantas vezes cada
+ * palavra apareceu nas falas, para a legenda marcar "já vi" e o histórico da palavra dizer onde.
+ *
+ * DADO DERIVADO das falas (`utterances.source_text`), mantido no MESMO lote de toda escrita nelas
+ * (`palavrasVistasRepo`, chamado por `sessionsRepo`/`utterancesRepo`), e reconstruível a qualquer momento
+ * (`operacao.cjs palavras reindexar`). A chave é `chaveDaPalavra` com o idioma BASE da fala, então
+ * `lang|chave` é o `norm_key` do cartão da mesma palavra (`src/core/texto/palavrasVistas.ts`).
+ *
+ * `exemplo_idx` é o `idx` de UMA fala da sessão que contém a palavra — estável entre "retomar a captura"
+ * e os lotes da captura longa, ao contrário do id da fala. O texto não é copiado para cá: a rota lê a
+ * fala e confere se ela ainda contém a palavra.
+ *
+ * FOREIGN KEY COM CASCADE, desvio declarado da regra do cabeçalho: a linha não tem sentido sem a sessão,
+ * e a limpeza diária (que apaga a sessão de vez) e a exclusão de conta não precisam conhecê-la. A remoção
+ * SOFT da sessão apaga as linhas daqui no mesmo lote (`sessionsRepo.remove`). Sem FK para `users`: nenhuma
+ * tabela a tem (sessões existem sem linha em `users` no self-host e nos testes). Dado do titular:
+ * `TABELAS_DO_TITULAR` (exclusão e exportação).
+ */
+export const palavrasVistas = pgTable(
+  'palavras_vistas',
+  {
+    userId: text('user_id').notNull(),
+    sessionId: text('session_id')
+      .notNull()
+      .references(() => sessions.id, { onDelete: 'cascade' }),
+    lang: text('lang').notNull(),
+    chave: text('chave').notNull(),
+    vezes: bigint('vezes', { mode: 'number' }).notNull().default(0),
+    primeiraEm: bigint('primeira_em', { mode: 'number' }).notNull(),
+    ultimaEm: bigint('ultima_em', { mode: 'number' }).notNull(),
+    exemploIdx: bigint('exemplo_idx', { mode: 'number' }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.sessionId, t.lang, t.chave] }),
+    /* As duas leituras: as chaves vistas num idioma (`GET /api/vocab/vistas`) e o histórico de uma chave
+       (`GET /api/vocab/palavra`). A PK começa por `session_id` depois do usuário e não serve a nenhuma. */
+    index('idx_palavras_vistas_chave').on(t.userId, t.lang, t.chave),
+    // Lado filho da FK (o CASCADE e o DELETE por sessão procuram por ela).
+    index('idx_palavras_vistas_sessao').on(t.sessionId),
+  ],
+)
+
+/**
+ * AS ANOTAÇÕES DO LEITOR (L2 da spec `docs/specs/2026-10-26-livros-e-leitura.md`, migração 0013) — grifos,
+ * notas e palavras salvas de um livro, no modelo W3C Web Annotation: CFI + `TextQuoteSelector`
+ * (`exact`/`prefixo`/`sufixo`). O modelo e a validação moram em `src/core/leitura/anotacao.ts`, os mesmos do
+ * cliente.
+ *
+ * `exact` ≤ 500 caracteres para TODO livro (o servidor não sabe se o livro é do catálogo ou trazido, e não
+ * pode virar cópia da obra trazida); o arquivo do livro nunca sobe. A sincronização é por `atualizado_em`
+ * (última escrita vence) com lápide em `apagado_em`. DADO DO TITULAR: entra em `TABELAS_DO_TITULAR`
+ * (exportação e exclusão), grátis para todo plano — é dado de estudo como o deck.
+ */
+export const anotacoesDeLeitura = pgTable(
+  'anotacoes_de_leitura',
+  {
+    userId: text('user_id').notNull(),
+    id: text('id').notNull(),
+    livroId: text('livro_id').notNull(),
+    tipo: text('tipo').notNull(),
+    cfi: text('cfi').notNull().default(''),
+    exact: text('exact').notNull().default(''),
+    prefixo: text('prefixo').notNull().default(''),
+    sufixo: text('sufixo').notNull().default(''),
+    capitulo: text('capitulo'),
+    cor: text('cor').notNull(),
+    nota: text('nota').notNull().default(''),
+    palavra: text('palavra'),
+    criadoEm: bigint('criado_em', { mode: 'number' }).notNull(),
+    atualizadoEm: bigint('atualizado_em', { mode: 'number' }).notNull(),
+    apagadoEm: bigint('apagado_em', { mode: 'number' }),
+    /* O RELÓGIO DO SERVIDOR (e não o do aparelho): posto pelo servidor a cada inserção, edição e lápide, sob a
+       trava do usuário e sempre crescente por pessoa. É o cursor da sincronização, com o `id` de desempate. */
+    sincronizadoEm: bigint('sincronizado_em', { mode: 'number' }).notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.id] }),
+    index('idx_anotacoes_de_leitura_livro').on(t.userId, t.livroId, t.sincronizadoEm, t.id),
+  ],
+)
+
+/**
+ * O CACHE DO PARCEIRO DE LEITURA (L4 de Livros & Leitura, migração 0014) — `server/ai/leitura/cacheDoParceiro.ts`.
+ *
+ * Só livro DO CATÁLOGO (domínio público): a resposta do parceiro a um trecho é a mesma para todo mundo que manda o
+ * mesmo capítulo, o mesmo trecho, o mesmo modo e o mesmo nível — a primeira pessoa paga a chamada e as outras leem
+ * daqui. A CHAVE é o SHA-256 de tudo que vai ao prompt (versão do prompt, livro, hash do texto do capítulo, modo, hash
+ * do trecho, nível, idiomas, público adulto/menor e a ficha), então uma linha nunca serve a outro pedido e não dá para
+ * "envenenar" o cache: quem manda texto diferente cai noutra chave. A pergunta livre NUNCA entra aqui (é texto da
+ * pessoa), nem o livro trazido por ela. Sem `user_id`: a linha não é de ninguém (fora de `TABELAS_DO_TITULAR`).
+ */
+export const cacheDoParceiro = pgTable(
+  'cache_do_parceiro',
+  {
+    chave: text('chave').primaryKey(),
+    /** O id do catálogo (PD) — para auditar e podar por livro; nunca texto da pessoa. */
+    livroId: text('livro_id').notNull(),
+    modo: text('modo').notNull(),
+    /** O modelo que REALMENTE respondeu (procedência). */
+    modelo: text('modelo').notNull(),
+    versaoPrompt: text('versao_prompt').notNull(),
+    /** A resposta já LIDA e validada (JSON), a mesma que a pessoa recebeu. */
+    resposta: text('resposta').notNull(),
+    criadoEm: bigint('criado_em', { mode: 'number' }).notNull(),
+    usadoEm: bigint('usado_em', { mode: 'number' }).notNull(),
+    acertos: bigint('acertos', { mode: 'number' }).notNull().default(0),
+  },
+  (t) => [index('idx_cache_do_parceiro_criado').on(t.criadoEm), index('idx_cache_do_parceiro_usado').on(t.usadoEm)],
 )

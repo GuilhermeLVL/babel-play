@@ -10,13 +10,18 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+/* A conta destes testes tem sessão guardada no navegador (`sb-*-auth-token`): sem ela o visitante já nasce
+   `anonimo` e não espera o SDK (carga-rapida-no-celular). */
+vi.hoisted(() => localStorage.setItem('sb-teste-auth-token', '{}'))
+
 const gravado = vi.hoisted(() => ({ ui: null as Record<string, unknown> | null, ok: true }))
 
 vi.mock('../src/lib/supabase', () => ({
   supabase: null,
   authRequired: true,
   carregarSupabase: async () => null,
-  getAccessToken: async () => null,
+  // A conta destes testes tem token: no modo público, sem token o funil responde como sem conta.
+  getAccessToken: async () => 'tok',
 }))
 vi.mock('../src/data/api', async (original) => ({
   ...(await original<typeof import('../src/data/api')>()),
@@ -43,6 +48,7 @@ const resposta = (corpo: unknown) =>
 
 beforeEach(() => {
   localStorage.clear()
+  localStorage.setItem('sb-teste-auth-token', '{}')
   limparEntitlements()
   _reiniciarPreferencias()
   gravado.ui = null

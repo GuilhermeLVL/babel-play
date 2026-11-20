@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  confiancaMedia,
   decodificarTdt,
   destokenizar,
   dividirEmJanelas,
@@ -129,6 +130,50 @@ describe('decodificarTdt', () => {
   it('sem quadros, sem texto', async () => {
     const passo: PassoDoJoint<null> = async () => ({ logits: logits(1, 1), estado: null })
     expect(await decodificarTdt(encoder(0), passo, null, { tamanho: N_VOCAB, branco: BRANCO })).toEqual([])
+  })
+
+  /* O SINAL DO ÁUDIO DIFÍCIL (Fase B, item 6): a probabilidade (softmax só sobre os logits de TOKEN, não
+     os de duração) de cada token emitido. O branco não entra — ele não é texto. */
+  it('com `confiancas`, guarda a probabilidade de cada token emitido (softmax dos tokens)', async () => {
+    const roteiro: Record<number, Float32Array> = {}
+    const nitido = new Float32Array(N_VOCAB + 4).fill(-10)
+    nitido[1] = 10
+    nitido[N_VOCAB + 1] = 5
+    const duvidoso = new Float32Array(N_VOCAB + 4).fill(0) // empate entre os 6 tokens: 1/6 cada
+    duvidoso[3] = 0.0001
+    duvidoso[N_VOCAB + 1] = 5
+    roteiro[0] = nitido
+    roteiro[1] = logits(BRANCO, 1)
+    roteiro[2] = duvidoso
+    const passo: PassoDoJoint<null> = async (coluna) => ({ logits: roteiro[coluna[0]], estado: null })
+    const confiancas: number[] = []
+    const tokens = await decodificarTdt(
+      encoder(3),
+      passo,
+      null,
+      { tamanho: N_VOCAB, branco: BRANCO },
+      undefined,
+      confiancas,
+    )
+    expect(tokens).toEqual([1, 3])
+    expect(confiancas).toHaveLength(2)
+    expect(confiancas[0]).toBeGreaterThan(0.99)
+    expect(confiancas[1]).toBeCloseTo(1 / N_VOCAB, 3)
+  })
+
+  it('sem `confiancas`, nada muda (o mesmo texto)', async () => {
+    const passo: PassoDoJoint<null> = async (coluna) => ({
+      logits: logits(coluna[0] === 0 ? 1 : BRANCO, 1),
+      estado: null,
+    })
+    expect(await decodificarTdt(encoder(2), passo, null, { tamanho: N_VOCAB, branco: BRANCO })).toEqual([1])
+  })
+})
+
+describe('confiancaMedia', () => {
+  it('média das probabilidades; sem token, sem confiança', () => {
+    expect(confiancaMedia([1, 0.5])).toBe(0.75)
+    expect(confiancaMedia([])).toBeUndefined()
   })
 })
 

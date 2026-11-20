@@ -47,7 +47,7 @@ O Asaas não tem mensalidade: cobra por transação (cartão ~R$ 0,49 + 1,99 % a
 
 **O que se vende (planos v2, ADR 0011):** Grátis + **Premium** — R$ 19,90/mês, **R$ 179/ano** à vista (Pix,
 boleto ou cartão; renova em um ano) ou em **12x no cartão** (11 × R$ 14,91 + R$ 14,99; não renova), e o
-**teste de 14 dias sem cartão** (um toque, um por pessoa, nunca cobra). "Sem limite no dia a dia" com **uso
+**teste de 3 dias sem cartão** (um toque, um por pessoa, nunca cobra). "Sem limite no dia a dia" com **uso
 justo** de 2 h/dia e 40 h/mês de nuvem (o empate de custo na pilha de hoje; 60 h só depois do B7). A conta
 de custo por assinante está em `scripts/custo/modelo.mjs` (`node scripts/custo/modelo.mjs`).
 
@@ -89,10 +89,14 @@ de custo por assinante está em `scripts/custo/modelo.mjs` (`node scripts/custo/
    S3_ENDPOINT=https://<conta>.r2.cloudflarestorage.com S3_ACCESS_KEY_ID=<token modelos> \
    S3_SECRET_ACCESS_KEY=<segredo> npx tsx scripts/modelos/publicar-no-r2.ts --bucket=frasy-modelos
    ```
-8. Publicar os modelos do **Bergamot** (tradução X→inglês no aparelho: 16 idiomas, ~450 MB no bucket, ~30–45 MB
-   por idioma para quem usa — contra ~113 MB do opus-mt). Mesmo bucket e mesmas credenciais; baixa do bucket da
-   Mozilla, confere o sha256 de cada arquivo contra `src/gateway/adapters/modelosDoBergamot.json` e sobe em
-   `bergamot/<par>/<execução>/<arquivo>`:
+8. Publicar os modelos do **Bergamot** (tradução X→inglês no aparelho: 16 idiomas (pt e os 15 de `paresDoCdn`), ~450 MB no bucket, ~30–45 MB
+   por idioma para quem usa — contra ~113 MB do opus-mt). Suba **pelo runner do GitHub** (a rede doméstica não
+   aguenta 450 MB): Actions → **publicar-modelos** → `ambiente` (staging|production) e `pares` (`all` ou `ja-en,zh-en`),
+   ou `gh workflow run publicar-modelos.yml --field ambiente=production`. Usa só o `CLOUDFLARE_API_TOKEN` e o
+   `CLOUDFLARE_ACCOUNT_ID` do Environment (sem chaves S3): baixa do bucket da Mozilla, confere o sha256 contra
+   `src/gateway/adapters/modelosDoBergamot.json` e sobe em `bergamot/<par>/<execução>/<arquivo>` no `frasy-modelos`.
+   Em produção, o bucket precisa do **domínio próprio** `modelos.<domínio>` (r2.dev tem limite de taxa; ver
+   `docs/deploy.md`, "Modelos no R2"). Alternativa com chaves S3, de uma máquina com banda:
    ```bash
    S3_ENDPOINT=https://<conta>.r2.cloudflarestorage.com S3_ACCESS_KEY_ID=<token modelos> \
    S3_SECRET_ACCESS_KEY=<segredo> npx tsx scripts/modelos/publicar-bergamot-no-r2.ts --bucket=frasy-modelos
@@ -249,7 +253,7 @@ ausente, 20 % do orçamento diário — o valor só baixa esse pool, os 80 % res
 6. **Pix Automático** fica DESLIGADO (o `/assinar` responde 501 `pix_automatico_indisponivel`): em produção o
    Asaas exige conta **PJ com CNPJ ativo há 6 meses ou mais** e sem restrição de Pix. Quando a conta for
    elegível, a integração entra atrás de flag (change `planos-v2`, C5).
-7. **Teste de 14 dias:** nada a configurar no Asaas (o teste não cria cobrança). A marca "um por pessoa" é
+7. **Teste de 3 dias:** nada a configurar no Asaas (o teste não cria cobrança). A marca "um por pessoa" é
    o HMAC do e-mail com a chave derivada da `SECRET_KEY`: **trocar a `SECRET_KEY` invalida as marcas** — quem
    já testou poderia testar de novo. Mais um motivo para guardá-la no cofre (passo 8).
 
@@ -306,6 +310,24 @@ caminho: [`STAGING.md`](STAGING.md).
 6. **Segundo run** do `deploy-worker` (`production`): daí em diante é o fluxo por versões, com fumaça e rollback
    automático. Cadastro e venda sobem **fechados** (`SIGNUP_ENABLED=0`, `CHECKOUT_ENABLED=0`).
 7. `wrangler tail` (`npx wrangler tail -c wrangler.jsonc`) não deve mostrar `ABORTADO`; o `/api/ready` deve dar 200.
+8. **Flags do lançamento** (banco, sem deploy; valem em até 30 s). O recorte (planos v4, `docs/specs/2026-10-24-planos-v4.md`)
+   é: `venda_planos_v4` **ligada** (Grátis e Plus à venda; Essencial, Premium e Ao Vivo saem da venda), `venda_familia` e
+   `venda_pro4` **desligadas** (aparecem como "em breve"), `stt_ao_vivo` **desligada**, `voz_natural` **desligada**
+   (o Plus mostra a voz como "em breve" até ela ligar), `anuncios` **desligada**. Os padrões de fábrica já são
+   "desligada"; só `venda_planos_v4` pede ação (`venda_planos_v3` pode ficar como está: a v4 encerra os v3).
+   Duas portas, as mesmas de [`flags.md`](flags.md): no app, logado como admin com o 2FA confirmado, **Admin → Flags**
+   (liga e desliga o interruptor `habilitada`), ou pela CLI, da sua máquina com a `DATABASE_URL` de produção no
+   ambiente (a CLI sai de `npm run build`):
+   ```bash
+   node dist-server/operacao.cjs conta papel <seu-e-mail> admin   # uma vez: o papel mora no banco
+   node dist-server/operacao.cjs flags ligar venda_planos_v4
+   node dist-server/operacao.cjs flags listar                      # confere: venda_planos_v4 LIGADA, venda_familia/venda_pro4 desligadas
+   ```
+   Ligar a flag **não abre a venda**: o checkout continua fechado por `CHECKOUT_ENABLED=0` até o §11-bis.
+9. **Página de anúncios** (só se for usar anúncios; pode ficar para depois do jurídico e da rede): o Worker próprio
+   `frasy-anuncios` é publicado à mão, `npm run anuncios:build` e `npx wrangler deploy -c wrangler.anuncios.jsonc`,
+   com o domínio `ads.<domínio>`. Passo a passo e variáveis em [`deploy.md`](deploy.md), "Anúncios". Publicá-lo não
+   liga nada: a flag `anuncios` segue desligada.
 
 ## 9. Domínio no Worker e a borda fechada — 20 min
 
@@ -336,26 +358,34 @@ caminho: [`STAGING.md`](STAGING.md).
 - [ ] Criar uma conta de teste, confirmar o e-mail (chega pelo Resend), entrar, **ativar o 2FA** em
       Ajustes → Conta, sair e entrar de novo (o app pede o código).
 - [ ] Gravar uma sessão curta: o áudio aparece no bucket `frasy-midia`.
-- [ ] **Threads do WASM**: no Chrome ou no Firefox, console da página → `crossOriginIsolated` dá
-      `true` (`curl -sI https://<domínio>/` mostra `cross-origin-embedder-policy: credentialless` e
+- [x] **Threads do WASM**: no Chrome ou no Firefox, console da página → `crossOriginIsolated` dá
+      `true` (staging, 21/10/2026: Chromium 156 → `true`; Firefox fica com o dono) (`curl -sI https://<domínio>/` mostra `cross-origin-embedder-policy: credentialless` e
       `document-isolation-policy`). Se algum recurso de terceiro parar de carregar por causa do COEP,
       `CROSS_ORIGIN_ISOLATION=dip` (secret do Worker, `npx wrangler secret put CROSS_ORIGIN_ISOLATION
 -c wrangler.jsonc`, vale sem novo deploy) mantém as threads no Chrome/Edge; `0` desliga.
 - [ ] Na segunda seguinte: `semanal/<data>.dump` no `frasy-backups` (workflow `backup-pg-dump.yml` verde).
 - [ ] **Restaurar o dump** num banco descartável (`pg_restore`, runbook §0.2 e §8) e anotar a data no runbook.
-- [ ] Rodar o **ZAP Baseline** (Actions → _ZAP Baseline (staging)_ com a URL do staging) e triar.
+- [x] Rodar o **ZAP Baseline** (Actions → _ZAP Baseline (staging)_ com a URL do staging) e triar. (21/10/2026, run
+      39640692221: 0 FAIL, 7 WARN conhecidos e aceitos, triagem no inventário de 21/10)
 - [ ] **Cobrança real de R$ 5** no seu cartão pelo fluxo do app, conferir o plano liberado pelo
       webhook, e **estornar** no painel do Asaas.
-- [ ] **Os três ciclos no sandbox** (C5): mensal, anual em uma vez e anual em 12x com o cartão de teste do
+- [x] **Os três ciclos no sandbox** (C5): mensal, anual em uma vez e anual em 12x com o cartão de teste do
       Asaas — conferir na tela "Premium · mensal / anual / anual em 12x", o fim do período (35 d ou 370 d) e o
-      arrependimento de 7 dias devolvendo o ano inteiro (o parcelamento inteiro no 12x). Quantos webhooks o 12x
-      manda ao confirmar ainda não foi medido (a sondagem não digitou cartão).
-- [ ] **O teste de 14 dias** numa conta nova: um toque em Planos, a faixa "Premium · teste" com a data, nada
-      no Asaas; apagar a conta e recriar com o mesmo e-mail **não** renova o teste.
+      arrependimento de 7 dias devolvendo o ano inteiro (o parcelamento inteiro no 12x). (staging `0b82814`,
+      21/10/2026, pelo app e pagando com o cartão de teste via API, com `ANUAL_ENABLED=1` só durante a prova:
+      mensal → `valeAte` vencimento + 35 d; anual à vista → + 370 d e `/cancelar` estornou R$ 149,90; 12x → 11 ×
+      R$ 12,49 + R$ 12,51, pagar a 1ª confirma as 12 e manda **12 `PAYMENT_CONFIRMED`** (todas no mesmo fim) e
+      `/cancelar` estornou o parcelamento inteiro. A tela não foi aberta: conferido por `GET /api/billing/status`.
+      Antes, no Worker, toda chamada ao Asaas caía em 400 `user_agent_not_informed`, corrigido em `f1d347af`.
+      Inventário de 21/10, §9.)
+- [x] **O teste de 14 dias** numa conta nova: um toque em Planos, a faixa "Premium · teste" com a data, nada
+      no Asaas; apagar a conta e recriar com o mesmo e-mail **não** renova o teste. (staging, 21/10/2026: "Premium ·
+      em teste", 14 dias, nenhuma chamada ao Asaas; recriada → `marca_usada` e 409 `teste_ja_usado`)
 - [ ] **Termos §3–§4 validados pelo jurídico** (anual, 12x, teste, uso justo, cancelamento sem reembolso
       proporcional depois dos 7 dias — marcado "texto a validar" no HTML). **Sem isso, não abra a venda do
       anual.**
-- [ ] Forçar um erro de teste e ver o evento no Sentry **sem** e-mail nem IP.
+- [ ] Forçar um erro de teste e ver o evento no Sentry **sem** e-mail nem IP. (21/10/2026: o staging não tem
+      `SENTRY_DSN` nem `VITE_SENTRY_DSN`; fica para quando o dono criar o projeto no Sentry)
 - [ ] Aceitar os DPAs e marcar `docs/lgpd/operadores.md`; atualizar a política de privacidade com os
       operadores novos (a lista está lá).
 - [ ] Ligar alerta de fatura na Cloudflare, no Supabase e no Sentry.
@@ -363,9 +393,54 @@ caminho: [`STAGING.md`](STAGING.md).
       com uma conta de 15 anos — o e-mail chega (caixa de entrada, não spam; nos cabeçalhos,
       `spf=pass`, `dkim=pass` e `dmarc=pass`), o link não foi reescrito pelo Resend, o responsável
       aceita e a conta libera a nuvem. **Sem isso, não abra para menores.**
-- [ ] Testar as três chaves de emergência no staging: `AI_ENABLED=0` (tradução cai para o local),
+- [ ] **3 cartões na produção** (provado no staging em 21/10/2026: 3 cartões, sem Ao Vivo nem neural, `planosAVenda`
+      `essencial`+`premium`; falta repetir na produção): logado numa conta Grátis, Planos mostra Grátis, Essencial e Premium (e **nem** Ao
+      Vivo nem promessa de voz neural); `GET /api/billing/status` devolve `planosAVenda` com `essencial` e `premium`.
+- [x] **Checkout do Essencial no sandbox** (staging `0b82814`, 21/10/2026): mensal R$ 9,90, o webhook concede o
+      Essencial pelo valor, a troca para o Premium vale no próximo ciclo e o arrependimento de 7 dias devolve o valor.
+      (Provado: R$ 9,90 pago → `essencial`, `active`, `valeAte` 26/11; estorno → `PAYMENT_REFUNDED` → `free`; o
+      arrependimento do mensal estornou R$ 19,90 do Premium. A troca foi provada até a assinatura no Asaas ir ao valor
+      novo com a troca pendente para 22/11 — o sandbox não gera a fatura seguinte na hora, então a virada do plano
+      pelo pagamento novo segue coberta pelos testes de integração. Inventário de 21/10, §9.)
+- [x] **Anúncio: página de bancada sem violação** (Chromium no staging, 21/10/2026; flag desligada: zero origem de terceiros em `/`, `/plano`, `/jogar`) (só antes de ligar `anuncios`): a página de bancada abre no Chrome real
+      com o isolamento ligado, sem violação de CSP/COEP no console (`docs/auditoria/2026-10-21-anuncios-bancada.md`);
+      com a flag desligada, nenhum byte de terceiro é pedido.
+- [x] Testar as três chaves de emergência no staging (21/10/2026, 17:14–17:16Z, cada uma restaurada; o painel do
+      Supabase fica com o dono): `AI_ENABLED=0` (tradução cai para o local),
       `CHECKOUT_ENABLED=0` (assinar responde 503 com mensagem), `SIGNUP_ENABLED=0` (conta nova recebe
       `cadastro_fechado`; desligar também o cadastro no painel do Supabase).
+
+## 11-bis. Abrir a venda — passo a passo
+
+Produção sobe fechada (§8): `SIGNUP_ENABLED=0` e `CHECKOUT_ENABLED=0`, `ANUAL_ENABLED` ausente, `anuncios`
+desligada. Abra **na ordem**, uma porta por vez, conferindo antes de passar à próxima. Cada chave é um secret do
+Worker; para trocar uma, `npx wrangler secret put NOME -c wrangler.jsonc` (produção é o ambiente raiz; vale na
+próxima requisição, sem deploy). As mesmas portas, para fechar de volta, estão no
+[runbook, "Abrir e fechar portas"](runbook.md#06-abrir-e-fechar-portas).
+
+1. **Conferências do §10 fechadas**, em especial a cobrança real de R$ 5 com estorno, o convite ao responsável (sem ele,
+   não abra para menores), as três chaves de emergência e as três caixas novas (3 cartões, checkout do Essencial no
+   sandbox).
+2. **Flags** (§8, passo 8): `flags listar` mostra `venda_planos_v3` ligada; `stt_ao_vivo`, `voz_natural` e `anuncios`
+   desligadas.
+3. **Cadastro — `SIGNUP_ENABLED`.** Primeiro o app: `npx wrangler secret put SIGNUP_ENABLED -c wrangler.jsonc` e digite
+   `1` (ou apague o secret com `npx wrangler secret delete SIGNUP_ENABLED -c wrangler.jsonc`: ausente = aberto).
+   **Em seguida o Supabase:** Authentication → Providers → Email → _Allow new users to sign up_ **ligado**. Teste criando
+   uma conta nova: o e-mail chega, o login entra, o teste de 3 dias aparece em Planos.
+4. **Venda — `CHECKOUT_ENABLED`.** Ainda sem anual: `npx wrangler secret put CHECKOUT_ENABLED -c wrangler.jsonc` com `1`.
+   `venda_planos_v3` já está ligada (passo 2), então o Essencial e o Premium **mensais** passam a vender. Teste com a
+   sua conta: assinar o mensal, o webhook concede o plano pelo valor, e `GET /api/billing/status` confere.
+5. **Anual — `ANUAL_ENABLED=1`, só depois do jurídico.** Com os Termos §3–§4 validados (caixa do §10):
+   `npx wrangler secret put ANUAL_ENABLED -c wrangler.jsonc` com `1`. O anual à vista e em 12x aparece em Planos; até lá o
+   servidor responde 503 `anual_indisponivel`.
+6. **Anúncios — flag `anuncios`, só depois do jurídico (ECA Digital) e da rede aprovada.** Antes: a página
+   `frasy-anuncios` publicada em `ads.<domínio>` (§8, passo 9); o secret `ANUNCIOS_ORIGEM=https://ads.<domínio>` no Worker do app
+   (`npx wrangler secret put ANUNCIOS_ORIGEM -c wrangler.jsonc`; a CSP lê a cada 60 s) e `VITE_ANUNCIOS_ORIGEM` na
+   _variable_ do Environment `production` com um novo deploy do app; a caixa de bancada do §10 marcada. Então
+   `node dist-server/operacao.cjs flags ligar anuncios` (ou Admin → Flags). Conferir com uma conta Grátis adulta: a folha
+   de consentimento aparece; com perfil protegido, nada aparece. Para desfazer: `flags desligar anuncios`.
+7. **Acompanhar** nas primeiras horas: `wrangler tail`, o Sentry e `GET /api/admin/ia`. Qualquer coisa estranha: feche a
+   porta correspondente (`SIGNUP_ENABLED=0`, `CHECKOUT_ENABLED=0`) e siga o runbook §0.
 
 ## 11. Rotina depois do lançamento
 
@@ -377,7 +452,7 @@ caminho: [`STAGING.md`](STAGING.md).
 | a cada trimestre | `node scripts/modelos/revisoes.mjs` (modelos novos no Hub?); revisar a RoPA (`docs/lgpd/ropa.csv`)                   |
 
 Chaves de emergência (runbook §0), todas por `npx wrangler secret put NOME -c wrangler.jsonc` (vale na próxima
-requisição; volte com `1`):
+requisição; volte com `1` ou `wrangler secret delete NOME`; reenviar o `.secrets.*.json` sem a chave não a apaga):
 
 | chave                       | efeito                                                                                     |
 | --------------------------- | ------------------------------------------------------------------------------------------ |

@@ -225,7 +225,39 @@ describe('IDOR — usuario B contra os recursos de A', () => {
       return r.entradas.some((e) => e.id === id)
     }
 
+    /* Uma anotação do leitor de A (L2), pelo repositório; a nota leva o marcador. */
+    const { anotacoesDeLeituraRepo } = await s.load('../../server/db/repositories/anotacoesDeLeitura')
+    let contadorDeAnotacao = 0
+    const novaAnotacaoDeLeitura = async (): Promise<string> => {
+      const id = `idor-anotacao-${String(++contadorDeAnotacao).padStart(4, '0')}`
+      const r = await anotacoesDeLeituraRepo.gravarLote(A, [
+        {
+          id,
+          livroId: 'arq:idor',
+          tipo: 'nota',
+          alvo: { cfi: 'epubcfi(/6/4!/4/2/1:0)', citacao: { exact: 'trecho', prefix: '', suffix: '' } },
+          cor: 'azul',
+          nota: `nota ${MARCADOR}`,
+          criadoEm: 1,
+          atualizadoEm: 1,
+          apagadoEm: null,
+        },
+      ])
+      if (r.gravadas.length !== 1) throw new Error('semeadura da anotação falhou')
+      return id
+    }
+    const anotacaoViva = (id: string) => async () => {
+      const r = (await (await s.get('/api/leitura/anotacoes', ta)).json()) as {
+        anotacoes: Array<{ id: string; apagadoEm: number | null }>
+      }
+      return r.anotacoes.some((a) => a.id === id && a.apagadoEm == null)
+    }
+
     semeaduras = {
+      'DELETE /api/leitura/anotacoes/:id': async () => {
+        const id = await novaAnotacaoDeLeitura()
+        return { caminho: `/api/leitura/anotacoes/${id}`, aindaExiste: anotacaoViva(id) }
+      },
       'GET /api/sessions/:id': async () => {
         const { id } = await novaSessao()
         return { caminho: `/api/sessions/${id}`, aindaExiste: sessaoExiste(id) }
@@ -348,6 +380,19 @@ describe('IDOR — usuario B contra os recursos de A', () => {
       'POST /api/vocab/:id/review': async () => {
         const id = await novoCartao('bridge')
         return { caminho: `/api/vocab/${id}/review`, corpo: { grade: 3 }, aindaExiste: cartaoExiste(id) }
+      },
+      'PUT /api/vocab/:id/nota': async () => {
+        const id = await novoCartao('willow')
+        await s.put(`/api/vocab/${id}/nota`, { nota: `nota de A ${MARCADOR}` }, ta)
+        return {
+          caminho: `/api/vocab/${id}/nota`,
+          corpo: { nota: 'escrita por B' },
+          // O cartão continua lá E a nota de A não mudou (B não escreve por cima).
+          aindaExiste: async () => {
+            const lista = (await (await s.get('/api/vocab', ta)).json()) as Array<{ id: string; nota: string | null }>
+            return lista.find((c) => c.id === id)?.nota === `nota de A ${MARCADOR}`
+          },
+        }
       },
       'DELETE /api/vocab/:id': async () => {
         const id = await novoCartao('lantern')
@@ -496,10 +541,12 @@ describe('IDOR — usuario B contra os recursos de A', () => {
       'PATCH /api/admin/users/:id/plan': { plan: 'pro' },
     }
     const fora: string[] = []
+    /* Com segundo fator (aal2): o que este teste prova é o PAPEL; sem aal2, a porta do 2FA (aal.ts) recusaria antes. */
+    const tbAal2 = await s.token('usuario-b', { aal: 'aal2' })
     for (const rota of rotas) {
       /* O id de A no lugar do parâmetro: é a tentativa realista — B mirando a conta de A. */
       const caminho = rota.caminho.replace(/:\w+/g, 'usuario-a')
-      const r = await s.chamar(rota.metodo, caminho, { body: corpos[rota.chave], token: tb })
+      const r = await s.chamar(rota.metodo, caminho, { body: corpos[rota.chave], token: tbAal2 })
       const texto = await r.text()
       if (r.status !== 403 || texto.includes(MARCADOR)) fora.push(`${rota.chave} → ${r.status}`)
     }

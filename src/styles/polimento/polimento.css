@@ -117,9 +117,9 @@ html[data-px='on'] .px-pilula {
 html:not([data-px='on']) .px-pilula { display: none; }
 
 html[data-px='on'] .q-trilho { position: relative; }
-/* Buscar e Mais são sticky em produção: não trocar o position deles. */
-html[data-px='on'] .q-trilho > .q-item { z-index: 1; }
-html[data-px='on'] .q-trilho > .q-item[aria-current='page'] {
+/* Os itens ficam acima da pílula, que é filha direta do trilho (os do computador moram em `.q-trilho-topo`/`-pe`). */
+html[data-px='on'] .q-trilho .q-item { z-index: 1; }
+html[data-px='on'] .q-trilho .q-item[aria-current='page'] {
   background: transparent;
   border-color: transparent;
 }

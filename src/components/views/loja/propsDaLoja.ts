@@ -2,6 +2,7 @@ import type { ContextoDeConquistas } from '@core';
 
 import type { FonteType, ThemeType } from '../../../lib/appearance';
 import type { ContextoDeEquipar } from '../../../lib/galeria/equipar';
+import type { ModoDeEntrada } from '../../../lib/pedirConta';
 import type { DerivedProgress } from '../../../lib/progress';
 import type { AgeProfileType, MenuPositionType } from '../../shell/navItems';
 
@@ -27,6 +28,6 @@ export interface LojaProps {
   aoTrocarDeAba?: (aba: string) => void;
   /** v3: o contexto único de equipar (App). Opcional só para os testes de tela. */
   equiparCtx?: ContextoDeEquipar;
-  /** Leva à porta de entrada. Ausente = self-host, onde não há conta. */
-  onEntrar?: () => void;
+  /** Leva à porta de entrada (`'signup'`: já no cadastro). Ausente = self-host, onde não há conta. */
+  onEntrar?: (modo?: ModoDeEntrada) => void;
 }

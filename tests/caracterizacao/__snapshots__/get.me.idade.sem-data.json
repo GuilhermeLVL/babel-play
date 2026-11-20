@@ -8,6 +8,7 @@
     "nascimentoInformado": "boolean",
     "protegido": "boolean",
     "restrita": "boolean",
+    "tratamentoDeAnuncio": "string",
     "vinculo": {
       "estado": "string"
     }

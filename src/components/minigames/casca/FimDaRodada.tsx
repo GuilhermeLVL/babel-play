@@ -1,17 +1,22 @@
 import type { MinigameId, RoundReport } from '@core';
 import { estrelasDaRodada, multiplicador, pontuarRodada, summarize } from '@core';
 import { ArrowRight, Check, ChevronLeft, Flame, Heart, RotateCcw, Star } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { type NivelDoJogo, nivelSugerido, pontosComBonus } from '../../../core/minigames/regras';
 import { celebrar } from '../../../lib/comemoracao';
+import { assinarRecompensaAberta, recompensaAberta } from '../../../lib/filaDeRecompensas';
 import { numero, t } from '../../../lib/i18n';
+import { ajudaEsgotadaNaRodada } from '../../../lib/jogos/ajudaEsgotada';
 import { guardarNivelDoJogo, lerNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import type { DerivedProgress } from '../../../lib/progress';
 import EspacoDeAnuncio from '../../anuncios/EspacoDeAnuncio';
+import { useIntersticial } from '../../anuncios/Intersticial';
 import { nomeCurtoDoJogo, textosDoJogo, unidadeDoPlacar } from '../polimento/textos';
 import HudDaRodada from './HudDaRodada';
 import { nomeDoNivel } from './SeletorDeNivel';
+
+const semRecompensaAberta = () => false;
 
 /** A sugestão de nível entra 60 ms depois da tela de fim (`jogos4.js:143`). */
 const ATRASO_DA_SUGESTAO = 60;
@@ -107,6 +112,16 @@ export default function FimDaRodada({
   }, []);
   const sobe = para === 'dificil' || (para === 'medio' && nivel === 'facil');
 
+  /* O INTERSTICIAL fica ENTRE as rodadas: "Próximo jogo", "Jogar de novo" e a troca de nível passam por ele
+     (`components/anuncios/Intersticial.tsx`). "Voltar aos jogos" não: sair não é a próxima rodada. */
+  const { entre, tela: intersticial } = useIntersticial();
+  /* "+1 ajuda" só para quem viu uma ajuda acabar nesta rodada (`lib/jogos/ajudaEsgotada.ts`), lido uma vez. */
+  const [ajudaAcabou] = useState(() => ajudaEsgotadaNaRodada(jogo));
+  /* O "Baú da rodada" (ou outra recompensa) abre por cima desta tela: os espaços de anúncio daqui ESPERAM ele fechar,
+     em vez de serem pedidos atrás do modal, onde ninguém os vê. Escolhido por ser o menos invasivo: o baú, que é a
+     comemoração da rodada, fica sozinho na tela, e os espaços aparecem no lugar deles quando ele fecha. */
+  const comRecompensaAberta = useSyncExternalStore(assinarRecompensaAberta, recompensaAberta, semRecompensaAberta);
+
   return (
     <>
       <HudDaRodada
@@ -191,7 +206,10 @@ export default function FimDaRodada({
           {/* OS ESPAÇOS DE ANÚNCIO DO FIM DE RODADA (flag `anuncios`, desligada de fábrica; sem provedor não
               desenham nada): o premiado, que é escolha, logo abaixo do XP; e o bloco nativo ABAIXO dos
               botões, longe do "Próximo jogo" (`plantarFim`, `anuncios.js:234-258` do protótipo). */}
-          <EspacoDeAnuncio espaco="fim-premiado" formato="premiado" />
+          {!comRecompensaAberta && <EspacoDeAnuncio espaco="fim-premiado" formato="premiado" />}
+          {/* "+1 ajuda" (premiado, escolha), para a próxima rodada: o protótipo a põe no placar, no meio da
+              rodada, onde a política não deixa anúncio nenhum. */}
+          {ajudaAcabou && !comRecompensaAberta && <EspacoDeAnuncio espaco="ajuda-premiada" formato="premiado" />}
           <div className="pj-fim-acoes">
             {para && comSugestao && (
               <button
@@ -202,7 +220,7 @@ export default function FimDaRodada({
                 onClick={() => {
                   /* Grava o nível deste jogo e recomeça (`jogos4.js:258`). */
                   guardarNivelDoJogo(jogo, para);
-                  aoJogarDeNovo();
+                  entre(aoJogarDeNovo);
                 }}
               >
                 {sobe ? <Flame data-pj-i="" aria-hidden /> : <Heart data-pj-i="" aria-hidden />}{' '}
@@ -217,19 +235,25 @@ export default function FimDaRodada({
                 className="btn btn-solid"
                 data-pj="proximo"
                 data-id={proximo}
-                onClick={() => aoProximo(proximo)}
+                onClick={() => entre(() => aoProximo(proximo))}
               >
                 {t('Próximo jogo: {nome}', { nome: nomeCurtoDoJogo(proximo) })} <ArrowRight data-pj-i="" aria-hidden />
               </button>
             )}
-            <button type="button" className="btn btn-outline" data-acao="recomecar" onClick={aoJogarDeNovo}>
+            <button
+              type="button"
+              className="btn btn-outline"
+              data-acao="recomecar"
+              onClick={() => entre(aoJogarDeNovo)}
+            >
               <RotateCcw data-pj-i="" aria-hidden /> {t('Jogar de novo')}
             </button>
             <button type="button" className="btn btn-outline" data-pj="jogos" onClick={aoVoltar}>
               <ChevronLeft data-pj-i="" aria-hidden /> {t('Voltar aos jogos')}
             </button>
           </div>
-          <EspacoDeAnuncio espaco="fim-bloco" formato="nativo" />
+          {!comRecompensaAberta && <EspacoDeAnuncio espaco="fim-bloco" formato="nativo" />}
+          {intersticial}
         </div>
       </div>
     </>

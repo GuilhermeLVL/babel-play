@@ -379,6 +379,69 @@
       "when": 1790860000000,
       "tag": "0053_agregados_diarios",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "6",
+      "when": 1790870000000,
+      "tag": "0054_flags_venda_planos_v4",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "6",
+      "when": 1792900000000,
+      "tag": "0055_flag_ia_de_estudo",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "6",
+      "when": 1793000000000,
+      "tag": "0056_flag_stt_aparelho_primeiro",
+      "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "6",
+      "when": 1793100000000,
+      "tag": "0057_flag_assistente_ao_vivo",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "6",
+      "when": 1793200000000,
+      "tag": "0058_flag_aquecer_stt_na_intencao",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "6",
+      "when": 1793600000000,
+      "tag": "0059_flags_audiolivros",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "6",
+      "when": 1793700000000,
+      "tag": "0060_flag_voz_no_aparelho",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "6",
+      "when": 1794700000000,
+      "tag": "0061_periodo_pago_desde",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "6",
+      "when": 1794800000000,
+      "tag": "0062_flag_voz_kitten",
+      "breakpoints": true
     }
   ]
 }

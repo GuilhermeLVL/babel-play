@@ -19,6 +19,15 @@
     padding-bottom: calc(84px + var(--shell-inset-bottom, 0px));
   }
 }
+/* ZONA SEGURA NO CELULAR sem a camada de polimento (B6, 23/10/2026): a barra fica na página (74 px) e o botão
+   pousa 96 px acima do pé; o conteúdo reserva 84 px (o botão sai 68 px sobre o palco, mais respiro) para o
+   último botão rolar para fora de baixo dele. Com a camada ligada vale a reserva de 156 px de `polimento/celular.css`. */
+@media (max-width: 720px) {
+  html[data-quest-novo='true']:not([data-px='on']) :is(.q-palco, .rolagem) {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+    scroll-padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  }
+}
 /* No celular vale a posição do protótipo (acima da dock) — repetida aqui só porque a regra de cima
    vem depois da dele. */
 @container app (max-width: 760px) {

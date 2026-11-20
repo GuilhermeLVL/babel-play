@@ -38,6 +38,26 @@ describe('criarConferenciaDeVersao', () => {
     expect(aviso).toHaveBeenCalledWith('0.2.0+def5678')
   })
 
+  it('um lado sem o sha (bundle "0.1.0", Worker "0.1.0+<sha>"): mesma versão, não avisa', () => {
+    // Foi o toast permanente do staging (diagnóstico do Safari, 22/10/2026): o build do front não via
+    // o GIT_SHA que o Worker recebe como var. Sem o metadado de um dos lados, compara-se a base.
+    const aviso = vi.fn()
+    expect(criarConferenciaDeVersao('0.1.0', aviso)('0.1.0+0b82814')).toBe(false)
+    expect(criarConferenciaDeVersao('0.1.0+0b82814', aviso)('0.1.0')).toBe(false)
+    expect(aviso).not.toHaveBeenCalled()
+  })
+
+  it('um lado sem o sha mas base diferente: avisa', () => {
+    const aviso = vi.fn()
+    expect(criarConferenciaDeVersao('0.1.0', aviso)('0.2.0+0b82814')).toBe(true)
+    expect(aviso).toHaveBeenCalledWith('0.2.0+0b82814')
+  })
+
+  it('os dois com sha, shas diferentes: avisa (deploy novo da mesma versão do pacote)', () => {
+    const aviso = vi.fn()
+    expect(criarConferenciaDeVersao('0.1.0+abc1234', aviso)('0.1.0+def5678')).toBe(true)
+  })
+
   it('bundle sem versão conhecida (teste, ferramenta): nunca avisa', () => {
     const aviso = vi.fn()
     const conferir = criarConferenciaDeVersao('', aviso)

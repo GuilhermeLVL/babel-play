@@ -3,7 +3,11 @@ import { useState } from 'react';
 
 import { CRIADOR } from '../../../lib/criador';
 import { t } from '../../../lib/i18n';
+import { useSemContaComPorta } from '../../../lib/pedirConta';
 import { type Consentimento, mudarConsentimento, salvarPreferencias, usePreferencias } from '../../../lib/preferencias';
+import { perfilProtegido } from '../../../lib/protecaoDoMenor';
+import AnunciosNosAjustes from '../../anuncios/AnunciosNosAjustes';
+import CartaoDeConvite from '../../conta/CartaoDeConvite';
 import { toast } from '../../Toast';
 import { baixarArquivo, prepararCopia } from '../perfil/AbaDados';
 import DialogoLegal from '../sobre/DialogoLegal';
@@ -14,7 +18,8 @@ import DialogoLegal from '../sobre/DialogoLegal';
  *
  * Os consentimentos são guardados com o registro de cada mudança (data e valor), como a nota da
  * tela promete. A cópia dos dados é a exportação REAL (`GET /api/me/exportar`, LGPD art. 18, V), em
- * JSON ou em CSV; ela é gerada na hora, então "preparando" dura o tempo da requisição.
+ * JSON ou em CSV; ela é gerada na hora, então "preparando" dura o tempo da requisição. Sem conta não há
+ * o que exportar do servidor (a rota responde 501): no lugar do botão, o convite.
  */
 
 const CONSENTIMENTOS: Array<[Consentimento, string, string, string]> = [
@@ -65,11 +70,19 @@ export default function AbaPrivacidade() {
   const p = usePreferencias();
   const [copia, setCopia] = useState<'parado' | 'preparando' | { blob: Blob; nome: string }>('parado');
   const [legal, setLegal] = useState(false);
+  const semConta = useSemContaComPorta();
 
   const autorizar = async (k: Consentimento, on: boolean) => {
     const ok = await mudarConsentimento(k, on);
     if (!ok) toast.warn('Não consegui registrar a mudança. Verifique a conexão e tente de novo.');
     else toast.ok(on ? t('Autorização registrada') : 'Autorização retirada');
+  };
+
+  const protegido = perfilProtegido();
+  const alternarLegendaSegura = async () => {
+    if (protegido) return;
+    const ok = await salvarPreferencias((x) => ({ ...x, legendaSegura: !x.legendaSegura }));
+    if (!ok) toast.warn(t('Não consegui salvar a preferência. Verifique a conexão e tente de novo.'));
   };
 
   const pedirCopia = async () => {
@@ -115,6 +128,45 @@ export default function AbaPrivacidade() {
         <p className="q-aju-nota">{t('Cada mudança fica registrada com data, para você e para nós.')}</p>
       </section>
 
+      {/* LEGENDA SEGURA (change `legenda-segura-para-menores`): no perfil protegido a ocultação vem ligada e travada; o
+          adulto declarado escolhe (desligada por padrão). */}
+      <section className="q-secao">
+        <header>
+          <div>
+            <h2>{t('Legenda')}</h2>
+            <p>{t('O que aparece na legenda e na tradução ao vivo.')}</p>
+          </div>
+        </header>
+        <div className="q-ajustes">
+          <div className="q-ajuste" data-testid="opcao-legenda-segura">
+            <div>
+              <b>{t('Ocultar palavras sensíveis na legenda')}</b>
+              <small>
+                {protegido
+                  ? t(
+                      'Sempre ligada: é uma proteção do perfil. Palavrões, termos sexuais e ofensas aparecem como •••, porque o reconhecimento automático às vezes entende errado.',
+                    )
+                  : t(
+                      'Termos sexuais e ofensas aparecem como •••. O reconhecimento automático às vezes entende errado, e o marcador mostra que algo foi ocultado.',
+                    )}
+              </small>
+            </div>
+            <button
+              type="button"
+              className="q-interruptor"
+              role="switch"
+              aria-checked={protegido || p.legendaSegura}
+              aria-label={t('Ocultar palavras sensíveis na legenda')}
+              disabled={protegido}
+              onClick={() => void alternarLegendaSegura()}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Só com a flag `anuncios` ligada (o perfil protegido também vê); desligada, nada muda aqui. */}
+      <AnunciosNosAjustes />
+
       <section className="q-secao">
         <header>
           <div>
@@ -122,7 +174,9 @@ export default function AbaPrivacidade() {
             <p>{t('Uma cópia de tudo o que o app guarda sobre você: sessões, palavras, progresso, preferências.')}</p>
           </div>
         </header>
-        {typeof copia === 'object' ? (
+        {semConta ? (
+          <CartaoDeConvite view="exportar" inline />
+        ) : typeof copia === 'object' ? (
           <div className="q-ajuste" data-testid="copia-pronta">
             <div>
               <b>{t('Seu arquivo está pronto')}</b>

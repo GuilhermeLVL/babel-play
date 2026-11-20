@@ -358,21 +358,21 @@ test.describe('Captura no celular: a tela para uma mão só', () => {
 
     // Tocar na fala abre a folha dela, com as ações de ouvir e de praticar.
     await fala.locator('.q-fala').click()
-    const folha = page.getByRole('dialog', { name: 'Ações', exact: true })
+    const folha = page.getByRole('complementary', { name: 'Frase escolhida' })
     await expect(folha).toBeVisible()
     for (const nome of ['Ouvir', 'Ouvir devagar', 'Repetir eu', 'Copiar'])
       await expect(folha.getByRole('button', { name: nome, exact: true })).toBeVisible()
     await foto(page, '3-frase')
 
     await folha.getByRole('button', { name: 'weather', exact: true }).click()
-    const palavra = page.getByRole('dialog', { name: 'Palavra: weather' })
+    const palavra = page.getByRole('complementary', { name: 'Palavra: weather' })
     await expect(palavra).toBeVisible()
     await expect(palavra.getByRole('button', { name: 'Guardar' })).toBeVisible()
     await foto(page, '4-palavra')
     await palavra.getByRole('button', { name: 'Voltar à frase' }).click()
-    await expect(page.getByRole('dialog', { name: 'Ações', exact: true })).toBeVisible()
+    await expect(page.getByRole('complementary', { name: 'Frase escolhida' })).toBeVisible()
     await page.keyboard.press('Escape')
-    await expect(page.getByRole('dialog', { name: 'Ações', exact: true })).toBeHidden()
+    await expect(page.getByRole('complementary', { name: 'Frase escolhida' })).toBeHidden()
 
     // A fala tem os dois atalhos à mão: ouvir de novo e as opções.
     await expect(fala.getByRole('button', { name: 'Ouvir de novo' })).toBeVisible()

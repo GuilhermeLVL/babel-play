@@ -23,9 +23,9 @@ describe('calibração do FSRS no admin (modo público)', () => {
   beforeAll(async () => {
     s = await subirApp({ modo: 'publico', adultoPorPadrao: true })
     const { usersRepo } = await s.load('../../server/db/repositories/users')
-    admin = await s.token('cal-admin')
-    suporte = await s.token('cal-suporte')
-    comum = await s.token('cal-aluno')
+    admin = await s.token('cal-admin', { aal: 'aal2' })
+    suporte = await s.token('cal-suporte', { aal: 'aal2' })
+    comum = await s.token('cal-aluno', { aal: 'aal2' })
     for (const t of [admin, suporte, comum]) expect((await s.get('/api/me', t)).status).toBe(200)
     await usersRepo.setRole('cal-admin', 'admin')
     await usersRepo.setRole('cal-suporte', 'support')

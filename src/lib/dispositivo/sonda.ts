@@ -379,6 +379,20 @@ export async function proibirModelo(id: string, motivo: string, dep: Dependencia
   });
 }
 
+/** O inverso de `proibirModelo` ("Tentar de novo" na tela de modelos): tira o veto e o motivo deste aparelho. */
+export async function permitirModelo(id: string, dep: DependenciasDaSonda = {}): Promise<void> {
+  const d = resolverDependencias(dep);
+  const base = await registroDesteAparelho(d);
+  if (!base.modelosProibidos.includes(id)) return;
+  const motivos = { ...base.motivosDaProibicao };
+  delete motivos[id];
+  gravarRegistro(d.armazem, {
+    ...base,
+    modelosProibidos: base.modelosProibidos.filter((m) => m !== id),
+    motivosDaProibicao: motivos,
+  });
+}
+
 /** O registro guardado se é DESTE aparelho; senão um vazio (só a impressão, `medidaEm: 0`). */
 async function registroDesteAparelho(d: ReturnType<typeof resolverDependencias>): Promise<RegistroDoAparelho> {
   const { impressao } = await impressaoAtual(d.escopo, d.infoDoAdaptador);
@@ -446,6 +460,11 @@ export interface OpcoesDaSonda {
    * a pedido. Um benchmark já guardado continua valendo.
    */
   semBenchmark?: boolean;
+  /**
+   * Mede de novo mesmo com um benchmark válido guardado: o "Testar a velocidade do aparelho" da tela de
+   * modelos, a pedido da pessoa. O resultado substitui o guardado.
+   */
+  forcarBenchmark?: boolean;
 }
 
 /**
@@ -459,7 +478,8 @@ export async function sondarEMedir(
 ): Promise<SondaDoAparelho> {
   const d = resolverDependencias(dep);
   const sonda = await obterSondaDoAparelho(dep);
-  if (benchmarkValido(sonda.benchmark, d.agora()) || sinal?.aborted || opcoes.semBenchmark) return sonda;
+  if (sinal?.aborted || opcoes.semBenchmark) return sonda;
+  if (!opcoes.forcarBenchmark && benchmarkValido(sonda.benchmark, d.agora())) return sonda;
   const benchmark = await d.medirBenchmark(sinal).catch((erro: unknown) => {
     console.warn('[sonda] benchmark falhou; o aparelho fica sem pontuação até a próxima', erro);
     return null;
@@ -477,6 +497,36 @@ export async function sondarEMedir(
 }
 
 let emAndamento: Promise<SondaDoAparelho | null> | null = null;
+
+/**
+ * O MICROBENCHMARK FORA DA CAPTURA (dono, 22/10/2026): a captura agenda a sonda SEM ele
+ * (`semBenchmark`), e a tela, ao sair, chama isto. Só mede se o benchmark guardado venceu (ou falta),
+ * no ocioso; uma medição por página. Nunca rejeita.
+ */
+let benchmarkAgendado: Promise<void> | null = null;
+export function agendarBenchmarkDoAparelho(dep: DependenciasDaSonda = {}, sinal?: AbortSignal): Promise<void> {
+  if (benchmarkAgendado) return benchmarkAgendado;
+  const d = resolverDependencias(dep);
+  benchmarkAgendado = (async () => {
+    const guardada = await sondaGuardada(dep);
+    if (guardada && benchmarkValido(guardada.benchmark, d.agora())) return;
+    await new Promise<void>((resolve) => {
+      const g = globalThis as { requestIdleCallback?: (f: () => void, o?: { timeout: number }) => unknown };
+      if (typeof g.requestIdleCallback === 'function') g.requestIdleCallback(() => resolve(), { timeout: 10_000 });
+      else setTimeout(resolve, 3000);
+    });
+    /* Uma captura nova chegou antes do ocioso: o benchmark não disputa a máquina com o modelo. A
+       promessa termina em paz e a próxima saída da captura agenda de novo. */
+    if (sinal?.aborted) {
+      benchmarkAgendado = null;
+      return;
+    }
+    await sondarEMedir(dep, sinal, {});
+  })().catch((erro: unknown) => {
+    console.warn('[sonda] o benchmark do aparelho falhou; fica sem pontuação até a próxima', erro);
+  });
+  return benchmarkAgendado;
+}
 
 /**
  * Agenda a sonda (e o benchmark, se faltar) para o OCIOSO — `requestIdleCallback` com teto de 5 s,

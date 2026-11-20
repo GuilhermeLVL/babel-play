@@ -3,32 +3,47 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="48x48" href="/icones/favicon-48.png" />
+  <link rel="apple-touch-icon" href="/icones/apple-touch-icon.png" />
   <title>Política de Privacidade — Frasy</title>
   <meta name="description" content="Que dados o Frasy processa no navegador e no servidor, quais serviços de nuvem podem ser usados, e como exportar ou excluir tudo." />
   <style>
-    :root { color-scheme: light dark; --ink: #1a1a1a; --muted: #555; --bg: #fafaf8; --panel: #fff; --border: #e4e2dd; --accent: #7c5cff; }
-    @media (prefers-color-scheme: dark) { :root { --ink: #ececec; --muted: #a8a8a8; --bg: #131313; --panel: #1c1c1c; --border: #2c2c2c; } }
-    body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif; }
-    main { max-width: 720px; margin: 0 auto; padding: 40px 20px 80px; }
-    h1 { font-size: 1.6rem; } h2 { font-size: 1.15rem; margin-top: 2.2em; }
-    .kicker { font: 600 11px/1 ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
-    .muted { color: var(--muted); font-size: 13px; }
-    table { border-collapse: collapse; width: 100%; font-size: 14px; }
-    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
-    code { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: 13px; }
-    a { color: var(--accent); }
+    /* Só para abrir este arquivo direto (no build, scripts/site/gerar.ts troca a moldura pela do site). */
+    :root { color-scheme: light dark; --papel: #E6E2D6; --superficie: #F5F2EA; --tinta: #26241F; --suave: #5E5A50; --borda: #C6BFAC; --acento: #F04E23; --acao: #C93A15; --acao-tinta: #fff; }
+    @media (prefers-color-scheme: dark) { :root { --papel: #17130F; --superficie: #211C17; --tinta: #F3ECE0; --suave: #B5AA98; --borda: #3A3229; --acento: #FF6B3D; --acao: #FF6B3D; --acao-tinta: #17130F; } }
+    body { margin: 0; background: var(--papel); color: var(--tinta); font: 17px/1.65 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main, .largura { max-width: 760px; margin: 0 auto; padding: 0 20px; }
+    main { padding-top: 32px; padding-bottom: 80px; }
+    h1, h2 { font-family: Archivo, system-ui, sans-serif; letter-spacing: -.02em; line-height: 1.15; } h1 { font-size: 2.4rem; } h2 { font-size: 1.4rem; margin-top: 2em; }
+    .muted, .revisao { color: var(--suave); font-size: 15px; }
+    table { border-collapse: collapse; width: 100%; font-size: 15px; }
+    th, td { text-align: left; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--borda); vertical-align: top; }
+    code { background: var(--superficie); border: 1px solid var(--borda); border-radius: 4px; padding: 1px 5px; font-size: 14px; }
+    a { color: var(--tinta); text-decoration-color: var(--acento); text-underline-offset: .2em; }
+    .topo .largura, .rodape .largura { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding-top: 14px; padding-bottom: 14px; }
+    .rodape { border-top: 1px solid var(--borda); font-size: 15px; color: var(--suave); }
+    .marca { display: inline-flex; align-items: center; gap: 8px; font: 800 20px/1 Archivo, system-ui, sans-serif; color: var(--tinta); text-decoration: none; margin-right: auto; }
+    .topo ul, .rodape ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+    .topo nav a, .rodape nav a { display: inline-block; padding: 6px 0; text-decoration: none; }
+    .botao { display: inline-block; padding: 10px 16px; border-radius: 12px; background: var(--acao); color: var(--acao-tinta); font-weight: 700; text-decoration: none; }
+    a[aria-current="page"] { text-decoration: underline; text-decoration-color: var(--acento); }
   </style>
 </head>
 <body>
-<main>
-  <p class="kicker">Frasy</p>
+<header class="topo"><div class="largura"><a class="marca" href="/"><img src="/favicon.svg" alt="" width="30" height="30">Frasy</a><nav aria-label="Principal"><ul class="menu"><li><a href="/planos">Planos</a></li><li><a href="/guias">Guias</a></li><li><a href="/ajuda">Ajuda</a></li><li><a href="/sobre">Sobre</a></li></ul></nav><a class="botao" href="/app">Entrar</a></div></header>
+<main id="conteudo">
   <h1>Política de Privacidade</h1>
-  <p class="muted"><strong>Versão para revisão jurídica</strong> — 17 de outubro de 2026.</p>
+  <p class="muted"><strong>Versão para revisão jurídica</strong> — 25 de outubro de 2026 (seção Anúncios reescrita).</p>
 
   <p>O Frasy foi desenhado para processar o máximo possível <strong>no seu próprio
   navegador</strong>. Ainda assim, algumas funções usam serviços de nuvem — de tradução, de
   transcrição e de IA. Esta página diz, com honestidade, o que roda localmente, o que sai do seu
   dispositivo, para <em>quem</em> vai, e como você controla, exporta ou apaga tudo.</p>
+
+  <p><strong>Quem é o responsável pelos seus dados (controlador):</strong> Guilherme Pinheiro de Oliveira
+  Desenvolvimento de Programas Ltda, CNPJ 64.485.318/0001-92, Belo Horizonte (MG). Contato para assuntos de
+  privacidade: <a href="mailto:contato@frasy.com.br">contato@frasy.com.br</a>.</p>
 
   <h2>Crianças e adolescentes</h2>
   <p>O Frasy é aberto a todas as idades. Com conta, pedimos a <strong>data de nascimento</strong>
@@ -42,8 +57,9 @@
       lá, tudo fica no aparelho.</li>
     <li><strong>Menores de 12 anos</strong>: além do vínculo, o responsável dá um
       <strong>consentimento específico</strong>, que registramos (quem, quando e o texto aceito).</li>
-    <li>Nunca usamos dados de ninguém — e menos ainda de crianças e adolescentes — para publicidade ou
-      para montar perfil de comportamento.</li>
+    <li>Nunca usamos dados de ninguém — e menos ainda de crianças e adolescentes — para publicidade
+      personalizada ou para montar perfil de comportamento. Os anúncios comuns que o perfil protegido pode
+      ver são contextuais e marcados por idade (veja Anúncios); o anúncio com recompensa é só para adultos.</li>
   </ul>
 
   <h2>O que roda no seu navegador</h2>
@@ -76,17 +92,22 @@
       <strong>Edge</strong>, à <strong>Microsoft</strong> —, sob os termos e a política de privacidade
       desse fabricante, e não sob o nosso controle. Nós não recebemos esse áudio. Se preferir que a
       voz não vá a eles, o app oferece alternativas: a transcrição <strong>local</strong>, que roda no
-      seu dispositivo, e a transcrição na <strong>nossa nuvem</strong> (Premium, o teste de 14 dias e a
+      seu dispositivo, e a transcrição na <strong>nossa nuvem</strong> (Premium, o teste de 3 dias e a
       nuvem do Grátis para aparelho fraco), descrita abaixo.</li>
     <li><strong>Tradução rápida (MyMemory)</strong>: quando essa engine é usada, o <strong>texto a
       traduzir é enviado ao serviço MyMemory</strong> (terceiro).</li>
     <li><strong>IA de nuvem (transcrição/tradução gerenciadas e o tutor iChat)</strong>: no Premium
-      (e no teste de 14 dias), na nuvem do Grátis para aparelho fraco e no tutor, os trechos enviados são processados por provedores de inferência contratados
-      por nós — hoje por meio da <strong>OpenRouter</strong>, que encaminha cada pedido só a provedores que se
+      (e no teste de 3 dias), na nuvem do Grátis para aparelho fraco e no tutor, os trechos enviados são processados por provedores de inferência contratados
+      por nós — hoje por meio da <strong>OpenRouter</strong> e da <strong>Groq</strong>. A OpenRouter encaminha cada pedido só a provedores que se
       comprometem a <strong>não guardar</strong> o que recebem nem usá-lo para treinar modelos (retenção zero, exigida
       em cada chamada) — apenas para gerar a resposta daquela chamada. Os modelos de transcrição, tradução e tutor são
       abertos (Whisper, Gemma e Llama) e a OpenRouter escolhe, entre os provedores que cumprem essa exigência, quem
-      atende. O provedor em uso aparece no selo de procedência dentro do app.</li>
+      atende. Os provedores que hoje podem atender por trás da OpenRouter são <strong>DeepInfra, Groq, Together, Cloudflare e
+      Parasail</strong>. O provedor em uso aparece no selo de procedência dentro do app.</li>
+    <li><strong>Voz natural do intérprete</strong>: só quando esse recurso estiver ligado e você o usar, o
+      <strong>texto</strong> da tradução de cada fala (não o seu áudio) é enviado ao <strong>DeepInfra</strong> ou ao
+      <strong>Workers AI da Cloudflare</strong> para virar voz. Não guardamos o áudio gerado além de um cache
+      de poucos minutos na memória do servidor, sem ligação com quem pediu.</li>
     <li><strong>Imagens</strong>: a busca de imagens usa o <strong>Openverse</strong>; o termo
       buscado é enviado a esse serviço.</li>
   </ul>
@@ -98,7 +119,7 @@
       aparelho fraco (até 3 h por mês), <strong>só quando você a liga</strong>: aí o áudio vai para
       transcrição na nuvem</td><td>com a nuvem para aparelho fraco ligada, enviado para tradução na
       nuvem; senão, —</td></tr>
-    <tr><td>Premium (e o teste de 14 dias)</td><td>enviado para transcrição na nuvem</td><td>enviado
+    <tr><td>Premium (e o teste de 3 dias)</td><td>enviado para transcrição na nuvem</td><td>enviado
       para tradução na nuvem</td></tr>
   </table>
   <p class="muted">Com conta, as sessões que você <strong>salva</strong> — incluindo o
@@ -119,7 +140,7 @@
       <strong>direto ao Asaas</strong> no ato da assinatura e <strong>não guardamos o CPF</strong>;
       guardamos os identificadores da assinatura (ou do parcelamento em 12x) e o registro dos eventos
       de cobrança.</li>
-    <li><strong>Teste de 14 dias do Premium</strong>: o teste não pede cartão e nunca cobra nada. Na
+    <li><strong>Teste de 3 dias do Premium</strong>: o teste não pede cartão e nunca cobra nada. Na
       sua conta guardamos quando ele começou e quando termina. Para que o teste seja
       <strong>um por pessoa</strong> — e não recomece quando alguém apaga a conta e cria outra —,
       guardamos também uma <strong>marca</strong>: um código calculado a partir do seu e-mail com uma
@@ -129,7 +150,10 @@
       <strong>não é o e-mail</strong>,
       não permite recuperá-lo sem essa chave e não fica ligada à sua conta. Quando o responsável ativa
       o teste para a conta de um menor, a marca é calculada com o e-mail do <strong>responsável</strong>,
-      e nada do menor entra nela. Fazemos isso por legítimo interesse (evitar o abuso do benefício
+      e nada do menor entra nela. Ao começar o teste, conferimos com o nosso provedor de login se o seu
+      e-mail está confirmado, e contamos quantos testes começaram pela mesma conexão no dia usando o
+      <strong>endereço IP pseudonimizado</strong> (um código que não permite recuperar o IP e muda todo dia;
+      a contagem só vale para aquele dia). Fazemos isso por legítimo interesse (evitar o abuso do benefício
       gratuito), com o mínimo de dado possível.</li>
     <li><strong>Ranking</strong>: só contas de adultos publicam. Guardamos o apelido público e uma
       versão <strong>anonimizada (hash)</strong> do IP, para evitar abuso do placar.</li>
@@ -151,25 +175,74 @@
   <p>Além dos serviços de nuvem de IA acima, usamos estes fornecedores para o app funcionar. Cada um
   recebe só o necessário para a sua função:</p>
   <ul>
-    <li><strong>Fly.io</strong>: hospeda o nosso servidor e o banco de dados, com a máquina e o volume
-      em <strong>São Paulo</strong>. A empresa fica nos Estados Unidos.</li>
+    <li><strong>Cloudflare Workers</strong> (o app) e <strong>Supabase</strong> (o banco de dados e o login):
+      o servidor do Frasy roda nos Workers da Cloudflare e guarda os dados no banco do Supabase, na região de
+      <strong>São Paulo</strong>. As duas empresas ficam fora do Brasil.</li>
     <li><strong>Cloudflare</strong>: DNS, proteção contra abuso (firewall) e entrega do site, o que
       inclui o seu endereço IP e os cabeçalhos da requisição na borda; o armazenamento (R2) do
       <strong>áudio gravado das sessões</strong> e das <strong>cópias de segurança</strong>; e o
       <strong>Turnstile</strong>, o captcha do modo convidado com nuvem.</li>
     <li><strong>Resend</strong>: envia os e-mails de confirmação e de recuperação de senha do login e o
       convite ao responsável, e por isso recebe o e-mail de quem os recebe e o conteúdo da mensagem.</li>
+    <li><strong>UptimeRobot</strong>: confere de tempos em tempos se o serviço está no ar. Não recebe dado
+      pessoal de ninguém.</li>
     <li><strong>Sentry</strong>: recebe os relatórios de erro descritos acima (mensagem técnica, a tela
       onde ocorreu e o identificador da requisição), nunca o que você falou ou digitou.</li>
   </ul>
 
+  <h2>Transferência para fora do Brasil</h2>
+  <p>Quase todos os fornecedores acima ficam fora do Brasil, então seus dados podem ser tratados no
+  exterior. Isso só acontece para executar a função que você usa, e cada fornecedor trata os dados
+  apenas segundo as nossas instruções, por contrato.</p>
+
+  <h2>Anúncios</h2>
+  <p>O plano Grátis pode mostrar anúncios em alguns lugares fixos do app, sempre com a marca
+  &ldquo;Patrocinado&rdquo;. Hoje os anúncios estão desligados; antes de ligá-los,
+  atualizamos esta página. Os planos pagos não têm anúncios. Estas regras valem para todo anúncio:</p>
+  <ul>
+    <li><strong>Quem fornece os anúncios é o Google</strong> (Google Ad Manager / AdSense, da Google LLC).
+      Os anúncios carregam numa página separada do Frasy, num endereço próprio, e só depois do seu
+      consentimento.</li>
+    <li><strong>Nunca sem o seu consentimento.</strong> Na primeira vez, o app pergunta se você aceita ver
+      anúncios. Sem o &ldquo;Aceitar&rdquo;, nenhum anúncio aparece e nada é pedido ao Google. Você pode
+      mudar a resposta quando quiser em <strong>Ajustes → Privacidade → Anúncios</strong>.</li>
+    <li><strong>Nenhum anúncio é personalizado, para ninguém.</strong> Não usamos o que você estuda, fala ou
+      digita, nem perfil de comportamento, para escolher anúncio, e pedimos ao Google anúncios não
+      personalizados, com processamento restrito de dados, para todas as pessoas.</li>
+    <li><strong>O que o Google recebe:</strong> o navegador envia à rede de anúncios do Google o endereço de
+      internet (IP) do seu aparelho, o tipo de navegador e o idioma, para mostrar e contar o anúncio e
+      combater fraude. O Google pode usar cookies ou identificadores do navegador para isso, conforme a
+      política dele. <strong>Nós não enviamos ao Google</strong> o seu nome, e-mail, identificador da conta,
+      data de nascimento nem o que você estuda. O quadro do anúncio abre sem os cookies do Frasy.</li>
+    <li><strong>Crianças e adolescentes:</strong> quem está no perfil protegido pode ver anúncios comuns,
+      sempre contextuais (escolhidos pelo lugar do app, não por quem você é) e com a marcação de idade que o
+      Google oferece: <strong>abaixo de 13 anos, ou se não sabemos a idade, o anúncio vai marcado como para
+      criança</strong>; <strong>de 13 a 17 anos, como para adolescente</strong>. Essas marcações fazem o Google
+      restringir os anúncios e os dados usados. Só a marcação vai ao Google, nunca a data de nascimento.
+      Para adultos não há marcação de idade, e o anúncio continua não personalizado.</li>
+    <li><strong>Anúncio com recompensa (&ldquo;assista e ganhe&rdquo;) é só para maiores de 18 anos</strong> e
+      é sempre uma escolha: você assiste se quiser, em troca de um benefício, e nada é tirado de quem não
+      quiser. Para creditar a recompensa e respeitar o limite do dia, registramos que você viu um anúncio
+      premiado (qual espaço e quando, ligado à sua conta) por até 2 meses.</li>
+    <li><strong>Nunca durante uma gravação, uma rodada de jogo ou o intérprete</strong>, e nunca nos
+      primeiros dias da conta. Quem usa sem conta não vê anúncios.</li>
+    <li><strong>Sempre dá para dizer não.</strong> Todo anúncio tem uma saída ao lado. Para adultos,
+      &ldquo;Sem anúncios&rdquo; leva aos planos pagos. Para quem está no perfil protegido, que não compra,
+      a saída é &ldquo;Não quero anúncios&rdquo;: ela leva a Ajustes → Privacidade → Anúncios, onde basta
+      escolher &ldquo;Agora não&rdquo; para retirar o consentimento, e nenhum anúncio aparece mais.</li>
+  </ul>
+  <p>Como o Google usa as informações dos sites que usam os serviços dele:
+  <a href="https://policies.google.com/technologies/partner-sites">policies.google.com/technologies/partner-sites</a>.
+  As suas escolhas de anúncios na sua conta Google ficam em
+  <a href="https://adssettings.google.com">adssettings.google.com</a>.</p>
+
   <h2>O que NÃO fazemos</h2>
   <ul>
     <li><strong>Não há analytics nem telemetria de comportamento.</strong> Nenhum rastreador de uso,
-      nenhum pixel. A única medição é a técnica da IA de nuvem descrita acima — custo, tempo e
+      nenhum pixel nosso (os anúncios do Google, só com o seu consentimento, seguem a seção Anúncios). A única medição é a técnica da IA de nuvem descrita acima — custo, tempo e
       falhas de cada chamada, com pseudônimo e sem o conteúdo —, e ela não é usada para montar perfil
       de ninguém.</li>
-    <li><strong>Não vendemos</strong> seus dados nem os compartilhamos para publicidade. Os terceiros
+    <li><strong>Não vendemos</strong> seus dados nem os compartilhamos para publicidade personalizada. Os terceiros
       listados acima recebem apenas o necessário para executar a função que você acionou.</li>
   </ul>
 
@@ -197,9 +270,9 @@
   </ul>
 
   <h2>Contato</h2>
-  <p>Dúvidas ou solicitações: <a href="mailto:guigui.cruzeiro@gmail.com">guigui.cruzeiro@gmail.com</a>.</p>
-
-  <p class="muted"><a href="/">← voltar ao Frasy</a> · <a href="/termos.html">Termos de uso</a></p>
+  <p>Dúvidas ou solicitações: <a href="mailto:contato@frasy.com.br">contato@frasy.com.br</a>.</p>
 </main>
+<footer class="rodape"><div class="largura"><div><a class="marca" href="/"><img src="/favicon.svg" alt="" width="24" height="24">Frasy</a><p>Aprenda idiomas com o que você já assiste e escuta. Fale com a gente: <a href="mailto:contato@frasy.com.br">contato@frasy.com.br</a></p></div><nav aria-label="Rodapé"><ul><li><a href="/sobre">Sobre</a></li><li><a href="/contato">Contato</a></li><li><a href="/ajuda">Ajuda</a></li><li><a href="/guias">Guias</a></li><li><a href="/planos">Planos</a></li><li><a href="/privacidade" aria-current="page">Privacidade</a></li><li><a href="/termos">Termos de uso</a></li></ul></nav></div></footer>
+
 </body>
 </html>

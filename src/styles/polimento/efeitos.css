@@ -23,6 +23,10 @@ html[data-px='on'] .px-aura {
   background: radial-gradient(circle, color-mix(in srgb, var(--q-acento, var(--accent)) 26%, transparent), transparent 62%);
 }
 html[data-px='on'] .px-tela { position: relative; z-index: 1; }
+/* A aura (620 px) e as telas rotacionadas ficam parcialmente fora do `main`, que é `overflow: hidden`: ainda assim o
+   navegador o rola na horizontal (foco, toque), e o app inteiro desliza para a esquerda sem a pessoa poder voltar (o
+   avisos obrigatórios da soletração ficavam cortados no celular). `clip` corta igual, mas não deixa rolar. */
+html[data-px='on'] main { overflow: clip; }
 
 /* ---- Título: palavra por palavra ------------------------------------------ */
 .px-pal {
@@ -111,7 +115,7 @@ html[data-px='on'] :is(.q-tile, .q-cartao):not(.apagado) { will-change: transfor
     transition: transform calc(520ms * var(--px-k)) var(--px-mola);
   }
   html[data-px='on'] .q-logo:hover { transform: rotate(-10deg) scale(1.15); }
-  html[data-px='on'] .q-trilho > .q-item:hover svg { transform: translateY(-2px) scale(1.1); }
+  html[data-px='on'] .q-trilho .q-item:hover svg { transform: translateY(-2px) scale(1.1); }
   html[data-px='on'] .carta:not(.virada):not(.par):hover {
     transform: translateY(-5px) scale(1.035);
     box-shadow: 0 18px 28px -14px rgb(0 0 0 / 0.45);
@@ -119,7 +123,7 @@ html[data-px='on'] :is(.q-tile, .q-cartao):not(.apagado) { will-change: transfor
   html[data-px='on'] :is(.q-ctl.pri, .btn-solid):hover::before { transform: translateX(260%) skewX(-18deg); }
 }
 html[data-px='on'] .q-logo { transition: transform calc(520ms * var(--px-k)) var(--px-mola); }
-html[data-px='on'] .q-trilho > .q-item svg { transition: transform calc(420ms * var(--px-k)) var(--px-mola); }
+html[data-px='on'] .q-trilho .q-item svg { transition: transform calc(420ms * var(--px-k)) var(--px-mola); }
 html[data-px='on'] .tabuleiro .carta {
   transition:
     transform calc(360ms * var(--px-k)) var(--px-mola),
@@ -164,7 +168,9 @@ html[data-px='on'] :is(.q-barra, .hud-progresso) > span::after {
   left: 0;
   width: 40%;
   background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.6), transparent);
-  animation: px-brilho calc(2.6s * var(--px-k)) var(--px-ease-in-out) infinite;
+  /* 3 ciclos, não infinito (dono, 22/10/2026): 4 brilhos eternos no Início mantinham o compositor
+     acordado a 60 fps — 17% de um núcleo em repouso, medido; com as animações paradas, 1%. */
+  animation: px-brilho calc(2.6s * var(--px-k)) var(--px-ease-in-out) 3;
 }
 @keyframes px-pulso {
   0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--q-acento, var(--accent)) 70%, transparent); }
@@ -184,7 +190,9 @@ html[data-px='on'] .q-tile.pri .q-ic::after {
   border-radius: inherit;
   border: 2px solid currentColor;
   pointer-events: none;
-  animation: px-anel calc(2.4s * var(--px-k)) var(--px-ease-out) infinite;
+  /* 3 ciclos, não infinito (22/10/2026): o anel eterno no Início mantinha o processo da GPU a ~80%
+     sem placa de vídeo (medido); com as animações paradas, 0%. */
+  animation: px-anel calc(2.4s * var(--px-k)) var(--px-ease-out) 3;
 }
 html[data-px='on'] .q-tile.pri .q-ic::after { animation-delay: calc(1.2s * var(--px-k)); }
 @keyframes px-flutua {

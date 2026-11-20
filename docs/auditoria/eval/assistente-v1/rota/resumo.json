@@ -1,0 +1,86 @@
+{
+  "geradoEm": "2026-10-25T21:51:31.218Z",
+  "modelo": "google/gemma-4-26b-a4b-it",
+  "excluido": "makora",
+  "rotas": {
+    "antes": {
+      "data_collection": "deny",
+      "zdr": true,
+      "ignore": ["google-ai-studio", "google-vertex"]
+    },
+    "depois": {
+      "data_collection": "deny",
+      "zdr": true,
+      "ignore": ["google-ai-studio", "google-vertex", "makora"]
+    }
+  },
+  "porFuncao": {
+    "comoRespondo": {
+      "antes": {
+        "n": 60,
+        "validos": 60,
+        "erros": 0,
+        "p50": 2.7637415839999995,
+        "p90": 4.240942708000002,
+        "p95": 5.6371269580000005,
+        "max": 7.290674707999998,
+        "usdPorMil": 0.06507952500000001,
+        "provedores": {
+          "CoreWeave": 12,
+          "NextBit": 34,
+          "Venice": 3,
+          "Makora": 8,
+          "Parasail": 3
+        }
+      },
+      "depois": {
+        "n": 60,
+        "validos": 60,
+        "erros": 0,
+        "p50": 2.5889004579999964,
+        "p90": 3.443436375000005,
+        "p95": 3.793182291999998,
+        "max": 4.56622825,
+        "usdPorMil": 0.06112204166666667,
+        "provedores": {
+          "CoreWeave": 12,
+          "NextBit": 42,
+          "Venice": 3,
+          "Parasail": 3
+        }
+      }
+    },
+    "legenda": {
+      "antes": {
+        "n": 120,
+        "validos": 120,
+        "erros": 0,
+        "p50": 0.6748101659999957,
+        "p90": 1.4436377499999944,
+        "p95": 1.6956506250000094,
+        "max": 2.845736459000007,
+        "usdPorMil": 0.016345104166666666,
+        "provedores": {
+          "DekaLLM": 119,
+          "NextBit": 1
+        }
+      },
+      "depois": {
+        "n": 120,
+        "validos": 120,
+        "erros": 0,
+        "p50": 0.6591619590000046,
+        "p90": 1.3025030420000112,
+        "p95": 1.4468134169999975,
+        "max": 1.9150029170000054,
+        "usdPorMil": 0.016296604166666662,
+        "provedores": {
+          "DekaLLM": 119,
+          "NextBit": 1
+        }
+      }
+    }
+  },
+  "gastoUsd": 0.3538179311999987,
+  "parada": null
+}

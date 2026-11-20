@@ -65,8 +65,29 @@ export type PassoDoJoint<E> = (
 ) => Promise<{ logits: ArrayLike<number>; estado: E }>;
 
 /**
+ * A probabilidade do token `token` pelo softmax dos logits de TOKEN (os `nVocab` primeiros; os de
+ * duração ficam de fora). Estável: subtrai o maior antes do `exp`.
+ */
+function probabilidadeDoToken(o: ArrayLike<number>, token: number, nVocab: number): number {
+  const max = o[token];
+  let soma = 0;
+  for (let i = 0; i < nVocab; i++) soma += Math.exp(o[i] - max);
+  return 1 / soma;
+}
+
+/** A média das probabilidades dos tokens; `undefined` sem token (nada a julgar). */
+export function confiancaMedia(confiancas: readonly number[]): number | undefined {
+  if (!confiancas.length) return undefined;
+  return confiancas.reduce((a, b) => a + b, 0) / confiancas.length;
+}
+
+/**
  * Decodificação gulosa TDT. Devolve os ids dos tokens. `cancelado` é consultado a cada quadro: quem
  * pediu desistiu, o laço para e devolve `null`.
+ *
+ * `confiancas` (opcional): recebe a probabilidade de cada token EMITIDO, na ordem — o sinal do áudio
+ * difícil (`core/rota/audioDificil.ts`). Só custa um `exp` por logit de token, e só nos quadros que
+ * emitem (o branco não entra: não é texto).
  */
 export async function decodificarTdt<E>(
   enc: SaidaDoEncoder,
@@ -74,6 +95,7 @@ export async function decodificarTdt<E>(
   estadoInicial: E,
   vocab: { tamanho: number; branco: number },
   cancelado: () => boolean = () => false,
+  confiancas?: number[],
 ): Promise<number[] | null> {
   const { dados, dim, quadros } = enc;
   const nQuadros = Math.min(quadros, enc.validos);
@@ -95,6 +117,7 @@ export async function decodificarTdt<E>(
     if (token !== vocab.branco) {
       estado = r.estado;
       tokens.push(token);
+      confiancas?.push(probabilidadeDoToken(o, token, nVocab));
       emitidos++;
     }
     if (duracao > 0) {

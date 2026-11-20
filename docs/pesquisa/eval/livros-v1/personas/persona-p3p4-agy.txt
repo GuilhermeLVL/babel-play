@@ -1,0 +1,261 @@
+```json
+{
+  "persona": "Vestibulando de 17 anos focado no ENEM, com grana curta, que precisa encarar os clássicos brasileiros, treinar inglês/espanhol e revisar História sem perder tempo.",
+  "dores": [
+    "Não tenho dinheiro para comprar edições comentadas ou assinar vários cursinhos, então dependo de PDFs horríveis da internet que cansam a vista no celular.",
+    "Travo no vocabulário antigo de Machado de Assis e José de Alencar e perco o fio da meada toda vez que saio do texto para procurar palavras no dicionário.",
+    "Não sei conectar o que estou lendo na literatura com o contexto histórico cobrado nas provas de Ciências Humanas do ENEM.",
+    "Falta tempo para ler obras inteiras; preciso revisar capítulos-chave no ônibus ouvindo pelo celular sem gastar minha franquia de dados.",
+    "Quando treino inglês ou espanhol com textos longos, anoto palavras novas no papel, mas nunca reviso com constância e esqueço tudo antes do simulado.",
+    "Meus grifos e resumos ficam espalhados entre o navegador do PC da escola e o meu celular, e já perdi anotações inteiras limpando o cache sem querer.",
+    "Tenho dificuldade de entender ironias, figuras de linguagem e críticas sociais escondidas nos capítulos sem alguém para me explicar de forma direta."
+  ],
+  "jobs_to_be_done": [
+    "Quando estou lendo um clássico brasileiro do século XIX, quero clicar em uma palavra arcaica ou expressão difícil e ver o significado no contexto na hora, para não perder o ritmo de leitura nem desistir do livro.",
+    "Quando termino um capítulo importante de uma obra de domínio público, quero gerar um resumo dos pontos críticos e transformá-lo em cartões de revisão, para fixar o enredo e o contexto histórico até o dia do ENEM.",
+    "Quando estou no transporte público indo para a aula, quero ouvir os capítulos em áudio ou treinar leitura bilíngue em inglês/espanhol, para aproveitar o tempo morto estudando sem precisar encarar a tela tremendo.",
+    "Quando encontro uma tirinha, artigo ou prova antiga em PDF/EPUB, quero importar rápido no navegador e extrair as palavras que não sei em espanhol ou inglês para o meu deck FSRS, para acertar as 5 questões de idioma do ENEM.",
+    "Quando faço grifos e anotações ao longo de um livro inteiro, quero exportar tudo organizado por capítulo em um arquivo limpo, para revisar na véspera da prova ou colar no meu caderno digital."
+  ],
+  "funcoes": [
+    {
+      "nome": "Prateleira Clássicos do Vestibular & ENEM",
+      "descricao": "Catálogo filtrado com obras brasileiras e estrangeiras em domínio público (autores mortos até 1955) organizadas por movimentos literários e temas recorrentes na prova.",
+      "tela": "catálogo",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Leitor EPUB/PDF Paginado com Progresso Rápido",
+      "descricao": "Leitor leve via foliate-js com sumário navegável, estimativa de tempo de fim de capítulo e salvamento exato de onde parei (CFI).",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Toque para Traduzir e Virar Flashcard FSRS",
+      "descricao": "Clicar em qualquer palavra ou frase em inglês, espanhol ou português arcaico para ver a definição imediata e mandar com um toque para a fila de repetição espaçada.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Importador Livre de Provas e Apostilas",
+      "descricao": "Abrir meus próprios arquivos EPUB, PDF ou links de textos direto no navegador sem upload obrigatório para servidor, mantendo custo zero.",
+      "tela": "catálogo",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Raio-X do Capítulo (Resumo, Ironias e Analogias)",
+      "descricao": "Painel que explica o capítulo em linguagem jovem, destaca críticas sociais e cria analogias atuais, usando cache compartilhado para não gastar minha cota à toa.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Ponte Literária-Histórica",
+      "descricao": "Bloco no fim do capítulo que conecta o trecho lido aos fatos da História do Brasil daquela época (ex.: Segundo Reinado, Abolição, República Velha).",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Gerador Automático de Deck do Capítulo",
+      "descricao": "Transforma os conceitos, personagens e vocabulário-chave de um capítulo recém-lido em um pacote de cartões FSRS prontos para revisar.",
+      "tela": "jogos/revisão",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Pergunte ao Livro com Prova no Texto",
+      "descricao": "Busca lexical no livro inteiro onde faço uma pergunta sobre a trama e a IA responde citando o parágrafo exato do capítulo para eu não cair em alucinação.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "G"
+    },
+    {
+      "nome": "Grifos por Cor e Nota de Voz Rápida",
+      "descricao": "Destacar trechos importantes (ex.: amarelo para vocabulário, rosa para tese de redação) e gravar um áudio curto explicando com minhas palavras.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Exportador de Caderno de Revisão e Anki",
+      "descricao": "Baixar todos os meus grifos, citações e notas do livro em Markdown/PDF ou pacote Anki para fazer backup fora do navegador.",
+      "tela": "notas/exportar",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Narração Bilíngue Inteligente no Aparelho",
+      "descricao": "Ouvir textos em inglês ou espanhol alternando frase no idioma original e tradução com a voz gratuita do próprio celular.",
+      "tela": "narração",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Pacote MP3 do Livro para Ouvir no Ônibus",
+      "descricao": "Baixar um ZIP com os capítulos narrados (via LibriVox quando houver ou síntese de voz natural na nuvem) para escutar offline sem gastar 4G.",
+      "tela": "narração",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "G"
+    },
+    {
+      "nome": "Quiz Rápido de Vocabulário do Capítulo",
+      "descricao": "Jogo de 2 minutos ao fechar o capítulo usando exatamente as palavras que grifei ou consultei durante a leitura.",
+      "tela": "jogos/revisão",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    }
+  ],
+  "me_faria_desistir": [
+    "Trancar a leitura de livros em domínio público, o dicionário básico ou a criação manual de cartões FSRS atrás de paywall, porque se o plano grátis for só uma demo disfarçada eu volto a baixar PDF solto.",
+    "Entrar no catálogo procurando autores modernos do ENEM (que morreram depois de 1955) e dar de cara com uma busca vazia que não me explica o motivo legal nem me deixa importar meu próprio arquivo com 1 clique.",
+    "Perder todos os meus grifos de um livro de 200 páginas porque troquei de navegador ou limpei dados do celular e não havia um botão óbvio de exportar/fazer backup local.",
+    "Leitor pesado que engasga em celular básico, demora para abrir PDF/EPUB ou perde a página exata em que eu estava toda vez que a aba do navegador recarrega.",
+    "IA que inventa acontecimentos que não existem no livro ou dá respostas genéricas sem citar o trecho original da obra, me fazendo errar questão na prova."
+  ]
+}
+```
+
+```json
+{
+  "persona": "Leitor de 58 anos apaixonado por Machado, Alencar e Eça, pouco à vontade com tecnologia complicada, que busca conforto visual, boa escuta, anotações simples e clássicos em espanhol.",
+  "dores": [
+    "As letras dos livros impressos antigos são miúdas demais e ler em telas comuns com rolagem infinita me dá dor de cabeça e cansaço na vista.",
+    "Tenho pavor de aplicativos cheios de menus escondidos, siglas em inglês e janelas pulando na tela; quando aperto algo errado e o texto some, fico frustrado.",
+    "Gosto de escrever minhas impressões na margem do livro como fazia no papel, mas no computador nunca sei onde minhas notas foram parar nem como imprimi-las.",
+    "Quero me aventurar nos grandes clássicos em espanhol no original, mas tenho receio de empacar nas palavras falsas amigas e estragar o prazer da leitura.",
+    "À noite minha vista cansa e eu gostaria de continuar o capítulo apenas ouvindo, mas a maioria das vozes gratuitas de computador parece um robô sem alma lendo bula de remédio.",
+    "Quando busco livros gratuitos na internet, caio em sites cheios de propagandas enganosas, arquivos corrompidos ou edições cheias de erros de digitação e cabeçalhos em inglês.",
+    "Quero ouvir capítulos durante minhas caminhadas matinais sem depender de sinal de internet na rua e sem precisar configurar programas complicados."
+  ],
+  "jobs_to_be_done": [
+    "Quando abro um romance de Machado de Assis ou Eça de Queirós à noite, quero ajustar facilmente o tamanho da letra, o espaçamento e colocar um fundo creme suave com virada de página como num livro real, para ler por horas sem cansar os olhos.",
+    "Quando meus olhos cansam no meio de um capítulo, quero apertar um único botão para ouvir o restante com uma voz humana e expressiva exatamente de onde parei, para continuar apreciando a história na poltrona.",
+    "Quando estou lendo um clássico em espanhol (como Cervantes ou Galdós) e encontro uma frase confusa, quero ver a tradução ou uma explicação clara logo abaixo sem sair da página, para apreciar a obra original com segurança.",
+    "Quando um parágrafo me emociona ou me faz refletir, quero sublinhá-lo e ditar uma nota por voz ou escrever um comentário curto, para guardar minhas memórias daquela releitura e poder imprimir depois.",
+    "Quando vou caminhar ou viajar, quero baixar os capítulos do livro em áudio num arquivo simples, para escutar com calma no meu aparelho sem depender de conexão."
+  ],
+  "funcoes": [
+    {
+      "nome": "Estante Curada de Grandes Clássicos Luso-Brasileiros e Espanhóis",
+      "descricao": "Catálogo limpo, sem poluição visual, destacando obras-primas de autores consagrados (mortos até 1955) com edições revisadas do Standard Ebooks, Wikisource e Gutenberg limpo.",
+      "tela": "catálogo",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Painel de Conforto Visual com 1 Clique",
+      "descricao": "Botões grandes e sempre visíveis no topo para aumentar a fonte, escolher tema sépia/noturno e alternar para paginação tradicional sem rolagem.",
+      "tela": "ajustes",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Marcador de Página Automático e Sumário Claro",
+      "descricao": "O livro abre sempre na página exata onde fechei (via CFI), com um índice de capítulos grande e fácil de clicar.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Narração com Voz Natural de Estúdio e LibriVox",
+      "descricao": "Escolha entre gravações humanas voluntárias (LibriVox) ou vozes naturais da nuvem que leem com entonação agradável, acompanhando o texto grifado na tela.",
+      "tela": "narração",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Leitura Acompanhada Português-Espanhol",
+      "descricao": "Modo que mostra ou narra a frase original em espanhol seguida do apoio em português apenas quando eu pedir, ideal para ler clássicos hispânicos sem medo.",
+      "tela": "narração",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Anotação de Margem e Nota Falada",
+      "descricao": "Selecionar um trecho bonito e, em vez de digitar no teclado pequeno, apertar um microfone para gravar minha reflexão em áudio presa àquele parágrafo.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Caderno de Citações Pronto para Imprimir",
+      "descricao": "Botão simples para gerar um documento bonito e organizado com todos os trechos que sublinhei e minhas notas, pronto para salvar no computador ou imprimir em papel.",
+      "tela": "notas/exportar",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Guia de Personagens e Contexto de Época",
+      "descricao": "Assistente discreto que me lembra quem é um personagem secundário que reapareceu ou explica um costume antigo do século XIX sem dar spoiler do final.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Simplificador de Passagens Complexas em Espanhol",
+      "descricao": "Ao selecionar um parágrafo em espanhol antigo ou rebuscado, a IA reescreve a ideia em espanhol mais simples ou explica os falsos cognatos para um falante de português.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Baixar Audiolivro em MP3 por Capítulo",
+      "descricao": "Gera um pacote ZIP com os arquivos MP3 numerados por capítulo para guardar no computador ou ouvir fora de casa com tranquilidade.",
+      "tela": "notas/exportar",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "G"
+    },
+    {
+      "nome": "Busca de Trechos Lembrados",
+      "descricao": "Pesquisar uma palavra ou frase que lembro de cabeça e encontrar rapidamente em qual capítulo e página o autor escreveu aquilo.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Passatempo de Palavras Elegantes",
+      "descricao": "Exercício leve e sem pressão de tempo para recordar palavras interessantes em espanhol ou português clássico que encontrei nas minhas leituras da semana.",
+      "tela": "jogos/revisão",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    }
+  ],
+  "me_faria_desistir": [
+    "Interface poluída que parece um painel de avião ou um videogame adolescente, cheia de ícones sem texto explicativo onde não consigo nem achar onde aumenta o tamanho da letra.",
+    "Textos mal formatados que parecem cópia pirata da internet, com termos jurídicos em inglês no começo do livro (como os cabeçalhos antigos do Gutenberg) ou palavras grudadas.",
+    "Páginas de rolagem vertical infinita em vez de páginas que viram de verdade, porque me perco na leitura e fico com tontura.",
+    "Robôs de inteligência artificial que ficam interrompendo minha leitura com balões piscando na tela sem eu ter chamado.",
+    "Fazer anotações cuidadosas durante semanas em *Os Maias* ou *Dom Casmurro* e descobrir que elas sumiram do navegador porque não havia um aviso claro para salvá-las no meu computador."
+  ]
+}
+```

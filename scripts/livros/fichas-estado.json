@@ -1,0 +1,363 @@
+{
+  "nota": "Estado da geração das fichas (scripts/livros/gerar-fichas.mjs). \"ok\" = ficha publicada; \"sem_conhecimento\" = o gerador disse que não conhece a obra o bastante (sem ficha, de propósito); \"reprovada\" = a revisão ou a validação derrubou a ficha (tente de novo com --ids=<id> --refazer).",
+  "livros": {
+    "pg-22622": {
+      "status": "sem_conhecimento",
+      "data": "2026-10-26"
+    },
+    "se-lewis-carroll-alices-adventures-in-wonderland-john-tenniel": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 70,
+      "removidosNaRevisao": 0
+    },
+    "se-arthur-conan-doyle-the-adventures-of-sherlock-holmes": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 70,
+      "removidosNaRevisao": 2
+    },
+    "se-herman-melville-moby-dick": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 72,
+      "removidosNaRevisao": 1
+    },
+    "pg-1513": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 72,
+      "removidosNaRevisao": 0
+    },
+    "se-robert-louis-stevenson-the-strange-case-of-dr-jekyll-and-mr-hyde": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 66,
+      "removidosNaRevisao": 0
+    },
+    "se-bram-stoker-dracula": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 71,
+      "removidosNaRevisao": 0
+    },
+    "pg-67979": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 67,
+      "removidosNaRevisao": 2
+    },
+    "se-george-eliot-middlemarch": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 69,
+      "removidosNaRevisao": 0
+    },
+    "pg-49297": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 71,
+      "removidosNaRevisao": 0
+    },
+    "se-fyodor-dostoevsky-crime-and-punishment-constance-garnett": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 68,
+      "removidosNaRevisao": 1
+    },
+    "se-charlotte-bronte-jane-eyre": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 70,
+      "removidosNaRevisao": 2
+    },
+    "se-louisa-may-alcott-little-women": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 69,
+      "removidosNaRevisao": 0
+    },
+    "se-oscar-wilde-the-picture-of-dorian-gray": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 67,
+      "removidosNaRevisao": 1
+    },
+    "pg-1952": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 65,
+      "removidosNaRevisao": 1
+    },
+    "pg-16389": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 62,
+      "removidosNaRevisao": 2
+    },
+    "se-charles-dickens-a-tale-of-two-cities": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 68,
+      "removidosNaRevisao": 0
+    },
+    "se-niccolo-machiavelli-the-prince-w-k-marriott": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 59,
+      "removidosNaRevisao": 0
+    },
+    "se-leo-tolstoy-war-and-peace-louise-maude-aylmer-maude": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 71,
+      "removidosNaRevisao": 1
+    },
+    "se-robert-w-chambers-the-king-in-yellow": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 62,
+      "removidosNaRevisao": 0
+    },
+    "pg-78052": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 49,
+      "removidosNaRevisao": 0
+    },
+    "pg-394": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 70,
+      "removidosNaRevisao": 0
+    },
+    "pg-58221": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 71,
+      "removidosNaRevisao": 0
+    },
+    "pg-49836": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 70,
+      "removidosNaRevisao": 0
+    },
+    "pg-25640": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 58,
+      "removidosNaRevisao": 1
+    },
+    "pg-27738": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 58,
+      "removidosNaRevisao": 3
+    },
+    "pg-57303": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 71,
+      "removidosNaRevisao": 1
+    },
+    "pg-52894": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 64,
+      "removidosNaRevisao": 6
+    },
+    "pg-67092": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 68,
+      "removidosNaRevisao": 1
+    },
+    "pg-57654": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 72,
+      "removidosNaRevisao": 1
+    },
+    "pg-25777": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 46,
+      "removidosNaRevisao": 0
+    },
+    "pg-25988": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 59,
+      "removidosNaRevisao": 0
+    },
+    "pg-47584": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 72,
+      "removidosNaRevisao": 2
+    },
+    "pg-28002": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 65,
+      "removidosNaRevisao": 1
+    },
+    "pg-18600": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 60,
+      "removidosNaRevisao": 2
+    },
+    "pg-53552": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 61,
+      "removidosNaRevisao": 3
+    },
+    "pg-45438": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 70,
+      "removidosNaRevisao": 3
+    },
+    "pg-17073": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 71,
+      "removidosNaRevisao": 2
+    },
+    "pg-30903": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 71,
+      "removidosNaRevisao": 0
+    },
+    "pg-64974": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 57,
+      "removidosNaRevisao": 4
+    },
+    "pg-3333": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 72,
+      "removidosNaRevisao": 4
+    },
+    "ws-pt-dom-casmurro": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 68,
+      "removidosNaRevisao": 2
+    },
+    "ws-pt-os-maias": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 66,
+      "removidosNaRevisao": 1
+    },
+    "ws-pt-a-escrava-isaura": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 65,
+      "removidosNaRevisao": 0
+    },
+    "pg-54829": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 69,
+      "removidosNaRevisao": 2
+    },
+    "ws-pt-o-cortico": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 70,
+      "removidosNaRevisao": 1
+    },
+    "ws-pt-carta-a-el-rei-d-manuel-ortografia-original": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 58,
+      "removidosNaRevisao": 2
+    },
+    "ws-pt-o-crime-do-padre-amaro": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 69,
+      "removidosNaRevisao": 2
+    },
+    "ws-pt-o-guarani": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 66,
+      "removidosNaRevisao": 0
+    },
+    "pg-26988": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 57,
+      "removidosNaRevisao": 1
+    },
+    "ws-pt-o-alienista": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 61,
+      "removidosNaRevisao": 0
+    },
+    "ws-pt-iracema": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 70,
+      "removidosNaRevisao": 0
+    },
+    "pg-31347": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 63,
+      "removidosNaRevisao": 2
+    },
+    "ws-pt-bom-crioulo": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 62,
+      "removidosNaRevisao": 0
+    },
+    "pg-27637": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 63,
+      "removidosNaRevisao": 2
+    },
+    "ws-pt-quincas-borba": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 66,
+      "removidosNaRevisao": 1
+    },
+    "ws-pt-peregrinacam": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 58,
+      "removidosNaRevisao": 0
+    },
+    "ws-pt-o-choque-das-racas": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 61,
+      "removidosNaRevisao": 2
+    },
+    "ws-pt-cinco-minutos": {
+      "status": "ok",
+      "data": "2026-10-26",
+      "itensGerados": 51,
+      "removidosNaRevisao": 1
+    },
+    "pg-17013": {
+      "status": "ok",
+      "data": "2026-10-27",
+      "itensGerados": 72,
+      "removidosNaRevisao": 0
+    }
+  }
+}

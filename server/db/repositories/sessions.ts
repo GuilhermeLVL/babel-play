@@ -2,11 +2,13 @@ import { randomUUID } from 'node:crypto'
 
 import { and, asc, desc, eq, gte, isNull, like, lt, lte } from 'drizzle-orm'
 
+import { contarChaves, diferencaDeChaves } from '../../../src/core/texto/palavrasVistas'
 import type { UserId } from '../../lib/authContext'
 import { cadeiaDeCausas } from '../../lib/cadeiaDeCausas'
-import { db } from '../db'
+import { db, travarUsuario } from '../db'
 import { type InstrucaoDeBatch, rodarLote } from '../lotes'
 import { sessions, utterances as tabelaDeFalas } from '../schema'
+import { falasComIdioma, palavrasVistasRepo } from './palavrasVistas'
 import { type NewUtterance, type Utterance, utterancesRepo } from './utterances'
 
 export type Session = typeof sessions.$inferSelect
@@ -58,6 +60,11 @@ export interface NewSession {
   meta?: unknown
   /** Id da sessão no navegador de origem (migração sem conta → conta), ou `ORIGEM_DA_DEMONSTRACAO`. */
   origemLocalId?: string
+}
+
+/** As falas de um lote para contar as palavras vistas, com o `idx` que o INSERT dá a cada uma. */
+function falasDoLote(utts: readonly NewUtterance[], idiomaDaSessao: string | null | undefined) {
+  return utts.map((u, i) => ({ texto: u.sourceText, idioma: u.sourceLang || idiomaDaSessao, idx: u.idx ?? i }))
 }
 
 /** Repositório de sessões (adapter de SERVIDOR). Marco 1: `userId` obrigatório em toda função. */
@@ -136,11 +143,16 @@ export const sessionsRepo = {
         origemLocalId: input.origemLocalId ?? null,
       })
     const inserirFalas = utterancesRepo.stmtInsertMany(userId, id, utts)
+    // As palavras vistas entram no MESMO lote (etiquetas de palavras): depois da sessão, por causa da FK.
+    const indexar = palavrasVistasRepo.stmtsReconstruir(userId, id, contarChaves(falasDoLote(utts, input.sourceLang)), {
+      primeiraEm: now,
+      ultimaEm: now,
+    })
 
     // Um lote só (uma transação): uma instrução que falha desfaz as anteriores. As falas vêm em
     // LOTES (teto de variáveis — ver `stmtInsertMany`), todos na mesma transação: um lote que
     // falha desfaz a sessão e os lotes anteriores.
-    await rodarLote([inserirSessao, ...inserirFalas])
+    await rodarLote([inserirSessao, ...inserirFalas, ...indexar])
 
     const created = await this.get(userId, id)
     if (!created) throw new Error('falha ao criar sessão')
@@ -197,16 +209,28 @@ export const sessionsRepo = {
     return { session, utterances }
   },
 
-  /** Atualiza campos escalares da sessão (renomear; recontar após retomar a captura). */
+  /**
+   * Atualiza campos escalares da sessão (renomear; recontar após retomar a captura). Trocar o
+   * `sourceLang` muda o idioma das falas que não têm o próprio, então as palavras vistas da sessão são
+   * reconstruídas na MESMA transação, com a trava do usuário, lendo as falas depois do UPDATE.
+   */
   async update(userId: UserId, id: string, patch: Partial<NewSession>): Promise<Session | undefined> {
     const values: Record<string, unknown> = { updatedAt: Date.now() }
     for (const k of ['title', 'kind', 'sourceLang', 'targetLang', 'status', 'durationMs', 'wordCount'] as const) {
       if (patch[k] !== undefined) values[k] = patch[k]
     }
-    await db
-      .update(sessions)
-      .set(values)
-      .where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
+    const daSessao = and(eq(sessions.id, id), eq(sessions.userId, userId))
+    if (patch.sourceLang === undefined) {
+      await db.update(sessions).set(values).where(daSessao)
+      return this.get(userId, id)
+    }
+    const atualizarEReindexar: InstrucaoDeBatch = async (tx) => {
+      const [antes] = await tx.select({ sourceLang: sessions.sourceLang }).from(sessions).where(daSessao).limit(1)
+      await tx.update(sessions).set(values).where(daSessao)
+      if (antes && (antes.sourceLang ?? null) !== (patch.sourceLang ?? null))
+        await palavrasVistasRepo.stmtReconstruirLendo(userId, id)(tx)
+    }
+    await rodarLote([(tx) => travarUsuario(tx, userId), atualizarEReindexar])
     return this.get(userId, id)
   },
 
@@ -228,12 +252,19 @@ export const sessionsRepo = {
     // D5: a fala que volta igual mantém a tradução polida (polir de novo cobraria outra vez).
     const preservadas = await utterancesRepo.polidasParaPreservar(userId, id)
     const inserir = utterancesRepo.stmtInsertMany(userId, id, utts, preservadas) // lotes; todos na mesma transação
+    const agora = Date.now()
     const contar: InstrucaoDeBatch = (tx) =>
       tx
         .update(sessions)
-        .set({ wordCount, updatedAt: Date.now() })
+        .set({ wordCount, updatedAt: agora })
         .where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
-    await rodarLote([apagar, ...inserir, contar])
+    // A transcrição inteira mudou: as palavras vistas da sessão são reconstruídas no mesmo lote.
+    const reindexar = palavrasVistasRepo.stmtsReconstruir(userId, id, contarChaves(falasDoLote(utts, s.sourceLang)), {
+      primeiraEm: s.createdAt,
+      ultimaEm: agora,
+    })
+    // A trava do usuário enfileira esta troca com os lotes da captura da mesma sessão (`appendUtterances`).
+    await rodarLote([(tx) => travarUsuario(tx, userId), apagar, ...inserir, contar, ...reindexar])
     return this.get(userId, id)
   },
 
@@ -258,23 +289,48 @@ export const sessionsRepo = {
       lte(tabelaDeFalas.idx, ate),
     )
     const palavras = (t: string | null | undefined) => (t ? t.trim().split(/\s+/).filter(Boolean).length : 0)
-    const saem = await db.select({ sourceText: tabelaDeFalas.sourceText }).from(tabelaDeFalas).where(naFaixa)
-    const wordCount = Math.max(
-      0,
-      (s.wordCount ?? 0) -
-        saem.reduce((n, u) => n + palavras(u.sourceText), 0) +
-        utts.reduce((n, u) => n + palavras(u.sourceText), 0),
-    )
-    const apagar: InstrucaoDeBatch = (tx) => tx.delete(tabelaDeFalas).where(naFaixa)
     // D5: o lote repetido não apaga a tradução polida das falas que voltam iguais.
     const preservadas = await utterancesRepo.polidasParaPreservar(userId, id, { de, ate })
     const inserir = utterancesRepo.stmtInsertMany(userId, id, utts, preservadas)
-    const contar: InstrucaoDeBatch = (tx) =>
-      tx
-        .update(sessions)
-        .set({ wordCount, updatedAt: Date.now() })
+    const agora = Date.now()
+    /* UM passo, depois da trava do usuário: o que sai da faixa, a contagem da sessão e o idioma são lidos
+       DENTRO da transação. Lidos antes (como era), dois lotes iguais ao mesmo tempo viam a faixa vazia e
+       somavam as mesmas palavras duas vezes — no `wordCount` e nas palavras vistas. */
+    const substituirFaixa: InstrucaoDeBatch = async (tx) => {
+      const [atual] = await tx
+        .select({ wordCount: sessions.wordCount, sourceLang: sessions.sourceLang })
+        .from(sessions)
         .where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
-    await rodarLote([apagar, ...inserir, contar])
+        .limit(1)
+      const saem = await tx
+        .select({ sourceText: tabelaDeFalas.sourceText, sourceLang: tabelaDeFalas.sourceLang, idx: tabelaDeFalas.idx })
+        .from(tabelaDeFalas)
+        .where(naFaixa)
+      await tx.delete(tabelaDeFalas).where(naFaixa)
+      for (const i of inserir) await i(tx)
+      const wordCount = Math.max(
+        0,
+        (atual?.wordCount ?? 0) -
+          saem.reduce((n, u) => n + palavras(u.sourceText), 0) +
+          utts.reduce((n, u) => n + palavras(u.sourceText), 0),
+      )
+      await tx
+        .update(sessions)
+        .set({ wordCount, updatedAt: agora })
+        .where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
+      /* As palavras vistas acompanham pela MESMA diferença (o que sai da faixa, o que entra): repetir o
+         lote não dobra a contagem, e a sessão longa não é relida. */
+      const idioma = atual?.sourceLang ?? s.sourceLang
+      await palavrasVistasRepo.ajustar(
+        tx,
+        userId,
+        id,
+        diferencaDeChaves(contarChaves(falasComIdioma(saem, idioma)), contarChaves(falasDoLote(utts, idioma))),
+        agora,
+        { de, ate },
+      )
+    }
+    await rodarLote([(tx) => travarUsuario(tx, userId), substituirFaixa])
     return this.get(userId, id)
   },
 
@@ -287,6 +343,8 @@ export const sessionsRepo = {
    * F3-04: propaga para as falas. Sem isto elas ficavam vivas sob uma sessão invisível (4 linhas
    * neste banco) e continuavam entrando nas métricas por usuário, que filtram só `deleted_at`.
    * `vocab_cards` NÃO propaga de propósito: uma palavra salva sobrevive à sessão que a originou.
+   * As palavras vistas da sessão saem DE VEZ no mesmo lote (são derivadas das falas, não há o que
+   * restaurar); a limpeza diária, que apaga a sessão, levaria o resto pelo CASCADE.
    */
   async remove(userId: UserId, id: string): Promise<boolean> {
     const now = Date.now()
@@ -299,6 +357,7 @@ export const sessionsRepo = {
           .set({ deletedAt: now, updatedAt: now })
           .where(and(eq(sessions.id, id), eq(sessions.userId, userId))),
       utterancesRepo.stmtSoftDeleteForSession(userId, id, now),
+      palavrasVistasRepo.stmtApagarDaSessao(userId, id),
     ])
     return true
   },

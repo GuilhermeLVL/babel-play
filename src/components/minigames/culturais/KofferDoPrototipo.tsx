@@ -12,6 +12,7 @@ import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { anima, EIO, MOLA, MOLA_SUAVE, polido, reduz } from '../../../lib/polimento/base';
 import { flutuar } from '../../../lib/polimento/jogos';
 import { sentir } from '../../../lib/polimento/sentidos';
+import { zoomDoCorpo } from '../../../lib/zoomDoCorpo';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 import { falarNoJogo as falar } from '../noQuest';
@@ -59,9 +60,10 @@ function voarTexto(de: Element | null, para: Element | null, texto: string): voi
   if (!polido() || reduz() || !de || !para) return;
   const a = de.getBoundingClientRect();
   const b = para.getBoundingClientRect();
+  const z = zoomDoCorpo(); // px da janela → px do body (zoom do A±)
   const v = document.createElement('span');
   v.className = 'ganho';
-  v.style.cssText = `left:${a.left + a.width / 2}px;top:${a.top + a.height / 2}px;animation:none;translate:-50% -50%;font-size:20px`;
+  v.style.cssText = `left:${(a.left + a.width / 2) / z}px;top:${(a.top + a.height / 2) / z}px;animation:none;translate:-50% -50%;font-size:20px`;
   v.textContent = texto;
   document.body.append(v);
   const fim = () => v.remove();
@@ -70,7 +72,7 @@ function voarTexto(de: Element | null, para: Element | null, texto: string): voi
     [
       { transform: 'translate(0,0) scale(1.1)', opacity: 1 },
       {
-        transform: `translate(${b.left + b.width / 2 - a.left - a.width / 2}px, ${b.top + b.height / 2 - a.top - a.height / 2}px) scale(0.8)`,
+        transform: `translate(${(b.left + b.width / 2 - a.left - a.width / 2) / z}px, ${(b.top + b.height / 2 - a.top - a.height / 2) / z}px) scale(0.8)`,
         opacity: 0.3,
       },
     ],

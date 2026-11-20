@@ -18,6 +18,7 @@
  * qualquer chamada ficaria pendurada para sempre esperando um `definirIdentidade` que nunca vem.
  */
 import { edicaoEstatica } from './edicaoEstatica';
+import { haSessaoOuVoltaDoLogin } from './sessaoNoBoot';
 import { authRequired } from './supabase';
 
 export type EstadoDeIdentidade = 'carregando' | 'anonimo' | 'conta' | 'selfhost';
@@ -27,7 +28,10 @@ const EVENTO = 'babel_identidade_changed';
 
 function estadoInicial(): EstadoDeIdentidade {
   if (edicaoEstatica()) return 'anonimo';
-  return authRequired ? 'carregando' : 'selfhost';
+  if (!authRequired) return 'selfhost';
+  /* Sem sessão guardada nem volta do login, é o visitante sem conta desde já (carga-rapida-no-celular): o
+     SDK não é baixado no boot, e esperar por ele seguraria o Início. Entrar depois define `conta`. */
+  return haSessaoOuVoltaDoLogin() ? 'carregando' : 'anonimo';
 }
 
 let estado: EstadoDeIdentidade = estadoInicial();

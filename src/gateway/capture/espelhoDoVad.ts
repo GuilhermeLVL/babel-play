@@ -55,6 +55,11 @@ export class EspelhoDoVad {
 
   constructor(private readonly opcoes: OpcoesDoEspelho) {}
 
+  /** O silêncio que fecha a fala mudou em tempo de execução (o turno por toque do intérprete): o espelho acompanha. */
+  mudarRedencao(ms: number): void {
+    this.opcoes.redemptionMs = ms;
+  }
+
   /** Quadros de uma duração, com a MESMA conta da biblioteca (`Math.floor(ms / msPorQuadro)`). */
   private quadros(ms: number, amostras: number): number {
     const msPorQuadro = amostras / 16;

@@ -20,7 +20,9 @@ import { chaveDedup } from '../../src/core/texto/palavra'
 import { planejarReparoDeIdioma, planoVazio } from '../../src/core/texto/reparoDeIdioma'
 import { db, type ExecutorDb, travarUsuario } from '../db/db'
 import { type InstrucaoDeBatch, rodarLote } from '../db/lotes'
+import { palavrasVistasRepo } from '../db/repositories/palavrasVistas'
 import { sessions, utterances, vocabCards } from '../db/schema'
+import { asUserId } from '../lib/authContext'
 
 export interface RelatorioDoReparo {
   usuarios: number
@@ -103,7 +105,20 @@ async function repararUsuario(userId: string | null, aplicar: boolean): Promise<
      dois (40P01). */
   if (aplicar && instrucoes.length) {
     const trava = userId === null ? [] : [(tx: ExecutorDb) => travarUsuario(tx, userId)]
-    await rodarLote([...trava, ...instrucoes])
+    /* O idioma da fala (ou o da sessão, para as falas sem o próprio) decide a chave das palavras vistas:
+       as sessões tocadas são reconstruídas NO MESMO lote, depois dos UPDATEs (ou repara e reindexa tudo, ou
+       nada). Sem dono não há índice (a chave dele é o usuário). */
+    const reindexar: InstrucaoDeBatch[] = []
+    if (userId !== null) {
+      const sessaoDaFala = new Map(fs.map((f) => [f.id, f.sessionId]))
+      const tocadas = new Set<string>(plano.sessoes.map((t) => t.id))
+      for (const t of plano.falas) {
+        const sessao = sessaoDaFala.get(t.id)
+        if (sessao) tocadas.add(sessao)
+      }
+      for (const sessao of tocadas) reindexar.push(palavrasVistasRepo.stmtReconstruirLendo(asUserId(userId), sessao))
+    }
+    await rodarLote([...trava, ...instrucoes, ...reindexar])
   }
   return r
 }

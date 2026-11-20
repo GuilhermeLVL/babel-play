@@ -20,6 +20,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { encodeWav } from '../../gateway/audio/wav';
 import { CHAVE_DA_ULTIMA_CAPTURA } from '../../gateway/capture/captureMetrics';
+import { comPoliticaDoHub } from '../../gateway/semReferer';
 import { medirBenchmark, type PontuacaoDoBenchmark } from '../../lib/dispositivo/benchmark';
 import {
   coletarSinaisDoDiagnostico,
@@ -42,6 +43,7 @@ import { cabecalhoDoDono, CHAVE_DO_DONO_NO_APARELHO, ENDPOINT_DA_NUVEM_DO_QUEST 
 import { descreverEtapas, lerUltimoDoInterprete } from '../../lib/voz/tempoAteAVoz';
 import AbasDoQuest from './ajustes/quest/AbasDoQuest';
 import { type NivelDaProva, textoDaProva, tocarSomDoApontar } from './ajustes/quest/vibracao';
+import UsoSemInternet from './diagnostico/UsoSemInternet';
 
 /**
  * DIAGNÓSTICO DO APARELHO (`/diagnostico`) — o que ESTE aparelho entrega, medido nele mesmo.
@@ -193,7 +195,7 @@ async function medirCompartilhamento(): Promise<ResultadoDoCompartilhamento> {
 
 /** O trecho de fala das medidas, em 16 kHz mono (o formato que os modelos recebem). */
 async function carregarTrechoDeFala(): Promise<Float32Array> {
-  const resposta = await fetch(URL_DO_TRECHO_DE_FALA);
+  const resposta = await fetch(URL_DO_TRECHO_DE_FALA, comPoliticaDoHub(URL_DO_TRECHO_DE_FALA));
   if (!resposta.ok) throw new Error(`o trecho de fala não baixou (${resposta.status})`);
   const bytes = await resposta.arrayBuffer();
   const ctx = new AudioContext();
@@ -847,6 +849,7 @@ export default function Diagnostico() {
             </dl>
           )}
         </section>
+        <UsoSemInternet />
       </div>
 
       {/* ── HEADSET: a vibração do controle e a chave de dono. Só no headset. ── */}

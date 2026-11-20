@@ -21,6 +21,8 @@ import {
   ankiDecks,
   ankiImports,
   ankiNotes,
+  anotacoesDeLeitura,
+  anunciosPremiados,
   billingEvents,
   convidados,
   creditPurchases,
@@ -31,6 +33,7 @@ import {
   exerciseResults,
   glossario,
   idadesDeclaradas,
+  palavrasVistas,
   presencas,
   providerCredentials,
   reviewLogs,
@@ -84,6 +87,10 @@ const TABELAS_DO_TITULAR: ReadonlyArray<readonly [string, any]> = [
   ['ankiImports', ankiImports],
   ['ankiDecks', ankiDecks],
   ['vocabCards', vocabCards],
+  /* O índice das palavras vistas (migração PG 0012): derivado das falas, filho de `sessions` (FK com
+     CASCADE). Antes dela, como toda filha — o CASCADE o levaria junto, mas a lista é também a da
+     EXPORTAÇÃO, e o relatório da exclusão conta as linhas por tabela. */
+  ['palavrasVistas', palavrasVistas],
   ['sessions', sessions],
   ['settings', settings],
   ['userInterests', userInterests],
@@ -113,10 +120,15 @@ const TABELAS_DO_TITULAR: ReadonlyArray<readonly [string, any]> = [
   /* D3 da Fase D: o glossário pessoal da Tradução Nuance (migração 0042) — as traduções que a pessoa
      fixou. Sem FOREIGN KEY para ninguém: a posição na lista não importa. */
   ['glossario', glossario],
-  /* C6: o teste de 14 dias do Premium (início e fim) é da conta e sai com ela. A MARCA do teste
+  /* C6: o teste de 3 dias do Premium (início e fim) é da conta e sai com ela. A MARCA do teste
      (`marcas_de_teste`, o HMAC do e-mail) NÃO entra aqui de propósito: não tem `user_id` e existe
      para sobreviver à exclusão — senão apagar e recriar a conta renovaria o teste. Ver o schema. */
   ['testesPremium', testesPremium],
+  /* As exibições do anúncio premiado (migração 0006): os tetos do dia e o bônus de nuvem do mês. */
+  ['anunciosPremiados', anunciosPremiados],
+  /* As anotações do leitor (migração 0013): grifos, notas e palavras salvas de cada livro, com a citação
+     curta (≤ 500 caracteres). Sem FOREIGN KEY: o livro não é linha do banco (o arquivo nunca sobe). */
+  ['anotacoesDeLeitura', anotacoesDeLeitura],
   /* A contabilidade derivada (versões dos dados, agregados diários e estado por item): sem FOREIGN
      KEY para ninguém, mas com o id do titular. Por ÚLTIMO, depois das tabelas brutas, porque os
      gatilhos delas mexem nestas a cada DELETE. Os DELETEs incondicionais em `excluir` (depois do

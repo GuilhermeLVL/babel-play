@@ -9,19 +9,24 @@ import {
   ListChecks,
   Lock,
   type LucideIcon,
+  MessageCircleReply,
   Mic,
   Monitor,
+  PictureInPicture2,
   RotateCcw,
   Volume2,
   VolumeX,
   X,
 } from 'lucide-react';
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+import type { MarcaNaLinha } from '../../../../core/assistente/telaDoAssistente';
+import type { CorrecaoDaFala } from '../../../../data/apiDoAssistente';
 import type { LadoDoInterprete } from '../../../../lib/captura/tiposDaFala';
 import { noComputador } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../../lib/i18n';
 import { direcaoDoTexto } from '../../../../lib/languages';
+import { comNomeDoPlano, planoDoInterprete } from '../../../../lib/planoDeEntrada';
 import {
   entradaDaConversa,
   entradaDasBolhas,
@@ -33,12 +38,27 @@ import {
 import { sentir } from '../../../../lib/polimento/sentidos';
 import type { LadoDaVoz } from '../../../../lib/voz/catalogoDeVozes';
 import FolhaDasVozes from '../../../voz/FolhaDasVozes';
+import { CartaoDaMarca, ComparacaoNaPagina, CorrecaoNaPagina, SugestaoParaLer } from '../assistente/AssistenteNaPagina';
+import { TextoComMarcas } from '../assistente/TextoComMarcas';
+import { ajustarFonteParaCaber } from './fonteQueCabe';
 
 /** O que a metade mostra no meio: a dica de começo, a fala de quem está nela, ou a tradução do outro. */
 export type FraseDaMetade =
   | { tipo: 'dica'; texto: string }
-  | { tipo: 'fala'; texto: string; lang: string; aoVivo: boolean }
-  | { tipo: 'traducao'; id: string; traducao: string; original: string; lang: string; langDoOriginal: string };
+  | { tipo: 'fala'; texto: string; lang: string; aoVivo: boolean; id?: string }
+  | { tipo: 'traducao'; id: string; traducao: string; original: string; lang: string; langDoOriginal: string }
+  /** A fala espera a conferência (conversa-de-verdade, 5.4): o que o app entendeu e os três toques. */
+  | {
+      tipo: 'conferir';
+      id: string;
+      texto: string;
+      lang: string;
+      aoLer: () => void;
+      aoCorrigir: () => void;
+      aoDescartar: () => void;
+    }
+  /** A fala saiu em outro idioma (conversa-de-verdade, 3.2): o aviso para repetir e o que foi ouvido, sem tradução. */
+  | { tipo: 'foraDoPar'; id: string; texto: string; original: string; langDoOriginal: string };
 
 export interface MetadeDaConversa {
   /** O lado do MOTOR: `outro` é a metade de cima, `meu` a de baixo (quem segura o aparelho). */
@@ -66,6 +86,29 @@ export interface MetadeDaConversa {
   lendo?: boolean;
   /** A tecla que fala por esta metade no computador ("1", "2"); aparece embaixo do botão. */
   atalho?: string;
+  /** O avatar desta metade (atrás da flag `avatar_3d`): só imagem, ao lado do idioma. Ausente = a metade é a de sempre. */
+  avatar?: ReactNode;
+  /** A soletração do avatar-intérprete (flag `avatar_sinais`): os avisos fixos e as mãos, embaixo do idioma. */
+  soletracao?: ReactNode;
+  /** O estado do palco das mãos ("Aguardando…") no celular: embaixo do idioma, ao lado do círculo, sem gastar altura. */
+  estadoNoTopo?: ReactNode;
+}
+
+/** Os avatares da conversa: o botão da faixa e o painel (que abre o seletor de voz que já existe). */
+export interface AvataresDaConversa {
+  botao: ReactNode;
+  /** A linha embaixo da faixa: atalho de soletrar, explicação e a dica da primeira vez (pode ser `null`). */
+  linha?: ReactNode;
+  painel: (api: { escolherVoz?: (() => void) | undefined }) => ReactNode;
+}
+
+/** O botão "Janela flutuante" da faixa: o mesmo caminho do Alt+L (`useJanelaFlutuante.alternar`). */
+export interface JanelaFlutuanteDoInterprete {
+  aberta: boolean;
+  /** Abre ou fecha, dentro do toque (o navegador exige o gesto). */
+  aoAlternar: () => void;
+  /** O que a janela vai ser neste navegador (vem do hook, com o atalho). */
+  dica: string;
 }
 
 /**
@@ -96,6 +139,32 @@ export interface BolhaDaConversa {
   dono: LadoDoInterprete;
   fala: string;
   traducao: string;
+  /** O idioma do que foi dito (as marcas do assistente cortam as palavras nele). */
+  lang?: string;
+}
+
+/**
+ * O ASSISTENTE AO VIVO NA CONVERSA (Fase C3): a mesma instância da captura e da janela flutuante. As marcas silenciosas
+ * no que a outra pessoa disse, "Como respondo?" junto da última fala dela (e Alt+R), e a correção gentil embaixo das
+ * falas da PRÓPRIA pessoa — o lado dela é o "você" (opt-in).
+ */
+export interface AssistenteNaConversa {
+  marcas: ReadonlyMap<string, MarcaNaLinha[]>;
+  correcoes: ReadonlyMap<string, CorrecaoDaFala>;
+  /** A fala a que "Como respondo?" responde (a última da outra pessoa); ausente = sem o botão. */
+  responderA?: string;
+  aoComoRespondo?: (falaId: string) => void;
+  /** Mostra o atalho (Alt+R) no botão: no computador. */
+  comAtalho?: boolean;
+  /**
+   * "Falar esta" (a prática): a sugestão que a pessoa vai ler, à vista na metade dela e na lista. `esperando`: a outra
+   * pessoa ainda fala, e os lados só trocam quando a fala dela chegar.
+   */
+  ensaiando?: { texto: string; lang?: string; esperando?: boolean };
+  /** "Cancelar" a leitura da sugestão. */
+  aoCancelarEnsaio?: () => void;
+  /** As falas da pessoa que leram uma sugestão (id → a sugestão): a comparação aparece embaixo delas. */
+  ensaios?: ReadonlyMap<string, string>;
 }
 
 const quem = (dono: LadoDoInterprete) => (dono === 'meu' ? t('Você') : t('A outra pessoa'));
@@ -137,6 +206,7 @@ export default function ConversaDoPrototipo({
   vozes,
   aviso,
   aoConhecerOPremium,
+  acaoDoAviso,
   aoTrocarLados,
   aoVirtual,
   aoEscolherIdioma,
@@ -145,10 +215,14 @@ export default function ConversaDoPrototipo({
   aoSair,
   comEntrada = false,
   emDialogo = false,
+  comTrilho = !emDialogo,
   fase,
   testid = 'modo-interprete',
   rotulo,
   rotuloDeSair,
+  assistente,
+  avatares,
+  janelaFlutuante,
   children,
 }: {
   cima: MetadeDaConversa;
@@ -178,6 +252,8 @@ export default function ConversaDoPrototipo({
   aviso: string;
   /** Com o aviso do cadeado na tela: o botão que leva aos Planos. */
   aoConhecerOPremium?: (() => void) | undefined;
+  /** Uma ação do aviso da faixa (a prática sem o consentimento de nuvem: "Autorizar IA de nuvem"). */
+  acaoDoAviso?: { rotulo: string; aoTocar: () => void } | undefined;
   aoTrocarLados: () => void;
   aoVirtual?: (() => void) | undefined;
   aoEscolherIdioma?: (() => void) | undefined;
@@ -188,14 +264,57 @@ export default function ConversaDoPrototipo({
   comEntrada?: boolean;
   /** A conversa em curso cobre a captura: é um diálogo para quem usa leitor de tela. */
   emDialogo?: boolean;
+  /** Convive com o trilho (ao lado dele no computador, acima da barra no celular): a tela pronta e a
+   *  conversa em curso. Só a conversa virtual cobre tudo. Ver `modoInterprete.css`. */
+  comTrilho?: boolean;
   fase?: string | undefined;
   testid?: string;
   /** O nome da tela e o do X para o leitor de tela. Ausentes = os do modo intérprete. */
   rotulo?: string;
   rotuloDeSair?: string;
+  /** O assistente ao vivo (Fase C3). Ausente = nada dele. */
+  assistente?: AssistenteNaConversa | undefined;
+  /** Os avatares da conversa (atrás da flag `avatar_3d`): botão na faixa e painel de configuração. */
+  avatares?: AvataresDaConversa | undefined;
+  /** A janela flutuante (Alt+L) em botão visível. Só aparece junto dos avatares e onde o navegador abre a janela. */
+  janelaFlutuante?: JanelaFlutuanteDoInterprete | undefined;
   children?: ReactNode;
 }) {
   const raiz = useRef<HTMLDivElement>(null);
+  /** A marca aberta no cartão (toque ou Enter numa marca). */
+  const [marcaAberta, setMarcaAberta] = useState<{ marca: MarcaNaLinha; lang?: string } | null>(null);
+  /** O texto com as marcas do assistente; sem ele, o texto puro de sempre. */
+  const comMarcas = (texto: string, lang: string | undefined, id: string | undefined) =>
+    assistente ? (
+      <TextoComMarcas
+        texto={texto}
+        lang={lang}
+        marcas={id ? assistente.marcas.get(id) : undefined}
+        interativa
+        aoAbrir={(marca) => setMarcaAberta({ marca, lang })}
+      />
+    ) : (
+      texto
+    );
+  /** "Como respondo?" para esta fala, quando é a última da outra pessoa. */
+  const botaoResponder = (id: string | undefined, onde: 'metade' | 'bolha') =>
+    assistente?.aoComoRespondo && id && assistente.responderA === id ? (
+      <button
+        type="button"
+        className="int-modo asst-responder"
+        data-onde={onde}
+        data-para={id}
+        aria-label={t('Como respondo?')}
+        aria-keyshortcuts="Alt+R"
+        title={`${t('Sugestões para você responder com as suas palavras')} (Alt+R)`}
+        onClick={() => assistente.aoComoRespondo?.(id)}
+        data-testid="como-respondo-interprete"
+      >
+        <MessageCircleReply aria-hidden />
+        <span>{t('Como respondo?')}</span>
+        {assistente.comAtalho && <kbd aria-hidden>Alt+R</kbd>}
+      </button>
+    ) : null;
   /** No monitor: duas colunas e ninguém de cabeça para baixo. */
   const emColunas = noComputador();
   const [escolhendoVoz, setEscolhendoVoz] = useState(false);
@@ -216,6 +335,19 @@ export default function ConversaDoPrototipo({
     antes.current = null;
     if (de && raiz.current) trocaDeLados(raiz.current, de);
   }, [cima.dono]);
+
+  /* A FRASE CABE NA METADE (conversa-de-verdade, 5.1): a fonte encolhe até 18 px, e o resto rola. A cada frase nova
+     e quando a tela muda de tamanho (girar o celular, o teclado). */
+  const textoDaFrase = (m: MetadeDaConversa) =>
+    m.frase.tipo === 'traducao' ? m.frase.traducao + m.frase.original : m.frase.texto + m.frase.tipo;
+  const chaveDasFrases = `${textoDaFrase(cima)}|${textoDaFrase(baixo)}|${lista.aberta}`;
+  useLayoutEffect(() => {
+    const ajustar = () =>
+      raiz.current?.querySelectorAll<HTMLElement>('.int-frase').forEach((f) => ajustarFonteParaCaber(f));
+    ajustar();
+    window.addEventListener('resize', ajustar);
+    return () => window.removeEventListener('resize', ajustar);
+  }, [chaveDasFrases]);
 
   /* A TRADUÇÃO CHEGOU do lado de quem escuta: uma vez por fala, e não para a que já estava na tela. */
   const idDaTraducao = (m: MetadeDaConversa) => (m.frase.tipo === 'traducao' ? m.frase.id : '');
@@ -250,6 +382,39 @@ export default function ConversaDoPrototipo({
   const frase = (m: MetadeDaConversa) => {
     const f = m.frase;
     if (f.tipo === 'dica') return <p className="int-dica">{f.texto}</p>;
+    if (f.tipo === 'conferir')
+      return (
+        <div className="int-conferir" data-testid={`conferir-${m.lado}`}>
+          <p className="int-conferir-rotulo">{t('O app entendeu:')}</p>
+          <p className="int-ao-vivo" lang={f.lang} dir={direcaoDoTexto(f.lang)}>
+            {f.texto}
+          </p>
+          <div className="int-conferir-acoes">
+            <button type="button" className="int-conferir-ler" onClick={f.aoLer}>
+              {t('Ler a tradução')}
+            </button>
+            <button type="button" onClick={f.aoCorrigir}>
+              {t('Corrigir')}
+            </button>
+            <button type="button" onClick={f.aoDescartar}>
+              {t('Descartar')}
+            </button>
+          </div>
+        </div>
+      );
+    if (f.tipo === 'foraDoPar')
+      return (
+        <>
+          <p className="int-fora-do-par" data-testid={`fora-do-par-${m.lado}`}>
+            {f.texto}
+          </p>
+          {f.original && (
+            <p className="int-original" lang={f.langDoOriginal} dir={direcaoDoTexto(f.langDoOriginal)}>
+              {f.original}
+            </p>
+          )}
+        </>
+      );
     if (f.tipo === 'fala')
       return (
         <p className="int-ao-vivo" lang={f.lang} dir={direcaoDoTexto(f.lang)}>
@@ -268,12 +433,33 @@ export default function ConversaDoPrototipo({
         </p>
         {f.original && (
           <p className="int-original" lang={f.langDoOriginal} dir={direcaoDoTexto(f.langDoOriginal)}>
-            {f.original}
+            {comMarcas(f.original, f.langDoOriginal, f.id)}
           </p>
         )}
       </>
     );
   };
+
+  /** A linha do idioma da metade: quem é e o botão que troca o idioma. */
+  const idiomaDaMetade = (m: MetadeDaConversa) => (
+    <p className="int-idioma">
+      <span className="int-quem">{quem(m.dono)}</span>
+      {aoEscolherIdioma ? (
+        /* O NOME DO IDIOMA É O BOTÃO: o alvo é a palavra que a pessoa procura, e não um chevron ao lado. */
+        <button
+          type="button"
+          className="int-idioma-btn"
+          aria-label={t('{idioma}. Trocar este idioma', { idioma: m.nome })}
+          onClick={aoEscolherIdioma}
+        >
+          <span>{m.nome}</span>
+          <ChevronDown aria-hidden />
+        </button>
+      ) : (
+        <span className="int-idioma-nome">{m.nome}</span>
+      )}
+    </p>
+  );
 
   const metade = (m: MetadeDaConversa, virada: boolean) => (
     <section
@@ -285,26 +471,49 @@ export default function ConversaDoPrototipo({
       aria-label={t('Lado de quem fala {idioma}', { idioma: m.nome })}
       data-testid={`interprete-${m.lado}`}
     >
-      <p className="int-idioma">
-        <span className="int-quem">{quem(m.dono)}</span>
-        {aoEscolherIdioma ? (
-          /* O NOME DO IDIOMA É O BOTÃO: o alvo é a palavra que a pessoa procura, e não um chevron ao lado. */
-          <button
-            type="button"
-            className="int-idioma-btn"
-            aria-label={t('{idioma}. Trocar este idioma', { idioma: m.nome })}
-            onClick={aoEscolherIdioma}
-          >
-            <span>{m.nome}</span>
-            <ChevronDown aria-hidden />
-          </button>
-        ) : (
-          <span className="int-idioma-nome">{m.nome}</span>
-        )}
-      </p>
+      {m.avatar ? (
+        <div className="int-topo">
+          {m.estadoNoTopo ? (
+            <div className="int-topo-texto">
+              {idiomaDaMetade(m)}
+              {m.estadoNoTopo}
+            </div>
+          ) : (
+            idiomaDaMetade(m)
+          )}
+          <div className="int-avatar" data-testid={`avatar-${m.lado}`}>
+            {m.avatar}
+          </div>
+        </div>
+      ) : (
+        idiomaDaMetade(m)
+      )}
+      {m.soletracao}
       <div className="int-frase" aria-live="polite">
         {frase(m)}
       </div>
+      {/* O ASSISTENTE fica FORA da região anunciada: o botão e a correção não interrompem a conversa. Só na metade da
+          pessoa: o "Como respondo?" junto da tradução do que a outra disse, a correção embaixo do que ela mesma disse. */}
+      {assistente && m.dono === 'meu' && (
+        <div className="int-assistente">
+          {m.frase.tipo === 'traducao' && botaoResponder(m.frase.id, 'metade')}
+          {m.frase.tipo === 'fala' && !m.frase.aoVivo && m.frase.id && (
+            <>
+              <CorrecaoNaPagina correcao={assistente.correcoes.get(m.frase.id)} lang={m.frase.lang} />
+              {assistente.ensaios?.get(m.frase.id) && (
+                <ComparacaoNaPagina
+                  falado={m.frase.texto}
+                  sugestao={assistente.ensaios.get(m.frase.id) as string}
+                  lang={m.frase.lang}
+                />
+              )}
+            </>
+          )}
+          {assistente.ensaiando && (
+            <SugestaoParaLer {...assistente.ensaiando} aoCancelar={assistente.aoCancelarEnsaio} />
+          )}
+        </div>
+      )}
       <p className="int-status" role="status">
         {m.status}
       </p>
@@ -391,14 +600,16 @@ export default function ConversaDoPrototipo({
       ref={raiz}
       className="int px-int"
       aria-label={rotulo ?? t('Modo intérprete')}
-      {...(emDialogo ? { role: 'dialog', 'aria-modal': true } : {})}
+      {...(emDialogo ? { role: 'dialog', ...(comTrilho ? {} : { 'aria-modal': true }) } : {})}
       data-testid={testid}
       data-fase={fase}
+      data-pagina={comTrilho ? '' : undefined}
+      data-em-curso={emDialogo ? '' : undefined}
       data-layout={emColunas ? 'computador' : undefined}
       data-escuta={escuta ? '' : undefined}
     >
       {metade(cima, true)}
-      <div key="faixa" className="int-faixa" data-com-modo="">
+      <div key="faixa" className="int-faixa" data-com-modo="" data-com-avatares={avatares ? '' : undefined}>
         <div className="int-esq">
           <button type="button" className="int-ib peq" aria-label={t('Trocar os lados')} onClick={trocar}>
             {emColunas ? <ArrowLeftRight aria-hidden /> : <ArrowUpDown aria-hidden />}
@@ -447,6 +658,24 @@ export default function ConversaDoPrototipo({
               </span>
             </button>
           ))}
+          {avatares?.botao}
+          {avatares && janelaFlutuante && (
+            <button
+              type="button"
+              className="int-modo int-modo-avatar"
+              aria-pressed={janelaFlutuante.aberta}
+              aria-label={t('Janela flutuante')}
+              aria-keyshortcuts="Alt+L"
+              title={janelaFlutuante.dica}
+              onClick={janelaFlutuante.aoAlternar}
+              data-testid="janela-flutuante"
+            >
+              <PictureInPicture2 aria-hidden />
+              <span className="int-modo-visivel" aria-hidden>
+                {t('Janela flutuante')}
+              </span>
+            </button>
+          )}
           {aoVirtual && (
             <button
               type="button"
@@ -494,7 +723,12 @@ export default function ConversaDoPrototipo({
           </span>
           {aoConhecerOPremium && (
             <button type="button" className="int-modo px-int-conhecer" onClick={aoConhecerOPremium}>
-              {t('Conhecer o Premium')}
+              {comNomeDoPlano(t('Conhecer o Premium'), planoDoInterprete())}
+            </button>
+          )}
+          {acaoDoAviso && (
+            <button type="button" className="int-modo" onClick={acaoDoAviso.aoTocar} data-testid="acao-do-aviso">
+              {acaoDoAviso.rotulo}
             </button>
           )}
         </div>
@@ -506,6 +740,7 @@ export default function ConversaDoPrototipo({
         >
           <X aria-hidden />
         </button>
+        {avatares?.linha}
       </div>
       {lista.aberta && (
         <section key="lista" className="int-conversa" aria-label={t('Conversa')} data-testid="interprete-conversa">
@@ -520,19 +755,36 @@ export default function ConversaDoPrototipo({
             <div className="int-bolhas">
               {lista.bolhas.length ? (
                 lista.bolhas.map((b) => (
-                  <div key={b.id} className="int-bolha" data-lado={b.dono}>
-                    <p className="int-bolha-idioma">{quem(b.dono)}</p>
-                    {/* O idioma de cada linha não chega aqui: `auto` lê a direção do próprio texto. */}
-                    <p className="int-bolha-fala" dir="auto">
-                      {b.fala}
-                    </p>
-                    <p className="int-bolha-trad" dir="auto">
-                      {b.traducao}
-                    </p>
-                  </div>
+                  <Fragment key={b.id}>
+                    <div className="int-bolha" data-lado={b.dono} data-bolha={b.id}>
+                      <p className="int-bolha-idioma">{quem(b.dono)}</p>
+                      {/* O idioma de cada linha nem sempre chega aqui: `auto` lê a direção do próprio texto. */}
+                      <p className="int-bolha-fala" dir="auto" lang={b.lang}>
+                        {b.dono === 'outro' ? comMarcas(b.fala, b.lang, b.id) : b.fala}
+                      </p>
+                      <p className="int-bolha-trad" dir="auto">
+                        {b.traducao}
+                      </p>
+                      {assistente && b.dono === 'meu' && (
+                        <CorrecaoNaPagina correcao={assistente.correcoes.get(b.id)} lang={b.lang} />
+                      )}
+                      {assistente && b.dono === 'meu' && assistente.ensaios?.get(b.id) && (
+                        <ComparacaoNaPagina
+                          falado={b.fala}
+                          sugestao={assistente.ensaios.get(b.id) as string}
+                          lang={b.lang}
+                        />
+                      )}
+                    </div>
+                    {b.dono === 'outro' && botaoResponder(b.id, 'bolha')}
+                  </Fragment>
                 ))
               ) : (
                 <p className="int-dica">{t('A conversa aparece aqui conforme vocês falam.')}</p>
+              )}
+              {/* Com a lista aberta, as metades somem: a sugestão a ler fica à vista aqui, depois da última fala. */}
+              {assistente?.ensaiando && (
+                <SugestaoParaLer {...assistente.ensaiando} aoCancelar={assistente.aoCancelarEnsaio} />
               )}
             </div>
           )}
@@ -541,7 +793,11 @@ export default function ConversaDoPrototipo({
       {metade(baixo, false)}
       {emColunas && botaoDeEscuta && <div className="int-base">{botaoDeEscuta}</div>}
       {children}
+      {marcaAberta && (
+        <CartaoDaMarca marca={marcaAberta.marca} lang={marcaAberta.lang} aoFechar={() => setMarcaAberta(null)} />
+      )}
       {vozes && escolhendoVoz && <FolhaDasVozes lados={vozes.lados} aoFechar={() => setEscolhendoVoz(false)} />}
+      {avatares?.painel({ escolherVoz: vozes ? () => setEscolhendoVoz(true) : undefined })}
     </div>
   );
 }

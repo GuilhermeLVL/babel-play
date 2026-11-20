@@ -197,6 +197,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'gasto anômalo por usuário: teto ABSOLUTO em US$ por usuário por dia acima do qual sai o alerta ia_gasto_anomalo_usuario (não bloqueia — quem bloqueia é a cota do plano). Padrão US$ 0,50 (um Essencial típico gasta ~US$ 0,03/dia)',
   },
   {
+    nome: 'ALERTA_EMAIL_DESTINO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'e-mail que recebe os alertas do servidor (todo `log(error)` saneado e os avisos de `AVISOS_QUE_ALERTAM`: orçamento de IA a 80%, cobrança divergente, token do webhook inválido, cron que falhou). Usa RESEND_API_KEY e EMAIL_REMETENTE; sem qualquer um dos três, não envia nada. No Worker é o único destino de alerta (o diário em disco não existe lá).',
+  },
+  {
     nome: 'ALIVIO_POOL_USD_DIA',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -216,6 +223,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'chave de venda do plano ANUAL (à vista e em 12x): só `1` o põe à venda. Ausente, vazia ou qualquer outro valor = FECHADA (fail-safe): o anual sai da tela e `/api/billing/assinar` recusa `ciclo: anual` (503 `anual_indisponivel`); o mensal e o teste seguem, e quem já tem o anual não é afetado. O MVP sobe sem ela até o jurídico validar os Termos §3–§4',
+  },
+  {
+    nome: 'ANUNCIOS_ORIGEM',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'origem do Worker PRÓPRIO de anúncios `frasy-anuncios` (`https://ads.<domínio>`; no staging `https://frasy-anuncios-staging.<conta>.workers.dev`), rulings R32/R35 — NUNCA a origem do app (igual = recusada). Com ela E a flag `anuncios` ligada, o Worker do app sobrepõe a CSP dos documentos e põe a origem em `frame-src` (só ali; nada em `script-src`), lendo a flag uma vez por isolate a cada 60 s. Ausente: a CSP fica como no build e nenhum quadro de anúncio carrega. As do BUILD (só o navegador e a página de anúncios as leem, por isso não estão neste inventário do servidor): `VITE_ANUNCIOS_ORIGEM` (a mesma origem; registra o provedor real, `src/lib/anuncios/ligar.ts`) e `VITE_ANUNCIOS_REDE_CONTA` (o código da rede no Ad Manager, gravado no `config.js` da página por `scripts/anuncios/build.mjs`)',
   },
   {
     nome: 'APP_URL',
@@ -276,6 +290,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: '1 liga o modo público, 0 desliga; sem valor, liga só em produção',
   },
   {
+    nome: 'AVATAR_GALERIA_TERCEIROS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'com `1`, a CSP libera `arweave.net` e `*.arweave.net` em `connect-src` para a galeria ao vivo de avatares (coleção 100Avatars, CC0), atrás da flag `avatar_3d` e do opt-in da pessoa; nunca para perfil protegido. Ausente: a galeria avisa que está indisponível',
+  },
+  {
     nome: 'BABEL_RUNTIME',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -288,6 +309,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'só para TESTE: `1` faz o Node responder como o Worker em `temDisco()` (server/lib/runtime.ts) — upload em stream para o R2, sem temporário em disco. Nunca em produção',
+  },
+  {
+    nome: 'BILLING_RECONCILE_MODE',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'reconciliação diária Asaas × banco: `apply` reaplica pagamentos confirmados que nunca geraram evento; qualquer outro valor (padrão) só avisa por e-mail',
   },
   {
     nome: 'CEREBRAS_API_KEY',
@@ -435,6 +463,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'diário de erros em disco (F5-04)',
   },
   {
+    nome: 'FLAGS_LIGADAS_NO_DEV',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'só dev local: flags (separadas por vírgula) forçadas LIGADAS no `npm run dev:local`; ignorada em produção, com AUTH_REQUIRED=1 e no Worker (`flagsLigadasNoDev`)',
+  },
+  {
     nome: 'GIT_SHA',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -473,6 +508,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue: 'só diagnóstico: identifica a instância que registrou uma falha de boot',
+  },
+  {
+    nome: 'HOST_DE_PRODUCAO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'só no Worker: o(s) host(s) indexável(is) do site público (lista por vírgula, sem porta; `frasy.com.br` nos `vars` do topo do `wrangler.jsonc`, o staging não herda). Outro host (staging, preview, `wrangler dev`) recebe `X-Robots-Tag: noindex, nofollow` e robots `Disallow: /` (`server/http/siteNoWorker.ts`). Ausente: nenhum host é indexável',
   },
   {
     nome: 'HTTP_KEEP_ALIVE_TIMEOUT_MS',
@@ -728,6 +770,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'atalho da RESERVA do LLM: base do OpenRouter e o modelo de LLM_RESERVA_MODEL (ou o padrão). As três LLM_RESERVA_* completas vencem o atalho',
   },
   {
+    nome: 'OPS_SAUDE_TOKEN',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'segredo do vigia de saúde (`GET /api/ops/saude`, `Authorization: Bearer`): o workflow agendado `saude-do-negocio.yml` o usa para abrir uma issue quando cobrança pendente, cron parado ou orçamento de IA no fim. Sem ele a rota responde 501.',
+  },
+  {
     nome: 'ORIGEM_SEGREDO',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -900,6 +949,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'origem do JWKS e base da Admin API; também é o que faz o `iss` do JWT ser exigido',
   },
   {
+    nome: 'TESTES_PREMIUM_POR_IP_DIA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'quantos testes do Premium podem COMEÇAR pelo mesmo IP pseudonimizado no mesmo dia; acima disso `POST /api/billing/teste` responde 429 teste_limite_por_ip (change teste-de-3-dias, server/lib/testePremium.ts). Padrão 5; 0 desliga',
+  },
+  {
     nome: 'TRUST_PROXY',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -923,11 +979,39 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'quantos corpos grandes o MESMO usuário pode ter em voo ao mesmo tempo (server/lib/corposGrandes.ts). Ausente ou inválido: 1',
   },
   {
+    nome: 'VITE_AUDIO_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'base pública do bucket R2 dos audiolivros pré-gerados (`audiolivros/<livroId>/<voz>/atual.json`, `manifesto.json` e `<versao>/<nn>.opus|json`, flag `audiolivros`). Ausente: o "Ouvir" lê com a voz do aparelho, como sempre. Com ela, a CSP libera a origem em `connect-src` e `media-src`',
+  },
+  {
+    nome: 'VITE_AUTH_REQUIRED',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '1 no BUILD do modo público (o deploy do Worker a fixa): o front sai com a porta de login, e a CSP do `dist/_headers` (`server/http/csp.ts`) deixa de fora o Ollama local (`localhost:11434`), como o servidor faz com `AUTH_REQUIRED=1`. Ausente ou vazia (self-host, edição estática): o Ollama continua em `connect-src`',
+  },
+  {
+    nome: 'VITE_AVATARES_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'base pública do bucket R2 com a coleção curada de avatares 3D (`colecao/<id>.vrm`, `familia/<id>.glb`), para o avatar atrás da flag `avatar_3d`. Ausente: os modelos saem do PRÓPRIO domínio (`/avatares`). Com ela, a CSP libera a origem em `connect-src` (dado, nunca `script-src`)',
+  },
+  {
     nome: 'VITE_BERGAMOT_MODELOS_URL',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
       'base de onde o navegador baixa os modelos do Bergamot (tradução pt→en no aparelho, A9b). Ausente: os modelos saem do PRÓPRIO domínio (o build os baixa com sha256 conferido). Com ela, a CSP libera a origem em `connect-src`',
+  },
+  {
+    nome: 'VITE_LIVROS_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'base pública do bucket R2 com a cópia curada dos livros do Gutenberg (`livros/pg-<id>.epub`, publicada por `scripts/livros/curar-gutenberg.mjs`). Ausente: os livros do Gutenberg aparecem no catálogo e a leitura diz que a cópia ainda não foi publicada; Standard Ebooks e Wikisource abrem direto da fonte. Com ela, a CSP libera a origem em `connect-src`',
   },
   {
     nome: 'VITE_ORT_WASM_URL',
@@ -961,6 +1045,20 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'chave PÚBLICA do Cloudflare Turnstile: o convidado passa pelo captcha antes de o Supabase criar o usuário anônimo (Fase 7). Com ela a CSP libera challenges.cloudflare.com; sem ela o captcha fica desligado',
+  },
+  {
+    nome: 'VITE_VOZ_KITTEN_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'raiz pública do bucket R2 com os pesos da voz natural no aparelho (Kitten TTS 2, Apache-2.0: `<raiz>/mini/…` ~90 MB e `<raiz>/pico/…` ~10 MB por idioma, sha256 fixado em `src/core/voz/kitten.ts`), para a flag `voz_kitten`. Ausente: a voz natural não aparece e quem lê segue a ordem de antes. Com ela, a CSP libera a origem em `connect-src` (dado, nunca `script-src`)',
+  },
+  {
+    nome: 'VITE_VOZ_MODELO_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'raiz pública do bucket R2 com os pesos da voz no aparelho (Supertonic 3: `onnx/*.onnx|json` e `voice_styles/F1…M5.json`, ~401 MB, sha256 fixado em `src/core/voz/supertonic.ts`), para a flag `voz_no_aparelho`. Ausente: a opção "Voz de alta qualidade (no aparelho)" não aparece e a narração lê com a voz do sistema. Com ela, a CSP libera a origem em `connect-src` (dado, nunca `script-src`)',
   },
 ]
 
@@ -1144,6 +1242,22 @@ export function erroDeTrustProxyEmProducao(env: NodeJS.ProcessEnv = process.env)
 export function segredoDeOrigem(env: NodeJS.ProcessEnv = process.env): string | undefined {
   const bruto = env.ORIGEM_SEGREDO?.trim()
   return bruto ? bruto : undefined
+}
+
+/**
+ * Alerta por e-mail (Resend): `null` sem `ALERTA_EMAIL_DESTINO`, `RESEND_API_KEY` ou `EMAIL_REMETENTE`.
+ * O remetente é o mesmo do convite do responsável (`EMAIL_REMETENTE`).
+ */
+export function configDoAlertaPorEmail(
+  env: NodeJS.ProcessEnv = process.env,
+): { chave: string; remetente: string; destino: string; ambiente?: string } | null {
+  const destino = env.ALERTA_EMAIL_DESTINO?.trim()
+  const chave = env.RESEND_API_KEY?.trim()
+  const remetente = env.EMAIL_REMETENTE?.trim()
+  if (!destino || !chave || !remetente) return null
+  /* O Worker de staging também roda com NODE_ENV=production; quem o distingue é o Asaas em sandbox. */
+  const ambiente = env.SENTRY_ENVIRONMENT?.trim() || (env.ASAAS_SANDBOX === '1' ? 'staging' : env.NODE_ENV) || undefined
+  return { chave, remetente, destino, ambiente }
 }
 
 /** Sentry do servidor: `null` sem `SENTRY_DSN`. O DSN é validado por quem monta o sink. */
@@ -1491,7 +1605,7 @@ export function cadastroLigado(env: NodeJS.ProcessEnv = process.env): boolean {
 
 /**
  * O plano ANUAL (à vista e em 12x) está à venda? Só com `ANUAL_ENABLED=1`; desligado, ele sai da tela
- * e do `/assinar`, e o mensal e o teste de 14 dias seguem. Não é chave de emergência, é de LANÇAMENTO:
+ * e do `/assinar`, e o mensal e o teste de 3 dias seguem. Não é chave de emergência, é de LANÇAMENTO:
  * o MVP sobe só com o mensal até o jurídico validar os Termos §3–§4.
  *
  * FAIL-SAFE (auditoria de 15/10/2026, B4): ausente, vazia ou qualquer valor que não seja `1` = FECHADO.
@@ -1576,6 +1690,14 @@ export function limitesAntiabusoDoConvidado(env: NodeJS.ProcessEnv = process.env
     ipUsdDia: numeroDoEnv(env.CONVIDADO_IP_USD_DIA, 0.04, 'config_convidado_ip_usd_invalido'),
     ipTutorDia: Math.floor(numeroDoEnv(env.CONVIDADO_IP_TUTOR_DIA, 10, 'config_convidado_ip_tutor_invalido')),
   }
+}
+
+/**
+ * Quantos testes do Premium começam pelo mesmo IP (pseudonimizado) no mesmo dia (change `teste-de-3-dias`). `0` desliga
+ * o teto. 5 cobre uma casa (dois adultos e o responsável ativando para os filhos) e corta a fábrica de contas.
+ */
+export function testesPremiumPorIpNoDia(env: NodeJS.ProcessEnv = process.env): number {
+  return Math.floor(numeroDoEnv(env.TESTES_PREMIUM_POR_IP_DIA, 5, 'config_testes_premium_por_ip_invalido'))
 }
 
 /** O pool diário de IA gratuita (convidado + free): `max(piso, fração × receita líquida do mês ÷ 30)`. */

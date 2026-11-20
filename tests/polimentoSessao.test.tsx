@@ -522,6 +522,17 @@ describe('TranscricaoDoQuest: o primeiro painel de telas3.js:64-70', () => {
     expect(acoes.aoOuvir.mock.calls[0][0].index).toBe(1)
   })
 
+  it('a fala escolhida (o painel da frase aberto nela) fica marcada, e o botão não diz mais que abre um diálogo', () => {
+    const { refazer } = montar({ escolhida: 'u1' })
+    const marcadas = () => [...document.querySelectorAll('[data-frase-escolhida]')]
+    expect(marcadas()).toHaveLength(1)
+    expect(marcadas()[0].matches('.qs-fala[data-fala="1"] .qs-fala-texto')).toBe(true)
+    expect(document.querySelector('.qs-fala-texto[aria-haspopup]')).toBeNull()
+    expect(document.querySelector('[aria-label="Opções da fala"][aria-haspopup]')).toBeNull()
+    refazer({ escolhida: null })
+    expect(marcadas()).toHaveLength(0)
+  })
+
   it('parado, nenhuma fala fica acesa, mesmo que o player esteja numa delas', () => {
     montar({ indiceAtivo: 1, tocando: false })
     expect(document.querySelector('.qs-fala.ativa')).toBeNull()

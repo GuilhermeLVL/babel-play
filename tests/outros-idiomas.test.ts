@@ -283,6 +283,29 @@ describe('detecção de idioma pelo texto', () => {
     },
   )
 
+  /* UM SÓ ACERTO NÃO É EVIDÊNCIA: o "a"/"e"/"y" (único acerto, na lista do tcheco ou do galego) deixava a margem em
+     100% e a frase saía como tcheco/galego com 0,75–0,90 — acima do 0,7 com que a conferência da tradução
+     (`validaTraducao.ts`) rejeitava a tradução boa como `idioma-errado`. O rótulo pode sair, mas sem confiança de
+     decisão (os consumidores pedem 0,6 ou 0,7). */
+  it.each([
+    'bom dia a todos, boa sorte hoje',
+    'good morning everyone, break a leg today',
+    'bom dia e boa sorte hoje',
+    'buenos dias a todos y buena suerte hoy',
+  ])('um único acerto de palavra curta não decide o idioma: "%s"', (frase) => {
+    const d = detectarIdiomaPorTexto(frase)
+    expect(d?.confidence ?? 0).toBeLessThan(0.5)
+  })
+
+  it('com evidência de verdade a confiança continua alta: tcheco com várias palavras tchecas, português com acento', () => {
+    const cs = detectarIdiomaPorTexto('ahoj, jak se máš a co děláš dnes')
+    expect(cs?.lang).toBe('cs')
+    expect(cs?.confidence).toBeGreaterThanOrEqual(0.7)
+    const pt = detectarIdiomaPorTexto('Bom dia, pessoal, boa sorte na apresentação de hoje')
+    expect(pt?.lang).toBe('pt')
+    expect(pt?.confidence).toBeGreaterThanOrEqual(0.5)
+  })
+
   /* UM NOME PRÓPRIO NÃO MUDA O IDIOMA DA FRASE: a tradução para o português que cita um nome chinês
      era lida como chinês (0,95) e rejeitada como "não traduziu" (`validaTraducao.ts`). */
   it.each([
@@ -338,10 +361,16 @@ describe('tradução: a cobertura que a tela anuncia é a do tradutor local de v
   it.each(['ro', 'ca', 'gl'])('zh → %s não tem tradutor no aparelho (sem modelo en→%s)', (alvo) => {
     expect(opus.supports('zh', alvo)).toBe(false)
   })
-  it('o par entre idiomas que já têm modelo direto não ganha pivô (o inglês no meio piora o tradutor da web)', () => {
-    expect(opus.supports('pt', 'es')).toBe(false)
-    expect(opus.supports('es', 'pt')).toBe(false)
-    expect(opus.supports('de', 'fr')).toBe(false)
+  /* CEL-01 (auditoria de 17/11/2026): sem nativo e sem nuvem, es→pt ficava sem tradução nenhuma no celular. O par entre
+     idiomas com modelo direto até o inglês também passa por ele — como último recurso local (`coberturaNoAparelho.ts`). */
+  it('o par entre idiomas que já têm modelo direto passa pelo inglês no aparelho (CEL-01)', () => {
+    expect(opus.supports('pt', 'es')).toBe(true)
+    expect(opus.supports('es', 'pt')).toBe(true)
+    expect(opus.supports('de', 'fr')).toBe(true)
+    expect(mtCoverage('es', 'pt')).toBe('local')
+  })
+  it.each(['ro', 'ca', 'gl'])('%s → pt continua sem pivô (só chega ao inglês)', (de) => {
+    expect(opus.supports(de, 'pt')).toBe(false)
   })
 
   it.todo('hi e vi → pt sem internet: os modelos existem, mas a tradução saiu pior que a da internet (17/10/2026)')
@@ -355,7 +384,8 @@ describe('voz: a escolha por idioma', () => {
   let tts: typeof import('../src/lib/tts')
   let voz: typeof import('../src/lib/voz/faltaDeVoz')
   const instalar = (langs: string[]) => {
-    vozes = langs.map((lang) => ({ name: `Voz ${lang}`, lang, localService: true, default: false, voiceURI: lang }))
+    /* "Google <código>": nome de voz ACEITA (a lista de permissão de `core/voz/melhorVoz.ts` recusa nome desconhecido). */
+    vozes = langs.map((lang) => ({ name: `Google ${lang}`, lang, localService: true, default: false, voiceURI: lang }))
     // O app guarda a lista e só a relê quando o navegador avisa que ela mudou.
     for (const ouvinte of ouvintes) ouvinte()
   }

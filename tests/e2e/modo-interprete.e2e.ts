@@ -1,6 +1,6 @@
 import { devices, expect, type Locator, type Page, test } from '@playwright/test'
 
-import { assentar, clicarRobusto, semCapturaDeTela, trilho } from './_helpers'
+import { assentar, clicarRobusto, irAoInterpretePeloMenu, semCapturaDeTela, trilho } from './_helpers'
 
 /**
  * O MODO INTÉRPRETE (E6 da Fase E), a maquete aprovada pelo dono (2026-09-30), de ponta a ponta.
@@ -178,16 +178,15 @@ const pronta = (page: Page) => page.getByTestId('conversa-pronta')
 const fase = (page: Page) => page.getByTestId('modo-interprete')
 
 /**
- * Abre o Intérprete PELO MENU (o trilho, ou a barra de cinco no celular): a porta é a do menu desde
- * 30/09, e no desenho novo ela abre direto na conversa frente a frente, pronta para o primeiro toque.
+ * Abre o Intérprete PELO MENU (o trilho, ou o "Mais" da barra de cinco no celular, R40): a porta é a do
+ * menu desde 30/09, e no desenho novo ela abre direto na conversa frente a frente, pronta para o primeiro toque.
  */
 async function abrirPeloMenu(page: Page) {
   await semModelos(page)
   await page.goto('/')
   await expect(page.getByRole('main')).toBeVisible()
   await assentar(page)
-  await clicarRobusto(page, trilho(page).getByRole('button', { name: /^Intérprete/ }))
-  await expect(page).toHaveURL(/\/interprete$/)
+  await irAoInterpretePeloMenu(page)
   await expect(page.getByTestId('pagina-do-interprete')).toBeAttached()
   await expect(pronta(page)).toBeVisible({ timeout: 15_000 })
 }

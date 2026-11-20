@@ -11,6 +11,9 @@
  *   frasy-backups          `scripts/backup/enviar-ao-r2.ts`; regra `semanal`: `semanal/` expira em 56 dias
  *   frasy-modelos          pesos e runtime do ONNX (`scripts/modelos/publicar-*-r2.ts`); CORS de GET/HEAD
  *                          para as `--origens` (o navegador busca de outra origem)
+ *   frasy-livros           a cópia curada dos livros do Gutenberg (`scripts/livros/curar-gutenberg.mjs`), com o
+ *   frasy-livros-staging   mesmo CORS de GET/HEAD; o acesso público (domínio próprio ou r2.dev) é ligado no
+ *                          painel e a URL vira `VITE_LIVROS_URL` (ver docs/livros-catalogo.md)
  *
  * Localização: o wrangler só aceita `weur|eeur|apac|wnam|enam|oc` em `--location` (não há América do Sul),
  * então os buckets nascem sem dica e a Cloudflare escolhe pela origem da requisição de criação.
@@ -27,7 +30,8 @@ import { fileURLToPath } from 'node:url'
 const RAIZ = fileURLToPath(new URL('../..', import.meta.url))
 const WRANGLER = join(RAIZ, 'node_modules', 'wrangler', 'bin', 'wrangler.js')
 
-const BUCKETS = ['frasy-midia', 'frasy-midia-staging', 'frasy-backups', 'frasy-modelos']
+const LIVROS = ['frasy-livros', 'frasy-livros-staging']
+const BUCKETS = ['frasy-midia', 'frasy-midia-staging', 'frasy-backups', 'frasy-modelos', ...LIVROS]
 const BACKUPS = 'frasy-backups'
 const MODELOS = 'frasy-modelos'
 const REGRA = { nome: 'semanal', prefixo: 'semanal/', dias: 56 }
@@ -87,6 +91,7 @@ function principal() {
       `  lifecycle ${BACKUPS}: regra "${REGRA.nome}" — ${REGRA.prefixo} expira em ${REGRA.dias} dias (se faltar)`,
     )
     console.log(`  CORS ${MODELOS}: ${JSON.stringify(corsDosModelos(origens))}`)
+    for (const b of LIVROS) console.log(`  CORS ${b}: ${JSON.stringify(corsDosModelos(origens))}`)
     return
   }
 
@@ -124,10 +129,12 @@ function principal() {
     const arq = join(dir, 'cors.json')
     writeFileSync(arq, JSON.stringify(corsDosModelos(origens), null, 2))
     wrangler(['r2', 'bucket', 'cors', 'set', MODELOS, '--file', arq, '--force'])
+    for (const b of LIVROS) wrangler(['r2', 'bucket', 'cors', 'set', b, '--file', arq, '--force'])
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
   tabela.find((l) => l.bucket === MODELOS).extra = `CORS GET/HEAD: ${origens.join(', ')}`
+  for (const b of LIVROS) tabela.find((l) => l.bucket === b).extra = `CORS GET/HEAD: ${origens.join(', ')}`
 
   console.table(tabela.map(({ bucket, acao, extra }) => ({ bucket, acao, extra: extra ?? '' })))
 }

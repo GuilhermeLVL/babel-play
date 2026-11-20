@@ -22,15 +22,21 @@ import { db, linhas } from '../db'
 export interface VersoesDoUsuario {
   vocab: number
   atividade: number
+  /** O conjunto de palavras vistas (migração PG 0012): mantida por `palavrasVistasRepo`, não por gatilho. */
+  palavras: number
 }
 
 export const versoesRepo = {
   async de(userId: UserId): Promise<VersoesDoUsuario> {
     /* `all`, e não `get`: com SQL cru e nenhuma linha, o `get` do drizzle 0.45/libsql tenta mapear
        `undefined` e lança — e "nenhuma linha" é o caso normal de quem ainda não escreveu nada. */
-    const [linha] = linhas<{ vocab: number | null; atividade: number | null }>(
-      await db.execute(sql`SELECT vocab, atividade FROM versoes_de_dados WHERE user_id = ${userId}`),
+    const [linha] = linhas<{ vocab: number | null; atividade: number | null; palavras: number | null }>(
+      await db.execute(sql`SELECT vocab, atividade, palavras FROM versoes_de_dados WHERE user_id = ${userId}`),
     )
-    return { vocab: Number(linha?.vocab ?? 0), atividade: Number(linha?.atividade ?? 0) }
+    return {
+      vocab: Number(linha?.vocab ?? 0),
+      atividade: Number(linha?.atividade ?? 0),
+      palavras: Number(linha?.palavras ?? 0),
+    }
   },
 }

@@ -125,8 +125,15 @@ interface Estado {
   gastoAnomalo: Counter<'motivo'>
   cacheDeTraducao: Counter<'resultado'>
   cacheDeTraducaoPorNivel: Counter<'nivel' | 'resultado'>
+  clienteFalhas: Counter<'tipo' | 'aparelho' | 'modelo'>
   uploadsRecusados: Counter<'motivo'>
   r2UsoFracao: Gauge<'recurso'>
+  /* Fase B do plano de qualidade da IA paga (item 7): o JSON que não serviu, o cache de prompt e o feedback. */
+  respostaInvalida: Counter<'funcao' | 'modelo'>
+  tokensDeEntrada: Counter<'funcao' | 'modelo'>
+  tokensEmCache: Counter<'funcao' | 'modelo'>
+  feedbackDeIa: Counter<'funcao' | 'nota' | 'motivo'>
+  saidaFiltrada: Counter<'funcao' | 'categoria'>
 }
 
 let estado: Estado | undefined
@@ -392,6 +399,47 @@ function criarEstadoProm(): Estado {
       name: 'ia_cache_traducao_nivel_total',
       help: 'Consultas a cada nível do cache de tradução (nivel=l1 memória | l2 SQLite), por resultado (acerto|falta).',
       labelNames: ['nivel', 'resultado'] as const,
+    }),
+    /* A RESPOSTA QUE NÃO SERVIU (502 `resposta_invalida`): o provedor respondeu e cobrou, e o `ler*` recusou o
+       texto. Por função e modelo (lista fechada do registro, `outro` fora dela). É o número que a saída estruturada
+       (`response_format` estrito, `src/lib/esquemasDeSaida.ts`) deve derrubar. */
+    respostaInvalida: new Counter({
+      name: 'ia_resposta_invalida_total',
+      help: 'Respostas de LLM que o servidor recusou por forma (502 resposta_invalida, depois de o provedor cobrar), por função e modelo.',
+      labelNames: ['funcao', 'modelo'] as const,
+    }),
+    /* O CACHE DE PROMPT, por função: a razão `em_cache / entrada` diz quanto o prefixo fixo dos prompts economiza
+       (tokens em cache custam a metade no gpt-oss). Só das pernas que ENTREGARAM. */
+    tokensDeEntrada: new Counter({
+      name: 'ia_tokens_entrada_total',
+      help: 'Tokens de entrada das chamadas de LLM entregues, por função e modelo (inclui os servidos do cache de prompt).',
+      labelNames: ['funcao', 'modelo'] as const,
+    }),
+    tokensEmCache: new Counter({
+      name: 'ia_tokens_em_cache_total',
+      help: 'Tokens de entrada servidos do cache de prompt do provedor, por função e modelo. Dividir por ia_tokens_entrada_total dá a taxa de cache.',
+      labelNames: ['funcao', 'modelo'] as const,
+    }),
+    /* O FEEDBACK QUE CHEGA (`POST /api/ai/feedback`): 👍/👎 por função, com o motivo da lista fechada. Nenhum
+       rótulo carrega texto ou quem mandou. */
+    feedbackDeIa: new Counter({
+      name: 'ia_feedback_total',
+      help: 'Avaliações das respostas de IA (nota=up|down), por função e motivo (lista fechada; `nenhum` sem motivo).',
+      labelNames: ['funcao', 'nota', 'motivo'] as const,
+    }),
+    /* O FILTRO DE SAÍDA PARA PERFIL PROTEGIDO (change `filtro-tutor-menores`): quantas respostas do tutor foram
+       trocadas pela frase fixa, por função e categoria (rótulos fixos de `listasParaMenores.ts`). Nunca o texto. */
+    saidaFiltrada: new Counter({
+      name: 'ia_saida_filtrada_total',
+      help: 'Respostas do tutor barradas pelo filtro local de saída para perfil protegido (menor ou idade não declarada), por função e categoria.',
+      labelNames: ['funcao', 'categoria'] as const,
+    }),
+    /* AS FALHAS DE PREPARO DO VISITANTE (`POST /api/erros-do-cliente/falha`, change `modelos-confiaveis-e-offline`).
+       Anônimo: os três rótulos são listas fechadas de `src/core/falhas/mensagemDeFalha.ts` e do perfil do aparelho. */
+    clienteFalhas: new Counter({
+      name: 'cliente_falha_total',
+      help: 'Falhas de preparo da legenda no navegador do visitante (download interrompido, modelo corrompido, sem internet…), por tipo, aparelho e família do modelo. Anônimo, sem conteúdo.',
+      labelNames: ['tipo', 'aparelho', 'modelo'] as const,
     }),
     uploadsRecusados: new Counter({
       name: 'uploads_grandes_recusados_total',
@@ -700,6 +748,55 @@ export function observarChamadaDeProvedor(o: {
     estado.provedorCusto.inc(labels, o.custoUsd)
 }
 
+/** Uma resposta de LLM que o `ler*` recusou (502 `resposta_invalida`). `funcao` é valor fixo do código. */
+export function contarRespostaInvalida(funcao: string, modelo: string | undefined): void {
+  const rotulo = rotuloFechado(modelo, rotulosDoRegistro().modelos)
+  if (ehWorker()) gravarPonto('resposta_invalida', [funcao, rotulo], [1], funcao)
+  if (!estado) return
+  estado.respostaInvalida.inc({ funcao, modelo: rotulo })
+}
+
+/**
+ * Os tokens de entrada de uma chamada entregue e quantos deles vieram do cache de prompt, por função e MODELO (o
+ * cache é do provedor de cada modelo: misturar os modelos esconderia qual perna não aproveita o prefixo fixo).
+ */
+export function contarTokensDeEntrada(
+  funcao: string,
+  modelo: string | undefined,
+  entrada: number,
+  emCache: number,
+): void {
+  const e = Number.isFinite(entrada) && entrada > 0 ? entrada : 0
+  const c = Number.isFinite(emCache) && emCache > 0 ? emCache : 0
+  if (e === 0 && c === 0) return
+  const rotulo = rotuloFechado(modelo, rotulosDoRegistro().modelos)
+  if (ehWorker()) gravarPonto('tokens_de_entrada', [funcao, rotulo], [e, c], funcao)
+  if (!estado) return
+  if (e > 0) estado.tokensDeEntrada.inc({ funcao, modelo: rotulo }, e)
+  if (c > 0) estado.tokensEmCache.inc({ funcao, modelo: rotulo }, c)
+}
+
+/** Uma avaliação JÁ VALIDADA pela rota (`server/ai/feedback.ts`): os três rótulos são de listas fechadas. */
+export function contarFeedbackDeIa(funcao: string, nota: 'up' | 'down', motivo: string | undefined): void {
+  if (ehWorker()) gravarPonto('feedback_ia', [funcao, nota, motivo ?? 'nenhum'], [1], funcao)
+  if (!estado) return
+  estado.feedbackDeIa.inc({ funcao, nota, motivo: motivo ?? 'nenhum' })
+}
+
+/** Uma falha de preparo do visitante, já validada pela rota (os três rótulos são listas fechadas). */
+export function contarFalhaDoCliente(tipo: string, aparelho: string, modelo: string): void {
+  if (ehWorker()) gravarPonto('cliente_falha', [tipo, aparelho, modelo], [1], tipo)
+  if (!estado) return
+  estado.clienteFalhas.inc({ tipo, aparelho, modelo })
+}
+
+/** Uma resposta do tutor barrada pelo filtro de saída de perfil protegido. Os dois rótulos são valores fixos do código. */
+export function contarSaidaFiltrada(funcao: string, categoria: string): void {
+  if (ehWorker()) gravarPonto('saida_filtrada', [funcao, categoria], [1], funcao)
+  if (!estado) return
+  estado.saidaFiltrada.inc({ funcao, categoria })
+}
+
 /**
  * Um job do cron terminou (`server/jobs/executar.ts`). Só o Worker tem destino (o ponto `job` do Analytics
  * Engine); no Node o `job_fim`/`job_falhou` do log já dizem tudo e não há série Prometheus para isso.
@@ -708,8 +805,9 @@ export function observarJob(nome: string, ms: number, resultado: 'ok' | 'falhou'
   if (ehWorker()) gravarPonto('job', [nome, resultado], [ms], nome)
 }
 
-/* As demais funções `contar*`/`observar*` ficam sem efeito no Worker de propósito: só as 6 famílias do R6
-   (requisicao, admissao_recusada, custo_por_plano, r2, provedor, job) viram pontos do Analytics Engine. */
+/* As demais funções `contar*`/`observar*` ficam sem efeito no Worker de propósito: só as 6 famílias do R6, as 3 da qualidade da IA
+   e a do filtro de saída (requisicao, admissao_recusada, custo_por_plano, r2, provedor, job; resposta_invalida,
+   tokens_de_entrada, feedback_ia; saida_filtrada) viram pontos do Analytics Engine. */
 
 /** Um 429 do provedor. Rótulos fixos do código ou do env — ver o bloco da métrica. */
 export function contarLimiteDoProvedor(provedor: string, modelo: string): void {

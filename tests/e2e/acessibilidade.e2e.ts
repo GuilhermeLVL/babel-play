@@ -84,36 +84,8 @@ const TELAS: Tela[] = [
  * `docs/auditoria/2026-10-15-acessibilidade.md`. Corrigida a tela, a linha sai daqui.
  */
 const VIOLAM_HOJE: Record<string, { projetos: string[]; violacao: string }> = {
-  /* No celular a linha de totais não aparece no cabeçalho (`seletor.css`), e a tela passa. */
-  Biblioteca: {
-    projetos: ['desktop-1280'],
-    violacao:
-      'color-contrast: .q-sobre.fs-bib-sobre ("2 gravações · 6 min · 39 palavras", 12px 700) #ae300e sobre #d9d5c8 = 4.42 (pede 4.5)',
-  },
   /* A contagem da aba (`.q-aba .n`, `opacity: 0.8`) sobre a pílula das abas (`--surface-sunken`). */
-  Cartões: {
-    projetos: ['desktop-1280'],
-    violacao: 'color-contrast: .q-aba .n (contagem "18" da aba, 14px 700) #777368 sobre #ddd8ca = 3.32 (pede 4.5)',
-  },
-  /* O MESMO VERMELHO no "Sua conta" do cabeçalho. Quase sempre o axe não decide (o degradê da camada de
-     polimento, `.px-borda` e `.px-aura`, cruza o rótulo: fica "a revisar", não violação) e a tela passa;
-     logo depois da troca de aba ele mede o fundo liso e acusa. Intermitente, e por isso `fixme`. */
-  'Perfil, aba "Seus dados" (a conta)': {
-    projetos: ['desktop-1280'],
-    violacao:
-      'color-contrast: .q-sobre ("Sua conta", 12px 700) #ae300e sobre #d9d5c8 = 4.42 (pede 4.5), logo após trocar de aba',
-  },
-  /* O roxo das páginas legais (`--accent: #7c5cff`) no título pequeno e nos links. */
-  'Política de privacidade': {
-    projetos: ['desktop-1280', 'mobile-375'],
-    violacao:
-      'color-contrast: .kicker e os links (a[href="/"], a[href$="termos.html"]…) #7c5cff sobre #fafaf8 = 4.15 (pede 4.5)',
-  },
-  'Termos de uso': {
-    projetos: ['desktop-1280', 'mobile-375'],
-    violacao:
-      'color-contrast: .kicker e os links (a[href$="privacidade.html"]…) #7c5cff sobre #fafaf8 = 4.15 (pede 4.5)',
-  },
+  /* As páginas legais saíram daqui em 25/10/2026: o roxo virou #6a48f0 no claro e #a594ff no escuro (≥ 4,5). */
 }
 
 /** Marca o caso como `fixme` só no projeto em que ele viola hoje, com a violação como motivo. */

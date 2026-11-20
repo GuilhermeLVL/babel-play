@@ -43,6 +43,111 @@
       "when": 1792462628836,
       "tag": "0005_admissao_de_ia",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792597390350,
+      "tag": "0006_anuncios_premiados",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792700000000,
+      "tag": "0007_flags_venda_planos_v4",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792812905657,
+      "tag": "0008_planos_v4_cobranca_e_teste",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792900000000,
+      "tag": "0009_flag_ia_de_estudo",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793000000000,
+      "tag": "0010_flag_stt_aparelho_primeiro",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793100000000,
+      "tag": "0011_flag_assistente_ao_vivo",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793200000000,
+      "tag": "0012_palavras_vistas_e_nota",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793300000000,
+      "tag": "0013_anotacoes_de_leitura",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793400000000,
+      "tag": "0014_parceiro_de_leitura",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1793500000000,
+      "tag": "0015_flag_aquecer_stt_na_intencao",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793600000000,
+      "tag": "0016_flags_avatar",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793700000000,
+      "tag": "0017_flags_audiolivros",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793800000000,
+      "tag": "0018_flag_voz_no_aparelho",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794683345865,
+      "tag": "0019_periodo_pago_desde",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794800000000,
+      "tag": "0020_flag_voz_kitten",
+      "breakpoints": true
     }
   ]
 }

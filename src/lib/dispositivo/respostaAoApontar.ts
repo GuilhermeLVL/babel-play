@@ -16,8 +16,19 @@
  */
 import { SELETOR_DO_ACIONAVEL } from '../sfxDelegate';
 import { play } from '../soundFx';
+import { zoomDoCorpo } from '../zoomDoCorpo';
 import { perfilDoDispositivo } from './perfil';
 import { lerVibracaoDoQuest, type VibracaoDoQuest } from './preferenciasDoQuest';
+
+/**
+ * `hapticActuators` é a API ANTIGA de vibração, que só alguns navegadores ainda têm. O `@types/three` traz o
+ * `@types/webxr`, que a declara como sempre presente em `Gamepad`; isso faria o `?.` virar TS2774 no modo
+ * estrito. Aqui o tipo volta a dizer a verdade (pode faltar), e o guard em runtime continua o mesmo.
+ */
+type GamepadAntigo = {
+  hapticActuators?: readonly { pulse?: (intensidade: number, ms: number) => Promise<unknown> }[];
+};
+const antigos = (c: Gamepad) => c as unknown as GamepadAntigo;
 
 /** Além do que soa ao clicar: os cartões-alvo, as linhas, os campos e as listas de escolha. */
 const SELETOR = `${SELETOR_DO_ACIONAVEL}, select, summary, input:not([type="hidden"]), textarea, [data-tocavel]`;
@@ -128,8 +139,8 @@ export async function provarVibracaoEmDetalhe(
             weakMagnitude: intensidade,
           });
           relato.vibrou = true;
-        } else if (c.hapticActuators?.[0]?.pulse) {
-          await c.hapticActuators[0].pulse(intensidade, ms * 3);
+        } else if (antigos(c).hapticActuators?.[0]?.pulse) {
+          await antigos(c).hapticActuators![0].pulse!(intensidade, ms * 3);
           relato.vibrou = true;
         }
       } catch {
@@ -201,8 +212,10 @@ export function instalarRespostaAoApontar(): () => void {
       quadro = 0;
       if (!el.isConnected) return;
       const r = el.getBoundingClientRect();
-      el.style.setProperty('--mx', `${Math.round(e.clientX - r.left)}px`);
-      el.style.setProperty('--my', `${Math.round(e.clientY - r.top)}px`);
+      /* px da janela → px do body (zoom do A±), senão o brilho sai longe do ponteiro. */
+      const z = zoomDoCorpo();
+      el.style.setProperty('--mx', `${Math.round((e.clientX - r.left) / z)}px`);
+      el.style.setProperty('--my', `${Math.round((e.clientY - r.top) / z)}px`);
     });
   };
 

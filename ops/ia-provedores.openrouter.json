@@ -10,9 +10,15 @@
       "roteamento": {
         "data_collection": "deny",
         "zdr": true,
-        "ignore": ["google-ai-studio", "google-vertex"]
+        "ignore": ["google-ai-studio", "google-vertex", "makora"]
       },
       "modelos": [
+        {
+          "id": "deepseek/deepseek-v4.1-flash",
+          "funcoes": ["explicacao"],
+          "niveis": ["rapida", "nuance"],
+          "preco": { "entrada": 0.15, "entradaEmCache": 0.03, "saida": 0.65 }
+        },
         {
           "id": "openai/whisper-large-v3-turbo",
           "funcoes": ["stt"],
@@ -33,6 +39,11 @@
           "funcoes": ["traducao", "tutor"],
           "niveis": ["nuance", "polimento"],
           "preco": { "entrada": 0.15, "entradaEmCache": 0.075, "saida": 0.6 }
+        },
+        {
+          "id": "hexgrad/kokoro-82m",
+          "funcoes": ["tts"],
+          "preco": { "milhaoDeCaracteres": 4 }
         }
       ]
     }

@@ -2,7 +2,8 @@ import { ArrowRight, Clock, Gift, Play, ShieldCheck } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { LIMITE_DE_PREMIADOS, type PremioDeExemplo } from './tipos';
+import { LIMITE_DE_PREMIADOS_POR_DIA } from '../../../core/planos';
+import type { PremioDeExemplo } from './tipos';
 
 /** No protótipo o anúncio dura 10 s e dá para pular aos 5 (`anuncios.js:520-521`); no app, até 30 s. */
 const TOTAL_S = 10;
@@ -133,7 +134,7 @@ function Confirmacao({
             </button>
           </div>
           <p className="ad-confirma-nota">
-            Hoje: {vistosHoje} de {LIMITE_DE_PREMIADOS} premiados.{' '}
+            Hoje: {vistosHoje} de {LIMITE_DE_PREMIADOS_POR_DIA} premiados.{' '}
             <button
               type="button"
               className="ad-sem"

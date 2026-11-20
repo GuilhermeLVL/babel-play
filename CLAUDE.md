@@ -13,7 +13,12 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
 - `src/lib/`: utilitários de app (áudio, dispositivo, polimento, captura, auth). Pode usar core e gateway.
   `src/lib/anki/`: leitura do `.apkg` no navegador (zip com teto, zstd, `sql.js` num Web Worker) e exportação;
   `src/lib/import/`: PDF/DOCX/legendas viram texto no navegador. O leitor puro do Anki fica em `src/core/anki/`.
+  O leitor de livros (`/leitor`): motor em `src/lib/leitor/` (foliate-js VENDORIZADO em `foliate/`, fora do
+  lint/prettier; mudanças só com `FRASY:` e registro em `foliate/PATCHES.md`), tela em `src/components/views/leitor/`,
+  regras puras (anotação W3C, exportações, CFI, perfil) em `src/core/leitura/`, estante e `abrirLivroNoLeitor` em `src/lib/livros/`.
 - `src/data/`: acesso a dados e clientes das rotas da API (`src/data/rotas/`), trilha de conteúdo.
+  `public/catalogo/fichas/` (as fichas dos livros) e `src/data/livros/fichasDoParceiro.json` (a parte delas que o
+  servidor do parceiro de leitura empacota) são GERADOS por `scripts/livros/gerar-fichas.mjs`; não edite à mão.
 - `server/`: Express (`routes/`, `ai/` com proxies e núcleo de IA, `db/` com migrações Drizzle em `migrations-pg/`, `lib/`).
   `server/lib/config.ts` lista as variáveis de ambiente; `.env.production.example` é o modelo de produção.
   `server/boot/`: passos do boot que o `server.ts` orquestra (validar, preparar, jobs) e o portão do Worker; nenhum módulo lê env ou disco ao ser importado.
@@ -22,6 +27,9 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
 - `tests/` (vitest e e2e Playwright), `scripts/` (operação, perf, i18n), `ops/` (provedores, alertas), `docs/`, `openspec/`.
   `scripts/cloudflare/`: infra reproduzível (buckets R2, Hyperdrive de staging, secrets do Worker — nunca commitar `.secrets.*.json`).
   `scripts/vite/cabecalhos.ts` GERA o `dist/_headers` no build (CSP bloqueante = `diretivasDeCsp(env)` do Express); não existe mais `public/_headers`.
+  `scripts/site/` gera no build o SITE PÚBLICO estático (home `inicio.html`, planos, guias de `content/guias/*.md`
+  com `revisado: true`, sitemap, robots, ads.txt com `ADSENSE_PUB_ID`); o app (`index.html`) é servido em `/app`
+  pelo Worker (`server/http/siteNoWorker.ts`), e na raiz em dev/testes/self-host (`src/lib/baseDoApp.ts`).
   `tests/harness/lerApkgNode.ts` lê um `.apkg` em Node com o mesmo leitor do navegador (testes e scripts).
 
 ## Comandos
@@ -63,5 +71,9 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
   (`server/routes/ankiImports.ts`: abrir → notas → fechar) ou texto, e reaplica limpeza, identidade (guid/hash)
   e régua de qualidade — o cliente não é confiável. A página web (`/api/import/web`) é a única importação do
   servidor (CORS + anti-SSRF), com `linkedom`, e roda também no Worker.
+- Catálogos de i18n: `public/i18n/{en,es,ar}.json` ficam em ordem alfabética (portão `ordenar.mjs --check` na CI);
+  insira a chave em qualquer lugar e rode `npm run i18n`, que ordena e regenera os GERADOS `public/i18n/xx.json` e
+  `src/data/i18n/cobertura.json` (versionados: o app importa a cobertura e serve o `xx`). Conflito num gerado depois
+  de um merge: resolva os catálogos à mão, rode `npm run i18n` e faça `git add` do resultado — nunca edite os gerados.
 - `git pull --rebase` antes de `git push`: há mais de uma frente de trabalho na `main`.
 - `docs/prototipos/*-src/`, `docs/prototipos/_comum/` e `public/` ficam fora do lint.

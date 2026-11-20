@@ -43,6 +43,9 @@ const filho = spawn(process.execPath, ['node_modules/tsx/dist/cli.mjs', 'server.
     NODE_ENV: 'development',
     // Banco embutido (PGlite) em ./data/pg, sem Postgres instalado. Quem já exportou outra URL a mantém.
     DATABASE_URL: process.env.DATABASE_URL || 'pglite:./data/pg',
+    // As IAs do leitor (explicar e parceiro) nascem desligadas no banco; aqui o dono as vê ligadas. Só vale sem
+    // login e fora de produção (`flagsLigadasNoDev` em server/lib/flags.ts). `FLAGS_LIGADAS_NO_DEV=` (vazio) desliga.
+    FLAGS_LIGADAS_NO_DEV: process.env.FLAGS_LIGADAS_NO_DEV ?? 'ia_de_estudo,parceiro_de_leitura',
   },
   // `inherit`: os logs do servidor saem no seu terminal, sem arquivo intermediário.
   stdio: 'inherit',

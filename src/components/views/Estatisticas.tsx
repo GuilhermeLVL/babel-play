@@ -17,6 +17,8 @@ import { type ExerciseResultRow, fetchDeck, fetchExerciseResults } from '../../d
 import { t, tp } from '../../lib/i18n';
 import { usePreferencias } from '../../lib/preferencias';
 import type { VocabCard } from '../../types';
+import AncoraNoCelular from '../anuncios/AncoraNoCelular';
+import EspacoDeAnuncio from '../anuncios/EspacoDeAnuncio';
 import MetaDeNivel from './estatisticas/MetaDeNivel';
 import EstatisticasDoQuest, { type PainelDoQuest } from './estatisticas/quest/EstatisticasDoQuest';
 
@@ -653,6 +655,14 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
       aoExportarCsv={exportarCsv}
       aoImprimir={imprimir}
       aoPraticar={() => onChangeView('play')}
+      /* OS ESPAÇOS DE ANÚNCIO (flag `anuncios`, desligada de fábrica; sem provedor não desenham nada): a linha
+         patrocinada no fim da tela e, só no celular, a faixa âncora acima da barra. */
+      anuncio={
+        <>
+          <EspacoDeAnuncio espaco="estat-faixa" formato="nativo" />
+          <AncoraNoCelular />
+        </>
+      }
     />
   );
 }

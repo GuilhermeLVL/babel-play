@@ -19,10 +19,15 @@ import {
   ehPlanoPago,
   normalizarPlano,
   PARCELAS_DO_ANUAL,
+  PLAN_MATRIX,
   type PlanoDeAssinatura,
+  type PlanoPago,
   planoPagoMaisBarato,
   planoPeloPagamento,
+  PLANOS_PAGOS,
+  valoresCobraveis,
 } from '../../src/core/planos'
+import { billingEventsRepo } from '../db/repositories/billingEvents'
 import { creditsRepo } from '../db/repositories/credits'
 import { type Subscription, subscriptionsRepo } from '../db/repositories/subscriptions'
 import {
@@ -124,10 +129,13 @@ async function manterCancelada(
   userId: UserId,
   atual: Subscription,
   fimDoPagamento: number,
+  inicioDoPagamento: number,
   motivo: string | null,
   requestId: string | undefined,
 ): Promise<ResultadoDoEvento> {
-  if (atual.currentPeriodEnd == null) await subscriptionsRepo.upsert(userId, { currentPeriodEnd: fimDoPagamento })
+  if (atual.currentPeriodEnd == null) {
+    await subscriptionsRepo.upsert(userId, { currentPeriodEnd: fimDoPagamento, periodoPagoDesde: inicioDoPagamento })
+  }
   const nota = 'cancelada-sem-renovar: o pagamento é da assinatura cancelada; segue cancelada até o fim do período pago'
   log('info', { event: 'billing_pagamento_da_cancelada', requestId })
   return { estado: 'aplicado', motivo: motivo ? `${motivo}; ${nota}` : nota }
@@ -260,6 +268,12 @@ export async function aplicarEvento(
         if (!real) {
           return { estado: 'nao-aplicado', motivo: `pagamento ${vId} não encontrado no Asaas (evento não confere)` }
         }
+        /* O Asaas REENTREGA: um `CONFIRMED` que só chega depois de o pagamento ter sido estornado (ou de virar
+           chargeback) não tem o que conceder — e é um caso RESOLVIDO, não uma pendência. Como `nao-aplicado` ele
+           ficaria para sempre na fila do admin (e deixaria `cobranca_pendente` vermelha no vigia de saúde). */
+        if (PAGAMENTO_JA_DESFEITO.has(real.status)) {
+          return { estado: 'ignorado', motivo: `pagamento ${vId} já ${real.status} no Asaas: nada a conceder` }
+        }
         if (real.status !== 'CONFIRMED' && real.status !== 'RECEIVED') {
           return {
             estado: 'nao-aplicado',
@@ -306,19 +320,40 @@ export async function aplicarEvento(
       }
 
       const atual = await subscriptionsRepo.getActive(userIdEfetivo)
-      /* O PLANO E O CICLO SAEM DO VALOR (matriz v2): R$ 19,90 é o Premium mensal, R$ 179 o anual, e
-         os preços antigos (Essencial R$ 19,90, Pro R$ 39,90) continuam pagando o Premium mensal — a
-         assinatura recorrente de antes não perde o plano no mês seguinte. O ramo do parcelamento
-         (`parcelas`, a parcela do 12x) é do C5. */
+      /* O PLANO E O CICLO SAEM DO VALOR (matriz v3): cada mensalidade e cada anual da matriz é de um
+         plano só (R$ 9,90 o Essencial, R$ 19,90 o Premium, R$ 39,90 o Ao Vivo; o anual só existe no Essencial
+         e no Premium, o Ao Vivo não tem preço anual), e os
+         preços da v2 não pagam mais nada (`src/core/planos.ts`). O ramo do parcelamento (`parcelas`,
+         a parcela do 12x) é `aplicarParcela`. */
       const pago = planoPeloPagamento(vValor)
       const planoPago = pago?.plano ?? null
+      /* VALOR AMBÍGUO (planos v4): um valor que pagasse mais de um plano numa cobrança única não cai na intenção
+         nem no plano mais barato — fica pendente. Hoje nenhuma mensalidade ou anual da matriz colide
+         (`tests/planos-v4-matriz.test.ts`); a guarda existe para o dia em que um preço novo colidir. */
+      const ambiguos = pago ? [] : candidatosDoValor(vValor, 1)
+      if (ambiguos.length > 1) {
+        log('warn', { event: 'billing_valor_ambiguo', error: `R$ ${vValor}`, requestId })
+        return {
+          estado: 'nao-aplicado',
+          motivo: `valor-ambiguo: R$ ${vValor} paga ${ambiguos.join(' e ')}; sem como saber qual, nada é concedido`,
+        }
+      }
       /* A intenção gravada pode ter nome antigo (linha de antes da 0041): lida como o atual. Sem
          intenção de plano pago (a linha não existe, ou é a do admin), o padrão é o plano pago MAIS
          BARATO da matriz: ele só vale quando o evento também veio sem valor, e sem saber quanto entrou
          não se concede o mais caro. */
       const planoGravado = atual ? normalizarPlano(atual.plan) : null
-      const planoDaIntencao: PlanoDeAssinatura = ehPlanoPago(planoGravado) ? planoGravado : planoPagoMaisBarato()
-      const cicloDaIntencao: CicloDeCobranca = atual?.ciclo === 'anual' ? 'anual' : 'mensal'
+      /* O PLANO DESTA COBRANÇA vem antes do `plan` gravado (auditoria de 14/11/2026): `/assinar` numa linha
+         existente troca os ids e grava `planoDaCobranca`, mas NÃO toca em `plan` — que pode ser o de outra
+         cobrança, mais cara (o Premium antigo de quem assinou o Plus). */
+      const destaCobranca = planoDestaAssinatura(atual, vSub)
+      const planoDaIntencao: PlanoDeAssinatura =
+        destaCobranca ?? (ehPlanoPago(planoGravado) ? planoGravado : planoPagoMaisBarato())
+      /* O CICLO DA COBRANÇA registrada vem de `cicloDaCobranca` (gravado por `/assinar` com o id), e não de `ciclo`, que
+         é o do período CONCEDIDO e não muda quando a pessoa assina outro ciclo numa linha existente. Linha de antes da
+         0019 (ou pagamento de outra assinatura): `ciclo`, como sempre. */
+      const cicloRegistrado = destaCobranca ? atual?.cicloDaCobranca : null
+      const cicloDaIntencao: CicloDeCobranca = (cicloRegistrado ?? atual?.ciclo) === 'anual' ? 'anual' : 'mensal'
 
       /**
        * A ASSINATURA QUE PAGOU TEM DE SER A QUE ESTÁ REGISTRADA — `POST /api/billing/assinar`
@@ -336,20 +371,48 @@ export async function aplicarEvento(
         motivo = divergencia
       }
 
+      /* VALOR FORA DA MATRIZ (juros/multa de boleto atrasado, desconto manual no painel): o valor não diz o
+         plano. Os candidatos são o plano DESTA cobrança e, com troca pendente, o plano da troca — no CICLO da
+         cobrança registrada (`atual.ciclo`: a assinatura anual cobra o ano). Vale o MAIS CARO cujo preço o valor
+         cobre: a troca para cima paga com juros dá o plano novo; a fatura antiga da troca para baixo dá o antigo,
+         que foi o que se pagou. Nenhum coberto, ou sem vínculo com esta cobrança: pendente para revisão humana —
+         nunca mais do que foi pago, nunca o `plan` gravado de outra cobrança, nunca 35 dias por uma anuidade. */
+      const trocaPedida = atual?.trocaPara ? normalizarPlano(atual.trocaPara) : null
+      let foraDaMatriz: { plano: PlanoPago; ciclo: CicloDeCobranca } | null = null
+      if (!pago && typeof vValor === 'number') {
+        const candidatos: PlanoPago[] = destaCobranca ? [destaCobranca] : []
+        if (destaCobranca && cicloDaIntencao === 'mensal' && ehPlanoPago(trocaPedida)) candidatos.push(trocaPedida)
+        foraDaMatriz = maisCaroCoberto(candidatos, vValor, cicloDaIntencao)
+        if (!foraDaMatriz) {
+          log('warn', { event: 'billing_valor_fora_da_matriz', error: `R$ ${vValor}`, requestId })
+          return {
+            estado: 'nao-aplicado',
+            motivo: destaCobranca
+              ? `valor-fora-da-matriz: R$ ${vValor} não cobre o preço ${cicloDaIntencao} de ${candidatos.join(' nem de ')}, o plano desta cobrança; nada é concedido`
+              : `valor-fora-da-matriz: R$ ${vValor} não casa com plano nenhum e o pagamento não tem plano registrado; nada é concedido`,
+          }
+        }
+        const nota = `valor-fora-da-matriz: R$ ${vValor} cobre ${foraDaMatriz.plano} ${foraDaMatriz.ciclo}, o plano desta cobrança — vale ele`
+        log('warn', { event: 'billing_valor_fora_da_matriz', error: nota, requestId })
+        motivo = motivo ? `${motivo}; ${nota}` : nota
+      }
+
       /**
        * O PLANO SAI DO VALOR PAGO, não da intenção (fecha a escalada assinar-pro-pagar-essencial).
        * Sem valor no evento, cai na intenção: recusar toda promoção por falta de um campo trocaria
        * uma escalada por uma negação de serviço a quem pagou.
        */
-      const plano: PlanoDeAssinatura = planoPago ?? planoDaIntencao
-      const ciclo: CicloDeCobranca = pago?.ciclo ?? cicloDaIntencao
+      const plano: PlanoDeAssinatura = planoPago ?? foraDaMatriz?.plano ?? planoDaIntencao
+      const ciclo: CicloDeCobranca = pago?.ciclo ?? foraDaMatriz?.ciclo ?? cicloDaIntencao
       /* A TROCA DE PLANO (etapa 8, `POST /api/billing/trocar`): a pessoa pediu outro plano, a assinatura
          passou ao valor novo no Asaas, e ESTE é o pagamento dele. Não é divergência: é a troca chegando,
          no ciclo combinado. Quem decide continua sendo o VALOR pago — a intenção gravada só explica o
          que aconteceu e é encerrada. Pago o valor ANTIGO (a fatura que já estava emitida), nada disto
          roda: o plano atual segue, e a troca continua pendente para a cobrança seguinte. */
-      const trocaPedida = atual?.trocaPara ? normalizarPlano(atual.trocaPara) : null
-      const trocaChegou = Boolean(pago && trocaPedida && pago.plano === trocaPedida && pago.ciclo === 'mensal')
+      const quemPagou = pago ?? foraDaMatriz
+      const trocaChegou = Boolean(
+        quemPagou && trocaPedida && quemPagou.plano === trocaPedida && quemPagou.ciclo === 'mensal',
+      )
       if (trocaChegou) {
         motivo = [motivo, `troca-de-plano: ${planoDaIntencao} → ${plano}, pedida pelo assinante`]
           .filter(Boolean)
@@ -373,7 +436,7 @@ export async function aplicarEvento(
         motivo = motivo ? `${motivo}; ${nota}` : nota
       }
       if (canceladaSemRenovar(atual, { assinatura: vSub })) {
-        return manterCancelada(userIdEfetivo, atual, vale.fim, motivo, requestId)
+        return manterCancelada(userIdEfetivo, atual, vale.fim, base, motivo, requestId)
       }
       await subscriptionsRepo.upsert(userIdEfetivo, {
         plan: plano,
@@ -381,7 +444,12 @@ export async function aplicarEvento(
         ciclo: vale.ciclo,
         currentPeriodEnd: vale.fim,
         cancelAtPeriodEnd: 0,
-        ...(trocaChegou ? { trocaPara: null, trocaAPartirDe: null } : {}),
+        /* A ÂNCORA DA JANELA DA COTA (change `cota-pelo-periodo-pago`): só um pagamento a grava, e só quando ELE
+           concede o período (mantido o período maior pago antes, a âncora é a dele). */
+        ...(vale.manteve ? {} : { periodoPagoDesde: base }),
+        /* Chegada a troca, a assinatura registrada passa a cobrar o plano novo: `planoDaCobranca` anda junto,
+           ou o próximo valor fora da matriz (juros) seria lido contra o preço do plano antigo. */
+        ...(trocaChegou ? { trocaPara: null, trocaAPartirDe: null, planoDaCobranca: plano } : {}),
       })
       return { estado: 'aplicado', motivo }
     }
@@ -563,6 +631,9 @@ interface PagamentoConferido {
   parcelamento: string | undefined
   /** O dono: o `externalReference` da API quando ela o traz; senão, o do payload. */
   userId: UserId
+  /** O vencimento (`AAAA-MM-DD`) e o valor da cobrança — da API quando há verificador. */
+  vencimento: string | undefined
+  valor: number | undefined
 }
 
 /**
@@ -583,7 +654,14 @@ async function conferirPagamento(
 ): Promise<PagamentoConferido | ResultadoDoEvento> {
   const id = ev.payment?.id
   if (!verificar) {
-    return { id, assinatura: ev.payment?.subscription, parcelamento: ev.payment?.installment, userId }
+    return {
+      id,
+      assinatura: ev.payment?.subscription,
+      parcelamento: ev.payment?.installment,
+      userId,
+      vencimento: ev.payment?.dueDate,
+      valor: ev.payment?.value,
+    }
   }
   if (!id) return { estado: 'nao-aplicado', motivo: `${ev.event} sem id de pagamento para conferir no Asaas` }
   const real = await verificar(id)
@@ -602,6 +680,8 @@ async function conferirPagamento(
     assinatura: real.subscription || undefined,
     parcelamento: real.installment || undefined,
     userId: real.externalReference ? asUserId(real.externalReference) : userId,
+    vencimento: real.dueDate || undefined,
+    valor: real.value,
   }
 }
 
@@ -633,6 +713,12 @@ function divergenciaDaLinha(atual: Subscription, p: PagamentoConferido): string 
  *  - Parcela de assinatura ou do 12x: não há período pago, então o acesso termina AGORA. Sem zerar
  *    `currentPeriodEnd`, o "cancelado mantém até o fim do período" (entitlements) deixaria quem foi
  *    reembolsado com o mês de graça.
+ *
+ * As exceções (revisões do PR #131) só existem na ASSINATURA recorrente e nunca deixam um CHARGEBACK sumir como
+ * `ignorado`: o chargeback é do titular do cartão contra a operadora, e o que não revoga vai para revisão humana
+ * (`nao-aplicado`). O ESTORNO é ato do lojista (nós ou o painel), e o que ele não revoga fica `ignorado` com o porquê.
+ *  - a cobrança devolvida não é a do período em vigor (`cobrancaForaDoPeriodoEmVigor`);
+ *  - ela é uma DUPLICATA: outra cobrança paga da mesma assinatura, com o MESMO vencimento (`duplicataPaga`).
  */
 async function aplicarDinheiroDevolvido(
   ev: EventoAsaas,
@@ -647,12 +733,90 @@ async function aplicarDinheiroDevolvido(
     await creditsRepo.cancelarCompra(p.id)
     return { estado: 'aplicado', motivo: null }
   }
-  const atual = await subscriptionsRepo.getActive(p.userId)
-  if (!atual) return { estado: 'ignorado', motivo: `${oQue} sem assinatura registrada: nada a revogar` }
-  const divergencia = divergenciaDaLinha(atual, p)
-  if (divergencia) return { estado: 'nao-aplicado', motivo: `${oQue} não aplicado — ${divergencia}` }
-  await subscriptionsRepo.upsert(p.userId, { status: 'canceled', currentPeriodEnd: Date.now(), cancelAtPeriodEnd: 0 })
-  return { estado: 'aplicado', motivo: null }
+  const semRevogar = (porque: string): ResultadoDoEvento =>
+    oQue === 'chargeback'
+      ? { estado: 'nao-aplicado', motivo: `chargeback não revogado, para revisão — ${porque}` }
+      : { estado: 'ignorado', motivo: `estorno não revoga — ${porque}` }
+  /* Até DUAS leituras: a revogação é uma escrita condicional ao período lido (`revogarSePeriodoIgual`). Se um
+     pagamento confirmou entre a leitura e a escrita, relê e reavalia uma vez; mudando de novo, não lança (o Asaas
+     reentregaria em rajada de 500): estorno E chargeback ficam `nao-aplicado`, na fila do admin. NÃO `ignorado`: a
+     reconciliação pula a cobrança que já tem evento de estorno em qualquer estado (`reconciliarDesfeitas`), e o
+     reembolsado ficaria com o acesso sem ninguém saber. */
+  for (let tentativa = 1; ; tentativa++) {
+    const atual = await subscriptionsRepo.getActive(p.userId)
+    if (!atual) return { estado: 'ignorado', motivo: `${oQue} sem assinatura registrada: nada a revogar` }
+    const divergencia = divergenciaDaLinha(atual, p)
+    if (divergencia) return { estado: 'nao-aplicado', motivo: `${oQue} não aplicado — ${divergencia}` }
+    const fora = cobrancaForaDoPeriodoEmVigor(atual, p)
+    if (fora) {
+      log('warn', { event: 'billing_estorno_de_cobranca_antiga', error: fora })
+      return semRevogar(`cobrança antiga, não é a do período em vigor: ${fora}`)
+    }
+    const duplicata = await duplicataPaga(p, verificar)
+    if (duplicata) {
+      log('warn', { event: 'billing_estorno_com_outra_paga', error: duplicata })
+      return semRevogar(`cobrança duplicada: ${duplicata}`)
+    }
+    if (await subscriptionsRepo.revogarSePeriodoIgual(p.userId, atual.currentPeriodEnd ?? null)) {
+      return { estado: 'aplicado', motivo: null }
+    }
+    log('warn', { event: 'billing_estorno_periodo_mudou', error: `${oQue} ${p.id ?? '?'} tentativa ${tentativa}` })
+    if (tentativa >= 2) {
+      return {
+        estado: 'nao-aplicado',
+        motivo: `${oQue} não revogado, para revisão — o período mudou durante a aplicação (outro pagamento confirmou no meio)`,
+      }
+    }
+  }
+}
+
+/**
+ * A DUPLICATA (só na assinatura recorrente): outra cobrança da MESMA assinatura, com o MESMO vencimento, que segue paga
+ * no Asaas. Estornar uma das duas não tira o período que a outra pagou. Os candidatos são os pagamentos confirmados que
+ * o servidor já recebeu deste titular (`billing_events`); quem decide é a API. Nunca no 12x: as 12 parcelas são o
+ * MESMO ano e uma não é duplicata da outra. Sem verificador (self-host) ou sem vencimento, não há duplicata a provar.
+ */
+async function duplicataPaga(
+  p: PagamentoConferido,
+  verificar: VerificadorDePagamento | undefined,
+): Promise<string | null> {
+  if (!verificar || !p.id || !p.assinatura || p.parcelamento || !p.vencimento) return null
+  const refs = await billingEventsRepo.pagamentosConfirmadosDoUsuario(String(p.userId), p.id)
+  for (const ref of refs) {
+    const real = await verificar(ref)
+    if (!real || !STATUS_DE_PAGO.has(real.status)) continue
+    if (real.subscription !== p.assinatura || real.installment || real.dueDate !== p.vencimento) continue
+    return `o pagamento ${ref} (mesmo vencimento, ${real.dueDate}) segue pago no Asaas`
+  }
+  return null
+}
+
+/**
+ * A COBRANÇA DEVOLVIDA NÃO É A DO PERÍODO EM VIGOR (auditoria de 14/11/2026)? O estorno de uma mensalidade ANTIGA da
+ * assinatura registrada (a de outubro) não pode levar o novembro, que segue pago: a pessoa receberia MENOS do que
+ * pagou.
+ *  - Com a âncora (`periodoPagoDesde`, o vencimento da cobrança que concedeu o período — só o pagamento a grava): a
+ *    cobrança é a do período se o vencimento dela bate com a âncora (folga de 7 dias, o ajuste de vencimento do Asaas).
+ *    É o critério certo mesmo depois do cancelamento, que move o `currentPeriodEnd` mas não a âncora.
+ *  - Sem âncora (linha de antes da 0019): o fim que ela concedeu (vencimento + ciclo) contra o `currentPeriodEnd`.
+ * Só a ASSINATURA recorrente: o 12x ancora as 12 parcelas no mesmo ano (estornar uma parcela é desfazer o ano), e sem
+ * vencimento não há com o que comparar — nos dois casos vale a regra de sempre (revoga). Devolve o porquê, ou `null`.
+ */
+function cobrancaForaDoPeriodoEmVigor(atual: Subscription, p: PagamentoConferido): string | null {
+  if (!p.assinatura || p.parcelamento) return null
+  const vencimento = meioDiaDo(p.vencimento)
+  if (!Number.isFinite(vencimento)) return null
+  const folga = 7 * DIA_MS
+  if (atual.periodoPagoDesde != null) {
+    if (Math.abs(vencimento - atual.periodoPagoDesde) <= folga) return null
+    return `pagamento ${p.id ?? '?'} (vencimento ${p.vencimento}); o período em vigor foi concedido pela cobrança de ${new Date(atual.periodoPagoDesde).toISOString().slice(0, 10)} — mantido`
+  }
+  if (atual.currentPeriodEnd == null) return null
+  const cicloDaLinha = atual.cicloDaCobranca ?? atual.ciclo
+  const ciclo = planoPeloPagamento(p.valor)?.ciclo ?? (cicloDaLinha === 'anual' ? 'anual' : 'mensal')
+  const fimDela = vencimento + (ciclo === 'anual' ? DIAS_DO_PERIODO_ANUAL : DIAS_DO_PERIODO_MENSAL) * DIA_MS
+  if (atual.currentPeriodEnd <= fimDela + folga) return null
+  return `pagamento ${p.id ?? '?'} (vencimento ${p.vencimento}) cobria até ${new Date(fimDela).toISOString().slice(0, 10)}; o período em vigor vai até ${new Date(atual.currentPeriodEnd).toISOString().slice(0, 10)}, pago depois — mantido`
 }
 
 /**
@@ -660,8 +824,9 @@ async function aplicarDinheiroDevolvido(
  *
  * As três conferências, na ordem:
  *  1. A PARCELA É DO ANUAL: o valor é uma das parcelas que o Asaas cobra de `precoAnualBrl` em
- *     `PARCELAS_DO_ANUAL` vezes (R$ 14,91, ou R$ 14,99 na última). Qualquer outro valor não paga plano
- *     nenhum — R$ 14,91 como mensalidade seria o Premium pela terça parte.
+ *     `PARCELAS_DO_ANUAL` vezes (no Premium, R$ 12,49, ou R$ 12,51 na última; `valoresDasParcelas`).
+ *     Qualquer outro valor não paga plano nenhum — R$ 12,49 como mensalidade seria o Premium por
+ *     menos que o Essencial.
  *  2. NO CARTÃO: o 12x só é criado com `CREDIT_CARD` (`criarParcelamento`), e só nele o ano inteiro
  *     é compromisso da operadora. Uma parcela de carnê (Pix/boleto) que confirme aqui não é nossa —
  *     fica pendente para o admin, em vez de dar o ano por uma parcela.
@@ -682,11 +847,22 @@ async function aplicarParcela(
     requestId: string | undefined
   },
 ): Promise<ResultadoDoEvento> {
-  const pago = planoPeloPagamento(p.valor, { parcelas: PARCELAS_DO_ANUAL })
+  const atual = await subscriptionsRepo.getActive(userId)
+  const pago = planoPeloPagamento(p.valor, {
+    parcelas: PARCELAS_DO_ANUAL,
+    preferido: planoDesteParcelamento(atual, p.parcelamento),
+  })
   if (!pago) {
+    /* Valor que é parcela de MAIS DE UM plano (R$ 12,49: a última do Plus e a padrão do Premium) sem vínculo
+       confiável com o plano deste parcelamento: não se concede por palpite — nem o mais barato. Fica
+       pendente para o admin, com o porquê. */
+    const ambigua = candidatosDoValor(p.valor, PARCELAS_DO_ANUAL).length > 1
+    if (ambigua) log('warn', { event: 'billing_parcela_ambigua', error: `${p.parcelamento}`, requestId: p.requestId })
     return {
       estado: 'nao-aplicado',
-      motivo: `parcela-desconhecida: R$ ${p.valor} do parcelamento ${p.parcelamento} não é parcela do anual`,
+      motivo: ambigua
+        ? `parcela-desconhecida: R$ ${p.valor} é parcela do anual de ${candidatosDoValor(p.valor, PARCELAS_DO_ANUAL).join(' e ')}, e o parcelamento ${p.parcelamento} não tem plano registrado que desempate`
+        : `parcela-desconhecida: R$ ${p.valor} do parcelamento ${p.parcelamento} não é parcela do anual`,
     }
   }
   if (p.tipo && p.tipo !== 'CREDIT_CARD') {
@@ -696,7 +872,6 @@ async function aplicarParcela(
     }
   }
 
-  const atual = await subscriptionsRepo.getActive(userId)
   let motivo: string | null = null
   if (atual?.providerInstallmentId && atual.providerInstallmentId !== p.parcelamento) {
     motivo = `parcelamento-divergente: pago ${p.parcelamento}, registrado ${atual.providerInstallmentId}`
@@ -709,7 +884,7 @@ async function aplicarParcela(
   /* As parcelas do cartão confirmam juntas, mas cada RECEIVED cai no mês dela: o 12x cancelado depois
      dos 7 dias recebe parcelas pelo ano todo, e nenhuma delas o reativa. */
   if (canceladaSemRenovar(atual, { parcelamento: p.parcelamento })) {
-    return manterCancelada(userId, atual, vale.fim, motivo, p.requestId)
+    return manterCancelada(userId, atual, vale.fim, base, motivo, p.requestId)
   }
   await subscriptionsRepo.upsert(userId, {
     plan: pago.plano,
@@ -718,8 +893,82 @@ async function aplicarParcela(
     provider: 'asaas',
     meio: 'parcelamento',
     providerInstallmentId: p.parcelamento,
+    /* O par (id do parcelamento, plano dele) anda junto: se a parcela de um parcelamento DIVERGENTE passou a
+       ser o registrado, o plano registrado passa a ser o que ele pagou — senão a próxima parcela ambígua dele
+       seria desempatada pelo plano do parcelamento anterior. */
+    planoDaCobranca: pago.plano,
     currentPeriodEnd: vale.fim,
     cancelAtPeriodEnd: 0,
+    // A âncora da janela da cota: o vencimento da 1ª parcela, o mesmo das 12 (change `cota-pelo-periodo-pago`).
+    ...(vale.manteve ? {} : { periodoPagoDesde: base }),
   })
   return { estado: 'aplicado', motivo }
+}
+
+/**
+ * O PLANO LIGADO A ESTE PARCELAMENTO — o desempate da parcela ambígua (planos v4). Só vale quando o
+ * parcelamento pago é o REGISTRADO na linha: o plano de uma linha que aponta para outro parcelamento (o
+ * Premium antigo de quem assinou o Plus, ou vice-versa) não diz nada sobre este.
+ *  - `planoDaCobranca`: gravado por `/assinar` junto com o id (migração 0008). É o vínculo de verdade: `/assinar`
+ *    numa linha existente troca os ids sem tocar em `plan` (GAP-001).
+ *  - Linha de antes da 0008 (`planoDaCobranca` nulo): o `plan` gravado. Ela é de antes de o Plus existir, então
+ *    o parcelamento dela só pode ser de um plano da v3.
+ * Sem vínculo, ou com plano que não é pago (Grátis), `null`: a parcela ambígua não concede.
+ */
+function planoDesteParcelamento(atual: Subscription | null, parcelamento: string): PlanoPago | null {
+  if (!atual || atual.providerInstallmentId !== parcelamento) return null
+  const plano = normalizarPlano(atual.planoDaCobranca ?? atual.plan)
+  return ehPlanoPago(plano) ? plano : null
+}
+
+/**
+ * O PLANO DESTA ASSINATURA — o par de `planoDesteParcelamento` para a assinatura recorrente (auditoria de
+ * 14/11/2026). Só vale quando a assinatura paga é a REGISTRADA na linha: aí `planoDaCobranca` (gravado por
+ * `/assinar` junto com o id) é o plano que ela cobra. Linha de antes da 0008: o `plan` gravado, como no 12x.
+ */
+function planoDestaAssinatura(atual: Subscription | null, assinatura: string | undefined): PlanoPago | null {
+  if (!atual || !assinatura || atual.providerSubscriptionId !== assinatura) return null
+  const plano = normalizarPlano(atual.planoDaCobranca ?? atual.plan)
+  return ehPlanoPago(plano) ? plano : null
+}
+
+/**
+ * O PLANO QUE UM VALOR FORA DA MATRIZ PAGA: entre os candidatos (o plano desta cobrança e o da troca pendente),
+ * o mais caro cujo preço NO CICLO DA COBRANÇA REGISTRADA o valor cobre. `null` = não cobre nenhum — nada é
+ * concedido. O ciclo não sobe pelo valor: R$ 150 numa assinatura mensal é mensalidade com algo a mais, não um ano.
+ */
+function maisCaroCoberto(
+  candidatos: readonly PlanoPago[],
+  valor: number,
+  ciclo: CicloDeCobranca,
+): { plano: PlanoPago; ciclo: CicloDeCobranca } | null {
+  let melhor: { plano: PlanoPago; preco: number } | null = null
+  for (const plano of candidatos) {
+    const { precoMensalBrl: mensal, precoAnualBrl: anual } = PLAN_MATRIX[plano]
+    const preco = ciclo === 'anual' ? anual : mensal
+    if (preco === null || valor + 0.005 < preco) continue
+    if (!melhor || preco > melhor.preco) melhor = { plano, preco }
+  }
+  return melhor ? { plano: melhor.plano, ciclo } : null
+}
+
+/** Estados do pagamento no Asaas em que o dinheiro voltou (ou está voltando): um confirmado tardio não concede nada. */
+const PAGAMENTO_JA_DESFEITO: ReadonlySet<string> = new Set([
+  'REFUNDED',
+  'REFUND_REQUESTED',
+  'REFUND_IN_PROGRESS',
+  'CHARGEBACK_REQUESTED',
+  'CHARGEBACK_DISPUTE',
+  'AWAITING_CHARGEBACK_REVERSAL',
+])
+
+/**
+ * Os planos que este valor paga, numa cobrança única (`parcelas` 1: mensalidade ou ano à vista) ou como parcela
+ * do 12x (`PARCELAS_DO_ANUAL`). Mais de um = AMBÍGUO, e o webhook não concede por palpite.
+ */
+function candidatosDoValor(valor: number | undefined, parcelas: number): PlanoPago[] {
+  if (typeof valor !== 'number') return []
+  return PLANOS_PAGOS.filter((plano) =>
+    valoresCobraveis(plano).some((v) => v.parcelas === parcelas && Math.abs(v.valor - valor) < 0.005),
+  )
 }

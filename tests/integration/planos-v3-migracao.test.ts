@@ -81,9 +81,9 @@ describe('a migração', () => {
 })
 
 describe('as sementes, depois da migração', () => {
-  it('`voz_natural` vale para os planos com voz neural: premium, selfhost e, agora, aovivo', async () => {
+  it('`voz_natural` vale para os planos com voz neural: premium, selfhost, aovivo e, na 0054, plus, familia e pro4', async () => {
     const { regras } = await lerFlag('voz_natural')
-    expect([...regras.planos].sort()).toEqual(['aovivo', 'premium', 'selfhost'])
+    expect([...regras.planos].sort()).toEqual(['aovivo', 'familia', 'plus', 'premium', 'pro4', 'selfhost'])
     // E são exatamente os planos com `vozNatural` na matriz.
     const { PLAN_MATRIX, PLANOS_DE_ASSINATURA } = await import('../../src/core/planos')
     expect([...regras.planos].sort()).toEqual(
@@ -218,7 +218,14 @@ describe('a reversão escrita desfaz a migração', () => {
     const comandos = [...comentario.matchAll(/`(UPDATE[\s\S]*?)`/g)].map((m) => m[1])
     expect(comandos).toHaveLength(2)
     for (const c of comandos) await client.execute(c)
-    expect((await lerFlag('voz_natural')).regras.planos.sort()).toEqual(['premium', 'selfhost'])
+    // A reversão da 0049 tira só o `aovivo`: o que a 0054 pôs (plus, familia, pro4) fica.
+    expect((await lerFlag('voz_natural')).regras.planos.sort()).toEqual([
+      'familia',
+      'plus',
+      'premium',
+      'pro4',
+      'selfhost',
+    ])
     expect((await lerFlag('teste_regras')).regras).toEqual({
       planos: ['free', 'premium'],
       percentual: 50,
@@ -231,7 +238,14 @@ describe('a reversão escrita desfaz a migração', () => {
     })
     // E a migração volta a valer por cima (ida e volta).
     await reaplicar()
-    expect((await lerFlag('voz_natural')).regras.planos.sort()).toEqual(['aovivo', 'premium', 'selfhost'])
+    expect((await lerFlag('voz_natural')).regras.planos.sort()).toEqual([
+      'aovivo',
+      'familia',
+      'plus',
+      'premium',
+      'pro4',
+      'selfhost',
+    ])
   })
 })
 
@@ -244,7 +258,12 @@ describe('as sementes no Postgres (baseline 0001) chegam ao mesmo estado final',
 
   it('voz_natural, nuvem_gratuita_alivio, venda e ofertas como na cadeia SQLite', async () => {
     for (const chave of ['voz_natural', 'nuvem_gratuita_alivio', 'venda_planos_v3', 'stt_ao_vivo', 'oferta_planos']) {
-      expect(await lerFlagPg(chave), chave).toEqual(await lerFlag(chave))
+      const pg = await lerFlagPg(chave)
+      const sqlite = await lerFlag(chave)
+      // A lista de planos é um CONJUNTO: a ida e volta da reversão acima reordena a do SQLite.
+      if (Array.isArray(pg.regras.planos)) pg.regras.planos.sort()
+      if (Array.isArray(sqlite.regras.planos)) sqlite.regras.planos.sort()
+      expect(pg, chave).toEqual(sqlite)
     }
   })
 })

@@ -8,14 +8,19 @@
 import type { LadoDoInterprete, SpeechSegment } from './tiposDaFala';
 
 export type FalaParaExportar = Pick<SpeechSegment, 'id' | 'originalText' | 'translatedText'> &
-  Partial<Pick<SpeechSegment, 'isPartial' | 'lado' | 'timestamp'>>;
+  Partial<Pick<SpeechSegment, 'isPartial' | 'lado' | 'dono' | 'timestamp'>>;
 
 export interface OpcoesDaExportacao {
   titulo: string;
-  /** Quem é cada lado no arquivo ("Você", "A outra pessoa"). */
+  /** Quem é cada pessoa no arquivo ("Você", "A outra pessoa"), pelo `dono` da fala. */
   rotulos: Record<LadoDoInterprete, string>;
-  /** O nome do idioma de cada lado ("Português", "English"). */
+  /** O nome do idioma de cada pessoa ("Português", "English"). */
   idiomas: Record<LadoDoInterprete, string>;
+  /**
+   * O autor de uma fala SEM `dono` (sessão antiga): o cálculo pelo lado. Ausente = o lado é o autor. A fala com
+   * `dono` usa o dela — o mesmo autor da lista da tela (conversa-de-verdade, 1.1).
+   */
+  donoDoLado?: (lado: LadoDoInterprete) => LadoDoInterprete;
 }
 
 export function conversaEmMarkdown(falas: ReadonlyArray<FalaParaExportar>, o: OpcoesDaExportacao): string {
@@ -25,9 +30,11 @@ export function conversaEmMarkdown(falas: ReadonlyArray<FalaParaExportar>, o: Op
     if (!f.lado || f.isPartial || !f.originalText.trim()) continue;
     escreveu = true;
     const hora = f.timestamp ? ` · ${f.timestamp}` : '';
-    linhas.push(`**${o.rotulos[f.lado]}** (${o.idiomas[f.lado]})${hora}`, '', f.originalText.trim(), '');
+    const dono = f.dono ?? o.donoDoLado?.(f.lado) ?? f.lado;
+    linhas.push(`**${o.rotulos[dono]}** (${o.idiomas[dono]})${hora}`, '', f.originalText.trim(), '');
     const traducao = f.translatedText?.trim();
-    if (traducao && traducao !== '…') linhas.push(`> ${traducao}`, '');
+    // Sem tradução (vazia) ou a degradação antiga, o original entre parênteses: a fala sai sem linha de tradução.
+    if (traducao && traducao !== '…' && traducao !== `(${f.originalText.trim()})`) linhas.push(`> ${traducao}`, '');
   }
   if (!escreveu) linhas.push('Nenhuma fala nesta conversa.', '');
   return linhas.join('\n');

@@ -1,6 +1,6 @@
 import { devices, expect, type Page, test } from '@playwright/test'
 
-import { assentar, clicarRobusto, semCapturaDeTela, trilho } from './_helpers'
+import { assentar, clicarRobusto, irAoInterpretePeloMenu, semCapturaDeTela } from './_helpers'
 
 /**
  * O INTÉRPRETE EM OUTROS IDIOMAS (auditoria de 10/10/2026, `docs/auditoria/2026-10-10-outros-idiomas.md`).
@@ -95,12 +95,14 @@ async function falsos(page: Page, vozes: readonly string[] | null = null) {
       const lidas: Array<{ texto: string; lang: string }> = []
       w.__lidas = lidas
       let falando = false
+      /* Nome no formato das vozes do Google TTS no Android (`pt-BR-language`), que a lista de permissão
+         (`core/voz/melhorVoz.ts`) aceita para qualquer idioma: nome inventado deixa o app mudo. */
       const lista = (vozes ?? []).map((lang) => ({
-        name: `Voz ${lang}`,
+        name: `${lang}-language`,
         lang,
         default: false,
         localService: true,
-        voiceURI: `voz-${lang}`,
+        voiceURI: `${lang}-language`,
       }))
       const synth = {
         get speaking() {
@@ -203,8 +205,7 @@ async function abrirPeloMenu(page: Page) {
   await page.goto('/')
   await expect(page.getByRole('main')).toBeVisible()
   await assentar(page)
-  await clicarRobusto(page, trilho(page).getByRole('button', { name: /^Intérprete/ }))
-  await expect(page).toHaveURL(/\/interprete$/)
+  await irAoInterpretePeloMenu(page)
   await expect(pronta(page)).toBeVisible({ timeout: 15_000 })
 }
 

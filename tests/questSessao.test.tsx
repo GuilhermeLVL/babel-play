@@ -330,6 +330,28 @@ describe('A sessão no computador com o desenho novo', () => {
     expect(motivo).toContain('este navegador não tem voz de leitura')
     expect(motivo).not.toContain('voz do site')
   })
+
+  it('tocar numa fala abre o painel da frase (sem modal), a fala fica marcada, e trocar de aba fecha o painel', async () => {
+    const { container } = await montar()
+    fireEvent.click(container.querySelectorAll<HTMLElement>('.qs-fala-texto')[0])
+    const painel = await screen.findByRole('complementary', { name: 'Frase escolhida' })
+    expect(painel.querySelector('.folha-frase')?.textContent).toBe(FALAS[0].sourceText)
+    expect(container.querySelector('.qs-fala-texto[data-frase-escolhida]')).toBe(
+      container.querySelectorAll('.qs-fala-texto')[0],
+    )
+    expect(screen.queryByRole('dialog')).toBeNull()
+    fireEvent.click(screen.getByRole('tab', { name: /Jogos/ }))
+    expect(screen.queryByRole('complementary', { name: 'Frase escolhida' })).toBeNull()
+  })
+})
+
+describe('A sessão no Quest: a frase', () => {
+  it('no headset a frase abre na folha modal de antes (o painel sem modal é do computador e do celular)', async () => {
+    const { container } = await montar()
+    fireEvent.click(container.querySelectorAll<HTMLElement>('.qs-fala-texto')[0])
+    expect(await screen.findByRole('dialog', { name: 'Ações' })).toBeTruthy()
+    expect(screen.queryByRole('complementary', { name: 'Frase escolhida' })).toBeNull()
+  })
 })
 
 describe('TokensClicaveis fora das folhas do Quest', () => {

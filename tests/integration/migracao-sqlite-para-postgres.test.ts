@@ -303,9 +303,18 @@ describe('migração SQLite → Postgres', () => {
       .sort()
     expect(doSchema.length).toBeGreaterThanOrEqual(38)
     expect(r.tabelas.map((t) => t.nome).sort()).toEqual(doSchema)
-    // Fora da cópia, por um motivo escrito: travas de linha e contadores da admissão de IA não são dado e o
-    // SQLite não os tem.
-    expect([...mig.TABELAS_SO_DO_POSTGRES]).toEqual(['travas', 'admissao_de_ia'])
+    // Fora da cópia, por um motivo escrito: travas de linha e contadores da admissão de IA não são dado, as
+    // exibições do anúncio premiado e as anotações do leitor nasceram depois da migração, o índice das palavras
+    // vistas é derivado das falas (refeito por `palavras reindexar`), o cache do parceiro de leitura é posterior, e o
+    // SQLite não tem nenhuma das seis.
+    expect([...mig.TABELAS_SO_DO_POSTGRES]).toEqual([
+      'travas',
+      'admissao_de_ia',
+      'anuncios_premiados',
+      'palavras_vistas',
+      'anotacoes_de_leitura',
+      'cache_do_parceiro',
+    ])
   })
 
   it('a segunda execução é idempotente (ON CONFLICT DO NOTHING) e o relatório continua ok', async () => {
@@ -323,7 +332,14 @@ describe('migração SQLite → Postgres', () => {
       const flags = r.tabelas.find((t) => t.nome === 'flags')!
       expect(flags.ok).toBe(true)
       expect(flags.checksumDestino).toBe(flags.checksumOrigem)
-      expect(flags.extrasNoDestino).toEqual(['stt_ao_vivo'])
+      /* `parceiro_de_leitura` (PG 0014) e as três `avatar_*` (PG 0016) nasceram depois da migração e só o Postgres a semeia: é extra em qualquer origem. */
+      expect(flags.extrasNoDestino).toEqual([
+        'avatar_3d',
+        'avatar_elenco',
+        'avatar_sinais',
+        'parceiro_de_leitura',
+        'stt_ao_vivo',
+      ])
       expect(r.ok).toBe(true)
     } finally {
       semUma.fechar()
@@ -333,7 +349,10 @@ describe('migração SQLite → Postgres', () => {
   it('flags: a flag alterada no destino volta ao valor da origem na reexecução', async () => {
     await mdb.db.execute(sql`update flags set habilitada = false, atualizado_por = 'outro' where chave = 'anuncios'`)
     const r = await mig.migrarSqliteParaPostgres({ origem: origem.url, destino: mdb.db })
-    expect(r.tabelas.find((t) => t.nome === 'flags')).toMatchObject({ ok: true, extrasNoDestino: [] })
+    expect(r.tabelas.find((t) => t.nome === 'flags')).toMatchObject({
+      ok: true,
+      extrasNoDestino: ['avatar_3d', 'avatar_elenco', 'avatar_sinais', 'parceiro_de_leitura'], // só do Postgres (PG 0014 e 0016), como no caso acima
+    })
     const anuncios = mdb.linhas<{ habilitada: boolean; atualizado_por: string }>(
       await mdb.db.execute(sql`select habilitada, atualizado_por from flags where chave = 'anuncios'`),
     )[0]

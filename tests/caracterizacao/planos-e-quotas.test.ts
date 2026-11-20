@@ -172,7 +172,9 @@ describe('planos e quotas (modo publico)', () => {
     const { reserveManagedCall, capForPlan, METRIC_MANAGED } = await s.load('../../server/lib/usageQuota')
     const { asUserId } = await s.load('../../server/lib/authContext')
     const U = asUserId(A)
-    const janela = new Date().toISOString().slice(0, 7)
+    // Quem paga conta na janela do período pago (change `cota-pelo-periodo-pago`).
+    const { janelaDaCota } = await s.load('../../server/lib/usageQuota')
+    const janela = await janelaDaCota(U)
     const cap = capForPlan('premium')
     expect(cap).toBe(PLAN_MATRIX.premium.quotas.chamadasMes)
 

@@ -24,6 +24,7 @@ import {
   type PlanoDeAssinatura,
   PLANOS_DE_ASSINATURA,
 } from '../core/planos';
+import { vozDaNuvemLiberada } from '../core/vozNatural';
 import { apiFetch } from '../data/api';
 import { edicaoEstatica } from './edicaoEstatica';
 import { authRequired } from './supabase';
@@ -44,9 +45,9 @@ export interface Entitlements extends EntitlementsDoPlano {
   /** Disco usado/teto em bytes; `teto: null` = sem teto; `null` inteiro = desconhecido. */
   armazenamento: { usados: number; teto: number | null } | null;
   /**
-   * O TESTE de 14 dias do Premium (C6): presente só enquanto ele vale — o Premium de `plan` é o do
+   * O TESTE de 3 dias do Premium (C6): presente só enquanto ele vale — o Premium de `plan` é o do
    * teste, e ele termina em `terminaEm` (ms) sem cobrar nada. Ausente/`null` = Premium pago, ou não é
-   * Premium. É o que o aviso `fim_do_teste` (D-3 e D0) lê.
+   * Premium. É o que o aviso `fim_do_teste` (D-1 e D0) lê.
    */
   teste?: { terminaEm: number } | null;
   /**
@@ -158,6 +159,14 @@ export async function carregarEntitlements(): Promise<Entitlements> {
   } catch {
     return getEntitlements();
   }
+}
+
+/**
+ * A VOZ NATURAL DA NUVEM vale para esta pessoa? A mesma régua do servidor (`vozDaNuvemLiberada`): a capacidade
+ * `vozNatural` num plano pago, fora do teste de 3 dias. Sem ela, nem se pede à nuvem: a voz do aparelho lê.
+ */
+export function temVozDaNuvem(e: Entitlements = getEntitlements()): boolean {
+  return vozDaNuvemLiberada({ plan: e.plan, vozNatural: e.vozNatural, emTeste: !!e.teste });
 }
 
 /** Esquece o cache (logout / troca de identidade) e avisa as telas. */

@@ -4,7 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FalhaDaNuance, PolidaDaFala } from '../../../data/apiDaNuance';
 import { contarPolimento, type FalaParaPolir, polirSessao } from '../../../lib/analise/polimentoDaSessao';
 import { useConsentimentoDeNuvem } from '../../../lib/consentimentoDeNuvem';
+import { diaQueACotaVolta } from '../../../lib/diaQueACotaVolta';
 import { t } from '../../../lib/i18n';
+import { comNomeDoPlano, planoDeEntradaAgora } from '../../../lib/planoDeEntrada';
 import { nuanceDoPolimentoDasPreferencias } from '../../../lib/traducao/preferenciasDaNuance';
 
 export type VersaoDaTraducao = 'original' | 'polida';
@@ -15,8 +17,15 @@ type Fase =
   | { f: 'pausado' }
   | { f: 'erro'; motivo: FalhaDaNuance };
 
+/** A frase de cada recusa: a cota e o uso justo dizem quando volta e que o já polido fica guardado (sem oferta). */
 function fraseDaFalha(m: FalhaDaNuance): string {
   switch (m) {
+    case 'cota_do_mes':
+      return t('Você usou a IA de nuvem deste mês; ela volta no dia {data}. O que já foi polido continua guardado.', {
+        data: diaQueACotaVolta(),
+      });
+    case 'uso_justo':
+      return t('Você chegou ao limite de hoje. Amanhã o polimento continua de onde parou.');
     case 'nuvem_ocupada':
       return t('A nuvem está ocupada agora. Tente de novo em instantes.');
     case 'em_andamento':
@@ -149,14 +158,17 @@ export default function PolirSessao({
           <div className="aviso-info" role="note" data-testid="convite-do-polimento">
             <Lock aria-hidden />
             <span style={{ flex: 1 }}>
-              {t(
-                'Com a Tradução Nuance do Premium, a tradução da sessão inteira é revisada com o contexto da conversa, e a original continua guardada.',
+              {comNomeDoPlano(
+                t(
+                  'Com a Tradução Nuance do Premium, a tradução da sessão inteira é revisada com o contexto da conversa, e a original continua guardada.',
+                ),
+                planoDeEntradaAgora(),
               )}{' '}
               {t('Sua legenda já usa a Tradução rápida ao vivo, sem esperar.')}
             </span>
             {aoConhecer && (
               <button type="button" className="btn btn-outline peq" onClick={aoConhecer}>
-                <Sparkles aria-hidden /> {t('Conhecer o Premium')}
+                <Sparkles aria-hidden /> {comNomeDoPlano(t('Conhecer o Premium'), planoDeEntradaAgora())}
               </button>
             )}
           </div>

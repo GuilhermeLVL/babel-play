@@ -11,7 +11,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { type DictionaryResult, forvoUrl, lookup, wiktionaryUrl } from '../lib/dictionary';
 import { idiomaDaInterface, t } from '../lib/i18n';
@@ -26,7 +26,7 @@ import Provenance from './Provenance';
 import { Dialogo } from './ui';
 
 /** Rótulos amigáveis dos motores de tradução — o usuário não deve ler ids técnicos crus. */
-const MT_ENGINE_LABELS: Record<string, string> = {
+export const MT_ENGINE_LABELS: Record<string, string> = {
   // As duas chaves de propósito: sessões antigas gravaram 'groq-llm'; as novas gravam o id neutro.
   'groq-llm': 'Tradutor IA (servidor)',
   'server-llm-mt': 'Tradutor IA (servidor)',
@@ -41,7 +41,7 @@ const MT_ENGINE_LABELS: Record<string, string> = {
 };
 
 /** Estes "motores" são dicionários: a tradução é um verbete, não uma saída de máquina. */
-const DE_DICIONARIO = new Set(['dicionario-local', 'wiktionary']);
+export const DE_DICIONARIO = new Set(['dicionario-local', 'wiktionary']);
 
 /**
  * ANALISTA DE VOCABULÁRIO — painel ÚNICO e padronizado, usado por TODAS as telas
@@ -115,6 +115,12 @@ export interface VocabularyPanelProps {
   velocidades?: readonly number[];
   /** Só na folha: o nível CEFR do cartão, quando a palavra já está no caderno. */
   nivel?: string;
+  /**
+   * Só na folha: um bloco a mais no fim do texto (o leitor de livros põe aqui o histórico da palavra) e a
+   * etiqueta da palavra (`data-etiqueta` na folha). Ausentes, a folha é a de sempre.
+   */
+  extra?: ReactNode;
+  etiqueta?: string;
 }
 
 const VELOCIDADES_PADRAO: readonly number[] = [0.75, 1];
@@ -135,6 +141,8 @@ export default function VocabularyPanel({
   podeOuvir = true,
   velocidades = VELOCIDADES_PADRAO,
   nivel,
+  extra,
+  etiqueta,
 }: VocabularyPanelProps) {
   /**
    * VERBETE REAL (Wiktionary). Três estados distintos — e a UI diz qual é:
@@ -190,7 +198,7 @@ export default function VocabularyPanel({
         sub={[word.lang ? langLabel(word.lang) : '', cefr, ipa].filter(Boolean).join(' · ') || undefined}
         aoFechar={onClose}
       >
-        <div className="dlg-corpo qs-miolo qp" data-testid="folha-da-palavra">
+        <div className="dlg-corpo qs-miolo qp" data-testid="folha-da-palavra" data-etiqueta={etiqueta}>
           {imagens && (
             <GaleriaDaPalavra
               key={word.word}
@@ -363,6 +371,7 @@ export default function VocabularyPanel({
                 <p className="qp-exemplo">“{word.example}”</p>
               </section>
             )}
+            {extra}
           </div>
         </div>
         <div className="dlg-pe qp-pe">

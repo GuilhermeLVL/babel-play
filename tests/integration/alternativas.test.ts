@@ -54,6 +54,7 @@ const DEEPINFRA = {
 }
 const ENVS = ['IA_PROVEDORES', 'DEEPINFRA_API_KEY', 'LLM_API_KEY', 'GROQ_API_KEY', 'OPENROUTER_API_KEY'] as const
 const PAGANTE = asUserId('alternativas-pagante')
+const ADULTO = asUserId('alternativas-adulto')
 const mes = () => new Date().toISOString().slice(0, 7)
 
 let h: EphemeralDb
@@ -61,11 +62,15 @@ let alternativasProxy: (req: any, res: any) => Promise<void>
 let counters: any
 let gasto: any
 let glossario: any
+let idades: any
 
 interface Chamada {
   modelo: string
   system: string
   user: string
+  /** O nome do `response_format.json_schema` enviado (saída estruturada) e o `provider.require_parameters`. */
+  esquema?: string
+  exigeParametros?: boolean
 }
 
 function mockRes(): any {
@@ -84,6 +89,8 @@ function provedor(resposta: (c: Chamada) => { status?: number; texto?: string })
       modelo: corpo.model,
       system: corpo.messages.find((m) => m.role === 'system')?.content ?? '',
       user: corpo.messages.find((m) => m.role === 'user')?.content ?? '',
+      esquema: (corpo as any).response_format?.json_schema?.name,
+      exigeParametros: (corpo as any).provider?.require_parameters,
     }
     chamadas.push(c)
     const r = resposta(c)
@@ -101,9 +108,9 @@ function provedor(resposta: (c: Chamada) => { status?: number; texto?: string })
 }
 const OK = JSON.stringify({ opcoes: ['Até logo', 'A gente se vê', 'Tchau'], nota: 'A primeira é neutra.' })
 
-async function pedir(body: Record<string, unknown>) {
+async function pedir(body: Record<string, unknown>, userId = PAGANTE) {
   const res = mockRes()
-  await alternativasProxy({ userId: PAGANTE, body: { tgt: 'pt', ...body }, requestId: 'r-alt' }, res)
+  await alternativasProxy({ userId, body: { tgt: 'pt', ...body }, requestId: 'r-alt' }, res)
   return res
 }
 
@@ -114,8 +121,10 @@ beforeAll(async () => {
   ;({ usageCountersRepo: counters } = await h.load<any>('../../server/db/repositories/usageCounters'))
   ;({ gastoDeIaRepo: gasto } = await h.load<any>('../../server/db/repositories/gastoDeIa'))
   ;({ glossarioRepo: glossario } = await h.load<any>('../../server/db/repositories/glossario'))
+  ;({ idadesRepo: idades } = await h.load<any>('../../server/db/repositories/idades'))
   const { subscriptionsRepo } = await h.load<any>('../../server/db/repositories/subscriptions')
   await subscriptionsRepo.upsert(PAGANTE, { plan: PLANO_PAGO, status: 'active' })
+  await subscriptionsRepo.upsert(ADULTO, { plan: PLANO_PAGO, status: 'active' })
 })
 afterAll(async () => {
   delete process.env.AUTH_REQUIRED
@@ -147,6 +156,9 @@ describe('com a Tradução Nuance', () => {
     expect(chamadas[0].modelo).toBe('openai/gpt-oss-120b')
     expect(chamadas[0].user).toContain('Frase: <<<see you later>>>')
     expect(chamadas[0].user).toContain('Tradução atual: <<<até mais>>>')
+    // A perna é da DeepInfra direta, não do OpenRouter: o pedido segue sem response_format (a leitura defensiva vale).
+    expect(chamadas[0].esquema).toBeUndefined()
+    expect(chamadas[0].exigeParametros).toBeUndefined()
   })
 
   it('gasta cota (chamada + tokens) e entra no gasto de IA do mês', async () => {
@@ -168,6 +180,21 @@ describe('com a Tradução Nuance', () => {
     await pedir({ text: 'see you at the meetup', src: 'en', registro: 'formal' })
     expect(chamadas[0].system).toMatch(/FORMAL/)
     expect(chamadas[0].user).toContain('{"termo":"meetup","traducao":"encontro"}')
+  })
+
+  it('MENOR (idade não declarada): o system enviado ao provedor leva a instrução de segurança', async () => {
+    const chamadas = provedor(() => ({ texto: OK }))
+    await pedir({ text: 'see you later', src: 'en' })
+    expect(chamadas[0].system).toContain('PÚBLICO MENOR')
+    expect(chamadas[0].system).toContain('CVV')
+  })
+
+  it('ADULTO declarado: sem a instrução de menor', async () => {
+    await idades.declarar(ADULTO, '1990-01-01')
+    const chamadas = provedor(() => ({ texto: OK }))
+    await pedir({ text: 'see you later', src: 'en' }, ADULTO)
+    expect(chamadas).toHaveLength(1)
+    expect(chamadas[0].system).not.toContain('PÚBLICO MENOR')
   })
 
   it('resposta sem JSON utilizável: 502 resposta_invalida, e o custo cobrado fica registrado', async () => {

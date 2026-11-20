@@ -79,3 +79,28 @@ export function comoInstalarVoz(
     { idioma: nome },
   );
 }
+
+/**
+ * SÓ OS PASSOS para instalar uma voz no sistema da pessoa (sem a frase sobre a tradução em texto, que é do
+ * Intérprete): "Para ouvir, instale a voz no Windows em Configurações → …". Para o seletor de voz do leitor.
+ */
+export function passosParaInstalarVoz(
+  agente: string = typeof navigator !== 'undefined' ? navigator.userAgent : '',
+): string {
+  const sistema = sistemaDoAparelho(agente);
+  if (sistema === 'windows')
+    return t(
+      'Para ouvir, instale a voz no Windows em Configurações → Hora e idioma → Fala → Adicionar vozes, e reabra o navegador.',
+    );
+  if (sistema === 'android')
+    return t(
+      'Para ouvir, instale a voz no Android em Configurações → Sistema → Idiomas e entrada → Conversão de texto em voz → Instalar dados de voz.',
+    );
+  if (sistema === 'ios')
+    return t('Para ouvir, baixe a voz no iPhone ou iPad em Ajustes → Acessibilidade → Conteúdo Falado → Vozes.');
+  if (sistema === 'mac')
+    return t(
+      'Para ouvir, baixe a voz no Mac em Ajustes do Sistema → Acessibilidade → Conteúdo Falado → Voz do sistema → Gerenciar vozes.',
+    );
+  return t('Para ouvir, instale uma voz desse idioma nas configurações de fala do sistema e reabra o navegador.');
+}

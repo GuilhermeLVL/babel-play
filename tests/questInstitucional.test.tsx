@@ -95,6 +95,9 @@ describe('Sobre no Quest', () => {
     fireEvent.click(aba('Dados e termos'))
     for (const nome of ['Wikcionário (Wiktionary)', 'Wikidata Lexemes', 'Tatoeba', 'FrequencyWords (OpenSubtitles)'])
       expect(screen.getByRole('link', { name: new RegExp(nome.replace(/[()]/g, '\\$&')) })).toBeTruthy()
+    // O Parakeet roda por padrão (pt/es): a CC-BY-4.0 pede o crédito também aqui, não só em Ajustes.
+    const parakeet = screen.getByRole('link', { name: /Parakeet TDT v3 · NVIDIA/ })
+    expect(parakeet.textContent).toContain('CC-BY-4.0')
     expect(screen.getByRole('link', { name: /Lista completa de fontes e autores/ }).getAttribute('href')).toContain(
       'FONTES.md',
     )

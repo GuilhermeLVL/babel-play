@@ -1,0 +1,222 @@
+[
+  {
+    "id": "NOT03",
+    "raciocinio": "Exportar grifos em Markdown e JSON resolve a dor de aprisionamento de dados para usuários avançados de Obsidian/Notion, mas falha em frequência porque a maioria dos leitores casuais e estudantes de idiomas raramente exporta notas toda semana. No navegador é trivial gerar o arquivo localmente com custo zero e sem riscos de privacidade ou para menores.",
+    "valor": 1,
+    "frequencia": 0,
+    "viavel": 1,
+    "custo_baixo": 1,
+    "risco_baixo": 1,
+    "diferencial_pago": 0,
+    "simples": 1
+  },
+  {
+    "id": "NOT04",
+    "raciocinio": "O Frasy já tem Anki no plano grátis e um deck FSRS próprio, então exportar manualmente CSV/.apkg de livros tem baixa frequência de uso (é um evento esporádico de migração ou backup para fãs do Anki). É totalmente viável no cliente, sem custo de servidor e seguro, mas configurar campos de importação no Anki nunca é simples sem explicação para o usuário comum.",
+    "valor": 1,
+    "frequencia": 0,
+    "viavel": 1,
+    "custo_baixo": 1,
+    "risco_baixo": 1,
+    "diferencial_pago": 0,
+    "simples": 0
+  },
+  {
+    "id": "NOT05",
+    "raciocinio": "Gerar um PDF bonito para impressão parece charmoso em apresentações, mas carece de valor real e frequência: estudantes de idiomas no celular ou notebook raramente imprimem cadernos de grifos hoje em dia. Embora seja barato e sem risco legal, diagramar paginação de PDF bonito no navegador dá trabalho desnecessário para uma função fantasma.",
+    "valor": 0,
+    "frequencia": 0,
+    "viavel": 1,
+    "custo_baixo": 1,
+    "risco_baixo": 1,
+    "diferencial_pago": 0,
+    "simples": 1
+  },
+  {
+    "id": "NOT06",
+    "raciocinio": "Como as anotações atuais ficam só no navegador e menores têm retenção zero de dados no servidor, avisar claramente onde os dados estão e permitir baixar um backup local resolve uma dor crítica de perda de progresso. Apesar de o download manual do arquivo não ter frequência semanal, o aviso e o botão são vitais, fáceis de implementar localmente e protegem a conformidade com LGPD/ECA Digital.",
+    "valor": 1,
+    "frequencia": 0,
+    "viavel": 1,
+    "custo_baixo": 1,
+    "risco_baixo": 1,
+    "diferencial_pago": 0,
+    "simples": 1
+  },
+  {
+    "id": "NOT07",
+    "raciocinio": "Quem entra no Frasy quer ler com apoio de idioma e áudio, não usar o app como espelho de download de EPUB/TXT cru, o que derruba os critérios de valor e frequência. É viável e barato servir o arquivo limpo sem a marca Gutenberg e com crédito da fonte, mas adiciona botão extra para algo que quase ninguém fará regularmente.",
+    "valor": 0,
+    "frequencia": 0,
+    "viavel": 1,
+    "custo_baixo": 1,
+    "risco_baixo": 1,
+    "diferencial_pago": 0,
+    "simples": 1
+  },
+  {
+    "id": "INT01",
+    "raciocinio": "Transformar palavras salvas na leitura diretamente em cartões no deck FSRS com frase de contexto e origem é o coração do produto, garantindo altíssimo valor e frequência em toda sessão de leitura. Já existe o deck FSRS no app, então a viabilidade é imediata, sem custo de IA, sem risco para menores e com uso intuitivo de um toque.",
+    "valor": 1,
+    "frequencia": 1,
+    "viavel": 1,
+    "custo_baixo": 1,
+    "risco_baixo": 1,
+    "diferencial_pago": 0,
+    "simples": 1
+  },
+  {
+    "id": "INT02",
+    "raciocinio": "Um jogo opcional de 1 minuto ao terminar o capítulo aproveita o momento exato em que o vocabulário está fresco na memória, gerando alto valor de retenção e frequência semanal natural sem interromper a leitura. Reaproveita os jogos já existentes no Frasy a custo zero no navegador, com simplicidade imediata e zero risco.",
+    "valor": 1,
+    "frequencia": 1,
+    "viavel": 1,
+    "custo_baixo": 1,
+    "risco_baixo": 1,
+    "diferencial_pago": 0,
+    "simples": 1
+  },
+  {
+    "id": "INT03",
+    "raciocinio": "Filtrar a revisão e os jogos existentes por um livro específico resolve a dor de quem está focado em terminar uma obra difícil ou estudar para uma prova e quer revisar só aquele vocabulário toda semana. Como é apenas um filtro de origem sobre a estrutura de cartões e jogos que o Frasy já possui, tem alta viabilidade, custo zero e interface óbvia.",
+    "valor": 1,
+    "frequencia": 1,
+    "viavel": 1,
+    "custo_baixo": 1,
+    "risco_baixo": 1,
+    "diferencial_pago": 0,
+    "simples": 1
+  },
+  {
+    "id": "INT04",
+    "raciocinio": "Pintar ou etiquetar palavras no meio do texto do livro conforme o status de aprendizado costuma poluir visualmente a página (efeito árvore de natal), prejudicando a fluidez da leitura e exigindo legenda para entender as cores, o que derruba a simplicidade. Além disso, cruzar e destacar cada token do DOM no foliate-js em tempo real com histórico de aparições pode degradar a performance no navegador.",
+    "valor": 0,
+    "frequencia": 0,
+    "viavel": 0,
+    "custo_baixo": 1,
+    "risco_baixo": 1,
+    "diferencial_pago": 0,
+    "simples": 0
+  },
+  {
+    "id": "INT05",
+    "raciocinio": "Gerar exercícios de lacunas e ordenação puramente por regras algorítmicas (sem IA) em cima de frases literárias complexas de livros clássicos falha em viabilidade pedagógica: produz frases truncadas, ambíguas ou longas demais que frustram o aluno. Sem curadoria ou IA para escolher boas frases curtas, o valor cai e o usuário abandona o exercício rapidamente.",
+    "valor": 0,
+    "frequencia": 0,
+    "viavel": 0,
+    "custo_baixo": 1,
+    "risco_baixo": 1,
+    "diferencial_pago": 0,
+    "simples": 1
+  },
+  {
+    "id": "ACE01",
+    "raciocinio": "Ajustes tipográficos como fonte Atkinson/dislexia, tamanho, espaçamento e alinhamento sem justificar têm enorme valor e frequência diária para qualquer leitor (especialmente em telas móveis e pessoas neurodivergentes). O foliate-js já suporta injeção direta de CSS para isso com custo zero, sem risco e em controles que todo leitor digital já conhece.",
+    "valor": 1,
+    "frequencia": 1,
+    "viavel": 1,
+    "custo_baixo": 1,
+    "risco_baixo": 1,
+    "diferencial_pago": 0,
+    "simples": 1
+  },
+  {
+    "id": "ACE02",
+    "raciocinio": "Temas de contraste suave (creme, sépia, cinza escuro sem preto/branco puros) evitam fadiga visual em leituras longas, sendo usados em praticamente todas as sessões de leitura. É uma simples troca de variáveis CSS no navegador e no foliate-js, com viabilidade imediata, custo zero e total simplicidade.",
+    "valor": 1,
+    "frequencia": 1,
+    "viavel": 1,
+    "custo_baixo": 1,
+    "risco_baixo": 1,
+    "diferencial_pago": 0,
+    "simples": 1
+  },
+  {
+    "id": "ACE03",
+    "raciocinio": "A régua de leitura que escurece o resto da página ajuda um nicho com TDAH ou dislexia severa, mas a grande maioria dos usuários testa uma vez por curiosidade e desliga para sempre, resultando em baixa frequência geral. Em páginas paginadas de EPUB ou PDFs no celular, sincronizar a faixa com o toque/rolagem também costuma conflitar com a seleção de palavras.",
+    "valor": 0,
+    "frequencia": 0,
+    "viavel": 1,
+    "custo_baixo": 1,
+    "risco_baixo": 1,
+    "diferencial_pago": 0,
+    "simples": 1
+  },
+  {
+    "id": "ACE04",
+    "raciocinio": "Salvar as preferências de fonte, tema e espaçamento para que abram iguais em todo livro ou documento é requisito básico de UX: ninguém suporta reconfigurar o leitor a cada capítulo ou livro aberto. Tem valor e frequência constantes (aplicado sempre), custo zero via armazenamento local e é completamente transparente para o usuário.",
+    "valor": 1,
+    "frequencia": 1,
+    "viavel": 1,
+    "custo_baixo": 1,
+    "risco_baixo": 1,
+    "diferencial_pago": 0,
+    "simples": 1
+  },
+  {
+    "id": "ACE05",
+    "raciocinio": "Embora ouvir a pronúncia da palavra ao tocar seja útil, a separação silábica correta e pronúncia silabada para 16 idiomas não existe pronta e confiável nas APIs nativas do navegador nem no speechSynthesis, derrubando a viabilidade sem bibliotecas pesadas ou pesquisa nova. Para quem aprende idiomas acima da alfabetização infantil, ver sílabas separadas também tem baixa frequência de uso.",
+    "valor": 0,
+    "frequencia": 0,
+    "viavel": 0,
+    "custo_baixo": 1,
+    "risco_baixo": 1,
+    "diferencial_pago": 0,
+    "simples": 1
+  },
+  {
+    "id": "ACE06",
+    "raciocinio": "Permitir jogar sem cronômetro e com tolerância a pequenos erros de digitação/acentuação remove a ansiedade que afasta iniciantes e alunos mais jovens ou com dislexia, tendo alto valor e uso frequente nas revisões semanais. É simples de implementar nos jogos já existentes no navegador (distância de edição/Levenshtein básica), sem custo nem risco.",
+    "valor": 1,
+    "frequencia": 1,
+    "viavel": 1,
+    "custo_baixo": 1,
+    "risco_baixo": 1,
+    "diferencial_pago": 0,
+    "simples": 1
+  },
+  {
+    "id": "ACE07",
+    "raciocinio": "Navegação por teclado, foco visível, rótulos acessíveis e alvos de toque grandes não são 'features extras', mas higiene obrigatória de usabilidade que beneficia 100% dos usuários no celular e notebook em todas as sessões. É totalmente viável com HTML semântico e CSS padrão no React/foliate-js, a custo zero e sem exigir explicação.",
+    "valor": 1,
+    "frequencia": 1,
+    "viavel": 1,
+    "custo_baixo": 1,
+    "risco_baixo": 1,
+    "diferencial_pago": 0,
+    "simples": 1
+  },
+  {
+    "id": "EST01",
+    "raciocinio": "Para o público brasileiro de 12+ anos (ensino médio/vestibular), ter a análise literária focada no ENEM capítulo a capítulo resolve a dor real de encarar clássicos de domínio público (Machado, Alencar) e é um forte diferencial pago. Como só se aplica a obras brasileiras de vestibular, o cache compartilhado por capítulo deixa o custo de IA nos centavos e a resposta pré-gerada reduz riscos para menores.",
+    "valor": 1,
+    "frequencia": 1,
+    "viavel": 1,
+    "custo_baixo": 1,
+    "risco_baixo": 1,
+    "diferencial_pago": 1,
+    "simples": 1
+  },
+  {
+    "id": "EST02",
+    "raciocinio": "Conectar capítulos de livros a fatos da História do Brasil é um desejo de 'próxima fase' do dono que sofre de falta de foco: dilui a proposta principal de leitura e idiomas e tem baixa frequência de uso no dia a dia. Mesmo sendo barato com cache compartilhado, adiciona complexidade prematura antes de validar se os usuários usam o Frasy para estudar Humanas.",
+    "valor": 0,
+    "frequencia": 0,
+    "viavel": 1,
+    "custo_baixo": 1,
+    "risco_baixo": 1,
+    "diferencial_pago": 0,
+    "simples": 1
+  },
+  {
+    "id": "EST03",
+    "raciocinio": "Isso não é uma função voltada ao usuário final, e sim uma decisão de arquitetura interna de banco de dados/código ('livro → capítulos → trechos → itens'), portanto não entrega valor direto nem frequência de uso percebida pela persona na interface. É viável, gratuito e seguro estruturar o modelo de dados assim nos bastidores, mas não é uma funcionalidade de produto.",
+    "valor": 0,
+    "frequencia": 0,
+    "viavel": 1,
+    "custo_baixo": 1,
+    "risco_baixo": 1,
+    "diferencial_pago": 0,
+    "simples": 1
+  }
+]

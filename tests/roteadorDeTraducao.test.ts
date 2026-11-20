@@ -230,8 +230,12 @@ describe('Bergamot nos idiomas do CDN', () => {
     expect(motoresLocais('ja', 'pt-BR')).toEqual(['bergamot-local', 'opus-mt-local'])
   })
 
-  it('es→pt, en→X e idioma fora da lista não entram', () => {
-    expect(motoresLocais('es', 'pt')).toEqual(['opus-mt-local'])
+  it('es→pt e pt→es passam pelo inglês com o Bergamot na primeira perna (CEL-01)', () => {
+    expect(motoresLocais('es', 'pt')).toEqual(['bergamot-local', 'opus-mt-local'])
+    expect(motoresLocais('pt', 'es')).toEqual(['bergamot-local', 'opus-mt-local'])
+  })
+
+  it('en→X e idioma fora da lista não entram', () => {
     expect(motoresLocais('en', 'ja')).toEqual(['opus-mt-local'])
     expect(motoresLocais('tr', 'en')).toEqual(['opus-mt-local'])
   })

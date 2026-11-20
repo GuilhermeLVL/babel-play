@@ -1,3 +1,10 @@
 # Script de shell que roda DENTRO do container Linux: com CRLF o `#!/bin/sh` vira `/bin/sh\r` e o
 # container não sobe ("not found"). O checkout no Windows não pode convertê-lo.
 *.sh text eol=lf
+
+# Brutos gerados pela bancada de IA paga (scripts/eval-ia/rodar.mjs): fora das estatísticas e diffs recolhidos
+docs/auditoria/eval/ia-paga-v1/bruto-*.json linguist-generated=true -diff
+
+# Gerados por scripts/i18n (pseudo.mjs, cobertura.mjs): diffs recolhidos no GitHub. Conflito: `npm run i18n`.
+public/i18n/xx.json linguist-generated=true
+src/data/i18n/cobertura.json linguist-generated=true

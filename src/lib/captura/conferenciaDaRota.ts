@@ -44,6 +44,10 @@ export interface EntradaDaConferencia {
   dispositivo: DispositivoDaRota;
   /** `PerfilDoDispositivo.leve`. */
   leve: boolean;
+  /** O Parakeet está pronto para esta captura (`parakeetProntoNaRota`, com a mesma entrada do `routeStt`). */
+  parakeetPronto?: boolean;
+  /** A flag `stt_aparelho_primeiro` (o `aparelhoPrimeiro` do `routeStt`). */
+  aparelhoPrimeiro?: boolean;
 }
 
 /** O que a rota de hoje NÃO vê e a política vê: lido do app por `conferirRotaDoStt`. */
@@ -92,6 +96,7 @@ export function montarPedidoDeRota(e: EntradaDaConferencia, a: AmbienteDaConfere
       // Fora da pergunta (o microfone entra como `modelo`, e a tarefa é transcrever).
       navegador: { fala: false, falaNoAparelho: null, bipaAoReligar: false, tradutor: false },
       modelos: { opusMt: false, bergamot: false, llmLocal: false },
+      ...(e.parakeetPronto ? { parakeet: true } : {}),
     },
     plano: {
       nuvemPorTrechos: comNuvem,
@@ -114,6 +119,7 @@ export function montarPedidoDeRota(e: EntradaDaConferencia, a: AmbienteDaConfere
       edicaoEstatica: a.edicaoEstatica,
       nuvemDoSite: a.nuvemDoSite,
       preferencia: { qualidade: QUALIDADE[e.qualidade] ?? 'auto', microfone: 'modelo' },
+      ...(e.aparelhoPrimeiro ? { aparelhoPrimeiro: true } : {}),
     },
   };
 }

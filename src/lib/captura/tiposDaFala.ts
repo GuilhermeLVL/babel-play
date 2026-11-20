@@ -58,12 +58,46 @@ export interface SpeechSegment {
    */
   lado?: LadoDoInterprete;
   /**
+   * MODO INTÉRPRETE: QUEM disse a fala ('meu' = você; 'outro' = a outra pessoa), gravado quando ela nasce
+   * (conversa-de-verdade, 1.1). O `lado` é a METADE da tela, e "Trocar os lados" muda quem está em cada metade:
+   * calcular o autor pelo `trocados` de agora reatribuía o histórico inteiro (CONV-07). Ausente = sessão antiga ou
+   * fora do intérprete; quem lê cai no cálculo pelo lado.
+   */
+  dono?: LadoDoInterprete;
+  /**
+   * A fala do turno por toque saiu num idioma FORA DO PAR (conversa-de-verdade, 3.2): o reconhecimento conferiu o
+   * áudio e ouviu outro idioma com confiança alta. Ela não é traduzida nem lida; a metade pede para repetir.
+   * `detectado` é o ISO-639-1 ouvido.
+   */
+  foraDoPar?: { detectado: string };
+  /**
+   * O `lado` do AUTOMÁTICO veio sem evidência de idioma (a alternância, ou as duas metades no mesmo idioma da prática):
+   * é um palpite. O assistente trata a fala como de lado incerto, e ela nunca vai à correção como "minha fala".
+   */
+  ladoPalpite?: boolean;
+  /**
    * CONVERSA VIRTUAL com detecção de idioma: o idioma para o qual esta fala foi traduzida (ISO-639-1; o `lang`
    * é o dela) e se ela nem precisou de tradução porque já estava no idioma de quem lê.
    */
   paraLang?: string;
-  semTraducao?: boolean;
+  /**
+   * A fala ficou SEM tradução. `true`: nem precisava (já estava no idioma de quem lê, conversa virtual). O MOTIVO
+   * (`MotivoSemTraducao`): a tradução não veio, e a linha diz por quê em vez de mostrar o original entre parênteses
+   * como se fosse a tradução (CEL-01, auditoria de 17/11/2026). `translatedText` fica vazio.
+   */
+  semTraducao?: boolean | MotivoSemTraducao;
+  /**
+   * LEGENDA SEGURA (`legendaSeguraDasFalas.ts`): quantos termos sensíveis viraram `•••` no original e na tradução.
+   * Ausente = nenhum.
+   */
+  ocultadas?: number;
 }
+
+/** Por que a fala ficou sem tradução: o par não tem rota neste aparelho, ou a cadeia falhou agora. */
+export type MotivoSemTraducao = 'sem-rota' | 'falhou';
+
+/** A fala ficou sem tradução por um motivo (e não por estar no idioma de quem lê)? */
+export const ehMotivoSemTraducao = (v: unknown): v is MotivoSemTraducao => v === 'sem-rota' || v === 'falhou';
 
 // `VocabWord` agora vive em `src/types.ts` — é o contrato compartilhado do <VocabularyPanel/>,
 // usado por Captura, Análise, Leitura, Estudo e Métricas. A invariante de honestidade (campos
@@ -131,6 +165,14 @@ export interface DirecaoDaFala {
   de: string;
   /** ISO-639-1 da tradução — o idioma de quem ouve. */
   para: string;
+  /** Quem fala neste lado agora ('meu' = você), com os lados trocados ou não (`direcaoDoLado`). */
+  dono?: LadoDoInterprete;
+  /**
+   * O TURNO do microfone (conversa-de-verdade, 1.2): sobe a cada vez que o intérprete abre o microfone. A fala
+   * guardada durante o download leva o turno em que foi dita; o fim dela, entregue depois, só fecha o microfone
+   * se o turno ainda é o mesmo.
+   */
+  turno?: number;
 }
 
 /** Uma fala terminou no microfone (o VAD fechou, ou a Web Speech comprometeu o final). */
@@ -140,12 +182,16 @@ export interface FimDaFala {
   source: 'system' | 'mic';
   /** No modo intérprete, o lado de quem falou. */
   lado?: LadoDoInterprete;
+  /** O turno do microfone em que a fala foi dita (`DirecaoDaFala.turno`). Ausente = o de agora. */
+  turno?: number;
   /**
    * A fala JÁ ANUNCIADA acabou sem texto: o decode não achou fala, o filtro a descartou, ou o motor
    * falhou. Não haverá tradução a esperar — o intérprete devolve a vez (sem isto ele ficava em
    * "Traduzindo…" para sempre, com o microfone fechado).
    */
   semTexto?: boolean;
+  /** O motor que transcreveu a fala (`SpeechSegment.engine`, ex.: `web-speech`). Ausente = o da rota (o Whisper). */
+  motor?: string;
 }
 
 /** mm:ss a partir de segundos — o carimbo de tempo de cada fala e o cronômetro da sessão. */

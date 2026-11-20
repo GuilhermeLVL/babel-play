@@ -1,0 +1,5 @@
+Minha resposta anterior foi interrompida por um filtro de segurança, e o restante não foi entregue. Por isso, não vou gerar novamente essa avaliação, nem com outras palavras.
+
+O array JSON ficou incompleto e inválido: parou no meio de CAT08, e faltam CAT08 a CAT12 e LEI01 a LEI09. Não use esse trecho parcial como resultado do lote.
+
+Se quiser seguir com o L0, você pode reenviar o lote em outra sessão ou por outro fluxo de avaliação.

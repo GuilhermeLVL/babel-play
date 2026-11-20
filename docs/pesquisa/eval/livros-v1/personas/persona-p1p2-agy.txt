@@ -1,0 +1,245 @@
+```json
+{
+  "persona": "Estudante de 15 anos (escola pública), nível A2 de inglês, fã de séries, games e mangás, usa celular Android intermediário e notebook compartilhado, zero paciência para textos longos e difíceis, 100% no plano Grátis.",
+  "dores": [
+    "Tento ler livros em inglês que todo mundo fala, mas o inglês antigo (tipo obras antes de 1955) tem palavras que nunca vi nem em série nem em jogo e eu travo no primeiro parágrafo.",
+    "Quando abro um PDF ou texto no navegador do celular, a letra fica minúscula ou toda quebrada, e rolar uma página infinita sem saber quanto falta pro capítulo acabar dá preguiça.",
+    "Se eu tenho que sair do livro pra procurar palavra no tradutor e criar cartão manualmente, perco o fio da meada da história e vou pro TikTok.",
+    "Como uso o celular na rua e às vezes o notebook da minha mãe em casa, minhas marcações e onde eu parei ficam presas num aparelho só e eu perco tudo.",
+    "A voz padrão do celular parece um robô dos anos 2000 lendo tudo embolado, mas às vezes é tão devagar que dá sono.",
+    "Tenho medo de baixar livros ou mangás em sites estranhos e pegar vírus no notebook da família, mas não tenho cartão de crédito pra comprar livro.",
+    "Na escola pedem leitura pros trabalhos e pro começo de treino do ENEM, mas os clássicos em português ou inglês parecem outro idioma de tão enrolados."
+  ],
+  "jobs_to_be_done": [
+    "Quando estou à toa no celular esperando o ônibus ou no intervalo, quero abrir uma história curta de mistério ou aventura compatível com meu inglês A2, para sentir que consigo ler em inglês sem parecer dever de casa.",
+    "Quando esbarro numa palavra ou expressão que não sei no meio do parágrafo, quero tocar nela para ver a tradução na hora e jogar pro jogo de vocabulário com um clique, para não quebrar meu ritmo de leitura.",
+    "Quando troco do meu celular Android para o notebook da família, quero exportar ou carregar rápido meu arquivo de progresso e notas, para continuar exatamente da página onde parei sem precisar criar conta complicada.",
+    "Quando estou com a vista cansada mas quero continuar a história, quero ligar a narração bilíngue que lê uma frase em inglês e outra em português com destaque na tela, para treinar o ouvido enquanto acompanho o texto.",
+    "Quando termino um capítulo curto, quero jogar um desafio rápido de 1 minuto com as palavras que marquei ali, para ganhar pontos e fixar o que acabei de ler."
+  ],
+  "funcoes": [
+    {
+      "nome": "Estante Teen & Leituras Rápidas (Nível A1-A2)",
+      "descricao": "Catálogo filtrado para menores de idade com contos curtos, aventura, sci-fi e folclore em domínio público (autores falecidos até 1955), ordenados por tamanho e facilidade de vocabulário.",
+      "tela": "catálogo",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Leitor de EPUB/CBZ Paginado no Navegador",
+      "descricao": "Leitor leve via foliate-js que abre EPUB e quadrinhos/mangás livres (CBZ) direto no navegador do Android com barra de páginas restantes no capítulo e tema escuro.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Toque-Traduza-Colecione (1-Tap Deck)",
+      "descricao": "Ao tocar numa palavra ou frase, mostra a tradução local instantânea e já adiciona ao baralho FSRS com a frase do livro como exemplo.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Karaokê Bilíngue com Voz do Aparelho",
+      "descricao": "Narração gratuita usando speechSynthesis que ilumina a frase atual, lendo primeiro no idioma original em velocidade 0.85x e depois a tradução rápida.",
+      "tela": "narração",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Audiolivros Humanos LibriVox Sincronizados",
+      "descricao": "Player integrado que puxa gravações gratuitas do LibriVox para clássicos em inglês e permite ouvir uma pessoa real lendo enquanto acompanha o capítulo.",
+      "tela": "narração",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Chefão do Capítulo (Mini-Game do Livro)",
+      "descricao": "Ao fechar um capítulo, libera uma partida rápida nos jogos de vocabulário usando exclusivamente as palavras daquele capítulo e as que eu toquei.",
+      "tela": "jogos/revisão",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Scanner de Dificuldade antes de Abrir",
+      "descricao": "Cruza as palavras do livro com meu histórico no FSRS localmente e mostra um selo 'Você já conhece 82% das palavras deste conto'.",
+      "tela": "catálogo",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Mochila Portátil (Backup por QR Code / Arquivo)",
+      "descricao": "Exporta e importa a posição exata (CFI) e os grifos num arquivo leve ou código rápido para passar do celular pro notebook da família sem reter dados pessoais.",
+      "tela": "notas/exportar",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Simplificador de Clássico para Inglês Atual (Cacheado)",
+      "descricao": "Reescreve parágrafos com inglês arcaico de obras de domínio público para inglês nível A2/B1 (grátis nos livros do catálogo via cache compartilhado por capítulo, ou na cota do pago).",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Explica como se fosse Anime/Série",
+      "descricao": "Botão no painel de IA que explica uma cena confusa ou referência histórica do livro usando analogias da cultura pop e linguagem jovem.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "P"
+    },
+    {
+      "nome": "Prateleira ENEM & Clássicos Brasileiros",
+      "descricao": "Coleção do Wikisource e domínio público BR (Machado de Assis, Lima Barreto, Aluísio Azevedo) com glossário rápido de palavras antigas em português.",
+      "tela": "catálogo",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    }
+  ],
+  "me_faria_desistir": [
+    "Clicar num botão achando que é grátis e dar de cara com bloqueio de cartão de crédito na função básica de clicar na palavra ou virar a página.",
+    "O aplicativo travar a memória do meu Android intermediário ou gastar toda a minha franquia de 4G baixando livro pesado toda vez que abro.",
+    "Entrar no catálogo e só ter livro gigante de filosofia de 1850 com capa cinza chata e zero indicação de por onde um iniciante deve começar.",
+    "Deixar o notebook da família aberto na sala e perder todo o meu progresso porque o navegador limpou a aba ou porque não dá pra salvar onde parei facilmente.",
+    "Ter que ler aquele cabeçalho gigante em inglês jurídico do Project Gutenberg por 10 páginas antes do livro começar de verdade."
+  ]
+}
+```
+
+```json
+{
+  "persona": "Profissional de 34 anos, nível B2 de inglês, lê relatórios, artigos e livros técnicos no trabalho, alterna entre notebook e celular no ônibus, sem tempo a perder, paga Plus/Pro se economizar horas de estudo.",
+  "dores": [
+    "Leio bem textos técnicos da minha área no nível B2, mas perco muito tempo quando pego artigos densos com jargões novos, expressões idiomáticas sutis ou períodos muito longos.",
+    "Começo a ler um relatório em PDF ou livro técnico em EPUB no notebook do trabalho e, quando entro no ônibus, quero continuar ouvindo ou lendo no celular sem perder tempo caçando a página.",
+    "Quando grifo trechos importantes de um livro ou artigo técnico, essas anotações ficam presas dentro do leitor e eu não consigo jogar rápido pro meu Obsidian, Notion ou Anki.",
+    "A voz gratuita do navegador é artificial demais para aguentar 40 minutos de audiolivro no trânsito sem ficar com dor de cabeça.",
+    "Não quero perder 1 hora lendo um capítulo inteiro só para descobrir que o argumento principal do autor estava em três parágrafos no final.",
+    "Fazer flashcards manualmente de termos de negócios e tecnologia toma um tempo que eu não tenho à noite.",
+    "Quando tenho uma dúvida específica sobre um conceito citado 50 páginas atrás no livro, a busca comum só acha palavras soltas e eu demoro para reler o contexto."
+  ],
+  "jobs_to_be_done": [
+    "Quando preciso absorver um livro técnico, EPUB próprio ou artigo web antes de uma reunião, quero importar o arquivo em segundos e ver um resumo executivo por capítulo com os termos-chave em inglês, para focar nas partes críticas.",
+    "Quando saio da mesa do trabalho para pegar o ônibus, quero baixar o capítulo atual como MP3 com voz natural ou dar play na narração inteligente, para transformar o tempo de deslocamento em leitura produtiva.",
+    "Quando encontro uma construção gramatical complexa ou jargão profissional que não domino 100%, quero pedir para a IA explicar a nuance de uso no trabalho e já gerar cartões FSRS prontos, para evoluir do B2 para o C1 sem esforço braçal.",
+    "Quando termino de ler e grifar um documento técnico, quero exportar todos os meus destaques, citações e notas de voz em Markdown ou CSV limpo, para arquivar na minha base de conhecimento pessoal.",
+    "Quando quero revisar um argumento específico dentro do livro que estou lendo, quero fazer uma pergunta direta ao livro e receber a resposta com o link exato para o parágrafo citado, para não folhear às cegas."
+  ],
+  "funcoes": [
+    {
+      "nome": "Importador Universal (EPUB, PDF e Web Clipper Limpo)",
+      "descricao": "Importação rápida de EPUBs/PDFs locais (via foliate-js e PDF.js) e links de artigos técnicos com limpeza de anúncios e paginação fluida.",
+      "tela": "catálogo",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Briefing de Capítulo & Gerador Automático de Deck",
+      "descricao": "IA que analisa o capítulo atual, entrega os 5 pontos-chave, destaca o vocabulário B2/C1 essencial e converte tudo em cartões FSRS com um clique.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Fábrica de Audiolivro para o Ônibus (ZIP de MP3)",
+      "descricao": "Converte os capítulos selecionados em arquivos MP3 com voz natural da nuvem (descontando da cota) e baixa em um ZIP para ouvir offline no trânsito.",
+      "tela": "narração",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Narração Inteligente (Foco em Termos Difíceis)",
+      "descricao": "Modo de leitura em áudio que lê em inglês fluido com voz natural, mas desacelera ou insere uma tradução curta apenas nas expressões acima do meu nível B2.",
+      "tela": "narração",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "G"
+    },
+    {
+      "nome": "Pergunte ao Livro com Citação Exata (Busca Lexical + IA)",
+      "descricao": "Busca lexical rápida nos capítulos que envia apenas os trechos relevantes para a IA responder minha dúvida e linka o CFI exato para eu clicar e conferir na página.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Grifo com Nota de Voz Rápida",
+      "descricao": "Ao selecionar um trecho no ônibus, permite gravar um áudio curto com meu insight pessoal anexado à anotação W3C (CFI) sem precisar digitar sacolejando.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Exportador Profissional (Markdown, Anki e W3C JSON)",
+      "descricao": "Exporta todos os destaques do livro, trechos originais, traduções e notas em um arquivo Markdown estruturado por capítulo ou pacote pro Anki.",
+      "tela": "notas/exportar",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Raio-X de Nuance e Jargão Corporativo",
+      "descricao": "Ao selecionar uma frase em um relatório ou livro, a IA explica o tom (formal, irônico, técnico), dá sinônimos executivos e mostra como usar em uma reunião.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "P"
+    },
+    {
+      "nome": "Leitor Tipográfico Pro com Atalhos de Teclado",
+      "descricao": "Ajuste fino de fontes serifadas/sem serifa, margens, visão em duas colunas no monitor do trabalho, sumário navegável e atalhos rápidos para grifar.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Catálogo de Clássicos de Estratégia, Economia e Ensaios",
+      "descricao": "Curadoria de obras do Standard Ebooks e Gutenberg (autores e tradutores falecidos até 1955) focada em não-ficção clássica, história, ciência e filosofia.",
+      "tela": "catálogo",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Revisão Expressa de 5 Minutos no Trânsito",
+      "descricao": "Modo de revisão FSRS otimizado para uma mão só no celular, focado apenas nas frases grifadas nas leituras técnicas daquela semana.",
+      "tela": "jogos/revisão",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Painel de Cota Transparente por Capítulo",
+      "descricao": "Mostra antes de gerar o resumo ou o MP3 exatamente quanto da minha cota mensal do plano Plus/Pro será consumido naquele capítulo.",
+      "tela": "ajustes",
+      "plano": "pago",
+      "ia": "não",
+      "esforco": "P"
+    }
+  ],
+  "me_faria_desistir": [
+    "Gastar 20 minutos grifando um livro técnico no notebook e descobrir no ônibus que não há uma forma simples e imediata de transferir ou sincronizar minhas anotações para o celular.",
+    "A IA inventar informações que não estão no relatório que importei (alucinação) sem mostrar a citação exata do parágrafo original para eu auditar.",
+    "Assinar o plano pago pela voz natural e minha cota acabar no segundo capítulo de um livro sem nenhum aviso prévio de quanto cada geração de áudio custava.",
+    "Importar um PDF ou EPUB de trabalho e o leitor desconfigurar tabelas, códigos ou sumário, ficando pior de ler do que no leitor nativo do computador.",
+    "Não conseguir tirar meus próprios grifos e cartões de dentro do Frasy em um formato aberto (Markdown/CSV/Anki) para usar no meu fluxo de trabalho."
+  ]
+}
+```

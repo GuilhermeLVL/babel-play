@@ -561,10 +561,10 @@ describe('Checkout no Quest', () => {
     expect(botao(/Ir para o pagamento/)).toBeTruthy()
   })
 
-  it('o teste de 14 dias continua oferecido no checkout', async () => {
-    montarCheckout({ status: { configurado: true, assinatura: null, teste: { estado: 'disponivel', dias: 14 } } })
+  it('o teste de 3 dias continua oferecido no checkout', async () => {
+    montarCheckout({ status: { configurado: true, assinatura: null, teste: { estado: 'disponivel', dias: 3 } } })
     await aguardar()
-    expect(botao(/Testar 14 dias grátis/).className).toContain('q-ctl')
+    expect(botao(/Testar 3 dias grátis/).className).toContain('q-ctl')
   })
 })
 
@@ -671,9 +671,11 @@ describe('Os avisos de conta no Quest', () => {
     const caixa = await screen.findByRole('dialog', { name: 'Isto precisa de conta' })
     expect(caixa.tagName).toBe('DIALOG')
     expect(caixa.textContent).toContain('Importar precisa de conta.')
-    await waitFor(() => expect(document.activeElement).toBe(botao('Entrar ou criar conta')))
-    fireEvent.click(botao('Entrar ou criar conta'))
-    expect(aoEntrar).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(document.activeElement).toBe(botao('Criar conta')))
+    fireEvent.click(botao('Criar conta'))
+    expect(aoEntrar).toHaveBeenLastCalledWith('signup')
+    fireEvent.click(botao('Já tenho conta'))
+    expect(aoEntrar).toHaveBeenLastCalledWith('login')
     fireEvent.click(botao('Continuar sem conta'))
     expect(aoFechar).toHaveBeenCalledTimes(1)
     fireEvent.click(botao('Fechar'))
@@ -687,7 +689,7 @@ describe('Os avisos de conta no Quest', () => {
       <GateDeConta aberto motivo="A biblioteca fica na versão completa." onFechar={aoFechar} onEntrar={() => {}} />,
     )
     expect(await screen.findByRole('dialog', { name: 'Disponível na versão completa' })).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Entrar ou criar conta' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Criar conta' })).toBeNull()
     fireEvent.click(botao('Entendi'))
     expect(aoFechar).toHaveBeenCalledTimes(1)
   })

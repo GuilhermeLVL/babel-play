@@ -2,6 +2,7 @@ import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 
 
 import type { Recording, ViewType } from '../../types';
 import { clearAuthCallbackUrl, isOnAuthCallback } from '../authCallback';
+import { caminhoInternoAtual } from '../baseDoApp';
 import { type Conteudo, lerConteudo } from '../conteudo/estado';
 import { edicaoEstatica } from '../edicaoEstatica';
 import { aoMudarIdentidade } from '../identidade';
@@ -12,7 +13,9 @@ import { trocarDeTela } from '../polimento/telas';
 import { lerRecorteDaPratica, lerRecorteDoJogar, type RecorteDaPratica, type RecorteDoJogar } from '../revisao/pratica';
 import {
   type AbaDeCartoes,
+  type AbaDosAjustes,
   ABAS_DE_CARTOES,
+  ehAbaDosAjustes,
   estadoDaIntencao,
   type EstadoDeRota,
   irParaSubTelaDePlanos,
@@ -31,7 +34,7 @@ export interface DependenciasDaNavegacao {
   recordings: Recording[];
   lojaAba: string | null;
   setLojaAba: Dispatch<SetStateAction<string | null>>;
-  setPedindoLogin: (v: boolean) => void;
+  setPedindoLogin: (v: boolean | 'login' | 'signup') => void;
 }
 
 export interface EstadoDaNavegacao {
@@ -51,9 +54,20 @@ export interface EstadoDaNavegacao {
   /** A aba aberta da tela Cartões (`/cartoes/<aba>`). */
   cartoesAba: AbaDeCartoes;
   setCartoesAba: Dispatch<SetStateAction<AbaDeCartoes>>;
+  /** A aba aberta dos Ajustes (`/ajustes/<aba>`); `null` = a padrão. */
+  ajustesAba: AbaDosAjustes | null;
+  setAjustesAba: Dispatch<SetStateAction<AbaDosAjustes | null>>;
   /** A rodada de revisão aberta dentro de Cartões (`/cartoes/estudar`), ou `null`. */
   estudo: EstudoAberto | null;
+  /** O livro aberto na tela Livros (`/livros/<id>`, `/livros/<id>/ler`), ou `null` (o catálogo). */
+  livroAberto: LivroAberto | null;
   navigateTo: (view: string, data?: any) => void;
+}
+
+/** O livro aberto na tela Livros: o detalhe, ou a leitura dele. */
+export interface LivroAberto {
+  id: string;
+  lendo: boolean;
 }
 
 /** O que a rodada de revisão recebeu de quem a abriu. */
@@ -112,6 +126,11 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
   /* CARTÕES (10/10/2026): a aba aberta e a rodada de revisão, que passou a morar na tela. */
   const [cartoesAba, setCartoesAba] = useState<AbaDeCartoes>('hoje');
   const [estudo, setEstudo] = useState<EstudoAberto | null>(null);
+  /* AJUSTES: a aba pedida por um atalho (o sino, "Ver todos os modelos"), pela URL ou pela própria
+     pessoa. É o que `/ajustes/<aba>` espelha. */
+  const [ajustesAba, setAjustesAba] = useState<AbaDosAjustes | null>(null);
+  /* LIVROS: o detalhe ou a leitura de um livro (`/livros/<id>[/ler]`). Sem ele, o catálogo. */
+  const [livroAberto, setLivroAberto] = useState<LivroAberto | null>(null);
 
   const navigateTo = (view: string, data?: any) => {
     // Sem conta: a porta de entrada é um destino ("Entrar" no menu), e o que exige conta abre o
@@ -119,7 +138,8 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
     if (view === 'login') {
       // Edição estática: não há login. Nenhum botão leva aqui; se algo levar, não faz nada.
       if (edicaoEstatica()) return;
-      setPedindoLogin(true);
+      /* `{ modo: 'signup' }`: o "Criar conta" de um convite abre a porta já no cadastro. */
+      setPedindoLogin(data?.modo === 'signup' ? 'signup' : true);
       return;
     }
     // Tela que exige conta NAVEGA normalmente: lá o CartaoDeConvite (inline) explica. O modal
@@ -139,6 +159,8 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
   };
 
   const aplicarNavegacao = (view: string, data?: any) => {
+    // A aba dos Ajustes só vale enquanto a tela é Ajustes: qualquer outro destino a zera.
+    setAjustesAba(view === 'settings' && ehAbaDosAjustes(data?.aba) ? data.aba : null);
     if (view === 'study') {
       /* A REVISÃO ABRE DENTRO DE CARTÕES. Antes ela era uma pseudo-aba da sessão: sem gravação
          nenhuma a tela dizia "Nenhuma sessão ainda", e sem `id` a rodada ficava presa à sessão mais
@@ -167,6 +189,11 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
       setActiveView(view as ViewType);
       // v3: Personalizar aceita a aba de destino ("progressao" do fim de rodada, "loja" do cadeado).
       if (view === 'loja') setLojaAba(typeof data?.aba === 'string' ? data.aba : null);
+      if (view === 'livros') {
+        setLivroAberto(
+          typeof data?.livro === 'string' && data.livro ? { id: data.livro, lendo: data?.lendo === true } : null,
+        );
+      }
       // Planos tem sub-telas (checkout, confirmação, cancelamento) que não são views: o menu
       // leva à tela principal, e o "voltar" do navegador à sub-tela que estava na URL.
       if (view === 'planos') irParaSubTelaDePlanos(data?.planosTela ?? null);
@@ -205,8 +232,10 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
     via(e.subTab === 'study' || (e.view === 'cartoes' && e.estudando) ? 'study' : e.view, {
       id: e.sessionId,
       subTab: e.subTab,
-      aba: e.view === 'cartoes' ? e.cartoesAba : e.lojaTab,
+      aba: e.view === 'cartoes' ? e.cartoesAba : e.view === 'settings' ? e.ajustesAba : e.lojaTab,
       planosTela: e.planosTela,
+      livro: e.livroId,
+      lendo: e.lendo,
     });
 
   /* ═══════════════════════════════════════════════════════════════════════
@@ -262,7 +291,7 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
     rotaRestaurada.current = true;
     if (isOnAuthCallback()) return; // o callback tem dono; não é rota de tela
     const e = lerUrlAtual();
-    if (e.view === 'hub' && window.location.pathname === '/') return;
+    if (e.view === 'hub' && caminhoInternoAtual() === '/') return;
     irParaEstado(e);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -280,10 +309,23 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
             : undefined,
       subTab: activeView === 'analysis' ? (analysisSubTab as EstadoDeRota['subTab']) : undefined,
       lojaTab: activeView === 'loja' ? ((lojaAba ?? undefined) as EstadoDeRota['lojaTab']) : undefined,
+      ajustesAba: activeView === 'settings' ? (ajustesAba ?? undefined) : undefined,
       cartoesAba: activeView === 'cartoes' && !estudo ? cartoesAba : undefined,
       estudando: activeView === 'cartoes' && !!estudo,
+      livroId: activeView === 'livros' ? livroAberto?.id : undefined,
+      lendo: activeView === 'livros' ? livroAberto?.lendo : undefined,
     });
-  }, [activeView, selectedRecordingId, recordings, analysisSubTab, lojaAba, cartoesAba, estudo]);
+  }, [
+    activeView,
+    selectedRecordingId,
+    recordings,
+    analysisSubTab,
+    lojaAba,
+    ajustesAba,
+    cartoesAba,
+    estudo,
+    livroAberto,
+  ]);
 
   /* 3) BOTÃO VOLTAR. Sem isto, "voltar" saía do app — era o beco relatado na auditoria.
         Passa pelo `navGuard`: uma captura em andamento ainda pode pedir confirmação. */
@@ -314,7 +356,10 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
     setRecorteDoJogar,
     cartoesAba,
     setCartoesAba,
+    ajustesAba,
+    setAjustesAba,
     estudo,
+    livroAberto,
     navigateTo,
   };
 }

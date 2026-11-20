@@ -16,28 +16,51 @@ import {
   type MotivoDaOfertaDeAlivio,
   type SinaisDoAparelhoParaAlivio,
 } from '../../core/nuvemDeAlivio';
+import {
+  avaliarFalaLocal,
+  continuarAudioDificil,
+  type EstadoDoAudioDificil,
+  estadoInicialDoAudioDificil,
+  FLAG_STT_APARELHO_PRIMEIRO,
+  registrarFalaLocal,
+  registrarFalaNaNuvem,
+  registrarPausaDaNuvem,
+} from '../../core/rota/audioDificil';
 import type { DecisaoDeRota } from '../../core/rota/politicaDeRota';
-import { apiFetch } from '../../data/api';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
 import { temAdaptadorWebGpu } from '../../gateway/adaptadorWebGpu';
+import { ID_DO_PARAKEET } from '../../gateway/adapters/parakeetModelo';
 import type { AvisoDeDegradacaoDoStt, SttFinal } from '../../gateway/capabilities';
 import { capMetrics, type CapSource } from '../../gateway/capture/captureMetrics';
 import type { EspeculacaoDoFinal } from '../../gateway/capture/systemAudio';
-import { aoFalharANuvemDoStt } from '../../gateway/falhaDaNuvemDoStt';
+import { aoFalharANuvemDoStt, aoResponderANuvemDoStt } from '../../gateway/falhaDaNuvemDoStt';
 import { areModelsCached, expectedModelIds } from '../../gateway/modelCache';
 import { temCopiaNoAparelho } from '../../gateway/modelManifest';
+import { entradaDoParakeet, gravarModeloFixo, lerModeloFixo } from '../../gateway/modeloFixo';
 import type { ContextoDoStt } from '../../gateway/promptDeStt';
-import { getSttQuality, nomeLegivelDoModelo, outroBackend, routeStt } from '../../gateway/sttRouter';
-import { consentiuNuvem, consentiuReconhecimentoDoNavegador, rapidoDoMicPermitido } from '../consentimentoDeNuvem';
+import {
+  getSttQuality,
+  nomeLegivelDoModelo,
+  outroBackend,
+  parakeetProntoNaRota,
+  routeStt,
+  type SttRouteInput,
+  WHISPER_MODELS,
+} from '../../gateway/sttRouter';
+import { consentiuReconhecimentoDoNavegador, rapidoDoMicPermitido } from '../consentimentoDeNuvem';
 import { DominantLangTracker } from '../convoLang';
 import { dispositivoDaRota, medirPerfilDoDispositivo, perfilDoDispositivo } from '../dispositivo/perfil';
+import { MedidorDeVazao } from '../dispositivo/vazao';
 import { edicaoEstatica } from '../edicaoEstatica';
 import { getEntitlements } from '../entitlements';
+import { consentiuNuvemNaFala, soNoAparelho } from '../escolhaDoProcessamento';
+import { contarFalha, contarFalhaDoErro } from '../falhas/contadorDeFalhas';
+import { flagLigada } from '../flags';
 import { t } from '../i18n';
 import { detectLanguage } from '../langDetect';
 import { baseLang, langLabel } from '../languages';
-import { alivioAceito, cabecalhoDoAlivio } from '../nuvemDeAlivio/estado';
-import { cabecalhoDoDono, ENDPOINT_DA_NUVEM_DO_QUEST, nuvemDoQuestAtiva, nuvemDoQuestExiste } from '../nuvemDoQuest';
+import { alivioAceito } from '../nuvemDeAlivio/estado';
+import { nuvemDoQuestAtiva, nuvemDoQuestExiste } from '../nuvemDoQuest';
 import { PerfilAdaptativoDeIdioma, pesoDaDeteccao } from '../perfilDeIdioma';
 import { perfilProtegido } from '../protecaoDoMenor';
 import { SpeakerClusterer } from '../speakerCluster';
@@ -48,17 +71,26 @@ import { setterNoQuadro } from './agendarNoQuadro';
 import { guardarAudioDaFala } from './audioDasFalas';
 import { conferirRotaDoStt, type EntradaDaConferencia, montarPedidoDeRota } from './conferenciaDaRota';
 import { converterEscritaChinesa, escritaDoIdioma, prepararEscritaChinesa } from './escritaChinesa';
+import { idiomaForaDoPar } from './idiomaForaDoPar';
 import { decidirNaVirtual, ESTADO_DA_VIRTUAL, type EstadoDaVirtual } from './idiomasDaConversaVirtual';
 import { idiomasDoModelo } from './idiomasDoModelo';
 import { direcaoDoLado as direcaoDeUmLado } from './interprete';
 import type { PistasDoIdioma } from './interpreteAutomatico';
 import { umModeloDeCadaVez } from './memoriaDosModelos';
 import { disponibilidadeDaSondaParaIdioma, escolherMotorDoMic, webSpeechBipaAoReligar } from './motorDoMicrofone';
+import { oferecerNoFimDaEscada } from './ofertaDoFimDaEscada';
+import { nuvemDoSttDisponivel } from './ofertaDoPreciso';
 import { preparoConcluido, semPacotePendente } from './pacotesNativos';
 import { criarTradutorDeParciais, type TradutorDeParciais } from './parcialEstavel';
 import { type EfeitosDoRegulador, escadaDeModelos, type ReguladorDaCaptura } from './reguladorDaCaptura';
-import { planoDaReservaLocal } from './reservaLocal';
+import {
+  type EstadoDoParakeetDeReserva,
+  parakeetDeReservaNaFalha,
+  parakeetDeReservaNaResposta,
+  planoDaReservaLocal,
+} from './reservaLocal';
 import { previstosDoSelo } from './seloDaFala';
+import { vetarSeCaiuComOModelo } from './sentinelaDoModelo';
 import { chaveLigada } from './testesDoInterprete';
 import {
   type CaptureScenario,
@@ -97,8 +129,16 @@ function tradutorDeParciais(chave: { current: Map<number, string> }): TradutorDe
   return t;
 }
 
-/** O espaçamento padrão entre parciais — o mesmo 1,1 s da captura (`PARTIAL_INTERVAL_MS`, `systemAudio.ts`). */
-const INTERVALO_DOS_PARCIAIS_MS = 1100;
+/** O espaçamento padrão entre parciais — o mesmo 2 s da captura (`PARTIAL_INTERVAL_MS`, `systemAudio.ts`). */
+const INTERVALO_DOS_PARCIAIS_MS = 2000;
+/**
+ * TETO DE PARCIAIS POR FALA (dono, 22/10/2026): 3 com isolamento (WASM com threads ou GPU), 2 no
+ * aparelho leve, 1 onde o WASM roda numa thread só (Safari, Firefox: sem `crossOriginIsolado`), que é
+ * onde cada decode mais custa e mais esquenta. Ver `MAX_PARCIAIS_POR_FALA` em `systemAudio.ts`.
+ */
+const MAX_PARCIAIS_POR_FALA_ISOLADO = 3;
+const MAX_PARCIAIS_POR_FALA_LEVE = 2;
+const MAX_PARCIAIS_POR_FALA_SEM_ISOLAMENTO = 1;
 /**
  * No aparelho LEVE, o dobro ("Grátis sem travar", A5): cada parcial é um decode inteiro do
  * buffer-até-agora, e ali o Whisper mal dá conta dos finais. Metade dos parciais, e o texto ainda cresce
@@ -144,6 +184,13 @@ export interface EnunciadoPendente {
   sr: number;
   rawSeq: number;
   source: CapSource;
+  /**
+   * A DIREÇÃO DO INSTANTE EM QUE FOI DITO (conversa-de-verdade, 1.2): o lado, os idiomas e o turno do intérprete.
+   * Sem ela, a fala dita durante o download era transcrita com a direção de quando o modelo ficava pronto — o lado
+   * errado, traduzida às avessas — e o fim dela fechava o microfone de quem falava agora (CONV-01). `null` = fora do
+   * intérprete (ou o automático, que mede o idioma no final).
+   */
+  direcao?: DirecaoDaFala | null;
 }
 
 /** Tudo que o pipeline precisa da tela — por parâmetro, sem contexto novo nem store global. */
@@ -241,7 +288,7 @@ export interface DepsDoPipelineDeFala {
   ladoDaFalaAutomatica?: (
     segId: string,
     pistas: PistasDoIdioma,
-  ) => { lado: LadoDoInterprete; de: string; para: string } | null;
+  ) => { lado: LadoDoInterprete; de: string; para: string; palpite?: boolean } | null;
   /**
    * A CONVERSA VIRTUAL do intérprete (Fase 4): o áudio do computador ("Eles") e o microfone ("Você") rodam
    * juntos e a direção é FIXA por fonte — o sistema é o outro (idioma dele → o meu), o microfone sou eu
@@ -256,6 +303,37 @@ export interface DepsDoPipelineDeFala {
    */
   virtualDetectaIdioma?: () => boolean;
 }
+
+/**
+ * OS OUVINTES DA NUVEM QUE A PREPARAÇÃO REGISTRA (a reserva preguiçosa, o ciclo do Parakeet de reserva e
+ * a pausa da histerese). Moram no MÓDULO: a fábrica do pipeline roda a cada render, e quem para a
+ * captura é outro render — sem isto, um ouvinte de uma captura encerrada continuaria vivo (um
+ * `reservaParakeet(false)` atrasado recarregaria o Whisper depois da saída).
+ */
+const ouvintesDaCaptura = new Set<() => void>();
+const registrarOuvinteDaCaptura = (soltar: () => void): (() => void) => {
+  const solta = () => {
+    ouvintesDaCaptura.delete(solta);
+    soltar();
+  };
+  ouvintesDaCaptura.add(solta);
+  return solta;
+};
+
+/** Solta todos os ouvintes da nuvem da captura (a captura parou, ou uma nova preparação começa). */
+export function soltarOuvintesDaCaptura(): void {
+  for (const solta of [...ouvintesDaCaptura]) solta();
+}
+
+/**
+ * As SAÍDAS DA REDE LENTA em curso (carga-rapida-no-celular, 4.3). No módulo, como os ouvintes acima: a fábrica roda
+ * a cada render, e o toque na saída chega por outra fábrica que a preparação em voo.
+ */
+const trocaDoModelo: { trocando: boolean; tradutorAdiado: boolean; tradutorEmVoo: Promise<void> | null } = {
+  trocando: false,
+  tradutorAdiado: false,
+  tradutorEmVoo: null,
+};
 
 export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   const {
@@ -340,6 +418,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       clog('regulador: modelo local →', modelo, opcoes?.dtype ?? '', opcoes?.device ?? '');
       gateway.stt.trocarModeloLocal(modelo, opcoes);
       setSttRouteLabel(`local · ${nomeLegivelDoModelo(modelo)} (ajustado ao aparelho)`);
+      // Desceu do Parakeet a um Whisper no "aparelho primeiro": a nuvem volta à frente.
+      conferirParakeetDoAparelhoPrimeiro();
       // Carrega já (do cache, se houver): a próxima fala não paga a carga inteira.
       void gateway.stt.preloadModel(undefined, { aoDegradar: avisarDegradacao }).catch((e: unknown) => {
         clog('regulador: carga do modelo menor falhou:', String(e));
@@ -354,21 +434,19 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         });
     },
     oferecerNativoOuNuvem: () => {
-      clog('regulador: fim da escada local, oferecendo nativo/nuvem');
-      const avisoDeSempre = () => {
-        setFeedbackMsg(
-          'O aparelho não está acompanhando a fala nem com o modelo menor. Para a legenda chegar a tempo, use o Chrome no computador ou autorize a transcrição em nuvem em Ajustes, Privacidade.',
-        );
-        setTimeout(() => setFeedbackMsg(''), 10000);
-      };
       /* A NUVEM DE ALÍVIO (A10): no Grátis, o chão da escada é exatamente o caso dela. A tela pergunta
-         ao servidor se há franquia; sem ela (ou fora do Grátis), o aviso de sempre. */
-      if (!pedirNuvemDeAlivio) return avisoDeSempre();
-      void pedirNuvemDeAlivio('travamento', { leve: aparelhoLeve(), travamento: true, gpuReal: null })
-        .then((mostrou) => {
-          if (!mostrou) avisoDeSempre();
-        })
-        .catch(avisoDeSempre);
+         ao servidor se há franquia; sem ela (ou fora do Grátis), o aviso de sempre. O log sai junto com o
+         que a tela mostra (`ofertaDoFimDaEscada.ts`). */
+      void oferecerNoFimDaEscada({
+        clog,
+        avisar: (msg) => {
+          setFeedbackMsg(msg);
+          setTimeout(() => setFeedbackMsg(''), 10000);
+        },
+        pedirNuvemDeAlivio: pedirNuvemDeAlivio
+          ? () => pedirNuvemDeAlivio('travamento', { leve: aparelhoLeve(), travamento: true, gpuReal: null })
+          : undefined,
+      });
     },
   };
 
@@ -384,6 +462,81 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   let idiomasDaVirtual: EstadoDaVirtual = ESTADO_DA_VIRTUAL;
   /** A reserva local desta captura (`reservaLocal.ts`): parciais locais ligados? Quem solta o ouvinte da falha? */
   const reservaLocal: { parciaisLocais: boolean; soltar: (() => void) | null } = { parciaisLocais: true, soltar: null };
+  /**
+   * "APARELHO PRIMEIRO" desta captura (flag `stt_aparelho_primeiro`, `core/rota/audioDificil.ts`): a rota
+   * pôs o Parakeet como motor e a nuvem para o áudio difícil. `estado` é a histerese; `previstos`, o que
+   * o selo mostra em cada modo; `rotulo`, o rótulo da rota no modo aparelho.
+   */
+  const audioDificil: {
+    ativo: boolean;
+    estado: EstadoDoAudioDificil;
+    previstos: { aparelho: DecisaoDeRota[]; nuvem: DecisaoDeRota[]; semParakeet: DecisaoDeRota[] };
+    rotulo: string;
+    /** O Parakeet saiu da cadeia nesta preparação: a nuvem voltou à frente, o Whisper é a reserva. */
+    semParakeet: boolean;
+    /** Solta o ouvinte da pausa da nuvem desta preparação. */
+    soltar: (() => void) | null;
+  } = {
+    ativo: false,
+    estado: estadoInicialDoAudioDificil(),
+    previstos: { aparelho: [], nuvem: [], semParakeet: [] },
+    rotulo: '',
+    semParakeet: false,
+    soltar: null,
+  };
+  /** O modo da histerese mudou: o gateway troca quem vai primeiro, e o selo e o rótulo acompanham. */
+  const aplicarModoDoAudio = (): void => {
+    const modo = audioDificil.estado.modo;
+    gateway.stt.setRoute({ preferCloud: modo === 'nuvem' });
+    setSttRouteLabel(
+      modo === 'nuvem' ? 'nuvem (large-v3-turbo) · áudio difícil · reserva local (Parakeet v3)' : audioDificil.rotulo,
+    );
+    setRotaPrevista?.(modo === 'nuvem' ? audioDificil.previstos.nuvem : audioDificil.previstos.aparelho);
+    clog(
+      modo === 'nuvem'
+        ? `áudio difícil → a nuvem vai primeiro (pelo menos ${audioDificil.estado.minimoNaNuvem} falas)`
+        : 'a nuvem voltou ao fundo → o aparelho vai primeiro',
+    );
+  };
+  /**
+   * O PARAKEET SAIU DA CADEIA (não carregou — rede, integridade, WASM, memória — ou o regulador desceu a
+   * um Whisper): o "aparelho primeiro" acaba nesta preparação. A nuvem volta à frente, como sem a flag, e
+   * o Whisper fica de reserva — quem paga nunca fica preso no Whisper base.
+   */
+  const conferirParakeetDoAparelhoPrimeiro = (): void => {
+    if (!audioDificil.ativo || gateway.stt.parakeetAtivo?.() !== false) return;
+    audioDificil.ativo = false;
+    audioDificil.semParakeet = true;
+    audioDificil.soltar?.();
+    audioDificil.soltar = null;
+    gateway.stt.setRoute({ preferCloud: true });
+    setSttRouteLabel('nuvem (large-v3-turbo) · reserva local');
+    setRotaPrevista?.(audioDificil.previstos.semParakeet);
+    clog('aparelho primeiro: o Parakeet saiu da cadeia → a nuvem volta à frente (Whisper de reserva)');
+  };
+  /**
+   * Uma fala final chegou: a histerese do áudio difícil conta (a da nuvem pelo mínimo na nuvem; a local
+   * pelo sinal objetivo) e, se o modo mudou, o gateway troca quem vai primeiro, e o selo e o rótulo
+   * acompanham. Fora do "aparelho primeiro", não faz nada.
+   */
+  const contarAudioDificil = (r: SttFinal, audioMs: number): void => {
+    if (!audioDificil.ativo) return;
+    const antes = audioDificil.estado.modo;
+    if (r.engine === 'groq-whisper') audioDificil.estado = registrarFalaNaNuvem(audioDificil.estado);
+    else {
+      const texto = (r.text ?? '').trim();
+      if (!texto) return;
+      const sinal = avaliarFalaLocal({
+        texto,
+        confianca: r.confidence,
+        // Só o DECODE no motor (`decodeMs`, sem a fila): a captura dupla enfileira sem o aparelho ser lento.
+        fatorDeTempoReal: r.decodeMs !== undefined && audioMs > 0 ? r.decodeMs / audioMs : undefined,
+      });
+      if (sinal.dificil) clog('áudio difícil: fala local', sinal.motivos.join(','), '| confiança', r.confidence);
+      audioDificil.estado = registrarFalaLocal(audioDificil.estado, sinal.dificil);
+    }
+    if (audioDificil.estado.modo !== antes) aplicarModoDoAudio();
+  };
   const makeCaptureHandlers = (source: CapSource) => {
     const isSys = source === 'system';
     const idPrefix = isSys ? 'sys' : 'mic';
@@ -520,7 +673,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
                 words: [],
                 isPartial: true,
                 tStartMs: nowRel(),
-                ...(doLado ? { lado: doLado.lado } : {}),
+                ...(doLado ? { lado: doLado.lado, ...(doLado.dono ? { dono: doLado.dono } : {}) } : {}),
               },
             ],
       );
@@ -570,19 +723,27 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     };
     /** Quanto de fala o 1º parcial espera: 1,5 s no automático; 0 = o mínimo da própria captura (0,6 s). */
     const primeiroParcialComMs = (): number => (perfModeAutomatico() ? PRIMEIRO_PARCIAL_DO_AUTOMATICO_MS : 0);
+    /** Teto de parciais por fala (ver as constantes acima). */
+    const maxParciaisPorFala = (): number => {
+      const p = perfilDoDispositivo();
+      if (!p.sinais.isolado) return MAX_PARCIAIS_POR_FALA_SEM_ISOLAMENTO;
+      return p.leve ? MAX_PARCIAIS_POR_FALA_LEVE : MAX_PARCIAIS_POR_FALA_ISOLADO;
+    };
 
     // PARCIAL: transcreve o buffer-até-agora SÓ SE o Whisper estiver ocioso (idle-gating →
     // nunca enfileira → sem backlog). O texto aparece e refina em tempo real; a tradução acompanha.
-    const onPartialAudio = (pcm: Float32Array, sr: number, rawSeq: number) => {
-      if (!querParcial()) return;
+    /* Devolve `false` quando o parcial é descartado sem decode (ou a promessa resolve `false` quando o
+       worker estava ocupado): a captura devolve a cota do teto por fala (`maxParciaisPorFala`). */
+    const onPartialAudio = (pcm: Float32Array, sr: number, rawSeq: number): false | void | Promise<boolean | void> => {
+      if (!querParcial()) return false;
       const seq = rawSeq + offset;
-      if (suppressedSeqsRef.current.has(seq)) return; // anti-eco: enunciado é o nosso TTS
+      if (suppressedSeqsRef.current.has(seq)) return false; // anti-eco: enunciado é o nosso TTS
       const uttId = seqToSegmentRef.current.get(seq);
-      if (!uttId) return; // enunciado já finalizado/descartado
+      if (!uttId) return false; // enunciado já finalizado/descartado
       // A fala já fechou e o final está a caminho: um parcial agora só atrasaria o final.
-      if (lastPartialTextRef.current.get(seq) === FALA_FECHADA) return;
+      if (lastPartialTextRef.current.get(seq) === FALA_FECHADA) return false;
       // O parcial único do automático já foi pedido para esta fala (a marca é posta no pedido, abaixo).
-      if (perfModeAutomatico() && lastPartialTextRef.current.has(seq)) return;
+      if (perfModeAutomatico() && lastPartialTextRef.current.has(seq)) return false;
       const idiomas = langs(seq);
       const { to } = idiomas;
       let { hint, from } = idiomas;
@@ -607,7 +768,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
          novo, corrige. */
       if (!from && !hint) {
         const provisorio = contextoDoSttRef?.current.idiomaDe(source) ?? '';
-        if (!provisorio) return;
+        if (!provisorio) return false;
         hint = provisorio;
         from = provisorio;
       }
@@ -615,12 +776,12 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
          que nem um segundo em voo nem um retorno vazio abram espaço para outro decode desta fala. */
       if (perfModeAutomatico()) lastPartialTextRef.current.set(seq, '');
       const t0Parcial = performance.now();
-      gateway.stt
+      return gateway.stt
         .transcribePartial(pcm, sr, { languageHint: hint })
         .then((res) => {
           if (!res) {
             capMetrics.saturated(seq);
-            return;
+            return false;
           } // worker ocupado → parcial descartado
           // Regulador: o parcial chega bem mais vezes que o final — a latência dele avisa antes.
           reguladorRef?.current.aoParcial(Math.round(performance.now() - t0Parcial), efeitosDoRegulador);
@@ -630,7 +791,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
              com a tradução do final. */
           if (lastPartialTextRef.current.get(seq) === FALA_FECHADA) return;
           const clean = naEscritaEscolhida((res.text ?? '').trim(), undefined, hint);
-          if (!clean) return;
+          /* Sem texto: a captura libera o próximo parcial sem esperar os 2 s (`systemAudio.ts`, 5.2). */
+          if (!clean) return false;
           capMetrics.partial(seq);
           // No quadro seguinte, junto com o que mais chegar nele (ver `falasNoQuadro`).
           falasNoQuadro((prev) => prev.map((s) => (s.id === uttId && s.isPartial ? { ...s, originalText: clean } : s)));
@@ -675,15 +837,30 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       if (perfModeRef.current || reguladorRef?.current.parciaisCortados || aparelhoLeve()) return null;
       const { hint } = langs(seq);
       const ctl = new AbortController();
-      const promessa = gateway.stt.transcribePcm(pcm, sr, { languageHint: hint, signal: ctl.signal });
+      const promessa = gateway.stt.transcribePcm(pcm, sr, {
+        languageHint: hint,
+        signal: ctl.signal,
+        ...(confereOIdioma(seq) ? { conferirIdioma: true } : {}),
+      });
       promessa.catch(() => {
         /* cancelado (a fala continuou) ou falhou: quem usar a promessa trata */
       });
       return { promessa, cancelar: () => ctl.abort() };
     };
 
+    /** O turno por toque do Intérprete: o idioma do lado é conferido no áudio (conversa-de-verdade, 3.1). */
+    const confereOIdioma = (seq: number): boolean =>
+      !isSys && !virtual() && !automaticoDoInterprete() && !!direcaoDoLado(seq);
+
     // Fim da fala → decode FINAL (autoritativo) → commit do texto + tradução.
-    const onUtterance = (pcm: Float32Array, sr: number, rawSeq: number, especulacao?: EspeculacaoDoFinal) => {
+    const onUtterance = (
+      pcm: Float32Array,
+      sr: number,
+      rawSeq: number,
+      especulacao?: EspeculacaoDoFinal,
+      /** O trecho guardado durante o download, com a direção de quando foi dito (`flushPendingUtterances`). */
+      guardado?: Pick<EnunciadoPendente, 'direcao'>,
+    ) => {
       // O decode especulativo feito sobre ESTE pcm (conferido pela captura) é o final.
       const especulativo = (especulacao as FinalEspeculativo | undefined)?.promessa;
       // anti-eco: o enunciado inteiro era o NOSSO TTS voltando — descarta e limpa.
@@ -693,10 +870,17 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         return;
       }
       if (!modelReadyRef.current) {
+        /* A direção (e o turno) de AGORA, que é o instante em que a pessoa falou. */
+        const direcao = direcaoDoLado(rawSeq + offset);
+        direcoesPorSeq.delete(rawSeq + offset);
         // NÃO descarta: guarda o enunciado e transcreve assim que o modelo ficar pronto.
         // Limite de ~24 trechos (~2 min de fala) para não crescer sem fim se a carga travar.
-        if (pendingUtterancesRef.current.length < 24) {
-          pendingUtterancesRef.current.push({ pcm: pcm.slice(), sr, rawSeq, source });
+        const guardou = pendingUtterancesRef.current.length < 24;
+        if (guardou) {
+          pendingUtterancesRef.current.push({ pcm: pcm.slice(), sr, rawSeq, source, direcao });
+          /* A tela conta as falas guardadas enquanto baixa (carga-rapida-no-celular, 4.1). */
+          const guardadas = pendingUtterancesRef.current.length;
+          setModelPrep((s) => (s ? { ...s, trechosGuardados: guardadas } : s));
           clog(
             'modelo ainda carregando, trecho',
             rawSeq,
@@ -714,14 +898,29 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         } else {
           clog('modelo ainda carregando, fila cheia, trecho', rawSeq, source, 'descartado');
         }
+        /* O TURNO DO INTÉRPRETE ACABA AQUI, com ou sem modelo (conversa-de-verdade, 4.1): o mesmo silêncio que
+           fecha a fala fecha o microfone, e a fala fica guardada. Sem isto o microfone seguia aberto até um toque
+           a mais (CONV-09). A tradução vem quando o reconhecimento ficar pronto; o trecho que não coube na fila
+           não terá tradução, e o intérprete devolve a vez. */
+        if (direcao && !isSys && captureScenarioRef.current === 'interprete')
+          aoFimDaFala?.({
+            segId: `${idPrefix}-${rawSeq + offset}`,
+            source,
+            lado: direcao.lado,
+            ...(direcao.turno !== undefined ? { turno: direcao.turno } : {}),
+            ...(guardou ? {} : { semTexto: true }),
+          });
         return;
       }
       const seq = rawSeq + offset;
       const uttId = seqToSegmentRef.current.get(seq) ?? `${idPrefix}-${seq}`;
+      /* O trecho guardado vale a direção de quando foi dito, não a de agora. */
+      if (guardado?.direcao) direcoesPorSeq.set(seq, guardado.direcao);
       /* O lado desta fala (o do começo, se o VAD o viu; senão o de agora) — e ele sai do mapa: daqui
          em diante a direção vai nas variáveis deste final. */
       const doLado = direcaoDoLado(seq);
       const idiomasDaFala = langs(seq);
+      const conferir = confereOIdioma(seq);
       /* Esta fala é do automático: o lado e a direção saem do idioma medido, no final. */
       const falaAutomatica = !doLado && automaticoDoInterprete() && !!ladoDaFalaAutomatica;
       direcoesPorSeq.delete(seq);
@@ -746,13 +945,17 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
                 words: [],
                 isPartial: true,
                 tStartMs: nowRel(),
-                ...(doLado ? { lado: doLado.lado } : {}),
+                ...(doLado ? { lado: doLado.lado, ...(doLado.dono ? { dono: doLado.dono } : {}) } : {}),
               },
             ],
       );
       /* A fala ACABOU (o VAD fechou): no intérprete é aqui que o microfone fecha — a voz que lê a
          tradução vem depois, e o guarda de eco cobre a cauda. */
-      aoFimDaFala?.({ segId: uttId, source, ...(doLado ? { lado: doLado.lado } : {}) });
+      aoFimDaFala?.({
+        segId: uttId,
+        source,
+        ...(doLado ? { lado: doLado.lado, ...(doLado.turno !== undefined ? { turno: doLado.turno } : {}) } : {}),
+      });
 
       // IDENTIFICAÇÃO DE VOZ (paralela ao decode; nunca atrasa a legenda): quem falou?
       // Só nas vozes do SISTEMA em Conversa — a sua voz já é "Você" por definição.
@@ -842,6 +1045,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           prompt,
           // A nuvem do site devolve a tradução na mesma viagem (o aparelho fraco não traduz sozinho).
           traduzirPara: to || undefined,
+          ...(conferir ? { conferirIdioma: true } : {}),
           // STREAMING: mostra os tokens do decode final crescendo no balão em tempo real — um
           // setState por quadro, não um por token (ver `falasNoQuadro`); o final vem por `agora`.
           onUpdate: (streamed) => {
@@ -858,6 +1062,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
            ruim sobe à nuvem SÓ ESTE trecho — para quem tem transcrição de nuvem no plano e consentiu
            (o gateway confere). Grátis fica com o local; 'silencio' (sem logprob, hoje não ocorre) sai. */
         .then(async (r): Promise<SttFinal> => {
+          // "Aparelho primeiro": a histerese do áudio difícil conta esta fala ANTES da porta subir o trecho.
+          contarAudioDificil(r, audioMs);
           const texto = (r.text ?? '').trim();
           if (!texto || r.engine === 'groq-whisper') return r;
           const porta = avaliarTrechoStt({ compressionRatio: razaoDeCompressaoAproximada(texto) });
@@ -871,7 +1077,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           clog('porta do STT: trecho', seq, 'subiu à nuvem (', porta.motivos.join(','), ')');
           return nuvem;
         })
-        .then(({ text, engine, language, confiancaDoIdioma, alucinacaoDescartada }) => {
+        .then(({ text, engine, language, confiancaDoIdioma, alucinacaoDescartada, idiomaConferido }) => {
           const clean = naEscritaEscolhida((text ?? '').trim(), language, hint);
           if (!clean && alucinacaoDescartada) capMetrics.alucinacao();
           const decodeMs = Math.round(performance.now() - t0);
@@ -913,6 +1119,41 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             setSpeechSegments((prev) => prev.filter((s) => s.id !== uttId));
             /* O fim desta fala já foi anunciado (o intérprete fechou o microfone e espera a tradução):
                sem texto não há tradução, e ele precisa saber para devolver a vez. */
+            aoFimDaFala?.({ segId: uttId, source, semTexto: true });
+            return;
+          }
+          /* FORA DO PAR (conversa-de-verdade, 3.2): a fala do turno saiu noutro idioma. Ela fica na tela com o pedido
+             para repetir, sem tradução e sem leitura; a tradução que sairia dela seria inventada (CONV-03). */
+          const foraDoPar = conferir ? idiomaForaDoPar({ esperado: from, conferido: idiomaConferido, audioMs }) : null;
+          if (foraDoPar) {
+            capMetrics.final(seq, { decodeMs, queueDepth, text: clean, audioMs, engine });
+            clog(
+              'intérprete: fala',
+              seq,
+              'fora do par: o lado é',
+              from,
+              ', o áudio parece',
+              foraDoPar,
+              `(${Math.round((idiomaConferido?.confianca ?? 0) * 100)}%)`,
+            );
+            setSpeechSegments((prev) =>
+              prev.map((s) =>
+                s.id === uttId
+                  ? {
+                      ...s,
+                      originalText: clean,
+                      translatedText: '',
+                      semTraducao: true,
+                      foraDoPar: { detectado: foraDoPar },
+                      words: [],
+                      isPartial: false,
+                      tEndMs: nowRel(),
+                      lang: foraDoPar,
+                      engine,
+                    }
+                  : s,
+              ),
+            );
             aoFimDaFala?.({ segId: uttId, source, semTexto: true });
             return;
           }
@@ -1139,6 +1380,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
                     ? {
                         ...s,
                         lado: d.lado,
+                        ...(d.palpite ? { ladoPalpite: true } : {}),
                         lang: d.de,
                         words: wordsFromText(clean, d.de),
                         translatedText: marcadorDeTraducao(d.de, d.para),
@@ -1217,6 +1459,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       querParcial,
       intervaloDosParciais,
       primeiroParcialComMs,
+      maxParciaisPorFala,
     };
   };
 
@@ -1227,9 +1470,12 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     const pending = pendingUtterancesRef.current;
     if (!pending.length) return;
     pendingUtterancesRef.current = [];
+    setModelPrep((s) => (s?.trechosGuardados ? { ...s, trechosGuardados: 0 } : s));
     clog('modelo pronto, transcrevendo', pending.length, 'trecho(s) guardado(s) durante a carga');
     for (const u of pending) {
-      (u.source === 'system' ? sysHandlers : micHandlers).onUtterance(u.pcm, u.sr, u.rawSeq);
+      (u.source === 'system' ? sysHandlers : micHandlers).onUtterance(u.pcm, u.sr, u.rawSeq, undefined, {
+        direcao: u.direcao ?? null,
+      });
     }
   };
 
@@ -1269,6 +1515,20 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       regulador.reiniciar({ modelo: aviso.modelo, backend: aviso.device }); // `soIngles` fica o da rota
       if (aviso.motivo === 'falha-gpu') regulador.registrarFalha('device-lost', aviso.modeloAntes);
     }
+    /* O modelo veio com defeito e a cura do cache não resolveu: o menor assumiu (`whisperLocal.rebaixarModelo`).
+       Conta para o time (anônimo) e diz em pt-BR, sem falar de GPU. */
+    if (aviso.motivo === 'modelo-corrompido') {
+      contarFalha('modelo-corrompido', aviso.modeloAntes);
+      setSttRouteLabel(`local · ${aviso.modelo.split('-').pop()}`);
+      setFeedbackMsg(
+        t('O modelo {antes} veio com defeito e não abriu. A legenda segue com o {modelo}, menor.', {
+          antes: nomeLegivelDoModelo(aviso.modeloAntes),
+          modelo: nomeLegivelDoModelo(aviso.modelo),
+        }),
+      );
+      setTimeout(() => setFeedbackMsg(''), 9000);
+      return;
+    }
     setSttRouteLabel(`local · modo compatível (${aviso.modelo.split('-').pop()})`);
     setFeedbackMsg(
       t(
@@ -1298,25 +1558,20 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     const sonda = await import('../dispositivo/sonda')
       .then((m) => {
         modSonda = m;
-        /* No Quest, sem o microbenchmark: ele disputaria os ~3 núcleos do app com a carga do modelo
-           (`OpcoesDaSonda.semBenchmark`). Lá quem mede é a página de diagnóstico, a pedido. */
-        void m.agendarSondaDoAparelho(undefined, { semBenchmark: perfil.tipo === 'quest' });
+        /* SEM O MICROBENCHMARK DURANTE A CAPTURA (dono, 22/10/2026): ele (CPU + GPU, segundos de carga)
+           disputava os núcleos com o modelo logo no primeiro Iniciar. Fica para o ocioso DEPOIS de sair da
+           captura (`agendarBenchmarkDoAparelho`, chamado pela tela ao desmontar); no Quest nunca (lá quem
+           mede é a página de diagnóstico, a pedido). Sem benchmark a rota segue pelas outras provas. */
+        void m.agendarSondaDoAparelho(undefined, { semBenchmark: true });
         return m.sondaGuardada();
       })
       .catch((erro: unknown) => {
         console.warn('[captura] sonda do aparelho indisponível; rota sem ela', erro);
         return null;
       });
-    /* Com a nuvem de alívio ACEITA (A10), a pergunta leva o cabeçalho dela: o servidor responde pela
-       franquia da conta Grátis (flag, responsável, pool), o mesmo veredicto que a transcrição vai ouvir. */
-    /* No Quest (site estático) a nuvem é a função do próprio site, e só com o consentimento dado. */
-    const cloudAvailable = await (
-      nuvemDoQuestAtiva()
-        ? fetch(ENDPOINT_DA_NUVEM_DO_QUEST, { headers: cabecalhoDoDono() })
-        : apiFetch('/api/ai/stt/available', { headers: cabecalhoDoAlivio() })
-    )
-      .then((r) => r.ok)
-      .catch(() => false);
+    /* A nuvem do STT responde? (cabeçalho do alívio aceito; no Quest, a função do site) — a MESMA
+       pergunta que a oferta do modelo preciso faz na tela (`ofertaDoPreciso.ts`). */
+    const cloudAvailable = await nuvemDoSttDisponivel();
     /* O MIC VAI AO WHISPER? Não é mais só a escolha do seletor: sem consentimento (ou no perfil
        Privado) e sem reconhecimento no aparelho, o "navegador" cai no Whisper (`motorDoMicrofone.ts`).
        A sonda guardada responde pelo "no aparelho"; sem ela, conta como indisponível — errar para o
@@ -1348,7 +1603,21 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     const soIngles = doModelo.soIngles;
     const hasWebGpu = await temAdaptadorWebGpu();
     const dispositivo = dispositivoDaRota(perfil, sonda);
-    let route = routeStt({
+    /* O PARAKEET VETADO NESTE APARELHO: a aba anterior caiu com ele carregado (sentinela) ou a sonda já o
+       proibiu. O roteador não consulta vetos; aqui ele sai da conta (nem o automático nem o fixado). */
+    const parakeetVetado = modSonda
+      ? await (async () => {
+          const m = modSonda as typeof import('../dispositivo/sonda');
+          try {
+            await vetarSeCaiuComOModelo(ID_DO_PARAKEET, m.proibirModelo);
+            return await m.modeloProibido(ID_DO_PARAKEET);
+          } catch {
+            return false; // sem sonda legível, o Parakeet segue o caminho normal
+          }
+        })()
+      : false;
+    const modeloFixoLido = lerModeloFixo();
+    const entradaDoRoteador: SttRouteInput = {
       contentLang: listenLang,
       // O mesmo modelo decodifica o MIC: se você fala PT enquanto ouve EN, o moonshine (só inglês) não serve.
       micLang: doModelo.idiomaDoMicrofone,
@@ -1364,7 +1633,13 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       profileId: getActiveProfile().id,
       // O APARELHO (Quest/celular: base q8 em WASM, ou na GPU provada; small só no desktop com GPU).
       dispositivo,
-    });
+      ...entradaDoParakeet(parakeetVetado, temCopiaNoAparelho(ID_DO_PARAKEET), modeloFixoLido),
+      /* APARELHO PRIMEIRO (flag `stt_aparelho_primeiro`, Fase B, item 6): o Parakeet pronto transcreve
+         primeiro e a nuvem fica para o áudio difícil. A chave própria (provedor "nuvem") fica fora: ali
+         a pessoa escolheu a nuvem dela. */
+      aparelhoPrimeiro: flagLigada(FLAG_STT_APARELHO_PRIMEIRO) && getProviderMode() !== 'cloud',
+    };
+    let route = routeStt(entradaDoRoteador);
     /* A POLÍTICA DE ROTA (`core/rota/politicaDeRota.ts`) responde à mesma pergunta, DESLIGADA (modo
        sombra). Não muda a rota. Serve a duas coisas: */
     const entradaDaPolitica: EntradaDaConferencia = {
@@ -1379,6 +1654,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       perfilId: getActiveProfile().id,
       dispositivo,
       leve: perfil.leve,
+      parakeetPronto: parakeetProntoNaRota(entradaDoRoteador),
+      aparelhoPrimeiro: entradaDoRoteador.aparelhoPrimeiro,
     };
     // (1) só em desenvolvimento, a diferença para a rota efetiva vai para o console (`conferenciaDaRota.ts`);
     if (import.meta.env?.DEV) void conferirRotaDoStt(entradaDaPolitica, route);
@@ -1386,33 +1663,51 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
        e o motivo. Uma decisão por fonte: o microfone pelo navegador vai a outro lugar que o modelo.
        Nunca lança: sem o previsto, o selo vale pelo motor real de cada fala. */
     let previstos: DecisaoDeRota[] = [];
+    /** O previsto com a histerese do áudio difícil em cima (só serve ao "aparelho primeiro"). */
+    let previstosNaNuvem: DecisaoDeRota[] = [];
+    /** O previsto se o Parakeet sair da cadeia no "aparelho primeiro": a nuvem primeiro, como sem a flag. */
+    let previstosSemParakeet: DecisaoDeRota[] = [];
     try {
       const protegido = perfilProtegido();
-      previstos = previstosDoSelo(
-        montarPedidoDeRota(entradaDaPolitica, {
-          consentiuNuvem: consentiuNuvem(),
-          consentiuNavegador: consentiuReconhecimentoDoNavegador(),
-          protegido,
-          // `rapidoDoMicPermitido` é a régua do responsável: adulto, ou protegido com o vínculo aceito.
-          responsavelAutorizou: protegido && rapidoDoMicPermitido(),
-          edicaoEstatica: edicaoEstatica(),
-          nuvemDoSite: nuvemDoQuestExiste(),
-          capacidades: getEntitlements(),
-          alivioAceito: alivioAceito(),
-        }),
-        {
-          soMicrofone: entradaDaPolitica.soMicrofone,
-          semRede: typeof navigator !== 'undefined' && navigator.onLine === false,
-          micNoNavegador:
-            micEnabled && !micVaiAoWhisper
-              ? {
-                  idioma: myLang,
-                  falaNoAparelho: disponibilidadeDaSondaParaIdioma(sourceLangRef.current, sonda?.sinais?.sttNoAparelho),
-                  bipaAoReligar: webSpeechBipaAoReligar(),
-                }
-              : null,
-        },
-      );
+      const pedidoDoSelo = montarPedidoDeRota(entradaDaPolitica, {
+        /* "Aparelho" (`lib/escolhaDoProcessamento`) vale como sem nuvem: o selo diz o aparelho. */
+        consentiuNuvem: consentiuNuvemNaFala(),
+        consentiuNavegador: consentiuReconhecimentoDoNavegador(),
+        protegido,
+        // `rapidoDoMicPermitido` é a régua do responsável: adulto, ou protegido com o vínculo aceito.
+        responsavelAutorizou: protegido && rapidoDoMicPermitido(),
+        edicaoEstatica: edicaoEstatica(),
+        nuvemDoSite: nuvemDoQuestExiste(),
+        capacidades: getEntitlements(),
+        alivioAceito: alivioAceito(),
+      });
+      const opcoesDoSelo = {
+        soMicrofone: entradaDaPolitica.soMicrofone,
+        semRede: typeof navigator !== 'undefined' && navigator.onLine === false,
+        micNoNavegador:
+          micEnabled && !micVaiAoWhisper
+            ? {
+                idioma: myLang,
+                falaNoAparelho: disponibilidadeDaSondaParaIdioma(sourceLangRef.current, sonda?.sinais?.sttNoAparelho),
+                bipaAoReligar: webSpeechBipaAoReligar(),
+              }
+            : null,
+      };
+      previstos = previstosDoSelo(pedidoDoSelo, opcoesDoSelo);
+      if (route.nuvemNoAudioDificil) {
+        previstosNaNuvem = previstosDoSelo(
+          { ...pedidoDoSelo, estado: { ...pedidoDoSelo.estado, audioDificil: true } },
+          opcoesDoSelo,
+        );
+        previstosSemParakeet = previstosDoSelo(
+          {
+            ...pedidoDoSelo,
+            aparelho: { ...pedidoDoSelo.aparelho, parakeet: false },
+            estado: { ...pedidoDoSelo.estado, aparelhoPrimeiro: false },
+          },
+          opcoesDoSelo,
+        );
+      }
     } catch (erro) {
       clog('selo da fala: previsto indisponível', String(erro));
     }
@@ -1449,6 +1744,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       myLang,
       route,
       previstos,
+      previstosNaNuvem,
+      previstosSemParakeet,
       perfil,
       mtDe,
       mtPara,
@@ -1485,10 +1782,12 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
    * decisão que a captura toma no clique — a tela só oferece o que vai acontecer de verdade.
    */
   const decidirMotorDoSistema = (opcoes: { multiIdioma?: boolean } = {}): Promise<DecisaoDoMotorDoSistema> =>
-    motorDoSistema(
-      opcoes.multiIdioma ?? autoDetectLangRef.current,
-      async () => getProviderMode() === 'cloud' || (await rotaDaCaptura()).route.preferCloud,
-    );
+    motorDoSistema(opcoes.multiIdioma ?? autoDetectLangRef.current, async () => {
+      if (getProviderMode() === 'cloud') return true;
+      const { route } = await rotaDaCaptura();
+      // "Aparelho primeiro": a fala vai ao nosso pipeline (Parakeet + nuvem do áudio difícil), não ao navegador.
+      return route.preferCloud || route.nuvemNoAudioDificil === true;
+    });
 
   /**
    * PRÉ-AQUECER AO ABRIR A TELA (auditoria de latência 2026-09-26, item 6). "STT pronto" levava de
@@ -1502,14 +1801,29 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
    * O PREVISTO DO SELO sai daqui em TODO caso (com a nuvem primeiro, com o modelo já pronto, sem nada
    * em cache): a marca da tela pronta diz onde a fala VAI ser processada antes de qualquer captura, e
    * acompanha a troca de idioma, de nível e de conexão. É só a resposta da política; nada aquece por isso.
+   *
+   * `aquecer: false` — O QUE A TELA FAZ AO ABRIR (correção G do diagnóstico do Safari, 22/10/2026): só o
+   * previsto. Aquecer do cache ao abrir subia o worker do Whisper e o tradutor (~320 MB no WebKit) em
+   * quem só passava pela Capturar, e eles seguiam vivos nas outras telas; a carga fica para o "Iniciar".
    */
-  const preaquecerModelos = async (): Promise<void> => {
+  const preaquecerModelos = async (opcoes: { aquecer?: boolean } = {}): Promise<void> => {
     try {
       if (prepareEmVooRef.current) return;
-      const { route, previstos, perfil, mtDe, mtPara, micVaiAoWhisper } = await rotaDaCaptura();
+      const { route, previstos, previstosNaNuvem, previstosSemParakeet, perfil, mtDe, mtPara, micVaiAoWhisper } =
+        await rotaDaCaptura();
       // Uma preparação que começou enquanto a rota era lida publica o previsto dela.
       if (prepareEmVooRef.current) return;
-      setRotaPrevista?.(previstos);
+      /* Com a histerese do áudio difícil em cima (a nuvem vai primeiro nesta captura), o previsto é o
+         da nuvem: o selo nunca volta a prometer "não sai daqui" enquanto o gateway tenta a nuvem antes. */
+      const aparelhoPrimeiro = route.nuvemNoAudioDificil === true;
+      setRotaPrevista?.(
+        aparelhoPrimeiro && audioDificil.semParakeet
+          ? previstosSemParakeet
+          : aparelhoPrimeiro && audioDificil.ativo && audioDificil.estado.modo === 'nuvem'
+            ? previstosNaNuvem
+            : previstos,
+      );
+      if (opcoes.aquecer === false) return;
       if (getProviderMode() === 'cloud' || modelReadyRef.current) return;
       if (route.preferCloud) return;
       /* NATIVO PRIMEIRO (plano "Grátis sem travar", A9a): o áudio da aba vai ao reconhecedor do
@@ -1539,11 +1853,11 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       }
       /* UM MODELO GRANDE DE CADA VEZ (`umModeloDeCadaVez`): o tradutor espera o STT em todo aparelho
          que não seja desktop com GPU e ≥ 8 GB — antes só no de pouca memória (Quest/celular). */
-      if (umModeloDeCadaVez(perfil)) await sttAquecendo;
+      if (umModeloDeCadaVez(perfil, route.localModel === ID_DO_PARAKEET)) await sttAquecendo;
       /* UM SENTIDO SÓ: o par que a preparação carrega (`mtDe → mtPara`), se já baixado. Antes eram os
          dois sentidos — ~113 MB a mais na memória antes de a pessoa apertar Iniciar. O outro sentido
          carrega quando é pedido (o microfone da conversa). */
-      const mt = expectedModelIds(mtDe, mtPara, route.localModel).slice(1);
+      const mt = expectedModelIds(mtDe, mtPara, route.localModel, { nuvemConsentida: consentiuNuvemNaFala() }).slice(1);
       if (mt.length && (await areModelsCached(mt))) gateway.mt.warmup([[mtDe, mtPara]]);
     } catch (e) {
       clog('pré-aquecimento ignorado:', String(e));
@@ -1553,24 +1867,71 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   const prepareModelsInterno = async (opcoes: OpcoesDaPreparacao) => {
     /* Chinês na sessão: o conversor de escrita (simplificada ou tradicional) carrega agora, antes da 1ª fala (`escritaChinesa.ts`). */
     if (escritaDoIdioma(targetLangRef.current) || escritaDoIdioma(sourceLangRef.current)) void prepararEscritaChinesa();
-    const { route, previstos, perfil, mtDe, mtPara, soIngles, micVaiAoWhisper, backend, outro, sinaisDoAlivio } =
-      await rotaDaCaptura();
+    const {
+      route,
+      previstos,
+      previstosNaNuvem,
+      previstosSemParakeet,
+      perfil,
+      mtDe,
+      mtPara,
+      soIngles,
+      micVaiAoWhisper,
+      backend,
+      outro,
+      sinaisDoAlivio,
+    } = await rotaDaCaptura();
+    /* "APARELHO PRIMEIRO" (Fase B, item 6): cada preparação começa no aparelho; a memória da histerese
+       (o mínimo dobrado) continua na mesma sessão (`continuarAudioDificil`). */
+    // Os ouvintes de uma preparação anterior (de qualquer render) saem antes dos novos.
+    soltarOuvintesDaCaptura();
+    audioDificil.soltar = null;
+    audioDificil.ativo = route.nuvemNoAudioDificil === true;
+    audioDificil.semParakeet = false;
+    audioDificil.estado = audioDificil.ativo
+      ? continuarAudioDificil(audioDificil.estado)
+      : estadoInicialDoAudioDificil();
+    audioDificil.previstos = { aparelho: previstos, nuvem: previstosNaNuvem, semParakeet: previstosSemParakeet };
+    audioDificil.rotulo = route.label;
+    /* A NUVEM PAROU (pausa: 402/429/503 ou 5xx seguidos) com a histerese em cima: desce ao aparelho na
+       hora — a cadeia já cai no Parakeet, e o selo não pode seguir dizendo "nuvem". */
+    if (audioDificil.ativo)
+      audioDificil.soltar = registrarOuvinteDaCaptura(
+        aoFalharANuvemDoStt((falha) => {
+          if (!falha.pausou || !audioDificil.ativo) return;
+          const antes = audioDificil.estado.modo;
+          audioDificil.estado = registrarPausaDaNuvem(audioDificil.estado);
+          if (audioDificil.estado.modo !== antes) aplicarModoDoAudio();
+        }),
+      );
+    /* RESERVA PREGUIÇOSA no celular e no Quest com nuvem primeiro (`reservaLocal.ts`, auditoria de
+       eficiência 2026-09-28, achado 4), e o PARAKEET DE RESERVA só na falha (Fase B, item 5). */
+    const plano = planoDaReservaLocal({
+      preferCloud: route.preferCloud,
+      tipo: perfil.tipo,
+      localModel: route.localModel,
+    });
+    /* Com o Parakeet de reserva, o que carrega agora é o Whisper base de sempre (o mesmo dtype do
+       computador): o Parakeet entra na cadeia na primeira falha da nuvem, logo abaixo. */
+    const rotaAgora = plano.parakeetNaFalha
+      ? { ...route, localModel: WHISPER_MODELS.base, dtype: 'hybrid' as const, device: undefined }
+      : route;
     /* Sessão nova: o regulador começa no máximo, com a escada do modelo desta rota — o backend e o
        dtype dizem se o português pode descer ao tiny (só híbrido, só na GPU), e o manifesto diz que
        degrau já está no aparelho (o Moonshine é sempre q8). */
     reguladorRef?.current.reiniciar({
-      modelo: route.localModel,
+      modelo: rotaAgora.localModel,
       soIngles,
       backend,
-      dtype: route.dtype,
+      dtype: rotaAgora.dtype,
       outro,
       emCache: (m, d) => temCopiaNoAparelho(m, /moonshine/i.test(m) ? 'q8' : d),
     });
     gateway.stt.setRoute({
-      preferCloud: route.preferCloud,
-      localModel: route.localModel,
-      dtype: route.dtype,
-      device: route.device,
+      preferCloud: rotaAgora.preferCloud,
+      localModel: rotaAgora.localModel,
+      dtype: rotaAgora.dtype,
+      device: rotaAgora.device,
     });
     setSttRouteLabel(route.label);
     setRotaPrevista?.(previstos);
@@ -1591,11 +1952,19 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
        no reconhecedor do navegador (A9a, logo abaixo) e o microfone fora do Whisper, o aparelho não
        roda modelo de fala nenhum: oferecer nuvem ali seria gastar franquia (e dinheiro) sem ganho. */
     const falaNoNavegador = !!opcoes.sistemaNoNavegador && !micVaiAoWhisper;
-    if (!route.preferCloud && !falaNoNavegador && pedirNuvemDeAlivio && aparelhoPedeAlivio(sinaisDoAlivio)) {
+    /* Quem escolheu "Aparelho" não recebe a oferta: nada de fala vai à nuvem até escolher Nuvem. */
+    if (
+      !route.preferCloud &&
+      !route.nuvemNoAudioDificil &&
+      !falaNoNavegador &&
+      !soNoAparelho() &&
+      pedirNuvemDeAlivio &&
+      aparelhoPedeAlivio(sinaisDoAlivio)
+    ) {
       void pedirNuvemDeAlivio('aparelho', sinaisDoAlivio).catch(() => undefined);
     }
     /** STT e tradutor UM DE CADA VEZ, fora do desktop com GPU e ≥ 8 GB (`memoriaDosModelos.ts`). */
-    const umDeCadaVez = umModeloDeCadaVez(perfil);
+    const umDeCadaVez = umModeloDeCadaVez(perfil, rotaAgora.localModel === ID_DO_PARAKEET);
 
     /* O ÁUDIO DA ABA NA WEB SPEECH NO APARELHO (`webSpeechDoSistema.ts`): o Whisper não baixa nem
        carrega — é o ponto do degrau. Só o MICROFONE no Whisper ainda o pede (aí segue o caminho de
@@ -1613,12 +1982,20 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       return;
     }
 
-    const cached = await areModelsCached(expectedModelIds(mtDe, mtPara, route.localModel));
+    /* O CACHE É POR PEÇA (dono, 23/10/2026: "toda vez que abro parece que baixa de novo"). Antes, um
+       `areModelsCached` da lista inteira: o tradutor local que nunca baixa no Chrome (lá traduz a
+       Translator API) deixava a resposta em "não" para sempre, e a tela dizia "Baixando modelo (uma vez
+       só)" a cada abertura, com o Whisper vindo do cache. Agora o título segue o Whisper, e o tradutor
+       tem a resposta dele. */
+    const idsEsperados = expectedModelIds(mtDe, mtPara, rotaAgora.localModel, {
+      nuvemConsentida: consentiuNuvemNaFala(),
+    });
+    const cached = await areModelsCached(idsEsperados.slice(0, 1));
+    const mtCached = idsEsperados.length < 2 || (await areModelsCached(idsEsperados.slice(1)));
 
-    /* RESERVA PREGUIÇOSA no celular e no Quest com nuvem primeiro (`reservaLocal.ts`, auditoria de
-       eficiência 2026-09-28, achado 4): nada baixa agora, a primeira falha da nuvem dispara a carga,
-       e o parcial local não roda. Uma nova preparação (troca de idioma/rota) solta o ouvinte antigo. */
-    const plano = planoDaReservaLocal({ preferCloud: route.preferCloud, tipo: perfil.tipo });
+    /* RESERVA PREGUIÇOSA (o `plano`, lá em cima): no celular e no Quest nada baixa agora, a primeira
+       falha da nuvem dispara a carga, e o parcial local não roda. Uma nova preparação (troca de
+       idioma/rota) solta o ouvinte antigo. */
     reservaLocal.soltar?.();
     reservaLocal.soltar = null;
     reservaLocal.parciaisLocais = plano.parciaisLocais;
@@ -1634,6 +2011,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           whisper: 0,
           mt: null,
           fromCache: cached,
+          mtFromCache: mtCached,
           error: null,
           done: false,
           ...manterPacotes(s),
@@ -1664,31 +2042,75 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             // Agora o estado de erro do ModelPrepPanel é alcançável nesta rota também.
             clog('reserva local falhou (nuvem segue como principal):', String(e));
             const msg = String((e as Error)?.message ?? e);
+            contarFalhaDoErro(e);
             setModelPrep((s) => (s ? { ...s, error: msg } : s));
           });
       };
       if (plano.carregarAgora) {
         carregarReserva();
+        /* O PARAKEET DE RESERVA (Fase B, item 5; rodada de correção 1): entra só quando a nuvem PAUSA
+           (num soluço, o Whisper quente atende), uma vez, e o gateway LIBERA o Whisper enquanto ele
+           atende — sem empilhar três modelos (`reservaLocal.ts`). O modelo do Whisper não é tocado (o
+           regulador pode tê-lo descido). Sai depois de respostas boas seguidas da nuvem, e o Whisper
+           volta. Se o Parakeet não carregar, o gateway o tira da cadeia e recarrega o Whisper. */
+        if (plano.parakeetNaFalha) {
+          let ciclo: EstadoDoParakeetDeReserva = { ativo: false, respostasSeguidas: 0, jaEntrou: false };
+          const soltarFalha = aoFalharANuvemDoStt((falha) => {
+            const passo = parakeetDeReservaNaFalha(ciclo, falha);
+            ciclo = passo.estado;
+            if (passo.acao !== 'ligar') return;
+            clog('a nuvem do STT pausou → o Parakeet entra como reserva local (o Whisper sai da memória)');
+            void gateway.stt.reservaParakeet(true).catch(() => undefined);
+          });
+          const soltarVolta = aoResponderANuvemDoStt(() => {
+            const passo = parakeetDeReservaNaResposta(ciclo);
+            ciclo = passo.estado;
+            if (passo.acao !== 'desligar') return;
+            clog('a nuvem do STT voltou estável → o Parakeet de reserva sai, o Whisper volta');
+            void gateway.stt.reservaParakeet(false).catch(() => undefined);
+          });
+          reservaLocal.soltar = registrarOuvinteDaCaptura(() => {
+            soltarFalha();
+            soltarVolta();
+          });
+        }
         return;
       }
       clog('reserva local preguiçosa: só carrega na primeira falha da nuvem | aparelho:', perfil.tipo);
       setModelPrep(null);
-      const soltar = aoFalharANuvemDoStt(() => {
-        soltar();
-        if (reservaLocal.soltar === soltar) reservaLocal.soltar = null;
-        clog('nuvem do STT falhou → carregando a reserva local');
-        carregarReserva();
-      });
+      const soltar = registrarOuvinteDaCaptura(
+        aoFalharANuvemDoStt(() => {
+          soltar();
+          if (reservaLocal.soltar === soltar) reservaLocal.soltar = null;
+          clog('nuvem do STT falhou → carregando a reserva local');
+          carregarReserva();
+        }),
+      );
       reservaLocal.soltar = soltar;
       return;
     }
 
     modelReadyRef.current = false;
-    setModelPrep((s) => ({ whisper: 0, mt: null, fromCache: cached, error: null, done: false, ...manterPacotes(s) }));
+    /* O tradutor que vai baixar DEPOIS da transcrição aparece desde já, "na fila" (carga-rapida-no-celular, 4.2). */
+    const tradutorDepois = umDeCadaVez && idsEsperados.length >= 2 && !mtCached;
+    trocaDoModelo.tradutorAdiado = false;
+    setModelPrep((s) => ({
+      whisper: 0,
+      mt: null,
+      mtNaFila: tradutorDepois,
+      fromCache: cached,
+      mtFromCache: mtCached,
+      error: null,
+      done: false,
+      ...manterPacotes(s),
+    }));
+    /* A vazão medida no download da transcrição: a estimativa da tela e a guardada para a próxima confirmação. */
+    const medidor = new MedidorDeVazao();
     try {
       // Tradutor local (best-effort; direção "ouço → meu idioma"). Emite barra própria.
-      const iniciarTradutor = () =>
-        gateway.mt.preload(mtDe, mtPara, (p, _l, bytes) => {
+      const iniciarTradutor = () => {
+        setModelPrep((s) => (s?.mtNaFila ? { ...s, mtNaFila: false } : s));
+        return gateway.mt.preload(mtDe, mtPara, (p, _l, bytes) => {
           prepNoQuadro((s) => (s ? { ...s, mt: p >= 1 ? 1 : p, mtBytes: bytes ?? s.mtBytes } : s));
           if (p >= 1) {
             /* O tradutor local (113 MB) fica pronto DEPOIS do Whisper. Tudo que foi falado nesse
@@ -1698,18 +2120,38 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             setTimeout(() => setModelPrep((s) => (s?.done && semPacotePendente(s) ? null : s)), 1800);
           }
         });
-      // Aparelho com pouca memória: o tradutor só começa DEPOIS do Whisper pronto (pico menor).
-      if (!umDeCadaVez) iniciarTradutor();
+      };
+      /* Aparelho com pouca memória: o tradutor só começa DEPOIS do Whisper pronto (pico menor). Junto, ele pode
+         ser ADIADO pela pessoa na rede lenta ("Começar só com a transcrição"): aí o download dele é cancelado e
+         recomeça quando a transcrição terminar. */
+      if (!umDeCadaVez)
+        trocaDoModelo.tradutorEmVoo = iniciarTradutor().catch((e: unknown) => {
+          if (!trocaDoModelo.tradutorAdiado) clog('tradutor local indisponível (a cascata segue):', String(e));
+        });
       // Whisper (obrigatório para transcrever o áudio do sistema/aba).
       await gateway.stt.preloadModel(
-        (p, _l, bytes) =>
-          prepNoQuadro((s) => (s ? { ...s, whisper: p >= 1 ? 1 : p, whisperBytes: bytes ?? s.whisperBytes } : s)),
+        (p, _l, bytes) => {
+          if (bytes) medidor.registrar(bytes.loaded, performance.now());
+          prepNoQuadro((s) =>
+            s
+              ? {
+                  ...s,
+                  whisper: p >= 1 ? 1 : p,
+                  whisperBytes: bytes ?? s.whisperBytes,
+                  vazaoMbps: medidor.vazao() ?? s.vazaoMbps ?? null,
+                }
+              : s,
+          );
+        },
         { aoDegradar: avisarDegradacao },
       );
+      // O Parakeet não carregou e o gateway o tirou da cadeia: no "aparelho primeiro", a nuvem volta à frente.
+      conferirParakeetDoAparelhoPrimeiro();
       /* Pouca memória: o tradutor logo DEPOIS do Whisper pronto — não depois da primeira legenda
          (relato do dono no celular, 2026-09-29: as primeiras falas saíam sem tradução enquanto ele
          nem tinha começado a baixar). */
-      if (umDeCadaVez) iniciarTradutor();
+      if (umDeCadaVez || trocaDoModelo.tradutorAdiado)
+        void iniciarTradutor().catch((e: unknown) => clog('tradutor local indisponível (a cascata segue):', String(e)));
       clog('modelos locais prontos ✓');
       modelReadyRef.current = true;
       flushPendingUtterances();
@@ -1717,8 +2159,14 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       // O painel só some quando o tradutor (e o pacote do navegador) também acabou (ou não existe).
       setTimeout(() => setModelPrep((s) => (s && preparoConcluido(s) ? null : s)), 1800);
     } catch (e) {
+      /* A pessoa trocou para o modelo menor no meio do download: o worker foi encerrado de propósito. */
+      if (trocaDoModelo.trocando) {
+        clog('download da transcrição interrompido: trocando para o modelo menor');
+        return;
+      }
       clog('preparação do modelo FALHOU:', String(e));
       const msg = String((e as Error)?.message ?? e);
+      contarFalhaDoErro(e);
       setModelPrep((s) =>
         s ? { ...s, error: msg } : { whisper: null, mt: null, fromCache: cached, error: msg, done: false },
       );
@@ -1803,6 +2251,35 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     return true;
   };
 
+  /**
+   * "USAR UM MODELO MENOR" (rede lenta, 4.3): o whisper-tiny fica fixado (a tela de modelos mostra e desfaz), o
+   * download em curso é cancelado (o worker sai) e a preparação recomeça com ele. As falas guardadas continuam na
+   * fila e viram legenda quando o menor chegar.
+   */
+  const usarModeloMenor = async (): Promise<void> => {
+    gravarModeloFixo('whisper-tiny');
+    trocaDoModelo.trocando = true;
+    try {
+      gateway.stt.liberarModelo();
+      for (let i = 0; i < 50 && prepareEmVooRef.current; i++) await new Promise((r) => setTimeout(r, 100));
+    } finally {
+      trocaDoModelo.trocando = false;
+    }
+    setModelPrep((s) => (s ? { ...s, whisper: 0, whisperBytes: null, vazaoMbps: s.vazaoMbps } : s));
+    await prepareModels();
+  };
+
+  /**
+   * "COMEÇAR SÓ COM A TRANSCRIÇÃO" (rede lenta, 4.3): o tradutor que baixava junto para (o worker sai) e recomeça
+   * quando a transcrição terminar; a banda toda vai para ela. As falas são traduzidas quando ele chegar
+   * (`retraduzirDegradados`).
+   */
+  const adiarTradutor = (): void => {
+    trocaDoModelo.tradutorAdiado = true;
+    gateway.mt.liberarModelos();
+    setModelPrep((s) => (s ? { ...s, mt: null, mtBytes: null, mtNaFila: true } : s));
+  };
+
   return {
     sysHandlers,
     micHandlers,
@@ -1811,5 +2288,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     decidirMotorDoSistema,
     prepararTradutorDaFala,
     ligarNuvemDeAlivio,
+    usarModeloMenor,
+    adiarTradutor,
   };
 }

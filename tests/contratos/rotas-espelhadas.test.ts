@@ -43,11 +43,17 @@ const SO_COM_CONTA: Record<string, string> = {
   '/api/images': 'proxy de imagens: o cliente já cai direto no Openverse quando ele falha',
   '/api/me': 'a conta é justamente o que não existe aqui — inclusive a cota e a exportação',
   '/api/billing': 'moeda comprada com dinheiro e assinatura: nascem e morrem no servidor',
+  '/api/anuncios':
+    'a recompensa do anúncio premiado é creditada pelo servidor, com tetos do dia somando todas as contas; sem conta o perfil é o protegido e não vê o premiado (só para adultos)',
   '/api/erros-do-cliente': 'diário de erros do servidor; sem conta o erro fica no console',
   '/api/sessions/utterances/relabel': 'reetiquetagem em lote: escrita cruzada de sessões',
   '/api/vocab/relabel': 'idem, no acervo',
   '/api/vocab/resumo':
     'as contagens da tela Cartões (o que vence agora, a previsão, a retenção medida): a revisão exige conta, então sem conta a tela mostra o estado vazio e NÃO chama a rota. Um espelho contaria um baralho que não pode ser revisado',
+  '/api/vocab/vistas':
+    'as palavras já vistas nas sessões (etiquetas de palavras) vêm do índice derivado das falas, que só existe no servidor; sem conta a legenda marca só pelo estado do baralho local',
+  '/api/vocab/palavra':
+    'o histórico de uma palavra (onde apareceu, frases, jogos) sai do mesmo índice do servidor; sem conta a gaveta mostra só o que o baralho local sabe',
   '/api/vocab/para-jogo':
     'NÃO precisa de espelho: `compor` cai em `composicaoLocal`, a MESMA ordenação do core rodando no cliente. Espelhá-la criaria uma segunda verdade onde hoje há uma',
   '/api/health':
@@ -63,6 +69,8 @@ const SO_COM_CONTA: Record<string, string> = {
     'feature flags (Fase 6b): PASSA DIRETO (está em `PASSAM_DIRETO`) porque é pública e quem decide o que está ligado é o operador, no servidor — um espelho local responderia sempre "desligado"',
   '/api/admin':
     'tela de administração: só existe com conta de papel admin (e 2FA); a edição estática nem mostra o item de menu, e o servidor efêmero não tem papéis, planos nem cobrança para administrar',
+  '/api/leitura':
+    'as anotações do leitor (L2) só sobem com conta: sem conta elas moram no IndexedDB do aparelho (`src/lib/livros/armazem.ts`), com aviso e backup por arquivo, e `podeSincronizarAnotacoes()` impede a chamada — um espelho em memória seria uma segunda cópia local, sem ganho',
   '/api/audio':
     'captura do áudio do sistema por WASAPI: PASSA DIRETO (está em `PASSAM_DIRETO`) porque depende de um dispositivo da máquina, e só existe no self-host',
 }

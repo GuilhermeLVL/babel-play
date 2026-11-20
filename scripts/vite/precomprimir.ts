@@ -25,6 +25,9 @@ import type { Plugin } from 'vite';
 /** Nomes (de arquivo, com `*`) que nunca vão para o `dist`. Espelhados em `slo.json` → `frontend`. */
 export const FORA_DO_DIST = ['prototipo-*.html', 'lucide.min.js'];
 
+/** Pastas (relativas ao `dist`) que não vão para produção: os modelos de teste do avatar (`public/avatares/dev/`). */
+export const PASTAS_FORA_DO_DIST = ['avatares/dev/'];
+
 /** O que vale comprimir: texto e wasm. Imagem, fonte woff2 e modelo `.onnx` já são comprimidos. */
 export const COMPRESSIVEL = /\.(js|mjs|css|html|json|svg|wasm|txt|map)$/i;
 
@@ -53,9 +56,10 @@ export function precomprimirDiretorio(dir: string): { removidos: string[]; compr
   let comprimidos = 0;
   for (const arquivo of listar(dir)) {
     const nome = path.basename(arquivo);
-    if (FORA_DO_DIST.some((p) => casaCuringa(p, nome))) {
+    const relativo = path.relative(dir, arquivo).split(path.sep).join('/');
+    if (FORA_DO_DIST.some((p) => casaCuringa(p, nome)) || PASTAS_FORA_DO_DIST.some((p) => relativo.startsWith(p))) {
       rmSync(arquivo);
-      removidos.push(path.relative(dir, arquivo));
+      removidos.push(relativo);
       continue;
     }
     if (!COMPRESSIVEL.test(nome)) continue;

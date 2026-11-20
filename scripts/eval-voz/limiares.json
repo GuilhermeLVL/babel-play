@@ -1,0 +1,48 @@
+{
+  "provisorio": true,
+  "porIdioma": {
+    "pt": {
+      "cerMax": 0.03,
+      "werMax": 0.08,
+      "itensAcertoMin": 0.85,
+      "itensNumerosEAnosMin": 1,
+      "estabilidadeMax": 0.01,
+      "foraDaMedianaMax": 0.03,
+      "semAudioMax": 0,
+      "invalidosMax": 0
+    },
+    "en": {
+      "cerMax": 0.02,
+      "werMax": 0.05,
+      "itensAcertoMin": 0.9,
+      "itensNumerosEAnosMin": 1,
+      "estabilidadeMax": 0.01,
+      "foraDaMedianaMax": 0.03,
+      "semAudioMax": 0,
+      "invalidosMax": 0
+    },
+    "es": {
+      "cerMax": 0.03,
+      "werMax": 0.07,
+      "itensAcertoMin": 0.9,
+      "itensNumerosEAnosMin": 1,
+      "estabilidadeMax": 0.01,
+      "foraDaMedianaMax": 0.03,
+      "semAudioMax": 0,
+      "invalidosMax": 0
+    }
+  },
+  "rtfMax": 0.5,
+  "ttfaP95MaxS": 3,
+  "t3": {
+    "timbresDistinguiveisMin": 4,
+    "acertoTimbresMin": 0.8
+  },
+  "escuta": {
+    "naturalidadeMin": 3.5,
+    "aguenta30Min": 0.6,
+    "errosGravesRepetidosMax": 0,
+    "melhorQueAparelhoMin": 0.5,
+    "ouvintesMin": 3
+  }
+}

@@ -36,4 +36,10 @@ describe('rastro obrigatório', () => {
     expect(rastroObrigatorio(200, [{ status: '429' }, { status: 'ok' }])).toBe(true)
     expect(rastroObrigatorio(200, [{ status: 'timeout' }])).toBe(true)
   })
+
+  it('o "Como respondo?" em fluxo que falhou DEPOIS do 200 vai sempre (o status HTTP não diz)', () => {
+    for (const d of ['interrompido', 'invalido', 'cancelado'] as const)
+      expect(rastroObrigatorio(200, [{ status: 'ok' }], d), d).toBe(true)
+    expect(rastroObrigatorio(200, [{ status: 'ok' }], 'completo')).toBe(false)
+  })
 })

@@ -1,5 +1,5 @@
 import { Check, Gamepad2, Sprout } from 'lucide-react';
-import { type ReactNode, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, type ReactNode, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 
 import type { ThemeType } from '../../../../lib/appearance';
@@ -134,6 +134,8 @@ export default function LojaDoPrototipo({
   const [cat, setCat] = useState<Categoria>('tudo');
   const [comprando, setComprando] = useState<string | null>(null);
   const [recemComprados] = useState(() => new Set<string>());
+  /* Um tema da Loja em prova na vitrine: é ele que o premiado "use por 24 h" oferece (espaço `tema-24h`). */
+  const [temaEmProva, setTemaEmProva] = useState(false);
   const cats = useRef<HTMLDivElement>(null);
 
   /* Trocar de categoria: a prateleira entra pelo lado (`repintar(…, 1, '.px-cats')`, `telas2.js:589`). */
@@ -205,7 +207,10 @@ export default function LojaDoPrototipo({
       tocarPreviaDoEfeito(item.tipo as Parameters<typeof tocarPreviaDoEfeito>[0], item.alvo, el);
       return;
     }
-    if (item.tipo === 'tema') aoProvarTema(item.alvo as ThemeType);
+    if (item.tipo === 'tema') {
+      aoProvarTema(item.alvo as ThemeType);
+      setTemaEmProva(true);
+    }
     toast.info(t('Prévia aplicada na vitrine da Coleção.'));
   };
 
@@ -245,98 +250,107 @@ export default function LojaDoPrototipo({
         ))}
       </div>
 
+      {/* "USE ESTE TEMA POR 24 H" (espaço `tema-24h`, premiado, escolha): só depois de a pessoa provar um tema
+          da Loja ("Ver prévia"), longe dos botões de compra (`plantarColecao`, `anuncios.js:202-212`). */}
+      {temaEmProva && <EspacoDeAnuncio espaco="tema-24h" formato="premiado" />}
+
       <div className="px-loja" data-testid="prateleira-de-seeds">
         {itens.length === 0 && (
           <div className="q-vazio">
             <h2>{t('Nada nesta prateleira ainda')}</h2>
           </div>
         )}
-        {itens.map((item) => {
+        {itens.map((item, i) => {
           const tem = estadoDoItem(item, nivel, saldo).estado === 'equipavel';
           const preco = item.precoSeeds ?? 0;
           const falta = Math.max(0, preco - saldo);
           const arte = arteDoItem(item);
+          /* O TEMA PATROCINADO (espaço `loja-tema`, patrocínio de conteúdo): o terceiro item da prateleira, só em
+             "Tudo" e "Temas" (`plantarLoja`, `anuncios.js:224-231`); com um item só, depois dele. */
+          const temaPatrocinado =
+            (cat === 'tudo' || cat === 'tema') && i === Math.min(1, itens.length - 1) ? (
+              <EspacoDeAnuncio espaco="loja-tema" formato="nativo" />
+            ) : null;
           return (
-            <article
-              key={item.id}
-              className={`q-cartao px-item${tem ? ' tem' : ''}`}
-              data-item={item.nome}
-              data-item-id={item.id}
-            >
-              <div className="px-arte" data-arte={arte}>
-                {arte ? ARTE[arte] : <MiniaturaDoItem item={item} tam="grande" />}
-              </div>
-              <p className="q-rotulo">
-                <span className="q-tag">{t(COR_DA_RARIDADE[item.raridade].rotulo)}</span> {t(categoriaDe(item))}
-              </p>
-              <h3>{item.nome}</h3>
-              <p className="q-d">{item.desc}</p>
-              <div className="px-item-pe">
-                {tem ? (
-                  /* A etiqueta do protótipo, com o toque que equipa o que já é seu. */
-                  <span
-                    className="q-tag"
-                    role="button"
-                    tabIndex={0}
-                    data-px="usar"
-                    onClick={() => aoUsar(item)}
-                    onKeyDown={(e) => {
-                      if (e.key !== 'Enter' && e.key !== ' ') return;
-                      e.preventDefault();
-                      aoUsar(item);
-                    }}
-                  >
-                    <Check aria-hidden /> {t('Na sua coleção')}
-                  </span>
-                ) : (
-                  <>
-                    <span className="q-chip px-preco-seeds" data-preco-seeds>
-                      <Sprout aria-hidden /> {numero(preco)}
+            <Fragment key={item.id}>
+              <article className={`q-cartao px-item${tem ? ' tem' : ''}`} data-item={item.nome} data-item-id={item.id}>
+                <div className="px-arte" data-arte={arte}>
+                  {arte ? ARTE[arte] : <MiniaturaDoItem item={item} tam="grande" />}
+                </div>
+                <p className="q-rotulo">
+                  <span className="q-tag">{t(COR_DA_RARIDADE[item.raridade].rotulo)}</span> {t(categoriaDe(item))}
+                </p>
+                <h3>{item.nome}</h3>
+                <p className="q-d">{item.desc}</p>
+                <div className="px-item-pe">
+                  {tem ? (
+                    /* A etiqueta do protótipo, com o toque que equipa o que já é seu. */
+                    <span
+                      className="q-tag"
+                      role="button"
+                      tabIndex={0}
+                      data-px="usar"
+                      onClick={() => aoUsar(item)}
+                      onKeyDown={(e) => {
+                        if (e.key !== 'Enter' && e.key !== ' ') return;
+                        e.preventDefault();
+                        aoUsar(item);
+                      }}
+                    >
+                      <Check aria-hidden /> {t('Na sua coleção')}
                     </span>
-                    {falta ? (
-                      <span className="px-falta">
-                        <span className="q-barra">
-                          <span style={{ width: `${Math.round((saldo / preco) * 100)}%` }} />
-                        </span>
-                        <small>{t('Faltam {n} Seeds', { n: falta })}</small>
+                  ) : (
+                    <>
+                      <span className="q-chip px-preco-seeds" data-preco-seeds>
+                        <Sprout aria-hidden /> {numero(preco)}
                       </span>
-                    ) : (
-                      <button
-                        type="button"
-                        className="q-ctl pri px-segurar"
-                        data-px-comprar={item.nome}
-                        aria-busy={comprando === item.id || undefined}
-                        onPointerDown={(e) => {
-                          const b = e.currentTarget;
-                          if (!comprando) armarCompra(b, () => void comprar(item, b));
-                        }}
-                        /* Pelo teclado, segurar Enter ou Espaço vale o mesmo que segurar o dedo. */
-                        onKeyDown={(e) => {
-                          if ((e.key !== 'Enter' && e.key !== ' ') || e.repeat || comprando) return;
-                          e.preventDefault();
-                          const b = e.currentTarget;
-                          armarCompra(b, () => void comprar(item, b));
-                        }}
-                        onKeyUp={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') e.currentTarget.dispatchEvent(new Event('pointerup'));
-                        }}
-                      >
-                        <span className="px-segurar-fundo" aria-hidden="true" />
-                        <span>{t('Segure para comprar')}</span>
-                      </button>
-                    )}
-                  </>
-                )}
-                <button
-                  type="button"
-                  className="q-ctl"
-                  data-px-previa={arte ?? item.tipo}
-                  onClick={(e) => previa(item, arte, e.currentTarget)}
-                >
-                  {t('Ver prévia')}
-                </button>
-              </div>
-            </article>
+                      {falta ? (
+                        <span className="px-falta">
+                          <span className="q-barra">
+                            <span style={{ width: `${Math.round((saldo / preco) * 100)}%` }} />
+                          </span>
+                          <small>{t('Faltam {n} Seeds', { n: falta })}</small>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="q-ctl pri px-segurar"
+                          data-px-comprar={item.nome}
+                          aria-busy={comprando === item.id || undefined}
+                          onPointerDown={(e) => {
+                            const b = e.currentTarget;
+                            if (!comprando) armarCompra(b, () => void comprar(item, b));
+                          }}
+                          /* Pelo teclado, segurar Enter ou Espaço vale o mesmo que segurar o dedo. */
+                          onKeyDown={(e) => {
+                            if ((e.key !== 'Enter' && e.key !== ' ') || e.repeat || comprando) return;
+                            e.preventDefault();
+                            const b = e.currentTarget;
+                            armarCompra(b, () => void comprar(item, b));
+                          }}
+                          onKeyUp={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ')
+                              e.currentTarget.dispatchEvent(new Event('pointerup'));
+                          }}
+                        >
+                          <span className="px-segurar-fundo" aria-hidden="true" />
+                          <span>{t('Segure para comprar')}</span>
+                        </button>
+                      )}
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    className="q-ctl"
+                    data-px-previa={arte ?? item.tipo}
+                    onClick={(e) => previa(item, arte, e.currentTarget)}
+                  >
+                    {t('Ver prévia')}
+                  </button>
+                </div>
+              </article>
+              {temaPatrocinado}
+            </Fragment>
           );
         })}
       </div>

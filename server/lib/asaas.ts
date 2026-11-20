@@ -36,6 +36,9 @@ async function chamar<T>(caminho: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: {
       'Content-Type': 'application/json',
+      /* O Asaas RECUSA pedido sem User-Agent (400 `user_agent_not_informed`). O fetch do Node manda um
+         sozinho; o do Cloudflare Worker, não — no staging, todo `/assinar` caía em 502 (21/10/2026). */
+      'User-Agent': 'Frasy-Servidor',
       // O nome do header é do Asaas; o valor NUNCA aparece em log (o logger tem allowlist).
       access_token: chave,
       ...(init?.headers ?? {}),
@@ -106,7 +109,8 @@ export async function listarCobrancasDaAssinatura(assinaturaId: string, limite =
 }
 
 /**
- * PARA ONDE O ASAAS DEVOLVE O PAGADOR (funil de venda, 2026-09-29): `APP_URL/plano/assinado`, que
+ * PARA ONDE O ASAAS DEVOLVE O PAGADOR (funil de venda, 2026-09-29): `APP_URL/app/plano/assinado` (o app mora
+ * em `/app` desde o site público, 25/10/2026; no self-host o fallback da SPA serve o mesmo caminho), que
  * pergunta ao servidor se o pagamento confirmou (nada ali confia no redirecionamento). SÓ com https
  * num domínio de verdade: o Asaas recusa localhost e domínio que não esteja cadastrado na conta, e
  * em desenvolvimento a aba do checkout já espera a confirmação sozinha. `null` = não pedir a volta.
@@ -118,7 +122,7 @@ export function urlDeVoltaDoPagamento(): string | null {
     const u = new URL(base)
     const host = u.hostname.toLowerCase()
     const local = host === 'localhost' || host.endsWith('.localhost') || host === '127.0.0.1' || host === '[::1]'
-    return u.protocol === 'https:' && !local ? `${base}/plano/assinado` : null
+    return u.protocol === 'https:' && !local ? `${base}/app/plano/assinado` : null
   } catch {
     return null
   }

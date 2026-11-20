@@ -82,6 +82,17 @@ export const JOBS: Job[] = [
     },
   },
   {
+    /* Cache compartilhado do parceiro de leitura (livros PD): vencidas (90 dias) e excedentes. Mesmo horário do cache
+       de tradução (o Worker roda os dois no mesmo Cron Trigger). Ver `server/ai/leitura/cacheDoParceiro.ts`. */
+    nome: 'podaDoCacheDoParceiro',
+    cron: '11 3 * * *',
+    node: { atrasoInicialMs: 12 * MIN, intervaloMs: DIA },
+    async rodar({ agora }) {
+      const { podarCacheDoParceiro } = await import('../ai/leitura/cacheDoParceiro')
+      return { ...(await podarCacheDoParceiro({ agora })) }
+    },
+  },
+  {
     /* Marca do teste do Premium (C6): 730 dias, uma instrução. Só no modo público. Ver
        `server/lib/testePremium.ts`. */
     nome: 'podaDasMarcasDeTeste',
@@ -134,6 +145,19 @@ export const JOBS: Job[] = [
       const { reconciliarVencidos } = await import('../lib/storageQuota')
       const { candidatos, reconciliados, falhas } = await reconciliarVencidos({ limite: 200 })
       return { candidatos, reconciliados, falhas }
+    },
+  },
+  {
+    /* Reconciliação Asaas × banco (Fase 2 da garantia de cobrança): pagamentos dos últimos 45 dias que não geraram
+       evento. `BILLING_RECONCILE_MODE=apply` reaplica; o padrão só avisa. Só com Asaas configurado e modo público.
+       Ver `server/lib/reconciliarCobrancas.ts`. */
+    nome: 'reconciliarCobrancas',
+    cron: '29 3 * * *',
+    node: { atrasoInicialMs: 29 * MIN, intervaloMs: DIA },
+    condicao: (env) => authRequired(env) && Boolean(env.ASAAS_API_KEY),
+    async rodar({ agora, env }) {
+      const { modoDaReconciliacao, reconciliarCobrancas } = await import('../lib/reconciliarCobrancas')
+      return { ...(await reconciliarCobrancas({ agora, modo: modoDaReconciliacao(env) })) }
     },
   },
 ]

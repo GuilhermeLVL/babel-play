@@ -28,7 +28,8 @@ afterAll(async () => {
 
 describe('rastro das ações de operador', () => {
   it('PATCH /users/:id e /users/:id/plan registram ator e alvo pseudonimizados', async () => {
-    const t = await s.token('rastro-admin')
+    // Admin sempre com segundo fator (aal2): sem ele, `/api/admin` recusa antes do papel.
+    const t = await s.token('rastro-admin', { aal: 'aal2' })
     expect((await s.patch('/api/admin/users/rastro-alvo', { status: 'suspended' }, t)).status).toBe(200)
     expect((await s.patch('/api/admin/users/rastro-alvo/plan', { plan: 'premium' }, t)).status).toBe(200)
 

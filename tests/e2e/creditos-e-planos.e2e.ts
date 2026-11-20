@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { abrirTela, clicarRobusto, naBarraDeCinco, trilho } from './_helpers'
+import { abrirMais, abrirTela, clicarRobusto, naBarraDeCinco, trilho } from './_helpers'
 
 /**
  * `/creditos` E `/planos` NO NAVEGADOR (mudança `vender-onde-se-ve`, tarefa 6.2).
@@ -26,26 +26,24 @@ test('/planos (plural) abre a tela de planos, e não o Hub, sem oferecer o anual
   await expect(page.getByText(/anual|\/ano|por ano/i)).toHaveCount(0)
 })
 
-test('Planos aparece na navegação principal e leva à tela de planos', async ({ page }) => {
-  test.skip(
-    naBarraDeCinco(page),
-    'ACHADO: no celular o painel "Mais destinos" não lista Planos (só "Planos e Premium" no menu da conta), ' +
-      'ao contrário do que a spec pede; ver PR',
-  )
+test('Planos está na navegação principal e leva à tela de planos', async ({ page }) => {
   await abrirTela(page, '/')
-  const item = trilho(page).locator('[data-px-rota="planos"]')
-  await expect(item).toBeVisible()
-  await clicarRobusto(page, item)
+  // No computador e no tablet é um item do trilho; no celular, a entrada "Planos e Premium" do painel "Mais destinos".
+  const entrada = naBarraDeCinco(page)
+    ? (await abrirMais(page)).getByTestId('planos-no-mais')
+    : trilho(page).locator('[data-px-rota="planos"]')
+  await expect(entrada).toBeVisible()
+  await clicarRobusto(page, entrada)
   await expect(page).toHaveURL(/\/plano$/)
   await expect(page.getByTestId('planos-do-quest')).toBeVisible()
 })
 
-test.fixme('/creditos abre a compra de Créditos (na Loja)', async ({ page }) => {
-  // ACHADO: `/creditos` cai em `/loja/desafios` (aba Conquistas, "Conquista não se compra") em vez da aba
-  // Loja (`src/lib/rotas.ts`, ALIAS_DE_SEGMENTO.creditos = 'conquistas'; `tests/rotas.test.ts` fixa o mesmo
-  // valor). E, no self-host, a aba Loja não mostra o cartão de Créditos nem a nota "não há compra":
-  // `mostrarCreditos` é falso sem carteira, e `ComprarCreditos` nunca é desenhada. Ver PR.
+test('/creditos abre a compra de Créditos na aba Loja; sem cobrança (self-host), a tela diz que não há o que vender', async ({
+  page,
+}) => {
   await abrirTela(page, '/creditos')
   await expect(page).toHaveURL(/\/loja\/loja$/)
-  await expect(page.getByTestId('comprar-creditos')).toBeVisible()
+  const nota = page.getByTestId('comprar-creditos')
+  await expect(nota).toBeVisible()
+  await expect(nota).toContainText('não há compra com dinheiro')
 })

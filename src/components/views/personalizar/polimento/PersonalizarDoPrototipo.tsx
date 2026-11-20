@@ -21,11 +21,13 @@ import { contar } from '../../../../lib/polimento/base';
 import { abaAVista } from '../../../../lib/polimento/personalizar';
 import { perfilProtegido } from '../../../../lib/protecaoDoMenor';
 import { type AbaDaLojaV2, normalizarAbaDaLojaV2 } from '../../../../lib/rotas';
+import { authRequired } from '../../../../lib/supabase';
 import { useTemporada } from '../../../../lib/temporada';
 import { applyTheme } from '../../../../lib/theme';
 import CartaoDeConvite from '../../../conta/CartaoDeConvite';
 import { toast } from '../../../Toast';
 import Conquistas from '../../Conquistas';
+import ComprarCreditos from '../../loja/ComprarCreditos';
 import type { LojaProps } from '../../loja/propsDaLoja';
 import PainelDeMaestria from '../../maestria/PainelDeMaestria';
 import ColecaoDoPrototipo from './ColecaoDoPrototipo';
@@ -279,17 +281,26 @@ export default function PersonalizarDoPrototipo({
     );
   else
     corpo = (
-      <LojaDoPrototipo
-        nivel={nivel}
-        saldo={saldo}
-        mostrado={mostrado}
-        versao={versao}
-        aoMudar={aoMudar}
-        aoContarSeeds={contarSeeds}
-        aoProvarTema={provarTema}
-        aoUsar={usarItem}
-        aoGanhar={() => irPara({ view: 'play' })}
-      />
+      <>
+        <LojaDoPrototipo
+          nivel={nivel}
+          saldo={saldo}
+          mostrado={mostrado}
+          versao={versao}
+          aoMudar={aoMudar}
+          aoContarSeeds={contarSeeds}
+          aoProvarTema={provarTema}
+          aoUsar={usarItem}
+          aoGanhar={() => irPara({ view: 'play' })}
+        />
+        {/* Sem conta e sem cobrança (self-host), a tela diz que não há o que vender em vez de esconder os Créditos.
+            Perfil protegido não vê oferta nenhuma, nem a nota (mesma regra de `mostrarCreditos`). */}
+        {!authRequired && !perfilProtegido() && !edicaoEstatica() && (
+          <div style={{ marginTop: 24 }}>
+            <ComprarCreditos />
+          </div>
+        )}
+      </>
     );
 
   const redesenhada = REDESENHADA.has(aba) && !(semConta && aba !== 'colecao');

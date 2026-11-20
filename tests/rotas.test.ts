@@ -167,8 +167,8 @@ describe('ida e volta — o estado sobrevive ao recarregamento', () => {
  */
 describe('as rotas do que está à venda', () => {
   it('/creditos abre a compra de Créditos', () => {
-    // A compra de Créditos mora na seção Loja, que desde 2026-09-12 vive dentro de Desafios.
-    expect(urlParaEstado('/creditos')).toEqual({ view: 'loja', lojaTab: 'conquistas' })
+    // A compra de Créditos mora na aba Loja de Personalizar (desde a v4 a Loja voltou a ser aba própria).
+    expect(urlParaEstado('/creditos')).toEqual({ view: 'loja', lojaTab: 'loja' })
   })
 
   it('/planos vale como /plano — o plural é o que se digita', () => {

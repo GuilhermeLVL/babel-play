@@ -92,10 +92,10 @@ Identité (anonyme ou avec compte), offre et rôle sont des axes séparés, et l
 
 ## Offres et IA dans le cloud
 
-| Offre       | Ce que vous obtenez                                                                                                                                                                                                                           |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Gratuit** | Tout ce qui tourne sur l'appareil (capture, modèles locaux, étude, jeux). Pas d'IA gérée dans le cloud.                                                                                                                                       |
-| **Premium** | Transcription et traduction dans le cloud avec usage équitable quotidien et mensuel, voix naturelle de l'interprète. Commence par un essai sans carte, qui prend fin au bout de 14 jours ou au quota d'usage, selon ce qui arrive en premier. |
+| Offre       | Ce que vous obtenez                                                                                                                                                                                                                          |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Gratuit** | Tout ce qui tourne sur l'appareil (capture, modèles locaux, étude, jeux). Pas d'IA gérée dans le cloud.                                                                                                                                      |
+| **Premium** | Transcription et traduction dans le cloud avec usage équitable quotidien et mensuel, voix naturelle de l'interprète. Commence par un essai sans carte, qui prend fin au bout de 3 jours ou au quota d'usage, selon ce qui arrive en premier. |
 
 L'IA dans le cloud passe par OpenRouter avec rétention zéro des données et seulement après consentement. Les prix, les quotas et les décisions qui les sous-tendent sont dans [docs/ESTADO-DO-LANCAMENTO.md](docs/ESTADO-DO-LANCAMENTO.md) et [docs/monetizacao.md](docs/monetizacao.md). Le paiement passe par Asaas, et c'est le webhook du paiement qui accorde l'offre.
 

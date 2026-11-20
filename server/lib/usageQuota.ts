@@ -28,9 +28,10 @@ import {
 } from '../../src/core/planos'
 import { usageCountersRepo } from '../db/repositories/usageCounters'
 import type { UserId } from './authContext'
+import { DIAS_DO_PERIODO_ANUAL, DIAS_DO_PERIODO_MENSAL } from './billingEventos'
 import { segundosDeBonusDoAlivio } from './bonusDeNuvemDoPremiado'
 import { memoDoRequest } from './contextoDeConvidado'
-import { getPlanForUser, resolverPlano } from './entitlements'
+import { getPlanForUser, periodoPagoEmVigor, resolverPlano } from './entitlements'
 import { fusoGravado } from './fusoDoUsuario'
 import { log } from './logger'
 
@@ -214,6 +215,113 @@ export function currentWindow(): string {
   return new Date().toISOString().slice(0, 7)
 }
 
+/** Quantas cotas mensais um período ANUAL pago contém. */
+const FATIAS_DO_ANUAL = 12
+
+/**
+ * A JANELA DE UM PERÍODO PAGO (change `cota-pelo-periodo-pago`), `pAAAA-MM-DD`: a data em que a fatia da cota começa.
+ * `inicio` é a âncora gravada pelo pagamento (`periodoPagoDesde`: o vencimento da cobrança que concedeu o período).
+ *  - Mensal: a fatia é o período inteiro e começa no vencimento. UM pagamento = UMA cota mensal, por mais viradas de
+ *    mês que o período atravesse; só a próxima cobrança PAGA (âncora nova) abre a janela seguinte.
+ *  - Anual (à vista ou 12x): `DIAS_DO_PERIODO_ANUAL` dias em `FATIAS_DO_ANUAL` fatias iguais (~30,8 dias): doze cotas
+ *    mensais por ano pago, nem uma a mais. Depois da última, a última continua (nunca abre uma 13ª).
+ * O prefixo `p` separa estas janelas das do calendário (`AAAA-MM`) e das do dia (`AAAA-MM-DD`). Pura.
+ */
+export function janelaDoPeriodoPago(inicio: number, ciclo: 'mensal' | 'anual', agora: number): string {
+  const duracao = (ciclo === 'anual' ? DIAS_DO_PERIODO_ANUAL : DIAS_DO_PERIODO_MENSAL) * DIA_MS
+  const fatias = ciclo === 'anual' ? FATIAS_DO_ANUAL : 1
+  const tamanho = duracao / fatias
+  const n = Math.min(fatias - 1, Math.max(0, Math.floor((agora - inicio) / tamanho)))
+  return `p${new Date(inicio + n * tamanho).toISOString().slice(0, 10)}`
+}
+
+/**
+ * A JANELA DA COTA DO PLANO desta pessoa: a fatia do PERÍODO PAGO para quem paga (`janelaDoPeriodoPago`, ancorada no
+ * pagamento) e o mês do calendário UTC (`currentWindow`) para o resto — Grátis, convidado, self-host, o teste de 14
+ * dias, o plano dado pelo admin e a linha paga antes da âncora existir, como sempre foi. Antes era o calendário para
+ * todos, e o período mensal pago (vencimento + 35 dias) atravessava até DUAS viradas de mês: um pagamento comprava até
+ * três cotas mensais (auditoria de 14/11/2026). Lida uma vez por requisição (a assinatura vem do mesmo
+ * `memoDoRequest` de `resolverPlano`). Erro SOBE: a reserva falha fechada.
+ */
+export async function janelaDaCota(userId: UserId, agora = Date.now()): Promise<string> {
+  return (await janelaERenovacaoDaCota(userId, agora)).janela
+}
+
+/** `ms` mais `meses` meses do calendário UTC, com o dia preso ao fim do mês (31/01 + 1 → 28 ou 29/02). Pura. */
+function somarMesesUtc(ms: number, meses: number): number {
+  const d = new Date(ms)
+  const alvo = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + meses, 1))
+  const ultimoDia = new Date(Date.UTC(alvo.getUTCFullYear(), alvo.getUTCMonth() + 1, 0)).getUTCDate()
+  alvo.setUTCDate(Math.min(d.getUTCDate(), ultimoDia))
+  return alvo.getTime() + (ms % DIA_MS)
+}
+
+/** O primeiro instante do mês UTC seguinte: quando a janela do calendário (`AAAA-MM`) vira. Pura. */
+export function renovacaoDoCalendario(agora: number): number {
+  const d = new Date(agora)
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1)
+}
+
+/**
+ * QUANDO A COTA DE QUEM PAGA RENOVA (tarefa 3.2 de `cota-pelo-periodo-pago`), em ms: o menor entre o fim da fatia em
+ * curso e o próximo vencimento (um mês ou um ano depois da âncora), porque a cobrança paga desse vencimento grava a
+ * âncora nova e abre a janela seguinte. No mensal é o próximo vencimento; no anual, o fim da fatia de ~30,8 dias, e na
+ * última fatia o vencimento do ano. Se o vencimento já passou (cobrança atrasada, ainda na folga), vale o fim da fatia.
+ * Pura.
+ */
+export function renovacaoDoPeriodoPago(inicio: number, ciclo: 'mensal' | 'anual', agora: number): number {
+  const duracao = (ciclo === 'anual' ? DIAS_DO_PERIODO_ANUAL : DIAS_DO_PERIODO_MENSAL) * DIA_MS
+  const fatias = ciclo === 'anual' ? FATIAS_DO_ANUAL : 1
+  const tamanho = duracao / fatias
+  const n = Math.min(fatias - 1, Math.max(0, Math.floor((agora - inicio) / tamanho)))
+  const fimDaFatia = inicio + (n + 1) * tamanho
+  const proximoVencimento = somarMesesUtc(inicio, ciclo === 'anual' ? 12 : 1)
+  const renova = Math.min(fimDaFatia, proximoVencimento)
+  return renova > agora ? renova : fimDaFatia
+}
+
+/**
+ * A janela da cota e QUANDO ELA RENOVA (`renovaEm`, ms), da mesma leitura do período pago: para quem paga, a fatia do
+ * período e `renovacaoDoPeriodoPago`; para o resto (Grátis, convidado, teste, admin), o mês do calendário UTC e o
+ * dia 1º do mês seguinte. É o que `GET /api/me/uso` devolve para a tela dizer a data certa.
+ */
+export async function janelaERenovacaoDaCota(
+  userId: UserId,
+  agora = Date.now(),
+): Promise<{ janela: string; renovaEm: number }> {
+  const periodo = await periodoPagoEmVigor(userId)
+  if (!periodo) return { janela: new Date(agora).toISOString().slice(0, 7), renovaEm: renovacaoDoCalendario(agora) }
+  return {
+    janela: janelaDoPeriodoPago(periodo.inicio, periodo.ciclo, agora),
+    renovaEm: renovacaoDoPeriodoPago(periodo.inicio, periodo.ciclo, agora),
+  }
+}
+
+/**
+ * A FRASE DE QUANDO A COTA VOLTA, para as recusas `cota_do_mes` do servidor: "em 3 de dezembro" (a data de
+ * `janelaERenovacaoDaCota`, em UTC como a janela). Quem paga renova no vencimento, não no dia 1º; o Grátis segue no
+ * dia 1º do calendário. Se a leitura falhar, a frase neutra "na renovação do seu plano" — a recusa não pode cair por
+ * causa do texto.
+ */
+export async function quandoACotaVolta(userId: UserId, agora = Date.now()): Promise<string> {
+  try {
+    const { renovaEm } = await janelaERenovacaoDaCota(userId, agora)
+    const data = new Date(renovaEm).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', timeZone: 'UTC' })
+    return `em ${data}`
+  } catch {
+    return 'na renovação do seu plano'
+  }
+}
+
+/** Preenche `{quando}` de uma mensagem de recusa com `quandoACotaVolta`; sem `{quando}`, devolve a mensagem como veio. */
+export async function comQuandoVolta(mensagem: string, userId: UserId): Promise<string> {
+  return mensagem.includes('{quando}') ? mensagem.replace('{quando}', await quandoACotaVolta(userId)) : mensagem
+}
+
+/** A janela de um contador do mês: a do plano (`janelaDaCota`) ou, no alívio do Grátis, o mês do calendário. */
+const janelaDoModo = (userId: UserId, modo: ModoDaCota): Promise<string> | string =>
+  modo === 'plano' ? janelaDaCota(userId) : currentWindow()
+
 /**
  * Override numérico por env, com o default vindo da MATRIZ. `null` na matriz = sem teto
  * (Infinity). A semântica antiga não muda: env definida e válida vence o default.
@@ -225,7 +333,7 @@ function tetoComEnv(padrao: number | null, envNome: string): number {
 }
 
 /**
- * O TESTE DE 14 DIAS limita a nuvem por USO (`FRANQUIA_DO_TESTE`): em teste, o teto é o MENOR entre o do plano (o Premium)
+ * O TESTE DE 3 DIAS limita a nuvem por USO (`FRANQUIA_DO_TESTE`): em teste, o teto é o MENOR entre o do plano (o Premium)
  * e o do teste. Fora do teste, é o do plano, como sempre.
  */
 const doTeste = (capDoPlano: number, capDoTeste: number, emTeste: boolean): number =>
@@ -284,7 +392,7 @@ export async function reserveManagedCall(userId: UserId, modo: ModoDaCota = 'pla
       const { plano, emTeste } = await planoETeste(userId)
       cap = capForPlan(plano, emTeste)
     }
-    return await usageCountersRepo.reserve(userId, METRICA.chamadas[modo], currentWindow(), cap)
+    return await usageCountersRepo.reserve(userId, METRICA.chamadas[modo], await janelaDoModo(userId, modo), cap)
   } catch (err) {
     falharFechado('quota_reserve_failed_closed', err)
   }
@@ -297,7 +405,7 @@ export async function reserveManagedCall(userId: UserId, modo: ModoDaCota = 'pla
  */
 export async function refundManagedCall(userId: UserId, modo: ModoDaCota = 'plano'): Promise<void> {
   try {
-    await usageCountersRepo.refund(userId, METRICA.chamadas[modo], currentWindow())
+    await usageCountersRepo.refund(userId, METRICA.chamadas[modo], await janelaDoModo(userId, modo))
   } catch (err) {
     /*
      * F5-04: era `console.warn`, ou seja, texto solto que ninguém agrega. E este evento é de
@@ -370,12 +478,13 @@ async function reservarNoMesENoDia(
   capDia: number,
   quantidade: number,
 ): Promise<ReservaDaCota> {
-  if (!(await usageCountersRepo.reserve(userId, metricaMes, currentWindow(), capMes, quantidade))) {
+  const janela = await janelaDaCota(userId)
+  if (!(await usageCountersRepo.reserve(userId, metricaMes, janela, capMes, quantidade))) {
     return { cabe: false, recusa: 'mes' }
   }
   if (!Number.isFinite(capDia)) return { cabe: true, dia: null }
   const devolverOMes = () =>
-    usageCountersRepo.refund(userId, metricaMes, currentWindow(), quantidade).catch((err: unknown) => {
+    usageCountersRepo.refund(userId, metricaMes, janela, quantidade).catch((err: unknown) => {
       log('warn', { event: 'quota_mes_devolucao_falhou', error: String(err).slice(0, 120) })
     })
   let dia: string
@@ -419,7 +528,7 @@ export async function reservarSegundosDeStt(
       const cabe = await usageCountersRepo.reserve(
         userId,
         METRIC_STT_AO_VIVO_SEGUNDOS,
-        currentWindow(),
+        await janelaDaCota(userId),
         capSegundosAoVivoParaPlano(await getPlanForUser(userId)),
         segundos,
       )
@@ -465,11 +574,11 @@ export async function estornarSegundosDeStt(
   try {
     if (nivel === 'aovivo') {
       if (modo === 'plano') {
-        await usageCountersRepo.refund(userId, METRIC_STT_AO_VIVO_SEGUNDOS, currentWindow(), segundos)
+        await usageCountersRepo.refund(userId, METRIC_STT_AO_VIVO_SEGUNDOS, await janelaDaCota(userId), segundos)
       }
       return
     }
-    await usageCountersRepo.refund(userId, METRICA.segundos[modo], currentWindow(), segundos)
+    await usageCountersRepo.refund(userId, METRICA.segundos[modo], await janelaDoModo(userId, modo), segundos)
     if (dia && modo === 'plano') await usageCountersRepo.refund(userId, METRIC_STT_SEGUNDOS_DIA, dia, segundos)
   } catch (err) {
     log('warn', { event: 'quota_seconds_refund_failed', error: String(err).slice(0, 120) })
@@ -552,9 +661,9 @@ export async function acertarTokensDeLlm(
 ): Promise<void> {
   const diferenca = Math.round(reservados) - Math.round(Number.isFinite(reais) ? Math.max(0, reais) : 0)
   if (diferenca === 0) return
-  const janelas: Array<[string, string]> = [[METRICA.tokens[modo], currentWindow()]]
-  if (dia && modo === 'plano') janelas.push([METRIC_LLM_TOKENS_DIA, dia])
   try {
+    const janelas: Array<[string, string]> = [[METRICA.tokens[modo], await janelaDoModo(userId, modo)]]
+    if (dia && modo === 'plano') janelas.push([METRIC_LLM_TOKENS_DIA, dia])
     for (const [metrica, janela] of janelas) {
       if (diferenca > 0) await usageCountersRepo.refund(userId, metrica, janela, diferenca)
       else await usageCountersRepo.increment(userId, metrica, janela, -diferenca)
@@ -604,7 +713,7 @@ export async function reservarCaracteresDeVoz(userId: UserId, caracteres: number
 export async function estornarCaracteresDeVoz(userId: UserId, caracteres: number, dia: string | null): Promise<void> {
   const quantidade = Math.max(1, Math.round(caracteres))
   try {
-    await usageCountersRepo.refund(userId, METRIC_TTS_CARACTERES, currentWindow(), quantidade)
+    await usageCountersRepo.refund(userId, METRIC_TTS_CARACTERES, await janelaDaCota(userId), quantidade)
     if (dia) await usageCountersRepo.refund(userId, METRIC_TTS_CARACTERES_DIA, dia, quantidade)
   } catch (err) {
     log('warn', { event: 'quota_tts_refund_failed', error: String(err).slice(0, 120) })

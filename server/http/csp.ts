@@ -11,7 +11,10 @@
  *                                               consulta de versão (`src/gateway/modelManifest.ts`)
  *   cdn.jsdelivr.net                            o runtime WASM do ONNX: sem `wasmPaths` próprio, o
  *                                               transformers.js baixa `ort-wasm-*.{mjs,wasm}` de lá
- *                                               (node_modules/@huggingface/transformers/src/backends/onnx.js)
+ *                                               (node_modules/@huggingface/transformers/src/backends/onnx.js).
+ *                                               Desde 17/11/2026 o `transformersEnv.ts` aponta `wasmPaths`
+ *                                               para `baseDoWasm()`; o host fica só sem espelho próprio
+ *   (os quatro acima SAEM quando VITE_SELF_HOST_MODELS é URL: ver `CONEXOES_DO_HUB`)
  *   *.wiktionary.org                            o verbete do dicionário (`src/lib/dictionary.ts`) e as
  *                                               figuras que ele traz, com autor e licença
  *                                               (`src/lib/imagens/imagensDaPalavra.ts`): é a mesma API
@@ -19,7 +22,12 @@
  *                                               (`src/data/rotas/imagens.ts`)
  *   api.mymemory.translated.net                 a tradução de reserva do cliente
  *                                               (`src/gateway/adapters/mymemory.ts`)
- *   localhost:11434 / 127.0.0.1:11434           o Ollama LOCAL de quem o tem (`src/gateway/profiles.ts`)
+ *   localhost:11434 / 127.0.0.1:11434           o Ollama LOCAL de quem o tem (`src/gateway/profiles.ts`). SÓ fora do
+ *                                               modo público (self-host, dev, edição estática): com
+ *                                               `AUTH_REQUIRED=1` (o Express e o Worker) ou `VITE_AUTH_REQUIRED=1`
+ *                                               (o build que gera o `dist/_headers`) sai, porque o servidor público
+ *                                               não usa o Ollama e um script injetado não tem o que ver na
+ *                                               máquina de quem visita
  *   standardebooks.org                          o EPUB dos livros do catálogo (CORS `*`), baixado direto
  *                                               pelo navegador (`src/lib/livros/textoDoLivro.ts`)
  *   *.wikisource.org                            o texto dos livros da Wikisource, pela API (`origin=*`)
@@ -37,6 +45,7 @@
  *   VITE_AUDIO_URL                              os audiolivros pré-gerados no R2 (manifesto e tempos por
  *                                               `connect-src`, o `.opus` por `media-src`)
  *   VITE_VOZ_MODELO_URL                         os pesos da voz no aparelho (Supertonic 3) num R2: só `connect-src`
+ *   VITE_VOZ_KITTEN_URL                         os pesos da voz natural no aparelho (Kitten TTS 2) num R2: só `connect-src`
  *   VITE_AVATARES_URL                           a coleção curada de avatares (VRM/GLB) num R2/CDN
  *                                               (`src/lib/avatar/fontes.ts`). Dado, não código: só `connect-src`
  *   AVATAR_GALERIA_TERCEIROS=1                  a galeria ao vivo do avatar (coleção 100Avatars, CC0, da ToxSam): os
@@ -87,16 +96,28 @@ export interface DiretivasDeCsp {
 /** O host do Cloudflare Turnstile (script oficial, iframe do desafio e a verificação). */
 export const HOST_DO_TURNSTILE = 'https://challenges.cloudflare.com'
 
-const CONEXOES_FIXAS = [
+/**
+ * O Hub e o jsDelivr: os pesos e o runtime do ONNX quando o deploy NÃO tem espelho próprio (dev, testes,
+ * self-host). Com `VITE_SELF_HOST_MODELS=<url>` (o R2 de produção, change `modelos-confiaveis-e-offline`,
+ * DISP-05) eles SAEM: pesos e runtime vêm só de origens do Frasy, e uma queda ou bloqueio do Hub não derruba a
+ * legenda sem alarme. Antes de publicar a CSP sem eles, o portão do deploy confere o bucket
+ * (`scripts/modelos/conferir-espelho.ts`).
+ */
+const CONEXOES_DO_HUB = [
   'https://huggingface.co',
   'https://*.huggingface.co',
   'https://*.hf.co',
   'https://cdn.jsdelivr.net',
+]
+
+/** O deploy serve os pesos de um bucket próprio (`VITE_SELF_HOST_MODELS` é URL `https://`)? */
+export const temEspelhoProprio = (env: NodeJS.ProcessEnv): boolean =>
+  /^https:\/\//.test(env.VITE_SELF_HOST_MODELS?.trim() ?? '')
+
+const CONEXOES_FIXAS = [
   'https://*.wiktionary.org',
   'https://api.openverse.org',
   'https://api.mymemory.translated.net',
-  'http://localhost:11434',
-  'http://127.0.0.1:11434',
   'https://standardebooks.org',
   'https://*.wikisource.org',
   /* "Trazer o seu" por link: o arquivo de um repositório público, baixado pelo navegador. Conferido com
@@ -104,6 +125,16 @@ const CONEXOES_FIXAS = [
      fica de fora (github.com responde 302 sem CORS). */
   'https://raw.githubusercontent.com',
 ]
+
+/** O Ollama LOCAL de quem o tem (perfil "Privado/Local"): só entra fora do modo público (`modoPublico`). */
+const CONEXOES_DO_OLLAMA = ['http://localhost:11434', 'http://127.0.0.1:11434']
+
+/**
+ * O MODO PÚBLICO para a CSP: `AUTH_REQUIRED=1` no servidor (Express e Worker) ou `VITE_AUTH_REQUIRED=1` no build (o
+ * `dist/_headers` do Worker). Só o valor explícito: o build roda com `NODE_ENV=production` também na edição estática e
+ * no self-host, e ali o Ollama continua.
+ */
+const modoPublico = (env: NodeJS.ProcessEnv): boolean => env.AUTH_REQUIRED === '1' || env.VITE_AUTH_REQUIRED === '1'
 
 /**
  * O LEITOR DE LIVROS (L2 de Livros & Leitura): além das fontes do catálogo (acima, em `CONEXOES_FIXAS`), o EPUB
@@ -184,14 +215,18 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
 
   /* A VOZ NO APARELHO (flag `voz_no_aparelho`): os pesos do Supertonic baixados pelo worker por `fetch` (`connect-src`).
      Dado, nunca código. Sem a variável, nada entra. */
-  const vozNoAparelho = [origemDe(env.VITE_VOZ_MODELO_URL)].filter((o): o is string => o !== null)
+  const vozNoAparelho = [origemDe(env.VITE_VOZ_MODELO_URL), origemDe(env.VITE_VOZ_KITTEN_URL)].filter(
+    (o): o is string => o !== null,
+  )
 
   const conexoes = [
     ...new Set([
       "'self'",
       'blob:',
       'data:',
+      ...(temEspelhoProprio(env) ? [] : CONEXOES_DO_HUB),
       ...CONEXOES_FIXAS,
+      ...(modoPublico(env) ? [] : CONEXOES_DO_OLLAMA),
       ...CONEXOES_DO_LEITOR,
       ...doDeploy,
       ...runtimeDoOnnx,
@@ -211,7 +246,7 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
     /* `blob:` CONTINUA (conferido em 26/10/2026, revisão do leitor): com várias threads e o runtime em outra
        origem (`VITE_ORT_WASM_URL`, o R2 de produção), o `importWasmModule` do onnxruntime-web 1.26 baixa o
        `.mjs`, faz `URL.createObjectURL` e `import()` desse `blob:` NA THREAD PRINCIPAL — `worker-src` não cobre
-       isso. Por isso o conteúdo dos livros NÃO depende desta diretiva: o iframe do capítulo não tem
+       isso (reconferido em 15/11/2026: `preload` + `dynamicImportDefault` em `onnxruntime-web/dist/ort.wasm.mjs`). Por isso o conteúdo dos livros NÃO depende desta diretiva: o iframe do capítulo não tem
        `allow-scripts` (`src/lib/leitor/foliate/PATCHES.md`). */
     scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'blob:', ...runtimeDoOnnx, ...turnstile],
     workerSrc: ["'self'", 'blob:', ...runtimeDoOnnx],

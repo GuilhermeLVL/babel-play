@@ -1,5 +1,5 @@
 /**
- * O TESTE DE 14 DIAS DO PREMIUM E A MARCA QUE IMPEDE REPETI-LO (C6, migração 0043).
+ * O TESTE DE 3 DIAS DO PREMIUM E A MARCA QUE IMPEDE REPETI-LO (C6, migração 0043).
  *
  * Dois escritos que precisam andar JUNTOS: a marca do e-mail (`marcas_de_teste`) e o teste da conta
  * (`testes_premium`). Marca sem teste gastaria o teste de alguém sem dar nada; teste sem marca deixaria

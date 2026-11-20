@@ -1,5 +1,5 @@
 /**
- * PLANOS v4, ETAPA 1 — A VENDA, O WEBHOOK E O TESTE DE 14 DIAS NO SERVIDOR (Task 2).
+ * PLANOS v4, ETAPA 1 — A VENDA, O WEBHOOK E O TESTE DE 3 DIAS NO SERVIDOR (Task 2).
  *
  * Com `venda_planos_v4` ligada o servidor vende o Plus (R$ 14,90 / R$ 149,00) e para de vender o Essencial,
  * o Premium e o Ao Vivo — quem já os tem segue com eles. A Família e o Pro só abrem com as chaves deles
@@ -10,7 +10,7 @@
  * parcelamento (`/assinar` grava o plano junto com o id do parcelamento). Sem esse vínculo a parcela não
  * concede nada e fica pendente para o admin — nunca um palpite, nunca o plano mais barato.
  *
- * O teste de 14 dias dá `planoDoTeste(flag)` avaliado no INÍCIO e gravado: Plus com a v4, Premium sem ela;
+ * O teste de 3 dias dá `planoDoTeste(flag)` avaliado no INÍCIO e gravado: Plus com a v4, Premium sem ela;
  * quem começou no Premium segue no Premium até o fim.
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
@@ -178,6 +178,30 @@ describe('POST /api/billing/assinar com `venda_planos_v4` ligada', () => {
       meio: 'parcelamento',
       providerInstallmentId: 'ins_plus_12x',
       planoDaCobranca: 'plus',
+    })
+  })
+
+  it('numa linha EXISTENTE (mensal), assinar o anual grava o ciclo DA COBRANÇA e não toca no ciclo concedido', async () => {
+    await ligar(FLAG_VENDA_PLANOS_V4, true)
+    const u = asUserId('v4-ciclo-existente')
+    await subs.upsert(u, {
+      plan: 'plus',
+      status: 'canceled',
+      ciclo: 'mensal',
+      currentPeriodEnd: Date.now() - 86_400_000,
+      provider: 'asaas',
+      providerSubscriptionId: 'sub_antiga_mensal',
+    })
+    const { res } = await assinar(
+      'v4-ciclo-existente',
+      pedido('plus', { ciclo: 'anual', meio: 'parcelamento' }),
+      'ins_ciclo',
+    )
+    expect(res.statusCode).toBe(200)
+    expect(await subs.getActive(u)).toMatchObject({
+      ciclo: 'mensal',
+      planoDaCobranca: 'plus',
+      cicloDaCobranca: 'anual',
     })
   })
 
@@ -442,7 +466,7 @@ describe('Premium 12x de antes + /assinar do Plus: a parcela do Premium não reb
   })
 })
 
-describe('o teste de 14 dias', () => {
+describe('o teste de 3 dias', () => {
   const testar = async (userId: string) => {
     await idades.declarar(asUserId(userId), '1990-01-01')
     asaasSimulado()
@@ -471,7 +495,7 @@ describe('o teste de 14 dias', () => {
 
   it('o teste de antes da coluna (`plano` nulo) é Premium', async () => {
     const u = asUserId('v4-teste-legado')
-    await testes.iniciar(u, 'marca-legado', Date.now(), Date.now() + 14 * DIA)
+    await testes.iniciar(u, 'marca-legado', Date.now(), Date.now() + 3 * DIA)
     expect(await ent.resolverPlano(u)).toMatchObject({ plano: 'premium' })
   })
 })

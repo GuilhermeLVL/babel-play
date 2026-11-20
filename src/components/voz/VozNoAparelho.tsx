@@ -21,8 +21,9 @@ function motivoDoAparelho(m: MotivoDaOferta): string | null {
     return t(
       'A voz de alta qualidade não está disponível neste aparelho: ela precisa de mais memória do que celulares e tablets costumam ter.',
     );
-  if (m === 'sem-motor' || m === 'sem-armazenamento')
-    return t('A voz de alta qualidade não está disponível neste navegador.');
+  if (m === 'sem-armazenamento')
+    return t('Esta janela não permite guardar a voz (navegação privada?). Abra uma janela normal para baixá-la.');
+  if (m === 'sem-motor') return t('A voz de alta qualidade não está disponível neste navegador.');
   return null;
 }
 
@@ -40,7 +41,7 @@ export default function VozNoAparelho({ idioma, aoFicarPronta }: { idioma: strin
   if (d.oferta === 'nao') {
     const motivo = motivoDoAparelho(d.motivo);
     return motivo ? (
-      <p className="q-aju-nota" role="note" data-testid="voz-no-aparelho-indisponivel">
+      <p id="motivo-voz-no-aparelho" className="q-aju-nota" role="note" data-testid="voz-no-aparelho-indisponivel">
         {motivo}
       </p>
     ) : null;

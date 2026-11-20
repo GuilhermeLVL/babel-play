@@ -92,10 +92,10 @@ Identidad (anónima o con cuenta), plan y rol son ejes separados, y el plan lo d
 
 ## Planes e IA en la nube
 
-| Plan        | Qué recibes                                                                                                                                                                                                          |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Gratis**  | Todo lo que se ejecuta en el dispositivo (captura, modelos locales, estudio, juegos). Sin IA gestionada en la nube.                                                                                                  |
-| **Premium** | Transcripción y traducción en la nube con uso justo diario y mensual, voz natural en el intérprete. Empieza con una prueba sin tarjeta que termina a los 14 días o al agotar la cuota de uso, lo que ocurra primero. |
+| Plan        | Qué recibes                                                                                                                                                                                                         |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Gratis**  | Todo lo que se ejecuta en el dispositivo (captura, modelos locales, estudio, juegos). Sin IA gestionada en la nube.                                                                                                 |
+| **Premium** | Transcripción y traducción en la nube con uso justo diario y mensual, voz natural en el intérprete. Empieza con una prueba sin tarjeta que termina a los 3 días o al agotar la cuota de uso, lo que ocurra primero. |
 
 La IA en la nube pasa por OpenRouter con retención cero de datos y solo tras el consentimiento. Los precios, las cuotas y las decisiones detrás están en [docs/ESTADO-DO-LANCAMENTO.md](docs/ESTADO-DO-LANCAMENTO.md) y [docs/monetizacao.md](docs/monetizacao.md). El pago se hace con Asaas, y quien concede el plan es el webhook del pago.
 

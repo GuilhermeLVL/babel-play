@@ -161,7 +161,7 @@ export interface PortaGratuita {
   /** O plano resolvido (um só `resolverPlano` por request). */
   plano: PlanoEfetivo
   /**
-   * O Premium é o do TESTE de 14 dias (C6): os entitlements são os do Premium, mas a admissão da nuvem
+   * O Premium é o do TESTE de 3 dias (C6): os entitlements são os do Premium, mas a admissão da nuvem
    * trata a conta como grátis (`planoDeAdmissao(..., teste = true)`) — quem ainda não paga não disputa
    * a capacidade de quem paga.
    */

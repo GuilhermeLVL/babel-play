@@ -7,6 +7,7 @@ import {
   chaveDaRecompensa,
   marcarOcupacaoDaCaptura,
   type Recompensa,
+  recompensaAberta,
   recompensasVistas,
 } from '../src/lib/filaDeRecompensas'
 import { CATALOGO_DA_LOJA } from '../src/lib/loja'
@@ -61,6 +62,17 @@ describe('RecompensaDesbloqueada — o modal de resgate', () => {
     fireEvent.click(screen.getByText('Resgatar e continuar'))
     expect(onFechar).toHaveBeenCalledWith(nivel2)
     expect(recompensasVistas().has(chaveDaRecompensa(nivel2))).toBe(true)
+  })
+
+  /* O fim da rodada lê esta marca: com o modal aberto por cima, os espaços de anúncio de lá esperam ele fechar
+     (anúncio escondido atrás de um modal não é anúncio visto). */
+  it('enquanto o modal está aberto, marca a recompensa aberta; fechado, desmarca', () => {
+    const { unmount } = render(
+      <RecompensaDesbloqueada fila={[nivel2]} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />,
+    )
+    expect(recompensaAberta()).toBe(true)
+    unmount()
+    expect(recompensaAberta()).toBe(false)
   })
 
   it('Esc (o close nativo do <dialog>) marca como vista e tira da fila uma vez só', () => {

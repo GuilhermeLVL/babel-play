@@ -71,7 +71,7 @@ import { erroDeRota } from '../../lib/erroDeRota'
 import { ehMenor, INSTRUCAO_DE_SEGURANCA_PARA_MENORES } from '../../lib/idade'
 import { log } from '../../lib/logger'
 import { portaoDaNuvem, registrarGastoDeIa } from '../../lib/orcamentoDeIa'
-import { ContadorIndisponivel, estimarTokens } from '../../lib/usageQuota'
+import { comQuandoVolta, ContadorIndisponivel, estimarTokens } from '../../lib/usageQuota'
 import { planoDeAdmissao } from '../admissao'
 import { recusaCancelada } from '../cancelamento'
 import { type AdmissaoDaCascata, admitirCascata, encerrarAdmissao, percorrerCascata } from '../cascata'
@@ -213,7 +213,8 @@ export type ResultadoDoAssistente = AjudaEntregue | RecusaDeIa
 const MENSAGEM_SEM_ASSISTENTE = {
   sem_plano: 'O assistente ao vivo não está disponível nesta conta; a legenda e a tradução continuam.',
   teto_do_dia: 'O assistente de hoje chegou ao limite; a legenda e a tradução continuam, e ele volta amanhã.',
-  cota_do_mes: 'O assistente deste mês chegou ao limite; a legenda e a tradução continuam, e ele volta no dia 1º.',
+  /* `{quando}`: `quandoACotaVolta` (quem paga renova no vencimento, não no dia 1º). */
+  cota_do_mes: 'O assistente do seu plano chegou ao limite; a legenda e a tradução continuam, e ele volta {quando}.',
 } as const
 
 /** A entrada do prompt — no perfil protegido, o "Como respondo?" vai SEM contexto (só a frase que a pessoa vê). */
@@ -367,7 +368,10 @@ async function atender(
     /* A SUBCOTA DE TOKENS do assistente (25% da `tokensMes`), ANTES da cota do plano: os mesmos tokens contam nas
        duas, e o assistente para aqui antes de chegar perto da cota da legenda. */
     subcota = await reservarTokensDoAssistente(ctx.userId, plano.plan, estimativa)
-    if (!subcota) return decidir(recusaDeErro(402, MENSAGEM_SEM_ASSISTENTE.cota_do_mes, 'cota_do_assistente'))
+    if (!subcota)
+      return decidir(
+        recusaDeErro(402, await comQuandoVolta(MENSAGEM_SEM_ASSISTENTE.cota_do_mes, ctx.userId), 'cota_do_assistente'),
+      )
 
     const reservada = await reservarLlm(ctx.userId, estimativa, 'plano', plano.plan)
     if (!(reservada instanceof ReservaDeLlm)) return decidir(reservada) // 402/429 da cota ou 503 do contador

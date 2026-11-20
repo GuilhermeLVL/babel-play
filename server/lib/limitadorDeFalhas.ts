@@ -43,6 +43,12 @@ interface OpcoesDoLimitadorDeFalhas {
   teto: number
   /** O que conta como falha. */
   falhou: (req: Request, res: Response) => boolean
+  /**
+   * Quais requisições o limitador considera (padrão: todas). As demais passam direto: não leem o
+   * contador, não são barradas e não somam. O balde de auth usa isto para ignorar quem não traz
+   * credencial nenhuma (`server/lib/credencialDaRequisicao.ts`).
+   */
+  seAplica?: (req: Request) => boolean
   /** Código estável do envelope de erro do 429. */
   code: string
   mensagem: string
@@ -64,6 +70,10 @@ export function criarLimitadorDeFalhas(o: OpcoesDoLimitadorDeFalhas): RequestHan
   }
 
   return (req, res, next) => {
+    if (o.seAplica && !o.seAplica(req)) {
+      next()
+      return
+    }
     const chave = asUserId(chaveDoRequest(req))
     const agora = Date.now()
     const janela = balde(agora)

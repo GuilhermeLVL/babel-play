@@ -21,7 +21,7 @@ import type { UserId } from './authContext'
 import { log } from './logger'
 import {
   ContadorIndisponivel,
-  currentWindow,
+  janelaDaCota,
   janelaDoDia,
   METRIC_ASSISTENTE_DIA,
   METRIC_ASSISTENTE_TOKENS_MES,
@@ -95,7 +95,7 @@ export async function reservarTokensDoAssistente(
   if (teto === null) return { janela: null, reservados: 0 }
   if (!(teto > 0)) return null
   try {
-    const janela = currentWindow()
+    const janela = await janelaDaCota(userId)
     if (!(await usageCountersRepo.reserve(userId, METRIC_ASSISTENTE_TOKENS_MES, janela, teto, estimativa))) return null
     return { janela, reservados: estimativa }
   } catch (err) {

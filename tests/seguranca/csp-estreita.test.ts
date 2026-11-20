@@ -31,6 +31,28 @@ describe('diretivasDeCsp', () => {
     expect(c).toContain('https://api.mymemory.translated.net')
   })
 
+  it('o Ollama local (localhost:11434) só fora do modo público: self-host e dev mantêm, AUTH_REQUIRED=1 tira', () => {
+    const ollama = ['http://localhost:11434', 'http://127.0.0.1:11434']
+    const foraDoPublico: Record<string, string>[] = [
+      {},
+      { AUTH_REQUIRED: '0' },
+      { AUTH_REQUIRED: '0', SELF_HOST: '1', NODE_ENV: 'production' },
+    ]
+    for (const e of foraDoPublico)
+      for (const o of ollama) expect(diretivasDeCsp(env(e)).connectSrc, JSON.stringify(e)).toContain(o)
+    // O Express/Worker público (AUTH_REQUIRED=1) e o build do Worker (VITE_AUTH_REQUIRED=1, que gera o `_headers`).
+    const publicos: Record<string, string>[] = [{ AUTH_REQUIRED: '1' }, { VITE_AUTH_REQUIRED: '1' }]
+    for (const e of publicos) {
+      const c = diretivasDeCsp(env(e)).connectSrc
+      for (const o of ollama) expect(c, JSON.stringify(e)).not.toContain(o)
+      expect(c).toContain('https://huggingface.co')
+    }
+  })
+
+  it('script-src mantém blob: (o onnxruntime-web importa o runtime de outra origem como blob: na thread principal)', () => {
+    expect(diretivasDeCsp(env({ AUTH_REQUIRED: '1' })).scriptSrc).toContain('blob:')
+  })
+
   it('o Supabase entra pela origem configurada, e só ela', () => {
     const c = diretivasDeCsp(
       env({ SUPABASE_URL: 'https://abcd.supabase.co/', VITE_SUPABASE_URL: 'https://abcd.supabase.co' }),
@@ -61,6 +83,27 @@ describe('diretivasDeCsp', () => {
     const base = diretivasDeCsp(env({}))
     expect(base.scriptSrc).toEqual(["'self'", "'wasm-unsafe-eval'", 'blob:'])
     expect(base.workerSrc).toEqual(["'self'", 'blob:'])
+  })
+
+  it('espelho próprio (VITE_SELF_HOST_MODELS é URL): sem Hub e sem jsDelivr (DISP-05)', () => {
+    const c = diretivasDeCsp(
+      env({
+        VITE_SELF_HOST_MODELS: 'https://modelos.frasy.com.br',
+        VITE_ORT_WASM_URL: 'https://modelos.frasy.com.br/ort/1.26.0/',
+      }),
+    ).connectSrc
+    expect(c).toContain('https://modelos.frasy.com.br')
+    for (const fora of [
+      'https://huggingface.co',
+      'https://*.huggingface.co',
+      'https://*.hf.co',
+      'https://cdn.jsdelivr.net',
+    ])
+      expect(c, fora).not.toContain(fora)
+    // Sem a variável (dev, testes, self-host), o Hub continua: o caminho de hoje.
+    const sem = diretivasDeCsp(env({})).connectSrc
+    expect(sem).toContain('https://huggingface.co')
+    expect(sem).toContain('https://*.hf.co')
   })
 
   it('VITE_SELF_HOST_MODELS=1 (mesmo domínio) não acrescenta host', () => {

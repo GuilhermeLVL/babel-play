@@ -64,6 +64,15 @@ describe('gerarHeaders', () => {
     expect(dir('connect-src')).not.toContain('/ort/')
   })
 
+  it('com o espelho próprio, o _headers sai sem Hub e sem jsDelivr (o mesmo de diretivasDeCsp)', () => {
+    const e = env({ VITE_SELF_HOST_MODELS: 'https://modelos.frasy.com.br', VITE_AUTH_REQUIRED: '1' })
+    const csp = bloco(gerarHeaders(e, BASE), '/*')
+    expect(csp).toContain(serializarCsp(diretivasDeCsp(e)))
+    expect(csp).not.toContain('huggingface')
+    expect(csp).not.toContain('hf.co')
+    expect(csp).not.toContain('jsdelivr')
+  })
+
   it('sem variáveis, a política é a mínima do app (self, wasm-unsafe-eval, blob:, jsdelivr, huggingface…)', () => {
     const csp = bloco(gerarHeaders(env({}), BASE), '/*')
     expect(csp).toContain("default-src 'self'")
@@ -74,6 +83,13 @@ describe('gerarHeaders', () => {
     // O leitor de livros (L2): cada capítulo é um documento `blob:` num iframe — e só isso entra em frame-src.
     expect(csp).toContain("frame-src 'self' blob:")
     expect(csp).not.toMatch(/frame-src [^;]*https:/)
+  })
+
+  it('o build do Worker (VITE_AUTH_REQUIRED=1) sai sem o Ollama local; a edição estática (sem ela) o mantém', () => {
+    const publico = bloco(gerarHeaders(env({ VITE_AUTH_REQUIRED: '1' }), BASE), '/*')
+    expect(publico).not.toContain('11434')
+    const estatica = bloco(gerarHeaders(env({ VITE_AUTH_REQUIRED: '' }), BASE), '/*')
+    expect(estatica).toContain('http://localhost:11434')
   })
 
   it('traz o isolamento e os demais cabeçalhos globais', () => {

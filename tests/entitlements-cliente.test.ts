@@ -7,11 +7,16 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+/* A conta destes testes tem sessão guardada no navegador (`sb-*-auth-token`): sem ela o visitante já nasce
+   `anonimo` e não espera o SDK (carga-rapida-no-celular). */
+vi.hoisted(() => localStorage.setItem('sb-teste-auth-token', '{}'))
+
 vi.mock('../src/lib/supabase', () => ({
   supabase: null,
   authRequired: true,
   carregarSupabase: async () => null,
-  getAccessToken: async () => null,
+  // A conta destes testes tem token: no modo público, sem token o funil responde como sem conta.
+  getAccessToken: async () => 'tok',
 }))
 
 import { carregarEntitlements, getEntitlements, limparEntitlements, onPlanChange } from '../src/lib/entitlements'
@@ -22,6 +27,7 @@ const resposta = (corpo: unknown, status = 200) =>
 describe('entitlements do cliente', () => {
   beforeEach(() => {
     localStorage.clear()
+    localStorage.setItem('sb-teste-auth-token', '{}')
     limparEntitlements()
   })
   afterEach(() => {

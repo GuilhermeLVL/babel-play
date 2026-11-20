@@ -38,6 +38,7 @@ import type { PlanoPago } from '../src/core/planos'
 import { decidirRota, type PedidoDeRota } from '../src/core/rota/politicaDeRota'
 import type { SttQuality } from '../src/gateway/sttRouter'
 import { type SeloDaFala, seloDaFala } from '../src/lib/captura/seloDaFala'
+import { diaQueACotaVolta } from '../src/lib/diaQueACotaVolta'
 import { definirProtecao, type EstadoDeProtecao } from '../src/lib/protecaoDoMenor'
 import type { UsoDoMes } from '../src/lib/uso'
 import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
@@ -357,7 +358,9 @@ describe('as horas acabaram', () => {
     render(<Tela ambiente={{ capacidades: COM_NUVEM, carregarUso: esgotado }} aoVerPlanos={verPlanos} />)
     const nota = await screen.findByTestId('nota-das-horas')
     expect(nota.textContent).toContain('As 5 h de nuvem deste mês acabaram.')
-    expect(nota.textContent).toContain('A legenda continua no aparelho, sem limite. As horas voltam no dia 1º.')
+    expect(nota.textContent).toContain(
+      `A legenda continua no aparelho, sem limite. As horas voltam em ${diaQueACotaVolta()}.`,
+    )
     const chip = screen.getByTestId('medidor-de-nuvem')
     expect(chip.textContent).toBe('Nuvem do mês acabou · no aparelho')
     expect(chip.dataset.tom).toBe('fim')
@@ -377,7 +380,7 @@ describe('as horas acabaram', () => {
     fireEvent.click(nivel('Precisão'))
     expect(processamento.escolher).not.toHaveBeenCalled()
     expect(avisos.info).toHaveBeenLastCalledWith(
-      'As horas do nível Precisão deste mês acabaram. Elas voltam no dia 1º.',
+      `As horas do nível Precisão acabaram. Elas voltam em ${diaQueACotaVolta()}.`,
     )
   })
 

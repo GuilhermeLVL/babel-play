@@ -1,3 +1,5 @@
+import '../../styles/consentimentoDeAnuncios.css';
+
 import { useId, useState } from 'react';
 
 import { t } from '../../lib/i18n';

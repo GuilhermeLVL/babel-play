@@ -30,6 +30,10 @@
 
 /ort-wasm-*
   Cache-Control: public, max-age=31536000, immutable
+# O service worker (`scripts/vite/serviceWorker.ts`): sempre revalidado, senão a versão nova (ou o SW que se
+# desliga) não chega a quem já tem um.
+/sw.js
+  Cache-Control: no-cache
 /silero_vad_*
   Cache-Control: public, max-age=31536000, immutable
 # O modelo de fim de fala (Smart Turn v3.2, 8 MB): a versão está no nome do arquivo, então não muda sob o mesmo caminho.

@@ -40,7 +40,7 @@ import { PLANO_ICO, PLANO_NOME } from './dados';
  * O CICLO E O MEIO (C7): "Premium · mensal", "· anual" ou "· anual em 12x", cada um com a sua frase
  * — o mensal cobra todo mês, o anual renova em um ano pelo preço do ano, o 12x NÃO renova sozinho.
  *
- * O TESTE (C6/C7): quem está nos 14 dias vê até quando vale e que nada é cobrado — em D-3 e em D0 a
+ * O TESTE (C6/C7): quem está nos 3 dias vê até quando vale e que nada é cobrado — em D-1 e em D0 a
  * frase é a do aviso `fim_do_teste`, para a tela e o aviso dizerem a mesma coisa.
  */
 export default function FaixaDaConta({
@@ -128,12 +128,12 @@ export default function FaixaDaConta({
           t('Seu teste do Premium termina hoje. Depois a conta volta ao Grátis sozinha, e nada é cobrado.'),
           planoDoTeste,
         )
-      ) : fase === 'd3' ? (
+      ) : fase === 'd1' ? (
         <>
           {montar(
             comNomeDoPlano(
               bruto(
-                'Seu teste do Premium termina em 3 dias, em <b>{data}</b>. Depois a conta volta ao Grátis sozinha, e nada é cobrado.',
+                'Seu teste do Premium termina amanhã, em <b>{data}</b>. Depois a conta volta ao Grátis sozinha, e nada é cobrado.',
               ),
               planoDoTeste,
             ),

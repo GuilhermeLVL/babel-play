@@ -1,7 +1,7 @@
 {
   "teste": {
     "estado": "indisponivel",
-    "dias": 14,
+    "dias": 3,
     "plano": "premium",
     "motivo": "ja_assinante"
   },

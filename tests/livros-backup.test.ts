@@ -166,7 +166,9 @@ describe('restauração: conteúdo não confiável (falha fechada)', () => {
     await expect(lerBackup(arq('isto não é um zip', 'b.zip'))).rejects.toMatchObject({ motivo: 'corrompido' })
   })
 
-  it('bomba de zip (100 MB de zeros) é recusada antes de descompactar', async () => {
+  /* O teto de tempo maior é para MONTAR a bomba: comprimir 100 MB com o `zipSync` leva ~2 s numa máquina livre e
+     passou dos 20 s na fatia da CI com cobertura (todos os workers ocupados). A recusa em si é imediata. */
+  it('bomba de zip (100 MB de zeros) é recusada antes de descompactar', { timeout: 90_000 }, async () => {
     const bomba = zipSync({ 'estante.json': enc(estanteJson()), 'livros/0.txt': new Uint8Array(100 * 1024 * 1024) })
     await expect(lerBackup(arq(bomba, 'b.zip'))).rejects.toMatchObject({ motivo: 'grande' })
   })

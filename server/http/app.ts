@@ -36,6 +36,7 @@ import { authMiddleware, authRequired, verificarTokenPadrao } from '../lib/auth'
 import type { UserId } from '../lib/authContext'
 import { metricasHabilitadas, segredoDeOrigem } from '../lib/config'
 import { exigirContaParaEscrever } from '../lib/convidado'
+import { requisicaoTrazCredencial } from '../lib/credencialDaRequisicao'
 import { capturarAssincrono } from '../lib/erroGlobal'
 import { exigirAdultoDeclarado, exigirContaLiberada } from '../lib/idade'
 import { criarLimitadorDeFalhas } from '../lib/limitadorDeFalhas'
@@ -65,7 +66,7 @@ import { aiRouter } from '../routes/ai'
 import { ankiRouter } from '../routes/anki'
 import { anunciosRouter } from '../routes/anuncios'
 import { asaasWebhookRouter, billingRouter } from '../routes/billing'
-import { errosRouter } from '../routes/erros'
+import { errosRouter, falhasDoClienteRouter, tetoDeFalhas } from '../routes/erros'
 import { exercisesRouter } from '../routes/exercises'
 import { criarRotaDeFlags } from '../routes/flags'
 import { healthHandler, readyHandler } from '../routes/health'
@@ -446,6 +447,11 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   /* O FUNIL DAS OFERTAS (Fase 8): o mesmo desenho — anônimo, antes do auth, corpo de 8 KB e o mesmo
      balde por IP de `/api/metricas`. Ver `server/routes/metricasOfertas.ts`. */
   app.use('/api/metricas', capturarAssincrono(metricasOfertasRouter))
+  /* O CONTADOR ANÔNIMO DE FALHAS DO VISITANTE (change `modelos-confiaveis-e-offline`): a sub-rota `/falha` dos
+     erros do cliente, ANTES do auth, pelo mesmo motivo da telemetria (sem conta também conta, e com conta a rota
+     nem sabe quem é). Corpo de 8 KB (`ROTAS_DE_CORPO_MINIMO`), balde próprio por chave derivada do IP, só enum.
+     O relatório de erros (`/api/erros-do-cliente`) continua depois do auth, com conta. */
+  app.use('/api/erros-do-cliente/falha', tetoDeFalhas, capturarAssincrono(falhasDoClienteRouter))
 
   /* AS PORTAS DE EMERGÊNCIA (Fase 3): a tela de login e a de planos perguntam aqui, antes de
      haver sessão, se o cadastro e a venda estão abertos. Pública pelo mesmo motivo do health. */
@@ -479,7 +485,8 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
    * nunca chega a limitador nenhum**. Quem tenta adivinhar token — ou reusa um vazado contra várias
    * contas — não encontrava teto em lugar nenhum do servidor.
    *
-   * Este vem ANTES do auth e conta SÓ o que falhou (401). Um usuário legítimo, com token válido,
+   * Este vem ANTES do auth e conta SÓ o 401 de requisição que TRAZ credencial (ver "SÓ CONTA QUEM
+   * TRAZ CREDENCIAL" abaixo). Um usuário legítimo, com token válido,
    * nunca soma um ponto aqui, por mais que navegue — e, desde a auditoria de prontidão de
    * 2026-09-25 (fase 2 §2.5), também nunca ESCREVE nada nem é barrado por concorrência.
    *
@@ -496,6 +503,15 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
    * 30 falhas por 15 minutos: um token expirado que o cliente reenvia em algumas telas antes de
    * renovar cabe com folga; um laço de adivinhação, não. Só em modo público — no self-host o
    * `authMiddleware` injeta o dono e 401 não existe.
+   *
+   * SÓ CONTA QUEM TRAZ CREDENCIAL (incidente de 2026-11-12). Um visitante sem conta abre o app e o
+   * cliente dispara ~10 chamadas `/api/*` sem `Authorization`, todas 401; contadas como falha, na
+   * 3ª abertura o IP inteiro levava 429 por 15 minutos (numa escola atrás de NAT, na 1ª) e a home
+   * ficava no esqueleto. Quem não manda credencial não está adivinhando token: a requisição dele
+   * nem lê o balde (`seAplica`) — continua no 401 de sempre, sem tocar o banco, o que também deixa
+   * uma inundação anônima mais barata. Quem manda QUALQUER coisa no `Authorization` (o único canal
+   * do `authMiddleware`; ver `server/lib/credencialDaRequisicao.ts`) segue o desenho de antes: soma
+   * no 401 e, estourado o teto do IP, leva 429 — inclusive com token bom, como todo bloqueio por origem.
    */
   if (authRequired()) {
     app.use(
@@ -504,6 +520,8 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
         metric: METRIC_RATELIMIT_AUTH,
         janelaMs: 15 * 60_000,
         teto: 30,
+        seAplica: requisicaoTrazCredencial,
+        // Só chega aqui quem traz credencial: o `seAplica` acima já deixou o resto passar direto.
         falhou: (_req, res) => res.statusCode === 401,
         code: 'muitas_falhas_de_autenticacao',
         mensagem: 'muitas tentativas de autenticação falharam; tente de novo mais tarde',

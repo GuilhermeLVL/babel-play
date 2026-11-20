@@ -68,7 +68,7 @@ async function pedirAlternativas(req: Request, res: Response, rastro: RastroDeIa
       requestId: req.requestId,
       rastro,
       entitlements,
-      /* Esta rota nunca leu o TESTE de 14 dias (lê só o plano, `getPlanForUser`): o teste entra na
+      /* Esta rota nunca leu o TESTE de 3 dias (lê só o plano, `getPlanForUser`): o teste entra na
          admissão como Premium aqui, e como grátis no `/mt` e no polimento. `false` preserva a faixa de
          hoje; alinhar é uma decisão de produto, não deste refactor (relatório da Fase F). */
       emTeste: false,

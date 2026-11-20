@@ -29,9 +29,9 @@ interface Fala {
 const palco = vi.hoisted(() => {
   const vozes = [
     { name: 'Microsoft Aria Online (Natural) - English (United States)', lang: 'en-US', localService: false },
-    { name: 'Microsoft David - English (United States)', lang: 'en-US', localService: true },
+    { name: 'Alex', lang: 'en-US', localService: true },
     { name: 'Microsoft Francisca Online (Natural) - Portuguese (Brazil)', lang: 'pt-BR', localService: false },
-    { name: 'Microsoft Maria - Portuguese (Brazil)', lang: 'pt-BR', localService: true },
+    { name: 'Luciana', lang: 'pt-BR', localService: true },
   ]
   const faladas: unknown[] = []
   class FalaFalsa {
@@ -77,9 +77,9 @@ import { criarMotorPorPreferencia } from '../src/lib/voz/motorPorPreferencia'
 import { VOZ_DA_NUVEM } from '../src/lib/voz/preferenciaDeVoz'
 import type { VozDaNuvem } from '../src/lib/voz/vozDaNuvem'
 
-const DAVID = 'Microsoft David - English (United States)'
+const DAVID = 'Alex'
 const ARIA = 'Microsoft Aria Online (Natural) - English (United States)'
-const MARIA = 'Microsoft Maria - Portuguese (Brazil)'
+const MARIA = 'Luciana'
 const faladas = () => palco.faladas as Fala[]
 const escolher = (vozes: Record<string, string>) => localStorage.setItem('babel_voice_prefs', JSON.stringify(vozes))
 

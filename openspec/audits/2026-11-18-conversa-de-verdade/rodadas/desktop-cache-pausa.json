@@ -1,0 +1,229 @@
+{
+ "rodada": "desktop-cache-pausa",
+ "opcoes": {
+  "raiz": "/tmp/conversa-de-verdade/jantar",
+  "saida": "rodadas/desktop-cache-pausa",
+  "base": "http://localhost:3100",
+  "falas": "/Users/guilhermepinheirodeoliveira/dev/personal/babel/babel-play/.claude/worktrees/pendencias-ao-alcance/reports/auditoria-qualidade/conversa/falas",
+  "perfil": "/tmp/conversa-de-verdade/jantar/perfil-base-desktop",
+  "esperaMicMs": 180000,
+  "turnos": [
+   "pt-pausa",
+   "en-pausa",
+   "pt1"
+  ]
+ },
+ "cargaAteBotaoMs": 662,
+ "toquesTotais": 3,
+ "turnos": 3,
+ "toquesPorTurno": 1,
+ "toquesExtras": [],
+ "troca": null,
+ "mediana": {
+  "toqueAteMicProntoMs": 428,
+  "fimDaFalaAteMicFecharMs": 2345,
+  "fimDaFalaAteTraducaoMs": 2489,
+  "fimDaFalaAteVozMs": 2492,
+  "toqueAteVozTerminarMs": 11216
+ },
+ "avisosVistos": [
+  "Instalando o tradutor · N%",
+  "Baixando o reconhecimento de voz · N%"
+ ],
+ "ouvindoAntesDoPronto": {
+  "ultimoPreparoMs": 3353.6349999904633,
+  "primeiroOuvindoMs": 2481.5549998283386,
+  "ouvindoComPreparo": false
+ },
+ "lista": [
+  {
+   "dono": "meu",
+   "fala": "Então, acho que vou pedir a sobremesa de chocolate.",
+   "lang": "pt",
+   "trad": "So I guess I'll order chocolate dessert."
+  },
+  {
+   "dono": "outro",
+   "fala": "Well, I think i will have the chocolate cake too.",
+   "lang": "en",
+   "trad": "Bem, eu acho que vou tomar o bolo de chocolate também."
+  },
+  {
+   "dono": "meu",
+   "fala": "Boa noite, que bom que você veio jantar com a gente!",
+   "lang": "pt",
+   "trad": "Good evening, glad you came to dinner with us!"
+  }
+ ],
+ "vozesUsadas": [
+  "Albert|en-US",
+  "Eddy (Portuguese (Brazil))|pt-BR"
+ ],
+ "vozesPadraoDoSistema": [
+  {
+   "nome": "Samantha",
+   "lang": "en-US",
+   "padrao": true
+  }
+ ],
+ "gum": [
+  {
+   "t": 2498.5149998664856,
+   "audio": true,
+   "video": false
+  }
+ ],
+ "turnosDetalhe": [
+  {
+   "i": 0,
+   "fala": "pt-pausa",
+   "lado": "meu",
+   "toques": 1,
+   "toqueAteMicProntoMs": 653,
+   "falaDurMs": 5167,
+   "fimDaFalaAteMicFecharMs": 2431,
+   "fimDaFalaAteTraducaoMs": 2489,
+   "fimDaFalaAteVozMs": 2492,
+   "toqueAteVozTerminarMs": 12162,
+   "vozDurMs": 3506,
+   "traducaoNaTela": "So I guess I'll order chocolate dessert.",
+   "lidoEmVoz": "So I guess I'll order chocolate dessert.",
+   "vozUsada": "Albert|en-US",
+   "langDaVoz": "en-US",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…",
+    "Preparando 0%",
+    "Preparando 82%",
+    "Preparando 88%",
+    "Preparando 99%"
+   ],
+   "fraseFinalLado": "Então, acho que vou pedir a sobremesa de chocolate.",
+   "fraseFinalOutro": "So I guess I'll order chocolate dessert.",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 17
+     },
+     "outro": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 33.28
+     }
+    },
+    "microfonesFora": [
+     "Ao vivo"
+    ],
+    "barraVisivel": true
+   }
+  },
+  {
+   "i": 1,
+   "fala": "en-pausa",
+   "lado": "outro",
+   "toques": 1,
+   "toqueAteMicProntoMs": 427,
+   "falaDurMs": 4159,
+   "fimDaFalaAteMicFecharMs": 2306,
+   "fimDaFalaAteTraducaoMs": 2535,
+   "fimDaFalaAteVozMs": 2500,
+   "toqueAteVozTerminarMs": 11044,
+   "vozDurMs": 3652,
+   "traducaoNaTela": "Bem, eu acho que vou tomar o bolo de chocolate também.",
+   "lidoEmVoz": "Bem, eu acho que vou tomar o bolo de chocolate também.",
+   "vozUsada": "Eddy (Portuguese (Brazil))|pt-BR",
+   "langDaVoz": "pt-BR",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "Well, I think i will have the chocolate cake too.",
+   "fraseFinalOutro": "Bem, eu acho que vou tomar o bolo de chocolate também.",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 33.28
+     },
+     "outro": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 17
+     }
+    },
+    "microfonesFora": [
+     "Ao vivo"
+    ],
+    "barraVisivel": true
+   }
+  },
+  {
+   "i": 2,
+   "fala": "pt1",
+   "lado": "meu",
+   "toques": 1,
+   "toqueAteMicProntoMs": 428,
+   "falaDurMs": 4020,
+   "fimDaFalaAteMicFecharMs": 2345,
+   "fimDaFalaAteTraducaoMs": 2385,
+   "fimDaFalaAteVozMs": 2383,
+   "toqueAteVozTerminarMs": 11216,
+   "vozDurMs": 4071,
+   "traducaoNaTela": "Good evening, glad you came to dinner with us!",
+   "lidoEmVoz": "Good evening, glad you came to dinner with us!",
+   "vozUsada": "Albert|en-US",
+   "langDaVoz": "en-US",
+   "erroDaVoz": null,
+   "falhou": null,
+   "vozAntesDoMicFechar": false,
+   "statusAntesDoFimDaFala": [
+    "Ouvindo…"
+   ],
+   "fraseFinalLado": "Boa noite, que bom que você veio jantar com a gente!",
+   "fraseFinalOutro": "Good evening, glad you came to dinner with us!",
+   "layout": {
+    "metades": {
+     "meu": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 17
+     },
+     "outro": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "cabe": true,
+      "rola": false,
+      "cortadoNoTopo": false,
+      "fontePx": 33.28
+     }
+    },
+    "microfonesFora": [
+     "Ao vivo"
+    ],
+    "barraVisivel": true
+   }
+  }
+ ]
+}

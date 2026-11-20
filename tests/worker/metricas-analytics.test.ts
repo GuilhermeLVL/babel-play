@@ -9,8 +9,10 @@ import {
   contarAdmissaoRecusada,
   contarCacheDeTraducao,
   contarCustoPorPlano,
+  contarFalhaDoCliente,
   contarFeedbackDeIa,
   contarRespostaInvalida,
+  contarSaidaFiltrada,
   contarTokensDeEntrada,
   esquecerMetricas,
   medirUsoDoR2,
@@ -102,6 +104,22 @@ describe('famílias do Analytics Engine', () => {
       { blobs: ['tokens_de_entrada', 'resumo', 'outro'], doubles: [900, 300], indexes: ['resumo'] },
       { blobs: ['feedback_ia', 'tutor', 'down', 'errado'], doubles: [1], indexes: ['tutor'] },
       { blobs: ['feedback_ia', 'nuance', 'up', 'nenhum'], doubles: [1], indexes: ['nuance'] },
+    ])
+  })
+
+  it('saida_filtrada (filtro de saída do tutor para perfil protegido): função e categoria, nunca o texto', () => {
+    contarSaidaFiltrada('tutor', 'drogas')
+    expect(pontos).toEqual([{ blobs: ['saida_filtrada', 'tutor', 'drogas'], doubles: [1], indexes: ['tutor'] }])
+  })
+
+  it('cliente_falha (contador anônimo do visitante): tipo, aparelho e modelo, nunca conteúdo', () => {
+    contarFalhaDoCliente('modelo-corrompido', 'celular-fraco', 'moonshine-tiny')
+    expect(pontos).toEqual([
+      {
+        blobs: ['cliente_falha', 'modelo-corrompido', 'celular-fraco', 'moonshine-tiny'],
+        doubles: [1],
+        indexes: ['modelo-corrompido'],
+      },
     ])
   })
 

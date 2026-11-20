@@ -127,7 +127,7 @@ export function enderecoDoEspaco(
   return u.toString();
 }
 
-type Evento = 'recompensa' | 'fechou' | 'vazio';
+type Evento = 'recompensa' | 'fechou' | 'vazio' | 'preenchido';
 
 /** Ouve as mensagens do quadro: só da origem de anúncios e só do próprio quadro. */
 function useMensagensDoQuadro(
@@ -143,7 +143,8 @@ function useMensagensDoQuadro(
       if (!quadro.current || e.source !== quadro.current.contentWindow) return;
       const d = e.data as { tipo?: unknown; evento?: unknown; exibicaoId?: unknown } | null;
       if (!d || typeof d !== 'object' || d.tipo !== 'frasy:anuncio') return;
-      if (d.evento !== 'recompensa' && d.evento !== 'fechou' && d.evento !== 'vazio') return;
+      if (d.evento !== 'recompensa' && d.evento !== 'fechou' && d.evento !== 'vazio' && d.evento !== 'preenchido')
+        return;
       ultimo.current(d.evento, typeof d.exibicaoId === 'string' ? d.exibicaoId : null);
     };
     window.addEventListener('message', ouvir);
@@ -249,12 +250,21 @@ function Topo({ aoSemAnuncios, aoFechar }: { aoSemAnuncios: () => void; aoFechar
 /** O tamanho do quadro: a âncora é uma faixa baixa; o resto, o retângulo médio. */
 const TAMANHO: Partial<Record<EspacoDeAnuncio, [number, number]>> = { ancora: [320, 50] };
 
+/**
+ * SEM SALTO DE LAYOUT (CLS): o espaço nasce RECOLHIDO (`data-estado="aguardando"`: sem o topo e com o quadro de 1 px,
+ * `anunciosDaRede.css`) e só abre a altura quando a página avisa `preenchido`. O quadro existe desde o início, para o
+ * `loading="lazy"` carregá-lo quando ele se aproxima da tela; com o carregamento adiantado do navegador, o anúncio
+ * costuma chegar antes de o espaço entrar na tela, e o que cresce fora dela não empurra nada que a pessoa esteja
+ * vendo. Vazio, o espaço some sem nunca ter ocupado lugar. O intersticial cobre a tela (não empurra nada): abre na hora.
+ */
 function Nativo({ cfg, espaco, formato, aoSemAnuncios, aoFechar }: PropsDoEspacoDeAnuncio & { cfg: ConfigDoIframe }) {
   const quadro = useRef<HTMLIFrameElement | null>(null);
   const [vazio, setVazio] = useState(false);
+  const [preenchido, setPreenchido] = useState(espaco === 'intersticial');
   const recusado = useQuadroRecusado(cfg.origem);
   useMensagensDoQuadro(cfg.origem, quadro, (evento) => {
     if (evento === 'vazio') setVazio(true);
+    if (evento === 'preenchido') setPreenchido(true);
   });
   const sumiu = vazio || recusado;
   const fechar = useRef(aoFechar);
@@ -265,7 +275,13 @@ function Nativo({ cfg, espaco, formato, aoSemAnuncios, aoFechar }: PropsDoEspaco
   if (sumiu) return null;
   const [largura, altura] = TAMANHO[espaco] ?? [300, 250];
   return (
-    <aside className="anuncio-rede" data-ad={espaco} aria-label={t('Anúncio')}>
+    <aside
+      className="anuncio-rede"
+      data-ad={espaco}
+      data-estado={preenchido ? 'preenchido' : 'aguardando'}
+      aria-label={t('Anúncio')}
+      aria-hidden={preenchido ? undefined : true}
+    >
       <Topo aoSemAnuncios={aoSemAnuncios} aoFechar={aoFechar} />
       <iframe
         ref={quadro}

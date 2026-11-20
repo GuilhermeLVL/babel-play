@@ -40,12 +40,25 @@ import type { LadoDaVoz } from '../../../../lib/voz/catalogoDeVozes';
 import FolhaDasVozes from '../../../voz/FolhaDasVozes';
 import { CartaoDaMarca, ComparacaoNaPagina, CorrecaoNaPagina, SugestaoParaLer } from '../assistente/AssistenteNaPagina';
 import { TextoComMarcas } from '../assistente/TextoComMarcas';
+import { ajustarFonteParaCaber } from './fonteQueCabe';
 
 /** O que a metade mostra no meio: a dica de começo, a fala de quem está nela, ou a tradução do outro. */
 export type FraseDaMetade =
   | { tipo: 'dica'; texto: string }
   | { tipo: 'fala'; texto: string; lang: string; aoVivo: boolean; id?: string }
-  | { tipo: 'traducao'; id: string; traducao: string; original: string; lang: string; langDoOriginal: string };
+  | { tipo: 'traducao'; id: string; traducao: string; original: string; lang: string; langDoOriginal: string }
+  /** A fala espera a conferência (conversa-de-verdade, 5.4): o que o app entendeu e os três toques. */
+  | {
+      tipo: 'conferir';
+      id: string;
+      texto: string;
+      lang: string;
+      aoLer: () => void;
+      aoCorrigir: () => void;
+      aoDescartar: () => void;
+    }
+  /** A fala saiu em outro idioma (conversa-de-verdade, 3.2): o aviso para repetir e o que foi ouvido, sem tradução. */
+  | { tipo: 'foraDoPar'; id: string; texto: string; original: string; langDoOriginal: string };
 
 export interface MetadeDaConversa {
   /** O lado do MOTOR: `outro` é a metade de cima, `meu` a de baixo (quem segura o aparelho). */
@@ -323,6 +336,19 @@ export default function ConversaDoPrototipo({
     if (de && raiz.current) trocaDeLados(raiz.current, de);
   }, [cima.dono]);
 
+  /* A FRASE CABE NA METADE (conversa-de-verdade, 5.1): a fonte encolhe até 18 px, e o resto rola. A cada frase nova
+     e quando a tela muda de tamanho (girar o celular, o teclado). */
+  const textoDaFrase = (m: MetadeDaConversa) =>
+    m.frase.tipo === 'traducao' ? m.frase.traducao + m.frase.original : m.frase.texto + m.frase.tipo;
+  const chaveDasFrases = `${textoDaFrase(cima)}|${textoDaFrase(baixo)}|${lista.aberta}`;
+  useLayoutEffect(() => {
+    const ajustar = () =>
+      raiz.current?.querySelectorAll<HTMLElement>('.int-frase').forEach((f) => ajustarFonteParaCaber(f));
+    ajustar();
+    window.addEventListener('resize', ajustar);
+    return () => window.removeEventListener('resize', ajustar);
+  }, [chaveDasFrases]);
+
   /* A TRADUÇÃO CHEGOU do lado de quem escuta: uma vez por fala, e não para a que já estava na tela. */
   const idDaTraducao = (m: MetadeDaConversa) => (m.frase.tipo === 'traducao' ? m.frase.id : '');
   const vistas = useRef<Record<string, string>>({ [cima.dono]: idDaTraducao(cima), [baixo.dono]: idDaTraducao(baixo) });
@@ -356,6 +382,39 @@ export default function ConversaDoPrototipo({
   const frase = (m: MetadeDaConversa) => {
     const f = m.frase;
     if (f.tipo === 'dica') return <p className="int-dica">{f.texto}</p>;
+    if (f.tipo === 'conferir')
+      return (
+        <div className="int-conferir" data-testid={`conferir-${m.lado}`}>
+          <p className="int-conferir-rotulo">{t('O app entendeu:')}</p>
+          <p className="int-ao-vivo" lang={f.lang} dir={direcaoDoTexto(f.lang)}>
+            {f.texto}
+          </p>
+          <div className="int-conferir-acoes">
+            <button type="button" className="int-conferir-ler" onClick={f.aoLer}>
+              {t('Ler a tradução')}
+            </button>
+            <button type="button" onClick={f.aoCorrigir}>
+              {t('Corrigir')}
+            </button>
+            <button type="button" onClick={f.aoDescartar}>
+              {t('Descartar')}
+            </button>
+          </div>
+        </div>
+      );
+    if (f.tipo === 'foraDoPar')
+      return (
+        <>
+          <p className="int-fora-do-par" data-testid={`fora-do-par-${m.lado}`}>
+            {f.texto}
+          </p>
+          {f.original && (
+            <p className="int-original" lang={f.langDoOriginal} dir={direcaoDoTexto(f.langDoOriginal)}>
+              {f.original}
+            </p>
+          )}
+        </>
+      );
     if (f.tipo === 'fala')
       return (
         <p className="int-ao-vivo" lang={f.lang} dir={direcaoDoTexto(f.lang)}>
@@ -545,6 +604,7 @@ export default function ConversaDoPrototipo({
       data-testid={testid}
       data-fase={fase}
       data-pagina={comTrilho ? '' : undefined}
+      data-em-curso={emDialogo ? '' : undefined}
       data-layout={emColunas ? 'computador' : undefined}
       data-escuta={escuta ? '' : undefined}
     >

@@ -8,7 +8,10 @@
 import type { AuthResult, OpcoesDeCaptcha } from './auth';
 import { AUTH_CALLBACK_PATH, CHAVE_DO_ERRO_DO_LINK } from './authCallback';
 import { t } from './i18n';
-import { supabase } from './supabase';
+import { carregarSupabase, supabase as clienteCarregado } from './supabase';
+
+/** O cliente já carregado ou, sem ele, o pacote pedido agora (o visitante não o baixa no boot). */
+const clienteDoSupabase = async () => clienteCarregado ?? (await carregarSupabase());
 
 /* As frases são a CHAVE do catálogo e passam por `t()` na hora de mostrar (ver `auth.ts`). */
 const LIMITE = 'Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente de novo.';
@@ -64,6 +67,7 @@ export function consumirErroDoLink(): string | null {
 
 /** Manda de novo o e-mail de confirmação do cadastro. */
 export async function reenviarConfirmacao(email: string, options?: OpcoesDeCaptcha): Promise<AuthResult> {
+  const supabase = await clienteDoSupabase();
   if (!supabase) return { ok: false };
   const emailRedirectTo = typeof window !== 'undefined' ? `${window.location.origin}${AUTH_CALLBACK_PATH}` : undefined;
   try {

@@ -37,7 +37,7 @@ test.describe('Elenco na narração do leitor', () => {
     await expect(page.getByTestId('painel-elenco')).toHaveCount(0)
     await expect(page.getByTestId('avatar-do-narrador')).toHaveCount(0)
     await expect.poll(async () => (await faladas(page)).length).toBeGreaterThan(0)
-    expect((await faladas(page))[0].voz).not.toBe('Teste B')
+    expect((await faladas(page))[0].voz).not.toBe('Daniel')
   })
 
   test('com a flag: personagens da ficha, voz própria por personagem, emoção no ritmo, avatar com legenda e volta a uma voz só', async ({
@@ -75,8 +75,8 @@ test.describe('Elenco na narração do leitor', () => {
     const ana = por('Come here')
     const bruno = por('I am coming now')
     const narracao = por('The evening settled')
-    expect(ana.voz).toMatch(/Teste [A-D]/)
-    expect(bruno.voz).toMatch(/Teste [A-D]/)
+    expect(ana.voz).toMatch(/^(Alex|Daniel|Karen|Samantha)$/)
+    expect(bruno.voz).toMatch(/^(Alex|Daniel|Karen|Samantha)$/)
     expect(ana.voz).not.toBe(bruno.voz)
     // A narração fica na voz da pessoa (a automática), que não é a de nenhuma personagem.
     expect([ana.voz, bruno.voz]).not.toContain(narracao.voz)
@@ -151,11 +151,11 @@ test.describe('Elenco na narração do leitor', () => {
     await foto(page, 'descoberta-painel')
 
     // Experimentar voz: fala uma frase de exemplo com a voz escolhida, sem iniciar a narração do livro.
-    await sel.selectOption('Teste C')
+    await sel.selectOption('Karen')
     await page.getByTestId('elenco-testar-0').click()
     await expect.poll(async () => (await faladas(page)).at(-1)?.texto ?? '').toContain('Ana')
     const amostra = (await faladas(page)).at(-1)!
-    expect(amostra.voz).toBe('Teste C')
+    expect(amostra.voz).toBe('Karen')
     expect(amostra.texto).toMatch(/Hello, I am Ana/)
     await foto(page, 'descoberta-experimentar')
 

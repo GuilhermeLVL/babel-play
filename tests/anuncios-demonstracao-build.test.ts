@@ -34,9 +34,9 @@ afterEach(() => {
 })
 
 describe('ligar.ts: a demonstração só existe em DEV ou com VITE_ANUNCIOS_DEMONSTRACAO=1', () => {
-  it('a condição é literal, em ligar.ts e em EspacoDeAnuncio.tsx (o Vite só elimina o que é literal)', () => {
+  it('a condição é literal, em ligar.ts e em useProvedorDeAnuncios.ts (o Vite só elimina o que é literal)', () => {
     expect(readFileSync('src/components/anuncios/demonstracao/ligar.ts', 'utf8')).toContain(CONDICAO)
-    expect(readFileSync('src/components/anuncios/EspacoDeAnuncio.tsx', 'utf8')).toContain(CONDICAO)
+    expect(readFileSync('src/components/anuncios/useProvedorDeAnuncios.ts', 'utf8')).toContain(CONDICAO)
   })
 
   it('build de produção sem a variável: nada é registrado, nem com a chave local', async () => {

@@ -252,9 +252,25 @@ describe('aviso de download', () => {
     expect(classificarDispositivo({ ...desktop, tipoDeRede: '3g' }).confirmarDownloadAcimaDeMb).toBe(0)
   })
 
-  it('celular/Quest em rede boa: confirma acima de 100 MB', () => {
+  /* carga-rapida-no-celular (CEL-04): no celular 90 MB saíam do plano de dados sem pergunta. Agora acima de 20 MB. */
+  it('celular/Quest em rede boa: confirma acima de 20 MB', () => {
     const q = classificarDispositivo({ ...desktop, userAgent: UA_QUEST, capturaDeTela: false, temXr: true })
-    expect(q.confirmarDownloadAcimaDeMb).toBe(100)
+    expect(q.confirmarDownloadAcimaDeMb).toBe(20)
+    const cel = classificarDispositivo({ ...desktop, capturaDeTela: false, ponteiroGrosso: true, toques: 5 })
+    expect(cel.tipo.startsWith('celular')).toBe(true)
+    expect(cel.confirmarDownloadAcimaDeMb).toBe(20)
+  })
+
+  it('sem o tipo de rede (Safari), a vazão medida decide: abaixo de 1,5 Mbit/s confirma tudo e avisa', () => {
+    const iphone = { ...desktop, capturaDeTela: false, ponteiroGrosso: true, toques: 5, tipoDeRede: null }
+    const lento = classificarDispositivo({ ...iphone, vazaoMbps: 1.2 })
+    expect(lento.confirmarDownloadAcimaDeMb).toBe(0)
+    expect(lento.redeLenta).toBe(true)
+    expect(lento.motivos.join(' ')).toMatch(/1,2 Mbit\/s|1.2 Mbit\/s/)
+    const rapido = classificarDispositivo({ ...iphone, vazaoMbps: 20 })
+    expect(rapido.confirmarDownloadAcimaDeMb).toBe(20)
+    expect(rapido.redeLenta).toBe(false)
+    expect(classificarDispositivo({ ...iphone }).redeLenta).toBe(false)
   })
 })
 

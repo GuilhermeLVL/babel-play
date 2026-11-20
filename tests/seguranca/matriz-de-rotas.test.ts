@@ -43,6 +43,8 @@ const PUBLICAS_POR_DESENHO: Record<string, string> = {
     'telemetria ANÔNIMA de qualidade da captura (latências, fator de tempo real, quedas de motor): funciona igual com e sem conta, e ficar antes do auth é o que garante que ela não conhece identidade. Corpo de 8 KB, balde próprio por IP no modo público, nada é gravado — só observado em histograma.',
   'POST /api/metricas/ofertas':
     'o funil de conversão das ofertas de planos (Fase 8): evento, gatilho, componente, plano atual/sugerido e variante — nenhum id de pessoa. Precisa funcionar sem conta (a conversão convidado → conta é a que mais importa) e ficar antes do auth garante que não conhece identidade. Mesmo corpo de 8 KB e balde por IP de `/api/metricas`; labels de alfabeto fechado; nada é gravado.',
+  'POST /api/erros-do-cliente/falha':
+    'o contador ANÔNIMO de falhas de preparo do visitante (change `modelos-confiaveis-e-offline`, opção "a" do dono): só `{tipo, aparelho, modelo}` de listas fechadas, com `.strict()`; quem mais precisa ser visto é quem não tem conta, e ficar antes do auth garante que a rota não conhece identidade. Corpo de 8 KB, balde próprio por HMAC do IP (o IP não é gravado); só incrementa `cliente_falha_total`.',
   'GET /api/abertura':
     'as chaves de emergência CHECKOUT_ENABLED/SIGNUP_ENABLED, lidas pela tela de login ANTES de existir sessão (para esconder "Criar conta" com o cadastro fechado). Responde só três booleanos (cadastro, checkout e a venda do anual, `ANUAL_ENABLED`), sem dado de ninguém.',
   'GET /api/flags':

@@ -75,15 +75,19 @@ export function cbzMinimo(): Uint8Array {
 export function epubMinimo({ extras = {} as Record<string, string> } = {}): Uint8Array {
   const container = `<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>`
   const opf = `<?xml version="1.0"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">x</dc:identifier><dc:title>Livro EPUB de Teste</dc:title><dc:language>pt</dc:language><dc:creator>Autora</dc:creator></metadata><manifest><item id="c1" href="c1.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="c1"/></spine></package>`
-  return zipSync({
-    mimetype: strToU8('application/epub+zip'),
-    'META-INF/container.xml': strToU8(container),
-    'OEBPS/content.opf': strToU8(opf),
-    'OEBPS/c1.xhtml': strToU8(
-      `<html xmlns="http://www.w3.org/1999/xhtml"><body><p>${TEXTO_DO_LIVRO}</p></body></html>`,
-    ),
-    ...Object.fromEntries(Object.entries(extras).map(([k, v]) => [k, strToU8(v)])),
-  })
+  // Data fixa: o zip grava a hora de cada entrada, e duas chamadas em segundos diferentes dariam bytes diferentes.
+  return zipSync(
+    {
+      mimetype: strToU8('application/epub+zip'),
+      'META-INF/container.xml': strToU8(container),
+      'OEBPS/content.opf': strToU8(opf),
+      'OEBPS/c1.xhtml': strToU8(
+        `<html xmlns="http://www.w3.org/1999/xhtml"><body><p>${TEXTO_DO_LIVRO}</p></body></html>`,
+      ),
+      ...Object.fromEntries(Object.entries(extras).map(([k, v]) => [k, strToU8(v)])),
+    },
+    { mtime: new Date(2020, 0, 1) },
+  )
 }
 
 /** Um DOCX com dois títulos (Heading 1) e parágrafos. */

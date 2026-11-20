@@ -110,19 +110,27 @@ describe('bootStatus + /api/health — P2-5', () => {
    */
   it('a falha registrada por um processo é vista por outro que lê o mesmo banco', async () => {
     boot.registrarFalhaDeBoot('backfill-tenancy', new Error('b'))
-    await new Promise((r) => setTimeout(r, 20)) // a escrita no banco é disparada, não aguardada
+    await boot.aguardarGravacoesDeBoot() // a escrita no banco é disparada, não aguardada
     boot.esquecerEmMemoria()
     const visto = await boot.bootStatus()
     expect(visto.ok).toBe(false)
     expect(visto.erros.map((e: any) => e.passo)).toContain('backfill-tenancy')
   })
 
-  /** Passo que volta a dar certo apaga a linha — senão a instância fica em 503 para sempre. */
+  /**
+   * Passo que volta a dar certo apaga a linha — senão a instância fica em 503 para sempre.
+   *
+   * ESPERA PELA GRAVAÇÃO, NÃO POR 20 ms. Eram dois sonos fixos: no Postgres de verdade o `INSERT` da
+   * falha e o `DELETE` do sucesso saem por conexões diferentes do pool, e quando o `INSERT` levava
+   * mais de 20 ms o `DELETE` chegava antes e a linha sobrava (job `postgres-real`, 2 em 3 execuções;
+   * com sono de 0 ms, 4 em 5 localmente). Em produção cada passo grava uma vez por boot, então a
+   * ordem só importa aqui.
+   */
   it('sucesso posterior limpa a falha, e a saúde volta', async () => {
     boot.registrarFalhaDeBoot('migracao-fsrs', new Error('a'))
-    await new Promise((r) => setTimeout(r, 20))
+    await boot.aguardarGravacoesDeBoot()
     boot.registrarSucessoDeBoot('migracao-fsrs')
-    await new Promise((r) => setTimeout(r, 20))
+    await boot.aguardarGravacoesDeBoot()
     boot.esquecerEmMemoria()
     expect((await boot.bootStatus()).ok).toBe(true)
   })

@@ -4,7 +4,7 @@
  * Só com `VITE_ANUNCIOS_ORIGEM` (a origem do Worker de anúncios `frasy-anuncios`, `https://…`) no build, e
  * só quando ela NÃO é a origem do próprio app (R35: a página de anúncios nunca roda na origem do app;
  * igual = falha fechada). Sem ela, nada é carregado: nem o módulo do provedor nem o CSS. Quem chama
- * (`EspacoDeAnuncio`) só chama com a flag `anuncios` ligada. Registrar o provedor ainda não mostra nada:
+ * (`useProvedorDeAnuncios`, de todo encaixe) só chama com a flag `anuncios` ligada. Registrar o provedor ainda não mostra nada:
  * os espaços continuam perguntando à política (flag, plano, perfil, consentimento…), e a CSP do app só
  * abre o quadro com a flag ligada. O código da rede (`VITE_ANUNCIOS_REDE_CONTA`) é do build da página
  * de anúncios (`scripts/anuncios/build.mjs`), não do app.

@@ -1,11 +1,13 @@
 /**
- * PRELOAD DAS DUAS FONTES QUE PINTAM O PRIMEIRO TEXTO.
+ * PRELOAD DA FONTE QUE PINTA O PRIMEIRO TEXTO.
  *
  * As fontes agora são arquivos do próprio site (`/assets/inter-latin-wght-normal-<hash>.woff2`). O
  * navegador só descobre uma fonte depois de ler o CSS e achar texto que a usa; um
  * `<link rel="preload" as="font">` no `index.html` faz o download começar junto com o do CSS e do JS.
- * Só as duas do primeiro texto, no subset latin: Inter (corpo) e Archivo (títulos) — ambas variáveis,
- * um arquivo cobre todos os pesos. O nome com hash só existe depois do build, por isso é um plugin.
+ * Só a Inter (corpo), no subset latin: variável, um arquivo cobre todos os pesos. A Archivo (títulos) saiu
+ * do preload em 17/11/2026 (carga-rapida-no-celular): no 4G lento, os 34 KB dela disputavam a banda com o CSS e
+ * com a Inter, que é a fonte do texto do LCP (o cartão "Legendar agora"); os títulos trocam de fonte um instante
+ * depois (`font-display: swap`). O nome com hash só existe depois do build, por isso é um plugin.
  * `crossorigin` é obrigatório em preload de fonte (mesmo na mesma origem), senão o navegador baixa duas vezes.
  */
 import type { Plugin } from 'vite';
@@ -15,7 +17,7 @@ interface ItemDoBundle {
   fileName: string;
 }
 
-const CRITICAS = [/^assets\/inter-latin-wght-normal-[\w-]+\.woff2$/, /^assets\/archivo-latin-wght-normal-[\w-]+\.woff2$/];
+const CRITICAS = [/^assets\/inter-latin-wght-normal-[\w-]+\.woff2$/];
 
 /** Os arquivos de fonte críticos presentes no bundle, na ordem de CRITICAS. Pura, para o teste. */
 export function fontesCriticas(bundle: Record<string, ItemDoBundle>): string[] {

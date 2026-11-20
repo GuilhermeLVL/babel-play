@@ -5,7 +5,7 @@
  * 1. "Pode testar" é o que o SERVIDOR disse (`GET /api/billing/status` → `teste.estado: 'disponivel'`),
  *    guardado no aparelho por 1 hora. Sem resposta guardada, não se sabe — e não se promete o teste.
  * 2. A tela de Planos e o checkout já perguntam o status: cada resposta atualiza o que o motor sabe
- *    (quem acabou de começar o teste deixa de ouvir "teste 14 dias").
+ *    (quem acabou de começar o teste deixa de ouvir "teste 3 dias").
  * 3. O host pergunta por conta própria só com o cache vencido (uma pergunta por hora, no máximo).
  * 4. Protegido é a CONTA de perfil protegido (menor, ou idade não declarada). O convidado não entra
  *    aqui: para ele a única promocional já é criar a conta.
@@ -55,7 +55,7 @@ describe('pode testar', () => {
   })
 
   it('o status carregado pela tela de Planos atualiza o que o motor sabe', async () => {
-    mockStatus({ estado: 'disponivel', dias: 14 })
+    mockStatus({ estado: 'disponivel', dias: 3 })
     const { carregarStatusDeBilling } = await import('../src/lib/assinatura')
     const { podeTestarConhecido } = await import('../src/lib/ofertas/teste')
     await carregarStatusDeBilling()
@@ -63,7 +63,7 @@ describe('pode testar', () => {
   })
 
   it('o host pergunta ao servidor só com o cache vencido', async () => {
-    const chamadas = mockStatus({ estado: 'disponivel', dias: 14 })
+    const chamadas = mockStatus({ estado: 'disponivel', dias: 3 })
     const { verificarTeste, podeTestarConhecido } = await import('../src/lib/ofertas/teste')
     const agora = Date.now()
     await verificarTeste(agora)

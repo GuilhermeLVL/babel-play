@@ -36,8 +36,12 @@ export interface EntradaDaVozNoAparelho {
   /** `crossOriginIsolated` (threads do WASM). */
   isolado: boolean;
   ios: boolean;
-  /** OPFS (`navigator.storage.getDirectory`) para guardar o modelo. */
-  armazenamento: boolean;
+  /**
+   * OPFS para guardar o modelo: `false` (API ausente ou a sonda falhou, como no Safari em navegação privada), `true`
+   * (a sonda criou e apagou um arquivo) ou `'desconhecido'` (a sonda ainda não respondeu: não bloqueia a leitura, mas
+   * o convite espera a resposta).
+   */
+  armazenamento: boolean | 'desconhecido';
 }
 
 export type OfertaDaVoz = 'padrao' | 'por-escolha' | 'nao';
@@ -87,7 +91,7 @@ export function ofertaDaVozNoAparelho(e: EntradaDaVozNoAparelho): DecisaoDaVozNo
   if (e.tipo === 'quest' || e.tipo.startsWith('celular')) return d('nao', 'aparelho-de-pouca-memoria');
   if (e.memoriaGb != null && e.memoriaGb < 4) return d('nao', 'memoria-insuficiente');
   if (!e.webGpu && !e.wasm) return d('nao', 'sem-motor');
-  if (!e.armazenamento) return d('nao', 'sem-armazenamento');
+  if (e.armazenamento === false) return d('nao', 'sem-armazenamento');
   if (e.poucaMemoria || !e.isolado) return d('por-escolha', 'sem-isolamento');
   if (e.memoriaGb != null && e.memoriaGb < 8) return d('por-escolha', 'memoria-justa');
   return d('padrao', 'aparelho-capaz');
@@ -132,6 +136,7 @@ export interface EntradaDoConvite extends EntradaDaVozDaLeitura {
  */
 export function convidarParaVozNoAparelho(e: EntradaDoConvite): boolean {
   if (ofertaDaVozNoAparelho(e).oferta === 'nao' || !e.idiomaSuportado || e.modeloPronto || e.audioGravado) return false;
+  if (e.armazenamento !== true) return false; // sem a resposta da sonda do OPFS, o convite não aparece
   if (e.escolha !== 'automatica' && e.escolha !== 'no-aparelho') return false;
   return e.recusadoEm == null || e.agora - e.recusadoEm >= PRAZO_DO_CONVITE_MS;
 }

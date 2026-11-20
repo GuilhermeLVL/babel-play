@@ -486,7 +486,7 @@ FASE C  O resto: guias, livros, parceiro de leitura, decisões de produto
 - **Passos:**
   1. **Cadastro** — `npx wrangler secret put SIGNUP_ENABLED -c wrangler.jsonc` e digite `1` (ou `secret delete`). **Em seguida**
      o Supabase: _Authentication → Providers → Email → Allow new users to sign up_ **ligado**. Crie uma conta nova: o e-mail
-     chega, o login entra, o teste de 14 dias aparece em Planos.
+     chega, o login entra, o teste de 3 dias aparece em Planos.
   2. **Venda mensal** — `npx wrangler secret put CHECKOUT_ENABLED -c wrangler.jsonc` com `1`. Assine o mensal com sua conta;
      o webhook concede o plano; `GET /api/billing/status` confere.
   3. **Anual** — só com os Termos §3–§4 validados: `npx wrangler secret put ANUAL_ENABLED -c wrangler.jsonc` com `1`.

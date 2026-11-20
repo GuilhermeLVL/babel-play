@@ -949,6 +949,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'origem do JWKS e base da Admin API; também é o que faz o `iss` do JWT ser exigido',
   },
   {
+    nome: 'TESTES_PREMIUM_POR_IP_DIA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'quantos testes do Premium podem COMEÇAR pelo mesmo IP pseudonimizado no mesmo dia; acima disso `POST /api/billing/teste` responde 429 teste_limite_por_ip (change teste-de-3-dias, server/lib/testePremium.ts). Padrão 5; 0 desliga',
+  },
+  {
     nome: 'TRUST_PROXY',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -977,6 +984,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'base pública do bucket R2 dos audiolivros pré-gerados (`audiolivros/<livroId>/<voz>/atual.json`, `manifesto.json` e `<versao>/<nn>.opus|json`, flag `audiolivros`). Ausente: o "Ouvir" lê com a voz do aparelho, como sempre. Com ela, a CSP libera a origem em `connect-src` e `media-src`',
+  },
+  {
+    nome: 'VITE_AUTH_REQUIRED',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '1 no BUILD do modo público (o deploy do Worker a fixa): o front sai com a porta de login, e a CSP do `dist/_headers` (`server/http/csp.ts`) deixa de fora o Ollama local (`localhost:11434`), como o servidor faz com `AUTH_REQUIRED=1`. Ausente ou vazia (self-host, edição estática): o Ollama continua em `connect-src`',
   },
   {
     nome: 'VITE_AVATARES_URL',
@@ -1031,6 +1045,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     criticidade: 'degrada-capacidade',
     paraQue:
       'chave PÚBLICA do Cloudflare Turnstile: o convidado passa pelo captcha antes de o Supabase criar o usuário anônimo (Fase 7). Com ela a CSP libera challenges.cloudflare.com; sem ela o captcha fica desligado',
+  },
+  {
+    nome: 'VITE_VOZ_KITTEN_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'raiz pública do bucket R2 com os pesos da voz natural no aparelho (Kitten TTS 2, Apache-2.0: `<raiz>/mini/…` ~90 MB e `<raiz>/pico/…` ~10 MB por idioma, sha256 fixado em `src/core/voz/kitten.ts`), para a flag `voz_kitten`. Ausente: a voz natural não aparece e quem lê segue a ordem de antes. Com ela, a CSP libera a origem em `connect-src` (dado, nunca `script-src`)',
   },
   {
     nome: 'VITE_VOZ_MODELO_URL',
@@ -1584,7 +1605,7 @@ export function cadastroLigado(env: NodeJS.ProcessEnv = process.env): boolean {
 
 /**
  * O plano ANUAL (à vista e em 12x) está à venda? Só com `ANUAL_ENABLED=1`; desligado, ele sai da tela
- * e do `/assinar`, e o mensal e o teste de 14 dias seguem. Não é chave de emergência, é de LANÇAMENTO:
+ * e do `/assinar`, e o mensal e o teste de 3 dias seguem. Não é chave de emergência, é de LANÇAMENTO:
  * o MVP sobe só com o mensal até o jurídico validar os Termos §3–§4.
  *
  * FAIL-SAFE (auditoria de 15/10/2026, B4): ausente, vazia ou qualquer valor que não seja `1` = FECHADO.
@@ -1669,6 +1690,14 @@ export function limitesAntiabusoDoConvidado(env: NodeJS.ProcessEnv = process.env
     ipUsdDia: numeroDoEnv(env.CONVIDADO_IP_USD_DIA, 0.04, 'config_convidado_ip_usd_invalido'),
     ipTutorDia: Math.floor(numeroDoEnv(env.CONVIDADO_IP_TUTOR_DIA, 10, 'config_convidado_ip_tutor_invalido')),
   }
+}
+
+/**
+ * Quantos testes do Premium começam pelo mesmo IP (pseudonimizado) no mesmo dia (change `teste-de-3-dias`). `0` desliga
+ * o teto. 5 cobre uma casa (dois adultos e o responsável ativando para os filhos) e corta a fábrica de contas.
+ */
+export function testesPremiumPorIpNoDia(env: NodeJS.ProcessEnv = process.env): number {
+  return Math.floor(numeroDoEnv(env.TESTES_PREMIUM_POR_IP_DIA, 5, 'config_testes_premium_por_ip_invalido'))
 }
 
 /** O pool diário de IA gratuita (convidado + free): `max(piso, fração × receita líquida do mês ÷ 30)`. */

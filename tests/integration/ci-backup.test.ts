@@ -10,8 +10,8 @@ import { describe, expect, it } from 'vitest'
 const texto = readFileSync(join(__dirname, '../../.github/workflows/backup-pg-dump.yml'), 'utf8')
 
 describe('workflow backup-pg-dump', () => {
-  it('agenda toda segunda às 06:00 UTC e aceita disparo manual', () => {
-    expect(texto).toContain("cron: '0 6 * * 1'")
+  it('agenda todo dia às 06:00 UTC e aceita disparo manual', () => {
+    expect(texto).toContain("cron: '0 6 * * *'")
     expect(texto).toContain('workflow_dispatch')
   })
 
@@ -22,9 +22,12 @@ describe('workflow backup-pg-dump', () => {
     expect(texto).toContain('IPv6')
   })
 
-  it('envia ao bucket frasy-backups em semanal/AAAA-MM-DD.dump e confere com pg_restore --list', () => {
+  it('envia ao bucket frasy-backups (segunda em semanal/, outros dias em diario/) e confere com pg_restore --list', () => {
     expect(texto).toContain('frasy-backups')
     expect(texto).toContain('semanal/')
+    expect(texto).toContain('diario/')
+    expect(texto).toMatch(/date -u \+%u\)" = "1" \]; then pasta=semanal; else pasta=diario/)
+    expect(texto).toContain('"$pasta/$dia.dump"')
     expect(texto).toContain('pg_restore --list')
   })
 

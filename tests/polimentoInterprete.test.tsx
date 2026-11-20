@@ -295,7 +295,7 @@ describe('a conversa em curso no desenho novo', () => {
     const { abrir } = conversa()
     await esperar()
     expect(abrir).toHaveBeenCalledOnce()
-    expect(screen.getByTestId('falar-meu').textContent).toBe('Parar')
+    expect(screen.getByTestId('falar-meu').textContent).toBe('Terminei')
     expect(screen.getByTestId('falar-meu').hasAttribute('data-ouvindo')).toBe(true)
     // O cursor do app só passa à tinta sobre o botão LARANJA (parado); ouvindo, o botão não é laranja.
     expect(screen.getByTestId('falar-meu').dataset.cursor).toBeUndefined()

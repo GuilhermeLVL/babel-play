@@ -2,7 +2,7 @@ import '../../styles/questAjustes.css';
 import '../../styles/seletorDeVoz.css';
 
 import { AudioLines, Check, Cloud, Cpu, Sparkles, Square, Star, Volume2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { FLAG_VOZ_NO_APARELHO } from '../../core/harness/vozNoAparelho';
 import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
@@ -13,6 +13,7 @@ import { cancelSpeech, codigoDeFala, speak, vozesCarregadas } from '../../lib/tt
 import { avatarDaVoz } from '../../lib/voz/avatarDaVoz';
 import { fraseDeAmostra, nomeLegivelDaVoz, type OpcaoDeVoz, opcoesDeVoz } from '../../lib/voz/catalogoDeVozes';
 import { passosParaInstalarVoz } from '../../lib/voz/faltaDeVoz';
+import { opfsConhecido } from '../../lib/voz/opfsUtilizavel';
 import {
   escolherVoz,
   useVozesPreferidas,
@@ -24,10 +25,13 @@ import {
   vozGuardada,
 } from '../../lib/voz/preferenciaDeVoz';
 import {
+  aoMudarVozNoAparelho,
   definirVozDoNarrador,
   motorDaVozNoAparelho,
+  verificarArmazenamentoDaVoz,
   VOZ_NO_APARELHO,
   vozDoNarradorNoAparelho,
+  vozNoAparelhoSemArmazenamento,
   vozNoAparelhoUtilizavel,
 } from '../../lib/voz/vozNoAparelho';
 import { zoomDoCorpo } from '../../lib/zoomDoCorpo';
@@ -70,8 +74,17 @@ export default function SeletorDeVoz({
 }) {
   useVozesPreferidas(); // a lista acompanha a escolha feita em outra tela, a conta e as vozes do sistema
   useFlag(FLAG_VOZ_NO_APARELHO); // a voz no aparelho aparece (ou some) quando a flag chega
+  /* A resposta da sonda do OPFS (uma vez por sessão) redesenha a opção: desabilitada, com o motivo, se ele não funciona. */
+  useSyncExternalStore(aoMudarVozNoAparelho, () => opfsConhecido());
+  useEffect(() => {
+    void verificarArmazenamentoDaVoz();
+  }, []);
+  /* O motivo mora no cartão do modelo: sem o cartão (folha do intérprete), a linha desabilitada não teria explicação. */
+  const semArmazenamento = vozNoAparelhoSemArmazenamento() && comModelo;
   const comNuvem = nuvem ?? vozDaNuvemDisponivel();
-  const opcoes = opcoesDeVoz(idioma, comNuvem);
+  const opcoes = opcoesDeVoz(idioma, comNuvem).filter(
+    (o) => o.tipo !== 'no-aparelho' || !vozNoAparelhoSemArmazenamento() || comModelo,
+  );
   const emUso = vozEmUso(idioma, comNuvem);
   const guardada = vozGuardada(idioma);
   /* A voz guardada não vale aqui: o plano perdeu a nuvem, ou o aparelho não tem a voz (só dá para
@@ -197,6 +210,8 @@ export default function SeletorDeVoz({
                   role="radio"
                   className="q-opcao"
                   aria-checked={escolhida}
+                  aria-disabled={o.tipo === 'no-aparelho' && semArmazenamento ? true : undefined}
+                  aria-describedby={o.tipo === 'no-aparelho' && semArmazenamento ? 'motivo-voz-no-aparelho' : undefined}
                   data-voz={chave || 'automatica'}
                   onClick={() => escolher(o)}
                 >

@@ -126,6 +126,11 @@ pg_restore --list <arquivo> | head          # abre e lista, antes de tocar em qu
 pg_restore --clean --if-exists --schema=public --schema=drizzle -d "$PGDATABASE" <arquivo>
 ```
 
+Num banco NOVO (ensaio ou troca de banco), o `--schema` não restaura o `CREATE SCHEMA drizzle`: rode antes
+`psql -c 'create schema if not exists drizzle'`, senão `drizzle.__drizzle_migrations` some e o boot reaplicaria todas as
+migrações. Fora do Supabase, some `--no-owner --no-privileges` (os GRANT citam `anon`, `service_role`,
+`supabase_admin`, que não existem num Postgres comum); no próprio Supabase os papéis existem e não precisa.
+
 Com `pglite:<dir>` (dev), pare o servidor e copie de volta o diretório do backup.
 
 **Antes de trocar o banco vivo**, restaure num banco NOVO e confira: `pg_restore --list` sem erro e as contagens das
@@ -140,9 +145,9 @@ tabelas principais (`usuarios`, `sessoes`, …) compatíveis com o esperado. Só
 Para ensaiar a restauração sem tocar na produção, repita o `pg_restore` acima num banco descartável e registre o
 resultado na tabela abaixo (um ensaio por mês, como em §8).
 
-| data                            | exercício | quem | resultado |
-| ------------------------------- | --------- | ---- | --------- |
-| _(ainda não feito em produção)_ |           |      |           |
+| data       | exercício                                                                                                                                                                         | quem                          | resultado                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 15/11/2026 | dump `semanal/2026-11-09.dump` (155 055 bytes, o mais recente de 2 no bucket) restaurado num Postgres 17.11 descartável (Docker, OrbStack); dump de PG 17.11, 363 entradas no TOC | Claude Code, a pedido do dono | **OK.** Comando do runbook ao pé da letra: 62 erros (9 por falta do schema `drizzle`, 53 de GRANT a papéis do Supabase). Com `create schema drizzle` antes e `--no-owner --no-privileges`: 0 erros, 0,34 s. 44 tabelas em `public` + 1 em `drizzle`, 120 índices, 12 FKs; 16 tabelas com linhas, 767 linhas no total; `__drizzle_migrations` com 19 entradas, a última `0018_flag_voz_no_aparelho` (a `0019_periodo_pago_desde`, de 14/11, é posterior ao dump: esperado, o boot aplica). Dump e container apagados no fim. |
 
 ### 0.3 Rollback de deploy
 
@@ -367,6 +372,7 @@ Sem o binding (dev local, testes) nada é gravado. Falha do binding vira um úni
 | `resposta_invalida` | função                                      | modelo           |            |        | 1             |                               | função   |
 | `tokens_de_entrada` | função                                      | modelo           |            |        | tokens        | tokens em cache               | função   |
 | `feedback_ia`       | função                                      | `up` ou `down`   | motivo     |        | 1             |                               | função   |
+| `saida_filtrada`    | função                                      | categoria        |            |        | 1             |                               | função   |
 
 Consultas pela API SQL (`POST https://api.cloudflare.com/client/v4/accounts/<conta>/analytics_engine/sql`,
 token com "Account Analytics: Read"; o corpo é o SQL). Some `_sample_interval` para corrigir a amostragem:
@@ -486,7 +492,7 @@ entrada só, a constante de teste `segredo-e2e-hs256-marco1`, que nunca foi chav
 
 | balde                                                | teto               | chave  | protege              |
 | ---------------------------------------------------- | ------------------ | ------ | -------------------- |
-| autenticação                                         | 30 falhas / 15 min | IP     | adivinhação de token |
+| autenticação (só requisição com `Authorization`)     | 30 falhas / 15 min | IP     | adivinhação de token |
 | rotas caras (`/api/ai`, `/api/import`, `/api/tutor`) | 60 / min           | tenant | gasto com terceiros  |
 | escrita (CRUD, admin, áudio)                         | 120 / min          | tenant | memória do processo  |
 
@@ -498,6 +504,13 @@ proteção de verdade (recusa a requisição, em vez de só trocar a resposta). 
 estourado, ele bloqueia tudo daquela origem na janela, **inclusive requisição com token bom**. É o
 comportamento de qualquer bloqueio por origem — e é por isso que `TRUST_PROXY` precisa estar certo:
 sem ela, atrás de proxy, a chave é o IP do proxy e o bloqueio de um atacante pega todo mundo junto.
+
+**O balde só olha quem traz credencial** (desde 2026-11-12). Visitante sem conta abre o app e dispara
+~10 chamadas `/api/*` sem `Authorization`, todas 401; antes elas somavam, e na 3ª abertura o IP inteiro
+levava 429 (`muitas_falhas_de_autenticacao`) por 15 minutos. Agora requisição sem `Authorization` (ou com
+ele vazio) nem consulta o balde: recebe o 401 de sempre e não soma. Qualquer conteúdo no `Authorization`,
+até esquema errado, conta como tentativa. Com o IP bloqueado, quem traz credencial recebe 429; quem não
+traz continua no 401. A regra está em `server/lib/credencialDaRequisicao.ts`.
 
 `TRUST_PROXY` **não liga sozinha**, e o motivo é que o erro para o outro lado é pior: confiar em
 `X-Forwarded-For` sem proxy à frente entrega a chave do balde ao cliente, e o limitador deixa de
@@ -514,7 +527,7 @@ node scripts/backup.mjs                        # cópia consistente
 
 **Exercício de restauração do dump semanal (Postgres).** Uma vez por mês: baixe o `semanal/AAAA-MM-DD.dump` mais
 recente do bucket `frasy-backups`, crie um banco VAZIO (nunca o de produção), restaure com
-`pg_restore --no-owner --schema=public --schema=drizzle` (credenciais por `PG*`, passo a passo em `docs/deploy.md`,
+`create schema drizzle` e `pg_restore --no-owner --no-privileges --schema=public --schema=drizzle` (ver §0.2; credenciais por `PG*`, passo a passo em `docs/deploy.md`,
 "Backup semanal do Postgres no R2"), compare `select count(*)` das tabelas grandes e de `drizzle.__drizzle_migrations`
 com o banco vivo e apague o banco do exercício (ele guarda dados pessoais). Se o último dump tiver mais de 8 dias, o
 workflow `backup-pg-dump.yml` falhou: veja a execução em Actions antes de qualquer outra coisa.

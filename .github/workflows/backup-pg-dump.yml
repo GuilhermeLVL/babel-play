@@ -1,7 +1,8 @@
-# BACKUP SEMANAL DO POSTGRES PARA O R2 (Fase 2, Task 13; pendência de CI da Fase 1)
+# BACKUP DIÁRIO DO POSTGRES PARA O R2 (Fase 2, Task 13; diário desde 15/11/2026, decisão do dono)
 #
-# Toda segunda às 06:00 UTC (e sob demanda): `pg_dump --format=custom --schema=public --schema=drizzle` do
-# Supabase, enviado ao bucket `frasy-backups` do R2 em `semanal/AAAA-MM-DD.dump`, conferido com
+# Todo dia às 06:00 UTC (e sob demanda): `pg_dump --format=custom --schema=public --schema=drizzle` do
+# Supabase, enviado ao bucket `frasy-backups` do R2 em `semanal/AAAA-MM-DD.dump` às segundas e em
+# `diario/AAAA-MM-DD.dump` nos outros dias, conferido com
 # `pg_restore --list` e lido de volta do R2 (sha256). É a cópia FORA do Supabase: os backups gerenciados dele
 # moram no mesmo provedor do banco. Só os schemas da aplicação (`public` e `drizzle`), não os do Supabase.
 #
@@ -25,14 +26,15 @@
 #   R2_S3_SECRET_ACCESS_KEY
 # Falta qualquer um: o primeiro passo REPROVA dizendo o nome (nunca o valor). Não existe caminho "verde sem backup".
 #
-# RETENÇÃO: 8 semanas, por regra de lifecycle do bucket (`wrangler r2 bucket lifecycle add frasy-backups`),
-# criada na Fase 4 junto com o bucket, que ainda não existe. Até lá este workflow falha no envio, com clareza.
-# RESTAURAR: docs/deploy.md ("Backup semanal") e docs/runbook.md §8.
-name: Backup semanal do Postgres
+# RETENÇÃO, por regras de lifecycle do bucket (`wrangler r2 bucket lifecycle list frasy-backups`):
+#   `semanal/` 56 dias (8 semanas) e `diario/` 14 dias. Sem o Supabase Pro não há PITR: o diário limita a perda a
+#   um dia; o semanal dá a cauda longa. Cada dump tem ~155 KB (11/2026).
+# RESTAURAR: docs/deploy.md ("Backup semanal") e docs/runbook.md §8 (o mesmo comando vale para `diario/`).
+name: Backup diário do Postgres
 
 on:
   schedule:
-    - cron: '0 6 * * 1'
+    - cron: '0 6 * * *'
   workflow_dispatch:
 
 permissions:
@@ -114,6 +116,8 @@ jobs:
           test -s "$dump"
           pg_restore --list "$dump" | grep -c 'TABLE DATA'
           dia=$(date -u +%F)
-          npx tsx scripts/backup/enviar-ao-r2.ts "$dump" "semanal/$dia.dump"
+          # Segunda (ou disparo manual numa segunda) vai para `semanal/`, guardado 8 semanas; os outros dias, `diario/`, 14 dias.
+          if [ "$(date -u +%u)" = "1" ]; then pasta=semanal; else pasta=diario; fi
+          npx tsx scripts/backup/enviar-ao-r2.ts "$dump" "$pasta/$dia.dump"
           rm -f "$RUNNER_TEMP/supabase-ca.pem"
           rm -rf "$RUNNER_TEMP/backups"

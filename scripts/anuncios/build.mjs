@@ -107,7 +107,29 @@ export function construir(env = process.env, destino = DESTINO) {
   return destino
 }
 
+/**
+ * Um valor de rede PREENCHIDO e fora da forma é erro de build, não "sem rede": o caso típico é pôr o id do
+ * AdSense (`ca-pub-…`/`pub-…`) onde vai o código da rede do Ad Manager (só dígitos, o `/<rede>/` do GPT), e o
+ * build sairia mudo, com uma página que nunca pede anúncio. Devolve a mensagem, ou `null`.
+ */
+export function erroDaRede(valor) {
+  const v = valor?.trim() ?? ''
+  if (!v || redeDe(v)) return null
+  const adsense = /^(ca-)?pub-/.test(v)
+  return (
+    'anuncios:build: VITE_ANUNCIOS_REDE_CONTA fora da forma (só dígitos). ' +
+    (adsense
+      ? 'Isso é o id do AdSense; aqui vai o CÓDIGO DA REDE do Google Ad Manager (Admin → Configurações globais).'
+      : 'Use o código da rede do Google Ad Manager.')
+  )
+}
+
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  const erro = erroDaRede(process.env.VITE_ANUNCIOS_REDE_CONTA)
+  if (erro) {
+    console.error(erro)
+    process.exit(1)
+  }
   const destino = construir()
   if (!origemDe(process.env.APP_URL)) {
     console.warn("anuncios:build: sem APP_URL, frame-ancestors fica 'none' (nenhum app consegue embutir).")

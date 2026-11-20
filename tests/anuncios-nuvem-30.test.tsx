@@ -32,6 +32,9 @@ vi.mock('../src/lib/preferencias', () => {
 })
 const consultarAlivio = vi.hoisted(() => vi.fn(async () => mundo.alivio))
 vi.mock('../src/lib/nuvemDeAlivio/consulta', () => ({ consultarAlivio }))
+/* O registro do provedor REAL: cada teste diz se ele registra (o build com `VITE_ANUNCIOS_ORIGEM`) ou não. */
+const ligarProvedorDeAnuncios = vi.hoisted(() => vi.fn(async () => false))
+vi.mock('../src/lib/anuncios/ligar', () => ({ ligarProvedorDeAnuncios }))
 
 const { default: NuvemPremiadaNaCaptura } = await import('../src/components/views/captura/NuvemPremiadaNaCaptura')
 const { registrarProvedorDeAnuncios } = await import('../src/lib/anuncios/provedor')
@@ -49,6 +52,8 @@ async function montar() {
 beforeEach(() => {
   Object.assign(mundo, { protegido: false, alivio: null })
   consultarAlivio.mockClear()
+  ligarProvedorDeAnuncios.mockReset()
+  ligarProvedorDeAnuncios.mockImplementation(async () => false)
   registrarProvedorDeAnuncios(PROVEDOR_FALSO)
 })
 afterEach(() => {
@@ -114,5 +119,35 @@ describe('nuvem-30 na captura', () => {
     const c = await montar()
     expect(c.innerHTML).toBe('')
     expect(consultarAlivio).not.toHaveBeenCalled()
+  })
+
+  /* A captura aberta DIRETO pelo endereço: nenhum outro espaço foi montado antes do `nuvem-30`, então quem
+     registra o provedor tem de ser o próprio encaixe (antes, só o `EspacoDeAnuncio` registrava, e ele só monta
+     depois que o encaixe vê um provedor: o lugar nunca aparecia). */
+  it('captura aberta direto: o próprio encaixe registra o provedor real e o cartão aparece', async () => {
+    registrarProvedorDeAnuncios(null)
+    mundo.alivio = { disponivel: true, restanteSegundos: 3600 }
+    ligarProvedorDeAnuncios.mockImplementation(async () => {
+      registrarProvedorDeAnuncios(PROVEDOR_FALSO)
+      return true
+    })
+    const c = await montar()
+    await act(async () => {
+      await new Promise((ok) => setTimeout(ok, 0))
+    })
+    expect(ligarProvedorDeAnuncios).toHaveBeenCalled()
+    expect(c.querySelector('[data-ad-falso="nuvem-30"]')).not.toBeNull()
+  })
+
+  it('captura aberta direto, na demonstração: o próprio encaixe registra a demonstração e o lugar aparece', async () => {
+    registrarProvedorDeAnuncios(null)
+    localStorage.setItem('babel.px.anunciosDeProva', '1')
+    try {
+      const c = await montar()
+      await vi.waitFor(() => expect(c.querySelector('[data-ad="nuvem-30"]')).not.toBeNull(), { timeout: 3000 })
+      expect(consultarAlivio).not.toHaveBeenCalled()
+    } finally {
+      localStorage.removeItem('babel.px.anunciosDeProva')
+    }
   })
 })

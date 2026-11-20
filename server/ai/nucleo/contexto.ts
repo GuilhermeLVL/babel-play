@@ -33,7 +33,7 @@ export interface ContextoDeIa {
   rastro: RastroDeIa
   /** O plano e as capacidades JÁ RESOLVIDOS — uma leitura de plano por pedido, feita fora daqui. */
   entitlements: Entitlements
-  /** O Premium é o do teste de 14 dias (C6): a admissão trata a conta como grátis. */
+  /** O Premium é o do teste de 3 dias (C6): a admissão trata a conta como grátis. */
   emTeste: boolean
   /** De que franquia saem a chamada, os tokens e os segundos: a do plano, ou a da nuvem de alívio (A10). */
   modo: ModoDaCota

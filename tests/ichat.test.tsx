@@ -191,6 +191,36 @@ describe('iChat', () => {
     expect(screen.queryByRole('button', { name: /Não faz sentido aqui/ })).toBeNull()
   })
 
+  it('resposta barrada pelo filtro de saída (`filtrada`): a frase fixa, sem origem, e ela não volta no histórico', async () => {
+    feedback.enviarFeedback.mockClear()
+    const campo = await abrir()
+    apiFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        text: 'Vamos voltar ao idioma? Posso te ajudar com vocabulário, frases ou pronúncia.',
+        engine: 'nuvem',
+        filtrada: true,
+      }),
+    } as unknown as Response)
+    fireEvent.change(campo, { target: { value: 'oi' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+    expect(await screen.findByText(/Vamos voltar ao idioma\?/, {}, { timeout: 3000 })).toBeTruthy()
+    await waitFor(() => expect(campo.disabled).toBe(false), { timeout: 3000 })
+    expect(screen.queryByText(/Origem:/)).toBeNull()
+    // A avaliação fica no aparelho: a frase fixa não é resposta do tutor, então a nota não vai ao servidor.
+    fireEvent.click(screen.getByRole('button', { name: /Não faz sentido aqui/ }))
+    await new Promise((r) => setTimeout(r, 20))
+    expect(feedback.enviarFeedback).not.toHaveBeenCalled()
+
+    responder('Olá!')
+    fireEvent.change(campo, { target: { value: 'e agora?' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+    await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(2), { timeout: 3000 })
+    const corpo = JSON.parse(apiFetch.mock.calls[1][1].body as string)
+    expect(corpo.messages.filter((m: { role: string }) => m.role === 'assistant')).toEqual([])
+  })
+
   it('sem consentimento de nuvem, a pergunta não sai do aparelho e a resposta diz onde autorizar', async () => {
     consentiu = false
     try {

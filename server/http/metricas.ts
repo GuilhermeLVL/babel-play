@@ -125,6 +125,7 @@ interface Estado {
   gastoAnomalo: Counter<'motivo'>
   cacheDeTraducao: Counter<'resultado'>
   cacheDeTraducaoPorNivel: Counter<'nivel' | 'resultado'>
+  clienteFalhas: Counter<'tipo' | 'aparelho' | 'modelo'>
   uploadsRecusados: Counter<'motivo'>
   r2UsoFracao: Gauge<'recurso'>
   /* Fase B do plano de qualidade da IA paga (item 7): o JSON que não serviu, o cache de prompt e o feedback. */
@@ -132,6 +133,7 @@ interface Estado {
   tokensDeEntrada: Counter<'funcao' | 'modelo'>
   tokensEmCache: Counter<'funcao' | 'modelo'>
   feedbackDeIa: Counter<'funcao' | 'nota' | 'motivo'>
+  saidaFiltrada: Counter<'funcao' | 'categoria'>
 }
 
 let estado: Estado | undefined
@@ -424,6 +426,20 @@ function criarEstadoProm(): Estado {
       name: 'ia_feedback_total',
       help: 'Avaliações das respostas de IA (nota=up|down), por função e motivo (lista fechada; `nenhum` sem motivo).',
       labelNames: ['funcao', 'nota', 'motivo'] as const,
+    }),
+    /* O FILTRO DE SAÍDA PARA PERFIL PROTEGIDO (change `filtro-tutor-menores`): quantas respostas do tutor foram
+       trocadas pela frase fixa, por função e categoria (rótulos fixos de `listasParaMenores.ts`). Nunca o texto. */
+    saidaFiltrada: new Counter({
+      name: 'ia_saida_filtrada_total',
+      help: 'Respostas do tutor barradas pelo filtro local de saída para perfil protegido (menor ou idade não declarada), por função e categoria.',
+      labelNames: ['funcao', 'categoria'] as const,
+    }),
+    /* AS FALHAS DE PREPARO DO VISITANTE (`POST /api/erros-do-cliente/falha`, change `modelos-confiaveis-e-offline`).
+       Anônimo: os três rótulos são listas fechadas de `src/core/falhas/mensagemDeFalha.ts` e do perfil do aparelho. */
+    clienteFalhas: new Counter({
+      name: 'cliente_falha_total',
+      help: 'Falhas de preparo da legenda no navegador do visitante (download interrompido, modelo corrompido, sem internet…), por tipo, aparelho e família do modelo. Anônimo, sem conteúdo.',
+      labelNames: ['tipo', 'aparelho', 'modelo'] as const,
     }),
     uploadsRecusados: new Counter({
       name: 'uploads_grandes_recusados_total',
@@ -767,6 +783,20 @@ export function contarFeedbackDeIa(funcao: string, nota: 'up' | 'down', motivo: 
   estado.feedbackDeIa.inc({ funcao, nota, motivo: motivo ?? 'nenhum' })
 }
 
+/** Uma falha de preparo do visitante, já validada pela rota (os três rótulos são listas fechadas). */
+export function contarFalhaDoCliente(tipo: string, aparelho: string, modelo: string): void {
+  if (ehWorker()) gravarPonto('cliente_falha', [tipo, aparelho, modelo], [1], tipo)
+  if (!estado) return
+  estado.clienteFalhas.inc({ tipo, aparelho, modelo })
+}
+
+/** Uma resposta do tutor barrada pelo filtro de saída de perfil protegido. Os dois rótulos são valores fixos do código. */
+export function contarSaidaFiltrada(funcao: string, categoria: string): void {
+  if (ehWorker()) gravarPonto('saida_filtrada', [funcao, categoria], [1], funcao)
+  if (!estado) return
+  estado.saidaFiltrada.inc({ funcao, categoria })
+}
+
 /**
  * Um job do cron terminou (`server/jobs/executar.ts`). Só o Worker tem destino (o ponto `job` do Analytics
  * Engine); no Node o `job_fim`/`job_falhou` do log já dizem tudo e não há série Prometheus para isso.
@@ -775,8 +805,9 @@ export function observarJob(nome: string, ms: number, resultado: 'ok' | 'falhou'
   if (ehWorker()) gravarPonto('job', [nome, resultado], [ms], nome)
 }
 
-/* As demais funções `contar*`/`observar*` ficam sem efeito no Worker de propósito: só as 6 famílias do R6 e as 3 da qualidade da IA
-   (requisicao, admissao_recusada, custo_por_plano, r2, provedor, job; resposta_invalida, tokens_de_entrada, feedback_ia) viram pontos do Analytics Engine. */
+/* As demais funções `contar*`/`observar*` ficam sem efeito no Worker de propósito: só as 6 famílias do R6, as 3 da qualidade da IA
+   e a do filtro de saída (requisicao, admissao_recusada, custo_por_plano, r2, provedor, job; resposta_invalida,
+   tokens_de_entrada, feedback_ia; saida_filtrada) viram pontos do Analytics Engine. */
 
 /** Um 429 do provedor. Rótulos fixos do código ou do env — ver o bloco da métrica. */
 export function contarLimiteDoProvedor(provedor: string, modelo: string): void {

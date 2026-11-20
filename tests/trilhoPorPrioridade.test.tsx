@@ -42,17 +42,17 @@ describe('o rótulo de Progresso', () => {
 })
 
 describe('o estado do item Planos', () => {
-  it('no Grátis diz o teste de 14 dias', () => {
+  it('no Grátis diz o teste de 3 dias', () => {
     plano.atual = 'free'
     montar()
     const planos = screen.getByRole('button', { name: 'Planos' })
-    expect(planos.textContent).toBe('PlanosGrátis · teste 14 dias')
+    expect(planos.textContent).toBe('PlanosGrátis · teste 3 dias')
     expect(planos.getAttribute('aria-describedby')).toBe('q-estado-do-plano')
   })
   it('sem conta (anônimo) também', () => {
     plano.atual = 'anonimo'
     montar()
-    expect(screen.getByRole('button', { name: 'Planos' }).textContent).toContain('teste 14 dias')
+    expect(screen.getByRole('button', { name: 'Planos' }).textContent).toContain('teste 3 dias')
   })
   it.each([
     ['essencial', 'Essencial'],

@@ -38,7 +38,8 @@ const SEMPRE_REVALIDA = 'no-cache'
 /** O `Cache-Control` de um arquivo servido da raiz de `dist/`, pelo caminho relativo a ela. */
 export function cacheDoArquivo(relativo: string): string | null {
   const r = relativo.replace(/\\/g, '/').replace(/^\/+/, '')
-  if (r === 'index.html') return SEMPRE_REVALIDA
+  // O service worker sempre revalida: é por ele que a versão nova (ou o SW que se desliga) chega.
+  if (r === 'index.html' || r === 'sw.js') return SEMPRE_REVALIDA
   if (r.startsWith('assets/')) return IMUTAVEL
   if (/^(ort-wasm-[^/]+\.(mjs|wasm)|silero_vad_[^/]+\.onnx)$/.test(r)) return IMUTAVEL
   if (/^modelos\/bergamot\/(motor-[^/]+|[a-z]{2,3}-[a-z]{2,3}\/[^/]+)\/[^/]+$/.test(r)) return IMUTAVEL

@@ -110,7 +110,8 @@ describe('modo publico (AUTH_REQUIRED=1, JWT ES256)', () => {
   })
 
   it('rotas de admin exigem papel: usuario comum recebe 403', async () => {
-    const t = await s.token('usuario-a')
+    // Com segundo fator (aal2): aqui o que se prova é o papel, não a porta do 2FA.
+    const t = await s.token('usuario-a', { aal: 'aal2' })
     const r = await s.get('/api/admin/users', t)
     expect(r.status).toBe(403)
   })

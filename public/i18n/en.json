@@ -2156,7 +2156,6 @@
   "Escrever o que foi falado": "Write down what was said",
   "Escrever o que ouviu": "Type what you heard",
   "Escrever sem olhar a resposta": "Write without looking at the answer",
-  "Escrever uma nota": "Write a note",
   "Escuro": "Dark",
   "Escuro profundo": "Deep dark",
   "Escuta": "Listening",
@@ -2338,7 +2337,6 @@
   "estudando": "by studying",
   "Estudar": "Study",
   "Estudar {n} agora": "Study {n} now",
-  "Estudar {nome}: {n} para hoje": "Study {nome}: {n} for today",
   "Estudar agora": "Study now",
   "Estudar o que capturou": "Study what you captured",
   "Estúdio": "Studio",
@@ -4493,7 +4491,6 @@
     "other": "Practice the {n} that slipped"
   },
   "Praticar de outro jeito": "Practice another way",
-  "Praticar de outro jeito com {nome}": "Practice another way with {nome}",
   "Praticar de outro jeito: {rotulo}": "Practice another way: {rotulo}",
   "Praticar em voz alta": "Practice out loud",
   "Praticar falando em {idioma}": "Practice speaking {idioma}",

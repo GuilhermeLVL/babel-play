@@ -515,17 +515,13 @@ export default function Hoje({
       <div className="q-lista">
         {continuar.map((b) => {
           const Icone = iconeDaFonte(b.fonte, b.tipo);
-          const paraHoje = somaDaFila(b.n);
           return (
+            /* O nome sai do conteúdo (nome, cartões, as três filas e "Estudar"): um `aria-label` à parte não
+               conteria o texto visível (WCAG 2.5.3). */
             <button
               key={`${b.fonte.tipo}:${'id' in b.fonte ? b.fonte.id : ''}`}
               type="button"
               className="q-linha ct-linha-b ct-linha-estudar"
-              aria-label={
-                feito
-                  ? t('Praticar de outro jeito com {nome}', { nome: b.nome })
-                  : t('Estudar {nome}: {n} para hoje', { nome: b.nome, n: numero(paraHoje) })
-              }
               onClick={() => (feito ? aoPraticar(b.nome, 'baralho', b.fonte) : aoEstudar({ fonte: b.fonte }))}
             >
               <span className="q-ic">

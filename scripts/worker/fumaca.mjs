@@ -674,7 +674,7 @@ async function verificacoes(base, w, token, provedor) {
   const home = await fetch(`${base}/`)
   const corpoHome = await home.text()
   confere(
-    home.status === 200 && /<h1>[^<]+<\/h1>/.test(corpoHome) && !corpoHome.includes('id="root"'),
+    home.status === 200 && /<h1>(?:(?!<\/h1>).)+<\/h1>/s.test(corpoHome) && !corpoHome.includes('id="root"'),
     `GET / deveria ser a home estática: ${home.status} ${corpoHome.slice(0, 200)}`,
   )
   const app = await fetch(`${base}/app`)

@@ -308,8 +308,11 @@ async function caberNoTopo(page: Page, altura: number) {
   const kicker = (await capitulo.locator('.kicker').boundingBox())!
   const legenda = (await capitulo.locator('.leg').boundingBox())!
   const botao = (await capitulo.locator('.acoes .botao').boundingBox())!
-  // O rótulo começa abaixo do cabeçalho (não cobre o logo) e a legenda e o botão terminam dentro da tela.
+  const apoio = (await capitulo.locator('.apoio').boundingBox())!
+  // O rótulo começa abaixo do cabeçalho (não cobre o logo) e a legenda, o botão e a linha de apoio ("sem
+  // cartão") terminam dentro da tela.
   expect(kicker.y).toBeGreaterThanOrEqual(topo.y + topo.height)
   expect(legenda.y + legenda.height).toBeLessThanOrEqual(altura)
   expect(botao.y + botao.height).toBeLessThanOrEqual(altura)
+  expect(apoio.y + apoio.height).toBeLessThanOrEqual(altura)
 }

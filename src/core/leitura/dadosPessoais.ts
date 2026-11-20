@@ -21,7 +21,7 @@ export interface TrechoPessoal {
   fim: number;
 }
 
-const EMAIL = /[\p{L}\p{N}._%+-]+@[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)+/gu;
+const EMAIL = /(?<![\p{L}\p{N}._%+-])[\p{L}\p{N}._%+-]+@[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)+/gu;
 /** O e-mail por extenso, do jeito de quem não acha o "@": "lia at gmail dot com", "lia arroba gmail ponto com". */
 const EMAIL_POR_EXTENSO =
   /(?<![\p{L}\p{N}])[\p{L}\p{N}._-]+\s+(?:at|arroba)\s+[\p{L}\p{N}-]+(?:\s+(?:dot|ponto)\s+[\p{L}]{2,4})+(?![\p{L}\p{N}])/giu;
@@ -60,12 +60,19 @@ const ESCOLA_COM_THE = new RegExp(
 const ESCOLA_MINUSCULA =
   /(?<![\p{L}])(?:escola|col[eé]gio|instituto)\s+(?:estadual|municipal|federal|particular|t[eé]cnic[ao])(?:\s+(?!(?:every|and|in|on|at|the|is|it|i|with|to|near|because|but|for|day|today)(?![\p{L}]))[\p{L}'’-]+){0,3}/giu;
 
+/** Tira a pontuação do fim sem regex com `+$` (que é quadrática em "!!!!!x"). */
+function semPontuacaoFinal(s: string): string {
+  let fim = s.length;
+  while (fim > 0 && '.,;:!?)'.includes(s[fim - 1])) fim--;
+  return s.slice(0, fim);
+}
+
 function todos(re: RegExp, texto: string, tipo: TipoDeDadoPessoal, aceitar?: (s: string) => boolean): TrechoPessoal[] {
   const out: TrechoPessoal[] = [];
   for (const m of texto.matchAll(re)) {
     let s = m[0];
     /* A pontuação no fim ("lia.com.br.") é da frase, não do dado. */
-    s = s.replace(/[.,;:!?)]+$/u, '');
+    s = semPontuacaoFinal(s);
     if (!s || (aceitar && !aceitar(s))) continue;
     const inicio = m.index ?? 0;
     out.push({ tipo, inicio, fim: inicio + s.length });

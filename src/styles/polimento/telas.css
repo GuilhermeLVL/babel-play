@@ -13,9 +13,12 @@
 .px-vivo .q-leg { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
 .px-vivo .q-historico { flex: 1 1 0; min-height: 0; overflow-y: auto; }
 .px-vivo .q-t > span { display: inline-block; white-space: pre; }
-html[data-px='on'] .px-vivo .q-linha-da-fala { animation: none; transition: opacity 0.4s ease, background-color 0.3s ease; }
-html[data-px='on'] .px-vivo .q-linha-da-fala:not(.atual) { opacity: 0.62; }
-html[data-px='on'] .px-vivo .q-linha-da-fala:not(.atual):hover { opacity: 1; }
+html[data-px='on'] .px-vivo .q-linha-da-fala { animation: none; transition: background-color 0.3s ease; }
+/* As falas de antes ficam em segundo plano pela COR, nunca pela opacidade: o original já é --ink-muted (4,68:1 no
+   fundo) e qualquer opacidade o derrubava abaixo de 4,5:1. A tradução passa a --ink-muted; a fala escolhida e a
+   que está sob o ponteiro voltam à tinta cheia. */
+html[data-px='on'] .px-vivo .q-linha-da-fala:not(.atual) .q-t { color: var(--ink-muted); transition: color 0.4s ease; }
+html[data-px='on'] .px-vivo .q-linha-da-fala:not(.atual):is(:hover, :has([aria-current='true'])) .q-t { color: inherit; }
 @keyframes px-ao-vivo {
   0% { box-shadow: 0 0 0 0 rgb(240 78 35 / 0.7); }
   70%, 100% { box-shadow: 0 0 0 9px rgb(240 78 35 / 0); }

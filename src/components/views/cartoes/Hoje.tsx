@@ -147,7 +147,8 @@ function FaixaDeEstado({
       <button
         type="button"
         className="ct-estado-mem"
-        aria-label={t('{resumo}. Abrir a Memória', { resumo: rotuloDaMemoria })}
+        /* O nome é o texto visível ("3 dias · 80% · Memória", WCAG 2.5.3); a frase inteira vai na descrição. */
+        aria-description={t('{resumo}. Abrir a Memória', { resumo: rotuloDaMemoria })}
         title={t('Abrir a Memória: sequência, retenção, previsão e calendário')}
         onClick={aoMemoria}
       >
@@ -174,7 +175,8 @@ function FaixaDeEstado({
       <button
         type="button"
         className="ct-estado-teto"
-        aria-label={t('{n} de {total} novas hoje. Mudar o limite do dia', { n: novas, total: limiteDeNovas })}
+        /* O nome sai do conteúdo ("4 de 10 novas", WCAG 2.5.3); a frase inteira vai na descrição. */
+        aria-description={t('{n} de {total} novas hoje. Mudar o limite do dia', { n: novas, total: limiteDeNovas })}
         title={t('Mudar o limite do dia')}
         onClick={aoAjustes}
       >
@@ -515,17 +517,13 @@ export default function Hoje({
       <div className="q-lista">
         {continuar.map((b) => {
           const Icone = iconeDaFonte(b.fonte, b.tipo);
-          const paraHoje = somaDaFila(b.n);
           return (
+            /* O nome sai do conteúdo (nome, cartões, as três filas e "Estudar"): um `aria-label` à parte não
+               conteria o texto visível (WCAG 2.5.3). */
             <button
               key={`${b.fonte.tipo}:${'id' in b.fonte ? b.fonte.id : ''}`}
               type="button"
               className="q-linha ct-linha-b ct-linha-estudar"
-              aria-label={
-                feito
-                  ? t('Praticar de outro jeito com {nome}', { nome: b.nome })
-                  : t('Estudar {nome}: {n} para hoje', { nome: b.nome, n: numero(paraHoje) })
-              }
               onClick={() => (feito ? aoPraticar(b.nome, 'baralho', b.fonte) : aoEstudar({ fonte: b.fonte }))}
             >
               <span className="q-ic">

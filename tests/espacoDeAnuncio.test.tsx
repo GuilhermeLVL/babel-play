@@ -36,10 +36,14 @@ const mundo = vi.hoisted(() => ({
   estatica: false,
   captura: false,
   consentimento: false,
+  /** As chaves de venda ligadas (`venda_planos_v3`, `venda_planos_v4`): decidem o plano da porta "Sem anúncios". */
+  venda: [] as string[],
 }))
 
 vi.mock('../src/lib/flags', () => ({ useFlag: () => mundo.flag }))
-vi.mock('../src/lib/flagsCache', () => ({ flagLigada: (chave: string) => chave === 'anuncios' && mundo.flag }))
+vi.mock('../src/lib/flagsCache', () => ({
+  flagLigada: (chave: string) => (chave === 'anuncios' && mundo.flag) || mundo.venda.includes(chave),
+}))
 vi.mock('../src/lib/entitlements', () => ({
   getEntitlements: () => ({
     plan: mundo.semAnuncios ? 'premium' : 'free',
@@ -106,6 +110,7 @@ async function comDemonstracao() {
 beforeAll(prepararDialogoNoJsdom)
 beforeEach(() => {
   Object.assign(mundo, {
+    venda: [],
     flag: false,
     semAnuncios: false,
     teste: null,
@@ -246,8 +251,20 @@ describe('a demonstração (só em desenvolvimento, pela chave local)', () => {
     const cartao = container.querySelector('article.q-tile.ad.ad-nativo[data-ad="inicio-nativo"]')
     expect(cartao).not.toBeNull()
     expect(cartao?.querySelector('.ad-rotulo')?.textContent).toBe('Patrocinado · exemplo')
-    expect(cartao?.querySelector('button.ad-sem')?.textContent).toBe('Sem anúncios no Essencial')
+    /* Sem chave de venda, o plano sem anúncios à venda é o Premium. */
+    expect(cartao?.querySelector('button.ad-sem')?.textContent).toBe('Sem anúncios no Premium')
     expect(cartao?.querySelector('button.ad-cta')).not.toBeNull()
+  })
+
+  it('a porta "Sem anúncios" nomeia o plano à venda: Essencial com a v3, Plus com a v4 (nunca um removido)', async () => {
+    await comDemonstracao()
+    mundo.venda = ['venda_planos_v3']
+    const v3 = render(<EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" />)
+    expect(v3.container.querySelector('button.ad-sem')?.textContent).toBe('Sem anúncios no Essencial')
+    v3.unmount()
+    mundo.venda = ['venda_planos_v4']
+    const v4 = render(<EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" />)
+    expect(v4.container.querySelector('button.ad-sem')?.textContent).toBe('Sem anúncios no Plus')
   })
 
   it.each([
@@ -329,14 +346,14 @@ describe('a demonstração (só em desenvolvimento, pela chave local)', () => {
     await comDemonstracao()
     const aoSemAnuncios = vi.fn()
     render(<EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" aoSemAnuncios={aoSemAnuncios} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Sem anúncios no Essencial' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sem anúncios no Premium' }))
     expect(aoSemAnuncios).toHaveBeenCalledTimes(1)
   })
 
   it('sem `aoSemAnuncios`, a porta leva a Planos', async () => {
     await comDemonstracao()
     render(<EspacoDeAnuncio espaco="fim-bloco" formato="nativo" />)
-    fireEvent.click(screen.getByRole('button', { name: 'Sem anúncios no Essencial' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sem anúncios no Premium' }))
     expect(window.location.pathname).toBe('/plano')
   })
 })

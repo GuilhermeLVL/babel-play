@@ -1,9 +1,17 @@
 import { type LucideIcon, Monitor, RectangleGoggles, Smartphone } from 'lucide-react';
 
 import {
+  EM_BREVE_DA_V4,
+  type Frase,
+  horasDoAlivioDoGratis,
+  itensDaVitrine,
+  montarFrase,
+  PARA_QUEM_DA_V4,
+  PESSOAS_NA_FAMILIA,
+} from '../../../core/oQueOPlanoTem';
+import {
   AMOSTRA_DE_IA,
   DIAS_DO_TESTE_PREMIUM,
-  FRANQUIA_DE_ALIVIO,
   horasDeTranscricao,
   horasDoUsoJusto,
   PARCELAS_DO_ANUAL,
@@ -100,8 +108,9 @@ export const horasDePrecisao = (id: PlanoDaTela): number => horasDeTranscricao(c
 export const horasAoVivo = (id: PlanoDaTela): number => horas(definicao(id).quotas.sttAoVivoSegundosMes);
 /** Horas de nuvem por dia (o uso justo), ou `null` sem teto no dia. */
 export const horasPorDia = (id: PlanoDaTela): number | null => horasDoUsoJusto(chaveDe(id));
-/** As horas de nuvem do Grátis para aparelho fraco (a franquia de alívio). */
-export const horasDoAlivioDoGratis = (): number => horas(FRANQUIA_DE_ALIVIO.sttSegundosMes);
+
+/** Uma frase da fonte única (`core/oQueOPlanoTem`) no idioma da pessoa, com os números formatados. */
+const frase = (f: Frase): string => montarFrase(f, t, numero);
 
 /** O que a tela precisa saber para escolher o que diz. */
 export interface ContextoDosPlanos {
@@ -139,9 +148,6 @@ export interface ContextoDosPlanos {
   planoDoTeste?: PlanoPago;
 }
 
-/** Quantas pessoas cabem na Família (perfis, "até 4" da spec dos planos v4). */
-export const PESSOAS_NA_FAMILIA = 4;
-
 /* ---- Os cartões (`PLANOS`, `planos4.js:71-112`) ----------------------------------------------------- */
 
 /** Um item de "o que entra": a frase e, quando há, a letra miúda. `tema` deixa o plano de cima trocar o de baixo. */
@@ -160,91 +166,18 @@ function itensProprios(id: PlanoDaTela, c: ContextoDosPlanos): Item[] {
   /* O teto do dia vai AO LADO das horas do mês (CDC, art. 6º, III: a limitação não se esconde). O
      protótipo não tem esta frase; o número é o da matriz. */
   const porDia = dia === null ? '' : ` · ${t('até {dia} h por dia', { dia: numero(dia) })}`;
-  if (c.v4 === true && id === 'gratis')
-    return [
-      {
-        tema: 'legenda',
-        texto: t('Legenda bilíngue no aparelho, sem limite'),
-        nota: t('com o modelo Preciso nos aparelhos que o rodam'),
-      },
-      { tema: 'jogos', texto: t('Jogos, vocabulário e revisão') },
-      { tema: 'biblioteca', texto: t('Cartões, leitura, biblioteca e Anki') },
-      ...(c.iaDeEstudo === true
-        ? [
-            {
-              tema: 'amostra-ia',
-              texto: t('Amostra da IA: {explicacoes} explicações por dia e {resumos} resumo por semana', {
-                explicacoes: numero(AMOSTRA_DE_IA.explicacoesDia),
-                resumos: numero(AMOSTRA_DE_IA.resumosSemana),
-              }),
-            },
-          ]
-        : []),
-      {
-        tema: 'nuvem',
-        texto: t('Nuvem: até {horas} h por mês, para aparelho fraco, quando disponível', {
-          horas: numero(horasDoAlivioDoGratis()),
-        }),
-      },
-    ];
-  if (c.v4 === true && id === 'plus') {
-    const voz = e.vozNatural ? definicao(id).quotas.vozCaracteresMes : null;
-    return [
-      ...(e.traducaoNuance
-        ? [
-            {
-              tema: 'nuance',
-              texto: t('Nuance, polir a sessão e glossário'),
-              nota: t('outras formas de dizer, formal ou informal'),
-            },
-          ]
-        : []),
-      ...(e.managedCloudLlm
-        ? [{ tema: 'tutor', texto: t('Tutor de IA por texto (iChat)'), nota: t('sobre o seu material') }]
-        : []),
-      /* Voz natural: com a flag `voz_natural` ligada é um item normal; desligada, ela ainda não chega a
-         ninguém, então o item diz "em breve" (nada se promete como pronto). */
-      ...(voz
-        ? [
-            {
-              tema: 'voz',
-              texto: t('Voz natural para ouvir as frases'),
-              nota: t('até {mil} mil caracteres por mês', { mil: numero(Math.round(voz / 1000)) }),
-              ...(c.vozNatural === true ? {} : { emBreve: true }),
-            },
-          ]
-        : []),
-      {
-        tema: 'nuvem',
-        texto: t('{horas} h de nuvem por mês', { horas: numero(horasDePrecisao(id)) }),
-        nota: t('no nível Precisão, para o áudio difícil') + porDia,
-      },
-      ...(c.comAnuncios && e.semAnuncios
-        ? [{ tema: 'anuncios', texto: t('Sem anúncios'), nota: t('nenhum espaço patrocinado, intersticial ou faixa') }]
-        : []),
-      {
-        tema: 'contexto',
-        texto: t('Explicação da frase no contexto'),
-        nota: t('por que essa tradução, gramática, formal ou informal, gíria'),
-        ...(c.iaDeEstudo === true ? {} : { emBreve: true }),
-      },
-      {
-        tema: 'resumo',
-        texto: t('Resumo da sessão que vira cartões'),
-        nota: t('com a frase da cena'),
-        ...(c.iaDeEstudo === true ? {} : { emBreve: true }),
-      },
-    ];
-  }
-  if (c.v4 === true && id === 'pro4')
-    return [
-      {
-        tema: 'conversa',
-        texto: t('Conversa por voz com um tutor, a partir da cena'),
-        nota: t('com pronúncia e intérprete automático; só para adultos no começo'),
-        emBreve: true,
-      },
-    ];
+  /* A v4 (Grátis, Plus e Pro) sai da fonte única que a página pública também usa (`core/oQueOPlanoTem`). */
+  if (c.v4 === true && (id === 'gratis' || id === 'plus' || id === 'pro4'))
+    return itensDaVitrine(id, {
+      iaDeEstudo: c.iaDeEstudo === true,
+      vozNatural: c.vozNatural === true,
+      comAnuncios: c.comAnuncios,
+    }).map(({ tema, texto, nota, emBreve }) => ({
+      tema,
+      texto: frase(texto),
+      ...(nota ? { nota: nota.map(frase).join(' · ') } : {}),
+      ...(emBreve ? { emBreve } : {}),
+    }));
   if (id === 'gratis')
     return [
       { tema: 'legenda', texto: t('Legenda bilíngue no aparelho, sem limite') },
@@ -382,9 +315,9 @@ export function cartaoDoPlano(id: PlanoDaTela, c: ContextoDosPlanos): CartaoDoPl
       : t('Para o estudante no computador, com Nuance.'),
     premium: t('Para quem depende de nuvem: celular, notebook fraco, Quest.'),
     aovivo: t('Para o intérprete na rua, em viagem, reunião e aula ao vivo.'),
-    plus: t('Para quem quer transformar o que assiste em estudo, com tutor, Nuance e nuvem para o áudio difícil.'),
+    plus: t(PARA_QUEM_DA_V4.plus),
     familia: t('Para a família estudar junta, com o responsável cuidando da conta.'),
-    pro4: t('Para quem quer praticar falando com um tutor de voz. Só para adultos no começo.'),
+    pro4: t(PARA_QUEM_DA_V4.pro4),
   };
   return {
     id,
@@ -413,23 +346,32 @@ export const resumoDoPlano = (id: PlanoPago): string =>
     .map((i) => i.texto)
     .join(' · ');
 
-/** A linha da Família sob o Plus ("para até 4 pessoas · R$ 24,90/mês · em breve"). */
+/**
+ * A linha da Família sob o Plus. Em breve: "para até 4 pessoas · em breve", SEM preço (como o Pro e como a
+ * página pública: o que não se vende não anuncia valor). À venda: "para até 4 pessoas · R$ 24,90/mês".
+ */
 export function linhaDaFamilia(c: ContextoDosPlanos): {
   nome: string;
   resumo: string;
   detalhe: string;
   emBreve: boolean;
 } {
-  const preco = precoDoPlanoNaTela('familia').mensal;
   const emBreve = (c.emBreve ?? []).includes('familia');
+  const { resumo, detalhe } = EM_BREVE_DA_V4.familia;
   return {
     nome: nomeDoPlano('familia'),
-    resumo:
-      t('para até {n} pessoas · {preco}/mês', { n: PESSOAS_NA_FAMILIA, preco }) +
-      (emBreve ? ` · ${t('em breve')}` : ''),
-    detalhe: t('Um perfil para cada pessoa e o responsável cuidando da conta, sem ver o que foi ouvido.'),
+    resumo: emBreve
+      ? `${frase(resumo)} · ${t('em breve')}`
+      : t('para até {n} pessoas · {preco}/mês', { n: PESSOAS_NA_FAMILIA, preco: precoDoPlanoNaTela('familia').mensal }),
+    detalhe: t(detalhe),
     emBreve,
   };
+}
+
+/** A linha do Pro "em breve" (a mesma da página pública): no celular ela fica no lugar do cartão. */
+export function linhaDoPro(): { nome: string; resumo: string; detalhe: string } {
+  const { resumo, detalhe } = EM_BREVE_DA_V4.pro4;
+  return { nome: nomeDoPlano('pro4'), resumo: `${frase(resumo)} · ${t('em breve')}`, detalhe: t(detalhe) };
 }
 
 /* ---- O aparelho (`DISPS` e `GRATIS_NO_APARELHO`, `planos4.js:24-69`) ------------------------------- */

@@ -157,6 +157,9 @@
   /* ---- Estatísticas / abas -------------------------------------------------- */
   html[data-px='on'] .q-aviso { flex-direction: column; align-items: stretch; gap: 12px; padding: 16px; }
   html[data-px='on'] .q-aviso > .q-ctl { justify-content: center; }
+  /* Empilhado, a base de largura de um filho (`.qc .q-aviso > span { flex: 1 1 260px }`) virava ALTURA: o
+     aviso do teste no checkout abria um vão vazio. Na coluna cada filho tem a altura do que contém. */
+  html[data-px='on'] .q-aviso > span { flex-basis: auto; }
   html[data-px='on'] .qe .q-cab > .q-abas { flex: 1 1 auto; }
   html[data-px='on'] .q-palco > .q-abas,
   html[data-px='on'] .q-palco > * > .q-abas:not(.q-seg) {

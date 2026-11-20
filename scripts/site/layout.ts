@@ -311,6 +311,8 @@ details.pergunta p{margin:0;padding:0 0 20px;color:var(--suave);max-width:62ch}
 .plano li{position:relative;padding-left:28px;font-size:15.5px;line-height:1.45}
 .plano li::before{content:"";position:absolute;left:5px;top:.3em;width:6px;height:11px;border-right:2.5px solid var(--acento);border-bottom:2.5px solid var(--acento);transform:rotate(45deg)}
 .plano .botao{margin-top:auto}
+.em-breve{max-width:70ch;padding-left:22px;margin:0 0 8px}
+.em-breve li{margin:8px 0;line-height:1.5}
 .aviso{padding:22px 24px;max-width:46em;margin:0 0 8px}
 .aviso p:last-child{margin:0}
 

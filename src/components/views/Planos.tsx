@@ -62,6 +62,7 @@ import { carregarEntitlements, getEntitlements, onPlanChange, PLAN_LABELS } from
 import { flagLigada, useFlag } from '../../lib/flags';
 import { numero, t, tp } from '../../lib/i18n';
 import { consumirDestaqueEmPlanos } from '../../lib/ofertas/destaque';
+import { pedirEntrada } from '../../lib/pedirConta';
 import { comNomeDoPlano, planoDeEntradaAgora } from '../../lib/planoDeEntrada';
 import {
   alternarPergunta,
@@ -98,6 +99,7 @@ import {
   horasEmTexto,
   horasPorDia,
   linhaDaFamilia,
+  linhaDoPro,
   linhasDaComparacao,
   maiorEconomia,
   mesesGratisDoAnual,
@@ -512,8 +514,10 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
     fimDoTeste === null ? diasDoTeste : Math.max(1, Math.ceil((fimDoTeste - Date.now()) / 86_400_000));
 
   /* ── O QUE A TELA MOSTRA (`planos4.js:594-683`) ───────────────────────────────────────────────── */
-  /* Perfil protegido na v4: nenhum preço, nenhum convite ao anual, nenhuma linha da Família. */
-  const protegidoNaV4 = modoV4 && (menor || protecao?.protegido === true || perfilProtegido());
+  /* Perfil protegido na v4: nenhum preço, nenhum convite ao anual, nenhuma linha da Família. Quem está SEM
+     CONTA não é um perfil protegido para a vitrine: vê os preços e "Criar conta para assinar" (comprar exige
+     conta, e a conta nova passa pela idade). O menor declarado continua sem preço nem oferta. */
+  const protegidoNaV4 = modoV4 && (menor || (!semConta && (protecao?.protegido === true || perfilProtegido())));
   const contexto: ContextoDosPlanos = {
     visiveis,
     comAnuncios,
@@ -613,7 +617,8 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
             )
           : undefined,
       );
-    /* Sem conta: direto ao login, com a intenção guardada — o checkout só diria "entre primeiro". */
+    /* Sem conta: direto ao cadastro (a v4) ou ao login, com a intenção guardada — o checkout só diria
+       "entre primeiro". Quem já tem conta acha o "Entrar" na própria porta. */
     if (semConta)
       return (
         <button
@@ -622,10 +627,10 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
           onClick={() => {
             escolherPlano(id);
             escolherForma(anual && temAnual(id) ? 'anual' : 'mensal');
-            entrarParaAssinar(id, onEntrar);
+            entrarParaAssinar(id, modoV4 ? () => pedirEntrada('signup') : onEntrar);
           }}
         >
-          {t('Entrar e assinar o {plano}', { plano: nome(id) })}
+          {modoV4 ? t('Criar conta para assinar') : t('Entrar e assinar o {plano}', { plano: nome(id) })}
         </button>
       );
     /* Quem já assina não abre outro checkout (seriam duas cobranças): pede a troca. */
@@ -670,6 +675,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
         key={id}
         className={`q-cartao px-plano pl-plano${rec ? ' px-premium' : ''}${souEu ? ' pl-meu' : ''}`}
         data-pl-plano={id}
+        data-pl-em-breve={modoV4 && p.emBreve ? '' : undefined}
         aria-label={t('Plano {plano}', { plano: nome(id) })}
       >
         <p className="q-rotulo">
@@ -712,7 +718,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
               <span>{id === 'gratis' ? t('para sempre') : t('por mês')}</span>
             </p>
             {id === 'gratis' ? (
-              <p className="pl-preco-nota">{t('sem cartão, sem conta')}</p>
+              <p className="pl-preco-nota">{semConta ? t('sem cartão, sem conta') : t('sem cartão')}</p>
             ) : p.preco.anual === null ? (
               <p className="pl-preco-nota">{t('só mensal, por enquanto')}</p>
             ) : (
@@ -778,6 +784,8 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
       v
     );
   const precos = visiveis.map((id) => cartaoDoPlano(id, contexto).preco);
+  /* Os cartões do carrossel do celular: os "em breve" da v4 viram linha embaixo dele. */
+  const noCarrossel = visiveis.filter((id) => !(modoV4 && emBreve.includes(id))).length;
 
   const irAba = (id: AbaDePlanos, dir: number) => {
     dirDaAba.current = dir;
@@ -1032,7 +1040,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
               </div>
             )}
             <p className="pl-dica-arraste">
-              <ArrowLeftRight aria-hidden /> {dicaDeArraste(visiveis.length)}
+              <ArrowLeftRight aria-hidden /> {dicaDeArraste(noCarrossel)}
             </p>
           </div>
           <div className={`q-grade g${visiveis.length} px-planos-grade pl-planos-grade`} data-pl-n={visiveis.length}>
@@ -1053,6 +1061,22 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
                 <p className="q-d">{linhaDaFamilia(contexto).detalhe}</p>
               </div>
               {!emBreve.includes('familia') && <div className="pl-plano-pe">{acoesDoCartao('familia')}</div>}
+            </section>
+          )}
+          {/* No celular o cartão do Pro "em breve" sai do carrossel (ficava escondido à direita) e vira uma
+              linha, como a da Família e a da página pública. No computador o cartão continua. */}
+          {modoV4 && emBreve.includes('pro4') && visiveis.includes('pro4') && (
+            <section
+              className="q-cartao pl-familia pl-breve-celular"
+              data-pl-pro-linha
+              aria-label={t('Plano {plano}', { plano: nome('pro4') })}
+            >
+              <div>
+                <h3>
+                  {linhaDoPro().nome} <span className="pl-familia-resumo">{linhaDoPro().resumo}</span>
+                </h3>
+                <p className="q-d">{linhaDoPro().detalhe}</p>
+              </div>
             </section>
           )}
           {protegidoNaV4 ? (
@@ -1077,22 +1101,24 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
               role="radiogroup"
               aria-label={t('Comparar o seu plano com')}
             >
-              {visiveis.map((id) => (
-                <button
-                  key={id}
-                  type="button"
-                  role="radio"
-                  className="q-aba"
-                  aria-checked={id === ver}
-                  disabled={id === meu}
-                  onClick={() => {
-                    sentir('aba');
-                    setComparar(id);
-                  }}
-                >
-                  {nome(id)}
-                </button>
-              ))}
+              {/* O seu plano é a coluna fixa: a escolha é só entre os outros (um botão desligado parecia apagado). */}
+              {visiveis
+                .filter((id) => id !== meu)
+                .map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="radio"
+                    className="q-aba"
+                    aria-checked={id === ver}
+                    onClick={() => {
+                      sentir('aba');
+                      setComparar(id);
+                    }}
+                  >
+                    {nome(id)}
+                  </button>
+                ))}
             </div>
             <div className="q-tabela-caixa">
               <table className="q-tabela pl-compara" data-meu={meu ?? ''} data-ver={ver ?? ''}>

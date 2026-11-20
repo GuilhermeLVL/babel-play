@@ -7,7 +7,7 @@
  */
 import type { Guia } from './guias';
 import { escaparHtml } from './markdown';
-import { cartoesDosPlanos, type PlanosDoSite } from './planosDoSite';
+import { cartoesDosPlanos, type PlanosDoSite, planosEmBreveHtml } from './planosDoSite';
 
 export const EMAIL_DE_CONTATO = 'contato@frasy.com.br';
 
@@ -20,9 +20,14 @@ export const listaDeGuias = (guias: Guia[]): string =>
     .join('')}</ul>`;
 
 export function corpoDosPlanos(p: PlanosDoSite): string {
-  const emBreve = p.emBreve.length
-    ? `<p class="nota">Em breve: ${p.emBreve.map(escaparHtml).join(' e ')}. Ainda não estão à venda.</p>`
-    : '';
+  const emBreve = planosEmBreveHtml(p);
+  /* O anual só aparece nas respostas quando a venda dele está aberta (`SITE_ANUAL_A_VENDA=1` no build). */
+  const comoPago = p.anualAVenda
+    ? 'O pagamento é feito pelo Asaas, com Pix, boleto ou cartão. No plano anual você pode pagar à vista ou parcelar.'
+    : 'O pagamento é feito pelo Asaas, com Pix, boleto ou cartão, uma vez por mês.';
+  const cancelar =
+    'Sim. Pelo próprio app, em Planos, na aba Sua assinatura. Você continua com o plano até o fim do período pago, e o seu progresso fica guardado.' +
+    (p.anualAVenda ? ' No anual parcelado, a tela mostra as condições antes de você confirmar.' : '');
   return `
 <div class="cabeca">
 <h1>Planos</h1>
@@ -39,8 +44,8 @@ ${emBreve}
 <section class="secao" aria-labelledby="pagamento">
 <h2 id="pagamento">Perguntas sobre pagamento</h2>
 <div class="perguntas">
-<details class="pergunta"><summary>Como eu pago?</summary><p>O pagamento é feito pelo Asaas, com Pix, boleto ou cartão.${p.anualAVenda ? ' No plano anual você pode pagar à vista ou parcelar.' : ''}</p></details>
-<details class="pergunta"><summary>Posso cancelar quando quiser?</summary><p>Sim. Pelo próprio app, em Planos, na aba Sua assinatura. Você continua com o plano até o fim do período pago, e o seu progresso fica guardado.${p.anualAVenda ? ' No anual parcelado, a tela mostra as condições antes de você confirmar.' : ''}</p></details>
+<details class="pergunta"><summary>Como eu pago?</summary><p>${comoPago}</p></details>
+<details class="pergunta"><summary>Posso cancelar quando quiser?</summary><p>${cancelar}</p></details>
 <details class="pergunta"><summary>Menores de idade podem assinar?</summary><p>Não sozinhos. Contas de menores de 18 anos não compram nem começam o teste: o responsável faz isso pela conta dele, vinculada à do estudante.</p></details>
 <details class="pergunta"><summary>O que acontece quando acabam as horas de nuvem do mês?</summary><p>A legenda e a tradução continuam no aparelho, sem custo. As horas voltam no mês seguinte.</p></details>
 </div>

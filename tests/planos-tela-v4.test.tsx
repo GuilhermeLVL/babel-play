@@ -116,12 +116,13 @@ describe('Planos v4 ligada: Grátis, Plus e Pro, com a Família numa linha', () 
     expect(pro.textContent).toContain('Conversa por voz com um tutor, a partir da cena')
   })
 
-  it('a Família é uma linha abaixo do cartão do Plus, com preço, "em breve" e sem botão', async () => {
+  it('a Família é uma linha abaixo do cartão do Plus, "em breve", SEM preço (como o Pro e o site) e sem botão', async () => {
     await abrir('plus')
     const linha = document.querySelector<HTMLElement>('[data-pl-familia]')!
     expect(linha).not.toBeNull()
     expect(linha.textContent).toContain('Família')
-    expect(linha.textContent).toContain('para até 4 pessoas · R$ 24,90/mês · em breve')
+    expect(linha.textContent).toContain('para até 4 pessoas · em breve')
+    expect(linha.textContent).not.toContain('R$')
     expect(linha.querySelectorAll('button')).toHaveLength(0)
     expect(cartoes()).not.toContain('familia')
   })
@@ -148,6 +149,82 @@ describe('Planos v4 ligada: Grátis, Plus e Pro, com a Família numa linha', () 
     expect(document.querySelector('.pl-faq')!.textContent).toContain(
       'O anual custa 10 mensalidades: são 2 meses grátis',
     )
+  })
+})
+
+describe('Planos v4: quem está sem conta (visitante)', () => {
+  /* Sem conta a idade é desconhecida, e `perfilProtegido()` diz sim; para a VITRINE o visitante não é um
+     menor: vê preços e é convidado a criar a conta (comprar exige conta). */
+  const idadeDesconhecida = {
+    nascimentoInformado: false,
+    faixa: null,
+    protegido: true,
+    exigeResponsavel: false,
+    exigeConsentimentoEspecifico: false,
+    vinculo: { estado: 'nenhum' as const },
+    restrita: false,
+  }
+  const abrirComoVisitante = async () => {
+    definirIdentidade('anonimo')
+    definirProtecao(idadeDesconhecida)
+    return abrir('plus')
+  }
+
+  it('vê o preço do Plus e o botão "Criar conta para assinar", nunca "não disponíveis neste perfil"', async () => {
+    await abrirComoVisitante()
+    expect(cartao('plus').textContent).toContain('R$ 14,90')
+    const botao = [...cartao('plus').querySelectorAll('button')].find(
+      (b) => b.textContent === 'Criar conta para assinar',
+    )
+    expect(botao).toBeTruthy()
+    expect(tela()).not.toContain('Os planos pagos não estão disponíveis neste perfil')
+  })
+
+  it('o botão abre o CADASTRO e guarda o plano escolhido', async () => {
+    await abrirComoVisitante()
+    const pedidos: string[] = []
+    const ouvir = (e: Event) => pedidos.push((e as CustomEvent<{ modo: string }>).detail.modo)
+    window.addEventListener('babel_pedir_entrada', ouvir)
+    const botao = [...cartao('plus').querySelectorAll('button')].find(
+      (b) => b.textContent === 'Criar conta para assinar',
+    )!
+    await act(async () => botao.click())
+    window.removeEventListener('babel_pedir_entrada', ouvir)
+    expect(pedidos).toEqual(['signup'])
+    expect(sessionStorage.getItem('babel.checkout.plano')).toBe('plus')
+  })
+
+  it('vê a mesma linha da Família "em breve" que quem tem conta, e o Grátis diz "sem cartão, sem conta"', async () => {
+    await abrirComoVisitante()
+    expect(document.querySelector('[data-pl-familia]')!.textContent).toContain('para até 4 pessoas · em breve')
+    expect(cartao('gratis').textContent).toContain('sem cartão, sem conta')
+  })
+})
+
+describe('Planos v4: coerência entre quem tem conta e o celular', () => {
+  it('com conta, o Grátis diz só "sem cartão" (a pessoa já tem conta)', async () => {
+    await abrir('plus')
+    expect(cartao('gratis').textContent).toContain('sem cartão')
+    expect(cartao('gratis').textContent).not.toContain('sem conta')
+  })
+
+  it('o Pro "em breve" também existe como linha (a do celular, onde o cartão sai do carrossel)', async () => {
+    await abrir('plus')
+    expect(cartao('pro4').hasAttribute('data-pl-em-breve')).toBe(true)
+    expect(cartao('plus').hasAttribute('data-pl-em-breve')).toBe(false)
+    const linha = document.querySelector<HTMLElement>('[data-pl-pro-linha]')!
+    expect(linha.textContent).toContain('Pro')
+    expect(linha.textContent).toContain('em breve')
+    expect(linha.textContent).not.toContain('R$')
+    /* No carrossel do celular ficam dois cartões: a dica diz dois. */
+    expect(tela()).toContain('Dois planos: arraste para o lado')
+  })
+
+  it('a escolha da comparação no celular não tem o seu plano como botão apagado', async () => {
+    await abrir('plus')
+    const escolhas = [...document.querySelectorAll<HTMLButtonElement>('.pl-compara-escolha button')]
+    expect(escolhas.map((b) => b.textContent)).toEqual(['Plus', 'Pro'])
+    expect(escolhas.some((b) => b.disabled)).toBe(false)
   })
 })
 

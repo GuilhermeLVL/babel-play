@@ -122,6 +122,7 @@ import Planos from '../src/components/views/Planos'
 import Assinado from '../src/components/views/planos/Assinado'
 import Cancelar from '../src/components/views/planos/Cancelar'
 import Checkout from '../src/components/views/planos/Checkout'
+import { definirEstadoDasFlags } from '../src/lib/flagsCache'
 import { _reiniciarIdentidade, definirIdentidade } from '../src/lib/identidade'
 import type { DerivedProgress } from '../src/lib/progress'
 
@@ -725,6 +726,8 @@ describe('Os avisos de conta no Quest', () => {
   })
 
   it('o card de planos: ver planos e dispensar, com o preço da matriz', async () => {
+    /* O preço só aparece com as flags conhecidas (aqui: a v4 desligada). */
+    definirEstadoDasFlags({ venda_planos_v4: { ligada: false } })
     const aoVer = vi.fn()
     render(<CardDePlanos onVerPlanos={aoVer} />)
     const card = await screen.findByTestId('card-de-planos')
@@ -735,6 +738,7 @@ describe('Os avisos de conta no Quest', () => {
     fireEvent.click(botao('Dispensar este aviso de planos'))
     expect(screen.queryByTestId('card-de-planos')).toBeNull()
     expect(localStorage.getItem('babel.card_planos_dispensado')).toBe('1')
+    definirEstadoDasFlags(null)
   })
 
   it('o pagamento atrasado: a frase, "Ver minha assinatura" e a dispensa da sessão', async () => {

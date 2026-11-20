@@ -3,8 +3,9 @@ import { useState } from 'react';
 
 import { FLAG_VENDA_PLANOS_V4, menorPrecoDeAssinatura } from '../core/planos';
 import { getEntitlements } from '../lib/entitlements';
+import { useFlag } from '../lib/flags';
 import { t } from '../lib/i18n';
-import { v4Ligada } from '../lib/planoDeEntrada';
+import { useFlagsConhecidas } from '../lib/planoAVenda';
 import { readStoredValue } from '../lib/profile';
 import { usePedacoDoQuest } from './conta/quest/usePedacoDoQuest';
 
@@ -54,8 +55,13 @@ export default function CardDePlanos({ onVerPlanos }: { onVerPlanos: () => void 
   const [cotaNunca, setCotaNunca] = useState(() => readStoredValue(CHAVE_NUNCA_DA_COTA) === '1');
   /* Se o desenho do headset não chegar, vale o card de sempre (um convite nunca recarrega a página). */
   const doQuest = usePedacoDoQuest(carregarFaixaDoQuest, true);
-  /* Com a v4 o menor plano à venda é o Plus (R$ 14,90): "a partir de R$ 9,90" seria prometer o que não se vende. */
-  const preco = menorPrecoDeAssinatura((chave) => chave === FLAG_VENDA_PLANOS_V4 && v4Ligada());
+  /* Com a v4 o menor plano à venda é o Plus (R$ 14,90): "a partir de R$ 9,90" seria prometer o que não se vende.
+     E ANTES de as flags chegarem não há preço: logo depois de entrar o Início mostrava "a partir de R$ 19,90"
+     e trocava para R$ 14,90 quando elas chegavam. Sem saber, o convite fala dos planos sem número. */
+  const v4 = useFlag(FLAG_VENDA_PLANOS_V4);
+  const conhecidas = useFlagsConhecidas();
+  const precoDaMatriz = menorPrecoDeAssinatura((chave) => chave === FLAG_VENDA_PLANOS_V4 && v4);
+  const preco = conhecidas ? precoDaMatriz : null;
   /* Quota de armazenamento estourando (>90%) é o momento em que o upgrade deixa de ser anúncio e
      vira solução — o card fala do problema real mesmo para quem dispensou o anúncio comum. Mas a
      dispensa É RESPEITADA (Fase 8): depois de qualquer dispensa, o aviso de armazenamento volta no
@@ -66,7 +72,16 @@ export default function CardDePlanos({ onVerPlanos }: { onVerPlanos: () => void 
   const cotaEmSilencio =
     cotaNunca || (cotaDispensadaEm !== null && Date.now() - cotaDispensadaEm < INTERVALO_DO_AVISO_DE_COTA_MS);
   const oculto = quotaApertada ? cotaEmSilencio : dispensado;
-  if (oculto || !planoAnunciavel() || !preco) return null;
+  if (oculto || !planoAnunciavel() || !precoDaMatriz) return null;
+  const tituloDoConvite =
+    preco === null ? t('Conheça os planos pagos') : t('Planos a partir de {moeda} {preco}/mês', { moeda: 'R$', preco });
+  const textoDoArmazenamento =
+    preco === null
+      ? t('Os planos pagos dão mais espaço. Ou apague sessões antigas.')
+      : t('Os planos pagos (a partir de {moeda} {preco}/mês) dão mais espaço. Ou apague sessões antigas.', {
+          moeda: 'R$',
+          preco,
+        });
 
   const gravar = (chave: string, valor: string) => {
     try {
@@ -95,17 +110,10 @@ export default function CardDePlanos({ onVerPlanos }: { onVerPlanos: () => void 
         icone={Sparkles}
         testId="card-de-planos"
         tom={quotaApertada ? 'alerta' : 'acento'}
-        titulo={
-          quotaApertada
-            ? t('Seu armazenamento está quase cheio')
-            : t('Planos a partir de {moeda} {preco}/mês', { moeda: 'R$', preco })
-        }
+        titulo={quotaApertada ? t('Seu armazenamento está quase cheio') : tituloDoConvite}
         texto={
           quotaApertada
-            ? t('Os planos pagos (a partir de {moeda} {preco}/mês) dão mais espaço. Ou apague sessões antigas.', {
-                moeda: 'R$',
-                preco,
-              })
+            ? textoDoArmazenamento
             : t('Tradução com IA de nuvem e mais armazenamento. Você está no Grátis, que continua inteiro.')
         }
         acoes={[
@@ -140,15 +148,11 @@ export default function CardDePlanos({ onVerPlanos }: { onVerPlanos: () => void 
         {/* As mesmas frases do desenho do headset (as chaves do catálogo são as mesmas nos dois). */}
         {quotaApertada ? (
           <>
-            <strong>{t('Seu armazenamento está quase cheio')}</strong>.{' '}
-            {t('Os planos pagos (a partir de {moeda} {preco}/mês) dão mais espaço. Ou apague sessões antigas.', {
-              moeda: 'R$',
-              preco,
-            })}
+            <strong>{t('Seu armazenamento está quase cheio')}</strong>. {textoDoArmazenamento}
           </>
         ) : (
           <>
-            <strong>{t('Planos a partir de {moeda} {preco}/mês', { moeda: 'R$', preco })}</strong>.{' '}
+            <strong>{tituloDoConvite}</strong>.{' '}
             {t('Tradução com IA de nuvem e mais armazenamento. Você está no Grátis, que continua inteiro.')}
           </>
         )}

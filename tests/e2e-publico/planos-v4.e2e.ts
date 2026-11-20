@@ -67,8 +67,23 @@ for (const { nome, largura, altura } of TAMANHOS) {
     await expect(pro).toContainText('Em breve')
     await expect(pro).not.toContainText('R$')
     await expect(pro.getByRole('button')).toHaveCount(0)
-    await expect(familia).toContainText('para até 4 pessoas · R$ 24,90/mês · em breve')
+    /* "Em breve" não anuncia valor: a Família diz para quantos e "em breve", sem preço (como o Pro e o site). */
+    await expect(familia).toContainText('para até 4 pessoas · em breve')
+    await expect(familia).not.toContainText('R$')
     await expect(familia.getByRole('button')).toHaveCount(0)
+    /* O Pro "em breve": cartão no computador; no celular ele sai do carrossel e vira uma linha como a da Família. */
+    const linhaDoPro = page.locator('[data-pl-pro-linha]')
+    if (nome === '375') {
+      await expect(pro).toBeHidden()
+      await expect(linhaDoPro).toBeVisible()
+      await expect(linhaDoPro).toContainText('em breve')
+      await expect(linhaDoPro).not.toContainText('R$')
+    } else {
+      await expect(pro).toBeVisible()
+      await expect(linhaDoPro).toBeHidden()
+    }
+    /* Quem abre a tela tem conta: o Grátis diz "sem cartão", nunca "sem conta". */
+    await expect(page.locator('[data-pl-plano="gratis"] .pl-preco-nota')).toHaveText('sem cartão')
     // No conteúdo da tela (o <main>): o trilho tem o item "Ao vivo" (Legendar/Intérprete), que não é o plano antigo.
     await expect(page.locator('main')).not.toContainText(/Essencial|Premium|Ao [Vv]ivo/)
 

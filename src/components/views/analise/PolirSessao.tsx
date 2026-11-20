@@ -6,7 +6,8 @@ import { contarPolimento, type FalaParaPolir, polirSessao } from '../../../lib/a
 import { useConsentimentoDeNuvem } from '../../../lib/consentimentoDeNuvem';
 import { diaQueACotaVolta } from '../../../lib/diaQueACotaVolta';
 import { t } from '../../../lib/i18n';
-import { comNomeDoPlano, planoDeEntradaAgora } from '../../../lib/planoDeEntrada';
+import { usePlanoDeEntrada } from '../../../lib/planoAVenda';
+import { comNomeDoPlano } from '../../../lib/planoDeEntrada';
 import { nuanceDoPolimentoDasPreferencias } from '../../../lib/traducao/preferenciasDaNuance';
 
 export type VersaoDaTraducao = 'original' | 'polida';
@@ -72,6 +73,8 @@ export default function PolirSessao({
   /** O convite ao Premium. Ausente no perfil protegido: ele vê o cadeado e o texto, sem venda. */
   aoConhecer?: () => void;
 }) {
+  /* Acompanha as flags: o nome do plano à venda (Plus com a v4) chega mesmo se elas vierem depois. */
+  const planoDeEntrada = usePlanoDeEntrada();
   const { consentiu, autorizar } = useConsentimentoDeNuvem();
   const contagem = useMemo(() => contarPolimento(utterances), [utterances]);
   const [fase, setFase] = useState<Fase>({ f: 'parado' });
@@ -162,13 +165,13 @@ export default function PolirSessao({
                 t(
                   'Com a Tradução Nuance do Premium, a tradução da sessão inteira é revisada com o contexto da conversa, e a original continua guardada.',
                 ),
-                planoDeEntradaAgora(),
+                planoDeEntrada,
               )}{' '}
               {t('Sua legenda já usa a Tradução rápida ao vivo, sem esperar.')}
             </span>
             {aoConhecer && (
               <button type="button" className="btn btn-outline peq" onClick={aoConhecer}>
-                <Sparkles aria-hidden /> {comNomeDoPlano(t('Conhecer o Premium'), planoDeEntradaAgora())}
+                <Sparkles aria-hidden /> {comNomeDoPlano(t('Conhecer o Premium'), planoDeEntrada)}
               </button>
             )}
           </div>

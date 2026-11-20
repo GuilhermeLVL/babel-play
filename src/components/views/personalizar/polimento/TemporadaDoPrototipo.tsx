@@ -14,7 +14,8 @@ import { useMemo, useRef, useState } from 'react';
 import { creditarSeeds, type TemporadaNoServidor } from '../../../../data/api';
 import { data, t } from '../../../../lib/i18n';
 import type { ItemDaLoja } from '../../../../lib/loja';
-import { comNomeDoPlano, planoDeEntradaAgora } from '../../../../lib/planoDeEntrada';
+import { usePlanoDeEntrada } from '../../../../lib/planoAVenda';
+import { comNomeDoPlano } from '../../../../lib/planoDeEntrada';
 import { centro, comemorarResgate, irParaNivel, sentirMoeda } from '../../../../lib/polimento/personalizar';
 import { perfilProtegido } from '../../../../lib/protecaoDoMenor';
 import { recompensasV2Ligadas } from '../../../../lib/recompensasV2';
@@ -62,6 +63,8 @@ export default function TemporadaDoPrototipo({
   aoUsar: (item: ItemDaLoja) => void;
   aoVerPlanos: () => void;
 }) {
+  /* Acompanha as flags: o nome do plano à venda (Plus com a v4) chega mesmo se elas vierem depois. */
+  const planoDeEntrada = usePlanoDeEntrada();
   const atual = estado?.temporada ?? null;
   const exibida = atual ?? estado?.proxima ?? null;
   const nivel = atual ? (estado?.nivel ?? 0) : 0;
@@ -362,7 +365,7 @@ export default function TemporadaDoPrototipo({
               )}
             </span>
             <button type="button" className="q-ctl" data-px="planos" onClick={aoVerPlanos}>
-              {comNomeDoPlano(t('Conhecer o Premium'), planoDeEntradaAgora())}
+              {comNomeDoPlano(t('Conhecer o Premium'), planoDeEntrada)}
             </button>
           </div>
         )}

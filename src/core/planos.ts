@@ -1024,6 +1024,19 @@ export function planoDeEntrada(flagLigada: (chave: string) => boolean): PlanoPag
 }
 
 /**
+ * O plano SEM ANÚNCIOS que se vende agora (o de menor mensalidade entre os à venda): o que a porta "Sem
+ * anúncios no …" de um anúncio nomeia. O Essencial com a v3, o Plus com a v4, o Premium sem nenhuma das
+ * duas. `null` quando nenhum plano à venda tira os anúncios.
+ */
+export function planoSemAnuncios(flagLigada: (chave: string) => boolean): PlanoPago | null {
+  const semAnuncios = planosAVenda(flagLigada).filter((p) => PLAN_MATRIX[p].entitlements.semAnuncios);
+  if (!semAnuncios.length) return null;
+  return semAnuncios.reduce((a, b) =>
+    (PLAN_MATRIX[b].precoMensalBrl as number) < (PLAN_MATRIX[a].precoMensalBrl as number) ? b : a,
+  );
+}
+
+/**
  * Os planos "em breve" com a v4 ligada: os que dependem da `venda_planos_v4` (estão no desenho da v4) e
  * ainda não estão à venda (Família e Pro, cujas chaves próprias seguem desligadas). Sem a v4 ligada
  * (`aVenda` sem o Plus), a lista é vazia: a tela de hoje não anuncia nada que não vende.

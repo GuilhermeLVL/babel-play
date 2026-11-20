@@ -2,7 +2,7 @@
 
 ## Purpose
 
-TBD - created by archiving change escrita-do-chines. Update Purpose after archive.
+Garantir que o chinês transcrito apareça na escrita (simplificada ou tradicional) que a pessoa escolheu, qualquer que seja o provedor de transcrição.
 
 ## Requirements
 

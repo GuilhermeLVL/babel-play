@@ -30,6 +30,11 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+    groups:
+      # init e analyze do CodeQL precisam da MESMA versão (o analyze recusa a config de outra
+      # versão do init): sobem juntos num PR só.
+      codeql:
+        patterns: ['github/codeql-action*']
   - package-ecosystem: docker
     directory: /
     schedule:

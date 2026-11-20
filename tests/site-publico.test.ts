@@ -90,6 +90,21 @@ describe('páginas públicas', () => {
     expect(html).toContain('Em breve: Família e Pro')
   })
 
+  it('planos: com o anual fechado (o padrão), nenhum preço anual nem promessa de anual parcelado', () => {
+    for (const flags of ['', 'venda_planos_v4']) {
+      const html = site({ SITE_FLAGS_DE_VENDA: flags }).get('planos.html')!
+      expect(html, flags).not.toMatch(/por ano/)
+      expect(html, flags).not.toMatch(/anual/i)
+      expect(html, flags).not.toContain(PLAN_MATRIX.plus.precoAnualBrl!.toFixed(2).replace('.', ','))
+    }
+  })
+
+  it('planos: com SITE_ANUAL_A_VENDA=1, o preço anual e as perguntas do anual voltam', () => {
+    const html = site({ SITE_FLAGS_DE_VENDA: 'venda_planos_v4', SITE_ANUAL_A_VENDA: '1' }).get('planos.html')!
+    expect(html).toContain(`ou R$ ${PLAN_MATRIX.plus.precoAnualBrl!.toFixed(2).replace('.', ',')} por ano`)
+    expect(html).toContain('No plano anual você pode pagar à vista ou parcelar.')
+  })
+
   it('404: noindex e sem canonical', () => {
     const html = arquivos.get('404.html')!
     expect(html).toContain('<meta name="robots" content="noindex">')

@@ -14,11 +14,11 @@
  *
  *   /assets/*            1 ano + `immutable` — o nome muda quando o conteúdo muda
  *   ort-wasm-*, silero_* 1 ano + `immutable` — versionados pelo pacote; mesmo tratamento do
- *                        `public/_headers` da edição estática
+ *                        `scripts/vite/_headers.base` (gera `dist/_headers`) da edição estática
  *   /modelos/bergamot/…  1 ano + `immutable` — o motor mora em `motor-<versão>/` e o modelo em
  *                        `<par>/<execução de treino>/` (`scripts/baixar-modelos-bergamot.mjs`): o
  *                        caminho muda quando o conteúdo muda. O LEIA-ME da pasta, não.
- *   /trilha/*, /glosas/* 1 dia com revalidação — dado sem hash no nome (ver `public/_headers`)
+ *   /trilha/*, /glosas/* 1 dia com revalidação — dado sem hash no nome (ver `scripts/vite/_headers.base` (gera `dist/_headers`))
  *   index.html           `no-cache` — sempre revalida, é ele que diz quais chunks valem
  *   o resto              padrão do Express (revalida por ETag)
  *
@@ -38,7 +38,8 @@ const SEMPRE_REVALIDA = 'no-cache'
 /** O `Cache-Control` de um arquivo servido da raiz de `dist/`, pelo caminho relativo a ela. */
 export function cacheDoArquivo(relativo: string): string | null {
   const r = relativo.replace(/\\/g, '/').replace(/^\/+/, '')
-  if (r === 'index.html') return SEMPRE_REVALIDA
+  // O service worker sempre revalida: é por ele que a versão nova (ou o SW que se desliga) chega.
+  if (r === 'index.html' || r === 'sw.js') return SEMPRE_REVALIDA
   if (r.startsWith('assets/')) return IMUTAVEL
   if (/^(ort-wasm-[^/]+\.(mjs|wasm)|silero_vad_[^/]+\.onnx)$/.test(r)) return IMUTAVEL
   if (/^modelos\/bergamot\/(motor-[^/]+|[a-z]{2,3}-[a-z]{2,3}\/[^/]+)\/[^/]+$/.test(r)) return IMUTAVEL

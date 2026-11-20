@@ -19,6 +19,7 @@ import { numero, t, tp } from '../../lib/i18n';
 import { langLabelNaUI } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import type { VocabCard } from '../../types';
+import EspacoDeAnuncio from '../anuncios/EspacoDeAnuncio';
 import { entrarOQueAbriu, fotoDaTela } from './play/quest/jogosNoQuest';
 
 /**
@@ -154,6 +155,9 @@ export default function PainelTrilha({
           {aberto ? <ChevronUp /> : <ChevronDown />}
         </span>
       </button>
+      {/* A TRILHA OFERECIDA POR UMA MARCA (espaço `trilha-oferecida`, patrocínio de conteúdo; `anuncios.js:148-155`):
+          o selo "Oferecida por" logo abaixo da linha da trilha. O conteúdo da trilha não muda. */}
+      <EspacoDeAnuncio espaco="trilha-oferecida" formato="nativo" />
 
       {aberto && (
         <div className="q-cartao">

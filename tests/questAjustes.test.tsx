@@ -120,7 +120,7 @@ beforeEach(() => {
     },
   })
   nuance.apagarDoGlossario.mockResolvedValue({ ok: true, valor: true })
-  dados.prepararCopia.mockResolvedValue({ blob: new Blob(['{}']), nome: 'babel-play.json' })
+  dados.prepararCopia.mockResolvedValue({ blob: new Blob(['{}']), nome: 'frasy.json' })
 })
 afterEach(() => {
   cleanup()
@@ -285,7 +285,7 @@ describe('Ajustes no Quest: Notificações', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Segunda' }))
     expect((prefs.atual as Preferencias).semanal.dia).toBe('segunda')
     fireEvent.click(screen.getByRole('button', { name: /Ver exemplo/ }))
-    expect(await screen.findByRole('dialog', { name: 'Sua semana no Babel Play' })).toBeTruthy()
+    expect(await screen.findByRole('dialog', { name: 'Sua semana no Frasy' })).toBeTruthy()
   })
 })
 
@@ -309,7 +309,9 @@ describe('Ajustes no Quest: Processamento', () => {
 describe('Ajustes no Quest: Privacidade', () => {
   it('os cinco consentimentos, a cópia em JSON ou CSV com os três estados, política e encarregado', async () => {
     const { container } = montar('privacidade')
-    expect(container.querySelectorAll('.q-ajustes [role="switch"]')).toHaveLength(5)
+    /* Os cinco consentimentos e a legenda segura (`legenda-segura-para-menores`). */
+    expect(container.querySelectorAll('.q-ajustes [role="switch"]')).toHaveLength(6)
+    expect(interruptor('Ocultar palavras sensíveis na legenda')).toBeTruthy()
     fireEvent.click(interruptor('Métricas de uso'))
     expect(prefs.salvar).toHaveBeenCalledTimes(1)
 

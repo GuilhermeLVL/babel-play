@@ -1,5 +1,5 @@
 import { BookmarkPlus, Volume2, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 
 import { t } from '../../../../lib/i18n';
 
@@ -9,7 +9,15 @@ export interface PalavraTocada {
   /** A fala de onde ela saiu — é dela que sai o idioma real (`vocabWord.resolveWord`). */
   frase: string;
   lang?: string;
+  /**
+   * Veio de um destaque do assistente (Fase C2): o tipo e, na expressão ou no termo, o sentido que a nuvem já deu —
+   * aí o cartão não consulta o dicionário (a expressão não é a soma das palavras) e o "Salvar" leva o sentido.
+   */
+  realce?: { tipo: 'expressao' | 'termo' | 'nivel'; sentido?: string; rotulo: string };
 }
+
+/* O histórico da palavra (onde apareceu, jogos, nota) só baixa quando um cartão abre. */
+const HistoricoDaPalavra = lazy(() => import('../../../vocab/HistoricoDaPalavra'));
 
 /** Sem resposta nisto (MT fora, rede lenta), o cartão diz "sem tradução" em vez de esperar para sempre. */
 const PACIENCIA_MS = 8000;
@@ -25,6 +33,7 @@ const PACIENCIA_MS = 8000;
 export default function CartaoDaPalavra({
   alvo,
   noAlto = false,
+  encaixado = false,
   aoConsultar,
   aoOuvir,
   aoSalvar,
@@ -33,12 +42,15 @@ export default function CartaoDaPalavra({
   alvo: PalavraTocada;
   /** Abre no alto da janela (a palavra veio de uma fala de baixo). */
   noAlto?: boolean;
+  /** No formato Estudo o cartão mora embaixo da fala, sem cobrir nada. */
+  encaixado?: boolean;
   aoConsultar?: (palavra: string, frase: string, lang?: string) => Promise<{ traducao: string }>;
   aoOuvir?: (texto: string, lang: string | undefined, lenta: boolean) => void;
   aoSalvar?: (item: { palavra: string; frase?: string; lang?: string; traducao?: string }) => Promise<string>;
   aoFechar: () => void;
 }) {
-  const [glosa, setGlosa] = useState<string | null>(aoConsultar ? null : '');
+  const sentidoPronto = alvo.realce?.sentido;
+  const [glosa, setGlosa] = useState<string | null>(sentidoPronto ?? (aoConsultar ? null : ''));
   const [status, setStatus] = useState('');
   const [salvando, setSalvando] = useState(false);
   const fechar = useRef<HTMLButtonElement>(null);
@@ -48,6 +60,11 @@ export default function CartaoDaPalavra({
   }, []);
 
   useEffect(() => {
+    if (sentidoPronto) {
+      setGlosa(sentidoPronto);
+      setStatus('');
+      return;
+    }
     if (!aoConsultar) return;
     let vivo = true;
     setGlosa(null);
@@ -61,7 +78,7 @@ export default function CartaoDaPalavra({
       vivo = false;
       clearTimeout(desistir);
     };
-  }, [alvo, aoConsultar]);
+  }, [alvo, aoConsultar, sentidoPronto]);
 
   const salvar = async () => {
     if (!aoSalvar || salvando) return;
@@ -78,7 +95,7 @@ export default function CartaoDaPalavra({
 
   return (
     <div
-      className={`leg-cartao ${noAlto ? 'no-alto' : ''}`}
+      className={`leg-cartao ${noAlto ? 'no-alto' : ''} ${encaixado ? 'encaixado' : ''}`}
       role="dialog"
       aria-label={t('Palavra: {palavra}', { palavra: alvo.palavra })}
       onKeyDown={(e) => {
@@ -90,10 +107,21 @@ export default function CartaoDaPalavra({
     >
       <div className="leg-cartao-topo">
         <b lang={alvo.lang || undefined}>{alvo.palavra}</b>
-        <button ref={fechar} type="button" aria-label={t('Fechar o cartão da palavra')} title={t('Fechar')} onClick={aoFechar}>
+        <button
+          ref={fechar}
+          type="button"
+          aria-label={t('Fechar o cartão da palavra')}
+          title={t('Fechar')}
+          onClick={aoFechar}
+        >
           <X aria-hidden />
         </button>
       </div>
+      {alvo.realce && (
+        <p className="leg-cartao-realce" data-realce={alvo.realce.tipo}>
+          {alvo.realce.rotulo}
+        </p>
+      )}
       <p className="leg-cartao-glosa" aria-live="polite">
         {glosa === null ? t('Consultando…') : glosa || t('Sem tradução para esta palavra.')}
       </p>
@@ -114,6 +142,10 @@ export default function CartaoDaPalavra({
           {status}
         </p>
       )}
+      {/* Na janela flutuante a captura está rodando: o link da sessão abre em nova aba. */}
+      <Suspense fallback={null}>
+        <HistoricoDaPalavra palavra={alvo.palavra} lang={alvo.lang} novaAba />
+      </Suspense>
     </div>
   );
 }

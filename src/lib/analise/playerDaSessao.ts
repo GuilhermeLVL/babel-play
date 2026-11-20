@@ -12,7 +12,7 @@ import { sentenceHasComplexWord } from '@core';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import React from 'react';
 
-import { getVoicePref, pickVoice } from '../tts';
+import { avisarSemVoz, getVoicePref, pickVoice, vozesCarregadas } from '../tts';
 import type { FalaDaAnalise } from './tiposDaAnalise';
 
 /** m:ss (ou h:mm:ss) a partir de segundos — o `seg()` do protótipo: o relógio do player e dos trechos. */
@@ -322,12 +322,19 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
         speakFrom(i + 1);
         return;
       }
-      const u = new SpeechSynthesisUtterance(text);
       // Idioma POR FALA: uma sessão pode misturar mic (seu idioma) e sistema (o estudado).
       const lang = s.lang || ttsLang;
       // Utterance manual (precisa de onstart/onboundary/onend para a barra de progresso), então a
       // voz preferida do usuário para ESTE idioma tem de ser resolvida aqui — o `speak()` não passa.
       const voice = pickVoice(lang, getVoicePref(lang));
+      /* Sem voz ACEITA no idioma (só robóticas, ou nenhuma): não lê com a voz padrão do navegador. Para, avisa, e o
+         texto segue na tela. */
+      if (!voice && vozesCarregadas()) {
+        avisarSemVoz(lang);
+        setIsPlaying(false);
+        return;
+      }
+      const u = new SpeechSynthesisUtterance(text);
       if (voice) {
         u.voice = voice;
         u.lang = voice.lang;

@@ -6,27 +6,13 @@
  * disparar para sempre, em silêncio — que é pior que não ter alerta, porque alguém acredita nele.
  * Este teste fecha essa porta: toda métrica citada em `ops/alertas/regras.yml` e em
  * `ops/dashboards/babel-play.json` tem de existir em `metricas.ts`, nas métricas padrão do
- * prom-client, ou na lista (explícita) das embutidas do Fly.
- *
- * E o `fly.toml`: o `[metrics]` raspa uma porta SEM token (o raspador do Fly não manda header). Isso
- * só é seguro enquanto essa porta não for publicada — o teste cobra que ela não esteja em
- * `[http_service]` nem em `[[services]]`, e que o app realmente sirva as métricas nela.
+ * prom-client.
  */
 import { readFileSync } from 'node:fs'
 
 import yaml from 'js-yaml'
 import { collectDefaultMetrics, Registry } from 'prom-client'
 import { beforeAll, describe, expect, it } from 'vitest'
-
-/** As embutidas do Fly citadas aqui (fly.io/docs/monitoring/metrics, "Built-in metrics"). */
-const EMBUTIDAS_DO_FLY = new Set([
-  'fly_instance_cpu_throttle',
-  'fly_instance_cpu_balance',
-  'fly_instance_cpu_baseline',
-  'fly_instance_memory_mem_total',
-  'fly_instance_memory_mem_available',
-  'fly_volume_used_pct',
-])
 
 /** Palavras do PromQL/MetricsQL que não são métrica. */
 const PALAVRAS_DO_PROMQL = new Set([
@@ -71,7 +57,7 @@ beforeAll(async () => {
   const r = new Registry()
   collectDefaultMetrics({ register: r })
   const padrao = (await r.getMetricsAsJSON()).map((m) => m.name)
-  conhecidas = new Set([...doCodigo, ...padrao, ...EMBUTIDAS_DO_FLY])
+  conhecidas = new Set([...doCodigo, ...padrao])
 })
 
 /** Os nomes de métrica de uma expressão: tira strings, seletores, janelas e agrupamentos. */
@@ -184,7 +170,7 @@ describe('ops/dashboards/babel-play.json', () => {
     expect(faltando).toEqual([])
   })
 
-  it('tem os painéis pedidos: req/s, latência por rota, erros, event loop, memória/CPU, IA, custo, uploads, backup', () => {
+  it('tem os painéis pedidos: req/s, latência por rota, erros, event loop, memória/CPU, IA, custo, uploads', () => {
     const exprs = painel()
       .panels.flatMap((p) => p.targets ?? [])
       .map((t) => t.expr)
@@ -204,45 +190,7 @@ describe('ops/dashboards/babel-play.json', () => {
       'ia_gasto_usd',
       'ia_custo_usd_total',
       'uploads_grandes_em_voo',
-      'backup_ultimo_sucesso_timestamp_segundos',
     ])
       expect(exprs, m).toContain(m)
-  })
-})
-
-describe('fly.toml — a coleta gerenciada do Fly', () => {
-  const toml = () => readFileSync('fly.toml', 'utf8').replace(/#.*$/gm, '')
-
-  /** O corpo de uma seção `[nome]` até a próxima seção. */
-  const secao = (fonte: string, cabecalho: RegExp): string | undefined => {
-    const m = cabecalho.exec(fonte)
-    if (!m) return undefined
-    const resto = fonte.slice(m.index + m[0].length)
-    const fim = resto.search(/^\s*\[/m)
-    return fim === -1 ? resto : resto.slice(0, fim)
-  }
-
-  it('tem [metrics] em /metrics numa porta que o app serve (METRICS_PORTA_INTERNA) com METRICS_ENABLED=1', () => {
-    const fonte = toml()
-    const metrics = secao(fonte, /^\[metrics\]\s*$/m)
-    expect(metrics, 'sem bloco [metrics]').toBeDefined()
-    const porta = /port\s*=\s*(\d+)/.exec(metrics!)?.[1]
-    expect(/path\s*=\s*"\/metrics"/.test(metrics!)).toBe(true)
-    const env = secao(fonte, /^\[env\]\s*$/m)!
-    expect(env).toMatch(new RegExp(`METRICS_PORTA_INTERNA\\s*=\\s*"${porta}"`))
-    expect(env).toMatch(/METRICS_ENABLED\s*=\s*"1"/)
-  })
-
-  it('a porta de métricas NÃO está publicada (nem no [http_service], nem em [[services]])', () => {
-    const fonte = toml()
-    const porta = /port\s*=\s*(\d+)/.exec(secao(fonte, /^\[metrics\]\s*$/m)!)?.[1]
-    const http = secao(fonte, /^\[http_service\]\s*$/m)!
-    expect(/internal_port\s*=\s*(\d+)/.exec(http)?.[1]).not.toBe(porta)
-    for (const m of fonte.matchAll(/^\[\[services\]\]\s*$/gm)) {
-      const corpo = fonte.slice(m.index! + m[0].length).split(/^\s*\[\[?(?!services\.)/m)[0]
-      expect(/internal_port\s*=\s*(\d+)/.exec(corpo)?.[1], 'a porta de métricas publicada num [[services]]').not.toBe(
-        porta,
-      )
-    }
   })
 })

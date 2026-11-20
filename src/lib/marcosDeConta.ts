@@ -83,13 +83,13 @@ const TEXTO_DA_EDICAO_ESTATICA: Record<MarcoDeConta, AvisoDeConta> = {
   'caderno-quase-cheio': {
     marco: 'caderno-quase-cheio',
     titulo: `Seu caderno está chegando no limite de ${TETO_ANONIMO.palavras} palavras`,
-    texto: 'Esta é a edição de demonstração, e o caderno para aí. A versão completa do Babel Play não tem esse limite.',
+    texto: 'Esta é a edição de demonstração, e o caderno para aí. A versão completa do Frasy não tem esse limite.',
   },
   'acervo-quase-cheio': {
     marco: 'acervo-quase-cheio',
     titulo: `Você está chegando no limite de ${TETO_DA_EDICAO_ESTATICA.sessoes} gravações`,
     texto:
-      'Esta é a edição de demonstração, e a próxima gravação não cabe. A versão completa do Babel Play não tem esse limite.',
+      'Esta é a edição de demonstração, e a próxima gravação não cabe. A versão completa do Frasy não tem esse limite.',
   },
 };
 

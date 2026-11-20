@@ -22,7 +22,10 @@ export function asUserId(s: string): UserId {
  * a este id — sem token, sem tela de login. Também é o alvo do backfill das linhas legadas
  * (user_id NULL) para que os dados do usuário local atual continuem visíveis (Commit 2).
  */
-export const LOCAL_OWNER: UserId = asUserId(process.env.LOCAL_OWNER_ID || 'local-owner')
+export function donoLocal(): UserId {
+  /* Lido na chamada, não no import (Fase 2, boot preguiçoso): num Worker o módulo carrega antes do ambiente. */
+  return asUserId(process.env.LOCAL_OWNER_ID || 'local-owner')
+}
 
 // Augmentation do Express: todo Request carrega o userId resolvido pelo authMiddleware
 // e o requestId de correlação (server/lib/requestId.ts), usado nas linhas de log.

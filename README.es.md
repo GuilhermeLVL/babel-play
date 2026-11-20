@@ -1,6 +1,6 @@
 <div align="center">
 
-# Babel Play
+# Frasy
 
 **Aprende un idioma con lo que ya ves, juegas y conversas.**
 Subtítulos y traducción en vivo de cualquier audio de tu computadora, ejecutándose **en tu propio dispositivo**, convertidos en juegos de vocabulario y repetición espaciada.
@@ -16,7 +16,7 @@ Subtítulos y traducción en vivo de cualquier audio de tu computadora, ejecutá
 
 </div>
 
-> **Estado (18/10/2026):** prelanzamiento. El cobro, el inicio de sesión y el despliegue en Fly.io están implementados y probados, pero aún no se han ejecutado en un entorno real. El [estado del lanzamiento](docs/ESTADO-DO-LANCAMENTO.md) (en portugués) es la única fuente de lo que vale hoy.
+> **Estado (18/10/2026):** prelanzamiento. El cobro y el inicio de sesión están implementados y probados, y el despliegue en Cloudflare Workers funciona en staging; la producción aún no está en el aire. El [estado del lanzamiento](docs/ESTADO-DO-LANCAMENTO.md) (en portugués) es la única fuente de lo que vale hoy.
 
 **Contenido:** [Qué es](#qué-es) · [Cómo ejecutarlo](#cómo-ejecutarlo) · [Arquitectura](#arquitectura) · [Planes e IA en la nube](#planes-e-ia-en-la-nube) · [Autoalojamiento](#autoalojamiento) · [Despliegue](#despliegue) · [Seguridad y privacidad](#seguridad-y-privacidad) · [Contribuir](#contribuir) · [Licencia](#licencia)
 
@@ -92,10 +92,10 @@ Identidad (anónima o con cuenta), plan y rol son ejes separados, y el plan lo d
 
 ## Planes e IA en la nube
 
-| Plan        | Qué recibes                                                                                                                                                                                                          |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Gratis**  | Todo lo que se ejecuta en el dispositivo (captura, modelos locales, estudio, juegos). Sin IA gestionada en la nube.                                                                                                  |
-| **Premium** | Transcripción y traducción en la nube con uso justo diario y mensual, voz natural en el intérprete. Empieza con una prueba sin tarjeta que termina a los 14 días o al agotar la cuota de uso, lo que ocurra primero. |
+| Plan        | Qué recibes                                                                                                                                                                                                         |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Gratis**  | Todo lo que se ejecuta en el dispositivo (captura, modelos locales, estudio, juegos). Sin IA gestionada en la nube.                                                                                                 |
+| **Premium** | Transcripción y traducción en la nube con uso justo diario y mensual, voz natural en el intérprete. Empieza con una prueba sin tarjeta que termina a los 3 días o al agotar la cuota de uso, lo que ocurra primero. |
 
 La IA en la nube pasa por OpenRouter con retención cero de datos y solo tras el consentimiento. Los precios, las cuotas y las decisiones detrás están en [docs/ESTADO-DO-LANCAMENTO.md](docs/ESTADO-DO-LANCAMENTO.md) y [docs/monetizacao.md](docs/monetizacao.md). El pago se hace con Asaas, y quien concede el plan es el webhook del pago.
 
@@ -113,7 +113,7 @@ El HTTPS corre por cuenta del proxy inverso al frente (Caddy, Traefik, nginx). D
 
 ## Despliegue
 
-El destino de producción es Fly.io (GRU, una máquina, SQLite replicado por Litestream a Cloudflare R2), con Supabase para el inicio de sesión, Cloudflare al frente, Resend y Sentry. La guía paso a paso del propietario es [docs/LANCAMENTO.md](docs/LANCAMENTO.md); la operación es [docs/runbook.md](docs/runbook.md); el staging es [docs/STAGING.md](docs/STAGING.md). El despliegue pasa por `deploy.yml`, que solo acepta un commit con la CI en verde.
+El destino de producción es Cloudflare Workers (el mismo servidor Express, Postgres en Supabase en São Paulo mediante Hyperdrive, R2 para medios y copia de seguridad semanal con `pg_dump`; ver [ADR 0015](docs/adr/0015-cloudflare-workers-no-lugar-do-fly.md)), con Supabase para el inicio de sesión, Resend y Sentry. El autoalojamiento sigue disponible con Docker/Node. La guía paso a paso del propietario es [docs/LANCAMENTO.md](docs/LANCAMENTO.md); la operación es [docs/runbook.md](docs/runbook.md); el staging es [docs/STAGING.md](docs/STAGING.md). El despliegue pasa por `deploy-worker.yml`, por versiones de Cloudflare, con prueba de humo y reversión automática.
 
 ## Seguridad y privacidad
 

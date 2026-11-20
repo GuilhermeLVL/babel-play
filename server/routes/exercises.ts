@@ -6,6 +6,7 @@ import { versoesRepo } from '../db/repositories/versoes'
 import { vocabRepo } from '../db/repositories/vocab'
 import { erroDeRota } from '../lib/erroDeRota'
 import { casaComIfNoneMatch, etagPorVersao } from '../lib/etagPorVersao'
+import { emSegundoPlano } from '../lib/runtime'
 import {
   exerciseResultsQuerySchema,
   historicoQuerySchema,
@@ -104,9 +105,13 @@ exercisesRouter.post('/rodada', async (req, res) => {
      */
     const cardIds = [...new Set(payload.itens.map((i) => i.cardId).filter((x): x is string => !!x))]
     if (cardIds.length) {
-      void vocabRepo.recalcularDificuldade(req.userId, cardIds).catch((err) => {
-        erroDeRota(err, { status: 200, event: 'dificuldade_pos_rodada', route: req.path, requestId: req.requestId })
-      })
+      /* `emSegundoPlano`: no Worker vai para o `ctx.waitUntil` — uma promessa solta morreria com o fim da
+         requisição. No Node segue como antes: ninguém espera. */
+      emSegundoPlano(
+        vocabRepo.recalcularDificuldade(req.userId, cardIds).catch((err) => {
+          erroDeRota(err, { status: 200, event: 'dificuldade_pos_rodada', route: req.path, requestId: req.requestId })
+        }),
+      )
     }
   } catch (err) {
     res.status(400).json({

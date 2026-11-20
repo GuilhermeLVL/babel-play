@@ -5,9 +5,9 @@
  * Correção: wrapper `apiFetch` injeta `AbortSignal.timeout` em todo request (rotas de import/upload
  * com teto folgado). Este teste prova, pelas funções públicas, que os requests carregam um signal.
  */
-import { afterEach,describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { fetchSessions, importYoutube } from '../../src/data/api'
+import { fetchSessions, importWeb } from '../../src/data/api'
 
 let captured: { signal: unknown } | null
 
@@ -19,7 +19,9 @@ function mockFetch(bodyJson: string) {
   })
 }
 
-afterEach(() => { vi.restoreAllMocks() })
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 const isAbortSignal = (s: unknown) => !!s && String((s as any)?.constructor?.name).includes('AbortSignal')
 
@@ -31,9 +33,9 @@ describe('A-05 — camada de dados com teto de tempo', () => {
     expect(isAbortSignal(captured?.signal)).toBe(true)
   })
 
-  it('CORRIGIDO: uma rota longa (importYoutube) também carrega um AbortSignal', async () => {
-    mockFetch('{"id":"x","needsClientStt":false,"captionKind":null}')
-    await importYoutube('https://youtu.be/abc')
+  it('CORRIGIDO: uma rota longa (importWeb) também carrega um AbortSignal', async () => {
+    mockFetch('{"title":"x","text":"y"}')
+    await importWeb('https://exemplo.com/abc')
     expect(isAbortSignal(captured?.signal)).toBe(true)
   })
 })

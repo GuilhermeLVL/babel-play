@@ -1,46 +1,55 @@
 /**
- * Schema do banco (Drizzle, dialeto SQLite via libsql) — Fase 0.
+ * Schema do banco (Drizzle, dialeto Postgres via `pg-core`).
  *
- * Regra de PORTABILIDADE (governada por `web-foundations`): só tipos de coluna
- * portáveis — `text` para ids/JSON, `integer` para timestamps epoch-ms e flags,
- * `real` para floats. A troca para Postgres/Supabase mexe só no driver + JSON→jsonb;
- * o schema lógico permanece.
+ * Tipos de coluna: `text` para ids/JSON; `bigint` (modo número) para timestamps epoch-ms, flags 0/1 e
+ * contadores (epoch-ms estoura `integer` de 32 bits); `doublePrecision` para floats; `boolean` só onde
+ * já era booleano. Triggers e seeds de `flags` vivem à mão em `migrations-pg/0001_*.sql`.
  *
  * Toda tabela carrega colunas de sync-readiness: created_at, updated_at,
  * user_id (nullable, p/ multiusuário futuro) e deleted_at (soft-delete).
  *
  * FOREIGN KEY (F0-04): as 10 relações reais são declaradas com `.references()`. Todas SEM
- * `onDelete` — ou seja, `NO ACTION`, o default do SQLite. A remoção do app é SOFT (`deleted_at`),
- * então o único DELETE físico é `contaRepo.excluir`, que apaga a árvore inteira num `db.batch`
- * com os filhos antes dos pais. `CASCADE` faria um erro num repositório apagar a árvore em
- * silêncio; `SET NULL` apagaria a procedência. `NO ACTION` (e não `RESTRICT`) porque é o único
- * que admite ser adiado para o fim da transação (`PRAGMA defer_foreign_keys`) se algum dia um
- * lote precisar ser reordenado — `RESTRICT` recusa mesmo assim.
+ * `onDelete` — ou seja, `NO ACTION`, o default do Postgres. A remoção do app é SOFT (`deleted_at`),
+ * então o único DELETE físico é `contaRepo.excluir`, que apaga a árvore inteira num lote
+ * (`rodarLote`, uma transação) com os filhos antes dos pais. `CASCADE` faria um erro num
+ * repositório apagar a árvore em silêncio; `SET NULL` apagaria a procedência. `NO ACTION` (e não
+ * `RESTRICT`) porque é o único que admite ser adiado para o fim da transação (`SET CONSTRAINTS ...
+ * DEFERRED`) se algum dia um lote precisar ser reordenado — `RESTRICT` recusa mesmo assim.
  */
 import { sql } from 'drizzle-orm'
-import { index, integer, real, sqliteTable, text, unique, uniqueIndex } from 'drizzle-orm/sqlite-core'
+import {
+  bigint,
+  boolean,
+  doublePrecision,
+  index,
+  pgTable,
+  primaryKey,
+  text,
+  unique,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core'
 
 /** Colunas comuns a toda tabela de domínio (sync-ready). */
 const meta = {
-  createdAt: integer('created_at').notNull(),
-  updatedAt: integer('updated_at').notNull(),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
   userId: text('user_id'),
-  deletedAt: integer('deleted_at'),
+  deletedAt: bigint('deleted_at', { mode: 'number' }),
 }
 
-export const sessions = sqliteTable(
+export const sessions = pgTable(
   'sessions',
   {
     id: text('id').primaryKey(),
     ...meta,
     title: text('title'),
     kind: text('kind'), // 'audio' | 'video' | 'document' | 'live'
-    startedAt: integer('started_at'),
-    endedAt: integer('ended_at'),
+    startedAt: bigint('started_at', { mode: 'number' }),
+    endedAt: bigint('ended_at', { mode: 'number' }),
     sourceLang: text('source_lang'),
     targetLang: text('target_lang'),
-    durationMs: integer('duration_ms'),
-    wordCount: integer('word_count'),
+    durationMs: bigint('duration_ms', { mode: 'number' }),
+    wordCount: bigint('word_count', { mode: 'number' }),
     status: text('status'),
     meta: text('meta'), // JSON
     /**
@@ -76,7 +85,7 @@ export const sessions = sqliteTable(
   ],
 )
 
-export const utterances = sqliteTable(
+export const utterances = pgTable(
   'utterances',
   {
     id: text('id').primaryKey(),
@@ -84,9 +93,9 @@ export const utterances = sqliteTable(
     sessionId: text('session_id')
       .notNull()
       .references(() => sessions.id),
-    idx: integer('idx'),
-    tStartMs: integer('t_start_ms'),
-    tEndMs: integer('t_end_ms'),
+    idx: bigint('idx', { mode: 'number' }),
+    tStartMs: bigint('t_start_ms', { mode: 'number' }),
+    tEndMs: bigint('t_end_ms', { mode: 'number' }),
     speakerId: text('speaker_id'),
     speakerName: text('speaker_name'),
     source: text('source'), // 'mic' | 'tab'
@@ -96,7 +105,7 @@ export const utterances = sqliteTable(
     translatedText: text('translated_text'),
     status: text('status'),
     engine: text('engine'),
-    confidence: real('confidence'),
+    confidence: doublePrecision('confidence'),
     /**
      * "POLIR A SESSÃO" (D5 da Fase D, migração 0044): a tradução reescrita pelo nível `polimento`,
      * AO LADO da original — `translated_text` nunca é sobrescrita, e a pessoa alterna entre as duas
@@ -108,7 +117,7 @@ export const utterances = sqliteTable(
     traducaoPolida: text('traducao_polida'),
     polimentoModelo: text('polimento_modelo'),
     polimentoVersao: text('polimento_versao'),
-    polidoEm: integer('polido_em'),
+    polidoEm: bigint('polido_em', { mode: 'number' }),
   },
   (t) => [
     /** Chave de junção óbvia e sem índice: `computeProfile` fazia full scan por pageview. */
@@ -126,7 +135,7 @@ export const utterances = sqliteTable(
   ],
 )
 
-export const vocabCards = sqliteTable(
+export const vocabCards = pgTable(
   'vocab_cards',
   {
     id: text('id').primaryKey(),
@@ -138,47 +147,47 @@ export const vocabCards = sqliteTable(
     sentence: text('sentence'),
     srcLang: text('src_lang'),
     tgtLang: text('tgt_lang'),
-    inDeck: integer('in_deck'), // 0/1
-    box: integer('box'),
-    dueAt: integer('due_at'),
-    stability: real('stability'),
-    difficulty: real('difficulty'),
-    reps: integer('reps'),
-    lapses: integer('lapses'),
-    lastReview: integer('last_review'),
+    inDeck: bigint('in_deck', { mode: 'number' }), // 0/1
+    box: bigint('box', { mode: 'number' }),
+    dueAt: bigint('due_at', { mode: 'number' }),
+    stability: doublePrecision('stability'),
+    difficulty: doublePrecision('difficulty'),
+    reps: bigint('reps', { mode: 'number' }),
+    lapses: bigint('lapses', { mode: 'number' }),
+    lastReview: bigint('last_review', { mode: 'number' }),
     clozePrompt: text('cloze_prompt'),
     clozeAnswer: text('cloze_answer'),
     cefrLevel: text('cefr_level'),
-    cefrConfidence: real('cefr_confidence'),
-    addedAt: integer('added_at'),
+    cefrConfidence: doublePrecision('cefr_confidence'),
+    addedAt: bigint('added_at', { mode: 'number' }),
 
     // ── F2b ────────────────────────────────────────────────────────────────────────────────────
     /** Chave de dedup normalizada (`lang|palavra-sem-acento-sem-caixa`). Base do UNIQUE e do upsert. */
     normKey: text('norm_key'),
     /** Quantas vezes o usuário encontrou esta palavra. `frequency` nunca foi escrito; este é. */
-    occurrences: integer('occurrences').notNull().default(0),
-    firstSeenAt: integer('first_seen_at'),
-    lastSeenAt: integer('last_seen_at'),
+    occurrences: bigint('occurrences', { mode: 'number' }).notNull().default(0),
+    firstSeenAt: bigint('first_seen_at', { mode: 'number' }),
+    lastSeenAt: bigint('last_seen_at', { mode: 'number' }),
     /** Procedência do nível CEFR: 'curado' | 'wordlist' | 'ausente'. Nível sem procedência é chute. */
     cefrSource: text('cefr_source'),
     /** Dificuldade calculada (0..1) — materializada, nunca no caminho de leitura. Ver F4. */
-    difficultyScore: real('difficulty_score'),
-    difficultyAt: integer('difficulty_at'),
+    difficultyScore: doublePrecision('difficulty_score'),
+    difficultyAt: bigint('difficulty_at', { mode: 'number' }),
 
     /**
      * Base ISO-639-1 de `src_lang` ('en-US' → 'en'), SARGÁVEL — a mesma normalização que
      * `selecionarParaJogo` já fazia em SQL (`LOWER(SUBSTR(src_lang,1,2))`), agora como coluna.
      *
-     * VIRTUAL, não STORED: SQLite só aceita coluna gerada em `ALTER TABLE ADD COLUMN` quando ela é
-     * VIRTUAL (STORED exige reconstruir a tabela, o que violaria a política aditivo-somente desta
-     * migração). Uma coluna virtual não ocupa disco por linha, mas o ÍNDICE sobre ela é uma
-     * estrutura real e sargável — confirmado com `EXPLAIN QUERY PLAN` (ver relato da migração):
-     * `SEARCH vocab_cards USING INDEX idx_vocab_src_lang_base (src_lang_base=?)`. Zero backfill:
-     * o valor é recalculado a cada leitura, então não há linha "desatualizada" possível.
+     * STORED (o Postgres não tem coluna gerada virtual). O ÍNDICE sobre ela é sargável e o valor é
+     * mantido pelo banco a cada escrita, então não há linha "desatualizada" possível.
      */
-    srcLangBase: text('src_lang_base').generatedAlwaysAs(sql`(lower(substr(coalesce(src_lang,''),1,2)))`, {
-      mode: 'virtual',
-    }),
+    srcLangBase: text('src_lang_base').generatedAlwaysAs(sql`lower(substr(coalesce(src_lang,''),1,2))`),
+    /**
+     * A NOTA PESSOAL da palavra (etiquetas de palavras, migração PG 0012): o que a pessoa escreveu para
+     * si sobre ela, até 500 caracteres (`PUT /api/vocab/:id/nota`). Nula = sem nota. Sai com o cartão
+     * em `GET /api/vocab` e na exportação da conta.
+     */
+    nota: text('nota'),
   },
   (t) => [
     /* UNIQUE que destrava o upsert atômico. Parcial (`deleted_at is null`) porque um cartão
@@ -209,7 +218,7 @@ export const vocabCards = sqliteTable(
     /**
      * O eixo idioma do filtro facetado (tarefa 1). Antes o predicado era uma EXPRESSÃO
      * (`LOWER(SUBSTR(src_lang,1,2))=?`) e não podia usar índice — full scan a cada filtro por
-     * idioma. `src_lang_base` é gerada (virtual) e este índice é sobre ela: sargável.
+     * idioma. `src_lang_base` é gerada (STORED) e este índice é sobre ela: sargável.
      */
     index('idx_vocab_src_lang_base').on(t.srcLangBase),
     // Limpeza diária (migração 0053): ver `idx_sessions_apagadas`.
@@ -228,7 +237,7 @@ export const vocabCards = sqliteTable(
  * frase. Separar as duas é o que permite contar repetições, listar origens e datar a primeira e a
  * última vez.
  */
-export const vocabOccurrences = sqliteTable(
+export const vocabOccurrences = pgTable(
   'vocab_occurrences',
   {
     id: text('id').primaryKey(),
@@ -241,7 +250,7 @@ export const vocabOccurrences = sqliteTable(
       .notNull()
       .references(() => vocabCards.id),
     /** Quando ESTA ocorrência aconteceu (epoch-ms). */
-    occurredAt: integer('occurred_at').notNull(),
+    occurredAt: bigint('occurred_at', { mode: 'number' }).notNull(),
     /** 'sessao' | 'trilha' | 'manual' | 'anki' | 'import' | 'legado'. */
     originKind: text('origin_kind').notNull(),
     /** id da sessão, ou o idioma da trilha ('en'). Resolve a origem que virava NULL. */
@@ -275,7 +284,7 @@ export const vocabOccurrences = sqliteTable(
   ],
 )
 
-export const reviewLogs = sqliteTable(
+export const reviewLogs = pgTable(
   'review_logs',
   {
     id: text('id').primaryKey(),
@@ -283,13 +292,13 @@ export const reviewLogs = sqliteTable(
     cardId: text('card_id')
       .notNull()
       .references(() => vocabCards.id),
-    reviewedAt: integer('reviewed_at'),
-    grade: integer('grade'), // 1..4 (FSRS)
-    prevStability: real('prev_stability'),
-    newStability: real('new_stability'),
-    prevDue: integer('prev_due'),
-    newDue: integer('new_due'),
-    elapsedDays: real('elapsed_days'),
+    reviewedAt: bigint('reviewed_at', { mode: 'number' }),
+    grade: bigint('grade', { mode: 'number' }), // 1..4 (FSRS)
+    prevStability: doublePrecision('prev_stability'),
+    newStability: doublePrecision('new_stability'),
+    prevDue: bigint('prev_due', { mode: 'number' }),
+    newDue: bigint('new_due', { mode: 'number' }),
+    elapsedDays: doublePrecision('elapsed_days'),
     /* MEDIR SEM MUDAR COMPORTAMENTO (migração 0052). Nulas nas revisões antigas; nenhuma entra no
        agendamento. */
     /** De onde veio a nota: 'revisao' ou 'jogo:<id do jogo>'. */
@@ -297,11 +306,11 @@ export const reviewLogs = sqliteTable(
     /** Como o cartão foi mostrado: 'lembrar' | 'digitar' | 'escolha' na Revisão; nos jogos, o id do jogo. */
     formato: text('formato'),
     /** Do cartão na tela até a nota (ms), com teto (`TETO_DA_RESPOSTA_MS`): abandono não é lentidão. */
-    respostaMs: integer('resposta_ms'),
+    respostaMs: bigint('resposta_ms', { mode: 'number' }),
     /** A meta de retenção usada para agendar ESTA revisão. */
-    metaRetencao: real('meta_retencao'),
+    metaRetencao: doublePrecision('meta_retencao'),
     /** A retenção que o FSRS previa no momento da resposta (do estado anterior); nula na primeira revisão. */
-    retencaoPrevista: real('retencao_prevista'),
+    retencaoPrevista: doublePrecision('retencao_prevista'),
   },
   (t) => [
     /** "histórico desta palavra" — usado pela tela de detalhe (F5) e pelo modelo da F4. */
@@ -331,14 +340,14 @@ export const reviewLogs = sqliteTable(
  * Todas ANULÁVEIS de propósito: as ~1.500 linhas já gravadas não têm esses dados e precisam
  * continuar válidas (`ALTER TABLE ADD COLUMN` sem default, nada é reescrito).
  */
-export const exerciseResults = sqliteTable(
+export const exerciseResults = pgTable(
   'exercise_results',
   {
     id: text('id').primaryKey(),
     ...meta,
     sessionId: text('session_id').references(() => sessions.id),
     kind: text('kind'),
-    correct: integer('correct'), // 0/1
+    correct: bigint('correct', { mode: 'number' }), // 0/1
     /**
      * ATENÇÃO — esta coluna carrega o placar DA RODADA, repetido em cada item dela.
      *
@@ -349,7 +358,7 @@ export const exerciseResults = sqliteTable(
      * minijogos, 0–100 no `read-aloud` (acurácia de pronúncia) e 0/1 nos exercícios de estudo. Por
      * isso toda leitura agregada precisa filtrar por `exercise_kind`.
      */
-    score: real('score'),
+    score: doublePrecision('score'),
     exerciseKind: text('exercise_kind'),
     /** Amarra os itens de UMA rodada. Sem isto, 8 linhas simultâneas não se reagrupam. */
     roundId: text('round_id'),
@@ -360,7 +369,7 @@ export const exerciseResults = sqliteTable(
      * NULL = rodada gravada antes da migração 0025, não combo zero. `listarRecordes` usa `MAX`,
      * que ignora NULL; um `COALESCE(..., 0)` diria que aquelas rodadas tiveram combo zero.
      */
-    combo: integer('combo'),
+    combo: bigint('combo', { mode: 'number' }),
     /**
      * O item jogado: a palavra (jogos de baralho) ou o id da fala (jogos de frase). É a coluna que
      * responde "o que eu já vi". Guardamos a palavra, e não só um `card_id`, porque os cartões da
@@ -368,11 +377,11 @@ export const exerciseResults = sqliteTable(
      */
     itemRef: text('item_ref'),
     /** Tentativas até acertar (1 = de primeira). O `ItemOutcome` já produz e o app descartava. */
-    attempts: integer('attempts'),
+    attempts: bigint('attempts', { mode: 'number' }),
     /** Tempo até responder, em ms. Idem: era medido e jogado fora. */
-    ms: integer('ms'),
+    ms: bigint('ms', { mode: 'number' }),
     /** Usou dica/revelação (0/1). Um acerto com dica não é o mesmo acerto — separa os dois. */
-    hinted: integer('hinted'),
+    hinted: bigint('hinted', { mode: 'number' }),
     /** De onde os itens vieram: 'baralho' | 'sessao:<id>' | 'trilha:<nivel>'. */
     origem: text('origem'),
     /* F3: referência POR ID ao cartão. `item_ref` guarda a PALAVRA, e por isso só 14,9% dos 215
@@ -429,7 +438,7 @@ export const exerciseResults = sqliteTable(
  * um unique global deixava o usuário A negar o gasto de B só por ter usado o id antes — a busca de
  * idempotência filtra por `(spendId, userId)` mas a constraint barrava pelo id sozinho.
  */
-export const seedSpends = sqliteTable(
+export const seedSpends = pgTable(
   'seed_spends',
   {
     id: text('id').primaryKey(),
@@ -437,7 +446,7 @@ export const seedSpends = sqliteTable(
     /** Id gerado pelo CLIENTE. Reenvio do mesmo id pelo MESMO dono = mesma cobrança. */
     spendId: text('spend_id').notNull(),
     /** Quanto custou, em seeds. Sempre positivo — devolução seria outra coisa, com outro nome. */
-    amount: integer('amount').notNull(),
+    amount: bigint('amount', { mode: 'number' }).notNull(),
     /** O que foi comprado: 'pular-rodada' | … Serve para saber no que a moeda é gasta de verdade. */
     reason: text('reason').notNull(),
     /** Contexto opcional (o jogo, a rodada). Diagnóstico, não regra. */
@@ -464,7 +473,7 @@ export const seedSpends = sqliteTable(
  * crédito é evento idempotente por (user_id, credito_id) — mesmo argumento de `seed_spends`, um
  * crédito que se recalcula não é crédito — e presença é uma linha por (user_id, dia local).
  */
-export const seedCredits = sqliteTable(
+export const seedCredits = pgTable(
   'seed_credits',
   {
     id: text('id').primaryKey(),
@@ -472,9 +481,9 @@ export const seedCredits = sqliteTable(
     /** Id gerado pelo CLIENTE (ex.: 'conquista:primeira-captura'). Reenvio = mesmo crédito. */
     creditoId: text('credito_id').notNull(),
     /** Seeds creditadas. Zero é válido: há conquistas que só dão XP. */
-    amount: integer('amount').notNull(),
+    amount: bigint('amount', { mode: 'number' }).notNull(),
     /** XP creditado junto (conquistas dão os dois). */
-    xp: integer('xp').notNull().default(0),
+    xp: bigint('xp', { mode: 'number' }).notNull().default(0),
     /** De onde veio: 'conquista:<id>' | … Diagnóstico e auditoria do saldo. */
     reason: text('reason').notNull(),
   },
@@ -498,7 +507,7 @@ export const seedCredits = sqliteTable(
  * `provider_payment_id` é único porque é a chave de idempotência do webhook: o Asaas reentrega
  * o mesmo evento quando não recebe 200, e crédito duplicado é dinheiro de graça.
  */
-export const creditPurchases = sqliteTable(
+export const creditPurchases = pgTable(
   'credit_purchases',
   {
     id: text('id').primaryKey(),
@@ -506,15 +515,15 @@ export const creditPurchases = sqliteTable(
     /** O pacote comprado ('c100' | 'c300' | 'c700' | 'passe-t1'). */
     sku: text('sku').notNull(),
     /** Quantos créditos a compra concede quando confirmar. */
-    creditos: integer('creditos').notNull(),
+    creditos: bigint('creditos', { mode: 'number' }).notNull(),
     /** Em CENTAVOS: dinheiro em ponto flutuante é como se perde um centavo por transação. */
-    valorCentavos: integer('valor_centavos').notNull(),
+    valorCentavos: bigint('valor_centavos', { mode: 'number' }).notNull(),
     provider: text('provider').notNull().default('asaas'),
     /** Id da cobrança no provedor. É por ele que o webhook encontra esta linha. */
     providerPaymentId: text('provider_payment_id'),
     /** 'pendente' até o webhook confirmar; 'pago' concede; 'cancelado' não concede nada. */
     status: text('status').notNull().default('pendente'),
-    paidAt: integer('paid_at'),
+    paidAt: bigint('paid_at', { mode: 'number' }),
   },
   (t) => [
     index('idx_credit_purchases_user').on(t.userId),
@@ -525,14 +534,14 @@ export const creditPurchases = sqliteTable(
 )
 
 /** O outro lado: gasto de créditos. Mesmo desenho de `seed_spends` — evento, idempotente por id. */
-export const creditSpends = sqliteTable(
+export const creditSpends = pgTable(
   'credit_spends',
   {
     id: text('id').primaryKey(),
     ...meta,
     /** Id gerado pelo cliente; reenvio do mesmo id pelo mesmo dono não cobra de novo. */
     spendId: text('spend_id').notNull(),
-    amount: integer('amount').notNull(),
+    amount: bigint('amount', { mode: 'number' }).notNull(),
     reason: text('reason').notNull(),
     ref: text('ref'),
   },
@@ -544,13 +553,13 @@ export const creditSpends = sqliteTable(
   ],
 )
 
-export const presencas = sqliteTable(
+export const presencas = pgTable(
   'presencas',
   {
     id: text('id').primaryKey(),
     ...meta,
     /** Dia LOCAL do usuário (inteiro de `diaLocal`) — o fuso é o dele, não o do servidor. */
-    dia: integer('dia').notNull(),
+    dia: bigint('dia', { mode: 'number' }).notNull(),
   },
   (t) => [
     uniqueIndex('uq_presencas_user_dia')
@@ -580,7 +589,7 @@ export const presencas = sqliteTable(
  * O invariante que impede a próxima: `tests/integration/schema-usado.test.ts`.
  */
 
-export const providerCredentials = sqliteTable(
+export const providerCredentials = pgTable(
   'provider_credentials',
   {
     id: text('id').primaryKey(),
@@ -606,13 +615,13 @@ export const providerCredentials = sqliteTable(
  * sempre. `user_id` continua ANULÁVEL (linhas legadas sem credencial dona) e não é o controle de
  * acesso — este segue sendo o escopo da credencial em `credentialsRepo.getSecret`.
  */
-export const secrets = sqliteTable('secrets', {
+export const secrets = pgTable('secrets', {
   ref: text('ref').primaryKey(),
   valueEncrypted: text('value_encrypted').notNull(),
-  createdAt: integer('created_at').notNull(),
-  updatedAt: integer('updated_at').notNull(),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
   userId: text('user_id'),
-  deletedAt: integer('deleted_at'),
+  deletedAt: bigint('deleted_at', { mode: 'number' }),
 })
 
 /**
@@ -620,7 +629,7 @@ export const secrets = sqliteTable('secrets', {
  * `ensure()` (get-then-insert) duplicava linha sob concorrência e `get()` — que usa
  * `limit(1)` sem `ORDER BY` — passava a devolver qualquer uma delas (auditoria P1-4).
  */
-export const settings = sqliteTable(
+export const settings = pgTable(
   'settings',
   {
     id: text('id').primaryKey(),
@@ -644,10 +653,10 @@ export const settings = sqliteTable(
  * NÃO usa `...meta` (a coluna `user_id` seria redundante) — segue o enxuto de `secrets`.
  * Eixo RBAC: `role` (quem você é) ≠ plano (o que pagou, em `subscriptions`).
  */
-export const users = sqliteTable('users', {
+export const users = pgTable('users', {
   id: text('id').primaryKey(), // = UserId (sub do Supabase / LOCAL_OWNER)
-  createdAt: integer('created_at').notNull(),
-  updatedAt: integer('updated_at').notNull(),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
   email: text('email'),
   role: text('role').notNull().default('user'), // 'user' | 'admin' | 'support'
   status: text('status').notNull().default('active'), // 'active' | 'suspended'
@@ -669,7 +678,7 @@ export const users = sqliteTable('users', {
   /** Para que a pessoa usa o app — o objetivo que o Onboarding nunca chegou a perguntar. */
   goal: text('goal'),
   /** Quando o perfil foi preenchido pela primeira vez. Epoch ms. */
-  onboardedAt: integer('onboarded_at'),
+  onboardedAt: bigint('onboarded_at', { mode: 'number' }),
 })
 
 /**
@@ -679,7 +688,7 @@ export const users = sqliteTable('users', {
  * menor viraria adulto trocando a data. A faixa etária é DERIVADA (server/lib/idade.ts), nunca
  * guardada — ela muda com o tempo. `createdAt` é quando a pessoa declarou.
  */
-export const idadesDeclaradas = sqliteTable(
+export const idadesDeclaradas = pgTable(
   'idades_declaradas',
   {
     id: text('id').primaryKey(),
@@ -695,7 +704,7 @@ export const idadesDeclaradas = sqliteTable(
  * adulto logado o aceita (`usadoEm`, `responsavelUserId`). Para menores de 12, o aceite grava o
  * consentimento ESPECÍFICO: quem, quando e o texto aceito (LGPD art. 14 §1º).
  */
-export const vinculosDeResponsavel = sqliteTable(
+export const vinculosDeResponsavel = pgTable(
   'vinculos_de_responsavel',
   {
     id: text('id').primaryKey(),
@@ -703,14 +712,14 @@ export const vinculosDeResponsavel = sqliteTable(
     emailDoResponsavel: text('email_do_responsavel').notNull(),
     /** SHA-256 do token do convite. O token em si só existe no link enviado. */
     tokenHash: text('token_hash').notNull(),
-    expiraEm: integer('expira_em').notNull(),
-    usadoEm: integer('usado_em'),
+    expiraEm: bigint('expira_em', { mode: 'number' }).notNull(),
+    usadoEm: bigint('usado_em', { mode: 'number' }),
     responsavelUserId: text('responsavel_user_id'),
     nomeDoResponsavel: text('nome_do_responsavel'),
     consentimentoVersao: text('consentimento_versao'),
     consentimentoTexto: text('consentimento_texto'),
-    consentimentoEm: integer('consentimento_em'),
-    revogadoEm: integer('revogado_em'),
+    consentimentoEm: bigint('consentimento_em', { mode: 'number' }),
+    revogadoEm: bigint('revogado_em', { mode: 'number' }),
   },
   (t) => [
     uniqueIndex('uq_vinculo_token').on(t.tokenHash),
@@ -734,7 +743,7 @@ export const vinculosDeResponsavel = sqliteTable(
  * O índice único é PARCIAL (`where deleted_at is null`), o mesmo padrão de `uq_settings_user` e
  * `uq_vocab_user_norm` — senão remover e readicionar um interesse esbarraria no fantasma do antigo.
  */
-export const userInterests = sqliteTable(
+export const userInterests = pgTable(
   'user_interests',
   {
     id: text('id').primaryKey(),
@@ -757,15 +766,15 @@ export const userInterests = sqliteTable(
  * anual) e o MEIO do Asaas que cobra (assinatura recorrente, parcelamento do 12x ou Pix Automático),
  * com o id do parcelamento quando é ele (C5).
  */
-export const subscriptions = sqliteTable(
+export const subscriptions = pgTable(
   'subscriptions',
   {
     id: text('id').primaryKey(),
     ...meta,
     plan: text('plan').notNull().default('free'), // 'free' | 'essencial' | 'premium' | 'aovivo' | 'selfhost' (PlanoDeAssinatura)
     status: text('status').notNull().default('active'), // 'trialing'|'active'|'past_due'|'canceled'
-    currentPeriodEnd: integer('current_period_end'),
-    cancelAtPeriodEnd: integer('cancel_at_period_end'), // 0/1
+    currentPeriodEnd: bigint('current_period_end', { mode: 'number' }),
+    cancelAtPeriodEnd: bigint('cancel_at_period_end', { mode: 'number' }), // 0/1
     provider: text('provider'), // 'asaas' | null (concedida pelo admin)
     providerCustomerId: text('provider_customer_id'),
     providerSubscriptionId: text('provider_subscription_id'),
@@ -776,6 +785,21 @@ export const subscriptions = sqliteTable(
        cobrança no valor novo. `plan` continua sendo o que está PAGO; as duas nulas = sem troca pendente. */
     trocaPara: text('troca_para'),
     trocaAPartirDe: text('troca_a_partir_de'),
+    /* O PLANO DA COBRANÇA REGISTRADA (planos v4, migração 0008): o plano que o fluxo do Asaas guardado nesta
+       linha (`providerSubscriptionId`/`providerInstallmentId`) cobra, gravado por `/assinar` junto com o id.
+       NÃO concede nada (quem concede é `plan`, pelo webhook): só desempata a parcela de valor ambíguo do 12x
+       (R$ 12,49 = Plus e Premium). Nulo = linha de antes da 0008. */
+    planoDaCobranca: text('plano_da_cobranca'),
+    /* O INÍCIO DO PERÍODO PAGO (migração 0019, change `cota-pelo-periodo-pago`): o vencimento da cobrança que
+       concedeu o período em vigor (no 12x, o da 1ª parcela), em ms. Gravado SÓ pela aplicação de um pagamento
+       (`aplicarEvento`), junto com `currentPeriodEnd` — o cancelamento, o estorno e o admin mexem no fim, nunca aqui.
+       É a âncora da janela da cota de quem paga (`janelaDaCota`). Nulo = sem pagamento aplicado desde a 0019. */
+    periodoPagoDesde: bigint('periodo_pago_desde', { mode: 'number' }),
+    /* O CICLO DA COBRANÇA REGISTRADA (migração 0019): `mensal` | `anual`, gravado por `/assinar` junto com o id e o
+       `planoDaCobranca`. `ciclo` é o do período CONCEDIDO e `/assinar` numa linha existente não o toca: o mensal que
+       assina o anual por boleto e paga com juros teria o valor lido contra o preço do mês. Nulo = linha de antes
+       da 0019 (vale `ciclo`).*/
+    cicloDaCobranca: text('ciclo_da_cobranca'),
   },
   (t) => [unique('uq_subscriptions_user').on(t.userId)],
 )
@@ -803,49 +827,58 @@ export const subscriptions = sqliteTable(
  * Uma linha por passo: gravar de novo atualiza, e o passo que passa a dar certo APAGA a linha. Sem
  * isso a saude ficaria degradada para sempre depois de uma falha transitoria.
  */
-export const bootFalhas = sqliteTable('boot_falhas', {
+export const bootFalhas = pgTable('boot_falhas', {
   /** Identificador curto do passo: 'migracao-fsrs' | 'backfill-tenancy'. */
   passo: text('passo').primaryKey(),
-  em: integer('em').notNull(),
+  em: bigint('em', { mode: 'number' }).notNull(),
   /** Qual instancia registrou — hostname:pid. So para diagnostico; a saude nao depende disto. */
   instancia: text('instancia'),
 })
 
-export const billingEvents = sqliteTable('billing_events', {
-  /** O id do EVENTO no provedor (`evt_…` no Asaas) — a chave da idempotência. */
-  id: text('id').primaryKey(),
-  createdAt: integer('created_at').notNull(),
-  provider: text('provider').notNull(), // 'asaas'
-  event: text('event').notNull(), // 'PAYMENT_CONFIRMED' | 'PAYMENT_OVERDUE' | …
-  userId: text('user_id'),
-  /** Id da cobrança/assinatura no provedor, para auditoria cruzada. */
-  providerRef: text('provider_ref'),
-  /**
-   * O QUE ACONTECEU com o evento (auditoria de 2026-09-07, achado A05). Antes, um pagamento
-   * confirmado cuja assinatura divergia da registrada, ou um avulso que não casava com compra
-   * nenhuma, caía num `break` e respondia 200: o Asaas não reentrega e o pagante ficava sem o
-   * plano, sem trilha para reprocessar. Agora todo evento termina `aplicado` ou `nao-aplicado`
-   * com `motivo`, e o payload fica guardado para um administrador reaplicar.
-   */
-  estado: text('estado').notNull().default('aplicado'), // 'aplicado' | 'nao-aplicado' | 'ignorado'
-  motivo: text('motivo'),
-  /**
-   * O JSON do evento REDUZIDO aos campos que a reaplicação usa — ids, evento, valor, status e datas
-   * (GAP-017 / S26-13). O corpo do Asaas traz dado pessoal do pagador (nome, CPF, cartão, link da
-   * fatura), e ele ficava aqui cru e sem prazo. A lista de campos permitidos está em
-   * `repositories/billingEvents.ts` (`reduzirPayload`); a migração 0047 limpou as linhas antigas.
-   */
-  payload: text('payload'),
-})
+export const billingEvents = pgTable(
+  'billing_events',
+  {
+    /** O id do EVENTO no provedor (`evt_…` no Asaas) — a chave da idempotência. */
+    id: text('id').primaryKey(),
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+    provider: text('provider').notNull(), // 'asaas'
+    event: text('event').notNull(), // 'PAYMENT_CONFIRMED' | 'PAYMENT_OVERDUE' | …
+    userId: text('user_id'),
+    /** Id da cobrança/assinatura no provedor, para auditoria cruzada. */
+    providerRef: text('provider_ref'),
+    /**
+     * O QUE ACONTECEU com o evento (auditoria de 2026-09-07, achado A05). Antes, um pagamento
+     * confirmado cuja assinatura divergia da registrada, ou um avulso que não casava com compra
+     * nenhuma, caía num `break` e respondia 200: o Asaas não reentrega e o pagante ficava sem o
+     * plano, sem trilha para reprocessar. Agora todo evento termina `aplicado` ou `nao-aplicado`
+     * com `motivo`, e o payload fica guardado para um administrador reaplicar.
+     */
+    estado: text('estado').notNull().default('aplicado'), // 'aplicado' | 'nao-aplicado' | 'ignorado'
+    motivo: text('motivo'),
+    /**
+     * O JSON do evento REDUZIDO aos campos que a reaplicação usa — ids, evento, valor, status e datas
+     * (GAP-017 / S26-13). O corpo do Asaas traz dado pessoal do pagador (nome, CPF, cartão, link da
+     * fatura), e ele ficava aqui cru e sem prazo. A lista de campos permitidos está em
+     * `repositories/billingEvents.ts` (`reduzirPayload`); a migração 0047 limpou as linhas antigas.
+     */
+    payload: text('payload'),
+  },
+  (t) => [
+    /* Migração 0019: os pagamentos de um titular por tipo de evento (a duplicata do estorno,
+       `pagamentosConfirmadosDoUsuario`) e os eventos de uma cobrança (a reconciliação procura por `provider_ref`). */
+    index('idx_billing_events_user_event').on(t.userId, t.event),
+    index('idx_billing_events_provider_ref').on(t.providerRef),
+  ],
+)
 
-export const usageCounters = sqliteTable(
+export const usageCounters = pgTable(
   'usage_counters',
   {
     id: text('id').primaryKey(),
     ...meta,
     metric: text('metric').notNull(), // 'stt_seconds' | 'llm_tokens' | 'stt_seconds_dia' | 'llm_tokens_dia' | …
     window: text('window').notNull(), // 'YYYY-MM' (o mês) ou 'YYYY-MM-DD' (o dia local do uso justo)
-    count: integer('count').notNull().default(0),
+    count: bigint('count', { mode: 'number' }).notNull().default(0),
   },
   (t) => [
     unique('uq_usage_user_metric_window').on(t.userId, t.metric, t.window),
@@ -868,7 +901,7 @@ export const usageCounters = sqliteTable(
  */
 
 /** Um baralho `.apkg` importado. `arquivoOrigem` + `nome` é a chave de idempotência de reimport. */
-export const ankiDecks = sqliteTable(
+export const ankiDecks = pgTable(
   'anki_decks',
   {
     id: text('id').primaryKey(),
@@ -897,7 +930,7 @@ export const ankiDecks = sqliteTable(
  * que o app não usa hoje — é o que permite a Decisão 4 (fusão de duas notas no mesmo cartão) não
  * perder nada: a nota original continua inspecionável.
  */
-export const ankiNotes = sqliteTable(
+export const ankiNotes = pgTable(
   'anki_notes',
   {
     id: text('id').primaryKey(),
@@ -945,7 +978,7 @@ export const ankiNotes = sqliteTable(
  * requisições pequenas dirigidas pelo cliente, e o progresso precisa ser consultável entre elas.
  * `porMotivo` é JSON com a contagem de descarte por `motivoDescarte`, para a tela explicar o total.
  */
-export const ankiImports = sqliteTable(
+export const ankiImports = pgTable(
   'anki_imports',
   {
     id: text('id').primaryKey(),
@@ -954,14 +987,14 @@ export const ankiImports = sqliteTable(
       .notNull()
       .references(() => ankiDecks.id),
     arquivo: text('arquivo'),
-    bytes: integer('bytes'),
+    bytes: bigint('bytes', { mode: 'number' }),
     hashDoArquivo: text('hash_do_arquivo'),
     /** 'lendo' | 'gravando' | 'concluido' | 'parcial' | 'falhou'. */
     estado: text('estado').notNull().default('lendo'),
-    notasLidas: integer('notas_lidas').notNull().default(0),
-    notasNovas: integer('notas_novas').notNull().default(0),
-    notasAtualizadas: integer('notas_atualizadas').notNull().default(0),
-    notasDescartadas: integer('notas_descartadas').notNull().default(0),
+    notasLidas: bigint('notas_lidas', { mode: 'number' }).notNull().default(0),
+    notasNovas: bigint('notas_novas', { mode: 'number' }).notNull().default(0),
+    notasAtualizadas: bigint('notas_atualizadas', { mode: 'number' }).notNull().default(0),
+    notasDescartadas: bigint('notas_descartadas', { mode: 'number' }).notNull().default(0),
     /** JSON `{motivo: contagem}`. */
     porMotivo: text('por_motivo'),
     erro: text('erro'),
@@ -1009,18 +1042,18 @@ export const ankiImports = sqliteTable(
  * serve exatamente à mesma trava — comparar dois envios do mesmo lugar em 60 segundos — sem
  * guardar de quem eles são.
  */
-export const rank = sqliteTable(
+export const rank = pgTable(
   'rank',
   {
     id: text('id').primaryKey(),
-    criadoEm: integer('criado_em').notNull(),
+    criadoEm: bigint('criado_em', { mode: 'number' }).notNull(),
     jogo: text('jogo').notNull(),
     apelido: text('apelido').notNull(),
-    pontos: integer('pontos').notNull(),
+    pontos: bigint('pontos', { mode: 'number' }).notNull(),
     /* `DEFAULT 0` está no banco desde a 0027 e faltava aqui: o teste de schema-contra-banco
        (`tests/integration/schema-igual-ao-banco.test.ts`) pegou a divergência, que faria o
        `drizzle-kit generate` propor recriar a tabela `rank` inteira. */
-    combo: integer('combo').notNull().default(0),
+    combo: bigint('combo', { mode: 'number' }).notNull().default(0),
     /** SHA-256 de (ip + SECRET_KEY), truncado. Só existe para a trava de flood. */
     ipHash: text('ip_hash'),
   },
@@ -1041,13 +1074,13 @@ export const rank = sqliteTable(
  * porque a soma de milhares de custos minúsculos em ponto flutuante acumula erro, e o gatilho de
  * 100% é uma comparação exata. Quem lê e escreve: `server/db/repositories/gastoDeIa.ts`.
  */
-export const gastoDeIa = sqliteTable('gasto_de_ia', {
+export const gastoDeIa = pgTable('gasto_de_ia', {
   mes: text('mes').primaryKey(),
-  microUsd: integer('micro_usd').notNull().default(0),
-  chamadas: integer('chamadas').notNull().default(0),
-  alerta80Em: integer('alerta_80_em'),
-  esgotadoEm: integer('esgotado_em'),
-  atualizadoEm: integer('atualizado_em').notNull(),
+  microUsd: bigint('micro_usd', { mode: 'number' }).notNull().default(0),
+  chamadas: bigint('chamadas', { mode: 'number' }).notNull().default(0),
+  alerta80Em: bigint('alerta_80_em', { mode: 'number' }),
+  esgotadoEm: bigint('esgotado_em', { mode: 'number' }),
+  atualizadoEm: bigint('atualizado_em', { mode: 'number' }).notNull(),
 })
 
 /**
@@ -1059,13 +1092,13 @@ export const gastoDeIa = sqliteTable('gasto_de_ia', {
  * e escreve: `server/db/repositories/flags.ts`; a política (cache, validação) mora em
  * `server/lib/flags.ts`.
  */
-export const flags = sqliteTable('flags', {
+export const flags = pgTable('flags', {
   chave: text('chave').primaryKey(),
   descricao: text('descricao').notNull().default(''),
-  habilitada: integer('habilitada', { mode: 'boolean' }).notNull().default(false),
+  habilitada: boolean('habilitada').notNull().default(false),
   regras: text('regras').notNull().default('{}'),
   payload: text('payload'),
-  atualizadoEm: integer('atualizado_em').notNull(),
+  atualizadoEm: bigint('atualizado_em', { mode: 'number' }).notNull(),
   atualizadoPor: text('atualizado_por'),
 })
 
@@ -1096,21 +1129,21 @@ export const flags = sqliteTable('flags', {
  * migration desde a 0030 (`tests/integration/migracoes-sobre-estado-atual`). Uma linha por usuário;
  * entra em `TABELAS_DO_TITULAR`.
  */
-export const estadoDaConta = sqliteTable('estado_da_conta', {
+export const estadoDaConta = pgTable('estado_da_conta', {
   userId: text('user_id').primaryKey(),
   fuso: text('fuso'),
-  fusoDesde: integer('fuso_desde'),
-  avisoReembolsoEm: integer('aviso_reembolso_em'),
-  atualizadoEm: integer('atualizado_em').notNull(),
+  fusoDesde: bigint('fuso_desde', { mode: 'number' }),
+  avisoReembolsoEm: bigint('aviso_reembolso_em', { mode: 'number' }),
+  atualizadoEm: bigint('atualizado_em', { mode: 'number' }).notNull(),
 })
 
-export const convidados = sqliteTable(
+export const convidados = pgTable(
   'convidados',
   {
     userId: text('user_id').primaryKey(),
     ipHash: text('ip_hash').notNull(),
-    criadoEm: integer('criado_em').notNull(),
-    vistoEm: integer('visto_em').notNull(),
+    criadoEm: bigint('criado_em', { mode: 'number' }).notNull(),
+    vistoEm: bigint('visto_em', { mode: 'number' }).notNull(),
   },
   (t) => [index('idx_convidados_ip_criado').on(t.ipHash, t.criadoEm), index('idx_convidados_visto').on(t.vistoEm)],
 )
@@ -1127,7 +1160,7 @@ export const convidados = sqliteTable(
  * todos que dizem a mesma frase curta, não pertence a ninguém — apagar a conta não tem o que apagar
  * aqui, e a exportação não teria como atribuir uma linha a alguém.
  */
-export const cacheDeTraducaoPersistente = sqliteTable(
+export const cacheDeTraducaoPersistente = pgTable(
   'cache_de_traducao',
   {
     /** SHA-256 da frase normalizada + par + natureza + modelo + versão do prompt (`chaveDeTraducao`). */
@@ -1139,9 +1172,9 @@ export const cacheDeTraducaoPersistente = sqliteTable(
     modelo: text('modelo').notNull(),
     versaoPrompt: text('versao_prompt').notNull(),
     traducao: text('traducao').notNull(),
-    criadoEm: integer('criado_em').notNull(),
-    usadoEm: integer('usado_em').notNull(),
-    acertos: integer('acertos').notNull().default(0),
+    criadoEm: bigint('criado_em', { mode: 'number' }).notNull(),
+    usadoEm: bigint('usado_em', { mode: 'number' }).notNull(),
+    acertos: bigint('acertos', { mode: 'number' }).notNull().default(0),
   },
   (t) => [index('idx_cache_de_traducao_criado').on(t.criadoEm), index('idx_cache_de_traducao_usado').on(t.usadoEm)],
 )
@@ -1159,7 +1192,7 @@ export const cacheDeTraducaoPersistente = sqliteTable(
  * `TABELAS_DO_TITULAR` (exportação e exclusão), e o resultado de uma tradução com glossário NUNCA
  * vai para o cache compartilhado (`cache_de_traducao`), que é de todos.
  */
-export const glossario = sqliteTable(
+export const glossario = pgTable(
   'glossario',
   {
     id: text('id').primaryKey(),
@@ -1169,14 +1202,14 @@ export const glossario = sqliteTable(
     termo: text('termo').notNull(),
     termoNorm: text('termo_norm').notNull(),
     traducao: text('traducao').notNull(),
-    criadoEm: integer('criado_em').notNull(),
-    atualizadoEm: integer('atualizado_em').notNull(),
+    criadoEm: bigint('criado_em', { mode: 'number' }).notNull(),
+    atualizadoEm: bigint('atualizado_em', { mode: 'number' }).notNull(),
   },
   (t) => [uniqueIndex('uq_glossario_termo').on(t.userId, t.origem, t.destino, t.termoNorm)],
 )
 
 /**
- * O TESTE DE 14 DIAS DO PREMIUM (C6 da change `planos-v2`, migração 0043). Uma linha por conta que
+ * O TESTE DE 3 DIAS DO PREMIUM (C6 da change `planos-v2`, migração 0043). Uma linha por conta que
  * testou: quando começou e quando termina. Enquanto `termina_em` estiver no futuro, o servidor
  * concede o Premium nos entitlements (`resolverPlano`), mas a admissão da nuvem trata a conta como
  * GRÁTIS (`planoDeAdmissao(..., teste = true)`) — quem ainda não paga não disputa a capacidade de quem
@@ -1187,16 +1220,20 @@ export const glossario = sqliteTable(
  * teste virar "assinatura" na tela). Sem cartão, sem cobrança, sem renovação: nada aqui fala com o
  * Asaas. É DADO DO TITULAR (`user_id`): sai com a exclusão da conta e entra na exportação.
  */
-export const testesPremium = sqliteTable('testes_premium', {
+export const testesPremium = pgTable('testes_premium', {
   userId: text('user_id').primaryKey(),
-  iniciadoEm: integer('iniciado_em').notNull(),
-  terminaEm: integer('termina_em').notNull(),
+  iniciadoEm: bigint('iniciado_em', { mode: 'number' }).notNull(),
+  terminaEm: bigint('termina_em', { mode: 'number' }).notNull(),
+  /* O PLANO DO TESTE (planos v4, migração 0008): `planoDoTeste(flag)` avaliado no INÍCIO e gravado — quem
+     começou no Premium segue nele até o fim, mesmo com a v4 ligada depois. Nulo = teste de antes da 0008
+     (Premium). */
+  plano: text('plano'),
 })
 
 /**
  * A MARCA DO TESTE (C6, migração 0043) — o que impede apagar a conta e criar outra para ganhar mais
- * 14 dias. `marca` é o HMAC-SHA256 do e-mail NORMALIZADO com a chave de hash do servidor
- * (`CHAVE_DE_HASH`, `server/lib/testePremium.ts`): não guarda o e-mail, não volta a ele sem o
+ * 3 dias. `marca` é o HMAC-SHA256 do e-mail NORMALIZADO com a chave de hash do servidor
+ * (`obterChaveDeHash()`, `server/lib/testePremium.ts`): não guarda o e-mail, não volta a ele sem o
  * segredo, e NÃO tem `user_id` — por isso sobrevive à exclusão da conta, que é exatamente o objetivo.
  *
  * É dado PSEUDONIMIZADO (LGPD art. 13 §4º: continua dado pessoal para quem tem a chave), tratado por
@@ -1204,11 +1241,264 @@ export const testesPremium = sqliteTable('testes_premium', {
  * diária (`podarMarcasDeTeste`). Fica fora de `TABELAS_DO_TITULAR` de propósito — documentado em
  * `docs/lgpd/ropa.csv` (T12) e em `public/privacidade.html`.
  */
-export const marcasDeTeste = sqliteTable(
+export const marcasDeTeste = pgTable(
   'marcas_de_teste',
   {
     marca: text('marca').primaryKey(),
-    criadoEm: integer('criado_em').notNull(),
+    criadoEm: bigint('criado_em', { mode: 'number' }).notNull(),
   },
   (t) => [index('idx_marcas_de_teste_criado').on(t.criadoEm)],
+)
+
+/*
+ * CONTABILIDADE INTERNA (não é dado do titular a exportar): tabelas que nasceram só em migração SQL
+ * (0032 e 0053 do SQLite) e agora são declaradas aqui para o drizzle-kit gerar o baseline Postgres.
+ * Os gatilhos que as mantêm vivem à mão em `migrations-pg/0001_triggers_e_flags.sql`.
+ */
+
+/** Contadores por usuário que dizem se o vocabulário/atividade mudou (mantidos por gatilhos `versao_*`). */
+export const versoesDeDados = pgTable('versoes_de_dados', {
+  userId: text('user_id').primaryKey(),
+  vocab: bigint('vocab', { mode: 'number' }).notNull().default(0),
+  atividade: bigint('atividade', { mode: 'number' }).notNull().default(0),
+  /**
+   * A versão do CONJUNTO de palavras vistas (etiquetas de palavras, migração PG 0012): o ETag de
+   * `GET /api/vocab/vistas`. Não é gatilho: sobe em `palavrasVistasRepo` só quando nasce ou some uma linha
+   * do índice (ou numa reconstrução) — somar ocorrência numa palavra já vista não invalida a lista.
+   */
+  palavras: bigint('palavras', { mode: 'number' }).notNull().default(0),
+})
+
+/** Uma linha por (usuário, idioma, dia local): agregados derivados de review_logs e exercise_results. */
+export const agregadosDiarios = pgTable(
+  'agregados_diarios',
+  {
+    userId: text('user_id').notNull(),
+    idioma: text('idioma').notNull().default(''),
+    dia: bigint('dia', { mode: 'number' }).notNull(),
+    revisoes: bigint('revisoes', { mode: 'number' }).notNull().default(0),
+    acertos: bigint('acertos', { mode: 'number' }).notNull().default(0),
+    revisoesVivas: bigint('revisoes_vivas', { mode: 'number' }).notNull().default(0),
+    nota1: bigint('nota1', { mode: 'number' }).notNull().default(0),
+    nota2: bigint('nota2', { mode: 'number' }).notNull().default(0),
+    nota3: bigint('nota3', { mode: 'number' }).notNull().default(0),
+    nota4: bigint('nota4', { mode: 'number' }).notNull().default(0),
+    novas: bigint('novas', { mode: 'number' }).notNull().default(0),
+    tempoRevisaoMs: bigint('tempo_revisao_ms', { mode: 'number' }).notNull().default(0),
+    comPrevisao: bigint('com_previsao', { mode: 'number' }).notNull().default(0),
+    somaPrevista: doublePrecision('soma_prevista').notNull().default(0),
+    lembradasComPrevisao: bigint('lembradas_com_previsao', { mode: 'number' }).notNull().default(0),
+    itensDeJogo: bigint('itens_de_jogo', { mode: 'number' }).notNull().default(0),
+    itensCertos: bigint('itens_certos', { mode: 'number' }).notNull().default(0),
+    itensDrill: bigint('itens_drill', { mode: 'number' }).notNull().default(0),
+    itensDrillCertos: bigint('itens_drill_certos', { mode: 'number' }).notNull().default(0),
+    tempoJogoMs: bigint('tempo_jogo_ms', { mode: 'number' }).notNull().default(0),
+    rodadas: bigint('rodadas', { mode: 'number' }).notNull().default(0),
+    revisoesPurgadas: bigint('revisoes_purgadas', { mode: 'number' }).notNull().default(0),
+    acertosPurgados: bigint('acertos_purgados', { mode: 'number' }).notNull().default(0),
+    atualizadoEm: bigint('atualizado_em', { mode: 'number' }).notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.idioma, t.dia] })],
+)
+
+/** Uma linha por usuário: fuso dos dias contados e marcas que dizem se os agregados acompanham o bruto. */
+export const estadoDosAgregados = pgTable('estado_dos_agregados', {
+  userId: text('user_id').primaryKey(),
+  fuso: text('fuso').notNull(),
+  marcaBruto: bigint('marca_bruto', { mode: 'number' }).notNull().default(0),
+  marcaVista: bigint('marca_vista', { mode: 'number' }).notNull().default(0),
+  reconstruidoEm: bigint('reconstruido_em', { mode: 'number' }).notNull().default(0),
+})
+
+/** Uma linha por (usuário, cartão, jogo): acertos, erros e o último resultado. */
+export const estadoPorItem = pgTable(
+  'estado_por_item',
+  {
+    userId: text('user_id').notNull(),
+    cardId: text('card_id').notNull(),
+    jogo: text('jogo').notNull(),
+    acertos: bigint('acertos', { mode: 'number' }).notNull().default(0),
+    erros: bigint('erros', { mode: 'number' }).notNull().default(0),
+    ultimoResultado: bigint('ultimo_resultado', { mode: 'number' }),
+    ultimoEm: bigint('ultimo_em', { mode: 'number' }).notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.cardId, t.jogo] })],
+)
+
+/**
+ * Travas de linha por transação (`travarUsuario`/`travarGlobal` em `db.ts`): uma linha por chave, `u:<userId>`
+ * ou `g:<nome>`, travada pelo `INSERT … ON CONFLICT DO UPDATE` até o fim da transação. Substitui o
+ * advisory lock (trava consultiva), que o Hyperdrive (pool por transação) não suporta. Sem dado além da chave; a
+ * limpeza diária poda as `u:` de quem não existe mais em `users`.
+ */
+export const travas = pgTable('travas', {
+  chave: text('chave').primaryKey(),
+  criadoEm: bigint('criado_em', { mode: 'number' }).notNull(),
+})
+
+/**
+ * Contadores da ADMISSÃO DE IA (`server/ai/admissao.ts`, ADR 0007 revisto na Fase 2): o estado que era da
+ * memória do processo, compartilhado entre instâncias (isolates do Worker, réplicas). Uma linha por chave e
+ * janela, reservada numa instrução só (`admissaoDeIaRepo.reservar`):
+ *
+ *  - `bucket:<provedor>:<modelo>:<tipo>` (pedidos) e `tokens:<provedor>:<modelo>:<tipo>` (tokens), na janela
+ *    `min` (token bucket do minuto: `usado` no instante `atualizado_em`, reabastecido preguiçosamente por quem
+ *    reserva) ou do dia UTC (`YYYY-MM-DD`, janela fixa): `usado` é o que foi reservado nela;
+ *  - `bucket:…` na janela `bloqueio`: `bloqueado_ate` é o fim do `Retry-After` do 429 do provedor;
+ *  - `voo:<userId>:<tipo>` na janela `total`: `em_voo` são as chamadas do usuário em andamento.
+ *
+ * Sem `user_id`: a vaga em voo leva o id na chave e sai na exclusão de conta. A limpeza diária poda o que não
+ * foi tocado há 2 dias.
+ */
+export const admissaoDeIa = pgTable(
+  'admissao_de_ia',
+  {
+    chave: text('chave').notNull(),
+    janela: text('janela').notNull(),
+    /* Fracionário: o balde do minuto escorre continuamente (limite / 60.000 por ms). */
+    usado: doublePrecision('usado').notNull().default(0),
+    emVoo: bigint('em_voo', { mode: 'number' }).notNull().default(0),
+    bloqueadoAte: bigint('bloqueado_ate', { mode: 'number' }).notNull().default(0),
+    atualizadoEm: bigint('atualizado_em', { mode: 'number' }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.chave, t.janela] })],
+)
+
+/**
+ * AS EXIBIÇÕES DO ANÚNCIO PREMIADO (spec `anuncios-no-gratis`; `server/routes/anuncios.ts`). Na web não há
+ * verificação servidor a servidor da rede de anúncios: a recompensa é um aperto de mão em dois passos. `iniciar`
+ * cria a linha com um `exibicao_id` aleatório; `concluir` credita só se a linha é desta conta, ainda não foi
+ * concluída e foi iniciada há menos de 10 minutos — e grava `concluido_em` e `dia` (o dia UTC da CONCLUSÃO,
+ * nulo enquanto pendente). Os tetos do dia (`LIMITE_DE_PREMIADOS_POR_DIA`, `TETO_GLOBAL_DE_PREMIADOS_POR_DIA`)
+ * contam as linhas concluídas por `dia`; o bônus de nuvem do mês (`nuvem-30`) também sai daqui, e por isso
+ * creditar a nuvem e marcar a conclusão são a MESMA escrita.
+ *
+ * DADO DO TITULAR (`user_id`): sai com a exclusão da conta e entra na exportação. A limpeza diária poda as
+ * pendentes de mais de um dia e as concluídas antes do mês anterior.
+ */
+export const anunciosPremiados = pgTable(
+  'anuncios_premiados',
+  {
+    userId: text('user_id').notNull(),
+    /** 32 hex aleatórios, gerados pelo servidor no `iniciar`. */
+    exibicaoId: text('exibicao_id').notNull(),
+    /** O espaço premiado (`fim-premiado`, `loja-seeds`, `nuvem-30`, `tema-24h`, `ajuda-premiada`). */
+    espaco: text('espaco').notNull(),
+    /** `AAAA-MM-DD` UTC da conclusão; nulo enquanto pendente. */
+    dia: text('dia'),
+    iniciadoEm: bigint('iniciado_em', { mode: 'number' }).notNull(),
+    concluidoEm: bigint('concluido_em', { mode: 'number' }),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.exibicaoId] }), index('idx_anuncios_premiados_dia').on(t.dia)],
+)
+
+/**
+ * O ÍNDICE DAS PALAVRAS VISTAS (etiquetas de palavras, migração PG 0012): por sessão, quantas vezes cada
+ * palavra apareceu nas falas, para a legenda marcar "já vi" e o histórico da palavra dizer onde.
+ *
+ * DADO DERIVADO das falas (`utterances.source_text`), mantido no MESMO lote de toda escrita nelas
+ * (`palavrasVistasRepo`, chamado por `sessionsRepo`/`utterancesRepo`), e reconstruível a qualquer momento
+ * (`operacao.cjs palavras reindexar`). A chave é `chaveDaPalavra` com o idioma BASE da fala, então
+ * `lang|chave` é o `norm_key` do cartão da mesma palavra (`src/core/texto/palavrasVistas.ts`).
+ *
+ * `exemplo_idx` é o `idx` de UMA fala da sessão que contém a palavra — estável entre "retomar a captura"
+ * e os lotes da captura longa, ao contrário do id da fala. O texto não é copiado para cá: a rota lê a
+ * fala e confere se ela ainda contém a palavra.
+ *
+ * FOREIGN KEY COM CASCADE, desvio declarado da regra do cabeçalho: a linha não tem sentido sem a sessão,
+ * e a limpeza diária (que apaga a sessão de vez) e a exclusão de conta não precisam conhecê-la. A remoção
+ * SOFT da sessão apaga as linhas daqui no mesmo lote (`sessionsRepo.remove`). Sem FK para `users`: nenhuma
+ * tabela a tem (sessões existem sem linha em `users` no self-host e nos testes). Dado do titular:
+ * `TABELAS_DO_TITULAR` (exclusão e exportação).
+ */
+export const palavrasVistas = pgTable(
+  'palavras_vistas',
+  {
+    userId: text('user_id').notNull(),
+    sessionId: text('session_id')
+      .notNull()
+      .references(() => sessions.id, { onDelete: 'cascade' }),
+    lang: text('lang').notNull(),
+    chave: text('chave').notNull(),
+    vezes: bigint('vezes', { mode: 'number' }).notNull().default(0),
+    primeiraEm: bigint('primeira_em', { mode: 'number' }).notNull(),
+    ultimaEm: bigint('ultima_em', { mode: 'number' }).notNull(),
+    exemploIdx: bigint('exemplo_idx', { mode: 'number' }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.sessionId, t.lang, t.chave] }),
+    /* As duas leituras: as chaves vistas num idioma (`GET /api/vocab/vistas`) e o histórico de uma chave
+       (`GET /api/vocab/palavra`). A PK começa por `session_id` depois do usuário e não serve a nenhuma. */
+    index('idx_palavras_vistas_chave').on(t.userId, t.lang, t.chave),
+    // Lado filho da FK (o CASCADE e o DELETE por sessão procuram por ela).
+    index('idx_palavras_vistas_sessao').on(t.sessionId),
+  ],
+)
+
+/**
+ * AS ANOTAÇÕES DO LEITOR (L2 da spec `docs/specs/2026-10-26-livros-e-leitura.md`, migração 0013) — grifos,
+ * notas e palavras salvas de um livro, no modelo W3C Web Annotation: CFI + `TextQuoteSelector`
+ * (`exact`/`prefixo`/`sufixo`). O modelo e a validação moram em `src/core/leitura/anotacao.ts`, os mesmos do
+ * cliente.
+ *
+ * `exact` ≤ 500 caracteres para TODO livro (o servidor não sabe se o livro é do catálogo ou trazido, e não
+ * pode virar cópia da obra trazida); o arquivo do livro nunca sobe. A sincronização é por `atualizado_em`
+ * (última escrita vence) com lápide em `apagado_em`. DADO DO TITULAR: entra em `TABELAS_DO_TITULAR`
+ * (exportação e exclusão), grátis para todo plano — é dado de estudo como o deck.
+ */
+export const anotacoesDeLeitura = pgTable(
+  'anotacoes_de_leitura',
+  {
+    userId: text('user_id').notNull(),
+    id: text('id').notNull(),
+    livroId: text('livro_id').notNull(),
+    tipo: text('tipo').notNull(),
+    cfi: text('cfi').notNull().default(''),
+    exact: text('exact').notNull().default(''),
+    prefixo: text('prefixo').notNull().default(''),
+    sufixo: text('sufixo').notNull().default(''),
+    capitulo: text('capitulo'),
+    cor: text('cor').notNull(),
+    nota: text('nota').notNull().default(''),
+    palavra: text('palavra'),
+    criadoEm: bigint('criado_em', { mode: 'number' }).notNull(),
+    atualizadoEm: bigint('atualizado_em', { mode: 'number' }).notNull(),
+    apagadoEm: bigint('apagado_em', { mode: 'number' }),
+    /* O RELÓGIO DO SERVIDOR (e não o do aparelho): posto pelo servidor a cada inserção, edição e lápide, sob a
+       trava do usuário e sempre crescente por pessoa. É o cursor da sincronização, com o `id` de desempate. */
+    sincronizadoEm: bigint('sincronizado_em', { mode: 'number' }).notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.id] }),
+    index('idx_anotacoes_de_leitura_livro').on(t.userId, t.livroId, t.sincronizadoEm, t.id),
+  ],
+)
+
+/**
+ * O CACHE DO PARCEIRO DE LEITURA (L4 de Livros & Leitura, migração 0014) — `server/ai/leitura/cacheDoParceiro.ts`.
+ *
+ * Só livro DO CATÁLOGO (domínio público): a resposta do parceiro a um trecho é a mesma para todo mundo que manda o
+ * mesmo capítulo, o mesmo trecho, o mesmo modo e o mesmo nível — a primeira pessoa paga a chamada e as outras leem
+ * daqui. A CHAVE é o SHA-256 de tudo que vai ao prompt (versão do prompt, livro, hash do texto do capítulo, modo, hash
+ * do trecho, nível, idiomas, público adulto/menor e a ficha), então uma linha nunca serve a outro pedido e não dá para
+ * "envenenar" o cache: quem manda texto diferente cai noutra chave. A pergunta livre NUNCA entra aqui (é texto da
+ * pessoa), nem o livro trazido por ela. Sem `user_id`: a linha não é de ninguém (fora de `TABELAS_DO_TITULAR`).
+ */
+export const cacheDoParceiro = pgTable(
+  'cache_do_parceiro',
+  {
+    chave: text('chave').primaryKey(),
+    /** O id do catálogo (PD) — para auditar e podar por livro; nunca texto da pessoa. */
+    livroId: text('livro_id').notNull(),
+    modo: text('modo').notNull(),
+    /** O modelo que REALMENTE respondeu (procedência). */
+    modelo: text('modelo').notNull(),
+    versaoPrompt: text('versao_prompt').notNull(),
+    /** A resposta já LIDA e validada (JSON), a mesma que a pessoa recebeu. */
+    resposta: text('resposta').notNull(),
+    criadoEm: bigint('criado_em', { mode: 'number' }).notNull(),
+    usadoEm: bigint('usado_em', { mode: 'number' }).notNull(),
+    acertos: bigint('acertos', { mode: 'number' }).notNull().default(0),
+  },
+  (t) => [index('idx_cache_do_parceiro_criado').on(t.criadoEm), index('idx_cache_do_parceiro_usado').on(t.usadoEm)],
 )

@@ -13,6 +13,8 @@ package-lock.json
 server/db/migrations
 src/data/trilha/niveis
 src/data/i18n
+# o manifesto dos pesos (`npx tsx scripts/modelos/gerar-manifesto-dos-pesos.ts`, com `--check`)
+src/gateway/manifestoDosPesos.json
 tests/caracterizacao/__snapshots__
 tests/__snapshots__
 openspec/audits
@@ -26,3 +28,9 @@ src/index.css
 # Fontes dos protótipos de tela: código de protótipo, montado por montar.mjs; não formatar
 docs/prototipos/*-src
 docs/prototipos/_comum
+
+# Brutos da bancada de IA paga (scripts/eval-ia/rodar.mjs): JSON compacto gerado, sem leitura humana
+docs/auditoria/eval/ia-paga-v1/bruto-*.json
+
+# Motor do leitor vendorizado (foliate-js, MIT): código de terceiro numa versão fixa (ver ORIGEM.txt)
+src/lib/leitor/foliate

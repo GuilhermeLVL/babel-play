@@ -14,9 +14,9 @@ describe('GET /api/vocab com 2.000 cartoes', () => {
 
   beforeAll(async () => {
     s = await subirApp({ modo: 'self-host' })
-    const { LOCAL_OWNER } = await s.load('../../server/lib/authContext')
+    const { donoLocal } = await s.load('../../server/lib/authContext')
     const { vocabRepo } = await s.load('../../server/db/repositories/vocab')
-    const U = LOCAL_OWNER
+    const U = donoLocal()
     const SIL = ['ba', 'te', 'ri', 'so', 'mu', 'la', 'ne', 'ki', 'do', 'pu', 'fa', 'ge']
     const palavra = (i: number) =>
       `${SIL[i % 12]}${SIL[Math.floor(i / 12) % 12]}${SIL[Math.floor(i / 144) % 12]}${SIL[Math.floor(i / 1728) % 12]}`

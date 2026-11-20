@@ -20,6 +20,7 @@
  * Itens da lista `fidelidade/casca-e-telas.md`: F4–F16, F25, F27.
  */
 import { novoEstadoDaInclinacao, passoDaInclinacao } from '../dispositivo/inclinacao';
+import { zoomDoCorpo } from '../zoomDoCorpo';
 import { reduz } from './base';
 
 /** `agua.js:23-24`. */
@@ -431,7 +432,9 @@ export function montarCena(): () => void {
   const aoTocar = (e: PointerEvent) => {
     if (!on || !main || !(e.target instanceof Node) || !main.contains(e.target) || reduz()) return;
     const r = main.getBoundingClientRect();
-    const [x, y] = [e.clientX - r.left, e.clientY - r.top];
+    /* px da janela → px do body (zoom do A±): `x`/`y` viram `left`/`top` e coordenadas da cena */
+    const z = zoomDoCorpo();
+    const [x, y] = [(e.clientX - r.left) / z, (e.clientY - r.top) / z];
     const o = document.createElement('i');
     o.className = 'ag-onda';
     o.style.left = x + 'px';

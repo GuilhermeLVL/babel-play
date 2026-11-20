@@ -41,10 +41,11 @@ import {
 import { flagsRepo, type LinhaDeFlag } from '../db/repositories/flags'
 import { estadoDaAbertura } from './abertura'
 import { authRequired } from './auth'
-import { asUserId, LOCAL_OWNER } from './authContext'
+import { asUserId, donoLocal } from './authContext'
 import { getPlanForUser } from './entitlements'
 import { log } from './logger'
 import { FORMATO_DE_IDIOMA, ofertasSchema } from './ofertas'
+import { ehWorker } from './runtime'
 import { versaoDoApp } from './versao'
 
 export const TTL_DO_CACHE_MS = 30_000
@@ -139,20 +140,24 @@ export function definicaoDaLinha(l: LinhaDeFlag): DefinicaoDeFlag {
 let cache: { em: number; defs: DefinicaoDeFlag[] } | null = null
 let emVoo: Promise<DefinicaoDeFlag[]> | null = null
 
-/** As definições, do cache (30 s) ou do banco. */
+/**
+ * As definições, do cache (30 s) ou do banco. No Node, leituras simultâneas dividem a consulta (`emVoo`). No
+ * Worker, não: uma promessa criada numa requisição não pode ser esperada por outra (o workerd não a resolve
+ * entre requisições, e a consulta é do `Client` da que a criou) — cada uma vai ao banco; o cache vale igual.
+ */
 export async function definicoesDasFlags(agora = Date.now()): Promise<DefinicaoDeFlag[]> {
   if (cache && agora - cache.em < TTL_DO_CACHE_MS) return cache.defs
-  if (emVoo) return emVoo
-  emVoo = flagsRepo
-    .listar()
-    .then((linhas) => {
+  const carregar = () =>
+    flagsRepo.listar().then((linhas) => {
       const defs = linhas.map(definicaoDaLinha)
       cache = { em: Date.now(), defs }
       return defs
     })
-    .finally(() => {
-      emVoo = null
-    })
+  if (ehWorker()) return carregar()
+  if (emVoo) return emVoo
+  emVoo = carregar().finally(() => {
+    emVoo = null
+  })
   return emVoo
 }
 
@@ -181,7 +186,7 @@ async function planoDoContexto(userId: string | undefined): Promise<PlanoDaFlag>
  * resolve o token por conta própria, porque roda antes do `authMiddleware`).
  */
 export async function contextoDoRequest(req: Request, userId?: string | null): Promise<ContextoDaFlag> {
-  const quem = userId ?? req.userId ?? (authRequired() ? undefined : LOCAL_OWNER)
+  const quem = userId ?? req.userId ?? (authRequired() ? undefined : donoLocal())
   const instalacao = req.header(CABECALHO_DA_INSTALACAO)?.trim()
   const idioma = req.header(CABECALHO_DO_IDIOMA)?.trim()
   const versao = req.header(CABECALHO_DA_VERSAO_DO_CLIENTE)?.trim()
@@ -195,7 +200,28 @@ export async function contextoDoRequest(req: Request, userId?: string | null): P
   }
 }
 
+/**
+ * AS FLAGS LIGADAS SÓ NO DEV LOCAL (`FLAGS_LIGADAS_NO_DEV`, lista separada por vírgula; o `npm run dev:local` a
+ * define). É o jeito de o dono ver uma funcionalidade que nasce desligada sem mexer no banco nem na CLI.
+ * SEGURA POR CONSTRUÇÃO: só vale com `NODE_ENV` diferente de `production`, com a autenticação DESLIGADA
+ * (`AUTH_REQUIRED=0`, o modo sem login) e fora do Worker. Em produção, no staging (que exige conta) e em teste sem
+ * a variável, o conjunto é vazio e nada muda. Lida na hora da chamada (nenhum módulo lê env ao ser importado).
+ */
+export function flagsLigadasNoDev(env: NodeJS.ProcessEnv = process.env): ReadonlySet<string> {
+  const lista = env.FLAGS_LIGADAS_NO_DEV?.trim()
+  if (!lista || env.NODE_ENV === 'production' || authRequired(env) || ehWorker()) return new Set()
+  return new Set(
+    lista
+      .split(',')
+      .map((c) => c.trim())
+      .filter((c) => FORMATO_DA_CHAVE.test(c)),
+  )
+}
+
 function aplicarTravas(avaliadas: FlagsAvaliadas): FlagsAvaliadas {
+  for (const chave of flagsLigadasNoDev()) {
+    avaliadas[chave] = { ...avaliadas[chave], ligada: true }
+  }
   for (const [chave, aberta] of Object.entries(TRAVAS)) {
     if (avaliadas[chave]?.ligada && !aberta()) avaliadas[chave] = { ligada: false }
   }
@@ -214,6 +240,10 @@ export async function avaliarParaContexto(ctx: ContextoDaFlag): Promise<FlagsAva
  */
 export async function flagLigada(req: Request, chave: string): Promise<boolean> {
   try {
+    if (flagsLigadasNoDev().has(chave)) {
+      const trava = TRAVAS[chave]
+      return trava ? trava() : true
+    }
     const def = (await definicoesDasFlags()).find((d) => d.chave === chave)
     if (!def) return false
     if (!avaliarFlag(def, await contextoDoRequest(req))) return false

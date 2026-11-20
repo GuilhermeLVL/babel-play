@@ -14,6 +14,7 @@
  */
 import { type Request, type Response, Router } from 'express'
 
+import { assinadorDoTutor } from '../ai/assinaturaDoTutor'
 import {
   conversarComTutor,
   lerPedidoDoTutor,
@@ -29,13 +30,42 @@ import { log } from '../lib/logger'
 
 export const tutorRouter = Router()
 
-function responderTutor(res: Response, r: ResultadoDoTutor): void {
+/**
+ * A resposta do TUTOR sai com `assinatura` (`server/ai/assinaturaDoTutor.ts`): o cliente a devolve com o turno
+ * no histórico, e só o turno assinado volta ao modelo (LLM01). O corretor não tem histórico: `assinar` é `null`.
+ */
+function responderTutor(res: Response, r: ResultadoDoTutor, assinar: ((texto: string) => string) | null): void {
   if (r.ok === false) {
     responderRecusa(res, r)
     return
   }
-  if (r.motor) res.json({ text: r.texto, engine: r.motor, local: r.motor === 'ollama' })
-  else res.json({ text: null, unavailable: true, reason: r.indisponivel })
+  if (!r.motor) {
+    res.json({ text: null, unavailable: true, reason: r.indisponivel })
+    return
+  }
+  /* A frase do filtro de saída (`filtrada`) não se assina: ela não é fala do modelo, e o cliente não a devolve no
+     histórico — nada que o filtro barrou volta ao modelo como turno assinado. */
+  if (r.filtrada) {
+    res.json({ text: r.texto, engine: r.motor, local: r.motor === 'ollama', filtrada: true })
+    return
+  }
+  const assinatura = assinar && typeof r.texto === 'string' ? assinar(r.texto) : undefined
+  res.json({ text: r.texto, engine: r.motor, local: r.motor === 'ollama', ...(assinatura ? { assinatura } : {}) })
+}
+
+/**
+ * O assinador desta resposta: a assinatura cobre o PAR (a pergunta, que é a última mensagem do corpo, e a
+ * resposta), para o turno só valer depois da mesma pergunta (`assinaturaDoTutor.ts`). Sem pergunta no fim (o
+ * corpo termina num `assistant`) ou no corretor, não assina.
+ */
+async function assinadorDoPedido(req: Request, pedido: PedidoDoTutor): Promise<((texto: string) => string) | null> {
+  if (pedido.funcao !== 'tutor') return null
+  const msgs = pedido.corpo.messages
+  const ultima = Array.isArray(msgs) ? (msgs[msgs.length - 1] as { role?: unknown; content?: unknown }) : undefined
+  if (!ultima || ultima.role === 'assistant') return null
+  const pergunta = typeof ultima.content === 'string' ? ultima.content : ''
+  const assinar = await assinadorDoTutor(req.userId)
+  return (texto) => assinar(pergunta, texto)
 }
 
 /**
@@ -66,8 +96,9 @@ async function conversar(req: Request, res: Response, rastro: RastroDeIa): Promi
   try {
     gratuita = await abrirPortaGratuita(req, res, 'tutor')
     if (!gratuita) return // já respondeu: 403 `exige_conta`, 429, 402 ou 503
+    const assinar = await assinadorDoPedido(req, lido.pedido)
     const r = await conversarComTutor(contextoDoApp(req, rastro, gratuita), lido.pedido satisfies PedidoDoTutor, {
-      aoDecidir: (resultado) => responderTutor(res, resultado),
+      aoDecidir: (resultado) => responderTutor(res, resultado, assinar),
     })
     respondeuDaNuvem = r.ok === true && r.motor === 'nuvem'
   } catch (error) {
@@ -80,7 +111,7 @@ async function conversar(req: Request, res: Response, rastro: RastroDeIa): Promi
 
 /**
  * O contexto do app. O tutor nunca usou a franquia do alívio (a oferta é da legenda) nem leu o
- * alívio na admissão: `modo: 'plano'` preserva isso. O teste de 14 dias entra na faixa grátis.
+ * alívio na admissão: `modo: 'plano'` preserva isso. O teste de 3 dias entra na faixa grátis.
  */
 function contextoDoApp(req: Request, rastro: RastroDeIa, gratuita: PortaGratuita) {
   return {

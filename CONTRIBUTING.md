@@ -20,13 +20,13 @@ This is the same list CI runs, in the same order. All of it must be green.
 ```bash
 npm run typecheck && npm run typecheck:core && npm run typecheck:estrito
 npm run lint                       # --max-warnings 0: a warning fails the build
-npm test                           # ~3,900 tests, temporary SQLite; never touches your data/
+npm test                           # ~3,900 tests, in-memory PGlite; never touches your data/
 npm run build
 npm run morto:arquivos             # knip: unused files, deps, unlisted imports
 npm run morto:ciclos               # madge: zero import cycles, and it stays zero
 npm run audit:gate                 # no new high/critical CVE outside the named allowlist
 npm run workflows:validar
-node scripts/i18n/pseudo.mjs --check && npm run i18n:orfas && node scripts/i18n/cobertura.mjs --check
+node scripts/i18n/ordenar.mjs --check && node scripts/i18n/pseudo.mjs --check && npm run i18n:orfas && node scripts/i18n/cobertura.mjs --check
 node scripts/testes/rotas-sem-caracterizacao.mjs   # every server route has a test or a written reason
 node scripts/testes/rotas-sem-consumidor.mjs       # and every route has a caller
 ./node_modules/.bin/ast-grep test -c sgconfig.yml  # the rules have fixtures — see below

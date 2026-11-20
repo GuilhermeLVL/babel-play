@@ -64,17 +64,17 @@ describe('falar(texto, idioma)', () => {
 
   it('en continua em inglês', async () => {
     const falas = instalar([
-      { lang: 'en-US', name: 'Aria' },
+      { lang: 'en-US', name: 'Samantha' },
       { lang: 'pt-BR', name: 'Francisca' },
     ])
     const tts = await carregar()
     tts.falar('meeting', 'en')
-    expect(falas[0].voice?.name).toBe('Aria')
+    expect(falas[0].voice?.name).toBe('Samantha')
     expect(falas[0].lang).toBe('en-US')
   })
 
   it('sem voz do idioma: não fala com voz de outro idioma e avisa uma vez', async () => {
-    const falas = instalar([{ lang: 'en-US', name: 'Aria' }])
+    const falas = instalar([{ lang: 'en-US', name: 'Samantha' }])
     const tts = await carregar()
     const avisos: string[] = []
     tts.aoFaltarVoz((l) => avisos.push(l))
@@ -87,16 +87,25 @@ describe('falar(texto, idioma)', () => {
     expect(avisos).toEqual(['pt-BR'])
   })
 
-  it('lista de vozes ainda vazia ("não sei"): fala com o lang BCP-47 e deixa o navegador escolher', async () => {
-    const falas = instalar([])
-    const tts = await carregar()
-    tts.falar('reunião', 'pt')
-    expect(falas).toHaveLength(1)
-    expect(falas[0].lang).toBe('pt-BR')
+  it('lista de vozes ainda vazia ("não sei"): espera a lista; se ela nunca vem, fala com o lang BCP-47', async () => {
+    vi.useFakeTimers()
+    try {
+      const falas = instalar([])
+      const tts = await carregar()
+      tts.falar('reunião', 'pt')
+      /* Falar já deixaria o navegador escolher a voz padrão, que no Mac pode ser robótica: espera a lista. */
+      expect(falas).toHaveLength(0)
+      await vi.advanceTimersByTimeAsync(1500)
+      /* O navegador não enumera vozes: não há o que filtrar, e a fala segue pelo idioma. */
+      expect(falas).toHaveLength(1)
+      expect(falas[0].lang).toBe('pt-BR')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('idioma vazio não fala (sem default silencioso)', async () => {
-    const falas = instalar([{ lang: 'en-US', name: 'Aria' }])
+    const falas = instalar([{ lang: 'en-US', name: 'Samantha' }])
     const tts = await carregar()
     expect(tts.falar('palavra', '')).toBe(false)
     expect(falas).toHaveLength(0)

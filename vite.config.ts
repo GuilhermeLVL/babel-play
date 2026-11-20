@@ -8,9 +8,13 @@ import os from 'os'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 
 import { bergamotNoPublic } from './scripts/baixar-modelos-bergamot.mjs'
+import { cabecalhosDoDeploy } from './scripts/vite/cabecalhos'
+import { esqueletoDoInicio } from './scripts/vite/esqueletoDoInicio'
 import { preCarregarEfemeroNaEdicaoEstatica } from './scripts/vite/preCarregarEfemero'
 import { preCarregarFontes } from './scripts/vite/preCarregarFontes'
 import { precomprimir } from './scripts/vite/precomprimir'
+import { serviceWorkerDoBuild } from './scripts/vite/serviceWorker'
+import { siteDoBuild } from './scripts/vite/site'
 import { aplicarUrlPublica } from './scripts/vite/urlPublica'
 import { montarVersao } from './server/lib/versao'
 
@@ -120,10 +124,24 @@ function versaoNoBuild(versao: string): Plugin {
   }
 }
 
+/**
+ * O sha do commit no build da CI, quando o passo do build não recebe `GIT_SHA` (o `deploy-worker.yml`
+ * só o passa ao Worker, como var). Sem isto o bundle dizia `0.1.0` e o Worker `0.1.0+<sha>`. O
+ * checkout da CI é o mesmo commit publicado, então o `HEAD` dá o mesmo sha que o Worker recebe.
+ */
+function shaDoCheckoutNaCi(): string | undefined {
+  if (!process.env.CI || process.env.GIT_SHA?.trim()) return undefined
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: __dirname, encoding: 'utf8' }).trim()
+  } catch {
+    return undefined
+  }
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_')
   const pacote = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8')) as { version: string }
-  const versao = montarVersao(pacote.version, process.env)
+  const versao = montarVersao(pacote.version, { ...process.env, GIT_SHA: process.env.GIT_SHA || shaDoCheckoutNaCi() })
   return {
     define: { __APP_VERSION__: JSON.stringify(versao) },
     // Cache de pré-bundle (optimizeDeps/esbuild) FORA do OneDrive: sobre a pasta sincronizada
@@ -144,7 +162,23 @@ export default defineConfig(({ mode }) => {
       // Edição estática: o servidor em memória vem como modulepreload (sem cascata no arranque).
       preCarregarEfemeroNaEdicaoEstatica(env.VITE_EDICAO_ESTATICA === '1' || process.env.VITE_EDICAO_ESTATICA === '1'),
       preCarregarFontes(),
+      /* O Início no HTML do `/app` para o visitante (carga-rapida-no-celular): só no modo público, com Supabase. */
+      esqueletoDoInicio(
+        (env.VITE_AUTH_REQUIRED ?? process.env.VITE_AUTH_REQUIRED) === '1' &&
+          !!(env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL) &&
+          (env.VITE_EDICAO_ESTATICA ?? process.env.VITE_EDICAO_ESTATICA) !== '1',
+      ),
+      // O site público estático (páginas, sitemap, robots, ads.txt): antes do `precomprimir`.
+      siteDoBuild(env),
+      /* O service worker mínimo (`dist/sw.js`, offline do app já visitado). `VITE_SERVICE_WORKER=0` gera o SW
+         que se desregistra (o interruptor). Antes do `precomprimir`. */
+      serviceWorkerDoBuild({
+        versao,
+        ligado: (env.VITE_SERVICE_WORKER ?? process.env.VITE_SERVICE_WORKER ?? '').trim() !== '0',
+      }),
       precomprimir(),
+      // `dist/_headers` com a CSP bloqueante do Express; depois do `precomprimir` para não virar `.br`/`.gz`.
+      cabecalhosDoDeploy(env),
     ],
     resolve: {
       alias: {
@@ -196,6 +230,9 @@ export default defineConfig(({ mode }) => {
             if (!id.includes('node_modules')) return
             if (/[\\/]node_modules[\\/](react-dom|react|scheduler)[\\/]/.test(id)) return 'vendor-react'
             if (/[\\/]node_modules[\\/](@supabase[\\/][^\\/]+|iceberg-js)[\\/]/.test(id)) return 'vendor-supabase'
+            /* O AVATAR 3D (`three` + `@pixiv/three-vrm`): só o `import()` de `src/lib/avatar/motor.ts` os alcança.
+               Em chunk próprio, fora do arranque; `tests/avatar-bundle.test.ts` reprova se voltarem a ele. */
+            if (/[\\/]node_modules[\\/](three|@pixiv[\\/][^\\/]+)[\\/]/.test(id)) return 'vendor-avatar'
           },
         },
       },
@@ -210,7 +247,22 @@ export default defineConfig(({ mode }) => {
       // servidor frio a descobria com a sessão no ar, re-otimizava e RECARREGAVA a página (o relógio
       // voltava a 00:00 e a sessão sumia; na CI, a 1ª tentativa de `captura-no-celular.e2e.ts:236`).
       // `tests/viteDepsDosWorkers.test.ts` cobra esta lista.
-      include: ['@ricky0123/vad-web', 'onnxruntime-web', 'onnxruntime-web/wasm'],
+      // `fflate`, `fzstd` e `sql.js` (CJS: precisa do pré-bundle para o `default`) só o leitor de `.apkg`
+      // importa (`leitorDeApkg.worker.ts`).
+      include: [
+        '@ricky0123/vad-web',
+        'onnxruntime-web',
+        'onnxruntime-web/wasm',
+        'fflate',
+        'fzstd',
+        'sql.js',
+        'gltf-validator',
+        // O avatar 3D (`carregarAvatar`) importa estes três por `import()`: sem eles aqui, o primeiro teste de avatar num
+        // servidor frio (a CI) os descobre com a página aberta, o Vite re-otimiza (504 "Outdated Optimize Dep") e recarrega.
+        'three',
+        'three/examples/jsm/loaders/GLTFLoader.js',
+        '@pixiv/three-vrm',
+      ],
       exclude: ['@huggingface/transformers'],
     },
     server: {

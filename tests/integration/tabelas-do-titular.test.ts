@@ -9,9 +9,9 @@
  * Este teste lê o SCHEMA, não uma lista: uma migration que criar tabela nova com `user_id` sem
  * atualizar a ordem de exclusão falha aqui, citando o nome.
  */
-import { getTableColumns, getTableName,is } from 'drizzle-orm'
-import { SQLiteTable } from 'drizzle-orm/sqlite-core'
-import { describe, expect,it } from 'vitest'
+import { getTableColumns, getTableName, is } from 'drizzle-orm'
+import { PgTable } from 'drizzle-orm/pg-core'
+import { describe, expect, it } from 'vitest'
 
 import { NOMES_DAS_TABELAS_DO_TITULAR, TABELAS_TRATADAS_A_PARTE } from '../../server/db/repositories/conta'
 import * as schema from '../../server/db/schema'
@@ -19,8 +19,8 @@ import * as schema from '../../server/db/schema'
 /** Tabelas com `user_id` no schema, pelo nome da exportação (a chave do módulo). */
 function tabelasComUserIdNoSchema(): string[] {
   return Object.entries(schema)
-    .filter(([, v]) => is(v, SQLiteTable))
-    .filter(([, t]) => 'userId' in getTableColumns(t as SQLiteTable))
+    .filter(([, v]) => is(v, PgTable))
+    .filter(([, t]) => 'userId' in getTableColumns(t as PgTable))
     .map(([nome]) => nome)
     .sort()
 }
@@ -31,8 +31,10 @@ describe('tabelas do titular', () => {
     const cobertas = [...NOMES_DAS_TABELAS_DO_TITULAR, ...TABELAS_TRATADAS_A_PARTE]
     const faltando = noSchema.filter((n) => !cobertas.includes(n))
     expect(faltando, `tabelas com user_id fora de TABELAS_DO_TITULAR: ${faltando.join(', ')}`).toEqual([])
-    // `secrets` é a única tratada à parte, e por um motivo escrito (chave própria + FK).
-    expect(TABELAS_TRATADAS_A_PARTE).toEqual(['secrets'])
+    // Só três tratadas à parte, cada uma por um motivo escrito: `secrets` (chave própria + FK),
+    // `travas` (sem `user_id`; chave `u:<id>`, apagada por último na exclusão e podada pela limpeza diária) e
+    // `admissao_de_ia` (sem `user_id`; vaga em voo `voo:<id>:<tipo>`, apagada na exclusão, podada em 2 dias).
+    expect(TABELAS_TRATADAS_A_PARTE).toEqual(['secrets', 'travas', 'admissao_de_ia'])
   })
 
   it('a lista não cita tabela que não existe ou não tem user_id', () => {

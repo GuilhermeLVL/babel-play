@@ -1,18 +1,23 @@
 import { type LucideIcon, Monitor, RectangleGoggles, Smartphone } from 'lucide-react';
 
 import {
+  AMOSTRA_DE_IA,
   DIAS_DO_TESTE_PREMIUM,
   FRANQUIA_DE_ALIVIO,
   horasDeTranscricao,
   horasDoUsoJusto,
+  PARCELAS_DO_ANUAL,
   PLAN_MATRIX,
   type PlanoDeAssinatura,
   type PlanoPago,
   PLANOS_PAGOS,
 } from '../../../core/planos';
+import { parakeetCabeNoAparelho } from '../../../gateway/sttRouter';
 import { brl } from '../../../lib/assinatura';
-import { perfilDoDispositivo } from '../../../lib/dispositivo/perfil';
+import { dispositivoDaRota, perfilDoDispositivo } from '../../../lib/dispositivo/perfil';
+import type { SondaDoAparelho } from '../../../lib/dispositivo/sonda';
 import { numero, t } from '../../../lib/i18n';
+import { comNomeDoPlano } from '../../../lib/planoDeEntrada';
 
 /**
  * OS QUATRO PLANOS COMO A TELA OS MOSTRA — porte de `planos4.js:24-112` (aparelhos e planos),
@@ -104,7 +109,38 @@ export interface ContextoDosPlanos {
   visiveis: readonly PlanoDaTela[];
   /** A flag `anuncios` existe e está ligada (decisão 13). */
   comAnuncios: boolean;
+  /**
+   * A flag `voz_natural` está ligada. Desligada, a voz neural não existe para ninguém: nem o cartão nem a
+   * comparação a prometem (o plano a teria na matriz, mas a flag não a entrega).
+   */
+  vozNatural?: boolean;
+  /**
+   * A flag `ia_de_estudo` está ligada: a explicação da frase e o resumo da sessão existem. Desligada, os dois
+   * itens do Plus dizem "em breve" e o Grátis não fala da amostra (nada se promete como pronto).
+   */
+  iaDeEstudo?: boolean;
+  /**
+   * O modelo local Preciso (Parakeet, pt/es) roda NESTE aparelho (`precisoCabeAqui`). Muda o que a nota
+   * do aparelho promete: com ele o computador não "erra mais".
+   */
+  preciso?: boolean;
+  /**
+   * OS PLANOS v4 (Grátis, Plus e Pro; a Família é uma linha): a venda do Plus está aberta
+   * (`venda_planos_v4`). Desligada, a tela é a de hoje, sem tirar nem pôr uma palavra.
+   */
+  v4?: boolean;
+  /** Os planos que aparecem na tela mas ainda não se vendem ("em breve", sem botão de compra). */
+  emBreve?: readonly PlanoDaTela[];
+  /** O anual está à venda (`ANUAL_ENABLED`): só então a pergunta do anual existe. */
+  anual?: boolean;
+  /** Perfil protegido (menor ou idade não declarada): nenhum preço nem convite ao anual. */
+  protegido?: boolean;
+  /** O plano que o teste de 3 dias concede (`teste.plano`); o Premium se não vier. */
+  planoDoTeste?: PlanoPago;
 }
+
+/** Quantas pessoas cabem na Família (perfis, "até 4" da spec dos planos v4). */
+export const PESSOAS_NA_FAMILIA = 4;
 
 /* ---- Os cartões (`PLANOS`, `planos4.js:71-112`) ----------------------------------------------------- */
 
@@ -113,6 +149,8 @@ interface Item {
   tema: string;
   texto: string;
   nota?: string;
+  /** Ainda não existe: o item diz "em breve" (nada se promete como pronto). */
+  emBreve?: boolean;
 }
 
 /** O que cada plano ACRESCENTA ao de baixo, com o que a matriz diz que ele tem. */
@@ -122,6 +160,91 @@ function itensProprios(id: PlanoDaTela, c: ContextoDosPlanos): Item[] {
   /* O teto do dia vai AO LADO das horas do mês (CDC, art. 6º, III: a limitação não se esconde). O
      protótipo não tem esta frase; o número é o da matriz. */
   const porDia = dia === null ? '' : ` · ${t('até {dia} h por dia', { dia: numero(dia) })}`;
+  if (c.v4 === true && id === 'gratis')
+    return [
+      {
+        tema: 'legenda',
+        texto: t('Legenda bilíngue no aparelho, sem limite'),
+        nota: t('com o modelo Preciso nos aparelhos que o rodam'),
+      },
+      { tema: 'jogos', texto: t('Jogos, vocabulário e revisão') },
+      { tema: 'biblioteca', texto: t('Cartões, leitura, biblioteca e Anki') },
+      ...(c.iaDeEstudo === true
+        ? [
+            {
+              tema: 'amostra-ia',
+              texto: t('Amostra da IA: {explicacoes} explicações por dia e {resumos} resumo por semana', {
+                explicacoes: numero(AMOSTRA_DE_IA.explicacoesDia),
+                resumos: numero(AMOSTRA_DE_IA.resumosSemana),
+              }),
+            },
+          ]
+        : []),
+      {
+        tema: 'nuvem',
+        texto: t('Nuvem: até {horas} h por mês, para aparelho fraco, quando disponível', {
+          horas: numero(horasDoAlivioDoGratis()),
+        }),
+      },
+    ];
+  if (c.v4 === true && id === 'plus') {
+    const voz = e.vozNatural ? definicao(id).quotas.vozCaracteresMes : null;
+    return [
+      ...(e.traducaoNuance
+        ? [
+            {
+              tema: 'nuance',
+              texto: t('Nuance, polir a sessão e glossário'),
+              nota: t('outras formas de dizer, formal ou informal'),
+            },
+          ]
+        : []),
+      ...(e.managedCloudLlm
+        ? [{ tema: 'tutor', texto: t('Tutor de IA por texto (iChat)'), nota: t('sobre o seu material') }]
+        : []),
+      /* Voz natural: com a flag `voz_natural` ligada é um item normal; desligada, ela ainda não chega a
+         ninguém, então o item diz "em breve" (nada se promete como pronto). */
+      ...(voz
+        ? [
+            {
+              tema: 'voz',
+              texto: t('Voz natural para ouvir as frases'),
+              nota: t('até {mil} mil caracteres por mês', { mil: numero(Math.round(voz / 1000)) }),
+              ...(c.vozNatural === true ? {} : { emBreve: true }),
+            },
+          ]
+        : []),
+      {
+        tema: 'nuvem',
+        texto: t('{horas} h de nuvem por mês', { horas: numero(horasDePrecisao(id)) }),
+        nota: t('no nível Precisão, para o áudio difícil') + porDia,
+      },
+      ...(c.comAnuncios && e.semAnuncios
+        ? [{ tema: 'anuncios', texto: t('Sem anúncios'), nota: t('nenhum espaço patrocinado, intersticial ou faixa') }]
+        : []),
+      {
+        tema: 'contexto',
+        texto: t('Explicação da frase no contexto'),
+        nota: t('por que essa tradução, gramática, formal ou informal, gíria'),
+        ...(c.iaDeEstudo === true ? {} : { emBreve: true }),
+      },
+      {
+        tema: 'resumo',
+        texto: t('Resumo da sessão que vira cartões'),
+        nota: t('com a frase da cena'),
+        ...(c.iaDeEstudo === true ? {} : { emBreve: true }),
+      },
+    ];
+  }
+  if (c.v4 === true && id === 'pro4')
+    return [
+      {
+        tema: 'conversa',
+        texto: t('Conversa por voz com um tutor, a partir da cena'),
+        nota: t('com pronúncia e intérprete automático; só para adultos no começo'),
+        emBreve: true,
+      },
+    ];
   if (id === 'gratis')
     return [
       { tema: 'legenda', texto: t('Legenda bilíngue no aparelho, sem limite') },
@@ -182,7 +305,9 @@ function itensProprios(id: PlanoDaTela, c: ContextoDosPlanos): Item[] {
             },
           ]
         : []),
-      ...(e.nivelDeVoz === 'basica' ? [{ tema: 'voz', texto: t('Voz neural básica no intérprete') }] : []),
+      ...(c.vozNatural && e.nivelDeVoz === 'basica'
+        ? [{ tema: 'voz', texto: t('Voz neural básica no intérprete') }]
+        : []),
     ];
   return [
     ...(e.sttAoVivo
@@ -194,7 +319,7 @@ function itensProprios(id: PlanoDaTela, c: ContextoDosPlanos): Item[] {
           },
         ]
       : []),
-    ...(e.nivelDeVoz === 'boa' ? [{ tema: 'voz', texto: t('Voz neural boa no intérprete') }] : []),
+    ...(c.vozNatural && e.nivelDeVoz === 'boa' ? [{ tema: 'voz', texto: t('Voz neural boa no intérprete') }] : []),
   ];
 }
 
@@ -207,8 +332,10 @@ export interface CartaoDoPlano {
   quem: string;
   /** "Tudo do {plano}, e:", ou `null` no Grátis. */
   base: string | null;
-  itens: { texto: string; nota?: string }[];
+  itens: { texto: string; nota?: string; emBreve?: boolean }[];
   preco: PrecoDoPlano;
+  /** O plano ainda não se vende: o cartão diz "em breve" e não tem botão de compra. */
+  emBreve: boolean;
 }
 
 /** O plano que aparece logo abaixo deste na tela (o "Tudo do … e:"). */
@@ -228,7 +355,8 @@ function itensDoCartao(id: PlanoDaTela, c: ContextoDosPlanos): Item[] {
     (p) => ordemDoPlano(p) < ordemDoPlano(id) && (base === null || ordemDoPlano(p) > ordemDoPlano(base)),
   );
   const proprios = itensProprios(id, c);
-  const herdados = (id === 'gratis' ? [] : escondidos)
+  /* Na v4 os planos de antes (Essencial, Premium, Ao Vivo) não existem na tela: nada se herda deles. */
+  const herdados = (id === 'gratis' || c.v4 === true ? [] : escondidos)
     .flatMap((p) => itensProprios(p, c))
     .filter((h) => !proprios.some((p) => p.tema === h.tema));
   return [...herdados, ...proprios];
@@ -241,14 +369,22 @@ export function cartaoDoPlano(id: PlanoDaTela, c: ContextoDosPlanos): CartaoDoPl
     essencial: c.comAnuncios ? t('Sem anúncios · Nuance') : t('Nuance'),
     premium: t('Nuvem · {horas} h', { horas: numero(horasDePrecisao('premium')) }),
     aovivo: t('Texto durante a fala'),
+    plus: t('Do que você assiste ao estudo'),
+    familia: t('Para até {n} pessoas', { n: PESSOAS_NA_FAMILIA }),
+    pro4: t('Falar com um tutor · em breve'),
   };
   const quem: Record<PlanoDaTela, string> = {
-    gratis: t('Para quem está conhecendo, ou tem um computador com placa de vídeo.'),
+    gratis: t(
+      'Para quem está conhecendo, ou tem um computador com placa de vídeo, 8 GB de memória ou Mac com chip Apple.',
+    ),
     essencial: c.comAnuncios
       ? t('Para o estudante no computador: sem anúncio e com Nuance.')
       : t('Para o estudante no computador, com Nuance.'),
     premium: t('Para quem depende de nuvem: celular, notebook fraco, Quest.'),
     aovivo: t('Para o intérprete na rua, em viagem, reunião e aula ao vivo.'),
+    plus: t('Para quem quer transformar o que assiste em estudo, com tutor, Nuance e nuvem para o áudio difícil.'),
+    familia: t('Para a família estudar junta, com o responsável cuidando da conta.'),
+    pro4: t('Para quem quer praticar falando com um tutor de voz. Só para adultos no começo.'),
   };
   return {
     id,
@@ -256,27 +392,69 @@ export function cartaoDoPlano(id: PlanoDaTela, c: ContextoDosPlanos): CartaoDoPl
     rotulo: rotulo[id],
     quem: quem[id],
     base: base === null ? null : t('Tudo do {plano}, e:', { plano: nomeDoPlano(base) }),
-    itens: itensDoCartao(id, c).map(({ texto, nota }) => ({ texto, ...(nota ? { nota } : {}) })),
+    itens: itensDoCartao(id, c).map(({ texto, nota, emBreve }) => ({
+      texto,
+      ...(nota ? { nota } : {}),
+      ...(emBreve ? { emBreve } : {}),
+    })),
     preco: precoDoPlanoNaTela(id),
+    emBreve: (c.emBreve ?? []).includes(id),
   };
 }
 
 /** O que o plano tem, numa linha (para o seletor do checkout). */
 export const resumoDoPlano = (id: PlanoPago): string =>
-  itensDoCartao(id, { visiveis: ['gratis', id], comAnuncios: false })
+  itensDoCartao(id, {
+    visiveis: ['gratis', id],
+    comAnuncios: false,
+    v4: definicao(id).flagsDeVenda.includes('venda_planos_v4'),
+  })
+    .filter((i) => !i.emBreve)
     .map((i) => i.texto)
     .join(' · ');
+
+/** A linha da Família sob o Plus ("para até 4 pessoas · R$ 24,90/mês · em breve"). */
+export function linhaDaFamilia(c: ContextoDosPlanos): {
+  nome: string;
+  resumo: string;
+  detalhe: string;
+  emBreve: boolean;
+} {
+  const preco = precoDoPlanoNaTela('familia').mensal;
+  const emBreve = (c.emBreve ?? []).includes('familia');
+  return {
+    nome: nomeDoPlano('familia'),
+    resumo:
+      t('para até {n} pessoas · {preco}/mês', { n: PESSOAS_NA_FAMILIA, preco }) +
+      (emBreve ? ` · ${t('em breve')}` : ''),
+    detalhe: t('Um perfil para cada pessoa e o responsável cuidando da conta, sem ver o que foi ouvido.'),
+    emBreve,
+  };
+}
 
 /* ---- O aparelho (`DISPS` e `GRATIS_NO_APARELHO`, `planos4.js:24-69`) ------------------------------- */
 
 export type Aparelho = 'pc' | 'fraco' | 'celular' | 'quest';
 
-/** O aparelho REAL, pelo perfil medido (`lib/dispositivo/perfil.ts`), nas quatro caixas do protótipo. */
-export function aparelhoAtual(): Aparelho {
+/**
+ * O modelo Preciso (Parakeet) cabe e não foi vetado neste aparelho? A mesma regra da captura
+ * (`parakeetCabeNoAparelho`: computador com 8 GB ou mais, ou Mac com chip Apple; sem economia de dados)
+ * e o mesmo veto da sentinela (`modeloProibido`, resolvido por quem chama: é assíncrono). Sem a sonda
+ * guardada o Mac Apple não é reconhecido: a resposta é não, que é o lado seguro.
+ */
+export function precisoCabeAqui(sonda: SondaDoAparelho | null, vetado: boolean): boolean {
+  return !vetado && parakeetCabeNoAparelho(dispositivoDaRota(perfilDoDispositivo(), sonda));
+}
+
+/**
+ * O aparelho REAL, pelo perfil medido (`lib/dispositivo/perfil.ts`), nas quatro caixas do protótipo.
+ * "pc" é o computador que roda a legenda bem aqui: com placa de vídeo OU com o Preciso no aparelho.
+ */
+export function aparelhoAtual(preciso = false): Aparelho {
   const { tipo } = perfilDoDispositivo();
   if (tipo === 'quest') return 'quest';
   if (tipo.startsWith('celular')) return 'celular';
-  return tipo === 'desktop-com-gpu' ? 'pc' : 'fraco';
+  return tipo === 'desktop-com-gpu' || (preciso && tipo.startsWith('desktop')) ? 'pc' : 'fraco';
 }
 
 /** `1` funciona, `2` funciona com ressalva, `0` não há. */
@@ -285,24 +463,46 @@ export type Sinal = 0 | 1 | 2;
 export interface NotaDoAparelho {
   aparelho: Aparelho;
   icone: LucideIcon;
-  /** "Você está num computador com placa de vídeo". */
+  /** "Você está num computador com placa de vídeo" (ou, com o Preciso no aparelho, "…que roda o modelo Preciso"). */
   titulo: string;
   frase: string;
   linhas: [string, string, Sinal][];
 }
 
 export function notaDoAparelho(aparelho: Aparelho, c: ContextoDosPlanos): NotaDoAparelho {
+  const nota = notaDoAparelhoDeHoje(aparelho, c);
+  /* Na v4 quem abre a nuvem é o Plus, não o Premium: o nome troca nas frases do aparelho. */
+  if (c.v4 !== true) return nota;
+  return {
+    ...nota,
+    frase: comNomeDoPlano(nota.frase, 'plus'),
+    linhas: nota.linhas.map(([a, b, sinal]) => [a, comNomeDoPlano(b, 'plus'), sinal]),
+  };
+}
+
+function notaDoAparelhoDeHoje(aparelho: Aparelho, c: ContextoDosPlanos): NotaDoAparelho {
   const comEssencial = c.visiveis.includes('essencial');
   const mb = numero(113);
   const tradutor = t('Pelo tradutor do navegador ou pelo modelo local.');
-  if (aparelho === 'pc')
+  if (aparelho === 'pc') {
+    /* Com o Preciso no aparelho a promessa é a dele (pt/es, ~6 erros em 100 palavras); sem ele, é a da
+       placa de vídeo, como antes. A nuvem já não é "português com menos erro" para quem o roda. */
+    const preciso = c.preciso === true;
     return {
       aparelho,
       icone: Monitor,
-      titulo: t('Você está num computador com placa de vídeo'),
-      frase: `${t(
-        'Este computador tem placa de vídeo: a legenda roda aqui mesmo, sem limite e sem custo. Para estudar inglês, o Grátis já resolve.',
-      )} ${
+      titulo: preciso
+        ? t('Você está num computador que roda o modelo Preciso')
+        : t('Você está num computador com placa de vídeo'),
+      frase: `${
+        preciso
+          ? t(
+              'Este computador roda o modelo Preciso: a legenda sai aqui mesmo, sem limite e sem custo, com cerca de 6 erros a cada 100 palavras em português e espanhol. Para estudar inglês, o Grátis já resolve.',
+            )
+          : t(
+              'Este computador tem placa de vídeo: a legenda roda aqui mesmo, sem limite e sem custo. Para estudar inglês, o Grátis já resolve.',
+            )
+      } ${
         !comEssencial
           ? t('O Premium abre a Nuance e a nuvem para o áudio difícil.')
           : c.comAnuncios
@@ -310,19 +510,32 @@ export function notaDoAparelho(aparelho: Aparelho, c: ContextoDosPlanos): NotaDo
             : t('O Essencial abre a Nuance.')
       }`,
       linhas: [
-        [t('Transcrição'), t('Em tempo real, no aparelho. Inclusive o som de uma aba.'), 1],
+        [
+          t('Transcrição'),
+          preciso
+            ? t('Em tempo real, no aparelho: o modelo Preciso em português e espanhol. Inclusive o som de uma aba.')
+            : t('Em tempo real, no aparelho. Inclusive o som de uma aba.'),
+          1,
+        ],
         [t('Tradução'), tradutor, 1],
         [t('Voz'), t('A voz do sistema. Boa no Edge.'), 1],
-        [t('Onde a nuvem ajuda'), t('Português com menos erro, áudio com barulho, gíria e jeito de falar.'), 2],
+        [
+          t('Onde a nuvem ajuda'),
+          preciso
+            ? t('Outros idiomas, áudio com barulho, gíria e jeito de falar.')
+            : t('Português com menos erro, áudio com barulho, gíria e jeito de falar.'),
+          2,
+        ],
       ],
     };
+  }
   if (aparelho === 'fraco')
     return {
       aparelho,
       icone: Monitor,
       titulo: t('Você está num computador fraco'),
       frase: t(
-        'Este computador é modesto: a legenda roda aqui, mas com um modelo leve, que erra mais. A nuvem do Premium erra menos, sobretudo em português e em áudio com barulho.',
+        'Este computador é modesto: a legenda roda aqui, mas com um modelo leve, que erra mais. O modelo Preciso pede 8 GB de memória ou um Mac com chip Apple. A nuvem do Premium erra menos, sobretudo em português e em áudio com barulho.',
       ),
       linhas: [
         [t('Transcrição'), t('Funciona, com um modelo leve: mais erros e mais espera.'), 2],
@@ -370,7 +583,8 @@ export function notaDoAparelho(aparelho: Aparelho, c: ContextoDosPlanos): NotaDo
 
 /**
  * O plano recomendado para o aparelho (`recomendadoAqui`, `planos4.js:593`, e `DISPS[...].recomendado`):
- * o Essencial no computador com placa de vídeo, o Premium nos outros. Se o indicado não está à vista,
+ * o Essencial no computador que roda a legenda bem aqui (placa de vídeo ou modelo Preciso no aparelho),
+ * o Premium nos outros. Se o indicado não está à vista,
  * vale o primeiro plano pago de cima dele que estiver; sem nenhum, não há recomendado.
  */
 export function recomendadoPara(aparelho: Aparelho, visiveis: readonly PlanoDaTela[]): PlanoDaTela | null {
@@ -385,6 +599,7 @@ export type Celula = 0 | 1 | string;
 
 /** As linhas, uma célula por plano à vista. Linha em que ninguém à vista tem nada não aparece. */
 export function linhasDaComparacao(c: ContextoDosPlanos): [string, Celula[]][] {
+  if (c.v4 === true) return linhasDaComparacaoV4(c);
   const voz = { aparelho: t('do aparelho'), basica: t('neural básica'), boa: t('neural boa') };
   const por = (f: (id: PlanoDaTela) => Celula): Celula[] => c.visiveis.map(f);
   const h = (n: number): string => `${numero(n)} h`;
@@ -410,8 +625,77 @@ export function linhasDaComparacao(c: ContextoDosPlanos): [string, Celula[]][] {
       t('Intérprete'),
       por((id) => (definicao(id).entitlements.interpreteAutomatico ? t('automático') : t('cada um toca o seu lado'))),
     ],
-    [t('Voz do intérprete'), por((id) => voz[definicao(id).entitlements.nivelDeVoz])],
+    /* Sem a flag `voz_natural` todos falam com a voz do aparelho: a linha não diz nada de diferente. */
+    c.vozNatural === true && [t('Voz do intérprete'), por((id) => voz[definicao(id).entitlements.nivelDeVoz])],
     [t('Jogos, vocabulário e revisão'), por(() => 1)],
+  ];
+  return linhas.filter((l): l is [string, Celula[]] => !!l && l[1].some((v) => v !== 0));
+}
+
+/** A comparação da v4: o que o Grátis, o Plus e o Pro (em breve) têm, linha a linha, da matriz. */
+function linhasDaComparacaoV4(c: ContextoDosPlanos): [string, Celula[]][] {
+  const voz = { aparelho: t('do aparelho'), basica: t('neural básica'), boa: t('neural boa') };
+  const por = (f: (id: PlanoDaTela) => Celula): Celula[] => c.visiveis.map(f);
+  const tem = (id: PlanoDaTela, k: 'traducaoNuance' | 'managedCloudLlm'): 0 | 1 =>
+    definicao(id).entitlements[k] ? 1 : 0;
+  const h = (n: number): string => `${numero(n)} h`;
+  const emBreve = t('em breve');
+  const linhas: ([string, Celula[]] | false)[] = [
+    c.comAnuncios === true && [
+      t('Anúncios'),
+      por((id) => (definicao(id).entitlements.semAnuncios ? t('sem anúncios') : t('leves e rotulados'))),
+    ],
+    [t('Legenda bilíngue no aparelho'), por(() => t('sem limite'))],
+    [t('Jogos, vocabulário e revisão'), por(() => 1)],
+    [
+      t('Horas de nuvem por mês (Precisão)'),
+      por((id) =>
+        id !== 'gratis'
+          ? h(horasDePrecisao(id))
+          : t('até {horas} h, em aparelho fraco', { horas: numero(horasDoAlivioDoGratis()) }),
+      ),
+    ],
+    [t('Nuance, polir a sessão e glossário'), por((id) => (id === 'gratis' ? 0 : tem(id, 'traducaoNuance')))],
+    [t('Tutor de IA por texto (iChat)'), por((id) => (id === 'gratis' ? 0 : tem(id, 'managedCloudLlm')))],
+    [
+      t('Voz para ouvir as frases'),
+      por((id) => (id === 'gratis' || c.vozNatural === true ? voz[definicao(id).entitlements.nivelDeVoz] : emBreve)),
+    ],
+    [
+      t('Explicação da frase no contexto'),
+      por((id) =>
+        c.iaDeEstudo !== true
+          ? id === 'gratis'
+            ? 0
+            : emBreve
+          : id === 'gratis'
+            ? t('amostra: {n} por dia', { n: numero(AMOSTRA_DE_IA.explicacoesDia) })
+            : 1,
+      ),
+    ],
+    [
+      t('Resumo da sessão que vira cartões'),
+      por((id) =>
+        c.iaDeEstudo !== true
+          ? id === 'gratis'
+            ? 0
+            : emBreve
+          : id === 'gratis'
+            ? t('amostra: {n} por semana', { n: numero(AMOSTRA_DE_IA.resumosSemana) })
+            : 1,
+      ),
+    ],
+    [t('Conversa por voz com um tutor'), por((id) => (id === 'pro4' ? emBreve : 0))],
+    [
+      t('Intérprete'),
+      por((id) =>
+        definicao(id).entitlements.interpreteAutomatico
+          ? id === 'pro4'
+            ? t('automático · em breve')
+            : t('automático')
+          : t('cada um toca o seu lado'),
+      ),
+    ],
   ];
   return linhas.filter((l): l is [string, Celula[]] => !!l && l[1].some((v) => v !== 0));
 }
@@ -426,12 +710,18 @@ export function notaDaComparacao(c: ContextoDosPlanos): string {
     : t(
         'A nuvem trabalha no nível Precisão (por trechos, erra menos). Quando as horas acabam, a legenda segue no aparelho.',
       );
-  const comTetoNoDia = c.visiveis.filter((id) => horasPorDia(id) !== null);
+  const comTetoNoDia = c.visiveis.filter((id) => horasPorDia(id) !== null && !(c.emBreve ?? []).includes(id));
   if (!comTetoNoDia.length) return niveis;
   return `${niveis} ${t('No {planos}, a nuvem por trechos vai até {dia} h por dia.', {
     planos: comTetoNoDia.map(nomeDoPlano).join(` ${t('e')} `),
     dia: numero(horasPorDia(comTetoNoDia[0]) ?? 0),
   })}`;
+}
+
+/** Quantas mensalidades o anual do Plus devolve: 12 meses contra o preço do ano ("2 meses grátis"). */
+export function mesesGratisDoAnual(plano: PlanoPago = 'plus'): number {
+  const { precoMensalBrl: m, precoAnualBrl: a } = PLAN_MATRIX[plano];
+  return m && a ? Math.floor((m * 12 - a) / m + 1e-9) : 0;
 }
 
 /* ---- Perguntas frequentes (`FAQ4`, `planos4.js:585-592`) -------------------------------------------- */
@@ -441,13 +731,13 @@ export function perguntasDosPlanos(c: ContextoDosPlanos, diasDoTeste = DIAS_DO_T
     [
       t('O que quer dizer "no aparelho"?'),
       t(
-        'Que a transcrição e a tradução rodam no seu computador ou celular, sem mandar o áudio para fora. É grátis, não tem limite e funciona sem internet. Em aparelho fraco erra mais; no Quest, só o inglês roda no aparelho.',
+        'Que a transcrição e a tradução rodam no seu computador ou celular, sem mandar o áudio para fora. É grátis, não tem limite e funciona sem internet. Com 8 GB de memória ou mais, ou num Mac com chip Apple, o modelo Preciso erra pouco em português e espanhol; em aparelho mais fraco o modelo é leve e erra mais; no Quest, só o inglês roda no aparelho.',
       ),
     ],
     [
       t('O que acontece quando as horas de nuvem acabam?'),
       t(
-        'Nada trava. A legenda volta para o aparelho e segue sem limite, e nada é cobrado a mais. As horas voltam no dia 1º. No Quest, a legenda em inglês segue no aparelho; os outros idiomas esperam até lá.',
+        'Nada trava. A legenda volta para o aparelho e segue sem limite, e nada é cobrado a mais. As horas voltam na renovação do seu plano. No Quest, a legenda em inglês segue no aparelho; os outros idiomas esperam até lá.',
       ),
     ],
     [
@@ -462,11 +752,23 @@ export function perguntasDosPlanos(c: ContextoDosPlanos, diasDoTeste = DIAS_DO_T
         'Porque é ele que paga o Grátis sem limite. Os anúncios são poucos, rotulados e nunca aparecem durante a legenda ao vivo, o intérprete ou uma rodada. No Quest e no perfil infantil não há anúncio nenhum.',
       ),
     ],
+    c.v4 === true &&
+      c.anual === true &&
+      c.protegido !== true && [
+        t('Como funciona o plano anual?'),
+        t(
+          'O anual custa {m} mensalidades: são {n} meses grátis. Você paga uma vez, ou em até {parcelas}x no cartão, e o plano vale por um ano.',
+          { m: 12 - mesesGratisDoAnual(), n: mesesGratisDoAnual(), parcelas: PARCELAS_DO_ANUAL },
+        ),
+      ],
     [
       t('O teste cobra sozinho no fim?'),
-      t('Não. São {dias} dias de Premium, sem cartão. No fim, a conta volta ao Grátis sozinha e nada é cobrado.', {
-        dias: diasDoTeste,
-      }),
+      comNomeDoPlano(
+        t('Não. São {dias} dias de Premium, sem cartão. No fim, a conta volta ao Grátis sozinha e nada é cobrado.', {
+          dias: diasDoTeste,
+        }),
+        c.planoDoTeste ?? 'premium',
+      ),
     ],
     [
       t('Meu áudio fica guardado na nuvem?'),

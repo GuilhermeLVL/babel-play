@@ -124,7 +124,8 @@ html[data-px='on'] .qc-oferta {
   html[data-px='on'] .q-mais { overflow-x: hidden; }
   html[data-px='on'] .q-mais .q-tile.em-linha { min-width: 0; }
   html[data-px='on'] .q-mais .q-tile.em-linha .q-ic { width: 38px; height: 38px; border-radius: 11px; }
-  html[data-px='on'] .q-mais .q-tile.em-linha b { font-size: 15px; overflow-wrap: anywhere; }
+  /* Quebra só nos espaços: "Personalizar" não parte no meio da palavra (B7, 23/10/2026). */
+  html[data-px='on'] .q-mais .q-tile.em-linha b { font-size: 15px; overflow-wrap: normal; word-break: normal; hyphens: none; }
   html[data-px='on'] .q-mais .q-tile .q-pede-conta { font-size: 0; }
   html[data-px='on'] .q-mais .q-tile .q-pede-conta svg { width: 14px; height: 14px; }
 }

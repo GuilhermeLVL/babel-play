@@ -1,0 +1,4 @@
+{
+  "nota": "Obras anônimas ou coletivas que entram no catálogo por justificativa escrita (spec de Livros & Leitura, Design §1). Cada item: fonte, fonteId, autores [{nome, anoMorte}] com o ano que vale para a regra dos 70 anos (para obra anônima, o da publicação) e justificativa. Começa vazia de propósito: na dúvida, o livro não entra.",
+  "obras": []
+}

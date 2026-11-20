@@ -56,9 +56,10 @@ afterAll(async () => {
 
 describe('o teto da listagem sem filtro', () => {
   it('a semeadura passou do teto — senão o teste não mediria nada', async () => {
-    const { client } = await import('../../server/db/db')
-    const r = await client.execute('select count(*) as n from exercise_results')
-    expect(Number(r.rows[0].n)).toBeGreaterThan(TETO)
+    const { db, linhas } = await import('../../server/db/db')
+    const { sql } = await import('drizzle-orm')
+    const r = linhas<{ n: number }>(await db.execute(sql`select count(*) as n from exercise_results`))
+    expect(Number(r[0].n)).toBeGreaterThan(TETO)
   })
 
   it('sem limite pedido, devolve no máximo o teto padrão', async () => {

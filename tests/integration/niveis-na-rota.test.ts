@@ -114,10 +114,10 @@ beforeEach(async () => {
   for (const e of ENVS) process.env[e] = ''
   await cache.esvaziarCacheDeTraducao()
 })
-afterEach(() => {
+afterEach(async () => {
   vi.unstubAllGlobals()
   esquecerDisjuntores()
-  esquecerAdmissao()
+  await esquecerAdmissao()
   esquecerRegistro()
 })
 

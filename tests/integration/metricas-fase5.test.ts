@@ -9,6 +9,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { clienteSql } from '../harness/clienteSql'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
@@ -67,16 +68,23 @@ describe('event loop: histograma de verdade, e ele VÊ o travamento', () => {
   })
 })
 
-describe('banco: escritas e leituras contadas no cliente libsql', () => {
+describe('banco: escritas e leituras contadas no driver', () => {
   it('um INSERT conta em db_escritas_total; um SELECT em db_leituras_total; com duração por tipo', async () => {
-    const { client } = await h.load<typeof import('../../server/db/db')>('../../server/db/db')
+    const mod = await h.load<typeof import('../../server/db/db')>('../../server/db/db')
+    const { sql } = await import('drizzle-orm')
+    const client = clienteSql(mod)
     const antes = await scrape()
     const escritas0 = valor(antes, 'db_escritas_total') ?? 0
     const leituras0 = valor(antes, 'db_leituras_total') ?? 0
 
+    /* O segundo INSERT e o `SELECT 1` vão num LOTE de verdade (`emLote`, o que era o `client.batch` do
+       SQLite): as instruções de dentro da transação contam como as avulsas (ver `db.ts`). */
     await client.execute('CREATE TABLE IF NOT EXISTS _medir (x INTEGER)')
     await client.execute({ sql: 'INSERT INTO _medir (x) VALUES (?)', args: [1] })
-    await client.batch([{ sql: 'INSERT INTO _medir (x) VALUES (?)', args: [2] }, 'SELECT 1'])
+    await mod.emLote((tx) => [
+      () => tx.execute(sql`INSERT INTO _medir (x) VALUES (${2})`),
+      () => tx.execute(sql`SELECT 1`),
+    ])
     await client.execute('SELECT count(*) FROM _medir')
 
     const depois = await scrape()
@@ -161,7 +169,7 @@ describe('estado de agora: disjuntor, uploads, cache', () => {
 
   it('uploads em voo, o teto do processo e as recusas por motivo', async () => {
     const c = await h.load<typeof import('../../server/lib/corposGrandes')>('../../server/lib/corposGrandes')
-    const vaga = c.semaforoDeCorposGrandes.adquirir('usuario-a')
+    const vaga = c.semaforoDeCorposGrandes().adquirir('usuario-a')
     const corpo = await scrape()
     expect(valor(corpo, 'uploads_grandes_em_voo')).toBe(1)
     expect(valor(corpo, 'uploads_grandes_limite')).toBeGreaterThanOrEqual(1)
@@ -191,32 +199,38 @@ describe('estado de agora: disjuntor, uploads, cache', () => {
     expect(valor(corpo, 'ia_cache_traducao_nivel_total{nivel="l2",resultado="acerto"}')).toBe(1)
     expect(valor(corpo, 'ia_cache_traducao_nivel_total{nivel="l2",resultado="falta"}')).toBe(2)
   })
+})
 
-  it('backup: último sucesso, tamanho e falhas', async () => {
-    m.observarBackup({ ok: true, bytes: 1234 })
-    m.observarBackup({ ok: false })
+describe('qualidade da IA (Fase B do plano da IA paga): resposta inválida, cache de prompt e feedback', () => {
+  it('resposta_invalida por função e modelo; modelo fora do registro vira `outro` (cardinalidade fechada)', async () => {
+    m.contarRespostaInvalida('explicacao', 'modelo/que-ninguem-declarou')
+    m.contarRespostaInvalida('explicacao', undefined)
     const corpo = await scrape()
-    expect(valor(corpo, 'backup_ultimo_sucesso_timestamp_segundos')).toBeGreaterThan(1_700_000_000)
-    expect(valor(corpo, 'backup_ultimo_tamanho_bytes')).toBe(1234)
-    expect(valor(corpo, 'backup_falhas_total')).toBe(1)
+    expect(valor(corpo, 'ia_resposta_invalida_total{funcao="explicacao",modelo="outro"}')).toBe(2)
+    expect(corpo).not.toContain('modelo/que-ninguem-declarou')
+  })
+
+  it('tokens de entrada e em cache por função: a razão dá a taxa de cache do prompt', async () => {
+    m.contarTokensDeEntrada('resumo', 'modelo/fora-do-registro', 1000, 600)
+    m.contarTokensDeEntrada('resumo', undefined, 500, 0)
+    m.contarTokensDeEntrada('resumo', 'x', Number.NaN, -1) // lixo não soma
+    const corpo = await scrape()
+    expect(valor(corpo, 'ia_tokens_entrada_total{funcao="resumo",modelo="outro"}')).toBe(1500)
+    expect(valor(corpo, 'ia_tokens_em_cache_total{funcao="resumo",modelo="outro"}')).toBe(600)
+    expect(corpo).not.toContain('modelo/fora-do-registro')
+  })
+
+  it('feedback por função, nota e motivo; sem motivo é `nenhum`', async () => {
+    m.contarFeedbackDeIa('tutor', 'down', 'errado')
+    m.contarFeedbackDeIa('tutor', 'up', undefined)
+    const corpo = await scrape()
+    expect(valor(corpo, 'ia_feedback_total{funcao="tutor",nota="down",motivo="errado"}')).toBe(1)
+    expect(valor(corpo, 'ia_feedback_total{funcao="tutor",nota="up",motivo="nenhum"}')).toBe(1)
   })
 })
 
-describe('a porta INTERNA de métricas (o alvo do [metrics] do Fly)', () => {
-  it('responde /metrics SEM token — mesmo com METRICS_TOKEN definida — e 404 no resto', async () => {
-    fixar('METRICS_TOKEN', 'segredo-que-o-fly-nao-manda')
-    const srv = await m.iniciarServidorDeMetricas(0, '127.0.0.1')
-    try {
-      const addr = srv.address()
-      const base = `http://127.0.0.1:${typeof addr === 'object' && addr ? addr.port : 0}`
-      const r = await fetch(`${base}/metrics`)
-      expect(r.status).toBe(200)
-      expect(r.headers.get('x-metrics-processo')).toMatch(/^(primario|worker):\d+$/)
-      expect(await r.text()).toContain('# TYPE http_request_duration_seconds histogram')
-      expect((await fetch(`${base}/api/health`)).status).toBe(404)
-      expect((await fetch(`${base}/metrics`, { method: 'POST' })).status).toBe(404)
-    } finally {
-      await new Promise<void>((r) => srv.close(() => r()))
-    }
+describe('a porta INTERNA de métricas (aposentada na Task 10 da Fase 2)', () => {
+  it('o listener próprio não existe mais: o scrape é o GET /metrics do app, com token em produção', () => {
+    expect('iniciarServidorDeMetricas' in m).toBe(false)
   })
 })

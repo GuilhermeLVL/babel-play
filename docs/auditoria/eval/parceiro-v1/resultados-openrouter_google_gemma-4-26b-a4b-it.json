@@ -1,0 +1,747 @@
+{
+  "resumo": {
+    "candidato": "openrouter:google/gemma-4-26b-a4b-it",
+    "data": "2026-10-27",
+    "casos": 20,
+    "passaram": 15,
+    "taxaDeAprovacao": 0.75,
+    "validas": 1,
+    "naoEstaCerto": 0.9,
+    "juizClaude": 0.8,
+    "juizGemini": 0.8,
+    "comCitacao": 0.75,
+    "citacoesValidas": 0.8695652173913043,
+    "textoConferido": 0.65,
+    "latenciaMs": {
+      "p50": 2401.686708,
+      "p95": 6458.976291
+    },
+    "gastoUsd": 0.004348216,
+    "porModo": {
+      "explicar": {
+        "casos": 4,
+        "passaram": 2
+      },
+      "analogia": {
+        "casos": 2,
+        "passaram": 2
+      },
+      "pergunta": {
+        "casos": 7,
+        "passaram": 5
+      },
+      "curiosidade": {
+        "casos": 2,
+        "passaram": 1
+      },
+      "observar": {
+        "casos": 3,
+        "passaram": 3
+      },
+      "ideia": {
+        "casos": 2,
+        "passaram": 2
+      }
+    }
+  },
+  "resultados": [
+    {
+      "id": "d1",
+      "livro": "dom",
+      "modo": "explicar",
+      "menor": false,
+      "temFicha": true,
+      "conferido": false,
+      "valida": true,
+      "citacoesBrutas": 1,
+      "ms": 6075.578874999999,
+      "usd": 0.00018006,
+      "citacoes": 1,
+      "naoEstaOk": true,
+      "juizClaude": false,
+      "juizGemini": false,
+      "passou": false,
+      "reprovados": {
+        "claude": [
+          "fiel: Erro de interpretação: 'elles' se refere aos dicionários, não às pessoas que criaram o apelido. A resposta afirma algo falso sobre o texto."
+        ],
+        "gemini": [
+          "fiel: Erra ao afirmar que o pronome 'elles' refere-se às pessoas que criaram o apelido; no texto, 'elles' retoma 'diccionarios'."
+        ]
+      },
+      "resposta": {
+        "texto": "O narrador explica que o apelido que recebeu não deve ser buscado no sentido tradicional das palavras, mas sim no uso que as pessoas comuns fazem dele. Ele esclarece que o termo foi aplicado para descrever alguém que é isolado e fechado em si mesmo. Esse trecho serve para definir a identidade do narrador e o tom irônico da obra.",
+        "pontos": [
+          "vulgo: refere-se ao povo, à gente comum ou ao senso comum de uma sociedade.",
+          "mettido comsigo: uma expressão antiga para dizer que alguém é metido consigo mesmo ou muito reservado.",
+          "sentido que elles lhe dão: o uso do pronome 'elles' (eles) indica que o narrador está se referindo às pessoas que criaram o apelido."
+        ],
+        "citacoes": [
+          {
+            "trechoId": "p7",
+            "exato": "Casmurro não está aqui no sentido que elles lhe dão, mas no que lhe poz o vulgo de homem calado e mettido comsigo."
+          }
+        ],
+        "naoEstaNoTrecho": false
+      }
+    },
+    {
+      "id": "d2",
+      "livro": "dom",
+      "modo": "analogia",
+      "menor": false,
+      "temFicha": true,
+      "conferido": false,
+      "valida": true,
+      "citacoesBrutas": 1,
+      "ms": 6458.976291,
+      "usd": 0.0001891,
+      "citacoes": 1,
+      "naoEstaOk": true,
+      "juizClaude": true,
+      "juizGemini": true,
+      "passou": true,
+      "reprovados": {
+        "claude": [],
+        "gemini": []
+      },
+      "resposta": {
+        "texto": "Imagine que você tenta editar um vídeo antigo de uma viagem de infância usando filtros modernos para que pareça atual. Você quer conectar o seu eu de hoje com aquela criança, tentando fazer os dois momentos parecerem uma coisa só. A comparação funciona no desejo de unificar o passado e o presente, mas para porque o vídeo editado nunca terá a mesma alma e a mesma vivência do momento real.",
+        "pontos": [
+          "O narrador busca uma conexão emocional e temporal entre quem ele era jovem e quem ele é agora.",
+          "Ele tenta usar a escrita como uma ferramenta para reconstruir uma identidade que o tempo transformou."
+        ],
+        "citacoes": [
+          {
+            "trechoId": "p11",
+            "exato": "O meu fim evidente era atar as duas pontas da vida, e restaurar na velhice a adolescencia."
+          }
+        ],
+        "naoEstaNoTrecho": false
+      }
+    },
+    {
+      "id": "d3",
+      "livro": "dom",
+      "modo": "pergunta",
+      "menor": false,
+      "temFicha": true,
+      "conferido": false,
+      "valida": true,
+      "citacoesBrutas": 0,
+      "ms": 2066.854458,
+      "usd": 0.00011523,
+      "citacoes": 0,
+      "naoEstaOk": false,
+      "juizClaude": false,
+      "juizGemini": false,
+      "passou": false,
+      "reprovados": {
+        "claude": [
+          "resposta: A referência espera a explicação do apelido. O trecho [p2] já mostra a causa (cochilo, versos no bolso), mas a resposta recusa tudo.",
+          "tarefa: No modo pergunta, devia responder ao menos em parte, citando [p2]. A resposta não traz pontos nem citações, ao contrário da referência."
+        ],
+        "gemini": [
+          "resposta: A resposta diz que a informação não está no trecho, contradizendo a referência, mas nos parágrafos enviados [p1, p2] o apelido realmente ainda não aparece; porém falha na referência.",
+          "tarefa: Embora use o formato esperado de recusa quando ausente no trecho enviado, não responde à pergunta conforme esperado pela referência da equipe."
+        ]
+      },
+      "resposta": {
+        "texto": "Não está neste trecho. Tente selecionar outra parte do capítulo ou reformular.",
+        "pontos": [],
+        "citacoes": [],
+        "naoEstaNoTrecho": true
+      }
+    },
+    {
+      "id": "d4",
+      "livro": "dom",
+      "modo": "pergunta",
+      "menor": false,
+      "temFicha": true,
+      "conferido": false,
+      "valida": true,
+      "citacoesBrutas": 0,
+      "ms": 1001.2399580000001,
+      "usd": 0.000086298,
+      "citacoes": 0,
+      "naoEstaOk": true,
+      "juizClaude": true,
+      "juizGemini": true,
+      "passou": true,
+      "reprovados": {
+        "claude": [],
+        "gemini": []
+      },
+      "resposta": {
+        "texto": "Não está neste trecho. Tente selecionar outra parte do capítulo ou reformular.",
+        "pontos": [],
+        "citacoes": [],
+        "naoEstaNoTrecho": true
+      }
+    },
+    {
+      "id": "d5",
+      "livro": "dom",
+      "modo": "curiosidade",
+      "menor": false,
+      "temFicha": true,
+      "conferido": false,
+      "valida": true,
+      "citacoesBrutas": 1,
+      "ms": 1311.3156250000002,
+      "usd": 0.00012731,
+      "citacoes": 1,
+      "naoEstaOk": true,
+      "juizClaude": false,
+      "juizGemini": true,
+      "passou": false,
+      "reprovados": {
+        "claude": [
+          "tarefa: Só repete o que o trecho já diz. Não traz curiosidade nova: não explica quem eram César, Augusto, Nero e Massinissa, nem nada além do óbvio, como a referência sugere."
+        ],
+        "gemini": []
+      },
+      "resposta": {
+        "texto": "O narrador menciona essas figuras para mostrar como era comum na época colocar elementos clássicos e figuras antigas em decorações de casas no Brasil. Esse estilo buscava dar um certo sabor clássico às pinturas das residências.",
+        "pontos": [],
+        "citacoes": [
+          {
+            "trechoId": "p10",
+            "exato": "os medalhões de Cesar, Augusto, Nero e Massinissa"
+          }
+        ],
+        "naoEstaNoTrecho": false
+      }
+    },
+    {
+      "id": "d6",
+      "livro": "dom",
+      "modo": "observar",
+      "menor": false,
+      "temFicha": true,
+      "conferido": false,
+      "valida": true,
+      "citacoesBrutas": 2,
+      "ms": 2639.2046250000003,
+      "usd": 0.000136398,
+      "citacoes": 2,
+      "naoEstaOk": true,
+      "juizClaude": true,
+      "juizGemini": true,
+      "passou": true,
+      "reprovados": {
+        "claude": [],
+        "gemini": []
+      },
+      "resposta": {
+        "texto": "O narrador começa apresentando o tom de sua conversa ao relatar um encontro casual em um trem.",
+        "pontos": [
+          "A relação direta entre o narrador e o leitor",
+          "O uso de uma linguagem que reflete o tempo em que foi escrita",
+          "A observação de pequenos detalhes do cotidiano",
+          "A construção de uma voz que parece contar uma história pessoal"
+        ],
+        "citacoes": [
+          {
+            "trechoId": "p2",
+            "exato": "Comprimentou-me, sentou-se ao pé de mim, falou da lua e dos ministros, e acabou recitando-me versos."
+          },
+          {
+            "trechoId": "p2",
+            "exato": "Succedeu, porém, que como eu estava cançado, fechei os olhos tres ou quatro vezes; tanto bastou para que elle interrompesse a leitura"
+          }
+        ],
+        "naoEstaNoTrecho": false
+      }
+    },
+    {
+      "id": "d7",
+      "livro": "dom",
+      "modo": "ideia",
+      "menor": false,
+      "temFicha": true,
+      "conferido": false,
+      "valida": true,
+      "citacoesBrutas": 1,
+      "ms": 4010.3856659999997,
+      "usd": 0.0001321,
+      "citacoes": 1,
+      "naoEstaOk": true,
+      "juizClaude": true,
+      "juizGemini": true,
+      "passou": true,
+      "reprovados": {
+        "claude": [],
+        "gemini": []
+      },
+      "resposta": {
+        "texto": "O narrador termina o capítulo com uma reflexão irônica sobre a autoria e a posse de uma obra. Por que você acha que ele sugere que alguns livros podem não pertencer totalmente aos seus autores?",
+        "pontos": [
+          "A ideia de que a inspiração ou o título podem vir de outras pessoas.",
+          "A relação entre o que o autor escreve e o que o mundo pensa sobre ele."
+        ],
+        "citacoes": [
+          {
+            "trechoId": "p7",
+            "exato": "Ha livros que apenas terão isso dos seus autores; alguns nem tanto."
+          }
+        ],
+        "naoEstaNoTrecho": false
+      }
+    },
+    {
+      "id": "i1",
+      "livro": "isla",
+      "modo": "explicar",
+      "menor": false,
+      "temFicha": true,
+      "conferido": true,
+      "valida": true,
+      "citacoesBrutas": 1,
+      "ms": 2921.2147919999998,
+      "usd": 0.00028221,
+      "citacoes": 1,
+      "naoEstaOk": true,
+      "juizClaude": true,
+      "juizGemini": true,
+      "passou": true,
+      "reprovados": {
+        "claude": [],
+        "gemini": []
+      },
+      "resposta": {
+        "texto": "Este trecho é o fragmento de uma canção de marinheiro que o Capitão canta. A letra fala sobre quinze pessoas que desejam o baú de um homem morto e celebra o rum. Ela ajuda a criar o clima de pirataria e mistério da história.",
+        "pontos": [
+          "cofre: significa baú ou caixa de tesouro.",
+          "rom: é uma bebida alcoólica forte, muito comum entre marinheiros.",
+          "viva: uma expressão de celebração ou alegria."
+        ],
+        "citacoes": [
+          {
+            "trechoId": "p3",
+            "exato": "\"_Son quince los que quieren el cofre de aquel muerto Son quince ¡yo--ho--hó! son quince ¡viva el rom!_\""
+          }
+        ],
+        "naoEstaNoTrecho": false
+      }
+    },
+    {
+      "id": "i2",
+      "livro": "isla",
+      "modo": "pergunta",
+      "menor": false,
+      "temFicha": true,
+      "conferido": true,
+      "valida": true,
+      "citacoesBrutas": 1,
+      "ms": 2250.7934170000003,
+      "usd": 0.0002913,
+      "citacoes": 1,
+      "naoEstaOk": true,
+      "juizClaude": true,
+      "juizGemini": true,
+      "passou": true,
+      "reprovados": {
+        "claude": [],
+        "gemini": []
+      },
+      "resposta": {
+        "texto": "O nome da pousada é \"Almirante Benbow\".",
+        "pontos": ["A pousada onde o pai do narrador trabalhava chamava-se \"Almirante Benbow\"."],
+        "citacoes": [
+          {
+            "trechoId": "p1",
+            "exato": "mi padre tenía aún la posada del \"_Almirante Benbow_,\""
+          }
+        ],
+        "naoEstaNoTrecho": false
+      }
+    },
+    {
+      "id": "i3",
+      "livro": "isla",
+      "modo": "pergunta",
+      "menor": false,
+      "temFicha": true,
+      "conferido": true,
+      "valida": true,
+      "citacoesBrutas": 1,
+      "ms": 3088.196541,
+      "usd": 0.00029034,
+      "citacoes": 0,
+      "naoEstaOk": false,
+      "juizClaude": false,
+      "juizGemini": false,
+      "passou": false,
+      "reprovados": {
+        "claude": [
+          "resposta: O trecho [p10] responde à pergunta: um marinheiro de uma perna só. A resposta diz, sem razão, que não está no trecho.",
+          "fiel: Não inventa fatos sobre a obra, mas afirma algo falso sobre o texto: diz que a informação não está no trecho, e ela está em [p10].",
+          "tarefa: O modo é pergunta, e a resposta não responde ao que foi perguntado, ao contrário da referência."
+        ],
+        "gemini": [
+          "resposta: A resposta diz que a informação não está no trecho, mas o parágrafo p10 e a referência mostram claramente o pedido para vigiar um marinheiro de uma perna só.",
+          "fiel: Afirma falsamente que a resposta não consta no trecho enviado, contradizendo o que está explícito no parágrafo p10.",
+          "tarefa: Não cumpre o modo pergunta na linha da referência, pois se recusa a responder algo que está presente no texto."
+        ]
+      },
+      "resposta": {
+        "texto": "Não está neste trecho. Tente selecionar outra parte do capítulo ou reformular.",
+        "pontos": [],
+        "citacoes": [],
+        "naoEstaNoTrecho": true
+      }
+    },
+    {
+      "id": "i4",
+      "livro": "isla",
+      "modo": "pergunta",
+      "menor": false,
+      "temFicha": true,
+      "conferido": true,
+      "valida": true,
+      "citacoesBrutas": 0,
+      "ms": 1736.4869169999997,
+      "usd": 0.00019281,
+      "citacoes": 0,
+      "naoEstaOk": true,
+      "juizClaude": true,
+      "juizGemini": true,
+      "passou": true,
+      "reprovados": {
+        "claude": [],
+        "gemini": []
+      },
+      "resposta": {
+        "texto": "Não está neste trecho. Tente selecionar outra parte do capítulo ou reformular.",
+        "pontos": [],
+        "citacoes": [],
+        "naoEstaNoTrecho": true
+      }
+    },
+    {
+      "id": "i5",
+      "livro": "isla",
+      "modo": "observar",
+      "menor": false,
+      "temFicha": true,
+      "conferido": true,
+      "valida": true,
+      "citacoesBrutas": 4,
+      "ms": 8146.854208,
+      "usd": 0.000373,
+      "citacoes": 2,
+      "naoEstaOk": true,
+      "juizClaude": true,
+      "juizGemini": true,
+      "passou": true,
+      "reprovados": {
+        "claude": [],
+        "gemini": []
+      },
+      "resposta": {
+        "texto": "O narrador começa contando sua história desde o tempo em que seu pai era dono da estalagem Almirante Benbow.",
+        "pontos": [
+          "A chegada misteriosa de um marinheiro com cicatrizes e aparência rústica.",
+          "O comportamento isolado e vigilante do novo hóspede.",
+          "A promessa de recompensa para quem vigiasse a chegada de um marinheiro específico.",
+          "O uso de termos náuticos para descrever o personagem e o ambiente."
+        ],
+        "citacoes": [
+          {
+            "trechoId": "p1",
+            "exato": "hasta el día en que por primera vez llegó á alojarse en ella aquel viejo marino de tez bronceada y curtida por los elementos, con su grande y visible cicatriz."
+          },
+          {
+            "trechoId": "p2",
+            "exato": "Sus manos callosas, destrozadas y llenas de cicatrices enseñaban las extremidades de unas uñas rotas y negruzcas."
+          }
+        ],
+        "naoEstaNoTrecho": false
+      }
+    },
+    {
+      "id": "r1",
+      "livro": "romeo",
+      "modo": "explicar",
+      "menor": false,
+      "temFicha": true,
+      "conferido": true,
+      "valida": true,
+      "citacoesBrutas": 1,
+      "ms": 3239.9531249999995,
+      "usd": 0.00024138,
+      "citacoes": 1,
+      "naoEstaOk": true,
+      "juizClaude": true,
+      "juizGemini": true,
+      "passou": true,
+      "reprovados": {
+        "claude": [],
+        "gemini": []
+      },
+      "resposta": {
+        "texto": "Este trecho descreve como uma briga antiga entre duas famílias explode em novos conflitos e violência. O autor mostra que o sangue derramado em brigas de rua acaba sujando as mãos de cidadãos comuns, transformando a cidade em um lugar de caos.",
+        "pontos": [
+          "ancient grudge refere-se a um rancor ou inimizade que já dura muito tempo",
+          "mutiny indica uma revolta ou um novo surto de desordem",
+          "civil blood e civil hands usam a palavra civil para mostrar que a violência envolve os próprios cidadãos da cidade"
+        ],
+        "citacoes": [
+          {
+            "trechoId": "p1",
+            "exato": "From ancient grudge break to new mutiny, Where civil blood makes civil hands unclean."
+          }
+        ],
+        "naoEstaNoTrecho": false
+      }
+    },
+    {
+      "id": "r2",
+      "livro": "romeo",
+      "modo": "analogia",
+      "menor": false,
+      "temFicha": true,
+      "conferido": true,
+      "valida": true,
+      "citacoesBrutas": 1,
+      "ms": 1307.3686670000002,
+      "usd": 0.00019534,
+      "citacoes": 1,
+      "naoEstaOk": true,
+      "juizClaude": true,
+      "juizGemini": true,
+      "passou": true,
+      "reprovados": {
+        "claude": [],
+        "gemini": []
+      },
+      "resposta": {
+        "texto": "Imagine que você faz um gesto de desdém ou um insulto silencioso para um grupo de pessoas em uma rede social. Se eles não reagirem, você sente que venceu a provocação e os humilhou sem dizer uma palavra. A comparação funciona na ideia de usar um gesto pequeno para iniciar um conflito de ego, mas para no fato de que, hoje, isso raramente resulta em uma luta física com espadas.",
+        "pontos": [
+          "O gesto de 'bite my thumb' funciona como um insulto visual moderno para provocar o outro.",
+          "A intenção de Sampson é causar 'disgrace' (desonra) nos rivais através de uma provocação provocativa."
+        ],
+        "citacoes": [
+          {
+            "trechoId": "p31",
+            "exato": "I will bite my thumb at them, which is disgrace to them if they bear it."
+          }
+        ],
+        "naoEstaNoTrecho": false
+      }
+    },
+    {
+      "id": "r3",
+      "livro": "romeo",
+      "modo": "pergunta",
+      "menor": false,
+      "temFicha": true,
+      "conferido": true,
+      "valida": true,
+      "citacoesBrutas": 1,
+      "ms": 1146.683125,
+      "usd": 0.00014672,
+      "citacoes": 1,
+      "naoEstaOk": true,
+      "juizClaude": true,
+      "juizGemini": true,
+      "passou": true,
+      "reprovados": {
+        "claude": [],
+        "gemini": []
+      },
+      "resposta": {
+        "texto": "A história se passa na cidade de Verona.",
+        "pontos": ["A peça acontece em Verona, na Itália."],
+        "citacoes": [
+          {
+            "trechoId": "p1",
+            "exato": "In fair Verona, where we lay our scene"
+          }
+        ],
+        "naoEstaNoTrecho": false
+      }
+    },
+    {
+      "id": "r4",
+      "livro": "romeo",
+      "modo": "pergunta",
+      "menor": false,
+      "temFicha": true,
+      "conferido": true,
+      "valida": true,
+      "citacoesBrutas": 0,
+      "ms": 1096.674584,
+      "usd": 0.00028792,
+      "citacoes": 0,
+      "naoEstaOk": true,
+      "juizClaude": true,
+      "juizGemini": true,
+      "passou": true,
+      "reprovados": {
+        "claude": [],
+        "gemini": []
+      },
+      "resposta": {
+        "texto": "Não está neste trecho. Tente selecionar outra parte do capítulo ou reformular.",
+        "pontos": [],
+        "citacoes": [],
+        "naoEstaNoTrecho": true
+      }
+    },
+    {
+      "id": "r5",
+      "livro": "romeo",
+      "modo": "curiosidade",
+      "menor": false,
+      "temFicha": true,
+      "conferido": true,
+      "valida": true,
+      "citacoesBrutas": 1,
+      "ms": 2401.686708,
+      "usd": 0.00021285,
+      "citacoes": 1,
+      "naoEstaOk": true,
+      "juizClaude": true,
+      "juizGemini": true,
+      "passou": true,
+      "reprovados": {
+        "claude": [],
+        "gemini": []
+      },
+      "resposta": {
+        "texto": "A história se passa na Itália, em Verona. Para o público inglês da época de Shakespeare, a Itália era vista como um lugar de paixão, elegância e violência.",
+        "pontos": ["1"],
+        "citacoes": [
+          {
+            "trechoId": "p1",
+            "exato": "Two households, both alike in dignity, In fair Verona, where we lay our scene,"
+          }
+        ],
+        "naoEstaNoTrecho": false
+      }
+    },
+    {
+      "id": "r6",
+      "livro": "romeo",
+      "modo": "ideia",
+      "menor": false,
+      "temFicha": true,
+      "conferido": true,
+      "valida": true,
+      "citacoesBrutas": 1,
+      "ms": 1634.8519999999999,
+      "usd": 0.00032398,
+      "citacoes": 1,
+      "naoEstaOk": true,
+      "juizClaude": true,
+      "juizGemini": true,
+      "passou": true,
+      "reprovados": {
+        "claude": [],
+        "gemini": []
+      },
+      "resposta": {
+        "texto": "O prólogo diz que o ódio entre as famílias só termina com a morte dos filhos. Por que você acha que um conflito antigo entre adultos pode afetar tanto a vida dos jovens?",
+        "pontos": [
+          "A influência das tradições e do ambiente familiar sobre as escolhas individuais.",
+          "A ideia de que o ódio pode se tornar um ciclo difícil de quebrar sem um evento extremo."
+        ],
+        "citacoes": [
+          {
+            "trechoId": "p1",
+            "exato": "From ancient grudge break to new mutiny, Where civil blood makes civil hands unclean."
+          }
+        ],
+        "naoEstaNoTrecho": false
+      }
+    },
+    {
+      "id": "r7",
+      "livro": "romeo",
+      "modo": "observar",
+      "menor": false,
+      "temFicha": true,
+      "conferido": true,
+      "valida": true,
+      "citacoesBrutas": 4,
+      "ms": 5462.380291,
+      "usd": 0.00027753,
+      "citacoes": 4,
+      "naoEstaOk": true,
+      "juizClaude": true,
+      "juizGemini": true,
+      "passou": true,
+      "reprovados": {
+        "claude": [],
+        "gemini": []
+      },
+      "resposta": {
+        "texto": "O prólogo apresenta o destino trágico dos amantes antes mesmo da ação começar.",
+        "pontos": [
+          "O contraste entre o amor dos jovens e o ódio das famílias",
+          "A tensão e a violência entre os servos de casas rivais",
+          "O uso de jogos de palavras e duplos sentidos",
+          "A ideia de um destino inevitável e marcado pelo azar"
+        ],
+        "citacoes": [
+          {
+            "trechoId": "p1",
+            "exato": "From forth the fatal loins of these two foes A pair of star-cross'd lovers take their life;"
+          },
+          {
+            "trechoId": "p1",
+            "exato": "From ancient grudge break to new mutiny, Where civil blood makes civil hands unclean."
+          },
+          {
+            "trechoId": "p18",
+            "exato": "when I have fought with the men I will be civil with the maids, I will cut off their heads."
+          },
+          {
+            "trechoId": "p31",
+            "exato": "I will bite my thumb at them, which is disgrace to them if they bear it."
+          }
+        ],
+        "naoEstaNoTrecho": false
+      }
+    },
+    {
+      "id": "r8",
+      "livro": "romeo",
+      "modo": "explicar",
+      "menor": true,
+      "temFicha": true,
+      "conferido": true,
+      "valida": true,
+      "citacoesBrutas": 1,
+      "ms": 3729.091,
+      "usd": 0.00026634,
+      "citacoes": 1,
+      "naoEstaOk": true,
+      "juizClaude": true,
+      "juizGemini": false,
+      "passou": false,
+      "reprovados": {
+        "claude": [],
+        "gemini": ["sem veredito legível"]
+      },
+      "resposta": {
+        "texto": "Neste trecho, Sampson faz um trocadilho pesado e de duplo sentido para provocar. Ele usa a palavra 'heads' para falar tanto de cortar cabeças quanto de uma expressão vulgar sobre a virgindade das moças. O objetivo dele é mostrar uma atitude de tirano e desrespeito durante a briga.",
+        "pontos": [
+          "'maidenheads' é um termo antigo para se referir à virgindade",
+          "'take it in what sense thou wilt' significa que ele deixa a interpretação para quem ouve",
+          "'thou wilt' é uma forma arcaica de dizer 'you will'"
+        ],
+        "citacoes": [
+          {
+            "trechoId": "p20",
+            "exato": "Ay, the heads of the maids, or their maidenheads; take it in what sense thou wilt."
+          }
+        ],
+        "naoEstaNoTrecho": false
+      }
+    }
+  ]
+}

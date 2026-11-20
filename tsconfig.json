@@ -4,11 +4,7 @@
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
     "module": "ESNext",
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     "moduleResolution": "bundler",
     "isolatedModules": true,
@@ -16,15 +12,9 @@
     "allowJs": true,
     "jsx": "react-jsx",
     "paths": {
-      "@/*": [
-        "./*"
-      ],
-      "@core": [
-        "./src/core/index.ts"
-      ],
-      "@core/*": [
-        "./src/core/*"
-      ]
+      "@/*": ["./*"],
+      "@core": ["./src/core/index.ts"],
+      "@core/*": ["./src/core/*"]
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
@@ -36,5 +26,5 @@
     "guardados ao lado do caminho original). O diretório não existe mais desde que a auditoria de",
     "2026-09-07 fechou; a entrada fica porque é barata e porque a quarentena volta a cada rodada."
   ],
-  "exclude": ["_graveyard", "node_modules", "dist", "dist-server", "coverage"]
+  "exclude": ["_graveyard", "node_modules", "dist", "dist-server", "coverage", "scripts/spikes"]
 }

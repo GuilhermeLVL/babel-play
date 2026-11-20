@@ -1,0 +1,53 @@
+{
+  "_sobre": "Conjunto de teste do Intérprete por toque (conversa-de-verdade, 5.2): 10 frases em pt e 10 em en de uma conversa de jantar, em 2 vozes sintéticas por idioma (macOS `say`), mais 3 em es para a fala fora do par. Gerado por `gerar.sh` (WAV 16 kHz mono em `falas/`). As gravações de vozes humanas dependem da autorização do dono (proposal, 'Precisa do dono', item 3) e entram aqui com o prefixo `humano-`.",
+  "vozes": {
+    "pt": ["Luciana (Portuguese (Brazil))", "Eddy (Portuguese (Brazil))"],
+    "en": ["Samantha (English (US))", "Eddy (English (US))"],
+    "es": ["Eddy (Spanish (Spain))", "Paulina"]
+  },
+  "frases": [
+    {
+      "id": "pt01",
+      "idioma": "pt",
+      "texto": "Boa noite! Que bom que você veio jantar com a gente."
+    },
+    { "id": "pt02", "idioma": "pt", "texto": "Você prefere vinho tinto ou suco de uva?" },
+    { "id": "pt03", "idioma": "pt", "texto": "Minha avó me ensinou quando eu era criança." },
+    {
+      "id": "pt04",
+      "idioma": "pt",
+      "texto": "Então, acho que vou pedir a sobremesa de chocolate."
+    },
+    { "id": "pt05", "idioma": "pt", "texto": "Você já experimentou o pão de queijo daqui?" },
+    { "id": "pt06", "idioma": "pt", "texto": "A gente pode dividir a conta no final." },
+    { "id": "pt07", "idioma": "pt", "texto": "Amanhã eu vou levar meus filhos ao parque." },
+    { "id": "pt08", "idioma": "pt", "texto": "Desculpe, pode repetir mais devagar?" },
+    { "id": "pt09", "idioma": "pt", "texto": "O restaurante fecha às onze horas da noite." },
+    { "id": "pt10", "idioma": "pt", "texto": "Quanto tempo você vai ficar no Brasil?" },
+    {
+      "id": "en01",
+      "idioma": "en",
+      "texto": "Thank you so much for inviting me. The food smells amazing."
+    },
+    {
+      "id": "en02",
+      "idioma": "en",
+      "texto": "Red wine, please. Where did you learn to cook like this?"
+    },
+    {
+      "id": "en03",
+      "idioma": "en",
+      "texto": "That is beautiful. Could you pass me the salt, please?"
+    },
+    { "id": "en04", "idioma": "en", "texto": "I have never tried this dish before." },
+    { "id": "en05", "idioma": "en", "texto": "How long does it take to get to the airport?" },
+    { "id": "en06", "idioma": "en", "texto": "My flight leaves early tomorrow morning." },
+    { "id": "en07", "idioma": "en", "texto": "Could we split the bill at the end?" },
+    { "id": "en08", "idioma": "en", "texto": "I would love to visit your family next summer." },
+    { "id": "en09", "idioma": "en", "texto": "Sorry, could you say that again more slowly?" },
+    { "id": "en10", "idioma": "en", "texto": "This is the best dinner I have had in weeks." },
+    { "id": "es01", "idioma": "es", "texto": "Perdón, ¿alguien quiere más pan?" },
+    { "id": "es02", "idioma": "es", "texto": "La comida está muy rica, muchas gracias." },
+    { "id": "es03", "idioma": "es", "texto": "¿Dónde está el baño, por favor?" }
+  ]
+}

@@ -6,7 +6,7 @@ lint e só os testes dos arquivos tocados; a suíte inteira roda na CI.
 
 ## 0. Decisões
 
-- [ ] 0.1 Dono responde as 14 perguntas de `design.md`
+- [x] 0.1 Dono responde as 14 perguntas de `design.md` (delegadas em 09/10, `design.md` §11: valem os padrões; o que sobra é do dono em `docs/LANCAMENTO.md` §11-bis)
 - [x] 0.2 ADR novo substituindo o 0011 (`docs/adr/0013-quatro-planos-por-nivel-de-servico.md`)
 - [ ] 0.3 Conferir no Asaas e nos bancos que não há assinatura em `essencial`, `pro`, R$ 39,90 ou R$ 179
 
@@ -71,14 +71,14 @@ lint e só os testes dos arquivos tocados; a suíte inteira roda na CI.
 
 - [x] 8.1 `/assinar` aceita os planos novos; teste de 14 dias no plano decidido
 - [x] 8.2 `POST /api/billing/trocar` e a alteração de valor no Asaas (migração 0050; Asaas só simulado)
-- [ ] 8.3 Testes de webhook, anual, 12x, troca e chargeback por plano; conferência no sandbox
+- [x] 8.3 Testes de webhook, anual, 12x, troca e chargeback por plano (`tests/integration/billing-por-plano.test.ts`); conferência no sandbox: ver `docs/LANCAMENTO.md` §10
 
 ## 9. Telas
 
-- [ ] 9.1 Planos com quatro cartões, comparação e perguntas, com as horas da matriz
-- [ ] 9.2 Medidor de nuvem em Ajustes e na captura; seletor de nível com cadeado
+- [x] 9.1 Planos com quatro cartões, comparação e perguntas, com as horas da matriz
+- [x] 9.2 Medidor de nuvem em Ajustes e na captura; seletor de nível com cadeado
 - [ ] 9.3 Ofertas nos momentos do protótipo (fim das horas, áudio difícil, celular, Quest)
-- [ ] 9.4 Telas da assinatura, admin e textos "Grátis ou Premium"; prova lado a lado
+- [x] 9.4 Telas da assinatura, admin e textos "Grátis ou Premium"; prova lado a lado
 
 ## 10. Nuvem ao vivo
 
@@ -90,8 +90,8 @@ lint e só os testes dos arquivos tocados; a suíte inteira roda na CI.
 ## 11. Anúncios
 
 - [ ] 11.1 Teste real de um anúncio com o isolamento ligado, em página de bancada
-- [ ] 11.2 `politicaDeAnuncio.ts` e `EspacoDeAnuncio`, com a tabela de testes
-- [ ] 11.3 Consentimento de anúncios, data de criação da conta, política de privacidade
-- [ ] 11.4 CSP por configuração só com a flag; teste da CSP estreita intacto com ela desligada
-- [ ] 11.5 Espaços do protótipo, um por vez, começando pelo premiado
+- [x] 11.2 `politicaDeAnuncio.ts` e `EspacoDeAnuncio`, com a tabela de testes
+- [x] 11.3 Consentimento de anúncios, data de criação da conta, política de privacidade
+- [x] 11.4 CSP por configuração só com a flag; teste da CSP estreita intacto com ela desligada
+- [x] 11.5 Espaços do protótipo, um por vez, começando pelo premiado (os encaixes existem e o provedor real sobe desligado; a prova com anúncio real é a bancada, 11.1)
 - [ ] 11.6 Consulta jurídica (ECA Digital) antes de ligar

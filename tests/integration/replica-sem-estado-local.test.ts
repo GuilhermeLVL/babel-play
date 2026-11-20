@@ -141,7 +141,7 @@ describe('topologia declarada', () => {
 
   it('duas instâncias com S3 completo (ou volume declarado) E banco remoto sobem', async () => {
     process.env.REPLICAS = '2'
-    process.env.DATABASE_URL = 'libsql://banco-remoto.exemplo'
+    process.env.DATABASE_URL = 'postgres://banco-remoto.exemplo/babel'
     process.env.S3_ENDPOINT = 'https://x'
     process.env.S3_BUCKET = 'b'
     process.env.S3_ACCESS_KEY_ID = 'k'
@@ -156,19 +156,33 @@ describe('topologia declarada', () => {
     expect((await diretorios()).erroDeMultiReplica()).toBeNull()
   })
 
-  it('duas instâncias com S3 mas SQLite em arquivo local são recusadas (ADR 0006)', async () => {
+  it('duas instâncias com S3 mas banco embutido (PGlite) são recusadas (ADR 0006)', async () => {
     process.env.REPLICAS = '2'
     process.env.S3_ENDPOINT = 'https://x'
     process.env.S3_BUCKET = 'b'
     process.env.S3_ACCESS_KEY_ID = 'k'
     process.env.S3_SECRET_ACCESS_KEY = 's'
-    process.env.DATABASE_URL = 'file:/data/babel.db'
+    process.env.DATABASE_URL = 'pglite:/data/pg'
     const erro = (await diretorios()).erroDeMultiReplica()
     expect(erro).toContain('REPLICAS=2')
-    expect(erro).toContain('arquivo local')
+    expect(erro).toContain('banco local embutido')
 
-    delete process.env.DATABASE_URL // o padrão também é arquivo local
-    expect((await diretorios()).erroDeMultiReplica()).toContain('arquivo local')
+    delete process.env.DATABASE_URL // o padrão também é o banco embutido
+    expect((await diretorios()).erroDeMultiReplica()).toContain('banco local embutido')
+  })
+
+  it('o modo cluster saiu (Fase 2): CLUSTER_WORKERS não é mais lido, e a recusa por réplicas continua só no REPLICAS', async () => {
+    process.env.CLUSTER_WORKERS = '3'
+    process.env.DATABASE_URL = 'pglite:/data/pg'
+    const d = await diretorios()
+    expect('erroDeClusterComBancoEmbutido' in d, 'a trava do cluster deveria ter saído com ele').toBe(false)
+    /* Vários processos no mesmo host deixaram de existir: só REPLICAS declara mais de uma instância. */
+    expect(d.replicasDeclaradas()).toBe(1)
+    expect(d.erroDeMultiReplica()).toBeNull()
+
+    process.env.REPLICAS = '2'
+    expect((await diretorios()).erroDeMultiReplica()).toContain('REPLICAS=2')
+    delete process.env.CLUSTER_WORKERS
   })
 
   it('S3 pela metade não conta como compartilhado — o seam só liga com as quatro', async () => {
@@ -183,7 +197,7 @@ describe('topologia declarada', () => {
 
   it('o diretório gravável segue o banco quando DATA_DIR não é declarado', async () => {
     delete process.env.DATA_DIR
-    process.env.DATABASE_URL = 'file:/data/babel.db'
+    process.env.DATABASE_URL = 'pglite:/data/pg'
     const { diretorioGravavel } = await diretorios()
     expect(diretorioGravavel().replace(/\\/g, '/')).toBe('/data')
   })

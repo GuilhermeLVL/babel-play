@@ -19,6 +19,14 @@ export type PacoteNativo = 'tradutor' | 'voz';
 /** Quanto tempo a linha fica em 100% antes de sumir — o mesmo respiro das barras do Whisper/opus-mt. */
 const RESPIRO_MS = 1800;
 
+/**
+ * PRAZO SEM PROGRESSO de um par do tradutor nativo (COMP-03, auditoria de 17/11/2026). No Chromium sem o pacote, um par
+ * chamava `falhou` e o outro nunca mais dizia nada: a média ficava em 0% e o cartão cobria a primeira legenda a sessão
+ * inteira. Vencido o prazo, o par sai da conta como se tivesse falhado; o download do navegador continua, e a próxima
+ * sessão o usa.
+ */
+export const PRAZO_SEM_PROGRESSO_MS = 20_000;
+
 const VAZIO: ModelPrepState = { whisper: null, mt: null, fromCache: false, error: null, done: false };
 
 /**
@@ -73,9 +81,18 @@ export function criarProgressoDosPacotesNativos({
   clog?: (...a: unknown[]) => void;
 }) {
   const pares = new Map<string, number>();
+  const prazos = new Map<string, ReturnType<typeof setTimeout>>();
+  /** O tradutor local já traduziu nesta sessão: o nativo não é mais esperado, e a linha dele não volta. */
+  let localAssumiu = false;
+  /** Uma sessão nova tomou o lugar desta: nada que ainda chegue daqui (um prazo vencendo) mexe no cartão dela. */
+  let descartado = false;
   const aplicar = (qual: PacoteNativo, p: number | null | undefined) => {
-    if (!ativo()) return;
+    if (descartado || !ativo()) return;
     setModelPrep((s) => comPacoteNativo(s, qual, p));
+  };
+  const soltarPrazo = (par: string) => {
+    clearTimeout(prazos.get(par));
+    prazos.delete(par);
   };
   const sumirDepois = (qual: PacoteNativo, aindaPronto: () => boolean) =>
     setTimeout(() => {
@@ -84,24 +101,57 @@ export function criarProgressoDosPacotesNativos({
 
   const media = () => [...pares.values()].reduce((a, b) => a + b, 0) / pares.size;
 
-  return {
-    tradutor: {
-      progresso(p: number, par: string) {
-        pares.set(par, p);
-        const m = media();
-        aplicar('tradutor', m);
-        if (m >= 1) {
-          clog?.('tradutor nativo: pacote de idioma pronto ✓', [...pares.keys()].join(', '));
-          sumirDepois('tradutor', () => pares.size > 0 && media() >= 1);
-        }
-      },
-      falhou(par: string) {
-        clog?.('tradutor nativo: pacote', par, 'falhou; segue pelo tradutor local');
-        pares.delete(par);
-        if (pares.size === 0) aplicar('tradutor', undefined);
-        else aplicar('tradutor', media());
-      },
+  const tradutor = {
+    progresso(p: number, par: string) {
+      if (localAssumiu) return;
+      pares.set(par, p);
+      soltarPrazo(par);
+      if (p < 1)
+        prazos.set(
+          par,
+          setTimeout(() => {
+            clog?.(
+              'tradutor nativo: pacote',
+              par,
+              `sem progresso em ${PRAZO_SEM_PROGRESSO_MS / 1000} s; sai do cartão`,
+            );
+            tradutor.falhou(par);
+          }, PRAZO_SEM_PROGRESSO_MS),
+        );
+      const m = media();
+      aplicar('tradutor', m);
+      if (m >= 1) {
+        clog?.('tradutor nativo: pacote de idioma pronto ✓', [...pares.keys()].join(', '));
+        sumirDepois('tradutor', () => pares.size > 0 && media() >= 1);
+      }
     },
+    /** O par falhou, o disjuntor do `chrome-translator` abriu ou o prazo venceu: sai da média. */
+    falhou(par: string) {
+      clog?.('tradutor nativo: pacote', par, 'falhou; segue pelo tradutor local');
+      soltarPrazo(par);
+      if (!pares.delete(par) && localAssumiu) return;
+      if (pares.size === 0) aplicar('tradutor', undefined);
+      else aplicar('tradutor', media());
+    },
+    /** A primeira tradução local da sessão chegou: o cartão do nativo some no mesmo quadro e não volta. */
+    localAssumiu() {
+      if (localAssumiu) return;
+      localAssumiu = true;
+      for (const par of [...prazos.keys()]) soltarPrazo(par);
+      const tinha = pares.size > 0;
+      pares.clear();
+      if (tinha) aplicar('tradutor', undefined);
+    },
+  };
+
+  return {
+    /** A sessão acabou (outra começou): solta os prazos e silencia os ouvintes desta. */
+    descartar() {
+      descartado = true;
+      for (const par of [...prazos.keys()]) soltarPrazo(par);
+    },
+    /* Os métodos vão soltos (`pacotes.tradutor.progresso` como ouvinte): nada de `this`. */
+    tradutor,
     voz(estado: EstadoDaInstalacaoDoMic) {
       if (estado === 'baixando') aplicar('voz', null);
       else if (estado === 'falhou') {
@@ -114,3 +164,6 @@ export function criarProgressoDosPacotesNativos({
     },
   };
 }
+
+/** Os ouvintes de uma sessão (o tradutor, por par, e a voz). */
+export type PacotesNativos = ReturnType<typeof criarProgressoDosPacotesNativos>;

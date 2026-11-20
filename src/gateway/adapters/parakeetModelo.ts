@@ -79,10 +79,13 @@ export function parakeetAceita(languageHint?: string): boolean {
   return IDIOMAS_DO_PARAKEET.includes((languageHint || '').toLowerCase().split('-')[0]);
 }
 
-/** A chave local está ligada? Sem `localStorage` (worker, teste, modo privado restrito): desligada. */
+/**
+ * A chave local está ligada? LIGADA de fábrica (decisão do dono, 23/10/2026): só `'0'` desliga.
+ * Sem `localStorage` (worker, teste, modo privado restrito): desligada.
+ */
 export function parakeetLigado(): boolean {
   try {
-    return localStorage.getItem(CHAVE_DO_PARAKEET) === '1';
+    return localStorage.getItem(CHAVE_DO_PARAKEET) !== '0';
   } catch {
     return false;
   }

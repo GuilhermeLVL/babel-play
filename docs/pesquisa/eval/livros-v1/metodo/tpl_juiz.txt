@@ -1,0 +1,17 @@
+Apenas responda em texto; não use ferramentas nem edite arquivos.
+
+PAPEL: {PERFIL}
+
+Abaixo estão o brief do produto e o catálogo completo de funções propostas para a área de Livros & Leitura. Avalie SOMENTE as funções deste lote: {LOTE}
+
+{RUBRICA}
+Para cada função do lote, escreva PRIMEIRO o raciocínio (2 a 3 frases, citando o critério que pesa) e SÓ DEPOIS os vereditos. Seja exigente: dar 1 em tudo é inútil.
+
+Formato de saída OBRIGATÓRIO: só um array JSON válido, sem texto antes ou depois, sem cerca de código. Um objeto por função, nesta ordem de chaves:
+{"id":"CAT01","raciocinio":"...","valor":1,"frequencia":0,"viavel":1,"custo_baixo":1,"risco_baixo":1,"diferencial_pago":0,"simples":1}
+
+=== BRIEF ===
+{BRIEF}
+
+=== CATÁLOGO ===
+{CATALOGO}

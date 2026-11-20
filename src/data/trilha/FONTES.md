@@ -1,6 +1,6 @@
 # Trilha de vocabulário — origem e licença dos dados
 
-O arquivo `en.json` deste diretório **não é conteúdo original do Babel Play**. Ele é a conversão de
+O arquivo `en.json` deste diretório **não é conteúdo original do Frasy**. Ele é a conversão de
 listas públicas: duas de vocabulário graduado por nível do Quadro Comum Europeu (CEFR), que dão as
 **palavras** e os **níveis**, e duas de dados lexicais abertos, que dão as **traduções**. As
 licenças de todas exigem atribuição. Este arquivo existe para cumprir essa exigência e para que

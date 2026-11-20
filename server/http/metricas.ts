@@ -23,32 +23,22 @@
  * fecha a porta de vez, recusando qualquer padrão fora do alfabeto de rota.
  *
  * ─────────────────────────────────────────────────────────────────────────────────────────
- * CLUSTER — E POR QUE `AggregatorRegistry` FICOU DE FORA (decisão, não esquecimento).
+ * UM PROCESSO POR REGISTRO (o modo cluster foi aposentado na Task 10 da Fase 2).
  *
- * `CLUSTER_WORKERS` faz `server.ts` forkar N processos, e o primário TAMBÉM atende (ele chama
- * `startServer()` e só depois forka — ver `server.ts:306`). Cada processo tem o seu heap, logo o
- * seu registro de métricas: o contador de um não enxerga o do outro.
+ * Antes, `CLUSTER_WORKERS` fazia o servidor forkar N processos, cada um com o seu registro, e o
+ * `AggregatorRegistry` do `prom-client` foi recusado (ele só enxerga os workers, não o primário).
+ * Hoje escala-se por INSTÂNCIAS: cada uma tem o seu `/metrics` e o Prometheus soma por `sum(...)`.
+ * O header `x-metrics-processo` e a métrica `processo_info` continuam dizendo QUEM respondeu
+ * (papel fixo `primario` + pid) — os alertas e o painel de `ops/` dependem de `processo_info`.
  *
- * `prom-client` oferece `AggregatorRegistry.clusterMetrics()` para isso, e ele foi RECUSADO aqui
- * depois de ler a implementação (`node_modules/prom-client/lib/cluster.js:70`): o laço pede as
- * métricas para `cluster.workers` — e SÓ para eles. O processo primário não está nessa lista.
- * Num deploy com `CLUSTER_WORKERS=4`, o primário atende ~1/4 do tráfego, e a resposta "agregada"
- * omitiria essa fatia sem dizer nada. Também não dá para concatenar os dois textos: o formato de
- * exposição do Prometheus recusa `# HELP`/`# TYPE` repetidos para a mesma família, então
- * `clusterMetrics()` + `register.metrics()` produz um scrape inválido, não um scrape somado.
+ * ─────────────────────────────────────────────────────────────────────────────────────────
+ * FACHADA COM BACKEND POR RUNTIME (Task 10 da Fase 2). Esta API (`contar*`, `observar*`, `registrarLeitor*`,
+ * `middlewareDeMetricas`, `handlerDeMetricas`) é a de sempre; o que mudou é quem conta:
  *
- * Entre um número agregado que mente por omissão e um número parcial que se declara parcial, a
- * casa fica com o segundo. O que este arquivo faz:
- *
- *   - responde SEMPRE com o registro DESTE processo;
- *   - diz qual processo respondeu, no header `x-metrics-processo` (papel + pid) e na métrica
- *     `processo_info`, que é o que permite ao operador perceber que os scrapes estão alternando;
- *   - emite um comentário no topo do corpo quando há mais de um processo, para quem lê o scrape
- *     na mão não interpretar um número parcial como total.
- *
- * O CONSERTO DE VERDADE é dar ao `/metrics` um listener próprio, ligado só no primário, para o
- * scrape nunca cair num worker — e isso é uma linha em `server.ts`, que esta fase não toca. Fica
- * registrado como o próximo passo, e não disfarçado de resolvido.
+ *   - Node: o `prom-client`, carregado PREGUIÇOSAMENTE no primeiro uso (`carregarProm`) — nunca no import
+ *     deste módulo. `collectDefaultMetrics` e `monitorEventLoopDelay` só existem aqui;
+ *   - Worker (`ehWorker()`): um backend vazio, que só soma num `Map` em memória (`contagensEmMemoria`).
+ *     O `prom-client` nem é carregado (ele usa `node:cluster`/`perf_hooks`). Analytics Engine é a Fase 4.
  *
  * ─────────────────────────────────────────────────────────────────────────────────────────
  * O REGISTRO É O GLOBAL do `prom-client`, e não um `new Registry()`. Motivo único: `collectDefaultMetrics`
@@ -56,22 +46,21 @@
  * espelhar tudo. Como o módulo cria as métricas UMA vez (guardadas em `estado`), o risco clássico
  * do registro global — registrar o mesmo nome duas vezes e lançar — não existe aqui.
  */
-import cluster from 'node:cluster'
 import { timingSafeEqual } from 'node:crypto'
-import { statSync } from 'node:fs'
-import { createServer, type Server } from 'node:http'
-import { type IntervalHistogram, monitorEventLoopDelay } from 'node:perf_hooks'
+import type { IntervalHistogram } from 'node:perf_hooks'
 
 import type { NextFunction, Request, RequestHandler, Response } from 'express'
-import { collectDefaultMetrics, Counter, Gauge, Histogram, register } from 'prom-client'
+import type { Counter, Gauge, Histogram } from 'prom-client'
 
 import { normalizarPlano } from '../../src/core/planos'
 import { cacheDeTraducao } from '../ai/cacheDeTraducao'
 import { contagemDosDisjuntores } from '../ai/disjuntor'
 import { rotulosDoRegistro } from '../ai/registroDeProvedores'
-import { registrarObservadorDeConsultas, type TipoDeConsulta } from '../db/observadorDeConsultas'
+import { registrarObservadorDeConsultas, tamanhoDoBanco, type TipoDeConsulta } from '../db/observadorDeConsultas'
 import { tokenDeMetricas } from '../lib/config'
 import { log } from '../lib/logger'
+import { ehWorker } from '../lib/runtime'
+import { gravarPonto } from './metricasDoAnalyticsEngine'
 
 /** Rótulo único de tudo que não casou rota — o teto de cardinalidade do lado de fora. */
 export const ROTA_DESCONHECIDA = 'desconhecida'
@@ -136,16 +125,85 @@ interface Estado {
   gastoAnomalo: Counter<'motivo'>
   cacheDeTraducao: Counter<'resultado'>
   cacheDeTraducaoPorNivel: Counter<'nivel' | 'resultado'>
+  clienteFalhas: Counter<'tipo' | 'aparelho' | 'modelo'>
   uploadsRecusados: Counter<'motivo'>
-  backupFalhas: Counter<never>
-  backupUltimoSucesso: Gauge<never>
-  backupBytes: Gauge<never>
+  r2UsoFracao: Gauge<'recurso'>
+  /* Fase B do plano de qualidade da IA paga (item 7): o JSON que não serviu, o cache de prompt e o feedback. */
+  respostaInvalida: Counter<'funcao' | 'modelo'>
+  tokensDeEntrada: Counter<'funcao' | 'modelo'>
+  tokensEmCache: Counter<'funcao' | 'modelo'>
+  feedbackDeIa: Counter<'funcao' | 'nota' | 'motivo'>
+  saidaFiltrada: Counter<'funcao' | 'categoria'>
 }
 
 let estado: Estado | undefined
 
+type PromClient = typeof import('prom-client')
+let promCarregado: PromClient | undefined
+
 /**
- * Cria as métricas uma vez só.
+ * O `prom-client`, carregado na PRIMEIRA vez que o backend do Node precisa dele. Síncrono de propósito
+ * (`require`): os ganchos `contar*` são síncronos e o `estado` precisa existir ao fim de `metricas()`.
+ * Num ESM puro (tsx, vitest) `require` não existe e vem do `createRequire` a partir do `cwd` (sem `import.meta`, que o bundle CJS do servidor não suporta); no bundle CJS ele já existe.
+ */
+function carregarProm(): PromClient {
+  if (promCarregado) return promCarregado
+  const exigir: (id: string) => unknown =
+    typeof require === 'function'
+      ? require
+      : (process.getBuiltinModule('node:module').createRequire(`${process.cwd()}/package.json`) as (
+          id: string,
+        ) => unknown)
+  promCarregado = exigir('prom-client') as PromClient
+  return promCarregado
+}
+
+/* ─────────────── o backend do Worker: nada além de somar num Map ─────────────── */
+
+const contagensDoWorker = new Map<string, number>()
+
+/**
+ * As contagens do backend sem `prom-client` (Worker). Chave: `<métrica>` — a soma de tudo que entrou,
+ * sem rótulos (a cardinalidade fica para o Analytics Engine, Fase 4). Vazio no Node.
+ *
+ * @public — para `/api/health` (se vier a reportar) e para o teste da fachada.
+ */
+export function contagensEmMemoria(): ReadonlyMap<string, number> {
+  return contagensDoWorker
+}
+
+/** Uma métrica que aceita qualquer chamada de contador, medidor ou histograma e soma o valor no `Map`. */
+function metricaSemBackend(nome: string) {
+  const somar = (valor: number) => {
+    if (Number.isFinite(valor)) contagensDoWorker.set(nome, (contagensDoWorker.get(nome) ?? 0) + valor)
+  }
+  /* `inc(rotulos, n)` | `inc(n)` | `inc()`; `observe(rotulos, v)` | `observe(v)`; `set(...)` é o último valor. */
+  const ultimo = (a: unknown, b: unknown): number | undefined =>
+    typeof b === 'number' ? b : typeof a === 'number' ? a : undefined
+  return {
+    inc: (a?: unknown, b?: unknown) => somar(ultimo(a, b) ?? 1),
+    observe: (a?: unknown, b?: unknown) => somar(ultimo(a, b) ?? 0),
+    set: (a?: unknown, b?: unknown) => {
+      const v = ultimo(a, b)
+      if (v !== undefined && Number.isFinite(v)) contagensDoWorker.set(nome, v)
+    },
+    reset: () => contagensDoWorker.delete(nome),
+  }
+}
+
+function estadoSemBackend(): Estado {
+  /* Todo campo do `Estado` é uma `metricaSemBackend` com o nome do próprio campo: o Proxy evita repetir 30 linhas. */
+  const campos = new Map<string | symbol, ReturnType<typeof metricaSemBackend>>()
+  return new Proxy({} as Estado, {
+    get(_alvo, campo) {
+      if (!campos.has(campo)) campos.set(campo, metricaSemBackend(String(campo)))
+      return campos.get(campo)
+    },
+  })
+}
+
+/**
+ * Cria as métricas uma vez só — no backend do runtime em que o código está.
  *
  * Preguiçoso de propósito: com `METRICS_ENABLED` desligado — que é o default — nada é registrado
  * e `collectDefaultMetrics` não liga o seu timer. Observabilidade que custa mesmo desligada é a
@@ -153,16 +211,21 @@ let estado: Estado | undefined
  */
 function metricas(): Estado {
   if (estado) return estado
+  estado = ehWorker() ? estadoSemBackend() : criarEstadoProm()
+  return estado
+}
+
+function criarEstadoProm(): Estado {
+  const { collectDefaultMetrics, Counter, Gauge, Histogram } = carregarProm()
   collectDefaultMetrics()
 
-  /* `processo_info` é o que torna o cluster LEGÍVEL a partir do próprio scrape: papel e pid do
-     processo que respondeu. Cardinalidade de 1 série por processo vivo, que é o mínimo possível
-     para a informação existir. */
+  /* `processo_info`: pid do processo que respondeu ao scrape (o papel é sempre `primario` desde que o
+     cluster saiu; o rótulo fica porque alertas e painel de `ops/` o usam). 1 série por processo vivo. */
   new Gauge({
     name: 'processo_info',
-    help: 'Marca o processo que respondeu ao scrape (papel=primario|worker). Ver o bloco de cluster em server/http/metricas.ts.',
+    help: 'Marca o processo que respondeu ao scrape (papel fixo: primario).',
     labelNames: ['papel', 'pid'] as const,
-  }).set({ papel: cluster.isPrimary ? 'primario' : 'worker', pid: String(process.pid) }, 1)
+  }).set({ papel: 'primario', pid: String(process.pid) }, 1)
 
   estado = {
     duracao: new Histogram({
@@ -294,22 +357,22 @@ function metricas(): Estado {
       help: 'Os mesmos eventos do funil de ofertas, por plano atual, plano sugerido e variante (A/B). Anônimo.',
       labelNames: ['evento', 'plano_atual', 'plano_sugerido', 'variante'] as const,
     }),
-    /* O BANCO, medido no cliente libsql (`server/db/observadorDeConsultas.ts`). `tipo` é
+    /* O BANCO, medido no driver (`server/db/observadorDeConsultas.ts`). `tipo` é
        `leitura`|`escrita`, decidido pela primeira palavra do SQL — nunca o SQL, que seria uma série
        por consulta. É o número do gatilho do ADR 0006 (escritas/s sustentadas). */
     dbDuracao: new Histogram({
       name: 'db_consulta_duracao_segundos',
-      help: 'Duração de cada execute/batch no cliente libsql, por tipo (leitura|escrita). Transações (emTransacao) ficam de fora.',
+      help: 'Duração de cada consulta no driver do banco, por tipo (leitura|escrita), avulsa ou dentro de emTransacao/emLote (BEGIN/COMMIT não contam).',
       labelNames: ['tipo'] as const,
       buckets: [0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5],
     }),
     dbEscritas: new Counter({
       name: 'db_escritas_total',
-      help: 'Instruções de ESCRITA (INSERT/UPDATE/DELETE/REPLACE/DDL) enviadas ao SQLite. O gatilho do ADR 0006 é rate() disto > 50/s no pico.',
+      help: 'Instruções de ESCRITA (INSERT/UPDATE/DELETE/REPLACE/DDL) enviadas ao banco, avulsas ou dentro de transação. O gatilho do ADR 0006 é rate() disto > 50/s no pico.',
     }),
     dbLeituras: new Counter({
       name: 'db_leituras_total',
-      help: 'Instruções de LEITURA (SELECT/WITH/PRAGMA) enviadas ao SQLite.',
+      help: 'Instruções de LEITURA (SELECT/WITH) enviadas ao banco, avulsas ou dentro de transação.',
     }),
     /* O CUSTO POR PLANO. O mesmo número que soma no orçamento (`registrarGastoDeIa`), agora com o
        plano de quem gastou — é o que diz se o Essencial se paga. Rótulo da allowlist `PLANOS`. */
@@ -337,22 +400,56 @@ function metricas(): Estado {
       help: 'Consultas a cada nível do cache de tradução (nivel=l1 memória | l2 SQLite), por resultado (acerto|falta).',
       labelNames: ['nivel', 'resultado'] as const,
     }),
+    /* A RESPOSTA QUE NÃO SERVIU (502 `resposta_invalida`): o provedor respondeu e cobrou, e o `ler*` recusou o
+       texto. Por função e modelo (lista fechada do registro, `outro` fora dela). É o número que a saída estruturada
+       (`response_format` estrito, `src/lib/esquemasDeSaida.ts`) deve derrubar. */
+    respostaInvalida: new Counter({
+      name: 'ia_resposta_invalida_total',
+      help: 'Respostas de LLM que o servidor recusou por forma (502 resposta_invalida, depois de o provedor cobrar), por função e modelo.',
+      labelNames: ['funcao', 'modelo'] as const,
+    }),
+    /* O CACHE DE PROMPT, por função: a razão `em_cache / entrada` diz quanto o prefixo fixo dos prompts economiza
+       (tokens em cache custam a metade no gpt-oss). Só das pernas que ENTREGARAM. */
+    tokensDeEntrada: new Counter({
+      name: 'ia_tokens_entrada_total',
+      help: 'Tokens de entrada das chamadas de LLM entregues, por função e modelo (inclui os servidos do cache de prompt).',
+      labelNames: ['funcao', 'modelo'] as const,
+    }),
+    tokensEmCache: new Counter({
+      name: 'ia_tokens_em_cache_total',
+      help: 'Tokens de entrada servidos do cache de prompt do provedor, por função e modelo. Dividir por ia_tokens_entrada_total dá a taxa de cache.',
+      labelNames: ['funcao', 'modelo'] as const,
+    }),
+    /* O FEEDBACK QUE CHEGA (`POST /api/ai/feedback`): 👍/👎 por função, com o motivo da lista fechada. Nenhum
+       rótulo carrega texto ou quem mandou. */
+    feedbackDeIa: new Counter({
+      name: 'ia_feedback_total',
+      help: 'Avaliações das respostas de IA (nota=up|down), por função e motivo (lista fechada; `nenhum` sem motivo).',
+      labelNames: ['funcao', 'nota', 'motivo'] as const,
+    }),
+    /* O FILTRO DE SAÍDA PARA PERFIL PROTEGIDO (change `filtro-tutor-menores`): quantas respostas do tutor foram
+       trocadas pela frase fixa, por função e categoria (rótulos fixos de `listasParaMenores.ts`). Nunca o texto. */
+    saidaFiltrada: new Counter({
+      name: 'ia_saida_filtrada_total',
+      help: 'Respostas do tutor barradas pelo filtro local de saída para perfil protegido (menor ou idade não declarada), por função e categoria.',
+      labelNames: ['funcao', 'categoria'] as const,
+    }),
+    /* AS FALHAS DE PREPARO DO VISITANTE (`POST /api/erros-do-cliente/falha`, change `modelos-confiaveis-e-offline`).
+       Anônimo: os três rótulos são listas fechadas de `src/core/falhas/mensagemDeFalha.ts` e do perfil do aparelho. */
+    clienteFalhas: new Counter({
+      name: 'cliente_falha_total',
+      help: 'Falhas de preparo da legenda no navegador do visitante (download interrompido, modelo corrompido, sem internet…), por tipo, aparelho e família do modelo. Anônimo, sem conteúdo.',
+      labelNames: ['tipo', 'aparelho', 'modelo'] as const,
+    }),
     uploadsRecusados: new Counter({
       name: 'uploads_grandes_recusados_total',
       help: 'Uploads grandes recusados pelo semáforo (429 upload_ocupado), por motivo (usuario|processo). `processo` subindo = o teto da máquina é o gargalo.',
       labelNames: ['motivo'] as const,
     }),
-    backupFalhas: new Counter({
-      name: 'backup_falhas_total',
-      help: 'Snapshots diários do banco que falharam (server/operacao/snapshot.ts).',
-    }),
-    backupUltimoSucesso: new Gauge({
-      name: 'backup_ultimo_sucesso_timestamp_segundos',
-      help: 'Instante (epoch, s) do último snapshot diário bem-sucedido NESTE processo. Sem série = nenhum desde o boot.',
-    }),
-    backupBytes: new Gauge({
-      name: 'backup_ultimo_tamanho_bytes',
-      help: 'Tamanho (bytes, comprimido) do último snapshot diário bem-sucedido.',
+    r2UsoFracao: new Gauge({
+      name: 'r2_uso_fracao',
+      help: 'Fração usada de cada teto do R2 (recurso=armazenamento|ops_a|ops_b), na última operação vista por ESTE processo. 1 = no teto (server/lib/tetoDoR2.ts).',
+      labelNames: ['recurso'] as const,
     }),
   }
   histogramaDoEventLoop()
@@ -392,6 +489,8 @@ const BALDES_DO_LOOP = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10,
 let monitorDoLoop: IntervalHistogram | undefined
 
 function histogramaDoEventLoop(): void {
+  const { Histogram } = carregarProm()
+  const { monitorEventLoopDelay } = process.getBuiltinModule('node:perf_hooks')
   monitorDoLoop = monitorEventLoopDelay({ resolution: RESOLUCAO_DO_LOOP_MS })
   monitorDoLoop.enable()
   new Histogram({
@@ -455,26 +554,14 @@ export function registrarLeitorDeUploads(fn: () => { emVoo: number; limite: numb
   leitorDeUploads = fn
 }
 
-/** O arquivo do SQLite (e o WAL), quando o banco é local. Remoto: sem série. */
-function tamanhoDoBanco(): number | undefined {
-  const url = process.env.DATABASE_URL ?? 'file:./data/babel.db'
-  if (!url.startsWith('file:')) return undefined
-  const arquivo = url.slice('file:'.length)
-  let total = 0
-  for (const sufixo of ['', '-wal']) {
-    try {
-      total += statSync(arquivo + sufixo).size
-    } catch {
-      /* sem WAL (ou sem banco ainda): conta o que existe */
-    }
-  }
-  return total
-}
-
-/** Uma leitura do gasto por scrape, compartilhada pelos dois gauges que dependem dela. */
+/**
+ * Uma leitura do gasto por scrape, compartilhada pelos dois gauges que dependem dela. No Worker (onde o
+ * `/metrics` nem existe), nada é compartilhado: promessa de uma requisição não pode ser esperada por outra.
+ */
 let gastoEmVoo: Promise<GastoParaMetricas | undefined> | undefined
 function lerGastoUmaVez(): Promise<GastoParaMetricas | undefined> {
   if (!leitorDeGasto) return Promise.resolve(undefined)
+  if (ehWorker()) return leitorDeGasto().catch(() => undefined)
   gastoEmVoo ??= leitorDeGasto()
     .catch(() => undefined) // banco fora: sem série; a regra `absent()` é quem avisa
     .finally(() => setImmediate(() => (gastoEmVoo = undefined)))
@@ -482,6 +569,7 @@ function lerGastoUmaVez(): Promise<GastoParaMetricas | undefined> {
 }
 
 function registrarMedidoresLidosNoScrape(): void {
+  const { Gauge } = carregarProm()
   new Gauge({
     name: 'ia_gasto_usd',
     help: 'Gasto ESTIMADO de IA de nuvem no período corrente (dia UTC | mês), em US$, lido de gasto_de_ia no scrape.',
@@ -542,9 +630,9 @@ function registrarMedidoresLidosNoScrape(): void {
   })
   new Gauge({
     name: 'db_tamanho_bytes',
-    help: 'Tamanho do arquivo do SQLite + WAL, em bytes. O gatilho do ADR 0006 é 5 GB.',
-    collect() {
-      const t = tamanhoDoBanco()
+    help: 'Tamanho do banco (pg_database_size), em bytes. O gatilho do ADR 0006 é 5 GB.',
+    async collect() {
+      const t = await tamanhoDoBanco()
       if (t !== undefined) this.set(t)
     },
   })
@@ -562,7 +650,9 @@ function rotuloDoPlano(plano: string | undefined): string {
 
 /** Custo de uma chamada paga pelo serviço, pelo plano de quem pediu. */
 export function contarCustoPorPlano(plano: string | undefined, custoUsd: number): void {
-  if (!estado || !Number.isFinite(custoUsd) || custoUsd <= 0) return
+  if (!Number.isFinite(custoUsd) || custoUsd <= 0) return
+  if (ehWorker()) gravarPonto('custo_por_plano', [rotuloDoPlano(plano)], [custoUsd], rotuloDoPlano(plano))
+  if (!estado) return
   estado.iaCustoPorPlano.inc({ plano: rotuloDoPlano(plano) }, custoUsd)
 }
 
@@ -586,12 +676,10 @@ export function contarUploadRecusado(motivo: 'usuario' | 'processo'): void {
   estado.uploadsRecusados.inc({ motivo })
 }
 
-export function observarBackup(r: { ok: true; bytes: number } | { ok: false }): void {
+export function medirUsoDoR2(recurso: 'armazenamento' | 'ops_a' | 'ops_b', fracao: number): void {
+  if (ehWorker()) gravarPonto('r2', [recurso], [fracao], recurso)
   if (!estado) return
-  if (r.ok) {
-    estado.backupUltimoSucesso.set(Math.floor(Date.now() / 1000))
-    estado.backupBytes.set(r.bytes)
-  } else estado.backupFalhas.inc()
+  estado.r2UsoFracao.set({ recurso }, fracao)
 }
 
 /** Quem sabe ler o saldo da admissão (`server/ai/admissao.ts`) se registra aqui — sem import circular. */
@@ -602,6 +690,7 @@ export function registrarLeitorDeSaldo(fn: () => Array<{ provedor: string; model
 
 /** Uma recusa da admissão de IA. `motivo` e `plano` são rótulos fixos do código. */
 export function contarAdmissaoRecusada(motivo: string, plano: string): void {
+  if (ehWorker()) gravarPonto('admissao_recusada', [motivo, plano], [1], motivo)
   if (!estado) return
   estado.admissaoRecusada.inc({ motivo, plano })
 }
@@ -638,6 +727,14 @@ export function observarChamadaDeProvedor(o: {
   fornecedor?: string
   modelo?: string
 }): void {
+  if (ehWorker()) {
+    gravarPonto(
+      'provedor',
+      [o.provedor, o.funcao, o.fornecedor ?? '', o.modelo ?? ''],
+      [o.ms, o.custoUsd !== undefined && Number.isFinite(o.custoUsd) && o.custoUsd > 0 ? o.custoUsd : 0],
+      o.provedor,
+    )
+  }
   if (!estado) return
   const conhecidos = rotulosDoRegistro()
   const labels = {
@@ -650,6 +747,67 @@ export function observarChamadaDeProvedor(o: {
   if (o.custoUsd !== undefined && Number.isFinite(o.custoUsd) && o.custoUsd > 0)
     estado.provedorCusto.inc(labels, o.custoUsd)
 }
+
+/** Uma resposta de LLM que o `ler*` recusou (502 `resposta_invalida`). `funcao` é valor fixo do código. */
+export function contarRespostaInvalida(funcao: string, modelo: string | undefined): void {
+  const rotulo = rotuloFechado(modelo, rotulosDoRegistro().modelos)
+  if (ehWorker()) gravarPonto('resposta_invalida', [funcao, rotulo], [1], funcao)
+  if (!estado) return
+  estado.respostaInvalida.inc({ funcao, modelo: rotulo })
+}
+
+/**
+ * Os tokens de entrada de uma chamada entregue e quantos deles vieram do cache de prompt, por função e MODELO (o
+ * cache é do provedor de cada modelo: misturar os modelos esconderia qual perna não aproveita o prefixo fixo).
+ */
+export function contarTokensDeEntrada(
+  funcao: string,
+  modelo: string | undefined,
+  entrada: number,
+  emCache: number,
+): void {
+  const e = Number.isFinite(entrada) && entrada > 0 ? entrada : 0
+  const c = Number.isFinite(emCache) && emCache > 0 ? emCache : 0
+  if (e === 0 && c === 0) return
+  const rotulo = rotuloFechado(modelo, rotulosDoRegistro().modelos)
+  if (ehWorker()) gravarPonto('tokens_de_entrada', [funcao, rotulo], [e, c], funcao)
+  if (!estado) return
+  if (e > 0) estado.tokensDeEntrada.inc({ funcao, modelo: rotulo }, e)
+  if (c > 0) estado.tokensEmCache.inc({ funcao, modelo: rotulo }, c)
+}
+
+/** Uma avaliação JÁ VALIDADA pela rota (`server/ai/feedback.ts`): os três rótulos são de listas fechadas. */
+export function contarFeedbackDeIa(funcao: string, nota: 'up' | 'down', motivo: string | undefined): void {
+  if (ehWorker()) gravarPonto('feedback_ia', [funcao, nota, motivo ?? 'nenhum'], [1], funcao)
+  if (!estado) return
+  estado.feedbackDeIa.inc({ funcao, nota, motivo: motivo ?? 'nenhum' })
+}
+
+/** Uma falha de preparo do visitante, já validada pela rota (os três rótulos são listas fechadas). */
+export function contarFalhaDoCliente(tipo: string, aparelho: string, modelo: string): void {
+  if (ehWorker()) gravarPonto('cliente_falha', [tipo, aparelho, modelo], [1], tipo)
+  if (!estado) return
+  estado.clienteFalhas.inc({ tipo, aparelho, modelo })
+}
+
+/** Uma resposta do tutor barrada pelo filtro de saída de perfil protegido. Os dois rótulos são valores fixos do código. */
+export function contarSaidaFiltrada(funcao: string, categoria: string): void {
+  if (ehWorker()) gravarPonto('saida_filtrada', [funcao, categoria], [1], funcao)
+  if (!estado) return
+  estado.saidaFiltrada.inc({ funcao, categoria })
+}
+
+/**
+ * Um job do cron terminou (`server/jobs/executar.ts`). Só o Worker tem destino (o ponto `job` do Analytics
+ * Engine); no Node o `job_fim`/`job_falhou` do log já dizem tudo e não há série Prometheus para isso.
+ */
+export function observarJob(nome: string, ms: number, resultado: 'ok' | 'falhou'): void {
+  if (ehWorker()) gravarPonto('job', [nome, resultado], [ms], nome)
+}
+
+/* As demais funções `contar*`/`observar*` ficam sem efeito no Worker de propósito: só as 6 famílias do R6, as 3 da qualidade da IA
+   e a do filtro de saída (requisicao, admissao_recusada, custo_por_plano, r2, provedor, job; resposta_invalida,
+   tokens_de_entrada, feedback_ia; saida_filtrada) viram pontos do Analytics Engine. */
 
 /** Um 429 do provedor. Rótulos fixos do código ou do env — ver o bloco da métrica. */
 export function contarLimiteDoProvedor(provedor: string, modelo: string): void {
@@ -738,11 +896,13 @@ export function padraoDaRota(req: Request): string {
 export function middlewareDeMetricas(): RequestHandler {
   const m = metricas()
   return function medir(req: Request, res: Response, next: NextFunction): void {
-    const inicio = process.hrtime.bigint()
+    const inicio = performance.now()
     res.on('finish', () => {
-      const segundos = Number(process.hrtime.bigint() - inicio) / 1e9
+      const ms = performance.now() - inicio
+      const segundos = ms / 1000
       const route = padraoDaRota(req)
       const status = String(res.statusCode)
+      if (ehWorker()) gravarPonto('requisicao', [route, req.method, status], [ms], route)
       const labels = { method: req.method, route, status }
       m.duracao.observe(labels, segundos)
       if (res.statusCode >= 400) m.errosHttp.inc(labels)
@@ -808,9 +968,9 @@ export function handlerDeMetricas(): RequestHandler {
        penduraria o request no Express 4 em vez de virar resposta. E o 500 é do endpoint de
        métricas, não do serviço — coletor quebrado não pode derrubar o que ele observa. */
     try {
-      const { corpo, processo } = await scrape()
+      const { corpo, processo, tipo } = await scrape()
       res.setHeader('x-metrics-processo', processo)
-      res.setHeader('content-type', register.contentType)
+      res.setHeader('content-type', tipo)
       /* `res.end` e não `res.send`: `send` com valor dinâmico é o que a regra `resposta-crua`
          (audit/rules/ast-grep) marca, e aqui o corpo é texto puro já com content-type declarado. */
       res.end(corpo)
@@ -821,70 +981,24 @@ export function handlerDeMetricas(): RequestHandler {
   }
 }
 
-/** O corpo do scrape e o processo que respondeu — o mesmo para a porta pública e a interna. */
-async function scrape(): Promise<{ corpo: string; processo: string }> {
-  const corpo = await register.metrics()
-  const irmaos = cluster.isPrimary ? Object.keys(cluster.workers ?? {}).length : 1
-  const papel = cluster.isPrimary ? 'primario' : 'worker'
-  /* O aviso vai no CORPO, e não só no header: quem lê um scrape na mão (curl) não vê header, e
-     é exatamente essa pessoa que corre o risco de somar errado. Linha de comentário é válida no
-     formato de exposição e o Prometheus a ignora. */
-  const aviso =
-    irmaos > 0 || !cluster.isPrimary
-      ? `# ATENCAO: numeros deste processo (${papel}:${process.pid}), nao do cluster inteiro. Ver server/http/metricas.ts.\n`
-      : ''
-  return { corpo: aviso + corpo, processo: `${papel}:${process.pid}` }
-}
-
-/**
- * O LISTENER SÓ DE MÉTRICAS — `METRICS_PORTA_INTERNA` (Fase 5 de prontidão, 25/09/2026).
- *
- * É o alvo do `[metrics]` do `fly.toml`. O Prometheus gerenciado do Fly raspa essa porta por dentro
- * da VM a cada 15 s e não sabe mandar `Authorization` (a doc só tem `port` e `path`), então aqui NÃO
- * há token. O que protege é a porta não estar publicada: o proxy do Fly só encaminha as portas de
- * `[http_service]`/`[[services]]` — conferido por `tests/integration/fly-metricas.test.ts`.
- *
- * `node:http` cru, e não Express: é UMA rota, sem corpo, sem auth — e fica fora de todo o pipeline
- * do app (inclusive do `middlewareDeMetricas`, para o próprio scrape não virar série). Só no
- * processo primário (ver `server.ts`): com cluster, é o que acaba com o "scrape alternando de
- * processo" descrito no topo deste arquivo, ao preço de mostrar só o primário — declarado no corpo.
- */
-export function iniciarServidorDeMetricas(porta: number, host = '0.0.0.0'): Promise<Server> {
-  metricas()
-  const servidor = createServer((req, res) => {
-    const caminho = (req.url ?? '').split('?')[0]
-    if (req.method !== 'GET' || caminho !== '/metrics') {
-      res.statusCode = 404
-      res.end()
-      return
+/** O corpo do scrape e o processo que respondeu. */
+async function scrape(): Promise<{ corpo: string; processo: string; tipo: string }> {
+  if (ehWorker()) {
+    const linhas = [...contagensDoWorker].map(([nome, v]) => `# ${nome} ${v}`)
+    return {
+      corpo: ['# sem backend Prometheus neste runtime (Worker); Analytics Engine é a Fase 4', ...linhas, ''].join('\n'),
+      processo: 'worker',
+      tipo: 'text/plain; charset=utf-8',
     }
-    scrape().then(
-      ({ corpo, processo }) => {
-        res.setHeader('x-metrics-processo', processo)
-        res.setHeader('content-type', register.contentType)
-        res.end(corpo)
-      },
-      (err: unknown) => {
-        log('error', { event: 'metrics_falhou', route: '/metrics', status: 500, error: String(err).slice(0, 300) })
-        res.statusCode = 500
-        res.end()
-      },
-    )
-  })
-  return new Promise((resolve, reject) => {
-    servidor.once('error', reject)
-    servidor.listen(porta, host, () => {
-      servidor.off('error', reject)
-      /* Não segura o processo vivo no desligamento: quem drena é o servidor do app. */
-      servidor.unref()
-      resolve(servidor)
-    })
-  })
+  }
+  const { register } = carregarProm()
+  return { corpo: await register.metrics(), processo: `primario:${process.pid}`, tipo: register.contentType }
 }
 
 /** Só para os testes: esquece as métricas registradas entre casos. */
 export function esquecerMetricas(): void {
-  register.clear()
+  promCarregado?.register.clear()
+  contagensDoWorker.clear()
   monitorDoLoop?.disable()
   monitorDoLoop = undefined
   registrarObservadorDeConsultas(undefined)

@@ -103,16 +103,30 @@ describe('o bau da rodada na fila de recompensas', () => {
 
 describe('baú v2 na tela: chances, garantia e repetido', () => {
   it('mostra as chances e quantos baús faltam para o raro garantido', () => {
-    montar([{ tipo: 'drop', roundId: 'r-ch', seeds: 5, item, chances: { comum: 75, raro: 25 }, proximoRaroGarantidoEm: 3 }])
+    montar([
+      { tipo: 'drop', roundId: 'r-ch', seeds: 5, item, chances: { comum: 75, raro: 25 }, proximoRaroGarantidoEm: 3 },
+    ])
     const linha = document.querySelector('[data-chances-do-bau]')!
     expect(linha.textContent).toContain('Chances: 75% comum · 25% raro')
     expect(linha.textContent).toContain('raro garantido em 3 baús')
   })
 
-  it('repetido: sem peça, diz que você já tem o item e quanto pagou em Seeds', () => {
-    montar([{ tipo: 'drop', roundId: 'r-rep', seeds: 40, repetido: true, raridade: 'raro', chances: { comum: 75, raro: 25 }, proximoRaroGarantidoEm: 5 }])
-    expect(screen.getByText('Você já tem este item: +40 Seeds')).toBeTruthy()
-    expect(screen.getAllByText('+40 Seeds', { exact: false }).length).toBe(2)
+  it('repetido: sem peça, é o cartão discreto (22/10/2026) — "Peça repetida" e quanto pagou em Seeds, sem Equipar', () => {
+    montar([
+      {
+        tipo: 'drop',
+        roundId: 'r-rep',
+        seeds: 40,
+        repetido: true,
+        raridade: 'raro',
+        chances: { comum: 75, raro: 25 },
+        proximoRaroGarantidoEm: 5,
+      },
+    ])
+    expect(screen.queryByRole('dialog')).toBeNull()
+    const cartao = screen.getByTestId('novidade-discreta')
+    expect(cartao.textContent).toContain('Peça repetida')
+    expect(cartao.textContent).toContain('+40 Seeds')
     expect(screen.queryByText(/Equipar/i)).toBeNull()
   })
 })

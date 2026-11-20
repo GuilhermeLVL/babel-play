@@ -159,7 +159,7 @@ export default function BuscaGlobal({
               id: 'acao:importar',
               grupo: 'Ações',
               label: 'Importar mídia ou documento',
-              hint: 'YouTube, PDF, web, áudio',
+              hint: 'PDF, web, áudio',
               icon: <Plus />,
               run: () => aoNavegar('library'),
             },

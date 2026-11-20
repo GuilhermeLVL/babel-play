@@ -8,10 +8,11 @@
  * `Promise.all` numa conexão não reproduz a corrida entre processos, mas amarra o contrato
  * que a corrige: inserir com ON CONFLICT e deixar o BANCO arbitrar.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { clienteSql } from '../harness/clienteSql'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let users: any
@@ -24,9 +25,11 @@ beforeAll(async () => {
   ;({ usersRepo: users } = await h.load('../../server/db/repositories/users'))
   ;({ settingsRepo: settings } = await h.load('../../server/db/repositories/settings'))
   ;({ seedSpendsRepo: seeds } = await h.load('../../server/db/repositories/seedSpends'))
-  ;({ client } = await h.load('../../server/db/db'))
+  client = clienteSql(await h.load<any>('../../server/db/db'))
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 const contar = async (sql: string, args: any[]) =>
   Number(Object.values((await client.execute({ sql, args })).rows[0])[0])
@@ -78,10 +81,12 @@ describe('settingsRepo.ensure — P1-4', () => {
     const u = asUserId('pc-settings-uq')
     await settings.ensure(u)
     const now = Date.now()
-    await expect(client.execute({
-      sql: 'INSERT INTO settings (id, created_at, updated_at, user_id) VALUES (?, ?, ?, ?)',
-      args: ['duplicata-manual', now, now, u],
-    })).rejects.toThrow()
+    await expect(
+      client.execute({
+        sql: 'INSERT INTO settings (id, created_at, updated_at, user_id) VALUES (?, ?, ?, ?)',
+        args: ['duplicata-manual', now, now, u],
+      }),
+    ).rejects.toThrow()
   })
 })
 

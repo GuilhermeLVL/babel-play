@@ -21,7 +21,16 @@ import SeletorDeVoz from '../../voz/SeletorDeVoz';
  *
  * A escolha é a do app inteiro: o narrador, o intérprete, o "Ouvir" de uma palavra e os jogos leem com ela.
  */
-export default function PainelDaVoz({ estudando, meu }: { estudando: string; meu: string }) {
+export default function PainelDaVoz({
+  estudando,
+  meu,
+  semCabecalho = false,
+}: {
+  estudando: string;
+  meu: string;
+  /** O diálogo que abriu o painel já tem título e descrição. */
+  semCabecalho?: boolean;
+}) {
   const vozes = useVozesPreferidas();
   const [aberto, setAberto] = useState<string | null>(null);
 
@@ -39,12 +48,14 @@ export default function PainelDaVoz({ estudando, meu }: { estudando: string; meu
 
   return (
     <section className="q-secao" data-testid="painel-da-voz">
-      <header>
-        <div>
-          <h2>{t('Voz')}</h2>
-          <p>{t('A voz que lê em cada idioma: no narrador, no intérprete, ao ouvir uma palavra e nos jogos.')}</p>
-        </div>
-      </header>
+      {!semCabecalho && (
+        <header>
+          <div>
+            <h2>{t('Voz')}</h2>
+            <p>{t('A voz que lê em cada idioma: no narrador, no intérprete, ao ouvir uma palavra e nos jogos.')}</p>
+          </div>
+        </header>
+      )}
       <div className="q-ajustes">
         {idiomas.map((idioma) => {
           const nome = langLabelNaUI(idioma);

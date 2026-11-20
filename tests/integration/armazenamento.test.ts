@@ -121,6 +121,18 @@ describe('armazenamento S3 contra um transporte falso', () => {
     expect(h['content-type']).toBe('audio/webm')
   })
 
+  it('a barra do nome é pasta (`semanal/dia.dump`), não `%2F`: o R2 recusa a assinatura com `%2F` no caminho', async () => {
+    const urls: string[] = []
+    const falso = (async (u: string) => {
+      urls.push(u)
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    await armazenamentoS3(cfg, falso).gravar('semanal/2026-11-03 a.dump', Buffer.from('d'), 'application/octet-stream')
+    expect(urls[0]).toBe('https://exemplo.r2.cloudflarestorage.com/midia/semanal/2026-11-03%20a.dump')
+    expect(urls[0]).not.toContain('%2F')
+  })
+
   it('PUT com erro lança, e DELETE de objeto ausente não lança', async () => {
     const status = (n: number) => (async () => new Response(null, { status: n })) as unknown as typeof fetch
     await expect(armazenamentoS3(cfg, status(500)).gravar('x', Buffer.from('a'), 'audio/webm')).rejects.toThrow(

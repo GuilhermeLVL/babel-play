@@ -33,6 +33,8 @@ const PUBLICAS_POR_DESENHO: Record<string, string> = {
     'probe de PRONTIDÃO (Fase 5), pública pelo mesmo motivo do health: um orquestrador não tem token de ninguém. Responde se o processo consegue ATENDER — banco, migrações e armazenamento externo — e nomeia só a dependência, nunca o erro: nem caminho, nem driver, nem endpoint.',
   'POST /api/billing/webhook/asaas':
     'o Asaas não tem JWT de usuário nenhum. A autenticação é própria (header `asaas-access-token`, comparação em tempo constante) e sem o segredo configurado ela recusa tudo.',
+  'GET /api/ops/saude':
+    'o vigia agendado da saúde do negócio (workflow `saude-do-negocio.yml`) não tem JWT de ninguém. A autenticação é própria (`Authorization: Bearer` com `OPS_SAUDE_TOKEN`, comparação em tempo constante) e sem o segredo configurado ela recusa tudo (501). A resposta é só checagens e contagens, nenhum dado de pessoa.',
   'GET /api/rank/:jogo':
     'placar global, anônimo por desenho: sai apelido, pontos e combo, e precisa funcionar igual com e sem conta. Exigir token o quebraria no modo para o qual ele foi feito.',
   'POST /api/rank/:jogo':
@@ -41,6 +43,8 @@ const PUBLICAS_POR_DESENHO: Record<string, string> = {
     'telemetria ANÔNIMA de qualidade da captura (latências, fator de tempo real, quedas de motor): funciona igual com e sem conta, e ficar antes do auth é o que garante que ela não conhece identidade. Corpo de 8 KB, balde próprio por IP no modo público, nada é gravado — só observado em histograma.',
   'POST /api/metricas/ofertas':
     'o funil de conversão das ofertas de planos (Fase 8): evento, gatilho, componente, plano atual/sugerido e variante — nenhum id de pessoa. Precisa funcionar sem conta (a conversão convidado → conta é a que mais importa) e ficar antes do auth garante que não conhece identidade. Mesmo corpo de 8 KB e balde por IP de `/api/metricas`; labels de alfabeto fechado; nada é gravado.',
+  'POST /api/erros-do-cliente/falha':
+    'o contador ANÔNIMO de falhas de preparo do visitante (change `modelos-confiaveis-e-offline`, opção "a" do dono): só `{tipo, aparelho, modelo}` de listas fechadas, com `.strict()`; quem mais precisa ser visto é quem não tem conta, e ficar antes do auth garante que a rota não conhece identidade. Corpo de 8 KB, balde próprio por HMAC do IP (o IP não é gravado); só incrementa `cliente_falha_total`.',
   'GET /api/abertura':
     'as chaves de emergência CHECKOUT_ENABLED/SIGNUP_ENABLED, lidas pela tela de login ANTES de existir sessão (para esconder "Criar conta" com o cadastro fechado). Responde só três booleanos (cadastro, checkout e a venda do anual, `ANUAL_ENABLED`), sem dado de ninguém.',
   'GET /api/flags':

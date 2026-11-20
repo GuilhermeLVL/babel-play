@@ -1,11 +1,19 @@
-import { BookmarkPlus, Copy, Languages, Snail, Volume2 } from 'lucide-react';
-import { memo, type MouseEvent } from 'react';
+import { MARCADOR } from '@core/moderacao/legendaSegura';
+import { BookmarkPlus, Copy, Languages, Snail, Sparkles, Volume2 } from 'lucide-react';
+import { Fragment, memo, type MouseEvent, type ReactNode, useMemo } from 'react';
 
+import type { MarcaNaLinha } from '../../../../core/assistente/telaDoAssistente';
+import { resumoDasEtiquetas } from '../../../../core/vocabulario/etiquetas';
+import type { CorrecaoDaFala } from '../../../../data/apiDoAssistente';
 import { palavrasDoPedaco } from '../../../../lib/captura/trechosTocaveis';
 import { pedacosDaLegenda } from '../../../../lib/estilosDeLegenda';
+import type { Etiquetador } from '../../../../lib/etiquetas/indiceDeEtiquetas';
+import { descricaoDaLinha } from '../../../../lib/etiquetas/rotulos';
 import { t } from '../../../../lib/i18n';
 import { direcaoDoTexto } from '../../../../lib/languages';
+import { rotuloDoNivel, rotuloDoTipo } from '../assistente/copyDoAssistente';
 import type { Modo, Traducao } from './aparenciaDaLegenda';
+import { TextoComOcultas } from './TextoComOcultas';
 
 /** Uma fala real da captura, pronta para a legenda. `lado` = de quem é (sistema = eles). */
 export interface LegendaAoVivo {
@@ -31,22 +39,112 @@ function limparPalavra(pedaco: string): string {
 /**
  * O texto em pedaços tocáveis: cada palavra é um `span[data-palavra]`, os espaços ficam como texto.
  * Em chinês e japonês, sem espaço para dividir, cada pedaço vem partido nas palavras dele.
+ *
+ * AS MARCAS DO ASSISTENTE (Fase C2): os pedaços de um destaque (expressão, termo, palavra acima do nível) ficam
+ * dentro de um `span.leg-marca`, sublinhado pontilhado, SILENCIOSO (nenhum anúncio ao leitor de tela), com o sentido
+ * no `title` (passar o mouse) e alcançável pelo teclado (Tab, Enter abre o cartão).
  */
-function Palavras({ texto, lang, aprendidas }: { texto: string; lang: string; aprendidas?: ReadonlySet<string> }) {
+function Palavras({
+  texto,
+  lang,
+  aprendidas,
+  marcas,
+  aoTocarMarca,
+  etiquetador,
+}: {
+  texto: string;
+  lang: string;
+  aprendidas?: ReadonlySet<string>;
+  marcas?: ReadonlyArray<MarcaNaLinha>;
+  aoTocarMarca?: (m: MarcaNaLinha) => void;
+  /** As ETIQUETAS DE PALAVRAS: só atributo (`data-etiqueta`) no `span[data-palavra]`. */
+  etiquetador?: Etiquetador | null;
+}) {
   const marcadas = new Set(
     pedacosDaLegenda(texto, aprendidas)
       .filter((p) => p.aprendida)
       .map((p) => p.texto),
   );
   const pedacos = texto.split(/(\s+)/).flatMap((p) => palavrasDoPedaco(p, lang));
+  const palavraDe = (p: string, i: number | string, aprendida = marcadas.has(p)) => {
+    const palavra = limparPalavra(p);
+    if (!palavra) return p.includes(MARCADOR) ? <TextoComOcultas key={i} texto={p} /> : p;
+    return (
+      <span
+        key={i}
+        data-palavra={palavra}
+        data-aprendida={aprendida ? '' : undefined}
+        data-etiqueta={etiquetador?.etiqueta(palavra, lang)}
+      >
+        {p}
+      </span>
+    );
+  };
+  if (!marcas?.length) return <>{pedacos.map((p, i) => palavraDe(p, i))}</>;
+
+  /* Corta cada pedaço nas bordas das marcas ("review." → "review" + ".": o fio não passa embaixo da pontuação) e
+     agrupa os cortes seguidos que caem na mesma marca (o espaço entre duas palavras da expressão vai junto). */
+  const bordas = marcas.flatMap((m) => [m.inicio, m.fim]);
+  const grupos: Array<{ marca: MarcaNaLinha | null; itens: ReactNode[] }> = [];
+  let pos = 0;
+  pedacos.forEach((p, i) => {
+    const ini = pos;
+    pos += p.length;
+    const cortes = [ini, ...bordas.filter((b) => b > ini && b < pos).sort((a, b) => a - b), pos];
+    const aprendida = marcadas.has(p);
+    for (let k = 0; k + 1 < cortes.length; k++) {
+      const a = cortes[k];
+      const b = cortes[k + 1];
+      const parte = p.slice(a - ini, b - ini);
+      const espaco = !parte.trim();
+      const marca = marcas.find((m) => (espaco ? m.inicio < a && b < m.fim : a < m.fim && m.inicio < b)) ?? null;
+      const item = palavraDe(parte, `${i}.${k}`, aprendida);
+      const ultimo = grupos[grupos.length - 1];
+      if (ultimo && ultimo.marca === marca) ultimo.itens.push(item);
+      else grupos.push({ marca, itens: [item] });
+    }
+  });
   return (
     <>
-      {pedacos.map((p, i) => {
-        const palavra = limparPalavra(p);
-        if (!palavra) return p;
+      {grupos.map((g, i) => {
+        const primeira = grupos.find((x) => x.marca)?.marca;
+        const m = g.marca;
+        if (!m) return <Fragment key={i}>{g.itens}</Fragment>;
+        const rotulo = m.tipo === 'nivel' ? rotuloDoNivel(m.nivel, m.escala) : rotuloDoTipo(m.tipo);
         return (
-          <span key={i} data-palavra={palavra} data-aprendida={marcadas.has(p) ? '' : undefined}>
-            {p}
+          <span
+            key={i}
+            className="leg-marca"
+            data-marca={m.tipo}
+            role="button"
+            /* ROVING: só a primeira marca da linha entra no Tab; ← → andam entre as marcas dela. */
+            tabIndex={m === primeira ? 0 : -1}
+            title={m.sentido ? `${m.texto}: ${m.sentido}` : rotulo}
+            aria-label={`${m.texto}, ${rotulo}`}
+            onClick={(e) => {
+              if (!aoTocarMarca) return;
+              e.stopPropagation();
+              aoTocarMarca(m);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                const todas = [
+                  ...(e.currentTarget.closest('.leg-o')?.querySelectorAll<HTMLElement>('.leg-marca') ?? []),
+                ];
+                const alvo = todas[todas.indexOf(e.currentTarget) + (e.key === 'ArrowRight' ? 1 : -1)];
+                /* Na ponta, a seta segue para a janela (voltar e avançar pelas falas). */
+                if (!alvo) return;
+                e.preventDefault();
+                alvo.focus();
+                return;
+              }
+              if (!aoTocarMarca || (e.key !== 'Enter' && e.key !== ' ')) return;
+              e.preventDefault();
+              e.stopPropagation();
+              aoTocarMarca(m);
+            }}
+          >
+            {g.itens}
           </span>
         );
       })}
@@ -73,6 +171,12 @@ function LinhaDaLegenda({
   aoOuvir,
   aoCopiar,
   aoSalvarFrase,
+  soTraducao = false,
+  marcas,
+  marcasSutis = false,
+  aoTocarMarca,
+  correcao,
+  etiquetador,
 }: {
   fala: LegendaAoVivo;
   modo: Modo;
@@ -87,6 +191,17 @@ function LinhaDaLegenda({
   aoOuvir?: (fala: LegendaAoVivo, lenta: boolean) => void;
   aoCopiar: (fala: LegendaAoVivo) => void;
   aoSalvarFrase?: (fala: LegendaAoVivo) => void;
+  /** "Só a tradução": a fala traduzida aparece no lugar do original (se ainda não há tradução, o original). */
+  soTraducao?: boolean;
+  /** Os destaques do assistente nesta linha (Fase C2). */
+  marcas?: ReadonlyArray<MarcaNaLinha>;
+  /** Na faixa (jogo): só a marca, mais apagada. */
+  marcasSutis?: boolean;
+  aoTocarMarca?: (marca: MarcaNaLinha, fala: LegendaAoVivo) => void;
+  /** A correção gentil da própria fala (opt-in). Só aparece quando há o que melhorar. */
+  correcao?: CorrecaoDaFala;
+  /** As ETIQUETAS DE PALAVRAS (na Faixa, já sem o ponto "nova para você"). */
+  etiquetador?: Etiquetador | null;
 }) {
   const tocar = (e: MouseEvent<HTMLElement>) => {
     const alvo = (e.target as HTMLElement).closest<HTMLElement>('[data-palavra]');
@@ -103,24 +218,51 @@ function LinhaDaLegenda({
         }
       : undefined;
   const classeDoLado = modo === 'conversa' ? (fala.lado === 'eles' ? 'eles' : 'eles b') : '';
+  /* O resumo das etiquetas da fala, como DESCRIÇÃO (atributo): a região viva da janela não o anuncia. */
+  const descricao = useMemo(() => {
+    if (!etiquetador) return undefined;
+    const lang = fala.lang ?? '';
+    const palavras = fala.original
+      .split(/\s+/)
+      .flatMap((p) => palavrasDoPedaco(p, lang))
+      .map(limparPalavra);
+    return descricaoDaLinha(resumoDasEtiquetas(palavras.map((p) => [p, etiquetador.etiqueta(p, lang)] as const)));
+  }, [etiquetador, fala.original, fala.lang]);
 
   return (
     <div
       data-fala={fala.id}
-      className={`leg-fala ${classeDoLado} ${emFoco ? 'atual' : 'anterior'}`}
+      className={`leg-fala ${classeDoLado} ${emFoco ? 'atual' : 'anterior'}${marcasSutis ? ' marcas-sutis' : ''}`}
       aria-current={emFoco ? 'true' : undefined}
+      aria-description={descricao}
       onClick={tocarNaFala}
     >
       {modo === 'conversa' && <span className="leg-quem">{fala.quem}</span>}
-      <span
-        className="leg-o"
-        lang={fala.lang || undefined}
-        dir={fala.lang ? direcaoDoTexto(fala.lang) : undefined}
-        onClick={tocar}
-      >
-        <Palavras texto={fala.original} lang={fala.lang ?? ''} aprendidas={aprendidas} />
-      </span>
-      {modoDaTraducao !== 'oculta' && !fala.traducao && fala.sobDemanda && aoRevelarTraducao ? (
+      {soTraducao && fala.traducao ? (
+        <span className="leg-o leg-o-traducao">
+          <TextoComOcultas texto={fala.traducao} />
+        </span>
+      ) : (
+        <span
+          className="leg-o"
+          lang={fala.lang || undefined}
+          dir={fala.lang ? direcaoDoTexto(fala.lang) : undefined}
+          onClick={tocar}
+        >
+          <Palavras
+            texto={fala.original}
+            lang={fala.lang ?? ''}
+            aprendidas={aprendidas}
+            marcas={marcas}
+            aoTocarMarca={aoTocarMarca ? (m) => aoTocarMarca(m, fala) : undefined}
+            etiquetador={etiquetador}
+          />
+        </span>
+      )}
+      {soTraducao && fala.traducao ? null : modoDaTraducao !== 'oculta' &&
+        !fala.traducao &&
+        fala.sobDemanda &&
+        aoRevelarTraducao ? (
         /* Compacto, na cor e no tamanho da linha de tradução que ele substitui. */
         <button
           type="button"
@@ -132,8 +274,16 @@ function LinhaDaLegenda({
       ) : (
         traducaoVisivel &&
         fala.traducao && (
-          <span className={`leg-t ${modoDaTraducao === 'discreta' ? 'discreta' : 'sempre'}`}>{fala.traducao}</span>
+          <span className={`leg-t ${modoDaTraducao === 'discreta' ? 'discreta' : 'sempre'}`}>
+            <TextoComOcultas texto={fala.traducao} />
+          </span>
         )
+      )}
+      {correcao && !correcao.ok && correcao.corrigida.trim() && (
+        <span className="leg-correcao" title={correcao.dica || undefined}>
+          <Sparkles aria-hidden /> {t('Mais natural:')} <span lang={fala.lang || undefined}>{correcao.corrigida}</span>
+          {correcao.dica && <span className="leg-correcao-dica"> · {correcao.dica}</span>}
+        </span>
       )}
       <div className="leg-acoes" role="group" aria-label={t('Ações da fala')}>
         {aoOuvir && (

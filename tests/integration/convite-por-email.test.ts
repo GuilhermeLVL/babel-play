@@ -28,19 +28,19 @@ import {
 const MSG: MensagemDeConvite = {
   idDoConvite: 'conv-123',
   para: 'mae.da.ana@exemplo.com',
-  link: 'https://babelplay.com.br/responsavel?token=abc',
+  link: 'https://frasy.com.br/responsavel?token=abc',
   quemConvidou: 'Ana',
   exigeConsentimentoEspecifico: false,
   expiraEm: Date.UTC(2026, 9, 1, 15, 0, 0),
 }
-const OPCOES = { chave: 're_teste_123', remetente: 'Babel Play <nao-responda@babelplay.com.br>', esperaMs: 0 }
+const OPCOES = { chave: 're_teste_123', remetente: 'Frasy <nao-responda@frasy.com.br>', esperaMs: 0 }
 
 const ok = () => new Response(JSON.stringify({ id: 'email-1' }), { status: 200 })
 
 describe('montarEmailDoConvite', () => {
   it('pt-BR: quem pediu, o que se autoriza, o link, a validade e como recusar', () => {
     const e = montarEmailDoConvite(MSG)
-    expect(e.assunto).toMatch(/Babel Play/)
+    expect(e.assunto).toMatch(/Frasy/)
     for (const trecho of ['Ana', MSG.link, '7 dias', '01/10/2026', 'ignore', 'responsável legal']) {
       expect(e.texto, trecho).toContain(trecho)
     }
@@ -179,7 +179,7 @@ describe('qual enviador está em uso', () => {
 
   it('com as duas: o do Resend', async () => {
     const f = vi.fn(async () => ok())
-    const env = { RESEND_API_KEY: ' re_x ', EMAIL_REMETENTE: 'Babel Play <nao-responda@babelplay.com.br>' }
+    const env = { RESEND_API_KEY: ' re_x ', EMAIL_REMETENTE: 'Frasy <nao-responda@frasy.com.br>' }
     const r = await enviadorAtual(env, f as unknown as typeof fetch).enviar(MSG)
     expect(r).toEqual({ enviado: true, modo: 'email' })
     expect(f).toHaveBeenCalledTimes(1)

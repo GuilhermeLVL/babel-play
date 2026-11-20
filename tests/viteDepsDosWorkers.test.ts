@@ -73,6 +73,10 @@ function pacotesDoWorker(entrada: string): Map<string, string> {
       if (alvo.startsWith('.')) {
         const local = resolver(arquivo, alvo.replace(/\?.*$/, ''))
         if (local && /\.tsx?$/.test(local)) fila.push(local)
+      } else if (alvo.includes('?')) {
+        // `?url`, `?raw`, `?worker`…: o Vite tira esses ids da otimização de dependências
+        // (`SPECIAL_QUERY_RE`), então nunca disparam a re-otimização que este teste vigia.
+        continue
       } else if (ehPacote(alvo)) {
         pacotes.set(alvo, path.relative(RAIZ, arquivo).replace(/\\/g, '/'))
       }

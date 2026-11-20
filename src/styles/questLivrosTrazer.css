@@ -1,0 +1,229 @@
+/* ── Trazer o seu: zona de soltar, aviso de direitos, guia de fontes e ajuda ─────────────────── */
+.lv-soltar {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 28px 16px;
+  text-align: center;
+  border: 2px dashed var(--border-strong, var(--border-subtle));
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--accent, #3b82f6) 5%, var(--surface));
+  cursor: pointer;
+}
+.lv-soltar:hover,
+.lv-soltar.arrastando {
+  border-color: var(--accent, #3b82f6);
+  background: color-mix(in srgb, var(--accent, #3b82f6) 12%, var(--surface));
+}
+.lv-soltar[aria-disabled='true'] {
+  opacity: 0.6;
+  cursor: progress;
+}
+.lv-soltar svg {
+  width: 32px;
+  height: 32px;
+}
+.lv-soltar b {
+  font: 800 19px/1.2 var(--font-display, inherit);
+}
+.lv-soltar span {
+  font: 600 15px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.lv-soltar .q-ctl {
+  color: inherit;
+}
+.lv-direitos {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 8px 0 0;
+  font: 600 14px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.lv-direitos svg {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+}
+.lv-lembrete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1.5px solid var(--border-subtle);
+  background: var(--surface);
+  font: 600 15px/1.4 var(--font-body, inherit);
+}
+.lv-estado-do-trazer progress {
+  width: 100%;
+  max-width: 320px;
+}
+.lv-onde h4 {
+  margin: 14px 0 4px;
+  font: 800 16px/1.3 var(--font-display, inherit);
+}
+.lv-fontes {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.lv-fonte {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 14px;
+}
+.lv-fonte-texto {
+  flex: 1 1 240px;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  font: 600 15px/1.4 var(--font-body, inherit);
+}
+.lv-fonte-texto small {
+  color: var(--ink-muted);
+}
+.lv-fonte .q-ctl svg {
+  width: 16px;
+  height: 16px;
+}
+.lv-ajuda summary {
+  cursor: pointer;
+  font: 800 17px/1.3 var(--font-display, inherit);
+}
+.lv-ajuda p {
+  margin: 10px 0 0;
+  font: 600 15px/1.5 var(--font-body, inherit);
+}
+
+/* ── Passos, formatos aceitos (chips), linha do DRM, cartão "Pronto!" e o botão do cabeçalho ─── */
+.lv-passos {
+  list-style: none;
+  margin: 0 0 4px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.lv-passo {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.lv-passo b {
+  display: block;
+  font: 800 16px/1.25 var(--font-display, inherit);
+}
+.lv-passo small {
+  display: block;
+  margin-top: 2px;
+  font: 600 13px/1.35 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.lv-passo-n {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent, #3b82f6);
+  color: #fff;
+  font: 800 15px/1 var(--font-display, inherit);
+}
+@media (max-width: 640px) {
+  .lv-passos {
+    grid-template-columns: 1fr;
+  }
+}
+.lv-formatos {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+.lv-formatos-grupo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+}
+.lv-formatos-rotulo {
+  font: 800 14px/1.2 var(--font-display, inherit);
+  min-width: 96px;
+}
+.lv-formatos-grupo ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.lv-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--accent, #3b82f6) 8%, var(--surface));
+  font: 700 13px/1.2 var(--font-body, inherit);
+}
+.lv-drm {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-weight: 800;
+}
+.lv-drm svg {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+}
+.lv-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--accent, #3b82f6);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.lv-pronto:focus-visible {
+  outline: 3px solid var(--accent, #3b82f6);
+  outline-offset: 2px;
+}
+.lv-pronto h3 {
+  margin: 0 0 4px;
+}
+.lv-pronto .q-acoes .q-ctl svg {
+  width: 16px;
+  height: 16px;
+}
+.lv-trazer-cab {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.lv-chamada-trazer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.lv-chamada-trazer svg {
+  width: 18px;
+  height: 18px;
+}

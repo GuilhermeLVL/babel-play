@@ -1,0 +1,110 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Bancada: reconhecimento local do Chrome</title>
+<script>
+  // API da bancada do reconhecimento de fala no aparelho (SpeechRecognition com processLocally).
+  // A fala entra por MediaStreamTrack (AudioBufferSource -> MediaStreamDestination), em tempo real.
+  const R = () => window.SpeechRecognition || window.webkitSpeechRecognition
+  window.cl = {
+    info() {
+      return { temApi: !!R(), temAvailable: !!(R() && R().available), temInstall: !!(R() && R().install), ua: navigator.userAgent }
+    },
+    async disponivel(lang) {
+      return String(await R().available({ langs: [lang], processLocally: true }))
+    },
+    async instalar(lang, prazoMs) {
+      const t0 = performance.now()
+      const p = R().install({ langs: [lang], processLocally: true })
+      const r = await Promise.race([p, new Promise((_, e) => setTimeout(() => e(new Error('prazo de instalacao')), prazoMs))])
+      return { ok: !!r, retorno: String(r), ms: performance.now() - t0 }
+    },
+    // Reconhece um WAV inteiro. Devolve o texto final concatenado, o tempo e eventuais erros.
+    async reconhecer(url, lang, prazoMs, modo = 'buffer') {
+      const buf = await (await fetch(url)).arrayBuffer()
+      const ctx = new AudioContext()
+      const audio = await ctx.decodeAudioData(buf)
+      const dest = ctx.createMediaStreamDestination()
+      const fonte = ctx.createBufferSource()
+      fonte.buffer = audio
+      fonte.connect(dest)
+      let faixa = dest.stream.getAudioTracks()[0]
+      let el = null
+      if (modo === 'audio') {
+        el = new Audio(url)
+        el.crossOrigin = 'anonymous'
+        await new Promise((ok) => { el.oncanplaythrough = ok; el.load() })
+        await el.play()
+        el.pause()
+        el.currentTime = 0
+        faixa = el.captureStream().getAudioTracks()[0]
+        fonte.start = () => el.play()
+        Object.defineProperty(fonte, 'onended', { set(f) { el.onended = f } })
+      }
+      const rec = new (R())()
+      rec.lang = lang
+      rec.continuous = true
+      rec.interimResults = true
+      rec.processLocally = true
+      const finais = []
+      const eventos = []
+      const interinos = []
+      for (const n of ['audiostart','soundstart','speechstart','speechend','soundend','audioend','nomatch','start'])
+        rec.addEventListener(n, () => eventos.push(n + '@' + Math.round(performance.now() - t0)))
+      let erro = null
+      let t0 = 0
+      let tFim = 0
+      let tUltimo = 0
+      const terminou = new Promise((ok) => {
+        rec.onresult = (e) => {
+          eventos.push('result@' + Math.round(performance.now() - t0))
+          for (let i = e.resultIndex; i < e.results.length; i++) interinos.push(e.results[i][0].transcript)
+          for (let i = e.resultIndex; i < e.results.length; i++)
+            if (e.results[i].isFinal) {
+              finais[i] = e.results[i][0].transcript
+              tUltimo = performance.now()
+            }
+        }
+        rec.onerror = (e) => {
+          erro = `${e.error}: ${e.message || ''}`
+        }
+        rec.onend = () => ok('end')
+        fonte.onended = () => {
+          tFim = performance.now()
+          // dá tempo para o último resultado final e então pede o fim
+          setTimeout(() => {
+            try {
+              rec.stop()
+            } catch {}
+          }, 3000)
+        }
+      })
+      try {
+        rec.start(faixa)
+      } catch (e) {
+        await ctx.close()
+        return { ok: false, erro: `start(track): ${e.name}: ${e.message}` }
+      }
+      t0 = performance.now()
+      fonte.start()
+      const r = await Promise.race([terminou, new Promise((ok) => setTimeout(() => ok('prazo'), prazoMs))])
+      try {
+        rec.abort()
+      } catch {}
+      await ctx.close()
+      const fim = performance.now()
+      return {
+        ok: !erro || finais.filter(Boolean).length > 0,
+        texto: finais.filter(Boolean).join(' ').trim(),
+        erro,
+        saida: r,
+        eventos,
+        interinos,
+        duracaoS: audio.duration,
+        ms: tUltimo ? tUltimo - t0 : fim - t0,
+        msTotal: fim - t0,
+        latenciaAposFimMs: tUltimo && tFim ? Math.max(0, tUltimo - tFim) : null,
+      }
+    },
+  }
+  window.bancada = window.cl
+</script>

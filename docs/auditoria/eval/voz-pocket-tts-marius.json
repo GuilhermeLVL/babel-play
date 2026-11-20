@@ -1,0 +1,512 @@
+{
+  "tipo": "roundtrip",
+  "geradoEm": "2026-11-01T22:52:07.372Z",
+  "motor": "pocket-tts",
+  "voz": "marius",
+  "whisper": "onnx-community/whisper-small",
+  "medidas": {
+    "porIdioma": {
+      "pt": {
+        "cer": 0.08129543952412426,
+        "wer": 0.22893258426966293,
+        "itensAcerto": 0.6052631578947368,
+        "itensNumerosEAnos": 1,
+        "semAudio": 0,
+        "invalidos": 0,
+        "foraDaMediana": 0
+      },
+      "en": {
+        "cer": 0.17422096317280453,
+        "wer": 0.2696629213483146,
+        "itensAcerto": 0.8823529411764706,
+        "itensNumerosEAnos": 1,
+        "semAudio": 0,
+        "invalidos": 0,
+        "foraDaMediana": 0
+      },
+      "es": {
+        "cer": 0.14563106796116504,
+        "wer": 0.2682926829268293,
+        "itensAcerto": 0.42857142857142855,
+        "itensNumerosEAnos": 0,
+        "semAudio": 0,
+        "invalidos": 0,
+        "foraDaMediana": 0.25
+      }
+    }
+  },
+  "pendentes": ["estabilidade"],
+  "avaliacao": {
+    "passou": false,
+    "falhas": [
+      "pt: CER 8,1 % acima do máximo de 3,0 %",
+      "pt: WER 22,9 % acima do máximo de 8,0 %",
+      "pt: itens difíceis corretos 60,5 % abaixo do mínimo de 85,0 %",
+      "en: CER 17,4 % acima do máximo de 2,0 %",
+      "en: WER 27,0 % acima do máximo de 5,0 %",
+      "en: itens difíceis corretos 88,2 % abaixo do mínimo de 90,0 %",
+      "es: CER 14,6 % acima do máximo de 3,0 %",
+      "es: WER 26,8 % acima do máximo de 7,0 %",
+      "es: itens difíceis corretos 42,9 % abaixo do mínimo de 90,0 %",
+      "es: números e anos corretos 0,0 % abaixo do mínimo de 100,0 %",
+      "es: frases fora de ±30% da mediana 25,0 % acima do máximo de 3,0 %"
+    ]
+  },
+  "origem": {
+    "versaoPreprocessador": "1",
+    "preprocessado": true
+  },
+  "frases": [
+    {
+      "id": "en-dialogo",
+      "idioma": "en",
+      "referencia": "“My dear Mr. Bennet,” said his lady to him one day, “have you heard that Netherfield Park is let at last?”\nMr. Bennet replied that he had not.\n“But it is,” returned she; “for Mrs. Long has just been here, and she told me all about it.”",
+      "referenciaNormalizada": "my dear mr bennet said his lady to him one day have you heard that netherfield park is let at last mr bennet replied that he had not but it is returned she for mrs long has just been here and she told me all about it",
+      "hipotese": "My dear Mr. Bennett said his lady to him one day, Have you heard that Netherfield Park has let it last? Mr. Bennet replied he had not but it is returned she for Mrs Long has just been here and told me all about",
+      "hipoteseNormalizada": "my dear mr bennett said his lady to him one day have you heard that netherfield park has let it last mr bennet replied he had not but it is returned she for mrs long has just been here and told me all about",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.1276595744680851,
+      "cer": 0.07647058823529412,
+      "itens": {
+        "acertos": 2,
+        "total": 2,
+        "porTipo": {
+          "nome": [2, 2]
+        }
+      },
+      "duracaoS": 17.44
+    },
+    {
+      "id": "en-literario",
+      "idioma": "en",
+      "referencia": "It is a truth universally acknowledged, that a single man in possession of a good fortune must be in want of a wife.\nHowever little known the feelings or views of such a man may be on his first entering a neighbourhood, this truth is so well fixed in the minds of the surrounding families, that he is considered as the rightful property of some one or other of their daughters.",
+      "referenciaNormalizada": "it is a truth universally acknowledged that a single man in possession of a good fortune must be in want of a wife however little known the feelings or views of such a man may be on his first entering a neighbourhood this truth is so well fixed in the minds of the surrounding families that he is considered as the rightful property of some one or other of their daughters",
+      "hipotese": "It is a truth universally acknowledged that, however little known the feelings or views of such man may be on his first entering in neighborhood this Truth so well fixed within the minds and surrounding families. That he considered as the rightful property for someone other than their daughters",
+      "hipoteseNormalizada": "it is a truth universally acknowledged that however little known the feelings or views of such man may be on his first entering in neighborhood this truth so well fixed within the minds and surrounding families that he considered as the rightful property for someone other than their daughters",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.4084507042253521,
+      "cer": 0.26490066225165565,
+      "itens": {
+        "acertos": 0,
+        "total": 0,
+        "porTipo": {}
+      },
+      "duracaoS": 18.38
+    },
+    {
+      "id": "en-nomes-estrangeiros",
+      "idioma": "en",
+      "referencia": "The library keeps letters from Gabriel García Márquez, Machado de Assis and Marie Skłodowska-Curie, and a map of Kraków.",
+      "referenciaNormalizada": "the library keeps letters from gabriel garcía márquez machado de assis and marie skłodowska curie and a map of kraków",
+      "hipotese": "The library keeps letters from Gabriel Garcia Marquez, Machado de Asis and Maurice Cardozca Curie. And a map of Krakow!",
+      "hipoteseNormalizada": "the library keeps letters from gabriel garcia marquez machado de asis and maurice cardozca curie and a map of krakow",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.3,
+      "cer": 0.1326530612244898,
+      "itens": {
+        "acertos": 2,
+        "total": 4,
+        "porTipo": {
+          "nome": [2, 4]
+        }
+      },
+      "duracaoS": 7.76
+    },
+    {
+      "id": "en-numeros",
+      "idioma": "en",
+      "referencia": "In 1776 the town had 2,450 people; the book costs $19.99, and the train leaves at 7:30 on the 3rd of May.",
+      "referenciaNormalizada": "in 1776 the town had 2450 people the book costs $1999 and the train leaves at 730 on the 3rd of may",
+      "hipotese": "In 1776, the town had 2,450 people. The book costs $1999 and a train leaves at 730 on 3 May.",
+      "hipoteseNormalizada": "in 1776 the town had 2450 people the book costs $1999 and a train leaves at 730 on 3 may",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.18181818181818182,
+      "cer": 0.1282051282051282,
+      "itens": {
+        "acertos": 5,
+        "total": 5,
+        "porTipo": {
+          "ano": [1, 1],
+          "numero": [4, 4]
+        }
+      },
+      "duracaoS": 8.16
+    },
+    {
+      "id": "en-siglas",
+      "idioma": "en",
+      "referencia": "NASA and the FBI sent a report on the UN, the NATO budget and the BBC to MIT.",
+      "referenciaNormalizada": "nasa and the fbi sent a report on the un the nato budget and the bbc to mit",
+      "hipotese": "NASA and the FBI send a report on the UN, NATO budget and BBC to MIT.",
+      "hipoteseNormalizada": "nasa and the fbi send a report on the un nato budget and bbc to mit",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.16666666666666666,
+      "cer": 0.1206896551724138,
+      "itens": {
+        "acertos": 6,
+        "total": 6,
+        "porTipo": {
+          "sigla": [6, 6]
+        }
+      },
+      "duracaoS": 5.28
+    },
+    {
+      "id": "es-literario",
+      "idioma": "es",
+      "referencia": "En un lugar de la Mancha, de cuyo nombre no quiero acordarme, no ha mucho tiempo que vivía un hidalgo de los de lanza en astillero, adarga antigua, rocín flaco y galgo corredor. Una olla de algo más vaca que carnero, salpicón las más noches, duelos y quebrantos los sábados, lantejas los viernes, algún palomino de añadidura los domingos, consumían las tres partes de su hacienda.",
+      "referenciaNormalizada": "en un lugar de la mancha de cuyo nombre no quiero acordarme no ha mucho tiempo que vivía un hidalgo de los de lanza en astillero adarga antigua rocín flaco y galgo corredor una olla de algo más vaca que carnero salpicón las más noches duelos y quebrantos los sábados lantejas los viernes algún palomino de añadidura los domingos consumían las tres partes de su hacienda",
+      "hipotese": "En un lugar de la mancha, De cuyo nombre no quiero acordarme No a mucho tiempo que vivía Un hidalgo delos de lanza en astillero A darga antigua, prosín flaco y galgo corredor Una olla de algo más vaca Que carnero salpicó en las mas noches Vuelos y quebrantos los sábados Lantejas los viernes Algún palomino de añadidura Los domingos consumían Las tres partes de su hacienda",
+      "hipoteseNormalizada": "en un lugar de la mancha de cuyo nombre no quiero acordarme no a mucho tiempo que vivía un hidalgo delos de lanza en astillero a darga antigua prosín flaco y galgo corredor una olla de algo más vaca que carnero salpicó en las mas noches vuelos y quebrantos los sábados lantejas los viernes algún palomino de añadidura los domingos consumían las tres partes de su hacienda",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.15151515151515152,
+      "cer": 0.019736842105263157,
+      "itens": {
+        "acertos": 0,
+        "total": 0,
+        "porTipo": {}
+      },
+      "duracaoS": 22.14
+    },
+    {
+      "id": "es-nomes-estrangeiros",
+      "idioma": "es",
+      "referencia": "La biblioteca guarda cartas de Friedrich Nietzsche, Machado de Assis y Marie Curie, y un mapa de Zúrich.",
+      "referenciaNormalizada": "la biblioteca guarda cartas de friedrich nietzsche machado de assis y marie curie y un mapa de zúrich",
+      "hipotese": "La biblioteca guarda cartas de Friedrich Nietzsche, Machado de Asi sin Marie Curie y un mapa de Zurich.",
+      "hipoteseNormalizada": "la biblioteca guarda cartas de friedrich nietzsche machado de asi sin marie curie y un mapa de zurich",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.16666666666666666,
+      "cer": 0.047619047619047616,
+      "itens": {
+        "acertos": 3,
+        "total": 4,
+        "porTipo": {
+          "nome": [3, 4]
+        }
+      },
+      "duracaoS": 7.04
+    },
+    {
+      "id": "es-numeros",
+      "idioma": "es",
+      "referencia": "En 1492 el barco llevaba 1.250 sacos; el libro cuesta 24,50 euros y el tren sale a las 7:30.",
+      "referenciaNormalizada": "en 1492 el barco llevaba 1250 sacos el libro cuesta 2450 euros y el tren sale a las 730",
+      "hipotese": "En el permaro Padua, el barco llevaba a Pugme. Basi a Bradenizacos, en libro cuesta hacia Máremo, Bradentío Euros y el tren sale al Azul.",
+      "hipoteseNormalizada": "en el permaro padua el barco llevaba a pugme basi a bradenizacos en libro cuesta hacia máremo bradentío euros y el tren sale al azul",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.7894736842105263,
+      "cer": 0.8260869565217391,
+      "itens": {
+        "acertos": 0,
+        "total": 4,
+        "porTipo": {
+          "ano": [0, 1],
+          "numero": [0, 3]
+        }
+      },
+      "duracaoS": 9.04
+    },
+    {
+      "id": "es-siglas",
+      "idioma": "es",
+      "referencia": "La ONU y la UNAM enviaron al CSIC y a la RAE un informe sobre la OTAN y la UE.",
+      "referenciaNormalizada": "la onu y la unam enviaron al csic y a la rae un informe sobre la otan y la ue",
+      "hipotese": "La ONU y la UNAM enviaron al ZIKI a darles un informe sobre la OTAN y la OE.",
+      "hipoteseNormalizada": "la onu y la unam enviaron al ziki a darles un informe sobre la otan y la oe",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.25,
+      "cer": 0.13793103448275862,
+      "itens": {
+        "acertos": 3,
+        "total": 6,
+        "porTipo": {
+          "sigla": [3, 6]
+        }
+      },
+      "duracaoS": 5.04
+    },
+    {
+      "id": "pt-dialogo",
+      "idioma": "pt",
+      "referencia": "--Quem lhe impede que vá a outras partes? Vá aonde quizer, mas fique morando comnosco.\n--Voltarei daqui a tres mezes.",
+      "referenciaNormalizada": "quem lhe impede que vá a outras partes vá aonde quizer mas fique morando comnosco voltarei daqui a tres mezes",
+      "hipotese": "Quem impede que vá a outras partes? Vá onde quiser, mas fique morando conosco. Voltarei daqui há 3 meses!",
+      "hipoteseNormalizada": "quem impede que vá a outras partes vá onde quiser mas fique morando conosco voltarei daqui há três meses",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.35,
+      "cer": 0.1111111111111111,
+      "itens": {
+        "acertos": 0,
+        "total": 0,
+        "porTipo": {}
+      },
+      "duracaoS": 7.68
+    },
+    {
+      "id": "pt-dom-casmurro-cap1",
+      "idioma": "pt",
+      "referencia": "Uma noite destas, vindo da cidade para o Engenho Novo, encontrei no trem da Central um rapaz aqui do bairro, que eu conheço de vista e de chapéo. Comprimentou-me, sentou-se ao pé de mim, falou da lua e dos ministros, e acabou recitando-me versos. A viagem era curta, e os versos póde ser que não fossem inteiramente maus. Succedeu, porém, que como eu estava cançado, fechei os olhos tres ou quatro vezes; tanto bastou para que elle interrompesse a leitura e mettesse os versos no bolso.",
+      "referenciaNormalizada": "uma noite destas vindo da cidade para o engenho novo encontrei no trem da central um rapaz aqui do bairro que eu conheço de vista e de chapéo comprimentou me sentou se ao pé de mim falou da lua e dos ministros e acabou recitando me versos a viagem era curta e os versos póde ser que não fossem inteiramente maus succedeu porém que como eu estava cançado fechei os olhos tres ou quatro vezes tanto bastou para que elle interrompesse a leitura e mettesse os versos no bolso",
+      "hipotese": "Uma noite destas, vindo da cidade para o Engenho Novo, encontrei no trem da central um rapaz aqui do bairro que eu conheço de vista e de chapéu. Comprimentou-me sentou seu pé de mim falou da lua dos ministros e acabou recitando-me versos A viagem era curta e os versos pode ser que não fossem inteiramente maus. Sucedeu porém como eu estava cansado fechei os olhos três ou quatro vezes tanto bastou para que ele interrompesse a leitura e metesse os versos no bolso.",
+      "hipoteseNormalizada": "uma noite destas vindo da cidade para o engenho novo encontrei no trem da central um rapaz aqui do bairro que eu conheço de vista e de chapéu comprimentou me sentou seu pé de mim falou da lua dos ministros e acabou recitando me versos a viagem era curta e os versos pode ser que não fossem inteiramente maus sucedeu porém como eu estava cansado fechei os olhos três ou quatro vezes tanto bastou para que ele interrompesse a leitura e metesse os versos no bolso",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.12359550561797752,
+      "cer": 0.033942558746736295,
+      "itens": {
+        "acertos": 1,
+        "total": 1,
+        "porTipo": {
+          "nome": [1, 1]
+        }
+      },
+      "duracaoS": 28.54
+    },
+    {
+      "id": "pt-dom-casmurro-cap5",
+      "idioma": "pt",
+      "referencia": "Era nosso aggregado desde muitos annos; meu pae ainda estava na antiga fazenda de Itaguahy, e eu acabava de nascer. Um dia appareceu alli vendendo-se por medico homeopatha; levava um Manual e uma botica. Havia então um andaço de febres; José Dias curou o feitor e uma escrava, e não quiz receber nenhuma remuneração.",
+      "referenciaNormalizada": "era nosso aggregado desde muitos annos meu pae ainda estava na antiga fazenda de itaguahy e eu acabava de nascer um dia appareceu alli vendendo se por medico homeopatha levava um manual e uma botica havia então um andaço de febres josé dias curou o feitor e uma escrava e não quiz receber nenhuma remuneração",
+      "hipotese": "Era nosso agregado desde muitos anos. Meu pai ainda estava na antiga fazenda de Itaguai, e eu acabava de nascer. Um dia apareceu ali vendendo-se por médico meu pata. Levava um manual e uma búrtica. Havia então um andasso de febres. José Dias curou o feitor em uma escrava e não quis receber nenhuma remuneração",
+      "hipoteseNormalizada": "era nosso agregado desde muitos anos meu pai ainda estava na antiga fazenda de itaguai e eu acabava de nascer um dia apareceu ali vendendo se por médico meu pata levava um manual e uma búrtica havia então um andasso de febres josé dias curou o feitor em uma escrava e não quis receber nenhuma remuneração",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.23636363636363636,
+      "cer": 0.07086614173228346,
+      "itens": {
+        "acertos": 2,
+        "total": 2,
+        "porTipo": {
+          "nome": [2, 2]
+        }
+      },
+      "duracaoS": 19.58
+    },
+    {
+      "id": "pt-eca",
+      "idioma": "pt",
+      "referencia": "A minha intimidade com Fradique Mendes começou em 1880, em Paris, pela Paschoa,--justamente na semana em que elle regressára da sua viagem á Africa Austral. O meu conhecimento porém com esse homem admiravel datava de Lisboa, do anno remoto de 1867. Foi no verão d'esse anno, uma tarde, no café Martinho, que encontrei, n'um numero já amarrotado da Revolução de Setembro, este nome de C. Fradique Mendes, em letras enormes, por baixo de versos que me maravilharam.",
+      "referenciaNormalizada": "a minha intimidade com fradique mendes começou em mil oitocentos e oitenta em paris pela paschoa justamente na semana em que elle regressára da sua viagem á africa austral o meu conhecimento porém com esse homem admiravel datava de lisboa do anno remoto de mil oitocentos e sessenta e sete foi no verão d esse anno uma tarde no café martinho que encontrei n um numero já amarrotado da revolução de setembro este nome de c fradique mendes em letras enormes por baixo de versos que me maravilharam",
+      "hipotese": "A minha intimidade com o Fradik Mendes começou em 1880, em Paris pela Pachoa. Justamente na semana em que ele regressara da sua viagem à África austral? Meu conhecimento porém com esse homem admirável da Tava de Lisboa do ano remoto de 1867. Foi no verão desse ano uma tarde, no Café Martinho, que encontrei um número já amarrotado da Revolução de Setembro Este nome de cabo isto é nome de cabra. Fragilemente, em letras enormes por baixo diversos que me maravilharam!",
+      "hipoteseNormalizada": "a minha intimidade com o fradik mendes começou em mil oitocentos e oitenta em paris pela pachoa justamente na semana em que ele regressara da sua viagem à áfrica austral meu conhecimento porém com esse homem admirável da tava de lisboa do ano remoto de mil oitocentos e sessenta e sete foi no verão desse ano uma tarde no café martinho que encontrei um número já amarrotado da revolução de setembro este nome de cabo isto é nome de cabra fragilemente em letras enormes por baixo diversos que me maravilharam",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.29545454545454547,
+      "cer": 0.09803921568627451,
+      "itens": {
+        "acertos": 3,
+        "total": 4,
+        "porTipo": {
+          "nome": [1, 2],
+          "ano": [2, 2]
+        }
+      },
+      "duracaoS": 31.5
+    },
+    {
+      "id": "pt-entonacao",
+      "idioma": "pt",
+      "referencia": "Você realmente achou que eu ia embora sem dizer nada? Que absurdo! Mas, tudo bem, eu perdoo, desde que você me conte a verdade.",
+      "referenciaNormalizada": "você realmente achou que eu ia embora sem dizer nada que absurdo mas tudo bem eu perdoo desde que você me conte a verdade",
+      "hipotese": "Você realmente achou que eu ia embora sem dizer nada? Que absurdo! Mas tudo bem, eu perdoo desde que você me conte a verdade.",
+      "hipoteseNormalizada": "você realmente achou que eu ia embora sem dizer nada que absurdo mas tudo bem eu perdoo desde que você me conte a verdade",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0,
+      "cer": 0,
+      "itens": {
+        "acertos": 0,
+        "total": 0,
+        "porTipo": {}
+      },
+      "duracaoS": 8
+    },
+    {
+      "id": "pt-estrangeirismo",
+      "idioma": "pt",
+      "referencia": "Depois do workshop, o time de marketing fez um brunch, revisou o feedback do cliente e marcou o deadline no calendário.",
+      "referenciaNormalizada": "depois do workshop o time de marketing fez um brunch revisou o feedback do cliente e marcou o deadline no calendário",
+      "hipotese": "Depois do OX, o time de Mark Tim de fez um gruncha. Revisou fedacto cliente mar ou the adline no calendário",
+      "hipoteseNormalizada": "depois do ox o time de mark tim de fez um gruncha revisou fedacto cliente mar ou the adline no calendário",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.5714285714285714,
+      "cer": 0.22916666666666666,
+      "itens": {
+        "acertos": 0,
+        "total": 5,
+        "porTipo": {
+          "nome": [0, 5]
+        }
+      },
+      "duracaoS": 7.76
+    },
+    {
+      "id": "pt-frase-longa",
+      "idioma": "pt",
+      "referencia": "No dia seguinte entrou a dizer de mim nomes feios, e acabou alcunhando-me Dom Casmurro. Os visinhos, que não gostam dos meus habitos reclusos e calados, deram curso á alcunha, que afinal pegou. Nem por isso me zanguei. Contei a anecdota aos amigos da cidade, e elles, por graça, chamam-me assim, alguns em bilhetes: «Dom Casmurro, domingo vou jantar com você.»--«Vou para Petropolis, Dom Casmurro; a casa é a mesma da Rhenania; vê se deixas essa caverna do Engenho Novo, e vae lá passar uns quinze dias commigo.»--«Meu caro Dom Casmurro, não cuide que o dispenso do theatro amanhã; venha e dormirá aqui na cidade; dou-lhe camarote, dou-lhe chá, dou-lhe cama; só não lhe dou moça.»",
+      "referenciaNormalizada": "no dia seguinte entrou a dizer de mim nomes feios e acabou alcunhando me dom casmurro os visinhos que não gostam dos meus habitos reclusos e calados deram curso á alcunha que afinal pegou nem por isso me zanguei contei a anecdota aos amigos da cidade e elles por graça chamam me assim alguns em bilhetes dom casmurro domingo vou jantar com você vou para petropolis dom casmurro a casa é a mesma da rhenania vê se deixas essa caverna do engenho novo e vae lá passar uns quinze dias commigo meu caro dom casmurro não cuide que o dispenso do theatro amanhã venha e dormirá aqui na cidade dou lhe camarote dou lhe chá dou lhe cama só não lhe dou moça",
+      "hipotese": "No dia seguinte, entrou a dizer de mil nomes feios e acabou alcunhando-me Dom Casmurro. Os vizinhos que não gostam dos meus habitos reclusos e calados deram curso à alcunha, que afinal pegou. Nem por isso me zandei. Ontem é anedota aos amigos da cidade, e eles, por graça chamam-me assim alguns em bilhetes Don Casmurro, domingo vou jantar com você. Vou para Petrópolis? Don Casmorro? A casa é a mesma da reemania! Deixe-se dessa caverna do Engenho novo e vai lá passar uns 15 dias comigo Meu caro don casmurru não cuide que o dispensso do teatro amanhã venha e dormirá aqui na cidade Dole Camarote, dole chá, dore cama só não de Dom Moça",
+      "hipoteseNormalizada": "no dia seguinte entrou a dizer de mil nomes feios e acabou alcunhando me dom casmurro os vizinhos que não gostam dos meus habitos reclusos e calados deram curso à alcunha que afinal pegou nem por isso me zandei ontem é anedota aos amigos da cidade e eles por graça chamam me assim alguns em bilhetes don casmurro domingo vou jantar com você vou para petrópolis don casmorro a casa é a mesma da reemania deixe se dessa caverna do engenho novo e vai lá passar uns quinze dias comigo meu caro don casmurru não cuide que o dispensso do teatro amanhã venha e dormirá aqui na cidade dole camarote dole chá dore cama só não de dom moça",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.24390243902439024,
+      "cer": 0.07442748091603053,
+      "itens": {
+        "acertos": 3,
+        "total": 4,
+        "porTipo": {
+          "nome": [3, 4]
+        }
+      },
+      "duracaoS": 43.88
+    },
+    {
+      "id": "pt-homografos",
+      "idioma": "pt",
+      "referencia": "Com sede, passei pela sede da empresa antes do almoço, porque eu almoço cedo, e o acordo que fizemos só vale se eu acordo cedo.",
+      "referenciaNormalizada": "com sede passei pela sede da empresa antes do almoço porque eu almoço cedo e o acordo que fizemos só vale se eu acordo cedo",
+      "hipotese": "Concede? Passei pela sede da empresa antes do almoço, porque o almoçoe cedo e o acordo que fizemos só vale ser o acordo cedo.",
+      "hipoteseNormalizada": "concede passei pela sede da empresa antes do almoço porque o almoçoe cedo e o acordo que fizemos só vale ser o acordo cedo",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.24,
+      "cer": 0.0707070707070707,
+      "itens": {
+        "acertos": 0,
+        "total": 0,
+        "porTipo": {}
+      },
+      "duracaoS": 7.84
+    },
+    {
+      "id": "pt-nomes-estrangeiros",
+      "idioma": "pt",
+      "referencia": "A biblioteca guarda cartas de Friedrich Nietzsche, Marie Curie e Mahatma Gandhi, além de uma edição de Dostoiévski vinda de Zurique.",
+      "referenciaNormalizada": "a biblioteca guarda cartas de friedrich nietzsche marie curie e mahatma gandhi além de uma edição de dostoiévski vinda de zurique",
+      "hipotese": "A biblioteca guarda cartas de Friedrich Nietzsche, Marie Curie e Marc Kambagandi. Além de uma edição de Dostoevsky Vinda de Zurich",
+      "hipoteseNormalizada": "a biblioteca guarda cartas de friedrich nietzsche marie curie e marc kambagandi além de uma edição de dostoevsky vinda de zurich",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.19047619047619047,
+      "cer": 0.11009174311926606,
+      "itens": {
+        "acertos": 2,
+        "total": 5,
+        "porTipo": {
+          "nome": [2, 5]
+        }
+      },
+      "duracaoS": 9.36
+    },
+    {
+      "id": "pt-numeros",
+      "idioma": "pt",
+      "referencia": "Em 1889 a República foi proclamada; o livro custa R$ 49,90, a viagem tem 1.250 quilômetros e o trem sai às 7h30.",
+      "referenciaNormalizada": "em mil oitocentos e oitenta e nove a república foi proclamada o livro custa quarenta e nove reais e noventa centavos a viagem tem mil duzentos e cinquenta quilômetros e o trem sai às sete horas e trinta",
+      "hipotese": "Em 1889, a República foi proplamada. O livro custa R$ 49,90. A viagem tem 1.250 quilômetros e o trem sai às 7 horas e 30.",
+      "hipoteseNormalizada": "em mil oitocentos e oitenta e nove a república foi proplamada o livro custa quarenta e nove reais e noventa centavos a viagem tem mil duzentos e cinquenta quilômetros e o trem sai às sete horas e trinta",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.02631578947368421,
+      "cer": 0.006060606060606061,
+      "itens": {
+        "acertos": 4,
+        "total": 4,
+        "porTipo": {
+          "ano": [1, 1],
+          "numero": [3, 3]
+        }
+      },
+      "duracaoS": 12.72
+    },
+    {
+      "id": "pt-reticencias",
+      "idioma": "pt",
+      "referencia": "--É um modo de falar. Em segredinhos, sempre juntos. Bentinho quasi que não sae de lá. A pequena é uma desmiolada; o pae faz que não vê; tomara elle que as cousas corressem de maneira, que... Comprehendo o seu gesto; a senhora não crê em taes calculos, parece-lhe que todos têm a alma candida...",
+      "referenciaNormalizada": "é um modo de falar em segredinhos sempre juntos bentinho quasi que não sae de lá a pequena é uma desmiolada o pae faz que não vê tomara elle que as cousas corressem de maneira que comprehendo o seu gesto a senhora não crê em taes calculos parece lhe que todos têm a alma candida",
+      "hipotese": "É um modo de falar, em segredinhos sempre juntos. Bentinho quase que não sai de lá! A pequena é uma desmiolada... O pai faz que não vê. Tomara ele e as coisas corressem de maneira que fora cumpriendo seu gesto. As senhora não creem em tais calculos. Parece-lhe todos têm a alma candida roádea",
+      "hipoteseNormalizada": "é um modo de falar em segredinhos sempre juntos bentinho quase que não sai de lá a pequena é uma desmiolada o pai faz que não vê tomara ele e as coisas corressem de maneira que fora cumpriendo seu gesto as senhora não creem em tais calculos parece lhe todos têm a alma candida roádea",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.23636363636363636,
+      "cer": 0.12946428571428573,
+      "itens": {
+        "acertos": 0,
+        "total": 0,
+        "porTipo": {}
+      },
+      "duracaoS": 20.4
+    },
+    {
+      "id": "pt-romanos-ordinais",
+      "idioma": "pt",
+      "referencia": "O papa João Paulo II nasceu no século XX; o 3º andar fica abaixo do 10º, e o capítulo XIV começa na página 21.",
+      "referenciaNormalizada": "o papa joão paulo segundo nasceu no século vinte o terceiro andar fica abaixo do décimo e o capítulo catorze começa na página vinte e um",
+      "hipotese": "Papa João Paulo, segundo nasceu no século XX. O terceiro andar fica abaixo do décimo e o capítulo XIV começa na página 21.",
+      "hipoteseNormalizada": "papa joão paulo segundo nasceu no século vinte o terceiro andar fica abaixo do décimo e o capítulo catorze começa na página vinte e um",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.038461538461538464,
+      "cer": 0.009009009009009009,
+      "itens": {
+        "acertos": 6,
+        "total": 6,
+        "porTipo": {
+          "nome": [1, 1],
+          "numero": [5, 5]
+        }
+      },
+      "duracaoS": 7.6
+    },
+    {
+      "id": "pt-siglas",
+      "idioma": "pt",
+      "referencia": "A USP e a UNICAMP entregaram ao IBGE e à NASA um estudo sobre o INSS, o SUS e a ONU.",
+      "referenciaNormalizada": "a u ésse pê e a unicamp entregaram ao i bê gê é e à nasa um estudo sobre o i êne ésse ésse o ésse u ésse e a onu",
+      "hipotese": "A USP e a UNE entregaram ao IBGE, é IANAS. Um estudo sobre o INSSS, OUSS, ya ou?",
+      "hipoteseNormalizada": "a u ésse pê e a une entregaram ao i bê gê é é ianas um estudo sobre o insss ouss ya ou",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.4838709677419355,
+      "cer": 0.2926829268292683,
+      "itens": {
+        "acertos": 2,
+        "total": 7,
+        "porTipo": {
+          "sigla": [2, 7]
+        }
+      },
+      "duracaoS": 9.52
+    },
+    {
+      "id": "pt-soneto",
+      "idioma": "pt",
+      "referencia": "Alma minha gentil, que te partiste\nTão cedo desta vida descontente,\nRepousa lá no Ceo eternamente,\nE viva eu cá na terra sempre triste.\nSe lá no assento Ethereo, onde subiste,\nMemoria desta vida se consente,\nNão te esqueças de aquelle amor ardente,\nQue ja nos olhos meus tão puro viste.\nE se vires que póde merecer-te\nAlgũa cousa a dor que me ficou\nDa mágoa, sem remedio, de perder-te;\nRoga a Deos que teus annos encurtou,\nQue tão cedo de cá me leve a ver-te,\nQuão cedo de meus olhos te levou.",
+      "referenciaNormalizada": "alma minha gentil que te partiste tão cedo desta vida descontente repousa lá no ceo eternamente e viva eu cá na terra sempre triste se lá no assento ethereo onde subiste memoria desta vida se consente não te esqueças de aquelle amor ardente que ja nos olhos meus tão puro viste e se vires que póde merecer te algũa cousa a dor que me ficou da mágoa sem remedio de perder te roga a deos que teus annos encurtou que tão cedo de cá me leve a ver te quão cedo de meus olhos te levou",
+      "hipotese": "Alma minha gentil, que te partiste tão cedo desta vida descontente, repousa lá no céu eternamente e viva eu cá na terra sempre triste. Se lá no acento etéreo onde subiste memoria desta vida se consente não te esqueças de aquele amor ardente que já nos olhos meus tão puro visti! E se vires que pode merecer te algar a coisa dor que me ficou da mágoa sem remédio de perderte? roga a Deus que teus anos encurtou, de tão cedo de camilhévia verde com o cedo dos meus olhos te levou.",
+      "hipoteseNormalizada": "alma minha gentil que te partiste tão cedo desta vida descontente repousa lá no céu eternamente e viva eu cá na terra sempre triste se lá no acento etéreo onde subiste memoria desta vida se consente não te esqueças de aquele amor ardente que já nos olhos meus tão puro visti e se vires que pode merecer te algar a coisa dor que me ficou da mágoa sem remédio de perderte roga a deus que teus anos encurtou de tão cedo de camilhévia verde com o cedo dos meus olhos te levou",
+      "semAudio": false,
+      "invalido": false,
+      "wer": 0.25,
+      "cer": 0.0783289817232376,
+      "itens": {
+        "acertos": 0,
+        "total": 0,
+        "porTipo": {}
+      },
+      "duracaoS": 32.14
+    }
+  ]
+}

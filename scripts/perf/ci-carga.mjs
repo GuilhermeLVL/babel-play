@@ -7,7 +7,7 @@
  *        [--duracao=<slo.json>] [--conexoes=<slo.json>] [--p95=<slo.json>] [--porta=3150] [--rotas=<slo.json>]
  *
  * Sobe o SERVIDOR BUILDADO (o mesmo `dist-server/server.cjs` que vai na imagem) com NODE_ENV=production
- * e um banco VAZIO num diretório temporário (as migrations rodam no boot, como no Fly), no modo
+ * e um banco VAZIO num diretório temporário (as migrations rodam no boot), no modo
  * self-host (AUTH_REQUIRED=0 + SELF_HOST=1: sem JWT e sem limitadores, então o número é o custo da
  * rota, não o da borda). Para cada rota, `--duracao` segundos de autocannon com `--conexoes`
  * conexões, e cobra:
@@ -113,9 +113,8 @@ async function principal() {
       NODE_ENV: 'production',
       PORT: String(porta),
       HOST: '127.0.0.1',
-      DATABASE_URL: `file:${path.join(tmp, 'babel.db').replace(/\\/g, '/')}`,
+      DATABASE_URL: `pglite:${path.join(tmp, 'pg').replace(/\\/g, '/')}`,
       AUDIO_DIR: path.join(tmp, 'audio'),
-      BACKUP_DIARIO: '0',
       SECRET_KEY: randomBytes(32).toString('hex'),
       AUTH_REQUIRED: '0',
       SELF_HOST: '1',

@@ -1,8 +1,8 @@
-import { createHash,randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 
 import { and, asc, desc, eq, gt, sql } from 'drizzle-orm'
 
-import { db } from '../db'
+import { db, linhasAfetadas } from '../db'
 import { rank } from '../schema'
 
 /**
@@ -39,7 +39,10 @@ export interface LinhaDoRanking {
  */
 export function sanearApelido(bruto: unknown): string | null {
   if (typeof bruto !== 'string') return null
-  const limpo = bruto.replace(/[^\p{L}\p{N} _-]/gu, '').trim().slice(0, 20)
+  const limpo = bruto
+    .replace(/[^\p{L}\p{N} _-]/gu, '')
+    .trim()
+    .slice(0, 20)
   return limpo.length >= 3 ? limpo : null
 }
 
@@ -86,9 +89,14 @@ export const rankRepo = {
    * arbitra isso, não uma leitura anterior.
    */
   async registrar(input: {
-    jogo: string; apelido: string; pontos: number; combo: number; ipHash: string; agora: number
+    jogo: string
+    apelido: string
+    pontos: number
+    combo: number
+    ipHash: string
+    agora: number
   }): Promise<{ ok: true; manteve: boolean }> {
-    const r = await db.run(sql`
+    const r = await db.execute(sql`
       INSERT INTO ${rank} (id, criado_em, jogo, apelido, pontos, combo, ip_hash)
       VALUES (${randomUUID()}, ${input.agora}, ${input.jogo}, ${input.apelido}, ${input.pontos}, ${input.combo}, ${input.ipHash})
       ON CONFLICT (jogo, apelido) DO UPDATE SET
@@ -99,6 +107,6 @@ export const rankRepo = {
       WHERE excluded.pontos > ${rank}.pontos
     `)
     /* 0 linhas afetadas = o `WHERE` do UPDATE recusou, ou seja, o recorde guardado é melhor. */
-    return { ok: true, manteve: Number((r as { rowsAffected?: number }).rowsAffected ?? 0) === 0 }
+    return { ok: true, manteve: linhasAfetadas(r) === 0 }
   },
 }

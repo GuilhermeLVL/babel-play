@@ -282,32 +282,6 @@ export async function podarCacheDeTraducao(
 }
 
 /**
- * Liga a poda diária do L2 — o mesmo padrão da limpeza de convidados e da retenção de áudio
- * (`server/lib/limpezaDeConvidados.ts`): no processo que prepara os dados, temporizador com
- * `unref()`, primeira passada minutos depois do boot. Devolve como desligar.
- */
-export function agendarPodaDoCacheDeTraducao(o: { atrasoInicialMs?: number; intervaloMs?: number } = {}): () => void {
-  let relogio: NodeJS.Timeout | undefined
-  const rodar = async () => {
-    try {
-      await podarCacheDeTraducao()
-    } catch (err) {
-      log('error', { event: 'mt_cache_l2_poda_erro', error: mensagem(err) })
-    }
-  }
-  const armar = (ms: number) => {
-    relogio = setTimeout(() => {
-      void rodar().finally(() => armar(o.intervaloMs ?? DIA_MS))
-    }, ms)
-    relogio.unref?.()
-  }
-  armar(o.atrasoInicialMs ?? 11 * 60_000)
-  return () => {
-    if (relogio) clearTimeout(relogio)
-  }
-}
-
-/**
  * Só para testes: começa cada caso sem traduções guardadas — L1 e, se já foi carregado, o L2 (se
  * não foi, este processo não gravou nada nele). Devolve a promessa: o hook que a retorna (ou a
  * aguarda) só segue com o L2 vazio.

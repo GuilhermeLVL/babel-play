@@ -68,3 +68,30 @@ describe('nomeDoArquivoDaConversa', () => {
     expect(nomeDoArquivoDaConversa('Conversa: 02/10/2026 *teste*')).toBe('Conversa- 02-10-2026 -teste-.md')
   })
 })
+
+/* CEL-01: a fala sem tradução sai SEM linha de tradução — nunca com o original repetido. */
+describe('conversaEmMarkdown: fala sem tradução', () => {
+  it('a tradução vazia (sem rota ou falha) não vira linha de tradução', () => {
+    const md = conversaEmMarkdown(
+      [{ id: '1', lado: 'outro', originalText: 'Perdón, ¿dónde está la salida?', translatedText: '' }],
+      { titulo: 'x', rotulos, idiomas },
+    )
+    expect(md).toContain('Perdón, ¿dónde está la salida?')
+    expect(md).not.toContain('>')
+  })
+
+  it('a degradação antiga, "(original)", também não sai como tradução', () => {
+    const md = conversaEmMarkdown(
+      [
+        {
+          id: '1',
+          lado: 'outro',
+          originalText: 'Perdón, ¿dónde está la salida?',
+          translatedText: '(Perdón, ¿dónde está la salida?)',
+        },
+      ],
+      { titulo: 'x', rotulos, idiomas },
+    )
+    expect(md).not.toContain('(Perdón')
+  })
+})

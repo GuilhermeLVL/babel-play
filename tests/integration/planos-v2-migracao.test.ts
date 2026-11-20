@@ -13,6 +13,9 @@
  *   - nos gatilhos de OFERTA o nome antigo SAI, em vez de virar `premium`: eram gatilhos de venda do
  *     Pro, e o Premium não tem para onde subir. Lista que ficaria vazia vira `["premium"]`;
  *   - o payload continua passando no schema de ofertas.
+ *
+ * Postgres (Fase 1): a 0041 é da cadeia SQLITE legada e roda sobre ela (`sqliteLegado.ts`): é ela que
+ * leva o banco de produção à forma que a cópia para o Postgres recebe. O Postgres nasce no estado final.
  */
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -20,12 +23,13 @@ import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
+import { abrirSqliteLegado, PASTA_SQLITE_LEGADO, type SqliteLegado } from '../harness/sqliteLegado'
 
 type Cliente = {
   execute: (q: string | { sql: string; args: unknown[] }) => Promise<{ rows: Array<Record<string, unknown>> }>
 }
 
-const MIGRACAO = path.join('server', 'db', 'migrations', '0041_planos_v2.sql')
+const MIGRACAO = path.join(PASTA_SQLITE_LEGADO, '0041_planos_v2.sql')
 /** Só os UPDATEs: o `ALTER TABLE ... ADD` não é reexecutável, e é o dado que interessa aqui. */
 const updatesDaMigracao = () =>
   readFileSync(MIGRACAO, 'utf8')
@@ -34,13 +38,18 @@ const updatesDaMigracao = () =>
     .filter((c) => /^UPDATE\b/i.test(c))
 
 let h: EphemeralDb
+let legado: SqliteLegado
 let client: Cliente
 
 beforeAll(async () => {
+  /* O harness do Postgres só carrega os módulos do servidor (os schemas de flags e ofertas); o dado
+     migrado é o do SQLite legado, que é onde esta migração existe (ver `sqliteLegado.ts`). */
   h = await setupEphemeralDb()
-  client = ((await h.load('../../server/db/db')) as { client: Cliente }).client
+  legado = await abrirSqliteLegado()
+  client = legado.client as unknown as Cliente
 })
 afterAll(async () => {
+  legado.fechar()
   await h.cleanup()
 })
 

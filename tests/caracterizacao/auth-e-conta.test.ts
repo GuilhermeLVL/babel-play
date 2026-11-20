@@ -42,6 +42,13 @@ describe('modo publico (AUTH_REQUIRED=1, JWT ES256)', () => {
     )
   })
 
+  it('sem token, as rotas de IA de estudo (POST) tambem respondem 401, antes da flag e do corpo', async () => {
+    for (const caminho of ['/api/ai/explicar', '/api/ai/resumir', '/api/ai/feedback']) {
+      const r = await s.post(caminho, {})
+      expect(r.status, caminho).toBe(401)
+    }
+  })
+
   it('token invalido (assinado por outra chave) tambem e 401', async () => {
     const { SignJWT, generateKeyPair } = await import('jose')
     const outra = await generateKeyPair('ES256')
@@ -103,14 +110,17 @@ describe('modo publico (AUTH_REQUIRED=1, JWT ES256)', () => {
   })
 
   it('rotas de admin exigem papel: usuario comum recebe 403', async () => {
-    const t = await s.token('usuario-a')
+    // Com segundo fator (aal2): aqui o que se prova é o papel, não a porta do 2FA.
+    const t = await s.token('usuario-a', { aal: 'aal2' })
     const r = await s.get('/api/admin/users', t)
     expect(r.status).toBe(403)
   })
 
-  it('/api/audio e /api/import/youtube nao existem no modo hospedado (403)', async () => {
+  it('/api/audio nao existe no modo hospedado (403) e /api/import/youtube foi aposentada (410)', async () => {
     const t = await s.token('usuario-a')
     expect((await s.get('/api/audio/loopback/support', t)).status).toBe(403)
-    expect((await s.post('/api/import/youtube', { url: 'https://youtu.be/x' }, t)).status).toBe(403)
+    const yt = await s.post('/api/import/youtube', { url: 'https://youtu.be/x' }, t)
+    expect(yt.status).toBe(410)
+    expect(((await yt.json()) as { code?: string }).code).toBe('rota_removida')
   })
 })

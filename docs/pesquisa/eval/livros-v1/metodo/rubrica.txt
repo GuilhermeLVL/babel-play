@@ -1,0 +1,8 @@
+Rubrica binária (1 = sim, 0 = não), por função:
+- valor: resolve uma dor real e importante das personas?
+- frequencia: seria usada com frequência (semanal ou mais) por quem lê no Frasy?
+- viavel: dá para fazer bem no navegador agora, com o que existe (foliate-js, PDF.js, speechSynthesis, deck FSRS, IA já integrada), sem pesquisa nova?
+- custo_baixo: custo por uso baixo (zero ou centavos, ou coberto por cache)?
+- risco_baixo: baixo risco para menores e baixo risco legal (direito autoral, LGPD, ECA Digital)?
+- diferencial_pago: é um bom motivo para pagar? (informativo, não entra na nota)
+- simples: simples de usar, sem explicação?

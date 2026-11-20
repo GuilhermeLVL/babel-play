@@ -10,6 +10,7 @@ import {
   NIVEIS,
 } from '../../../../lib/captura/nivelDeServico';
 import { type SeloDaFala, textoDoSelo } from '../../../../lib/captura/seloDaFala';
+import { diaQueACotaVolta } from '../../../../lib/diaQueACotaVolta';
 import { t } from '../../../../lib/i18n';
 import { langLabelNaUI } from '../../../../lib/languages';
 import { entraSuave } from '../../../../lib/polimento/enxuto';
@@ -201,7 +202,9 @@ export default function FolhaComoFunciona({
                 <LinhaDoMedidor key={m.nivel} m={m} />
               ))}
               <p className="pj-como-ajudas">
-                {t('Quando as horas acabam, a legenda segue no aparelho, sem travar nada. Elas voltam no dia 1º.')}
+                {t('Quando as horas acabam, a legenda segue no aparelho, sem travar nada. Elas voltam em {data}.', {
+                  data: diaQueACotaVolta(),
+                })}
               </p>
             </div>
           </>

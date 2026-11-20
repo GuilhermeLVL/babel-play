@@ -128,3 +128,43 @@ describe('whisperWorker sem dica de idioma ("Detectar")', () => {
     for (const d of decodes) expect(d.task ?? 'transcribe').toBe('transcribe')
   })
 })
+
+describe('whisperWorker: a conferência do idioma do turno (conversa-de-verdade, 3.1)', () => {
+  const conferir = async (language: string, segundos: number) => {
+    await onmessage({
+      data: {
+        type: 'transcribe',
+        id: 'c',
+        pcm: new Float32Array(16000 * segundos),
+        language,
+        conferirIdioma: true,
+        model: 'onnx-community/whisper-base',
+      },
+    } as MessageEvent)
+    const decodesReais = decodes.filter((d) => d.max_new_tokens !== 8)
+    return { decode: decodesReais.at(-1)!, resultado: postadas.find((m) => m.type === 'result') }
+  }
+
+  it('espanhol no lado do inglês: transcreve na dica e devolve o idioma ouvido, com a confiança', async () => {
+    logitsDoIdioma = new Float32Array([0, 1, 0, 8]) // es domina
+    const { decode, resultado } = await conferir('en', 3)
+    expect(passosDeDeteccao).toHaveLength(1)
+    expect(decode.language).toBe('en')
+    expect(resultado?.idiomaConferido).toMatchObject({ idioma: 'es' })
+    expect((resultado?.idiomaConferido as { confianca: number }).confianca).toBeGreaterThan(0.9)
+    /* A dica não vira "medição": o `language` segue ausente. */
+    expect(resultado?.language).toBeUndefined()
+  })
+
+  it('fala com menos de 2 s não é conferida (a detecção erra demais em trecho curto)', async () => {
+    logitsDoIdioma = new Float32Array([0, 1, 0, 8])
+    const { resultado } = await conferir('en', 1.5)
+    expect(passosDeDeteccao).toHaveLength(0)
+    expect(resultado?.idiomaConferido).toBeUndefined()
+  })
+
+  it('sem o pedido, nada muda: a dica pula a detecção', async () => {
+    await transcrever('en')
+    expect(passosDeDeteccao).toHaveLength(0)
+  })
+})

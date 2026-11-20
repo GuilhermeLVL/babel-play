@@ -1,9 +1,9 @@
 ---
 name: custo-de-ia
-description: Use ao mexer em provedores ou modelos de IA, planos, cotas, teste grátis, orçamento, preço ou roteamento do Babel Play. Aplica as regras de custo, privacidade e qualidade do projeto e dá os comandos para medir antes de afirmar. Palavras-chave - custo, OpenRouter, Groq, modelo, cota, plano, teste, orçamento, STT, tradução, retenção zero.
+description: Use ao mexer em provedores ou modelos de IA, planos, cotas, teste grátis, orçamento, preço ou roteamento do Frasy. Aplica as regras de custo, privacidade e qualidade do projeto e dá os comandos para medir antes de afirmar. Palavras-chave - custo, OpenRouter, Groq, modelo, cota, plano, teste, orçamento, STT, tradução, retenção zero.
 ---
 
-# Custo de IA do Babel Play
+# Custo de IA do Frasy
 
 O produto precisa ser **acessível, dar lucro e ser eficiente**. O grátis custa zero (roda no aparelho); a nuvem é a amostra de qualidade que vende a assinatura. Antes de mudar qualquer coisa que gaste dinheiro, siga isto.
 
@@ -13,7 +13,7 @@ O produto precisa ser **acessível, dar lucro e ser eficiente**. O grátis custa
 2. **Só retenção zero.** Todo pedido ao OpenRouter leva `provider: { zdr: true, data_collection: "deny" }` e ignora o Google (`parametrosDoProvedor`). Nada de modelo `:free` (pode treinar com dados).
 3. **Chave nunca em arquivo versionado, nunca impressa.** Está no `.env` (`OPENROUTER_API_KEY`); scripts a leem em tempo de execução e só mostram "definida/ausente".
 4. **Não contradiga o dono**: preços, Ao Vivo fechado, anúncios desligados, anual fechado até o parecer. Fonte: `openspec/changes/planos-v3-e-rota-inteligente/design.md`.
-5. **O teste de 14 dias acaba no que vier primeiro, os 14 dias ou `FRANQUIA_DO_TESTE`** (3 h de nuvem). Não devolva o Premium inteiro ao teste.
+5. **O teste de 3 dias acaba no que vier primeiro, os 3 dias ou `FRANQUIA_DO_TESTE`** (1 h de nuvem). Não devolva o Premium inteiro ao teste.
 
 ## Medir antes de afirmar
 

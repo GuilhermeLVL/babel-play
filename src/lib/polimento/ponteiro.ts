@@ -4,6 +4,7 @@
  *
  * Itens da lista `fidelidade/casca-e-telas.md`: B2, B36, B37, B38.
  */
+import { zoomDoCorpo } from '../zoomDoCorpo';
 import { anima, EVENTO_DOS_ESTILOS, polido, reduz } from './base';
 
 const BOTAO_COM_LUZ = 'button.q-tile:not(.apagado):not(:disabled), button.q-linha:not(:disabled)';
@@ -130,8 +131,10 @@ export function instalarPonteiro(): () => void {
     if (c && r) {
       const l = c.lastElementChild as HTMLElement | null;
       if (l?.classList.contains('px-luz')) {
-        l.style.setProperty('--mx', e.clientX - r.left + 'px');
-        l.style.setProperty('--my', e.clientY - r.top + 'px');
+        /* Retângulo e evento em px da janela; a luz é gravada em px do body, onde vale `zoom` (o tamanho do texto). */
+        const z = zoomDoCorpo();
+        l.style.setProperty('--mx', (e.clientX - r.left) / z + 'px');
+        l.style.setProperty('--my', (e.clientY - r.top) / z + 'px');
       }
     }
     const k = c && c.matches('.q-tile:not(.em-linha)') ? c : null;
@@ -156,13 +159,15 @@ export function instalarPonteiro(): () => void {
     if (!b || (b as HTMLButtonElement).disabled) return;
     if (getComputedStyle(b).position === 'static') b.style.position = 'relative';
     const r = b.getBoundingClientRect();
-    const d = Math.hypot(r.width, r.height) * 2;
+    /* px da janela → px do body (zoom do tamanho do texto). */
+    const z = zoomDoCorpo();
+    const d = (Math.hypot(r.width, r.height) * 2) / z;
     const caixa = document.createElement('i');
     caixa.className = 'px-onda-caixa';
     caixa.setAttribute('aria-hidden', 'true');
     const o = document.createElement('i');
     o.className = 'px-onda';
-    o.style.cssText = `width:${d}px;height:${d}px;left:${e.clientX - r.left - d / 2}px;top:${e.clientY - r.top - d / 2}px`;
+    o.style.cssText = `width:${d}px;height:${d}px;left:${(e.clientX - r.left) / z - d / 2}px;top:${(e.clientY - r.top) / z - d / 2}px`;
     caixa.append(o);
     b.append(caixa);
     const some = () => caixa.remove();
@@ -244,7 +249,10 @@ export function instalarPonteiro(): () => void {
     aura[0] += (mouse[0] - aura[0]) * 0.07;
     aura[1] += (mouse[1] - aura[1]) * 0.07;
     const [esquerda, topo] = cantoDe(main);
-    garantirAura(main).style.transform = `translate(${aura[0] - esquerda - 310}px, ${aura[1] - topo - 310}px)`;
+    /* A aura é desenhada no body: a distância medida na janela volta a px do body (zoom do tamanho do texto). */
+    const z = zoomDoCorpo();
+    garantirAura(main).style.transform =
+      `translate(${(aura[0] - esquerda) / z - 310}px, ${(aura[1] - topo) / z - 310}px)`;
     if (Math.abs(mouse[0] - aura[0]) < AURA_CHEGOU && Math.abs(mouse[1] - aura[1]) < AURA_CHEGOU) {
       auraRodando = false;
       return;

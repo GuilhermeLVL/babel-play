@@ -12,7 +12,7 @@
  *  · gravando, o Pausar ao lado do Encerrar;
  *  · no headset a tela fica como era.
  */
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -21,6 +21,15 @@ vi.mock('../src/components/Toast', () => ({
   toast: { info: avisos.info, ok: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
 vi.mock('../src/lib/polimento/sentidos', () => ({ sentir: vi.fn(), vibrar: vi.fn() }))
+/* Task 4, correção 1: escolher um nível grava a escolha INTEIRA por `escolherProcessamento` (a mesma dos
+   Ajustes). Aqui ela é observada; o que ela grava é testado em `tests/escolhaDoProcessamento.test.tsx`. */
+const processamento = vi.hoisted(() => ({
+  escolher: vi.fn(async () => ({ qualidade: 'accurate', semChave: true, salvo: true })),
+}))
+vi.mock('../src/lib/escolhaDoProcessamento', async (orig) => {
+  const real = await orig<typeof import('../src/lib/escolhaDoProcessamento')>()
+  return { ...real, escolherProcessamento: processamento.escolher }
+})
 const aparelho = vi.hoisted(() => ({ tipo: 'desktop-com-gpu' as 'quest' | 'desktop-com-gpu' }))
 vi.mock('../src/lib/dispositivo/perfil', async (orig) => {
   const real = await orig<typeof import('../src/lib/dispositivo/perfil')>()
@@ -184,8 +193,13 @@ const base: Props = {
 
 const chip = () => screen.getByTestId('chip-de-estado')
 const faixa = (v: Element) => [...v.querySelectorAll('.q-faixa > *')].map((x) => x.textContent?.trim())
+/* Task 4 (23/10/2026): o chip virou o selo compacto, que abre o painel de processamento; a folha "Como
+   isto funciona" fica a um toque, no rodapé do painel. */
 const abrirFolha = () => {
   fireEvent.click(chip())
+  fireEvent.click(
+    within(screen.getByTestId('painel-de-processamento')).getByRole('button', { name: 'Como isto funciona' }),
+  )
   return within(screen.getByTestId('como-isto-funciona'))
 }
 
@@ -195,7 +209,8 @@ describe('a captura enxuta, pronta (enxuto.js:67-84)', () => {
     const v = container.firstElementChild as HTMLElement
     expect([...v.querySelectorAll('.px-vivo-topo > *')].map((x) => x.className)).toEqual([
       'q-chip',
-      'q-chip ex-estado',
+      /* Task 4: o selo compacto, no invólucro que ancora o popover do painel de processamento. */
+      'ex-selo-ancora',
       'q-espaco',
       'q-ctl',
       'q-ctl',
@@ -252,18 +267,17 @@ describe('a captura enxuta, pronta (enxuto.js:67-84)', () => {
 })
 
 describe('o chip de estado segue o selo da fala (enxuto.js:49-65)', () => {
-  it('antes da primeira fala diz o que VAI acontecer; o motivo vai na dica', () => {
+  /* Task 4 (23/10/2026): o chip virou o selo compacto (só o ícone). O texto que ele mostrava continua
+     inteiro no `title` e no `aria-label`; o motivo da política fica no "Agora" da folha "Como isto funciona". */
+  it('antes da primeira fala diz o que VAI acontecer, no title e no nome acessível do selo', () => {
     render(<CapturaDoPrototipo {...base} />)
-    expect(chip().querySelector('.ex-estado-txt')?.textContent).toBe(
-      'Vai rodar no aparelho · seu áudio não vai sair daqui',
-    )
-    expect(chip().querySelector('.ex-estado-txt b')?.textContent).toBe('Vai rodar no aparelho')
+    expect(chip().textContent).toBe('')
+    expect(chip().title).toBe('Vai rodar no aparelho · seu áudio não vai sair daqui')
     expect(chip().dataset.tom).toBe('')
     expect(chip().getAttribute('aria-haspopup')).toBe('dialog')
     expect(chip().getAttribute('aria-label')).toBe(
-      'Vai rodar no aparelho, seu áudio não vai sair daqui. Abrir o nível, o modelo e as horas de nuvem',
+      'Vai rodar no aparelho · seu áudio não vai sair daqui. Abrir o painel de processamento',
     )
-    expect(chip().getAttribute('title')).toBeTruthy()
   })
 
   it('TROCA quando o motor da última fala muda, e nunca diz "no aparelho" se o áudio saiu', () => {
@@ -271,15 +285,15 @@ describe('o chip de estado segue o selo da fala (enxuto.js:49-65)', () => {
       <CapturaDoPrototipo {...base} temFalas niveis={niveisDe({ selo, ambiente: { capacidades: COM_NUVEM } })} />
     )
     const { rerender } = render(com(seloDaFala(PREVISTO_NA_NUVEM, 'groq-whisper')))
-    expect(chip().textContent).toBe('Nuvem do Babel · o áudio vai para o nosso servidor')
+    expect(chip().title).toBe('Nuvem do Frasy · o áudio vai para o nosso servidor')
     expect(chip().dataset.tom).toBe('nuvem')
     rerender(com(seloDaFala(PREVISTO_NA_NUVEM, 'whisper-local')))
-    expect(chip().textContent).toBe('No aparelho · transcrita aqui, depois de tentar a nuvem')
+    expect(chip().title).toBe('No aparelho · transcrita aqui, depois de tentar a nuvem')
     expect(chip().dataset.tom).toBe('alerta')
     /* Previsto o aparelho, atendeu a nuvem: o chip diz a nuvem. */
     rerender(com(seloDaFala(PREVISTO_NO_APARELHO, 'groq-whisper')))
-    expect(chip().textContent).toContain('Nuvem do Babel')
-    expect(chip().textContent).not.toMatch(/no aparelho/i)
+    expect(chip().title).toContain('Nuvem do Frasy')
+    expect(chip().title).not.toMatch(/no aparelho/i)
   })
 
   it('na nuvem com horas contadas, o chip resume o medidor: "restam … neste mês"', async () => {
@@ -293,13 +307,12 @@ describe('o chip de estado segue o selo da fala (enxuto.js:49-65)', () => {
         })}
       />,
     )
-    expect(await screen.findByText(/restam 13 h 30 neste mês/)).toBeTruthy()
-    expect(chip().querySelector('b')?.textContent).toBe('Vai pela Nuvem do Babel')
+    await waitFor(() => expect(chip().title).toBe('Vai pela Nuvem do Frasy · restam 13 h 30 neste mês'))
   })
 
   it('sem selo (nada a afirmar) o chip continua sendo a porta da folha', () => {
     render(<CapturaDoPrototipo {...base} niveis={niveisDe({ selo: null })} />)
-    expect(chip().textContent).toBe('Como isto funciona')
+    expect(chip().title).toBe('Como isto funciona')
     expect(abrirFolha().getByText('Escolha o nível')).toBeTruthy()
   })
 
@@ -313,15 +326,15 @@ describe('o chip de estado segue o selo da fala (enxuto.js:49-65)', () => {
       />
     )
     const { rerender } = render(com(seloDaFala(PREVISTO_NO_APARELHO, 'whisper-local')))
-    expect(chip().textContent).toBe('Legendando · no aparelho · inglês → português (BR)')
+    expect(chip().title).toBe('Legendando · no aparelho · inglês → português (BR)')
     rerender(com(seloDaFala(PREVISTO_NA_NUVEM, 'groq-whisper')))
-    expect(chip().textContent).toBe('Legendando · na nuvem (Precisão) · inglês → português (BR)')
+    expect(chip().title).toBe('Legendando · na nuvem (Precisão) · inglês → português (BR)')
     /* A nuvem foi tentada antes: o chip não promete que o áudio ficou. */
     rerender(com(seloDaFala(PREVISTO_NA_NUVEM, 'whisper-local')))
-    expect(chip().textContent).toBe('Legendando · no aparelho, depois de tentar a nuvem · inglês → português (BR)')
+    expect(chip().title).toBe('Legendando · no aparelho, depois de tentar a nuvem · inglês → português (BR)')
     /* Nenhuma fala atendida ainda: o previsto, dito como previsto. */
     rerender(com(seloDaFala(PREVISTO_NO_APARELHO)))
-    expect(chip().textContent).toBe('Legendando · vai rodar no aparelho · inglês → português (BR)')
+    expect(chip().title).toBe('Legendando · vai rodar no aparelho · inglês → português (BR)')
   })
 
   it('no celular o par vai em siglas', () => {
@@ -336,7 +349,7 @@ describe('o chip de estado segue o selo da fala (enxuto.js:49-65)', () => {
         niveis={niveisDe({ selo: seloDaFala(PREVISTO_NO_APARELHO, 'whisper-local') })}
       />,
     )
-    expect(chip().textContent).toBe('Legendando · no aparelho · EN → PT')
+    expect(chip().title).toBe('Legendando · no aparelho · EN → PT')
     Reflect.deleteProperty(window, 'matchMedia')
   })
 })
@@ -382,19 +395,14 @@ describe('estadoDoChip (puro)', () => {
       resto: 'nada está sendo ouvido',
     })
     /* Pausada só existe gravando: parada, o chip volta ao selo. */
-    expect(estadoDoChip({ ...parado, selo, medidores: [], pausada: true }, t).forte).toBe('Nuvem do Babel')
+    expect(estadoDoChip({ ...parado, selo, medidores: [], pausada: true }, t).forte).toBe('Nuvem do Frasy')
   })
 })
 
 describe('a folha "Como isto funciona" guarda o que saiu da tela (enxuto.js:163-205)', () => {
   it('"Escolha o nível": o nível sem cadeado é escolhido ali mesmo, e grava a preferência de sempre', () => {
-    const gravar = vi.fn()
-    render(
-      <CapturaDoPrototipo
-        {...base}
-        niveis={niveisDe({ ambiente: { capacidades: COM_NUVEM }, aoEscolherQualidade: gravar })}
-      />,
-    )
+    processamento.escolher.mockClear()
+    render(<CapturaDoPrototipo {...base} niveis={niveisDe({ ambiente: { capacidades: COM_NUVEM } })} />)
     const como = abrirFolha()
     expect(como.getByText('Escolha o nível')).toBeTruthy()
     expect(como.queryByText('Os três níveis')).toBeNull()
@@ -404,9 +412,9 @@ describe('a folha "Como isto funciona" guarda o que saiu da tela (enxuto.js:163-
       'aovivo',
     ])
     fireEvent.click(como.getByRole('radio', { name: /Precisão/ }))
-    expect(gravar).toHaveBeenCalledWith('cloud')
+    expect(processamento.escolher).toHaveBeenCalledWith('nuvem', expect.anything())
     fireEvent.click(como.getByRole('radio', { name: /No aparelho/ }))
-    expect(gravar).toHaveBeenLastCalledWith('accurate')
+    expect(processamento.escolher).toHaveBeenLastCalledWith('aparelho', expect.anything())
     /* A folha continua aberta: o nível troca com ela à vista. */
     expect(screen.getByTestId('como-isto-funciona')).toBeTruthy()
   })
@@ -487,7 +495,8 @@ describe('a folha "Como isto funciona" guarda o que saiu da tela (enxuto.js:163-
         niveis={niveisDe({ selo: seloDaFala(PREVISTO_NA_NUVEM), ambiente: { capacidades: COM_NUVEM, carregarUso } })}
       />,
     )
-    await screen.findByText(/restam 13 h 30 neste mês/)
+    /* Task 4: o resumo das horas mora no title do selo compacto (o texto da pílula saiu da tela). */
+    await waitFor(() => expect(chip().title).toMatch(/restam 13 h 30 neste mês/))
     const como = abrirFolha()
     expect(como.getByRole('progressbar')).toBeTruthy()
     expect(screen.getByTestId('como-isto-funciona').querySelector('.ex-sem-nuvem')).toBeNull()
@@ -514,7 +523,7 @@ describe('gravando: o Pausar ao lado do Encerrar (enxuto.js:66, 82, 125-139)', (
     expect(botao.getAttribute('aria-label')).toBe('Retomar a captura')
     expect(botao.querySelector('.ex-pausar-t')?.textContent).toBe('Retomar')
     expect(container.firstElementChild?.classList.contains('ex-pausado')).toBe(true)
-    expect(chip().textContent).toBe('Pausado · nada está sendo ouvido')
+    expect(chip().title).toBe('Pausado · nada está sendo ouvido')
   })
 
   it('parada não há o que pausar; e sem a função (headset) o botão não existe', () => {

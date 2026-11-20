@@ -1,6 +1,6 @@
 <div align="center">
 
-# Babel Play
+# Frasy
 
 **Apprenez une langue avec ce que vous regardez, jouez et dites déjà.**
 Sous-titres et traduction en direct de n'importe quel audio de votre ordinateur, exécutés **sur votre propre appareil**, transformés en jeux de vocabulaire et en répétition espacée.
@@ -16,7 +16,7 @@ Sous-titres et traduction en direct de n'importe quel audio de votre ordinateur,
 
 </div>
 
-> **État (18/10/2026) :** pré-lancement. La facturation, la connexion et le déploiement sur Fly.io sont implémentés et testés, mais n'ont pas encore tourné dans un environnement réel. L'[état du lancement](docs/ESTADO-DO-LANCAMENTO.md) (en portugais) est la source unique de ce qui vaut aujourd'hui.
+> **État (18/10/2026) :** pré-lancement. La facturation et la connexion sont implémentées et testées, et le déploiement sur Cloudflare Workers tourne en staging ; la production n'est pas encore en ligne. L'[état du lancement](docs/ESTADO-DO-LANCAMENTO.md) (en portugais) est la source unique de ce qui vaut aujourd'hui.
 
 **Sommaire :** [Ce que c'est](#ce-que-cest) · [Lancer](#lancer) · [Architecture](#architecture) · [Offres et IA dans le cloud](#offres-et-ia-dans-le-cloud) · [Auto-hébergement](#auto-hébergement) · [Déploiement](#déploiement) · [Sécurité et confidentialité](#sécurité-et-confidentialité) · [Contribuer](#contribuer) · [Licence](#licence)
 
@@ -92,10 +92,10 @@ Identité (anonyme ou avec compte), offre et rôle sont des axes séparés, et l
 
 ## Offres et IA dans le cloud
 
-| Offre       | Ce que vous obtenez                                                                                                                                                                                                                           |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Gratuit** | Tout ce qui tourne sur l'appareil (capture, modèles locaux, étude, jeux). Pas d'IA gérée dans le cloud.                                                                                                                                       |
-| **Premium** | Transcription et traduction dans le cloud avec usage équitable quotidien et mensuel, voix naturelle de l'interprète. Commence par un essai sans carte, qui prend fin au bout de 14 jours ou au quota d'usage, selon ce qui arrive en premier. |
+| Offre       | Ce que vous obtenez                                                                                                                                                                                                                          |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Gratuit** | Tout ce qui tourne sur l'appareil (capture, modèles locaux, étude, jeux). Pas d'IA gérée dans le cloud.                                                                                                                                      |
+| **Premium** | Transcription et traduction dans le cloud avec usage équitable quotidien et mensuel, voix naturelle de l'interprète. Commence par un essai sans carte, qui prend fin au bout de 3 jours ou au quota d'usage, selon ce qui arrive en premier. |
 
 L'IA dans le cloud passe par OpenRouter avec rétention zéro des données et seulement après consentement. Les prix, les quotas et les décisions qui les sous-tendent sont dans [docs/ESTADO-DO-LANCAMENTO.md](docs/ESTADO-DO-LANCAMENTO.md) et [docs/monetizacao.md](docs/monetizacao.md). Le paiement passe par Asaas, et c'est le webhook du paiement qui accorde l'offre.
 
@@ -113,7 +113,7 @@ Le HTTPS est géré par le proxy inverse placé devant (Caddy, Traefik, nginx). 
 
 ## Déploiement
 
-La cible de production est Fly.io (GRU, une machine, SQLite répliqué par Litestream vers Cloudflare R2), avec Supabase pour la connexion, Cloudflare devant, Resend et Sentry. Le pas-à-pas du propriétaire est [docs/LANCAMENTO.md](docs/LANCAMENTO.md) ; l'exploitation est [docs/runbook.md](docs/runbook.md) ; le staging est [docs/STAGING.md](docs/STAGING.md). Le déploiement passe par `deploy.yml`, qui n'accepte qu'un commit dont la CI est verte.
+La cible de production est Cloudflare Workers (le même serveur Express, Postgres sur Supabase à São Paulo via Hyperdrive, R2 pour les médias et sauvegarde hebdomadaire par `pg_dump` ; voir l'[ADR 0015](docs/adr/0015-cloudflare-workers-no-lugar-do-fly.md)), avec Supabase pour la connexion, Resend et Sentry. L'auto-hébergement reste possible avec Docker/Node. Le pas-à-pas du propriétaire est [docs/LANCAMENTO.md](docs/LANCAMENTO.md) ; l'exploitation est [docs/runbook.md](docs/runbook.md) ; le staging est [docs/STAGING.md](docs/STAGING.md). Le déploiement passe par `deploy-worker.yml`, par versions Cloudflare, avec test de fumée et retour arrière automatique.
 
 ## Sécurité et confidentialité
 

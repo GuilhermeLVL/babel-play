@@ -23,6 +23,7 @@ import {
   lerRegistro,
   modeloProibido,
   obterSondaDoAparelho,
+  permitirModelo,
   proibirModelo,
   type RegistroDoAparelho,
   registroValido,
@@ -350,6 +351,21 @@ describe('proibirModelo / modeloProibido', () => {
     await proibirModelo('whisper-small', 'OOM', dep({ armazem }))
     expect(await modeloProibido('whisper-small', dep({ armazem, infoDoAdaptador: async () => null }))).toBe(false)
   })
+
+  it('permitirModelo é o inverso: tira o veto e o motivo, e deixa os outros', async () => {
+    const armazem = armazemFalso()
+    await proibirModelo('parakeet', 'a aba caiu', dep({ armazem }))
+    await proibirModelo('whisper-small', 'OOM', dep({ armazem }))
+    await permitirModelo('parakeet', dep({ armazem }))
+    expect(await modeloProibido('parakeet', dep({ armazem }))).toBe(false)
+    expect(await modeloProibido('whisper-small', dep({ armazem }))).toBe(true)
+    const reg = lerRegistro(armazem)!
+    expect(reg.motivosDaProibicao).toEqual({ 'whisper-small': 'OOM' })
+    // sem veto, não grava nada novo
+    const antes = armazem.getItem(CHAVE_DA_SONDA)
+    await permitirModelo('parakeet', dep({ armazem }))
+    expect(armazem.getItem(CHAVE_DA_SONDA)).toBe(antes)
+  })
 })
 
 /*
@@ -433,6 +449,17 @@ describe('sondarEMedir (benchmark preguiçoso) e sondaGuardada', () => {
     expect(a.benchmark).toEqual(bench)
     expect(b.benchmark).toEqual(bench)
     expect(medir).toHaveBeenCalledTimes(1)
+  })
+
+  it('forcarBenchmark mede de novo mesmo com um benchmark válido, e grava o novo (tela de modelos)', async () => {
+    const armazem = armazemFalso()
+    const novo = { ...bench, pontuacaoWasm: 3, medidoEm: 1_000_500 }
+    const medir = vi.fn().mockResolvedValueOnce(bench).mockResolvedValueOnce(novo)
+    await sondarEMedir(dep({ armazem, medirBenchmark: medir }))
+    const s = await sondarEMedir(dep({ armazem, medirBenchmark: medir }), undefined, { forcarBenchmark: true })
+    expect(medir).toHaveBeenCalledTimes(2)
+    expect(s.benchmark).toEqual(novo)
+    expect(lerRegistro(armazem)!.benchmark).toEqual(novo)
   })
 
   it('benchmark vencido (30 dias) é refeito; abortado não mede', async () => {

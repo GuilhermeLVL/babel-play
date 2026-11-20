@@ -6,7 +6,7 @@
  * (regra ilegível desliga, payload ilegível some); a escrita valida chave, regras e payload
  * (ofertas inválidas são recusadas) e deixa rastro; e a porta de emergência vence `vender_planos`.
  */
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
@@ -76,6 +76,38 @@ describe('cache e invalidação', () => {
     F.invalidarCacheDeFlags()
     const [a, b] = await Promise.all([F.definicoesDasFlags(), F.definicoesDasFlags()])
     expect(a).toBe(b)
+  })
+
+  it('no Node, leituras simultâneas dividem a mesma consulta ao banco', async () => {
+    F.invalidarCacheDeFlags()
+    const listar = vi.spyOn(repo, 'listar')
+    try {
+      await Promise.all([F.definicoesDasFlags(), F.definicoesDasFlags()])
+      expect(listar).toHaveBeenCalledTimes(1)
+    } finally {
+      listar.mockRestore()
+    }
+  })
+
+  /* No Worker, uma promessa criada numa requisição não pode ser esperada por outra (o workerd não resolve
+     promessa entre requisições): cada leitura simultânea vai ao banco. O cache (dado puro) segue valendo. */
+  it('no Worker, leituras simultâneas não dividem promessa: cada uma faz a sua consulta', async () => {
+    F.invalidarCacheDeFlags()
+    const linhas = await repo.listar()
+    const listar = vi.spyOn(repo, 'listar').mockImplementation(async () => linhas)
+    process.env.BABEL_RUNTIME = 'worker'
+    try {
+      const [a, b] = await Promise.all([F.definicoesDasFlags(), F.definicoesDasFlags()])
+      expect(listar).toHaveBeenCalledTimes(2)
+      expect(a).not.toBe(b)
+      expect(a).toEqual(b)
+      // O cache segue valendo: a próxima leitura não vai ao banco.
+      await F.definicoesDasFlags()
+      expect(listar).toHaveBeenCalledTimes(2)
+    } finally {
+      delete process.env.BABEL_RUNTIME
+      listar.mockRestore()
+    }
   })
 })
 

@@ -22,6 +22,7 @@ import { noCelular } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { idiomaDaInterface, numero, t, tp } from '../../../../lib/i18n';
 import { type ComoRedesenhar, redesenharBib } from '../../../../lib/polimento/biblioteca';
 import type { Recording } from '../../../../types';
+import AncoraNoCelular from '../../../anuncios/AncoraNoCelular';
 import EspacoDeAnuncio from '../../../anuncios/EspacoDeAnuncio';
 import { CabecalhoComFicha } from '../../../conteudo/FichaDeConteudo';
 
@@ -117,6 +118,7 @@ export default function BibliotecaDoQuest({
   aoRevisar,
   aoCapturar,
   aoImportar,
+  aoLivros,
   aoFixar,
   aoRenomear,
   aoExcluir,
@@ -149,6 +151,8 @@ export default function BibliotecaDoQuest({
   aoCapturar: () => void;
   /** Abre o formulário de importar (YouTube, documento, link, áudio, texto colado). */
   aoImportar?: () => void;
+  /** Abre Livros (o catálogo de domínio público e os livros da pessoa). */
+  aoLivros?: () => void;
   aoFixar?: (gravacao: Recording) => void;
   aoRenomear?: (gravacao: Recording) => void;
   /** Quem recebe oferece o "Desfazer": aqui o toque já tira a gravação da lista. */
@@ -229,10 +233,18 @@ export default function BibliotecaDoQuest({
     </button>
   );
 
+  /* LIVROS (26/10/2026): a porta do catálogo de livros mora aqui, ao lado do que a pessoa já tem. */
+  const botaoDosLivros = aoLivros && (
+    <button type="button" className="q-chip" onClick={aoLivros} data-testid="livros-na-biblioteca">
+      <BookOpen aria-hidden /> {t('Livros')}
+    </button>
+  );
+
   /* `telas.js:422-423`: título, ficha e, à direita, a linha de totais e a ordem. */
   const cabecalho = conteudo ? (
     <CabecalhoComFicha titulo={t('Biblioteca')} ficha={conteudo.ficha} classe="fs-cab-bib">
       <p className="q-sobre fs-bib-sobre">{resumo}</p>
+      {botaoDosLivros}
       {botaoDaOrdem('fs-bib-ordem')}
     </CabecalhoComFicha>
   ) : (
@@ -241,6 +253,7 @@ export default function BibliotecaDoQuest({
         <p className="q-sobre">{resumo}</p>
         <h1>{t('Biblioteca')}</h1>
       </div>
+      {botaoDosLivros}
       {botaoDaOrdem()}
       {aoImportar && (
         <button type="button" className="q-chip" onClick={aoImportar}>
@@ -352,6 +365,9 @@ export default function BibliotecaDoQuest({
             {t('Limpar a busca')}
           </button>
         </div>
+        {/* A FAIXA ÂNCORA DO CELULAR (flag `anuncios`): só nesta tela da Biblioteca, a única sem a gravação
+            escolhida presa ao pé com o "Abrir" (a faixa ficaria colada nele; spec, "Identificação e saída"). */}
+        <AncoraNoCelular />
       </div>
     );
   }

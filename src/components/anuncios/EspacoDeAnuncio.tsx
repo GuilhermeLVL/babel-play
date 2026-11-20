@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useSyncExternalStore } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 
 import {
   type EspacoDeAnuncio as Espaco,
@@ -6,51 +6,82 @@ import {
   type FormatoDeAnuncio,
   podeMostrar,
 } from '../../core/anuncios/politicaDeAnuncio';
-import { montarPedidoDeAnuncio } from '../../lib/anuncios/pedido';
-import { assinarProvedorDeAnuncios, type ProvedorDeAnuncios, provedorDeAnuncios } from '../../lib/anuncios/provedor';
+import { concluirPremiado, type PremiadoConcluido } from '../../data/rotas/anuncios';
+import { marcarIntersticial, montarPedidoDeAnuncio } from '../../lib/anuncios/pedido';
+import type { ProvedorDeAnuncios } from '../../lib/anuncios/provedor';
 import { onPlanChange } from '../../lib/entitlements';
 import { useFlag } from '../../lib/flags';
-import { usePreferencias } from '../../lib/preferencias';
-import { aoMudarProtecao } from '../../lib/protecaoDoMenor';
+import { lerPreferencias, usePreferencias } from '../../lib/preferencias';
+import { aoMudarProtecao, perfilProtegido } from '../../lib/protecaoDoMenor';
 import { navegarPara } from '../../lib/rotas';
-import { ligarDemonstracaoDeAnuncios } from './demonstracao/ligar';
+import ConsentimentoDeAnuncios from './ConsentimentoDeAnuncios';
+import { useProvedorDeAnuncios } from './useProvedorDeAnuncios';
 
 /**
  * UM ESPAÇO DE ANÚNCIO (change `planos-v3-e-rota-inteligente`, spec `anuncios-no-gratis`) — o ÚNICO
  * componente por onde um anúncio pode entrar numa tela.
  *
  * Ele recebe o espaço e o formato, e faz duas perguntas:
- *   1. QUEM desenha? O provedor registrado (`lib/anuncios/provedor.ts`). NÃO EXISTE provedor de produção
- *      nesta etapa: sem provedor este componente não renderiza NADA, não monta nenhum outro gancho e não
- *      faz nenhum pedido de rede. É o estado de fábrica, e a tela fica idêntica à de antes.
+ *   1. QUEM desenha? O provedor registrado (`lib/anuncios/provedor.ts`). O real (um quadro para a origem
+ *      de anúncios, ruling R32) só é registrado num build com `VITE_ANUNCIOS_ORIGEM` (`lib/anuncios/ligar.ts`).
+ *      Sem provedor (ou com um que este navegador não consegue usar) este componente não renderiza NADA,
+ *      não monta nenhum outro gancho e não faz nenhum pedido de rede. É o estado de fábrica.
  *   2. PODE? A política pura (`core/anuncios/politicaDeAnuncio.ts`), com o estado de agora
  *      (`lib/anuncios/pedido.ts`). Negou, não renderiza nada.
  *
- * Só com as duas respostas o provedor desenha. O espaço volta a perguntar quando muda o que a política
+ * Só com as duas respostas o provedor desenha. Uma exceção, só do provedor REAL (`pedeConsentimento`):
+ * quando a política nega SÓ por falta do consentimento e a pessoa nunca respondeu, o primeiro espaço
+ * elegível mostra a folha de consentimento (`ConsentimentoDeAnuncios`) no lugar do anúncio — um espaço
+ * por vez. No premiado, nunca para o perfil protegido (a política nega antes: o premiado é só para adultos).
+ * O espaço volta a perguntar quando muda o que a política
  * lê: a flag, o plano, o perfil, o consentimento, a rede e o fim de uma rodada.
  *
- * A DEMONSTRAÇÃO (só em desenvolvimento): com `localStorage['babel.px.anunciosDeProva'] = '1'` o
- * provedor de demonstração é carregado e desenha "Patrocinado · exemplo" nos lugares do protótipo.
- * Ver `lib/anuncios/pedido.ts` e `demonstracao/ligar.ts`.
+ * A DEMONSTRAÇÃO (em desenvolvimento, com `localStorage['babel.px.anunciosDeProva'] = '1'`, e no build com
+ * `VITE_ANUNCIOS_DEMONSTRACAO=1`, o staging; R38): o provedor de demonstração é carregado e desenha
+ * "Patrocinado · exemplo" nos lugares do protótipo. Ver `lib/anuncios/pedido.ts` e `demonstracao/ligar.ts`.
  */
 interface EspacoDeAnuncioProps {
   espaco: Espaco;
   formato: FormatoDeAnuncio;
   /** A porta "Sem anúncios" de todo anúncio. Ausente, leva à tela de Planos. */
   aoSemAnuncios?: () => void;
+  /** O intersticial e a âncora: a pessoa fechou, ou o anúncio não veio (`PropsDoEspacoDeAnuncio.aoFechar`). */
+  aoFechar?: () => void;
 }
 
 const irAosPlanos = () => navegarPara({ view: 'planos' });
-const semProvedor = () => null;
+/**
+ * A porta do PERFIL PROTEGIDO: ele não compra, então "Sem anúncios" apontando para os planos seria convite
+ * comercial a um menor. Para ele a saída é revogar o consentimento em Ajustes → Privacidade → Anúncios, e o
+ * provedor troca o rótulo para "Não quero anúncios" (o real em `provedores/iframe.tsx`, a demonstração em
+ * `demonstracao/EspacoDeDemonstracao.tsx`). Vale por cima do `aoSemAnuncios` que a tela passou.
+ */
+export const irAosAjustesDeAnuncios = () => navegarPara({ view: 'settings', ajustesAba: 'privacidade' });
+
+/**
+ * O fim de um premiado: o servidor credita (`concluirPremiado`) e o que ele creditou volta ao provedor; a recusa
+ * rejeita com o `code` dele.
+ */
+async function recompensar(exibicaoId: string): Promise<PremiadoConcluido> {
+  const r = await concluirPremiado(exibicaoId);
+  if (r.ok === false) throw new Error(r.code ?? r.error);
+  const { ok: _ok, ...concluido } = r;
+  return concluido;
+}
 
 export default function EspacoDeAnuncio(props: EspacoDeAnuncioProps) {
-  const provedor = useSyncExternalStore(assinarProvedorDeAnuncios, provedorDeAnuncios, semProvedor);
-  /* Só em desenvolvimento, e só com a chave: fora disso a função é vazia e não carrega nada. */
-  useEffect(() => {
-    void ligarDemonstracaoDeAnuncios();
-  }, []);
-  if (!provedor) return null;
+  /* Quem registra o provedor (o real com a flag ligada, ou a demonstração) é o gancho, igual em todo encaixe. */
+  const provedor = useProvedorDeAnuncios();
+  if (!provedor || provedor.disponivel?.() === false) return null;
   return <EspacoComProvedor provedor={provedor} {...props} />;
+}
+
+/* O convite ao consentimento aparece em UM espaço por vez: o primeiro que o pede fica com ele. */
+let conviteCom: symbol | null = null;
+
+/** A pessoa já respondeu (sim ou "agora não") ao consentimento de anúncios? */
+function jaRespondeu(): boolean {
+  return (lerPreferencias().registroDeConsentimentos ?? []).some((r) => r.chave === 'anuncios');
 }
 
 function EspacoComProvedor({
@@ -58,6 +89,7 @@ function EspacoComProvedor({
   espaco,
   formato,
   aoSemAnuncios = irAosPlanos,
+  aoFechar,
 }: EspacoDeAnuncioProps & { provedor: ProvedorDeAnuncios }) {
   /* A flag e o consentimento são lidos por `montarPedidoDeAnuncio`; os dois ganchos só fazem o espaço
      perguntar de novo quando eles mudam. */
@@ -70,6 +102,8 @@ function EspacoComProvedor({
     /* A tela de fim nasce com a rodada ainda marcada como ativa (`Play.tsx` tira a marca num efeito e
        avisa por este evento): é aqui que o espaço do fim de rodada passa a poder. */
     window.addEventListener('babel:rodada-fechou', reavaliar);
+    /* A folha de consentimento respondeu (aqui ou em Ajustes). */
+    window.addEventListener('babel:consentimento-anuncios', reavaliar);
     /* Sem rede não há anúncio (a política nega): caiu ou voltou, o espaço pergunta de novo. */
     window.addEventListener('online', reavaliar);
     window.addEventListener('offline', reavaliar);
@@ -79,10 +113,50 @@ function EspacoComProvedor({
       semPlano();
       semProtecao();
       window.removeEventListener('babel:rodada-fechou', reavaliar);
+      window.removeEventListener('babel:consentimento-anuncios', reavaliar);
     };
   }, []);
 
-  if (!podeMostrar(montarPedidoDeAnuncio(espaco, formato)).pode) return null;
+  /* O INTERSTICIAL decide UMA vez, ao abrir, e grava a hora em que apareceu (`babel.anuncios.ultimoIntersticial`,
+     que a política lê para o próximo): perguntar de novo com ele aberto negaria pelo próprio intervalo e o
+     fecharia no meio. */
+  const [doIntersticial] = useState(() =>
+    formato === 'intersticial' ? podeMostrar(montarPedidoDeAnuncio(espaco, formato)) : null,
+  );
+  useEffect(() => {
+    if (doIntersticial?.pode) marcarIntersticial();
+  }, [doIntersticial]);
+  const decisao = doIntersticial ?? podeMostrar(montarPedidoDeAnuncio(espaco, formato));
+  const querConvite = !!provedor.pedeConsentimento && decisao.motivo === 'sem_consentimento' && !jaRespondeu();
+  const convidando = useConvite(querConvite);
+  if (!decisao.pode) {
+    return convidando ? <ConsentimentoDeAnuncios /> : null;
+  }
   const Desenho = provedor.Espaco;
-  return <Desenho espaco={espaco} formato={formato} aoSemAnuncios={aoSemAnuncios} />;
+  return (
+    <Desenho
+      espaco={espaco}
+      formato={formato}
+      aoSemAnuncios={perfilProtegido() ? irAosAjustesDeAnuncios : aoSemAnuncios}
+      aoRecompensar={formato === 'premiado' ? recompensar : undefined}
+      aoFechar={aoFechar}
+    />
+  );
+}
+
+/** Fica com o convite se ele estiver livre; solta ao deixar de querer ou ao desmontar. */
+function useConvite(quer: boolean): boolean {
+  const [eu] = useState(() => Symbol('convite'));
+  const [tenho, setTenho] = useState(false);
+  useEffect(() => {
+    if (!quer) return;
+    if (conviteCom !== null && conviteCom !== eu) return;
+    conviteCom = eu;
+    setTenho(true);
+    return () => {
+      if (conviteCom === eu) conviteCom = null;
+      setTenho(false);
+    };
+  }, [quer, eu]);
+  return quer && tenho;
 }

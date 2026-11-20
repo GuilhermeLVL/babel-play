@@ -11,10 +11,12 @@
  *   1. pedido (400, `lerPedidoDeVoz`): `texto` até 600 caracteres, `idioma`, a `voz` pronta e a
  *      `velocidade` — e só isso. Campo de áudio de referência ou de voz criada é 400
  *      `clonagem_de_voz_recusada`: NÃO HÁ CLONAGEM;
- *   2. ENTITLEMENT `vozNatural` (402 `exige_voz_natural`), nunca o nome do plano;
+ *   2. ENTITLEMENT `vozNatural` E plano PAGO fora do teste (402 `exige_voz_natural`; `vozDaNuvemLiberada`): o
+ *      Grátis, o convidado e o teste de 3 dias nunca chegam à nuvem da voz (change `voz-natural-openrouter`);
  *   3. FLAG `voz_natural` (503 `voz_natural_desligada`): nasce desligada (migração 0046), e só liga com
  *      a retenção do provedor registrada em `docs/lgpd/operadores.md` e `docs/lgpd/ropa.csv`;
- *   4. CONFIGURAÇÃO (501 `voz_nao_configurada`): nenhuma perna `tts` com a chave no ambiente; nenhuma
+ *   4. CONFIGURAÇÃO (501 `voz_nao_configurada`): nenhuma perna `tts` com a chave no ambiente (e, no OpenRouter, com
+ *      retenção zero conferida) que o NÍVEL DE VOZ do plano possa usar (a voz `boa` só no nível `boa`); nenhuma
  *      que fale o idioma: 422;
  *   5. CACHE L1 (em memória, curto, por bytes): a mesma fala no mesmo idioma e na mesma voz não vai ao
  *      provedor de novo — nem gasta cota, porque não custa nada a ninguém;
@@ -43,6 +45,7 @@ import {
   FLAG_VOZ_NATURAL,
   TETO_DE_CARACTERES_DA_VOZ,
   VELOCIDADE_DA_VOZ,
+  vozDaNuvemLiberada,
 } from '../../../src/core/vozNatural'
 import { contarAdmissaoRecusada, observarChamadaDeProvedor } from '../../http/metricas'
 import { erroDeRota } from '../../lib/erroDeRota'
@@ -55,6 +58,7 @@ import {
   type PlanoDeAdmissao,
   planoDeAdmissao,
   type Recusa,
+  recusaEmCacheDeTodas,
   registrarLimiteNaAdmissao,
   segundosDoRetryAfter,
   type TicketDeBalde,
@@ -70,10 +74,12 @@ import {
   montarPedidoDeVoz,
   type PedidoDeVoz,
   pernasDeVoz,
+  pernasDoNivelDeVoz,
   vozDoModelo,
 } from '../provedoresDeVoz'
 import type { Provedor } from '../registroDeProvedores'
 import { recusaContadorIndisponivel, recusaPeloTetoDaConta, recusaUsoJustoDoDia } from '../reservaDeNuvem'
+import { fetchSeguro } from '../ssrf'
 import {
   codigoDeIdioma,
   nomeDoProvedor,
@@ -173,7 +179,7 @@ function chaveDaVoz(perna: Provedor, pedido: PedidoDeVoz): string {
     perna.fornecedor ?? nomeDoProvedor(perna.base),
     perna.model,
     pedido.idioma,
-    vozDoModelo(perna.model, pedido.voz) ?? '',
+    vozDoModelo(perna.model, pedido.voz, pedido.idioma, pedido.bcp47) ?? '',
     String(pedido.velocidade ?? 1),
     pedido.texto,
   ]
@@ -242,28 +248,39 @@ interface AdmissaoDaVoz {
   plano: PlanoDeAdmissao
   perna: Provedor
   ticket: TicketDeBalde
-  liberar: () => void
+  liberar: () => Promise<void>
   chamada: boolean
 }
 
 /** Vaga em voo + o balde da primeira perna (na ordem do registro) com saldo — como o STT. */
-function admitirVoz(
+async function admitirVoz(
   pernas: Provedor[],
   p: { userId: string; plano: PlanoDeAdmissao },
-): { ok: true; admissao: AdmissaoDaVoz } | { ok: false; recusa: Recusa } {
-  const liberar = ocuparVaga(p.userId, 'tts')
+): Promise<{ ok: true; admissao: AdmissaoDaVoz } | { ok: false; recusa: Recusa }> {
+  /* A rajada contra baldes já recusados nesta instância não vai ao banco — nem para a vaga em voo. */
+  const doCache = recusaEmCacheDeTodas('tts', pernas.map(alvoDaPerna), p.plano)
+  if (doCache) {
+    contarAdmissaoRecusada(doCache.motivo, p.plano)
+    return { ok: false, recusa: doCache }
+  }
+  const liberar = await ocuparVaga(p.userId, 'tts')
   if (!liberar) {
     contarAdmissaoRecusada('em_voo', p.plano)
     return { ok: false, recusa: { motivo: 'em_voo', retryAfterS: 1 } }
   }
   let recusa: Recusa | null = null
   for (const perna of pernas) {
-    const r = admitirNoBalde({ tipo: 'tts', ...alvoDaPerna(perna), plano: p.plano, silenciosa: true })
+    const r = await admitirNoBalde({ tipo: 'tts', ...alvoDaPerna(perna), plano: p.plano, silenciosa: true }).catch(
+      async (erro: unknown) => {
+        await liberar()
+        throw erro
+      },
+    )
     if (r.ok === true)
       return { ok: true, admissao: { plano: p.plano, perna, ticket: r.ticket, liberar, chamada: false } }
     if (!recusa || r.recusa.retryAfterS < recusa.retryAfterS) recusa = r.recusa
   }
-  liberar()
+  await liberar()
   const final = recusa ?? { motivo: 'minuto' as const, retryAfterS: 1 }
   contarAdmissaoRecusada(final.motivo, p.plano)
   return { ok: false, recusa: final }
@@ -294,11 +311,15 @@ async function sintetizar(
   const idioma = lido.idioma.split('-')[0].toLowerCase()
   const bcp47 = bcp47DaVoz(lido.idioma)
 
-  /* 2) A CAPACIDADE. */
-  if (plano.vozNatural !== true)
+  /* 2) A CAPACIDADE, só de quem PAGA: o teste e o plano sem preço ficam com a voz do aparelho. A recusa diz o fato e o
+     que segue de graça, sem vender nada (o cliente lê a mesma fala com a voz do aparelho). */
+  if (!vozDaNuvemLiberada({ plan: plano.plan, vozNatural: plano.vozNatural === true, emTeste: ctx.emTeste }))
     return decidir(
       recusar(402, {
-        error: 'a voz natural do intérprete é do Premium; a voz do aparelho segue lendo a tradução',
+        error:
+          plano.vozNatural === true && ctx.emTeste
+            ? 'a voz natural da nuvem não faz parte do teste; a voz do aparelho segue lendo a tradução, de graça'
+            : 'a voz natural da nuvem é dos planos pagos; a voz do aparelho segue lendo a tradução, de graça',
         code: CODIGOS_DA_VOZ_NATURAL.exige,
         entitlement: 'vozNatural',
       }),
@@ -314,8 +335,8 @@ async function sintetizar(
       ),
     )
 
-  /* 4) A CONFIGURAÇÃO. */
-  const todas = pernasDeVoz()
+  /* 4) A CONFIGURAÇÃO: as pernas com chave que o nível de voz do plano pode usar. */
+  const todas = pernasDoNivelDeVoz(pernasDeVoz(), plano.nivelDeVoz)
   if (todas.length === 0)
     return decidir(
       recusaDeErro(
@@ -360,8 +381,8 @@ async function sintetizar(
   const portao = await portaoDaNuvem()
   if (!portao.ok) return decidir(recusaPortaoFechado(portao))
 
-  /* 7) A ADMISSÃO — o teste de 14 dias do Premium entra como grátis (C6). */
-  const admitida = admitirVoz(pernas, {
+  /* 7) A ADMISSÃO — o teste de 3 dias do Premium entra como grátis (C6). */
+  const admitida = await admitirVoz(pernas, {
     userId: ctx.userId,
     plano: planoDeAdmissao(plano.plan, ctx.modo === 'alivio', ctx.emTeste),
   })
@@ -448,10 +469,16 @@ async function sintetizar(
   } catch (err) {
     return decidir(recusar(502, { error: `falha na voz natural: ${erroDeRota(err, { event: 'tts_erro' })}` }))
   } finally {
-    if (!adm.chamada) adm.ticket.devolver()
-    adm.liberar()
-    /* Todo caminho que não entregou devolve os caracteres — a pessoa não paga pela voz que não ouviu. */
-    if (reservou && !entregou) await estornarCaracteresDeVoz(ctx.userId, caracteres, reservaDoDia)
+    try {
+      if (!adm.chamada) await adm.ticket.devolver()
+    } finally {
+      try {
+        await adm.liberar()
+      } finally {
+        /* Todo caminho que não entregou devolve os caracteres — a pessoa não paga pela voz que não ouviu. */
+        if (reservou && !entregou) await estornarCaracteresDeVoz(ctx.userId, caracteres, reservaDoDia)
+      }
+    }
   }
 }
 
@@ -483,7 +510,7 @@ async function percorrerPernasDaVoz(
     if (clienteDesistiu(sinal)) return { ok: false, falha: 'cancelado' }
     let ticket: TicketDeBalde | null = null
     if (perna !== adm.perna) {
-      const r = admitirNoBalde({ tipo: 'tts', ...alvoDaPerna(perna), plano: adm.plano })
+      const r = await admitirNoBalde({ tipo: 'tts', ...alvoDaPerna(perna), plano: adm.plano })
       if (r.ok === false) {
         if (!semSaldo || r.recusa.retryAfterS < semSaldo.retryAfterS) semSaldo = r.recusa
         continue
@@ -492,7 +519,7 @@ async function percorrerPernasDaVoz(
     }
     const disjuntor = chaveDoProvedor(perna)
     if (!disjuntorPermite(disjuntor)) {
-      ticket?.devolver()
+      await ticket?.devolver()
       pulouPorDisjuntor = true
       log('warn', { event: 'tts_provedor_em_disjuntor', route: ROTA, provider: perna.rotulo, requestId })
       continue
@@ -504,7 +531,7 @@ async function percorrerPernasDaVoz(
     let resposta: globalThis.Response
     try {
       const { url, init } = montarPedidoDeVoz(perna, pedido, sinal)
-      resposta = await fetch(url, init)
+      resposta = await fetchSeguro(url, init)
     } catch (erro) {
       /* Quem abortou foi o cliente, não o relógio: não é falha do provedor (o disjuntor não conta). */
       if (clienteDesistiu(sinal)) {
@@ -543,7 +570,7 @@ async function percorrerPernasDaVoz(
     const corpo = await resposta.text().catch(() => '')
     if (resposta.status === 429) {
       registrarLimiteDoProvedor(provedor, perna.model)
-      const espera = registrarLimiteNaAdmissao(
+      const espera = await registrarLimiteNaAdmissao(
         'tts',
         provedor,
         perna.model,

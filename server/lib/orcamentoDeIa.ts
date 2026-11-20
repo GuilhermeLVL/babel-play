@@ -81,6 +81,12 @@ const PRECOS_OFICIAIS: Readonly<Record<string, PrecoDeModelo>> = {
   'deepinfra:ResembleAI/chatterbox-multilingual': { milhaoDeCaracteres: 1 },
   'deepinfra:Qwen/Qwen3-TTS': { milhaoDeCaracteres: 20 },
   'google-tts:chirp3-hd': { milhaoDeCaracteres: 30 },
+  /* A VOZ PELO OPENROUTER (change `voz-natural-openrouter`, `/api/v1/endpoints/zdr` em 17/11/2026). O Kokoro custa
+     US$ 0,62/1M na DeepInfra e US$ 4/1M na Together; para a voz o OpenRouter não aceita `order`/`only`, então quem
+     atende é escolha dele. O orçamento conta o MAIS CARO dos dois (o erro para mais): o gasto real fica abaixo. O
+     MAI-Voice 2.1 Flash (a voz boa, desligada por padrão) só tem a Azure. */
+  'openrouter:hexgrad/kokoro-82m': { milhaoDeCaracteres: 4 },
+  'openrouter:microsoft/mai-voice-2.1-flash': { milhaoDeCaracteres: 15 },
 }
 
 /**

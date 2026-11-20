@@ -71,6 +71,17 @@ export function reduz(): boolean {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 }
 
+/**
+ * A ENTRADA E A SAÍDA DE TELA seguem o "reduzir movimento" do sistema SEMPRE (auditoria de 23/10/2026,
+ * B2): o `animations-on`, que nasce ligado em todo aparelho, fazia `reduz()` ignorar o sistema, e quem
+ * pedia menos movimento recebia a tela inteira deslizando. Os efeitos de toque e das peças continuam com
+ * `reduz()`; só a troca de tela (o movimento grande, a tela toda) obedece ao sistema.
+ */
+export function semMovimentoDeTela(): boolean {
+  if (reduz()) return true;
+  return typeof window !== 'undefined' && (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
+}
+
 export interface OpcoesDoAnima {
   /** Duração em ms (240 no protótipo). */
   d?: number;
@@ -241,7 +252,12 @@ export function instalarPolimento(): () => void {
       }),
     )
     /* Sem o CSS a camada só não enfeita: a tela continua inteira. */
-    .catch(() => undefined);
+    .catch(() => undefined)
+    /* A marca que o esqueleto do HTML espera para sair (`lib/esqueleto.ts`): o Início só tem a forma final com a camada. */
+    .finally(() => {
+      raiz.dataset.pxEstilos = 'ok';
+      document.dispatchEvent(new Event(EVENTO_DOS_ESTILOS));
+    });
   const observador = new MutationObserver(marcar);
   observador.observe(document.body, { attributes: true, attributeFilter: ['class'] });
   /* Cada tela traz a sua folha de estilo quando abre: as regras novas são acertadas quando chegam, e a

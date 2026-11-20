@@ -19,6 +19,7 @@ import { ipKeyGenerator } from 'express-rate-limit'
 
 import { usageCountersRepo } from '../db/repositories/usageCounters'
 import { asUserId } from './authContext'
+import { emSegundoPlano } from './runtime'
 
 /**
  * UMA METRICA POR LIMITADOR, e nao uma so para todos (auditoria de 2026-09-07, achado A27).
@@ -57,11 +58,29 @@ export const METRIC_RATELIMIT_TELEMETRIA = 'ratelimit:telemetria'
  * porque a rota fica antes do auth: o cliente lê ao abrir, ao focar a aba e a cada poucos minutos.
  */
 export const METRIC_RATELIMIT_FLAGS = 'ratelimit:flags'
+/**
+ * O balde do contador anônimo de falhas do visitante (`POST /api/erros-do-cliente/falha`). Próprio pelo A27, e
+ * por uma chave DERIVADA do IP (HMAC com o `SECRET_KEY`, `server/routes/erros.ts`): o IP nunca vai ao banco.
+ */
+export const METRIC_RATELIMIT_FALHAS = 'ratelimit:falhas'
+/**
+ * O balde do LOTE da importação do Anki (`POST /api/anki/imports/:id/notas`, Fase 3 da migração).
+ * Próprio pelo mesmo A27: os lotes ficam fora do `writeLimiter` (100 lotes de um import cortariam a
+ * escrita da pessoa), mas não ficam sem teto.
+ */
+export const METRIC_RATELIMIT_LOTE_ANKI = 'ratelimit:lote-anki'
 /* Auditoria de segurança 2026-09-26 (`server/lib/limitesDeLeitura.ts`): a exportação da conta lê
    as 17 tabelas do titular em memória, e a busca de imagens faz uma chamada de SAÍDA por pedido.
    Baldes próprios, no banco, pelo mesmo motivo do A27. */
 export const METRIC_RATELIMIT_EXPORTAR = 'ratelimit:exportar'
 export const METRIC_RATELIMIT_IMAGENS = 'ratelimit:imagens'
+/** O balde do feedback de IA (`POST /api/ai/feedback`, Fase B da IA paga): próprio pelo mesmo A27. */
+export const METRIC_RATELIMIT_FEEDBACK = 'ratelimit:feedback'
+/**
+ * O balde do ASSISTENTE AO VIVO (`POST /api/ai/assistente/*`): próprio pelo mesmo A27 — as glosas automáticas
+ * acompanham a legenda, e dividir o balde caro com a tradução de cada fala cortaria a legenda.
+ */
+export const METRIC_RATELIMIT_ASSISTENTE = 'ratelimit:assistente'
 
 /**
  * A chave do balde: o TENANT, não o IP. Cai no IP só onde não há usuário resolvido
@@ -111,7 +130,8 @@ export function createDbRateLimitStore(metric: string = METRIC_RATELIMIT) {
     async increment(key: string) {
       const w = balde()
       const totalHits = await usageCountersRepo.incrementAndGet(asUserId(key), metric, w)
-      void podarSePreciso()
+      /* No Worker a poda solta morreria com o fim da requisição: `emSegundoPlano` a entrega ao `waitUntil`. */
+      emSegundoPlano(podarSePreciso())
       // Fim do balde atual = início do próximo.
       const resetTime = new Date((Math.floor(Date.now() / windowMs) + 1) * windowMs)
       return { totalHits, resetTime }

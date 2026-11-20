@@ -1,25 +1,31 @@
 /**
- * Aplica as migrations do Drizzle ao banco local. Idempotente.
+ * Aplica as migrations do Drizzle ao banco configurado em `DATABASE_URL`. Idempotente.
  * Uso: `npm run db:migrate` (gere antes com `npm run db:generate`).
  */
 import 'dotenv/config'
 
-import { mkdirSync } from 'node:fs'
-import { dirname } from 'node:path'
+import { sql } from 'drizzle-orm'
+import { migrate as migrarNode } from 'drizzle-orm/node-postgres/migrator'
+import { migrate as migrarPglite } from 'drizzle-orm/pglite/migrator'
 
-import { migrate } from 'drizzle-orm/libsql/migrator'
+import { analisarBancoEmbutido, bancoEmbutido, comConexaoDeMigracao, db, fecharBanco, linhas, urlDoBanco } from './db'
 
-import { client, db } from './db'
+/* CLI: roda ao ser executado. A pasta é lida aqui dentro, não numa constante de módulo (Fase 2, boot
+   preguiçoso), e a conexão das migrations vem sem `statement_timeout` (ver `comConexaoDeMigracao`). */
+await comConexaoDeMigracao(async (dbm) => {
+  const migrationsFolder = process.env.MIGRATIONS_DIR ?? './server/db/migrations-pg'
+  if (bancoEmbutido()) await migrarPglite(dbm as Parameters<typeof migrarPglite>[0], { migrationsFolder })
+  else await migrarNode(dbm as Parameters<typeof migrarNode>[0], { migrationsFolder })
+})
+// Estatística para o planejador no PGlite, que não tem autoanalyze (ver `analisarBancoEmbutido`).
+await analisarBancoEmbutido()
 
-const url = process.env.DATABASE_URL ?? 'file:./data/babel.db'
-const filePath = url.replace(/^file:/, '')
-mkdirSync(dirname(filePath), { recursive: true })
-
-await migrate(db, { migrationsFolder: './server/db/migrations' })
-
-const tables = await client.execute(
-  "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+const tabelas = linhas<{ table_name: string }>(
+  await db.execute(
+    sql`select table_name from information_schema.tables where table_schema = 'public' order by table_name`,
+  ),
 )
-console.log('[db] migrations aplicadas em', filePath)
-console.log('[db] tabelas:', tables.rows.map((r) => r.name).join(', '))
+console.log('[db] migrations aplicadas em', bancoEmbutido() ? urlDoBanco() : 'postgres')
+console.log('[db] tabelas:', tabelas.map((r) => r.table_name).join(', '))
+await fecharBanco()
 process.exit(0)

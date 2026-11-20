@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { diretivasDeCsp } from '../../server/http/csp'
+import { diretivasDeCsp, serializarCsp } from '../../server/http/csp'
 
 const env = (e: Record<string, string>) => e as unknown as NodeJS.ProcessEnv
 
@@ -29,6 +29,28 @@ describe('diretivasDeCsp', () => {
     expect(c).toContain('https://*.wiktionary.org')
     expect(c).toContain('https://api.openverse.org')
     expect(c).toContain('https://api.mymemory.translated.net')
+  })
+
+  it('o Ollama local (localhost:11434) só fora do modo público: self-host e dev mantêm, AUTH_REQUIRED=1 tira', () => {
+    const ollama = ['http://localhost:11434', 'http://127.0.0.1:11434']
+    const foraDoPublico: Record<string, string>[] = [
+      {},
+      { AUTH_REQUIRED: '0' },
+      { AUTH_REQUIRED: '0', SELF_HOST: '1', NODE_ENV: 'production' },
+    ]
+    for (const e of foraDoPublico)
+      for (const o of ollama) expect(diretivasDeCsp(env(e)).connectSrc, JSON.stringify(e)).toContain(o)
+    // O Express/Worker público (AUTH_REQUIRED=1) e o build do Worker (VITE_AUTH_REQUIRED=1, que gera o `_headers`).
+    const publicos: Record<string, string>[] = [{ AUTH_REQUIRED: '1' }, { VITE_AUTH_REQUIRED: '1' }]
+    for (const e of publicos) {
+      const c = diretivasDeCsp(env(e)).connectSrc
+      for (const o of ollama) expect(c, JSON.stringify(e)).not.toContain(o)
+      expect(c).toContain('https://huggingface.co')
+    }
+  })
+
+  it('script-src mantém blob: (o onnxruntime-web importa o runtime de outra origem como blob: na thread principal)', () => {
+    expect(diretivasDeCsp(env({ AUTH_REQUIRED: '1' })).scriptSrc).toContain('blob:')
   })
 
   it('o Supabase entra pela origem configurada, e só ela', () => {
@@ -52,6 +74,38 @@ describe('diretivasDeCsp', () => {
     )
   })
 
+  it('o runtime do ONNX num R2 (VITE_ORT_WASM_URL) entra em connect-src, script-src e worker-src', () => {
+    const d = diretivasDeCsp(env({ VITE_ORT_WASM_URL: 'https://r2.exemplo.dev/ort/1.26.0/' }))
+    expect(d.connectSrc).toContain('https://r2.exemplo.dev')
+    expect(d.scriptSrc).toContain('https://r2.exemplo.dev')
+    expect(d.workerSrc).toContain('https://r2.exemplo.dev')
+    // Sem a variável, script-src e worker-src seguem sem origem de fora.
+    const base = diretivasDeCsp(env({}))
+    expect(base.scriptSrc).toEqual(["'self'", "'wasm-unsafe-eval'", 'blob:'])
+    expect(base.workerSrc).toEqual(["'self'", 'blob:'])
+  })
+
+  it('espelho próprio (VITE_SELF_HOST_MODELS é URL): sem Hub e sem jsDelivr (DISP-05)', () => {
+    const c = diretivasDeCsp(
+      env({
+        VITE_SELF_HOST_MODELS: 'https://modelos.frasy.com.br',
+        VITE_ORT_WASM_URL: 'https://modelos.frasy.com.br/ort/1.26.0/',
+      }),
+    ).connectSrc
+    expect(c).toContain('https://modelos.frasy.com.br')
+    for (const fora of [
+      'https://huggingface.co',
+      'https://*.huggingface.co',
+      'https://*.hf.co',
+      'https://cdn.jsdelivr.net',
+    ])
+      expect(c, fora).not.toContain(fora)
+    // Sem a variável (dev, testes, self-host), o Hub continua: o caminho de hoje.
+    const sem = diretivasDeCsp(env({})).connectSrc
+    expect(sem).toContain('https://huggingface.co')
+    expect(sem).toContain('https://*.hf.co')
+  })
+
   it('VITE_SELF_HOST_MODELS=1 (mesmo domínio) não acrescenta host', () => {
     const base = diretivasDeCsp(env({})).connectSrc
     expect(diretivasDeCsp(env({ VITE_SELF_HOST_MODELS: '1' })).connectSrc).toEqual(base)
@@ -68,12 +122,69 @@ describe('diretivasDeCsp', () => {
     expect(c.some((x) => x.includes('nao-e-url'))).toBe(false)
   })
 
-  it('as fontes são do próprio site: font-src só self (e data:, das faces embutidas) e nenhuma origem do Google em lugar nenhum', () => {
+  it('as fontes são do próprio site: font-src só self (e data:, das faces embutidas; blob:, das fontes de um EPUB) e nenhuma origem do Google em lugar nenhum', () => {
     const d = diretivasDeCsp(env({}))
-    expect(d.fontSrc).toEqual(["'self'", 'data:'])
+    expect(d.fontSrc).toEqual(["'self'", 'data:', 'blob:'])
     expect(d.styleSrc).toEqual(["'self'", "'unsafe-inline'"])
     for (const lista of Object.values(d))
       expect((lista as string[]).some((x) => /fonts.(googleapis|gstatic).com/.test(x))).toBe(false)
+  })
+
+  it('"Trazer o seu" por link: só raw.githubusercontent.com (CORS *), sem release do GitHub nem https: solto', () => {
+    const c = diretivasDeCsp(env({})).connectSrc
+    expect(c).toContain('https://raw.githubusercontent.com')
+    for (const fora of [
+      'https:',
+      'https://github.com',
+      'https://*.githubusercontent.com',
+      'https://objects.githubusercontent.com',
+    ])
+      expect(c).not.toContain(fora)
+    expect(c.filter((x) => x.includes('github'))).toEqual(['https://raw.githubusercontent.com'])
+  })
+
+  it('o leitor (L2): Standard Ebooks e Wikisource em connect-src, o bucket dos livros só com VITE_LIVROS_URL', () => {
+    const c = diretivasDeCsp(env({})).connectSrc
+    for (const o of ['https://standardebooks.org', 'https://*.wikisource.org', 'https://ws-export.wmcloud.org'])
+      expect(c).toContain(o)
+    expect(c.some((x) => x.includes('livros.exemplo'))).toBe(false)
+    const comBucket = diretivasDeCsp(env({ VITE_LIVROS_URL: 'https://livros.exemplo.dev/frasy-livros/' })).connectSrc
+    expect(comBucket).toContain('https://livros.exemplo.dev')
+    // Os livros nunca ganham script-src: o EPUB é dado, não código.
+    expect(diretivasDeCsp(env({ VITE_LIVROS_URL: 'https://livros.exemplo.dev' })).scriptSrc).toEqual([
+      "'self'",
+      "'wasm-unsafe-eval'",
+      'blob:',
+    ])
+  })
+
+  it('avatares (M1): o bucket só entra com VITE_AVATARES_URL, em connect-src, nunca em script-src nem worker-src', () => {
+    const base = diretivasDeCsp(env({}))
+    expect(base.connectSrc.some((x) => x.includes('avatares.exemplo'))).toBe(false)
+    const d = diretivasDeCsp(env({ VITE_AVATARES_URL: 'https://avatares.exemplo.dev/colecao/' }))
+    expect(d.connectSrc).toContain('https://avatares.exemplo.dev')
+    expect(d.scriptSrc).toEqual(base.scriptSrc)
+    expect(d.workerSrc).toEqual(base.workerSrc)
+    // O WebGL, o `blob:` das texturas embutidas no GLB e o contexto da página já passam sem afrouxar nada.
+    expect(base.connectSrc).toContain('blob:')
+    expect(base.imgSrc).toContain('blob:')
+    // URL inválida ou de outro protocolo não entra.
+    for (const ruim of ['', 'javascript:alert(1)', 'ftp://x.dev', 'não é url'])
+      expect(diretivasDeCsp(env({ VITE_AVATARES_URL: ruim })).connectSrc).toEqual(base.connectSrc)
+  })
+
+  it('galeria de avatares (M2): arweave só entra com AVATAR_GALERIA_TERCEIROS=1, só em connect-src', () => {
+    const base = diretivasDeCsp(env({}))
+    expect(base.connectSrc.some((x) => x.includes('arweave'))).toBe(false)
+    for (const nao of ['', '0', 'true', 'sim'])
+      expect(diretivasDeCsp(env({ AVATAR_GALERIA_TERCEIROS: nao })).connectSrc).toEqual(base.connectSrc)
+    const d = diretivasDeCsp(env({ AVATAR_GALERIA_TERCEIROS: '1' }))
+    expect(d.connectSrc).toEqual(expect.arrayContaining(['https://arweave.net', 'https://*.arweave.net']))
+    // O registro (raw.githubusercontent.com) já estava liberado; nada de script, worker, frame ou formulário.
+    expect(d.connectSrc).toContain('https://raw.githubusercontent.com')
+    expect(d.scriptSrc).toEqual(base.scriptSrc)
+    expect(d.workerSrc).toEqual(base.workerSrc)
+    expect(d.imgSrc).toEqual(base.imgSrc)
   })
 
   it('script-src continua sem host externo e sem unsafe-eval', () => {
@@ -87,5 +198,17 @@ describe('diretivasDeCsp', () => {
     expect(d.frameAncestors).toEqual(["'self'"])
     expect(d.baseUri).toEqual(["'self'"])
     expect(d.formAction).toEqual(["'self'"])
+  })
+})
+
+describe('serializarCsp', () => {
+  it('sai bloqueante e com as mesmas diretivas que o helmet emitiria', () => {
+    const e = env({ VITE_TURNSTILE_SITE_KEY: 'x' })
+    const d = diretivasDeCsp(e)
+    const texto = serializarCsp(d)
+    expect(texto).not.toMatch(/report-only/i)
+    const nomes = texto.split('; ').map((x) => x.split(' ')[0])
+    const esperados = Object.keys(d).map((k) => k.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase()))
+    expect(nomes).toEqual(esperados)
   })
 })

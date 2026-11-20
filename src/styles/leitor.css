@@ -1,0 +1,1492 @@
+/* O LEITOR DE LIVROS (L2). As cores vêm do TEMA DE LEITURA (`--leitor-*`, de `CORES_DOS_TEMAS`), e não do
+   tema do app: o leitor inteiro — barra, painéis e página — muda junto quando a pessoa troca de tema.
+   Alvos de toque ≥ 44 px (ACE07); foco sempre visível. */
+
+.leitor {
+  --leitor-borda: color-mix(in srgb, var(--leitor-texto) 14%, transparent);
+  --leitor-sutil: color-mix(in srgb, var(--leitor-texto) 6%, var(--leitor-fundo));
+  --leitor-acento: var(--leitor-link);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100dvh - var(--leitor-desconto, 0px));
+  min-height: 420px;
+  background: var(--leitor-fundo);
+  color: var(--leitor-texto);
+  color-scheme: light;
+}
+.leitor[data-esquema='dark'] {
+  color-scheme: dark;
+}
+.leitor :focus-visible {
+  outline: 3px solid var(--leitor-acento);
+  outline-offset: 2px;
+}
+
+.leitor-topo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--leitor-borda);
+  min-height: 56px;
+}
+.leitor-titulo {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font: 700 15px/1.3 var(--font-display, system-ui);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--leitor-texto);
+}
+.leitor-ferramentas {
+  display: flex;
+  gap: 2px;
+}
+.leitor-botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: none;
+  color: var(--leitor-texto);
+  font: 600 13px var(--font-display, system-ui);
+  cursor: pointer;
+}
+.leitor-botao svg {
+  width: 20px;
+  height: 20px;
+}
+.leitor-botao:hover {
+  background: var(--leitor-sutil);
+}
+.leitor-botao[aria-pressed='true'],
+.leitor-botao[aria-expanded='true'] {
+  background: var(--leitor-sutil);
+  border-color: var(--leitor-borda);
+}
+.leitor-botao[disabled] {
+  opacity: 0.45;
+  cursor: default;
+}
+.leitor-contagem {
+  font-variant-numeric: tabular-nums;
+  color: var(--leitor-suave);
+}
+
+.leitor-aviso {
+  margin: 0;
+  padding: 10px 16px;
+  font-size: 14px;
+  background: color-mix(in srgb, #f5a623 18%, var(--leitor-fundo));
+  border-bottom: 1px solid var(--leitor-borda);
+}
+
+.leitor-miolo {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.leitor-pagina {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.leitor-motor {
+  position: absolute;
+  inset: 0;
+}
+.leitor-estado {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+  color: var(--leitor-suave);
+  font-size: 15px;
+}
+.leitor-estado p {
+  max-width: 46ch;
+}
+
+.leitor-painel {
+  display: flex;
+  flex-direction: column;
+  width: min(380px, 40vw);
+  border-left: 1px solid var(--leitor-borda);
+  background: var(--leitor-sutil);
+  min-height: 0;
+}
+.leitor-painel-cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px 6px 16px;
+  border-bottom: 1px solid var(--leitor-borda);
+}
+.leitor-painel-cab h2 {
+  margin: 0;
+  font: 800 16px var(--font-display, system-ui);
+}
+.leitor-painel-corpo {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px 24px;
+  overscroll-behavior: contain;
+}
+
+.leitor-pe {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-top: 1px solid var(--leitor-borda);
+  min-height: 56px;
+}
+.leitor-virar svg {
+  width: 26px;
+  height: 26px;
+}
+.leitor-progresso {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.leitor-progresso input[type='range'] {
+  width: 100%;
+  min-height: 28px;
+  accent-color: var(--leitor-acento);
+}
+.leitor-onde-esta {
+  order: -1;
+  font-size: 12.5px;
+  color: var(--leitor-suave);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Comuns dos painéis. */
+.leitor-alvo {
+  min-height: 44px;
+}
+.leitor .btn-outline {
+  background: var(--leitor-fundo);
+  color: var(--leitor-texto);
+  border-color: var(--leitor-borda);
+  box-shadow: none;
+}
+.leitor .btn-outline:hover {
+  border-color: var(--leitor-acento);
+}
+.leitor .campo,
+.leitor-estante .campo {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--leitor-borda, var(--border-subtle));
+  border-radius: 10px;
+  background: var(--leitor-fundo, var(--surface));
+  color: var(--leitor-texto, var(--ink));
+  font: inherit;
+}
+.leitor .seg {
+  background: var(--leitor-fundo);
+  border-color: var(--leitor-borda);
+}
+.leitor .seg button {
+  min-height: 40px;
+  color: var(--leitor-suave);
+}
+.leitor .seg button[aria-pressed='true'] {
+  background: var(--leitor-sutil);
+  color: var(--leitor-texto);
+  box-shadow: inset 0 0 0 1px var(--leitor-borda);
+}
+.leitor-apoio {
+  margin: 0;
+  font-size: 13px;
+  color: var(--leitor-suave, var(--ink-muted));
+}
+.leitor-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.leitor-grupo {
+  margin: 0 0 18px;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.leitor-grupo > legend,
+.leitor-legenda {
+  display: block;
+  margin-bottom: 8px;
+  font: 700 12px var(--font-display, system-ui);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--leitor-suave);
+}
+.leitor-subtitulo {
+  margin: 0 0 8px;
+  font: 800 14px var(--font-display, system-ui);
+}
+
+/* Aparência. */
+.leitor-temas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.leitor-tema {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.leitor-tema input,
+.leitor-fonte input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.leitor-tema-amostra {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 48px;
+  border-radius: 10px;
+  border: 2px solid var(--leitor-borda);
+  font:
+    700 18px Georgia,
+    serif;
+}
+.leitor-tema input:checked + .leitor-tema-amostra {
+  border-color: var(--leitor-acento);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--leitor-acento) 35%, transparent);
+}
+.leitor-tema input:focus-visible + .leitor-tema-amostra,
+.leitor-fonte input:focus-visible + span {
+  outline: 3px solid var(--leitor-acento);
+  outline-offset: 2px;
+}
+.leitor-tema-nome {
+  font-size: 12px;
+  text-align: center;
+  color: var(--leitor-suave);
+}
+.leitor-fontes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.leitor-fonte {
+  position: relative;
+  cursor: pointer;
+}
+.leitor-fonte {
+  display: flex;
+}
+.leitor-fonte span {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 6px 10px;
+  border: 2px solid var(--leitor-borda);
+  border-radius: 10px;
+  background: var(--leitor-fundo);
+  text-align: center;
+  font-size: 15px;
+}
+.leitor-fonte input:checked + span {
+  border-color: var(--leitor-acento);
+}
+.leitor-tamanho {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.leitor-tamanho .leitor-legenda {
+  flex-basis: 100%;
+  margin-bottom: 0;
+}
+.leitor-valor {
+  min-width: 60px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.leitor-faixa {
+  display: block;
+  margin-bottom: 14px;
+}
+.leitor-faixa > span {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+.leitor-faixa output {
+  color: var(--leitor-suave);
+  font-variant-numeric: tabular-nums;
+}
+.leitor-faixa input[type='range'] {
+  width: 100%;
+  min-height: 32px;
+  accent-color: var(--leitor-acento);
+}
+.leitor-alternar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+.leitor-alternar input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--leitor-acento);
+}
+
+/* Sumário e busca. */
+.leitor-busca {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.leitor-sumario,
+.leitor-sumario-sub,
+.leitor-resultados,
+.leitor-lista,
+.leitor-livros {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.leitor-sumario-sub {
+  padding-left: 14px;
+}
+.leitor-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--leitor-texto);
+  font: inherit;
+  font-size: 14.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.leitor-item:hover {
+  background: var(--leitor-fundo);
+}
+.leitor-item[aria-current='location'] {
+  background: var(--leitor-fundo);
+  box-shadow: inset 3px 0 0 var(--leitor-acento);
+  font-weight: 700;
+}
+.leitor-item mark {
+  background: color-mix(in srgb, #facc15 45%, transparent);
+  color: inherit;
+}
+
+/* Anotações. */
+.leitor-onde {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--leitor-fundo);
+  font-size: 13px;
+}
+.leitor-onde svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin-top: 1px;
+}
+.leitor-onde.aviso {
+  background: color-mix(in srgb, #f5a623 16%, var(--leitor-fundo));
+}
+.leitor-anotacao {
+  display: flex;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--leitor-borda);
+}
+.leitor-anotacao-cor {
+  flex: none;
+  width: 6px;
+  border-radius: 3px;
+  background: var(--cor-da-anotacao, #facc15);
+}
+.leitor-anotacao-corpo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.leitor-anotacao blockquote {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: 14.5px;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.leitor-anotacao-nota {
+  margin: 0;
+  font-size: 14px;
+  white-space: pre-wrap;
+}
+.leitor-anotacao .label-mono {
+  color: var(--leitor-suave);
+}
+[data-cor='amarelo'] {
+  --cor-da-anotacao: #e5b700;
+}
+[data-cor='verde'] {
+  --cor-da-anotacao: #2f9e57;
+}
+[data-cor='azul'] {
+  --cor-da-anotacao: #3a7bdc;
+}
+[data-cor='rosa'] {
+  --cor-da-anotacao: #d9468f;
+}
+[data-cor='laranja'] {
+  --cor-da-anotacao: #e07b00;
+}
+.leitor-exportacoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.leitor-nota-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* A barra do trecho selecionado. */
+.leitor-selecao {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--leitor-borda);
+  background: var(--leitor-sutil);
+  max-height: 50dvh;
+  overflow-y: auto;
+}
+.leitor-selecao-trecho {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: 14px;
+  color: var(--leitor-suave);
+}
+.leitor-cores {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  border: 1px solid var(--leitor-borda);
+  border-radius: 12px;
+  background: var(--leitor-fundo);
+}
+.leitor-cores-icone {
+  width: 18px;
+  height: 18px;
+  color: var(--leitor-suave);
+}
+.leitor-cor {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  position: relative;
+}
+.leitor-cor::after {
+  content: '';
+  position: absolute;
+  inset: 11px;
+  border-radius: 50%;
+  background: var(--cor-da-anotacao);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+.leitor-traducao p {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+/* As ferramentas de IA (painel "IA"): sempre listadas, com o motivo quando não dá para usar. */
+.leitor-ia-lista {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.leitor-ia-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--leitor-borda);
+  border-radius: 12px;
+  background: var(--leitor-fundo);
+}
+.leitor-ia-item .leitor-subtitulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+.leitor-ia-item .leitor-subtitulo svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--leitor-acento);
+}
+.leitor-ia-item[data-disponivel='false'] .leitor-subtitulo {
+  color: var(--leitor-suave);
+}
+.leitor-ia-motivo,
+.leitor-ia-pronto {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.leitor-ia-motivo {
+  color: var(--leitor-texto);
+  padding-left: 10px;
+  border-left: 3px solid var(--leitor-borda);
+}
+.leitor-ia-pronto {
+  color: var(--leitor-acento);
+}
+.leitor-ia-link {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--leitor-link);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.leitor-ia-voltar {
+  margin-bottom: 12px;
+}
+.leitor-ia-bloco {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.leitor-ia-modos {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+.leitor-ia-modos .btn {
+  justify-content: center;
+}
+.leitor-ia-modos .btn[aria-pressed='true'] {
+  background: var(--leitor-sutil);
+  border-color: var(--leitor-acento);
+  box-shadow: inset 0 0 0 1px var(--leitor-acento);
+}
+.leitor-ia-trecho,
+.leitor-ia-citacoes blockquote {
+  margin: 0;
+  padding: 6px 12px;
+  border-left: 3px solid var(--leitor-acento);
+  font-family: Georgia, serif;
+  font-size: 14px;
+  color: var(--leitor-suave);
+}
+.leitor-ia-resposta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--leitor-borda);
+  border-radius: 12px;
+  background: var(--leitor-fundo);
+}
+.leitor-ia-resposta p,
+.leitor-ia-resposta ul {
+  margin: 0;
+}
+.leitor-ia-resposta ul {
+  padding-left: 18px;
+}
+.leitor-ia-progresso {
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border: 0;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--leitor-borda);
+  accent-color: var(--leitor-acento);
+}
+.leitor-ia-progresso::-webkit-progress-bar {
+  background: var(--leitor-borda);
+}
+.leitor-ia-progresso::-webkit-progress-value {
+  background: var(--leitor-acento);
+  border-radius: 99px;
+}
+.leitor-ia-progresso::-moz-progress-bar {
+  background: var(--leitor-acento);
+  border-radius: 99px;
+}
+/* Botão indisponível na barra do trecho: continua focável e legível, só mais apagado (a razão aparece embaixo). */
+.leitor .btn.leitor-indisponivel {
+  opacity: 0.65;
+  border-style: dashed;
+  cursor: help;
+}
+/* A tradução do capítulo, lado a lado com o original. */
+.leitor-bilingue {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.leitor-bilingue-par {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--leitor-borda);
+}
+.leitor-bilingue-par p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.leitor-bilingue-traducao {
+  color: var(--leitor-link);
+}
+.leitor-bilingue-um {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--leitor-link);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* A estante. */
+.leitor-estante {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.leitor-estante h1 {
+  font-size: 26px;
+  margin-bottom: 6px;
+}
+.leitor-estante .leitor-apoio {
+  color: var(--ink-muted);
+}
+.leitor-livros {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.leitor-livro {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  flex-wrap: wrap;
+}
+.leitor-livro > div:nth-child(2) {
+  flex: 1;
+  min-width: 180px;
+}
+.leitor-livro h2 {
+  font-size: 16px;
+}
+.leitor-estante label.btn {
+  cursor: pointer;
+}
+.leitor-estante label.btn:focus-within {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Celular e janela estreita: o painel vira folha de baixo, por cima do texto; os rótulos dos botões
+   da barra somem (o nome acessível fica no aria do botão pelo texto que continua no DOM, só oculto). */
+@media (max-width: 900px) {
+  /* O painel de IA é a folha de baixo; a barra do trecho por baixo dela o espremia a ponto de a resposta sumir.
+     Enquanto a folha está aberta a barra descansa (a seleção continua valendo para o parceiro). */
+  .leitor[data-painel='ia'] .leitor-selecao {
+    display: none;
+  }
+  .leitor-painel {
+    position: absolute;
+    inset: auto 0 0 0;
+    width: auto;
+    max-height: 72%;
+    border-left: 0;
+    border-top: 1px solid var(--leitor-borda);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.18);
+    z-index: 5;
+  }
+}
+/* A barra de cinco do celular ocupa os 84 px de baixo (o palco os reserva, `prototipo-app.css`): o leitor cabe
+   no que sobra, e o pé com a virada de página fica acima dela. */
+@media (max-width: 720px) {
+  .leitor {
+    height: calc(100dvh - 84px - env(safe-area-inset-bottom, 0px));
+  }
+}
+@media (max-width: 640px) {
+  .leitor-topo {
+    padding: 4px 4px;
+    gap: 2px;
+  }
+  .leitor-botao:not(.leitor-botao-rotulo):not(.leitor-elenco-testar) > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .leitor-titulo {
+    font-size: 14px;
+  }
+  /* "Elenco" com rótulo cabe na barra do celular empilhando ícone e rótulo; a contagem fica ao lado do ícone, sem
+     cobrir o texto. Com o botão presente o título desce para uma segunda linha, inteiro, em vez de encolher. */
+  .leitor-botao-rotulo {
+    position: relative;
+    flex-direction: column;
+    gap: 0;
+    padding: 2px 6px;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+  .leitor-botao-rotulo .leitor-contagem {
+    position: absolute;
+    top: 1px;
+    right: -4px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: var(--leitor-acento);
+    color: var(--leitor-fundo);
+    font-size: 10px;
+    line-height: 16px;
+    text-align: center;
+  }
+  .leitor-topo-com-elenco {
+    flex-wrap: wrap;
+  }
+  .leitor-topo-com-elenco .leitor-titulo {
+    order: 3;
+    flex: 1 1 100%;
+    min-height: 0;
+    padding: 0 8px 4px;
+  }
+  .leitor-exportacoes {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .leitor * {
+    transition: none !important;
+  }
+}
+
+/* Até o motor parar na posição salva, o livro fica invisível: o paginador abre na primeira página e salta para a
+   do CFI, e a camada de grifos (o SVG do overlayer) salta junto — sem isto o Lighthouse media CLS de 0,55. */
+.leitor[data-estado='carregando'] .leitor-motor {
+  visibility: hidden;
+}
+
+/* "Abrir link" na folha da palavra: o destino aparece (o host), para a pessoa saber aonde vai. */
+.leitor-abrir-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0;
+}
+.leitor-link-destino {
+  font-size: 0.85em;
+  opacity: 0.75;
+}
+
+/* O avatar-narrador (M5): um rosto pequeno e a legenda, logo acima da barra do narrador. A legenda é o conteúdo. */
+.leitor-avatar-narrador {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--leitor-borda);
+  background: var(--leitor-sutil);
+}
+.leitor-avatar-narrador-rosto {
+  flex: 0 0 72px;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.leitor-avatar-narrador-legenda {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  min-width: 0;
+  font-size: 14px;
+}
+.leitor-avatar-narrador-legenda span {
+  opacity: 0.8;
+}
+.leitor-elenco-lista {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+.leitor-elenco-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  min-height: 44px;
+  font-size: 14px;
+  padding-bottom: 10px;
+}
+/* Cada personagem é um bloco: o nome em cima, a voz e o botão de ouvir numa linha embaixo; o filete entre blocos
+   deixa claro de quem é cada seletor. */
+.leitor-elenco-personagem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0;
+  border-top: 1px solid var(--leitor-borda);
+  font-size: 14px;
+}
+.leitor-elenco-nome {
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.leitor-elenco-traducao {
+  font-weight: 400;
+  font-size: 12px;
+  opacity: 0.75;
+}
+.leitor-elenco-controle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.leitor-elenco-controle select {
+  min-height: 44px;
+  flex: 1 1 0;
+  min-width: 0;
+}
+.leitor-elenco-testar {
+  flex: none;
+  min-width: 44px;
+  min-height: 44px;
+  border-color: var(--leitor-borda);
+}
+
+/* O botão "Elenco" na barra: o rótulo aparece mesmo no celular (os outros botões ficam só no ícone) e o estado
+   ligado se vê pela cor, não só pelo atributo. */
+.leitor-botao-rotulo[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--leitor-acento) 16%, var(--leitor-fundo));
+  border-color: var(--leitor-acento);
+}
+
+/* A dica da primeira vez: uma faixa discreta sob a barra, que não cobre o livro nem prende o foco. */
+.leitor-dica {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 4px 14px;
+  font-size: 14px;
+  background: color-mix(in srgb, var(--leitor-acento) 10%, var(--leitor-fundo));
+  border-bottom: 1px solid var(--leitor-borda);
+}
+.leitor-dica p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.leitor-dica-icone {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--leitor-acento);
+}
+.leitor-dica-acao {
+  border-color: var(--leitor-borda);
+}
+
+/* A barra do narrador (L3): transporte, onde está, velocidade, ajustes e parar. Fica no pé, acima da virada de
+   página, como a barra do trecho. */
+.leitor-narrador {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--leitor-borda);
+  background: var(--leitor-sutil);
+}
+.leitor-narrador-transporte {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.leitor-narrador-tocar {
+  background: var(--leitor-acento);
+  color: var(--leitor-fundo);
+  border-radius: 50%;
+  min-width: 48px;
+  min-height: 48px;
+}
+.leitor-narrador-tocar:hover {
+  background: color-mix(in srgb, var(--leitor-acento) 86%, var(--leitor-texto));
+}
+.leitor-narrador-onde {
+  flex: 1;
+  min-width: 8ch;
+  margin: 0;
+  font-size: 13px;
+  color: var(--leitor-suave);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.leitor-narrador-velocidade {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.leitor-narrador-sono {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--leitor-suave);
+}
+.leitor-narrador-sono svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.leitor .leitor-narrador-sono select {
+  min-height: 44px;
+  width: 8.5em;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  padding: 0 6px;
+  border-radius: 10px;
+  border: 1px solid var(--leitor-borda);
+  background: var(--leitor-fundo);
+  color: var(--leitor-texto);
+  font: 600 13px var(--font-display, system-ui);
+}
+.leitor .leitor-narrador-velocidade select {
+  min-height: 44px;
+  padding: 0 8px;
+  border-radius: 10px;
+  border: 1px solid var(--leitor-borda);
+  background: var(--leitor-fundo);
+  color: var(--leitor-texto);
+  font: 600 13px var(--font-display, system-ui);
+  font-variant-numeric: tabular-nums;
+}
+/* O convite da voz no aparelho: uma faixa na própria barra, sem sombra nem véu (a leitura segue atrás). */
+.leitor-convite-voz {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--leitor-borda);
+  border-left: 4px solid var(--leitor-acento);
+  border-radius: 10px;
+  background: var(--leitor-fundo);
+  color: var(--leitor-texto);
+}
+.leitor-convite-voz p {
+  margin: 0;
+}
+.leitor-convite-voz-titulo {
+  font-size: 14px;
+}
+.leitor-convite-voz-texto {
+  flex: 1 1 22ch;
+  font-size: 13px;
+  color: var(--leitor-suave);
+}
+.leitor-convite-voz-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 100%;
+}
+.leitor-convite-voz progress {
+  flex: 1 1 10ch;
+  min-width: 8ch;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .leitor-convite-voz {
+    animation: leitor-convite-voz-entra 0.18s ease-out;
+  }
+}
+@keyframes leitor-convite-voz-entra {
+  from {
+    opacity: 0;
+  }
+}
+.leitor-modos {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.leitor-modo {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--leitor-borda);
+  border-radius: 10px;
+  background: var(--leitor-fundo);
+  cursor: pointer;
+}
+.leitor-modo:has(input:checked) {
+  border-color: var(--leitor-acento);
+}
+.leitor-modo input {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--leitor-acento);
+}
+.leitor-modo span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+}
+.leitor-modo small {
+  color: var(--leitor-suave);
+  font-size: 12.5px;
+}
+.leitor-convite {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+/* O rótulo "Voz sintetizada" (áudio pré-gerado, F2): sempre visível enquanto o áudio gravado toca; não fecha. */
+.leitor-chip-voz-sintetizada {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border: 1px solid var(--leitor-borda);
+  border-radius: 999px;
+  background: var(--leitor-fundo);
+  color: var(--leitor-texto);
+  font: 600 12px var(--font-display, system-ui);
+  white-space: nowrap;
+}
+.leitor-baixar-capitulo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+@media (max-width: 640px) {
+  .leitor-narrador {
+    padding: 4px 6px;
+    gap: 4px;
+  }
+  .leitor .leitor-narrador-sono select {
+    width: 7em;
+  }
+  .leitor-narrador-onde {
+    order: -1;
+    flex-basis: 100%;
+    text-align: center;
+  }
+}
+
+/* Os ajustes finos da narração: o rótulo, o controle e o valor à vista. */
+.leitor-ajustes-finos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.leitor-deslizante {
+  display: grid;
+  grid-template-columns: minmax(7.5em, 1fr) minmax(0, 1.6fr) 5.5em;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.leitor-deslizante input[type='range'] {
+  width: 100%;
+  min-height: 44px;
+  accent-color: var(--leitor-acento);
+}
+.leitor-deslizante select {
+  grid-column: 2 / -1;
+  min-height: 44px;
+  padding: 0 8px;
+  border-radius: 10px;
+  border: 1px solid var(--leitor-borda);
+  background: var(--leitor-fundo);
+  color: var(--leitor-texto);
+}
+.leitor-deslizante output {
+  color: var(--leitor-suave);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+@media (max-width: 640px) {
+  .leitor-deslizante {
+    grid-template-columns: 1fr 5.5em;
+  }
+  .leitor-deslizante input[type='range'] {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .leitor-deslizante select {
+    grid-column: 1 / -1;
+  }
+}
+
+/* O CARTÃO LEVE DA PALAVRA (`CartaoDaPalavra.tsx`): não modal, sem fundo por trás, perto da palavra (a posição é
+   calculada em `core/leitura/posicaoDoCartao.ts`). Cores só dos tokens do tema de leitura. */
+.cartao-palavra {
+  position: fixed;
+  z-index: 40;
+  width: min(520px, calc(100vw - 16px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--leitor-borda);
+  border-radius: 14px;
+  background: var(--leitor-fundo);
+  color: var(--leitor-texto);
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--leitor-texto) 18%, transparent);
+  animation: cartao-palavra-entra 120ms ease-out;
+}
+.cartao-palavra:focus {
+  outline: none;
+}
+.cartao-palavra:focus-visible {
+  outline: 3px solid var(--leitor-acento);
+}
+.cartao-palavra[data-modo='folha'] {
+  left: 0;
+  right: 0;
+  width: auto;
+  border-radius: 14px 14px 0 0;
+}
+.cartao-palavra[data-modo='folha'][data-lado='baixo'] {
+  bottom: 0;
+}
+.cartao-palavra[data-modo='folha'][data-lado='topo'] {
+  top: 0;
+  border-radius: 0 0 14px 14px;
+}
+@keyframes cartao-palavra-entra {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cartao-palavra {
+    animation: none;
+  }
+}
+.cartao-palavra-topo {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.cartao-palavra-cab {
+  flex: 1;
+  min-width: 0;
+}
+.cartao-palavra-cab p {
+  margin: 0;
+}
+.cartao-palavra-linha1 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.cartao-palavra-termo {
+  font: 700 20px/1.25 var(--font-display, system-ui);
+  overflow-wrap: anywhere;
+}
+.cartao-palavra-ipa {
+  font-size: 14px;
+  color: var(--leitor-suave);
+}
+.cartao-palavra-traducao {
+  margin-top: 2px;
+  font-size: 16px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cartao-palavra-apoio {
+  margin: 0;
+  font-size: 14px;
+  color: var(--leitor-suave);
+  white-space: normal;
+}
+.cartao-palavra-apoio svg,
+.cartao-palavra-chip svg {
+  width: 18px;
+  height: 18px;
+  vertical-align: -3px;
+}
+.cartao-palavra-cantos {
+  display: flex;
+  gap: 2px;
+}
+.cartao-palavra-imagem {
+  margin: 0;
+  width: 64px;
+  flex: none;
+  text-align: center;
+}
+.cartao-palavra-imagem img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--leitor-borda);
+}
+.cartao-palavra-imagem figcaption {
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--leitor-suave);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cartao-palavra-imagem a {
+  color: inherit;
+}
+.cartao-palavra-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+/* Mini-folha (celular): os botões quebram de 2 em 2, sem botão órfão (o último, se ímpar, ocupa a linha). E o botão
+   flutuante do iChat sai de baixo da folha, como já sai de baixo de qualquer folha do app (`.folha.on`). */
+.cartao-palavra[data-modo='folha'] > .cartao-palavra-acoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.cartao-palavra[data-modo='folha'] > .cartao-palavra-acoes > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+.cartao-palavra[data-modo='folha'] .cartao-palavra-acoes .cartao-palavra-chip {
+  justify-content: center;
+}
+body:has(.cartao-palavra[data-modo='folha']) .fab {
+  display: none;
+}
+.cartao-palavra-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 44px;
+  padding: 0 9px;
+  white-space: nowrap;
+  border: 1px solid var(--leitor-borda);
+  border-radius: 22px;
+  background: var(--leitor-sutil);
+  color: var(--leitor-texto);
+  font:
+    600 14px/1.2 system-ui,
+    sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+}
+.cartao-palavra-chip:hover {
+  border-color: var(--leitor-acento);
+}
+.cartao-palavra-chip[aria-expanded='true'],
+.cartao-palavra-chip[aria-pressed='true'] {
+  border-color: var(--leitor-acento);
+  box-shadow: inset 0 0 0 1px var(--leitor-acento);
+}
+.cartao-palavra-chip[data-estado='salva'] {
+  cursor: default;
+  border-style: dashed;
+}
+.cartao-palavra-chip[aria-expanded='true'] .cartao-palavra-seta {
+  transform: rotate(180deg);
+}
+.cartao-palavra-bloco,
+.cartao-palavra-mais {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--leitor-borda);
+  font-size: 15px;
+  line-height: 1.45;
+}
+.cartao-palavra-bloco p,
+.cartao-palavra-mais p {
+  margin: 0;
+}
+.cartao-palavra-citacao {
+  font-family: Georgia, serif;
+  color: var(--leitor-suave);
+}
+.cartao-palavra-link {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--leitor-link);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.cartao-palavra-sub {
+  margin: 4px 0 0;
+  font: 700 14px/1.3 var(--font-display, system-ui);
+}
+.cartao-palavra-sentidos {
+  margin: 0;
+  padding-left: 18px;
+}
+.cartao-palavra-classe {
+  font-style: italic;
+  color: var(--leitor-suave);
+}
+.cartao-palavra-exemplo {
+  font-style: italic;
+}
+.cartao-palavra-velocidade {
+  display: flex;
+  gap: 6px;
+}
+.cartao-palavra-fontes summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--leitor-suave);
+}
+
+/* O avatar-narrador (faixa acima da barra, no fluxo: nunca cobre o texto). O tamanho vem do avatar (P/M/G, com teto de
+   um quinto da altura); recolhido, sobra só a legenda. */
+.leitor-avatar-narrador {
+  position: relative;
+  flex-wrap: wrap;
+}
+.leitor-avatar-narrador-rosto {
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  border-radius: 50%;
+}
+.leitor-avatar-narrador-legenda {
+  flex: 1 1 140px;
+}
+.leitor-avatar-narrador-legenda small {
+  opacity: 0.7;
+}
+.leitor-avatar-narrador-legenda span {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.leitor-avatar-painel {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 100%;
+  z-index: 5;
+  max-width: 420px;
+}
+.leitor-avatar-painel .avm-painel {
+  max-height: min(55dvh, 520px);
+}

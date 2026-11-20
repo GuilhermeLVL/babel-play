@@ -1,3 +1,5 @@
+import { caminhoInternoAtual, comBaseDoApp, semBaseDoApp } from './baseDoApp';
+
 /**
  * A URL COMO ESPELHO DO ESTADO.
  *
@@ -26,6 +28,8 @@ export type ViewDeRota =
   | 'interprete'
   | 'play'
   | 'library'
+  /** O catálogo de livros (`/livros`), o detalhe (`/livros/<id>`) e a leitura (`/livros/<id>/ler`). */
+  | 'livros'
   | 'analysis'
   | 'cartoes'
   | 'settings'
@@ -37,6 +41,8 @@ export type ViewDeRota =
   | 'ajuda'
   | 'diagnostico'
   | 'admin'
+  /** O leitor de livros (`/leitor/<livroId>`, L2 de Livros & Leitura). */
+  | 'leitor'
   | 'naoencontrado';
 
 /** As duas áreas clássicas de Personalizar (sem a flag `recompensas_v2`). */
@@ -72,10 +78,19 @@ export interface EstadoDeRota {
    * espelhar "estou em Planos" não a apaga (ver `publicarUrl`).
    */
   planosTela?: SubTelaDePlanos;
+  /** Só para `settings`: a aba dos Ajustes (id interno; o segmento da URL vem de `SEGMENTO_DA_ABA_DOS_AJUSTES`). */
+  ajustesAba?: AbaDosAjustes;
   /** Só para `cartoes`: "Hoje", "Palavras" ou a Memória (tela de dentro). Sem ela, a tela abre em "Hoje". */
   cartoesAba?: AbaDeCartoes;
   /** Só para `cartoes`: a rodada de revisão está aberta (`/cartoes/estudar`). */
   estudando?: boolean;
+  /**
+   * Para `livros`: o livro aberto (o detalhe), do catálogo ou trazido pela pessoa. Para `leitor`: o livro no
+   * leitor — como a sub-tela de Planos, é DA TELA: espelhar "estou no leitor" (sem o id) não o apaga.
+   */
+  livroId?: string;
+  /** Só para `livros` com `livroId`: a leitura dele (`/livros/<id>/ler`), não o detalhe. */
+  lendo?: boolean;
 }
 
 /**
@@ -84,12 +99,37 @@ export interface EstadoDeRota {
  * catálogo do seletor de conteúdo e "Trazer e levar" virou folha do "…": `/cartoes/baralhos` e
  * `/cartoes/trazer` caem em `/cartoes`, como qualquer aba que não existe.
  */
+/**
+ * As abas dos Ajustes (`/ajustes/<aba>`). O id é o interno; o segmento da URL fala a língua do rótulo —
+ * "contas" é a aba "Processamento", então o endereço é `/ajustes/processamento`. Aba desconhecida
+ * degrada para `/ajustes`, nunca para o 404.
+ */
+export const ABAS_DOS_AJUSTES = ['idiomas', 'aparencia', 'notificacoes', 'contas', 'privacidade', 'conta'] as const;
+export type AbaDosAjustes = (typeof ABAS_DOS_AJUSTES)[number];
+const SEGMENTO_DA_ABA_DOS_AJUSTES: Record<AbaDosAjustes, string> = {
+  idiomas: 'idiomas',
+  aparencia: 'aparencia',
+  notificacoes: 'notificacoes',
+  contas: 'processamento',
+  privacidade: 'privacidade',
+  conta: 'conta',
+};
+const ABA_DOS_AJUSTES_DE_SEGMENTO = Object.fromEntries(
+  Object.entries(SEGMENTO_DA_ABA_DOS_AJUSTES).map(([aba, seg]) => [seg, aba as AbaDosAjustes]),
+) as Record<string, AbaDosAjustes>;
+export const ehAbaDosAjustes = (s: string | null | undefined): s is AbaDosAjustes =>
+  !!s && (ABAS_DOS_AJUSTES as readonly string[]).includes(s);
+
 export const ABAS_DE_CARTOES = ['hoje', 'palavras', 'memoria'] as const;
 export type AbaDeCartoes = (typeof ABAS_DE_CARTOES)[number];
 const ehAbaDeCartoes = (s: string | undefined): s is AbaDeCartoes =>
   !!s && (ABAS_DE_CARTOES as readonly string[]).includes(s);
 /** O segmento da rodada de revisão dentro de Cartões. */
 const SEGMENTO_DE_ESTUDO = 'estudar';
+/** O segmento da leitura de um livro (`/livros/<id>/ler`). */
+const SEGMENTO_DE_LEITURA = 'ler';
+/** Um id de livro: minúsculas, dígitos e hífens (os do catálogo e os `meu-…` dos trazidos). */
+const ehIdDeLivro = (s: string) => /^[a-z0-9][a-z0-9-]{0,119}$/.test(s);
 
 export const SUBTELAS_DE_PLANOS = ['assinar', 'assinado', 'cancelar', 'assinatura'] as const;
 export type SubTelaDePlanos = (typeof SUBTELAS_DE_PLANOS)[number];
@@ -103,6 +143,7 @@ const SEGMENTO: Record<Exclude<ViewDeRota, 'analysis'>, string> = {
   interprete: 'interprete',
   play: 'jogar',
   library: 'biblioteca',
+  livros: 'livros',
   cartoes: 'cartoes',
   settings: 'ajustes',
   profile: 'perfil',
@@ -113,6 +154,7 @@ const SEGMENTO: Record<Exclude<ViewDeRota, 'analysis'>, string> = {
   ajuda: 'ajuda',
   diagnostico: 'diagnostico',
   admin: 'admin',
+  leitor: 'leitor',
   naoencontrado: 'nao-encontrado',
 };
 
@@ -260,14 +302,22 @@ export function estadoParaUrl(e: EstadoDeRota): string {
       e.lojaTab in ABA_DA_LOJA ? e.lojaTab : (normalizarAbaDaLojaV2(e.lojaTab) ?? normalizarAbaDaLoja(e.lojaTab));
     return canonica ? `/loja/${ABA_DA_LOJA[canonica]}` : '/loja';
   }
+  if (e.view === 'settings' && ehAbaDosAjustes(e.ajustesAba)) {
+    return `/${SEGMENTO.settings}/${SEGMENTO_DA_ABA_DOS_AJUSTES[e.ajustesAba]}`;
+  }
   if (e.view === 'play' && e.jogarQuery) return `/jogar?${e.jogarQuery}`;
+  if (e.view === 'livros' && e.livroId && ehIdDeLivro(e.livroId)) {
+    return `/${SEGMENTO.livros}/${e.livroId}${e.lendo ? `/${SEGMENTO_DE_LEITURA}` : ''}`;
+  }
+  if (e.view === 'leitor' && e.livroId) return `/${SEGMENTO.leitor}/${encodeURIComponent(e.livroId)}`;
   if (e.view === 'planos' && ehSubTelaDePlanos(e.planosTela)) return `/${SEGMENTO.planos}/${e.planosTela}`;
   const seg = SEGMENTO[e.view];
   return seg ? `/${seg}` : '/';
 }
 
 export function urlParaEstado(caminho: string): EstadoDeRota {
-  const bruto = String(caminho || '').split('#')[0];
+  /* Sob `/app` (o app no Worker, atrás do site público) a base sai antes: as rotas são internas. */
+  const bruto = semBaseDoApp(String(caminho || '').split('#')[0]);
   // A query era DESCARTADA aqui (auditoria do seletor, defeito de persistência): um link com
   // filtro abria a tela certa e jogava o filtro fora. Ela sobrevive apenas em `/jogar` — é a
   // única rota que a publica — e sem o `.toLowerCase()` do caminho, porque ids de baralho e
@@ -318,6 +368,31 @@ export function urlParaEstado(caminho: string): EstadoDeRota {
       ABA_DA_LOJA_DE_SEGMENTO[partes[1]] ?? normalizarAbaDaLojaV2(partes[1]) ?? normalizarAbaDaLoja(partes[1]);
     // Sub-aba desconhecida degrada para a tela, nunca para o Hub: o usuário pediu Personalizar.
     return aba ? { view: 'loja', lojaTab: aba } : { view: 'loja' };
+  }
+
+  if (partes[0] === SEGMENTO.livros && partes[1]) {
+    /* Id que não tem a forma de um id de livro degrada para o catálogo, nunca para o 404. */
+    if (!ehIdDeLivro(partes[1])) return { view: 'livros' };
+    return partes[2] === SEGMENTO_DE_LEITURA
+      ? { view: 'livros', livroId: partes[1], lendo: true }
+      : { view: 'livros', livroId: partes[1] };
+  }
+
+  /* O LEITOR: o id do livro sai do caminho CRU (sem o `toLowerCase`), porque ids de catálogo têm caixa. */
+  if (partes[0] === SEGMENTO.leitor) {
+    const cru = bruto.split('?')[0].split('/').filter(Boolean)[1];
+    let livroId: string | undefined;
+    try {
+      livroId = cru ? decodeURIComponent(cru) : undefined;
+    } catch {
+      livroId = undefined;
+    }
+    return livroId ? { view: 'leitor', livroId } : { view: 'leitor' };
+  }
+
+  if (partes[0] === SEGMENTO.settings && partes[1]) {
+    const aba = ABA_DOS_AJUSTES_DE_SEGMENTO[partes[1]];
+    return aba ? { view: 'settings', ajustesAba: aba } : { view: 'settings' };
   }
 
   const alias = ALIAS_DE_SEGMENTO[partes[0]];
@@ -375,15 +450,21 @@ export function publicarUrl(e: EstadoDeRota, push = true): void {
   // Alvo COM query compara com caminho+query; alvo SEM query compara só o caminho — assim uma
   // publicação de view que não conhece o filtro (App trocando de aba) não apaga a query que o
   // dono dela (Play) acabou de escrever.
-  const atual = alvo.includes('?') ? window.location.pathname + window.location.search : window.location.pathname;
+  const interno = caminhoInternoAtual();
+  const atual = alvo.includes('?') ? interno + window.location.search : interno;
   if (atual === alvo) return;
   /* A sub-tela de Planos é da tela, não do App: quem espelha só "estou em Planos" (sem
      `planosTela`) não a apaga. Sem isto, recarregar `/plano/assinado` — a volta do pagamento —
      caía em `/plano` no primeiro render. */
   if (e.view === 'planos' && !e.planosTela && urlParaEstado(window.location.pathname).planosTela) return;
+  /* O livro aberto é do leitor, como a sub-tela é de Planos: espelhar só "estou no leitor" não o apaga. */
+  if (e.view === 'leitor' && !e.livroId && urlParaEstado(caminhoInternoAtual()).livroId) return;
   // `replaceState` na restauração inicial: entrar no app não deve criar uma entrada de histórico
   // para trás que devolveria o usuário para fora.
-  window.history[push ? 'pushState' : 'replaceState']({}, '', alvo);
+  /* Trocar de aba dentro dos Ajustes atualiza o endereço sem empilhar histórico: "voltar" sai da
+     tela, não percorre as abas uma a uma. */
+  const soTrocouDeAba = e.view === 'settings' && urlParaEstado(window.location.pathname).view === 'settings';
+  window.history[push && !soTrocouDeAba ? 'pushState' : 'replaceState']({}, '', comBaseDoApp(alvo));
 }
 
 /**
@@ -393,7 +474,7 @@ export function publicarUrl(e: EstadoDeRota, push = true): void {
  */
 export function publicarQueryDoJogar(query: string): void {
   if (typeof window === 'undefined') return;
-  if (window.location.pathname !== `/${SEGMENTO.play}`) return;
+  if (caminhoInternoAtual() !== `/${SEGMENTO.play}`) return;
   const alvo = query ? `?${query}` : '';
   if (window.location.search === alvo) return;
   window.history.replaceState({}, '', window.location.pathname + alvo);
@@ -409,7 +490,7 @@ export function publicarQueryDoJogar(query: string): void {
 export function navegarPara(e: EstadoDeRota): void {
   if (typeof window === 'undefined') return;
   const alvo = estadoParaUrl(e);
-  if (window.location.pathname + window.location.search !== alvo) window.history.pushState({}, '', alvo);
+  if (caminhoInternoAtual() + window.location.search !== alvo) window.history.pushState({}, '', comBaseDoApp(alvo));
   window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
@@ -424,7 +505,7 @@ export const EVENTO_SUBTELA_DE_PLANOS = 'babel:planos-subtela';
 export function irParaSubTelaDePlanos(planosTela: SubTelaDePlanos | null): void {
   if (typeof window === 'undefined') return;
   const alvo = estadoParaUrl(planosTela ? { view: 'planos', planosTela } : { view: 'planos' });
-  if (window.location.pathname !== alvo) window.history.pushState({}, '', alvo);
+  if (caminhoInternoAtual() !== alvo) window.history.pushState({}, '', comBaseDoApp(alvo));
   window.dispatchEvent(new Event(EVENTO_SUBTELA_DE_PLANOS));
 }
 
@@ -465,4 +546,22 @@ export function consumirQueryDoBoot(): string {
   const q = queryDoBoot;
   queryDoBoot = '';
   return q;
+}
+
+/**
+ * O LIVRO ABERTO COMO ELE CHEGOU NA URL (`/leitor/<id>`), pelo mesmo motivo da sub-tela de Planos acima: na
+ * dança de boot o App espelha a view antiga (`/`) antes de restaurar, e o caminho volta como `/leitor`, sem o
+ * id. É o que faz o F5 no leitor reabrir o MESMO livro. Lido na montagem do leitor, esquecido no efeito.
+ */
+let livroDoBoot: string | null = (() => {
+  if (typeof window === 'undefined') return null;
+  /* Só o `/leitor/<id>`: o `/livros/<id>` da L1 usa o mesmo campo, e não é um livro da estante. */
+  const e = urlParaEstado(window.location.pathname);
+  return e.view === 'leitor' ? (e.livroId ?? null) : null;
+})();
+
+export const lerLivroDoBoot = (): string | null => livroDoBoot;
+
+export function esquecerLivroDoBoot(): void {
+  livroDoBoot = null;
 }

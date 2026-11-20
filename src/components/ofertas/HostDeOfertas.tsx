@@ -9,8 +9,9 @@ import {
   type PlanoSugerido,
   resolverTextoRemoto,
 } from '../../core/ofertas';
-import { DIAS_DO_TESTE_PREMIUM, PLAN_MATRIX, precoDoPlano } from '../../core/planos';
-import { onPlanChange } from '../../lib/entitlements';
+import { DIAS_DO_TESTE_PREMIUM, ehPlanoPago, PLAN_MATRIX, type PlanoPago, precoDoPlano } from '../../core/planos';
+import { diaQueACotaVolta } from '../../lib/diaQueACotaVolta';
+import { getEntitlements, onPlanChange } from '../../lib/entitlements';
 import { ehConfigDeOfertas, useConfigRemota, useFlag } from '../../lib/flags';
 import { estadoDeIdentidade } from '../../lib/identidade';
 import { verificarCota } from '../../lib/ofertas/cota';
@@ -40,6 +41,7 @@ import {
 import { decidirOferta, type DecisaoDeOferta, type EstadoDaTela } from '../../lib/ofertas/motor';
 import { pessoaDaOferta, planoDaOferta } from '../../lib/ofertas/plano';
 import { verificarTeste } from '../../lib/ofertas/teste';
+import { comNomeDoPlano, planoDeEntradaAgora } from '../../lib/planoDeEntrada';
 import { planoDeProva } from '../../lib/polimento/planos';
 import { capturaAtiva } from '../../lib/sessaoDeCaptura';
 import { useI18n } from '../../lib/useI18n';
@@ -66,11 +68,11 @@ import ModalDeOferta from './ModalDeOferta';
  * COTA PRÓXIMA: com conta, pergunta `GET /api/me/uso` (cache de 1 h) ao montar, quando o plano muda
  * e a cada hora; ≥ 80% dispara `cota_proxima`, 100% dispara `fim_de_cota`.
  *
- * FIM DO TESTE (C6): nas mesmas horas, quem está no teste de 14 dias (o `teste` dos entitlements)
- * recebe `fim_do_teste` em D-3 e em D0 — informativo: o botão abre Planos sem destacar venda.
+ * FIM DO TESTE (C6): nas mesmas horas, quem está no teste de 3 dias (o `teste` dos entitlements)
+ * recebe `fim_do_teste` em D-1 e em D0 — informativo: o botão abre Planos sem destacar venda.
  *
  * A PESSOA (C8, `pessoaDaOferta`): a conta de perfil protegido só recebe o funcional, com o texto
- * embutido e sem venda; o Grátis que o servidor deixa testar ouve o teste de 14 dias sem cartão (a
+ * embutido e sem venda; o Grátis que o servidor deixa testar ouve o teste de 3 dias sem cartão (a
  * situação vem de `/api/billing/status`, lembrada por 1 h — `lib/ofertas/teste.ts`).
  */
 
@@ -198,7 +200,7 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
     };
   }, [avaliar]);
 
-  // 3. A cota perto do fim e o fim do teste de 14 dias (só com conta).
+  // 3. A cota perto do fim e o fim do teste de 3 dias (só com conta).
   useEffect(() => {
     const conferir = () => {
       if (estadoDeIdentidade() !== 'conta') return;
@@ -256,12 +258,24 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
     fechar();
   };
 
-  const titulo = resolverTextoRemoto(g.titulo, idioma, t);
-  const texto = resolverTextoRemoto(g.texto, idioma, t);
+  /* O texto do fim do teste fala do plano que o teste deu: o Premium até aqui, o Plus na v4. */
+  const planoDoTeste = ((): PlanoPago => {
+    const { plan } = getEntitlements();
+    return ehPlanoPago(plan) ? plan : planoDeEntradaAgora();
+  })();
+  /* Com a v4 ligada NENHUMA oferta fala do Premium (as remotas da flag `oferta_planos` ainda o nomeiam):
+     o fim do teste usa o plano que o teste deu; as demais, o plano de entrada. Sem a v4 o texto é o de hoje. */
+  const planoDoTexto = informativoDoTeste ? planoDoTeste : planoDeEntradaAgora();
+  const doPlano = (txt: string): string => comNomeDoPlano(txt, planoDoTexto);
+  const titulo = doPlano(resolverTextoRemoto(g.titulo, idioma, t));
+  /* `{data}` (o fim de cota): o dia em que a cota renova, do `renovaEm` que `verificarCota` acabou de ler. */
+  const texto = doPlano(resolverTextoRemoto(g.texto, idioma, t)).replace('{data}', diaQueACotaVolta());
   /* Quem não tem plano a subir (Premium) vê o consumo, não uma venda. */
   const cta =
-    sugerido === 'nenhum' && !informativoDoTeste ? t('Ver consumo do mês') : resolverTextoRemoto(g.cta, idioma, t);
-  const selo = seloDoPlano(sugerido, t);
+    sugerido === 'nenhum' && !informativoDoTeste
+      ? t('Ver consumo do mês')
+      : doPlano(resolverTextoRemoto(g.cta, idioma, t));
+  const selo = seloDoPlano(sugerido, t, planoDeEntradaAgora());
   const props = {
     /* O fim de sessão traz o livro aberto (`OFERTAS`, `telas.js:480`). */
     icone: momento === 'fim_de_sessao' ? BookOpen : ICONE[momento],
@@ -283,17 +297,22 @@ function renderizar(componente: ComponenteDeOferta, props: Parameters<typeof Mod
 
 /**
  * "Sugerido: Premium · R$ 19,90/mês" — o nome e o preço da matriz, nunca escritos à mão. Para quem
- * pode testar: "Sugerido: 14 dias de Premium grátis, sem cartão" (C8).
+ * pode testar: "Sugerido: 3 dias de Premium grátis, sem cartão" (C8).
  */
-function seloDoPlano(sugerido: PlanoSugerido, t: (s: string, v?: Record<string, string | number>) => string) {
+function seloDoPlano(
+  sugerido: PlanoSugerido,
+  t: (s: string, v?: Record<string, string | number>) => string,
+  /* O plano de entrada: o Plus com a v4, o Premium sem ela. `premium` em `PlanoSugerido` é "assinar". */
+  entrada: PlanoPago,
+) {
   if (sugerido === 'teste')
     return t('Sugerido: {dias} dias de {plano} grátis, sem cartão', {
       dias: DIAS_DO_TESTE_PREMIUM,
-      plano: PLAN_MATRIX.premium.rotulo,
+      plano: PLAN_MATRIX[entrada].rotulo,
     });
   if (sugerido !== 'premium') return undefined;
-  const nome = PLAN_MATRIX[sugerido].rotulo;
-  const preco = precoDoPlano(sugerido);
+  const nome = PLAN_MATRIX[entrada].rotulo;
+  const preco = precoDoPlano(entrada);
   return preco
     ? t('Sugerido: {plano} · R$ {preco}/mês', { plano: nome, preco })
     : t('Sugerido: {plano}', { plano: nome });

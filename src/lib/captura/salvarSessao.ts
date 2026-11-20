@@ -29,7 +29,7 @@ import { play } from '../soundFx';
 import { SpeakerClusterer } from '../speakerCluster';
 import { preloadSpeakerId } from '../speakerId';
 import { aguardarFinaisEmVoo, prazoDaMistura } from './finaisEmVoo';
-import { criarProgressoDosPacotesNativos } from './pacotesNativos';
+import { criarProgressoDosPacotesNativos, type PacotesNativos } from './pacotesNativos';
 import type { RascunhoDaCaptura } from './rascunhoDaCaptura';
 import {
   type CaptureScenario,
@@ -141,6 +141,11 @@ export interface DepsDeSalvarSessao {
    * vale o `micEnabled` da tela, como sempre.
    */
   micNoInicio?: () => boolean | undefined;
+  /**
+   * Onde guardar os ouvintes do cartão dos pacotes do navegador desta sessão: a tradução avisa por ele quando o tradutor
+   * LOCAL assume (`localAssumiu`), e o cartão do nativo some (COMP-03).
+   */
+  pacotesNativosRef?: { current: PacotesNativos | null };
   /** O cenário que vai ao `meta` da sessão salva (`scenario: interprete`). */
   cenarioDaSessao?: () => 'interprete' | undefined;
 }
@@ -152,6 +157,21 @@ function novaChaveDeCaptura(): string {
   } catch {
     return `captura-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   }
+}
+
+/**
+ * OS PARES QUE A CAPTURA AQUECE NO INICIAR (dono, 22/10/2026: "só o necessário"). `seu` é o idioma
+ * da pessoa e `doConteudo` o do vídeo/chamada: o sistema traduz `doConteudo → seu`, sempre; a fala
+ * da pessoa (`seu → doConteudo`) só existe com o microfone na sessão. Sem ele, o segundo tradutor
+ * (~113 MB e um worker) ficava vivo a captura inteira sem traduzir nada. Pura.
+ */
+export function paresDoTradutor(seu: string, doConteudo: string, comMicrofone: boolean): Array<[string, string]> {
+  return comMicrofone
+    ? [
+        [doConteudo, seu],
+        [seu, doConteudo],
+      ]
+    : [[doConteudo, seu]];
 }
 
 export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
@@ -294,6 +314,11 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
       ativo: () => isRecordingRef.current,
       clog,
     });
+    if (deps.pacotesNativosRef) {
+      // O prazo da sessão anterior (parar e iniciar em menos de 20 s) não tira o cartão desta.
+      deps.pacotesNativosRef.current?.descartar();
+      deps.pacotesNativosRef.current = pacotes;
+    }
     void gateway.mt.prepararNativo(
       [
         [s, t],
@@ -302,11 +327,13 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
       pacotes.tradutor.progresso,
       pacotes.tradutor.falhou,
     );
+    /* `s` é o SEU idioma e `t` o do conteúdo: o sistema traduz `t → s` (ver `pipelineDeFala.ts`,
+       `langs()`), e a sua fala, `s → t`. O sentido da sua fala só aquece com o microfone na sessão: sem
+       ele, o segundo tradutor (~113 MB e um worker) ficava vivo a captura inteira sem traduzir nada
+       (dono, 22/10/2026). O intérprete sempre tem microfone; o microfone ligado depois carrega o seu
+       sentido sob demanda (`prepararTradutorDaFala`). */
     if (!perfilDoDispositivo().poucaMemoria)
-      gateway.mt.warmup([
-        [s, t],
-        [t, s],
-      ]);
+      gateway.mt.warmup(paresDoTradutor(s, t, soToque || (deps.micNoInicio?.() ?? micEnabled)));
     if (!resuming) setTimer(0);
     if (soToque) return; // o intérprete abre o microfone no toque de um lado
     if (deps.micNoInicio?.() ?? micEnabled) void startMic();

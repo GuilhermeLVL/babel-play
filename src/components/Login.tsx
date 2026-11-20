@@ -12,7 +12,7 @@ import * as auth from '../lib/auth';
 import * as porta from '../lib/authPorta';
 import { t } from '../lib/i18n';
 import { lazyComRecarga } from '../lib/lazyComRecarga';
-import { supabase } from '../lib/supabase';
+import { carregarSupabase, supabase, supabaseConfigurado } from '../lib/supabase';
 import { T } from '../lib/T';
 import { chaveDoTurnstile } from '../lib/turnstile';
 import PasswordField from './auth/PasswordField';
@@ -56,10 +56,12 @@ interface LoginProps {
    * jogos sobre a sessão atual rodam inteiros no navegador. Ausente no fluxo de recuperação.
    */
   onContinuarSemConta?: () => void;
+  /** Onde a porta abre: o "Criar conta" de um convite chega direto no cadastro. */
+  modoInicial?: 'login' | 'signup';
 }
 
-export default function Login({ onContinuarSemConta }: LoginProps = {}) {
-  const [modo, setModo] = useState<Mode>('login');
+export default function Login({ onContinuarSemConta, modoInicial = 'login' }: LoginProps = {}) {
+  const [modo, setModo] = useState<Mode>(modoInicial);
   /* O e-mail lembrado neste aparelho já vem preenchido; a senha é do gerenciador do navegador. */
   const [email, setEmail] = useState(porta.emailLembrado);
   const [lembrar, setLembrar] = useState(true);
@@ -87,7 +89,12 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
     };
   }, []);
 
-  const configurado = !!supabase;
+  /* O SDK desce quando a porta abre (o visitante não o baixa no boot; carga-rapida-no-celular). As ações
+     de `lib/auth` esperam por ele antes de chamar o Supabase. */
+  useEffect(() => {
+    void carregarSupabase();
+  }, []);
+  const configurado = !!supabase || supabaseConfigurado;
   /* CAPTCHA (Turnstile): só existe com a chave pública no build. A resposta do desafio vale para UM
      envio — depois dele `rodadaDoCaptcha` muda e o widget recomeça. Quem confere é o Supabase. */
   const chaveDoCaptcha = configurado ? chaveDoTurnstile() : null;

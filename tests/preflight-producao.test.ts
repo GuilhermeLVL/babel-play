@@ -22,6 +22,7 @@ const RAIZ = path.resolve(__dirname, '..')
 function completo(): Record<string, string> {
   return {
     NODE_ENV: 'production',
+    DATABASE_URL: `postgres://babel:${aleatorio(8)}@db.interno:5432/babel`,
     SECRET_KEY: aleatorio(),
     ORIGEM_SEGREDO: aleatorio(),
     TRUST_PROXY: '2',
@@ -37,15 +38,9 @@ function completo(): Record<string, string> {
     SIGNUP_ENABLED: '0',
     CHECKOUT_ENABLED: '0',
     S3_ENDPOINT: 'https://conta.r2.cloudflarestorage.com',
-    S3_BUCKET: 'babel-midia',
+    S3_BUCKET: 'frasy-midia',
     S3_ACCESS_KEY_ID: aleatorio(8),
     S3_SECRET_ACCESS_KEY: aleatorio(),
-    BACKUP_DIARIO: '1',
-    BACKUP_HEARTBEAT_URL: 'https://heartbeat.exemplo-real.io/abc'.replace('exemplo-real', 'monitor'),
-    LITESTREAM_BUCKET: 'babel-replica',
-    LITESTREAM_ENDPOINT: 'https://conta.r2.cloudflarestorage.com',
-    LITESTREAM_ACCESS_KEY_ID: aleatorio(8),
-    LITESTREAM_SECRET_ACCESS_KEY: aleatorio(),
     LLM_API_KEY: aleatorio(),
     LLM_BASE_URL: 'https://api.provedor.io/v1',
     LLM_MODEL: 'modelo-a',
@@ -56,9 +51,9 @@ function completo(): Record<string, string> {
     AI_BUDGET_USD_MONTH: '40',
     AI_BUDGET_USD_DAY: '3',
     RESEND_API_KEY: aleatorio(),
-    EMAIL_REMETENTE: 'Babel Play <nao-responda@babelplay.com.br>',
+    EMAIL_REMETENTE: 'Frasy <nao-responda@frasy.com.br>',
     SENTRY_DSN: 'https://chave@o1.ingest.sentry.io/1',
-    APP_URL: 'https://babelplay.com.br',
+    APP_URL: 'https://frasy.com.br',
   }
 }
 
@@ -84,6 +79,20 @@ describe('conferirProducao: o arquivo completo', () => {
 })
 
 describe('conferirProducao: o que BLOQUEIA', () => {
+  it('DATABASE_URL ausente, pglite: ou file: (produção exige postgres://)', () => {
+    const { DATABASE_URL: _fora, ...semUrl } = completo()
+    expect(nivelDe(conferirProducao(semUrl), 'DATABASE_URL')).toEqual(['BLOQUEIA'])
+    for (const url of ['pglite:./data/pg', 'file:/data/babel.db']) {
+      const achados = conferirProducao({ ...completo(), DATABASE_URL: url })
+      expect(nivelDe(achados, 'DATABASE_URL')).toEqual(['BLOQUEIA'])
+      expect(achados.find((a) => a.nome === 'DATABASE_URL')?.texto).toMatch(/postgres:\/\//)
+      expect(JSON.stringify(achados)).not.toContain(url)
+    }
+    expect(nivelDe(conferirProducao({ ...completo(), DATABASE_URL: 'postgresql://u:p@h/db' }), 'DATABASE_URL')).toEqual(
+      ['OK'],
+    )
+  })
+
   it('SECRET_KEY ausente ou curta', () => {
     const sem = completo()
     delete sem.SECRET_KEY
@@ -201,16 +210,15 @@ describe('conferirProducao: o que AVISA', () => {
     expect(resumir(aberto).podeSubir).toBe(true)
   })
 
-  it('capacidades ausentes: S3, Litestream, LLM, reserva, orçamento, e-mail, Sentry, captcha', () => {
+  it('capacidades ausentes: S3, LLM, reserva, orçamento, e-mail, Sentry, captcha', () => {
     const v = completo()
     for (const n of Object.keys(v)) {
-      if (/^(S3_|LITESTREAM_|LLM_|AI_BUDGET_|RESEND_|EMAIL_|SENTRY_|VITE_TURNSTILE|GROQ_)/.test(n)) delete v[n]
+      if (/^(S3_|LLM_|AI_BUDGET_|RESEND_|EMAIL_|SENTRY_|VITE_TURNSTILE|GROQ_)/.test(n)) delete v[n]
     }
     const a = conferirProducao(v)
     expect(resumir(a).podeSubir).toBe(true)
     for (const nome of [
       'S3_*',
-      'LITESTREAM_*',
       'LLM_*',
       'LLM_RESERVA_*',
       'AI_BUDGET_USD_MONTH',
@@ -284,6 +292,17 @@ describe('o comando (npm run preflight -- <arquivo>)', () => {
     expect(r.stdout).toMatch(/\[BLOQUEIA\] SECRET_KEY/)
     expect(r.stdout).toMatch(/NÃO SUBA/)
     expect(r.stdout + r.stderr).not.toContain('curta-demais-123')
+  })
+
+  it('DATABASE_URL pglite: sai 1 pelo nome, sem repetir a senha de um postgres://', () => {
+    const v = { ...completo(), DATABASE_URL: 'pglite:./data/pg' }
+    const r = rodar(arquivo('pglite.env', v))
+    expect(r.status).toBe(1)
+    expect(r.stdout).toMatch(/\[BLOQUEIA\] DATABASE_URL/)
+    const bom = completo()
+    const ok = rodar(arquivo('pg.env', bom))
+    expect(ok.status, ok.stdout + ok.stderr).toBe(0)
+    expect(ok.stdout + ok.stderr).not.toContain(bom.DATABASE_URL)
   })
 
   it('caminho DENTRO do repositório: recusa (sai 2) sem sequer abrir o arquivo', () => {

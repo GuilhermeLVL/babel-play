@@ -101,7 +101,7 @@ afterAll(async () => {
     else process.env[k] = v
   }
 })
-beforeEach(() => {
+beforeEach(async () => {
   chamadas = []
   responder = () => completacao('resposta padrão')
   for (const k of Object.keys(ENV_RESERVA)) delete process.env[k]
@@ -112,7 +112,7 @@ beforeEach(() => {
   esquecerDisjuntores()
   /* A admissão de IA (ADR 0007) também é estado de processo: o 429 encenado num caso fecha o balde
      do modelo até o `Retry-After`, e o caso seguinte receberia `nuvem_ocupada` sem chamar ninguém. */
-  esquecerAdmissao()
+  await esquecerAdmissao()
 })
 
 /* O cache de tradução (Fase 2 do lançamento) é do processo: sem esvaziar, a frase repetida de um
@@ -638,5 +638,173 @@ describe('DELETE /api/ai/credentials/:id', () => {
     await expect(JSON.stringify(await resposta(r404), null, 2)).toMatchFileSnapshot(
       '__snapshots__/delete.api.ai.credentials.id.404.json',
     )
+  })
+})
+
+describe('POST /api/ai/explicar e /api/ai/resumir — IA de estudo (flag ia_de_estudo)', () => {
+  /* Chamadas literais (`s.post('/api/ai/…')`): é o que o gate `rotas-sem-caracterizacao.mjs` reconhece. */
+  async function pedirAmbas(): Promise<Array<[string, Response]>> {
+    return [
+      ['/api/ai/explicar', await s.post('/api/ai/explicar', {})],
+      ['/api/ai/resumir', await s.post('/api/ai/resumir', {})],
+    ]
+  }
+  async function flag(habilitada: boolean) {
+    const flags = await s.load<any>('../../server/lib/flags')
+    await flags.definirFlag('ia_de_estudo', { habilitada }, 'caracterizacao')
+  }
+  afterAll(() => flag(false))
+
+  it('flag desligada → 404 recurso_indisponivel, mesmo com corpo vazio, sem chamar provedor', async () => {
+    await flag(false)
+    for (const [rota, r] of await pedirAmbas()) {
+      expect(r.status, rota).toBe(404)
+      expect((await r.json()).code, rota).toBe('recurso_indisponivel')
+    }
+    expect(chamadas).toHaveLength(0)
+  })
+
+  it('flag ligada e corpo inválido → 400 invalido, sem chamar provedor', async () => {
+    await flag(true)
+    for (const [rota, r] of await pedirAmbas()) {
+      expect(r.status, rota).toBe(400)
+      expect((await r.json()).code, rota).toBe('invalido')
+    }
+    expect(chamadas).toHaveLength(0)
+  })
+})
+
+describe('POST /api/ai/assistente/* — assistente ao vivo (flag assistente_ao_vivo)', () => {
+  /* Chamadas literais (`s.post('/api/ai/…')`): é o que o gate `rotas-sem-caracterizacao.mjs` reconhece. */
+  async function pedirTodas(corpo: Record<string, unknown> = {}): Promise<Array<[string, Response]>> {
+    return [
+      ['/api/ai/assistente/expressoes', await s.post('/api/ai/assistente/expressoes', corpo)],
+      ['/api/ai/assistente/termos', await s.post('/api/ai/assistente/termos', corpo)],
+      ['/api/ai/assistente/como-respondo', await s.post('/api/ai/assistente/como-respondo', corpo)],
+      ['/api/ai/assistente/correcao', await s.post('/api/ai/assistente/correcao', corpo)],
+    ]
+  }
+  async function flag(habilitada: boolean) {
+    const flags = await s.load<any>('../../server/lib/flags')
+    await flags.definirFlag('assistente_ao_vivo', { habilitada }, 'caracterizacao')
+  }
+  afterAll(() => flag(false))
+
+  it('flag desligada → 404 recurso_indisponivel, mesmo com corpo vazio, sem chamar provedor', async () => {
+    await flag(false)
+    for (const [rota, r] of await pedirTodas()) {
+      expect(r.status, rota).toBe(404)
+      expect((await r.json()).code, rota).toBe('recurso_indisponivel')
+    }
+    expect(chamadas).toHaveLength(0)
+  })
+
+  it('flag ligada e corpo com campo de terceiros → 400 invalido, sem chamar provedor', async () => {
+    await flag(true)
+    for (const [rota, r] of await pedirTodas({ frase: 'hi', lang: 'en', langDaPessoa: 'pt', falante: 'Ana' })) {
+      expect(r.status, rota).toBe(400)
+      expect((await r.json()).code, rota).toBe('invalido')
+    }
+    expect(chamadas).toHaveLength(0)
+  })
+
+  it('teto próprio: passou de 30 pedidos no minuto, 429 assistente_demais (fora do balde caro da legenda)', async () => {
+    await flag(true)
+    const { usageCountersRepo } = await s.load<any>('../../server/db/repositories/usageCounters')
+    const { donoLocal } = await s.load<any>('../../server/lib/authContext')
+    const chave = `u:${donoLocal()}`
+    /* O balde é por minuto: longe da virada, para os 31 pedidos caírem no mesmo balde. */
+    if (Date.now() % 60_000 > 50_000) await new Promise((r) => setTimeout(r, 60_000 - (Date.now() % 60_000) + 50))
+    const balde = `rl:${Math.floor(Date.now() / 60_000)}`
+    /* O balde zerado (os casos acima já gastaram alguns pedidos dele). */
+    await usageCountersRepo.reset(chave, 'ratelimit:assistente', balde)
+    const caroAntes = await usageCountersRepo.get(chave, 'ratelimit:caro', balde)
+    const respostas: Response[] = []
+    for (let i = 0; i < 31; i++) respostas.push(await s.post('/api/ai/assistente/expressoes', {}))
+    expect(respostas[29].status, 'o 30º passa').not.toBe(429)
+    expect(respostas[30].status, 'o 31º é recusado').toBe(429)
+    expect((await respostas[30].json()).code).toBe('assistente_demais')
+    expect(await usageCountersRepo.get(chave, 'ratelimit:caro', balde), 'o balde caro não mudou').toBe(caroAntes)
+    expect(chamadas).toHaveLength(0)
+  }, 90_000)
+
+  it('a flag vem ANTES do teto por minuto: desligada, 404 sem contar no balde do assistente', async () => {
+    await flag(false)
+    const { usageCountersRepo } = await s.load<any>('../../server/db/repositories/usageCounters')
+    const { donoLocal } = await s.load<any>('../../server/lib/authContext')
+    const chave = `u:${donoLocal()}`
+    const balde = `rl:${Math.floor(Date.now() / 60_000)}`
+    const antes = await usageCountersRepo.get(chave, 'ratelimit:assistente', balde)
+    const r = await s.post('/api/ai/assistente/termos', {})
+    expect(r.status).toBe(404)
+    expect(await usageCountersRepo.get(chave, 'ratelimit:assistente', balde)).toBe(antes)
+  })
+})
+
+describe('POST /api/ai/leitura/parceiro — parceiro de leitura (flag parceiro_de_leitura)', () => {
+  async function flag(habilitada: boolean) {
+    const flags = await s.load<any>('../../server/lib/flags')
+    await flags.definirFlag('parceiro_de_leitura', { habilitada }, 'caracterizacao')
+  }
+  afterAll(() => flag(false))
+
+  it('flag desligada → 404 recurso_indisponivel, mesmo com corpo vazio, sem chamar provedor', async () => {
+    await flag(false)
+    const r = await s.post('/api/ai/leitura/parceiro', {})
+    expect(r.status).toBe(404)
+    expect((await r.json()).code).toBe('recurso_indisponivel')
+    expect(chamadas).toHaveLength(0)
+  })
+
+  it('flag ligada e corpo com o livro inteiro (campo a mais) → 400 invalido, sem chamar provedor', async () => {
+    await flag(true)
+    const r = await s.post('/api/ai/leitura/parceiro', {
+      modo: 'explicar',
+      livro: { origem: 'proprio' },
+      selecao: 'oi',
+      trechos: [],
+      nivel: 'B1',
+      idiomaDoLivro: 'en',
+      idiomaDaPessoa: 'pt-BR',
+      livroInteiro: '...',
+    })
+    expect(r.status).toBe(400)
+    expect((await r.json()).code).toBe('invalido')
+    expect(chamadas).toHaveLength(0)
+  })
+})
+
+describe('POST /api/ai/feedback — 👍/👎 de lista fechada (Fase B da IA paga)', () => {
+  it('avaliação válida → 202, sem chamar provedor', async () => {
+    const r = await s.post('/api/ai/feedback', {
+      funcao: 'explicacao',
+      nota: 'down',
+      motivo: 'errado',
+      nivel: 'nuance',
+    })
+    expect(r.status).toBe(202)
+    expect(await r.json()).toEqual({ ok: true })
+    expect(chamadas).toHaveLength(0)
+  })
+
+  it('função ou motivo fora da lista → 400; texto livre (chave a mais) → 400', async () => {
+    for (const corpo of [
+      { funcao: 'qualquer', nota: 'up' },
+      { funcao: 'tutor', nota: 'talvez' },
+      { funcao: 'tutor', nota: 'down', motivo: 'achei ruim porque…' },
+      { funcao: 'tutor', nota: 'down', comentario: 'texto livre' },
+      { funcao: 'tutor', nota: 'down', frase: 'see you later' },
+    ]) {
+      const r = await s.post('/api/ai/feedback', corpo)
+      expect(r.status, JSON.stringify(corpo)).toBe(400)
+    }
+    expect(chamadas).toHaveLength(0)
+  })
+
+  it('teto próprio: depois de 30 avaliações no minuto, 429 feedback_demais (sem gastar o teto das chamadas de IA)', async () => {
+    let ultimo: Response | undefined
+    for (let i = 0; i < 31; i++) ultimo = await s.post('/api/ai/feedback', { funcao: 'resumo', nota: 'up' })
+    expect(ultimo!.status).toBe(429)
+    expect((await ultimo!.json()).code).toBe('feedback_demais')
   })
 })

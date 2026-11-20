@@ -12,32 +12,25 @@
  * 3. A variante `v2` separa, nas métricas do funil, a conversão dos textos novos da dos antigos.
  * 4. Só a linha da SEMENTE muda: o que o operador editou fica; reaplicar é idempotente.
  */
-import { readFileSync } from 'node:fs'
-import path from 'node:path'
-
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import type { ConfigDeOfertas, TextoRemoto } from '../src/core/ofertas'
+import { clienteSql } from './harness/clienteSql'
 import { type EphemeralDb, setupEphemeralDb } from './harness/ephemeralDb'
+import { sementesDeFlags } from './harness/sementesPg'
 
-type Cliente = { execute: (q: string) => Promise<{ rows: Array<Record<string, unknown>> }> }
-
-const MIGRACAO = path.join('server', 'db', 'migrations', '0045_ofertas_v2.sql')
-const comandos = () =>
-  readFileSync(MIGRACAO, 'utf8')
-    .split(/-->\s*statement-breakpoint/)
-    .map((c) => c.replace(/^\s*--[^\n]*$/gm, '').trim())
-    .filter(Boolean)
+/* A 0045 do SQLite virou parte do estado final semeado pela 0001 do Postgres (`sementesPg.ts`):
+   reaplicar é rodar de novo aquelas sementes. */
 const reaplicar = async () => {
-  for (const c of comandos()) await client.execute(c)
+  for (const c of sementesDeFlags()) await client.execute(c)
 }
 
 let h: EphemeralDb
-let client: Cliente
+let client: ReturnType<typeof clienteSql>
 
 beforeAll(async () => {
   h = await setupEphemeralDb()
-  client = ((await h.load('../../server/db/db')) as { client: Cliente }).client
+  client = clienteSql(await h.load('../../server/db/db'))
 })
 afterAll(async () => {
   await h.cleanup()

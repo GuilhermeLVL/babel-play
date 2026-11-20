@@ -419,8 +419,8 @@ function TrazerUmaFonte({
       Youtube,
       t('Vídeo, áudio ou PDF'),
       semRede
-        ? t('Do aparelho funciona agora. Link (YouTube, página) espera a internet.')
-        : t('Link do YouTube ou arquivo do aparelho. Vira uma sessão com legenda.'),
+        ? t('Do aparelho funciona agora. Link (página) espera a internet.')
+        : t('Link de página ou arquivo do aparelho. Vira uma sessão com legenda.'),
       aoTrazerArquivo && sair(aoTrazerArquivo),
       'arquivo',
     ],

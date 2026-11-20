@@ -1,0 +1,8 @@
+/* A FOLHA DE CONSENTIMENTO DE ANÚNCIOS (`components/anuncios/ConsentimentoDeAnuncios.tsx`). Em Ajustes o título já
+   tem o estilo dos cartões de lá (`.q-aju .q-cartao h3`, `questAjustes.css`); no espaço do Início ele caía no `h3`
+   sem estilo e parecia texto comum. Aqui vale o mesmo título nos dois lugares. */
+.consentimento-de-anuncios > h3 {
+  margin: 0;
+  font: 800 19px/1.25 var(--font-display, inherit);
+  text-wrap: balance;
+}

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+import { perfilDoDispositivo } from '../../../../lib/dispositivo/perfil';
 import { t } from '../../../../lib/i18n';
 import { telasEnxutas } from '../../../../lib/polimento/base';
 import { afundarBotao, celular, entrarPronta, sairMiolo } from '../../../../lib/polimento/captura';
@@ -60,12 +61,16 @@ export default function CapturaDoPrototipo({
   aoAbrirAjustes,
   aoAbrirAjuda,
   aoFlutuante,
+  flutuante,
   letra,
   legenda,
   avisos,
   niveis,
   pausa,
   noQuest = false,
+  intencao,
+  avatar,
+  preparo,
 }: {
   gravando: boolean;
   /** Já há falas na tela (mesmo parada). */
@@ -91,6 +96,8 @@ export default function CapturaDoPrototipo({
   aoAbrirAjuda: () => void;
   /** Abre ou fecha as legendas flutuantes. Ausente = sem o botão (onde não há janela flutuante). */
   aoFlutuante?: () => void;
+  /** A legenda flutuante está aberta, e o que o botão diz antes de tentar (qual janela este navegador dá). */
+  flutuante?: { aberta: boolean; dica: string };
   letra: { menor: () => void; maior: () => void; noMinimo: boolean; noMaximo: boolean };
   /** A legenda ao vivo (`HistoricoDoPrototipo`), usada enquanto grava. */
   legenda: ReactNode;
@@ -104,6 +111,15 @@ export default function CapturaDoPrototipo({
   pausa?: { pausada: boolean; aoAlternar: () => void };
   /** No Quest a captura fica como está: só o seletor e a marca. */
   noQuest?: boolean;
+  /** Antecipação do "Iniciar" (foco/ponteiro); ausente = sem handlers novos. */
+  intencao?: { entrou: () => void; saiu: () => void };
+  /** O avatar do modo legendar (flag `avatar_3d`): botão, faixa de presença e dica. Ausente = a tela de antes. */
+  avatar?: { botao: ReactNode; presenca: ReactNode; dica: ReactNode };
+  /**
+   * O reconhecimento ainda baixa depois do aceite (`esperaDoPreparo.ts`): o miolo diz isso e quando a legenda
+   * começa, no lugar de "Pronto para legendar" (carga-rapida-no-celular, 4.1). Ausente/`null` = o miolo de sempre.
+   */
+  preparo?: { titulo: string; texto: string } | null;
 }) {
   const raiz = useRef<HTMLDivElement>(null);
   const principal = useRef<HTMLButtonElement>(null);
@@ -227,6 +243,7 @@ export default function CapturaDoPrototipo({
         >
           <Mic aria-hidden />
         </button>
+        {avatar?.botao}
         <button type="button" className="q-ctl" aria-label={t('Ajustes da captura')} onClick={aoAbrirAjustes}>
           <SlidersHorizontal aria-hidden />
         </button>
@@ -239,6 +256,8 @@ export default function CapturaDoPrototipo({
       </div>
       {nivel.linha}
       {avisos}
+      {avatar?.dica}
+      {avatar?.presenca}
       <div className="cel-conversa">
         {pronta ? (
           <div className="q-leg">
@@ -247,13 +266,19 @@ export default function CapturaDoPrototipo({
                 <span className="q-ic">
                   <Mic aria-hidden />
                 </span>
-                <h2>{t('Pronto para legendar')}</h2>
-                <p>
-                  {celular()
-                    ? t('Toque em Iniciar e deixe o celular perto do som. A legenda nos dois idiomas aparece aqui.')
-                    : t(
-                        'O som do computador entra sozinho. Dê play no vídeo, aula ou chamada e clique em Iniciar. A legenda bilíngue aparece aqui e nas Legendas flutuantes.',
-                      )}
+                <h2>{preparo ? preparo.titulo : t('Pronto para legendar')}</h2>
+                <p data-testid="miolo-da-captura">
+                  {preparo
+                    ? preparo.texto
+                    : celular()
+                      ? t('Toque em Iniciar e deixe o celular perto do som. A legenda nos dois idiomas aparece aqui.')
+                      : !perfilDoDispositivo().capturaDoSistema
+                        ? t(
+                            'Este navegador não captura o som do computador. Use o microfone perto do alto-falante ou abra o Frasy no Chrome ou no Edge. A legenda bilíngue aparece aqui.',
+                          )
+                        : t(
+                            'O som do computador entra sozinho. Dê play no vídeo, aula ou chamada e clique em Iniciar. A legenda bilíngue aparece aqui e nas Legendas flutuantes.',
+                          )}
                 </p>
                 {nivel.nota}
               </div>
@@ -277,6 +302,10 @@ export default function CapturaDoPrototipo({
             data-testid="iniciar-captura"
             disabled={!podeIniciar || abrindo}
             onClick={comecar}
+            onFocus={intencao?.entrou}
+            onPointerEnter={intencao?.entrou}
+            onBlur={intencao?.saiu}
+            onPointerLeave={intencao?.saiu}
           >
             <Mic aria-hidden /> {t('Iniciar captura')}
           </button>
@@ -296,7 +325,14 @@ export default function CapturaDoPrototipo({
         {/* `enxugarCapturar()` de `enxuto.js:82`: o Pausar, logo depois do Encerrar, só enquanto grava. */}
         {enxuta && gravando && pausa && <BotaoDePausa pausada={pausa.pausada} aoAlternar={pausa.aoAlternar} />}
         {aoFlutuante && (
-          <button type="button" className="q-ctl" data-px="flutuante" onClick={aoFlutuante}>
+          <button
+            type="button"
+            className="q-ctl"
+            data-px="flutuante"
+            aria-pressed={flutuante?.aberta}
+            title={flutuante?.dica}
+            onClick={aoFlutuante}
+          >
             <PictureInPicture2 aria-hidden /> {t('Legendas flutuantes')}
           </button>
         )}

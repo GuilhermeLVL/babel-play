@@ -53,6 +53,11 @@
  *               (até 300), até 2.000 da ficha do livro e os títulos. 900 de saída no teto; cada modo manda o seu
  *               (`PARAMETROS_DO_PARCEIRO`, `src/lib/estudo/promptDoParceiro.ts`). Pior caso: ~3.500 de entrada + 900 de
  *               saída ≈ US$ 0,0011 no DeepSeek V4.1 Flash, ≈ US$ 0,0004 no Gemma 4 26B.
+ *   escrita     1.500 caracteres: o texto que a pessoa escreveu na LEITURA ATIVA (20 a 120 palavras, ~700 caracteres no
+ *               máximo, com folga) — openspec `leitura-ativa-textos-simples`, `server/ai/nucleo/escrita.ts`. O texto lido
+ *               (até ~900 caracteres) vem do acervo pelo servidor e não conta no teto do cliente. 500 de saída: o JSON
+ *               com 1 elogio e até 3 pontos (~250 tokens) mais a folga do raciocínio. Temperatura 0,2. Pior caso:
+ *               ~1.000 de entrada + 500 de saída ≈ US$ 0,00045 no gpt-oss-120b; 30 por mês ≈ US$ 0,014 por assinante.
  *
  * O teto ABSOLUTO continua em `llmClient.ts` (`MAX_PROMPT_CHARS`): é a rede de segurança para
  * qualquer caminho que um dia chame o provedor sem passar por aqui.
@@ -70,6 +75,7 @@ export type FuncaoDeIa =
   | 'resumo'
   | 'assistente'
   | 'leitura'
+  | 'escrita'
 
 interface DefinicaoDeFuncao {
   /** Caracteres de conteúdo do cliente aceitos (o `system` é nosso e não conta). */
@@ -91,6 +97,8 @@ export const FUNCOES_DE_IA: Readonly<Record<FuncaoDeIa, DefinicaoDeFuncao>> = {
   assistente: { tetoEntrada: 1_500, maxTokens: 600, temperatura: 0.3 },
   /* O teto da FUNÇÃO; cada modo do parceiro manda o seu (`PARAMETROS_DO_PARCEIRO`), sempre ≤ este. */
   leitura: { tetoEntrada: 12_000, maxTokens: 900, temperatura: 0.3 },
+  /* O mesmo de `PARAMETROS_DA_ESCRITA` (`src/lib/estudo/promptDaEscrita.ts`), conferido no teste. */
+  escrita: { tetoEntrada: 1_500, maxTokens: 500, temperatura: 0.2 },
 }
 
 /**

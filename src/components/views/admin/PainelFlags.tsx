@@ -26,6 +26,7 @@ const FLAGS_SENSIVEIS = new Set([
   'audiolivros_nuvem',
   'voz_no_aparelho',
   'voz_kitten',
+  'leitura_ativa',
 ]);
 
 /** As regras da flag em palavras curtas, para ver de relance quem ela alcança. */

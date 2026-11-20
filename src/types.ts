@@ -198,4 +198,6 @@ export type ViewType =
   | 'admin'
   /** O leitor de livros (`/leitor/<livroId>`): EPUB, PDF e texto, com anotações (L2 de Livros & Leitura). */
   | 'leitor'
+  /** A Leitura ativa (`/leitura`, flag `leitura_ativa`): textos curtos para ouvir, ler em voz alta e responder. */
+  | 'leituraAtiva'
   | 'naoencontrado';

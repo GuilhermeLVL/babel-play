@@ -169,6 +169,17 @@ function montar(o: {
   return { n, deps, aparelho, reprodutor, tempos, flag, avisos, ultima: () => vistas.at(-1)! }
 }
 
+/**
+ * O `tocar()` confere o hash das frases com `crypto.subtle`, que no Node roda fora da fila de timers: um número fixo
+ * de `setTimeout(0)` não basta numa CI carregada. Espera o narrador decidir quem lê (o reprodutor ou o aparelho).
+ */
+async function comecou(m: ReturnType<typeof montar>) {
+  await vi.waitFor(() =>
+    expect(m.reprodutor.chamadas.some((c) => c.startsWith('tocarDe')) || m.aparelho.falas.length > 0).toBe(true),
+  )
+  await esperar()
+}
+
 beforeEach(() => {
   localStorage.clear()
   cfis.clear()
@@ -178,7 +189,7 @@ describe('o narrador com áudio gravado', () => {
   it('(a) manifesto íntegro: toca o reprodutor, não a voz do aparelho; o destaque segue aoMudarFrase', async () => {
     const m = montar({ manifesto: await manifestoCom([{ nn: 1, frases: FRASES_1 }]) })
     m.n.tocar()
-    await esperar()
+    await comecou(m)
     expect(m.reprodutor.chamadas).toEqual(['carregar https://cdn/1/01.opus', 'tocarDe 0'])
     expect(m.reprodutor.carregar).toHaveBeenCalledWith('https://cdn/1/01.opus', TEMPOS_1)
     expect(m.aparelho.falas).toEqual([])
@@ -196,7 +207,7 @@ describe('o narrador com áudio gravado', () => {
       manifesto: await manifestoCom([{ nn: 1, frases: ['Um', 'A raposa viu as UVAS.', 'Pulou alto.'] }]),
     })
     m.n.tocar()
-    await esperar()
+    await comecou(m)
     expect(m.tempos).not.toHaveBeenCalled()
     expect(m.reprodutor.carregar).not.toHaveBeenCalled()
     expect(m.aparelho.falas).toEqual(['Um'])
@@ -206,7 +217,7 @@ describe('o narrador com áudio gravado', () => {
   it('(c) erro de rede no meio: a MESMA frase segue pela voz do aparelho e o aviso sai uma vez', async () => {
     const m = montar({ manifesto: await manifestoCom([{ nn: 1, frases: FRASES_1 }]) })
     m.n.tocar()
-    await esperar()
+    await comecou(m)
     m.reprodutor.aoMudarFrase(1)
     await esperar()
     m.reprodutor.aoErro('rede')
@@ -224,7 +235,7 @@ describe('o narrador com áudio gravado', () => {
   it('(d) kill-switch: a flag desliga tocando; a frase em curso termina e a seguinte vai à voz do aparelho', async () => {
     const m = montar({ manifesto: await manifestoCom([{ nn: 1, frases: FRASES_1 }]) })
     m.n.tocar()
-    await esperar()
+    await comecou(m)
     m.flag.ligada = false
     /* a frase 0 terminou no áudio (o tempo cruzou o t0 da 1): o áudio para ali */
     m.reprodutor.aoMudarFrase(1)
@@ -250,7 +261,7 @@ describe('o narrador com áudio gravado', () => {
       ]),
     })
     m.n.tocar()
-    await esperar()
+    await comecou(m)
     m.reprodutor.aoMudarFrase(1)
     m.reprodutor.aoMudarFrase(2)
     m.reprodutor.aoFimDoCapitulo()
@@ -266,7 +277,7 @@ describe('o narrador com áudio gravado', () => {
     const docs = HTML.map(capitulo)
     const a = montar({ manifesto, docs })
     a.n.tocar()
-    await esperar()
+    await comecou(a)
     a.reprodutor.aoMudarFrase(1)
     a.reprodutor.aoMudarFrase(2)
     await esperar()
@@ -274,7 +285,7 @@ describe('o narrador com áudio gravado', () => {
     expect(a.reprodutor.chamadas).toContain('destruir')
     const b = montar({ manifesto, docs })
     b.n.tocar()
-    await esperar()
+    await comecou(b)
     expect(b.reprodutor.chamadas.at(-1)).toBe('tocarDe 2')
     expect(b.ultima()).toMatchObject({ indice: 2, frase: 'Pulou alto.' })
   })
@@ -282,7 +293,7 @@ describe('o narrador com áudio gravado', () => {
   it('(g) próxima/anterior/voltar movem o áudio; o sono "fim do capítulo" pausa no fim', async () => {
     const m = montar({ manifesto: await manifestoCom([{ nn: 1, frases: FRASES_1 }]) })
     m.n.tocar()
-    await esperar()
+    await comecou(m)
     m.n.proxima()
     await esperar()
     expect(m.reprodutor.chamadas.slice(-2)).toEqual(['pausar', 'tocarDe 1'])
@@ -310,7 +321,7 @@ describe('o narrador com áudio gravado', () => {
     const m = montar({ manifesto: await manifestoCom([{ nn: 1, frases: FRASES_1 }]) })
     m.n.modo = 'traducao'
     m.n.tocar()
-    await esperar()
+    await comecou(m)
     expect(m.reprodutor.tocarDe).not.toHaveBeenCalled()
     expect(m.aparelho.falas).toEqual(['[Um]'])
     expect(m.ultima().gravado).toBe(false)
@@ -325,7 +336,7 @@ describe('o narrador com áudio gravado', () => {
   it('outra aba começou a tocar: a narração pausa', async () => {
     const m = montar({ manifesto: await manifestoCom([{ nn: 1, frases: FRASES_1 }]) })
     m.n.tocar()
-    await esperar()
+    await comecou(m)
     m.reprodutor.aoPausarDeFora()
     expect(m.ultima()).toMatchObject({ fase: 'pausada', indice: 0 })
   })
@@ -336,7 +347,7 @@ describe('o narrador com áudio gravado', () => {
       extra: { audioGravado: undefined },
     })
     m.n.tocar()
-    await esperar()
+    await comecou(m)
     expect(m.aparelho.falas).toEqual(['Um'])
     expect(m.reprodutor.carregar).not.toHaveBeenCalled()
   })
@@ -355,7 +366,7 @@ describe('o narrador com áudio gravado', () => {
         extra: { vozLocalPronta: () => true },
       })
       m.n.tocar()
-      await esperar()
+      await comecou(m)
       expect(m.reprodutor.chamadas).toEqual(['carregar https://cdn/1/01.opus', 'tocarDe 0'])
       expect(neural.falas).toEqual([])
       expect(m.aparelho.falas).toEqual([])

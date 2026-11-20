@@ -34,3 +34,7 @@
 - [x] 6.1 `npx vitest run` · `npm run typecheck` · `npm run lint` · `npm run audit:gate` ·
       `npx ast-grep scan -c sgconfig.yml src server server.ts`
 - [ ] 6.2 Navegador: `/creditos` e `/planos` abrem, Planos aparece no menu
+      PARCIAL, `tests/e2e/creditos-e-planos.e2e.ts`: `/planos` (sem anual) e Planos no menu (tablet/desktop) verdes.
+      ABERTO: (a) `/creditos` cai em `/loja/desafios` (Conquistas), não na aba Loja (`src/lib/rotas.ts` e
+      `tests/rotas.test.ts` fixam isso); (b) no self-host a aba Loja não desenha `ComprarCreditos` (nem a nota
+      "não há compra"); (c) no celular "Mais destinos" não lista Planos. O teste de `/creditos` é `test.fixme`.

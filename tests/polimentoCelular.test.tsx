@@ -133,7 +133,9 @@ describe('a barra de cinco destinos', () => {
 
   it('o botão dos Cartões leva o número do dia', () => {
     const { container } = montar('hub', { cartoesHoje: 17 })
-    expect(botoes(container)[2].querySelector('.ct-selo-do-dia')?.textContent).toBe('17')
+    // O número vem do CSS (`::after` lê `data-n`) e, para o leitor de tela, do nome do botão.
+    expect(botoes(container)[2].querySelector('.ct-selo-do-dia')?.getAttribute('data-n')).toBe('17')
+    expect(botoes(container)[2].getAttribute('aria-label')).toBe('Cartões, 17 cartões para hoje')
   })
 
   it('a busca, no celular, não está no trilho: fica no "Mais", sem fala de teclado', () => {

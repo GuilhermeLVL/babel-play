@@ -316,9 +316,9 @@ describe('a aba Hoje, no modo faixa, pelo dado real e pela fonte da ficha', () =
     expect(faixa.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('4')
     /* Os três cartões de antes não existem no modo faixa. */
     expect(painel().querySelector('.ct-tres-cartoes')).toBeNull()
-    fireEvent.click(within(faixa).getByRole('button', { name: /Abrir a Memória/ }))
+    fireEvent.click(within(faixa).getByRole('button', { description: /Abrir a Memória/ }))
     expect(trocar).toHaveBeenLastCalledWith('memoria')
-    fireEvent.click(within(faixa).getByRole('button', { name: /Mudar o limite do dia/ }))
+    fireEvent.click(within(faixa).getByRole('button', { description: /Mudar o limite do dia/ }))
     const ajustes = await folha('Ajustes da memória')
     /* Os três principais à vista; o resto atrás de "Mais ajustes". */
     expect([...ajustes.querySelectorAll('.dlg-corpo > .q-ajuste b')].map((b) => b.textContent)).toEqual([

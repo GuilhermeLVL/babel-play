@@ -282,6 +282,9 @@
   position: absolute;
   bottom: -26px;
 }
+.int-falar kbd[data-tecla]::after {
+  content: attr(data-tecla);
+}
 
 /* O BOTÃO ÚNICO DO AUTOMÁTICO na faixa do meio (celular): menor que o "Falar", ao alcance das duas pessoas. */
 .int-faixa > .int-escuta {

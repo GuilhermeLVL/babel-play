@@ -65,7 +65,7 @@ test('o trilho leva a todo destino: os do trilho direto, o resto pelo "Mais"', a
     [/^(Início|Página Inicial)$/, /\/$/],
     // O Jogar antes dos outros: a sala da primeira visita abre por cima, e sair da tela a leva junto.
     [/^(Jogar|Praticar)$/, /\/jogar/],
-    [/^Cartões$/, /\/cartoes$/],
+    [/^Cartões(,|$)/, /\/cartoes$/],
   ]
   /** Não é item do trilho: mora dentro do "Ao vivo" (a escolha rápida). */
   const interprete: [RegExp, RegExp] = [/^Intérprete/, /\/interprete/]
@@ -106,14 +106,14 @@ test('o trilho leva a todo destino: os do trilho direto, o resto pelo "Mais"', a
     await expect(page.getByRole('main')).toBeVisible()
     await expect(aoVivo).toHaveAttribute('aria-current', 'page')
   }
-  await clicarRobusto(page, nav.getByRole('button', { name: 'Cartões', exact: true }))
+  await clicarRobusto(page, nav.getByRole('button', { name: /^Cartões(,|$)/ }))
   await expect(page).toHaveURL(/\/cartoes$/)
 
   if (estreito) {
     for (const nome of [interprete[0], biblioteca[0], livros[0], progresso[0], planos[0]])
       await expect(nav.getByRole('button', { name: nome })).toHaveCount(0)
     await expect(nav.locator('.q-item:visible')).toHaveCount(5)
-    await clicarRobusto(page, nav.getByRole('button', { name: 'Cartões', exact: true }))
+    await clicarRobusto(page, nav.getByRole('button', { name: /^Cartões(,|$)/ }))
     await expect(page).toHaveURL(/\/cartoes$/)
     /* A TELA, e não só o endereço: a URL muda antes de a troca de tela terminar, e o "Mais" fecha
        sozinho em toda troca. Abri-lo no meio dela deixava o teste procurando um painel que já saiu. */

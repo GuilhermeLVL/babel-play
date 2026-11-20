@@ -99,8 +99,10 @@ describe('TrilhoDoQuest', () => {
       />,
     )
     const selo = comSelo.container.querySelector('.q-item .ct-selo-do-dia')
-    expect(selo?.textContent).toBe('17')
-    expect(selo?.getAttribute('aria-label')).toBe('17 cartões para hoje')
+    // O número vem do CSS (`::after` lê `data-n`); o nome do botão o diz, depois do rótulo visível (WCAG 2.5.3).
+    expect(selo?.getAttribute('data-n')).toBe('17')
+    expect(selo?.getAttribute('aria-hidden')).toBe('true')
+    expect(selo?.closest('.q-item')?.getAttribute('aria-label')).toBe('Cartões, 17 cartões para hoje')
     expect(selo?.closest('.q-item')?.querySelector('span')?.textContent).toBe('Cartões')
     comSelo.unmount()
     for (const n of [0, null]) {

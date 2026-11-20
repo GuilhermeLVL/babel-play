@@ -44,6 +44,8 @@ const Ajuda = lazyComRecarga(carregarAjuda);
 const Diagnostico = lazyComRecarga(() => import('./components/views/Diagnostico'));
 /* O leitor de livros (L2): o motor (foliate-js, PDF.js) e a tela descem só quando um livro abre. */
 const Leitor = lazyComRecarga(() => import('./components/views/leitor/Leitor'));
+/* A Leitura ativa (`/leitura`, flag `leitura_ativa`): o acervo e a tela descem só quando a flag deixa abrir. */
+const LeituraAtiva = lazyComRecarga(() => import('./components/views/leituraAtiva/LeituraAtiva'));
 const NaoEncontrado = lazyComRecarga(() => import('./components/views/NaoEncontrado'));
 const Admin = lazyComRecarga(() => import('./components/views/Admin'));
 const Loja = lazyComRecarga(carregarLoja);
@@ -64,6 +66,7 @@ registrarTelas({
   estatisticas: Estatisticas.carregar,
   ajuda: Ajuda.carregar,
   loja: Loja.carregar,
+  leituraAtiva: LeituraAtiva.carregar,
 });
 // A casca e o Início: pedaços à parte, fora do JS inicial.
 const TrilhoDoQuest = lazyComRecarga(() => import('./components/shell/TrilhoDoQuest'));
@@ -122,6 +125,7 @@ import FloatingScoreLayer from './components/FloatingScoreLayer';
 import IndicadorDeSalvamento from './components/IndicadorDeSalvamento';
 import Toaster from './components/Toast';
 import Vazio from './components/ui/Vazio';
+import PortaoDaLeituraAtiva from './components/views/leituraAtiva/PortaoDaLeituraAtiva';
 import { carregarProtecao, fetchSessions } from './data/api';
 import { lerTokenDoConvite } from './lib/conviteNaUrl';
 import { edicaoEstatica } from './lib/edicaoEstatica';
@@ -756,6 +760,11 @@ export default function App() {
               {activeView === 'ajuda' && <Ajuda />}
               {activeView === 'diagnostico' && <Diagnostico />}
               {activeView === 'leitor' && <Leitor onChangeView={navigateTo} />}
+              {activeView === 'leituraAtiva' && (
+                <PortaoDaLeituraAtiva aoNegar={() => setActiveView('hub')}>
+                  <LeituraAtiva />
+                </PortaoDaLeituraAtiva>
+              )}
               {activeView === 'admin' && (
                 <Admin onChangeView={(v) => navigateTo(v as ViewType)} onBuscar={() => setBuscaAberta(true)} />
               )}
@@ -874,8 +883,9 @@ export default function App() {
           {/* Global iChat assistant with layout capabilities. O tutor é IA de NUVEM (`/api/tutor`):
               na edição estática, sem servidor, ele não monta — melhor ausente que um botão que só
               responde "não deu". */}
-          {/* No leitor de livros o botão flutuante cobria a virada de página: lá o iChat não monta. */}
-          {!edicaoEstatica() && activeView !== 'leitor' && passouLcp && (
+          {/* No leitor de livros o botão flutuante cobria a virada de página, e na leitura ativa cobria os créditos,
+              os chips e "Ler de novo": nas duas o iChat não monta. */}
+          {!edicaoEstatica() && activeView !== 'leitor' && activeView !== 'leituraAtiva' && passouLcp && (
             <IChat
               activeView={mappedActiveViewForChat}
               selectedRecording={selectedRecording}

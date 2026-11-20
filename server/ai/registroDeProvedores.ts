@@ -707,7 +707,8 @@ export function pernasDaFuncao(
     | 'explicacao'
     | 'resumo'
     | 'assistente'
-    | 'leitura',
+    | 'leitura'
+    | 'escrita',
   opcoes: { modelosGrandes?: boolean; nivel?: NivelDaTraducao } = {},
   env: NodeJS.ProcessEnv = process.env,
 ): Provedor[] {
@@ -715,7 +716,13 @@ export function pernasDaFuncao(
      "Outras formas" (D4) e o "polir a sessão" (D5), os da tradução — é tradução. O assistente segue a regra da IA de
      estudo: SÓ retenção zero declarada (ele manda a frase que a pessoa vê ou falou, às vezes de um menor). O parceiro de
      leitura (`leitura`, L4 de Livros & Leitura) também: manda o trecho que a pessoa lê e a pergunta dela. */
-  const deEstudo = funcao === 'explicacao' || funcao === 'resumo' || funcao === 'assistente' || funcao === 'leitura'
+  /* A escrita da Leitura ativa manda o texto que a pessoa escreveu (às vezes um menor): só retenção zero, também. */
+  const deEstudo =
+    funcao === 'explicacao' ||
+    funcao === 'resumo' ||
+    funcao === 'assistente' ||
+    funcao === 'leitura' ||
+    funcao === 'escrita'
   const f: FuncaoDoRegistro =
     funcao === 'corretor' || deEstudo
       ? 'tutor'

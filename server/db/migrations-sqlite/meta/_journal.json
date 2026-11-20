@@ -442,6 +442,13 @@
       "when": 1794800000000,
       "tag": "0062_flag_voz_kitten",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "6",
+      "when": 1794800000001,
+      "tag": "0063_flag_leitura_ativa",
+      "breakpoints": true
     }
   ]
 }

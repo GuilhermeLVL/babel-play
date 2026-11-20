@@ -22,12 +22,14 @@ import {
 } from '../server/lib/usageQuota'
 import {
   ehPlanoDeAssinatura,
+  ESCRITAS_MES_DOS_PAGOS,
   FLAG_VENDA_PLANOS_V4,
   horasDeTranscricao,
   menorPrecoDeAssinatura,
   normalizarPlano,
   PARCELAS_DO_ANUAL,
   PLAN_MATRIX,
+  PLANO_CONVIDADO,
   PLANO_DO_TESTE,
   type PlanoPago,
   planoPagoMaisBarato,
@@ -174,6 +176,15 @@ describe('a matriz v3', () => {
     })
     const tudo = getEntitlements('selfhost')
     expect(tudo.traducaoNuance && tudo.vozNatural && tudo.interpreteAutomatico).toBe(true)
+  })
+
+  /* A escrita da Leitura ativa (openspec `leitura-ativa-textos-simples`): só os pagos recebem retorno da IA. */
+  it('os retornos da escrita: 0 no Grátis e no convidado, 30 em todo pago, sem teto no self-host', () => {
+    expect(PLAN_MATRIX.free.quotas.escritasMes).toBe(0)
+    expect(PLANO_CONVIDADO.quotas.escritasMes).toBe(0)
+    expect(PLAN_MATRIX.selfhost.quotas.escritasMes).toBeNull()
+    for (const p of PLANOS_PAGOS) expect(PLAN_MATRIX[p].quotas.escritasMes, p).toBe(ESCRITAS_MES_DOS_PAGOS)
+    expect(ESCRITAS_MES_DOS_PAGOS).toBe(30)
   })
 
   /* Cada plano contém o de baixo: é o que deixa a migração 0049 pôr o Ao Vivo em toda regra que cita

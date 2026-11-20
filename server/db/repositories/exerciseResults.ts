@@ -4,7 +4,7 @@ import { and, asc, desc, eq, getTableColumns, gte, inArray, isNotNull, isNull, m
 
 import type { LinhaDeMaestria } from '../../../src/core/maestria'
 import { MINIGAME_IDS } from '../../../src/core/minigames/revelavel'
-import { inicioDaRodada } from '../../../src/core/missoes'
+import { inicioDaRodada, RODADA_DE_LEITURA } from '../../../src/core/missoes'
 import type { UserId } from '../../lib/authContext'
 import { CachePorVersao } from '../../lib/cachePorVersao'
 import { db, linhasAfetadas, travarUsuario } from '../db'
@@ -605,6 +605,32 @@ ${opts.origem ?? ''}`
       )
     linhasDeJogoDaConta.guardar(userId, versao, linhas, 256 + 160 * linhas.length)
     return linhas
+  },
+
+  /**
+   * AS RODADAS DA LEITURA ATIVA (openspec `leitura-ativa-textos-simples`): o resultado das perguntas de cada texto,
+   * para a missão "Leia 1 texto". Fora de `linhasDeMaestria` de propósito: não é jogo, não conta maestria nem recorde.
+   * Só os últimos 2 dias (a missão é de hoje, e o crédito da meta aceita ontem).
+   */
+  async linhasDeLeituraAtiva(userId: UserId, agora = Date.now()): Promise<LinhaDeMaestria[]> {
+    return db
+      .select({
+        exerciseKind: exerciseResults.exerciseKind,
+        roundId: exerciseResults.roundId,
+        correct: exerciseResults.correct,
+        combo: exerciseResults.combo,
+        createdAt: exerciseResults.createdAt,
+      })
+      .from(exerciseResults)
+      .where(
+        and(
+          eq(exerciseResults.userId, userId),
+          isNull(exerciseResults.deletedAt),
+          isNotNull(exerciseResults.roundId),
+          eq(exerciseResults.exerciseKind, RODADA_DE_LEITURA),
+          gte(exerciseResults.createdAt, agora - 3 * 86_400_000),
+        ),
+      )
   },
 
   async listarPorRodada(userId: UserId, roundId: string): Promise<ExerciseResult[]> {

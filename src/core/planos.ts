@@ -184,6 +184,13 @@ export interface QuotasDoPlano {
   explicacoesMes: number | null;
   resumosMes: number | null;
   /**
+   * A ESCRITA DA LEITURA ATIVA (openspec `leitura-ativa-textos-simples`, `POST /api/ai/escrita`): retornos da IA sobre o
+   * texto que a pessoa escreveu (reescrever ou opinar), por mês, com contador próprio (`server/lib/iaDeEstudo.ts`). Os
+   * tokens de cada retorno saem da `tokensMes` do plano. `0` = o plano não tem (Grátis e convidado ficam com a
+   * conferência no aparelho; o teste de 3 dias também, decidido no núcleo); `null` = sem teto.
+   */
+  escritasMes: number | null;
+  /**
    * O ASSISTENTE AO VIVO (`docs/specs/2026-10-25-assistente-ao-vivo.md`): chamadas de nuvem POR DIA LOCAL, somando
    * expressões, termos, "Como respondo?" e a correção da fala (contador próprio, `server/lib/assistenteAoVivo.ts`). Os
    * tokens de cada chamada saem da `tokensMes` do plano (como a IA de estudo), então o custo já está na conta do plano;
@@ -297,6 +304,20 @@ export const FRACAO_DA_COTA_DO_ASSISTENTE = 0.25;
 export const FLAG_PARCEIRO_DE_LEITURA = 'parceiro_de_leitura';
 
 /**
+ * A LEITURA ATIVA (openspec `leitura-ativa-textos-simples`; migrações PG 0020 e SQLite 0062): a tela "Leituras"
+ * (`/leitura`), textos curtos para ouvir, ler em voz alta e responder perguntas. Nasce DESLIGADA e sem regra de plano:
+ * desligada, o menu não mostra o item e a URL cai no início. Liga o microfone para menores, por isso é sensível no painel.
+ */
+export const FLAG_LEITURA_ATIVA = 'leitura_ativa';
+
+/**
+ * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,
+ * "Custo da escrita"): um retorno leva ~900 tokens de entrada (system + texto de até 120 palavras) e até 500 de saída;
+ * 30 por mês ficam na casa de US$ 0,01 por assinante que usa tudo, e os tokens já saem da `tokensMes`.
+ */
+export const ESCRITAS_MES_DOS_PAGOS = 30;
+
+/**
  * OS AVATARES (`docs/specs/2026-10-28-avatar-interprete.md`; migração PG 0016). Três flags que nascem DESLIGADAS:
  * `avatar_3d` (a base: o avatar da pessoa e o do intérprete, em 3D com fallback 2D), `avatar_sinais` (soletração
  * rotulada como demonstração, nunca "tradução para Libras") e `avatar_elenco` (narrador e personagens nos livros).
@@ -358,6 +379,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       sttAoVivoSegundosMes: 0,
       explicacoesMes: 0,
       resumosMes: 0,
+      escritasMes: 0,
       assistenteDia: 0,
       assistenteTokensMes: 0,
       parceiroDia: 0,
@@ -398,6 +420,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       sttAoVivoSegundosMes: 0,
       explicacoesMes: 300,
       resumosMes: 60,
+      escritasMes: ESCRITAS_MES_DOS_PAGOS,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
       assistenteTokensMes: 187_500,
       parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
@@ -451,6 +474,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       sttAoVivoSegundosMes: 0,
       explicacoesMes: 300,
       resumosMes: 60,
+      escritasMes: ESCRITAS_MES_DOS_PAGOS,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
       assistenteTokensMes: 750_000,
       parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
@@ -495,6 +519,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       sttAoVivoSegundosMes: 36_000,
       explicacoesMes: 300,
       resumosMes: 60,
+      escritasMes: ESCRITAS_MES_DOS_PAGOS,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
       assistenteTokensMes: 1_125_000,
       parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
@@ -533,6 +558,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       sttAoVivoSegundosMes: 0,
       explicacoesMes: 300,
       resumosMes: 60,
+      escritasMes: ESCRITAS_MES_DOS_PAGOS,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
       assistenteTokensMes: 500_000,
       parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
@@ -570,6 +596,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       sttAoVivoSegundosMes: 0,
       explicacoesMes: 300,
       resumosMes: 60,
+      escritasMes: ESCRITAS_MES_DOS_PAGOS,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
       assistenteTokensMes: 750_000,
       parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
@@ -607,6 +634,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       sttAoVivoSegundosMes: 0,
       explicacoesMes: 300,
       resumosMes: 60,
+      escritasMes: ESCRITAS_MES_DOS_PAGOS,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
       assistenteTokensMes: 750_000,
       parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
@@ -642,6 +670,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       sttAoVivoSegundosMes: null,
       explicacoesMes: null,
       resumosMes: null,
+      escritasMes: null,
       assistenteDia: null,
       assistenteTokensMes: null,
       parceiroDia: null,
@@ -702,6 +731,7 @@ export const PLANO_CONVIDADO: DefinicaoDePlano = {
     sttAoVivoSegundosMes: 0,
     explicacoesMes: 0,
     resumosMes: 0,
+    escritasMes: 0,
     assistenteDia: 0,
     assistenteTokensMes: 0,
     parceiroDia: 0,

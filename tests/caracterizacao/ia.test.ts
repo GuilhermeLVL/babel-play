@@ -774,6 +774,30 @@ describe('POST /api/ai/leitura/parceiro — parceiro de leitura (flag parceiro_d
   })
 })
 
+describe('POST /api/ai/escrita — retorno da escrita da Leitura ativa (flag leitura_ativa)', () => {
+  async function flag(habilitada: boolean) {
+    const flags = await s.load<any>('../../server/lib/flags')
+    await flags.definirFlag('leitura_ativa', { habilitada }, 'caracterizacao')
+  }
+  afterAll(() => flag(false))
+
+  it('flag desligada → 404 recurso_indisponivel, mesmo com corpo vazio, sem chamar provedor', async () => {
+    await flag(false)
+    const r = await s.post('/api/ai/escrita', {})
+    expect(r.status).toBe(404)
+    expect((await r.json()).code).toBe('recurso_indisponivel')
+    expect(chamadas).toHaveLength(0)
+  })
+
+  it('flag ligada e texto do acervo inexistente → 400 invalido, sem chamar provedor', async () => {
+    await flag(true)
+    const r = await s.post('/api/ai/escrita', { textoId: 'nao-existe', tarefa: 'reescrever', escrita: 'oi' })
+    expect(r.status).toBe(400)
+    expect((await r.json()).code).toBe('invalido')
+    expect(chamadas).toHaveLength(0)
+  })
+})
+
 describe('POST /api/ai/feedback — 👍/👎 de lista fechada (Fase B da IA paga)', () => {
   it('avaliação válida → 202, sem chamar provedor', async () => {
     const r = await s.post('/api/ai/feedback', {

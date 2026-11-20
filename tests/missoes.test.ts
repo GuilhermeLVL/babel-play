@@ -5,6 +5,8 @@
  * crédito `meta:<dia>` conferido pelo Express e pelo espelho está em
  * `tests/integration/economia-missoes.test.ts`; os avisos, em `tests/missoes-avisos.test.ts`.
  */
+import { createHash } from 'node:crypto'
+
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { diaNoFuso } from '../src/core/learning/economia'
@@ -36,7 +38,12 @@ function diasDe(n: number, inicio = Date.UTC(2026, 9, 1)): string[] {
 
 /** Uma rodada gravada: `certas` de `total`, começando em `em`. */
 function rodada(roundId: string, jogo: MinigameId, em: number, certas: number, total = 10): LinhaDeRodada[] {
-  return Array.from({ length: total }, (_, i) => ({ exerciseKind: jogo, roundId, correct: i < certas ? 1 : 0, createdAt: em }))
+  return Array.from({ length: total }, (_, i) => ({
+    exerciseKind: jogo,
+    roundId,
+    correct: i < certas ? 1 : 0,
+    createdAt: em,
+  }))
 }
 
 afterEach(() => {
@@ -60,8 +67,8 @@ describe('as três missões do dia', () => {
     expect(assinaturas.size).toBeGreaterThan(3)
   })
 
-  it('nenhuma missão mede tempo: só revisão, palavra salva, rodada boa e jogo novo', () => {
-    expect(Object.keys(ALVOS_DAS_MISSOES).sort()).toEqual(['jogoNovo', 'palavras', 'revisar', 'rodadaBoa'])
+  it('nenhuma missão mede tempo: só revisão, palavra salva, rodada boa, jogo novo e texto lido', () => {
+    expect(Object.keys(ALVOS_DAS_MISSOES).sort()).toEqual(['jogoNovo', 'leitura', 'palavras', 'revisar', 'rodadaBoa'])
     for (const dia of diasDe(60)) {
       for (const m of missoesDoDia(dia, { jogosJogados: [] })) expect(m.tipo).not.toMatch(/tempo|minuto|sessao|abrir/i)
     }
@@ -78,6 +85,59 @@ describe('as três missões do dia', () => {
     const regra = REGRAS.find((r) => r.id === 'metaDiaria')!
     expect(RECOMPENSA_DA_META).toEqual({ seeds: regra.seeds, xp: regra.xp })
     expect(RECOMPENSA_DA_META).toEqual({ seeds: 15, xp: 20 })
+  })
+})
+
+/* A LEITURA ATIVA (openspec `leitura-ativa-textos-simples`, spec `leitura-ativa-perguntas-e-pratica`): "Leia 1 texto"
+   só entra no sorteio com a flag `leitura_ativa` ligada, e com ela desligada o sorteio é o de antes, bit a bit. */
+describe('a missão "Leia 1 texto"', () => {
+  /** O sorteio de 200 dias, com e sem jogos jogados, como estava ANTES da missão nova (sha256 do JSON). */
+  const SORTEIO_DE_ANTES = 'e7b1e37540ae1c1c07f760d03e4c08c0c8721032d0588d28a9fa239ef2a5d3eb'
+  const duzentos = diasDe(200, Date.UTC(2026, 0, 1))
+
+  it('com a flag desligada, o sorteio de 200 dias é idêntico ao de antes e nunca traz leitura', () => {
+    const out: unknown[] = []
+    for (const dia of duzentos) {
+      const a = missoesDoDia(dia, { jogosJogados: [] })
+      const b = missoesDoDia(dia, { jogosJogados: TODOS, incluirLeitura: false })
+      out.push(a, b)
+      expect([...a, ...b].some((m) => m.tipo === 'leitura')).toBe(false)
+    }
+    expect(createHash('sha256').update(JSON.stringify(out)).digest('hex')).toBe(SORTEIO_DE_ANTES)
+  })
+
+  it('com a flag ligada, "leitura" aparece em alguns dias, com alvo 1, e o dia segue com 3 missões', () => {
+    const comLeitura = duzentos.map((d) => missoesDoDia(d, { jogosJogados: [], incluirLeitura: true }))
+    for (const m of comLeitura) expect(m).toHaveLength(3)
+    const leituras = comLeitura.flat().filter((m) => m.tipo === 'leitura')
+    expect(leituras.length).toBeGreaterThan(20)
+    for (const m of leituras) expect(m.alvo).toBe(1)
+  })
+
+  it('uma rodada leituraAtiva no dia fecha a missão; ela não vira "jogo novo" nem "rodada boa"', () => {
+    const meioDia = Date.UTC(2026, 9, 5, 15, 0)
+    const dia = diaNoFuso(meioDia, FUSO)
+    const leitura: LinhaDeRodada[] = [
+      { exerciseKind: 'leituraAtiva', roundId: 'l-1', correct: 1, createdAt: meioDia },
+      { exerciseKind: 'leituraAtiva', roundId: 'l-1', correct: 1, createdAt: meioDia },
+      { exerciseKind: 'leituraAtiva', roundId: 'l-1', correct: null, createdAt: meioDia },
+    ]
+    const fontes = { revisoes: [], palavrasSalvas: [], rodadas: leitura }
+    expect(feitosDoDia(dia, FUSO, fontes)).toEqual({ revisar: 0, palavras: 0, rodadaBoa: 0, jogoNovo: 0, leitura: 1 })
+    /* Um dia em que "leitura" foi sorteada. */
+    const diaComLeitura = duzentos.find((d) =>
+      missoesDoDia(d, { jogosJogados: [], incluirLeitura: true }).some((m) => m.tipo === 'leitura'),
+    )!
+    const em = Date.parse(`${diaComLeitura}T15:00:00Z`)
+    const m = missoesComProgresso(
+      diaComLeitura,
+      FUSO,
+      { revisoes: [], palavrasSalvas: [], rodadas: leitura.map((l) => ({ ...l, createdAt: em })) },
+      { incluirLeitura: true },
+    )
+    expect(m.find((x) => x.tipo === 'leitura')).toMatchObject({ alvo: 1, atual: 1 })
+    /* Sem a flag, o mesmo dia não tem a missão. */
+    expect(missoesComProgresso(diaComLeitura, FUSO, fontes).some((x) => x.tipo === 'leitura')).toBe(false)
   })
 })
 
@@ -98,12 +158,14 @@ describe('o progresso vem do que está gravado', () => {
       ],
     }
     // Blitz foi jogado ontem; Termo é inédito hoje.
-    expect(feitosDoDia(dia, FUSO, fontes)).toEqual({ revisar: 2, palavras: 1, rodadaBoa: 1, jogoNovo: 1 })
+    expect(feitosDoDia(dia, FUSO, fontes)).toEqual({ revisar: 2, palavras: 1, rodadaBoa: 1, jogoNovo: 1, leitura: 0 })
     // As missões sorteadas leem os mesmos números; "jogo novo" não conta o Blitz de ontem.
     const m = missoesComProgresso(dia, FUSO, fontes)
     const feitos = feitosDoDia(dia, FUSO, fontes)
     for (const x of m) expect(x.atual).toBe(feitos[x.tipo])
-    expect(missoesComProgresso(dia, FUSO, fontes)).toEqual(missoesDoDia(dia, { jogosJogados: ['blitz'] }).map((x) => ({ ...x, atual: feitos[x.tipo] })))
+    expect(missoesComProgresso(dia, FUSO, fontes)).toEqual(
+      missoesDoDia(dia, { jogosJogados: ['blitz'] }).map((x) => ({ ...x, atual: feitos[x.tipo] })),
+    )
   })
 
   it('a meta fecha quando as três fecham, e só então', () => {

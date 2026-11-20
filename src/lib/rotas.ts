@@ -43,6 +43,8 @@ export type ViewDeRota =
   | 'admin'
   /** O leitor de livros (`/leitor/<livroId>`, L2 de Livros & Leitura). */
   | 'leitor'
+  /** A Leitura ativa (`/leitura` e `/leitura/<textoId>`; flag `leitura_ativa`). Não é a aba `reading` da Sessão. */
+  | 'leituraAtiva'
   | 'naoencontrado';
 
 /** As duas áreas clássicas de Personalizar (sem a flag `recompensas_v2`). */
@@ -91,6 +93,8 @@ export interface EstadoDeRota {
   livroId?: string;
   /** Só para `livros` com `livroId`: a leitura dele (`/livros/<id>/ler`), não o detalhe. */
   lendo?: boolean;
+  /** Só para `leituraAtiva`: o texto aberto (`/leitura/<textoId>`). É DA TELA, como o livro do leitor. */
+  textoId?: string;
 }
 
 /**
@@ -155,6 +159,7 @@ const SEGMENTO: Record<Exclude<ViewDeRota, 'analysis'>, string> = {
   diagnostico: 'diagnostico',
   admin: 'admin',
   leitor: 'leitor',
+  leituraAtiva: 'leitura',
   naoencontrado: 'nao-encontrado',
 };
 
@@ -310,6 +315,7 @@ export function estadoParaUrl(e: EstadoDeRota): string {
     return `/${SEGMENTO.livros}/${e.livroId}${e.lendo ? `/${SEGMENTO_DE_LEITURA}` : ''}`;
   }
   if (e.view === 'leitor' && e.livroId) return `/${SEGMENTO.leitor}/${encodeURIComponent(e.livroId)}`;
+  if (e.view === 'leituraAtiva' && e.textoId && ehIdDeLivro(e.textoId)) return `/${SEGMENTO.leituraAtiva}/${e.textoId}`;
   if (e.view === 'planos' && ehSubTelaDePlanos(e.planosTela)) return `/${SEGMENTO.planos}/${e.planosTela}`;
   const seg = SEGMENTO[e.view];
   return seg ? `/${seg}` : '/';
@@ -390,6 +396,11 @@ export function urlParaEstado(caminho: string): EstadoDeRota {
     return livroId ? { view: 'leitor', livroId } : { view: 'leitor' };
   }
 
+  /* A LEITURA ATIVA: um id sem forma de id (minúsculas, dígitos, hífens) degrada para o catálogo. */
+  if (partes[0] === SEGMENTO.leituraAtiva && partes[1]) {
+    return ehIdDeLivro(partes[1]) ? { view: 'leituraAtiva', textoId: partes[1] } : { view: 'leituraAtiva' };
+  }
+
   if (partes[0] === SEGMENTO.settings && partes[1]) {
     const aba = ABA_DOS_AJUSTES_DE_SEGMENTO[partes[1]];
     return aba ? { view: 'settings', ajustesAba: aba } : { view: 'settings' };
@@ -459,6 +470,8 @@ export function publicarUrl(e: EstadoDeRota, push = true): void {
   if (e.view === 'planos' && !e.planosTela && urlParaEstado(window.location.pathname).planosTela) return;
   /* O livro aberto é do leitor, como a sub-tela é de Planos: espelhar só "estou no leitor" não o apaga. */
   if (e.view === 'leitor' && !e.livroId && urlParaEstado(caminhoInternoAtual()).livroId) return;
+  /* O texto aberto é da Leitura ativa: espelhar só "estou na Leitura ativa" não o apaga. */
+  if (e.view === 'leituraAtiva' && !e.textoId && urlParaEstado(caminhoInternoAtual()).textoId) return;
   // `replaceState` na restauração inicial: entrar no app não deve criar uma entrada de histórico
   // para trás que devolveria o usuário para fora.
   /* Trocar de aba dentro dos Ajustes atualiza o endereço sem empilhar histórico: "voltar" sai da
@@ -561,6 +574,19 @@ let livroDoBoot: string | null = (() => {
 })();
 
 export const lerLivroDoBoot = (): string | null => livroDoBoot;
+
+/** O TEXTO DA LEITURA ATIVA COMO ELE CHEGOU NA URL (`/leitura/<id>`): o mesmo motivo do livro acima (o F5). */
+let textoDoBoot: string | null = (() => {
+  if (typeof window === 'undefined') return null;
+  const e = urlParaEstado(window.location.pathname);
+  return e.view === 'leituraAtiva' ? (e.textoId ?? null) : null;
+})();
+
+export const lerTextoDoBoot = (): string | null => textoDoBoot;
+
+export function esquecerTextoDoBoot(): void {
+  textoDoBoot = null;
+}
 
 export function esquecerLivroDoBoot(): void {
   livroDoBoot = null;

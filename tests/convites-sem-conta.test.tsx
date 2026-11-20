@@ -182,6 +182,7 @@ describe('inventário das telas sem conta', () => {
     diagnostico: 'tela',
     admin: 'tela',
     leitor: 'tela',
+    leituraAtiva: 'tela',
     naoencontrado: 'tela',
   }
   const app = readFileSync(join(__dirname, '..', 'src', 'App.tsx'), 'utf8')

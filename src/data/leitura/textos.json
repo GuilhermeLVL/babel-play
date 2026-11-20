@@ -1,0 +1,687 @@
+[
+  {
+    "id": "a1-no-mercado",
+    "titulo": "At the Market",
+    "nivel": "A1",
+    "categoria": "Dia a dia",
+    "texto": "It is Saturday morning. Lia and her dad go to the market. The market is big. There is a lot of fruit. Lia likes apples. She picks six red apples. Her dad takes bread, milk and water. Then Lia sees her friend Ben. Ben has a small dog. The dog is very happy. Lia is happy too. At home, Lia and her dad eat bread and apples. It is a good morning.",
+    "palavrasAlvo": [
+      "morning",
+      "friend",
+      "happy",
+      "big",
+      "small",
+      "water",
+      "eat",
+      "home"
+    ],
+    "perguntas": [
+      {
+        "pergunta": "Where do Lia and her dad go?",
+        "traducao": "Aonde a Lia e o pai dela vão?",
+        "opcoes": [
+          "To school",
+          "To the market",
+          "To the park"
+        ],
+        "correta": 1,
+        "explicacao": "O texto diz: \"Lia and her dad go to the market\" (vão ao mercado)."
+      },
+      {
+        "pergunta": "What does Lia pick?",
+        "traducao": "O que a Lia escolhe?",
+        "opcoes": [
+          "Six red apples",
+          "Milk and water",
+          "A small dog"
+        ],
+        "correta": 0,
+        "explicacao": "Lia escolhe seis maçãs vermelhas; o leite e a água são do pai, e o cachorro é do Ben."
+      },
+      {
+        "pergunta": "Who has a small dog?",
+        "traducao": "Quem tem um cachorro pequeno?",
+        "opcoes": [
+          "Lia",
+          "Lia's dad",
+          "Ben"
+        ],
+        "correta": 2,
+        "explicacao": "\"Ben has a small dog\": o cachorro pequeno é do amigo Ben."
+      }
+    ],
+    "tarefaDeEscrita": {
+      "reescrever": "Reescreva o texto como se fosse você no mercado: troque \"Lia\" por \"I\" e escolha outras frutas.",
+      "opinar": "What do you like to buy at the market? Why?"
+    },
+    "licenca": "original Frasy (CC BY 4.0)",
+    "autoria": "Equipe Frasy, com apoio de IA"
+  },
+  {
+    "id": "a1-o-onibus-da-escola",
+    "titulo": "The School Bus",
+    "nivel": "A1",
+    "categoria": "Dia a dia",
+    "texto": "Every morning, Theo takes the bus to school. The bus is big and yellow. Theo sits with his friend Nina. They talk and they laugh. Nina has a small book. It has a lot of pictures of animals. Theo likes the picture of a big fish. At school, they eat a snack and drink water. After school, the bus takes them home. Theo is tired, but he is happy.",
+    "palavrasAlvo": [
+      "morning",
+      "friend",
+      "happy",
+      "big",
+      "small",
+      "water",
+      "eat",
+      "home"
+    ],
+    "perguntas": [
+      {
+        "pergunta": "What color is the bus?",
+        "traducao": "De que cor é o ônibus?",
+        "opcoes": [
+          "Red",
+          "Yellow",
+          "Blue"
+        ],
+        "correta": 1,
+        "explicacao": "\"The bus is big and yellow\": o ônibus é grande e amarelo."
+      },
+      {
+        "pergunta": "What is in Nina's book?",
+        "traducao": "O que tem no livro da Nina?",
+        "opcoes": [
+          "Pictures of animals",
+          "Pictures of buses",
+          "Songs"
+        ],
+        "correta": 0,
+        "explicacao": "O livro da Nina tem muitas figuras de animais."
+      },
+      {
+        "pergunta": "How is Theo after school?",
+        "traducao": "Como o Theo está depois da escola?",
+        "opcoes": [
+          "Sad and hungry",
+          "Tired but happy",
+          "Angry"
+        ],
+        "correta": 1,
+        "explicacao": "\"Theo is tired, but he is happy\": cansado, mas feliz."
+      }
+    ],
+    "tarefaDeEscrita": {
+      "reescrever": "Reescreva o texto contando como você vai para a escola (a pé, de carro, de ônibus...).",
+      "opinar": "Do you like to go to school by bus? Why or why not?"
+    },
+    "licenca": "original Frasy (CC BY 4.0)",
+    "autoria": "Equipe Frasy, com apoio de IA"
+  },
+  {
+    "id": "a1-o-gato-e-a-bola-vermelha",
+    "titulo": "The Cat and the Red Ball",
+    "nivel": "A1",
+    "categoria": "Histórias",
+    "texto": "Max is a small cat. He lives in a big house with a girl. Her name is Sara. Every morning, Max plays with a red ball. One day, the ball is not there. Max looks under the bed. No ball. He looks in the kitchen. No ball! Max is not happy. Then Sara comes home. She has the red ball in her bag. Max runs to his friend. Now he is happy. He eats his food and drinks his water.",
+    "palavrasAlvo": [
+      "morning",
+      "friend",
+      "happy",
+      "big",
+      "small",
+      "water",
+      "eat",
+      "home"
+    ],
+    "perguntas": [
+      {
+        "pergunta": "What does Max play with?",
+        "traducao": "Com o que o Max brinca?",
+        "opcoes": [
+          "A red ball",
+          "A small book",
+          "A big box"
+        ],
+        "correta": 0,
+        "explicacao": "Toda manhã, Max brinca com uma bola vermelha."
+      },
+      {
+        "pergunta": "Where does Max look for the ball?",
+        "traducao": "Onde o Max procura a bola?",
+        "opcoes": [
+          "In the garden and in the car",
+          "Under the bed and in the kitchen",
+          "In the bag and on the table"
+        ],
+        "correta": 1,
+        "explicacao": "Ele procura embaixo da cama (\"under the bed\") e na cozinha (\"in the kitchen\")."
+      },
+      {
+        "pergunta": "Where is the ball?",
+        "traducao": "Onde está a bola?",
+        "opcoes": [
+          "Under the bed",
+          "In the kitchen",
+          "In Sara's bag"
+        ],
+        "correta": 2,
+        "explicacao": "Sara chega em casa com a bola na bolsa: \"She has the red ball in her bag\"."
+      }
+    ],
+    "tarefaDeEscrita": {
+      "reescrever": "Reescreva a história trocando o gato por outro animal e a bola por outro brinquedo.",
+      "opinar": "Do you have a pet, or do you want one? What animal?"
+    },
+    "licenca": "original Frasy (CC BY 4.0)",
+    "autoria": "Equipe Frasy, com apoio de IA"
+  },
+  {
+    "id": "a1-camelos-no-deserto",
+    "titulo": "Camels in the Desert",
+    "nivel": "A1",
+    "categoria": "Mundo",
+    "texto": "Camels live in the desert. The desert is very hot during the day and cold at night. There is not a lot of water there. But a camel can walk for many days with no water. When it finds water, it drinks a lot, very fast. Early in the morning, camels walk to find food. Camels eat plants. They are big and strong. Baby camels are small, and they stay with their mothers. In desert towns, people work with camels. Camels help them carry things.",
+    "palavrasAlvo": [
+      "water",
+      "big",
+      "small",
+      "eat",
+      "morning"
+    ],
+    "perguntas": [
+      {
+        "pergunta": "Where do camels live?",
+        "traducao": "Onde os camelos vivem?",
+        "opcoes": [
+          "In the sea",
+          "In the desert",
+          "In the snow"
+        ],
+        "correta": 1,
+        "explicacao": "A primeira frase diz: \"Camels live in the desert\"."
+      },
+      {
+        "pergunta": "What can a camel do?",
+        "traducao": "O que um camelo consegue fazer?",
+        "opcoes": [
+          "Walk for many days with no water",
+          "Fly for many days",
+          "Swim very fast"
+        ],
+        "correta": 0,
+        "explicacao": "O camelo anda muitos dias sem água: \"walk for many days with no water\"."
+      },
+      {
+        "pergunta": "What do camels eat?",
+        "traducao": "O que os camelos comem?",
+        "opcoes": [
+          "Fish",
+          "Bread",
+          "Plants"
+        ],
+        "correta": 2,
+        "explicacao": "\"Camels eat plants\": camelos comem plantas."
+      }
+    ],
+    "tarefaDeEscrita": {
+      "reescrever": "Reescreva o texto sobre outro animal que você conhece: onde ele vive e o que ele come.",
+      "opinar": "Do you want to see a camel? Why?"
+    },
+    "licenca": "original Frasy (CC BY 4.0)",
+    "autoria": "Equipe Frasy, com apoio de IA"
+  },
+  {
+    "id": "a2-jantar-para-a-avo",
+    "titulo": "Dinner for Grandma",
+    "nivel": "A2",
+    "categoria": "Dia a dia",
+    "texto": "On Sunday, Grandma is coming to visit, so Davi and his sister Bia decide to make dinner for her. They choose a simple recipe: vegetable soup. First, they wash the carrots and potatoes. Bia cuts them with Dad's help, and she is very careful with the knife. Davi puts water in a big pot, and Dad turns on the stove. Then there is a problem: they don't have any onions! Davi remembers that their neighbor has a garden. He asks for help, and she gives him two onions. The soup cooks for thirty minutes, and the kitchen smells wonderful. Finally, Grandma arrives, and they all eat together at the table. \"This is the best soup in the world,\" she says. Davi and Bia smile. Cooking together is really fun.",
+    "palavrasAlvo": [
+      "decide",
+      "careful",
+      "problem",
+      "remember",
+      "help",
+      "finally",
+      "together"
+    ],
+    "perguntas": [
+      {
+        "pergunta": "What do Davi and Bia make?",
+        "traducao": "O que o Davi e a Bia fazem?",
+        "opcoes": [
+          "A cake",
+          "Vegetable soup",
+          "A sandwich"
+        ],
+        "correta": 1,
+        "explicacao": "Eles escolhem uma receita simples: sopa de legumes (\"vegetable soup\")."
+      },
+      {
+        "pergunta": "What is the problem?",
+        "traducao": "Qual é o problema?",
+        "opcoes": [
+          "They don't have any onions",
+          "The knife is broken",
+          "Grandma is late"
+        ],
+        "correta": 0,
+        "explicacao": "O problema é que não há cebolas: \"they don't have any onions\"."
+      },
+      {
+        "pergunta": "Who helps them?",
+        "traducao": "Quem ajuda os dois?",
+        "opcoes": [
+          "Their mother",
+          "Grandma",
+          "Their neighbor"
+        ],
+        "correta": 2,
+        "explicacao": "A vizinha (\"neighbor\"), que tem uma horta, dá duas cebolas."
+      }
+    ],
+    "tarefaDeEscrita": {
+      "reescrever": "Reescreva a história com outra receita e outro problema na cozinha.",
+      "opinar": "What food do you like to cook or eat with your family?"
+    },
+    "licenca": "original Frasy (CC BY 4.0)",
+    "autoria": "Equipe Frasy, com apoio de IA"
+  },
+  {
+    "id": "a2-o-onibus-errado",
+    "titulo": "The Wrong Bus",
+    "nivel": "A2",
+    "categoria": "Dia a dia",
+    "texto": "Julia usually walks to school, but today it is raining, so she takes the bus. She is in a hurry, and she doesn't look carefully at the number. The bus is very quiet. After ten minutes, she sees a park that she doesn't know. There is a problem: this is the wrong bus! Julia feels nervous, but she remembers her mother's words: \"Stay calm and ask for help.\" She talks to the driver. He is kind. He tells her to get off at the next stop and take bus 14. Julia decides to do that. She also sends a message to her mother. Finally, she arrives at school, only five minutes late. At lunch, she and her friends laugh about it together. Now she always checks the number.",
+    "palavrasAlvo": [
+      "carefully",
+      "quiet",
+      "problem",
+      "remember",
+      "help",
+      "decide",
+      "finally",
+      "together"
+    ],
+    "perguntas": [
+      {
+        "pergunta": "Why does Julia take the bus today?",
+        "traducao": "Por que a Julia pega o ônibus hoje?",
+        "opcoes": [
+          "Because it is raining",
+          "Because she is sick",
+          "Because her school is far"
+        ],
+        "correta": 0,
+        "explicacao": "Ela costuma ir a pé, mas hoje está chovendo: \"today it is raining\"."
+      },
+      {
+        "pergunta": "What does Julia do when she sees the problem?",
+        "traducao": "O que a Julia faz quando vê o problema?",
+        "opcoes": [
+          "She cries",
+          "She talks to the driver",
+          "She calls a friend"
+        ],
+        "correta": 1,
+        "explicacao": "Ela lembra do conselho da mãe e fala com o motorista (\"She talks to the driver\")."
+      },
+      {
+        "pergunta": "How late is Julia?",
+        "traducao": "Quanto a Julia se atrasa?",
+        "opcoes": [
+          "One hour",
+          "Ten minutes",
+          "Five minutes"
+        ],
+        "correta": 2,
+        "explicacao": "Ela chega só cinco minutos atrasada: \"only five minutes late\"."
+      }
+    ],
+    "tarefaDeEscrita": {
+      "reescrever": "Reescreva a história contada pela Julia, em primeira pessoa (I) e no passado.",
+      "opinar": "What do you do when you have a problem on the way to school?"
+    },
+    "licenca": "original Frasy (CC BY 4.0)",
+    "autoria": "Equipe Frasy, com apoio de IA"
+  },
+  {
+    "id": "a2-o-dragao-quieto",
+    "titulo": "The Quiet Dragon",
+    "nivel": "A2",
+    "categoria": "Histórias",
+    "texto": "In a small village near the mountains, there lived a dragon called Pip. Most dragons were loud, but Pip was very quiet. He didn't like fire. He liked flowers and books. The other dragons laughed at him, and Pip felt sad. One winter, there was a big problem. Snow covered the village, and the children couldn't go to school. The loud dragons were all asleep. Pip remembered an old dragon trick: breathing warm air instead of fire. He decided to try it. He breathed slowly and carefully. Warm air came out, not fire, and the snow on the road began to melt. The children were so happy! That night, everyone sat together near Pip and sang. The next morning, the other dragons said sorry to Pip. Finally, the quiet dragon had a lot of friends.",
+    "palavrasAlvo": [
+      "quiet",
+      "problem",
+      "remember",
+      "decide",
+      "carefully",
+      "together",
+      "finally"
+    ],
+    "perguntas": [
+      {
+        "pergunta": "What did Pip like?",
+        "traducao": "Do que o Pip gostava?",
+        "opcoes": [
+          "Fire and noise",
+          "Flowers and books",
+          "Snow and ice"
+        ],
+        "correta": 1,
+        "explicacao": "Pip não gostava de fogo; gostava de flores e livros (\"flowers and books\")."
+      },
+      {
+        "pergunta": "What was the problem in the village?",
+        "traducao": "Qual era o problema na vila?",
+        "opcoes": [
+          "There was too much snow",
+          "There was a fire",
+          "The dragons were angry"
+        ],
+        "correta": 0,
+        "explicacao": "A neve cobriu a vila e as crianças não podiam ir à escola."
+      },
+      {
+        "pergunta": "What came out when Pip breathed?",
+        "traducao": "O que saía quando o Pip soprava?",
+        "opcoes": [
+          "Fire",
+          "Music",
+          "Warm air"
+        ],
+        "correta": 2,
+        "explicacao": "Saiu ar quente, não fogo: \"Warm air came out, not fire\"."
+      }
+    ],
+    "tarefaDeEscrita": {
+      "reescrever": "Reescreva a história com outro animal fantástico e outro problema na vila.",
+      "opinar": "Is it OK to be different from your friends? Why?"
+    },
+    "licenca": "original Frasy (CC BY 4.0)",
+    "autoria": "Equipe Frasy, com apoio de IA"
+  },
+  {
+    "id": "a2-como-as-abelhas-ajudam",
+    "titulo": "How Bees Help Plants",
+    "nivel": "A2",
+    "categoria": "Mundo",
+    "texto": "Bees are small, but they do a very important job. When a bee visits a flower, it drinks a sweet liquid from it. At the same time, a yellow powder from the flower sticks to its body. Then the bee flies to another flower and leaves some of the powder there. This helps plants make fruit and seeds. Many foods that we eat, like apples and strawberries, need this help. Some bees, like honeybees, live and work together in big groups. In some places, there is a problem: there are not enough flowers for them. But people can help bees, too. We can plant flowers in gardens and on balconies. Be careful near bees and stay quiet and calm. They usually don't sting. Remember: if a bee stings you, tell an adult.",
+    "palavrasAlvo": [
+      "help",
+      "together",
+      "problem",
+      "remember",
+      "careful",
+      "quiet"
+    ],
+    "perguntas": [
+      {
+        "pergunta": "What does a bee drink from a flower?",
+        "traducao": "O que uma abelha bebe de uma flor?",
+        "opcoes": [
+          "Water",
+          "A sweet liquid",
+          "Milk"
+        ],
+        "correta": 1,
+        "explicacao": "A abelha bebe um líquido doce da flor (é o néctar)."
+      },
+      {
+        "pergunta": "Why is the yellow powder important?",
+        "traducao": "Por que o pó amarelo é importante?",
+        "opcoes": [
+          "It helps plants make fruit and seeds",
+          "It makes bees fly faster",
+          "It makes flowers yellow"
+        ],
+        "correta": 0,
+        "explicacao": "O pó amarelo (pólen) levado de flor em flor ajuda as plantas a fazer frutos e sementes."
+      },
+      {
+        "pergunta": "How can people help bees?",
+        "traducao": "Como as pessoas podem ajudar as abelhas?",
+        "opcoes": [
+          "By catching them",
+          "By eating more apples",
+          "By planting flowers"
+        ],
+        "correta": 2,
+        "explicacao": "\"We can plant flowers in gardens and on balconies\": plantar flores ajuda."
+      }
+    ],
+    "tarefaDeEscrita": {
+      "reescrever": "Reescreva o texto como se a abelha estivesse contando o próprio dia (I visit a flower...).",
+      "opinar": "Do you think bees are important? Why?"
+    },
+    "licenca": "original Frasy (CC BY 4.0)",
+    "autoria": "Equipe Frasy, com apoio de IA"
+  },
+  {
+    "id": "b1-a-feira-da-turma",
+    "titulo": "The Class Market",
+    "nivel": "B1",
+    "categoria": "Dia a dia",
+    "texto": "Every year, the students in Ms. Rocha's class organize a small market at school. Instead of buying things, they make them: bookmarks, bracelets, cookies and little plants in old jars. They also use paper bags instead of plastic ones, to protect the environment. This year, Caio wanted to sell cookies, although he had never baked before. His older cousin explained the recipe to him on a video call, step by step. On the first try, Caio noticed a strange smell and opened the oven: the cookies were hard and too dark. He discovered that he had left them in for too long. On the second try, he used a timer, and the cookies came out soft and golden. On market day, the classroom was full of parents and students. Caio was surprised when all his cookies were gone in twenty minutes. The money went to the school library, which needed new books. Later, his teacher asked the class what they had learned. Caio said, \"Mistakes are part of the recipe.\"",
+    "palavrasAlvo": [
+      "instead",
+      "protect",
+      "although",
+      "explain",
+      "notice",
+      "surprised",
+      "discover"
+    ],
+    "perguntas": [
+      {
+        "pergunta": "What was wrong with Caio's first cookies?",
+        "traducao": "O que havia de errado com os primeiros biscoitos do Caio?",
+        "opcoes": [
+          "They were too sweet",
+          "They were hard and too dark",
+          "They were too small"
+        ],
+        "correta": 1,
+        "explicacao": "Na primeira tentativa, os biscoitos ficaram duros e escuros demais (\"hard and too dark\")."
+      },
+      {
+        "pergunta": "What did Caio change on the second try?",
+        "traducao": "O que o Caio mudou na segunda tentativa?",
+        "opcoes": [
+          "He used a timer",
+          "He used more sugar",
+          "He asked his teacher for help"
+        ],
+        "correta": 0,
+        "explicacao": "Ele percebeu que deixou tempo demais no forno e usou um timer (cronômetro)."
+      },
+      {
+        "pergunta": "Where did the money go?",
+        "traducao": "Para onde foi o dinheiro?",
+        "opcoes": [
+          "To Caio's cousin",
+          "To a new oven",
+          "To the school library"
+        ],
+        "correta": 2,
+        "explicacao": "O dinheiro foi para a biblioteca da escola, que precisava de livros novos."
+      }
+    ],
+    "tarefaDeEscrita": {
+      "reescrever": "Reescreva a história do ponto de vista de outro aluno da turma, que fez outro produto para a feira.",
+      "opinar": "Caio said that mistakes are part of the recipe. Do you agree? Give an example."
+    },
+    "licenca": "original Frasy (CC BY 4.0)",
+    "autoria": "Equipe Frasy, com apoio de IA"
+  },
+  {
+    "id": "b1-a-viagem-de-trem",
+    "titulo": "The Train Journey",
+    "nivel": "B1",
+    "categoria": "Dia a dia",
+    "texto": "Laura was fourteen when her parents finally agreed to let her take the train alone to visit her aunt. The journey took three hours, and her aunt promised to wait for her at the station. Laura packed a sandwich, a book and a phone charger. At first, she was nervous and checked her ticket again and again. Then she began to notice small things through the window: cows in green fields, a river that followed the train, and tiny towns with colorful houses. The train guard explained that, a long time ago, this railway carried coffee to the coast, before there were good roads. Laura was surprised; she had never thought about the history of a railway. Instead of reading her book, she spent the trip looking outside and writing notes. Although the train arrived twenty minutes late, her aunt was there, smiling and waving. \"How was it?\" she asked. Laura said she had discovered that a journey can be as interesting as the place you are going to.",
+    "palavrasAlvo": [
+      "journey",
+      "notice",
+      "explain",
+      "surprised",
+      "instead",
+      "although",
+      "discover"
+    ],
+    "perguntas": [
+      {
+        "pergunta": "Who was waiting for Laura at the station?",
+        "traducao": "Quem estava esperando a Laura na estação?",
+        "opcoes": [
+          "Her aunt",
+          "Her parents",
+          "Her cousin"
+        ],
+        "correta": 0,
+        "explicacao": "A tia prometeu esperar por ela na estação e estava lá, sorrindo."
+      },
+      {
+        "pergunta": "What did the train guard explain?",
+        "traducao": "O que o funcionário do trem explicou?",
+        "opcoes": [
+          "How to buy a ticket",
+          "That the railway carried coffee long ago",
+          "Why the train was late"
+        ],
+        "correta": 1,
+        "explicacao": "O funcionário do trem contou que a ferrovia levava café até o litoral, há muito tempo."
+      },
+      {
+        "pergunta": "What did Laura discover?",
+        "traducao": "O que a Laura descobriu?",
+        "opcoes": [
+          "That trains are faster than buses",
+          "That her aunt lived near the coast",
+          "That a journey can be as interesting as the destination"
+        ],
+        "correta": 2,
+        "explicacao": "Ela descobriu que a viagem pode ser tão interessante quanto o lugar de destino."
+      }
+    ],
+    "tarefaDeEscrita": {
+      "reescrever": "Reescreva o texto como uma mensagem curta que a Laura manda aos pais quando chega à casa da tia.",
+      "opinar": "Do you prefer to read during a trip or to look out of the window? Why?"
+    },
+    "licenca": "original Frasy (CC BY 4.0)",
+    "autoria": "Equipe Frasy, com apoio de IA"
+  },
+  {
+    "id": "b1-o-mapa-no-livro",
+    "titulo": "The Map in the Library Book",
+    "nivel": "B1",
+    "categoria": "Histórias",
+    "texto": "One rainy afternoon, Rafa and his best friend Lina were in the school library, looking for a book about volcanoes. Instead, Lina found a thin old book with no title. Inside, there was a map of their own school, drawn by hand, with a small star next to the big tree in the playground. Under the star, someone had written: \"For curious students only.\" The two friends were surprised and a little excited. Although it was raining, they put on their jackets and ran outside. Near the roots of the tree, they noticed a metal box. It wasn't locked. Inside, they discovered letters from students who had studied at the school many years before. Each letter explained a dream: to become a doctor, to travel the world, to write songs. The last letter said, \"Add your dream and protect this box for the next students.\" Rafa and Lina wrote their own letters and closed the box. Later, they told the librarian about it, and she smiled: it was an old school tradition. They felt like part of a long journey.",
+    "palavrasAlvo": [
+      "instead",
+      "surprised",
+      "although",
+      "notice",
+      "discover",
+      "explain",
+      "protect",
+      "journey"
+    ],
+    "perguntas": [
+      {
+        "pergunta": "What were Rafa and Lina looking for in the library?",
+        "traducao": "O que o Rafa e a Lina procuravam na biblioteca?",
+        "opcoes": [
+          "A book about volcanoes",
+          "A map of the city",
+          "A metal box"
+        ],
+        "correta": 0,
+        "explicacao": "Eles procuravam um livro sobre vulcões (\"a book about volcanoes\")."
+      },
+      {
+        "pergunta": "What was inside the metal box?",
+        "traducao": "O que havia dentro da caixa de metal?",
+        "opcoes": [
+          "Old coins",
+          "Letters from former students",
+          "A new map"
+        ],
+        "correta": 1,
+        "explicacao": "Dentro havia cartas de alunos que estudaram na escola muitos anos antes."
+      },
+      {
+        "pergunta": "What did the last letter ask them to do?",
+        "traducao": "O que a última carta pedia para eles fazerem?",
+        "opcoes": [
+          "Take the box home",
+          "Give the box to a teacher",
+          "Add their dream and protect the box"
+        ],
+        "correta": 2,
+        "explicacao": "A última carta pedia: escreva seu sonho e proteja a caixa para os próximos alunos."
+      }
+    ],
+    "tarefaDeEscrita": {
+      "reescrever": "Reescreva o final: o que Rafa e Lina escreveram nas cartas deles?",
+      "opinar": "What dream would you write in a letter for future students?"
+    },
+    "licenca": "original Frasy (CC BY 4.0)",
+    "autoria": "Equipe Frasy, com apoio de IA"
+  },
+  {
+    "id": "b1-a-longa-viagem-das-tartarugas",
+    "titulo": "The Long Journey of Sea Turtles",
+    "nivel": "B1",
+    "categoria": "Mundo",
+    "texto": "Sea turtles are some of the oldest travelers on Earth. They have lived in the oceans for millions of years, and some of them make an incredible journey. A female turtle can swim thousands of kilometers to return to the same beach where she was born, or one very close to it. Scientists believe that turtles can feel the Earth's magnetic field and use it like a natural map. On the beach, the mother digs a hole in the sand at night and lays about one hundred eggs. Then she goes back to the sea. About two months later, the babies come out and run to the water. They have to be fast, because birds and crabs try to catch them. Although sea turtles are strong, they face many dangers, such as plastic in the ocean and bright lights on beaches, which confuse the babies. In many places, volunteers protect the nests and explain to visitors how to help. People are often surprised to discover that a small action, like turning off a light, can make a big difference.",
+    "palavrasAlvo": [
+      "journey",
+      "although",
+      "protect",
+      "explain",
+      "surprised",
+      "discover"
+    ],
+    "perguntas": [
+      {
+        "pergunta": "Where does a female turtle lay her eggs?",
+        "traducao": "Onde a tartaruga fêmea põe os ovos?",
+        "opcoes": [
+          "On the beach where she was born, or near it",
+          "In the deep ocean",
+          "In a river"
+        ],
+        "correta": 0,
+        "explicacao": "A fêmea volta à praia onde nasceu, ou a uma bem perto dela, para pôr os ovos."
+      },
+      {
+        "pergunta": "What can help turtles find their way?",
+        "traducao": "O que pode ajudar as tartarugas a achar o caminho?",
+        "opcoes": [
+          "The stars",
+          "The Earth's magnetic field",
+          "Other animals"
+        ],
+        "correta": 1,
+        "explicacao": "Cientistas acreditam que elas sentem o campo magnético da Terra, como um mapa natural."
+      },
+      {
+        "pergunta": "Why are bright lights a problem?",
+        "traducao": "Por que as luzes fortes são um problema?",
+        "opcoes": [
+          "They make the sand hot",
+          "They wake up the mothers",
+          "They confuse the babies"
+        ],
+        "correta": 2,
+        "explicacao": "As luzes fortes das praias confundem os filhotes (\"which confuse the babies\")."
+      }
+    ],
+    "tarefaDeEscrita": {
+      "reescrever": "Reescreva o texto como um cartaz curto de voluntários pedindo ajuda aos visitantes da praia.",
+      "opinar": "What small action can you do to help animals where you live?"
+    },
+    "licenca": "original Frasy (CC BY 4.0)",
+    "autoria": "Equipe Frasy, com apoio de IA"
+  }
+]

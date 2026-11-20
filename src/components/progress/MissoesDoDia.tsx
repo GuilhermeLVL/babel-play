@@ -1,5 +1,15 @@
 import type { EstadoDasMissoes, Missao } from '@core';
-import { CheckCircle2, Gamepad2, ListChecks, type LucideIcon, Snowflake, Sprout, Star, Target } from 'lucide-react';
+import {
+  BookOpen,
+  CheckCircle2,
+  Gamepad2,
+  ListChecks,
+  type LucideIcon,
+  Snowflake,
+  Sprout,
+  Star,
+  Target,
+} from 'lucide-react';
 import type { CSSProperties } from 'react';
 
 import { t, tp } from '../../lib/i18n';
@@ -21,6 +31,7 @@ export const ICONE_DA_MISSAO: Record<Missao['tipo'], LucideIcon> = {
   palavras: Sprout,
   rodadaBoa: Star,
   jogoNovo: Gamepad2,
+  leitura: BookOpen,
 };
 
 /** O texto de uma missão (o cartão de sempre e o Início do headset dizem a mesma frase). */
@@ -34,6 +45,8 @@ export function rotuloDaMissao(m: Missao): string {
       return tp(m.alvo, 'Feche {n} rodada com 2 estrelas ou mais', 'Feche {n} rodadas com 2 estrelas ou mais');
     case 'jogoNovo':
       return t('Jogue um jogo que você nunca jogou');
+    case 'leitura':
+      return t('Leia 1 texto');
   }
 }
 

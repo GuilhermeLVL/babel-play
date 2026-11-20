@@ -29,7 +29,14 @@ import { ehJogo } from './maestria';
 import { estrelasDaRodada } from './minigames/fases';
 import { type MinigameId, MINIGAMES } from './minigames/types';
 
-export type TipoDeMissao = 'revisar' | 'palavras' | 'rodadaBoa' | 'jogoNovo';
+/**
+ * `leitura` ("Leia 1 texto", openspec `leitura-ativa-textos-simples`) só entra no sorteio com a flag `leitura_ativa`
+ * ligada (`incluirLeitura`); desligada, o sorteio é o de antes, bit a bit (`tests/missoes.test.ts`).
+ */
+export type TipoDeMissao = 'revisar' | 'palavras' | 'rodadaBoa' | 'jogoNovo' | 'leitura';
+
+/** O `exerciseKind` das rodadas da Leitura ativa (o resultado das perguntas). Não é jogo: não passa em `ehJogo`. */
+export const RODADA_DE_LEITURA = 'leituraAtiva';
 
 export interface Missao {
   /** Estável no dia (é o tipo): chave de lista e de notificação. */
@@ -47,10 +54,11 @@ export const ALVOS_DAS_MISSOES: Readonly<Record<TipoDeMissao, readonly number[]>
   palavras: [3, 5],
   rodadaBoa: [1, 2],
   jogoNovo: [1],
+  leitura: [1],
 };
 
-/** Ordem de exibição (e de desempate do sorteio). */
-const ORDEM: readonly TipoDeMissao[] = ['revisar', 'palavras', 'rodadaBoa', 'jogoNovo'];
+/** Ordem de exibição (e de desempate do sorteio). A `leitura` no FIM: sem ela, a lista é a de antes. */
+const ORDEM: readonly TipoDeMissao[] = ['revisar', 'palavras', 'rodadaBoa', 'jogoNovo', 'leitura'];
 
 /** Estrelas mínimas para a rodada contar na missão — a régua do baú (precisão ≥ 75%). */
 export const ESTRELAS_DA_MISSAO = 2;
@@ -84,10 +92,15 @@ function gerador(s: number): () => number {
  * inédito no meio do dia não pode trocar as missões daquele dia. "Praticar um jogo novo" só entra
  * quando existe jogo nunca jogado.
  */
-export function missoesDoDia(dia: string, historico: { jogosJogados: readonly MinigameId[] }): Missao[] {
+export function missoesDoDia(
+  dia: string,
+  historico: { jogosJogados: readonly MinigameId[]; incluirLeitura?: boolean },
+): Missao[] {
   const jogados = new Set(historico.jogosJogados);
   const temJogoNovo = (Object.keys(MINIGAMES) as MinigameId[]).some((j) => !jogados.has(j));
-  const tipos = ORDEM.filter((t) => t !== 'jogoNovo' || temJogoNovo);
+  const tipos = ORDEM.filter(
+    (t) => (t !== 'jogoNovo' || temJogoNovo) && (t !== 'leitura' || historico.incluirLeitura === true),
+  );
   const aleatorio = gerador(semente(`missoes:${dia}`));
   // Fisher–Yates com a semente do dia; depois volta à ordem de exibição.
   const embaralhados = [...tipos];
@@ -157,6 +170,16 @@ function agruparRodadas(linhas: readonly LinhaDeRodada[], fuso: string): RodadaA
   }));
 }
 
+/** Os textos da Leitura ativa terminados no dia: rodadas `leituraAtiva` distintas que COMEÇARAM no dia. */
+function leiturasDoDia(dia: string, fuso: string, linhas: readonly LinhaDeRodada[]): number {
+  const inicio = new Map<string, number>();
+  for (const l of linhas) {
+    if (!l.roundId || l.exerciseKind !== RODADA_DE_LEITURA) continue;
+    inicio.set(l.roundId, Math.min(inicio.get(l.roundId) ?? l.createdAt, l.createdAt));
+  }
+  return [...inicio.values()].filter((em) => diaNoFuso(em, fuso) === dia).length;
+}
+
 /** Os jogos com alguma rodada gravada ANTES do dia (no fuso). */
 export function jogosJogadosAntes(dia: string, fuso: string, rodadas: readonly LinhaDeRodada[]): MinigameId[] {
   const jogos = new Set<MinigameId>();
@@ -175,6 +198,7 @@ export function feitosDoDia(dia: string, fuso: string, fontes: FontesDasMissoes)
     palavras: fontes.palavrasSalvas.filter(noDia).length,
     rodadaBoa: doDia.filter((r) => r.estrelas >= ESTRELAS_DA_MISSAO).length,
     jogoNovo: new Set(doDia.map((r) => r.jogo).filter((j) => !jaJogados.has(j))).size,
+    leitura: leiturasDoDia(dia, fuso, fontes.rodadas),
   };
 }
 
@@ -182,10 +206,18 @@ export function feitosDoDia(dia: string, fuso: string, fontes: FontesDasMissoes)
  * AS MISSÕES DE UM DIA COM O PROGRESSO — a função que o servidor usa para conferir a meta e que
  * o espelho sem conta chama igual. Cada rodada conta no dia em que COMEÇOU (o `createdAt` gravado).
  */
-export function missoesComProgresso(dia: string, fuso: string, fontes: FontesDasMissoes): Missao[] {
+export function missoesComProgresso(
+  dia: string,
+  fuso: string,
+  fontes: FontesDasMissoes,
+  opcoes: { incluirLeitura?: boolean } = {},
+): Missao[] {
   const feitos = feitosDoDia(dia, fuso, fontes);
   const antes = jogosJogadosAntes(dia, fuso, fontes.rodadas);
-  return missoesDoDia(dia, { jogosJogados: antes }).map((m) => ({ ...m, atual: feitos[m.tipo] }));
+  return missoesDoDia(dia, { jogosJogados: antes, incluirLeitura: opcoes.incluirLeitura }).map((m) => ({
+    ...m,
+    atual: feitos[m.tipo],
+  }));
 }
 
 /* ── O dia de uma rodada ─────────────────────────────────────────────────────────────────── */
@@ -284,11 +316,13 @@ export function estadoDasMissoes(entrada: {
   agora: number;
   fuso: string;
   fontes: FontesDasMissoes;
+  /** A flag `leitura_ativa`: só ligada a missão "Leia 1 texto" entra no sorteio. */
+  incluirLeitura?: boolean;
   metasCreditadas: readonly string[];
   ofensiva: { atual: number; congelamentos: 0 | 1 | 2 };
 }): EstadoDasMissoes {
   const dia = diaNoFuso(entrada.agora, entrada.fuso);
-  const missoes = missoesComProgresso(dia, entrada.fuso, entrada.fontes);
+  const missoes = missoesComProgresso(dia, entrada.fuso, entrada.fontes, { incluirLeitura: entrada.incluirLeitura });
   return {
     dia,
     missoes,

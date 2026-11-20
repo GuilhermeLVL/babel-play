@@ -122,7 +122,7 @@ export function gerarSite(o: OpcoesDoSite): Map<string, string> {
       corpo: corpoDaHome(o.guias),
       inteira: true,
       estilo: CSS_DA_HOME,
-      scripts: ['/site/lenis.min.js', '/site/rolo.js'],
+      scripts: ['/site/lenis.min.js', '/site/roda.js', '/site/rolo.js'],
       jsonLd: [
         organizacao,
         { '@context': 'https://schema.org', '@type': 'WebSite', name: 'Frasy', url: `${url}/`, inLanguage: 'pt-BR' },

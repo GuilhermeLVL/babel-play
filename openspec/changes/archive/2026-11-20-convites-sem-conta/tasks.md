@@ -24,4 +24,4 @@
 - [x] 3.3 `funil-login` (explícito reabre, automático 1x, porta no cadastro, `modoInicial`), `cartoesTela`, `questPersonalizar`,
       `questCasca`, `leitor-ia-visivel`, `app-gate-anonimo`, `questConta`
 - [x] 3.4 `tests/e2e-publico/convite-volta-ao-destino.e2e.ts` (/perfil → Criar conta → entra → /perfil)
-- [ ] 3.5 Rodar o e2e público no CI (não rodado localmente)
+- [x] 3.5 Rodar o e2e público no CI (não rodado localmente) (Feito: o job `e2e-publico` do CI roda `tests/e2e-publico/*.e2e.ts`, inclusive `convite-volta-ao-destino.e2e.ts`, e passou na `main` em 05763772, run 44827957739. 20/11.)

@@ -62,7 +62,7 @@ describe('páginas públicas', () => {
 
   it('cabeçalho com Entrar → /app e rodapé com privacidade e termos', () => {
     const html = arquivos.get('inicio.html')!
-    expect(html).toContain('<a class="botao" href="/app">Entrar</a>')
+    expect(html).toContain('<a class="botao contorno" href="/app">Entrar</a>')
     for (const href of ['/sobre', '/contato', '/ajuda', '/privacidade', '/termos', '/guias'])
       expect(html).toContain(`href="${href}"`)
   })
@@ -216,8 +216,8 @@ describe('layout do site', () => {
     expect(html).not.toMatch(/\b(deck|FSRS|SRS|XP|modo intérprete|revisão espaçada)\b/)
     expect(html).toContain('<span class="chip breve">Em breve</span>')
     // sem JavaScript, o texto de todos os capítulos já está no HTML
-    expect(html).toContain('<h1>Ouviu outra língua? Entenda e guarde a palavra.</h1>')
-    expect(html).toContain('As palavras do dia ficam com você.')
+    expect(html).toContain('<h1>Ouviu outra língua? Entenda e <em>guarde a palavra.</em></h1>')
+    expect(html).toContain('O que você ouviu hoje <em>não se perde.</em>')
     // toda mídia citada existe em public/
     const midias = [...html.matchAll(/(?:src|poster|data-filme|data-filme-celular)="(\/site\/[^"]+)"/g)].map(
       (m) => m[1],
@@ -277,7 +277,7 @@ describe('páginas legais com o layout do site', () => {
     const miolo = /<main[^>]*>([\s\S]*?)<\/main>/.exec(fonte)![1]
     expect(html).toContain(miolo)
     expect(canonical(html)).toBe(`${URL_SITE}${caminho}`)
-    expect(html).toContain('<a class="botao" href="/app">Entrar</a>')
+    expect(html).toContain('<a class="botao contorno" href="/app">Entrar</a>')
     expect(html).toContain(`<a href="${caminho}" aria-current="page">`)
     expect(html.match(/<h1>/g)).toHaveLength(1)
   })

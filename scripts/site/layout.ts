@@ -399,7 +399,7 @@ export function cabecalho(atual?: string): string {
     `<header class="topo"><div class="largura">` +
     `<a class="marca" href="/"><img src="/favicon.svg" alt="" width="30" height="30">Frasy</a>` +
     `<nav aria-label="Principal"><ul class="menu">${itensDe(MENU, atual)}</ul></nav>` +
-    `<a class="botao" href="/app">Entrar</a>` +
+    `<a class="botao contorno" href="/app">Entrar</a>` +
     `</div></header>`
   );
 }

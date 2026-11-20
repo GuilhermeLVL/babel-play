@@ -39,33 +39,38 @@ type Capitulo = {
    */
   fonte?: string;
   extra?: string;
+  /** As palavras do dia que voltam na revisão (último capítulo): palavra, frase de onde veio e quando volta. */
+  cartas?: [string, string, string][];
 };
 
 // Os capítulos seguem o plano-sequência (um dia, da manhã à madrugada) e cada um ocupa o seu trecho do
 // filme. As falas são exemplos, no visual das Legendas flutuantes, com a tradução revisada à mão.
-// O texto saiu da auditoria de 17/11/2026 (personas simuladas e A/B cego, em `reports/auditoria-texto/`).
+// O texto saiu da auditoria de 17/11/2026 (personas simuladas e A/B cego, em `reports/auditoria-texto/`) e da
+// revisão do protótipo de 20/11/2026. No título, `<em>` é o trecho com marca-texto; no corpo, `<mark>` ganha o
+// sublinhado que se desenha quando o capítulo entra (CSS em `.capitulo.atual`, classe posta por `rolo.js`).
 const CAPITULOS: Capitulo[] = [
   {
     de: 0,
     ate: 4.5,
     rotulo: 'Manhã',
-    kicker: 'Em qualquer tela',
-    titulo: 'Ouviu outra língua? Entenda e guarde a palavra.',
+    kicker: 'Legenda e tradução ao vivo',
+    titulo: 'Ouviu outra língua? Entenda e <em>guarde a palavra.</em>',
     corpo:
-      'Desenho, série, jogo, aula ou conversa: legenda e tradução ao vivo. No perfil das crianças, sem compras e sem ofertas.',
+      'Desenho, série, aula ou conversa. Toque numa palavra e <mark>ela fica guardada</mark>, com a frase. No perfil das crianças, sem compras e sem ofertas.',
     original: "Come on! Let's build a [[rocket]] to the Moon!",
     traducao: 'Vem! Vamos construir um [[foguete]] até a Lua!',
     modo: 'Microfone',
-    extra: '<div class="acoes"><a class="botao" href="/app">Abrir o Frasy · grátis</a></div>',
+    extra:
+      '<div class="acoes"><a class="botao" href="/app">Abrir o Frasy · grátis</a><a class="ver-como" href="#alem">Ver como funciona</a></div><p class="apoio">Sem cartão e sem instalar nada.</p>',
   },
   {
     de: 4.5,
     ate: 10.5,
     rotulo: 'Aula',
     kicker: 'Aulas e reuniões',
-    titulo: 'Professor rápido? A legenda acompanha.',
+    titulo: 'Professor fala rápido? <em>A legenda acompanha.</em>',
     corpo:
-      'Aula, palestra ou reunião online: original e tradução aparecem frase por frase. Você presta atenção, sem caçar palavra no dicionário.',
+      'Aula, palestra ou reunião online: original e tradução aparecem frase por frase. Você presta atenção na aula, <mark>não no dicionário</mark>.',
     original: 'For tomorrow, please read chapter 4 and write a short [[summary]].',
     traducao: 'Para amanhã, leiam o capítulo 4 e escrevam um [[resumo]] curto.',
     modo: 'Microfone',
@@ -76,8 +81,9 @@ const CAPITULOS: Capitulo[] = [
     ate: 15,
     rotulo: 'Mercado',
     kicker: 'Compras lá fora',
-    titulo: 'Chega de sorrir e acenar sem entender.',
-    corpo: 'No celular, o Frasy ouve pelo microfone e traduz o que o atendente diz. Você lê, entende e responde.',
+    titulo: 'Chega de sorrir e acenar <em>sem entender.</em>',
+    corpo:
+      'No celular, o Frasy ouve pelo microfone e traduz o que o atendente diz. <mark>Você lê, entende e responde.</mark>',
     original: 'Do you need a [[bag]], or are you all set?',
     traducao: 'Precisa de [[sacola]] ou já está tudo certo?',
     modo: 'Microfone',
@@ -88,20 +94,22 @@ const CAPITULOS: Capitulo[] = [
     ate: 20,
     rotulo: 'Embarque',
     kicker: 'Aeroporto e viagem',
-    titulo: 'Mudaram o portão? Você fica sabendo.',
-    corpo: 'O atendente avisa, a legenda traduz: portão, horário, embarque. Tudo em português, sem pedir para repetir.',
+    titulo: 'Mudaram o portão? <em>Você fica sabendo.</em>',
+    corpo:
+      'O atendente avisa, a legenda traduz: portão, horário, embarque. Fica mais fácil entender <mark>sem pedir para repetir</mark>.',
     original: 'Your flight was moved to [[Gate]] 12. Boarding starts in 20 minutes.',
     traducao: 'Seu voo mudou para o [[portão]] 12. O embarque começa em 20 minutos.',
     modo: 'Microfone',
-    nota: 'No aeroporto, gate é portão, não porta: o Frasy lê a frase inteira.',
+    nota: 'No aeroporto, gate é portão, não porta: o Frasy traduz a frase inteira, não a palavra solta.',
   },
   {
     de: 20,
     ate: 24,
     rotulo: 'Jantar',
     kicker: 'Conversa à mesa',
-    titulo: 'Um celular no meio da mesa resolve.',
-    corpo: 'Na conversa, cada pessoa fala no seu idioma. O Frasy traduz e lê em voz alta para o outro lado.',
+    titulo: 'Um celular no meio da mesa <em>resolve.</em>',
+    corpo:
+      'Na conversa, cada pessoa fala no seu idioma. O Frasy traduz e <mark>lê em voz alta</mark> para o outro lado.',
     original: "You have to try this. It's my grandma's [[recipe]]!",
     traducao: 'Você tem que provar isso. É [[receita]] da minha avó!',
     modo: 'Conversa',
@@ -112,9 +120,9 @@ const CAPITULOS: Capitulo[] = [
     ate: 28,
     rotulo: 'Séries e jogos',
     kicker: 'Séries e jogos',
-    titulo: 'Série ou jogo, sem pausar nada.',
+    titulo: 'Série ou jogo, <em>sem pausar nada.</em>',
     corpo:
-      'O Frasy legenda o som do computador enquanto a história segue. Gostou de uma palavra? Um toque e ela fica guardada.',
+      'O Frasy legenda o som do computador enquanto a história segue. Palavra nova? Um clique e <mark>ela fica guardada</mark>.',
     original: "Don't open that [[door]]. Not tonight.",
     traducao: 'Não abra essa [[porta]]. Hoje não.',
     modo: 'Som do computador',
@@ -125,9 +133,14 @@ const CAPITULOS: Capitulo[] = [
     ate: 30,
     rotulo: 'Suas palavras',
     kicker: 'Fim do dia',
-    titulo: 'As palavras do dia ficam com você.',
+    titulo: 'O que você ouviu hoje <em>não se perde.</em>',
     corpo:
-      'Cada palavra tocada hoje está guardada com a frase de onde veio. Ela volta numa revisão rápida, antes de você esquecer.',
+      'Cada palavra guardada fica com a frase de onde veio e volta numa revisão rápida, em <mark>intervalos cada vez maiores</mark>.',
+    cartas: [
+      ['foguete', 'Vem! Vamos construir um foguete até a Lua!', 'volta amanhã'],
+      ['sacola', 'Precisa de sacola ou já está tudo certo?', 'em 3 dias'],
+      ['portão', 'Seu voo mudou para o portão 12.', 'em 1 semana'],
+    ],
     extra: '<div class="acoes"><a class="botao vidro" href="#alem">Ver como funciona</a></div>',
   },
 ];
@@ -143,11 +156,22 @@ const legenda = (c: Capitulo): string =>
       `<p class="t">${marcar(c.traducao)}</p>${c.nota ? `<p class="nota-chave">${c.nota}</p>` : ''}</div>`
     : '';
 
+// As cartas chegam uma a uma quando o capítulo entra; sem JavaScript (ou com movimento reduzido), já estão lá.
+const cartas = (c: Capitulo): string =>
+  c.cartas
+    ? `<ul class="dia-cartas" aria-label="Palavras que voltam na revisão">${c.cartas
+        .map(
+          ([palavra, frase, quando]) =>
+            `<li class="dia-carta"><div><b>${palavra}</b><small>${frase}</small></div><em>${quando}</em></li>`,
+        )
+        .join('')}</ul>`
+    : '';
+
 const capitulo = (c: Capitulo, i: number): string => {
   const titulo = i === 0 ? `<h1>${c.titulo}</h1>` : `<h2>${c.titulo}</h2>`;
   return (
     `<article class="capitulo" data-capitulo data-rotulo="${c.rotulo}" data-de="${c.de}" data-ate="${c.ate}"${c.fonte ? ` data-fonte="${c.fonte}"` : ''}>` +
-    `<div class="capitulo-fixo"><div class="texto"><p class="kicker">${c.kicker}</p>${titulo}<p class="corpo">${c.corpo}</p>${legenda(c)}${c.extra ?? ''}</div></div></article>`
+    `<div class="capitulo-fixo"><div class="texto"><p class="kicker">${c.kicker}</p>${titulo}<p class="corpo">${c.corpo}</p>${legenda(c)}${cartas(c)}${c.extra ?? ''}</div></div></article>`
   );
 };
 
@@ -165,14 +189,14 @@ const PASSOS_DO_FLUXO: Passo[] = [
   },
   {
     nome: 'Guarde',
-    titulo: 'Gostou da palavra? Toque nela.',
+    titulo: 'Toque na palavra que chamou sua atenção.',
     texto: 'Ela vai com a frase de onde veio. Sem pausar o vídeo, sem copiar e colar.',
     clipe: 'fluxo-2-guardar',
     alt: 'Tela real: tocar na fala da raposa, escolher a palavra fox e guardar; ela fica marcada na legenda',
   },
   {
     nome: 'Revise',
-    titulo: 'Ela volta pouco antes de você esquecer.',
+    titulo: 'Cada palavra volta, cada vez mais espaçada.',
     texto: 'A palavra reaparece na frase em que você a ouviu. A cada acerto, ela demora mais para voltar.',
     clipe: 'fluxo-3-revisar',
     alt: 'Tela real: a frase da raposa com uma lacuna; tocar em found completa e fica verde',
@@ -194,7 +218,7 @@ const PASSOS_DO_FLUXO: Passo[] = [
   {
     nome: 'Avance',
     titulo: 'Pontos, nível e missões do dia.',
-    texto: 'Cada rodada soma pontos, e você vê quanto já praticou.',
+    texto: 'Cada rodada soma pontos, sobe o seu nível e conta para as missões do dia. Você vê quanto já praticou.',
     clipe: 'fluxo-6-progresso',
     alt: 'Tela real: ao fechar a rodada, o nível sobe e libera visuais novos',
   },
@@ -229,8 +253,8 @@ ${CAPITULOS.map(capitulo).join('\n')}
 <section class="secao-v fluxo" id="alem" aria-labelledby="t-alem">
 <div class="larg-v">
 <p class="rotulo-v" data-revelar>Como funciona</p>
-<h2 id="t-alem" data-revelar>O que acontece depois do <mark class="marca-texto">toque</mark>.</h2>
-<p class="lead-v" data-revelar>Seis passos, do vídeo à palavra aprendida. As telas abaixo foram gravadas no próprio app.</p>
+<h2 id="t-alem" data-revelar>Do vídeo à palavra <mark class="marca-texto">que fica</mark>.</h2>
+<p class="lead-v" data-revelar>Seis passos, do primeiro toque à palavra aprendida. As telas abaixo foram gravadas no próprio app.</p>
 <div class="fluxo-grade">
 <div class="fluxo-tela" aria-hidden="true">
 <div class="janela"><div class="janela-barra"><i></i><i></i><i></i><span>frasy.com.br/app</span></div>
@@ -250,7 +274,7 @@ ${PASSOS_DO_FLUXO.map(passoDoFluxo).join('\n')}
 
 <section class="interprete-v" id="interprete" aria-labelledby="t-int">
 <div class="larg-v grade">
-<div><p class="rotulo-v">Conversa</p><h2 id="t-int" data-revelar>Você fala português. <em>Ela ouve em inglês.</em></h2><p class="lead-v">Cada pessoa fala no seu idioma, no mesmo celular. A tradução aparece na tela e é lida em voz alta.</p></div>
+<div><p class="rotulo-v">Conversa</p><h2 id="t-int" data-revelar>Você fala português. <em>A outra pessoa ouve em inglês.</em></h2><p class="lead-v">Cada pessoa fala no seu idioma, no mesmo celular. A tradução aparece na tela e é lida em voz alta.</p></div>
 <video src="${M}/interprete.mp4" controls playsinline preload="metadata" aria-label="Vídeo: um brasileiro pergunta onde fica o metrô e a moradora responde em inglês, com a tradução do Frasy"></video>
 </div>
 </section>
@@ -275,10 +299,10 @@ ${PASSOS_DO_FLUXO.map(passoDoFluxo).join('\n')}
 <section class="secao-v" aria-labelledby="t-conf">
 <div class="larg-v">
 <p class="rotulo-v">Feito com cuidado</p>
-<h2 id="t-conf" data-revelar>Estudo tranquilo, do jeito certo.</h2>
+<h2 id="t-conf" data-revelar>Estudo tranquilo, <mark class="marca-texto">sem pegadinha</mark>.</h2>
 <div class="tres">
 <div><h3>Funciona no seu aparelho</h3><p>A legenda e a tradução são feitas no próprio aparelho, pelo navegador. Se algo precisar ir pela internet, o Frasy pede antes, e os serviços usados não guardam o que recebem nem treinam IA com isso. Veja <a href="/privacidade">como cuidamos dos seus dados</a>.</p></div>
-<div><h3>Perfil protegido para menores</h3><p>Quem tem menos de 18 anos não compra nada e não recebe ofertas. Qualquer pagamento é decidido pelo responsável, na conta dele.</p></div>
+<div><h3>Perfil protegido para menores de 18 anos</h3><p>Quem tem menos de 18 anos não compra nada e não recebe ofertas. Qualquer pagamento é decidido pelo responsável, na conta dele.</p></div>
 <div><h3>Progresso de verdade</h3><p>Sem promessa de fluência. Cada episódio, aula ou conversa vira um pouco mais de vocabulário, no seu ritmo.</p></div>
 </div>
 </div>
@@ -289,9 +313,11 @@ ${
     : ''
 }
 <section class="final-v" aria-labelledby="comece">
-<div class="larg-v"><h2 id="comece" data-revelar>Abra um vídeo que você já queria ver.</h2>
-<p>Toque na primeira palavra nova e ela já fica guardada. Vale para aula e conversa também.</p>
-<a class="botao" href="/app">Abrir o Frasy · grátis</a></div>
+<div class="subindo" aria-hidden="true">${['rocket', 'bag', 'gate', 'recipe', 'door', 'summary'].map((p) => `<span lang="en">${p}</span>`).join('')}</div>
+<div class="larg-v"><h2 id="comece" data-revelar>Abra um vídeo que você <mark class="marca-texto">já queria ver</mark>.</h2>
+<p>Toque ou clique na primeira palavra nova e ela já fica guardada. Vale para aula e conversa também.</p>
+<a class="botao" href="/app">Abrir o Frasy · grátis</a>
+<p class="apoio">Sem cartão e sem instalar nada.</p></div>
 </section>
 `;
 }
@@ -441,7 +467,57 @@ export const CSS_DA_HOME = `
 .final-v{margin-top:120px;background:#0E0B09;color:#fff;padding:110px 0;text-align:center}
 .final-v h2{font-size:clamp(42px,6.4vw,92px);margin:0 auto 20px;max-width:12em;color:#fff}
 .final-v p{color:#C9BFAE;font-size:20px;margin:0 0 30px}
+.capitulo .acoes{display:flex;flex-wrap:wrap;align-items:center;gap:12px 22px}
+.ver-como{color:#fff;font:600 16px/1.2 var(--texto);text-decoration:none;border-bottom:1px solid rgba(255,255,255,.5);padding-bottom:2px;text-shadow:0 2px 12px rgba(0,0,0,.5)}
+.ver-como:hover{color:#fff;border-bottom-color:#fff}
+.capitulo .apoio{margin:12px 0 0;font:500 14px/1.4 var(--texto);color:#F3ECE0;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.capitulo .kicker{display:flex;align-items:center;gap:12px}
+.capitulo h1 em,.capitulo h2 em{font-style:normal;padding:.01em .18em .04em;margin:0 -.04em;border-radius:.18em;-webkit-box-decoration-break:clone;box-decoration-break:clone;color:#26241F;text-shadow:none;background:linear-gradient(#FFD166,#FFD166) 0 56%/100% 88% no-repeat}
+.capitulo .corpo mark{color:inherit;padding:0 .1em;margin:0 -.1em;background:linear-gradient(transparent 62%,rgba(255,209,102,.45) 62%) 0 0/100% 100% no-repeat}
+.dia-cartas{list-style:none;margin:clamp(14px,2.4vh,24px) 0 0;padding:0;display:flex;flex-direction:column;gap:10px;max-width:480px}
+.dia-carta{display:flex;justify-content:space-between;align-items:center;gap:14px;background:rgba(255,255,255,.95);color:#26241F;border-radius:14px;padding:11px 16px;box-shadow:0 14px 30px rgba(0,0,0,.35)}
+.dia-carta:nth-child(2){margin-left:22px}.dia-carta:nth-child(3){margin-left:44px}
+.dia-carta b{font:800 21px/1.1 var(--titulo);letter-spacing:-.02em}
+.dia-carta small{display:block;margin-top:3px;font-size:13px;color:#5E5A50}
+.dia-carta em{font:800 12px/1 var(--texto);font-style:normal;background:#FFD166;border-radius:999px;padding:5px 10px;white-space:nowrap}
+.js .capitulo .kicker::before{content:"";height:2px;width:0;border-radius:2px;background:#F4774F;transition:width .7s cubic-bezier(.2,.7,.2,1)}
+.js .capitulo.atual .kicker::before{width:30px}
+.js .capitulo h1 em,.js .capitulo h2 em{color:inherit;text-shadow:inherit;background-size:0% 88%;transition:background-size .75s cubic-bezier(.2,.7,.2,1) .45s,color .3s ease .8s}
+.js .capitulo.atual h1 em,.js .capitulo.atual h2 em{background-size:100% 88%;color:#26241F;text-shadow:none}
+.js .capitulo .corpo mark{background-size:0% 100%;transition:background-size .9s cubic-bezier(.2,.7,.2,1) .9s}
+.js .capitulo.atual .corpo mark{background-size:100% 100%}
+.js .dia-carta{opacity:0;transform:translateY(-28px) rotate(-2deg);transition:opacity .45s ease,transform .45s cubic-bezier(.2,.7,.2,1)}
+.js .capitulo.atual .dia-carta{opacity:1;transform:none;transition-delay:.25s}
+.js .capitulo.atual .dia-carta:nth-child(2){transition-delay:.75s}.js .capitulo.atual .dia-carta:nth-child(3){transition-delay:1.25s}
+.contador-de-palavras b.troca{animation:numero-entra .35s cubic-bezier(.2,.7,.2,1)}
+@keyframes numero-entra{from{opacity:0;transform:translateY(8px)}}
+.comparar .divisor::after{content:"⇄";display:grid;place-items:center;font:800 18px/1 var(--texto);color:#26241F;box-shadow:0 8px 22px rgba(0,0,0,.4)}
+.comparar:focus-within .divisor::after{outline:3px solid #FFD166;outline-offset:2px}
+.secao-v .lista-guias a{position:relative;padding-right:44px}
+.secao-v .lista-guias a::after{content:"→";position:absolute;right:8px;top:50%;transform:translateY(-50%);font:800 20px/1 var(--texto);color:var(--acento-texto);transition:transform .3s cubic-bezier(.2,.7,.2,1)}
+.secao-v .lista-guias a:hover::after,.secao-v .lista-guias a:focus-visible::after{transform:translate(6px,-50%)}
+.final-v{position:relative;overflow:hidden;isolation:isolate}
+.final-v .apoio{margin:14px 0 0;font-size:14px;color:#C9BFAE}
+.subindo{position:absolute;inset:0;z-index:-1;pointer-events:none}
+.subindo span{position:absolute;bottom:-40px;padding:6px 14px;border-radius:999px;background:rgba(255,209,102,.14);color:rgba(255,255,255,.55);font:800 15px/1 var(--texto);animation:subir linear infinite}
+.subindo span:nth-child(1){left:6%;animation-duration:19s;animation-delay:-3s}
+.subindo span:nth-child(2){left:20%;animation-duration:24s;animation-delay:-12s}
+.subindo span:nth-child(3){left:36%;animation-duration:21s;animation-delay:-8s}
+.subindo span:nth-child(4){left:56%;animation-duration:26s;animation-delay:-18s}
+.subindo span:nth-child(5){left:72%;animation-duration:20s;animation-delay:-5s}
+.subindo span:nth-child(6){left:86%;animation-duration:23s;animation-delay:-14s}
+@keyframes subir{to{transform:translateY(-900px)}}
+@media (prefers-reduced-motion:reduce){
+.js .capitulo .kicker::before{width:30px;transition:none}
+.js .capitulo h1 em,.js .capitulo h2 em{background-size:100% 88%;color:#26241F;text-shadow:none;transition:none}
+.js .capitulo .corpo mark{background-size:100% 100%;transition:none}
+.js .dia-carta{opacity:1;transform:none;transition:none}
+.contador-de-palavras b.troca{animation:none}
+.subindo{display:none}}
 @media (max-width:900px){
+.dia-cartas{gap:8px}.dia-carta{padding:9px 13px}.dia-carta small{display:none}.dia-carta:nth-child(n){margin-left:0}
+.ver-como{display:none}
+.capitulo .apoio{font-size:13px}
 .rota{display:none}
 .fio-do-som{display:none}
 .contador-de-palavras{font-size:12px;padding:6px 8px 6px 12px}

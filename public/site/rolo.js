@@ -414,12 +414,18 @@
       }
       contadas = agora;
       contador.textContent = String(contadas);
+      // O número novo entra de baixo (a animação recomeça a cada troca).
+      contador.classList.remove('troca');
+      void contador.offsetWidth;
+      contador.classList.add('troca');
     }
     if (atual !== ativo) {
       ativo = atual;
       botoes.forEach((b, j) =>
         j === ativo ? b.setAttribute('aria-current', 'step') : b.removeAttribute('aria-current'),
       );
+      // O capítulo na tela: o CSS desenha o traço do kicker, o marca-texto do título e o sublinhado do corpo.
+      caps.forEach((el, j) => el.classList.toggle('atual', j === ativo));
     }
     rolo.style.setProperty('--progresso', String(lim(y / total)));
     // O tempo do filme: cada capítulo vai do seu `de` ao seu `ate` enquanto a caixa dele passa (até o
@@ -641,6 +647,35 @@
     };
     controle.addEventListener('input', mover);
     mover();
+    // Na primeira vez que aparece, o puxador balança uma vez, convidando ao arrasto (nunca depois de um toque).
+    let mexeu = false;
+    let balancou = false;
+    ['pointerdown', 'keydown', 'input'].forEach((ev) => controle.addEventListener(ev, () => (mexeu = true)));
+    const balancar = () => {
+      const meio = Number(controle.value);
+      const t0 = performance.now();
+      const passo = (agora) => {
+        if (mexeu) return;
+        const t = Math.min((agora - t0) / 1800, 1);
+        controle.value = String(meio + 22 * Math.sin(t * Math.PI * 2) * (1 - t));
+        mover();
+        if (t < 1) requestAnimationFrame(passo);
+        else {
+          controle.value = String(meio);
+          mover();
+        }
+      };
+      requestAnimationFrame(passo);
+    };
+    new IntersectionObserver(
+      ([it]) => {
+        if (it.isIntersecting && !menos && !balancou && !mexeu && it.intersectionRatio >= 0.6) {
+          balancou = true;
+          balancar();
+        }
+      },
+      { threshold: 0.6 },
+    ).observe(document.getElementById('comparar'));
     new IntersectionObserver(
       ([it]) => {
         if (it.isIntersecting && !menos) {

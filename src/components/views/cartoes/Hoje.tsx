@@ -147,7 +147,8 @@ function FaixaDeEstado({
       <button
         type="button"
         className="ct-estado-mem"
-        aria-label={t('{resumo}. Abrir a Memória', { resumo: rotuloDaMemoria })}
+        /* O nome é o texto visível ("3 dias · 80% · Memória", WCAG 2.5.3); a frase inteira vai na descrição. */
+        aria-description={t('{resumo}. Abrir a Memória', { resumo: rotuloDaMemoria })}
         title={t('Abrir a Memória: sequência, retenção, previsão e calendário')}
         onClick={aoMemoria}
       >
@@ -174,7 +175,8 @@ function FaixaDeEstado({
       <button
         type="button"
         className="ct-estado-teto"
-        aria-label={t('{n} de {total} novas hoje. Mudar o limite do dia', { n: novas, total: limiteDeNovas })}
+        /* O nome sai do conteúdo ("4 de 10 novas", WCAG 2.5.3); a frase inteira vai na descrição. */
+        aria-description={t('{n} de {total} novas hoje. Mudar o limite do dia', { n: novas, total: limiteDeNovas })}
         title={t('Mudar o limite do dia')}
         onClick={aoAjustes}
       >

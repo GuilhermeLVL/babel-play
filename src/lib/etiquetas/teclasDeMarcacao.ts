@@ -28,9 +28,11 @@ export function teclaDeMarcacao(e: {
   altKey?: boolean;
   ctrlKey?: boolean;
   metaKey?: boolean;
+  /** Tecla presa: a repetição automática alternaria a marcação sem parar. */
+  repeat?: boolean;
   target?: EventTarget | null;
 }): EstadoDaMarcacao | null {
-  if (e.altKey || e.ctrlKey || e.metaKey || ehCampoDeTexto(e.target ?? null)) return null;
+  if (e.repeat || e.altKey || e.ctrlKey || e.metaKey || ehCampoDeTexto(e.target ?? null)) return null;
   const k = e.key.toLowerCase();
   if (k === TECLA_CONHECIDA) return 'conhecida';
   if (k === TECLA_IGNORADA) return 'ignorada';

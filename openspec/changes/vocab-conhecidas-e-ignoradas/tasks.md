@@ -36,7 +36,18 @@
 - [x] 5.3 `tests/efemero-palavras-marcadas.test.ts` (espelho sem conta)
 - [x] 5.4 typecheck, lint, testes tocados e knip
 
+## 5b. Revisão adversarial
+
+- [x] 5b.1 Gravações por chave em fila (a última intenção vence); falha desfaz só a chave; a leitura em voo não
+      apaga o que foi confirmado depois de ela começar; tecla presa (`repeat`) ignorada
+- [x] 5b.2 Troca de identidade (`aoMudarIdentidade`) zera e relê as marcadas (`tests/indice-marcadas.test.ts`)
+- [x] 5b.3 `limparTudo` apaga `babel.efemero.palavrasMarcadas`
+- [x] 5b.4 "Já sei (n)"/"Ignoradas (n)" com a régua do contador (marcação de palavra com cartão não conta)
+
 ## 6. Pendências (fora desta mudança)
 
-- [ ] 6.1 Levar as marcadas do aparelho para a conta no primeiro login (`ModalDeMigracao`)
+- [ ] 6.1 Levar as marcadas do aparelho para a conta no primeiro login (`ModalDeMigracao`). Hoje a migração termina
+      com `limparTudo`, que apaga também as marcadas locais: quem marcou sem conta precisa remarcar depois de entrar
+- [ ] 6.3 Troca de conta para conta (sem passar por anônimo) não dispara `aoMudarIdentidade`: as marcadas só são
+      relidas ao recarregar (o caderno tem o mesmo comportamento hoje)
 - [ ] 6.2 e2e do cartão com `k`/`x` (Playwright) e conferir contraste dos botões no fundo claro da janela flutuante

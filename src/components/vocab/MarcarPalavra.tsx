@@ -47,7 +47,7 @@ export default function MarcarPalavra({
       });
     };
     const aoTeclar = (e: KeyboardEvent) => {
-      if (e.defaultPrevented) return;
+      if (e.defaultPrevented || e.repeat) return;
       const estado = teclaDeMarcacao(e);
       if (!estado) return;
       e.preventDefault();

@@ -577,9 +577,7 @@ export default function Metrics({
         })
       }
       aoPraticar={(c) =>
-        onChangeView?.('study', {
-          praticar: { origem: 'selecao', rotulo: c.word, ids: [c.id] } satisfies PedidoDePratica,
-        })
+        onChangeView?.('study', { praticar: { origem: 'selecao', rotulo: c.word, ids: [c.id] } satisfies PedidoDePratica })
       }
       aoAbrirSessao={(id) => onChangeView?.('analysis', { id })}
     />

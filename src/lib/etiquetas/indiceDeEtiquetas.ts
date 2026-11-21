@@ -49,6 +49,7 @@ import {
 } from '../../data/api';
 import type { VocabCard } from '../../types';
 import { lerAjustesDoAssistente, useAjustesDoAssistente } from '../assistente/ajustesDoAssistente';
+import { aoMudarIdentidade } from '../identidade';
 import { estadoDoCartao } from '../pelesDeCartao';
 
 export interface SnapshotDasEtiquetas {
@@ -124,42 +125,103 @@ export function carregarCaderno(): Promise<void> {
   return cadernoEmVoo;
 }
 
-function publicarMarcadas(lista: readonly PalavraMarcada[]) {
-  const ordenada = [...lista].sort((a, b) => b.atualizadoEm - a.atualizadoEm);
+/*
+ * AS MARCADAS, EM TRÊS CAMADAS:
+ *  - `confirmadas`: o que o servidor (ou o espelho local) disse — a última leitura mais as gravações confirmadas;
+ *  - `pendentes`: a INTENÇÃO local ainda não confirmada, por chave (`null` = desmarcar), com um número de ordem;
+ *  - a lista publicada é `confirmadas` com `pendentes` por cima.
+ * As gravações de uma MESMA chave vão em fila e só a última intenção é enviada (as do meio são puladas). Uma falha
+ * desfaz só aquela chave, e só se ninguém pediu outra coisa para ela depois. A leitura que estava em voo não apaga
+ * o que foi confirmado depois de ela começar (`confirmadaEm` × `inicioDaLeitura`). A troca de identidade
+ * (`aoMudarIdentidade`) zera tudo e abre uma ÉPOCA nova: resposta da época anterior é descartada.
+ */
+const chaveDaMarcada = (lang: string, chave: string) => `${lang}|${chave}`;
+let confirmadas = new Map<string, PalavraMarcada>();
+const pendentes = new Map<string, { marcada: PalavraMarcada | null; ordem: number }>();
+const confirmadaEm = new Map<string, number>();
+const filas = new Map<string, Promise<unknown>>();
+let ordemDasIntencoes = 0;
+let relogioDeConfirmacao = 0;
+let epoca = 0;
+
+function publicarMarcadas() {
+  const porChave = new Map(confirmadas);
+  for (const [k, p] of pendentes) {
+    if (p.marcada) porChave.set(k, p.marcada);
+    else porChave.delete(k);
+  }
+  const ordenada = [...porChave.values()].sort((a, b) => b.atualizadoEm - a.atualizadoEm);
   publicar({ marcadas: montarIndiceDeMarcadas(ordenada), listaDeMarcadas: ordenada });
 }
 
 /** Lê as marcações ("Já sei"/"Ignorar") de todos os idiomas. Quem chama junto recebe a mesma leitura. */
 export function carregarMarcadas(): Promise<void> {
   if (marcadasEmVoo) return marcadasEmVoo;
-  marcadasEmVoo = fetchPalavrasMarcadas()
+  const minhaEpoca = epoca;
+  const inicioDaLeitura = relogioDeConfirmacao;
+  const voo: Promise<void> = fetchPalavrasMarcadas()
     .then((lista) => {
-      if (!lista) return;
+      if (!lista || minhaEpoca !== epoca) return;
       marcadasLidas = true;
-      publicarMarcadas(lista);
+      const lidas = new Map(lista.map((m) => [chaveDaMarcada(m.lang, m.chave), m] as const));
+      /* O que foi confirmado DEPOIS de a leitura começar vale mais que ela. */
+      for (const [k, quando] of confirmadaEm) {
+        if (quando <= inicioDaLeitura) continue;
+        const atual = confirmadas.get(k);
+        if (atual) lidas.set(k, atual);
+        else lidas.delete(k);
+      }
+      confirmadas = lidas;
+      publicarMarcadas();
     })
     .finally(() => {
-      marcadasEmVoo = null;
+      if (marcadasEmVoo === voo) marcadasEmVoo = null;
     });
-  return marcadasEmVoo;
+  marcadasEmVoo = voo;
+  return voo;
+}
+
+/** Registra a intenção, pinta na hora e grava na fila da chave. `true` quando a intenção valeu (ou foi superada). */
+function pedirMarcacao(idioma: string, chave: string, estado: EstadoDaMarcacao | null): Promise<boolean> {
+  const k = chaveDaMarcada(idioma, chave);
+  const ordem = ++ordemDasIntencoes;
+  const minhaEpoca = epoca;
+  const marcada = estado ? { lang: idioma, chave, estado, atualizadoEm: Date.now() } : null;
+  pendentes.set(k, { marcada, ordem });
+  publicarMarcadas();
+  const ultimaDaChave = () => pendentes.get(k)?.ordem === ordem;
+  const tarefa = (filas.get(k) ?? Promise.resolve()).then(async () => {
+    /* Uma intenção mais nova da mesma chave já está na fila: esta não precisa ir à rede. */
+    if (minhaEpoca !== epoca || !ultimaDaChave()) return true;
+    const ok = marcada ? await marcarPalavra(idioma, chave, marcada.estado) : await desmarcarPalavra(idioma, chave);
+    if (minhaEpoca !== epoca) return ok;
+    if (ok) {
+      if (marcada) confirmadas.set(k, marcada);
+      else confirmadas.delete(k);
+      confirmadaEm.set(k, ++relogioDeConfirmacao);
+    }
+    /* Falhou: só esta chave volta ao confirmado, e só se ninguém pediu outra coisa para ela no meio-tempo. */
+    const eraAUltima = ultimaDaChave();
+    if (eraAUltima) pendentes.delete(k);
+    publicarMarcadas();
+    return ok || !eraAUltima;
+  });
+  filas.set(k, tarefa);
+  void tarefa.finally(() => {
+    if (filas.get(k) === tarefa) filas.delete(k);
+  });
+  return tarefa;
 }
 
 /**
- * Marca a palavra como "Já sei" ou "Ignorar": pinta na hora e grava; se a gravação falhar, volta ao que era e devolve
- * `false` (quem chama avisa). A chave e o idioma são os do núcleo (o servidor reduz de novo).
+ * Marca a palavra como "Já sei" ou "Ignorar": pinta na hora e grava; se a gravação falhar, a chave volta ao que era
+ * e a função devolve `false` (quem chama avisa). A chave e o idioma são os do núcleo (o servidor reduz de novo).
  */
 export async function marcarNoIndice(palavra: string, lang: string | undefined, estado: EstadoDaMarcacao) {
   const chave = chaveDaPalavra(palavra);
   const idioma = baseLang(lang);
   if (!chave || !idioma) return false;
-  const antes = snapshot.listaDeMarcadas;
-  publicarMarcadas([
-    { lang: idioma, chave, estado, atualizadoEm: Date.now() },
-    ...antes.filter((m) => !(m.lang === idioma && m.chave === chave)),
-  ]);
-  if (await marcarPalavra(idioma, chave, estado)) return true;
-  publicarMarcadas(antes);
-  return false;
+  return pedirMarcacao(idioma, chave, estado);
 }
 
 /** Desfaz a marcação (o "Desfazer" do cartão e o "Desmarcar" da lista). Mesmo contrato de `marcarNoIndice`. */
@@ -167,11 +229,18 @@ export async function desmarcarNoIndice(chaveOuPalavra: string, lang: string | u
   const chave = chaveDaPalavra(chaveOuPalavra);
   const idioma = baseLang(lang);
   if (!chave || !idioma) return false;
-  const antes = snapshot.listaDeMarcadas;
-  publicarMarcadas(antes.filter((m) => !(m.lang === idioma && m.chave === chave)));
-  if (await desmarcarPalavra(idioma, chave)) return true;
-  publicarMarcadas(antes);
-  return false;
+  return pedirMarcacao(idioma, chave, null);
+}
+
+/** Esquece as marcadas (troca de identidade, testes): a próxima tela relê as da identidade nova. */
+function esquecerMarcadas(): void {
+  epoca++;
+  confirmadas = new Map();
+  pendentes.clear();
+  confirmadaEm.clear();
+  filas.clear();
+  marcadasEmVoo = null;
+  marcadasLidas = false;
 }
 
 /** Quantas sessões com texto a pessoa tem em cada idioma-base (uma leitura da lista por página). */
@@ -240,8 +309,7 @@ export function marcarSalva(palavra: string, lang?: string): void {
 export function esquecerIndiceDeEtiquetas(): void {
   snapshot = { caderno: null, vistas: new Map(), marcadas: null, listaDeMarcadas: [] };
   fichadas.clear();
-  marcadasEmVoo = null;
-  marcadasLidas = false;
+  esquecerMarcadas();
   cartoesLidos = [];
   geracaoDoCaderno = -1;
   cadernoEmVoo = null;
@@ -254,7 +322,20 @@ export function lerSnapshotDasEtiquetas(): SnapshotDasEtiquetas {
   return snapshot;
 }
 
+/* A pessoa entrou ou saiu da conta sem recarregar: as marcadas da identidade anterior não valem mais. */
+let ouvindoIdentidade = false;
+function ouvirIdentidade() {
+  if (ouvindoIdentidade || typeof window === 'undefined') return;
+  ouvindoIdentidade = true;
+  aoMudarIdentidade(() => {
+    esquecerMarcadas();
+    publicar({ marcadas: null, listaDeMarcadas: [] });
+    if (inscritos.size > 0) void carregarMarcadas();
+  });
+}
+
 function assinar(f: () => void) {
+  ouvirIdentidade();
   const primeiro = inscritos.size === 0;
   inscritos.add(f);
   /* A primeira tela a assinar (de novo) relê o caderno se ele nunca foi lido ou se houve escrita desde então. */

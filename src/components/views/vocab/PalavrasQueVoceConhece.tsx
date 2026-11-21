@@ -2,6 +2,7 @@ import '../../../styles/etiquetas.css';
 
 import { useId, useMemo, useState } from 'react';
 
+import { estadoNoCaderno } from '../../../core/vocabulario/etiquetas';
 import { contagemPorIdioma, type EstadoDaMarcacao, progressoDoMarco } from '../../../core/vocabulario/marcadas';
 import { desmarcarNoIndice, useSnapshotDasEtiquetas } from '../../../lib/etiquetas/indiceDeEtiquetas';
 import { numero, t } from '../../../lib/i18n';
@@ -23,9 +24,18 @@ export default function PalavrasQueVoceConhece() {
   const [quantas, setQuantas] = useState(POR_VEZ);
   const [erro, setErro] = useState(false);
   const porIdioma = useMemo(() => contagemPorIdioma(s.caderno, s.marcadas), [s.caderno, s.marcadas]);
-  const conhecidas = s.listaDeMarcadas.filter((m) => m.estado === 'conhecida');
-  const ignoradas = s.listaDeMarcadas.filter((m) => m.estado === 'ignorada');
-  const lista = vendo === 'conhecida' ? conhecidas : vendo === 'ignorada' ? ignoradas : [];
+  /* A MESMA régua do contador: marcação de palavra que já tem cartão não vale (o cartão manda) e não entra no número
+     da aba. Ela aparece no fim da lista, com o aviso "tem cartão", para poder ser desmarcada. */
+  const temCartao = (m: { lang: string; chave: string }) => !!estadoNoCaderno(s.caderno, m.chave, m.lang);
+  const valendo = s.listaDeMarcadas.filter((m) => !temCartao(m));
+  const conhecidas = valendo.filter((m) => m.estado === 'conhecida');
+  const ignoradas = valendo.filter((m) => m.estado === 'ignorada');
+  const lista = vendo
+    ? [
+        ...(vendo === 'conhecida' ? conhecidas : ignoradas),
+        ...s.listaDeMarcadas.filter((m) => m.estado === vendo && temCartao(m)),
+      ]
+    : [];
 
   /* Nada lido ainda: sem número nenhum (um "0" piscando antes do caderno chegar seria falso). */
   if (!s.caderno && !s.marcadas) return null;
@@ -110,6 +120,7 @@ export default function PalavrasQueVoceConhece() {
               <li key={`${m.lang}|${m.chave}`} className="q-linha">
                 <span lang={m.lang}>{m.chave}</span>
                 <span className="q-tag">{langLabelNaUI(m.lang)}</span>
+                {temCartao(m) && <span className="q-tag off">{t('tem cartão: o cartão vale')}</span>}
                 <button
                   type="button"
                   className="q-ctl"

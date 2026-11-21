@@ -9,6 +9,7 @@ import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { servidorEfemero } from '../src/data/efemero/servidor'
+import { limparTudo } from '../src/data/efemero/store'
 
 const put = (corpo: unknown) =>
   servidorEfemero('/api/vocab/marcadas', {
@@ -47,6 +48,13 @@ describe('espelho sem conta das palavras marcadas', () => {
   it('DELETE /api/vocab/marcadas não cai em "apagar o cartão"', async () => {
     const r = await servidorEfemero('/api/vocab/marcadas?lang=en&chave=nada', { method: 'DELETE' })
     expect(r.status).toBe(204)
+  })
+
+  it('"esquecer este navegador" (limparTudo) apaga as marcadas', async () => {
+    await put({ lang: 'en', chave: 'hello', estado: 'conhecida' })
+    await limparTudo()
+    expect(localStorage.getItem('babel.efemero.palavrasMarcadas')).toBeNull()
+    expect(await listar()).toEqual([])
   })
 
   it('sem localStorage: lista vazia, sem erro', async () => {

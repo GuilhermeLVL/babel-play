@@ -15,6 +15,15 @@ import { json, lerJson, str } from '../nucleo';
 
 const CHAVE_MARCADAS = 'babel.efemero.palavrasMarcadas';
 
+/** Apaga as marcadas deste aparelho ("esquecer este navegador" e o fim da migração: `limparTudo`). */
+export function esquecerMarcadasLocais(): void {
+  try {
+    localStorage.removeItem(CHAVE_MARCADAS);
+  } catch {
+    /* sem localStorage: não há o que apagar */
+  }
+}
+
 function lerMarcadas(): PalavraMarcada[] {
   try {
     const bruto = localStorage.getItem(CHAVE_MARCADAS);

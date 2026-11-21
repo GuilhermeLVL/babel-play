@@ -162,6 +162,34 @@
       "when": 1794800000002,
       "tag": "0022_flag_acesso_restrito_sem_conta",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794800000003,
+      "tag": "0023_flag_rum_latencia",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794800000004,
+      "tag": "0024_flag_stt_nuvem_normalizar",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794800000005,
+      "tag": "0025_flag_roteador_adaptativo_sombra",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1794800000006,
+      "tag": "0026_flag_traducao_local_por_direcao",
+      "breakpoints": true
     }
   ]
 }

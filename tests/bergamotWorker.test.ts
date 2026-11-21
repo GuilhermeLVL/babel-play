@@ -181,6 +181,16 @@ describe('worker do Bergamot — carga', () => {
     expect(falso.registro.traducoes[0]).toEqual(['Bom dia.'])
   })
 
+  it('avisa as fases da carga em ordem (marcas `frasy:modelo:*`): compilação, aquecimento, ready', async () => {
+    const { w, enviadas } = montar()
+    await w.receber({ type: 'carregar', plano: plano() })
+    expect(enviadas.filter((m) => m.type !== 'progress').map((m) => (m.type === 'fase' ? m.fase : m.type))).toEqual([
+      'compilacao',
+      'aquecimento',
+      'ready',
+    ])
+  })
+
   it('a barra anda por bytes e termina em 100%', async () => {
     const { w, enviadas } = montar()
     await w.receber({ type: 'carregar', plano: plano() })

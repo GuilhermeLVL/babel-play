@@ -170,6 +170,48 @@ for (const arq of arquivos.filter((f) => f.startsWith('stt_'))) {
   }
 }
 
+// ------------------------------------------------------------ antes × depois do ganho (mesmas falas)
+/**
+ * `stt-ingles-volume-e-rota`: o mesmo sistema sem e com `+ganho` no mesmo conjunto — WER, diferença PAREADA fala a fala
+ * (depois − antes, IC 95% por bootstrap) e a latência mediana e p95 (a posição `floor(p·n)` de `percentis`).
+ */
+const antesDepois = []
+for (const dep of sttCasos.filter((x) => x.sistema.endsWith('+ganho'))) {
+  const ant = sttCasos.find((x) => x.sistema === dep.sistema.replace(/\+ganho$/, '') && x.conjunto === dep.conjunto)
+  if (!ant) continue
+  const mapa = new Map(ant.casos.map((x) => [x.id, x]))
+  const cd = dep.casos.filter((x) => mapa.has(x.id))
+  const ca = cd.map((x) => mapa.get(x.id))
+  const razao = (c) =>
+    razaoEm(
+      c.map((x) => x.erros),
+      c.map((x) => x.palavras),
+    )
+  const d = bootstrapPareado(cd.length, razao(cd), razao(ca))
+  const lat = (c) =>
+    percentis(
+      c.filter((x) => !x.falhou).map((x) => x.ms),
+      [0.5, 0.95],
+    )
+  const r = {
+    conjunto: dep.conjunto,
+    n: cd.length,
+    werAntes: bootstrap(ca.length, razao(ca)),
+    werDepois: bootstrap(cd.length, razao(cd)),
+    diferencaWer: d,
+    latenciaAntesMs: { p50: lat(ca)[0], p95: lat(ca)[1] },
+    latenciaDepoisMs: { p50: lat(cd)[0], p95: lat(cd)[1] },
+    vaziasAntes: ca.filter((x) => !x.hipotese).length,
+    vaziasDepois: cd.filter((x) => !x.hipotese).length,
+    falhasAntes: ca.filter((x) => x.falhou).length,
+    falhasDepois: cd.filter((x) => x.falhou).length,
+  }
+  antesDepois.push(r)
+  console.log(
+    `ANTES × DEPOIS ${r.conjunto} n=${r.n}: WER ${ic(r.werAntes)} → ${ic(r.werDepois)}  Δ pareado ${(d.valor * 100).toFixed(2)} pts [${(d.ic95[0] * 100).toFixed(2)}; ${(d.ic95[1] * 100).toFixed(2)}]  latência p50 ${Math.round(r.latenciaAntesMs.p50)} → ${Math.round(r.latenciaDepoisMs.p50)} ms, p95 ${Math.round(r.latenciaAntesMs.p95)} → ${Math.round(r.latenciaDepoisMs.p95)} ms  vazias ${r.vaziasAntes} → ${r.vaziasDepois}`,
+  )
+}
+
 // ------------------------------------------------------------------ tradução
 const mt = []
 const mtCasos = []
@@ -242,7 +284,7 @@ writeFileSync(
       geradoEm: new Date().toISOString(),
       retratosDaChave: ler2('retratos.json'),
       livroCaixa: ler2('gasto.json'),
-      transcricao: { resultados: stt, comparacoes: sttComparacoes },
+      transcricao: { resultados: stt, comparacoes: sttComparacoes, antesDepois },
       traducao: { resultados: mt, comparacoes: mtComparacoes },
     },
     null,

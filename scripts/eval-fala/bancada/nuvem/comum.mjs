@@ -21,8 +21,9 @@ import { LivroCaixa, TetoDeGasto } from '../livroCaixa.mjs'
 export { TetoDeGasto }
 
 export const BASE = 'https://openrouter.ai/api/v1'
-export const TETO_USD = 0.3
-export const SAIDA = 'docs/auditoria/eval/bancada-2026-10-nuvem'
+/** `BANCADA_TETO_USD` baixa o teto de uma rodada (a de 11/2026 foi autorizada em US$ 0,10); `BANCADA_SAIDA` muda a pasta. */
+export const TETO_USD = Number(process.env.BANCADA_TETO_USD) || 0.3
+export const SAIDA = process.env.BANCADA_SAIDA || 'docs/auditoria/eval/bancada-2026-10-nuvem'
 export const BRUTO = path.join(SAIDA, 'bruto')
 export const BANCADA_DIR =
   process.env.BANCADA_DIR || path.join(process.env.LOCALAPPDATA || process.env.HOME || '.', 'babel-bancada')

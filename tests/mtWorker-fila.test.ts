@@ -84,7 +84,11 @@ describe('mtWorker com fila serial', () => {
     await esperar(2)
     chamadas[1].liberar()
     await f
-    expect(postadas.map((m) => `${m.type}:${m.id}`)).toEqual(['cancelado:p', 'result:f'])
+    // `fase` é só marca de desempenho da carga (`frasy:modelo:*`): não entra na ordem das traduções.
+    expect(postadas.filter((m) => m.type !== 'fase').map((m) => `${m.type}:${m.id}`)).toEqual([
+      'cancelado:p',
+      'result:f',
+    ])
     expect(postadas.at(-1)?.text).toBe('<hola amigo>')
   })
 

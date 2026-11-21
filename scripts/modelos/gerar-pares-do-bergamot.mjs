@@ -91,7 +91,16 @@ export async function descreverPar(registro, par, arquitetura = null, buscar = b
       alinhamento,
     }
   }
-  return { execucao, caminhoNaOrigem, arquivos }
+  /* Licença e aprovação por par (openspec traducao-local-por-direcao, 1.3): par novo nasce NÃO aprovado e com a licença dos
+     dados "não informada"; só o dono muda `aprovadoPeloDono` (o publicar-bergamot-no-r2.ts recusa o que não estiver aprovado). */
+  return {
+    execucao,
+    caminhoNaOrigem,
+    licencaPesos: 'MPL-2.0',
+    licencaDados: 'não informada',
+    aprovadoPeloDono: false,
+    arquivos,
+  }
 }
 
 async function principal() {
@@ -116,6 +125,15 @@ async function principal() {
     process.stderr.write(`ok (${mb.toFixed(1)} MB, execução ${gerados[par].execucao})\n`)
   }
   if (flag('gravar')) {
+    // A aprovação do dono vale para os ARQUIVOS aprovados: execução nova (arquivos novos) volta a "não aprovado".
+    for (const par of Object.keys(gerados)) {
+      const antes = config.paresDoCdn?.[par]
+      if (antes && antes.execucao === gerados[par].execucao) {
+        gerados[par].licencaPesos = antes.licencaPesos ?? gerados[par].licencaPesos
+        gerados[par].licencaDados = antes.licencaDados ?? gerados[par].licencaDados
+        gerados[par].aprovadoPeloDono = antes.aprovadoPeloDono === true
+      }
+    }
     config.paresDoCdn = { ...(config.paresDoCdn ?? {}), ...gerados }
     writeFileSync(JSON_DOS_MODELOS, `${JSON.stringify(config, null, 2)}\n`)
     process.stderr.write(`gravado em paresDoCdn (${Object.keys(config.paresDoCdn).length} pares)\n`)

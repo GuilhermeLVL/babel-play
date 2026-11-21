@@ -91,7 +91,8 @@ describe('whisperWorker com fila serial', () => {
     expect(chamadas[1].pcm.length).toBe(32000)
     chamadas[1].liberar()
     await f
-    const tipos = postadas.filter((m) => m.type !== 'update').map((m) => `${m.type}:${m.id}`)
+    // `fase` é só marca de desempenho da carga (`frasy:modelo:*`).
+    const tipos = postadas.filter((m) => m.type !== 'update' && m.type !== 'fase').map((m) => `${m.type}:${m.id}`)
     expect(tipos).toEqual(['cancelado:parcial-1', 'result:final-1'])
     expect(postadas.find((m) => m.id === 'final-1')?.text).toBe('texto 32000')
   })

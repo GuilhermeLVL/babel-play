@@ -143,8 +143,8 @@ describe('registro de motores — fidelidade ao código de hoje', () => {
     const b = motorPorId('bergamot-local')!
     expect(b.tarefa).toBe('mt')
     expect(b.runtime).toBe('local')
-    // O composto `TradutorLocalComBergamot` responde pelo binding `opus-mt-local` (perfis intactos).
-    expect(b.adapterId).toBe('opus-mt-local')
+    // O Bergamot tem binding PRÓPRIO nos perfis (`bergamot-local`, antes do `opus-mt-local`); o composto segue no opus-mt.
+    expect(b.adapterId).toBe('bergamot-local')
     expect(b.enviaDadosA).toBeNull()
     expect(exigeConsentimento(b)).toBe(false)
     expect(bindingExigeConsentimento({ adapterId: 'opus-mt-local' })).toBe(false)

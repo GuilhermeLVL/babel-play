@@ -1,0 +1,521 @@
+{
+  "quando": "2026-11-21T08:37:31.691Z",
+  "origem": "emulado",
+  "nota": "Chromium headless no macOS, desktop. Ordena opções; não prova nada sobre celular, Quest ou iPhone.",
+  "rodadasTotais": 11,
+  "rodadasValidas": 10,
+  "frases": 8,
+  "passadas": 3,
+  "errosNasTraducoes": {
+    "bergamot": 0,
+    "opus-mt": 0
+  },
+  "motoresQueResponderam": {
+    "bergamot": ["bergamot-local"],
+    "opus-mt": ["opus-mt-local"]
+  },
+  "analise": [
+    {
+      "rotulo": "RSS pico (MB)",
+      "unidade": "MB",
+      "n": 10,
+      "mediaOpus": 1586.6,
+      "mediaBergamot": 973.8,
+      "diferenca_opus_menos_bergamot": 612.8,
+      "ic95": [602.7, 625.1025],
+      "veredito": "Bergamot menor, IC exclui 0"
+    },
+    {
+      "rotulo": "RSS pico sobre a base (MB)",
+      "unidade": "MB",
+      "n": 10,
+      "mediaOpus": 1053.3,
+      "mediaBergamot": 440.8,
+      "diferenca_opus_menos_bergamot": 612.5,
+      "ic95": [602.8974999999998, 624.505],
+      "veredito": "Bergamot menor, IC exclui 0"
+    },
+    {
+      "rotulo": "RSS no fim (MB)",
+      "unidade": "MB",
+      "n": 10,
+      "mediaOpus": 1582.2,
+      "mediaBergamot": 973.8,
+      "diferenca_opus_menos_bergamot": 608.4000000000001,
+      "ic95": [598.4, 620.6999999999999],
+      "veredito": "Bergamot menor, IC exclui 0"
+    },
+    {
+      "rotulo": "latência p50 por rodada (ms)",
+      "unidade": "ms",
+      "n": 10,
+      "mediaOpus": 87.02149996757507,
+      "mediaBergamot": 12.975499987602234,
+      "diferenca_opus_menos_bergamot": 74.04599997997283,
+      "ic95": [73.80493740081788, 74.32810002148152],
+      "veredito": "Bergamot menor, IC exclui 0"
+    },
+    {
+      "rotulo": "latência p75 por rodada (ms)",
+      "unidade": "ms",
+      "n": 10,
+      "mediaOpus": 100.78050000667572,
+      "mediaBergamot": 14.470499968528747,
+      "diferenca_opus_menos_bergamot": 86.31000003814698,
+      "ic95": [85.86193739712238, 86.91360002100468],
+      "veredito": "Bergamot menor, IC exclui 0"
+    },
+    {
+      "rotulo": "preparo com modelo em cache (ms)",
+      "unidade": "ms",
+      "n": 10,
+      "mediaOpus": 2011.4,
+      "mediaBergamot": 1793.5,
+      "diferenca_opus_menos_bergamot": 217.9000000000001,
+      "ic95": [209.9000000000001, 226.5075],
+      "veredito": "Bergamot menor, IC exclui 0"
+    }
+  ],
+  "rodadas": [
+    {
+      "rodada": 0,
+      "descartada": true,
+      "bergamot": {
+        "motor": "bergamot",
+        "rssBaseMb": 529,
+        "rssPicoMb": 975,
+        "rssFimMb": 975,
+        "picoSobreABaseMb": 446,
+        "heapJsMb": 11,
+        "preparoMs": 1842,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["bergamot-local"],
+        "latenciaMs": {
+          "p50": 12.879999876022339,
+          "p75": 14.225000143051147,
+          "p95": 21.174999952316284,
+          "n": 24
+        }
+      },
+      "opus-mt": {
+        "motor": "opus-mt",
+        "rssBaseMb": 533,
+        "rssPicoMb": 1823,
+        "rssFimMb": 1605,
+        "picoSobreABaseMb": 1290,
+        "heapJsMb": 11,
+        "preparoMs": 7824,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["opus-mt-local"],
+        "latenciaMs": {
+          "p50": 87.10500001907349,
+          "p75": 99.9449999332428,
+          "p95": 152.48499989509583,
+          "n": 24
+        }
+      }
+    },
+    {
+      "rodada": 1,
+      "descartada": false,
+      "opus-mt": {
+        "motor": "opus-mt",
+        "rssBaseMb": 535,
+        "rssPicoMb": 1573,
+        "rssFimMb": 1568,
+        "picoSobreABaseMb": 1038,
+        "heapJsMb": 11,
+        "preparoMs": 2015,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["opus-mt-local"],
+        "latenciaMs": {
+          "p50": 86.91499996185303,
+          "p75": 99.99499988555908,
+          "p95": 152.59999990463257,
+          "n": 24
+        }
+      },
+      "bergamot": {
+        "motor": "bergamot",
+        "rssBaseMb": 536,
+        "rssPicoMb": 978,
+        "rssFimMb": 978,
+        "picoSobreABaseMb": 442,
+        "heapJsMb": 11,
+        "preparoMs": 1793,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["bergamot-local"],
+        "latenciaMs": {
+          "p50": 12.944999933242798,
+          "p75": 14.384999990463257,
+          "p95": 20.40499997138977,
+          "n": 24
+        }
+      }
+    },
+    {
+      "rodada": 2,
+      "descartada": false,
+      "bergamot": {
+        "motor": "bergamot",
+        "rssBaseMb": 533,
+        "rssPicoMb": 974,
+        "rssFimMb": 974,
+        "picoSobreABaseMb": 441,
+        "heapJsMb": 11,
+        "preparoMs": 1790,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["bergamot-local"],
+        "latenciaMs": {
+          "p50": 12.994999885559082,
+          "p75": 14.450000047683716,
+          "p95": 20.520000219345093,
+          "n": 24
+        }
+      },
+      "opus-mt": {
+        "motor": "opus-mt",
+        "rssBaseMb": 535,
+        "rssPicoMb": 1620,
+        "rssFimMb": 1615,
+        "picoSobreABaseMb": 1085,
+        "heapJsMb": 11,
+        "preparoMs": 2004,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["opus-mt-local"],
+        "latenciaMs": {
+          "p50": 87.16999983787537,
+          "p75": 100.80000019073486,
+          "p95": 153.20500016212463,
+          "n": 24
+        }
+      }
+    },
+    {
+      "rodada": 3,
+      "descartada": false,
+      "opus-mt": {
+        "motor": "opus-mt",
+        "rssBaseMb": 532,
+        "rssPicoMb": 1580,
+        "rssFimMb": 1577,
+        "picoSobreABaseMb": 1048,
+        "heapJsMb": 11,
+        "preparoMs": 2032,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["opus-mt-local"],
+        "latenciaMs": {
+          "p50": 87.42499995231628,
+          "p75": 100.4449999332428,
+          "p95": 150.77999997138977,
+          "n": 24
+        }
+      },
+      "bergamot": {
+        "motor": "bergamot",
+        "rssBaseMb": 534,
+        "rssPicoMb": 974,
+        "rssFimMb": 974,
+        "picoSobreABaseMb": 440,
+        "heapJsMb": 11,
+        "preparoMs": 1783,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["bergamot-local"],
+        "latenciaMs": {
+          "p50": 13.009999990463257,
+          "p75": 14.589999914169312,
+          "p95": 19.944999933242798,
+          "n": 24
+        }
+      }
+    },
+    {
+      "rodada": 4,
+      "descartada": false,
+      "bergamot": {
+        "motor": "bergamot",
+        "rssBaseMb": 532,
+        "rssPicoMb": 974,
+        "rssFimMb": 974,
+        "picoSobreABaseMb": 442,
+        "heapJsMb": 11,
+        "preparoMs": 1817,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["bergamot-local"],
+        "latenciaMs": {
+          "p50": 12.894999980926514,
+          "p75": 14.255000114440918,
+          "p95": 21.085000038146973,
+          "n": 24
+        }
+      },
+      "opus-mt": {
+        "motor": "opus-mt",
+        "rssBaseMb": 534,
+        "rssPicoMb": 1580,
+        "rssFimMb": 1575,
+        "picoSobreABaseMb": 1046,
+        "heapJsMb": 11,
+        "preparoMs": 2012,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["opus-mt-local"],
+        "latenciaMs": {
+          "p50": 86.48000001907349,
+          "p75": 100.25499987602234,
+          "p95": 153.49500012397766,
+          "n": 24
+        }
+      }
+    },
+    {
+      "rodada": 5,
+      "descartada": false,
+      "opus-mt": {
+        "motor": "opus-mt",
+        "rssBaseMb": 535,
+        "rssPicoMb": 1573,
+        "rssFimMb": 1568,
+        "picoSobreABaseMb": 1038,
+        "heapJsMb": 11,
+        "preparoMs": 2008,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["opus-mt-local"],
+        "latenciaMs": {
+          "p50": 86.79500007629395,
+          "p75": 100.3600001335144,
+          "p95": 153.17000007629395,
+          "n": 24
+        }
+      },
+      "bergamot": {
+        "motor": "bergamot",
+        "rssBaseMb": 528,
+        "rssPicoMb": 970,
+        "rssFimMb": 970,
+        "picoSobreABaseMb": 442,
+        "heapJsMb": 11,
+        "preparoMs": 1791,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["bergamot-local"],
+        "latenciaMs": {
+          "p50": 13.03000020980835,
+          "p75": 14.46999979019165,
+          "p95": 20.40000009536743,
+          "n": 24
+        }
+      }
+    },
+    {
+      "rodada": 6,
+      "descartada": false,
+      "bergamot": {
+        "motor": "bergamot",
+        "rssBaseMb": 533,
+        "rssPicoMb": 974,
+        "rssFimMb": 974,
+        "picoSobreABaseMb": 441,
+        "heapJsMb": 11,
+        "preparoMs": 1791,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["bergamot-local"],
+        "latenciaMs": {
+          "p50": 12.954999923706055,
+          "p75": 14.68999981880188,
+          "p95": 20.015000104904175,
+          "n": 24
+        }
+      },
+      "opus-mt": {
+        "motor": "opus-mt",
+        "rssBaseMb": 530,
+        "rssPicoMb": 1610,
+        "rssFimMb": 1606,
+        "picoSobreABaseMb": 1080,
+        "heapJsMb": 11,
+        "preparoMs": 2007,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["opus-mt-local"],
+        "latenciaMs": {
+          "p50": 87.96500015258789,
+          "p75": 100.89499998092651,
+          "p95": 152.29500007629395,
+          "n": 24
+        }
+      }
+    },
+    {
+      "rodada": 7,
+      "descartada": false,
+      "opus-mt": {
+        "motor": "opus-mt",
+        "rssBaseMb": 531,
+        "rssPicoMb": 1567,
+        "rssFimMb": 1563,
+        "picoSobreABaseMb": 1036,
+        "heapJsMb": 11,
+        "preparoMs": 2009,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["opus-mt-local"],
+        "latenciaMs": {
+          "p50": 86.64999985694885,
+          "p75": 100.23499989509583,
+          "p95": 151.14000010490417,
+          "n": 24
+        }
+      },
+      "bergamot": {
+        "motor": "bergamot",
+        "rssBaseMb": 533,
+        "rssPicoMb": 974,
+        "rssFimMb": 974,
+        "picoSobreABaseMb": 441,
+        "heapJsMb": 11,
+        "preparoMs": 1792,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["bergamot-local"],
+        "latenciaMs": {
+          "p50": 12.980000019073486,
+          "p75": 14.579999923706055,
+          "p95": 20.384999990463257,
+          "n": 24
+        }
+      }
+    },
+    {
+      "rodada": 8,
+      "descartada": false,
+      "bergamot": {
+        "motor": "bergamot",
+        "rssBaseMb": 535,
+        "rssPicoMb": 976,
+        "rssFimMb": 976,
+        "picoSobreABaseMb": 441,
+        "heapJsMb": 11,
+        "preparoMs": 1792,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["bergamot-local"],
+        "latenciaMs": {
+          "p50": 12.96500015258789,
+          "p75": 14.394999980926514,
+          "p95": 20.115000009536743,
+          "n": 24
+        }
+      },
+      "opus-mt": {
+        "motor": "opus-mt",
+        "rssBaseMb": 532,
+        "rssPicoMb": 1571,
+        "rssFimMb": 1568,
+        "picoSobreABaseMb": 1039,
+        "heapJsMb": 11,
+        "preparoMs": 2015,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["opus-mt-local"],
+        "latenciaMs": {
+          "p50": 86.63499999046326,
+          "p75": 100.21500015258789,
+          "p95": 151.47000002861023,
+          "n": 24
+        }
+      }
+    },
+    {
+      "rodada": 9,
+      "descartada": false,
+      "opus-mt": {
+        "motor": "opus-mt",
+        "rssBaseMb": 534,
+        "rssPicoMb": 1580,
+        "rssFimMb": 1575,
+        "picoSobreABaseMb": 1046,
+        "heapJsMb": 11,
+        "preparoMs": 1995,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["opus-mt-local"],
+        "latenciaMs": {
+          "p50": 86.76999998092651,
+          "p75": 101.5,
+          "p95": 152.4649999141693,
+          "n": 24
+        }
+      },
+      "bergamot": {
+        "motor": "bergamot",
+        "rssBaseMb": 534,
+        "rssPicoMb": 970,
+        "rssFimMb": 970,
+        "picoSobreABaseMb": 436,
+        "heapJsMb": 11,
+        "preparoMs": 1795,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["bergamot-local"],
+        "latenciaMs": {
+          "p50": 13.014999866485596,
+          "p75": 14.400000095367432,
+          "p95": 19.954999923706055,
+          "n": 24
+        }
+      }
+    },
+    {
+      "rodada": 10,
+      "descartada": false,
+      "bergamot": {
+        "motor": "bergamot",
+        "rssBaseMb": 532,
+        "rssPicoMb": 974,
+        "rssFimMb": 974,
+        "picoSobreABaseMb": 442,
+        "heapJsMb": 11,
+        "preparoMs": 1791,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["bergamot-local"],
+        "latenciaMs": {
+          "p50": 12.964999914169312,
+          "p75": 14.490000009536743,
+          "p95": 20.070000171661377,
+          "n": 24
+        }
+      },
+      "opus-mt": {
+        "motor": "opus-mt",
+        "rssBaseMb": 535,
+        "rssPicoMb": 1612,
+        "rssFimMb": 1607,
+        "picoSobreABaseMb": 1077,
+        "heapJsMb": 11,
+        "preparoMs": 2017,
+        "prontoNoTempo": true,
+        "erros": 0,
+        "motores": ["opus-mt-local"],
+        "latenciaMs": {
+          "p50": 87.40999984741211,
+          "p75": 103.10500001907349,
+          "p95": 153.11999988555908,
+          "n": 24
+        }
+      }
+    }
+  ]
+}

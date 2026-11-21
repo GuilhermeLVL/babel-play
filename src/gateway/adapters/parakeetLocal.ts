@@ -17,6 +17,7 @@ import { desmarcar, marcarCarregando } from '../../lib/captura/sentinelaDoModelo
 import { distribuirThreads } from '../../lib/dispositivo/orcamentoDeThreads';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import type { SttFinal, SttProvider } from '../capabilities';
+import { iniciarFasesDeCarga } from '../marcasDeDesempenho';
 import { gravarManifesto, MENSAGEM_DO_MANIFESTO } from '../modelManifest';
 import { planoDaPaginaDoParakeet } from './parakeetArquivos';
 import { ADAPTADOR_DO_PARAKEET, ID_DO_PARAKEET, parakeetAceita } from './parakeetModelo';
@@ -59,6 +60,8 @@ export class ParakeetLocalStt implements SttProvider {
    */
   private falhaDoMotor: Error | null = null;
   private aoSairDaPagina: (() => void) | null = null;
+  /** As fases da carga em curso (`frasy:modelo:*`): o worker avisa cada uma com `fase`. */
+  private fases: ReturnType<typeof iniciarFasesDeCarga> | null = null;
 
   /** O modelo que este adapter carrega (o selo da tela usa o mesmo nome dos outros adapters). */
   get modeloAtual(): string {
@@ -86,6 +89,7 @@ export class ParakeetLocalStt implements SttProvider {
     }
     this.worker = null;
     this.carregado = false;
+    this.fases = null;
     desmarcar(ID_DO_PARAKEET);
     this.rejeitarPronto?.(motivo);
     this.pronto = null;
@@ -116,7 +120,12 @@ export class ParakeetLocalStt implements SttProvider {
         case 'progress':
           this.aoProgredir?.(m.progress, m.label, m.total > 0 ? { loaded: m.loaded, total: m.total } : undefined);
           break;
+        case 'fase':
+          this.fases?.para(m.fase);
+          break;
         case 'ready':
+          this.fases?.fim();
+          this.fases = null;
           this.carregado = true;
           this.resolverPronto?.();
           break;
@@ -187,6 +196,7 @@ export class ParakeetLocalStt implements SttProvider {
       /* SENTINELA: a partir daqui o worker lê os pesos. Se a aba cair, a marca fica e a próxima captura
          veta o Parakeet. Sai na liberação (`liberar`) e no `pagehide`. */
       marcarCarregando(ID_DO_PARAKEET);
+      this.fases = iniciarFasesDeCarga(ID_DO_PARAKEET);
       this.enviar({ type: 'carregar', plano: planoDaPaginaDoParakeet(), threads });
     }
     return this.pronto;

@@ -318,6 +318,36 @@ export const FLAG_LEITURA_ATIVA = 'leitura_ativa';
 export const FLAG_ACESSO_RESTRITO_SEM_CONTA = 'acesso_restrito_sem_conta';
 
 /**
+ * A TELEMETRIA DE CAMPO DA LATÊNCIA DA LEGENDA (openspec `lab-medicao-legenda-traduzida`; migrações PG 0023 e SQLite 0065):
+ * o lote `v: 2` de métricas (baldes e contagens por classe de aparelho). Nasce DESLIGADA e sem regra de plano. Ligar em
+ * produção depende do parecer de privacidade do dono. Desligada = só o `v: 1` de hoje.
+ */
+export const FLAG_RUM_LATENCIA = 'rum_latencia';
+
+/**
+ * A NORMALIZAÇÃO DE VOLUME DO ÁUDIO ENVIADO AO STT DE NUVEM (openspec `stt-ingles-volume-e-rota`; migrações PG 0024 e SQLite
+ * 0066): o pico (percentil 99,9) do trecho vai a −3 dBFS antes do encode. Nasce DESLIGADA e sem regra de plano; ligar é ato
+ * do dono, depois da medição. Desligada = o corpo enviado é o de antes. Só a nuvem: o caminho local não passa por ela.
+ */
+export const FLAG_STT_NUVEM_NORMALIZAR = 'stt_nuvem_normalizar';
+
+/**
+ * O ROTEADOR ADAPTATIVO EM SOMBRA (openspec `roteador-adaptativo-em-sombra`; migrações PG 0025 e SQLite 0067, números
+ * PROVISÓRIOS): por fala, calcula o que um roteador por RTF, fila e confiança do STT decidiria e REGISTRA só contagens
+ * agregadas; NUNCA muda a rota real. Nasce DESLIGADA e sem regra de plano; ligar é ato do dono. Desligada = nada é
+ * calculado, registrado nem carregado.
+ */
+export const FLAG_ROTEADOR_ADAPTATIVO_SOMBRA = 'roteador_adaptativo_sombra';
+
+/**
+ * A TRADUÇÃO LOCAL POR DIREÇÃO (openspec `traducao-local-por-direcao`; migrações PG 0026 e SQLite 0068, números
+ * PROVISÓRIOS): liga o uso dos pares X→en do Bergamot publicados no CDN (`VITE_BERGAMOT_MODELOS_URL`); en→pt-BR segue no
+ * opus-mt com o alvo `pt_br`. Nasce DESLIGADA e sem regra de plano; ligar é ato do dono. Desligada = o Bergamot atende só
+ * o pt→en embutido, como antes, mesmo com modelos no R2.
+ */
+export const FLAG_TRADUCAO_LOCAL_POR_DIRECAO = 'traducao_local_por_direcao';
+
+/**
  * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,
  * "Custo da escrita"): um retorno leva ~900 tokens de entrada (system + texto de até 120 palavras) e até 500 de saída;
  * 30 por mês ficam na casa de US$ 0,01 por assinante que usa tudo, e os tokens já saem da `tokensMes`.

@@ -68,6 +68,30 @@
       "sentido": "menor",
       "toleranciaPct": 25,
       "folgaAbs": 10
+    },
+    "fimDaFalaAteLegendaMs.p50": {
+      "rotulo": "fim da fala → tradução final na tela, p50 (ms)",
+      "sentido": "menor",
+      "toleranciaPct": 25,
+      "folgaAbs": 300
+    },
+    "fimDaFalaAteLegendaMs.p75": {
+      "rotulo": "fim da fala → tradução final na tela, p75 (ms)",
+      "sentido": "menor",
+      "toleranciaPct": 25,
+      "folgaAbs": 400
+    },
+    "fimDaFalaAteLegendaMs.p95": {
+      "rotulo": "fim da fala → tradução final na tela, p95 (ms)",
+      "sentido": "menor",
+      "toleranciaPct": 30,
+      "folgaAbs": 600
+    },
+    "fimDaFalaAteLegendaMs.taxaDeFalha": {
+      "rotulo": "fim da fala → legenda: taxa de falha (fração das falas)",
+      "sentido": "menor",
+      "toleranciaPct": 50,
+      "folgaAbs": 0.15
     }
   },
   "ambientes": {
@@ -104,40 +128,76 @@
           "rendersPorS.silencio": 30.55,
           "rendersPorS.fala": 89.43
         }
+      },
+      "origens": {
+        "desktop": {
+          "origem": "medido",
+          "aparelho": "Windows 11 · AMD Ryzen 5 5600 6-Core Processor · 12 núcleos · 16 GB · Chromium 151.0.7922.34 headless",
+          "commit": "bde13bd",
+          "data": "2026-09-30"
+        },
+        "fraco": {
+          "origem": "emulado",
+          "aparelho": "Windows 11 · AMD Ryzen 5 5600 6-Core Processor · 12 núcleos · 16 GB · Chromium 151.0.7922.34 headless",
+          "commit": "bde13bd",
+          "data": "2026-09-30"
+        }
       }
     },
     "local-darwin": {
-      "descricao": "Darwin 27.0.0 · Apple M5 Pro · 15 núcleos · 24 GB · Chrome/156.0.8078.4 — a base da auditoria de 17/11/2026 (aceita pelo dono). primeiroTextoNaTelaMs: provisória, do comportamento sem a bimodalidade (o desktop deu 1 067 ms na rodada boa; o fraco ~1,9 s) até uma bancada válida neste Mac regravar (em 18/11 a bancada saiu INVÁLIDA aqui, \"bipe não encontrado\", também no commit anterior a esta change)",
-      "medidoEm": "2026-11-17T16:42:36.971Z",
-      "commit": "976b90be",
+      "descricao": "Darwin 27.0.0 · Apple M5 Pro · 15 núcleos · 24 GB · Chrome/159.0.8154.6",
+      "medidoEm": "2026-11-21T04:45:39.765Z",
+      "commit": "efd0c702",
       "rodadas": {
-        "desktop": 3,
-        "fraco": 3
+        "desktop": 12,
+        "fraco": 12
       },
       "perfis": {
         "desktop": {
           "framesLongos.n50": 0,
           "framesLongos.n100": 0,
           "framesLongos.somaMs": 0,
-          "primeiraLegendaMs": 5580,
-          "rtf.p50": 0.038,
-          "rtf.p95": 0.046,
-          "cpuSilencio.processoPct": 7.67,
-          "rendersPorS.silencio": 22.93,
-          "rendersPorS.fala": 85.98,
-          "primeiroTextoNaTelaMs": 1067
+          "primeiraLegendaMs": 5449,
+          "primeiroTextoNaTelaMs": 3186,
+          "rtf.p50": 0.035,
+          "rtf.p95": 0.038,
+          "cpuSilencio.processoPct": 13,
+          "rendersPorS.silencio": 22.92,
+          "rendersPorS.fala": 93.13,
+          "fimDaFalaAteLegendaMs.p50": 931.5,
+          "fimDaFalaAteLegendaMs.p75": 967,
+          "fimDaFalaAteLegendaMs.p95": 1613,
+          "fimDaFalaAteLegendaMs.taxaDeFalha": 0
         },
         "fraco": {
           "framesLongos.n50": 0,
           "framesLongos.n100": 0,
           "framesLongos.somaMs": 0,
-          "primeiraLegendaMs": 5881,
-          "rtf.p50": 0.07,
-          "rtf.p95": 0.075,
-          "cpuSilencio.processoPct": 13.44,
-          "rendersPorS.silencio": 27.16,
-          "rendersPorS.fala": 92.37,
-          "primeiroTextoNaTelaMs": 1900
+          "primeiraLegendaMs": 5802,
+          "primeiroTextoNaTelaMs": 1917.5,
+          "rtf.p50": 0.068,
+          "rtf.p95": 0.073,
+          "cpuSilencio.processoPct": 13.02,
+          "rendersPorS.silencio": 27.15,
+          "rendersPorS.fala": 102.8,
+          "fimDaFalaAteLegendaMs.p50": 1140,
+          "fimDaFalaAteLegendaMs.p75": 1373.3,
+          "fimDaFalaAteLegendaMs.p95": 1955.5,
+          "fimDaFalaAteLegendaMs.taxaDeFalha": 0
+        }
+      },
+      "origens": {
+        "desktop": {
+          "origem": "medido",
+          "aparelho": "Apple M5 Pro, 15 núcleos, 24 GB",
+          "commit": "efd0c702",
+          "data": "2026-11-21"
+        },
+        "fraco": {
+          "origem": "emulado",
+          "aparelho": "Apple M5 Pro, 15 núcleos, 24 GB (emulando fraco)",
+          "commit": "efd0c702",
+          "data": "2026-11-21"
         }
       }
     }

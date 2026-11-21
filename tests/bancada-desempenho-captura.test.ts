@@ -5,14 +5,18 @@
  *
  * A rodada de verdade (Chromium, microfone falso, modelos) roda no workflow `desempenho.yml`.
  */
-import { readFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { acharAncoraDoBipe } from '../scripts/perf/latencia-legenda/analisar.mjs'
 import {
   comparar,
   gravarLinhaDeBase,
+  rodadasInvalidas,
   ruidoEntre,
   tabelaAntesDepois,
   tabelaMarkdown,
@@ -27,6 +31,7 @@ import {
   metricasDaRodada,
   picoDeMemoria,
   relogioDoArquivo,
+  rodadasInvalidasDaPasta,
   taxaNaJanela,
 } from '../scripts/perf/latencia-legenda/metricas-captura.mjs'
 import { deMulaw, lerWav, mulawDe, wavMulaw, wavPcm16 } from '../scripts/perf/latencia-legenda/wav.mjs'
@@ -225,7 +230,55 @@ describe('janelas e métricas de uma rodada', () => {
     d.lat.aud = []
     const m = metricasDaRodada(d)
     expect(m.valida).toBe(false)
-    expect(m.motivo).toMatch(/bipe/)
+    expect(m.motivo).toMatch(/^sem-sonda/)
+  })
+
+  // Um `lat` sintético por motivo de rodada inválida (a imprimir no lugar do "bipe não encontrado" único).
+  const motivoDe = (aud: number[][], ev: Record<string, any>[] = []) => {
+    const d = rodadaSintetica()
+    d.lat.aud = aud
+    d.lat.ev = ev
+    return metricasDaRodada(d)
+  }
+
+  it('sem-sonda: nenhuma janela de áudio (a sonda não ligou ou deu erro)', () => {
+    const m = motivoDe([], [{ t: 1200, k: 'sonda:erro', s: 'AbortError: addModule' }])
+    expect(m).toMatchObject({ valida: false, motivoCodigo: 'sem-sonda' })
+    expect(m.motivo).toMatch(/sonda:erro AbortError/)
+  })
+
+  it('sem-audio: a sonda rodou, mas só silêncio (o arquivo não está sendo tocado)', () => {
+    const m = motivoDe([
+      [2990, 0.0, 0.0],
+      [3010, 0.004, 0.0],
+    ])
+    expect(m).toMatchObject({ valida: false, motivoCodigo: 'sem-audio' })
+  })
+
+  it('sem-2khz: há sinal, mas nenhuma janela passa de 0,5 de razão a 2 kHz', () => {
+    const m = motivoDe([
+      [2990, 0.3, 0.1],
+      [3010, 0.4, 0.3],
+    ])
+    expect(m).toMatchObject({ valida: false, motivoCodigo: 'sem-2khz' })
+    expect(m.motivo).toMatch(/0\.3/)
+  })
+
+  it('bipe-antes-da-sonda: a sonda ligou depois do instante em que o bipe passou', () => {
+    // 1º gum de áudio em 1000 ms + bipeS 1 s = bipe em 2000 ms; a 1ª janela da sonda só veio em 6000 ms
+    const m = motivoDe(
+      [
+        [6000, 0.3, 0.1],
+        [6020, 0.3, 0.1],
+      ],
+      [{ t: 1000, k: 'gum', audio: true, armado: false }],
+    )
+    expect(m).toMatchObject({ valida: false, motivoCodigo: 'bipe-antes-da-sonda' })
+  })
+
+  it('com bipe: a âncora é o meio da janela, sem motivo', () => {
+    expect(acharAncoraDoBipe(rodadaSintetica())).toEqual({ ancoraMs: 3000 })
+    expect(metricasDaRodada(rodadaSintetica()).valida).toBe(true)
   })
 
   it('rodada em que a aba caiu: inválida', () => {
@@ -394,9 +447,11 @@ describe('slo-captura.json versionado', () => {
     expect(doc.ambientes['local-win32']).toBeTruthy()
   })
 
-  it('o 1º parcial atrasado de propósito para 3 s reprova pela métrica primeiroTextoNaTelaMs', () => {
+  it('o 1º parcial atrasado de propósito (+3 s sobre a base) reprova pela métrica primeiroTextoNaTelaMs', () => {
     const base = doc.ambientes['local-darwin'].perfis.desktop
-    const resultado = { perfis: { desktop: { metricas: { ...base, primeiroTextoNaTelaMs: 3000 } } } }
+    const resultado = {
+      perfis: { desktop: { metricas: { ...base, primeiroTextoNaTelaMs: base.primeiroTextoNaTelaMs + 3000 } } },
+    }
     const r = comparar(doc, resultado, 'local-darwin')
     expect(r.piorou).toBe(true)
     expect(r.linhas.filter((l) => l.status === 'piorou').map((l) => l.metrica)).toEqual(['primeiroTextoNaTelaMs'])
@@ -486,5 +541,51 @@ describe('tabela antes × depois', () => {
     expect(md).toContain('| fraco | frames > 50 ms | 20 | 5 | −75% |')
     expect(md).toContain('| fraco | renders/s no silêncio | 0 | 0 | 0% |')
     expect(md).toContain('| fraco | memória de pico (MB) | — | — | — |')
+  })
+})
+
+describe('rodada inválida nunca vira número (comparar e rodar-matriz)', () => {
+  const AQUI = path.join(__dirname, '..', 'scripts', 'perf', 'latencia-legenda')
+  const node = (script: string, ...a: string[]) =>
+    spawnSync(process.execPath, [path.join(AQUI, script), ...a], { encoding: 'utf8' })
+
+  it('rodadasInvalidas lista perfil, rótulo e motivo', () => {
+    const r = {
+      perfis: { desktop: { invalidas: [{ rotulo: 'desktop.r2', motivo: 'sem-2khz: x' }] }, fraco: { invalidas: [] } },
+    }
+    expect(rodadasInvalidas(r)).toEqual([{ perfil: 'desktop', rotulo: 'desktop.r2', motivo: 'sem-2khz: x' }])
+    expect(rodadasInvalidas({ perfis: {} })).toEqual([])
+  })
+
+  it('comparar.mjs recusa um resultado com rodada inválida: código 1 e o motivo', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'cmp-invalida-'))
+    const arq = path.join(dir, 'resultado.json')
+    writeFileSync(
+      arq,
+      JSON.stringify({
+        ambiente: 'ci-ubuntu',
+        perfis: {
+          desktop: { rodadas: 2, metricas: {}, invalidas: [{ rotulo: 'desktop.r3', motivo: 'sem-sonda: x' }] },
+        },
+      }),
+    )
+    const r = node('comparar.mjs', '--resultado', arq)
+    expect(r.status).toBe(1)
+    expect(r.stderr).toMatch(/desktop\.r3: sem-sonda/)
+  })
+
+  it('rodar-matriz.mjs --so-validar: pasta com rodada inválida sai com 1; com rodada válida, 0', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'matriz-invalida-'))
+    mkdirSync(dir, { recursive: true })
+    const ruim = rodadaSintetica({ rotulo: 'r1' })
+    ruim.lat.aud = [[3010, 0.2, 0.1]]
+    writeFileSync(path.join(dir, 'r1.json'), JSON.stringify(ruim))
+    const r = node('rodar-matriz.mjs', '--saida', dir, '--so-validar')
+    expect(r.status).toBe(1)
+    expect(r.stdout).toMatch(/rodada inválida r1: sem-2khz/)
+    expect(rodadasInvalidasDaPasta(dir).invalidas).toHaveLength(1)
+
+    writeFileSync(path.join(dir, 'r1.json'), JSON.stringify(rodadaSintetica({ rotulo: 'r1' })))
+    expect(node('rodar-matriz.mjs', '--saida', dir, '--so-validar').status).toBe(0)
   })
 })

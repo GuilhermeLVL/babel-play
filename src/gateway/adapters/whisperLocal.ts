@@ -8,6 +8,7 @@ import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import { temAdaptadorWebGpu } from '../adaptadorWebGpu';
 import type { AvisoDeDegradacaoDoStt, SttFinal, SttProvider } from '../capabilities';
 import { pareceErroDeRede } from '../erroDeRede';
+import { iniciarFasesDeCarga } from '../marcasDeDesempenho';
 import { gravarManifesto, MENSAGEM_DO_MANIFESTO } from '../modelManifest';
 import { MOONSHINE_MODELS, WHISPER_MODELS } from '../sttRouter';
 import { criarWatchdogDeEstagnacao } from './modelProgress';
@@ -198,6 +199,8 @@ export class WhisperLocalStt implements SttProvider {
   private static readonly WATCHDOG_TICK_MS = 5_000;
   private forcedDevice: string | null = null;
   /** Watchdog da carga em andamento (recebe sinal de vida a cada progresso). */
+  /** As fases da carga em curso (`frasy:modelo:*`): o worker avisa cada uma com `fase` (ver `whisperWorker.ts`). */
+  private fases: ReturnType<typeof iniciarFasesDeCarga> | null = null;
   private watchdogAtual: { sinalDeVida: () => void; cancelar: () => void } | null = null;
 
   /** Encerra o worker atual e rejeita o que estava pendente nele. */
@@ -377,7 +380,13 @@ export class WhisperLocalStt implements SttProvider {
           break;
         }
 
+        case 'fase':
+          this.fases?.para(msg.data.fase);
+          break;
+
         case 'ready': {
+          this.fases?.fim();
+          this.fases = null;
           this.asrReady = true;
           this.watchdogAtual?.cancelar();
           this.watchdogAtual = null;
@@ -540,6 +549,7 @@ export class WhisperLocalStt implements SttProvider {
       leve: perfil.leve,
       quest: perfil.tipo === 'quest',
     }).whisper;
+    this.fases = iniciarFasesDeCarga(this.model);
     this.worker.postMessage({ type: 'load', model: this.model, dtype: this.dtype, device, threads });
 
     // Watchdog: só quando o caminho efetivo é WebGPU. O moonshine carrega sempre em WASM.

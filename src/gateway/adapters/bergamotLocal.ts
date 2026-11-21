@@ -1,7 +1,7 @@
 import { ChamadaCancelada, ehCancelamento, ehMotorCarregando, MotorAindaCarregando } from '@core';
 
 import type { MtOptions, MtResult, TranslationProvider } from '../capabilities';
-import { marcar } from '../marcasDeDesempenho';
+import { iniciarFasesDeCarga, marcar } from '../marcasDeDesempenho';
 import { gravarManifesto, MENSAGEM_DO_MANIFESTO } from '../modelManifest';
 import {
   bergamotOferecido,
@@ -59,6 +59,8 @@ export class BergamotLocal implements TranslationProvider {
   >();
   private prontos = new Set<ParDoBergamot>();
   private emCarga = new Set<ParDoBergamot>();
+  /** As fases da carga de cada modelo em andamento (`frasy:modelo:*`): o worker avisa cada uma com `fase`. */
+  private fases = new Map<string, ReturnType<typeof iniciarFasesDeCarga>>();
   /** Pares que falharam NESTA sessão (qualquer motivo): daqui em diante vão ao opus-mt. */
   private falhouNoPar = new Set<ParDoBergamot>();
   /** O MOTOR falhou nesta sessão (WASM que não abre): vale para todos os pares. */
@@ -116,6 +118,7 @@ export class BergamotLocal implements TranslationProvider {
   /** A carga não deu: o Bergamot sai desta sessão, e quem espera é avisado (o composto cai no opus-mt). */
   private falhar(modelo: string, motivo: MotivoDaFalha, mensagem: string): void {
     const par = parDoId(modelo) ?? 'pt-en';
+    this.fases.delete(modelo);
     this.falhouNoPar.add(par);
     // Só o MOTOR (WASM que não abre) tira todos os pares; um modelo que não monta ou não baixa tira só o seu.
     if (motivo === 'motor') {
@@ -155,8 +158,13 @@ export class BergamotLocal implements TranslationProvider {
             m.total > 0 ? { loaded: m.loaded, total: m.total } : undefined,
           );
           return;
+        case 'fase':
+          this.fases.get(m.model)?.para(m.fase);
+          return;
         case 'ready': {
           marcar('mt:pronto', { modelo: m.model });
+          this.fases.get(m.model)?.fim();
+          this.fases.delete(m.model);
           const par = parDoId(m.model);
           if (par) {
             this.prontos.add(par);
@@ -206,6 +214,7 @@ export class BergamotLocal implements TranslationProvider {
     if (this.prontos.has(par) || this.emCarga.has(par)) return;
     this.emCarga.add(par);
     marcar('mt:carga:inicio', { modelo: idDoBergamot(par) });
+    this.fases.set(idDoBergamot(par), iniciarFasesDeCarga(idDoBergamot(par)));
     this.ensureWorker(par).postMessage({ type: 'carregar', plano: planoDaPagina(par) } satisfies MensagemParaOWorker);
   }
 
@@ -392,5 +401,43 @@ export class TradutorLocalComBergamot implements TranslationProvider {
   liberar(): void {
     this.bergamot.liberar();
     this.opus.liberar();
+  }
+}
+
+/**
+ * O BINDING `bergamot-local` dos perfis (antes do `opus-mt-local`, openspec `traducao-local-por-direcao`, D5): a visão do
+ * MESMO `BergamotLocal` e do MESMO composto, com o nome próprio para o disjuntor, a telemetria e o painel. Só atende o
+ * que o Bergamot atende direto (`supports` falso fora disso, em especial com a flag desligada: só o pt→en embutido); o
+ * pivô e a reserva ficam com o composto, que vem logo depois na cadeia. O `preload` passa pelo composto, que lembra a
+ * barra do par para a reserva continuar a mesma quando o Bergamot cair. Não cria um segundo opus-mt.
+ */
+export class BergamotNoPerfil implements TranslationProvider {
+  readonly id = 'bergamot-local';
+  readonly runtime = 'browser' as const;
+  readonly cost = 'free' as const;
+  readonly label = 'Bergamot local (on-device)';
+
+  constructor(private readonly composto: TradutorLocalComBergamot) {}
+
+  supports(src: string | null, tgt: string): boolean {
+    return this.composto.bergamot.supports(src, tgt);
+  }
+
+  preload(src: string, tgt: string, onProgress?: AoProgresso): void {
+    if (onProgress) this.composto.preload(src, tgt, onProgress);
+    else this.composto.preload(src, tgt);
+  }
+
+  translate(text: string, src: string | null, tgt: string, opts?: MtOptions): Promise<MtResult> {
+    return this.composto.bergamot.translate(text, src, tgt, opts);
+  }
+
+  /** Só o disjuntor deste binding usa o aviso; quem espera a retradução é avisado pelo composto (sem avisar duas vezes). */
+  aoFicarPronto(fn: (modelo: string) => void): () => void {
+    return this.composto.bergamot.aoFicarPronto(fn);
+  }
+
+  liberar(): void {
+    this.composto.liberar();
   }
 }

@@ -30,6 +30,7 @@
  */
 import { type DestinoDosDados, motorPorId } from '../harness/registroDeMotores';
 import { type MotivoDaRotaMt, routeMt } from '../harness/roteadorDeTraducao';
+import { inglesNuvemVenceAparelho, MEDICOES_DE_STT, type MedicoesDeStt } from './medicoesDeStt';
 
 // ───────────────────────────── os tipos ─────────────────────────────
 
@@ -166,6 +167,12 @@ export interface EstadoDaRota {
    */
   aparelhoPrimeiro?: boolean;
   /**
+   * O inglês do automático vai à nuvem primeiro (openspec `stt-ingles-volume-e-rota`): a flag `stt_nuvem_normalizar`
+   * ligada E a medição da nuvem normalizada vencendo o motor local (`medicoesDeStt`). Ausente ou `false` = o inglês fica
+   * no aparelho, como o `routeStt`.
+   */
+  inglesNaNuvem?: boolean;
+  /**
    * A histerese do áudio difícil (`core/rota/audioDificil.ts`) subiu: com `aparelhoPrimeiro`, a nuvem
    * vai primeiro até ela descer. Sem `aparelhoPrimeiro`, não muda nada.
    */
@@ -199,6 +206,21 @@ export interface EstadoDaRota {
   };
 }
 
+/**
+ * O que a SESSÃO está vivendo (openspec `roteador-adaptativo-em-sombra`). Só o `decidirAdaptativo` lê: `decidirRota` ignora
+ * `sessao`, e sem ela a decisão é idêntica à de sempre. Números brutos, sem texto, id nem hora.
+ */
+export interface SessaoDaRota {
+  /** Fator de tempo real do aparelho (média móvel do regulador). `null` = não medido. */
+  rtf: number | null;
+  /** Falas aguardando (a fila de decode que o regulador também vê). */
+  fila: number;
+  /** Quanto a última tradução demorou, em ms. `null` = não medido. Entra no registro; a regra de hoje não o usa. */
+  msDeMt: number | null;
+  /** Confiança média dos tokens da última fala local (a de `audioDificil.ts`), 0–1. `null` = o motor não informa. */
+  confianca: number | null;
+}
+
 export interface PedidoDeRota {
   tarefa: TarefaDaRota;
   fonte: FonteDaRota;
@@ -216,6 +238,8 @@ export interface PedidoDeRota {
   aparelho: AparelhoDaRota;
   plano: PlanoDaRota;
   estado: EstadoDaRota;
+  /** O que a sessão vive (só o roteador adaptativo, em sombra, lê). Ausente = nada muda. */
+  sessao?: SessaoDaRota;
 }
 
 export interface PassoDaRota {
@@ -473,9 +497,11 @@ function escolhaDeHoje(p: PedidoDeRota, bloqueios: readonly MotivoDaRota[], nuve
     const local = modeloLocal(p, id, tranca ?? 'escolha-da-pessoa');
     return { ...base, nuvem: null, local, descartadas: semNuvem('escolha-da-pessoa') };
   }
-  /* Na nuvem do site o inglês fica no aparelho: a cota de lá é de minutos por dia e o Moonshine
-     acompanha a fala até no Quest. Só o automático; quem escolheu "nuvem" vai à nuvem. */
-  const inglesFicaAqui = q === 'auto' && ingles && nuvemDoSiteAtiva(p.estado);
+  /* O inglês fica no aparelho: na nuvem do site, porque a cota de lá é de minutos por dia e o Moonshine acompanha a
+     fala até no Quest; e, sem bloqueio da nuvem (que já dá o motivo), sem medição que prove a nuvem melhor
+     (`inglesNaNuvem`, REQ-015). Só o automático; quem escolheu "nuvem" vai à nuvem. */
+  const inglesFicaAqui =
+    q === 'auto' && ingles && (nuvemDoSiteAtiva(p.estado) || (!bloqueio && p.estado.inglesNaNuvem !== true));
   if (inglesFicaAqui) {
     const local = modeloLocal(p, moonshineDoAparelho(p), tranca ?? 'aparelho-da-conta');
     return { ...base, nuvem: null, local, descartadas: semNuvem('aparelho-da-conta') };
@@ -810,4 +836,212 @@ export function paraRotaDoStt(decisao: DecisaoDeRota): RotaDoSttDaPolitica {
     ...(local.dtype ? { dtype: local.dtype } : {}),
     ...(local.device ? { device: local.device } : {}),
   };
+}
+
+// ───────────────────────────── o roteador adaptativo (EM SOMBRA) ─────────────────────────────
+
+/**
+ * O ROTEADOR ADAPTATIVO (openspec `roteador-adaptativo-em-sombra`, design §1 e §2). Decide POR FALA, com histerese, quanto
+ * subir na escada de degraus que a guarda deixou. SÓ EM SOMBRA: a decisão é registrada ao lado da rota efetiva e nunca a
+ * substitui; nada no app lê o resultado para mudar motor, modelo, nuvem ou tradutor.
+ *
+ * COMPOSIÇÃO. A guarda (perfil privado ou protegido, consentimento, plano, cota, rede, edição estática) é a de `decidirRota`,
+ * e roda ANTES: `guardaDoAdaptativo` a consulta uma vez e `decidirAdaptativo` só escolhe entre os degraus que ela permite.
+ * Não existe segunda regra de privacidade: a nuvem só entra na escada se `decidirRota` a deixou e as condições abaixo
+ * (conferidas de novo, de graça) concordam.
+ *
+ * A REGRA. Sobe um degrau com `falasParaSubir` falas SEGUIDAS sob pressão (RTF > `rtfSobe`, OU fila >= `filaSobe`, OU
+ * confiança < `confiancaMinima`); desce um com `falasParaDescer` falas seguidas calmas (RTF < `rtfDesce`, fila 0 e confiança
+ * boa). Uma fala nem sob pressão nem calma zera as duas contagens, e cada troca as zera: duas trocas ficam separadas por
+ * pelo menos `falasParaSubir` falas, e um RTF que oscila em torno do limiar não troca nada. Os limiares são parâmetros e
+ * começam nos já documentados ("A CALIBRAR": a sombra existe para calibrá-los).
+ *
+ * PRIOR DE `medicoesDeStt`. Para o inglês, se a medição não mostra a nuvem vencendo o motor local (`inglesNuvemVenceAparelho`),
+ * a CONFIANÇA baixa não sugere nuvem sozinha: só RTF ou fila a sugerem. Para os demais idiomas não há medição e vale a regra
+ * geral (a mesma do áudio difícil).
+ *
+ * PURO: sem relógio, sem rede, sem DOM; devolve um estado novo, não altera o recebido nem o pedido.
+ */
+export const DEGRAUS_ADAPTATIVOS = ['manter', 'modelo-menor', 'nativo', 'nuvem'] as const;
+export type DegrauAdaptativo = (typeof DEGRAUS_ADAPTATIVOS)[number];
+
+/** O que mexeu na decisão (lista fechada; só para teste e depuração, não vai à telemetria). */
+export type GatilhoDoAdaptativo =
+  | 'sem-sessao'
+  | 'estavel'
+  | 'rtf-alto'
+  | 'fila-cheia'
+  | 'confianca-baixa'
+  | 'recuperou';
+
+export interface LimiaresDoAdaptativo {
+  /** RTF acima disto = pressão. */
+  rtfSobe: number;
+  /** Fila (falas aguardando) igual ou acima disto = pressão. */
+  filaSobe: number;
+  /** Confiança média abaixo disto = pressão (ver o prior de `medicoesDeStt`). */
+  confiancaMinima: number;
+  /** RTF abaixo disto (com fila 0) = calma. */
+  rtfDesce: number;
+  /** Falas seguidas sob pressão para subir um degrau. */
+  falasParaSubir: number;
+  /** Falas seguidas calmas para descer um degrau. */
+  falasParaDescer: number;
+}
+
+/** Os pontos de partida documentados (`audioDificil.ts`, `reguladorDeDesempenho.ts`): A CALIBRAR na sombra. */
+export const LIMIARES_DO_ADAPTATIVO: LimiaresDoAdaptativo = {
+  rtfSobe: 0.8,
+  filaSobe: 2,
+  confiancaMinima: 0.75,
+  rtfDesce: 0.5,
+  falasParaSubir: 3,
+  falasParaDescer: 5,
+};
+
+export interface EstadoDoAdaptativo {
+  /** Posição na escada de degraus (0 = manter). */
+  indice: number;
+  /** Falas seguidas sob pressão. */
+  subir: number;
+  /** Falas seguidas calmas. */
+  descer: number;
+  /** A decisão da fala anterior (para saber se trocou). */
+  ultima: DegrauAdaptativo;
+}
+
+export const ESTADO_INICIAL_DO_ADAPTATIVO: EstadoDoAdaptativo = { indice: 0, subir: 0, descer: 0, ultima: 'manter' };
+
+/** O que a guarda deixou: calculado UMA vez por pedido, fora do caminho de cada fala. */
+export interface GuardaDoAdaptativo {
+  /** A escada de degraus possíveis, de baixo para cima; sempre começa em `manter`. */
+  escada: readonly DegrauAdaptativo[];
+  /** O degrau que roda de fato (a rota efetiva). */
+  efetivo: DegrauDaRota;
+  /** O motivo com que `decidirRota` escolheu a rota (lista fechada `MOTIVOS_DA_ROTA`). */
+  motivo: MotivoDaRota;
+}
+
+/** Os motores que têm um modelo menor de reserva (`reservaLocalDaRota`: o `tiny` e o `moonshine-tiny` já são o piso). */
+const MOTORES_COM_MENOR: ReadonlySet<string> = new Set([
+  'parakeet-v3',
+  'whisper-small',
+  'whisper-base',
+  'moonshine-base',
+]);
+
+const ehNuvemDoBabelOuSite = (d: DegrauDaRota): boolean =>
+  d === 'nuvem-por-trechos' || d === 'nuvem-ao-vivo' || d === 'nuvem-do-site';
+
+/**
+ * Consulta a guarda de `decidirRota` e monta a escada. `efetivo` é o degrau que a captura usa de fato (o `decidirRota`
+ * com a política desligada o prevê, e é o padrão). A nuvem só entra se a decisão a deixou (não está nas descartadas, está
+ * entre a rota e as reservas) e se as condições da guarda concordam de novo: nada de nuvem para perfil privado, protegido
+ * sem responsável, sem consentimento, sem rede, ou sem servidor.
+ */
+export function guardaDoAdaptativo(pedido: PedidoDeRota, efetivo?: DegrauDaRota): GuardaDoAdaptativo {
+  const decisao = decidirRota(pedido);
+  const e = pedido.estado;
+  const atual = efetivo ?? decisao.rota.degrau;
+  const escada: DegrauAdaptativo[] = ['manter'];
+  const local = atual === 'modelo-no-aparelho';
+  // O modelo local da decisão: o que roda, ou o da reserva quando a nuvem vai primeiro.
+  const passoLocal = [decisao.rota, ...decisao.reservas].find((x) => x.degrau === 'modelo-no-aparelho');
+  if (local && MOTORES_COM_MENOR.has(passoLocal?.motor ?? '')) escada.push('modelo-menor');
+  const nav = pedido.aparelho.navegador;
+  const nativoDisponivel =
+    pedido.tarefa === 'mt-final' || pedido.tarefa === 'mt-parcial'
+      ? nav.tradutor
+      : nav.fala && nav.falaNoAparelho === 'available';
+  if (local && nativoDisponivel) escada.push('nativo');
+  // A nuvem da decisão (rota ou reserva) que a própria decisão não descartou: outra nuvem descartada (o fluxo ao vivo) não conta.
+  const nuvemNaDecisao = [decisao.rota, ...decisao.reservas].some(
+    (p) => ehNuvemDoBabelOuSite(p.degrau) && !decisao.descartadas.some((d) => d.degrau === p.degrau),
+  );
+  const nuvemLiberada =
+    nuvemNaDecisao &&
+    e.consentimentos.nuvem &&
+    perfilQueTranca(e) === null &&
+    !e.semRede &&
+    !e.nuvemPausada &&
+    e.nuvemDisponivel;
+  if (!ehNuvemDoBabelOuSite(atual) && nuvemLiberada) escada.push('nuvem');
+  return { escada, efetivo: atual, motivo: decisao.rota.motivo };
+}
+
+export interface OpcoesDoAdaptativo {
+  /** A guarda já calculada para este pedido (o caminho barato). Ausente = consulta `decidirRota` agora. */
+  guarda?: GuardaDoAdaptativo;
+  limiares?: LimiaresDoAdaptativo;
+  /** As medições de STT (padrão: as versionadas). */
+  medicoes?: MedicoesDeStt;
+}
+
+export interface ResultadoDoAdaptativo {
+  /** O degrau que o roteador escolheria nesta fala. SÓ REGISTRO: nada o aplica. */
+  decisao: DegrauAdaptativo;
+  /** A decisão mudou em relação à fala anterior. */
+  trocou: boolean;
+  gatilho: GatilhoDoAdaptativo;
+  estado: EstadoDoAdaptativo;
+  guarda: GuardaDoAdaptativo;
+}
+
+/** O idioma-base tem medição dizendo que a nuvem NÃO vence o aparelho? Hoje só o inglês é medido. */
+function nuvemNaoVenceNoIdioma(idioma: string, medicoes: MedicoesDeStt): boolean {
+  return idiomaBase(idioma) === 'en' && !inglesNuvemVenceAparelho(medicoes);
+}
+
+/**
+ * A decisão adaptativa desta fala. Sem `pedido.sessao`, devolve `manter` com o estado intacto. Pura e barata: com a guarda
+ * pré-calculada em `opcoes.guarda`, não aloca nada além do resultado.
+ */
+export function decidirAdaptativo(
+  pedido: PedidoDeRota,
+  estado: EstadoDoAdaptativo = ESTADO_INICIAL_DO_ADAPTATIVO,
+  opcoes: OpcoesDoAdaptativo = {},
+): ResultadoDoAdaptativo {
+  const guarda = opcoes.guarda ?? guardaDoAdaptativo(pedido);
+  const s = pedido.sessao;
+  if (!s) return { decisao: 'manter', trocou: false, gatilho: 'sem-sessao', estado, guarda };
+  const l = opcoes.limiares ?? LIMIARES_DO_ADAPTATIVO;
+  const topo = guarda.escada.length - 1;
+  // A guarda manda: se a escada encolheu (a nuvem foi barrada agora), desce na hora, sem esperar histerese.
+  let indice = Math.min(estado.indice, topo);
+  const proximo = guarda.escada[indice + 1];
+
+  const rtfAlto = s.rtf !== null && s.rtf > l.rtfSobe;
+  const filaCheia = s.fila >= l.filaSobe;
+  let confiancaBaixa = s.confianca !== null && s.confianca < l.confiancaMinima;
+  // Prior: sem nuvem vencendo no idioma, a confiança baixa não leva à nuvem sozinha.
+  if (confiancaBaixa && proximo === 'nuvem' && nuvemNaoVenceNoIdioma(pedido.idioma, opcoes.medicoes ?? MEDICOES_DE_STT))
+    confiancaBaixa = false;
+  const pressao = proximo !== undefined && (rtfAlto || filaCheia || confiancaBaixa);
+  const calma = indice > 0 && s.rtf !== null && s.rtf < l.rtfDesce && s.fila === 0 && !confiancaBaixa;
+
+  let subir = 0;
+  let descer = 0;
+  let gatilho: GatilhoDoAdaptativo = 'estavel';
+  if (pressao) {
+    subir = estado.subir + 1;
+    gatilho = rtfAlto ? 'rtf-alto' : filaCheia ? 'fila-cheia' : 'confianca-baixa';
+    if (subir >= l.falasParaSubir) {
+      indice += 1;
+      subir = 0;
+    }
+  } else if (calma) {
+    descer = estado.descer + 1;
+    gatilho = 'recuperou';
+    if (descer >= l.falasParaDescer) {
+      indice -= 1;
+      descer = 0;
+    }
+  }
+  const decisao = guarda.escada[indice] ?? 'manter';
+  const trocou = decisao !== estado.ultima;
+  if (trocou) {
+    subir = 0;
+    descer = 0;
+  }
+  return { decisao, trocou, gatilho, estado: { indice, subir, descer, ultima: decisao }, guarda };
 }

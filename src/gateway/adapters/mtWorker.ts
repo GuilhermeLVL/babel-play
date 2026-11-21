@@ -47,11 +47,13 @@ function definirThreads(threads: unknown): void {
  *
  * Estado por carga: cada dtype do cascade tem arquivos e total diferentes.
  */
-function novoProgresso(rotulo: string) {
+function novoProgresso(rotulo: string, modelo: string) {
   // Ver whisperWorker: o total agregado vira `bytesEsperados` do manifesto.
   let bytesEsperados = 0;
   const rastrear = criarRastreadorDeProgresso((p) => {
     if (p.total > 0) bytesEsperados = p.total;
+    // Todos os bytes chegaram: o que falta até o pipeline abrir é compilação (`frasy:modelo:compilacao:*`).
+    if (p.total > 0 && p.progress >= 1) self.postMessage({ type: 'fase', model: modelo, fase: 'compilacao' });
     self.postMessage({
       type: 'progress',
       progress: p.progress,
@@ -195,7 +197,7 @@ async function carregarPipe(model: string): Promise<any> {
   let lastErr: unknown = null;
   for (const dtype of (diag.dtypes ?? MT_DTYPES) as readonly string[]) {
     try {
-      const progresso = novoProgresso('Tradutor (opus-mt)');
+      const progresso = novoProgresso('Tradutor (opus-mt)', model);
       // A cura do cache (`cacheDePesos.ts`): sessão que não abre apaga o modelo e baixa de novo, uma vez.
       const p = await carregarComCura(model, () =>
         pipeline('translation', model, {
@@ -205,6 +207,8 @@ async function carregarPipe(model: string): Promise<any> {
           session_options: { graphOptimizationLevel: diag.graphOpt ?? ORT_GRAPH_OPT },
         } as any),
       );
+      // Sem aquecimento neste worker: a fase fecha com duração zero (`iniciarFasesDeCarga`); a 1ª tradução real a paga.
+      self.postMessage({ type: 'fase', model, fase: 'compilacao' });
       await pipes.guardar(model, p);
       console.log(`[mt:worker] ${model} carregado (dtype=${dtype})`);
       // Manifesto com o dtype que REALMENTE venceu o cascade (int8 ou fp16 baixam arquivos

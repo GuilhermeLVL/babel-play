@@ -1,0 +1,128 @@
+[
+  {
+    "rodada": "moonshine-opus.frio",
+    "modelo": "onnx-community/moonshine-base-ONNX",
+    "download": 5055.6,
+    "compilacao": 455.8,
+    "aquecimento": 47.8,
+    "totalMs": 5559.2,
+    "pedidosAoHub": 56
+  },
+  {
+    "rodada": "moonshine-opus.frio",
+    "modelo": "Xenova/opus-mt-en-ROMANCE",
+    "download": 5391.6,
+    "compilacao": 249.9,
+    "aquecimento": 0,
+    "totalMs": 5641.5,
+    "pedidosAoHub": 56
+  },
+  {
+    "rodada": "moonshine-opus.quente",
+    "modelo": "onnx-community/moonshine-base-ONNX",
+    "download": 102.2,
+    "compilacao": 688.6,
+    "aquecimento": 49.9,
+    "totalMs": 840.7,
+    "pedidosAoHub": 2
+  },
+  {
+    "rodada": "moonshine-opus.quente",
+    "modelo": "Xenova/opus-mt-en-ROMANCE",
+    "download": 95.1,
+    "compilacao": 238.1,
+    "aquecimento": 0,
+    "totalMs": 333.2,
+    "pedidosAoHub": 2
+  },
+  {
+    "rodada": "parakeet.frio",
+    "modelo": "parakeet-tdt-0.6b-v3",
+    "download": 33264.1,
+    "compilacao": 519.5,
+    "aquecimento": 132.2,
+    "totalMs": 33915.8,
+    "pedidosAoHub": 14
+  },
+  {
+    "rodada": "parakeet.quente",
+    "modelo": "parakeet-tdt-0.6b-v3",
+    "download": 616.3,
+    "compilacao": 560.3,
+    "aquecimento": 161.9,
+    "totalMs": 1338.5,
+    "pedidosAoHub": 0
+  },
+  {
+    "rodada": "whisper-base.frio",
+    "modelo": "onnx-community/whisper-base",
+    "download": 9688.2,
+    "compilacao": 0,
+    "aquecimento": 605.9,
+    "totalMs": 10294.1,
+    "pedidosAoHub": 39
+  },
+  {
+    "rodada": "whisper-base.frio",
+    "modelo": "bergamot/pt-en",
+    "download": 190.5,
+    "compilacao": 34.9,
+    "aquecimento": 99.3,
+    "totalMs": 324.7,
+    "pedidosAoHub": 39
+  },
+  {
+    "rodada": "whisper-base.quente",
+    "modelo": "onnx-community/whisper-base",
+    "download": 1320.9,
+    "compilacao": 0,
+    "aquecimento": 603.7,
+    "totalMs": 1924.6,
+    "pedidosAoHub": 3
+  },
+  {
+    "rodada": "whisper-base.quente",
+    "modelo": "bergamot/pt-en",
+    "download": 155.1,
+    "compilacao": 35.4,
+    "aquecimento": 95.3,
+    "totalMs": 285.8,
+    "pedidosAoHub": 3
+  },
+  {
+    "rodada": "whisper-tiny.frio",
+    "modelo": "onnx-community/whisper-tiny",
+    "download": 7623,
+    "compilacao": 0.1,
+    "aquecimento": 359.5,
+    "totalMs": 7982.6,
+    "pedidosAoHub": 39
+  },
+  {
+    "rodada": "whisper-tiny.frio",
+    "modelo": "bergamot/pt-en",
+    "download": 198.9,
+    "compilacao": 34.7,
+    "aquecimento": 94.9,
+    "totalMs": 328.5,
+    "pedidosAoHub": 39
+  },
+  {
+    "rodada": "whisper-tiny.quente",
+    "modelo": "onnx-community/whisper-tiny",
+    "download": 1168.9,
+    "compilacao": 0,
+    "aquecimento": 354.7,
+    "totalMs": 1523.6,
+    "pedidosAoHub": 3
+  },
+  {
+    "rodada": "whisper-tiny.quente",
+    "modelo": "bergamot/pt-en",
+    "download": 150,
+    "compilacao": 35,
+    "aquecimento": 94.6,
+    "totalMs": 279.6,
+    "pedidosAoHub": 3
+  }
+]

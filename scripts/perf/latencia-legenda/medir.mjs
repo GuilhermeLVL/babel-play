@@ -102,6 +102,24 @@ const NOME_DO_APARELHO = opt('dispositivo', '')
 const APARELHO = NOME_DO_APARELHO ? (DISPOSITIVOS[NOME_DO_APARELHO] ?? APARELHOS_DA_BANCADA[NOME_DO_APARELHO]) : null
 if (NOME_DO_APARELHO && !APARELHO) throw new Error(`--dispositivo desconhecido: ${NOME_DO_APARELHO}`)
 
+/** O WAV do microfone falso existe e é PCM? (hipótese 3 do diagnóstico do bipe) */
+function diagnosticoDoWav(arquivo) {
+  if (!existsSync(arquivo)) return { arquivo, existe: false }
+  const b = readFileSync(arquivo)
+  const riff = b.toString('ascii', 0, 4) === 'RIFF' && b.toString('ascii', 8, 12) === 'WAVE'
+  return {
+    arquivo,
+    existe: true,
+    bytes: b.length,
+    riff,
+    formato: riff ? b.readUInt16LE(20) : null,
+    sr: riff ? b.readUInt32LE(24) : null,
+  }
+}
+
+// A interface troca de idioma junto com `--eu` (`captureSourceLang`): em en-US o botão é "Start capture".
+const BOTAO_INICIAR = /Iniciar captura|Start capture/
+
 const log = (...a) => console.log(`[${ROTULO}]`, ...a)
 
 /**
@@ -389,7 +407,7 @@ log('idiomas:', chipTexto, '|', resumo, '|', seloModelo)
 
 // ---- intenção: foco em "Iniciar" por N ms antes do clique (tIniciarPerf vem DEPOIS: pronto antes do clique = negativo)
 if (INTENCAO_MS > 0) {
-  const botao = page.getByRole('button', { name: 'Iniciar captura' })
+  const botao = page.getByRole('button', { name: BOTAO_INICIAR })
   await botao.hover()
   await botao.focus()
   await page.waitForTimeout(INTENCAO_MS)
@@ -402,7 +420,9 @@ await page.evaluate(() => {
   window.__capReset?.()
 })
 const tIniciarPerf = await page.evaluate(() => performance.now())
-await page.getByRole('button', { name: 'Iniciar captura' }).click()
+// Diagnóstico do bipe: o instante (relógio da página) em que a sonda foi armada, para comparar com cada `gum`.
+const tArmado = await page.evaluate(() => performance.now())
+await page.getByRole('button', { name: BOTAO_INICIAR }).click()
 // Aparelho com aviso de download (Quest/celular, perfil novo): lê o tamanho anunciado e aceita.
 let avisoDeDownload = null
 {
@@ -657,6 +677,8 @@ writeFileSync(
       ui: { chipTexto, resumo, seloModelo },
       roteiro,
       tIniciarPerf,
+      tArmado,
+      wav: diagnosticoDoWav(WAV),
       tAbrirEpoch: tAbrir,
       gpuInfo,
       pedidosAoHub: bytes,

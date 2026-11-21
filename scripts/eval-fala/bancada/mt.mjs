@@ -16,7 +16,7 @@
  *                                       com o do corpus (erro claro se não bater); `bergamot:auto`
  *                                       segue o corpus. Registra também a latência POR FRASE.
  * Corpora (`--corpora`):
- *   fleurs:en-pt  fleurs:pt-en  wmt:en-pt  gold:en-pt
+ *   fleurs:en-pt  fleurs:pt-en  fleurs:es-en  wmt:en-pt  gold:en-pt   (`fleurs:<X>-en`: `montar-fleurs-x-en.mjs`)
  *   cascata:<sistema-stt>:en-pt   o texto que o STT ENTENDEU do áudio em inglês, traduzido e
  *                                 comparado com a referência humana em pt — o que o usuário vê.
  *
@@ -31,7 +31,7 @@
  */
 /* global AbortSignal */
 import path from 'node:path'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import os from 'node:os'
 
 import { bootstrap, bootstrapPareado, mediaEm } from '../../../src/core/eval/bootstrap.ts'
@@ -102,7 +102,10 @@ function carregarCorpus(specComAmostra) {
   const [src, tgt] = partes.at(-1).split('-')
   let casos
   if (partes[0] === 'fleurs') {
-    casos = lerJsonl('mt/fleurs_en_pt.jsonl').map((p) => ({ id: p.id, origem: p[src], referencia: p[tgt] }))
+    // `fleurs_x_en.jsonl` (montar-fleurs-x-en.mjs) traz es, pt… com o en; `fleurs_en_pt.jsonl` é o da bancada original.
+    const doX = existsSync(path.join(BANCADA_DIR, 'mt/fleurs_x_en.jsonl')) ? lerJsonl('mt/fleurs_x_en.jsonl') : []
+    const linhas = doX.some((p) => p[src] && p[tgt]) ? doX : lerJsonl('mt/fleurs_en_pt.jsonl')
+    casos = linhas.filter((p) => p[src] && p[tgt]).map((p) => ({ id: p.id, origem: p[src], referencia: p[tgt] }))
   } else if (partes[0] === 'wmt') {
     casos = lerJsonl('mt/wmt24pp_en_ptbr.jsonl').map((p) => ({
       id: p.id,
@@ -225,6 +228,7 @@ async function tradutorLocal(nome, src, tgt) {
     modelo = 'Xenova/opus-mt-en-ROMANCE'
     tokenId = 51
   } else if (src === 'pt' && tgt === 'en') modelo = 'Xenova/opus-mt-ROMANCE-en'
+  else if (['es', 'fr', 'it', 'de'].includes(src) && tgt === 'en') modelo = `Xenova/opus-mt-${src}-en`
   else throw new Error(`opus-mt não cobre ${src}→${tgt}`)
   const pipe = await pipeline('translation', modelo, { dtype: 'q8', device: 'cpu' })
   // tc-big precisa do token de variante no texto: >>por<< (pt-BR é o padrão do par en-pt do Tatoeba).

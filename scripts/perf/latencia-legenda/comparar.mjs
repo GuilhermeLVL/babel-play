@@ -25,6 +25,8 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const SENTIDOS = new Set(['menor', 'maior'])
+/** De onde veio o número de um perfil: `medido` (aparelho real ou máquina da própria base) ou `emulado` (CPU/memória limitadas por software). */
+export const ORIGENS = new Set(['medido', 'emulado'])
 
 /** Erros de forma do SLO (lista vazia = válido). */
 export function validarSlo(doc) {
@@ -39,13 +41,20 @@ export function validarSlo(doc) {
       erros.push(`métrica "${nome}": folgaAbs tem de ser um número ≥ 0`)
   }
   for (const [amb, a] of Object.entries(doc.ambientes ?? {}))
-    for (const [perfil, valores] of Object.entries(a?.perfis ?? {}))
+    for (const [perfil, valores] of Object.entries(a?.perfis ?? {})) {
       for (const nome of Object.keys(valores ?? {}))
         if (!(nome in metricas)) erros.push(`ambiente "${amb}", perfil "${perfil}": métrica "${nome}" fora da lista`)
+      // Todo perfil diz de onde veio o número: resultado emulado nunca aprova meta de celular, Quest ou iPhone.
+      const origem = a?.origens?.[perfil]?.origem
+      if (!ORIGENS.has(origem))
+        erros.push(
+          `ambiente "${amb}", perfil "${perfil}": falta origem em "origens" (medido ou emulado; veio "${origem}")`,
+        )
+    }
   return erros
 }
 
-function limiteDe(cfg, base) {
+export function limiteDe(cfg, base) {
   const tol = (cfg.toleranciaPct ?? 0) / 100
   const folga = cfg.folgaAbs ?? 0
   return cfg.sentido === 'maior' ? base * (1 - tol) - folga : base * (1 + tol) + folga
@@ -55,6 +64,19 @@ function melhoraDe(cfg, base) {
   const tol = (cfg.toleranciaPct ?? 0) / 100
   const folga = cfg.folgaAbs ?? 0
   return cfg.sentido === 'maior' ? base * (1 + tol) + folga : base * (1 - tol) - folga
+}
+
+/**
+ * Rodadas inválidas de um resultado (`perfis.<perfil>.invalidas`, de `agregarRodadas`), com o motivo.
+ * Rodada inválida nunca vira número: quem lê o resultado recusa em vez de comparar a mediana do que sobrou.
+ *
+ * @param {{ perfis?: Record<string, { invalidas?: { rotulo: string, motivo: string }[] }> }} resultado
+ * @returns {{ perfil: string, rotulo: string, motivo: string }[]}
+ */
+export function rodadasInvalidas(resultado) {
+  return Object.entries(resultado?.perfis ?? {}).flatMap(([perfil, r]) =>
+    (r?.invalidas ?? []).map((i) => ({ perfil, rotulo: i.rotulo, motivo: i.motivo ?? 'sem motivo' })),
+  )
 }
 
 const finito = (x) => typeof x === 'number' && Number.isFinite(x)
@@ -132,8 +154,15 @@ function arredondar(x) {
 export function gravarLinhaDeBase(slo, resultado, ambiente, meta = {}) {
   const perfis = {}
   const rodadas = {}
+  const origens = { ...(slo.ambientes?.[ambiente]?.origens ?? {}) }
   for (const [perfil, r] of Object.entries(resultado.perfis ?? {})) {
     rodadas[perfil] = r.rodadas
+    origens[perfil] = {
+      origem: r.origem ?? 'medido',
+      aparelho: r.aparelhoDescricao ?? meta.descricao ?? null,
+      commit: meta.commit ?? null,
+      data: (meta.medidoEm ?? '').slice(0, 10) || null,
+    }
     perfis[perfil] = {}
     for (const metrica of Object.keys(slo.metricas ?? {})) {
       const v = r.metricas?.[metrica]
@@ -144,7 +173,7 @@ export function gravarLinhaDeBase(slo, resultado, ambiente, meta = {}) {
     ...slo,
     ambientes: {
       ...(slo.ambientes ?? {}),
-      [ambiente]: { ...(slo.ambientes?.[ambiente] ?? {}), ...meta, rodadas, perfis },
+      [ambiente]: { ...(slo.ambientes?.[ambiente] ?? {}), ...meta, rodadas, origens, perfis },
     },
   }
 }
@@ -210,6 +239,16 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const resultado = JSON.parse(readFileSync(arqResultado, 'utf8'))
   const ambiente = opt('ambiente', resultado.ambiente)
   if (!ambiente) throw new Error('--ambiente é obrigatório (ou `ambiente` no resultado)')
+
+  // Rodada inválida nunca vira número, nem comparação, nem linha de base: refaz a rodada.
+  const invalidas = rodadasInvalidas(resultado)
+  if (invalidas.length) {
+    console.error(
+      `Resultado recusado: ${invalidas.length} rodada(s) inválida(s). Refaça-as; nada foi comparado nem gravado.`,
+    )
+    for (const i of invalidas) console.error(`- ${i.perfil} / ${i.rotulo}: ${i.motivo}`)
+    process.exit(1)
+  }
 
   if (args.includes('--gravar-linha-de-base')) {
     const meta = {

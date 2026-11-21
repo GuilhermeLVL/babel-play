@@ -28,6 +28,10 @@ const FLAGS_SENSIVEIS = new Set([
   'voz_kitten',
   'leitura_ativa',
   'acesso_restrito_sem_conta',
+  'rum_latencia',
+  'stt_nuvem_normalizar',
+  'roteador_adaptativo_sombra',
+  'traducao_local_por_direcao',
 ]);
 
 /** As regras da flag em palavras curtas, para ver de relance quem ela alcança. */

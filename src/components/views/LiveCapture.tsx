@@ -118,6 +118,7 @@ import {
   transcricaoNoNavegadorAntesDeGravar,
   useMotorComIdiomaEscolhido,
 } from '../../lib/captura/legendaSemBaixar';
+import { useMarcaDaLegenda } from '../../lib/captura/marcaDaLegenda';
 import { cancelarLiberacaoDosModelos, liberarAoSairDaCaptura } from '../../lib/captura/memoriaDosModelos';
 import { type EscolhaDoMic, webSpeechBipaAoReligar } from '../../lib/captura/motorDoMicrofone';
 import { baixarSemEmpilhar, nuvemDoSttDisponivel, ofereceOPreciso } from '../../lib/captura/ofertaDoPreciso';
@@ -998,6 +999,8 @@ export default function LiveCapture({
   /* O texto da conversa sobe ao App (contexto do iChat) no máximo a cada 500 ms, só quando muda:
      antes era um `join` de TODAS as falas e um render do App inteiro a cada parcial do streaming. */
   useTextoDaConversa(speechSegments, onTranscriptChange);
+  // O quadro em que cada tradução FINAL aparece vira a marca `frasy:legenda:traduzida` (só instrumentação).
+  useMarcaDaLegenda(speechSegments);
 
   // Ref espelhando isRecording (usado pelos fluxos de start/stop das capturas).
   const isRecordingRef = useRef(false);

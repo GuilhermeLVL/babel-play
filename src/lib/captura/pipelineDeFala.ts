@@ -16,6 +16,7 @@ import {
   type MotivoDaOfertaDeAlivio,
   type SinaisDoAparelhoParaAlivio,
 } from '../../core/nuvemDeAlivio';
+import { FLAG_STT_NUVEM_NORMALIZAR } from '../../core/planos';
 import {
   avaliarFalaLocal,
   continuarAudioDificil,
@@ -26,6 +27,7 @@ import {
   registrarFalaNaNuvem,
   registrarPausaDaNuvem,
 } from '../../core/rota/audioDificil';
+import { inglesNuvemVenceAparelho } from '../../core/rota/medicoesDeStt';
 import type { DecisaoDeRota } from '../../core/rota/politicaDeRota';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
 import { temAdaptadorWebGpu } from '../../gateway/adaptadorWebGpu';
@@ -34,9 +36,11 @@ import type { AvisoDeDegradacaoDoStt, SttFinal } from '../../gateway/capabilitie
 import { capMetrics, type CapSource } from '../../gateway/capture/captureMetrics';
 import type { EspeculacaoDoFinal } from '../../gateway/capture/systemAudio';
 import { aoFalharANuvemDoStt, aoResponderANuvemDoStt } from '../../gateway/falhaDaNuvemDoStt';
+import { marcar } from '../../gateway/marcasDeDesempenho';
 import { areModelsCached, expectedModelIds } from '../../gateway/modelCache';
 import { temCopiaNoAparelho } from '../../gateway/modelManifest';
 import { entradaDoParakeet, gravarModeloFixo, lerModeloFixo } from '../../gateway/modeloFixo';
+import { definirNormalizacaoDoStt } from '../../gateway/normalizacaoDoStt';
 import type { ContextoDoStt } from '../../gateway/promptDeStt';
 import {
   getSttQuality,
@@ -69,7 +73,12 @@ import { isTtsActive } from '../tts';
 import { classificarVazamento, type Intervalo } from '../vazamento';
 import { setterNoQuadro } from './agendarNoQuadro';
 import { guardarAudioDaFala } from './audioDasFalas';
-import { conferirRotaDoStt, type EntradaDaConferencia, montarPedidoDeRota } from './conferenciaDaRota';
+import {
+  conferirRotaDoStt,
+  type EntradaDaConferencia,
+  montarPedidoDeRota,
+  prepararSombraDoRoteador,
+} from './conferenciaDaRota';
 import { converterEscritaChinesa, escritaDoIdioma, prepararEscritaChinesa } from './escritaChinesa';
 import { idiomaForaDoPar } from './idiomaForaDoPar';
 import { decidirNaVirtual, ESTADO_DA_VIRTUAL, type EstadoDaVirtual } from './idiomasDaConversaVirtual';
@@ -91,6 +100,7 @@ import {
 } from './reservaLocal';
 import { previstosDoSelo } from './seloDaFala';
 import { vetarSeCaiuComOModelo } from './sentinelaDoModelo';
+import type { AlimentadorDaSombra } from './sombraDaRota';
 import { chaveLigada } from './testesDoInterprete';
 import {
   type CaptureScenario,
@@ -484,6 +494,11 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     semParakeet: false,
     soltar: null,
   };
+  /**
+   * A SOMBRA DO ROTEADOR ADAPTATIVO desta captura (flag `roteador_adaptativo_sombra`, `conferenciaDaRota.ts`): `null` com a
+   * flag desligada. Só REGISTRA o que o roteador decidiria; nada na captura lê o resultado, a rota real não muda.
+   */
+  const sombraDoRoteador: { alimentar: AlimentadorDaSombra | null } = { alimentar: null };
   /** O modo da histerese mudou: o gateway troca quem vai primeiro, e o selo e o rótulo acompanham. */
   const aplicarModoDoAudio = (): void => {
     const modo = audioDificil.estado.modo;
@@ -677,6 +692,14 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
               },
             ],
       );
+    };
+
+    /* O ÚLTIMO QUADRO DE VOZ da fala: é daqui que o laboratório de latência conta o tempo até a legenda traduzida
+       (`frasy:fala:fim`, com o id do balão e o instante do quadro, não o da decisão do VAD). Só instrumentação. */
+    const onFimDaVoz = (rawSeq: number, t: number) => {
+      const id = `${idPrefix}-${rawSeq + offset}`;
+      marcar('fala:fim', { id }, t);
+      capMetrics.fimDaVoz(id, t);
     };
 
     // Ruído curto (misfire): remove o balão provisório para não deixar bloco órfão.
@@ -1064,6 +1087,13 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         .then(async (r): Promise<SttFinal> => {
           // "Aparelho primeiro": a histerese do áudio difícil conta esta fala ANTES da porta subir o trecho.
           contarAudioDificil(r, audioMs);
+          sombraDoRoteador.alimentar?.({
+            engine: r.engine,
+            // Só o final LOCAL mede o aparelho (como o regulador); o da nuvem mede a rede.
+            rtf: r.engine !== 'groq-whisper' && r.decodeMs !== undefined && audioMs > 0 ? r.decodeMs / audioMs : null,
+            fila: queueDepth,
+            confianca: r.confidence ?? null,
+          });
           const texto = (r.text ?? '').trim();
           if (!texto || r.engine === 'groq-whisper') return r;
           const porta = avaliarTrechoStt({ compressionRatio: razaoDeCompressaoAproximada(texto) });
@@ -1079,7 +1109,10 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         })
         .then(({ text, engine, language, confiancaDoIdioma, alucinacaoDescartada, idiomaConferido }) => {
           const clean = naEscritaEscolhida((text ?? '').trim(), language, hint);
-          if (!clean && alucinacaoDescartada) capMetrics.alucinacao();
+          if (!clean && alucinacaoDescartada) {
+            capMetrics.alucinacao();
+            capMetrics.falhaDaLegenda(uttId); // descartada pelo filtro: fora do percentil, conta em `falhas`
+          }
           const decodeMs = Math.round(performance.now() - t0);
           clog(
             'Whisper final',
@@ -1126,6 +1159,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
              para repetir, sem tradução e sem leitura; a tradução que sairia dela seria inventada (CONV-03). */
           const foraDoPar = conferir ? idiomaForaDoPar({ esperado: from, conferido: idiomaConferido, audioMs }) : null;
           if (foraDoPar) {
+            capMetrics.semTraducaoDaLegenda(uttId);
             capMetrics.final(seq, { decodeMs, queueDepth, text: clean, audioMs, engine });
             clog(
               'intérprete: fala',
@@ -1452,6 +1486,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
 
     return {
       onSpeechStart,
+      onFimDaVoz,
       onMisfire,
       onPartialAudio,
       onUtterance,
@@ -1617,6 +1652,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         })()
       : false;
     const modeloFixoLido = lerModeloFixo();
+    const normalizarNuvem = flagLigada(FLAG_STT_NUVEM_NORMALIZAR);
+    definirNormalizacaoDoStt(normalizarNuvem);
     const entradaDoRoteador: SttRouteInput = {
       contentLang: listenLang,
       // O mesmo modelo decodifica o MIC: se você fala PT enquanto ouve EN, o moonshine (só inglês) não serve.
@@ -1638,6 +1675,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
          primeiro e a nuvem fica para o áudio difícil. A chave própria (provedor "nuvem") fica fora: ali
          a pessoa escolheu a nuvem dela. */
       aparelhoPrimeiro: flagLigada(FLAG_STT_APARELHO_PRIMEIRO) && getProviderMode() !== 'cloud',
+      /* VOLUME DA NUVEM (flag `stt_nuvem_normalizar`): o adaptador de nuvem normaliza o áudio enviado, e o roteador só
+         manda o inglês à nuvem primeiro com ela ligada e a medição vencendo o aparelho (`medicoesDeStt`). */
+      sttNuvemNormalizar: normalizarNuvem,
     };
     let route = routeStt(entradaDoRoteador);
     /* A POLÍTICA DE ROTA (`core/rota/politicaDeRota.ts`) responde à mesma pergunta, DESLIGADA (modo
@@ -1656,6 +1696,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       leve: perfil.leve,
       parakeetPronto: parakeetProntoNaRota(entradaDoRoteador),
       aparelhoPrimeiro: entradaDoRoteador.aparelhoPrimeiro,
+      inglesNaNuvem: normalizarNuvem && inglesNuvemVenceAparelho(),
     };
     // (1) só em desenvolvimento, a diferença para a rota efetiva vai para o console (`conferenciaDaRota.ts`);
     if (import.meta.env?.DEV) void conferirRotaDoStt(entradaDaPolitica, route);
@@ -1694,6 +1735,11 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             : null,
       };
       previstos = previstosDoSelo(pedidoDoSelo, opcoesDoSelo);
+      // Sombra do roteador adaptativo: assíncrona e à parte; falhar não muda a rota nem a captura.
+      sombraDoRoteador.alimentar = null;
+      void prepararSombraDoRoteador(pedidoDoSelo).then((f) => {
+        sombraDoRoteador.alimentar = f;
+      });
       if (route.nuvemNoAudioDificil) {
         previstosNaNuvem = previstosDoSelo(
           { ...pedidoDoSelo, estado: { ...pedidoDoSelo.estado, audioDificil: true } },

@@ -21,7 +21,9 @@
  * Os números (bytes, sha256, id da execução de treino) vêm de `modelosDoBergamot.json`, a MESMA
  * fonte que o script de build lê: um só lugar para trocar de modelo.
  */
+import { FLAG_TRADUCAO_LOCAL_POR_DIRECAO } from '../../core/planos';
 import { ORIGENS_DO_BERGAMOT_NO_CDN, passaPeloIngles } from '../../core/traducao/viaIngles';
+import { flagLigada } from '../../lib/flagsCache';
 import modelos from './modelosDoBergamot.json';
 
 declare const __BERGAMOT_PT_EN__: boolean | undefined;
@@ -97,9 +99,13 @@ export function bergamotNoBuild(): boolean {
   return typeof __BERGAMOT_PT_EN__ === 'boolean' && __BERGAMOT_PT_EN__;
 }
 
-/** O build aponta para o CDN dos outros pares (`VITE_BERGAMOT_MODELOS_URL`)? Sem ele só o pt→en existe. */
+/**
+ * O build aponta para o CDN dos outros pares (`VITE_BERGAMOT_MODELOS_URL`) E a flag `traducao_local_por_direcao` está
+ * ligada? Sem um dos dois só o pt→en embutido existe: a flag gateia o USO, então publicar no R2 e definir a URL não
+ * muda nada para ninguém até ela ligar (openspec `traducao-local-por-direcao`, D1).
+ */
 export function bergamotCdnNoBuild(): boolean {
-  return typeof __BERGAMOT_CDN__ === 'boolean' && __BERGAMOT_CDN__;
+  return typeof __BERGAMOT_CDN__ === 'boolean' && __BERGAMOT_CDN__ && flagLigada(FLAG_TRADUCAO_LOCAL_POR_DIRECAO);
 }
 
 /** Este par está disponível no build (embutido, ou no CDN)? */

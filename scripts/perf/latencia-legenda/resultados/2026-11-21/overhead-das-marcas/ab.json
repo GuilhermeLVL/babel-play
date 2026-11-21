@@ -1,0 +1,90 @@
+{
+  "a": "antes.desktop",
+  "b": "depois.desktop",
+  "rodadas": [12, 12],
+  "falas": 8,
+  "res": {
+    "p50": {
+      "a": 866.75,
+      "b": 869.75,
+      "dif": 3,
+      "ic95": [-81.50625, 163.26249999999982]
+    },
+    "p75": {
+      "a": 1015.25,
+      "b": 998.875,
+      "dif": -16.375,
+      "ic95": [-133.375, 107.00312499999995]
+    },
+    "p95": {
+      "a": 1460.0499999999997,
+      "b": 1439.4999999999998,
+      "dif": -20.549999999999955,
+      "ic95": [-114.750625, 64.37562499999999]
+    }
+  },
+  "decisao": "custo não descartado: limite superior do IC 95% do p75 (107 ms) > 5 ms",
+  "guardas": [
+    {
+      "nome": "framesLongos.n50",
+      "a": 0,
+      "b": 0,
+      "limite": 5,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.n100",
+      "a": 0,
+      "b": 0,
+      "limite": 3,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.somaMs",
+      "a": 0,
+      "b": 0,
+      "limite": 500,
+      "status": "ok"
+    },
+    {
+      "nome": "cpuSilencio.processoPct",
+      "a": 13.890311734155404,
+      "b": 13.861566444872832,
+      "limite": 24.446436427817563,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.silencio",
+      "a": 22.91910902696366,
+      "b": 22.91910902696366,
+      "limite": 31.648886283704577,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.fala",
+      "a": 91.93758127438231,
+      "b": 91.11400086692674,
+      "limite": 124.92197659297788,
+      "status": "ok"
+    },
+    {
+      "nome": "fimDaFalaAteLegendaMs.taxaDeFalha",
+      "a": 0,
+      "b": 0,
+      "limite": 0.15,
+      "status": "ok"
+    }
+  ],
+  "falhas": {
+    "a": {
+      "falhas": 0,
+      "ok": 96,
+      "taxa": 0
+    },
+    "b": {
+      "falhas": 0,
+      "ok": 96,
+      "taxa": 0
+    }
+  }
+}

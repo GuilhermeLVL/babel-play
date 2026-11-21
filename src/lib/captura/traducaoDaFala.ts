@@ -10,6 +10,7 @@ import type { Dispatch, RefObject, SetStateAction } from 'react';
 
 import { ChromeTranslatorMt } from '../../gateway/adapters/chromeTranslator';
 import { capMetrics } from '../../gateway/capture/captureMetrics';
+import type { OrigemDaLegenda } from '../../gateway/marcasDeDesempenho';
 import { getEntitlements } from '../entitlements';
 import { baseLang, langLabel, mtCoverage } from '../languages';
 import { OrdemDasTraducoes } from '../ordemDaTraducao';
@@ -67,6 +68,13 @@ export function criarRelogioDaSessao({ sessionStartMsRef, shouldAnchorClockRef, 
   };
 
   return { nowRel, anchorSessionClock };
+}
+
+/** De onde veio a tradução do motor `engine` (a `origem` de `frasy:legenda:traduzida`): navegador, aparelho ou nuvem. */
+export function origemDoMotor(engine: string | undefined): OrigemDaLegenda {
+  if (engine === 'chrome-translator') return 'nativo';
+  if (engine === 'opus-mt-local' || engine === 'bergamot-local') return 'local';
+  return 'nuvem';
 }
 
 /** Os dois códigos têm o mesmo idioma BASE (`pt` == `pt-BR`)? Vazio nunca é "o mesmo". */
@@ -340,6 +348,7 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
           prev.map((seg) => (seg.id === segId ? { ...seg, translatedText: '', traducaoSobDemanda: true } : seg)),
         );
         capMetrics.mtPulada(motivo);
+        capMetrics.semTraducaoDaLegenda(segId);
         avisarFinal(finalSemTraducao(segId, text, origemM0, tgtM0, falada));
         return;
       }
@@ -373,7 +382,10 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
       if (ordemMtRef.current.encerrar(segId, selo)) {
         setSpeechSegments((prev) => prev.map((seg) => (seg.id === segId ? { ...seg, translatedText: '' } : seg)));
       }
-      if (!parcial) avisarFinal(finalSemTraducao(segId, text, origemEfetiva, tgt, opts?.falada === true));
+      if (!parcial) {
+        avisarFinal(finalSemTraducao(segId, text, origemEfetiva, tgt, opts?.falada === true));
+        capMetrics.semTraducaoDaLegenda(segId);
+      }
       /* AVISO ÚNICO, só quando é conclusão da sessão (perfil convergido), não palpite de uma fala. */
       if (!opts?.falada && !altTargetNotifiedRef.current && perfilIdiomaRef.current.observado()) {
         altTargetNotifiedRef.current = true;
@@ -411,7 +423,7 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
       );
     // Chave tolerante a caixa/pontuação final: "Tá bom." e "tá bom" eram duas entradas.
     const cacheKey = `${origem}|${tgt}|${chaveNormalizada(textoParaMt)}`;
-    const applyTranslation = (translated: string, aproximada = false) => {
+    const applyTranslation = (translated: string, origemDaLegenda: OrigemDaLegenda, aproximada = false) => {
       // "≈" na frente: o último recurso público (MyMemory) acerta frases comuns e erra gíria e
       // contexto. Dizer que é aproximada é o que separa "tradução ruim" de "app mentindo".
       const legivel = translated.charAt(0).toUpperCase() + translated.slice(1);
@@ -436,6 +448,8 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
             ? {
                 ...seg,
                 translatedText: capitalized,
+                /* Só o FINAL marca a legenda (`useMarcaDaLegenda`): o parcial traduzido não encerra a medida. */
+                origemDaTraducao: parcial ? undefined : origemDaLegenda,
                 traducaoPendente: undefined,
                 traducaoProvisoria: undefined,
                 ...(ehMotivoSemTraducao(seg.semTraducao) ? { semTraducao: undefined } : {}),
@@ -446,12 +460,12 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
     };
     // Expressão inteira conhecida ("valeu!", "pois é."): a tradução natural já está pronta.
     if (preparada.traducaoPronta) {
-      if (ordemMtRef.current.encerrar(segId, selo)) applyTranslation(preparada.traducaoPronta);
+      if (ordemMtRef.current.encerrar(segId, selo)) applyTranslation(preparada.traducaoPronta, 'dicionario');
       return fim();
     }
     const cached = translationCacheRef.current.get(cacheKey);
     if (cached) {
-      if (ordemMtRef.current.encerrar(segId, selo)) applyTranslation(cached);
+      if (ordemMtRef.current.encerrar(segId, selo)) applyTranslation(cached, 'memoria');
       return fim();
     }
     /* Quem paga pela nuvem manda também o áudio do SISTEMA primeiro ao LLM do servidor (Fase 2 do
@@ -495,6 +509,7 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
           ),
         );
         avisarFinal(finalSemTraducao(segId, text, origem, tgt, opts?.falada === true));
+        capMetrics.falhaDaLegenda(segId); // fora do percentil do laboratório, conta em `falhas` (uma vez por fala)
         // Degradação NUNCA é silenciosa (achado da auditoria): avisa UMA vez por sessão. A linha já diz o motivo.
         if (!mtFailNotifiedRef.current) {
           mtFailNotifiedRef.current = true;
@@ -574,7 +589,7 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
             if (memoria && approximate !== true && deveGuardarNaMemoria(textoParaMt))
               void memoria.gravar(cacheKey, translated, engine || 'mt');
           }
-          if (atual) applyTranslation(translated, approximate === true);
+          if (atual) applyTranslation(translated, origemDoMotor(engine), approximate === true);
         })
         .catch((err) => {
           if (settled) return;
@@ -640,7 +655,7 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
           );
         else translationCacheRef.current.set(cacheKey, guardada.texto);
         if (ordemMtRef.current.encerrar(segId, selo))
-          applyTranslation(guardada.texto, guardada.aproximada && guardada.similaridade < 1);
+          applyTranslation(guardada.texto, 'memoria', guardada.aproximada && guardada.similaridade < 1);
         fim();
       },
       (err: unknown) => {

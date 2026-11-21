@@ -1,0 +1,882 @@
+{
+  "geradoEm": "2026-11-21T08:32:22.428Z",
+  "commit": "ff626a94",
+  "sistemas": ["local:opus-mt", "bergamot:es-en"],
+  "corpora": ["fleurs:es-en"],
+  "gastoTotalUsd": 0,
+  "pulados": [],
+  "resultados": [
+    {
+      "sistema": "local:opus-mt",
+      "corpus": "fleurs:es-en",
+      "n": 51,
+      "falhas": 0,
+      "chrf": {
+        "valor": 55.3296172280472,
+        "ic95": [52.3704688983846, 58.21840446584092]
+      },
+      "latenciaMs": {
+        "p50": 207.9952089999988,
+        "p95": 437.45904100000007
+      },
+      "latenciaPorFraseMs": {
+        "p50": 199.37187499999982,
+        "p95": 334.5746249999993
+      },
+      "usdTotal": 0,
+      "usdPorHoraDeFala": 0,
+      "casos": [
+        {
+          "id": "fleurs_1661",
+          "origem": "No mencionó una cifra para los recortes y manifestó que se harán en base a la producción económica de China.",
+          "referencia": "He did not set a figure for the cuts, saying they will be made based on China's economic output.",
+          "hipotese": "He did not mention a figure for the cuts and said that they will be made based on China's economic production.",
+          "chrf": 71.26984485891926,
+          "ms": 199
+        },
+        {
+          "id": "fleurs_1668",
+          "origem": "También puede ser conveniente comprar una Wild Card que permite la entrada a selecciones de parques en Sudáfrica o a todos los Parques Nacionales del país.",
+          "referencia": "It may also be beneficial for one to buy a Wild Card, which provides entry to either selections of parks in South Africa or all of the South African National Parks.",
+          "hipotese": "It may also be convenient to buy a Wild Card that allows entry to selections of parks in South Africa or to all National Parks in the country.",
+          "chrf": 56.402424210762504,
+          "ms": 231
+        },
+        {
+          "id": "fleurs_1676",
+          "origem": "Como en todas las reservas naturales de Sudáfrica, existen tarifas diarias para la conservación y de acceso al parque.",
+          "referencia": "As with all South African National Parks, there are daily conservation and entry fees for the park.",
+          "hipotese": "As in all South African nature reserves, there are daily rates for conservation and access to the park.",
+          "chrf": 58.28084230987459,
+          "ms": 151
+        },
+        {
+          "id": "fleurs_1692",
+          "origem": "Según ha informado la agencia nuclear de Japón, se ha encontrado cesio y iodo radioactivos en la planta.",
+          "referencia": "According to Japan's nuclear agency, radioactive caesium and iodine has been identified at the plant.",
+          "hipotese": "According to Japan's nuclear agency, radioactive cesium and iodo have been found in the plant.",
+          "chrf": 68.00873475091937,
+          "ms": 165
+        },
+        {
+          "id": "fleurs_1693",
+          "origem": "Mas, luego de quedar sin el wicket del capitán, India solo logró 36 carreras y 7 de sus wickets fueron derribados para finalizar las vueltas.",
+          "referencia": "But, after losing the captain's wicket India only made 36 runs loosing 7 wickets to end the innings.",
+          "hipotese": "But after being without the captain's wicket, India only achieved 36 runs and 7 of its wickets were shot down to finish the rounds.",
+          "chrf": 44.58790605648155,
+          "ms": 244
+        },
+        {
+          "id": "fleurs_1696",
+          "origem": "Los investigadores indicaron que los dos compuestos reaccionan entre sí para dar lugar a cristales que pueden obstruir la función renal.",
+          "referencia": "The two compounds react with one another to form crystals that may block kidney function, researchers at the university said.",
+          "hipotese": "The researchers indicated that the two compounds react to each other to result in crystals that can obstruct renal function.",
+          "chrf": 46.70972859287398,
+          "ms": 167
+        },
+        {
+          "id": "fleurs_1697",
+          "origem": "No ha podido tomarse medicamentos para aliviar el dolor, porque está prohibido su uso en los Juegos.",
+          "referencia": "He has been unable to take the drugs needed to overcome his pain as they are banned from the Games.",
+          "hipotese": "He has not been able to take pain-relief medications, because their use in the Games is forbidden.",
+          "chrf": 31.99134907283347,
+          "ms": 172
+        },
+        {
+          "id": "fleurs_1701",
+          "origem": "Al parecer, las cabras fueron domesticadas, por primera vez, hace unos 10 000 años, en los montes Zagros, en Irán.",
+          "referencia": "Goats seem to have been first domesticated roughly 10,000 years ago in the Zagros Mountains of Iran.",
+          "hipotese": "The goats were reportedly first domesticated some 10,000 years ago in the Zagros Mountains in Iran.",
+          "chrf": 61.72581507857655,
+          "ms": 149
+        },
+        {
+          "id": "fleurs_1705",
+          "origem": "El 15 de agosto de 1940, se desplegó la denominada «Operación Dragón», a través de la cual los Aliados invadieron el sur de Francia.",
+          "referencia": "On 15 August 1940, the Allies invaded southern France, the invasion was called \"Operation Dragoon\".",
+          "hipotese": "On 15 August 1940, the so-called \"Dragon Operation\" was deployed, through which the Allies invaded southern France.",
+          "chrf": 66.46514753586892,
+          "ms": 194
+        },
+        {
+          "id": "fleurs_1706",
+          "origem": "Las iglesias más tradicionales suelen ofrecer una Vigilia Pascual el día sábado en la noche durante el fin de semana de la Pascua y, por lo general, las congregaciones dan inicio a las celebraciones por la resurrección de Cristo apenas llega la medianoche.",
+          "referencia": "More traditional churches often hold an Easter Vigil on Saturday night during the Easter weekend, with the congregations often breaking into celebration at the stroke of midnight to celebrate Christ's resurrection.",
+          "hipotese": "The most traditional churches usually offer a Easter Vigil on Saturday night during the Easter weekend and congregations usually start celebrations for Christ’s resurrection as soon as midnight.",
+          "chrf": 53.11688064528247,
+          "ms": 240
+        },
+        {
+          "id": "fleurs_1707",
+          "origem": "Esta es una de las atracciones más importantes de Sudáfrica y se la reconoce como ícono principal de los Parques Nacionales de Sudáfrica (SANParks).",
+          "referencia": "It is one of the main attractions of South Africa and it is considered the flagship of South African National Parks (SANParks).",
+          "hipotese": "This is one of the most important attractions in South Africa and is recognized as the main icon of South Africa National Parks (SANPARks).",
+          "chrf": 60.47466315338502,
+          "ms": 223
+        },
+        {
+          "id": "fleurs_1710",
+          "origem": "La semana pasada, METI anunció que Apple les había informado de 34 incidentes adicionales de sobrecalentamiento, que la compañía catalogó como «no graves».",
+          "referencia": "Last week, METI announced that Apple had informed it of 34 additional overheating incidents, which the company called \"non-serious.\"",
+          "hipotese": "Last week, METI announced that Apple had reported 34 additional overheating incidents to them, which the company had targeted as \"not serious.\"",
+          "chrf": 70.85183444498563,
+          "ms": 215
+        },
+        {
+          "id": "fleurs_1712",
+          "origem": "Los Sundarbans han sido, desde 1966, un templo de la vida silvestre y se calcula que en la actualidad existen en el área 400 tigres reales de Bengala y unos 30 000 ciervos moteados.",
+          "referencia": "Since 1966 the Sundarbans have been a wildlife sanctuary, and it is estimated that there are now 400 Royal Bengal tigers and about 30,000 spotted deer in the area.",
+          "hipotese": "The Sundarbans have been, since 1966, a wildlife temple and it is estimated that there are currently 400 royal tigers in the area of Benedena and about 30,000 speckled deer.",
+          "chrf": 62.983941317015436,
+          "ms": 310
+        },
+        {
+          "id": "fleurs_1716",
+          "origem": "Según la página web de noticias de entretenimiento TMZ, el fotógrafo detuvo el vehículo del lado contrario del bulevar Sepulveda e intentó tomar fotografías de la parada policial antes de cruzar la calle y seguir, lo que causó que el agente de la patrulla caminera de California que realizaba la detención de vehículos le diera dos veces la orden de volver a cruzar.",
+          "referencia": "Entertainment news website TMZ understands the photographer stopped his vehicle on the other side of Sepulveda Boulevard and attempted to take pictures of the police stop before crossing the road and continuing, prompting the California Highway Patrol police officer conducting the traffic stop to order him back across, twice.",
+          "hipotese": "According to the entertainment news website TMZ, the photographer stopped the vehicle on the opposite side of the Sepulveda Boulevard and tried to take pictures of the police stop before crossing the street and following, causing the California caminera patrol officer who was holding the vehicles to give him twice the order to cross again.",
+          "chrf": 58.61769947964459,
+          "ms": 479
+        },
+        {
+          "id": "fleurs_1723",
+          "origem": "En 1889, el puerto fue el escenario de un nefasto enfrentamiento naval cuando siete barcos alemanes, americanos y e ingleses se negaron a salir del puerto.",
+          "referencia": "The harbor was the site of an infamous naval standoff in 1889 when seven ships from Germany, the US, and Britain refused to leave the harbor.",
+          "hipotese": "In 1889, the port was the scene of a nefasto naval confrontation when seven German, American and English ships refused to leave the port.",
+          "chrf": 40.81194041381112,
+          "ms": 221
+        },
+        {
+          "id": "fleurs_1724",
+          "origem": "Su fama de ser epicentro del lujo comenzó aproximadamente en 400 a. C y se extendió hasta aproximadamente 1100 d. C.",
+          "referencia": "Its renown for being an epicenter of luxury began in about 400 A.D. and lasted up until about 1100 A.D.",
+          "hipotese": "His fame of being epicenter of luxury began at approximately 400 BC and extended to approximately 1100 AD.",
+          "chrf": 35.970064246197836,
+          "ms": 155
+        },
+        {
+          "id": "fleurs_1728",
+          "origem": "El color del jugo de repollo se verá alterado en función de cuán ácida o básica (alcalina) sea la sustancia química.",
+          "referencia": "The cabbage juice changes color depending on how acidic or basic (alkaline) the chemical is.",
+          "hipotese": "The color of cabbage juice will be altered depending on how acidic or basic (alkaline) the chemical is.",
+          "chrf": 80.31725646648732,
+          "ms": 178
+        },
+        {
+          "id": "fleurs_1729",
+          "origem": "Por ejemplo, todos los años, los alumnos de la escuela Bennet en Carolina del Norte diseñan una página web acerca de su viaje a la capital del Estado y cada año la página se actualiza, pero se conservan en línea las versiones previas que en la forma de álbum de recuerdos.",
+          "referencia": "For example, each year students from Bennet School in North Carolina design a website about their trip to the State Capital, each year the website gets remodeled, but old versions are kept online to serve as a scrapbook.",
+          "hipotese": "For example, every year, students at the Bennet school in North Carolina design a website about their trip to the state capital and each year the page is updated, but previous versions are kept online as a souvenir album.",
+          "chrf": 61.784280497449295,
+          "ms": 322
+        },
+        {
+          "id": "fleurs_1732",
+          "origem": "El período histórico europeo en el que se sitúan estos acontecimientos se conoce habitualmente como Alta Edad Media, entre los siglos XI, XII y XIII (es decir, entre los años 1000 y 1300 d. C.).",
+          "referencia": "The age where the events took place is commonly referred as the High Middle Ages the period of European history in the 11th, 12th, and 13th centuries (AD 1000–1300).",
+          "hipotese": "The European historical period in which these events are situated is commonly known as the High Middle Ages, between the 11th, 12th and 13th centuries (i.e. between 1000 and 1300 AD).",
+          "chrf": 52.938593280919235,
+          "ms": 304
+        },
+        {
+          "id": "fleurs_1735",
+          "origem": "Expertos de la Universidad de Princeton, en EE. UU., y de la de Uppsala, en Suecia, dieron a conocer que la nueva especie logró evolucionar en tan solo dos generaciones, aun cuando se estimaba que demoraría mucho más, a causa de la reproducción entre un pinzón de Darwin endémico, Geospiza fortes, y un pinzón de cactus migrante, Geospiza conirostris.",
+          "referencia": "Researchers from Princeton University in the United States and Uppsala University in Sweden reported the new species evolved in just two generations, though this process had been believed to take much longer, due to breeding between an endemic Darwin finch, Geospiza fortes, and the immigrant cactus finch, Geospiza conirostris.",
+          "hipotese": "Experts from the University of Princeton, USA. The US and Uppsala in Sweden revealed that the new species evolved in just two generations, even though it was estimated to take much longer, because of the reproduction between a finch of Darwin's philandering, Geospica fortes, and a pinzón of migrant, Geospica conirostris.",
+          "chrf": 52.598684868525744,
+          "ms": 598
+        },
+        {
+          "id": "fleurs_1738",
+          "origem": "Atacaba también a cualquier criatura que entrara en el agua: ni siquiera un dinosaurio tan enorme como el T. Rex era una amenaza para él.",
+          "referencia": "It also attacked anything that entered the water; even a giant dinosaur such as T. rex would be no match for it.",
+          "hipotese": "He also attacked any creature that entered the water: not even a undigested brunch like T. Rex was a threat to him.",
+          "chrf": 41.446568876887326,
+          "ms": 228
+        },
+        {
+          "id": "fleurs_1739",
+          "origem": "En la cúspide de una de las montañas al norte de La Meca, yace una cueva totalmente abstraída del resto del planeta.",
+          "referencia": "Resting on the top of one of the mountains north of Mecca, the cave is completely isolated from the rest of the world.",
+          "hipotese": "On the top of one of the mountains north of Mecca lies a cave completely abstracted from the rest of the planet.",
+          "chrf": 67.40817651849616,
+          "ms": 186
+        },
+        {
+          "id": "fleurs_1751",
+          "origem": "La cuestión que dio origen al debate fue la controversia en torno al presupuesto destinado al socorro y reconstrucción posteriores al huracán Katrina, medida que algunos conservadores fiscales etiquetaron en torno de broma como el «Acuerdo de Nueva Orleans de Bush».",
+          "referencia": "The debate was sparked by controversy over spending on relief and reconstruction in the wake Hurricane Katrina; which some fiscal conservatives have humorously labeled \"Bush's New Orleans Deal.\"",
+          "hipotese": "The issue that gave rise to the debate was the controversy over the post-Hurricane karat relief and reconstruction budget, a measure that some tax conservatives labeled as a joke as the \"Bush New Orleans Agreement.\"",
+          "chrf": 46.67471235420873,
+          "ms": 335
+        },
+        {
+          "id": "fleurs_1754",
+          "origem": "Es posible que haya más mares en el lado cercano debido a que su corteza es más delgada, lo que facilitó a la lava ascender a la superficie.",
+          "referencia": "There may be more maria on the near side because the crust is thinner. It was easier for lava to rise up to the surface.",
+          "hipotese": "There may be more seas on the nearby side because its crust is thinner, which made it easier for lava to ascend to the surface.",
+          "chrf": 64.76629651720573,
+          "ms": 203
+        },
+        {
+          "id": "fleurs_1755",
+          "origem": "Una bomba fue detonada en la puerta de la oficina del gobernador general.",
+          "referencia": "One bomb exploded outside the governor general's office.",
+          "hipotese": "A bomb was detonated at the door of the Governor General's office.",
+          "chrf": 39.217096475768905,
+          "ms": 121
+        },
+        {
+          "id": "fleurs_1756",
+          "origem": "El domingo por la noche, en un anuncio realizado mediante el secretario de prensa, el presidente de los Estados Unidos de América, Donald Trump, comunicó que las tropas estadounidenses se retirarían de Siria.",
+          "referencia": "Late on Sunday, the United States President Donald Trump, in a statement delivered via the press secretary, announced US troops would be leaving Syria.",
+          "hipotese": "On Sunday night, in an announcement made through the press secretary, the President of the United States of America, Donald Trump, announced that U.S. troops would withdraw from Syria.",
+          "chrf": 54.01818011835834,
+          "ms": 266
+        },
+        {
+          "id": "fleurs_1759",
+          "origem": "La doctora Malar Balasubramanian, de 29 años, fue hallada en Blue Ash, Ohio, un suburbio ubicado a unas 15 millas al norte de Cincinnati, recostada sobre el suelo al lado de la carretera, vistiendo una remera y ropa interior, y en aparente estado de a sobremedicación.",
+          "referencia": "Dr. Malar Balasubramanian, 29, was found in Blue Ash, Ohio, a suburb approximately 15 miles north of Cincinnati lying on the ground beside the road in a T-shirt and underwear in an apparently heavily medicated state.",
+          "hipotese": "Dr. Malar Balasubramanian, 29, was found in Blue Ash, Ohio, an \"Huffy\" located about 15 miles north of Cincinnati, lying on the ground next to the road, wearing a t-shirt and underwear, and in apparent overmedication.",
+          "chrf": 65.17017223373182,
+          "ms": 437
+        },
+        {
+          "id": "fleurs_1760",
+          "origem": "El Mosasaurus fue el depredador alfa de su época, por tanto, a nada le temía, excepto a otros de su misma especie.",
+          "referencia": "Mosasaurus was the apex predator of its time, so it feared nothing, except other mosasaurs.",
+          "hipotese": "The Mosaics was the alpha predator of his time, therefore, he feared nothing except others of his own kind.",
+          "chrf": 45.968099566763385,
+          "ms": 170
+        },
+        {
+          "id": "fleurs_1761",
+          "origem": "Más tarde, los fotógrafos ocuparon el lugar de una anciana porque necesitaba ir al baño. Mendoza fue acribillado.",
+          "referencia": "The photographers later took the place of an aged lady as she needed the lavatory. Mendoza was gunned down.",
+          "hipotese": "Later, photographers took over an old woman's place because she needed to go to the bathroom. Mendoza was acribillado.",
+          "chrf": 40.29128741601961,
+          "ms": 208
+        },
+        {
+          "id": "fleurs_1762",
+          "origem": "Los cerdos son los portadores de la enfermedad, que luego migra a los humanos mediante los mosquitos.",
+          "referencia": "The disease is carried by pigs, which then migrates to humans through mosquitos.",
+          "hipotese": "Pigs are the carriers of the disease, which then migrates to humans through the mosquitoes.",
+          "chrf": 63.54466454617721,
+          "ms": 151
+        },
+        {
+          "id": "fleurs_1763",
+          "origem": "La Vía Láctea influeye en la galaxia de Sagitario del mismo modo en que la luna ejerce una fuerza de atracción sobre nuestro planeta y causa las mareas.",
+          "referencia": "Just like the moon exerts a pull on the earth, causing tides, so does the Milky Way exert a force on the Sagittarius galaxy.",
+          "hipotese": "The Milky Way influences the Sagittarius galaxy in the same way that the moon exerts a pull force on our planet and causes the tides.",
+          "chrf": 53.09849104431712,
+          "ms": 237
+        },
+        {
+          "id": "fleurs_1794",
+          "origem": "Se puede definir a una civilización como una cultura específica de la que forma parte un extenso grupo de personas que viven y trabajan en conjunto; es decir, una sociedad.",
+          "referencia": "A civilization is a singular culture shared by a significant large group of people who live and work co-operatively, a society.",
+          "hipotese": "A civilization can be defined as a specific culture of which a large group of people live and work together; that is, a society.",
+          "chrf": 52.51403545734195,
+          "ms": 194
+        },
+        {
+          "id": "fleurs_1816",
+          "origem": "Duvall, que está casado y tiene dos hijos adultos, no causó una buena impresión a Miller, que fue a quien le relató la historia.",
+          "referencia": "Duvall, who is married with two adult children, did not leave a big impression on Miller, to whom the story was related.",
+          "hipotese": "Duvall, who is married and has two adult children, did not make a good impression on Miller, who was the one who told the story.",
+          "chrf": 62.837678640989814,
+          "ms": 225
+        },
+        {
+          "id": "fleurs_1858",
+          "origem": "Según Danielle Lantagne, especialista en la enfermedad que trabaja para la ONU, es probable que el brote haya sido provocado por las fuerzas de paz.",
+          "referencia": "Danielle Lantagne, a UN expert on the disease, stated the outbreak was likely caused by the peacekeepers.",
+          "hipotese": "According to Danielle Lantagne, a specialist in the disease working for the UN, the outbreak is likely to have been caused by the peace forces.",
+          "chrf": 55.34034029811067,
+          "ms": 224
+        },
+        {
+          "id": "fleurs_1859",
+          "origem": "Hacia fines de la Edad Media, Europa occidental empezó a desarrollar un estilo propio. Uno de los avances más significativos de esa época fue que, producto de las Cruzadas, las personas comenzaron a usar botones para abrochar sus prendas.",
+          "referencia": "towards the end of the Middle Ages western Europe began to develop their own style. one of the biggest developments of the time as a result of the crusades people began to use buttons to fasten clothing.",
+          "hipotese": "Towards the end of the Middle Ages, Western Europe began to develop its own style. One of the most significant advances of that time was that, product of the Crusades, people began to use buttons to fasten their garments.",
+          "chrf": 63.084538053742435,
+          "ms": 344
+        },
+        {
+          "id": "fleurs_1869",
+          "origem": "Sus largas mandíbulas tenían incrustados más de 70 dientes afilados como navajas, además de otro grupo adicional en el paladar, lo que se traduce en que cualquier cosa que le pasara por delante, no tenía escapatoria.",
+          "referencia": "Its long jaws were studded with more than 70 razor-sharp teeth, along with an extra set in the roof of its mouth, meaning that there was no escape for anything that crossed its path.",
+          "hipotese": "His long jaws had more than 70 sharp teeth as knives, as well as another group on his palate, which means that anything that happened to him, had no escape.",
+          "chrf": 33.44066447828185,
+          "ms": 252
+        },
+        {
+          "id": "fleurs_1884",
+          "origem": "Concretamente, se sostiene que, mediante la adecuada lectura de sus microexpresiones, es posible detectar si una persona está mintiendo.",
+          "referencia": "In particular, it is claimed that one can detect whether a person is lying by interpreting micro-expressions correctly.",
+          "hipotese": "Specifically, it is argued that by reading their microexpressions properly, it's possible to detect whether a person is lying.",
+          "chrf": 46.57755953343183,
+          "ms": 189
+        },
+        {
+          "id": "fleurs_1903",
+          "origem": "Cuando la totalidad de los recursos disponibles se utilizan de manera adecuada en los departamentos operativos de una organización, se genera espacio para la creatividad y el ingenio.",
+          "referencia": "When all available resources are effectively used across the functional departments of an organization, creativity and ingenuity can transpire.",
+          "hipotese": "When all available resources are used properly in an organization's operational departments, space is created for creativity and ingenuity.",
+          "chrf": 57.7436917546542,
+          "ms": 189
+        },
+        {
+          "id": "fleurs_1905",
+          "origem": "La capital de Moldavia es Chişinău. Su lengua regional es el rumano, aunque el ruso también es muy hablado.",
+          "referencia": "The capital of Moldova is Chişinău. The local language is Romanian, but Russian is widely used.",
+          "hipotese": "The capital of Moldova is Chişinău. Its regional language is Romanian, although Russian is also widely spoken.",
+          "chrf": 69.41146199319951,
+          "ms": 185
+        },
+        {
+          "id": "fleurs_1906",
+          "origem": "«Esto no será una despedida; es solo el final de un capítulo y el comienzo de uno nuevo».",
+          "referencia": "\"This is not going to be goodbye. This is the closing of one chapter and the opening of a new one.\"",
+          "hipotese": "\"This will not be a farewell; it is just the end of a chapter and the beginning of a new one.\"",
+          "chrf": 42.543419599170775,
+          "ms": 174
+        },
+        {
+          "id": "fleurs_1907",
+          "origem": "Al poco tiempo de desatarse las hostilidades, los británicos comenzaron un bloqueo naval a Alemania.",
+          "referencia": "Soon after the outbreak of hostilities, Britain initiated a naval blockade of Germany.",
+          "hipotese": "Soon after hostilities broke out, the British began a naval blockade of Germany.",
+          "chrf": 58.33523066305584,
+          "ms": 112
+        },
+        {
+          "id": "fleurs_1930",
+          "origem": "Tanto los seis rehenes, entre los que había niños y ancianos, como los fotógrafos filipinos, fueron puestos en libertad temprano.",
+          "referencia": "Six hostages, including the children and elderly, were released early, as were the Filipino photographers.",
+          "hipotese": "Both the six hostages, including children and the elderly, and Filipino photographers, were released early.",
+          "chrf": 68.26489909966426,
+          "ms": 140
+        },
+        {
+          "id": "fleurs_1931",
+          "origem": "El servicio suele usarse en el transporte por agua, incluidas las embarcaciones recreativas, así como para las expediciones que requieren datos y voz remotos.",
+          "referencia": "The service is frequently used by shipping, including pleasure craft, as well as expeditions who have remote data and voice needs.",
+          "hipotese": "The service is usually used in water transport, including recreational boats, as well as for expeditions requiring remote data and voice.",
+          "chrf": 51.89807680882704,
+          "ms": 182
+        },
+        {
+          "id": "fleurs_1942",
+          "origem": "Construimos nuestras casas a partir de las plantas y con ellas también fabricamos ropa. La mayoría de los alimentos que ingerimos son plantas. Sin ellas, los animales no sobrevivirían.",
+          "referencia": "We make our houses from plants and make clothes from plants. Most foods that we eat are plants. Without plants, animals could not survive.",
+          "hipotese": "We build our houses from plants and with them we also make clothes. Most of the food we eat is plants. Without them, animals would not survive.",
+          "chrf": 56.78902272539771,
+          "ms": 242
+        },
+        {
+          "id": "fleurs_1955",
+          "origem": "El sistema nervioso central, unión del cerebro, la médula espinal y el nervio óptico, es el objeto de ataque de la esclerosis múltiple.",
+          "referencia": "MS is a disease that affects the central nervous system, which is made up of the brain, the spinal cord and the optic nerve.",
+          "hipotese": "The central nervous system, the union of the brain, spinal cord, and optic nerve, is the object of multiple sclerosis attack.",
+          "chrf": 49.49693008019576,
+          "ms": 189
+        },
+        {
+          "id": "fleurs_1967",
+          "origem": "Durante la reunión llevada a cabo con el primer ministro, Layton había solicitado que se introdujeran cambios en la ley ambiental de los conservadores, apelando a una «modificación exhaustiva y completa de su redacción».",
+          "referencia": "Layton had asked for changes to the conservatives' environmental bill during the meeting with the PM, asking for a \"thorough and complete rewriting\" of the Conservative party's environmental bill.",
+          "hipotese": "During the meeting with the Prime Minister, Layton had called for changes to the environmental law of the conservatives, appealing for a \"exhaustive and complete modification of its wording\".",
+          "chrf": 54.37306253884119,
+          "ms": 268
+        },
+        {
+          "id": "fleurs_1969",
+          "origem": "Indica que la posición más efectiva donde colocar el objeto central es la intersección que se forma entre las líneas horizontales y verticales que dividen la imagen en tercios (ver ejemplo).",
+          "referencia": "It states that the most effective place for the main subject is at the intersection of lines dividing the image into thirds vertically and horizontally (see example).",
+          "hipotese": "It indicates that the most effective position where the central object is placed is the intersection that forms between horizontal and vertical lines that divide the image into thirds (see example).",
+          "chrf": 59.97649720743248,
+          "ms": 246
+        },
+        {
+          "id": "fleurs_1972",
+          "origem": "Muchas personas no se los representan como dinosaurios, ya que tienen plumas y pueden volar.",
+          "referencia": "Many people don't think about them as dinosaurs because they have feathers and can fly.",
+          "hipotese": "Many people are not represented as \"Dilinguals\", as they have feathers and can fly.",
+          "chrf": 50.903060111551355,
+          "ms": 146
+        },
+        {
+          "id": "fleurs_1984",
+          "origem": "El uso masivo de automóviles también genera una mayor incidencia en los accidentes de tránsito, lo que conduce al desarrollo de nuevas técnicas en el campo de la salud para reparar los cuerpos dañados.",
+          "referencia": "Mass car ownership also leads to a higher incidence of accidents on the roads, which leads to the invention of new techniques in healthcare for repairing damaged bodies.",
+          "hipotese": "Massive use of cars also generates a greater incidence in traffic accidents, leading to the development of new techniques in the field of health to repair damaged bodies.",
+          "chrf": 45.317890805520676,
+          "ms": 222
+        },
+        {
+          "id": "fleurs_2003",
+          "origem": "La forma de disfrutar las mejores vistas de Hong Kong es salir de la isla y dirigirse a la ribera de Kowloon, ubicada en frente.",
+          "referencia": "To get the best views of Hong Kong, leave the island and head for the Kowloon waterfront opposite.",
+          "hipotese": "The way to enjoy the best views of Hong Kong is to leave the island and head to the Kowloon bank, located in front.",
+          "chrf": 62.008602679109856,
+          "ms": 203
+        },
+        {
+          "id": "fleurs_2009",
+          "origem": "Las proteínas presentes en las hojas y las legumbres hubiesen constituido la fuente de recursos vegetales de más sencillo acceso, pero no son fácilmente digeribles para primates como nosotros, excepto que se las cocine.",
+          "referencia": "The most readily accessible plant resources would have been the proteins accessible in leaves and legumes, but these are hard for primates like us to digest unless they are cooked.",
+          "hipotese": "The proteins present in the leaves and legumes would have been the most easily accessible source of plant resources, but they are not easily digestible for primates like us, except that they are cooked.",
+          "chrf": 63.44243915313827,
+          "ms": 299
+        }
+      ]
+    },
+    {
+      "sistema": "bergamot:es-en",
+      "corpus": "fleurs:es-en",
+      "n": 51,
+      "falhas": 0,
+      "chrf": {
+        "valor": 55.63096850654416,
+        "ic95": [52.51756303572415, 58.585654447564295]
+      },
+      "latenciaMs": {
+        "p50": 36.82749999999942,
+        "p95": 74.38779099999738
+      },
+      "latenciaPorFraseMs": {
+        "p50": 36.24445800000103,
+        "p95": 73.57045800000196
+      },
+      "usdTotal": 0,
+      "usdPorHoraDeFala": 0,
+      "casos": [
+        {
+          "id": "fleurs_1661",
+          "origem": "No mencionó una cifra para los recortes y manifestó que se harán en base a la producción económica de China.",
+          "referencia": "He did not set a figure for the cuts, saying they will be made based on China's economic output.",
+          "hipotese": "He did not mention a figure for the cuts and said that they will be made based on China’s economic output.",
+          "chrf": 73.56646887629039,
+          "ms": 31
+        },
+        {
+          "id": "fleurs_1668",
+          "origem": "También puede ser conveniente comprar una Wild Card que permite la entrada a selecciones de parques en Sudáfrica o a todos los Parques Nacionales del país.",
+          "referencia": "It may also be beneficial for one to buy a Wild Card, which provides entry to either selections of parks in South Africa or all of the South African National Parks.",
+          "hipotese": "It may also be convenient to purchase a Wild Card that allows entry to park selections in South Africa or to all the national parks in the country.",
+          "chrf": 46.278762158774214,
+          "ms": 38
+        },
+        {
+          "id": "fleurs_1676",
+          "origem": "Como en todas las reservas naturales de Sudáfrica, existen tarifas diarias para la conservación y de acceso al parque.",
+          "referencia": "As with all South African National Parks, there are daily conservation and entry fees for the park.",
+          "hipotese": "As in all natural reserves in South Africa, there are daily rates for conservation and access to the park.",
+          "chrf": 52.70783171447366,
+          "ms": 26
+        },
+        {
+          "id": "fleurs_1692",
+          "origem": "Según ha informado la agencia nuclear de Japón, se ha encontrado cesio y iodo radioactivos en la planta.",
+          "referencia": "According to Japan's nuclear agency, radioactive caesium and iodine has been identified at the plant.",
+          "hipotese": "As reported by Japan’s nuclear agency, radioactive cesium and iodine have been found in the plant.",
+          "chrf": 56.50394933765818,
+          "ms": 29
+        },
+        {
+          "id": "fleurs_1693",
+          "origem": "Mas, luego de quedar sin el wicket del capitán, India solo logró 36 carreras y 7 de sus wickets fueron derribados para finalizar las vueltas.",
+          "referencia": "But, after losing the captain's wicket India only made 36 runs loosing 7 wickets to end the innings.",
+          "hipotese": "But, after running out of the captain's wicket, India only managed 36 runs and 7 of their wickets were knocked down to finish the laps.",
+          "chrf": 50.822461044755826,
+          "ms": 42
+        },
+        {
+          "id": "fleurs_1696",
+          "origem": "Los investigadores indicaron que los dos compuestos reaccionan entre sí para dar lugar a cristales que pueden obstruir la función renal.",
+          "referencia": "The two compounds react with one another to form crystals that may block kidney function, researchers at the university said.",
+          "hipotese": "The researchers indicated that the two compounds react to each other to give rise to crystals that can obstruct kidney function.",
+          "chrf": 51.723380092981486,
+          "ms": 29
+        },
+        {
+          "id": "fleurs_1697",
+          "origem": "No ha podido tomarse medicamentos para aliviar el dolor, porque está prohibido su uso en los Juegos.",
+          "referencia": "He has been unable to take the drugs needed to overcome his pain as they are banned from the Games.",
+          "hipotese": "Medicine has not been taken to relieve pain, because its use in the Games is prohibited.",
+          "chrf": 22.420235444990215,
+          "ms": 22
+        },
+        {
+          "id": "fleurs_1701",
+          "origem": "Al parecer, las cabras fueron domesticadas, por primera vez, hace unos 10 000 años, en los montes Zagros, en Irán.",
+          "referencia": "Goats seem to have been first domesticated roughly 10,000 years ago in the Zagros Mountains of Iran.",
+          "hipotese": "Apparently, the goats were domesticated, for the first time, about 10 000 years ago, in the Zagros Mountains, in Iran.",
+          "chrf": 46.91531728342906,
+          "ms": 36
+        },
+        {
+          "id": "fleurs_1705",
+          "origem": "El 15 de agosto de 1940, se desplegó la denominada «Operación Dragón», a través de la cual los Aliados invadieron el sur de Francia.",
+          "referencia": "On 15 August 1940, the Allies invaded southern France, the invasion was called \"Operation Dragoon\".",
+          "hipotese": "On 15 August 1940, the so-called “Operation Dragon” was deployed, through which the Allies invaded the south of France.",
+          "chrf": 58.64385956741375,
+          "ms": 39
+        },
+        {
+          "id": "fleurs_1706",
+          "origem": "Las iglesias más tradicionales suelen ofrecer una Vigilia Pascual el día sábado en la noche durante el fin de semana de la Pascua y, por lo general, las congregaciones dan inicio a las celebraciones por la resurrección de Cristo apenas llega la medianoche.",
+          "referencia": "More traditional churches often hold an Easter Vigil on Saturday night during the Easter weekend, with the congregations often breaking into celebration at the stroke of midnight to celebrate Christ's resurrection.",
+          "hipotese": "The most traditional churches usually offer a Pascal Vigil on Saturday night during Easter weekend and, in general, the congregations begin celebrations for the resurrection of Christ just midnight.",
+          "chrf": 50.27953920706296,
+          "ms": 51
+        },
+        {
+          "id": "fleurs_1707",
+          "origem": "Esta es una de las atracciones más importantes de Sudáfrica y se la reconoce como ícono principal de los Parques Nacionales de Sudáfrica (SANParks).",
+          "referencia": "It is one of the main attractions of South Africa and it is considered the flagship of South African National Parks (SANParks).",
+          "hipotese": "This is one of the most important attractions in South Africa and is recognized as a main icon of the National Parks of South Africa (SANParks).",
+          "chrf": 61.435429217774065,
+          "ms": 37
+        },
+        {
+          "id": "fleurs_1710",
+          "origem": "La semana pasada, METI anunció que Apple les había informado de 34 incidentes adicionales de sobrecalentamiento, que la compañía catalogó como «no graves».",
+          "referencia": "Last week, METI announced that Apple had informed it of 34 additional overheating incidents, which the company called \"non-serious.\"",
+          "hipotese": "Last week, METI announced that Apple had informed them of 34 additional overheating incidents, which the company billed as “not serious.”",
+          "chrf": 83.4392290909867,
+          "ms": 34
+        },
+        {
+          "id": "fleurs_1712",
+          "origem": "Los Sundarbans han sido, desde 1966, un templo de la vida silvestre y se calcula que en la actualidad existen en el área 400 tigres reales de Bengala y unos 30 000 ciervos moteados.",
+          "referencia": "Since 1966 the Sundarbans have been a wildlife sanctuary, and it is estimated that there are now 400 Royal Bengal tigers and about 30,000 spotted deer in the area.",
+          "hipotese": "The Sundarbans have been, since 1966, a temple of wildlife and it is estimated that there are currently 400 royal tigers of Bengal and about 30 000 mottled deer in the area.",
+          "chrf": 64.08443901538358,
+          "ms": 52
+        },
+        {
+          "id": "fleurs_1716",
+          "origem": "Según la página web de noticias de entretenimiento TMZ, el fotógrafo detuvo el vehículo del lado contrario del bulevar Sepulveda e intentó tomar fotografías de la parada policial antes de cruzar la calle y seguir, lo que causó que el agente de la patrulla caminera de California que realizaba la detención de vehículos le diera dos veces la orden de volver a cruzar.",
+          "referencia": "Entertainment news website TMZ understands the photographer stopped his vehicle on the other side of Sepulveda Boulevard and attempted to take pictures of the police stop before crossing the road and continuing, prompting the California Highway Patrol police officer conducting the traffic stop to order him back across, twice.",
+          "hipotese": "According to the entertainment news website TMZ, the photographer stopped the vehicle on the opposite side of the Sepulveda Boulevard and tried to take photographs of the police stop before crossing the street and continuing, which caused the California road patrol agent who was holding vehicles to give him twice the order to cross again.",
+          "chrf": 56.953965955972244,
+          "ms": 82
+        },
+        {
+          "id": "fleurs_1723",
+          "origem": "En 1889, el puerto fue el escenario de un nefasto enfrentamiento naval cuando siete barcos alemanes, americanos y e ingleses se negaron a salir del puerto.",
+          "referencia": "The harbor was the site of an infamous naval standoff in 1889 when seven ships from Germany, the US, and Britain refused to leave the harbor.",
+          "hipotese": "In 1889, the port was the scene of a nefarious naval confrontation when seven German, American and English ships refused to leave the port.",
+          "chrf": 42.6860339136959,
+          "ms": 36
+        },
+        {
+          "id": "fleurs_1724",
+          "origem": "Su fama de ser epicentro del lujo comenzó aproximadamente en 400 a. C y se extendió hasta aproximadamente 1100 d. C.",
+          "referencia": "Its renown for being an epicenter of luxury began in about 400 A.D. and lasted up until about 1100 A.D.",
+          "hipotese": "His reputation for being the epicenter of luxury began in approximately 400 BC. C and extended to about 1100 d. C.",
+          "chrf": 48.66021784618331,
+          "ms": 43
+        },
+        {
+          "id": "fleurs_1728",
+          "origem": "El color del jugo de repollo se verá alterado en función de cuán ácida o básica (alcalina) sea la sustancia química.",
+          "referencia": "The cabbage juice changes color depending on how acidic or basic (alkaline) the chemical is.",
+          "hipotese": "The color of the cabbage juice will be altered based on how acidic or basic (alkaline) the chemical is.",
+          "chrf": 72.252657410599,
+          "ms": 32
+        },
+        {
+          "id": "fleurs_1729",
+          "origem": "Por ejemplo, todos los años, los alumnos de la escuela Bennet en Carolina del Norte diseñan una página web acerca de su viaje a la capital del Estado y cada año la página se actualiza, pero se conservan en línea las versiones previas que en la forma de álbum de recuerdos.",
+          "referencia": "For example, each year students from Bennet School in North Carolina design a website about their trip to the State Capital, each year the website gets remodeled, but old versions are kept online to serve as a scrapbook.",
+          "hipotese": "For example, every year, students at Bennet School in North Carolina design a website about their trip to the state capital and each year the page is updated, but previous versions are preserved online than in the form of a souvenir album.",
+          "chrf": 59.85186829078256,
+          "ms": 62
+        },
+        {
+          "id": "fleurs_1732",
+          "origem": "El período histórico europeo en el que se sitúan estos acontecimientos se conoce habitualmente como Alta Edad Media, entre los siglos XI, XII y XIII (es decir, entre los años 1000 y 1300 d. C.).",
+          "referencia": "The age where the events took place is commonly referred as the High Middle Ages the period of European history in the 11th, 12th, and 13th centuries (AD 1000–1300).",
+          "hipotese": "The European historical period in which these events are located is usually known as the High Middle Ages, between the 11th, 12th and 13th centuries (i.e. between 1000 and 1300 AD. C.).",
+          "chrf": 48.68164112591608,
+          "ms": 74
+        },
+        {
+          "id": "fleurs_1735",
+          "origem": "Expertos de la Universidad de Princeton, en EE. UU., y de la de Uppsala, en Suecia, dieron a conocer que la nueva especie logró evolucionar en tan solo dos generaciones, aun cuando se estimaba que demoraría mucho más, a causa de la reproducción entre un pinzón de Darwin endémico, Geospiza fortes, y un pinzón de cactus migrante, Geospiza conirostris.",
+          "referencia": "Researchers from Princeton University in the United States and Uppsala University in Sweden reported the new species evolved in just two generations, though this process had been believed to take much longer, due to breeding between an endemic Darwin finch, Geospiza fortes, and the immigrant cactus finch, Geospiza conirostris.",
+          "hipotese": "Experts from Princeton University in the US The United States, and that of Uppsala, in Sweden, announced that the new species managed to evolve in just two generations, even though it was estimated that it would take much longer, because of the reproduction between an endemic Darwin finch, Geospiza fortes, and a finch of migrant cactus, Geospiza conirostris.",
+          "chrf": 63.30435511466258,
+          "ms": 146
+        },
+        {
+          "id": "fleurs_1738",
+          "origem": "Atacaba también a cualquier criatura que entrara en el agua: ni siquiera un dinosaurio tan enorme como el T. Rex era una amenaza para él.",
+          "referencia": "It also attacked anything that entered the water; even a giant dinosaur such as T. rex would be no match for it.",
+          "hipotese": "He also attacked any creature that entered the water: not even a dinosaur as huge as the T. Rex was a threat to him.",
+          "chrf": 44.66092552750436,
+          "ms": 45
+        },
+        {
+          "id": "fleurs_1739",
+          "origem": "En la cúspide de una de las montañas al norte de La Meca, yace una cueva totalmente abstraída del resto del planeta.",
+          "referencia": "Resting on the top of one of the mountains north of Mecca, the cave is completely isolated from the rest of the world.",
+          "hipotese": "On the cusp of one of the mountains north of Mecca, lies a cave totally abstracted from the rest of the planet.",
+          "chrf": 59.85546326783995,
+          "ms": 33
+        },
+        {
+          "id": "fleurs_1751",
+          "origem": "La cuestión que dio origen al debate fue la controversia en torno al presupuesto destinado al socorro y reconstrucción posteriores al huracán Katrina, medida que algunos conservadores fiscales etiquetaron en torno de broma como el «Acuerdo de Nueva Orleans de Bush».",
+          "referencia": "The debate was sparked by controversy over spending on relief and reconstruction in the wake Hurricane Katrina; which some fiscal conservatives have humorously labeled \"Bush's New Orleans Deal.\"",
+          "hipotese": "The issue that gave rise to the debate was the controversy surrounding the post-Hurricane Katrina relief and reconstruction budget, a move that some fiscal conservatives jokingly labeled the “Bush New Orleans Agreement.”",
+          "chrf": 53.35272315020503,
+          "ms": 55
+        },
+        {
+          "id": "fleurs_1754",
+          "origem": "Es posible que haya más mares en el lado cercano debido a que su corteza es más delgada, lo que facilitó a la lava ascender a la superficie.",
+          "referencia": "There may be more maria on the near side because the crust is thinner. It was easier for lava to rise up to the surface.",
+          "hipotese": "There may be more seas on the near side because its crust is thinner, which made it easier for lava to ascend to the surface.",
+          "chrf": 68.52626565275631,
+          "ms": 37
+        },
+        {
+          "id": "fleurs_1755",
+          "origem": "Una bomba fue detonada en la puerta de la oficina del gobernador general.",
+          "referencia": "One bomb exploded outside the governor general's office.",
+          "hipotese": "A bomb was detonated at the door of the governor's office.",
+          "chrf": 36.08554207733705,
+          "ms": 19
+        },
+        {
+          "id": "fleurs_1756",
+          "origem": "El domingo por la noche, en un anuncio realizado mediante el secretario de prensa, el presidente de los Estados Unidos de América, Donald Trump, comunicó que las tropas estadounidenses se retirarían de Siria.",
+          "referencia": "Late on Sunday, the United States President Donald Trump, in a statement delivered via the press secretary, announced US troops would be leaving Syria.",
+          "hipotese": "On Sunday night, in an announcement by press secretary Donald Trump, U.S. President Donald Trump said U.S. troops would withdraw from Syria.",
+          "chrf": 42.721439552358945,
+          "ms": 41
+        },
+        {
+          "id": "fleurs_1759",
+          "origem": "La doctora Malar Balasubramanian, de 29 años, fue hallada en Blue Ash, Ohio, un suburbio ubicado a unas 15 millas al norte de Cincinnati, recostada sobre el suelo al lado de la carretera, vistiendo una remera y ropa interior, y en aparente estado de a sobremedicación.",
+          "referencia": "Dr. Malar Balasubramanian, 29, was found in Blue Ash, Ohio, a suburb approximately 15 miles north of Cincinnati lying on the ground beside the road in a T-shirt and underwear in an apparently heavily medicated state.",
+          "hipotese": "Dr. Malar Balasubramanian, 29, was found in Blue Ash, Ohio, a suburb located about 15 miles north of Cincinnati, lying on the ground by the side of the road, wearing a shirt and underwear, and in apparent state of overmedication.",
+          "chrf": 69.47726426081347,
+          "ms": 74
+        },
+        {
+          "id": "fleurs_1760",
+          "origem": "El Mosasaurus fue el depredador alfa de su época, por tanto, a nada le temía, excepto a otros de su misma especie.",
+          "referencia": "Mosasaurus was the apex predator of its time, so it feared nothing, except other mosasaurs.",
+          "hipotese": "The Mosasaurus was the alpha predator of its time, therefore, it feared nothing, except others of its own species.",
+          "chrf": 70.06597298594829,
+          "ms": 35
+        },
+        {
+          "id": "fleurs_1761",
+          "origem": "Más tarde, los fotógrafos ocuparon el lugar de una anciana porque necesitaba ir al baño. Mendoza fue acribillado.",
+          "referencia": "The photographers later took the place of an aged lady as she needed the lavatory. Mendoza was gunned down.",
+          "hipotese": "Later, the photographers took the place of an old woman because she needed to go to the bathroom. Mendoza was riddled.",
+          "chrf": 52.412275186143866,
+          "ms": 40
+        },
+        {
+          "id": "fleurs_1762",
+          "origem": "Los cerdos son los portadores de la enfermedad, que luego migra a los humanos mediante los mosquitos.",
+          "referencia": "The disease is carried by pigs, which then migrates to humans through mosquitos.",
+          "hipotese": "Pigs are the carriers of the disease, which then migrates humans through mosquitoes.",
+          "chrf": 59.73791192822312,
+          "ms": 24
+        },
+        {
+          "id": "fleurs_1763",
+          "origem": "La Vía Láctea influeye en la galaxia de Sagitario del mismo modo en que la luna ejerce una fuerza de atracción sobre nuestro planeta y causa las mareas.",
+          "referencia": "Just like the moon exerts a pull on the earth, causing tides, so does the Milky Way exert a force on the Sagittarius galaxy.",
+          "hipotese": "The Milky Way influences the Sagittarius galaxy in the same way that the moon exerts a force of attraction on our planet and causes the tides.",
+          "chrf": 49.31328099692301,
+          "ms": 42
+        },
+        {
+          "id": "fleurs_1794",
+          "origem": "Se puede definir a una civilización como una cultura específica de la que forma parte un extenso grupo de personas que viven y trabajan en conjunto; es decir, una sociedad.",
+          "referencia": "A civilization is a singular culture shared by a significant large group of people who live and work co-operatively, a society.",
+          "hipotese": "A civilization can be defined as a specific culture of which is part of an extensive group of people who live and work together; that is, a society.",
+          "chrf": 53.45345991804009,
+          "ms": 37
+        },
+        {
+          "id": "fleurs_1816",
+          "origem": "Duvall, que está casado y tiene dos hijos adultos, no causó una buena impresión a Miller, que fue a quien le relató la historia.",
+          "referencia": "Duvall, who is married with two adult children, did not leave a big impression on Miller, to whom the story was related.",
+          "hipotese": "Duvall, who is married and has two adult children, did not make a good impression on Miller, who was the one who told the story.",
+          "chrf": 62.837678640989814,
+          "ms": 36
+        },
+        {
+          "id": "fleurs_1858",
+          "origem": "Según Danielle Lantagne, especialista en la enfermedad que trabaja para la ONU, es probable que el brote haya sido provocado por las fuerzas de paz.",
+          "referencia": "Danielle Lantagne, a UN expert on the disease, stated the outbreak was likely caused by the peacekeepers.",
+          "hipotese": "According to Danielle Lantagne, a specialist in the disease working for the UN, it is likely that the outbreak was caused by the peacekeepers.",
+          "chrf": 65.44970866818169,
+          "ms": 37
+        },
+        {
+          "id": "fleurs_1859",
+          "origem": "Hacia fines de la Edad Media, Europa occidental empezó a desarrollar un estilo propio. Uno de los avances más significativos de esa época fue que, producto de las Cruzadas, las personas comenzaron a usar botones para abrochar sus prendas.",
+          "referencia": "towards the end of the Middle Ages western Europe began to develop their own style. one of the biggest developments of the time as a result of the crusades people began to use buttons to fasten clothing.",
+          "hipotese": "Towards the end of the Middle Ages, Western Europe began to develop its own style. One of the most significant advances of that time was that, product of the Crusades, people began to use buttons to fasten their clothes.",
+          "chrf": 63.512721268238394,
+          "ms": 63
+        },
+        {
+          "id": "fleurs_1869",
+          "origem": "Sus largas mandíbulas tenían incrustados más de 70 dientes afilados como navajas, además de otro grupo adicional en el paladar, lo que se traduce en que cualquier cosa que le pasara por delante, no tenía escapatoria.",
+          "referencia": "Its long jaws were studded with more than 70 razor-sharp teeth, along with an extra set in the roof of its mouth, meaning that there was no escape for anything that crossed its path.",
+          "hipotese": "His long jaws had more than 70 sharp teeth like knives embedded, in addition to another group on the palate, which means that anything that happened to him, had no escape.",
+          "chrf": 34.89410350364697,
+          "ms": 51
+        },
+        {
+          "id": "fleurs_1884",
+          "origem": "Concretamente, se sostiene que, mediante la adecuada lectura de sus microexpresiones, es posible detectar si una persona está mintiendo.",
+          "referencia": "In particular, it is claimed that one can detect whether a person is lying by interpreting micro-expressions correctly.",
+          "hipotese": "Specifically, it is argued that, by properly reading their microexpressions, it is possible to detect whether a person is lying.",
+          "chrf": 45.84083596154399,
+          "ms": 33
+        },
+        {
+          "id": "fleurs_1903",
+          "origem": "Cuando la totalidad de los recursos disponibles se utilizan de manera adecuada en los departamentos operativos de una organización, se genera espacio para la creatividad y el ingenio.",
+          "referencia": "When all available resources are effectively used across the functional departments of an organization, creativity and ingenuity can transpire.",
+          "hipotese": "When all available resources are properly used in the operational departments of an organization, space is generated for creativity and ingenuity.",
+          "chrf": 65.97987027884949,
+          "ms": 33
+        },
+        {
+          "id": "fleurs_1905",
+          "origem": "La capital de Moldavia es Chişinău. Su lengua regional es el rumano, aunque el ruso también es muy hablado.",
+          "referencia": "The capital of Moldova is Chişinău. The local language is Romanian, but Russian is widely used.",
+          "hipotese": "The capital of Moldova is Chişinău. Their regional language is Romanian, although Russian is also very much spoken.",
+          "chrf": 68.0859198708703,
+          "ms": 34
+        },
+        {
+          "id": "fleurs_1906",
+          "origem": "«Esto no será una despedida; es solo el final de un capítulo y el comienzo de uno nuevo».",
+          "referencia": "\"This is not going to be goodbye. This is the closing of one chapter and the opening of a new one.\"",
+          "hipotese": "“This will not be a farewell; it is only the end of a chapter and the beginning of a new one.”",
+          "chrf": 39.23111842715025,
+          "ms": 27
+        },
+        {
+          "id": "fleurs_1907",
+          "origem": "Al poco tiempo de desatarse las hostilidades, los británicos comenzaron un bloqueo naval a Alemania.",
+          "referencia": "Soon after the outbreak of hostilities, Britain initiated a naval blockade of Germany.",
+          "hipotese": "Shortly after the hostilities broke out, the British began a naval blockade of Germany.",
+          "chrf": 55.19964163136819,
+          "ms": 23
+        },
+        {
+          "id": "fleurs_1930",
+          "origem": "Tanto los seis rehenes, entre los que había niños y ancianos, como los fotógrafos filipinos, fueron puestos en libertad temprano.",
+          "referencia": "Six hostages, including the children and elderly, were released early, as were the Filipino photographers.",
+          "hipotese": "Both the six hostages, including children and the elderly, and Filipino photographers, were released early.",
+          "chrf": 68.26489909966426,
+          "ms": 29
+        },
+        {
+          "id": "fleurs_1931",
+          "origem": "El servicio suele usarse en el transporte por agua, incluidas las embarcaciones recreativas, así como para las expediciones que requieren datos y voz remotos.",
+          "referencia": "The service is frequently used by shipping, including pleasure craft, as well as expeditions who have remote data and voice needs.",
+          "hipotese": "The service is often used in water transport, including recreational boats, as well as for expeditions that require remote data and voice.",
+          "chrf": 51.10265915389003,
+          "ms": 33
+        },
+        {
+          "id": "fleurs_1942",
+          "origem": "Construimos nuestras casas a partir de las plantas y con ellas también fabricamos ropa. La mayoría de los alimentos que ingerimos son plantas. Sin ellas, los animales no sobrevivirían.",
+          "referencia": "We make our houses from plants and make clothes from plants. Most foods that we eat are plants. Without plants, animals could not survive.",
+          "hipotese": "We build our houses from the plants and with them we also manufacture clothes. Most of the food we eat is plants. Without them, the animals would not survive.",
+          "chrf": 51.92347133387935,
+          "ms": 48
+        },
+        {
+          "id": "fleurs_1955",
+          "origem": "El sistema nervioso central, unión del cerebro, la médula espinal y el nervio óptico, es el objeto de ataque de la esclerosis múltiple.",
+          "referencia": "MS is a disease that affects the central nervous system, which is made up of the brain, the spinal cord and the optic nerve.",
+          "hipotese": "The central nervous system, junction of the brain, spinal cord and optic nerve, is the subject of attack by multiple sclerosis.",
+          "chrf": 50.61838735080977,
+          "ms": 31
+        },
+        {
+          "id": "fleurs_1967",
+          "origem": "Durante la reunión llevada a cabo con el primer ministro, Layton había solicitado que se introdujeran cambios en la ley ambiental de los conservadores, apelando a una «modificación exhaustiva y completa de su redacción».",
+          "referencia": "Layton had asked for changes to the conservatives' environmental bill during the meeting with the PM, asking for a \"thorough and complete rewriting\" of the Conservative party's environmental bill.",
+          "hipotese": "During the meeting with the Prime Minister, Layton had requested that changes be made to the conservatives’ environmental law, appealing for a “controverative and complete modification of its wording.”",
+          "chrf": 48.418288984738716,
+          "ms": 53
+        },
+        {
+          "id": "fleurs_1969",
+          "origem": "Indica que la posición más efectiva donde colocar el objeto central es la intersección que se forma entre las líneas horizontales y verticales que dividen la imagen en tercios (ver ejemplo).",
+          "referencia": "It states that the most effective place for the main subject is at the intersection of lines dividing the image into thirds vertically and horizontally (see example).",
+          "hipotese": "It indicates that the most effective position where to place the central object is the intersection that forms between the horizontal and vertical lines that divide the image into thirds (see example).",
+          "chrf": 60.20335725795771,
+          "ms": 41
+        },
+        {
+          "id": "fleurs_1972",
+          "origem": "Muchas personas no se los representan como dinosaurios, ya que tienen plumas y pueden volar.",
+          "referencia": "Many people don't think about them as dinosaurs because they have feathers and can fly.",
+          "hipotese": "Many people do not represent them as dinosaurs, as they have feathers and can fly.",
+          "chrf": 67.13816853913703,
+          "ms": 22
+        },
+        {
+          "id": "fleurs_1984",
+          "origem": "El uso masivo de automóviles también genera una mayor incidencia en los accidentes de tránsito, lo que conduce al desarrollo de nuevas técnicas en el campo de la salud para reparar los cuerpos dañados.",
+          "referencia": "Mass car ownership also leads to a higher incidence of accidents on the roads, which leads to the invention of new techniques in healthcare for repairing damaged bodies.",
+          "hipotese": "The massive use of cars also generates a greater incidence in traffic accidents, which leads to the development of new techniques in the field of health to repair damaged bodies.",
+          "chrf": 51.222901344533575,
+          "ms": 40
+        },
+        {
+          "id": "fleurs_2003",
+          "origem": "La forma de disfrutar las mejores vistas de Hong Kong es salir de la isla y dirigirse a la ribera de Kowloon, ubicada en frente.",
+          "referencia": "To get the best views of Hong Kong, leave the island and head for the Kowloon waterfront opposite.",
+          "hipotese": "The way to enjoy the best views of Hong Kong is to leave the island and head to the bank of Kowloon, located in front.",
+          "chrf": 58.5877979958478,
+          "ms": 35
+        },
+        {
+          "id": "fleurs_2009",
+          "origem": "Las proteínas presentes en las hojas y las legumbres hubiesen constituido la fuente de recursos vegetales de más sencillo acceso, pero no son fácilmente digeribles para primates como nosotros, excepto que se las cocine.",
+          "referencia": "The most readily accessible plant resources would have been the proteins accessible in leaves and legumes, but these are hard for primates like us to digest unless they are cooked.",
+          "hipotese": "The proteins present in the leaves and legumes would have been the easiest source of plant resources, but they are not easily digestible for primates like us, unless cooked.",
+          "chrf": 57.79369830857494,
+          "ms": 47
+        }
+      ]
+    }
+  ],
+  "comparacoes": [
+    {
+      "corpus": "fleurs:es-en",
+      "sistema": "bergamot:es-en",
+      "contra": "local:opus-mt",
+      "diferencaChrf": {
+        "valor": 0.3013512784969592,
+        "ic95": [-1.6037914143425738, 2.364641876424582],
+        "significativo": false
+      }
+    }
+  ]
+}

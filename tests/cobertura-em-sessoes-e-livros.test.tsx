@@ -11,6 +11,7 @@ import {
   idiomaTemCobertura,
   LIMITE_DE_CARACTERES,
   textosNoIdioma,
+  trechosDaSessao,
 } from '../src/core/leitura/coberturaDoConteudo'
 
 const conhecimento = vi.hoisted(() => ({
@@ -87,6 +88,28 @@ describe('textosNoIdioma', () => {
   })
 })
 
+describe('trechosDaSessao', () => {
+  it('sem idioma na sessão nem nas falas: null (nunca o idioma da pessoa)', () => {
+    expect(trechosDaSessao([{ texto: 'hello', lang: '' }], '')).toBeNull()
+    expect(trechosDaSessao([{ texto: 'hello' }], undefined)).toBeNull()
+  })
+  it('o idioma vem da sessão, ou da primeira fala que o traz', () => {
+    expect(trechosDaSessao([{ texto: 'a', lang: '' }], 'es-MX')).toEqual({ idioma: 'es', trechos: ['a'] })
+    expect(
+      trechosDaSessao(
+        [
+          { texto: 'a', lang: '' },
+          { texto: 'b', lang: 'fr' },
+        ],
+        '',
+      ),
+    ).toEqual({
+      idioma: 'fr',
+      trechos: ['a', 'b'],
+    })
+  })
+})
+
 describe('<CoberturaDoConteudo />', () => {
   afterEach(() => {
     cleanup()
@@ -139,5 +162,22 @@ describe('<CoberturaDoConteudo />', () => {
     await waitFor(() =>
       expect(screen.getByTestId('cobertura-do-conteudo').textContent).toContain('100% deste capítulo'),
     )
+  })
+})
+
+describe('<CoberturaDoConteudo /> troca de entrada', () => {
+  afterEach(cleanup)
+  it('ao trocar os trechos, a % do anterior some até a conta nova', async () => {
+    conhecimento.atual = { conhecidas: new Set(SABIDAS), sessoes: 5, temConta: true }
+    const { rerender } = render(<CoberturaDoConteudo trechos={[frase(['zzzuno'])]} idioma="en" tipo="capitulo" />)
+    await screen.findByTestId('cobertura-do-conteudo')
+    rerender(<CoberturaDoConteudo trechos={[frase([])]} idioma="en" tipo="capitulo" />)
+    expect(screen.queryByTestId('cobertura-do-conteudo')).toBeNull()
+    expect((await screen.findByTestId('cobertura-do-conteudo')).textContent).toContain('100%')
+  })
+  it('plural: "cerca de 1 palavra nova"', async () => {
+    conhecimento.atual = { conhecidas: new Set(SABIDAS), sessoes: 5, temConta: true }
+    render(<CoberturaDoConteudo trechos={[frase(['zzzuno'])]} idioma="en" tipo="capitulo" />)
+    expect((await screen.findByTestId('cobertura-do-conteudo')).textContent).toContain('cerca de 1 palavra nova')
   })
 })

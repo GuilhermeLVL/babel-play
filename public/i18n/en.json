@@ -1411,7 +1411,10 @@
   "cerca de {a} a {b} min": "about {a} to {b} min",
   "cerca de {n} min": "about {n} min",
   "Cerca de {n} min de áudio.": "About {n} min of audio.",
-  "cerca de {n} palavras novas": "about {n} new words",
+  "cerca de {n} palavras novas": {
+    "one": "about {n} new word",
+    "other": "about {n} new words"
+  },
   "cerca de {n} palavras por minuto": "about {n} words per minute",
   "certo": "right",
   "Certo, palavra por palavra.": "Correct, word for word.",

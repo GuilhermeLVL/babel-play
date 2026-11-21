@@ -630,7 +630,10 @@
   "Cena juntada neste aparelho: “{palavra}” ganhou a frase, a voz da sessão e o caminho até ela.": "Escena reunida en este dispositivo: “{palavra}” recibió la frase, la voz de la sesión y el camino hasta ella.",
   "cerca de {a} a {b} min": "unos {a} a {b} min",
   "cerca de {n} min": "unos {n} min",
-  "cerca de {n} palavras novas": "unas {n} palabras nuevas",
+  "cerca de {n} palavras novas": {
+    "one": "una palabra nueva",
+    "other": "unas {n} palabras nuevas"
+  },
   "cerca de {n} palavras por minuto": "unas {n} palabras por minuto",
   "Certo, palavra por palavra.": "Correcto, palabra por palabra.",
   "Certo: “{palavra}”.": "Correcto: “{palavra}”.",

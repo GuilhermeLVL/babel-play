@@ -29,7 +29,7 @@ import { getActiveProfile } from '../../../gateway/activeProfile';
 import { ficharCartao } from '../../../lib/adicionarAoDeck';
 import { consentiuNuvem } from '../../../lib/consentimentoDeNuvem';
 import { marcarSalva, useEtiquetador } from '../../../lib/etiquetas/indiceDeEtiquetas';
-import { t } from '../../../lib/i18n';
+import { t, tp } from '../../../lib/i18n';
 import { useLangConfig } from '../../../lib/langConfig';
 import { toBcp47 } from '../../../lib/languages';
 import {
@@ -515,7 +515,7 @@ export default function SessaoDeLeitura(props: {
             <p className="la-cobertura">
               {t('Você já sabe {n}% deste texto', { n: rotulo.porcentagem })}
               {cobertura.desconhecidas.length > 0 &&
-                ` · ${t('cerca de {n} palavras novas', { n: cobertura.desconhecidas.length })}`}
+                ` · ${tp(cobertura.desconhecidas.length, 'cerca de {n} palavra nova', 'cerca de {n} palavras novas')}`}
             </p>
           )}
           {alvoDesconhecidas.length > 0 && (

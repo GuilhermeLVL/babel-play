@@ -77,3 +77,16 @@ export function textosNoIdioma(falas: ReadonlyArray<{ texto: string; lang?: stri
   const base = baseLang(lang);
   return falas.filter((f) => !f.lang || baseLang(f.lang) === base).map((f) => f.texto);
 }
+
+/**
+ * O idioma e os textos de uma sessão para a cobertura. O idioma vem da sessão ou da primeira fala que o traz, e as falas
+ * chegam SEM o fallback para o idioma da pessoa (esse fallback faria a sessão sem idioma contar como a língua materna
+ * e dar 100%). Sem idioma confiável, `null`: sem número.
+ */
+export function trechosDaSessao(
+  falas: ReadonlyArray<{ texto: string; lang?: string | null }>,
+  langDaSessao: string | null | undefined,
+): { idioma: string; trechos: string[] } | null {
+  const idioma = baseLang(langDaSessao || falas.find((f) => f.lang)?.lang || '');
+  return idioma ? { idioma, trechos: textosNoIdioma(falas, idioma) } : null;
+}

@@ -1411,7 +1411,10 @@
   "cerca de {a} a {b} min": "[çérçá dé {a} á {b} míñ ·········]",
   "cerca de {n} min": "[çérçá dé {n} míñ ······]",
   "Cerca de {n} min de áudio.": "[Çérçá dé {n} míñ dé áüdíö. ··········]",
-  "cerca de {n} palavras novas": "[çérçá dé {n} pálávráš ñöváš ···········]",
+  "cerca de {n} palavras novas": {
+    "one": "[çérçá dé {n} pálávráš ñöváš ···········]",
+    "other": "[çérçá dé {n} pálávráš ñöváš ···········]"
+  },
   "cerca de {n} palavras por minuto": "[çérçá dé {n} pálávráš pör míñütö ·············]",
   "certo": "[çértö ··]",
   "Certo, palavra por palavra.": "[Çértö, pálávrá pör pálávrá. ···········]",

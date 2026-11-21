@@ -1,6 +1,7 @@
 import { BarChart3, BookOpen, Gamepad2, MessagesSquare } from 'lucide-react';
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 
+import { trechosDaSessao } from '../../core/leitura/coberturaDoConteudo';
 import type { AppMetrics, UtteranceRow } from '../../data/api';
 import { fetchDeck, fetchSessionTranscript, fetchSettings } from '../../data/api';
 import { applyOutputDevice } from '../../lib/audioDevices';
@@ -35,7 +36,6 @@ import Reading from './Reading';
  * que `lazyComRecarga` existe para evitar.
  */
 const PlayLobby = lazyComRecarga(() => import('./Play'));
-import { textosNoIdioma } from '../../core/leitura/coberturaDoConteudo';
 import { buildGateway } from '../../gateway';
 import { getActiveProfile } from '../../gateway/activeProfile';
 import { useMetricasDaSessao } from '../../lib/analise/metricasDaSessao';
@@ -297,18 +297,13 @@ export default function Analysis({
     });
   }, [sentences, realUtterances]);
 
-  /* A COBERTURA da sessão: o texto original das falas, no idioma da fala (não a tradução). */
-  const idiomaDaSessao = baseLang(sessionLangs?.src || sentences.find((s) => s.lang)?.lang || '');
-  const trechosDaSessao = React.useMemo(
-    () =>
-      idiomaDaSessao
-        ? textosNoIdioma(
-            sentences.map((s) => ({ texto: s.text, lang: s.lang })),
-            idiomaDaSessao,
-          )
-        : null,
-    [sentences, idiomaDaSessao],
+  /* A COBERTURA da sessão: o texto original das falas, no idioma da fala (não a tradução). O idioma vem da sessão ou
+     da própria fala, ANTES do fallback de `sentences` (que cai no idioma da pessoa): sem idioma confiável, sem número. */
+  const falasCruas = React.useMemo(
+    () => toSentences(realUtterances as UtteranceRow[]).map((s) => ({ texto: s.text, lang: s.lang })),
+    [realUtterances],
   );
+  const cobertura = React.useMemo(() => trechosDaSessao(falasCruas, sessionLangs?.src), [falasCruas, sessionLangs]);
 
   // Total duration in seconds based on durationStr
   const totalDurationSeconds = React.useMemo(() => {
@@ -812,7 +807,7 @@ export default function Analysis({
       aoExportar={() => setShowExportModal(true)}
       repintar={['dashboard', 'lexical', 'fluency'].indexOf(overviewSubTab)}
     >
-      <CoberturaDoConteudo trechos={trechosDaSessao} idioma={idiomaDaSessao} tipo="sessao" />
+      <CoberturaDoConteudo trechos={cobertura?.trechos ?? null} idioma={cobertura?.idioma} tipo="sessao" />
       {/* O RESUMO DA SESSÃO (IA de estudo, etapa 2): na revisão, com a transcrição pronta e falas suficientes. Atrás
           da flag `ia_de_estudo` (a porta não renderiza nada desligada). */}
       {currentTab === 'transcript' &&

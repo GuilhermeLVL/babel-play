@@ -35,7 +35,11 @@ export function useCoberturaDoConteudo(
   lang: string | null | undefined,
 ): CoberturaParaATela | null {
   const conhecimento = useConhecimentoDoIdioma(lang);
-  const [pronta, setPronta] = useState<CoberturaDoConteudo | null>(null);
+  const [pronta, setPronta] = useState<{
+    trechos: readonly string[];
+    lang: string;
+    c: CoberturaDoConteudo | null;
+  } | null>(null);
   const habilitada =
     !!trechos?.length && !!lang && conhecimento.temConta && conhecimento.sessoes >= SESSOES_MINIMAS_PARA_NOVA;
   useEffect(() => {
@@ -43,13 +47,16 @@ export function useCoberturaDoConteudo(
       setPronta(null);
       return;
     }
-    return quandoOcioso(() => setPronta(coberturaDoConteudo(trechos, lang, conhecimento.conhecidas)));
+    return quandoOcioso(() =>
+      setPronta({ trechos, lang, c: coberturaDoConteudo(trechos, lang, conhecimento.conhecidas) }),
+    );
   }, [habilitada, trechos, lang, conhecimento.conhecidas]);
-  if (!pronta || !habilitada) return null;
+  /* O resultado só vale para a entrada que o gerou: ao trocar de capítulo, o do anterior some até a conta nova. */
+  if (!pronta?.c || !habilitada || pronta.trechos !== trechos || pronta.lang !== lang) return null;
   const r = rotuloDaCobertura({
-    porcentagem: pronta.porcentagem,
+    porcentagem: pronta.c.porcentagem,
     sessoes: conhecimento.sessoes,
     temConta: conhecimento.temConta,
   });
-  return r ? { cobertura: pronta, rotulo: r.rotulo } : null;
+  return r ? { cobertura: pronta.c, rotulo: r.rotulo } : null;
 }

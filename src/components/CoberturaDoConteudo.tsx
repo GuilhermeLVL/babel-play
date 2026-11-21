@@ -1,7 +1,7 @@
 import '../styles/cobertura.css';
 
 import { useCoberturaDoConteudo } from '../hooks/useCoberturaDoConteudo';
-import { t } from '../lib/i18n';
+import { t, tp } from '../lib/i18n';
 import { nomeDoRotulo } from './views/leituraAtiva/rotulos';
 
 /**
@@ -33,7 +33,7 @@ export default function CoberturaDoConteudo({
           : t('Você já sabe {n}% deste capítulo', { n: cobertura.porcentagem })}
       </span>
       <span className="cobertura-rotulo">{nomeDoRotulo(rotulo)}</span>
-      {novas > 0 && <span>{t('cerca de {n} palavras novas', { n: novas })}</span>}
+      {novas > 0 && <span>{tp(novas, 'cerca de {n} palavra nova', 'cerca de {n} palavras novas')}</span>}
     </p>
   );
 }

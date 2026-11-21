@@ -85,6 +85,22 @@ describe('Retradução', () => {
     expect(q('.ef-original')?.textContent).toContain('the cat sleeps here')
   })
 
+  it('campo vazio não confere nem registra erro', () => {
+    montar(Retraducao)
+    expect(q<HTMLButtonElement>('[data-pj="conferir"]')!.disabled).toBe(true)
+    fireEvent.keyDown(campo(), { key: 'Enter' })
+    escrever('   ')
+    fireEvent.keyDown(campo(), { key: 'Enter' })
+    expect(q('.ef-nota')).toBeNull()
+  })
+
+  it('Enter segurado não pula a frase', () => {
+    montar(Retraducao)
+    escrever('the cat sleeps here')
+    fireEvent.keyDown(campo(), { key: 'Enter', repeat: true })
+    expect(q('.ef-nota')).toBeNull()
+  })
+
   it('a dica revela a primeira letra de cada palavra', () => {
     montar(Retraducao)
     fireEvent.click(q('[data-ajuda="dica"]')!)

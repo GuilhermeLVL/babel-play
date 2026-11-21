@@ -135,6 +135,8 @@ export function ExercicioDeFrase({ modo, items, ageProfile, onFinish, onExit }: 
 
   const conferir = (desistiu: boolean) => {
     if (!item || resultado || !ativo) return;
+    /* Campo vazio não consome a frase (só "Ver o original" encerra sem escrever). */
+    if (!desistiu && !texto.trim()) return;
     const r = compararFrase(item.answer, texto, lang, { ignorarAcentos });
     const certo = !desistiu && r.nota >= LIMIAR_DE_ACERTO;
     setResultado(r);
@@ -260,7 +262,8 @@ export function ExercicioDeFrase({ modo, items, ageProfile, onFinish, onExit }: 
         {comDica && (
           <p className="ef-dica" lang={lang}>
             <span className="label-mono">{t('Dica')}</span>{' '}
-            <span aria-label={t('Dica: primeira letra de cada palavra')}>{dica}</span>
+            <span className="ef-so-leitor">{t('Primeira letra de cada palavra:')} </span>
+            <span>{dica}</span>
           </p>
         )}
         <div className="pj-entrada">
@@ -276,6 +279,7 @@ export function ExercicioDeFrase({ modo, items, ageProfile, onFinish, onExit }: 
             autoCorrect="off"
             spellCheck={false}
             enterKeyHint="done"
+            maxLength={300}
             lang={lang}
             value={texto}
             disabled={!!resultado}
@@ -283,7 +287,7 @@ export function ExercicioDeFrase({ modo, items, ageProfile, onFinish, onExit }: 
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
-                conferir(false);
+                if (!e.repeat) conferir(false);
               }
             }}
           />
@@ -291,7 +295,7 @@ export function ExercicioDeFrase({ modo, items, ageProfile, onFinish, onExit }: 
             type="button"
             className="btn btn-solid"
             data-pj="conferir"
-            disabled={!!resultado}
+            disabled={!!resultado || !texto.trim()}
             onClick={() => conferir(false)}
           >
             <CornerDownLeft aria-hidden /> {t('Conferir')}

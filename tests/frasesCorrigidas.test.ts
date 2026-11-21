@@ -6,6 +6,7 @@ import {
   dicaDaFrase,
   fraseDeTamanhoBom,
   frasesElegiveis,
+  MAX_UNIDADES,
 } from '../src/core/minigames/frasesCorrigidas'
 
 const status = (r: ReturnType<typeof compararFrase>) => r.tokens.map((t) => t.status)
@@ -85,6 +86,22 @@ describe('compararFrase', () => {
   it('japonês: o dakuten faz parte da letra, mesmo com acento ignorado', () => {
     const r = compararFrase('食べる', '食へる', 'ja')
     expect(r.igual).toBe(false)
+  })
+})
+
+describe('robustez', () => {
+  it('texto enorme não trava: compara só até o teto', () => {
+    const grande = Array(5000).fill('palavra').join(' ')
+    const t0 = Date.now()
+    const r = compararFrase(grande, grande, 'en')
+    expect(Date.now() - t0).toBeLessThan(1000)
+    expect(r.tokens.length).toBeLessThanOrEqual(MAX_UNIDADES)
+  })
+
+  it('árabe: hamza, alef e harakat não contam com acento ignorado', () => {
+    expect(compararFrase('أنا أحب القراءة كثيرا', 'انا احب القراءة كثيرا', 'ar').igual).toBe(true)
+    expect(compararFrase('كَتَبَ', 'كتب', 'ar').igual).toBe(true)
+    expect(compararFrase('أنا أحب', 'انا احب', 'ar', { ignorarAcentos: false }).igual).toBe(false)
   })
 })
 

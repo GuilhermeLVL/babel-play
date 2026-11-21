@@ -56,6 +56,9 @@ export const LIMITES_DA_FRASE = { minPalavras: 4, maxPalavras: 14, minCaracteres
 /** Uma palavra trocada por uma letra só (erro de digitação) vale meio ponto na nota. */
 const CREDITO_DE_QUASE = 0.5;
 
+/** Acima disto, o resto da frase não entra na comparação. */
+export const MAX_UNIDADES = 80;
+
 const PONTUACAO = /[\p{P}\p{S}]/gu;
 
 /** As unidades comparáveis, como escritas (com pontuação colada quando ela conta). */
@@ -68,7 +71,13 @@ function unidades(texto: string, lang: string, ignorarPontuacao: boolean): strin
   return ignorarPontuacao ? palavras.map((p) => p.replace(PONTUACAO, '')).filter(Boolean) : palavras;
 }
 
-function chave(u: string, ignorarAcentos: boolean, ignorarPontuacao = true): string {
+/** Árabe: sem harakat, tatweel e hamza/alef-variantes (escolha conservadora: ى, ة e ي ficam). */
+function semMarcasArabes(s: string): string {
+  return s.replace(/[\u064B-\u065F\u0670\u0640]/g, '').replace(/[\u0622\u0623\u0625\u0671]/g, '\u0627');
+}
+
+function chave(u0: string, ignorarAcentos: boolean, ignorarPontuacao = true): string {
+  const u = ignorarAcentos ? semMarcasArabes(u0.normalize('NFC')) : u0;
   if (ignorarPontuacao) {
     if (ignorarAcentos) return chaveSemAcento(u) || u.toLowerCase();
     return u.normalize('NFC').toLowerCase();
@@ -104,8 +113,9 @@ export function compararFrase(
 ): ResultadoDaFrase {
   const ignorarAcentos = opcoes.ignorarAcentos ?? true;
   const ignorarPontuacao = opcoes.ignorarPontuacao ?? true;
-  const a = unidades(alvo, lang, ignorarPontuacao);
-  const r = unidades(resposta, lang, ignorarPontuacao);
+  /* Teto: o LCS é m×n; texto colado não pode travar a aba. */
+  const a = unidades(alvo, lang, ignorarPontuacao).slice(0, MAX_UNIDADES);
+  const r = unidades(resposta, lang, ignorarPontuacao).slice(0, MAX_UNIDADES);
   const ka = a.map((u) => chave(u, ignorarAcentos, ignorarPontuacao));
   const kr = r.map((u) => chave(u, ignorarAcentos, ignorarPontuacao));
 

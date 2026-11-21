@@ -331,9 +331,10 @@ export default function App() {
     setPedindoLogin,
   });
   /* Acesso sem conta v2 (flag `acesso_restrito_sem_conta`): depois da 1ª sessão, a porta obrigatória; e a
-     leitura de um livro (`/livros/<id>/ler`) sem `podeLer` também cai nela, com a volta ao livro guardada.
+     leitura de um livro DO CATÁLOGO (`/livros/<id>/ler`) sem `podeLer` também cai nela, com a volta ao livro
+     guardada. O livro trazido pela pessoa (`meu-…`) é um arquivo dela, lido só no aparelho: segue livre.
      Flag desligada = sempre `livre`, o app de antes. */
-  const lendoLivro = activeView === 'livros' && !!livroAberto?.lendo;
+  const lendoLivro = activeView === 'livros' && !!livroAberto?.lendo && !livroAberto.id.startsWith('meu-');
   const { acesso, faixa: faixaSemConta, declararFaixa } = useAcessoSemConta({ anonimo, activeView, lendoLivro });
 
   /* A ABA DE AJUSTES mora na navegação (é o que `/ajustes/<aba>` espelha). Um atalho do shell —

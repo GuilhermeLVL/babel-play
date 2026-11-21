@@ -27,7 +27,8 @@ const REGRA: Partial<Record<MinigameId, string>> = {
 /** O nome do que a rodada conta: "palavras", "falas" (os de áudio), "frases" (os de montar frase). */
 export function unidadeDaRodada(jogo: MinigameId | string): string {
   if (jogo === 'escuta' || jogo === 'ditado' || jogo === 'karaoke') return 'falas';
-  if (jogo === 'scramble' || jogo === 'conectores' || jogo === 'retraducao' || jogo === 'ditadoDeFrase') return 'frases';
+  if (jogo === 'scramble' || jogo === 'conectores' || jogo === 'retraducao' || jogo === 'ditadoDeFrase')
+    return 'frases';
   return 'palavras';
 }
 

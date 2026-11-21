@@ -16,7 +16,9 @@ export const TELA_DO_JOGO: Record<MinigameId, TelaDoJogo> = {
   ditado: null,
   conectores: null,
   retraducao: lazyComRecarga(() => import('../../minigames/ExercicioDeFrase').then((m) => ({ default: m.Retraducao }))),
-  ditadoDeFrase: lazyComRecarga(() => import('../../minigames/ExercicioDeFrase').then((m) => ({ default: m.DitadoDeFrase }))),
+  ditadoDeFrase: lazyComRecarga(() =>
+    import('../../minigames/ExercicioDeFrase').then((m) => ({ default: m.DitadoDeFrase })),
+  ),
   karuta: lazyComRecarga(() => import('../../minigames/culturais/KarutaDoPrototipo')),
   choseong: lazyComRecarga(() => import('../../minigames/culturais/ChoseongDoPrototipo')),
   tenis: lazyComRecarga(() => import('../../minigames/culturais/RaliDoPrototipo')),

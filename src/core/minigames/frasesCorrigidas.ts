@@ -75,7 +75,12 @@ function chave(u: string, ignorarAcentos: boolean, ignorarPontuacao = true): str
   }
   /* Pontuação conta: só caixa e (se for o caso) acento saem da chave. */
   const base = u.normalize('NFC').toLowerCase();
-  return ignorarAcentos ? comBaseLatina(base).normalize('NFD').replace(/[\u0300-\u036f]/g, '').normalize('NFC') : base;
+  return ignorarAcentos
+    ? comBaseLatina(base)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .normalize('NFC')
+    : base;
 }
 
 /** Quantas unidades a frase tem (palavras, ou caracteres nos idiomas sem espaço). */
@@ -148,7 +153,10 @@ export function compararFrase(
   const quase = tokens.filter(
     (t) =>
       t.status === 'trocada' &&
-      distanciaDeEdicao(chave(t.alvo!, ignorarAcentos, ignorarPontuacao), chave(t.resposta!, ignorarAcentos, ignorarPontuacao)) === 1,
+      distanciaDeEdicao(
+        chave(t.alvo!, ignorarAcentos, ignorarPontuacao),
+        chave(t.resposta!, ignorarAcentos, ignorarPontuacao),
+      ) === 1,
   ).length;
   const base = Math.max(m, n);
   const nota = base ? Math.round(((certas + quase * CREDITO_DE_QUASE) / base) * 100) : 0;

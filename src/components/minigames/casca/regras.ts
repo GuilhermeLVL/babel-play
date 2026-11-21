@@ -18,6 +18,8 @@ const REGRA: Partial<Record<MinigameId, string>> = {
   blitz: `Contra o relógio · erro tira ${PENALIDADE_ERRO_S} s · FEVER ×2 com ${SEQUENCIA_FEVER} seguidas`,
   escuta: 'Sem relógio · ouça quantas vezes quiser',
   ditado: 'Sem relógio · ouça e escreva o que ouviu',
+  retraducao: 'Sem relógio · leia e reescreva no idioma que estuda',
+  ditadoDeFrase: 'Sem relógio · ouça a frase inteira e escreva',
   karaoke: 'Sem relógio · ouça e repita a fala',
   scramble: 'Sem relógio · toque nas palavras na ordem',
 };
@@ -25,7 +27,7 @@ const REGRA: Partial<Record<MinigameId, string>> = {
 /** O nome do que a rodada conta: "palavras", "falas" (os de áudio), "frases" (os de montar frase). */
 export function unidadeDaRodada(jogo: MinigameId | string): string {
   if (jogo === 'escuta' || jogo === 'ditado' || jogo === 'karaoke') return 'falas';
-  if (jogo === 'scramble' || jogo === 'conectores') return 'frases';
+  if (jogo === 'scramble' || jogo === 'conectores' || jogo === 'retraducao' || jogo === 'ditadoDeFrase') return 'frases';
   return 'palavras';
 }
 

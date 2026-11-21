@@ -64,6 +64,20 @@
       "pctNoNivel": 0
     },
     {
+      "jogo": "retraducao",
+      "pontos": 0,
+      "nivel": 0,
+      "proximo": 30,
+      "pctNoNivel": 0
+    },
+    {
+      "jogo": "ditadoDeFrase",
+      "pontos": 0,
+      "nivel": 0,
+      "proximo": 30,
+      "pctNoNivel": 0
+    },
+    {
       "jogo": "karuta",
       "pontos": 10,
       "nivel": 0,

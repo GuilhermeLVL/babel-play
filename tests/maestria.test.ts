@@ -69,7 +69,7 @@ function rodada(jogo: string, roundId: string, certos: number, n: number, combo:
 }
 
 describe('maestriaPorJogo — a soma que o servidor faz', () => {
-  it('soma por rodada e por jogo, com os 18 jogos na resposta', () => {
+  it('soma por rodada e por jogo, com os 20 jogos na resposta', () => {
     const linhas = [...rodada('memory', 'r1', 10, 10, 10, 1000), ...rodada('memory', 'r2', 9, 10, 0, 2000), ...rodada('termo', 'r3', 3, 4, 0, 3000)]
     const m = maestriaPorJogo(linhas)
     expect(m).toHaveLength(Object.keys(MINIGAMES).length)
@@ -134,11 +134,11 @@ describe('espelho sem conta — GET /api/metrics/maestria e o crédito conferido
   const creditar = (creditoId: string) =>
     servidorEfemero('/api/metrics/seeds/creditar', { method: 'POST', body: JSON.stringify({ creditoId }) })
 
-  it('sem rodada: 18 jogos zerados; o crédito de Bronze é recusado', async () => {
+  it('sem rodada: 20 jogos zerados; o crédito de Bronze é recusado', async () => {
     const r = await servidorEfemero('/api/metrics/maestria', { method: 'GET' })
     expect(r.status).toBe(200)
     const corpo = await r.json()
-    expect(corpo.jogos).toHaveLength(18)
+    expect(corpo.jogos).toHaveLength(20)
     expect(corpo.creditados).toEqual([])
     const c = await creditar('maestria:memory:1')
     expect(c.status).toBe(400)

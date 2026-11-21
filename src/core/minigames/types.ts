@@ -16,7 +16,7 @@ import type { CefrLevel } from '../learning/contract';
 
 /** Os jogos existentes. A tela lê esta lista — nenhuma tela repete a regra de cada um. */
 export type MinigameId = 'memory' | 'wordsearch' | 'blitz' | 'termo' | 'scramble' | 'karaoke'
-  | 'escuta' | 'ditado' | 'conectores'
+  | 'escuta' | 'ditado' | 'conectores' | 'retraducao' | 'ditadoDeFrase'
   | 'karuta' | 'choseong' | 'tenis' | 'koffer' | 'bao' | 'vitendawili' | 'shiritori'
   | 'cadavre' | 'taboo';
 
@@ -45,6 +45,8 @@ export interface MinigameItem {
    * Ausente = nenhuma. Não entra como distrator: só alimenta a conferência.
    */
   alternativas?: string[];
+  /** Id da fala de origem, nos jogos de frase (vai para item_ref). Ausente = o jogo não sabe identificar o item. */
+  itemRef?: string;
 }
 
 /** O que aconteceu com um item durante a rodada. */
@@ -168,6 +170,9 @@ export const MINIGAMES: Record<MinigameId, MinigameDef> = {
   escuta: { id: 'escuta', minItems: 4, maxItems: 6, requiresTranslation: false, writesSrs: false, modalidade: 'frase-audio', aceitaPalavraFalada: true },
   ditado: { id: 'ditado', minItems: 3, maxItems: 5, requiresTranslation: false, writesSrs: false, modalidade: 'frase-audio', aceitaPalavraFalada: true },
   conectores: { id: 'conectores', minItems: 3, maxItems: 5, requiresTranslation: false, writesSrs: false, modalidade: 'frase' },
+  /* Exercicios de frase inteira, corrigidos no aparelho (frasesCorrigidas.ts). Vivem de FALAS: sem cartao, sem nota de SRS. */
+  retraducao: { id: 'retraducao', minItems: 3, maxItems: 5, requiresTranslation: true, writesSrs: false, modalidade: 'frase' },
+  ditadoDeFrase: { id: 'ditadoDeFrase', minItems: 3, maxItems: 5, requiresTranslation: false, writesSrs: false, modalidade: 'frase' },
 
   /* Os nove culturais. Todos rodam sobre o baralho; os que precisam de alfabeto latino declaram
      em `requisitos`, e nao por nome espalhado no codigo. */

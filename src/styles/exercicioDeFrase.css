@@ -1,0 +1,86 @@
+/* Retradução e ditado de frase (ExercicioDeFrase.tsx). Cor nunca é o único sinal: cada palavra leva também
+   uma marca (✓ ≠ + −), a forma (sobrando é riscada) e um texto alternativo. */
+.ef-miolo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ef-rotulo {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.ef-pista,
+.ef-dica,
+.ef-original {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+}
+.ef-pista-texto {
+  font: 800 18px var(--font-display);
+}
+.ef-dica span:last-child {
+  font-family: var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+}
+.ef-opcao {
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+.ef-nota {
+  margin: 0 0 8px;
+}
+.ef-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+}
+.ef-tok > span {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 8px;
+  border: 2px solid var(--border-subtle);
+  background: var(--surface);
+  font: 700 16px var(--font-display);
+}
+.ef-tok small {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-decoration: line-through;
+}
+.ef-marca {
+  font-size: 11px;
+  font-weight: 800;
+}
+.ef-certa > span {
+  border-color: var(--good);
+}
+.ef-trocada > span {
+  border-color: var(--warn);
+  border-style: dashed;
+}
+.ef-faltando > span {
+  border-color: var(--error);
+  border-style: dotted;
+}
+.ef-sobrando > span {
+  border-color: var(--error);
+}
+.ef-risca {
+  text-decoration: line-through;
+}
+.ef-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px;
+}

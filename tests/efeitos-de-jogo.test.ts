@@ -63,8 +63,8 @@ describe('o catálogo da onda 3', () => {
     }
   })
 
-  it('cada um dos 18 jogos tem exatamente um acerto (2), uma moldura (3), uma finalização (4) e um título (5)', () => {
-    expect(JOGOS).toHaveLength(18)
+  it('cada um dos 20 jogos tem exatamente um acerto (2), uma moldura (3), uma finalização (4) e um título (5)', () => {
+    expect(JOGOS).toHaveLength(20)
     for (const jogo of JOGOS) {
       const doJogo = DE_MAESTRIA.filter((i) => i.origemMaestria!.jogo === jogo)
       const por = (tipo: ItemDaLoja['tipo']) => doJogo.filter((i) => i.tipo === tipo)
@@ -86,11 +86,11 @@ describe('o catálogo da onda 3', () => {
       ).toEqual([5])
       expect(doJogo.every((i) => i.jogo === jogo)).toBe(true)
     }
-    expect(FINALIZACOES_DE_MAESTRIA).toHaveLength(18)
+    expect(FINALIZACOES_DE_MAESTRIA).toHaveLength(20)
   })
 
   it('item de maestria: sem nível, sem Seeds, sem Créditos, nunca à venda nem no baú', () => {
-    expect(DE_MAESTRIA).toHaveLength(72)
+    expect(DE_MAESTRIA).toHaveLength(80)
     for (const i of DE_MAESTRIA) {
       expect(i.nivel, i.id).toBeUndefined()
       expect(i.precoSeeds, i.id).toBeUndefined()
@@ -198,12 +198,12 @@ describe('as receitas: só o motor de partículas e tokens de cor', () => {
     }
   })
 
-  it('as 18 finalizações são 18 festas diferentes (forma × origem × cor)', () => {
+  it('as 20 finalizações são 20 festas diferentes (forma × origem × cor)', () => {
     const assinaturas = FINALIZACOES_DE_MAESTRIA.map((f) => {
       const r = RECEITAS.finalizacao[f.id]
       return `${r.forma}/${r.origem}/${r.cor}`
     })
-    expect(new Set(assinaturas).size).toBe(18)
+    expect(new Set(assinaturas).size).toBe(20)
     // E nenhuma repete a festa da casa (confete caindo do topo na cor de destaque).
     expect(assinaturas).not.toContain('confete/chuva/--accent')
   })

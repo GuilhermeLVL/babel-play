@@ -3,6 +3,7 @@ import { chaveComparavel } from '../learning/quality';
 import type { FaixaDificuldade } from './composicao';
 import type { FalaComAudio } from './escuta';
 import { buildRodadasConectores, buildRodadasDitado, buildRodadasEscuta, temConectores } from './escuta';
+import { frasesElegiveis } from './frasesCorrigidas';
 import { cabeNaEscrita,canPlay, promptFor } from './itemSource';
 import { buildScrambleRounds } from './scramble';
 import { consumoDaEscada, contarJogaveisMulti, ESCADA_POR_FAIXA } from './termo';
@@ -318,7 +319,7 @@ export function estadoDoJogo(id: MinigameId, e: EntradaDoEstado, pools?: PoolPor
     }
 
     /* A gravação tem som mas ele ainda não chegou: bloqueio TRANSITÓRIO, com o motivo certo. */
-    const precisaDeSom = id !== 'scramble';
+    const precisaDeSom = id !== 'scramble' && id !== 'retraducao' && id !== 'ditadoDeFrase';
     if (precisaDeSom && e.temAudio && e.audioPronto === false) {
       return { id, ok: false, disponiveis: 0, faltam: def.minItems, fonte: 'falas', motivo: 'audio-carregando', tamanhoDaRodada: 0 };
     }
@@ -327,6 +328,8 @@ export function estadoDoJogo(id: MinigameId, e: EntradaDoEstado, pools?: PoolPor
       id === 'scramble' ? buildScrambleRounds(falas, { quantidade: TETO_DE_FALAS }).length
         : id === 'escuta' ? (e.temAudio ? buildRodadasEscuta(e.frases, { quantidade: TETO_DE_FALAS }).length : 0)
           : id === 'ditado' ? (e.temAudio ? buildRodadasDitado(e.frases, { quantidade: TETO_DE_FALAS }).length : 0)
+          : id === 'retraducao' ? frasesElegiveis(falas, 'retraducao', { lang: e.lang, quantidade: TETO_DE_FALAS }).length
+          : id === 'ditadoDeFrase' ? (e.temVoz ? frasesElegiveis(falas, 'ditado', { lang: e.lang, quantidade: TETO_DE_FALAS }).length : 0)
             : id === 'conectores' ? (temConectores(e.lang) ? buildRodadasConectores(e.frases, { lang: e.lang, quantidade: TETO_DE_FALAS }).length : 0)
               : (e.temAudio ? e.frases.filter(f => f.endMs > f.startMs && f.text.trim()).length : 0);
 

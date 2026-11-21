@@ -347,6 +347,8 @@ const CLASSICOS: ReadonlySet<MinigameId> = new Set<MinigameId>([
   'escuta',
   'karaoke',
   'conectores',
+  'retraducao',
+  'ditadoDeFrase',
   'blitz',
 ]);
 

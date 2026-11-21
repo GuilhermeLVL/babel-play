@@ -23,6 +23,8 @@ const ARQUIVO: Record<MinigameId, string> = {
   karaoke: 'KaraokeDoPrototipo',
   escuta: 'EscutaDoPrototipo',
   ditado: 'DitadoDoPrototipo',
+  retraducao: 'ExercicioDeFrase',
+  ditadoDeFrase: 'ExercicioDeFrase',
   conectores: 'ConectoresDoPrototipo',
   karuta: 'culturais/KarutaDoPrototipo',
   choseong: 'culturais/ChoseongDoPrototipo',

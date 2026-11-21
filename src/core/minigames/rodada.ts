@@ -37,6 +37,7 @@ import {
   type RodadaDitado,
   type RodadaEscuta,
 } from './escuta';
+import { frasesElegiveis } from './frasesCorrigidas';
 import { buildItems } from './itemSource';
 import { type ItemCru, type ItemDaAntessala, type OrigemDoItem,origemDoMaterial, previaSegura } from './revelavel';
 import { buildScrambleRounds, type RodadaFrase } from './scramble';
@@ -470,6 +471,35 @@ export function montarRodada(entrada: EntradaDaRodada): RodadaMontada | null {
     return pronta(
       r.map((x) => ({ ref: x.fala.id ?? '', alvo: x.fala.text, pista: x.fala.translation })),
       { tipo: 'ditado', rodadas: r },
+    );
+  }
+  if (jogo === 'retraducao' || jogo === 'ditadoDeFrase') {
+    /* Frase inteira, corrigida no aparelho. O jogo consome `itens`: a pista é a tradução, a resposta é
+       a frase (`frasesElegiveis`: tamanho bom, sem duplicata, e a retradução exige tradução). */
+    const def = MINIGAMES[jogo];
+    const r = priorizar(
+      frasesElegiveis(falasNaOrdem, jogo === 'retraducao' ? 'retraducao' : 'ditado', {
+        lang: fonte.lang,
+        quantidade: def.maxItems,
+      }),
+      trecho,
+      (x) => x.text,
+    );
+    /* O ditado de frase fala por voz sintetizada: sem voz não há o que ouvir. */
+    if (r.length < def.minItems || (jogo === 'ditadoDeFrase' && !temVoz)) return null;
+    return pronta(
+      r.map((x) => ({ ref: x.id ?? '', alvo: x.text, pista: x.translation })),
+      {
+        tipo: 'itens',
+        jogo,
+        itens: r.map((x) => ({
+          itemRef: x.id || undefined,
+          prompt: x.translation,
+          answer: x.text,
+          sentence: x.text,
+          lang: x.lang || fonte.lang,
+        })),
+      },
     );
   }
   if (jogo === 'conectores') {

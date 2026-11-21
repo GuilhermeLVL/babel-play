@@ -46,6 +46,7 @@ export * from './minigames/escuta';
 export * from './minigames/estadoDosJogos';
 export * from './minigames/fases';
 export * from './minigames/filtro';
+export * from './minigames/frasesCorrigidas';
 export * from './minigames/grade';
 export * from './minigames/itemSource';
 export * from './minigames/painelDaPratica';

@@ -25,7 +25,8 @@
  * o preço de não segurar a aba. No "parar" o beacon NÃO é usado justamente por isso: a página está
  * viva e o envio autenticado é possível. Toda falha é silenciosa: telemetria nunca vira erro na tela.
  */
-import { FLAG_RUM_LATENCIA } from '../../core/planos';
+import { FLAG_ROTEADOR_ADAPTATIVO_SOMBRA, FLAG_RUM_LATENCIA } from '../../core/planos';
+import type { CampoDoRoteador } from '../../core/rota/sombraDoRoteador';
 import { apiFetch } from '../../data/api';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import { flagLigada } from '../../lib/flagsCache';
@@ -53,8 +54,18 @@ export interface CampoDaLegenda {
   classe: string;
   fimDaFalaAteLegenda?: { idioma: string; baldes: number[]; n: number; falhas: number; semTraducao: number };
   carga?: { modelo: string; fase: string; baldes: number[] }[];
+  /** O roteador adaptativo em sombra (flag `roteador_adaptativo_sombra`): só contagens de lista fechada, em baldes. */
+  roteador?: CampoDoRoteador & { idioma: string };
 }
 export type PayloadDeTelemetriaV2 = Omit<PayloadDeTelemetria, 'v'> & { v: 2 } & CampoDaLegenda;
+
+/** Quem drena a sombra do roteador (registrado por `lib/captura/sombraDaRota`, que só carrega com a flag ligada). */
+let drenarRoteador: (() => CampoDoRoteador | null) | null = null;
+
+/** A sombra do roteador adaptativo entrega aqui o que acumulou a cada envio. Substitui o registro anterior. */
+export function registrarFonteDoRoteador(fonte: (() => CampoDoRoteador | null) | null): void {
+  drenarRoteador = fonte;
+}
 
 let relogio: ReturnType<typeof setInterval> | null = null;
 let aoSairDaPagina: (() => void) | null = null;
@@ -89,7 +100,7 @@ const novosBaldes = (): number[] => new Array<number>(LIMITES_DOS_BALDES_MS.leng
 const teto = (n: number): number => Math.min(MAX_CONTAGEM, n);
 
 /** Soma o que a medição drenou nos baldes fixos; `null` = nada a mandar. Sem texto, id, hora ou nome de sessão. */
-function montarCampo(l: LoteDaLegenda): CampoDaLegenda | null {
+function montarCampo(l: LoteDaLegenda, roteador: CampoDoRoteador | null): CampoDaLegenda | null {
   const campo: CampoDaLegenda = { classe: perfilDoDispositivo().tipo };
   if (l.fimDaFalaAteLegendaMs.length || l.falhas || l.semTraducao) {
     const baldes = novosBaldes();
@@ -114,7 +125,8 @@ function montarCampo(l: LoteDaLegenda): CampoDaLegenda | null {
     item.baldes[baldeDe(c.ms)] = teto((item.baldes[baldeDe(c.ms)] ?? 0) + 1);
   }
   if (cargas.size) campo.carga = [...cargas.values()];
-  return campo.fimDaFalaAteLegenda || campo.carga ? campo : null;
+  if (roteador && flagLigada(FLAG_ROTEADOR_ADAPTATIVO_SOMBRA)) campo.roteador = { idioma: idiomaDeOrigem, ...roteador };
+  return campo.fimDaFalaAteLegenda || campo.carga || campo.roteador ? campo : null;
 }
 
 function podeEnviar(): boolean {
@@ -144,8 +156,10 @@ function enviar(saindo: boolean): void {
   // Drena SEMPRE: sem permissão, o lote é descartado em vez de acumular até alguém deixar mandar.
   const lote = capMetrics.drenarTelemetria();
   const legenda = capMetrics.drenarLegenda();
+  // A sombra também drena SEMPRE: para o perfil protegido ou sem permissão, os números morrem aqui, em memória.
+  const roteador = drenarRoteador?.() ?? null;
   if (!podeEnviar()) return;
-  const campo = campoPermitido() ? montarCampo(legenda) : null;
+  const campo = campoPermitido() ? montarCampo(legenda, roteador) : null;
   if (vazio(lote) && !campo) return;
   const payload: PayloadDeTelemetria | PayloadDeTelemetriaV2 = campo ? { v: 2, ...lote, ...campo } : { v: 1, ...lote };
   const corpo = JSON.stringify(payload);

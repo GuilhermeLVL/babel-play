@@ -22,7 +22,13 @@
  * `lab-medicao-legenda-traduzida`). Os campos do `v: 1` passam a ser opcionais; acrescenta-se:
  *
  *   { v: 2, classe, fimDaFalaAteLegenda?: { idioma, baldes: number[9], n, falhas, semTraducao },
- *     carga?: [{ modelo, fase, baldes: number[9] }] }
+ *     carga?: [{ modelo, fase, baldes: number[9] }],
+ *     roteador?: { idioma, trocas, linhas: [{ tomaria, efetiva, motivo, rtf, fila, n }] } }
+ *
+ * `roteador` é o roteador adaptativo EM SOMBRA (flag `roteador_adaptativo_sombra`; openspec `roteador-adaptativo-em-sombra`):
+ * `tomaria` é um de `DEGRAUS_ADAPTATIVOS`, `efetiva` um degrau da rota (`DEGRAUS_EFETIVOS`), `motivo` um de `MOTIVOS_DA_ROTA`,
+ * `rtf` um balde 0..3 e `fila` um balde 0..2, `n` e `trocas` contagens grampeadas. TUDO fechado: valor fora da lista, balde
+ * fora da faixa ou mais de `MAX_LINHAS_DO_ROTEADOR` linhas é 400 (não há como criar série por string inventada).
  *
  * SÓ LISTAS FECHADAS: `classe` é um dos 5 perfis de `src/lib/dispositivo/perfil.ts`, `idioma` é o idioma-base
  * (`pt|en|es`), `modelo` é motor do registro, `fase` é `download|compilacao|aquecimento`. Valor fora da lista de
@@ -38,6 +44,13 @@
 import { type Request, type Response, Router } from 'express'
 
 import { REGISTRO_DE_MOTORES } from '../../src/core/harness/registroDeMotores'
+import { DEGRAUS_ADAPTATIVOS, MOTIVOS_DA_ROTA } from '../../src/core/rota/politicaDeRota'
+import {
+  BALDES_DE_FILA,
+  BALDES_DE_RTF,
+  DEGRAUS_EFETIVOS,
+  MAX_LINHAS_DO_ROTEADOR,
+} from '../../src/core/rota/sombraDoRoteador'
 import type { TipoDeDispositivo } from '../../src/lib/dispositivo/perfil'
 import { LIMITES_DOS_BALDES_DE_CAMPO_MS, observarCaptura, type RelatorioDeCaptura } from '../http/metricas'
 
@@ -76,6 +89,10 @@ const N_BALDES = LIMITES_DOS_BALDES_DE_CAMPO_MS.length + 1
 /** Falas por lote no campo (o mesmo teto de itens do `v: 1`). */
 const MAX_CONTAGEM = MAX_ITENS
 const MAX_CARGAS = 20
+
+const TOMARIA: ReadonlySet<string> = new Set(DEGRAUS_ADAPTATIVOS)
+const EFETIVA: ReadonlySet<string> = new Set(DEGRAUS_EFETIVOS)
+const MOTIVOS: ReadonlySet<string> = new Set(MOTIVOS_DA_ROTA)
 
 const classeSaneada = (v: unknown): string => (typeof v === 'string' && Object.hasOwn(CLASSES, v) ? v : 'outro')
 
@@ -151,7 +168,42 @@ function validarCampo(c: Record<string, unknown>): NonNullable<RelatorioDeCaptur
       carga.push({ modelo: motorSaneado(i.modelo), fase: i.fase, baldes })
     }
   }
-  return { classe, legenda, carga }
+  let roteador: NonNullable<RelatorioDeCaptura['campo']>['roteador']
+  if (c.roteador !== undefined) {
+    const r = validarRoteador(c.roteador)
+    if (!r) return null
+    roteador = r
+  }
+  return { classe, legenda, carga, roteador }
+}
+
+/** O campo `roteador` (sombra do roteador adaptativo): só listas fechadas e baldes; `null` = fora do contrato. */
+function validarRoteador(v: unknown): NonNullable<NonNullable<RelatorioDeCaptura['campo']>['roteador']> | null {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null
+  const r = v as Record<string, unknown>
+  const trocas = contagem(r.trocas)
+  if (trocas === null || !Array.isArray(r.linhas) || r.linhas.length > MAX_LINHAS_DO_ROTEADOR) return null
+  const linhas: NonNullable<NonNullable<RelatorioDeCaptura['campo']>['roteador']>['linhas'] = []
+  for (const item of r.linhas) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return null
+    const l = item as Record<string, unknown>
+    const rtf = contagem(l.rtf)
+    const fila = contagem(l.fila)
+    const n = contagem(l.n)
+    if (typeof l.tomaria !== 'string' || !TOMARIA.has(l.tomaria)) return null
+    if (typeof l.efetiva !== 'string' || !EFETIVA.has(l.efetiva)) return null
+    if (typeof l.motivo !== 'string' || !MOTIVOS.has(l.motivo)) return null
+    if (rtf === null || rtf >= BALDES_DE_RTF || fila === null || fila >= BALDES_DE_FILA || n === null) return null
+    linhas.push({
+      tomaria: l.tomaria,
+      efetiva: l.efetiva,
+      motivo: l.motivo,
+      rtf,
+      fila,
+      n: grampear(n, MAX_CONTAGEM),
+    })
+  }
+  return { idioma: idiomaSaneado(r.idioma), trocas: grampear(trocas, MAX_CONTAGEM), linhas }
 }
 
 /**

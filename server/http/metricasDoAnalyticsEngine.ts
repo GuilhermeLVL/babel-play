@@ -43,6 +43,8 @@ export type FamiliaDeMetrica =
   /* Telemetria de campo `v: 2` (flag `rum_latencia`): classe, idioma/modelo e fase de listas fechadas; doubles = [limite do balde em ms, contagem]. */
   | 'captura_latencia'
   | 'captura_carga'
+  /* Sombra do roteador adaptativo (flag `roteador_adaptativo_sombra`): classe, idioma, `decisao`|`trocas` e listas fechadas; doubles = [contagem]. */
+  | 'captura_roteador'
 
 /** O limite do índice e o que se aplica também aos blobs, para o rótulo ter o mesmo teto em toda parte. */
 const LIMITE_EM_BYTES = 96

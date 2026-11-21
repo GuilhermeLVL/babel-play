@@ -128,6 +128,10 @@ interface Estado {
   capturaLegendaFalhas: Counter<'classe' | 'idioma'>
   capturaLegendaSemTraducao: Counter<'classe' | 'idioma'>
   capturaCargaModelo: Histogram<'classe' | 'modelo' | 'fase'>
+  /* O roteador adaptativo em sombra (change `roteador-adaptativo-em-sombra`): rótulos de listas FECHADAS e baldes. */
+  capturaRoteadorDecisoes: Counter<'classe' | 'idioma' | 'tomaria' | 'efetiva' | 'motivo'>
+  capturaRoteadorSinais: Counter<'classe' | 'rtf' | 'fila'>
+  capturaRoteadorTrocas: Counter<'classe' | 'idioma'>
   dependenciaDegradada: Counter<'dependencia'>
   ofertaEventos: Counter<'evento' | 'gatilho' | 'componente'>
   ofertaEventosPorPlano: Counter<'evento' | 'plano_atual' | 'plano_sugerido' | 'variante'>
@@ -383,6 +387,21 @@ function criarEstadoProm(): Estado {
       help: 'Tempo de carga de um modelo no navegador (campo, só com a flag rum_latencia), por classe, modelo e fase (download, compilacao, aquecimento). Reconstruído de baldes.',
       labelNames: ['classe', 'modelo', 'fase'] as const,
       buckets: [...LIMITES_DOS_BALDES_DE_CAMPO_MS],
+    }),
+    capturaRoteadorDecisoes: new Counter({
+      name: 'captura_roteador_decisoes_total',
+      help: 'Falas em que o roteador adaptativo (EM SOMBRA, flag roteador_adaptativo_sombra) decidiria um degrau, por classe, idioma-base, decisão que tomaria, degrau efetivo e motivo da rota efetiva. Nunca muda a rota.',
+      labelNames: ['classe', 'idioma', 'tomaria', 'efetiva', 'motivo'] as const,
+    }),
+    capturaRoteadorSinais: new Counter({
+      name: 'captura_roteador_sinais_total',
+      help: 'Falas da sombra do roteador por balde do RTF (0 até 0,5; 1 até 0,8; 2 acima; 3 não medido) e da fila (0, 1, 2 ou mais), por classe.',
+      labelNames: ['classe', 'rtf', 'fila'] as const,
+    }),
+    capturaRoteadorTrocas: new Counter({
+      name: 'captura_roteador_trocas_total',
+      help: 'Trocas de decisão do roteador adaptativo em sombra (lotes de ~1 minuto: trocas por minuto), por classe e idioma-base.',
+      labelNames: ['classe', 'idioma'] as const,
     }),
     /* O FUNIL DAS OFERTAS DE PLANOS (Fase 8, `POST /api/metricas/ofertas`). Anônimo: nenhuma label
        identifica pessoa. `gatilho` só assume ids que existem (os embutidos e os do payload atual de
@@ -883,6 +902,12 @@ export interface RelatorioDeCaptura {
     classe: string
     legenda?: { idioma: string; baldes: number[]; n: number; falhas: number; semTraducao: number }
     carga: Array<{ modelo: string; fase: string; baldes: number[] }>
+    /** Sombra do roteador adaptativo: tudo de lista fechada ou balde, JÁ validado pela rota. */
+    roteador?: {
+      idioma: string
+      trocas: number
+      linhas: Array<{ tomaria: string; efetiva: string; motivo: string; rtf: number; fila: number; n: number }>
+    }
   }
 }
 
@@ -899,7 +924,7 @@ function baldesNaoVazios(baldes: readonly number[]): Array<[number, number]> {
 }
 
 function observarCampo(e: Estado, campo: NonNullable<RelatorioDeCaptura['campo']>): void {
-  const { classe, legenda, carga } = campo
+  const { classe, legenda, carga, roteador } = campo
   if (legenda) {
     const rotulos = { classe, idioma: legenda.idioma }
     const pontos = baldesNaoVazios(legenda.baldes)
@@ -923,6 +948,25 @@ function observarCampo(e: Estado, campo: NonNullable<RelatorioDeCaptura['campo']
     for (const [ms, q] of baldesNaoVazios(c.baldes)) {
       for (let k = 0; k < q; k++) e.capturaCargaModelo.observe({ classe, modelo: c.modelo, fase: c.fase }, ms)
       if (ehWorker()) gravarPonto('captura_carga', [classe, c.modelo, c.fase], [ms, q], classe)
+    }
+  }
+  if (roteador) {
+    const { idioma } = roteador
+    if (roteador.trocas > 0) {
+      e.capturaRoteadorTrocas.inc({ classe, idioma }, roteador.trocas)
+      if (ehWorker()) gravarPonto('captura_roteador', [classe, idioma, 'trocas'], [roteador.trocas], classe)
+    }
+    for (const l of roteador.linhas) {
+      if (!(l.n > 0)) continue
+      e.capturaRoteadorDecisoes.inc({ classe, idioma, tomaria: l.tomaria, efetiva: l.efetiva, motivo: l.motivo }, l.n)
+      e.capturaRoteadorSinais.inc({ classe, rtf: String(l.rtf), fila: String(l.fila) }, l.n)
+      if (ehWorker())
+        gravarPonto(
+          'captura_roteador',
+          [classe, idioma, 'decisao', l.tomaria, l.efetiva, l.motivo, String(l.rtf), String(l.fila)],
+          [l.n],
+          classe,
+        )
     }
   }
 }

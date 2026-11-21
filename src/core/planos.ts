@@ -332,6 +332,14 @@ export const FLAG_RUM_LATENCIA = 'rum_latencia';
 export const FLAG_STT_NUVEM_NORMALIZAR = 'stt_nuvem_normalizar';
 
 /**
+ * O ROTEADOR ADAPTATIVO EM SOMBRA (openspec `roteador-adaptativo-em-sombra`; migrações PG 0025 e SQLite 0067, números
+ * PROVISÓRIOS): por fala, calcula o que um roteador por RTF, fila e confiança do STT decidiria e REGISTRA só contagens
+ * agregadas; NUNCA muda a rota real. Nasce DESLIGADA e sem regra de plano; ligar é ato do dono. Desligada = nada é
+ * calculado, registrado nem carregado.
+ */
+export const FLAG_ROTEADOR_ADAPTATIVO_SOMBRA = 'roteador_adaptativo_sombra';
+
+/**
  * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,
  * "Custo da escrita"): um retorno leva ~900 tokens de entrada (system + texto de até 120 palavras) e até 500 de saída;
  * 30 por mês ficam na casa de US$ 0,01 por assinante que usa tudo, e os tokens já saem da `tokensMes`.

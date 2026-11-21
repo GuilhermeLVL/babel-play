@@ -30,6 +30,7 @@ const FLAGS_SENSIVEIS = new Set([
   'acesso_restrito_sem_conta',
   'rum_latencia',
   'stt_nuvem_normalizar',
+  'roteador_adaptativo_sombra',
 ]);
 
 /** As regras da flag em palavras curtas, para ver de relance quem ela alcança. */

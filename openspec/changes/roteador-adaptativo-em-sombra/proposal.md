@@ -16,7 +16,7 @@ nuvem para quem não consentiu".
   **a rota real não muda em nenhum caso**.
 - O roteador CONSOME `medicoesDeStt` (change `stt-ingles-volume-e-rota`) para o inglês; não mede nem decide isso por conta própria.
 - Critério do E-005 escrito aqui, antes da coleta; avaliação a posteriori na bancada; meta de CPU por decisão.
-- Flag `roteador_adaptativo_sombra` nasce DESLIGADA (migrações PROVISÓRIAS PG 0027 e SQLite 0069; o número final é conferido no PR).
+- Flag `roteador_adaptativo_sombra` nasce DESLIGADA (migrações PROVISÓRIAS PG 0025 e SQLite 0067; o número final é conferido no PR).
 
 ## Capabilities
 

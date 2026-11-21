@@ -176,6 +176,13 @@
       "when": 1794800000004,
       "tag": "0024_flag_stt_nuvem_normalizar",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794800000005,
+      "tag": "0025_flag_roteador_adaptativo_sombra",
+      "breakpoints": true
     }
   ]
 }

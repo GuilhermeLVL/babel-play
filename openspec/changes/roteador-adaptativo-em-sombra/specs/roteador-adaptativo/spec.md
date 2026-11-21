@@ -20,7 +20,7 @@ plano, cota, rede) SHALL rodar antes e o adaptativo SHALL escolher só entre deg
 
 Com `roteador_adaptativo_sombra` ligada, o app SHALL calcular a decisão adaptativa por trecho e registrá-la ao lado da rota efetiva,
 e SHALL NOT alterar motor, modelo, nuvem ou tradutor efetivos. A flag SHALL nascer DESLIGADA, sem regra de plano (migrações
-provisórias PG 0027 e SQLite 0069, conferidas no PR).
+provisórias PG 0025 e SQLite 0067, conferidas no PR).
 
 #### Scenario: Flag ligada
 

@@ -76,7 +76,7 @@ Custo/h = nuvem que a sombra teria usado × preço do `custo-de-ia`, comparado a
 - **Vazamento pelo registro.** Mitigação: lista fechada, baldes, teste de forma do lote, perfil protegido nunca sai.
 - **Sombra enganar com guarda errada** (ramo `politicaLigada` nunca rodou): teste em grade plano × consentimento × idade × cota (A-012).
 - **Dependência de `medicoesDeStt`** ainda não implementada: sem ela, o adaptativo ignora o prior e a tarefa fica bloqueada na 3.3.
-- Migrações PG 0027 e SQLite 0069 são provisórias: outras mudanças em voo podem tomar o número.
+- Migrações PG 0025 e SQLite 0067 são provisórias: outras mudanças em voo podem tomar o número.
 
 ## Como medir
 

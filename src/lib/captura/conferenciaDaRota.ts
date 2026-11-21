@@ -15,6 +15,7 @@
  * política já diz "aparelho" com o motivo. Qualquer outra é defeito de um dos dois lados.
  */
 import { gpuRealDaRota } from '../../core/nuvemDeAlivio';
+import { FLAG_ROTEADOR_ADAPTATIVO_SOMBRA } from '../../core/planos';
 import { decidirRota, paraRotaDoStt, type PedidoDeRota } from '../../core/rota/politicaDeRota';
 import {
   type DispositivoDaRota,
@@ -23,6 +24,8 @@ import {
   type SttRoute,
   usarGpuNoAparelho,
 } from '../../gateway/sttRouter';
+import { flagLigada } from '../flags';
+import type { AlimentadorDaSombra } from './sombraDaRota';
 
 /** O que a `rotaDaCaptura` tem em mãos quando chama o `routeStt`. */
 export interface EntradaDaConferencia {
@@ -186,5 +189,20 @@ export async function conferirRotaDoStt(entrada: EntradaDaConferencia, efetiva: 
     console.warn('[rota]', texto);
   } catch (erro) {
     console.warn('[rota] conferência da política indisponível', erro);
+  }
+}
+
+/**
+ * A SOMBRA DO ROTEADOR ADAPTATIVO (openspec `roteador-adaptativo-em-sombra`): com a flag `roteador_adaptativo_sombra` ligada,
+ * devolve quem recebe cada fala final para calcular e REGISTRAR o que o roteador decidiria. Desligada, devolve `null` sem
+ * carregar nada (o `import()` é tardio). O alimentador não devolve rota alguma: a rota efetiva não depende dele. Nunca lança.
+ */
+export async function prepararSombraDoRoteador(pedido: PedidoDeRota): Promise<AlimentadorDaSombra | null> {
+  try {
+    if (!flagLigada(FLAG_ROTEADOR_ADAPTATIVO_SOMBRA)) return null;
+    const { criarAlimentadorDaSombra } = await import('./sombraDaRota');
+    return criarAlimentadorDaSombra(pedido);
+  } catch {
+    return null;
   }
 }

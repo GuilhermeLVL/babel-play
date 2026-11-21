@@ -191,6 +191,41 @@ describe('POST /api/metricas/captura na montagem real (modo público)', () => {
     expect(corpo).not.toMatch(/inventada-xyz/)
   })
 
+  it('v: 2 com roteador em sombra: contagens por decisão, sinais em baldes e trocas, sem texto nem id', async () => {
+    const roteador = {
+      idioma: 'pt-BR',
+      trocas: 3,
+      linhas: [
+        { tomaria: 'modelo-menor', efetiva: 'modelo-no-aparelho', motivo: 'aparelho-da-conta', rtf: 2, fila: 1, n: 4 },
+        { tomaria: 'manter', efetiva: 'modelo-no-aparelho', motivo: 'aparelho-da-conta', rtf: 0, fila: 0, n: 9 },
+      ],
+    }
+    expect((await s.post('/api/metricas/captura', { v: 2, classe: 'celular-fraco', roteador })).status).toBe(204)
+    const corpo = await (await s.get('/metrics')).text()
+    expect(corpo).toMatch(
+      /captura_roteador_decisoes_total\{classe="celular-fraco",idioma="pt",tomaria="modelo-menor",efetiva="modelo-no-aparelho",motivo="aparelho-da-conta"\} 4/,
+    )
+    expect(corpo).toMatch(/captura_roteador_sinais_total\{classe="celular-fraco",rtf="0",fila="0"\} 9/)
+    expect(corpo).toMatch(/captura_roteador_trocas_total\{classe="celular-fraco",idioma="pt"\} 3/)
+  })
+
+  it('v: 2 com roteador fora da lista fechada: 400 (não cria série)', async () => {
+    const linha = {
+      tomaria: 'manter',
+      efetiva: 'modelo-no-aparelho',
+      motivo: 'aparelho-da-conta',
+      rtf: 0,
+      fila: 0,
+      n: 1,
+    }
+    const mandar = (l: object) =>
+      s.post('/api/metricas/captura', { v: 2, classe: 'quest', roteador: { idioma: 'en', trocas: 0, linhas: [l] } })
+    expect((await mandar({ ...linha, tomaria: 'texto-livre' })).status).toBe(400)
+    expect((await mandar({ ...linha, motivo: 'inventado' })).status).toBe(400)
+    expect((await mandar({ ...linha, rtf: 9 })).status).toBe(400)
+    expect((await mandar(linha)).status).toBe(204)
+  })
+
   it('v: 2 com fase inventada: 400', async () => {
     const r = await s.post('/api/metricas/captura', {
       ...campoV2(),

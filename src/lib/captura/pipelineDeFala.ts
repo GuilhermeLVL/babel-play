@@ -73,7 +73,12 @@ import { isTtsActive } from '../tts';
 import { classificarVazamento, type Intervalo } from '../vazamento';
 import { setterNoQuadro } from './agendarNoQuadro';
 import { guardarAudioDaFala } from './audioDasFalas';
-import { conferirRotaDoStt, type EntradaDaConferencia, montarPedidoDeRota } from './conferenciaDaRota';
+import {
+  conferirRotaDoStt,
+  type EntradaDaConferencia,
+  montarPedidoDeRota,
+  prepararSombraDoRoteador,
+} from './conferenciaDaRota';
 import { converterEscritaChinesa, escritaDoIdioma, prepararEscritaChinesa } from './escritaChinesa';
 import { idiomaForaDoPar } from './idiomaForaDoPar';
 import { decidirNaVirtual, ESTADO_DA_VIRTUAL, type EstadoDaVirtual } from './idiomasDaConversaVirtual';
@@ -95,6 +100,7 @@ import {
 } from './reservaLocal';
 import { previstosDoSelo } from './seloDaFala';
 import { vetarSeCaiuComOModelo } from './sentinelaDoModelo';
+import type { AlimentadorDaSombra } from './sombraDaRota';
 import { chaveLigada } from './testesDoInterprete';
 import {
   type CaptureScenario,
@@ -488,6 +494,11 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     semParakeet: false,
     soltar: null,
   };
+  /**
+   * A SOMBRA DO ROTEADOR ADAPTATIVO desta captura (flag `roteador_adaptativo_sombra`, `conferenciaDaRota.ts`): `null` com a
+   * flag desligada. Só REGISTRA o que o roteador decidiria; nada na captura lê o resultado, a rota real não muda.
+   */
+  const sombraDoRoteador: { alimentar: AlimentadorDaSombra | null } = { alimentar: null };
   /** O modo da histerese mudou: o gateway troca quem vai primeiro, e o selo e o rótulo acompanham. */
   const aplicarModoDoAudio = (): void => {
     const modo = audioDificil.estado.modo;
@@ -1076,6 +1087,13 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         .then(async (r): Promise<SttFinal> => {
           // "Aparelho primeiro": a histerese do áudio difícil conta esta fala ANTES da porta subir o trecho.
           contarAudioDificil(r, audioMs);
+          sombraDoRoteador.alimentar?.({
+            engine: r.engine,
+            // Só o final LOCAL mede o aparelho (como o regulador); o da nuvem mede a rede.
+            rtf: r.engine !== 'groq-whisper' && r.decodeMs !== undefined && audioMs > 0 ? r.decodeMs / audioMs : null,
+            fila: queueDepth,
+            confianca: r.confidence ?? null,
+          });
           const texto = (r.text ?? '').trim();
           if (!texto || r.engine === 'groq-whisper') return r;
           const porta = avaliarTrechoStt({ compressionRatio: razaoDeCompressaoAproximada(texto) });
@@ -1717,6 +1735,11 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             : null,
       };
       previstos = previstosDoSelo(pedidoDoSelo, opcoesDoSelo);
+      // Sombra do roteador adaptativo: assíncrona e à parte; falhar não muda a rota nem a captura.
+      sombraDoRoteador.alimentar = null;
+      void prepararSombraDoRoteador(pedidoDoSelo).then((f) => {
+        sombraDoRoteador.alimentar = f;
+      });
       if (route.nuvemNoAudioDificil) {
         previstosNaNuvem = previstosDoSelo(
           { ...pedidoDoSelo, estado: { ...pedidoDoSelo.estado, audioDificil: true } },

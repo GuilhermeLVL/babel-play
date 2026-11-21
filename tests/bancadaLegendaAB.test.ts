@@ -31,6 +31,9 @@ import { linhasPorModelo, temposDeCarga } from '../scripts/perf/latencia-legenda
 import { comparar, gravarLinhaDeBase, validarSlo } from '../scripts/perf/latencia-legenda/comparar.mjs'
 import { agregarRodadas, metricasDaRodada } from '../scripts/perf/latencia-legenda/metricas-captura.mjs'
 
+// O `.mjs` da bancada não tem tipos: no modo estrito, o resultado é tratado como dado solto.
+const analisar = analisarRodada as (d: unknown) => any
+
 const AQUI = path.join(__dirname, '..', 'scripts', 'perf', 'latencia-legenda')
 
 /**
@@ -88,13 +91,13 @@ function rodada(extra: Record<string, any> = {}) {
 
 describe('fimDaFalaAteLegendaMs numa rodada de resultado conhecido (3.1, 3.2)', () => {
   it('bancada: quadro pintado com a tradução final − fim da voz no arquivo, por fala', () => {
-    const r = analisarRodada(rodada())
+    const r = analisar(rodada())
     expect(r.todasFalas.map((f: any) => f.fimDaFalaAteLegendaMs)).toEqual([480, 620])
     expect(r.todasFalas.map((f: any) => f.status)).toEqual(['ok', 'ok'])
   })
 
   it('campo: marca de legenda − marca de fim, pelo id do balão; erro do marcador = t_fim − fim no arquivo', () => {
-    const f = analisarRodada(rodada()).todasFalas
+    const f = analisar(rodada()).todasFalas
     expect(f[0]).toMatchObject({ fimDaFalaAteLegendaCampoMs: 450, erroDoMarcadorMs: 30, origemDaLegenda: 'local' })
     expect(f[1]).toMatchObject({ fimDaFalaAteLegendaCampoMs: 680, erroDoMarcadorMs: -60, origemDaLegenda: 'nuvem' })
   })
@@ -102,7 +105,7 @@ describe('fimDaFalaAteLegendaMs numa rodada de resultado conhecido (3.1, 3.2)', 
   it('sem marcas (build sem instrumentação): a medida da bancada continua, o campo não aparece', () => {
     const d = rodada()
     delete (d.lat as any).marcas
-    const f = analisarRodada(d).todasFalas
+    const f = analisar(d).todasFalas
     expect(f[0].fimDaFalaAteLegendaMs).toBe(480)
     expect(f[0].fimDaFalaAteLegendaCampoMs).toBeUndefined()
     expect(f[0].erroDoMarcadorMs).toBeUndefined()
@@ -139,16 +142,16 @@ describe('fimDaFalaAteLegendaMs numa rodada de resultado conhecido (3.1, 3.2)', 
   it('texto final já na tela antes do decode pareado: a fala continua medida pelo balão (não vira falha)', () => {
     const d = rodada()
     d.lat.dom[0] = { t: 7200, tf: 7260, i: 0, o: 'Lions are social.', tr: 'Leões são sociais.', nova: false } as any
-    expect(analisarRodada(d).todasFalas[0]).toMatchObject({ fimDaFalaAteLegendaMs: 260, status: 'ok' })
+    expect(analisar(d).todasFalas[0]).toMatchObject({ fimDaFalaAteLegendaMs: 260, status: 'ok' })
   })
 
   it('fala sem tradução na tela é falha; com idioma de origem = destino é semTraducao; nenhuma entra no percentil', () => {
     const semLegenda = rodada()
     semLegenda.lat.dom[1] = { t: 10500, tf: 10620, i: 1, o: 'Cats sleep.', tr: '…', nova: false } as any
-    const falha = analisarRodada(semLegenda).todasFalas
+    const falha = analisar(semLegenda).todasFalas
     expect(falha.map((f: any) => f.status)).toEqual(['ok', 'falha'])
 
-    const mesmo = analisarRodada(
+    const mesmo = analisar(
       rodada({ config: { eu: 'en-US', eles: 'en-GB', dispositivo: null } }) && {
         ...semLegenda,
         config: { eu: 'en-US', eles: 'en-GB', dispositivo: null },
@@ -156,24 +159,22 @@ describe('fimDaFalaAteLegendaMs numa rodada de resultado conhecido (3.1, 3.2)', 
     ).todasFalas
     expect(mesmo.map((f: any) => f.status)).toEqual(['ok', 'semTraducao'])
 
-    const r = resumirLegenda([analisarRodada(semLegenda)])
+    const r = resumirLegenda([analisar(semLegenda)])
     expect(r).toMatchObject({ n: 1, p50: 480, p75: 480, p95: 480, falhas: 1, semTraducao: 0, taxaDeFalha: 0.5 })
   })
 
   it('resumo: p50/p75/p95 (tipo 7) com taxa de falha e erro do marcador em valor absoluto', () => {
-    const r = resumirLegenda([analisarRodada(rodada())])
+    const r = resumirLegenda([analisar(rodada())])
     expect(r).toMatchObject({ n: 2, p50: 550, p75: 585, p95: 613, falhas: 0, taxaDeFalha: 0 })
     expect(r.erroDoMarcador).toMatchObject({ n: 2, medianaAbsMs: 45, p95AbsMs: 59 })
     expect(r.campo).toMatchObject({ n: 2, p50: 565 })
   })
 
   it('por perfil e idioma: o fraco e o desktop saem em linhas separadas; rodada inválida fica de fora', () => {
-    const fraco = analisarRodada(
-      rodada({ rotulo: 'fraco.r1', config: { eu: 'pt-BR', eles: 'en-US', dispositivo: 'fraco' } }),
-    )
+    const fraco = analisar(rodada({ rotulo: 'fraco.r1', config: { eu: 'pt-BR', eles: 'en-US', dispositivo: 'fraco' } }))
     const ruim = rodada({ rotulo: 'x' })
     ruim.lat.aud = []
-    const g = resumirLegendaPorGrupo([analisarRodada(rodada()), fraco, analisarRodada(ruim)])
+    const g = resumirLegendaPorGrupo([analisar(rodada()), fraco, analisar(ruim)])
     expect(Object.keys(g)).toEqual(['desktop/en', 'fraco/en'])
   })
 })

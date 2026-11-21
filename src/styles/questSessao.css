@@ -1090,3 +1090,43 @@ html[data-quest-novo='true'] .q-palco.qs {
   font: 500 13px/1.4 var(--font-body, inherit);
   color: var(--ink-muted);
 }
+
+/* ESCUTA GUIADA: a linha "Modo de escuta" dentro da faixa do player (`PlayerInterativo`). */
+.px-player.px-player-guiada {
+  flex-wrap: wrap;
+}
+.px-player-guiada > .px-escuta {
+  flex: 1 1 100%;
+  order: -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-size: 13px;
+}
+.px-escuta-modo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.px-escuta-select {
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line, currentColor);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.px-escuta-dica,
+.px-escuta-passo {
+  color: var(--t-mut);
+}
+.px-escuta-proximo {
+  margin-left: auto;
+}
+html[data-quest-novo='true'] .qs-oculto {
+  color: var(--t-mut);
+  font-style: italic;
+  font-size: 16px;
+}

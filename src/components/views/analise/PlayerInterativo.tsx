@@ -7,7 +7,7 @@
  * `lib/analise/playerDaSessao.ts`.
  */
 import { Pause, Play, SkipBack, SkipForward } from 'lucide-react';
-import { type Dispatch, type RefObject, type SetStateAction } from 'react';
+import { type Dispatch, type ReactNode, type RefObject, type SetStateAction } from 'react';
 
 import type { FalaDaAnalise } from '../../../lib/analise/tiposDaAnalise';
 import { noHeadset } from '../../../lib/dispositivo/telaNovaDoQuest';
@@ -46,6 +46,8 @@ export interface PropsDoPlayerInterativo {
    * novo. `true` = está refazendo, e o player espera em vez de avisar. `false` = já tentou.
    */
   aoFalharOAudio?: () => boolean;
+  /** O seletor "Modo de escuta" e o passo da frase (`EscutaGuiada`): uma linha dentro da faixa. */
+  escuta?: ReactNode;
 }
 
 export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
@@ -67,6 +69,7 @@ export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
     erroDoAudio = null,
     haVozParaNarrar = true,
     aoFalharOAudio,
+    escuta,
   } = props;
 
   if (recording.type === 'document') return null;
@@ -152,8 +155,13 @@ export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
   /* `telas3.js:48`: a barra anda uma fala por vez; parada no começo, fica vazia. */
   const largura = total > 0 && (isPlaying || activeSentenceIndex > 0) ? ((naFala + 1) / total) * 100 : 0;
   return (
-    <div className="q-faixa px-player" role="group" aria-label={t('Player')}>
+    <div
+      className={escuta ? 'q-faixa px-player px-player-guiada' : 'q-faixa px-player'}
+      role="group"
+      aria-label={t('Player')}
+    >
       {audio}
+      {escuta}
       <button
         type="button"
         className="q-ctl"

@@ -2,8 +2,10 @@ import { BarChart3, BookOpen, Gamepad2, MessagesSquare } from 'lucide-react';
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 
 import { trechosDaSessao } from '../../core/leitura/coberturaDoConteudo';
+import { fluenciaDoBaralho } from '../../core/learning/fluencia';
 import type { AppMetrics, UtteranceRow } from '../../data/api';
 import { fetchDeck, fetchSessionTranscript, fetchSettings } from '../../data/api';
+import { useEscutaGuiada } from '../../lib/analise/escutaGuiada';
 import { applyOutputDevice } from '../../lib/audioDevices';
 import { MIN_FALAS_DO_RESUMO } from '../../lib/estudo/constantes';
 import { useEtiquetador } from '../../lib/etiquetas/indiceDeEtiquetas';
@@ -55,6 +57,7 @@ import { perfilProtegido } from '../../lib/protecaoDoMenor';
 import { TranscriptSettings } from '../../lib/transcriptUtils';
 import { aparelhoTemVoz, haVozPara } from '../../lib/voz/haVoz';
 import CoberturaDoConteudo from '../CoberturaDoConteudo';
+import EscutaGuiada from './analise/EscutaGuiada';
 import ExportarSessao from './analise/ExportarSessao';
 import PlayerInterativo from './analise/PlayerInterativo';
 import JogosDaSessao from './analise/quest/JogosDaSessao';
@@ -413,6 +416,17 @@ export default function Analysis({
       .then(setVocabCards)
       .catch(() => {});
   }, []);
+
+  /* ESCUTA GUIADA: o nível CEFR estimado só sugere o modo; quem escolhe é a pessoa. */
+  const nivelDaPessoa = React.useMemo(() => fluenciaDoBaralho(vocabCards).rotulo, [vocabCards]);
+  const escuta = useEscutaGuiada({
+    falas: parsedSentences,
+    indiceAtivo: activeSentenceIndex,
+    nivel: nivelDaPessoa,
+    seekTo,
+    setIsPlaying,
+    desligada: recording.type === 'document',
+  });
 
   // Gateway (uma vez) para traduções reais no hover e no "Adicionar ao Deck".
   const gateway = React.useMemo(() => buildGateway({ profile: getActiveProfile(), cloudConsent: consentiuNuvem }), []);
@@ -835,6 +849,7 @@ export default function Analysis({
           classes={classesDoTranscrito}
           traducaoPrimeiro={tsSettings.displayOrder === 'translated-first'}
           ocultarOriginal={tsSettings.hideOriginal}
+          falaOculta={escuta.fraseOculta}
           /* A fala que já foi polida mostra a tradução polida, com o selo (`telas3.js:66`). */
           traducaoDe={(f) => {
             const polida = f.id ? polidaDaFala.get(f.id) : undefined;
@@ -846,6 +861,7 @@ export default function Analysis({
             documento ? null : (
               <PlayerInterativo
                 {...propsDoPlayer}
+                escuta={<EscutaGuiada escuta={escuta} nivel={nivelDaPessoa} />}
                 carregandoAudio={audioDaSessao.carregando}
                 erroDoAudio={audioDaSessao.erro}
                 haVozParaNarrar={parsedSentences.length === 0 || parsedSentences.some(haVozParaAFala)}

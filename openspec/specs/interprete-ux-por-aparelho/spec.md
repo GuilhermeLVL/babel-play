@@ -1,4 +1,10 @@
-## ADDED Requirements
+# interprete-ux-por-aparelho Specification
+
+## Purpose
+
+TBD - created by archiving change interprete-detectar-idioma-e-ux. Update Purpose after archive.
+
+## Requirements
 
 ### Requirement: Um controle de escuta no automático
 
@@ -35,3 +41,8 @@ iChat MUST NOT cobrir os controles.
 ### Requirement: O idioma da metade é tocável
 
 O nome do idioma de cada metade SHALL ser o botão que abre a escolha de idiomas, com alvo de pelo menos 44 px.
+
+#### Scenario: Tocar no idioma da metade
+
+- **WHEN** a pessoa toca no nome do idioma de uma metade
+- **THEN** a escolha de idiomas abre

@@ -1,277 +1,211 @@
-# Prova real em produção — roteiro para o dono executar com o assistente
+# Prova real do Plus em produção — roteiro para o dono
 
-Objetivo: antes de abrir o cadastro e a venda, provar em `https://frasy.com.br` que o login real, um pagamento real com
-estorno e as conferências de lançamento funcionam, e fechar tudo de novo no fim. Este roteiro **não abre nada sozinho**:
-cada porta é aberta pelo dono, pelo tempo da prova, e fechada no passo seguinte.
+Objetivo: provar, com uma compra real do próprio dono em `https://frasy.com.br`, que o **Plus (R$ 14,90/mês, opção B)**
+cobra no Asaas, ativa o plano pelo webhook, entrega as cotas da matriz e pode ser estornado — e, no fim, **voltar a venda
+a fechar**. Este roteiro não abre nada sozinho: cada porta é aberta pelo dono, pelo tempo da prova, e fechada no passo
+seguinte.
 
-Fontes (se divergirem, o código vence): [`LANCAMENTO.md` §10 e §11-bis](../LANCAMENTO.md),
-[`runbook.md` §0, §0.1-bis, §0.3 e §0.6](../runbook.md), [`deploy.md`](../deploy.md),
-[`flags.md`](../flags.md), [`ESTADO-DO-LANCAMENTO.md`](../ESTADO-DO-LANCAMENTO.md) e a
-[lista de pendências de 02/11](../planejamento/2026-11-02-pendencias-para-100-por-cento.md).
-O que está marcado **A CONFIRMAR** o repositório não responde: o dono confere no painel antes do passo.
+Estado de partida (opção B): venda **fechada**; só a flag `oferta_planos` está ligada (`venda_planos_v4`, `venda_familia`,
+`venda_pro4` desligadas); **anual fechado**; Família e Pro "em breve". Fonte da verdade dos planos:
+[`src/core/planos.ts`](../../src/core/planos.ts) e [`docs/specs/2026-10-24-planos-v4.md`](../specs/2026-10-24-planos-v4.md).
+Se este texto divergir do código, o código vence. Referências de operação: [`LANCAMENTO.md` §8.8 e §11-bis](../LANCAMENTO.md),
+[`flags.md`](../flags.md), [`deploy.md`](../deploy.md), [`runbook.md`](../runbook.md).
 
-Produção é o ambiente raiz do `wrangler.jsonc`: todo comando `wrangler` aqui leva `-c wrangler.jsonc` e **nunca**
-`--env staging`.
+Produção é o ambiente raiz do `wrangler.jsonc`: todo comando `wrangler` leva `-c wrangler.jsonc` e **nunca** `--env staging`.
+O que está como **A CONFIRMAR** o repositório não responde: o dono confere no painel antes do passo.
 
 ---
 
-## 0. A conferência somente-leitura (antes, durante e depois)
+## 0. Como a venda do Plus se abre (o que o código exige)
+
+Para `POST /api/billing/assinar` aceitar `plano: "plus"` (`server/routes/billing.ts`), as **três** portas abaixo têm de estar
+abertas para a conta que compra:
+
+| Porta                  | Onde é lida                                                                                                                            | Estado de partida                           | Como abrir (só pelo tempo da prova)                                                                      |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `CHECKOUT_ENABLED`     | `checkoutLigado()` em `server/lib/config.ts`; recusa com 503 `checkout_desligado` (`server/routes/billing.ts`)                         | `0` (secret; ausente = ABERTA, por desenho) | `npx wrangler secret put CHECKOUT_ENABLED -c wrangler.jsonc` e digitar `1`. Vale na próxima requisição.  |
+| flag `venda_planos_v4` | `planosAVenda()` em `src/core/planos.ts`: o Plus só está à venda com ela ligada; sem ela, `/assinar` responde 503 `plano_indisponivel` | desligada                                   | **Só para o id do dono** (recomendado, ver abaixo), ou global com `flags ligar`.                         |
+| `ANUAL_ENABLED`        | `anualLigado()`: só `1` abre o anual                                                                                                   | ausente = fechado                           | **Não abrir.** A prova é só do mensal. O anual do Plus (R$ 149,00) responderia 503 `anual_indisponivel`. |
+
+**Flag só para o dono (evita expor o Plus ao público).** A flag aceita `regras.ids` (`server/lib/flags.ts`; formato em
+[`flags.md`](../flags.md)). Com ids e `percentual: 0`, só essa conta vê o Plus à venda:
 
 ```bash
-node scripts/producao/conferir-producao.mjs --url https://frasy.com.br --esperar-fechado
+node dist-server/operacao.cjs flags definir venda_planos_v4 '{"habilitada":true,"regras":{"ids":["<id-da-conta-de-teste>"],"percentual":0}}'
+node dist-server/operacao.cjs flags listar      # confere
 ```
 
-São 11 GETs/HEAD públicos (12 com `--origem <url-direta-do-worker>`), sem login e sem nenhuma rota que responda 401:
-`/api/health`, `/api/ready`, `/api/abertura`, `/api/flags`, `/` (CSP, HSTS, `X-Content-Type-Options`, COOP/COEP/DIP),
-`/app`, `/planos`, `/robots.txt`, `/sitemap.xml`, `/ads.txt` (informativo) e um HEAD em
-`https://modelos.frasy.com.br/supertonic-3/onnx/tts.json` (8.253 bytes, o primeiro arquivo de
-`src/core/voz/supertonic.ts`). Sai com 1 se algo crítico falhar. Com `--esperar-fechado`, reprova se cadastro, venda
-ou anual estiverem abertos, ou se uma flag de venda, IA, anúncio ou avatar estiver ligada **para um visitante sem conta**
-(uma flag ligada só para uma lista de ids não aparece aqui; a lista completa é `flags listar`).
+A CLI sai de `npm run build` e roda da máquina do dono com a `DATABASE_URL` de produção no ambiente (nunca no chat). O
+mesmo interruptor existe em **Admin → Flags** (`src/components/views/admin/PainelFlags.tsx`), mas ali só se vira o
+`habilitada` (global); a regra por id é pela CLI ou por `PUT /api/admin/flags/venda_planos_v4`. O cache de flags dura 30 s.
+**A CONFIRMAR:** que `definir` preserva a descrição da flag (`flags listar` depois).
 
-Regra: **uma execução por momento** (antes da prova, com as portas abertas sem `--esperar-fechado`, e no fim). Nada de
-laço: o IP do dono é o mesmo dos testes manuais.
+Efeitos colaterais de ligar `venda_planos_v4` (para a conta coberta pela regra): o Essencial, o Premium e o Ao Vivo saem da
+venda (`encerradoPor`), o teste de 3 dias passa a conceder o Plus (`planoDoTeste`) e as ofertas passam a sugerir o Plus.
+Quem não está na regra segue vendo o estado de hoje.
 
----
-
-## 1. Pré-condições (nada começa sem todas marcadas)
-
-| #   | Pré-condição                                                                                                                                                                                                                                                                             | Como conferir                                                                                                     | Quem       |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------- |
-| P1  | A versão que vai ser provada está publicada em produção. Em 13/11 a produção servia `0.1.0+6debabe`, atrás da `main`. Decida se prova essa ou publica a `main` antes (Actions → **deploy-worker** → `ambiente=production`, com a aprovação do Environment).                              | `/api/health` → `versao` termina no SHA esperado (a conferência mostra).                                          | dono       |
-| P2  | Secrets de produção com **nomes** presentes: `ASAAS_API_KEY` (chave de produção, `$aact_prod_…`), `ASAAS_WEBHOOK_TOKEN`, `RESEND_API_KEY`, `EMAIL_REMETENTE`, `APP_URL`, `ALERTA_EMAIL_DESTINO`. Em 02/11 **faltavam** todos menos o `ASAAS_WEBHOOK_TOKEN`.                              | `npx wrangler secret list -c wrangler.jsonc` (mostra só nomes; nunca cole valores no chat).                       | dono       |
-| P3  | `ASAAS_BASE_URL` de produção (`https://api.asaas.com/v3`) e sem `ASAAS_SANDBOX`. Sem isso o boot aborta ou cobra no sandbox (`server/lib/config.ts`, `sandboxDoAsaasIndeclarado`).                                                                                                       | `wrangler.jsonc` (vars do ambiente raiz) e `npx wrangler tail -c wrangler.jsonc` sem `ABORTADO` depois do deploy. | assistente |
-| P4  | Webhook do Asaas de produção: URL `https://frasy.com.br/api/billing/webhook/asaas`, v3, eventos de cobrança e assinatura, `authToken` = o `ASAAS_WEBHOOK_TOKEN`, fila **ligada** e **não pausada**. Juros e multa zerados (LANCAMENTO §6).                                               | Painel do Asaas → Integrações → Webhooks.                                                                         | dono       |
-| P5  | Nenhuma assinatura manual antiga a R$ 39,90 ou R$ 179 no Asaas (decisão aberta 2 do ESTADO).                                                                                                                                                                                             | Painel do Asaas → Assinaturas.                                                                                    | dono       |
-| P6  | E-mail funcionando: domínio verificado no Resend (SPF, DKIM, DMARC) e o SMTP do Supabase apontando para o Resend (LANCAMENTO §4).                                                                                                                                                        | Painel do Resend → Domains "Verified"; Supabase → Auth → SMTP.                                                    | dono       |
-| P7  | Backup recente: o último `semanal/AAAA-MM-DD.dump` no `frasy-backups` com menos de 8 dias e o `backup-pg-dump.yml` verde.                                                                                                                                                                | `gh run list --workflow backup-pg-dump.yml --limit 3`                                                             | assistente |
-| P8  | Tetos de IA definidos: `AI_BUDGET_USD_MONTH` e `AI_BUDGET_USD_DAY` (o modelo em `.env.production.example` é 40 e 4). `TETO_USD_MES_*` é opcional e nasce desligado (decisão aberta 10). A prova **não usa IA de nuvem**; sem chave de IA em produção, a nuvem simplesmente não responde. | `npx wrangler secret list -c wrangler.jsonc` (nomes).                                                             | dono       |
-| P9  | Conta de teste **ADULTA**: e-mail do próprio dono (ex.: um alias `+prova`), data de nascimento de adulto, CPF e cartão do próprio dono. Perfil protegido não compra (`recusouPerfilProtegido`).                                                                                          | —                                                                                                                 | dono       |
-| P10 | Uma conta **admin** com 2FA confirmado para ver Admin → Cobrança e Admin → Flags (`node dist-server/operacao.cjs conta papel <e-mail> admin`, LANCAMENTO §8.8).                                                                                                                          | Admin abre sem pedir o 2FA de novo.                                                                               | dono       |
-| P11 | Google como provedor no Supabase (Authentication → Providers → Google) e a variable `VITE_LOGIN_GOOGLE` **ausente** (ou diferente de `0`) no Environment `production`. Em 02/11 o Google OAuth estava pendente. **A CONFIRMAR** no painel.                                               | O botão "Continuar com Google" aparece no `/app`.                                                                 | dono       |
-| P12 | A conferência somente-leitura passa com `--esperar-fechado` (0 falhas).                                                                                                                                                                                                                  | §0.                                                                                                               | assistente |
-| P13 | Janela tranquila de ~1 h, com o dono no computador e no celular (código do 2FA, e-mail, app do banco).                                                                                                                                                                                   | —                                                                                                                 | dono       |
-
-## 2. Quem faz o quê
-
-- **Dono**: tudo que tem segredo, dinheiro ou painel. Digita os `wrangler secret put` (o valor é digitado no prompt,
-  nunca colado no chat), usa o próprio cartão, mexe no Supabase, no Asaas e no Resend, lê os e-mails, assina o relatório.
-- **Assistente**: roda a conferência somente-leitura, prepara cada comando antes do passo, lê os Workers Logs
-  (`npx wrangler tail -c wrangler.jsonc --format pretty`, linhas já saneadas, sem e-mail nem token), confere o checklist,
-  cronometra as janelas abertas e escreve o relatório. Não recebe segredo, não vê o cartão, não faz login com a conta
-  do dono.
-
-Anote a **hora (UTC)** de cada abertura e fechamento: vai para o relatório.
+A página pública `/planos` é **estática**, gerada no build: ela só mostra o Plus se o deploy teve `SITE_FLAGS_DE_VENDA`
+com `venda_planos_v4` (`scripts/site/planosDoSite.ts`, `.github/workflows/deploy-worker.yml`), e **nunca** mostra o anual
+sem `SITE_ANUAL_A_VENDA=1`. A prova não precisa dela: compra-se por **Planos dentro do app** (`/app`).
 
 ---
 
-## 3. Passo a passo
+## 1. Pré-requisitos (marque todos antes de abrir qualquer porta)
 
-### Bloco A — conferir antes de mexer
+| #   | Pré-requisito                                                                                                                                                                                                                                    | Como conferir                                                                                              | Quem       |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- | ---------- |
+| P1  | A versão a provar está publicada: Actions → **deploy-worker** → `ambiente=production`. Precisa conter a matriz v4 (`plus` em `src/core/planos.ts`).                                                                                              | `/api/health` → `versao` termina no SHA esperado.                                                          | dono       |
+| P2  | Secrets de produção (só **nomes**): `ASAAS_API_KEY` (chave de produção), `ASAAS_WEBHOOK_TOKEN`, `RESEND_API_KEY`, `EMAIL_REMETENTE`, `APP_URL`, `ALERTA_EMAIL_DESTINO` (lista em `server/lib/config.ts`).                                        | `npx wrangler secret list -c wrangler.jsonc`                                                               | dono       |
+| P3  | `ASAAS_BASE_URL=https://api.asaas.com/v3` (já em `wrangler.jsonc`) e **sem** `ASAAS_SANDBOX`. Com a chave e base de sandbox, o boot aborta (`erroDeAsaasSandboxEmProducao`).                                                                     | `npx wrangler tail -c wrangler.jsonc` sem `ABORTADO` depois do deploy.                                     | assistente |
+| P4  | Webhook do Asaas de produção: URL `https://frasy.com.br/api/billing/webhook/asaas`, eventos de cobrança e de assinatura, `authToken` = `ASAAS_WEBHOOK_TOKEN`, fila ligada e **não pausada**; juros e multa zerados.                              | Painel do Asaas → Integrações → Webhooks.                                                                  | dono       |
+| P5  | Nenhuma assinatura manual antiga no Asaas com valor fora da matriz.                                                                                                                                                                              | Painel do Asaas → Assinaturas.                                                                             | dono       |
+| P6  | Conta de teste **ADULTA** (e-mail do dono, ex. alias `+prova`; data de nascimento de adulto; CPF e cartão do próprio dono). Perfil protegido não compra. A conta já existe: o cadastro continua fechado (`SIGNUP_ENABLED=0`) e **não** é aberto. | Entrar em `https://frasy.com.br/app`; anotar o id da conta (`node dist-server/operacao.cjs conta listar`). | dono       |
+| P7  | Um admin com 2FA para ver Admin → Cobrança e Admin → Flags (`node dist-server/operacao.cjs conta papel <e-mail> admin`).                                                                                                                         | Admin → Cobrança abre.                                                                                     | dono       |
+| P8  | Resend verificado (SPF/DKIM/DMARC): o e-mail de **alerta** precisa funcionar para o passo 2. O recibo da compra **não** sai pelo Resend (ver §3).                                                                                                | Painel do Resend → Domains "Verified".                                                                     | dono       |
+| P9  | Backup recente (menos de 8 dias).                                                                                                                                                                                                                | `gh run list --workflow backup-pg-dump.yml --limit 3`                                                      | assistente |
 
-1. **Conferência.** Assistente roda o §0. _Esperado:_ 0 falhas, `cadastro=fechado, checkout=fechado, anual=fechado`, só
-   `oferta_planos` ligada. _Se falhar:_ pare aqui.
-2. **Logs abertos.** Assistente abre `npx wrangler tail -c wrangler.jsonc --format pretty` e deixa rodando a prova toda.
-   _Esperado:_ sem `ABORTADO`, sem `ia_sem_reserva` repetido além de 1 por dia.
+---
 
-### Bloco B — e-mail de alerta (antes de qualquer dinheiro)
+## 2. Passo a passo
 
-3. **Alerta de propósito.** Uma única chamada com token errado no webhook (gera `billing_webhook_token_invalido`, que
-   alerta por e-mail; conta 1 das 30 falhas por IP em 15 min do limitador, e não mexe na fila do Asaas, porque não vem
-   do Asaas):
+**Regra:** uma conferência por momento (antes, durante, depois). Nada de laço: o IP do dono é o mesmo dos testes.
+
+1. **Conferência inicial, somente leitura.**
+   ```bash
+   node scripts/producao/conferir-producao.mjs --url https://frasy.com.br --esperar-fechado
+   ```
+   _Esperado:_ 0 falhas; `/api/abertura` com `"checkout":false,"anual":false` (`server/lib/abertura.ts`). Sai com 1 se algo
+   crítico falhar.
+2. **Teste do alerta por e-mail** (sem ele, um webhook quebrado passaria em silêncio). Um único `curl` com token errado de
+   propósito:
    ```bash
    curl -s -o /dev/null -w '%{http_code}\n' -X POST https://frasy.com.br/api/billing/webhook/asaas -H 'asaas-access-token: prova-errado-de-proposito' -H 'content-type: application/json' -d '{}'
    ```
-   _Esperado:_ `401`; o log `billing_webhook_token_invalido` no tail; em até ~5 min um e-mail em `ALERTA_EMAIL_DESTINO`
-   com assunto do evento e um `requestId`. _Verificar:_ o `requestId` do e-mail aparece no tail. _Se não chegar:_ pare;
-   sem alerta, um webhook quebrado durante a prova passaria em silêncio. Não repita o `curl` (um e-mail por evento por
-   hora, `server/lib/alertaPorEmail.ts`).
-
-### Bloco C — cadastro e login
-
-O portão do cadastro (`server/lib/abertura.ts`, `portaDoCadastro`) é **global**: com `SIGNUP_ENABLED=0`, toda conta que
-o banco ainda não conhece recebe 403 `cadastro_fechado`. **Não existe lista de ids** para o cadastro (as flags têm,
-o `SIGNUP_ENABLED` não). Então a prova abre a porta por uma janela curta. Duas formas:
-
-- **C-1 (recomendada, prova o fluxo real):** abrir o app (`SIGNUP_ENABLED=1`) **e** o Supabase ("Allow new users to sign
-  up") por no máximo 15 min. Risco: qualquer pessoa pode criar conta na janela (o Turnstile ainda não está no build).
-  Baixo com o site sem divulgação, e quem entrar fica no Grátis, porque a venda segue fechada.
-- **C-2 (sem exposição):** deixar o Supabase fechado, criar a conta de teste à mão no painel (Authentication → Users →
-  Add user → Create new user, com "Auto Confirm"; **A CONFIRMAR** que o painel cria usuário com o cadastro público
-  desligado) e abrir só o `SIGNUP_ENABLED=1` pelos minutos do primeiro login. Não prova o e-mail de confirmação.
-
-4. **Abrir (C-1).** Dono: `npx wrangler secret put SIGNUP_ENABLED -c wrangler.jsonc` → digita `1`; Supabase →
-   Authentication → Providers → Email → _Allow new users to sign up_ **ligado**. Anote a hora.
-   _Verificar:_ `curl -s https://frasy.com.br/api/abertura` → `"cadastro":true` (vale na próxima requisição).
-5. **Criar a conta por e-mail.** Dono, numa janela anônima: `https://frasy.com.br/app` → Criar conta → e-mail de teste
-   e senha → informa a data de nascimento de adulto. _Esperado:_ o e-mail de confirmação chega pelo Resend na caixa de
-   entrada (não spam), nos cabeçalhos `spf=pass`, `dkim=pass`, `dmarc=pass`; o link leva a
-   `https://frasy.com.br/auth/callback` e o app entra. _Verificar:_ no tail, nenhuma linha `cadastro_fechado` para
-   essa sessão.
-6. **Fechar o cadastro.** Logo depois do primeiro login (a linha da conta já existe no banco): `SIGNUP_ENABLED` → `0` e
-   Supabase → _Allow new users to sign up_ **desligado**. Anote a hora. _Verificar:_ `/api/abertura` →
-   `"cadastro":false`. A conta de teste segue entrando (o portão só barra conta desconhecida).
-7. **2FA.** Ajustes → Conta → ativar o 2FA (TOTP), sair, entrar de novo: o app pede o código. _Esperado:_ entra com o
-   código; sem ele, não.
-8. **Login com Google** (só se P11 estiver ok). Sair → "Continuar com Google" com uma conta Google cujo e-mail **já é o
-   da conta de teste** (o Supabase liga as identidades pelo e-mail confirmado; **A CONFIRMAR** que a ligação funciona com
-   o cadastro público desligado, senão faça este passo dentro da janela do passo 4). _Esperado:_ entra na MESMA conta
-   (o mesmo histórico). Se uma conta Google nova for usada fora da janela, o esperado é `cadastro_fechado`: isso também
-   prova o portão.
-
-### Bloco D — pagamento real, concessão, estorno e revogação
-
-**Não existe plano nem valor de R$ 5 no código.** O plano é identificado pelo valor pago e todo valor cobrável é
-único (`src/core/planos.ts`, `tests/planos-matriz.test.ts`); um valor novo só para a prova seria mudança de preço,
-com teste e spec, e não deve entrar por atalho. Uma cobrança manual de R$ 5 criada no painel do Asaas chegaria ao
-webhook sem compra registrada e terminaria `nao-aplicado` (`billing_evento_nao_aplicado`): provaria o alerta, não a
-concessão. Os caminhos seguros, do mais simples ao mais barato:
-
-| opção            | valor    | o que precisa                                                                                                                                                                                                                                                             | prova                               |
-| ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| **D-1 (recom.)** | R$ 19,90 | nada além do `CHECKOUT_ENABLED=1`: o Premium mensal não tem flag de venda (`flagsDeVenda` vazio) e é o que a produção vende hoje                                                                                                                                          | assinatura, webhook, arrependimento |
-| D-2              | R$ 9,90  | ligar `venda_planos_v3` **só para o id da conta de teste**: `node dist-server/operacao.cjs flags definir venda_planos_v3 '{"habilitada":true,"regras":{"ids":["<id>"],"percentual":0}}'` (formato em `docs/flags.md`; **A CONFIRMAR** que `definir` preserva a descrição) | o mesmo, com o Essencial            |
-| D-3              | R$ 9,90  | pacote `c100` (`/api/billing/comprar`, `src/core/creditos.ts`)                                                                                                                                                                                                            | só a cobrança avulsa, não plano     |
-
-O estorno do arrependimento (até 7 dias) devolve o valor cheio pelo app. A taxa do Asaas sobre uma transação de
-cartão estornada: **A CONFIRMAR** no contrato do Asaas.
-
-`CHECKOUT_ENABLED` também é global: na janela, qualquer conta existente poderia assinar. Com o cadastro fechado, são
-só as contas que já existem.
-
-9. **Abrir a venda.** Dono: `npx wrangler secret put CHECKOUT_ENABLED -c wrangler.jsonc` → `1` (e, se D-2, a flag por
-   id). Anote a hora. _Verificar:_ `/api/abertura` → `"checkout":true,"anual":false`.
-10. **Assinar.** Na conta de teste: Planos → Premium mensal (D-1) → nome e CPF do dono → abre a fatura do Asaas → paga
-    com o cartão do dono. _Esperado:_ a tela volta para o app; no tail, `billing_webhook_ok` com
-    `PAYMENT_CONFIRMED → aplicado` (ou `PAYMENT_RECEIVED`), sem `billing_evento_nao_aplicado`.
-11. **Concessão.** No app da conta de teste: o selo "Premium · mensal" e o fim do período (vencimento + 35 d, como no
-    sandbox). No navegador logado, `https://frasy.com.br/api/billing/status` pela aba Rede do DevTools (o assistente
-    não chama rota autenticada) → plano `premium`, `status: active`. _Verificar também:_ Admin → Cobrança sem pendentes;
-    painel do Asaas → a cobrança "Confirmada" e o webhook com resposta 200 no histórico.
-12. **Fechar a venda.** `CHECKOUT_ENABLED` → `0` (e `flags desligar venda_planos_v3`, se D-2). Anote a hora.
-    _Verificar:_ `/api/abertura` → `"checkout":false`. A conta de teste segue Premium (fechar a venda não tira o plano).
-13. **Estorno e revogação.** Na conta de teste: Planos → Cancelar (dentro dos 7 dias = arrependimento; `/api/billing/cancelar`
-    não exige a venda aberta). _Esperado:_ a tela confirma o arrependimento; no Asaas a assinatura é removida e a cobrança
-    fica "Estornada"; no tail, o `PAYMENT_REFUNDED` aplicado; o plano volta a `free` no `/api/billing/status`.
-    _Se o cancelamento pelo app falhar:_ estorne no painel do Asaas **e** exclua a assinatura lá (senão o mês seguinte é
-    cobrado), e registre no relatório.
-14. **Reconciliação.** O job `reconciliarCobrancas` roda pelo cron `29 3 * * *` (UTC) no Worker, em modo `report`
-    (`BILLING_RECONCILE_MODE`). No dia seguinte, nos Workers Logs (painel → Workers → `frasy` → Logs), procure o
-    `job_fim` do `reconciliarCobrancas`. _Esperado:_ `divergentes: 0` (o webhook chegou) e nenhum e-mail
-    `billing_reconciliacao_divergente`. Rodar à mão (`npm run job -- reconciliarCobrancas`) exige a `DATABASE_URL` e a
-    `ASAAS_API_KEY` de produção na máquina: **não recomendado**; o cron basta.
-
-### Bloco E — limpeza
-
-15. **Excluir a conta de teste.** Ajustes → Conta → "Excluir a conta" (`DELETE /api/me` com `{"confirmar":true}`).
-    _Esperado:_ a resposta lista as tabelas apagadas; com estorno ainda pendente a rota responde 409
-    `estorno_pendente` e não apaga nada (espere o `PAYMENT_REFUNDED`). _Verificar:_ o usuário some do Supabase
-    (Authentication → Users) e de `node dist-server/operacao.cjs conta listar`. Ficam por desenho: a marca do teste de 14
-    dias (HMAC do e-mail) e o cadastro do cliente no Asaas (apagar o cliente lá: **A CONFIRMAR** se o dono quer).
-16. **Conferência final.** Assistente roda o §0 com `--esperar-fechado`. _Esperado:_ 0 falhas, tudo fechado.
+   _Esperado:_ `401`, log `billing_webhook_token_invalido` e, em até ~5 min, e-mail em `ALERTA_EMAIL_DESTINO`
+   (`server/lib/alertaPorEmail.ts`). Não repita (um e-mail por evento por hora). Sem e-mail: **pare**.
+3. **Abrir a flag do Plus só para a conta de teste** (§0) e anotar a hora. _Verificar (em até 30 s):_ na conta de teste,
+   Planos mostra o Plus; `GET /api/billing/status` pela aba Rede do DevTools da conta logada traz `planosAVenda` com
+   `plus` (o assistente não chama rota autenticada).
+4. **Abrir a venda.** `CHECKOUT_ENABLED` → `1` (§0). Anotar a hora. _Verificar:_ `curl -s https://frasy.com.br/api/abertura`
+   → `"checkout":true,"anual":false`. Atenção: `CHECKOUT_ENABLED` é global, e o Premium não tem flag de venda (`flagsDeVenda` vazio): para as contas fora da regra da flag, o Premium (R$ 19,90) volta a ser vendável enquanto a venda estiver aberta. Por isso a janela é curta e o cadastro segue fechado (só contas já existentes poderiam comprar). Faça os passos 5 a 8 sem pausa.
+5. **Assinar.** Conta de teste: Planos → Plus → **mensal** (não aparece anual) → nome, CPF e e-mail para o recibo
+   (`Checkout.tsx`) → abre a fatura do Asaas (`POST /api/billing/assinar` devolve `linkDePagamento`) → pagar com o cartão do
+   dono. A cobrança é de **R$ 14,90**, descrição `Frasy Plus` (`server/routes/billing.ts`). _Esperado:_ a tela volta ao
+   app com o plano ativo (`Assinado.tsx`).
+6. **Conferir o webhook** (`npx wrangler tail -c wrangler.jsonc`, ou Workers Logs): `PAYMENT_CONFIRMED` (ou `PAYMENT_RECEIVED`)
+   aplicado (`server/lib/billingEventos.ts`), sem `billing_evento_nao_aplicado`, `billing_valor_ambiguo` ou
+   `billing_valor_fora_da_matriz`. O plano sai do **valor pago** (`planoPeloPagamento`): R$ 14,90 = Plus mensal.
+7. **Conferir o resultado** (seção 3 abaixo).
+8. **Fechar a venda** logo depois (seção 5): `CHECKOUT_ENABLED` → `0` e a flag `venda_planos_v4` desligada. Anotar a hora.
+   A conta de teste **segue Plus** (fechar a venda não tira o plano).
+9. **Estorno/cancelamento** (seção 4), depois da conferência.
+10. **Conferência final:** `node scripts/producao/conferir-producao.mjs --url https://frasy.com.br --esperar-fechado` →
+    0 falhas, tudo fechado.
 
 ---
 
-## 4. As conferências do LANCAMENTO §10
+## 3. O que conferir
 
-O ESTADO e a lista de 02/11 falam em "16 conferências"; o §10 tem hoje **19 caixas** (algumas entraram depois). Estão
-todas aqui, na ordem do §10. `[x]` = já marcada no §10 (staging, 21/10); repetir em produção onde dito.
+| O quê                | Onde                                                                                                                                                                                                | Esperado                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cobrança no provedor | Painel do **Asaas** (o código só usa o Asaas: `server/lib/asaas.ts`) → Cobranças/Assinaturas                                                                                                        | Uma assinatura mensal de **R$ 14,90**, cliente com o CPF do dono, cobrança "Confirmada" (cartão); webhook com resposta 200 no histórico de entregas.                                                                                                                                                                                                                                                                                                                            |
+| Plano ativo na conta | `GET /api/billing/status` (aba Rede; `server/routes/billing.ts`) e `GET /api/me/entitlements` (`server/routes/me.ts`)                                                                               | `assinatura.plano = "plus"`, `status = "active"`, `ciclo = "mensal"`, `renovacaoAutomatica = true`; `valeAte` = vencimento + 35 dias (`DIAS_DO_PERIODO_MENSAL`).                                                                                                                                                                                                                                                                                                                |
+| Na tela              | Planos → **Sua assinatura** (`SuaAssinatura.tsx`)                                                                                                                                                   | Plus mensal, próxima cobrança, e a lista de faturas (`GET /api/billing/faturas`) com a de R$ 14,90 "paga".                                                                                                                                                                                                                                                                                                                                                                      |
+| Cotas do Plus        | `GET /api/me/uso` (`server/routes/me.ts`) contra `PLAN_MATRIX.plus` em `src/core/planos.ts`                                                                                                         | Chamadas 16.250/mês; STT 28.800 s (8 h)/mês e 7.200 s/dia; tokens 2.000.000/mês e 200.000/dia; voz 150.000 caracteres/mês e 15.000/dia; explicações 300 e resumos 60/mês; escritas 30/mês; assistente 200/dia; parceiro de leitura 40/dia; armazenamento 500 MB. Entitlements: nuvem de STT e LLM, tradução nuance, voz natural nível `basica`, sem anúncios; **sem** intérprete automático e **sem** Ao Vivo. A janela da cota é a do período pago (`cota-pelo-periodo-pago`). |
+| Recibo / e-mail      | O servidor **não envia e-mail de compra**: o Resend só serve ao convite do responsável e aos alertas (`server/lib/conviteDoResponsavel.ts`, `server/lib/alertaPorEmail.ts`). O recibo é o do Asaas. | Em Sua assinatura, o botão de recibo abre `transactionReceiptUrl` do Asaas (`linkDoAsaas`, só https em `*.asaas.com`). Conferir também a caixa de entrada do e-mail do checkout: **A CONFIRMAR** se o Asaas envia o aviso de cobrança (configuração de notificações do painel).                                                                                                                                                                                                 |
+| Admin → Cobrança     | `GET /api/admin/billing/pendentes` (`server/routes/admin.ts`)                                                                                                                                       | Sem pendentes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
-| #   | Conferência                                         | Comando / onde                                                                                            | Aceite                                                                                 | Nesta prova?                       |
-| --- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------- |
-| 1   | `/api/ready` 200; origem direta sem cabeçalho → 403 | §0 (`--origem <url-direta>`; a URL `*.workers.dev` da produção: **A CONFIRMAR** se está ligada)           | ready 200; origem direta 403                                                           | sim                                |
-| 2   | Conta, e-mail pelo Resend, 2FA                      | passos 4–7                                                                                                | e-mail na caixa de entrada; o app pede o código                                        | sim                                |
-| 3   | Sessão curta grava áudio no `frasy-midia`           | gravar 10 s na conta de teste; R2 → `frasy-midia`                                                         | o objeto aparece (e some na exclusão do passo 15)                                      | sim, antes do passo 15             |
-| 4   | [x] Threads do WASM                                 | console: `crossOriginIsolated`; §0 confere COOP/COEP/DIP                                                  | `true` no Chrome/Firefox                                                               | repetir em produção (console)      |
-| 5   | Backup semanal no `frasy-backups`                   | `gh run list --workflow backup-pg-dump.yml --limit 3`                                                     | último run verde e dump com < 8 dias                                                   | P7                                 |
-| 6   | Restaurar o dump num banco descartável              | runbook §0.2 e §8                                                                                         | `pg_restore --list` sem erro; contagens coerentes; data anotada                        | não (sessão própria)               |
-| 7   | [x] ZAP Baseline                                    | Actions → ZAP Baseline                                                                                    | 0 FAIL                                                                                 | não                                |
-| 8   | Cobrança real com estorno                           | Bloco D (R$ 19,90 ou R$ 9,90; não há R$ 5)                                                                | plano pelo webhook, estorno, volta a `free`                                            | sim                                |
-| 9   | [x] Três ciclos no sandbox                          | —                                                                                                         | —                                                                                      | não (anual fechado)                |
-| 10  | [x] Teste de 3 dias                                 | numa conta nova: Planos → teste                                                                           | "Premium · em teste", nada no Asaas                                                    | opcional (gasta a marca do e-mail) |
-| 11  | Termos §3–§4 validados                              | jurídico                                                                                                  | parecer escrito                                                                        | não (sem isso, anual fica fechado) |
-| 12  | Erro de teste no Sentry sem e-mail nem IP           | depende de `SENTRY_DSN`/`VITE_SENTRY_DSN` (ausentes em 02/11)                                             | evento sem PII                                                                         | só se o Sentry existir             |
-| 13  | DPAs aceitos e `docs/lgpd/operadores.md`            | painéis dos operadores                                                                                    | todos marcados                                                                         | não                                |
-| 14  | Alerta de fatura (Cloudflare, Supabase, Sentry)     | painéis                                                                                                   | os três ligados                                                                        | conferir                           |
-| 15  | Convite ao responsável por e-mail                   | conta de 15 anos (LANCAMENTO §10): **não** nesta prova                                                    | e-mail chega, aceite libera a nuvem                                                    | não (prova própria; menores)       |
-| 16  | 3 cartões na produção                               | conta Grátis → Planos; `/api/billing/status` → `planosAVenda`                                             | cartões e `planosAVenda` coerentes com as flags escolhidas (v3 ou v4: decisão do dono) | sim, na janela do passo 9          |
-| 17  | [x] Checkout do Essencial no sandbox                | —                                                                                                         | —                                                                                      | não                                |
-| 18  | [x] Bancada de anúncios                             | —                                                                                                         | flag `anuncios` desligada (§0)                                                         | §0                                 |
-| 19  | [x] Três chaves de emergência                       | no staging foi feito; em produção, os passos 4, 6, 9 e 12 exercitam `SIGNUP_ENABLED` e `CHECKOUT_ENABLED` | 403 `cadastro_fechado` / 503 `checkout_desligado` fechados                             | sim (as duas)                      |
+Se o plano não vier em 5 min, ou aparecer `billing_evento_nao_aplicado`, `billing_webhook_marca_presa`,
+`billing_*_divergente` ou `billing_*_ambigua`: **pare, feche a venda** (seção 5), e use Admin → Cobrança → "Reprocessar"
+(`POST /api/admin/billing/reprocessar/:id`, idempotente). Se não resolver, estorne no Asaas **e** exclua a assinatura lá
+(senão o mês seguinte é cobrado) — `runbook.md` §0.1-bis.
 
 ---
 
-## 5. Critérios de parada e fechamento em 1 minuto
+## 4. Estorno e cancelamento
 
-**Pare a prova e feche** se acontecer qualquer um destes:
+O caminho único é `POST /api/billing/cancelar` (`encerrarAssinatura`, `server/lib/encerramentoDeAssinatura.ts`), pelo botão
+**Cancelar assinatura** (`Cancelar.tsx`) em Planos → Sua assinatura. Ele **não exige a venda aberta**.
 
-- a conferência do §0 falhar em algo crítico;
-- o e-mail de alerta do passo 3 não chegar;
-- o pagamento confirmar no Asaas e o plano não vier em 5 min, ou aparecer `billing_evento_nao_aplicado`,
-  `billing_webhook_marca_presa`, `billing_*_divergente` ou `billing_*_ambigua` no tail;
-- um 5xx em rota de cobrança, `ABORTADO` no tail, ou cobrança em valor diferente do anunciado;
-- contas desconhecidas aparecendo na janela do cadastro.
+- **Dentro de 7 dias do primeiro pagamento confirmado** (`DIAS_DE_ARREPENDIMENTO`): é arrependimento. Cancela a assinatura
+  no Asaas, **estorna o valor integral (R$ 14,90)** e o acesso acaba na hora, com protocolo na tela. _Esperado:_ no Asaas a
+  assinatura some e a cobrança fica "Estornada"; no tail, `PAYMENT_REFUNDED` aplicado; `GET /api/billing/status` volta a
+  plano `free`. É este o caminho da prova.
+- **Depois de 7 dias:** só para a renovação; o período pago vale até o próximo vencimento informado pelo Asaas. Sem
+  reembolso proporcional.
+- **Estorno automático falhou** (o Asaas recusa boleto e, logo após Pix, pode faltar saldo): o pedido fica como
+  `nao-aplicado` na fila de Admin → Cobrança e a tela promete reembolso manual em até
+  `PRAZO_DO_REEMBOLSO_MANUAL_DIAS` (7). Estorne no painel do Asaas e **exclua a assinatura** lá.
+- **Taxa do Asaas sobre transação de cartão estornada:** **A CONFIRMAR** no contrato do Asaas.
 
-**Fechar (cada linha vale na próxima requisição, sem deploy):**
+Depois do estorno: no dia seguinte, o job `reconciliarCobrancas` (cron `29 3 * * *` UTC em `wrangler.jsonc`, modo `report`)
+deve registrar `divergentes: 0` nos Workers Logs (`job_fim`), sem e-mail `billing_reconciliacao_divergente`.
+
+**Limpeza (opcional):** Ajustes → Conta → "Excluir a conta" (`DELETE /api/me` com `{"confirmar":true}`) encerra a
+assinatura pelo mesmo caminho; com estorno pendente responde 409 `estorno_pendente` e não apaga nada. A marca do teste de
+3 dias (HMAC do e-mail) e o cliente no Asaas ficam por desenho.
+
+---
+
+## 5. Voltar a fechar a venda (1 minuto, sem deploy)
 
 ```bash
-npx wrangler secret put CHECKOUT_ENABLED -c wrangler.jsonc   # digite 0
-npx wrangler secret put SIGNUP_ENABLED -c wrangler.jsonc     # digite 0
+npx wrangler secret put CHECKOUT_ENABLED -c wrangler.jsonc        # digite 0
+node dist-server/operacao.cjs flags desligar venda_planos_v4      # ou apagar regras.ids; a opção B é a flag desligada
+node dist-server/operacao.cjs flags listar                        # confere
+curl -s https://frasy.com.br/api/abertura                         # {"cadastro":false,"checkout":false,"anual":false}
+node scripts/producao/conferir-producao.mjs --url https://frasy.com.br --esperar-fechado
 ```
 
-- Supabase → Authentication → Providers → Email → _Allow new users to sign up_ **desligado**.
-- Se usou D-2: `node dist-server/operacao.cjs flags desligar venda_planos_v3`.
-- IA gastando (não deveria, a prova não usa): `AI_ENABLED` → `0`.
-- Conferir: `curl -s https://frasy.com.br/api/abertura` → tudo `false`; depois o §0 com `--esperar-fechado`.
+`SIGNUP_ENABLED` e `ANUAL_ENABLED` não foram tocados (continuam `0` e ausente). Estado final esperado: `oferta_planos` ligada,
+`venda_planos_v4`/`venda_familia`/`venda_pro4` desligadas, venda fechada. Quem já assina (a conta de teste, se não estornada)
+mantém o plano: a venda fecha, o direito não.
 
-**Deploy ruim** (se P1 publicou uma versão nova e ela quebrou): runbook §0.3, `npx wrangler deployments list -c
-wrangler.jsonc` e `npx wrangler versions deploy <id-anterior>@100% -y -c wrangler.jsonc`. O banco não volta junto.
+**Pare e feche na hora** se: a conferência do passo 1 falhar em algo crítico; o e-mail de alerta do passo 2 não chegar; o
+pagamento confirmar e o plano não vier em 5 min; houver 5xx em rota de cobrança, `ABORTADO` no tail ou cobrança em valor
+diferente de R$ 14,90.
 
-**Pagamento sem plano:** Admin → Cobrança → "Reprocessar" (idempotente); se não resolver, estornar no Asaas e excluir a
-assinatura lá (runbook §0.1-bis).
+**Deploy ruim** (se P1 publicou uma versão que quebrou): `runbook.md` §0.3, `npx wrangler deployments list -c wrangler.jsonc`
+e `npx wrangler versions deploy <id-anterior>@100% -y -c wrangler.jsonc`. O banco não volta junto.
+
+---
 
 ## 6. O que NÃO fazer
 
-- Nunca colar, imprimir ou fotografar segredo, token, chave, número de cartão ou CPF no chat, em issue, em PR ou em log.
-  `wrangler secret put` lê o valor do prompt; `wrangler secret list` mostra só nomes.
-- Nunca usar dado, e-mail ou conta de **menor** (a prova do convite ao responsável é outra, com roteiro próprio).
-- Nunca usar cartão, CPF ou e-mail de terceiro, nem o cartão de teste do sandbox em produção.
-- Nunca abrir `ANUAL_ENABLED` nem ligar `anuncios`, `stt_ao_vivo`, `voz_natural` ou `venda_planos_v4` na prova.
-- Nunca criar plano, preço ou valor novo para a prova (o plano é identificado pelo valor pago).
+- Nunca colar, imprimir ou fotografar segredo, token, chave, cartão ou CPF no chat, em issue, PR ou log.
+- Nunca usar conta, dado ou cartão de **menor** ou de terceiro, nem o cartão de teste do sandbox em produção.
+- Nunca abrir `ANUAL_ENABLED`, `SIGNUP_ENABLED` nem ligar `venda_familia`, `venda_pro4`, `anuncios`, `stt_ao_vivo` ou
+  `voz_natural` na prova.
+- Nunca criar plano, preço ou valor novo para a prova: o plano é identificado pelo valor pago e todo valor cobrável é
+  único (`tests/planos-matriz.test.ts`). Uma cobrança manual de outro valor no painel do Asaas chega ao webhook sem compra
+  registrada e termina `nao-aplicado`.
 - Nunca deixar uma porta aberta sem alguém olhando: abriu, anotou a hora, fechou no passo seguinte.
-- Nunca rodar a conferência em laço, nem chamar rota autenticada por script (soma no limitador por IP).
-- Nunca editar o banco de produção à mão; a CLI (`operacao.cjs`) e o Admin existem para isso.
+- Nunca editar o banco de produção à mão: a CLI (`operacao.cjs`) e o Admin existem para isso.
+
+---
 
 ## 7. Modelo de relatório (o dono assina)
 
 ```markdown
-# Prova real em produção — AAAA-MM-DD
+# Prova real do Plus — AAAA-MM-DD
 
 - Versão provada: `0.1.0+<sha>` (`/api/health`)
-- Quem: <dono> (execução), assistente (conferência e logs)
 - Conferência inicial: <N ok / N aviso / 0 falha>, hora UTC <hh:mm>
 
-| porta                     | aberta (UTC) | fechada (UTC) | minutos |
-| ------------------------- | ------------ | ------------- | ------- |
-| SIGNUP_ENABLED + Supabase |              |               |         |
-| CHECKOUT_ENABLED          |              |               |         |
+| porta                            | aberta (UTC) | fechada (UTC) | minutos |
+| -------------------------------- | ------------ | ------------- | ------- |
+| flag `venda_planos_v4` (só o id) |              |               |         |
+| `CHECKOUT_ENABLED`               |              |               |         |
 
-| passo                    | resultado (ok / falhou / pulado) | evidência (requestId, id do evento no Asaas, print sem dado pessoal) |
-| ------------------------ | -------------------------------- | -------------------------------------------------------------------- |
-| alerta por e-mail        |                                  |                                                                      |
-| cadastro e confirmação   |                                  |                                                                      |
-| 2FA                      |                                  |                                                                      |
-| login Google             |                                  |                                                                      |
-| pagamento (valor, plano) |                                  |                                                                      |
-| concessão pelo webhook   |                                  |                                                                      |
-| estorno e volta a free   |                                  |                                                                      |
-| reconciliação (D+1)      |                                  |                                                                      |
-| exclusão da conta        |                                  |                                                                      |
-| conferência final        |                                  |                                                                      |
+| passo                                  | resultado (ok / falhou / pulado) | evidência (requestId, id do evento no Asaas, print sem dado pessoal) |
+| -------------------------------------- | -------------------------------- | -------------------------------------------------------------------- |
+| alerta por e-mail                      |                                  |                                                                      |
+| cobrança de R$ 14,90 no Asaas          |                                  |                                                                      |
+| plano `plus` ativo (`/billing/status`) |                                  |                                                                      |
+| cotas (`/me/uso`) = matriz             |                                  |                                                                      |
+| recibo (Sua assinatura / Asaas)        |                                  |                                                                      |
+| estorno e volta a `free`               |                                  |                                                                      |
+| conferência final (tudo fechado)       |                                  |                                                                      |
 
-- Conferências do §10 marcadas nesta prova: <números>
-- Incidentes ou desvios: <nenhum | descrição>
-- Pendências que seguem: <lista>
-
-Assinado: **\*\*\*\***\_\_\_\_**\*\*\*\*** (dono), em AAAA-MM-DD
+Decisão: <venda do Plus pode abrir / ajustes antes de abrir>. Assinatura do dono: **\_\_**
 ```

@@ -37,14 +37,22 @@ test.beforeEach(({ browserName }, info) => {
 async function falarNoSistema(page: Page, alvo: string, texto: string, lang: string) {
   // Nenhum modelo é baixado: o que se mede é a escrita, não o reconhecimento.
   await page.route(/huggingface\.co|hf\.co|cdn-lfs/, (r) => r.abort())
+  // Nada disto pode ser gravado: a conta é uma só para a suíte inteira, e o alvo `zh-TW` que este teste força
+  // vazaria para os arquivos seguintes (intérprete, etiquetas). Escritas só devolvem o corpo, sem ir ao servidor.
+  let ultimo: Record<string, unknown> = {}
   await page.route('**/api/settings', async (route) => {
-    if (route.request().method() !== 'GET') return route.continue()
+    const pedido = route.request()
+    if (pedido.method() !== 'GET') {
+      const corpo = (pedido.postDataJSON() ?? {}) as Record<string, unknown>
+      return route.fulfill({ json: { ...ultimo, ...corpo } })
+    }
     const resposta = await route.fetch()
     const s = (await resposta.json()) as Record<string, unknown>
     const ui = typeof s.ui === 'string' ? (JSON.parse(s.ui) as Record<string, unknown>) : {}
     ui.captureSourceLang = 'pt-BR'
     s.ui = JSON.stringify(ui)
     s.targetLanguage = alvo
+    ultimo = s
     return route.fulfill({ response: resposta, json: s })
   })
   await abrirTela(page, '/capturar')

@@ -10,8 +10,12 @@
  *  3. Adulto: a porta leva ao Login sem "Continuar sem conta"; entrar volta a /capturar e o modal da
  *     migração sobe a sessão local.
  *  4. Menor: segue local, com o convite neutro, e a porta não volta.
+ *  5. Livros (etapa 4): a ficha é livre; "Ler" sem conta leva à porta, e o adulto lê depois de entrar. O
+ *     menor lê direto, pela rota `/livros/<id>/ler`. O catálogo e o EPUB vêm do próprio teste (`_livro.ts`).
  */
 import { expect, type Page, test } from '@playwright/test'
+
+import { CATALOGO, epub, ficha, ID } from '../e2e/_livro'
 
 const FLAG = { acesso_restrito_sem_conta: { ligada: true } }
 
@@ -160,5 +164,77 @@ test('menor: segue local com o convite neutro, e a porta não volta', async ({ p
 
   await page.reload()
   await expect(page.locator('nav.q-trilho')).toBeVisible({ timeout: 60_000 })
+  await expect(page.getByTestId('porta-de-entrada')).toHaveCount(0)
+})
+
+/** O catálogo, a ficha e o EPUB fixos (os mesmos do e2e do leitor), sem rede de terceiros. */
+async function prepararLivro(page: Page) {
+  await page.route('**/catalogo/livros.json', (r) => r.fulfill({ json: CATALOGO }))
+  await page.route('**/catalogo/fichas/indice.json', (r) => r.fulfill({ json: { versao: 1, fichas: [ID] } }))
+  await page.route(`**/catalogo/fichas/${ID}.json`, (r) => r.fulfill({ json: ficha() }))
+  await page.route('https://standardebooks.org/**', (r) =>
+    r.fulfill({
+      status: 200,
+      headers: { 'access-control-allow-origin': '*', 'content-type': 'application/epub+zip' },
+      body: epub(),
+    }),
+  )
+}
+
+const leitorPronto = (page: Page) => page.locator('[data-testid=leitor][data-estado=pronto]')
+
+test('livro: a ficha é livre; "Ler" pede conta ao adulto e abre o livro depois do login', async ({ page }) => {
+  await ligarFlag(page)
+  await prepararLivro(page)
+  await page.goto(`/livros/${ID}`)
+  await expect(page.getByTestId('livro-detalhe')).toBeVisible({ timeout: 60_000 })
+  await expect(page.getByTestId('porta-de-entrada')).toHaveCount(0)
+
+  /* "Ler" sem conta: a porta pergunta a faixa primeiro; "Voltar ao livro" devolve à ficha. */
+  await page.getByTestId('ler-livro').click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Você tem 18 anos ou mais?' })).toBeVisible({
+    timeout: 30_000,
+  })
+  await expect(page).toHaveURL(new RegExp(`/livros/${ID}/ler$`))
+  await page.getByRole('button', { name: 'Voltar ao livro' }).click()
+  await expect(page.getByTestId('livro-detalhe')).toBeVisible({ timeout: 30_000 })
+
+  await page.getByTestId('ler-livro').click()
+  await page.getByRole('button', { name: 'Sim, tenho 18 anos ou mais' }).click()
+  await expect(page.getByTestId('login-do-quest')).toBeVisible()
+  await expect(page.getByTestId('porta-do-livro')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Continuar sem conta' })).toHaveCount(0)
+
+  await page.locator('.qen-rodape').getByRole('button', { name: 'Entrar', exact: true }).click()
+  await page.locator('#auth-email').fill('e2e@babel.test')
+  await page.getByLabel('Senha', { exact: true }).fill('senha-e2e-123')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await expect(page.getByTestId('login-do-quest')).toBeHidden({ timeout: 30_000 })
+
+  /* Num banco novo a conta ainda não disse a idade: a `PerguntaDeIdade` vem antes. */
+  const idade = page.getByRole('heading', { level: 1, name: 'Quando você nasceu?' })
+  await expect(leitorPronto(page).or(idade)).toBeVisible({ timeout: 30_000 })
+  if (await idade.isVisible()) {
+    await page.getByLabel('Data de nascimento').fill('1990-01-01')
+    await page.getByRole('button', { name: 'Confirmar' }).click()
+  }
+  await expect(page).toHaveURL(new RegExp(`/livros/${ID}/ler$`))
+  await expect(leitorPronto(page)).toBeVisible({ timeout: 30_000 })
+})
+
+test('livro: o menor lê direto pela rota da leitura, como hoje', async ({ page }) => {
+  await ligarFlag(page)
+  await prepararLivro(page)
+  await page.goto(`/livros/${ID}/ler`)
+  await expect(page.getByTestId('porta-de-entrada')).toBeVisible({ timeout: 60_000 })
+  await page.getByRole('button', { name: 'Não, tenho menos de 18' }).click()
+  await page.getByRole('button', { name: 'Continuar' }).click()
+
+  await expect(page.getByTestId('porta-de-entrada')).toHaveCount(0)
+  await expect(leitorPronto(page)).toBeVisible({ timeout: 30_000 })
+
+  /* Já declarado menor, a leitura abre direto na próxima visita. */
+  await page.reload()
+  await expect(leitorPronto(page)).toBeVisible({ timeout: 60_000 })
   await expect(page.getByTestId('porta-de-entrada')).toHaveCount(0)
 })

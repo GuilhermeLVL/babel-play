@@ -131,7 +131,6 @@ import { carregarProtecao, fetchSessions } from './data/api';
 import { lerTokenDoConvite } from './lib/conviteNaUrl';
 import { edicaoEstatica } from './lib/edicaoEstatica';
 import { carregarEntitlements } from './lib/entitlements';
-import { aplicarEntrarDaUrl } from './lib/entrarNaUrl';
 import { tirarEsqueleto } from './lib/esqueleto';
 import { useAcessoSemConta } from './lib/estado/useAcessoSemConta';
 import { useAparencia, useHidratacaoDeAjustes } from './lib/estado/useAparencia';
@@ -199,7 +198,9 @@ export default function App() {
      barra. Só pede a porta a quem está sem conta num app que tem conta (`semContaComPorta`); no self-host, na
      edição estática e com sessão o parâmetro só sai da URL. */
   useEffect(() => {
-    aplicarEntrarDaUrl(setPedindoLogin);
+    /* Sob demanda: só quem chega com `?entrar=` paga o módulo (orçamento do JS inicial). */
+    if (!window.location.search.includes('entrar=')) return;
+    void import('./lib/entrarNaUrl').then((m) => m.aplicarEntrarDaUrl(setPedindoLogin)).catch(() => {});
   }, [session, anonimo, setPedindoLogin]);
   /* O gate só desce quando o evento `babel_exige_conta` abre (gate !== null); o host das ofertas
      desce já no primeiro desenho, porque escuta eventos desde o começo. */

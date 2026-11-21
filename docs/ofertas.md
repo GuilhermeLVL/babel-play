@@ -209,6 +209,48 @@ sum by (variante) (increase(oferta_eventos_por_plano_total{evento="checkout_inic
   / sum by (variante) (increase(oferta_eventos_por_plano_total{evento="oferta_exibida"}[14d]))
 ```
 
+### O funil da porta obrigatória (acesso sem conta v2)
+
+Com a flag `acesso_restrito_sem_conta` ligada, a porta obrigatória (`PortaDeEntrada`) conta o próprio funil
+pelo mesmo contrato, a mesma rota e os mesmos contadores (`src/lib/ofertas/funilDaPorta.ts`). Os rótulos
+são fixos: `gatilho="nenhum"`, `componente="nenhum"`, `variante="nenhum"`, `plano_atual="convidado"`,
+`plano_sugerido="conta"`; só o `evento` varia.
+
+| Evento                    | Quando                                                                                                             |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `porta_exibida`           | a porta apareceu (uma vez por montagem)                                                                            |
+| `porta_faixa_menor`       | a pessoa disse ter menos de 18 e tocou em "Continuar"                                                              |
+| `porta_cadastro_iniciado` | o formulário de "Criar conta" foi enviado na porta, ou "Google" nesse modo                                         |
+| `conta_criada_pela_porta` | e-mail: o Supabase aceitou a conta (com ou sem confirmação pendente); Google: a sessão voltou em até 1 h do clique |
+
+**Menor.** A regra de sempre (nada de conta de menor restrita) continua valendo. O visitante sem conta
+conta porque o evento não carrega nada dele; quem diz ter menos de 18 conta **uma vez**, como
+`porta_faixa_menor`, e, com a faixa `menor` guardada no aparelho, nenhum outro evento da porta sai dali.
+"Métricas de uso anônimas" desligada cala tudo, como nas ofertas.
+
+**Aproximações.** O Google não diz se a conta é nova: quem já tinha conta e tocou em "Google" no modo
+"Criar conta" conta como criada. Com proteção contra enumeração de e-mails, o Supabase também aceita o
+cadastro de um e-mail que já existe.
+
+```promql
+# Quantas pessoas a porta parou (7 dias)
+sum(increase(oferta_eventos_total{evento="porta_exibida"}[7d]))
+
+# Conversão porta → conta criada
+sum(increase(oferta_eventos_total{evento="conta_criada_pela_porta"}[7d]))
+  / sum(increase(oferta_eventos_total{evento="porta_exibida"}[7d]))
+
+# Quem começa o cadastro e desiste (atrito do formulário)
+1 - sum(increase(oferta_eventos_total{evento="conta_criada_pela_porta"}[7d]))
+  / sum(increase(oferta_eventos_total{evento="porta_cadastro_iniciado"}[7d]))
+
+# Parcela que se declara menor de 18
+sum(increase(oferta_eventos_total{evento="porta_faixa_menor"}[7d]))
+  / sum(increase(oferta_eventos_total{evento="porta_exibida"}[7d]))
+```
+
+Use essas razões em cada degrau do `percentual` (10% → 50% → 100%).
+
 Os contadores são **por processo** (ver o bloco de cluster em `server/http/metricas.ts`) e zeram no
 deploy: use sempre `increase()`/`rate()`, nunca o valor cru. `/metrics` só existe com
 `METRICS_ENABLED=1`.

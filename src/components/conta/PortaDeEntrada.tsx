@@ -1,9 +1,10 @@
 import { ShieldCheck } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { FaixaDeclarada } from '../../core/acessoSemConta';
 import { lembrarDeOndeVeio } from '../../lib/estado/useGateDeConta';
 import { t } from '../../lib/i18n';
+import { registrarCadastroIniciadoNaPorta, registrarEventoDaPorta } from '../../lib/ofertas/funilDaPorta';
 import CascaDeEntradaDoQuest from '../auth/quest/CascaDeEntradaDoQuest';
 import Login from '../Login';
 
@@ -41,6 +42,14 @@ export default function PortaDeEntrada({
     lembrarDeOndeVeio();
   }, []);
 
+  /* O funil da porta (`funilDaPorta.ts`, anônimo): uma exibição por montagem, mesmo no StrictMode. */
+  const contouExibicao = useRef(false);
+  useEffect(() => {
+    if (contouExibicao.current) return;
+    contouExibicao.current = true;
+    registrarEventoDaPorta('porta_exibida');
+  }, []);
+
   const voltarAoLivro = aoVoltarAoLivro && (
     <p className="qen-rodape">
       <button type="button" className="qen-link" onClick={aoVoltarAoLivro}>
@@ -53,6 +62,8 @@ export default function PortaDeEntrada({
     return (
       <Login
         modoInicial={modoInicial}
+        aoIniciarCadastro={(via) => registrarCadastroIniciadoNaPorta(via)}
+        aoCriarConta={() => registrarEventoDaPorta('conta_criada_pela_porta')}
         rodape={
           <>
             {aoVoltarAoLivro && (
@@ -86,7 +97,14 @@ export default function PortaDeEntrada({
           <span>{t('Com um responsável, você pode criar uma conta.')}</span>
         </p>
         <div className="qen-acoes">
-          <button type="button" className="qen-botao pri" onClick={() => aoDeclarar('menor')}>
+          <button
+            type="button"
+            className="qen-botao pri"
+            onClick={() => {
+              registrarEventoDaPorta('porta_faixa_menor');
+              aoDeclarar('menor');
+            }}
+          >
             {t('Continuar')}
           </button>
         </div>

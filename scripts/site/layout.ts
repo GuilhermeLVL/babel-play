@@ -99,6 +99,7 @@ a:hover{color:var(--acento-texto)}
 .botao.contorno{background:transparent;color:var(--tinta);border-color:var(--borda);box-shadow:none}
 .botao.contorno:hover{background:var(--superficie);color:var(--tinta)}
 .topo .botao{min-height:44px;padding:0 18px}
+.topo .entrar{display:flex;gap:8px}
 
 main{display:block;padding:24px 0 96px}
 h1,h2,h3{font-family:var(--titulo);font-weight:800;line-height:1.08;letter-spacing:-.025em;margin:0;text-wrap:balance}
@@ -355,6 +356,7 @@ details.pergunta p{margin:0;padding:0 0 20px;color:var(--suave);max-width:62ch}
 .largura{padding:0 16px}
 .topo .largura{grid-template-columns:1fr auto;gap:0 12px;min-height:0;padding-top:12px;padding-bottom:4px}
 .topo nav{grid-column:1/-1;grid-row:2;margin:6px 0 0 -10px}
+.topo .botao{padding:0 12px;font-size:15px}
 .menu a{padding:10px;font-size:15.5px}
 main{padding-top:8px}
 .heroi h1{font-size:clamp(38px,11.4vw,54px)}
@@ -401,7 +403,10 @@ export function cabecalho(atual?: string): string {
     `<header class="topo"><div class="largura">` +
     `<a class="marca" href="/"><img src="/favicon.svg" alt="" width="30" height="30">Frasy</a>` +
     `<nav aria-label="Principal"><ul class="menu">${itensDe(MENU, atual)}</ul></nav>` +
-    `<a class="botao contorno" href="/app">Entrar</a>` +
+    /* Atalhos direto ao Login do app (`?entrar=`, lido uma vez pelo `App.tsx`). "Abrir o Frasy" da home segue
+       em `/app`, o caminho de quem quer experimentar sem conta. */
+    `<div class="entrar"><a class="botao contorno" href="/app?entrar=login">Entrar</a>` +
+    `<a class="botao" href="/app?entrar=signup">Criar conta</a></div>` +
     `</div></header>`
   );
 }

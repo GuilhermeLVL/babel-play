@@ -36,6 +36,9 @@ temConta, edicao })` devolve `'livre' | 'convite' | 'porta'`, e `podeLer(...)` d
    porque não pergunta a faixa e o convite oferece "Continuar sem conta".
 8. **Flag.** `acesso_restrito_sem_conta`, DESLIGADA, sem regra de plano, solta por `percentual`. Desligada = comportamento de hoje.
 9. **Funil sem id.** Eventos novos no alfabeto fechado, respeitando o desligamento de métricas e o perfil de menor.
+   A regra de sempre proíbe instrumentar a CONTA de menor restrita; o visitante sem conta conta, porque o evento
+   não carrega nada dele. Quem se declara menor na porta conta uma vez (`porta_faixa_menor`) e, com a faixa
+   `menor` guardada no aparelho, nenhum outro evento da porta sai dali (`src/lib/ofertas/funilDaPorta.ts`).
 
 ## Risks / Trade-offs
 

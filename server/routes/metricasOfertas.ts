@@ -12,6 +12,7 @@
  *
  * CARDINALIDADE. Tudo o que vira label é de um alfabeto FECHADO:
  *   - `evento`, `componente`, `plano_atual`, `plano_sugerido`: listas do código (fora delas = 400);
+ *     os eventos da porta de entrada (`EVENTOS_DA_PORTA`, acesso sem conta v2) fazem parte de `evento`;
  *   - `gatilho` e `variante`: só os que EXISTEM — os embutidos no código (`IDS_FUNCIONAIS`,
  *     `embutida`, `padrao`, `nenhum`) e os do payload ATUAL da flag `oferta_planos` (até 50, lidos
  *     do cache de 30 s de `server/lib/flags.ts`). Id bem formado mas desconhecido vira `outro`: um

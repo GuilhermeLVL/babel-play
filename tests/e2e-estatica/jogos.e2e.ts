@@ -655,14 +655,19 @@ test('Caça-conectores: na Trilha fica em "Precisa de outro material" dizendo o 
 }) => {
   await abrirLobbyDaTrilha(page)
   const presos = page.locator('#grade-de-jogos .qj-presos')
-  /* O título acompanha a contagem, como no protótipo (`fontes.js:251`): um jogo só, no singular. */
-  await expect(presos.locator('.q-tile')).toHaveCount(1)
-  await expect(presos.getByRole('heading', { level: 2 })).toHaveText('Precisa de outro material')
+  /* O título acompanha a contagem, como no protótipo (`fontes.js:251`). Na Trilha ficam presos os três jogos que
+     pedem frases: Caça-conectores, Retradução e Ditado de frase (exercícios de frase), no plural. */
+  await expect(presos.locator('.q-tile')).toHaveCount(3)
+  await expect(presos.getByRole('heading', { level: 2 })).toHaveText('Precisam de outro material')
   const cartao = presos.locator('.q-tile[data-jogo="conectores"]')
   await expect(cartao).toHaveClass(/apagado/)
   await expect(cartao.locator('.fx-motivo')).toHaveText('Precisa de 3 frases com conector; a Trilha quase não tem.')
   /* Não abre a rodada: a saída é o catálogo de conteúdo, já com o que serve para ele. */
-  await expect(presos.getByRole('button', { name: /^Ver o conteúdo que serve para/ })).toBeVisible()
+  await expect(presos.getByRole('button', { name: 'Ver o conteúdo que serve para Caça-conectores' })).toBeVisible()
+  /* Os exercícios de frase dizem o que LHES falta (frase de sessão ou legenda), não o motivo do conector. */
+  await expect(presos.locator('.q-tile[data-jogo="retraducao"] .fx-motivo')).toHaveText(
+    'Precisa de 3 frases de uma sessão ou legenda; a Trilha não tem.',
+  )
   await cartao.click()
   await expect(page.locator('dialog.fx-catalogo')).toBeVisible()
   await expect(page.locator('#palco')).toHaveCount(0)

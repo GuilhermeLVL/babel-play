@@ -1874,6 +1874,7 @@
   "Pré-visualização do traço": "معاينة الخط",
   "Precisa de {min} frases com áudio; aqui há {ha}.": "يحتاج إلى {min} جمل مع صوت؛ هنا {ha}.",
   "Precisa de {min} frases com conector; a Trilha quase não tem.": "يحتاج إلى {min} جمل فيها أداة ربط؛ والمسار يكاد يخلو منها.",
+  "Precisa de {min} frases de uma sessão ou legenda; a Trilha não tem.": "يحتاج إلى {min} جمل من جلسة أو ترجمة؛ المسار لا يحتوي عليها.",
   "precisa de {min} frases ou palavras; aqui há {ha}.": "يحتاج إلى {min} جمل أو كلمات؛ هنا {ha}.",
   "precisa de {min} frases; a Trilha só tem palavras soltas.": "يحتاج إلى {min} جمل؛ المسار فيه كلمات مفردة فقط.",
   "precisa de {min} frases; aqui há {ha}.": "يحتاج إلى {min} جمل؛ هنا {ha}.",

@@ -2161,6 +2161,7 @@
   "Pré-visualização do traço": "Vista previa del trazo",
   "Precisa de {min} frases com áudio; aqui há {ha}.": "Necesita {min} frases con audio; aquí hay {ha}.",
   "Precisa de {min} frases com conector; a Trilha quase não tem.": "Necesita {min} frases con conector; la Ruta casi no tiene.",
+  "Precisa de {min} frases de uma sessão ou legenda; a Trilha não tem.": "Necesita {min} frases de una sesión o subtítulo; el Camino no tiene.",
   "precisa de {min} frases ou palavras; aqui há {ha}.": "necesita {min} frases o palabras; aquí hay {ha}.",
   "precisa de {min} frases; a Trilha só tem palavras soltas.": "necesita {min} frases; la Ruta solo tiene palabras sueltas.",
   "precisa de {min} frases; aqui há {ha}.": "necesita {min} frases; aquí hay {ha}.",

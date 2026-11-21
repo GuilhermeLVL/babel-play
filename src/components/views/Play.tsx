@@ -2606,10 +2606,13 @@ export default function Play({
       const min = MINIGAMES[j.id].minItems;
       const ha = j.estado.disponiveis;
       if (motivo === 'sem-rede') return t('Precisa de internet para ouvir a sua voz.');
-      /* Só o Caça-conectores cai aqui: a Frase embaralhada JOGA com as frases da trilha. O que falta é
-         conector (4,5% das frases). */
+      /* O Caça-conectores e os exercícios de frase caem aqui (a Frase embaralhada JOGA com as frases da
+         trilha). Ao Caça-conectores falta conector (4,5% das frases); aos exercícios de frase (Retradução,
+         Ditado de frase) falta frase de sessão ou legenda, com tradução. */
       if (motivo === 'trilha-sem-frase')
-        return t('Precisa de {min} frases com conector; a Trilha quase não tem.', { min });
+        return j.id === 'conectores'
+          ? t('Precisa de {min} frases com conector; a Trilha quase não tem.', { min })
+          : t('Precisa de {min} frases de uma sessão ou legenda; a Trilha não tem.', { min });
       /* OS MOTIVOS DE OUTROS IDIOMAS (mandarim, árabe, japonês…) SÃO DITOS POR EXTENSO, com as palavras de
          sempre: "Precisa de N palavras" mandaria a pessoa juntar palavras que nunca abririam o jogo. Só a
          forma muda (frase com maiúscula e ponto, como os outros motivos da seção). */

@@ -4668,6 +4668,7 @@
   "Pré-visualização do traço": "Stroke preview",
   "Precisa de {min} frases com áudio; aqui há {ha}.": "Needs {min} sentences with audio; there are {ha} here.",
   "Precisa de {min} frases com conector; a Trilha quase não tem.": "Needs {min} sentences with a connector; the Path has almost none.",
+  "Precisa de {min} frases de uma sessão ou legenda; a Trilha não tem.": "Needs {min} sentences from a session or subtitle; the Path has none.",
   "precisa de {min} frases ou palavras; aqui há {ha}.": "needs {min} sentences or words; there are {ha} here.",
   "precisa de {min} frases; a Trilha só tem palavras soltas.": "needs {min} sentences; the Track only has single words.",
   "precisa de {min} frases; aqui há {ha}.": "needs {min} sentences; there are {ha} here.",

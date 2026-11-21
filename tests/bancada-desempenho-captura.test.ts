@@ -447,9 +447,11 @@ describe('slo-captura.json versionado', () => {
     expect(doc.ambientes['local-win32']).toBeTruthy()
   })
 
-  it('o 1º parcial atrasado de propósito para 3 s reprova pela métrica primeiroTextoNaTelaMs', () => {
+  it('o 1º parcial atrasado de propósito (+3 s sobre a base) reprova pela métrica primeiroTextoNaTelaMs', () => {
     const base = doc.ambientes['local-darwin'].perfis.desktop
-    const resultado = { perfis: { desktop: { metricas: { ...base, primeiroTextoNaTelaMs: 3000 } } } }
+    const resultado = {
+      perfis: { desktop: { metricas: { ...base, primeiroTextoNaTelaMs: base.primeiroTextoNaTelaMs + 3000 } } },
+    }
     const r = comparar(doc, resultado, 'local-darwin')
     expect(r.piorou).toBe(true)
     expect(r.linhas.filter((l) => l.status === 'piorou').map((l) => l.metrica)).toEqual(['primeiroTextoNaTelaMs'])

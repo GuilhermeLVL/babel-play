@@ -176,7 +176,29 @@ if (GERAR_FIXTURE) {
   process.exit(0)
 }
 
-const escolhidas = FIXTURE ? falasDoFixture(FIXTURE) : falasDoFleurs()
+/**
+ * FIM DA VOZ do roteiro (a "verdade da bancada" de `fimDaFalaAteLegendaMs`): o último quadro de 20 ms com RMS ≥ 0,03
+ * (−30 dBFS; a voz está normalizada a −20 dBFS RMS). O `vozFim` do fixture usa pico − 35 dB e inclui uma cauda de ruído
+ * de até ~0,8 s em algumas falas (medido em 21/11/2026: o VAD fechava a fala 0,8 s antes do `fimS` do roteiro, e o
+ * "tempo até a legenda" saía negativo). O valor antigo fica em `fimDoFixtureS`.
+ */
+const LIMIAR_DO_FIM_RMS = 0.03
+function fimDaVozPorEnergia(e) {
+  const q = SR * 0.02
+  let ultimo = -1
+  for (let i = 0; i + q <= e.pcm.length; i += q) {
+    let s = 0
+    for (let j = 0; j < q; j++) s += e.pcm[i + j] * e.pcm[i + j]
+    if (Math.sqrt(s / q) >= LIMIAR_DO_FIM_RMS) ultimo = i + q
+  }
+  return ultimo < 0 ? e.vozFim : Math.min(e.vozFim, ultimo / SR)
+}
+
+const escolhidas = (FIXTURE ? falasDoFixture(FIXTURE) : falasDoFleurs()).map((e) => ({
+  ...e,
+  fimDoFixture: e.vozFim,
+  vozFim: fimDaVozPorEnergia(e),
+}))
 
 const pedacos = []
 let t = 0
@@ -205,6 +227,7 @@ escolhidas.forEach((e, k) => {
     referencia: e.referencia,
     iniS: +(inicioArquivo + e.vozIni).toFixed(3),
     fimS: +(inicioArquivo + e.vozFim).toFixed(3),
+    fimDoFixtureS: +(inicioArquivo + e.fimDoFixture).toFixed(3),
     durVozS: +(e.vozFim - e.vozIni).toFixed(3),
     ganhoDb: e.ganhoDb,
   })

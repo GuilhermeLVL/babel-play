@@ -19,7 +19,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { acharAncoraDoBipe, analisarRodada } from './analisar.mjs'
+import { acharAncoraDoBipe, analisarRodada, resumirLegenda } from './analisar.mjs'
 
 /** Janela mínima para uma taxa de CPU valer alguma coisa (abaixo disso, 1 tique do SO já distorce). */
 const JANELA_MINIMA_CPU_MS = 3000
@@ -181,6 +181,12 @@ export function metricasDaRodada(d) {
 
   const tr = analise.falas.map((f) => f.fimATraducao).filter(finito)
 
+  // Métrica principal (D1): do fim da voz no arquivo ao quadro com a tradução final. Os `valores` ficam na rodada para a
+  // agregação somar as falas (a média de p75 de rodadas não é o p75); falha e sem tradução ficam fora do percentil.
+  const leg = resumirLegenda([analise])
+  const valoresLegenda = analise.falas.filter((f) => f.status === 'ok').map((f) => f.fimDaFalaAteLegendaMs)
+  const errosDoMarcador = analise.falas.map((f) => f.erroDoMarcadorMs).filter(finito)
+
   // O regulador (A6) desce o modelo no meio da sessão quando o aparelho não acompanha: numa rodada
   // com descida, memória e RTF mudam de patamar. Contado para que a mediana seja lida sabendo disso.
   const trocas = ev.filter((e) => e.k === 'log' && /regulador: modelo local →/.test(e.s ?? ''))
@@ -211,6 +217,15 @@ export function metricasDaRodada(d) {
     rendersPorS: { silencio: rSil?.porS ?? null, fala: rFala?.porS ?? null },
     commitsPorS: { silencio: rSil?.eventosPorS ?? null, fala: rFala?.eventosPorS ?? null },
     fimATraducao: { p50: percentil(tr, 50), p95: percentil(tr, 95) },
+    fimDaFalaAteLegendaMs: {
+      valores: valoresLegenda,
+      p50: leg.p50,
+      p75: leg.p75,
+      p95: leg.p95,
+      falhas: leg.falhas,
+      semTraducao: leg.semTraducao,
+      erroDoMarcadorMs: errosDoMarcador,
+    },
     regulador: {
       trocasDeModelo: trocas.length,
       primeiraTrocaMs: trocas.length ? Math.round(trocas[0].t - d.tIniciarPerf) : null,
@@ -268,7 +283,25 @@ export function agregarRodadas(rodadas) {
   const rtf = validas.flatMap((r) => r.rtf?.valores ?? [])
   metricas['rtf.p50'] = percentil(rtf, 50)
   metricas['rtf.p95'] = percentil(rtf, 95)
+  // Métrica principal: percentis sobre as falas somadas de todas as rodadas válidas, nunca a mediana de percentis.
+  const legenda = validas.flatMap((r) => r.fimDaFalaAteLegendaMs?.valores ?? [])
+  const falhas = validas.reduce((s, r) => s + (r.fimDaFalaAteLegendaMs?.falhas ?? 0), 0)
+  const semTraducao = validas.reduce((s, r) => s + (r.fimDaFalaAteLegendaMs?.semTraducao ?? 0), 0)
+  for (const p of [50, 75, 95]) metricas[`fimDaFalaAteLegendaMs.p${p}`] = percentil(legenda, p)
+  const esperadas = legenda.length + falhas
+  metricas['fimDaFalaAteLegendaMs.taxaDeFalha'] = esperadas ? falhas / esperadas : null
+  const erros = validas.flatMap((r) => r.fimDaFalaAteLegendaMs?.erroDoMarcadorMs ?? [])
+  const abs = erros.map(Math.abs)
   return {
+    legenda: { n: legenda.length, falhas, semTraducao },
+    erroDoMarcador: erros.length
+      ? {
+          n: erros.length,
+          medianaMs: percentil(erros, 50),
+          medianaAbsMs: percentil(abs, 50),
+          p95AbsMs: percentil(abs, 95),
+        }
+      : null,
     rodadas: validas.length,
     invalidas: rodadas.filter((r) => !r.valida).map((r) => ({ rotulo: r.rotulo, motivo: r.motivo })),
     falasNoRtf: rtf.length,

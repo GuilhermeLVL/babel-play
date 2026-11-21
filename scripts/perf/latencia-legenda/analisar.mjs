@@ -27,6 +27,12 @@
  *   fimAoOriginal  = Do − E     fimATraducao = Dt − E     (ponta a ponta)
  *   inicioAoPrimeiroTexto = 1º parcial exibido − I
  *   traducaoAntesDoFim = a tradução de algum PARCIAL já estava na tela quando a voz acabou?
+ *
+ * MÉTRICA PRINCIPAL (`lab-medicao-legenda-traduzida`, D1): `fimDaFalaAteLegendaMs` = quadro pintado com a tradução FINAL − E
+ * (a verdade da bancada: E vem do arquivo). A mesma medida com as marcas de campo (`frasy:fala:fim` → `frasy:legenda:traduzida`,
+ * lidas de `lat.marcas`) é `fimDaFalaAteLegendaCampoMs`, e `erroDoMarcadorMs` = `t_fim` da marca − E (o erro do VAD contra o arquivo).
+ * Cada fala termina em `status`: `ok` (entra no percentil), `semTraducao` (idioma de origem = destino) ou `falha` (sem legenda
+ * traduzida: perdida, sem final ou sem tradução na tela). O p50/p75/p95 sempre vem com a taxa de falha ao lado.
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 
@@ -113,6 +119,34 @@ export function acharAncoraDoBipe(d) {
   }
 }
 
+const idiomaBase = (l) => (typeof l === 'string' && l !== 'auto' ? l.split('-')[0].toLowerCase() : '')
+
+/**
+ * As marcas de campo de UMA fala: a `frasy:fala:fim` e a `frasy:legenda:traduzida` do MESMO balão. A marca de fim é a do
+ * trecho do VAD que fechou a fala (`tDecisao` = `capMetrics.tSpeechEnd`: a última marca de fim dos 1 500 ms anteriores a
+ * ele), porque o último quadro de voz fica ~800 ms antes da decisão (redenção do VAD) e, se a voz do arquivo for mais
+ * curta ou mais longa que o roteiro, procurar por E esconderia justamente os maiores erros. Sem `tDecisao`, a marca mais
+ * perto de E (de E − 500 a E + 1 000 ms). `null` sem marca de fim (build sem instrumentação, ou fala perdida).
+ * Nenhum texto passa por aqui: as marcas só levam id, origem e modelo.
+ */
+export function medidasDeCampo(marcas, E, tDecisao) {
+  const fins = marcas.filter((m) => m.n === 'fala:fim')
+  const candidatas = Number.isFinite(tDecisao)
+    ? fins.filter((m) => m.t >= tDecisao - 1500 && m.t <= tDecisao + 50)
+    : fins.filter((m) => m.t >= E - 500 && m.t <= E + 1000)
+  if (!candidatas.length) return null
+  const fim = Number.isFinite(tDecisao)
+    ? candidatas.reduce((a, b) => (b.t > a.t ? b : a))
+    : candidatas.reduce((a, b) => (Math.abs(b.t - E) < Math.abs(a.t - E) ? b : a))
+  const out = { erroDoMarcadorMs: Math.round(fim.t - E) }
+  const leg = fim.d?.id ? marcas.find((m) => m.n === 'legenda:traduzida' && m.d?.id === fim.d.id && m.t >= fim.t) : null
+  if (leg) {
+    out.fimDaFalaAteLegendaCampoMs = Math.round(leg.t - fim.t)
+    if (leg.d?.origem) out.origemDaLegenda = leg.d.origem
+  }
+  return out
+}
+
 export function analisarRodada(d, pular = 0) {
   const ev = d.lat.ev
   const dom = d.lat.dom
@@ -153,12 +187,14 @@ export function analisarRodada(d, pular = 0) {
     const seqs = cap.filter((m) => m.tSpeechStart >= I - 400 && m.tSpeechStart <= E + 300)
     const linha = { k: f.k, durVozS: f.durVozS, trechos: seqs.length }
     if (!seqs.length) {
+      Object.assign(linha, medidasDeCampo(d.lat.marcas ?? [], E))
       linha.perdida = true
       falas.push(linha)
       continue
     }
     const ult = [...seqs].reverse().find((m) => m.tFinalDone !== undefined && m.text) ?? seqs[seqs.length - 1]
     linha.texto = ult.text
+    Object.assign(linha, medidasDeCampo(d.lat.marcas ?? [], E, ult.tSpeechEnd))
     const primParcial = seqs.map((m) => m.tFirstPartial).filter(Number.isFinite)
     if (primParcial.length) linha.inicioAoPrimeiroTexto = Math.round(Math.min(...primParcial) - I)
     linha.parciais = seqs.reduce((s, m) => s + (m.partialCount || 0), 0)
@@ -218,6 +254,7 @@ export function analisarRodada(d, pular = 0) {
             if (Dt) {
               linha.renderTrad = Math.round(Dt.t - Mr.t)
               linha.fimATraducao = Math.round(Dt.t - E)
+              linha.fimDaFalaAteLegendaMs = Math.round((Dt.tf ?? Dt.t) - E)
             }
           }
         } else {
@@ -225,6 +262,7 @@ export function analisarRodada(d, pular = 0) {
           const Dt = traducaoNaTela(R.t)
           if (Dt) {
             linha.fimATraducao = Math.round(Dt.t - E)
+            linha.fimDaFalaAteLegendaMs = Math.round((Dt.tf ?? Dt.t) - E)
             linha.mtMotor = /^\(.*\)$/.test(Dt.tr) ? 'degradada' : Dt.tr.startsWith('≈') ? 'mymemory' : 'outro'
             linha.traducao = Dt.tr
           }
@@ -250,6 +288,23 @@ export function analisarRodada(d, pular = 0) {
     falas.push(linha)
   }
 
+  const mesmoIdioma = idiomaBase(d.config?.eu) !== '' && idiomaBase(d.config?.eu) === idiomaBase(d.config?.eles)
+  // Quando o pareamento pelo decode final falhou (o texto final já estava na tela ANTES do resultado que o pareamento
+  // escolheu, ex.: final especulativo repetido), a fala continua medida pelo balão: texto final (`o` preenchido) com
+  // tradução de verdade (não o "…" nem o original repetido).
+  for (const l of falas) {
+    if (Number.isFinite(l.fimDaFalaAteLegendaMs) || !l.texto) continue
+    const f = rot.falas.find((x) => x.k === l.k)
+    const I = tDoArquivo(f.iniS)
+    const traduzido = dom.find(
+      (r) =>
+        r.t >= I - 400 && !r.nova && r.o && parecido(r.o, l.texto) && r.tr && r.tr !== '…' && norm(r.tr) !== norm(r.o),
+    )
+    if (traduzido) l.fimDaFalaAteLegendaMs = Math.round((traduzido.tf ?? traduzido.t) - tDoArquivo(f.fimS))
+  }
+  for (const l of falas)
+    l.status = Number.isFinite(l.fimDaFalaAteLegendaMs) ? 'ok' : mesmoIdioma ? 'semTraducao' : 'falha'
+
   // cargas de modelo
   const tIni = d.tIniciarPerf
   const whisperLoad = ev.find((e) => e.k === 'w:out' && e.type === 'load' && e.nome?.startsWith('whisperWorker'))
@@ -264,6 +319,8 @@ export function analisarRodada(d, pular = 0) {
   const loafs = d.lat.loaf || []
   return {
     rotulo: d.rotulo,
+    perfil: d.config?.dispositivo ?? 'desktop',
+    idioma: rot.idioma ?? 'outro',
     config: d.config,
     ui: d.ui,
     gpuInfo: d.gpuInfo,
@@ -326,6 +383,45 @@ export function resumir(rodadas) {
   out.motoresMt = [...new Set(falas.map((f) => f.mtMotor).filter(Boolean))]
   return out
 }
+/**
+ * A métrica principal de um grupo de rodadas (as falas somadas): p50/p75/p95, falhas, `semTraducao` e a taxa de
+ * falha (falhas ÷ falas que deviam ter tradução). O erro do marcador vai junto (mediana e p95 do valor ABSOLUTO).
+ */
+export function resumirLegenda(rodadas) {
+  const falas = rodadas.flatMap((r) => r.falas ?? [])
+  const ok = falas.filter((f) => f.status === 'ok').map((f) => f.fimDaFalaAteLegendaMs)
+  const falhas = falas.filter((f) => f.status === 'falha').length
+  const semTraducao = falas.filter((f) => f.status === 'semTraducao').length
+  const campo = falas.map((f) => f.fimDaFalaAteLegendaCampoMs).filter(Number.isFinite)
+  const erros = falas.map((f) => f.erroDoMarcadorMs).filter(Number.isFinite)
+  const abs = erros.map(Math.abs)
+  return {
+    rodadas: rodadas.length,
+    n: ok.length,
+    p50: pct(ok, 50),
+    p75: pct(ok, 75),
+    p95: pct(ok, 95),
+    falhas,
+    semTraducao,
+    taxaDeFalha: ok.length + falhas ? +(falhas / (ok.length + falhas)).toFixed(3) : null,
+    campo: campo.length ? { n: campo.length, p50: pct(campo, 50), p75: pct(campo, 75), p95: pct(campo, 95) } : null,
+    erroDoMarcador: erros.length
+      ? { n: erros.length, medianaMs: pct(erros, 50), medianaAbsMs: pct(abs, 50), p95AbsMs: pct(abs, 95) }
+      : null,
+  }
+}
+
+/** `resumirLegenda` por perfil de aparelho e idioma de origem da fala (`desktop/en`, `fraco/en`...). Rodada inválida fica de fora. */
+export function resumirLegendaPorGrupo(rodadas) {
+  const grupos = new Map()
+  for (const r of rodadas.filter((x) => !x.erro)) {
+    const chave = `${r.perfil ?? 'desktop'}/${r.idioma ?? 'outro'}`
+    if (!grupos.has(chave)) grupos.set(chave, [])
+    grupos.get(chave).push(r)
+  }
+  return Object.fromEntries([...grupos.entries()].sort().map(([k, rs]) => [k, resumirLegenda(rs)]))
+}
+
 function pctF(xs, p) {
   const s = [...xs].sort((a, b) => a - b)
   const h = (s.length - 1) * (p / 100)
@@ -355,11 +451,21 @@ if (process.argv[1] && process.argv[1].endsWith('analisar.mjs')) {
     for (const f of r.todasFalas) {
       const c = (k) => (f[k] === undefined ? '·' : f[k])
       console.log(
-        `   #${f.k} voz ${f.durVozS}s trechos ${f.trechos} | 1ºtexto ${c('inicioAoPrimeiroTexto')} | vad ${c('vad')} stt ${c('stt')} (espera ${c('sttEspera')}, 1ºtok ${c('primeiroToken')}) rOrig ${c('renderOrig')} | mtEsp ${c('mtEspera')} mt ${c('mt')} [${c('mtMotor')}] rTrad ${c('renderTrad')} | FIM→orig ${c('fimAoOriginal')} FIM→trad ${c('fimATraducao')} | tradParcial ${c('primeiraTraducaoParcialAntesDoFim')} | "${String(f.texto || '').slice(0, 50)}"`,
+        `   #${f.k} voz ${f.durVozS}s trechos ${f.trechos} | 1ºtexto ${c('inicioAoPrimeiroTexto')} | vad ${c('vad')} stt ${c('stt')} (espera ${c('sttEspera')}, 1ºtok ${c('primeiroToken')}) rOrig ${c('renderOrig')} | mtEsp ${c('mtEspera')} mt ${c('mt')} [${c('mtMotor')}] rTrad ${c('renderTrad')} | FIM→orig ${c('fimAoOriginal')} FIM→trad ${c('fimATraducao')} FIM→legenda ${c('fimDaFalaAteLegendaMs')} [${c('status')}] campo ${c('fimDaFalaAteLegendaCampoMs')} errMarcador ${c('erroDoMarcadorMs')} | tradParcial ${c('primeiraTraducaoParcialAntesDoFim')} | "${String(f.texto || '').slice(0, 50)}"`,
       )
     }
   }
+  const legenda = resumirLegendaPorGrupo(rodadas)
+  console.log('\n== fimDaFalaAteLegendaMs por perfil/idioma (p75 sempre com a taxa de falha)')
+  for (const [g, x] of Object.entries(legenda))
+    console.log(
+      `   ${g}: n ${x.n} | p50 ${x.p50} p75 ${x.p75} p95 ${x.p95} | falhas ${x.falhas} (taxa ${x.taxaDeFalha}) semTraducao ${x.semTraducao}` +
+        (x.erroDoMarcador
+          ? ` | erro do marcador: mediana |${x.erroDoMarcador.medianaAbsMs}| p95 |${x.erroDoMarcador.p95AbsMs}| ms (n ${x.erroDoMarcador.n})`
+          : ' | sem marcas de campo'),
+    )
   const resumo = resumir(rodadas)
+  resumo.legenda = legenda
   console.log(`\n== RESUMO (${opt('grupo', 'grupo')}, pulando ${PULAR} por rodada)`)
   console.log(JSON.stringify(resumo, null, 1))
   const j = opt('json', '')

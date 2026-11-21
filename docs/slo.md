@@ -80,6 +80,36 @@ corte 1 sai do ruído. CSS inicial inalterado (303,5 KB bruto, 54,6 KB gzip): os
 (pareciam disputar banda no 1º segundo): `/jogar` TBT 533 -> 639 ms, sem ganho de LCP nem nota; e abrir
 `EncerrarSessao`/`AjudaDoMicrofone`/`FolhaDeOpcoes` etc. sob demanda em `LiveCapture` (-5 KB gzip, nota sem mudança).
 
+## Legenda ao vivo: do fim da fala à tradução na tela (21/11/2026)
+
+Métrica `fimDaFalaAteLegendaMs`: por fala, o tempo do fim da voz até o primeiro quadro pintado com a tradução FINAL (parciais não
+encerram a medida). Fala sem tradução e fala com falha ficam fora do percentil e são contadas; o p75 sempre vem com a taxa de falha. A
+régua é a bancada (`scripts/perf/latencia-legenda/`, protocolo em `docs/auditoria/protocolo-do-laboratorio-de-latencia.md`); a linha de
+base fica em `slo-captura.json`, por ambiente e perfil, com `origem` (`medido` ou `emulado`), `aparelho`, `commit` e `data`.
+
+Linha de base `local-darwin` (Mac Apple M5 Pro, commit `efd0c702`, 12 rodadas válidas por perfil, fixture `fleurs-en-8`, 8 falas por rodada):
+
+| Perfil                                                          | Origem    | p50      | p75      | p95      | Taxa de falha | Tolerância (reprova acima de base × (1 + tol) + folga)           |
+| --------------------------------------------------------------- | --------- | -------- | -------- | -------- | ------------- | ---------------------------------------------------------------- |
+| `desktop` (Chromium headless, sem GPU)                          | `medido`  | 931,5 ms | 967 ms   | 1 613 ms | 0             | 25% + 300/400 ms (p50/p75), 30% + 600 ms (p95), falha 50% + 0,15 |
+| `fraco` (notebook de entrada simulado: CPU 4×, 2 núcleos, 2 GB) | `emulado` | 1 140 ms | 1 373 ms | 1 956 ms | 0             | as mesmas                                                        |
+
+- `emulado` serve para achar regressão e ordenar opções. Nunca aprova ganho de celular, Quest ou iPhone nem a meta de 2,0 s desses aparelhos.
+- A base reprova uma tradução atrasada de propósito: +1,5 s na tradução (injetado só na bancada) leva p50/p75/p95 do `desktop` a
+  2 432 / 2 467 / 3 113 ms e `comparar.mjs` sai com código 1; +0,4 s passa (a tolerância do p75 é 1 609 ms).
+- O marcador de campo (`frasy:fala:fim`, o último quadro de voz do VAD) tem erro contra o fim da voz no arquivo de mediana 19 ms e p95
+  330 ms (3 rodadas, 24 falas): acima de 50 ms no p95, então o campo mede "VAD → tela", não "fim da fala → tela". Relatório:
+  `docs/auditoria/2026-11-21-linha-de-base-da-legenda.md`.
+- O `primeiroTextoNaTelaMs` do `desktop` é bimodal neste Mac (~1,0 s em 5 de 12 rodadas, ~3,2 s nas outras 7); a base pegou o modo alto
+  (3 186 ms), e a tolerância dele (25% + 500 ms) deixou de pegar o tique de 2 s que a base provisória de 1 067 ms pegava.
+
+### Tempo de carga dos modelos (desktop sem GPU, `medido`, 21/11/2026)
+
+Download, compilação e aquecimento por modelo, cache frio (rede) e quente; detalhes e limites em
+`docs/auditoria/2026-11-21-tempo-de-carga-dos-modelos.md`. Total frio / quente: Whisper tiny 8,0 s / 1,5 s; Whisper base 10,3 s / 1,9 s;
+Moonshine base 5,6 s / 0,8 s; Parakeet v3 33,9 s / 1,3 s; opus-mt en-ROMANCE 5,6 s / 0,3 s; Bergamot pt→en 0,3 s / 0,3 s. Ainda sem
+meta: o que se vigia é a regressão contra estes números.
+
 ## O que os SLOs NÃO dizem
 
 - **Capacidade.** Estar dentro do SLO numa máquina local não é estar dentro no Worker: lá o que

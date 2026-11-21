@@ -18,8 +18,8 @@
 
 ## 4. Livros
 
-- [ ] 4.1 Catálogo e fichas livres; "Ler" usa `podeLer` e `comConta('livro', abrir)`
-- [ ] 4.2 `/livros/<id>/ler` sem conta cai na porta com a intenção guardada
+- [x] 4.1 Catálogo e fichas livres; "Ler" usa `podeLer` (a leitura sem `podeLer` cai na porta, que pergunta a faixa e guarda a volta; ver design, decisão 7)
+- [x] 4.2 `/livros/<id>/ler` sem conta cai na porta com a intenção guardada
 
 ## 5. Site e funil
 

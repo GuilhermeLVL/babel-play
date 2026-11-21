@@ -19,15 +19,20 @@ type Etapa = 'pergunta' | 'menor' | 'entrar';
  *    a intenção guardada aqui devolve a pessoa ao destino e o `ModalDeMigracao` oferece subir o que
  *    ficou neste navegador.
  *  · Menor de 18: segue no modo local como hoje, sem pressão; o convite é neutro e não volta a cada tela.
+ *  · LIVRO (`aoVoltarAoLivro`): a leitura de um livro sem `podeLer` também passa por aqui. A porta diz por
+ *    quê, guarda a rota da leitura (o livro abre depois do login) e oferece a volta à ficha, que é livre.
  */
 export default function PortaDeEntrada({
   faixa,
   aoDeclarar,
   modoInicial = 'signup',
+  aoVoltarAoLivro,
 }: {
   faixa: FaixaDeclarada;
   aoDeclarar: (f: 'adulto' | 'menor') => void;
   modoInicial?: 'login' | 'signup';
+  /** A porta abriu na leitura de um livro: a volta à ficha dele (o catálogo e as fichas são livres). */
+  aoVoltarAoLivro?: () => void;
 }) {
   const [etapa, setEtapa] = useState<Etapa>(faixa === 'adulto' ? 'entrar' : 'pergunta');
 
@@ -36,16 +41,32 @@ export default function PortaDeEntrada({
     lembrarDeOndeVeio();
   }, []);
 
+  const voltarAoLivro = aoVoltarAoLivro && (
+    <p className="qen-rodape">
+      <button type="button" className="qen-link" onClick={aoVoltarAoLivro}>
+        {t('Voltar ao livro')}
+      </button>
+    </p>
+  );
+
   if (etapa === 'entrar') {
     return (
       <Login
         modoInicial={modoInicial}
         rodape={
-          <p className="qen-rodape">
-            <button type="button" className="qen-link" onClick={() => setEtapa('pergunta')}>
-              {t('Tenho menos de 18 anos')}
-            </button>
-          </p>
+          <>
+            {aoVoltarAoLivro && (
+              <p className="qen-nota" data-testid="porta-do-livro">
+                {t('Para ler, entre na sua conta ou crie uma. O catálogo e as fichas continuam abertos.')}
+              </p>
+            )}
+            <p className="qen-rodape">
+              <button type="button" className="qen-link" onClick={() => setEtapa('pergunta')}>
+                {t('Tenho menos de 18 anos')}
+              </button>
+            </p>
+            {voltarAoLivro}
+          </>
         }
       />
     );
@@ -102,6 +123,7 @@ export default function PortaDeEntrada({
           {t('Não, tenho menos de 18')}
         </button>
       </div>
+      {voltarAoLivro}
     </CascaDeEntradaDoQuest>
   );
 }

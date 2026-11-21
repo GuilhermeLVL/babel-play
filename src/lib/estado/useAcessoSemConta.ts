@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { type EdicaoDoApp, type EstadoDoAcesso, estadoDoAcesso, type FaixaDeclarada } from '../../core/acessoSemConta';
+import {
+  type EdicaoDoApp,
+  type EstadoDoAcesso,
+  estadoDoAcesso,
+  type FaixaDeclarada,
+  podeLer,
+} from '../../core/acessoSemConta';
 import { FLAG_ACESSO_RESTRITO_SEM_CONTA } from '../../core/planos';
 import { edicaoEstatica } from '../edicaoEstatica';
 import { gravarFaixaSemConta, lerFaixaSemConta } from '../faixaSemConta';
@@ -38,10 +44,23 @@ export interface AcessoSemConta {
  * Entre um e outro, nada reconta: a pessoa que acabou de gravar a 1ª sessão joga com as palavras dela
  * e vê o cartão "Guarde o que você capturou" no Início, sem a porta cair no meio.
  *
+ * LIVROS: o catálogo e as fichas são livres; a LEITURA (`/livros/<id>/ler`, `lendoLivro`) sem `podeLer`
+ * também abre a porta, já na 1ª visita. Ela pergunta a faixa (quem não respondeu) ou leva o adulto ao
+ * login, e guarda a rota da leitura: depois de entrar, o livro abre. Menor lê como hoje.
+ *
  * Flag desligada, com conta, edição estática ou self-host: `livre` e NENHUMA leitura do IndexedDB,
  * o mesmo app de antes.
  */
-export function useAcessoSemConta({ anonimo, activeView }: { anonimo: boolean; activeView: string }): AcessoSemConta {
+export function useAcessoSemConta({
+  anonimo,
+  activeView,
+  lendoLivro = false,
+}: {
+  anonimo: boolean;
+  activeView: string;
+  /** A tela é a leitura de um livro (`/livros/<id>/ler`). */
+  lendoLivro?: boolean;
+}): AcessoSemConta {
   const flagLigada = useFlag(FLAG_ACESSO_RESTRITO_SEM_CONTA);
   const [faixa, setFaixa] = useState<FaixaDeclarada>(lerFaixaSemConta);
   const [sessoes, setSessoes] = useState(0);
@@ -82,12 +101,16 @@ export function useAcessoSemConta({ anonimo, activeView }: { anonimo: boolean; a
     setFaixa(f);
   }, []);
 
-  const acesso = estadoDoAcesso({
-    sessoesLocais: sessoes,
-    faixaDeclarada: faixa,
-    flagLigada,
-    temConta: !anonimo,
-    edicao,
-  });
+  const leitura = podeLer({ faixaDeclarada: faixa, flagLigada, temConta: !anonimo, edicao });
+  const acesso =
+    lendoLivro && !leitura
+      ? 'porta'
+      : estadoDoAcesso({
+          sessoesLocais: sessoes,
+          faixaDeclarada: faixa,
+          flagLigada,
+          temConta: !anonimo,
+          edicao,
+        });
   return { acesso, faixa, declararFaixa };
 }

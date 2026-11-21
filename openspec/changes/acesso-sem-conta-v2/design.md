@@ -29,7 +29,11 @@ temConta, edicao })` devolve `'livre' | 'convite' | 'porta'`, e `podeLer(...)` d
    houve 1 sessão. `App.tsx` renderiza `PortaDeEntrada` (pergunta de faixa + `Login` sem `onContinuarSemConta`).
 5. **Contagem da 1ª sessão.** Reusa as sessões locais do IndexedDB (`src/data/efemero/rotas/sessoes.ts`); nenhum contador novo.
 6. **Volta ao destino.** `guardarIntencao`/`consumirIntencao` (`src/lib/intencaoDeLogin.ts`); o `ModalDeMigracao` sobe a sessão local.
-7. **Livros.** No catálogo e no leitor, quando `podeLer` é falso, `comConta('livro', abrir)`; depois do login, `abrirLivroNoLeitor`.
+7. **Livros.** O catálogo e as fichas são livres. A leitura (`/livros/<id>/ler`, aonde o "Ler" leva por
+   `abrirLivroNoLeitor`) sem `podeLer` vira `porta` em `useAcessoSemConta` (`lendoLivro`): a `PortaDeEntrada` pergunta
+   a faixa a quem não respondeu, leva o adulto ao Login, guarda a rota da leitura (o livro abre depois de entrar) e
+   oferece "Voltar ao livro". Um caminho só para o botão e o link direto; o `comConta`/`GateDeConta` não serve aqui
+   porque não pergunta a faixa e o convite oferece "Continuar sem conta".
 8. **Flag.** `acesso_restrito_sem_conta`, DESLIGADA, sem regra de plano, solta por `percentual`. Desligada = comportamento de hoje.
 9. **Funil sem id.** Eventos novos no alfabeto fechado, respeitando o desligamento de métricas e o perfil de menor.
 

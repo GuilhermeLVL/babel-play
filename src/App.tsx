@@ -157,6 +157,7 @@ import {
   estadoDaProtecao,
   type EstadoDeProtecao,
 } from './lib/protecaoDoMenor';
+import { navegarPara } from './lib/rotas';
 import { sessaoAberta } from './lib/sessaoAberta';
 import { play } from './lib/soundFx';
 import { authRequired } from './lib/supabase';
@@ -193,9 +194,6 @@ export default function App() {
     setMigracao,
     fecharGate,
   } = useGateDeConta({ adiarMigracao: emCheckout });
-  /* Acesso sem conta v2 (flag `acesso_restrito_sem_conta`): depois da 1ª sessão, a porta obrigatória.
-     Flag desligada = sempre `livre`, o app de antes. */
-  const { acesso, faixa: faixaSemConta, declararFaixa } = useAcessoSemConta({ anonimo, activeView });
   /* O gate só desce quando o evento `babel_exige_conta` abre (gate !== null); o host das ofertas
      desce já no primeiro desenho, porque escuta eventos desde o começo. */
   const { Componente: GateDeConta } = usePedacoDoQuest(carregarGateDeConta, gate !== null);
@@ -332,6 +330,11 @@ export default function App() {
     setLojaAba,
     setPedindoLogin,
   });
+  /* Acesso sem conta v2 (flag `acesso_restrito_sem_conta`): depois da 1ª sessão, a porta obrigatória; e a
+     leitura de um livro (`/livros/<id>/ler`) sem `podeLer` também cai nela, com a volta ao livro guardada.
+     Flag desligada = sempre `livre`, o app de antes. */
+  const lendoLivro = activeView === 'livros' && !!livroAberto?.lendo;
+  const { acesso, faixa: faixaSemConta, declararFaixa } = useAcessoSemConta({ anonimo, activeView, lendoLivro });
 
   /* A ABA DE AJUSTES mora na navegação (é o que `/ajustes/<aba>` espelha). Um atalho do shell —
      "Som, animações e desempenho" abre Aparência, a engrenagem do sino abre Notificações — passa a
@@ -487,6 +490,9 @@ export default function App() {
           faixa={faixaSemConta}
           aoDeclarar={declararFaixa}
           modoInicial={pedindoLogin === 'login' ? 'login' : 'signup'}
+          aoVoltarAoLivro={
+            lendoLivro && livroAberto ? () => navegarPara({ view: 'livros', livroId: livroAberto.id }) : undefined
+          }
         />
         <Toaster />
       </Suspense>

@@ -95,6 +95,14 @@ const PREFIXOS_DE_IA = ['/api/ai', '/api/tutor', '/api/gemini']
  */
 const BALDES_MS = [50, 100, 250, 500, 1000, 2000, 4000, 8000, 15000, 30000, 60000, 120000]
 
+/**
+ * Os baldes FIXOS do contrato `v: 2` da telemetria de campo (ms; o último é o "acima de 10 s"). O cliente soma as falas nestes
+ * baldes e manda só contagens; os histogramas abaixo têm os MESMOS limites, para a soma dos baldes dar o p75 global.
+ */
+export const LIMITES_DOS_BALDES_DE_CAMPO_MS = [250, 500, 1000, 1500, 2000, 3000, 5000, 10000] as const
+/** Valor que cai no balde "acima de 10 s" (`+Inf`) ao reconstruir a observação a partir da contagem. */
+const ACIMA_DO_ULTIMO_BALDE_MS = 30000
+
 /** Fator de tempo real (processamento ÷ duração do áudio). Abaixo de 1 a captura acompanha a fala. */
 const BALDES_RTF = [0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 5, 10, 50]
 
@@ -114,6 +122,12 @@ interface Estado {
   capturaRtf: Histogram<'motor'>
   capturaDescartes: Counter<never>
   capturaFallback: Counter<'motor'>
+  /* Telemetria de campo `v: 2` (change `lab-medicao-legenda-traduzida`): classe e idioma vêm de listas fechadas. */
+  capturaFimDaFalaAteLegenda: Histogram<'classe' | 'idioma'>
+  capturaLegendaFalas: Counter<'classe' | 'idioma'>
+  capturaLegendaFalhas: Counter<'classe' | 'idioma'>
+  capturaLegendaSemTraducao: Counter<'classe' | 'idioma'>
+  capturaCargaModelo: Histogram<'classe' | 'modelo' | 'fase'>
   dependenciaDegradada: Counter<'dependencia'>
   ofertaEventos: Counter<'evento' | 'gatilho' | 'componente'>
   ofertaEventosPorPlano: Counter<'evento' | 'plano_atual' | 'plano_sugerido' | 'variante'>
@@ -342,6 +356,33 @@ function criarEstadoProm(): Estado {
       name: 'captura_fallback_total',
       help: 'Quedas de um motor para o seguinte na cadeia do cliente, por motor que falhou.',
       labelNames: ['motor'] as const,
+    }),
+    capturaFimDaFalaAteLegenda: new Histogram({
+      name: 'captura_fim_da_fala_ate_legenda_ms',
+      help: 'Do fim da fala à legenda traduzida na tela, medido no navegador (campo, só com a flag rum_latencia), por classe de aparelho e idioma-base. Reconstruído de baldes: o valor observado é o limite do balde.',
+      labelNames: ['classe', 'idioma'] as const,
+      buckets: [...LIMITES_DOS_BALDES_DE_CAMPO_MS],
+    }),
+    capturaLegendaFalas: new Counter({
+      name: 'captura_legenda_falas_total',
+      help: 'Falas contadas nos lotes de campo da legenda (denominador da taxa de falha), por classe e idioma.',
+      labelNames: ['classe', 'idioma'] as const,
+    }),
+    capturaLegendaFalhas: new Counter({
+      name: 'captura_legenda_falhas_total',
+      help: 'Falas cuja tradução falhou, nos lotes de campo, por classe e idioma.',
+      labelNames: ['classe', 'idioma'] as const,
+    }),
+    capturaLegendaSemTraducao: new Counter({
+      name: 'captura_legenda_sem_traducao_total',
+      help: 'Falas que não pediram tradução (mesmo idioma), nos lotes de campo, por classe e idioma.',
+      labelNames: ['classe', 'idioma'] as const,
+    }),
+    capturaCargaModelo: new Histogram({
+      name: 'captura_carga_modelo_ms',
+      help: 'Tempo de carga de um modelo no navegador (campo, só com a flag rum_latencia), por classe, modelo e fase (download, compilacao, aquecimento). Reconstruído de baldes.',
+      labelNames: ['classe', 'modelo', 'fase'] as const,
+      buckets: [...LIMITES_DOS_BALDES_DE_CAMPO_MS],
     }),
     /* O FUNIL DAS OFERTAS DE PLANOS (Fase 8, `POST /api/metricas/ofertas`). Anônimo: nenhuma label
        identifica pessoa. `gatilho` só assume ids que existem (os embutidos e os do payload atual de
@@ -837,6 +878,53 @@ export interface RelatorioDeCaptura {
   fallbacks: Record<string, number>
   motorStt: string
   motorMt: string
+  /** Só no `v: 2`. Classe, idioma, modelo e fase JÁ saneados pela rota (listas fechadas). */
+  campo?: {
+    classe: string
+    legenda?: { idioma: string; baldes: number[]; n: number; falhas: number; semTraducao: number }
+    carga: Array<{ modelo: string; fase: string; baldes: number[] }>
+  }
+}
+
+/** O valor que representa o balde `i` (seu limite; o último, `+Inf`, vira um valor acima do teto). */
+const valorDoBalde = (i: number): number => LIMITES_DOS_BALDES_DE_CAMPO_MS[i] ?? ACIMA_DO_ULTIMO_BALDE_MS
+
+/** Soma das contagens por balde, e a lista dos baldes que têm algo (`[limite, contagem]`). */
+function baldesNaoVazios(baldes: readonly number[]): Array<[number, number]> {
+  const out: Array<[number, number]> = []
+  baldes.forEach((q, i) => {
+    if (q > 0) out.push([valorDoBalde(i), q])
+  })
+  return out
+}
+
+function observarCampo(e: Estado, campo: NonNullable<RelatorioDeCaptura['campo']>): void {
+  const { classe, legenda, carga } = campo
+  if (legenda) {
+    const rotulos = { classe, idioma: legenda.idioma }
+    const pontos = baldesNaoVazios(legenda.baldes)
+    for (const [ms, q] of pontos) for (let k = 0; k < q; k++) e.capturaFimDaFalaAteLegenda.observe(rotulos, ms)
+    const falas = Math.max(legenda.n, pontos.reduce((a, [, q]) => a + q, 0) + legenda.falhas + legenda.semTraducao)
+    if (falas > 0) e.capturaLegendaFalas.inc(rotulos, falas)
+    if (legenda.falhas > 0) e.capturaLegendaFalhas.inc(rotulos, legenda.falhas)
+    if (legenda.semTraducao > 0) e.capturaLegendaSemTraducao.inc(rotulos, legenda.semTraducao)
+    if (ehWorker()) {
+      for (const [ms, q] of pontos) gravarPonto('captura_latencia', [classe, legenda.idioma, 'balde'], [ms, q], classe)
+      for (const [tipo, q] of [
+        ['falas', falas],
+        ['falhas', legenda.falhas],
+        ['sem_traducao', legenda.semTraducao],
+      ] as const) {
+        if (q > 0) gravarPonto('captura_latencia', [classe, legenda.idioma, tipo], [0, q], classe)
+      }
+    }
+  }
+  for (const c of carga) {
+    for (const [ms, q] of baldesNaoVazios(c.baldes)) {
+      for (let k = 0; k < q; k++) e.capturaCargaModelo.observe({ classe, modelo: c.modelo, fase: c.fase }, ms)
+      if (ehWorker()) gravarPonto('captura_carga', [classe, c.modelo, c.fase], [ms, q], classe)
+    }
+  }
 }
 
 export function observarCaptura(r: RelatorioDeCaptura): void {
@@ -848,6 +936,7 @@ export function observarCaptura(r: RelatorioDeCaptura): void {
   for (const v of r.rtf) e.capturaRtf.observe({ motor: r.motorStt }, v)
   if (r.descartesAlucinacao > 0) e.capturaDescartes.inc(r.descartesAlucinacao)
   for (const [motor, n] of Object.entries(r.fallbacks)) if (n > 0) e.capturaFallback.inc({ motor }, n)
+  if (r.campo) observarCampo(e, r.campo)
 }
 
 /** Os eventos de oferta JÁ VALIDADOS pela rota (alfabeto fechado em todas as labels). */

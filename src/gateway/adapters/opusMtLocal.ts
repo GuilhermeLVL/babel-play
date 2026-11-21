@@ -4,7 +4,7 @@ import { modeloParaOIngles, passaPeloIngles } from '../../core/traducao/viaIngle
 import { distribuirThreads } from '../../lib/dispositivo/orcamentoDeThreads';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import type { MtOptions, MtResult, TranslationProvider } from '../capabilities';
-import { marcar } from '../marcasDeDesempenho';
+import { iniciarFasesDeCarga, marcar } from '../marcasDeDesempenho';
 import { gravarManifesto, MENSAGEM_DO_MANIFESTO } from '../modelManifest';
 
 /**
@@ -31,6 +31,8 @@ export class OpusMtLocal implements TranslationProvider {
   private pending = new Map<string, { resolve: (t: string) => void; reject: (e: Error) => void }>();
   private ready = new Set<string>(); // modelos carregados e prontos
   private loading = new Set<string>(); // modelos com preload em andamento
+  /** As fases da carga de cada modelo em andamento (`frasy:modelo:*`): o worker avisa cada uma com `fase`. */
+  private fases = new Map<string, ReturnType<typeof iniciarFasesDeCarga>>();
   private failed = new Set<string>(); // modelos que falharam o carregamento nesta máquina (não re-tenta)
   private onProgress: ((p: number, label?: string, bytes?: { loaded: number; total: number }) => void) | null = null;
   private prontidao = new Set<(modelo: string) => void>();
@@ -111,6 +113,7 @@ export class OpusMtLocal implements TranslationProvider {
     this.worker = null;
     this.ready.clear();
     this.loading.clear();
+    this.fases.clear();
     const err = new Error('tradutor local liberado');
     for (const p of this.pending.values()) p.reject(err);
     this.pending.clear();
@@ -137,8 +140,14 @@ export class OpusMtLocal implements TranslationProvider {
         this.onProgress?.(progress, label, typeof total === 'number' && total > 0 ? { loaded, total } : undefined);
         return;
       }
+      if (type === 'fase') {
+        this.fases.get(model)?.para(msg.data.fase);
+        return;
+      }
       if (type === 'ready') {
         marcar('mt:pronto', { modelo: model });
+        this.fases.get(model)?.fim();
+        this.fases.delete(model);
         this.ready.add(model);
         this.loading.delete(model);
         // Antes do progresso: o disjuntor fecha ANTES de a captura pedir as retraduções.
@@ -156,6 +165,7 @@ export class OpusMtLocal implements TranslationProvider {
         // O modelo não carrega neste ambiente (ex.: ORT não cria a sessão ONNX). Marca como
         // falho para PARAR de re-tentar a cada tradução — o gateway usa o próximo adapter.
         this.loading.delete(model);
+        this.fases.delete(model);
         this.failed.add(model);
         // Quem esperava a tradução "a caminho" (a captura) precisa saber que ela não vem daqui.
         for (const fn of this.falhasDeCarga) {
@@ -224,6 +234,7 @@ export class OpusMtLocal implements TranslationProvider {
     if (this.loading.has(model)) return;
     this.loading.add(model);
     marcar('mt:carga:inicio', { modelo: model });
+    this.fases.set(model, iniciarFasesDeCarga(model));
     this.worker!.postMessage({ type: 'preload', src, tgt, threads: this.threads });
   }
 
@@ -246,6 +257,7 @@ export class OpusMtLocal implements TranslationProvider {
       if (!this.loading.has(model)) {
         this.loading.add(model);
         marcar('mt:carga:inicio', { modelo: model });
+        this.fases.set(model, iniciarFasesDeCarga(model));
         this.worker!.postMessage({ type: 'preload', src, tgt, threads: this.threads });
       }
       throw new MotorAindaCarregando(this.id, 'opus-mt ainda carregando (usando fallback)');

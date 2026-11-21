@@ -34,6 +34,7 @@ import type { AvisoDeDegradacaoDoStt, SttFinal } from '../../gateway/capabilitie
 import { capMetrics, type CapSource } from '../../gateway/capture/captureMetrics';
 import type { EspeculacaoDoFinal } from '../../gateway/capture/systemAudio';
 import { aoFalharANuvemDoStt, aoResponderANuvemDoStt } from '../../gateway/falhaDaNuvemDoStt';
+import { marcar } from '../../gateway/marcasDeDesempenho';
 import { areModelsCached, expectedModelIds } from '../../gateway/modelCache';
 import { temCopiaNoAparelho } from '../../gateway/modelManifest';
 import { entradaDoParakeet, gravarModeloFixo, lerModeloFixo } from '../../gateway/modeloFixo';
@@ -679,6 +680,14 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       );
     };
 
+    /* O ÚLTIMO QUADRO DE VOZ da fala: é daqui que o laboratório de latência conta o tempo até a legenda traduzida
+       (`frasy:fala:fim`, com o id do balão e o instante do quadro, não o da decisão do VAD). Só instrumentação. */
+    const onFimDaVoz = (rawSeq: number, t: number) => {
+      const id = `${idPrefix}-${rawSeq + offset}`;
+      marcar('fala:fim', { id }, t);
+      capMetrics.fimDaVoz(id, t);
+    };
+
     // Ruído curto (misfire): remove o balão provisório para não deixar bloco órfão.
     const onMisfire = (rawSeq: number) => {
       const seq = rawSeq + offset;
@@ -1079,7 +1088,10 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         })
         .then(({ text, engine, language, confiancaDoIdioma, alucinacaoDescartada, idiomaConferido }) => {
           const clean = naEscritaEscolhida((text ?? '').trim(), language, hint);
-          if (!clean && alucinacaoDescartada) capMetrics.alucinacao();
+          if (!clean && alucinacaoDescartada) {
+            capMetrics.alucinacao();
+            capMetrics.falhaDaLegenda(uttId); // descartada pelo filtro: fora do percentil, conta em `falhas`
+          }
           const decodeMs = Math.round(performance.now() - t0);
           clog(
             'Whisper final',
@@ -1126,6 +1138,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
              para repetir, sem tradução e sem leitura; a tradução que sairia dela seria inventada (CONV-03). */
           const foraDoPar = conferir ? idiomaForaDoPar({ esperado: from, conferido: idiomaConferido, audioMs }) : null;
           if (foraDoPar) {
+            capMetrics.semTraducaoDaLegenda(uttId);
             capMetrics.final(seq, { decodeMs, queueDepth, text: clean, audioMs, engine });
             clog(
               'intérprete: fala',
@@ -1452,6 +1465,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
 
     return {
       onSpeechStart,
+      onFimDaVoz,
       onMisfire,
       onPartialAudio,
       onUtterance,

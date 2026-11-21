@@ -13,6 +13,8 @@ import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { rodadasInvalidasDaPasta } from './metricas-captura.mjs'
+
 const AQUI = path.dirname(fileURLToPath(import.meta.url))
 const args = process.argv.slice(2)
 const opt = (n, d) => {
@@ -25,9 +27,11 @@ const SAIDA = opt('saida')
 const SO = opt('so', '')
 const REP = Number(opt('repeticoes', 1))
 const CANAL = opt('canal', 'chromium')
+// `--so-validar`: não mede; só confere as rodadas já gravadas em `--saida` (sai com 1 se alguma for inválida).
+const SO_VALIDAR = args.includes('--so-validar')
 
-const pt = path.join(AUDIO, 'conversa_pt_12.json')
-const en = path.join(AUDIO, 'conversa_en_12.json')
+const pt = path.join(AUDIO ?? '', 'conversa_pt_12.json')
+const en = path.join(AUDIO ?? '', 'conversa_en_12.json')
 export const MATRIZ = [
   // [id, áudio, argumentos]
   ['sis-en-pt-moonshine', en, '--modo sistema --eles en-US --eu pt-BR'],
@@ -46,7 +50,8 @@ export const MATRIZ = [
   ['sis-en-pt-moonshine-semparciais', en, '--modo sistema --eles en-US --eu pt-BR --desempenho on'],
 ]
 
-for (let r = 1; r <= REP; r++)
+const rotulosRodados = []
+for (let r = 1; r <= REP && !SO_VALIDAR; r++)
   for (const [id, audio, extra] of MATRIZ) {
     if (SO && !SO.split(',').includes(id)) continue
     const rotulo = REP > 1 ? `${id}.r${r}` : id
@@ -67,6 +72,21 @@ for (let r = 1; r <= REP; r++)
       ...extra.split(' '),
     ]
     console.log('>>', rotulo)
+    rotulosRodados.push(rotulo)
     const res = spawnSync(process.execPath, a, { stdio: 'inherit', timeout: 15 * 60_000 })
     if (res.status !== 0) console.log('!! falhou', rotulo, res.status, res.error?.message)
   }
+
+// Rodada inválida nunca vira número: sem âncora do bipe (ou com a aba caída) a matriz sai com 1 e diz o motivo.
+const { lidas, invalidas } = rodadasInvalidasDaPasta(SAIDA, SO_VALIDAR ? undefined : rotulosRodados)
+for (const i of invalidas) console.log(`!! rodada inválida ${i.rotulo}: ${i.motivo}`)
+const semArquivo = SO_VALIDAR ? 0 : rotulosRodados.length - lidas
+if (semArquivo > 0) console.log(`!! ${semArquivo} rodada(s) sem JSON gravado (medir.mjs falhou)`)
+if (invalidas.length || !lidas || semArquivo > 0) {
+  console.log(
+    invalidas.length
+      ? `!! ${invalidas.length} de ${lidas} rodada(s) inválida(s): refaça-as, nenhuma entra em número.`
+      : `!! rodada(s) faltando em ${SAIDA}: nada foi medido`,
+  )
+  process.exitCode = 1
+}

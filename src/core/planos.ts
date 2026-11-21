@@ -318,6 +318,13 @@ export const FLAG_LEITURA_ATIVA = 'leitura_ativa';
 export const FLAG_ACESSO_RESTRITO_SEM_CONTA = 'acesso_restrito_sem_conta';
 
 /**
+ * A TELEMETRIA DE CAMPO DA LATÊNCIA DA LEGENDA (openspec `lab-medicao-legenda-traduzida`; migrações PG 0023 e SQLite 0065):
+ * o lote `v: 2` de métricas (baldes e contagens por classe de aparelho). Nasce DESLIGADA e sem regra de plano. Ligar em
+ * produção depende do parecer de privacidade do dono. Desligada = só o `v: 1` de hoje.
+ */
+export const FLAG_RUM_LATENCIA = 'rum_latencia';
+
+/**
  * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,
  * "Custo da escrita"): um retorno leva ~900 tokens de entrada (system + texto de até 120 palavras) e até 500 de saída;
  * 30 por mês ficam na casa de US$ 0,01 por assinante que usa tudo, e os tokens já saem da `tokensMes`.

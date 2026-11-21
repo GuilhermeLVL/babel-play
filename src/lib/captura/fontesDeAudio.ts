@@ -387,6 +387,9 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
         primeiroParcialComMs: sysHandlers.primeiroParcialComMs,
         onFinalEspeculativo: (pcm: Float32Array, sr: number, seq: number) =>
           rota === 'pipeline' ? sysHandlers.onFinalEspeculativo(pcm, sr, seq) : null,
+        onFimDaVoz: (seq: number, t: number) => {
+          if (rota !== 'navegador') sysHandlers.onFimDaVoz?.(seq, t);
+        },
         onMisfire: (seq: number) => {
           if (rota !== 'navegador') encaminhar(() => sysHandlers.onMisfire(seq));
         },
@@ -525,6 +528,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
           intervaloDosParciais: micHandlers.intervaloDosParciais,
           primeiroParcialComMs: micHandlers.primeiroParcialComMs,
           onFinalEspeculativo: micHandlers.onFinalEspeculativo,
+          onFimDaVoz: micHandlers.onFimDaVoz,
           onMisfire: (seq) => micHandlers.onMisfire(seq),
           onLevel: pushLevel,
           onStatus: (msg) => {

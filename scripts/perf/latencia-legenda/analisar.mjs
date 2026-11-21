@@ -65,15 +65,63 @@ export function pct(xs, p) {
   return Math.round(s[lo] + (s[Math.min(lo + 1, s.length - 1)] - s[lo]) * (h - lo))
 }
 
+/** A janela da sonda que vale como bipe: dominada por 2 kHz e com energia. */
+const ehBipe = (a) => a[2] > 0.5 && a[1] > 0.01
+
+/**
+ * Acha a âncora do bipe na sonda de áudio ou diz POR QUE não há (nunca devolve um número inventado).
+ * Motivos, do mais básico ao mais fino:
+ *   sem-sonda            a sonda não registrou janela alguma (não ligou, `sonda:erro`, contexto parado);
+ *   bipe-antes-da-sonda  a 1ª janela chegou depois do instante em que o bipe passou (o arquivo começou a tocar
+ *                        quando o dispositivo falso abriu, e a sonda só ligou depois; com `%noloop` ele não volta);
+ *   sem-audio            a sonda rodou, mas o sinal é silêncio (RMS máximo ≤ 0,01): o arquivo não está sendo tocado;
+ *   sem-2khz             há sinal, mas nenhuma janela passa de 0,5 de razão a 2 kHz (outro som, não o arquivo).
+ *
+ * @param {{ lat?: { aud?: number[][], ev?: Record<string, any>[] }, roteiro?: { bipeS: number } }} d
+ * @returns {{ ancoraMs: number } | { motivo: string, detalhe: string }}
+ */
+export function acharAncoraDoBipe(d) {
+  const aud = d.lat?.aud ?? []
+  const ev = d.lat?.ev ?? []
+  const bipe = aud.find(ehBipe)
+  if (bipe) return { ancoraMs: bipe[0] - 10 }
+  if (!aud.length) {
+    const erro = ev.find((e) => e.k === 'sonda:erro')
+    return {
+      motivo: 'sem-sonda',
+      detalhe: erro ? `sonda:erro ${erro.s}` : 'a sonda de áudio não registrou nenhuma janela (bipe não encontrado)',
+    }
+  }
+  // O dispositivo falso começa a ler o arquivo no 1º `gum` de áudio: o bipe passa em gum + bipeS.
+  const gum = ev.find((e) => e.k === 'gum' && e.audio)
+  const bipeS = d.roteiro?.bipeS
+  if (gum && typeof bipeS === 'number' && aud[0][0] > gum.t + bipeS * 1000)
+    return {
+      motivo: 'bipe-antes-da-sonda',
+      detalhe: `a sonda só começou em ${Math.round(aud[0][0])} ms; o bipe passou em ~${Math.round(gum.t + bipeS * 1000)} ms (bipe não encontrado)`,
+    }
+  const rmsMax = aud.reduce((m, a) => Math.max(m, a[1]), 0)
+  if (rmsMax <= 0.01)
+    return {
+      motivo: 'sem-audio',
+      detalhe: `${aud.length} janelas, RMS máximo ${rmsMax} (silêncio; bipe não encontrado)`,
+    }
+  const razaoMax = aud.reduce((m, a) => Math.max(m, a[2]), 0)
+  return {
+    motivo: 'sem-2khz',
+    detalhe: `${aud.length} janelas, RMS máximo ${rmsMax}, maior razão a 2 kHz ${razaoMax} (bipe não encontrado)`,
+  }
+}
+
 export function analisarRodada(d, pular = 0) {
   const ev = d.lat.ev
-  const aud = d.lat.aud
   const dom = d.lat.dom
   const rot = d.roteiro
   // Âncora: 1ª janela de 20 ms dominada por 2 kHz. O bipe começou dentro dela → meio da janela.
-  const jan = aud.find((a) => a[2] > 0.5 && a[1] > 0.01)
-  if (!jan) return { erro: 'bipe não encontrado na sonda de áudio', falas: [] }
-  const ancora = jan[0] - 10
+  const achada = acharAncoraDoBipe(d)
+  if (!('ancoraMs' in achada))
+    return { rotulo: d.rotulo, erro: `${achada.motivo}: ${achada.detalhe}`, motivo: achada.motivo, falas: [] }
+  const ancora = achada.ancoraMs
   const tDoArquivo = (s) => ancora + (s - rot.bipeS) * 1000
 
   const sttOut = ev.filter((e) => e.k === 'w:out' && e.type === 'transcribe')
@@ -288,6 +336,11 @@ function pctF(xs, p) {
 if (process.argv[1] && process.argv[1].endsWith('analisar.mjs')) {
   const rodadas = arquivos.map((a) => analisarRodada(JSON.parse(readFileSync(a, 'utf8')), PULAR))
   for (const r of rodadas) {
+    if (r.erro) {
+      console.log(`\n== ${r.rotulo}  RODADA INVÁLIDA (${r.erro})`)
+      process.exitCode = 1
+      continue
+    }
     console.log(
       `\n== ${r.rotulo}  modelo=${r.modeloStt} device=${r.dispositivos.join('+')} gpu=${r.gpuInfo} coi=${r.coi}`,
     )

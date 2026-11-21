@@ -120,6 +120,8 @@ function novoProgresso(rotulo: string) {
   let bytesEsperados = 0;
   const rastrear = criarRastreadorDeProgresso((p) => {
     if (p.total > 0) bytesEsperados = p.total;
+    // Todos os bytes chegaram: o que falta até o pipeline abrir é compilação (`frasy:modelo:compilacao:*`).
+    if (p.total > 0 && p.progress >= 1) anunciarFase('compilacao');
     self.postMessage({
       type: 'progress',
       progress: p.progress,
@@ -135,6 +137,15 @@ function novoProgresso(rotulo: string) {
   });
 }
 
+/** A fase da carga que já foi anunciada à janela (só avança; recomeça a cada carga). Só marca de desempenho. */
+let faseAnunciada = -1;
+function anunciarFase(fase: 'compilacao' | 'aquecimento'): void {
+  const n = fase === 'compilacao' ? 1 : 2;
+  if (n <= faseAnunciada) return;
+  faseAnunciada = n;
+  self.postMessage({ type: 'fase', fase });
+}
+
 /**
  * Cria o pipeline ASR (lazy) no device pedido (default WASM). Tenta o dtype pedido; se o repo
  * não tiver esses arquivos, cai para q8. Depois faz WARMUP para o 1º decode real não pagar o
@@ -142,6 +153,7 @@ function novoProgresso(rotulo: string) {
  */
 async function ensurePipeline(model?: string, dtypeKey?: string, device?: string): Promise<void> {
   if (asr) return;
+  faseAnunciada = -1;
   asrModel = model || DEFAULT_MODEL;
   const moonshine = ehMoonshine(asrModel);
   // Moonshine: WASM sempre (q8 validado só lá — ver `DEVICE_MOONSHINE`).
@@ -201,6 +213,8 @@ async function ensurePipeline(model?: string, dtypeKey?: string, device?: string
   // É o que permite a UI responder "já está completo?" sem chutar (A-P0-4).
   void registrarModeloBaixado(asrModel, dtypeEfetivo, dev, progresso.bytesEsperados);
 
+  anunciarFase('compilacao'); // pipeline aberto (se o progresso não chegou a 100%, a compilação começa aqui)
+  anunciarFase('aquecimento');
   // WARMUP: a 1ª inferência compila shaders (WebGPU) / aquece o JIT (WASM) do laço de decode.
   // Precisa gerar VÁRIOS tokens (não 1) p/ compilar o passo autoregressivo — senão a primeira
   // transcrição real ainda paga o stall. Rodar em silêncio agora esconde isso no "carregando".

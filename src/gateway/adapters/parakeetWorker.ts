@@ -57,6 +57,7 @@ export type MensagemParaOParakeet =
 
 export type MensagemDoParakeet =
   | { type: 'progress'; progress: number; loaded: number; total: number; label: string }
+  | { type: 'fase'; fase: 'compilacao' | 'aquecimento' }
   | { type: 'ready'; model: string; cargaMs: number }
   | { type: 'loadError'; model: string; motivo: MotivoDaFalhaDoParakeet; message: string }
   | {
@@ -295,8 +296,10 @@ export function criarWorkerDoParakeet(deps: DependenciasDoParakeet) {
     const noCache: { url: string; bytes: number }[] = [];
     const sessoes = new Map<string, SessaoDoParakeet>();
     let vocab: VocabularioDoParakeet | null = null;
-    for (const a of plano.arquivos) {
+    for (const [i, a] of plano.arquivos.entries()) {
       const { conteudo, guardado } = await obterArquivo(a, cache, somar);
+      // O último arquivo chegou: o que resta é abrir as sessões (`frasy:modelo:compilacao:*`).
+      if (i === plano.arquivos.length - 1) deps.enviar({ type: 'fase', fase: 'compilacao' });
       if (guardado) noCache.push({ url: a.url, bytes: a.bytes });
       try {
         if (a.papel === 'vocab') vocab = lerVocabulario(new TextDecoder().decode(conteudo));
@@ -310,6 +313,7 @@ export function criarWorkerDoParakeet(deps: DependenciasDoParakeet) {
     const joint = sessoes.get('decoder');
     if (!pre || !encoder || !joint || !vocab) throw new FalhaDeCarga('motor', 'plano de carga incompleto');
     const m: Modelo = { rt, pre, encoder, joint, vocab };
+    deps.enviar({ type: 'fase', fase: 'aquecimento' });
     try {
       // Aquecimento: 1 s de silêncio pelo caminho inteiro, para o 1º trecho real não pagar a 1ª execução.
       await rodar(m, new Float32Array(16000), () => false, []);

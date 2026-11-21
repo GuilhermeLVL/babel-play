@@ -163,7 +163,8 @@ function montar(
     registrarManifesto: (m) => manifestos.push(m),
     agora: () => 0,
   })
-  const tipos = () => enviadas.map((m) => m.type).filter((t) => t !== 'progress')
+  // `fase` é só marca de desempenho (`frasy:modelo:*`): tem teste próprio, abaixo.
+  const tipos = () => enviadas.map((m) => m.type).filter((t) => t !== 'progress' && t !== 'fase')
   const ultima = <T extends MensagemDoParakeet['type']>(tipo: T) =>
     enviadas.filter((m) => m.type === tipo).at(-1) as Extract<MensagemDoParakeet, { type: T }> | undefined
   return { worker, enviadas, manifestos, buscar, registro: runtime.registro, tipos, ultima }
@@ -182,6 +183,16 @@ describe('carga', () => {
     expect(m.registro.encoder).toEqual([16000])
     expect(m.tipos()).toEqual(['ready'])
     expect(m.ultima('ready')!.model).toBe('parakeet-tdt-0.6b-v3')
+  })
+
+  it('avisa as fases da carga em ordem (marcas `frasy:modelo:*`): compilação, aquecimento, ready', async () => {
+    const m = montar()
+    await m.worker.receber({ type: 'carregar', plano: plano() })
+    expect(m.enviadas.filter((x) => x.type !== 'progress').map((x) => (x.type === 'fase' ? x.fase : x.type))).toEqual([
+      'compilacao',
+      'aquecimento',
+      'ready',
+    ])
   })
 
   it('a barra anda por BYTES do conjunto e termina em 100%', async () => {

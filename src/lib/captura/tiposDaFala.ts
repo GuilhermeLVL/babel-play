@@ -2,6 +2,7 @@ import { extractKeywords } from '@core';
 
 import type { buildGateway } from '../../gateway';
 import type { EspeculacaoDoFinal } from '../../gateway/capture/systemAudio';
+import type { OrigemDaLegenda } from '../../gateway/marcasDeDesempenho';
 import { type VocabWord } from '../../types';
 
 /** O AI Gateway como a captura o enxerga (mesma instância que a tela monta com `buildGateway`). */
@@ -86,6 +87,11 @@ export interface SpeechSegment {
    * como se fosse a tradução (CEL-01, auditoria de 17/11/2026). `translatedText` fica vazio.
    */
   semTraducao?: boolean | MotivoSemTraducao;
+  /**
+   * De onde veio a tradução FINAL que o balão mostra (`OrigemDaLegenda`), posta junto com ela. Só o final a leva: é o que
+   * `useMarcaDaLegenda` lê para marcar `frasy:legenda:traduzida` no quadro pintado. Não é texto e não sai da aba.
+   */
+  origemDaTraducao?: OrigemDaLegenda;
   /**
    * LEGENDA SEGURA (`legendaSeguraDasFalas.ts`): quantos termos sensíveis viraram `•••` no original e na tradução.
    * Ausente = nenhum.
@@ -215,6 +221,8 @@ export interface HandlersDaFonte {
   onFinalEspeculativo: (pcm: Float32Array, sr: number, rawSeq: number) => EspeculacaoDoFinal | null;
   /** O pipeline quer o parcial agora? A captura pergunta antes de copiar o áudio (ver `SystemAudioCallbacks`). */
   querParcial?: () => boolean;
+  /** O último quadro de voz da fala foi visto em `t` (ver `SystemAudioCallbacks.onFimDaVoz`): vira a marca `frasy:fala:fim`. */
+  onFimDaVoz?: (rawSeq: number, t: number) => void;
   /** Espaçamento entre parciais (ms) que o pipeline pede à captura. */
   intervaloDosParciais?: () => number;
   /** Quanto de fala (ms) o primeiro parcial de cada fala espera (ver `SystemAudioCallbacks`). */

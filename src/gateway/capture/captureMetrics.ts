@@ -12,6 +12,8 @@
  * `telemetriaDeCaptura.ts` drena e manda ao servidor. Texto do usuário nunca entra nele.
  */
 
+import type { FaseDeCarga, OrigemDaLegenda } from '../marcasDeDesempenho';
+
 export type CapSource = 'mic' | 'system';
 
 export interface UtteranceMetric {
@@ -95,6 +97,22 @@ export interface LoteDeTelemetria {
   motorStt: string;
   motorMt: string;
 }
+/**
+ * O QUE A MEDIÇÃO DA LEGENDA ACUMULA (`lab-medicao-legenda-traduzida`, D1/D3): só números, desde o último
+ * `drenarLegenda`. `fimDaFalaAteLegendaMs` é, por fala, do último quadro de voz ao quadro que pinta a tradução FINAL
+ * (teto de 200); `falhas` e `semTraducao` são contagens das falas que ficaram fora do percentil. Fica à parte do
+ * `LoteDeTelemetria` de propósito: este é o contrato `v: 1` do servidor.
+ */
+export interface LoteDaLegenda {
+  fimDaFalaAteLegendaMs: number[];
+  falhas: number;
+  semTraducao: number;
+  carga: { modelo: string; fase: FaseDeCarga; ms: number }[];
+}
+const legenda: LoteDaLegenda = { fimDaFalaAteLegendaMs: [], falhas: 0, semTraducao: 0, carga: [] };
+/** O instante do último quadro de voz de cada fala (por id do balão) que ainda espera o desfecho: sai ao desfechar. */
+const fimsDaVoz = new Map<string, number>();
+
 const lote = {
   sttFinalMs: [] as number[],
   primeiroParcialMs: [] as number[],
@@ -115,6 +133,12 @@ function empurrar(xs: number[], x: number): void {
   if (!Number.isFinite(x)) return;
   xs.push(Math.round(x * 1000) / 1000);
   if (xs.length > RING_MAX) xs.shift();
+}
+
+function zerarLegenda(): void {
+  legenda.fimDaFalaAteLegendaMs = [];
+  legenda.falhas = 0;
+  legenda.semTraducao = 0;
 }
 
 function zerarLote(): void {
@@ -221,6 +245,50 @@ export const capMetrics = {
     mtPuladas[motivo === 'pedido' ? 'pedido' : 'conhecidas']++;
   },
 
+  /** O último quadro de voz da fala `id` (id do balão) foi visto em `t` (ms de `performance.now()`). */
+  fimDaVoz(id: string, t: number): void {
+    fimsDaVoz.set(id, t);
+    // Teto: a mais antiga sai (o Map guarda a ordem de inserção).
+    if (fimsDaVoz.size > RING_MAX) fimsDaVoz.delete(fimsDaVoz.keys().next().value as string);
+  },
+
+  /** O balão `id` pintou a tradução FINAL em `t`: entra no percentil, uma vez por fala. A `origem` é só da marca. */
+  legendaTraduzida(id: string, _origem: OrigemDaLegenda, t: number = nowMs()): void {
+    const fim = fimsDaVoz.get(id);
+    if (fim === undefined) return;
+    fimsDaVoz.delete(id);
+    empurrar(legenda.fimDaFalaAteLegendaMs, t - fim);
+  },
+
+  /** A fala `id` ficou sem tradução por falha (erro, tempo esgotado, descartada como alucinação): fora do percentil. */
+  falhaDaLegenda(id: string): void {
+    if (fimsDaVoz.delete(id)) legenda.falhas++;
+  },
+
+  /** A fala `id` não tinha o que traduzir (mesmo idioma, "Tradução" por pedido): fora do percentil. */
+  semTraducaoDaLegenda(id: string): void {
+    if (fimsDaVoz.delete(id)) legenda.semTraducao++;
+  },
+
+  /** Uma fase da carga de um modelo acabou em `ms` (`iniciarFasesDeCarga`). Não zera com a gravação: a carga é do aparelho. */
+  carga(modelo: string, fase: FaseDeCarga, ms: number): void {
+    if (!Number.isFinite(ms)) return;
+    legenda.carga.push({ modelo, fase, ms: Math.round(ms * 1000) / 1000 });
+    if (legenda.carga.length > RING_MAX) legenda.carga.shift();
+  },
+
+  /** Devolve o que a medição da legenda acumulou desde a última chamada e começa de novo. */
+  drenarLegenda(): LoteDaLegenda {
+    const saida: LoteDaLegenda = {
+      ...legenda,
+      fimDaFalaAteLegendaMs: [...legenda.fimDaFalaAteLegendaMs],
+      carga: [...legenda.carga],
+    };
+    zerarLegenda();
+    legenda.carga = [];
+    return saida;
+  },
+
   /** Devolve o lote desde o último envio e começa outro. Quem chama é `telemetriaDeCaptura.ts`. */
   drenarTelemetria(): LoteDeTelemetria {
     const saida: LoteDeTelemetria = { ...lote, fallbacks: { ...lote.fallbacks }, motorStt, motorMt };
@@ -249,6 +317,8 @@ export const capMetrics = {
     mtSamples.length = 0;
     etapasPorFala.clear();
     zerarLote();
+    zerarLegenda();
+    fimsDaVoz.clear();
     motorStt = '';
     motorMt = '';
     escaladas.mt = 0;

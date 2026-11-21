@@ -18,7 +18,7 @@ import { detectLanguage } from '../lib/langDetect';
 import { alivioAceito } from '../lib/nuvemDeAlivio/estado';
 import { nuvemDoQuestAtiva } from '../lib/nuvemDoQuest';
 import { explicarRejeicao, precisaConferir, validarTraducao } from '../lib/validaTraducao';
-import { BergamotLocal, TradutorLocalComBergamot } from './adapters/bergamotLocal';
+import { BergamotLocal, BergamotNoPerfil, TradutorLocalComBergamot } from './adapters/bergamotLocal';
 import { ChromeTranslatorMt, codigoDoTradutor, type EstadoDoTradutorNativo } from './adapters/chromeTranslator';
 import { GroqWhisperStt } from './adapters/groqWhisper';
 import { MyMemoryMt } from './adapters/mymemory';
@@ -71,6 +71,19 @@ export const PARCIAL_SEM_MOTOR_LOCAL = 'parcial-sem-motor-local';
 // Adapters de MT com estado (worker do opus-mt) precisam ser SINGLETON entre chamadas.
 const mtSingletons = new Map<string, TranslationProvider>();
 
+/**
+ * O TRADUTOR LOCAL: Bergamot no pt→en (bancada Etapa 5) e no X→en dos pares do CDN (com a flag), opus-mt no resto e de
+ * reserva — ver `adapters/bergamotLocal.ts`. UM só por sessão: o binding `opus-mt-local` e o `bergamot-local` o dividem.
+ * O `engine` da resposta diz qual dos dois traduziu.
+ */
+const tradutorLocalCompartilhado = (): TradutorLocalComBergamot => {
+  const existente = mtSingletons.get('opus-mt-local');
+  if (existente) return existente as TradutorLocalComBergamot;
+  const novo = new TradutorLocalComBergamot(new BergamotLocal(), new OpusMtLocal());
+  mtSingletons.set('opus-mt-local', novo);
+  return novo;
+};
+
 function resolveMt(b: CapabilityBinding): TranslationProvider {
   const cached = mtSingletons.get(b.adapterId);
   if (cached) return cached;
@@ -80,10 +93,12 @@ function resolveMt(b: CapabilityBinding): TranslationProvider {
       adapter = new ChromeTranslatorMt();
       break;
     case 'opus-mt-local':
-      /* O TRADUTOR LOCAL: Bergamot no pt→en (bancada Etapa 5), opus-mt no resto e de reserva — ver
-         `adapters/bergamotLocal.ts`. O binding e o id continuam `opus-mt-local` (perfis, disjuntor,
-         registro); o `engine` da resposta diz qual dos dois traduziu. */
-      adapter = new TradutorLocalComBergamot(new BergamotLocal(), new OpusMtLocal());
+      adapter = tradutorLocalCompartilhado();
+      break;
+    case 'bergamot-local':
+      /* O MESMO composto e o MESMO opus-mt de reserva, vistos pelo binding do Bergamot (`BergamotNoPerfil`): não carrega
+         um segundo opus-mt. Com a flag `traducao_local_por_direcao` desligada só atende o pt→en embutido. */
+      adapter = new BergamotNoPerfil(tradutorLocalCompartilhado());
       break;
     case 'mymemory':
       adapter = new MyMemoryMt();
@@ -258,6 +273,13 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
   const vigiados = new Set<string>();
   const resolverMt = (b: CapabilityBinding): TranslationProvider => {
     const a = resolveMt(b);
+    /* O binding do Bergamot só fecha o disjuntor dele: a retradução e o aviso de falha vêm do composto (`opus-mt-local`),
+       que já vigia o mesmo Bergamot — avisar daqui de novo refaria cada tradução pendente duas vezes. */
+    if (b.adapterId === 'bergamot-local' && a.aoFicarPronto && !vigiados.has(b.adapterId)) {
+      vigiados.add(b.adapterId);
+      a.aoFicarPronto(() => breakers.reiniciar(b.adapterId));
+      return a;
+    }
     if (a.aoFicarPronto && !vigiados.has(b.adapterId)) {
       vigiados.add(b.adapterId);
       a.aoFicarPronto(() => {

@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { expectedModelIds } from '../src/gateway/modelCache'
+import { definirEstadoDasFlags } from '../src/lib/flagsCache'
 
 const store = new Map<string, string>()
 beforeEach(() => {
   store.clear()
+  definirEstadoDasFlags(null)
   vi.stubGlobal('localStorage', {
     getItem: (k: string) => store.get(k) ?? null,
     setItem: (k: string, v: string) => void store.set(k, v),
@@ -50,6 +52,8 @@ describe('expectedModelIds com o Bergamot', () => {
 
   it('com o CDN: ja→en, ja→pt, es→en e es→pt (pivô, CEL-01) esperam o Bergamot na primeira perna', () => {
     vi.stubGlobal('__BERGAMOT_CDN__', true)
+    // Os pares do CDN só abrem com a flag `traducao_local_por_direcao` (openspec traducao-local-por-direcao).
+    definirEstadoDasFlags({ traducao_local_por_direcao: { ligada: true } })
     expect(expectedModelIds('ja', 'en')).toEqual(['onnx-community/whisper-tiny', 'bergamot/ja-en'])
     expect(expectedModelIds('ja', 'pt')).toEqual([
       'onnx-community/whisper-tiny',

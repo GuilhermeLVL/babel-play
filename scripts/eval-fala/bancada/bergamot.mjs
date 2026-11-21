@@ -35,6 +35,13 @@ export const MODELOS_BERGAMOT = {
     vocab: 'vocab.enpt.spm.gz',
     sha256Modelo: '07892fd2544ee79dcb643615d8f2debb9793fae16842e87c328e27a3dd26a770',
   },
+  'es-en': {
+    dir: 'models/es-en/retrain_hr_HbNjJ60BTwmVTbhfFxuduA/exported/',
+    model: 'model.esen.intgemm.alphas.bin.gz',
+    lex: 'lex.50.50.esen.s2t.bin.gz',
+    vocab: 'vocab.esen.spm.gz',
+    sha256Modelo: '4aed7734152ae0045d1a69ae49c86cfda18f53c61f90e95e1d1de1c7c7c3b033',
+  },
   'pt-en': {
     dir: 'models/pt-en/retrain_hr_drxrs5bGSsOWvfK9lyZISw/exported/',
     model: 'model.pten.intgemm.alphas.bin.gz',

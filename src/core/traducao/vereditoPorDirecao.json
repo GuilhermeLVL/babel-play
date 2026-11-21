@@ -1,0 +1,4 @@
+{
+  "_comentario": "Veredito do teste cego pt-BR (openspec traducao-local-por-direcao, D4) por direção. Só 'aprovado' põe um tradutor leve à frente do opus-mt; 'nao-avaliado', 'reprovado' e 'inconclusivo' mantêm o opus-mt com o alvo pt_br. Reverter é trocar este dado.",
+  "en-pt": "nao-avaliado"
+}

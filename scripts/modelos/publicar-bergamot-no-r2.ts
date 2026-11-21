@@ -41,6 +41,9 @@ interface ArquivoDoPar {
 interface ParDoJson {
   execucao: string;
   caminhoNaOrigem: string;
+  licencaPesos?: string;
+  licencaDados?: string;
+  aprovadoPeloDono?: boolean;
   arquivos: Record<string, ArquivoDoPar>;
 }
 
@@ -65,6 +68,15 @@ export function selecionarPares(valor?: string): string[] {
     throw new Error(`par(es) desconhecido(s): ${desconhecidos.join(', ')}. Conhecidos: ${todos.join(', ')}`);
   }
   return pedidos;
+}
+
+/**
+ * Os pares selecionados que NÃO podem ser publicados: sem `licencaPesos` ou sem `aprovadoPeloDono: true` no catálogo
+ * (openspec traducao-local-por-direcao, portão 1). Redistribuir pelo R2 é redistribuição; a aprovação é ato do dono e a
+ * licença dos dados fica `"não informada"` enquanto não for esclarecida (o catálogo diz). Vazio = pode publicar.
+ */
+export function paresRecusados(selecionados: string[], pares: Record<string, ParDoJson> = todosOsPares()): string[] {
+  return selecionados.filter((p) => !pares[p]?.licencaPesos?.trim() || pares[p]?.aprovadoPeloDono !== true);
 }
 
 /** A chave no bucket — o layout que o app monta (`<base>/bergamot/<par>/<execução>/<arquivo>`). */
@@ -126,6 +138,13 @@ async function principal() {
   } catch (err) {
     console.error(`[bergamot] --pares: ${(err as Error).message}`);
     process.exit(2);
+  }
+  const recusados = paresRecusados(selecionados);
+  if (recusados.length > 0) {
+    console.error(
+      `[bergamot] RECUSADO: par(es) sem licencaPesos ou sem aprovadoPeloDono=true em modelosDoBergamot.json: ${recusados.join(', ')}. Nada foi enviado.`,
+    );
+    process.exit(3);
   }
   const viaWrangler = arg('via') === 'wrangler';
   if (arg('via') && !viaWrangler && arg('via') !== 's3') {

@@ -22,6 +22,9 @@
     "pt-en": {
       "execucao": "retrain_hr_drxrs5bGSsOWvfK9lyZISw",
       "caminhoNaOrigem": "models/pt-en/retrain_hr_drxrs5bGSsOWvfK9lyZISw/exported/",
+      "licencaPesos": "MPL-2.0",
+      "licencaDados": "não informada",
+      "aprovadoPeloDono": false,
       "arquivos": {
         "modelo": {
           "nome": "model.pten.intgemm.alphas.bin.gz",
@@ -51,6 +54,9 @@
     "es-en": {
       "execucao": "retrain_hr_HbNjJ60BTwmVTbhfFxuduA",
       "caminhoNaOrigem": "models/es-en/retrain_hr_HbNjJ60BTwmVTbhfFxuduA/exported/",
+      "licencaPesos": "MPL-2.0",
+      "licencaDados": "não informada",
+      "aprovadoPeloDono": false,
       "arquivos": {
         "modelo": {
           "nome": "model.esen.intgemm.alphas.bin.gz",
@@ -78,6 +84,9 @@
     "fr-en": {
       "execucao": "retrain_hr_EFgIftH_RrCyzl5gjemVNg",
       "caminhoNaOrigem": "models/fr-en/retrain_hr_EFgIftH_RrCyzl5gjemVNg/exported/",
+      "licencaPesos": "MPL-2.0",
+      "licencaDados": "não informada",
+      "aprovadoPeloDono": false,
       "arquivos": {
         "modelo": {
           "nome": "model.fren.intgemm.alphas.bin.gz",
@@ -105,6 +114,9 @@
     "de-en": {
       "execucao": "retrain_hr2_WZOW24i4QJmIib61LeHfwg",
       "caminhoNaOrigem": "models/de-en/retrain_hr2_WZOW24i4QJmIib61LeHfwg/exported/",
+      "licencaPesos": "MPL-2.0",
+      "licencaDados": "não informada",
+      "aprovadoPeloDono": false,
       "arquivos": {
         "modelo": {
           "nome": "model.deen.intgemm.alphas.bin.gz",
@@ -132,6 +144,9 @@
     "it-en": {
       "execucao": "retrain_hr_d1nPDwVeSD6t-HdtWA4xNg",
       "caminhoNaOrigem": "models/it-en/retrain_hr_d1nPDwVeSD6t-HdtWA4xNg/exported/",
+      "licencaPesos": "MPL-2.0",
+      "licencaDados": "não informada",
+      "aprovadoPeloDono": false,
       "arquivos": {
         "modelo": {
           "nome": "model.iten.intgemm.alphas.bin.gz",
@@ -159,6 +174,9 @@
     "ru-en": {
       "execucao": "next26_RSpwfHrcSUC_rKTnhOEXzw",
       "caminhoNaOrigem": "models/ru-en/next26_RSpwfHrcSUC_rKTnhOEXzw/exported/",
+      "licencaPesos": "MPL-2.0",
+      "licencaDados": "não informada",
+      "aprovadoPeloDono": false,
       "arquivos": {
         "modelo": {
           "nome": "model.ruen.intgemm.alphas.bin.gz",
@@ -186,6 +204,9 @@
     "ar-en": {
       "execucao": "retrain_base-memory_X9fDxFreTOCslPKzb1CXTg",
       "caminhoNaOrigem": "models/ar-en/retrain_base-memory_X9fDxFreTOCslPKzb1CXTg/exported/",
+      "licencaPesos": "MPL-2.0",
+      "licencaDados": "não informada",
+      "aprovadoPeloDono": false,
       "arquivos": {
         "modelo": {
           "nome": "model.aren.intgemm.alphas.bin.gz",
@@ -213,6 +234,9 @@
     "ja-en": {
       "execucao": "cjk_retrain_base-memory_NLRJLD_pQFyrvgKtbie2nA",
       "caminhoNaOrigem": "models/ja-en/cjk_retrain_base-memory_NLRJLD_pQFyrvgKtbie2nA/exported/",
+      "licencaPesos": "MPL-2.0",
+      "licencaDados": "não informada",
+      "aprovadoPeloDono": false,
       "arquivos": {
         "modelo": {
           "nome": "model.jaen.intgemm.alphas.bin.gz",
@@ -240,6 +264,9 @@
     "ko-en": {
       "execucao": "cjk_retrain_base-memory_QgYNtG3BTzKBFSV1wl06Pg",
       "caminhoNaOrigem": "models/ko-en/cjk_retrain_base-memory_QgYNtG3BTzKBFSV1wl06Pg/exported/",
+      "licencaPesos": "MPL-2.0",
+      "licencaDados": "não informada",
+      "aprovadoPeloDono": false,
       "arquivos": {
         "modelo": {
           "nome": "model.koen.intgemm.alphas.bin.gz",
@@ -267,6 +294,9 @@
     "zh-en": {
       "execucao": "cjk_retrain_base-memory_cNY_yaJCStGwnTeXgW8A5w",
       "caminhoNaOrigem": "models/zh-en/cjk_retrain_base-memory_cNY_yaJCStGwnTeXgW8A5w/exported/",
+      "licencaPesos": "MPL-2.0",
+      "licencaDados": "não informada",
+      "aprovadoPeloDono": false,
       "arquivos": {
         "modelo": {
           "nome": "model.zhen.intgemm.alphas.bin.gz",
@@ -294,6 +324,9 @@
     "cs-en": {
       "execucao": "retrain_hr_EwWhUov8TP6D_oolATvbUA",
       "caminhoNaOrigem": "models/cs-en/retrain_hr_EwWhUov8TP6D_oolATvbUA/exported/",
+      "licencaPesos": "MPL-2.0",
+      "licencaDados": "não informada",
+      "aprovadoPeloDono": false,
       "arquivos": {
         "modelo": {
           "nome": "model.csen.intgemm.alphas.bin.gz",
@@ -321,6 +354,9 @@
     "fi-en": {
       "execucao": "retrain_hr_C7-zSzS7Tm6zkOfVP7k0Gw",
       "caminhoNaOrigem": "models/fi-en/retrain_hr_C7-zSzS7Tm6zkOfVP7k0Gw/exported/",
+      "licencaPesos": "MPL-2.0",
+      "licencaDados": "não informada",
+      "aprovadoPeloDono": false,
       "arquivos": {
         "modelo": {
           "nome": "model.fien.intgemm.alphas.bin.gz",
@@ -348,6 +384,9 @@
     "hu-en": {
       "execucao": "next26_ehk9UNnTTNCsQ0eZhWcNXg",
       "caminhoNaOrigem": "models/hu-en/next26_ehk9UNnTTNCsQ0eZhWcNXg/exported/",
+      "licencaPesos": "MPL-2.0",
+      "licencaDados": "não informada",
+      "aprovadoPeloDono": false,
       "arquivos": {
         "modelo": {
           "nome": "model.huen.intgemm.alphas.bin.gz",
@@ -375,6 +414,9 @@
     "nl-en": {
       "execucao": "retrain_hr_JbTCb42HREGvK8d6aOCjFQ",
       "caminhoNaOrigem": "models/nl-en/retrain_hr_JbTCb42HREGvK8d6aOCjFQ/exported/",
+      "licencaPesos": "MPL-2.0",
+      "licencaDados": "não informada",
+      "aprovadoPeloDono": false,
       "arquivos": {
         "modelo": {
           "nome": "model.nlen.intgemm.alphas.bin.gz",
@@ -402,6 +444,9 @@
     "pl-en": {
       "execucao": "retrain_hr_HLLa6ZwsSomB0kyBr7Iz6w",
       "caminhoNaOrigem": "models/pl-en/retrain_hr_HLLa6ZwsSomB0kyBr7Iz6w/exported/",
+      "licencaPesos": "MPL-2.0",
+      "licencaDados": "não informada",
+      "aprovadoPeloDono": false,
       "arquivos": {
         "modelo": {
           "nome": "model.plen.intgemm.alphas.bin.gz",
@@ -429,6 +474,9 @@
     "th-en": {
       "execucao": "new-opuscleaner-en-th_aIiNAAZbRny4ODcYGOMlEA",
       "caminhoNaOrigem": "models/th-en/new-opuscleaner-en-th_aIiNAAZbRny4ODcYGOMlEA/exported/",
+      "licencaPesos": "MPL-2.0",
+      "licencaDados": "não informada",
+      "aprovadoPeloDono": false,
       "arquivos": {
         "modelo": {
           "nome": "model.then.intgemm.alphas.bin.gz",

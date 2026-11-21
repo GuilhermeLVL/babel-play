@@ -149,6 +149,8 @@ describe('pt→en prefere o Bergamot', () => {
 describe('X→en e X→alvo com os modelos do CDN', () => {
   beforeEach(() => {
     vi.stubGlobal('__BERGAMOT_CDN__', true)
+    // Os pares do CDN só abrem com a flag `traducao_local_por_direcao` (openspec traducao-local-por-direcao, D1).
+    localStorage.setItem('babel.flags', JSON.stringify({ traducao_local_por_direcao: { ligada: true } }))
   })
 
   it('ja→en: um worker POR PAR, com o plano do ja-en (a URL do CDN vem do plano)', async () => {

@@ -1,0 +1,195 @@
+{
+  "quando": "2026-11-21T08:39:34.109Z",
+  "base": "http://127.0.0.1:4189",
+  "rodadas": [
+    {
+      "rotulo": "bergamot, perfil novo (download)",
+      "isolado": true,
+      "downloadMs": 1830,
+      "preparoMs": 1830,
+      "ultimoRotulo": "Tradutor pronto",
+      "traducoes": [
+        {
+          "pt": "Eu gostaria de um café, por favor.",
+          "en": "I'd like a coffee, please.",
+          "motor": "bergamot-local",
+          "ms": 281
+        },
+        {
+          "pt": "A gente tava de boa ontem à noite, sabe?",
+          "en": "We were good last night, you know?",
+          "motor": "bergamot-local",
+          "ms": 19
+        },
+        {
+          "pt": "Onde fica a estação de trem mais próxima?",
+          "en": "Where is the nearest train station?",
+          "motor": "bergamot-local",
+          "ms": 13
+        },
+        {
+          "pt": "Não sei se vou conseguir chegar a tempo para a reunião.",
+          "en": "I don't know if I'll be able to make it in time for the meeting.",
+          "motor": "bergamot-local",
+          "ms": 21
+        },
+        {
+          "pt": "Ele disse que ia ligar, mas até agora nada.",
+          "en": "He said he was gonna call, but so far nothing.",
+          "motor": "bergamot-local",
+          "ms": 15
+        },
+        {
+          "pt": "Bom dia! Tudo bem com você?",
+          "en": "Good morning! What's up with you?",
+          "motor": "bergamot-local",
+          "ms": 13
+        },
+        {
+          "pt": "Você pode repetir mais devagar? Eu ainda estou aprendendo.",
+          "en": "Can you repeat it more slowly? I'm still learning.",
+          "motor": "bergamot-local",
+          "ms": 14
+        },
+        {
+          "pt": "Amanhã a gente se vê no mesmo lugar de sempre.",
+          "en": "Tomorrow we find ourselves in the same place as always.",
+          "motor": "bergamot-local",
+          "ms": 13
+        }
+      ],
+      "longasNoPreparo": [],
+      "longasNasTraducoes": [],
+      "memoriaAntesMb": null,
+      "memoriaDepoisMb": null,
+      "falhaLembrada": null,
+      "manifestoGravado": true,
+      "latenciaMs": {
+        "p50": 15,
+        "p95": 281,
+        "max": 281
+      },
+      "rede": [
+        {
+          "url": "/assets/bergamotWorker-ClRc9d-A.js",
+          "status": 200,
+          "bytes": 0
+        },
+        {
+          "url": "/modelos/bergamot/motor-0.4.9/bergamot-translator-worker.mjs",
+          "status": 200,
+          "bytes": 81262
+        },
+        {
+          "url": "/modelos/bergamot/motor-0.4.9/bergamot-translator-worker.wasm",
+          "status": 200,
+          "bytes": 5175009
+        },
+        {
+          "url": "/modelos/bergamot/pt-en/retrain_hr_drxrs5bGSsOWvfK9lyZISw/model.pten.intgemm.alphas.bin.gz",
+          "status": 200,
+          "bytes": 22703536
+        },
+        {
+          "url": "/modelos/bergamot/pt-en/retrain_hr_drxrs5bGSsOWvfK9lyZISw/lex.50.50.pten.s2t.bin.gz",
+          "status": 200,
+          "bytes": 2488193
+        },
+        {
+          "url": "/modelos/bergamot/pt-en/retrain_hr_drxrs5bGSsOWvfK9lyZISw/vocab.pten.spm.gz",
+          "status": 200,
+          "bytes": 408753
+        }
+      ],
+      "consola": ["[bergamot] bergamot/pt-en pronto (heap do WASM 548 MB)"],
+      "bytesDaRede": 30856753
+    },
+    {
+      "rotulo": "bergamot, recarga (Cache Storage)",
+      "isolado": true,
+      "downloadMs": 1794,
+      "preparoMs": 1794,
+      "ultimoRotulo": "Tradutor pronto",
+      "traducoes": [
+        {
+          "pt": "Eu gostaria de um café, por favor.",
+          "en": "I'd like a coffee, please.",
+          "motor": "bergamot-local",
+          "ms": 280
+        },
+        {
+          "pt": "A gente tava de boa ontem à noite, sabe?",
+          "en": "We were good last night, you know?",
+          "motor": "bergamot-local",
+          "ms": 19
+        },
+        {
+          "pt": "Onde fica a estação de trem mais próxima?",
+          "en": "Where is the nearest train station?",
+          "motor": "bergamot-local",
+          "ms": 13
+        },
+        {
+          "pt": "Não sei se vou conseguir chegar a tempo para a reunião.",
+          "en": "I don't know if I'll be able to make it in time for the meeting.",
+          "motor": "bergamot-local",
+          "ms": 22
+        },
+        {
+          "pt": "Ele disse que ia ligar, mas até agora nada.",
+          "en": "He said he was gonna call, but so far nothing.",
+          "motor": "bergamot-local",
+          "ms": 14
+        },
+        {
+          "pt": "Bom dia! Tudo bem com você?",
+          "en": "Good morning! What's up with you?",
+          "motor": "bergamot-local",
+          "ms": 13
+        },
+        {
+          "pt": "Você pode repetir mais devagar? Eu ainda estou aprendendo.",
+          "en": "Can you repeat it more slowly? I'm still learning.",
+          "motor": "bergamot-local",
+          "ms": 14
+        },
+        {
+          "pt": "Amanhã a gente se vê no mesmo lugar de sempre.",
+          "en": "Tomorrow we find ourselves in the same place as always.",
+          "motor": "bergamot-local",
+          "ms": 13
+        }
+      ],
+      "longasNoPreparo": [],
+      "longasNasTraducoes": [],
+      "memoriaAntesMb": null,
+      "memoriaDepoisMb": null,
+      "falhaLembrada": null,
+      "manifestoGravado": true,
+      "latenciaMs": {
+        "p50": 14,
+        "p95": 280,
+        "max": 280
+      },
+      "rede": [
+        {
+          "url": "/assets/bergamotWorker-ClRc9d-A.js",
+          "status": 200,
+          "bytes": 0
+        },
+        {
+          "url": "/modelos/bergamot/motor-0.4.9/bergamot-translator-worker.mjs",
+          "status": 200,
+          "bytes": 81262
+        },
+        {
+          "url": "/modelos/bergamot/motor-0.4.9/bergamot-translator-worker.wasm",
+          "status": 200,
+          "bytes": 5175009
+        }
+      ],
+      "consola": ["[bergamot] bergamot/pt-en pronto (heap do WASM 548 MB)"],
+      "bytesDaRede": 5256271
+    }
+  ]
+}

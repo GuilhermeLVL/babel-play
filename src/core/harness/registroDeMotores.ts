@@ -273,12 +273,13 @@ export const REGISTRO_DE_MOTORES: readonly RegistroDeMotor[] = [
     licenca: 'CC-BY-4.0 (Helsinki-NLP)',
   },
   {
-    /* O pt→en do MESMO binding: o tradutor local (`adapters/bergamotLocal.ts`,
-       `TradutorLocalComBergamot`) manda o pt→en ao Bergamot e deixa o opus-mt de reserva — como o
-       worker do Whisper carrega o Moonshine. Bancada Etapa 5: COMET +0,028 (IC exclui 0), ~10× mais
+    /* O Bergamot tem binding PRÓPRIO nos perfis (`bergamot-local`, antes do `opus-mt-local`): o disjuntor, a telemetria
+       e o painel passam a ter o nome dele. O tradutor local (`adapters/bergamotLocal.ts`, `TradutorLocalComBergamot`,
+       binding `opus-mt-local`) segue com o opus-mt de reserva e com o pivô — como o worker do Whisper carrega o
+       Moonshine. Bancada Etapa 5: COMET +0,028 (IC exclui 0), ~10× mais
        rápido; o en→pt ficou fora (português europeu, o gold de conversa piora). */
     id: 'bergamot-local',
-    adapterId: 'opus-mt-local',
+    adapterId: 'bergamot-local',
     modelo: 'mozilla/translations pt-en (retrain_hr_drxrs5bGSsOWvfK9lyZISw)',
     tarefa: 'mt',
     runtime: 'local',

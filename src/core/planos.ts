@@ -340,6 +340,14 @@ export const FLAG_STT_NUVEM_NORMALIZAR = 'stt_nuvem_normalizar';
 export const FLAG_ROTEADOR_ADAPTATIVO_SOMBRA = 'roteador_adaptativo_sombra';
 
 /**
+ * A TRADUÇÃO LOCAL POR DIREÇÃO (openspec `traducao-local-por-direcao`; migrações PG 0026 e SQLite 0068, números
+ * PROVISÓRIOS): liga o uso dos pares X→en do Bergamot publicados no CDN (`VITE_BERGAMOT_MODELOS_URL`); en→pt-BR segue no
+ * opus-mt com o alvo `pt_br`. Nasce DESLIGADA e sem regra de plano; ligar é ato do dono. Desligada = o Bergamot atende só
+ * o pt→en embutido, como antes, mesmo com modelos no R2.
+ */
+export const FLAG_TRADUCAO_LOCAL_POR_DIRECAO = 'traducao_local_por_direcao';
+
+/**
  * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,
  * "Custo da escrita"): um retorno leva ~900 tokens de entrada (system + texto de até 120 palavras) e até 500 de saída;
  * 30 por mês ficam na casa de US$ 0,01 por assinante que usa tudo, e os tokens já saem da `tokensMes`.

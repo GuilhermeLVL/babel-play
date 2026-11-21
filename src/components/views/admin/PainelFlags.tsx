@@ -31,6 +31,7 @@ const FLAGS_SENSIVEIS = new Set([
   'rum_latencia',
   'stt_nuvem_normalizar',
   'roteador_adaptativo_sombra',
+  'traducao_local_por_direcao',
 ]);
 
 /** As regras da flag em palavras curtas, para ver de relance quem ela alcança. */

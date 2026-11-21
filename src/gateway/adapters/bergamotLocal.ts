@@ -403,3 +403,41 @@ export class TradutorLocalComBergamot implements TranslationProvider {
     this.opus.liberar();
   }
 }
+
+/**
+ * O BINDING `bergamot-local` dos perfis (antes do `opus-mt-local`, openspec `traducao-local-por-direcao`, D5): a visão do
+ * MESMO `BergamotLocal` e do MESMO composto, com o nome próprio para o disjuntor, a telemetria e o painel. Só atende o
+ * que o Bergamot atende direto (`supports` falso fora disso, em especial com a flag desligada: só o pt→en embutido); o
+ * pivô e a reserva ficam com o composto, que vem logo depois na cadeia. O `preload` passa pelo composto, que lembra a
+ * barra do par para a reserva continuar a mesma quando o Bergamot cair. Não cria um segundo opus-mt.
+ */
+export class BergamotNoPerfil implements TranslationProvider {
+  readonly id = 'bergamot-local';
+  readonly runtime = 'browser' as const;
+  readonly cost = 'free' as const;
+  readonly label = 'Bergamot local (on-device)';
+
+  constructor(private readonly composto: TradutorLocalComBergamot) {}
+
+  supports(src: string | null, tgt: string): boolean {
+    return this.composto.bergamot.supports(src, tgt);
+  }
+
+  preload(src: string, tgt: string, onProgress?: AoProgresso): void {
+    if (onProgress) this.composto.preload(src, tgt, onProgress);
+    else this.composto.preload(src, tgt);
+  }
+
+  translate(text: string, src: string | null, tgt: string, opts?: MtOptions): Promise<MtResult> {
+    return this.composto.bergamot.translate(text, src, tgt, opts);
+  }
+
+  /** Só o disjuntor deste binding usa o aviso; quem espera a retradução é avisado pelo composto (sem avisar duas vezes). */
+  aoFicarPronto(fn: (modelo: string) => void): () => void {
+    return this.composto.bergamot.aoFicarPronto(fn);
+  }
+
+  liberar(): void {
+    this.composto.liberar();
+  }
+}

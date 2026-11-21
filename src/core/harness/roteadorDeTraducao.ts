@@ -31,7 +31,7 @@
  */
 import { chaveDaPalavra } from '../texto/palavra';
 import { palavrasDoTexto } from '../texto/segmentacao';
-import { ORIGENS_DO_BERGAMOT_NO_CDN, passaPeloIngles } from '../traducao/viaIngles';
+import { motoresLocaisDaDirecao } from '../traducao/rotaPorDirecao';
 
 export type DegrauMt = 'pular' | 'dicionario' | 'memoria' | 'nativo' | 'local' | 'nuvem' | 'terceiro';
 
@@ -121,10 +121,8 @@ const idiomaBase = (l: string): string => l.toLowerCase().split('-')[0];
  * (`core/traducao/viaIngles.ts`). Saindo do inglês, nunca: o opus-mt escreve o português do Brasil.
  */
 export function bergamotVenceNoPar(origem: string, destino: string): boolean {
-  const s = idiomaBase(origem);
-  const t = idiomaBase(destino);
-  if (s !== 'pt' && !ORIGENS_DO_BERGAMOT_NO_CDN.has(s)) return false;
-  return t === 'en' || passaPeloIngles(s, t);
+  if (!origem) return false;
+  return motoresLocaisDaDirecao(origem, destino)[0] === 'bergamot-local';
 }
 
 export function routeMt(e: EntradaDaRotaMt): RotaMt {
@@ -182,9 +180,12 @@ export function routeMt(e: EntradaDaRotaMt): RotaMt {
      escreve português europeu e o gold de conversa piora, então ali o Bergamot não entra — mesmo
      que o chamador o diga disponível. */
   const locais: PassoDaRotaMt[] = [];
-  if (d.bergamot && bergamotVenceNoPar(e.origem, e.destino))
-    locais.push({ degrau: 'local', motor: 'bergamot-local', motivo: 'no-aparelho' });
-  if (d.opusMt) locais.push({ degrau: 'local', motor: 'opus-mt-local', motivo: 'no-aparelho' });
+  /* A ORDEM vem da tabela por direção (`core/traducao/rotaPorDirecao.ts`): lida de dado, não de `if` aqui. */
+  const motoresDaDirecao = e.origem ? motoresLocaisDaDirecao(e.origem, e.destino) : (['opus-mt-local'] as const);
+  for (const motor of motoresDaDirecao) {
+    if (motor === 'bergamot-local' ? d.bergamot : d.opusMt)
+      locais.push({ degrau: 'local', motor, motivo: 'no-aparelho' });
+  }
   if (locais.length) degraus.push(...locais);
   else descartados.push({ degrau: 'local', motivo: 'indisponivel' });
 

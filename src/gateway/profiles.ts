@@ -1,4 +1,4 @@
-import type { Profile } from '@core'
+import type { Profile } from '@core';
 
 /**
  * Perfis embutidos (código, não DB) — espelham os presets "muitas formas de rodar"
@@ -14,7 +14,8 @@ import type { Profile } from '@core'
  * ponte do Vite (`VITE_OLLAMA_URL`); o servidor le `OLLAMA_URL`. Sao duas superficies diferentes
  * do mesmo endereco — o que nao pode e o valor ser invisivel nas duas.
  */
-const OLLAMA_LOCAL = (import.meta.env?.VITE_OLLAMA_URL as string | undefined)?.replace(/\/+$/, '') || 'http://localhost:11434/v1'
+const OLLAMA_LOCAL =
+  (import.meta.env?.VITE_OLLAMA_URL as string | undefined)?.replace(/\/+$/, '') || 'http://localhost:11434/v1';
 
 export const BUILTIN_PROFILES: Profile[] = [
   {
@@ -28,10 +29,20 @@ export const BUILTIN_PROFILES: Profile[] = [
       // navegador/dispositivo, on-device, SEM chave nenhuma) → Groq nuvem só como fallback OPCIONAL
       // quando houver GROQ_API_KEY no servidor (o proxy responde 501 sem chave e a cadeia segue).
       // Isso faz o app "abrir e funcionar de graça" e é o objetivo da versão local/distribuível.
-      stt: [{ adapterId: 'web-speech' }, { adapterId: 'whisper-local' }, { adapterId: 'groq-whisper', model: 'whisper-large-v3-turbo' }],
-      // Cadeia de tradução: nativo do Chrome (mais rápido, se disponível) → opus-mt local
-      // (on-device, offline) → MyMemory (rede, último recurso).
-      mt: [{ adapterId: 'chrome-translator' }, { adapterId: 'opus-mt-local' }, { adapterId: 'server-llm-mt' }, { adapterId: 'mymemory' }],
+      stt: [
+        { adapterId: 'web-speech' },
+        { adapterId: 'whisper-local' },
+        { adapterId: 'groq-whisper', model: 'whisper-large-v3-turbo' },
+      ],
+      // Cadeia de tradução: nativo do Chrome (mais rápido, se disponível) → Bergamot local (X→en, leve) → opus-mt local
+      // (on-device, offline; reserva do Bergamot e dono do en→pt) → MyMemory (rede, último recurso).
+      mt: [
+        { adapterId: 'chrome-translator' },
+        { adapterId: 'bergamot-local' },
+        { adapterId: 'opus-mt-local' },
+        { adapterId: 'server-llm-mt' },
+        { adapterId: 'mymemory' },
+      ],
       // LLM grátis-sem-chave (WebLLM / Chrome Prompt API) entra numa próxima etapa.
     },
   },
@@ -45,9 +56,14 @@ export const BUILTIN_PROFILES: Profile[] = [
       // Mic = Web Speech; Sistema/aba = Whisper local (WebGPU) — 100% offline.
       stt: [{ adapterId: 'web-speech' }, { adapterId: 'whisper-local' }],
       llm: [{ adapterId: 'openai-compatible', baseUrl: OLLAMA_LOCAL, model: 'llama3.2' }],
-      // Cadeia de tradução: nativo do Chrome (mais rápido, se disponível) → opus-mt local
-      // (on-device, offline) → MyMemory (rede, último recurso).
-      mt: [{ adapterId: 'chrome-translator' }, { adapterId: 'opus-mt-local' }, { adapterId: 'mymemory' }],
+      // Cadeia de tradução: nativo do Chrome (mais rápido, se disponível) → Bergamot local (X→en, leve) → opus-mt local
+      // (on-device, offline; reserva do Bergamot e dono do en→pt) → MyMemory (rede, último recurso).
+      mt: [
+        { adapterId: 'chrome-translator' },
+        { adapterId: 'bergamot-local' },
+        { adapterId: 'opus-mt-local' },
+        { adapterId: 'mymemory' },
+      ],
     },
   },
   {
@@ -59,18 +75,28 @@ export const BUILTIN_PROFILES: Profile[] = [
     bindings: {
       // Mic = Web Speech; Sistema/aba = Groq nuvem (qualidade máxima) → Whisper local fallback.
       // Para BYO-key por usuário, acrescente `credentialId` ao binding do groq-whisper.
-      stt: [{ adapterId: 'web-speech' }, { adapterId: 'groq-whisper', model: 'whisper-large-v3-turbo' }, { adapterId: 'whisper-local' }],
+      stt: [
+        { adapterId: 'web-speech' },
+        { adapterId: 'groq-whisper', model: 'whisper-large-v3-turbo' },
+        { adapterId: 'whisper-local' },
+      ],
       // `credentialId` é preenchido quando o usuário cadastra e escolhe uma credencial.
       llm: [{ adapterId: 'openai-compatible' }],
-      // Cadeia de tradução: nativo do Chrome (mais rápido, se disponível) → opus-mt local
-      // (on-device, offline) → MyMemory (rede, último recurso).
-      mt: [{ adapterId: 'chrome-translator' }, { adapterId: 'opus-mt-local' }, { adapterId: 'server-llm-mt' }, { adapterId: 'mymemory' }],
+      // Cadeia de tradução: nativo do Chrome (mais rápido, se disponível) → Bergamot local (X→en, leve) → opus-mt local
+      // (on-device, offline; reserva do Bergamot e dono do en→pt) → MyMemory (rede, último recurso).
+      mt: [
+        { adapterId: 'chrome-translator' },
+        { adapterId: 'bergamot-local' },
+        { adapterId: 'opus-mt-local' },
+        { adapterId: 'server-llm-mt' },
+        { adapterId: 'mymemory' },
+      ],
     },
   },
-]
+];
 
-export const DEFAULT_PROFILE_ID = 'free-web'
+export const DEFAULT_PROFILE_ID = 'free-web';
 
 export function getBuiltinProfile(id: string): Profile {
-  return BUILTIN_PROFILES.find((p) => p.id === id) ?? BUILTIN_PROFILES[0]
+  return BUILTIN_PROFILES.find((p) => p.id === id) ?? BUILTIN_PROFILES[0];
 }

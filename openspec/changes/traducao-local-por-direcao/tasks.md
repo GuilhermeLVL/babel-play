@@ -8,25 +8,25 @@ dos portões 1 a 4 estarem marcados.
 - [ ] 1.2 **[D]** Portão 1, licença: o dono lê o checklist (README dos pesos Mozilla = MPL-2.0; corpora não informados; sem campo
       no registro) e decide, por par, se o R2 pode hospedar. EuroNano segue ADIADO (TED2020 CC BY-NC-ND); contato com a Tether só
       com OK do dono. Verificar: decisão registrada em `docs/auditoria/` com a data.
-- [ ] 1.3 Catálogo: campos `licencaPesos`, `licencaDados` (`"não informada"` enquanto for o caso) e `aprovadoPeloDono` (padrão
+- [x] 1.3 Catálogo: campos `licencaPesos`, `licencaDados` (`"não informada"` enquanto for o caso) e `aprovadoPeloDono` (padrão
       `false`) por par em `modelosDoBergamot.json`; `publicar-bergamot-no-r2.ts` recusa par sem `aprovadoPeloDono`. Verificar:
       teste do script em `--seco` recusa o par não aprovado.
 
 ## 2. Flag
 
-- [ ] 2.1 Flag `traducao_local_por_direcao`: migrações PROVISÓRIAS PG 0026 e SQLite 0068 (semente idempotente, sem regra de plano,
+- [x] 2.1 Flag `traducao_local_por_direcao`: migrações PROVISÓRIAS PG 0026 e SQLite 0068 (semente idempotente, sem regra de plano,
       reversão `DELETE FROM flags`), snapshots, journals, `PainelFlags`, `docs/flags.md`, baseline. Verificar: nasce desligada;
       numeração conferida contra a `main` no PR.
-- [ ] 2.2 Gate no uso: desligada, `parDoBergamot`/`bergamotOferecido` só atendem pt→en e o runtime é o 0.4.9, mesmo com
+- [x] 2.2 Gate no uso: desligada, `parDoBergamot`/`bergamotOferecido` só atendem pt→en e o runtime é o 0.4.9, mesmo com
       `VITE_BERGAMOT_MODELOS_URL` definida. Verificar: teste em grade (flag × URL × par): só flag ligada + URL abre `paresDoCdn`.
 
 ## 3. Rota por direção e perfis
 
-- [ ] 3.1 Tabela pura da rota por direção em `src/core/` (D2) com veredito por par lido de dado; `routeMt` a consome. Verificar:
+- [x] 3.1 Tabela pura da rota por direção em `src/core/` (D2) com veredito por par lido de dado; `routeMt` a consome. Verificar:
       testes de X→en, en→pt-BR e pivô nas duas situações do veredito (nenhuma mudança com a flag desligada).
-- [ ] 3.2 Confirmar por teste que o en→pt do opus-mt envia o alvo `pt_br` (token por id, `mtWorker.ts`). Verificar: teste do
+- [x] 3.2 Confirmar por teste que o en→pt do opus-mt envia o alvo `pt_br` (token por id, `mtWorker.ts`). Verificar: teste do
       worker (ou do adaptador) que falha se o token mudar.
-- [ ] 3.3 Perfis: `bergamot-local` antes de `opus-mt-local` nos três perfis nativos; `resolveMt` com o caso novo compartilhando o
+- [x] 3.3 Perfis: `bergamot-local` antes de `opus-mt-local` nos três perfis nativos; `resolveMt` com o caso novo compartilhando o
       `OpusMtLocal`; `registroDeMotores.ts` com `adapterId` próprio; perfil salvo só com `opus-mt-local` segue válido. Verificar:
       testes de perfis e de `resolveMt`; falha do Bergamot cai no opus-mt sem erro visível.
 
@@ -65,3 +65,18 @@ dos portões 1 a 4 estarem marcados.
       (quando `rum_latencia` estiver ligada). Verificar: reversão ensaiada (flag off; depois URL vazia).
 - [ ] 6.3 Atualizar `docs/LANCAMENTO.md` (passo 8), `docs/alternativas-de-custo-e-eficiencia.md` (seção de MT local) e o relatório
       em `docs/auditoria/`. Verificar: `npm run lint`, `npm run typecheck` e `npm test` verdes na CI (não rodados nesta proposta).
+
+## Notas da implementação (2026-11-21) — parte não bloqueada
+
+Medido no laboratório (desktop, pt→en, Bergamot atual × opus-mt, 10 rodadas, diferença pareada com IC 95%):
+
+- latência p50 por frase 13 ms × 87 ms (−74 [−74, −74]); p75 14,5 × 101 ms;
+- RSS de pico 974 MB × 1.587 MB (−613 MB [−625, −603]); download frio 30,9 MB;
+- chrF++ (Bergamot − opus-mt): fleurs pt-en +4,14 [2,39; 5,83]; es-en +0,30 [−1,60; 2,36] (empate);
+  fleurs en-pt +5,38 [3,58; 7,10] e gold en-pt −0,83 [−4,48; 3,17] — en→pt segue PROIBIDO ao Bergamot até o teste
+  cego pt-BR (risco pt-PT). COMET pendente (exige instalar `unbabel-comet` + ~2,3 GB).
+  Parciais: 1.1 (critério escrito, não commitado: não houve A/B de latência na captura), 4.1 (só chrF++), 4.2 (só pt/es→en),
+  4.3 (ferramenta do teste cego pronta, sem avaliadores), 5.3/5.4 (pares X→en não estão no R2).
+  Bloqueadas: 1.2/4.4/6.x [D]; 5.1/5.2 dependência nova (runtime da Mozilla) — precisa de aprovação; 5.5 [R]; publicação
+  no R2 recusada pelo script até `aprovadoPeloDono`.
+  Relatório: `docs/auditoria/2026-11-21-traducao-local-por-direcao.md`. Migrações PG 0026 / SQLite 0068.

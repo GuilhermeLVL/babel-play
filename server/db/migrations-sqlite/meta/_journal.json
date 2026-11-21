@@ -477,6 +477,13 @@
       "when": 1794800000005,
       "tag": "0067_flag_roteador_adaptativo_sombra",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "6",
+      "when": 1794800000006,
+      "tag": "0068_flag_traducao_local_por_direcao",
+      "breakpoints": true
     }
   ]
 }

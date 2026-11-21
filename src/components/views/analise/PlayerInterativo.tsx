@@ -31,7 +31,7 @@ export interface PropsDoPlayerInterativo {
   setCurrentTime: Dispatch<SetStateAction<number>>;
   loopMode: boolean;
   activeSentenceIndex: number;
-  seekTo: (t: number) => void;
+  seekTo: (t: number, indice?: number) => void;
   /** O áudio gravado ainda está sendo baixado (a faixa mostra a espera). */
   carregandoAudio?: boolean;
   /** O áudio gravado não veio: a mensagem do motivo. */
@@ -48,6 +48,8 @@ export interface PropsDoPlayerInterativo {
   aoFalharOAudio?: () => boolean;
   /** O seletor "Modo de escuta" e o passo da frase (`EscutaGuiada`): uma linha dentro da faixa. */
   escuta?: ReactNode;
+  /** Escuta guiada ligada: o áudio pausa no fim da frase ativa, em vez de seguir para a próxima. */
+  pararNoFim?: boolean;
 }
 
 export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
@@ -70,6 +72,7 @@ export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
     haVozParaNarrar = true,
     aoFalharOAudio,
     escuta,
+    pararNoFim = false,
   } = props;
 
   if (recording.type === 'document') return null;
@@ -98,6 +101,21 @@ export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
       onTimeUpdate={(e) => {
         const a = e.currentTarget;
         setCurrentTime(a.currentTime);
+        if (pararNoFim && !loopMode && activeSentenceIndex !== -1 && activeSentenceIndex < parsedSentences.length - 1) {
+          const ini = parsedSentences[activeSentenceIndex].startTime;
+          const fim = parsedSentences.find((s, j) => j > activeSentenceIndex && s.startTime > ini)?.startTime;
+          if (fim !== undefined && a.currentTime >= fim) {
+            /* Pausa um fio ANTES da fala seguinte: o relógio não pode cruzar para ela e zerar o passo. */
+            try {
+              a.currentTime = Math.max(ini, fim - 0.05);
+            } catch {
+              /* noop */
+            }
+            a.pause();
+            setIsPlaying(false);
+            return;
+          }
+        }
         if (loopMode && activeSentenceIndex !== -1 && activeSentenceIndex < parsedSentences.length) {
           const start = parsedSentences[activeSentenceIndex].startTime;
           const nextStart =
@@ -149,7 +167,7 @@ export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
   const irPara = (i: number) => {
     const alvo = parsedSentences[Math.max(0, Math.min(total - 1, i))];
     if (!alvo) return;
-    seekTo(alvo.startTime);
+    seekTo(alvo.startTime, Math.max(0, Math.min(total - 1, i)));
     setIsPlaying(true);
   };
   /* `telas3.js:48`: a barra anda uma fala por vez; parada no começo, fica vazia. */

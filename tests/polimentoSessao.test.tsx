@@ -730,15 +730,15 @@ describe('PlayerInterativo no desenho novo: a faixa de telas3.js:69-70', () => {
   it('os vizinhos recomeçam da fala ao lado, sem passar das pontas', () => {
     const { acoes } = montar({ isPlaying: true, activeSentenceIndex: 1 })
     fireEvent.click(screen.getByRole('button', { name: 'Próxima fala' }))
-    expect(acoes.seekTo).toHaveBeenLastCalledWith(8)
+    expect(acoes.seekTo).toHaveBeenLastCalledWith(8, 2)
     expect(acoes.setIsPlaying).toHaveBeenLastCalledWith(true)
     fireEvent.click(screen.getByRole('button', { name: 'Fala anterior' }))
-    expect(acoes.seekTo).toHaveBeenLastCalledWith(0)
+    expect(acoes.seekTo).toHaveBeenLastCalledWith(0, 0)
     cleanup()
 
     const noFim = montar({ isPlaying: true, activeSentenceIndex: 2 })
     fireEvent.click(screen.getByRole('button', { name: 'Próxima fala' }))
-    expect(noFim.acoes.seekTo).toHaveBeenLastCalledWith(8)
+    expect(noFim.acoes.seekTo).toHaveBeenLastCalledWith(8, 2)
   })
 
   it('enquanto o áudio gravado não chega, a faixa espera e diz isso', () => {

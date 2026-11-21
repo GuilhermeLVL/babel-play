@@ -76,6 +76,7 @@ export default function TranscricaoDoQuest({
   traducaoPrimeiro,
   ocultarOriginal,
   falaOculta = null,
+  aoRevelarFala,
   traducaoDe,
   idiomaDaTraducao,
   procedencia,
@@ -110,6 +111,8 @@ export default function TranscricaoDoQuest({
   ocultarOriginal: boolean;
   /** Escuta guiada: o `index` da fala com o texto oculto até a etapa de ler (`null` = nenhuma). */
   falaOculta?: number | null;
+  /** Tocar numa fala oculta revela o texto (etapa de ler) em vez de abrir a folha, que o mostraria. */
+  aoRevelarFala?: () => void;
   /** A tradução que a fala mostra agora (a polida, quando é ela a escolhida). */
   traducaoDe: (fala: FalaDaAnalise) => { texto: string; polida: boolean };
   /** O idioma da tradução, para o `lang` da linha traduzida. */
@@ -350,7 +353,7 @@ export default function TranscricaoDoQuest({
                   aria-current={ativa || marcada ? 'true' : undefined}
                   aria-description={descricao}
                   data-frase-escolhida={marcada ? '' : undefined}
-                  onClick={() => aoAbrirFala(fala)}
+                  onClick={() => (oculta && aoRevelarFala ? aoRevelarFala() : aoAbrirFala(fala))}
                 >
                   <span className="qs-meta">
                     <span className="qs-quem">{fala.speaker}</span>
@@ -387,6 +390,7 @@ export default function TranscricaoDoQuest({
                     className="q-ctl"
                     aria-label={t('Opções da fala')}
                     data-px-opcoes={fala.index}
+                    disabled={oculta}
                     onClick={() => aoAbrirFala(fala)}
                   >
                     <MoreHorizontal aria-hidden />

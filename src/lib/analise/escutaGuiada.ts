@@ -44,16 +44,22 @@ function gravarModoDeEscuta(modo: ModoDeEscuta): void {
   }
 }
 
+const INTERATIVOS = [
+  'button, a, input, select, textarea, summary, details',
+  '[tabindex]:not([tabindex="-1"])',
+  '[role="button"], [role="link"], [role="tab"], [role="menuitem"], [role="option"], [role="switch"]',
+  '[role="checkbox"], [role="radio"], [role="combobox"], [role="slider"], [role="textbox"]',
+  '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]',
+].join(', ');
+
 /** Enter só vira "Próximo passo" quando nada que use o Enter tem o foco. */
 export function enterLivrePara(alvo: EventTarget | null, doc: Document = document): boolean {
   const el = alvo as HTMLElement | null;
   if (el && el !== doc.body && el !== doc.documentElement) {
     if (el.isContentEditable) return false;
-    if (el.closest?.('button, a, input, select, textarea, summary, [role="button"], [role="dialog"], [role="menu"]')) {
-      return false;
-    }
+    if (el.closest?.(INTERATIVOS)) return false;
   }
-  return !doc.querySelector('[role="dialog"], dialog[open]');
+  return !doc.querySelector('[role="dialog"], [role="alertdialog"], [aria-modal="true"], dialog[open]');
 }
 
 export interface EscutaGuiadaDaTela {
@@ -75,14 +81,17 @@ export function useEscutaGuiada(opts: {
   falas: readonly FalaDaAnalise[];
   indiceAtivo: number;
   nivel: CefrLevel | null;
-  seekTo: (t: number) => void;
+  seekTo: (t: number, indice?: number) => void;
   setIsPlaying: (v: boolean) => void;
   /** Documento e afins: sem player, sem passos. */
   desligada?: boolean;
 }): EscutaGuiadaDaTela {
   const { falas, indiceAtivo, nivel, seekTo, setIsPlaying, desligada = false } = opts;
   const total = falas.length;
-  const frase = Math.max(0, indiceAtivo);
+  /* A frase pedida pelo "Próximo passo" vale até o player confirmar o índice (sem piscar nem zerar o passo). */
+  const [pedida, setPedida] = useState<number | null>(null);
+  const frase = pedida ?? Math.max(0, indiceAtivo);
+  useEffect(() => setPedida(null), [indiceAtivo]);
   const [salvo, setSalvo] = useState<ModoDeEscuta | null>(lerModoDeEscuta);
   const modo: ModoDeEscuta = desligada ? 'livre' : (salvo ?? 'livre');
   const [estado, setEstado] = useState<EstadoDeEscuta>(() => iniciarEscuta(modo, frase));
@@ -97,7 +106,7 @@ export function useEscutaGuiada(opts: {
     (i: number, tocar: boolean) => {
       const alvo = falas[i];
       if (!alvo) return;
-      seekTo(alvo.startTime);
+      seekTo(alvo.startTime, i);
       setIsPlaying(tocar);
     },
     [falas, seekTo, setIsPlaying],
@@ -107,6 +116,7 @@ export function useEscutaGuiada(opts: {
     const r = proximoPasso(atual, total);
     if (r.terminou) return;
     setEstado(r.estado);
+    if (r.estado.frase !== atual.frase) setPedida(r.estado.frase);
     const e = etapaAtual(r.estado);
     if (r.estado.frase !== atual.frase) tocarFrase(r.estado.frase, e !== 'ler');
     else if (e === 'ouvir-com-texto') tocarFrase(r.estado.frase, true);

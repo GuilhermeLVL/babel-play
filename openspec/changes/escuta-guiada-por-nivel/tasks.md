@@ -9,7 +9,8 @@
 - [x] 2.2 `views/analise/EscutaGuiada.tsx`: seletor "Modo de escuta", sugestão por nível, "Texto oculto — toque para revelar", "Próximo passo"
 - [x] 2.3 `PlayerInterativo` (prop `escuta`), `TranscricaoDoQuest` (prop `falaOculta`) e `Analysis.tsx` (nível via `fluenciaDoBaralho`)
 - [x] 2.4 CSS em `questSessao.css` (mobile: a linha quebra dentro da faixa)
-- [x] 2.5 Testes de componente (`tests/escutaGuiadaTela.test.tsx`)
+- [x] 2.5 Testes de componente (`tests/escutaGuiadaTela.test.tsx`, `tests/escutaGuiadaLimites.test.tsx`)
+- [x] 2.6 A reprodução para no fim da frase nos modos guiados (áudio e voz); navegação por índice; transcrição não vaza a fala oculta
 
 ## 3. i18n e verificação
 

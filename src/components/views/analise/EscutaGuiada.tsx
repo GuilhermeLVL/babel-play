@@ -54,11 +54,12 @@ export default function EscutaGuiada({ escuta, nivel }: { escuta: EscutaGuiadaDa
         </select>
       </label>
       <span className="px-escuta-dica">{sugestao}</span>
+      {/* Sempre no DOM (vazia em `livre`): uma região viva criada junto com o texto não é anunciada. */}
+      <span className="px-escuta-passo" role="status">
+        {etapa ? descricaoDaEtapa(etapa) : ''}
+      </span>
       {etapa && (
         <>
-          <span className="px-escuta-passo" role="status">
-            {descricaoDaEtapa(etapa)}
-          </span>
           {oculto && (
             <button type="button" className="q-chip px-escuta-revelar" onClick={escuta.revelar}>
               {t('Texto oculto — toque para revelar')}

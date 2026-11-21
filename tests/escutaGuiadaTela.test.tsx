@@ -31,9 +31,9 @@ function Tela({ nivel = null }: { nivel?: 'A2' | 'B2' | null }) {
     falas,
     indiceAtivo: ativo,
     nivel,
-    seekTo: (t) => {
-      seekTo(t)
-      setAtivo(Math.round(t / 4))
+    seekTo: (t, i) => {
+      seekTo(t, i)
+      setAtivo(i ?? Math.round(t / 4))
     },
     setIsPlaying,
   })
@@ -84,9 +84,9 @@ describe('escuta guiada na tela', () => {
     expect(screen.getByText('Passo: leia a frase')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Próximo passo' }))
     expect(screen.getByText('Passo: ouça de novo, com o texto')).toBeTruthy()
-    expect(seekTo).toHaveBeenLastCalledWith(0)
+    expect(seekTo).toHaveBeenLastCalledWith(0, 0)
     fireEvent.click(screen.getByRole('button', { name: 'Próximo passo' }))
-    expect(seekTo).toHaveBeenLastCalledWith(4)
+    expect(seekTo).toHaveBeenLastCalledWith(4, 1)
     expect(screen.getByTestId('oculta').textContent).toBe('1')
   })
 
@@ -95,7 +95,7 @@ describe('escuta guiada na tela', () => {
     escolher('ler-primeiro')
     expect(screen.getByTestId('oculta').textContent).toBe('null')
     for (let i = 0; i < 4; i++) fireEvent.click(screen.getByRole('button', { name: 'Próximo passo' }))
-    expect(seekTo).toHaveBeenLastCalledWith(8)
+    expect(seekTo).toHaveBeenLastCalledWith(8, 2)
     expect(screen.getByText('Passo: leia a frase')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Próximo passo' }))
     expect((screen.getByRole('button', { name: 'Próximo passo' }) as HTMLButtonElement).disabled).toBe(true)

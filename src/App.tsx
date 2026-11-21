@@ -109,6 +109,7 @@ const ModalDeMigracao = lazyComRecarga(() => import('./components/conta/ModalDeM
 // falha não pode recarregar a página no meio de uma captura. Estes dois descem por `usePedacoDoQuest`
 // (a falha é só um estado: nada aparece e nada recarrega; o resto do app já degrada sozinho).
 const PerguntaDeIdade = lazyComRecarga(() => import('./components/conta/PerguntaDeIdade'));
+const PortaDeEntrada = lazyComRecarga(() => import('./components/conta/PortaDeEntrada'));
 const CartaoDeConvite = lazyComRecarga(() => import('./components/conta/CartaoDeConvite'));
 const carregarGateDeConta = () => import('./components/conta/GateDeConta');
 /* A busca global (Ctrl+K) só desce quando abre pela primeira vez: o atalho e o estado vivem em
@@ -131,6 +132,7 @@ import { lerTokenDoConvite } from './lib/conviteNaUrl';
 import { edicaoEstatica } from './lib/edicaoEstatica';
 import { carregarEntitlements } from './lib/entitlements';
 import { tirarEsqueleto } from './lib/esqueleto';
+import { useAcessoSemConta } from './lib/estado/useAcessoSemConta';
 import { useAparencia, useHidratacaoDeAjustes } from './lib/estado/useAparencia';
 import { useEmCheckout } from './lib/estado/useEmCheckout';
 import { useGateDeConta } from './lib/estado/useGateDeConta';
@@ -191,6 +193,9 @@ export default function App() {
     setMigracao,
     fecharGate,
   } = useGateDeConta({ adiarMigracao: emCheckout });
+  /* Acesso sem conta v2 (flag `acesso_restrito_sem_conta`): depois da 1ª sessão, a porta obrigatória.
+     Flag desligada = sempre `livre`, o app de antes. */
+  const { acesso, faixa: faixaSemConta, declararFaixa } = useAcessoSemConta({ anonimo, activeView });
   /* O gate só desce quando o evento `babel_exige_conta` abre (gate !== null); o host das ofertas
      desce já no primeiro desenho, porque escuta eventos desde o começo. */
   const { Componente: GateDeConta } = usePedacoDoQuest(carregarGateDeConta, gate !== null);
@@ -381,6 +386,7 @@ export default function App() {
   const outraTela =
     activeView !== 'hub' ||
     !!pedindoLogin ||
+    acesso === 'porta' ||
     recovery ||
     onboarded === false ||
     !!tokenDoConvite ||
@@ -461,10 +467,32 @@ export default function App() {
       </Suspense>
     );
   }
-  if (
-    porta({ authRequired, temSessao: !!session, anonimoAceito: semContaAceito, pedindoLogin: !!pedindoLogin }) ===
-    'login'
-  ) {
+  const destinoDaPorta = porta({
+    authRequired,
+    temSessao: !!session,
+    anonimoAceito: semContaAceito,
+    pedindoLogin: !!pedindoLogin,
+    acesso,
+  });
+  if (destinoDaPorta === 'porta-obrigatoria') {
+    return (
+      <Suspense
+        fallback={
+          <div className="flex h-tela w-full items-center justify-center bg-canvas text-ink-muted text-sm">
+            {t('Carregando…')}
+          </div>
+        }
+      >
+        <PortaDeEntrada
+          faixa={faixaSemConta}
+          aoDeclarar={declararFaixa}
+          modoInicial={pedindoLogin === 'login' ? 'login' : 'signup'}
+        />
+        <Toaster />
+      </Suspense>
+    );
+  }
+  if (destinoDaPorta === 'login') {
     return (
       <Suspense
         fallback={

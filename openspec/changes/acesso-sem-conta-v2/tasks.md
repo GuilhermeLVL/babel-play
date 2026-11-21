@@ -11,10 +11,10 @@
 
 ## 3. Porta obrigatória, migração e volta ao destino
 
-- [ ] 3.1 `porta()` devolve `'porta-obrigatoria'`; `PortaDeEntrada` com pergunta de faixa e `Login` sem "Continuar sem conta"
-- [ ] 3.2 Volta ao destino e `ModalDeMigracao` sem duplicar
-- [ ] 3.3 Cartão "Guarde o que você capturou" ao fim da 1ª sessão; menor com convite neutro
-- [ ] 3.4 Testes: `app-gate-anonimo`, `funil-login`, `convites-sem-conta` com a flag ligada; e2e `acesso-sem-conta-v2`
+- [x] 3.1 `porta()` devolve `'porta-obrigatoria'`; `PortaDeEntrada` com pergunta de faixa e `Login` sem "Continuar sem conta"
+- [x] 3.2 Volta ao destino e `ModalDeMigracao` sem duplicar
+- [x] 3.3 Cartão "Guarde o que você capturou" ao fim da 1ª sessão; menor com convite neutro
+- [x] 3.4 Testes: `app-gate-anonimo`, `funil-login`, `convites-sem-conta` com a flag ligada; e2e `acesso-sem-conta-v2`
 
 ## 4. Livros
 

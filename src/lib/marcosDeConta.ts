@@ -1,5 +1,6 @@
 import { estadoDoTeto, TETO_ANONIMO, TETO_DA_EDICAO_ESTATICA } from '@core';
 
+import type { FaixaDeclarada } from '../core/acessoSemConta';
 import { edicaoEstatica } from './edicaoEstatica';
 
 /**
@@ -18,7 +19,7 @@ import { edicaoEstatica } from './edicaoEstatica';
  * a mesma conversa de novo. O que a pessoa dispensou, ficou dispensado.
  */
 
-export type MarcoDeConta = 'segunda-sessao' | 'caderno-quase-cheio' | 'acervo-quase-cheio';
+export type MarcoDeConta = 'primeira-sessao' | 'segunda-sessao' | 'caderno-quase-cheio' | 'acervo-quase-cheio';
 
 const CHAVE = 'babel.marcos_vistos';
 
@@ -51,6 +52,13 @@ export interface AvisoDeConta {
 }
 
 const TEXTO_COM_CONTA: Record<MarcoDeConta, AvisoDeConta> = {
+  /* Só com o acesso sem conta v2 ligado: o fim da 1ª sessão, antes de a porta pedir a conta. */
+  'primeira-sessao': {
+    marco: 'primeira-sessao',
+    titulo: 'Guarde o que você capturou',
+    texto:
+      'Sua sessão está só neste navegador. Com uma conta, ela fica guardada e vai com você para qualquer aparelho.',
+  },
   'segunda-sessao': {
     marco: 'segunda-sessao',
     titulo: 'Suas gravações estão só neste navegador',
@@ -75,6 +83,12 @@ const TEXTO_COM_CONTA: Record<MarcoDeConta, AvisoDeConta> = {
  * mandar a pessoa para uma porta que não existe; o texto diz o que é, uma demonstração.
  */
 const TEXTO_DA_EDICAO_ESTATICA: Record<MarcoDeConta, AvisoDeConta> = {
+  /* Não acontece (a regra do acesso sem conta v2 não vale na estática); está aqui para o tipo. */
+  'primeira-sessao': {
+    marco: 'primeira-sessao',
+    titulo: 'Suas gravações estão só neste navegador',
+    texto: 'Esta é a edição de demonstração: limpar o navegador ou trocar de aparelho leva tudo junto.',
+  },
   'segunda-sessao': {
     marco: 'segunda-sessao',
     titulo: 'Suas gravações estão só neste navegador',
@@ -99,7 +113,35 @@ const TEXTO_DA_EDICAO_ESTATICA: Record<MarcoDeConta, AvisoDeConta> = {
  * Devolve no máximo um aviso: dois de uma vez viram ruído, e o primeiro da lista é sempre o mais
  * concreto (o teto que está perto vale mais do que o lembrete genérico de guardar).
  */
-export function avisoPendente(estado: { sessoes: number; palavras: number; semConta: boolean }): AvisoDeConta | null {
+/**
+ * O CONVITE NEUTRO para quem se declarou menor de 18 (acesso sem conta v2): o mesmo marco, a mesma
+ * memória de "já vi", sem a pressão de "vai perder tudo". Sem urgência, sem culpa (`copy-br-etica`).
+ */
+const TEXTO_DO_MENOR = 'Com um responsável, você pode criar uma conta e guardar o que fez aqui.';
+
+export function avisoPendente(estado: {
+  sessoes: number;
+  palavras: number;
+  semConta: boolean;
+  /** A flag `acesso_restrito_sem_conta` ligada para esta pessoa. Ausente = o comportamento de antes. */
+  acessoRestrito?: boolean;
+  /** A faixa declarada na porta (`faixaSemConta`); só conta com `acessoRestrito`. */
+  faixa?: FaixaDeclarada;
+}): AvisoDeConta | null {
+  const aviso = avisoDoMarco(estado);
+  if (aviso && estado.acessoRestrito && estado.faixa === 'menor' && !edicaoEstatica()) {
+    return { ...aviso, texto: TEXTO_DO_MENOR };
+  }
+  return aviso;
+}
+
+function avisoDoMarco(estado: {
+  sessoes: number;
+  palavras: number;
+  semConta: boolean;
+  acessoRestrito?: boolean;
+  faixa?: FaixaDeclarada;
+}): AvisoDeConta | null {
   if (!estado.semConta) return null;
   const estatica = edicaoEstatica();
   const TEXTO = estatica ? TEXTO_DA_EDICAO_ESTATICA : TEXTO_COM_CONTA;
@@ -110,6 +152,12 @@ export function avisoPendente(estado: { sessoes: number; palavras: number; semCo
 
   const caderno = estadoDoTeto('palavras', estado.palavras, { edicaoEstatica: estatica });
   if (caderno.perto && !jaViu('caderno-quase-cheio')) return TEXTO['caderno-quase-cheio'];
+
+  /* Acesso sem conta v2: o fim da 1ª sessão convida a guardar (a próxima visita já abre a porta). O menor
+     não passa por aqui: segue local, e só ouve os marcos de sempre, no tom neutro. */
+  if (estado.acessoRestrito && !estatica && estado.faixa !== 'menor' && estado.sessoes >= 1) {
+    return jaViu('primeira-sessao') ? null : TEXTO['primeira-sessao'];
+  }
 
   // O mais genérico por último: só fala quando não há nada mais concreto para dizer.
   if (estado.sessoes >= 2 && !jaViu('segunda-sessao')) return TEXTO['segunda-sessao'];

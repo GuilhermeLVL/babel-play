@@ -2,10 +2,14 @@ import type { AppMetrics } from '@core';
 import { CloudOff, X } from 'lucide-react';
 import { useState } from 'react';
 
+import { FLAG_ACESSO_RESTRITO_SEM_CONTA } from '../../core/planos';
 import { edicaoEstatica, urlDoAppCompleto } from '../../lib/edicaoEstatica';
+import { lerFaixaSemConta } from '../../lib/faixaSemConta';
+import { useFlag } from '../../lib/flags';
 import { t } from '../../lib/i18n';
 import { estaAnonimo } from '../../lib/identidade';
 import { avisoPendente, marcarVisto } from '../../lib/marcosDeConta';
+import { pedirEntrada } from '../../lib/pedirConta';
 import { usePedacoDoQuest } from './quest/usePedacoDoQuest';
 
 const carregarFaixaDoQuest = () => import('./quest/FaixaDeAvisoDoQuest');
@@ -30,14 +34,22 @@ export default function AvisoDeConta({ metrics, onEntrar }: { metrics: AppMetric
   /* Se o desenho do headset não chegar, vale o cartão de sempre (um aviso nunca recarrega a página). */
   const doQuest = usePedacoDoQuest(carregarFaixaDoQuest, true);
 
+  /* Acesso sem conta v2: o cartão "Guarde o que você capturou" e o tom neutro para quem se declarou menor. */
+  const acessoRestrito = useFlag(FLAG_ACESSO_RESTRITO_SEM_CONTA);
+
   const aviso = avisoPendente({
     sessoes: metrics?.sessions ?? 0,
     palavras: metrics?.deckSize ?? 0,
     semConta: estaAnonimo(),
+    acessoRestrito,
+    faixa: lerFaixaSemConta(),
   });
   if (!aviso || dispensado) return null;
   /* Edição estática com `VITE_URL_APP_COMPLETO`: a conta existe na versão completa, noutro endereço. */
   const appCompleto = urlDoAppCompleto();
+
+  /* O fim da 1ª sessão abre a porta já no lugar certo: cadastro ou entrada. */
+  const duasPortas = aviso.marco === 'primeira-sessao';
 
   const dispensar = () => {
     marcarVisto(aviso.marco);
@@ -61,10 +73,16 @@ export default function AvisoDeConta({ metrics, onEntrar }: { metrics: AppMetric
                   : []),
                 { rotulo: t('Entendi'), aoClicar: dispensar },
               ]
-            : [
-                { rotulo: t('Criar conta ou entrar'), aoClicar: onEntrar, principal: true },
-                { rotulo: t('Agora não'), aoClicar: dispensar },
-              ]
+            : duasPortas
+              ? [
+                  { rotulo: t('Criar conta'), aoClicar: () => pedirEntrada('signup'), principal: true },
+                  { rotulo: t('Já tenho conta'), aoClicar: () => pedirEntrada('login') },
+                  { rotulo: t('Agora não'), aoClicar: dispensar },
+                ]
+              : [
+                  { rotulo: t('Criar conta ou entrar'), aoClicar: onEntrar, principal: true },
+                  { rotulo: t('Agora não'), aoClicar: dispensar },
+                ]
         }
         aoDispensar={dispensar}
         rotuloDeDispensar={t('Dispensar aviso')}
@@ -100,6 +118,18 @@ export default function AvisoDeConta({ metrics, onEntrar }: { metrics: AppMetric
               )}
               <button onClick={dispensar} className="btn-outline !py-2 !text-[12.5px]">
                 {t('Entendi')}
+              </button>
+            </>
+          ) : duasPortas ? (
+            <>
+              <button onClick={() => pedirEntrada('signup')} className="btn-solid !py-2 !text-[12.5px]">
+                {t('Criar conta')}
+              </button>
+              <button onClick={() => pedirEntrada('login')} className="btn-outline !py-2 !text-[12.5px]">
+                {t('Já tenho conta')}
+              </button>
+              <button onClick={dispensar} className="btn-outline !py-2 !text-[12.5px]">
+                {t('Agora não')}
               </button>
             </>
           ) : (

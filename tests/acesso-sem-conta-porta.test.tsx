@@ -24,6 +24,12 @@ vi.mock('../src/lib/supabase', () => ({
   carregarSupabase: async () => null,
   getAccessToken: async () => null,
 }))
+const funil = vi.hoisted(() => ({ eventos: [] as string[] }))
+vi.mock('../src/lib/ofertas/funilDaPorta', () => ({
+  registrarEventoDaPorta: (e: string) => funil.eventos.push(e),
+  registrarCadastroIniciadoNaPorta: () => funil.eventos.push('porta_cadastro_iniciado'),
+  contarContaDoGooglePelaPorta: () => {},
+}))
 vi.mock('../src/lib/flags', () => ({ useFlag: (chave: string) => chave === 'acesso_restrito_sem_conta' && mundo.flag }))
 vi.mock('../src/data/efemero/store', () => ({
   abrirStore: async () => ({
@@ -44,6 +50,7 @@ const aguardar = () => new Promise((r) => setTimeout(r, 20))
 
 beforeEach(() => {
   localStorage.clear()
+  funil.eventos = []
   mundo.flag = false
   mundo.sessoes = 0
   mundo.contagens = 0
@@ -180,6 +187,22 @@ describe('PortaDeEntrada', () => {
     expect(aoDeclarar).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Continuar' }))
     expect(aoDeclarar).toHaveBeenCalledWith('menor')
+  })
+
+  /* Etapa 5: o funil anônimo (`funilDaPorta.ts`). */
+  it('funil: uma exibição por montagem (mesmo no StrictMode); a faixa de menor só conta ao continuar', () => {
+    render(
+      <StrictMode>
+        <PortaDeEntrada faixa={null} aoDeclarar={vi.fn()} />
+      </StrictMode>,
+    )
+    expect(funil.eventos).toEqual(['porta_exibida'])
+    fireEvent.click(screen.getByRole('button', { name: 'Não, tenho menos de 18' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Voltar' }))
+    expect(funil.eventos).toEqual(['porta_exibida'])
+    fireEvent.click(screen.getByRole('button', { name: 'Não, tenho menos de 18' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }))
+    expect(funil.eventos).toEqual(['porta_exibida', 'porta_faixa_menor'])
   })
 })
 

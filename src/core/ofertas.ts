@@ -199,6 +199,19 @@ export const GATILHOS_FUNCIONAIS: readonly GatilhoDeOferta[] = Object.freeze([
 export const IDS_FUNCIONAIS: readonly string[] = GATILHOS_FUNCIONAIS.map((g) => g.id);
 
 /**
+ * O FUNIL DA PORTA OBRIGATÓRIA (acesso sem conta v2, `src/lib/ofertas/funilDaPorta.ts`): a porta apareceu,
+ * a pessoa disse ter menos de 18, começou o cadastro, a conta foi criada. Viaja pelo mesmo contrato e pelos
+ * mesmos contadores das ofertas, com rótulos fixos (sem gatilho, sem componente, convidado → conta).
+ */
+export const EVENTOS_DA_PORTA = [
+  'porta_exibida',
+  'porta_faixa_menor',
+  'porta_cadastro_iniciado',
+  'conta_criada_pela_porta',
+] as const;
+export type EventoDaPorta = (typeof EVENTOS_DA_PORTA)[number];
+
+/**
  * INSTRUMENTAÇÃO DE CONVERSÃO — o funil `oferta_exibida → oferta_clicada → checkout_iniciado →
  * assinatura_concluida`, com as saídas `oferta_dispensada` e `oferta_nao_mostrar`. Anônimo: nenhum
  * id de pessoa, só o gatilho, o componente, o plano atual/sugerido e a variante.
@@ -210,6 +223,7 @@ export const EVENTOS_DE_OFERTA = [
   'oferta_clicada',
   'checkout_iniciado',
   'assinatura_concluida',
+  ...EVENTOS_DA_PORTA,
 ] as const;
 export type EventoDeOferta = (typeof EVENTOS_DE_OFERTA)[number];
 

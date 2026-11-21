@@ -238,3 +238,31 @@ test('livro: o menor lê direto pela rota da leitura, como hoje', async ({ page 
   await expect(leitorPronto(page)).toBeVisible({ timeout: 60_000 })
   await expect(page.getByTestId('porta-de-entrada')).toHaveCount(0)
 })
+
+/* Etapa 5: o "Criar conta" do site leva a `/app?entrar=signup` (aqui, na raiz: dev/testes servem o app em `/`).
+   Vale com a flag DESLIGADA também: é só um atalho para o Login. */
+test('site → ?entrar=signup abre o Login no cadastro e some da barra (flag desligada)', async ({ page }) => {
+  await page.goto('/?entrar=signup')
+  await expect(page.getByRole('heading', { level: 1, name: 'Criar conta' })).toBeVisible({ timeout: 60_000 })
+  await expect(page).not.toHaveURL(/entrar=/)
+  /* Flag desligada: o Login de sempre, com "Continuar sem conta". */
+  await page.getByRole('button', { name: 'Continuar sem conta' }).click()
+  await expect(page.locator('nav.q-trilho')).toBeVisible({ timeout: 30_000 })
+})
+
+test('flag ligada: ?entrar=login cai na porta e o funil conta porta_exibida', async ({ page }) => {
+  await ligarFlag(page)
+  await page.goto('/')
+  await expect(page.locator('nav.q-trilho')).toBeVisible({ timeout: 60_000 })
+  await semearPrimeiraSessao(page, `Sessão e2e ${Date.now()}`)
+
+  const eventos: string[] = []
+  page.on('request', (r) => {
+    if (r.method() === 'POST' && r.url().endsWith('/api/metricas/ofertas'))
+      for (const e of (r.postDataJSON() as { eventos: Array<{ evento: string }> }).eventos) eventos.push(e.evento)
+  })
+  await page.goto('/?entrar=login')
+  await expect(page.getByTestId('porta-de-entrada')).toBeVisible({ timeout: 60_000 })
+  await expect(page).not.toHaveURL(/entrar=/)
+  await expect.poll(() => eventos, { timeout: 15_000 }).toContain('porta_exibida')
+})

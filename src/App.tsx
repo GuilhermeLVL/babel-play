@@ -131,6 +131,7 @@ import { carregarProtecao, fetchSessions } from './data/api';
 import { lerTokenDoConvite } from './lib/conviteNaUrl';
 import { edicaoEstatica } from './lib/edicaoEstatica';
 import { carregarEntitlements } from './lib/entitlements';
+import { aplicarEntrarDaUrl } from './lib/entrarNaUrl';
 import { tirarEsqueleto } from './lib/esqueleto';
 import { useAcessoSemConta } from './lib/estado/useAcessoSemConta';
 import { useAparencia, useHidratacaoDeAjustes } from './lib/estado/useAparencia';
@@ -194,6 +195,12 @@ export default function App() {
     setMigracao,
     fecharGate,
   } = useGateDeConta({ adiarMigracao: emCheckout });
+  /* O atalho do site (`/app?entrar=login|signup`): lido uma vez, já com a identidade resolvida, e tirado da
+     barra. Só pede a porta a quem está sem conta num app que tem conta (`semContaComPorta`); no self-host, na
+     edição estática e com sessão o parâmetro só sai da URL. */
+  useEffect(() => {
+    aplicarEntrarDaUrl(setPedindoLogin);
+  }, [session, anonimo, setPedindoLogin]);
   /* O gate só desce quando o evento `babel_exige_conta` abre (gate !== null); o host das ofertas
      desce já no primeiro desenho, porque escuta eventos desde o começo. */
   const { Componente: GateDeConta } = usePedacoDoQuest(carregarGateDeConta, gate !== null);

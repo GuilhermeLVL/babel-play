@@ -63,9 +63,19 @@ interface LoginProps {
    * idade. Com ele, os termos aparecem como no soft gate.
    */
   rodape?: ReactNode;
+  /** O cadastro começou (o formulário de "Criar conta" foi enviado, ou "Google" nesse modo): o funil da porta. */
+  aoIniciarCadastro?: (via: 'email' | 'google') => void;
+  /** O Supabase aceitou a conta nova por e-mail (com ou sem confirmação pendente): o funil da porta. */
+  aoCriarConta?: () => void;
 }
 
-export default function Login({ onContinuarSemConta, modoInicial = 'login', rodape }: LoginProps = {}) {
+export default function Login({
+  onContinuarSemConta,
+  modoInicial = 'login',
+  rodape,
+  aoIniciarCadastro,
+  aoCriarConta,
+}: LoginProps = {}) {
   const [modo, setModo] = useState<Mode>(modoInicial);
   /* O e-mail lembrado neste aparelho já vem preenchido; a senha é do gerenciador do navegador. */
   const [email, setEmail] = useState(porta.emailLembrado);
@@ -148,6 +158,7 @@ export default function Login({ onContinuarSemConta, modoInicial = 'login', roda
   async function social(provider: 'google') {
     setErro(null);
     setCarregando(true);
+    if (modo === 'signup') aoIniciarCadastro?.('google');
     const r = await auth.signInWithProvider(provider, redirectTo);
     if (!r.ok) {
       setErro(r.message ?? t('Falha no login social.'));
@@ -196,7 +207,9 @@ export default function Login({ onContinuarSemConta, modoInicial = 'login', roda
           return;
         }
         gastouOCaptcha = true;
+        aoIniciarCadastro?.('email');
         const r = await auth.signUpEmail(email, senha, ...comCaptcha);
+        if (r.ok) aoCriarConta?.();
         // No cadastro o erro do Supabase passa como veio (`auth.ts`): a recusa do captcha se reconhece pela palavra.
         if (!r.ok) {
           setErro(

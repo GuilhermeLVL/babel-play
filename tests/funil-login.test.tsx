@@ -28,6 +28,12 @@ vi.mock('../src/lib/supabase', () => ({
   getAccessToken: async () => null,
 }))
 vi.mock('../src/data/efemero/store', () => store)
+const funil = vi.hoisted(() => ({ eventos: [] as string[] }))
+vi.mock('../src/lib/ofertas/funilDaPorta', () => ({
+  registrarEventoDaPorta: (e: string) => funil.eventos.push(e),
+  registrarCadastroIniciadoNaPorta: (via: string) => funil.eventos.push(`porta_cadastro_iniciado:${via}`),
+  contarContaDoGooglePelaPorta: () => {},
+}))
 
 import PortaDeEntrada from '../src/components/conta/PortaDeEntrada'
 import Login from '../src/components/Login'
@@ -50,6 +56,7 @@ beforeEach(() => {
   _reiniciarIdentidade()
   irPara('/')
   vi.clearAllMocks()
+  funil.eventos = []
   store.temDadosLocais.mockResolvedValue(false)
 })
 afterEach(cleanup)
@@ -290,6 +297,44 @@ describe('senha de 8 caracteres, como o Supabase de produção', () => {
       },
     } as never)
     expect((await auth.signUpEmail('a@x.com', 'senha1234')).message).toMatch(/vazamento/)
+  })
+})
+
+describe('funil da porta obrigatória (acesso sem conta v2, etapa 5)', () => {
+  it('o cadastro por e-mail na porta conta o início e a conta criada; o Login fora da porta não conta nada', async () => {
+    const preencherEEnviar = async () => {
+      fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: 'a@x.com' } })
+      fireEvent.change(screen.getByLabelText('Senha'), { target: { value: 'senha-forte-123' } })
+      fireEvent.change(screen.getByLabelText('Confirmar senha'), { target: { value: 'senha-forte-123' } })
+      await act(async () => {
+        fireEvent.submit((screen.getByLabelText('Senha') as HTMLInputElement).closest('form')!)
+        await aguardar()
+      })
+    }
+    const { unmount } = render(<PortaDeEntrada faixa="adulto" aoDeclarar={() => {}} />)
+    expect(funil.eventos).toEqual(['porta_exibida'])
+    await preencherEEnviar()
+    expect(supa.auth.signUp).toHaveBeenCalled()
+    expect(funil.eventos).toEqual(['porta_exibida', 'porta_cadastro_iniciado:email', 'conta_criada_pela_porta'])
+    unmount()
+
+    funil.eventos = []
+    render(<Login modoInicial="signup" />)
+    await preencherEEnviar()
+    expect(funil.eventos).toEqual([])
+  })
+
+  it('cadastro recusado pelo Supabase: o início conta, a conta criada não', async () => {
+    supa.auth.signUp.mockResolvedValueOnce({ data: { session: null }, error: { message: 'x' } } as never)
+    render(<PortaDeEntrada faixa="adulto" aoDeclarar={() => {}} />)
+    fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: 'a@x.com' } })
+    fireEvent.change(screen.getByLabelText('Senha'), { target: { value: 'senha-forte-123' } })
+    fireEvent.change(screen.getByLabelText('Confirmar senha'), { target: { value: 'senha-forte-123' } })
+    await act(async () => {
+      fireEvent.submit((screen.getByLabelText('Senha') as HTMLInputElement).closest('form')!)
+      await aguardar()
+    })
+    expect(funil.eventos).toEqual(['porta_exibida', 'porta_cadastro_iniciado:email'])
   })
 })
 

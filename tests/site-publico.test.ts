@@ -66,9 +66,12 @@ describe('páginas públicas', () => {
     expect(new Set(htmls.map(descricao)).size).toBe(htmls.length)
   })
 
-  it('cabeçalho com Entrar → /app e rodapé com privacidade e termos', () => {
+  it('cabeçalho com Entrar → /app?entrar=login, Criar conta → /app?entrar=signup e rodapé com privacidade e termos', () => {
     const html = arquivos.get('inicio.html')!
-    expect(html).toContain('<a class="botao contorno" href="/app">Entrar</a>')
+    expect(html).toContain('<a class="botao contorno" href="/app?entrar=login">Entrar</a>')
+    expect(html).toContain('<a class="botao" href="/app?entrar=signup">Criar conta</a>')
+    /* O "Abrir o Frasy" da home segue no app sem parâmetro: é o caminho de quem quer experimentar sem conta. */
+    expect(html).toContain('<a class="botao" href="/app">Abrir o Frasy · grátis</a>')
     for (const href of ['/sobre', '/contato', '/ajuda', '/privacidade', '/termos', '/guias'])
       expect(html).toContain(`href="${href}"`)
   })
@@ -324,7 +327,7 @@ describe('páginas legais com o layout do site', () => {
     const miolo = /<main[^>]*>([\s\S]*?)<\/main>/.exec(fonte)![1]
     expect(html).toContain(miolo)
     expect(canonical(html)).toBe(`${URL_SITE}${caminho}`)
-    expect(html).toContain('<a class="botao contorno" href="/app">Entrar</a>')
+    expect(html).toContain('<a class="botao contorno" href="/app?entrar=login">Entrar</a>')
     expect(html).toContain(`<a href="${caminho}" aria-current="page">`)
     expect(html.match(/<h1>/g)).toHaveLength(1)
   })

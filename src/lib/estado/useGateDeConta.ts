@@ -76,6 +76,9 @@ export function useGateDeConta({ adiarMigracao = false }: OpcoesDoGateDeConta = 
         if (depois === 'conta') {
           setPedindoLoginDeFato(false);
           setGate(null);
+          /* A conta do Google pedida na porta obrigatória volta como sessão: o funil conta aqui (só com o
+             marcador que o clique deixou; o módulo desce só agora). */
+          void import('../ofertas/funilDaPorta').then((m) => m.contarContaDoGooglePelaPorta()).catch(() => {});
           // Entrou com coisas deste navegador (do modo sem conta ou de uma visita anterior): oferece
           // subir. Visível, nunca em silêncio — e só quando HÁ o que subir: o teste de ponta a ponta
           // viu o modal abrir com "0 sessão e 0 cartão", o que é ruído no meio do funil.

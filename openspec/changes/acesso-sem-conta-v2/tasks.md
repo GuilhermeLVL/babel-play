@@ -23,9 +23,9 @@
 
 ## 5. Site e funil
 
-- [ ] 5.1 "Entrar" vai a `/app?entrar=login` e novo "Criar conta" a `/app?entrar=signup`; `App.tsx` lê `entrar` uma vez e limpa a URL
-- [ ] 5.2 Eventos `porta_exibida`, `porta_faixa_menor`, `porta_cadastro_iniciado`, `conta_criada_pela_porta`
-- [ ] 5.3 Textos em pt-BR via `t()`, `npm run i18n`, revisão `copy-br-etica`
+- [x] 5.1 "Entrar" vai a `/app?entrar=login` e novo "Criar conta" a `/app?entrar=signup`; `App.tsx` lê `entrar` uma vez e limpa a URL (`src/lib/entrarNaUrl.ts`; no self-host, na edição estática e com conta só limpa)
+- [x] 5.2 Eventos `porta_exibida`, `porta_faixa_menor`, `porta_cadastro_iniciado`, `conta_criada_pela_porta` (`src/lib/ofertas/funilDaPorta.ts`; menor conta só a faixa, uma vez; PromQL em `docs/ofertas.md`)
+- [x] 5.3 Textos em pt-BR via `t()`, `npm run i18n`, revisão `copy-br-etica` (a etapa 5 não cria texto no app; o "Criar conta" do site é pt-BR estático, como o resto do site)
 
 ## 6. Staging e liberação
 

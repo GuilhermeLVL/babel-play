@@ -27,6 +27,7 @@ vi.mock('../src/lib/ofertas/plano', () => ({ planoDaOferta: () => 'free' }))
 
 const I = await import('../src/lib/ofertas/instrumentacao')
 const { validarLoteDeOfertas } = await import('../server/routes/metricasOfertas')
+const P = await import('../src/lib/ofertas/funilDaPorta')
 
 const rotulos = I.rotulosDaOferta({
   gatilho: 'premium',
@@ -118,6 +119,73 @@ describe('atribuição: oferta → checkout → assinatura', () => {
 
   it('assinatura sem checkout iniciado neste aparelho não conta', () => {
     I.registrarAssinaturaConcluida()
+    vi.advanceTimersByTime(I.ESPERA_DO_LOTE_MS)
+    expect(estado.chamadas).toHaveLength(0)
+  })
+})
+
+/* Acesso sem conta v2, etapa 5: o funil da porta obrigatória vai pelo mesmo contrato, com rótulos fixos. */
+describe('funil da porta', () => {
+  const conhecidos = { gatilhos: new Set(['nenhum']), variantes: new Set(['nenhum']) }
+  const enviados = () => estado.chamadas.flatMap((c) => c.corpo.eventos)
+
+  it('os quatro eventos saem com rótulos fixos e o servidor os aceita', () => {
+    P.registrarEventoDaPorta('porta_exibida')
+    P.registrarCadastroIniciadoNaPorta('email')
+    P.registrarEventoDaPorta('conta_criada_pela_porta')
+    P.registrarEventoDaPorta('porta_faixa_menor')
+    vi.advanceTimersByTime(I.ESPERA_DO_LOTE_MS)
+    const corpo = estado.chamadas[0].corpo
+    expect(corpo.eventos.map((e) => e.evento)).toEqual([
+      'porta_exibida',
+      'porta_cadastro_iniciado',
+      'conta_criada_pela_porta',
+      'porta_faixa_menor',
+    ])
+    for (const e of corpo.eventos) expect(e).toEqual({ evento: e.evento, ...P.ROTULOS_DA_PORTA })
+    expect(validarLoteDeOfertas(corpo, conhecidos)).toHaveLength(4)
+  })
+
+  it('o servidor recusa evento da porta fora do alfabeto', () => {
+    const corpo = { v: 1, eventos: [{ evento: 'porta_fechada', ...P.ROTULOS_DA_PORTA }] }
+    expect(validarLoteDeOfertas(corpo, conhecidos)).toBeNull()
+  })
+
+  it('menor: conta a faixa uma vez e, com a faixa guardada, mais nada da porta sai deste aparelho', () => {
+    P.registrarEventoDaPorta('porta_faixa_menor')
+    localStorage.setItem('babel.faixa_sem_conta', 'menor')
+    P.registrarEventoDaPorta('porta_exibida')
+    P.registrarCadastroIniciadoNaPorta('email')
+    vi.advanceTimersByTime(I.ESPERA_DO_LOTE_MS)
+    expect(enviados().map((e) => e.evento)).toEqual(['porta_faixa_menor'])
+    localStorage.removeItem('babel.faixa_sem_conta')
+  })
+
+  it('"Métricas de uso anônimas" desligada: nada da porta sai', () => {
+    estado.metricas = false
+    P.registrarEventoDaPorta('porta_exibida')
+    P.registrarEventoDaPorta('porta_faixa_menor')
+    vi.advanceTimersByTime(I.ESPERA_DO_LOTE_MS)
+    expect(estado.chamadas).toHaveLength(0)
+  })
+
+  it('Google: a conta conta uma vez quando a sessão volta, e só dentro de 1 h do clique', () => {
+    const t0 = Date.now()
+    P.registrarCadastroIniciadoNaPorta('google', t0)
+    P.contarContaDoGooglePelaPorta(t0 + 60_000)
+    P.contarContaDoGooglePelaPorta(t0 + 61_000)
+    vi.advanceTimersByTime(I.ESPERA_DO_LOTE_MS)
+    expect(enviados().map((e) => e.evento)).toEqual(['porta_cadastro_iniciado', 'conta_criada_pela_porta'])
+
+    estado.chamadas = []
+    P.registrarCadastroIniciadoNaPorta('google', t0)
+    P.contarContaDoGooglePelaPorta(t0 + 2 * 60 * 60_000)
+    vi.advanceTimersByTime(I.ESPERA_DO_LOTE_MS)
+    expect(enviados().map((e) => e.evento)).toEqual(['porta_cadastro_iniciado'])
+  })
+
+  it('login comum (sem marcador da porta) não conta conta criada', () => {
+    P.contarContaDoGooglePelaPorta()
     vi.advanceTimersByTime(I.ESPERA_DO_LOTE_MS)
     expect(estado.chamadas).toHaveLength(0)
   })

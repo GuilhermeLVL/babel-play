@@ -409,7 +409,7 @@ function criarEstadoProm(): Estado {
        Conversão = razão entre `evento`s do mesmo gatilho (docs/ofertas.md). */
     ofertaEventos: new Counter({
       name: 'oferta_eventos_total',
-      help: 'Eventos do funil de ofertas de planos (exibida, dispensada, nao_mostrar, clicada, checkout_iniciado, assinatura_concluida), por gatilho e componente. Anônimo.',
+      help: 'Eventos do funil de ofertas de planos (exibida, dispensada, nao_mostrar, clicada, checkout_iniciado, assinatura_concluida) e da porta de entrada (porta_exibida, porta_faixa_menor, porta_cadastro_iniciado, conta_criada_pela_porta), por gatilho e componente. Anônimo.',
       labelNames: ['evento', 'gatilho', 'componente'] as const,
     }),
     ofertaEventosPorPlano: new Counter({

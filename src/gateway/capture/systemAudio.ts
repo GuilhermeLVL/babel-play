@@ -346,6 +346,12 @@ export interface SystemAudioCallbacks {
    * decode, ou `null` para não especular (nuvem, modelo carregando). Se a fala voltar, `cancelar()`.
    */
   onFinalEspeculativo?: (pcm: Float32Array, sampleRate: number, seq: number) => EspeculacaoDoFinal | null;
+  /**
+   * O último quadro de voz da fala `seq` foi visto em `t` (ms de `performance.now()`), avisado no fim da fala, ANTES
+   * de `onUtterance`: o tempo que a fala custa ao ouvinte conta daqui, e não da decisão do VAD (a redenção de 800 ms é
+   * espera dele). Só vira marca `frasy:fala:fim`; nada muda no que o VAD entrega.
+   */
+  onFimDaVoz?: (seq: number, t: number) => void;
   /** Início da fala → `seq` monotônico do enunciado (para mapear parciais/final na UI). */
   onSpeechStart?: (seq: number) => void;
   /**
@@ -508,6 +514,8 @@ async function startCaptureFromStream(
     return typeof v === 'number' && v > 0 ? v : MAX_SPEECH_MS_LOCAL;
   };
   let speechStartTs = 0;
+  /** `performance.now()` do último quadro de voz da fala em curso (ver `onFimDaVoz`). */
+  let instanteDaUltimaVoz = 0;
   let forcingCut = false;
   /*
    * `let` e não `const`, apesar do que o lint pede.
@@ -683,6 +691,7 @@ async function startCaptureFromStream(
       minSpeechMs: 400, // descarta ruídos < 0,4s (era 250: ruído curto virava frase inventada)
       onSpeechStart: () => {
         speechStartTs = performance.now();
+        instanteDaUltimaVoz = speechStartTs;
         currentSeq = ++seqCounter;
         speaking = true;
         resetUtterance();
@@ -690,6 +699,8 @@ async function startCaptureFromStream(
         cb.onSpeechStart?.(currentSeq);
       },
       onFrameProcessed: (probs, frame) => {
+        // O último quadro que o VAD contou como voz (o mesmo limiar que mantém a fala aberta).
+        if (speaking && probs.isSpeech >= LIMIAR_DE_FALA) instanteDaUltimaVoz = performance.now();
         if (speaking && frame && frame.length) {
           frameChunks.push(frame.slice());
           accumSamples += frame.length;
@@ -732,6 +743,7 @@ async function startCaptureFromStream(
       onSpeechEnd: (audio: Float32Array) => {
         speaking = false;
         speechStartTs = 0;
+        cb.onFimDaVoz?.(currentSeq, instanteDaUltimaVoz);
         vlog(label, 'VAD → fim de fala (seq', currentSeq, '):', audio.length, 'amostras');
         espelho.reiniciar();
         const esp = especulacao;

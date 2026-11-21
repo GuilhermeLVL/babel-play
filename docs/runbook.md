@@ -354,25 +354,27 @@ cai num balde `desconhecida`. É o que impede um scanner de porta de criar mil s
 
 ### 3.1 Métricas do Worker: Analytics Engine
 
-No Worker não há `/metrics` (404). Nove famílias saem como pontos de dados para o dataset `frasy_metricas`
+No Worker não há `/metrics` (404). Doze famílias saem como pontos de dados para o dataset `frasy_metricas`
 (`frasy_metricas_staging` no staging), binding `METRICAS`, gravados por `server/http/metricasDoAnalyticsEngine.ts`.
 Sem o binding (dev local, testes) nada é gravado. Falha do binding vira um único `analytics_engine_falhou`
 (`warn`) por isolate. Blobs e índice são cortados em 96 bytes; um número não finito derruba o ponto.
 
 `blob1` é sempre a família; o `index1` é a chave de amostragem; `double1..` são as medidas.
 
-| Família             | blob2                                       | blob3            | blob4      | blob5  | double1       | double2                       | index1   |
-| ------------------- | ------------------------------------------- | ---------------- | ---------- | ------ | ------------- | ----------------------------- | -------- |
-| `requisicao`        | rota (padrão)                               | método           | status     |        | ms            |                               | rota     |
-| `admissao_recusada` | motivo                                      | plano            |            |        | 1             |                               | motivo   |
-| `custo_por_plano`   | plano                                       |                  |            |        | custo (USD)   |                               | plano    |
-| `r2`                | recurso (`armazenamento`, `ops_a`, `ops_b`) |                  |            |        | fração de uso |                               | recurso  |
-| `provedor`          | provedor                                    | função           | fornecedor | modelo | ms            | custo (USD, 0 se não cobrado) | provedor |
-| `job`               | nome                                        | `ok` ou `falhou` |            |        | ms            |                               | nome     |
-| `resposta_invalida` | função                                      | modelo           |            |        | 1             |                               | função   |
-| `tokens_de_entrada` | função                                      | modelo           |            |        | tokens        | tokens em cache               | função   |
-| `feedback_ia`       | função                                      | `up` ou `down`   | motivo     |        | 1             |                               | função   |
-| `saida_filtrada`    | função                                      | categoria        |            |        | 1             |                               | função   |
+| Família             | blob2                                       | blob3            | blob4                                        | blob5  | double1                            | double2                       | index1   |
+| ------------------- | ------------------------------------------- | ---------------- | -------------------------------------------- | ------ | ---------------------------------- | ----------------------------- | -------- |
+| `requisicao`        | rota (padrão)                               | método           | status                                       |        | ms                                 |                               | rota     |
+| `admissao_recusada` | motivo                                      | plano            |                                              |        | 1                                  |                               | motivo   |
+| `custo_por_plano`   | plano                                       |                  |                                              |        | custo (USD)                        |                               | plano    |
+| `r2`                | recurso (`armazenamento`, `ops_a`, `ops_b`) |                  |                                              |        | fração de uso                      |                               | recurso  |
+| `provedor`          | provedor                                    | função           | fornecedor                                   | modelo | ms                                 | custo (USD, 0 se não cobrado) | provedor |
+| `job`               | nome                                        | `ok` ou `falhou` |                                              |        | ms                                 |                               | nome     |
+| `resposta_invalida` | função                                      | modelo           |                                              |        | 1                                  |                               | função   |
+| `tokens_de_entrada` | função                                      | modelo           |                                              |        | tokens                             | tokens em cache               | função   |
+| `feedback_ia`       | função                                      | `up` ou `down`   | motivo                                       |        | 1                                  |                               | função   |
+| `saida_filtrada`    | função                                      | categoria        |                                              |        | 1                                  |                               | função   |
+| `captura_latencia`  | classe de aparelho                          | idioma-base      | `balde`, `falas`, `falhas` ou `sem_traducao` |        | limite do balde (ms; 0 nos demais) | contagem de falas             | classe   |
+| `captura_carga`     | classe de aparelho                          | modelo           | fase                                         |        | limite do balde (ms)               | contagem de cargas            | classe   |
 
 Consultas pela API SQL (`POST https://api.cloudflare.com/client/v4/accounts/<conta>/analytics_engine/sql`,
 token com "Account Analytics: Read"; o corpo é o SQL). Some `_sample_interval` para corrigir a amostragem:
@@ -415,6 +417,50 @@ SELECT blob2 AS job, SUM(_sample_interval) AS execucoes,
 FROM frasy_metricas WHERE blob1 = 'job' AND timestamp > NOW() - INTERVAL '7' DAY
 GROUP BY job ORDER BY falhas DESC
 ```
+
+### 3.2 Latência da legenda em campo: p75 por classe e taxa de falha
+
+Só existe com a flag `rum_latencia` ligada (nasce desligada; **ligar em produção depende do parecer de privacidade do dono**,
+tarefa 5.7 da change `lab-medicao-legenda-traduzida`; sem o parecer, não ligue). O cliente manda baldes fixos
+(250, 500, 1000, 1500, 2000, 3000, 5000, 10000 ms e "acima de 10 s"), nunca o valor de cada fala; por isso o p75 é
+**aproximado ao limite do balde** (o valor observado é o limite do balde; o último balde vale 30000). Nunca tire a média
+de p75 por sessão: some os baldes.
+
+**Express/self-host (Prometheus)**: métricas `captura_fim_da_fala_ate_legenda_ms{classe,idioma}`,
+`captura_legenda_falas_total`, `captura_legenda_falhas_total`, `captura_legenda_sem_traducao_total` (mesmos rótulos) e
+`captura_carga_modelo_ms{classe,modelo,fase}`. `classe` é um dos 5 perfis (`quest`, `celular-fraco`, `celular-bom`,
+`desktop-sem-gpu`, `desktop-com-gpu`) ou `outro`; `idioma` é `pt`, `en`, `es` ou `outro`.
+
+```promql
+# p75 por classe, última hora
+histogram_quantile(0.75, sum by (le, classe) (rate(captura_fim_da_fala_ate_legenda_ms_bucket[1h])))
+# taxa de falha por classe (falhas ÷ falas contadas)
+sum by (classe) (increase(captura_legenda_falhas_total[1h])) / sum by (classe) (increase(captura_legenda_falas_total[1h]))
+# p75 do download do modelo por classe e modelo
+histogram_quantile(0.75, sum by (le, classe, modelo) (rate(captura_carga_modelo_ms_bucket{fase="download"}[6h])))
+```
+
+**Worker (Analytics Engine)**: o binding `METRICAS` está configurado em `wrangler.jsonc` (produção e staging), e o lote `v: 2`
+grava as famílias `captura_latencia` e `captura_carga` (tabela da §3.1; índice = classe). Um ponto por balde não vazio:
+
+```sql
+-- p75 por classe e idioma, 24 h (soma dos baldes; limite do balde = double1, contagem = double2)
+SELECT blob2 AS classe, blob3 AS idioma,
+       quantileExactWeighted(0.75)(double1, double2 * _sample_interval) AS p75_ms,
+       SUM(double2 * _sample_interval) AS falas_com_legenda
+FROM frasy_metricas WHERE blob1 = 'captura_latencia' AND blob4 = 'balde' AND timestamp > NOW() - INTERVAL '1' DAY
+GROUP BY classe, idioma ORDER BY classe
+
+-- taxa de falha por classe, 24 h
+SELECT blob2 AS classe,
+       SUM(IF(blob4 = 'falhas', double2 * _sample_interval, 0)) / SUM(IF(blob4 = 'falas', double2 * _sample_interval, 0)) AS taxa_falha
+FROM frasy_metricas WHERE blob1 = 'captura_latencia' AND timestamp > NOW() - INTERVAL '1' DAY
+GROUP BY classe
+```
+
+Os histogramas do Prometheus não existem no Worker (o backend lá só soma num `Map`): no Worker o campo só aparece no
+Analytics Engine. As consultas SQL acima não foram executadas contra dados reais (a flag está desligada); valide-as na primeira
+semana depois da ligação.
 
 ---
 

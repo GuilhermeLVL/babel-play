@@ -201,7 +201,7 @@ registerProcessor('sonda-lat', SondaLat);`;
         L.aud.push([Math.round(now() * 10) / 10, Math.round(e.data[0] * 1e4) / 1e4, Math.round(e.data[1] * 1e3) / 1e3]);
       };
       ctx.createMediaStreamSource(stream).connect(no);
-      ev('sonda:ok', { origem, sr: ctx.sampleRate, baseLatency: ctx.baseLatency });
+      ev('sonda:ok', { origem, sr: ctx.sampleRate, baseLatency: ctx.baseLatency, estado: ctx.state });
     } catch (e) {
       ev('sonda:erro', { s: String(e) });
     }
@@ -211,7 +211,7 @@ registerProcessor('sonda-lat', SondaLat);`;
   md.getUserMedia = async (c) => {
     const t0 = now();
     const s = await gum0(c);
-    ev('gum', { ms: now() - t0, audio: !!(c && c.audio) });
+    ev('gum', { ms: now() - t0, audio: !!(c && c.audio), armado: !!window.__LAT_ARMADO });
     if (c && c.audio && cfg.modo === 'mic' && window.__LAT_ARMADO) sondar(s, 'mic');
     return s;
   };

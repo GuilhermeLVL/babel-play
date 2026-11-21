@@ -1,7 +1,7 @@
 import { ChamadaCancelada, ehCancelamento, ehMotorCarregando, MotorAindaCarregando } from '@core';
 
 import type { MtOptions, MtResult, TranslationProvider } from '../capabilities';
-import { marcar } from '../marcasDeDesempenho';
+import { iniciarFasesDeCarga, marcar } from '../marcasDeDesempenho';
 import { gravarManifesto, MENSAGEM_DO_MANIFESTO } from '../modelManifest';
 import {
   bergamotOferecido,
@@ -59,6 +59,8 @@ export class BergamotLocal implements TranslationProvider {
   >();
   private prontos = new Set<ParDoBergamot>();
   private emCarga = new Set<ParDoBergamot>();
+  /** As fases da carga de cada modelo em andamento (`frasy:modelo:*`): o worker avisa cada uma com `fase`. */
+  private fases = new Map<string, ReturnType<typeof iniciarFasesDeCarga>>();
   /** Pares que falharam NESTA sessão (qualquer motivo): daqui em diante vão ao opus-mt. */
   private falhouNoPar = new Set<ParDoBergamot>();
   /** O MOTOR falhou nesta sessão (WASM que não abre): vale para todos os pares. */
@@ -116,6 +118,7 @@ export class BergamotLocal implements TranslationProvider {
   /** A carga não deu: o Bergamot sai desta sessão, e quem espera é avisado (o composto cai no opus-mt). */
   private falhar(modelo: string, motivo: MotivoDaFalha, mensagem: string): void {
     const par = parDoId(modelo) ?? 'pt-en';
+    this.fases.delete(modelo);
     this.falhouNoPar.add(par);
     // Só o MOTOR (WASM que não abre) tira todos os pares; um modelo que não monta ou não baixa tira só o seu.
     if (motivo === 'motor') {
@@ -155,8 +158,13 @@ export class BergamotLocal implements TranslationProvider {
             m.total > 0 ? { loaded: m.loaded, total: m.total } : undefined,
           );
           return;
+        case 'fase':
+          this.fases.get(m.model)?.para(m.fase);
+          return;
         case 'ready': {
           marcar('mt:pronto', { modelo: m.model });
+          this.fases.get(m.model)?.fim();
+          this.fases.delete(m.model);
           const par = parDoId(m.model);
           if (par) {
             this.prontos.add(par);
@@ -206,6 +214,7 @@ export class BergamotLocal implements TranslationProvider {
     if (this.prontos.has(par) || this.emCarga.has(par)) return;
     this.emCarga.add(par);
     marcar('mt:carga:inicio', { modelo: idDoBergamot(par) });
+    this.fases.set(idDoBergamot(par), iniciarFasesDeCarga(idDoBergamot(par)));
     this.ensureWorker(par).postMessage({ type: 'carregar', plano: planoDaPagina(par) } satisfies MensagemParaOWorker);
   }
 

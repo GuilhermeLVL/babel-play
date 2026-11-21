@@ -33,7 +33,7 @@ describe('validarRelatorioDeCaptura (o contrato do corpo)', () => {
   })
 
   it('recusa versão desconhecida, campo faltando e tipo errado', () => {
-    expect(validarRelatorioDeCaptura({ ...valido(), v: 2 })).toBeNull()
+    expect(validarRelatorioDeCaptura({ ...valido(), v: 3 })).toBeNull()
     const { mtMs: _fora, ...semMt } = valido()
     expect(validarRelatorioDeCaptura(semMt)).toBeNull()
     expect(validarRelatorioDeCaptura({ ...valido(), rtf: ['1'] })).toBeNull()
@@ -72,6 +72,75 @@ describe('validarRelatorioDeCaptura (o contrato do corpo)', () => {
   })
 })
 
+const campoV2 = () => ({
+  v: 2,
+  classe: 'desktop-com-gpu',
+  fimDaFalaAteLegenda: { idioma: 'pt-BR', baldes: [0, 3, 5, 2, 0, 0, 0, 0, 1], n: 12, falhas: 1, semTraducao: 0 },
+  carga: [{ modelo: 'whisper-local', fase: 'download', baldes: [0, 0, 0, 0, 0, 0, 1, 2, 0] }],
+})
+
+describe('contrato v: 2 (telemetria de campo, listas fechadas)', () => {
+  it('aceita o v: 2 sem os campos do v: 1 e normaliza o idioma-base', () => {
+    const r = validarRelatorioDeCaptura(campoV2())!
+    expect(r.campo?.classe).toBe('desktop-com-gpu')
+    expect(r.campo?.legenda?.idioma).toBe('pt')
+    expect(r.sttFinalMs).toEqual([])
+    expect(r.campo?.carga[0]).toMatchObject({ modelo: 'whisper-local', fase: 'download' })
+  })
+
+  it('classe, idioma e modelo inventados viram "outro" (não criam série)', () => {
+    const r = validarRelatorioDeCaptura({
+      ...campoV2(),
+      classe: 'PC-do-Joao',
+      fimDaFalaAteLegenda: { ...campoV2().fimDaFalaAteLegenda, idioma: 'klingon' },
+      carga: [{ modelo: 'modelo-inventado', fase: 'aquecimento', baldes: Array(9).fill(0) }],
+    })!
+    expect(r.campo?.classe).toBe('outro')
+    expect(r.campo?.legenda?.idioma).toBe('outro')
+    expect(r.campo?.carga[0]?.modelo).toBe('outro')
+  })
+
+  it('fase inventada, baldes com tamanho errado e tipos errados são 400 (null)', () => {
+    expect(
+      validarRelatorioDeCaptura({ ...campoV2(), carga: [{ modelo: 'x', fase: 'texto', baldes: Array(9).fill(0) }] }),
+    ).toBeNull()
+    expect(
+      validarRelatorioDeCaptura({ ...campoV2(), carga: [{ modelo: 'x', fase: 'download', baldes: [1, 2] }] }),
+    ).toBeNull()
+    expect(validarRelatorioDeCaptura({ ...campoV2(), classe: 7 })).toBeNull()
+    expect(
+      validarRelatorioDeCaptura({
+        ...campoV2(),
+        fimDaFalaAteLegenda: { ...campoV2().fimDaFalaAteLegenda, baldes: ['a', ...Array(8).fill(0)] },
+      }),
+    ).toBeNull()
+  })
+
+  it('contagens são grampeadas em 0..200 e não sobra campo de texto, id ou hora no resultado', () => {
+    const r = validarRelatorioDeCaptura({
+      ...campoV2(),
+      texto: 'oi',
+      sessaoId: 'abc',
+      ts: 123,
+      fimDaFalaAteLegenda: {
+        idioma: 'en',
+        baldes: [999, -4, 0, 0, 0, 0, 0, 0, 0],
+        n: 5000,
+        falhas: -1,
+        semTraducao: 3.9,
+      },
+    })!
+    expect(r.campo?.legenda).toEqual({
+      idioma: 'en',
+      baldes: [200, 0, 0, 0, 0, 0, 0, 0, 0],
+      n: 200,
+      falhas: 0,
+      semTraducao: 3,
+    })
+    expect(JSON.stringify(r)).not.toMatch(/oi|abc|123/)
+  })
+})
+
 describe('POST /api/metricas/captura na montagem real (modo público)', () => {
   let s: AppDeTeste
   const salvos: Record<string, string | undefined> = {}
@@ -101,6 +170,33 @@ describe('POST /api/metricas/captura na montagem real (modo público)', () => {
     expect(corpo).toMatch(/captura_rtf_count\{motor="whisper-local"\} 2/)
     expect(corpo).toMatch(/captura_descartes_alucinacao_total 2/)
     expect(corpo).toMatch(/captura_fallback_total\{motor="whisper-local"\} 1/)
+  })
+
+  it('v: 2: duas classes dão duas séries, com a taxa de falha, e o scrape não tem texto nem id', async () => {
+    expect((await s.post('/api/metricas/captura', campoV2())).status).toBe(204)
+    const outra = { ...campoV2(), classe: 'celular-fraco', carga: [] }
+    expect((await s.post('/api/metricas/captura', outra)).status).toBe(204)
+    expect((await s.post('/api/metricas/captura', { ...campoV2(), classe: 'inventada-xyz' })).status).toBe(204)
+    const corpo = await (await s.get('/metrics')).text()
+    expect(corpo).toMatch(/captura_fim_da_fala_ate_legenda_ms_count\{classe="desktop-com-gpu",idioma="pt"\} 11/)
+    expect(corpo).toMatch(/captura_fim_da_fala_ate_legenda_ms_count\{classe="celular-fraco",idioma="pt"\} 11/)
+    expect(corpo).toMatch(
+      /captura_fim_da_fala_ate_legenda_ms_bucket\{le="500",classe="desktop-com-gpu",idioma="pt"\} 3/,
+    )
+    expect(corpo).toMatch(/captura_legenda_falhas_total\{classe="desktop-com-gpu",idioma="pt"\} 1/)
+    expect(corpo).toMatch(
+      /captura_carga_modelo_ms_count\{classe="desktop-com-gpu",modelo="whisper-local",fase="download"\} 3/,
+    )
+    expect(corpo).toMatch(/classe="outro"/)
+    expect(corpo).not.toMatch(/inventada-xyz/)
+  })
+
+  it('v: 2 com fase inventada: 400', async () => {
+    const r = await s.post('/api/metricas/captura', {
+      ...campoV2(),
+      carga: [{ modelo: 'whisper-local', fase: 'texto-livre', baldes: Array(9).fill(0) }],
+    })
+    expect(r.status).toBe(400)
   })
 
   it('corpo fora do contrato: 400', async () => {

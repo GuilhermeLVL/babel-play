@@ -57,6 +57,19 @@ function melhoraDe(cfg, base) {
   return cfg.sentido === 'maior' ? base * (1 + tol) + folga : base * (1 - tol) - folga
 }
 
+/**
+ * Rodadas inválidas de um resultado (`perfis.<perfil>.invalidas`, de `agregarRodadas`), com o motivo.
+ * Rodada inválida nunca vira número: quem lê o resultado recusa em vez de comparar a mediana do que sobrou.
+ *
+ * @param {{ perfis?: Record<string, { invalidas?: { rotulo: string, motivo: string }[] }> }} resultado
+ * @returns {{ perfil: string, rotulo: string, motivo: string }[]}
+ */
+export function rodadasInvalidas(resultado) {
+  return Object.entries(resultado?.perfis ?? {}).flatMap(([perfil, r]) =>
+    (r?.invalidas ?? []).map((i) => ({ perfil, rotulo: i.rotulo, motivo: i.motivo ?? 'sem motivo' })),
+  )
+}
+
 const finito = (x) => typeof x === 'number' && Number.isFinite(x)
 
 /**
@@ -210,6 +223,16 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const resultado = JSON.parse(readFileSync(arqResultado, 'utf8'))
   const ambiente = opt('ambiente', resultado.ambiente)
   if (!ambiente) throw new Error('--ambiente é obrigatório (ou `ambiente` no resultado)')
+
+  // Rodada inválida nunca vira número, nem comparação, nem linha de base: refaz a rodada.
+  const invalidas = rodadasInvalidas(resultado)
+  if (invalidas.length) {
+    console.error(
+      `Resultado recusado: ${invalidas.length} rodada(s) inválida(s). Refaça-as; nada foi comparado nem gravado.`,
+    )
+    for (const i of invalidas) console.error(`- ${i.perfil} / ${i.rotulo}: ${i.motivo}`)
+    process.exit(1)
+  }
 
   if (args.includes('--gravar-linha-de-base')) {
     const meta = {

@@ -456,6 +456,13 @@
       "when": 1794800000002,
       "tag": "0064_flag_acesso_restrito_sem_conta",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "6",
+      "when": 1794800000003,
+      "tag": "0065_flag_rum_latencia",
+      "breakpoints": true
     }
   ]
 }

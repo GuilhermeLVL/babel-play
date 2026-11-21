@@ -44,6 +44,7 @@ export type MensagemParaOWorker =
 
 export type MensagemDoWorker =
   | { type: 'progress'; progress: number; loaded: number; total: number; label: string }
+  | { type: 'fase'; model: string; fase: 'compilacao' | 'aquecimento' }
   | { type: 'ready'; model: string }
   | { type: 'loadError'; model: string; motivo: MotivoDaFalha; message: string }
   | { type: 'result'; id: string; textos: string[] }
@@ -287,6 +288,8 @@ export function criarWorkerDoBergamot(deps: DependenciasDoWorker) {
       if (guardado !== null) noCache.push({ url: a.url, bytes: guardado });
     }
 
+    // Os bytes todos chegaram: o que resta é abrir o WASM e montar o modelo (`frasy:modelo:compilacao:*`).
+    deps.enviar({ type: 'fase', model: plano.modelId, fase: 'compilacao' });
     const aberto = await modulo;
     if ('erro' in aberto) {
       const e = aberto.erro as Error & { motivo?: MotivoDaFalha };
@@ -312,6 +315,7 @@ export function criarWorkerDoBergamot(deps: DependenciasDoWorker) {
       );
       conteudos.clear(); // o heap do WASM tem a cópia; o JS solta os ~35 MB
       t = { M, modelo, servico: new M.BlockingService({ cacheSize: 0 }) };
+      deps.enviar({ type: 'fase', model: plano.modelId, fase: 'aquecimento' });
       traduzirLote(t, [AQUECIMENTO]);
     } catch (e) {
       throw new FalhaDeCarga('motor', `modelo não montou: ${String((e as Error)?.message ?? e)}`);

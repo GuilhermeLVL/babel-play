@@ -16,7 +16,10 @@
  *              (`Emulation.setCPUThrottlingRate`) GIRA um núcleo inteiro no processo da aba, até
  *              ocioso (medido: 99,9% com 4×, 0,2% sem), e `medir.mjs` o solta ao fim da última voz.
  */
-import { analisarRodada } from './analisar.mjs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import path from 'node:path'
+
+import { acharAncoraDoBipe, analisarRodada } from './analisar.mjs'
 
 /** Janela mínima para uma taxa de CPU valer alguma coisa (abaixo disso, 1 tique do SO já distorce). */
 const JANELA_MINIMA_CPU_MS = 3000
@@ -67,9 +70,9 @@ export function percentil(xs, p) {
  * áudio dominada por 2 kHz; o bipe começou dentro dela, então vale o meio (−10 ms). `null` sem bipe.
  */
 export function relogioDoArquivo(d) {
-  const jan = (d.lat?.aud ?? []).find((a) => a[2] > 0.5 && a[1] > 0.01)
-  if (!jan) return null
-  const ancora = jan[0] - 10
+  const achada = acharAncoraDoBipe(d)
+  if (!('ancoraMs' in achada)) return null
+  const ancora = achada.ancoraMs
   return (s) => ancora + (s - d.roteiro.bipeS) * 1000
 }
 
@@ -147,8 +150,10 @@ export function janelasDaRodada(d, relogio = relogioDoArquivo(d)) {
 export function metricasDaRodada(d) {
   const base = { rotulo: d.rotulo, perfil: d.perfilDoAparelho ?? null }
   if (d.queda) return { ...base, valida: false, motivo: `a aba caiu: ${d.queda}` }
+  const achada = acharAncoraDoBipe(d)
+  if (!('ancoraMs' in achada))
+    return { ...base, valida: false, motivo: `${achada.motivo}: ${achada.detalhe}`, motivoCodigo: achada.motivo }
   const relogio = relogioDoArquivo(d)
-  if (!relogio) return { ...base, valida: false, motivo: 'bipe não encontrado na sonda de áudio' }
 
   const j = janelasDaRodada(d, relogio)
   const analise = analisarRodada(d)
@@ -217,6 +222,29 @@ export function metricasDaRodada(d) {
 }
 
 const ler = (o, caminho) => caminho.split('.').reduce((v, k) => (v == null ? v : v[k]), o)
+
+/**
+ * Lê as rodadas brutas (`medir.mjs`) de uma pasta e devolve as inválidas com o motivo. `rodar-matriz.mjs`
+ * usa isto para não deixar passar número sem âncora de bipe.
+ *
+ * @param {string} dir pasta com os `<rotulo>.json`
+ * @param {string[]} [rotulos] só estes (sem `.json`); omitido = todos
+ * @returns {{ lidas: number, invalidas: { rotulo: string, motivo: string }[] }}
+ */
+export function rodadasInvalidasDaPasta(dir, rotulos) {
+  if (!existsSync(dir)) return { lidas: 0, invalidas: [] }
+  const arquivos = readdirSync(dir).filter((f) => f.endsWith('.json') && (!rotulos || rotulos.includes(f.slice(0, -5))))
+  const invalidas = []
+  let lidas = 0
+  for (const f of arquivos) {
+    const d = JSON.parse(readFileSync(path.join(dir, f), 'utf8'))
+    if (!d.lat) continue // não é rodada de `medir.mjs` (ex.: visita)
+    lidas++
+    const m = metricasDaRodada(d)
+    if (!m.valida) invalidas.push({ rotulo: m.rotulo ?? f.slice(0, -5), motivo: m.motivo })
+  }
+  return { lidas, invalidas }
+}
 
 /**
  * N rodadas → um número por métrica: a MEDIANA das rodadas válidas (uma rodada ruim não arrasta o

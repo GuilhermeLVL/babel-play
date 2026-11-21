@@ -13,6 +13,9 @@
  *    idioma fica sem índice (`null`): sem ponto "nova para você". Com índice, conta-se também quantas sessões a
  *    pessoa tem naquele idioma (o portão do histórico suficiente, `SESSOES_MINIMAS_PARA_NOVA`).
  *  - `marcarSalva`: a palavra fichada agora pinta antes de o caderno ser relido.
+ *  - AS MARCADAS ("Já sei" e "Ignorar", sem cartão) são lidas junto com o caderno, uma vez por página, de todos os
+ *    idiomas (`fetchPalavrasMarcadas`; sem conta, o espelho no aparelho). `marcarNoIndice`/`desmarcarNoIndice`
+ *    aplicam na hora e desfazem se a gravação falhar.
  */
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 
@@ -29,7 +32,21 @@ import {
   montarIndiceDoCaderno,
   type VistasDoIdioma,
 } from '../../core/vocabulario/etiquetas';
-import { fetchDeck, fetchPalavrasVistas, fetchSessions, geracaoDeEscritas } from '../../data/api';
+import {
+  type EstadoDaMarcacao,
+  type IndiceDeMarcadas,
+  montarIndiceDeMarcadas,
+  type PalavraMarcada,
+} from '../../core/vocabulario/marcadas';
+import {
+  desmarcarPalavra,
+  fetchDeck,
+  fetchPalavrasMarcadas,
+  fetchPalavrasVistas,
+  fetchSessions,
+  geracaoDeEscritas,
+  marcarPalavra,
+} from '../../data/api';
 import type { VocabCard } from '../../types';
 import { lerAjustesDoAssistente, useAjustesDoAssistente } from '../assistente/ajustesDoAssistente';
 import { estadoDoCartao } from '../pelesDeCartao';
@@ -39,6 +56,10 @@ export interface SnapshotDasEtiquetas {
   caderno: IndiceDoCaderno | null;
   /** Por idioma-base: ausente = não pedido ou a caminho; `null` = sem índice (convidado, erro). */
   vistas: ReadonlyMap<string, VistasDoIdioma | null>;
+  /** "Já sei" e "Ignorar" por idioma. `null` até a lista chegar (ou se ela falhou): nenhuma marcação vale. */
+  marcadas: IndiceDeMarcadas | null;
+  /** A mesma lista, crua (a tela de vocabulário lista e desmarca), da mais recente para a mais antiga. */
+  listaDeMarcadas: readonly PalavraMarcada[];
 }
 
 const ESTADO_DO_CONTRATO: Record<ReturnType<typeof estadoDoCartao>, EstadoNoCaderno> = {
@@ -57,7 +78,7 @@ export function cartoesParaOIndice(cartas: readonly VocabCard[], agora = Date.no
   return saida;
 }
 
-let snapshot: SnapshotDasEtiquetas = { caderno: null, vistas: new Map() };
+let snapshot: SnapshotDasEtiquetas = { caderno: null, vistas: new Map(), marcadas: null, listaDeMarcadas: [] };
 const inscritos = new Set<() => void>();
 /* As palavras fichadas nesta página que o caderno lido ainda não tem. */
 const fichadas = new Map<string, { palavra: string; lang?: string }>();
@@ -67,6 +88,8 @@ let cadernoEmVoo: Promise<void> | null = null;
 const vistasPedidas = new Set<string>();
 const vistasEmVoo = new Set<string>();
 let sessoesPorIdioma: Promise<Map<string, number>> | null = null;
+let marcadasEmVoo: Promise<void> | null = null;
+let marcadasLidas = false;
 
 function publicar(patch: Partial<SnapshotDasEtiquetas>) {
   snapshot = { ...snapshot, ...patch };
@@ -99,6 +122,56 @@ export function carregarCaderno(): Promise<void> {
       cadernoEmVoo = null;
     });
   return cadernoEmVoo;
+}
+
+function publicarMarcadas(lista: readonly PalavraMarcada[]) {
+  const ordenada = [...lista].sort((a, b) => b.atualizadoEm - a.atualizadoEm);
+  publicar({ marcadas: montarIndiceDeMarcadas(ordenada), listaDeMarcadas: ordenada });
+}
+
+/** Lê as marcações ("Já sei"/"Ignorar") de todos os idiomas. Quem chama junto recebe a mesma leitura. */
+export function carregarMarcadas(): Promise<void> {
+  if (marcadasEmVoo) return marcadasEmVoo;
+  marcadasEmVoo = fetchPalavrasMarcadas()
+    .then((lista) => {
+      if (!lista) return;
+      marcadasLidas = true;
+      publicarMarcadas(lista);
+    })
+    .finally(() => {
+      marcadasEmVoo = null;
+    });
+  return marcadasEmVoo;
+}
+
+/**
+ * Marca a palavra como "Já sei" ou "Ignorar": pinta na hora e grava; se a gravação falhar, volta ao que era e devolve
+ * `false` (quem chama avisa). A chave e o idioma são os do núcleo (o servidor reduz de novo).
+ */
+export async function marcarNoIndice(palavra: string, lang: string | undefined, estado: EstadoDaMarcacao) {
+  const chave = chaveDaPalavra(palavra);
+  const idioma = baseLang(lang);
+  if (!chave || !idioma) return false;
+  const antes = snapshot.listaDeMarcadas;
+  publicarMarcadas([
+    { lang: idioma, chave, estado, atualizadoEm: Date.now() },
+    ...antes.filter((m) => !(m.lang === idioma && m.chave === chave)),
+  ]);
+  if (await marcarPalavra(idioma, chave, estado)) return true;
+  publicarMarcadas(antes);
+  return false;
+}
+
+/** Desfaz a marcação (o "Desfazer" do cartão e o "Desmarcar" da lista). Mesmo contrato de `marcarNoIndice`. */
+export async function desmarcarNoIndice(chaveOuPalavra: string, lang: string | undefined) {
+  const chave = chaveDaPalavra(chaveOuPalavra);
+  const idioma = baseLang(lang);
+  if (!chave || !idioma) return false;
+  const antes = snapshot.listaDeMarcadas;
+  publicarMarcadas(antes.filter((m) => !(m.lang === idioma && m.chave === chave)));
+  if (await desmarcarPalavra(idioma, chave)) return true;
+  publicarMarcadas(antes);
+  return false;
 }
 
 /** Quantas sessões com texto a pessoa tem em cada idioma-base (uma leitura da lista por página). */
@@ -165,8 +238,10 @@ export function marcarSalva(palavra: string, lang?: string): void {
 
 /** Para os testes: volta ao começo. */
 export function esquecerIndiceDeEtiquetas(): void {
-  snapshot = { caderno: null, vistas: new Map() };
+  snapshot = { caderno: null, vistas: new Map(), marcadas: null, listaDeMarcadas: [] };
   fichadas.clear();
+  marcadasEmVoo = null;
+  marcadasLidas = false;
   cartoesLidos = [];
   geracaoDoCaderno = -1;
   cadernoEmVoo = null;
@@ -184,6 +259,7 @@ function assinar(f: () => void) {
   inscritos.add(f);
   /* A primeira tela a assinar (de novo) relê o caderno se ele nunca foi lido ou se houve escrita desde então. */
   if (primeiro && geracaoDoCaderno !== geracaoDeEscritas()) void carregarCaderno();
+  if (primeiro && !marcadasLidas) void carregarMarcadas();
   return () => {
     inscritos.delete(f);
   };
@@ -194,7 +270,7 @@ export function estaNoCaderno(s: SnapshotDasEtiquetas, palavra: string, lang: st
   return !!estadoNoCaderno(s.caderno, chaveDaPalavra(palavra), lang);
 }
 
-const VAZIO: SnapshotDasEtiquetas = { caderno: null, vistas: new Map() };
+const VAZIO: SnapshotDasEtiquetas = { caderno: null, vistas: new Map(), marcadas: null, listaDeMarcadas: [] };
 
 export function useSnapshotDasEtiquetas(): SnapshotDasEtiquetas {
   return useSyncExternalStore(assinar, lerSnapshotDasEtiquetas, () => VAZIO);
@@ -218,6 +294,7 @@ function criarEtiquetador(s: SnapshotDasEtiquetas, nova: boolean, langDaPessoa: 
       nova: comNova,
       langDaPessoa,
       vistas: s.vistas.get(baseLang(lang)),
+      marcadas: s.marcadas,
     });
   let sem: Etiquetador | null = null;
   const e: Etiquetador = {

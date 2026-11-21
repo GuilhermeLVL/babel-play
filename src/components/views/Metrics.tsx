@@ -31,6 +31,7 @@ import AdicionarPalavra from './vocab/AdicionarPalavra';
 import CatalogoDePalavras, { type FiltroDoCatalogo } from './vocab/CatalogoDePalavras';
 import ExportarVocabulario from './vocab/ExportarVocabulario';
 import GavetaDaPalavra from './vocab/GavetaDaPalavra';
+import PalavrasQueVoceConhece from './vocab/PalavrasQueVoceConhece';
 import VocabularioDoQuest, { type AbaDoQuest } from './vocab/quest/VocabularioDoQuest';
 
 // --- HELPERS ---
@@ -576,7 +577,9 @@ export default function Metrics({
         })
       }
       aoPraticar={(c) =>
-        onChangeView?.('study', { praticar: { origem: 'selecao', rotulo: c.word, ids: [c.id] } satisfies PedidoDePratica })
+        onChangeView?.('study', {
+          praticar: { origem: 'selecao', rotulo: c.word, ids: [c.id] } satisfies PedidoDePratica,
+        })
       }
       aoAbrirSessao={(id) => onChangeView?.('analysis', { id })}
     />
@@ -658,13 +661,16 @@ export default function Metrics({
       fases={fasesDoBaralho}
       deckCarregado={deckCarregado}
       catalogo={
-        <CatalogoDePalavras
-          key={versaoDoCatalogo}
-          cartoes={vocabCards}
-          aoMudarFiltro={setFiltroDoCatalogo}
-          aoAbrirPalavra={abrirPalavra}
-          rodape={semTraducao}
-        />
+        <>
+          <PalavrasQueVoceConhece />
+          <CatalogoDePalavras
+            key={versaoDoCatalogo}
+            cartoes={vocabCards}
+            aoMudarFiltro={setFiltroDoCatalogo}
+            aoAbrirPalavra={abrirPalavra}
+            rodape={semTraducao}
+          />
+        </>
       }
       aoRevisar={() => onChangeView?.('study')}
       aoJogar={() => onChangeView?.('play')}

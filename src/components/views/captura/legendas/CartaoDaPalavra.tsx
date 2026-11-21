@@ -1,7 +1,9 @@
 import { BookmarkPlus, Volume2, X } from 'lucide-react';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 
+import { pedirMarcacaoPorTecla, teclaDeMarcacao } from '../../../../lib/etiquetas/teclasDeMarcacao';
 import { t } from '../../../../lib/i18n';
+import MarcarPalavra from '../../../vocab/MarcarPalavra';
 
 /** A palavra tocada na legenda: o que o cartão precisa para consultar, ouvir e fichar. */
 export interface PalavraTocada {
@@ -102,6 +104,13 @@ export default function CartaoDaPalavra({
         if (e.key === 'Escape') {
           e.stopPropagation();
           aoFechar();
+          return;
+        }
+        /* `k`/`x` (Já sei / Ignorar): a janela flutuante é outro documento, que a janela do app não ouve. */
+        const estado = teclaDeMarcacao(e.nativeEvent);
+        if (estado && !e.defaultPrevented) {
+          e.preventDefault();
+          pedirMarcacaoPorTecla(estado);
         }
       }}
     >
@@ -137,6 +146,7 @@ export default function CartaoDaPalavra({
           </button>
         )}
       </div>
+      <MarcarPalavra palavra={alvo.palavra} lang={alvo.lang} classeDoBotao="leg-acao-texto" />
       {status && (
         <p className="leg-cartao-status" role="status">
           {status}

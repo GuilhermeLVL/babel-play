@@ -37,6 +37,7 @@ import * as conteudo from './rotas/conteudo';
 import * as economia from './rotas/economia';
 import * as exercicios from './rotas/exercicios';
 import * as metricas from './rotas/metricas';
+import * as palavrasMarcadas from './rotas/palavrasMarcadas';
 import * as sessoes from './rotas/sessoes';
 import * as settings from './rotas/settings';
 import * as vocabulario from './rotas/vocabulario';
@@ -67,6 +68,10 @@ const ROTAS: Array<{ metodo: string; padrao: RegExp; handler: Handler }> = [
   { metodo: 'POST', padrao: /^\/api\/sessions\/([^/]+)\/utterances$/, handler: sessoes.acrescentarFalas },
   { metodo: 'POST', padrao: /^\/api\/sessions\/([^/]+)\/audio$/, handler: sessoes.guardarAudio },
   { metodo: 'GET', padrao: /^\/api\/sessions\/([^/]+)\/audio$/, handler: sessoes.lerAudio },
+  /* Antes de `/api/vocab/:id`: `DELETE /api/vocab/marcadas` não é "apagar o cartão de id `marcadas`". */
+  { metodo: 'GET', padrao: /^\/api\/vocab\/marcadas$/, handler: palavrasMarcadas.listarMarcadas },
+  { metodo: 'PUT', padrao: /^\/api\/vocab\/marcadas$/, handler: palavrasMarcadas.marcarPalavraLocal },
+  { metodo: 'DELETE', padrao: /^\/api\/vocab\/marcadas$/, handler: palavrasMarcadas.desmarcarPalavraLocal },
   { metodo: 'GET', padrao: /^\/api\/vocab$/, handler: vocabulario.listarCartoes },
   { metodo: 'GET', padrao: /^\/api\/vocab\/pagina$/, handler: vocabulario.paginaDeCartoes },
   { metodo: 'GET', padrao: /^\/api\/vocab\/inicio-da-contagem$/, handler: vocabulario.inicioDaContagemLocal },

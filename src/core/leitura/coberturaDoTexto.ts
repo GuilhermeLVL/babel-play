@@ -2,7 +2,8 @@
  * QUANTO DE UM TEXTO A PESSOA JÁ SABE (spec `leitura-ativa-acervo`; LingQ, faixas de Schmitt, Jiang & Grabe 2011).
  *
  * A cobertura é a fração das palavras do texto (as que têm letra) que a pessoa conhece: a palavra está
- * `dominada`/`aprendendo` no caderno (o conjunto `conhecidas`, de chaves, que a tela monta do índice de etiquetas),
+ * `dominada`/`aprendendo` no caderno ou marcada "Já sei" sem cartão (o conjunto `conhecidas`, de chaves, que a tela
+ * monta com `chavesConhecidas` de `core/vocabulario/marcadas`),
  * é funcional do idioma (`PALAVRAS_FUNCIONAIS`) ou é nome próprio. A flexão conta como a palavra: "apples" vale
  * "apple". Roda no aparelho, por listas: o caderno e o texto não saem daqui.
  *

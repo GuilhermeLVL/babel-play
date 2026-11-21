@@ -80,6 +80,8 @@ export const TABELAS_SO_DO_POSTGRES: ReadonlySet<string> = new Set([
   'palavras_vistas',
   'anotacoes_de_leitura',
   'cache_do_parceiro',
+  // As palavras marcadas sem cartão ("Já sei"/"Ignorar"), migração PG 0027: posteriores à migração.
+  'palavras_marcadas',
 ]);
 
 /**

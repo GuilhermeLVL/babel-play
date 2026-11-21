@@ -305,8 +305,8 @@ describe('migração SQLite → Postgres', () => {
     expect(r.tabelas.map((t) => t.nome).sort()).toEqual(doSchema)
     // Fora da cópia, por um motivo escrito: travas de linha e contadores da admissão de IA não são dado, as
     // exibições do anúncio premiado e as anotações do leitor nasceram depois da migração, o índice das palavras
-    // vistas é derivado das falas (refeito por `palavras reindexar`), o cache do parceiro de leitura é posterior, e o
-    // SQLite não tem nenhuma das seis.
+    // vistas é derivado das falas (refeito por `palavras reindexar`), o cache do parceiro de leitura e as palavras
+    // marcadas são posteriores, e o SQLite não tem nenhuma das sete.
     expect([...mig.TABELAS_SO_DO_POSTGRES]).toEqual([
       'travas',
       'admissao_de_ia',
@@ -314,6 +314,7 @@ describe('migração SQLite → Postgres', () => {
       'palavras_vistas',
       'anotacoes_de_leitura',
       'cache_do_parceiro',
+      'palavras_marcadas',
     ])
   })
 

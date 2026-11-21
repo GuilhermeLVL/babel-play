@@ -633,6 +633,21 @@ export const palavrasVistasQuerySchema = z.object({ lang: idiomaDaPalavra }).str
  */
 export const palavraQuerySchema = z.object({ lang: idiomaDaPalavra, chave: z.string().trim().min(1).max(100) }).strip()
 
+/** `GET /api/vocab/marcadas?lang=xx`: as palavras marcadas ("Já sei"/"Ignorar"); sem `lang`, todos os idiomas. */
+export const palavrasMarcadasQuerySchema = z.object({ lang: idiomaDaPalavra.optional() }).strip()
+
+/**
+ * `PUT /api/vocab/marcadas`: marca (ou troca a marcação de) UMA palavra. `chave` pode vir escrita (`Água`): o
+ * servidor a reduz com `chaveDaPalavra`. Curta de propósito: é uma palavra, não um texto.
+ */
+export const marcarPalavraSchema = z
+  .object({
+    lang: idiomaDaPalavra,
+    chave: z.string().trim().min(1).max(100),
+    estado: z.enum(['conhecida', 'ignorada']),
+  })
+  .strip()
+
 /** `PUT /api/vocab/:id/nota`: a nota pessoal do cartão, até 500 caracteres; `''` limpa. */
 export const notaDoCartaoSchema = z.object({ nota: z.string().max(500) }).strip()
 

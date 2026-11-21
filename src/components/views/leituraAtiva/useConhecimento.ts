@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 
 import { estadoNoCaderno } from '../../../core/vocabulario/etiquetas';
+import { chavesConhecidas } from '../../../core/vocabulario/marcadas';
 import { pedirVistas, useSnapshotDasEtiquetas } from '../../../lib/etiquetas/indiceDeEtiquetas';
 import { estaAnonimo } from '../../../lib/identidade';
 
@@ -8,7 +9,7 @@ import { estaAnonimo } from '../../../lib/identidade';
 export const IDIOMA_DOS_TEXTOS = 'en';
 
 export interface Conhecimento {
-  /** As chaves `aprendendo`/`dominada` do caderno no idioma dos textos (a entrada da cobertura). */
+  /** As chaves `aprendendo`/`dominada` do caderno e as marcadas "Já sei" no idioma dos textos (a entrada da cobertura). */
   conhecidas: ReadonlySet<string>;
   /** Quantas sessões a pessoa tem no idioma (o portão do número honesto). */
   sessoes: number;
@@ -28,10 +29,7 @@ export function useConhecimento(): Conhecimento {
     if (temConta) pedirVistas(IDIOMA_DOS_TEXTOS);
   }, [temConta]);
   return useMemo(() => {
-    const conhecidas = new Set<string>();
-    for (const balde of [s.caderno?.get(IDIOMA_DOS_TEXTOS), s.caderno?.get('')]) {
-      for (const [chave, estado] of balde ?? []) if (estado !== 'nova') conhecidas.add(chave);
-    }
+    const conhecidas = chavesConhecidas(s.caderno, s.marcadas, IDIOMA_DOS_TEXTOS, { incluirSemIdioma: true });
     return {
       conhecidas,
       sessoes: s.vistas.get(IDIOMA_DOS_TEXTOS)?.sessoes ?? 0,

@@ -10,6 +10,8 @@ export function rotuloDaEtiqueta(e: Etiqueta): string {
   if (e === 'salva') return t('salva');
   if (e === 'aprendendo') return t('aprendendo');
   if (e === 'dominada') return t('dominada');
+  if (e === 'conhecida') return t('já sei');
+  if (e === 'ignorada') return t('ignorada');
   return t('nova para você');
 }
 

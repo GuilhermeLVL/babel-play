@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 
 import { t } from '../../../lib/i18n';
 import { T } from '../../../lib/T';
+import VitrineDaEntrada from './VitrineDaEntrada';
 
 /** `subtitle` chega JÁ TRADUZIDO: quem monta a casca é quem sabe a frase. */
 interface AuthHero {
@@ -21,6 +22,9 @@ interface AuthHero {
  * com as próprias peças (`.qen-*`). `semMarca` dá uma coluna só, com o conteúdo num cartão ao centro
  * (a pergunta de idade e o aceite do responsável, que nas telas de sempre também não têm o painel).
  *
+ * Sem `hero` (entrar e criar conta), o painel traz a VITRINE VIVA (`VitrineDaEntrada`): quatro momentos
+ * reais do app num carrossel. Com `hero` (recuperar, redefinir, segundo fator), a frase da tela no lugar.
+ *
  * Só apresentação: quem monta a casca é a tela de sempre, com o estado e os efeitos dela.
  */
 export default function CascaDeEntradaDoQuest({
@@ -34,10 +38,11 @@ export default function CascaDeEntradaDoQuest({
   testId?: string;
   children: ReactNode;
 }) {
+  const comVitrine = !hero;
   return (
     <div className={semMarca ? 'qen qen-uma' : 'qen'} data-testid={testId}>
       {!semMarca && (
-        <aside className="qen-marca">
+        <aside className={comVitrine ? 'qen-marca qen-com-vitrine' : 'qen-marca'}>
           <p className="qen-logo">Frasy</p>
           <div className="qen-heroi">
             <h2>{hero?.title ?? <T txt="Capture.<br>Traduza.<br>Aprenda." />}</h2>
@@ -45,6 +50,7 @@ export default function CascaDeEntradaDoQuest({
               {hero?.subtitle ?? t('Vídeos, reuniões, podcasts: cada conversa vira prática de idioma, no seu ritmo.')}
             </p>
           </div>
+          {comVitrine && <VitrineDaEntrada />}
           <p className="qen-pe">
             <ShieldCheck aria-hidden /> {t('Sua conta, seus dados, isolados e seguros.')}
           </p>

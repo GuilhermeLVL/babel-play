@@ -93,6 +93,255 @@ html[data-quest-novo='true'][data-theme='babel']:not(.dark) {
   flex: none;
   color: var(--good-ink, var(--good));
 }
+
+/* ── O PAINEL DA MARCA, NOITE QUENTE (vitrine viva, 20/11/2026) ──────────────────────────────────
+   Escuro em qualquer tema, como a home do site: um brilho laranja da marca vindo de baixo e um grão
+   sutil por cima. As cores do texto são fixas aqui (o painel não muda com o tema), todas ≥ 4,5:1 sobre
+   o fundo mais claro do brilho. */
+.qen-marca {
+  --qen-noite: #16100c;
+  --qen-creme: #f7efe4;
+  --qen-creme-2: #d8cbbb;
+  --qen-brasa: #ef4e22;
+  --qen-brasa-clara: #ffa27a;
+  position: relative;
+  isolation: isolate;
+  color: var(--qen-creme);
+  background: radial-gradient(90% 60% at 62% 62%, rgb(239 78 34 / 0.34), transparent 70%),
+    radial-gradient(70% 45% at 20% 105%, rgb(255 150 60 / 0.22), transparent 70%), var(--qen-noite);
+  border-right-color: rgb(255 255 255 / 0.06);
+}
+/* O grão: ruído em SVG embutido (`data:` já está em `img-src`), quase invisível, só tira o "liso". */
+.qen-marca::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.09;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+.qen-marca .qen-logo {
+  color: var(--qen-creme);
+}
+.qen-marca .qen-frase,
+.qen-marca .qen-pe {
+  color: var(--qen-creme-2);
+}
+.qen-marca .qen-pe svg {
+  color: #8fd6a4;
+}
+
+/* Com a vitrine: o lema encolhe e sobe; a frase dá lugar às legendas dos slides. */
+.qen-com-vitrine {
+  justify-content: flex-start;
+  gap: clamp(14px, 2.6vh, 28px);
+}
+.qen-com-vitrine h2 {
+  font-size: clamp(26px, 2.3vw, 32px);
+  line-height: 1.04;
+}
+@media (min-width: 721px) {
+  .qen-com-vitrine .qen-frase {
+    display: none;
+  }
+}
+.qen-com-vitrine .qen-pe {
+  margin-top: auto;
+}
+
+.qen-vitrine {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+}
+.qen-vitrine-palco {
+  position: relative;
+  flex: 0 1 540px;
+  min-height: 220px;
+  display: grid;
+}
+.qen-slide {
+  grid-area: 1 / 1;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: clamp(14px, 2.4vh, 24px);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 600ms ease,
+    visibility 0s linear 600ms;
+}
+.qen-slide[data-ativo='true'] {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 600ms ease;
+}
+/* A moldura mede o espaço que sobra; a tela cabe nela pelo lado que apertar (4:3). */
+.qen-moldura {
+  min-height: 0;
+  container-type: size;
+  display: grid;
+  place-items: end center;
+}
+/* A tela num cartão inclinado, como um aparelho sobre a mesa: perspectiva leve, sombra longa. Um
+   segundo cartão, apagado, atrás (o baralho dos próximos). */
+.qen-tela {
+  position: relative;
+  width: min(100cqw - 48px, (100cqh - 24px) * 4 / 3, 520px);
+  aspect-ratio: 4 / 3;
+  border-radius: 18px;
+  background: #241a14;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.1),
+    0 2px 0 0 rgb(255 255 255 / 0.08) inset,
+    0 38px 70px -28px rgb(0 0 0 / 0.85),
+    0 18px 40px -18px rgb(239 78 34 / 0.45);
+  transform: perspective(1400px) rotateY(-11deg) rotateX(5deg) rotateZ(-1.2deg) translateX(14px);
+  transform-origin: 40% 50%;
+  transition: transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.qen-slide:not([data-ativo='true']) .qen-tela {
+  transform: perspective(1400px) rotateY(-18deg) rotateX(7deg) rotateZ(-2deg) translateX(-28px) scale(0.96);
+}
+.qen-tela::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: rgb(255 255 255 / 0.06);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.06);
+  transform: translate(18px, -14px) rotateZ(2.5deg);
+}
+.qen-tela :is(img, video) {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+  object-position: top left;
+}
+/* O brilho na borda de cima do cartão, que a luz quente pega. */
+.qen-tela::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(155deg, rgb(255 255 255 / 0.14), transparent 32%);
+}
+.qen-legenda {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+.qen-legenda-nome {
+  font: 800 15px/1.2 var(--font-body, inherit);
+  color: var(--qen-brasa-clara);
+}
+.qen-legenda-frase {
+  font: 800 clamp(20px, 1.75vw, 24px) / 1.2 var(--font-display, inherit);
+  letter-spacing: -0.01em;
+  color: var(--qen-creme);
+  text-wrap: balance;
+}
+.qen-slide[data-ativo='true'] .qen-legenda {
+  animation: qen-legenda-entra 520ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes qen-legenda-entra {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* Os controles: pausar e as bolinhas. A bolinha atual vira uma pílula que se enche no tempo do
+   giro (mostra quando o próximo vem); parada, fica cheia. Alvo de 44 px, a marca visível é menor. */
+.qen-vitrine-controles {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-start: -12px;
+}
+.qen-vitrine-pausa,
+.qen-bolinha {
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--qen-creme);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.qen-vitrine-pausa svg {
+  width: 18px;
+  height: 18px;
+}
+.qen-bolinhas {
+  display: flex;
+  align-items: center;
+}
+.qen-bolinha {
+  min-width: 28px;
+}
+.qen-bolinha > span {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgb(247 239 228 / 0.42);
+  overflow: hidden;
+  transition:
+    width 300ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    background-color 200ms ease;
+}
+.qen-bolinha:hover > span {
+  background: rgb(247 239 228 / 0.75);
+}
+.qen-bolinha[aria-current='true'] > span {
+  width: 34px;
+  background: rgb(247 239 228 / 0.3);
+}
+.qen-bolinha[aria-current='true'] > span::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--qen-brasa-clara);
+  transform-origin: left center;
+  animation: qen-tempo 5s linear both;
+}
+:dir(rtl) .qen-bolinha[aria-current='true'] > span::after {
+  transform-origin: right center;
+}
+.qen-vitrine[data-parado='true'] .qen-bolinha[aria-current='true'] > span::after {
+  animation: none;
+}
+@keyframes qen-tempo {
+  from {
+    transform: scaleX(0);
+  }
+}
+.qen-vitrine-pausa:focus-visible,
+.qen-bolinha:focus-visible {
+  outline: 3px solid var(--qen-brasa-clara);
+  outline-offset: -3px;
+}
+.qen-vitrine-pausa:hover {
+  background: rgb(255 255 255 / 0.08);
+}
+
 .qen-miolo {
   min-width: 0;
   min-height: 0;
@@ -717,6 +966,12 @@ html[data-quest-novo='true'][data-theme='babel']:not(.dark) {
   .qen-marca h2 {
     font-size: 36px;
   }
+  .qen-com-vitrine h2 {
+    font-size: 24px;
+  }
+  .qen-vitrine-palco {
+    min-height: 160px;
+  }
   .qen-miolo {
     padding-block: 22px;
   }
@@ -743,6 +998,16 @@ html[data-quest-novo='true'][data-theme='babel']:not(.dark) {
   }
   .qen-espera svg,
   .qen-botao svg.qen-gira {
+    animation: none;
+  }
+  .qen-slide,
+  .qen-slide[data-ativo='true'],
+  .qen-tela,
+  .qen-bolinha > span {
+    transition: none;
+  }
+  .qen-slide[data-ativo='true'] .qen-legenda,
+  .qen-bolinha[aria-current='true'] > span::after {
     animation: none;
   }
 }

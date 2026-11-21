@@ -155,6 +155,13 @@
       "when": 1794800000001,
       "tag": "0021_flag_leitura_ativa",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794800000002,
+      "tag": "0022_flag_acesso_restrito_sem_conta",
+      "breakpoints": true
     }
   ]
 }

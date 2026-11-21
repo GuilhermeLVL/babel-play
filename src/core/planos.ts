@@ -311,6 +311,13 @@ export const FLAG_PARCEIRO_DE_LEITURA = 'parceiro_de_leitura';
 export const FLAG_LEITURA_ATIVA = 'leitura_ativa';
 
 /**
+ * O ACESSO RESTRITO SEM CONTA (openspec `acesso-sem-conta-v2`; migrações PG 0022 e SQLite 0064): depois da 1ª
+ * sessão, quem não tem conta e se declara adulto passa pela porta de entrada. Nasce DESLIGADA e sem regra de
+ * plano; a regra mora em `src/core/acessoSemConta.ts` (a flag só liga o fluxo). Desligada = comportamento de hoje.
+ */
+export const FLAG_ACESSO_RESTRITO_SEM_CONTA = 'acesso_restrito_sem_conta';
+
+/**
  * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,
  * "Custo da escrita"): um retorno leva ~900 tokens de entrada (system + texto de até 120 palavras) e até 500 de saída;
  * 30 por mês ficam na casa de US$ 0,01 por assinante que usa tudo, e os tokens já saem da `tokensMes`.

@@ -27,6 +27,7 @@ const FLAGS_SENSIVEIS = new Set([
   'voz_no_aparelho',
   'voz_kitten',
   'leitura_ativa',
+  'acesso_restrito_sem_conta',
 ]);
 
 /** As regras da flag em palavras curtas, para ver de relance quem ela alcança. */

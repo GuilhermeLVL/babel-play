@@ -184,7 +184,7 @@ const ALIAS_DE_SEGMENTO: Record<
   vocabulario: { view: 'cartoes', cartoesAba: 'palavras' },
   // A tela chama-se Personalizar desde o protótipo aprovado (23/09); o endereço canônico segue /loja.
   personalizar: { view: 'loja' },
-  creditos: { view: 'loja', lojaTab: 'conquistas' },
+  creditos: { view: 'loja', lojaTab: 'loja' },
 };
 const VIEW_DE_SEGMENTO = Object.fromEntries(
   Object.entries(SEGMENTO)

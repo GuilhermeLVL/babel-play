@@ -33,4 +33,6 @@
 
 - [x] 6.1 `npx vitest run` · `npm run typecheck` · `npm run lint` · `npm run audit:gate` ·
       `npx ast-grep scan -c sgconfig.yml src server server.ts`
-- [ ] 6.2 Navegador: `/creditos` e `/planos` abrem, Planos aparece no menu
+- [x] 6.2 Navegador: `/creditos` e `/planos` abrem, Planos aparece no menu: `tests/e2e/creditos-e-planos.e2e.ts`
+      (`/creditos` estava aliasado para Conquistas desde a v4 de 12/09, regressão corrigida em `rotas.ts`; a aba Loja
+      do self-host passou a mostrar a nota de `ComprarCreditos`; no celular Planos já estava no "Mais destinos").

@@ -10,4 +10,4 @@
 
 ## 3. Pendências
 
-- [ ] 3.1 Conferir a conversão com `zh-TW` selecionado no navegador (coberta só por teste unitário)
+- [x] 3.1 Conferir a conversão com `zh-TW` selecionado no navegador: `tests/e2e/escrita-do-chines.e2e.ts` (zh-TW, zh-CN e japonês intacto; 3 repetições verdes)

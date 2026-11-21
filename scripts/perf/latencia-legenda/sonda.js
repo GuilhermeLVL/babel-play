@@ -14,6 +14,10 @@
  *             ÂNCORA do relógio: o bipe de 2 kHz que `montar-audio.mjs` põe antes da primeira fala;
  *  - `loaf` : Long Animation Frames (> 50 ms) com atribuição de script — custo de render no main thread
  *             (`longtask` onde o navegador não tem LoAF; `L.tipoFrameLongo` diz qual);
+ *  - `marcas`: as marcas `frasy:*` do app (`performance.mark`: fim da fala, legenda traduzida, carga de modelo),
+ *             `{ t, n, d }` com `t` = `startTime` da marca (a do fim da fala é datada no último quadro de voz) e
+ *             `d` = `detail` (só ids, origem e modelo; nunca texto). Lidas por observador, não pela linha do tempo,
+ *             porque o app limita as marcas de fala e legenda às 200 mais recentes;
  *  - `rc`   : cada COMMIT do React, `[t, componentes que renderizaram nele]` — os renders/s da tela
  *             (bancada de desempenho da captura, A0). Vem do gancho do React DevTools, que o react-dom
  *             de PRODUÇÃO também chama; nada disso existe no bundle nem sem a sonda.
@@ -29,7 +33,7 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- expressão lida como texto por medir.mjs
 (cfg) => {
   cfg = cfg || {};
-  const L = (window.__lat = { ev: [], dom: [], aud: [], loaf: [], rc: [], cfg });
+  const L = (window.__lat = { ev: [], dom: [], aud: [], loaf: [], rc: [], marcas: [], cfg });
   const now = () => performance.now();
   const ev = (k, o) => {
     L.ev.push(Object.assign({ t: now(), k }, o || {}));
@@ -295,6 +299,16 @@ registerProcessor('sonda-lat', SondaLat);`;
         });
       }
     }).observe({ type: L.tipoFrameLongo, buffered: true });
+  } catch {}
+
+  // ---------------------------------------------------------------- marcas do app (`frasy:*`)
+  try {
+    new PerformanceObserver((lista) => {
+      for (const e of lista.getEntries()) {
+        if (!e.name.startsWith('frasy:')) continue;
+        L.marcas.push({ t: Math.round(e.startTime * 10) / 10, n: e.name.slice(6), d: e.detail ?? null });
+      }
+    }).observe({ type: 'mark', buffered: true });
   } catch {}
 
   // ---------------------------------------------------------------- React: commits e renders

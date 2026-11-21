@@ -281,6 +281,9 @@ for (const alvo of alvos) {
       ...ag,
       modelos,
       aparelho: metricas[alvo.nome]?.[perfil]?.find((m) => m.perfil)?.perfil ?? null,
+      // De onde vem o número: o `fraco` é um notebook EMULADO (CPU/memória limitadas por software), nunca um aparelho real.
+      origem: PERFIS[perfil] ? 'emulado' : 'medido',
+      aparelhoDescricao: `${maquina.cpu}, ${maquina.nucleos} núcleos, ${maquina.memoriaGb} GB${PERFIS[perfil] ? ` (emulando ${PERFIS[perfil]})` : ''}`,
     }
     if (ag.rodadas < Math.ceil(RODADAS / 2)) {
       faltouRodada = true

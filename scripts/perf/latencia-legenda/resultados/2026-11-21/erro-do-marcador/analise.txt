@@ -1,0 +1,142 @@
+
+== desktop.r1  modelo=onnx-community/moonshine-base-ONNX device=wasm gpu=google swiftshader coi=true
+   rota: roteador STT: local · inglês (moonshine) | modelo local: onnx-community/moonshine-base-ONNX q8 | nuvem primeiro: false | aparelho: desktop-sem-gpu
+   carga: STT pronto 908 ms; MT [{"modelo":"Xenova/opus-mt-en-ROMANCE","ms":11574}]; pedidos ao Hub 2
+   main thread: 1 LoAF > 50 ms, 107 ms; maiores [{"t":127,"ms":107,"bloq":42,"scripts":["rt@vendor-react-6Lyb2VlE.js:7ms","rt@vendor-react-6Lyb2VlE.js:76ms","i@index-Hm2_uEQF.js:15ms"]}]
+   #0 voz 3.85s trechos 1 | 1ºtexto 3264 | vad 838 stt 159 (espera 0, 1ºtok 93) rOrig 977 | mtEsp · mt · [outro] rTrad · | FIM→orig 1590 FIM→trad 1590 FIM→legenda 1604 [ok] campo 1466 errMarcador -27 | tradParcial · | "Lions are the most social cats living in large gro"
+   #1 voz 2.58s trechos 1 | 1ºtexto · | vad 777 stt 91 (espera 0, 1ºtok 57) rOrig 460 | mtEsp · mt · [outro] rTrad · | FIM→orig 943 FIM→trad 943 FIM→legenda 958 [ok] campo 781 errMarcador 7 | tradParcial · | "Felleressers also paid tribute to Luna."
+   #2 voz 3.91s trechos 1 | 1ºtexto 3203 | vad 779 stt 152 (espera 0, 1ºtok 88) rOrig 240 | mtEsp 241 mt 157 [opus-mt] rTrad 1 | FIM→orig 787 FIM→trad 947 FIM→legenda 960 [ok] campo 950 errMarcador 10 | tradParcial 577 | "Fire rescue crews eventually doused the fire by el"
+   #3 voz 4.21s trechos 1 | 1ºtexto 3706 | vad 442 stt 141 (espera 0, 1ºtok 82) rOrig 254 | mtEsp · mt · [outro] rTrad · | FIM→orig 450 FIM→trad 450 FIM→legenda 465 [ok] campo 796 errMarcador -331 | tradParcial 414 | "The find also crafts insight into the evolution of"
+   #4 voz 4.49s trechos 1 | 1ºtexto 942 | vad 447 stt 171 (espera 0, 1ºtok 91) rOrig 219 | mtEsp 220 mt 201 [opus-mt] rTrad 1 | FIM→orig 453 FIM→trad 656 FIM→legenda 663 [ok] campo 985 errMarcador -322 | tradParcial 3523 | "The night between one fifty and two hundred copies"
+   #5 voz 4s trechos 1 | 1ºtexto 978 | vad 765 stt 165 (espera 0, 1ºtok 89) rOrig 227 | mtEsp · mt · [outro] rTrad · | FIM→orig 773 FIM→trad 773 FIM→legenda 776 [ok] campo 780 errMarcador -4 | tradParcial 2982 | "The Nazi face the site by marking or scratching, g"
+   #6 voz 3.11s trechos 1 | 1ºtexto 3154 | vad 755 stt 136 (espera 0, 1ºtok 77) rOrig · | mtEsp · mt · [·] rTrad · | FIM→orig · FIM→trad · FIM→legenda 213 [ok] campo 781 errMarcador -15 | tradParcial · | "Think of the skiing route as of a similar hiking r"
+   #7 voz 4.41s trechos 1 | 1ºtexto 2931 | vad 826 stt 185 (espera 0, 1ºtok 103) rOrig 544 | mtEsp 203 mt 170 [opus-mt] rTrad 171 | FIM→orig 1172 FIM→trad 1172 FIM→legenda 1178 [ok] campo 1051 errMarcador -38 | tradParcial 1370 | "Giancarlo Fisichella lost control of his car and e"
+
+== desktop.r2  modelo=onnx-community/moonshine-base-ONNX device=wasm gpu=google swiftshader coi=true
+   rota: roteador STT: local · inglês (moonshine) | modelo local: onnx-community/moonshine-base-ONNX q8 | nuvem primeiro: false | aparelho: desktop-sem-gpu
+   carga: STT pronto 886 ms; MT [{"modelo":"Xenova/opus-mt-en-ROMANCE","ms":11551}]; pedidos ao Hub 2
+   main thread: 2 LoAF > 50 ms, 150 ms; maiores [{"t":140,"ms":96,"bloq":43,"scripts":["rt@vendor-react-6Lyb2VlE.js:78ms","i@index-Hm2_uEQF.js:15ms"]},{"t":1396,"ms":54,"bloq":0,"scripts":["$s@vendor-react-6Lyb2VlE.js:11ms"]}]
+   #0 voz 3.85s trechos 1 | 1ºtexto 3175 | vad 839 stt 152 (espera 0, 1ºtok 92) rOrig 991 | mtEsp · mt · [outro] rTrad · | FIM→orig 1596 FIM→trad 1596 FIM→legenda 1610 [ok] campo 1471 errMarcador -28 | tradParcial · | "Lions are the most social cats living in large gro"
+   #1 voz 2.58s trechos 1 | 1ºtexto · | vad 777 stt 91 (espera 0, 1ºtok 57) rOrig 466 | mtEsp · mt · [outro] rTrad · | FIM→orig 948 FIM→trad 948 FIM→legenda 960 [ok] campo 787 errMarcador 7 | tradParcial · | "Felleressers also paid tribute to Luna."
+   #2 voz 3.91s trechos 1 | 1ºtexto 2984 | vad 779 stt 150 (espera 0, 1ºtok 87) rOrig 242 | mtEsp 243 mt 157 [opus-mt] rTrad 1 | FIM→orig 788 FIM→trad 947 FIM→legenda 963 [ok] campo 953 errMarcador 10 | tradParcial 786 | "Fire rescue crews eventually doused the fire by el"
+   #3 voz 4.21s trechos 1 | 1ºtexto 1465 | vad 441 stt 142 (espera 0, 1ºtok 83) rOrig 252 | mtEsp · mt · [outro] rTrad · | FIM→orig 449 FIM→trad 449 FIM→legenda 450 [ok] campo 791 errMarcador -331 | tradParcial 2695 | "The find also crafts insight into the evolution of"
+   #4 voz 4.49s trechos 1 | 1ºtexto 939 | vad 447 stt 173 (espera 0, 1ºtok 92) rOrig 218 | mtEsp 219 mt 201 [opus-mt] rTrad 1 | FIM→orig 453 FIM→trad 656 FIM→legenda 662 [ok] campo 984 errMarcador -322 | tradParcial 3526 | "The night between one fifty and two hundred copies"
+   #5 voz 4s trechos 1 | 1ºtexto 962 | vad 765 stt 165 (espera 0, 1ºtok 89) rOrig 227 | mtEsp · mt · [outro] rTrad · | FIM→orig 773 FIM→trad 773 FIM→legenda 782 [ok] campo 786 errMarcador -4 | tradParcial 3003 | "The Nazi face the site by marking or scratching, g"
+   #6 voz 3.11s trechos 1 | 1ºtexto 3149 | vad 755 stt 134 (espera 0, 1ºtok 75) rOrig · | mtEsp · mt · [·] rTrad · | FIM→orig · FIM→trad · FIM→legenda 220 [ok] campo 788 errMarcador -15 | tradParcial · | "Think of the skiing route as of a similar hiking r"
+   #7 voz 4.41s trechos 1 | 1ºtexto 2928 | vad 826 stt 182 (espera 0, 1ºtok 103) rOrig 552 | mtEsp 208 mt 175 [opus-mt] rTrad 168 | FIM→orig 1177 FIM→trad 1177 FIM→legenda 1183 [ok] campo 1051 errMarcador -38 | tradParcial 1373 | "Giancarlo Fisichella lost control of his car and e"
+
+== desktop.r3  modelo=onnx-community/moonshine-base-ONNX device=wasm gpu=google swiftshader coi=true
+   rota: roteador STT: local · inglês (moonshine) | modelo local: onnx-community/moonshine-base-ONNX q8 | nuvem primeiro: false | aparelho: desktop-sem-gpu
+   carga: STT pronto 883 ms; MT [{"modelo":"Xenova/opus-mt-en-ROMANCE","ms":11556}]; pedidos ao Hub 2
+   main thread: 1 LoAF > 50 ms, 94 ms; maiores [{"t":145,"ms":94,"bloq":42,"scripts":["rt@vendor-react-6Lyb2VlE.js:76ms","i@index-Hm2_uEQF.js:15ms"]}]
+   #0 voz 3.85s trechos 1 | 1ºtexto 3184 | vad 844 stt 153 (espera 0, 1ºtok 93) rOrig 989 | mtEsp · mt · [outro] rTrad · | FIM→orig 1600 FIM→trad 1600 FIM→legenda 1613 [ok] campo 1470 errMarcador -22 | tradParcial · | "Lions are the most social cats living in large gro"
+   #1 voz 2.58s trechos 1 | 1ºtexto · | vad 782 stt 91 (espera 0, 1ºtok 57) rOrig 467 | mtEsp · mt · [outro] rTrad · | FIM→orig 955 FIM→trad 955 FIM→legenda 966 [ok] campo 786 errMarcador 12 | tradParcial · | "Felleressers also paid tribute to Luna."
+   #2 voz 3.91s trechos 1 | 1ºtexto 3206 | vad 785 stt 149 (espera 0, 1ºtok 85) rOrig 243 | mtEsp 245 mt 158 [opus-mt] rTrad 1 | FIM→orig 792 FIM→trad 953 FIM→legenda 967 [ok] campo 951 errMarcador 15 | tradParcial 575 | "Fire rescue crews eventually doused the fire by el"
+   #3 voz 4.21s trechos 1 | 1ºtexto 3511 | vad 447 stt 140 (espera 0, 1ºtok 81) rOrig 256 | mtEsp · mt · [outro] rTrad · | FIM→orig 455 FIM→trad 455 FIM→legenda 457 [ok] campo 793 errMarcador -325 | tradParcial 597 | "The find also crafts insight into the evolution of"
+   #4 voz 4.49s trechos 1 | 1ºtexto 947 | vad 452 stt 172 (espera 0, 1ºtok 91) rOrig 218 | mtEsp 219 mt 202 [opus-mt] rTrad 1 | FIM→orig 458 FIM→trad 662 FIM→legenda 671 [ok] campo 988 errMarcador -316 | tradParcial 3517 | "The night between one fifty and two hundred copies"
+   #5 voz 4s trechos 1 | 1ºtexto 967 | vad 770 stt 164 (espera 0, 1ºtok 89) rOrig 228 | mtEsp · mt · [outro] rTrad · | FIM→orig 778 FIM→trad 778 FIM→legenda 790 [ok] campo 788 errMarcador 2 | tradParcial 2998 | "The Nazi face the site by marking or scratching, g"
+   #6 voz 3.11s trechos 1 | 1ºtexto 3157 | vad 760 stt 134 (espera 0, 1ºtok 74) rOrig · | mtEsp · mt · [·] rTrad · | FIM→orig · FIM→trad · FIM→legenda 227 [ok] campo 788 errMarcador -9 | tradParcial · | "Think of the skiing route as of a similar hiking r"
+   #7 voz 4.41s trechos 1 | 1ºtexto 3144 | vad 831 stt 181 (espera 0, 1ºtok 101) rOrig 550 | mtEsp 209 mt 176 [opus-mt] rTrad 164 | FIM→orig 1179 FIM→trad 1179 FIM→legenda 1189 [ok] campo 1054 errMarcador -32 | tradParcial 1137 | "Giancarlo Fisichella lost control of his car and e"
+
+== fimDaFalaAteLegendaMs por perfil/idioma (p75 sempre com a taxa de falha)
+   desktop/en: n 24 | p50 874 p75 1020 p95 1609 | falhas 0 (taxa 0) semTraducao 0 | erro do marcador: mediana |19| p95 |330| ms (n 24)
+
+== RESUMO (grupo, pulando 0 por rodada)
+{
+ "n": 24,
+ "perdidas": 0,
+ "vad": {
+  "p50": 774,
+  "p95": 839,
+  "n": 24
+ },
+ "sttEspera": {
+  "p50": 0,
+  "p95": 0,
+  "n": 24
+ },
+ "stt": {
+  "p50": 152,
+  "p95": 182,
+  "n": 24
+ },
+ "primeiroToken": {
+  "p50": 89,
+  "p95": 103,
+  "n": 24
+ },
+ "renderOrig": {
+  "p50": 254,
+  "p95": 989,
+  "n": 21
+ },
+ "mtEspera": {
+  "p50": 219,
+  "p95": 244,
+  "n": 9
+ },
+ "mt": {
+  "p50": 175,
+  "p95": 202,
+  "n": 9
+ },
+ "renderTrad": {
+  "p50": 1,
+  "p95": 170,
+  "n": 9
+ },
+ "fimAoOriginal": {
+  "p50": 788,
+  "p95": 1596,
+  "n": 21
+ },
+ "fimATraducao": {
+  "p50": 947,
+  "p95": 1596,
+  "n": 21
+ },
+ "inicioAoPrimeiroTexto": {
+  "p50": 3144,
+  "p95": 3511,
+  "n": 21
+ },
+ "primeiraTraducaoParcialAntesDoFim": {
+  "p50": 1373,
+  "p95": 3524,
+  "n": 15
+ },
+ "rtf": {
+  "p50": 0.035,
+  "p95": 0.036,
+  "n": 24
+ },
+ "comTraducaoParcialAntesDoFim": 15,
+ "motoresMt": [
+  "outro",
+  "opus-mt"
+ ],
+ "legenda": {
+  "desktop/en": {
+   "rodadas": 3,
+   "n": 24,
+   "p50": 874,
+   "p75": 1020,
+   "p95": 1609,
+   "falhas": 0,
+   "semTraducao": 0,
+   "taxaDeFalha": 0,
+   "campo": {
+    "n": 24,
+    "p50": 873,
+    "p75": 1004,
+    "p95": 1469
+   },
+   "erroDoMarcador": {
+    "n": 24,
+    "medianaMs": -18,
+    "medianaAbsMs": 19,
+    "p95AbsMs": 330
+   }
+  }
+ }
+}

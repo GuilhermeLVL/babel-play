@@ -1,0 +1,84 @@
+{
+  "ambiente": "local-darwin",
+  "quando": "2026-11-21T05:43:36.077Z",
+  "commit": "ff85a9be",
+  "alvo": {
+    "nome": "antes",
+    "url": "http://127.0.0.1:4182"
+  },
+  "maquina": {
+    "so": "Darwin 27.0.0",
+    "cpu": "Apple M5 Pro",
+    "nucleos": 15,
+    "memoriaGb": 24,
+    "navegador": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/159.0.8154.6 Safari/537.36"
+  },
+  "perfis": {
+    "desktop": {
+      "legenda": {
+        "n": 96,
+        "falhas": 0,
+        "semTraducao": 0
+      },
+      "erroDoMarcador": null,
+      "rodadas": 12,
+      "invalidas": [],
+      "falasNoRtf": 96,
+      "metricas": {
+        "framesLongos.n50": 0,
+        "framesLongos.n100": 0,
+        "framesLongos.somaMs": 0,
+        "framesLongos.maiorMs": 0,
+        "primeiraLegendaMs": 5447.5,
+        "primeiroTextoNaTelaMs": 3235.5,
+        "sttProntoMs": 889.5,
+        "memoriaPicoMb": null,
+        "heapPicoMb": 32,
+        "cpuSilencio.processoPct": 13.890311734155404,
+        "cpuSilencio.principalPct": 3.543821530469806,
+        "cpuSilencio.foraDaPrincipalPct": 10.338491575186922,
+        "cpuSilencio.workersPct": null,
+        "rendersPorS.silencio": 22.91910902696366,
+        "rendersPorS.fala": 91.93758127438231,
+        "commitsPorS.silencio": 0.996483001172333,
+        "commitsPorS.fala": 3.142609449501517,
+        "fimATraducao.p50": 936.75,
+        "regulador.trocasDeModelo": 0,
+        "rtf.p50": 0.035,
+        "rtf.p95": 0.038,
+        "fimDaFalaAteLegendaMs.p50": 933,
+        "fimDaFalaAteLegendaMs.p75": 967.5,
+        "fimDaFalaAteLegendaMs.p95": 1611,
+        "fimDaFalaAteLegendaMs.taxaDeFalha": 0
+      },
+      "dispersao": {
+        "framesLongos.n50": null,
+        "framesLongos.n100": null,
+        "framesLongos.somaMs": null,
+        "framesLongos.maiorMs": null,
+        "primeiraLegendaMs": 0.005139972464433226,
+        "primeiroTextoNaTelaMs": 0.7392984082831092,
+        "sttProntoMs": 0.032602585722315905,
+        "memoriaPicoMb": null,
+        "heapPicoMb": 0.15625,
+        "cpuSilencio.processoPct": 0.0897565890606037,
+        "cpuSilencio.principalPct": 0.16514112067807127,
+        "cpuSilencio.foraDaPrincipalPct": 0.06617688391439379,
+        "cpuSilencio.workersPct": null,
+        "rendersPorS.silencio": 0,
+        "rendersPorS.fala": 0.13295615275813286,
+        "commitsPorS.silencio": 0,
+        "commitsPorS.fala": 0.11034482758620667,
+        "fimATraducao.p50": 0.10088070456365092,
+        "regulador.trocasDeModelo": null
+      },
+      "modelos": ["onnx-community/moonshine-base-ONNX"],
+      "aparelho": {
+        "tipo": "desktop-sem-gpu",
+        "modoLeve": "false"
+      },
+      "origem": "medido",
+      "aparelhoDescricao": "Apple M5 Pro, 15 núcleos, 24 GB"
+    }
+  }
+}

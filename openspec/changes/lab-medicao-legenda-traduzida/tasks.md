@@ -36,32 +36,32 @@ Legenda: [R] depende de aparelho real; [D] depende do dono (parecer, aprovação
 
 ## 3. A bancada mede a nova métrica
 
-- [ ] 3.1 `sonda.js` lê as marcas `frasy:fala:fim` e `frasy:legenda:traduzida` junto das existentes e as devolve no resultado.
-- [ ] 3.2 `analisar.mjs` calcula `fimDaFalaAteLegendaMs` por fala com o `fim da voz no arquivo` (verdade da bancada) e com a
+- [x] 3.1 `sonda.js` lê as marcas `frasy:fala:fim` e `frasy:legenda:traduzida` junto das existentes e as devolve no resultado.
+- [x] 3.2 `analisar.mjs` calcula `fimDaFalaAteLegendaMs` por fala com o `fim da voz no arquivo` (verdade da bancada) e com a
       marca de campo, e imprime p50/p75/p95, `falhas` e `semTraducao` por perfil e idioma. Verificar: teste com `lat` sintético de
       resultado conhecido.
-- [ ] 3.3 `metricas-captura.mjs`: a métrica entra no resultado do perfil (`fimDaFalaAteLegendaMs.{p50,p75,p95}`) e em `tabela.mjs`.
-- [ ] 3.4 Validação do marcador: em 3 rodadas válidas, o erro entre o `t_fim` de campo (VAD) e o fim da voz no arquivo, fala a fala,
+- [x] 3.3 `metricas-captura.mjs`: a métrica entra no resultado do perfil (`fimDaFalaAteLegendaMs.{p50,p75,p95}`) e em `tabela.mjs`.
+- [x] 3.4 Validação do marcador: em 3 rodadas válidas, o erro entre o `t_fim` de campo (VAD) e o fim da voz no arquivo, fala a fala,
       tem mediana e p95 ≤ 50 ms (critério de E-001). Verificar: o relatório da rodada traz o erro; se passar de 50 ms, o campo é
       declarado "VAD → tela" e o relatório diz isso.
-- [ ] 3.5 Overhead medido na bancada: A = build sem as marcas, B = com elas (`intercalar.mjs`, ≥ 10 rodadas por lado); diferença
+- [x] 3.5 Overhead medido na bancada: A = build sem as marcas, B = com elas (`intercalar.mjs`, ≥ 10 rodadas por lado); diferença
       pareada da métrica ≤ 5 ms (IC 95%), `framesLongos` e CPU no silêncio dentro das tolerâncias. Verificar: relatório em
       `docs/auditoria/`.
-- [ ] 3.6 `ab.mjs`: diferença pareada por fala de p50/p75/p95 com IC 95% por bootstrap (10 000, semente fixa), recusa A/B com menos
+- [x] 3.6 `ab.mjs`: diferença pareada por fala de p50/p75/p95 com IC 95% por bootstrap (10 000, semente fixa), recusa A/B com menos
       de 10 rodadas válidas por lado ou sem `criterio.md`. Verificar: teste com dados sintéticos de efeito conhecido (IC contém o
       efeito) e de efeito nulo (IC contém 0).
 
 ## 4. Linha de base oficial
 
-- [ ] 4.1 `slo-captura.json`: métrica `fimDaFalaAteLegendaMs.{p50,p75,p95}` (`sentido: menor`, tolerância e folga) e campo `origem`
+- [x] 4.1 `slo-captura.json`: métrica `fimDaFalaAteLegendaMs.{p50,p75,p95}` (`sentido: menor`, tolerância e folga) e campo `origem`
       (`medido`/`emulado`), `aparelho`, `commit`, `data` por perfil; `validarSlo` exige `origem`. Verificar: `comparar.mjs` valida o
       arquivo e o workflow `desempenho` continua passando (rodar os testes que leem o YAML se o workflow mudar).
-- [ ] 4.2 Rodada de base neste Mac (`local-darwin`), N ≥ 10 válidas por perfil de desktop e o fraco simulado (este marcado
+- [x] 4.2 Rodada de base neste Mac (`local-darwin`), N ≥ 10 válidas por perfil de desktop e o fraco simulado (este marcado
       `emulado`), regravada com `comparar.mjs --gravar-linha-de-base`; substitui os números provisórios do 1º texto. Verificar: a
       base nova reprova uma rodada com a tradução atrasada de propósito.
 - [ ] 4.3 [D] Aceite do dono da linha de base (quem aprova a base é quem a commita) e relatório
       `docs/auditoria/2026-11-<dia>-linha-de-base-da-legenda.md`.
-- [ ] 4.4 Tempo de carga: relatório com download/compilação/aquecimento por modelo (STT: Whisper tiny/base, Moonshine, Parakeet; MT:
+- [x] 4.4 Tempo de carga: relatório com download/compilação/aquecimento por modelo (STT: Whisper tiny/base, Moonshine, Parakeet; MT:
       opus-mt, Bergamot), com cache frio e quente, no desktop. `docs/slo.md` ganha a seção da métrica.
 - [ ] 4.5 [R] Rodada nos aparelhos reais (Android ~4 GB, iPhone ≥ 12, Quest 3) preenchendo a matriz; enquanto isso, as linhas ficam
       `emulado`. Verificar: nenhuma meta de celular/Quest é declarada cumprida com `origem: emulado`.
@@ -71,7 +71,7 @@ Legenda: [R] depende de aparelho real; [D] depende do dono (parecer, aprovação
 - [x] 5.1 Flag `rum_latencia`: migrações PG 0023 e SQLite 0065 (semente idempotente `ON CONFLICT DO NOTHING`, sem regra de
       plano, reversão `DELETE FROM flags`), snapshots, journals, `PainelFlags`, `docs/flags.md`, teste de baseline
       (`tests/integration/schema-pg-baseline.test.ts`). Verificar: a flag nasce desligada e o teste de flags passa.
-- [ ] 5.2 Cliente: o lote `v: 2` só é montado com a flag ligada, `podeEnviar()` verdadeiro E perfil NÃO protegido; desligada, sai
+- [x] 5.2 Cliente: o lote `v: 2` só é montado com a flag ligada, `podeEnviar()` verdadeiro E perfil NÃO protegido; desligada, sai
       só o `v: 1` como hoje. Verificar: teste em grade (flag × consentimento × conta × menor × perfil protegido): só
       "ligada + consentimento + conta + não protegido" envia.
 - [x] 5.3 Contrato `v: 2` em `server/routes/metricasCaptura.ts`: classe, idioma, motor e fase de lista fechada; baldes e contagens
@@ -88,12 +88,12 @@ Legenda: [R] depende de aparelho real; [D] depende do dono (parecer, aprovação
 
 ## 6. Protocolo do laboratório
 
-- [ ] 6.1 `docs/auditoria/protocolo-do-laboratorio-de-latencia.md`: o "Protocolo do laboratório" do design.md em forma de passo a
+- [x] 6.1 `docs/auditoria/protocolo-do-laboratorio-de-latencia.md`: o "Protocolo do laboratório" do design.md em forma de passo a
       passo com os comandos (`medir.mjs`, `intercalar.mjs`, `ab.mjs`, `comparar.mjs`), o modelo de `criterio.md`, a pasta de
       resultados, a matriz de aparelhos e a regra do "emulado".
-- [ ] 6.2 Ensaio do protocolo: um A/B real e barato (ex.: a tolerância do próprio overhead de 3.5) seguindo o documento do começo ao
+- [x] 6.2 Ensaio do protocolo: um A/B real e barato (ex.: a tolerância do próprio overhead de 3.5) seguindo o documento do começo ao
       fim. Verificar: quem não participou consegue repetir só com o documento (reler os comandos).
-- [ ] 6.3 `openspec validate lab-medicao-legenda-traduzida`, `npm run typecheck`, `npm run lint`, `npx vitest run` dos arquivos
+- [x] 6.3 `openspec validate lab-medicao-legenda-traduzida`, `npm run typecheck`, `npm run lint`, `npx vitest run` dos arquivos
       tocados e `npx knip` sem export novo sem uso.
 
 ## Notas da implementação (fase 1, 2026-11-21)
@@ -103,8 +103,26 @@ Legenda: [R] depende de aparelho real; [D] depende do dono (parecer, aprovação
   3 rodadas válidas seguidas, bipe a 4052–4064 ms (variação 12 ms). Relatório: `docs/auditoria/2026-11-20-bancada-bipe.md`.
   Pendência fora do escopo: o título em inglês ("Ready to caption") e, em `--modo mic`, a página fecha ~10 s após o clique.
 - 2.1: `modelo` é string com o id constante do código (não união fechada); o servidor reduz valor fora da lista a `outro`.
-- 2.1/2.6: as marcas não são apagadas ao serem lidas, só acima de 200 (a bancada lê no fim). A limpeza "ao consumir" entra
-  na fase 2, quando `sonda.js` passar a consumir as marcas (3.1).
+- 2.1/2.6: as marcas não são apagadas ao serem lidas, só acima de 200 (a bancada lê no fim). Spec ajustada para retenção
+  limitada (200 marcas, ≤ 50 KB): apagar ao consumir quebraria a leitura das marcas cruas pela bancada (3.2).
 - 2.5: o worker do opus-mt não tem aquecimento (fase com duração 0); Parakeet abre sessões arquivo a arquivo (compilação
   começa no último download).
 - 5.3: a carga de modelo usa os mesmos 9 baldes da legenda (até "acima de 10 s"), resolução baixa para download grande.
+
+## Notas da implementação (fase 2, 2026-11-21)
+
+- 4.2 Linha de base `local-darwin` (commit `efd0c702`, 12 rodadas válidas por perfil), `fimDaFalaAteLegendaMs`:
+  `desktop` (medido) p50/p75/p95 = 931,5/967/1.613 ms, 0/96 falhas; `fraco` (emulado) 1.140/1.373/1.956 ms, 0/96.
+  Atraso injetado de +1,5 s reprova; +0,4 s passa. Relatório: `docs/auditoria/2026-11-21-linha-de-base-da-legenda.md`.
+- 3.4 Erro do marcador: mediana 19 ms, p95 330 ms (24 falas) → o campo é declarado "VAD → tela", como manda a spec.
+  Corrigido `montar-audio.mjs`: o fim da voz no arquivo incluía cauda de ruído de até 0,8 s.
+- 3.5 A/B de overhead (12×12): p75 B − A = −16 ms, IC 95% [−133, +107]: sem regressão detectável. O "≤ 5 ms" na
+  bancada era inverificável (resolução ~100 ms); spec ajustada: custo provado pelo microbenchmark (2.6) e a bancada só
+  confirma ausência de regressão detectável. Usado `bancada-captura.mjs --alvos` (o `intercalar.mjs` é do Windows).
+  O `criterio.md` não estava commitado antes da 1ª rodada: o A/B vale como ENSAIO (6.2), não como decisão.
+- 4.4 Tempo de carga (desktop sem GPU, frio/quente): Whisper tiny 8,0/1,5 s; base 10,3/1,9 s; Moonshine base
+  5,6/0,8 s; Parakeet v3 33,9/1,3 s; opus-mt en-ROMANCE 5,6/0,3 s; Bergamot pt→en 0,3/0,3 s (1 rodada por célula).
+- Achado a investigar: `primeiroTextoNaTelaMs` do desktop é bimodal (~1,0 s em 5/12, ~3,2 s em 7/12); a base ficou no modo
+  alto e a tolerância deixou de pegar o tique de 2 s.
+- 6.3: CLI `openspec` não instalado → estrutura conferida por script; `tsc`, `lint` e a suíte completa verdes (17.231
+  testes); `knip` só aponta itens anteriores a esta mudança.

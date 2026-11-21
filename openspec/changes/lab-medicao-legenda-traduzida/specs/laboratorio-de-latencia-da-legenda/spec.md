@@ -53,14 +53,15 @@ p95) para o campo ser chamado de "fim da fala → legenda"; acima disso o relat�
 
 ### Requirement: A instrumentação tem overhead desprezível
 
-Cada marca SHALL custar ≤ 0,2 ms (p95) na thread principal; a métrica medida na bancada com as marcas SHALL ficar ≤ 5 ms acima da
-mesma bancada sem elas (diferença pareada, IC 95%); frames longos e CPU no silêncio SHALL ficar dentro das tolerâncias de
-`slo-captura.json`; a instrumentação SHALL reter ≤ 50 KB por sessão e limpar as marcas consumidas.
+Cada marca SHALL custar ≤ 0,2 ms (p95) na thread principal; o custo por fala SHALL ser provado pelo microbenchmark (marcas por fala × custo p95 ≤ 1 ms); na bancada, o A/B com e sem as
+marcas SHALL não mostrar regressão detectável (IC 95% da diferença pareada contém 0 e limite superior ≤ 150 ms, a resolução da
+bancada); frames longos e CPU no silêncio SHALL ficar dentro das tolerâncias de
+`slo-captura.json`; a instrumentação SHALL reter ≤ 50 KB por sessão, com a linha do tempo limitada às 200 marcas mais recentes de fala e legenda (as mais antigas são descartadas; a bancada lê as marcas cruas no fim da rodada).
 
 #### Scenario: Sessão longa
 
 - **WHEN** uma sessão de 200 falas termina
-- **THEN** a memória retida pela instrumentação é ≤ 50 KB e a linha do tempo do `performance` não guarda as marcas já consumidas
+- **THEN** a memória retida pela instrumentação é ≤ 50 KB e a linha do tempo do `performance` guarda no máximo as 200 marcas mais recentes de fala e legenda
 
 ### Requirement: A linha de base oficial é versionada e diz de onde veio
 

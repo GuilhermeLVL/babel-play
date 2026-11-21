@@ -153,11 +153,24 @@ describe('política DESLIGADA: transcrever, aparelho × plano × idioma (o compo
       expect(d.processamento).toEqual({ onde: 'aparelho', enviaDadosA: null })
       expect(d.descartadas).toContainEqual({ degrau: 'nuvem-por-trechos', motivo: 'plano-nao-inclui' })
     } else {
-      // Hoje quem tem nuvem vai à nuvem primeiro, em qualquer idioma e aparelho.
-      expect(d.rota).toMatchObject({ degrau: 'nuvem-por-trechos', motivo: 'nuvem-primeiro', motor: 'groq-whisper' })
-      expect(d.nivel).toBe('precisao')
-      expect(d.processamento).toEqual({ onde: 'nuvem', enviaDadosA: 'nos' })
-      expect(d.reservas.at(-1)?.degrau).toBe('modelo-no-aparelho')
+      /* INGLÊS: fica no aparelho enquanto a nuvem normalizada não vencer a medição (`inglesNaNuvem`, REQ-015). */
+      if (idioma === 'en')
+        expect(d.rota).toMatchObject({
+          degrau: 'modelo-no-aparelho',
+          motivo: 'aparelho-da-conta',
+          modelo: modeloEmIngles[aparelho],
+        })
+      // Fora isso, quem tem nuvem vai à nuvem primeiro, em qualquer idioma e aparelho (o inglês, com `inglesNaNuvem`).
+      const dNuvem =
+        idioma === 'en' ? decidirRota(pedido({ aparelho, plano, idioma, estado: { inglesNaNuvem: true } })) : d
+      expect(dNuvem.rota).toMatchObject({
+        degrau: 'nuvem-por-trechos',
+        motivo: 'nuvem-primeiro',
+        motor: 'groq-whisper',
+      })
+      expect(dNuvem.nivel).toBe('precisao')
+      expect(dNuvem.processamento).toEqual({ onde: 'nuvem', enviaDadosA: 'nos' })
+      expect(dNuvem.reservas.at(-1)?.degrau).toBe('modelo-no-aparelho')
     }
     expect(d.acao ?? null).toBeNull()
   })

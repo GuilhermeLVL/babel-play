@@ -114,8 +114,9 @@ describe('política com a flag: o aparelho primeiro', () => {
     expect(d.rota).toMatchObject({ degrau: 'nuvem-por-trechos', motivo: 'escolha-da-pessoa' })
   })
 
-  it('inglês: como hoje (a nuvem primeiro)', () => {
-    expect(decidirRota(pedido({ idioma: 'en' })).rota.degrau).toBe('nuvem-por-trechos')
+  it('inglês: no aparelho, como o `routeStt`; com `inglesNaNuvem` (flag + medição), a nuvem primeiro', () => {
+    expect(decidirRota(pedido({ idioma: 'en' })).rota.degrau).toBe('modelo-no-aparelho')
+    expect(decidirRota(pedido({ idioma: 'en', estado: { inglesNaNuvem: true } })).rota.degrau).toBe('nuvem-por-trechos')
   })
 
   it('o que barra a nuvem barra também a reserva da nuvem (sem consentimento, privado, protegido, pausa, sem rede)', () => {

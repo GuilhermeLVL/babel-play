@@ -22,6 +22,7 @@ import {
   type SttRouteInput,
   WHISPER_MODELS,
 } from '../src/gateway/sttRouter'
+import { ENTRADA_COM_NUVEM_NORMALIZADA_VENCENDO } from './fixtures/medicoesDeSttQueFavorecemANuvem'
 
 const desktop8: DispositivoDaRota = {
   tipo: 'desktop-com-gpu',
@@ -76,6 +77,7 @@ function matriz(): SttRouteInput[] {
                     dispositivo,
                     parakeet: true,
                     parakeetNoAparelho,
+                    ...ENTRADA_COM_NUVEM_NORMALIZADA_VENCENDO,
                   })
   return lista
 }

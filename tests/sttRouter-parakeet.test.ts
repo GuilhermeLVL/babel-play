@@ -28,6 +28,7 @@ import {
   tamanhoDoDownloadMb,
   WHISPER_MODELS,
 } from '../src/gateway/sttRouter'
+import { ENTRADA_COM_NUVEM_NORMALIZADA_VENCENDO } from './fixtures/medicoesDeSttQueFavorecemANuvem'
 
 const IMPRESSAO_DE_ANTES = '2626dac27586fa9904015e4624d00cfb8d687970fab28acd2d0825f1987b515d'
 
@@ -65,6 +66,7 @@ function matriz(dispositivos: Array<DispositivoDaRota | undefined>): SttRouteInp
                   profileId: 'free-web',
                   dispositivo,
                   parakeet: false,
+                  ...ENTRADA_COM_NUVEM_NORMALIZADA_VENCENDO,
                 })
   return entradas
 }

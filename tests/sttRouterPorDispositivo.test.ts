@@ -16,6 +16,7 @@ import {
   tamanhoDoDownloadMb,
   WHISPER_MODELS,
 } from '../src/gateway/sttRouter'
+import { ENTRADA_COM_NUVEM_NORMALIZADA_VENCENDO } from './fixtures/medicoesDeSttQueFavorecemANuvem'
 
 const base = {
   contentLang: 'pt',
@@ -110,8 +111,13 @@ describe('inglês por perfil', () => {
     expect(routeStt({ ...base, contentLang: 'en', dispositivo: quest }).dtype).toBe('q8')
   })
 
-  it('com nuvem: inglês vai à nuvem primeiro em todo aparelho, e a reserva é o moonshine do aparelho', () => {
-    const nuvem = { ...base, contentLang: 'en', cloudAvailable: true }
+  it('com nuvem e a medição favorável (flag ligada): inglês vai à nuvem primeiro em todo aparelho, e a reserva é o moonshine do aparelho', () => {
+    const nuvem = {
+      ...base,
+      contentLang: 'en',
+      cloudAvailable: true,
+      ...ENTRADA_COM_NUVEM_NORMALIZADA_VENCENDO,
+    }
     expect(routeStt({ ...nuvem, dispositivo: celularFraco })).toMatchObject({
       preferCloud: true,
       localModel: MOONSHINE_MODELS.tiny,

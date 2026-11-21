@@ -16,6 +16,7 @@ import {
   type MotivoDaOfertaDeAlivio,
   type SinaisDoAparelhoParaAlivio,
 } from '../../core/nuvemDeAlivio';
+import { FLAG_STT_NUVEM_NORMALIZAR } from '../../core/planos';
 import {
   avaliarFalaLocal,
   continuarAudioDificil,
@@ -26,6 +27,7 @@ import {
   registrarFalaNaNuvem,
   registrarPausaDaNuvem,
 } from '../../core/rota/audioDificil';
+import { inglesNuvemVenceAparelho } from '../../core/rota/medicoesDeStt';
 import type { DecisaoDeRota } from '../../core/rota/politicaDeRota';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
 import { temAdaptadorWebGpu } from '../../gateway/adaptadorWebGpu';
@@ -38,6 +40,7 @@ import { marcar } from '../../gateway/marcasDeDesempenho';
 import { areModelsCached, expectedModelIds } from '../../gateway/modelCache';
 import { temCopiaNoAparelho } from '../../gateway/modelManifest';
 import { entradaDoParakeet, gravarModeloFixo, lerModeloFixo } from '../../gateway/modeloFixo';
+import { definirNormalizacaoDoStt } from '../../gateway/normalizacaoDoStt';
 import type { ContextoDoStt } from '../../gateway/promptDeStt';
 import {
   getSttQuality,
@@ -1631,6 +1634,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         })()
       : false;
     const modeloFixoLido = lerModeloFixo();
+    const normalizarNuvem = flagLigada(FLAG_STT_NUVEM_NORMALIZAR);
+    definirNormalizacaoDoStt(normalizarNuvem);
     const entradaDoRoteador: SttRouteInput = {
       contentLang: listenLang,
       // O mesmo modelo decodifica o MIC: se você fala PT enquanto ouve EN, o moonshine (só inglês) não serve.
@@ -1652,6 +1657,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
          primeiro e a nuvem fica para o áudio difícil. A chave própria (provedor "nuvem") fica fora: ali
          a pessoa escolheu a nuvem dela. */
       aparelhoPrimeiro: flagLigada(FLAG_STT_APARELHO_PRIMEIRO) && getProviderMode() !== 'cloud',
+      /* VOLUME DA NUVEM (flag `stt_nuvem_normalizar`): o adaptador de nuvem normaliza o áudio enviado, e o roteador só
+         manda o inglês à nuvem primeiro com ela ligada e a medição vencendo o aparelho (`medicoesDeStt`). */
+      sttNuvemNormalizar: normalizarNuvem,
     };
     let route = routeStt(entradaDoRoteador);
     /* A POLÍTICA DE ROTA (`core/rota/politicaDeRota.ts`) responde à mesma pergunta, DESLIGADA (modo
@@ -1670,6 +1678,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       leve: perfil.leve,
       parakeetPronto: parakeetProntoNaRota(entradaDoRoteador),
       aparelhoPrimeiro: entradaDoRoteador.aparelhoPrimeiro,
+      inglesNaNuvem: normalizarNuvem && inglesNuvemVenceAparelho(),
     };
     // (1) só em desenvolvimento, a diferença para a rota efetiva vai para o console (`conferenciaDaRota.ts`);
     if (import.meta.env?.DEV) void conferirRotaDoStt(entradaDaPolitica, route);

@@ -20,11 +20,11 @@ const base = {
 }
 
 describe('routeStt — a régua de qualidade por idioma', () => {
-  it('inglês em auto COM nuvem → nuvem primeiro, moonshine-base de reserva (bancada: 4,9% contra 13,5% de WER)', () => {
-    // Auditoria de eficiência 2026-09-28, achado 5: quem paga recebia o Moonshine local em inglês.
+  it('inglês em auto COM nuvem fica no aparelho (moonshine-base): a nuvem medida no OpenRouter não vence (REQ-015)', () => {
+    // Detalhes da decisão por medição: tests/sttRouter-inglesPorMedicao.test.ts.
     const r = routeStt({ ...base, contentLang: 'en' })
-    expect(r).toMatchObject({ localModel: MOONSHINE_MODELS.base, preferCloud: true, dtype: 'q8' })
-    expect(r.label).toBe('nuvem (large-v3-turbo) · reserva local')
+    expect(r).toMatchObject({ localModel: MOONSHINE_MODELS.base, preferCloud: false, dtype: 'q8' })
+    expect(r.label).toBe('local · inglês (moonshine)')
   })
 
   it('inglês em auto SEM nuvem fica LOCAL no moonshine-base (10,9% WER vs 19,7% do whisper-tiny)', () => {

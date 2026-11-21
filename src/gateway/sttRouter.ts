@@ -6,9 +6,10 @@
  * inglês — em PT-BR (e outros idiomas) ele erra feio ("fellowo americano"). O produto
  * não pode soar quebrado justamente no idioma nativo do usuário. A régua:
  *
- *   EN            → NUVEM primeiro quando disponível (4,9% de WER contra 13,5% do Moonshine na
- *                   bancada 2026-09), com o moonshine como reserva local; sem nuvem → moonshine-base
- *                   local (só inglês, MIT; na bancada FLEURS 2026-09-24: 10,9% de WER contra 19,7%
+ *   EN            → NO APARELHO (moonshine) no automático, a não ser que a medição versionada da nuvem
+ *                   normalizada VENÇA o motor local com IC 95% pareado (`core/rota/medicoesDeStt.ts`) e a
+ *                   flag `stt_nuvem_normalizar` esteja ligada: aí nuvem primeiro, moonshine de reserva.
+ *                   Moonshine-base local (só inglês, MIT; na bancada FLEURS 2026-09-24: 10,9% de WER contra 19,7%
  *                   do whisper-tiny, ~0% de alucinação em silêncio contra 70,6%, e ~67 MB contra
  *                   117 MB — ver `adapters/moonshine.ts`).
  *   não-EN / auto → NUVEM primeiRO quando disponível (Groq whisper-large-v3-turbo —
@@ -21,6 +22,7 @@
  * e o selo da UI sempre diz qual motor está de fato em uso.
  */
 
+import { inglesNuvemVenceAparelho, type MedicoesDeStt } from '../core/rota/medicoesDeStt';
 import type { TipoDeDispositivo } from '../lib/dispositivo/perfil';
 import { edicaoEstatica } from '../lib/edicaoEstatica';
 import { nuvemDoQuestAtiva } from '../lib/nuvemDoQuest';
@@ -84,6 +86,13 @@ export interface SttRouteInput {
    * quando o áudio fica difícil (`nuvemNoAudioDificil`). Ausente ou `false` = a rota de hoje.
    */
   aparelhoPrimeiro?: boolean;
+  /**
+   * A flag `stt_nuvem_normalizar` está ligada (o áudio vai à nuvem com o volume normalizado). Sem ela a nuvem do
+   * inglês é a rota padrão do OpenRouter, medida em 27,8%: o inglês fica no aparelho. Ausente = desligada.
+   */
+  sttNuvemNormalizar?: boolean;
+  /** As medições que decidem a rota do inglês; ausente = as versionadas (`MEDICOES_DE_STT`). Para teste. */
+  medicoesDeStt?: MedicoesDeStt;
 }
 
 /** O pedaço do perfil do dispositivo que a rota usa. */
@@ -528,14 +537,21 @@ export function routeStt(input: SttRouteInput): SttRoute {
       return precisoLocal((nome) => `local (nuvem indisponível) · ${nome}`);
     case 'auto':
     default: {
-      /* INGLÊS DE QUEM TEM NUVEM VAI À NUVEM (auditoria de eficiência 2026-09-28, achado 5). Antes o
-         inglês saía aqui, no Moonshine local, ANTES de olhar a nuvem: quem paga recebia 13,5% de WER
-         no lugar dos 4,9% do large-v3-turbo (bancada 2026-09). O Moonshine continua como RESERVA —
-         menor e melhor em inglês que o Whisper base (67 MB, ou 32 no celular fraco) — e continua o
-         motor de quem não tem nuvem. */
-      /* …menos na nuvem do site estático (`nuvemDoQuest.ts`): a cota ali é de 15 min por dia, e o
-         Moonshine acompanha a fala até no Quest (fator 0,2, medido). O inglês fica no aparelho. */
-      if (isEnglish && cloudAllowed && !nuvemDoQuestAtiva())
+      /* INGLÊS: NO APARELHO, salvo medição que prove o contrário (openspec `stt-ingles-volume-e-rota`, REQ-015). A nuvem
+         pela rota padrão do OpenRouter mede 27,8% de WER em inglês (DeepInfra corta o áudio gravado baixo), contra 13,6% do
+         Moonshine base e 7,1% do Parakeet (`core/rota/medicoesDeStt.ts`). Só vai à nuvem primeiro com a flag
+         `stt_nuvem_normalizar` ligada E a medição da nuvem normalizada vencendo o motor local com IC 95% pareado.
+         O Moonshine continua como RESERVA — menor e melhor em inglês que o Whisper base (67 MB, ou 32 no celular
+         fraco) — e como motor de quem não tem nuvem. */
+      /* …e na nuvem do site estático (`nuvemDoQuest.ts`) o inglês fica no aparelho de qualquer jeito: a cota ali é de 15
+         min por dia, e o Moonshine acompanha a fala até no Quest (fator 0,2, medido). */
+      if (
+        isEnglish &&
+        cloudAllowed &&
+        !nuvemDoQuestAtiva() &&
+        input.sttNuvemNormalizar === true &&
+        inglesNuvemVenceAparelho(input.medicoesDeStt)
+      )
         return {
           localModel: moonshineAuto,
           dtype: 'q8',

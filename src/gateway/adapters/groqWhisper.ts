@@ -3,6 +3,7 @@
  * modelo whisper-large-v3-turbo na nuvem. A chave da API nunca chega ao cliente; o servidor
  * injeta via `x-credential-id`.
  */
+import { normalizarVolume } from '../../core/audio/normalizarVolume';
 import { apiFetch } from '../../data/api';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { cabecalhoDoAlivio, registrarRecusaDoAlivio } from '../../lib/nuvemDeAlivio/estado';
@@ -20,6 +21,7 @@ import { audioParaStt } from '../audio/opusDoStt';
 import { encodeWav } from '../audio/wav';
 import type { SttFinal, SttProvider } from '../capabilities';
 import { avisarFalhaDaNuvemDoStt, avisarRespostaDaNuvemDoStt, type MotivoDaPausaDaNuvem } from '../falhaDaNuvemDoStt';
+import { normalizacaoDoSttLigada } from '../normalizacaoDoStt';
 import { esperaDoRetryAfter, PAUSA_MAXIMA_MS, PausaDaNuvem } from '../pausaDaNuvem';
 import { cortarPrompt } from '../promptDeStt';
 
@@ -116,9 +118,12 @@ export class GroqWhisperStt implements SttProvider {
     /* NO QUEST, WAV: codificar Opus custaria CPU nos 3 núcleos do headset, e uma fala de 12 s em WAV
        são ~380 KB no Wi-Fi. */
     const noQuest = nuvemDoQuestAtiva();
+    /* VOLUME (flag `stt_nuvem_normalizar`, `core/audio/normalizarVolume.ts`): só o que vai à rede. `pcm` fica intacto (o
+       caminho local, a duração para o filtro de alucinação); a função devolve uma cópia. Desligada, o mesmo buffer de antes. */
+    const pcmDaNuvem = normalizacaoDoSttLigada() ? normalizarVolume(pcm).pcm : pcm;
     const audio = noQuest
-      ? { corpo: encodeWav(pcm, sampleRate), tipo: 'audio/wav' as const }
-      : await audioParaStt(pcm, sampleRate);
+      ? { corpo: encodeWav(pcmDaNuvem, sampleRate), tipo: 'audio/wav' as const }
+      : await audioParaStt(pcmDaNuvem, sampleRate);
 
     const headers: Record<string, string> = {
       'Content-Type': audio.tipo,

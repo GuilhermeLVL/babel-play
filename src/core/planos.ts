@@ -325,6 +325,13 @@ export const FLAG_ACESSO_RESTRITO_SEM_CONTA = 'acesso_restrito_sem_conta';
 export const FLAG_RUM_LATENCIA = 'rum_latencia';
 
 /**
+ * A NORMALIZAÇÃO DE VOLUME DO ÁUDIO ENVIADO AO STT DE NUVEM (openspec `stt-ingles-volume-e-rota`; migrações PG 0024 e SQLite
+ * 0066): o pico (percentil 99,9) do trecho vai a −3 dBFS antes do encode. Nasce DESLIGADA e sem regra de plano; ligar é ato
+ * do dono, depois da medição. Desligada = o corpo enviado é o de antes. Só a nuvem: o caminho local não passa por ela.
+ */
+export const FLAG_STT_NUVEM_NORMALIZAR = 'stt_nuvem_normalizar';
+
+/**
  * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,
  * "Custo da escrita"): um retorno leva ~900 tokens de entrada (system + texto de até 120 palavras) e até 500 de saída;
  * 30 por mês ficam na casa de US$ 0,01 por assinante que usa tudo, e os tokens já saem da `tokensMes`.

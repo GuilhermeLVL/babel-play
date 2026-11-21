@@ -166,6 +166,12 @@ export interface EstadoDaRota {
    */
   aparelhoPrimeiro?: boolean;
   /**
+   * O inglês do automático vai à nuvem primeiro (openspec `stt-ingles-volume-e-rota`): a flag `stt_nuvem_normalizar`
+   * ligada E a medição da nuvem normalizada vencendo o motor local (`medicoesDeStt`). Ausente ou `false` = o inglês fica
+   * no aparelho, como o `routeStt`.
+   */
+  inglesNaNuvem?: boolean;
+  /**
    * A histerese do áudio difícil (`core/rota/audioDificil.ts`) subiu: com `aparelhoPrimeiro`, a nuvem
    * vai primeiro até ela descer. Sem `aparelhoPrimeiro`, não muda nada.
    */
@@ -473,9 +479,11 @@ function escolhaDeHoje(p: PedidoDeRota, bloqueios: readonly MotivoDaRota[], nuve
     const local = modeloLocal(p, id, tranca ?? 'escolha-da-pessoa');
     return { ...base, nuvem: null, local, descartadas: semNuvem('escolha-da-pessoa') };
   }
-  /* Na nuvem do site o inglês fica no aparelho: a cota de lá é de minutos por dia e o Moonshine
-     acompanha a fala até no Quest. Só o automático; quem escolheu "nuvem" vai à nuvem. */
-  const inglesFicaAqui = q === 'auto' && ingles && nuvemDoSiteAtiva(p.estado);
+  /* O inglês fica no aparelho: na nuvem do site, porque a cota de lá é de minutos por dia e o Moonshine acompanha a
+     fala até no Quest; e, sem bloqueio da nuvem (que já dá o motivo), sem medição que prove a nuvem melhor
+     (`inglesNaNuvem`, REQ-015). Só o automático; quem escolheu "nuvem" vai à nuvem. */
+  const inglesFicaAqui =
+    q === 'auto' && ingles && (nuvemDoSiteAtiva(p.estado) || (!bloqueio && p.estado.inglesNaNuvem !== true));
   if (inglesFicaAqui) {
     const local = modeloLocal(p, moonshineDoAparelho(p), tranca ?? 'aparelho-da-conta');
     return { ...base, nuvem: null, local, descartadas: semNuvem('aparelho-da-conta') };

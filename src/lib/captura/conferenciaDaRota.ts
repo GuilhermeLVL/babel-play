@@ -48,6 +48,8 @@ export interface EntradaDaConferencia {
   parakeetPronto?: boolean;
   /** A flag `stt_aparelho_primeiro` (o `aparelhoPrimeiro` do `routeStt`). */
   aparelhoPrimeiro?: boolean;
+  /** O inglês do automático vai à nuvem primeiro: flag `stt_nuvem_normalizar` + medição que vence o aparelho. */
+  inglesNaNuvem?: boolean;
 }
 
 /** O que a rota de hoje NÃO vê e a política vê: lido do app por `conferirRotaDoStt`. */
@@ -120,6 +122,7 @@ export function montarPedidoDeRota(e: EntradaDaConferencia, a: AmbienteDaConfere
       nuvemDoSite: a.nuvemDoSite,
       preferencia: { qualidade: QUALIDADE[e.qualidade] ?? 'auto', microfone: 'modelo' },
       ...(e.aparelhoPrimeiro ? { aparelhoPrimeiro: true } : {}),
+      ...(e.inglesNaNuvem ? { inglesNaNuvem: true } : {}),
     },
   };
 }

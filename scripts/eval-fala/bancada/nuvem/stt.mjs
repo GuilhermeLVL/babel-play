@@ -7,14 +7,16 @@
  * deny`), que a produção mandaria. Um pedido por vez; a latência é a do pedido inteiro (envio do
  * áudio + resposta lida), sem espera de ritmo nem tentativa falha.
  *
- * Uso:
- *   node scripts/eval-fala/bancada/nuvem/stt.mjs [--limite 3] [--conjuntos fleurs_pt,fleurs_en,fleurs_es]
+ * Uso (por `tsx`: o script importa a função pura do app, que é TypeScript):
+ *   node node_modules/tsx/dist/cli.mjs scripts/eval-fala/bancada/nuvem/stt.mjs [--limite 3] [--conjuntos fleurs_pt,fleurs_en,fleurs_es]
  *        [--modelo openai/whisper-large-v3-turbo] [--so-provedor groq] [--ganho]
  * Retoma de onde parou (o bruto guarda cada fala). Pontuação: `pontuar.mjs`.
  */
 /* global FormData, Blob, AbortSignal */
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
+
+import { normalizarVolume } from '../../../../src/core/audio/normalizarVolume.ts'
 
 import {
   autorizacao,
@@ -48,8 +50,9 @@ const MINIMO_S = 10
  * cobradas pela DeepInfra). O `provider` da transcrição só aceita `zdr`, `data_collection` e
  * `options` (docs do SDK, `STTRequestProvider`). Fica aqui para repetir a sonda, não para medir.
  *
- * `--ganho`: DIAGNÓSTICO, fora da comparação com o aparelho. Normaliza o pico do WAV para −3 dBFS em
- * memória antes de enviar. As falas de inglês do FLEURS são gravadas muito baixo (mediana de −60 dBFS
+ * `--ganho`: normaliza o volume do WAV com a função do app (`normalizarVolume`: percentil 99,9 a −3 dBFS, teto de
+ * 40 dB) em memória antes de enviar; o que a flag `stt_nuvem_normalizar` faz no cliente. Na rodada de 09/10 era só
+ * diagnóstico (pico a −3 dBFS), fora da comparação com o aparelho. As falas de inglês do FLEURS são gravadas muito baixo (mediana de −60 dBFS
  * contra −25 em português) e a rota padrão devolve texto cortado nelas; isto separa "o modelo não
  * entende" de "o provedor descarta áudio baixo".
  */
@@ -64,15 +67,19 @@ const PROVIDER = {
 if (!PIOR_USD_POR_S[MODELO]) throw new Error(`${MODELO}: sem preço de pior caso — sem preço não há teto`)
 const piorCaso = (duracaoS) => Math.max(MINIMO_S, duracaoS) * PIOR_USD_POR_S[MODELO]
 
-/** Pico em −3 dBFS. WAV PCM16 com cabeçalho de 44 bytes (o que `preparar-audio.py` grava). */
+/**
+ * `--ganho`: a MESMA função do app (`src/core/audio/normalizarVolume.ts`, percentil 99,9 a −3 dBFS, teto de 40 dB), para o
+ * número medido ser o do código entregue. WAV PCM16 com cabeçalho de 44 bytes (o que `preparar-audio.py` grava).
+ */
 function normalizarPico(wav) {
   const saida = Buffer.from(wav)
-  let pico = 1
-  for (let i = 44; i + 1 < saida.length; i += 2) pico = Math.max(pico, Math.abs(saida.readInt16LE(i)))
-  const g = (32767 * 10 ** (-3 / 20)) / pico
-  for (let i = 44; i + 1 < saida.length; i += 2)
-    saida.writeInt16LE(Math.max(-32768, Math.min(32767, Math.round(saida.readInt16LE(i) * g))), i)
-  return { wav: saida, ganhoDb: 20 * Math.log10(g) }
+  const n = Math.floor((saida.length - 44) / 2)
+  const pcm = new Float32Array(n)
+  for (let i = 0; i < n; i++) pcm[i] = saida.readInt16LE(44 + 2 * i) / 32768
+  const r = normalizarVolume(pcm)
+  for (let i = 0; i < n; i++)
+    saida.writeInt16LE(Math.max(-32768, Math.min(32767, Math.round(r.pcm[i] * 32768))), 44 + 2 * i)
+  return { wav: saida, ganhoDb: r.ganhoDb }
 }
 
 async function transcrever(wav, idioma) {

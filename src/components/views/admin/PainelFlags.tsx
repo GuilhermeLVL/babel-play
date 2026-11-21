@@ -29,6 +29,7 @@ const FLAGS_SENSIVEIS = new Set([
   'leitura_ativa',
   'acesso_restrito_sem_conta',
   'rum_latencia',
+  'stt_nuvem_normalizar',
 ]);
 
 /** As regras da flag em palavras curtas, para ver de relance quem ela alcança. */

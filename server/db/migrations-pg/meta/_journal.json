@@ -169,6 +169,13 @@
       "when": 1794800000003,
       "tag": "0023_flag_rum_latencia",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794800000004,
+      "tag": "0024_flag_stt_nuvem_normalizar",
+      "breakpoints": true
     }
   ]
 }

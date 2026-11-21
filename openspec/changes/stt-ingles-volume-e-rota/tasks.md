@@ -1,29 +1,29 @@
 ## 1. Linha de base
 
 - [ ] 1.1 Rodar a bancada (antes) nas 100 falas en e nas 100 pt, sem ganho; guardar WER, IC 95%, latência mediana e p95
-- [ ] 1.2 Registrar o critério de decisão (design.md, decisão 6) no relatório ANTES de ver o "depois"
+- [x] 1.2 Registrar o critério de decisão (design.md, decisão 6) no relatório ANTES de ver o "depois"
 
 ## 2. Puro
 
-- [ ] 2.1 `src/core/audio/normalizarVolume.ts`: pico, ganho com teto de 40 dB, piso de silêncio, cópia sem clipping; testes
+- [x] 2.1 `src/core/audio/normalizarVolume.ts`: pico, ganho com teto de 40 dB, piso de silêncio, cópia sem clipping; testes
       (fala baixa sobe a −3 dBFS, já alta não muda, silêncio e vazio não mudam, `|x| ≤ 1`, não altera a entrada)
-- [ ] 2.2 `src/core/rota/medicoesDeStt.ts`: medições com `{ wer, ic95, n, data, fonte }` e função pura da decisão com IC; testes
+- [x] 2.2 `src/core/rota/medicoesDeStt.ts`: medições com `{ wer, ic95, n, data, fonte }` e função pura da decisão com IC; testes
       dos dois lados (vence / empata / sem medição)
 
 ## 3. Flag e ligação
 
-- [ ] 3.1 Flag `stt_nuvem_normalizar` nascida DESLIGADA: PG 0024, SQLite 0066, snapshots, journals, `PainelFlags`,
+- [x] 3.1 Flag `stt_nuvem_normalizar` nascida DESLIGADA: PG 0024, SQLite 0066, snapshots, journals, `PainelFlags`,
       `docs/flags.md` (com data para morrer), contagem do `schema-pg-baseline.test.ts`
-- [ ] 3.2 `groqWhisper.ts`: aplica `normalizarVolume` antes de `audioParaStt` e do `encodeWav` do Quest, só com a flag; o PCM
+- [x] 3.2 `groqWhisper.ts`: aplica `normalizarVolume` antes de `audioParaStt` e do `encodeWav` do Quest, só com a flag; o PCM
       original segue para o caminho local; teste: flag desligada envia o mesmo buffer de antes, ligada envia o normalizado
-- [ ] 3.3 `pipelineDeFala.ts`: lê `flagLigada` e repassa ao adaptador (gateway sem importar de `src/lib`)
-- [ ] 3.4 `scripts/eval-fala/bancada/nuvem/stt.mjs`: `--ganho` usa a função pura em vez da cópia `normalizarPico`
+- [x] 3.3 `pipelineDeFala.ts`: lê `flagLigada` e repassa ao adaptador (gateway sem importar de `src/lib`)
+- [x] 3.4 `scripts/eval-fala/bancada/nuvem/stt.mjs`: `--ganho` usa a função pura em vez da cópia `normalizarPico`
 
 ## 4. Rota
 
-- [ ] 4.1 `sttRouter.ts`: remover o 4,9% do comentário e da decisão; a rota do inglês lê `medicoesDeStt`; teste de rota para
+- [x] 4.1 `sttRouter.ts`: remover o 4,9% do comentário e da decisão; a rota do inglês lê `medicoesDeStt`; teste de rota para
       flag desligada, medição que vence e medição que empata; teste que falha se "4,9" voltar ao roteador
-- [ ] 4.2 Conferir que a rota de pt/es, o modo `cloud` e o Quest não mudam (testes existentes de `sttRouter` e `politicaDeRota`)
+- [x] 4.2 Conferir que a rota de pt/es, o modo `cloud` e o Quest não mudam (testes existentes de `sttRouter` e `politicaDeRota`)
 
 ## 5. Medir de novo e decidir
 
@@ -35,5 +35,17 @@
 
 ## 6. Fechamento
 
-- [ ] 6.1 `npm run typecheck`, `npm run lint`, `npm test` (os arquivos novos e os de rota) e `npx knip` verdes; um PR só
+- [x] 6.1 `npm run typecheck`, `npm run lint`, `npm test` (os arquivos novos e os de rota) e `npx knip` verdes; um PR só
 - [ ] 6.2 Dono: ligar `stt_nuvem_normalizar` no staging, observar, depois produção (ato do dono)
+
+## Notas da implementação (2026-11-21)
+
+- BLOQUEADO 1.1 e 5.1: o OpenRouter respondeu `401 "User not found"` à chave disponível (gasto US$ 0,00). Falta uma chave
+  válida [D]; depois, ~400 chamadas (~US$ 0,05) com `BANCADA_NUVEM_ENV` apontando para o .env e `BANCADA_TETO_USD`.
+- 5.2/5.3/5.4 parciais: Opus + ganho não medido (rodada manual no navegador); `nuvemNormalizada = null` → o inglês fica no
+  aparelho (Moonshine base) — é o novo padrão, também com a flag desligada; relatório `docs/auditoria/2026-11-21-stt-ingles-volume.md`
+  com o critério escrito antes e a tabela a preencher.
+- Offline: 56/100 falas en batem o teto de 40 dB de ganho (mediana de pico −44 dBFS); pt, ganho mediano 7 dB.
+- `politicaDeRota`/`conferenciaDaRota` espelham a rota nova (senão a conferência acusaria divergência). Testes que congelavam
+  "inglês na nuvem" usam a fixture `medicoesDeSttQueFavorecemANuvem` para manter a cobertura daquele ramo; o padrão novo é
+  coberto em `tests/medicoesDeStt.test.ts`.

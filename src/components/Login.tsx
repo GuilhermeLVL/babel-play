@@ -5,7 +5,7 @@
  * genéricas por segurança). Após entrar, o `onAuthStateChange` no App troca a tela sozinho.
  */
 import { Info, LoaderCircle, TriangleAlert } from 'lucide-react';
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { type ReactNode, Suspense, useEffect, useState } from 'react';
 
 import { lerAbertura } from '../data/rotas/idade';
 import * as auth from '../lib/auth';
@@ -58,9 +58,14 @@ interface LoginProps {
   onContinuarSemConta?: () => void;
   /** Onde a porta abre: o "Criar conta" de um convite chega direto no cadastro. */
   modoInicial?: 'login' | 'signup';
+  /**
+   * O fim da tela na porta obrigatória (acesso sem conta v2, `PortaDeEntrada`): a volta à pergunta de
+   * idade. Com ele, os termos aparecem como no soft gate.
+   */
+  rodape?: ReactNode;
 }
 
-export default function Login({ onContinuarSemConta, modoInicial = 'login' }: LoginProps = {}) {
+export default function Login({ onContinuarSemConta, modoInicial = 'login', rodape }: LoginProps = {}) {
   const [modo, setModo] = useState<Mode>(modoInicial);
   /* O e-mail lembrado neste aparelho já vem preenchido; a senha é do gerenciador do navegador. */
   const [email, setEmail] = useState(porta.emailLembrado);
@@ -443,7 +448,7 @@ export default function Login({ onContinuarSemConta, modoInicial = 'login' }: Lo
         </>
       )}
 
-      {onContinuarSemConta && modo !== 'forgot' && !pendente && (
+      {(onContinuarSemConta || rodape) && modo !== 'forgot' && !pendente && (
         <>
           <p className="qen-nota">
             <T
@@ -454,11 +459,14 @@ export default function Login({ onContinuarSemConta, modoInicial = 'login' }: Lo
               }}
             />
           </p>
-          <p className="qen-nota">
-            {t('Transcreva, traduza e jogue com a sessão atual. Nada sai deste navegador até você criar uma conta.')}
-          </p>
+          {onContinuarSemConta && (
+            <p className="qen-nota">
+              {t('Transcreva, traduza e jogue com a sessão atual. Nada sai deste navegador até você criar uma conta.')}
+            </p>
+          )}
         </>
       )}
+      {rodape}
     </CascaDeEntradaDoQuest>
   );
 }

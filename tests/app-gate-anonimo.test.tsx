@@ -44,6 +44,20 @@ describe('a regra da porta', () => {
     expect(porta({ authRequired: true, temSessao: false, anonimoAceito: false, pedindoLogin: true })).toBe('login')
     expect(porta({ authRequired: true, temSessao: false, anonimoAceito: true, pedindoLogin: true })).toBe('login')
   })
+  /* Acesso sem conta v2 (flag `acesso_restrito_sem_conta`): o App passa `acesso` já calculado. Sem ele, ou
+     com `livre`/`convite`, nada muda; com `porta`, a porta obrigatória — e nunca para quem já tem sessão
+     ou fora do modo público. */
+  it('acesso sem conta v2: `porta` vira a porta obrigatória; `livre` e `convite` não mudam nada', () => {
+    const base = { authRequired: true, temSessao: false, anonimoAceito: false, pedindoLogin: false }
+    expect(porta({ ...base, acesso: 'porta' })).toBe('porta-obrigatoria')
+    expect(porta({ ...base, pedindoLogin: true, acesso: 'porta' })).toBe('porta-obrigatoria')
+    expect(porta({ ...base, temSessao: true, acesso: 'porta' })).toBe('app')
+    expect(porta({ ...base, authRequired: false, acesso: 'porta' })).toBe('app')
+    for (const acesso of ['livre', 'convite'] as const) {
+      expect(porta({ ...base, acesso })).toBe('app')
+      expect(porta({ ...base, pedindoLogin: true, acesso })).toBe('login')
+    }
+  })
   it('o que exige conta é o que persiste; capturar, jogar, início e ajustes ficam livres', () => {
     for (const v of ['library', 'analysis', 'study', 'reading', 'metrics', 'profile', 'estatisticas'])
       expect(exigeConta(v), v).toBe(true)

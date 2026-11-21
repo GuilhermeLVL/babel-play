@@ -2,7 +2,10 @@
 import { Router } from 'express'
 
 import type { Grade } from '../../src/core/learning/scheduler'
+import { chaveDaPalavra } from '../../src/core/texto/palavra'
+import { TETO_DE_MARCADAS } from '../../src/core/vocabulario/marcadas'
 import { contagensDeConteudo, versaoDosBaralhos } from '../db/repositories/contagensDeConteudo'
+import { palavrasMarcadasRepo } from '../db/repositories/palavrasMarcadas'
 import { palavrasVistasRepo } from '../db/repositories/palavrasVistas'
 import { resumoDosCartoes } from '../db/repositories/resumoDosCartoes'
 import { versoesRepo } from '../db/repositories/versoes'
@@ -15,8 +18,10 @@ import {
   bulkAddCardsSchema,
   desfazerRevisaoSchema,
   idParamSchema,
+  marcarPalavraSchema,
   notaDoCartaoSchema,
   palavraQuerySchema,
+  palavrasMarcadasQuerySchema,
   palavrasVistasQuerySchema,
   parseOr400,
   patchVocabSchema,
@@ -273,6 +278,79 @@ vocabRouter.get('/palavra', async (req, res) => {
   if (!q) return
   try {
     res.json(await palavrasVistasRepo.historico(req.userId, q.lang, q.chave))
+  } catch (err) {
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
+/**
+ * AS PALAVRAS MARCADAS SEM CARTÃO — "Já sei" (`conhecida`) e "Ignorar" (`ignorada`), openspec
+ * `vocab-conhecidas-e-ignoradas`. Registradas ANTES de `/:id`: `DELETE /marcadas` não pode cair em "apagar o cartão
+ * de id `marcadas`".
+ *
+ *   GET    /marcadas?lang=xx        → `{ marcadas: [{ lang, chave, estado, atualizadoEm }], truncado }` (sem `lang`: todas)
+ *   PUT    /marcadas                → `{ lang, chave, estado }` (upsert) → 200 `{ marcada }`; teto: 409 `marcadas_cheio`
+ *   DELETE /marcadas?lang=xx&chave=yy → 204 (idempotente)
+ *
+ * O servidor reduz o idioma à base e a chave com `chaveDaPalavra` (o cliente não é confiável); chave que não sobra
+ * nada (só pontuação) é 400.
+ */
+const idiomaBaseDe = (lang: string) => lang.toLowerCase().split('-')[0]
+
+vocabRouter.get('/marcadas', async (req, res) => {
+  const q = parseOr400(palavrasMarcadasQuerySchema, req.query, res)
+  if (!q) return
+  try {
+    const lista = await palavrasMarcadasRepo.listar(
+      req.userId,
+      q.lang ? idiomaBaseDe(q.lang) : undefined,
+      TETO_DE_MARCADAS + 1,
+    )
+    res.json({ marcadas: lista.slice(0, TETO_DE_MARCADAS), truncado: lista.length > TETO_DE_MARCADAS })
+  } catch (err) {
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
+vocabRouter.put('/marcadas', async (req, res) => {
+  const body = parseOr400(marcarPalavraSchema, req.body, res)
+  if (!body) return
+  const chave = chaveDaPalavra(body.chave)
+  if (!chave) return res.status(400).json({ error: 'chave sem letras', code: 'chave_invalida' })
+  try {
+    const r = await palavrasMarcadasRepo.marcar(
+      req.userId,
+      { lang: idiomaBaseDe(body.lang), chave, estado: body.estado },
+      TETO_DE_MARCADAS,
+    )
+    if (r.ok === false) {
+      return res.status(409).json({
+        error: `cada conta guarda até ${TETO_DE_MARCADAS} palavras marcadas; desmarque alguma para marcar outra`,
+        code: 'marcadas_cheio',
+        limite: TETO_DE_MARCADAS,
+      })
+    }
+    res.json({ marcada: r.marcada })
+  } catch (err) {
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
+vocabRouter.delete('/marcadas', async (req, res) => {
+  // A mesma forma de `GET /palavra`: `lang` e `chave`.
+  const q = parseOr400(palavraQuerySchema, req.query, res)
+  if (!q) return
+  const chave = chaveDaPalavra(q.chave)
+  if (!chave) return res.status(400).json({ error: 'chave sem letras', code: 'chave_invalida' })
+  try {
+    await palavrasMarcadasRepo.desmarcar(req.userId, idiomaBaseDe(q.lang), chave)
+    res.status(204).end()
   } catch (err) {
     res.status(500).json({
       error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),

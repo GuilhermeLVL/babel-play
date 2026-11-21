@@ -11,6 +11,7 @@ import { linkExternoSeguro } from '../../../lib/leitor/politicaDeRecursos';
 import { glosaDoVerbete } from '../../../lib/traducaoDePalavra';
 import type { VocabWord } from '../../../types';
 import Provenance from '../../Provenance';
+import MarcarPalavra from '../../vocab/MarcarPalavra';
 import { DE_DICIONARIO, MT_ENGINE_LABELS } from '../../VocabularyPanel';
 import ExplicacaoDaFrase from '../captura/estudo/ExplicacaoDaFrase';
 
@@ -307,6 +308,8 @@ export default function CartaoDaPalavra(props: CartaoDaPalavraProps) {
           <ChevronDown aria-hidden className="cartao-palavra-seta" /> {mais ? t('Menos') : t('Mais')}
         </button>
       </div>
+
+      <MarcarPalavra palavra={vocab.word} lang={idioma || undefined} classeDoBotao="cartao-palavra-chip" />
 
       {aberta === 'frase' && (
         <section className="cartao-palavra-bloco" aria-label={t('Tradução da frase')} data-testid="cartao-frase">

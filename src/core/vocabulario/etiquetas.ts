@@ -1,10 +1,12 @@
 /**
  * AS ETIQUETAS DE PALAVRAS — o que a legenda pinta em cada palavra, sem rede e sem DOM.
  *
- * Quatro etiquetas, numa ordem que não se discute palavra a palavra:
+ * Seis etiquetas, numa ordem que não se discute palavra a palavra:
  *   1. o CADERNO manda: a palavra guardada é `salva` (cartão novo), `aprendendo` ou `dominada`;
- *   2. só fora do caderno vem o ponto `nova-para-voce`: a palavra que o índice de palavras vistas do servidor
- *      (`GET /api/vocab/vistas`) nunca encontrou nas sessões da pessoa.
+ *   2. sem cartão, vale a MARCAÇÃO da pessoa (`./marcadas`): `conhecida` ("Já sei") ou `ignorada` ("Ignorar").
+ *      Nenhuma das duas pinta, e a ignorada nunca ganha o ponto;
+ *   3. só sem cartão e sem marcação vem o ponto `nova-para-voce`: a palavra que o índice de palavras vistas do
+ *      servidor (`GET /api/vocab/vistas`) nunca encontrou nas sessões da pessoa.
  *
  * O PONTO É O QUE MAIS PODE MENTIR, e por isso tem cinco portões, todos aqui:
  *   - o sub-ajuste "Marcar palavras novas para você" ligado;
@@ -24,11 +26,17 @@ import { PALAVRAS_FUNCIONAIS } from '../harness/palavrasConhecidas';
 import type { Layout } from '../legendas/janelaFlutuante';
 import { baseLang } from '../texto/idioma';
 import { chaveDaPalavra } from '../texto/palavra';
+import type { IndiceDeMarcadas } from './marcadas';
 
 /** O estado do cartão no contrato do servidor (`GET /api/vocab/palavra`). O cliente chama `aprendendo` de "aprendida". */
 export type EstadoNoCaderno = 'nova' | 'aprendendo' | 'dominada';
 
-export type Etiqueta = 'salva' | 'aprendendo' | 'dominada' | 'nova-para-voce';
+export type Etiqueta = 'salva' | 'aprendendo' | 'dominada' | 'conhecida' | 'ignorada' | 'nova-para-voce';
+
+/** As etiquetas que não pintam nem entram no resumo do leitor de tela: a pessoa já sabe ou mandou ignorar. */
+export function etiquetaSilenciosa(e: Etiqueta | undefined): boolean {
+  return e === 'dominada' || e === 'conhecida' || e === 'ignorada';
+}
 
 /**
  * QUANTAS SESSÕES NAQUELE IDIOMA antes de o ponto "nova para você" aparecer. Três é uma ESCOLHA, não uma
@@ -102,6 +110,8 @@ export interface OpcoesDaEtiqueta {
   langDaPessoa?: string;
   /** As vistas do idioma da linha: `undefined`/`null` = sem índice (convidado, ainda carregando, falhou). */
   vistas?: VistasDoIdioma | null;
+  /** "Já sei" e "Ignorar" (sem cartão). Ausente = nenhuma marcação conhecida ainda. */
+  marcadas?: IndiceDeMarcadas | null;
 }
 
 /** O ponto "nova para você" pode aparecer nesta linha? (Os portões que não dependem da palavra.) */
@@ -122,6 +132,8 @@ export function etiquetaDaChave(
   if (!chave) return undefined;
   const estado = estadoNoCaderno(caderno, chave, lang);
   if (estado) return estado === 'nova' ? 'salva' : estado;
+  const marcada = o.marcadas?.get(baseLang(lang))?.get(chave);
+  if (marcada) return marcada;
   if (!novaPossivel(lang, o) || o.vistas!.chaves.has(chave)) return undefined;
   return chaveIndexavel(chave, lang) ? 'nova-para-voce' : undefined;
 }
@@ -148,8 +160,8 @@ export interface ResumoDasEtiquetas {
 }
 
 /**
- * O resumo de uma linha. `dominada` fica de fora: é a palavra que a pessoa já sabe, e citá-la em toda linha seria
- * ruído no leitor de tela. Palavras repetidas entram uma vez.
+ * O resumo de uma linha. `dominada`, `conhecida` e `ignorada` ficam de fora: é a palavra que a pessoa já sabe (ou
+ * mandou ignorar), e citá-la em toda linha seria ruído no leitor de tela. Palavras repetidas entram uma vez.
  */
 export function resumoDasEtiquetas(
   pares: Iterable<readonly [palavra: string, etiqueta: Etiqueta | undefined]>,
@@ -157,7 +169,7 @@ export function resumoDasEtiquetas(
   const vistas = new Set<string>();
   const r: ResumoDasEtiquetas = { salvas: [], aprendendo: [], novas: [] };
   for (const [palavra, e] of pares) {
-    if (!e || e === 'dominada') continue;
+    if (!e || etiquetaSilenciosa(e)) continue;
     const k = chaveDaPalavra(palavra);
     if (!k || vistas.has(k)) continue;
     vistas.add(k);

@@ -19,6 +19,7 @@ import {
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import type { MarcaNaLinha } from '../../../../core/assistente/telaDoAssistente';
+import { etiquetaSilenciosa } from '../../../../core/vocabulario/etiquetas';
 import type { CorrecaoDaFala } from '../../../../data/apiDoAssistente';
 import { type DictionaryResult, lookup } from '../../../../lib/dictionary';
 import type { Etiquetador } from '../../../../lib/etiquetas/indiceDeEtiquetas';
@@ -273,7 +274,7 @@ function CorpoDaFrase({
                   data-nova={!ja && ehNova?.(p) ? '' : undefined}
                   data-aprendida={ja ? '' : undefined}
                   data-etiqueta={etiqueta}
-                  aria-description={etiqueta && etiqueta !== 'dominada' ? rotuloDaEtiqueta(etiqueta) : undefined}
+                  aria-description={etiqueta && !etiquetaSilenciosa(etiqueta) ? rotuloDaEtiqueta(etiqueta) : undefined}
                   onClick={() => aoTocarPalavra(p)}
                 >
                   {p}

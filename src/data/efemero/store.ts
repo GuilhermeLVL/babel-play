@@ -12,6 +12,8 @@
  */
 import { type DBSchema, type IDBPDatabase,openDB } from 'idb';
 
+import { esquecerMarcadasLocais } from './rotas/palavrasMarcadas';
+
 export interface SessaoLocal {
   id: string;
   title: string | null;
@@ -176,6 +178,8 @@ export function abrirStore(): Promise<IDBPDatabase<BabelLocalDB>> {
 
 /** Apaga tudo (fim da migração, ou "esquecer este navegador"). */
 export async function limparTudo(): Promise<void> {
+  /* As palavras marcadas ("Já sei"/"Ignorar") moram no localStorage, não no IndexedDB. */
+  esquecerMarcadasLocais();
   const db = await abrirStore();
   const tx = db.transaction(['sessoes', 'falas', 'audios', 'cartoes', 'revisoes', 'exercicios', 'gastos', 'presencas', 'creditos'], 'readwrite');
   await Promise.all([

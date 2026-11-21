@@ -52,6 +52,7 @@ import { ficharCartao } from '../../../lib/adicionarAoDeck';
 import { criarPonteDaVoz, type PonteDaVoz } from '../../../lib/avatar/ponteDaVoz';
 import { consentiuNuvem } from '../../../lib/consentimentoDeNuvem';
 import { getEntitlements } from '../../../lib/entitlements';
+import { pedirMarcacaoPorTecla, teclaDeMarcacao } from '../../../lib/etiquetas/teclasDeMarcacao';
 import { baixar, baixarTexto } from '../../../lib/exportacao/baixar';
 import { useFlag } from '../../../lib/flags';
 import { flagLigada } from '../../../lib/flagsCache';
@@ -835,6 +836,9 @@ export default function LeitorDoLivro({
       /* a folha da palavra abriu */
     } else if (e.key === 'Escape' && palavraRef.current) {
       fecharPalavra();
+    } else if (palavraRef.current && dentroDoLivro(e.target) && teclaDeMarcacao(e)) {
+      /* `k`/`x` com o cartão aberto e o foco no capítulo (outro documento): o cartão é quem marca. */
+      pedirMarcacaoPorTecla(teclaDeMarcacao(e)!);
     } else if (e.key === 'Escape') {
       setPainel(null);
       setSelecao(null);

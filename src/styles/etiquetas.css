@@ -176,3 +176,65 @@
 .hist-nota-acoes small {
   opacity: 0.85;
 }
+
+/* ── "Já sei" e "Ignorar" no cartão da palavra (`components/vocab/MarcarPalavra`) ──
+   Os botões herdam a classe do cartão onde moram (os chips do leitor, as ações da legenda); aqui só a fileira. */
+.marcar-palavra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.marcar-palavra-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+}
+.marcar-palavra svg {
+  width: 1em;
+  height: 1em;
+}
+.marcar-palavra-erro {
+  flex-basis: 100%;
+  font-size: 13px;
+}
+
+/* ── "Palavras que você conhece" (`views/vocab/PalavrasQueVoceConhece`) ── */
+.conhecidas-idiomas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.conhecidas-numero {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+}
+.conhecidas-numero b {
+  font: 800 28px/1 var(--font-display, inherit);
+}
+.conhecidas-numero span,
+.conhecidas-marco {
+  color: var(--ink-muted);
+}
+.conhecidas-marco {
+  margin: 0;
+  font-size: 14px;
+}
+.conhecidas-lista .q-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.conhecidas-lista .q-linha > :first-child {
+  flex: 1 1 120px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

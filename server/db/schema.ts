@@ -1502,3 +1502,28 @@ export const cacheDoParceiro = pgTable(
   },
   (t) => [index('idx_cache_do_parceiro_criado').on(t.criadoEm), index('idx_cache_do_parceiro_usado').on(t.usadoEm)],
 )
+
+/**
+ * AS PALAVRAS MARCADAS SEM CARTÃO (migração PG 0027, openspec `vocab-conhecidas-e-ignoradas`) — "Já sei"
+ * (`conhecida`: conta como palavra que a pessoa conhece e nunca entra em revisão) e "Ignorar" (`ignorada`:
+ * nome, ruído; não pinta nem ganha o ponto "nova para você"). A regra (precedência, contagem, marcos) mora em
+ * `src/core/vocabulario/marcadas.ts`.
+ *
+ * A chave é `chaveDaPalavra` com o idioma BASE (`lang|chave` casa com o `norm_key` do cartão da mesma palavra), e
+ * o servidor a recalcula: o cliente não é confiável. Desmarcar APAGA a linha (sem lápide): o cliente sempre relê a
+ * lista inteira, não há sincronização incremental que precise saber o que saiu. DADO DO TITULAR: entra em
+ * `TABELAS_DO_TITULAR` (exportação e exclusão) e some com a conta.
+ */
+export const palavrasMarcadas = pgTable(
+  'palavras_marcadas',
+  {
+    userId: text('user_id').notNull(),
+    lang: text('lang').notNull(),
+    chave: text('chave').notNull(),
+    /** `conhecida` | `ignorada` (validado na rota; sem CHECK, como as outras colunas de estado do schema). */
+    estado: text('estado').notNull(),
+    atualizadoEm: bigint('atualizado_em', { mode: 'number' }).notNull(),
+  },
+  /* A PK serve às duas leituras: a lista da pessoa (prefixo `user_id`) e a de um idioma (`user_id`, `lang`). */
+  (t) => [primaryKey({ columns: [t.userId, t.lang, t.chave] })],
+)

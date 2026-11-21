@@ -8,6 +8,7 @@
     "DELETE /api/me",
     "DELETE /api/sessions/:id",
     "DELETE /api/vocab/:id",
+    "DELETE /api/vocab/marcadas",
     "GET /api/abertura",
     "GET /api/admin/billing/pendentes",
     "GET /api/admin/calibracao/:id",
@@ -60,6 +61,7 @@
     "GET /api/vocab/conteudo",
     "GET /api/vocab/distribuicao-dificuldade",
     "GET /api/vocab/inicio-da-contagem",
+    "GET /api/vocab/marcadas",
     "GET /api/vocab/pagina",
     "GET /api/vocab/palavra",
     "GET /api/vocab/para-jogo",
@@ -134,6 +136,7 @@
     "PUT /api/me/idade",
     "PUT /api/sessions/:id/utterances",
     "PUT /api/settings",
-    "PUT /api/vocab/:id/nota"
+    "PUT /api/vocab/:id/nota",
+    "PUT /api/vocab/marcadas"
   ]
 }

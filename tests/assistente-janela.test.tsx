@@ -33,6 +33,10 @@ vi.mock('../src/lib/protecaoDoMenor', () => ({ perfilProtegido: () => estado.pro
 vi.mock('../src/data/api', () => ({
   fetchSettings: vi.fn(async () => null),
   patchUiSettings: vi.fn(async () => {}),
+  /* O cartão da palavra lê o índice de etiquetas ("Já sei"/"Ignorar"): caderno e marcadas vazios. */
+  geracaoDeEscritas: vi.fn(() => 0),
+  fetchDeck: vi.fn(async () => []),
+  fetchPalavrasMarcadas: vi.fn(async () => []),
 }))
 
 const api = vi.hoisted(() => ({

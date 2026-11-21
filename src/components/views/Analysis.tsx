@@ -35,6 +35,7 @@ import Reading from './Reading';
  * que `lazyComRecarga` existe para evitar.
  */
 const PlayLobby = lazyComRecarga(() => import('./Play'));
+import { textosNoIdioma } from '../../core/leitura/coberturaDoConteudo';
 import { buildGateway } from '../../gateway';
 import { getActiveProfile } from '../../gateway/activeProfile';
 import { useMetricasDaSessao } from '../../lib/analise/metricasDaSessao';
@@ -53,6 +54,7 @@ import type { DerivedProgress } from '../../lib/progress';
 import { perfilProtegido } from '../../lib/protecaoDoMenor';
 import { TranscriptSettings } from '../../lib/transcriptUtils';
 import { aparelhoTemVoz, haVozPara } from '../../lib/voz/haVoz';
+import CoberturaDoConteudo from '../CoberturaDoConteudo';
 import ExportarSessao from './analise/ExportarSessao';
 import PlayerInterativo from './analise/PlayerInterativo';
 import JogosDaSessao from './analise/quest/JogosDaSessao';
@@ -294,6 +296,19 @@ export default function Analysis({
       };
     });
   }, [sentences, realUtterances]);
+
+  /* A COBERTURA da sessão: o texto original das falas, no idioma da fala (não a tradução). */
+  const idiomaDaSessao = baseLang(sessionLangs?.src || sentences.find((s) => s.lang)?.lang || '');
+  const trechosDaSessao = React.useMemo(
+    () =>
+      idiomaDaSessao
+        ? textosNoIdioma(
+            sentences.map((s) => ({ texto: s.text, lang: s.lang })),
+            idiomaDaSessao,
+          )
+        : null,
+    [sentences, idiomaDaSessao],
+  );
 
   // Total duration in seconds based on durationStr
   const totalDurationSeconds = React.useMemo(() => {
@@ -797,6 +812,7 @@ export default function Analysis({
       aoExportar={() => setShowExportModal(true)}
       repintar={['dashboard', 'lexical', 'fluency'].indexOf(overviewSubTab)}
     >
+      <CoberturaDoConteudo trechos={trechosDaSessao} idioma={idiomaDaSessao} tipo="sessao" />
       {/* O RESUMO DA SESSÃO (IA de estudo, etapa 2): na revisão, com a transcrição pronta e falas suficientes. Atrás
           da flag `ia_de_estudo` (a porta não renderiza nada desligada). */}
       {currentTab === 'transcript' &&

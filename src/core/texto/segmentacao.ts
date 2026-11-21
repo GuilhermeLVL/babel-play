@@ -34,7 +34,7 @@ const CLITICOS_PT = new Set([
 ])
 
 /** Artigos/preposições elididos com apóstrofo: `d'água`, `l'homme`, `dell'anno`, `qu'il`. */
-const ELISOES: Record<string, ReadonlySet<string>> = {
+export const ELISOES: Record<string, ReadonlySet<string>> = {
   pt: new Set(['d', 'n']),
   fr: new Set(['l', 'd', 'j', 'm', 'n', 's', 't', 'c', 'qu', 'jusqu', 'lorsqu', 'puisqu']),
   it: new Set(['l', 'd', 'un', 'dell', 'all', 'dall', 'nell', 'sull', 'quest', 'quell', 'c', 'po']),

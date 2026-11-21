@@ -1,0 +1,19 @@
+/* A linha "Você já sabe N% desta sessão/capítulo". A cor vem do contexto (a sessão e o leitor têm temas próprios);
+   o nível é sempre dito por extenso no rótulo. */
+.cobertura {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0;
+  padding: 8px 16px;
+  font: 600 14px/1.4 var(--font-body, inherit);
+  color: inherit;
+}
+.cobertura-rotulo {
+  padding: 1px 10px;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+}

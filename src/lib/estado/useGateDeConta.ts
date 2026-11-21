@@ -37,7 +37,7 @@ export const JANELA_DA_INTENCAO_ESPECIFICA_MS = 5_000;
  * CartaoDeConvite, "Criar conta" da captura): quem entra volta para onde estava. Quem sabe mais
  * (o Checkout) guarda antes a própria intenção, e ela é respeitada.
  */
-function lembrarDeOndeVeio(agora: number = Date.now()): void {
+export function lembrarDeOndeVeio(agora: number = Date.now()): void {
   const recente = lerIntencao(agora);
   if (recente && agora - recente.criadaEm < JANELA_DA_INTENCAO_ESPECIFICA_MS) return;
   guardarIntencao({ rota: window.location.pathname + window.location.search }, agora);

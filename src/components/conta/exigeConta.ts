@@ -5,6 +5,7 @@
  * sessão atual, ajustes). O que persiste na conta — biblioteca, sessão/análise, vocabulário,
  * perfil — mostra um convite em vez da tela, e NUNCA some do menu: "mostra, explica, não esconde".
  */
+import type { EstadoDoAcesso } from '../../core/acessoSemConta';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { t } from '../../lib/i18n';
 import type { ViewType } from '../../types';
@@ -64,6 +65,11 @@ export interface EstadoDaPorta {
   anonimoAceito: boolean;
   /** A pessoa sem conta pediu para entrar (menu, convite, gate). */
   pedindoLogin: boolean;
+  /**
+   * O ACESSO SEM CONTA v2 (`estadoDoAcesso`, `src/core/acessoSemConta.ts`), já com a flag, a conta, a
+   * edição e as sessões deste aparelho na conta. Ausente = `livre`: o comportamento de antes da flag.
+   */
+  acesso?: EstadoDoAcesso;
 }
 
 /**
@@ -81,9 +87,12 @@ export interface EstadoDaPorta {
  * `anonimoAceito` deixa de ser pré-requisito para USAR e continua sendo a memória de "já
  * conversamos sobre isto", para o convite não se repetir a cada visita.
  */
-export function porta(e: EstadoDaPorta): 'login' | 'app' {
+export function porta(e: EstadoDaPorta): 'login' | 'app' | 'porta-obrigatoria' {
   if (!e.authRequired) return 'app';
   if (e.temSessao) return 'app';
+  /* Acesso sem conta v2 (flag `acesso_restrito_sem_conta`): depois da 1ª sessão, a porta pergunta a faixa
+     e o adulto entra; não há "Continuar sem conta". Vem antes do pedido de login, que ali seria o mesmo. */
+  if (e.acesso === 'porta') return 'porta-obrigatoria';
   if (e.pedindoLogin) return 'login';
   return 'app';
 }

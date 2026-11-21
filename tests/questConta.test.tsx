@@ -725,6 +725,28 @@ describe('Os avisos de conta no Quest', () => {
     expect(screen.queryByTestId('aviso-de-conta')).toBeNull()
   })
 
+  it('o fim da 1ª sessão (acesso sem conta v2): Criar conta, Já tenho conta e Agora não', async () => {
+    marcos.avisoPendente.mockReturnValue({
+      marco: 'primeira-sessao',
+      titulo: 'Guarde o que você capturou',
+      texto: 'Sua sessão está só neste navegador.',
+    })
+    const pedidos: string[] = []
+    const ouvir = (ev: Event) => pedidos.push((ev as CustomEvent<{ modo: string }>).detail.modo)
+    window.addEventListener('babel_pedir_entrada', ouvir)
+    try {
+      render(<AvisoDeConta metrics={null} onEntrar={vi.fn()} />)
+      await screen.findByTestId('aviso-de-conta')
+      fireEvent.click(botao('Criar conta'))
+      fireEvent.click(botao('Já tenho conta'))
+      expect(pedidos).toEqual(['signup', 'login'])
+      fireEvent.click(botao('Agora não'))
+      expect(marcos.marcarVisto).toHaveBeenCalledWith('primeira-sessao')
+    } finally {
+      window.removeEventListener('babel_pedir_entrada', ouvir)
+    }
+  })
+
   it('o card de planos: ver planos e dispensar, com o preço da matriz', async () => {
     /* O preço só aparece com as flags conhecidas (aqui: a v4 desligada). */
     definirEstadoDasFlags({ venda_planos_v4: { ligada: false } })

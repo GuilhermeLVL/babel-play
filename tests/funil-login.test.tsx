@@ -29,6 +29,7 @@ vi.mock('../src/lib/supabase', () => ({
 }))
 vi.mock('../src/data/efemero/store', () => store)
 
+import PortaDeEntrada from '../src/components/conta/PortaDeEntrada'
 import Login from '../src/components/Login'
 import { EVENTO_EXIGE_CONTA } from '../src/data/efemero/nucleo'
 import * as auth from '../src/lib/auth'
@@ -206,6 +207,26 @@ describe('o login termina onde a pessoa ia', () => {
     setActiveView.mockClear()
     act(() => definirIdentidade('conta'))
     expect(setActiveView).not.toHaveBeenCalled()
+  })
+})
+
+describe('a porta obrigatória (acesso sem conta v2) também termina onde a pessoa ia', () => {
+  it('a porta guarda a tela da 2ª sessão; o login leva de volta a ela', () => {
+    irPara('/capturar')
+    definirIdentidade('anonimo')
+    render(<PortaDeEntrada faixa={null} aoDeclarar={vi.fn()} />)
+    expect(lerIntencao()?.rota).toBe('/capturar')
+    const { setActiveView } = montarNavegacao()
+    act(() => definirIdentidade('conta'))
+    expect(setActiveView).toHaveBeenCalledWith('capture')
+    expect(lerIntencao()).toBeNull()
+  })
+
+  it('a porta não troca a intenção específica de instantes atrás (o Checkout)', () => {
+    irPara('/plano')
+    guardarIntencao({ rota: '/plano/assinar', plano: 'premium' })
+    render(<PortaDeEntrada faixa={null} aoDeclarar={vi.fn()} />)
+    expect(lerIntencao()).toMatchObject({ rota: '/plano/assinar', plano: 'premium' })
   })
 })
 

@@ -60,6 +60,7 @@
     "GET /api/vocab/:id/ocorrencias",
     "GET /api/vocab/conteudo",
     "GET /api/vocab/distribuicao-dificuldade",
+    "GET /api/vocab/etiquetas",
     "GET /api/vocab/inicio-da-contagem",
     "GET /api/vocab/marcadas",
     "GET /api/vocab/pagina",
@@ -136,6 +137,7 @@
     "PUT /api/me/idade",
     "PUT /api/sessions/:id/utterances",
     "PUT /api/settings",
+    "PUT /api/vocab/:id/etiquetas",
     "PUT /api/vocab/:id/nota",
     "PUT /api/vocab/marcadas"
   ]

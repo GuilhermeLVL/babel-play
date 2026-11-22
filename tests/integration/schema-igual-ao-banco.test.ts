@@ -81,6 +81,8 @@ function tipoDoCatalogo(sqlType: string): string {
   if (t === 'boolean') return 'boolean'
   if (t === 'text') return 'text'
   if (t === 'jsonb') return 'jsonb'
+  /* Coluna de lista (`text[]`): o `information_schema` a chama de ARRAY (o tipo do elemento fica em `udt_name`). */
+  if (t.endsWith('[]')) return 'ARRAY'
   return t
 }
 

@@ -177,6 +177,63 @@
   opacity: 0.85;
 }
 
+/* ── A força da palavra (quatro tracinhos, `components/vocab/ForcaDaPalavra`) e as etiquetas do usuário no cartão
+   (`components/vocab/EtiquetasDoCartao`). A cor não é a única pista: o número de tracinhos cheios muda. */
+.forca-palavra {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  vertical-align: middle;
+}
+.forca-palavra i {
+  width: 12px;
+  height: 4px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.22;
+}
+.forca-palavra i.cheio {
+  opacity: 0.95;
+}
+.hist-etiquetas-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+.hist-etiqueta-x {
+  margin-left: 6px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.hist-etiquetas-form {
+  display: flex;
+  gap: 6px;
+}
+.hist-etiquetas-form input {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle, rgba(127, 127, 127, 0.4));
+  background: var(--surface, transparent);
+  color: inherit;
+  font: inherit;
+}
+.qv-etiquetas {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: 8px;
+}
+
 /* ── "Já sei" e "Ignorar" no cartão da palavra (`components/vocab/MarcarPalavra`) ──
    Os botões herdam a classe do cartão onde moram (os chips do leitor, as ações da legenda); aqui só a fileira. */
 .marcar-palavra {

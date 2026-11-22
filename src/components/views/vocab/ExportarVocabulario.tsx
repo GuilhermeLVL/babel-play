@@ -69,7 +69,13 @@ export default function ExportarVocabulario({
 
   const noBaralho = useMemo(() => cartoes.filter((c) => c.inDeck), [cartoes]);
   const paraRevisar = useMemo(() => noBaralho.filter((c) => isDueNow(c)), [noBaralho]);
-  const temFiltro = !!filtro && (!!filtro.q || filtro.niveis.length > 0 || filtro.origens.length > 0);
+  const temFiltro =
+    !!filtro &&
+    (!!filtro.q ||
+      filtro.niveis.length > 0 ||
+      filtro.origens.length > 0 ||
+      !!filtro.etiquetas?.length ||
+      !!filtro.forcas?.length);
   const [idsFiltrados, setIdsFiltrados] = useState<Set<string> | null>(null);
   useEffect(() => {
     if (escopo !== 'filtradas' || !filtro || !temFiltro) return;
@@ -105,7 +111,12 @@ export default function ExportarVocabulario({
       setEnviando(true);
       try {
         const blob = await exportarApkg(
-          saem.map((c) => ({ frente: c.word, verso: c.translation, exemplo: frase ? c.sentence : undefined })),
+          saem.map((c) => ({
+            frente: c.word,
+            verso: c.translation,
+            exemplo: frase ? c.sentence : undefined,
+            etiquetas: c.etiquetas,
+          })),
           `Frasy ${nomeDoIdioma}`.trim(),
         );
         baixar(blob, `babel-${idioma || 'deck'}-${data}.apkg`);
@@ -119,9 +130,17 @@ export default function ExportarVocabulario({
       return;
     }
     if (formato === 'csv') {
-      const cab = ['palavra', 'tradução', ...(frase ? ['frase'] : []), 'nível'];
+      /* A coluna de etiquetas só aparece se alguma palavra a tem: quem não usa etiquetas recebe a planilha de sempre. */
+      const comEtiquetas = saem.some((c) => c.etiquetas?.length);
+      const cab = ['palavra', 'tradução', ...(frase ? ['frase'] : []), 'nível', ...(comEtiquetas ? ['etiquetas'] : [])];
       const linhas = saem.map((c) =>
-        [c.word, c.translation ?? '', ...(frase ? [c.sentence ?? ''] : []), c.cefrLevel ?? '']
+        [
+          c.word,
+          c.translation ?? '',
+          ...(frase ? [c.sentence ?? ''] : []),
+          c.cefrLevel ?? '',
+          ...(comEtiquetas ? [(c.etiquetas ?? []).join(' ')] : []),
+        ]
           .map((v) => celulaCsv(String(v)))
           .join(','),
       );

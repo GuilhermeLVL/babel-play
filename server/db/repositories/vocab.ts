@@ -11,12 +11,18 @@ import {
   faixaDe,
   type FaixaDificuldade,
 } from '../../../src/core/learning/dificuldade'
+import {
+  forcaDoCartao,
+  LAPSES_QUE_REBAIXAM,
+  LIMIAR_FAMILIAR_DIAS,
+  LIMIAR_FIRME_DIAS,
+} from '../../../src/core/learning/forcaDoCartao'
 import { avaliarCartao, foraDoBulkAdd, type MotivoDescarte } from '../../../src/core/learning/quality'
 import { type Grade, makeFsrs5, metaDeRetencao, type SchedulingState } from '../../../src/core/learning/scheduler'
 import { chaveDedup as chaveDedupDoNucleo } from '../../../src/core/texto/palavra'
 import type { UserId } from '../../lib/authContext'
 import { garantirNiveis } from '../../lib/niveisDaTrilha'
-import { db, emTransacao, type ExecutorDb, travarUsuario } from '../db'
+import { db, emTransacao, type ExecutorDb, linhas, travarUsuario } from '../db'
 import { type ColunaCompacta, lerCompacto } from '../leituraCompacta'
 import { atualizarEmLotes, inserirEmLotes, rodarLote, tamanhoDoLoteDeInsert } from '../lotes'
 import { ankiDecks, ankiNotes, reviewLogs, sessions, vocabCards, vocabOccurrences } from '../schema'
@@ -260,6 +266,8 @@ const COLUNAS_DO_CARTAO = {
   /* A nota pessoal da palavra (etiquetas de palavras, migração PG 0012): vai com o baralho para o
      cliente ter a nota sem pedir o histórico de cada palavra. */
   nota: vocabCards.nota,
+  /* As etiquetas do usuário (migração PG 0028): vão com o baralho, como a nota. */
+  etiquetas: vocabCards.etiquetas,
 }
 
 /**
@@ -282,6 +290,24 @@ const COLUNAS_COMPACTAS_DO_CARTAO: ColunaCompacta[] = Object.entries(COLUNAS_DO_
   .map(([chave, coluna]) =>
     coluna.columnType === 'PgText' ? ([chave, coluna.name, 'texto'] as const) : ([chave, coluna.name] as const),
   )
+
+/**
+ * A FORÇA 1–4 em SQL — o espelho de `forcaDoCartao` (`src/core/learning/forcaDoCartao.ts`), com os mesmos limiares
+ * (constantes numéricas do núcleo, coladas cruas: não são entrada de ninguém). O teste da rota confere que o
+ * filtro e a ordem em SQL dão a mesma força que a função.
+ */
+const forcaSql = sql`(CASE
+  WHEN ${vocabCards.stability} IS NULL OR ${vocabCards.stability} <= 0 OR coalesce(${vocabCards.reps}, 0) = 0 THEN 1
+  ELSE greatest(2, (CASE
+      WHEN ${vocabCards.stability} < ${sql.raw(String(LIMIAR_FAMILIAR_DIAS))} THEN 2
+      WHEN ${vocabCards.stability} < ${sql.raw(String(LIMIAR_FIRME_DIAS))} THEN 3
+      ELSE 4 END)
+    - (CASE WHEN coalesce(${vocabCards.lapses}, 0) >= ${sql.raw(String(LAPSES_QUE_REBAIXAM))} THEN 1 ELSE 0 END))
+END)`
+
+/** Sem revisão marcada = depois de todas (o fim do tempo que cabe num `bigint` e num `number`). */
+const SEM_REVISAO = 8_640_000_000_000_000
+const proximaRevisaoSql = sql`coalesce(${vocabCards.dueAt}, ${SEM_REVISAO})`
 
 /** O teto de "adiar" um cartão (`patch.adiarAte`). */
 const UM_ANO_MS = 366 * 86_400_000
@@ -640,9 +666,13 @@ export const vocabRepo = {
       busca?: string
       niveis?: string[]
       origens?: string[]
+      /** Só os cartões com TODAS estas etiquetas. */
+      etiquetas?: string[]
+      /** Só os cartões de uma destas forças (1–4). */
+      forcas?: number[]
       desde?: number
       ate?: number
-      ordem?: 'recentes' | 'frequentes' | 'dificuldade' | 'alfabetica' | 'nivel'
+      ordem?: 'recentes' | 'frequentes' | 'dificuldade' | 'alfabetica' | 'nivel' | 'forca' | 'proximaRevisao'
     } = {},
   ): Promise<{
     itens: Array<VocabCard & { origens: string[] }>
@@ -669,6 +699,21 @@ export const vocabRepo = {
       else if (querAusente) cond.push(isNull(vocabCards.cefrLevel))
       else cond.push(inArray(vocabCards.cefrLevel, reais))
     }
+    if (opts.etiquetas?.length) {
+      const lista = sql.join(
+        opts.etiquetas.map((e) => sql`${e}`),
+        sql`, `,
+      )
+      cond.push(sql`${vocabCards.etiquetas} @> ARRAY[${lista}]::text[]`)
+    }
+    if (opts.forcas?.length) {
+      cond.push(
+        sql`${forcaSql} IN (${sql.join(
+          opts.forcas.map((f) => sql`${f}`),
+          sql`, `,
+        )})`,
+      )
+    }
     if (opts.desde) cond.push(sql`${vocabCards.lastSeenAt} >= ${opts.desde}`)
     if (opts.ate) cond.push(sql`${vocabCards.lastSeenAt} <= ${opts.ate}`)
     if (opts.origens?.length) {
@@ -683,9 +728,12 @@ export const vocabRepo = {
       alfabetica: vocabCards.word,
       // Nível: A1 → C2, e "sem nível" por último (o 'Z' só existe na ordenação e no cursor).
       nivel: sql<string>`coalesce(${vocabCards.cefrLevel}, 'Z')`,
+      // Força: as mais fracas primeiro (o que pede estudo); revisão: a mais próxima primeiro, sem data por último.
+      forca: forcaSql,
+      proximaRevisao: proximaRevisaoSql,
     } as const
     const coluna = colunaDe[ordem]
-    const crescente = ordem === 'alfabetica' || ordem === 'nivel'
+    const crescente = ordem === 'alfabetica' || ordem === 'nivel' || ordem === 'forca' || ordem === 'proximaRevisao'
 
     if (opts.cursor) {
       const { valor, id } = opts.cursor
@@ -726,7 +774,11 @@ export const vocabRepo = {
             ? c.difficultyScore
             : ordem === 'nivel'
               ? (c.cefrLevel ?? 'Z')
-              : c.word
+              : ordem === 'forca'
+                ? forcaDoCartao(c)
+                : ordem === 'proximaRevisao'
+                  ? (c.dueAt ?? SEM_REVISAO)
+                  : c.word
     /* A origem de cada item da página (uma consulta sobre os ids da página, não N+1) e a contagem
        por origem do acervo inteiro — as pílulas de Origem mostram o número, como as de Nível. */
     const ids = pagina.map((c) => c.id)
@@ -1383,6 +1435,34 @@ export const vocabRepo = {
       .where(and(eq(vocabCards.id, id), eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt)))
       .returning({ id: vocabCards.id, nota: vocabCards.nota })
     return r[0]
+  },
+
+  /**
+   * AS ETIQUETAS do cartão (`PUT /api/vocab/:id/etiquetas`): a lista JÁ normalizada pela rota. Substitui a anterior.
+   * Cartão que não é seu (ou apagado): `undefined`, e a rota responde 404. Não toca no agendamento.
+   */
+  async salvarEtiquetas(
+    userId: UserId,
+    id: string,
+    etiquetas: string[],
+  ): Promise<{ id: string; etiquetas: string[] } | undefined> {
+    const r = await db
+      .update(vocabCards)
+      .set({ etiquetas, updatedAt: Date.now() })
+      .where(and(eq(vocabCards.id, id), eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt)))
+      .returning({ id: vocabCards.id, etiquetas: vocabCards.etiquetas })
+    return r[0]
+  },
+
+  /** As etiquetas em uso na conta, com quantos cartões cada uma tem (as mais usadas primeiro): a sugestão e o filtro. */
+  async etiquetasEmUso(userId: UserId): Promise<Array<{ etiqueta: string; cartoes: number }>> {
+    const r = linhas<{ etiqueta: string; cartoes: number }>(
+      await db.execute(sql`SELECT e AS etiqueta, count(*)::int AS cartoes
+        FROM vocab_cards, unnest(etiquetas) AS e
+        WHERE user_id = ${userId} AND deleted_at IS NULL
+        GROUP BY e ORDER BY count(*) DESC, e ASC LIMIT 200`),
+    )
+    return r.map((l) => ({ etiqueta: String(l.etiqueta), cartoes: Number(l.cartoes) }))
   },
 
   /**

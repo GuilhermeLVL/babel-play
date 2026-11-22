@@ -1,7 +1,9 @@
 import { AlertTriangle, Inbox, RotateCw, Search, SlidersHorizontal, X } from 'lucide-react';
 import { type ReactNode, type RefObject, useId, useState } from 'react';
 
+import type { Forca } from '../../../../core/learning/forcaDoCartao';
 import { numero, t } from '../../../../lib/i18n';
+import ForcaDaPalavra from '../../../vocab/ForcaDaPalavra';
 
 /**
  * "TODAS AS PALAVRAS" NO META QUEST: o catálogo do Vocabulário no desenho do headset.
@@ -27,6 +29,10 @@ export interface LinhaDoCatalogo {
   origem: string;
   /** `null` = o cartão ainda não chegou do baralho. */
   estado: { rotulo: string; tom: string } | null;
+  /** A força 1–4 (quatro tracinhos); `null` = a linha não trouxe o estado do FSRS. */
+  forca?: Forca | null;
+  /** As etiquetas do usuário na palavra. */
+  etiquetas?: string[];
 }
 
 export interface FiltroDoQuest {
@@ -54,6 +60,10 @@ export default function CatalogoDoQuest({
   aoAlternarNivel,
   origens,
   aoAlternarOrigem,
+  forcas = [],
+  aoAlternarForca,
+  etiquetas = [],
+  aoAlternarEtiqueta,
   temFiltro,
   aoLimpar,
   nota,
@@ -81,6 +91,11 @@ export default function CatalogoDoQuest({
   aoAlternarNivel: (id: string) => void;
   origens: FiltroDoQuest[];
   aoAlternarOrigem: (id: string) => void;
+  /** Força 1–4 (ligar uma ou mais) e as etiquetas do usuário em uso (o cartão tem de ter todas as ligadas). */
+  forcas?: FiltroDoQuest[];
+  aoAlternarForca?: (id: string) => void;
+  etiquetas?: FiltroDoQuest[];
+  aoAlternarEtiqueta?: (id: string) => void;
   /** Há busca ou filtro em uso (decide qual estado vazio aparece). */
   temFiltro: boolean;
   aoLimpar: () => void;
@@ -95,7 +110,7 @@ export default function CatalogoDoQuest({
 }) {
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const idFiltros = useId();
-  const ligados = niveis.filter((n) => n.ativo).length + origens.filter((o) => o.ativo).length;
+  const ligados = [niveis, origens, forcas, etiquetas].reduce((n, lista) => n + lista.filter((f) => f.ativo).length, 0);
 
   const grupo = (rotulo: string, itens: FiltroDoQuest[], aoAlternar: (id: string) => void) => (
     <div className="qv-grupo" role="group" aria-label={rotulo}>
@@ -169,6 +184,8 @@ export default function CatalogoDoQuest({
         <div className="q-cartao qv-filtros" id={idFiltros}>
           {grupo(t('Nível'), niveis, aoAlternarNivel)}
           {grupo(t('Origem'), origens, aoAlternarOrigem)}
+          {aoAlternarForca && grupo(t('Força'), forcas, aoAlternarForca)}
+          {aoAlternarEtiqueta && etiquetas.length > 0 && grupo(t('Etiquetas'), etiquetas, aoAlternarEtiqueta)}
           {ligados > 0 && (
             <div className="q-acoes">
               <button type="button" className="q-ctl" onClick={aoLimpar}>
@@ -231,6 +248,7 @@ export default function CatalogoDoQuest({
                   <th className="qv-extra">{t('Nível')}</th>
                   <th className="qv-extra">{t('Origem')}</th>
                   <th>{t('Estado')}</th>
+                  <th className="qv-extra">{t('Força')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -252,6 +270,15 @@ export default function CatalogoDoQuest({
                       >
                         {l.palavra}
                       </button>
+                      {!!l.etiquetas?.length && (
+                        <span className="qv-etiquetas">
+                          {l.etiquetas.map((e) => (
+                            <span key={e} className="q-tag off">
+                              {e}
+                            </span>
+                          ))}
+                        </span>
+                      )}
                     </td>
                     <td className={l.traducao ? undefined : 'qv-apagado'}>{l.traducao || t('sem tradução')}</td>
                     <td className="qv-extra">
@@ -264,6 +291,7 @@ export default function CatalogoDoQuest({
                     <td>
                       {l.estado ? <span className={`q-tag qv-estado ${l.estado.tom}`}>{l.estado.rotulo}</span> : '—'}
                     </td>
+                    <td className="qv-extra">{l.forca ? <ForcaDaPalavra forca={l.forca} /> : '—'}</td>
                   </tr>
                 ))}
               </tbody>

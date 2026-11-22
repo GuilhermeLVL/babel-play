@@ -48,7 +48,11 @@ vi.mock('../src/lib/langConfig', async (orig) => {
   const real = await orig<typeof import('../src/lib/langConfig')>()
   return { ...real, fetchLangConfig: async () => real.DEFAULT_LANG_CONFIG, onLangConfigChange: () => () => {} }
 })
-vi.mock('../src/lib/dictionary', () => ({ lookup: vi.fn(async () => null), forvoUrl: () => '#forvo', wiktionaryUrl: () => '#wiki' }))
+vi.mock('../src/lib/dictionary', () => ({
+  lookup: vi.fn(async () => null),
+  forvoUrl: () => '#forvo',
+  wiktionaryUrl: () => '#wiki',
+}))
 vi.mock('../src/data/apiAnki', () => ({
   listarBaralhosAnki: async () => anki.baralhos,
   ativarNotasDoBaralho: vi.fn(),
@@ -70,7 +74,12 @@ vi.mock('../src/data/api', async (orig) => {
     ...patch,
   }))
   api.apagar = vi.fn(async () => undefined)
-  const resposta = (corpo: unknown, ok = true) => ({ ok, status: ok ? 200 : 500, statusText: ok ? 'OK' : 'Erro do servidor', json: async () => corpo })
+  const resposta = (corpo: unknown, ok = true) => ({
+    ok,
+    status: ok ? 200 : 500,
+    statusText: ok ? 'OK' : 'Erro do servidor',
+    json: async () => corpo,
+  })
   return {
     ...(await orig<typeof import('../src/data/api')>()),
     fetchDeck: async () => api.deck,
@@ -108,7 +117,12 @@ vi.mock('../src/data/api', async (orig) => {
           dueAt: null,
           origens: ['sessao'],
         }))
-      return resposta({ itens, total: itens.length, proximoCursor: api.cursor, porOrigem: { sessao: itens.length, trilha: 0, manual: 0, legado: 0 } })
+      return resposta({
+        itens,
+        total: itens.length,
+        proximoCursor: api.cursor,
+        porOrigem: { sessao: itens.length, trilha: 0, manual: 0, legado: 0 },
+      })
     }),
   }
 })
@@ -259,9 +273,9 @@ describe('Vocabulário no Quest', () => {
     expect(catalogo.textContent).toContain('Busque, filtre por nível e origem.')
     const celula = (c: Element) => c.querySelector('.q-tag')?.textContent?.trim() ?? c.textContent?.trim()
     expect(linhas().map((l) => [...l.querySelectorAll('td')].map(celula))).toEqual([
-      ['cat', 'gato', 'B1', 'Sessão', 'Nova'],
-      ['dog', 'cão', 'A2', 'Sessão', 'Aprendendo'],
-      ['bird', 'pássaro', 'B1', 'Sessão', 'Em revisão'],
+      ['cat', 'gato', 'B1', 'Sessão', 'Nova', '—'],
+      ['dog', 'cão', 'A2', 'Sessão', 'Aprendendo', '—'],
+      ['bird', 'pássaro', 'B1', 'Sessão', 'Em revisão', '—'],
     ])
     // De onde veio o nível: escrito na linha (no headset não há dica ao apontar).
     expect(linhas().map((l) => l.querySelector('.qv-fonte')?.textContent)).toEqual([
@@ -289,6 +303,8 @@ describe('Vocabulário no Quest', () => {
       'Mais difíceis',
       'A → Z',
       'Nível',
+      'Mais fracas primeiro',
+      'Próxima revisão',
     ])
     fireEvent.change(ordem, { target: { value: 'alfabetica' } })
     await act(async () => {})
@@ -393,11 +409,11 @@ describe('Vocabulário no Quest', () => {
     expect(historico.textContent).toBe('Histórico4 revisões · 3 lembradas')
     expect(historico.tagName).toBe('P')
     /* O pé: Editar, "…" e Revisar. O resto mora no "…". */
-    expect([...dialogo.querySelectorAll('.ct-pe-da-palavra button')].map((b) => b.textContent?.trim() || b.getAttribute('aria-label'))).toEqual([
-      'Editar',
-      'Mais ações: suspender, praticar, exercitar, excluir',
-      'Revisar',
-    ])
+    expect(
+      [...dialogo.querySelectorAll('.ct-pe-da-palavra button')].map(
+        (b) => b.textContent?.trim() || b.getAttribute('aria-label'),
+      ),
+    ).toEqual(['Editar', 'Mais ações: suspender, praticar, exercitar, excluir', 'Revisar'])
     expect(dialogo.querySelector('.ct-mais-da-palavra')?.hasAttribute('hidden')).toBe(true)
   })
 
@@ -430,7 +446,10 @@ describe('Vocabulário no Quest', () => {
     expect(d.getByRole('button', { name: /Reativar/ })).toBeTruthy()
 
     await tocar(d.getByRole('button', { name: /Exercitar/ }))
-    expect(ir).toHaveBeenLastCalledWith(expect.any(String), expect.objectContaining({ seed: expect.objectContaining({ word: 'cat' }) }))
+    expect(ir).toHaveBeenLastCalledWith(
+      expect.any(String),
+      expect.objectContaining({ seed: expect.objectContaining({ word: 'cat' }) }),
+    )
   })
 
   it('excluir pede dois toques, e o aviso oferece desfazer por 8 segundos', async () => {
@@ -442,7 +461,10 @@ describe('Vocabulário no Quest', () => {
     expect(avisos.aviso).toHaveBeenCalledTimes(1)
     await tocar(d.getByRole('button', { name: /Confirmar exclusão/ }))
     expect(screen.queryByRole('dialog')).toBeNull()
-    const [texto, opcoes] = avisos.ok.mock.calls.at(-1) as [string, { duration: number; action: { label: string; onClick: () => void } }]
+    const [texto, opcoes] = avisos.ok.mock.calls.at(-1) as [
+      string,
+      { duration: number; action: { label: string; onClick: () => void } },
+    ]
     expect(texto).toContain('dog')
     expect(opcoes.duration).toBe(8000)
     expect(opcoes.action.label).toBe('Desfazer')

@@ -160,6 +160,8 @@ export interface VocabCard {
   cefrSource?: string | null;
   /** Epoch ms da última vez que a palavra foi vista numa captura. */
   lastSeenAt?: number | null;
+  /** As etiquetas do usuário neste cartão (minúsculas, até 10). Ausente em cartão local ou de servidor antigo. */
+  etiquetas?: string[];
   exerciseFormat?: ExerciseFormat;
 }
 

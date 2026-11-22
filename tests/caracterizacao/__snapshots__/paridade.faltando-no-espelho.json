@@ -55,6 +55,7 @@
       "[].daAnki",
       "[].daTrilha",
       "[].difficultyScore",
+      "[].etiquetas",
       "[].firstSeenAt",
       "[].lastSeenAt",
       "[].nota"
@@ -71,6 +72,7 @@
       ".itens[].deletedAt",
       ".itens[].difficultyAt",
       ".itens[].difficultyScore",
+      ".itens[].etiquetas",
       ".itens[].firstSeenAt",
       ".itens[].lastSeenAt",
       ".itens[].nota",

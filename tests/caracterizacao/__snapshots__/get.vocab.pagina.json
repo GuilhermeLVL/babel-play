@@ -17,6 +17,7 @@
         "difficultyAt": "null",
         "difficultyScore": "null",
         "dueAt": "number",
+        "etiquetas": [],
         "firstSeenAt": "number",
         "id": "string",
         "inDeck": "number",

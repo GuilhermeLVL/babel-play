@@ -15,9 +15,11 @@
  */
 import React, { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { apiFetch } from '../../../data/api';
+import { forcaDoCartao, FORCAS } from '../../../core/learning/forcaDoCartao';
+import { apiFetch, fetchEtiquetasEmUso } from '../../../data/api';
 import { t } from '../../../lib/i18n';
 import type { VocabCard } from '../../../types';
+import { nomeDaForca } from '../../vocab/ForcaDaPalavra';
 import NotaDeContagem from './NotaDeContagem';
 import CatalogoDoQuest from './quest/CatalogoDoQuest';
 
@@ -32,17 +34,24 @@ export interface ItemCatalogo {
   firstSeenAt: number | null;
   difficultyScore: number | null;
   dueAt: number | null;
+  /** O estado do FSRS e as etiquetas do usuário: vêm com a linha da página (a força 1–4 sai deles). */
+  stability?: number | null;
+  reps?: number | null;
+  lapses?: number | null;
+  etiquetas?: string[];
   /** De onde o cartão veio (`vocab_occurrences.origin_kind`): 'sessao', 'trilha', 'manual', 'anki', 'legado'… */
   origens?: string[];
 }
 
-type Ordem = 'recentes' | 'frequentes' | 'dificuldade' | 'alfabetica' | 'nivel';
+type Ordem = 'recentes' | 'frequentes' | 'dificuldade' | 'alfabetica' | 'nivel' | 'forca' | 'proximaRevisao';
 const ORDENS: Array<{ id: Ordem; rotulo: string }> = [
   { id: 'recentes', rotulo: 'Mais recentes' },
   { id: 'frequentes', rotulo: 'Mais vistas' },
   { id: 'dificuldade', rotulo: 'Mais difíceis' },
   { id: 'alfabetica', rotulo: 'A → Z' },
   { id: 'nivel', rotulo: 'Nível' },
+  { id: 'forca', rotulo: 'Mais fracas primeiro' },
+  { id: 'proximaRevisao', rotulo: 'Próxima revisão' },
 ];
 const NIVEIS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'ausente'] as const;
 const ORIGENS = [
@@ -87,7 +96,19 @@ export interface FiltroDoCatalogo {
   q: string;
   niveis: string[];
   origens: string[];
+  /** Etiquetas do usuário (o cartão tem todas) e forças 1–4 (uma delas). */
+  etiquetas?: string[];
+  forcas?: number[];
   total: number;
+}
+
+/** Os filtros do catálogo como parâmetros da `GET /api/vocab/pagina` (o mesmo texto no catálogo e no "Filtradas" do Exportar). */
+function paramsDoFiltro(p: URLSearchParams, f: Omit<FiltroDoCatalogo, 'total'>): void {
+  if (f.q) p.set('q', f.q);
+  if (f.niveis.length) p.set('niveis', f.niveis.join(','));
+  if (f.origens.length) p.set('origens', f.origens.join(','));
+  if (f.etiquetas?.length) p.set('etiquetas', f.etiquetas.join(','));
+  if (f.forcas?.length) p.set('forcas', f.forcas.join(','));
 }
 
 /** Os ids de TODAS as palavras que casam com o filtro (o catálogo só carrega 200 por vez). */
@@ -97,9 +118,7 @@ export async function idsDoFiltro(f: FiltroDoCatalogo): Promise<Set<string>> {
   let cursor: Cursor = null;
   for (let pagina = 0; pagina < 50; pagina++) {
     const p = new URLSearchParams({ limite: '500', ordem: 'recentes' });
-    if (f.q) p.set('q', f.q);
-    if (f.niveis.length) p.set('niveis', f.niveis.join(','));
-    if (f.origens.length) p.set('origens', f.origens.join(','));
+    paramsDoFiltro(p, f);
     if (cursor) {
       p.set('cursorValor', String(cursor.valor ?? ''));
       p.set('cursorId', cursor.id);
@@ -133,6 +152,10 @@ export default function CatalogoDePalavras({
   const [ordem, setOrdem] = useState<Ordem>('recentes');
   const [niveis, setNiveis] = useState<string[]>([]);
   const [origens, setOrigens] = useState<string[]>([]);
+  const [etiquetasSel, setEtiquetasSel] = useState<string[]>([]);
+  const [forcasSel, setForcasSel] = useState<number[]>([]);
+  /** As etiquetas que a pessoa já usa, com a contagem: os chips do filtro. */
+  const [etiquetasEmUso, setEtiquetasEmUso] = useState<Array<{ etiqueta: string; cartoes: number }>>([]);
   const [itens, setItens] = useState<ItemCatalogo[]>([]);
   const [total, setTotal] = useState(0);
   /** O total SEM filtro: o "de N" de "3 de 12 no caderno". */
@@ -155,13 +178,22 @@ export default function CatalogoDePalavras({
       .catch(() => setContagem(null)); // a nota é informativa: falhar nela não pode quebrar a tela
   }, []);
 
+  useEffect(() => {
+    void fetchEtiquetasEmUso().then(setEtiquetasEmUso);
+  }, []);
+
   // Debounce da busca: digitar não pode disparar uma requisição por tecla.
   useEffect(() => {
     const espera = setTimeout(() => setBuscaAplicada(busca), 300);
     return () => clearTimeout(espera);
   }, [busca]);
 
-  const temFiltro = !!buscaAplicada.trim() || niveis.length > 0 || origens.length > 0;
+  const temFiltro =
+    !!buscaAplicada.trim() ||
+    niveis.length > 0 ||
+    origens.length > 0 ||
+    etiquetasSel.length > 0 ||
+    forcasSel.length > 0;
 
   const carregar = useCallback(
     async (proximo: boolean) => {
@@ -170,9 +202,7 @@ export default function CatalogoDePalavras({
       else setCarregando(true);
       try {
         const p = new URLSearchParams({ limite: '200', ordem });
-        if (buscaAplicada.trim()) p.set('q', buscaAplicada.trim());
-        if (niveis.length) p.set('niveis', niveis.join(','));
-        if (origens.length) p.set('origens', origens.join(','));
+        paramsDoFiltro(p, { q: buscaAplicada.trim(), niveis, origens, etiquetas: etiquetasSel, forcas: forcasSel });
         if (proximo && cursor) {
           p.set('cursorValor', String(cursor.valor ?? ''));
           p.set('cursorId', cursor.id);
@@ -183,7 +213,15 @@ export default function CatalogoDePalavras({
         const dados = await res.json();
         setItens((antes) => (proximo ? [...antes, ...dados.itens] : dados.itens));
         setTotal(dados.total);
-        if (!proximo) aoMudarFiltro?.({ q: buscaAplicada.trim(), niveis, origens, total: dados.total });
+        if (!proximo)
+          aoMudarFiltro?.({
+            q: buscaAplicada.trim(),
+            niveis,
+            origens,
+            etiquetas: etiquetasSel,
+            forcas: forcasSel,
+            total: dados.total,
+          });
         if (!temFiltro) setTotalGeral(dados.total);
         setCursor(dados.proximoCursor);
         if (dados.porOrigem) setPorOrigem(dados.porOrigem);
@@ -196,7 +234,7 @@ export default function CatalogoDePalavras({
         setCarregandoMais(false);
       }
     },
-    [ordem, buscaAplicada, niveis, origens, cursor, temFiltro, aoMudarFiltro],
+    [ordem, buscaAplicada, niveis, origens, etiquetasSel, forcasSel, cursor, temFiltro, aoMudarFiltro],
   );
 
   /* `carregar` fica FORA das deps de propósito: ela depende de `cursor`, que esta chamada zera.
@@ -206,7 +244,7 @@ export default function CatalogoDePalavras({
     setCursor(null);
     void carregar(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ordem, buscaAplicada, niveis, origens]);
+  }, [ordem, buscaAplicada, niveis, origens, etiquetasSel, forcasSel]);
 
   const porId = useMemo(() => new Map(cartoes.map((c) => [c.id, c])), [cartoes]);
   /** Quantas palavras há em cada nível — do deck real. "sem nível" é o cartão sem CEFR. */
@@ -226,6 +264,8 @@ export default function CatalogoDePalavras({
     setBusca('');
     setNiveis([]);
     setOrigens([]);
+    setEtiquetasSel([]);
+    setForcasSel([]);
     campoDeBusca.current?.focus();
   };
   const geral = totalGeral ?? total;
@@ -263,6 +303,19 @@ export default function CatalogoDePalavras({
         return { id: o.id, rotulo: t(o.rotulo), qtd, ativo, desligado: qtd === 0 && !ativo };
       })}
       aoAlternarOrigem={(o) => alternar(origens, setOrigens, o)}
+      forcas={FORCAS.map((f) => ({
+        id: String(f),
+        rotulo: `${f} · ${nomeDaForca(f)}`,
+        qtd: null,
+        ativo: forcasSel.includes(f),
+        desligado: false,
+      }))}
+      aoAlternarForca={(f) => alternar(forcasSel.map(String), (v) => setForcasSel(v.map(Number)), f)}
+      etiquetas={etiquetasEmUso.map((e) => {
+        const ativo = etiquetasSel.includes(e.etiqueta);
+        return { id: e.etiqueta, rotulo: e.etiqueta, qtd: e.cartoes, ativo, desligado: false };
+      })}
+      aoAlternarEtiqueta={(e) => alternar(etiquetasSel, setEtiquetasSel, e)}
       temFiltro={temFiltro}
       aoLimpar={limpar}
       nota={ordem === 'frequentes' && contagem ? <NotaDeContagem {...contagem} /> : null}
@@ -282,6 +335,8 @@ export default function CatalogoDePalavras({
           fonteDoNivel: !c.cefrLevel ? t('fora da lista') : c.cefrSource === 'curado' ? t('curado') : t('lista CEFR-J'),
           origem: t(origemDe(c, cartao)),
           estado: estado && { rotulo: t(estado.rotulo), tom: estado.tom },
+          forca: c.stability !== undefined ? forcaDoCartao(c) : null,
+          etiquetas: c.etiquetas ?? [],
         };
       })}
       aoAbrir={(id) => aoAbrirPalavra?.(id)}

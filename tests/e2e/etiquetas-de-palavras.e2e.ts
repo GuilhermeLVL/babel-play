@@ -247,7 +247,8 @@ test('captura: tom no caderno, ponto na nova, descrição na linha, histórico e
   await expect(nota).toHaveValue('lembrar do relatório mensal')
   await nota.fill('relatório: report (não "relato")')
   await historico.getByRole('button', { name: 'Salvar nota' }).click()
-  await expect(historico.getByRole('status')).toHaveText('Nota salva.')
+  /* O histórico tem duas regiões de status (a da nota e a das etiquetas): a da nota é a que diz "Nota". */
+  await expect(historico.getByRole('status').filter({ hasText: 'Nota salva.' })).toHaveText('Nota salva.')
   expect(pedidos.notas).toHaveLength(1)
   expect(pedidos.notas[0].url).toMatch(/\/api\/vocab\/etq-report\/nota$/)
   expect(pedidos.notas[0].corpo).toEqual({ nota: 'relatório: report (não "relato")' })

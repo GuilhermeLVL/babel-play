@@ -44,6 +44,8 @@ interface VocabRow {
   difficultyScore?: number | null
   cefrSource?: string | null
   lastSeenAt?: number | null
+  /** As etiquetas do usuário (migração PG 0028). Ausente em servidor antigo. */
+  etiquetas?: string[]
 }
 
 function fsrsStateOf(row: VocabRow): VocabCard['fsrsState'] {

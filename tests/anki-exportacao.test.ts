@@ -29,8 +29,10 @@ const require = createRequire(import.meta.url)
 let sqlite: Promise<SqlJsStatic> | undefined
 const abrirSqlite = () => (sqlite ??= initSqlJs({ locateFile: (f: string) => require.resolve(`sql.js/dist/${f}`) }))
 
-const montar = (cartoes: Array<{ frente: string; verso: string; exemplo?: string }>, nome = 'x') =>
-  montarApkg(cartoes, nome, abrirSqlite)
+const montar = (
+  cartoes: Array<{ frente: string; verso: string; exemplo?: string; etiquetas?: string[] }>,
+  nome = 'x',
+) => montarApkg(cartoes, nome, abrirSqlite)
 
 /** Cargas escritas como MARCAÇÃO: uma por técnica que um removedor de tags poderia deixar passar. */
 const TAGS = [
@@ -70,6 +72,17 @@ const camposDoApkg = async (apkg: Uint8Array) =>
   (await consultar(apkg, 'SELECT flds FROM notes ORDER BY id')).map(([f]) => String(f).split(SEP))
 
 describe('a exportação .apkg no navegador', () => {
+  it('as etiquetas do usuário viram as tags da nota (vazias sem etiquetas)', async () => {
+    const apkg = await montar([
+      { frente: 'casa', verso: 'house', etiquetas: ['filme', 'viagem'] },
+      { frente: 'gato', verso: 'cat' },
+    ])
+    expect((await consultar(apkg, 'SELECT tags FROM notes ORDER BY id')).map(([t]) => t)).toEqual([
+      ' filme viagem ',
+      '',
+    ])
+  })
+
   it('gera um .apkg que o leitor da Task 2 lê de volta com os mesmos cartões', async () => {
     const cartoes = [
       { frente: 'casa', verso: 'house', exemplo: 'a casa é azul' },

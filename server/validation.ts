@@ -578,9 +578,17 @@ export const vocabPaginaQuerySchema = z
     q: z.string().max(200).optional(),
     niveis: csv(20),
     origens: csv(20),
+    /** Etiquetas do usuário (normalizadas no servidor): só os cartões com TODAS. */
+    etiquetas: csv(10),
+    /** Forças 1–4: só os cartões de uma delas. */
+    forcas: csv(4)
+      .transform((v) => v?.map(Number))
+      .pipe(z.array(z.number().int().min(1).max(4)).max(4).optional()),
     desde: z.coerce.number().int().min(0).optional(),
     ate: z.coerce.number().int().min(0).optional(),
-    ordem: z.enum(['recentes', 'frequentes', 'dificuldade', 'alfabetica', 'nivel']).optional(),
+    ordem: z
+      .enum(['recentes', 'frequentes', 'dificuldade', 'alfabetica', 'nivel', 'forca', 'proximaRevisao'])
+      .optional(),
   })
   .strip()
 
@@ -650,6 +658,13 @@ export const marcarPalavraSchema = z
 
 /** `PUT /api/vocab/:id/nota`: a nota pessoal do cartão, até 500 caracteres; `''` limpa. */
 export const notaDoCartaoSchema = z.object({ nota: z.string().max(500) }).strip()
+
+/**
+ * `PUT /api/vocab/:id/etiquetas`: a lista inteira de etiquetas do cartão (substitui; `[]` limpa). Cada uma é uma
+ * string curta aqui; a NORMALIZAÇÃO e os tetos (10 etiquetas, 32 caracteres, minúsculas) são de
+ * `normalizarEtiquetas` (`src/core/vocabulario/etiquetasDoUsuario.ts`), aplicada pela rota, que responde 400 com o motivo.
+ */
+export const etiquetasDoCartaoSchema = z.object({ etiquetas: z.array(z.string().max(64)).max(40) }).strip()
 
 /**
  * PATCH de cartão: o handler fazia `typeof` + `slice(0,2000)` à mão.

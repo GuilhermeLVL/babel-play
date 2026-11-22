@@ -188,6 +188,15 @@ export const vocabCards = pgTable(
      * em `GET /api/vocab` e na exportação da conta.
      */
     nota: text('nota'),
+    /**
+     * AS ETIQUETAS DO USUÁRIO (migração PG 0028): rótulos livres da pessoa (`filme`, `viagem`), normalizados em
+     * minúsculas (`src/core/vocabulario/etiquetasDoUsuario.ts`), até 10 por cartão e 32 caracteres cada
+     * (`PUT /api/vocab/:id/etiquetas`). Vazio = sem etiquetas. Sai com o cartão em `GET /api/vocab` e na exportação.
+     */
+    etiquetas: text('etiquetas')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
   },
   (t) => [
     /* UNIQUE que destrava o upsert atômico. Parcial (`deleted_at is null`) porque um cartão

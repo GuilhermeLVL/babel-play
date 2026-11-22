@@ -20,6 +20,7 @@
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 
 import { type EstadoDoCartao, estadoDoCartao, fsrsStateDaLinha } from '../../../src/core/learning/estadoDoCartao'
+import { type Forca, forcaDoCartao } from '../../../src/core/learning/forcaDoCartao'
 import { chaveDaPalavra, chaveDedup } from '../../../src/core/texto/palavra'
 import { type ContagemDeChave, contarChaves, fraseComAChave, idiomaBase } from '../../../src/core/texto/palavrasVistas'
 import type { UserId } from '../../lib/authContext'
@@ -70,6 +71,10 @@ export interface ResumoDaPalavra {
     proximaRevisao: string | null
     reps: number
     lapses: number
+    /** A força 1–4 (`forcaDoCartao`): derivada da estabilidade do FSRS. */
+    forca: Forca
+    /** As etiquetas do usuário neste cartão. */
+    etiquetas: string[]
   }
   vistas: { vezes: number; sessoes: number; primeiraEm: string | null; ultimaEm: string | null }
   onde: Array<{ sessaoId: string; titulo: string | null; quando: string; frase: string | null }>
@@ -269,6 +274,7 @@ export const palavrasVistasRepo = {
         lastReview: vocabCards.lastReview,
         dueAt: vocabCards.dueAt,
         nota: vocabCards.nota,
+        etiquetas: vocabCards.etiquetas,
       })
       .from(vocabCards)
       .where(
@@ -310,6 +316,8 @@ export const palavrasVistasRepo = {
             proximaRevisao: iso(card.dueAt),
             reps: Number(card.reps ?? 0),
             lapses: Number(card.lapses ?? 0),
+            forca: forcaDoCartao(card),
+            etiquetas: card.etiquetas ?? [],
           }
         : null,
       vistas: {

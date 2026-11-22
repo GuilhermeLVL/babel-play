@@ -3,6 +3,7 @@ import { Router } from 'express'
 
 import type { Grade } from '../../src/core/learning/scheduler'
 import { chaveDaPalavra } from '../../src/core/texto/palavra'
+import { MAX_ETIQUETAS, normalizarEtiqueta, normalizarEtiquetas } from '../../src/core/vocabulario/etiquetasDoUsuario'
 import { TETO_DE_MARCADAS } from '../../src/core/vocabulario/marcadas'
 import { contagensDeConteudo, versaoDosBaralhos } from '../db/repositories/contagensDeConteudo'
 import { palavrasMarcadasRepo } from '../db/repositories/palavrasMarcadas'
@@ -17,6 +18,7 @@ import { log } from '../lib/logger'
 import {
   bulkAddCardsSchema,
   desfazerRevisaoSchema,
+  etiquetasDoCartaoSchema,
   idParamSchema,
   marcarPalavraSchema,
   notaDoCartaoSchema,
@@ -127,6 +129,11 @@ vocabRouter.post('/para-jogo', (req, res) => paraJogo(req, res, req.body ?? {}))
 vocabRouter.get('/pagina', async (req, res) => {
   const q = parseOr400(vocabPaginaQuerySchema, req.query, res)
   if (!q) return
+  const validas = q.etiquetas?.map(normalizarEtiqueta).filter((e): e is string => e !== null)
+  /* Filtro pedido mas nenhuma etiqueta válida (ex.: `?etiquetas=%23%23`): nenhum cartão casa, em vez de cair no
+     acervo inteiro (lista vazia = "sem filtro" no repositório). O `#` nunca sobrevive à normalização (cai no começo e fora da classe de letras), então não
+     existe etiqueta gravada com ele, e a resposta mantém o formato (contagens `porOrigem` incluídas). */
+  const etiquetas = q.etiquetas?.length && !validas?.length ? ['#'] : validas
   try {
     res.json(
       await vocabRepo.listarPagina(req.userId, {
@@ -135,6 +142,8 @@ vocabRouter.get('/pagina', async (req, res) => {
         busca: q.q,
         niveis: q.niveis,
         origens: q.origens,
+        etiquetas,
+        forcas: q.forcas,
         desde: q.desde,
         ate: q.ate,
         ordem: q.ordem ?? 'recentes',
@@ -492,6 +501,45 @@ vocabRouter.put('/:id/nota', async (req, res) => {
     const salvo = await vocabRepo.salvarNota(req.userId, p.id, body.nota)
     if (!salvo) return res.status(404).json({ error: 'card não encontrado' })
     res.json(salvo)
+  } catch (err) {
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
+/**
+ * As etiquetas do usuário no cartão: a lista inteira (substitui; `[]` limpa), normalizada aqui (minúsculas, até 10
+ * de até 32 caracteres, sem repetidas). Etiqueta inválida ou lista longa demais: 400 com o motivo. Cartão que não é
+ * seu: 404.
+ */
+vocabRouter.put('/:id/etiquetas', async (req, res) => {
+  const p = parseOr400(idParamSchema, req.params, res)
+  if (!p) return
+  const body = parseOr400(etiquetasDoCartaoSchema, req.body, res)
+  if (!body) return
+  const norm = normalizarEtiquetas(body.etiquetas)
+  if ('motivo' in norm) {
+    return res.status(400).json({
+      error:
+        norm.motivo === 'muitas' ? `no máximo ${MAX_ETIQUETAS} etiquetas` : 'etiqueta inválida (vazia ou longa demais)',
+    })
+  }
+  try {
+    const salvo = await vocabRepo.salvarEtiquetas(req.userId, p.id, norm.etiquetas)
+    if (!salvo) return res.status(404).json({ error: 'card não encontrado' })
+    res.json(salvo)
+  } catch (err) {
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
+/** As etiquetas em uso na conta, com a contagem de cartões: a sugestão do detalhe e o filtro do catálogo. */
+vocabRouter.get('/etiquetas', async (req, res) => {
+  try {
+    res.json({ etiquetas: await vocabRepo.etiquetasEmUso(req.userId) })
   } catch (err) {
     res.status(500).json({
       error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),

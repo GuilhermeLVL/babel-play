@@ -2,12 +2,14 @@
  * O CLIENTE DAS ROTAS DO HISTÓRICO DA PALAVRA — as etiquetas da legenda e o cartão da palavra.
  *
  * Rotas: GET `/api/vocab/vistas?lang=` (o índice de palavras vistas, com ETag), GET `/api/vocab/palavra?lang=&chave=`
- * (onde a palavra apareceu, os jogos, a nota) e PUT `/api/vocab/:id/nota`.
+ * (onde a palavra apareceu, os jogos, a nota), PUT `/api/vocab/:id/nota`, PUT `/api/vocab/:id/etiquetas` e
+ * GET `/api/vocab/etiquetas`.
  *
  * NÃO TÊM PAR no modo sem conta, e a ausência é declarada em `tests/contratos/rotas-espelhadas.test.ts`: sem conta o
  * servidor efêmero responde 501 `exige_conta`, e cada função aqui devolve `null` (ou `false`). É esse o modo
  * convidado das etiquetas: só os estados do caderno local, sem o ponto "nova para você" e sem contagens.
  */
+import type { Forca } from '../../core/learning/forcaDoCartao'
 import { apiFetch } from '../funil'
 
 /** O índice de palavras vistas de um idioma, como o servidor o manda. */
@@ -26,6 +28,10 @@ export interface CartaoNoHistorico {
   proximaRevisao: string | null
   reps: number
   lapses: number
+  /** A força 1–4 (`forcaDoCartao`). Ausente em servidor antigo. */
+  forca?: Forca
+  /** As etiquetas do usuário neste cartão. Ausente em servidor antigo. */
+  etiquetas?: string[]
 }
 
 export interface HistoricoDaPalavra {
@@ -101,5 +107,33 @@ export async function salvarNotaDoCartao(cardId: string, nota: string): Promise<
     return res.ok
   } catch {
     return false
+  }
+}
+
+/** As etiquetas em uso na conta, com quantos cartões cada uma tem. `[]` sem conta, com erro ou sem rede. */
+export async function fetchEtiquetasEmUso(): Promise<Array<{ etiqueta: string; cartoes: number }>> {
+  try {
+    const res = await apiFetch('/api/vocab/etiquetas')
+    if (!res.ok) return []
+    const corpo = (await res.json()) as { etiquetas?: Array<{ etiqueta: string; cartoes: number }> }
+    return Array.isArray(corpo.etiquetas) ? corpo.etiquetas : []
+  } catch {
+    return []
+  }
+}
+
+/** Grava as etiquetas do cartão (a lista inteira). Devolve as normalizadas pelo servidor, ou `null` se não gravou. */
+export async function salvarEtiquetasDoCartao(cardId: string, etiquetas: string[]): Promise<string[] | null> {
+  try {
+    const res = await apiFetch(`/api/vocab/${encodeURIComponent(cardId)}/etiquetas`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ etiquetas }),
+    })
+    if (!res.ok) return null
+    const corpo = (await res.json()) as { etiquetas?: string[] }
+    return Array.isArray(corpo.etiquetas) ? corpo.etiquetas : null
+  } catch {
+    return null
   }
 }

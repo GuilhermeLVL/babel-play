@@ -15,6 +15,10 @@ import { useSnapshotDasEtiquetas } from '../../lib/etiquetas/indiceDeEtiquetas';
 import { data, t, tp } from '../../lib/i18n';
 import { type Anotacao, lerAnotacoes } from '../../lib/leitura/anotacaoDaFrase';
 import { estadoParaUrl, navegarPara } from '../../lib/rotas';
+import EtiquetasDoCartao from './EtiquetasDoCartao';
+import ForcaDaPalavra from './ForcaDaPalavra';
+
+const SEM_ETIQUETAS: string[] = [];
 
 /** Quantas sessões o "Onde" mostra (o servidor manda até 10). */
 const ONDE_NO_CARTAO = 3;
@@ -142,6 +146,12 @@ export default function HistoricoDaPalavra({
     <section className="hist-palavra" aria-label={t('Histórico da palavra')} data-testid="historico-da-palavra">
       <p className="hist-estado" data-estado={estado ?? 'fora'}>
         {linhaDoEstado}
+        {h?.cartao?.forca && (
+          <>
+            {' '}
+            <ForcaDaPalavra forca={h.cartao.forca} />
+          </>
+        )}
       </p>
       {h === undefined ? (
         <p aria-busy="true">{t('Buscando onde ela apareceu…')}</p>
@@ -189,6 +199,9 @@ export default function HistoricoDaPalavra({
                 ))}
               </ul>
             </div>
+          )}
+          {h.cartao && (
+            <EtiquetasDoCartao key={h.cartao.id} cardId={h.cartao.id} inicial={h.cartao.etiquetas ?? SEM_ETIQUETAS} />
           )}
           <div className="hist-nota">
             <h4>

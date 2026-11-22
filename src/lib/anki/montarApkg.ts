@@ -20,10 +20,18 @@ import type { AbrirSqlite } from './sqlite';
  * correspondem a nada dos dois lados. Os cartões chegam lá como NOVOS, que é honesto.
  */
 
+/** As tags de uma nota do Anki: separadas por espaço e cercadas por espaço (` a b `); vazio sem etiquetas. */
+export function tagsDoAnki(etiquetas: readonly string[] | undefined): string {
+  const limpas = (etiquetas ?? []).map((e) => e.replace(/\s+/g, '-')).filter(Boolean);
+  return limpas.length ? ` ${limpas.join(' ')} ` : '';
+}
+
 export interface CartaoParaExportar {
   frente: string;
   verso: string;
   exemplo?: string;
+  /** As etiquetas do usuário: viram as tags da nota do Anki (já normalizadas, sem espaço dentro de cada uma). */
+  etiquetas?: string[];
 }
 
 /**
@@ -259,7 +267,7 @@ export async function montarApkg(
         crypto.randomUUID().slice(0, 10),
         ID_MODELO,
         agoraSeg,
-        '',
+        tagsDoAnki(c.etiquetas),
         campos,
         escaparHtml(c.frente),
         somas[i],

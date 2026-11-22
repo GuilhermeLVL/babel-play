@@ -107,7 +107,7 @@
     { "a": "caro", "b": "carro", "sons": ["ɾ", "x (BR), ʁ (PT)"] },
     { "a": "era", "b": "erra", "sons": ["ɾ", "x (BR), ʁ (PT)"] },
     { "a": "calo", "b": "caro", "sons": ["l", "ɾ"] },
-    { "a": "lama", "b": "lana", "sons": ["m", "n"] },
+    { "a": "mata", "b": "nata", "sons": ["m", "n"] },
     { "a": "casa", "b": "caça", "sons": ["z", "s"] },
     { "a": "avó", "b": "avô", "sons": ["ɔ", "o"] },
     { "a": "mesa", "b": "musa", "sons": ["e", "u"] },

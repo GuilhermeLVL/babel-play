@@ -131,6 +131,7 @@
     "POST /api/vocab/:id/desfazer",
     "POST /api/vocab/:id/review",
     "POST /api/vocab/bulk-add",
+    "POST /api/vocab/marcadas/lote/desfazer",
     "POST /api/vocab/para-jogo",
     "POST /api/vocab/relabel",
     "PUT /api/admin/flags/:chave",
@@ -139,6 +140,7 @@
     "PUT /api/settings",
     "PUT /api/vocab/:id/etiquetas",
     "PUT /api/vocab/:id/nota",
-    "PUT /api/vocab/marcadas"
+    "PUT /api/vocab/marcadas",
+    "PUT /api/vocab/marcadas/lote"
   ]
 }

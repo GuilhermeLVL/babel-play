@@ -656,6 +656,23 @@ export const marcarPalavraSchema = z
   })
   .strip()
 
+/** Quantas chaves cabem num lote de marcação (o teste rápido de vocabulário semeia até ~2.800 de uma vez). */
+export const TETO_DO_LOTE_DE_MARCADAS = 3_000
+
+/**
+ * `PUT /api/vocab/marcadas/lote` (marca como `conhecida`) e `POST /api/vocab/marcadas/lote/desfazer`: várias chaves
+ * de UM idioma. As chaves vêm como palavra escrita ou já reduzidas; o servidor as reduz e tira as repetidas. Chave
+ * mais curta que a da rota unitária (30): no pior caso 3.000 × (30 + aspas e vírgula = 3) = 99.000 bytes, abaixo
+ * dos 102.400 (100 KB) do corpo padrão. As palavras da lista de referência têm bem menos de 30 letras.
+ */
+export const loteDeMarcadasSchema = z
+  .object({
+    lang: idiomaDaPalavra,
+    chaves: z.array(z.string().trim().min(1).max(30)).min(1).max(TETO_DO_LOTE_DE_MARCADAS),
+    estado: z.literal('conhecida').optional(),
+  })
+  .strip()
+
 /** `PUT /api/vocab/:id/nota`: a nota pessoal do cartão, até 500 caracteres; `''` limpa. */
 export const notaDoCartaoSchema = z.object({ nota: z.string().max(500) }).strip()
 

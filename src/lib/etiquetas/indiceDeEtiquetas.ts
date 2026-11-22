@@ -39,13 +39,16 @@ import {
   type PalavraMarcada,
 } from '../../core/vocabulario/marcadas';
 import {
+  desfazerLotePalavras,
   desmarcarPalavra,
   fetchDeck,
   fetchPalavrasMarcadas,
   fetchPalavrasVistas,
   fetchSessions,
   geracaoDeEscritas,
+  marcarLotePalavras,
   marcarPalavra,
+  type ResultadoDoLote,
 } from '../../data/api';
 import type { VocabCard } from '../../types';
 import { lerAjustesDoAssistente, useAjustesDoAssistente } from '../assistente/ajustesDoAssistente';
@@ -230,6 +233,47 @@ export async function desmarcarNoIndice(chaveOuPalavra: string, lang: string | u
   const idioma = baseLang(lang);
   if (!chave || !idioma) return false;
   return pedirMarcacao(idioma, chave, null);
+}
+
+/**
+ * Marca VÁRIAS palavras como "Já sei" numa requisição só (o teste rápido de vocabulário) e publica o índice UMA vez.
+ * Sem pintar antes: o servidor decide o que entra (cartão e "Ignorar" mandam), e só as chaves criadas vão ao índice.
+ * `null` quando a gravação falhou ou a identidade mudou no meio (a resposta é da época anterior e é descartada).
+ */
+export async function marcarLoteNoIndice(
+  lang: string | undefined,
+  chaves: readonly string[],
+): Promise<ResultadoDoLote | null> {
+  const idioma = baseLang(lang);
+  const reduzidas = [...new Set(chaves.map((c) => chaveDaPalavra(c)).filter(Boolean))];
+  if (!idioma || !reduzidas.length) return null;
+  const minhaEpoca = epoca;
+  const r = await marcarLotePalavras(idioma, reduzidas);
+  if (!r || minhaEpoca !== epoca) return null;
+  const atualizadoEm = Date.now();
+  for (const chave of r.criadas) {
+    const k = chaveDaMarcada(idioma, chave);
+    confirmadas.set(k, { lang: idioma, chave, estado: 'conhecida', atualizadoEm });
+    confirmadaEm.set(k, ++relogioDeConfirmacao);
+  }
+  if (r.criadas.length) publicarMarcadas();
+  return r;
+}
+
+/** Desfaz um lote ("Já sei" só): uma requisição e uma publicação. `true` quando o servidor confirmou. */
+export async function desfazerLoteNoIndice(lang: string | undefined, chaves: readonly string[]): Promise<boolean> {
+  const idioma = baseLang(lang);
+  if (!idioma || !chaves.length) return false;
+  const minhaEpoca = epoca;
+  const removidas = await desfazerLotePalavras(idioma, chaves);
+  if (!removidas || minhaEpoca !== epoca) return false;
+  for (const chave of removidas) {
+    const k = chaveDaMarcada(idioma, chave);
+    confirmadas.delete(k);
+    confirmadaEm.set(k, ++relogioDeConfirmacao);
+  }
+  if (removidas.length) publicarMarcadas();
+  return true;
 }
 
 /** Esquece as marcadas (troca de identidade, testes): a próxima tela relê as da identidade nova. */

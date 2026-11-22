@@ -295,3 +295,31 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+
+/* ── "Descubra quantas palavras você já sabe" (`views/vocab/TesteDeVocabulario`) ── */
+.conhecidas-teste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 0;
+}
+.teste-vocab {
+  display: grid;
+  gap: 12px;
+}
+.teste-vocab p {
+  margin: 0;
+}
+.teste-vocab-palavra {
+  font: 800 clamp(32px, 9vw, 48px) / 1.1 var(--font-display, inherit);
+  text-align: center;
+  padding: 24px 0;
+  overflow-wrap: anywhere;
+}
+.teste-vocab-etapa,
+.teste-vocab-dica {
+  font-size: 13px;
+}
+.teste-vocab-nivel {
+  font: 800 20px/1.3 var(--font-display, inherit);
+}

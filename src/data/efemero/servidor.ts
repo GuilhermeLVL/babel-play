@@ -69,6 +69,8 @@ const ROTAS: Array<{ metodo: string; padrao: RegExp; handler: Handler }> = [
   { metodo: 'POST', padrao: /^\/api\/sessions\/([^/]+)\/audio$/, handler: sessoes.guardarAudio },
   { metodo: 'GET', padrao: /^\/api\/sessions\/([^/]+)\/audio$/, handler: sessoes.lerAudio },
   /* Antes de `/api/vocab/:id`: `DELETE /api/vocab/marcadas` não é "apagar o cartão de id `marcadas`". */
+  { metodo: 'PUT', padrao: /^\/api\/vocab\/marcadas\/lote$/, handler: palavrasMarcadas.marcarLoteLocal },
+  { metodo: 'POST', padrao: /^\/api\/vocab\/marcadas\/lote\/desfazer$/, handler: palavrasMarcadas.desfazerLoteLocal },
   { metodo: 'GET', padrao: /^\/api\/vocab\/marcadas$/, handler: palavrasMarcadas.listarMarcadas },
   { metodo: 'PUT', padrao: /^\/api\/vocab\/marcadas$/, handler: palavrasMarcadas.marcarPalavraLocal },
   { metodo: 'DELETE', padrao: /^\/api\/vocab\/marcadas$/, handler: palavrasMarcadas.desmarcarPalavraLocal },

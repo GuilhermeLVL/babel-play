@@ -20,6 +20,7 @@ import {
   desfazerRevisaoSchema,
   etiquetasDoCartaoSchema,
   idParamSchema,
+  loteDeMarcadasSchema,
   marcarPalavraSchema,
   notaDoCartaoSchema,
   palavraQuerySchema,
@@ -302,6 +303,7 @@ vocabRouter.get('/palavra', async (req, res) => {
  *   GET    /marcadas?lang=xx        → `{ marcadas: [{ lang, chave, estado, atualizadoEm }], truncado }` (sem `lang`: todas)
  *   PUT    /marcadas                → `{ lang, chave, estado }` (upsert) → 200 `{ marcada }`; teto: 409 `marcadas_cheio`
  *   DELETE /marcadas?lang=xx&chave=yy → 204 (idempotente)
+ *   PUT /marcadas/lote e POST /marcadas/lote/desfazer: ver abaixo
  *
  * O servidor reduz o idioma à base e a chave com `chaveDaPalavra` (o cliente não é confiável); chave que não sobra
  * nada (só pontuação) é 400.
@@ -344,6 +346,54 @@ vocabRouter.put('/marcadas', async (req, res) => {
       })
     }
     res.json({ marcada: r.marcada })
+  } catch (err) {
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
+/**
+ * MARCAÇÃO EM LOTE (openspec `teste-de-vocabulario`): o teste rápido semeia "Já sei" de uma vez.
+ *   PUT  /marcadas/lote          → `{ lang, chaves: [até 3.000] }` → 200 `{ criadas, jaConhecidas, ignoradas, comCartao }`;
+ *                                  só `conhecida`; atômico no teto (409 `marcadas_cheio`, nada gravado).
+ *   POST /marcadas/lote/desfazer → `{ lang, chaves }` → 200 `{ removidas }` (só apaga `conhecida`).
+ * Registradas ANTES de `DELETE /marcadas` e de `/:id`.
+ */
+function chavesDoLote(lang: string, brutas: string[]) {
+  return { idioma: idiomaBaseDe(lang), chaves: [...new Set(brutas.map((c) => chaveDaPalavra(c)).filter(Boolean))] }
+}
+
+vocabRouter.put('/marcadas/lote', async (req, res) => {
+  const body = parseOr400(loteDeMarcadasSchema, req.body, res)
+  if (!body) return
+  const { idioma, chaves } = chavesDoLote(body.lang, body.chaves)
+  if (!chaves.length) return res.status(400).json({ error: 'nenhuma chave com letras', code: 'chave_invalida' })
+  try {
+    const r = await palavrasMarcadasRepo.marcarEmLote(req.userId, idioma, chaves, TETO_DE_MARCADAS)
+    if (r.ok === false) {
+      return res.status(409).json({
+        error: `cada conta guarda até ${TETO_DE_MARCADAS} palavras marcadas; desmarque alguma para marcar outras`,
+        code: 'marcadas_cheio',
+        limite: TETO_DE_MARCADAS,
+      })
+    }
+    const { ok: _ok, ...resumo } = r
+    res.json(resumo)
+  } catch (err) {
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
+vocabRouter.post('/marcadas/lote/desfazer', async (req, res) => {
+  const body = parseOr400(loteDeMarcadasSchema, req.body, res)
+  if (!body) return
+  const { idioma, chaves } = chavesDoLote(body.lang, body.chaves)
+  if (!chaves.length) return res.status(400).json({ error: 'nenhuma chave com letras', code: 'chave_invalida' })
+  try {
+    res.json({ removidas: await palavrasMarcadasRepo.desfazerLote(req.userId, idioma, chaves) })
   } catch (err) {
     res.status(500).json({
       error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),

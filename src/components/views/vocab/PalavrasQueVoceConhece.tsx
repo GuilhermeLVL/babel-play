@@ -4,10 +4,12 @@ import { useId, useMemo, useState } from 'react';
 
 import { estadoNoCaderno } from '../../../core/vocabulario/etiquetas';
 import { contagemPorIdioma, type EstadoDaMarcacao, progressoDoMarco } from '../../../core/vocabulario/marcadas';
+import { idiomasComTeste } from '../../../core/vocabulario/testeDeVocabulario';
 import { desmarcarNoIndice, useSnapshotDasEtiquetas } from '../../../lib/etiquetas/indiceDeEtiquetas';
 import { numero, t } from '../../../lib/i18n';
 import { langLabelNaUI } from '../../../lib/languages';
 import Barra from '../../ui/Barra';
+import TesteDeVocabulario from './TesteDeVocabulario';
 
 /** Quantas marcadas a lista mostra de cada vez (uma conta pode ter milhares). */
 const POR_VEZ = 200;
@@ -23,6 +25,8 @@ export default function PalavrasQueVoceConhece() {
   const [vendo, setVendo] = useState<EstadoDaMarcacao | null>(null);
   const [quantas, setQuantas] = useState(POR_VEZ);
   const [erro, setErro] = useState(false);
+  const [testando, setTestando] = useState<string | null>(null);
+  const comTeste = useMemo(idiomasComTeste, []);
   const porIdioma = useMemo(() => contagemPorIdioma(s.caderno, s.marcadas), [s.caderno, s.marcadas]);
   /* A MESMA régua do contador: marcação de palavra que já tem cartão não vale (o cartão manda) e não entra no número
      da aba. Ela aparece no fim da lista, com o aviso "tem cartão", para poder ser desmarcada. */
@@ -91,6 +95,19 @@ export default function PalavrasQueVoceConhece() {
       ) : (
         <p className="q-vazio">{t('Ainda nenhuma. Toque numa palavra e escolha “Já sei”, ou estude o seu caderno.')}</p>
       )}
+
+      {comTeste.length > 0 && (
+        <div className="conhecidas-teste">
+          {comTeste.map((l) => (
+            <button key={l} type="button" className="q-ctl" onClick={() => setTestando(l)}>
+              {comTeste.length > 1
+                ? t('Descubra quantas palavras você já sabe: {idioma}', { idioma: langLabelNaUI(l) })
+                : t('Descubra quantas palavras você já sabe')}
+            </button>
+          ))}
+        </div>
+      )}
+      {testando && <TesteDeVocabulario lang={testando} aoFechar={() => setTestando(null)} />}
 
       {(conhecidas.length > 0 || ignoradas.length > 0) && (
         <div className="q-abas" role="group" aria-label={t('Ver palavras marcadas')}>

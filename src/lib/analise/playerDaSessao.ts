@@ -60,6 +60,8 @@ export interface DepsDoPlayerDaSessao {
   isPlaying: boolean;
   playbackSpeed: number;
   loopMode: boolean;
+  /** Escuta guiada: a reprodução PARA no fim da frase ativa (áudio e voz), em vez de seguir para a próxima. */
+  pararNoFimRef?: RefObject<boolean>;
   autoSlowEnabled: boolean;
   /** Idioma de FALLBACK da narração (só quando a fala não traz o seu). */
   ttsLang: string;
@@ -97,6 +99,7 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
     isPlaying,
     playbackSpeed: velocidadeEscolhida,
     loopMode,
+    pararNoFimRef,
     autoSlowEnabled,
     ttsLang,
     seekNonce,
@@ -147,9 +150,14 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
     if ((audioRef.current?.readyState ?? 0) >= 1) tempoAtual.current = currentTime;
   }, [currentTime, audioRef]);
 
+  /* A fala pedida por índice (escuta guiada): vale enquanto o tempo estiver dentro dela. */
+  const indiceForcado = React.useRef<number | null>(null);
+
   // Helpers de reprodução (usados pelos controles/hotspots).
   const seekTo = React.useCallback(
-    (t: number) => {
+    (t: number, indice?: number) => {
+      /* Navegar por ÍNDICE: o tempo das falas é arredondado a segundos e duas falas podem cair no mesmo. */
+      indiceForcado.current = indice !== undefined && parsedSentences[indice] ? indice : null;
       setCurrentTime(t);
       if (hasRealAudio && audioRef.current) {
         if (audioRef.current.readyState < 1) posicaoPendente.current = t;
@@ -162,6 +170,7 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
         // TTS: posiciona a frase de partida e força reinício da narração se estiver tocando.
         let idx = 0;
         for (let i = 0; i < parsedSentences.length; i++) if (parsedSentences[i].startTime <= t) idx = i;
+        if (indiceForcado.current !== null) idx = indiceForcado.current;
         activeSentenceIndexRef.current = idx;
         setActiveSentenceIndex(idx);
         setSeekNonce((n) => n + 1);
@@ -221,6 +230,13 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
       if (parsedSentences[i].startTime <= currentTime) {
         activeIdx = i;
       }
+    }
+    const f = indiceForcado.current;
+    if (f !== null) {
+      const ini = parsedSentences[f]?.startTime;
+      const fim = parsedSentences.find((s, j) => j > f && s.startTime > ini)?.startTime ?? Infinity;
+      if (ini !== undefined && currentTime >= ini && currentTime < fim) activeIdx = f;
+      else indiceForcado.current = null;
     }
     setActiveSentenceIndex(activeIdx);
   }, [currentTime, parsedSentences, setActiveSentenceIndex]);
@@ -284,7 +300,9 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
           lang,
           rate: playbackSpeed,
           onEnd: () => {
-            if (!cancelada) falarDe(loopMode ? i : i + 1);
+            if (cancelada) return;
+            if (pararNoFimRef?.current) setIsPlaying(false);
+            else falarDe(loopMode ? i : i + 1);
           },
           onError: () => {
             if (!cancelada) setIsPlaying(false);
@@ -355,7 +373,9 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
         setCurrentTime(s.startTime + (nextStart - s.startTime) * frac);
       };
       u.onend = () => {
-        if (!cancelled) speakFrom(loopMode ? i : i + 1);
+        if (cancelled) return;
+        if (pararNoFimRef?.current) setIsPlaying(false);
+        else speakFrom(loopMode ? i : i + 1);
       };
       synth.speak(u);
     };
@@ -373,6 +393,7 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
     narraPeloMotor,
     playbackSpeed,
     loopMode,
+    pararNoFimRef,
     parsedSentences,
     ttsLang,
     seekNonce,

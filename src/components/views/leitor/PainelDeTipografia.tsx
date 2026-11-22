@@ -47,12 +47,17 @@ export default function PainelDeTipografia({
   mudar,
   restaurar,
   ehPdf,
+  glosa,
+  mudarGlosa,
 }: {
   perfil: PerfilDeLeitura;
   mudar: (m: Partial<PerfilDeLeitura>) => void;
   restaurar: () => void;
   /** PDF é página fixa: fonte, espaçamentos e modo não se aplicam. */
   ehPdf: boolean;
+  /** "Mostrar tradução das palavras novas" (a glosa sobre o texto). */
+  glosa: boolean;
+  mudarGlosa: (v: boolean) => void;
 }) {
   const faixa = (
     chave: 'entrelinha' | 'espacoLetra' | 'espacoPalavra' | 'largura' | 'margem',
@@ -180,6 +185,19 @@ export default function PainelDeTipografia({
             />
             <span>{t('Hifenizar palavras longas')}</span>
           </label>
+
+          <label className="leitor-alternar">
+            <input
+              type="checkbox"
+              checked={glosa}
+              onChange={(e) => mudarGlosa(e.target.checked)}
+              aria-describedby="leitor-glosa-apoio"
+            />
+            <span>{t('Mostrar tradução das palavras novas')}</span>
+          </label>
+          <p id="leitor-glosa-apoio" className="leitor-apoio">
+            {t('Uma tradução curta aparece sobre as palavras que você ainda não conhece e some quando você aprende.')}
+          </p>
 
           <fieldset className="leitor-grupo">
             <legend>{t('Modo de leitura')}</legend>

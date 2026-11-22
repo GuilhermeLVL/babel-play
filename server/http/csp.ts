@@ -22,6 +22,10 @@
  *                                               (`src/data/rotas/imagens.ts`)
  *   api.mymemory.translated.net                 a tradução de reserva do cliente
  *                                               (`src/gateway/adapters/mymemory.ts`)
+ *   localhost:8765 / 127.0.0.1:8765             o AnkiConnect do computador da pessoa ("Enviar para o Anki aberto",
+ *                                               `src/lib/anki/ankiConnect.ts`). SEMPRE, também no modo público: é
+ *                                               loopback, o navegador fala com o Anki da própria máquina e nada
+ *                                               sai para servidor. Só `connect-src`, só esta porta
  *   localhost:11434 / 127.0.0.1:11434           o Ollama LOCAL de quem o tem (`src/gateway/profiles.ts`). SÓ fora do
  *                                               modo público (self-host, dev, edição estática): com
  *                                               `AUTH_REQUIRED=1` (o Express e o Worker) ou `VITE_AUTH_REQUIRED=1`
@@ -126,6 +130,13 @@ const CONEXOES_FIXAS = [
   'https://raw.githubusercontent.com',
 ]
 
+/**
+ * O ANKICONNECT do computador da pessoa (`src/lib/anki/ankiConnect.ts`): o navegador manda os cartões ao Anki
+ * aberto na própria máquina. É loopback: nenhum dado sai para um servidor, e o servidor do Frasy nunca fala com
+ * o Anki. Vale também no modo público (menores só enviam o que é deles ao próprio Anki). Só esta porta.
+ */
+const CONEXOES_DO_ANKI = ['http://127.0.0.1:8765', 'http://localhost:8765']
+
 /** O Ollama LOCAL de quem o tem (perfil "Privado/Local"): só entra fora do modo público (`modoPublico`). */
 const CONEXOES_DO_OLLAMA = ['http://localhost:11434', 'http://127.0.0.1:11434']
 
@@ -228,6 +239,7 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
       ...CONEXOES_FIXAS,
       ...(modoPublico(env) ? [] : CONEXOES_DO_OLLAMA),
       ...CONEXOES_DO_LEITOR,
+      ...CONEXOES_DO_ANKI,
       ...doDeploy,
       ...runtimeDoOnnx,
       ...turnstile,

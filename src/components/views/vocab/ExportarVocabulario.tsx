@@ -16,14 +16,17 @@ import { Download, Info } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { type AppMetrics, exportarApkg } from '../../../data/api';
+import { perfilDoDispositivo } from '../../../lib/dispositivo/perfil';
+import { t } from '../../../lib/i18n';
 import { langLabelNaUI } from '../../../lib/languages';
 import { baixarRelatorio } from '../../../lib/relatorioDeProgresso';
 import type { VocabCard } from '../../../types';
 import { toast } from '../../Toast';
 import { type FiltroDoCatalogo, idsDoFiltro } from './CatalogoDePalavras';
 import Dialogo, { CampoLinha, Interruptor, Segmentos } from './Dialogo';
+import EnviarParaOAnki from './EnviarParaOAnki';
 
-type Formato = 'apkg' | 'csv' | 'tsv' | 'txt';
+type Formato = 'apkg' | 'csv' | 'tsv' | 'txt' | 'anki';
 type Escopo = 'todas' | 'filtradas' | 'revisar';
 
 const FORMATOS: Array<[Formato, string, string, string]> = [
@@ -32,6 +35,15 @@ const FORMATOS: Array<[Formato, string, string, string]> = [
   ['tsv', 'Quizlet', '.txt', 'Palavra e tradução separadas por tab'],
   ['txt', 'Relatório', '.txt', 'Resumo do progresso para ler'],
 ];
+
+/** O envio direto ao Anki só existe no computador: o AnkiConnect é do Anki de mesa (celular e Quest ficam sem). */
+const formatoAnki = (): [Formato, string, string, string] => [
+  'anki',
+  t('Anki no computador'),
+  'AnkiConnect',
+  t('Envia direto para o Anki aberto, sem arquivo'),
+];
+const noComputador = (): boolean => perfilDoDispositivo().tipo.startsWith('desktop');
 
 function baixar(blob: Blob, nome: string) {
   const a = document.createElement('a');
@@ -65,6 +77,7 @@ export default function ExportarVocabulario({
   const [escopo, setEscopo] = useState<Escopo>('todas');
   const [frase, setFrase] = useState(true);
   const [enviando, setEnviando] = useState(false);
+  const formatos = useMemo(() => (noComputador() ? [...FORMATOS, formatoAnki()] : FORMATOS), []);
   /* `qv-dlg` liga o acabamento dos formatos e da prévia (`questVocabulario.css`). */
 
   const noBaralho = useMemo(() => cartoes.filter((c) => c.inDeck), [cartoes]);
@@ -95,7 +108,9 @@ export default function ExportarVocabulario({
   const nomeDoIdioma = idioma ? langLabelNaUI(idioma).toLowerCase() : '';
   /** Cartão sem verso não vira cartão no Anki nem no Quizlet: fica de fora, e o número diz isso. */
   const saem =
-    formato === 'apkg' || formato === 'tsv' ? escolhidas.filter((c) => (c.translation ?? '').trim()) : escolhidas;
+    formato === 'apkg' || formato === 'tsv' || formato === 'anki'
+      ? escolhidas.filter((c) => (c.translation ?? '').trim())
+      : escolhidas;
   const n = formato === 'txt' ? noBaralho.length : saem.length;
   const bloqueado = formato === 'txt' ? !metrics : n === 0;
   const exemplo = saem[0];
@@ -167,7 +182,7 @@ export default function ExportarVocabulario({
         <div>
           <span className="label-mono">Formato</span>
           <div className="g-formatos" role="radiogroup" aria-label="Formato">
-            {FORMATOS.map(([v, r, ext, d]) => (
+            {formatos.map(([v, r, ext, d]) => (
               <button
                 key={v}
                 type="button"
@@ -216,6 +231,7 @@ export default function ExportarVocabulario({
             </div>
           </div>
         )}
+        {formato === 'anki' && <EnviarParaOAnki cartoes={saem} />}
         {
           <p className="mut" style={{ fontSize: 12.5 }}>
             <Info style={{ width: 13, height: 13, verticalAlign: -2, display: 'inline' }} aria-hidden /> O histórico da
@@ -225,21 +241,23 @@ export default function ExportarVocabulario({
       </div>
       <div className="dlg-pe">
         <button type="button" className="btn btn-outline" onClick={aoFechar}>
-          Cancelar
+          {formato === 'anki' ? t('Fechar') : 'Cancelar'}
         </button>
-        <button
-          type="button"
-          className="btn btn-solid"
-          disabled={bloqueado || enviando}
-          onClick={() => void exportar()}
-        >
-          <Download aria-hidden />{' '}
-          {enviando
-            ? 'Gerando…'
-            : formato === 'txt'
-              ? 'Baixar o relatório'
-              : `Baixar ${n} palavra${n === 1 ? '' : 's'}`}
-        </button>
+        {formato !== 'anki' && (
+          <button
+            type="button"
+            className="btn btn-solid"
+            disabled={bloqueado || enviando}
+            onClick={() => void exportar()}
+          >
+            <Download aria-hidden />{' '}
+            {enviando
+              ? 'Gerando…'
+              : formato === 'txt'
+                ? 'Baixar o relatório'
+                : `Baixar ${n} palavra${n === 1 ? '' : 's'}`}
+          </button>
+        )}
       </div>
     </Dialogo>
   );

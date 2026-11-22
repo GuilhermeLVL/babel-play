@@ -92,6 +92,26 @@ describe('gerarHeaders', () => {
     expect(estatica).toContain('http://localhost:11434')
   })
 
+  it('libera o AnkiConnect local (8765) só em connect-src, também no build público, e nenhuma outra porta', () => {
+    for (const authRequired of ['1', '']) {
+      const g = bloco(gerarHeaders(env({ VITE_AUTH_REQUIRED: authRequired }), BASE), '/*')
+      const csp = g.split('\n').find((l) => l.startsWith('Content-Security-Policy:'))!
+      const dir = (nome: string) => csp.split(/;\s*/).find((d) => d.startsWith(nome + ' ')) ?? ''
+      expect(dir('connect-src').split(/\s+/)).toEqual(
+        expect.arrayContaining(['http://127.0.0.1:8765', 'http://localhost:8765']),
+      )
+      for (const outra of ['script-src', 'worker-src', 'frame-src', 'img-src', 'media-src']) {
+        expect(dir(outra)).not.toContain(':8765')
+      }
+      const d = diretivasDeCsp(env({ VITE_AUTH_REQUIRED: authRequired }))
+      expect(d.connectSrc.filter((o) => o.includes(':8765'))).toEqual([
+        'http://127.0.0.1:8765',
+        'http://localhost:8765',
+      ])
+      expect(d.scriptSrc.concat(d.workerSrc, d.mediaSrc).some((o) => o.includes(':8765'))).toBe(false)
+    }
+  })
+
   it('traz o isolamento e os demais cabeçalhos globais', () => {
     const g = bloco(gerarHeaders(env({}), BASE), '/*')
     expect(g).toContain('Cross-Origin-Opener-Policy: same-origin')

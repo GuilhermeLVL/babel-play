@@ -438,9 +438,9 @@ export function elegibilidadeDoJogo(
 
   if (def.doIdioma) {
     const n = opts.pares ?? 0;
-    return n >= def.minItems
-      ? { estado: 'disponivel' }
-      : { estado: 'indisponivel', motivo: 'sem-lista-do-idioma', faltam: def.minItems - n };
+    if (n < def.minItems) return { estado: 'indisponivel', motivo: 'sem-lista-do-idioma', faltam: def.minItems - n };
+    /* Como `estadoDoJogo`: o som É o exercício, então sem voz o jogo não abre. */
+    return opts.temVoz === false ? { estado: 'indisponivel', motivo: 'sem-voz' } : { estado: 'disponivel' };
   }
 
   if (def.requisitos?.alfabeto === 'latino') {

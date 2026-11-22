@@ -31,7 +31,7 @@
     { "a": "luna", "b": "lona", "sons": ["u", "o"] },
     { "a": "sal", "b": "sol", "sons": ["a", "o"] },
     { "a": "mata", "b": "nata", "sons": ["m", "n"] },
-    { "a": "año", "b": "ano", "sons": ["ɲ", "n"] },
+    { "a": "moño", "b": "mono", "sons": ["ɲ", "n"] },
     { "a": "casa", "b": "gasa", "sons": ["k", "g"] },
     { "a": "cana", "b": "gana", "sons": ["k", "g"] },
     { "a": "pala", "b": "para", "sons": ["l", "ɾ"] },
@@ -60,12 +60,12 @@
     { "a": "dé", "b": "thé", "sons": ["d", "t"] }
   ],
   "de": [
-    { "a": "Bett", "b": "Bitte", "sons": ["ɛ", "ɪ"] },
+    { "a": "Betten", "b": "bitten", "sons": ["ɛ", "ɪ"] },
     { "a": "Hüte", "b": "Hütte", "sons": ["yː", "ʏ"] },
     { "a": "Miete", "b": "Mitte", "sons": ["iː", "ɪ"] },
     { "a": "Bahn", "b": "Bann", "sons": ["aː", "a"] },
     { "a": "Ofen", "b": "offen", "sons": ["oː", "ɔ"] },
-    { "a": "Höhle", "b": "Hölle", "sons": ["øː", "œ"] },
+    { "a": "Kind", "b": "Kinn", "sons": ["d", "n"] },
     { "a": "Beet", "b": "Boot", "sons": ["eː", "oː"] },
     { "a": "Stahl", "b": "Stall", "sons": ["aː", "a"] },
     { "a": "Kissen", "b": "küssen", "sons": ["ɪ", "ʏ"] },
@@ -104,10 +104,10 @@
     { "a": "chá", "b": "já", "sons": ["ʃ", "ʒ"] },
     { "a": "chato", "b": "jato", "sons": ["ʃ", "ʒ"] },
     { "a": "fila", "b": "vila", "sons": ["f", "v"] },
-    { "a": "caro", "b": "carro", "sons": ["ɾ", "x"] },
-    { "a": "era", "b": "erra", "sons": ["ɾ", "x"] },
+    { "a": "caro", "b": "carro", "sons": ["ɾ", "x (BR), ʁ (PT)"] },
+    { "a": "era", "b": "erra", "sons": ["ɾ", "x (BR), ʁ (PT)"] },
     { "a": "calo", "b": "caro", "sons": ["l", "ɾ"] },
-    { "a": "cama", "b": "cana", "sons": ["m", "n"] },
+    { "a": "lama", "b": "lana", "sons": ["m", "n"] },
     { "a": "casa", "b": "caça", "sons": ["z", "s"] },
     { "a": "avó", "b": "avô", "sons": ["ɔ", "o"] },
     { "a": "mesa", "b": "musa", "sons": ["e", "u"] },
@@ -115,6 +115,6 @@
     { "a": "pera", "b": "para", "sons": ["e", "a"] },
     { "a": "lá", "b": "lã", "sons": ["a", "ɐ̃"] },
     { "a": "mão", "b": "mau", "sons": ["ɐ̃w̃", "aw"] },
-    { "a": "rua", "b": "lua", "sons": ["x", "l"] }
+    { "a": "rua", "b": "lua", "sons": ["x (BR), ʁ (PT)", "l"] }
   ]
 }

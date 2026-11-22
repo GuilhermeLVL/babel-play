@@ -171,7 +171,8 @@ export function pontuarRodada(
     const mult = multiplicador(sequencia);
     base += PONTOS_BASE;
     bonusCombo += PONTOS_BASE * (mult - 1);
-    if (!SEM_BONUS_DE_VELOCIDADE.has(gameId) && typeof o.ms === 'number' && o.ms <= LIMITE_RESPOSTA_RAPIDA_MS) bonusVelocidade += BONUS_RAPIDO;
+    if (!SEM_BONUS_DE_VELOCIDADE.has(gameId) && typeof o.ms === 'number' && o.ms <= LIMITE_RESPOSTA_RAPIDA_MS)
+      bonusVelocidade += BONUS_RAPIDO;
     if (!o.hinted && (o.attempts ?? 1) <= 1) bonusSemDica += BONUS_SEM_DICA;
   }
 

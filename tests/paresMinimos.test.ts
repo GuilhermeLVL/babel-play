@@ -59,6 +59,26 @@ describe('as listas de pares mínimos (dados curados)', () => {
   }
 })
 
+/* Palavras de baixo calão ou de duplo sentido comum (pt, es, en, fr, de, it): o app atende menores. */
+const BLOQUEADAS = new Set(
+  [
+    'ano', 'cu', 'cul', 'culo', 'cona', 'coño', 'puta', 'puto', 'pene', 'pija', 'polla', 'verga', 'pico', 'teta',
+    'porra', 'caralho', 'foda', 'fode', 'bitch', 'shit', 'piss', 'cunt', 'dick', 'cock', 'sex', 'fuck',
+    'bite', 'con', 'merde', 'couille', 'putain', 'arsch', 'scheisse', 'scheiße', 'fotze', 'hure', 'hölle', 'cazzo',
+    'figa', 'merda', 'culone', 'troia', 'bagascia',
+  ].map((x) => x.toLocaleLowerCase()),
+)
+
+describe('adequação para menores', () => {
+  it('nenhuma palavra de nenhum par está na lista de bloqueadas', () => {
+    for (const [lang, lista] of Object.entries(PARES_MINIMOS)) {
+      for (const p of lista) {
+        for (const w of [p.a, p.b]) expect(BLOQUEADAS.has(w.toLocaleLowerCase(lang)) || w === 'cana' && lang === 'pt', `${lang}: ${w}`).toBe(false)
+      }
+    }
+  })
+})
+
 describe('rótulo do contraste', () => {
   it('escreve /a/ × /b/ e a chave não depende da ordem', () => {
     expect(rotuloDoContraste(['ɪ', 'iː'])).toBe('/ɪ/ × /iː/')

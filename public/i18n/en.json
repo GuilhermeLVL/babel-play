@@ -5388,6 +5388,8 @@
   "Sem trilha, o idioma joga com o que você gravou ou importou. A voz depende do seu sistema: sem ela, os jogos de escuta ficam de fora até você gravar a sua.": "Without a track, the language plays with what you recorded or imported. The voice depends on your system: without it, the listening games stay out until you record your own.",
   "sem verbete ainda": "no entry yet",
   "Sem voz de leitura em {idioma} neste aparelho.": "No reading voice for {idioma} on this device.",
+  "Sem voz de leitura em {idioma}, não há o que ouvir.": "There is no reading voice in {idioma}, so there is nothing to hear.",
+  "Sem voz de leitura neste aparelho, não há o que ouvir.": "There is no reading voice on this device, so there is nothing to hear.",
   "Sem voz de leitura neste aparelho.": "No reading voice on this device.",
   "Sem voz de leitura para {idioma} neste aparelho.": "No reading voice for {idioma} on this device.",
   "Sem voz de leitura para esta palavra neste aparelho.": "No reading voice for this word on this device.",

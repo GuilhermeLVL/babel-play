@@ -10,6 +10,7 @@
  *  · TEXTO: devolve o texto que um CFI aponta e o texto de cada seção (para reancorar pela citação).
  */
 import type { CorDeAnotacao, TipoDeAnotacao } from '../../core/leitura/anotacao';
+import { PREFIXO_DA_GLOSA } from '../../core/leitura/glosaDoCapitulo';
 import { CORES_DOS_TEMAS, cssDoLivro, type PerfilDeLeitura } from '../../core/leitura/perfilDeLeitura';
 import { ErroDoLivro } from '../../core/livros/trazer';
 import type { ItemDoSumario, LivroDoFoliate, Localizacao, View } from './foliate/view.js';
@@ -32,6 +33,10 @@ export const COR_DO_GRIFO: Record<CorDeAnotacao, string> = {
 
 /** A chave do destaque da frase narrada no overlayer (não é uma anotação: não tem CFI guardado). */
 export const CHAVE_DA_NARRACAO = 'frasy:narracao';
+
+/** Só as anotações abrem o painel: o destaque da narração e a glosa moram no mesmo overlayer e não são anotação. */
+export const ehAnotacaoTocavel = (valor: string): boolean =>
+  valor !== CHAVE_DA_NARRACAO && !valor.startsWith(PREFIXO_DA_GLOSA);
 
 const SVG = 'http://www.w3.org/2000/svg';
 
@@ -150,7 +155,7 @@ export class MotorDoLeitor {
     view.addEventListener('show-annotation', (e) => {
       const valor = (e as CustomEvent<{ value: string }>).detail.value;
       /* O destaque da narração mora no mesmo overlayer, mas não é anotação: tocar nele não abre o painel. */
-      if (valor !== CHAVE_DA_NARRACAO) eventos.aoTocarAnotacao?.(valor);
+      if (ehAnotacaoTocavel(valor)) eventos.aoTocarAnotacao?.(valor);
     });
     view.addEventListener('create-overlay', (e) => {
       const { index } = (e as CustomEvent<{ index: number }>).detail;

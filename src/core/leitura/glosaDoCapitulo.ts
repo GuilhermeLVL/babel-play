@@ -16,6 +16,9 @@ import { baseLang } from '../texto/idioma';
 import { funcionais } from './coberturaDoTexto';
 import { chavesDeLema, dividirTexto } from './textoDaLeitura';
 
+/** Prefixo da chave da glosa no overlayer: o motor o ignora no toque (não é anotação). */
+export const PREFIXO_DA_GLOSA = 'frasy-glosa:';
+
 /** Distância mínima, em palavras, entre duas glosas: 1 glosa a cada 4 palavras no máximo. */
 export const JANELA_DA_GLOSA = 4;
 /** Quantas ocorrências da mesma palavra ganham glosa. */

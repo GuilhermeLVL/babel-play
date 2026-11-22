@@ -14,13 +14,17 @@ import {
   indicesDasPalavrasNovas,
   type PalavraDoCapitulo,
   palavrasDoCapitulo,
+  PREFIXO_DA_GLOSA,
 } from '../../core/leitura/glosaDoCapitulo';
 import { glosaLocal } from '../dicionarioLocal';
 import { glosaServe } from '../traducaoDePalavra';
 
 const BLOCOS = 'p, li, blockquote, h1, h2, h3, h4, h5, h6, dd, dt, figcaption';
 const NS = 'http://www.w3.org/2000/svg';
-const PREFIXO = 'frasy-glosa:';
+const PREFIXO = PREFIXO_DA_GLOSA;
+/** Quantas buscas ao dicionário correm juntas e quantas palavras únicas se consultam por capítulo. */
+const CONCORRENCIA = 8;
+const TETO_DE_PALAVRAS_UNICAS = 400;
 /** Acima disto a glosa não cabe sobre quatro palavras: melhor nenhuma que uma glosa que cobre o texto. */
 const GLOSA_MAXIMA = 24;
 
@@ -101,17 +105,18 @@ export function glosaCurta(glosa: string): string | null {
   return g && g.length <= GLOSA_MAXIMA ? g : null;
 }
 
-/** O desenho de uma glosa: um `<text>` acima da primeira linha da palavra, fora da árvore de acessibilidade. */
-export function desenharGlosa(rects: DOMRectList, o: { texto: string } & AparenciaDaGlosa): SVGElement {
+/** O desenho de uma glosa: um `<text>` com a linha de base no topo da palavra (acima dela, sobre a entrelinha), fora da árvore de acessibilidade. */
+export function desenharGlosa(rects: DOMRectList, o: { texto: string; alvo?: Range } & AparenciaDaGlosa): SVGElement {
   const g = document.createElementNS(NS, 'g');
   g.setAttribute('aria-hidden', 'true');
   g.setAttribute('data-frasy-glosa', '');
-  const r = rects[0];
+  /* O range guardado no overlayer é vazio (ver `atualizar`); a posição vem da palavra, lida a cada redesenho. */
+  const r = (o.alvo?.getClientRects?.() ?? rects)[0];
   if (!r) return g;
   const t = document.createElementNS(NS, 'text');
   const tamanho = Math.max(9, Math.round(o.tamanho * 0.56 * 10) / 10);
   t.setAttribute('x', String(r.left + r.width / 2));
-  t.setAttribute('y', String(r.top + tamanho * 0.15));
+  t.setAttribute('y', String(r.top - 1));
   t.setAttribute('text-anchor', 'middle');
   t.setAttribute('font-size', String(tamanho));
   t.setAttribute('font-family', 'system-ui, sans-serif');
@@ -137,6 +142,7 @@ export class GlosaDoCapitulo {
   private lidas = new Map<string, string | null>();
   private chaves: string[] = [];
   private geracao = 0;
+  private assinatura = '';
 
   constructor(
     readonly doc: Document,
@@ -168,12 +174,36 @@ export class GlosaDoCapitulo {
     const entrada = { palavras, lang: this.lang, conhecidas: estado.conhecidas, ignoradas: estado.ignoradas };
     const novas = indicesDasPalavrasNovas(entrada);
     const primeiras = new Map<string, PalavraDoCapitulo>();
-    for (const i of novas) if (!primeiras.has(palavras[i].chave)) primeiras.set(palavras[i].chave, palavras[i]);
-    await Promise.all([...primeiras.values()].map((p) => this.glosaDe(p)));
+    const freq = new Map<string, number>();
+    for (const i of novas) {
+      const c = palavras[i].chave;
+      freq.set(c, (freq.get(c) ?? 0) + 1);
+      if (!primeiras.has(c)) primeiras.set(c, palavras[i]);
+    }
+    /* Teto de consultas por capítulo (as mais frequentes primeiro) e no máximo CONCORRENCIA em voo. */
+    const fila = [...primeiras.values()]
+      .sort((a, b) => (freq.get(b.chave) ?? 0) - (freq.get(a.chave) ?? 0))
+      .slice(0, TETO_DE_PALAVRAS_UNICAS);
+    for (const c of [...primeiras.keys()]) if (!fila.some((p) => p.chave === c)) primeiras.delete(c);
+    let proxima = 0;
+    const trabalhador = async () => {
+      while (proxima < fila.length) {
+        if (minha !== this.geracao) return;
+        await this.glosaDe(fila[proxima++]);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(CONCORRENCIA, fila.length) }, trabalhador));
     if (minha !== this.geracao) return 0;
     const comGlosa = new Set([...primeiras.keys()].filter((c) => this.lidas.get(c)));
     const escolhidas = escolherGlosas(entrada, comGlosa);
+    /* Nada mudou no que se vê (mesmas palavras, mesma aparência): não redesenha. */
+    const assinatura = JSON.stringify([
+      escolhidas.map((i) => [i, this.lidas.get(palavras[i].chave)]),
+      estado.aparencia,
+    ]);
+    if (assinatura === this.assinatura && this.chaves.length === escolhidas.length) return this.chaves.length;
     this.removerTudo();
+    this.assinatura = assinatura;
     let n = 0;
     for (const i of escolhidas) {
       const p = palavras[i];
@@ -181,8 +211,12 @@ export class GlosaDoCapitulo {
       const texto = this.lidas.get(p.chave);
       if (!range || !texto) continue;
       const chave = `${PREFIXO}${i}`;
+      /* HIT-TEST: o overlayer do foliate testa o toque contra os rects do range guardado, do último para o primeiro. A
+         glosa guarda um range VAZIO (sem rects) e desenha pela palavra: o toque cai no grifo ou na palavra, nunca nela. */
+      const vazio = range.cloneRange();
+      vazio.collapse(true);
       try {
-        this.overlayer.add(chave, range, desenharGlosa as never, { texto, ...estado.aparencia });
+        this.overlayer.add(chave, vazio, desenharGlosa as never, { texto, alvo: range, ...estado.aparencia });
         this.chaves.push(chave);
         n++;
       } catch {
@@ -201,6 +235,7 @@ export class GlosaDoCapitulo {
       }
     }
     this.chaves = [];
+    this.assinatura = '';
   }
 
   /** Tira toda a glosa do capítulo e cancela o que estiver em andamento. */

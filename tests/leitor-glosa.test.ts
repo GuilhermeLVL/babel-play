@@ -84,6 +84,36 @@ describe('glosa das palavras novas: escolha', () => {
   })
 })
 
+describe('glosa x toque (show-annotation)', () => {
+  it('só anotação abre o painel: glosa e narração não', async () => {
+    const { ehAnotacaoTocavel, CHAVE_DA_NARRACAO } = await import('../src/lib/leitor/motor')
+    expect(ehAnotacaoTocavel('epubcfi(/6/4!/4/2,/1:0,/1:5)')).toBe(true)
+    expect(ehAnotacaoTocavel('frasy-glosa:12')).toBe(false)
+    expect(ehAnotacaoTocavel(CHAVE_DA_NARRACAO)).toBe(false)
+  })
+
+  it('o range guardado no overlayer é vazio: o hit-test do foliate não vê a glosa (grifo e cartão seguem)', async () => {
+    const doc = new DOMParser().parseFromString('<!DOCTYPE html><body><p>The lantern burns.</p></body>', 'text/html')
+    const guardados: Range[] = []
+    const overlayer = { add: (_k: string, r: Range) => void guardados.push(r), remove: () => {} }
+    const c = new GlosaDoCapitulo(doc, overlayer, 'en', 'pt')
+    await c.atualizar({ conhecidas: new Set(), aparencia: { cor: '#555', fundo: '#fff', tamanho: 18 } })
+    expect(guardados.length).toBe(1)
+    expect(guardados[0].collapsed).toBe(true)
+  })
+
+  it('não redesenha quando nada mudou no que se vê', async () => {
+    const doc = new DOMParser().parseFromString('<!DOCTYPE html><body><p>The lantern burns.</p></body>', 'text/html')
+    let adds = 0
+    const overlayer = { add: () => void adds++, remove: () => {} }
+    const c = new GlosaDoCapitulo(doc, overlayer, 'en', 'pt')
+    const e = { conhecidas: new Set<string>(), aparencia: { cor: '#555', fundo: '#fff', tamanho: 18 } }
+    await c.atualizar(e)
+    await c.atualizar({ ...e, conhecidas: new Set(['x']) })
+    expect(adds).toBe(1)
+  })
+})
+
 describe('glosa: texto, intervalo e desenho no documento', () => {
   const html = '<p>The <i>lan</i>tern burns near the harbor.</p><p>A ledger lies on the table.</p>'
   const montar = () => new DOMParser().parseFromString(`<!DOCTYPE html><body>${html}</body>`, 'text/html')

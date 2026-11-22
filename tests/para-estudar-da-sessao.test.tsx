@@ -18,6 +18,7 @@ vi.mock('../src/lib/etiquetas/indiceDeEtiquetas', () => ({
   useSnapshotDasEtiquetas: () => ({ caderno: new Map(), marcadas: new Map(), vistas: new Map() }),
 }))
 
+import { palavraFicouNoCaderno } from '../src/components/views/analise/guardarDaSessao'
 import ParaEstudarDaSessao from '../src/components/views/analise/ParaEstudarDaSessao'
 
 const ENCHIMENTO = 'I like the house and the dog. We go to the park with the dog and the cat every day.'
@@ -113,5 +114,38 @@ describe('ParaEstudarDaSessao', () => {
     )
     await new Promise((r) => setTimeout(r, 120))
     expect(container.innerHTML).toBe('')
+  })
+
+  it('duplo clique em "Guardar": um pedido só, sem "Guardado" e erro juntos', async () => {
+    let resolver: (v: boolean) => void = () => {}
+    const aoGuardar = vi.fn(() => new Promise<boolean>((r) => (resolver = r)))
+    render(<ParaEstudarDaSessao falas={FALAS} idioma="en" aoGuardar={aoGuardar} />)
+    await abrir()
+    const botao = screen.getByRole('button', { name: /Guardar como cartão: delicious/ })
+    fireEvent.click(botao)
+    fireEvent.click(botao)
+    expect((botao as HTMLButtonElement).disabled).toBe(true)
+    resolver(true)
+    await waitFor(() =>
+      expect(screen.getAllByRole('status').some((s) => /Guardado/.test(s.textContent ?? ''))).toBe(true),
+    )
+    expect(aoGuardar).toHaveBeenCalledOnce()
+    expect(screen.queryByText('Não deu para salvar agora.')).toBeNull()
+  })
+
+  it('duplo clique em "Já sei": uma marcação só', async () => {
+    render(<ParaEstudarDaSessao falas={FALAS} idioma="en" aoGuardar={async () => true} />)
+    await abrir()
+    fireEvent.click(screen.getByRole('tab', { name: /Palavras novas/ }))
+    const botao = screen.getByRole('button', { name: /Já sei: delicious/ })
+    fireEvent.click(botao)
+    fireEvent.click(botao)
+    await waitFor(() => expect(marcar).toHaveBeenCalledTimes(1))
+  })
+
+  it('"já está no caderno" conta como sucesso; o resto da mensagem não', () => {
+    expect(palavraFicouNoCaderno('adicionado ao seu deck')).toBe(true)
+    expect(palavraFicouNoCaderno('Esta palavra já está no seu caderno.')).toBe(true)
+    expect(palavraFicouNoCaderno('Não deu para salvar agora.')).toBe(false)
   })
 })

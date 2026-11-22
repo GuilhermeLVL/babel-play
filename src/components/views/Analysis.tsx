@@ -59,6 +59,7 @@ import { aparelhoTemVoz, haVozPara } from '../../lib/voz/haVoz';
 import CoberturaDoConteudo from '../CoberturaDoConteudo';
 import EscutaGuiada from './analise/EscutaGuiada';
 import ExportarSessao from './analise/ExportarSessao';
+import { palavraFicouNoCaderno } from './analise/guardarDaSessao';
 import ParaEstudarDaSessao from './analise/ParaEstudarDaSessao';
 import PlayerInterativo from './analise/PlayerInterativo';
 import JogosDaSessao from './analise/quest/JogosDaSessao';
@@ -832,7 +833,7 @@ export default function Analysis({
         <ParaEstudarDaSessao
           falas={falasCruas}
           idioma={cobertura?.idioma}
-          aoGuardar={async (item) => (await salvarNaFolha(item)) === 'adicionado ao seu deck'}
+          aoGuardar={async (item) => palavraFicouNoCaderno(await salvarNaFolha(item))}
           aoIrParaFala={
             documento
               ? undefined

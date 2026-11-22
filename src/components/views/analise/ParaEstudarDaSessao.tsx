@@ -3,7 +3,7 @@ import '../../../styles/para-estudar.css';
 import { Check, ChevronDown, Play } from 'lucide-react';
 import { useId, useMemo, useRef, useState } from 'react';
 
-import type { ParaEstudarDaSessao as Dados } from '../../../core/leitura/paraEstudarDaSessao';
+import type { FraseIMais1, PalavraNovaDaSessao } from '../../../core/leitura/paraEstudarDaSessao';
 import { estadoNoCaderno } from '../../../core/vocabulario/etiquetas';
 import { useParaEstudarDaSessao } from '../../../hooks/useParaEstudarDaSessao';
 import { useSnapshotDasEtiquetas } from '../../../lib/etiquetas/indiceDeEtiquetas';
@@ -12,6 +12,11 @@ import { t, tp } from '../../../lib/i18n';
 
 type Aba = 'frases' | 'palavras';
 const PASSO = 8;
+
+interface Retida {
+  f?: { item: FraseIMais1; pos: number };
+  p?: { item: PalavraNovaDaSessao; pos: number };
+}
 
 export interface PalavraParaGuardar {
   palavra: string;
@@ -46,51 +51,78 @@ export default function ParaEstudarDaSessao({
   const [aberta, setAberta] = useState(false);
   const [aba, setAba] = useState<Aba>('frases');
   const [mostrar, setMostrar] = useState<Record<Aba, number>>({ frases: PASSO, palavras: PASSO });
-  const [guardadas, setGuardadas] = useState<ReadonlySet<string>>(new Set());
+  const [retidas, setRetidas] = useState<ReadonlyMap<string, Retida>>(new Map());
   const [erros, setErros] = useState<ReadonlySet<string>>(new Set());
+  /* As chaves com pedido em andamento: a ref trava o segundo toque na hora, o estado desabilita o botão. */
+  const emAndamento = useRef(new Set<string>());
+  const [ocupadas, setOcupadas] = useState<ReadonlySet<string>>(new Set());
+  const [sessao, setSessao] = useState(falas);
   const id = useId();
-  const ordem = useRef<{ frases: string[]; palavras: string[] }>({ frases: [], palavras: [] });
   const lang = idioma ?? '';
+  if (sessao !== falas) {
+    /* Outra sessão: nada do estado da anterior vale. */
+    setSessao(falas);
+    setMostrar({ frases: PASSO, palavras: PASSO });
+    setRetidas(new Map());
+    setErros(new Set());
+    setOcupadas(new Set());
+    emAndamento.current.clear();
+  }
+  const guardadas = retidas;
 
-  /* A palavra guardada passa a contar como conhecida e sairia da conta: aqui ela fica, no mesmo lugar, até a tela fechar. */
-  const memoria = useRef<{ dados: Dados | null; sessao: ReadonlyArray<unknown> | null }>({ dados: null, sessao: null });
+  /* A palavra guardada passa a contar como conhecida e sairia da conta: ela fica na lista, no mesmo lugar. */
   const lista = useMemo(() => {
-    if (memoria.current.sessao !== falas) {
-      memoria.current = { dados: null, sessao: falas };
-      ordem.current = { frases: [], palavras: [] };
-    }
-    const base = memoria.current.dados;
-    const unir = <T extends { chave: string }>(novos: T[], antigos: T[] | undefined, quem: Aba): T[] => {
-      const porChave = new Map<string, T>([...(antigos ?? []), ...novos].map((x) => [x.chave, x]));
-      const previa = ordem.current[quem];
-      const mantidas = previa.filter((c) => novos.some((n) => n.chave === c) || guardadas.has(c));
-      const todas = [...mantidas, ...novos.map((n) => n.chave).filter((c) => !mantidas.includes(c))];
-      ordem.current[quem] = todas;
-      return todas.map((c) => porChave.get(c)!);
+    const unir = <T extends { chave: string }>(
+      novos: T[],
+      deRetida: (r: Retida) => { item: T; pos: number } | undefined,
+    ): T[] => {
+      const saida = [...novos];
+      const presentes = new Set(novos.map((n) => n.chave));
+      const faltam = [...retidas]
+        .flatMap(([c, r]) => {
+          const x = deRetida(r);
+          return x && !presentes.has(c) ? [x] : [];
+        })
+        .sort((x, y) => x.pos - y.pos);
+      for (const { item, pos } of faltam) saida.splice(Math.min(pos, saida.length), 0, item);
+      return saida;
     };
-    if (!dados) return base ? { frases: [], palavras: [] } : null;
-    const r = {
-      frases: unir(dados.frases, base?.frases, 'frases'),
-      palavras: unir(dados.palavras, base?.palavras, 'palavras'),
+    if (!dados && !retidas.size) return null;
+    return {
+      frases: unir(dados?.frases ?? [], (r) => r.f),
+      palavras: unir(dados?.palavras ?? [], (r) => r.p),
     };
-    memoria.current.dados = r;
-    return r;
-  }, [dados, falas, guardadas]);
+  }, [dados, retidas]);
 
   const s = useSnapshotDasEtiquetas();
   if (!lista || (!lista.frases.length && !lista.palavras.length)) return null;
 
-  const guardar = async (chave: string, item: PalavraParaGuardar) => {
+  const comTrava = async (chave: string, f: () => Promise<boolean>) => {
+    if (emAndamento.current.has(chave)) return;
+    emAndamento.current.add(chave);
+    setOcupadas(new Set(emAndamento.current));
     setErros((e) => new Set([...e].filter((c) => c !== chave)));
-    const ok = await aoGuardar(item).catch(() => false);
-    if (ok) setGuardadas((g) => new Set(g).add(chave));
-    else setErros((e) => new Set(e).add(chave));
+    const ok = await f().catch(() => false);
+    emAndamento.current.delete(chave);
+    setOcupadas(new Set(emAndamento.current));
+    if (!ok) setErros((e) => new Set(e).add(chave));
+    return ok;
   };
-  const jaSei = async (chave: string, palavra: string) => {
-    if ((await alternarMarcacao(palavra, lang, 'conhecida').catch(() => false)) === false) {
-      setErros((e) => new Set(e).add(chave));
-    }
+  const guardar = async (chave: string, item: PalavraParaGuardar) => {
+    let ok = false;
+    await comTrava(chave, async () => (ok = await aoGuardar(item)));
+    if (!ok) return;
+    const f = lista.frases.findIndex((x) => x.chave === chave);
+    const p = lista.palavras.findIndex((x) => x.chave === chave);
+    setRetidas((m) =>
+      new Map(m).set(chave, {
+        f: f >= 0 ? { item: lista.frases[f]!, pos: f } : undefined,
+        p: p >= 0 ? { item: lista.palavras[p]!, pos: p } : undefined,
+      }),
+    );
   };
+  const jaSei = (chave: string, palavra: string) =>
+    comTrava(chave, async () => (await alternarMarcacao(palavra, lang, 'conhecida')) !== false);
   const noCaderno = (palavra: string) => !!estadoNoCaderno(s.caderno, palavra, lang);
 
   const trocarAba = (a: Aba) => {
@@ -198,6 +230,7 @@ export default function ParaEstudarDaSessao({
                             type="button"
                             className="estudar-botao"
                             aria-label={t('Guardar como cartão: {palavra}', { palavra: f.palavra })}
+                            disabled={ocupadas.has(f.chave)}
                             onClick={() => void guardar(f.chave, { palavra: f.palavra, frase: f.frase, lang })}
                           >
                             {t('Guardar como cartão')}
@@ -252,6 +285,7 @@ export default function ParaEstudarDaSessao({
                               type="button"
                               className="estudar-botao"
                               aria-label={t('Guardar: {palavra}', { palavra: p.palavra })}
+                              disabled={ocupadas.has(p.chave)}
                               onClick={() => void guardar(p.chave, { palavra: p.palavra, frase: p.frase, lang })}
                             >
                               {t('Guardar')}
@@ -260,6 +294,7 @@ export default function ParaEstudarDaSessao({
                               type="button"
                               className="estudar-botao"
                               aria-label={t('Já sei: {palavra}', { palavra: p.palavra })}
+                              disabled={ocupadas.has(p.chave)}
                               onClick={() => void jaSei(p.chave, p.palavra)}
                             >
                               {t('Já sei')}

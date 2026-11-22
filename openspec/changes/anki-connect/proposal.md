@@ -21,7 +21,7 @@ exportação.
   em itálico com a palavra em negrito), com escolha por campo (palavra, tradução, frase, cloze, nota, nível). Tags = etiquetas
   do cartão + `frasy`. Escape de `&`, `<`, `>` e tetos de tamanho.
 - **Preferências só no aparelho** (`localStorage`, com try/catch): baralho, modelo e mapeamento por modelo.
-- **CSP:** `connect-src` ganha `http://127.0.0.1:8765` e `http://localhost:8765`, só isso (`server/http/csp.ts`).
+- **CSP:** `connect-src` ganha `http://127.0.0.1:8765`, só isso (`server/http/csp.ts`).
 
 ## Capabilities
 

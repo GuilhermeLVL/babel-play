@@ -22,7 +22,7 @@
  *                                               (`src/data/rotas/imagens.ts`)
  *   api.mymemory.translated.net                 a tradução de reserva do cliente
  *                                               (`src/gateway/adapters/mymemory.ts`)
- *   localhost:8765 / 127.0.0.1:8765             o AnkiConnect do computador da pessoa ("Enviar para o Anki aberto",
+ *   127.0.0.1:8765                              o AnkiConnect do computador da pessoa ("Enviar para o Anki aberto",
  *                                               `src/lib/anki/ankiConnect.ts`). SEMPRE, também no modo público: é
  *                                               loopback, o navegador fala com o Anki da própria máquina e nada
  *                                               sai para servidor. Só `connect-src`, só esta porta
@@ -133,7 +133,7 @@ const CONEXOES_FIXAS = [
 /**
  * O ANKICONNECT do computador da pessoa (`src/lib/anki/ankiConnect.ts`): o navegador manda os cartões ao Anki
  * aberto na própria máquina. É loopback: nenhum dado sai para um servidor, e o servidor do Frasy nunca fala com
- * o Anki. Só esta porta, e SÓ as duas origens EXATAS abaixo (sem curinga de host ou porta).
+ * o Anki. Só esta porta, e SÓ a origem EXATA abaixo (`127.0.0.1`, a que o cliente usa; sem `localhost` nem curinga de host ou porta).
  *
  * TRADE-OFF: vale para todo mundo, inclusive no modo público, porque a CSP é estática por deploy. Um XSS no Frasy
  * poderia, em tese, chamar o Anki de quem liberou a origem no `webCorsOriginList`. Mitigações: (1) o Anki só
@@ -141,7 +141,7 @@ const CONEXOES_FIXAS = [
  * chave fica em `sessionStorage` por padrão e vai só no corpo da chamada ao 127.0.0.1; (3) o resto da CSP segue
  * fechado (`script-src` sem `unsafe-inline`), que é a defesa contra o XSS em si.
  */
-const CONEXOES_DO_ANKI = ['http://127.0.0.1:8765', 'http://localhost:8765']
+const CONEXOES_DO_ANKI = ['http://127.0.0.1:8765']
 
 /** O Ollama LOCAL de quem o tem (perfil "Privado/Local"): só entra fora do modo público (`modoPublico`). */
 const CONEXOES_DO_OLLAMA = ['http://localhost:11434', 'http://127.0.0.1:11434']

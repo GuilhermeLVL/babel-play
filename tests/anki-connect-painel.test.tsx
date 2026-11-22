@@ -51,7 +51,10 @@ describe('EnviarParaOAnki', () => {
       modelNames: () => ['Cloze', 'Basic'],
       modelFieldNames: () => ['Front', 'Back'],
       createDeck: () => 1,
-      canAddNotes: (p) => (p!.notes as unknown[]).map((_n, i) => i !== 0),
+      canAddNotesWithErrorDetail: (p) =>
+        (p!.notes as unknown[]).map((_n, i) =>
+          i !== 0 ? { canAdd: true } : { canAdd: false, error: 'cannot create note because it is a duplicate' },
+        ),
       addNotes: (p) => (p!.notes as unknown[]).map((_n, i) => i + 1),
     })
     render(<EnviarParaOAnki cartoes={[cartao(1), cartao(2), cartao(3)]} />)
@@ -75,7 +78,7 @@ describe('EnviarParaOAnki', () => {
       'modelNames',
       'modelFieldNames',
       'createDeck',
-      'canAddNotes',
+      'canAddNotesWithErrorDetail',
       'addNotes',
     ])
     expect(JSON.parse(localStorage.getItem(CHAVE_DAS_PREFS_DO_ANKI)!)).toMatchObject({
@@ -128,5 +131,37 @@ describe('EnviarParaOAnki', () => {
     expect(sessionStorage.getItem('babel.anki_connect_key')).toBe('sua-senha')
     expect(localStorage.getItem('babel.anki_connect_key')).toBeNull()
     definirChaveDoAnki('')
+  })
+
+  it('Parar no meio do envio volta ao painel com o resumo parcial (não trava em "Enviando")', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_u: string, init?: RequestInit) => {
+        const { action } = JSON.parse(String(init?.body))
+        const ok = (result: unknown) => new Response(JSON.stringify({ result, error: null }))
+        if (action === 'requestPermission') return ok({ permission: 'granted', version: 6 })
+        if (action === 'version') return ok(6)
+        if (action === 'deckNames') return ok([])
+        if (action === 'modelNames') return ok(['Basic'])
+        if (action === 'modelFieldNames') return ok(['Front', 'Back'])
+        if (action === 'createDeck') return ok(1)
+        if (action === 'canAddNotesWithErrorDetail') return ok([{ canAdd: true }])
+        // addNotes: fica pendurado até a pessoa parar
+        return new Promise<Response>((_res, rej) =>
+          init?.signal?.addEventListener('abort', () => rej(new DOMException('abort', 'AbortError'))),
+        )
+      }),
+    )
+    render(<EnviarParaOAnki cartoes={[cartao(1)]} />)
+    fireEvent.click(screen.getByRole('button', { name: /Testar conexão/ }))
+    await screen.findByText('Conectado ao Anki.')
+    fireEvent.click(screen.getByRole('button', { name: /Enviar 1 para o Anki/ }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Parar' }))
+    const resumo = await screen.findByTestId('resumo-anki')
+    expect(resumo.textContent).toContain('Envio interrompido')
+    await waitFor(() =>
+      expect((screen.getByRole('button', { name: /Enviar 1 para o Anki/ }) as HTMLButtonElement).disabled).toBe(false),
+    )
+    expect(screen.queryByRole('button', { name: 'Parar' })).toBeNull()
   })
 })

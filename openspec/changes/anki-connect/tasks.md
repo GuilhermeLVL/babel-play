@@ -16,7 +16,7 @@
 
 ## 4. Segurança
 
-- [x] 4.1 CSP: `connect-src` com `http://127.0.0.1:8765` e `http://localhost:8765`, documentado em `server/http/csp.ts`
+- [x] 4.1 CSP: `connect-src` com `http://127.0.0.1:8765` (só ela; o cliente não usa `localhost`), documentado em `server/http/csp.ts`
 
 ## 5. Verificação
 

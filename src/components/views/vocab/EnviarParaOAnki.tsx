@@ -22,6 +22,7 @@ import {
   camposDoModelo,
   definirChaveDoAnki,
   enviarCartoes,
+  type EnvioInterrompido,
   ErroDoAnkiConnect,
   listarBaralhos,
   listarModelos,
@@ -80,6 +81,7 @@ export default function EnviarParaOAnki({ cartoes }: { cartoes: VocabCard[] }) {
   const [campos, setCampos] = useState<string[]>([]);
   const [progresso, setProgresso] = useState<{ feitos: number; total: number } | null>(null);
   const [resumo, setResumo] = useState<ResumoDoEnvio | null>(null);
+  const [interrompido, setInterrompido] = useState(false);
   const cancelar = useRef<AbortController | null>(null);
 
   useEffect(() => () => cancelar.current?.abort(), []);
@@ -101,10 +103,15 @@ export default function EnviarParaOAnki({ cartoes }: { cartoes: VocabCard[] }) {
     gravarPrefsDoAnki(novo);
   };
 
+  /** O modelo pedido por último: a resposta de um modelo que já foi trocado é descartada. */
+  const modeloPedido = useRef('');
   const carregarCampos = async (nome: string) => {
+    modeloPedido.current = nome;
     try {
-      setCampos(await camposDoModelo(nome));
+      const lista = await camposDoModelo(nome);
+      if (modeloPedido.current === nome) setCampos(lista);
     } catch (e) {
+      if (modeloPedido.current !== nome) return;
       setErro(e instanceof ErroDoAnkiConnect ? e : null);
       setCampos([]);
     }
@@ -155,6 +162,8 @@ export default function EnviarParaOAnki({ cartoes }: { cartoes: VocabCard[] }) {
     cancelar.current = ctl;
     setErro(null);
     setResumo(null);
+    setInterrompido(false);
+    let ultimo: ResumoDoEnvio | null = null;
     setProgresso({ feitos: 0, total: cartoes.length });
     setEtapa('enviando');
     try {
@@ -162,16 +171,29 @@ export default function EnviarParaOAnki({ cartoes }: { cartoes: VocabCard[] }) {
       const r = await enviarCartoes(
         cartoes.map(cartaoParaAnki),
         { baralho: baralho.trim(), modelo, mapeamento: mapaFinal },
-        { sinal: ctl.signal, aoProgredir: (feitos, total) => setProgresso({ feitos, total }) },
+        {
+          sinal: ctl.signal,
+          aoProgredir: (feitos, total, parcial) => {
+            ultimo = parcial;
+            setProgresso({ feitos, total });
+          },
+        },
       );
       setResumo(r);
-      setEtapa('feito');
+      setInterrompido(ctl.signal.aborted);
+      setEtapa(ctl.signal.aborted ? 'pronto' : 'feito');
       if (r.adicionados > 0) toast.ok(t('{n} no Anki.', { n: numero(r.adicionados) }));
     } catch (e) {
-      if (ctl.signal.aborted) return;
-      setErro(
-        e instanceof ErroDoAnkiConnect ? e : new ErroDoAnkiConnect('erro-do-anki', t('O Anki recusou o pedido.')),
-      );
+      // Parou, o Anki fechou ou deu erro no meio: volta ao painel com o que já foi feito.
+      const parcial = (e as EnvioInterrompido | null)?.parcial ??
+        ultimo ?? { adicionados: 0, duplicados: 0, invalidas: 0, erros: 0 };
+      setResumo(parcial);
+      setInterrompido(true);
+      if (!ctl.signal.aborted) {
+        setErro(
+          e instanceof ErroDoAnkiConnect ? e : new ErroDoAnkiConnect('erro-do-anki', t('O Anki recusou o pedido.')),
+        );
+      }
       setEtapa('pronto');
     } finally {
       setProgresso(null);
@@ -329,10 +351,11 @@ export default function EnviarParaOAnki({ cartoes }: { cartoes: VocabCard[] }) {
 
       {resumo && (
         <div role="status" className="cartao" style={{ padding: 12 }} data-testid="resumo-anki">
-          <b>{t('Pronto.')}</b>
+          <b>{interrompido ? t('Envio interrompido. Até aqui:') : t('Pronto.')}</b>
           <ul>
             <li>{t('Adicionados: {n}', { n: numero(resumo.adicionados) })}</li>
             <li>{t('Já estavam no baralho: {n}', { n: numero(resumo.duplicados) })}</li>
+            <li>{t('Que o Anki não aceita: {n}', { n: numero(resumo.invalidas) })}</li>
             <li>{t('Com erro: {n}', { n: numero(resumo.erros) })}</li>
           </ul>
         </div>

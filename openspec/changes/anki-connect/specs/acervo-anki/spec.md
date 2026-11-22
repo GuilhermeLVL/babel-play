@@ -78,13 +78,13 @@ aceita e contar as já existentes à parte no resumo.
 
 ### Requirement: A CSP libera só o AnkiConnect local
 
-`connect-src` SHALL incluir `http://127.0.0.1:8765` e `http://localhost:8765`, e nenhuma outra origem local nova. Essas
+`connect-src` SHALL incluir `http://127.0.0.1:8765` (a única que o cliente usa), e nenhuma outra origem local nova. Essas
 origens MUST NOT entrar em `script-src`, `worker-src` nem `frame-src`.
 
 #### Scenario: CSP gerada
 
 - **WHEN** a CSP é gerada para o Express ou para `dist/_headers`, com ou sem modo público
-- **THEN** `connect-src` lista as duas origens da porta 8765 e as demais diretivas não as listam
+- **THEN** `connect-src` lista só `http://127.0.0.1:8765` e as demais diretivas não as listam
 
 ### Requirement: Preferências ficam no aparelho
 

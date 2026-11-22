@@ -31,6 +31,7 @@ const TETO_DO_NOME = 200;
 
 export type MotivoDeErroDoAnki =
   | 'anki-fechado'
+  | 'rede-local-bloqueada'
   | 'origem-nao-liberada'
   | 'permissao-negada'
   | 'chave-obrigatoria'
@@ -89,7 +90,11 @@ export function mensagemDoErro(motivo: MotivoDeErroDoAnki, origem: string = orig
   switch (motivo) {
     case 'anki-fechado':
       return t(
-        'Não achei o Anki. Abra o Anki no computador e confira se o complemento AnkiConnect está instalado (código 2055492159).',
+        'Não achei o Anki. Abra o Anki no computador e confira se o complemento AnkiConnect está instalado (código 2055492159). Se o Anki já está aberto, o navegador pode ter bloqueado o acesso à rede local: libere nas permissões do site (cadeado ao lado do endereço) e tente de novo.',
+      );
+    case 'rede-local-bloqueada':
+      return t(
+        'O navegador bloqueou o acesso do Frasy à rede local, que é por onde se fala com o Anki. Libere “Rede local” nas permissões do site (cadeado ao lado do endereço) e tente de novo.',
       );
     case 'origem-nao-liberada':
       return t(
@@ -128,8 +133,26 @@ interface OpcoesDaChamada {
   sinal?: AbortSignal;
 }
 
-/** Sem resposta: o Anki está fechado ou a origem não foi liberada? A sonda `no-cors` decide. */
+/**
+ * O Chrome (Local Network Access) pede permissão para uma página falar com o computador da pessoa. Negada, o
+ * `fetch` falha igual a "Anki fechado". Onde a Permissions API sabe dizer, dá para separar; senão, a mensagem de
+ * "Anki fechado" já cita a possibilidade. O nome da permissão mudou entre versões: tenta os dois.
+ */
+async function redeLocalNegada(): Promise<boolean> {
+  for (const name of ['local-network-access', 'loopback-network']) {
+    try {
+      const estado = await navigator.permissions.query({ name } as unknown as PermissionDescriptor);
+      if (estado.state === 'denied') return true;
+    } catch {
+      /* este navegador não conhece essa permissão */
+    }
+  }
+  return false;
+}
+
+/** Sem resposta: rede local bloqueada, Anki fechado ou origem não liberada? */
 async function explicarFalhaDeRede(prazoMs: number): Promise<ErroDoAnkiConnect> {
+  if (await redeLocalNegada()) return erro('rede-local-bloqueada');
   try {
     await fetch(ANKI_CONNECT_URL, { mode: 'no-cors', signal: AbortSignal.timeout(prazoMs) });
     return erro('origem-nao-liberada');
@@ -234,14 +257,41 @@ export async function criarBaralho(nome: string, o?: OpcoesDaChamada): Promise<v
   await chamar<unknown>('createDeck', { deck: nomeValido(nome, 'baralho') }, o);
 }
 
-/** Pergunta ao Anki quais notas ele aceitaria (duplicata no baralho dá `false`). */
-export async function podeAdicionar(notas: NotaParaAnki[], o?: OpcoesDaChamada): Promise<boolean[]> {
-  const r = await chamar<unknown>('canAddNotes', { notes: notas }, { prazoMs: PRAZO_DO_LOTE_MS, ...o });
-  if (!Array.isArray(r) || r.length !== notas.length) throw erro('resposta-invalida');
-  return r.map((x) => x === true);
+export interface VeredictoDaNota {
+  pode: boolean;
+  /** Quando não pode: duplicada no baralho, ou inválida (modelo, campo, baralho). */
+  motivo?: 'duplicada' | 'invalida';
 }
 
-/** Adiciona um lote. `null` no resultado = o Anki recusou aquela nota (duplicata ou campo inválido). */
+/**
+ * Pergunta ao Anki o que ele aceitaria. `canAddNotesWithErrorDetail` separa DUPLICADA de INVÁLIDA; o AnkiConnect
+ * antigo não o tem ("unsupported action"), e então vale o `canAddNotes` simples (quem não pode é "duplicada").
+ */
+export async function avaliarNotas(notas: NotaParaAnki[], o?: OpcoesDaChamada): Promise<VeredictoDaNota[]> {
+  const chamada = { prazoMs: PRAZO_DO_LOTE_MS, ...o };
+  try {
+    const r = await chamar<unknown>('canAddNotesWithErrorDetail', { notes: notas }, chamada);
+    if (!Array.isArray(r) || r.length !== notas.length) throw erro('resposta-invalida');
+    return r.map((x): VeredictoDaNota => {
+      const item = (x ?? {}) as { canAdd?: unknown; error?: unknown };
+      if (item.canAdd === true) return { pode: true };
+      return { pode: false, motivo: /duplicate/i.test(String(item.error ?? '')) ? 'duplicada' : 'invalida' };
+    });
+  } catch (e) {
+    if (
+      !(e instanceof ErroDoAnkiConnect) ||
+      e.motivo !== 'erro-do-anki' ||
+      !/unsupported|unknown action/i.test(e.detalhe ?? '')
+    ) {
+      throw e;
+    }
+  }
+  const r = await chamar<unknown>('canAddNotes', { notes: notas }, chamada);
+  if (!Array.isArray(r) || r.length !== notas.length) throw erro('resposta-invalida');
+  return r.map((x): VeredictoDaNota => (x === true ? { pode: true } : { pode: false, motivo: 'duplicada' }));
+}
+
+/** Adiciona um lote. `null` no resultado = o Anki recusou aquela nota. Um erro do lote inteiro é lançado. */
 export async function adicionarNotas(notas: NotaParaAnki[], o?: OpcoesDaChamada): Promise<Array<number | null>> {
   const r = await chamar<unknown>('addNotes', { notes: notas }, { prazoMs: PRAZO_DO_LOTE_MS, ...o });
   if (!Array.isArray(r) || r.length !== notas.length) throw erro('resposta-invalida');
@@ -250,10 +300,16 @@ export async function adicionarNotas(notas: NotaParaAnki[], o?: OpcoesDaChamada)
 
 export interface ResumoDoEnvio {
   adicionados: number;
+  /** Já no baralho (inclusive repetidas dentro do próprio envio). */
   duplicados: number;
-  /** Recusadas pelo Anki, ou que não viraram nota (sem palavra, sem lacuna para o cloze). */
+  /** Que o Anki não aceita (campo, modelo) ou que não viraram nota (sem palavra, sem lacuna para o cloze). */
+  invalidas: number;
+  /** Recusadas pelo Anki na hora de adicionar. */
   erros: number;
 }
+
+/** O erro de um envio interrompido (Anki fechou, parou, tempo) leva o que já tinha sido feito até ali. */
+export type EnvioInterrompido = Error & { parcial?: ResumoDoEnvio };
 
 export interface AlvoDoEnvio {
   baralho: string;
@@ -262,8 +318,9 @@ export interface AlvoDoEnvio {
 }
 
 /**
- * Envia os cartões em lotes: monta a nota, pergunta ao Anki o que ele aceita (as duplicatas saem aqui), e
- * adiciona o resto. Uma falha de conexão no meio PARA e relança (o que já foi vai constar no `aoProgredir`).
+ * Envia os cartões em lotes: monta a nota, tira a repetida dentro do próprio envio, pergunta ao Anki o que ele
+ * aceita (duplicada e inválida saem aqui, separadas) e adiciona o resto. Se o `addNotes` falhar no lote inteiro,
+ * reenvia uma a uma para contar certo. Falha de conexão no meio PARA e relança, com o `parcial` no erro.
  */
 export async function enviarCartoes(
   cartoes: CartaoParaAnki[],
@@ -273,31 +330,70 @@ export async function enviarCartoes(
   if (cartoes.length > TETO_DE_NOTAS_POR_ENVIO) throw erro('entrada-invalida', 'teto');
   const baralho = nomeValido(alvo.baralho, 'baralho');
   const modelo = nomeValido(alvo.modelo, 'modelo');
-  const resumo: ResumoDoEnvio = { adicionados: 0, duplicados: 0, erros: 0 };
+  const resumo: ResumoDoEnvio = { adicionados: 0, duplicados: 0, invalidas: 0, erros: 0 };
   const chamada = { sinal: opcoes.sinal };
-  await criarBaralho(baralho, chamada);
-  for (let i = 0; i < cartoes.length; i += TAMANHO_DO_LOTE) {
-    if (opcoes.sinal?.aborted) break;
-    const lote = cartoes.slice(i, i + TAMANHO_DO_LOTE);
-    const notas: NotaParaAnki[] = [];
-    for (const c of lote) {
-      const r = montarNotaParaAnki(c, { deckName: baralho, modelName: modelo, mapeamento: alvo.mapeamento });
-      if (r.ok) notas.push(r.nota);
-      else resumo.erros++;
-    }
-    if (notas.length) {
-      const aceitas = await podeAdicionar(notas, chamada);
-      const novas = notas.filter((_n, k) => aceitas[k]);
-      resumo.duplicados += notas.length - novas.length;
-      if (novas.length) {
-        const ids = await adicionarNotas(novas, chamada);
-        for (const id of ids) {
-          if (id === null) resumo.erros++;
-          else resumo.adicionados++;
+  /* O Anki compara o 1º campo do modelo: a ordem do mapeamento é a dos campos do modelo. */
+  const primeiroCampo = Object.keys(alvo.mapeamento)[0];
+  const vistas = new Set<string>();
+  try {
+    await criarBaralho(baralho, chamada);
+    for (let i = 0; i < cartoes.length; i += TAMANHO_DO_LOTE) {
+      if (opcoes.sinal?.aborted) break;
+      const lote = cartoes.slice(i, i + TAMANHO_DO_LOTE);
+      const notas: NotaParaAnki[] = [];
+      for (const c of lote) {
+        const r = montarNotaParaAnki(c, { deckName: baralho, modelName: modelo, mapeamento: alvo.mapeamento });
+        if (!r.ok) {
+          resumo.invalidas++;
+          continue;
         }
+        const chave = primeiroCampo ? (r.nota.fields[primeiroCampo] ?? '').trim().toLowerCase() : '';
+        if (chave && vistas.has(chave)) {
+          resumo.duplicados++;
+          continue;
+        }
+        if (chave) vistas.add(chave);
+        notas.push(r.nota);
       }
+      if (notas.length) {
+        const veredictos = await avaliarNotas(notas, chamada);
+        const novas: NotaParaAnki[] = [];
+        veredictos.forEach((v, k) => {
+          if (v.pode) novas.push(notas[k]!);
+          else if (v.motivo === 'invalida') resumo.invalidas++;
+          else resumo.duplicados++;
+        });
+        if (novas.length) await adicionarLote(novas, resumo, chamada);
+      }
+      opcoes.aoProgredir?.(Math.min(i + lote.length, cartoes.length), cartoes.length, { ...resumo });
     }
-    opcoes.aoProgredir?.(Math.min(i + lote.length, cartoes.length), cartoes.length, { ...resumo });
+  } catch (e) {
+    if (e && typeof e === 'object') (e as EnvioInterrompido).parcial = { ...resumo };
+    throw e;
   }
   return resumo;
+}
+
+async function adicionarLote(novas: NotaParaAnki[], resumo: ResumoDoEnvio, chamada: OpcoesDaChamada): Promise<void> {
+  const contar = (ids: Array<number | null>) => {
+    for (const id of ids) {
+      if (id === null) resumo.erros++;
+      else resumo.adicionados++;
+    }
+  };
+  try {
+    contar(await adicionarNotas(novas, chamada));
+  } catch (e) {
+    // O AnkiConnect atual devolve UM erro para o lote todo quando uma nota falha: reenvia uma a uma.
+    if (!(e instanceof ErroDoAnkiConnect) || e.motivo !== 'erro-do-anki') throw e;
+    for (const nota of novas) {
+      if (chamada.sinal?.aborted) return;
+      try {
+        contar(await adicionarNotas([nota], chamada));
+      } catch (e2) {
+        if (!(e2 instanceof ErroDoAnkiConnect) || e2.motivo !== 'erro-do-anki') throw e2;
+        resumo.erros++;
+      }
+    }
+  }
 }

@@ -97,23 +97,17 @@ describe('gerarHeaders', () => {
       const g = bloco(gerarHeaders(env({ VITE_AUTH_REQUIRED: authRequired }), BASE), '/*')
       const csp = g.split('\n').find((l) => l.startsWith('Content-Security-Policy:'))!
       const dir = (nome: string) => csp.split(/;\s*/).find((d) => d.startsWith(nome + ' ')) ?? ''
-      expect(dir('connect-src').split(/\s+/)).toEqual(
-        expect.arrayContaining(['http://127.0.0.1:8765', 'http://localhost:8765']),
-      )
+      expect(dir('connect-src').split(/\s+/)).toEqual(expect.arrayContaining(['http://127.0.0.1:8765']))
       for (const outra of ['script-src', 'worker-src', 'frame-src', 'img-src', 'media-src']) {
         expect(dir(outra)).not.toContain(':8765')
       }
       const d = diretivasDeCsp(env({ VITE_AUTH_REQUIRED: authRequired }))
-      expect(d.connectSrc.filter((o) => o.includes(':8765'))).toEqual([
-        'http://127.0.0.1:8765',
-        'http://localhost:8765',
-      ])
+      expect(d.connectSrc.filter((o) => o.includes(':8765'))).toEqual(['http://127.0.0.1:8765'])
       expect(d.scriptSrc.concat(d.workerSrc, d.mediaSrc).some((o) => o.includes(':8765'))).toBe(false)
       const locais = d.connectSrc.filter((o) => /(localhost|127\.0\.0\.1|\[::1\])/.test(o))
-      // modo público: só as duas origens exatas do Anki, sem curinga de porta e sem outra origem local
-      if (authRequired === '1') expect(locais).toEqual(['http://127.0.0.1:8765', 'http://localhost:8765'])
-      else
-        expect(locais.filter((o) => !o.includes(':11434'))).toEqual(['http://127.0.0.1:8765', 'http://localhost:8765'])
+      // modo público: só a origem exata do Anki (127.0.0.1), sem curinga de porta e sem outra origem local
+      if (authRequired === '1') expect(locais).toEqual(['http://127.0.0.1:8765'])
+      else expect(locais.filter((o) => !o.includes(':11434'))).toEqual(['http://127.0.0.1:8765'])
       expect(locais.some((o) => o.includes('*'))).toBe(false)
     }
   })

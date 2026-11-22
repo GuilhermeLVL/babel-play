@@ -20,6 +20,8 @@ import {
 } from '../src/lib/anki/ankiConnect'
 
 type Corpo = { action: string; version: number; params?: Record<string, unknown> }
+const aceita = (v: boolean) =>
+  v ? { canAdd: true } : { canAdd: false, error: 'cannot create note because it is a duplicate' }
 type Rota = (corpo: Corpo) => unknown
 
 const resposta = (result: unknown, error: unknown = null) =>
@@ -148,7 +150,7 @@ describe('enviarCartoes', () => {
   it('cria o baralho, monta as notas (duplicatas fora) e resume', async () => {
     const { chamadas } = anki({
       createDeck: () => 1,
-      canAddNotes: ({ params }) => (params!.notes as unknown[]).map((_n, i) => i !== 1),
+      canAddNotesWithErrorDetail: ({ params }) => (params!.notes as unknown[]).map((_n, i) => aceita(i !== 1)),
       addNotes: ({ params }) => (params!.notes as unknown[]).map((_n, i) => (i === 0 ? null : 100 + i)),
     })
     const progresso: number[] = []
@@ -156,9 +158,9 @@ describe('enviarCartoes', () => {
       aoProgredir: (feitos) => progresso.push(feitos),
     })
     // 4 notas: 1 duplicada (canAddNotes), das 3 novas 1 recusada (null) e 2 entram
-    expect(r).toEqual({ adicionados: 2, duplicados: 1, erros: 1 })
+    expect(r).toEqual({ adicionados: 2, duplicados: 1, invalidas: 0, erros: 1 })
     expect(progresso).toEqual([4])
-    expect(chamadas.map((c) => c.action)).toEqual(['createDeck', 'canAddNotes', 'addNotes'])
+    expect(chamadas.map((c) => c.action)).toEqual(['createDeck', 'canAddNotesWithErrorDetail', 'addNotes'])
     const nota = (chamadas[2]!.params!.notes as Array<Record<string, unknown>>)[0]!
     expect(nota).toMatchObject({
       deckName: 'Frasy',
@@ -175,7 +177,7 @@ describe('enviarCartoes', () => {
   it('manda em lotes de 50 e reporta o progresso a cada lote', async () => {
     const { chamadas } = anki({
       createDeck: () => 1,
-      canAddNotes: ({ params }) => (params!.notes as unknown[]).map(() => true),
+      canAddNotesWithErrorDetail: ({ params }) => (params!.notes as unknown[]).map(() => aceita(true)),
       addNotes: ({ params }) => (params!.notes as unknown[]).map((_n, i) => i + 1),
     })
     const progresso: Array<[number, number]> = []
@@ -192,7 +194,7 @@ describe('enviarCartoes', () => {
   it('escapa o HTML da pessoa: <script> e & viram texto', async () => {
     const { chamadas } = anki({
       createDeck: () => 1,
-      canAddNotes: () => [true],
+      canAddNotesWithErrorDetail: () => [aceita(true)],
       addNotes: () => [1],
     })
     await enviarCartoes([{ palavra: 'a<b', traducao: '<img src=x onerror=alert(1)> & co', frase: 'x a<b y' }], alvo)
@@ -205,12 +207,12 @@ describe('enviarCartoes', () => {
   it('sem palavra não vira nota e conta como erro, sem chamar o Anki para ela', async () => {
     const { chamadas } = anki({ createDeck: () => 1 })
     const r = await enviarCartoes([{ palavra: '  ', traducao: 'x' }], alvo)
-    expect(r).toEqual({ adicionados: 0, duplicados: 0, erros: 1 })
+    expect(r).toEqual({ adicionados: 0, duplicados: 0, invalidas: 1, erros: 0 })
     expect(chamadas.map((c) => c.action)).toEqual(['createDeck'])
   })
 
   it('o Anki cai no meio: relança o erro tipado', async () => {
-    const { fn } = anki({ createDeck: () => 1, canAddNotes: () => [true], addNotes: () => [1] })
+    const { fn } = anki({ createDeck: () => 1, canAddNotesWithErrorDetail: () => [aceita(true)], addNotes: () => [1] })
     fn.mockImplementationOnce(async () => resposta(1)).mockImplementation(async () => {
       throw new TypeError('Failed to fetch')
     })
@@ -237,7 +239,7 @@ describe('enviarCartoes', () => {
     const ctl = new AbortController()
     anki({
       createDeck: () => 1,
-      canAddNotes: ({ params }) => (params!.notes as unknown[]).map(() => true),
+      canAddNotesWithErrorDetail: ({ params }) => (params!.notes as unknown[]).map(() => aceita(true)),
       addNotes: ({ params }) => {
         ctl.abort()
         return (params!.notes as unknown[]).map((_n, i) => i + 1)
@@ -315,5 +317,120 @@ describe('chave do AnkiConnect', () => {
     expect(trecho).toContain('"webCorsOriginList": ["http://localhost", "https://app.frasy.test"]')
     expect(trecho).toContain('"apiKey": "<uma senha sua>"')
     expect(mensagemDoErro('origem-nao-liberada', 'https://app.frasy.test')).toContain(trecho)
+  })
+})
+
+describe('envio: robustez', () => {
+  const alvo = { baralho: 'Frasy', modelo: 'Basic', mapeamento: mapeamentoPadrao(['Front', 'Back']) }
+  const base = { createDeck: () => 1 }
+
+  it('inválida (modelo/campo) é contada à parte da duplicada', async () => {
+    anki({
+      ...base,
+      canAddNotesWithErrorDetail: () => [
+        { canAdd: false, error: 'cannot create note because it is empty' },
+        { canAdd: false, error: 'cannot create note because it is a duplicate' },
+        { canAdd: true },
+      ],
+      addNotes: () => [7],
+    })
+    const r = await enviarCartoes(
+      [1, 2, 3].map((n) => ({ palavra: `w${n}`, traducao: 't' })),
+      alvo,
+    )
+    expect(r).toEqual({ adicionados: 1, duplicados: 1, invalidas: 1, erros: 0 })
+  })
+
+  it('AnkiConnect antigo sem canAddNotesWithErrorDetail: cai no canAddNotes', async () => {
+    const { chamadas } = anki({
+      ...base,
+      canAddNotesWithErrorDetail: () => resposta(null, 'unsupported action'),
+      canAddNotes: () => [false, true],
+      addNotes: () => [9],
+    })
+    const r = await enviarCartoes(
+      [1, 2].map((n) => ({ palavra: `w${n}`, traducao: 't' })),
+      alvo,
+    )
+    expect(r).toEqual({ adicionados: 1, duplicados: 1, invalidas: 0, erros: 0 })
+    expect(chamadas.map((c) => c.action)).toContain('canAddNotes')
+  })
+
+  it('repetidas dentro do próprio envio (mesmo 1º campo) saem antes de ir ao Anki', async () => {
+    const { chamadas } = anki({
+      ...base,
+      canAddNotesWithErrorDetail: ({ params }) => (params!.notes as unknown[]).map(() => aceita(true)),
+      addNotes: ({ params }) => (params!.notes as unknown[]).map((_n, i) => i + 1),
+    })
+    const r = await enviarCartoes(
+      [
+        { palavra: 'Cat', traducao: 'a' },
+        { palavra: 'cat ', traducao: 'b' },
+        { palavra: 'dog', traducao: 'c' },
+      ],
+      alvo,
+    )
+    expect(r).toEqual({ adicionados: 2, duplicados: 1, invalidas: 0, erros: 0 })
+    expect((chamadas.find((c) => c.action === 'addNotes')!.params!.notes as unknown[]).length).toBe(2)
+  })
+
+  it('erro do lote inteiro no addNotes: reenvia uma a uma e conta certo', async () => {
+    let chamadasAdd = 0
+    const { chamadas } = anki({
+      ...base,
+      canAddNotesWithErrorDetail: ({ params }) => (params!.notes as unknown[]).map(() => aceita(true)),
+      addNotes: ({ params }) => {
+        chamadasAdd++
+        const notas = params!.notes as Array<{ fields: { Front: string } }>
+        if (notas.length > 1) return resposta(null, 'cannot create note for unknown reason')
+        return notas[0]!.fields.Front === 'w2' ? resposta(null, 'empty first field') : [100]
+      },
+    })
+    const r = await enviarCartoes(
+      [1, 2, 3].map((n) => ({ palavra: `w${n}`, traducao: 't' })),
+      alvo,
+    )
+    expect(r).toEqual({ adicionados: 2, duplicados: 0, invalidas: 0, erros: 1 })
+    expect(chamadasAdd).toBe(4)
+    expect(chamadas.length).toBeGreaterThan(4)
+  })
+
+  it('Anki fecha no meio: o erro leva o resumo parcial do que já foi', async () => {
+    let lote = 0
+    const { fn } = anki({
+      ...base,
+      canAddNotesWithErrorDetail: ({ params }) => (params!.notes as unknown[]).map(() => aceita(true)),
+      addNotes: ({ params }) => (params!.notes as unknown[]).map((_n, i) => i + 1),
+    })
+    const original = fn.getMockImplementation()!
+    fn.mockImplementation(async (url, init) => {
+      if (JSON.parse(String(init?.body ?? '{}')).action === 'canAddNotesWithErrorDetail' && ++lote === 2) {
+        throw new TypeError('Failed to fetch')
+      }
+      return original(url, init)
+    })
+    const todos = Array.from({ length: TAMANHO_DO_LOTE * 2 }, (_x, i) => ({ palavra: `w${i}`, traducao: 't' }))
+    const e = (await enviarCartoes(todos, alvo).catch((x: unknown) => x)) as ErroDoAnkiConnect & {
+      parcial?: { adicionados: number }
+    }
+    expect(e.motivo).toBe('anki-fechado')
+    expect(e.parcial?.adicionados).toBe(TAMANHO_DO_LOTE)
+  })
+})
+
+describe('rede local (Chrome)', () => {
+  it('permissão de rede local negada: mensagem própria, não "Anki fechado"', async () => {
+    vi.stubGlobal('navigator', { permissions: { query: async () => ({ state: 'denied' }) } })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('Failed to fetch')
+      }),
+    )
+    await expect(testarConexao()).rejects.toMatchObject({ motivo: 'rede-local-bloqueada' })
+  })
+
+  it('sem como saber, a mensagem de Anki fechado cita a rede local', () => {
+    expect(mensagemDoErro('anki-fechado')).toMatch(/rede local/)
   })
 })

@@ -52,17 +52,39 @@ export const TETO_DA_ETIQUETA = 64;
 /** A etiqueta que marca tudo o que o Frasy mandou. */
 export const ETIQUETA_DO_FRASY = 'frasy';
 
-/** Escapa o texto para o HTML do Anki: só `&`, `<` e `>` (o campo é conteúdo de elemento, não de atributo). */
+/**
+ * Escapa o texto para o HTML do Anki. Além de `&`, `<` e `>`: aspas, chaves e colchetes.
+ * Chaves: `{{c2::…}}` e `{{Campo}}` de uma frase de terceiros não podem virar lacuna ou referência no Anki.
+ * Colchetes: `[sound:…]`, `[latex]…[/latex]` e `[$]…[/$]` são interpretados pelo Anki no texto cru do campo
+ * (tocam arquivo, compilam LaTeX). Como entidade (`&#91;`) a tela mostra o mesmo texto e o Anki não interpreta.
+ */
 export function escaparHtml(texto: string): string {
-  return texto.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return texto
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/\{/g, '&#123;')
+    .replace(/\}/g, '&#125;')
+    .replace(/\[/g, '&#91;')
+    .replace(/\]/g, '&#93;');
 }
 
-/** Tira caracteres de controle (menos quebra de linha), apara e corta no teto. */
+/** Corta em pontos de código: nunca no meio de um par substituto (emoji, ideograma raro). */
+function cortar(texto: string, teto: number): string {
+  if (texto.length <= teto) return texto;
+  return Array.from(texto.slice(0, teto * 2))
+    .slice(0, teto)
+    .join('');
+}
+
+/** Tira caracteres de controle (menos quebra de linha), apara e corta no teto (por pontos de código). */
 export function limparTexto(texto: unknown, teto = TETO_DO_CAMPO): string {
   if (typeof texto !== 'string') return '';
   // eslint-disable-next-line no-control-regex
   const semControle = texto.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '');
-  return semControle.trim().slice(0, teto);
+  return cortar(semControle.trim(), teto).trim();
 }
 
 function escaparRegex(s: string): string {
@@ -70,16 +92,18 @@ function escaparRegex(s: string): string {
 }
 
 /**
- * Embrulha a PALAVRA dentro da frase (já escapada). Procura como palavra inteira (sem `\p{L}` ao redor);
- * se não achar, tenta como trecho (idiomas sem espaço). `null` = a palavra não aparece na frase.
+ * Acha a PALAVRA na frase em TEXTO PURO, nunca no HTML já escapado (onde `&amp;` ou `&#39;` teriam "amp" ou "39"
+ * por dentro). Como palavra inteira (sem letra ou número ao redor); senão como trecho (idiomas sem espaço).
+ * Devolve [antes, achado, depois] ou `null`; quem chama escapa cada pedaço.
  */
-function embrulharPalavra(fraseEscapada: string, palavraEscapada: string, abre: string, fecha: string): string | null {
-  if (!palavraEscapada) return null;
-  const alvo = escaparRegex(palavraEscapada);
+function separarPalavra(frase: string, palavra: string): [string, string, string] | null {
+  if (!palavra) return null;
+  const alvo = escaparRegex(palavra);
   const inteira = new RegExp(`(?<![\\p{L}\\p{N}])(${alvo})(?![\\p{L}\\p{N}])`, 'iu');
   const trecho = new RegExp(`(${alvo})`, 'iu');
   for (const re of [inteira, trecho]) {
-    if (re.test(fraseEscapada)) return fraseEscapada.replace(re, (_t, achado: string) => `${abre}${achado}${fecha}`);
+    const m = re.exec(frase);
+    if (m) return [frase.slice(0, m.index), m[1]!, frase.slice(m.index + m[1]!.length)];
   }
   return null;
 }
@@ -88,16 +112,20 @@ function embrulharPalavra(fraseEscapada: string, palavraEscapada: string, abre: 
 export function fraseDeContexto(c: CartaoParaAnki): string {
   const frase = limparTexto(c.frase);
   if (!frase) return '';
-  const f = escaparHtml(frase);
-  const comNegrito = embrulharPalavra(f, escaparHtml(limparTexto(c.palavra)), '<b>', '</b>') ?? f;
-  return `<i>${comNegrito}</i>`;
+  const p = separarPalavra(frase, limparTexto(c.palavra));
+  if (!p) return `<i>${escaparHtml(frase)}</i>`;
+  return `<i>${escaparHtml(p[0])}<b>${escaparHtml(p[1])}</b>${escaparHtml(p[2])}</i>`;
 }
 
-/** A frase com a palavra como lacuna `{{c1::palavra}}`; `null` se não há frase ou a palavra não aparece nela. */
+/**
+ * A frase com a palavra como lacuna `{{c1::palavra}}`; `null` se não há frase ou a palavra não aparece nela.
+ * Só as chaves e o `c1::` são nossos; dentro da lacuna o `:` também vira entidade (`::` abriria uma dica).
+ */
 export function fraseComLacuna(c: CartaoParaAnki): string | null {
   const frase = limparTexto(c.frase);
-  if (!frase) return null;
-  return embrulharPalavra(escaparHtml(frase), escaparHtml(limparTexto(c.palavra)), '{{c1::', '}}');
+  const p = frase ? separarPalavra(frase, limparTexto(c.palavra)) : null;
+  if (!p) return null;
+  return `${escaparHtml(p[0])}{{c1::${escaparHtml(p[1]).replace(/:/g, '&#58;')}}}${escaparHtml(p[2])}`;
 }
 
 /** O verso do "Basic": a tradução e, embaixo, a frase de contexto. */

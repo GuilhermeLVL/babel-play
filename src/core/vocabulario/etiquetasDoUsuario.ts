@@ -17,7 +17,7 @@ export function normalizarEtiqueta(bruta: string): string | null {
     .replace(/^#+/, '')
     .toLowerCase()
     .replace(/\s+/g, '-')
-    .replace(/[^\p{L}\p{N}_-]/gu, '')
+    .replace(/[^\p{L}\p{M}\p{N}_-]/gu, '') // \p{M}: sinais combinantes (vogais do árabe, devanágari)
     .replace(/^-+|-+$/g, '');
   if (!t || t.length > MAX_CARACTERES_DA_ETIQUETA) return null;
   return t;

@@ -129,6 +129,11 @@ vocabRouter.post('/para-jogo', (req, res) => paraJogo(req, res, req.body ?? {}))
 vocabRouter.get('/pagina', async (req, res) => {
   const q = parseOr400(vocabPaginaQuerySchema, req.query, res)
   if (!q) return
+  const validas = q.etiquetas?.map(normalizarEtiqueta).filter((e): e is string => e !== null)
+  /* Filtro pedido mas nenhuma etiqueta válida (ex.: `?etiquetas=%23%23`): nenhum cartão casa, em vez de cair no
+     acervo inteiro (lista vazia = "sem filtro" no repositório). O `#` nunca sobrevive à normalização (cai no começo e fora da classe de letras), então não
+     existe etiqueta gravada com ele, e a resposta mantém o formato (contagens `porOrigem` incluídas). */
+  const etiquetas = q.etiquetas?.length && !validas?.length ? ['#'] : validas
   try {
     res.json(
       await vocabRepo.listarPagina(req.userId, {
@@ -137,7 +142,7 @@ vocabRouter.get('/pagina', async (req, res) => {
         busca: q.q,
         niveis: q.niveis,
         origens: q.origens,
-        etiquetas: q.etiquetas?.map(normalizarEtiqueta).filter((e): e is string => e !== null),
+        etiquetas,
         forcas: q.forcas,
         desde: q.desde,
         ate: q.ate,

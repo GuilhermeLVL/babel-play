@@ -208,3 +208,14 @@ describe('histórico da palavra e exportação da conta', () => {
     expect(corpo).toContain('"etiquetas":["porto"]')
   })
 })
+
+describe('regressões da revisão', () => {
+  it('filtro só com etiquetas inválidas não devolve o acervo inteiro', async () => {
+    await novo('sentinel')
+    const r = await s.get('/api/vocab/pagina?etiquetas=%23%23', ta)
+    expect(r.status).toBe(200)
+    const corpo = (await r.json()) as { itens: unknown[]; porOrigem: Record<string, number> }
+    expect(corpo.itens).toEqual([])
+    expect(corpo.porOrigem).toBeTypeOf('object')
+  })
+})

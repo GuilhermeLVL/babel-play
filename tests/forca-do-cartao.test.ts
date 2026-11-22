@@ -81,3 +81,11 @@ describe('tagsDoAnki', () => {
     expect(tagsDoAnki(undefined)).toBe('')
   })
 })
+
+describe('etiquetas com sinais combinantes', () => {
+  it('mantém vogais do árabe e do devanágari', async () => {
+    const { normalizarEtiqueta } = await import('../src/core/vocabulario/etiquetasDoUsuario')
+    expect(normalizarEtiqueta('مُدَرِّسَة')).toBe('مُدَرِّسَة')
+    expect(normalizarEtiqueta('हिंदी')).toBe('हिंदी')
+  })
+})

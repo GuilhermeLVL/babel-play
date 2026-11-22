@@ -112,6 +112,7 @@ import CartaoDaPalavra from './CartaoDaPalavra';
 import ConviteDaVozNoAparelho from './ConviteDaVozNoAparelho';
 import DicaDoElenco from './DicaDoElenco';
 import { etiquetaDaPalavra, HistoricoNaFolha } from './ganchosDaPalavra';
+import GlosaDoLeitor from './GlosaDoLeitor';
 import PainelDaTraducao from './PainelDaTraducao';
 import PainelDeAnotacoes, { type FormatoDeExportacao } from './PainelDeAnotacoes';
 import PainelDeFerramentas, { type AbaDeIa, tituloDaAbaDeIa } from './PainelDeFerramentas';
@@ -131,6 +132,8 @@ type Painel = 'sumario' | 'tipografia' | 'anotacoes' | 'narracao' | 'ia';
 /* As escolhas do narrador ficam no aparelho (como o perfil de leitura). */
 const LS_MODO = 'leitor:narracao:modo';
 const LS_SEGUIR = 'leitor:narracao:seguir';
+/* "Mostrar tradução das palavras novas": desligado por padrão, guardado neste aparelho. */
+const LS_GLOSA = 'leitor:glosa';
 const lerLocal = (chave: string): string | null => {
   try {
     return localStorage.getItem(chave);
@@ -280,6 +283,8 @@ export default function LeitorDoLivro({
     return m && MODOS_DA_NARRACAO.includes(m) ? m : 'original';
   });
   const [seguirNarracao, setSeguirNarracao] = useState(() => lerLocal(LS_SEGUIR) !== '0');
+  const [glosaLigada, setGlosaLigada] = useState(() => lerLocal(LS_GLOSA) === '1');
+  const glosaAoCarregar = useRef<(() => void) | null>(null);
   /** A narração acabou de virar a página: o caret que a navegação põe não é toque na palavra. */
   const ignorarToquesAte = useRef(0);
   useVozesPreferidas(); // a voz escolhida em outra tela (ou na conta) vale aqui
@@ -672,6 +677,7 @@ export default function LeitorDoLivro({
   /* ── o documento de cada seção: teclado, seleção e toque na palavra ── */
   function ligarDocumento(doc: Document, indice: number) {
     narradorRef.current?.secaoCarregada(doc, indice);
+    glosaAoCarregar.current?.();
     const motor = () => motorRef.current;
     const gestos = {
       aoSelecionar: (r: Range) => {
@@ -1068,6 +1074,15 @@ export default function LeitorDoLivro({
       data-estado={estado}
       data-painel={painel ?? undefined}
     >
+      {glosaLigada && estado === 'pronto' && !info?.ehPdf && (
+        <GlosaDoLeitor
+          motorRef={motorRef}
+          aoSecaoCarregada={glosaAoCarregar}
+          idioma={idioma}
+          nativo={baseLang(langConfig.mine)}
+          perfil={perfil}
+        />
+      )}
       <header
         className={`leitor-topo${(temElenco || avatar.disponivel) && !info?.ehPdf ? ' leitor-topo-com-elenco' : ''}`}
       >
@@ -1252,6 +1267,11 @@ export default function LeitorDoLivro({
                   mudar={mudarPerfil}
                   restaurar={restaurarPerfil}
                   ehPdf={!!info?.ehPdf}
+                  glosa={glosaLigada}
+                  mudarGlosa={(v) => {
+                    setGlosaLigada(v);
+                    gravarLocal(LS_GLOSA, v ? '1' : '0');
+                  }}
                 />
               )}
               {painel === 'narracao' && elencoNoTopo && painelDoElenco}

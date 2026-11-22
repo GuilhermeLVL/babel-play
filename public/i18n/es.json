@@ -87,6 +87,10 @@
     "one": "{n} frase",
     "other": "{n} frases"
   },
+  "{n} frases com 1 palavra nova": {
+    "one": "{n} frase con 1 palabra nueva",
+    "other": "{n} frases con 1 palabra nueva"
+  },
   "{n} GB": "{n} GB",
   "{n} lembradas": {
     "one": "{n} recordada",
@@ -142,6 +146,10 @@
     "other": "{n} suspendidas"
   },
   "{n} textura(s) passam de {lado} px e serão reduzidas aqui, no seu navegador. Nada é enviado.": "{n} textura(s) superan {lado} px y se reducirán aquí, en tu navegador. No se envía nada.",
+  "{n} vezes": {
+    "one": "{n} vez",
+    "other": "{n} veces"
+  },
   "{n}% das pessoas": "{n}% de las personas",
   "{n}% lembrado na semana": "{n}% recordado en la semana",
   "{nome} (feminina)": "{nome} (femenina)",
@@ -411,6 +419,10 @@
   "Apagar todos os modelos?": "¿Borrar todos los modelos?",
   "Apagar tudo": "Borrar todo",
   "Apagar uma gravação antiga": "Borrar una grabación antigua",
+  "aparece {n} vezes na sessão": {
+    "one": "aparece {n} vez en la sesión",
+    "other": "aparece {n} veces en la sesión"
+  },
   "Aparelho": "Dispositivo",
   "Aparelho auditivo (orelha direita)": "Audífono (oído derecho)",
   "Aparelho auditivo (orelha esquerda)": "Audífono (oído izquierdo)",
@@ -1210,6 +1222,7 @@
   "Frase escolhida": "Frase elegida",
   "Frase escolhida: {frase}": "Frase elegida: {frase}",
   "Frases": "Frases",
+  "Frases com 1 palavra nova": "Frases con 1 palabra nueva",
   "Frases em que você já sabe todas as palavras ficam sem tradução, e dá para mostrar com um toque.": "Las frases en las que ya conoces todas las palabras quedan sin traducir, y un toque muestra la traducción.",
   "Funciona, com um modelo leve: mais erros e mais espera.": "Funciona, con un modelo ligero: más errores y más espera.",
   "G": "G",
@@ -1244,13 +1257,18 @@
   "Guardada neste aparelho. Ela aparece na sua evolução deste cartão.": "Guardada en este dispositivo. Aparece en tu evolución de esta tarjeta.",
   "Guardada no seu caderno": "Guardada en tu cuaderno",
   "Guardadas": "Guardadas",
+  "Guardado": "Guardada",
   "Guardado no deck": "Guardado en el mazo",
   "Guardado no deck, com a frase do livro.": "Guardado en tu mazo, con la frase del libro.",
   "Guardados neste aparelho, com a sua posição de leitura e os seus grifos.": "Guardados en este dispositivo, con tu posición de lectura y tus subrayados.",
+  "Guardar": "Guardar",
+  "Guardar como cartão": "Guardar como tarjeta",
+  "Guardar como cartão: {palavra}": "Guardar como tarjeta: {palavra}",
   "Guardar e ir ao resumo": "Guardar e ir al resumen",
   "Guardar minha voz neste cartão": "Guardar mi voz en esta tarjeta",
   "Guardar minha voz no cartão": "Guardar mi voz en la tarjeta",
   "Guardar o trecho como cartão": "Guardar el fragmento como tarjeta",
+  "Guardar: {palavra}": "Guardar: {palavra}",
   "Guarde": "Guarda",
   "Guarde o que você capturou": "Guarda lo que capturaste",
   "Há anúncios abertos demais agora. Tente de novo em alguns minutos.": "Hay demasiados anuncios abiertos ahora. Inténtalo de nuevo en unos minutos.",
@@ -1298,6 +1316,7 @@
   "Início": "Inicio",
   "Intérprete automático": "Intérprete automático",
   "Ir para a área de soltar": "Ir al área para soltar",
+  "Ir para esta frase no áudio: {frase}": "Ir a esta frase en el audio: {frase}",
   "Isso é uma página, não um arquivo de livro. Veja o guia \"Onde encontrar livros legais\": baixe o arquivo e solte aqui.": "Esto es una página, no un archivo de libro. Mira la guía \"Dónde encontrar libros legales\": descarga el archivo y suéltalo aquí.",
   "Isso!": "¡Eso es!",
   "Isto é uma IA e pode errar.": "Esto es una IA y puede equivocarse.",
@@ -1315,6 +1334,7 @@
   "já sei": "ya la sé",
   "Já sei": "Ya la sé",
   "Já sei ({n})": "Ya la sé ({n})",
+  "Já sei: {palavra}": "Ya la sé: {palavra}",
   "Já tem conta?": "¿Ya tienes cuenta?",
   "Já tenho conta": "Ya tengo cuenta",
   "Japonês": "Japonés",
@@ -1673,6 +1693,7 @@
   "Nenhuma conta ainda": "Aún no hay cuentas",
   "Nenhuma conta com esse termo": "Ninguna cuenta coincide",
   "Nenhuma flag cadastrada": "Ninguna flag registrada",
+  "Nenhuma frase desta sessão tem só uma palavra nova.": "Ninguna frase de esta sesión tiene solo una palabra nueva.",
   "Nenhuma frase desta sessão virou cartão desta vez.": "Ninguna frase de esta sesión se convirtió en tarjeta esta vez.",
   "Nenhuma frase é traduzida sozinha: toque em \"Mostrar tradução\" na frase que quiser.": "Ninguna frase se traduce sola: toca \"Mostrar traducción\" en la que quieras.",
   "Nenhuma gravação em {idioma}.": "Ninguna grabación en {idioma}.",
@@ -2053,6 +2074,7 @@
   "Para discutir": "Para conversar",
   "Para em {n} min": "Se detiene en {n} min",
   "Para este aparelho, o equilibrado é o que roda sem esquentar.": "En este dispositivo, el equilibrado es el que funciona sin calentarse.",
+  "Para estudar desta sessão": "Para estudiar de esta sesión",
   "Para gravar de novo, apague uma gravação antiga ou crie uma conta (grátis): com conta não há limite.": "Para grabar de nuevo, borra una grabación antigua o crea una cuenta (gratis): con cuenta no hay límite.",
   "Para gravar de novo, apague uma gravação antiga.": "Para grabar de nuevo, borra una grabación antigua.",
   "Para hoje": "Para hoy",

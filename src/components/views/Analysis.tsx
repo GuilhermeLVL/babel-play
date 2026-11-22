@@ -1,8 +1,8 @@
 import { BarChart3, BookOpen, Gamepad2, MessagesSquare } from 'lucide-react';
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 
-import { trechosDaSessao } from '../../core/leitura/coberturaDoConteudo';
 import { fluenciaDoBaralho } from '../../core/learning/fluencia';
+import { trechosDaSessao } from '../../core/leitura/coberturaDoConteudo';
 import type { AppMetrics, UtteranceRow } from '../../data/api';
 import { fetchDeck, fetchSessionTranscript, fetchSettings } from '../../data/api';
 import { useEscutaGuiada } from '../../lib/analise/escutaGuiada';

@@ -280,8 +280,12 @@ describe('tradução: uma geração por perna da cascata, e o 429 contado', () =
     await mt(reqMt(u), mockRes())
     const traces = (await eventos()).filter((e) => e.type === 'trace-create')
     expect(traces).toHaveLength(2)
-    expect(traces[1].body.metadata.cacheHit).toBe(true)
-    expect(traces[1].body.metadata.tentativas).toBe(0)
+    /* O rastro sai DEPOIS de consultas ao banco (plano, idade): no Postgres real os dois podem chegar fora de
+       ordem. Vale o conteúdo, não a posição: exatamente um veio do cache, sem tentativa no provedor. */
+    const doCache = traces.filter((t) => t.body.metadata.cacheHit === true)
+    expect(doCache).toHaveLength(1)
+    expect(doCache[0].body.metadata.tentativas).toBe(0)
+    expect(traces.filter((t) => t.body.metadata.cacheHit !== true)).toHaveLength(1)
   })
 
   it('telemetria DESLIGADA não muda nada na rota e não grava nada', async () => {

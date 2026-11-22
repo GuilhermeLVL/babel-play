@@ -90,8 +90,8 @@ async function percorrerAbas(page: Page, prefixo: string) {
     await semConvite(page, id)
     if (id === 'colecao') await expect(page.getByTestId('vitrine-da-colecao')).toBeVisible()
     if (id === 'maestria') {
-      await expect(page.locator('[data-maestria-jogo]')).toHaveCount(18)
-      await expect(page.getByText('Rumo ao Bronze · 0/30')).toHaveCount(18)
+      await expect(page.locator('[data-maestria-jogo]')).toHaveCount(20)
+      await expect(page.getByText('Rumo ao Bronze · 0/30')).toHaveCount(20)
     }
     if (id === 'temporada') await expect(page.getByTestId('temporada')).toBeVisible()
     if (id === 'conquistas') await expect(page.getByTestId('conquistas-no-quest')).toContainText(/0 de \d+ feitas/)

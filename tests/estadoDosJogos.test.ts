@@ -70,7 +70,8 @@ const BASE: EntradaDoEstado = {
 }
 
 const IDS = Object.keys(MINIGAMES) as MinigameId[]
-const DE_FRASE = IDS.filter((id) => MINIGAMES[id].modalidade !== 'palavra')
+/* Os jogos do IDIOMA (pares mínimos) não vivem de falas nem do baralho: têm teste próprio (`paresMinimos.test.ts`). */
+const DE_FRASE = IDS.filter((id) => MINIGAMES[id].modalidade !== 'palavra' && !MINIGAMES[id].doIdioma)
 
 describe('estado de cada jogo', () => {
   it('cobre os nove jogos, sem sobra nem falta', () => {
@@ -153,9 +154,12 @@ describe('estado de cada jogo', () => {
   it('baralho vazio bloqueia tudo o que depende de palavra, com faltam = mínimo do jogo', () => {
     const vazio = estadoDeCadaJogo({ ...BASE, cartas: [], fonteId: 'baralho', frases: [] })
     for (const id of IDS) {
+      /* Os pares de sons são do idioma: abrem até com o baralho vazio. */
+      if (MINIGAMES[id].doIdioma) continue
       expect(vazio[id].ok, id).toBe(false)
       expect(vazio[id].faltam, id).toBe(MINIGAMES[id].minItems)
     }
+    expect(vazio.paresMinimos.ok).toBe(true)
   })
 })
 

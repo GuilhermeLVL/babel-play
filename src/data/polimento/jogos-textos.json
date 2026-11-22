@@ -1062,5 +1062,25 @@
       ]
     ],
     "selo": true
+  },
+  "paresMinimos": {
+    "titulo": "Pares de sons",
+    "instr": "Ouça a palavra e escolha qual das duas você ouviu.",
+    "treina": "o ouvido: ouvir a diferença entre dois sons parecidos.",
+    "passos": [
+      "Aperte Ouvir. Pode ouvir de novo e também devagar, sem limite.",
+      "Escolha qual das duas palavras você ouviu (teclas 1 e 2).",
+      "Veja o contraste entre os sons e ouça as duas palavras. No fim, o resumo diz quais sons o ouvido confundiu."
+    ],
+    "mini": "<span class=\"mm-frase\">♪ <i class=\"mm-chip ok pulsa\">ship</i> <i class=\"mm-chip\">sheep</i></span>",
+    "rodada": "Rodada · 8 pares",
+    "instrPalco": "Ouça a palavra e escolha qual das duas você ouviu.",
+    "niveis": [],
+    "ajudas": [],
+    "paragrafos": [
+      "Não há relógio nem bônus por rapidez: ouça no seu passo."
+    ],
+    "ajudasHud": [],
+    "selo": true
   }
 }

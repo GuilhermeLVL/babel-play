@@ -270,8 +270,9 @@ describe('a sugestão de nível do fim (jogos4.js:146-151)', () => {
 describe('a ordem dos jogos (ORDEM_JOGOS, jogos.js:116)', () => {
   it('o próximo é o seguinte, dando a volta', () => {
     expect(jogosSeguintes('tenis')[0]).toBe('koffer')
-    expect(jogosSeguintes('ditadoDeFrase')[0]).toBe('memory')
-    expect(jogosSeguintes('tenis').length).toBe(19)
+    expect(jogosSeguintes('ditadoDeFrase')[0]).toBe('paresMinimos')
+    expect(jogosSeguintes('paresMinimos')[0]).toBe('memory')
+    expect(jogosSeguintes('tenis').length).toBe(20)
     expect(nomeCurtoDoJogo('koffer')).toBe('Mala')
   })
 })

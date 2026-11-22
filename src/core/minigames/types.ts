@@ -1,4 +1,5 @@
 import type { CefrLevel } from '../learning/contract';
+import type { RodadaDePar } from './paresMinimos';
 
 /**
  * CONTRATO DOS MINIGAMES — TypeScript puro, sem React e sem DOM (roda e é testado em node).
@@ -16,7 +17,7 @@ import type { CefrLevel } from '../learning/contract';
 
 /** Os jogos existentes. A tela lê esta lista — nenhuma tela repete a regra de cada um. */
 export type MinigameId = 'memory' | 'wordsearch' | 'blitz' | 'termo' | 'scramble' | 'karaoke'
-  | 'escuta' | 'ditado' | 'conectores' | 'retraducao' | 'ditadoDeFrase'
+  | 'escuta' | 'ditado' | 'conectores' | 'retraducao' | 'ditadoDeFrase' | 'paresMinimos'
   | 'karuta' | 'choseong' | 'tenis' | 'koffer' | 'bao' | 'vitendawili' | 'shiritori'
   | 'cadavre' | 'taboo';
 
@@ -47,6 +48,8 @@ export interface MinigameItem {
   alternativas?: string[];
   /** Id da fala de origem, nos jogos de frase (vai para item_ref). Ausente = o jogo não sabe identificar o item. */
   itemRef?: string;
+  /** Só nos pares mínimos: a pergunta inteira (as duas opções, qual tocou, o contraste). `answer` é a palavra tocada. */
+  par?: RodadaDePar;
 }
 
 /** O que aconteceu com um item durante a rodada. */
@@ -150,6 +153,11 @@ export interface MinigameDef {
   /* `escrita` diz QUAL teste aplicar, para o gate nao precisar conhecer o jogo pelo nome:
      'teclado' = a pessoa digita a palavra inteira; 'grade' = a palavra vira letras numa grade. */
   requisitos?: { alfabeto?: 'latino'; escrita?: 'teclado' | 'grade' };
+  /**
+   * O material é do IDIOMA (listas curadas), e não do baralho nem de uma gravação: o jogo abre com qualquer
+   * fonte, desde que haja lista e voz para o idioma. O gate e o montador conferem por aqui.
+   */
+  doIdioma?: boolean;
 }
 
 export const MINIGAMES: Record<MinigameId, MinigameDef> = {
@@ -173,6 +181,8 @@ export const MINIGAMES: Record<MinigameId, MinigameDef> = {
   /* Exercicios de frase inteira, corrigidos no aparelho (frasesCorrigidas.ts). Vivem de FALAS: sem cartao, sem nota de SRS. */
   retraducao: { id: 'retraducao', minItems: 3, maxItems: 5, requiresTranslation: true, writesSrs: false, modalidade: 'frase' },
   ditadoDeFrase: { id: 'ditadoDeFrase', minItems: 3, maxItems: 5, requiresTranslation: false, writesSrs: false, modalidade: 'frase' },
+  /* Pares mínimos: ouvir UMA palavra e escolher qual dos dois sons foi. Lista do idioma (paresMinimos.ts), sem cartão nem SRS. */
+  paresMinimos: { id: 'paresMinimos', minItems: 5, maxItems: 8, requiresTranslation: false, writesSrs: false, modalidade: 'frase', doIdioma: true },
 
   /* Os nove culturais. Todos rodam sobre o baralho; os que precisam de alfabeto latino declaram
      em `requisitos`, e nao por nome espalhado no codigo. */

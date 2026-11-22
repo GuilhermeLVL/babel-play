@@ -349,6 +349,7 @@ const CLASSICOS: ReadonlySet<MinigameId> = new Set<MinigameId>([
   'conectores',
   'retraducao',
   'ditadoDeFrase',
+  'paresMinimos',
   'blitz',
 ]);
 
@@ -2581,7 +2582,12 @@ export default function Play({
      com as MESMAS palavras da grade): a conta da rodada quando o jogo abre, ou o que falta quando não abre. */
   const notaDoJogo = (j: (typeof jogosClassicosFiltrados)[number]) => {
     const liberado = j.estado.ok;
-    const unidade = (n: number) => (j.estado.fonte === 'falas' ? tp(n, 'fala', 'falas') : tp(n, 'palavra', 'palavras'));
+    const unidade = (n: number) =>
+      j.estado.fonte === 'falas'
+        ? tp(n, 'fala', 'falas')
+        : j.estado.fonte === 'idioma'
+          ? tp(n, 'par', 'pares')
+          : tp(n, 'palavra', 'palavras');
     return (() => {
       if (liberado) {
         const total = ('pool' in j.estado ? j.estado.pool : undefined) ?? j.estado.disponiveis;
@@ -2617,6 +2623,8 @@ export default function Play({
          sempre: "Precisa de N palavras" mandaria a pessoa juntar palavras que nunca abririam o jogo. Só a
          forma muda (frase com maiúscula e ponto, como os outros motivos da seção). */
       const porExtenso = (frase: string) => `${frase.charAt(0).toLocaleUpperCase()}${frase.slice(1)}.`;
+      if (motivo === 'sem-lista-do-idioma')
+        return porExtenso(t('ainda não há pares de sons em {idioma}', { idioma }));
       if (motivo === 'sem-voz') return porExtenso(t('este navegador não tem voz em {idioma}', { idioma }));
       if (motivo === 'escrita-sem-separacao')
         return porExtenso(

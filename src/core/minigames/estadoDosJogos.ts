@@ -5,6 +5,7 @@ import type { FalaComAudio } from './escuta';
 import { buildRodadasConectores, buildRodadasDitado, buildRodadasEscuta, temConectores } from './escuta';
 import { frasesElegiveis } from './frasesCorrigidas';
 import { cabeNaEscrita,canPlay, promptFor } from './itemSource';
+import { paresDoIdioma } from './paresMinimos';
 import { buildScrambleRounds } from './scramble';
 import { consumoDaEscada, contarJogaveisMulti, ESCADA_POR_FAIXA } from './termo';
 import { type MinigameId,MINIGAMES } from './types';
@@ -70,7 +71,9 @@ export type MotivoBloqueio =
    * SEM INTERNET, e o jogo depende dela: o Karaokê dá a nota pelo reconhecimento de fala do navegador,
    * que vai à rede. Quem marca é a tela (`Play.tsx`, com `navigator.onLine`): `estadoDoJogo` não lê a rede.
    */
-  | 'sem-rede';
+  | 'sem-rede'
+  /** Os pares mínimos são do idioma: este ainda não tem lista curada. */
+  | 'sem-lista-do-idioma';
 
 /**
  * RÓTULO HUMANO de cada motivo — título curto + o que resolve.
@@ -105,6 +108,10 @@ export const ROTULO_DO_MOTIVO: Record<MotivoBloqueio, { titulo: string; conserto
     titulo: 'sem internet',
     conserto: 'este jogo ouve a sua voz pela internet; os outros continuam',
   },
+  'sem-lista-do-idioma': {
+    titulo: 'sem lista neste idioma',
+    conserto: 'os pares de sons são curados por idioma, e este ainda não tem lista; os outros jogos continuam',
+  },
 };
 
 export interface EstadoDoJogo {
@@ -113,7 +120,7 @@ export interface EstadoDoJogo {
   disponiveis: number;
   faltam: number;
   /** De onde saem os itens deste jogo NESTE recorte: o baralho ou as falas da gravação. */
-  fonte: 'baralho' | 'falas';
+  fonte: 'baralho' | 'falas' | 'idioma';
   /**
    * Tamanho do acervo, sem o teto do jogo.
    *
@@ -269,6 +276,16 @@ function contagemComAlfabeto(
 export function estadoDoJogo(id: MinigameId, e: EntradaDoEstado, pools?: PoolPorJogo): EstadoDoJogo {
   const def = MINIGAMES[id];
 
+  /* JOGO DO IDIOMA (pares mínimos): o material é a lista curada do idioma, e não o baralho nem a gravação.
+     Vale para toda fonte. O som é a voz de leitura: sem ela não há o que ouvir. */
+  if (def.doIdioma) {
+    const n = paresDoIdioma(e.lang).length;
+    const base = { id, disponiveis: n, faltam: Math.max(0, def.minItems - n), fonte: 'idioma' as const };
+    if (n < def.minItems) return { ...base, ok: false, motivo: 'sem-lista-do-idioma', tamanhoDaRodada: 0 };
+    if (!e.temVoz) return { ...base, ok: false, motivo: 'sem-voz', tamanhoDaRodada: 0 };
+    return { ...base, ok: true, tamanhoDaRodada: tamanhoDaRodadaDe(id, n) };
+  }
+
   /**
    * O Termo conta o MAIOR GRUPO DE MESMO TAMANHO, não o total de palavras: os tabuleiros de um
    * degrau dividem o mesmo palpite, então comprimentos diferentes não jogam juntos. Um baralho de
@@ -415,9 +432,16 @@ export type EstadoDeElegibilidade =
 export function elegibilidadeDoJogo(
   jogo: MinigameId,
   pool: VocabCard[],
-  opts: { temVoz?: boolean; frases?: number } = {},
+  opts: { temVoz?: boolean; frases?: number; /** Pares mínimos do idioma (jogos `doIdioma`). */ pares?: number } = {},
 ): EstadoDeElegibilidade {
   const def = MINIGAMES[jogo];
+
+  if (def.doIdioma) {
+    const n = opts.pares ?? 0;
+    if (n < def.minItems) return { estado: 'indisponivel', motivo: 'sem-lista-do-idioma', faltam: def.minItems - n };
+    /* Como `estadoDoJogo`: o som É o exercício, então sem voz o jogo não abre. */
+    return opts.temVoz === false ? { estado: 'indisponivel', motivo: 'sem-voz' } : { estado: 'disponivel' };
+  }
 
   if (def.requisitos?.alfabeto === 'latino') {
     const { semFiltro: total, apto: aptos } = contagemComAlfabeto(jogo, pool);

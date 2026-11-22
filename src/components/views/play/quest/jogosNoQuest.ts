@@ -46,6 +46,7 @@ const ENTRADA: Record<MinigameId, 'apontar' | 'teclado-na-tela' | 'teclado' | 'f
   conectores: 'apontar',
   retraducao: 'teclado',
   ditadoDeFrase: 'teclado',
+  paresMinimos: 'apontar',
   karuta: 'apontar',
   choseong: 'apontar',
   tenis: 'teclado',
@@ -100,7 +101,7 @@ export interface VozParaOQuest {
  * de leitura (`lib/tts.ts`). Sem voz para o idioma do baralho, o jogo abriria mudo.
  */
 const dependeDeVozSintetizada = (j: JogoParaOQuest): boolean =>
-  !!MINIGAMES[j.id].aceitaPalavraFalada && (j.estado.motivo === 'sem-voz' || j.estado.fonte === 'baralho');
+  (!!MINIGAMES[j.id].aceitaPalavraFalada || !!MINIGAMES[j.id].doIdioma) && (j.estado.motivo === 'sem-voz' || j.estado.fonte === 'baralho');
 
 /**
  * A preferência de ordem do usuário (`lib/ordemDosJogos`): os fixados (a estrela) e a ordem que a
@@ -149,6 +150,19 @@ export function tilesDoQuest<J extends JogoParaOQuest>(
         nota: nomeDoIdioma
           ? t('Sem gravação e sem voz de leitura em {idioma}, não há o que ouvir e repetir.', { idioma: nomeDoIdioma })
           : t('Sem gravação e sem voz de leitura, não há o que ouvir e repetir.'),
+      };
+    /* JOGO DO IDIOMA (pares mínimos): o som É o exercício, e não há alternativa escrita (escolher entre duas
+       palavras sem ouvir é palpite de 50%). Sem voz para o idioma o cartão fica apagado, mesmo no headset,
+       onde o gate libera os jogos de ouvir por haver a alternativa escrita. */
+    if (MINIGAMES[jogo.id].doIdioma && (!haVoz || jogo.estado.motivo === 'sem-voz'))
+      return {
+        jogo,
+        grupo: 'aparelho',
+        tag: t('Pede voz de leitura'),
+        apagado: true,
+        nota: nomeDoIdioma
+          ? t('Sem voz de leitura em {idioma}, não há o que ouvir.', { idioma: nomeDoIdioma })
+          : t('Sem voz de leitura neste aparelho, não há o que ouvir.'),
       };
     /* O material não fecha a rodada. "Sem voz" só chega aqui quando o gate de `estadoDoJogo` não
        conhece a alternativa escrita dos jogos (no Quest, `Play.tsx` diz a ele que ela existe). */

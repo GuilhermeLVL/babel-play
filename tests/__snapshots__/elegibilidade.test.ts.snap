@@ -105,6 +105,14 @@ exports[`elegibilidadeDoJogo > não-regressão: estadoDoJogo devolve exatamente 
     "pool": 6,
     "tamanhoDaRodada": 6,
   },
+  "pool0.paresMinimos": {
+    "disponiveis": 18,
+    "faltam": 0,
+    "fonte": "idioma",
+    "id": "paresMinimos",
+    "ok": true,
+    "tamanhoDaRodada": 8,
+  },
   "pool0.retraducao": {
     "disponiveis": 12,
     "faltam": 0,
@@ -278,6 +286,14 @@ exports[`elegibilidadeDoJogo > não-regressão: estadoDoJogo devolve exatamente 
     "ok": true,
     "pool": 4,
     "tamanhoDaRodada": 4,
+  },
+  "pool1.paresMinimos": {
+    "disponiveis": 18,
+    "faltam": 0,
+    "fonte": "idioma",
+    "id": "paresMinimos",
+    "ok": true,
+    "tamanhoDaRodada": 8,
   },
   "pool1.retraducao": {
     "disponiveis": 12,
@@ -455,6 +471,14 @@ exports[`elegibilidadeDoJogo > não-regressão: estadoDoJogo devolve exatamente 
     "pool": 3,
     "tamanhoDaRodada": 3,
   },
+  "pool10.paresMinimos": {
+    "disponiveis": 18,
+    "faltam": 0,
+    "fonte": "idioma",
+    "id": "paresMinimos",
+    "ok": true,
+    "tamanhoDaRodada": 8,
+  },
   "pool10.retraducao": {
     "disponiveis": 12,
     "faltam": 0,
@@ -627,6 +651,14 @@ exports[`elegibilidadeDoJogo > não-regressão: estadoDoJogo devolve exatamente 
     "pool": 0,
     "tamanhoDaRodada": 0,
   },
+  "pool11.paresMinimos": {
+    "disponiveis": 18,
+    "faltam": 0,
+    "fonte": "idioma",
+    "id": "paresMinimos",
+    "ok": true,
+    "tamanhoDaRodada": 8,
+  },
   "pool11.retraducao": {
     "disponiveis": 12,
     "faltam": 0,
@@ -797,6 +829,14 @@ exports[`elegibilidadeDoJogo > não-regressão: estadoDoJogo devolve exatamente 
     "id": "memory",
     "ok": true,
     "pool": 10,
+    "tamanhoDaRodada": 8,
+  },
+  "pool2.paresMinimos": {
+    "disponiveis": 18,
+    "faltam": 0,
+    "fonte": "idioma",
+    "id": "paresMinimos",
+    "ok": true,
     "tamanhoDaRodada": 8,
   },
   "pool2.retraducao": {
@@ -971,6 +1011,14 @@ exports[`elegibilidadeDoJogo > não-regressão: estadoDoJogo devolve exatamente 
     "pool": 1,
     "tamanhoDaRodada": 1,
   },
+  "pool3.paresMinimos": {
+    "disponiveis": 18,
+    "faltam": 0,
+    "fonte": "idioma",
+    "id": "paresMinimos",
+    "ok": true,
+    "tamanhoDaRodada": 8,
+  },
   "pool3.retraducao": {
     "disponiveis": 12,
     "faltam": 0,
@@ -1142,6 +1190,14 @@ exports[`elegibilidadeDoJogo > não-regressão: estadoDoJogo devolve exatamente 
     "ok": false,
     "pool": 3,
     "tamanhoDaRodada": 3,
+  },
+  "pool4.paresMinimos": {
+    "disponiveis": 18,
+    "faltam": 0,
+    "fonte": "idioma",
+    "id": "paresMinimos",
+    "ok": true,
+    "tamanhoDaRodada": 8,
   },
   "pool4.retraducao": {
     "disponiveis": 12,
@@ -1315,6 +1371,14 @@ exports[`elegibilidadeDoJogo > não-regressão: estadoDoJogo devolve exatamente 
     "pool": 0,
     "tamanhoDaRodada": 0,
   },
+  "pool5.paresMinimos": {
+    "disponiveis": 18,
+    "faltam": 0,
+    "fonte": "idioma",
+    "id": "paresMinimos",
+    "ok": true,
+    "tamanhoDaRodada": 8,
+  },
   "pool5.retraducao": {
     "disponiveis": 12,
     "faltam": 0,
@@ -1487,6 +1551,14 @@ exports[`elegibilidadeDoJogo > não-regressão: estadoDoJogo devolve exatamente 
     "pool": 6,
     "tamanhoDaRodada": 6,
   },
+  "pool6.paresMinimos": {
+    "disponiveis": 18,
+    "faltam": 0,
+    "fonte": "idioma",
+    "id": "paresMinimos",
+    "ok": true,
+    "tamanhoDaRodada": 8,
+  },
   "pool6.retraducao": {
     "disponiveis": 12,
     "faltam": 0,
@@ -1658,6 +1730,14 @@ exports[`elegibilidadeDoJogo > não-regressão: estadoDoJogo devolve exatamente 
     "ok": false,
     "pool": 1,
     "tamanhoDaRodada": 1,
+  },
+  "pool7.paresMinimos": {
+    "disponiveis": 18,
+    "faltam": 0,
+    "fonte": "idioma",
+    "id": "paresMinimos",
+    "ok": true,
+    "tamanhoDaRodada": 8,
   },
   "pool7.retraducao": {
     "disponiveis": 12,
@@ -1832,6 +1912,14 @@ exports[`elegibilidadeDoJogo > não-regressão: estadoDoJogo devolve exatamente 
     "ok": true,
     "pool": 4,
     "tamanhoDaRodada": 4,
+  },
+  "pool8.paresMinimos": {
+    "disponiveis": 18,
+    "faltam": 0,
+    "fonte": "idioma",
+    "id": "paresMinimos",
+    "ok": true,
+    "tamanhoDaRodada": 8,
   },
   "pool8.retraducao": {
     "disponiveis": 12,
@@ -2008,6 +2096,14 @@ exports[`elegibilidadeDoJogo > não-regressão: estadoDoJogo devolve exatamente 
     "ok": false,
     "pool": 0,
     "tamanhoDaRodada": 0,
+  },
+  "pool9.paresMinimos": {
+    "disponiveis": 18,
+    "faltam": 0,
+    "fonte": "idioma",
+    "id": "paresMinimos",
+    "ok": true,
+    "tamanhoDaRodada": 8,
   },
   "pool9.retraducao": {
     "disponiveis": 12,

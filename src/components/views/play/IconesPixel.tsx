@@ -101,6 +101,13 @@ const ICONES: Record<MinigameId, (className?: string) => React.ReactNode> = {
       <rect x="16" y="8" width="4" height="8" fill="var(--warn)" transform="rotate(30 18 12)" />
     </Px>
   ),
+  // Pares de sons: duas ondas quase iguais, uma com o pico trocado.
+  paresMinimos: (c) => (
+    <Px className={c}>
+      <path d="M2 9h3l2-5 3 10 2-8 2 3h3" fill="none" stroke="var(--accent)" strokeWidth="2" />
+      <path d="M2 19h3l2-4 3 6 2-5 2 2h3" fill="none" stroke="var(--warn)" strokeWidth="2" strokeDasharray="3 2" />
+    </Px>
+  ),
   // Conectores: dois elos.
   conectores: (c) => (
     <Px className={c}>

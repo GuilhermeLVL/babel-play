@@ -22,6 +22,7 @@ import { buildRodadasConectores,buildRodadasDitado, buildRodadasEscuta } from '.
 import { type EntradaDoEstado,estadoDoJogo } from '../src/core/minigames/estadoDosJogos'
 import { frasesElegiveis } from '../src/core/minigames/frasesCorrigidas'
 import { buildItems } from '../src/core/minigames/itemSource'
+import { sortearRodada } from '../src/core/minigames/paresMinimos'
 import { buildScrambleRounds } from '../src/core/minigames/scramble'
 import {
 consumoDaEscada, contarJogaveisMulti, DEGRAUS_MINIMOS, ESCADA_POR_FAIXA,
@@ -94,6 +95,12 @@ function montaRodada(id: MinigameId, e: EntradaDoEstado): number {
   const def = MINIGAMES[id]
 
   if (def.modalidade === 'palavra') return buildItems(id, e.cartas).length
+
+  /* Jogo do IDIOMA: o material é a lista curada, em qualquer fonte; abre com lista e voz. */
+  if (def.doIdioma) {
+    const n = sortearRodada(e.lang, { quantidade: def.maxItems }).length
+    return e.temVoz && n >= def.minItems ? n : 0
+  }
 
   if (e.fonteId === 'trilha') {
     if (!def.aceitaPalavraFalada) return 0

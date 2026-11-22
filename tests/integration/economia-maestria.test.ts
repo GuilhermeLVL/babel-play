@@ -64,10 +64,10 @@ afterAll(async () => {
 })
 
 describe('GET /api/metrics/maestria e o crédito conferido', () => {
-  it('sem rodada: os 20 jogos com zero, e o Bronze é recusado', async () => {
+  it('sem rodada: os 21 jogos com zero, e o Bronze é recusado', async () => {
     const r = await maestria('u-maestria-vazia')
     expect(r.statusCode).toBe(200)
-    expect(r.body.jogos).toHaveLength(20)
+    expect(r.body.jogos).toHaveLength(21)
     expect(r.body.jogos.every((j: { pontos: number }) => j.pontos === 0)).toBe(true)
     const c = await creditar('u-maestria-vazia', 'maestria:memory:1')
     expect(c.statusCode).toBe(400)

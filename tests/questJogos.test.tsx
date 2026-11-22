@@ -95,6 +95,15 @@ describe('tilesDoQuest: a voz do idioma do baralho', () => {
     expect(t).toMatchObject({ apagado: false, grupo: 'audio', tag: 'Voz de leitura' })
   })
 
+  it('pares de sons (jogo do idioma) sem voz ficam APAGADOS: sem som é palpite de 50%', () => {
+    const semVoz = tile('paresMinimos', { idioma: 'de', haVozPara: leIngles }, { fonte: 'idioma' })
+    expect(semVoz).toMatchObject({ apagado: true, grupo: 'aparelho', tag: 'Pede voz de leitura' })
+    expect(semVoz.nota).toMatch(/alemão/i)
+    expect(tile('paresMinimos', { idioma: 'en', haVozPara: leIngles }, { fonte: 'idioma' })).toMatchObject({
+      apagado: false,
+    })
+  })
+
   it('sem voz para o idioma, Escuta e Ditado ABREM pela tradução, e o cartão diz isso', () => {
     // Os dois jogos têm a alternativa escrita (o ramo `!temSom`): apagar o cartão escondia um jogo jogável.
     const escuta = tile('escuta', { idioma: 'de', haVozPara: leIngles })

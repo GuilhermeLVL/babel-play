@@ -78,6 +78,13 @@
       "pctNoNivel": 0
     },
     {
+      "jogo": "paresMinimos",
+      "pontos": 0,
+      "nivel": 0,
+      "proximo": 30,
+      "pctNoNivel": 0
+    },
+    {
       "jogo": "karuta",
       "pontos": 10,
       "nivel": 0,

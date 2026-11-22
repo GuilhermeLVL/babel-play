@@ -6186,9 +6186,9 @@
   "Valem para todas as rodadas. A agenda é do FSRS.": "They apply to every round. Scheduling is done by FSRS.",
   "Valor": "Amount",
   "Vamos concluir a entrega ainda hoje?": "Shall we complete the delivery today?",
-  "Vamos marcar {n} palavras como conhecidas. Você pode desfazer na lista “Palavras que você conhece”.": {
-    "one": "We will mark {n} word as known. You can undo it in the “Words you know” list.",
-    "other": "We will mark {n} words as known. You can undo it in the “Words you know” list."
+  "Vamos marcar {n} palavras como conhecidas. Depois, você pode desfazer tudo aqui ou desmarcar uma a uma na lista “Palavras que você conhece”.": {
+    "one": "We will mark {n} word as known. Afterwards you can undo it here or unmark words one by one in the “Words you know” list.",
+    "other": "We will mark {n} words as known. Afterwards you can undo it all here or unmark words one by one in the “Words you know” list."
   },
   "Vamos mostrar uma palavra em {idioma} por vez. Toque em “Sei” se você conhece e em “Não sei” se não.": "We will show one word in {idioma} at a time. Tap “I know it” if you know it and “I don’t know” if you don’t.",
   "Vamos voltar ao idioma? Posso te ajudar com vocabulário, frases ou pronúncia.": "Shall we get back to the language? I can help you with vocabulary, phrases or pronunciation.",

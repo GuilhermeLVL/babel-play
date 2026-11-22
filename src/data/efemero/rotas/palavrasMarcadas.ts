@@ -95,7 +95,7 @@ function lerLote(init: RequestInit): { idioma: string; chaves: string[] } | null
   const idioma = idiomaValido(str(p.lang));
   if (!idioma || !Array.isArray(p.chaves) || !p.chaves.length || p.chaves.length > TETO_DO_LOTE) return null;
   const chaves = [
-    ...new Set(p.chaves.map((c) => chaveDaPalavra(typeof c === 'string' ? c.slice(0, 60) : '')).filter(Boolean)),
+    ...new Set(p.chaves.map((c) => chaveDaPalavra(typeof c === 'string' ? c.slice(0, 30) : '')).filter(Boolean)),
   ];
   return chaves.length ? { idioma, chaves } : null;
 }

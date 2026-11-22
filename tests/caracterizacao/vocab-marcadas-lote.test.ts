@@ -45,7 +45,7 @@ describe('palavras marcadas em lote (modo publico)', () => {
     expect((await lote({ lang: '1', chaves: ['hi'] }, ana)).status).toBe(400)
     expect((await lote({ lang: 'en', chaves: [] }, ana)).status).toBe(400)
     expect((await lote({ lang: 'en' }, ana)).status).toBe(400)
-    expect((await lote({ lang: 'en', chaves: ['x'.repeat(61)] }, ana)).status).toBe(400)
+    expect((await lote({ lang: 'en', chaves: ['x'.repeat(31)] }, ana)).status).toBe(400)
     expect((await lote({ lang: 'en', chaves: Array.from({ length: 3001 }, (_, i) => `w${i}`) }, ana)).status).toBe(400)
     expect((await lote({ lang: 'en', chaves: ['!!!', '???'] }, ana)).status).toBe(400)
     expect((await lote({ lang: 'en', chaves: ['hi'], estado: 'ignorada' }, ana)).status).toBe(400)

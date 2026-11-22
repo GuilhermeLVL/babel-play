@@ -104,6 +104,37 @@ describe('TesteDeVocabulario (tela)', () => {
     expect(lerSnapshotDasEtiquetas().listaDeMarcadas).toHaveLength(0)
   })
 
+  it('ignora tecla repetida e foco em campo de texto', () => {
+    abrir()
+    const primeira = palavraNaTela()
+    fireEvent.keyDown(window, { key: 's', repeat: true })
+    expect(palavraNaTela()).toBe(primeira)
+    const campo = document.createElement('input')
+    document.body.appendChild(campo)
+    fireEvent.keyDown(campo, { key: 's' })
+    expect(palavraNaTela()).toBe(primeira)
+    campo.remove()
+    fireEvent.keyDown(window, { key: 's' })
+    expect(palavraNaTela()).not.toBe(primeira)
+  })
+
+  it('desfazer envia só as chaves criadas, não a marcação anterior da pessoa', async () => {
+    api.fetchPalavrasMarcadas.mockResolvedValue([
+      { lang: 'en', chave: 'above', estado: 'conhecida', atualizadoEm: 2 },
+    ] as never)
+    abrir()
+    responderTudo((p) => !ehPseudo(p))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Marcar palavras' })).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: 'Marcar palavras' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Desfazer todas' })).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: 'Desfazer todas' }))
+    await waitFor(() => expect(api.desfazerLotePalavras).toHaveBeenCalledTimes(1))
+    const enviadas = api.desfazerLotePalavras.mock.calls[0]![1] as string[]
+    expect(enviadas).not.toContain('above')
+    expect(enviadas.length).toBeGreaterThan(2000)
+    expect(lerSnapshotDasEtiquetas().marcadas?.get('en')?.get('above')).toBe('conhecida')
+  })
+
   it('chute alto: resultado gentil, sem botão de marcar e nada enviado', () => {
     abrir()
     responderTudo(() => true)

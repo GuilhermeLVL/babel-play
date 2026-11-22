@@ -146,6 +146,38 @@ describe('resultadoDoTeste', () => {
     const a1 = res.faixas.find((f) => f.nivel === 'A1')!
     expect(a1.taxaCorrigida).toBeLessThan(a1.taxa + 1e-9)
     expect(a1.taxaCorrigida).toBeGreaterThan(0.9)
+    /* Moderado: só as marcadas entram, nunca a faixa inteira. */
+    const marcadas = teste.itens.filter((i, k) => !i.pseudo && r[k]).map((i) => i.palavra)
+    expect(res.aMarcar.sort()).toEqual([...new Set(marcadas)].sort())
+    expect(res.aMarcar.length).toBeLessThan(PALAVRAS_POR_FAIXA + 1)
+  })
+
+  it('moderado com todas as reais "sei": só as vistas, não as 2.784', () => {
+    let n = 0
+    const r = responder(teste, (i) => (i.pseudo ? n++ % 4 === 0 : true))
+    const res = resultadoDoTeste(teste, r)
+    expect(res.taxaDeChute).toBeGreaterThan(0.15)
+    expect(res.taxaDeChute).toBeLessThan(0.4)
+    expect(res.aMarcar.length).toBeLessThanOrEqual(PALAVRAS_POR_FAIXA * 6)
+  })
+
+  it('palavra real respondida "não sei" nunca entra, nem numa faixa semeada inteira', () => {
+    let nao = 0
+    const naoSei: string[] = []
+    const r = responder(teste, (i) => {
+      if (i.pseudo) return false
+      if (i.faixa === 'A1' && nao < 2) {
+        nao++
+        naoSei.push(i.palavra)
+        return false
+      }
+      return i.faixa === 'A1' || i.faixa === 'A2'
+    })
+    const res = resultadoDoTeste(teste, r)
+    expect(res.faixas[0]!.taxaCorrigida).toBeGreaterThanOrEqual(0.8)
+    expect(naoSei).toHaveLength(2)
+    for (const p of naoSei) expect(res.aMarcar).not.toContain(chaveDaPalavra(p))
+    expect(res.aMarcar).toContain(chaveDaPalavra(palavrasPorNivel('en').A1.find((p) => !naoSei.includes(p))!))
   })
 
   it('sem nenhuma resposta: sem dados e nada a marcar', () => {

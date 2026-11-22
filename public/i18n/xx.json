@@ -6187,10 +6187,10 @@
   "Valem para todas as rodadas. A agenda é do FSRS.": "[Válém párá tödáš áš rödádáš. Á ágéñdá é dö FŠRŠ. ···················]",
   "Valor": "[Válör ··]",
   "Vamos concluir a entrega ainda hoje?": "[Vámöš çöñçlüír á éñtrégá áíñdá höjé? ··············]",
-  "Vamos marcar {n} palavras como conhecidas. Você pode desfazer na lista “Palavras que você conhece”.": {
-    "one": "[Vámöš márçár {n} pálávráš çömö çöñhéçídáš. Vöçê pödé déšfážér ñá líštá “Pálávráš qüé vöçê çöñhéçé”. ········································]",
-    "many": "[Vámöš márçár {n} pálávráš çömö çöñhéçídáš. Vöçê pödé déšfážér ñá líštá “Pálávráš qüé vöçê çöñhéçé”. ········································]",
-    "other": "[Vámöš márçár {n} pálávráš çömö çöñhéçídáš. Vöçê pödé déšfážér ñá líštá “Pálávráš qüé vöçê çöñhéçé”. ········································]"
+  "Vamos marcar {n} palavras como conhecidas. Depois, você pode desfazer tudo aqui ou desmarcar uma a uma na lista “Palavras que você conhece”.": {
+    "one": "[Vámöš márçár {n} pálávráš çömö çöñhéçídáš. Dépöíš, vöçê pödé déšfážér tüdö áqüí öü déšmárçár ümá á ümá ñá líštá “Pálávráš qüé vöçê çöñhéçé”. ························································]",
+    "many": "[Vámöš márçár {n} pálávráš çömö çöñhéçídáš. Dépöíš, vöçê pödé déšfážér tüdö áqüí öü déšmárçár ümá á ümá ñá líštá “Pálávráš qüé vöçê çöñhéçé”. ························································]",
+    "other": "[Vámöš márçár {n} pálávráš çömö çöñhéçídáš. Dépöíš, vöçê pödé déšfážér tüdö áqüí öü déšmárçár ümá á ümá ñá líštá “Pálávráš qüé vöçê çöñhéçé”. ························································]"
   },
   "Vamos mostrar uma palavra em {idioma} por vez. Toque em “Sei” se você conhece e em “Não sei” se não.": "[Vámöš möštrár ümá pálávrá ém {idioma} pör véž. Töqüé ém “Šéí” šé vöçê çöñhéçé é ém “Ñãö šéí” šé ñãö. ········································]",
   "Vamos voltar ao idioma? Posso te ajudar com vocabulário, frases ou pronúncia.": "[Vámöš völtár áö ídíömá? Pöššö té ájüdár çöm vöçábüláríö, frášéš öü pröñúñçíá. ·······························]",

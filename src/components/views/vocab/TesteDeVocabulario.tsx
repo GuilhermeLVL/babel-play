@@ -62,7 +62,9 @@ export default function TesteDeVocabulario({
   useEffect(() => {
     if (fase !== 'testando') return;
     const aoTeclar = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+      const alvo = e.target instanceof Element ? e.target : null;
+      if (alvo?.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return;
       const k = e.key.toLowerCase();
       if (k === 's' || k === 'arrowright') responder(true);
       else if (k === 'n' || k === 'arrowleft') responder(false);
@@ -201,8 +203,8 @@ export default function TesteDeVocabulario({
                   <p>
                     {tp(
                       novas.length,
-                      'Vamos marcar {n} palavra como conhecida. Você pode desfazer na lista “Palavras que você conhece”.',
-                      'Vamos marcar {n} palavras como conhecidas. Você pode desfazer na lista “Palavras que você conhece”.',
+                      'Vamos marcar {n} palavra como conhecida. Depois, você pode desfazer tudo aqui ou desmarcar uma a uma na lista “Palavras que você conhece”.',
+                      'Vamos marcar {n} palavras como conhecidas. Depois, você pode desfazer tudo aqui ou desmarcar uma a uma na lista “Palavras que você conhece”.',
                     )}
                   </p>
                 ) : (

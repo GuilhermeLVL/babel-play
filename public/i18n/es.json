@@ -2892,10 +2892,10 @@
   "Vale para {serve}; em {nao}, o app escolhe sozinho.": "Vale para {serve}; en {nao}, la app elige sola.",
   "Vale para os Cartões e para o Jogar, e fica guardado.": "Vale para Tarjetas y para Jugar, y queda guardado.",
   "Valor": "Valor",
-  "Vamos marcar {n} palavras como conhecidas. Você pode desfazer na lista “Palavras que você conhece”.": {
-    "one": "Marcaremos {n} palabra como conocida. Puedes deshacerlo en la lista “Palabras que conoces”.",
-    "many": "Marcaremos {n} palabras como conocidas. Puedes deshacerlo en la lista “Palabras que conoces”.",
-    "other": "Marcaremos {n} palabras como conocidas. Puedes deshacerlo en la lista “Palabras que conoces”."
+  "Vamos marcar {n} palavras como conhecidas. Depois, você pode desfazer tudo aqui ou desmarcar uma a uma na lista “Palavras que você conhece”.": {
+    "one": "Marcaremos {n} palabra como conocida. Después puedes deshacerlo aquí o desmarcar una a una en la lista “Palabras que conoces”.",
+    "many": "Marcaremos {n} palabras como conocidas. Después puedes deshacerlo todo aquí o desmarcar una a una en la lista “Palabras que conoces”.",
+    "other": "Marcaremos {n} palabras como conocidas. Después puedes deshacerlo todo aquí o desmarcar una a una en la lista “Palabras que conoces”."
   },
   "Vamos mostrar uma palavra em {idioma} por vez. Toque em “Sei” se você conhece e em “Não sei” se não.": "Te mostraremos una palabra en {idioma} cada vez. Toca “Sé” si la conoces y “No sé” si no.",
   "Vamos voltar ao idioma? Posso te ajudar com vocabulário, frases ou pronúncia.": "¿Volvemos al idioma? Puedo ayudarte con vocabulario, frases o pronunciación.",

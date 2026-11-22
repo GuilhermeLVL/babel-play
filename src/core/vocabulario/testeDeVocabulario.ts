@@ -264,9 +264,17 @@ export function resultadoDoTeste(teste: TesteDeVocabulario, respostas: readonly 
     if (moderado && (corrigidaDe.get(item.faixa) ?? 0) < LIMIAR_DE_PARADA) continue;
     aMarcar.add(chaveDaPalavra(item.palavra));
   }
-  for (const f of faixas) {
-    if (f.taxaCorrigida < LIMIAR_DE_ACERTO_ALTO) break;
-    for (const p of lista[f.nivel]) aMarcar.add(chaveDaPalavra(p));
+  /* Faixa inteira só com chute baixo: com chute moderado entram apenas as palavras marcadas "sei". */
+  if (!moderado) {
+    for (const f of faixas) {
+      if (f.taxaCorrigida < LIMIAR_DE_ACERTO_ALTO) break;
+      for (const p of lista[f.nivel]) aMarcar.add(chaveDaPalavra(p));
+    }
+  }
+  /* Quem respondeu "não sei" a uma palavra real nunca a tem marcada, mesmo numa faixa semeada inteira. */
+  for (let i = 0; i < teste.itens.length && i < respostas.length; i++) {
+    const item = teste.itens[i]!;
+    if (!item.pseudo && !respostas[i]) aMarcar.delete(chaveDaPalavra(item.palavra));
   }
   aMarcar.delete('');
 

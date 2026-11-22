@@ -39,6 +39,7 @@ import {
 } from './escuta';
 import { frasesElegiveis } from './frasesCorrigidas';
 import { buildItems } from './itemSource';
+import { palavraTocada, PARES_POR_RODADA, sortearRodada } from './paresMinimos';
 import { type ItemCru, type ItemDaAntessala, type OrigemDoItem,origemDoMaterial, previaSegura } from './revelavel';
 import { buildScrambleRounds, type RodadaFrase } from './scramble';
 import { type FonteDeItens,priorizar } from './source';
@@ -177,6 +178,38 @@ export function montarRodada(entrada: EntradaDaRodada): RodadaMontada | null {
     comTrilha, temVoz, temAudio, porPalavra, origemDaPalavra, tituloDaSessao,
     semente, apenas, evitarTambem,
   } = entrada;
+
+  /* PARES MÍNIMOS: o material é a lista do idioma, não o baralho. Antes de toda a lógica de fonte, etapa e
+     faixa, que não se aplicam: o que cai há pouco (`vistasRecentes`, `evitarTambem`) só demove. */
+  if (jogo === 'paresMinimos') {
+    const def = MINIGAMES[jogo];
+    const evitar = new Set<string>([...vistasRecentes, ...(evitarTambem ?? [])]);
+    const r = sortearRodada(fonte.lang, {
+      quantidade: Math.min(def.maxItems, PARES_POR_RODADA.max),
+      semente: `${diaLocal(agora)}:${agora}`,
+      evitar,
+    }).filter((x) => !apenas?.size || apenas.has(x.id));
+    if (r.length < def.minItems || !temVoz) return null;
+    /* A prévia diz o CONTRASTE (que som será treinado), nunca qual palavra toca: isso é a resposta. */
+    return {
+      jogo,
+      previa: previaSegura(
+        jogo,
+        r.map((x) => ({ ref: x.id, alvo: palavraTocada(x), pista: x.contraste })),
+      ),
+      material: {
+        tipo: 'itens',
+        jogo,
+        itens: r.map((x) => ({
+          itemRef: x.id,
+          prompt: '',
+          answer: palavraTocada(x),
+          lang: fonte.lang,
+          par: x,
+        })),
+      },
+    };
+  }
 
   const trecho = semente?.word || semente?.text;
   /* SELEÇÃO v2 — os insumos da régua: a memória de itens (histórico por `item_ref`, em todos os

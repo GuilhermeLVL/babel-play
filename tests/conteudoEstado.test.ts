@@ -173,7 +173,8 @@ describe('a tradução de mão dupla com o filtro do Jogar', () => {
 describe('quantos jogos servem (a regra de MINIGAMES)', () => {
   it('com material de sobra, todos; sem nada, nenhum', () => {
     expect(jogosQueServem({ palavras: 50, frases: 50 })).toEqual({ servem: TODOS_OS_JOGOS.length, total: TODOS_OS_JOGOS.length, fora: [] });
-    expect(jogosQueServem({ palavras: 0, frases: 0 }).servem).toBe(0);
+    /* Os pares de sons são do IDIOMA: servem a qualquer fonte, até a vazia (o gate da grade confere lista e voz). */
+    expect(jogosQueServem({ palavras: 0, frases: 0 }).servem).toBe(1);
   });
   it('sem frases: os de frase ficam de fora; os de fala aceitam a palavra falada SÓ na Trilha (a regra do gate)', () => {
     const r = jogosQueServem({ palavras: 60, frases: 0 }, { trilha: true });
@@ -189,9 +190,9 @@ describe('quantos jogos servem (a regra de MINIGAMES)', () => {
   });
   it('fonte pequena (3 palavras): só o Termo abre; na Trilha, também os de fala', () => {
     const r = jogosQueServem({ palavras: 3, frases: 0 });
-    expect(TODOS_OS_JOGOS.filter((j) => !r.fora.includes(j)).sort()).toEqual(['termo']);
+    expect(TODOS_OS_JOGOS.filter((j) => !r.fora.includes(j)).sort()).toEqual(['paresMinimos', 'termo']);
     const naTrilha = jogosQueServem({ palavras: 3, frases: 0 }, { trilha: true });
-    expect(TODOS_OS_JOGOS.filter((j) => !naTrilha.fora.includes(j)).sort()).toEqual(['ditado', 'karaoke', 'termo']);
+    expect(TODOS_OS_JOGOS.filter((j) => !naTrilha.fora.includes(j)).sort()).toEqual(['ditado', 'karaoke', 'paresMinimos', 'termo']);
     expect(jogoServe('memory', { palavras: 3, frases: 0 })).toEqual({ ok: false, pede: 'palavras', minimo: 4, ha: 3 });
   });
   it('sem rede, o Karaokê espera', () => {

@@ -116,8 +116,8 @@ describe('as cinco abas', () => {
     renderizar('maestria')
     await act(async () => {})
     expect(screen.queryByTestId('cartao-de-convite')).toBeNull()
-    expect(document.querySelectorAll('[data-maestria-jogo]')).toHaveLength(20)
-    expect(screen.getAllByText('Rumo ao Bronze · 0/30')).toHaveLength(20)
+    expect(document.querySelectorAll('[data-maestria-jogo]')).toHaveLength(21)
+    expect(screen.getAllByText('Rumo ao Bronze · 0/30')).toHaveLength(21)
     for (const nome of [/Temporada/, /Conquistas/, /Loja/]) {
       fireEvent.click(aba(nome))
       expect(screen.queryByTestId('cartao-de-convite')).toBeNull()

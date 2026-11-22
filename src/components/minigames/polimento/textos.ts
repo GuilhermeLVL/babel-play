@@ -79,6 +79,7 @@ export const ORDEM_DOS_JOGOS: readonly MinigameId[] = [
   'conectores',
   'retraducao',
   'ditadoDeFrase',
+  'paresMinimos',
 ];
 
 /** O nome curto de cada jogo (`curto` em cada `JOGOS[id]`; `jogos.js:309` para a Memória). */
@@ -103,6 +104,7 @@ const CURTO: Record<MinigameId, string> = {
   conectores: 'Caça-conectores',
   retraducao: 'Retradução',
   ditadoDeFrase: 'Ditado de frase',
+  paresMinimos: 'Pares de sons',
 };
 
 export const nomeCurtoDoJogo = (jogo: MinigameId): string => CURTO[jogo] ?? jogo;
@@ -138,6 +140,7 @@ const UNIDADE: Record<MinigameId, string> = {
   conectores: 'frases',
   retraducao: 'frases',
   ditadoDeFrase: 'frases',
+  paresMinimos: 'pares',
 };
 
 export const unidadeDoPlacar = (jogo: MinigameId): string => UNIDADE[jogo] ?? 'palavras';

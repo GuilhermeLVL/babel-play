@@ -50,6 +50,7 @@ export * from './minigames/frasesCorrigidas';
 export * from './minigames/grade';
 export * from './minigames/itemSource';
 export * from './minigames/painelDaPratica';
+export * from './minigames/paresMinimos';
 export * from './minigames/revelavel';
 export * from './minigames/scramble';
 export * from './minigames/sequencia';

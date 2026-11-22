@@ -62,6 +62,7 @@ export function gradeFor(gameId: MinigameId, outcome: ItemOutcome): Grade {
     case 'ditado':
     case 'retraducao':
     case 'ditadoDeFrase':
+    case 'paresMinimos':
     case 'conectores':
     case 'cadavre':
       // Vivem de FALAS ou de produção livre: não há cartão para agendar.
@@ -104,6 +105,11 @@ export function multiplicador(sequencia: number): number {
 export const PONTOS_BASE = 10;
 /** Respondeu dentro de `LIMITE_RESPOSTA_RAPIDA_MS`. */
 export const BONUS_RAPIDO = 5;
+/**
+ * Jogos em que a RAPIDEZ NÃO RENDE PONTO (Decreto 12.880, art. 9º): o ouvido treina no passo de quem ouve,
+ * e pressa ali só estimula o palpite. O tempo continua indo para o relatório, como medida.
+ */
+export const SEM_BONUS_DE_VELOCIDADE: ReadonlySet<MinigameId> = new Set<MinigameId>(['paresMinimos']);
 /** Acertou de primeira e sem pedir ajuda. */
 export const BONUS_SEM_DICA = 3;
 
@@ -165,7 +171,7 @@ export function pontuarRodada(
     const mult = multiplicador(sequencia);
     base += PONTOS_BASE;
     bonusCombo += PONTOS_BASE * (mult - 1);
-    if (typeof o.ms === 'number' && o.ms <= LIMITE_RESPOSTA_RAPIDA_MS) bonusVelocidade += BONUS_RAPIDO;
+    if (!SEM_BONUS_DE_VELOCIDADE.has(gameId) && typeof o.ms === 'number' && o.ms <= LIMITE_RESPOSTA_RAPIDA_MS) bonusVelocidade += BONUS_RAPIDO;
     if (!o.hinted && (o.attempts ?? 1) <= 1) bonusSemDica += BONUS_SEM_DICA;
   }
 

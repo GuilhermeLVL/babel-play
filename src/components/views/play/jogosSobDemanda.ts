@@ -22,6 +22,7 @@ export const carregadores: Record<MinigameId, () => Promise<unknown>> = {
   conectores: () => import('../../minigames/ConectoresDoPrototipo'),
   retraducao: () => import('../../minigames/ExercicioDeFrase'),
   ditadoDeFrase: () => import('../../minigames/ExercicioDeFrase'),
+  paresMinimos: () => import('../../minigames/ParesMinimos'),
   karuta: () => import('../../minigames/culturais/KarutaDoPrototipo'),
   choseong: () => import('../../minigames/culturais/ChoseongDoPrototipo'),
   tenis: () => import('../../minigames/culturais/RaliDoPrototipo'),

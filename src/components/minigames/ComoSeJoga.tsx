@@ -235,6 +235,21 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
       { o_que: 'Mostrar dica revela a primeira letra de cada palavra.', custo: 'zera o combo' },
     ],
   },
+  paresMinimos: {
+    treina: 'Ouvir a diferença entre dois sons parecidos, o que vem antes de decorar palavras novas.',
+    passos: [
+      'Aperte Ouvir: uma palavra de um par que só difere num som é lida em voz alta.',
+      'Escolha qual das duas você ouviu (teclas 1 e 2). Ouvir devagar e ouvir de novo não têm limite.',
+      'Veja o contraste entre os sons e ouça as duas palavras. No fim, o resumo diz quais sons o ouvido confundiu.',
+    ],
+    avaliacao:
+      'Cada par vale um acerto ou um erro. Não há relógio nem bônus por rapidez: ouça no seu passo.',
+    limites:
+      'A voz é sintetizada e pode soar diferente de uma pessoa real, e o sotaque muda de um lugar para outro. Sem voz neste aparelho para o idioma, ou sem lista de pares nele, o jogo não abre.',
+    ajudas: [
+      { o_que: 'Ouvir de novo e ouvir devagar, sem limite.', custo: null },
+    ],
+  },
   conectores: {
     treina: 'Perceber as palavras que AMARRAM as ideias, o que separa entender palavras de entender o texto.',
     passos: [

@@ -40,6 +40,7 @@ export const NOME_DO_JOGO_NA_MAESTRIA: Record<MinigameId, string> = {
   conectores: 'Caça-conectores',
   retraducao: 'Retradução',
   ditadoDeFrase: 'Ditado de frase',
+  paresMinimos: 'Pares de sons',
   karuta: 'Karuta',
   choseong: 'Choseong',
   tenis: 'Tênis',

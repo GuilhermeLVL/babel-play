@@ -27,7 +27,7 @@ export interface MaterialDaFonte {
 }
 
 export type ServeOuNao =
-  | { ok: true; disponiveis: number; de: 'palavras' | 'frases'; comPalavrasFaladas?: boolean }
+  | { ok: true; disponiveis: number; de: 'palavras' | 'frases' | 'pares'; comPalavrasFaladas?: boolean }
   | { ok: false; pede: 'palavras' | 'frases' | 'frases-ou-palavras' | 'rede' | 'gravacao'; minimo: number; ha: number };
 
 /** A ordem do catálogo de jogos: a da tabela. */
@@ -45,6 +45,9 @@ export interface ContextoDaFonte {
 export function jogoServe(id: MinigameId, m: MaterialDaFonte, o: ContextoDaFonte = {}): ServeOuNao {
   const def = MINIGAMES[id];
   const min = def.minItems;
+  /* Jogo do idioma (pares mínimos): o material não sai da fonte, então toda fonte serve. A lista e a voz do
+     idioma quem confere é o gate da grade (`estadoDoJogo`). */
+  if (def.doIdioma) return { ok: true, disponiveis: def.maxItems, de: 'pares' };
   if (o.semRede && id === 'karaoke') return { ok: false, pede: 'rede', minimo: min, ha: 0 };
   if (def.modalidade === 'frase-audio' && !o.trilha && o.semGravacao)
     return { ok: false, pede: 'gravacao', minimo: min, ha: 0 };

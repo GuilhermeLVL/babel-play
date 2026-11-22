@@ -80,6 +80,8 @@ export const REVELAVEL: Record<MinigameId, ReadonlySet<Faceta>> = {
   conectores: new Set<Faceta>(['alvo', 'pista', 'forma', 'estado', 'quando', 'nivel', 'origem']),
   retraducao: new Set<Faceta>(['forma', 'estado', 'quando', 'nivel', 'origem']),
   ditadoDeFrase: new Set<Faceta>(['forma', 'estado', 'quando', 'nivel', 'origem']),
+  /* Pares mínimos: o contraste (a "pista") aparece; qual palavra toca é a resposta e fica escondida. */
+  paresMinimos: new Set<Faceta>(['pista', 'estado', 'quando', 'nivel', 'origem']),
   karuta: new Set<Faceta>(['pista', 'forma', 'estado', 'quando', 'nivel', 'origem']),
   choseong: new Set<Faceta>(['pista', 'forma', 'estado', 'quando', 'nivel', 'origem']),
   tenis: new Set<Faceta>(['pista', 'forma', 'estado', 'quando', 'nivel', 'origem']),

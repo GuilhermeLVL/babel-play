@@ -25,6 +25,7 @@ const ARQUIVO: Record<MinigameId, string> = {
   ditado: 'DitadoDoPrototipo',
   retraducao: 'ExercicioDeFrase',
   ditadoDeFrase: 'ExercicioDeFrase',
+  paresMinimos: 'ParesMinimos',
   conectores: 'ConectoresDoPrototipo',
   karuta: 'culturais/KarutaDoPrototipo',
   choseong: 'culturais/ChoseongDoPrototipo',

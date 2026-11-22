@@ -173,6 +173,17 @@ export const JOGOS: JogoUI[] = [
     },
   },
   {
+    chave: 'paresMinimos',
+    id: 'paresMinimos',
+    icone: <IconePixel id="paresMinimos" className="w-5 h-5" />,
+    titulo: { kids: 'Qual som foi?', pro: 'Pares de sons', senior: 'Qual das duas palavras?' },
+    descricao: {
+      kids: 'Ouça uma palavra e escolha qual das duas você ouviu',
+      pro: 'Treine o ouvido: palavras que só diferem num som (ship × sheep) e o contraste no fim',
+      senior: 'Ouça com calma e escolha entre duas palavras parecidas; depois veja o som que as separa',
+    },
+  },
+  {
     chave: 'blitz',
     id: 'blitz',
     icone: <IconePixel id="blitz" className="w-5 h-5" />,

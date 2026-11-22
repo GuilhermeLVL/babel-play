@@ -28,7 +28,7 @@ export interface CoberturaDoTexto {
 }
 
 const funcionaisPorIdioma = new Map<string, ReadonlySet<string>>();
-function funcionais(lang: string): ReadonlySet<string> {
+export function funcionais(lang: string): ReadonlySet<string> {
   const idioma = baseLang(lang);
   let s = funcionaisPorIdioma.get(idioma);
   if (!s) funcionaisPorIdioma.set(idioma, (s = new Set((PALAVRAS_FUNCIONAIS[idioma] ?? []).map(chaveDaPalavra))));

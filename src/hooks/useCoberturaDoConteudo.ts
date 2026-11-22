@@ -11,7 +11,7 @@ export interface CoberturaParaATela {
 }
 
 /* Fora do caminho crítico: a conta espera a tela pintar (ocioso do navegador; sem ele, um timeout). */
-function quandoOcioso(f: () => void): () => void {
+export function quandoOcioso(f: () => void): () => void {
   const w = window as Window & {
     requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
     cancelIdleCallback?: (id: number) => void;

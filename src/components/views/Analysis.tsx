@@ -59,6 +59,7 @@ import { aparelhoTemVoz, haVozPara } from '../../lib/voz/haVoz';
 import CoberturaDoConteudo from '../CoberturaDoConteudo';
 import EscutaGuiada from './analise/EscutaGuiada';
 import ExportarSessao from './analise/ExportarSessao';
+import ParaEstudarDaSessao from './analise/ParaEstudarDaSessao';
 import PlayerInterativo from './analise/PlayerInterativo';
 import JogosDaSessao from './analise/quest/JogosDaSessao';
 import SessaoDoQuest from './analise/quest/SessaoDoQuest';
@@ -826,6 +827,22 @@ export default function Analysis({
       repintar={['dashboard', 'lexical', 'fluency'].indexOf(overviewSubTab)}
     >
       <CoberturaDoConteudo trechos={cobertura?.trechos ?? null} idioma={cobertura?.idioma} tipo="sessao" />
+      {/* PARA ESTUDAR DESTA SESSÃO (`frases-i-mais-1`): frases com 1 palavra nova e as palavras novas, pelo fluxo da folha. */}
+      {currentTab === 'transcript' && estadoDaTranscricao === 'pronta' && (
+        <ParaEstudarDaSessao
+          falas={falasCruas}
+          idioma={cobertura?.idioma}
+          aoGuardar={async (item) => (await salvarNaFolha(item)) === 'adicionado ao seu deck'}
+          aoIrParaFala={
+            documento
+              ? undefined
+              : (i) => {
+                  const f = parsedSentences[i];
+                  if (f) seekTo(f.startTime, i);
+                }
+          }
+        />
+      )}
       {/* O RESUMO DA SESSÃO (IA de estudo, etapa 2): na revisão, com a transcrição pronta e falas suficientes. Atrás
           da flag `ia_de_estudo` (a porta não renderiza nada desligada). */}
       {currentTab === 'transcript' &&

@@ -103,7 +103,10 @@ describe('palavras marcadas em lote (modo publico)', () => {
       ok: false,
       motivo: 'cheio',
     })
-    expect((await palavrasMarcadasRepo.listar(u, 'en', 10)).map((m) => m.chave).sort()).toEqual(['dois', 'um'])
+    expect((await palavrasMarcadasRepo.listar(u, 'en', 10)).map((m: { chave: string }) => m.chave).sort()).toEqual([
+      'dois',
+      'um',
+    ])
     /* Só existentes: cabe mesmo no teto. Uma nova que cabe: entra. */
     expect(await palavrasMarcadasRepo.marcarEmLote(u, 'en', ['um', 'dois'], 3)).toMatchObject({
       ok: true,

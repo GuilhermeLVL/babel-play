@@ -154,6 +154,7 @@ async function redeLocalNegada(): Promise<boolean> {
 async function explicarFalhaDeRede(prazoMs: number): Promise<ErroDoAnkiConnect> {
   if (await redeLocalNegada()) return erro('rede-local-bloqueada');
   try {
+    // nosemgrep: typescript.react.security.react-insecure-request.react-insecure-request -- AnkiConnect só serve HTTP e o destino é o loopback 127.0.0.1 (não sai do computador).
     await fetch(ANKI_CONNECT_URL, { mode: 'no-cors', signal: AbortSignal.timeout(prazoMs) });
     return erro('origem-nao-liberada');
   } catch {
@@ -167,6 +168,7 @@ async function chamar<T>(action: string, params?: Record<string, unknown>, o: Op
   const sinais = [AbortSignal.timeout(prazo), ...(o.sinal ? [o.sinal] : [])];
   let resposta: Response;
   try {
+    // nosemgrep: typescript.react.security.react-insecure-request.react-insecure-request -- AnkiConnect só serve HTTP e o destino é o loopback 127.0.0.1 (não sai do computador).
     resposta = await fetch(ANKI_CONNECT_URL, {
       method: 'POST',
       body: JSON.stringify({

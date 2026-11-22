@@ -11,7 +11,14 @@ import {
   montarNotaParaAnki,
   TETO_DO_CAMPO,
 } from '../src/core/anki/paraAnkiConnect'
-import { CHAVE_DAS_PREFS_DO_ANKI, gravarPrefsDoAnki, lerPrefsDoAnki } from '../src/lib/anki/ankiConnectPrefs'
+import {
+  CHAVE_DA_CHAVE_DO_ANKI,
+  CHAVE_DAS_PREFS_DO_ANKI,
+  gravarChaveDoAnki,
+  gravarPrefsDoAnki,
+  lerChaveDoAnki,
+  lerPrefsDoAnki,
+} from '../src/lib/anki/ankiConnectPrefs'
 
 describe('escape e limpeza', () => {
   it('escapa & < > e nada mais', () => {
@@ -141,5 +148,27 @@ describe('preferências no aparelho', () => {
     expect(lerPrefsDoAnki()).toEqual({ baralho: '', modelo: 'M', mapeamentos: { M: { A: 'palavra' } } })
     localStorage.setItem(CHAVE_DAS_PREFS_DO_ANKI, '{quebrado')
     expect(lerPrefsDoAnki().modelo).toBe('')
+  })
+})
+
+describe('chave do AnkiConnect no aparelho', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    sessionStorage.clear()
+  })
+
+  it('por padrão só em sessionStorage; "lembrar" move para o localStorage; nunca nas preferências', () => {
+    gravarChaveDoAnki(' abc ', false)
+    expect(sessionStorage.getItem(CHAVE_DA_CHAVE_DO_ANKI)).toBe('abc')
+    expect(localStorage.getItem(CHAVE_DA_CHAVE_DO_ANKI)).toBeNull()
+    expect(lerChaveDoAnki()).toEqual({ chave: 'abc', lembrar: false })
+    gravarChaveDoAnki('abc', true)
+    expect(localStorage.getItem(CHAVE_DA_CHAVE_DO_ANKI)).toBe('abc')
+    expect(sessionStorage.getItem(CHAVE_DA_CHAVE_DO_ANKI)).toBeNull()
+    expect(lerChaveDoAnki()).toEqual({ chave: 'abc', lembrar: true })
+    gravarPrefsDoAnki({ baralho: 'F', modelo: 'M', mapeamentos: {} })
+    expect(localStorage.getItem(CHAVE_DAS_PREFS_DO_ANKI)).not.toContain('abc')
+    gravarChaveDoAnki('', true)
+    expect(lerChaveDoAnki()).toEqual({ chave: '', lembrar: false })
   })
 })

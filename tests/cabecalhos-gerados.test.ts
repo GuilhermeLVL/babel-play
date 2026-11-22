@@ -109,6 +109,12 @@ describe('gerarHeaders', () => {
         'http://localhost:8765',
       ])
       expect(d.scriptSrc.concat(d.workerSrc, d.mediaSrc).some((o) => o.includes(':8765'))).toBe(false)
+      const locais = d.connectSrc.filter((o) => /(localhost|127\.0\.0\.1|\[::1\])/.test(o))
+      // modo público: só as duas origens exatas do Anki, sem curinga de porta e sem outra origem local
+      if (authRequired === '1') expect(locais).toEqual(['http://127.0.0.1:8765', 'http://localhost:8765'])
+      else
+        expect(locais.filter((o) => !o.includes(':11434'))).toEqual(['http://127.0.0.1:8765', 'http://localhost:8765'])
+      expect(locais.some((o) => o.includes('*'))).toBe(false)
     }
   })
 

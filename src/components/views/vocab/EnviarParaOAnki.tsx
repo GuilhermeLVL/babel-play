@@ -20,15 +20,22 @@ import {
 } from '../../../core/anki/paraAnkiConnect';
 import {
   camposDoModelo,
+  definirChaveDoAnki,
   enviarCartoes,
   ErroDoAnkiConnect,
-  linhaDeConfiguracao,
   listarBaralhos,
   listarModelos,
   type ResumoDoEnvio,
   testarConexao,
+  trechoDeConfiguracao,
 } from '../../../lib/anki/ankiConnect';
-import { gravarPrefsDoAnki, lerPrefsDoAnki, type PrefsDoAnki } from '../../../lib/anki/ankiConnectPrefs';
+import {
+  gravarChaveDoAnki,
+  gravarPrefsDoAnki,
+  lerChaveDoAnki,
+  lerPrefsDoAnki,
+  type PrefsDoAnki,
+} from '../../../lib/anki/ankiConnectPrefs';
 import { numero, t } from '../../../lib/i18n';
 import type { VocabCard } from '../../../types';
 import { toast } from '../../Toast';
@@ -69,6 +76,7 @@ export default function EnviarParaOAnki({ cartoes }: { cartoes: VocabCard[] }) {
   const [baralhos, setBaralhos] = useState<string[]>([]);
   const [modelos, setModelos] = useState<string[]>([]);
   const [prefs, setPrefs] = useState<PrefsDoAnki>(() => lerPrefsDoAnki());
+  const [chave, setChave] = useState(() => lerChaveDoAnki());
   const [campos, setCampos] = useState<string[]>([]);
   const [progresso, setProgresso] = useState<{ feitos: number; total: number } | null>(null);
   const [resumo, setResumo] = useState<ResumoDoEnvio | null>(null);
@@ -107,6 +115,8 @@ export default function EnviarParaOAnki({ cartoes }: { cartoes: VocabCard[] }) {
     setResumo(null);
     setEtapa('testando');
     try {
+      definirChaveDoAnki(chave.chave);
+      gravarChaveDoAnki(chave.chave, chave.lembrar);
       await testarConexao();
       const [decks, models] = await Promise.all([listarBaralhos(), listarModelos()]);
       setBaralhos(decks);
@@ -148,6 +158,7 @@ export default function EnviarParaOAnki({ cartoes }: { cartoes: VocabCard[] }) {
     setProgresso({ feitos: 0, total: cartoes.length });
     setEtapa('enviando');
     try {
+      definirChaveDoAnki(chave.chave);
       const r = await enviarCartoes(
         cartoes.map(cartaoParaAnki),
         { baralho: baralho.trim(), modelo, mapeamento: mapaFinal },
@@ -176,6 +187,31 @@ export default function EnviarParaOAnki({ cartoes }: { cartoes: VocabCard[] }) {
           'Manda os cartões direto para o Anki aberto neste computador, sem baixar arquivo. Precisa do complemento AnkiConnect e do Anki aberto. Nada passa pelo servidor do Frasy.',
         )}
       </p>
+      <CampoLinha
+        rotulo={t('Chave do AnkiConnect')}
+        desc={t('Só se o seu AnkiConnect tiver “apiKey”. Recomendamos ter: protege o seu Anki.')}
+      >
+        <input
+          className="input"
+          type="password"
+          autoComplete="off"
+          spellCheck={false}
+          maxLength={200}
+          value={chave.chave}
+          disabled={ocupado}
+          aria-label={t('Chave do AnkiConnect')}
+          onChange={(e) => setChave({ ...chave, chave: e.target.value })}
+        />
+        <label style={{ display: 'block', fontSize: 12.5 }}>
+          <input
+            type="checkbox"
+            checked={chave.lembrar}
+            disabled={ocupado}
+            onChange={(e) => setChave({ ...chave, lembrar: e.target.checked })}
+          />{' '}
+          {t('Lembrar neste aparelho')}
+        </label>
+      </CampoLinha>
       <div>
         <button type="button" className="btn btn-outline" disabled={ocupado} onClick={() => void testar()}>
           <Plug aria-hidden /> {etapa === 'testando' ? t('Conectando…') : t('Testar conexão com o Anki')}
@@ -192,9 +228,9 @@ export default function EnviarParaOAnki({ cartoes }: { cartoes: VocabCard[] }) {
         <div role="alert" className="cartao" style={{ padding: 12 }}>
           <p>{erro.message}</p>
           {erro.motivo === 'origem-nao-liberada' && (
-            <p>
-              <code style={{ userSelect: 'all', wordBreak: 'break-all' }}>{linhaDeConfiguracao()}</code>
-            </p>
+            <pre style={{ userSelect: 'all', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+              <code>{trechoDeConfiguracao()}</code>
+            </pre>
           )}
         </div>
       )}

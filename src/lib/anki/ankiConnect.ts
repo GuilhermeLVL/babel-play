@@ -34,6 +34,7 @@ export type MotivoDeErroDoAnki =
   | 'origem-nao-liberada'
   | 'permissao-negada'
   | 'chave-obrigatoria'
+  | 'chave-incorreta'
   | 'versao-antiga'
   | 'tempo-esgotado'
   | 'resposta-invalida'
@@ -43,6 +44,24 @@ export type MotivoDeErroDoAnki =
 /** A linha EXATA que a pessoa cola na configuração do AnkiConnect, com a origem atual do app. */
 export function linhaDeConfiguracao(origem: string = origemAtual()): string {
   return `"webCorsOriginList": ["http://localhost", ${JSON.stringify(origem)}]`;
+}
+
+/** O trecho de `apiKey` que recomendamos junto do `webCorsOriginList` (a senha é da pessoa, não nossa). */
+export const LINHA_DA_CHAVE = '"apiKey": "<uma senha sua>"';
+
+/** O trecho completo da configuração do AnkiConnect: origem liberada + chave. */
+export function trechoDeConfiguracao(origem: string = origemAtual()): string {
+  return `{\n  ${linhaDeConfiguracao(origem)},\n  ${LINHA_DA_CHAVE}\n}`;
+}
+
+/**
+ * A CHAVE DO ANKICONNECT, só em memória deste módulo: vai no campo `key` de cada chamada ao Anki local e em
+ * lugar nenhum mais (nunca ao servidor do Frasy, a log, telemetria ou Sentry). Quem guarda entre aberturas é
+ * `ankiConnectPrefs.ts` (sessionStorage por padrão).
+ */
+let chaveAtual = '';
+export function definirChaveDoAnki(chave: string): void {
+  chaveAtual = chave.trim().slice(0, 200);
 }
 
 function origemAtual(): string {
@@ -74,14 +93,18 @@ export function mensagemDoErro(motivo: MotivoDeErroDoAnki, origem: string = orig
       );
     case 'origem-nao-liberada':
       return t(
-        'O Anki está aberto, mas não deixou o Frasy falar com ele. No Anki, abra Ferramentas > Complementos > AnkiConnect > Config e deixe esta linha: {linha}. Depois reinicie o Anki.',
-        { linha: linhaDeConfiguracao(origem) },
+        'O Anki está aberto, mas não deixou o Frasy falar com ele. No Anki, abra Ferramentas > Complementos > AnkiConnect > Config e deixe assim, com uma senha sua em “apiKey”: {trecho}. Depois reinicie o Anki.',
+        { trecho: trechoDeConfiguracao(origem) },
       );
     case 'permissao-negada':
       return t('O Anki recusou o acesso do Frasy. Tente de novo e escolha “Sim” na janela que o Anki abrir.');
     case 'chave-obrigatoria':
       return t(
-        'O AnkiConnect está com chave de API ligada, e o Frasy não usa chave. Apague o valor de “apiKey” na configuração do AnkiConnect e reinicie o Anki.',
+        'O seu AnkiConnect pede uma chave (“apiKey”). Digite a chave no campo “Chave do AnkiConnect” e tente de novo.',
+      );
+    case 'chave-incorreta':
+      return t(
+        'O Anki não aceitou a chave. Confira se ela é igual ao valor de “apiKey” na configuração do AnkiConnect (Ferramentas > Complementos > AnkiConnect > Config) e tente de novo.',
       );
     case 'versao-antiga':
       return t('O AnkiConnect está desatualizado. No Anki, abra Ferramentas > Complementos e atualize o AnkiConnect.');
@@ -123,7 +146,12 @@ async function chamar<T>(action: string, params?: Record<string, unknown>, o: Op
   try {
     resposta = await fetch(ANKI_CONNECT_URL, {
       method: 'POST',
-      body: JSON.stringify({ action, version: VERSAO_DA_API, ...(params ? { params } : {}) }),
+      body: JSON.stringify({
+        action,
+        version: VERSAO_DA_API,
+        ...(chaveAtual ? { key: chaveAtual } : {}),
+        ...(params ? { params } : {}),
+      }),
       signal: AbortSignal.any(sinais),
       credentials: 'omit',
       cache: 'no-store',
@@ -146,7 +174,7 @@ async function chamar<T>(action: string, params?: Record<string, unknown>, o: Op
   const { result, error } = corpo as { result: unknown; error: unknown };
   if (error !== null && error !== undefined) {
     const texto = String(error);
-    if (/valid api key|api key/i.test(texto)) throw erro('chave-obrigatoria', texto);
+    if (/valid api key|api key/i.test(texto)) throw erro(chaveAtual ? 'chave-incorreta' : 'chave-obrigatoria', texto);
     if (/permission|denied|forbidden/i.test(texto)) throw erro('permissao-negada', texto);
     throw new ErroDoAnkiConnect('erro-do-anki', t('O Anki recusou o pedido: {motivo}', { motivo: texto }), texto);
   }
@@ -170,7 +198,7 @@ export async function testarConexao(o: OpcoesDaChamada = {}): Promise<ConexaoCom
   );
   if (!permissao || typeof permissao !== 'object') throw erro('resposta-invalida');
   if (permissao.permission !== 'granted') throw erro('permissao-negada');
-  if (permissao.requireApiKey) throw erro('chave-obrigatoria');
+  if (permissao.requireApiKey && !chaveAtual) throw erro('chave-obrigatoria');
   const versao = await chamar<number>('version', undefined, o);
   if (typeof versao !== 'number') throw erro('resposta-invalida');
   if (versao < VERSAO_DA_API) throw erro('versao-antiga', String(versao));

@@ -5,6 +5,7 @@ import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import EnviarParaOAnki from '../src/components/views/vocab/EnviarParaOAnki'
+import { definirChaveDoAnki } from '../src/lib/anki/ankiConnect'
 import { CHAVE_DAS_PREFS_DO_ANKI } from '../src/lib/anki/ankiConnectPrefs'
 import type { VocabCard } from '../src/types'
 
@@ -33,6 +34,7 @@ function anki(rotas: Record<string, (p: Record<string, unknown> | undefined) => 
 
 beforeEach(() => {
   localStorage.clear()
+  sessionStorage.clear()
   vi.stubGlobal('location', { origin: 'https://app.frasy.test' })
 })
 afterEach(() => {
@@ -95,5 +97,36 @@ describe('EnviarParaOAnki', () => {
     const alerta = await screen.findByRole('alert')
     expect(alerta.textContent).toContain('"webCorsOriginList": ["http://localhost", "https://app.frasy.test"]')
     expect(screen.queryByRole('button', { name: /Enviar/ })).toBeNull()
+  })
+
+  it('o campo da chave é senha, sem autocompletar; a chave vai em `key` ao Anki e fica no sessionStorage', async () => {
+    const corpos: Array<Record<string, unknown>> = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_u: string, init?: RequestInit) => {
+        const c = JSON.parse(String(init?.body))
+        corpos.push(c)
+        const r: Record<string, unknown> = {
+          requestPermission: { permission: 'granted', requireApiKey: true, version: 6 },
+          version: 6,
+          deckNames: [],
+          modelNames: ['Basic'],
+          modelFieldNames: ['Front', 'Back'],
+        }
+        return new Response(JSON.stringify({ result: r[c.action], error: null }))
+      }),
+    )
+    render(<EnviarParaOAnki cartoes={[cartao(1)]} />)
+    const campo = screen.getByLabelText('Chave do AnkiConnect') as HTMLInputElement
+    expect(campo.type).toBe('password')
+    expect(campo.autocomplete).toBe('off')
+    fireEvent.change(campo, { target: { value: 'sua-senha' } })
+    fireEvent.click(screen.getByRole('button', { name: /Testar conexão/ }))
+    await screen.findByText('Conectado ao Anki.')
+    expect(corpos.length).toBeGreaterThan(2)
+    expect(corpos.every((c) => c.key === 'sua-senha')).toBe(true)
+    expect(sessionStorage.getItem('babel.anki_connect_key')).toBe('sua-senha')
+    expect(localStorage.getItem('babel.anki_connect_key')).toBeNull()
+    definirChaveDoAnki('')
   })
 })

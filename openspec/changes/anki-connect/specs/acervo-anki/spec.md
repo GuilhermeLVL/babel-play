@@ -37,6 +37,18 @@ trazer a linha exata `"webCorsOriginList": ["http://localhost", "<origem atual>"
 - **WHEN** a pessoa nega a janela de permissão do Anki
 - **THEN** o envio não começa e o painel explica como tentar de novo
 
+### Requirement: Chave do AnkiConnect (apiKey)
+
+O sistema SHALL enviar a chave no campo `key` de toda chamada ao Anki quando a pessoa a informar, e SHALL recomendar definir
+uma `apiKey` junto do `webCorsOriginList` (mostrando o trecho JSON); MUST NOT pedir para apagá-la. A chave MUST ficar em
+`sessionStorage` por padrão (`localStorage` só com "Lembrar neste aparelho") e MUST NOT ir ao servidor do Frasy, a log ou
+telemetria.
+
+#### Scenario: Anki exige chave
+
+- **WHEN** o AnkiConnect exige chave e o campo está vazio
+- **THEN** o painel pede a chave; com chave errada, diz que o Anki não a aceitou
+
 ### Requirement: Campos seguros e mapeamento por papel
 
 O sistema SHALL escapar `&`, `<` e `>` do texto da pessoa antes de gravá-lo nos campos HTML do Anki, limitar o tamanho de

@@ -133,7 +133,13 @@ const CONEXOES_FIXAS = [
 /**
  * O ANKICONNECT do computador da pessoa (`src/lib/anki/ankiConnect.ts`): o navegador manda os cartões ao Anki
  * aberto na própria máquina. É loopback: nenhum dado sai para um servidor, e o servidor do Frasy nunca fala com
- * o Anki. Vale também no modo público (menores só enviam o que é deles ao próprio Anki). Só esta porta.
+ * o Anki. Só esta porta, e SÓ as duas origens EXATAS abaixo (sem curinga de host ou porta).
+ *
+ * TRADE-OFF: vale para todo mundo, inclusive no modo público, porque a CSP é estática por deploy. Um XSS no Frasy
+ * poderia, em tese, chamar o Anki de quem liberou a origem no `webCorsOriginList`. Mitigações: (1) o Anki só
+ * responde a quem a pessoa liberou à mão (opt-in explícito, e o app recomenda definir uma `apiKey` junto); (2) a
+ * chave fica em `sessionStorage` por padrão e vai só no corpo da chamada ao 127.0.0.1; (3) o resto da CSP segue
+ * fechado (`script-src` sem `unsafe-inline`), que é a defesa contra o XSS em si.
  */
 const CONEXOES_DO_ANKI = ['http://127.0.0.1:8765', 'http://localhost:8765']
 

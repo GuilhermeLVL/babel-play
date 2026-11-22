@@ -7,12 +7,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mapeamentoPadrao } from '../src/core/anki/paraAnkiConnect'
 import {
   ANKI_CONNECT_URL,
+  definirChaveDoAnki,
   enviarCartoes,
   ErroDoAnkiConnect,
   linhaDeConfiguracao,
   listarBaralhos,
+  mensagemDoErro,
+  type MotivoDeErroDoAnki,
   TAMANHO_DO_LOTE,
   testarConexao,
+  trechoDeConfiguracao,
 } from '../src/lib/anki/ankiConnect'
 
 type Corpo = { action: string; version: number; params?: Record<string, unknown> }
@@ -41,6 +45,7 @@ beforeEach(() => {
   vi.stubGlobal('location', { origin: 'https://app.frasy.test' })
 })
 afterEach(() => {
+  definirChaveDoAnki('')
   vi.unstubAllGlobals()
 })
 
@@ -241,5 +246,74 @@ describe('enviarCartoes', () => {
     const todos = Array.from({ length: TAMANHO_DO_LOTE * 2 }, (_x, i) => cartao(i))
     const r = await enviarCartoes(todos, alvo, { sinal: ctl.signal })
     expect(r.adicionados).toBe(TAMANHO_DO_LOTE)
+  })
+})
+
+describe('chave do AnkiConnect', () => {
+  it('manda `key` em toda chamada quando configurada, e só para 127.0.0.1', async () => {
+    definirChaveDoAnki('  minha-senha  ')
+    const { chamadas, fn } = anki({
+      requestPermission: () => ({ permission: 'granted', requireApiKey: true, version: 6 }),
+      version: () => 6,
+    })
+    await testarConexao()
+    expect(chamadas.map((c) => (c as Corpo & { key?: string }).key)).toEqual(['minha-senha', 'minha-senha'])
+    expect(fn.mock.calls.every((c) => c[0] === ANKI_CONNECT_URL)).toBe(true)
+  })
+
+  it('sem chave configurada, não manda o campo `key`', async () => {
+    const { chamadas } = anki({
+      requestPermission: () => ({ permission: 'granted', version: 6 }),
+      version: () => 6,
+    })
+    await testarConexao()
+    expect(chamadas.every((c) => !('key' in c))).toBe(true)
+  })
+
+  it('o Anki exige chave e não há chave: chave-obrigatoria, pedindo a chave', async () => {
+    anki({ requestPermission: () => ({ permission: 'granted', requireApiKey: true, version: 6 }) })
+    const e = (await testarConexao().catch((x: unknown) => x)) as ErroDoAnkiConnect
+    expect(e.motivo).toBe('chave-obrigatoria')
+    expect(e.message).toMatch(/Chave do AnkiConnect/)
+  })
+
+  it('chave errada: o Anki diz "valid api key must be provided" => chave-incorreta', async () => {
+    definirChaveDoAnki('errada')
+    anki({
+      requestPermission: () => ({ permission: 'granted', requireApiKey: true, version: 6 }),
+      version: () => resposta(null, 'valid api key must be provided'),
+    })
+    await expect(testarConexao()).rejects.toMatchObject({ motivo: 'chave-incorreta' })
+  })
+
+  it('a chave só viaja para o Anki local: nenhuma chamada a outro destino e nada dela nas mensagens de erro', async () => {
+    definirChaveDoAnki('segredo-123')
+    const { fn } = anki({
+      requestPermission: () => ({ permission: 'granted', requireApiKey: true, version: 6 }),
+      version: () => resposta(null, 'valid api key must be provided'),
+    })
+    const e = (await testarConexao().catch((x: unknown) => x)) as ErroDoAnkiConnect
+    expect(fn.mock.calls.every((c) => c[0] === 'http://127.0.0.1:8765')).toBe(true)
+    expect(`${e.message} ${e.detalhe ?? ''}`).not.toContain('segredo-123')
+  })
+
+  it('nenhuma mensagem manda apagar a apiKey; a de origem recomenda definir uma, com o trecho JSON', () => {
+    const motivos: MotivoDeErroDoAnki[] = [
+      'anki-fechado',
+      'origem-nao-liberada',
+      'permissao-negada',
+      'chave-obrigatoria',
+      'chave-incorreta',
+      'versao-antiga',
+      'tempo-esgotado',
+      'resposta-invalida',
+      'entrada-invalida',
+      'erro-do-anki',
+    ]
+    for (const m of motivos) expect(mensagemDoErro(m)).not.toMatch(/apague|apagar|remova|desligue|delete/i)
+    const trecho = trechoDeConfiguracao('https://app.frasy.test')
+    expect(trecho).toContain('"webCorsOriginList": ["http://localhost", "https://app.frasy.test"]')
+    expect(trecho).toContain('"apiKey": "<uma senha sua>"')
+    expect(mensagemDoErro('origem-nao-liberada', 'https://app.frasy.test')).toContain(trecho)
   })
 })

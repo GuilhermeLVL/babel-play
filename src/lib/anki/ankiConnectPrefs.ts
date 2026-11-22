@@ -47,3 +47,40 @@ export function gravarPrefsDoAnki(prefs: PrefsDoAnki): void {
     /* sem storage: a escolha vale só nesta abertura */
   }
 }
+
+/**
+ * A CHAVE do AnkiConnect (segredo da pessoa): `sessionStorage` por padrão (some ao fechar a aba); só vai ao
+ * `localStorage` com o "lembrar neste aparelho" explícito. Fica FORA do JSON das preferências e nunca sai do
+ * navegador (a não ser, pelo cliente, para o Anki em 127.0.0.1).
+ */
+export const CHAVE_DA_CHAVE_DO_ANKI = 'babel.anki_connect_key';
+
+export function lerChaveDoAnki(): { chave: string; lembrar: boolean } {
+  try {
+    const guardada = localStorage.getItem(CHAVE_DA_CHAVE_DO_ANKI);
+    if (guardada) return { chave: guardada.slice(0, 200), lembrar: true };
+  } catch {
+    /* sem storage */
+  }
+  try {
+    return { chave: (sessionStorage.getItem(CHAVE_DA_CHAVE_DO_ANKI) ?? '').slice(0, 200), lembrar: false };
+  } catch {
+    return { chave: '', lembrar: false };
+  }
+}
+
+export function gravarChaveDoAnki(chave: string, lembrar: boolean): void {
+  const limpa = chave.trim().slice(0, 200);
+  for (const [armazem, usar] of [
+    ['local', lembrar],
+    ['session', !lembrar],
+  ] as const) {
+    try {
+      const s = armazem === 'local' ? localStorage : sessionStorage;
+      if (usar && limpa) s.setItem(CHAVE_DA_CHAVE_DO_ANKI, limpa);
+      else s.removeItem(CHAVE_DA_CHAVE_DO_ANKI);
+    } catch {
+      /* sem storage: a chave vale só nesta abertura */
+    }
+  }
+}

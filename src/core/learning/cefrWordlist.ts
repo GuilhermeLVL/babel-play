@@ -124,3 +124,19 @@ export function coberturaDaWordlist(lang: string): { total: number; porNivel: Re
   if (!entrada) return { total: 0, porNivel: {} }
   return { total: entrada.total, porNivel: { ...entrada.porNivel } }
 }
+
+const porNivelCache = new Map<string, Record<CefrLevel, string[]>>()
+
+/**
+ * As palavras da lista de um idioma agrupadas por nível (já normalizadas, na ordem da lista). Vazio nos níveis sem
+ * palavra e em idioma sem lista. Serve ao teste rápido de vocabulário, que amostra por faixa.
+ */
+export function palavrasPorNivel(lang: string): Record<CefrLevel, string[]> {
+  const idioma = base(lang)
+  const pronto = porNivelCache.get(idioma)
+  if (pronto) return pronto
+  const r: Record<CefrLevel, string[]> = { A1: [], A2: [], B1: [], B2: [], C1: [], C2: [] }
+  for (const [palavra, nivel] of indiceDe(idioma)) r[nivel].push(palavra)
+  if (indices.has(idioma)) porNivelCache.set(idioma, r)
+  return r
+}

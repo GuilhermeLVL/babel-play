@@ -64,3 +64,62 @@ describe('espelho sem conta das palavras marcadas', () => {
     expect(await listar()).toEqual([])
   })
 })
+
+describe('espelho sem conta: marcação em lote (teste de vocabulário)', () => {
+  const lote = (corpo: unknown) =>
+    servidorEfemero('/api/vocab/marcadas/lote', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(corpo),
+    })
+  const desfazer = (corpo: unknown) =>
+    servidorEfemero('/api/vocab/marcadas/lote/desfazer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(corpo),
+    })
+
+  it('grava só conhecida, reduz e tira repetidas, e não sobrescreve ignorada', async () => {
+    await put({ lang: 'en', chave: 'ghost', estado: 'ignorada' })
+    const r = await lote({ lang: 'en-US', chaves: ['Hello!', 'hello', 'ghost', 'World', '...'] })
+    expect(r.status).toBe(200)
+    expect(await r.json()).toMatchObject({ criadas: ['hello', 'world'], ignoradas: 1, jaConhecidas: 0 })
+    const todas = await listar('en')
+    expect(todas.find((m) => m.chave === 'ghost')?.estado).toBe('ignorada')
+    expect(
+      todas
+        .filter((m) => m.estado === 'conhecida')
+        .map((m) => m.chave)
+        .sort(),
+    ).toEqual(['hello', 'world'])
+    expect(await (await lote({ lang: 'en', chaves: ['hello'] })).json()).toMatchObject({ criadas: [], jaConhecidas: 1 })
+  })
+
+  it('valida: idioma, lista vazia, só pontuação e lote acima de 3.000 dão 400', async () => {
+    expect((await lote({ lang: '1', chaves: ['hi'] })).status).toBe(400)
+    expect((await lote({ lang: 'en', chaves: [] })).status).toBe(400)
+    expect((await lote({ lang: 'en', chaves: ['!!!'] })).status).toBe(400)
+    expect((await lote({ lang: 'en', chaves: Array.from({ length: 3001 }, (_, i) => `w${i}`) })).status).toBe(400)
+  })
+
+  it('o teto é atômico: lote que não cabe não grava nada', async () => {
+    const cheia = Array.from({ length: 19_999 }, (_, i) => ({
+      lang: 'en',
+      chave: `k${i}`,
+      estado: 'conhecida',
+      atualizadoEm: 1,
+    }))
+    localStorage.setItem('babel.efemero.palavrasMarcadas', JSON.stringify(cheia))
+    expect((await lote({ lang: 'en', chaves: ['nova', 'outra'] })).status).toBe(409)
+    expect(await listar('en')).toHaveLength(19_999)
+    expect((await lote({ lang: 'en', chaves: ['nova'] })).status).toBe(200)
+  })
+
+  it('desfaz em lote só as conhecidas das chaves dadas', async () => {
+    await put({ lang: 'en', chave: 'ghost', estado: 'ignorada' })
+    await lote({ lang: 'en', chaves: ['a1', 'b1'] })
+    const r = await desfazer({ lang: 'en', chaves: ['a1', 'ghost', 'nada'] })
+    expect(await r.json()).toEqual({ removidas: ['a1'] })
+    expect((await listar('en')).map((m) => m.chave).sort()).toEqual(['b1', 'ghost'])
+  })
+})

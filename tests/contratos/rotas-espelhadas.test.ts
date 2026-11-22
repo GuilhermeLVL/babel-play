@@ -117,12 +117,12 @@ function rotasChamadasPeloCliente(): string[] {
 /**
  * A rota está na tabela do servidor efêmero?
  *
- * Tenta os quatro métodos, e basta UM responder algo que não seja "exige conta": a pergunta é se
- * existe alguém do outro lado daquele caminho, não se todos os verbos existem. Testar só GET diria
- * que `/api/vocab/bulk-add` (que é POST) está fora do espelho.
+ * Tenta os cinco métodos (`PUT` entrou com `/api/vocab/marcadas/lote`, que só tem `PUT`), e basta UM
+ * responder algo que não seja "exige conta": a pergunta é se existe alguém do outro lado daquele
+ * caminho, não se todos os verbos existem. Testar só GET diria que `/api/vocab/bulk-add` (que é POST) está fora do espelho.
  */
 async function espelhada(rota: string): Promise<boolean> {
-  for (const method of ['GET', 'POST', 'PATCH', 'DELETE']) {
+  for (const method of ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']) {
     const res = await servidorEfemero(rota, { method, body: method === 'GET' ? undefined : '{}' })
     if (res.status !== 501) return true
     const corpo = await res.json().catch(() => ({}) as Record<string, unknown>)

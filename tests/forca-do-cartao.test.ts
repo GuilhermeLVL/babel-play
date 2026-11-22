@@ -89,3 +89,14 @@ describe('etiquetas com sinais combinantes', () => {
     expect(normalizarEtiqueta('हिंदी')).toBe('हिंदी')
   })
 })
+
+describe('normalizarEtiqueta: entrada hostil', () => {
+  it('recusa entrada acima do teto sem custo polinomial', async () => {
+    const { normalizarEtiqueta } = await import('../src/core/vocabulario/etiquetasDoUsuario')
+    const t0 = performance.now()
+    expect(normalizarEtiqueta('-'.repeat(100_000) + 'a')).toBeNull()
+    expect(normalizarEtiqueta('#'.repeat(200) + 'filme')).toBeNull()
+    expect(performance.now() - t0).toBeLessThan(50)
+    expect(normalizarEtiqueta('--filme--')).toBe('filme')
+  })
+})

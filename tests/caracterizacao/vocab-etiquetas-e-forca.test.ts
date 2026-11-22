@@ -6,7 +6,7 @@
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
+import { type AppDeTeste, subirApp } from './_app'
 
 let s: AppDeTeste
 let ta: string

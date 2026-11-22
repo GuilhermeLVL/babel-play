@@ -11,16 +11,30 @@ export const MAX_CARACTERES_DA_ETIQUETA = 32;
 
 /** Uma etiqueta normalizada, ou `null` se não sobra nada ou passa de 32 caracteres. */
 export function normalizarEtiqueta(bruta: string): string | null {
-  const t = bruta
-    .normalize('NFC')
-    .trim()
-    .replace(/^#+/, '')
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^\p{L}\p{M}\p{N}_-]/gu, '') // \p{M}: sinais combinantes (vogais do árabe, devanágari)
-    .replace(/^-+|-+$/g, '');
+  /* Teto ANTES de qualquer regex (entrada do cliente; CodeQL js/polynomial-redos): uma etiqueta válida tem até 32
+     caracteres, e 4× isso cobre `#`, espaços e acentos decompostos que a normalização ainda vai tirar. Acima dele,
+     recusa (cortar aceitaria em silêncio uma versão truncada). */
+  if (typeof bruta !== 'string' || bruta.length > MAX_CARACTERES_DA_ETIQUETA * 4) return null;
+  const t = aparaHifens(
+    bruta
+      .normalize('NFC')
+      .trim()
+      .replace(/^#+/, '')
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^\p{L}\p{M}\p{N}_-]/gu, ''), // \p{M}: sinais combinantes (vogais do árabe, devanágari)
+  );
   if (!t || t.length > MAX_CARACTERES_DA_ETIQUETA) return null;
   return t;
+}
+
+/** Tira os `-` das pontas sem regex (`/^-+|-+$/` é polinomial numa fileira longa de hífens). */
+function aparaHifens(t: string): string {
+  let ini = 0;
+  let fim = t.length;
+  while (ini < fim && t[ini] === '-') ini++;
+  while (fim > ini && t[fim - 1] === '-') fim--;
+  return t.slice(ini, fim);
 }
 
 export type ResultadoDasEtiquetas = { ok: true; etiquetas: string[] } | { ok: false; motivo: 'muitas' | 'invalida' };

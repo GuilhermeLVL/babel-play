@@ -44,6 +44,8 @@ const ENTRADA: Record<MinigameId, 'apontar' | 'teclado-na-tela' | 'teclado' | 'f
   escuta: 'apontar',
   ditado: 'teclado',
   conectores: 'apontar',
+  retraducao: 'teclado',
+  ditadoDeFrase: 'teclado',
   karuta: 'apontar',
   choseong: 'apontar',
   tenis: 'teclado',

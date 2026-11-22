@@ -60,6 +60,8 @@ export function gradeFor(gameId: MinigameId, outcome: ItemOutcome): Grade {
     case 'karaoke':
     case 'escuta':
     case 'ditado':
+    case 'retraducao':
+    case 'ditadoDeFrase':
     case 'conectores':
     case 'cadavre':
       // Vivem de FALAS ou de produção livre: não há cartão para agendar.

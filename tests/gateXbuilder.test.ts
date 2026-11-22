@@ -20,6 +20,7 @@ import { describe, expect,it } from 'vitest'
 
 import { buildRodadasConectores,buildRodadasDitado, buildRodadasEscuta } from '../src/core/minigames/escuta'
 import { type EntradaDoEstado,estadoDoJogo } from '../src/core/minigames/estadoDosJogos'
+import { frasesElegiveis } from '../src/core/minigames/frasesCorrigidas'
 import { buildItems } from '../src/core/minigames/itemSource'
 import { buildScrambleRounds } from '../src/core/minigames/scramble'
 import {
@@ -101,6 +102,8 @@ function montaRodada(id: MinigameId, e: EntradaDoEstado): number {
   if (id === 'scramble') return buildScrambleRounds(e.frases, { quantidade: def.maxItems }).length
   if (id === 'escuta') return e.temAudio ? buildRodadasEscuta(e.frases, { quantidade: def.maxItems }).length : 0
   if (id === 'ditado') return e.temAudio ? buildRodadasDitado(e.frases, { quantidade: def.maxItems }).length : 0
+  if (id === 'retraducao') return frasesElegiveis(e.frases, 'retraducao', { lang: e.lang, quantidade: def.maxItems }).length
+  if (id === 'ditadoDeFrase') return e.temVoz ? frasesElegiveis(e.frases, 'ditado', { lang: e.lang, quantidade: def.maxItems }).length : 0
   if (id === 'conectores') return buildRodadasConectores(e.frases, { lang: e.lang, quantidade: def.maxItems }).length
   // karaokê: as falas com áudio real
   return e.temAudio ? e.frases.filter(f => f.endMs > f.startMs && f.text.trim()).length : 0

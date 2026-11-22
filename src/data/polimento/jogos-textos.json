@@ -996,5 +996,71 @@
       ]
     ],
     "selo": true
+  },
+  "retraducao": {
+    "titulo": "Retradução",
+    "instr": "Reescreva no idioma que você estuda a frase que a tradução diz.",
+    "treina": "produzir a frase inteira a partir do significado, e conferir com o original.",
+    "passos": [
+      "Leia a tradução, que está na sua língua.",
+      "Escreva a frase no idioma que estuda e aperte Enter.",
+      "Veja, palavra a palavra, o que faltou, o que sobrou e o que foi trocado. Com 80 ou mais, conta como acerto."
+    ],
+    "mini": "<span class=\"mm-frase\">o gato dorme <i class=\"mm-chip ok pulsa\">the cat sleeps</i></span>",
+    "rodada": "Rodada · 3 frases",
+    "instrPalco": "Reescreva no idioma que você estuda a frase que a tradução diz.",
+    "niveis": [],
+    "ajudas": [
+      {
+        "nome": "Mostrar dica",
+        "resto": "",
+        "txt": "Revela a primeira letra de cada palavra.",
+        "custo": "zera o combo"
+      }
+    ],
+    "paragrafos": [
+      "Não há relógio nem bônus por rapidez: a nota vem só do que você escreveu."
+    ],
+    "ajudasHud": [
+      [
+        "dica",
+        "Mostrar dica",
+        "Conta como dica: zera o combo"
+      ]
+    ],
+    "selo": true
+  },
+  "ditadoDeFrase": {
+    "titulo": "Ditado de frase",
+    "instr": "Ouça a frase inteira e escreva o que ouviu.",
+    "treina": "entender a frase toda de ouvido e escrevê-la.",
+    "passos": [
+      "Aperte Ouvir. Pode ouvir de novo quantas vezes quiser.",
+      "Escreva a frase e aperte Enter.",
+      "Veja, palavra a palavra, o que faltou, o que sobrou e o que foi trocado. Com 80 ou mais, conta como acerto."
+    ],
+    "mini": "<span class=\"mm-frase\">♪ <i class=\"mm-chip ok pulsa\">the cat sleeps</i></span>",
+    "rodada": "Rodada · 3 frases",
+    "instrPalco": "Ouça a frase inteira e escreva o que ouviu.",
+    "niveis": [],
+    "ajudas": [
+      {
+        "nome": "Mostrar dica",
+        "resto": "",
+        "txt": "Revela a primeira letra de cada palavra.",
+        "custo": "zera o combo"
+      }
+    ],
+    "paragrafos": [
+      "Não há relógio nem bônus por rapidez: a nota vem só do que você escreveu."
+    ],
+    "ajudasHud": [
+      [
+        "dica",
+        "Mostrar dica",
+        "Conta como dica: zera o combo"
+      ]
+    ],
+    "selo": true
   }
 }

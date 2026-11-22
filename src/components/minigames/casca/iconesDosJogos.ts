@@ -2,6 +2,7 @@ import type { MinigameId } from '@core';
 import {
   Briefcase,
   Keyboard,
+  Languages,
   Link2,
   type LucideIcon,
   Mic,
@@ -34,4 +35,6 @@ export const ICONE_DO_JOGO: Record<MinigameId, LucideIcon> = {
   escuta: Volume2 /* `jogos2.js:648` */,
   ditado: PenLine /* `jogos2.js:693` */,
   conectores: Link2 /* `jogos2.js:767` */,
+  retraducao: Languages,
+  ditadoDeFrase: PenLine,
 };

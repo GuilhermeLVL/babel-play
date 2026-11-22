@@ -203,6 +203,38 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
       { o_que: 'Pular passa para a próxima frase.', custo: 'conta como não consegui' },
     ],
   },
+  retraducao: {
+    treina: 'Produzir a frase no idioma que você estuda a partir do que ela significa, e conferir com o original.',
+    passos: [
+      'Leia a frase na sua língua, que é a tradução de uma frase que você já encontrou.',
+      'Escreva-a no idioma que estuda e aperte Enter.',
+      'Compare com o original: o que faltou, o que sobrou e o que foi trocado aparece palavra a palavra.',
+    ],
+    avaliacao:
+      'A nota vem de quantas palavras batem com o original, na ordem. Maiúscula e pontuação não contam; o acento é opcional. Acerta com 80 pontos ou mais.',
+    limites:
+      'Existe mais de um jeito certo de dizer uma frase. Se o seu difere do original mas está correto, a nota cai do mesmo jeito: use o diff como pista, não como sentença.',
+    ajudas: [
+      { o_que: 'Mostrar dica revela a primeira letra de cada palavra.', custo: 'zera o combo' },
+      { o_que: 'Ver o original encerra a frase.', custo: 'conta como não consegui' },
+    ],
+  },
+  ditadoDeFrase: {
+    treina: 'Entender a frase inteira de ouvido e escrevê-la, palavra por palavra.',
+    passos: [
+      'Aperte Ouvir: a frase é lida em voz alta.',
+      'Escreva o que ouviu e aperte Enter. Ouvir de novo não tem limite.',
+      'Compare com o original: o que faltou, o que sobrou e o que foi trocado aparece palavra a palavra.',
+    ],
+    avaliacao:
+      'A nota vem de quantas palavras batem com o original, na ordem. Maiúscula e pontuação não contam; o acento é opcional. Acerta com 80 pontos ou mais.',
+    limites:
+      'A voz é sintetizada e pode soar diferente de uma pessoa real. Sem voz neste aparelho para o idioma, o jogo não abre.',
+    ajudas: [
+      { o_que: 'Ouvir de novo, sem limite.', custo: null },
+      { o_que: 'Mostrar dica revela a primeira letra de cada palavra.', custo: 'zera o combo' },
+    ],
+  },
   conectores: {
     treina: 'Perceber as palavras que AMARRAM as ideias, o que separa entender palavras de entender o texto.',
     passos: [

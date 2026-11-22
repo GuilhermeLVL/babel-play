@@ -78,6 +78,8 @@ export const REVELAVEL: Record<MinigameId, ReadonlySet<Faceta>> = {
   scramble: new Set<Faceta>(['pista', 'forma', 'estado', 'quando', 'nivel', 'origem']),
   karaoke: new Set<Faceta>(['alvo', 'pista', 'forma', 'estado', 'quando', 'nivel', 'origem']),
   conectores: new Set<Faceta>(['alvo', 'pista', 'forma', 'estado', 'quando', 'nivel', 'origem']),
+  retraducao: new Set<Faceta>(['forma', 'estado', 'quando', 'nivel', 'origem']),
+  ditadoDeFrase: new Set<Faceta>(['forma', 'estado', 'quando', 'nivel', 'origem']),
   karuta: new Set<Faceta>(['pista', 'forma', 'estado', 'quando', 'nivel', 'origem']),
   choseong: new Set<Faceta>(['pista', 'forma', 'estado', 'quando', 'nivel', 'origem']),
   tenis: new Set<Faceta>(['pista', 'forma', 'estado', 'quando', 'nivel', 'origem']),

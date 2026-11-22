@@ -85,6 +85,22 @@ const ICONES: Record<MinigameId, (className?: string) => React.ReactNode> = {
       <rect x="7" y="13" width="3" height="3" fill="var(--accent)" />
     </Px>
   ),
+  // Retradução: duas setas em sentidos opostos.
+  retraducao: (c) => (
+    <Px className={c}>
+      <path d="M3 8h14l-4-4M21 16H7l4 4" fill="none" stroke="var(--accent)" strokeWidth="2.5" />
+    </Px>
+  ),
+  // Ditado de frase: a linha e a pena, com uma onda de som.
+  ditadoDeFrase: (c) => (
+    <Px className={c}>
+      <rect x="3" y="18" width="18" height="2" fill="var(--border-subtle)" />
+      <rect x="3" y="6" width="2" height="6" fill="var(--accent)" />
+      <rect x="7" y="3" width="2" height="12" fill="var(--accent)" />
+      <rect x="11" y="7" width="2" height="4" fill="var(--accent)" />
+      <rect x="16" y="8" width="4" height="8" fill="var(--warn)" transform="rotate(30 18 12)" />
+    </Px>
+  ),
   // Conectores: dois elos.
   conectores: (c) => (
     <Px className={c}>

@@ -22,7 +22,7 @@ afterEach(cleanup)
 const JOGOS = Object.keys(MINIGAMES) as MinigameId[]
 
 describe('os textos do protótipo', () => {
-  it('os 18 jogos têm título, o que treina, três passos e a miniatura', () => {
+  it('os 20 jogos têm título, o que treina, três passos e a miniatura', () => {
     for (const jogo of JOGOS) {
       const t = textosDoJogo(jogo)!
       expect(t, jogo).toBeTruthy()
@@ -33,9 +33,9 @@ describe('os textos do protótipo', () => {
     }
   })
 
-  it('16 jogos têm níveis; Cadavre e Karaokê não', () => {
+  it('16 jogos têm níveis; Cadavre, Karaokê e os dois de frase inteira não', () => {
     const sem = JOGOS.filter((j) => !jogoTemNiveisNoDesenho(j))
-    expect(sem.sort()).toEqual(['cadavre', 'karaoke'])
+    expect(sem.sort()).toEqual(['cadavre', 'ditadoDeFrase', 'karaoke', 'retraducao'])
     expect(textosDoJogo('tenis')!.niveis).toEqual([
       ['facil', 'Bola lenta (11 s) e a primeira letra já vem'],
       ['medio', 'A regra normal do jogo'],

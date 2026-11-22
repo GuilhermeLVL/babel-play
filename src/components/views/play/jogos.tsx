@@ -151,6 +151,28 @@ export const JOGOS: JogoUI[] = [
     },
   },
   {
+    chave: 'retraducao',
+    id: 'retraducao',
+    icone: <IconePixel id="retraducao" className="w-5 h-5" />,
+    titulo: { kids: 'Diga de volta', pro: 'Retradução', senior: 'Escrever a frase de volta' },
+    descricao: {
+      kids: 'Leia na sua língua e escreva a frase no idioma que aprende',
+      pro: 'Reescreva no idioma-alvo uma frase que você já viu e compare com o original, palavra a palavra',
+      senior: 'Leia a tradução, escreva a frase no idioma que estuda e veja o que difere do original',
+    },
+  },
+  {
+    chave: 'ditadoDeFrase',
+    id: 'ditadoDeFrase',
+    icone: <IconePixel id="ditadoDeFrase" className="w-5 h-5" />,
+    titulo: { kids: 'Escreva a frase toda', pro: 'Ditado de frase', senior: 'Escrever a frase que ouviu' },
+    descricao: {
+      kids: 'Ouça a frase inteira e escreva',
+      pro: 'Ouça a frase inteira e digite; a correção mostra o que faltou, sobrou ou foi trocado',
+      senior: 'Ouça a frase com calma, escreva e veja palavra a palavra onde diferiu',
+    },
+  },
+  {
     chave: 'blitz',
     id: 'blitz',
     icone: <IconePixel id="blitz" className="w-5 h-5" />,

@@ -68,6 +68,7 @@ const FAMILIA_NA_GRADE: Partial<Record<MinigameId, 'palavra' | 'frase' | 'escuta
   karuta: 'escuta',
   vitendawili: 'frase',
   cadavre: 'frase',
+  ditadoDeFrase: 'escuta',
 };
 export function familiaDoJogo(id: MinigameId): 'palavra' | 'frase' | 'escuta' {
   const fixa = FAMILIA_NA_GRADE[id];
@@ -425,6 +426,8 @@ const ARTE: Record<MinigameId, (p: { tom: string }) => React.JSX.Element> = {
   blitz: ArteDuelo,
   scramble: ArteEmbaralhada,
   conectores: ArteConectores,
+  retraducao: ArteDitado,
+  ditadoDeFrase: ArteDitado,
   karaoke: ArteKaraoke,
   escuta: ArteEscuta,
   ditado: ArteDitado,

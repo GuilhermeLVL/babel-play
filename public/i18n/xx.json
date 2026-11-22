@@ -1411,7 +1411,10 @@
   "cerca de {a} a {b} min": "[çérçá dé {a} á {b} míñ ·········]",
   "cerca de {n} min": "[çérçá dé {n} míñ ······]",
   "Cerca de {n} min de áudio.": "[Çérçá dé {n} míñ dé áüdíö. ··········]",
-  "cerca de {n} palavras novas": "[çérçá dé {n} pálávráš ñöváš ···········]",
+  "cerca de {n} palavras novas": {
+    "one": "[çérçá dé {n} pálávráš ñöváš ···········]",
+    "other": "[çérçá dé {n} pálávráš ñöváš ···········]"
+  },
   "cerca de {n} palavras por minuto": "[çérçá dé {n} pálávráš pör míñütö ·············]",
   "certo": "[çértö ··]",
   "Certo, palavra por palavra.": "[Çértö, pálávrá pör pálávrá. ···········]",
@@ -6252,6 +6255,8 @@
   "Você já escolheu {n}. Desmarque um para trocar.": "[Vöçê já éšçölhéü {n}. Déšmárqüé üm párá tröçár. ···················]",
   "Você já ganhou as recompensas de anúncio de hoje. Amanhã tem de novo.": "[Vöçê já gáñhöü áš réçömpéñšáš dé áñúñçíö dé höjé. Ámáñhã tém dé ñövö. ····························]",
   "Você já sabe {n}%": "[Vöçê já šábé {n}% ·······]",
+  "Você já sabe {n}% desta sessão": "[Vöçê já šábé {n}% déštá šéššãö ············]",
+  "Você já sabe {n}% deste capítulo": "[Vöçê já šábé {n}% déšté çápítülö ·············]",
   "Você já sabe {n}% deste texto": "[Vöçê já šábé {n}% déšté téxtö ············]",
   "Você já sabe esta palavra": "[Vöçê já šábé éštá pálávrá ··········]",
   "Você já tem este item: +{n} Seeds": "[Vöçê já tém éšté ítém: +{n} Šéédš ·············]",

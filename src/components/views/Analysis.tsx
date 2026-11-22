@@ -1,6 +1,7 @@
 import { BarChart3, BookOpen, Gamepad2, MessagesSquare } from 'lucide-react';
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 
+import { trechosDaSessao } from '../../core/leitura/coberturaDoConteudo';
 import type { AppMetrics, UtteranceRow } from '../../data/api';
 import { fetchDeck, fetchSessionTranscript, fetchSettings } from '../../data/api';
 import { applyOutputDevice } from '../../lib/audioDevices';
@@ -53,6 +54,7 @@ import type { DerivedProgress } from '../../lib/progress';
 import { perfilProtegido } from '../../lib/protecaoDoMenor';
 import { TranscriptSettings } from '../../lib/transcriptUtils';
 import { aparelhoTemVoz, haVozPara } from '../../lib/voz/haVoz';
+import CoberturaDoConteudo from '../CoberturaDoConteudo';
 import ExportarSessao from './analise/ExportarSessao';
 import PlayerInterativo from './analise/PlayerInterativo';
 import JogosDaSessao from './analise/quest/JogosDaSessao';
@@ -294,6 +296,14 @@ export default function Analysis({
       };
     });
   }, [sentences, realUtterances]);
+
+  /* A COBERTURA da sessão: o texto original das falas, no idioma da fala (não a tradução). O idioma vem da sessão ou
+     da própria fala, ANTES do fallback de `sentences` (que cai no idioma da pessoa): sem idioma confiável, sem número. */
+  const falasCruas = React.useMemo(
+    () => toSentences(realUtterances as UtteranceRow[]).map((s) => ({ texto: s.text, lang: s.lang })),
+    [realUtterances],
+  );
+  const cobertura = React.useMemo(() => trechosDaSessao(falasCruas, sessionLangs?.src), [falasCruas, sessionLangs]);
 
   // Total duration in seconds based on durationStr
   const totalDurationSeconds = React.useMemo(() => {
@@ -797,6 +807,7 @@ export default function Analysis({
       aoExportar={() => setShowExportModal(true)}
       repintar={['dashboard', 'lexical', 'fluency'].indexOf(overviewSubTab)}
     >
+      <CoberturaDoConteudo trechos={cobertura?.trechos ?? null} idioma={cobertura?.idioma} tipo="sessao" />
       {/* O RESUMO DA SESSÃO (IA de estudo, etapa 2): na revisão, com a transcrição pronta e falas suficientes. Atrás
           da flag `ia_de_estudo` (a porta não renderiza nada desligada). */}
       {currentTab === 'transcript' &&

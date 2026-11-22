@@ -103,6 +103,7 @@ import {
 import type { VocabWord } from '../../../types';
 import { BotaoDoAvatar, DicaDoAvatar } from '../../avatar/modo/BotaoDoAvatar';
 import { useAvatarDoModo } from '../../avatar/modo/useAvatarDoModo';
+import CoberturaDoConteudo from '../../CoberturaDoConteudo';
 import { toast } from '../../Toast';
 import AvatarDoNarrador from './AvatarDoNarrador';
 import BarraDaSelecao, { type TrechoSelecionado } from './BarraDaSelecao';
@@ -287,6 +288,14 @@ export default function LeitorDoLivro({
   const repo = useMemo(() => anotacoesDoLivro(livroId), [livroId]);
   const idiomaRef = useRef('');
   idiomaRef.current = idioma || baseLang(langConfig.studying);
+  /* A COBERTURA do capítulo em exibição: os parágrafos da seção, lidos uma vez por capítulo (a conta é do hook). */
+  const secaoAtual = local?.section?.current;
+  const [trechosDaSecao, setTrechosDaSecao] = useState<string[] | null>(null);
+  useEffect(() => {
+    setTrechosDaSecao(
+      estado === 'pronto' && !info?.ehPdf ? (motorRef.current?.secaoAtual()?.paragrafos ?? null) : null,
+    );
+  }, [secaoAtual, estado, info?.ehPdf]);
   /* O ELENCO (flag `avatar_elenco`): voz por personagem e emoção por frase. Sem a flag nada disto age. */
   const elenco = useElencoDoLivro({
     livroId,
@@ -1166,6 +1175,10 @@ export default function LeitorDoLivro({
         <p className="leitor-aviso" role="note">
           {avisoPdf}
         </p>
+      )}
+
+      {estado === 'pronto' && !info?.ehPdf && (
+        <CoberturaDoConteudo trechos={trechosDaSecao} idioma={idioma} tipo="capitulo" />
       )}
 
       {avatar.dica.visivel && !info?.ehPdf && estado === 'pronto' && (

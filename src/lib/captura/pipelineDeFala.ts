@@ -49,7 +49,7 @@ import { inglesNuvemVenceAparelho } from '../../core/rota/medicoesDeStt';
 import type { DecisaoDeRota } from '../../core/rota/politicaDeRota';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
 import { temAdaptadorWebGpu } from '../../gateway/adaptadorWebGpu';
-import { ID_DO_PARAKEET } from '../../gateway/adapters/parakeetModelo';
+import { ID_DO_PARAKEET, parakeetAceita } from '../../gateway/adapters/parakeetModelo';
 import type { AvisoDeDegradacaoDoStt, SttFinal } from '../../gateway/capabilities';
 import { capMetrics, type CapSource } from '../../gateway/capture/captureMetrics';
 import type { EspeculacaoDoFinal } from '../../gateway/capture/systemAudio';
@@ -834,18 +834,35 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     };
     /** Quanto de fala o 1º parcial espera: 1,5 s no automático; 0 = o mínimo da própria captura (0,6 s). */
     const primeiroParcialComMs = (): number => (perfModeAutomatico() ? PRIMEIRO_PARCIAL_DO_AUTOMATICO_MS : 0);
+    /** A dica de idioma com que o parcial desta fala vai ao motor (a mesma regra do `onPartialAudio`; '' = ainda sem dica). */
+    const dicaDoParcial = (seq: number | undefined): string => {
+      const { hint, from } = langs(seq);
+      return !from && !hint ? (contextoDoSttRef?.current.idiomaDe(source) ?? '') : hint;
+    };
     /**
-     * CADÊNCIA ADAPTATIVA (flag `parciais_vivos`): a captura pergunta, a cada tique, se pede um parcial agora. `undefined`
+     * ESCOPO DOS PARCIAIS VIVOS: SÓ a rota do Parakeet (pt/es, com `parciais_parakeet` e o Parakeet ativo na cadeia). Em qualquer outra
+     * (inglês, Whisper, Moonshine, Web Speech, nuvem) o parcial é o de flag desligada, sem cadência, limitador, LocalAgreement nem armazém.
+     * Decidido a cada parcial, porque o idioma e o motor podem mudar no meio da sessão. Aprovado só no pt/Parakeet (A/B da V7).
+     */
+    const parcialVivoNaRota = (dica: string): boolean =>
+      flagLigada(FLAG_PARCIAIS_VIVOS) &&
+      flagLigada(FLAG_PARCIAIS_PARAKEET) &&
+      gateway.stt.parakeetAtivo?.() === true &&
+      parakeetAceita(dica);
+    /**
+     * CADÊNCIA ADAPTATIVA (flag `parciais_vivos`, só na rota do Parakeet): a captura pergunta, a cada tique, se pede um parcial agora. `undefined`
      * = flag desligada (ou o parcial único do modo desempenho automático): a captura segue o tique fixo de 2 s e o teto
      * por fala de sempre, sem mudança. O worker ocupado nunca pede: o parcial não enfileira, e o final cancela o parcial.
      */
     const cadenciaDoParcial = (e: {
+      seq?: number;
       janelaS: number;
       msDesdeUltimo: number;
       amostrasNovas: number;
       silencioMs: number;
     }): boolean | undefined => {
-      if (!flagLigada(FLAG_PARCIAIS_VIVOS) || perfModeAutomatico()) return undefined;
+      if (!parcialVivoNaRota(dicaDoParcial(e.seq === undefined ? undefined : e.seq + offset)) || perfModeAutomatico())
+        return undefined;
       return decidirParcial({
         rtf: medidorDeParcial.rtf(),
         janelaS: e.janelaS,
@@ -911,14 +928,14 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       const t0Parcial = performance.now();
       /* PARCIAIS VIVOS (flag `parciais_vivos`): o texto do decode em curso (`onUpdate`) é pintado na hora, como cauda
          provisória; a concordância (LocalAgreement-2) só avança com o decode COMPLETO. Desligada, nada disto existe. */
-      const vivos = flagLigada(FLAG_PARCIAIS_VIVOS);
-      /* Chave de LABORATÓRIO (`babel.lab.parciaisModo`): só vale com `parciais_vivos`; ausente = `cauda-token`, o de hoje. */
+      const vivos = parcialVivoNaRota(hint);
+      /* Chave de LABORATÓRIO (`babel.lab.parciaisModo`): override de laboratório; ausente = `acrescenta-decode`, o aprovado na V7. */
       const modoDeParciais = vivos
         ? lerModoDeParciais(lerChaveDeLaboratorio(CHAVE_DO_MODO_DE_PARCIAIS))
         : 'cauda-token';
       /* Chave de LABORATÓRIO (`babel.lab.parciaisMascara`): máscara dos modos `acrescenta-*`; ausente = 2. */
       const mascaraDeParciais = vivos ? lerMascaraDeParciais(lerChaveDeLaboratorio(CHAVE_DA_MASCARA_DE_PARCIAIS)) : 0;
-      const viaParakeet = vivos && flagLigada(FLAG_PARCIAIS_PARAKEET) && gateway.stt.parakeetAtivo();
+      const viaParakeet = vivos; // a rota dos parciais vivos É a do Parakeet
       const audioMs = (pcm.length / sr) * 1000; // antes do envio: o buffer é transferido ao worker
       const aoAtualizar =
         vivos && pintaTokens(modoDeParciais)

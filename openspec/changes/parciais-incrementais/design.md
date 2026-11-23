@@ -63,7 +63,7 @@ final substitui via `traducaoProvisoria` como hoje. Alternativa: traduzir a hip�
 ### D7. Flags e A/B
 
 `parciais_vivos`, `parciais_parakeet`, `traducao_incremental`, todas DESLIGADAS, sem regra de plano (PG 0029/0030/0031, SQLite
-0069/0070/0071, conferidas contra a main em 23/11/2026). V2 e V3 só têm efeito com V1 ligada. Cada uma tem `criterio.md` commitado antes da 1ª rodada,
+0069/0070/0071, conferidas contra a main em 23/11/2026). V2 e V3 só têm efeito com V1 ligada. **Escopo da entrega: os parciais vivos só valem na rota do Parakeet (pt/es, `parciais_parakeet` ligada, Parakeet ativo); a rota é decidida a cada parcial (`parcialVivoNaRota` no pipeline) e, fora dela, o comportamento é o de flag desligada. O modo padrão é `acrescenta-decode` (V7); a chave `babel.lab.parciaisModo` é só override. `traducao_incremental` foi reprovada no A/B e não se liga.** Cada uma tem `criterio.md` commitado antes da 1ª rodada,
 ≥ 10 rodadas por lado, IC 95% pareado por bootstrap (`ab.mjs`, `--alvos --flag-do-alvo`), conforme
 `docs/auditoria/protocolo-do-laboratorio-de-latencia.md`.
 

@@ -373,6 +373,8 @@ export interface SystemAudioCallbacks {
    * ou sem o callback = o caminho de sempre (`PARTIAL_INTERVAL_MS`, `MAX_PARCIAIS_POR_FALA`), idêntico a antes.
    */
   cadenciaDoParcial?: (e: {
+    /** A fala em curso (a mesma `seq` do `onPartialAudio`): o dono descobre o idioma dela e decide se o parcial vivo vale nesta rota. */
+    seq?: number;
     janelaS: number;
     msDesdeUltimo: number;
     amostrasNovas: number;
@@ -817,6 +819,7 @@ async function startCaptureFromStream(
     /* Cadência adaptativa (`parciais_vivos`): quando o dono responde, ela manda no lugar do teto, do mínimo e do
        espaçamento abaixo. O `querParcial` (modo desempenho, regulador, nuvem) continua valendo. */
     const adaptativa = cb.cadenciaDoParcial?.({
+      seq: currentSeq,
       janelaS: accumSamples / 16000,
       msDesdeUltimo: primeiro ? Infinity : performance.now() - ultimoParcialTs,
       amostrasNovas: accumSamples - lastPartialSamples,

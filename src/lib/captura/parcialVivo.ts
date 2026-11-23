@@ -57,6 +57,11 @@ export function lerParcialVivo(id: string): ParcialVivo | undefined {
   return valores.get(id);
 }
 
+/** Esta fala tem parcial vivo no armazém agora? (Só as da rota do Parakeet têm; as outras seguem o estado das falas, como sempre.) */
+export function temParcialVivo(id: string): boolean {
+  return valores.has(id);
+}
+
 /** A fala fechou (final, erro, ruído): o armazém a esquece, sem avisar ninguém (o estado das falas traz o texto de agora). */
 export function limparParcialVivo(id: string): void {
   valores.delete(id);

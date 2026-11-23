@@ -6,6 +6,7 @@ import {
   lerModoDeParciais,
   MASCARA_DO_ACRESCENTA,
   MAX_ENCOLHE_DA_CAUDA,
+  MODO_DE_PARCIAIS_PADRAO,
   pintaTokens,
   vistaAcrescenta,
   vistaDoDecode,
@@ -25,10 +26,12 @@ const rodar = (modo: Parameters<typeof vistaDoDecode>[0], hipoteses: string[]) =
 }
 
 describe('modo de exibição dos parciais vivos', () => {
-  it('lê a chave: padrão cauda-token, valores desconhecidos caem no padrão', () => {
-    expect(lerModoDeParciais(null)).toBe('cauda-token')
-    expect(lerModoDeParciais('')).toBe('cauda-token')
-    expect(lerModoDeParciais('xyz')).toBe('cauda-token')
+  it('o padrão é o aprovado na V7 (acrescenta-decode); a chave de laboratório só faz override; desconhecido cai no padrão', () => {
+    expect(MODO_DE_PARCIAIS_PADRAO).toBe('acrescenta-decode')
+    expect(lerModoDeParciais(null)).toBe('acrescenta-decode')
+    expect(lerModoDeParciais('')).toBe('acrescenta-decode')
+    expect(lerModoDeParciais('xyz')).toBe('acrescenta-decode')
+    expect(lerModoDeParciais('cauda-token')).toBe('cauda-token') // override de laboratório
     expect(lerModoDeParciais('sem-cauda')).toBe('sem-cauda')
     expect(lerModoDeParciais(' cauda-decode ')).toBe('cauda-decode')
   })

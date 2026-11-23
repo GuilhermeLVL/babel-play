@@ -127,6 +127,7 @@ import { preparoConcluido } from '../../lib/captura/pacotesNativos';
 import { linhaDaTraducao, linhaDaTranscricao } from '../../lib/captura/painelDoProcessamento';
 // Vocabulário dentro da captura: examinar a palavra, fichar no deck, mandar praticar.
 import { criarPalavraDaFala } from '../../lib/captura/palavraDaFala';
+import { temParcialVivo } from '../../lib/captura/parcialVivo';
 // Pipeline de fala: VAD → STT → diarização → emissão, e a preparação dos modelos locais.
 import { criarPipelineDeFala, type EnunciadoPendente, soltarOuvintesDaCaptura } from '../../lib/captura/pipelineDeFala';
 import { lerRascunhos } from '../../lib/captura/rascunhoDaCaptura';
@@ -235,7 +236,7 @@ import { useAvatarDaLegenda } from './captura/legendas/AvatarDaLegenda';
 let benchmarkPendente: AbortController | null = null;
 import { correcaoNaPratica, praticaPossivel } from '../../core/assistente/praticaDaConversa';
 import type { FalaDoAssistente, MarcaNaLinha } from '../../core/assistente/telaDoAssistente';
-import { FLAG_ASSISTENTE_AO_VIVO, FLAG_PARCIAIS_VIVOS } from '../../core/planos';
+import { FLAG_ASSISTENTE_AO_VIVO } from '../../core/planos';
 import { usePaginaVisivel } from '../../hooks/usePaginaVisivel';
 import {
   contextoDasFalas,
@@ -1000,7 +1001,7 @@ export default function LiveCapture({
 
   /* O texto da conversa sobe ao App (contexto do iChat) no máximo a cada 500 ms, só quando muda:
      antes era um `join` de TODAS as falas e um render do App inteiro a cada parcial do streaming. */
-  useTextoDaConversa(speechSegments, onTranscriptChange, 500, flagLigada(FLAG_PARCIAIS_VIVOS));
+  useTextoDaConversa(speechSegments, onTranscriptChange, 500, (s) => temParcialVivo(s.id));
   // O quadro em que cada tradução FINAL aparece vira a marca `frasy:legenda:traduzida` (só instrumentação).
   useMarcaDaLegenda(speechSegments);
 

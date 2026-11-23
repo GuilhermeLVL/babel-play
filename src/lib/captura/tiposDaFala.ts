@@ -232,6 +232,7 @@ export interface HandlersDaFonte {
   intervaloDosParciais?: () => number;
   /** Cadência adaptativa do parcial (flag `parciais_vivos`); `undefined` = o tique fixo de sempre (ver `SystemAudioCallbacks`). */
   cadenciaDoParcial?: (e: {
+    seq?: number;
     janelaS: number;
     msDesdeUltimo: number;
     amostrasNovas: number;

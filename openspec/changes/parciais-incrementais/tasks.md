@@ -27,7 +27,8 @@ Legenda: **[D]** = decisão ou ato do dono; **[R]** = exige aparelho real. Nada 
 - [x] 2.5 UI: cauda provisória com estilo próprio (não só cor), leitor de tela anuncia só o confirmado. Verificar: teste de componente e revisão de acessibilidade.
   - Feito: cauda provisória com estilo próprio (`src/styles/legendas.css`); o leitor de tela anuncia só o confirmado.
 - [x] 2.6 A/B de V1 (≥ 10 rodadas/lado, desktop e fraco emulado). Verificar: relatório pelo `criterio.md`; reprova se `fimDaFalaAteLegendaMs` p75 piorar.
-  - **Feito, REPROVADO** na V1 (`docs/auditoria/2026-11-21-ab-dos-parciais.md`: primária −80%, mas erasure 0,59 → 3,60, renders 91 → 223, p75 do final). Iterações, todas só para rodadas novas, nenhuma reaprovou a anterior: V1b `sem-cauda`/`cauda-decode` reprovadas (`2026-11-21-ab-dos-parciais-v1b.md`); V1c `acrescenta-*` sem modo aprovado (`2026-11-21-ab-dos-parciais-v1c.md`); V4 com orçamento de pisca absoluto e limitador de 125 ms (`docs/auditoria/2026-11-22-ab-dos-parciais-v4.md`): inglês sem diferença provada no desktop e reprovado no fraco emulado; pt com o Parakeet ganha na primária (−39%), mas a guarda 1 medida depois sobre `fimDaFalaAteOriginalMs` reprova (+198 ms, IC [+54, +445]; teto +30). Nada a ligar.
+  - **Feito, REPROVADO** na V1 (`docs/auditoria/2026-11-21-ab-dos-parciais.md`: primária −80%, mas erasure 0,59 → 3,60, renders 91 → 223, p75 do final). Iterações, todas só para rodadas novas, nenhuma reaprovou a anterior: V1b `sem-cauda`/`cauda-decode` reprovadas (`2026-11-21-ab-dos-parciais-v1b.md`); V1c `acrescenta-*` sem modo aprovado (`2026-11-21-ab-dos-parciais-v1c.md`); V4 com orçamento de pisca absoluto e limitador de 125 ms (`docs/auditoria/2026-11-22-ab-dos-parciais-v4.md`): inglês sem diferença provada no desktop e reprovado no fraco emulado; pt com o Parakeet ganha na primária (−39%), mas a guarda 1 medida depois sobre `fimDaFalaAteOriginalMs` reprova (+198 ms, IC [+54, +445]; teto +30). V5/V6 (renders) e **V7 (confirmação, `docs/auditoria/2026-11-22-ab-dos-parciais-v7.md`): APROVADA no pt/Parakeet** (atraso por palavra −58%, final +15 ms IC [−32, +93] com teto de +100 ms decidido pelo dono antes das rodadas). No inglês a não-regressão passa nas guardas, mas o atraso por palavra PIORA (desktop +636 ms; fraco +248 ms): fora do escopo.
+- [x] 2.7 Entrega: `acrescenta-decode` (com o limitador e a máscara 2) é o modo PADRÃO quando `parciais_vivos` está ligada (`babel.lab.parciaisModo` fica só como override de laboratório), e os parciais vivos valem SÓ na rota do Parakeet (pt/es, com `parciais_parakeet` e o Parakeet ativo); em qualquer outra rota o comportamento é idêntico ao de flag desligada. Verificar: `tests/pipelineDeFala-parciaisVivos.test.ts` (rota fora do Parakeet = flag desligada), `tests/modoDeParciais.test.ts`, `tests/captura-parciais-por-fala.test.ts`.
 
 ## 3. V2 `parciais_parakeet`
 
@@ -45,10 +46,10 @@ Legenda: **[D]** = decisão ou ato do dono; **[R]** = exige aparelho real. Nada 
 - [x] 4.2 Generalizar `parcialEstavel` à legenda comum: só prefixo confirmado, mask-k, só motor local carregado; final intocado. Verificar: testes (nunca chama nuvem; final substitui via `traducaoProvisoria`).
   - Feito: tradução do prefixo confirmado (mask-k), só motor local; final intocado.
 - [x] 4.3 A/B de V3 com `erasureTraducao`. Verificar: relatório pelo critério.
-  - **Feito, REPROVADO** (`docs/auditoria/2026-11-21-ab-dos-parciais.md`): atraso da tradução p50 1.290 → 2.692 ms (+1.402, IC [+367, +1.916]), p75 do final +169 ms, tradução final difere; fraco emulado também reprova.
+  - **Feito, REPROVADO** (`docs/auditoria/2026-11-21-ab-dos-parciais.md`): atraso da tradução p50 1.290 → 2.692 ms (+1.402, IC [+367, +1.916]), p75 do final +169 ms, tradução final difere; fraco emulado também reprova. **A flag `traducao_incremental` fica DESLIGADA e NÃO deve ser ligada**; o código permanece atrás dela.
 
 ## 5. Fechamento
 
-- [ ] 5.1 **[R]** Rodada em celular real de V1 (e V2/V3 se aprovados) antes de qualquer ganho de celular. Verificar: relatório por aparelho.
-- [ ] 5.2 **[D]** Ligar cada flag, uma a uma, só com o A/B aprovado. Verificar: decisão registrada com data.
+- [ ] 5.1 **[R]** Rodada em celular real da rota pt/Parakeet (V1+V2+V7; V3 reprovada, fora) antes de qualquer ganho de celular. Verificar: relatório por aparelho.
+- [ ] 5.2 **[D]** Ligar `parciais_parakeet` e `parciais_vivos` (as duas, só com a rodada [R] feita); `traducao_incremental` NÃO se liga. Verificar: decisão registrada com data.
 - [ ] 5.3 Spike separado (fora deste escopo): viabilidade do Nemotron 3.5 streaming no onnxruntime-web, sem integrar.

@@ -28,12 +28,17 @@ A marca `frasy:parcial` SHALL levar apenas números e o id de motor da lista fec
 
 ### Requirement: Parciais vivos nascem desligados
 
-A flag `parciais_vivos` SHALL nascer DESLIGADA (migrações PG 0029 e SQLite 0069). Desligada, o parcial SHALL se comportar como hoje (tique de 2 s, no máximo 3 por fala). Ligada, o parcial do Whisper/Moonshine SHALL usar o `onUpdate`, a cadência SHALL ser adaptativa por RTF e ocupação do worker, e a parte confirmada por LocalAgreement-2 SHALL NOT regredir na tela.
+A flag `parciais_vivos` SHALL nascer DESLIGADA (migrações PG 0029 e SQLite 0069). Desligada, o parcial SHALL se comportar como hoje (tique de 2 s, no máximo 3 por fala). Ligada, o parcial vivo SHALL valer SÓ na rota do Parakeet (pt/es, com `parciais_parakeet` ligada e o Parakeet ativo na cadeia); nela, a cadência SHALL ser adaptativa por RTF e ocupação do worker, a tela SHALL ser atualizada no máximo a cada 125 ms, o modo de exibição padrão SHALL ser `acrescenta-decode` (só acrescenta, máscara 2) e a parte confirmada por LocalAgreement-2 SHALL NOT regredir na tela. A chave de laboratório `babel.lab.parciaisModo` SHALL ser apenas um override. Em qualquer outra rota (inglês, Whisper, Moonshine, Web Speech, nuvem), o comportamento SHALL ser IDÊNTICO ao de `parciais_vivos` desligada.
 
 #### Scenario: Flag desligada
 
 - **WHEN** `parciais_vivos` está desligada
 - **THEN** o intervalo é de 2 s, o teto é de 3 parciais por fala e nenhuma marca nova de cadência é emitida
+
+#### Scenario: Rota fora do Parakeet com a flag ligada
+
+- **WHEN** `parciais_vivos` está ligada e a fala é em inglês, ou o motor é o Whisper/Moonshine, ou `parciais_parakeet` está desligada
+- **THEN** o parcial é o de flag desligada: mesma cadência de 2 s, sem limitador, sem LocalAgreement, sem armazém do parcial vivo e mesmos pedidos ao motor
 
 #### Scenario: Hipóteses concordam
 
@@ -69,7 +74,7 @@ A flag `parciais_parakeet` SHALL nascer DESLIGADA (PG 0030 e SQLite 0070), só t
 
 ### Requirement: Tradução incremental só local e só do confirmado
 
-A flag `traducao_incremental` SHALL nascer DESLIGADA (PG 0031 e SQLite 0071) e só ter efeito com `parciais_vivos`. Ligada, o parcial SHALL traduzir apenas o prefixo confirmado, esconder as k últimas palavras da tradução (mask-k) e usar só motor local já carregado; SHALL NOT enviar texto de parcial à nuvem; a tradução final SHALL ser a mesma de hoje.
+A flag `traducao_incremental` SHALL nascer DESLIGADA (PG 0031 e SQLite 0071) e SHALL permanecer desligada: a variante foi REPROVADA no A/B (V3) e o código só fica atrás da flag. Só tem efeito com `parciais_vivos`. Ligada, o parcial SHALL traduzir apenas o prefixo confirmado, esconder as k últimas palavras da tradução (mask-k) e usar só motor local já carregado; SHALL NOT enviar texto de parcial à nuvem; a tradução final SHALL ser a mesma de hoje.
 
 #### Scenario: Sem motor local carregado
 

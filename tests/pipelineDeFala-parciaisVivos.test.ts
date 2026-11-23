@@ -31,11 +31,13 @@ vi.mock('../src/lib/flags', async (original) => {
   return { ...m, flagLigada: (nome: string) => flags.ligadas.has(nome) }
 })
 
-import { FLAG_PARCIAIS_VIVOS } from '../src/core/planos'
-import { lerParcialVivo } from '../src/lib/captura/parcialVivo'
+import { FLAG_PARCIAIS_PARAKEET, FLAG_PARCIAIS_VIVOS } from '../src/core/planos'
+import { lerParcialVivo, limparParcialVivo } from '../src/lib/captura/parcialVivo'
 import { criarPipelineDeFala } from '../src/lib/captura/pipelineDeFala'
 
 const ref = <T>(current: T) => ({ current })
+/** O motor da cadeia no teste: os parciais vivos só valem com o Parakeet ativo. */
+const motor = { parakeet: true }
 
 interface Balao {
   id: string
@@ -55,7 +57,7 @@ function falasFalsas() {
   return { set, ler: () => estado[0], historia }
 }
 
-function montar(decodes: string[]) {
+function montar(decodes: string[], sourceLang = 'pt-BR') {
   const falas = falasFalsas()
   const fila = [...decodes]
   const transcribePartial = vi.fn(async () => ({ text: fila.shift() ?? '' }))
@@ -70,11 +72,11 @@ function montar(decodes: string[]) {
         transcribePcmNaNuvem: vi.fn(async () => null),
         trocarModeloLocal: vi.fn(),
         preloadModel: vi.fn(async () => {}),
-        parakeetAtivo: () => false,
+        parakeetAtivo: () => motor.parakeet,
       },
     },
-    sourceLang: 'pt-BR',
-    sourceLangRef: ref('pt-BR'),
+    sourceLang,
+    sourceLangRef: ref(sourceLang),
     targetLangRef: ref('en-US'),
     autoDetectLangRef: ref(false),
     autoDetectMyLangRef: ref(false),
@@ -129,8 +131,9 @@ beforeEach(() => {
   vi.useFakeTimers({
     toFake: ['setTimeout', 'clearTimeout', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame'],
   })
-  flags.ligadas = new Set([FLAG_PARCIAIS_VIVOS])
-  localStorage.setItem('babel.lab.parciaisModo', 'acrescenta-decode')
+  flags.ligadas = new Set([FLAG_PARCIAIS_VIVOS, FLAG_PARCIAIS_PARAKEET])
+  motor.parakeet = true
+  // Sem `babel.lab.parciaisModo`: o modo é o PADRÃO (`acrescenta-decode`).
   localStorage.setItem('babel.lab.parciaisMascara', '0') // sem máscara: o texto da hipótese vai inteiro, se estender o que já está na tela
 })
 afterEach(() => {
@@ -199,4 +202,80 @@ describe('parciais_vivos: limitador de 125 ms e modo acrescenta-decode', () => {
     expect(falas.historia.filter((t) => t)).toEqual(['Olá', 'Olá tudo'])
     expect(armazem.escritas).toEqual([]) // flag desligada: nada passa pelo armazém, o estado leva cada hipótese
   })
+})
+
+/**
+ * O ESCOPO: com `parciais_vivos` ligada, o parcial vivo só existe na rota do Parakeet (pt/es, `parciais_parakeet` ligada e o Parakeet ativo).
+ * Em qualquer outra rota o pipeline tem de se comportar EXATAMENTE como com as flags desligadas: mesma história do balão, mesmos pedidos ao
+ * motor (sem `onUpdate` nem `parakeet`), nada no armazém, sem cadência adaptativa.
+ */
+describe('parciais_vivos: escopo só na rota do Parakeet', () => {
+  /** Uma hipótese que diverge: com o vivo (só acrescenta) a tela fica em 'Olá tudo'; sem ele, troca para 'Alô tudo bem'. */
+  const decodes = ['Olá tudo', 'Alô tudo bem', 'Alô tudo bem hoje']
+
+  async function rodar(ligadas: string[], opts: { parakeet?: boolean; lang?: string } = {}) {
+    flags.ligadas = new Set(ligadas)
+    motor.parakeet = opts.parakeet ?? true
+    armazem.escritas = []
+    const m = montar(decodes, opts.lang ?? 'pt-BR')
+    m.p.micHandlers.onSpeechStart(1)
+    const cadencia = m.p.micHandlers.cadenciaDoParcial?.({
+      seq: 1,
+      janelaS: 2,
+      msDesdeUltimo: 1000,
+      amostrasNovas: 16000,
+      silencioMs: 0,
+    })
+    for (const n of [1600, 3200, 4800]) {
+      await parcial(m.p, n)
+      await vi.advanceTimersByTimeAsync(300)
+    }
+    const id = m.falas.ler().id
+    const noArmazem = lerParcialVivo(id)
+    limparParcialVivo(id) // o armazém é global: a próxima rodada começa limpa
+    return {
+      historia: m.falas.historia,
+      balao: m.falas.ler(),
+      pedidos: m.transcribePartial.mock.calls.map((c) => {
+        const o = ((c as unknown[])[2] ?? {}) as { languageHint?: string; onUpdate?: unknown; parakeet?: boolean }
+        return { dica: o.languageHint, onUpdate: typeof o.onUpdate, parakeet: o.parakeet }
+      }),
+      chamadasDoEstado: m.falas.set.mock.calls.length,
+      noArmazem,
+      escritas: armazem.escritas,
+      cadencia,
+    }
+  }
+  const TODAS = [FLAG_PARCIAIS_VIVOS, FLAG_PARCIAIS_PARAKEET]
+
+  it('na rota do Parakeet o parcial é vivo: cadência adaptativa, só acrescenta, armazém e `parakeet: true` no pedido', async () => {
+    const r = await rodar(TODAS)
+    expect(typeof r.cadencia).toBe('boolean')
+    expect(r.pedidos.every((p) => p.parakeet === true)).toBe(true)
+    expect(r.escritas.length).toBeGreaterThan(0)
+    expect(r.historia.filter((x) => x)).toEqual(['Olá tudo']) // o estado só leva o 1º texto
+    expect(r.noArmazem?.originalText.startsWith('Olá tudo')).toBe(true) // só acrescentou: nunca virou 'Alô…'
+  })
+
+  const rotasForaDoParakeet: Array<[string, string[], { parakeet?: boolean; lang?: string }]> = [
+    ['inglês (Parakeet ativo, mas fora de pt/es)', TODAS, { lang: 'en-US' }],
+    ['Whisper/Moonshine (Parakeet fora da cadeia)', TODAS, { parakeet: false }],
+    ['só `parciais_vivos` (sem `parciais_parakeet`)', [FLAG_PARCIAIS_VIVOS], {}],
+    ['só `parciais_parakeet` (sem `parciais_vivos`)', [FLAG_PARCIAIS_PARAKEET], {}],
+  ]
+  for (const [nome, ligadas, opts] of rotasForaDoParakeet) {
+    it(`${nome}: idêntico a flags desligadas (história do balão, pedidos ao motor, nada no armazém, sem cadência)`, async () => {
+      const desligadas = await rodar([], opts)
+      const r = await rodar(ligadas, opts)
+      expect(r.historia).toEqual(desligadas.historia)
+      expect(r.balao).toMatchObject({ originalText: desligadas.balao.originalText, isPartial: true })
+      expect(r.pedidos).toEqual(desligadas.pedidos)
+      expect(r.chamadasDoEstado).toBe(desligadas.chamadasDoEstado)
+      expect(r.noArmazem).toBeUndefined()
+      expect(r.escritas).toEqual([])
+      expect(r.cadencia).toBeUndefined() // a captura segue o tique fixo de sempre
+      expect(desligadas.cadencia).toBeUndefined()
+      expect(r.historia).toContain('Alô tudo bem hoje') // a prova de que não é o modo que só acrescenta
+    })
+  }
 })

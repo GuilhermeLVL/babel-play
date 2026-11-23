@@ -4,13 +4,13 @@
  * V1 (`cauda-token`) pinta cada token do `onUpdate`, e a cauda provisória é reescrita a todo token: a erasure do original
  * subiu de 0,59 para 3,60. Estes modos mudam SÓ o que a tela mostra; a LocalAgreement-2 e a cadência são as mesmas.
  *
- * - `cauda-token` (padrão, o de hoje): token a token (`visualizar`) + a vista do decode completo.
+ * - `cauda-token` (V1, reprovado como padrão; só override de laboratório): token a token (`visualizar`) + a vista do decode completo.
  * - `sem-cauda`: só o prefixo confirmado (nunca regride, erasure ~0). Nada do `onUpdate` é pintado.
  * - `cauda-decode`: confirmado + cauda provisória, mas a cauda só muda a cada decode COMPLETO (nada do `onUpdate`), e o
  *   texto mostrado nunca encurta mais de `MAX_ENCOLHE_DA_CAUDA` palavras de uma vez: se a hipótese nova é mais curta que
  *   a mostrada antes além disso, as palavras antigas que sobram ficam na cauda até o próximo decode. Escolha simples: 2 palavras,
  *   contadas por chunk entre espaços (escrita sem espaço conta o chunk inteiro como uma palavra aqui; o modo é de laboratório).
- * - `acrescenta-decode` / `acrescenta-token` (V1c): SÓ ACRESCENTA, COM MÁSCARA. A tela nunca troca nem apaga uma palavra já mostrada; a cada hipótese
+ * - `acrescenta-decode` (PADRÃO desde o A/B da V7) / `acrescenta-token` (V1c): SÓ ACRESCENTA, COM MÁSCARA. A tela nunca troca nem apaga uma palavra já mostrada; a cada hipótese
  *   nova mostra o maior prefixo dela que ESTENDE o que já está na tela, menos as últimas `MASCARA_DO_ACRESCENTA` palavras (o confirmado da LocalAgreement-2
  *   nunca é mascarado). Se a hipótese diverge do que está na tela (ou encurta além dela), nada novo aparece até voltar a concordar; o FINAL substitui tudo, como hoje.
  *   `-decode` age só a cada decode completo; `-token` também a cada token do `onUpdate`.
@@ -22,7 +22,11 @@ import { type Unidade, unidadesDe, type VistaDoParcial } from './localAgreement'
 export type ModoDeParciais = 'cauda-token' | 'sem-cauda' | 'cauda-decode' | 'acrescenta-decode' | 'acrescenta-token';
 
 export const CHAVE_DO_MODO_DE_PARCIAIS = 'babel.lab.parciaisModo';
-export const MODO_DE_PARCIAIS_PADRAO: ModoDeParciais = 'cauda-token';
+/**
+ * O modo da rota do parcial vivo (Parakeet) quando a chave de laboratório não existe: o aprovado no A/B da V7 (pt/Parakeet). O de
+ * antes (`cauda-token`, V1) reprovou na erasure (3,6) e só existe como override de laboratório.
+ */
+export const MODO_DE_PARCIAIS_PADRAO: ModoDeParciais = 'acrescenta-decode';
 /** Quantas palavras a cauda mostrada pode encolher de uma vez no `cauda-decode`. */
 export const MAX_ENCOLHE_DA_CAUDA = 2;
 /** Quantas palavras finais da hipótese ficam de fora da tela nos modos `acrescenta-*` (k provisório). */

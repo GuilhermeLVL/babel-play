@@ -45,6 +45,16 @@ describe('textoDaConversa', () => {
     expect(textoDaConversa(falas)).toBe('olá mundo ainda falan')
     expect(textoDaConversa(falas, { semParcial: true })).toBe('olá mundo')
   })
+
+  it('semParcial por fala: só o parcial vivo (o que mora no armazém) fica de fora; o de outra rota segue no texto', () => {
+    const falas = [
+      { id: 'a', originalText: 'olá' },
+      { id: 'b', originalText: 'em portugu', isPartial: true }, // vivo (Parakeet)
+      { id: 'c', originalText: 'in english', isPartial: true }, // outra rota: texto de sempre
+    ]
+    expect(textoDaConversa(falas, { semParcial: (s) => s.id === 'b' })).toBe('olá in english')
+    expect(textoDaConversa(falas, { semParcial: () => false })).toBe(textoDaConversa(falas)) // nenhum vivo = idêntico a sem a flag
+  })
 })
 
 describe('useTextoDaConversa', () => {

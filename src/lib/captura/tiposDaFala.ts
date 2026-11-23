@@ -240,4 +240,6 @@ export interface HandlersDaFonte {
   }) => boolean | undefined;
   /** Quanto de fala (ms) o primeiro parcial de cada fala espera (ver `SystemAudioCallbacks`). */
   primeiroParcialComMs?: () => number;
+  /** Teto de parciais por fala (ver `SystemAudioCallbacks`); sem ele, o de sempre. */
+  maxParciaisPorFala?: () => number;
 }

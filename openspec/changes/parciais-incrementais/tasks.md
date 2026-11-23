@@ -50,6 +50,8 @@ Legenda: **[D]** = decisão ou ato do dono; **[R]** = exige aparelho real. Nada 
 
 ## 5. Fechamento
 
+- [x] 5.0 **Correção de comportamento:** repassar `maxParciaisPorFala` do pipeline à captura (`fontesDeAudio.ts`, fonte do sistema e microfone). Verificar: testes que falham sem o conserto.
+  - Feito. NOTA: muda o comportamento MESMO com as flags desligadas: o teto do perfil (3 isolado, 2 aparelho leve, 1 sem isolamento) passa a valer; antes valia sempre o padrão da captura. Efeito esperado: menos decodes de parcial no aparelho leve (e sem isolamento); nenhum no aparelho isolado comum (3 = padrão). Achado em `docs/auditoria/2026-11-21-ab-dos-parciais.md`.
 - [ ] 5.1 **[R]** Rodada em celular real da rota pt/Parakeet (V1+V2+V7; V3 reprovada, fora) antes de qualquer ganho de celular. Verificar: relatório por aparelho.
 - [ ] 5.2 **[D]** Ligar `parciais_parakeet` e `parciais_vivos` (as duas, só com a rodada [R] feita); `traducao_incremental` NÃO se liga. Verificar: decisão registrada com data.
 - [ ] 5.3 Spike separado (fora deste escopo): viabilidade do Nemotron 3.5 streaming no onnxruntime-web, sem integrar.

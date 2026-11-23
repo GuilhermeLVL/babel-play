@@ -155,6 +155,14 @@ describe('captura da aba × Web Speech no aparelho (fontesDeAudio)', () => {
     expect(m.sysHandlers.onUtterance).not.toHaveBeenCalled()
   })
 
+  it('repassa o teto de parciais por fala à captura da aba (aparelho leve), senão ele nunca vale', async () => {
+    const m = montar('pipeline')
+    ;(m.sysHandlers as Record<string, unknown>).maxParciaisPorFala = vi.fn(() => 2)
+    await m.fontes.handleStartSystemCapture()
+    const cb = estado.cb as unknown as { maxParciaisPorFala?: () => number }
+    expect(cb.maxParciaisPorFala?.()).toBe(2)
+  })
+
   it('no aparelho: a fala da trilha guarda o motor que não envia (`web-speech-local-trilha`)', async () => {
     let segs: Array<{ engine?: string; source: string }> = []
     const setSpeechSegments = (f: (p: typeof segs) => typeof segs) => {

@@ -103,8 +103,12 @@ export function multiplicador(sequencia: number): number {
 
 /** Um acerto vale isto antes de qualquer multiplicador ou bônus. */
 export const PONTOS_BASE = 10;
-/** Respondeu dentro de `LIMITE_RESPOSTA_RAPIDA_MS`. */
-export const BONUS_RAPIDO = 5;
+/**
+ * Respondeu dentro de `LIMITE_RESPOSTA_RAPIDA_MS`. DESLIGADO (0) até decisão do dono: pontuar a pressa
+ * pode contrariar o art. 9º do Decreto 12.880/2026 (ECA Digital), que o público com menores exige respeitar.
+ * O `ms` continua medido e vai ao agendador (FSRS); só deixou de virar pontos.
+ */
+export const BONUS_RAPIDO = 0;
 /**
  * Jogos em que a RAPIDEZ NÃO RENDE PONTO (Decreto 12.880, art. 9º): o ouvido treina no passo de quem ouve,
  * e pressa ali só estimula o palpite. O tempo continua indo para o relatório, como medida.

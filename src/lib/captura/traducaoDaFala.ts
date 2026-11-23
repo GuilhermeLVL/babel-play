@@ -8,6 +8,7 @@
 import { ehCancelamento, soFaltaCarregar } from '@core';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 
+import { traducaoIncremental } from '../../core/traducao/traducaoIncremental';
 import { ChromeTranslatorMt } from '../../gateway/adapters/chromeTranslator';
 import { capMetrics } from '../../gateway/capture/captureMetrics';
 import type { OrigemDaLegenda } from '../../gateway/marcasDeDesempenho';
@@ -128,6 +129,15 @@ export interface OpcoesDeTraducao {
   falada?: boolean;
   /** A pessoa PEDIU esta tradução ("Mostrar tradução"): a preferência sob demanda não se aplica. */
   pedida?: boolean;
+  /**
+   * TRADUÇÃO INCREMENTAL do parcial (V3 `traducao_incremental`, só com `parciais_vivos`): traduz SÓ
+   * `textoConfirmado` (o prefixo confirmado pelo LocalAgreement-2; o `text` do pedido é ignorado), só com motor
+   * LOCAL já carregado (nunca nuvem, nunca baixa modelo, sem memória aproximada), e a tela mostra a tradução
+   * com mask-k, sem regredir. É um parcial: não degrada, não avisa o final, não entra no cache. O final segue
+   * o caminho de sempre e substitui esta por `traducaoProvisoria`. Sem esta opção, nada muda.
+   */
+  incremental?: boolean;
+  textoConfirmado?: string;
 }
 
 /** O que o pipeline de MT precisa da tela. */
@@ -316,6 +326,14 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
     opts: OpcoesDeTraducao | undefined,
     fim: () => void,
   ) => {
+    /* INCREMENTAL: vira um parcial comum (local, descartável) sobre o prefixo confirmado. */
+    const incremental = opts?.incremental === true;
+    if (incremental) {
+      const confirmado = (opts?.textoConfirmado ?? '').trim();
+      if (!confirmado) return fim();
+      text = confirmado;
+      opts = { ...opts, descartarSeOcupado: true };
+    }
     /* SOB DEMANDA (harness §1.2, degrau M0): a preferência "Tradução" deixa a fala SEM MT — "só
        quando eu pedir", ou "só frases com palavra nova" quando o aluno já sabe todas. Desligado por
        padrão (`sempre`): sem a ref, nada aqui roda. Mesmo idioma não é assunto deste bloco (o
@@ -380,7 +398,13 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
       fim();
       // Limpa o "…" para o balão não ficar esperando uma tradução que não virá.
       if (ordemMtRef.current.encerrar(segId, selo)) {
-        setSpeechSegments((prev) => prev.map((seg) => (seg.id === segId ? { ...seg, translatedText: '' } : seg)));
+        /* Sem trocar o estado quando o balão já está sem tradução: cada parcial passava por aqui e o `map` devolvia um objeto
+           novo, o que re-renderizava a tela de captura inteira a cada atualização do parcial (V6, `parciais-incrementais`). */
+        setSpeechSegments((prev) =>
+          prev.some((seg) => seg.id === segId && seg.translatedText !== '')
+            ? prev.map((seg) => (seg.id === segId ? { ...seg, translatedText: '' } : seg))
+            : prev,
+        );
       }
       if (!parcial) {
         avisarFinal(finalSemTraducao(segId, text, origemEfetiva, tgt, opts?.falada === true));
@@ -443,19 +467,28 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
       // As palavras de vocabulário já foram extraídas da fala real no commit do
       // enunciado (wordsFromText); a tradução só atualiza o texto traduzido.
       setSpeechSegments((prev) =>
-        prev.map((seg) =>
-          seg.id === segId
+        prev.map((seg) => {
+          if (seg.id !== segId) return seg;
+          /* INCREMENTAL: mask-k sobre o que a tela já mostra; nada novo a mostrar = o balão fica como está. */
+          let mostrado = capitalized;
+          if (incremental) {
+            const anterior = ehTraducaoParcial(seg.translatedText) ? seg.translatedText : '';
+            const m = traducaoIncremental({ confirmado: text, anterior, nova: translated });
+            if (m === anterior) return seg;
+            mostrado = (aproximada ? '≈ ' : '') + m.charAt(0).toUpperCase() + m.slice(1);
+          }
+          return seg.id === segId
             ? {
                 ...seg,
-                translatedText: capitalized,
+                translatedText: mostrado,
                 /* Só o FINAL marca a legenda (`useMarcaDaLegenda`): o parcial traduzido não encerra a medida. */
                 origemDaTraducao: parcial ? undefined : origemDaLegenda,
                 traducaoPendente: undefined,
                 traducaoProvisoria: undefined,
                 ...(ehMotivoSemTraducao(seg.semTraducao) ? { semTraducao: undefined } : {}),
               }
-            : seg,
-        ),
+            : seg;
+        }),
       );
     };
     // Expressão inteira conhecida ("valeu!", "pois é."): a tradução natural já está pronta.
@@ -628,7 +661,8 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
         });
     };
 
-    if (!memoria) {
+    // O incremental nunca passa pela memória aproximada: a frase parecida de outro texto não é a do prefixo.
+    if (!memoria || incremental) {
       traduzir();
       return;
     }

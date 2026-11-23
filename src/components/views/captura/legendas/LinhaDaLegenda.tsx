@@ -26,6 +26,11 @@ export interface LegendaAoVivo {
   lang?: string;
   /** Ainda sendo falada (parcial do streaming): não é anunciada ao leitor de tela. */
   parcial?: boolean;
+  /**
+   * PARCIAIS VIVOS: o prefixo de `original` que o LocalAgreement-2 confirmou. Só vale com `parcial`; o resto do texto é
+   * a CAUDA provisória (itálico e menos contraste: o estilo não depende só de cor) e fica fora da leitura de tela.
+   */
+  confirmado?: string;
   /** Deixada sem tradução pela preferência "Tradução" (Só quando eu pedir / Só frases com palavra
    *  nova): no lugar da tradução, o mesmo "Mostrar tradução" da conversa. */
   sobDemanda?: boolean;
@@ -229,6 +234,15 @@ function LinhaDaLegenda({
     return descricaoDaLinha(resumoDasEtiquetas(palavras.map((p) => [p, etiquetador.etiqueta(p, lang)] as const)));
   }, [etiquetador, fala.original, fala.lang]);
 
+  /* A cauda provisória só existe no parcial com prefixo confirmado e texto depois dele. */
+  const caudaProvisoria =
+    fala.parcial &&
+    fala.confirmado &&
+    fala.original.startsWith(fala.confirmado) &&
+    fala.original.length > fala.confirmado.length
+      ? fala.original.slice(fala.confirmado.length)
+      : '';
+
   return (
     <div
       data-fala={fala.id}
@@ -249,14 +263,34 @@ function LinhaDaLegenda({
           dir={fala.lang ? direcaoDoTexto(fala.lang) : undefined}
           onClick={tocar}
         >
-          <Palavras
-            texto={fala.original}
-            lang={fala.lang ?? ''}
-            aprendidas={aprendidas}
-            marcas={marcas}
-            aoTocarMarca={aoTocarMarca ? (m) => aoTocarMarca(m, fala) : undefined}
-            etiquetador={etiquetador}
-          />
+          {caudaProvisoria ? (
+            <>
+              <Palavras
+                texto={fala.confirmado!}
+                lang={fala.lang ?? ''}
+                aprendidas={aprendidas}
+                etiquetador={etiquetador}
+              />
+              {/* A cauda ainda pode mudar: estilo próprio e FORA do que o leitor de tela anuncia. */}
+              <span className="leg-provisoria" data-provisorio aria-live="off">
+                <Palavras
+                  texto={caudaProvisoria}
+                  lang={fala.lang ?? ''}
+                  aprendidas={aprendidas}
+                  etiquetador={etiquetador}
+                />
+              </span>
+            </>
+          ) : (
+            <Palavras
+              texto={fala.original}
+              lang={fala.lang ?? ''}
+              aprendidas={aprendidas}
+              marcas={marcas}
+              aoTocarMarca={aoTocarMarca ? (m) => aoTocarMarca(m, fala) : undefined}
+              etiquetador={etiquetador}
+            />
+          )}
         </span>
       )}
       {soTraducao && fala.traducao ? null : modoDaTraducao !== 'oculta' &&

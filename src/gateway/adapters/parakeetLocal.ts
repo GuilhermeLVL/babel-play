@@ -3,8 +3,8 @@
  * (`whisperLocal.ts`): carrega com progresso, transcreve um trecho FINAL (16 kHz mono) e devolve o texto.
  *
  * O QUE ELE NÃO FAZ, de propósito:
- *  - texto PARCIAL: não há `transcribeIfIdle` nem `onUpdate`. O modelo não é de fluxo; o parcial da
- *    legenda continua vindo de onde vem hoje (`gateway.stt.transcribePartial`);
+ *  - texto PARCIAL por padrão: o modelo não é de fluxo. Só com a flag `parciais_parakeet` (+ `parciais_vivos`) o
+ *    gateway chama `transcribeIfIdle`, que re-decodifica a janela que cresce; sem `onUpdate`;
  *  - idioma fora do medido: só português e espanhol com dica EXPLÍCITA (`parakeetAceita`). O resto é
  *    recusado com erro, e a cadeia do gateway cai no Whisper local;
  *  - troca de backend ou de quantização: int8 em WASM, o que a bancada mediu
@@ -24,6 +24,8 @@ import { ADAPTADOR_DO_PARAKEET, ID_DO_PARAKEET, parakeetAceita } from './parakee
 import type { MensagemDoParakeet, MensagemParaOParakeet } from './parakeetWorker';
 
 interface Pendente {
+  /** Parcial (`transcribeIfIdle`): cancelado pelo final, resolve `null` em vez de rejeitar. */
+  parcial?: boolean;
   resolve: (value: SttFinal) => void;
   reject: (error: Error) => void;
 }
@@ -153,7 +155,8 @@ export class ParakeetLocalStt implements SttProvider {
           const p = this.pendentes.get(m.id);
           if (!p) break;
           this.pendentes.delete(m.id);
-          p.reject(erroDeAborto());
+          if (p.parcial) (p.resolve as (v: SttFinal | null) => void)(null);
+          else p.reject(erroDeAborto());
           break;
         }
         case 'error': {
@@ -200,6 +203,26 @@ export class ParakeetLocalStt implements SttProvider {
       this.enviar({ type: 'carregar', plano: planoDaPaginaDoParakeet(), threads });
     }
     return this.pronto;
+  }
+
+  /**
+   * PARCIAL por re-decode da janela que cresce (flag `parciais_parakeet`, só com `parciais_vivos`): o gateway só chama
+   * isto com o modelo JÁ carregado (nunca baixa nada) e o resultado é best-effort. Resolve `null` quando o worker está
+   * ocupado, o modelo não carregou, o idioma não é pt/es ou o final chegou e cancelou o parcial. Vai ao worker com
+   * prioridade `parcial`: o final passa na frente e para o parcial em voo (`filaDoWorker.ts`).
+   */
+  async transcribeIfIdle(
+    pcm: Float32Array,
+    sampleRate: number,
+    opts?: { languageHint?: string },
+  ): Promise<SttFinal | null> {
+    if (!this.carregado || this.pendentes.size > 0 || sampleRate !== 16000) return null;
+    if (!parakeetAceita(opts?.languageHint)) return null;
+    const id = Math.random().toString(36).slice(2);
+    return new Promise<SttFinal | null>((resolve, reject) => {
+      this.pendentes.set(id, { parcial: true, resolve: resolve as (v: SttFinal) => void, reject });
+      this.enviar({ type: 'transcrever', id, pcm, idioma: opts?.languageHint, prioridade: 'parcial' });
+    });
   }
 
   /**

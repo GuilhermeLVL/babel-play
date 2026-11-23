@@ -235,7 +235,7 @@ import { useAvatarDaLegenda } from './captura/legendas/AvatarDaLegenda';
 let benchmarkPendente: AbortController | null = null;
 import { correcaoNaPratica, praticaPossivel } from '../../core/assistente/praticaDaConversa';
 import type { FalaDoAssistente, MarcaNaLinha } from '../../core/assistente/telaDoAssistente';
-import { FLAG_ASSISTENTE_AO_VIVO } from '../../core/planos';
+import { FLAG_ASSISTENTE_AO_VIVO, FLAG_PARCIAIS_VIVOS } from '../../core/planos';
 import { usePaginaVisivel } from '../../hooks/usePaginaVisivel';
 import {
   contextoDasFalas,
@@ -685,6 +685,8 @@ export default function LiveCapture({
       lado: s.source === 'system' ? ('eles' as const) : ('voce' as const),
       lang: s.lang || undefined,
       parcial: !!s.isPartial,
+      // Parciais vivos: o prefixo confirmado (a cauda depois dele é provisória). Sem a flag, `undefined`.
+      confirmado: s.isPartial ? s.textoConfirmado : undefined,
       // Deixada sem tradução pela preferência "Tradução": a legenda oferece "Mostrar tradução".
       sobDemanda: !!s.traducaoSobDemanda && !s.isPartial,
     }));
@@ -998,7 +1000,7 @@ export default function LiveCapture({
 
   /* O texto da conversa sobe ao App (contexto do iChat) no máximo a cada 500 ms, só quando muda:
      antes era um `join` de TODAS as falas e um render do App inteiro a cada parcial do streaming. */
-  useTextoDaConversa(speechSegments, onTranscriptChange);
+  useTextoDaConversa(speechSegments, onTranscriptChange, 500, flagLigada(FLAG_PARCIAIS_VIVOS));
   // O quadro em que cada tradução FINAL aparece vira a marca `frasy:legenda:traduzida` (só instrumentação).
   useMarcaDaLegenda(speechSegments);
 

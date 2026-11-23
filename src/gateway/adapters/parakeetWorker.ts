@@ -52,7 +52,8 @@ export type MotivoDaFalhaDoParakeet = 'rede' | 'integridade' | 'motor';
 
 export type MensagemParaOParakeet =
   | { type: 'carregar'; plano: PlanoDeCargaDoParakeet; threads?: number }
-  | { type: 'transcrever'; id: string; pcm: Float32Array; idioma?: string }
+  /** `prioridade: 'parcial'` (flag `parciais_parakeet`): vai atrás de qualquer final e é cancelado por ele. Ausente = final. */
+  | { type: 'transcrever'; id: string; pcm: Float32Array; idioma?: string; prioridade?: 'final' | 'parcial' }
   | { type: 'cancelar'; id: string };
 
 export type MensagemDoParakeet =
@@ -108,6 +109,12 @@ export interface DependenciasDoParakeet {
   enviar: (m: MensagemDoParakeet) => void;
   registrarManifesto?: (m: ManifestoDeModelo) => void;
   agora?: () => number;
+  /**
+   * Devolve o controle ao laço de eventos do worker (uma macrotarefa). Só o decode de PARCIAL cede (entre o extrator, o encoder
+   * e a cada poucos passos do laço TDT): sem isso a mensagem de um final, que cancela o parcial, só é entregue quando o parcial
+   * termina (o `run` do ORT bloqueia a thread e resolve em microtarefa), e o final espera o parcial inteiro. Ausente = não cede.
+   */
+  ceder?: () => Promise<void>;
 }
 
 class FalhaDeCarga extends Error {
@@ -234,12 +241,16 @@ export function criarWorkerDoParakeet(deps: DependenciasDoParakeet) {
     pcm: Float32Array,
     cancelado: () => boolean,
     confiancas: number[],
+    ceder?: () => Promise<void>,
   ): Promise<string | null> {
     const { rt, vocab } = m;
+    await ceder?.();
+    if (cancelado()) return null;
     const p = await m.pre.run({
       waveforms: rt.tensor('float32', pcm, [1, pcm.length]),
       waveforms_lens: rt.tensor('int64', BigInt64Array.from([BigInt(pcm.length)]), [1]),
     });
+    await ceder?.();
     if (cancelado()) return null;
     const e = await m.encoder.run({ audio_signal: p.features, length: p.features_lens });
     if (cancelado()) return null;
@@ -263,6 +274,7 @@ export function criarWorkerDoParakeet(deps: DependenciasDoParakeet) {
       { tamanho: vocab.pecas.length, branco: vocab.branco },
       cancelado,
       confiancas,
+      ceder,
     );
     return tokens ? destokenizar(tokens.map((t) => vocab.pecas[t] ?? '')) : null;
   }
@@ -367,6 +379,7 @@ export function criarWorkerDoParakeet(deps: DependenciasDoParakeet) {
     pcm: Float32Array,
     idioma: string | undefined,
     sinal: SinalDeCancelamento,
+    parcial = false,
   ): Promise<void> {
     try {
       const m = modelo ?? (carga ? await carga : null);
@@ -381,7 +394,7 @@ export function criarWorkerDoParakeet(deps: DependenciasDoParakeet) {
       if (pcm.length >= MINIMO_DE_AMOSTRAS && !ehSilencioDigital(pcm)) {
         const pedacos = dividirEmJanelas(pcm, JANELA_DO_PARAKEET_S * 16000, BUSCA_DO_CORTE_S * 16000);
         for (const pedaco of pedacos) {
-          const texto = await rodar(m, pedaco, () => sinal.cancelado, confiancas);
+          const texto = await rodar(m, pedaco, () => sinal.cancelado, confiancas, parcial ? deps.ceder : undefined);
           if (texto === null || sinal.cancelado) {
             deps.enviar({ type: 'cancelado', id });
             return;
@@ -415,8 +428,8 @@ export function criarWorkerDoParakeet(deps: DependenciasDoParakeet) {
         case 'transcrever':
           return fila.enfileirar({
             id: m.id,
-            prioridade: 'final',
-            executar: (sinal) => aoTranscrever(m.id, m.pcm, m.idioma, sinal),
+            prioridade: m.prioridade === 'parcial' ? 'parcial' : 'final',
+            executar: (sinal) => aoTranscrever(m.id, m.pcm, m.idioma, sinal, m.prioridade === 'parcial'),
             aoDescartar: () => deps.enviar({ type: 'cancelado', id: m.id }),
           });
         case 'cancelar':
@@ -453,6 +466,18 @@ async function abrirRuntime(threads: number): Promise<RuntimeDoParakeet> {
   };
 }
 
+/** Uma macrotarefa por `MessageChannel` (sem o piso de 4 ms do `setTimeout` aninhado): a mensagem de cancelamento passa na frente. */
+function cederAoLacoDeEventos(): Promise<void> {
+  const canal = new MessageChannel();
+  return new Promise<void>((resolver) => {
+    canal.port1.onmessage = () => {
+      canal.port1.close();
+      resolver();
+    };
+    canal.port2.postMessage(null);
+  });
+}
+
 declare const WorkerGlobalScope: unknown;
 if (typeof WorkerGlobalScope !== 'undefined' && typeof self !== 'undefined') {
   const worker = criarWorkerDoParakeet({
@@ -460,6 +485,7 @@ if (typeof WorkerGlobalScope !== 'undefined' && typeof self !== 'undefined') {
     abrirCache: async () => (typeof caches === 'undefined' ? null : caches.open('transformers-cache')),
     abrirRuntime,
     enviar: (m) => self.postMessage(m),
+    ceder: cederAoLacoDeEventos,
   });
   self.onmessage = (e: MessageEvent<MensagemParaOParakeet>) => void worker.receber(e.data);
 }

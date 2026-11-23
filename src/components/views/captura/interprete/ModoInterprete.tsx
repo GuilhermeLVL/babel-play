@@ -12,6 +12,7 @@ import {
 import { baixarTexto, conversaEmMarkdown, nomeDoArquivoDaConversa } from '../../../../lib/captura/exportarConversa';
 import { historicoDoInterprete, JANELA_DO_HISTORICO } from '../../../../lib/captura/historicoDoInterprete';
 import { direcaoDoLado, ESTADO_INICIAL, type IdiomasDoInterprete } from '../../../../lib/captura/interprete';
+import { useFalasDoEstadoComParcialVivo } from '../../../../lib/captura/parcialVivo';
 import { chaveLigada } from '../../../../lib/captura/testesDoInterprete';
 import type { LadoDoInterprete, SpeechSegment } from '../../../../lib/captura/tiposDaFala';
 import { data, t } from '../../../../lib/i18n';
@@ -116,7 +117,7 @@ export type TelaDoInterprete = 'frente' | 'conversa';
  */
 export default function ModoInterprete({
   idiomas,
-  falas,
+  falas: falasDoEstado,
   microfone,
   registrarPonte,
   vozNaturalDisponivel,
@@ -213,6 +214,8 @@ export default function ModoInterprete({
    */
   pratica?: PraticaNaConversa;
 }) {
+  /* Com `parciais_vivos` o estado guarda só o 1º texto do parcial; o texto em curso vem do armazém (ver `parcialVivo.ts`). */
+  const falas = useFalasDoEstadoComParcialVivo(falasDoEstado);
   const praticando = praticandoAgora(pratica);
   /* Praticando, a metade da pessoa FALA o idioma que ela aprende e segue OUVINDO no dela. */
   const idiomasDaConversa: IdiomasDoInterprete =

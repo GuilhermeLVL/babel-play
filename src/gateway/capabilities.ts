@@ -210,7 +210,15 @@ export interface SttProvider extends AdapterMeta {
    * Transcreve um PARTIAL apenas se o adapter estiver ocioso; resolve `null` quando
    * ocupado (o parcial é descartado em vez de enfileirar). Base do "rolling partial".
    */
-  transcribeIfIdle?(pcm: Float32Array, sampleRate: number, opts?: { languageHint?: string }): Promise<SttFinal | null>;
+  transcribeIfIdle?(
+    pcm: Float32Array,
+    sampleRate: number,
+    opts?: {
+      languageHint?: string;
+      /** Texto do decode em curso (token a token, cumulativo). Só com `parciais_vivos`; sem ele, nada é pedido ao worker. */
+      onUpdate?: (text: string) => void;
+    },
+  ): Promise<SttFinal | null>;
   /** Suporta STREAMING contínuo real (nuvem WebSocket)? Whisper local aproxima via partials. */
   supportsStreaming?: boolean;
   /** Abre uma sessão de streaming (contrato para plugar STT de nuvem — futuro). */

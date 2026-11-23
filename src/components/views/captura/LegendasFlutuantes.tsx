@@ -18,6 +18,7 @@ import {
 import { etiquetasNoLayout } from '../../../core/vocabulario/etiquetas';
 import { fetchSettings, patchUiSettings } from '../../../data/api';
 import { dispensarAvisoDoIdioma, useAvisoDoIdiomaDispensado } from '../../../lib/assistente/avisoDoIdioma';
+import { useFalasComParcialVivo } from '../../../lib/captura/parcialVivo';
 import {
   avancar,
   type FalaDoRitmo,
@@ -147,7 +148,7 @@ const PASSO_DO_DEDO_PX = 36;
 const TOQUE_RECENTE_MS = 800;
 
 export default function LegendasFlutuantes({
-  falas,
+  falas: falasDoEstado,
   aoFechar,
   aprendidas,
   aoRevelarTraducao,
@@ -193,6 +194,8 @@ export default function LegendasFlutuantes({
   /** As ETIQUETAS DE PALAVRAS da captura (`lib/etiquetas`): `null`/ausente = desligadas. */
   etiquetador?: Etiquetador | null;
 }) {
+  /* Parciais vivos (V6): o texto vivo do parcial vem do armazém e re-renderiza só esta janela, não a tela de captura. */
+  const falas = useFalasComParcialVivo(falasDoEstado);
   const [ap, setAp] = useState<Aparencia>(lerAparencia);
   /* O formato SUGERIDO vale só nesta abertura: não sobrescreve o modo guardado. Quando a pessoa
      escolhe um formato (ou uma predefinição), a escolha dela passa a valer e é guardada. */

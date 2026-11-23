@@ -32,6 +32,9 @@ const FLAGS_SENSIVEIS = new Set([
   'stt_nuvem_normalizar',
   'roteador_adaptativo_sombra',
   'traducao_local_por_direcao',
+  'parciais_vivos',
+  'parciais_parakeet',
+  'traducao_incremental',
 ]);
 
 /** As regras da flag em palavras curtas, para ver de relance quem ela alcança. */

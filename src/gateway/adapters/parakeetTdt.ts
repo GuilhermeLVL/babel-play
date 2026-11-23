@@ -81,6 +81,9 @@ export function confiancaMedia(confiancas: readonly number[]): number | undefine
   return confiancas.reduce((a, b) => a + b, 0) / confiancas.length;
 }
 
+/** Quantos passos do laço TDT entre duas cessões ao laço de eventos (ver `ceder` em `decodificarTdt`). */
+export const PASSOS_ENTRE_CESSOES = 4;
+
 /**
  * Decodificação gulosa TDT. Devolve os ids dos tokens. `cancelado` é consultado a cada quadro: quem
  * pediu desistiu, o laço para e devolve `null`.
@@ -88,6 +91,10 @@ export function confiancaMedia(confiancas: readonly number[]): number | undefine
  * `confiancas` (opcional): recebe a probabilidade de cada token EMITIDO, na ordem — o sinal do áudio
  * difícil (`core/rota/audioDificil.ts`). Só custa um `exp` por logit de token, e só nos quadros que
  * emitem (o branco não entra: não é texto).
+ *
+ * `ceder` (opcional, V5 "final livre"): devolve o controle ao laço de eventos a cada `PASSOS_ENTRE_CESSOES` passos. O `run`
+ * do ONNX no WASM roda na própria thread do worker e a promessa dele resolve em microtarefa, então, sem ceder, o laço inteiro
+ * é uma cadeia de microtarefas e a mensagem que pede o cancelamento (macrotarefa) só é entregue quando o decode termina.
  */
 export async function decodificarTdt<E>(
   enc: SaidaDoEncoder,
@@ -96,6 +103,7 @@ export async function decodificarTdt<E>(
   vocab: { tamanho: number; branco: number },
   cancelado: () => boolean = () => false,
   confiancas?: number[],
+  ceder?: () => Promise<void>,
 ): Promise<number[] | null> {
   const { dados, dim, quadros } = enc;
   const nQuadros = Math.min(quadros, enc.validos);
@@ -105,7 +113,9 @@ export async function decodificarTdt<E>(
   let estado = estadoInicial;
   let t = 0;
   let emitidos = 0;
+  let passos = 0;
   while (t < nQuadros) {
+    if (ceder && passos++ % PASSOS_ENTRE_CESSOES === 0) await ceder();
     if (cancelado()) return null;
     for (let d = 0; d < dim; d++) coluna[d] = dados[d * quadros + t];
     const r = await passo(coluna, tokens.length ? tokens[tokens.length - 1] : vocab.branco, estado);

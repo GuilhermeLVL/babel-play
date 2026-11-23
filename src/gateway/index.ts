@@ -24,7 +24,7 @@ import { GroqWhisperStt } from './adapters/groqWhisper';
 import { MyMemoryMt } from './adapters/mymemory';
 import { OpenAiCompatibleLlm } from './adapters/openaiCompatible';
 import { OpusMtLocal } from './adapters/opusMtLocal';
-import { ADAPTADOR_DO_PARAKEET, ehParakeet } from './adapters/parakeetModelo';
+import { ADAPTADOR_DO_PARAKEET, ehParakeet, parakeetAceita } from './adapters/parakeetModelo';
 import { ServerLlmMt } from './adapters/serverLlmMt';
 import { WebSpeechStt } from './adapters/webSpeech';
 import { WhisperLocalStt } from './adapters/whisperLocal';
@@ -1005,8 +1005,24 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
       transcribePartial(
         pcm: Float32Array,
         sampleRate: number,
-        opts?: { languageHint?: string },
+        opts?: {
+          languageHint?: string;
+          /** O texto do decode em curso (`parciais_vivos`): vai ao Whisper/Moonshine e ao Parakeet. */
+          onUpdate?: (text: string) => void;
+          /** O Parakeet também faz parcial (`parciais_parakeet` + `parciais_vivos`), só onde já é o motor. */
+          parakeet?: boolean;
+        },
       ): Promise<SttFinal | null> {
+        /* PARCIAL DO PARAKEET: só com o adaptador JÁ carregado e ativo (sem download novo) e num idioma que ele
+           atende (pt/es com dica). Ocupado ou sem dica → `null`/Whisper, como antes. */
+        if (
+          opts?.parakeet &&
+          parakeet.ativo &&
+          parakeet.adaptador?.transcribeIfIdle &&
+          parakeetAceita(opts.languageHint)
+        ) {
+          return parakeet.adaptador.transcribeIfIdle(pcm, sampleRate, { languageHint: opts.languageHint });
+        }
         for (const b of core.getProfile().bindings.stt ?? []) {
           try {
             const a = resolveStt(b);

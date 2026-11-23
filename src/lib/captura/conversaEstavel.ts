@@ -26,8 +26,12 @@ export function useFuncaoEstavel<A extends unknown[], R>(fn: (...args: A) => R):
 }
 
 /** O texto corrido da conversa, como o App sempre recebeu: as falas na ordem, separadas por espaço. */
-export function textoDaConversa(segmentos: ReadonlyArray<{ originalText: string }>): string {
-  return segmentos.map((s) => s.originalText).join(' ');
+export function textoDaConversa(
+  segmentos: ReadonlyArray<{ originalText: string; isPartial?: boolean }>,
+  opcoes?: { semParcial?: boolean },
+): string {
+  const lista = opcoes?.semParcial ? segmentos.filter((s) => !s.isPartial) : segmentos;
+  return lista.map((s) => s.originalText).join(' ');
 }
 
 /**
@@ -37,14 +41,21 @@ export function textoDaConversa(segmentos: ReadonlyArray<{ originalText: string 
  * hora — a última fala não fica fora do contexto do iChat.
  */
 export function useTextoDaConversa(
-  segmentos: ReadonlyArray<{ originalText: string }>,
+  segmentos: ReadonlyArray<{ originalText: string; isPartial?: boolean }>,
   aoMudar: ((texto: string) => void) | undefined,
   intervaloMs = 500,
+  /**
+   * Parciais vivos (V6): o texto do parcial em curso não vai ao App (só as falas fechadas). Cada texto novo do parcial era um render do App
+   * inteiro, para um contexto do iChat que só lê a conversa fechada. Sem a flag, o texto de sempre.
+   */
+  semParcial = false,
 ): void {
   const segmentosRef = useRef(segmentos);
   segmentosRef.current = segmentos;
   const aoMudarRef = useRef(aoMudar);
   aoMudarRef.current = aoMudar;
+  const semParcialRef = useRef(semParcial);
+  semParcialRef.current = semParcial;
   const ultimoRef = useRef<string | null>(null);
   const pendenteRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -52,7 +63,7 @@ export function useTextoDaConversa(
     pendenteRef.current = null;
     const cb = aoMudarRef.current;
     if (!cb) return;
-    const texto = textoDaConversa(segmentosRef.current);
+    const texto = textoDaConversa(segmentosRef.current, { semParcial: semParcialRef.current });
     if (texto === ultimoRef.current) return;
     ultimoRef.current = texto;
     cb(texto);

@@ -119,3 +119,9 @@ html[data-modo-leve='true'] .leg-estilo :is(.leg-fala, .fala, .leg-o, .orig) {
 .fala:focus-within .fala-acoes {
   opacity: 1;
 }
+
+/* ── cauda provisória do parcial (parciais vivos): ainda pode mudar. Itálico + menos opacidade, nunca só cor. ── */
+.leg-provisoria {
+  font-style: italic;
+  opacity: 0.72;
+}

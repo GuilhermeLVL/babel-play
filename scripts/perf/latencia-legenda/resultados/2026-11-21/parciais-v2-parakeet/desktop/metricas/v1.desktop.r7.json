@@ -1,0 +1,100 @@
+{
+  "rotulo": "v1.desktop.r7",
+  "perfil": {
+    "tipo": "desktop-sem-gpu",
+    "modoLeve": "false"
+  },
+  "valida": true,
+  "modeloStt": null,
+  "janelas": {
+    "sessao": [33670.52999997139, 132775.9],
+    "fala": [39985.9, 113705.9],
+    "silencio": [115983.31500005722, 132775.9]
+  },
+  "framesLongos": {
+    "n50": 3,
+    "n100": 0,
+    "somaMs": 210,
+    "maiorMs": 99
+  },
+  "primeiraLegendaMs": null,
+  "primeiroTextoNaTelaMs": 6635,
+  "sttProntoMs": null,
+  "rtf": {
+    "valores": [],
+    "p50": null,
+    "p95": null
+  },
+  "memoriaPicoMb": null,
+  "heapPicoMb": 12,
+  "cpuSilencio": {
+    "processoPct": 9.962050707032937,
+    "principalPct": 2.555173487821593,
+    "foraDaPrincipalPct": 7.406877219211344,
+    "workersPct": null
+  },
+  "rendersPorS": {
+    "silencio": 23.28408639892741,
+    "fala": 52.50949538795442
+  },
+  "commitsPorS": {
+    "silencio": 1.0123515825620613,
+    "fala": 2.2110689093868694
+  },
+  "fimATraducao": {
+    "p50": null,
+    "p95": null
+  },
+  "fimDaFalaAteLegendaMs": {
+    "valores": [],
+    "p50": null,
+    "p75": null,
+    "p95": null,
+    "falhas": 0,
+    "semTraducao": 12,
+    "erroDoMarcadorMs": [-166, 66, 12, 164, 301, 46, 17, 81, 309, -25, 103, -39]
+  },
+  "palavras": {
+    "falasComMedida": 9,
+    "foraDoCalculo": 2,
+    "semCasamento": 22,
+    "atrasoDePalavraMs": {
+      "original": {
+        "n": 51,
+        "p50": 3476,
+        "p90": 5356,
+        "valores": [
+          3777, 3077, 2817, 2317, 1757, 1557, 1337, 5966, 5546, 5226, 4166, 3866, 3626, 3426, 3086,
+          5696, 5356, 4936, 4456, 4336, 3996, 3796, 3376, 2936, 2236, 1936, 1676, 5976, 5396, 5176,
+          4836, 4236, 4076, 3476, 3176, 2656, 2496, 1736, -2062, 4998, 4618, 4238, 4178, 3698, 3318,
+          3098, 2898, 2698, 2518, 2018, 1738
+        ]
+      },
+      "traducao": {
+        "n": 0,
+        "p50": null,
+        "p90": null,
+        "valores": []
+      }
+    },
+    "erasureOriginal": {
+      "falas": 9,
+      "apagadas": 0,
+      "final": 97,
+      "ne": 0
+    },
+    "erasureTraducao": {
+      "falas": 0,
+      "apagadas": 0,
+      "final": 0,
+      "ne": null
+    }
+  },
+  "regulador": {
+    "trocasDeModelo": 0,
+    "primeiraTrocaMs": null,
+    "modelos": []
+  },
+  "falasPerdidas": 0,
+  "pedidosAoHub": 0
+}

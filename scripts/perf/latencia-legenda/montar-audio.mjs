@@ -230,6 +230,17 @@ escolhidas.forEach((e, k) => {
     fimDoFixtureS: +(inicioArquivo + e.fimDoFixture).toFixed(3),
     durVozS: +(e.vozFim - e.vozIni).toFixed(3),
     ganhoDb: e.ganhoDb,
+    // Tempo por palavra (`gerar-palavras-do-roteiro.mjs`): do clipe para a linha do tempo da bancada, somando o deslocamento.
+    ...(e.palavras
+      ? {
+          palavras: e.palavras.map((p) => ({
+            t: p.t,
+            iniS: +(inicioArquivo + p.iniS).toFixed(3),
+            fimS: +(inicioArquivo + p.fimS).toFixed(3),
+          })),
+          alinhamento: e.alinhamento,
+        }
+      : {}),
   })
   empurrar(silencio(k === escolhidas.length - 1 ? SIL_FINAL : PAUSAS[k % PAUSAS.length]))
 })

@@ -1,0 +1,261 @@
+{
+  "a": "atual.desktop",
+  "b": "v1.desktop",
+  "variante": "v1",
+  "rodadas": [12, 12],
+  "c": {
+    "atrasoOriginal": {
+      "p50": {
+        "a": 1265,
+        "b": 255,
+        "dif": -1010,
+        "ic95": [-1217, -854],
+        "falas": 6
+      },
+      "p90": {
+        "a": 2682.5,
+        "b": 2334.2,
+        "dif": -348.3000000000002,
+        "ic95": [-1526.2175000000007, 6.5024999999999045],
+        "falas": 6
+      }
+    },
+    "atrasoTraducao": {
+      "p50": {
+        "a": 2072.5,
+        "b": 1289.5,
+        "dif": -783,
+        "ic95": [-1276.0125, -65],
+        "falas": 6
+      },
+      "p90": {
+        "a": 4027.9,
+        "b": 3931.4000000000005,
+        "dif": -96.49999999999955,
+        "ic95": [-303.025, 137.0024999999999],
+        "falas": 6
+      }
+    },
+    "erasureOriginal": {
+      "a": 0.5870479394449117,
+      "b": 3.595076400679117,
+      "dif": 3.0080284612342054,
+      "ic95": [2.6094984026803805, 3.403034574137759],
+      "falas": 8
+    },
+    "erasureTraducao": {
+      "a": 0.49559859154929575,
+      "b": 2.010064043915828,
+      "dif": 1.5144654523665324,
+      "ic95": [0.8942301281575354, 2.0933099314877226],
+      "falas": 8
+    },
+    "fimDaFala": {
+      "p50": {
+        "a": 872.25,
+        "b": 789.5,
+        "dif": -82.75,
+        "ic95": [-170.25, 162.75]
+      },
+      "p75": {
+        "a": 1015.625,
+        "b": 852.625,
+        "dif": -163,
+        "ic95": [-172.75, 4.25]
+      },
+      "p95": {
+        "a": 1464.1749999999997,
+        "b": 1406.8249999999998,
+        "dif": -57.34999999999991,
+        "ic95": [-171.600625, 3.625]
+      }
+    },
+    "primeiroTextoNaTelaMs": {
+      "a": 3193.5,
+      "b": 1225.5,
+      "dif": -1968
+    },
+    "textos": {
+      "comparadas": 96,
+      "foraDoConjuntoDeA": 5,
+      "foraNormalizado": 4,
+      "divergentesEmA": 5,
+      "exemplos": [
+        {
+          "k": 1,
+          "texto": "Fela wrestlers also paid tribute to Luna."
+        },
+        {
+          "k": 2,
+          "texto": "Fire rescue crews eventually douse the fire by eleven thirty-five p.m."
+        },
+        {
+          "k": 4,
+          "texto": "For the night between 150 and 200 copies were made now known as \"Demmap\" broadsides."
+        },
+        {
+          "k": 5,
+          "texto": "The naughty faces stipe by marking or scratching, graffeting, and structures."
+        },
+        {
+          "k": 7,
+          "texto": "Giancarlo Frisi-Chella lost control of his car and ended the race very soon after the start."
+        }
+      ],
+      "werA": 0.20833333333333334,
+      "werB": 0.2074652777777778
+    },
+    "traducoes": {
+      "comparadas": 92,
+      "foraDoConjuntoDeA": 53,
+      "foraNormalizado": 45,
+      "divergentesEmA": 7,
+      "exemplos": [
+        {
+          "k": 1,
+          "texto": "Todos os anos de 13 também homenageiam a Luna."
+        },
+        {
+          "k": 1,
+          "texto": "Lloresto também rendeu homenagem a Luna."
+        },
+        {
+          "k": 1,
+          "texto": "Todos os anos de 13 também homenageiam a Luna."
+        },
+        {
+          "k": 1,
+          "texto": "Todos os anos de 13 também homenageiam a Luna."
+        },
+        {
+          "k": 1,
+          "texto": "Todos os anos de séculos também pagaram homenagem a Luna."
+        }
+      ],
+      "werA": null,
+      "werB": null
+    }
+  },
+  "juizo": {
+    "primaria": {
+      "a": 1265,
+      "b": 255,
+      "dif": -1010,
+      "ic95": [-1217, -854],
+      "falas": 6
+    },
+    "guardas": [
+      {
+        "nome": "fimDaFalaAteLegendaMs p75",
+        "status": "piorou",
+        "detalhe": "dif -163 ms, IC 95% [-173, 4], limite superior ≤ 0"
+      },
+      {
+        "nome": "erasureOriginal (Emenda 1: não piorar contra A)",
+        "status": "piorou",
+        "detalhe": "dif 3.008, IC 95% [2.609, 3.403], limite superior ≤ 0.050"
+      },
+      {
+        "nome": "texto final do original",
+        "status": "piorou",
+        "detalhe": "5 de 96 textos de B fora do conjunto de A (normalizado: 4); WER A 20.8%, B 20.7%; falas em que A varia entre rodadas: 5"
+      },
+      {
+        "nome": "SLO framesLongos.n50",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 5"
+      },
+      {
+        "nome": "SLO framesLongos.n100",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 3"
+      },
+      {
+        "nome": "SLO framesLongos.somaMs",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 500"
+      },
+      {
+        "nome": "SLO cpuSilencio.processoPct",
+        "status": "ok",
+        "detalhe": "A 12.94, B 13.279, limite 23.115"
+      },
+      {
+        "nome": "SLO rendersPorS.silencio",
+        "status": "ok",
+        "detalhe": "A 22.919, B 22.919, limite 31.649"
+      },
+      {
+        "nome": "SLO rendersPorS.fala",
+        "status": "piorou",
+        "detalhe": "A 90.93, B 223.45, limite 123.662"
+      },
+      {
+        "nome": "SLO fimDaFalaAteLegendaMs.taxaDeFalha",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 0.15"
+      }
+    ],
+    "veredito": "REPROVADO",
+    "efeitoPct": 79.84189723320159,
+    "primariaGanha": true,
+    "primariaPior": false,
+    "reprovadas": [
+      "fimDaFalaAteLegendaMs p75",
+      "erasureOriginal (Emenda 1: não piorar contra A)",
+      "texto final do original",
+      "SLO rendersPorS.fala"
+    ]
+  },
+  "slo": [
+    {
+      "nome": "framesLongos.n50",
+      "a": 0,
+      "b": 0,
+      "limite": 5,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.n100",
+      "a": 0,
+      "b": 0,
+      "limite": 3,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.somaMs",
+      "a": 0,
+      "b": 0,
+      "limite": 500,
+      "status": "ok"
+    },
+    {
+      "nome": "cpuSilencio.processoPct",
+      "a": 12.939600742440584,
+      "b": 13.27927290859245,
+      "limite": 23.115441039416815,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.silencio",
+      "a": 22.91910902696366,
+      "b": 22.91910902696366,
+      "limite": 31.648886283704577,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.fala",
+      "a": 90.92977893368013,
+      "b": 223.45036844386652,
+      "limite": 123.66222366710016,
+      "status": "piorou"
+    },
+    {
+      "nome": "fimDaFalaAteLegendaMs.taxaDeFalha",
+      "a": 0,
+      "b": 0,
+      "limite": 0.15,
+      "status": "ok"
+    }
+  ]
+}

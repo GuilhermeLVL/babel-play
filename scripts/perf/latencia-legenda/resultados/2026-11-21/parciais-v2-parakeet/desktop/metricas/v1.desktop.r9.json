@@ -1,0 +1,103 @@
+{
+  "rotulo": "v1.desktop.r9",
+  "perfil": {
+    "tipo": "desktop-sem-gpu",
+    "modoLeve": "false"
+  },
+  "valida": true,
+  "modeloStt": null,
+  "janelas": {
+    "sessao": [33391.830000162125, 132405.7],
+    "fala": [39615.7, 113335.7],
+    "silencio": [115335.7, 132405.7]
+  },
+  "framesLongos": {
+    "n50": 0,
+    "n100": 0,
+    "somaMs": 0,
+    "maiorMs": 0
+  },
+  "primeiraLegendaMs": null,
+  "primeiroTextoNaTelaMs": 6268,
+  "sttProntoMs": null,
+  "rtf": {
+    "valores": [],
+    "p50": null,
+    "p95": null
+  },
+  "memoriaPicoMb": null,
+  "heapPicoMb": 12,
+  "cpuSilencio": {
+    "processoPct": 12.449424357458462,
+    "principalPct": 2.7638496483913113,
+    "foraDaPrincipalPct": 9.68557470906715,
+    "workersPct": null
+  },
+  "rendersPorS": {
+    "silencio": 22.905682483889844,
+    "fala": 57.2436245252306
+  },
+  "commitsPorS": {
+    "silencio": 0.9958992384299933,
+    "fala": 2.1839392295170916
+  },
+  "fimATraducao": {
+    "p50": null,
+    "p95": null
+  },
+  "fimDaFalaAteLegendaMs": {
+    "valores": [],
+    "p50": null,
+    "p75": null,
+    "p95": null,
+    "falhas": 0,
+    "semTraducao": 12,
+    "erroDoMarcadorMs": [-63, 70, 19, 169, 307, 51, 23, 87, 315, -19, 110, 64]
+  },
+  "palavras": {
+    "falasComMedida": 12,
+    "foraDoCalculo": 2,
+    "semCasamento": 4,
+    "atrasoDePalavraMs": {
+      "original": {
+        "n": 101,
+        "p50": 2582,
+        "p90": 4241,
+        "valores": [
+          4398, 3678, 3458, 3038, 2918, 2598, 2258, 1518, 1398, 1198, 3139, 2439, 2179, 1679, 1119,
+          919, 699, 4963, 4543, 4223, 3163, 2863, 2623, 2423, 2083, 4739, 4139, 3839, 3239, 2799,
+          2659, 2079, 1799, 1439, 1179, 799, 4242, 3942, 3482, 3262, 3082, 2762, 2582, 2422, 1902,
+          1602, 962, 802, 4859, 4519, 4099, 3619, 3499, 3159, 2959, 2539, 2099, 1399, 1099, 839,
+          5041, 4461, 4241, 3901, 3301, 3141, 2541, 2241, 1721, 1561, 801, 4423, 4083, 3223, 2943,
+          2283, 2123, 1843, 1563, 1083, 883, 3322, 3022, 2762, 2342, 2082, 1782, 1302, 782, 4161,
+          3781, 3401, 3341, 2861, 2481, 2261, 2061, 1861, 1681, 1181, 901
+        ]
+      },
+      "traducao": {
+        "n": 0,
+        "p50": null,
+        "p90": null,
+        "valores": []
+      }
+    },
+    "erasureOriginal": {
+      "falas": 12,
+      "apagadas": 0,
+      "final": 127,
+      "ne": 0
+    },
+    "erasureTraducao": {
+      "falas": 0,
+      "apagadas": 0,
+      "final": 0,
+      "ne": null
+    }
+  },
+  "regulador": {
+    "trocasDeModelo": 0,
+    "primeiraTrocaMs": null,
+    "modelos": []
+  },
+  "falasPerdidas": 0,
+  "pedidosAoHub": 0
+}

@@ -1,0 +1,95 @@
+{
+  "rotulo": "v4-pt.desktop.r11",
+  "perfil": {
+    "tipo": "desktop-sem-gpu",
+    "modoLeve": "false"
+  },
+  "valida": true,
+  "modeloStt": null,
+  "janelas": {
+    "sessao": [34693.640000104904, 133897.6],
+    "fala": [41107.6, 114827.6],
+    "silencio": [117678.71499991417, 133897.6]
+  },
+  "framesLongos": {
+    "n50": 1,
+    "n100": 1,
+    "somaMs": 135,
+    "maiorMs": 135
+  },
+  "primeiraLegendaMs": null,
+  "primeiroTextoNaTelaMs": 7348,
+  "sttProntoMs": null,
+  "rtf": {
+    "valores": [],
+    "p50": null,
+    "p95": null
+  },
+  "memoriaPicoMb": null,
+  "heapPicoMb": 11,
+  "cpuSilencio": {
+    "processoPct": 16.382708305823307,
+    "principalPct": 4.158365244949165,
+    "foraDaPrincipalPct": 12.224343060874142,
+    "workersPct": null
+  },
+  "rendersPorS": {
+    "silencio": 22.689599192426137,
+    "fala": 51.70916983179598
+  },
+  "commitsPorS": {
+    "silencio": 0.9865043127141798,
+    "fala": 2.224633749321758
+  },
+  "fimATraducao": {
+    "p50": null,
+    "p95": null
+  },
+  "fimDaFalaAteLegendaMs": {
+    "valores": [],
+    "p50": null,
+    "p75": null,
+    "p95": null,
+    "falhas": 0,
+    "semTraducao": 12,
+    "erroDoMarcadorMs": [22, 59, 8, 166, 303, 46, 18, 82, 310, -24, 113, 58]
+  },
+  "palavras": {
+    "falasComMedida": 11,
+    "foraDoCalculo": 2,
+    "semCasamento": 82,
+    "atrasoDePalavraMs": {
+      "original": {
+        "n": 13,
+        "p50": 3673,
+        "p90": 5117,
+        "valores": [-1305, 5573, 5193, 4813, 4753, 4273, 3893, 3673, 3473, 3273, 3093, 2593, 2313]
+      },
+      "traducao": {
+        "n": 0,
+        "p50": null,
+        "p90": null,
+        "valores": []
+      }
+    },
+    "erasureOriginal": {
+      "falas": 11,
+      "apagadas": 0,
+      "final": 117,
+      "ne": 0
+    },
+    "erasureTraducao": {
+      "falas": 0,
+      "apagadas": 0,
+      "final": 0,
+      "ne": null
+    }
+  },
+  "regulador": {
+    "trocasDeModelo": 0,
+    "primeiraTrocaMs": null,
+    "modelos": []
+  },
+  "falasPerdidas": 1,
+  "pedidosAoHub": 0
+}

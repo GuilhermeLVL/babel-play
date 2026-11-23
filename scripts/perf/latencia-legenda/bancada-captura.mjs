@@ -10,6 +10,9 @@
  *        [--porta 4181] [--saida DIR] [--cache-modelos DIR] [--ambiente NOME]
  *        [--gravar-linha-de-base] [--contra resultado-anterior.json] [--sem-comparar] [--headful]
  *        [--alvos antes=http://127.0.0.1:4182,depois=http://127.0.0.1:4183]
+ *        [--fixture fleurs-pt-12.json --eles pt-BR --eu pt-BR --qualidade accurate]   (cenário pt: exercita o Parakeet; padrão: fleurs-en-8, en-US→pt-BR)
+ *        [--armazenamento-do-alvo "braco=babel.lab.parciaisModo:sem-cauda;..."]   (chaves do localStorage POR alvo)
+ *        [--flag-do-alvo "depois=parciais_vivos,parciais_parakeet;antes="]   (flags POR alvo; várias por alvo)
  *
  * O que faz, por perfil de aparelho:
  *  1. monta o áudio do fixture versionado (`tests/fixtures/bancada-captura/fleurs-en-8.json`: 8 falas
@@ -19,7 +22,7 @@
  *  3. uma rodada de AQUECIMENTO num perfil de navegador novo (os pesos vêm do cache em disco,
  *     `--cache-modelos`, e caem no Cache Storage), e N rodadas medidas no mesmo perfil — o regime
  *     de quem já usou o app (pré-aquecimento ao abrir a tela, nada baixado);
- *  4. `metricas-captura.mjs` tira as métricas de cada rodada e a mediana das N; `comparar.mjs`
+ *  4. `metricas-captura.mjs` (com `palavras-da-fala.mjs`: atraso por palavra e erasure) tira as métricas de cada rodada e a mediana das N; `comparar.mjs`
  *     confere contra `slo-captura.json` do ambiente e sai com 1 se algo piorou.
  *
  * Cenário (o que a rota escolhe o MENOR modelo nos dois perfis, para o CI não demorar): mídia em
@@ -46,6 +49,9 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { comparar, gravarLinhaDeBase, ruidoEntre, tabelaAntesDepois, tabelaMarkdown, validarSlo } from './comparar.mjs'
+import { flagsComoArgumento, flagsDoAlvo, lerFlagsDoAlvo } from './flags-do-alvo.mjs'
+import { cenarioDaBancada } from './cenario-da-bancada.mjs'
+import { armazenamentoComoArgumento, armazenamentoDoAlvo, lerArmazenamentoDoAlvo } from './armazenamento-do-alvo.mjs'
 import { agregarRodadas, metricasDaRodada } from './metricas-captura.mjs'
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url))
@@ -57,6 +63,14 @@ const opt = (n, d) => {
 }
 const flag = (n) => args.includes(`--${n}`)
 
+const FLAGS_POR_ALVO = lerFlagsDoAlvo(opt('flag-do-alvo', ''))
+/** O `--flag` do `medir.mjs` para este alvo: as flags dele (`--flag-do-alvo`) ou o `--flag` global. */
+const flagsDe = (alvo) => flagsComoArgumento(flagsDoAlvo(alvo.nome, FLAGS_POR_ALVO, opt('flag', '')))
+
+const ARMAZENAMENTO_POR_ALVO = lerArmazenamentoDoAlvo(opt('armazenamento-do-alvo', ''))
+/** O `--armazenamento` do `medir.mjs` para este alvo (chaves de laboratório do localStorage; vazio = nenhuma). */
+const armazenamentoDe = (alvo) => armazenamentoComoArgumento(armazenamentoDoAlvo(alvo.nome, ARMAZENAMENTO_POR_ALVO))
+
 const PERFIS = { desktop: null, fraco: 'fraco' }
 const perfis = opt('perfis', 'desktop,fraco').split(',').filter(Boolean)
 for (const p of perfis) if (!(p in PERFIS)) throw new Error(`perfil desconhecido: ${p} (${Object.keys(PERFIS)})`)
@@ -67,14 +81,16 @@ const SAIDA = path.resolve(opt('saida', path.join(os.tmpdir(), 'bancada-captura'
 const CACHE_MODELOS = path.resolve(opt('cache-modelos', path.join(os.homedir(), '.cache', 'babel-bancada', 'modelos')))
 const AMBIENTE = opt('ambiente', process.env.GITHUB_ACTIONS ? 'ci-ubuntu' : `local-${process.platform}`)
 const ARQ_SLO = path.resolve(opt('slo', path.join(AQUI, 'slo-captura.json')))
-const FIXTURE = path.join(RAIZ, 'tests', 'fixtures', 'bancada-captura', 'fleurs-en-8.json')
+const CEN = cenarioDaBancada(opt, RAIZ)
+const FIXTURE = CEN.fixture
 const CENARIO = [
   '--modo',
   'sistema',
   '--eles',
-  'en-US',
+  CEN.eles,
   '--eu',
-  'pt-BR',
+  CEN.eu,
+  ...(CEN.qualidade ? ['--qualidade', CEN.qualidade] : []),
   '--desempenho',
   'padrao',
   '--amostra-ms',
@@ -103,9 +119,9 @@ const AUDIO_DIR = path.join(SAIDA, 'audio')
     [
       path.join(AQUI, 'montar-audio.mjs'),
       '--idioma',
-      'en',
+      CEN.idioma,
       '--n',
-      '8',
+      CEN.n,
       '--fixture',
       FIXTURE,
       '--silencio-inicial',
@@ -113,7 +129,7 @@ const AUDIO_DIR = path.join(SAIDA, 'audio')
       '--silencio-final',
       '20',
       '--nome',
-      'bancada_en',
+      CEN.nome,
       '--saida',
       AUDIO_DIR,
     ],
@@ -121,7 +137,7 @@ const AUDIO_DIR = path.join(SAIDA, 'audio')
   )
   if (r.status !== 0) throw new Error('montar-audio falhou')
 }
-const ROTEIRO = path.join(AUDIO_DIR, 'bancada_en.json')
+const ROTEIRO = path.join(AUDIO_DIR, `${CEN.nome}.json`)
 
 // ---- 2. alvos (e o servidor, quando a bancada sobe o seu)
 const respondeu = async (url) => {
@@ -188,9 +204,10 @@ function rodar(alvo, perfil, rotulo) {
     CACHE_MODELOS,
     ...CENARIO,
     ...(opt('intencao-ms', '') ? ['--intencao-ms', opt('intencao-ms', '')] : []),
-    ...(opt('flag', '') && !(flag('isolar-ponteiro') && rotulo.endsWith('.aquecimento'))
-      ? ['--flag', opt('flag', '')]
+    ...(flagsDe(alvo) && !(flag('isolar-ponteiro') && rotulo.endsWith('.aquecimento'))
+      ? ['--flag', flagsDe(alvo)]
       : []),
+    ...(armazenamentoDe(alvo) ? ['--armazenamento', armazenamentoDe(alvo)] : []),
     ...(flag('isolar-ponteiro') && !rotulo.endsWith('.aquecimento') ? ['--sem-idiomas'] : []),
     ...(flag('headful') ? [] : ['--headless']),
     ...(PERFIS[perfil] ? ['--dispositivo', PERFIS[perfil]] : []),
@@ -205,7 +222,7 @@ function rodar(alvo, perfil, rotulo) {
   writeFileSync(path.join(SAIDA, 'metricas', `${rotulo}.json`), JSON.stringify(m, null, 1))
   if (m.valida)
     log(
-      `   ${rotulo}: ${m.modeloStt?.split('/').pop()} · frames>50 ${m.framesLongos.n50} (>100 ${m.framesLongos.n100}, Σ ${m.framesLongos.somaMs} ms) · 1º texto na tela ${m.primeiroTextoNaTelaMs} ms · legenda completa ${m.primeiraLegendaMs} ms · RTF p50 ${m.rtf.p50?.toFixed(3)} · memória ${m.memoriaPicoMb} MB · CPU no silêncio ${m.cpuSilencio.processoPct?.toFixed(1)}% · renders/s ${m.rendersPorS.silencio?.toFixed(1)} (silêncio) ${m.rendersPorS.fala?.toFixed(1)} (fala) · trocas de modelo ${m.regulador.trocasDeModelo} · pedidos ao Hub ${m.pedidosAoHub}`,
+      `   ${rotulo}: ${m.modeloStt?.split('/').pop()} · frames>50 ${m.framesLongos.n50} (>100 ${m.framesLongos.n100}, Σ ${m.framesLongos.somaMs} ms) · 1º texto na tela ${m.primeiroTextoNaTelaMs} ms · legenda completa ${m.primeiraLegendaMs} ms · RTF p50 ${m.rtf.p50?.toFixed(3)} · memória ${m.memoriaPicoMb} MB · CPU no silêncio ${m.cpuSilencio.processoPct?.toFixed(1)}% · renders/s ${m.rendersPorS.silencio?.toFixed(1)} (silêncio) ${m.rendersPorS.fala?.toFixed(1)} (fala) · trocas de modelo ${m.regulador.trocasDeModelo} · pedidos ao Hub ${m.pedidosAoHub} · atraso/palavra original p50 ${m.palavras?.atrasoDePalavraMs.original.p50?.toFixed(0)} p90 ${m.palavras?.atrasoDePalavraMs.original.p90?.toFixed(0)} ms (tradução p50 ${m.palavras?.atrasoDePalavraMs.traducao.p50?.toFixed(0)}) · erasure ${m.palavras?.erasureOriginal.ne?.toFixed(2)}/${m.palavras?.erasureTraducao.ne?.toFixed(2)}`,
     )
   else log(`   ${rotulo}: INVÁLIDA — ${m.motivo}`)
   return m
@@ -227,7 +244,7 @@ function visitar(alvo, perfil) {
     '--cache-modelos',
     CACHE_MODELOS,
     ...CENARIO,
-    ...(opt('flag', '') ? ['--flag', opt('flag', '')] : []),
+    ...(flagsDe(alvo) ? ['--flag', flagsDe(alvo)] : []),
     '--visita-ms',
     opt('visita-ms', '3000'),
     ...(flag('headful') ? [] : ['--headless']),

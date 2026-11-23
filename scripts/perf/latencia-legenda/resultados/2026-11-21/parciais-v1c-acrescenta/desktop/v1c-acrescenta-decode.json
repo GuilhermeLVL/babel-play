@@ -1,0 +1,260 @@
+{
+  "a": "atual.desktop",
+  "b": "v1c-acrescenta-decode.desktop",
+  "variante": "v1c",
+  "rodadas": [11, 11],
+  "c": {
+    "atrasoOriginal": {
+      "p50": {
+        "a": 1280,
+        "b": 1876,
+        "dif": 596,
+        "ic95": [-292.025, 1127.0124999999998],
+        "falas": 6
+      },
+      "p90": {
+        "a": 2756.8,
+        "b": 3478.4,
+        "dif": 721.5999999999999,
+        "ic95": [25, 1114.0099999999998],
+        "falas": 6
+      }
+    },
+    "atrasoTraducao": {
+      "p50": {
+        "a": 2249,
+        "b": 2519,
+        "dif": 270,
+        "ic95": [1.5, 719.0124999999998],
+        "falas": 6
+      },
+      "p90": {
+        "a": 4014.8,
+        "b": 4012,
+        "dif": -2.800000000000182,
+        "ic95": [-115.00249999999996, 182],
+        "falas": 6
+      }
+    },
+    "erasureOriginal": {
+      "a": 0.6318681318681318,
+      "b": 0.3764813126709207,
+      "dif": -0.2553868191972111,
+      "ic95": [-0.4924977309098845, 0.019384278850475497],
+      "falas": 8
+    },
+    "erasureTraducao": {
+      "a": 0.5057803468208093,
+      "b": 0.4,
+      "dif": -0.10578034682080928,
+      "ic95": [-0.33281366721653094, 0.14470882898750806],
+      "falas": 8
+    },
+    "fimDaFala": {
+      "p50": {
+        "a": 867,
+        "b": 786,
+        "dif": -81,
+        "ic95": [-177.5125, 44]
+      },
+      "p75": {
+        "a": 1021.75,
+        "b": 963.75,
+        "dif": -58,
+        "ic95": [-177.5, 4]
+      },
+      "p95": {
+        "a": 1465.5999999999997,
+        "b": 1409.5999999999997,
+        "dif": -56,
+        "ic95": [-168.55000000000007, 4.75]
+      }
+    },
+    "primeiroTextoNaTelaMs": {
+      "a": 3203,
+      "b": 1430,
+      "dif": -1773
+    },
+    "werFinal": {
+      "a": 0.20738636363636365,
+      "b": 0.20265151515151514,
+      "dif": -0.004734848484848508,
+      "ic95": [-0.024977608598298267, 0.007575757575757597],
+      "falas": 8
+    },
+    "textos": {
+      "comparadas": 88,
+      "foraDoConjuntoDeA": 3,
+      "foraNormalizado": 3,
+      "divergentesEmA": 5,
+      "exemplos": [
+        {
+          "k": 1,
+          "texto": "Fela wrestlers also paid tribute to Luna."
+        },
+        {
+          "k": 1,
+          "texto": "Fela wrestlers also paid tribute to Luna."
+        },
+        {
+          "k": 7,
+          "texto": "Giancarlo Fristicella lost control of his car and ended the race very soon after the start."
+        }
+      ],
+      "werA": 0.20738636363636365,
+      "werB": 0.20265151515151514
+    },
+    "traducoes": {
+      "comparadas": 88,
+      "foraDoConjuntoDeA": 43,
+      "foraNormalizado": 43,
+      "divergentesEmA": 7,
+      "exemplos": [
+        {
+          "k": 1,
+          "texto": "Todos os anos de idade também pagaram tributo"
+        },
+        {
+          "k": 1,
+          "texto": "Todos os anos de idade também pagaram tributo"
+        },
+        {
+          "k": 1,
+          "texto": "Os lutadores de Fella também homenagearam a Luna."
+        },
+        {
+          "k": 1,
+          "texto": "Todos os anos de idade também pagam homenagem"
+        },
+        {
+          "k": 1,
+          "texto": "Todos os anos de idade também pagaram tributo"
+        }
+      ],
+      "werA": null,
+      "werB": null
+    }
+  },
+  "juizo": {
+    "primaria": {
+      "a": 1280,
+      "b": 1876,
+      "dif": 596,
+      "ic95": [-292.025, 1127.0124999999998],
+      "falas": 6
+    },
+    "guardas": [
+      {
+        "nome": "fimDaFalaAteLegendaMs p75",
+        "status": "ok",
+        "detalhe": "dif -58 ms, IC 95% [-177, 4], limite superior ≤ 30 ms"
+      },
+      {
+        "nome": "erasureOriginal (Emenda 1: não piorar contra A)",
+        "status": "ok",
+        "detalhe": "dif -0.255, IC 95% [-0.492, 0.019], limite superior ≤ 0.050"
+      },
+      {
+        "nome": "WER pareado do texto final (limite superior ≤ +2 pp)",
+        "status": "ok",
+        "detalhe": "dif −0.5 pp, IC 95% [−2.5 pp, +0.8 pp], limite superior ≤ +2.0 pp"
+      },
+      {
+        "nome": "texto final fora do conjunto de A (informativo)",
+        "status": "ok",
+        "detalhe": "3 de 88 textos de B fora do conjunto de A (normalizado: 3); WER A 20.7%, B 20.3%; falas em que A varia entre rodadas: 5"
+      },
+      {
+        "nome": "SLO framesLongos.n50",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 5"
+      },
+      {
+        "nome": "SLO framesLongos.n100",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 3"
+      },
+      {
+        "nome": "SLO framesLongos.somaMs",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 500"
+      },
+      {
+        "nome": "SLO cpuSilencio.processoPct",
+        "status": "ok",
+        "detalhe": "A 13.574, B 13.325, limite 24.004"
+      },
+      {
+        "nome": "SLO rendersPorS.silencio",
+        "status": "ok",
+        "detalhe": "A 22.919, B 22.919, limite 31.649"
+      },
+      {
+        "nome": "SLO rendersPorS.fala",
+        "status": "ok",
+        "detalhe": "A 91.656, B 110.988, limite 124.57"
+      },
+      {
+        "nome": "SLO fimDaFalaAteLegendaMs.taxaDeFalha",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 0.15"
+      }
+    ],
+    "veredito": "SEM DIFERENÇA PROVADA",
+    "efeitoPct": -46.5625,
+    "primariaGanha": false,
+    "primariaPior": false,
+    "reprovadas": []
+  },
+  "slo": [
+    {
+      "nome": "framesLongos.n50",
+      "a": 0,
+      "b": 0,
+      "limite": 5,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.n100",
+      "a": 0,
+      "b": 0,
+      "limite": 3,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.somaMs",
+      "a": 0,
+      "b": 0,
+      "limite": 500,
+      "status": "ok"
+    },
+    {
+      "nome": "cpuSilencio.processoPct",
+      "a": 13.574126352443736,
+      "b": 13.324597100367122,
+      "limite": 24.00377689342123,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.silencio",
+      "a": 22.91910902696366,
+      "b": 22.91910902696366,
+      "limite": 31.648886283704577,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.fala",
+      "a": 91.65583008235802,
+      "b": 110.98829648894669,
+      "limite": 124.56978760294753,
+      "status": "ok"
+    },
+    {
+      "nome": "fimDaFalaAteLegendaMs.taxaDeFalha",
+      "a": 0,
+      "b": 0,
+      "limite": 0.15,
+      "status": "ok"
+    }
+  ]
+}

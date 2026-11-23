@@ -1,0 +1,84 @@
+{
+  "foraDoCalculo": 2,
+  "falasValidadas": 6,
+  "inicioVsRoteiro": {
+    "n": 6,
+    "medianaAbsMs": 230,
+    "p95AbsMs": 525,
+    "medianaComSinalMs": 230
+  },
+  "fimVsRoteiro": {
+    "n": 6,
+    "medianaAbsMs": 180,
+    "p95AbsMs": 350,
+    "medianaComSinalMs": 40
+  },
+  "inicioVsEnergia": {
+    "n": 6,
+    "medianaAbsMs": 190,
+    "p95AbsMs": 525,
+    "medianaComSinalMs": 190
+  },
+  "fimVsEnergia": {
+    "n": 6,
+    "medianaAbsMs": 90,
+    "p95AbsMs": 345,
+    "medianaComSinalMs": 90
+  },
+  "todasAsFronteiras": {
+    "n": 24,
+    "medianaAbsMs": 190,
+    "p95AbsMs": 542.9999999999995,
+    "medianaComSinalMs": 180
+  },
+  "falas": [
+    {
+      "k": 0,
+      "id": "fleurs_en_1737",
+      "inicioVsRoteiroMs": 390,
+      "fimVsRoteiroMs": 100,
+      "inicioVsEnergiaMs": 390,
+      "fimVsEnergiaMs": 110
+    },
+    {
+      "k": 2,
+      "id": "fleurs_en_1748",
+      "inicioVsRoteiroMs": 210,
+      "fimVsRoteiroMs": 320,
+      "inicioVsEnergiaMs": 190,
+      "fimVsEnergiaMs": 330
+    },
+    {
+      "k": 3,
+      "id": "fleurs_en_1750",
+      "inicioVsRoteiroMs": 570,
+      "fimVsRoteiroMs": -260,
+      "inicioVsEnergiaMs": 570,
+      "fimVsEnergiaMs": 70
+    },
+    {
+      "k": 5,
+      "id": "fleurs_en_1791",
+      "inicioVsRoteiroMs": 80,
+      "fimVsRoteiroMs": -20,
+      "inicioVsEnergiaMs": 80,
+      "fimVsEnergiaMs": -20
+    },
+    {
+      "k": 6,
+      "id": "fleurs_en_1839",
+      "inicioVsRoteiroMs": 250,
+      "fimVsRoteiroMs": 360,
+      "inicioVsEnergiaMs": 170,
+      "fimVsEnergiaMs": 350
+    },
+    {
+      "k": 7,
+      "id": "fleurs_en_1853",
+      "inicioVsRoteiroMs": 150,
+      "fimVsRoteiroMs": -20,
+      "inicioVsEnergiaMs": 190,
+      "fimVsEnergiaMs": -30
+    }
+  ]
+}

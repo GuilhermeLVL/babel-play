@@ -1,0 +1,271 @@
+{
+  "a": "v1.fraco",
+  "b": "v1v3.fraco",
+  "variante": "v3",
+  "rodadas": [12, 12],
+  "c": {
+    "atrasoOriginal": {
+      "p50": {
+        "a": 1650,
+        "b": 1530,
+        "dif": -120,
+        "ic95": [-313, 35.5],
+        "falas": 6
+      },
+      "p90": {
+        "a": 3822.499999999999,
+        "b": 3705.6,
+        "dif": -116.89999999999918,
+        "ic95": [-256.2100000000007, 226.50750000002535],
+        "falas": 6
+      }
+    },
+    "atrasoTraducao": {
+      "p50": {
+        "a": 2409,
+        "b": 3079,
+        "dif": 670,
+        "ic95": [226, 1067.0249999999996],
+        "falas": 6
+      },
+      "p90": {
+        "a": 4267.6,
+        "b": 4432,
+        "dif": 164.39999999999964,
+        "ic95": [-1.1174999999994566, 328.0049999999995],
+        "falas": 6
+      }
+    },
+    "erasureOriginal": {
+      "a": 0.5611990008326395,
+      "b": 0.5558354324097398,
+      "dif": -0.005363568422899756,
+      "ic95": [-0.05688943614049004, 0.036948646738910254],
+      "falas": 8
+    },
+    "erasureTraducao": {
+      "a": 0.42579505300353354,
+      "b": 0,
+      "dif": -0.42579505300353354,
+      "ic95": [-0.6059724106739033, -0.262711352244636],
+      "falas": 8
+    },
+    "fimDaFala": {
+      "p50": {
+        "a": 1144.5,
+        "b": 1328,
+        "dif": 183.5,
+        "ic95": [151.25, 200.2562499999999]
+      },
+      "p75": {
+        "a": 1222,
+        "b": 1398.875,
+        "dif": 176.875,
+        "ic95": [19.5, 199.875]
+      },
+      "p95": {
+        "a": 1765.0499999999997,
+        "b": 1840.5749999999998,
+        "dif": 75.52500000000009,
+        "ic95": [14.549999999999955, 210.12624999999997]
+      }
+    },
+    "primeiroTextoNaTelaMs": {
+      "a": 1871.5,
+      "b": 1874.5,
+      "dif": 3
+    },
+    "textos": {
+      "comparadas": 96,
+      "foraDoConjuntoDeA": 6,
+      "foraNormalizado": 6,
+      "divergentesEmA": 5,
+      "exemplos": [
+        {
+          "k": 0,
+          "texto": "Lions are the most social cats living on large groups called prides."
+        },
+        {
+          "k": 0,
+          "texto": "Lions are the most social cats living on large groups called prides."
+        },
+        {
+          "k": 1,
+          "texto": "Felleressors also paid tribute to Luna."
+        },
+        {
+          "k": 5,
+          "texto": "The Nazi faced a sight by marking or scratching, graffiti into structures."
+        },
+        {
+          "k": 7,
+          "texto": "Giancarlo Fisichela lost control of his car and ended the race very soon after the start."
+        }
+      ],
+      "werA": 0.20833333333333334,
+      "werB": 0.2092013888888889
+    },
+    "traducoes": {
+      "comparadas": 96,
+      "foraDoConjuntoDeA": 56,
+      "foraNormalizado": 54,
+      "divergentesEmA": 7,
+      "exemplos": [
+        {
+          "k": 0,
+          "texto": "≈ Os leões são os gatos mais sociais que vivem em grandes grupos chamados orgulhos."
+        },
+        {
+          "k": 0,
+          "texto": "≈ Os leões são os gatos mais sociais que vivem em grandes grupos chamados orgulhos."
+        },
+        {
+          "k": 1,
+          "texto": "Os Frelessors também homenagearam a Luna."
+        },
+        {
+          "k": 1,
+          "texto": "Felleressers também rendeu homenagem a Luna."
+        },
+        {
+          "k": 1,
+          "texto": "Felleressers também rendeu homenagem a Luna."
+        }
+      ],
+      "werA": null,
+      "werB": null
+    }
+  },
+  "juizo": {
+    "primaria": {
+      "a": 2409,
+      "b": 3079,
+      "dif": 670,
+      "ic95": [226, 1067.0249999999996],
+      "falas": 6
+    },
+    "guardas": [
+      {
+        "nome": "fimDaFalaAteLegendaMs p75",
+        "status": "piorou",
+        "detalhe": "dif 177 ms, IC 95% [20, 200], limite superior ≤ 0"
+      },
+      {
+        "nome": "erasureOriginal (Emenda 1: não piorar contra A)",
+        "status": "ok",
+        "detalhe": "dif -0.005, IC 95% [-0.057, 0.037], limite superior ≤ 0.050"
+      },
+      {
+        "nome": "erasureTraducao (Emenda 1: não piorar contra A)",
+        "status": "ok",
+        "detalhe": "dif -0.426, IC 95% [-0.606, -0.263], limite superior ≤ 0.050"
+      },
+      {
+        "nome": "atrasoDePalavraMs p50 do original (não pode piorar)",
+        "status": "ok",
+        "detalhe": "dif -120, IC 95% [-313, 36], reprova só com o IC inteiro acima de 0"
+      },
+      {
+        "nome": "texto final do original",
+        "status": "piorou",
+        "detalhe": "6 de 96 textos de B fora do conjunto de A (normalizado: 6); WER A 20.8%, B 20.9%; falas em que A varia entre rodadas: 5"
+      },
+      {
+        "nome": "tradução final",
+        "status": "piorou",
+        "detalhe": "56 de 96 traduções de B fora do conjunto de A (normalizado: 54); falas em que A varia entre rodadas: 7"
+      },
+      {
+        "nome": "SLO framesLongos.n50",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 5"
+      },
+      {
+        "nome": "SLO framesLongos.n100",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 3"
+      },
+      {
+        "nome": "SLO framesLongos.somaMs",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 500"
+      },
+      {
+        "nome": "SLO cpuSilencio.processoPct",
+        "status": "ok",
+        "detalhe": "A 13.563, B 13.224, limite 23.988"
+      },
+      {
+        "nome": "SLO rendersPorS.silencio",
+        "status": "ok",
+        "detalhe": "A 27.154, B 27.192, limite 36.942"
+      },
+      {
+        "nome": "SLO rendersPorS.fala",
+        "status": "ok",
+        "detalhe": "A 109.2, B 103.728, limite 146.5"
+      },
+      {
+        "nome": "SLO fimDaFalaAteLegendaMs.taxaDeFalha",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 0.15"
+      }
+    ],
+    "veredito": "REPROVADO",
+    "efeitoPct": -27.812370278123705,
+    "primariaGanha": false,
+    "primariaPior": true,
+    "reprovadas": ["fimDaFalaAteLegendaMs p75", "texto final do original", "tradução final"]
+  },
+  "slo": [
+    {
+      "nome": "framesLongos.n50",
+      "a": 0,
+      "b": 0,
+      "limite": 5,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.n100",
+      "a": 0,
+      "b": 0,
+      "limite": 3,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.somaMs",
+      "a": 0,
+      "b": 0,
+      "limite": 500,
+      "status": "ok"
+    },
+    {
+      "nome": "cpuSilencio.processoPct",
+      "a": 13.562631257351814,
+      "b": 13.224061661336044,
+      "limite": 23.987683760292537,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.silencio",
+      "a": 27.153546695629167,
+      "b": 27.191549919383526,
+      "limite": 36.94193336953646,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.fala",
+      "a": 109.2002600780234,
+      "b": 103.72778500216731,
+      "limite": 146.50032509752924,
+      "status": "ok"
+    },
+    {
+      "nome": "fimDaFalaAteLegendaMs.taxaDeFalha",
+      "a": 0,
+      "b": 0,
+      "limite": 0.15,
+      "status": "ok"
+    }
+  ]
+}

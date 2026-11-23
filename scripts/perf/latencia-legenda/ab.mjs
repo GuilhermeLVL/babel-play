@@ -62,10 +62,12 @@ export function lerLado(dir, prefixo) {
   const validas = []
   const invalidas = []
   let primeira = Infinity
+  let referencias = null
   for (const f of arquivos) {
     const arq = path.join(dir, f)
     const d = JSON.parse(readFileSync(arq, 'utf8'))
     primeira = Math.min(primeira, Date.parse(d.quando) || statSync(arq).mtimeMs)
+    referencias ??= d.roteiro?.falas?.map((x) => x.referencia ?? null) ?? null
     const m = metricasDaRodada(d)
     if (!m.valida) {
       invalidas.push({ rotulo: d.rotulo ?? f, motivo: m.motivo })
@@ -76,10 +78,16 @@ export function lerLado(dir, prefixo) {
       rotulo: d.rotulo,
       porFala: a.todasFalas.map((x) => (x.status === 'ok' ? x.fimDaFalaAteLegendaMs : null)),
       status: a.todasFalas.map((x) => x.status),
+      // `parciais-incrementais`: o que o A/B dos parciais lê por fala (atraso por palavra, erasure, textos finais).
+      palavras: a.todasFalas.map((x) => x.palavras ?? null),
+      // `fimDaFalaAteOriginalMs` (guarda 1 sem tradução): o texto final do original no balão.
+      porFalaOriginal: a.todasFalas.map((x) => x.palavras?.fimDaFalaAteOriginal ?? null),
+      textos: a.todasFalas.map((x) => x.texto ?? null),
+      traducoes: a.todasFalas.map((x) => x.traducao ?? null),
       metricas: m,
     })
   }
-  return { validas, invalidas, primeiraRodadaEm: Number.isFinite(primeira) ? primeira : null }
+  return { validas, invalidas, referencias, primeiraRodadaEm: Number.isFinite(primeira) ? primeira : null }
 }
 
 /** Valores do par, por fala: só as falas com ao menos um valor nos DOIS lados entram. */

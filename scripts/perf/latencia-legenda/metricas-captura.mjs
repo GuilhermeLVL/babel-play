@@ -20,6 +20,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { acharAncoraDoBipe, analisarRodada, resumirLegenda } from './analisar.mjs'
+import { agregarPalavras, resumirPalavras } from './palavras-da-fala.mjs'
 
 /** Janela mínima para uma taxa de CPU valer alguma coisa (abaixo disso, 1 tique do SO já distorce). */
 const JANELA_MINIMA_CPU_MS = 3000
@@ -226,6 +227,16 @@ export function metricasDaRodada(d) {
       semTraducao: leg.semTraducao,
       erroDoMarcadorMs: errosDoMarcador,
     },
+    // `parciais-incrementais` (1.7): atraso por palavra (p50/p90) e erasure, original e tradução (proxy).
+    palavras: resumirPalavras(analise.falas),
+    // V5 (final livre): o decode final no worker, por fala. `sttEspera` = quanto o final esperou um parcial em voo (ms; 0 = nada em voo).
+    finalNoWorker: {
+      falas: analise.falas.filter((f) => finito(f.stt)).length,
+      comParcialEmVoo: analise.falas.filter((f) => f.parcialEmVooNoFinal).length,
+      sttEspera: analise.falas.map((f) => f.sttEspera).filter(finito),
+      stt: analise.falas.map((f) => f.stt).filter(finito),
+      decodeDoFinalMs: analise.falas.map((f) => f.decodeDoFinalMs).filter(finito),
+    },
     regulador: {
       trocasDeModelo: trocas.length,
       primeiraTrocaMs: trocas.length ? Math.round(trocas[0].t - d.tIniciarPerf) : null,
@@ -292,7 +303,16 @@ export function agregarRodadas(rodadas) {
   metricas['fimDaFalaAteLegendaMs.taxaDeFalha'] = esperadas ? falhas / esperadas : null
   const erros = validas.flatMap((r) => r.fimDaFalaAteLegendaMs?.erroDoMarcadorMs ?? [])
   const abs = erros.map(Math.abs)
+  // Atraso por palavra e erasure: as palavras e as somas de todas as rodadas válidas (`palavras-da-fala.mjs`).
+  const palavras = agregarPalavras(validas.map((r) => r.palavras))
+  metricas['atrasoDePalavraMs.original.p50'] = palavras.atrasoDePalavraMs.original.p50
+  metricas['atrasoDePalavraMs.original.p90'] = palavras.atrasoDePalavraMs.original.p90
+  metricas['atrasoDePalavraMs.traducao.p50'] = palavras.atrasoDePalavraMs.traducao.p50
+  metricas['atrasoDePalavraMs.traducao.p90'] = palavras.atrasoDePalavraMs.traducao.p90
+  metricas.erasureOriginal = palavras.erasureOriginal.ne
+  metricas.erasureTraducao = palavras.erasureTraducao.ne
   return {
+    palavras,
     legenda: { n: legenda.length, falhas, semTraducao },
     erroDoMarcador: erros.length
       ? {

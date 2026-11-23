@@ -46,12 +46,23 @@
  */
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { chromium } from 'playwright'
+
+import { paresDoArgumento } from './armazenamento-do-alvo.mjs'
 
 import {
   aplicarCpu,
@@ -97,7 +108,7 @@ const SEM_IDIOMAS = flag('sem-idiomas')
 const sondaSrc = readFileSync(path.join(AQUI, 'sonda.js'), 'utf8')
 // O prettier fecha a expressão com `;`: tira, para caber em `(${sondaFn})(cfg)`.
 const sondaFn = sondaSrc.slice(sondaSrc.indexOf('(cfg) =>')).trim().replace(/;\s*$/, '')
-const cfg = { modo: MODO, semWebGpu: flag('sem-webgpu') }
+const cfg = { modo: MODO, semWebGpu: flag('sem-webgpu'), nomesDoRender: process.env.SONDA_NOMES_DO_RENDER === '1' }
 const NOME_DO_APARELHO = opt('dispositivo', '')
 const APARELHO = NOME_DO_APARELHO ? (DISPOSITIVOS[NOME_DO_APARELHO] ?? APARELHOS_DA_BANCADA[NOME_DO_APARELHO]) : null
 if (NOME_DO_APARELHO && !APARELHO) throw new Error(`--dispositivo desconhecido: ${NOME_DO_APARELHO}`)
@@ -190,6 +201,8 @@ function cpuPorThread(pid) {
  * `revisoesDosModelos.ts`), então a URL é uma chave imutável. Guarda 200 e 404 (o transformers.js
  * procura arquivos opcionais que não existem; sem o 404 guardado, cada sessão iria à rede de novo).
  */
+const LIMITE_DO_CACHE = 400 * 1048576
+
 async function ligarCacheDeModelos(contexto, dir) {
   mkdirSync(dir, { recursive: true })
   const estat = { doDisco: 0, daRede: 0, mbDaRede: 0, semCache: 0 }
@@ -209,6 +222,7 @@ async function ligarCacheDeModelos(contexto, dir) {
       return route.fallback()
     }
     if (existsSync(arqCorpo) && existsSync(arqMeta)) {
+      if (statSync(arqCorpo).size > LIMITE_DO_CACHE) return route.continue()
       const meta = JSON.parse(readFileSync(arqMeta, 'utf8'))
       estat.doDisco++
       return route.fulfill({ status: meta.status, headers: meta.headers, body: readFileSync(arqCorpo) })
@@ -218,6 +232,11 @@ async function ligarCacheDeModelos(contexto, dir) {
       resp = await route.fetch({ maxRedirects: 10, timeout: 300_000 })
     } catch {
       return route.abort('failed')
+    }
+    // O Playwright serializa o corpo em string (teto ~512 MB): o Parakeet (622 MB) passa direto pela rede, sem cache em disco.
+    if (Number(resp.headers()['content-length'] ?? 0) > LIMITE_DO_CACHE) {
+      estat.semCache++
+      return route.continue()
     }
     const corpo = await resp.body()
     const h = resp.headers()
@@ -274,7 +293,7 @@ if (APARELHO) {
   await aplicarCpu(page, APARELHO.cpu)
 }
 await page.addInitScript(
-  ({ q, d, dt, fl }) => {
+  ({ q, d, dt, fl, arm }) => {
     try {
       localStorage.setItem('babel_tour_blitz', '1')
       localStorage.setItem('babel.sttQuality', q)
@@ -282,10 +301,27 @@ await page.addInitScript(
       else localStorage.setItem('babel.whisperDevice', d)
       if (dt) localStorage.setItem('babel.whisperDtype', dt)
       else localStorage.removeItem('babel.whisperDtype')
-      if (fl) localStorage.setItem('babel.flags', JSON.stringify({ [fl]: { ligada: true } }))
+      // `fl`: uma ou várias flags (`a,b`), todas ligadas.
+      const ligadas = String(fl || '')
+        .split(/[,+]/)
+        .map((f) => f.trim())
+        .filter(Boolean)
+      if (ligadas.length)
+        localStorage.setItem(
+          'babel.flags',
+          JSON.stringify(Object.fromEntries(ligadas.map((f) => [f, { ligada: true }]))),
+        )
+      // `arm`: chaves de laboratório do braço (`--armazenamento chave:valor,...`).
+      for (const [k, v] of arm) localStorage.setItem(k, v)
     } catch {}
   },
-  { q: QUALIDADE, d: DEVICE, dt: opt('dtype', ''), fl: opt('flag', '') },
+  {
+    q: QUALIDADE,
+    d: DEVICE,
+    dt: opt('dtype', ''),
+    fl: opt('flag', ''),
+    arm: paresDoArgumento(opt('armazenamento', '')),
+  },
 )
 
 const tAbrir = Date.now()

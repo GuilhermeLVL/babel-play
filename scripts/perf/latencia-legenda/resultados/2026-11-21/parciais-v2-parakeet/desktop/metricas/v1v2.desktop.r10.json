@@ -1,0 +1,102 @@
+{
+  "rotulo": "v1v2.desktop.r10",
+  "perfil": {
+    "tipo": "desktop-sem-gpu",
+    "modoLeve": "false"
+  },
+  "valida": true,
+  "modeloStt": null,
+  "janelas": {
+    "sessao": [33633.93499994278, 132660.3],
+    "fala": [39870.3, 113590.3],
+    "silencio": [115590.3, 132660.3]
+  },
+  "framesLongos": {
+    "n50": 0,
+    "n100": 0,
+    "somaMs": 0,
+    "maiorMs": 0
+  },
+  "primeiraLegendaMs": null,
+  "primeiroTextoNaTelaMs": 1731,
+  "sttProntoMs": null,
+  "rtf": {
+    "valores": [],
+    "p50": null,
+    "p95": null
+  },
+  "memoriaPicoMb": null,
+  "heapPicoMb": 12,
+  "cpuSilencio": {
+    "processoPct": 12.334225097990391,
+    "principalPct": 2.6213650220867293,
+    "foraDaPrincipalPct": 9.712860075903661,
+    "workersPct": null
+  },
+  "rendersPorS": {
+    "silencio": 22.905682483889883,
+    "fala": 144.2213781877374
+  },
+  "commitsPorS": {
+    "silencio": 0.995899238429995,
+    "fala": 4.381443298969073
+  },
+  "fimATraducao": {
+    "p50": null,
+    "p95": null
+  },
+  "fimDaFalaAteLegendaMs": {
+    "valores": [],
+    "p50": null,
+    "p75": null,
+    "p95": null,
+    "falhas": 0,
+    "semTraducao": 12,
+    "erroDoMarcadorMs": [-31, 7, 50, 9, 340, -13, 55, 23, 155, 13, 46, 0]
+  },
+  "palavras": {
+    "falasComMedida": 12,
+    "foraDoCalculo": 2,
+    "semCasamento": 3,
+    "atrasoDePalavraMs": {
+      "original": {
+        "n": 102,
+        "p50": 477.5,
+        "p90": 1342.7000000000005,
+        "valores": [
+          496, 427, 207, 670, 550, 230, -110, 233, 1846, 1646, 252, 184, -76, 75, 165, 834, 614,
+          3860, 1509, 1189, 129, 682, 442, 242, 1933, 1352, 102, -198, 502, 62, 787, 207, 796, 436,
+          1259, 879, 1721, 1421, 961, 741, 561, 241, 61, 554, 34, 595, -45, 750, 140, -200, 664,
+          184, 64, 375, 175, 619, 179, 561, 261, 887, 1154, -61, 354, 14, 64, 555, -45, 519, -1,
+          922, 162, 4354, 1464, 604, 324, 315, 155, 739, 459, -21, 814, 917, 617, 1029, 609, 349,
+          49, 637, 417, 712, 4021, 259, 514, 454, -26, 261, 905, 705, 505, 325, 678, 398
+        ]
+      },
+      "traducao": {
+        "n": 0,
+        "p50": null,
+        "p90": null,
+        "valores": []
+      }
+    },
+    "erasureOriginal": {
+      "falas": 12,
+      "apagadas": 128,
+      "final": 127,
+      "ne": 1.0078740157480315
+    },
+    "erasureTraducao": {
+      "falas": 0,
+      "apagadas": 0,
+      "final": 0,
+      "ne": null
+    }
+  },
+  "regulador": {
+    "trocasDeModelo": 0,
+    "primeiraTrocaMs": null,
+    "modelos": []
+  },
+  "falasPerdidas": 0,
+  "pedidosAoHub": 0
+}

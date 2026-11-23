@@ -1,0 +1,99 @@
+{
+  "rotulo": "v4-pt.desktop.r7",
+  "perfil": {
+    "tipo": "desktop-sem-gpu",
+    "modoLeve": "false"
+  },
+  "valida": true,
+  "modeloStt": null,
+  "janelas": {
+    "sessao": [34925.204999923706, 133983.5],
+    "fala": [41193.5, 114913.5],
+    "silencio": [116913.5, 133983.5]
+  },
+  "framesLongos": {
+    "n50": 0,
+    "n100": 0,
+    "somaMs": 0,
+    "maiorMs": 0
+  },
+  "primeiraLegendaMs": null,
+  "primeiroTextoNaTelaMs": 7187,
+  "sttProntoMs": null,
+  "rtf": {
+    "valores": [],
+    "p50": null,
+    "p95": null
+  },
+  "memoriaPicoMb": null,
+  "heapPicoMb": 11,
+  "cpuSilencio": {
+    "processoPct": 10.885692049062945,
+    "principalPct": 2.752991719071042,
+    "foraDaPrincipalPct": 8.132700329991902,
+    "workersPct": null
+  },
+  "rendersPorS": {
+    "silencio": 22.905682483889866,
+    "fala": 51.42430819316332
+  },
+  "commitsPorS": {
+    "silencio": 0.9958992384299942,
+    "fala": 2.1839392295170916
+  },
+  "fimATraducao": {
+    "p50": null,
+    "p95": null
+  },
+  "fimDaFalaAteLegendaMs": {
+    "valores": [],
+    "p50": null,
+    "p75": null,
+    "p95": null,
+    "falhas": 0,
+    "semTraducao": 12,
+    "erroDoMarcadorMs": [-11, 27, -25, 31, 265, 9, -19, 44, 81, 35, 66, -76]
+  },
+  "palavras": {
+    "falasComMedida": 9,
+    "foraDoCalculo": 2,
+    "semCasamento": 34,
+    "atrasoDePalavraMs": {
+      "original": {
+        "n": 39,
+        "p50": 3357,
+        "p90": 5266.000000000001,
+        "valores": [
+          4102, 3402, 3142, 2642, 2082, 1882, 1662, 5896, 5476, 5156, 4096, 3796, 3556, 3356, 3016,
+          6022, 5442, 5222, 4882, 4282, 4122, 3522, 3222, 2702, 2542, 1782, -2119, 4657, 4277, 3897,
+          3837, 3357, 2977, 2757, 2557, 2357, 2177, 1677, 1397
+        ]
+      },
+      "traducao": {
+        "n": 0,
+        "p50": null,
+        "p90": null,
+        "valores": []
+      }
+    },
+    "erasureOriginal": {
+      "falas": 9,
+      "apagadas": 0,
+      "final": 97,
+      "ne": 0
+    },
+    "erasureTraducao": {
+      "falas": 0,
+      "apagadas": 0,
+      "final": 0,
+      "ne": null
+    }
+  },
+  "regulador": {
+    "trocasDeModelo": 0,
+    "primeiraTrocaMs": null,
+    "modelos": []
+  },
+  "falasPerdidas": 0,
+  "pedidosAoHub": 0
+}

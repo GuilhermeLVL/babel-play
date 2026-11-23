@@ -1,0 +1,223 @@
+{
+  "a": "atual.desktop",
+  "b": "v1v2-acrescenta.desktop",
+  "variante": "v1c",
+  "rodadas": [11, 11],
+  "c": {
+    "atrasoOriginal": {
+      "p50": {
+        "a": 2521,
+        "b": 1154,
+        "dif": -1367,
+        "ic95": [-1586, -1066],
+        "falas": 10
+      },
+      "p90": {
+        "a": 4230.6,
+        "b": 3213.5000000000005,
+        "dif": -1017.0999999999999,
+        "ic95": [-1593.107500000004, -482.5874999999974],
+        "falas": 10
+      }
+    },
+    "atrasoTraducao": {
+      "p50": {
+        "a": null,
+        "b": null,
+        "dif": null,
+        "ic95": null,
+        "falas": 0
+      },
+      "p90": {
+        "a": null,
+        "b": null,
+        "dif": null,
+        "ic95": null,
+        "falas": 0
+      }
+    },
+    "erasureOriginal": {
+      "a": 0,
+      "b": 0.4061166429587482,
+      "dif": 0.4061166429587482,
+      "ic95": [0.27000809734319603, 0.5287218187300987],
+      "falas": 12
+    },
+    "erasureTraducao": {
+      "a": null,
+      "b": null,
+      "dif": null,
+      "ic95": null,
+      "falas": 0
+    },
+    "fimDaFala": null,
+    "primeiroTextoNaTelaMs": {
+      "a": 6289,
+      "b": 3026,
+      "dif": -3263
+    },
+    "werFinal": {
+      "a": 0.028893587033121917,
+      "b": 0.030303030303030304,
+      "dif": 0.0014094432699083871,
+      "ic95": [-0.004971590909090909, 0.009455630936227935],
+      "falas": 12
+    },
+    "textos": {
+      "comparadas": 132,
+      "foraDoConjuntoDeA": 4,
+      "foraNormalizado": 3,
+      "divergentesEmA": 6,
+      "exemplos": [
+        {
+          "k": 1,
+          "texto": "Rolando Mendoza disparou seu rifle M dezesseis contra os turistas."
+        },
+        {
+          "k": 5,
+          "texto": "Uma bomba explodiu do lado de fora do escritório do governador-geral."
+        },
+        {
+          "k": 8,
+          "texto": "A zona Shenghen, no entanto, funciona como um país nesse aspecto."
+        },
+        {
+          "k": 8,
+          "texto": "A zona Shenghen, no entanto, funciona como um país nesse aspecto."
+        }
+      ],
+      "werA": 0.028893587033121917,
+      "werB": 0.030303030303030304
+    },
+    "traducoes": {
+      "comparadas": 0,
+      "foraDoConjuntoDeA": 0,
+      "foraNormalizado": 0,
+      "divergentesEmA": 0,
+      "exemplos": [],
+      "werA": null,
+      "werB": null
+    }
+  },
+  "juizo": {
+    "primaria": {
+      "a": 2521,
+      "b": 1154,
+      "dif": -1367,
+      "ic95": [-1586, -1066],
+      "falas": 10
+    },
+    "guardas": [
+      {
+        "nome": "fimDaFalaAteLegendaMs p75",
+        "status": "sem-medida",
+        "detalhe": "sem falas pareadas"
+      },
+      {
+        "nome": "erasureOriginal (Emenda 1: não piorar contra A)",
+        "status": "piorou",
+        "detalhe": "dif 0.406, IC 95% [0.270, 0.529], limite superior ≤ 0.050"
+      },
+      {
+        "nome": "WER pareado do texto final (limite superior ≤ +2 pp)",
+        "status": "ok",
+        "detalhe": "dif +0.1 pp, IC 95% [−0.5 pp, +0.9 pp], limite superior ≤ +2.0 pp"
+      },
+      {
+        "nome": "texto final fora do conjunto de A (informativo)",
+        "status": "ok",
+        "detalhe": "4 de 132 textos de B fora do conjunto de A (normalizado: 3); WER A 2.9%, B 3.0%; falas em que A varia entre rodadas: 6"
+      },
+      {
+        "nome": "SLO framesLongos.n50",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 5"
+      },
+      {
+        "nome": "SLO framesLongos.n100",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 3"
+      },
+      {
+        "nome": "SLO framesLongos.somaMs",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 500"
+      },
+      {
+        "nome": "SLO cpuSilencio.processoPct",
+        "status": "ok",
+        "detalhe": "A 14.769, B 13.944, limite 25.676"
+      },
+      {
+        "nome": "SLO rendersPorS.silencio",
+        "status": "ok",
+        "detalhe": "A 22.906, B 22.906, limite 31.632"
+      },
+      {
+        "nome": "SLO rendersPorS.fala",
+        "status": "piorou",
+        "detalhe": "A 57.244, B 113.266, limite 81.555"
+      },
+      {
+        "nome": "SLO fimDaFalaAteLegendaMs.taxaDeFalha",
+        "status": "sem-medida",
+        "detalhe": "A —, B —, limite —"
+      }
+    ],
+    "veredito": "REPROVADO",
+    "efeitoPct": 54.22451408171361,
+    "primariaGanha": true,
+    "primariaPior": false,
+    "reprovadas": ["erasureOriginal (Emenda 1: não piorar contra A)", "SLO rendersPorS.fala"]
+  },
+  "slo": [
+    {
+      "nome": "framesLongos.n50",
+      "a": 0,
+      "b": 0,
+      "limite": 5,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.n100",
+      "a": 0,
+      "b": 0,
+      "limite": 3,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.somaMs",
+      "a": 0,
+      "b": 0,
+      "limite": 500,
+      "status": "ok"
+    },
+    {
+      "nome": "cpuSilencio.processoPct",
+      "a": 14.76860986547086,
+      "b": 13.94441676527376,
+      "limite": 25.676053811659205,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.silencio",
+      "a": 22.905682483889866,
+      "b": 22.905682483889866,
+      "limite": 31.63210310486233,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.fala",
+      "a": 57.2436245252306,
+      "b": 113.26641345632122,
+      "limite": 81.55453065653825,
+      "status": "piorou"
+    },
+    {
+      "nome": "fimDaFalaAteLegendaMs.taxaDeFalha",
+      "a": null,
+      "b": null,
+      "status": "sem-medida"
+    }
+  ]
+}

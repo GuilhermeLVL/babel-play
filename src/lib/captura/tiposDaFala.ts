@@ -23,6 +23,11 @@ export interface SpeechSegment {
   originalText: string;
   translatedText: string;
   isPartial?: boolean;
+  /**
+   * PARCIAIS VIVOS (flag `parciais_vivos`): o prefixo de `originalText` que o LocalAgreement-2 confirmou (nunca regride);
+   * o resto é a cauda provisória. Só vale enquanto `isPartial`. Ausente = sem concordância (flag desligada).
+   */
+  textoConfirmado?: string;
   words: VocabWord[];
   /** Início/fim do enunciado em ms, relativos ao START da sessão (timing real). */
   tStartMs?: number;
@@ -225,6 +230,14 @@ export interface HandlersDaFonte {
   onFimDaVoz?: (rawSeq: number, t: number) => void;
   /** Espaçamento entre parciais (ms) que o pipeline pede à captura. */
   intervaloDosParciais?: () => number;
+  /** Cadência adaptativa do parcial (flag `parciais_vivos`); `undefined` = o tique fixo de sempre (ver `SystemAudioCallbacks`). */
+  cadenciaDoParcial?: (e: {
+    seq?: number;
+    janelaS: number;
+    msDesdeUltimo: number;
+    amostrasNovas: number;
+    silencioMs: number;
+  }) => boolean | undefined;
   /** Quanto de fala (ms) o primeiro parcial de cada fala espera (ver `SystemAudioCallbacks`). */
   primeiroParcialComMs?: () => number;
 }

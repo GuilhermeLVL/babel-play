@@ -14,6 +14,8 @@ import {
   iniciarFasesDeCarga,
   limparMarcasConsumidas,
   marcar,
+  marcarParcial,
+  MOTORES_DE_PARCIAL,
   ORIGENS_DA_LEGENDA,
 } from '../src/gateway/marcasDeDesempenho'
 
@@ -33,7 +35,9 @@ describe('o detalhe de uma marca não tem texto livre', () => {
     type Strings = {
       [K in keyof DetalheDaMarca]-?: NonNullable<DetalheDaMarca[K]> extends string ? K : never
     }[keyof DetalheDaMarca]
-    expectTypeOf<Strings>().toEqualTypeOf<'modelo' | 'id' | 'origem'>()
+    // `motor` é string de lista fechada (`MOTORES_DE_PARCIAL`), como `origem`.
+    expectTypeOf<Strings>().toEqualTypeOf<'modelo' | 'id' | 'origem' | 'motor'>()
+    expectTypeOf<NonNullable<DetalheDaMarca['motor']>>().toEqualTypeOf<'local' | 'whisper' | 'moonshine' | 'parakeet'>()
     expectTypeOf<NonNullable<DetalheDaMarca['origem']>>().toEqualTypeOf<
       'memoria' | 'dicionario' | 'nativo' | 'local' | 'nuvem'
     >()
@@ -51,6 +55,47 @@ describe('o detalhe de uma marca não tem texto livre', () => {
   it('o id é cortado (nada de frase passando por id)', () => {
     marcar('fala:fim', { id: 'x'.repeat(500) })
     expect((marcas()[0].detail as { id: string }).id).toHaveLength(64)
+  })
+})
+
+describe('frasy:parcial (parciais-incrementais, 1.4)', () => {
+  it('leva só números e o motor da lista fechada; nenhuma marca leva texto', () => {
+    marcarParcial({ motor: 'whisper', indice: 2, palavras: 5, confirmadas: 3 })
+    marcar('parcial', { motor: 'invento', indice: 1, texto: 'bom dia', frase: 'x', palavras: 'cinco' } as never)
+    const [a, b] = marcas('frasy:parcial')
+    expect(a.name).toBe('frasy:parcial')
+    expect(a.detail).toEqual({ motor: 'whisper', indice: 2, palavras: 5, confirmadas: 3 })
+    expect(b.detail).toEqual({ indice: 1 })
+    expect(MOTORES_DE_PARCIAL).toEqual(['local', 'whisper', 'moonshine', 'parakeet'])
+    for (const m of marcas())
+      for (const v of Object.values(m.detail as object))
+        expect(typeof v === 'string' ? MOTORES_DE_PARCIAL.concat(['mic-1'] as never).includes(v as never) : true).toBe(
+          true,
+        )
+  })
+
+  it('conta em `captureMetrics.summary().parciais` e zera no reset', () => {
+    marcarParcial({ motor: 'local', indice: 1, palavras: 4 })
+    marcarParcial({ motor: 'local', indice: 2, palavras: 6, confirmadas: 2 })
+    expect(capMetrics.summary().parciais).toEqual({ pintados: 2, palavras: 10, confirmadas: 2 })
+    capMetrics.reset()
+    expect(capMetrics.summary().parciais).toEqual({ pintados: 0, palavras: 0, confirmadas: 0 })
+  })
+
+  it('a linha do tempo não cresce sem fim: no máximo 200 marcas de parcial', () => {
+    for (let i = 0; i < 450; i++) marcarParcial({ motor: 'local', indice: i, palavras: 3 })
+    expect(marcas('frasy:parcial').length).toBeLessThanOrEqual(200)
+  })
+
+  it('custa no máximo 0,2 ms no p95 (10 000 chamadas)', () => {
+    const custos: number[] = []
+    for (let i = 0; i < 10_000; i++) {
+      const t0 = performance.now()
+      marcarParcial({ motor: 'local', indice: i, palavras: 5, confirmadas: 2 })
+      custos.push(performance.now() - t0)
+    }
+    custos.sort((a, b) => a - b)
+    expect(custos[Math.floor(custos.length * 0.95)]).toBeLessThanOrEqual(0.2)
   })
 })
 

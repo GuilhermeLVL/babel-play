@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { type Formato, ladoDoAvatarNoQuadro } from '../../../../core/legendas/janelaFlutuante';
 import { FLAG_AVATAR_3D } from '../../../../core/planos';
 import { useAvatarDoPip } from '../../../../lib/avatar/avatarDoPip';
+import { useFalasComParcialVivo } from '../../../../lib/captura/parcialVivo';
 import { avancar, type EstadoDoRitmo, RITMO_VAZIO, saltarParaOFim } from '../../../../lib/captura/ritmoDaLegenda';
 import { useFlag } from '../../../../lib/flags';
 import { t } from '../../../../lib/i18n';
@@ -24,7 +25,7 @@ const FALAS_NO_QUADRO: Readonly<Record<Formato, number>> = { faixa: 1, legenda: 
 export default function LegendaEmVideo({
   aberta,
   controlador,
-  falas,
+  falas: falasDoEstado,
   formato,
   pausado,
   seloDePausa = pausado,
@@ -46,6 +47,8 @@ export default function LegendaEmVideo({
    */
   glosas?: ReadonlyMap<string, string>;
 }) {
+  /* Parciais vivos (V6): o texto vivo do parcial vem do armazém e re-renderiza só esta janela, não a tela de captura. */
+  const falas = useFalasComParcialVivo(falasDoEstado);
   /* A aparência guardada (fundo, o que mostrar, letra, ritmo), relida a cada abertura. */
   const [ap, setAp] = useState(lerAparencia);
   useEffect(() => {

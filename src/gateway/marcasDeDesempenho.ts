@@ -19,6 +19,13 @@ export type FaseDeCarga = 'download' | 'compilacao' | 'aquecimento';
 export const FASES_DE_CARGA: readonly FaseDeCarga[] = ['download', 'compilacao', 'aquecimento'];
 
 /**
+ * Motor que produziu o parcial (lista fechada; é o `motor` de `frasy:parcial`). `local` = o parcial do STT no aparelho
+ * quando o ponto da marca não sabe qual dos motores locais foi.
+ */
+export type MotorDeParcial = 'local' | 'whisper' | 'moonshine' | 'parakeet';
+export const MOTORES_DE_PARCIAL: readonly MotorDeParcial[] = ['local', 'whisper', 'moonshine', 'parakeet'];
+
+/**
  * O QUE UMA MARCA PODE LEVAR (D2 de `lab-medicao-legenda-traduzida`): números, o id do modelo (constante do código,
  * o do tradutor ou do STT que está carregando), o id do balão (`mic-3`, `sys-7`, local à aba, nunca enviado) e
  * a origem da tradução (lista fechada). Nenhum campo de texto livre: o `marcar` descarta o que não está aqui.
@@ -29,10 +36,15 @@ export interface DetalheDaMarca {
   origem?: OrigemDaLegenda;
   ok?: boolean;
   fila?: number;
+  /** `frasy:parcial`: motor (lista fechada), índice do parcial na fala e contagens de palavras. Só números e a lista. */
+  motor?: MotorDeParcial;
+  indice?: number;
+  palavras?: number;
+  confirmadas?: number;
 }
 
 /** Marcas que a bancada lê no fim da sessão: acima de `TETO_DE_MARCAS_LIDAS` a linha do tempo é esvaziada (só as mais novas ficam). */
-const MARCAS_CONSUMIDAS = ['frasy:fala:fim', 'frasy:legenda:traduzida'];
+const MARCAS_CONSUMIDAS = ['frasy:fala:fim', 'frasy:legenda:traduzida', 'frasy:parcial'];
 const TETO_DE_MARCAS_LIDAS = 200;
 const contagem = new Map<string, number>();
 const TAMANHO_MAX_DO_ID = 64;
@@ -44,6 +56,10 @@ function limpar(d: DetalheDaMarca): DetalheDaMarca {
   if (d.origem && ORIGENS_DA_LEGENDA.includes(d.origem)) saida.origem = d.origem;
   if (typeof d.ok === 'boolean') saida.ok = d.ok;
   if (Number.isFinite(d.fila)) saida.fila = d.fila;
+  if (d.motor && MOTORES_DE_PARCIAL.includes(d.motor)) saida.motor = d.motor;
+  if (Number.isFinite(d.indice)) saida.indice = d.indice;
+  if (Number.isFinite(d.palavras)) saida.palavras = d.palavras;
+  if (Number.isFinite(d.confirmadas)) saida.confirmadas = d.confirmadas;
   return saida;
 }
 
@@ -70,6 +86,21 @@ export function marcar(nome: string, detalhe?: DetalheDaMarca, instante?: number
   } catch {
     /* a marca é diagnóstico: nunca derruba a captura */
   }
+}
+
+/**
+ * `frasy:parcial` (`parciais-incrementais`, 1.4): um parcial foi pintado. Só números e o motor da lista fechada: o
+ * índice do parcial na fala, quantas palavras tem e quantas estão confirmadas (0 até existir LocalAgreement). Nunca texto.
+ * Conta também em `capMetrics.parcialPintado`. Não muda nada na tela.
+ */
+export function marcarParcial(d: {
+  motor: MotorDeParcial;
+  indice: number;
+  palavras: number;
+  confirmadas?: number;
+}): void {
+  marcar('parcial', { motor: d.motor, indice: d.indice, palavras: d.palavras, confirmadas: d.confirmadas ?? 0 });
+  capMetrics.parcialPintado(d.palavras, d.confirmadas ?? 0);
 }
 
 /** Esvazia as marcas de fala e legenda da linha do tempo (início de uma gravação nova). */

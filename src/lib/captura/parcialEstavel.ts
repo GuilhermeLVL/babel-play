@@ -40,6 +40,12 @@ export interface TradutorDeParciais {
    * (ainda instável, dentro da janela, já traduzido ou teto atingido).
    */
   ler(fala: string, texto: string, agoraMs: number): string | null;
+  /**
+   * Parcial INCREMENTAL (V3 `traducao_incremental`): o prefixo já CONFIRMADO pelo LocalAgreement-2 é estável por
+   * construção, então vale sem as duas leituras iguais nem fronteira de oração. Mantém a janela por fala, o teto da
+   * sessão e o "não repetir". Devolve o texto a traduzir ou `null`. Não mexe no estado de `ler`.
+   */
+  lerConfirmado(fala: string, confirmado: string, agoraMs: number): string | null;
   /** A fala acabou: o estado dela sai da memória. */
   encerrar(fala: string): void;
   /** O teto da sessão foi atingido: nenhum parcial é mais traduzido. */
@@ -61,6 +67,17 @@ export function criarTradutorDeParciais(o: { janelaMs?: number; teto?: number } 
       e.ultimo = t;
       falas.set(fala, e);
       if (e.iguais < 2 || !terminaEmOracao(t)) return null;
+      if (t === e.traduzido || agoraMs - e.traduzidoEm < janela) return null;
+      e.traduzido = t;
+      e.traduzidoEm = agoraMs;
+      feitas++;
+      return t;
+    },
+    lerConfirmado(fala, confirmado, agoraMs) {
+      const t = normalizar(confirmado);
+      if (!t || feitas >= teto) return null;
+      const e = falas.get(fala) ?? { ultimo: '', iguais: 0, traduzido: '', traduzidoEm: -Infinity };
+      falas.set(fala, e);
       if (t === e.traduzido || agoraMs - e.traduzidoEm < janela) return null;
       e.traduzido = t;
       e.traduzidoEm = agoraMs;

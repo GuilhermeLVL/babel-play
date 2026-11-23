@@ -113,6 +113,9 @@ const legenda: LoteDaLegenda = { fimDaFalaAteLegendaMs: [], falhas: 0, semTraduc
 /** O instante do último quadro de voz de cada fala (por id do balão) que ainda espera o desfecho: sai ao desfechar. */
 const fimsDaVoz = new Map<string, number>();
 
+/** Parciais pintados na gravação (só contagens; `parciais-incrementais`, 1.4). Zera no `reset`. */
+const parciais = { pintados: 0, palavras: 0, confirmadas: 0 };
+
 const lote = {
   sttFinalMs: [] as number[],
   primeiroParcialMs: [] as number[],
@@ -163,12 +166,20 @@ export const capMetrics = {
     inflight.set(seq, { seq, source, tSpeechStart: nowMs(), partialCount: 0 });
   },
 
-  /** Um parcial foi exibido (transcrição incremental). */
-  partial(seq: number): void {
+  /** Um parcial foi exibido (transcrição incremental). Devolve o índice dele na fala (1, 2...; 0 sem a fala em curso). */
+  partial(seq: number): number {
     const m = inflight.get(seq);
-    if (!m) return;
+    if (!m) return 0;
     if (m.tFirstPartial === undefined) m.tFirstPartial = nowMs();
     m.partialCount++;
+    return m.partialCount;
+  },
+
+  /** Um parcial foi pintado com `palavras` palavras, `confirmadas` delas firmes. Só números. */
+  parcialPintado(palavras: number, confirmadas = 0): void {
+    parciais.pintados++;
+    if (Number.isFinite(palavras)) parciais.palavras += palavras;
+    if (Number.isFinite(confirmadas)) parciais.confirmadas += confirmadas;
   },
 
   /** Um parcial foi PULADO porque o worker estava ocupado (saturação). */
@@ -325,6 +336,9 @@ export const capMetrics = {
     escaladas.stt = 0;
     mtPuladas.pedido = 0;
     mtPuladas.conhecidas = 0;
+    parciais.pintados = 0;
+    parciais.palavras = 0;
+    parciais.confirmadas = 0;
   },
 
   /** Snapshot: concluídos + em andamento, em ordem de seq. */
@@ -402,6 +416,7 @@ export const capMetrics = {
       },
       escaladas: { ...escaladas },
       mtPuladas: { ...mtPuladas },
+      parciais: { ...parciais },
     };
   },
 };

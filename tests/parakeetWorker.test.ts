@@ -143,6 +143,7 @@ function montar(
     cache?: CacheDoParakeet | null
     runtime?: ReturnType<typeof runtimeFalso>
     runtimeNaoAbre?: boolean
+    ceder?: () => Promise<void>
   } = {},
 ) {
   const enviadas: MensagemDoParakeet[] = []
@@ -162,6 +163,7 @@ function montar(
     enviar: (m) => enviadas.push(m),
     registrarManifesto: (m) => manifestos.push(m),
     agora: () => 0,
+    ceder: opcoes.ceder,
   })
   // `fase` é só marca de desempenho (`frasy:modelo:*`): tem teste próprio, abaixo.
   const tipos = () => enviadas.map((m) => m.type).filter((t) => t !== 'progress' && t !== 'fase')
@@ -412,6 +414,73 @@ describe('transcrever', () => {
     await emVoo
     expect(m.ultima('cancelado')).toMatchObject({ id: 'v' })
     expect(m.ultima('result')).toBeUndefined()
+  })
+
+  it('PARCIAL: o final nunca espera o parcial — o parcial é cancelado e só o final responde', async () => {
+    const m = await carregado()
+    const parcial = m.worker.receber({
+      type: 'transcrever',
+      id: 'p',
+      pcm: fala(20),
+      idioma: 'pt',
+      prioridade: 'parcial',
+    })
+    const final = m.worker.receber({ type: 'transcrever', id: 'f', pcm: fala(2), idioma: 'pt' })
+    await Promise.all([parcial, final])
+    expect(m.enviadas.filter((x) => x.type === 'result').map((x) => (x as { id: string }).id)).toEqual(['f'])
+    expect(m.ultima('cancelado')).toMatchObject({ id: 'p' })
+  })
+
+  it('V5, PARCIAL que CEDE: o final entregue como macrotarefa (o `onmessage` real) para o parcial em voo e não espera por ele', async () => {
+    const macro = () => new Promise<void>((r) => setTimeout(r, 0))
+    const m = await carregado({ ceder: macro })
+    const parcial = m.worker.receber({
+      type: 'transcrever',
+      id: 'p',
+      pcm: fala(30),
+      idioma: 'pt',
+      prioridade: 'parcial',
+    })
+    // O `run` falso resolve em microtarefa, como o do ORT no WASM: só uma macrotarefa deixa a mensagem entrar.
+    const final = new Promise<void>((r) =>
+      setTimeout(() => void m.worker.receber({ type: 'transcrever', id: 'f', pcm: fala(2), idioma: 'pt' }).then(r), 0),
+    )
+    await Promise.all([parcial, final])
+    expect(m.ultima('cancelado')).toMatchObject({ id: 'p' })
+    expect(m.enviadas.filter((x) => x.type === 'result').map((x) => (x as { id: string }).id)).toEqual(['f'])
+    // O parcial parou cedo: bem menos passos do joint do que os ~30 quadros de uma fala de 30 s decodificada inteira.
+    expect(m.registro.joint).toBeLessThan(30)
+  })
+
+  it('V5, SEM ceder (o de hoje): o parcial em microtarefas termina antes de a mensagem do final entrar', async () => {
+    const m = await carregado()
+    const parcial = m.worker.receber({
+      type: 'transcrever',
+      id: 'p',
+      pcm: fala(30),
+      idioma: 'pt',
+      prioridade: 'parcial',
+    })
+    const final = new Promise<void>((r) =>
+      setTimeout(() => void m.worker.receber({ type: 'transcrever', id: 'f', pcm: fala(2), idioma: 'pt' }).then(r), 0),
+    )
+    await Promise.all([parcial, final])
+    // Sem ceder, o parcial inteiro rodou (resultado, não cancelado) e o final veio depois dele.
+    expect(m.enviadas.filter((x) => x.type === 'result').map((x) => (x as { id: string }).id)).toEqual(['p', 'f'])
+  })
+
+  it('o FINAL nunca cede (só o parcial): nenhuma cessão no decode final', async () => {
+    const ceder = vi.fn(() => Promise.resolve())
+    const m = await carregado({ ceder })
+    await m.worker.receber({ type: 'transcrever', id: 'f', pcm: fala(3), idioma: 'pt' })
+    expect(ceder).not.toHaveBeenCalled()
+    expect(m.ultima('result')).toMatchObject({ id: 'f', text: 'Olá, mundo' })
+  })
+
+  it('PARCIAL sozinho: decodifica e responde como um final', async () => {
+    const m = await carregado()
+    await m.worker.receber({ type: 'transcrever', id: 'p', pcm: fala(3), idioma: 'pt', prioridade: 'parcial' })
+    expect(m.ultima('result')).toMatchObject({ id: 'p', text: 'Olá, mundo' })
   })
 
   it('finais em rajada saem na ordem em que chegaram (fila serial)', async () => {

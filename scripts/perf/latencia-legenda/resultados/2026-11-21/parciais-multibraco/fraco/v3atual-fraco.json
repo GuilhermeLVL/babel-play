@@ -1,0 +1,191 @@
+{
+  "a": "atual.fraco",
+  "b": "v1v3.fraco",
+  "variante": "v3",
+  "rodadas": [12, 12],
+  "c": {
+    "atrasoOriginal": {
+      "p50": {
+        "a": 1650,
+        "b": 1530,
+        "dif": -120,
+        "ic95": [-291, 72.5],
+        "falas": 6
+      },
+      "p90": {
+        "a": 3707.4,
+        "b": 3705.6,
+        "dif": -1.800000000000182,
+        "ic95": [-215.3074999999997, 615],
+        "falas": 6
+      }
+    },
+    "atrasoTraducao": {
+      "p50": {
+        "a": 2456,
+        "b": 3079,
+        "dif": 623,
+        "ic95": [175, 1044.0249999999996],
+        "falas": 6
+      },
+      "p90": {
+        "a": 4263.6,
+        "b": 4432,
+        "dif": 168.39999999999964,
+        "ic95": [15, 247.2024999999998],
+        "falas": 6
+      }
+    },
+    "erasureOriginal": {
+      "a": 0.5079232693911593,
+      "b": 0.5558354324097398,
+      "dif": 0.04791216301858048,
+      "ic95": [0.00036338347581577925, 0.10685123077131176],
+      "falas": 8
+    },
+    "erasureTraducao": {
+      "a": 0.45610859728506786,
+      "b": 0,
+      "dif": -0.45610859728506786,
+      "ic95": [-0.6617355401900329, -0.28307612249811664],
+      "falas": 8
+    },
+    "fimDaFala": {
+      "p50": {
+        "a": 1144,
+        "b": 1328,
+        "dif": 184,
+        "ic95": [129.25, 199.75]
+      },
+      "p75": {
+        "a": 1213.625,
+        "b": 1398.875,
+        "dif": 185.25,
+        "ic95": [16.75, 201.75312499999995]
+      },
+      "p95": {
+        "a": 1763.9999999999998,
+        "b": 1840.5749999999998,
+        "dif": 76.57500000000005,
+        "ic95": [8.149374999999868, 212.17562499999994]
+      }
+    },
+    "primeiroTextoNaTelaMs": {
+      "a": 1920,
+      "b": 1874.5,
+      "dif": -45.5
+    },
+    "textos": {
+      "comparadas": 96,
+      "foraDoConjuntoDeA": 8,
+      "foraNormalizado": 4,
+      "divergentesEmA": 5,
+      "exemplos": [
+        {
+          "k": 0,
+          "texto": "Lions are the most social cats living on large groups called prides."
+        },
+        {
+          "k": 0,
+          "texto": "Lions are the most social cats living on large groups called prides."
+        },
+        {
+          "k": 2,
+          "texto": "Fire rescue crews eventually douse the fire by eleven thirty five p.m."
+        },
+        {
+          "k": 2,
+          "texto": "Fire rescue crews eventually douse the fire by eleven thirty five p.m."
+        },
+        {
+          "k": 2,
+          "texto": "Fire rescue crews eventually douse the fire by eleven thirty five p.m."
+        }
+      ],
+      "werA": 0.21180555555555555,
+      "werB": 0.2092013888888889
+    },
+    "traducoes": {
+      "comparadas": 96,
+      "foraDoConjuntoDeA": 54,
+      "foraNormalizado": 52,
+      "divergentesEmA": 7,
+      "exemplos": [
+        {
+          "k": 0,
+          "texto": "≈ Os leões são os gatos mais sociais que vivem em grandes grupos chamados orgulhos."
+        },
+        {
+          "k": 0,
+          "texto": "≈ Os leões são os gatos mais sociais que vivem em grandes grupos chamados orgulhos."
+        },
+        {
+          "k": 1,
+          "texto": "Felleressers também rendeu homenagem a Luna."
+        },
+        {
+          "k": 1,
+          "texto": "Felleressers também rendeu homenagem a Luna."
+        },
+        {
+          "k": 1,
+          "texto": "Felleressers também rendeu homenagem a Luna."
+        }
+      ],
+      "werA": null,
+      "werB": null
+    }
+  },
+  "juizo": null,
+  "slo": [
+    {
+      "nome": "framesLongos.n50",
+      "a": 0,
+      "b": 0,
+      "limite": 5,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.n100",
+      "a": 0,
+      "b": 0,
+      "limite": 3,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.somaMs",
+      "a": 0,
+      "b": 0,
+      "limite": 500,
+      "status": "ok"
+    },
+    {
+      "nome": "cpuSilencio.processoPct",
+      "a": 13.325700193313837,
+      "b": 13.224061661336044,
+      "limite": 23.655980270639372,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.silencio",
+      "a": 27.16581325954787,
+      "b": 27.191549919383526,
+      "limite": 36.95726657443484,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.fala",
+      "a": 102.08062418725618,
+      "b": 103.72778500216731,
+      "limite": 137.6007802340702,
+      "status": "ok"
+    },
+    {
+      "nome": "fimDaFalaAteLegendaMs.taxaDeFalha",
+      "a": 0,
+      "b": 0,
+      "limite": 0.15,
+      "status": "ok"
+    }
+  ]
+}

@@ -82,13 +82,14 @@ const silencio = (n: number) => Array(n).fill(0.05)
 const fala = (n: number) => Array(n).fill(0.9)
 
 /** Uma fala de ~5,8 s (60 quadros de 96 ms) alimentada em três pedaços, com o relógio andando entre eles. */
-async function falaLonga(maxParciaisPorFala?: () => number) {
+async function falaLonga(maxParciaisPorFala?: () => number, extra: Record<string, unknown> = {}) {
   const parciais: number[] = []
   const finais: number[] = []
   const cap = await startMicCapture(undefined, {
     onPartialAudio: (pcm: Float32Array) => parciais.push(pcm.length),
     onUtterance: (pcm: Float32Array) => finais.push(pcm.length),
     ...(maxParciaisPorFala ? { maxParciaisPorFala } : {}),
+    ...extra,
   } as never)
   await alimentar(silencio(3))
   for (let pedaco = 0; pedaco < 3; pedaco++) {
@@ -107,6 +108,20 @@ describe('parciais por fala', () => {
     expect(parciais).toHaveLength(3)
     expect(finais).toHaveLength(1)
     expect(parciais[1]).toBeGreaterThan(parciais[0]) // o segundo cobre mais fala que o primeiro
+  })
+
+  it('fora da rota dos parciais vivos o dono responde `undefined` à cadência: a captura segue o tique fixo, idêntica a sem o callback', async () => {
+    const sem = await falaLonga()
+    const eventos: Array<{ seq?: number }> = []
+    const cadencia = (e: { seq?: number }) => {
+      eventos.push(e)
+      return undefined
+    }
+    const com = await falaLonga(undefined, { cadenciaDoParcial: cadencia })
+    expect(com.parciais).toEqual(sem.parciais)
+    expect(com.finais).toEqual(sem.finais)
+    expect(eventos.length).toBeGreaterThan(0)
+    expect(eventos.every((e) => typeof e.seq === 'number')).toBe(true) // o dono recebe a fala, para achar o idioma dela
   })
 
   it('o pipeline pode pedir 1 só (sem isolamento, WASM numa thread)', async () => {

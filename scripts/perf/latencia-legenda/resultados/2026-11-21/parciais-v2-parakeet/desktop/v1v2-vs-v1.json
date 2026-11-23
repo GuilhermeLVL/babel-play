@@ -1,0 +1,214 @@
+{
+  "a": "v1.desktop",
+  "b": "v1v2.desktop",
+  "variante": "v1",
+  "rodadas": [12, 12],
+  "c": {
+    "atrasoOriginal": {
+      "p50": {
+        "a": 2686,
+        "b": 775,
+        "dif": -1911,
+        "ic95": [-2230.0125, -1549],
+        "falas": 10
+      },
+      "p90": {
+        "a": 4435.200000000001,
+        "b": 4052,
+        "dif": -383.2000000000007,
+        "ic95": [-1153.9525000000006, 9.82749999999713],
+        "falas": 10
+      }
+    },
+    "atrasoTraducao": {
+      "p50": {
+        "a": null,
+        "b": null,
+        "dif": null,
+        "ic95": null,
+        "falas": 0
+      },
+      "p90": {
+        "a": null,
+        "b": null,
+        "dif": null,
+        "ic95": null,
+        "falas": 0
+      }
+    },
+    "erasureOriginal": {
+      "a": 0,
+      "b": 0.7397849462365591,
+      "dif": 0.7397849462365591,
+      "ic95": [0.5406612168592794, 0.9642883098006644],
+      "falas": 12
+    },
+    "erasureTraducao": {
+      "a": null,
+      "b": null,
+      "dif": null,
+      "ic95": null,
+      "falas": 0
+    },
+    "fimDaFala": null,
+    "primeiroTextoNaTelaMs": {
+      "a": 6341.5,
+      "b": 1765,
+      "dif": -4576.5
+    },
+    "werFinal": {
+      "a": 0.031007751937984496,
+      "b": 0.03165374677002584,
+      "dif": 0.0006459948320413425,
+      "ic95": [-0.007575757575757576, 0.00853018372703412],
+      "falas": 12
+    },
+    "textos": {
+      "comparadas": 144,
+      "foraDoConjuntoDeA": 2,
+      "foraNormalizado": 0,
+      "divergentesEmA": 8,
+      "exemplos": [
+        {
+          "k": 5,
+          "texto": "Uma bomba explodiu do lado de fora do escritório do governador-geral."
+        },
+        {
+          "k": 5,
+          "texto": "Uma bomba explodiu do lado de fora do escritório do governador-geral."
+        }
+      ],
+      "werA": 0.031007751937984496,
+      "werB": 0.03165374677002584
+    },
+    "traducoes": {
+      "comparadas": 0,
+      "foraDoConjuntoDeA": 0,
+      "foraNormalizado": 0,
+      "divergentesEmA": 0,
+      "exemplos": [],
+      "werA": null,
+      "werB": null
+    }
+  },
+  "juizo": {
+    "primaria": {
+      "a": 2686,
+      "b": 775,
+      "dif": -1911,
+      "ic95": [-2230.0125, -1549],
+      "falas": 10
+    },
+    "guardas": [
+      {
+        "nome": "fimDaFalaAteLegendaMs p75",
+        "status": "sem-medida",
+        "detalhe": "sem falas pareadas"
+      },
+      {
+        "nome": "erasureOriginal (Emenda 1: não piorar contra A)",
+        "status": "piorou",
+        "detalhe": "dif 0.740, IC 95% [0.541, 0.964], limite superior ≤ 0.050"
+      },
+      {
+        "nome": "texto final do original",
+        "status": "piorou",
+        "detalhe": "2 de 144 textos de B fora do conjunto de A (normalizado: 0); WER A 3.1%, B 3.2%; falas em que A varia entre rodadas: 8"
+      },
+      {
+        "nome": "SLO framesLongos.n50",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 5"
+      },
+      {
+        "nome": "SLO framesLongos.n100",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 3"
+      },
+      {
+        "nome": "SLO framesLongos.somaMs",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 500"
+      },
+      {
+        "nome": "SLO cpuSilencio.processoPct",
+        "status": "ok",
+        "detalhe": "A 12.147, B 11.331, limite 22.005"
+      },
+      {
+        "nome": "SLO rendersPorS.silencio",
+        "status": "ok",
+        "detalhe": "A 22.906, B 22.906, limite 31.632"
+      },
+      {
+        "nome": "SLO rendersPorS.fala",
+        "status": "piorou",
+        "detalhe": "A 56.911, B 134.238, limite 81.139"
+      },
+      {
+        "nome": "SLO fimDaFalaAteLegendaMs.taxaDeFalha",
+        "status": "sem-medida",
+        "detalhe": "A —, B —, limite —"
+      }
+    ],
+    "veredito": "REPROVADO",
+    "efeitoPct": 71.14668652271034,
+    "primariaGanha": true,
+    "primariaPior": false,
+    "reprovadas": [
+      "erasureOriginal (Emenda 1: não piorar contra A)",
+      "texto final do original",
+      "SLO rendersPorS.fala"
+    ]
+  },
+  "slo": [
+    {
+      "nome": "framesLongos.n50",
+      "a": 0,
+      "b": 0,
+      "limite": 5,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.n100",
+      "a": 0,
+      "b": 0,
+      "limite": 3,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.somaMs",
+      "a": 0,
+      "b": 0,
+      "limite": 500,
+      "status": "ok"
+    },
+    {
+      "nome": "cpuSilencio.processoPct",
+      "a": 12.14654868488826,
+      "b": 11.33086095430065,
+      "limite": 22.00516815884356,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.silencio",
+      "a": 22.905682483889866,
+      "b": 22.905682483889866,
+      "limite": 31.63210310486233,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.fala",
+      "a": 56.91128594682583,
+      "b": 134.23765599565925,
+      "limite": 81.13910743353229,
+      "status": "piorou"
+    },
+    {
+      "nome": "fimDaFalaAteLegendaMs.taxaDeFalha",
+      "a": null,
+      "b": null,
+      "status": "sem-medida"
+    }
+  ]
+}

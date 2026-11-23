@@ -367,6 +367,20 @@ export interface SystemAudioCallbacks {
    * tique nem copia o áudio. Sem o callback, quer sempre (o comportamento de antes).
    */
   querParcial?: () => boolean;
+  /**
+   * CADÊNCIA ADAPTATIVA (flag `parciais_vivos`): pede um parcial agora? Devolve `true`/`false` e então SUBSTITUI o
+   * espaçamento fixo, o teto por fala e o mínimo de áudio novo (o dono decide por RTF e ocupação do worker); `undefined`
+   * ou sem o callback = o caminho de sempre (`PARTIAL_INTERVAL_MS`, `MAX_PARCIAIS_POR_FALA`), idêntico a antes.
+   */
+  cadenciaDoParcial?: (e: {
+    /** A fala em curso (a mesma `seq` do `onPartialAudio`): o dono descobre o idioma dela e decide se o parcial vivo vale nesta rota. */
+    seq?: number;
+    janelaS: number;
+    msDesdeUltimo: number;
+    amostrasNovas: number;
+    /** Silêncio acumulado na pausa de agora (ms; 0 = falando): o parcial não começa se ia atrasar o final especulativo. */
+    silencioMs: number;
+  }) => boolean | undefined;
   /** Espaçamento entre parciais (ms). Sem o callback, `PARTIAL_INTERVAL_MS`; o aparelho leve pede mais. */
   intervaloDosParciais?: () => number;
   /** Quantos parciais uma fala pode ter, no máximo. Sem o callback, `MAX_PARCIAIS_POR_FALA`. */
@@ -801,15 +815,26 @@ async function startCaptureFromStream(
     if (!speaking || !cb.onPartialAudio) return;
     // O final especulativo desta fala já está no worker: um parcial agora só o atrasaria.
     if (especulacao?.seq === currentSeq) return;
-    // Teto por fala: depois dele, só o final (ver `MAX_PARCIAIS_POR_FALA`).
-    if (parciaisNestaFala >= (cb.maxParciaisPorFala?.() ?? MAX_PARCIAIS_POR_FALA)) return;
     const primeiro = lastPartialSamples === 0;
-    const minimo = primeiro
-      ? Math.max(PARTIAL_MIN_NEW_SAMPLES, ((cb.primeiroParcialComMs?.() ?? 0) * 16000) / 1000)
-      : PARTIAL_MIN_NEW_SAMPLES;
-    if (accumSamples - lastPartialSamples < minimo) return;
-    const intervalo = cb.intervaloDosParciais?.() ?? PARTIAL_INTERVAL_MS;
-    if (!primeiro && performance.now() - ultimoParcialTs < intervalo) return;
+    /* Cadência adaptativa (`parciais_vivos`): quando o dono responde, ela manda no lugar do teto, do mínimo e do
+       espaçamento abaixo. O `querParcial` (modo desempenho, regulador, nuvem) continua valendo. */
+    const adaptativa = cb.cadenciaDoParcial?.({
+      seq: currentSeq,
+      janelaS: accumSamples / 16000,
+      msDesdeUltimo: primeiro ? Infinity : performance.now() - ultimoParcialTs,
+      amostrasNovas: accumSamples - lastPartialSamples,
+      silencioMs: espelho.silencioMs,
+    });
+    if (adaptativa === undefined) {
+      // Teto por fala: depois dele, só o final (ver `MAX_PARCIAIS_POR_FALA`).
+      if (parciaisNestaFala >= (cb.maxParciaisPorFala?.() ?? MAX_PARCIAIS_POR_FALA)) return;
+      const minimo = primeiro
+        ? Math.max(PARTIAL_MIN_NEW_SAMPLES, ((cb.primeiroParcialComMs?.() ?? 0) * 16000) / 1000)
+        : PARTIAL_MIN_NEW_SAMPLES;
+      if (accumSamples - lastPartialSamples < minimo) return;
+      const intervalo = cb.intervaloDosParciais?.() ?? PARTIAL_INTERVAL_MS;
+      if (!primeiro && performance.now() - ultimoParcialTs < intervalo) return;
+    } else if (!adaptativa) return;
     /* WORKERS QUE DESCANSAM ("Grátis sem travar", A5): o pipeline ia descartar este parcial (modo
        desempenho, regulador, reserva de nuvem) — então nem se monta. O `concatFrames` abaixo copia a
        fala inteira até aqui, a cada parcial. Nada é marcado: quando o pipeline voltar a querer, o

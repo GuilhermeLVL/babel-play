@@ -29,6 +29,7 @@ import type { AppMetrics } from '../core/learning/contract';
 import { apiFetch } from '../data/api';
 import { CODIGO_EXIGE_CONTA } from '../data/efemero/nucleo';
 import { exportarApkg, fetchDeck } from '../data/rotas/vocabulario';
+import { conversaComTextoVivo, textoVivoAberto, useTextoVivoAberto } from '../lib/captura/parcialVivo';
 import { consentiuNuvem } from '../lib/consentimentoDeNuvem';
 import { diaQueACotaVolta } from '../lib/diaQueACotaVolta';
 import { t } from '../lib/i18n';
@@ -275,7 +276,17 @@ export default function IChat({
       return null;
     }
   }, [noCaderno]);
-  const campos = camposDaTela({ view: activeView, metrics, recordings, selectedRecording, liveTranscription, idioma });
+  /* Com `parciais_vivos` o texto que o App entrega ignora o parcial em curso (para o App não re-renderizar a cada atualização).
+     O chat soma o texto vivo do armazém: assina só aberto e na captura; ao montar o material, lê o de agora (`textoVivoAberto`). */
+  const vivoNaTela = useTextoVivoAberto(isOpen && activeView === 'capture');
+  const campos = camposDaTela({
+    view: activeView,
+    metrics,
+    recordings,
+    selectedRecording,
+    liveTranscription: conversaComTextoVivo(liveTranscription, vivoNaTela),
+    idioma,
+  });
   const pendentes = metrics?.dueToday ?? 0;
 
   const entradaRef = useRef<HTMLInputElement>(null);
@@ -470,7 +481,12 @@ export default function IChat({
     );
     const blocos: string[] = [];
     if (auto) {
-      const tela = await construirContextoDaTela(activeView, selectedRecording, liveTranscription, { practiceSeed });
+      const tela = await construirContextoDaTela(
+        activeView,
+        selectedRecording,
+        conversaComTextoVivo(liveTranscription, textoVivoAberto()),
+        { practiceSeed },
+      );
       blocos.push(`[CONTEXTO ATUAL DA TELA]\nTela: ${nome}.${campos.length ? ` ${campos.join('; ')}.` : ''}\n${tela}`);
     }
     const palavrasEmFoco = [...usadas.filter((f) => f.sig === '@').map((f) => f.rot)];

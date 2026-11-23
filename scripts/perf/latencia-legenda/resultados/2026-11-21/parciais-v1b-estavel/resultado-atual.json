@@ -1,0 +1,228 @@
+{
+  "ambiente": "local-darwin",
+  "quando": "2026-11-21T21:59:17.007Z",
+  "commit": "72369e29",
+  "alvo": {
+    "nome": "atual",
+    "url": "http://127.0.0.1:4181"
+  },
+  "maquina": {
+    "so": "Darwin 27.0.0",
+    "cpu": "Apple M5 Pro",
+    "nucleos": 15,
+    "memoriaGb": 24,
+    "navegador": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/159.0.8154.6 Safari/537.36"
+  },
+  "perfis": {
+    "desktop": {
+      "palavras": {
+        "rodadas": 11,
+        "falasComMedida": 88,
+        "foraDoCalculo": 22,
+        "semCasamento": 97,
+        "atrasoDePalavraMs": {
+          "original": {
+            "n": 706,
+            "p50": 1164,
+            "p90": 2753
+          },
+          "traducao": {
+            "n": 812,
+            "p50": 2129,
+            "p90": 4015.8
+          }
+        },
+        "erasureOriginal": {
+          "apagadas": 721,
+          "final": 1094,
+          "ne": 0.6590493601462523
+        },
+        "erasureTraducao": {
+          "apagadas": 529,
+          "final": 1042,
+          "ne": 0.5076775431861804
+        }
+      },
+      "legenda": {
+        "n": 88,
+        "falhas": 0,
+        "semTraducao": 0
+      },
+      "erroDoMarcador": {
+        "n": 88,
+        "medianaMs": 1,
+        "medianaAbsMs": 25.5,
+        "p95AbsMs": 401.65
+      },
+      "rodadas": 11,
+      "invalidas": [],
+      "falasNoRtf": 88,
+      "metricas": {
+        "framesLongos.n50": 0,
+        "framesLongos.n100": 0,
+        "framesLongos.somaMs": 0,
+        "framesLongos.maiorMs": 0,
+        "primeiraLegendaMs": 5473,
+        "primeiroTextoNaTelaMs": 3255,
+        "sttProntoMs": 914,
+        "memoriaPicoMb": null,
+        "heapPicoMb": 33,
+        "cpuSilencio.processoPct": 14.45747155027676,
+        "cpuSilencio.principalPct": 3.829102667744543,
+        "cpuSilencio.foraDaPrincipalPct": 10.61243542665092,
+        "cpuSilencio.workersPct": null,
+        "rendersPorS.silencio": 22.91910902696366,
+        "rendersPorS.fala": 94.45166883398353,
+        "commitsPorS.silencio": 0.996483001172333,
+        "commitsPorS.fala": 3.229302123970525,
+        "fimATraducao.p50": 825,
+        "regulador.trocasDeModelo": 0,
+        "rtf.p50": 0.035,
+        "rtf.p95": 0.041,
+        "fimDaFalaAteLegendaMs.p50": 836.5,
+        "fimDaFalaAteLegendaMs.p75": 994.75,
+        "fimDaFalaAteLegendaMs.p95": 1640.55,
+        "fimDaFalaAteLegendaMs.taxaDeFalha": 0,
+        "atrasoDePalavraMs.original.p50": 1164,
+        "atrasoDePalavraMs.original.p90": 2753,
+        "atrasoDePalavraMs.traducao.p50": 2129,
+        "atrasoDePalavraMs.traducao.p90": 4015.8,
+        "erasureOriginal": 0.6590493601462523,
+        "erasureTraducao": 0.5076775431861804
+      },
+      "dispersao": {
+        "framesLongos.n50": null,
+        "framesLongos.n100": null,
+        "framesLongos.somaMs": null,
+        "framesLongos.maiorMs": null,
+        "primeiraLegendaMs": 0.020464096473597662,
+        "primeiroTextoNaTelaMs": 0.7394777265745007,
+        "sttProntoMs": 0.11050328227571116,
+        "memoriaPicoMb": null,
+        "heapPicoMb": 0.30303030303030304,
+        "cpuSilencio.processoPct": 0.1832510741737606,
+        "cpuSilencio.principalPct": 0.26624959491397066,
+        "cpuSilencio.foraDaPrincipalPct": 0.15357927673800306,
+        "cpuSilencio.workersPct": null,
+        "rendersPorS.silencio": 0,
+        "rendersPorS.fala": 0.11863240018357037,
+        "commitsPorS.silencio": 0,
+        "commitsPorS.fala": 0.08724832214765091,
+        "fimATraducao.p50": 0.2193939393939394,
+        "regulador.trocasDeModelo": null
+      },
+      "modelos": ["onnx-community/moonshine-base-ONNX"],
+      "aparelho": {
+        "tipo": "desktop-sem-gpu",
+        "modoLeve": "false"
+      },
+      "origem": "medido",
+      "aparelhoDescricao": "Apple M5 Pro, 15 núcleos, 24 GB"
+    },
+    "fraco": {
+      "palavras": {
+        "rodadas": 11,
+        "falasComMedida": 88,
+        "foraDoCalculo": 22,
+        "semCasamento": 98,
+        "atrasoDePalavraMs": {
+          "original": {
+            "n": 705,
+            "p50": 1588,
+            "p90": 3704.6000000000004
+          },
+          "traducao": {
+            "n": 785,
+            "p50": 2477,
+            "p90": 4262
+          }
+        },
+        "erasureOriginal": {
+          "apagadas": 551,
+          "final": 1096,
+          "ne": 0.5027372262773723
+        },
+        "erasureTraducao": {
+          "apagadas": 456,
+          "final": 1009,
+          "ne": 0.4519326065411298
+        }
+      },
+      "legenda": {
+        "n": 88,
+        "falhas": 0,
+        "semTraducao": 0
+      },
+      "erroDoMarcador": {
+        "n": 88,
+        "medianaMs": 3,
+        "medianaAbsMs": 31,
+        "p95AbsMs": 397
+      },
+      "rodadas": 11,
+      "invalidas": [],
+      "falasNoRtf": 88,
+      "metricas": {
+        "framesLongos.n50": 0,
+        "framesLongos.n100": 0,
+        "framesLongos.somaMs": 0,
+        "framesLongos.maiorMs": 0,
+        "primeiraLegendaMs": 5814,
+        "primeiroTextoNaTelaMs": 1922,
+        "sttProntoMs": 1020,
+        "memoriaPicoMb": null,
+        "heapPicoMb": 26,
+        "cpuSilencio.processoPct": 13.40553204729309,
+        "cpuSilencio.principalPct": 3.412983700385716,
+        "cpuSilencio.foraDaPrincipalPct": 10.007119761223759,
+        "cpuSilencio.workersPct": null,
+        "rendersPorS.silencio": 27.15021069054902,
+        "rendersPorS.fala": 101.8422193324664,
+        "commitsPorS.silencio": 1.044238872713424,
+        "commitsPorS.fala": 3.6627654963155614,
+        "fimATraducao.p50": 1141,
+        "regulador.trocasDeModelo": 0,
+        "rtf.p50": 0.069,
+        "rtf.p95": 0.07465,
+        "fimDaFalaAteLegendaMs.p50": 1150,
+        "fimDaFalaAteLegendaMs.p75": 1297.75,
+        "fimDaFalaAteLegendaMs.p95": 1972.1999999999998,
+        "fimDaFalaAteLegendaMs.taxaDeFalha": 0,
+        "atrasoDePalavraMs.original.p50": 1588,
+        "atrasoDePalavraMs.original.p90": 3704.6000000000004,
+        "atrasoDePalavraMs.traducao.p50": 2477,
+        "atrasoDePalavraMs.traducao.p90": 4262,
+        "erasureOriginal": 0.5027372262773723,
+        "erasureTraducao": 0.4519326065411298
+      },
+      "dispersao": {
+        "framesLongos.n50": null,
+        "framesLongos.n100": null,
+        "framesLongos.somaMs": null,
+        "framesLongos.maiorMs": null,
+        "primeiraLegendaMs": 0.03199174406604747,
+        "primeiroTextoNaTelaMs": 0.032778355879292405,
+        "sttProntoMs": 0.07549019607843137,
+        "memoriaPicoMb": null,
+        "heapPicoMb": 0.2692307692307692,
+        "cpuSilencio.processoPct": 0.17443232986836088,
+        "cpuSilencio.principalPct": 0.31701472026616206,
+        "cpuSilencio.foraDaPrincipalPct": 0.12554982303218878,
+        "cpuSilencio.workersPct": null,
+        "rendersPorS.silencio": 0.0038786988524029584,
+        "rendersPorS.fala": 0.07001489678655054,
+        "commitsPorS.silencio": 0.0038786988524030235,
+        "commitsPorS.fala": 0.0236686390532546,
+        "fimATraducao.p50": 0.07142857142857142,
+        "regulador.trocasDeModelo": null
+      },
+      "modelos": ["onnx-community/moonshine-base-ONNX"],
+      "aparelho": {
+        "tipo": "desktop-sem-gpu",
+        "modoLeve": "false"
+      },
+      "origem": "emulado",
+      "aparelhoDescricao": "Apple M5 Pro, 15 núcleos, 24 GB (emulando fraco)"
+    }
+  }
+}

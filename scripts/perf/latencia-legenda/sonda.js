@@ -22,7 +22,7 @@
  *             (bancada de desempenho da captura, A0). Vem do gancho do React DevTools, que o react-dom
  *             de PRODUÇÃO também chama; nada disso existe no bundle nem sem a sonda.
  *
- * Configuração (argumento do addInitScript): { modo: 'mic' | 'sistema', semWebGpu: boolean }.
+ * Configuração (argumento do addInitScript): { modo: 'mic' | 'sistema', semWebGpu: boolean, nomesDoRender?: boolean }.
  *  - modo 'mic': `getDisplayMedia` é recusado (NotAllowedError) — a captura do sistema falha e o
  *    microfone segue sozinho, como quando a pessoa fecha a caixa de compartilhamento;
  *  - modo 'sistema': `getDisplayMedia` devolve o áudio do dispositivo falso (sem o DSP de chamada,
@@ -104,6 +104,8 @@
           text: corta(d.text),
           message: corta(d.message, 200),
           descartado: d.descartado,
+          ms: d.ms,
+          audioS: d.audioS,
           manifesto: d.manifesto ? corta(JSON.stringify(d.manifesto), 400) : undefined,
         });
       });
@@ -115,6 +117,7 @@
           type: m && m.type,
           id: m && m.id,
           n: m && m.pcm ? m.pcm.length : undefined,
+          prioridade: m && m.prioridade,
           text: corta(m && m.text),
           language: m && m.language,
           model: m && m.model,
@@ -321,13 +324,26 @@ registerProcessor('sonda-lat', SondaLat);`;
   // SimpleMemo (15); o Memo (14) embrulha uma fibra que já conta.
   if (!window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
     const COMPONENTE = new Set([0, 1, 11, 15]);
+    // Diagnóstico (opt-in, `SONDA_NOMES_DO_RENDER=1` no medir.mjs): o nome de cada componente que renderizou no commit.
+    // Só sentido com o bundle SEM minificar; fora disso fica desligado e o commit custa o que custava.
+    let nomes = null;
+    const nomeDe = (f) => {
+      const t = f.type || f.elementType;
+      return (
+        (t && (t.displayName || t.name || (t.type && t.type.name) || (t.render && t.render.name))) || `tag${f.tag}`
+      );
+    };
     const contar = (raiz) => {
       let n = 0;
+      nomes = cfg.nomesDoRender ? {} : null;
       const pilha = [raiz.current];
       while (pilha.length) {
         const f = pilha.pop();
         const alt = f.alternate;
-        if (COMPONENTE.has(f.tag) && (alt === null || (f.flags & 1) !== 0)) n++;
+        if (COMPONENTE.has(f.tag) && (alt === null || (f.flags & 1) !== 0)) {
+          n++;
+          if (nomes) nomes[nomeDe(f)] = (nomes[nomeDe(f)] || 0) + 1;
+        }
         if (f.child && !(alt && alt.child === f.child)) for (let c = f.child; c; c = c.sibling) pilha.push(c);
       }
       return n;
@@ -342,7 +358,8 @@ registerProcessor('sonda-lat', SondaLat);`;
       },
       onCommitFiberRoot(_id, raiz) {
         try {
-          L.rc.push([Math.round(now()), contar(raiz)]);
+          const n = contar(raiz);
+          L.rc.push(nomes ? [Math.round(now()), n, nomes] : [Math.round(now()), n]);
         } catch {}
       },
       onCommitFiberUnmount() {},

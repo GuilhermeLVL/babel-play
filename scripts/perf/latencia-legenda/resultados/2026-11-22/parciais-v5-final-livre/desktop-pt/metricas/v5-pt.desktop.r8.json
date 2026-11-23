@@ -1,0 +1,110 @@
+{
+  "rotulo": "v5-pt.desktop.r8",
+  "perfil": {
+    "tipo": "desktop-sem-gpu",
+    "modoLeve": "false"
+  },
+  "valida": true,
+  "modeloStt": null,
+  "janelas": {
+    "sessao": [33631.30500006676, 132650.1],
+    "fala": [39860.1, 113580.1],
+    "silencio": [115580.1, 132650.1]
+  },
+  "framesLongos": {
+    "n50": 0,
+    "n100": 0,
+    "somaMs": 0,
+    "maiorMs": 0
+  },
+  "primeiraLegendaMs": null,
+  "primeiroTextoNaTelaMs": 3221,
+  "sttProntoMs": null,
+  "rtf": {
+    "valores": [0.093, 0.114, 0.096, 0.093, 0.094, 0.095, 0.091, 0.093, 0.093, 0.097, 0.093, 0.094],
+    "p50": 0.0935,
+    "p95": 0.10464999999999999
+  },
+  "memoriaPicoMb": null,
+  "heapPicoMb": 12,
+  "cpuSilencio": {
+    "processoPct": 14.288290529195985,
+    "principalPct": 3.4888937255145858,
+    "foraDaPrincipalPct": 10.799396803681399,
+    "workersPct": null
+  },
+  "rendersPorS": {
+    "silencio": 22.905682483889866,
+    "fala": 109.46825827455237
+  },
+  "commitsPorS": {
+    "silencio": 0.9958992384299942,
+    "fala": 3.52685838307108
+  },
+  "fimATraducao": {
+    "p50": null,
+    "p95": null
+  },
+  "fimDaFalaAteLegendaMs": {
+    "valores": [],
+    "p50": null,
+    "p75": null,
+    "p95": null,
+    "falhas": 0,
+    "semTraducao": 12,
+    "erroDoMarcadorMs": [-33, 7, 49, 9, 243, -13, 55, 23, 444, 13, 45, -1]
+  },
+  "palavras": {
+    "falasComMedida": 12,
+    "foraDoCalculo": 2,
+    "semCasamento": 2,
+    "atrasoDePalavraMs": {
+      "original": {
+        "n": 103,
+        "p50": 1114,
+        "p90": 2959.999999999999,
+        "valores": [
+          1357, 637, 1298, 878, 758, 1504, 1164, 1544, 1424, 1224, 894, 828, 568, 954, 394, 941,
+          721, 4807, 1501, 1181, 988, 688, 1514, 1314, 1927, 3728, 744, 444, 1362, 922, 782, 2475,
+          1068, 788, 1395, 1135, 755, 4184, 764, 304, 3204, 3024, 2704, 2524, 2364, 1844, 1544, 904,
+          744, 4902, 1095, 675, 828, 708, 1235, 1035, 1698, 1258, 1442, 1142, 882, 1797, 1217, 997,
+          1308, 708, 3198, 815, 1598, 1078, 1618, 858, 4550, 1475, 3350, 3070, 2410, 2250, 1970,
+          1690, 1210, 1010, 914, 614, 1021, 601, 1191, 891, 631, 1228, 708, 4001, 887, 507, 1114,
+          634, 904, 684, 484, 1134, 954, 1021, 741
+        ]
+      },
+      "traducao": {
+        "n": 0,
+        "p50": null,
+        "p90": null,
+        "valores": []
+      }
+    },
+    "erasureOriginal": {
+      "falas": 12,
+      "apagadas": 51,
+      "final": 128,
+      "ne": 0.3984375
+    },
+    "erasureTraducao": {
+      "falas": 0,
+      "apagadas": 0,
+      "final": 0,
+      "ne": null
+    }
+  },
+  "finalNoWorker": {
+    "falas": 12,
+    "comParcialEmVoo": 0,
+    "sttEspera": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "stt": [474, 603, 350, 466, 440, 427, 488, 481, 438, 373, 430, 387],
+    "decodeDoFinalMs": [473, 602, 350, 465, 440, 427, 488, 481, 437, 373, 429, 387]
+  },
+  "regulador": {
+    "trocasDeModelo": 0,
+    "primeiraTrocaMs": null,
+    "modelos": []
+  },
+  "falasPerdidas": 0,
+  "pedidosAoHub": 0
+}

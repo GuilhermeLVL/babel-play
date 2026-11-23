@@ -36,6 +36,8 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 
+import { medidasDeTodasAsFalas } from './palavras-da-fala.mjs'
+
 const args = process.argv.slice(2)
 const opt = (n, d) => {
   const i = args.indexOf(`--${n}`)
@@ -158,12 +160,18 @@ export function analisarRodada(d, pular = 0) {
   const ancora = achada.ancoraMs
   const tDoArquivo = (s) => ancora + (s - rot.bipeS) * 1000
 
-  const sttOut = ev.filter((e) => e.k === 'w:out' && e.type === 'transcribe')
+  // Whisper/Moonshine posta `transcribe`; o Parakeet posta `transcrever` (e responde `result`, `error` ou `cancelado`).
+  const ehWorkerDeStt = (e) => e.nome?.startsWith('whisperWorker') || e.nome?.startsWith('parakeetWorker')
+  const sttOut = ev.filter((e) => e.k === 'w:out' && (e.type === 'transcribe' || e.type === 'transcrever'))
   const sttIn = new Map(
     ev
-      .filter(
-        (e) => e.k === 'w:in' && e.nome?.startsWith('whisperWorker') && (e.type === 'result' || e.type === 'error'),
-      )
+      .filter((e) => e.k === 'w:in' && ehWorkerDeStt(e) && (e.type === 'result' || e.type === 'error'))
+      .map((e) => [e.id, e]),
+  )
+  // Quando o worker largou cada pedido: resultado, erro OU cancelado (o parcial parado em voo). Para a espera do final.
+  const sttFim = new Map(
+    ev
+      .filter((e) => e.k === 'w:in' && ehWorkerDeStt(e) && ['result', 'error', 'cancelado'].includes(e.type))
       .map((e) => [e.id, e]),
   )
   const sttUpd = ev.filter((e) => e.k === 'w:in' && e.type === 'update')
@@ -208,12 +216,22 @@ export function analisarRodada(d, pular = 0) {
     // decode final
     const tamanhoDoFinal = (o) => o.n >= (ult.audioMs / 1000) * 16000 * 0.9
     const P =
-      sttOut.find((o) => o.t >= ult.tSpeechEnd - 5 && o.t <= ult.tSpeechEnd + 3000 && tamanhoDoFinal(o)) ??
+      sttOut.find(
+        (o) =>
+          o.prioridade !== 'parcial' && o.t >= ult.tSpeechEnd - 5 && o.t <= ult.tSpeechEnd + 3000 && tamanhoDoFinal(o),
+      ) ??
       // FINAL ESPECULATIVO (depois de 2026-09-26): o decode do final é postado com ~450 ms de silêncio,
       // ANTES de o VAD fechar, e o fim da fala reaproveita o resultado. É o último post com resultado
       // (os cancelados não têm) no segundo antes do fechamento. `stt` passa a contar desde esse post.
       sttOut
-        .filter((o) => o.t >= ult.tSpeechEnd - 1000 && o.t < ult.tSpeechEnd && tamanhoDoFinal(o) && sttIn.has(o.id))
+        .filter(
+          (o) =>
+            o.prioridade !== 'parcial' &&
+            o.t >= ult.tSpeechEnd - 1000 &&
+            o.t < ult.tSpeechEnd &&
+            tamanhoDoFinal(o) &&
+            sttIn.has(o.id),
+        )
         .at(-1)
     if (P) {
       const R = sttIn.get(P.id)
@@ -227,9 +245,11 @@ export function analisarRodada(d, pular = 0) {
         // parcial ainda em voo quando o final foi postado?
         const emVoo = sttOut
           .filter((o) => o.t < P.t && o.id !== P.id)
-          .map((o) => sttIn.get(o.id))
+          .map((o) => sttFim.get(o.id))
           .filter((r) => r && r.t > P.t)
         linha.sttEspera = emVoo.length ? Math.round(Math.max(...emVoo.map((r) => r.t)) - P.t) : 0
+        linha.parcialEmVooNoFinal = emVoo.length > 0
+        if (R.ms !== undefined) linha.decodeDoFinalMs = Math.round(R.ms)
         linha.rtf = +((R.t - P.t) / ult.audioMs).toFixed(3)
         const Do = dom.find((r) => r.t >= R.t - 2 && !r.nova && r.o && parecido(r.o, ult.text))
         if (Do) {
@@ -286,6 +306,22 @@ export function analisarRodada(d, pular = 0) {
       }
     }
     falas.push(linha)
+  }
+
+  // Atraso por palavra e erasure (`parciais-incrementais`, 1.7): só com o roteiro de palavras; sem ele, a rodada segue como antes.
+  const porPalavra = medidasDeTodasAsFalas(dom, rot, tDoArquivo)
+  for (const l of falas) {
+    const m = porPalavra.get(l.k)
+    if (!m) continue
+    l.palavras = {
+      atrasoOriginalMs: m.atrasoOriginalMs,
+      atrasoTraducaoMs: m.atrasoTraducaoMs,
+      semCasamento: m.semCasamento,
+      erasureOriginal: m.erasureOriginal,
+      erasureTraducao: m.erasureTraducao,
+      foraDoCalculo: m.foraDoCalculo,
+      fimDaFalaAteOriginal: m.fimDaFalaAteOriginal,
+    }
   }
 
   const mesmoIdioma = idiomaBase(d.config?.eu) !== '' && idiomaBase(d.config?.eu) === idiomaBase(d.config?.eles)

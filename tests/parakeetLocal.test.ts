@@ -64,8 +64,53 @@ describe('ParakeetLocalStt', () => {
     expect(stt.supportsLiveMic).toBe(false)
     expect(stt.isAvailable()).toBe(true)
     expect(stt.modeloAtual).toBe(ID_DO_PARAKEET)
-    // Sem texto parcial: o gateway procura `transcribeIfIdle` e não acha aqui.
-    expect((stt as unknown as Record<string, unknown>).transcribeIfIdle).toBeUndefined()
+  })
+
+  describe('parcial (flag `parciais_parakeet`, só pelo gateway)', () => {
+    const pcm = () => new Float32Array(16000).fill(0.1)
+
+    it('modelo ainda não carregado: `null`, e NADA é baixado (sem download novo)', async () => {
+      const stt = new ParakeetLocalStt()
+      expect(await stt.transcribeIfIdle(pcm(), 16000, { languageHint: 'pt' })).toBeNull()
+      expect(doTipo('carregar')).toHaveLength(0)
+      expect(criados).toHaveLength(0)
+    })
+
+    it('carregado: manda ao worker com prioridade `parcial` e devolve o texto', async () => {
+      const stt = new ParakeetLocalStt()
+      await stt.preload()
+      const r = await stt.transcribeIfIdle(pcm(), 16000, { languageHint: 'pt' })
+      expect(r).toEqual({ text: 'olá' })
+      expect(doTipo('transcrever')[0]).toMatchObject({ idioma: 'pt', prioridade: 'parcial' })
+      expect(doTipo('carregar')).toHaveLength(1)
+    })
+
+    it('idioma fora de pt/es, sem dica ou outra taxa: `null`, sem ir ao worker', async () => {
+      const stt = new ParakeetLocalStt()
+      await stt.preload()
+      expect(await stt.transcribeIfIdle(pcm(), 16000, { languageHint: 'en' })).toBeNull()
+      expect(await stt.transcribeIfIdle(pcm(), 16000)).toBeNull()
+      expect(await stt.transcribeIfIdle(pcm(), 44100, { languageHint: 'pt' })).toBeNull()
+      expect(doTipo('transcrever')).toHaveLength(0)
+    })
+
+    it('worker ocupado: `null` (o parcial não enfileira)', async () => {
+      const stt = new ParakeetLocalStt()
+      await stt.preload()
+      criados[0].postMessage = () => {} // não responde: fica em voo
+      const emVoo = stt.transcribeIfIdle(pcm(), 16000, { languageHint: 'pt' })
+      expect(await stt.transcribeIfIdle(pcm(), 16000, { languageHint: 'pt' })).toBeNull()
+      void emVoo
+    })
+
+    it('o final cancelou o parcial no worker: resolve `null`, não rejeita', async () => {
+      const stt = new ParakeetLocalStt()
+      await stt.preload()
+      criados[0].postMessage = function (msg: Msg) {
+        queueMicrotask(() => this.responder({ type: 'cancelado', id: msg.id }))
+      }
+      expect(await stt.transcribeIfIdle(pcm(), 16000, { languageHint: 'es' })).toBeNull()
+    })
   })
 
   it('preload: manda o plano fixado e as threads, repassa o progresso por bytes e resolve no `ready`', async () => {

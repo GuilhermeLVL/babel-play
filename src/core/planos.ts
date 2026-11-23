@@ -348,6 +348,28 @@ export const FLAG_ROTEADOR_ADAPTATIVO_SOMBRA = 'roteador_adaptativo_sombra';
 export const FLAG_TRADUCAO_LOCAL_POR_DIRECAO = 'traducao_local_por_direcao';
 
 /**
+ * OS PARCIAIS VIVOS (openspec `parciais-incrementais`, V1; migrações PG 0029 e SQLite 0069): o parcial
+ * do Whisper/Moonshine usa o `onUpdate`, a cadência passa a ser adaptativa (RTF e ocupação do worker) e o texto confirmado
+ * por LocalAgreement-2 nunca regride (a cauda sai em estilo provisório). Nasce DESLIGADA e sem regra de plano; ligar é ato
+ * do dono. Desligada = o parcial de hoje (tique de 2 s, no máximo 3 por fala). Parcial nunca vai à nuvem.
+ */
+export const FLAG_PARCIAIS_VIVOS = 'parciais_vivos';
+
+/**
+ * O PARCIAL DO PARAKEET (openspec `parciais-incrementais`, V2; migrações PG 0030 e SQLite 0070): re-decode da
+ * janela que cresce, só onde o Parakeet já é o motor do perfil, sem modelo novo. Nasce DESLIGADA e sem regra de plano; só
+ * tem efeito com `parciais_vivos` ligada. Desligada = o Parakeet não emite parcial, como antes.
+ */
+export const FLAG_PARCIAIS_PARAKEET = 'parciais_parakeet';
+
+/**
+ * A TRADUÇÃO INCREMENTAL DO PARCIAL (openspec `parciais-incrementais`, V3; migrações PG 0031 e SQLite 0071):
+ * traduz só o prefixo confirmado pelo LocalAgreement-2, com mask-k, só com motor local já carregado. Nasce DESLIGADA e sem
+ * regra de plano; só tem efeito com `parciais_vivos` ligada. Desligada = a tradução do parcial de hoje.
+ */
+export const FLAG_TRADUCAO_INCREMENTAL = 'traducao_incremental';
+
+/**
  * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,
  * "Custo da escrita"): um retorno leva ~900 tokens de entrada (system + texto de até 120 palavras) e até 500 de saída;
  * 30 por mês ficam na casa de US$ 0,01 por assinante que usa tudo, e os tokens já saem da `tokensMes`.

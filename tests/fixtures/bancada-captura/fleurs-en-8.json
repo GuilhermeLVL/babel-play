@@ -15,7 +15,77 @@
       "amostras": 64000,
       "vozIni": 0.05,
       "vozFim": 3.95,
-      "ganhoDb": 25.2
+      "ganhoDb": 25.2,
+      "palavras": [
+        {
+          "t": "lions",
+          "iniS": 0.44,
+          "fimS": 0.68
+        },
+        {
+          "t": "are",
+          "iniS": 0.68,
+          "fimS": 0.8
+        },
+        {
+          "t": "the",
+          "iniS": 0.8,
+          "fimS": 1.02
+        },
+        {
+          "t": "most",
+          "iniS": 1.02,
+          "fimS": 1.44
+        },
+        {
+          "t": "social",
+          "iniS": 1.44,
+          "fimS": 1.88
+        },
+        {
+          "t": "cats",
+          "iniS": 1.88,
+          "fimS": 2.32
+        },
+        {
+          "t": "living",
+          "iniS": 2.32,
+          "fimS": 2.52
+        },
+        {
+          "t": "in",
+          "iniS": 2.52,
+          "fimS": 2.74
+        },
+        {
+          "t": "large",
+          "iniS": 2.74,
+          "fimS": 3.12
+        },
+        {
+          "t": "groups",
+          "iniS": 3.12,
+          "fimS": 3.46
+        },
+        {
+          "t": "called",
+          "iniS": 3.46,
+          "fimS": 3.78
+        },
+        {
+          "t": "prides",
+          "iniS": 3.78,
+          "fimS": 4
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-medium.en_timestamped",
+        "dtype": "fp32",
+        "casadas": 12,
+        "total": 12,
+        "fracao": 1,
+        "foraDoCalculo": false
+      }
     },
     {
       "id": "fleurs_en_1747",
@@ -24,7 +94,47 @@
       "amostras": 55520,
       "vozIni": 0.02,
       "vozFim": 3.42,
-      "ganhoDb": 39.8
+      "ganhoDb": 39.8,
+      "palavras": [
+        {
+          "t": "fellow",
+          "iniS": 0.8,
+          "fimS": 1.12
+        },
+        {
+          "t": "wrestlers",
+          "iniS": 1.12,
+          "fimS": 1.52
+        },
+        {
+          "t": "also",
+          "iniS": 1.52,
+          "fimS": 1.7
+        },
+        {
+          "t": "tribute",
+          "iniS": 2.04,
+          "fimS": 2.28
+        },
+        {
+          "t": "to",
+          "iniS": 2.28,
+          "fimS": 2.52
+        },
+        {
+          "t": "luna",
+          "iniS": 2.52,
+          "fimS": 3
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-medium.en_timestamped",
+        "dtype": "fp32",
+        "casadas": 6,
+        "total": 7,
+        "fracao": 0.857,
+        "foraDoCalculo": true
+      }
     },
     {
       "id": "fleurs_en_1748",
@@ -33,7 +143,72 @@
       "amostras": 68480,
       "vozIni": 0.05,
       "vozFim": 4.23,
-      "ganhoDb": 8.8
+      "ganhoDb": 8.8,
+      "palavras": [
+        {
+          "t": "fire",
+          "iniS": 0.26,
+          "fimS": 0.54
+        },
+        {
+          "t": "rescue",
+          "iniS": 0.54,
+          "fimS": 0.9
+        },
+        {
+          "t": "crews",
+          "iniS": 0.9,
+          "fimS": 1.4
+        },
+        {
+          "t": "eventually",
+          "iniS": 1.4,
+          "fimS": 1.62
+        },
+        {
+          "t": "doused",
+          "iniS": 1.62,
+          "fimS": 1.92
+        },
+        {
+          "t": "the",
+          "iniS": 1.92,
+          "fimS": 2.16
+        },
+        {
+          "t": "fire",
+          "iniS": 2.16,
+          "fimS": 2.42
+        },
+        {
+          "t": "by",
+          "iniS": 2.42,
+          "fimS": 2.8
+        },
+        {
+          "t": "11",
+          "iniS": 2.8,
+          "fimS": 2.96
+        },
+        {
+          "t": "35",
+          "iniS": 2.96,
+          "fimS": 4.04
+        },
+        {
+          "t": "pm",
+          "iniS": 4.04,
+          "fimS": 4.28
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-medium.en_timestamped",
+        "dtype": "fp32",
+        "casadas": 11,
+        "total": 11,
+        "fracao": 1,
+        "foraDoCalculo": false
+      }
     },
     {
       "id": "fleurs_en_1750",
@@ -42,7 +217,72 @@
       "amostras": 69120,
       "vozIni": 0.05,
       "vozFim": 4.27,
-      "ganhoDb": 44.3
+      "ganhoDb": 44.3,
+      "palavras": [
+        {
+          "t": "the",
+          "iniS": 0.62,
+          "fimS": 0.9
+        },
+        {
+          "t": "find",
+          "iniS": 0.9,
+          "fimS": 1.18
+        },
+        {
+          "t": "also",
+          "iniS": 1.18,
+          "fimS": 1.44
+        },
+        {
+          "t": "grants",
+          "iniS": 1.44,
+          "fimS": 1.84
+        },
+        {
+          "t": "insight",
+          "iniS": 1.84,
+          "fimS": 2.06
+        },
+        {
+          "t": "into",
+          "iniS": 2.06,
+          "fimS": 2.22
+        },
+        {
+          "t": "the",
+          "iniS": 2.22,
+          "fimS": 2.6
+        },
+        {
+          "t": "evolution",
+          "iniS": 2.6,
+          "fimS": 2.88
+        },
+        {
+          "t": "of",
+          "iniS": 2.88,
+          "fimS": 3.22
+        },
+        {
+          "t": "feathers",
+          "iniS": 3.22,
+          "fimS": 3.56
+        },
+        {
+          "t": "birds",
+          "iniS": 3.9,
+          "fimS": 4
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-medium.en_timestamped",
+        "dtype": "fp32",
+        "casadas": 11,
+        "total": 12,
+        "fracao": 0.917,
+        "foraDoCalculo": false
+      }
     },
     {
       "id": "fleurs_en_1776",
@@ -51,7 +291,82 @@
       "amostras": 73120,
       "vozIni": 0.05,
       "vozFim": 4.55,
-      "ganhoDb": 44.5
+      "ganhoDb": 44.5,
+      "palavras": [
+        {
+          "t": "the",
+          "iniS": 0.28,
+          "fimS": 0.44
+        },
+        {
+          "t": "night",
+          "iniS": 0.44,
+          "fimS": 0.82
+        },
+        {
+          "t": "between",
+          "iniS": 0.82,
+          "fimS": 1.32
+        },
+        {
+          "t": "150",
+          "iniS": 1.32,
+          "fimS": 1.46
+        },
+        {
+          "t": "and",
+          "iniS": 1.46,
+          "fimS": 1.76
+        },
+        {
+          "t": "200",
+          "iniS": 1.76,
+          "fimS": 2.12
+        },
+        {
+          "t": "copies",
+          "iniS": 2.12,
+          "fimS": 2.3
+        },
+        {
+          "t": "were",
+          "iniS": 2.3,
+          "fimS": 2.48
+        },
+        {
+          "t": "made",
+          "iniS": 2.48,
+          "fimS": 2.66
+        },
+        {
+          "t": "now",
+          "iniS": 2.7,
+          "fimS": 2.94
+        },
+        {
+          "t": "known",
+          "iniS": 2.94,
+          "fimS": 3.18
+        },
+        {
+          "t": "as",
+          "iniS": 3.18,
+          "fimS": 3.34
+        },
+        {
+          "t": "dunlap",
+          "iniS": 3.34,
+          "fimS": 3.76
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-medium.en_timestamped",
+        "dtype": "fp32",
+        "casadas": 13,
+        "total": 15,
+        "fracao": 0.867,
+        "foraDoCalculo": true
+      }
     },
     {
       "id": "fleurs_en_1791",
@@ -60,7 +375,77 @@
       "amostras": 65120,
       "vozIni": 0.02,
       "vozFim": 4.02,
-      "ganhoDb": 44.4
+      "ganhoDb": 44.4,
+      "palavras": [
+        {
+          "t": "do",
+          "iniS": 0.1,
+          "fimS": 0.32
+        },
+        {
+          "t": "not",
+          "iniS": 0.32,
+          "fimS": 0.58
+        },
+        {
+          "t": "deface",
+          "iniS": 0.58,
+          "fimS": 0.92
+        },
+        {
+          "t": "the",
+          "iniS": 0.92,
+          "fimS": 1.06
+        },
+        {
+          "t": "site",
+          "iniS": 1.06,
+          "fimS": 1.32
+        },
+        {
+          "t": "by",
+          "iniS": 1.32,
+          "fimS": 1.6
+        },
+        {
+          "t": "marking",
+          "iniS": 1.6,
+          "fimS": 1.8
+        },
+        {
+          "t": "or",
+          "iniS": 1.8,
+          "fimS": 2.28
+        },
+        {
+          "t": "scratching",
+          "iniS": 2.28,
+          "fimS": 2.92
+        },
+        {
+          "t": "graffiti",
+          "iniS": 2.92,
+          "fimS": 3.38
+        },
+        {
+          "t": "into",
+          "iniS": 3.38,
+          "fimS": 3.92
+        },
+        {
+          "t": "structures",
+          "iniS": 3.92,
+          "fimS": 4
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-medium.en_timestamped",
+        "dtype": "fp32",
+        "casadas": 12,
+        "total": 12,
+        "fracao": 1,
+        "foraDoCalculo": false
+      }
     },
     {
       "id": "fleurs_en_1839",
@@ -69,7 +454,72 @@
       "amostras": 64320,
       "vozIni": 0.05,
       "vozFim": 3.97,
-      "ganhoDb": 1.6
+      "ganhoDb": 1.6,
+      "palavras": [
+        {
+          "t": "think",
+          "iniS": 0.3,
+          "fimS": 0.48
+        },
+        {
+          "t": "of",
+          "iniS": 0.48,
+          "fimS": 0.62
+        },
+        {
+          "t": "the",
+          "iniS": 0.62,
+          "fimS": 0.96
+        },
+        {
+          "t": "skiing",
+          "iniS": 0.96,
+          "fimS": 1.34
+        },
+        {
+          "t": "route",
+          "iniS": 1.34,
+          "fimS": 1.7
+        },
+        {
+          "t": "as",
+          "iniS": 1.7,
+          "fimS": 1.88
+        },
+        {
+          "t": "of",
+          "iniS": 1.88,
+          "fimS": 2.1
+        },
+        {
+          "t": "a",
+          "iniS": 2.1,
+          "fimS": 2.44
+        },
+        {
+          "t": "similar",
+          "iniS": 2.44,
+          "fimS": 2.82
+        },
+        {
+          "t": "hiking",
+          "iniS": 2.82,
+          "fimS": 3.28
+        },
+        {
+          "t": "route",
+          "iniS": 3.28,
+          "fimS": 3.52
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-medium.en_timestamped",
+        "dtype": "fp32",
+        "casadas": 11,
+        "total": 11,
+        "fracao": 1,
+        "foraDoCalculo": false
+      }
     },
     {
       "id": "fleurs_en_1853",
@@ -78,7 +528,98 @@
       "amostras": 72320,
       "vozIni": 0.05,
       "vozFim": 4.47,
-      "ganhoDb": 42
+      "ganhoDb": 42,
+      "palavras": [
+        {
+          "t": "giancarlo",
+          "iniS": 0.2,
+          "fimS": 0.78
+        },
+        {
+          "t": "fisichella",
+          "iniS": 0.78,
+          "fimS": 1.46
+        },
+        {
+          "t": "lost",
+          "iniS": 1.46,
+          "fimS": 1.78
+        },
+        {
+          "t": "control",
+          "iniS": 1.78,
+          "fimS": 1.94
+        },
+        {
+          "t": "of",
+          "iniS": 1.94,
+          "fimS": 2.08
+        },
+        {
+          "t": "his",
+          "iniS": 2.08,
+          "fimS": 2.3
+        },
+        {
+          "t": "car",
+          "iniS": 2.3,
+          "fimS": 2.44
+        },
+        {
+          "t": "and",
+          "iniS": 2.44,
+          "fimS": 2.7
+        },
+        {
+          "t": "ended",
+          "iniS": 2.7,
+          "fimS": 2.92
+        },
+        {
+          "t": "the",
+          "iniS": 2.92,
+          "fimS": 3.1
+        },
+        {
+          "t": "race",
+          "iniS": 3.1,
+          "fimS": 3.36
+        },
+        {
+          "t": "very",
+          "iniS": 3.36,
+          "fimS": 3.68
+        },
+        {
+          "t": "soon",
+          "iniS": 3.68,
+          "fimS": 3.96
+        },
+        {
+          "t": "after",
+          "iniS": 3.96,
+          "fimS": 4.14
+        },
+        {
+          "t": "the",
+          "iniS": 4.14,
+          "fimS": 4.4
+        },
+        {
+          "t": "start",
+          "iniS": 4.4,
+          "fimS": 4.44
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-medium.en_timestamped",
+        "dtype": "fp32",
+        "casadas": 16,
+        "total": 16,
+        "fracao": 1,
+        "foraDoCalculo": false
+      }
     }
-  ]
+  ],
+  "palavrasGeradasPor": "scripts/perf/latencia-legenda/gerar-palavras-do-roteiro.mjs (onnx-community/whisper-medium.en_timestamped, return_timestamps: 'word')"
 }

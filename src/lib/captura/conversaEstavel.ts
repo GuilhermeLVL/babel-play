@@ -26,8 +26,14 @@ export function useFuncaoEstavel<A extends unknown[], R>(fn: (...args: A) => R):
 }
 
 /** O texto corrido da conversa, como o App sempre recebeu: as falas na ordem, separadas por espaço. */
-export function textoDaConversa(segmentos: ReadonlyArray<{ originalText: string }>): string {
-  return segmentos.map((s) => s.originalText).join(' ');
+export function textoDaConversa<S extends { originalText: string; isPartial?: boolean }>(
+  segmentos: ReadonlyArray<S>,
+  opcoes?: { semParcial?: boolean | ((s: S) => boolean) },
+): string {
+  const sem = opcoes?.semParcial;
+  /* `true`: nenhum parcial. Função: só os parciais para os quais ela responde `true` (os parciais vivos; os demais seguem como sempre). */
+  const fora = (s: S): boolean => !!s.isPartial && (typeof sem === 'function' ? sem(s) : sem === true);
+  return (sem ? segmentos.filter((s) => !fora(s)) : segmentos).map((s) => s.originalText).join(' ');
 }
 
 /**
@@ -36,15 +42,23 @@ export function textoDaConversa(segmentos: ReadonlyArray<{ originalText: string 
  * a cada intervalo, em vez de esperar uma pausa que pode não vir. Ao desmontar, o pendente sai na
  * hora — a última fala não fica fora do contexto do iChat.
  */
-export function useTextoDaConversa(
-  segmentos: ReadonlyArray<{ originalText: string }>,
+export function useTextoDaConversa<S extends { originalText: string; isPartial?: boolean }>(
+  segmentos: ReadonlyArray<S>,
   aoMudar: ((texto: string) => void) | undefined,
   intervaloMs = 500,
+  /**
+   * Parciais vivos (V6): o texto do parcial em curso não vai ao App (só as falas fechadas). Cada texto novo do parcial era um render do App
+   * inteiro, para um contexto do iChat que só lê a conversa fechada. Função: decide POR FALA (só a fala cujo parcial é vivo, isto é, que mora
+   * no armazém, fica de fora; as de outra rota seguem com o texto de sempre). Sem a flag, o texto de sempre.
+   */
+  semParcial: boolean | ((s: S) => boolean) = false,
 ): void {
   const segmentosRef = useRef(segmentos);
   segmentosRef.current = segmentos;
   const aoMudarRef = useRef(aoMudar);
   aoMudarRef.current = aoMudar;
+  const semParcialRef = useRef(semParcial);
+  semParcialRef.current = semParcial;
   const ultimoRef = useRef<string | null>(null);
   const pendenteRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -52,7 +66,7 @@ export function useTextoDaConversa(
     pendenteRef.current = null;
     const cb = aoMudarRef.current;
     if (!cb) return;
-    const texto = textoDaConversa(segmentosRef.current);
+    const texto = textoDaConversa(segmentosRef.current, { semParcial: semParcialRef.current });
     if (texto === ultimoRef.current) return;
     ultimoRef.current = texto;
     cb(texto);

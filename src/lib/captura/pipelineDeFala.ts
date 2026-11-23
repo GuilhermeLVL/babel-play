@@ -10,13 +10,31 @@ import { avaliarTrechoStt, razaoDeCompressaoAproximada } from '@core/harness/por
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 
 import type { ModelPrepState } from '../../components/ModelPrepPanel';
+import { criarMedidorDeParcial, decidirParcial } from '../../core/legendas/cadenciaDoParcial';
+import { criarLimitadorDeParcial, type LimitadorDeParcial } from '../../core/legendas/limitadorDeParcial';
+import { avancar, type EstadoLocalAgreement, novoLocalAgreement, visualizar } from '../../core/legendas/localAgreement';
+import { tokenizar } from '../../core/legendas/medidasDeParcial';
+import {
+  CHAVE_DA_MASCARA_DE_PARCIAIS,
+  CHAVE_DO_MODO_DE_PARCIAIS,
+  lerMascaraDeParciais,
+  lerModoDeParciais,
+  pintaTokens,
+  vistaDoDecode,
+  vistaDoToken,
+} from '../../core/legendas/modoDeParciais';
 import {
   aparelhoPedeAlivio,
   gpuRealDaRota,
   type MotivoDaOfertaDeAlivio,
   type SinaisDoAparelhoParaAlivio,
 } from '../../core/nuvemDeAlivio';
-import { FLAG_STT_NUVEM_NORMALIZAR } from '../../core/planos';
+import {
+  FLAG_PARCIAIS_PARAKEET,
+  FLAG_PARCIAIS_VIVOS,
+  FLAG_STT_NUVEM_NORMALIZAR,
+  FLAG_TRADUCAO_INCREMENTAL,
+} from '../../core/planos';
 import {
   avaliarFalaLocal,
   continuarAudioDificil,
@@ -31,12 +49,12 @@ import { inglesNuvemVenceAparelho } from '../../core/rota/medicoesDeStt';
 import type { DecisaoDeRota } from '../../core/rota/politicaDeRota';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
 import { temAdaptadorWebGpu } from '../../gateway/adaptadorWebGpu';
-import { ID_DO_PARAKEET } from '../../gateway/adapters/parakeetModelo';
+import { ID_DO_PARAKEET, parakeetAceita } from '../../gateway/adapters/parakeetModelo';
 import type { AvisoDeDegradacaoDoStt, SttFinal } from '../../gateway/capabilities';
 import { capMetrics, type CapSource } from '../../gateway/capture/captureMetrics';
 import type { EspeculacaoDoFinal } from '../../gateway/capture/systemAudio';
 import { aoFalharANuvemDoStt, aoResponderANuvemDoStt } from '../../gateway/falhaDaNuvemDoStt';
-import { marcar } from '../../gateway/marcasDeDesempenho';
+import { marcar, marcarParcial } from '../../gateway/marcasDeDesempenho';
 import { areModelsCached, expectedModelIds } from '../../gateway/modelCache';
 import { temCopiaNoAparelho } from '../../gateway/modelManifest';
 import { entradaDoParakeet, gravarModeloFixo, lerModeloFixo } from '../../gateway/modeloFixo';
@@ -91,6 +109,7 @@ import { oferecerNoFimDaEscada } from './ofertaDoFimDaEscada';
 import { nuvemDoSttDisponivel } from './ofertaDoPreciso';
 import { preparoConcluido, semPacotePendente } from './pacotesNativos';
 import { criarTradutorDeParciais, type TradutorDeParciais } from './parcialEstavel';
+import { escreverParcialVivo, limparParcialVivo } from './parcialVivo';
 import { type EfeitosDoRegulador, escadaDeModelos, type ReguladorDaCaptura } from './reguladorDaCaptura';
 import {
   type EstadoDoParakeetDeReserva,
@@ -126,7 +145,16 @@ const manterPacotes = (s: ModelPrepState | null): Pick<ModelPrepState, 'nativos'
  * o Whisper produza (começa com NUL), então não colide com um parcial de verdade. Sai do mapa quando
  * o final responde, como qualquer entrada dele.
  */
-export const FALA_FECHADA = '\u0000fala-fechada';
+export /** Lê uma chave de laboratório do localStorage (nunca lança: sem storage, vale o padrão). */
+const lerChaveDeLaboratorio = (chave: string): string | null => {
+  try {
+    return localStorage.getItem(chave);
+  } catch {
+    return null;
+  }
+};
+
+const FALA_FECHADA = '\u0000fala-fechada';
 
 /**
  * O tradutor de parciais é UM por tela (a fábrica do pipeline roda a cada render e perderia o estado e o
@@ -468,6 +496,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   // O `seq` do VAD começa em 1 em CADA fonte; deslocamos o do mic (+MIC_SEQ_OFFSET) para que
   // as chaves (seqToSegment/capMetrics) nunca colidam quando as duas fontes rodam juntas.
   const MIC_SEQ_OFFSET = 1_000_000;
+  /** Quanto custa um parcial neste aparelho (RTF e CPU recente), para a cadência adaptativa (`parciais_vivos`). As duas fontes dividem o worker. */
+  const medidorDeParcial = criarMedidorDeParcial(() => performance.now());
   /** CONVERSA VIRTUAL com detecção: os idiomas já ouvidos de "Eles" (as duas fontes o compartilham). */
   let idiomasDaVirtual: EstadoDaVirtual = ESTADO_DA_VIRTUAL;
   /** A reserva local desta captura (`reservaLocal.ts`): parciais locais ligados? Quem solta o ouvinte da falha? */
@@ -562,6 +592,60 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     /* O LADO DE CADA FALA no modo intérprete: a direção de quando ela COMEÇOU. Tocar o outro lado no
        meio de uma fala não a vira — a dica do final e a tradução seguem o idioma de quem começou. */
     const direcoesPorSeq = new Map<number, DirecaoDaFala>();
+    /** LocalAgreement-2 por fala (`parciais_vivos`): o prefixo confirmado do parcial. Sai no final, no erro e no misfire. */
+    const agreementPorSeq = new Map<number, EstadoLocalAgreement>();
+    /** O texto que a tela mostrou do parcial de cada fala (só os modos de laboratório `parciaisModo` o usam). */
+    const exibidoPorSeq = new Map<number, string>();
+    /** Limitador da TELA do parcial vivo por fala (V4, só com `parciais_vivos`): no máximo 1 atualização a cada 125 ms; o final nunca passa por ele. */
+    const limitadoresPorSeq = new Map<
+      number,
+      { lim: LimitadorDeParcial<ParcialNaTela>; timer?: ReturnType<typeof setTimeout> }
+    >();
+    type ParcialNaTela = { originalText: string; textoConfirmado?: string };
+    const pintarParcial = (uttId: string, v: ParcialNaTela): void =>
+      falasNoQuadro((prev) => prev.map((s) => (s.id === uttId && s.isPartial ? { ...s, ...v } : s)));
+    /**
+     * O PARCIAL VIVO BARATO (V6, só com `parciais_vivos`): o 1º texto de cada fala entra no estado das falas (a linha passa a existir
+     * nas listas que ignoram fala vazia); os seguintes vão ao armazém `parcialVivo`, lido só pela linha que os mostra. Assim a
+     * atualização do parcial não re-renderiza a tela de captura nem o App (ver `parcialVivo.ts`). O final escreve no estado como sempre.
+     */
+    const uttDoParcialVivoPorSeq = new Map<number, string>();
+    const pintarParcialVivo = (seq: number, uttId: string, v: ParcialNaTela): void => {
+      escreverParcialVivo(uttId, v);
+      if (uttDoParcialVivoPorSeq.has(seq)) return;
+      uttDoParcialVivoPorSeq.set(seq, uttId);
+      pintarParcial(uttId, v);
+    };
+    /** A fala fechou de vez (final, erro ou ruído): o armazém a esquece; o estado já traz (ou vai trazer, no mesmo quadro) o texto dela. */
+    const encerrarParcialVivo = (seq: number): void => {
+      const uttId = uttDoParcialVivoPorSeq.get(seq);
+      if (uttId === undefined) return;
+      uttDoParcialVivoPorSeq.delete(seq);
+      limparParcialVivo(uttId);
+    };
+    /** Pinta o parcial vivo respeitando o limitador (hipóteses dentro do intervalo se juntam; fica a última). */
+    const pintarParcialLimitado = (seq: number, uttId: string, v: ParcialNaTela): void => {
+      let e = limitadoresPorSeq.get(seq);
+      if (!e) limitadoresPorSeq.set(seq, (e = { lim: criarLimitadorDeParcial<ParcialNaTela>() }));
+      const entrada = e;
+      const r = entrada.lim.oferecer(v, performance.now());
+      if (r.tipo === 'aplicar') pintarParcialVivo(seq, uttId, r.valor);
+      else if (r.tipo === 'agendar')
+        entrada.timer = setTimeout(() => {
+          entrada.timer = undefined;
+          const ultimo = entrada.lim.liberar(performance.now());
+          if (ultimo && seqToSegmentRef.current.has(seq) && lastPartialTextRef.current.get(seq) !== FALA_FECHADA)
+            pintarParcialVivo(seq, uttId, ultimo);
+        }, r.aguardarMs);
+    };
+    /** O final chegou, a fala fechou ou foi descartada: o que o limitador segurava não vale mais. */
+    const soltarLimitador = (seq: number): void => {
+      const e = limitadoresPorSeq.get(seq);
+      if (!e) return;
+      e.lim.cancelar();
+      if (e.timer !== undefined) clearTimeout(e.timer);
+      limitadoresPorSeq.delete(seq);
+    };
     const virtual = (): boolean => captureScenarioRef.current === 'interprete' && !!interpreteVirtual?.();
     const virtualDetecta = (): boolean => !!virtualDetectaIdioma?.();
     const direcaoDoLado = (seq?: number): DirecaoDaFala | null => {
@@ -710,6 +794,10 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       const id = seqToSegmentRef.current.get(seq);
       seqToSegmentRef.current.delete(seq);
       lastPartialTextRef.current.delete(seq);
+      agreementPorSeq.delete(seq);
+      exibidoPorSeq.delete(seq);
+      soltarLimitador(seq);
+      encerrarParcialVivo(seq);
       if (id) tradutorDeParciais(lastPartialTextRef).encerrar(id);
       capMetrics.drop(seq);
       if (id) setSpeechSegments((prev) => prev.filter((s) => s.id !== id));
@@ -746,6 +834,45 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     };
     /** Quanto de fala o 1º parcial espera: 1,5 s no automático; 0 = o mínimo da própria captura (0,6 s). */
     const primeiroParcialComMs = (): number => (perfModeAutomatico() ? PRIMEIRO_PARCIAL_DO_AUTOMATICO_MS : 0);
+    /** A dica de idioma com que o parcial desta fala vai ao motor (a mesma regra do `onPartialAudio`; '' = ainda sem dica). */
+    const dicaDoParcial = (seq: number | undefined): string => {
+      const { hint, from } = langs(seq);
+      return !from && !hint ? (contextoDoSttRef?.current.idiomaDe(source) ?? '') : hint;
+    };
+    /**
+     * ESCOPO DOS PARCIAIS VIVOS: SÓ a rota do Parakeet (pt/es, com `parciais_parakeet` e o Parakeet ativo na cadeia). Em qualquer outra
+     * (inglês, Whisper, Moonshine, Web Speech, nuvem) o parcial é o de flag desligada, sem cadência, limitador, LocalAgreement nem armazém.
+     * Decidido a cada parcial, porque o idioma e o motor podem mudar no meio da sessão. Aprovado só no pt/Parakeet (A/B da V7).
+     */
+    const parcialVivoNaRota = (dica: string): boolean =>
+      flagLigada(FLAG_PARCIAIS_VIVOS) &&
+      flagLigada(FLAG_PARCIAIS_PARAKEET) &&
+      gateway.stt.parakeetAtivo?.() === true &&
+      parakeetAceita(dica);
+    /**
+     * CADÊNCIA ADAPTATIVA (flag `parciais_vivos`, só na rota do Parakeet): a captura pergunta, a cada tique, se pede um parcial agora. `undefined`
+     * = flag desligada (ou o parcial único do modo desempenho automático): a captura segue o tique fixo de 2 s e o teto
+     * por fala de sempre, sem mudança. O worker ocupado nunca pede: o parcial não enfileira, e o final cancela o parcial.
+     */
+    const cadenciaDoParcial = (e: {
+      seq?: number;
+      janelaS: number;
+      msDesdeUltimo: number;
+      amostrasNovas: number;
+      silencioMs: number;
+    }): boolean | undefined => {
+      if (!parcialVivoNaRota(dicaDoParcial(e.seq === undefined ? undefined : e.seq + offset)) || perfModeAutomatico())
+        return undefined;
+      return decidirParcial({
+        rtf: medidorDeParcial.rtf(),
+        janelaS: e.janelaS,
+        workerOcupado: gateway.stt.pendingCount() > 0,
+        msDesdeUltimo: e.msDesdeUltimo,
+        amostrasNovas: e.amostrasNovas,
+        cpuRecente: medidorDeParcial.cpu(),
+        silencioMs: e.silencioMs,
+      }).pedir;
+    };
     /** Teto de parciais por fala (ver as constantes acima). */
     const maxParciaisPorFala = (): number => {
       const p = perfilDoDispositivo();
@@ -799,13 +926,46 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
          que nem um segundo em voo nem um retorno vazio abram espaço para outro decode desta fala. */
       if (perfModeAutomatico()) lastPartialTextRef.current.set(seq, '');
       const t0Parcial = performance.now();
+      /* PARCIAIS VIVOS (flag `parciais_vivos`): o texto do decode em curso (`onUpdate`) é pintado na hora, como cauda
+         provisória; a concordância (LocalAgreement-2) só avança com o decode COMPLETO. Desligada, nada disto existe. */
+      const vivos = parcialVivoNaRota(hint);
+      /* Chave de LABORATÓRIO (`babel.lab.parciaisModo`): override de laboratório; ausente = `acrescenta-decode`, o aprovado na V7. */
+      const modoDeParciais = vivos
+        ? lerModoDeParciais(lerChaveDeLaboratorio(CHAVE_DO_MODO_DE_PARCIAIS))
+        : 'cauda-token';
+      /* Chave de LABORATÓRIO (`babel.lab.parciaisMascara`): máscara dos modos `acrescenta-*`; ausente = 2. */
+      const mascaraDeParciais = vivos ? lerMascaraDeParciais(lerChaveDeLaboratorio(CHAVE_DA_MASCARA_DE_PARCIAIS)) : 0;
+      const viaParakeet = vivos; // a rota dos parciais vivos É a do Parakeet
+      const audioMs = (pcm.length / sr) * 1000; // antes do envio: o buffer é transferido ao worker
+      const aoAtualizar =
+        vivos && pintaTokens(modoDeParciais)
+          ? (parcial: string) => {
+              if (!seqToSegmentRef.current.has(seq) || lastPartialTextRef.current.get(seq) === FALA_FECHADA) return;
+              const texto = naEscritaEscolhida((parcial ?? '').trim(), undefined, hint);
+              if (!texto) return;
+              const v = vistaDoToken(
+                modoDeParciais,
+                visualizar(agreementPorSeq.get(seq) ?? novoLocalAgreement(), texto),
+                exibidoPorSeq.get(seq) ?? '',
+                mascaraDeParciais,
+              );
+              if (!v.texto) return; // `acrescenta-token`: máscara ainda cobre tudo
+              exibidoPorSeq.set(seq, v.texto);
+              pintarParcialLimitado(seq, uttId, { originalText: v.texto, textoConfirmado: v.confirmado });
+            }
+          : undefined;
       return gateway.stt
-        .transcribePartial(pcm, sr, { languageHint: hint })
+        .transcribePartial(pcm, sr, {
+          languageHint: hint,
+          ...(aoAtualizar ? { onUpdate: aoAtualizar } : {}),
+          ...(viaParakeet ? { parakeet: true } : {}),
+        })
         .then((res) => {
           if (!res) {
             capMetrics.saturated(seq);
             return false;
           } // worker ocupado → parcial descartado
+          if (vivos) medidorDeParcial.registrar(performance.now() - t0Parcial, audioMs);
           // Regulador: o parcial chega bem mais vezes que o final — a latência dele avisa antes.
           reguladorRef?.current.aoParcial(Math.round(performance.now() - t0Parcial), efeitosDoRegulador);
           if (!seqToSegmentRef.current.has(seq)) return; // já finalizou → o final é autoritativo
@@ -813,20 +973,58 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
              frente) é quem escreve e quem traduz. Traduzir este texto agora só disputaria o tradutor
              com a tradução do final. */
           if (lastPartialTextRef.current.get(seq) === FALA_FECHADA) return;
-          const clean = naEscritaEscolhida((res.text ?? '').trim(), undefined, hint);
+          const limpo = naEscritaEscolhida((res.text ?? '').trim(), undefined, hint);
+          /* LocalAgreement-2: o prefixo que duas hipóteses seguidas confirmam nunca regride; `clean` é o que se pinta. */
+          const la = vivos && limpo ? avancar(agreementPorSeq.get(seq) ?? novoLocalAgreement(), limpo) : null;
+          if (la) agreementPorSeq.set(seq, la.estado);
+          /* Modos de laboratório (`sem-cauda`, `cauda-decode`): a tela mostra a vista deles, não a do `cauda-token`. */
+          const vistaEscolhida = la
+            ? vistaDoDecode(modoDeParciais, la, exibidoPorSeq.get(seq) ?? '', mascaraDeParciais)
+            : null;
+          if (vistaEscolhida) exibidoPorSeq.set(seq, vistaEscolhida.texto);
+          const clean = vistaEscolhida ? vistaEscolhida.texto : limpo;
           /* Sem texto: a captura libera o próximo parcial sem esperar os 2 s (`systemAudio.ts`, 5.2). */
-          if (!clean) return false;
-          capMetrics.partial(seq);
-          // No quadro seguinte, junto com o que mais chegar nele (ver `falasNoQuadro`).
-          falasNoQuadro((prev) => prev.map((s) => (s.id === uttId && s.isPartial ? { ...s, originalText: clean } : s)));
+          if (!limpo) return false;
+          // `sem-cauda` antes de qualquer confirmação: há decode, mas nada a mostrar nem a traduzir (a cota do parcial fica gasta).
+          if (!clean) return;
+          const indiceDoParcial = capMetrics.partial(seq);
+          // Só números (`frasy:parcial`): quantas palavras, nunca o texto. Sem LocalAgreement ainda, nada confirmado.
+          marcarParcial({
+            motor: viaParakeet ? 'parakeet' : 'local',
+            indice: indiceDoParcial,
+            palavras: tokenizar(clean).length,
+            confirmadas: la ? tokenizar(la.confirmado).length : 0,
+          });
+          // No quadro seguinte, junto com o que mais chegar nele (ver `falasNoQuadro`). Com `parciais_vivos`, também pelo limitador (V4).
+          const naTela: ParcialNaTela = { originalText: clean, ...(la ? { textoConfirmado: la.confirmado } : {}) };
+          if (vivos) pintarParcialLimitado(seq, uttId, naTela);
+          else pintarParcial(uttId, naTela);
+          /* TRADUÇÃO INCREMENTAL (flags `traducao_incremental` + `parciais_vivos`): só o texto CONFIRMADO vai ao tradutor,
+             NO LUGAR do caminho abaixo (os dois dividem o ordenador; o segundo seria descartado). A cadência (janela
+             de 1,2 s, teto da sessão, sem repetir) é do `lerConfirmado`. Só motor local, no `traducaoDaFala`. */
+          const incremental = !!la && flagLigada(FLAG_TRADUCAO_INCREMENTAL);
           /* TRADUÇÃO PARCIAL ESTÁVEL (chave `parcialTraduzido`, só no intérprete): traduz o trecho só
              quando duas leituras seguidas coincidem numa fronteira de oração, 1 vez por 1,2 s. Desligada, o
              caminho abaixo é o de sempre. O parcial segue `descartarSeOcupado` (local, nunca à nuvem) e
              nunca avisa o final: a voz só lê o que o final traduz. */
-          const estavel = parcialEstavelLigado()
-            ? tradutorDeParciais(lastPartialTextRef).ler(uttId, clean, performance.now())
-            : undefined;
-          if (estavel !== undefined) {
+          const estavel =
+            !incremental && parcialEstavelLigado()
+              ? tradutorDeParciais(lastPartialTextRef).ler(uttId, clean, performance.now())
+              : undefined;
+          if (incremental) {
+            lastPartialTextRef.current.set(seq, clean);
+            const confirmado = tradutorDeParciais(lastPartialTextRef).lerConfirmado(
+              uttId,
+              la.confirmado,
+              performance.now(),
+            );
+            if (confirmado !== null)
+              translateSegment(uttId, confirmado, from, to, {
+                falada: faladaDaFonte(),
+                incremental: true,
+                textoConfirmado: confirmado,
+              });
+          } else if (estavel !== undefined) {
             lastPartialTextRef.current.set(seq, clean);
             if (estavel !== null)
               translateSegment(uttId, estavel, from, to, { descartarSeOcupado: true, falada: !isSys });
@@ -950,6 +1148,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       capMetrics.speechEnd(seq);
       // Daqui até o resultado do final, nenhum parcial desta fala decodifica nem traduz.
       lastPartialTextRef.current.set(seq, FALA_FECHADA);
+      soltarLimitador(seq);
       clog('enunciado', source, '(seq', seq, ') →', pcm.length, 'amostras @', sr, 'Hz, decode final');
       // O áudio real da fala, para "Ouvir" onde não há voz de leitura (só guarda quando ligado).
       guardarAudioDaFala(uttId, pcm, sr);
@@ -1074,6 +1273,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           onUpdate: (streamed) => {
             const partial = (streamed ?? '').trim();
             if (!partial || !seqToSegmentRef.current.has(seq)) return;
+            /* O decode final passa a mandar no texto: o parcial vivo (V6) sai do armazém para não cobri-lo. */
+            limparParcialVivo(uttId);
             falasNoQuadro((prev) =>
               prev.map((s) => (s.id === uttId && s.isPartial ? { ...s, originalText: partial } : s)),
             );
@@ -1128,6 +1329,10 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           );
           seqToSegmentRef.current.delete(seq);
           lastPartialTextRef.current.delete(seq);
+          agreementPorSeq.delete(seq);
+          exibidoPorSeq.delete(seq);
+          soltarLimitador(seq);
+          encerrarParcialVivo(seq);
           tradutorDeParciais(lastPartialTextRef).encerrar(uttId);
           /* REGULADOR: só o final LOCAL mede o aparelho (o da nuvem mede a rede). A latência é a
              do fim da fala ao texto — o decode mais a espera na fila, como no `capMetrics`. */
@@ -1468,6 +1673,10 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           aoFimDaFala?.({ segId: uttId, source, semTexto: true });
           seqToSegmentRef.current.delete(seq);
           lastPartialTextRef.current.delete(seq);
+          agreementPorSeq.delete(seq);
+          exibidoPorSeq.delete(seq);
+          soltarLimitador(seq);
+          encerrarParcialVivo(seq);
           capMetrics.final(seq, { queueDepth });
           setSpeechSegments((prev) =>
             prev.map((s) =>
@@ -1492,6 +1701,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       onUtterance,
       onFinalEspeculativo,
       querParcial,
+      cadenciaDoParcial,
       intervaloDosParciais,
       primeiroParcialComMs,
       maxParciaisPorFala,

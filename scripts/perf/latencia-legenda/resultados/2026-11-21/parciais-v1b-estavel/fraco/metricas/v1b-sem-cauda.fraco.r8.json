@@ -1,0 +1,105 @@
+{
+  "rotulo": "v1b-sem-cauda.fraco.r8",
+  "perfil": {
+    "tipo": "desktop-sem-gpu",
+    "modoLeve": "false"
+  },
+  "valida": true,
+  "modeloStt": "onnx-community/moonshine-base-ONNX",
+  "janelas": {
+    "sessao": [34478.454999923706, 106009.1],
+    "fala": [40809.1, 86949.1],
+    "silencio": [89737, 106009.1]
+  },
+  "framesLongos": {
+    "n50": 0,
+    "n100": 0,
+    "somaMs": 0,
+    "maiorMs": 0
+  },
+  "primeiraLegendaMs": 5840,
+  "primeiroTextoNaTelaMs": 4977,
+  "sttProntoMs": 1035,
+  "rtf": {
+    "valores": [0.066, 0.07, 0.07, 0.067, 0.076, 0.07, 0.069, 0.075],
+    "p50": 0.07,
+    "p95": 0.07565
+  },
+  "memoriaPicoMb": null,
+  "heapPicoMb": 30,
+  "cpuSilencio": {
+    "processoPct": 13.26915893668675,
+    "principalPct": 3.400603872253003,
+    "foraDaPrincipalPct": 9.868555064433748,
+    "workersPct": null
+  },
+  "rendersPorS": {
+    "silencio": 27.163058240792513,
+    "fala": 79.19375812743822
+  },
+  "commitsPorS": {
+    "silencio": 1.0447330092612506,
+    "fala": 2.9042045947117465
+  },
+  "fimATraducao": {
+    "p50": 1327,
+    "p95": 1851.3999999999999
+  },
+  "fimDaFalaAteLegendaMs": {
+    "valores": [1994, 1209, 1344, 962, 1332, 1333, 1272, 1599],
+    "p50": 1333,
+    "p75": 1408,
+    "p95": 1856,
+    "falhas": 0,
+    "semTraducao": 0,
+    "erroDoMarcadorMs": [-2, 34, 37, -304, -391, 22, -84, -12]
+  },
+  "palavras": {
+    "falasComMedida": 7,
+    "foraDoCalculo": 2,
+    "semCasamento": 9,
+    "atrasoDePalavraMs": {
+      "original": {
+        "n": 52,
+        "p50": 2770.5,
+        "p90": 3864.7,
+        "valores": [
+          4481, 4228, 3728, 3508, 2968, 2708, 2328, 4057, 3862, 3602, 2982, 2822, 2442, 2162, 1822,
+          1482, 1042, 4125, 3865, 3585, 3385, 2905, 2265, 1805, 1265, 1185, 3683, 3625, 3285, 2905,
+          2545, 2365, 2145, 1805, 1425, 965, 725, 4731, 3859, 3699, 3559, 3339, 3199, 2939, 2719,
+          2539, 2279, 1959, 1679, 1499, 1239, 1199
+        ]
+      },
+      "traducao": {
+        "n": 58,
+        "p50": 2980.5,
+        "p90": 4301.7,
+        "valores": [
+          4404, 3904, 3384, 3144, 2884, 2344, 1264, 1024, 4322, 4042, 3782, 3382, 3162, 3002, 2622,
+          2342, 2002, 1662, 1222, 1222, 4773, 4433, 4293, 4033, 3753, 3553, 3073, 2433, 1973, 1433,
+          1353, 3812, 3472, 3092, 2732, 2552, 2332, 1992, 1612, 1152, 912, 5279, 4599, 4279, 4119,
+          3979, 3759, 3619, 3359, 3139, 2959, 2699, 2379, 2099, 1919, 1659, 1619, 1619
+        ]
+      }
+    },
+    "erasureOriginal": {
+      "falas": 7,
+      "apagadas": 0,
+      "final": 88,
+      "ne": 0
+    },
+    "erasureTraducao": {
+      "falas": 7,
+      "apagadas": 0,
+      "final": 78,
+      "ne": 0
+    }
+  },
+  "regulador": {
+    "trocasDeModelo": 0,
+    "primeiraTrocaMs": null,
+    "modelos": ["onnx-community/moonshine-base-ONNX"]
+  },
+  "falasPerdidas": 0,
+  "pedidosAoHub": 2
+}

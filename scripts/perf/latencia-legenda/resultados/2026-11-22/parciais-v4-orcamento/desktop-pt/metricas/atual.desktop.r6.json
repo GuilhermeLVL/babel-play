@@ -1,0 +1,98 @@
+{
+  "rotulo": "atual.desktop.r6",
+  "perfil": {
+    "tipo": "desktop-sem-gpu",
+    "modoLeve": "false"
+  },
+  "valida": true,
+  "modeloStt": null,
+  "janelas": {
+    "sessao": [34200.700000047684, 133228.9],
+    "fala": [40438.9, 114158.9],
+    "silencio": [116359.19000005722, 133228.9]
+  },
+  "framesLongos": {
+    "n50": 0,
+    "n100": 0,
+    "somaMs": 0,
+    "maiorMs": 0
+  },
+  "primeiraLegendaMs": null,
+  "primeiroTextoNaTelaMs": 6753,
+  "sttProntoMs": null,
+  "rtf": {
+    "valores": [],
+    "p50": null,
+    "p95": null
+  },
+  "memoriaPicoMb": null,
+  "heapPicoMb": 12,
+  "cpuSilencio": {
+    "processoPct": 12.521424137074783,
+    "principalPct": 3.2673640427116943,
+    "foraDaPrincipalPct": 9.254060094363089,
+    "workersPct": null
+  },
+  "rendersPorS": {
+    "silencio": 23.17763613016029,
+    "fala": 50.33912099837222
+  },
+  "commitsPorS": {
+    "silencio": 1.0077233100069691,
+    "fala": 2.1703743895822027
+  },
+  "fimATraducao": {
+    "p50": null,
+    "p95": null
+  },
+  "fimDaFalaAteLegendaMs": {
+    "valores": [],
+    "p50": null,
+    "p75": null,
+    "p95": null,
+    "falhas": 0,
+    "semTraducao": 12,
+    "erroDoMarcadorMs": [22, 59, 7, 159, 297, 41, 13, 77, 305, -29, 99, -44]
+  },
+  "palavras": {
+    "falasComMedida": 10,
+    "foraDoCalculo": 2,
+    "semCasamento": 55,
+    "atrasoDePalavraMs": {
+      "original": {
+        "n": 28,
+        "p50": 3313.5,
+        "p90": 5041,
+        "valores": [
+          4086, 3386, 3126, 2626, 2066, 1866, 1646, 6061, 5641, 5321, 4261, 3961, 3721, 3521, 3181,
+          -1803, 4921, 4541, 4161, 4101, 3621, 3241, 3021, 2821, 2621, 2441, 1941, 1661
+        ]
+      },
+      "traducao": {
+        "n": 0,
+        "p50": null,
+        "p90": null,
+        "valores": []
+      }
+    },
+    "erasureOriginal": {
+      "falas": 10,
+      "apagadas": 0,
+      "final": 108,
+      "ne": 0
+    },
+    "erasureTraducao": {
+      "falas": 0,
+      "apagadas": 0,
+      "final": 0,
+      "ne": null
+    }
+  },
+  "regulador": {
+    "trocasDeModelo": 0,
+    "primeiraTrocaMs": null,
+    "modelos": []
+  },
+  "falasPerdidas": 0,
+  "pedidosAoHub": 0
+}

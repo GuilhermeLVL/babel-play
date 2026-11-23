@@ -1,0 +1,296 @@
+{
+  "a": "atual.fraco",
+  "b": "v5-en.fraco",
+  "variante": "v4",
+  "rodadas": [11, 11],
+  "c": {
+    "atrasoOriginal": {
+      "p50": {
+        "a": 1773.5,
+        "b": 1783,
+        "dif": 9.5,
+        "ic95": [-151.02499999999998, 216],
+        "icB": [1325, 2428],
+        "falas": 6
+      },
+      "p90": {
+        "a": 3832.4,
+        "b": 3825.3,
+        "dif": -7.099999999999909,
+        "ic95": [-612.6075000000003, 73.3999999999934],
+        "icB": [2878.5975000000003, 4111],
+        "falas": 6
+      }
+    },
+    "atrasoTraducao": {
+      "p50": {
+        "a": 2565,
+        "b": 2716.5,
+        "dif": 151.5,
+        "ic95": [-49, 435.02499999999964],
+        "icB": [1872.45, 3197],
+        "falas": 6
+      },
+      "p90": {
+        "a": 4238,
+        "b": 4244,
+        "dif": 6,
+        "ic95": [-45.204999999998925, 149.0074999999999],
+        "icB": [3852.9925, 4849],
+        "falas": 6
+      }
+    },
+    "erasureOriginal": {
+      "a": 0.531934306569343,
+      "b": 0.44849589790337285,
+      "dif": -0.08343840866597019,
+      "ic95": [-0.11920945960068824, -0.046551459621426185],
+      "icB": [0.3519624895064118, 0.5866102834809531],
+      "falas": 8
+    },
+    "erasureTraducao": {
+      "a": 0.47908366533864544,
+      "b": 0.4089108910891089,
+      "dif": -0.07017277424953655,
+      "ic95": [-0.13736226969667348, -0.005166287301242874],
+      "icB": [0.23941337616869876, 0.6245407148390879],
+      "falas": 8
+    },
+    "fimDaFala": {
+      "p50": {
+        "a": 1135,
+        "b": 1143.5,
+        "dif": 8.5,
+        "ic95": [-41.51249999999999, 22.5]
+      },
+      "p75": {
+        "a": 1234.25,
+        "b": 1209.25,
+        "dif": -25,
+        "ic95": [-70.5, 15.75]
+      },
+      "p95": {
+        "a": 1783.3499999999997,
+        "b": 1762.4999999999998,
+        "dif": -20.84999999999991,
+        "ic95": [-70, 16.802499999999917]
+      }
+    },
+    "fimDoOriginal": {
+      "p50": {
+        "a": 1096,
+        "b": 1102,
+        "dif": 6,
+        "ic95": [-19, 13.5]
+      },
+      "p75": {
+        "a": 1151.5,
+        "b": 1149.25,
+        "dif": -2.25,
+        "ic95": [-79.25, 15]
+      },
+      "p95": {
+        "a": 1227.5,
+        "b": 1187.75,
+        "dif": -39.75,
+        "ic95": [-81, 13.700000000000045]
+      }
+    },
+    "primeiroTextoNaTelaMs": {
+      "a": 1909,
+      "b": 1914,
+      "dif": 5
+    },
+    "werFinal": {
+      "a": 0.21117424242424243,
+      "b": 0.21117424242424243,
+      "dif": 0,
+      "ic95": [-0.01420454545454547, 0.01710171017101711],
+      "icB": [0.08562342207352368, 0.3452754820936638],
+      "falas": 8
+    },
+    "textos": {
+      "comparadas": 88,
+      "foraDoConjuntoDeA": 9,
+      "foraNormalizado": 9,
+      "divergentesEmA": 5,
+      "exemplos": [
+        {
+          "k": 1,
+          "texto": "Felleressors also paid tribute to Luna."
+        },
+        {
+          "k": 2,
+          "texto": "Fire rescue crews eventually doused the fire by eleven thirty-five p.m."
+        },
+        {
+          "k": 2,
+          "texto": "Fire rescue crews eventually doused the fire by eleven thirty-five p.m."
+        },
+        {
+          "k": 2,
+          "texto": "Fire rescue crews eventually doused the fire by eleven thirty-five p.m."
+        },
+        {
+          "k": 4,
+          "texto": "The night between one fifty and two hundred copies were made now known as \"Dinlap Broadseyes\"."
+        }
+      ],
+      "werA": 0.21117424242424243,
+      "werB": 0.21117424242424243
+    },
+    "traducoes": {
+      "comparadas": 88,
+      "foraDoConjuntoDeA": 53,
+      "foraNormalizado": 53,
+      "divergentesEmA": 7,
+      "exemplos": [
+        {
+          "k": 1,
+          "texto": "Os anos 1 00 também pagam homenagem"
+        },
+        {
+          "k": 1,
+          "texto": "Os lutadores de L.A. também pagaram homenagem ao"
+        },
+        {
+          "k": 1,
+          "texto": "Os lutadores de L.A. também pagaram homenagem ao"
+        },
+        {
+          "k": 1,
+          "texto": "Os anos dezessete também prestaram homenagem ao"
+        },
+        {
+          "k": 1,
+          "texto": "Os lutadores de L.A. também pagaram homenagem ao"
+        }
+      ],
+      "werA": null,
+      "werB": null
+    }
+  },
+  "juizo": {
+    "primaria": {
+      "a": 1773.5,
+      "b": 1783,
+      "dif": 9.5,
+      "ic95": [-151.02499999999998, 216],
+      "icB": [1325, 2428],
+      "falas": 6
+    },
+    "guardas": [
+      {
+        "nome": "fimDaFalaAteLegendaMs p75",
+        "status": "ok",
+        "detalhe": "dif -25 ms, IC 95% [-70, 16], limite superior ≤ 30 ms"
+      },
+      {
+        "nome": "erasureOriginal de B (V4: orçamento absoluto, média ≤ 0.5 e limite superior do IC ≤ 0.6)",
+        "status": "ok",
+        "detalhe": "B média 0.448, IC 95% de B [0.352, 0.587]; A 0.532, B − A -0.083 (IC [-0.119, -0.047], só informativo)"
+      },
+      {
+        "nome": "WER pareado do texto final (limite superior ≤ +2 pp)",
+        "status": "ok",
+        "detalhe": "dif +0.0 pp, IC 95% [−1.4 pp, +1.7 pp], limite superior ≤ +2.0 pp"
+      },
+      {
+        "nome": "texto final fora do conjunto de A (informativo)",
+        "status": "ok",
+        "detalhe": "9 de 88 textos de B fora do conjunto de A (normalizado: 9); WER A 21.1%, B 21.1%; falas em que A varia entre rodadas: 5"
+      },
+      {
+        "nome": "SLO framesLongos.n50",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 5"
+      },
+      {
+        "nome": "SLO framesLongos.n100",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 3"
+      },
+      {
+        "nome": "SLO framesLongos.somaMs",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 500"
+      },
+      {
+        "nome": "SLO cpuSilencio.processoPct",
+        "status": "ok",
+        "detalhe": "A 13.625, B 13.735, limite 24.076"
+      },
+      {
+        "nome": "SLO rendersPorS.silencio",
+        "status": "ok",
+        "detalhe": "A 27.135, B 27.204, limite 36.918"
+      },
+      {
+        "nome": "SLO rendersPorS.fala",
+        "status": "ok",
+        "detalhe": "A 102.514, B 102.471, limite 138.143"
+      },
+      {
+        "nome": "SLO fimDaFalaAteLegendaMs.taxaDeFalha",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 0.15"
+      }
+    ],
+    "veredito": "SEM DIFERENÇA PROVADA",
+    "efeitoPct": -0.5356639413588948,
+    "primariaGanha": false,
+    "primariaPior": false,
+    "reprovadas": []
+  },
+  "slo": [
+    {
+      "nome": "framesLongos.n50",
+      "a": 0,
+      "b": 0,
+      "limite": 5,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.n100",
+      "a": 0,
+      "b": 0,
+      "limite": 3,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.somaMs",
+      "a": 0,
+      "b": 0,
+      "limite": 500,
+      "status": "ok"
+    },
+    {
+      "nome": "cpuSilencio.processoPct",
+      "a": 13.625447649838376,
+      "b": 13.734827543269882,
+      "limite": 24.075626709773726,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.silencio",
+      "a": 27.134709713857724,
+      "b": 27.20418525927066,
+      "limite": 36.91838714232215,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.fala",
+      "a": 102.51408755960121,
+      "b": 102.47074122236671,
+      "limite": 138.14260944950152,
+      "status": "ok"
+    },
+    {
+      "nome": "fimDaFalaAteLegendaMs.taxaDeFalha",
+      "a": 0,
+      "b": 0,
+      "limite": 0.15,
+      "status": "ok"
+    }
+  ]
+}

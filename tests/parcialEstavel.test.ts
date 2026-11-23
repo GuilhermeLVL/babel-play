@@ -92,3 +92,27 @@ function criarTradutorDoParcialComTeto() {
   expect(p.ler('a', 'Bom dia, tudo bem?', 9000)).toBeNull()
   return p
 }
+
+describe('lerConfirmado (parcial incremental)', () => {
+  it('o confirmado vale de primeira, sem duas leituras nem fronteira de oração', () => {
+    const p = criarTradutorDeParciais()
+    expect(p.lerConfirmado('a', 'Eu quero', 0)).toBe('Eu quero')
+  })
+
+  it('respeita a janela por fala, não repete o mesmo texto e cada fala tem a sua', () => {
+    const p = criarTradutorDeParciais()
+    p.lerConfirmado('a', 'Eu quero', 0)
+    expect(p.lerConfirmado('a', 'Eu quero comprar', 500)).toBeNull()
+    expect(p.lerConfirmado('a', 'Eu quero comprar', 1300)).toBe('Eu quero comprar')
+    expect(p.lerConfirmado('a', 'Eu quero comprar', 5000)).toBeNull()
+    expect(p.lerConfirmado('b', 'Oi', 1300)).toBe('Oi')
+  })
+
+  it('vazio não traduz e o teto da sessão vale', () => {
+    const p = criarTradutorDeParciais({ teto: 1 })
+    expect(p.lerConfirmado('a', '  ', 0)).toBeNull()
+    expect(p.lerConfirmado('a', 'Oi', 0)).toBe('Oi')
+    expect(p.lerConfirmado('b', 'Olá', 0)).toBeNull()
+    expect(p.esgotado()).toBe(true)
+  })
+})

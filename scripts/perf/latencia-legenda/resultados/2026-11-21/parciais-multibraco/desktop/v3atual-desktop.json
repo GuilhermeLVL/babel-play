@@ -1,0 +1,179 @@
+{
+  "a": "atual.desktop",
+  "b": "v1v3.desktop",
+  "variante": "v3",
+  "rodadas": [12, 12],
+  "c": {
+    "atrasoOriginal": {
+      "p50": {
+        "a": 1265,
+        "b": 264.5,
+        "dif": -1000.5,
+        "ic95": [-1201, -819.9875000000002],
+        "falas": 6
+      },
+      "p90": {
+        "a": 2682.5,
+        "b": 2337.5,
+        "dif": -345,
+        "ic95": [-1565, 210.42500000000285],
+        "falas": 6
+      }
+    },
+    "atrasoTraducao": {
+      "p50": {
+        "a": 2072.5,
+        "b": 2691.5,
+        "dif": 619,
+        "ic95": [168.95000000000005, 1016],
+        "falas": 6
+      },
+      "p90": {
+        "a": 4027.9,
+        "b": 4074,
+        "dif": 46.09999999999991,
+        "ic95": [-31.900000000000546, 333],
+        "falas": 6
+      }
+    },
+    "erasureOriginal": {
+      "a": 0.5870479394449117,
+      "b": 3.5531011045029737,
+      "dif": 2.966053165058062,
+      "ic95": [2.616138234767554, 3.3527642904809096],
+      "falas": 8
+    },
+    "erasureTraducao": {
+      "a": 0.49559859154929575,
+      "b": 0.12073490813648294,
+      "dif": -0.37486368341281284,
+      "ic95": [-0.6320455879701603, -0.1407765220190907],
+      "falas": 8
+    },
+    "fimDaFala": {
+      "p50": {
+        "a": 872.25,
+        "b": 947.5,
+        "dif": 75.25,
+        "ic95": [-96.04374999999973, 328.5062499999999]
+      },
+      "p75": {
+        "a": 1015.625,
+        "b": 1021.375,
+        "dif": 5.75,
+        "ic95": [-19.00937499999999, 169.75]
+      },
+      "p95": {
+        "a": 1464.1749999999997,
+        "b": 1465.1249999999998,
+        "dif": 0.9500000000000455,
+        "ic95": [-17.226250000000128, 98.75437499999983]
+      }
+    },
+    "primeiroTextoNaTelaMs": {
+      "a": 3193.5,
+      "b": 1020,
+      "dif": -2173.5
+    },
+    "textos": {
+      "comparadas": 96,
+      "foraDoConjuntoDeA": 2,
+      "foraNormalizado": 1,
+      "divergentesEmA": 5,
+      "exemplos": [
+        {
+          "k": 2,
+          "texto": "Fire rescue crews eventually douse the fire by eleven thirty five p.m."
+        },
+        {
+          "k": 4,
+          "texto": "Through the night between one fifty and two hundred copies were made now known as \"Dinlap Broadseyes\"."
+        }
+      ],
+      "werA": 0.20833333333333334,
+      "werB": 0.20225694444444445
+    },
+    "traducoes": {
+      "comparadas": 96,
+      "foraDoConjuntoDeA": 32,
+      "foraNormalizado": 32,
+      "divergentesEmA": 7,
+      "exemplos": [
+        {
+          "k": 2,
+          "texto": "A equipe de resgate de incêndio acaba por afogar o fogo às 23h30."
+        },
+        {
+          "k": 2,
+          "texto": "As equipes de resgate acabaram por afundar"
+        },
+        {
+          "k": 2,
+          "texto": "As equipes de resgate acabam por afogar"
+        },
+        {
+          "k": 2,
+          "texto": "As equipes de"
+        },
+        {
+          "k": 2,
+          "texto": "As equipes de resgate acabam por afogar"
+        }
+      ],
+      "werA": null,
+      "werB": null
+    }
+  },
+  "juizo": null,
+  "slo": [
+    {
+      "nome": "framesLongos.n50",
+      "a": 0,
+      "b": 0,
+      "limite": 5,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.n100",
+      "a": 0,
+      "b": 0,
+      "limite": 3,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.somaMs",
+      "a": 0,
+      "b": 0,
+      "limite": 500,
+      "status": "ok"
+    },
+    {
+      "nome": "cpuSilencio.processoPct",
+      "a": 12.939600742440584,
+      "b": 13.214552886245688,
+      "limite": 23.115441039416815,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.silencio",
+      "a": 22.91910902696366,
+      "b": 22.91910902696366,
+      "limite": 31.648886283704577,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.fala",
+      "a": 90.92977893368013,
+      "b": 203.2293021239705,
+      "limite": 123.66222366710016,
+      "status": "piorou"
+    },
+    {
+      "nome": "fimDaFalaAteLegendaMs.taxaDeFalha",
+      "a": 0,
+      "b": 0,
+      "limite": 0.15,
+      "status": "ok"
+    }
+  ]
+}

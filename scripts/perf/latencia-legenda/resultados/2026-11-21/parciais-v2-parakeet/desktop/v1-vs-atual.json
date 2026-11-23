@@ -1,0 +1,149 @@
+{
+  "a": "atual.desktop",
+  "b": "v1.desktop",
+  "variante": "v1",
+  "rodadas": [12, 12],
+  "c": {
+    "atrasoOriginal": {
+      "p50": {
+        "a": 2574.5,
+        "b": 2686,
+        "dif": 111.5,
+        "ic95": [2, 251],
+        "falas": 9
+      },
+      "p90": {
+        "a": 4265,
+        "b": 4440.8,
+        "dif": 175.80000000000018,
+        "ic95": [-1.602500000000348, 317.60500000000025],
+        "falas": 9
+      }
+    },
+    "atrasoTraducao": {
+      "p50": {
+        "a": null,
+        "b": null,
+        "dif": null,
+        "ic95": null,
+        "falas": 0
+      },
+      "p90": {
+        "a": null,
+        "b": null,
+        "dif": null,
+        "ic95": null,
+        "falas": 0
+      }
+    },
+    "erasureOriginal": {
+      "a": 0,
+      "b": 0,
+      "dif": 0,
+      "ic95": [0, 0],
+      "falas": 11
+    },
+    "erasureTraducao": {
+      "a": null,
+      "b": null,
+      "dif": null,
+      "ic95": null,
+      "falas": 0
+    },
+    "fimDaFala": null,
+    "primeiroTextoNaTelaMs": {
+      "a": 6438,
+      "b": 6341.5,
+      "dif": -96.5
+    },
+    "werFinal": {
+      "a": 0.031229668184775537,
+      "b": 0.031007751937984496,
+      "dif": -0.00022191624679104155,
+      "ic95": [-0.008712920290498777, 0.006210047589995866],
+      "falas": 12
+    },
+    "textos": {
+      "comparadas": 144,
+      "foraDoConjuntoDeA": 3,
+      "foraNormalizado": 3,
+      "divergentesEmA": 8,
+      "exemplos": [
+        {
+          "k": 0,
+          "texto": "Nos arquipélagos e lagos você não precisa necessariamente de um yate."
+        },
+        {
+          "k": 4,
+          "texto": "A descoberta também concede pistas sobre evolução das penas nas aves."
+        },
+        {
+          "k": 6,
+          "texto": "Desse modo, é provável que uma no foi simplesmente adicionada como rótulo."
+        }
+      ],
+      "werA": 0.031229668184775537,
+      "werB": 0.031007751937984496
+    },
+    "traducoes": {
+      "comparadas": 0,
+      "foraDoConjuntoDeA": 0,
+      "foraNormalizado": 0,
+      "divergentesEmA": 0,
+      "exemplos": [],
+      "werA": null,
+      "werB": null
+    }
+  },
+  "juizo": null,
+  "slo": [
+    {
+      "nome": "framesLongos.n50",
+      "a": 0,
+      "b": 0,
+      "limite": 5,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.n100",
+      "a": 0,
+      "b": 0,
+      "limite": 3,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.somaMs",
+      "a": 0,
+      "b": 0,
+      "limite": 500,
+      "status": "ok"
+    },
+    {
+      "nome": "cpuSilencio.processoPct",
+      "a": 12.290742772678891,
+      "b": 12.14654868488826,
+      "limite": 22.207039881750447,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.silencio",
+      "a": 22.905682483889866,
+      "b": 22.905682483889866,
+      "limite": 31.63210310486233,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.fala",
+      "a": 56.83667932718394,
+      "b": 56.91128594682583,
+      "limite": 81.04584915897992,
+      "status": "ok"
+    },
+    {
+      "nome": "fimDaFalaAteLegendaMs.taxaDeFalha",
+      "a": null,
+      "b": null,
+      "status": "sem-medida"
+    }
+  ]
+}

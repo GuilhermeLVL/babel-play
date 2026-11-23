@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import React from 'react';
 
+import { useParcialVivo } from '../lib/captura/parcialVivo';
 import type { ConhecidasDaFala } from '../lib/captura/traducaoSobDemanda';
 import { palavrasDoPedaco } from '../lib/captura/trechosTocaveis';
 import { chaveDaPalavra, classesDoEstilo, resolverEstiloDeLegenda } from '../lib/estilosDeLegenda';
@@ -270,7 +271,7 @@ interface FalaProps {
  * refazia um `<span>` por palavra de TODAS as falas da sessão.
  */
 const FalaDaConversa = React.memo(function FalaDaConversa({
-  segment,
+  segment: segmentoDoEstado,
   speaker,
   lang: lineLang,
   esconderOriginal,
@@ -288,6 +289,9 @@ const FalaDaConversa = React.memo(function FalaDaConversa({
   pendente,
   aoMenu,
 }: FalaProps) {
+  /* Parciais vivos (V6): a fala ainda parcial mostra o texto do armazém, que só esta linha assina. Final, ou sem a flag: o do estado. */
+  const vivo = useParcialVivo(segmentoDoEstado.isPartial ? segmentoDoEstado.id : null);
+  const segment = vivo ? { ...segmentoDoEstado, originalText: vivo.originalText } : segmentoDoEstado;
   const aprendida = (palavra: string) => (aprendidas?.has(chaveDaPalavra(palavra)) ? true : undefined);
   /* A palavra NOVA (só no modo `novas`, só no idioma do predicado, nunca número nem a que já tem o
      destaque de aprendida): `true` vira o atributo, `undefined` o omite. */

@@ -17,6 +17,7 @@ import {
   type MedidaDoBloco,
   toposDosBlocos,
 } from '../../../../lib/captura/janelaDasFalas';
+import { useParcialVivo } from '../../../../lib/captura/parcialVivo';
 import { ehMotivoSemTraducao, type MotivoSemTraducao, type SpeechSegment } from '../../../../lib/captura/tiposDaFala';
 import { traducaoNaLegenda } from '../../../../lib/captura/traducaoDaFala';
 import { palavrasDoPedaco } from '../../../../lib/captura/trechosTocaveis';
@@ -122,7 +123,8 @@ function marcasDasPalavras(original: string, palavras: string[], marcas: Readonl
 const Linha = memo(function Linha({
   id,
   hora,
-  original,
+  original: originalDoEstado,
+  aoVivo = false,
   traducao,
   provisoria,
   lang,
@@ -146,6 +148,11 @@ const Linha = memo(function Linha({
   id: string;
   hora: string;
   original: string;
+  /**
+   * A fala ainda é parcial: o texto vivo vem do armazém `parcialVivo` (só esta linha re-renderiza a cada atualização), e `original`
+   * é o do estado (o 1º texto). Fala final, ou sem a flag `parciais_vivos`: o texto do estado, como sempre.
+   */
+  aoVivo?: boolean;
   traducao: string;
   /** A tradução na tela ainda é a do parcial: quando a do final a troca, entra com a animação. */
   provisoria: boolean;
@@ -180,6 +187,8 @@ const Linha = memo(function Linha({
   /** "Tentar de novo" na fala cuja tradução falhou. */
   aoTentarDeNovo?: (id: string) => void;
 }) {
+  const vivo = useParcialVivo(aoVivo ? id : null);
+  const original = vivo ? vivo.originalText.trim() : originalDoEstado;
   const linha = useRef<HTMLDivElement>(null);
   const alvo = useRef<HTMLSpanElement>(null);
   const pequena = useRef<HTMLSpanElement>(null);
@@ -863,6 +872,7 @@ export default function HistoricoDoPrototipo({
                     id={fala.id}
                     hora={fala.timestamp}
                     original={fala.originalText.trim()}
+                    aoVivo={!!fala.isPartial}
                     traducao={traducao.texto}
                     provisoria={traducao.provisoria || !!fala.isPartial}
                     lang={lang}

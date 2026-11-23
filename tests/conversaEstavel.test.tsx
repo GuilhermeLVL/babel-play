@@ -39,6 +39,22 @@ describe('textoDaConversa', () => {
   it('junta as falas com espaço, como antes', () => {
     expect(textoDaConversa(segs('olá', 'mundo'))).toBe('olá mundo')
   })
+
+  it('semParcial (parciais vivos): o parcial em curso fica fora do texto que sobe ao App', () => {
+    const falas = [...segs('olá', 'mundo'), { originalText: 'ainda falan', isPartial: true }]
+    expect(textoDaConversa(falas)).toBe('olá mundo ainda falan')
+    expect(textoDaConversa(falas, { semParcial: true })).toBe('olá mundo')
+  })
+
+  it('semParcial por fala: só o parcial vivo (o que mora no armazém) fica de fora; o de outra rota segue no texto', () => {
+    const falas = [
+      { id: 'a', originalText: 'olá' },
+      { id: 'b', originalText: 'em portugu', isPartial: true }, // vivo (Parakeet)
+      { id: 'c', originalText: 'in english', isPartial: true }, // outra rota: texto de sempre
+    ]
+    expect(textoDaConversa(falas, { semParcial: (s) => s.id === 'b' })).toBe('olá in english')
+    expect(textoDaConversa(falas, { semParcial: () => false })).toBe(textoDaConversa(falas)) // nenhum vivo = idêntico a sem a flag
+  })
 })
 
 describe('useTextoDaConversa', () => {
@@ -51,6 +67,22 @@ describe('useTextoDaConversa', () => {
     act(() => vi.advanceTimersByTime(500))
     expect(aoMudar).toHaveBeenCalledOnce()
     expect(aoMudar).toHaveBeenLastCalledWith('a b c')
+  })
+
+  it('semParcial: texto novo só de parcial não chama o App (cada chamada era um render do App inteiro)', () => {
+    const aoMudar = vi.fn()
+    const final: Array<{ originalText: string; isPartial?: boolean }> = segs('olá')
+    const { rerender } = renderHook(({ s }) => useTextoDaConversa(s, aoMudar, 500, true), {
+      initialProps: { s: final },
+    })
+    act(() => vi.advanceTimersByTime(500))
+    expect(aoMudar).toHaveBeenCalledTimes(1)
+    for (const t of ['mun', 'mundo', 'mundo bom']) rerender({ s: [...final, { originalText: t, isPartial: true }] })
+    act(() => vi.advanceTimersByTime(1000))
+    expect(aoMudar).toHaveBeenCalledTimes(1) // o parcial não saiu
+    rerender({ s: [...final, { originalText: 'mundo bom', isPartial: false }] })
+    act(() => vi.advanceTimersByTime(500))
+    expect(aoMudar).toHaveBeenLastCalledWith('olá mundo bom') // o final sai
   })
 
   it('streaming contínuo não adia para sempre: sai a cada intervalo, não só na pausa', () => {

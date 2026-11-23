@@ -1,0 +1,264 @@
+{
+  "a": "atual.desktop",
+  "b": "v1b-cauda-decode.desktop",
+  "variante": "v1b",
+  "rodadas": [11, 11],
+  "c": {
+    "atrasoOriginal": {
+      "p50": {
+        "a": 1164,
+        "b": 263,
+        "dif": -901,
+        "ic95": [-1204.025, -716.5],
+        "falas": 6
+      },
+      "p90": {
+        "a": 2753,
+        "b": 2276.2,
+        "dif": -476.8000000000002,
+        "ic95": [-1615, -361],
+        "falas": 6
+      }
+    },
+    "atrasoTraducao": {
+      "p50": {
+        "a": 2129,
+        "b": 1009,
+        "dif": -1120,
+        "ic95": [-1571.025, -231],
+        "falas": 6
+      },
+      "p90": {
+        "a": 4015.8,
+        "b": 3919.200000000002,
+        "dif": -96.59999999999809,
+        "ic95": [-768.7575000000011, 40.00500000000081],
+        "falas": 6
+      }
+    },
+    "erasureOriginal": {
+      "a": 0.6590493601462523,
+      "b": 2.253430924062214,
+      "dif": 1.5943815639159618,
+      "ic95": [0.9052630360047721, 2.283450993884405],
+      "falas": 8
+    },
+    "erasureTraducao": {
+      "a": 0.5076775431861804,
+      "b": 2.023369036027264,
+      "dif": 1.5156914928410836,
+      "ic95": [0.8513966375627735, 2.1519029584269567],
+      "falas": 8
+    },
+    "fimDaFala": {
+      "p50": {
+        "a": 800,
+        "b": 799.5,
+        "dif": -0.5,
+        "ic95": [-209.5, 10]
+      },
+      "p75": {
+        "a": 1014.5,
+        "b": 967.75,
+        "dif": -46.75,
+        "ic95": [-222.25, 7.25]
+      },
+      "p95": {
+        "a": 1475.6999999999998,
+        "b": 1414.4999999999995,
+        "dif": -61.20000000000027,
+        "ic95": [-191.14999999999998, 7.703749999999988]
+      }
+    },
+    "primeiroTextoNaTelaMs": {
+      "a": 3255,
+      "b": 1631,
+      "dif": -1624
+    },
+    "werFinal": {
+      "a": 0.2168560606060606,
+      "b": 0.21022727272727273,
+      "dif": -0.006628787878787873,
+      "ic95": [-0.01976284584980237, 0.003952569169960479],
+      "falas": 8
+    },
+    "textos": {
+      "comparadas": 88,
+      "foraDoConjuntoDeA": 4,
+      "foraNormalizado": 4,
+      "divergentesEmA": 6,
+      "exemplos": [
+        {
+          "k": 1,
+          "texto": "Felleressors also paid tribute to Luna."
+        },
+        {
+          "k": 4,
+          "texto": "The night between one fifty and two hundred copies were made now known as Denlap Broadseyes."
+        },
+        {
+          "k": 4,
+          "texto": "The night between one fifty and two hundred copies were made now known as \"Dinlap Broadseyes\"."
+        },
+        {
+          "k": 7,
+          "texto": "Jiancarlo Frisi-Chela lost control of his car and ended the race very soon after the start."
+        }
+      ],
+      "werA": 0.2168560606060606,
+      "werB": 0.21022727272727273
+    },
+    "traducoes": {
+      "comparadas": 81,
+      "foraDoConjuntoDeA": 41,
+      "foraNormalizado": 37,
+      "divergentesEmA": 7,
+      "exemplos": [
+        {
+          "k": 1,
+          "texto": "Todos os anos de séculos também pagaram homenagem a Luna."
+        },
+        {
+          "k": 1,
+          "texto": "Todos os anos de séculos também pagaram homenagem a Luna."
+        },
+        {
+          "k": 1,
+          "texto": "Lloresto também rendeu homenagem a Luna."
+        },
+        {
+          "k": 1,
+          "texto": "Lloresters também rendeu homenagem a Luna."
+        },
+        {
+          "k": 1,
+          "texto": "Todos os anos de séculos também pagaram homenagem a Luna."
+        }
+      ],
+      "werA": null,
+      "werB": null
+    }
+  },
+  "juizo": {
+    "primaria": {
+      "a": 1164,
+      "b": 263,
+      "dif": -901,
+      "ic95": [-1204.025, -716.5],
+      "falas": 6
+    },
+    "guardas": [
+      {
+        "nome": "fimDaFalaAteLegendaMs p75",
+        "status": "ok",
+        "detalhe": "dif -47 ms, IC 95% [-222, 7], limite superior ≤ 30 ms"
+      },
+      {
+        "nome": "erasureOriginal (Emenda 1: não piorar contra A)",
+        "status": "piorou",
+        "detalhe": "dif 1.594, IC 95% [0.905, 2.283], limite superior ≤ 0.050"
+      },
+      {
+        "nome": "WER pareado do texto final (limite superior ≤ +2 pp)",
+        "status": "ok",
+        "detalhe": "dif −0.7 pp, IC 95% [−2.0 pp, +0.4 pp], limite superior ≤ +2.0 pp"
+      },
+      {
+        "nome": "texto final fora do conjunto de A (informativo)",
+        "status": "ok",
+        "detalhe": "4 de 88 textos de B fora do conjunto de A (normalizado: 4); WER A 21.7%, B 21.0%; falas em que A varia entre rodadas: 6"
+      },
+      {
+        "nome": "SLO framesLongos.n50",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 5"
+      },
+      {
+        "nome": "SLO framesLongos.n100",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 3"
+      },
+      {
+        "nome": "SLO framesLongos.somaMs",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 500"
+      },
+      {
+        "nome": "SLO cpuSilencio.processoPct",
+        "status": "ok",
+        "detalhe": "A 14.457, B 14.647, limite 25.24"
+      },
+      {
+        "nome": "SLO rendersPorS.silencio",
+        "status": "ok",
+        "detalhe": "A 22.919, B 22.919, limite 31.649"
+      },
+      {
+        "nome": "SLO rendersPorS.fala",
+        "status": "piorou",
+        "detalhe": "A 94.452, B 167.642, limite 128.065"
+      },
+      {
+        "nome": "SLO fimDaFalaAteLegendaMs.taxaDeFalha",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 0.15"
+      }
+    ],
+    "veredito": "REPROVADO",
+    "efeitoPct": 77.40549828178695,
+    "primariaGanha": true,
+    "primariaPior": false,
+    "reprovadas": ["erasureOriginal (Emenda 1: não piorar contra A)", "SLO rendersPorS.fala"]
+  },
+  "slo": [
+    {
+      "nome": "framesLongos.n50",
+      "a": 0,
+      "b": 0,
+      "limite": 5,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.n100",
+      "a": 0,
+      "b": 0,
+      "limite": 3,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.somaMs",
+      "a": 0,
+      "b": 0,
+      "limite": 500,
+      "status": "ok"
+    },
+    {
+      "nome": "cpuSilencio.processoPct",
+      "a": 14.45747155027676,
+      "b": 14.646545183158164,
+      "limite": 25.24046017038746,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.silencio",
+      "a": 22.91910902696366,
+      "b": 22.91910902696366,
+      "limite": 31.648886283704577,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.fala",
+      "a": 94.45166883398353,
+      "b": 167.64195925444304,
+      "limite": 128.06458604247942,
+      "status": "piorou"
+    },
+    {
+      "nome": "fimDaFalaAteLegendaMs.taxaDeFalha",
+      "a": 0,
+      "b": 0,
+      "limite": 0.15,
+      "status": "ok"
+    }
+  ]
+}

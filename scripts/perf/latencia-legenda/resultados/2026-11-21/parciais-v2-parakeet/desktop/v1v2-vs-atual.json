@@ -1,0 +1,157 @@
+{
+  "a": "atual.desktop",
+  "b": "v1v2.desktop",
+  "variante": "v1",
+  "rodadas": [12, 12],
+  "c": {
+    "atrasoOriginal": {
+      "p50": {
+        "a": 2574.5,
+        "b": 799,
+        "dif": -1775.5,
+        "ic95": [-2023, -1326],
+        "falas": 9
+      },
+      "p90": {
+        "a": 4265,
+        "b": 4165,
+        "dif": -100,
+        "ic95": [-763.4275000000009, 258],
+        "falas": 9
+      }
+    },
+    "atrasoTraducao": {
+      "p50": {
+        "a": null,
+        "b": null,
+        "dif": null,
+        "ic95": null,
+        "falas": 0
+      },
+      "p90": {
+        "a": null,
+        "b": null,
+        "dif": null,
+        "ic95": null,
+        "falas": 0
+      }
+    },
+    "erasureOriginal": {
+      "a": 0,
+      "b": 0.7229571984435798,
+      "dif": 0.7229571984435798,
+      "ic95": [0.5080775147732476, 0.9714297034186099],
+      "falas": 11
+    },
+    "erasureTraducao": {
+      "a": null,
+      "b": null,
+      "dif": null,
+      "ic95": null,
+      "falas": 0
+    },
+    "fimDaFala": null,
+    "primeiroTextoNaTelaMs": {
+      "a": 6438,
+      "b": 1765,
+      "dif": -4673
+    },
+    "werFinal": {
+      "a": 0.031229668184775537,
+      "b": 0.03165374677002584,
+      "dif": 0.00042407858525030095,
+      "ic95": [-0.010582010582010588, 0.009615853398224038],
+      "falas": 12
+    },
+    "textos": {
+      "comparadas": 144,
+      "foraDoConjuntoDeA": 5,
+      "foraNormalizado": 5,
+      "divergentesEmA": 8,
+      "exemplos": [
+        {
+          "k": 0,
+          "texto": "Nos arquipélagos e lagos você não precisa necessariamente de um yate."
+        },
+        {
+          "k": 0,
+          "texto": "Nos arquipélagos e lagos você não precisa necessariamente de um yate."
+        },
+        {
+          "k": 4,
+          "texto": "A descoberta também concede pistas sobre evolução das penas nas aves."
+        },
+        {
+          "k": 4,
+          "texto": "A descoberta também concede pistas sobre evolução das penas nas aves."
+        },
+        {
+          "k": 4,
+          "texto": "A descoberta também concede pistas sobre evolução das penas nas aves."
+        }
+      ],
+      "werA": 0.031229668184775537,
+      "werB": 0.03165374677002584
+    },
+    "traducoes": {
+      "comparadas": 0,
+      "foraDoConjuntoDeA": 0,
+      "foraNormalizado": 0,
+      "divergentesEmA": 0,
+      "exemplos": [],
+      "werA": null,
+      "werB": null
+    }
+  },
+  "juizo": null,
+  "slo": [
+    {
+      "nome": "framesLongos.n50",
+      "a": 0,
+      "b": 0,
+      "limite": 5,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.n100",
+      "a": 0,
+      "b": 0,
+      "limite": 3,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.somaMs",
+      "a": 0,
+      "b": 0,
+      "limite": 500,
+      "status": "ok"
+    },
+    {
+      "nome": "cpuSilencio.processoPct",
+      "a": 12.290742772678891,
+      "b": 11.33086095430065,
+      "limite": 22.207039881750447,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.silencio",
+      "a": 22.905682483889866,
+      "b": 22.905682483889866,
+      "limite": 31.63210310486233,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.fala",
+      "a": 56.83667932718394,
+      "b": 134.23765599565925,
+      "limite": 81.04584915897992,
+      "status": "piorou"
+    },
+    {
+      "nome": "fimDaFalaAteLegendaMs.taxaDeFalha",
+      "a": null,
+      "b": null,
+      "status": "sem-medida"
+    }
+  ]
+}

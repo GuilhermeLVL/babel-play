@@ -5,6 +5,7 @@ import { Grip, Pause, Play, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { useFalasComParcialVivo } from '../../../../lib/captura/parcialVivo';
 import { avancar, type EstadoDoRitmo, RITMO_VAZIO, saltarParaOFim } from '../../../../lib/captura/ritmoDaLegenda';
 import { t } from '../../../../lib/i18n';
 import { direcaoDoTexto } from '../../../../lib/languages';
@@ -84,7 +85,7 @@ function Fala({
  */
 export default function LegendaFlutuanteDoPrototipo({
   aberta,
-  falas,
+  falas: falasDoEstado,
   idiomaDaTraducao,
   aoFechar,
 }: {
@@ -95,6 +96,8 @@ export default function LegendaFlutuanteDoPrototipo({
   idiomaDaTraducao?: (lang: string | undefined) => string | undefined;
   aoFechar: () => void;
 }) {
+  /* Parciais vivos (V6): o texto vivo do parcial vem do armazém e re-renderiza só esta janela, não a tela de captura. */
+  const falas = useFalasComParcialVivo(falasDoEstado);
   const [montada, setMontada] = useState(aberta);
   const [pausada, setPausada] = useState(false);
   /* As falas a partir da última que havia ao abrir: a janela nasce com ela e segue dali. */

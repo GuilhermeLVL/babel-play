@@ -1,0 +1,103 @@
+{
+  "rotulo": "v1.desktop.r12",
+  "perfil": {
+    "tipo": "desktop-sem-gpu",
+    "modoLeve": "false"
+  },
+  "valida": true,
+  "modeloStt": null,
+  "janelas": {
+    "sessao": [33642.454999923706, 132664.1],
+    "fala": [39874.1, 113594.1],
+    "silencio": [115594.1, 132664.1]
+  },
+  "framesLongos": {
+    "n50": 0,
+    "n100": 0,
+    "somaMs": 0,
+    "maiorMs": 0
+  },
+  "primeiraLegendaMs": null,
+  "primeiroTextoNaTelaMs": 6302,
+  "sttProntoMs": null,
+  "rtf": {
+    "valores": [],
+    "p50": null,
+    "p95": null
+  },
+  "memoriaPicoMb": null,
+  "heapPicoMb": 12,
+  "cpuSilencio": {
+    "processoPct": 12.677317983820775,
+    "principalPct": 3.1235469819539516,
+    "foraDaPrincipalPct": 9.553771001866822,
+    "workersPct": null
+  },
+  "rendersPorS": {
+    "silencio": 22.905682483889866,
+    "fala": 57.29788388497016
+  },
+  "commitsPorS": {
+    "silencio": 0.9958992384299942,
+    "fala": 2.1703743895822027
+  },
+  "fimATraducao": {
+    "p50": null,
+    "p95": null
+  },
+  "fimDaFalaAteLegendaMs": {
+    "valores": [],
+    "p50": null,
+    "p75": null,
+    "p95": null,
+    "falhas": 0,
+    "semTraducao": 12,
+    "erroDoMarcadorMs": [-54, 80, 28, 180, 318, -33, -61, 99, 326, -8, 121, 75]
+  },
+  "palavras": {
+    "falasComMedida": 11,
+    "foraDoCalculo": 2,
+    "semCasamento": 2,
+    "atrasoDePalavraMs": {
+      "original": {
+        "n": 93,
+        "p50": 2565,
+        "p90": 4267.4,
+        "valores": [
+          3146, 2446, 2186, 1686, 1126, 926, 706, 5008, 4588, 4268, 3208, 2908, 2668, 2468, 2128,
+          4763, 4163, 3863, 3263, 2823, 2683, 2543, 2103, 1823, 1463, 1203, 823, 4282, 3982, 3522,
+          3302, 3122, 2802, 2622, 2462, 1942, 1642, 1002, 842, 4886, 4546, 4126, 3646, 3526, 3186,
+          2986, 2566, 2126, 1426, 1126, 866, 5065, 4485, 4265, 3925, 3325, 3165, 2565, 2265, 1745,
+          1585, 825, 4432, 4092, 3232, 2952, 2292, 2132, 1852, 1572, 1092, 892, 3232, 2932, 2672,
+          2252, 1992, 1692, 1432, 1212, 692, 4202, 3822, 3442, 3382, 2902, 2522, 2302, 2102, 1902,
+          1722, 1222, 942
+        ]
+      },
+      "traducao": {
+        "n": 0,
+        "p50": null,
+        "p90": null,
+        "valores": []
+      }
+    },
+    "erasureOriginal": {
+      "falas": 11,
+      "apagadas": 0,
+      "final": 117,
+      "ne": 0
+    },
+    "erasureTraducao": {
+      "falas": 0,
+      "apagadas": 0,
+      "final": 0,
+      "ne": null
+    }
+  },
+  "regulador": {
+    "trocasDeModelo": 0,
+    "primeiraTrocaMs": null,
+    "modelos": []
+  },
+  "falasPerdidas": 0,
+  "pedidosAoHub": 0
+}

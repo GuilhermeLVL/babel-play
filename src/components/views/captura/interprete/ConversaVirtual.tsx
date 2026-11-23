@@ -13,6 +13,7 @@ import {
 } from '../../../../lib/captura/historicoDoInterprete';
 import { direcaoDoLado, type IdiomasDoInterprete } from '../../../../lib/captura/interprete';
 import { ESTADO_DO_AUTOMATICO } from '../../../../lib/captura/interpreteAutomatico';
+import { useFalasDoEstadoComParcialVivo } from '../../../../lib/captura/parcialVivo';
 import { detectarIdiomaNaVirtual, gravarDetectarIdiomaNaVirtual } from '../../../../lib/captura/testesDoInterprete';
 import type { LadoDoInterprete } from '../../../../lib/captura/tiposDaFala';
 import type { TraducaoFinal } from '../../../../lib/captura/traducaoDaFala';
@@ -61,7 +62,7 @@ const outroLado = (lado: LadoDoInterprete): LadoDoInterprete => (lado === 'meu' 
  */
 export default function ConversaVirtual({
   idiomas,
-  falas,
+  falas: falasDoEstado,
   registrarPonte,
   fontes,
   abrirSistema,
@@ -94,6 +95,8 @@ export default function ConversaVirtual({
   aoDetectarIdioma?: (ligado: boolean) => void;
   aoSair: () => void;
 }) {
+  /* Com `parciais_vivos` o estado guarda só o 1º texto do parcial; o texto em curso vem do armazém (ver `parcialVivo.ts`). */
+  const falas = useFalasDoEstadoComParcialVivo(falasDoEstado);
   const idiomasRef = useRef(idiomas);
   idiomasRef.current = idiomas;
   const fontesRef = useRef(fontes);

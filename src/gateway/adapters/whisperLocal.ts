@@ -332,12 +332,17 @@ export class WhisperLocalStt implements SttProvider {
   async transcribeIfIdle(
     pcm: Float32Array,
     sampleRate: number,
-    opts?: { languageHint?: string },
+    opts?: { languageHint?: string; onUpdate?: (text: string) => void },
   ): Promise<SttFinal | null> {
     // Se o modelo ainda nem carregou, ou há decode em andamento, pula este parcial.
     if (!this.asrReady || this.pending.size > 0) return null;
     if (ehMoonshine(this.model) && !moonshineAceita(opts?.languageHint)) return null; // o final troca o modelo
-    return this.postarDecode(pcm, { languageHint: opts?.languageHint, prioridade: 'parcial' });
+    // `onUpdate` só vai quando o chamador pede (flag `parciais_vivos`): sem ele, o parcial é o de sempre.
+    return this.postarDecode(pcm, {
+      languageHint: opts?.languageHint,
+      prioridade: 'parcial',
+      ...(opts?.onUpdate ? { onUpdate: opts.onUpdate } : {}),
+    });
   }
 
   /**

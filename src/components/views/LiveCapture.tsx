@@ -127,6 +127,7 @@ import { preparoConcluido } from '../../lib/captura/pacotesNativos';
 import { linhaDaTraducao, linhaDaTranscricao } from '../../lib/captura/painelDoProcessamento';
 // Vocabulário dentro da captura: examinar a palavra, fichar no deck, mandar praticar.
 import { criarPalavraDaFala } from '../../lib/captura/palavraDaFala';
+import { temParcialVivo } from '../../lib/captura/parcialVivo';
 // Pipeline de fala: VAD → STT → diarização → emissão, e a preparação dos modelos locais.
 import { criarPipelineDeFala, type EnunciadoPendente, soltarOuvintesDaCaptura } from '../../lib/captura/pipelineDeFala';
 import { lerRascunhos } from '../../lib/captura/rascunhoDaCaptura';
@@ -685,6 +686,8 @@ export default function LiveCapture({
       lado: s.source === 'system' ? ('eles' as const) : ('voce' as const),
       lang: s.lang || undefined,
       parcial: !!s.isPartial,
+      // Parciais vivos: o prefixo confirmado (a cauda depois dele é provisória). Sem a flag, `undefined`.
+      confirmado: s.isPartial ? s.textoConfirmado : undefined,
       // Deixada sem tradução pela preferência "Tradução": a legenda oferece "Mostrar tradução".
       sobDemanda: !!s.traducaoSobDemanda && !s.isPartial,
     }));
@@ -998,7 +1001,7 @@ export default function LiveCapture({
 
   /* O texto da conversa sobe ao App (contexto do iChat) no máximo a cada 500 ms, só quando muda:
      antes era um `join` de TODAS as falas e um render do App inteiro a cada parcial do streaming. */
-  useTextoDaConversa(speechSegments, onTranscriptChange);
+  useTextoDaConversa(speechSegments, onTranscriptChange, 500, (s) => temParcialVivo(s.id));
   // O quadro em que cada tradução FINAL aparece vira a marca `frasy:legenda:traduzida` (só instrumentação).
   useMarcaDaLegenda(speechSegments);
 

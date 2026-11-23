@@ -1,0 +1,288 @@
+{
+  "a": "atual.fraco",
+  "b": "v7-en.fraco",
+  "variante": "v4",
+  "rodadas": [11, 11],
+  "c": {
+    "atrasoOriginal": {
+      "p50": {
+        "a": 1774.5,
+        "b": 2022,
+        "dif": 247.5,
+        "ic95": [13.5, 503.02499999999964],
+        "icB": [1413, 2665],
+        "falas": 6
+      },
+      "p90": {
+        "a": 3829.5,
+        "b": 3837.4,
+        "dif": 7.900000000000091,
+        "ic95": [-101.80499999999829, 491.1499999999978],
+        "icB": [3221, 4169.6600000000035],
+        "falas": 6
+      }
+    },
+    "atrasoTraducao": {
+      "p50": {
+        "a": 2534.5,
+        "b": 2734,
+        "dif": 199.5,
+        "ic95": [-58.5, 470.0124999999998],
+        "icB": [1817.4875, 3197.5125],
+        "falas": 6
+      },
+      "p90": {
+        "a": 4240.3,
+        "b": 4260.5,
+        "dif": 20.199999999999818,
+        "ic95": [-18.604999999999446, 194.70499999999964],
+        "icB": [3857, 4836],
+        "falas": 6
+      }
+    },
+    "erasureOriginal": {
+      "a": 0.5396536007292616,
+      "b": 0.3806921675774135,
+      "dif": -0.15896143315184813,
+      "ic95": [-0.20770738055370133, -0.13082932446998502],
+      "icB": [0.2877155712625143, 0.5038468063663767],
+      "falas": 8
+    },
+    "erasureTraducao": {
+      "a": 0.500996015936255,
+      "b": 0.334322453016815,
+      "dif": -0.16667356291943997,
+      "ic95": [-0.27043570606814066, -0.09059152706272902],
+      "icB": [0.19154877700827433, 0.5140120337086991],
+      "falas": 8
+    },
+    "fimDaFala": {
+      "p50": {
+        "a": 1136.5,
+        "b": 1143,
+        "dif": 6.5,
+        "ic95": [-25, 14.5]
+      },
+      "p75": {
+        "a": 1233.25,
+        "b": 1222.25,
+        "dif": -11,
+        "ic95": [-51.5, 26]
+      },
+      "p95": {
+        "a": 1782.1999999999998,
+        "b": 1765.3499999999997,
+        "dif": -16.850000000000136,
+        "ic95": [-50.30874999999995, 25.25]
+      }
+    },
+    "fimDoOriginal": {
+      "p50": {
+        "a": 1096.5,
+        "b": 1103,
+        "dif": 6.5,
+        "ic95": [-12.5, 12.5]
+      },
+      "p75": {
+        "a": 1153.75,
+        "b": 1151,
+        "dif": -2.75,
+        "ic95": [-38, 21.5]
+      },
+      "p95": {
+        "a": 1222.95,
+        "b": 1190.85,
+        "dif": -32.100000000000136,
+        "ic95": [-55.5, 44.30000000000018]
+      }
+    },
+    "primeiroTextoNaTelaMs": {
+      "a": 1913,
+      "b": 1906,
+      "dif": -7
+    },
+    "werFinal": {
+      "a": 0.21306818181818182,
+      "b": 0.21212121212121213,
+      "dif": -0.0009469696969696961,
+      "ic95": [-0.015495867768595017, 0.011818181818181839],
+      "icB": [0.08621801654724834, 0.34759633937923806],
+      "falas": 8
+    },
+    "textos": {
+      "comparadas": 88,
+      "foraDoConjuntoDeA": 3,
+      "foraNormalizado": 3,
+      "divergentesEmA": 5,
+      "exemplos": [
+        {
+          "k": 1,
+          "texto": "Fela wrestlers also paid tribute to Luna."
+        },
+        {
+          "k": 4,
+          "texto": "To the night between one fifty and two hundred copies were made now known as \"Dinlaprodsides\"."
+        },
+        {
+          "k": 7,
+          "texto": "Giancarlo Fisi-Chela lost control of his car and ended the race very soon after the start."
+        }
+      ],
+      "werA": 0.21306818181818182,
+      "werB": 0.21212121212121213
+    },
+    "traducoes": {
+      "comparadas": 88,
+      "foraDoConjuntoDeA": 48,
+      "foraNormalizado": 48,
+      "divergentesEmA": 7,
+      "exemplos": [
+        {
+          "k": 1,
+          "texto": "Os anos dezessete também pagaram tributo a"
+        },
+        {
+          "k": 1,
+          "texto": "Restauradores também pagam homenagem"
+        },
+        {
+          "k": 1,
+          "texto": "Os lutadores de Fella também homenagearam a Luna."
+        },
+        {
+          "k": 1,
+          "texto": "Os anos dezessete também pagaram tributo a"
+        },
+        {
+          "k": 1,
+          "texto": "Os anos dezessete também pagaram tributo a"
+        }
+      ],
+      "werA": null,
+      "werB": null
+    }
+  },
+  "juizo": {
+    "primaria": {
+      "a": 1774.5,
+      "b": 2022,
+      "dif": 247.5,
+      "ic95": [13.5, 503.02499999999964],
+      "icB": [1413, 2665],
+      "falas": 6
+    },
+    "guardas": [
+      {
+        "nome": "fimDaFalaAteLegendaMs p75",
+        "status": "ok",
+        "detalhe": "dif -11 ms, IC 95% [-51, 26], limite superior ≤ 100 ms"
+      },
+      {
+        "nome": "erasureOriginal de B (V4: orçamento absoluto, média ≤ 0.5 e limite superior do IC ≤ 0.6)",
+        "status": "ok",
+        "detalhe": "B média 0.381, IC 95% de B [0.288, 0.504]; A 0.540, B − A -0.159 (IC [-0.208, -0.131], só informativo)"
+      },
+      {
+        "nome": "WER pareado do texto final (limite superior ≤ +2 pp)",
+        "status": "ok",
+        "detalhe": "dif −0.1 pp, IC 95% [−1.5 pp, +1.2 pp], limite superior ≤ +2.0 pp"
+      },
+      {
+        "nome": "texto final fora do conjunto de A (informativo)",
+        "status": "ok",
+        "detalhe": "3 de 88 textos de B fora do conjunto de A (normalizado: 3); WER A 21.3%, B 21.2%; falas em que A varia entre rodadas: 5"
+      },
+      {
+        "nome": "SLO framesLongos.n50",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 5"
+      },
+      {
+        "nome": "SLO framesLongos.n100",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 3"
+      },
+      {
+        "nome": "SLO framesLongos.somaMs",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 500"
+      },
+      {
+        "nome": "SLO cpuSilencio.processoPct",
+        "status": "ok",
+        "detalhe": "A 12.809, B 13.067, limite 22.933"
+      },
+      {
+        "nome": "SLO rendersPorS.silencio",
+        "status": "ok",
+        "detalhe": "A 27.184, B 27.14, limite 36.981"
+      },
+      {
+        "nome": "SLO rendersPorS.fala",
+        "status": "ok",
+        "detalhe": "A 102.514, B 83.312, limite 138.143"
+      },
+      {
+        "nome": "SLO fimDaFalaAteLegendaMs.taxaDeFalha",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 0.15"
+      }
+    ],
+    "veredito": "REPROVADO",
+    "efeitoPct": -13.947590870667796,
+    "primariaGanha": false,
+    "primariaPior": true,
+    "reprovadas": []
+  },
+  "slo": [
+    {
+      "nome": "framesLongos.n50",
+      "a": 0,
+      "b": 0,
+      "limite": 5,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.n100",
+      "a": 0,
+      "b": 0,
+      "limite": 3,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.somaMs",
+      "a": 0,
+      "b": 0,
+      "limite": 500,
+      "status": "ok"
+    },
+    {
+      "nome": "cpuSilencio.processoPct",
+      "a": 12.80937247341251,
+      "b": 13.067435785807563,
+      "limite": 22.933121462777514,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.silencio",
+      "a": 27.18444213465524,
+      "b": 27.139708094632837,
+      "limite": 36.98055266831905,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.fala",
+      "a": 102.51408755960121,
+      "b": 83.31166016471607,
+      "limite": 138.14260944950152,
+      "status": "ok"
+    },
+    {
+      "nome": "fimDaFalaAteLegendaMs.taxaDeFalha",
+      "a": 0,
+      "b": 0,
+      "limite": 0.15,
+      "status": "ok"
+    }
+  ]
+}

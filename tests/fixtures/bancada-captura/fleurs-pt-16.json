@@ -1,0 +1,1182 @@
+{
+  "fonte": "FLEURS (Conneau et al., 2022, \"FLEURS: Few-shot Learning Evaluation of Universal Representations of Speech\"), split de teste, https://huggingface.co/datasets/google/fleurs",
+  "licenca": "CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)",
+  "modificacoes": "cada clipe aparado na voz (± 50 ms), normalizado a RMS −20 dBFS (pico ≤ −1 dBFS) e gravado em µ-law 8 bits, 16 kHz mono",
+  "geradoPor": "scripts/perf/latencia-legenda/montar-audio.mjs --gerar-fixture",
+  "idioma": "pt",
+  "vozS": [3, 5.9],
+  "sr": 16000,
+  "wav": "fleurs-pt-16.wav",
+  "falas": [
+    {
+      "id": "fleurs_pt_1731",
+      "referencia": "Nos arquipélagos e lagos, você não precisa necessariamente de um iate.",
+      "amostra": 0,
+      "amostras": 86880,
+      "vozIni": 0,
+      "vozFim": 5.38,
+      "ganhoDb": 2.4,
+      "palavras": [
+        {
+          "t": "nos",
+          "iniS": 1.52,
+          "fimS": 1.88
+        },
+        {
+          "t": "arquipelagos",
+          "iniS": 1.88,
+          "fimS": 2.6
+        },
+        {
+          "t": "e",
+          "iniS": 2.6,
+          "fimS": 2.82
+        },
+        {
+          "t": "lagos",
+          "iniS": 2.82,
+          "fimS": 3.24
+        },
+        {
+          "t": "voce",
+          "iniS": 3.24,
+          "fimS": 3.36
+        },
+        {
+          "t": "nao",
+          "iniS": 3.36,
+          "fimS": 3.68
+        },
+        {
+          "t": "precisa",
+          "iniS": 3.68,
+          "fimS": 4.02
+        },
+        {
+          "t": "necessariamente",
+          "iniS": 4.02,
+          "fimS": 4.76
+        },
+        {
+          "t": "de",
+          "iniS": 4.76,
+          "fimS": 4.88
+        },
+        {
+          "t": "um",
+          "iniS": 4.88,
+          "fimS": 5.08
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-small_timestamped",
+        "dtype": "fp32",
+        "casadas": 10,
+        "total": 11,
+        "fracao": 0.909,
+        "foraDoCalculo": false
+      }
+    },
+    {
+      "id": "fleurs_pt_1736",
+      "referencia": "Rolando Mendoza disparou seu rifle M16 contra os turistas.",
+      "amostra": 86880,
+      "amostras": 77760,
+      "vozIni": 0.05,
+      "vozFim": 4.81,
+      "ganhoDb": 7.9,
+      "palavras": [
+        {
+          "t": "rolando",
+          "iniS": 0.18,
+          "fimS": 0.68
+        },
+        {
+          "t": "disparou",
+          "iniS": 1.64,
+          "fimS": 2.06
+        },
+        {
+          "t": "seu",
+          "iniS": 2.06,
+          "fimS": 2.38
+        },
+        {
+          "t": "rifle",
+          "iniS": 2.38,
+          "fimS": 2.72
+        },
+        {
+          "t": "m16",
+          "iniS": 2.72,
+          "fimS": 3.8
+        },
+        {
+          "t": "contra",
+          "iniS": 3.8,
+          "fimS": 4.04
+        },
+        {
+          "t": "os",
+          "iniS": 4.04,
+          "fimS": 4.2
+        },
+        {
+          "t": "turistas",
+          "iniS": 4.2,
+          "fimS": 4.84
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-small_timestamped",
+        "dtype": "fp32",
+        "casadas": 8,
+        "total": 9,
+        "fracao": 0.889,
+        "foraDoCalculo": true
+      }
+    },
+    {
+      "id": "fleurs_pt_1747",
+      "referencia": "Outros lutadores também prestaram homenagem a Luna.",
+      "amostra": 164640,
+      "amostras": 49920,
+      "vozIni": 0.05,
+      "vozFim": 3.07,
+      "ganhoDb": 7,
+      "palavras": [
+        {
+          "t": "outros",
+          "iniS": 0.24,
+          "fimS": 0.6
+        },
+        {
+          "t": "lutadores",
+          "iniS": 0.6,
+          "fimS": 1.3
+        },
+        {
+          "t": "tambem",
+          "iniS": 1.3,
+          "fimS": 1.56
+        },
+        {
+          "t": "prestaram",
+          "iniS": 1.56,
+          "fimS": 2.06
+        },
+        {
+          "t": "homenagem",
+          "iniS": 2.06,
+          "fimS": 2.62
+        },
+        {
+          "t": "a",
+          "iniS": 2.62,
+          "fimS": 2.82
+        },
+        {
+          "t": "luna",
+          "iniS": 2.82,
+          "fimS": 3.04
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-small_timestamped",
+        "dtype": "fp32",
+        "casadas": 7,
+        "total": 7,
+        "fracao": 1,
+        "foraDoCalculo": false
+      }
+    },
+    {
+      "id": "fleurs_pt_1748",
+      "referencia": "As equipes de resgate conseguiram apagar o fogo às 23:35.",
+      "amostra": 214560,
+      "amostras": 82080,
+      "vozIni": 0,
+      "vozFim": 5.08,
+      "ganhoDb": 4.6,
+      "palavras": [
+        {
+          "t": "as",
+          "iniS": 0.86,
+          "fimS": 1.12
+        },
+        {
+          "t": "equipes",
+          "iniS": 1.12,
+          "fimS": 1.54
+        },
+        {
+          "t": "de",
+          "iniS": 1.54,
+          "fimS": 1.86
+        },
+        {
+          "t": "conseguiram",
+          "iniS": 2.58,
+          "fimS": 2.92
+        },
+        {
+          "t": "apagar",
+          "iniS": 2.92,
+          "fimS": 3.22
+        },
+        {
+          "t": "o",
+          "iniS": 3.22,
+          "fimS": 3.46
+        },
+        {
+          "t": "fogo",
+          "iniS": 3.46,
+          "fimS": 3.66
+        },
+        {
+          "t": "as",
+          "iniS": 3.66,
+          "fimS": 4
+        },
+        {
+          "t": "23",
+          "iniS": 4,
+          "fimS": 4.32
+        },
+        {
+          "t": "35",
+          "iniS": 4.82,
+          "fimS": 5
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-small_timestamped",
+        "dtype": "fp32",
+        "casadas": 10,
+        "total": 11,
+        "fracao": 0.909,
+        "foraDoCalculo": false
+      }
+    },
+    {
+      "id": "fleurs_pt_1750",
+      "referencia": "A descoberta também concede pistas sobre a evolução das penas nas aves.",
+      "amostra": 296640,
+      "amostras": 68160,
+      "vozIni": 0.05,
+      "vozFim": 4.21,
+      "ganhoDb": -3,
+      "palavras": [
+        {
+          "t": "a",
+          "iniS": 0.14,
+          "fimS": 0.3
+        },
+        {
+          "t": "descoberta",
+          "iniS": 0.3,
+          "fimS": 0.9
+        },
+        {
+          "t": "tambem",
+          "iniS": 0.9,
+          "fimS": 1.2
+        },
+        {
+          "t": "concede",
+          "iniS": 1.2,
+          "fimS": 1.8
+        },
+        {
+          "t": "pistas",
+          "iniS": 1.8,
+          "fimS": 2.24
+        },
+        {
+          "t": "sobre",
+          "iniS": 2.24,
+          "fimS": 2.38
+        },
+        {
+          "t": "a",
+          "iniS": 2.38,
+          "fimS": 2.52
+        },
+        {
+          "t": "evolucao",
+          "iniS": 2.52,
+          "fimS": 2.96
+        },
+        {
+          "t": "das",
+          "iniS": 2.96,
+          "fimS": 3.24
+        },
+        {
+          "t": "penas",
+          "iniS": 3.24,
+          "fimS": 3.6
+        },
+        {
+          "t": "nas",
+          "iniS": 3.6,
+          "fimS": 3.86
+        },
+        {
+          "t": "aves",
+          "iniS": 3.86,
+          "fimS": 4.24
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-small_timestamped",
+        "dtype": "fp32",
+        "casadas": 12,
+        "total": 12,
+        "fracao": 1,
+        "foraDoCalculo": false
+      }
+    },
+    {
+      "id": "fleurs_pt_1755",
+      "referencia": "Uma bomba explodiu do lado de fora do escritório do governador geral.",
+      "amostra": 364800,
+      "amostras": 64320,
+      "vozIni": 0.05,
+      "vozFim": 3.97,
+      "ganhoDb": 8.4,
+      "palavras": [
+        {
+          "t": "uma",
+          "iniS": 0.22,
+          "fimS": 0.52
+        },
+        {
+          "t": "bomba",
+          "iniS": 0.52,
+          "fimS": 0.82
+        },
+        {
+          "t": "explodiu",
+          "iniS": 0.82,
+          "fimS": 1.28
+        },
+        {
+          "t": "do",
+          "iniS": 1.28,
+          "fimS": 1.5
+        },
+        {
+          "t": "lado",
+          "iniS": 1.5,
+          "fimS": 1.68
+        },
+        {
+          "t": "de",
+          "iniS": 1.68,
+          "fimS": 2
+        },
+        {
+          "t": "fora",
+          "iniS": 2,
+          "fimS": 2.18
+        },
+        {
+          "t": "do",
+          "iniS": 2.18,
+          "fimS": 2.34
+        },
+        {
+          "t": "escritorio",
+          "iniS": 2.34,
+          "fimS": 2.86
+        },
+        {
+          "t": "do",
+          "iniS": 2.86,
+          "fimS": 3.16
+        },
+        {
+          "t": "governador",
+          "iniS": 3.16,
+          "fimS": 3.8
+        },
+        {
+          "t": "geral",
+          "iniS": 3.8,
+          "fimS": 3.96
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-small_timestamped",
+        "dtype": "fp32",
+        "casadas": 12,
+        "total": 12,
+        "fracao": 1,
+        "foraDoCalculo": false
+      }
+    },
+    {
+      "id": "fleurs_pt_1772",
+      "referencia": "Desse modo, é provável que uma nota foi simplesmente adicionada como rótulo.",
+      "amostra": 429120,
+      "amostras": 77440,
+      "vozIni": 0.05,
+      "vozFim": 4.79,
+      "ganhoDb": 9.3,
+      "palavras": [
+        {
+          "t": "desse",
+          "iniS": 0.28,
+          "fimS": 0.78
+        },
+        {
+          "t": "modo",
+          "iniS": 0.78,
+          "fimS": 1.12
+        },
+        {
+          "t": "e",
+          "iniS": 1.32,
+          "fimS": 1.54
+        },
+        {
+          "t": "provavel",
+          "iniS": 1.54,
+          "fimS": 2.02
+        },
+        {
+          "t": "que",
+          "iniS": 2.02,
+          "fimS": 2.14
+        },
+        {
+          "t": "uma",
+          "iniS": 2.14,
+          "fimS": 2.48
+        },
+        {
+          "t": "nota",
+          "iniS": 2.48,
+          "fimS": 2.68
+        },
+        {
+          "t": "foi",
+          "iniS": 2.68,
+          "fimS": 3.1
+        },
+        {
+          "t": "simplesmente",
+          "iniS": 3.1,
+          "fimS": 3.54
+        },
+        {
+          "t": "adicionada",
+          "iniS": 3.54,
+          "fimS": 4.24
+        },
+        {
+          "t": "como",
+          "iniS": 4.24,
+          "fimS": 4.54
+        },
+        {
+          "t": "rotulo",
+          "iniS": 4.54,
+          "fimS": 4.8
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-small_timestamped",
+        "dtype": "fp32",
+        "casadas": 12,
+        "total": 12,
+        "fracao": 1,
+        "foraDoCalculo": false
+      }
+    },
+    {
+      "id": "fleurs_pt_1791",
+      "referencia": "Não danificar o lugar manchando ou rachando as construções com pichações.",
+      "amostra": 506560,
+      "amostras": 73600,
+      "vozIni": 0.05,
+      "vozFim": 4.55,
+      "ganhoDb": 6.3,
+      "palavras": [
+        {
+          "t": "nao",
+          "iniS": 0.2,
+          "fimS": 0.36
+        },
+        {
+          "t": "danificar",
+          "iniS": 0.36,
+          "fimS": 0.94
+        },
+        {
+          "t": "o",
+          "iniS": 0.94,
+          "fimS": 1.16
+        },
+        {
+          "t": "lugar",
+          "iniS": 1.16,
+          "fimS": 1.5
+        },
+        {
+          "t": "manchando",
+          "iniS": 1.5,
+          "fimS": 2.1
+        },
+        {
+          "t": "ou",
+          "iniS": 2.1,
+          "fimS": 2.26
+        },
+        {
+          "t": "rachando",
+          "iniS": 2.26,
+          "fimS": 2.86
+        },
+        {
+          "t": "as",
+          "iniS": 2.86,
+          "fimS": 3.16
+        },
+        {
+          "t": "construcoes",
+          "iniS": 3.16,
+          "fimS": 3.68
+        },
+        {
+          "t": "com",
+          "iniS": 3.68,
+          "fimS": 3.84
+        },
+        {
+          "t": "pichacoes",
+          "iniS": 3.84,
+          "fimS": 4.6
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-small_timestamped",
+        "dtype": "fp32",
+        "casadas": 11,
+        "total": 11,
+        "fracao": 1,
+        "foraDoCalculo": false
+      }
+    },
+    {
+      "id": "fleurs_pt_1817",
+      "referencia": "A zona Schengen, no entanto, funciona como um país nesse aspecto.",
+      "amostra": 580160,
+      "amostras": 73440,
+      "vozIni": 0,
+      "vozFim": 4.54,
+      "ganhoDb": 4.8,
+      "palavras": [
+        {
+          "t": "a",
+          "iniS": 0.7,
+          "fimS": 0.96
+        },
+        {
+          "t": "zona",
+          "iniS": 0.96,
+          "fimS": 1.3
+        },
+        {
+          "t": "no",
+          "iniS": 1.96,
+          "fimS": 2.16
+        },
+        {
+          "t": "entanto",
+          "iniS": 2.16,
+          "fimS": 2.44
+        },
+        {
+          "t": "funciona",
+          "iniS": 2.82,
+          "fimS": 3.1
+        },
+        {
+          "t": "como",
+          "iniS": 3.1,
+          "fimS": 3.26
+        },
+        {
+          "t": "um",
+          "iniS": 3.26,
+          "fimS": 3.54
+        },
+        {
+          "t": "pais",
+          "iniS": 3.54,
+          "fimS": 3.82
+        },
+        {
+          "t": "nesse",
+          "iniS": 3.82,
+          "fimS": 4.3
+        },
+        {
+          "t": "aspecto",
+          "iniS": 4.3,
+          "fimS": 4.5
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-small_timestamped",
+        "dtype": "fp32",
+        "casadas": 10,
+        "total": 11,
+        "fracao": 0.909,
+        "foraDoCalculo": false
+      }
+    },
+    {
+      "id": "fleurs_pt_1839",
+      "referencia": "Pense na rota de esqui como uma rota de caminhada.",
+      "amostra": 653600,
+      "amostras": 61120,
+      "vozIni": 0.05,
+      "vozFim": 3.77,
+      "ganhoDb": 10.6,
+      "palavras": [
+        {
+          "t": "na",
+          "iniS": 0.98,
+          "fimS": 1.22
+        },
+        {
+          "t": "rota",
+          "iniS": 1.22,
+          "fimS": 1.52
+        },
+        {
+          "t": "de",
+          "iniS": 1.52,
+          "fimS": 1.78
+        },
+        {
+          "t": "esqui",
+          "iniS": 1.78,
+          "fimS": 2.2
+        },
+        {
+          "t": "como",
+          "iniS": 2.2,
+          "fimS": 2.46
+        },
+        {
+          "t": "uma",
+          "iniS": 2.46,
+          "fimS": 2.76
+        },
+        {
+          "t": "rota",
+          "iniS": 2.76,
+          "fimS": 3.02
+        },
+        {
+          "t": "de",
+          "iniS": 3.02,
+          "fimS": 3.24
+        },
+        {
+          "t": "caminhada",
+          "iniS": 3.24,
+          "fimS": 3.76
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-small_timestamped",
+        "dtype": "fp32",
+        "casadas": 9,
+        "total": 10,
+        "fracao": 0.9,
+        "foraDoCalculo": false
+      }
+    },
+    {
+      "id": "fleurs_pt_1870",
+      "referencia": "As cenas são exibidas nas pirâmides e diferentes pirâmides ficam iluminadas.",
+      "amostra": 714720,
+      "amostras": 69920,
+      "vozIni": 0,
+      "vozFim": 4.32,
+      "ganhoDb": 0.6,
+      "palavras": [
+        {
+          "t": "as",
+          "iniS": 0.42,
+          "fimS": 0.52
+        },
+        {
+          "t": "cenas",
+          "iniS": 0.52,
+          "fimS": 0.86
+        },
+        {
+          "t": "sao",
+          "iniS": 0.86,
+          "fimS": 0.98
+        },
+        {
+          "t": "exibidas",
+          "iniS": 0.98,
+          "fimS": 1.44
+        },
+        {
+          "t": "e",
+          "iniS": 1.72,
+          "fimS": 1.72
+        },
+        {
+          "t": "piramides",
+          "iniS": 1.88,
+          "fimS": 3.38
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-small_timestamped",
+        "dtype": "fp32",
+        "casadas": 6,
+        "total": 11,
+        "fracao": 0.545,
+        "foraDoCalculo": true
+      }
+    },
+    {
+      "id": "fleurs_pt_1871",
+      "referencia": "No clima quente do Oriente Médio, a casa não era tão importante.",
+      "amostra": 784640,
+      "amostras": 72800,
+      "vozIni": 0,
+      "vozFim": 4.5,
+      "ganhoDb": 3.8,
+      "palavras": [
+        {
+          "t": "no",
+          "iniS": 1.08,
+          "fimS": 1.26
+        },
+        {
+          "t": "clima",
+          "iniS": 1.26,
+          "fimS": 1.64
+        },
+        {
+          "t": "quente",
+          "iniS": 1.64,
+          "fimS": 2.02
+        },
+        {
+          "t": "do",
+          "iniS": 2.02,
+          "fimS": 2.08
+        },
+        {
+          "t": "oriente",
+          "iniS": 2.08,
+          "fimS": 2.56
+        },
+        {
+          "t": "medio",
+          "iniS": 2.56,
+          "fimS": 2.94
+        },
+        {
+          "t": "a",
+          "iniS": 2.94,
+          "fimS": 3.16
+        },
+        {
+          "t": "casa",
+          "iniS": 3.16,
+          "fimS": 3.36
+        },
+        {
+          "t": "nao",
+          "iniS": 3.36,
+          "fimS": 3.56
+        },
+        {
+          "t": "era",
+          "iniS": 3.56,
+          "fimS": 3.74
+        },
+        {
+          "t": "tao",
+          "iniS": 3.74,
+          "fimS": 4.24
+        },
+        {
+          "t": "importante",
+          "iniS": 4.24,
+          "fimS": 4.52
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-small_timestamped",
+        "dtype": "fp32",
+        "casadas": 12,
+        "total": 12,
+        "fracao": 1,
+        "foraDoCalculo": false
+      }
+    },
+    {
+      "id": "fleurs_pt_1879",
+      "referencia": "Só podemos imaginar o que o teclado irá se tornar quando algo mais novo surgir.",
+      "amostra": 857440,
+      "amostras": 73280,
+      "vozIni": 0.05,
+      "vozFim": 4.53,
+      "ganhoDb": 5.9,
+      "palavras": [
+        {
+          "t": "so",
+          "iniS": 0.2,
+          "fimS": 0.5
+        },
+        {
+          "t": "podemos",
+          "iniS": 0.5,
+          "fimS": 1.06
+        },
+        {
+          "t": "imaginar",
+          "iniS": 1.06,
+          "fimS": 1.3
+        },
+        {
+          "t": "o",
+          "iniS": 1.3,
+          "fimS": 1.34
+        },
+        {
+          "t": "que",
+          "iniS": 1.34,
+          "fimS": 1.54
+        },
+        {
+          "t": "o",
+          "iniS": 1.54,
+          "fimS": 1.6
+        },
+        {
+          "t": "teclado",
+          "iniS": 1.6,
+          "fimS": 2.04
+        },
+        {
+          "t": "ira",
+          "iniS": 2.04,
+          "fimS": 2.3
+        },
+        {
+          "t": "se",
+          "iniS": 2.3,
+          "fimS": 2.6
+        },
+        {
+          "t": "tornar",
+          "iniS": 2.6,
+          "fimS": 2.94
+        },
+        {
+          "t": "quando",
+          "iniS": 2.94,
+          "fimS": 3.26
+        },
+        {
+          "t": "algo",
+          "iniS": 3.26,
+          "fimS": 3.52
+        },
+        {
+          "t": "mais",
+          "iniS": 3.52,
+          "fimS": 3.82
+        },
+        {
+          "t": "novo",
+          "iniS": 3.82,
+          "fimS": 4.16
+        },
+        {
+          "t": "surgir",
+          "iniS": 4.16,
+          "fimS": 4.52
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-small_timestamped",
+        "dtype": "fp32",
+        "casadas": 15,
+        "total": 15,
+        "fracao": 1,
+        "foraDoCalculo": false
+      }
+    },
+    {
+      "id": "fleurs_pt_1889",
+      "referencia": "Nos deu o trem, o carro e diversas outras formas de transporte.",
+      "amostra": 930720,
+      "amostras": 71520,
+      "vozIni": 0,
+      "vozFim": 4.42,
+      "ganhoDb": 0.9,
+      "palavras": [
+        {
+          "t": "nos",
+          "iniS": 0.76,
+          "fimS": 0.94
+        },
+        {
+          "t": "deu",
+          "iniS": 0.94,
+          "fimS": 1.14
+        },
+        {
+          "t": "o",
+          "iniS": 1.14,
+          "fimS": 1.28
+        },
+        {
+          "t": "trem",
+          "iniS": 1.28,
+          "fimS": 1.48
+        },
+        {
+          "t": "o",
+          "iniS": 1.5,
+          "fimS": 1.86
+        },
+        {
+          "t": "carro",
+          "iniS": 1.86,
+          "fimS": 2.06
+        },
+        {
+          "t": "e",
+          "iniS": 2.06,
+          "fimS": 2.5
+        },
+        {
+          "t": "diversas",
+          "iniS": 2.5,
+          "fimS": 2.92
+        },
+        {
+          "t": "outras",
+          "iniS": 2.92,
+          "fimS": 3.44
+        },
+        {
+          "t": "formas",
+          "iniS": 3.44,
+          "fimS": 3.64
+        },
+        {
+          "t": "de",
+          "iniS": 3.64,
+          "fimS": 4.04
+        },
+        {
+          "t": "transporte",
+          "iniS": 4.04,
+          "fimS": 4.44
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-small_timestamped",
+        "dtype": "fp32",
+        "casadas": 12,
+        "total": 12,
+        "fracao": 1,
+        "foraDoCalculo": false
+      }
+    },
+    {
+      "id": "fleurs_pt_1906",
+      "referencia": "\"Isso não será um adeus. É o encerramento de um capítulo e a abertura de um novo.\"",
+      "amostra": 1002240,
+      "amostras": 76800,
+      "vozIni": 0.05,
+      "vozFim": 4.75,
+      "ganhoDb": 10.6,
+      "palavras": [
+        {
+          "t": "isso",
+          "iniS": 0.28,
+          "fimS": 0.48
+        },
+        {
+          "t": "nao",
+          "iniS": 0.48,
+          "fimS": 0.74
+        },
+        {
+          "t": "sera",
+          "iniS": 0.74,
+          "fimS": 0.94
+        },
+        {
+          "t": "um",
+          "iniS": 0.94,
+          "fimS": 1.08
+        },
+        {
+          "t": "adeus",
+          "iniS": 1.08,
+          "fimS": 1.68
+        },
+        {
+          "t": "e",
+          "iniS": 1.86,
+          "fimS": 1.92
+        },
+        {
+          "t": "o",
+          "iniS": 1.92,
+          "fimS": 2.04
+        },
+        {
+          "t": "encerramento",
+          "iniS": 2.04,
+          "fimS": 2.66
+        },
+        {
+          "t": "de",
+          "iniS": 2.66,
+          "fimS": 2.76
+        },
+        {
+          "t": "um",
+          "iniS": 2.76,
+          "fimS": 2.96
+        },
+        {
+          "t": "capitulo",
+          "iniS": 2.96,
+          "fimS": 3.48
+        },
+        {
+          "t": "e",
+          "iniS": 3.48,
+          "fimS": 3.58
+        },
+        {
+          "t": "a",
+          "iniS": 3.58,
+          "fimS": 3.7
+        },
+        {
+          "t": "abertura",
+          "iniS": 3.7,
+          "fimS": 4.16
+        },
+        {
+          "t": "de",
+          "iniS": 4.16,
+          "fimS": 4.28
+        },
+        {
+          "t": "um",
+          "iniS": 4.28,
+          "fimS": 4.52
+        },
+        {
+          "t": "novo",
+          "iniS": 4.52,
+          "fimS": 4.76
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-small_timestamped",
+        "dtype": "fp32",
+        "casadas": 17,
+        "total": 17,
+        "fracao": 1,
+        "foraDoCalculo": false
+      }
+    },
+    {
+      "id": "fleurs_pt_1957",
+      "referencia": "Ele se referiu aos rumores como sendo \"politicagem e bobagem\"",
+      "amostra": 1079040,
+      "amostras": 70400,
+      "vozIni": 0.05,
+      "vozFim": 4.35,
+      "ganhoDb": 5.3,
+      "palavras": [
+        {
+          "t": "ele",
+          "iniS": 0.24,
+          "fimS": 0.42
+        },
+        {
+          "t": "se",
+          "iniS": 0.42,
+          "fimS": 0.68
+        },
+        {
+          "t": "referiu",
+          "iniS": 0.68,
+          "fimS": 1.18
+        },
+        {
+          "t": "aos",
+          "iniS": 1.18,
+          "fimS": 1.48
+        },
+        {
+          "t": "rumores",
+          "iniS": 1.48,
+          "fimS": 2.04
+        },
+        {
+          "t": "como",
+          "iniS": 2.04,
+          "fimS": 2.42
+        },
+        {
+          "t": "sendo",
+          "iniS": 2.42,
+          "fimS": 2.84
+        },
+        {
+          "t": "politicagem",
+          "iniS": 2.84,
+          "fimS": 3.68
+        },
+        {
+          "t": "e",
+          "iniS": 3.68,
+          "fimS": 3.82
+        },
+        {
+          "t": "bobagem",
+          "iniS": 3.82,
+          "fimS": 4.32
+        }
+      ],
+      "alinhamento": {
+        "modelo": "onnx-community/whisper-small_timestamped",
+        "dtype": "fp32",
+        "casadas": 10,
+        "total": 10,
+        "fracao": 1,
+        "foraDoCalculo": false
+      }
+    }
+  ],
+  "palavrasGeradasPor": "scripts/perf/latencia-legenda/gerar-palavras-do-roteiro.mjs (onnx-community/whisper-small_timestamped, return_timestamps: 'word')"
+}

@@ -1,0 +1,264 @@
+{
+  "a": "v1.desktop",
+  "b": "v1v3.desktop",
+  "variante": "v3",
+  "rodadas": [12, 12],
+  "c": {
+    "atrasoOriginal": {
+      "p50": {
+        "a": 255,
+        "b": 264.5,
+        "dif": 9.5,
+        "ic95": [-45, 104.5],
+        "falas": 6
+      },
+      "p90": {
+        "a": 2334.2,
+        "b": 2337.5,
+        "dif": 3.300000000000182,
+        "ic95": [-645, 832],
+        "falas": 6
+      }
+    },
+    "atrasoTraducao": {
+      "p50": {
+        "a": 1289.5,
+        "b": 2691.5,
+        "dif": 1402,
+        "ic95": [366.9875, 1915.5124999999998],
+        "falas": 6
+      },
+      "p90": {
+        "a": 3931.4000000000005,
+        "b": 4074,
+        "dif": 142.59999999999945,
+        "ic95": [-36.50250000000194, 456.41749999999934],
+        "falas": 6
+      }
+    },
+    "erasureOriginal": {
+      "a": 3.595076400679117,
+      "b": 3.5531011045029737,
+      "dif": -0.041975296176143484,
+      "ic95": [-0.42007057246470025, 0.3429924647132831],
+      "falas": 8
+    },
+    "erasureTraducao": {
+      "a": 2.010064043915828,
+      "b": 0.12073490813648294,
+      "dif": -1.8893291357793451,
+      "ic95": [-2.6730981709286508, -1.064239310543621],
+      "falas": 8
+    },
+    "fimDaFala": {
+      "p50": {
+        "a": 789.5,
+        "b": 947.5,
+        "dif": 158,
+        "ic95": [4.5, 199.51874999999973]
+      },
+      "p75": {
+        "a": 852.625,
+        "b": 1021.375,
+        "dif": 168.75,
+        "ic95": [-5.375, 181.375]
+      },
+      "p95": {
+        "a": 1406.8249999999998,
+        "b": 1465.1249999999998,
+        "dif": 58.299999999999955,
+        "ic95": [-11.5, 180.29999999999995]
+      }
+    },
+    "primeiroTextoNaTelaMs": {
+      "a": 1225.5,
+      "b": 1020,
+      "dif": -205.5
+    },
+    "textos": {
+      "comparadas": 96,
+      "foraDoConjuntoDeA": 2,
+      "foraNormalizado": 1,
+      "divergentesEmA": 5,
+      "exemplos": [
+        {
+          "k": 2,
+          "texto": "Fire rescue crews eventually douse the fire by eleven thirty five p.m."
+        },
+        {
+          "k": 4,
+          "texto": "Through the night between one fifty and two hundred copies were made now known as \"Dinlap Broadseyes\"."
+        }
+      ],
+      "werA": 0.2074652777777778,
+      "werB": 0.20225694444444445
+    },
+    "traducoes": {
+      "comparadas": 96,
+      "foraDoConjuntoDeA": 34,
+      "foraNormalizado": 22,
+      "divergentesEmA": 7,
+      "exemplos": [
+        {
+          "k": 2,
+          "texto": "A equipe de resgate de incêndio acaba por afogar o fogo às 23h30."
+        },
+        {
+          "k": 2,
+          "texto": "As equipes de resgate acabaram por afundar"
+        },
+        {
+          "k": 2,
+          "texto": "As equipes de resgate acabam por afogar"
+        },
+        {
+          "k": 2,
+          "texto": "As equipes de"
+        },
+        {
+          "k": 2,
+          "texto": "As equipes de resgate acabam por afogar"
+        }
+      ],
+      "werA": null,
+      "werB": null
+    }
+  },
+  "juizo": {
+    "primaria": {
+      "a": 1289.5,
+      "b": 2691.5,
+      "dif": 1402,
+      "ic95": [366.9875, 1915.5124999999998],
+      "falas": 6
+    },
+    "guardas": [
+      {
+        "nome": "fimDaFalaAteLegendaMs p75",
+        "status": "piorou",
+        "detalhe": "dif 169 ms, IC 95% [-5, 181], limite superior ≤ 0"
+      },
+      {
+        "nome": "erasureOriginal (Emenda 1: não piorar contra A)",
+        "status": "piorou",
+        "detalhe": "dif -0.042, IC 95% [-0.420, 0.343], limite superior ≤ 0.050"
+      },
+      {
+        "nome": "erasureTraducao (Emenda 1: não piorar contra A)",
+        "status": "ok",
+        "detalhe": "dif -1.889, IC 95% [-2.673, -1.064], limite superior ≤ 0.050"
+      },
+      {
+        "nome": "atrasoDePalavraMs p50 do original (não pode piorar)",
+        "status": "ok",
+        "detalhe": "dif 10, IC 95% [-45, 105], reprova só com o IC inteiro acima de 0"
+      },
+      {
+        "nome": "texto final do original",
+        "status": "piorou",
+        "detalhe": "2 de 96 textos de B fora do conjunto de A (normalizado: 1); WER A 20.7%, B 20.2%; falas em que A varia entre rodadas: 5"
+      },
+      {
+        "nome": "tradução final",
+        "status": "piorou",
+        "detalhe": "34 de 96 traduções de B fora do conjunto de A (normalizado: 22); falas em que A varia entre rodadas: 7"
+      },
+      {
+        "nome": "SLO framesLongos.n50",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 5"
+      },
+      {
+        "nome": "SLO framesLongos.n100",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 3"
+      },
+      {
+        "nome": "SLO framesLongos.somaMs",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 500"
+      },
+      {
+        "nome": "SLO cpuSilencio.processoPct",
+        "status": "ok",
+        "detalhe": "A 13.279, B 13.215, limite 23.591"
+      },
+      {
+        "nome": "SLO rendersPorS.silencio",
+        "status": "ok",
+        "detalhe": "A 22.919, B 22.919, limite 31.649"
+      },
+      {
+        "nome": "SLO rendersPorS.fala",
+        "status": "ok",
+        "detalhe": "A 223.45, B 203.229, limite 289.313"
+      },
+      {
+        "nome": "SLO fimDaFalaAteLegendaMs.taxaDeFalha",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 0.15"
+      }
+    ],
+    "veredito": "REPROVADO",
+    "efeitoPct": -108.72431174873982,
+    "primariaGanha": false,
+    "primariaPior": true,
+    "reprovadas": [
+      "fimDaFalaAteLegendaMs p75",
+      "erasureOriginal (Emenda 1: não piorar contra A)",
+      "texto final do original",
+      "tradução final"
+    ]
+  },
+  "slo": [
+    {
+      "nome": "framesLongos.n50",
+      "a": 0,
+      "b": 0,
+      "limite": 5,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.n100",
+      "a": 0,
+      "b": 0,
+      "limite": 3,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.somaMs",
+      "a": 0,
+      "b": 0,
+      "limite": 500,
+      "status": "ok"
+    },
+    {
+      "nome": "cpuSilencio.processoPct",
+      "a": 13.27927290859245,
+      "b": 13.214552886245688,
+      "limite": 23.59098207202943,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.silencio",
+      "a": 22.91910902696366,
+      "b": 22.91910902696366,
+      "limite": 31.648886283704577,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.fala",
+      "a": 223.45036844386652,
+      "b": 203.2293021239705,
+      "limite": 289.3129605548331,
+      "status": "ok"
+    },
+    {
+      "nome": "fimDaFalaAteLegendaMs.taxaDeFalha",
+      "a": 0,
+      "b": 0,
+      "limite": 0.15,
+      "status": "ok"
+    }
+  ]
+}

@@ -1,0 +1,260 @@
+{
+  "a": "atual.fraco",
+  "b": "v1.fraco",
+  "variante": "v1",
+  "rodadas": [12, 12],
+  "c": {
+    "atrasoOriginal": {
+      "p50": {
+        "a": 1650,
+        "b": 1650,
+        "dif": 0,
+        "ic95": [-131.5, 212],
+        "falas": 6
+      },
+      "p90": {
+        "a": 3707.4,
+        "b": 3822.499999999999,
+        "dif": 115.099999999999,
+        "ic95": [-125.02500000000035, 527.1350000000026],
+        "falas": 6
+      }
+    },
+    "atrasoTraducao": {
+      "p50": {
+        "a": 2456,
+        "b": 2409,
+        "dif": -47,
+        "ic95": [-355.03749999999997, 156],
+        "falas": 6
+      },
+      "p90": {
+        "a": 4263.6,
+        "b": 4267.6,
+        "dif": 4,
+        "ic95": [-168.005, 123.51250000000088],
+        "falas": 6
+      }
+    },
+    "erasureOriginal": {
+      "a": 0.5079232693911593,
+      "b": 0.5611990008326395,
+      "dif": 0.053275731441480234,
+      "ic95": [0.0025435897237692465, 0.12473046803113681],
+      "falas": 8
+    },
+    "erasureTraducao": {
+      "a": 0.45610859728506786,
+      "b": 0.42579505300353354,
+      "dif": -0.03031354428153432,
+      "ic95": [-0.13878721800745425, 0.046842183127387554],
+      "falas": 8
+    },
+    "fimDaFala": {
+      "p50": {
+        "a": 1144,
+        "b": 1144.5,
+        "dif": 0.5,
+        "ic95": [-40.5, 16]
+      },
+      "p75": {
+        "a": 1213.625,
+        "b": 1222,
+        "dif": 8.375,
+        "ic95": [-24.5, 20.125]
+      },
+      "p95": {
+        "a": 1763.9999999999998,
+        "b": 1765.0499999999997,
+        "dif": 1.0499999999999545,
+        "ic95": [-20.37562499999978, 19.62562499999999]
+      }
+    },
+    "primeiroTextoNaTelaMs": {
+      "a": 1920,
+      "b": 1871.5,
+      "dif": -48.5
+    },
+    "textos": {
+      "comparadas": 96,
+      "foraDoConjuntoDeA": 6,
+      "foraNormalizado": 3,
+      "divergentesEmA": 5,
+      "exemplos": [
+        {
+          "k": 2,
+          "texto": "Fire rescue crews eventually douse the fire by eleven thirty five p.m."
+        },
+        {
+          "k": 2,
+          "texto": "Fire rescue crews eventually douse the fire by eleven thirty five p.m."
+        },
+        {
+          "k": 2,
+          "texto": "Fire rescue crews eventually douse the fire by eleven thirty five p.m."
+        },
+        {
+          "k": 4,
+          "texto": "For the night between one fifty and two hundred copies were made now known as \"Dinlaprodsides\"."
+        },
+        {
+          "k": 5,
+          "texto": "The Nazi face the site by marking or scratching, graffiti and six structures."
+        }
+      ],
+      "werA": 0.21180555555555555,
+      "werB": 0.20833333333333334
+    },
+    "traducoes": {
+      "comparadas": 96,
+      "foraDoConjuntoDeA": 16,
+      "foraNormalizado": 16,
+      "divergentesEmA": 7,
+      "exemplos": [
+        {
+          "k": 1,
+          "texto": "A prisão também rendeu homenagem a Lil."
+        },
+        {
+          "k": 1,
+          "texto": "Todos os anos de 1 00 também homenageiam os dois."
+        },
+        {
+          "k": 1,
+          "texto": "Os lutadores de LA também pagaram homenagem a"
+        },
+        {
+          "k": 1,
+          "texto": "Os lutadores de LA também pagaram homenagem a"
+        },
+        {
+          "k": 2,
+          "texto": "Resgate equipes eventualmente douse o"
+        }
+      ],
+      "werA": null,
+      "werB": null
+    }
+  },
+  "juizo": {
+    "primaria": {
+      "a": 1650,
+      "b": 1650,
+      "dif": 0,
+      "ic95": [-131.5, 212],
+      "falas": 6
+    },
+    "guardas": [
+      {
+        "nome": "fimDaFalaAteLegendaMs p75",
+        "status": "piorou",
+        "detalhe": "dif 8 ms, IC 95% [-24, 20], limite superior ≤ 0"
+      },
+      {
+        "nome": "erasureOriginal (Emenda 1: não piorar contra A)",
+        "status": "piorou",
+        "detalhe": "dif 0.053, IC 95% [0.003, 0.125], limite superior ≤ 0.050"
+      },
+      {
+        "nome": "texto final do original",
+        "status": "piorou",
+        "detalhe": "6 de 96 textos de B fora do conjunto de A (normalizado: 3); WER A 21.2%, B 20.8%; falas em que A varia entre rodadas: 5"
+      },
+      {
+        "nome": "SLO framesLongos.n50",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 5"
+      },
+      {
+        "nome": "SLO framesLongos.n100",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 3"
+      },
+      {
+        "nome": "SLO framesLongos.somaMs",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 500"
+      },
+      {
+        "nome": "SLO cpuSilencio.processoPct",
+        "status": "ok",
+        "detalhe": "A 13.326, B 13.563, limite 23.656"
+      },
+      {
+        "nome": "SLO rendersPorS.silencio",
+        "status": "ok",
+        "detalhe": "A 27.166, B 27.154, limite 36.957"
+      },
+      {
+        "nome": "SLO rendersPorS.fala",
+        "status": "ok",
+        "detalhe": "A 102.081, B 109.2, limite 137.601"
+      },
+      {
+        "nome": "SLO fimDaFalaAteLegendaMs.taxaDeFalha",
+        "status": "ok",
+        "detalhe": "A 0, B 0, limite 0.15"
+      }
+    ],
+    "veredito": "REPROVADO",
+    "efeitoPct": 0,
+    "primariaGanha": false,
+    "primariaPior": false,
+    "reprovadas": [
+      "fimDaFalaAteLegendaMs p75",
+      "erasureOriginal (Emenda 1: não piorar contra A)",
+      "texto final do original"
+    ]
+  },
+  "slo": [
+    {
+      "nome": "framesLongos.n50",
+      "a": 0,
+      "b": 0,
+      "limite": 5,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.n100",
+      "a": 0,
+      "b": 0,
+      "limite": 3,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.somaMs",
+      "a": 0,
+      "b": 0,
+      "limite": 500,
+      "status": "ok"
+    },
+    {
+      "nome": "cpuSilencio.processoPct",
+      "a": 13.325700193313837,
+      "b": 13.562631257351814,
+      "limite": 23.655980270639372,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.silencio",
+      "a": 27.16581325954787,
+      "b": 27.153546695629167,
+      "limite": 36.95726657443484,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.fala",
+      "a": 102.08062418725618,
+      "b": 109.2002600780234,
+      "limite": 137.6007802340702,
+      "status": "ok"
+    },
+    {
+      "nome": "fimDaFalaAteLegendaMs.taxaDeFalha",
+      "a": 0,
+      "b": 0,
+      "limite": 0.15,
+      "status": "ok"
+    }
+  ]
+}

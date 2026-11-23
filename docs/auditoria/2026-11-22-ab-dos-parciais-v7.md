@@ -53,7 +53,7 @@ Com `parciais_vivos`, o Intérprete, a Conversa virtual e o iChat não viam o te
 
 ## Se aprovado: o que ligar
 
-1. **Flags** (decisão [D] do dono; nascem desligadas, sem regra de plano): `parciais_vivos` e `parciais_parakeet` (esta só tem efeito com a anterior e onde o Parakeet é o motor). Migrações PG 0027/0028 e SQLite 0069/0070 têm numeração PROVISÓRIA: reconferir contra a `main` no PR. Ver `docs/flags.md`.
+1. **Flags** (decisão [D] do dono; nascem desligadas, sem regra de plano): `parciais_vivos` e `parciais_parakeet` (esta só tem efeito com a anterior e onde o Parakeet é o motor). Numeração conferida contra a `main` em 23/11/2026: PG 0029/0030/0031 (renumeradas de 0027/0028/0029) e SQLite 0069/0070/0071. **Entrega:** `acrescenta-decode` virou o modo padrão com a flag ligada, e os parciais vivos só valem na rota do Parakeet (pt/es); fora dela, o comportamento é o de flag desligada (ver `docs/flags.md`). Ver `docs/flags.md`.
 2. **O modo `acrescenta-decode` é chave de laboratório**, não padrão do código: o A/B rodou com `localStorage` `babel.lab.parciaisModo = acrescenta-decode` e a máscara no padrão 2 (`babel.lab.parciaisMascara` ausente). O padrão do código é `MODO_DE_PARCIAIS_PADRAO = 'cauda-token'` (`src/core/legendas/modoDeParciais.ts`). Ligar só as flags dá o modo `cauda-token` (V1), que NÃO é o que foi aprovado (a erasure sobe a 3,6).
 3. **O que falta para virar padrão do código:**
    - trocar `MODO_DE_PARCIAIS_PADRAO` para `acrescenta-decode` (ou fazer a flag `parciais_vivos` já implicar o modo), mantendo a máscara padrão 2, e ajustar os testes que assumem `cauda-token` como padrão (`modoDeParciais`, `pipelineDeFala-parciaisVivos`);

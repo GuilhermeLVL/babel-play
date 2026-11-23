@@ -54,3 +54,31 @@ chama.
 
 - **WHEN** a cadeia tem só o filtro local e ele barra
 - **THEN** o veredito traz o `motivo` (categoria) do filtro local
+
+### Requirement: As outras saídas de IA também passam pelo filtro para perfil protegido
+
+Para perfil protegido, o servidor SHALL conferir, com o mesmo filtro local, todo texto que o modelo escreve nas funções
+explicação, resumo, escrita, alternativas, polimento, parceiro de leitura e assistente ao vivo, depois da leitura do JSON e
+ANTES de responder, de gravar no cache ou de gravar no banco. Barrado, o servidor MUST responder 502 `saida_filtrada` sem
+nenhum texto do modelo, MUST NOT gravar nem guardar no cache o que foi barrado, e MUST contar o bloqueio por função e
+categoria (log `ia_saida_filtrada` só com `categoria`, `funcao` e `requestId`). Para adulto declarado nada muda.
+
+#### Scenario: Explicação com contato externo para menor
+
+- **WHEN** o modelo devolve uma explicação com um telefone ou convite de rede a um perfil protegido
+- **THEN** a resposta é 502 `saida_filtrada`, sem o texto, e a mesma explicação sai normalmente para adulto declarado
+
+#### Scenario: Resposta em cache do parceiro de leitura
+
+- **WHEN** a linha de cache de um perfil protegido tem texto que o filtro barra
+- **THEN** a resposta é 502 `saida_filtrada` e o texto não sai
+
+### Requirement: Perfil protegido não recebe o "Como respondo?" em fluxo
+
+Para perfil protegido, o servidor MUST NOT enviar nenhuma sugestão antes de o resultado inteiro passar pelo filtro: o provedor
+é chamado sem `stream` e as sugestões saem de uma vez, depois da conferência. Adulto declarado continua com o fluxo.
+
+#### Scenario: Menor pede o fluxo e o modelo escreve um contato em uma sugestão
+
+- **WHEN** um perfil protegido pede `application/x-ndjson` e uma das sugestões tem um contato externo
+- **THEN** nenhuma sugestão sai (nem as limpas), e a resposta é 502 `saida_filtrada`

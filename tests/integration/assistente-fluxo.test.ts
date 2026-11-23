@@ -221,9 +221,11 @@ const doDia = async (userId: ReturnType<typeof asUserId>) =>
 const tokensDoMes = (u: ReturnType<typeof asUserId>) => contador(u, 'llm_tokens', mes())
 const subcota = (u: ReturnType<typeof asUserId>) => contador(u, usageQuota.METRIC_ASSISTENTE_TOKENS_MES, mes())
 
-async function assinante(id: string) {
+/** Adulto declarado por padrão (sem idade o perfil é protegido e NÃO recebe fluxo); `menor: true` deixa sem idade. */
+async function assinante(id: string, menor = false) {
   const quem = asUserId(id)
   await subscriptions.upsert(quem, { plan: 'plus', status: 'active' })
+  if (!menor) await idades.declarar(quem, '1990-01-01')
   return quem
 }
 
@@ -618,10 +620,61 @@ describe('o Cancelar', () => {
   })
 })
 
+describe('perfil protegido: nada sai em fluxo antes do filtro (change filtro-tutor-menores, tarefa 4.2)', () => {
+  const PROIBIDA = {
+    texto: 'Sure! Add me on WhatsApp: +55 11 98765-4321',
+    traducao: 'Claro! Me adicione no WhatsApp.',
+    tom: 'informal',
+  }
+  const RESPOSTA_PROIBIDA = JSON.stringify({ sugestoes: [S1, PROIBIDA, S3] })
+
+  it('MENOR pede o fluxo: o provedor é chamado SEM stream e a sugestão barrada não sai em evento nenhum', async () => {
+    const menor = await assinante('fluxo-protegido-barrada', true)
+    const chamadas = provedor(() => respostaJson(RESPOSTA_PROIBIDA))
+    const antes = await doDia(menor)
+    const res = await pedir(menor)
+    expect(chamadas).toHaveLength(1)
+    expect(chamadas[0].stream).toBe(false)
+    // Nem a primeira sugestão (limpa) saiu: o resultado inteiro foi barrado antes de qualquer evento de sugestão.
+    // Antes do primeiro byte a recusa é o JSON de sempre: nada foi escrito em fluxo.
+    expect(res.escrito).toBe('')
+    expect(res.statusCode).toBe(502)
+    expect(res.body?.code).toBe('saida_filtrada')
+    expect(JSON.stringify(res.body)).not.toContain('98765')
+    // O provedor cobrou: o uso do dia fica consumido.
+    expect(await doDia(menor)).toBe(antes + 1)
+  })
+
+  it('MENOR sem o Accept de fluxo: JSON 502 saida_filtrada, sem o texto', async () => {
+    const menor = await assinante('fluxo-protegido-json', true)
+    provedor(() => respostaJson(RESPOSTA_PROIBIDA))
+    const res = await pedir(menor, false)
+    expect(res.statusCode).toBe(502)
+    expect(res.body?.code).toBe('saida_filtrada')
+    expect(JSON.stringify(res.body)).not.toContain('98765')
+  })
+
+  it('MENOR com resposta limpa: as sugestões saem de uma vez (sem stream no provedor)', async () => {
+    const menor = await assinante('fluxo-protegido-limpa', true)
+    const chamadas = provedor(() => respostaJson(RESPOSTA))
+    const res = await pedir(menor)
+    expect(chamadas[0].stream).toBe(false)
+    expect(res.eventos.map((e) => e.tipo)).toEqual(['sugestao', 'sugestao', 'sugestao', 'fim'])
+  })
+
+  it('ADULTO declarado: segue em fluxo e a mesma resposta não é filtrada', async () => {
+    const adulto = await assinante('fluxo-protegido-adulto')
+    const chamadas = provedor(() => respostaSse(sseInteiro(RESPOSTA_PROIBIDA)))
+    const res = await pedir(adulto)
+    expect(chamadas[0].stream).toBe(true)
+    expect(res.eventos.at(-1)).toMatchObject({ tipo: 'fim' })
+  })
+})
+
 describe('o menor, também em fluxo', () => {
   it('MENOR (idade não declarada): a instrução de segurança, e o contexto não sai do servidor', async () => {
-    const menor = await assinante('fluxo-menor')
-    const chamadas = provedor(() => respostaSse(sseInteiro(RESPOSTA)))
+    const menor = await assinante('fluxo-menor', true)
+    const chamadas = provedor(() => respostaJson(RESPOSTA))
     const res = await pedir(menor)
     expect(res.eventos.at(-1)).toMatchObject({ tipo: 'fim' })
     expect(chamadas[0].system).toContain('PÚBLICO MENOR')

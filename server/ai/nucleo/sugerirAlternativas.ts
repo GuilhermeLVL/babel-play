@@ -54,6 +54,7 @@ import { codigoDeIdioma, type RastroDeIa } from '../telemetriaDeIa'
 import { type ContextoDeIa, recusaDeQuemPede } from './contexto'
 import { decisor, type GanchosDoNucleo } from './ganchos'
 import { recusaDeErro, type RecusaDeIa, recusaNuvemOcupada, recusaPortaoFechado, recusar } from './recusa'
+import { recusaSeSaidaBarrada } from './saidaFiltrada'
 
 const ALTERNATIVAS = FUNCOES_DE_IA.alternativas
 /** O rótulo de log e de métrica é o da rota do app; a `/v1` terá o dela (change `api-e-mcp`). */
@@ -228,6 +229,9 @@ async function sugerir(
         recusaDeErro(502, 'o modelo não devolveu outras formas utilizáveis; tente de novo', 'resposta_invalida'),
       )
     }
+    /* Perfil protegido: o que o modelo escreveu passa pelo filtro local antes de sair (change `filtro-tutor-menores`). */
+    const barrada = await recusaSeSaidaBarrada(ctx, 'alternativas', menor, lidas)
+    if (barrada) return decidir(barrada)
     log('info', {
       event: 'mt_alternativas',
       route: ROTA,

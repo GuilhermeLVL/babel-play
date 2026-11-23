@@ -302,6 +302,25 @@ describe('com a Tradução Nuance', () => {
     expect(chamadas[0].system).not.toContain('PÚBLICO MENOR')
   })
 
+  it('MENOR: tradução polida com contato externo é barrada (502 saida_filtrada) e NADA é gravado', async () => {
+    const id = await sessaoCom(PAGANTE, 2)
+    provedor((c) => ({
+      texto: JSON.stringify({ linhas: c.linhas.map((l) => ({ n: l.n, traducao: 'me chama no zap (11) 98765-4321' })) }),
+    }))
+    const res = await pedir({ sessionId: id, bloco: 0 })
+    expect(res.statusCode).toBe(502)
+    expect(res.body?.code).toBe('saida_filtrada')
+    expect(JSON.stringify(res.body)).not.toContain('98765')
+    expect(res.body?.polidas).toBeUndefined()
+
+    // Nada gravado: um novo pedido (agora com resposta limpa) chama o provedor de novo e polir funciona.
+    const chamadas = provedor(polidaDeTudo)
+    const depois = await pedir({ sessionId: id, bloco: 0 })
+    expect(chamadas).toHaveLength(1)
+    expect(depois.statusCode).toBe(200)
+    expect(depois.body.polidas[0].traducaoPolida).toBe('polida: linha 0')
+  })
+
   it('resposta sem JSON utilizável: 502 resposta_invalida, nada gravado, e o custo fica registrado', async () => {
     const id = await sessaoCom(PAGANTE, 3)
     provedor(() => ({ texto: 'Desculpe, não consigo.' }))

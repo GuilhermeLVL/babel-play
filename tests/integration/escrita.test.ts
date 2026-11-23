@@ -375,6 +375,25 @@ describe('injeção, menor, retenção zero e privacidade', () => {
     expect(chamadas[2].system).not.toContain('PÚBLICO MENOR')
   })
 
+  it('MENOR: retorno com contato externo é barrado (502 saida_filtrada) e a cota do mês volta; adulto recebe', async () => {
+    const suja = JSON.stringify({ ...RETORNO, elogio: 'Ótimo! Me adiciona no discord: ana#1234 ou ana@exemplo.net' })
+    provedor(() => ({ texto: suja }))
+    const menor = await pagante('escrita-menor-barrada')
+    const res = await pedir(menor)
+    expect(res.statusCode).toBe(502)
+    expect(res.body?.code).toBe('saida_filtrada')
+    expect(JSON.stringify(res.body)).not.toContain('discord')
+    expect(res.body?.retorno).toBeUndefined()
+    // O retorno não chegou à pessoa: a cota do mês não conta (spec: erro da IA não gasta cota).
+    expect(await usados(menor)).toBe(0)
+
+    const adulto = await pagante('escrita-adulto-suja')
+    await idades.declarar(adulto, '1990-01-01')
+    const ok = await pedir(adulto)
+    expect(ok.statusCode).toBe(200)
+    expect(JSON.stringify(ok.body)).toContain('discord')
+  })
+
   it('só o provedor com retenção zero é chamado', async () => {
     process.env.IA_PROVEDORES = JSON.stringify({ provedores: [SEM_ZDR, OPENROUTER] })
     process.env.SEMZDR_API_KEY = 'chave-falsa'

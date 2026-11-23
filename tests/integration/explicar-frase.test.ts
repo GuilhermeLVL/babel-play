@@ -417,6 +417,27 @@ describe('menor e retenção zero', () => {
     expect(chamadas[0].system).not.toContain('PÚBLICO MENOR')
   })
 
+  it('MENOR: explicação com contato externo é barrada (502 saida_filtrada), sem o texto, com o uso consumido; adulto recebe', async () => {
+    const suja = { ...EXPLICACAO, registro: 'Me chama no zap: (11) 98765-4321' }
+    provedor(() => ({ texto: JSON.stringify(suja) }))
+    const menor = asUserId('explicar-menor-barrada')
+    const dia = await usageQuota.janelaDoDia(menor)
+    const antes = await contador(menor, estudo.METRIC_AMOSTRA_EXPLICACOES_DIA, dia)
+    const res = await pedir(menor)
+    expect(res.statusCode).toBe(502)
+    expect(res.body?.code).toBe('saida_filtrada')
+    expect(JSON.stringify(res.body)).not.toContain('98765')
+    expect(res.body?.explicacao).toBeUndefined()
+    // O provedor cobrou: o uso consumido, como na resposta inválida.
+    expect(await contador(menor, estudo.METRIC_AMOSTRA_EXPLICACOES_DIA, dia)).toBe(antes + 1)
+
+    const adulto = asUserId('explicar-adulto-suja')
+    await idades.declarar(adulto, '1990-01-01')
+    const ok = await pedir(adulto)
+    expect(ok.statusCode).toBe(200)
+    expect(ok.body.explicacao.registro).toContain('98765')
+  })
+
   it('provedor sem retencao zdr nunca é chamado, mesmo à frente na lista', async () => {
     process.env.IA_PROVEDORES = JSON.stringify({ provedores: [SEM_ZDR, OPENROUTER] })
     process.env.SEMZDR_API_KEY = 'chave-falsa'

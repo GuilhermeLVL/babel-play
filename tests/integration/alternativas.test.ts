@@ -197,6 +197,21 @@ describe('com a Tradução Nuance', () => {
     expect(chamadas[0].system).not.toContain('PÚBLICO MENOR')
   })
 
+  it('MENOR: opção com contato externo é barrada (502 saida_filtrada); adulto declarado recebe', async () => {
+    const suja = JSON.stringify({ opcoes: ['Até logo', 'Me chama no zap: (11) 98765-4321', 'Tchau'], nota: 'x' })
+    provedor(() => ({ texto: suja }))
+    const barrada = await pedir({ text: 'see you later', src: 'en' })
+    expect(barrada.statusCode).toBe(502)
+    expect(barrada.body?.code).toBe('saida_filtrada')
+    expect(JSON.stringify(barrada.body)).not.toContain('98765')
+    expect(barrada.body?.opcoes).toBeUndefined()
+
+    await idades.declarar(ADULTO, '1990-01-01')
+    const ok = await pedir({ text: 'see you later', src: 'en' }, ADULTO)
+    expect(ok.statusCode).toBe(200)
+    expect(JSON.stringify(ok.body)).toContain('98765')
+  })
+
   it('resposta sem JSON utilizável: 502 resposta_invalida, e o custo cobrado fica registrado', async () => {
     provedor(() => ({ texto: 'Desculpe, não consigo.' }))
     const gastoAntes = (await gasto.ler(mes()))?.microUsd ?? 0

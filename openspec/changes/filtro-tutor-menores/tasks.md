@@ -20,10 +20,13 @@
 - [x] 3.1 `IChat.tsx`: `filtrada` mostra a frase traduzida, sem origem e sem assinatura (`tests/ichat.test.tsx`)
 - [x] 3.2 Catálogos `en`, `es`, `ar`; `xx` e cobertura regenerados
 
-## 4. Próximas tarefas (fora deste change)
+## 4. Outras saídas de IA (feitas) e o que fica com o dono
 
-- [ ] 4.1 Filtrar as outras saídas de IA para perfil protegido: explicação (`explicarFrase.ts`), parceiro de leitura
-      (`parceiroDeLeitura.ts`), alternativas, resumo e polimento
-- [ ] 4.2 "Como respondo?" do assistente ao vivo (`assistenteAoVivo.ts`) é em fluxo: segurar o fluxo para perfil protegido
+- [x] 4.1 Filtrar as outras saídas de IA para perfil protegido: explicação (`explicarFrase.ts`), parceiro de leitura
+      (`parceiroDeLeitura.ts`), alternativas, resumo e polimento. Feito: `server/ai/nucleo/saidaFiltrada.ts`
+      (`recusaSeSaidaBarrada`) em explicação, resumo, escrita, alternativas, polimento, parceiro (inclusive a linha
+      lida do cache) e assistente; barrado é 502 `saida_filtrada`. Fora: `traducao` (legenda, texto de terceiros)
+- [x] 4.2 "Como respondo?" do assistente ao vivo (`assistenteAoVivo.ts`) é em fluxo: segurar o fluxo para perfil protegido.
+      Feito: o perfil protegido chama o provedor sem `stream` e as sugestões saem de uma vez, depois do filtro
 - [ ] 4.3 Opção C (moderação por IA) como segundo moderador da cadeia — decisão do dono, com custo medido
 - [ ] 4.4 Dono: revisar as listas e acompanhar `tutor_saida_filtrada` por categoria nas primeiras semanas

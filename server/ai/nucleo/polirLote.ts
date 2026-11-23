@@ -75,6 +75,7 @@ import { ReservaDeLlm, reservarLlm } from '../reservaDeNuvem'
 import { type ContextoDeIa, recusaDeQuemPede } from './contexto'
 import { decisor, type GanchosDoNucleo } from './ganchos'
 import { recusaDeErro, type RecusaDeIa, recusaNuvemOcupada, recusaPortaoFechado, recusar } from './recusa'
+import { recusaSeSaidaBarrada } from './saidaFiltrada'
 
 const POLIMENTO = FUNCOES_DE_IA.polimento
 /** O rótulo de log e de métrica é o da rota do app; a `/v1` terá o dela (change `api-e-mcp`). */
@@ -397,6 +398,9 @@ async function polirPendentes(
         recusaDeErro(502, 'o modelo não devolveu uma tradução polida utilizável; tente de novo', 'resposta_invalida'),
       )
     }
+    /* Perfil protegido: o que o modelo escreveu passa pelo filtro local antes de sair (change `filtro-tutor-menores`). */
+    const barrada = await recusaSeSaidaBarrada(ctx, 'polimento', menor, [...lidas.values()])
+    if (barrada) return decidir(barrada)
     const itens = [...lidas.entries()].map(([i, polida]) => ({
       id: pendentes[i].id,
       sourceText: pendentes[i].sourceText,

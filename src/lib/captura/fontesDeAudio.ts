@@ -377,9 +377,11 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
           if (rota === 'navegador') return navegador?.falaComecou();
           encaminhar(() => sysHandlers.onSpeechStart(seq));
         },
-        // Parcial velho não tem valor: só vai ao pipeline quando ele já é o motor.
+        /* Parcial velho não tem valor: só vai ao pipeline quando ele já é o motor. O RETORNO do pipeline (`false` =
+           sem decode ou sem texto) precisa chegar à captura: é ele que devolve a cota e libera o próximo parcial sem os
+           2 s de espaçamento (1º texto na tela: ~3,3 s quando o 1º parcial voltava vazio). */
         onPartialAudio: (pcm: Float32Array, sr: number, seq: number) => {
-          if (rota === 'pipeline') sysHandlers.onPartialAudio(pcm, sr, seq);
+          if (rota === 'pipeline') return sysHandlers.onPartialAudio(pcm, sr, seq);
         },
         // Perguntado ANTES de a captura copiar o áudio: fora do pipeline o parcial nem se monta.
         querParcial: () => rota === 'pipeline' && (sysHandlers.querParcial?.() ?? true),

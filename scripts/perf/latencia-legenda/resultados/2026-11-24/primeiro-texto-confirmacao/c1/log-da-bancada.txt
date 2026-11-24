@@ -1,0 +1,177 @@
+/private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/audio/bancada_en.wav  71.4 s, 8 falas, voz média 3.82 s
+[bancada] >> antes.desktop.aquecimento
+[antes.desktop.aquecimento] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[antes.desktop.aquecimento] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[antes.desktop.aquecimento] memória: pico do heap da janela 34 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[antes.desktop.aquecimento] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/antes.desktop.aquecimento.json | eventos 1138 | dom 41 | cap 8 | amostras 74 | erros 0
+[bancada]    antes.desktop.aquecimento: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 2985 ms · legenda completa 7200 ms · RTF p50 0.036 · memória null MB · CPU no silêncio 13.9% · renders/s 22.9 (silêncio) 97.5 (fala) · trocas de modelo 0 · pedidos ao Hub 26 · atraso/palavra original p50 960 p90 2566 ms (tradução p50 2742) · erasure 0.59/0.49
+[bancada] >> depois.desktop.aquecimento
+[depois.desktop.aquecimento] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[depois.desktop.aquecimento] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[depois.desktop.aquecimento] memória: pico do heap da janela 31 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[depois.desktop.aquecimento] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/depois.desktop.aquecimento.json | eventos 1154 | dom 49 | cap 8 | amostras 74 | erros 0
+[bancada]    depois.desktop.aquecimento: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 1753 ms · legenda completa 7167 ms · RTF p50 0.037 · memória null MB · CPU no silêncio 13.1% · renders/s 22.9 (silêncio) 108.4 (fala) · trocas de modelo 0 · pedidos ao Hub 26 · atraso/palavra original p50 1080 p90 3224 ms (tradução p50 2047) · erasure 0.90/0.70
+[bancada] >> antes.desktop.r1
+[antes.desktop.r1] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[antes.desktop.r1] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[antes.desktop.r1] memória: pico do heap da janela 33 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[antes.desktop.r1] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/antes.desktop.r1.json | eventos 1117 | dom 37 | cap 8 | amostras 75 | erros 0
+[bancada]    antes.desktop.r1: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 3282 ms · legenda completa 5447 ms · RTF p50 0.035 · memória null MB · CPU no silêncio 12.9% · renders/s 22.9 (silêncio) 90.1 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1288 p90 2673 ms (tradução p50 2338) · erasure 0.58/0.39
+[bancada] >> depois.desktop.r1
+[depois.desktop.r1] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[depois.desktop.r1] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[depois.desktop.r1] memória: pico do heap da janela 35 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[depois.desktop.r1] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/depois.desktop.r1.json | eventos 1144 | dom 45 | cap 8 | amostras 75 | erros 0
+[bancada]    depois.desktop.r1: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 1632 ms · legenda completa 5450 ms · RTF p50 0.035 · memória null MB · CPU no silêncio 13.0% · renders/s 22.9 (silêncio) 101.3 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1196 p90 3144 ms (tradução p50 1879) · erasure 0.79/0.73
+[bancada] >> antes.desktop.r2
+[antes.desktop.r2] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[antes.desktop.r2] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[antes.desktop.r2] memória: pico do heap da janela 35 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[antes.desktop.r2] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/antes.desktop.r2.json | eventos 1117 | dom 39 | cap 8 | amostras 75 | erros 0
+[bancada]    antes.desktop.r2: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 1025 ms · legenda completa 5441 ms · RTF p50 0.036 · memória null MB · CPU no silêncio 12.8% · renders/s 22.9 (silêncio) 95.1 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1250 p90 2598 ms (tradução p50 1733) · erasure 0.78/0.53
+[bancada] >> depois.desktop.r2
+[depois.desktop.r2] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[depois.desktop.r2] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[depois.desktop.r2] memória: pico do heap da janela 29 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[depois.desktop.r2] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/depois.desktop.r2.json | eventos 1143 | dom 45 | cap 8 | amostras 75 | erros 0
+[bancada]    depois.desktop.r2: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 1623 ms · legenda completa 5437 ms · RTF p50 0.035 · memória null MB · CPU no silêncio 12.9% · renders/s 22.9 (silêncio) 101.1 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1187 p90 3135 ms (tradução p50 1849) · erasure 0.73/0.69
+[bancada] >> antes.desktop.r3
+[antes.desktop.r3] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[antes.desktop.r3] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[antes.desktop.r3] memória: pico do heap da janela 30 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[antes.desktop.r3] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/antes.desktop.r3.json | eventos 1118 | dom 36 | cap 8 | amostras 75 | erros 0
+[bancada]    antes.desktop.r3: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 3402 ms · legenda completa 5433 ms · RTF p50 0.035 · memória null MB · CPU no silêncio 13.0% · renders/s 22.9 (silêncio) 87.9 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1323 p90 2760 ms (tradução p50 2394) · erasure 0.56/0.47
+[bancada] >> depois.desktop.r3
+[depois.desktop.r3] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[depois.desktop.r3] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[depois.desktop.r3] memória: pico do heap da janela 30 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[depois.desktop.r3] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/depois.desktop.r3.json | eventos 1144 | dom 44 | cap 8 | amostras 75 | erros 0
+[bancada]    depois.desktop.r3: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 1631 ms · legenda completa 5445 ms · RTF p50 0.036 · memória null MB · CPU no silêncio 13.7% · renders/s 22.9 (silêncio) 100.4 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1304 p90 3135 ms (tradução p50 2170) · erasure 0.79/0.58
+[bancada] >> antes.desktop.r4
+[antes.desktop.r4] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[antes.desktop.r4] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[antes.desktop.r4] memória: pico do heap da janela 33 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[antes.desktop.r4] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/antes.desktop.r4.json | eventos 1117 | dom 37 | cap 8 | amostras 75 | erros 0
+[bancada]    antes.desktop.r4: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 3284 ms · legenda completa 5450 ms · RTF p50 0.035 · memória null MB · CPU no silêncio 13.2% · renders/s 22.9 (silêncio) 90.0 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1291 p90 2705 ms (tradução p50 2341) · erasure 0.54/0.35
+[bancada] >> depois.desktop.r4
+[depois.desktop.r4] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[depois.desktop.r4] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[depois.desktop.r4] memória: pico do heap da janela 30 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[depois.desktop.r4] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/depois.desktop.r4.json | eventos 1150 | dom 46 | cap 8 | amostras 75 | erros 0
+[bancada]    depois.desktop.r4: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 1635 ms · legenda completa 5466 ms · RTF p50 0.034 · memória null MB · CPU no silêncio 13.3% · renders/s 22.9 (silêncio) 102.9 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1167 p90 2726 ms (tradução p50 2009) · erasure 0.86/0.87
+[bancada] >> antes.desktop.r5
+[antes.desktop.r5] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[antes.desktop.r5] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[antes.desktop.r5] memória: pico do heap da janela 32 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[antes.desktop.r5] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/antes.desktop.r5.json | eventos 1125 | dom 39 | cap 8 | amostras 75 | erros 0
+[bancada]    antes.desktop.r5: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 3185 ms · legenda completa 5451 ms · RTF p50 0.035 · memória null MB · CPU no silêncio 13.5% · renders/s 22.9 (silêncio) 94.1 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1330 p90 2667 ms (tradução p50 2238) · erasure 0.62/0.52
+[bancada] >> depois.desktop.r5
+[depois.desktop.r5] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[depois.desktop.r5] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[depois.desktop.r5] memória: pico do heap da janela 30 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[depois.desktop.r5] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/depois.desktop.r5.json | eventos 1146 | dom 45 | cap 8 | amostras 75 | erros 0
+[bancada]    depois.desktop.r5: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 1637 ms · legenda completa 5486 ms · RTF p50 0.036 · memória null MB · CPU no silêncio 16.0% · renders/s 22.9 (silêncio) 102.1 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1220 p90 2716 ms (tradução p50 2404) · erasure 0.88/0.74
+[bancada] >> antes.desktop.r6
+[antes.desktop.r6] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[antes.desktop.r6] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[antes.desktop.r6] memória: pico do heap da janela 33 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[antes.desktop.r6] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/antes.desktop.r6.json | eventos 1118 | dom 38 | cap 8 | amostras 75 | erros 0
+[bancada]    antes.desktop.r6: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 3411 ms · legenda completa 5513 ms · RTF p50 0.035 · memória null MB · CPU no silêncio 12.8% · renders/s 22.9 (silêncio) 90.7 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1145 p90 2675 ms (tradução p50 2285) · erasure 0.60/0.49
+[bancada] >> depois.desktop.r6
+[depois.desktop.r6] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[depois.desktop.r6] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[depois.desktop.r6] memória: pico do heap da janela 33 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[depois.desktop.r6] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/depois.desktop.r6.json | eventos 1150 | dom 46 | cap 8 | amostras 75 | erros 0
+[bancada]    depois.desktop.r6: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 1622 ms · legenda completa 5453 ms · RTF p50 0.036 · memória null MB · CPU no silêncio 14.0% · renders/s 22.9 (silêncio) 102.3 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1180 p90 3135 ms (tradução p50 2171) · erasure 0.87/0.64
+[bancada] >> antes.desktop.r7
+[antes.desktop.r7] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[antes.desktop.r7] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[antes.desktop.r7] memória: pico do heap da janela 33 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[antes.desktop.r7] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/antes.desktop.r7.json | eventos 1118 | dom 37 | cap 8 | amostras 75 | erros 0
+[bancada]    antes.desktop.r7: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 3200 ms · legenda completa 5499 ms · RTF p50 0.035 · memória null MB · CPU no silêncio 12.4% · renders/s 22.9 (silêncio) 90.2 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1322 p90 2703 ms (tradução p50 2355) · erasure 0.62/0.40
+[bancada] >> depois.desktop.r7
+[depois.desktop.r7] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[depois.desktop.r7] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[depois.desktop.r7] memória: pico do heap da janela 30 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[depois.desktop.r7] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/depois.desktop.r7.json | eventos 1153 | dom 46 | cap 8 | amostras 75 | erros 0
+[bancada]    depois.desktop.r7: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 1634 ms · legenda completa 5465 ms · RTF p50 0.035 · memória null MB · CPU no silêncio 12.6% · renders/s 22.9 (silêncio) 104.1 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1165 p90 2578 ms (tradução p50 1887) · erasure 0.85/0.88
+[bancada] >> antes.desktop.r8
+[antes.desktop.r8] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[antes.desktop.r8] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[antes.desktop.r8] memória: pico do heap da janela 31 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[antes.desktop.r8] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/antes.desktop.r8.json | eventos 1118 | dom 37 | cap 8 | amostras 75 | erros 0
+[bancada]    antes.desktop.r8: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 3192 ms · legenda completa 5460 ms · RTF p50 0.035 · memória null MB · CPU no silêncio 12.3% · renders/s 22.9 (silêncio) 90.2 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1316 p90 2691 ms (tradução p50 2344) · erasure 0.62/0.40
+[bancada] >> depois.desktop.r8
+[depois.desktop.r8] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[depois.desktop.r8] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[depois.desktop.r8] memória: pico do heap da janela 34 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[depois.desktop.r8] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/depois.desktop.r8.json | eventos 1156 | dom 50 | cap 8 | amostras 75 | erros 0
+[bancada]    depois.desktop.r8: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 1036 ms · legenda completa 5451 ms · RTF p50 0.036 · memória null MB · CPU no silêncio 14.4% · renders/s 22.9 (silêncio) 107.5 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1136 p90 2426 ms (tradução p50 1625) · erasure 1.06/0.99
+[bancada] >> antes.desktop.r9
+[antes.desktop.r9] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[antes.desktop.r9] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[antes.desktop.r9] memória: pico do heap da janela 33 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[antes.desktop.r9] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/antes.desktop.r9.json | eventos 1115 | dom 34 | cap 8 | amostras 75 | erros 0
+[bancada]    antes.desktop.r9: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 3167 ms · legenda completa 5450 ms · RTF p50 0.035 · memória null MB · CPU no silêncio 12.9% · renders/s 22.9 (silêncio) 86.0 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1292 p90 2644 ms (tradução p50 2391) · erasure 0.48/0.34
+[bancada] >> depois.desktop.r9
+[depois.desktop.r9] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[depois.desktop.r9] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[depois.desktop.r9] memória: pico do heap da janela 30 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[depois.desktop.r9] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/depois.desktop.r9.json | eventos 1148 | dom 47 | cap 8 | amostras 75 | erros 0
+[bancada]    depois.desktop.r9: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 1630 ms · legenda completa 5460 ms · RTF p50 0.035 · memória null MB · CPU no silêncio 12.9% · renders/s 22.9 (silêncio) 104.8 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1188 p90 2822 ms (tradução p50 2404) · erasure 0.96/0.81
+[bancada] >> antes.desktop.r10
+[antes.desktop.r10] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[antes.desktop.r10] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[antes.desktop.r10] memória: pico do heap da janela 33 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[antes.desktop.r10] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/antes.desktop.r10.json | eventos 1115 | dom 34 | cap 8 | amostras 75 | erros 0
+[bancada]    antes.desktop.r10: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 3411 ms · legenda completa 5445 ms · RTF p50 0.035 · memória null MB · CPU no silêncio 12.9% · renders/s 22.9 (silêncio) 85.3 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1356 p90 2783 ms (tradução p50 2414) · erasure 0.44/0.34
+[bancada] >> depois.desktop.r10
+[depois.desktop.r10] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[depois.desktop.r10] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[depois.desktop.r10] memória: pico do heap da janela 30 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[depois.desktop.r10] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/depois.desktop.r10.json | eventos 1148 | dom 47 | cap 8 | amostras 75 | erros 0
+[bancada]    depois.desktop.r10: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 1640 ms · legenda completa 5456 ms · RTF p50 0.035 · memória null MB · CPU no silêncio 12.1% · renders/s 22.9 (silêncio) 104.9 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1181 p90 2715 ms (tradução p50 2410) · erasure 0.96/0.82
+[bancada] >> antes.desktop.r11
+[antes.desktop.r11] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[antes.desktop.r11] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[antes.desktop.r11] memória: pico do heap da janela 32 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[antes.desktop.r11] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/antes.desktop.r11.json | eventos 1121 | dom 43 | cap 8 | amostras 75 | erros 0
+[bancada]    antes.desktop.r11: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 1097 ms · legenda completa 5479 ms · RTF p50 0.036 · memória null MB · CPU no silêncio 14.4% · renders/s 22.9 (silêncio) 99.9 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 995 p90 2657 ms (tradução p50 1545) · erasure 0.76/0.69
+[bancada] >> depois.desktop.r11
+[depois.desktop.r11] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[depois.desktop.r11] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[depois.desktop.r11] memória: pico do heap da janela 30 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[depois.desktop.r11] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/depois.desktop.r11.json | eventos 1146 | dom 46 | cap 8 | amostras 75 | erros 0
+[bancada]    depois.desktop.r11: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 1649 ms · legenda completa 5549 ms · RTF p50 0.036 · memória null MB · CPU no silêncio 12.6% · renders/s 22.9 (silêncio) 102.9 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1240 p90 3295 ms (tradução p50 2029) · erasure 0.92/0.85
+[bancada] >> antes.desktop.r12
+[antes.desktop.r12] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[antes.desktop.r12] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[antes.desktop.r12] memória: pico do heap da janela 33 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[antes.desktop.r12] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/antes.desktop.r12.json | eventos 1116 | dom 36 | cap 8 | amostras 75 | erros 0
+[bancada]    antes.desktop.r12: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 3424 ms · legenda completa 5506 ms · RTF p50 0.035 · memória null MB · CPU no silêncio 12.5% · renders/s 22.9 (silêncio) 88.5 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1225 p90 2688 ms (tradução p50 2394) · erasure 0.57/0.46
+[bancada] >> depois.desktop.r12
+[depois.desktop.r12] idiomas:  English (US) → Português (BR)  | Cada fala vira legenda bilíngue em Português (BR). | 
+[depois.desktop.r12] captura iniciada; áudio de 71.4 s | aparelho: {"tipo":"desktop-sem-gpu","modoLeve":"false"}
+[depois.desktop.r12] memória: pico do heap da janela 36 MB | processo da aba: pico 0 MB, no fim null MB | measureUserAgentSpecificMemory {"erro":"Error: page.evaluate: SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available.\n    at eval (eval at evaluate (:3"}
+[depois.desktop.r12] gravado /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1/rodadas/depois.desktop.r12.json | eventos 1148 | dom 48 | cap 8 | amostras 75 | erros 0
+[bancada]    depois.desktop.r12: moonshine-base-ONNX · frames>50 0 (>100 0, Σ 0 ms) · 1º texto na tela 1633 ms · legenda completa 5465 ms · RTF p50 0.035 · memória null MB · CPU no silêncio 12.5% · renders/s 22.9 (silêncio) 105.6 (fala) · trocas de modelo 0 · pedidos ao Hub 2 · atraso/palavra original p50 1130 p90 2734 ms (tradução p50 2018) · erasure 0.94/0.96
+### Antes × depois — 12 rodadas intercaladas por perfil (mediana)
+
+| perfil | métrica | antes | depois | Δ |
+|---|---|---|---|---|
+| desktop | frames > 50 ms na sessão | 0 | 0 | 0% |
+| desktop | frames > 100 ms na sessão | 0 | 0 | 0% |
+| desktop | soma dos frames longos (ms) | 0 | 0 | 0% |
+| desktop | início da 1ª fala → legenda completa (ms) | 5450,5 | 5458 | 0% |
+| desktop | início da 1ª fala → 1º texto na tela (ms) | 3241 | 1632,5 | −50% |
+| desktop | RTF do STT local, p50 | 0,035 | 0,035 | 0% |
+| desktop | RTF do STT local, p95 | 0,037 | 0,038 | +2% |
+| desktop | memória de pico do processo da aba (MB) | — | — | — |
+| desktop | CPU da aba no silêncio (% de um núcleo) | 12,9 | 12,98 | +1% |
+| desktop | renders/s no silêncio | 22,92 | 22,92 | 0% |
+| desktop | renders/s com fala | 90,13 | 102,9 | +14% |
+| desktop | fim da fala → tradução final na tela, p50 (ms) | 937 | 925 | −1% |
+| desktop | fim da fala → tradução final na tela, p75 (ms) | 998,5 | 977,5 | −2% |
+| desktop | fim da fala → tradução final na tela, p95 (ms) | 1618,3 | 1625 | 0% |
+| desktop | fim da fala → legenda: taxa de falha (fração das falas) | 0 | 0 | 0% |
+[bancada] saída em /private/tmp/claude-501/-Users-guilhermepinheirodeoliveira-orca-workspaces-babel-play-hippocamp/cf55e47e-21a9-4c5c-976b-936e26614b47/scratchpad/n/c1

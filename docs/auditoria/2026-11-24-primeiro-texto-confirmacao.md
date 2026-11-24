@@ -8,13 +8,13 @@ O veredito de 23/11 (REPROVADO pela guarda 1 com teto de +30 ms) FICA; esta é a
 
 **APROVADO.** Primária melhor e as três guardas passam. O critério não mudou depois do número.
 
-| item | resultado | critério | situação |
-| --- | --- | --- | --- |
-| Primária, C1 `fleurs-en-8`, desktop: `primeiroTextoNaTelaMs` mediana (12 × 12 válidas) | 3.241 → 1.632,5 ms; dif. −1.608,5 ms (−50%), IC 95% [−1.774, −1.543]; rodadas >= 2,5 s: 10/12 → 0/12 | IC < 0 e efeito >= 20% | melhor |
-| Guarda 1, C2 `fleurs-pt-16`, desktop: `fimDaFalaAteOriginalMs` p75 pareado (16 falas) | 921 → 939 ms; dif. +18 ms, IC 95% [−73, +65] (`ab-parciais.mjs --teto-final-ms 100`) | limite superior <= +100 | passa |
-| Guarda 1, C1 (informativa): `fimDaFalaAteLegendaMs` p75 (8 falas) | 1.017 → 970 ms; dif. −47 ms, IC [−164, +164] | informativa | só informa |
-| Guarda 2: SLO `comparar.mjs --ambiente local-darwin` sobre `depois` (C1) | todas "ok"; 1º texto "melhorou" (−49%) | sem reprovação | passa |
-| Guarda 3: taxa de falha da legenda (C1) | 0/96 em `antes` e em `depois` | <= antes | passa |
+| item                                                                                   | resultado                                                                                            | critério                | situação   |
+| -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------- | ---------- |
+| Primária, C1 `fleurs-en-8`, desktop: `primeiroTextoNaTelaMs` mediana (12 × 12 válidas) | 3.241 → 1.632,5 ms; dif. −1.608,5 ms (−50%), IC 95% [−1.774, −1.543]; rodadas >= 2,5 s: 10/12 → 0/12 | IC < 0 e efeito >= 20%  | melhor     |
+| Guarda 1, C2 `fleurs-pt-16`, desktop: `fimDaFalaAteOriginalMs` p75 pareado (16 falas)  | 921 → 939 ms; dif. +18 ms, IC 95% [−73, +65] (`ab-parciais.mjs --teto-final-ms 100`)                 | limite superior <= +100 | passa      |
+| Guarda 1, C1 (informativa): `fimDaFalaAteLegendaMs` p75 (8 falas)                      | 1.017 → 970 ms; dif. −47 ms, IC [−164, +164]                                                         | informativa             | só informa |
+| Guarda 2: SLO `comparar.mjs --ambiente local-darwin` sobre `depois` (C1)               | todas "ok"; 1º texto "melhorou" (−49%)                                                               | sem reprovação          | passa      |
+| Guarda 3: taxa de falha da legenda (C1)                                                | 0/96 em `antes` e em `depois`                                                                        | <= antes                | passa      |
 
 Rodadas: 12 válidas por braço em C1 e em C2, intercaladas, aquecimento descartado, nenhuma inválida, nenhuma refeita.
 Informativo em C2: `primeiroTextoNaTelaMs` 6.373 → 6.333 ms, dif. −40 ms, IC [−138, +40] (sem diferença; nesta rota o 1º texto não é bimodal).

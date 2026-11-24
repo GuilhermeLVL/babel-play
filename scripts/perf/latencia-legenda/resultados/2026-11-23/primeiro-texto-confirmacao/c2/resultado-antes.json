@@ -1,0 +1,136 @@
+{
+  "ambiente": "local-darwin",
+  "quando": "2026-11-24T03:43:04.885Z",
+  "commit": "07612e23",
+  "alvo": {
+    "nome": "antes",
+    "url": "http://127.0.0.1:4182"
+  },
+  "maquina": {
+    "so": "Darwin 27.0.0",
+    "cpu": "Apple M5 Pro",
+    "nucleos": 15,
+    "memoriaGb": 24,
+    "navegador": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/159.0.8154.6 Safari/537.36"
+  },
+  "perfis": {
+    "desktop": {
+      "palavras": {
+        "rodadas": 9,
+        "falasComMedida": 129,
+        "foraDoCalculo": 18,
+        "semCasamento": 23,
+        "atrasoDePalavraMs": {
+          "original": {
+            "n": 1226,
+            "p50": 2626,
+            "p90": 4398
+          },
+          "traducao": {
+            "n": 0,
+            "p50": null,
+            "p90": null
+          }
+        },
+        "erasureOriginal": {
+          "apagadas": 0,
+          "final": 1446,
+          "ne": 0
+        },
+        "erasureTraducao": {
+          "apagadas": 0,
+          "final": 0,
+          "ne": null
+        }
+      },
+      "legenda": {
+        "n": 0,
+        "falhas": 0,
+        "semTraducao": 144
+      },
+      "erroDoMarcador": {
+        "n": 144,
+        "medianaMs": 32,
+        "medianaAbsMs": 40.5,
+        "p95AbsMs": 250
+      },
+      "rodadas": 9,
+      "invalidas": [
+        {
+          "rotulo": "antes.desktop.r10",
+          "motivo": "sem-sonda: a sonda de áudio não registrou nenhuma janela (bipe não encontrado)"
+        },
+        {
+          "rotulo": "antes.desktop.r11",
+          "motivo": "sem-sonda: a sonda de áudio não registrou nenhuma janela (bipe não encontrado)"
+        },
+        {
+          "rotulo": "antes.desktop.r12",
+          "motivo": "sem-sonda: a sonda de áudio não registrou nenhuma janela (bipe não encontrado)"
+        }
+      ],
+      "falasNoRtf": 144,
+      "metricas": {
+        "framesLongos.n50": 0,
+        "framesLongos.n100": 0,
+        "framesLongos.somaMs": 0,
+        "framesLongos.maiorMs": 0,
+        "primeiraLegendaMs": null,
+        "primeiroTextoNaTelaMs": 6307,
+        "sttProntoMs": null,
+        "memoriaPicoMb": null,
+        "heapPicoMb": 12,
+        "cpuSilencio.processoPct": 14.020011193333723,
+        "cpuSilencio.principalPct": 3.338741371805239,
+        "cpuSilencio.foraDaPrincipalPct": 10.684601020789243,
+        "cpuSilencio.workersPct": null,
+        "rendersPorS.silencio": 22.838785046728972,
+        "rendersPorS.fala": 57.93987086359968,
+        "commitsPorS.silencio": 0.9929906542056074,
+        "commitsPorS.fala": 2.3103309120258273,
+        "fimATraducao.p50": null,
+        "regulador.trocasDeModelo": 0,
+        "rtf.p50": 0.094,
+        "rtf.p95": 0.098,
+        "fimDaFalaAteLegendaMs.p50": null,
+        "fimDaFalaAteLegendaMs.p75": null,
+        "fimDaFalaAteLegendaMs.p95": null,
+        "fimDaFalaAteLegendaMs.taxaDeFalha": null,
+        "atrasoDePalavraMs.original.p50": 2626,
+        "atrasoDePalavraMs.original.p90": 4398,
+        "atrasoDePalavraMs.traducao.p50": null,
+        "atrasoDePalavraMs.traducao.p90": null,
+        "erasureOriginal": 0,
+        "erasureTraducao": null
+      },
+      "dispersao": {
+        "framesLongos.n50": null,
+        "framesLongos.n100": null,
+        "framesLongos.somaMs": null,
+        "framesLongos.maiorMs": null,
+        "primeiraLegendaMs": null,
+        "primeiroTextoNaTelaMs": 0.026319961947042968,
+        "sttProntoMs": null,
+        "memoriaPicoMb": null,
+        "heapPicoMb": 0,
+        "cpuSilencio.processoPct": 0.22385246999423186,
+        "cpuSilencio.principalPct": 0.50774438479629,
+        "cpuSilencio.foraDaPrincipalPct": 0.1355368055691094,
+        "cpuSilencio.workersPct": null,
+        "rendersPorS.silencio": 0,
+        "rendersPorS.fala": 0.01393000174125021,
+        "commitsPorS.silencio": 0,
+        "commitsPorS.fala": 0.01746724890829674,
+        "fimATraducao.p50": null,
+        "regulador.trocasDeModelo": null
+      },
+      "modelos": [],
+      "aparelho": {
+        "tipo": "desktop-sem-gpu",
+        "modoLeve": "false"
+      },
+      "origem": "medido",
+      "aparelhoDescricao": "Apple M5 Pro, 15 núcleos, 24 GB"
+    }
+  }
+}

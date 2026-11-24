@@ -1,0 +1,10 @@
+{
+  "rotulo": "depois.desktop.r12",
+  "perfil": {
+    "tipo": "desktop-sem-gpu",
+    "modoLeve": "false"
+  },
+  "valida": false,
+  "motivo": "sem-sonda: a sonda de áudio não registrou nenhuma janela (bipe não encontrado)",
+  "motivoCodigo": "sem-sonda"
+}

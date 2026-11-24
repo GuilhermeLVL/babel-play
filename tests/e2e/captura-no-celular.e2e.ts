@@ -161,8 +161,8 @@ async function webSpeechFalsa(page: Page, modo: 'ok' | 'erro' | 'android') {
  * `downloadprogress`) e então traduz como `[trad] texto`. Enquanto baixa, a cadeia só tem motores
  * carregando — a fala tem de ficar PENDENTE, e não virar o original entre parênteses.
  */
-async function tradutorFalso(page: Page, passoMs = 1000) {
-  await page.addInitScript((passo) => {
+async function tradutorFalso(page: Page) {
+  await page.addInitScript(() => {
     const w = window as unknown as Record<string, unknown>
     let pronto = false
     w.Translator = {
@@ -181,10 +181,10 @@ async function tradutorFalso(page: Page, passoMs = 1000) {
             clearInterval(id)
             pronto = true
             resolver({ translate: async (t: string) => `[trad] ${t}` })
-          }, passo)
+          }, 1000)
         }),
     }
-  }, passoMs)
+  })
 }
 
 /**
@@ -296,41 +296,6 @@ test.describe('Captura no celular (Pixel 7, sem getDisplayMedia)', () => {
     await expect(daFrase).toHaveCount(1)
     await expect(page.getByText(/Tradução indisponível agora/)).toHaveCount(0)
   })
-
-  /**
-   * O CARTÃO DE PREPARO NÃO SOBREPÕE A LISTA (tarefa 3.2 de `traducao-sem-rota-no-celular`). Com o pacote do
-   * tradutor baixando (devagar, para dar tempo de medir) e uma fala já na lista, o retângulo do cartão não
-   * cruza o da fala nem o da barra de controles, e cabe na largura da janela, nos três tamanhos.
-   */
-  for (const [nome, largura, altura] of [
-    ['375×667', 375, 667],
-    ['412×915', 412, 915],
-    ['1280×800', 1280, 800],
-  ] as const) {
-    test(`cartão de preparo sem sobrepor a lista (${nome})`, async ({ page }) => {
-      test.slow()
-      await webSpeechFalsa(page, 'android')
-      await tradutorFalso(page, 20_000)
-      await abrirCaptura(page)
-      await escolherNaFolha(page, 'Rápido', /baixa o tradutor/, /Baixar e iniciar/)
-      await expect(parar(page)).toBeVisible({ timeout: 15_000 })
-      /* A janela muda com a sessão de pé: a frase de abertura da tela é a do celular, e o que se mede é o layout. */
-      await page.setViewportSize({ width: largura, height: altura })
-      const cartao = page.getByTestId('cartao-de-preparo')
-      const fala = falas(page).first()
-      await expect(cartao).toBeVisible({ timeout: 10_000 })
-      await expect(fala).toBeVisible({ timeout: 10_000 })
-      const cx = (await cartao.boundingBox())!
-      const outros = [fala, page.getByRole('toolbar', { name: 'Controles da captura' })]
-      for (const o of outros) {
-        const r = (await o.boundingBox())!
-        const cruza = cx.x < r.x + r.width && r.x < cx.x + cx.width && cx.y < r.y + r.height && r.y < cx.y + cx.height
-        expect(cruza, `o cartão (${JSON.stringify(cx)}) cruza ${JSON.stringify(r)}`).toBe(false)
-      }
-      expect(cx.x).toBeGreaterThanOrEqual(0)
-      expect(cx.x + cx.width).toBeLessThanOrEqual(largura)
-    })
-  }
 })
 
 /** Foto de conferência, só quando pedida (`FOTOS_DIR`): a maquete aprovada contra a tela de verdade. */

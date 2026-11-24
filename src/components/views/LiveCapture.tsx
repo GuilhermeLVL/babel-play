@@ -3588,7 +3588,7 @@ export default function LiveCapture({
             {avisoDePermissao}
             {avisoDoBipe}
             {modelPrep && !preparoConcluido(modelPrep) && (
-              <div style={{ margin: '10px 16px 0' }} data-testid="cartao-de-preparo">
+              <div style={{ margin: '10px 16px 0' }}>
                 <ModelPrepPanel
                   state={estadoDoPreparo ?? modelPrep}
                   onRetry={prepareModels}

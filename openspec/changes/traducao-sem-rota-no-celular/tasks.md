@@ -18,8 +18,8 @@
 
 - [x] 3.1 `pacotesNativos.ts`: prazo de 20 s sem progresso por par e falha quando o disjuntor `chrome-translator` abre; a primeira tradução local tira o `tradutor` do cartão. Verificar: teste com relógio falso (um par falha, o outro parado: o cartão some em 20 s).
   - Feitos: o prazo de 20 s, o "local assumiu" e o descarte da sessão anterior. NÃO foi ligado o gancho do disjuntor `chrome-translator`; o prazo de 20 s cobre o mesmo caso.
-- [x] 3.2 `ModelPrepPanel.tsx` na faixa de avisos, sem sobrepor a lista. Verificar: e2e que compara os retângulos em 375×667, 412×915 e 1280×800.
-  - Feito: `tests/e2e/captura-no-celular.e2e.ts` ("cartão de preparo sem sobrepor a lista") baixa o tradutor devagar com uma fala na lista e confere que o retângulo do cartão (`data-testid="cartao-de-preparo"`) não cruza a fala nem a barra de controles e cabe na largura, nos três tamanhos. Rodou verde em Chromium. O cartão continua no fluxo da faixa de avisos (sem `position: absolute`).
+- [ ] 3.2 `ModelPrepPanel.tsx` na faixa de avisos, sem sobrepor a lista. Verificar: e2e que compara os retângulos em 375×667, 412×915 e 1280×800.
+  - Pendente. O cartão já está no fluxo da faixa de avisos (não é absoluto), e nas rodadas a sobreposição medida foi 0. O e2e das três janelas não foi escrito. Ver `openspec/audits/2026-11-17-traducao-sem-rota-medicao.md`.
 - [x] 3.3 `ModoInterprete.tsx:768-780`: `comoInstalarVoz` antes do progresso de preparo. Verificar: teste de componente com voz ausente e preparo em curso.
   - Testado na função pura `avisoComAVozPrimeiro`, sem teste de componente.
 

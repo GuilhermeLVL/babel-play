@@ -14,7 +14,7 @@ html[data-quest-novo='true'] .q-casca:has(.px-pronto, .px-parada) .q-trilho {
 /* Os avisos da captura (nuvem sem consentimento, permissão, bipe) sobre o fundo da tela nova, que é o
    do tema: a regra da gravação antiga (`.cel-gravando > .aviso-info`) os pinta para o fundo escuro, e
    no tema claro o texto sumia. */
-.cel.px-vivo > .aviso-info {
+:is(.cel.px-vivo, .cel.px-vivo .cel-rola) > .aviso-info {
   color: var(--ink);
   border-color: var(--border-subtle);
 }

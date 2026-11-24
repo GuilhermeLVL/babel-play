@@ -255,38 +255,42 @@ export default function CapturaDoPrototipo({
         )}
       </div>
       {nivel.linha}
-      {avisos}
-      {avatar?.dica}
-      {avatar?.presenca}
-      <div className="cel-conversa">
-        {pronta ? (
-          <div className="q-leg">
-            <div className="q-historico" aria-live="polite">
-              <div className="px-pronto-miolo" ref={miolo}>
-                <span className="q-ic">
-                  <Mic aria-hidden />
-                </span>
-                <h2>{preparo ? preparo.titulo : t('Pronto para legendar')}</h2>
-                <p data-testid="miolo-da-captura">
-                  {preparo
-                    ? preparo.texto
-                    : celular()
-                      ? t('Toque em Iniciar e deixe o celular perto do som. A legenda nos dois idiomas aparece aqui.')
-                      : !perfilDoDispositivo().capturaDoSistema
-                        ? t(
-                            'Este navegador não captura o som do computador. Use o microfone perto do alto-falante ou abra o Frasy no Chrome ou no Edge. A legenda bilíngue aparece aqui.',
-                          )
-                        : t(
-                            'O som do computador entra sozinho. Dê play no vídeo, aula ou chamada e clique em Iniciar. A legenda bilíngue aparece aqui e nas Legendas flutuantes.',
-                          )}
-                </p>
-                {nivel.nota}
+      {/* Avisos e conversa numa área só: com vários avisos num celular baixo ela rola, e o cartão de preparo
+          nunca cruza a fala (a conversa tem altura mínima). */}
+      <div className="cel-rola">
+        {avisos}
+        {avatar?.dica}
+        {avatar?.presenca}
+        <div className="cel-conversa">
+          {pronta ? (
+            <div className="q-leg">
+              <div className="q-historico" aria-live="polite">
+                <div className="px-pronto-miolo" ref={miolo}>
+                  <span className="q-ic">
+                    <Mic aria-hidden />
+                  </span>
+                  <h2>{preparo ? preparo.titulo : t('Pronto para legendar')}</h2>
+                  <p data-testid="miolo-da-captura">
+                    {preparo
+                      ? preparo.texto
+                      : celular()
+                        ? t('Toque em Iniciar e deixe o celular perto do som. A legenda nos dois idiomas aparece aqui.')
+                        : !perfilDoDispositivo().capturaDoSistema
+                          ? t(
+                              'Este navegador não captura o som do computador. Use o microfone perto do alto-falante ou abra o Frasy no Chrome ou no Edge. A legenda bilíngue aparece aqui.',
+                            )
+                          : t(
+                              'O som do computador entra sozinho. Dê play no vídeo, aula ou chamada e clique em Iniciar. A legenda bilíngue aparece aqui e nas Legendas flutuantes.',
+                            )}
+                  </p>
+                  {nivel.nota}
+                </div>
               </div>
             </div>
-          </div>
-        ) : (
-          legenda
-        )}
+          ) : (
+            legenda
+          )}
+        </div>
       </div>
       <div className="q-faixa" role="toolbar" aria-label={t('Controles da captura')}>
         <span className="q-tempo">

@@ -48,6 +48,12 @@ html[data-painel-da-frase='baixo'] :is(.q-historico, .q-palco, .rolagem) {
   padding-bottom: calc(var(--pf-ocupa) + 12px) !important;
   scroll-padding-bottom: var(--pf-ocupa);
 }
+/* Os avisos e a dica ficam ABAIXO da legenda dentro de `.cel-rola`, ou seja, também sob a folha. Enquanto ela
+   está aberta eles esperam: a legenda volta a chegar até a base da tela, que é o que o `padding-bottom` acima
+   pressupõe (sem isto sobravam poucos px acima da folha e a frase escolhida ficava cortada no topo). */
+html[data-painel-da-frase='baixo'] .cel-rola > :not(.cel-conversa) {
+  display: none;
+}
 html[data-painel-da-frase='baixo'] [data-frase-escolhida] {
   scroll-margin-bottom: calc(var(--pf-ocupa) + 12px);
 }

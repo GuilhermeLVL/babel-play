@@ -386,6 +386,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
         intervaloDosParciais: sysHandlers.intervaloDosParciais,
         cadenciaDoParcial: sysHandlers.cadenciaDoParcial,
         primeiroParcialComMs: sysHandlers.primeiroParcialComMs,
+        maxParciaisPorFala: sysHandlers.maxParciaisPorFala,
         onFinalEspeculativo: (pcm: Float32Array, sr: number, seq: number) =>
           rota === 'pipeline' ? sysHandlers.onFinalEspeculativo(pcm, sr, seq) : null,
         onFimDaVoz: (seq: number, t: number) => {
@@ -529,6 +530,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
           intervaloDosParciais: micHandlers.intervaloDosParciais,
           cadenciaDoParcial: micHandlers.cadenciaDoParcial,
           primeiroParcialComMs: micHandlers.primeiroParcialComMs,
+          maxParciaisPorFala: micHandlers.maxParciaisPorFala,
           onFinalEspeculativo: micHandlers.onFinalEspeculativo,
           onFimDaVoz: micHandlers.onFimDaVoz,
           onMisfire: (seq) => micHandlers.onMisfire(seq),

@@ -33,7 +33,7 @@
   width: 20px;
   height: 20px;
 }
-.cel > .aviso-info {
+:is(.cel, .cel-rola) > .aviso-info {
   margin: 10px 16px 0;
 }
 
@@ -55,7 +55,7 @@
     box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 10%, transparent);
   }
 }
-.cel-gravando > .aviso-info {
+:is(.cel-gravando, .cel-rola) > .aviso-info {
   margin: 10px 12px 0;
   color: var(--cel-tinta);
   border-color: var(--cel-linha);
@@ -63,6 +63,35 @@
 .cel-gravando .cel-conversa {
   flex: 1;
   min-height: 0;
+}
+
+/* Avisos + conversa: uma área que rola quando os avisos não cabem; a conversa nunca fica menor que 160 px. */
+.cel-rola {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.cel-rola > :not(.cel-conversa) {
+  flex-shrink: 0;
+}
+.cel.quest-vivo .cel-rola > .cel-conversa {
+  flex: 1 0 160px;
+  min-height: 160px;
+}
+/* Celular: a legenda ao vivo vem primeiro e os avisos rolam embaixo dela (a legenda é o que importa na sessão). */
+@media (max-width: 600px) {
+  .cel.quest-vivo .cel-rola > .cel-conversa {
+    order: -1;
+  }
+}
+/* Celular baixo: enquanto o cartão de preparo (download dos modelos) está na tela, os avisos de rodapé
+   esperam. Empilhados (nuvem + bipe + cartão) passam de 500 px e o cartão invadia a fala e a barra. */
+@media (max-width: 600px) and (max-height: 760px) {
+  .cel-rola:has(> [data-testid='cartao-de-preparo']) > .aviso-info {
+    display: none;
+  }
 }
 
 /* ---------- a conversa em balões ---------- */
@@ -670,7 +699,10 @@ body:has(.cel) .fab {
   html[data-px='on'][data-telas='enxuta'] .cel.px-vivo:not(.px-pronto):not(.px-parada) .q-faixa .q-letra-menor {
     display: inline-flex;
   }
-  html[data-px='on'][data-telas='enxuta'] .cel.px-vivo:not(.px-pronto):not(.px-parada) .q-faixa :is(.ex-pausar, .q-letra-menor, .q-fica) {
+  html[data-px='on'][data-telas='enxuta']
+    .cel.px-vivo:not(.px-pronto):not(.px-parada)
+    .q-faixa
+    :is(.ex-pausar, .q-letra-menor, .q-fica) {
     flex: 1 1 40px;
     /* 40 px no uso normal; só abaixo disso se o relógio passar de uma hora numa tela de 360 px */
     min-width: 34px;

@@ -37,6 +37,7 @@ export function compararMedianas(a, b, { iteracoes = ITERACOES_PADRAO, semente =
   return { a: ma, b: mb, dif: mb - ma, ic: [q(0.025), q(0.975)] }
 }
 
+/** @param {{ ic: number[] }} c @param {{ efeitoMinimoPct?: number, naoRegressaoMs?: number | null }} [opcoes] */
 export function decidir(c, { efeitoMinimoPct = 20, naoRegressaoMs = null } = {}) {
   if (naoRegressaoMs !== null) return c.ic[1] <= naoRegressaoMs ? 'passa' : 'falha'
   if (c.ic[1] < 0 && c.dif <= -(efeitoMinimoPct / 100) * c.a) return 'depois melhor'

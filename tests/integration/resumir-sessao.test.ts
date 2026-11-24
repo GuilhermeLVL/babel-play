@@ -431,6 +431,24 @@ describe('menor e retenção zero', () => {
     expect(chamadas[0].system).not.toContain('PÚBLICO MENOR')
   })
 
+  it('MENOR: resumo com contato externo é barrado (502 saida_filtrada), sem o texto; adulto recebe', async () => {
+    const sujo = JSON.stringify({ pontos: [...PONTOS.slice(0, 2), 'Chame no zap (11) 98765-4321'], cartoes: [BONS[0]] })
+    const quem = asUserId('resumir-menor-barrado')
+    const id = await criarSessao(quem)
+    provedor(() => ({ texto: sujo }))
+    const res = await pedir(quem, { sessionId: id })
+    expect(res.statusCode).toBe(502)
+    expect(res.body?.code).toBe('saida_filtrada')
+    expect(JSON.stringify(res.body)).not.toContain('98765')
+    expect(res.body?.pontos).toBeUndefined()
+
+    const adulto = asUserId('resumir-adulto-sujo')
+    await idades.declarar(adulto, '1990-01-01')
+    const ok = await pedir(adulto, { sessionId: await criarSessao(adulto) })
+    expect(ok.statusCode).toBe(200)
+    expect(JSON.stringify(ok.body)).toContain('98765')
+  })
+
   it('provedor sem zdr nunca é chamado; só ele configurado dá 501', async () => {
     process.env.IA_PROVEDORES = JSON.stringify({ provedores: [SEM_ZDR, OPENROUTER] })
     process.env.SEMZDR_API_KEY = 'chave-falsa'

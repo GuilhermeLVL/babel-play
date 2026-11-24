@@ -83,6 +83,7 @@ import { codigoDeIdioma, type RastroDeIa } from '../telemetriaDeIa'
 import { type ContextoDeIa, recusaDeQuemPede } from './contexto'
 import { decisor, type GanchosDoNucleo } from './ganchos'
 import { recusaDeErro, type RecusaDeIa, recusaNuvemOcupada, recusaPortaoFechado, recusar } from './recusa'
+import { recusaSeSaidaBarrada } from './saidaFiltrada'
 
 export const ROTA_DO_PARCEIRO = '/api/ai/leitura/parceiro'
 
@@ -302,6 +303,9 @@ async function atender(
       const guardada = await lerDoCache(chave)
       rastro.anotar({ cacheHit: !!guardada })
       if (guardada) {
+        /* Perfil protegido: o que veio do cache também passa pelo filtro (entradas de antes dele, ou mudança de lista). */
+        const barradaDoCache = await recusaSeSaidaBarrada(ctx, 'leitura', menor, guardada.resposta)
+        if (barradaDoCache) return decidir(barradaDoCache)
         /* O contador fora do ar não derruba a resposta que já existe: ela sai sem o `restanteHoje`. */
         const restanteHoje = await restanteDoParceiroHoje(ctx.userId, plano.plan).catch(() => undefined)
         return decidir({
@@ -418,6 +422,9 @@ async function atender(
         recusaDeErro(502, 'o modelo não devolveu uma resposta utilizável; tente de novo', 'resposta_invalida'),
       )
     }
+    /* Perfil protegido: o que o modelo escreveu passa pelo filtro local antes de sair (change `filtro-tutor-menores`). */
+    const barrada = await recusaSeSaidaBarrada(ctx, 'leitura', menor, resposta)
+    if (barrada) return decidir(barrada)
     if (chave && doCatalogo)
       await gravarNoCache(chave, {
         livroId: doCatalogo.id,

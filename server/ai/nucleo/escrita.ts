@@ -62,6 +62,7 @@ import { recusaContadorIndisponivel, ReservaDeLlm, reservarLlm } from '../reserv
 import { type ContextoDeIa, recusaDeQuemPede } from './contexto'
 import { decisor, type GanchosDoNucleo } from './ganchos'
 import { recusaDeErro, type RecusaDeIa, recusaNuvemOcupada, recusaPortaoFechado, recusar } from './recusa'
+import { recusaSeSaidaBarrada } from './saidaFiltrada'
 
 const ESCRITA = FUNCOES_DE_IA.escrita
 const ROTA = '/api/ai/escrita'
@@ -290,6 +291,9 @@ async function retornar(
         recusaDeErro(502, 'o modelo não devolveu um retorno utilizável; tente de novo', 'resposta_invalida'),
       )
     }
+    /* Perfil protegido: o que o modelo escreveu passa pelo filtro local antes de sair (change `filtro-tutor-menores`). */
+    const barrada = await recusaSeSaidaBarrada(ctx, 'escrita', menor, retorno)
+    if (barrada) return decidir(barrada)
     entregou = true
     /* Só quantos pontos e de que tipos: nada do texto. */
     log('info', {

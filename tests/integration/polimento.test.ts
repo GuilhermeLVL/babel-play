@@ -302,6 +302,88 @@ describe('com a Tradução Nuance', () => {
     expect(chamadas[0].system).not.toContain('PÚBLICO MENOR')
   })
 
+  it('MENOR: tradução polida com contato externo é barrada (502 saida_filtrada) e NADA é gravado', async () => {
+    const id = await sessaoCom(PAGANTE, 2)
+    provedor((c) => ({
+      texto: JSON.stringify({ linhas: c.linhas.map((l) => ({ n: l.n, traducao: 'me chama no zap (11) 98765-4321' })) }),
+    }))
+    const res = await pedir({ sessionId: id, bloco: 0 })
+    expect(res.statusCode).toBe(502)
+    expect(res.body?.code).toBe('saida_filtrada')
+    expect(JSON.stringify(res.body)).not.toContain('98765')
+    expect(res.body?.polidas).toBeUndefined()
+
+    // Nada gravado: um novo pedido (agora com resposta limpa) chama o provedor de novo e polir funciona.
+    const chamadas = provedor(polidaDeTudo)
+    const depois = await pedir({ sessionId: id, bloco: 0 })
+    expect(chamadas).toHaveLength(1)
+    expect(depois.statusCode).toBe(200)
+    expect(depois.body.polidas[0].traducaoPolida).toBe('polida: linha 0')
+  })
+
+  it('MENOR: polida JÁ gravada com contato externo não sai (bloco já polido: 502, sem provedor nem cota)', async () => {
+    const id = await sessaoCom(PAGANTE, 2)
+    const sujo = 'me chama no zap (11) 98765-4321'
+    await utterancesRepo.gravarPolimento(
+      PAGANTE,
+      id,
+      (await falas(id)).map((u) => ({
+        id: u.id,
+        sourceText: u.sourceText,
+        translatedText: u.translatedText,
+        polida: sujo,
+      })),
+      { modelo: 'antigo', versao: 'v0', em: Date.now() },
+    )
+    const chamadas = provedor(polidaDeTudo)
+    const antes = (await counters.get(PAGANTE, 'managed_calls', mes())) ?? 0
+    const res = await pedir({ sessionId: id, bloco: 0 })
+    expect(res.statusCode).toBe(502)
+    expect(res.body?.code).toBe('saida_filtrada')
+    expect(JSON.stringify(res.body)).not.toContain('98765')
+    expect(chamadas).toHaveLength(0)
+    expect((await counters.get(PAGANTE, 'managed_calls', mes())) ?? 0).toBe(antes)
+  })
+
+  it('MENOR: bloco parcial com polida antiga suja não sai junto com as novas (502, nada novo gravado)', async () => {
+    const id = await sessaoCom(PAGANTE, 3)
+    const [primeira] = await falas(id)
+    await utterancesRepo.gravarPolimento(
+      PAGANTE,
+      id,
+      [
+        {
+          id: primeira.id,
+          sourceText: primeira.sourceText,
+          translatedText: primeira.translatedText,
+          polida: 'chama no (11) 98765-4321',
+        },
+      ],
+      { modelo: 'antigo', versao: 'v0', em: Date.now() },
+    )
+    provedor(polidaDeTudo)
+    const res = await pedir({ sessionId: id, bloco: 0 })
+    expect(res.statusCode).toBe(502)
+    expect(res.body?.code).toBe('saida_filtrada')
+    expect(JSON.stringify(res.body)).not.toContain('98765')
+    expect((await falas(id))[1].traducaoPolida).toBeNull()
+  })
+
+  it('ADULTO declarado: polida antiga com esse texto continua saindo (o filtro é só do perfil protegido)', async () => {
+    await idades.declarar(OUTRA, '1990-01-01')
+    const id = await sessaoCom(OUTRA, 1)
+    const [u] = (await sessionsRepo.getWithUtterances(OUTRA, id)).utterances as any[]
+    await utterancesRepo.gravarPolimento(
+      OUTRA,
+      id,
+      [{ id: u.id, sourceText: u.sourceText, translatedText: u.translatedText, polida: 'zap (11) 98765-4321' }],
+      { modelo: 'antigo', versao: 'v0', em: Date.now() },
+    )
+    const res = await pedir({ sessionId: id, bloco: 0 }, OUTRA)
+    expect(res.statusCode).toBe(200)
+    expect(res.body.polidas[0].traducaoPolida).toContain('98765')
+  })
+
   it('resposta sem JSON utilizável: 502 resposta_invalida, nada gravado, e o custo fica registrado', async () => {
     const id = await sessaoCom(PAGANTE, 3)
     provedor(() => ({ texto: 'Desculpe, não consigo.' }))

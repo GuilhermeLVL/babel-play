@@ -632,6 +632,29 @@ describe('o texto conferido no manifesto', () => {
     expect(await linhasDoCache()).toBe(antes + 1)
   })
 
+  it('MENOR: resposta com contato externo é barrada (502 saida_filtrada), sem cache; adulto recebe', async () => {
+    const suja = JSON.stringify({
+      texto: 'Quer saber mais? Me chama no zap (11) 98765-4321.',
+      pontos: [],
+      citacoes: [{ trechoId: 'p2', exato: 'From ancient grudge break' }],
+      naoEstaNoTrecho: false,
+    })
+    const menor = await assinante('parceiro-barrada-menor', false)
+    const adulto = await assinante('parceiro-barrada-adulto')
+    provedor(() => ({ texto: suja }))
+    const corpo = corpoBase({ modo: 'ideia', selecao: 'civil blood makes civil hands unclean' })
+    const antes = await linhasDoCache()
+    const res = await pedir(menor, corpo)
+    expect(res.statusCode).toBe(502)
+    expect(res.body?.code).toBe('saida_filtrada')
+    expect(JSON.stringify(res.body)).not.toContain('98765')
+    expect(await linhasDoCache()).toBe(antes)
+
+    const ok = await pedir(adulto, corpo)
+    expect(ok.statusCode).toBe(200)
+    expect(JSON.stringify(ok.body)).toContain('98765')
+  })
+
   it('adulto e menor com o MESMO pedido não dividem a linha do cache', async () => {
     const adulto = await assinante('parceiro-cache-adulto')
     const menor = await assinante('parceiro-cache-menor', false)

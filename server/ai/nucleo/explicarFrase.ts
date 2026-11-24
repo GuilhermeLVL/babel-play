@@ -58,6 +58,7 @@ import { codigoDeIdioma, type RastroDeIa } from '../telemetriaDeIa'
 import { type ContextoDeIa, recusaDeQuemPede } from './contexto'
 import { decisor, type GanchosDoNucleo } from './ganchos'
 import { recusaDeErro, type RecusaDeIa, recusaNuvemOcupada, recusaPortaoFechado, recusar } from './recusa'
+import { recusaSeSaidaBarrada } from './saidaFiltrada'
 
 const EXPLICACAO = FUNCOES_DE_IA.explicacao
 const ROTA = '/api/ai/explicar'
@@ -271,6 +272,9 @@ async function explicar(
         recusaDeErro(502, 'o modelo não devolveu uma explicação utilizável; tente de novo', 'resposta_invalida'),
       )
     }
+    /* Perfil protegido: o que o modelo escreveu passa pelo filtro local antes de sair (change `filtro-tutor-menores`). */
+    const barrada = await recusaSeSaidaBarrada(ctx, 'explicacao', menor, explicacao)
+    if (barrada) return decidir(barrada)
     log('info', {
       event: 'explicacao',
       route: ROTA,

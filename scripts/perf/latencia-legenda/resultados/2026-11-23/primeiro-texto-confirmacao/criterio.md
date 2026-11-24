@@ -36,8 +36,10 @@ Informativo: fração de rodadas >= 2,5 s e a mesma métrica em C2.
 
 ## Guardas (qualquer uma que falhe reprova `depois`)
 
-1. `fimDaFalaAteLegendaMs` p75 (`ab.mjs`, pareado por fala, semente padrão): limite superior do IC 95% de `depois - antes` **<= +100 ms**
-   (era +30 ms; ver acima). Decisiva em **C2**. Em C1 é informativa (8 falas; resolução ~100 ms) e é reportada ao lado.
+1. Final p75 pareado por fala (bootstrap de `ab.mjs`, 10 000 reamostragens, semente padrão): limite superior do IC 95% de `depois - antes` **<= +100 ms**
+   (era +30 ms; ver acima). Decisiva em **C2**, sobre `fimDaFalaAteOriginalMs` (fim da voz até o texto final do ORIGINAL no balão: em pt para pt não há
+   tradução, então `fimDaFalaAteLegendaMs` não existe; é o quadro que `ab-parciais.mjs` usa para essa guarda, `compararParciais().fimDoOriginal`, 16 falas).
+   Em C1 é informativa e reportada ao lado (`fimDaFalaAteLegendaMs` p75, 8 falas; resolução ~100 ms), pelo `ab.mjs`.
 2. SLO da bancada: `comparar.mjs --ambiente local-darwin` sobre o resultado de `depois` (C1) não reprova.
 3. Taxa de falha de legenda de `depois` <= a de `antes` (C1 e C2).
 

@@ -332,6 +332,14 @@ describe('microfone pelo Privado (Whisper)', () => {
     expect(cadenciaDoParcial).toHaveBeenCalledWith(e)
   })
 
+  it('repassa o teto de parciais por fala à captura (aparelho leve), senão ele nunca vale', async () => {
+    estado.abrirMic = async () => ({ startedAtMs: 5, setMuted: vi.fn(), setPaused: vi.fn(), stop: vi.fn() })
+    const maxParciaisPorFala = vi.fn(() => 2)
+    const { fontes } = montar('privado', { micHandlers: { ...handlers(), maxParciaisPorFala } })
+    await fontes.startMic()
+    expect((estado.cbDoMic as { maxParciaisPorFala: () => number }).maxParciaisPorFala()).toBe(2)
+  })
+
   it('permissão negada: a ajuda (sem "Trocar para Privado"), a gravação desliga', async () => {
     estado.abrirMic = async () => {
       throw Object.assign(new Error('Permissão do microfone negada.'), { nomeDoErro: 'NotAllowedError' })

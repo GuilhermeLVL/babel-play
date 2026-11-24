@@ -137,6 +137,16 @@ describe('captura da aba × Web Speech no aparelho (fontesDeAudio)', () => {
     expect(m.aoMudarMotorDoSistema).toHaveBeenLastCalledWith('pipeline')
   })
 
+  it('pipeline: o retorno do parcial (false = sem decode/sem texto) chega à captura, que devolve a cota (1º texto na tela)', async () => {
+    const m = montar('pipeline')
+    m.sysHandlers.onPartialAudio.mockReturnValueOnce(false)
+    await m.fontes.handleStartSystemCapture()
+    expect(estado.cb!.onPartialAudio!(PCM, 16000, 1)).toBe(false)
+    const promessa = Promise.resolve(false)
+    m.sysHandlers.onPartialAudio.mockReturnValueOnce(promessa)
+    expect(estado.cb!.onPartialAudio!(PCM, 16000, 1)).toBe(promessa)
+  })
+
   it('no aparelho: a Web Speech ouve a trilha e o idioma do CONTEÚDO; o VAD só fiscaliza; o Whisper não é pedido', async () => {
     const m = montar('web-speech-local')
     await m.fontes.handleStartSystemCapture()
@@ -153,6 +163,14 @@ describe('captura da aba × Web Speech no aparelho (fontesDeAudio)', () => {
     expect(m.sysHandlers.onSpeechStart).not.toHaveBeenCalled()
     expect(m.sysHandlers.onPartialAudio).not.toHaveBeenCalled()
     expect(m.sysHandlers.onUtterance).not.toHaveBeenCalled()
+  })
+
+  it('repassa o teto de parciais por fala à captura da aba (aparelho leve), senão ele nunca vale', async () => {
+    const m = montar('pipeline')
+    ;(m.sysHandlers as Record<string, unknown>).maxParciaisPorFala = vi.fn(() => 2)
+    await m.fontes.handleStartSystemCapture()
+    const cb = estado.cb as unknown as { maxParciaisPorFala?: () => number }
+    expect(cb.maxParciaisPorFala?.()).toBe(2)
   })
 
   it('no aparelho: a fala da trilha guarda o motor que não envia (`web-speech-local-trilha`)', async () => {

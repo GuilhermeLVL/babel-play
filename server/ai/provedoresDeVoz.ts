@@ -185,7 +185,7 @@ export const MODELOS_DE_VOZ: Readonly<Record<string, ModeloDeVoz>> = {
   },
   /* MAI-VOICE 2.1 FLASH (Microsoft, na Azure) pelo OpenRouter, a voz BOA: US$ 15/1M, retenção zero. DESLIGADA por
      padrão (não está nos `ops/ia-provedores*.json`): no pior caso deixa a margem do plano de nível boa negativa
-     (`openspec/changes/voz-natural-openrouter/design.md`). O id da voz é `<região>-<voz>:MAI-Voice-2.1-Flash`, e a
+     (`openspec/changes/archive/2026-11-23-voz-natural-openrouter/design.md`). O id da voz é `<região>-<voz>:MAI-Voice-2.1-Flash`, e a
      região da voz é o idioma da síntese. As nativas primeiro; Grant e Harper são as multilíngues. */
   'microsoft/mai-voice-2.1-flash': {
     idiomas: [

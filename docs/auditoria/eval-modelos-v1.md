@@ -11,7 +11,7 @@ node node_modules/tsx/dist/cli.mjs scripts/eval-fala/medir-traducao-llm.mjs --mo
 node node_modules/tsx/dist/cli.mjs scripts/eval-fala/julgar-traducao.mjs
 ```
 
-Especificação: `openspec/changes/bancada-multi-modelo/`.
+Especificação: `openspec/changes/archive/2026-11-23-bancada-multi-modelo/`.
 
 ---
 
@@ -24,23 +24,22 @@ todas, e independe de qualquer decisão de qualidade.
 
 ## 2. Candidatos, 16 casos de fala (primeira passada, para ELIMINAR)
 
-| modelo | chrF++ | US$/mil falas | prompt |
-|---|---|---|---|
-| `z-ai/glm-5.3-flash` | 87,6% | 0,068 | comunicativo |
-| **`openai/gpt-oss-120b`** (em uso) | 85,4% | **0,029** | comunicativo |
-| `qwen/qwen3.7-flash` (sem raciocínio) | 80,1% | **0,008** | comunicativo |
-| `openai/gpt-oss-20b` | 79,1% | 0,034 | comunicativo |
-| `deepseek/deepseek-v4-flash` | 77,2% | 0,022 | comunicativo |
-| `tencent/hy-mt2-7b` | 72,9% | **0,005** | Hunyuan-MT |
-| `z-ai/glm-4.7-flash` | 69,4% | 0,020 | comunicativo |
-| `tencent/hy-mt2-1.8b` | 65,6% | 0,003 | Hunyuan-MT |
-| `inclusionai/ling-3.0-flash` | 64,6% | 0,007 | comunicativo |
+| modelo                                | chrF++ | US$/mil falas | prompt       |
+| ------------------------------------- | ------ | ------------- | ------------ |
+| `z-ai/glm-5.3-flash`                  | 87,6%  | 0,068         | comunicativo |
+| **`openai/gpt-oss-120b`** (em uso)    | 85,4%  | **0,029**     | comunicativo |
+| `qwen/qwen3.7-flash` (sem raciocínio) | 80,1%  | **0,008**     | comunicativo |
+| `openai/gpt-oss-20b`                  | 79,1%  | 0,034         | comunicativo |
+| `deepseek/deepseek-v4-flash`          | 77,2%  | 0,022         | comunicativo |
+| `tencent/hy-mt2-7b`                   | 72,9%  | **0,005**     | Hunyuan-MT   |
+| `z-ai/glm-4.7-flash`                  | 69,4%  | 0,020         | comunicativo |
+| `tencent/hy-mt2-1.8b`                 | 65,6%  | 0,003         | Hunyuan-MT   |
+| `inclusionai/ling-3.0-flash`          | 64,6%  | 0,007         | comunicativo |
 
 Fora do ranking por falha: `z-ai/glm-5.2:free`, `minimax/minimax-m3:free` e
 `google/gemma-4-31b-it:free` — todos com 429 do provedor **nesta janela**.
 
-Horas depois, o `minimax-m3:free` respondeu 60 de 60 (seção 6) enquanto os outros dois seguiam em
-429. Ou seja, a camada gratuita não é "ruim": ela é **intermitente**, e a intermitência é o
+Horas depois, o `minimax-m3:free` respondeu 60 de 60 (seção 6) enquanto os outros dois seguiam em 429. Ou seja, a camada gratuita não é "ruim": ela é **intermitente**, e a intermitência é o
 problema — não dá para saber, na hora de uma conversa, se ela vai estar lá.
 
 ### O DeepSeek não é barato para este uso
@@ -63,10 +62,10 @@ a resistência dele a uma instrução que não foi treinado para receber.
 
 Executando o mesmo gold set várias vezes com o **mesmo modelo**:
 
-| modelo | execuções | média | amplitude |
-|---|---|---|---|
-| `z-ai/glm-5.3-flash` | 3 | 86,4% | **±1,0** |
-| `openai/gpt-oss-120b` | 3 | 84,6% | **±11,3** |
+| modelo                | execuções | média | amplitude |
+| --------------------- | --------- | ----- | --------- |
+| `z-ai/glm-5.3-flash`  | 3         | 86,4% | **±1,0**  |
+| `openai/gpt-oss-120b` | 3         | 84,6% | **±11,3** |
 
 A diferença entre eles (1,8 ponto) cabe folgadamente dentro da variação de um deles consigo mesmo.
 **Empate técnico** — e a bancada agora recusa apresentar ranking nesse caso.
@@ -74,10 +73,10 @@ A diferença entre eles (1,8 ponto) cabe folgadamente dentro da variação de um
 Confirmado por **segunda métrica independente**, o juiz local (`qwen2.5:14b-instruct` no Ollama,
 cego quanto ao modelo, fora do conjunto de candidatos):
 
-| modelo | juiz (0-5) | chrF++ |
-|---|---|---|
-| `z-ai/glm-5.3-flash` | **4,77** | 86,7% |
-| `openai/gpt-oss-120b` | **4,73** | 80,2% |
+| modelo                | juiz (0-5) | chrF++ |
+| --------------------- | ---------- | ------ |
+| `z-ai/glm-5.3-flash`  | **4,77**   | 86,7%  |
+| `openai/gpt-oss-120b` | **4,73**   | 80,2%  |
 
 Quatro centésimos de diferença. Duas métricas independentes dizem a mesma coisa: **estes dois
 modelos são equivalentes para este produto.**
@@ -89,18 +88,18 @@ oscilar 11 pontos entre execuções é pior que uma média um pouco menor.
 
 O juiz e a métrica de superfície discordam num padrão sistemático:
 
-| origem | saiu | chrF++ | juiz |
-|---|---|---|---|
-| It's raining cats and dogs | **Tá chovendo pra caramba** | 32% | 4,7 |
-| I'd appreciate it if you could send the report | **Se você puder mandar o relatório, eu agradeço** | 44% | 5,0 |
-| I live in a small house near the river | **Moro numa casinha perto do rio** | 55% | 5,0 |
-| So, like, I was gonna go, but then I didn't | **Então, eu ia sair, mas não fui** | 56% | 5,0 |
+| origem                                         | saiu                                              | chrF++ | juiz |
+| ---------------------------------------------- | ------------------------------------------------- | ------ | ---- |
+| It's raining cats and dogs                     | **Tá chovendo pra caramba**                       | 32%    | 4,7  |
+| I'd appreciate it if you could send the report | **Se você puder mandar o relatório, eu agradeço** | 44%    | 5,0  |
+| I live in a small house near the river         | **Moro numa casinha perto do rio**                | 55%    | 5,0  |
+| So, like, I was gonna go, but then I didn't    | **Então, eu ia sair, mas não fui**                | 56%    | 5,0  |
 
 Todas são traduções boas; algumas melhores que a referência. O chrF++ mede distância até UMA
 referência, e fala natural se afasta dela por natureza. **Os 85,2% medidos antes são piso, não
 teto.**
 
-E o inverso, que eu não previa: *"I read it yesterday"* → *"Eu li ontem"* tem chrF++ de **72%** e
+E o inverso, que eu não previa: _"I read it yesterday"_ → _"Eu li ontem"_ tem chrF++ de **72%** e
 nota **2,0** do juiz — o objeto sumiu. Texto parecido com a referência, sentido incompleto.
 
 **Consequência de método:** para rankear modelos neste produto, o juiz é a métrica primária e o
@@ -115,8 +114,8 @@ sorte!". Com `max_tokens: 1200` — o valor de `mtProxy.ts` — os casos longos 
 Impacto no custo: o mesmo modelo custa **US$ 0,140/mil com raciocínio e US$ 0,008 sem** — 17× — sem
 perda de qualidade (80,1% contra os 25,5% aparentes, que eram falhas contadas como nota zero).
 
-`gpt-oss` e `glm-5.3-flash` **não permitem desligar** o raciocínio (HTTP 400: *"Reasoning is
-mandatory for this endpoint"*), então essa alavanca não se aplica a eles.
+`gpt-oss` e `glm-5.3-flash` **não permitem desligar** o raciocínio (HTTP 400: _"Reasoning is
+mandatory for this endpoint"_), então essa alavanca não se aplica a eles.
 
 ---
 
@@ -124,10 +123,10 @@ mandatory for this endpoint"*), então essa alavanca não se aplica a eles.
 
 Primeira comparação em **corpus único** (o gold set de 60 casos) e com **as duas métricas**:
 
-| modelo | chrF++ | juiz (0-5) | US$/mil falas |
-|---|---|---|---|
-| `minimax/minimax-m3:free` | **71,9%** | 4,67 | **0,000** |
-| `openai/gpt-oss-120b` (em produção) | 69,5% | **4,76** | 0,029 |
+| modelo                              | chrF++    | juiz (0-5) | US$/mil falas |
+| ----------------------------------- | --------- | ---------- | ------------- |
+| `minimax/minimax-m3:free`           | **71,9%** | 4,67       | **0,000**     |
+| `openai/gpt-oss-120b` (em produção) | 69,5%     | **4,76**   | 0,029         |
 
 **As duas métricas discordam** — o chrF++ prefere o gratuito, o juiz prefere o pago — e as duas
 diferenças (2,4 pontos e 0,09) cabem dentro da variação que este mesmo gold set já mostrou. É

@@ -17,6 +17,7 @@ import { fetchLangConfig } from '../langConfig';
 import { buildDocumentSession, transcribeImportedAudio } from './buildSession';
 import { extrairDocumento } from './extrairDocumento';
 import { formatoDaLegenda, TAMANHO_MAXIMO_DA_LEGENDA_BYTES, textoDaLegenda } from './legendas';
+import { rotuloDaTranscricao, rotuloDoModeloLocal } from './rotuloDaImportacao';
 
 export type FonteDeImportacao = 'doc' | 'web' | 'local' | 'texto';
 
@@ -72,9 +73,11 @@ function tituloDe(e: Entrada): string {
 /** Progresso do Whisper → percentual da fila: decodificar 10–20, modelo 20–50, falas 50–95. */
 function doWhisper(p: OfflineProgress): [number, string] {
   if (p.phase === 'decode') return [10 + Math.round(p.progress * 10), 'Decodificando o áudio…'];
-  if (p.phase === 'model')
-    return [20 + Math.round(p.progress * 30), `Carregando o modelo local… ${Math.round(p.progress * 100)}%`];
-  return [50 + Math.round(p.progress * 45), p.label || 'Transcrevendo com o Whisper local…'];
+  if (p.phase === 'model') return [20 + Math.round(p.progress * 30), rotuloDoModeloLocal(p)];
+  // O rótulo diz o motor e a rota REAIS do trecho (`rotuloDaImportacao.ts`), com o contador de trechos.
+  const trecho = /\d+\/\d+/.exec(p.label ?? '')?.[0];
+  const base = rotuloDaTranscricao(p);
+  return [50 + Math.round(p.progress * 45), trecho ? `${base.replace(/…$/, '')} · trecho ${trecho}…` : base];
 }
 
 async function executar(item: ItemDaFila): Promise<string> {
@@ -125,7 +128,7 @@ async function executar(item: ItemDaFila): Promise<string> {
     status: 'ready',
   });
   await uploadSessionAudio(rec.id, e.arquivo);
-  passo(10, 'Transcrevendo com o Whisper local…');
+  passo(10, 'Preparando a transcrição…');
   await transcribeImportedAudio(rec.id, cfg.studying, whisper);
   return rec.id;
 }

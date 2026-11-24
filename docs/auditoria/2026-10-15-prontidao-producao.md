@@ -207,7 +207,7 @@ Escopo: sair da edição estática (Cloudflare Pages) para o servidor no Fly.io 
 - `docs/LANCAMENTO.md` (§3, §4, §6, §9 e §10 em `:326-361`), `docs/STAGING.md`, `docs/deploy.md`, `docs/auth/EMAILS-E-PROVEDORES.md`, `docs/ESTADO-DO-LANCAMENTO.md`, `docs/lgpd/operadores.md:23-36`.
 - `public/privacidade.html` e `public/termos.html`.
 - `server/db/migrations/0051_flag_anuncios.sql` e `docs/economia-v2.md:40-53`.
-- `openspec/changes/prontidao-producao/tasks.md`: uma caixa aberta, a fila durável da importação, que não bloqueia.
+- `openspec/changes/archive/2026-11-23-prontidao-producao/tasks.md`: uma caixa aberta, a fila durável da importação, que não bloqueia.
 
 ## Evidência faltando
 

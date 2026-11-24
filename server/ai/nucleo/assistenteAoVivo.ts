@@ -84,6 +84,7 @@ import { codigoDeIdioma, type RastroDeIa } from '../telemetriaDeIa'
 import { type ContextoDeIa, recusaDeQuemPede } from './contexto'
 import { decisor, type GanchosDoNucleo } from './ganchos'
 import { recusaDeErro, type RecusaDeIa, recusaNuvemOcupada, recusaPortaoFechado, recusar } from './recusa'
+import { recusaSeSaidaBarrada } from './saidaFiltrada'
 
 export const ROTA_DO_ASSISTENTE: Readonly<Record<RecursoDoAssistente, string>> = {
   expressoes: '/api/ai/assistente/expressoes',
@@ -381,7 +382,8 @@ async function atender(
     let comecou = false
     let primeiraMs: number | null = null
     const restanteHoje = doDia.restanteHoje
-    const emFluxo = fluxo
+    /* Perfil protegido: nada sai em fluxo; a resposta inteira passa pelo filtro antes (tarefa 4.2). */
+    const emFluxo = fluxo && !menor
       ? (modelo: string) => {
           const leitor = criarLeitorDeSugestoesEmFluxo()
           let semTempo = false
@@ -488,6 +490,9 @@ async function atender(
         recusaDeErro(502, 'o modelo não devolveu uma resposta utilizável; tente de novo', 'resposta_invalida'),
       )
     }
+    /* Perfil protegido: o que o modelo escreveu passa pelo filtro local antes de sair (change `filtro-tutor-menores`). */
+    const barrada = await recusaSeSaidaBarrada(ctx, 'assistente', menor, valor)
+    if (barrada) return decidir(barrada)
     log('info', {
       event: evento,
       route: rota,

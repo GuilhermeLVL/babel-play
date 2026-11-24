@@ -61,6 +61,7 @@ import { codigoDeIdioma, type RastroDeIa } from '../telemetriaDeIa'
 import { type ContextoDeIa, recusaDeQuemPede } from './contexto'
 import { decisor, type GanchosDoNucleo } from './ganchos'
 import { recusaDeErro, type RecusaDeIa, recusaNuvemOcupada, recusaPortaoFechado, recusar } from './recusa'
+import { recusaSeSaidaBarrada } from './saidaFiltrada'
 
 const RESUMO = FUNCOES_DE_IA.resumo
 const ROTA = '/api/ai/resumir'
@@ -290,6 +291,9 @@ async function resumir(
         recusaDeErro(502, 'o modelo não devolveu um resumo utilizável; tente de novo', 'resposta_invalida'),
       )
     }
+    /* Perfil protegido: o que o modelo escreveu passa pelo filtro local antes de sair (change `filtro-tutor-menores`). */
+    const barrada = await recusaSeSaidaBarrada(ctx, 'resumo', menor, lido)
+    if (barrada) return decidir(barrada)
     const cartoes = cartoesDoResumo(lido.candidatos, falas, langDaPessoa)
     log('info', {
       event: 'resumo',

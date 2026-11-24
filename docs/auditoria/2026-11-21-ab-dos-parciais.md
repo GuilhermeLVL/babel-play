@@ -28,7 +28,7 @@ Nenhuma flag deve ser ligada. "Fraco emulado não aprova celular": nenhum númer
 
 ## Bug achado na fumaça e corrigido (commit `895fde23`)
 
-Com `parciais_vivos` ligada o pipeline definia `cadenciaDoParcial`, mas `src/lib/captura/fontesDeAudio.ts` repassa os callbacks à captura um a um e esse ficou de fora: a cadência adaptativa nunca rodava (o parcial seguia o tique fixo de 2 s). Corrigido para a fonte do sistema e o microfone (flag desligada: o callback devolve `undefined`, sem mudança), com teste. Sem o conserto, a fumaça mostrava atraso 1.072 ms; com ele, 241 ms. Outro achado, NÃO corrigido (fora do escopo, mudaria o comportamento com a flag desligada): `maxParciaisPorFala` também não é repassado pelo `fontesDeAudio`, então o teto de parciais por fala do aparelho leve nunca vale.
+Com `parciais_vivos` ligada o pipeline definia `cadenciaDoParcial`, mas `src/lib/captura/fontesDeAudio.ts` repassa os callbacks à captura um a um e esse ficou de fora: a cadência adaptativa nunca rodava (o parcial seguia o tique fixo de 2 s). Corrigido para a fonte do sistema e o microfone (flag desligada: o callback devolve `undefined`, sem mudança), com teste. Sem o conserto, a fumaça mostrava atraso 1.072 ms; com ele, 241 ms. Outro achado, CORRIGIDO depois (tarefa 5.0 da change, branch `fix/teto-de-parciais-aparelho-leve`): `maxParciaisPorFala` também não era repassado pelo `fontesDeAudio`, então o teto de parciais por fala do aparelho leve nunca valia. Agora vale, mesmo com as flags desligadas: efeito esperado é menos decodes de parcial no aparelho leve (2 por fala em vez de 3) e sem isolamento (1); o aparelho isolado comum não muda (3). Não medido na bancada.
 
 ## Resultados por comparação e perfil
 

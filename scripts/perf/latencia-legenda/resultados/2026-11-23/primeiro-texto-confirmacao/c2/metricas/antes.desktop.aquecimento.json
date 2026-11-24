@@ -1,0 +1,107 @@
+{
+  "rotulo": "antes.desktop.aquecimento",
+  "perfil": {
+    "tipo": "desktop-sem-gpu",
+    "modoLeve": "false"
+  },
+  "valida": true,
+  "modeloStt": null,
+  "janelas": {
+    "sessao": [33648.73000001907, 159033.1],
+    "fala": [40793.1, 139913.1],
+    "silencio": [141913.1, 159033.1]
+  },
+  "framesLongos": {
+    "n50": 0,
+    "n100": 0,
+    "somaMs": 0,
+    "maiorMs": 0
+  },
+  "primeiraLegendaMs": null,
+  "primeiroTextoNaTelaMs": 52694,
+  "sttProntoMs": null,
+  "rtf": {
+    "valores": [0.097, 0.094, 0.095, 0.094, 0.091, 0.091, 0.096],
+    "p50": 0.094,
+    "p95": 0.09670000000000001
+  },
+  "memoriaPicoMb": null,
+  "heapPicoMb": 12,
+  "cpuSilencio": {
+    "processoPct": 13.98248366013075,
+    "principalPct": 3.386504824151878,
+    "foraDaPrincipalPct": 10.595978835978872,
+    "workersPct": null
+  },
+  "rendersPorS": {
+    "silencio": 24.182242990654203,
+    "fala": 91.69693301049233
+  },
+  "commitsPorS": {
+    "silencio": 1.0514018691588785,
+    "fala": 3.3494753833736883
+  },
+  "fimATraducao": {
+    "p50": null,
+    "p95": null
+  },
+  "fimDaFalaAteLegendaMs": {
+    "valores": [],
+    "p50": null,
+    "p75": null,
+    "p95": null,
+    "falhas": 0,
+    "semTraducao": 16,
+    "erroDoMarcadorMs": [-26, 12, 57, 16, 346, -6, 62, 30, 161, 20, 52, 6, 104, 28, 54, 46]
+  },
+  "palavras": {
+    "falasComMedida": 7,
+    "foraDoCalculo": 1,
+    "semCasamento": 19,
+    "atrasoDePalavraMs": {
+      "original": {
+        "n": 51,
+        "p50": 2752,
+        "p90": 4912,
+        "valores": [
+          2864, 3260, 2960, 2700, 2280, 2020, 1720, 1460, 1240, 720, 4432, 4052, 3672, 3612, 3132,
+          2752, 2532, 2332, 2132, 1952, 1452, 1172, -1219, -1799, 5512, 5252, 5052, 4912, 4312,
+          4072, 3952, 3332, 3232, 3032, 2512, 2412, 2292, 1832, 1712, 1472, 1232, 5187, 4927, 4427,
+          4127, 3567, 3187, 2767, 1927, 1787, 1287
+        ]
+      },
+      "traducao": {
+        "n": 0,
+        "p50": null,
+        "p90": null,
+        "valores": []
+      }
+    },
+    "erasureOriginal": {
+      "falas": 7,
+      "apagadas": 0,
+      "final": 87,
+      "ne": 0
+    },
+    "erasureTraducao": {
+      "falas": 0,
+      "apagadas": 0,
+      "final": 0,
+      "ne": null
+    }
+  },
+  "finalNoWorker": {
+    "falas": 7,
+    "comParcialEmVoo": 0,
+    "sttEspera": [0, 0, 0, 0, 0, 0, 0],
+    "stt": [374, 459, 431, 516, 453, 516, 505],
+    "decodeDoFinalMs": [374, 459, 431, 516, 453, 516, 505]
+  },
+  "regulador": {
+    "trocasDeModelo": 0,
+    "primeiraTrocaMs": null,
+    "modelos": []
+  },
+  "falasPerdidas": 9,
+  "pedidosAoHub": 5
+}

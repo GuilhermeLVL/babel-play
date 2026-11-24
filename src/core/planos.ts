@@ -527,7 +527,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
                 US$ 1/1M de antes, e o que mantém a mistura de 3% de pagantes do `npm run ia:custo` com margem ≥ 0.
          PROVISÓRIO: o teto liga com o custo medido no uso real (E6); `PREMIUM_*_TTS_CHARS` sobrepõe.
          Passando dele, a voz do aparelho segue — o intérprete nunca para. Os tetos de cada plano estão em
-         `openspec/changes/voz-natural-openrouter/design.md`. */
+         `openspec/changes/archive/2026-11-23-voz-natural-openrouter/design.md`. */
       vozCaracteresMes: 150_000,
       vozCaracteresDia: 15_000,
       sttAoVivoSegundosMes: 0,

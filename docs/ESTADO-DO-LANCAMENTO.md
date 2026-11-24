@@ -101,7 +101,7 @@ cadastro/checkout fechados por padrão. Ver [a lista de pendências](planejament
 | **Task 10 — provas no staging:** checkout do Essencial e do Premium (mensal, anual, 12x), troca e arrependimento com a chave **sandbox** do Asaas; as caixas do §10 que cabem ao assistente. | plano, Task 10 · [LANCAMENTO.md §10](LANCAMENTO.md)                   |
 | Task 8 (vozes): a recomendação está na [pesquisa](pesquisa/2026-10-21-vozes-por-nivel.md); `voz_natural` segue desligada (P5).                                                               | plano, Task 8                                                         |
 | 9.3 (ofertas nos momentos do protótipo) e o texto fixo de `server/routes/billing.ts` ("esta conta já tem o Premium pago"), achado no inventário.                                             | [tasks.md](../openspec/changes/planos-v3-e-rota-inteligente/tasks.md) |
-| Frente 5: bancada de qualidade e custo da IA (espera as chaves pagas).                                                                                                                       | `openspec/changes/bancada-multi-modelo`                               |
+| Frente 5: bancada de qualidade e custo da IA (espera as chaves pagas).                                                                                                                       | `openspec/changes/archive/2026-11-23-bancada-multi-modelo`            |
 | Pós-lançamento: rota inteligente, transparência, nuvem ao vivo e qualidade no aparelho (grupos 4, 5, 6, 10 e Q).                                                                             | `tasks.md` da change                                                  |
 
 ### Dono

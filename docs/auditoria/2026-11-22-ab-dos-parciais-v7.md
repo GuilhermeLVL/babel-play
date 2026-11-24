@@ -61,7 +61,7 @@ Com `parciais_vivos`, o Intérprete, a Conversa virtual e o iChat não viam o te
    - o limitador de 125 ms já liga com `parciais_vivos` (não há chave para desligá-lo);
    - rodada [R] em aparelho real (celular, Parakeet e fraco real), que esta bancada não substitui;
    - decisão do dono sobre a troca de atraso em inglês (acima) e, de preferência, um teste de percepção com protocolo;
-   - registrar o teto de +100 ms como regra permanente da bancada (hoje é o parâmetro `--teto-final-ms` e a decisão registrada no critério da V7), e atualizar `openspec/changes/parciais-incrementais/tasks.md` e `docs/flags.md`.
+   - registrar o teto de +100 ms como regra permanente da bancada (hoje é o parâmetro `--teto-final-ms` e a decisão registrada no critério da V7), e atualizar `openspec/changes/archive/2026-11-23-parciais-incrementais/tasks.md` e `docs/flags.md`.
 4. **Reversão:** desligar as flags devolve o comportamento de hoje (a única mudança fora da flag, em `traducaoDaFala.ts`, só reduz quantas vezes o estado é trocado).
 
 ## Reprodução

@@ -17,7 +17,7 @@ export const FLAG_VOZ_NATURAL = 'voz_natural';
  * `POST /audio/speech` com retenção zero. O PADRÃO é o Kokoro 82M, o mais barato (US$ 0,62 a 4 por 1M de caracteres,
  * os dois endpoints com retenção zero); a voz BOA é o MAI-Voice 2.1 Flash (US$ 15/1M), só do nível `boa` e DESLIGADA
  * por padrão (fora dos `ops/ia-provedores*.json`): no pior caso ela deixa a margem do plano de nível boa negativa
- * (`openspec/changes/voz-natural-openrouter/design.md`).
+ * (`openspec/changes/archive/2026-11-23-voz-natural-openrouter/design.md`).
  */
 export const MODELO_DE_VOZ_DO_OPENROUTER = 'hexgrad/kokoro-82m';
 export const MODELO_DE_VOZ_BOA_DO_OPENROUTER = 'microsoft/mai-voice-2.1-flash';

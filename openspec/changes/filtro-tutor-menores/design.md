@@ -92,3 +92,17 @@ no rastro de telemetria.
 - Aula que ensina frase de dado pessoal ou de encontro a menor vira a frase fixa (acima).
 - Com conteúdo de rastro ligado no Langfuse (`conteudoPermitido`), a `saida` da geração é gravada pela cascata antes do
   filtro — vale para todo texto do tutor, não só o barrado; está desligado por padrão.
+
+## Outras saídas de IA (tarefas 4.1 e 4.2)
+
+`server/ai/nucleo/saidaFiltrada.ts`: `recusaSeSaidaBarrada(ctx, funcao, menor, valor)` confere CADA string do valor já lido
+(objetos e listas, chaves também) com `moderarSaidaDoTutor`, depois do parse (um `\u0068ttp` no JSON só vira `http` ali) e
+antes de cache/banco. Sem "frase fixa": a tela não é um chat, então barrado é 502 `saida_filtrada`, com a reserva de estudo
+consumida como na resposta inválida (o provedor cobrou); na escrita, a cota do mês volta (a pessoa não recebeu retorno).
+Log `ia_saida_filtrada` (categoria, função, `requestId`), métrica `ia_saida_filtrada_total` e rastro `saidaFiltrada`.
+
+No "Como respondo?" o perfil protegido não abre fluxo (`emFluxo` só para quem não é menor): o provedor é chamado sem
+`stream`, o resultado passa pelo filtro e a rota escreve as sugestões de uma vez (caminho que já existia para quando a
+perna não faz fluxo). Custo: a primeira sugestão do menor chega mais tarde. No parceiro de leitura, a linha lida do cache
+de perfil protegido também é conferida. Fora do filtro: `traducao` (legenda, texto de terceiros) e o polimento já gravado
+antes (`jaPolido`).

@@ -79,6 +79,27 @@ describe('offlineTranscribe com motor de nuvem', () => {
     expect(local.preload).not.toHaveBeenCalled()
   })
 
+  it('o progresso diz o motor REAL de cada trecho (rótulo honesto): nuvem, e local quando ela falha', async () => {
+    let chamada = 0
+    const nuvem = {
+      modelo: 'whisper-large-v3-turbo',
+      transcribePcm: vi.fn(async () => {
+        if (++chamada === 2) throw erroHttp(500)
+        return { text: 'nuvem' }
+      }),
+    }
+    const motores: Array<[string | undefined, string | undefined]> = []
+    await offlineTranscribe(new Blob([new Uint8Array(4)]), {
+      languageHint: 'pt',
+      nuvem,
+      onProgress: (p) => {
+        if (p.phase === 'segment' && p.motor) motores.push([p.motor, p.modelo])
+      },
+    })
+    expect(motores[0]).toEqual(['groq-whisper', 'whisper-large-v3-turbo'])
+    expect(motores.some(([m]) => m === 'whisper-local')).toBe(true)
+  })
+
   it('manda o trecho anterior como prompt (mesmo arquivo, mesmo idioma)', async () => {
     let n = 0
     const nuvem = { transcribePcm: vi.fn(async () => ({ text: `frase ${++n}` })) }

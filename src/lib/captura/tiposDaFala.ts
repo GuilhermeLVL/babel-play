@@ -219,7 +219,8 @@ export const formatTime = (s: number) => {
 export interface HandlersDaFonte {
   onSpeechStart: (rawSeq: number) => void;
   onMisfire: (rawSeq: number) => void;
-  onPartialAudio: (pcm: Float32Array, sr: number, rawSeq: number) => void;
+  /** `false` (na hora ou na promessa) = o parcial não rendeu texto: a captura devolve a cota (`SystemAudioCallbacks.onPartialAudio`). */
+  onPartialAudio: (pcm: Float32Array, sr: number, rawSeq: number) => void | boolean | Promise<void | boolean>;
   /** `especulacao`: o final especulativo desta fala (ver `espelhoDoVad.ts`), cujo resultado É o final. */
   onUtterance: (pcm: Float32Array, sr: number, rawSeq: number, especulacao?: EspeculacaoDoFinal) => void;
   /** ~450 ms de silêncio: começa o decode final já (ver `SystemAudioCallbacks.onFinalEspeculativo`). */

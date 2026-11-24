@@ -74,6 +74,8 @@
     com mais 0,6 s de fala (`systemAudio.ts` + o pipeline devolve `false`), com teste. NÃO MEDIDO na bancada: em
     18/11 toda rodada saiu INVÁLIDA neste Mac ("bipe não encontrado na sonda de áudio"), também no commit anterior
     a esta change (rodado para conferir): o problema é do ambiente (áudio falso do Chromium), não da mudança.
+- [x] 5.2b O conserto de 5.2 não chegava à captura da aba/sistema: `fontesDeAudio.ts` descartava o retorno de `onPartialAudio`, então `devolverCota` nunca rodava lá (só no microfone). Repassar o retorno. Verificar: teste do adaptador; A/B de 12 × 12 rodadas no desktop.
+  - Feito (`docs/auditoria/2026-11-23-primeiro-texto.md`): 1º texto 3.207 → 1.635 ms (IC [−1.777, −1.536]); fraco emulado sem regressão. Guarda do final no desktop (p75, 8 falas) com limite superior do IC +125 ms contra o teto de +30 ms do critério: pendente a decisão do dono.
 - [x] 5.3 `slo-captura.json`: métrica `primeiroTextoNaTelaMs`, rótulo "legenda completa" em `primeiraLegendaMs` e base `local-darwin` (com o aceite do dono). Verificar: a bancada com o parcial atrasado de propósito reprova.
   - Feito: `primeiroTextoNaTelaMs` (25% + 500 ms), o rótulo "legenda completa" e a base `local-darwin` da
     auditoria (aceita pelo dono), sem apagar a `local-win32`. O 1º texto da base é provisório (desktop 1 067 ms, a

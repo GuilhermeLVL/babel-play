@@ -137,6 +137,16 @@ describe('captura da aba × Web Speech no aparelho (fontesDeAudio)', () => {
     expect(m.aoMudarMotorDoSistema).toHaveBeenLastCalledWith('pipeline')
   })
 
+  it('pipeline: o retorno do parcial (false = sem decode/sem texto) chega à captura, que devolve a cota (1º texto na tela)', async () => {
+    const m = montar('pipeline')
+    m.sysHandlers.onPartialAudio.mockReturnValueOnce(false)
+    await m.fontes.handleStartSystemCapture()
+    expect(estado.cb!.onPartialAudio!(PCM, 16000, 1)).toBe(false)
+    const promessa = Promise.resolve(false)
+    m.sysHandlers.onPartialAudio.mockReturnValueOnce(promessa)
+    expect(estado.cb!.onPartialAudio!(PCM, 16000, 1)).toBe(promessa)
+  })
+
   it('no aparelho: a Web Speech ouve a trilha e o idioma do CONTEÚDO; o VAD só fiscaliza; o Whisper não é pedido', async () => {
     const m = montar('web-speech-local')
     await m.fontes.handleStartSystemCapture()

@@ -146,7 +146,7 @@ Depende das chaves do dono e de uma execução da bancada (teto de US$ 3).
 ## D0 — Depende da bancada (ABERTO)
 
 - [ ] 8.1 O D0 da Fase D escolhe o modelo de `niveis: ["nuance"]` e o de `["polimento"]` pela bancada. Os itens dele
-      estão em `openspec/changes/traducao-nuance/tasks.md` (0.1–0.3) e não são repetidos aqui. A marcação dos `niveis`
+      estão em `openspec/changes/archive/2026-11-23-traducao-nuance/tasks.md` (0.1–0.3) e não são repetidos aqui. A marcação dos `niveis`
       é o mesmo passo da 7.5: B7 e D0 saem da mesma execução da bancada.
 
 ## Riscos a verificar (ABERTOS)

@@ -76,10 +76,10 @@ troca de provedor precisa de retenção zero e nunca pode chegar ao Gemini.
   - atualizar `fly.toml`/`.env.production.example`, `docs/lgpd/operadores.md` e o ADR 0010, que está reservado para
     esta troca (`docs/adr/0011-*` e `0012-*`, nota do número).
 
-  O D0 da Fase D (escolher o modelo da nuance e do polimento, `openspec/changes/traducao-nuance/`) também depende da
+  O D0 da Fase D (escolher o modelo da nuance e do polimento, `openspec/changes/archive/2026-11-23-traducao-nuance/`) também depende da
   bancada e sai da mesma execução.
 
-**Fora do escopo:** a bancada multi-modelo anterior (`openspec/changes/bancada-multi-modelo/`, o
+**Fora do escopo:** a bancada multi-modelo anterior (`openspec/changes/archive/2026-11-23-bancada-multi-modelo/`, o
 `medir-traducao-llm.mjs`, capacidade `avaliacao-multi-modelo`). Ela é a predecessora e **não** cobre o B5, que é outra
 ferramenta (`scripts/eval-fala/bancada/`). Também ficam de fora a voz natural (formato `google-tts` e funções `tts`
 do registro, Fase E), a Tradução Nuance no cliente (Fase D) e o núcleo sem Express (Fase F, `api-e-mcp`). Todos usam

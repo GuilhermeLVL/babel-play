@@ -28,6 +28,12 @@
  * cascata com reserva, custo da perna que respondeu no gasto do mês. Registro e variante valem como na
  * tradução (`aplicarNuance`, por linha: a sessão pode ter as duas direções), e o glossário da pessoa vai
  * como dado (`glossarioDoPedido`). SEM CACHE: o bloco é a conversa de alguém, e o glossário é dele.
+ *
+ * PERFIL PROTEGIDO (`menor`, change `filtro-tutor-menores`): o filtro de saída confere TUDO o que sai, não só o
+ * texto recém-gerado. As polidas já gravadas (de antes do filtro, ou polidas para um adulto) também passam por
+ * ele, no bloco já polido (antes de qualquer portão ou cota) e junto das novas. ESCOLHA: se algo barra, o lote
+ * INTEIRO é recusado (502 `saida_filtrada`), como no resto do arquivo e dos demais núcleos — não se esvazia nem
+ * se redige linha a linha, para não devolver um bloco pela metade que a tela trataria como pendente.
  */
 import { createHash } from 'node:crypto'
 
@@ -209,6 +215,17 @@ async function polir(
   if (!bloco)
     return decidir(recusar(404, { error: 'bloco inexistente', code: 'bloco_inexistente', blocos: blocos.length }))
 
+  /* Público menor (idade não declarada conta como menor). As polidas JÁ gravadas também são saída: passam pelo
+     filtro antes de qualquer retorno (o bloco já polido não chega ao modelo) e antes de gastar cota. */
+  const menor = await ehMenor(ctx.userId)
+  const barradaAntes = await recusaSeSaidaBarrada(
+    ctx,
+    'polimento',
+    menor,
+    polidasDoBloco(bloco).map((p) => p.traducaoPolida),
+  )
+  if (barradaAntes) return decidir(barradaAntes)
+
   /* IDEMPOTENTE: o bloco inteiro já polido não custa nada a ninguém. */
   const pendentes = bloco.filter((l) => !l.traducaoPolida)
   if (!pendentes.length)
@@ -232,6 +249,7 @@ async function polir(
       blocos,
       bloco,
       pendentes,
+      menor,
       registro,
       variantes: variantes ?? [],
     })
@@ -275,11 +293,12 @@ async function polirPendentes(
     blocos: FalaDoPolimento[][]
     bloco: FalaDoPolimento[]
     pendentes: FalaDoPolimento[]
+    menor: boolean
     registro?: (typeof REGISTROS_DA_TRADUCAO)[number]
     variantes: VarianteDaTraducao[]
   },
 ): Promise<ResultadoDoPolimento> {
-  const { plano, k, blocos, bloco, pendentes } = p
+  const { plano, k, blocos, bloco, pendentes, menor } = p
   const { rastro } = ctx
   const { nivel, pernas } = cascataDoPlano('polimento', plano)
   if (pernas.length === 0)
@@ -313,7 +332,6 @@ async function polirPendentes(
     traducao: l.traducaoPolida ?? l.traducao,
   }))
   /* Público menor (idade não declarada conta como menor): a instrução vai no FIM do system. */
-  const menor = await ehMenor(ctx.userId)
   rastro.anotar({ menor })
   const messages: MensagemDeChat[] = [
     {
@@ -398,8 +416,10 @@ async function polirPendentes(
         recusaDeErro(502, 'o modelo não devolveu uma tradução polida utilizável; tente de novo', 'resposta_invalida'),
       )
     }
-    /* Perfil protegido: o que o modelo escreveu passa pelo filtro local antes de sair (change `filtro-tutor-menores`). */
-    const barrada = await recusaSeSaidaBarrada(ctx, 'polimento', menor, [...lidas.values()])
+    /* Perfil protegido: o que o modelo escreveu E o que já estava gravado no bloco passam pelo filtro local antes de
+       sair (change `filtro-tutor-menores`); barrou algo, o lote inteiro é recusado e nada é gravado. */
+    const jaGravadas = polidasDoBloco(bloco).map((x) => x.traducaoPolida)
+    const barrada = await recusaSeSaidaBarrada(ctx, 'polimento', menor, [...jaGravadas, ...lidas.values()])
     if (barrada) return decidir(barrada)
     const itens = [...lidas.entries()].map(([i, polida]) => ({
       id: pendentes[i].id,

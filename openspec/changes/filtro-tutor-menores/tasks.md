@@ -28,5 +28,11 @@
       lida do cache) e assistente; barrado é 502 `saida_filtrada`. Fora: `traducao` (legenda, texto de terceiros)
 - [x] 4.2 "Como respondo?" do assistente ao vivo (`assistenteAoVivo.ts`) é em fluxo: segurar o fluxo para perfil protegido.
       Feito: o perfil protegido chama o provedor sem `stream` e as sugestões saem de uma vez, depois do filtro
+- [x] 4.1b Correções da revisão de segurança: (1) `polirLote.ts` agora filtra TUDO o que sai para perfil protegido,
+      inclusive as polidas já gravadas (bloco já polido, antes de provedor e cota, e junto das novas); algo barrado
+      recusa o lote inteiro (502 `saida_filtrada`), sem redigir linha a linha. (2) `saidaFiltrada.ts` confere também
+      o texto JUNTADO dos campos (`\n` e espaço), para barrar termo, link ou contato partido entre dois campos;
+      juntado acima de `TETO_DO_TEXTO_MODERADO` é barrado (fail-closed). Testes: `tests/saida-filtrada-nucleo.test.ts`,
+      `tests/integration/polimento.test.ts`
 - [ ] 4.3 Opção C (moderação por IA) como segundo moderador da cadeia — decisão do dono, com custo medido
 - [ ] 4.4 Dono: revisar as listas e acompanhar `tutor_saida_filtrada` por categoria nas primeiras semanas

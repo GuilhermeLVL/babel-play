@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
+import { TETO_DO_TEXTO_MODERADO } from '../server/ai/moderacao/moderarSaidaDoTutor'
 import { recusaSeSaidaBarrada, textosDoValor } from '../server/ai/nucleo/saidaFiltrada'
 
 const ctx = () => {
@@ -15,7 +16,15 @@ const ctx = () => {
 
 describe('textosDoValor', () => {
   it('junta toda string, de objetos e listas aninhados, inclusive as chaves', () => {
-    expect(textosDoValor({ a: 'um', b: ['dois', { c: 'três' }], n: 4 })).toEqual(['a', 'um', 'b', 'dois', 'c', 'três', 'n'])
+    expect(textosDoValor({ a: 'um', b: ['dois', { c: 'três' }], n: 4 })).toEqual([
+      'a',
+      'um',
+      'b',
+      'dois',
+      'c',
+      'três',
+      'n',
+    ])
   })
   it('profundidade absurda não estoura nem escapa: o resto vira JSON conferido', () => {
     let fundo: unknown = 'http://x.com'
@@ -39,6 +48,26 @@ describe('recusaSeSaidaBarrada', () => {
   it('o que só aparece depois de decodificar o JSON também é barrado', async () => {
     const lido = JSON.parse('{"t":"veja \\u0068ttp://exemplo-ruim.com/x"}')
     expect(await recusaSeSaidaBarrada(ctx().ctx, 'resumo', true, lido)).not.toBeNull()
+  })
+
+  it('contato ou link partido em dois campos é barrado (o texto juntado também é conferido)', async () => {
+    const contato = { a: 'me chama no (11) 98765', b: '4321 que eu respondo' }
+    expect(await recusaSeSaidaBarrada(ctx().ctx, 'explicacao', true, contato)).toMatchObject({ status: 502 })
+    const link = ['http', '://exemplo-ruim.com/x']
+    expect(await recusaSeSaidaBarrada(ctx().ctx, 'explicacao', true, { x: link[0], y: link[1] })).not.toBeNull()
+    expect(await recusaSeSaidaBarrada(ctx().ctx, 'explicacao', true, [link[0], link[1]])).not.toBeNull()
+  })
+
+  it('texto juntado acima do teto do moderador é barrado (fail-closed), mesmo com cada campo abaixo', async () => {
+    const metade = 'a '.repeat(6_000)
+    const campos = [metade, metade, metade]
+    expect(campos.every((c) => c.length < TETO_DO_TEXTO_MODERADO)).toBe(true)
+    expect(await recusaSeSaidaBarrada(ctx().ctx, 'resumo', true, campos)).not.toBeNull()
+  })
+
+  it('vários campos limpos passam', async () => {
+    const limpa = ['Despedida natural entre amigos.', 'até mais', 'later']
+    expect(await recusaSeSaidaBarrada(ctx().ctx, 'resumo', true, limpa)).toBeNull()
   })
 
   it('adulto: nada é conferido', async () => {

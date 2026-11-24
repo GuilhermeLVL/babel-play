@@ -1,7 +1,9 @@
 import { useState } from 'react';
 
+import { useEstadoSemRede } from '../../../lib/captura/useEstadoSemRede';
 import { t } from '../../../lib/i18n';
 import { desligarServiceWorker, swControlando } from '../../../lib/registrarSw';
+import { motivoEmPalavras, nomeDoRecurso } from '../../conta/textosSemRede';
 import { toast } from '../../Toast';
 
 /**
@@ -12,6 +14,7 @@ import { toast } from '../../Toast';
 export default function UsoSemInternet() {
   const [ativo, setAtivo] = useState(swControlando);
   const [ocupado, setOcupado] = useState(false);
+  const { capacidades } = useEstadoSemRede();
   const desligar = async () => {
     setOcupado(true);
     try {
@@ -36,6 +39,16 @@ export default function UsoSemInternet() {
           ? t('Este navegador já abre o app sem internet.')
           : t('O app ainda não abre sem internet neste navegador.')}
       </p>
+      {capacidades && (
+        <ul data-testid="diagnostico-offline-lista">
+          {capacidades.map((c) => (
+            <li key={c.recurso}>
+              {c.funciona ? '✓' : '✗'} {nomeDoRecurso(c.recurso)}
+              {c.motivo ? ` (${motivoEmPalavras(c.motivo)})` : ''}
+            </li>
+          ))}
+        </ul>
+      )}
       {ativo && (
         <button type="button" className="q-ctl" disabled={ocupado} onClick={() => void desligar()}>
           {t('Desligar o modo offline neste navegador')}

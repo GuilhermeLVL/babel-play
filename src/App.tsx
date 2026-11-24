@@ -100,6 +100,7 @@ const AceiteDoResponsavel = lazyComRecarga(() => import('./components/conta/Acei
 // O aviso de pagamento atrasado só existe para quem tem conta: carregado junto, levava o módulo
 // inteiro da assinatura para o JS de arranque de todo mundo (orçamento do bundle, 30/09/2026).
 const AvisoDePagamentoAtrasado = lazyComRecarga(() => import('./components/conta/AvisoDePagamentoAtrasado'));
+const AvisoSemRede = lazyComRecarga(() => import('./components/conta/AvisoSemRede'));
 // Pelo mesmo motivo: o aviso do responsável só existe para perfil protegido, e a migração só abre
 // quando há dados no aparelho para subir depois de um login.
 const AvisoDoResponsavel = lazyComRecarga(() => import('./components/conta/AvisoDoResponsavel'));
@@ -650,6 +651,10 @@ export default function App() {
               <AvisoDePagamentoAtrasado />
             </Suspense>
           )}
+          {/* Sem internet: o que funciona e o que espera a rede (`modo-offline-declarado`). */}
+          <Suspense fallback={null}>
+            <AvisoSemRede />
+          </Suspense>
           {/* A CAMADA DE POLIMENTO: a borda de rolagem e a tela que sai e entra na troca
               (`src/lib/polimento/telas.ts`). */}
           <div className="px-borda" aria-hidden="true" />

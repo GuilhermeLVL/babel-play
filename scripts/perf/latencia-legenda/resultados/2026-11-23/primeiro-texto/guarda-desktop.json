@@ -1,0 +1,90 @@
+{
+  "a": "antes.desktop",
+  "b": "depois.desktop",
+  "rodadas": [12, 12],
+  "falas": 8,
+  "res": {
+    "p50": {
+      "a": 868.5,
+      "b": 870.5,
+      "dif": 2,
+      "ic95": [-168.75, 227.25]
+    },
+    "p75": {
+      "a": 1021.875,
+      "b": 967.875,
+      "dif": -54,
+      "ic95": [-165, 124.62812499999995]
+    },
+    "p95": {
+      "a": 1468.7749999999996,
+      "b": 1408.4999999999995,
+      "dif": -60.27500000000009,
+      "ic95": [-162.9999999999999, 4.375]
+    }
+  },
+  "decisao": "sem diferença provada: o IC 95% do p75 cruza 0",
+  "guardas": [
+    {
+      "nome": "framesLongos.n50",
+      "a": 0,
+      "b": 0,
+      "limite": 5,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.n100",
+      "a": 0,
+      "b": 0,
+      "limite": 3,
+      "status": "ok"
+    },
+    {
+      "nome": "framesLongos.somaMs",
+      "a": 0,
+      "b": 0,
+      "limite": 500,
+      "status": "ok"
+    },
+    {
+      "nome": "cpuSilencio.processoPct",
+      "a": 13.324677754775397,
+      "b": 13.178800153223662,
+      "limite": 23.654548856685555,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.silencio",
+      "a": 22.91910902696366,
+      "b": 22.91910902696366,
+      "limite": 31.648886283704577,
+      "status": "ok"
+    },
+    {
+      "nome": "rendersPorS.fala",
+      "a": 88.22063285652362,
+      "b": 103.32683138274815,
+      "limite": 120.27579107065452,
+      "status": "ok"
+    },
+    {
+      "nome": "fimDaFalaAteLegendaMs.taxaDeFalha",
+      "a": 0,
+      "b": 0,
+      "limite": 0.15,
+      "status": "ok"
+    }
+  ],
+  "falhas": {
+    "a": {
+      "falhas": 0,
+      "ok": 96,
+      "taxa": 0
+    },
+    "b": {
+      "falhas": 0,
+      "ok": 96,
+      "taxa": 0
+    }
+  }
+}

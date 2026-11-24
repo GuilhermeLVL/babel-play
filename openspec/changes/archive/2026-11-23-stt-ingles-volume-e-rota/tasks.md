@@ -49,3 +49,4 @@
 - `politicaDeRota`/`conferenciaDaRota` espelham a rota nova (senão a conferência acusaria divergência). Testes que congelavam
   "inglês na nuvem" usam a fixture `medicoesDeSttQueFavorecemANuvem` para manter a cobertura daquele ramo; o padrão novo é
   coberto em `tests/medicoesDeStt.test.ts`.
+- Rótulo honesto na importação de áudio (X8): a fila deixou de dizer sempre "Whisper local"; o texto vem do motor/modelo reais de cada trecho (`OfflineProgress.motor`/`modelo`, `src/lib/import/rotuloDaImportacao.ts`, mesma decisão de "onde" do `seloDaFala`): "Transcrevendo no aparelho (whisper-tiny)…", "…na nuvem do Frasy (whisper-large-v3-turbo)…", e volta a "no aparelho" quando a nuvem falha no trecho. Testes: `tests/rotuloDaImportacao.test.ts`, `tests/importacao-stt-nuvem.test.ts`.

@@ -96,6 +96,11 @@ export class GroqWhisperStt implements SttProvider {
     this.endpoint = cfg.endpoint ?? '/api/ai/stt';
   }
 
+  /** O modelo de nuvem em uso (o rótulo da importação o mostra). */
+  get modelo(): string {
+    return this.cfg.model;
+  }
+
   isAvailable(): boolean {
     // Edição estática: não há servidor com a chave — a cadeia vai direto ao Whisper local.
     // …menos no Quest com a nuvem ligada: lá a função do próprio site transcreve (`nuvemDoQuest.ts`).

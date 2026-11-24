@@ -45,6 +45,8 @@ export interface MotorDeNuvem {
     sampleRate: number,
     opts?: { languageHint?: string; prompt?: string },
   ): Promise<SttFinal>;
+  /** Modelo de nuvem em uso, para o rótulo honesto da fila (`rotuloDaImportacao.ts`). */
+  readonly modelo?: string;
 }
 
 /** Respostas que dizem "não vai dar nesta importação": insistir só cobraria (ou recusaria) de novo. */
@@ -57,6 +59,10 @@ export interface OfflineProgress {
   phase: 'decode' | 'model' | 'segment';
   progress: number; // 0..1
   label?: string;
+  /** Motor que atende ESTE passo (ausente = ainda não se sabe, ex.: decodificando). */
+  motor?: OfflineSegment['engine'];
+  /** Modelo do motor (id curto ou do Hub), quando se conhece. */
+  modelo?: string;
 }
 
 export interface OfflineOptions {
@@ -192,7 +198,7 @@ export async function offlineTranscribe(blob: Blob, opts: OfflineOptions = {}): 
       // silêncio). ANTES do preload: trocar depois baixaria os dois modelos.
       const modelo = modeloLocalDaImportacao(languageHint);
       if (modelo) local.setModel(modelo);
-      await local.preload((progress, label) => onProgress?.({ phase: 'model', progress, label }));
+      await local.preload((progress, label) => onProgress?.({ phase: 'model', progress, label, motor: 'whisper-local', modelo: local?.modeloAtual }));
     }
     return local;
   };
@@ -231,13 +237,17 @@ export async function offlineTranscribe(blob: Blob, opts: OfflineOptions = {}): 
     : segments.map((s) => ({ segmentos: [s], start: s.start, end: s.end }));
   for (let i = 0; i < pacotes.length; i++) {
     const p = pacotes[i];
-    onProgress?.({
+    const progressoDoTrecho = (motor: OfflineSegment['engine']): OfflineProgress => ({
       phase: 'segment',
       progress: i / Math.max(1, pacotes.length),
       label: `Transcrevendo trecho ${i + 1}/${pacotes.length}…`,
+      motor,
+      modelo: motor === 'groq-whisper' ? nuvem?.modelo : (local as WhisperLocalStt | null)?.modeloAtual,
     });
+    const tentaNuvem = !!nuvem && nuvemAtiva && Date.now() >= nuvemCheiaAte;
+    onProgress?.(progressoDoTrecho(tentaNuvem ? 'groq-whisper' : 'whisper-local'));
     let r: SttFinal | null = null;
-    if (nuvem && nuvemAtiva && Date.now() >= nuvemCheiaAte) {
+    if (nuvem && tentaNuvem) {
       try {
         const prompt = languageHint && anterior ? cortarPrompt(anterior) : undefined;
         r = await nuvem.transcribePcm(juntarAudioDoPacote(p), 16000, { languageHint, prompt });
@@ -260,6 +270,11 @@ export async function offlineTranscribe(blob: Blob, opts: OfflineOptions = {}): 
       continue;
     }
     // Nuvem recusou ou falhou (ou não há nuvem): cada fala do pacote vai ao local, com o próprio horário.
+    // A nuvem foi tentada e não atendeu: o rótulo passa a dizer que o trecho foi ao local.
+    if (tentaNuvem) {
+      await garantirLocal();
+      onProgress?.(progressoDoTrecho('whisper-local'));
+    }
     for (const s of p.segmentos) await transcreverNoLocal(s);
   }
   onProgress?.({ phase: 'segment', progress: 1 });

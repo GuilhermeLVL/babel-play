@@ -23,6 +23,7 @@
  * acervo e do índice do servidor — "Água!" na legenda casa com o cartão "agua".
  */
 import { PALAVRAS_FUNCIONAIS } from '../harness/palavrasConhecidas';
+import type { Forca } from '../learning/forcaDoCartao';
 import type { Layout } from '../legendas/janelaFlutuante';
 import { baseLang } from '../texto/idioma';
 import { chaveDaPalavra } from '../texto/palavra';
@@ -73,6 +74,50 @@ export function estadoNoCaderno(indice: IndiceDoCaderno | null, chave: string, l
   return indice.get(baseLang(lang))?.get(chave) ?? indice.get('')?.get(chave);
 }
 
+/**
+ * A FORÇA NA LEGENDA (openspec `status-da-palavra-na-legenda`, flag `forca_na_legenda`). A força 1 a 4 do cartão
+ * (`forcaDoCartao`: estabilidade, repetições e esquecimentos, sem relógio) por idioma e chave, ao lado do estado.
+ * Com chave repetida em dois cartões, vale a MAIOR força (a mesma regra do "estado mais avançado").
+ */
+export type IndiceDeForcas = ReadonlyMap<string, ReadonlyMap<string, Forca>>;
+
+export function montarIndiceDeForcas(
+  cartoes: Iterable<{ palavra: string; lang?: string | null; forca: Forca }>,
+): IndiceDeForcas {
+  const indice = new Map<string, Map<string, Forca>>();
+  for (const c of cartoes) {
+    const chave = chaveDaPalavra(c.palavra);
+    if (!chave) continue;
+    const idioma = baseLang(c.lang);
+    let balde = indice.get(idioma);
+    if (!balde) indice.set(idioma, (balde = new Map()));
+    const antes = balde.get(chave);
+    if (!antes || c.forca > antes) balde.set(chave, c.forca);
+  }
+  return indice;
+}
+
+/** A força da chave: primeiro o balde do idioma, depois o sem idioma (como `estadoNoCaderno`). */
+export function forcaNoCaderno(
+  forcas: IndiceDeForcas | null | undefined,
+  chave: string,
+  lang: string | undefined,
+): Forca | undefined {
+  if (!forcas || !chave) return undefined;
+  return forcas.get(baseLang(lang))?.get(chave) ?? forcas.get('')?.get(chave);
+}
+
+/**
+ * O MAPA FORÇA -> ETIQUETA (decisão assumida em 25/11: 1 / 2-3 / 4): 1 = `salva`, 2 e 3 = `aprendendo`, 4 = silenciosa
+ * (`dominada`, que não pinta nem entra no resumo). Pura e sem relógio: só uma revisão muda a etiqueta.
+ */
+export function etiquetaDaForca(forca: Forca): Etiqueta {
+  return forca === 1 ? 'salva' : forca === 4 ? 'dominada' : 'aprendendo';
+}
+
+/** A glosa do leitor some a partir desta força (2 mantém, 3 apaga); "Já sei" apaga na hora. */
+export const FORCA_QUE_APAGA_A_GLOSA: Forca = 3;
+
 /** Escritas sem espaço entre as palavras: lá uma letra já é palavra (a mesma lista do índice do servidor). */
 const UMA_LETRA_BASTA = new Set(['ja', 'zh', 'th', 'lo', 'km', 'my']);
 
@@ -112,6 +157,8 @@ export interface OpcoesDaEtiqueta {
   vistas?: VistasDoIdioma | null;
   /** "Já sei" e "Ignorar" (sem cartão). Ausente = nenhuma marcação conhecida ainda. */
   marcadas?: IndiceDeMarcadas | null;
+  /** Com a flag `forca_na_legenda`: a etiqueta do cartão sai da FORÇA (`etiquetaDaForca`) e não do estado. Ausente = a régua de hoje. */
+  forcas?: IndiceDeForcas | null;
 }
 
 /** O ponto "nova para você" pode aparecer nesta linha? (Os portões que não dependem da palavra.) */
@@ -131,7 +178,11 @@ export function etiquetaDaChave(
 ): Etiqueta | undefined {
   if (!chave) return undefined;
   const estado = estadoNoCaderno(caderno, chave, lang);
-  if (estado) return estado === 'nova' ? 'salva' : estado;
+  if (estado) {
+    const forca = forcaNoCaderno(o.forcas, chave, lang);
+    if (forca) return etiquetaDaForca(forca);
+    return estado === 'nova' ? 'salva' : estado;
+  }
   const marcada = o.marcadas?.get(baseLang(lang))?.get(chave);
   if (marcada) return marcada;
   if (!novaPossivel(lang, o) || o.vistas!.chaves.has(chave)) return undefined;

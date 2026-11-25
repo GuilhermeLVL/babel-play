@@ -1,9 +1,11 @@
 import { type MutableRefObject, useEffect, useMemo, useRef } from 'react';
 
 import { CORES_DOS_TEMAS, type PerfilDeLeitura } from '../../../core/leitura/perfilDeLeitura';
-import { chavesConhecidas } from '../../../core/vocabulario/marcadas';
+import { FLAG_FORCA_NA_LEGENDA } from '../../../core/planos';
+import { chavesConhecidas, chavesConhecidasPorForca } from '../../../core/vocabulario/marcadas';
 import { quandoOcioso } from '../../../hooks/useCoberturaDoConteudo';
 import { useSnapshotDasEtiquetas } from '../../../lib/etiquetas/indiceDeEtiquetas';
+import { useFlag } from '../../../lib/flags';
 import { GlosaDoCapitulo, type OverlayerDaGlosa } from '../../../lib/leitor/glosaNoCapitulo';
 import type { MotorDoLeitor } from '../../../lib/leitor/motor';
 
@@ -29,6 +31,8 @@ export default function GlosaDoLeitor({
   perfil: PerfilDeLeitura;
 }) {
   const s = useSnapshotDasEtiquetas();
+  /* Flag `forca_na_legenda`: o cartão só apaga a glosa na força 3; desligada, como sempre (entrou no caderno). */
+  const porForca = useFlag(FLAG_FORCA_NA_LEGENDA);
   const pronto = !!idioma && !!nativo && idioma !== nativo && s.caderno !== null;
   const estado = useMemo(() => {
     if (!pronto) return null;
@@ -36,11 +40,13 @@ export default function GlosaDoLeitor({
     for (const [chave, e] of s.marcadas?.get(idioma) ?? []) if (e === 'ignorada') ignoradas.add(chave);
     const cores = CORES_DOS_TEMAS[perfil.tema];
     return {
-      conhecidas: chavesConhecidas(s.caderno, s.marcadas, idioma, { incluirSemIdioma: true }),
+      conhecidas: porForca
+        ? chavesConhecidasPorForca(s.caderno, s.forcas, s.marcadas, idioma, { incluirSemIdioma: true })
+        : chavesConhecidas(s.caderno, s.marcadas, idioma, { incluirSemIdioma: true }),
       ignoradas,
       aparencia: { cor: cores.suave, fundo: cores.fundo, tamanho: perfil.tamanho },
     };
-  }, [pronto, s.caderno, s.marcadas, idioma, perfil.tema, perfil.tamanho]);
+  }, [pronto, porForca, s.caderno, s.forcas, s.marcadas, idioma, perfil.tema, perfil.tamanho]);
 
   const capitulos = useRef(new WeakMap<Document, GlosaDoCapitulo>());
   const vivos = useRef(new Set<GlosaDoCapitulo>());

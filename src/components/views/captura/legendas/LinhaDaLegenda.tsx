@@ -80,6 +80,7 @@ function Palavras({
         data-palavra={palavra}
         data-aprendida={aprendida ? '' : undefined}
         data-etiqueta={etiquetador?.etiqueta(palavra, lang)}
+        data-forca={etiquetador?.forca(palavra, lang)}
       >
         {p}
       </span>

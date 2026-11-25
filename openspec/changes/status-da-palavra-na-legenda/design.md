@@ -35,3 +35,11 @@ já dizem. A força exata mora na gaveta da palavra, onde há espaço para texto
 
 Não há medição de latência: a leitura da força é uma conta por palavra no índice já carregado; o teste de desempenho só confere que
 montar o índice de 20.000 cartões não passa do orçamento de `slo-captura.json` (sem regressão de frames longos).
+
+## Mapa final (decisão assumida em 25/11)
+
+Recomendação 35 de `docs/backlog/decisoes-do-dono.md`: **1 / 2-3 / 4** (força 1 = `salva`, 2 e 3 = `aprendendo`, 4 = silenciosa).
+Simulação sintética (`docs/auditoria/2026-11-25-status-da-palavra-simulacao.md`): 0 oscilações em 30 dias (a régua de hoje oscila em
+42%), mas 47,9% das palavras mudam de etiqueta, acima do critério de 15%; é a decisão 1.2 com o deck real do dono antes de ligar
+a flag. `contarConhecidas`, cobertura e moldura do cartão não mudam. O núcleo guarda a força num índice ao lado do caderno
+(`IndiceDeForcas`) e a etiqueta só usa a força quando a flag está ligada.

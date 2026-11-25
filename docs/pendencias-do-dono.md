@@ -146,3 +146,12 @@ Registrados para não se perderem; não são do dono, mas ficaram abertos nas ch
 - `auditoria-i18n-v1` (P3) · G0.1, G1.1 · Aceitar tabela e vereditos; decidir rede Wikidata/Tatoeba e prioridade de N3 (`?ui=`); ainda interessa ou arquiva como relatório.
 - `api-e-mcp` (P3) · Decidir se a API pública/MCP entra no roadmap.
 - `estrutura-por-dominio-proposta` (P3) · 2.1 · Aprovar ou recusar a árvore-alvo e a ordem.
+
+## Parte 3. Changes novas de planejamento (25/11/2026; branch `chore/preparo-specs-3`)
+
+Só planejamento: nenhuma flag nasce ligada e nenhum código mudou. Detalhe e recomendações na seção "Decisões do dono" de cada `proposal.md`.
+
+- `navegacao-mais-simples` · 1.3 e 2.4 · Decidir juntas: opção A (recomendada) ou B; Livros, Planos, Intérprete e Ajustes saem do primeiro nível?; medir uso por agregado?. Aprovar o protótipo antes de qualquer código.
+- `cartao-com-audio-do-trecho` · 1.2, 3.3, 5.1 · Escuta cega do bitrate; linha do ROPA e parecer sobre voz de terceiros; ligar `cartao_com_audio` (recomendo só local como padrão).
+- `cartao-com-captura-de-tela` · 4.3, 5.1 · Decidir se a função existe (recomendo sim só para adulto e só local, ou não construir); perfil protegido fora na v1.
+- `diario-com-correcao-que-vira-cartao` · 1.3, 3.4, 5.2 · Aprovar modelo e custo; cota compartilhada com a escrita (recomendado); IA para menores só depois de `filtro-tutor-menores` 4.3 e 4.4 e da rodada de risco.

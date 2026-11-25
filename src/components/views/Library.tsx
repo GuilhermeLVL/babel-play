@@ -56,6 +56,7 @@ import { toast } from '../Toast';
 import { Abas, CabecalhoDeTela, IconeEmBloco, TituloDeSecao } from '../ui';
 import EditarSessao from './biblioteca/EditarSessao';
 import ExportarTranscricao from './biblioteca/ExportarTranscricao';
+import PreTraduzirLegenda from './biblioteca/PreTraduzirLegenda';
 import BibliotecaDoQuest from './biblioteca/quest/BibliotecaDoQuest';
 
 type FaixaDeTamanho = 'all' | 'short' | 'medium' | 'long';
@@ -724,6 +725,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
                       >
                         <ArrowRight aria-hidden /> Importar
                       </button>
+                      {importSource === 'doc' && importArquivo && <PreTraduzirLegenda arquivo={importArquivo} />}
                     </>
                   )}
                 </div>

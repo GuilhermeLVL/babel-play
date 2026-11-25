@@ -7,10 +7,11 @@
 - [x] 1.1 Ramo `origin_kind='anki' AND origin_ref=<deckId>` em `selecionarParaJogo`. Feito: `server/db/repositories/vocab.ts`.
 - [x] 1.2 `PedidoDeComposicao.fonte.ref` carrega o baralho. Feito: `src/core/minigames/composicao.ts`.
 - [x] 1.3 Payload do deck leva cartão→baralho (`VocabCard.baralhosAnki`). Feito: `src/types.ts`, `src/data/rotas/vocabulario.ts`.
-- [ ] 1.4 Dizer na tela quando o filtro por baralho não pôde ser aplicado. A função pura `filtroAplicavel`
+- [x] 1.4 Dizer na tela quando o filtro por baralho não pôde ser aplicado. A função pura `filtroAplicavel`
       (`src/core/minigames/filtro.ts:149`) e o teste (`tests/filtroDaPratica.test.ts:120`) existem, mas nenhum componente a chama.
       Ligar no lobby de `Play.tsx` (aviso com o `motivo`; sem aviso quando `aplicavel` é `true`).
       Verificar: teste de componente com cartões sem `baralhosAnki` e baralho escolhido mostra o aviso, e a rodada não esvazia em silêncio.
+      Feito (decisão assumida: recomendação a, 25/11): aviso `aviso-filtro-baralho` no lobby de `Play.tsx` via `filtroAplicavel`. Falta teste de componente do lobby (Play é pesado demais para montar); a função pura segue coberta em `tests/filtroDaPratica.test.ts`.
 - [x] 1.5 Seletor de baralho no lobby. Feito: chip de baralho (`filtro.ts`, estado `filtroDaSessao` em `Play.tsx`).
 - [x] 1.6 Escolher baralho recorta; sem escolha, acervo inteiro. Feito: `tests/filtroDaPratica.test.ts`, `tests/e2e/baralhos.e2e.ts`.
 
@@ -33,20 +34,25 @@
       (`src/core/minigames/source.ts:335`, commit `0e62f9a9`), consumida em `rodada.ts:282` só quando não há fala gravada.
 - [x] ~~3.1b Áudio nativo do baralho~~ **Removido do escopo** (25/11): a mídia do `.apkg` foi cancelada
       (`openspec/changes/archive/2026-09-08-motor-anki-midia-cancelada/`) e a importação pesada roda no navegador; o servidor não guarda o áudio.
-- [ ] 3.2 Karaokê indisponível para frase do baralho (precisa de clipe real); escuta e ditado aceitam TTS. Hoje `rodada.ts:565` exige `temAudio`.
+- [x] 3.2 Karaokê indisponível para frase do baralho (precisa de clipe real); escuta e ditado aceitam TTS. Hoje `rodada.ts:565` exige `temAudio`.
       Verificar: teste de rodada com só `frasesDoAcervo`: escuta e ditado montam, karaokê devolve `null` com motivo dito na tela.
-- [ ] 3.3 Baralho com frases alimenta os 5 jogos de frase conforme a matriz.
+      Feito: `falasAudiveis` aceita `0/0` (TTS), gate com motivo `sem-clipe-de-audio`. Teste: `tests/baralhoNosJogos.test.ts`.
+- [x] 3.3 Baralho com frases alimenta os 5 jogos de frase conforme a matriz.
       Verificar: teste de `montarRodada` por jogo com baralho de 20 frases (≥ 4 palavras) e outro sem tradução.
+      Feito para escuta, ditado e karaokê (`tests/baralhoNosJogos.test.ts`); scramble/conectores já liam `frasesDoAcervo`, sem teste novo.
 
 ## 4. Origem visível e progresso
 
-- [ ] 4.1 Chip "Anki · nome do baralho" na PRÉVIA, dentro do funil `previaSegura`. Atenção: `origemDoMaterial`
+- [x] 4.1 Chip "Anki · nome do baralho" na PRÉVIA, dentro do funil `previaSegura`. Atenção: `origemDoMaterial`
       (`revelavel.ts:149`) devolve `'sessao'` para jogo de fala vindo do baralho, o que rotula errado a frase do acervo; corrigir junto.
       Verificar: teste da prévia de escuta com frase do acervo mostra "Anki · <nome>" e não "sessão".
-- [ ] 4.2 Anti-spoiler: a origem respeita `REVELAVEL`.
+      Feito: `origemDoMaterial` devolve `baralho` para frase do acervo; rótulo "Anki · nome" na prévia (`AntessalaDaRodada.tsx`).
+- [x] 4.2 Anti-spoiler: a origem respeita `REVELAVEL`.
       Verificar: teste existente de `revelavel` segue verde e um caso novo (Termo, Ditado) prova que o nome do baralho não revela a resposta.
-- [ ] 4.3 Modo "só revisão" para item que não serve a nenhum jogo (grava memória, sem mecânica).
+      Feito: nome do baralho passa por `previaSegura`; caso em `tests/baralhoNosJogos.test.ts` (Ditado).
+- [x] 4.3 Modo "só revisão" para item que não serve a nenhum jogo (grava memória, sem mecânica).
       Verificar: item sem tradução e sem frase aparece na revisão simples e atualiza a memória (teste do repositório e de componente).
+      Feito (decisão assumida: recomendação a, agora, 25/11): `src/core/minigames/soRevisao.ts` + `RevisaoSimples.tsx`, oferta no lobby sem menu novo; nota via `reviewCard` (origem `revisao`, formato `lembrar`). Testes: `tests/revisaoSimples.test.tsx`, `tests/baralhoNosJogos.test.ts`.
 - [ ] 4.4 Progresso por baralho na tela do baralho.
       Verificar: teste do payload `praticado/total` por `deckId` e e2e que abre a tela e lê o número.
 

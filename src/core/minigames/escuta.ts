@@ -72,10 +72,11 @@ function embaralhar<T>(xs: T[]): T[] {
 
 /** Falas que servem para escutar: precisam de áudio com começo e fim, e de texto que preste. */
 export function falasAudiveis(frases: FalaComAudio[]): FalaComAudio[] {
-  return (frases ?? []).filter(f =>
-    f.endMs > f.startMs &&
-    f.endMs - f.startMs >= 700 &&   // trechos curtíssimos não dão o que ouvir
-    avaliarFrase(f.text).serve,
+  return (frases ?? []).filter(
+    (f) =>
+      /* `0/0` é "sem clipe: a voz sintetizada fala o texto" (frase do baralho e trilha). */
+      ((f.startMs === 0 && f.endMs === 0) || (f.endMs > f.startMs && f.endMs - f.startMs >= 700)) && // trechos curtíssimos não dão o que ouvir
+      avaliarFrase(f.text).serve,
   );
 }
 
@@ -100,14 +101,17 @@ export function buildRodadasEscuta(
   const uteis = falasAudiveis(frases);
   if (uteis.length < nAlt) return [];
 
-  return shuffle(uteis).slice(0, quantidade).map(correta => {
-    const tamanhoDe = (f: FalaComAudio) => palavrasDaFrase(f.text, f.lang).length;
-    const tamanho = tamanhoDe(correta);
-    const outras = uteis
-      .filter(f => f.id !== correta.id && chaveDeTexto(f.text) !== chaveDeTexto(correta.text))
-      .sort((a, b) => Math.abs(tamanhoDe(a) - tamanho) - Math.abs(tamanhoDe(b) - tamanho));
-    return { correta, opcoes: shuffle([correta, ...outras.slice(0, nAlt - 1)]) };
-  }).filter(r => r.opcoes.length >= 2);
+  return shuffle(uteis)
+    .slice(0, quantidade)
+    .map((correta) => {
+      const tamanhoDe = (f: FalaComAudio) => palavrasDaFrase(f.text, f.lang).length;
+      const tamanho = tamanhoDe(correta);
+      const outras = uteis
+        .filter((f) => f.id !== correta.id && chaveDeTexto(f.text) !== chaveDeTexto(correta.text))
+        .sort((a, b) => Math.abs(tamanhoDe(a) - tamanho) - Math.abs(tamanhoDe(b) - tamanho));
+      return { correta, opcoes: shuffle([correta, ...outras.slice(0, nAlt - 1)]) };
+    })
+    .filter((r) => r.opcoes.length >= 2);
 }
 
 /* ─────────────────────────── DITADO ─────────────────────────── */
@@ -127,14 +131,16 @@ export function buildRodadasDitado(
   opts: { quantidade?: number; shuffle?: <T>(xs: T[]) => T[] } = {},
 ): RodadaDitado[] {
   const shuffle = opts.shuffle ?? embaralhar;
-  const uteis = falasAudiveis(frases).filter(f => {
+  const uteis = falasAudiveis(frases).filter((f) => {
     const n = palavrasDaFrase(f.text, f.lang).length;
     return n >= 4 && n <= 12;
   });
-  return shuffle(uteis).slice(0, opts.quantidade ?? 5).map(fala => ({
-    fala,
-    palavras: palavrasDaFrase(fala.text, fala.lang).length,
-  }));
+  return shuffle(uteis)
+    .slice(0, opts.quantidade ?? 5)
+    .map((fala) => ({
+      fala,
+      palavras: palavrasDaFrase(fala.text, fala.lang).length,
+    }));
 }
 
 /**
@@ -179,7 +185,10 @@ export function conferirDitado(esperado: string, escrito: string, idioma = ''): 
     for (let d = 0; d <= 2; d++) {
       for (const j of [i - d, i + d]) {
         if (j < 0 || j >= dito.length || usadas.has(j)) continue;
-        if (chave(dito[j]) === k) { usadas.add(j); return { esperada, escrita: dito[j], certa: true }; }
+        if (chave(dito[j]) === k) {
+          usadas.add(j);
+          return { esperada, escrita: dito[j], certa: true };
+        }
       }
     }
     return { esperada, escrita: null, certa: false };
@@ -204,7 +213,7 @@ export function conferirDitado(esperado: string, escrito: string, idioma = ''): 
     }
   }
 
-  const acertos = palavras.filter(p => p.certa).length;
+  const acertos = palavras.filter((p) => p.certa).length;
   return {
     palavras,
     acertos,
@@ -227,18 +236,77 @@ export function conferirDitado(esperado: string, escrito: string, idioma = ''): 
  */
 const CONECTORES: Record<string, ReadonlySet<string>> = {
   en: new Set([
-    'however', 'although', 'though', 'therefore', 'because', 'since', 'while', 'whereas',
-    'moreover', 'furthermore', 'nevertheless', 'nonetheless', 'besides', 'instead',
-    'otherwise', 'meanwhile', 'consequently', 'thus', 'hence', 'unless', 'until',
-    'despite', 'whether', 'actually', 'basically', 'anyway', 'finally', 'first',
-    'then', 'also', 'but', 'so', 'and', 'or', 'if',
+    'however',
+    'although',
+    'though',
+    'therefore',
+    'because',
+    'since',
+    'while',
+    'whereas',
+    'moreover',
+    'furthermore',
+    'nevertheless',
+    'nonetheless',
+    'besides',
+    'instead',
+    'otherwise',
+    'meanwhile',
+    'consequently',
+    'thus',
+    'hence',
+    'unless',
+    'until',
+    'despite',
+    'whether',
+    'actually',
+    'basically',
+    'anyway',
+    'finally',
+    'first',
+    'then',
+    'also',
+    'but',
+    'so',
+    'and',
+    'or',
+    'if',
   ]),
   pt: new Set([
-    'porém', 'contudo', 'todavia', 'entretanto', 'embora', 'apesar', 'portanto',
-    'porque', 'pois', 'enquanto', 'além', 'ademais', 'inclusive', 'aliás',
-    'entanto', 'contrário', 'assim', 'logo', 'então', 'ainda', 'mas',
-    'contanto', 'caso', 'salvo', 'exceto', 'primeiro', 'finalmente', 'depois',
-    'antes', 'também', 'ou', 'se', 'como', 'quando',
+    'porém',
+    'contudo',
+    'todavia',
+    'entretanto',
+    'embora',
+    'apesar',
+    'portanto',
+    'porque',
+    'pois',
+    'enquanto',
+    'além',
+    'ademais',
+    'inclusive',
+    'aliás',
+    'entanto',
+    'contrário',
+    'assim',
+    'logo',
+    'então',
+    'ainda',
+    'mas',
+    'contanto',
+    'caso',
+    'salvo',
+    'exceto',
+    'primeiro',
+    'finalmente',
+    'depois',
+    'antes',
+    'também',
+    'ou',
+    'se',
+    'como',
+    'quando',
   ]),
   /* O espanhol tinha 'sin', 'embargo', 'por' e 'tanto': metades soltas de "sin embargo" e "por
      tanto". O casamento é por TOKEN, então o jogo mandava marcar a preposição "sin" de "café sin
@@ -246,10 +314,31 @@ const CONECTORES: Record<string, ReadonlySet<string>> = {
      frases da trilha espanhola: 11,3% delas tinham conector antes, 6,4% agora — a queda é toda
      de falso positivo, e 6,4% fica na faixa do inglês (4,4%) e do italiano (6,0%). */
   es: new Set([
-    'aunque', 'porque', 'pues', 'mientras', 'además', 'asimismo', 'incluso',
-    'entonces', 'luego', 'así', 'igualmente', 'obstante', 'pero', 'sino',
-    'aún', 'todavía', 'salvo', 'excepto',
-    'primero', 'finalmente', 'después', 'antes', 'también', 'cuando', 'si',
+    'aunque',
+    'porque',
+    'pues',
+    'mientras',
+    'además',
+    'asimismo',
+    'incluso',
+    'entonces',
+    'luego',
+    'así',
+    'igualmente',
+    'obstante',
+    'pero',
+    'sino',
+    'aún',
+    'todavía',
+    'salvo',
+    'excepto',
+    'primero',
+    'finalmente',
+    'después',
+    'antes',
+    'también',
+    'cuando',
+    'si',
   ]),
   /* Os quatro idiomas com trilha publicada e alfabeto latino. A régua é a mesma do espanhol
      acima: só entra token que é conector SOZINHO. Por isso 'd'abord' e 'parce' entram (nunca
@@ -262,32 +351,144 @@ const CONECTORES: Record<string, ReadonlySet<string>> = {
 
      Medido nas frases das trilhas: 11,0% (de), 8,5% (fr), 6,0% (it), 11,0% (nl) têm conector. */
   de: new Set([
-    'aber', 'jedoch', 'allerdings', 'trotzdem', 'dennoch', 'obwohl', 'obgleich',
-    'weil', 'denn', 'deshalb', 'deswegen', 'daher', 'darum', 'also', 'außerdem',
-    'zudem', 'stattdessen', 'sonst', 'folglich', 'somit', 'falls', 'solange',
-    'während', 'zwar', 'schließlich', 'zuerst', 'zunächst', 'danach', 'dann',
-    'auch', 'und', 'oder', 'wenn',
+    'aber',
+    'jedoch',
+    'allerdings',
+    'trotzdem',
+    'dennoch',
+    'obwohl',
+    'obgleich',
+    'weil',
+    'denn',
+    'deshalb',
+    'deswegen',
+    'daher',
+    'darum',
+    'also',
+    'außerdem',
+    'zudem',
+    'stattdessen',
+    'sonst',
+    'folglich',
+    'somit',
+    'falls',
+    'solange',
+    'während',
+    'zwar',
+    'schließlich',
+    'zuerst',
+    'zunächst',
+    'danach',
+    'dann',
+    'auch',
+    'und',
+    'oder',
+    'wenn',
   ]),
   fr: new Set([
-    'cependant', 'pourtant', 'néanmoins', 'toutefois', 'quoique', 'malgré',
-    'donc', 'ainsi', 'alors', 'parce', 'car', 'puisque', 'lorsque', 'tandis',
-    'ensuite', 'enfin', "d'abord", 'puis', 'également', 'aussi', 'sinon',
-    'autrement', 'finalement', 'premièrement',
-    'mais', 'et', 'si', 'comme', 'quand', 'après', 'avant',
+    'cependant',
+    'pourtant',
+    'néanmoins',
+    'toutefois',
+    'quoique',
+    'malgré',
+    'donc',
+    'ainsi',
+    'alors',
+    'parce',
+    'car',
+    'puisque',
+    'lorsque',
+    'tandis',
+    'ensuite',
+    'enfin',
+    "d'abord",
+    'puis',
+    'également',
+    'aussi',
+    'sinon',
+    'autrement',
+    'finalement',
+    'premièrement',
+    'mais',
+    'et',
+    'si',
+    'comme',
+    'quand',
+    'après',
+    'avant',
   ]),
   it: new Set([
-    'però', 'tuttavia', 'comunque', 'invece', 'anzi', 'benché', 'sebbene',
-    'nonostante', 'malgrado', 'poiché', 'perché', 'siccome', 'dunque', 'quindi',
-    'pertanto', 'perciò', 'allora', 'inoltre', 'altrimenti', 'mentre', 'finché',
-    'purché', 'insomma', 'cioè', 'infine', 'prima', 'dopo', 'poi', 'anche',
-    'oppure', 'ma', 'ed', 'o', 'se',
+    'però',
+    'tuttavia',
+    'comunque',
+    'invece',
+    'anzi',
+    'benché',
+    'sebbene',
+    'nonostante',
+    'malgrado',
+    'poiché',
+    'perché',
+    'siccome',
+    'dunque',
+    'quindi',
+    'pertanto',
+    'perciò',
+    'allora',
+    'inoltre',
+    'altrimenti',
+    'mentre',
+    'finché',
+    'purché',
+    'insomma',
+    'cioè',
+    'infine',
+    'prima',
+    'dopo',
+    'poi',
+    'anche',
+    'oppure',
+    'ma',
+    'ed',
+    'o',
+    'se',
   ]),
   nl: new Set([
-    'echter', 'maar', 'toch', 'hoewel', 'ofschoon', 'ondanks', 'omdat', 'want',
-    'doordat', 'daarom', 'dus', 'daardoor', 'bovendien', 'tevens', 'daarentegen',
-    'integendeel', 'anders', 'ondertussen', 'terwijl', 'tenzij', 'zodat',
-    'indien', 'tenslotte', 'uiteindelijk', 'vervolgens', 'trouwens', 'namelijk',
-    'immers', 'als', 'en', 'of', 'ook', 'dan', 'eerst',
+    'echter',
+    'maar',
+    'toch',
+    'hoewel',
+    'ofschoon',
+    'ondanks',
+    'omdat',
+    'want',
+    'doordat',
+    'daarom',
+    'dus',
+    'daardoor',
+    'bovendien',
+    'tevens',
+    'daarentegen',
+    'integendeel',
+    'anders',
+    'ondertussen',
+    'terwijl',
+    'tenzij',
+    'zodat',
+    'indien',
+    'tenslotte',
+    'uiteindelijk',
+    'vervolgens',
+    'trouwens',
+    'namelijk',
+    'immers',
+    'als',
+    'en',
+    'of',
+    'ook',
+    'dan',
+    'eerst',
   ]),
 };
 
@@ -315,16 +516,14 @@ export function buildRodadasConectores(
   const shuffle = opts.shuffle ?? embaralhar;
 
   const candidatas = (frases ?? [])
-    .filter(f => avaliarFrase(f.text).serve)
-    .map(fala => {
+    .filter((f) => avaliarFrase(f.text).serve)
+    .map((fala) => {
       const tokens = palavrasDaFrase(fala.text, fala.lang || opts.lang);
-      const alvos = tokens
-        .map((t, i) => (lista.has(chaveComparavel(t)) ? i : -1))
-        .filter(i => i >= 0);
+      const alvos = tokens.map((t, i) => (lista.has(chaveComparavel(t)) ? i : -1)).filter((i) => i >= 0);
       return { fala, tokens, alvos };
     })
     // Frase sem conector nenhum não é rodada: seria uma tela onde a resposta é "não clicar".
-    .filter(r => r.alvos.length > 0 && r.tokens.length >= 5);
+    .filter((r) => r.alvos.length > 0 && r.tokens.length >= 5);
 
   return shuffle(candidatas).slice(0, opts.quantidade ?? 5);
 }
@@ -336,12 +535,15 @@ export function buildRodadasConectores(
  * conector passar (perde recall) e marcar palavra que não é (perde precisão). Contar só acertos
  * premiaria quem clica em tudo.
  */
-export function notaConectores(marcados: number[], alvos: number[]): { f1: number; certos: number; falsos: number; perdidos: number } {
+export function notaConectores(
+  marcados: number[],
+  alvos: number[],
+): { f1: number; certos: number; falsos: number; perdidos: number } {
   const m = new Set(marcados);
   const a = new Set(alvos);
-  const certos = [...m].filter(i => a.has(i)).length;
-  const falsos = [...m].filter(i => !a.has(i)).length;
-  const perdidos = [...a].filter(i => !m.has(i)).length;
+  const certos = [...m].filter((i) => a.has(i)).length;
+  const falsos = [...m].filter((i) => !a.has(i)).length;
+  const perdidos = [...a].filter((i) => !m.has(i)).length;
   const precisao = m.size ? certos / m.size : 0;
   const recall = a.size ? certos / a.size : 0;
   const f1 = precisao + recall ? (2 * precisao * recall) / (precisao + recall) : 0;

@@ -4,11 +4,11 @@ import type { FaixaDificuldade } from './composicao';
 import type { FalaComAudio } from './escuta';
 import { buildRodadasConectores, buildRodadasDitado, buildRodadasEscuta, temConectores } from './escuta';
 import { frasesElegiveis } from './frasesCorrigidas';
-import { cabeNaEscrita,canPlay, promptFor } from './itemSource';
+import { cabeNaEscrita, canPlay, promptFor } from './itemSource';
 import { paresDoIdioma } from './paresMinimos';
 import { buildScrambleRounds } from './scramble';
 import { consumoDaEscada, contarJogaveisMulti, ESCADA_POR_FAIXA } from './termo';
-import { type MinigameId,MINIGAMES } from './types';
+import { type MinigameId, MINIGAMES } from './types';
 import { entraNaGrade } from './wordsearch';
 
 /**
@@ -73,7 +73,12 @@ export type MotivoBloqueio =
    */
   | 'sem-rede'
   /** Os pares mínimos são do idioma: este ainda não tem lista curada. */
-  | 'sem-lista-do-idioma';
+  | 'sem-lista-do-idioma'
+  /**
+   * A FRASE É DO BARALHO, E NÃO TEM CLIPE: o Karaokê mede o tempo da fala real, e voz sintetizada
+   * não serve a ele. Escuta e Ditado aceitam a mesma frase por TTS.
+   */
+  | 'sem-clipe-de-audio';
 
 /**
  * RÓTULO HUMANO de cada motivo — título curto + o que resolve.
@@ -111,6 +116,11 @@ export const ROTULO_DO_MOTIVO: Record<MotivoBloqueio, { titulo: string; conserto
   'sem-lista-do-idioma': {
     titulo: 'sem lista neste idioma',
     conserto: 'os pares de sons são curados por idioma, e este ainda não tem lista; os outros jogos continuam',
+  },
+  'sem-clipe-de-audio': {
+    titulo: 'frase sem áudio real',
+    conserto:
+      'as frases do baralho não trazem o áudio; o Karaokê precisa dele, mas Escuta e Ditado leem a frase em voz alta',
   },
 };
 
@@ -156,6 +166,8 @@ export interface EntradaDoEstado {
    * Omitido = pronto, para quem não se importa com a janela de carregamento (testes, trilha).
    */
   audioPronto?: boolean;
+  /** `frases` são as frases de exemplo do acervo (sem clipe; a voz sintetizada fala). */
+  falasSoDoAcervo?: boolean;
   /** O navegador oferece síntese de voz? É o que permite a trilha rodar os jogos de áudio. */
   temVoz: boolean;
   /**
@@ -192,8 +204,9 @@ function tamanhoDaRodadaDe(id: MinigameId, disponiveis: number, faixa: FaixaDifi
 }
 
 /** Os jogos que medem o pool no MESMO acervo. O Termo conta à parte (`contarJogaveisMulti`). */
-const JOGOS_DE_PALAVRA = (Object.keys(MINIGAMES) as MinigameId[])
-  .filter(id => MINIGAMES[id].modalidade === 'palavra' && id !== 'termo');
+const JOGOS_DE_PALAVRA = (Object.keys(MINIGAMES) as MinigameId[]).filter(
+  (id) => MINIGAMES[id].modalidade === 'palavra' && id !== 'termo',
+);
 
 /** Quantos itens o acervo serve a cada jogo de palavra, por id. Ver `poolDosJogosDePalavra`. */
 export type PoolPorJogo = ReadonlyMap<MinigameId, number>;
@@ -213,14 +226,18 @@ export type PoolPorJogo = ReadonlyMap<MinigameId, number>;
  * alcançam o teto de medição, como o `break` de `buildItems`.
  */
 export function poolDosJogosDePalavra(cartas: VocabCard[]): PoolPorJogo {
-  const contagens = new Map(JOGOS_DE_PALAVRA.map(id => [id, { chaves: new Set<string>(), semChave: 0 }]));
+  const contagens = new Map(JOGOS_DE_PALAVRA.map((id) => [id, { chaves: new Set<string>(), semChave: 0 }]));
   /* Pista de chave vazia nunca é recusada por repetição (o `if (chaveDaPista && …)` de
      `buildItems`), então ela conta à parte em vez de entrar no conjunto. */
   const total = (c: { chaves: Set<string>; semChave: number }) => c.chaves.size + c.semChave;
 
   for (const card of cartas) {
     let faltando = false;
-    for (const c of contagens.values()) if (total(c) < TETO_DE_MEDICAO) { faltando = true; break; }
+    for (const c of contagens.values())
+      if (total(c) < TETO_DE_MEDICAO) {
+        faltando = true;
+        break;
+      }
     if (!faltando) break;
 
     if (!card.inDeck || !(card.word ?? '').trim()) continue;
@@ -233,7 +250,8 @@ export function poolDosJogosDePalavra(cartas: VocabCard[]): PoolPorJogo {
       if (MINIGAMES[id].requiresTranslation && !temTraducao) continue;
       // Caça-palavras não aceita frase com lacuna como pista — mesma recusa de `buildItems`.
       if (id === 'wordsearch' && pista.clozed) continue;
-      if (chave) c.chaves.add(chave); else c.semChave += 1;
+      if (chave) c.chaves.add(chave);
+      else c.semChave += 1;
     }
   }
 
@@ -260,12 +278,18 @@ function contagemComAlfabeto(
   if (id === 'termo') {
     return {
       semFiltro: contarJogaveisMulti(cartas, faixa),
-      apto: contarJogaveisMulti(cartas.filter(c => cabe(c.word ?? '')), faixa),
+      apto: contarJogaveisMulti(
+        cartas.filter((c) => cabe(c.word ?? '')),
+        faixa,
+      ),
     };
   }
   return {
     semFiltro: canPlay(id, cartas, { ignorarRequisitos: true }).disponiveis,
-    apto: canPlay(id, cartas.filter(c => cabe(c.word ?? ''))).disponiveis,
+    apto: canPlay(
+      id,
+      cartas.filter((c) => cabe(c.word ?? '')),
+    ).disponiveis,
   };
 }
 
@@ -301,11 +325,27 @@ export function estadoDoJogo(id: MinigameId, e: EntradaDoEstado, pools?: PoolPor
     const { semFiltro: semFiltroDeAlfabeto, apto: n } = contagemComAlfabeto('termo', e.cartas, faixa);
     /* …ou o baralho inteiro está numa escrita que o teclado não digita (chinês, japonês, hindi: as
        palavras nem chegam às 4 a 6 "letras" da contagem, e a carta dizia "faltam 3"). */
-    const nenhumaDigitavel = e.cartas.length >= def.minItems && !e.cartas.some(c => cabeNaEscrita('termo')(c.word ?? ''));
+    const nenhumaDigitavel =
+      e.cartas.length >= def.minItems && !e.cartas.some((c) => cabeNaEscrita('termo')(c.word ?? ''));
     if (n === 0 && (semFiltroDeAlfabeto >= def.minItems || nenhumaDigitavel)) {
-      return { id, ok: false, disponiveis: 0, faltam: def.minItems, fonte: 'baralho', motivo: 'alfabeto-nao-suportado', tamanhoDaRodada: 0 };
+      return {
+        id,
+        ok: false,
+        disponiveis: 0,
+        faltam: def.minItems,
+        fonte: 'baralho',
+        motivo: 'alfabeto-nao-suportado',
+        tamanhoDaRodada: 0,
+      };
     }
-    return { id, ok: n >= def.minItems, disponiveis: n, faltam: Math.max(0, def.minItems - n), fonte: 'baralho', tamanhoDaRodada: tamanhoDaRodadaDe(id, n, e.faixa) };
+    return {
+      id,
+      ok: n >= def.minItems,
+      disponiveis: n,
+      faltam: Math.max(0, def.minItems - n),
+      fonte: 'baralho',
+      tamanhoDaRodada: tamanhoDaRodadaDe(id, n, e.faixa),
+    };
   }
 
   if (def.modalidade !== 'palavra') {
@@ -319,7 +359,15 @@ export function estadoDoJogo(id: MinigameId, e: EntradaDoEstado, pools?: PoolPor
     const falas = daTrilha ? frasesDaTrilha : e.frases;
 
     if (semFrase && !def.aceitaPalavraFalada) {
-      return { id, ok: false, disponiveis: 0, faltam: def.minItems, fonte: 'falas', motivo: 'trilha-sem-frase', tamanhoDaRodada: 0 };
+      return {
+        id,
+        ok: false,
+        disponiveis: 0,
+        faltam: def.minItems,
+        fonte: 'falas',
+        motivo: 'trilha-sem-frase',
+        tamanhoDaRodada: 0,
+      };
     }
     if (semFrase) {
       // Material = palavra do baralho curado; som = TTS. Sem TTS não inventamos áudio.
@@ -338,37 +386,103 @@ export function estadoDoJogo(id: MinigameId, e: EntradaDoEstado, pools?: PoolPor
     /* A gravação tem som mas ele ainda não chegou: bloqueio TRANSITÓRIO, com o motivo certo. */
     const precisaDeSom = id !== 'scramble' && id !== 'retraducao' && id !== 'ditadoDeFrase';
     if (precisaDeSom && e.temAudio && e.audioPronto === false) {
-      return { id, ok: false, disponiveis: 0, faltam: def.minItems, fonte: 'falas', motivo: 'audio-carregando', tamanhoDaRodada: 0 };
+      return {
+        id,
+        ok: false,
+        disponiveis: 0,
+        faltam: def.minItems,
+        fonte: 'falas',
+        motivo: 'audio-carregando',
+        tamanhoDaRodada: 0,
+      };
+    }
+
+    /* Frase do baralho: sem clipe, mas a voz sintetizada a lê (escuta, ditado). O Karaokê não. */
+    const frasesDoBaralho = !!e.falasSoDoAcervo && !daTrilha && !e.temAudio;
+    const somDeEscuta = e.temAudio || (frasesDoBaralho && e.temVoz);
+    if (id === 'karaoke' && frasesDoBaralho && falas.length > 0) {
+      return {
+        id,
+        ok: false,
+        disponiveis: 0,
+        faltam: def.minItems,
+        fonte: 'falas',
+        motivo: 'sem-clipe-de-audio',
+        tamanhoDaRodada: 0,
+      };
     }
 
     const n =
-      id === 'scramble' ? buildScrambleRounds(falas, { quantidade: TETO_DE_FALAS }).length
-        : id === 'escuta' ? (e.temAudio ? buildRodadasEscuta(e.frases, { quantidade: TETO_DE_FALAS }).length : 0)
-          : id === 'ditado' ? (e.temAudio ? buildRodadasDitado(e.frases, { quantidade: TETO_DE_FALAS }).length : 0)
-          : id === 'retraducao' ? frasesElegiveis(falas, 'retraducao', { lang: e.lang, quantidade: TETO_DE_FALAS }).length
-          : id === 'ditadoDeFrase' ? (e.temVoz ? frasesElegiveis(falas, 'ditado', { lang: e.lang, quantidade: TETO_DE_FALAS }).length : 0)
-            : id === 'conectores' ? (temConectores(e.lang) ? buildRodadasConectores(e.frases, { lang: e.lang, quantidade: TETO_DE_FALAS }).length : 0)
-              : (e.temAudio ? e.frases.filter(f => f.endMs > f.startMs && f.text.trim()).length : 0);
+      id === 'scramble'
+        ? buildScrambleRounds(falas, { quantidade: TETO_DE_FALAS }).length
+        : id === 'escuta'
+          ? somDeEscuta
+            ? buildRodadasEscuta(e.frases, { quantidade: TETO_DE_FALAS }).length
+            : 0
+          : id === 'ditado'
+            ? somDeEscuta
+              ? buildRodadasDitado(e.frases, { quantidade: TETO_DE_FALAS }).length
+              : 0
+            : id === 'retraducao'
+              ? frasesElegiveis(falas, 'retraducao', { lang: e.lang, quantidade: TETO_DE_FALAS }).length
+              : id === 'ditadoDeFrase'
+                ? e.temVoz
+                  ? frasesElegiveis(falas, 'ditado', { lang: e.lang, quantidade: TETO_DE_FALAS }).length
+                  : 0
+                : id === 'conectores'
+                  ? temConectores(e.lang)
+                    ? buildRodadasConectores(e.frases, { lang: e.lang, quantidade: TETO_DE_FALAS }).length
+                    : 0
+                  : e.temAudio
+                    ? e.frases.filter((f) => f.endMs > f.startMs && f.text.trim()).length
+                    : 0;
 
     /* Frases existem e nenhuma rodada sai: em escrita sem espaço o motivo é a escrita, não a
        falta de material — e dizer "precisa de gravação" mandaria a pessoa procurar o que ela já
        tem. */
     if (id === 'scramble' && n === 0 && falas.length > 0 && ESCRITA_SEM_ESPACO.test(falas[0].text ?? '')) {
-      return { id, ok: false, disponiveis: 0, faltam: def.minItems, fonte: 'falas', motivo: 'escrita-sem-separacao', tamanhoDaRodada: 0 };
+      return {
+        id,
+        ok: false,
+        disponiveis: 0,
+        faltam: def.minItems,
+        fonte: 'falas',
+        motivo: 'escrita-sem-separacao',
+        tamanhoDaRodada: 0,
+      };
     }
 
-    return { id, ok: n >= def.minItems, disponiveis: n, faltam: Math.max(0, def.minItems - n), fonte: 'falas', tamanhoDaRodada: tamanhoDaRodadaDe(id, n) };
+    return {
+      id,
+      ok: n >= def.minItems,
+      disponiveis: n,
+      faltam: Math.max(0, def.minItems - n),
+      fonte: 'falas',
+      tamanhoDaRodada: tamanhoDaRodadaDe(id, n),
+    };
   }
 
   if (id === 'wordsearch') {
     /* Igual ao Termo: medir sobre o acervo inteiro (`semFiltroDeAlfabeto`) é o que distingue
      * "pouco material" de "material de sobra, alfabeto não suportado" — ver `contagemComAlfabeto`. */
     const { semFiltro: semFiltroDeAlfabeto } = contagemComAlfabeto('wordsearch', e.cartas);
-    const pronto = canPlay(id, e.cartas.filter(c => entraNaGrade(c.word ?? '')));
+    const pronto = canPlay(
+      id,
+      e.cartas.filter((c) => entraNaGrade(c.word ?? '')),
+    );
     const medidos = pools ?? poolDosJogosDePalavra(e.cartas);
     const pool = medidos.get(id) ?? pronto.disponiveis;
     if (pronto.disponiveis === 0 && semFiltroDeAlfabeto >= def.minItems) {
-      return { id, ok: false, disponiveis: 0, faltam: def.minItems, fonte: 'baralho', pool, motivo: 'alfabeto-nao-suportado', tamanhoDaRodada: 0 };
+      return {
+        id,
+        ok: false,
+        disponiveis: 0,
+        faltam: def.minItems,
+        fonte: 'baralho',
+        pool,
+        motivo: 'alfabeto-nao-suportado',
+        tamanhoDaRodada: 0,
+      };
     }
     return { id, ...pronto, pool, fonte: 'baralho', tamanhoDaRodada: tamanhoDaRodadaDe(id, pronto.disponiveis) };
   }
@@ -382,8 +496,17 @@ export function estadoDoJogo(id: MinigameId, e: EntradaDoEstado, pools?: PoolPor
      material e NENHUMA palavra na escrita do jogo é o mesmo motivo, dito do mesmo jeito. */
   if (!pronto.ok && def.requisitos?.alfabeto === 'latino' && e.cartas.length >= def.minItems) {
     const cabe = cabeNaEscrita(id);
-    if (!e.cartas.some(c => cabe(c.word ?? ''))) {
-      return { id, ok: false, disponiveis: 0, faltam: def.minItems, fonte: 'baralho', pool, motivo: 'alfabeto-nao-suportado', tamanhoDaRodada: 0 };
+    if (!e.cartas.some((c) => cabe(c.word ?? ''))) {
+      return {
+        id,
+        ok: false,
+        disponiveis: 0,
+        faltam: def.minItems,
+        fonte: 'baralho',
+        pool,
+        motivo: 'alfabeto-nao-suportado',
+        tamanhoDaRodada: 0,
+      };
     }
   }
   return { id, ...pronto, pool, fonte: 'baralho', tamanhoDaRodada: tamanhoDaRodadaDe(id, pronto.disponiveis) };
@@ -459,9 +582,10 @@ export function elegibilidadeDoJogo(
    * `canPlay` para os de palavra, a contagem de frases prontas (`opts.frases`) para os de frase.
    * `opts.temVoz` cobre o caminho "palavra falada" (escuta/ditado/karaokê na trilha), que troca
    * FRASE por CARTÃO+voz quando não há frase — ver `estadoDoJogo`. */
-  const disponiveis = def.modalidade === 'palavra'
-    ? canPlay(jogo, pool).disponiveis
-    : (opts.frases ?? (def.aceitaPalavraFalada && opts.temVoz ? pool.length : 0));
+  const disponiveis =
+    def.modalidade === 'palavra'
+      ? canPlay(jogo, pool).disponiveis
+      : (opts.frases ?? (def.aceitaPalavraFalada && opts.temVoz ? pool.length : 0));
 
   if (disponiveis >= def.minItems) return { estado: 'disponivel' };
   return { estado: 'indisponivel', motivo: 'sem-material', faltam: def.minItems - disponiveis };

@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react'
 
-import { apiFetch } from '../data/api';
-import { hidratarPremium } from './loja';
-import { authRequired } from './supabase';
+import { apiFetch } from '../data/api'
+import { hidratarPremium } from './loja'
+import { authRequired } from './supabase'
 
 /**
  * A CARTEIRA DE CRÉDITOS — leitura única compartilhada pelo cabeçalho, pelo Passe e pela Loja.
@@ -18,46 +18,35 @@ import { authRequired } from './supabase';
 
 export interface Carteira {
   /** Saldo de Créditos confirmado pelo servidor. `null` enquanto não se sabe. */
-  creditos: number | null;
+  creditos: number | null
   /** Falso em self-host/sem conta: não existe moeda comprada para mostrar. */
-  disponivel: boolean;
-  recarregar: () => void;
+  disponivel: boolean
+  recarregar: () => void
 }
 
 export function useCarteira(): Carteira {
-  const [creditos, setCreditos] = useState<number | null>(null);
-  const [disponivel, setDisponivel] = useState(authRequired);
-  const [tick, setTick] = useState(0);
-  const recarregar = useCallback(() => setTick((n) => n + 1), []);
+  const [creditos, setCreditos] = useState<number | null>(null)
+  const [disponivel, setDisponivel] = useState(authRequired)
+  const [tick, setTick] = useState(0)
+  const recarregar = useCallback(() => setTick((n) => n + 1), [])
 
   useEffect(() => {
-    if (!authRequired) {
-      setDisponivel(false);
-      return;
-    }
-    let vivo = true;
+    if (!authRequired) { setDisponivel(false); return }
+    let vivo = true
     void apiFetch('/api/billing/creditos')
       .then(async (r) => (r.ok ? ((await r.json()) as { saldo: number; itensPremium?: string[] }) : null))
       .then((e) => {
-        if (!vivo) return;
+        if (!vivo) return
         // Resposta ausente NÃO vira zero: um saldo inventado faria a tela oferecer o que não dá.
-        if (!e) {
-          setDisponivel(false);
-          return;
-        }
-        setCreditos(e.saldo);
-        setDisponivel(true);
+        if (!e) { setDisponivel(false); return }
+        setCreditos(e.saldo); setDisponivel(true)
         /* A posse do que se pagou com dinheiro vem SEMPRE daqui — o espelho local nunca é fonte
            (spec economia-de-creditos: nada comprado com dinheiro vive em localStorage). */
-        hidratarPremium(e.itensPremium);
+        hidratarPremium(e.itensPremium)
       })
-      .catch(() => {
-        if (vivo) setDisponivel(false);
-      });
-    return () => {
-      vivo = false;
-    };
-  }, [tick]);
+      .catch(() => { if (vivo) setDisponivel(false) })
+    return () => { vivo = false }
+  }, [tick])
 
-  return { creditos, disponivel, recarregar };
+  return { creditos, disponivel, recarregar }
 }

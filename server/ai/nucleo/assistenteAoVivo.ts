@@ -383,29 +383,28 @@ async function atender(
     let primeiraMs: number | null = null
     const restanteHoje = doDia.restanteHoje
     /* Perfil protegido: nada sai em fluxo; a resposta inteira passa pelo filtro antes (tarefa 4.2). */
-    const emFluxo =
-      fluxo && !menor
-        ? (modelo: string) => {
-            const leitor = criarLeitorDeSugestoesEmFluxo()
-            let semTempo = false
-            return (acumulado: string, restanteMs: number): boolean => {
-              for (const s of leitor.alimentar(acumulado)) {
-                if (!comecou) {
-                  if (semTempo || restanteMs < MARGEM_DO_COMPROMISSO_MS) {
-                    semTempo = true
-                    continue
-                  }
-                  comecou = true
-                  primeiraMs = Date.now() - t0
-                  rastro.anotar({ primeiraSugestaoMs: primeiraMs })
-                  fluxo.aoComecar(modelo, restanteHoje)
+    const emFluxo = fluxo && !menor
+      ? (modelo: string) => {
+          const leitor = criarLeitorDeSugestoesEmFluxo()
+          let semTempo = false
+          return (acumulado: string, restanteMs: number): boolean => {
+            for (const s of leitor.alimentar(acumulado)) {
+              if (!comecou) {
+                if (semTempo || restanteMs < MARGEM_DO_COMPROMISSO_MS) {
+                  semTempo = true
+                  continue
                 }
-                fluxo.aoSugerir(s)
+                comecou = true
+                primeiraMs = Date.now() - t0
+                rastro.anotar({ primeiraSugestaoMs: primeiraMs })
+                fluxo.aoComecar(modelo, restanteHoje)
               }
-              return comecou
+              fluxo.aoSugerir(s)
             }
+            return comecou
           }
-        : undefined
+        }
+      : undefined
     const { entregue, ultimaFalha, limitadoPeloProvedor, cancelado, parcial, gastoDescartadoUsd } =
       await percorrerCascata(
         custo.pernas,

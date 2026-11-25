@@ -50,3 +50,11 @@ audit/rules/ast-grep-tests/__snapshots__
 index.html
 # wrangler.jsonc: comentários e ordem de chaves lidos por humano e por testes de configuração
 wrangler.jsonc
+
+# lidos como TEXTO por testes (regex sobre o fonte): reformatar quebra a prova; migrar o teste antes de formatar
+src/styles/temas-v2.css
+src/styles/prototipo.css
+src/styles/polimento/agua.css
+src/lib/carteira.ts
+scripts/build-estatica.mjs
+server/ai/nucleo/assistenteAoVivo.ts

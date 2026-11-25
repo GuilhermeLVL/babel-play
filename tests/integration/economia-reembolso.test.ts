@@ -138,28 +138,26 @@ describe('POST /api/metrics/seeds/reembolso', () => {
     const { creditSpends } = (await h.load('../../server/db/schema')) as any
     const agora = Date.now()
     const vitrine = ['dourada-2', 'dourada-6', 'dourada-8', 'dourada-10']
-    await db
-      .insert(creditSpends)
-      .values([
-        ...vitrine.map((id, n) => ({
-          id: `cs-v${n}`,
-          createdAt: agora,
-          updatedAt: agora,
-          userId: u,
-          spendId: `premium-${id}`,
-          amount: 100,
-          reason: `premium:${id}`,
-        })),
-        {
-          id: 'cs-d3',
-          createdAt: agora + 1,
-          updatedAt: agora + 1,
-          userId: u,
-          spendId: 'premium-dourada-3',
-          amount: 150,
-          reason: 'premium:dourada-3',
-        },
-      ])
+    await db.insert(creditSpends).values([
+      ...vitrine.map((id, n) => ({
+        id: `cs-v${n}`,
+        createdAt: agora,
+        updatedAt: agora,
+        userId: u,
+        spendId: `premium-${id}`,
+        amount: 100,
+        reason: `premium:${id}`,
+      })),
+      {
+        id: 'cs-d3',
+        createdAt: agora + 1,
+        updatedAt: agora + 1,
+        userId: u,
+        spendId: 'premium-dourada-3',
+        amount: 150,
+        reason: 'premium:dourada-3',
+      },
+    ])
     const antes = await creditsRepo.totalComprado(asUserId(u))
     const a = await reembolsar(u)
     expect(a.body.creditosDevolvidos).toBe(150)

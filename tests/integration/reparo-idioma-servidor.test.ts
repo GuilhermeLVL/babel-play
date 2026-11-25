@@ -72,18 +72,16 @@ describe('reparar-idiomas', () => {
     await db
       .insert(schema.utterances)
       .values(linha('ru-1', u, { sessionId: 'rs-1', sourceLang: 'en', sourceText: FALA_PT }))
-    await db
-      .insert(schema.vocabCards)
-      .values(
-        linha('rc-1', u, {
-          word: 'reunião',
-          sentence: FALA_PT,
-          srcLang: 'en-US',
-          tgtLang: 'pt-BR',
-          sessionId: 'rs-1',
-          normKey: 'en|reuniao',
-        }),
-      )
+    await db.insert(schema.vocabCards).values(
+      linha('rc-1', u, {
+        word: 'reunião',
+        sentence: FALA_PT,
+        srcLang: 'en-US',
+        tgtLang: 'pt-BR',
+        sessionId: 'rs-1',
+        normKey: 'en|reuniao',
+      }),
+    )
 
     const ensaio = await repararIdiomasNoBanco({ aplicar: false })
     expect(ensaio).toMatchObject({ falas: 1, cartoes: 1 })

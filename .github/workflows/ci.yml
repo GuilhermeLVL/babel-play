@@ -151,12 +151,11 @@ jobs:
       - if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: npm run lint
         timeout-minutes: 5
-      # TRAVA DE FORMATO (formatacao-e-lint-estrito 1.6): `prettier --check` só nos arquivos que o PR altera.
-      # O husky/lint-staged formata no commit, mas `--no-verify` e a edição na web escapam; a passada geral
-      # nos arquivos que ninguém tocou é outra tarefa. Na `main` não há base de PR: o passo não roda.
-      - name: Formato dos arquivos do PR
-        if: ${{ !cancelled() && steps.deps.outcome == 'success' && github.event_name == 'pull_request' }}
-        run: npm run formato:diff
+      # TRAVA DE FORMATO (formatacao-e-lint-estrito 1.8): `prettier --check .` no repositório inteiro, depois da
+      # passada geral (1.7). O que fica fora está no `.prettierignore`, com o motivo. Roda também na `main`.
+      - name: Formato do repositório
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        run: npm run formato
         timeout-minutes: 5
       # CODIGO MORTO (auditoria de 2026-09-07, achados A50-A56): 15 arquivos sem importador,
       # dependencias sem uso e dois ciclos de importacao entraram porque nada os cobrava. Os dois

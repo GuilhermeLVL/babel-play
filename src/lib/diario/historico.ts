@@ -11,12 +11,8 @@
  *  · o `.txt` do diário é montado aqui, no navegador, sem rede (`diarioEmTxt`).
  */
 import type { RetornoDaEscrita } from '../../data/apiDoEstudo';
-import {
-  criarBancoPorConta,
-  criarChaveLocalPorConta,
-  iniciarGuardaDosArmazensLocais,
-  registrarArmazemPorConta,
-} from '../armazemLocalPorConta';
+import { criarChaveLocalPorConta, registrarArmazemPorConta } from '../armazemLocalPorConta';
+import { criarBancoPorConta } from '../bancoLocalPorConta';
 
 export interface EntradaDoDiario {
   id: string;
@@ -151,7 +147,6 @@ registrarArmazemPorConta({
 
 /** O histórico deste aparelho. Trocar de conta apaga tudo (o diário de uma pessoa não espera a próxima conta). */
 export function historicoDoDiario(): HistoricoDoDiario {
-  iniciarGuardaDosArmazensLocais();
   return doDispositivo();
 }
 

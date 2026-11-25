@@ -19,12 +19,8 @@
  * não o inclui e "Excluir conta" não o alcança pelo servidor; quem apaga é o aparelho (troca de identidade, sair,
  * excluir conta, limpar o navegador e botão de Ajustes). Registro em `docs/lgpd/` fica na tarefa [D] 3.3.
  */
-import {
-  _reiniciarGuardaDosArmazensLocais,
-  criarBancoPorConta,
-  iniciarGuardaDosArmazensLocais,
-  registrarArmazemPorConta,
-} from '../../armazemLocalPorConta';
+import { registrarArmazemPorConta } from '../../armazemLocalPorConta';
+import { criarBancoPorConta } from '../../bancoLocalPorConta';
 
 export interface ClipeGuardado {
   /** O áudio (Ogg Opus, ou WAV quando o navegador não tem Opus). */
@@ -195,7 +191,6 @@ registrarArmazemPorConta({
  * uso: sem ela, quem troca de conta antes de abrir os Ajustes herdaria o áudio da conta anterior.
  */
 export function armazemDeAudioDoCartao(): ArmazemDeAudioDoCartao {
-  iniciarGuardaDosArmazensLocais();
   return doDispositivo();
 }
 
@@ -207,5 +202,4 @@ export async function destruirBancoDoAudioDoCartao(): Promise<void> {
 /** Só para testes: esquece o armazém e o registro do ouvinte. */
 export function _reiniciarGuardaDoAudioDoCartao(): void {
   doAparelho = null;
-  _reiniciarGuardaDosArmazensLocais();
 }

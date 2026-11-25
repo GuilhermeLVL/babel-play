@@ -14,7 +14,8 @@
  *    de uma pessoa não fica à espera da próxima conta);
  *  · sem IndexedDB (navegação privada, banco bloqueado), guardar não dá certo e a folha diz isso.
  */
-import { criarBancoPorConta, iniciarGuardaDosArmazensLocais, registrarArmazemPorConta } from '../armazemLocalPorConta';
+import { registrarArmazemPorConta } from '../armazemLocalPorConta';
+import { criarBancoPorConta } from '../bancoLocalPorConta';
 
 export interface GravacaoGuardada {
   /** Quando foi gravada (ms). */
@@ -165,7 +166,6 @@ registrarArmazemPorConta({
 
 /** As gravações deste aparelho. Trocar de conta apaga todas (guarda comum: `lib/armazemLocalPorConta`). */
 export function vozesGuardadas(): VozesGuardadas {
-  iniciarGuardaDosArmazensLocais();
   return doDispositivo();
 }
 

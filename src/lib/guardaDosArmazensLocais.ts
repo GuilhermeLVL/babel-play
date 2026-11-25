@@ -18,8 +18,58 @@ import './ichat/conversas';
 import './revisao/vozGuardada';
 import './voz/cacheDeVoz';
 
-export {
-  apagarTodosOsArmazensDaConta,
-  destruirTodosOsArmazensDaConta,
-  iniciarGuardaDosArmazensLocais,
-} from './armazemLocalPorConta';
+import { armazensRegistrados } from './armazemLocalPorConta';
+import { aoMudarDono, aoMudarIdentidade } from './identidade';
+
+const seguro = async (f: () => Promise<void> | void): Promise<void> => {
+  try {
+    await f();
+  } catch {
+    /* um armazém com defeito não impede os outros de apagar */
+  }
+};
+
+export async function apagarTodosOsArmazensDaConta(o?: { preservarVisitante?: boolean }): Promise<void> {
+  await Promise.all([...armazensRegistrados()].map((a) => seguro(() => a.apagarTudo(o))));
+}
+
+export async function purgarTodosOsArmazensDeOutros(): Promise<void> {
+  await Promise.all([...armazensRegistrados()].map((a) => seguro(() => a.purgarDeOutros())));
+}
+
+export async function destruirTodosOsArmazensDaConta(): Promise<void> {
+  await Promise.all([...armazensRegistrados()].map((a) => seguro(() => a.destruir())));
+}
+
+let desfazer: Array<() => void> = [];
+
+/**
+ * Registra cedo (idempotente) o que apaga os armazéns quando a identidade ou a conta muda. Não abre nenhum banco.
+ * Chamada em `main.tsx`; também é chamada pelos armazéns ao serem criados (rede de segurança).
+ */
+export function iniciarGuardaDosArmazensLocais(): void {
+  if (desfazer.length || typeof window === 'undefined') return;
+  /* Na partida: o que ficou de outro dono (recarga com outra conta) sai já, sem esperar o primeiro uso. */
+  void purgarTodosOsArmazensDeOutros();
+  /* Conta -> sem conta (sair) e qualquer troca de estado depois de carregado. */
+  desfazer.push(
+    aoMudarIdentidade((depois, antes) => {
+      if (antes !== 'carregando' && antes !== depois)
+        void apagarTodosOsArmazensDaConta({ preservarVisitante: antes === 'anonimo' && depois === 'conta' });
+      else void purgarTodosOsArmazensDeOutros();
+    }),
+  );
+  /* Conta -> conta, sair, e a primeira conta conhecida depois de uma recarga (aí só sai o que não é dela). */
+  desfazer.push(
+    aoMudarDono((_depois, antes) => {
+      if (antes !== null) void apagarTodosOsArmazensDaConta();
+      else void purgarTodosOsArmazensDeOutros();
+    }),
+  );
+}
+
+/** Só para testes: tira os ouvintes (o registro dos armazéns fica). */
+export function _reiniciarGuardaDosArmazensLocais(): void {
+  for (const d of desfazer) d();
+  desfazer = [];
+}

@@ -21,11 +21,7 @@ vi.mock('../src/data/funil', () => ({ apiFetch: api.apiFetch }))
 
 import { limparTudo } from '../src/data/efemero/store'
 import { excluirConta } from '../src/data/rotas/conta'
-import {
-  _reiniciarGuardaDosArmazensLocais,
-  armazensPorContaRegistrados,
-  criarChaveLocalPorConta,
-} from '../src/lib/armazemLocalPorConta'
+import { armazensPorContaRegistrados, criarChaveLocalPorConta } from '../src/lib/armazemLocalPorConta'
 import { signOut } from '../src/lib/auth'
 import {
   apagarRascunho,
@@ -42,7 +38,7 @@ import {
   lerRascunhoDoDiario,
 } from '../src/lib/diario/historico'
 import { _esquecerEntitlementsEmMemoria, carregarEntitlements, getEntitlements } from '../src/lib/entitlements'
-import { iniciarGuardaDosArmazensLocais } from '../src/lib/guardaDosArmazensLocais'
+import { _reiniciarGuardaDosArmazensLocais, iniciarGuardaDosArmazensLocais } from '../src/lib/guardaDosArmazensLocais'
 import { carregarConversas, novaConversa, salvarConversas } from '../src/lib/ichat/conversas'
 import { _reiniciarIdentidade, definirDonoDaConta, definirIdentidade } from '../src/lib/identidade'
 import { _reiniciarVozesGuardadas, vozesGuardadas } from '../src/lib/revisao/vozGuardada'

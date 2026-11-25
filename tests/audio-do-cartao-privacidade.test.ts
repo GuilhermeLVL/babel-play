@@ -20,13 +20,13 @@ vi.mock('../src/data/funil', () => ({ apiFetch: api.apiFetch }))
 
 import { limparTudo } from '../src/data/efemero/store'
 import { excluirConta } from '../src/data/rotas/conta'
-import { iniciarGuardaDosArmazensLocais } from '../src/lib/armazemLocalPorConta'
 import { signOut } from '../src/lib/auth'
 import {
   _reiniciarGuardaDoAudioDoCartao,
   armazemDeAudioDoCartao,
   criarArmazemDeAudioDoCartao,
 } from '../src/lib/cartoes/audioDoCartao/armazem'
+import { _reiniciarGuardaDosArmazensLocais, iniciarGuardaDosArmazensLocais } from '../src/lib/guardaDosArmazensLocais'
 import { _reiniciarIdentidade, definirDonoDaConta, definirIdentidade } from '../src/lib/identidade'
 
 const blob = (n: number) => new Blob([new Uint8Array(n).fill(7)], { type: 'audio/ogg' })
@@ -37,6 +37,7 @@ beforeEach(() => {
   globalThis.indexedDB = new IDBFactory()
   _reiniciarIdentidade()
   _reiniciarGuardaDoAudioDoCartao()
+  _reiniciarGuardaDosArmazensLocais()
   supa.signOut.mockClear()
   api.apiFetch.mockReset()
 })
@@ -126,7 +127,8 @@ describe('o ouvinte nasce no boot', () => {
     definirDonoDaConta('A')
     definirIdentidade('conta')
     await armazemDeAudioDoCartao().gravar('c1', { audio: blob(100), durMs: 3000 })
-    _reiniciarGuardaDoAudioDoCartao() // sem ouvinte
+    _reiniciarGuardaDoAudioDoCartao()
+    _reiniciarGuardaDosArmazensLocais() // sem ouvinte
     await signOut()
     expect(supa.signOut).toHaveBeenCalled()
     expect(await armazemDeAudioDoCartao().abrir('c1')).toBeNull()

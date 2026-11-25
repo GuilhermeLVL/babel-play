@@ -16,7 +16,7 @@
  * NUNCA ATRAPALHA A FALA. Sem IndexedDB, sem `crypto.subtle` (página sem HTTPS), banco bloqueado ou
  * cheio: toda operação devolve "não tenho" e a voz segue pelo caminho de sempre, a rede.
  */
-import { iniciarGuardaDosArmazensLocais, registrarArmazemPorConta } from '../armazemLocalPorConta';
+import { registrarArmazemPorConta } from '../armazemLocalPorConta';
 import { donoDaIdentidade } from '../identidade';
 
 /** O que identifica um áudio: muda qualquer um, é outro áudio. */
@@ -250,6 +250,5 @@ export function cacheDeVozDoAparelho(): GuardadosDaVoz | null {
     }
     doAparelho = comDonoDoCache(criarCacheDeVoz());
   }
-  iniciarGuardaDosArmazensLocais();
   return doAparelho;
 }

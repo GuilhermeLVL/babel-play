@@ -13,7 +13,7 @@
  * DECISÃO ASSUMIDA (25/11, recomendação do dono, item 33): construir só para adulto e só local, depois do áudio.
  */
 import { FLAG_CARTAO_COM_CENA } from '../../../core/planos';
-import { iniciarGuardaDosArmazensLocais, registrarArmazemPorConta } from '../../armazemLocalPorConta';
+import { registrarArmazemPorConta } from '../../armazemLocalPorConta';
 import { flagLigada } from '../../flagsCache';
 import { perfilProtegido } from '../../protecaoDoMenor';
 import { criarArmazemDeAudioDoCartao } from '../audioDoCartao/armazem';
@@ -44,7 +44,6 @@ export const armazemDeCenas = (() => {
     destruir: () => doDispositivo().destruirBanco(),
   });
   return () => {
-    iniciarGuardaDosArmazensLocais();
     return doDispositivo();
   };
 })();

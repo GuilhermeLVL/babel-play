@@ -98,6 +98,7 @@ import {
   prepararSombraDoRoteador,
 } from './conferenciaDaRota';
 import { converterEscritaChinesa, escritaDoIdioma, prepararEscritaChinesa } from './escritaChinesa';
+import { CADENCIA_DE_GRAVACAO, gravadorDeHipoteses } from './gravadorDeHipoteses';
 import { idiomaForaDoPar } from './idiomaForaDoPar';
 import { decidirNaVirtual, ESTADO_DA_VIRTUAL, type EstadoDaVirtual } from './idiomasDaConversaVirtual';
 import { idiomasDoModelo } from './idiomasDoModelo';
@@ -844,11 +845,15 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
      * (inglês, Whisper, Moonshine, Web Speech, nuvem) o parcial é o de flag desligada, sem cadência, limitador, LocalAgreement nem armazém.
      * Decidido a cada parcial, porque o idioma e o motor podem mudar no meio da sessão. Aprovado só no pt/Parakeet (A/B da V7).
      */
-    const parcialVivoNaRota = (dica: string): boolean =>
+    const rotaDoParakeet = (dica: string): boolean =>
       flagLigada(FLAG_PARCIAIS_VIVOS) &&
       flagLigada(FLAG_PARCIAIS_PARAKEET) &&
       gateway.stt.parakeetAtivo?.() === true &&
       parakeetAceita(dica);
+    /* LABORATÓRIO (`babel.lab.gravarHipoteses=1`): a gravação vale em QUALQUER rota (inglês/Whisper) com `parciais_vivos` ligada, para o
+       simulador cobrir o que a produção não liga. Sem a chave, o escopo é o de sempre. */
+    const parcialVivoNaRota = (dica: string): boolean =>
+      rotaDoParakeet(dica) || (flagLigada(FLAG_PARCIAIS_VIVOS) && gravadorDeHipoteses().ligado);
     /**
      * CADÊNCIA ADAPTATIVA (flag `parciais_vivos`, só na rota do Parakeet): a captura pergunta, a cada tique, se pede um parcial agora. `undefined`
      * = flag desligada (ou o parcial único do modo desempenho automático): a captura segue o tique fixo de 2 s e o teto
@@ -863,15 +868,19 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     }): boolean | undefined => {
       if (!parcialVivoNaRota(dicaDoParcial(e.seq === undefined ? undefined : e.seq + offset)) || perfModeAutomatico())
         return undefined;
-      return decidirParcial({
-        rtf: medidorDeParcial.rtf(),
-        janelaS: e.janelaS,
-        workerOcupado: gateway.stt.pendingCount() > 0,
-        msDesdeUltimo: e.msDesdeUltimo,
-        amostrasNovas: e.amostrasNovas,
-        cpuRecente: medidorDeParcial.cpu(),
-        silencioMs: e.silencioMs,
-      }).pedir;
+      return decidirParcial(
+        {
+          rtf: medidorDeParcial.rtf(),
+          janelaS: e.janelaS,
+          workerOcupado: gateway.stt.pendingCount() > 0,
+          msDesdeUltimo: e.msDesdeUltimo,
+          amostrasNovas: e.amostrasNovas,
+          cpuRecente: medidorDeParcial.cpu(),
+          silencioMs: e.silencioMs,
+        },
+        // Gravação de laboratório (`babel.lab.gravarHipoteses=1`): a cadência mais rápida permitida (ver `gravadorDeHipoteses.ts`).
+        gravadorDeHipoteses().ligado ? CADENCIA_DE_GRAVACAO : undefined,
+      ).pedir;
     };
     /** Teto de parciais por fala (ver as constantes acima). */
     const maxParciaisPorFala = (): number => {
@@ -935,13 +944,17 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         : 'cauda-token';
       /* Chave de LABORATÓRIO (`babel.lab.parciaisMascara`): máscara dos modos `acrescenta-*`; ausente = 2. */
       const mascaraDeParciais = vivos ? lerMascaraDeParciais(lerChaveDeLaboratorio(CHAVE_DA_MASCARA_DE_PARCIAIS)) : 0;
-      const viaParakeet = vivos; // a rota dos parciais vivos É a do Parakeet
+      const viaParakeet = vivos && rotaDoParakeet(hint); // fora da rota do Parakeet só com a gravação de laboratório
       const audioMs = (pcm.length / sr) * 1000; // antes do envio: o buffer é transferido ao worker
+      /* GRAVAÇÃO DE LABORATÓRIO (`babel.lab.gravarHipoteses=1`, só nesta rota): cada hipótese do worker vai para a memória da página. */
+      const gravacao = vivos ? gravadorDeHipoteses().decode(seq, audioMs) : null;
       const aoAtualizar =
-        vivos && pintaTokens(modoDeParciais)
+        vivos && (pintaTokens(modoDeParciais) || gravacao)
           ? (parcial: string) => {
-              if (!seqToSegmentRef.current.has(seq) || lastPartialTextRef.current.get(seq) === FALA_FECHADA) return;
               const texto = naEscritaEscolhida((parcial ?? '').trim(), undefined, hint);
+              if (texto) gravacao?.token(texto);
+              if (!pintaTokens(modoDeParciais)) return;
+              if (!seqToSegmentRef.current.has(seq) || lastPartialTextRef.current.get(seq) === FALA_FECHADA) return;
               if (!texto) return;
               const v = vistaDoToken(
                 modoDeParciais,
@@ -974,6 +987,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
              com a tradução do final. */
           if (lastPartialTextRef.current.get(seq) === FALA_FECHADA) return;
           const limpo = naEscritaEscolhida((res.text ?? '').trim(), undefined, hint);
+          gravacao?.fim(limpo);
           /* LocalAgreement-2: o prefixo que duas hipóteses seguidas confirmam nunca regride; `clean` é o que se pinta. */
           const la = vivos && limpo ? avancar(agreementPorSeq.get(seq) ?? novoLocalAgreement(), limpo) : null;
           if (la) agreementPorSeq.set(seq, la.estado);
@@ -1149,6 +1163,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       // Daqui até o resultado do final, nenhum parcial desta fala decodifica nem traduz.
       lastPartialTextRef.current.set(seq, FALA_FECHADA);
       soltarLimitador(seq);
+      gravadorDeHipoteses().fechada(seq);
       clog('enunciado', source, '(seq', seq, ') →', pcm.length, 'amostras @', sr, 'Hz, decode final');
       // O áudio real da fala, para "Ouvir" onde não há voz de leitura (só guarda quando ligado).
       guardarAudioDaFala(uttId, pcm, sr);
@@ -1327,6 +1342,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             ') →',
             clean ? JSON.stringify(clean).slice(0, 80) : '(vazio)',
           );
+          gravadorDeHipoteses().final(seq, clean);
           seqToSegmentRef.current.delete(seq);
           lastPartialTextRef.current.delete(seq);
           agreementPorSeq.delete(seq);

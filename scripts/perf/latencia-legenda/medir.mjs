@@ -531,6 +531,8 @@ const coletar = () =>
     lat: window.__lat,
     cap: window.__capMetrics?.() ?? [],
     capSummary: window.__capSummary?.() ?? null,
+    // Hipóteses do parcial (`babel.lab.gravarHipoteses=1`; vazio sem a chave): a bancada com `--gravar-hipoteses` as salva.
+    hipoteses: window.__hipoteses ?? [],
     coi: crossOriginIsolated,
     heapMb: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null,
     ua: navigator.userAgent,

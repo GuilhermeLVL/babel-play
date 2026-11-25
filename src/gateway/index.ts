@@ -42,6 +42,7 @@ import type {
 } from './capabilities';
 import { capMetrics } from './capture/captureMetrics';
 import { marcar } from './marcasDeDesempenho';
+import { type TradutorDaPreTraducao, tradutorLocalDaPreTraducao } from './preTraducaoLocal';
 import { WHISPER_MODELS } from './sttRouter';
 
 const LOCAL_RE = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])/i;
@@ -1051,4 +1052,12 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
       },
     },
   };
+}
+
+/**
+ * O tradutor LOCAL da pré-tradução de legendas (openspec `pre-traducao-de-legendas`): o mesmo composto da captura (um só
+ * por sessão, sem baixar um segundo modelo), visto pelo adaptador que só aceita motor local e nunca chega à nuvem.
+ */
+export function tradutorLocalDaPreTraducaoDeLegendas(de: string, para: string): TradutorDaPreTraducao {
+  return tradutorLocalDaPreTraducao(tradutorLocalCompartilhado(), de, para);
 }

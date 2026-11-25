@@ -7,6 +7,7 @@ import { raw, Router } from 'express'
 
 import { alternativasProxy } from '../ai/alternativas'
 import { exigirFlagDoAssistente, rotaDoAssistente, tetoDoAssistente } from '../ai/assistente'
+import { diarioProxy } from '../ai/diario'
 import { escritaProxy } from '../ai/escrita'
 import { explicarProxy } from '../ai/explicar'
 import { registrarFeedback, tetoDoFeedback } from '../ai/feedback'
@@ -76,6 +77,11 @@ aiRouter.post('/leitura/parceiro', parceiroProxy)
    só nos pagos (`escritasMes`; Grátis/convidado/teste 403, esgotada 429 `cota_esgotada`), com o menor, a retenção
    zero, a admissão e o orçamento. Nada do texto é guardado. */
 aiRouter.post('/escrita', escritaProxy)
+/* O DIÁRIO COM CORREÇÃO (openspec `diario-com-correcao-que-vira-cartao`): 1 elogio e até 3 pontos sobre o que a pessoa
+   escreveu sobre o dia, no idioma que aprende (en|es). Atrás da flag `diario` (404), SÓ ADULTO DECLARADO na v1 (menor 403),
+   dados pessoais e sinais de risco recusados (422), só nos pagos (a MESMA `escritasMes`; esgotada 429 `cota_esgotada`), com a
+   retenção zero, a admissão e o orçamento. Nada do texto é guardado. */
+aiRouter.post('/diario', diarioProxy)
 /* O FEEDBACK DE IA (Fase B da IA paga): 👍/👎 com função, modelo, nível e motivo de LISTA FECHADA — nada de texto
    livre nem conteúdo da frase. Vira métrica e nota no Langfuse; nenhuma tabela. Adulto, menor e convidado. */
 aiRouter.post('/feedback', tetoDoFeedback, registrarFeedback)

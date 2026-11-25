@@ -202,4 +202,5 @@ export type ViewType =
   | 'leitor'
   /** A Leitura ativa (`/leitura`, flag `leitura_ativa`): textos curtos para ouvir, ler em voz alta e responder. */
   | 'leituraAtiva'
+  | 'diario'
   | 'naoencontrado';

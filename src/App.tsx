@@ -46,6 +46,8 @@ const Diagnostico = lazyComRecarga(() => import('./components/views/Diagnostico'
 const Leitor = lazyComRecarga(() => import('./components/views/leitor/Leitor'));
 /* A Leitura ativa (`/leitura`, flag `leitura_ativa`): o acervo e a tela descem só quando a flag deixa abrir. */
 const LeituraAtiva = lazyComRecarga(() => import('./components/views/leituraAtiva/LeituraAtiva'));
+/* O Diário (`/diario`, flag `diario`): a tela e o histórico local descem só quando a flag deixa abrir. */
+const Diario = lazyComRecarga(() => import('./components/views/diario/Diario'));
 const NaoEncontrado = lazyComRecarga(() => import('./components/views/NaoEncontrado'));
 const Admin = lazyComRecarga(() => import('./components/views/Admin'));
 const Loja = lazyComRecarga(carregarLoja);
@@ -67,6 +69,7 @@ registrarTelas({
   ajuda: Ajuda.carregar,
   loja: Loja.carregar,
   leituraAtiva: LeituraAtiva.carregar,
+  diario: Diario.carregar,
 });
 // A casca e o Início: pedaços à parte, fora do JS inicial.
 const TrilhoDoQuest = lazyComRecarga(() => import('./components/shell/TrilhoDoQuest'));
@@ -127,6 +130,7 @@ import FloatingScoreLayer from './components/FloatingScoreLayer';
 import IndicadorDeSalvamento from './components/IndicadorDeSalvamento';
 import Toaster from './components/Toast';
 import Vazio from './components/ui/Vazio';
+import PortaoDoDiario from './components/views/diario/PortaoDoDiario';
 import PortaoDaLeituraAtiva from './components/views/leituraAtiva/PortaoDaLeituraAtiva';
 import { carregarProtecao, fetchSessions } from './data/api';
 import { lerTokenDoConvite } from './lib/conviteNaUrl';
@@ -812,6 +816,11 @@ export default function App() {
                 <PortaoDaLeituraAtiva aoNegar={() => setActiveView('hub')}>
                   <LeituraAtiva />
                 </PortaoDaLeituraAtiva>
+              )}
+              {activeView === 'diario' && (
+                <PortaoDoDiario aoNegar={() => setActiveView('hub')}>
+                  <Diario />
+                </PortaoDoDiario>
               )}
               {activeView === 'admin' && (
                 <Admin onChangeView={(v) => navigateTo(v as ViewType)} onBuscar={() => setBuscaAberta(true)} />

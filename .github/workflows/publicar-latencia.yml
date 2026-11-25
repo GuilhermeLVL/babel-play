@@ -78,9 +78,9 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: latencia
-          path: |
-            latencia.json
-            latencia-dono.json
+          # Só o arquivo público. O repositório é público e artefatos de Actions podem ser baixados por qualquer
+          # pessoa logada: a visão do dono (latencia-dono.json) vai só para o bucket privado do R2, nunca para o artefato.
+          path: latencia.json
           retention-days: 35
       - name: Publicar no R2 (só com LATENCIA_PUBLICAR=1)
         if: ${{ vars.LATENCIA_PUBLICAR == '1' && inputs.so_conferir != true }}

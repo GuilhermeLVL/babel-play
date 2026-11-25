@@ -8,6 +8,7 @@
  *
  * Um "Ouvir" por aparelho: ao tocar, o canal `frasy-audiolivro` avisa as outras abas, e quem ouve pausa.
  */
+import { aoFimDaFrase, type ConfigDeFrase } from '../../../core/learning/frasePorFrase';
 import { type FraseComTempo, frasePorTempo } from '../../../core/leitura/audiolivro';
 
 export type MotivoDoErro = 'rede' | 'decodificacao';
@@ -19,10 +20,18 @@ export interface ReprodutorDeCapitulo {
   retomar(): Promise<void>;
   parar(): void;
   definirVelocidade(v: number): void;
+  /**
+   * O modo "Frase por frase" (openspec `repetir-e-pausar-por-frase`): ao `t1` de cada frase repete, espera a pessoa repetir
+   * em voz alta e segue, ou para (`aoPararNoFim`). `null` o desliga. Quem chama só o liga com `frase_por_frase` e
+   * `audiolivros` ligadas; o reprodutor em si não consulta flag.
+   */
+  definirFrasePorFrase(config: ConfigDeFrase | null): void;
   precarregar(url: string): void;
   destruir(): void;
   aoMudarFrase: (i: number) => void;
   aoFimDoCapitulo: () => void;
+  /** O modo "Frase por frase" parou no fim da frase `i` (última frase ou "parar no fim"). */
+  aoPararNoFim: (i: number) => void;
   aoErro: (motivo: MotivoDoErro) => void;
   /** Outra aba começou a tocar e esta pausou (o narrador acompanha o estado). */
   aoPausarDeFora: () => void;
@@ -69,10 +78,16 @@ export function criarReprodutor(d: DependenciasDoReprodutor = {}): ReprodutorDeC
   let velocidade = 1;
   let cancelarQuadro: (() => void) | null = null;
   let destruido = false;
+  /* O MODO FRASE POR FRASE: a conta de repetições e a pausa de repetir (relógio de parede). */
+  let frase: ConfigDeFrase | null = null;
+  let feita = { de: -1, n: 0 };
+  let espera: ReturnType<typeof setTimeout> | null = null;
+  const FOLGA_S = 0.04;
 
   const r: ReprodutorDeCapitulo = {
     aoMudarFrase: () => {},
     aoFimDoCapitulo: () => {},
+    aoPararNoFim: () => {},
     aoErro: () => {},
     aoPausarDeFora: () => {},
     carregar,
@@ -81,13 +96,50 @@ export function criarReprodutor(d: DependenciasDoReprodutor = {}): ReprodutorDeC
     retomar,
     parar,
     definirVelocidade,
+    definirFrasePorFrase,
     precarregar,
     destruir,
+  };
+
+  const limparEspera = () => {
+    if (espera !== null) clearTimeout(espera);
+    espera = null;
+  };
+  /** A frase `i` chegou ao `t1`: o modo decide. Devolve `true` se agiu (repetiu, esperou ou parou). */
+  const noFimDaFrase = (i: number): boolean => {
+    if (!frase || !audio || espera !== null) return false;
+    const a = audio;
+    const t = tempos[i];
+    if (!t || a.currentTime < t.t1 - FOLGA_S) return false;
+    if (feita.de !== i) feita = { de: i, n: 0 };
+    const r1 = aoFimDaFrase(frase, i, tempos.length, feita.n, ((t.t1 - t.t0) * 1000) / (velocidade || 1));
+    feita = { de: i, n: r1.feita };
+    if (r1.acao.tipo === 'repetir') {
+      a.currentTime = t.t0;
+      ultima = -1;
+    } else if (r1.acao.tipo === 'esperar') {
+      a.pause();
+      pararQuadros();
+      espera = setTimeout(() => {
+        espera = null;
+        const prox = tempos[i + 1];
+        if (!prox || destruido || a !== audio) return;
+        a.currentTime = prox.t0;
+        ultima = -1;
+        void retomar();
+      }, r1.acao.ms);
+    } else if (r1.acao.tipo === 'parar') {
+      a.pause();
+      pararQuadros();
+      r.aoPararNoFim(i);
+    }
+    return true;
   };
 
   const conferir = () => {
     if (!audio || destruido) return;
     const i = frasePorTempo(tempos, audio.currentTime);
+    if (i >= 0 && !audio.paused && noFimDaFrase(i)) return;
     if (i >= 0 && i !== ultima) {
       ultima = i;
       r.aoMudarFrase(i);
@@ -174,6 +226,8 @@ export function criarReprodutor(d: DependenciasDoReprodutor = {}): ReprodutorDeC
     }
     const a = audio;
     const t = tempos[Math.max(0, Math.min(i, tempos.length - 1))];
+    limparEspera();
+    feita = { de: -1, n: 0 };
     await pronto(a);
     if (a !== audio || destruido) return;
     a.currentTime = t.t0;
@@ -189,7 +243,14 @@ export function criarReprodutor(d: DependenciasDoReprodutor = {}): ReprodutorDeC
     seguirQuadros();
   }
 
+  function definirFrasePorFrase(config: ConfigDeFrase | null) {
+    frase = config;
+    feita = { de: -1, n: 0 };
+    if (!config) limparEspera();
+  }
+
   function pausar() {
+    limparEspera();
     pararQuadros();
     audio?.pause();
   }
@@ -231,6 +292,7 @@ export function criarReprodutor(d: DependenciasDoReprodutor = {}): ReprodutorDeC
 
   function destruir() {
     destruido = true;
+    limparEspera();
     pararQuadros();
     soltar(audio);
     soltar(proximo);

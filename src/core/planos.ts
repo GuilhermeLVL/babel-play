@@ -408,6 +408,14 @@ export const FLAG_ANKI_MAPEADOR = 'anki_mapeador';
 export const FLAG_SOMBRA_LOCAL = 'sombra_local';
 
 /**
+ * A LATÊNCIA PUBLICADA POR APARELHO (openspec `latencia-publicada-por-aparelho`; migrações PG 0038 e SQLite 0077):
+ * o app lê o arquivo estático `latencia.json` (agregado semanal por classe de aparelho e idioma) e mostra o selo "metade das
+ * legendas aparece em até X s"; o site gera `/desempenho` e o admin mostra o painel. Nasce DESLIGADA e sem regra de plano; só
+ * tem efeito com `rum_latencia` ligada. Ligar é ato do dono, depois do parecer de privacidade e de uma semana de dados.
+ */
+export const FLAG_LATENCIA_PUBLICADA = 'latencia_publicada';
+
+/**
  * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,
  * "Custo da escrita"): um retorno leva ~900 tokens de entrada (system + texto de até 120 palavras) e até 500 de saída;
  * 30 por mês ficam na casa de US$ 0,01 por assinante que usa tudo, e os tokens já saem da `tokensMes`.

@@ -6,6 +6,7 @@ import { t } from '../../../lib/i18n';
 import Barra from '../../ui/Barra';
 import { dataHora, dolar } from './formatar';
 import { Estado, Etiqueta, Kpi, Secao } from './pecas';
+import SecaoDeLatencia from './SecaoDeLatencia';
 import { useCarga } from './useCarga';
 
 /** Resumo: números do dono, contas por papel e estado, pendências de cobrança e o gasto de IA do mês. */
@@ -151,6 +152,8 @@ export default function PainelResumo({ aoPedirCodigo }: { aoPedirCodigo: () => v
           )}
         </Estado>
       </Secao>
+
+      <SecaoDeLatencia />
     </div>
   );
 }

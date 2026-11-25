@@ -463,6 +463,37 @@ Os histogramas do Prometheus não existem no Worker (o backend lá só soma num 
 Analytics Engine. As consultas SQL acima não foram executadas contra dados reais (a flag está desligada); valide-as na primeira
 semana depois da ligação.
 
+### 3.3 Latência publicada por aparelho (flag `latencia_publicada`)
+
+Transforma a §3.2 em um número público e honesto (change `latencia-publicada-por-aparelho`). Peças: o agregador
+`scripts/producao/publicar-latencia.mjs`, o workflow semanal `.github/workflows/publicar-latencia.yml`, o selo no app (perto do
+Iniciar e do preparo do modelo), a página `/desempenho` do site e a seção "Latência da legenda por aparelho" no Resumo do admin.
+
+**Gerar e conferir (não grava nada):**
+
+```bash
+CLOUDFLARE_ACCOUNT_ID=... CLOUDFLARE_API_TOKEN=... \
+  npx tsx scripts/producao/publicar-latencia.mjs --fonte analytics-engine --dataset frasy_metricas_staging --saida-dono latencia-dono.json --dry-run
+# self-host: --fonte prometheus (PROMETHEUS_URL); dump local: --fonte arquivo --entrada dump.json
+```
+
+Confira uma célula contra a consulta manual da §3.2 (o p50/p75 publicado é o LIMITE do balde que cruza o quantil; célula com
+menos de 200 falas sai `insuficiente`, sem número). O token da conta é SÓ de leitura do Analytics Engine; nunca fica versionado.
+
+**Publicar (ato do dono, depois do parecer de privacidade sobre `rum_latencia` e de uma semana com 6 ou mais das 15 células `ok`):**
+
+1. No Environment do GitHub: secrets `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` (leitura) e `CLOUDFLARE_R2_TOKEN` (R2 Edit);
+   variáveis `LATENCIA_BUCKET` (público), `LATENCIA_BUCKET_DONO` (PRIVADO) e `LATENCIA_PUBLICAR=1`.
+2. Apontar o app para o arquivo: `VITE_LATENCIA_URL` (padrão `/latencia.json`; fora da origem entra no `connect-src` da CSP) e,
+   para o painel, `VITE_LATENCIA_DONO_URL` (atrás de acesso; sem ela o painel mostra só o público). Para a página `/desempenho`,
+   o build recebe `SITE_FLAGS_DE_VENDA` com `latencia_publicada` e `SITE_LATENCIA_ARQUIVO` com o caminho do `latencia.json`.
+3. Ligar `rum_latencia` e depois `latencia_publicada` (`flags listar` para conferir). A flag sozinha não faz nada: sem
+   `rum_latencia` o app não pede o arquivo.
+
+**Reverter:** desligar `latencia_publicada` (o app para de pedir o arquivo; o selo some) e apagar `latencia.json` do bucket;
+tirar `latencia_publicada` de `SITE_FLAGS_DE_VENDA` e publicar o site de novo remove `/desempenho` e a linha do sitemap. Arquivo
+com mais de 35 dias já não é mostrado por conta própria.
+
 ---
 
 ## 4. Reiniciar, atualizar e parar

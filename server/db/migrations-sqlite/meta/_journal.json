@@ -540,6 +540,13 @@
       "when": 1794800000015,
       "tag": "0076_flag_sombra_local",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "6",
+      "when": 1794800000016,
+      "tag": "0077_flag_latencia_publicada",
+      "breakpoints": true
     }
   ]
 }

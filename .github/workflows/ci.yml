@@ -119,7 +119,11 @@ jobs:
     steps:
       # Actions fixadas por SHA (tag é ponteiro mutável); a versão legível fica no comentário,
       # que é o que o Dependabot atualiza.
+      # `fetch-depth: 2`: no `pull_request` o HEAD é o commit de merge e `HEAD^1` é a base, que o passo
+      # "Formato dos arquivos do PR" compara.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 2
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
@@ -146,6 +150,13 @@ jobs:
         timeout-minutes: 5
       - if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: npm run lint
+        timeout-minutes: 5
+      # TRAVA DE FORMATO (formatacao-e-lint-estrito 1.6): `prettier --check` só nos arquivos que o PR altera.
+      # O husky/lint-staged formata no commit, mas `--no-verify` e a edição na web escapam; a passada geral
+      # nos arquivos que ninguém tocou é outra tarefa. Na `main` não há base de PR: o passo não roda.
+      - name: Formato dos arquivos do PR
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' && github.event_name == 'pull_request' }}
+        run: npm run formato:diff
         timeout-minutes: 5
       # CODIGO MORTO (auditoria de 2026-09-07, achados A50-A56): 15 arquivos sem importador,
       # dependencias sem uso e dois ciclos de importacao entraram porque nada os cobrava. Os dois

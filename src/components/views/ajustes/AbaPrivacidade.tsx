@@ -11,6 +11,7 @@ import CartaoDeConvite from '../../conta/CartaoDeConvite';
 import { toast } from '../../Toast';
 import { baixarArquivo, prepararCopia } from '../perfil/AbaDados';
 import DialogoLegal from '../sobre/DialogoLegal';
+import AudioDosCartoes from './AudioDosCartoes';
 
 /**
  * AJUSTES → PRIVACIDADE (override de `T.ajustes`, 4029-4041): o que você autoriza, baixar os seus
@@ -163,6 +164,9 @@ export default function AbaPrivacidade() {
           </div>
         </div>
       </section>
+
+      {/* Só com a flag `cartao_com_audio` ligada; desligada, nada muda aqui. */}
+      <AudioDosCartoes />
 
       {/* Só com a flag `anuncios` ligada (o perfil protegido também vê); desligada, nada muda aqui. */}
       <AnunciosNosAjustes />

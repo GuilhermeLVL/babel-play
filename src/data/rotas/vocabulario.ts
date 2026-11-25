@@ -11,6 +11,7 @@
  */
 import { montarApkg } from '../../lib/anki/montarApkg'
 import { abrirSqliteNoNavegador } from '../../lib/anki/sqlite'
+import { apagarClipeDoCartao } from '../../lib/cartoes/audioDoCartao'
 import { play } from '../../lib/soundFx'
 import type { VocabCard } from '../../types'
 import { apiFetch } from '../funil'
@@ -190,6 +191,8 @@ export async function updateCard(
  */
 export async function deleteCard(id: string): Promise<boolean> {
   const res = await apiFetch(`/api/vocab/${id}`, { method: 'DELETE' })
+  /* o clipe de áudio do cartão mora só no aparelho (cartao_com_audio): apagar o cartão apaga o clipe */
+  if (res.ok) void apagarClipeDoCartao(id)
   return res.ok
 }
 

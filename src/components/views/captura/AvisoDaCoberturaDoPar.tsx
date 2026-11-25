@@ -10,7 +10,8 @@ import { langLabelNaUI } from '../../../lib/languages';
  *
  *  • `sem-rota`: o fato e a saída — a legenda segue só com a transcrição; autorizar a tradução pela internet, quando a
  *    política do perfil permite (o perfil protegido sem responsável não tem essa saída, e a tela não a oferece).
- *  • `pelo-ingles`: informa que o par passa pelo inglês, no aparelho, e quanto baixa na primeira vez.
+ *  • `pelo-ingles`: rotula a tradução como APROXIMADA (decisão assumida 25/11: nota medida 2,33 a 2,89, piso 3,0),
+ *    e informa que o par passa pelo inglês, no aparelho, e quanto baixa na primeira vez.
  *  • `nuvem`: o aviso de sempre, a tradução usa a internet.
  *  • nativo, direta e mesmo idioma: nada a dizer.
  */
@@ -45,10 +46,13 @@ export default function AvisoDaCoberturaDoPar({
       <div className="aviso-info" data-testid="aviso-pelo-ingles">
         <Info aria-hidden />
         <span>
-          {t('A tradução de {de} → {para} passa pelo inglês, no aparelho: cerca de {mb} MB na primeira vez.', {
-            ...idiomas,
-            mb: cobertura.mb,
-          })}
+          {t(
+            'Tradução aproximada de {de} → {para}: passa pelo inglês, no aparelho, e baixa cerca de {mb} MB na primeira vez.',
+            {
+              ...idiomas,
+              mb: cobertura.mb,
+            },
+          )}
         </span>
       </div>
     );

@@ -172,6 +172,7 @@
     "other": "{n} mistakes"
   },
   "{n} erros seguidos marcam a palavra como difícil para você: ela sai do sorteio comum e volta na rodada de resgate.": "{n} mistakes in a row mark the word as hard for you: it leaves the regular draw and comes back in the rescue round.",
+  "{n} esperam para amanhã, sem pressa. Dá para mudar o limite do dia.": "{n} are waiting for tomorrow, no rush. You can change the daily limit.",
   "{n} esquecimentos": {
     "one": "{n} lapse",
     "other": "{n} lapses"
@@ -231,6 +232,10 @@
     "one": "{n} remembered",
     "other": "{n} remembered"
   },
+  "{n} linhas para conferir.": {
+    "one": "{n} line to check.",
+    "other": "{n} lines to check."
+  },
   "{n} livros do backup já estão na sua estante: {titulos}. O que fazer com eles?": "{n} books from the backup are already on your shelf: {titulos}. What should we do with them?",
   "{n} livros em domínio público": "{n} public-domain books",
   "{n} livros encontrados": {
@@ -261,6 +266,10 @@
   "{n} notas fora da régua de qualidade": {
     "one": "{n} note failed the quality check",
     "other": "{n} notes failed the quality check"
+  },
+  "{n} notas não chegaram ao servidor. Se você sair agora, elas se perdem.": {
+    "one": "{n} rating didn't reach the server. If you leave now, it is lost.",
+    "other": "{n} ratings didn't reach the server. If you leave now, they are lost."
   },
   "{n} notas não foram gravadas": {
     "one": "{n} rating wasn't saved",
@@ -576,6 +585,7 @@
   "A linha tracejada é a média; a barra destacada, o dia mais cheio.": "The dashed line is the average; the highlighted bar, the busiest day.",
   "A linha tracejada é a sua meta de {n} min por dia, vezes 7 na semana. Barras mais escuras bateram a meta.": "The dashed line is your goal of {n} min a day, times 7 for the week. Darker bars reached the goal.",
   "A linha tracejada é a sua meta de {n} min por dia. Barras mais escuras bateram a meta.": "The dashed line is your goal of {n} min a day. Darker bars reached the goal.",
+  "A lista": "The list",
   "A lista mostra só as contas mais recentes. Se você tem o id completo, abra a conta direto.": "The list shows only the newest accounts. If you have the full id, open the account directly.",
   "A Loja precisa de conta": "The Shop needs an account",
   "A Maestria precisa de conta": "Mastery needs an account",
@@ -1353,6 +1363,7 @@
   "Calendário de atividade": "Activity calendar",
   "Calendário de dias estudados nas últimas 12 semanas: {n} dias com revisão": "Calendar of days studied in the last 12 weeks: {n} days with reviews",
   "Caminho até {marco} palavras em {idioma}": "Progress to {marco} words in {idioma}",
+  "Campos do arquivo: {campos}.": "File fields: {campos}.",
   "cancela no fim do período": "cancels at period end",
   "Cancelada": "Canceled",
   "Cancelando depois deste bloco…": "Cancelling after this block…",
@@ -1504,11 +1515,13 @@
   "Código inválido.": "Invalid code.",
   "Código inválido. Tente de novo.": "Invalid code. Try again.",
   "Colar o link de um livro": "Paste a book link",
+  "Colar uma lista": "Paste a list",
   "Colar uma lista ou um texto": "Paste a list or a text",
   "Cole o endereço completo de um arquivo de livro (.epub, .pdf, .docx, .txt…), começando com https://": "Paste the full address of a book file (.epub, .pdf, .docx, .txt…), starting with https://",
   "Cole o endereço completo, começando com https://": "Paste the full address, starting with https://",
   "Cole o endereço de um arquivo de livro (.epub, .pdf, .mobi, .docx, .txt…) do GitHub (raw.githubusercontent.com). O seu navegador baixa o arquivo direto: ele não passa pelo Frasy.": "Paste the address of a book file (.epub, .pdf, .mobi, .docx, .txt…) from GitHub (raw.githubusercontent.com). Your browser downloads the file directly: it doesn't go through Frasy.",
   "Cole o id da conta": "Paste the account id",
+  "Cole ou escreva a lista aqui.": "Paste or type the list here.",
   "Coleção": "Collection",
   "Coleção do Frasy": "Frasy collection",
   "Coloque as palavras na ordem certa": "Put the words in the right order",
@@ -1635,6 +1648,7 @@
   "Conferindo…": "Checking…",
   "Conferir": "Check",
   "Conferir agora": "Check now",
+  "Conferir antes de trazer · {nome} · nada foi enviado ainda": "Check before importing · {nome} · nothing has been sent yet",
   "Conferir de novo": "Check again",
   "Conferir os dois idiomas": "Check both languages",
   "Conferir sozinho": "Check it yourself",
@@ -2169,6 +2183,7 @@
   "Enviamos um link para o seu e-mail. Depois de confirmar, defina a senha em Ajustes → Conta — o que você fez como convidado continua com você.": "We sent a link to your email. After confirming, set your password in Settings → Account — what you did as a guest stays with you.",
   "Enviamos um link seguro pro seu e-mail, você define uma nova senha e volta em segundos.": "We send a secure link to your email, you set a new password and you're back in seconds.",
   "Enviando {feitas} de {total} notas…": "Sending {feitas} of {total} notes…",
+  "Enviando {nome}…": "Sending {nome}…",
   "Enviando à nuvem…": "Sending to the cloud…",
   "Enviando…": "Sending…",
   "Enviar": "Send",
@@ -2406,6 +2421,7 @@
   "Este app está rodando no seu computador, sem login. Não há senha nem sessão para gerenciar: seus dados ficam neste dispositivo.": "This app is running on your computer, with no sign-in. There is no password or session to manage: your data stays on this device.",
   "Este app roda no seu computador, sem conta: não há e-mail cadastrado.": "This app runs on your computer, with no account: there is no registered e-mail.",
   "Este arquivo não é um avatar 3D (.vrm ou .glb).": "This file is not a 3D avatar (.vrm or .glb).",
+  "Este arquivo tem {total} notas, mais do que dá para ler de uma vez; só as primeiras {lidas} entram. Traga o mesmo arquivo de novo para o resto.": "This file has {total} notes, more than can be read at once; only the first {lidas} come in. Bring the same file again for the rest.",
   "Este arquivo tem {total} notas, mais do que dá para ler de uma vez; só as primeiras {lidas} entraram. Traga o mesmo arquivo de novo para o resto.": "This file has {total} notes, more than can be read at once; only the first {lidas} came in. Import the same file again for the rest.",
   "Este avatar não tem braços articulados.": "This avatar has no articulated arms.",
   "Este avatar não tem dedos articulados.": "This avatar has no articulated fingers.",
@@ -3146,6 +3162,10 @@
   "leve": "light",
   "Leve": "Light",
   "leves e rotulados": "light and labelled",
+  "Li {n} notas neste aparelho. Nada foi ao servidor: elas só entram quando você confirmar.": {
+    "one": "I read {n} note on this device. Nothing went to the server: it only comes in when you confirm.",
+    "other": "I read {n} notes on this device. Nothing went to the server: they only come in when you confirm."
+  },
   "Liberado": "Unlocked",
   "Liberar microfone": "Allow microphone",
   "Libere o microfone agora": "Allow the microphone now",
@@ -3522,6 +3542,7 @@
   "Não abre agora: fica no fim da grade": "Does not open right now: it stays at the end of the grid",
   "Não achamos nada para corrigir. Que tal tentar a outra tarefa?": "We found nothing to fix. How about trying the other task?",
   "Não achamos um microfone. Conecte um fone com microfone ou leia em silêncio.": "We couldn't find a microphone. Connect a headset with a microphone or read silently.",
+  "Não achei nenhuma nota neste arquivo. Nada foi enviado.": "I found no notes in this file. Nothing was sent.",
   "Não achei o Anki. Abra o Anki no computador e confira se o complemento AnkiConnect está instalado (código 2055492159). Se o Anki já está aberto, o navegador pode ter bloqueado o acesso à rede local: libere nas permissões do site (cadeado ao lado do endereço) e tente de novo.": "I could not find Anki. Open Anki on your computer and check that the AnkiConnect add-on is installed (code 2055492159). If Anki is already open, the browser may have blocked local network access: allow it in the site permissions (padlock next to the address) and try again.",
   "Não achei o arquivo deste livro neste aparelho. Traga-o de novo.": "I couldn't find this book's file on this device. Bring it again.",
   "Não achei o arquivo neste aparelho para baixar. Traga-o de novo.": "I couldn't find the file on this device to download. Bring it again.",
@@ -3616,6 +3637,7 @@
   "Não deu para ler esse arquivo: ele pode estar incompleto ou danificado. Baixe de novo e tente outra vez.": "We could not read this file: it may be incomplete or damaged. Download it again and try once more.",
   "Não deu para ler esse backup: o arquivo pode estar incompleto ou danificado.": "Couldn't read this backup: the file may be incomplete or damaged.",
   "Não deu para ler esta frase com a voz do aparelho. Escolha outra voz em \"Voz e modo\".": "Could not read this sentence with the device voice. Choose another voice in \"Voice and mode\".",
+  "Não deu para ler este arquivo do Anki.": "Could not read this Anki file.",
   "Não deu para ler seu texto agora.": "We couldn't read your text right now.",
   "Não deu para marcar agora.": "Couldn't mark it right now.",
   "Não deu para medir agora.": "Couldn't measure right now.",
@@ -3908,6 +3930,8 @@
   "Nota": "Note",
   "Nota {nota} de 100": "Score {nota} out of 100",
   "Nota apagada.": "Note deleted.",
+  "Nota não gravada.": "Rating not saved.",
+  "Nota não gravada. Ela espera nesta tela até a internet voltar; se você sair, ela se perde.": "Rating not saved. It waits on this screen until the internet is back; if you leave, it is lost.",
   "Nota salva.": "Note saved.",
   "Notas do arquivo do Anki. Uma nota pode virar mais de um cartão na sua fila.": "Notes from the Anki file. One note can become more than one card in your queue.",
   "Notas e marcações": "Notes and highlights",
@@ -4008,6 +4032,7 @@
   "O áudio da sua voz vai para o reconhecimento do navegador (Google ou Apple) enquanto você fala.": "Your voice audio goes to the browser's speech recognition (Google or Apple) while you speak.",
   "O áudio desta sessão não coube no seu espaço de armazenamento. As falas foram salvas; para guardar o áudio, libere espaço ou veja os planos.": "This session's audio did not fit in your storage space. The transcript was saved; to keep the audio, free up space or see the plans.",
   "O áudio do sistema é transcrito e traduzido no seu computador, e o vocabulário fica aqui.": "System audio is transcribed and translated on your computer, and your vocabulary stays here.",
+  "O áudio e as imagens do arquivo não vêm: o cartão usa a voz do aparelho.": "The file's audio and images don't come along: the card uses the device voice.",
   "O áudio e o texto de cada fala vão à Cloudflare só para transcrever e ler em voz alta; nada é guardado.": "The audio and text of each utterance go to Cloudflare only to transcribe and read aloud; nothing is stored.",
   "o áudio vai para o nosso servidor": "the audio goes to our server",
   "o áudio vai para o serviço de fala do navegador": "the audio goes to the browser's speech service",
@@ -6087,6 +6112,10 @@
   "transcrita aqui, depois de tentar a nuvem": "transcribed here, after trying the cloud",
   "Travadas da tela (antes → durante)": "Screen stalls (before → during)",
   "Trazer": "Bring",
+  "Trazer {n} notas": {
+    "one": "Import {n} note",
+    "other": "Import {n} notes"
+  },
   "Trazer artigo": "Bring article",
   "Trazer do Anki": "Bring in from Anki",
   "Trazer e levar": "Import and export",
@@ -6217,6 +6246,8 @@
   "Uma imagem (textura) do modelo não pôde ser lida.": "An image (texture) of the model couldn't be read.",
   "Uma imagem do modelo é grande demais ({largura} x {altura} pixels) para o seu aparelho.": "An image in the model is too large ({largura} x {altura} pixels) for your device.",
   "Uma letra só não dá exercício.": "A single letter makes no exercise.",
+  "Uma palavra e a tradução por linha, separadas por vírgula ou tabulação.": "One word and its translation per line, separated by comma or tab.",
+  "Uma palavra e a tradução por linha. Nada sai do aparelho antes de você confirmar.": "One word and its translation per line. Nothing leaves the device before you confirm.",
   "Uma palavra foi ocultada pela proteção. O reconhecimento automático às vezes entende errado.": "A word was hidden by the protection. Automatic recognition sometimes gets things wrong.",
   "Uma palavra por linha, com ou sem tradução. Também lê CSV.": "One word per line, with or without translation. Also reads CSV.",
   "Uma palavra por vez, falada; a correção mostra letra a letra": "One spoken word at a time; the correction shows it letter by letter",
@@ -6455,7 +6486,9 @@
   "Você assinou há 7 dias ou menos: ao confirmar, você recebe o <b>reembolso integral de {valor}</b> no mesmo meio de pagamento (CDC, art. 49), sem precisar pedir a ninguém, e o acesso ao {plano} termina agora.": "You subscribed 7 days ago or less: when you confirm, you receive a <b>full refund of {valor}</b> to the same payment method (CDC, art. 49), with no need to ask anyone, and access to {plano} ends now.",
   "Você cancelou: mostrando as {n} falas já traduzidas.": "You canceled: showing the {n} lines already translated.",
   "Você chegou ao limite de hoje do assistente. Ele volta amanhã; a legenda segue funcionando.": "You've reached today's assistant limit. It comes back tomorrow; captions keep working.",
+  "Você chegou ao limite de hoje.": "You reached today's limit.",
   "Você chegou ao limite de hoje. Amanhã o polimento continua de onde parou.": "You've reached today's limit. Tomorrow polishing picks up where it left off.",
+  "Você chegou ao limite de hoje. Dá para mudar o limite em Cartões.": "You reached today's limit. You can change it in Cards.",
   "Você chegou ao limite de hoje. Volta amanhã.": "You've reached today's limit. Back tomorrow.",
   "Você continua com o {plano} até {data}. Depois disso, volta para o Grátis, sem cobrança.": "You keep {plano} until {data}. After that, you go back to Free, with no charge.",
   "Você continua com o {plano} até <b>{data}</b>.": "You keep {plano} until <b>{data}</b>.",

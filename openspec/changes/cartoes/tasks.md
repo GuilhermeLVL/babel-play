@@ -19,11 +19,11 @@
 
 ## 2. Confiança na revisão (limites e opções na conta)
 
-- [ ] 2.1 Limite diário de verdade no servidor: novas por dia e revisões por dia, com contador por dia no fuso da pessoa, guardado na conta (hoje cortam cada rodada e ficam em `localStorage`, `src/lib/revisao/preferencias.ts`). Verificar: teste de integração (duas rodadas no mesmo dia somam; virada de dia no fuso zera; conta nova não herda) e `npx vitest run tests/caracterizacao` sem rota solta
-- [ ] 2.2 Opções da revisão na conta (meta de retenção, limites, ordem, formato), valendo em todos os aparelhos. Migração PG nova, só EXPAND, e entra na exportação e na exclusão de conta. **[D]** (mexe em dado gravado). Verificar: `npx vitest run tests/integration/schema-pg-baseline.test.ts` e teste de dois aparelhos com a mesma conta
-- [ ] 2.3 Cartão "Teto de hoje" da aba Hoje e o teto da pilha, com o contador real de 2.1. Verificar: teste de componente com contador em 0, no meio e no teto; nenhum número inventado
-- [ ] 2.4 Quem erra revê na mesma sessão (passos de aprendizagem ou fim da fila), sem mudar o agendamento FSRS. Verificar: teste da fila (cartão errado volta antes do fim; a nota Errei grava uma vez só)
-- [ ] 2.5 Aviso quando a nota não foi gravada (sem rede), com nova tentativa. Hoje existe a linha "Sem rede" que reenvia só com a tela aberta. Verificar: teste com `fetch` falhando e voltando; nada fica guardado depois de fechar a tela (retenção zero)
+- [x] 2.1 (feito 25/11 na branch `onda2/cartoes-bloco-2`; o contador vem de `agregados_diarios` no fuso gravado, sem tabela nova: `GET /api/vocab/opcoes-da-revisao` devolve `hoje`; a rodada desconta o feito do dia, `lib/revisao/opcoesNaConta.ts`; testes em `tests/caracterizacao/vocab-opcoes-da-revisao.test.ts`) Limite diário de verdade no servidor: novas por dia e revisões por dia, com contador por dia no fuso da pessoa, guardado na conta (hoje cortam cada rodada e ficam em `localStorage`, `src/lib/revisao/preferencias.ts`). Verificar: teste de integração (duas rodadas no mesmo dia somam; virada de dia no fuso zera; conta nova não herda) e `npx vitest run tests/caracterizacao` sem rota solta
+- [x] 2.2 (feito em dev 25/11, decisão assumida: recomendação 11 de `decisoes-do-dono.md` "sim", 25/11; tabela `opcoes_da_revisao`, migração PG 0035 PROVISÓRIA, só EXPAND, reversível com `DROP TABLE` e testada em `tests/integration/opcoes-da-revisao-migracao.test.ts`; na exportação e na exclusão de conta; o integrador renumera. **[D] ABERTO: aplicar em produção com backup (pg_dump) e ensaio na cópia do banco.**) Opções da revisão na conta (meta de retenção, limites, ordem, formato), valendo em todos os aparelhos. Migração PG nova, só EXPAND, e entra na exportação e na exclusão de conta. **[D]** (mexe em dado gravado). Verificar: `npx vitest run tests/integration/schema-pg-baseline.test.ts` e teste de dois aparelhos com a mesma conta
+- [x] 2.3 (feito 25/11: a barra "N de total novas" da faixa usa o feito de hoje do servidor e o estado "Você chegou ao limite de hoje" da pilha; sem contador, volta ao que entra na fila) Cartão "Teto de hoje" da aba Hoje e o teto da pilha, com o contador real de 2.1. Verificar: teste de componente com contador em 0, no meio e no teto; nenhum número inventado
+- [x] 2.4 (feito 25/11: `core/learning/filaDaRevisao.ts`; o cartão volta depois de 4 outros ou no fim, até 2 vezes, como cópia que não grava nota) Quem erra revê na mesma sessão (passos de aprendizagem ou fim da fila), sem mudar o agendamento FSRS. Verificar: teste da fila (cartão errado volta antes do fim; a nota Errei grava uma vez só)
+- [x] 2.5 (feito 25/11: aviso no primeiro erro, no fim da rodada com "Tentar de novo" e confirmação do navegador ao fechar; nada fica guardado depois) Aviso quando a nota não foi gravada (sem rede), com nova tentativa. Hoje existe a linha "Sem rede" que reenvia só com a tela aberta. Verificar: teste com `fetch` falhando e voltando; nada fica guardado depois de fechar a tela (retenção zero)
 - [ ] 2.6 "Estudo livre" como escolha explícita, fora da agenda; fim do baralho inteiro como padrão quando nada vence. Verificar: teste de componente; a rodada livre não muda data de vencimento
 
 ## 3. A revisão melhorada (`cartoes2.js`)
@@ -64,8 +64,8 @@ Nota 25/11: a aba Baralhos foi substituída pela ficha de conteúdo; os itens fo
 ## 7. Anki
 
 - [ ] 7.1 Mapear campos: é a change `motor-anki-mapeador` (reescrita em 25/11). Verificar: aquela change fechada
-- [ ] 7.2 Ler o arquivo sem gravar, para o relatório vir antes de trazer (separar "ler" de "enviar" em `src/data/importarAnki.ts`). Verificar: `npx vitest run tests/baralhoAnkiImport.test.tsx tests/importarAnki-lotes.test.ts` e nenhuma requisição ao servidor antes da confirmação
-- [ ] 7.3 Colar uma lista e CSV avulso (o leitor já aceita `.txt/.csv/.tsv`; falta colar). Verificar: teste do parser de lista (duas colunas, vírgula e tabulação, aspas, linha vazia)
+- [x] 7.2 (feito 25/11: `lerBaralhoParaImportar` e `enviarBaralhoLido`; o fluxo do Anki mostra a prévia e só envia em "Trazer"; e2e `cartoes.e2e.ts` ajustado e NÃO rodado aqui [R]) Ler o arquivo sem gravar, para o relatório vir antes de trazer (separar "ler" de "enviar" em `src/data/importarAnki.ts`). Verificar: `npx vitest run tests/baralhoAnkiImport.test.tsx tests/importarAnki-lotes.test.ts` e nenhuma requisição ao servidor antes da confirmação
+- [x] 7.3 (feito 25/11: linha "Colar uma lista" em Trazer e levar; o texto vira `.txt` em memória e segue o fluxo do arquivo; parser com aspas em `core/anki/texto.ts`) Colar uma lista e CSV avulso (o leitor já aceita `.txt/.csv/.tsv`; falta colar). Verificar: teste do parser de lista (duas colunas, vírgula e tabulação, aspas, linha vazia)
 - [ ] 7.4 Baralhos do Anki desativados na lista, e desativar e apagar no desenho novo. Verificar: e2e (desativar tira da fila e dos jogos sem apagar; apagar remove notas e cartões do baralho)
 
 ## 8. Sequência e memória avançada
@@ -80,3 +80,10 @@ Nota 25/11: a aba Baralhos foi substituída pela ficha de conteúdo; os itens fo
 - [ ] 9.2 Busca ampliada (abre a palavra, acha ações, baralhos e as telas que ficavam de fora). Verificar: teste da função de busca com palavra, ação e baralho
 - [ ] 9.3 Tutor no "Mais", idioma da interface no "Mais", as portas plantadas na Biblioteca, na Sessão, no Intérprete e na Ajuda. Conflita com `polimento-movimento`; fazer depois dele. Verificar: e2e em 1280, 768 e 375
 - [ ] 9.4 Contagens nas abas de "Praticar" e no seletor de conteúdo. Verificar: teste com `GET /api/vocab/conteudo` mockado
+
+## Notas do bloco 2 (25/11/2026, branch `onda2/cartoes-bloco-2`)
+
+- Decisões assumidas (recomendação de `docs/backlog/decisoes-do-dono.md`, item 11, 25/11): só o bloco 2 mais pontas do Anki; opções de revisão na conta (migração nova); quatro botões como padrão.
+- Migração PG **0035 `opcoes_da_revisao` provisória**: o integrador renumera se outra frente tomar o 0035 (journal, snapshot e `tests/integration/schema-pg-baseline.test.ts` acompanham). Sem par SQLite (tabela só do Postgres, em `TABELAS_SO_DO_POSTGRES`).
+- O limite do dia conta as notas do dia (a primeira de cada cartão é "nova"; as demais, "revisões"), inclusive as dadas em jogos. A volta de um cartão errado não grava nota e não conta.
+- Aberto: **9.3** espera `polimento-movimento`. **[D]** aplicar a 0035 em produção (backup + ensaio na cópia). **[R]** e2e do Anki com prévia (`tests/e2e/cartoes.e2e.ts`) e a barra do teto em aparelho real.

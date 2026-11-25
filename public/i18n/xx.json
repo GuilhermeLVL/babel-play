@@ -172,6 +172,7 @@
     "other": "[{n} érröš ····]"
   },
   "{n} erros seguidos marcam a palavra como difícil para você: ela sai do sorteio comum e volta na rodada de resgate.": "[{n} érröš šégüídöš márçám á pálávrá çömö dífíçíl párá vöçê: élá šáí dö šörtéíö çömüm é völtá ñá rödádá dé réšgáté. ··············································]",
+  "{n} esperam para amanhã, sem pressa. Dá para mudar o limite do dia.": "[{n} éšpérám párá ámáñhã, šém préššá. Dá párá müdár ö límíté dö díá. ···························]",
   "{n} esquecimentos": {
     "one": "[{n} éšqüéçíméñtöš ·······]",
     "other": "[{n} éšqüéçíméñtöš ·······]"
@@ -232,6 +233,10 @@
     "one": "[{n} lémbrádáš ·····]",
     "other": "[{n} lémbrádáš ·····]"
   },
+  "{n} linhas para conferir.": {
+    "one": "[{n} líñháš párá çöñférír. ··········]",
+    "other": "[{n} líñháš párá çöñférír. ··········]"
+  },
   "{n} livros do backup já estão na sua estante: {titulos}. O que fazer com eles?": "[{n} lívröš dö báçküp já éštãö ñá šüá éštáñté: {titulos}. Ö qüé fážér çöm éléš? ·······························]",
   "{n} livros em domínio público": "[{n} lívröš ém dömíñíö públíçö ············]",
   "{n} livros encontrados": {
@@ -262,6 +267,10 @@
   "{n} notas fora da régua de qualidade": {
     "one": "[{n} ñötáš förá dá régüá dé qüálídádé ··············]",
     "other": "[{n} ñötáš förá dá régüá dé qüálídádé ··············]"
+  },
+  "{n} notas não chegaram ao servidor. Se você sair agora, elas se perdem.": {
+    "one": "[{n} ñötáš ñãö çhégárám áö šérvídör. Šé vöçê šáír ágörá, éláš šé pérdém. ····························]",
+    "other": "[{n} ñötáš ñãö çhégárám áö šérvídör. Šé vöçê šáír ágörá, éláš šé pérdém. ····························]"
   },
   "{n} notas não foram gravadas": {
     "one": "[{n} ñötáš ñãö förám grávádáš ···········]",
@@ -577,6 +586,7 @@
   "A linha tracejada é a média; a barra destacada, o dia mais cheio.": "[Á líñhá tráçéjádá é á médíá; á bárrá déštáçádá, ö díá máíš çhéíö. ··························]",
   "A linha tracejada é a sua meta de {n} min por dia, vezes 7 na semana. Barras mais escuras bateram a meta.": "[Á líñhá tráçéjádá é á šüá métá dé {n} míñ pör díá, véžéš 7 ñá šémáñá. Bárráš máíš éšçüráš bátérám á métá. ··········································]",
   "A linha tracejada é a sua meta de {n} min por dia. Barras mais escuras bateram a meta.": "[Á líñhá tráçéjádá é á šüá métá dé {n} míñ pör díá. Bárráš máíš éšçüráš bátérám á métá. ··································]",
+  "A lista": "[Á líštá ···]",
   "A lista mostra só as contas mais recentes. Se você tem o id completo, abra a conta direto.": "[Á líštá möštrá šó áš çöñtáš máíš réçéñtéš. Šé vöçê tém ö íd çömplétö, ábrá á çöñtá dírétö. ····································]",
   "A Loja precisa de conta": "[Á Löjá préçíšá dé çöñtá ·········]",
   "A Maestria precisa de conta": "[Á Máéštríá préçíšá dé çöñtá ···········]",
@@ -1354,6 +1364,7 @@
   "Calendário de atividade": "[Çáléñdáríö dé átívídádé ·········]",
   "Calendário de dias estudados nas últimas 12 semanas: {n} dias com revisão": "[Çáléñdáríö dé díáš éštüdádöš ñáš últímáš 12 šémáñáš: {n} díáš çöm révíšãö ·····························]",
   "Caminho até {marco} palavras em {idioma}": "[Çámíñhö áté {marco} pálávráš ém {idioma} ················]",
+  "Campos do arquivo: {campos}.": "[Çámpöš dö árqüívö: {campos}. ···········]",
   "cancela no fim do período": "[çáñçélá ñö fím dö péríödö ··········]",
   "Cancelada": "[Çáñçéládá ····]",
   "Cancelando depois deste bloco…": "[Çáñçéláñdö dépöíš déšté blöçö… ············]",
@@ -1505,11 +1516,13 @@
   "Código inválido.": "[Çódígö íñválídö. ······]",
   "Código inválido. Tente de novo.": "[Çódígö íñválídö. Téñté dé ñövö. ············]",
   "Colar o link de um livro": "[Çölár ö líñk dé üm lívrö ··········]",
+  "Colar uma lista": "[Çölár ümá líštá ······]",
   "Colar uma lista ou um texto": "[Çölár ümá líštá öü üm téxtö ···········]",
   "Cole o endereço completo de um arquivo de livro (.epub, .pdf, .docx, .txt…), começando com https://": "[Çölé ö éñdéréçö çömplétö dé üm árqüívö dé lívrö (.épüb, .pdf, .döçx, .txt…), çöméçáñdö çöm httpš:// ········································]",
   "Cole o endereço completo, começando com https://": "[Çölé ö éñdéréçö çömplétö, çöméçáñdö çöm httpš:// ···················]",
   "Cole o endereço de um arquivo de livro (.epub, .pdf, .mobi, .docx, .txt…) do GitHub (raw.githubusercontent.com). O seu navegador baixa o arquivo direto: ele não passa pelo Frasy.": "[Çölé ö éñdéréçö dé üm árqüívö dé lívrö (.épüb, .pdf, .möbí, .döçx, .txt…) dö ĜítHüb (ráw.gíthübüšérçöñtéñt.çöm). Ö šéü ñávégádör báíxá ö árqüívö dírétö: élé ñãö páššá pélö Frášý. ·······································································]",
   "Cole o id da conta": "[Çölé ö íd dá çöñtá ·······]",
+  "Cole ou escreva a lista aqui.": "[Çölé öü éšçrévá á líštá áqüí. ············]",
   "Coleção": "[Çöléçãö ···]",
   "Coleção do Frasy": "[Çöléçãö dö Frášý ······]",
   "Coloque as palavras na ordem certa": "[Çölöqüé áš pálávráš ñá ördém çértá ··············]",
@@ -1636,6 +1649,7 @@
   "Conferindo…": "[Çöñféríñdö… ····]",
   "Conferir": "[Çöñférír ···]",
   "Conferir agora": "[Çöñférír ágörá ······]",
+  "Conferir antes de trazer · {nome} · nada foi enviado ainda": "[Çöñférír áñtéš dé trážér · {nome} · ñádá föí éñvíádö áíñdá ·······················]",
   "Conferir de novo": "[Çöñférír dé ñövö ······]",
   "Conferir os dois idiomas": "[Çöñférír öš döíš ídíömáš ··········]",
   "Conferir sozinho": "[Çöñférír šöžíñhö ······]",
@@ -2170,6 +2184,7 @@
   "Enviamos um link para o seu e-mail. Depois de confirmar, defina a senha em Ajustes → Conta — o que você fez como convidado continua com você.": "[Éñvíámöš üm líñk párá ö šéü é-máíl. Dépöíš dé çöñfírmár, défíñá á šéñhá ém Ájüštéš → Çöñtá — ö qüé vöçê féž çömö çöñvídádö çöñtíñüá çöm vöçê. ························································]",
   "Enviamos um link seguro pro seu e-mail, você define uma nova senha e volta em segundos.": "[Éñvíámöš üm líñk šégürö prö šéü é-máíl, vöçê défíñé ümá ñövá šéñhá é völtá ém šégüñdöš. ···································]",
   "Enviando {feitas} de {total} notas…": "[Éñvíáñdö {feitas} dé {total} ñötáš… ··············]",
+  "Enviando {nome}…": "[Éñvíáñdö {nome}… ······]",
   "Enviando à nuvem…": "[Éñvíáñdö à ñüvém… ·······]",
   "Enviando…": "[Éñvíáñdö… ····]",
   "Enviar": "[Éñvíár ··]",
@@ -2407,6 +2422,7 @@
   "Este app está rodando no seu computador, sem login. Não há senha nem sessão para gerenciar: seus dados ficam neste dispositivo.": "[Éšté ápp éštá rödáñdö ñö šéü çömpütádör, šém lögíñ. Ñãö há šéñhá ñém šéššãö párá géréñçíár: šéüš dádöš fíçám ñéšté díšpöšítívö. ···················································]",
   "Este app roda no seu computador, sem conta: não há e-mail cadastrado.": "[Éšté ápp rödá ñö šéü çömpütádör, šém çöñtá: ñãö há é-máíl çádáštrádö. ····························]",
   "Este arquivo não é um avatar 3D (.vrm ou .glb).": "[Éšté árqüívö ñãö é üm ávátár 3D (.vrm öü .glb). ···················]",
+  "Este arquivo tem {total} notas, mais do que dá para ler de uma vez; só as primeiras {lidas} entram. Traga o mesmo arquivo de novo para o resto.": "[Éšté árqüívö tém {total} ñötáš, máíš dö qüé dá párá lér dé ümá véž; šó áš príméíráš {lidas} éñtrám. Trágá ö méšmö árqüívö dé ñövö párá ö réštö. ·························································]",
   "Este arquivo tem {total} notas, mais do que dá para ler de uma vez; só as primeiras {lidas} entraram. Traga o mesmo arquivo de novo para o resto.": "[Éšté árqüívö tém {total} ñötáš, máíš dö qüé dá párá lér dé ümá véž; šó áš príméíráš {lidas} éñtrárám. Trágá ö méšmö árqüívö dé ñövö párá ö réštö. ··························································]",
   "Este avatar não tem braços articulados.": "[Éšté ávátár ñãö tém bráçöš ártíçüládöš. ················]",
   "Este avatar não tem dedos articulados.": "[Éšté ávátár ñãö tém dédöš ártíçüládöš. ···············]",
@@ -3147,6 +3163,10 @@
   "leve": "[lévé ··]",
   "Leve": "[Lévé ··]",
   "leves e rotulados": "[lévéš é rötüládöš ·······]",
+  "Li {n} notas neste aparelho. Nada foi ao servidor: elas só entram quando você confirmar.": {
+    "one": "[Lí {n} ñötáš ñéšté ápárélhö. Ñádá föí áö šérvídör: éláš šó éñtrám qüáñdö vöçê çöñfírmár. ···································]",
+    "other": "[Lí {n} ñötáš ñéšté ápárélhö. Ñádá föí áö šérvídör: éláš šó éñtrám qüáñdö vöçê çöñfírmár. ···································]"
+  },
   "Liberado": "[Líbérádö ···]",
   "Liberar microfone": "[Líbérár míçröföñé ·······]",
   "Libere o microfone agora": "[Líbéré ö míçröföñé ágörá ··········]",
@@ -3523,6 +3543,7 @@
   "Não abre agora: fica no fim da grade": "[Ñãö ábré ágörá: fíçá ñö fím dá grádé ··············]",
   "Não achamos nada para corrigir. Que tal tentar a outra tarefa?": "[Ñãö áçhámöš ñádá párá çörrígír. Qüé tál téñtár á öütrá táréfá? ·························]",
   "Não achamos um microfone. Conecte um fone com microfone ou leia em silêncio.": "[Ñãö áçhámöš üm míçröföñé. Çöñéçté üm föñé çöm míçröföñé öü léíá ém šílêñçíö. ······························]",
+  "Não achei nenhuma nota neste arquivo. Nada foi enviado.": "[Ñãö áçhéí ñéñhümá ñötá ñéšté árqüívö. Ñádá föí éñvíádö. ······················]",
   "Não achei o Anki. Abra o Anki no computador e confira se o complemento AnkiConnect está instalado (código 2055492159). Se o Anki já está aberto, o navegador pode ter bloqueado o acesso à rede local: libere nas permissões do site (cadeado ao lado do endereço) e tente de novo.": "[Ñãö áçhéí ö Áñkí. Ábrá ö Áñkí ñö çömpütádör é çöñfírá šé ö çömpléméñtö ÁñkíÇöññéçt éštá íñštáládö (çódígö 2055492159). Šé ö Áñkí já éštá ábértö, ö ñávégádör pödé tér blöqüéádö ö áçéššö à rédé löçál: líbéré ñáš pérmíššõéš dö šíté (çádéádö áö ládö dö éñdéréçö) é téñté dé ñövö. ··············································································································]",
   "Não achei o arquivo deste livro neste aparelho. Traga-o de novo.": "[Ñãö áçhéí ö árqüívö déšté lívrö ñéšté ápárélhö. Trágá-ö dé ñövö. ··························]",
   "Não achei o arquivo neste aparelho para baixar. Traga-o de novo.": "[Ñãö áçhéí ö árqüívö ñéšté ápárélhö párá báíxár. Trágá-ö dé ñövö. ··························]",
@@ -3617,6 +3638,7 @@
   "Não deu para ler esse arquivo: ele pode estar incompleto ou danificado. Baixe de novo e tente outra vez.": "[Ñãö déü párá lér éššé árqüívö: élé pödé éštár íñçömplétö öü dáñífíçádö. Báíxé dé ñövö é téñté öütrá véž. ··········································]",
   "Não deu para ler esse backup: o arquivo pode estar incompleto ou danificado.": "[Ñãö déü párá lér éššé báçküp: ö árqüívö pödé éštár íñçömplétö öü dáñífíçádö. ······························]",
   "Não deu para ler esta frase com a voz do aparelho. Escolha outra voz em \"Voz e modo\".": "[Ñãö déü párá lér éštá frášé çöm á vöž dö ápárélhö. Éšçölhá öütrá vöž ém \"Vöž é mödö\". ··································]",
+  "Não deu para ler este arquivo do Anki.": "[Ñãö déü párá lér éšté árqüívö dö Áñkí. ···············]",
   "Não deu para ler seu texto agora.": "[Ñãö déü párá lér šéü téxtö ágörá. ·············]",
   "Não deu para marcar agora.": "[Ñãö déü párá márçár ágörá. ··········]",
   "Não deu para medir agora.": "[Ñãö déü párá médír ágörá. ··········]",
@@ -3909,6 +3931,8 @@
   "Nota": "[Ñötá ··]",
   "Nota {nota} de 100": "[Ñötá {nota} dé 100 ·······]",
   "Nota apagada.": "[Ñötá ápágádá. ·····]",
+  "Nota não gravada.": "[Ñötá ñãö grávádá. ·······]",
+  "Nota não gravada. Ela espera nesta tela até a internet voltar; se você sair, ela se perde.": "[Ñötá ñãö grávádá. Élá éšpérá ñéštá télá áté á íñtérñét völtár; šé vöçê šáír, élá šé pérdé. ····································]",
   "Nota salva.": "[Ñötá šálvá. ····]",
   "Notas do arquivo do Anki. Uma nota pode virar mais de um cartão na sua fila.": "[Ñötáš dö árqüívö dö Áñkí. Ümá ñötá pödé vírár máíš dé üm çártãö ñá šüá fílá. ······························]",
   "Notas e marcações": "[Ñötáš é márçáçõéš ·······]",
@@ -4009,6 +4033,7 @@
   "O áudio da sua voz vai para o reconhecimento do navegador (Google ou Apple) enquanto você fala.": "[Ö áüdíö dá šüá vöž váí párá ö réçöñhéçíméñtö dö ñávégádör (Ĝööglé öü Ápplé) éñqüáñtö vöçê fálá. ······································]",
   "O áudio desta sessão não coube no seu espaço de armazenamento. As falas foram salvas; para guardar o áudio, libere espaço ou veja os planos.": "[Ö áüdíö déštá šéššãö ñãö çöübé ñö šéü éšpáçö dé ármážéñáméñtö. Áš fáláš förám šálváš; párá güárdár ö áüdíö, líbéré éšpáçö öü véjá öš pláñöš. ························································]",
   "O áudio do sistema é transcrito e traduzido no seu computador, e o vocabulário fica aqui.": "[Ö áüdíö dö šíštémá é tráñšçrítö é trádüžídö ñö šéü çömpütádör, é ö vöçábüláríö fíçá áqüí. ····································]",
+  "O áudio e as imagens do arquivo não vêm: o cartão usa a voz do aparelho.": "[Ö áüdíö é áš ímágéñš dö árqüívö ñãö vêm: ö çártãö üšá á vöž dö ápárélhö. ·····························]",
   "O áudio e o texto de cada fala vão à Cloudflare só para transcrever e ler em voz alta; nada é guardado.": "[Ö áüdíö é ö téxtö dé çádá fálá vãö à Çlöüdfláré šó párá tráñšçrévér é lér ém vöž áltá; ñádá é güárdádö. ·········································]",
   "o áudio vai para o nosso servidor": "[ö áüdíö váí párá ö ñöššö šérvídör ·············]",
   "o áudio vai para o serviço de fala do navegador": "[ö áüdíö váí párá ö šérvíçö dé fálá dö ñávégádör ···················]",
@@ -6089,6 +6114,10 @@
   "transcrita aqui, depois de tentar a nuvem": "[tráñšçrítá áqüí, dépöíš dé téñtár á ñüvém ················]",
   "Travadas da tela (antes → durante)": "[Trávádáš dá télá (áñtéš → düráñté) ··············]",
   "Trazer": "[Trážér ··]",
+  "Trazer {n} notas": {
+    "one": "[Trážér {n} ñötáš ······]",
+    "other": "[Trážér {n} ñötáš ······]"
+  },
   "Trazer artigo": "[Trážér ártígö ·····]",
   "Trazer do Anki": "[Trážér dö Áñkí ······]",
   "Trazer e levar": "[Trážér é lévár ······]",
@@ -6219,6 +6248,8 @@
   "Uma imagem (textura) do modelo não pôde ser lida.": "[Ümá ímágém (téxtürá) dö mödélö ñãö pôdé šér lídá. ····················]",
   "Uma imagem do modelo é grande demais ({largura} x {altura} pixels) para o seu aparelho.": "[Ümá ímágém dö mödélö é gráñdé démáíš ({largura} x {altura} píxélš) párá ö šéü ápárélhö. ···································]",
   "Uma letra só não dá exercício.": "[Ümá létrá šó ñãö dá éxérçíçíö. ············]",
+  "Uma palavra e a tradução por linha, separadas por vírgula ou tabulação.": "[Ümá pálávrá é á trádüçãö pör líñhá, šépárádáš pör vírgülá öü tábüláçãö. ····························]",
+  "Uma palavra e a tradução por linha. Nada sai do aparelho antes de você confirmar.": "[Ümá pálávrá é á trádüçãö pör líñhá. Ñádá šáí dö ápárélhö áñtéš dé vöçê çöñfírmár. ································]",
   "Uma palavra foi ocultada pela proteção. O reconhecimento automático às vezes entende errado.": "[Ümá pálávrá föí öçültádá pélá prötéçãö. Ö réçöñhéçíméñtö áütömátíçö àš véžéš éñtéñdé érrádö. ·····································]",
   "Uma palavra por linha, com ou sem tradução. Também lê CSV.": "[Ümá pálávrá pör líñhá, çöm öü šém trádüçãö. Támbém lê ÇŠV. ·······················]",
   "Uma palavra por vez, falada; a correção mostra letra a letra": "[Ümá pálávrá pör véž, fáládá; á çörréçãö möštrá létrá á létrá ························]",
@@ -6458,7 +6489,9 @@
   "Você assinou há 7 dias ou menos: ao confirmar, você recebe o <b>reembolso integral de {valor}</b> no mesmo meio de pagamento (CDC, art. 49), sem precisar pedir a ninguém, e o acesso ao {plano} termina agora.": "[Vöçê áššíñöü há 7 díáš öü méñöš: áö çöñfírmár, vöçê réçébé ö <b>réémbölšö íñtégrál dé {valor}</b> ñö méšmö méíö dé págáméñtö (ÇDÇ, árt. 49), šém préçíšár pédír á ñíñgüém, é ö áçéššö áö {plano} térmíñá ágörá. ···················································································]",
   "Você cancelou: mostrando as {n} falas já traduzidas.": "[Vöçê çáñçélöü: möštráñdö áš {n} fáláš já trádüžídáš. ·····················]",
   "Você chegou ao limite de hoje do assistente. Ele volta amanhã; a legenda segue funcionando.": "[Vöçê çhégöü áö límíté dé höjé dö áššíštéñté. Élé völtá ámáñhã; á légéñdá šégüé füñçíöñáñdö. ····································]",
+  "Você chegou ao limite de hoje.": "[Vöçê çhégöü áö límíté dé höjé. ············]",
   "Você chegou ao limite de hoje. Amanhã o polimento continua de onde parou.": "[Vöçê çhégöü áö límíté dé höjé. Ámáñhã ö pölíméñtö çöñtíñüá dé öñdé páröü. ·····························]",
+  "Você chegou ao limite de hoje. Dá para mudar o limite em Cartões.": "[Vöçê çhégöü áö límíté dé höjé. Dá párá müdár ö límíté ém Çártõéš. ··························]",
   "Você chegou ao limite de hoje. Volta amanhã.": "[Vöçê çhégöü áö límíté dé höjé. Völtá ámáñhã. ··················]",
   "Você continua com o {plano} até {data}. Depois disso, volta para o Grátis, sem cobrança.": "[Vöçê çöñtíñüá çöm ö {plano} áté {data}. Dépöíš díššö, völtá párá ö Ĝrátíš, šém çöbráñçá. ···································]",
   "Você continua com o {plano} até <b>{data}</b>.": "[Vöçê çöñtíñüá çöm ö {plano} áté <b>{data}</b>. ··················]",

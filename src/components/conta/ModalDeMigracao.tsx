@@ -18,7 +18,7 @@ interface ModalDeMigracaoProps {
   onMigrou: () => void;
 }
 
-type Fase = 'inventario' | 'migrando' | 'resultado';
+type Fase = 'inventario' | 'confirmar-apagar' | 'migrando' | 'resultado' | 'apagado';
 
 /* A migração (e o `idb` do modo sem conta que ela lê) só desce quando o modal ABRE — ele fica
    montado no App o tempo todo, fechado, e antes arrastava esse código para o chunk de entrada. */
@@ -45,10 +45,29 @@ export default function ModalDeMigracao({ aberto, onFechar, onMigrou }: ModalDeM
 
   if (!aberto) return null;
 
+  /* "Apagar": o que o visitante deixou neste navegador (sessões, cartões e os armazéns do aparelho) sai de vez. */
+  const apagar = async () => {
+    setErro(null);
+    try {
+      const [{ limparTudo }, armazens] = await Promise.all([
+        import('../../data/efemero/store'),
+        import('../../lib/armazensDoAparelhoDaConta'),
+      ]);
+      await limparTudo({ soDoModoSemConta: true });
+      await armazens.apagarDadosDoVisitante();
+      setFase('apagado');
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : String(e));
+      setFase('resultado');
+    }
+  };
+
   const migrar = async () => {
     setFase('migrando');
     setErro(null);
     try {
+      /* "Trazer": o que o visitante deixou nos armazéns do aparelho passa a ser desta conta. */
+      (await import('../../lib/armazensDoAparelhoDaConta')).trazerDadosDoVisitante();
       const r = await (await migracao()).migrarParaConta(setProgresso);
       setRelatorio(r);
       if (r.sessoes + r.jaExistiam + r.cartoes > 0) onMigrou();
@@ -83,17 +102,24 @@ export default function ModalDeMigracao({ aberto, onFechar, onMigrou }: ModalDeM
             {inventario ? (
               <>
                 <p>
-                  <T
-                    txt="Encontrei <b>{n}</b> {sessoes} ({audio} com áudio) e <b>{m}</b> {cartoes}."
-                    val={{
-                      n: inventario.sessoes,
-                      sessoes: tp(inventario.sessoes, 'sessão', 'sessões'),
-                      audio: inventario.comAudio,
-                      m: inventario.cartoes,
-                      cartoes: tp(inventario.cartoes, 'cartão', 'cartões'),
-                    }}
-                  />
+                  {t(
+                    'Este navegador guardava coisas de quando você usava sem conta. Se este aparelho é compartilhado, escolha o que fazer com elas.',
+                  )}
                 </p>
+                {inventario.sessoes + inventario.cartoes > 0 && (
+                  <p>
+                    <T
+                      txt="Encontrei <b>{n}</b> {sessoes} ({audio} com áudio) e <b>{m}</b> {cartoes}."
+                      val={{
+                        n: inventario.sessoes,
+                        sessoes: tp(inventario.sessoes, 'sessão', 'sessões'),
+                        audio: inventario.comAudio,
+                        m: inventario.cartoes,
+                        cartoes: tp(inventario.cartoes, 'cartão', 'cartões'),
+                      }}
+                    />
+                  </p>
+                )}
                 {inventario.rodadas > 0 && (
                   <p>
                     <T
@@ -106,6 +132,22 @@ export default function ModalDeMigracao({ aberto, onFechar, onMigrou }: ModalDeM
             ) : (
               <p role="status">{t('Conferindo o que há neste navegador…')}</p>
             )}
+          </div>
+        )}
+
+        {fase === 'confirmar-apagar' && (
+          <div className="qc-caixa-texto" role="alert">
+            <p>
+              {t(
+                'Apagar tira deste navegador as sessões, os cartões, os livros e os outros dados de quando você usava sem conta. Não dá para desfazer.',
+              )}
+            </p>
+          </div>
+        )}
+
+        {fase === 'apagado' && (
+          <div className="qc-caixa-texto" role="status">
+            <p>{t('Pronto: o que estava neste navegador sem conta foi apagado.')}</p>
           </div>
         )}
 
@@ -162,12 +204,25 @@ export default function ModalDeMigracao({ aberto, onFechar, onMigrou }: ModalDeM
               <button type="button" className="q-ctl pri" onClick={migrar} disabled={!inventario}>
                 {t('Guardar na conta')}
               </button>
+              <button type="button" className="q-ctl" onClick={() => setFase('confirmar-apagar')}>
+                {t('Apagar deste navegador')}
+              </button>
               <button type="button" className="q-ctl" onClick={onFechar}>
                 {t('Agora não')}
               </button>
             </>
           )}
-          {fase === 'resultado' && (
+          {fase === 'confirmar-apagar' && (
+            <>
+              <button type="button" className="q-ctl pri" onClick={apagar}>
+                {t('Sim, apagar')}
+              </button>
+              <button type="button" className="q-ctl" onClick={() => setFase('inventario')}>
+                {t('Voltar')}
+              </button>
+            </>
+          )}
+          {(fase === 'resultado' || fase === 'apagado') && (
             <button type="button" className="q-ctl pri" onClick={onFechar}>
               {t('Fechar')}
             </button>

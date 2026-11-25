@@ -17,6 +17,7 @@ import './diario/historico';
 import './ichat/conversas';
 import './revisao/vozGuardada';
 import './voz/cacheDeVoz';
+import './armazensDoAparelhoDaConta';
 
 import { armazensRegistrados } from './armazemLocalPorConta';
 import { aoMudarDono, aoMudarIdentidade } from './identidade';

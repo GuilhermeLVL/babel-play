@@ -5,6 +5,7 @@
  * memória como último recurso. Cota cheia NÃO derruba nada: a gravação devolve `'cheio'` e a tela
  * avisa uma vez. O armazém é injetável (`fabrica`, `storage`) para os testes não dependerem do navegador.
  */
+import { EVENTO_DE_ARMAZENS_LIMPOS } from '../armazensDoAparelhoDaConta';
 import type { Traco } from './tracos';
 
 /** Um "quadro" de desenho: a camada transparente de uma página/tela. */
@@ -160,6 +161,12 @@ export function criarArmazemDeDesenhos(opts: {
 }
 
 let padrao: ArmazemDeDesenhos | null = null;
+
+/* A guarda esvaziou os desenhos (sair, trocar de conta): a cópia em memória do armazém também sai. */
+if (typeof window !== 'undefined')
+  window.addEventListener(EVENTO_DE_ARMAZENS_LIMPOS, () => {
+    padrao = null;
+  });
 
 /** O armazém da página: IndexedDB quando há, `localStorage` e memória como reserva. */
 export function armazemDeDesenhos(): ArmazemDeDesenhos {

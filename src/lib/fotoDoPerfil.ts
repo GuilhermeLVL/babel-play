@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+import { EVENTO_DE_ARMAZENS_LIMPOS } from './armazensDoAparelhoDaConta';
+
 /**
  * A FOTO DO PERFIL — "Enviar foto" de Perfil → Você.
  *
@@ -16,6 +18,9 @@ const LADO = 192;
 
 const inscritos = new Set<() => void>();
 const avisar = () => inscritos.forEach((f) => f());
+
+/* A guarda apagou as fotos (sair, trocar de conta): quem mostra a foto relê e a tela deixa de exibi-la. */
+if (typeof window !== 'undefined') window.addEventListener(EVENTO_DE_ARMAZENS_LIMPOS, avisar);
 
 export function lerFoto(usuario: string | null | undefined): string | null {
   try {

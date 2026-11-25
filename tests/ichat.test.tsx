@@ -254,7 +254,9 @@ describe('iChat', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Nova$/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Conversas' }))
     expect(screen.getAllByRole('button', { name: 'Apagar conversa' })).toHaveLength(2)
-    const salvas = JSON.parse(localStorage.getItem('ichat_conversas') ?? '[]') as { titulo: string }[]
+    const salvas = (
+      JSON.parse(localStorage.getItem('ichat_conversas') ?? '{}') as { valor: { conversas: { titulo: string }[] } }
+    ).valor.conversas
     expect(salvas.map((c) => c.titulo)).toEqual(['Nova conversa', 'Jogos'])
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Apagar conversa' })[1])

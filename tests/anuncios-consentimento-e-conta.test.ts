@@ -34,6 +34,7 @@ vi.mock('../src/data/api', async (original) => ({
 
 import { entitlementsAnonimos } from '../src/data/efemero/rotas/conta'
 import { carregarEntitlements, getEntitlements, limparEntitlements } from '../src/lib/entitlements'
+import { _reiniciarIdentidade, definirDonoDaConta, definirIdentidade } from '../src/lib/identidade'
 import {
   _reiniciarPreferencias,
   lerPreferencias,
@@ -109,6 +110,12 @@ describe('consentimento `anuncios`', () => {
 })
 
 describe('`contaCriadaEm` no cliente', () => {
+  beforeEach(() => {
+    /* O plano guardado é da conta: precisa de dono (`lib/armazemLocalPorConta`). */
+    _reiniciarIdentidade()
+    definirDonoDaConta('conta-a')
+    definirIdentidade('conta')
+  })
   const comServidor = async (corpo: Record<string, unknown>) => {
     vi.stubGlobal(
       'fetch',
@@ -124,7 +131,7 @@ describe('`contaCriadaEm` no cliente', () => {
   it('a data do servidor chega a `getEntitlements()` e sobrevive ao recarregar (cache)', async () => {
     expect((await comServidor({ contaCriadaEm: 1_790_000_000_000 })).contaCriadaEm).toBe(1_790_000_000_000)
     expect(getEntitlements().contaCriadaEm).toBe(1_790_000_000_000)
-    expect(JSON.parse(localStorage.getItem('babel.entitlements') ?? '{}').contaCriadaEm).toBe(1_790_000_000_000)
+    expect(JSON.parse(localStorage.getItem('babel.entitlements') ?? '{}').valor?.contaCriadaEm).toBe(1_790_000_000_000)
   })
 
   it.each([

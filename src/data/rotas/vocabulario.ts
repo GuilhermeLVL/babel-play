@@ -11,8 +11,6 @@
  */
 import { montarApkg } from '../../lib/anki/montarApkg'
 import { abrirSqliteNoNavegador } from '../../lib/anki/sqlite'
-import { apagarClipeDoCartao } from '../../lib/cartoes/audioDoCartao'
-import { apagarCenaDoCartao } from '../../lib/cartoes/cenaDoCartao'
 import { play } from '../../lib/soundFx'
 import type { VocabCard } from '../../types'
 import { apiFetch } from '../funil'
@@ -194,9 +192,10 @@ export async function deleteCard(id: string): Promise<boolean> {
   const res = await apiFetch(`/api/vocab/${id}`, { method: 'DELETE' })
   /* o clipe de áudio do cartão mora só no aparelho (cartao_com_audio): apagar o cartão apaga o clipe */
   if (res.ok) {
-    void apagarClipeDoCartao(id)
+    /* sob demanda: o armazém não pesa no JS inicial */
+    void import('../../lib/cartoes/audioDoCartao').then((m) => m.apagarClipeDoCartao(id)).catch(() => undefined)
     /* a cena da tela (cartao_com_cena) também mora só no aparelho */
-    void apagarCenaDoCartao(id)
+    void import('../../lib/cartoes/cenaDoCartao').then((m) => m.apagarCenaDoCartao(id)).catch(() => undefined)
   }
   return res.ok
 }

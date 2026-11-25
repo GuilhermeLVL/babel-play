@@ -25,8 +25,8 @@ import {
   _reiniciarGuardaDoAudioDoCartao,
   armazemDeAudioDoCartao,
   criarArmazemDeAudioDoCartao,
-  iniciarGuardaDoAudioDoCartao,
 } from '../src/lib/cartoes/audioDoCartao/armazem'
+import { _reiniciarGuardaDosArmazensLocais, iniciarGuardaDosArmazensLocais } from '../src/lib/guardaDosArmazensLocais'
 import { _reiniciarIdentidade, definirDonoDaConta, definirIdentidade } from '../src/lib/identidade'
 
 const blob = (n: number) => new Blob([new Uint8Array(n).fill(7)], { type: 'audio/ogg' })
@@ -37,6 +37,7 @@ beforeEach(() => {
   globalThis.indexedDB = new IDBFactory()
   _reiniciarIdentidade()
   _reiniciarGuardaDoAudioDoCartao()
+  _reiniciarGuardaDosArmazensLocais()
   supa.signOut.mockClear()
   api.apiFetch.mockReset()
 })
@@ -98,7 +99,7 @@ describe('o ouvinte nasce no boot', () => {
   it('troca conta -> conta (o estado não muda) apaga o clipe da primeira, sem ninguém abrir os Ajustes', async () => {
     definirDonoDaConta('A')
     definirIdentidade('conta')
-    iniciarGuardaDoAudioDoCartao() // como no main.tsx: antes de qualquer uso do armazém
+    iniciarGuardaDosArmazensLocais() // como no main.tsx: antes de qualquer uso do armazém
     await armazemDeAudioDoCartao().gravar('c1', { audio: blob(100), durMs: 3000 })
     definirDonoDaConta('B')
     await espera()
@@ -111,7 +112,7 @@ describe('o ouvinte nasce no boot', () => {
   it('sair (conta -> anônimo) apaga tudo', async () => {
     definirDonoDaConta('A')
     definirIdentidade('conta')
-    iniciarGuardaDoAudioDoCartao()
+    iniciarGuardaDosArmazensLocais()
     await armazemDeAudioDoCartao().gravar('c1', { audio: blob(100), durMs: 3000 })
     definirDonoDaConta(null)
     definirIdentidade('anonimo')
@@ -126,7 +127,8 @@ describe('o ouvinte nasce no boot', () => {
     definirDonoDaConta('A')
     definirIdentidade('conta')
     await armazemDeAudioDoCartao().gravar('c1', { audio: blob(100), durMs: 3000 })
-    _reiniciarGuardaDoAudioDoCartao() // sem ouvinte
+    _reiniciarGuardaDoAudioDoCartao()
+    _reiniciarGuardaDosArmazensLocais() // sem ouvinte
     await signOut()
     expect(supa.signOut).toHaveBeenCalled()
     expect(await armazemDeAudioDoCartao().abrir('c1')).toBeNull()

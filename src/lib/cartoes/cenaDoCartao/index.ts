@@ -13,8 +13,8 @@
  * DECISÃO ASSUMIDA (25/11, recomendação do dono, item 33): construir só para adulto e só local, depois do áudio.
  */
 import { FLAG_CARTAO_COM_CENA } from '../../../core/planos';
+import { registrarArmazemPorConta } from '../../armazemLocalPorConta';
 import { flagLigada } from '../../flagsCache';
-import { aoMudarIdentidade } from '../../identidade';
 import { perfilProtegido } from '../../protecaoDoMenor';
 import { criarArmazemDeAudioDoCartao } from '../audioDoCartao/armazem';
 
@@ -23,25 +23,28 @@ export const TETO_DAS_CENAS_BYTES = 100 * 1024 * 1024;
 /** Um quadro de 480 px em WebP tem ~40 KB; acima disto não é uma cena desta tela. */
 export const MAIOR_CENA_BYTES = 256 * 1024;
 
-/** O armazém das cenas: o mesmo molde do áudio, outro banco, SÓ adaptador local. */
+/** O armazém das cenas: o mesmo molde do áudio, outro banco, SÓ adaptador local. Dono e guarda: `lib/armazemLocalPorConta`. */
+let armazemDoAparelho: ReturnType<typeof criarArmazemDeAudioDoCartao> | null = null;
+/** Só para testes: esquece o armazém das cenas (a conexão com o banco). */
+export function _reiniciarArmazemDeCenas(): void {
+  armazemDoAparelho = null;
+}
 export const armazemDeCenas = (() => {
-  let a: ReturnType<typeof criarArmazemDeAudioDoCartao> | null = null;
+  const doDispositivo = () =>
+    (armazemDoAparelho ??= criarArmazemDeAudioDoCartao({
+      banco: 'babel-cena-do-cartao',
+      teto: TETO_DAS_CENAS_BYTES,
+      maiorBytes: MAIOR_CENA_BYTES,
+      tipoPadrao: 'image/webp',
+    }));
+  registrarArmazemPorConta({
+    nome: 'cena-do-cartao',
+    apagarTudo: () => doDispositivo().apagarTudo(),
+    purgarDeOutros: () => doDispositivo().purgarDeOutros(),
+    destruir: () => doDispositivo().destruirBanco(),
+  });
   return () => {
-    if (!a) {
-      const armazem = criarArmazemDeAudioDoCartao({
-        banco: 'babel-cena-do-cartao',
-        teto: TETO_DAS_CENAS_BYTES,
-        maiorBytes: MAIOR_CENA_BYTES,
-        tipoPadrao: 'image/webp',
-      });
-      a = armazem;
-      /* Trocar de conta neste aparelho apaga tudo: a imagem de uma pessoa não espera a próxima conta. */
-      if (typeof window !== 'undefined')
-        aoMudarIdentidade((_depois, antes) => {
-          if (antes !== 'carregando') void armazem.apagarTudo();
-        });
-    }
-    return a;
+    return doDispositivo();
   };
 })();
 

@@ -176,14 +176,21 @@ export function abrirStore(): Promise<IDBPDatabase<BabelLocalDB>> {
   return aberto;
 }
 
-/** Apaga tudo (fim da migração, ou "esquecer este navegador"). */
-export async function limparTudo(): Promise<void> {
+/**
+ * Apaga tudo (fim da migração, ou "esquecer este navegador"). `soDoModoSemConta: true` (o fim da migração) deixa os
+ * armazéns da CONTA que acabou de entrar (diário, conversas, áudio dos cartões...): quem apaga esses é sair, trocar de
+ * conta, "esquecer este navegador" e excluir a conta.
+ */
+export async function limparTudo(o: { soDoModoSemConta?: boolean } = {}): Promise<void> {
   /* As palavras marcadas ("Já sei"/"Ignorar") moram no localStorage, não no IndexedDB. */
   esquecerMarcadasLocais();
-  /* O áudio dos cartões mora em outro banco (só neste aparelho): "esquecer este navegador" o leva junto. */
+  /* O que é da conta e mora só neste aparelho (áudio e cena dos cartões, diário, conversas...) está em outros bancos e
+     chaves: "esquecer este navegador" o leva junto. */
   try {
-    const { destruirBancoDoAudioDoCartao } = await import('../../lib/cartoes/audioDoCartao/armazem');
-    await destruirBancoDoAudioDoCartao();
+    if (!o.soDoModoSemConta) {
+      const { destruirTodosOsArmazensDaConta } = await import('../../lib/guardaDosArmazensLocais');
+      await destruirTodosOsArmazensDaConta();
+    }
   } catch {
     /* sem o banco, nada a apagar */
   }

@@ -8,7 +8,7 @@
  * O que vale:
  *  · apagar o cartão apaga o clipe (`apagar`); trocar de conta (conta->conta, sair, ou entre recargas) apaga tudo:
  *    cada linha leva o id do DONO e `abrir`/`uso`/`gravar` descartam o que é de outro (linha sem dono, de antes desta
- *    regra, também sai); o ouvinte nasce no boot (`iniciarGuardaDoAudioDoCartao`), não no primeiro uso;
+ *    regra, também sai); o ouvinte nasce no boot (peça comum `lib/armazemLocalPorConta`), não no primeiro uso;
  *    "Apagar todos os áudios" é `apagarTudo`; "esquecer este navegador" e excluir a conta apagam o BANCO (`destruirBanco`);
  *  · teto de `TETO_BYTES` por aparelho: ao passar, o clipe mais antigo sai (expulsão por data de gravação);
  *  · sem IndexedDB (navegação privada, banco bloqueado) gravar devolve `false` e o cartão segue pelo caminho
@@ -19,7 +19,8 @@
  * não o inclui e "Excluir conta" não o alcança pelo servidor; quem apaga é o aparelho (troca de identidade, sair,
  * excluir conta, limpar o navegador e botão de Ajustes). Registro em `docs/lgpd/` fica na tarefa [D] 3.3.
  */
-import { aoMudarDono, aoMudarIdentidade, donoDaIdentidade } from '../../identidade';
+import { registrarArmazemPorConta } from '../../armazemLocalPorConta';
+import { criarBancoPorConta } from '../../bancoLocalPorConta';
 
 export interface ClipeGuardado {
   /** O áudio (Ogg Opus, ou WAV quando o navegador não tem Opus). */
@@ -81,53 +82,21 @@ export function criarArmazemDeAudioDoCartao(
     tipoPadrao?: string;
   } = {},
 ): ArmazemDeAudioDoCartao {
-  const fabrica = o.fabrica === undefined ? (globalThis.indexedDB ?? null) : o.fabrica;
   const agora = o.agora ?? (() => Date.now());
   const teto = o.teto ?? TETO_BYTES;
-  const donoAtual = o.dono ?? donoDaIdentidade;
-  const banco = o.banco ?? BANCO;
   const maiorBytes = o.maiorBytes ?? MAIOR_CLIPE_BYTES;
   const tipoPadrao = o.tipoPadrao ?? 'audio/ogg';
-  let aberto: Promise<IDBDatabase | null> | null = null;
-
-  const abrirBanco = (): Promise<IDBDatabase | null> => {
-    if (!fabrica) return Promise.resolve(null);
-    aberto ??= new Promise<IDBDatabase | null>((ok) => {
-      try {
-        const r = fabrica.open(banco, 1);
-        r.onupgradeneeded = () => {
-          r.result.createObjectStore(LOJA, { keyPath: 'cartao' });
-        };
-        r.onsuccess = () => {
-          /* Outra aba que apague o banco não fica esperando esta conexão. */
-          r.result.onversionchange = () => {
-            r.result.close();
-            aberto = null;
-          };
-          ok(r.result);
-        };
-        r.onerror = () => ok(null);
-        r.onblocked = () => ok(null);
-      } catch {
-        ok(null);
-      }
-    });
-    return aberto;
-  };
-
-  const todas = async (db: IDBDatabase): Promise<Linha[]> =>
-    (await pedido(db.transaction(LOJA, 'readonly').objectStore(LOJA).getAll())) as Linha[];
-
-  /** Tira as linhas que não são de `dono` e devolve as que são. */
-  const soDoDono = async (db: IDBDatabase, dono: string): Promise<Linha[]> => {
-    const linhas = await todas(db);
-    const alheias = linhas.filter((l) => l.dono !== dono);
-    if (alheias.length) {
-      const loja = db.transaction(LOJA, 'readwrite').objectStore(LOJA);
-      for (const l of alheias) void loja.delete(l.cartao);
-    }
-    return linhas.filter((l) => l.dono === dono);
-  };
+  const b = criarBancoPorConta<Linha>({
+    banco: o.banco ?? BANCO,
+    loja: LOJA,
+    chave: 'cartao',
+    fabrica: o.fabrica,
+    dono: o.dono,
+  });
+  const donoAtual = b.dono;
+  const abrirBanco = b.abrir;
+  const soDoDono = b.soDoDono;
+  const lojaDe = b.loja;
 
   return {
     async gravar(cartao, clipe) {
@@ -150,7 +119,7 @@ export function criarArmazemDeAudioDoCartao(
         /* A expulsão conta o clipe novo: sai(m) o(s) mais antigo(s) até caber no teto. */
         const outras = (await soDoDono(db, dono)).filter((l) => l.cartao !== cartao).sort((a, b) => a.em - b.em);
         let total = outras.reduce((s, l) => s + l.tamanho, 0) + linha.tamanho;
-        const loja = db.transaction(LOJA, 'readwrite').objectStore(LOJA);
+        const loja = lojaDe(db, 'readwrite');
         for (const l of outras) {
           if (total <= teto) break;
           void loja.delete(l.cartao);
@@ -168,10 +137,10 @@ export function criarArmazemDeAudioDoCartao(
         if (!dono) return null;
         const db = await abrirBanco();
         if (!db) return null;
-        const l = (await pedido(db.transaction(LOJA, 'readonly').objectStore(LOJA).get(cartao))) as Linha | undefined;
+        const l = (await pedido(lojaDe(db, 'readonly').get(cartao))) as Linha | undefined;
         if (l && l.dono !== dono) {
           /* De outra conta (ou de antes da regra): não se mostra, e sai agora. */
-          await pedido(db.transaction(LOJA, 'readwrite').objectStore(LOJA).delete(cartao));
+          await pedido(lojaDe(db, 'readwrite').delete(cartao));
           return null;
         }
         return l ? { audio: new Blob([l.bytes], { type: l.tipo }), durMs: l.durMs, em: l.em } : null;
@@ -183,46 +152,14 @@ export function criarArmazemDeAudioDoCartao(
       try {
         const db = await abrirBanco();
         if (!db) return;
-        await pedido(db.transaction(LOJA, 'readwrite').objectStore(LOJA).delete(cartao));
+        await pedido(lojaDe(db, 'readwrite').delete(cartao));
       } catch {
         /* nada guardado, nada a apagar */
       }
     },
-    async apagarTudo() {
-      try {
-        const db = await abrirBanco();
-        if (!db) return;
-        await pedido(db.transaction(LOJA, 'readwrite').objectStore(LOJA).clear());
-      } catch {
-        /* idem */
-      }
-    },
-    async purgarDeOutros() {
-      try {
-        const dono = donoAtual();
-        if (!dono) return;
-        const db = await abrirBanco();
-        if (db) await soDoDono(db, dono);
-      } catch {
-        /* idem */
-      }
-    },
-    async destruirBanco() {
-      try {
-        const db = await abrirBanco();
-        db?.close();
-        aberto = null;
-        if (!fabrica) return;
-        await new Promise<void>((ok) => {
-          const r = fabrica.deleteDatabase(banco);
-          r.onsuccess = () => ok();
-          r.onerror = () => ok();
-          r.onblocked = () => ok();
-        });
-      } catch {
-        /* idem */
-      }
-    },
+    apagarTudo: b.apagarTudo,
+    purgarDeOutros: b.purgarDeOutros,
+    destruirBanco: b.destruir,
     async uso() {
       try {
         const dono = donoAtual();
@@ -239,43 +176,30 @@ export function criarArmazemDeAudioDoCartao(
 }
 
 let doAparelho: ArmazemDeAudioDoCartao | null = null;
-let guardaIniciada = false;
+
+const doDispositivo = (): ArmazemDeAudioDoCartao => (doAparelho ??= criarArmazemDeAudioDoCartao());
+
+registrarArmazemPorConta({
+  nome: 'audio-do-cartao',
+  apagarTudo: () => doDispositivo().apagarTudo(),
+  purgarDeOutros: () => doDispositivo().purgarDeOutros(),
+  destruir: () => doDispositivo().destruirBanco(),
+});
 
 /**
- * O armazém deste aparelho. O ouvinte de troca de dono nasce JUNTO (e no boot do app, `main.tsx`), não só no primeiro
- * uso: sem ele, quem troca de conta antes de abrir os Ajustes herdaria o áudio da conta anterior.
+ * O armazém deste aparelho. A guarda de troca de dono nasce JUNTO (e no boot do app, `main.tsx`), não só no primeiro
+ * uso: sem ela, quem troca de conta antes de abrir os Ajustes herdaria o áudio da conta anterior.
  */
 export function armazemDeAudioDoCartao(): ArmazemDeAudioDoCartao {
-  doAparelho ??= criarArmazemDeAudioDoCartao();
-  iniciarGuardaDoAudioDoCartao();
-  return doAparelho;
-}
-
-/** Registra cedo (idempotente) o que apaga o áudio quando a identidade ou a conta muda. Não abre o IndexedDB. */
-export function iniciarGuardaDoAudioDoCartao(): void {
-  if (guardaIniciada || typeof window === 'undefined') return;
-  guardaIniciada = true;
-  doAparelho ??= criarArmazemDeAudioDoCartao();
-  const armazem = doAparelho;
-  /* Conta -> sem conta (sair) e qualquer troca de estado depois de carregado. */
-  aoMudarIdentidade((depois, antes) => {
-    if (antes !== 'carregando' && antes !== depois) void armazem.apagarTudo();
-    else void armazem.purgarDeOutros();
-  });
-  /* Conta -> conta, sair, e a primeira conta conhecida depois de uma recarga (aí só sai o que não é dela). */
-  aoMudarDono((_depois, antes) => {
-    if (antes !== null) void armazem.apagarTudo();
-    else void armazem.purgarDeOutros();
-  });
+  return doDispositivo();
 }
 
 /** Apaga o banco do áudio (limpar o navegador, excluir a conta). Nunca lança. */
 export async function destruirBancoDoAudioDoCartao(): Promise<void> {
-  await (doAparelho ?? criarArmazemDeAudioDoCartao()).destruirBanco();
+  await doDispositivo().destruirBanco();
 }
 
 /** Só para testes: esquece o armazém e o registro do ouvinte. */
 export function _reiniciarGuardaDoAudioDoCartao(): void {
   doAparelho = null;
-  guardaIniciada = false;
 }

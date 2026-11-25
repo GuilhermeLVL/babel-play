@@ -4,14 +4,15 @@
  * SERVIDOR: este módulo não fala com a rede (retenção zero; o servidor só guarda o contador de uso).
  *
  * O que vale:
- *  · "Apagar o diário" é `apagarTudo`; trocar de conta neste aparelho apaga tudo (`aoMudarIdentidade`), junto com o
- *    rascunho. Os cartões já criados ficam: moram no baralho, são da pessoa;
+ *  · "Apagar o diário" é `apagarTudo`; o histórico e o rascunho são DA CONTA (`lib/armazemLocalPorConta`): cada entrada
+ *    leva o dono, o de outra conta não aparece e sai, a guarda nasce no boot e sair, limpar tudo e excluir a conta apagam. Os cartões já criados ficam: moram no baralho, são da pessoa;
  *  · sem IndexedDB (navegação privada, banco bloqueado) gravar devolve `false` e a tela segue sem histórico, com o aviso;
  *  · teto de `TETO_DE_ENTRADAS`: ao passar, a mais antiga sai;
  *  · o `.txt` do diário é montado aqui, no navegador, sem rede (`diarioEmTxt`).
  */
 import type { RetornoDaEscrita } from '../../data/apiDoEstudo';
-import { aoMudarIdentidade } from '../identidade';
+import { criarChaveLocalPorConta, registrarArmazemPorConta } from '../armazemLocalPorConta';
+import { criarBancoPorConta } from '../bancoLocalPorConta';
 
 export interface EntradaDoDiario {
   id: string;
@@ -25,6 +26,8 @@ export interface EntradaDoDiario {
   cartoes: string[];
   /** Os trechos que a pessoa marcou "Isto estava certo" (o contador local de falso positivo). */
   descartados: string[];
+  /** A conta (ou `anonimo`/`selfhost`) que escreveu. Sem ele, a entrada é de antes da regra e não é de ninguém. */
+  dono?: string;
 }
 
 /** As últimas 200 entradas (mais do que isso é um livro, não um diário de aprender idioma). */
@@ -47,42 +50,29 @@ const pedido = <T>(r: IDBRequest<T>): Promise<T> =>
     r.onerror = () => falha(r.error);
   });
 
-export function criarHistoricoDoDiario(o: { fabrica?: IDBFactory | null; teto?: number } = {}): HistoricoDoDiario {
-  const fabrica = o.fabrica === undefined ? (globalThis.indexedDB ?? null) : o.fabrica;
+export function criarHistoricoDoDiario(
+  o: { fabrica?: IDBFactory | null; teto?: number; dono?: () => string | null } = {},
+): HistoricoDoDiario & { purgarDeOutros(): Promise<void>; destruir(): Promise<void> } {
   const teto = o.teto ?? TETO_DE_ENTRADAS;
-  let aberto: Promise<IDBDatabase | null> | null = null;
-
-  const abrirBanco = (): Promise<IDBDatabase | null> => {
-    if (!fabrica) return Promise.resolve(null);
-    aberto ??= new Promise<IDBDatabase | null>((ok) => {
-      try {
-        const r = fabrica.open(BANCO, 1);
-        r.onupgradeneeded = () => {
-          r.result.createObjectStore(LOJA, { keyPath: 'id' });
-        };
-        r.onsuccess = () => ok(r.result);
-        r.onerror = () => ok(null);
-        r.onblocked = () => ok(null);
-      } catch {
-        ok(null);
-      }
-    });
-    return aberto;
-  };
-
-  const todas = async (db: IDBDatabase): Promise<EntradaDoDiario[]> =>
-    (await pedido(db.transaction(LOJA, 'readonly').objectStore(LOJA).getAll())) as EntradaDoDiario[];
+  const b = criarBancoPorConta<EntradaDoDiario>({
+    banco: BANCO,
+    loja: LOJA,
+    chave: 'id',
+    fabrica: o.fabrica,
+    dono: o.dono,
+  });
 
   return {
     async gravar(e) {
       try {
-        if (!e.id || !e.texto) return false;
-        const db = await abrirBanco();
+        const dono = b.dono();
+        if (!dono || !e.id || !e.texto) return false;
+        const db = await b.abrir();
         if (!db) return false;
-        const outras = (await todas(db)).filter((x) => x.id !== e.id).sort((a, b) => a.em - b.em);
-        const loja = db.transaction(LOJA, 'readwrite').objectStore(LOJA);
+        const outras = (await b.soDoDono(db, dono)).filter((x) => x.id !== e.id).sort((a, c) => a.em - c.em);
+        const loja = b.loja(db, 'readwrite');
         for (let i = 0; i < outras.length - (teto - 1); i++) void loja.delete(outras[i].id);
-        await pedido(loja.put(e));
+        await pedido(loja.put({ ...e, dono }));
         return true;
       } catch {
         return false;
@@ -90,22 +80,18 @@ export function criarHistoricoDoDiario(o: { fabrica?: IDBFactory | null; teto?: 
     },
     async listar() {
       try {
-        const db = await abrirBanco();
+        const dono = b.dono();
+        if (!dono) return [];
+        const db = await b.abrir();
         if (!db) return [];
-        return (await todas(db)).sort((a, b) => b.em - a.em);
+        return (await b.soDoDono(db, dono)).sort((x, y) => y.em - x.em);
       } catch {
         return [];
       }
     },
-    async apagarTudo() {
-      try {
-        const db = await abrirBanco();
-        if (!db) return;
-        await pedido(db.transaction(LOJA, 'readwrite').objectStore(LOJA).clear());
-      } catch {
-        /* nada guardado, nada a apagar */
-      }
-    },
+    apagarTudo: b.apagarTudo,
+    purgarDeOutros: b.purgarDeOutros,
+    destruir: b.destruir,
   };
 }
 
@@ -114,8 +100,11 @@ export function criarHistoricoDoDiario(o: { fabrica?: IDBFactory | null; teto?: 
 const CHAVE_DO_RASCUNHO = 'frasy.diario.rascunho';
 const CHAVE_DO_NIVEL = 'frasy.diario.nivel';
 
-/* Toda leitura e escrita passa por `try/catch` (janela privada, armazenamento bloqueado): sem armazenamento, a tela
-   funciona sem lembrar. */
+/** O rascunho é texto da pessoa: DA CONTA, com dono (ver `lib/armazemLocalPorConta`). */
+const rascunho = criarChaveLocalPorConta<string>(CHAVE_DO_RASCUNHO, { nome: 'diario-rascunho' });
+
+/* O nível é uma preferência do aparelho e passa por `try/catch` (janela privada, armazenamento bloqueado): sem
+   armazenamento, a tela funciona sem lembrar. */
 function lerLocal(chave: string): string | null {
   try {
     return localStorage.getItem(chave);
@@ -130,20 +119,13 @@ function salvarLocal(chave: string, valor: string): void {
     /* sem armazenamento: só não lembra */
   }
 }
-function removerLocal(chave: string): void {
-  try {
-    localStorage.removeItem(chave);
-  } catch {
-    /* idem */
-  }
-}
 
-export const lerRascunhoDoDiario = (): string => lerLocal(CHAVE_DO_RASCUNHO) ?? '';
+export const lerRascunhoDoDiario = (): string => rascunho.ler() ?? '';
 export const gravarRascunhoDoDiario = (texto: string): void => {
-  if (texto) salvarLocal(CHAVE_DO_RASCUNHO, texto);
-  else removerLocal(CHAVE_DO_RASCUNHO);
+  if (texto) rascunho.gravar(texto);
+  else rascunho.apagar();
 };
-export const apagarRascunhoDoDiario = (): void => removerLocal(CHAVE_DO_RASCUNHO);
+export const apagarRascunhoDoDiario = (): void => rascunho.apagar();
 
 export type NivelDoDiario = 'A1' | 'A2' | 'B1';
 export function lerNivelDoDiario(): NivelDoDiario {
@@ -152,22 +134,25 @@ export function lerNivelDoDiario(): NivelDoDiario {
 }
 export const gravarNivelDoDiario = (n: NivelDoDiario): void => salvarLocal(CHAVE_DO_NIVEL, n);
 
-let doAparelho: HistoricoDoDiario | null = null;
+let doAparelho: ReturnType<typeof criarHistoricoDoDiario> | null = null;
+
+const doDispositivo = () => (doAparelho ??= criarHistoricoDoDiario());
+
+registrarArmazemPorConta({
+  nome: 'diario-historico',
+  apagarTudo: () => doDispositivo().apagarTudo(),
+  purgarDeOutros: () => doDispositivo().purgarDeOutros(),
+  destruir: () => doDispositivo().destruir(),
+});
 
 /** O histórico deste aparelho. Trocar de conta apaga tudo (o diário de uma pessoa não espera a próxima conta). */
 export function historicoDoDiario(): HistoricoDoDiario {
-  if (!doAparelho) {
-    const historico = criarHistoricoDoDiario();
-    doAparelho = historico;
-    if (typeof window !== 'undefined')
-      aoMudarIdentidade((_depois, antes) => {
-        if (antes !== 'carregando') {
-          void historico.apagarTudo();
-          apagarRascunhoDoDiario();
-        }
-      });
-  }
-  return doAparelho;
+  return doDispositivo();
+}
+
+/** Só para testes: esquece o histórico do aparelho. */
+export function _reiniciarHistoricoDoDiario(): void {
+  doAparelho = null;
 }
 
 /** "Apagar o diário": o histórico e o rascunho. Os cartões criados ficam no baralho. */

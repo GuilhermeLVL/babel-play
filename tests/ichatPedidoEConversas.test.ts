@@ -34,6 +34,9 @@ class Armazem {
   setItem(k: string, v: string) {
     this.m.set(k, v)
   }
+  removeItem(k: string) {
+    this.m.delete(k)
+  }
 }
 const armazem = () => new Armazem() as unknown as Storage
 
@@ -155,7 +158,7 @@ describe('conversas', () => {
     expect(carregarConversas(s).conversas[0].titulo).toBe('Guardada')
   })
 
-  it('migra o iChat anterior uma vez, sem as boas-vindas fixas', () => {
+  it('converte o formato anterior sem as boas-vindas fixas, mas não o lê do aparelho (sem dono, não é de ninguém)', () => {
     const antigo = [
       {
         id: 'default',
@@ -181,6 +184,7 @@ describe('conversas', () => {
     ])
     const s = armazem()
     s.setItem('ichat_sessions', JSON.stringify(antigo))
-    expect(carregarConversas(s).conversas[0].titulo).toBe('Conversa Babel Principal')
+    expect(carregarConversas(s).conversas[0].titulo).not.toBe('Conversa Babel Principal')
+    expect(s.getItem('ichat_sessions')).toBeNull()
   })
 })

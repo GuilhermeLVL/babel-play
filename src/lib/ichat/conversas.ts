@@ -6,9 +6,11 @@
  * ações, sem repetir o mesmo item seguido) e as palavras e sessões que passaram por ela.
  *
  * ONDE FICA. No `localStorage` deste navegador, como o iChat anterior (`ichat_sessions`) já fazia:
- * não há rota de servidor para conversas. A chave nova é outra porque a forma mudou; a antiga é
- * lida UMA vez e convertida (ver `migrarDoFormatoAntigo`), para ninguém perder o que já conversou.
+ * não há rota de servidor para conversas. É DA CONTA: o valor leva o dono (`lib/armazemLocalPorConta`); a conversa de
+ * outra conta não aparece e sai, e sair, limpar tudo e excluir a conta a apagam. O formato antigo (`ichat_sessions`,
+ * sem dono, não é de ninguém) deixou de ser migrado: sai ao ser lido (`migrarDoFormatoAntigo` fica só como conversão pura).
  */
+import { criarChaveLocalPorConta } from '../armazemLocalPorConta';
 
 export type TipoDoRastro = 'tela' | 'palavra' | 'sessao' | 'pergunta' | 'acao';
 
@@ -59,7 +61,7 @@ export interface Conversa {
 }
 
 const CHAVE = 'ichat_conversas';
-const CHAVE_ATUAL = 'ichat_conversa_atual';
+const CHAVE_ATUAL = 'ichat_conversa_atual'; // legado: hoje a conversa atual vai junto, na chave principal
 const CHAVE_ANTIGA = 'ichat_sessions';
 
 export const TITULO_NOVA = 'Nova conversa';
@@ -178,37 +180,38 @@ function valida(x: unknown): x is Conversa {
   return !!c && typeof c.id === 'string' && Array.isArray(c.msgs) && Array.isArray(c.rastro);
 }
 
-/** Lê as conversas salvas. Nunca devolve lista vazia: sem nada salvo, nasce uma conversa nova. */
-export function carregarConversas(armazem: Storage = localStorage): { conversas: Conversa[]; atual: string } {
-  let conversas: Conversa[] = [];
+interface Salvo {
+  conversas: unknown;
+  atual: string;
+}
+
+/** A chave das conversas desta conta (o aparelho padrão). A antiga e a "atual" saem junto ao apagar. */
+const doAparelho = criarChaveLocalPorConta<Salvo>(CHAVE, {
+  nome: 'ichat-conversas',
+  extras: [CHAVE_ATUAL, CHAVE_ANTIGA],
+});
+const doArmazem = (armazem?: Storage) =>
+  armazem
+    ? criarChaveLocalPorConta<Salvo>(CHAVE, { storage: () => armazem, extras: [CHAVE_ATUAL, CHAVE_ANTIGA] })
+    : doAparelho;
+
+/** Lê as conversas salvas (as DESTA conta). Nunca devolve lista vazia: sem nada salvo, nasce uma conversa nova. */
+export function carregarConversas(armazem?: Storage): { conversas: Conversa[]; atual: string } {
+  const salvo = doArmazem(armazem).ler();
+  /* O formato antigo não tem dono: não é de ninguém, e sai em vez de ser migrado. */
   try {
-    const salvo = armazem.getItem(CHAVE);
-    if (salvo) {
-      const lista = JSON.parse(salvo) as unknown;
-      if (Array.isArray(lista)) conversas = lista.filter(valida);
-    } else {
-      const antigo = armazem.getItem(CHAVE_ANTIGA);
-      if (antigo) conversas = migrarDoFormatoAntigo(JSON.parse(antigo));
-    }
+    (armazem ?? localStorage).removeItem(CHAVE_ANTIGA);
   } catch {
-    conversas = [];
+    /* sem armazenamento: não há o que apagar */
   }
+  let conversas: Conversa[] = Array.isArray(salvo?.conversas) ? (salvo.conversas as unknown[]).filter(valida) : [];
   if (!conversas.length) conversas = [novaConversa()];
-  let atual = '';
-  try {
-    atual = armazem.getItem(CHAVE_ATUAL) ?? '';
-  } catch {
-    atual = '';
-  }
+  let atual = salvo?.atual ?? '';
   if (!conversas.some((c) => c.id === atual)) atual = conversas[0].id;
   return { conversas, atual };
 }
 
-export function salvarConversas(conversas: Conversa[], atual: string, armazem: Storage = localStorage): void {
-  try {
-    armazem.setItem(CHAVE, JSON.stringify(conversas));
-    armazem.setItem(CHAVE_ATUAL, atual);
-  } catch {
-    /* Cota cheia ou armazenamento bloqueado: a conversa continua na tela, só não sobrevive ao recarregar. */
-  }
+export function salvarConversas(conversas: Conversa[], atual: string, armazem?: Storage): void {
+  /* Sem dono conhecido, cota cheia ou armazenamento bloqueado: a conversa continua na tela, só não sobrevive ao recarregar. */
+  doArmazem(armazem).gravar({ conversas, atual });
 }

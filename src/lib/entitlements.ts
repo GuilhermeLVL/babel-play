@@ -26,6 +26,7 @@ import {
 } from '../core/planos';
 import { vozDaNuvemLiberada } from '../core/vozNatural';
 import { apiFetch } from '../data/api';
+import { criarChaveLocalPorConta, registrarArmazemPorConta } from './armazemLocalPorConta';
 import { edicaoEstatica } from './edicaoEstatica';
 import { authRequired } from './supabase';
 
@@ -123,13 +124,23 @@ function normalizar(v: unknown): Entitlements | null {
 
 let cache: Entitlements | null = null;
 
+/* O plano guardado é DA CONTA (`lib/armazemLocalPorConta`): leva o dono, o de outra conta não vale e sai, e sair,
+   limpar tudo e excluir a conta o apagam. Sem isso a conta B veria o plano da A enquanto o servidor não responde. */
+const durável = criarChaveLocalPorConta<unknown>(CACHE_KEY, { nome: 'entitlements' });
+registrarArmazemPorConta({
+  nome: 'entitlements-em-memoria',
+  apagarTudo: () => {
+    cache = null;
+  },
+  purgarDeOutros: () => undefined,
+  destruir: () => {
+    cache = null;
+  },
+});
+
 function lerCacheDurável(): Entitlements | null {
-  try {
-    const bruto = localStorage.getItem(CACHE_KEY);
-    return bruto ? normalizar(JSON.parse(bruto)) : null;
-  } catch {
-    return null;
-  }
+  const bruto = durável.ler();
+  return bruto ? normalizar(bruto) : null;
 }
 
 /** Síncrono: o último valor conhecido do servidor, ou o default do modo. */
@@ -151,11 +162,7 @@ export async function carregarEntitlements(): Promise<Entitlements> {
     const e = normalizar(await res.json());
     if (!e) return getEntitlements();
     cache = e;
-    try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(e));
-    } catch {
-      /* espelho é best-effort */
-    }
+    durável.gravar(e); // espelho é best-effort
     if (typeof window !== 'undefined') window.dispatchEvent(new Event(CHANGED));
     return e;
   } catch {
@@ -171,14 +178,15 @@ export function temVozDaNuvem(e: Entitlements = getEntitlements()): boolean {
   return vozDaNuvemLiberada({ plan: e.plan, vozNatural: e.vozNatural, emTeste: !!e.teste });
 }
 
+/** Só para testes: esquece o que está na memória (uma recarga), sem tocar no disco. */
+export function _esquecerEntitlementsEmMemoria(): void {
+  cache = null;
+}
+
 /** Esquece o cache (logout / troca de identidade) e avisa as telas. */
 export function limparEntitlements(): void {
   cache = null;
-  try {
-    localStorage.removeItem(CACHE_KEY);
-  } catch {
-    /* idem */
-  }
+  durável.apagar();
   if (typeof window !== 'undefined') window.dispatchEvent(new Event(CHANGED));
 }
 

@@ -151,6 +151,6 @@ export async function migrarParaConta(aoProgredir?: (p: ProgressoDaMigracao) => 
   aoProgredir?.({ feitas, total, atual: '' });
 
   // Nada ficou para trás (nem falha nem áudio pendente): limpa o resto (rodadas, gastos, revisões).
-  if (!r.falhas.length && !r.audiosPendentes) await limparTudo();
+  if (!r.falhas.length && !r.audiosPendentes) await limparTudo({ soDoModoSemConta: true });
   return r;
 }

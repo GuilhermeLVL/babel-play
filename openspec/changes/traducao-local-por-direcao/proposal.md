@@ -51,3 +51,45 @@ Origem: pesquisa `research/frasy-core-stt-mt-desempenho/` (SOL-006, REQ-008/009/
 - `scripts/modelos/publicar-bergamot-no-r2.ts` (recusa sem `aprovadoPeloDono`), script de build do WASM (novo).
 - Laboratório: `scripts/perf/latencia-legenda/` (A/B de latência), `scripts/eval-fala/bancada/` (qualidade), relatório em `docs/auditoria/`.
 - Migrações de flag, `docs/flags.md`, `PainelFlags`, `FONTES.md` (atribuição MPL), `docs/LANCAMENTO.md`.
+
+## Revisão de 25/11/2026
+
+**Estado:** precisa decisão do dono. A parte de código está pronta e atrás da flag desligada (`traducao_local_por_direcao`, PG 0026 e
+SQLite 0068 já na `main`; tabela `rotaPorDirecao.ts` e `vereditoPorDirecao.json`; perfis com `bergamot-local`; teste do `>>pt_br<<`):
+tarefas 1.1a, 1.3, 2.1, 2.2 e 3.1 a 3.3. A ferramenta do teste cego existe (`scripts/eval-fala/teste-cego-ptbr/`). Nada mais anda sem
+o dono: licença (1.2), avaliadores (4.3), publicação no R2 (6.1), runtime novo (5.1) e aparelho real (5.5).
+
+**O que ficou velho:**
+
+- A migração deixou de ser "provisória": a numeração 0026/0068 está na `main`.
+- O critério (1.1) não é mais "não commitado": o do teste cego foi em `ad4a09ed`; falta o dos A/B de decisão (virou 1.1b).
+- A change arquivada `bergamot-multi-idioma-via-cdn` (23/11) diz que `VITE_BERGAMOT_MODELOS_URL` sozinha liga o Bergamot; aqui a URL
+  só vale com a flag ligada. Ao sincronizar specs, a spec `traducao-local-por-direcao` prevalece. A publicação no R2 é um ato só.
+- As medições de latência da legenda passaram a seguir o padrão dos `criterio.md` de `scripts/perf/latencia-legenda/` (A/B pareado,
+  guarda com teto, desktop com tampa aberta, 12 válidas, pré-voo), usado no primeiro texto na tela (PR #206). A tarefa 5.3 deve copiar esse padrão.
+- A tradução incremental (`traducao_incremental`) NÃO se liga (pendência do dono em `parciais-incrementais`); esta change não depende
+  dela. Os parciais do Parakeet em pt/es mexem no STT, não na rota de tradução: sem conflito.
+- Resultado medido em desktop emulado (relatório de 21/11): Bergamot pt→en p50 13 ms contra 87 ms e RSS 974 MB contra 1.587 MB;
+  chrF++ melhor em pt-en, empate em es-en; en→pt segue PROIBIDO ao Bergamot até o teste cego. Nada disso vale para celular.
+
+**Esforço:** G no total; o caminho curto (X→en nos pares já aprovados: 6.1, 5.4, 5.5 e ligar por etapa) é M. O ramo en→pt (4.3, 4.4)
+é independente e pode esperar.
+**Valor para quem usa:** médio. Menos download (~31 MB contra ~113 MB por par) e tradução mais rápida em X→en; alto só se o celular
+real confirmar (5.5). Quem aprende inglês (en→pt) não ganha nada sem o teste cego.
+
+**Dependências e conflitos:** antes dela, `traducao-sem-rota-no-celular` (#1), que mexe na mesma cadeia (`viaIngles.ts`,
+`bergamotModelo.ts`) e na preparação de modelos (`ModelPrepPanel.tsx`); depois dela, `modelos-confiaveis-e-offline` (#5) para o
+cache dos pesos. Arquivos em disputa: `src/gateway/adapters/bergamot*.ts`, `src/core/harness/roteadorDeTraducao.ts`,
+`src/gateway/profiles.ts`. Custo: R2 sem egress, sem IA paga. Menores: tradução local não envia texto a ninguém; a flag nasce desligada.
+
+**Decisões do dono:**
+
+1. Licença dos pesos Mozilla (1.2): (a) aprovar par a par, começando por es, fr, it e de (os que o pivô para o português precisa);
+   (b) aprovar os 15 de uma vez depois de ler o checklist; (c) não publicar e manter o opus-mt. **Recomendo (a)**: MPL-2.0 permite
+   hospedar com o aviso, e começar pequeno destrava o resto.
+2. Teste cego pt-BR (4.3): (a) recrutar 2 avaliadores brasileiros (cerca de 1 h por pessoa); (b) fixar o opus-mt `>>pt_br<<` no
+   en→pt e riscar 4.3 e 4.4; (c) adiar. **Recomendo (c) agora e (a) só depois de 6.1 mostrar ganho em X→en**: o en→pt é a direção
+   dominante, mas o risco de pt-PT é real e o ganho (menos 80 MB) só importa no celular.
+3. Runtime novo da Mozilla (5.1, dependência nova): (a) aprovar o build vendorizado; (b) ficar no 0.4.9 e só publicar os pares;
+   (c) adiar. **Recomendo (b)**: a memória do 0.4.9 já é menor que a do opus-mt (974 MB contra 1.587 MB) e o novo só se justifica se
+   o aparelho real (5.5) estourar.

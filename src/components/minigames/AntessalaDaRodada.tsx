@@ -691,6 +691,7 @@ export default function AntessalaDaRodada({
                             item.pista,
                             item.forma && item.forma !== item.titulo ? item.forma : null,
                             item.cefr,
+                            item.origem?.tipo === 'baralho' ? item.origem.rotulo : null,
                             motivo && motivo !== 'já viu' && motivo !== 'nova para você' ? motivo : null,
                           ]
                             .filter(Boolean)

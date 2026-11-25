@@ -67,6 +67,9 @@ export const IA_NIVEIS: Readonly<Record<FuncaoDeIa, NiveisDaFuncao>> = {
   /* A escrita da Leitura ativa (openspec `leitura-ativa-textos-simples`): a rápida, como o parceiro, até os juízes
      (`claude -p` com 30–50 textos próprios) dizerem que precisa da nuance. */
   escrita: { semNuance: 'rapida', comNuance: 'rapida' },
+  /* O diário (openspec `diario-com-correcao-que-vira-cartao`): o MAIS BARATO que não piora a experiência — a rápida para
+     todo plano, como a escrita, até a bancada 1.2 dizer o contrário (relatório em `docs/auditoria/`). */
+  diario: { semNuance: 'rapida', comNuance: 'rapida' },
 }
 
 /** O nível que a função entrega a este plano — pela capacidade `traducaoNuance`. */

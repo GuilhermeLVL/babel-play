@@ -76,6 +76,7 @@ export type FuncaoDeIa =
   | 'assistente'
   | 'leitura'
   | 'escrita'
+  | 'diario'
 
 interface DefinicaoDeFuncao {
   /** Caracteres de conteúdo do cliente aceitos (o `system` é nosso e não conta). */
@@ -99,6 +100,9 @@ export const FUNCOES_DE_IA: Readonly<Record<FuncaoDeIa, DefinicaoDeFuncao>> = {
   leitura: { tetoEntrada: 12_000, maxTokens: 900, temperatura: 0.3 },
   /* O mesmo de `PARAMETROS_DA_ESCRITA` (`src/lib/estudo/promptDaEscrita.ts`), conferido no teste. */
   escrita: { tetoEntrada: 1_500, maxTokens: 500, temperatura: 0.2 },
+  /* O DIÁRIO (openspec `diario-com-correcao-que-vira-cartao`): até 200 palavras (~1.600 caracteres, 2.000 com folga para
+     acento e pontuação), a mesma saída e temperatura da escrita (`PARAMETROS_DO_DIARIO`, conferidos no teste). */
+  diario: { tetoEntrada: 2_000, maxTokens: 500, temperatura: 0.2 },
 }
 
 /**

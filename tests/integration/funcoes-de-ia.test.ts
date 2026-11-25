@@ -77,6 +77,11 @@ describe('teto de entrada por função', () => {
     expect(r.status).toBe(413)
   })
 
+  it('o diário: 2.000 de entrada (200 palavras com folga), 500 de saída, temperatura 0,2; função de rota própria', () => {
+    expect(FUNCOES_DE_IA.diario).toEqual({ tetoEntrada: 2_000, maxTokens: 500, temperatura: 0.2 })
+    expect(prepareLlmRequest({ funcao: 'diario', messages: oi }).ok).toBe(false)
+  })
+
   it('a escrita da Leitura ativa: 1.500 de entrada (120 palavras com folga), 500 de saída, temperatura 0,2', () => {
     expect(FUNCOES_DE_IA.escrita).toEqual({ tetoEntrada: 1_500, maxTokens: 500, temperatura: 0.2 })
     expect(FUNCOES_DE_IA.escrita.maxTokens).toBe(PARAMETROS_DA_ESCRITA.maxTokens)

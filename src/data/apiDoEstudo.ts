@@ -225,6 +225,53 @@ export async function pedirRetornoDaEscrita(
   return valor === null ? { ok: false, motivo: 'indisponivel' } : { ok: true, valor };
 }
 
+/* ─────────────── o diário (`POST /api/ai/diario`, flag `diario`) ─────────────── */
+
+export interface PedidoDoDiario {
+  idioma: 'en' | 'es';
+  nivel: 'A1' | 'A2' | 'B1';
+  escrita: string;
+}
+
+/** As falhas do diário: as da escrita e o `sinal_de_risco` (422, o texto nem chegou à IA). */
+export type FalhaDoDiario = FalhaDaEscrita | { motivo: 'sinal_de_risco' };
+
+/** Pede o retorno da IA sobre o diário (o mesmo formato do retorno da escrita; `resolvidos` vem vazio). Nunca lança. */
+export async function pedirRetornoDoDiario(
+  p: PedidoDoDiario,
+): Promise<{ ok: true; valor: RetornoDaEscrita } | ({ ok: false } & FalhaDoDiario)> {
+  let res: Response;
+  try {
+    res = await apiFetch('/api/ai/diario', {
+      method: 'POST',
+      timeoutMs: TEMPO_DA_EXPLICACAO_MS,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idioma: p.idioma, nivel: p.nivel, escrita: p.escrita }),
+    });
+  } catch {
+    return { ok: false, motivo: 'indisponivel' };
+  }
+  if (!res.ok) {
+    const erro = await lerErro(res);
+    if (erro.code === 'cota_esgotada') {
+      const d = erro.detalhes ?? {};
+      return {
+        ok: false,
+        motivo: 'cota_esgotada',
+        limite: typeof d.limite === 'number' ? d.limite : null,
+        voltam: typeof d.voltam === 'string' ? d.voltam : null,
+      };
+    }
+    if (erro.code === 'dado_pessoal') return { ok: false, motivo: 'dado_pessoal' };
+    if (erro.code === 'sinal_de_risco') return { ok: false, motivo: 'sinal_de_risco' };
+    if (res.status === 403) return { ok: false, motivo: 'sem_plano' };
+    const m = motivoDaFalha(res.status, erro.code, erro.detalhes);
+    return { ok: false, motivo: m === 'sem_plano' || m === 'sem_conta' || m === 'fora' || m === 'invalido' ? m : 'indisponivel' };
+  }
+  const valor = lerRetorno(await res.json().catch(() => null));
+  return valor === null ? { ok: false, motivo: 'indisponivel' } : { ok: true, valor };
+}
+
 /** Um cartão proposto pelo resumo, já no formato do bulk-add (o servidor já filtrou). */
 export interface CartaoDoResumo {
   word: string;

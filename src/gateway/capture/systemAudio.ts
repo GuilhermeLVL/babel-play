@@ -9,6 +9,7 @@ import { ehPrefixo, EspelhoDoVad } from './espelhoDoVad';
 import { criarFimDeFala } from './fimDeFala';
 import { pararGravador } from './pararGravador';
 import { criarPisoDoSilencio } from './pisoDoSilencio';
+import { tirarQuadroDaFaixa } from './quadroDaTela';
 import { TAXA_DE_BITS_DA_GRAVACAO } from './taxaDeBits';
 import { type OpcoesDoVadEmWorker, VadEmWorker } from './vadEmWorker';
 
@@ -326,6 +327,20 @@ export function superficieCompartilhada(): 'browser' | 'window' | 'monitor' | nu
   const s = trilha?.getSettings?.() as { displaySurface?: string } | undefined;
   const sup = s?.displaySurface;
   return sup === 'browser' || sup === 'window' || sup === 'monitor' ? sup : null;
+}
+
+/** Há faixa de vídeo viva no compartilhamento em curso? (Só microfone e Intérprete não têm: o botão da cena nem aparece.) */
+export function haQuadroParaTirar(): boolean {
+  const t = activeDisplayStream?.getVideoTracks()[0];
+  return !!t && t.readyState === 'live';
+}
+
+/**
+ * O quadro da tela compartilhada agora (canvas de até 480 px), ou `null`. Só por gesto da pessoa
+ * (openspec `cartao-com-captura-de-tela`): sobe a resolução da faixa por instantes e volta ao mínimo.
+ */
+export function tirarQuadro(): Promise<HTMLCanvasElement | null> {
+  return tirarQuadroDaFaixa(activeDisplayStream?.getVideoTracks()[0], QUALIDADE_DO_VIDEO_DA_TELA);
 }
 
 /** O que o dono do decode especulativo devolve: a captura só sabe cancelá-lo (a fala continuou). */

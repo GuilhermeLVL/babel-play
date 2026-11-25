@@ -79,7 +79,7 @@ export function systemDaEscrita(nivel: 'A1' | 'A2' | 'B1'): string {
 }
 
 /** O dado entre os delimitadores, sem os delimitadores que vierem dentro (um ">>>" fecharia o bloco de dado). */
-const delimitar = (s: string): string =>
+export const delimitar = (s: string): string =>
   `${FALA_OPEN}${s
     .split(FALA_OPEN)
     .join(' ')

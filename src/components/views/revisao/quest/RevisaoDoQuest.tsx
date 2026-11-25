@@ -1031,7 +1031,7 @@ export function RodadaDoQuest({
             {topoDoCartao}
             <div className="resp">
               <div className={`cx-resposta ${cena ? 'com-cena' : ''}`.trim()}>
-                {cena && <Cena cena={cena} aoAbrirSessao={aoAbrirSessao} />}
+                {cena && <Cena cena={cena} aoAbrirSessao={aoAbrirSessao} cartaoId={cartao.id} />}
                 <div className="cx-resposta-texto">
                   <b>{cartao.translation || '—'}</b>
                   {traducaoDaFrase && <p className="ct-trad-da-frase">“{traducaoDaFrase}”</p>}

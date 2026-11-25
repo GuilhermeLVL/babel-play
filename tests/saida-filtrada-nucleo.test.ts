@@ -45,6 +45,19 @@ describe('recusaSeSaidaBarrada', () => {
     expect(anotacoes).toEqual([{ saidaFiltrada: 'contato_externo' }])
   })
 
+  it('diário (tarefa 2.3): retorno com contato externo vira 502 saida_filtrada para perfil protegido; adulto passa', async () => {
+    const retorno = {
+      elogio: 'Ótimo! Me adiciona no discord: ana#1234 ou ana@exemplo.net',
+      pontos: [{ trecho: 'I go', tipo: 'tempoVerbal', dica: 'Olhe o verbo.', exemplo: 'I went' }],
+      resolvidos: [],
+    }
+    const barrada = await recusaSeSaidaBarrada(ctx().ctx, 'diario', true, retorno)
+    expect(barrada).toMatchObject({ ok: false, status: 502 })
+    expect(JSON.stringify(barrada)).toContain('saida_filtrada')
+    expect(JSON.stringify(barrada)).not.toContain('discord')
+    expect(await recusaSeSaidaBarrada(ctx().ctx, 'diario', false, retorno)).toBeNull()
+  })
+
   it('o que só aparece depois de decodificar o JSON também é barrado', async () => {
     const lido = JSON.parse('{"t":"veja \\u0068ttp://exemplo-ruim.com/x"}')
     expect(await recusaSeSaidaBarrada(ctx().ctx, 'resumo', true, lido)).not.toBeNull()
@@ -85,6 +98,7 @@ describe('todo núcleo que fala com menor chama o filtro', () => {
     ['explicarFrase', 'explicacao'],
     ['resumirSessao', 'resumo'],
     ['escrita', 'escrita'],
+    ['diario', 'diario'],
     ['sugerirAlternativas', 'alternativas'],
     ['polirLote', 'polimento'],
     ['parceiroDeLeitura', 'leitura'],

@@ -1,6 +1,7 @@
 import { CalendarClock, CircleCheck, ExternalLink, Mic, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { useCenaDoCartao } from '../../../../hooks/useCenaDoCartao';
 import { t } from '../../../../lib/i18n';
 import type { CenaDoCartao } from '../../../../lib/revisao/cena';
 import { barrasDaCena, hashDoTexto, pedacosDaFrase, tempoDaFala } from '../../../../lib/revisao/enxuta';
@@ -12,7 +13,15 @@ import { barrasDaCena, hashDoTexto, pedacosDaFrase, tempoDaFala } from '../../..
  */
 
 /** `ctFrase()` de `cartoes2.js:70-82`: a frase com a palavra destacada (`marca`) ou com a lacuna (`vao`). */
-export function FraseMarcada({ frase, palavra, modo = 'marca' }: { frase: string; palavra: string; modo?: 'marca' | 'vao' }) {
+export function FraseMarcada({
+  frase,
+  palavra,
+  modo = 'marca',
+}: {
+  frase: string;
+  palavra: string;
+  modo?: 'marca' | 'vao';
+}) {
   return (
     <>
       {pedacosDaFrase(frase, palavra, modo).map((p, i) =>
@@ -95,10 +104,22 @@ export function SeloDaPratica({ conta }: { conta: boolean }) {
 }
 
 /** `cxBarras()` e `cxOnda()` de `cartoes4.js:28-29`: a camada colorida varre por cima enquanto toca. */
-export function Onda({ picos, classe = '', aoVivo = false }: { picos: readonly number[]; classe?: string; aoVivo?: boolean }) {
+export function Onda({
+  picos,
+  classe = '',
+  aoVivo = false,
+}: {
+  picos: readonly number[];
+  classe?: string;
+  aoVivo?: boolean;
+}) {
   const barras = picos.map((p, i) => <i key={i} style={{ height: `${Math.round(p * 100)}%` }} />);
   return (
-    <span className={`cx-onda ${classe} ${picos.length ? '' : 'vazia'} ${aoVivo ? 'ao-vivo' : ''}`.replace(/\s+/g, ' ').trim()}>
+    <span
+      className={`cx-onda ${classe} ${picos.length ? '' : 'vazia'} ${aoVivo ? 'ao-vivo' : ''}`
+        .replace(/\s+/g, ' ')
+        .trim()}
+    >
       <span className="cx-onda-base">{barras}</span>
       <span className="cx-onda-cor" aria-hidden>
         {aoVivo ? null : barras}
@@ -116,30 +137,38 @@ export function Cena({
   cena,
   semLink = false,
   aoAbrirSessao,
+  cartaoId,
 }: {
   cena: CenaDoCartao;
   semLink?: boolean;
   aoAbrirSessao?: () => void;
+  /** Com ele, a cena da tela guardada no cartão (`cartao_com_cena`) aparece no lugar da onda. */
+  cartaoId?: string;
 }) {
+  const imagem = useCenaDoCartao(cartaoId);
   const sem = hashDoTexto(cena.frase);
   const tempo = tempoDaFala(cena.inicioMs);
   return (
     <figure className="cx-cena audio" aria-label={t('A fala gravada na sessão')}>
       <span className="cx-cena-quadro ct-quadro">
-        <svg viewBox="0 0 320 180" aria-hidden>
-          <rect width="320" height="180" fill="var(--surface-sunken)" />
-          <circle cx="270" cy="42" r="22" fill="color-mix(in srgb, var(--q-acento) 40%, var(--surface))" />
-          <text x="270" y="50" textAnchor="middle" fontSize="22" fontWeight="800" fill="var(--ink)">
-            {(cena.quem || '?')[0]}
-          </text>
-          <g fill="color-mix(in srgb, var(--q-acento) 70%, var(--surface-sunken))">
-            {barrasDaCena(cena.frase).map(([x, y, h], i) => (
-              <rect key={i} x={x.toFixed(1)} y={y.toFixed(1)} width="5" height={h.toFixed(1)} rx="2.5" />
-            ))}
-          </g>
-          <path d="M24 146h272" stroke="var(--border-subtle)" strokeWidth="3" strokeLinecap="round" />
-          <circle cx={24 + (sem % 200)} cy="146" r="6" fill="var(--q-acento)" />
-        </svg>
+        {imagem.url ? (
+          <img src={imagem.url} alt={t('A cena da tela guardada neste cartão')} data-testid="cena-da-tela" />
+        ) : (
+          <svg viewBox="0 0 320 180" aria-hidden>
+            <rect width="320" height="180" fill="var(--surface-sunken)" />
+            <circle cx="270" cy="42" r="22" fill="color-mix(in srgb, var(--q-acento) 40%, var(--surface))" />
+            <text x="270" y="50" textAnchor="middle" fontSize="22" fontWeight="800" fill="var(--ink)">
+              {(cena.quem || '?')[0]}
+            </text>
+            <g fill="color-mix(in srgb, var(--q-acento) 70%, var(--surface-sunken))">
+              {barrasDaCena(cena.frase).map(([x, y, h], i) => (
+                <rect key={i} x={x.toFixed(1)} y={y.toFixed(1)} width="5" height={h.toFixed(1)} rx="2.5" />
+              ))}
+            </g>
+            <path d="M24 146h272" stroke="var(--border-subtle)" strokeWidth="3" strokeLinecap="round" />
+            <circle cx={24 + (sem % 200)} cy="146" r="6" fill="var(--q-acento)" />
+          </svg>
+        )}
         <i className="cx-cena-tempo">
           <Mic aria-hidden />
           {tempo}
@@ -154,6 +183,12 @@ export function Cena({
           <button type="button" className="cx-link" onClick={aoAbrirSessao}>
             <ExternalLink aria-hidden />
             <span>{t('Abrir na sessão')}</span>
+          </button>
+        )}
+        {imagem.url && (
+          <button type="button" className="cx-link" data-testid="remover-cena" onClick={imagem.remover}>
+            <X aria-hidden />
+            <span>{t('Remover a imagem')}</span>
           </button>
         )}
       </figcaption>

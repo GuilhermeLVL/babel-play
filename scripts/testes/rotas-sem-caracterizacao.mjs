@@ -46,6 +46,8 @@ const SEM_CARACTERIZACAO = {
   'GET /api/vocab/resumo':
     'as contagens da tela Cartões são cobertas em `tests/integration/vocab-resumo.test.ts` (26 casos: totais por estado, por idioma, sessão e baralho, previsão, retenção, calendário, virada do dia, ETag e 304, outra conta)',
   'POST /api/billing/webhook/asaas': 'idem (é o próprio webhook)',
+  'POST /api/ai/diario':
+    'o diário (IA só para adulto declarado) é coberto em `tests/integration/diario.test.ts`, que chama o `diarioProxy` direto: flag desligada, menor e Grátis (403), filtro de dado pessoal e de sinal de risco (422), estorno da cota e provedor sem retenção zero',
   'GET /api/ops/saude':
     'o vigia da saúde do negócio (token próprio, antes do login); coberto por `tests/integration/saude-do-negocio.test.ts` (501 sem segredo, 401 com o errado, 200 com as checagens e o limite de cada job)',
   'GET /api/images/search':

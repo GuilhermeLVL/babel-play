@@ -20,6 +20,7 @@ import {
   Library,
   ListChecks,
   Mic,
+  PenLine,
   Snowflake,
   Sparkles,
   Sprout,
@@ -28,7 +29,7 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
-import { FLAG_AVATAR_3D } from '../../../core/planos';
+import { FLAG_AVATAR_3D, FLAG_DIARIO } from '../../../core/planos';
 import { tetoAnonimoDa } from '../../../core/tetoAnonimo';
 import type { AppMetrics } from '../../../data/api';
 import { abrirMeuAvatar } from '../../../lib/avatar/descoberta';
@@ -211,6 +212,7 @@ export default function InicioDoQuest({
   missoesPendentes = false,
 }: InicioDoQuestProps) {
   const avatarLigado = useFlag(FLAG_AVATAR_3D);
+  const diarioLigado = useFlag(FLAG_DIARIO);
   /* O Início de verdade pintou: o esqueleto do HTML (carga-rapida-no-celular) sai. */
   useEffect(() => tirarEsqueletoQuandoOInicioEstiverPronto(), []);
   const cartoes = ladrilhoDosCartoes(semConta ? 'sem-conta' : metrics);
@@ -407,6 +409,23 @@ export default function InicioDoQuest({
           <ChevronRight aria-hidden style={{ width: 16, height: 16, verticalAlign: -3 }} />
         </span>
       </button>
+
+      {/* O DIÁRIO (openspec `diario-com-correcao-que-vira-cartao`, tarefa 5.1): uma linha, só com a flag `diario`; o trilho não
+          ganhou item. */}
+      {diarioLigado && (
+        <button type="button" className="q-linha" onClick={() => onChangeView('diario')} data-testid="diario-no-inicio">
+          <span className="q-ic">
+            <PenLine aria-hidden />
+          </span>
+          <span>
+            <b>{t('Escreva sobre o seu dia')}</b>
+            <small>{t('Escreva no idioma que você aprende e guarde cada correção como cartão.')}</small>
+          </span>
+          <span className="q-fim">
+            <ChevronRight aria-hidden style={{ width: 16, height: 16, verticalAlign: -3 }} />
+          </span>
+        </button>
+      )}
 
       {/* AS MISSÕES DO DIA: o progresso que o servidor contou. Fechadas as três, é o ponto de parada. */}
       {missoesPendentes && !semConta && !missoes && <div className="q-missoes-reserva" aria-hidden="true" />}

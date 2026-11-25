@@ -85,6 +85,17 @@ describe('os arquivos versionados', () => {
       expect(l!.classificacao, id).not.toBeNull()
     }
   })
+  it('o piloto de 3 livros sai da lista de 10, é pt, aprovado e na ortografia do leitor', () => {
+    const p3 = JSON.parse(readFileSync('scripts/audiolivros/piloto-3.json', 'utf8'))
+    expect(p3.livros).toHaveLength(3)
+    expect(p3.ortografia).toBe('do-leitor')
+    for (const id of p3.livros) {
+      expect(piloto.livros, id).toContain(id)
+      const l = porId.get(id) as { classificacao: unknown; idioma: string } | undefined
+      expect(l!.idioma, id).toBe('pt')
+      expect(l!.classificacao, id).not.toBeNull()
+    }
+  })
   it('livros.json traz o audio de publicados.json, e só nesses livros', () => {
     const comAudio = catalogo.livros.filter((l: { audio?: unknown }) => l.audio).map((l: { id: string }) => l.id)
     expect(comAudio.sort()).toEqual(Object.keys(publicados.livros).sort())

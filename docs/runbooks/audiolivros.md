@@ -51,8 +51,7 @@ Beta: `ids` dos convidados, `percentual: 0`. Gradual: `percentual` 5 → 25 → 
 - Servidor de áudio mínimo (fora do repo) com CORS `*`, `Range` (206), `Cache-Control` e
   `Cross-Origin-Resource-Policy: cross-origin` (o `<audio>` não usa `crossorigin`; com COEP ligado o R2 também
   precisa desse cabeçalho). `VITE_AUDIO_URL=http://localhost:3176`.
-- **Pendência:** o título do capítulo ("I") é falado como frase e o primeiro parágrafo também começa com "I" (ouve-se
-  "I. I."). Não corrigido nesta entrega: decidir se o título entra no áudio ou se o pré-processador o pula.
+- **Título repetido (resolvido, 25/11):** o título do capítulo que o 1º parágrafo repete ("I. I.") não é falado; vira silêncio de 0,4 s (`tituloRepetidoPelaProxima`).
 
 ## 4. Gerar um livro
 
@@ -97,3 +96,22 @@ R2 > 3× a previsão alerta). Painéis e consultas: **[PREENCHER]**.
 - [ ] G7 Contrato de retenção zero do provedor de nuvem
 - [ ] G8 Classificação etária respeitada
 - [ ] Passeio manual no staging (Chrome, Safari, Android) e escuta aprovada
+
+## 9. Piloto de 3 livros (Onda 4, 25/11)
+
+Decisão assumida: recomendação 17 (`docs/backlog/decisoes-do-dono.md`). Lista em `scripts/audiolivros/piloto-3.json`: Dom Casmurro
+(`ws-pt-dom-casmurro`), Memórias Póstumas (`pg-54829`) e O Guarani (`ws-pt-o-guarani`). Ortografia = a que o leitor mostra, sem
+modernizar (o `hashDasFrases` do manifesto tem de bater com o do app; senão o capítulo cai no narrador local). Motor Supertonic,
+voz `F1`, condicionado ao parecer OpenRAIL-M (`docs/pesquisa/2026-11-audiolivros-consulta-juridica.md`, pergunta 2). Título do capítulo
+repetido pelo 1º parágrafo não é falado (silêncio de 0,4 s; o índice da frase se mantém).
+
+Passos (cada um com o dono onde marcado):
+
+1. **[D]** Pedido jurídico único enviado (inclui OpenRAIL-M); anotar a data na consulta.
+2. **[D]** Criar os buckets: `node scripts/cloudflare/r2.mjs --dry-run`, depois sem `--dry-run` (cria `frasy-audio` e `frasy-audio-staging`
+   com o CORS de GET/HEAD). Ligar o domínio público no painel, definir `VITE_AUDIO_URL` e conferir
+   `curl -I <url>/audiolivros/<livro>/F1/1/01.opus` (`Cache-Control` imutável, `Accept-Ranges`, 206 com `Range`).
+3. Gerar cada livro (GPU/CPU local; teto da spec, seção 8): `npx tsx scripts/audiolivros/gerar-livro.mjs --livro <id> --voz F1 --motor supertonic --xhtml <caps> --dry-run --saida <dir>`.
+4. **[B]** Escuta cega (sessão de bancada): sorteio de ≥ 5% dos capítulos e ≥ 20 frases por livro, ouvidas sem saber o motor, nota 1 a 5 e
+   marcação de erro de leitura (número, nome, sigla). Aprovar: média ≥ 3,8/5, ≤ 1 erro grave por 100 frases. Registrar data e ids dos capítulos ouvidos no `tasks.md` (3.5).
+5. Publicar no staging (ato do dono), ligar `audiolivros` só para o id do dono, passeio em Chrome, Safari e Android **[R]**.

@@ -4,7 +4,7 @@ import { precisaDoSegundoFator } from '../auth';
 import { clearAuthCallbackUrl, isOnAuthCallback } from '../authCallback';
 import { ehSessaoAnonima } from '../convidado';
 import { limparEntitlements } from '../entitlements';
-import { armarIdentidade, definirIdentidade } from '../identidade';
+import { armarIdentidade, definirDonoDaConta, definirIdentidade } from '../identidade';
 import { EVENTO_SUPABASE_PEDIDO, haSessaoOuVoltaDoLogin } from '../sessaoNoBoot';
 import { authRequired, carregarSupabase } from '../supabase';
 
@@ -30,6 +30,11 @@ export interface EstadoDaSessaoSupabase {
  * `linkIdentity`, mesmo id), o `USER_UPDATED` traz o usuário não-anônimo e aí sim vira `conta` — e o
  * `ModalDeMigracao` sobe o que estava no aparelho, como em qualquer login.
  */
+function idDaConta(s: { user?: unknown } | null): string | null {
+  const id = (s?.user as { id?: unknown } | undefined)?.id;
+  return typeof id === 'string' && id ? id : null;
+}
+
 function sessaoDeConta<S extends { user?: unknown }>(s: S | null | undefined): S | null {
   return s && !ehSessaoAnonima(s) ? s : null;
 }
@@ -114,6 +119,7 @@ export function useSessaoSupabase(): EstadoDaSessaoSupabase {
             if (!vivo) return;
             const conta = sessaoDeConta(data.session);
             setSession(conta);
+            definirDonoDaConta(idDaConta(conta));
             definirIdentidade(conta ? 'conta' : 'anonimo');
             clearAuthCallbackUrl();
             setProcessingCallback(false);
@@ -123,6 +129,7 @@ export function useSessaoSupabase(): EstadoDaSessaoSupabase {
           if (event === 'PASSWORD_RECOVERY') setRecovery(true);
           const conta = sessaoDeConta(s);
           setSession(conta);
+          definirDonoDaConta(idDaConta(conta));
           if (conta) definirIdentidade('conta');
           else if (event === 'SIGNED_OUT' || ehSessaoAnonima(s)) {
             definirIdentidade('anonimo');

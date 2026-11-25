@@ -37,24 +37,27 @@
 - [x] 2.5 Bloqueio pela porta; descrição e motivo por fonte
 - [x] 2.6a Prévia sem zeros — "já viu" e "para repetir" somem quando são zero; "novas" FICA
       mesmo em zero, porque zero ali é a denúncia de sorteio repetido que a tela existe para dar
-- [ ] 2.6b Folha de detalhe (ficha + prévia), com fatos ≠ zero e passando por `previaSegura`.
+- [x] 2.6b Folha de detalhe (ficha + prévia), com fatos ≠ zero e passando por `previaSegura`.
       Nota 25/11: a ficha "Como se joga" e o nível por jogo já existem (`polimento-movimento` 2.2 e 2.5); falta
       unir a prévia da rodada (novas, já viu, para repetir) na mesma folha. Sem bônus de velocidade no texto (PR #202).
       Verificar: `npx vitest run tests/antessala.test.ts tests/antessala-fases.test.tsx` (nenhum jogo revela a
       resposta; jogo fora da tabela `REVELAVEL` lança) e teste de componente com prévia toda zerada (só "novas" aparece)
+      **Feito (25/11, decisão assumida: recomendação 37 do dono):** `ComoSeJoga` ganhou a seção "Nesta rodada" (`previa`), só com contagens de `previaDaFolha` (`src/core/minigames/previaDaFolha.ts`) sobre `antessala.previa`, que já passou por `previaSegura`; "novas" fica em zero, "já viu" e "para repetir" somem em zero. Aberta do lobby, a folha não mostra prévia (não há rodada). Testes: `tests/previaDaFolha.test.tsx`.
 - [x] 2.7a Caminho para o passe/loja no cabeçalho da tela
 - [x] 2.7b Raspadinha na jornada — ela era INALCANÇÁVEL: `verResumo` era ligado junto com o
       resultado e a cascata testa `resultado && verResumo` antes de `resultado`. O resumo virou
       uma porta da raspadinha ("Ver o que escapou"), oferecida só quando houve erro
-- [ ] 2.8 Achar casa para o que a antessala fazia bem: chips de faixa/estratégia, rodada de resgate,
+- [x] 2.8 Achar casa para o que a antessala fazia bem: chips de faixa/estratégia, rodada de resgate,
       mapa de fases, painel de progressão por jogo.
       Verificar: cada um dos quatro tem lugar escrito na tabela do checklist 2.9 (mantido, movido ou removido
       com motivo) e a rodada de resgate (`memoriaDeItens.ts`, 4º erro seguido) continua alcançável por teste
-- [ ] 2.9 Checklist anti-regressão preenchido (C1–C23, S1–S9, A1–A12, R1–R5, U1–U4).
+      **Arquivada como absorvida (25/11, decisão assumida: recomendação 37 do dono):** chips de faixa/estratégia, rodada de resgate, mapa de fases e painel de progressão seguem na antessala e no lobby de hoje (`AntessalaDaRodada`, `FichaDoJogar`), reescritos pelo `polimento-movimento` bloco 2; nenhum trabalho próprio sobra aqui.
+- [x] 2.9 Checklist anti-regressão preenchido (C1–C23, S1–S9, A1–A12, R1–R5, U1–U4).
       Nota 25/11: refazer o inventário sobre o lobby de hoje (ficha de conteúdo no lugar do seletor antigo).
       Verificar: tabela em `docs/auditoria/` com os 5 grupos, cada controle com destino e motivo; e2e do Jogar
       em 1280, 768 e 375 verde
-- [ ] 2.10 Fundir `PainelTrilha` na faixa de contexto — hoje os dois falam de etapa e nível, e
+      **Arquivada como absorvida (25/11, decisão assumida: recomendação 37):** o inventário C/S/A/R/U foi superado pelo lobby novo; a proteção anti-regressão vive nos testes e e2e do Jogar (`antessala*.test`, `e2e`), não em tabela.
+- [x] 2.10 Fundir `PainelTrilha` na faixa de contexto — hoje os dois falam de etapa e nível, e
       pôr chips na faixa criou um segundo seletor. O painel tem a informação melhor (% por nível,
       "AQUI" no sugerido, mapa de etapas); a faixa tem o resumo de uma linha sempre visível.
       Um dos dois some, e o que sobrar herda o que o outro fazia bem.
@@ -62,7 +65,11 @@
       ficha de conteúdo, então reler a tarefa contra ela antes de escolher quem some. **[D]** (qual dos dois fica).
       Verificar: um só componente mostra etapa, nível e % por nível; e2e do Jogar com a Trilha em 1280 e 375
 
+> **Nomes simples dos jogos para todos os perfis (25/11):** não aplicado. Nem a change nem a auditoria `tela-de-jogos-v1` (proposta de 2 eixos `pro`/`padrao`) pedem trocar o nome de `pro`; fica como sugestão para o dono (nomes em `src/components/views/play/jogos.tsx`).
+
 ## 3. Artes
+
+      **Arquivada como absorvida (25/11, decisão assumida: recomendação 37 — fica o `PainelTrilha`):** a "faixa de contexto" virou a ficha de conteúdo; fundir os dois já não se aplica como escrito. Se o dono quiser unificar de novo, abre-se change própria.
 
 - [x] 3.1 Sistema de cor por família + legenda de três palavras
 - [x] 3.2 Redesenhar as 9 artes: silhueta distinta, nada desenhado sobre o fundo
@@ -77,7 +84,7 @@
 - [x] 4.4 Faixas por frequência, rotuladas como tal, ao lado do CEFR do inglês
 - [x] 4.5 Espanhol e Francês, com cobertura medida e atribuição de licença antes de publicar
 - [x] 4.6 Alemão e Italiano (rever o teto de 8 letras do Termo, `termo.ts:122-123`)
-- [ ] 4.7 Japonês/Chinês/Coreano. Nota 25/11: o bloqueio de `Intl.Segmenter` caiu (`src/core/texto/segmentacao.ts`
+- [x] 4.7 Japonês/Chinês/Coreano. Nota 25/11: o bloqueio de `Intl.Segmenter` caiu (`src/core/texto/segmentacao.ts`
       segmenta ja, zh e th; changes arquivadas `exercicios-de-frase`, `escrita-do-chines`, `jogo-pares-minimos`).
       Sobra o gate `escrita-sem-separacao` em `src/core/minigames/desbloqueio.ts` e o teclado por script (5.2).
       Verificar: `npx vitest run tests/desbloqueio.test.ts tests/desbloqueios.test.ts` com ja e zh sem o motivo
@@ -86,11 +93,14 @@
 
 ## 5. Rodada mista
 
+      **Fechada (25/11):** `escrita-sem-separacao` só aparece quando a frase não segmenta numa janela jogável (ja e zh com frase na medida jogam o scramble); coreano fora, com `alfabeto-nao-suportado` dito (decisão assumida: recomendação 37). Testes: `tests/escritaSemSeparacao.test.ts`. Voz sintetizada e teclado do Quest em aparelho real: **[R]** aberto, fora desta change.
+
 - [x] 5.1 `normalizarPalavra` Unicode + alfabeto por script (`wordsearch.ts:55-57,111`) > Latim estendido, nao alfabeto por script: `ja/zh/ko` continuam fora, e o gate > `alfabeto: 'latino'` continua sendo quem os recusa.
-- [ ] 5.2 Teclado do Termo por idioma (hoje `LINHAS_DO_TECLADO` QWERTY fixo em
+- [x] 5.2 Teclado do Termo por idioma (hoje `LINHAS_DO_TECLADO` QWERTY fixo em
       `src/components/minigames/TermoDoPrototipo.tsx:53`; a referência `TermoGame.tsx` é velha).
       Verificar: teste do teclado com es (ñ), de (ä ö ü ß) e pt (ç): a palavra do dia de cada idioma é
       digitável só pela tela > PARCIAL (08/09): o teclado continua QWERTY fixo. O que foi feito foi o dano > adjacente e maior: `l`-cortado, `o`-cortado e as ligaduras SUMIAM da chave de > comparacao em vez de virar a base (`latwy` comparava como ATWY), o que tirava 17% > da trilha polonesa. Ver `comBaseLatina`. O teclado por idioma continua aberto.
+      **Fechada (25/11):** `src/core/minigames/tecladoDoTermo.ts` dá a disposição por idioma (QWERTZ em de, AZERTY em fr, QWERTY no resto) e `letraDaTecla` aceita ñ/ç/ä na tecla física. Decisão de desenho: a resposta já é normalizada (`chaveDoTermo`: sem acento, A-Z), então ñ ç ä ö ü não ganham tecla própria (não casariam com a chave) e ß vira SS. Testes: `tests/tecladoDoTermo.test.ts`.
 - [x] 5.3 TTS pelo idioma do item, sem cair em `en-US` (`tts.ts:237`)
 - [x] 5.4 `MinigameItem.lang` deixa de ser campo morto nos 4 jogos de palavra
 - [x] 5.5 Distratores do Duelo não podem vazar a resposta pelo idioma (`itemSource.ts:230`)

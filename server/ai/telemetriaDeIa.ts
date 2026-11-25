@@ -63,6 +63,8 @@ export type FuncaoTelemetrada =
   | 'parceiro-de-leitura'
   /* A escrita da Leitura ativa (openspec `leitura-ativa-textos-simples`). */
   | 'escrita'
+  /* O diário com correção (openspec `diario-com-correcao-que-vira-cartao`). */
+  | 'diario'
 
 /** Os metadados de RASTRO que as rotas podem anotar. Lista fechada: nada de texto livre. */
 export interface AnotacoesDoRastro {

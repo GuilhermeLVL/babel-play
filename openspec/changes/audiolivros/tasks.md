@@ -7,13 +7,13 @@
 
 - [x] 0.1 Spec técnica, change OpenSpec e esqueleto do runbook. Feito: `docs/specs/2026-10-31-audiolivros-e-leitura.md`, `docs/runbooks/audiolivros.md`.
       Verificar: `openspec validate audiolivros` passa (CLI ainda não instalado no ambiente; rodar antes de arquivar).
-- [ ] 0.2 **[D]** Dono responde as 5 perguntas em aberto (spec, seção 12). 4 de 5 confirmadas em 31/10; falta a lista dos 10 livros e a ortografia.
+- [ ] 0.2 **[D]** (decisão assumida: recomendação 17, 25/11: piloto de 3 livros, `scripts/audiolivros/piloto-3.json`, ortografia do leitor; o dono confirma) Dono responde as 5 perguntas em aberto (spec, seção 12). 4 de 5 confirmadas em 31/10; falta a lista dos 10 livros e a ortografia.
       Verificar: a lista final (ids de `scripts/audiolivros/piloto.json`) e a ortografia (original ou modernizada) registradas no topo da spec.
 
 ## 1. F0 Spike e decisão do motor (teto US$ 5 de GPU)
 
 - [ ] 1.1 **[D]** Enviar a consulta jurídica (espeak-ng em WASM e no servidor; OpenRAIL-M da Supertonic: restrições sobre menores e rótulo de voz gerada).
-      A pergunta está escrita (`8f6788fe`); falta enviar. Verificar: protocolo ou data de envio anotado em `docs/runbooks/audiolivros.md`; a resposta não bloqueia a F0.
+      As perguntas estão escritas (`8f6788fe`; OpenRAIL-M em 25/11, `docs/pesquisa/2026-11-audiolivros-consulta-juridica.md`, pergunta 2); falta enviar (ato do dono, dentro do pedido único, decisão 6). Verificar: protocolo ou data de envio anotado em `docs/runbooks/audiolivros.md`; a resposta não bloqueia a F0.
 - [x] 1.2 Medir os motores candidatos. Feito: adaptadores locais Supertonic 3 e Pocket TTS (`scripts/audiolivros/sintetizador-local.mjs`, `spike/`), medições de CPU,
       formulário de escuta. Kokoro REJEITADO pelo dono (vozes ruins e espeak-ng GPL embutido até em inglês); não repropor.
 - [x] 1.3 Escuta cega do dono: "as vozes são ótimas" (02/11). Voz candidata de trabalho: Supertonic 3 F1 (CER pt 4,5% contra 7,9% do Pocket).
@@ -30,14 +30,14 @@
 
 ## 3. F2 Piloto de 10 livros, R2 e player
 
-- [ ] 3.1 **[D]** Buckets `frasy-audio(-staging)`, domínio e `VITE_AUDIO_URL` na CSP. Verificar: teste de CSP verde; `curl -I` no clipe mostra `Cache-Control` imutável e `Range` 206.
-- [x] 3.2 `scripts/audiolivros/gerar-livro.mjs` (síntese frase a frase, Opus, `{i,t0,t1}`, manifesto com hash, retentativa ≤ 2). Feito: `tests/audiolivros-gerar.test.ts`.
+- [ ] 3.1 **[D]** Buckets `frasy-audio(-staging)`, domínio e `VITE_AUDIO_URL` na CSP. Pronto em código: `scripts/cloudflare/r2.mjs` cria os dois com CORS; falta o dono rodar, ligar o domínio público e a variável (runbook, seção 9). Verificar: teste de CSP verde; `curl -I` no clipe mostra `Cache-Control` imutável e `Range` 206.
+- [x] 3.2 (piloto de 3 livros pendente de geração: depende do parecer 1.1 e da escuta 3.5) `scripts/audiolivros/gerar-livro.mjs` (síntese frase a frase, Opus, `{i,t0,t1}`, manifesto com hash, retentativa ≤ 2). Feito: `tests/audiolivros-gerar.test.ts`.
       Falta gerar os 9 livros restantes: só `ws-pt-dom-casmurro` tem o capítulo 1 (`publicados.json`, voz `F1` provisória). Verificar: 0 frases sem áudio e capítulos nos limiares (2.3).
 - [x] 3.3 Player sincronizado no leitor (botão Ouvir, destaque, retomar, chip "Voz sintetizada", baixar capítulo). Feito: `src/lib/leitor/audiolivro/`, `tests/audiolivro-ui.test.tsx`, `tests/audiolivro-reprodutor.test.ts`.
       Falta: sono e fila (conferir no código) e Safari. Verificar: e2e de destaque ≤ 300 ms do `t0`; retoma na mesma frase; 1º áudio p95 ≤ 1,5 s em staging; **[R]** Safari real de 6 GB.
 - [x] 3.4 Flags `audiolivros`, `audiolivros_nuvem`, `audiolivros_elenco` (PG 0017, SQLite 0059). Feito: `tests/audiolivros-flags.test.ts`, `docs/flags.md`.
-- [ ] 3.5 **[D]** Amostra de 5% ouvida e aprovada. Verificar: aprovação registrada (data e ids dos capítulos ouvidos).
-- [ ] 3.6 Título do capítulo falado duas vezes ("I. I."): decidir se entra no áudio ou se o pré-processador o pula. Verificar: teste do pré-processador com título igual ao primeiro parágrafo.
+- [ ] 3.5 **[D][B]** Amostra de 5% ouvida e aprovada (escuta cega na sessão de bancada; roteiro no runbook, seção 9, passo 4; depende de gerar os 3 livros do piloto). Verificar: aprovação registrada (data e ids dos capítulos ouvidos).
+- [x] 3.6 Feito em 25/11 (decisão assumida: o pré-processador/gerador pula o título; silêncio de 0,4 s, índice mantido; `tituloRepetidoPelaProxima`, `tests/audiolivros-gerar.test.ts`). Título do capítulo falado duas vezes ("I. I."): decidir se entra no áudio ou se o pré-processador o pula. Verificar: teste do pré-processador com título igual ao primeiro parágrafo.
 
 ## 4. F3 Elenco
 

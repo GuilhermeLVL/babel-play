@@ -90,8 +90,38 @@ export function aoMudarIdentidade(cb: (depois: IdentidadeResolvida, antes: Estad
   return () => window.removeEventListener(EVENTO, h);
 }
 
+/* O DONO: o id da conta atual. O estado `conta` não diz QUEM é; o que é guardado só no aparelho (áudio dos cartões)
+   se marca com este id, para a troca conta->conta (que não muda o estado) e a troca entre recargas não vazarem. */
+let donoDaConta: string | null = null;
+const ouvintesDoDono = new Set<(depois: string | null, antes: string | null) => void>();
+
+/** O App informa o id da conta ANTES de `definirIdentidade('conta')`; `null` ao sair. */
+export function definirDonoDaConta(id: string | null): void {
+  const antes = donoDaConta;
+  if (antes === id) return;
+  donoDaConta = id;
+  for (const cb of ouvintesDoDono) cb(id, antes);
+}
+
+export function aoMudarDono(cb: (depois: string | null, antes: string | null) => void): () => void {
+  ouvintesDoDono.add(cb);
+  return () => ouvintesDoDono.delete(cb);
+}
+
+/**
+ * A quem pertence o que é guardado só neste aparelho agora: o id da conta, `anonimo` ou `selfhost`.
+ * `null` quando ainda não se sabe (identidade carregando, ou conta sem id informado): quem guarda por dono NÃO
+ * lê nem grava nesse intervalo.
+ */
+export function donoDaIdentidade(): string | null {
+  if (estado === 'carregando') return null;
+  if (estado === 'conta') return donoDaConta;
+  return estado;
+}
+
 /** Só para testes: volta ao estado de módulo recém-carregado. */
 export function _reiniciarIdentidade(): void {
+  donoDaConta = null;
   estado = estadoInicial();
   armada = false;
   resolver = null;

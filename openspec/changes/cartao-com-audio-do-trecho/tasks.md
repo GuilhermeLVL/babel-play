@@ -34,6 +34,9 @@ Legenda: **[D]** depende do dono; **[R]** pede aparelho real. A mais arriscada v
       Verificar: teste de componente; perfil protegido não vê "Na minha conta"; textos passam no teste de copy.
       Feito 25/11 (sem a opção "Na minha conta", que não existe por decisão): `ajustes/AudioDosCartoes.tsx` em Ajustes > Privacidade, só com a flag ligada: "Guardar o áudio dos cartões neste aparelho" (padrão ligado) e "Apagar todos os áudios". O aviso da voz de terceiros fica fixo no texto da opção (não só na primeira vez). Textos em en/es/ar. Sem teste de componente dedicado.
 
+- [x] 2.6 Correção de privacidade (revisão de segurança): o clipe não passa para outra conta nem sobrevive ao "limpar".
+      Feito 25/11: cada linha leva o id do dono (`definirDonoDaConta` em `identidade.ts`, alimentado por `useSessaoSupabase`); `abrir`/`uso`/`gravar` descartam linhas de outro dono ou sem dono (cobre conta->conta e troca entre recargas; sem dono conhecido não lê nem grava). O ouvinte nasce no boot (`iniciarGuardaDoAudioDoCartao` em `main.tsx`), `signOut` chama `apagarTudo`, e `limparTudo()` e `excluirConta()` (após sucesso) apagam o banco `babel-audio-do-cartao`. Sem migração de schema (campo `dono` opcional; linhas antigas sem dono são descartadas por privacidade). Testes: `tests/audio-do-cartao-privacidade.test.ts`.
+
 ## 3. Guarda na conta (adulto declarado com conta)
 
 > Decisão assumida (recomendação 1 de `docs/backlog/decisoes-do-dono.md` e retenção zero no servidor, 25/11): esta entrega é SÓ LOCAL. A seção 3 não foi implementada; fica como alternativa futura se o dono quiser o clipe entre aparelhos. 3.1 e 3.2 abertas por decisão, não por falta de tempo.

@@ -45,6 +45,7 @@ export type ViewDeRota =
   | 'leitor'
   /** A Leitura ativa (`/leitura` e `/leitura/<textoId>`; flag `leitura_ativa`). Não é a aba `reading` da Sessão. */
   | 'leituraAtiva'
+  | 'diario'
   | 'naoencontrado';
 
 /** As duas áreas clássicas de Personalizar (sem a flag `recompensas_v2`). */
@@ -160,6 +161,7 @@ const SEGMENTO: Record<Exclude<ViewDeRota, 'analysis'>, string> = {
   admin: 'admin',
   leitor: 'leitor',
   leituraAtiva: 'leitura',
+  diario: 'diario',
   naoencontrado: 'nao-encontrado',
 };
 

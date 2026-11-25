@@ -245,6 +245,7 @@
   "{n} MB": "{n} MB",
   "{n} meses grátis": "{n} months free",
   "{n} min": "{n} min",
+  "{n} min de conversa": "{n} min of conversation",
   "{n} minutos": {
     "one": "{n} minute",
     "other": "{n} minutes"
@@ -702,6 +703,7 @@
   "A verificação do arquivo reprovou o modelo ({achados}).": "The file check rejected the model ({achados}).",
   "à vista ou em 12x no cartão": "at once or in 12 card installments",
   "A voz {voz} não existe neste aparelho. Lendo com a voz automática.": "The {voz} voice does not exist on this device. Reading with the automatic voice.",
+  "A voz acabou por agora. A conversa segue só com legenda.": "The voice has run out for now. The conversation continues with captions only.",
   "A voz de alta qualidade não conseguiu ler agora. Seguimos com a voz do aparelho.": "The high-quality voice couldn't read right now. We'll continue with your device's voice.",
   "A voz de alta qualidade não está disponível neste aparelho: ela precisa de mais memória do que celulares e tablets costumam ter.": "The high-quality voice isn't available on this device: it needs more memory than phones and tablets usually have.",
   "A voz de alta qualidade não está disponível neste navegador.": "The high-quality voice isn't available in this browser.",

@@ -54,12 +54,14 @@ import { capMetrics, MOTOR_DA_NUVEM } from '../../gateway/capture/captureMetrics
 import {
   type AudioCapture,
   audioDaTelaFalhouNesteAparelho,
+  haQuadroParaTirar,
   probeLoopback,
   probeServerLoopback,
   probeSystemAudio,
   serverLoopbackSupported,
   superficieCompartilhada,
   type SystemAudioProbe,
+  tirarQuadro,
 } from '../../gateway/capture/systemAudio';
 import { expectedModelIds } from '../../gateway/modelCache';
 import { temCopiaNoAparelho } from '../../gateway/modelManifest';
@@ -237,7 +239,7 @@ import { useAvatarDaLegenda } from './captura/legendas/AvatarDaLegenda';
 let benchmarkPendente: AbortController | null = null;
 import { correcaoNaPratica, praticaPossivel } from '../../core/assistente/praticaDaConversa';
 import type { FalaDoAssistente, MarcaNaLinha } from '../../core/assistente/telaDoAssistente';
-import { FLAG_ASSISTENTE_AO_VIVO, FLAG_CARTAO_COM_AUDIO } from '../../core/planos';
+import { FLAG_ASSISTENTE_AO_VIVO, FLAG_CARTAO_COM_AUDIO, FLAG_CARTAO_COM_CENA } from '../../core/planos';
 import { usePaginaVisivel } from '../../hooks/usePaginaVisivel';
 import {
   contextoDasFalas,
@@ -246,6 +248,7 @@ import {
 } from '../../lib/assistente/falasDoAssistente';
 import { esperaDaLegenda, mioloDoPreparo } from '../../lib/captura/esperaDoPreparo';
 import { guardarClipeDaFraseSalva } from '../../lib/cartoes/audioDoCartao/daFala';
+import { cenaDoCartaoAtiva, guardarCenaDoCartao } from '../../lib/cartoes/cenaDoCartao';
 import { useFlag } from '../../lib/flags';
 import { estabilizarFalas } from '../../lib/legendas/estabilizarFalas';
 import { aoMudarEstadoDaTela, estadoDaTela, mudarEstadoDaTela } from '../../lib/polimento/interprete';
@@ -292,6 +295,8 @@ import { CampoLinha, Interruptor, Segmentos } from './vocab/Dialogo';
 /* A oferta "Legenda sem baixar nada" só existe no desktop fraco, antes de começar: fora do JS da tela
    para todo o resto (`lib/captura/legendaSemBaixar.ts`). */
 /* A oferta da nuvem grátis para aparelho fraco (A10): só existe no aparelho que precisa dela. */
+/* A FOLHA DA CENA (flag `cartao_com_cena`): só chega quando a pessoa pede "Guardar a cena". */
+const FolhaDaCena = lazyComRecarga(() => import('./captura/FolhaDaCena'));
 const OfertaDaNuvemDeAlivio = lazyComRecarga(() => import('./captura/OfertaDaNuvemDeAlivio'));
 /* O MODO INTÉRPRETE (E3 da Fase E): a tela, o controle e a fila de voz chegam só quando alguém entra nele. */
 import { detectarOutroGuardado, guardarDetectarOutro } from './captura/interprete/modoDaConversa';
@@ -2184,8 +2189,28 @@ export default function LiveCapture({
     ligarAnelDoCartao(true);
     return () => ligarAnelDoCartao(false);
   }, [cartaoComAudio, entrada]);
+  /* A CENA DO CARTÃO (flag `cartao_com_cena`, só adulto, só neste aparelho): depois de salvar a palavra, um aviso OFERECE
+     guardar a cena; nada é capturado até a pessoa tocar. Sem faixa de vídeo (microfone, Intérprete) o convite nem aparece. */
+  const cartaoComCena = useFlag(FLAG_CARTAO_COM_CENA);
+  const [cenaPendente, setCenaPendente] = useState<{ cartaoId: string; quadro: HTMLCanvasElement } | null>(null);
+  const oferecerCena = (cartaoId: string) => {
+    if (!cartaoComCena || entrada === 'interprete' || !cenaDoCartaoAtiva() || !haQuadroParaTirar()) return;
+    toast.info(t('Palavra salva. Quer guardar a cena da tela neste cartão?'), {
+      duration: 8000,
+      action: {
+        label: t('Guardar a cena'),
+        onClick: () => {
+          void tirarQuadro().then((quadro) => {
+            if (quadro) setCenaPendente({ cartaoId, quadro });
+            else toast.warn(t('Não deu para pegar um quadro da tela agora.'));
+          });
+        },
+      },
+    });
+  };
   const clipeDoCartaoCriado = useFuncaoEstavel((cartaoId: string, frase: string) => {
     if (cartaoComAudio && entrada !== 'interprete') void guardarClipeDaFraseSalva(cartaoId, frase, speechSegments);
+    oferecerCena(cartaoId);
   });
   const { examineWord, handleAddWordToDeck, glosaDaPalavra } = criarPalavraDaFala({
     aoCriarCartao: clipeDoCartaoCriado,
@@ -4776,6 +4801,22 @@ export default function LiveCapture({
           aoSalvar={(ir) => void handleFinalizeSave(ir)}
           aoDescartar={descartarCaptura}
         />
+      )}
+
+      {cenaPendente && (
+        <Suspense fallback={null}>
+          <FolhaDaCena
+            quadro={cenaPendente.quadro}
+            telaInteira={superficieCompartilhada() === 'monitor'}
+            aoGuardar={async (imagem) => {
+              const ok = await guardarCenaDoCartao(cenaPendente.cartaoId, imagem);
+              if (ok) toast.ok(t('Cena guardada neste aparelho.'));
+              else toast.warn(t('Não deu para guardar a cena neste aparelho.'));
+              return ok;
+            }}
+            aoFechar={() => setCenaPendente(null)}
+          />
+        </Suspense>
       )}
 
       {/* "COMO RESPONDO?" NA PÁGINA (Fase C3): a folha pedida na legenda da captura. No Intérprete, ele a desenha dentro

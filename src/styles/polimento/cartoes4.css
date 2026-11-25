@@ -62,6 +62,7 @@ html[data-quest-novo='true'] .q-revisao .flash .cx-frase-linha .exemplo { margin
 .cx-cena { margin: 0; width: 100%; display: grid; gap: 6px; }
 .cx-cena-quadro, .cx-cena-quadro.ct-quadro { position: relative; display: block; margin: 0; aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden; border: 1.5px solid var(--border-subtle); transition: border-color 0.2s ease, box-shadow 0.2s ease; }
 .cx-cena-quadro > svg, .cx-cena-quadro.ct-quadro > svg { display: block; width: 100%; height: 100%; border: 0; border-radius: 0; }
+.cx-cena-quadro > img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .cx-cena-tempo { position: absolute; left: 8px; top: 8px; display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 999px; background: rgb(20 18 16 / 0.72); color: #f3efe8; font: 700 12px/1 var(--font-mono, monospace); font-style: normal; }
 .cx-cena-tempo svg { width: 13px; height: 13px; }
 .cx-cena.ct-tocando .cx-cena-quadro { border-color: var(--q-acento) !important; box-shadow: 0 0 0 3px color-mix(in srgb, var(--q-acento) 28%, transparent); }

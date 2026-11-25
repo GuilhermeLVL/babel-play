@@ -288,6 +288,13 @@
       "when": 1795616219197,
       "tag": "0040_flag_leitura_voz_local",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1795616219198,
+      "tag": "0041_flag_cartao_com_audio",
+      "breakpoints": true
     }
   ]
 }

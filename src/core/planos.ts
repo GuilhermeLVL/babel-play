@@ -311,7 +311,7 @@ export const FLAG_PARCEIRO_DE_LEITURA = 'parceiro_de_leitura';
 export const FLAG_LEITURA_ATIVA = 'leitura_ativa';
 
 /**
- * LEITURA ATIVA COM VOZ LOCAL (openspec `leitura-ativa-com-moonshine`; migrações PG 0039 e SQLite 0078, PROVISÓRIAS):
+ * LEITURA ATIVA COM VOZ LOCAL (openspec `leitura-ativa-com-moonshine`; migrações PG 0040 e SQLite 0079, PROVISÓRIAS):
  * com a flag (e a `leitura_ativa`), "Ler em voz alta" também funciona sem Web Speech local, ouvindo a leitura em inglês
  * com o Moonshine NO APARELHO. O áudio nunca sai do aparelho. Nasce DESLIGADA e sem regra de plano; ligar é ato do dono.
  */
@@ -429,6 +429,13 @@ export const FLAG_LATENCIA_PUBLICADA = 'latencia_publicada';
  * sem regra de plano; ligar é ato do dono, com backup e o app parado.
  */
 export const FLAG_CHAVE_DEDUP_V2 = 'chave_dedup_v2';
+
+/**
+ * O CARTÃO COM ÁUDIO DO TRECHO (openspec `cartao-com-audio-do-trecho`; migrações PG 0041 e SQLite 0080, provisórias): o cartão guarda
+ * a fala de onde a palavra veio (Ogg Opus curto) SÓ NO APARELHO (IndexedDB) e o verso toca esse clipe antes do trecho da sessão.
+ * Nasce DESLIGADA e sem regra de plano; nenhuma cota nova (o teto é por aparelho, não por conta). Ligar é ato do dono.
+ */
+export const FLAG_CARTAO_COM_AUDIO = 'cartao_com_audio';
 
 /**
  * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,

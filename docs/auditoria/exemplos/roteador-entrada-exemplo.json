@@ -1,0 +1,71 @@
+{
+  "usdPorHoraDeNuvem": 0.058,
+  "sessoes": [
+    {
+      "perfil": "adulto-consentiu",
+      "minutos": 2,
+      "falas": [
+        {
+          "decisao": "manter",
+          "efetiva": "parakeet",
+          "falaS": 4,
+          "latenciaPorRota": {
+            "parakeet": 600,
+            "modelo-menor": 900,
+            "nuvem": 1300
+          }
+        },
+        {
+          "decisao": "manter",
+          "efetiva": "parakeet",
+          "falaS": 4,
+          "latenciaPorRota": {
+            "parakeet": 620,
+            "modelo-menor": 900,
+            "nuvem": 1300
+          }
+        },
+        {
+          "decisao": "manter",
+          "efetiva": "parakeet",
+          "falaS": 4,
+          "latenciaPorRota": {
+            "parakeet": 640,
+            "modelo-menor": 900,
+            "nuvem": 1300
+          }
+        },
+        {
+          "decisao": "modelo-menor",
+          "efetiva": "parakeet",
+          "falaS": 4,
+          "latenciaPorRota": {
+            "parakeet": 660,
+            "modelo-menor": 900,
+            "nuvem": 1300
+          }
+        },
+        {
+          "decisao": "nuvem",
+          "efetiva": "parakeet",
+          "falaS": 4,
+          "latenciaPorRota": {
+            "parakeet": 680,
+            "modelo-menor": 900,
+            "nuvem": 1300
+          }
+        },
+        {
+          "decisao": "manter",
+          "efetiva": "parakeet",
+          "falaS": 4,
+          "latenciaPorRota": {
+            "parakeet": 700,
+            "modelo-menor": 900,
+            "nuvem": 1300
+          }
+        }
+      ]
+    }
+  ]
+}

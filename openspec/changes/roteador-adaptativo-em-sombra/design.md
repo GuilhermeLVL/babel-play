@@ -66,7 +66,7 @@ os ids dos dois catálogos e entra como pendência registrada, não correção.
 "Melhor rota a posteriori" = a rota (dentre as que a guarda permitiria) que teria dado o menor `fimDaFalaAteLegenda` na bancada
 (`scripts/perf/latencia-legenda/`), reexecutando as mesmas falas por rota. Precisão = fração das falas em que a decisão da sombra
 coincide com essa rota, ou ao menos tem latência dentro de 10% dela. Trocas/min = mudanças de decisão sustentadas por minuto.
-Custo/h = nuvem que a sombra teria usado × preço do `custo-de-ia`, comparado a US$ 0,058/h.
+Custo/h = nuvem que a sombra teria usado × preço do `custo-de-ia`, menos a nuvem da rota efetiva (acréscimo), comparado a US$ 0,01/h; a rota Parakeet entra como candidata.
 
 ## Risks / Trade-offs
 
@@ -81,7 +81,7 @@ Custo/h = nuvem que a sombra teria usado × preço do `custo-de-ia`, comparado a
 ## Como medir
 
 - E-005 (critério fixado ANTES de coletar; registrar em `docs/auditoria/` com a data antes da primeira rodada):
-  **seguir** se precisão ≥ 80% contra a melhor rota a posteriori, ≤ 2 trocas/min, custo simulado ≤ US$ 0,058/h e zero decisão de
+  **seguir** se precisão ≥ 80% contra a melhor rota a posteriori, ≤ 2 trocas/min, acréscimo de custo sobre a rota efetiva ≤ US$ 0,01/h (reconciliado em 25/11; ver `docs/auditoria/2026-11-25-criterio-do-roteador-adaptativo.md`) e zero decisão de
   rede para convidado/menor sem consentimento. Qualquer um falhar = **não sair da sombra**, recalibrar ou arquivar.
 - CPU: `decidirAdaptativo` com p99 ≤ 0,05 ms e < 0,1% de um núcleo a 1 decisão/s no perfil fraco; microbench em teste (vitest, 10 000
   chamadas) com folga de 10x sobre a meta, mais medição no aparelho pela marca `frasy:*` do lab.

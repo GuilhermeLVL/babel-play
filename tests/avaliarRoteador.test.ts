@@ -90,8 +90,30 @@ describe('avaliar: resultado conhecido', () => {
     expect(r.custoSimuladoUsdPorHora).toBeCloseTo((1800 / 3600) * 0.1, 8)
     expect(r.custoDaRotaEfetivaUsdPorHora).toBeCloseTo((600 / 3600) * 0.1, 8)
     expect(r.custoAdicionalUsdPorHora).toBeCloseTo((1200 / 3600) * 0.1, 8)
-    // acima do teto de 0,058: falha
-    expect(avaliar({ usdPorHoraDeNuvem: 0.2, sessoes: [sessao(falas, 60)] }).falhas).toContain('custo/h')
+    // acréscimo de 0,0333 > teto de 0,01: falha
+    expect(avaliar({ usdPorHoraDeNuvem: 0.1, sessoes: [sessao(falas, 60)] }).falhas).toContain('custo/h')
+  })
+
+  it('o teto é sobre o ACRÉSCIMO: sombra igual à rota efetiva (mesmo cara) não reprova; 1 h de nuvem a mais reprova', () => {
+    const igual = [fala('nuvem', LAT, 'nuvem-por-trechos', 3600)]
+    const rIgual = avaliar({ usdPorHoraDeNuvem: 0.058, sessoes: [sessao(igual, 60)] })
+    expect(rIgual.custoAdicionalUsdPorHora).toBeCloseTo(0, 8)
+    expect(rIgual.falhas).not.toContain('custo/h')
+    const a_mais = [fala('nuvem', LAT, 'parakeet', 3600)]
+    const rMais = avaliar({ usdPorHoraDeNuvem: 0.058, sessoes: [sessao(a_mais, 60)] })
+    expect(rMais.custoAdicionalUsdPorHora).toBeCloseTo(0.058, 8)
+    expect(rMais.falhas).toContain('custo/h')
+    // dentro do teto: 0,01 de acréscimo exato passa
+    const limite = [fala('nuvem', LAT, 'parakeet', (0.01 / 0.058) * 3600)]
+    expect(avaliar({ usdPorHoraDeNuvem: 0.058, sessoes: [sessao(limite, 60)] }).falhas).not.toContain('custo/h')
+  })
+
+  it('a rota Parakeet é candidata: `manter` com efetiva parakeet vale a latência do Parakeet', () => {
+    const lat = { parakeet: 600, 'modelo-menor': 900, nuvem: 1300 }
+    expect(melhorRotaAPosteriori(lat)).toEqual({ rota: 'parakeet', ms: 600 })
+    expect(acertou(fala('manter', lat, 'parakeet'))).toBe(true) // manter = Parakeet = a melhor
+    expect(acertou(fala('modelo-menor', lat, 'parakeet'))).toBe(false) // 50% pior que o Parakeet
+    expect(acertou(fala('nuvem', lat, 'parakeet'))).toBe(false)
   })
 
   it('nuvem para convidado, menor ou sem consentimento reprova, mesmo com o resto perfeito', () => {
@@ -116,6 +138,6 @@ describe('avaliar: resultado conhecido', () => {
   })
 
   it('o critério é o escrito antes da coleta', () => {
-    expect(CRITERIO).toMatchObject({ precisaoMinima: 0.8, trocasPorMinutoMaximas: 2, usdPorHoraMaximo: 0.058 })
+    expect(CRITERIO).toMatchObject({ precisaoMinima: 0.8, trocasPorMinutoMaximas: 2, acrescimoUsdPorHoraMaximo: 0.01 })
   })
 })

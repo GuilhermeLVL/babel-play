@@ -16,7 +16,7 @@
  * NUNCA ATRAPALHA A FALA. Sem IndexedDB, sem `crypto.subtle` (página sem HTTPS), banco bloqueado ou
  * cheio: toda operação devolve "não tenho" e a voz segue pelo caminho de sempre, a rede.
  */
-import { registrarArmazemPorConta } from '../armazemLocalPorConta';
+import { bancoExiste, registrarArmazemPorConta } from '../armazemLocalPorConta';
 import { donoDaIdentidade } from '../identidade';
 
 /** O que identifica um áudio: muda qualquer um, é outro áudio. */
@@ -215,6 +215,12 @@ export function comDonoDoCache(cache: GuardadosDaVoz, dono: () => string | null 
     },
     limpar: cache.limpar,
     async purgarDeOutros() {
+      /* Só confere quem já guardou um dono: abrir o banco por conta da guarda o criaria onde ninguém nunca ouviu nada. */
+      try {
+        if (localStorage.getItem(CHAVE_DO_DONO_DO_CACHE_DE_VOZ) === null) return;
+      } catch {
+        return;
+      }
       await garantir();
     },
   };
@@ -223,7 +229,7 @@ export function comDonoDoCache(cache: GuardadosDaVoz, dono: () => string | null 
 /* Apaga tudo ao sair/trocar de conta, limpar tudo e excluir a conta (guarda comum, `lib/armazemLocalPorConta`); o dono do
    cache fecha o caso da recarga com outra conta. */
 const limparDoAparelho = async () => {
-  await cacheDeVozDoAparelho()?.limpar();
+  if (typeof indexedDB !== 'undefined' && (await bancoExiste(indexedDB, BANCO))) await cacheDeVozDoAparelho()?.limpar();
   try {
     localStorage.removeItem(CHAVE_DO_DONO_DO_CACHE_DE_VOZ);
   } catch {

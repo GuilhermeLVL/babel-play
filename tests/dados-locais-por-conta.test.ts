@@ -378,3 +378,18 @@ describe('o cache de voz tem dono', () => {
     expect(localStorage.getItem(CHAVE_DO_DONO_DO_CACHE_DE_VOZ)).toBeNull()
   })
 })
+
+describe('a guarda não cria banco onde ninguém gravou nada (o e2e da leitura ativa confere que não há banco de áudio/voz)', () => {
+  it('iniciar, trocar de conta e sair não deixam nenhum banco IndexedDB', async () => {
+    entrar('A')
+    iniciarGuardaDosArmazensLocais()
+    await espera()
+    definirDonoDaConta('B')
+    await espera()
+    definirDonoDaConta(null)
+    definirIdentidade('anonimo')
+    await espera()
+    await signOut()
+    expect(await bancos()).toEqual([])
+  })
+})

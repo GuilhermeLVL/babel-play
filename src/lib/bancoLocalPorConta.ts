@@ -2,7 +2,7 @@
  * O BANCO POR CONTA: um banco IndexedDB com uma loja cujas linhas levam `dono` (peça de `armazemLocalPorConta`, em arquivo
  * à parte para os armazéns que só usam o localStorage não carregarem o IndexedDB no JS inicial).
  */
-import { registrarArmazemPorConta } from './armazemLocalPorConta';
+import { bancoExiste, registrarArmazemPorConta } from './armazemLocalPorConta';
 import { donoDaIdentidade } from './identidade';
 
 /* ─────────────── IndexedDB: um banco com uma loja cujas linhas levam `dono` ─────────────── */
@@ -87,6 +87,7 @@ export function criarBancoPorConta<L extends { dono?: string }>(o: {
     soDoDono,
     async apagarTudo() {
       try {
+        if (!(await bancoExiste(fabrica, o.banco))) return;
         const db = await abrir();
         if (db) await pedido(loja(db, 'readwrite').clear());
       } catch {
@@ -96,7 +97,7 @@ export function criarBancoPorConta<L extends { dono?: string }>(o: {
     async purgarDeOutros() {
       try {
         const dono = donoAtual();
-        if (!dono) return;
+        if (!dono || !(await bancoExiste(fabrica, o.banco))) return;
         const db = await abrir();
         if (db) await soDoDono(db, dono);
       } catch {

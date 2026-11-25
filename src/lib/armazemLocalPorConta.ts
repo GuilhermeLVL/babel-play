@@ -42,6 +42,33 @@ export function armazensPorContaRegistrados(): string[] {
   return [...registro.keys()];
 }
 
+/**
+ * O banco existe? A guarda só APAGA o que existe: abrir um banco que nunca foi usado o criaria vazio (e o `open` de quem
+ * nunca gravou áudio, voz ou diário não pode deixar esses bancos no aparelho). Sem `databases()`, responde que existe.
+ */
+export function bancoExiste(fabrica: IDBFactory | null | undefined, nome: string): Promise<boolean> {
+  if (!fabrica) return Promise.resolve(false);
+  return new Promise<boolean>((ok) => {
+    try {
+      let existe = true;
+      const r = fabrica.open(nome);
+      /* Se precisa criar (versão 0 -> 1), o banco não existia: aborta a criação e ele não nasce. */
+      r.onupgradeneeded = () => {
+        existe = false;
+        r.transaction?.abort();
+      };
+      r.onsuccess = () => {
+        r.result.close();
+        ok(existe);
+      };
+      r.onerror = () => ok(existe); // a criação abortada acima também cai aqui
+      r.onblocked = () => ok(true);
+    } catch {
+      ok(true);
+    }
+  });
+}
+
 /** Os armazéns registrados (a guarda os percorre; vive em `guardaDosArmazensLocais`, num chunk à parte). */
 export const armazensRegistrados = (): ArmazemPorConta[] => [...registro.values()];
 

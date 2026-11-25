@@ -5,7 +5,8 @@
  * `processLocally` (Chrome/Edge 139+, que FALHA FECHADO: lança em vez de cair na nuvem calada). Ele não recebe a
  * fábrica de motores do app (`routeStt`, `motorDoMicrofone`), então não tem como abrir a nuvem, nem com o
  * consentimento de nuvem dado em outra tela. Sem motor local, `disponivel` é falso e a tela esmaece o modo.
- * [Pendente: o modelo local do roteador (Moonshine, `startLive`) como segundo motor; hoje só a Web Speech local.]
+ * O segundo motor é o Moonshine no aparelho (`motorMoonshine.ts`, flag `leitura_voz_local`): só entra quando a tela diz
+ * que a flag está ligada e que o modelo coube/foi aceito (`definirMoonshineLocal`).
  *
  * O ÁUDIO MORRE A CADA FRASE. Os buffers vivem no motor; `descartar()` encerra a sessão e abre outra limpa (o
  * motor solta o que ouviu). A tela chama ao fim de cada frase (o alinhador diz quando), ao pausar, ao sair e no
@@ -14,6 +15,7 @@
 import { type ErroDaWebSpeech, WebSpeechStt } from '../../gateway/adapters/webSpeech';
 import type { SttCallbacks, SttSession } from '../../gateway/capabilities';
 import { temReconhecimentoLocal } from '../captura/webSpeechDoSistema';
+import { criarMotorMoonshineLocal } from './motorMoonshine';
 
 /** Um motor que reconhece NO aparelho. */
 export interface MotorLocal {
@@ -29,8 +31,19 @@ export const WEB_SPEECH_LOCAL: MotorLocal = {
   iniciar: (lang, cb) => new WebSpeechStt({ processLocally: true }).startLive(lang, cb),
 };
 
-/** Os motores locais, na ordem de preferência. Nunca um motor de nuvem aqui. */
-export const MOTORES_LOCAIS: readonly MotorLocal[] = [WEB_SPEECH_LOCAL];
+/**
+ * O Moonshine local está liberado? Quem sabe é a tela (flag `leitura_voz_local`, aparelho, consentimento do download):
+ * ela chama `definirMoonshineLocal`. Desligado por padrão, então sem a tela nada muda.
+ */
+let moonshineLiberado = false;
+export function definirMoonshineLocal(liberado: boolean): void {
+  moonshineLiberado = liberado;
+}
+
+export const MOONSHINE_LOCAL: MotorLocal = criarMotorMoonshineLocal({ disponivel: () => moonshineLiberado });
+
+/** Os motores locais, na ordem de preferência (Web Speech local primeiro). Nunca um motor de nuvem aqui. */
+export const MOTORES_LOCAIS: readonly MotorLocal[] = [WEB_SPEECH_LOCAL, MOONSHINE_LOCAL];
 
 export function ouvinteDisponivel(motores: readonly MotorLocal[] = MOTORES_LOCAIS): boolean {
   return motores.some((m) => m.disponivel());
@@ -109,6 +122,9 @@ export function abrirOuvinteLocal(o: {
     },
     descartar() {
       if (!vivo) return;
+      /* O Moonshine solta o trecho e segue com o microfone aberto (reabrir perderia o começo da frase seguinte). */
+      const solta = (sessao as { descartar?: () => void } | null)?.descartar;
+      if (solta) return solta.call(sessao);
       encerrar();
       sessao = abrir();
     },

@@ -281,6 +281,13 @@
       "when": 1795616218198,
       "tag": "0039_flag_chave_dedup_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1795616219197,
+      "tag": "0040_flag_leitura_voz_local",
+      "breakpoints": true
     }
   ]
 }

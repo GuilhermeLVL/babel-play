@@ -2,6 +2,7 @@ import { makeCloze } from '@core';
 import { ArrowLeft, BookOpen, Mic, Volume2 } from 'lucide-react';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
+import { MB_DO_MOTOR_LOCAL, type MotorDaSombra, motorDaSombra, motorEhLocal } from '../../../core/fala/motorDaSombra';
 import {
   aplicarParcial,
   criarAlinhador,
@@ -21,6 +22,7 @@ import type { Retangulo } from '../../../core/leitura/posicaoDoCartao';
 import { leituraValeAMissao, rodadaDaLeitura } from '../../../core/leitura/rodadaDaLeitura';
 import { type ContextoDaPalavra, formaDeConsulta } from '../../../core/leitura/sentidoNoContexto';
 import { chavesDeLema, mesmoLema } from '../../../core/leitura/textoDaLeitura';
+import { FLAG_LEITURA_VOZ_LOCAL } from '../../../core/planos';
 import { chaveDaPalavra } from '../../../core/texto/palavra';
 import { lerMissoes, salvarRodada } from '../../../data/api';
 import { creditoDoTexto } from '../../../data/leitura/acervo';
@@ -28,15 +30,20 @@ import { buildGateway } from '../../../gateway';
 import { getActiveProfile } from '../../../gateway/activeProfile';
 import { ficharCartao } from '../../../lib/adicionarAoDeck';
 import { consentiuNuvem } from '../../../lib/consentimentoDeNuvem';
+import { perfilDoDispositivo } from '../../../lib/dispositivo/perfil';
 import { marcarSalva, useEtiquetador } from '../../../lib/etiquetas/indiceDeEtiquetas';
+import { aceitouBaixar, guardarAceite } from '../../../lib/fala/consentimentoDaSombra';
+import { useFlag } from '../../../lib/flags';
 import { t, tp } from '../../../lib/i18n';
 import { useLangConfig } from '../../../lib/langConfig';
 import { toBcp47 } from '../../../lib/languages';
 import {
   abrirOuvinteLocal,
+  definirMoonshineLocal,
   type FalhaDoOuvinte,
   ouvinteDisponivel,
   type OuvinteLocal,
+  WEB_SPEECH_LOCAL,
 } from '../../../lib/leituraAtiva/ouvinteLocal';
 import {
   avisoDoMicrofoneVisto,
@@ -95,7 +102,26 @@ export default function SessaoDeLeitura(props: {
   const etiquetador = useEtiquetador({ langDaPessoa: langConfig.mine, idiomas: [IDIOMA_DOS_TEXTOS] });
 
   const [fase, setFase] = useState<Fase>('antes');
-  const vozAltaPossivel = useMemo(() => ouvinteDisponivel(), []);
+  /* VOZ LOCAL (openspec `leitura-ativa-com-moonshine`): sem Web Speech local, e com a flag `leitura_voz_local`, o
+     Moonshine ouve no aparelho (só inglês). Com Web Speech local, ele segue sendo o preferido e nada é baixado. */
+  const flagVozLocal = useFlag(FLAG_LEITURA_VOZ_LOCAL);
+  const perfil = perfilDoDispositivo();
+  const escolhaLocal = motorDaSombra({
+    webSpeechExiste: false,
+    webSpeechPermitido: false,
+    idioma: IDIOMA_DOS_TEXTOS,
+    aparelhoFraco: perfil.tipo === 'celular-fraco' || perfil.tipo === 'quest',
+    economiaDeDados: perfil.sinais.economiaDeDados,
+    flag: flagVozLocal,
+  });
+  const motorMoonshine: MotorDaSombra | null = motorEhLocal(escolhaLocal.motor) ? escolhaLocal.motor : null;
+  definirMoonshineLocal(motorMoonshine !== null);
+  const webSpeechLocal = useMemo(() => ouvinteDisponivel([WEB_SPEECH_LOCAL]), []);
+  const vozAltaPossivel = webSpeechLocal || motorMoonshine !== null;
+  const usaMoonshine = !webSpeechLocal && motorMoonshine !== null;
+  /* O modelo local: `null` = não pedido; número = % baixado; 'falhou'. */
+  const [preparo, setPreparo] = useState<number | 'falhou' | null>(null);
+  const usouMoonshine = useRef(false);
   const [modo, setModo] = useState<ModoDeLeitura>(() => {
     const m = modoPreferido();
     return m === 'vozAlta' && !vozAltaPossivel ? 'ouvir' : m;
@@ -146,6 +172,22 @@ export default function SessaoDeLeitura(props: {
   const religarAoFimDaFala = useRef<number | null>(null);
   const pedidosDeFala = useRef(0);
 
+  /* ── o modelo do Moonshine (baixado só depois do aceite; sem aceite não há requisição ao Hub) ── */
+  const prepararMoonshine = async (): Promise<boolean> => {
+    if (!motorMoonshine) return true;
+    usouMoonshine.current = true;
+    setPreparo(0);
+    try {
+      const m = await import('../../../lib/fala/transcritorDaSombra');
+      await m.prepararSombraLocal(motorMoonshine, (f) => montada.current && setPreparo(Math.round(f * 100)));
+      if (montada.current) setPreparo(null);
+      return true;
+    } catch {
+      if (montada.current) setPreparo('falhou');
+      return false;
+    }
+  };
+
   /* ── o ouvido local ── */
   const pararMic = () => {
     religarAoFimDaFala.current = null;
@@ -178,6 +220,9 @@ export default function SessaoDeLeitura(props: {
       ouvinte.current?.parar();
       ouvinte.current = null;
       cancelSpeech();
+      /* Solta o worker do modelo; a próxima leitura o recria do cache. */
+      if (usouMoonshine.current)
+        void import('../../../lib/fala/transcritorDaSombra').then((m) => m.liberarSombraLocal());
     };
   }, []);
   /* Aba em segundo plano: o microfone para na hora (e a fala de "Ouvir esta frase" não o religa); só volta com o
@@ -254,8 +299,20 @@ export default function SessaoDeLeitura(props: {
     if (m === 'vozAlta') ligarMic();
   };
   const aoComecar = () => {
-    if (modo === 'vozAlta' && (protegido || !avisoDoMicrofoneVisto())) setAvisoAberto(true);
+    const faltaAceite = usaMoonshine && motorMoonshine !== null && !aceitouBaixar(motorMoonshine);
+    if (modo === 'vozAlta' && (protegido || !avisoDoMicrofoneVisto() || faltaAceite)) setAvisoAberto(true);
+    else if (modo === 'vozAlta' && usaMoonshine) void prepararEComecar();
     else comecar(modo);
+  };
+  /* Aquece o modelo na INTENÇÃO: quem já aceitou o download e escolhe "Ler em voz alta" começa a carregá-lo do cache
+     agora, para o "Começar" não esperar. Sem aceite, nada é pedido. */
+  const escolherModo = (m: ModoDeLeitura) => {
+    setModo(m);
+    if (m === 'vozAlta' && usaMoonshine && motorMoonshine !== null && aceitouBaixar(motorMoonshine) && preparo === null)
+      void prepararMoonshine();
+  };
+  const prepararEComecar = async () => {
+    if (await prepararMoonshine()) comecar('vozAlta');
   };
   const terminei = () => {
     pararMic();
@@ -493,7 +550,9 @@ export default function SessaoDeLeitura(props: {
         icone: <Mic aria-hidden />,
         nome: t('Ler em voz alta'),
         sobre: vozAltaPossivel
-          ? t('O Frasy acompanha sua voz e acende cada palavra.')
+          ? usaMoonshine
+            ? t('O Frasy acompanha sua voz neste aparelho e acende cada palavra.')
+            : t('O Frasy acompanha sua voz e acende cada palavra.')
           : t(
               'Este navegador ainda não consegue ouvir você sem mandar a voz para fora. Use o Chrome ou o Edge no computador.',
             ),
@@ -554,7 +613,7 @@ export default function SessaoDeLeitura(props: {
                 aria-checked={modo === m.id}
                 aria-disabled={!m.ok || undefined}
                 data-modo={m.id}
-                onClick={() => m.ok && setModo(m.id)}
+                onClick={() => m.ok && escolherModo(m.id)}
               >
                 <strong>
                   {m.icone} {m.nome}
@@ -576,13 +635,28 @@ export default function SessaoDeLeitura(props: {
         {avisoAberto && (
           <AvisoDoMicrofone
             protegido={protegido}
+            downloadMb={
+              usaMoonshine && motorMoonshine !== null
+                ? MB_DO_MOTOR_LOCAL[motorMoonshine as keyof typeof MB_DO_MOTOR_LOCAL]
+                : undefined
+            }
             aoLigar={() => {
               setAvisoAberto(false);
               if (!protegido) marcarAvisoDoMicrofoneVisto();
-              comecar('vozAlta');
+              if (usaMoonshine && motorMoonshine !== null) {
+                guardarAceite(motorMoonshine);
+                void prepararEComecar();
+              } else comecar('vozAlta');
             }}
             aoRecusar={() => setAvisoAberto(false)}
           />
+        )}
+        {preparo !== null && (
+          <p className="la-credito" role="status" data-testid="preparo-do-moonshine">
+            {preparo === 'falhou'
+              ? t('Não deu para baixar o modelo agora. Tente de novo ou leia em silêncio.')
+              : t('Baixando o ajudante que ouve você: {n}%', { n: preparo })}
+          </p>
         )}
       </div>
     );

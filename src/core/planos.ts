@@ -311,6 +311,13 @@ export const FLAG_PARCEIRO_DE_LEITURA = 'parceiro_de_leitura';
 export const FLAG_LEITURA_ATIVA = 'leitura_ativa';
 
 /**
+ * LEITURA ATIVA COM VOZ LOCAL (openspec `leitura-ativa-com-moonshine`; migrações PG 0039 e SQLite 0078, PROVISÓRIAS):
+ * com a flag (e a `leitura_ativa`), "Ler em voz alta" também funciona sem Web Speech local, ouvindo a leitura em inglês
+ * com o Moonshine NO APARELHO. O áudio nunca sai do aparelho. Nasce DESLIGADA e sem regra de plano; ligar é ato do dono.
+ */
+export const FLAG_LEITURA_VOZ_LOCAL = 'leitura_voz_local';
+
+/**
  * O ACESSO RESTRITO SEM CONTA (openspec `acesso-sem-conta-v2`; migrações PG 0022 e SQLite 0064): depois da 1ª
  * sessão, quem não tem conta e se declara adulto passa pela porta de entrada. Nasce DESLIGADA e sem regra de
  * plano; a regra mora em `src/core/acessoSemConta.ts` (a flag só liga o fluxo). Desligada = comportamento de hoje.

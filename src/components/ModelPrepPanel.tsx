@@ -4,6 +4,7 @@ import React from 'react';
 import { estimarTempo, faixaEmTexto } from '../lib/dispositivo/vazao';
 import { falhaDaCaptura } from '../lib/falhas/falhaNaTela';
 import { numeroCom, t, tp } from '../lib/i18n';
+import SeloDeLatencia from './views/captura/SeloDeLatencia';
 
 /**
  * Painel de PREPARAÇÃO DO MODELO local — honesto e visível (antes: uma barrinha de 1.5px no
@@ -314,6 +315,7 @@ function PainelDoPreparo({
           </span>
         </p>
       )}
+      <SeloDeLatencia />
       {trechos > 0 && (
         <p className="text-[12px] text-ink-muted" data-testid="falas-guardadas">
           {tp(

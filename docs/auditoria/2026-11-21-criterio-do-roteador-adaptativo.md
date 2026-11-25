@@ -1,4 +1,4 @@
-# Critério de saída do roteador adaptativo em sombra (E-005)
+# [SUBSTITUÍDO por `2026-11-25-criterio-do-roteador-adaptativo.md`] Critério de saída do roteador adaptativo em sombra (E-005)
 
 Data: 2026-11-21. Openspec: `openspec/changes/roteador-adaptativo-em-sombra/` (tarefa 1.1). **Este critério é escrito ANTES de
 qualquer rodada de coleta e não muda depois de ver o número**: se precisar mudar, vale a data do novo commit e as rodadas

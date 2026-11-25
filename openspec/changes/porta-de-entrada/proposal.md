@@ -43,3 +43,13 @@ fichou cem palavras sem conta nunca ouve que vai perder tudo ao trocar de navega
 - Migrar rodadas, recordes, presenças e créditos de conquista (`migracao.ts:12-14`): cada um precisa
   de chave de idempotência própria no servidor. Fica registrado como a dívida que é.
 - Facebook e Apple: a arquitetura aceita, e é decisão de quando.
+
+## Revisão de 25/11/2026
+
+- **Estado**: as seções 1, 4 e 5 e quase tudo das 2 e 3 estão feitas e na main (porta que abre no app, teto 5/80 na completa e 20 na estática, avisos por marco, Google ligado em `Login.tsx`). Abertas de verdade: 2.4 (só o 507 de palavras; o de sessões já tem teste), 3.3 (reescrita: a função `abaExigeConta` não existe mais, e a aba livre é a Coleção) e 6.2 (conferência no navegador). O que ficou VELHO: a `acesso-sem-conta-v2` (arquivada em 23/11) criou a porta obrigatória atrás da flag `acesso_restrito_sem_conta` (desligada); esta change descreve o comportamento com a flag DESLIGADA, que continua valendo como padrão, e a conferência 6.2 se funde com a 6.1 daquela. O "Non-Goals" sobre verificar e-mail/2FA segue valendo. Os PRs #201, #202, #205 e #206 não tocam a porta.
+- **Esforço**: P (cerca de meio dia: 1 teste de servidor efêmero, 1 teste de componente, 1 roteiro manual).
+- **Valor para quem usa**: médio (já entregue; falta prova e regressão).
+- **Dependências**: `acesso-sem-conta-v2` 6.1 e 6.2 (rampa, do dono) decidem se a porta obrigatória substitui esta; sem conflito de arquivo com as outras cinco changes. Depois de fechar 2.4, 3.3 e 6.2, o spec `conta` deve ser sincronizado com `openspec/specs/modo-anonimo/spec.md` (já tem teto e convites) e a change arquivada.
+- **Decisões do dono**:
+  1. O que fazer com esta change: (A) fechar 2.4 e 3.3, fundir a 6.2 e arquivar; (B) arquivar já, sem 2.4 e 3.3, registrando-as como dívida de teste; (C) manter aberta até a rampa da `acesso-sem-conta-v2`. **Recomendo A** (barato, e o teto de palavras é regra de produto).
+  2. A conferência no navegador (6.2): o dono faz junto do staging da `acesso-sem-conta-v2` (recomendado) ou o agente roda um roteiro Playwright e o dono só confere as capturas.

@@ -25,11 +25,12 @@ inglês. A rota pelo inglês MUST NOT ser usada quando houver uma rota melhor di
 - **WHEN** o Translator nativo do Chrome desktop está pronto para es→pt
 - **THEN** a fala é traduzida pelo nativo, e nenhum modelo da rota pelo inglês é baixado
 
-#### Scenario: Qualidade mínima do pivô
+#### Scenario: Qualidade mínima do pivô (META ABERTA em 25/11/2026)
 
-- **WHEN** o juiz automático (`celular/juiz-traducao.mjs`) avalia as traduções es→pt do cenário mercado feitas pela rota pelo
-  inglês
-- **THEN** a nota média é de pelo menos 3/5
+- **WHEN** o juiz automático (`celular/juiz-traducao.mjs`, via `claude -p`, sem créditos de API) avalia as traduções es→pt do
+  cenário mercado feitas pela rota pelo inglês
+- **THEN** a nota média é de pelo menos 3/5 (medido: 2,33 e 2,56 com opus-mt, 2,89 com Bergamot es-en; a meta passa a ser
+  perseguida por `traducao-local-por-direcao`, e o piso aceito até lá é decisão do dono, tarefa 6.1)
 
 ### Requirement: O par sem tradução no aparelho é anunciado antes de começar
 

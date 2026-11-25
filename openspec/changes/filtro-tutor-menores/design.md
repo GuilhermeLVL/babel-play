@@ -104,5 +104,5 @@ Log `ia_saida_filtrada` (categoria, função, `requestId`), métrica `ia_saida_f
 No "Como respondo?" o perfil protegido não abre fluxo (`emFluxo` só para quem não é menor): o provedor é chamado sem
 `stream`, o resultado passa pelo filtro e a rota escreve as sugestões de uma vez (caminho que já existia para quando a
 perna não faz fluxo). Custo: a primeira sugestão do menor chega mais tarde. No parceiro de leitura, a linha lida do cache
-de perfil protegido também é conferida. Fora do filtro: `traducao` (legenda, texto de terceiros) e o polimento já gravado
-antes (`jaPolido`).
+de perfil protegido também é conferida. Fora do filtro: `traducao` (legenda, texto de terceiros). O polimento já gravado antes (`jaPolido`) passou a ser conferido
+na 4.1b (recusa o lote inteiro).

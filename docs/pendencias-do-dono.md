@@ -147,8 +147,6 @@ Registrados para não se perderem; não são do dono, mas ficaram abertos nas ch
 - `api-e-mcp` (P3) · Decidir se a API pública/MCP entra no roadmap.
 - `estrutura-por-dominio-proposta` (P3) · 2.1 · Aprovar ou recusar a árvore-alvo e a ordem.
 
-<<<<<<< HEAD
-
 ## Parte 3. Revisão de 25/11/2026 de seis changes vivas (decisões novas, com recomendação)
 
 Detalhe e justificativa: seção "Revisão de 25/11/2026" no fim de cada `proposal.md`.
@@ -160,7 +158,7 @@ Detalhe e justificativa: seção "Revisão de 25/11/2026" no fim de cada `propos
 - `polimento-movimento` · aprovar a aparência do tema Água e da barra de cinco com capturas lado a lado; manter a exceção do canvas; respeitar "reduzir movimento" do sistema por padrão (recomendado).
 - # `audiolivros` · motor Supertonic 3 F1 condicionado ao parecer sobre OpenRAIL-M (recomendado); enviar o pedido jurídico agora; piloto de 3 livros primeiro, na ortografia que o leitor mostra.
 
-## Parte 3. Changes novas de planejamento (25/11/2026; branch `chore/preparo-specs-3`)
+## Parte 4. Changes novas de planejamento (25/11/2026; branch `chore/preparo-specs-3`)
 
 Só planejamento: nenhuma flag nasce ligada e nenhum código mudou. Detalhe e recomendações na seção "Decisões do dono" de cada `proposal.md`.
 

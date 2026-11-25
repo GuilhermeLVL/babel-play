@@ -56,3 +56,9 @@ o VAD de uma frase) -> `leitura-ativa-com-moonshine` (reusa o capturador; depend
 | `repetir-e-pausar-por-frase`  | P2     | M       | ligar a flag; decidir vídeo local (fora de escopo); fusão `ditado`/`ditadoDeFrase` |
 | `sombra-sem-web-speech`       | P2     | G       | idiomas além de en; texto de privacidade; ligar a flag                             |
 | `leitura-ativa-com-moonshine` | P2     | M       | recrutar 10 a 20 brasileiros; ligar `leitura_voz_local` (e `leitura_ativa`)        |
+
+## Atualização de 25/11/2026
+
+O plano consolidado (ondas por conflito de arquivo, bancadas e o que espera o dono) está em `docs/backlog/plano-de-execucao.md`.
+A lista única e numerada de decisões, incluindo as 10 incertas acima, está em `docs/backlog/decisoes-do-dono.md`.
+Em caso de divergência com a ordem desta página, vale o plano novo.

@@ -9,6 +9,7 @@
  * O que o navegador NÃO informa não é inventado: a Web Speech só dá nome, idioma e `localService`.
  * "Natural" é a heurística de nome de `isNeuralVoice` (a mesma que escolhe a automática).
  */
+import { idiomaDoKitten, VOZES_DO_KITTEN } from '../../core/voz/kitten';
 import {
   idiomaDoSupertonic,
   MB_DO_SUPERTONIC,
@@ -21,6 +22,7 @@ import { vozesUteis } from '../../core/voz/vozesUteis';
 import { idiomaDaInterface, t } from '../i18n';
 import { codigoDeFala, type VoiceInfo, voicesFor } from '../tts';
 import { VOZ_AUTOMATICA, VOZ_DA_NUVEM, vozDaNuvemDisponivel, vozEmUso } from './preferenciaDeVoz';
+import { decisaoDoKitten, kittenOferecido, modeloKittenPronto, VOZ_KITTEN } from './vozKitten';
 import {
   modeloNoAparelho,
   VOZ_NO_APARELHO,
@@ -31,7 +33,7 @@ import {
 export interface OpcaoDeVoz {
   /** O que vai para a preferência: `''` (automática), `@nuvem`, ou o nome exato da voz do aparelho. */
   id: string;
-  tipo: 'automatica' | 'nuvem' | 'no-aparelho' | 'aparelho';
+  tipo: 'automatica' | 'nuvem' | 'no-aparelho' | 'kitten' | 'aparelho';
   nome: string;
   /** A variante (o país do sotaque) ou a frase que diz o que a opção é. */
   detalhe: string;
@@ -39,6 +41,8 @@ export interface OpcaoDeVoz {
   etiquetas: string[];
   /** Só na voz de alta qualidade com o modelo baixado: qual das 10 vozes do modelo esta linha é. */
   vozDoModelo?: VozDoSupertonic;
+  /** Só na voz natural do Kitten com o modelo baixado: a chave da voz (`beatriz`, `thiago`...). */
+  vozDoKitten?: string;
 }
 
 /**
@@ -132,6 +136,31 @@ export function opcoesDeVoz(
       });
     }
   }
+  /* A voz natural no aparelho (Kitten, flag `voz_kitten`): serve todo perfil. Baixada, vira uma linha por voz; antes, uma
+     linha só, que o cartão do seletor explica e baixa. */
+  const kitten = idiomaDoKitten(idioma);
+  if (kitten && kittenOferecido()) {
+    if (modeloKittenPronto(kitten)) {
+      VOZES_DO_KITTEN[decisaoDoKitten().variante][kitten].forEach((v, i) =>
+        opcoes.push({
+          id: VOZ_KITTEN,
+          tipo: 'kitten',
+          nome: t('{nome} (voz natural)', { nome: v.nome }),
+          detalhe: t('Grátis, lê neste aparelho e sem internet.'),
+          etiquetas: i === 0 ? [t('No aparelho'), t('Recomendada')] : [t('No aparelho')],
+          vozDoKitten: v.chave,
+        }),
+      );
+    } else {
+      opcoes.push({
+        id: VOZ_KITTEN,
+        tipo: 'kitten',
+        nome: t('Voz natural (no aparelho)'),
+        detalhe: t('Grátis. Baixa uma vez e depois funciona sem internet.'),
+        etiquetas: [t('No aparelho')],
+      });
+    }
+  }
   /* A recomendada é a que a "Automática" lê: natural, no aparelho e do país exato do idioma (`core/voz/melhorVoz.ts`). */
   /* A ordem da lista é a da recomendação: a melhor primeiro, depois as outras do mesmo idioma. */
   const vozes = vozesUteis(voicesFor(idioma), codigoDeFala(idioma));
@@ -145,6 +174,7 @@ export function nomeDaVozEmUso(idioma: string, nuvem: boolean = vozDaNuvemDispon
   if (id === VOZ_AUTOMATICA) return t('Automática');
   if (id === VOZ_DA_NUVEM) return t('Voz natural');
   if (id === VOZ_NO_APARELHO) return t('Voz de alta qualidade');
+  if (id === VOZ_KITTEN) return t('Voz natural (no aparelho)');
   return nomeLegivelDaVoz(id);
 }
 

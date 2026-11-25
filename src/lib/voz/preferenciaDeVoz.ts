@@ -27,6 +27,7 @@ import { getEntitlements, onPlanChange } from '../entitlements';
 import { flagLigada } from '../flagsCache';
 import { aoMudarPreferencias, carregarPreferencias, lerPreferencias, salvarPreferencias } from '../preferencias';
 import { aoMudarVozes, getVoicePrefs, onVoicePrefsChange, setVoicePref, setVoicePrefs, vozAceitaExiste } from '../tts';
+import { aoMudarKitten, kittenOferecido, modeloKittenPronto, VOZ_KITTEN } from './vozKitten';
 import { aoMudarVozNoAparelho, VOZ_NO_APARELHO, vozNoAparelhoPronta } from './vozNoAparelho';
 
 /** Nada escolhido: o app decide (a melhor voz do aparelho; no intérprete, a da nuvem quando o plano tem). */
@@ -60,6 +61,8 @@ export function vozEmUso(idioma: string, nuvem: boolean = vozDaNuvemDisponivel()
   if (guardada === VOZ_DA_NUVEM) return nuvem ? VOZ_DA_NUVEM : VOZ_AUTOMATICA;
   /* A voz de alta qualidade no aparelho: só com a flag, o perfil, o modelo baixado e o idioma do motor. */
   if (guardada === VOZ_NO_APARELHO) return vozNoAparelhoPronta(idioma) ? VOZ_NO_APARELHO : VOZ_AUTOMATICA;
+  /* A voz natural do Kitten: só com a flag, o aparelho aceito e o modelo do idioma baixado. */
+  if (guardada === VOZ_KITTEN) return kittenOferecido() && modeloKittenPronto(idioma) ? VOZ_KITTEN : VOZ_AUTOMATICA;
   return vozDoAparelhoExiste(guardada) ? guardada : VOZ_AUTOMATICA;
 }
 
@@ -67,6 +70,7 @@ export function vozEmUso(idioma: string, nuvem: boolean = vozDaNuvemDisponivel()
 export function prefereVozDoAparelho(idioma: string): boolean {
   const guardada = vozGuardada(idioma);
   if (guardada === VOZ_NO_APARELHO) return vozNoAparelhoPronta(idioma); // a Supertonic também roda no aparelho
+  if (guardada === VOZ_KITTEN) return kittenOferecido() && modeloKittenPronto(idioma); // o Kitten também
   return guardada !== VOZ_DA_NUVEM && vozDoAparelhoExiste(guardada);
 }
 
@@ -136,6 +140,7 @@ export function useVozesPreferidas(): Record<string, string> {
       aoMudarVozes(() => repintar((n) => n + 1)),
       onPlanChange(() => repintar((n) => n + 1)),
       aoMudarVozNoAparelho(() => repintar((n) => n + 1)),
+      aoMudarKitten(() => repintar((n) => n + 1)),
     ];
     return () => soltar.forEach((f) => f());
   }, []);

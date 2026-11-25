@@ -416,6 +416,13 @@ export const FLAG_SOMBRA_LOCAL = 'sombra_local';
 export const FLAG_LATENCIA_PUBLICADA = 'latencia_publicada';
 
 /**
+ * O CARTÃO COM ÁUDIO DO TRECHO (openspec `cartao-com-audio-do-trecho`; migrações PROVISÓRIAS PG 0039 e SQLite 0078): o cartão guarda
+ * a fala de onde a palavra veio (Ogg Opus curto) SÓ NO APARELHO (IndexedDB) e o verso toca esse clipe antes do trecho da sessão.
+ * Nasce DESLIGADA e sem regra de plano; nenhuma cota nova (o teto é por aparelho, não por conta). Ligar é ato do dono.
+ */
+export const FLAG_CARTAO_COM_AUDIO = 'cartao_com_audio';
+
+/**
  * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,
  * "Custo da escrita"): um retorno leva ~900 tokens de entrada (system + texto de até 120 palavras) e até 500 de saída;
  * 30 por mês ficam na casa de US$ 0,01 por assinante que usa tudo, e os tokens já saem da `tokensMes`.

@@ -17,7 +17,7 @@
  *
  * PURO: sem React, sem rede, sem DOM. A chave do localStorage é lida por quem chama (`lerModoDeParciais` só interpreta o valor).
  */
-import { type Unidade, unidadesDe, type VistaDoParcial } from './localAgreement';
+import { type Unidade, unidadesDe, type VistaDoParcial } from './localAgreement.ts';
 
 export type ModoDeParciais = 'cauda-token' | 'sem-cauda' | 'cauda-decode' | 'acrescenta-decode' | 'acrescenta-token';
 

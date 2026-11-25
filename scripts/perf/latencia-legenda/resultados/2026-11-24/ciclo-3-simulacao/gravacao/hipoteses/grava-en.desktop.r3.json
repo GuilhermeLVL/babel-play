@@ -1,0 +1,1175 @@
+{
+  "versao": 1,
+  "rotulo": "grava-en.desktop.r3",
+  "politicaGravada": {
+    "modo": "acrescenta-decode",
+    "mascara": 2,
+    "intervaloMs": 125,
+    "subamostra": 1
+  },
+  "ancoraMs": 37499.9,
+  "bipeS": 4,
+  "falas": [
+    {
+      "k": 0,
+      "iniS": 6.2,
+      "fimS": 10.05,
+      "referencia": "Lions are the most social cats, living in large groups called prides.",
+      "palavras": [
+        { "t": "lions", "fimS": 6.83 },
+        { "t": "are", "fimS": 6.95 },
+        { "t": "the", "fimS": 7.17 },
+        { "t": "most", "fimS": 7.59 },
+        { "t": "social", "fimS": 8.03 },
+        { "t": "cats", "fimS": 8.47 },
+        { "t": "living", "fimS": 8.67 },
+        { "t": "in", "fimS": 8.89 },
+        { "t": "large", "fimS": 9.27 },
+        { "t": "groups", "fimS": 9.61 },
+        { "t": "called", "fimS": 9.93 },
+        { "t": "prides", "fimS": 10.15 }
+      ],
+      "alinhamento": { "foraDoCalculo": false },
+      "seq": 1,
+      "eventos": [
+        { "tipo": "token", "t": 40683.78499984741, "seq": 1, "decode": 0, "texto": "all" },
+        {
+          "tipo": "token",
+          "t": 40727.59999990463,
+          "seq": 1,
+          "decode": 0,
+          "texto": "all all all all all all all all all all"
+        },
+        {
+          "tipo": "decode",
+          "t": 40728.299999952316,
+          "seq": 1,
+          "decode": 0,
+          "tIni": 40645.484999895096,
+          "audioMs": 672,
+          "texto": ""
+        },
+        { "tipo": "token", "t": 41298.625, "seq": 1, "decode": 1, "texto": "Lions" },
+        {
+          "tipo": "token",
+          "t": 41322.75,
+          "seq": 1,
+          "decode": 1,
+          "texto": "Lions are the most social."
+        },
+        {
+          "tipo": "decode",
+          "t": 41323.49499988556,
+          "seq": 1,
+          "decode": 1,
+          "tIni": 41245.24499988556,
+          "audioMs": 1344,
+          "texto": "Lions are the most social."
+        },
+        { "tipo": "token", "t": 41891.90999984741, "seq": 1, "decode": 2, "texto": "Lions" },
+        {
+          "tipo": "token",
+          "t": 41923.13499999046,
+          "seq": 1,
+          "decode": 2,
+          "texto": "Lions are the most social cats."
+        },
+        {
+          "tipo": "decode",
+          "t": 41923.21499991417,
+          "seq": 1,
+          "decode": 2,
+          "tIni": 41843.859999895096,
+          "audioMs": 1920,
+          "texto": "Lions are the most social cats."
+        },
+        { "tipo": "token", "t": 42510.40499997139, "seq": 1, "decode": 3, "texto": "Lions" },
+        {
+          "tipo": "token",
+          "t": 42632.91499996185,
+          "seq": 1,
+          "decode": 3,
+          "texto": "Lions are the most social cats living in large, large cats living in large, large cats living in large cats living in large"
+        },
+        {
+          "tipo": "token",
+          "t": 42658.609999895096,
+          "seq": 1,
+          "decode": 3,
+          "texto": "Lions are the most social cats living in large, large cats living in large, large cats living in large cats living in large cats living in large cats"
+        },
+        {
+          "tipo": "decode",
+          "t": 42658.669999837875,
+          "seq": 1,
+          "decode": 3,
+          "tIni": 42443.454999923706,
+          "audioMs": 2496,
+          "texto": ""
+        },
+        { "tipo": "token", "t": 43119.764999866486, "seq": 1, "decode": 4, "texto": "Lions" },
+        {
+          "tipo": "token",
+          "t": 43166.049999952316,
+          "seq": 1,
+          "decode": 4,
+          "texto": "Lions are the most social cats living in large groups."
+        },
+        {
+          "tipo": "decode",
+          "t": 43166.264999866486,
+          "seq": 1,
+          "decode": 4,
+          "tIni": 43044.26999998093,
+          "audioMs": 3072,
+          "texto": "Lions are the most social cats living in large groups."
+        },
+        { "tipo": "token", "t": 43724.30999994278, "seq": 1, "decode": 5, "texto": "Lions" },
+        {
+          "tipo": "token",
+          "t": 43780.375,
+          "seq": 1,
+          "decode": 5,
+          "texto": "Lions are the most social cats living in large groups called pride."
+        },
+        {
+          "tipo": "decode",
+          "t": 43780.50499987602,
+          "seq": 1,
+          "decode": 5,
+          "tIni": 43643.12999987602,
+          "audioMs": 3744,
+          "texto": "Lions are the most social cats living in large groups called pride."
+        },
+        { "tipo": "fechada", "t": 44393.825000047684, "seq": 1 },
+        {
+          "tipo": "final",
+          "t": 44395.41499996185,
+          "seq": 1,
+          "texto": "Lions are the most social cats living in large groups called prides."
+        }
+      ],
+      "reais": [
+        { "t": 39889.53499984741, "tf": 39892.99000000954, "o": "", "tr": "" },
+        { "t": 41327.11999988556, "tf": 41327.52999997139, "o": "", "tr": "Lions are the " },
+        { "t": 41925, "tf": 41926.52499985695, "o": "", "tr": "Lions are the most social " },
+        {
+          "t": 43167.96000003815,
+          "tf": 43175.17999982834,
+          "o": "",
+          "tr": "Lions are the most social cats living in "
+        },
+        {
+          "t": 43782.544999837875,
+          "tf": 43796.89999985695,
+          "o": "",
+          "tr": "Lions are the most social cats living in large groups "
+        },
+        {
+          "t": 44402.80499982834,
+          "tf": 44413.609999895096,
+          "o": "",
+          "tr": "Lions are the most social cats living in large groups called prides. "
+        },
+        {
+          "t": 45145.66499996185,
+          "tf": 45163.55999994278,
+          "o": "Lions are the most social cats living in large groups called prides.",
+          "tr": "Os leões são os gatos mais sociais que vivem em grandes grupos chamados orgulhos."
+        }
+      ]
+    },
+    {
+      "k": 1,
+      "iniS": 11.37,
+      "fimS": 13.95,
+      "referencia": "Fellow wrestlers also paid tribute to Luna.",
+      "palavras": [
+        { "t": "fellow", "fimS": 12.47 },
+        { "t": "wrestlers", "fimS": 12.87 },
+        { "t": "also", "fimS": 13.05 },
+        { "t": "tribute", "fimS": 13.63 },
+        { "t": "to", "fimS": 13.87 },
+        { "t": "luna", "fimS": 14.35 }
+      ],
+      "alinhamento": { "foraDoCalculo": true },
+      "seq": 2,
+      "eventos": [
+        { "tipo": "token", "t": 46261.34500002861, "seq": 2, "decode": 0, "texto": "All" },
+        {
+          "tipo": "token",
+          "t": 46289.99000000954,
+          "seq": 2,
+          "decode": 0,
+          "texto": "All the rest of the day."
+        },
+        {
+          "tipo": "decode",
+          "t": 46290.06999993324,
+          "seq": 2,
+          "decode": 0,
+          "tIni": 46242.67999982834,
+          "audioMs": 672,
+          "texto": ""
+        },
+        { "tipo": "token", "t": 46870.484999895096, "seq": 2, "decode": 1, "texto": "The" },
+        {
+          "tipo": "token",
+          "t": 46941.61999988556,
+          "seq": 2,
+          "decode": 1,
+          "texto": "The resters also pay trim for the resters also pay trim for the resters also pay"
+        },
+        {
+          "tipo": "decode",
+          "t": 46941.734999895096,
+          "seq": 2,
+          "decode": 1,
+          "tIni": 46844.59500002861,
+          "audioMs": 1248,
+          "texto": ""
+        },
+        { "tipo": "token", "t": 47476.90499997139, "seq": 2, "decode": 2, "texto": "All" },
+        {
+          "tipo": "token",
+          "t": 47526.13499999046,
+          "seq": 2,
+          "decode": 2,
+          "texto": "All the resters also pay tribute to Luna."
+        },
+        {
+          "tipo": "decode",
+          "t": 47526.23000001907,
+          "seq": 2,
+          "decode": 2,
+          "tIni": 47442.83999991417,
+          "audioMs": 1824,
+          "texto": "All the resters also pay tribute to Luna."
+        },
+        { "tipo": "fechada", "t": 48232.27499985695, "seq": 2 },
+        {
+          "tipo": "final",
+          "t": 48232.77499985695,
+          "seq": 2,
+          "texto": "Felleressers also paid tribute to Luna."
+        }
+      ],
+      "reais": [
+        { "t": 45544.859999895096, "tf": 45546.83999991417, "o": "", "tr": "" },
+        {
+          "t": 47528.28999996185,
+          "tf": 47542.81999993324,
+          "o": "",
+          "tr": "All the resters also pay tribute "
+        },
+        {
+          "t": 47794.46499991417,
+          "tf": 47810.954999923706,
+          "o": "All the resters also pay tribute",
+          "tr": "Todos os anos de idade também pagam homenagem"
+        },
+        {
+          "t": 48238.98000001907,
+          "tf": 48242.859999895096,
+          "o": "Felleressers also paid tribute to Luna.",
+          "tr": "Todos os anos de idade também pagam homenagem"
+        },
+        {
+          "t": 48241.25999999046,
+          "tf": 48242.90499997139,
+          "o": "Felleressers also paid tribute to Luna.",
+          "tr": "Felleressers também rendeu homenagem a Luna."
+        }
+      ]
+    },
+    {
+      "k": 2,
+      "iniS": 16.47,
+      "fimS": 20.38,
+      "referencia": "Fire rescue crews eventually doused the fire by 11:35 pm.",
+      "palavras": [
+        { "t": "fire", "fimS": 16.96 },
+        { "t": "rescue", "fimS": 17.32 },
+        { "t": "crews", "fimS": 17.82 },
+        { "t": "eventually", "fimS": 18.04 },
+        { "t": "doused", "fimS": 18.34 },
+        { "t": "the", "fimS": 18.58 },
+        { "t": "fire", "fimS": 18.84 },
+        { "t": "by", "fimS": 19.22 },
+        { "t": "11", "fimS": 19.38 },
+        { "t": "35", "fimS": 20.46 },
+        { "t": "pm", "fimS": 20.7 }
+      ],
+      "alinhamento": { "foraDoCalculo": false },
+      "seq": 3,
+      "eventos": [
+        {
+          "tipo": "decode",
+          "t": 50874.33999991417,
+          "seq": 3,
+          "decode": 0,
+          "tIni": 50845.08500003815,
+          "audioMs": 672,
+          "texto": ""
+        },
+        { "tipo": "token", "t": 51487, "seq": 3, "decode": 1, "texto": "The" },
+        {
+          "tipo": "token",
+          "t": 51505.93499994278,
+          "seq": 3,
+          "decode": 1,
+          "texto": "The rescue crews eventually"
+        },
+        {
+          "tipo": "decode",
+          "t": 51505.97499990463,
+          "seq": 3,
+          "decode": 1,
+          "tIni": 51443.5,
+          "audioMs": 1248,
+          "texto": "The rescue crews eventually"
+        },
+        { "tipo": "token", "t": 52095.13499999046, "seq": 3, "decode": 2, "texto": "rescue" },
+        {
+          "tipo": "token",
+          "t": 52199.36500000954,
+          "seq": 3,
+          "decode": 2,
+          "texto": "rescue crews eventually doused the 500 rescue crews eventually doused the 500 rescue crews eventually d"
+        },
+        {
+          "tipo": "decode",
+          "t": 52199.40499997139,
+          "seq": 3,
+          "decode": 2,
+          "tIni": 52042.80499982834,
+          "audioMs": 1824,
+          "texto": ""
+        },
+        { "tipo": "token", "t": 52719.61500000954, "seq": 3, "decode": 3, "texto": "Arrestscrews" },
+        {
+          "tipo": "token",
+          "t": 52772.484999895096,
+          "seq": 3,
+          "decode": 3,
+          "texto": "Arrestscrews eventually doused the fire by 11.50."
+        },
+        {
+          "tipo": "decode",
+          "t": 52772.514999866486,
+          "seq": 3,
+          "decode": 3,
+          "tIni": 52643.26999998093,
+          "audioMs": 2400,
+          "texto": "Arrestscrews eventually doused the fire by 11.50."
+        },
+        { "tipo": "token", "t": 53314.08999991417, "seq": 3, "decode": 4, "texto": "The" },
+        {
+          "tipo": "token",
+          "t": 53380.78499984741,
+          "seq": 3,
+          "decode": 4,
+          "texto": "The rescue crews eventually doused the fire by 11:30."
+        },
+        {
+          "tipo": "decode",
+          "t": 53380.8149998188,
+          "seq": 3,
+          "decode": 4,
+          "tIni": 53243.27499985695,
+          "audioMs": 3072,
+          "texto": "The rescue crews eventually doused the fire by 11:30."
+        },
+        { "tipo": "token", "t": 53923.03499984741, "seq": 3, "decode": 5, "texto": "The" },
+        {
+          "tipo": "token",
+          "t": 54002.03499984741,
+          "seq": 3,
+          "decode": 5,
+          "texto": "The rescue crews eventually doused the fire by 11:35 p.m."
+        },
+        {
+          "tipo": "decode",
+          "t": 54002.06999993324,
+          "seq": 3,
+          "decode": 5,
+          "tIni": 53844.50499987602,
+          "audioMs": 3648,
+          "texto": "The rescue crews eventually doused the fire by 11:35 p.m."
+        },
+        { "tipo": "fechada", "t": 54663.33500003815, "seq": 3 },
+        {
+          "tipo": "final",
+          "t": 54663.58500003815,
+          "seq": 3,
+          "texto": "Fire rescue crews eventually doused the fire by eleven thirty five p m.."
+        }
+      ],
+      "reais": [
+        { "t": 50159.86999988556, "tf": 50160.30999994278, "o": "", "tr": "" },
+        { "t": 51508.11999988556, "tf": 51508.41499996185, "o": "", "tr": "The rescue " },
+        { "t": 51713.36999988556, "tf": 51726.10500001907, "o": "The rescue", "tr": "O resgate" },
+        {
+          "t": 53382.71499991417,
+          "tf": 53392.734999895096,
+          "o": "The rescue crews eventually doused the fire",
+          "tr": "O resgate"
+        },
+        {
+          "t": 53491.4399998188,
+          "tf": 53492.74000000954,
+          "o": "The rescue crews eventually doused the fire",
+          "tr": "As equipes de resgate acabaram por afundar o fogo."
+        },
+        {
+          "t": 54003.94499993324,
+          "tf": 54009.02999997139,
+          "o": "The rescue crews eventually doused the fire by",
+          "tr": "As equipes de resgate acabaram por afundar o fogo."
+        },
+        {
+          "t": 54668.99499988556,
+          "tf": 54677.734999895096,
+          "o": "Fire rescue crews eventually doused the fire by eleven thirty five p m..",
+          "tr": "As equipes de resgate acabaram por afundar o fogo."
+        },
+        {
+          "t": 54827.234999895096,
+          "tf": 54827.734999895096,
+          "o": "Fire rescue crews eventually doused the fire by eleven thirty five p m..",
+          "tr": "A equipe de resgate de incêndio acabou por encher o fogo em 11h30."
+        }
+      ]
+    },
+    {
+      "k": 3,
+      "iniS": 22.75,
+      "fimS": 26.96,
+      "referencia": "The find also grants insight into the evolution of feathers in birds.",
+      "palavras": [
+        { "t": "the", "fimS": 23.6 },
+        { "t": "find", "fimS": 23.88 },
+        { "t": "also", "fimS": 24.14 },
+        { "t": "grants", "fimS": 24.54 },
+        { "t": "insight", "fimS": 24.76 },
+        { "t": "into", "fimS": 24.92 },
+        { "t": "the", "fimS": 25.3 },
+        { "t": "evolution", "fimS": 25.58 },
+        { "t": "of", "fimS": 25.92 },
+        { "t": "feathers", "fimS": 26.26 },
+        { "t": "birds", "fimS": 26.7 }
+      ],
+      "alinhamento": { "foraDoCalculo": false },
+      "seq": 4,
+      "eventos": [
+        { "tipo": "token", "t": 57474.89999985695, "seq": 4, "decode": 0, "texto": "You" },
+        { "tipo": "token", "t": 57485.40499997139, "seq": 4, "decode": 0, "texto": "You find us" },
+        {
+          "tipo": "decode",
+          "t": 57485.450000047684,
+          "seq": 4,
+          "decode": 0,
+          "tIni": 57442.40499997139,
+          "audioMs": 576,
+          "texto": "You find us"
+        },
+        { "tipo": "token", "t": 58086.75499987602, "seq": 4, "decode": 1, "texto": "Find" },
+        {
+          "tipo": "token",
+          "t": 58109.97000002861,
+          "seq": 4,
+          "decode": 1,
+          "texto": "Find also crats and say"
+        },
+        {
+          "tipo": "decode",
+          "t": 58110.06999993324,
+          "seq": 4,
+          "decode": 1,
+          "tIni": 58043.38499999046,
+          "audioMs": 1248,
+          "texto": "Find also crats and say"
+        },
+        { "tipo": "token", "t": 58698.609999895096, "seq": 4, "decode": 2, "texto": "Also," },
+        {
+          "tipo": "token",
+          "t": 58741.00999999046,
+          "seq": 4,
+          "decode": 2,
+          "texto": "Also, crap's been signed into the Avril"
+        },
+        {
+          "tipo": "decode",
+          "t": 58741.044999837875,
+          "seq": 4,
+          "decode": 2,
+          "tIni": 58643.26999998093,
+          "audioMs": 1824,
+          "texto": "Also, crap's been signed into the Avril"
+        },
+        { "tipo": "token", "t": 59305.24000000954, "seq": 4, "decode": 3, "texto": "Find" },
+        {
+          "tipo": "token",
+          "t": 59339.924999952316,
+          "seq": 4,
+          "decode": 3,
+          "texto": "Find also crafts inside into the evolution of"
+        },
+        {
+          "tipo": "decode",
+          "t": 59339.954999923706,
+          "seq": 4,
+          "decode": 3,
+          "tIni": 59242.84500002861,
+          "audioMs": 2400,
+          "texto": "Find also crafts inside into the evolution of"
+        },
+        { "tipo": "token", "t": 59915.01999998093, "seq": 4, "decode": 4, "texto": "To" },
+        {
+          "tipo": "token",
+          "t": 59965.39999985695,
+          "seq": 4,
+          "decode": 4,
+          "texto": "To find also crafts inside into the evolution of feathers and"
+        },
+        {
+          "tipo": "decode",
+          "t": 59965.43499994278,
+          "seq": 4,
+          "decode": 4,
+          "tIni": 59846.14999985695,
+          "audioMs": 2976,
+          "texto": "To find also crafts inside into the evolution of feathers and"
+        },
+        { "tipo": "fechada", "t": 60906.77999997139, "seq": 4 },
+        {
+          "tipo": "final",
+          "t": 60907.21000003815,
+          "seq": 4,
+          "texto": "The find also crafts insight into the evolution of feathers and birds."
+        }
+      ],
+      "reais": [
+        { "t": 56783.30999994278, "tf": 56792.92999982834, "o": "", "tr": "" },
+        { "t": 57488.044999837875, "tf": 57492.75499987602, "o": "", "tr": "You " },
+        { "t": 57663.27499985695, "tf": 57676.12999987602, "o": "You", "tr": "Você" },
+        {
+          "t": 60915.11500000954,
+          "tf": 60916.075000047684,
+          "o": "The find also crafts insight into the evolution of feathers and birds.",
+          "tr": "Você"
+        },
+        {
+          "t": 60919.64499998093,
+          "tf": 60924.389999866486,
+          "o": "The find also crafts insight into the evolution of feathers and birds.",
+          "tr": "A descoberta também faz artes para a evolução das penas e aves."
+        }
+      ]
+    },
+    {
+      "k": 4,
+      "iniS": 29.47,
+      "fimS": 33.96,
+      "referencia": "Through the night between 150 and 200 copies were made, now known as \"Dunlap broadsides\".",
+      "palavras": [
+        { "t": "the", "fimS": 29.86 },
+        { "t": "night", "fimS": 30.24 },
+        { "t": "between", "fimS": 30.74 },
+        { "t": "150", "fimS": 30.88 },
+        { "t": "and", "fimS": 31.18 },
+        { "t": "200", "fimS": 31.54 },
+        { "t": "copies", "fimS": 31.72 },
+        { "t": "were", "fimS": 31.9 },
+        { "t": "made", "fimS": 32.08 },
+        { "t": "now", "fimS": 32.36 },
+        { "t": "known", "fimS": 32.6 },
+        { "t": "as", "fimS": 32.76 },
+        { "t": "dunlap", "fimS": 33.18 }
+      ],
+      "alinhamento": { "foraDoCalculo": true },
+      "seq": 5,
+      "eventos": [
+        { "tipo": "token", "t": 63879.44499993324, "seq": 5, "decode": 0, "texto": "," },
+        {
+          "tipo": "token",
+          "t": 63916.91499996185,
+          "seq": 5,
+          "decode": 0,
+          "texto": ", and, and,, and, and,"
+        },
+        {
+          "tipo": "decode",
+          "t": 63917,
+          "seq": 5,
+          "decode": 0,
+          "tIni": 63845.41499996185,
+          "audioMs": 672,
+          "texto": ", and,"
+        },
+        { "tipo": "token", "t": 64486.91499996185, "seq": 5, "decode": 1, "texto": "The" },
+        {
+          "tipo": "token",
+          "t": 64558.89499998093,
+          "seq": 5,
+          "decode": 1,
+          "texto": "The night between one fifty and the ninth between one fifty and the ninth between one fifty"
+        },
+        {
+          "tipo": "decode",
+          "t": 64558.92999982834,
+          "seq": 5,
+          "decode": 1,
+          "tIni": 64443.22499990463,
+          "audioMs": 1248,
+          "texto": ""
+        },
+        { "tipo": "token", "t": 65096.234999895096, "seq": 5, "decode": 2, "texto": "A" },
+        {
+          "tipo": "token",
+          "t": 65155.43499994278,
+          "seq": 5,
+          "decode": 2,
+          "texto": "A night between 1.50 and 2.50."
+        },
+        {
+          "tipo": "decode",
+          "t": 65155.47000002861,
+          "seq": 5,
+          "decode": 2,
+          "tIni": 65043.3149998188,
+          "audioMs": 1920,
+          "texto": "A night between 1.50 and 2.50."
+        },
+        { "tipo": "token", "t": 65705.3599998951, "seq": 5, "decode": 3, "texto": "The" },
+        {
+          "tipo": "token",
+          "t": 65780.30499982834,
+          "seq": 5,
+          "decode": 3,
+          "texto": "The night between 1:50 and 200 copies were rained now."
+        },
+        {
+          "tipo": "decode",
+          "t": 65780.33500003815,
+          "seq": 5,
+          "decode": 3,
+          "tIni": 65643.63999986649,
+          "audioMs": 2496,
+          "texto": "The night between 1:50 and 200 copies were rained now."
+        },
+        { "tipo": "token", "t": 66314.92999982834, "seq": 5, "decode": 4, "texto": "The" },
+        {
+          "tipo": "token",
+          "t": 66447.79499983788,
+          "seq": 5,
+          "decode": 4,
+          "texto": "The night between 1.50 and 200 copies were rained, now known as the 1999-1999."
+        },
+        {
+          "tipo": "decode",
+          "t": 66447.875,
+          "seq": 5,
+          "decode": 4,
+          "tIni": 66243.59999990463,
+          "audioMs": 3072,
+          "texto": "The night between 1.50 and 200 copies were rained, now known as the 1999-1999."
+        },
+        { "tipo": "token", "t": 66921.1099998951, "seq": 5, "decode": 5, "texto": "A" },
+        {
+          "tipo": "token",
+          "t": 67032.86999988556,
+          "seq": 5,
+          "decode": 5,
+          "texto": "A night between 1.50 and 200 copies were raved, now known as Denlep Broad's."
+        },
+        {
+          "tipo": "decode",
+          "t": 67032.9549999237,
+          "seq": 5,
+          "decode": 5,
+          "tIni": 66843.59999990463,
+          "audioMs": 3648,
+          "texto": "A night between 1.50 and 200 copies were raved, now known as Denlep Broad's."
+        },
+        { "tipo": "fechada", "t": 67911.0799999237, "seq": 5 },
+        {
+          "tipo": "final",
+          "t": 67911.27499985695,
+          "seq": 5,
+          "texto": "The night between one fifty and two hundred copies were made now known as Denlap Broadseyes."
+        }
+      ],
+      "reais": [
+        { "t": 63118.700000047684, "tf": 63130.544999837875, "o": "", "tr": "" },
+        { "t": 65157.64999985695, "tf": 65159.33500003815, "o": "", "tr": "A night between 1.50 " },
+        {
+          "t": 65363.8149998188,
+          "tf": 65378.38499999046,
+          "o": "A night between 1.50",
+          "tr": "Uma noite entre 1,50"
+        },
+        {
+          "t": 67916.51499986649,
+          "tf": 67927.67499995232,
+          "o": "The night between one fifty and two hundred copies were made now known as Denlap Broadseyes.",
+          "tr": "Uma noite entre 1,50"
+        },
+        {
+          "t": 68121.89499998093,
+          "tf": 68127.17499995232,
+          "o": "The night between one fifty and two hundred copies were made now known as Denlap Broadseyes.",
+          "tr": "A noite entre cinqüenta e duzentas cópias foi feita agora conhecida como Denlap Broadseyes."
+        }
+      ]
+    },
+    {
+      "k": 5,
+      "iniS": 35.21,
+      "fimS": 39.21,
+      "referencia": "Do not deface the site by marking or scratching graffiti into structures.",
+      "palavras": [
+        { "t": "do", "fimS": 35.51 },
+        { "t": "not", "fimS": 35.77 },
+        { "t": "deface", "fimS": 36.11 },
+        { "t": "the", "fimS": 36.25 },
+        { "t": "site", "fimS": 36.51 },
+        { "t": "by", "fimS": 36.79 },
+        { "t": "marking", "fimS": 36.99 },
+        { "t": "or", "fimS": 37.47 },
+        { "t": "scratching", "fimS": 38.11 },
+        { "t": "graffiti", "fimS": 38.57 },
+        { "t": "into", "fimS": 39.11 },
+        { "t": "structures", "fimS": 39.19 }
+      ],
+      "alinhamento": { "foraDoCalculo": false },
+      "seq": 6,
+      "eventos": [
+        { "tipo": "token", "t": 69692.71499991417, "seq": 6, "decode": 0, "texto": "Anti-faceist" },
+        {
+          "tipo": "decode",
+          "t": 69692.74499988556,
+          "seq": 6,
+          "decode": 0,
+          "tIni": 69641.4549999237,
+          "audioMs": 768,
+          "texto": "Anti-faceist"
+        },
+        { "tipo": "token", "t": 70297.23000001907, "seq": 6, "decode": 1, "texto": "Auntie" },
+        {
+          "tipo": "token",
+          "t": 70319.08500003815,
+          "seq": 6,
+          "decode": 1,
+          "texto": "Auntie Face is tight but Mark"
+        },
+        {
+          "tipo": "decode",
+          "t": 70319.11999988556,
+          "seq": 6,
+          "decode": 1,
+          "tIni": 70243.33500003815,
+          "audioMs": 1344,
+          "texto": "Auntie Face is tight but Mark"
+        },
+        { "tipo": "token", "t": 70909.09500002861, "seq": 6, "decode": 2, "texto": "Auntie" },
+        {
+          "tipo": "token",
+          "t": 70948.17499995232,
+          "seq": 6,
+          "decode": 2,
+          "texto": "Auntie face a sight by marking her scratch."
+        },
+        {
+          "tipo": "decode",
+          "t": 70948.21499991417,
+          "seq": 6,
+          "decode": 2,
+          "tIni": 70844.71000003815,
+          "audioMs": 1920,
+          "texto": "Auntie face a sight by marking her scratch."
+        },
+        { "tipo": "token", "t": 71513.6899998188, "seq": 6, "decode": 3, "texto": "Aunty" },
+        {
+          "tipo": "token",
+          "t": 71555.19499993324,
+          "seq": 6,
+          "decode": 3,
+          "texto": "Aunty faced the sight by marking or scratching."
+        },
+        {
+          "tipo": "decode",
+          "t": 71555.23000001907,
+          "seq": 6,
+          "decode": 3,
+          "tIni": 71442.4849998951,
+          "audioMs": 2496,
+          "texto": "Aunty faced the sight by marking or scratching."
+        },
+        { "tipo": "token", "t": 72115.65499997139, "seq": 6, "decode": 4, "texto": "Auntie" },
+        {
+          "tipo": "token",
+          "t": 72192.86500000954,
+          "seq": 6,
+          "decode": 4,
+          "texto": "Auntie faced the sight by marking or scratching, graffiti, and tying."
+        },
+        {
+          "tipo": "decode",
+          "t": 72192.89499998093,
+          "seq": 6,
+          "decode": 4,
+          "tIni": 72042.09999990463,
+          "audioMs": 3168,
+          "texto": "Auntie faced the sight by marking or scratching, graffiti, and tying."
+        },
+        { "tipo": "token", "t": 72722.11500000954, "seq": 6, "decode": 5, "texto": "A" },
+        {
+          "tipo": "token",
+          "t": 72797.38499999046,
+          "seq": 6,
+          "decode": 5,
+          "texto": "A monthly face is tight by marking or scratching, graffiti into structure."
+        },
+        {
+          "tipo": "decode",
+          "t": 72797.46000003815,
+          "seq": 6,
+          "decode": 5,
+          "tIni": 72643.08500003815,
+          "audioMs": 3744,
+          "texto": "A monthly face is tight by marking or scratching, graffiti into structure."
+        },
+        { "tipo": "fechada", "t": 73479.9549999237, "seq": 6 },
+        {
+          "tipo": "final",
+          "t": 73480.34999990463,
+          "seq": 6,
+          "texto": "The Nazi face the site by marking or scratching, graffiti into structures."
+        }
+      ],
+      "reais": [
+        { "t": 68880.55499982834, "tf": 68881.28999996185, "o": "", "tr": "" },
+        { "t": 70321.77999997139, "tf": 70326.02499985695, "o": "", "tr": "Auntie Face is tight " },
+        {
+          "t": 70546.55499982834,
+          "tf": 70559.26999998093,
+          "o": "Auntie Face is tight",
+          "tr": "Tia Face é apertada."
+        },
+        {
+          "t": 73487.90999984741,
+          "tf": 73492.875,
+          "o": "The Nazi face the site by marking or scratching, graffiti into structures.",
+          "tr": "Tia Face é apertada."
+        },
+        {
+          "t": 73490.58999991417,
+          "tf": 73492.90999984741,
+          "o": "The Nazi face the site by marking or scratching, graffiti into structures.",
+          "tr": "Os nazistas enfrentam o local marcando ou riscando, graffiti em estruturas."
+        }
+      ]
+    },
+    {
+      "k": 6,
+      "iniS": 40.91,
+      "fimS": 44.02,
+      "referencia": "Think of the skiing route as of a similar hiking route.",
+      "palavras": [
+        { "t": "think", "fimS": 41.34 },
+        { "t": "of", "fimS": 41.48 },
+        { "t": "the", "fimS": 41.82 },
+        { "t": "skiing", "fimS": 42.2 },
+        { "t": "route", "fimS": 42.56 },
+        { "t": "as", "fimS": 42.74 },
+        { "t": "of", "fimS": 42.96 },
+        { "t": "a", "fimS": 43.3 },
+        { "t": "similar", "fimS": 43.68 },
+        { "t": "hiking", "fimS": 44.14 },
+        { "t": "route", "fimS": 44.38 }
+      ],
+      "alinhamento": { "foraDoCalculo": false },
+      "seq": 7,
+      "eventos": [
+        { "tipo": "token", "t": 75276.30999994278, "seq": 7, "decode": 0, "texto": "of" },
+        {
+          "tipo": "token",
+          "t": 75314.33999991417,
+          "seq": 7,
+          "decode": 0,
+          "texto": "of the skink of the skink of the"
+        },
+        {
+          "tipo": "decode",
+          "t": 75314.375,
+          "seq": 7,
+          "decode": 0,
+          "tIni": 75242.76999998093,
+          "audioMs": 672,
+          "texto": ""
+        },
+        { "tipo": "token", "t": 75886.7349998951, "seq": 7, "decode": 1, "texto": "Think" },
+        {
+          "tipo": "token",
+          "t": 75914.05499982834,
+          "seq": 7,
+          "decode": 1,
+          "texto": "Think of the skiing route."
+        },
+        {
+          "tipo": "decode",
+          "t": 75914.08999991417,
+          "seq": 7,
+          "decode": 1,
+          "tIni": 75844.73000001907,
+          "audioMs": 1248,
+          "texto": "Think of the skiing route."
+        },
+        { "tipo": "token", "t": 76494.77999997139, "seq": 7, "decode": 2, "texto": "Think" },
+        {
+          "tipo": "token",
+          "t": 76570.85500001907,
+          "seq": 7,
+          "decode": 2,
+          "texto": "Think of the skiing route as of a skiing route as of a skiing route."
+        },
+        {
+          "tipo": "decode",
+          "t": 76570.88499999046,
+          "seq": 7,
+          "decode": 2,
+          "tIni": 76443.49000000954,
+          "audioMs": 1824,
+          "texto": ""
+        },
+        { "tipo": "token", "t": 77104.91999983788, "seq": 7, "decode": 3, "texto": "Of" },
+        {
+          "tipo": "token",
+          "t": 77142.71499991417,
+          "seq": 7,
+          "decode": 3,
+          "texto": "Of the skiing route as of a similar high"
+        },
+        {
+          "tipo": "decode",
+          "t": 77142.75,
+          "seq": 7,
+          "decode": 3,
+          "tIni": 77042.67499995232,
+          "audioMs": 2496,
+          "texto": "Of the skiing route as of a similar high"
+        },
+        { "tipo": "token", "t": 77717.65999984741, "seq": 7, "decode": 4, "texto": "Ink" },
+        {
+          "tipo": "token",
+          "t": 77775.24000000954,
+          "seq": 7,
+          "decode": 4,
+          "texto": "Ink of the skiing route as of a similar hiking route."
+        },
+        {
+          "tipo": "decode",
+          "t": 77775.28499984741,
+          "seq": 7,
+          "decode": 4,
+          "tIni": 77643.50499987602,
+          "audioMs": 3072,
+          "texto": "Ink of the skiing route as of a similar hiking route."
+        },
+        { "tipo": "fechada", "t": 78279.87999987602, "seq": 7 },
+        {
+          "tipo": "final",
+          "t": 78280.24499988556,
+          "seq": 7,
+          "texto": "Think of the skiing route as of a similar hiking route."
+        }
+      ],
+      "reais": [
+        { "t": 74545.16499996185, "tf": 74547.24000000954, "o": "", "tr": "" },
+        { "t": 75916.97000002861, "tf": 75928.59500002861, "o": "", "tr": "Think of the " },
+        { "t": 76116.15999984741, "tf": 76125.9399998188, "o": "Think of the", "tr": "Pense no" },
+        {
+          "t": 78286.87999987602,
+          "tf": 78296.88999986649,
+          "o": "Think of the skiing route as of a similar hiking route.",
+          "tr": "Pense no"
+        },
+        {
+          "t": 78288.6099998951,
+          "tf": 78296.91999983788,
+          "o": "Think of the skiing route as of a similar hiking route.",
+          "tr": "Pense na rota esqui como uma rota de caminhadas semelhante."
+        }
+      ]
+    },
+    {
+      "k": 7,
+      "iniS": 46.93,
+      "fimS": 51.34,
+      "referencia": "Giancarlo Fisichella lost control of his car and ended the race very soon after the start.",
+      "palavras": [
+        { "t": "giancarlo", "fimS": 47.66 },
+        { "t": "fisichella", "fimS": 48.34 },
+        { "t": "lost", "fimS": 48.66 },
+        { "t": "control", "fimS": 48.82 },
+        { "t": "of", "fimS": 48.96 },
+        { "t": "his", "fimS": 49.18 },
+        { "t": "car", "fimS": 49.32 },
+        { "t": "and", "fimS": 49.58 },
+        { "t": "ended", "fimS": 49.8 },
+        { "t": "the", "fimS": 49.98 },
+        { "t": "race", "fimS": 50.24 },
+        { "t": "very", "fimS": 50.56 },
+        { "t": "soon", "fimS": 50.84 },
+        { "t": "after", "fimS": 51.02 },
+        { "t": "the", "fimS": 51.28 },
+        { "t": "start", "fimS": 51.32 }
+      ],
+      "alinhamento": { "foraDoCalculo": false },
+      "seq": 8,
+      "eventos": [
+        {
+          "tipo": "decode",
+          "t": 81272.625,
+          "seq": 8,
+          "decode": 0,
+          "tIni": 81243.20000004768,
+          "audioMs": 672,
+          "texto": ""
+        },
+        { "tipo": "token", "t": 81895.18499994278, "seq": 8, "decode": 1, "texto": "I'm" },
+        {
+          "tipo": "token",
+          "t": 81925.51499986649,
+          "seq": 8,
+          "decode": 1,
+          "texto": "I'm going to go to the beach."
+        },
+        {
+          "tipo": "decode",
+          "t": 81925.55999994278,
+          "seq": 8,
+          "decode": 1,
+          "tIni": 81845.10500001907,
+          "audioMs": 1344,
+          "texto": "I'm going to go to the beach."
+        },
+        { "tipo": "token", "t": 82495.75499987602, "seq": 8, "decode": 2, "texto": "On" },
+        {
+          "tipo": "token",
+          "t": 82543.2049999237,
+          "seq": 8,
+          "decode": 2,
+          "texto": "On Carlo Fisichella, last control of his."
+        },
+        {
+          "tipo": "decode",
+          "t": 82543.24499988556,
+          "seq": 8,
+          "decode": 2,
+          "tIni": 82442.64999985695,
+          "audioMs": 1920,
+          "texto": "On Carlo Fisichella, last control of his."
+        },
+        { "tipo": "token", "t": 83104.7049999237, "seq": 8, "decode": 3, "texto": "One" },
+        {
+          "tipo": "token",
+          "t": 83191.87999987602,
+          "seq": 8,
+          "decode": 3,
+          "texto": "One Carlo Fisichella lost control of his car and ended in a 1999 car."
+        },
+        {
+          "tipo": "decode",
+          "t": 83191.92499995232,
+          "seq": 8,
+          "decode": 3,
+          "tIni": 83043.39499998093,
+          "audioMs": 2496,
+          "texto": "One Carlo Fisichella lost control of his car and ended in a 1999 car."
+        },
+        { "tipo": "token", "t": 83712.66499996185, "seq": 8, "decode": 4, "texto": "One" },
+        {
+          "tipo": "token",
+          "t": 83774.55999994278,
+          "seq": 8,
+          "decode": 4,
+          "texto": "One Carlo Fisichella lost control of his car and ended the race."
+        },
+        {
+          "tipo": "decode",
+          "t": 83774.59999990463,
+          "seq": 8,
+          "decode": 4,
+          "tIni": 83643.22499990463,
+          "audioMs": 3072,
+          "texto": "One Carlo Fisichella lost control of his car and ended the race."
+        },
+        { "tipo": "token", "t": 84321.625, "seq": 8, "decode": 5, "texto": "On" },
+        {
+          "tipo": "token",
+          "t": 84400.33500003815,
+          "seq": 8,
+          "decode": 5,
+          "texto": "On Carlo Fisichela, lost control of his car and ended the race very soon after."
+        },
+        {
+          "tipo": "decode",
+          "t": 84400.36500000954,
+          "seq": 8,
+          "decode": 5,
+          "tIni": 84242.99499988556,
+          "audioMs": 3744,
+          "texto": "On Carlo Fisichela, lost control of his car and ended the race very soon after."
+        },
+        { "tipo": "token", "t": 84927.2049999237, "seq": 8, "decode": 6, "texto": "Ang" },
+        {
+          "tipo": "token",
+          "t": 85012.12999987602,
+          "seq": 8,
+          "decode": 6,
+          "texto": "Ang Carlo Fisichela lost control of his car and ended the race very soon after the start."
+        },
+        {
+          "tipo": "decode",
+          "t": 85012.16999983788,
+          "seq": 8,
+          "decode": 6,
+          "tIni": 84841.02499985695,
+          "audioMs": 4320,
+          "texto": "Ang Carlo Fisichela lost control of his car and ended the race very soon after the start."
+        },
+        { "tipo": "fechada", "t": 85671.19499993324, "seq": 8 },
+        {
+          "tipo": "final",
+          "t": 85671.50499987602,
+          "seq": 8,
+          "texto": "Giancarlo Fisichella lost control of his car and ended the race very soon after the start."
+        }
+      ],
+      "reais": [
+        { "t": 80496.96000003815, "tf": 80497.76499986649, "o": "", "tr": "" },
+        { "t": 81928.4549999237, "tf": 81928.83500003815, "o": "", "tr": "I'm going to go to " },
+        {
+          "t": 82094.20000004768,
+          "tf": 82109.29499983788,
+          "o": "I'm going to go to",
+          "tr": "≈ Eu vou."
+        },
+        {
+          "t": 85678.65499997139,
+          "tf": 85680.30499982834,
+          "o": "Giancarlo Fisichella lost control of his car and ended the race very soon after the start.",
+          "tr": "≈ Eu vou."
+        },
+        {
+          "t": 85857.05999994278,
+          "tf": 85859.16999983788,
+          "o": "Giancarlo Fisichella lost control of his car and ended the race very soon after the start.",
+          "tr": "Giancarlo Fischella perdeu o controle do seu carro e terminou a corrida pouco depois da partida."
+        }
+      ]
+    }
+  ]
+}

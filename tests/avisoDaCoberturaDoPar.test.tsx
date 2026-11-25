@@ -52,6 +52,7 @@ describe('AvisoDaCoberturaDoPar', () => {
     )
     expect(screen.queryByTestId('aviso-sem-rota')).toBeNull()
     expect(screen.getByTestId('aviso-pelo-ingles').textContent).toContain('145 MB')
+    expect(screen.getByTestId('aviso-pelo-ingles').textContent).toContain('Tradução aproximada')
   })
 
   it('nativo pronto: nada a dizer', () => {

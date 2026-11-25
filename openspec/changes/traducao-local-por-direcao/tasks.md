@@ -47,6 +47,7 @@ dos portões 1 a 4 estarem marcados.
       brasileiros; aplicar; calcular pt-PT por sistema, kappa e IC. Verificar: relatório com o veredito por sistema
       (`aprovado`, `reprovado`, `inconclusivo`); só `aprovado` muda a rota de en→pt.
 - [ ] 4.4 Registrar o veredito no catálogo e no relatório. Verificar: com `reprovado` ou `inconclusivo` o en→pt segue opus-mt.
+- [ ] 4.5 Meta de qualidade es→pt (herdada de `traducao-sem-rota-no-celular` 5.2/6.2): com o modelo direto, nota média do juiz (`celular/juiz-traducao.mjs`) de pelo menos 3/5 nas traduções es→pt. Hoje o pivô pelo inglês mede 2,33 a 2,89 e segue rotulado "tradução aproximada". Verificar: relatório com a nota por rota.
 
 ## 5. Laboratório: runtime, memória, latência e download
 

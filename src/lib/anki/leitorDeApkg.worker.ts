@@ -5,10 +5,10 @@
  * Quem abre e encerra o worker é `lerBaralho.ts`.
  */
 import type { LeituraAnki } from '../../core/anki';
-import { lerApkg, type ProgressoDaLeitura } from './lerApkg';
+import { lerApkg, type MapeamentoDaLeitura, type ProgressoDaLeitura } from './lerApkg';
 import { abrirSqliteNoNavegador } from './sqlite';
 
-export type MensagemParaOLeitor = { arquivo: Blob };
+export type MensagemParaOLeitor = { arquivo: Blob; mapeamento?: MapeamentoDaLeitura };
 
 export type MensagemDoLeitor =
   | { tipo: 'progresso'; progresso: ProgressoDaLeitura }
@@ -21,6 +21,7 @@ self.onmessage = async (evento: MessageEvent<MensagemParaOLeitor>) => {
   try {
     const leitura = await lerApkg(evento.data.arquivo, {
       abrirSqlite: abrirSqliteNoNavegador,
+      mapeamento: evento.data.mapeamento,
       aoProgredir: (progresso) => responder({ tipo: 'progresso', progresso }),
     });
     responder({ tipo: 'ok', leitura });

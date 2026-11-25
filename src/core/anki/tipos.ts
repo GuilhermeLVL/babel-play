@@ -1,3 +1,5 @@
+import type { MapeamentoInferido, PapelNaImportacao } from './mapeador';
+
 /** Referências de mídia que um campo cita — o ARQUIVO não é importado, só o nome sobrevive. */
 export interface RefsDeMidia {
   sons: string[];
@@ -35,6 +37,24 @@ export interface NotaAnki {
   campos?: string[];
 }
 
+/** Um tipo de nota do arquivo, como o Mapeador o vê: campos, o que o app entendeu e uma amostra para conferir. */
+export interface EstruturaLida {
+  /** `hashDaEstrutura` dos nomes dos campos: a chave do perfil e dos mapeamentos escolhidos. */
+  hash: string;
+  notetype: string;
+  campos: string[];
+  /** Quantas notas do arquivo têm este tipo (inclusive as que a leitura descartou). */
+  notas: number;
+  /** Um papel por campo (`PapelNaImportacao`). */
+  papeis: PapelNaImportacao[];
+  /** Confiança de cada papel que muda o texto da nota; `origem` diz de onde veio o palpite. */
+  palpites: MapeamentoInferido['palpites'];
+  /** Confiança baixa em palavra ou significado: a pessoa decide antes de gravar. */
+  precisaDeConferencia: boolean;
+  /** Os campos das primeiras notas, já limpos e cortados: o que a tela mostra para conferir. */
+  amostra: string[][];
+}
+
 export interface LeituraAnki {
   notas: NotaAnki[];
   /** Nome do arquivo interno que foi lido — a tela mostra, é a procedência. */
@@ -51,6 +71,8 @@ export interface LeituraAnki {
   truncado?: boolean;
   /** `SELECT count(*)` real de `notes`, mesmo quando a leitura foi cortada. */
   totalNoArquivo?: number;
+  /** Um item por tipo de nota. Só vem quando o leitor foi chamado com mapeamento (flag `anki_mapeador`). */
+  estruturas?: EstruturaLida[];
 }
 
 /**

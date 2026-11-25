@@ -5,13 +5,15 @@
  */
 import { type LeituraAnki, lerTextoAnki } from '../../core/anki';
 import type { MensagemDoLeitor, MensagemParaOLeitor } from './leitorDeApkg.worker';
-import type { ProgressoDaLeitura } from './lerApkg';
+import type { MapeamentoDaLeitura, ProgressoDaLeitura } from './lerApkg';
 
 const EH_TEXTO = /\.(txt|csv|tsv)$/i;
 
 export async function lerBaralhoNoNavegador(
   arquivo: File,
   aoProgredir?: (p: ProgressoDaLeitura) => void,
+  /** Liga o Mapeador (confiança por tipo de nota); `.txt/.csv` não tem tipo de nota e ignora. */
+  mapeamento?: MapeamentoDaLeitura,
 ): Promise<LeituraAnki> {
   if (EH_TEXTO.test(arquivo.name)) return lerTextoAnki(await arquivo.text());
 
@@ -30,7 +32,7 @@ export async function lerBaralhoNoNavegador(
         evento.preventDefault();
         reject(new Error(evento.message || 'o leitor de .apkg parou de responder'));
       };
-      worker.postMessage({ arquivo } satisfies MensagemParaOLeitor);
+      worker.postMessage({ arquivo, mapeamento } satisfies MensagemParaOLeitor);
     });
   } finally {
     worker.terminate();

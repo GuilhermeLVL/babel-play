@@ -9,8 +9,9 @@
  * `importarBaralhoAnki` resolve, a importação JÁ aconteceu. O que a tela
  * decide depois é quantas dessas notas viram cartão agora (`ativarNotasDoBaralho`, `apiAnki.ts`).
  */
-import { type NotaAnki, TETOS_DA_NOTA } from '../core/anki';
+import { type EstruturaLida, type LeituraAnki, type NotaAnki, type PapelNaImportacao, TETOS_DA_NOTA } from '../core/anki';
 import { lerBaralhoNoNavegador } from '../lib/anki/lerBaralho';
+import { lerPerfis, salvarPerfil } from '../lib/anki/perfisDeMapeamento';
 import { abrirImportAnki, enviarNotasDoImport, fecharImportAnki, LimiteDeLotes, notaParaOFio } from './apiAnki';
 
 /** O saldo do import, como o fechamento o devolve — o import já aconteceu quando isto chega. */
@@ -41,6 +42,27 @@ export interface ImportAnkiResposta {
   avisoIdioma?: string;
   /** A primeira leva não virou cartão jogável; o import em si NÃO foi desfeito. */
   erroDeAtivacao?: string;
+  /** Só com o Mapeador ligado: tipos de nota lidos pelo perfil que a pessoa salvou antes, neste aparelho. */
+  reconhecidos?: Array<{ hash: string; notetype: string }>;
+  /** Só com o Mapeador ligado: a pessoa conferiu os campos antes do primeiro lote. */
+  conferidoAgora?: boolean;
+}
+
+/**
+ * O MAPEADOR (flag `anki_mapeador`): `aoConferir` recebe os tipos de nota em que o palpite tem confiança baixa e devolve
+ * os papéis que a pessoa escolheu (hash da estrutura -> papéis), ou `null` se ela desistiu. É chamado ANTES de qualquer
+ * lote: o servidor não recebe nada de uma importação cancelada aqui.
+ */
+export interface OpcoesDoMapeador {
+  aoConferir: (estruturas: EstruturaLida[]) => Promise<Record<string, PapelNaImportacao[]> | null>;
+}
+
+/** A pessoa fechou o Mapeador sem confirmar: nada foi enviado nem gravado. */
+export class ImportacaoCancelada extends Error {
+  constructor() {
+    super('Importação cancelada antes de enviar. Nada foi gravado.');
+    this.name = 'ImportacaoCancelada';
+  }
 }
 
 /** Notas por lote (o teto do servidor) e bytes por lote (abaixo dos 5 MB do corpo, com folga). */
@@ -109,10 +131,26 @@ export async function importarBaralhoAnki(
   idioma: string,
   idiomaNativo: string,
   aoProgredir?: (p: ProgressoDaImportacao) => void,
+  mapeador?: OpcoesDoMapeador,
 ): Promise<ImportAnkiResposta> {
-  const leitura = await lerBaralhoNoNavegador(arquivo, (p) =>
-    aoProgredir?.({ etapa: 'lendo', feitas: p.notas ?? 0, total: p.total ?? 0 }),
-  );
+  const progresso = (p: { notas?: number; total?: number }) =>
+    aoProgredir?.({ etapa: 'lendo', feitas: p.notas ?? 0, total: p.total ?? 0 });
+  let leitura: LeituraAnki;
+  let conferidoAgora = false;
+  if (!mapeador) leitura = await lerBaralhoNoNavegador(arquivo, progresso);
+  else {
+    const perfis = lerPerfis();
+    leitura = await lerBaralhoNoNavegador(arquivo, progresso, { perfis });
+    const pendentes = (leitura.estruturas ?? []).filter((e) => e.precisaDeConferencia);
+    if (pendentes.length) {
+      const escolhas = await mapeador.aoConferir(pendentes);
+      if (!escolhas) throw new ImportacaoCancelada();
+      // Reler com o mapeamento escolhido: notas que o palpite descartou (o 4000EW perdeu 3.871 de 3.871) voltam a existir.
+      leitura = await lerBaralhoNoNavegador(arquivo, progresso, { perfis, manuais: escolhas });
+      for (const [hash, papeis] of Object.entries(escolhas)) salvarPerfil(hash, papeis);
+      conferidoAgora = true;
+    }
+  }
   const { notas } = leitura;
 
   const aberto = await abrirImportAnki({
@@ -158,6 +196,14 @@ export async function importarBaralhoAnki(
       verso: n.verso.slice(0, 80),
       exemplo: n.exemplo ? n.exemplo.slice(0, 80) : null,
     })),
+    ...(mapeador
+      ? {
+          reconhecidos: (leitura.estruturas ?? [])
+            .filter((e) => e.palpites.palavra?.origem === 'perfil')
+            .map((e) => ({ hash: e.hash, notetype: e.notetype })),
+          conferidoAgora,
+        }
+      : {}),
     ...(aberto.avisoIdioma ? { avisoIdioma: aberto.avisoIdioma } : {}),
     ...(fim.erroDeAtivacao ? { erroDeAtivacao: fim.erroDeAtivacao } : {}),
   };

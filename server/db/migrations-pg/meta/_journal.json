@@ -260,6 +260,13 @@
       "when": 1795616218195,
       "tag": "0036_flag_anki_mapeador",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1795616218196,
+      "tag": "0037_flag_sombra_local",
+      "breakpoints": true
     }
   ]
 }

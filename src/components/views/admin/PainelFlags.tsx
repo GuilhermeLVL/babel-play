@@ -39,6 +39,7 @@ const FLAGS_SENSIVEIS = new Set([
   'forca_na_legenda',
   'frase_por_frase',
   'anki_mapeador',
+  'sombra_local',
 ]);
 
 /** As regras da flag em palavras curtas, para ver de relance quem ela alcança. */

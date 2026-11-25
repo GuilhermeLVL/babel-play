@@ -99,7 +99,7 @@ const VERSAO = ${JSON.stringify(o.versao)};
 const CACHE = ${JSON.stringify(PREFIXO_DO_CACHE)} + VERSAO;
 const BASE = (new URL(self.location.href).searchParams.get('base') || '/').replace(/\\/+$/, '') || '';
 const PRECACHE = ${JSON.stringify(o.precache.map((p) => `/${p}`))};
-const RUNTIME = /^\\/(assets\\/|ort-wasm-simd-threaded\\.(jsep\\.)?(wasm|mjs)$|silero_vad_|vad\\.worklet|loopback-worklet\\.js$|i18n\\/|smart-turn\\/|favicon\\.svg$)/;
+const RUNTIME = /^\\/(assets\\/|ort-wasm-simd-threaded\\.(jsep\\.)?(wasm|mjs)$|silero_vad_|vad\\.worklet|loopback-worklet\\.js$|pcm-capture-worklet\\.js$|i18n\\/|smart-turn\\/|favicon\\.svg$)/;
 const ESPERA_DA_REDE_MS = 3000;
 
 const urlDaBase = () => BASE || '/';

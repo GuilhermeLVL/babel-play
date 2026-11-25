@@ -261,15 +261,14 @@ html[data-quest-novo='true'] .q-bib-vazia .q-acoes {
     overflow-wrap: anywhere;
   }
 }
-/* O motivo de "Jogar com esta" e "Revisar palavras" estarem desligados: uma linha, pequena, sob o par. */
+/* O motivo de "Jogar com esta" e "Revisar palavras" estarem desligados: pequeno, sob o par. */
 html[data-quest-novo='true'] .q-bib-motivo {
   margin: 0;
   font-size: 13px;
   line-height: 18px;
   color: var(--ink-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* Quebra em vez de cortar: texto mais longo (outro idioma) não pode ficar truncado. */
+  overflow-wrap: anywhere;
 }
 
 /* Renomear, Fixar e Excluir (a fileira de três): a palavra nunca parte no meio ("Renomea/r"). A quebra só

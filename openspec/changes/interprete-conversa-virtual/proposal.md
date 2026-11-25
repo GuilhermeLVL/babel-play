@@ -30,11 +30,13 @@ Muita conversa entre línguas acontece pela internet (Meet, Zoom, Discord), não
 ## Capabilities
 
 ### New Capabilities
+
 - `conversa-virtual-captura`: modo com duas fontes rotuladas (Eles e Você), captura de aba ou do sistema, anti-eco e ducking.
 - `conversa-virtual-saida-para-chamada`: roteamento da minha tradução falada para um microfone virtual, com guia, teste e queda segura.
 - `conversa-virtual-consentimento`: avisos, privacidade, restrição de idade e plano da conversa virtual.
 
 ### Modified Capabilities
+
 <!-- Nenhuma: o comportamento do modo intérprete ainda mora na change `modo-interprete` (não arquivada). -->
 
 ## Impact
@@ -46,3 +48,42 @@ Muita conversa entre línguas acontece pela internet (Meet, Zoom, Discord), não
 - Áudio: novo `src/lib/voz/saidaParaChamada.ts` (`setSinkId`, `AudioContext` de saída, tom de teste, detecção por nome).
 - Plano: `core/planos.ts` (`conversaVirtual`), ajuste nos testes da matriz.
 - Navegadores: Chrome/Edge no desktop (áudio de sistema só no Windows); Safari e Firefox sem suporte, com explicação.
+
+## Revisão de 25/11/2026
+
+**Estado:** precisa decisão do dono. A Fase 4 (ouvir a outra pessoa) está feita e atrás da chave de teste `virtual`: 1.2, 1.3, 1.4, 1.6,
+1.7, 1.8 e 1.10 (`ConversaVirtual.tsx`, `FolhaDaConversaVirtual.tsx`, `interpreteVirtual()`, `tests/conversaVirtual.test.tsx`,
+`tests/interprete-virtual.test.ts`). Falta para fechar a Fase 4: o plano (1.1), o medidor (1.9) e o ducking (1.5, só útil com a Fase 5).
+A Fase 5 não começou: `src/lib/voz/saidaParaChamada.ts` não existe, e `setSinkId` só aparece em `audioDevices.ts` e na folha de vozes.
+
+**O que ficou velho:**
+
+- **Plano "Premium e selfhost"** (1.1 e spec de consentimento): o Premium saiu de venda na v4. O Plus tem `interpreteAutomatico: false` e
+  o Pro (que traria o intérprete automático) está "em breve". A spec foi reescrita para "o plano que a matriz declarar".
+- **Voz roteável** (2.3): a pergunta era "Kokoro local no Grátis?". O dono rejeitou o Kokoro (espeak-ng GPL, vozes ruins) e a
+  frente de voz no aparelho agora tem Supertonic e Kitten (`voz-no-aparelho` e `voz-natural-no-aparelho-kitten`), que geram áudio
+  por `AudioContext` e, portanto, podem ser roteadas. A voz do navegador (Web Speech) continua sem rota.
+- **A entrada** mudou de página para folha (10/10) e a conversa usa o desenho novo (`ConversaDoPrototipo`); as tarefas já o dizem.
+- **Retenção zero e menores:** a spec já exclui menores de 18 e proíbe gravar; isso segue valendo. A tela agora rola os avisos
+  (#205/#206): reconferir que o aviso de consentimento aparece antes da captura no celular (1.10).
+- A pergunta sobre app nativo (WASAPI e microfone virtual embutido) continua aberta e só se decide com os números do spike.
+
+**Esforço:** P para fechar a Fase 4 (1.1 e 1.9 dependem só da decisão); M a G para a Fase 5 (spike 2.1 com Meet e Zoom em Windows e
+macOS, depois 3.x). **Valor para quem usa:** médio; alto para o adulto que faz reunião em outro idioma, nulo para menores e celular
+(só computador).
+
+**Dependências e conflitos:** a voz roteável depende da decisão de `voz-no-aparelho` (README, incerta 3) e de
+`voz-natural-no-aparelho-kitten` (#6); o medidor (1.9) depende do plano (planos v4); o fim de fala e os turnos pertencem a
+`interprete-fim-de-fala-inteligente` (incerta 2). Arquivos em disputa: `PaginaDoInterprete.tsx`, `ConversaVirtual.tsx`,
+`pipelineDeFala.ts` e `src/core/planos.ts` (também mexido por `planos-v3-e-rota-inteligente`); `polimento-movimento` toca a conversa do desenho novo.
+
+**Decisões do dono:**
+
+1. Plano da conversa virtual: (a) legenda dos dois lados livre para 18+ (roda no aparelho, custo zero) e a voz na chamada só no Plus e no
+   selfhost; (b) tudo no Plus; (c) tudo livre, com voz só local. **Recomendo (a)**: não há custo de nuvem na legenda, e a voz é o que
+   gasta cota.
+2. Voz roteável do Grátis (2.3): (a) Kitten ou Supertonic locais, medidas no spike; (b) só a voz da nuvem do Plus; (c) sem voz, só legenda.
+   **Recomendo (c) agora e (a) depois do spike**, para não bloquear a Fase 4.
+3. Teste real com Meet, Zoom e Discord (2.1 e 4.2): quem roda e quando. Opções: (a) o dono em Windows e macOS, 30 min por plataforma;
+   (b) convidar duas pessoas; (c) adiar a Fase 5 e arquivar só a Fase 4. **Recomendo (c)**: a Fase 4 já entrega o valor central, e o
+   spike só se paga se houver demanda pela voz na chamada.

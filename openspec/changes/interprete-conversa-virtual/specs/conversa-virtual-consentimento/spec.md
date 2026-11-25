@@ -39,14 +39,21 @@ pessoa tem 18 anos ou mais.
 
 ### Requirement: Plano e medidor
 
-A conversa virtual SHALL exigir o entitlement `conversaVirtual` (Premium e selfhost), MUST contar nos tetos de
-reconhecimento e de voz já existentes, e MUST mostrar o tempo usado. Ao atingir o teto, o app MUST cair para só legenda sem
-encerrar a conversa.
+A conversa virtual SHALL exigir o entitlement `conversaVirtual`, concedido pelos planos que a matriz (`src/core/planos.ts`) declarar,
+MUST contar nos tetos de reconhecimento e de voz já existentes, e MUST mostrar o tempo usado. Ao atingir o teto, o app MUST cair para
+só legenda sem encerrar a conversa. _(Revisão de 25/11/2026: o texto original dizia "Premium e selfhost"; o Premium saiu de venda na
+v4. O plano que recebe o entitlement é a decisão 1 da `proposal.md`, recomendação: legenda dos dois lados no Grátis, voz na chamada no
+Plus e no selfhost.)_
 
-#### Scenario: Plano Grátis
+#### Scenario: Plano sem o entitlement
 
-- **WHEN** a conta é do plano Grátis
-- **THEN** o modo aparece com cadeado e diz de que plano é
+- **WHEN** a conta é de um plano sem `conversaVirtual`
+- **THEN** o modo aparece bloqueado, diz de que plano é, e o texto segue a skill `copy-br-etica` (benefício, sem urgência nem culpa)
+
+#### Scenario: Selfhost
+
+- **WHEN** a instalação é `selfhost`
+- **THEN** o modo está liberado e não consome cota de nuvem
 
 #### Scenario: Teto atingido
 

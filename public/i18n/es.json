@@ -456,6 +456,7 @@
   "Apagar a lista": "Borrar la lista",
   "Apagar a voz natural": "Borrar la voz natural",
   "Apagar de vez": "Borrar definitivamente",
+  "Apagar deste navegador": "Borrar de este navegador",
   "Apagar do aparelho": "Borrar del dispositivo",
   "Apagar mesmo": "Borrar de todos modos",
   "Apagar meu avatar": "Borrar mi avatar",
@@ -463,6 +464,7 @@
   "Apagar sessões, palavras e progresso deste navegador": "Borrar sesiones, palabras y progreso de este navegador",
   "Apagar sessões, palavras e progresso deste navegador?": "¿Borrar sesiones, palabras y progreso de este navegador?",
   "Apagar seu avatar e o arquivo que você trouxe? Isso não dá para desfazer. A foto ou as iniciais voltam.": "¿Borrar tu avatar y el archivo que trajiste? No se puede deshacer. Vuelven tu foto o tus iniciales.",
+  "Apagar tira deste navegador as sessões, os cartões, os livros e os outros dados de quando você usava sem conta. Não dá para desfazer.": "Borrar quita de este navegador las sesiones, las tarjetas, los libros y los demás datos de cuando usabas la app sin cuenta. No se puede deshacer.",
   "Apagar todo o desenho?": "¿Borrar todo el dibujo?",
   "Apagar todos os áudios": "Borrar todos los audios",
   "Apagar todos os modelos": "Borrar todos los modelos",
@@ -1239,6 +1241,7 @@
   "Este modelo tem cores fixas. Você ainda pode ajustar tamanho, altura e largura.": "Este modelo tiene colores fijos. Aún puedes ajustar el tamaño, la altura y el ancho.",
   "Este não serve para o jogo que você tocou. Escolha um sem cadeado.": "Este no sirve para el juego que tocaste. Elige uno sin candado.",
   "Este navegador ainda não consegue ouvir você sem mandar a voz para fora. Use o Chrome ou o Edge no computador.": "Este navegador aún no puede escucharte sin enviar tu voz afuera. Usa Chrome o Edge en la computadora.",
+  "Este navegador guardava coisas de quando você usava sem conta. Se este aparelho é compartilhado, escolha o que fazer com elas.": "Este navegador guardó cosas de cuando usabas la app sin cuenta. Si este dispositivo es compartido, elige qué hacer con ellas.",
   "Este navegador já abre o app sem internet.": "Este navegador ya abre la app sin internet.",
   "Este navegador não deixa guardar o desenho: ele vale só até sair da tela.": "Este navegador no permite guardar el dibujo: dura solo hasta salir de la pantalla.",
   "Este navegador não deixa guardar o diário. Seu texto não ficou salvo.": "Este navegador no permite guardar el diario. Tu texto no se guardó.",
@@ -2500,6 +2503,7 @@
     "many": "Listo: marcamos {n} palabras como conocidas.",
     "other": "Listo: marcamos {n} palabras como conocidas."
   },
+  "Pronto: o que estava neste navegador sem conta foi apagado.": "Listo: lo que había en este navegador sin cuenta fue borrado.",
   "Pronto!": "¡Listo!",
   "Pronto! {n} palavras estão na sua revisão.": {
     "one": "¡Listo! {n} palabra está en tu repaso.",

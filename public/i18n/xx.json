@@ -968,6 +968,7 @@
   "Apagar a voz natural": "[Ápágár á vöž ñátürál ········]",
   "Apagar conversa": "[Ápágár çöñvéršá ······]",
   "Apagar de vez": "[Ápágár dé véž ·····]",
+  "Apagar deste navegador": "[Ápágár déšté ñávégádör ·········]",
   "Apagar do aparelho": "[Ápágár dö ápárélhö ·······]",
   "Apagar esta anotação": "[Ápágár éštá áñötáçãö ········]",
   "Apagar mesmo": "[Ápágár méšmö ·····]",
@@ -976,6 +977,7 @@
   "Apagar sessões, palavras e progresso deste navegador": "[Ápágár šéššõéš, pálávráš é prögréššö déšté ñávégádör ·····················]",
   "Apagar sessões, palavras e progresso deste navegador?": "[Ápágár šéššõéš, pálávráš é prögréššö déšté ñávégádör? ·····················]",
   "Apagar seu avatar e o arquivo que você trouxe? Isso não dá para desfazer. A foto ou as iniciais voltam.": "[Ápágár šéü ávátár é ö árqüívö qüé vöçê tröüxé? Íššö ñãö dá párá déšfážér. Á fötö öü áš íñíçíáíš völtám. ·········································]",
+  "Apagar tira deste navegador as sessões, os cartões, os livros e os outros dados de quando você usava sem conta. Não dá para desfazer.": "[Ápágár tírá déšté ñávégádör áš šéššõéš, öš çártõéš, öš lívröš é öš öütröš dádöš dé qüáñdö vöçê üšává šém çöñtá. Ñãö dá párá déšfážér. ·····················································]",
   "Apagar todo o desenho?": "[Ápágár tödö ö déšéñhö? ·········]",
   "Apagar todos os áudios": "[Ápágár tödöš öš áüdíöš ·········]",
   "Apagar todos os modelos": "[Ápágár tödöš öš mödélöš ·········]",
@@ -2512,6 +2514,7 @@
   "Este modelo tem cores fixas. Você ainda pode ajustar tamanho, altura e largura.": "[Éšté mödélö tém çöréš fíxáš. Vöçê áíñdá pödé ájüštár támáñhö, áltürá é lárgürá. ································]",
   "Este não serve para o jogo que você tocou. Escolha um sem cadeado.": "[Éšté ñãö šérvé párá ö jögö qüé vöçê töçöü. Éšçölhá üm šém çádéádö. ··························]",
   "Este navegador ainda não consegue ouvir você sem mandar a voz para fora. Use o Chrome ou o Edge no computador.": "[Éšté ñávégádör áíñdá ñãö çöñšégüé öüvír vöçê šém máñdár á vöž párá förá. Üšé ö Çhrömé öü ö Édgé ñö çömpütádör. ············································]",
+  "Este navegador guardava coisas de quando você usava sem conta. Se este aparelho é compartilhado, escolha o que fazer com elas.": "[Éšté ñávégádör güárdává çöíšáš dé qüáñdö vöçê üšává šém çöñtá. Šé éšté ápárélhö é çömpártílhádö, éšçölhá ö qüé fážér çöm éláš. ··················································]",
   "Este navegador já abre o app sem internet.": "[Éšté ñávégádör já ábré ö ápp šém íñtérñét. ·················]",
   "Este navegador não dá nota de pronúncia: ouça, repita em voz alta e siga.": "[Éšté ñávégádör ñãö dá ñötá dé pröñúñçíá: öüçá, répítá ém vöž áltá é šígá. ·····························]",
   "Este navegador não dá nota de pronúncia: siga para a próxima quando estiver satisfeito.": "[Éšté ñávégádör ñãö dá ñötá dé pröñúñçíá: šígá párá á próxímá qüáñdö éštívér šátíšféítö. ···································]",
@@ -5068,6 +5071,7 @@
     "other": "[Pröñtö: márçámöš {n} pálávráš çömö çöñhéçídáš. ··················]"
   },
   "Pronto: o Premium vale até {data}. No fim a conta volta ao Grátis sozinha, e nada é cobrado.": "[Pröñtö: ö Prémíüm válé áté {data}. Ñö fím á çöñtá völtá áö Ĝrátíš šöžíñhá, é ñádá é çöbrádö. ·····································]",
+  "Pronto: o que estava neste navegador sem conta foi apagado.": "[Pröñtö: ö qüé éštává ñéšté ñávégádör šém çöñtá föí ápágádö. ························]",
   "Pronto!": "[Pröñtö! ···]",
   "Pronto! {n} palavras estão na sua revisão.": {
     "one": "[Pröñtö! {n} pálávráš éštãö ñá šüá révíšãö. ·················]",

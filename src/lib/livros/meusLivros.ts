@@ -18,6 +18,7 @@ import { useSyncExternalStore } from 'react';
 import type { CapituloDeTexto } from '../../core/livros/epub';
 import type { FormatoTrazido } from '../../core/livros/formatos';
 import type { StatusDeLeitura } from '../../core/livros/meusLivros';
+import { EVENTO_DE_ARMAZENS_LIMPOS } from '../armazensDoAparelhoDaConta';
 import { idDoCatalogo } from './abrir';
 import { estante } from './armazem';
 import { garantirCapaDoArquivo, removerCapa } from './capasLocais';
@@ -61,6 +62,14 @@ const CHAVE = 'frasy.livros.meus.v1';
 const EVENTO = 'frasy:meus-livros';
 
 let cache: MeuLivro[] | null = null;
+
+/* A guarda apagou o conjunto do aparelho (sair, trocar de conta, apagar o que o visitante deixou): esquece a cópia na
+   memória e avisa a tela, senão a lista antiga continuaria à vista até recarregar. */
+if (typeof window !== 'undefined')
+  window.addEventListener(EVENTO_DE_ARMAZENS_LIMPOS, () => {
+    cache = null;
+    window.dispatchEvent(new Event(EVENTO));
+  });
 
 function lerDoDisco(): MeuLivro[] {
   try {

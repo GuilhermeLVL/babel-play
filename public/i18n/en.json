@@ -967,6 +967,7 @@
   "Apagar a voz natural": "Delete the natural voice",
   "Apagar conversa": "Delete conversation",
   "Apagar de vez": "Delete for good",
+  "Apagar deste navegador": "Delete from this browser",
   "Apagar do aparelho": "Delete from this device",
   "Apagar esta anotação": "Delete this annotation",
   "Apagar mesmo": "Delete anyway",
@@ -975,6 +976,7 @@
   "Apagar sessões, palavras e progresso deste navegador": "Delete sessions, words and progress from this browser",
   "Apagar sessões, palavras e progresso deste navegador?": "Delete sessions, words and progress from this browser?",
   "Apagar seu avatar e o arquivo que você trouxe? Isso não dá para desfazer. A foto ou as iniciais voltam.": "Delete your avatar and the file you brought? This can't be undone. Your photo or initials come back.",
+  "Apagar tira deste navegador as sessões, os cartões, os livros e os outros dados de quando você usava sem conta. Não dá para desfazer.": "Deleting removes from this browser the sessions, cards, books and other data from when you used the app without an account. This cannot be undone.",
   "Apagar todo o desenho?": "Erase the whole drawing?",
   "Apagar todos os áudios": "Delete all audio",
   "Apagar todos os modelos": "Delete all models",
@@ -2511,6 +2513,7 @@
   "Este modelo tem cores fixas. Você ainda pode ajustar tamanho, altura e largura.": "This model has fixed colors. You can still adjust size, height and width.",
   "Este não serve para o jogo que você tocou. Escolha um sem cadeado.": "This one does not work for the game you tapped. Pick one without a lock.",
   "Este navegador ainda não consegue ouvir você sem mandar a voz para fora. Use o Chrome ou o Edge no computador.": "This browser can't listen to you yet without sending your voice out. Use Chrome or Edge on a computer.",
+  "Este navegador guardava coisas de quando você usava sem conta. Se este aparelho é compartilhado, escolha o que fazer com elas.": "This browser kept things from when you used the app without an account. If this device is shared, choose what to do with them.",
   "Este navegador já abre o app sem internet.": "This browser can already open the app offline.",
   "Este navegador não dá nota de pronúncia: ouça, repita em voz alta e siga.": "This browser doesn't grade pronunciation: listen, repeat out loud and move on.",
   "Este navegador não dá nota de pronúncia: siga para a próxima quando estiver satisfeito.": "This browser doesn't grade pronunciation: move on to the next one when you're happy with it.",
@@ -5066,6 +5069,7 @@
     "other": "Done: we marked {n} words as known."
   },
   "Pronto: o Premium vale até {data}. No fim a conta volta ao Grátis sozinha, e nada é cobrado.": "Done: Premium is yours until {data}. At the end the account goes back to Free on its own, and nothing is charged.",
+  "Pronto: o que estava neste navegador sem conta foi apagado.": "Done: what was in this browser without an account has been deleted.",
   "Pronto!": "Done!",
   "Pronto! {n} palavras estão na sua revisão.": {
     "one": "Done! {n} word is in your review.",

@@ -9,10 +9,10 @@ dos portões 1 a 4 estarem marcados.
 
 - [x] 1.1a Critério e protocolo do TESTE CEGO pt-BR (D4). Feito: `docs/auditoria/2026-11-21-criterio-da-traducao-local-por-direcao.md`,
       commitado em `ad4a09ed`; nenhum A/B de decisão rodou antes dele (as medições de 21/11 são exploratórias e marcadas `emulado`).
-- [ ] 1.1b Escrever e commitar o critério dos três A/B (D6: qualidade, memória/latência do runtime, `fimDaFalaAteLegendaMs`) ANTES de
+- [x] 1.1b (feito em `scripts/perf/latencia-legenda/resultados/2026-11-25/traducao-local-por-direcao/criterio.md`, 25/11) Escrever e commitar o critério dos três A/B (D6: qualidade, memória/latência do runtime, `fimDaFalaAteLegendaMs`) ANTES de
       qualquer rodada de decisão, no padrão dos `criterio.md` de `scripts/perf/latencia-legenda/resultados/`.
       Verificar: `git log` mostra o commit do critério anterior ao primeiro resultado de decisão; `ab.mjs` o aceita.
-- [ ] 1.2 **[D]** Portão 1, licença: o dono lê o checklist (README dos pesos Mozilla = MPL-2.0; corpora não informados; sem campo
+- [ ] 1.2 **[D]** (decisão assumida: recomendação a, 25/11: par a par, começando por es, fr, it e de; aprovar no catálogo segue ato do dono) Portão 1, licença: o dono lê o checklist (README dos pesos Mozilla = MPL-2.0; corpora não informados; sem campo
       no registro) e decide, por par, se o R2 pode hospedar. EuroNano segue ADIADO (TED2020 CC BY-NC-ND); contato com a Tether só
       com OK do dono. Verificar: decisão registrada em `docs/auditoria/` com a data.
 - [x] 1.3 Catálogo: campos `licencaPesos`, `licencaDados` (`"não informada"` enquanto for o caso) e `aprovadoPeloDono` (padrão
@@ -39,24 +39,24 @@ dos portões 1 a 4 estarem marcados.
 
 ## 4. Laboratório: qualidade e variante
 
-- [ ] 4.1 Rodar a bancada de qualidade (`scripts/eval-fala/bancada/mt.mjs` + `pontuar.py`) com `local:opus-mt` × `bergamot:<par>` em
+- [ ] 4.1 [B] (critério A escrito; roda na sessão de bancada única) Rodar a bancada de qualidade (`scripts/eval-fala/bancada/mt.mjs` + `pontuar.py`) com `local:opus-mt` × `bergamot:<par>` em
       `fleurs:pt-en` e, ao fim da 4.2, nos demais X→en. Verificar: COMET e chrF++ com IC 95% pareado por par, gold junto.
-- [ ] 4.2 Acrescentar corpora FLEURS `X→en` dos pares a publicar à bancada (hoje nenhum corpus tem origem em es e demais X;
+- [ ] 4.2 (parcial: `montar-fleurs-x-en.mjs` pronto; manifesto local só de es e pt, n = 51 e 100; fr, de, it pedem `baixar-bancada.py` [B]) Acrescentar corpora FLEURS `X→en` dos pares a publicar à bancada (hoje nenhum corpus tem origem em es e demais X;
       `baixar-corpus.py`). Verificar: o relatório lista n por par.
-- [ ] 4.3 **[D]** Portão 2, teste cego pt-BR (D4; a ferramenta `scripts/eval-fala/teste-cego-ptbr/` está PRONTA, falta recrutar e aplicar): montar a planilha embaralhada e o gabarito; o dono recruta ≥ 2 avaliadores
+- [ ] 4.3 **[D]** (decisão assumida: recomendação c, 25/11: ADIADO até a 6.1 mostrar ganho em X→en) Portão 2, teste cego pt-BR (D4; a ferramenta `scripts/eval-fala/teste-cego-ptbr/` está PRONTA, falta recrutar e aplicar): montar a planilha embaralhada e o gabarito; o dono recruta ≥ 2 avaliadores
       brasileiros; aplicar; calcular pt-PT por sistema, kappa e IC. Verificar: relatório com o veredito por sistema
       (`aprovado`, `reprovado`, `inconclusivo`); só `aprovado` muda a rota de en→pt.
 - [ ] 4.4 Registrar o veredito no catálogo e no relatório. Verificar: com `reprovado` ou `inconclusivo` o en→pt segue opus-mt.
-- [ ] 4.5 Meta de qualidade es→pt (herdada de `traducao-sem-rota-no-celular` 5.2/6.2): com o modelo direto, nota média do juiz (`celular/juiz-traducao.mjs`) de pelo menos 3/5 nas traduções es→pt. Hoje o pivô pelo inglês mede 2,33 a 2,89 e segue rotulado "tradução aproximada". Verificar: relatório com a nota por rota.
+- [ ] 4.5 [B] (critério escrito em 1.1b, seção D; `juiz-traducao.mjs` não está neste repositório e não há modelo direto es→pt publicado; o pivô segue "tradução aproximada") Meta de qualidade es→pt (herdada de `traducao-sem-rota-no-celular` 5.2/6.2): com o modelo direto, nota média do juiz (`celular/juiz-traducao.mjs`) de pelo menos 3/5 nas traduções es→pt. Hoje o pivô pelo inglês mede 2,33 a 2,89 e segue rotulado "tradução aproximada". Verificar: relatório com a nota por rota.
 
 ## 5. Laboratório: runtime, memória, latência e download
 
-- [ ] 5.1 Script de build do WASM do `inference/` (Mozilla, `BERGAMOT_VERSION`), vendorizado sem modificação, com aviso MPL e
+- [ ] 5.1 (decisão assumida: recomendação b, 25/11: ficar no 0.4.9; FORA do caminho curto, só reabre se a 5.5 estourar a memória) Script de build do WASM do `inference/` (Mozilla, `BERGAMOT_VERSION`), vendorizado sem modificação, com aviso MPL e
       `FONTES.md`; chave de build `antigo|novo`. Verificar: build com cada chave carrega pt-en e traduz.
-- [ ] 5.2 Portão 3: A/B de memória e latência 0.4.9 × WASM novo no laboratório (D6.1), com o 2º modelo em sequência (issue #1488).
+- [ ] 5.2 (FORA, mesma decisão da 5.1; fica só a leitura 0.4.9 × opus-mt, critério B) Portão 3: A/B de memória e latência 0.4.9 × WASM novo no laboratório (D6.1), com o 2º modelo em sequência (issue #1488).
       Verificar: relatório com heap e pico da aba, p75 de ms/frase e erros do 2º modelo; só troca o runtime se a memória cair no
       IC 95% e não houver erro no 2º modelo.
-- [ ] 5.3 A/B de `fimDaFalaAteLegendaMs`: opus-mt × Bergamot nos pares X→en (D6.2), `ab.mjs` pareado, taxa de falha ao lado,
+- [ ] 5.3 [B] (critério C escrito; roda na sessão de bancada única) A/B de `fimDaFalaAteLegendaMs`: opus-mt × Bergamot nos pares X→en (D6.2), `ab.mjs` pareado, taxa de falha ao lado,
       todo resultado marcado `emulado` enquanto não houver aparelho real. Verificar: tabela com p50/p75/p95 e IC, qualidade e
       memória lado a lado.
 - [ ] 5.4 Medir download frio e quente por par (`carga-de-modelos.mjs`): a 2ª carga sai do Cache Storage sem rede. Verificar:

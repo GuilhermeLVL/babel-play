@@ -121,14 +121,25 @@ Fonte de cada item: o painel "Auditoria" de `docs/prototipos/polimento-movimento
 
 ## 8. Fechar a passada de fidelidade (novo em 25/11/2026)
 
-- [ ] 8.1 Reconciliar `fidelidade/estado.md` com o código. O arquivo parou em 10/10 e ainda diz "aberto" para blocos C, E, F, "Jogos 2", "Jogos 8" e "18 cenas: 1 de 18",
+- [x] 8.1 Reconciliar `fidelidade/estado.md` com o código. O arquivo parou em 10/10 e ainda diz "aberto" para blocos C, E, F, "Jogos 2", "Jogos 8" e "18 cenas: 1 de 18",
       mas já existem `src/lib/polimento/{sentidos,niveis,celular,minis,jogos}.ts`, os componentes `*DoPrototipo.tsx` de oito jogos e `tests/polimento*.test.*` (23 arquivos).
       Verificar: tabela item a item (A1 a F, Jogos 1 a 8) com `feito` ou `aberto` e o teste ou arquivo que prova; nenhum item sem prova fica `feito`.
-- [ ] 8.2 Decidir o que da lista "Aberto" do `estado.md` ainda vale (B18, B39 a B41, B48, B49; ajudas dos outros jogos; sons dos jogos; saída animada das telas de dentro do Jogar).
+      FEITO em 25/11/2026: tabela por bloco em `fidelidade/estado.md` com arquivo e teste de cada um. A prova visual lado a lado segue [D] (8.3).
+- [x] 8.2 Decidir o que da lista "Aberto" do `estado.md` ainda vale (B18, B39 a B41, B48, B49; ajudas dos outros jogos; sons dos jogos; saída animada das telas de dentro do Jogar).
       Verificar: cada item vira tarefa numerada com `Verificar:` ou é riscado com motivo; o `estado.md` termina sem "aberto" sem dono.
-- [ ] 8.5 Conferir o padrão do "reduzir movimento" do sistema. `aplicarAcess` (`src/lib/polimento/base.ts`) faz o app ignorar `prefers-reduced-motion`
+      FEITO em 25/11/2026: B18, B48 e B49 riscados (sem descrição no inventário; reabrem se o dono apontar), sons dos jogos já portados, o resto virou 8.6 a 8.9.
+- [x] 8.5 Conferir o padrão do "reduzir movimento" do sistema. `aplicarAcess` (`src/lib/polimento/base.ts`) faz o app ignorar `prefers-reduced-motion`
       "enquanto as animações estiverem ligadas", e o `estado.md` diz o contrário ("o protótipo vence, menos contraste de leitura e o reduzir movimento do sistema").
       Verificar: teste novo: com `prefers-reduced-motion: reduce` e sem escolha explícita, `data-movimento` é `contido`; se hoje for `rico`, é defeito de acessibilidade a corrigir (público com menores).
-- [ ] 8.3 **[D]** Aprovar a aparência da barra de cinco e do tema e decidir `temas-v2` (5.3 do README). Verificar: aprovação registrada no `estado.md` com a data.
-- [ ] 8.4 Textos novos de jogos e da explicação em três telas passados por `t()` e nos catálogos (hoje "em português também para quem usa em inglês").
+      FEITO em 25/11/2026 (decisão assumida: recomendação do item 16 de `decisoes-do-dono.md`, sim, 25/11): era defeito. `useAparencia` nascia com as animações ligadas e a classe `animations-on` fazia `reduz()` e o CSS ignorarem o sistema. Agora `animacoesLigadasPorPadrao` (`src/lib/movimento/padraoDeAnimacoes.ts`) liga por padrão só se o sistema não pede menos movimento; escolha guardada vence nos dois sentidos. Prova: `tests/movimentoReduzidoDoSistema.test.ts`.
+- [ ] 8.3 **[D]** (decisão assumida: recomendação 16, aprovar com capturas lado a lado e manter a exceção do canvas em `temas-v2`, 25/11; a aprovação em si é do dono, e o dono está escolhendo entre 4 direções de design: NÃO mexer em paleta, tipografia ou aparência geral até lá) Aprovar a aparência da barra de cinco e do tema e decidir `temas-v2` (5.3 do README). Verificar: aprovação registrada no `estado.md` com a data.
+- [ ] 8.4 (aberta: a varredura dos textos dos 18 jogos e da explicação em três telas nos três catálogos é grande e colide com `Play.tsx`; fica para a sessão de jogos) Textos novos de jogos e da explicação em três telas passados por `t()` e nos catálogos (hoje "em português também para quem usa em inglês").
       Verificar: `npm run i18n` sem diferença; `npx vitest run tests/i18n*.test.ts` verde.
+- [ ] 8.6 Ajudas "+10 s" e "Ver resposta" nos jogos sem relógio por jogada (Duelo, Termo, Caça-palavras). Mexe em `Play.tsx` e nas cenas: fica para depois da onda, com a `tela-de-jogos-v2`.
+      Verificar: teste de componente de cada jogo com a ajuda; `npx vitest run tests/polimentoJogos.test.tsx`.
+- [ ] 8.7 Partículas com paralaxe, rajada e confete (B39 a B41). O app tem motor próprio (`juice.ts`); trocar é mudança de aparência, **[D]**.
+      Verificar: decisão do dono registrada no `estado.md`.
+- [ ] 8.8 Primeira letra dada e menos alternativas por nível, jogo a jogo (resto de 2.2).
+      Verificar: `tests/regrasDosJogos.test.ts` com os casos novos.
+- [ ] 8.9 Saída animada das telas de dentro do Jogar (lobby, antessala, rodada, fim). Pede segurar a desmontagem em `Play.tsx` e `useNavegacao`; fica atrás do `motor-anki-jogos` e da `tela-de-jogos-v2`.
+      Verificar: teste de que a saída respeita `semMovimentoDeTela()` e e2e com movimento reduzido.

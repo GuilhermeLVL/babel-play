@@ -3,6 +3,7 @@ import '../../../../styles/modoInterprete.css';
 import { Languages, Monitor, Volume2, VolumeX } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
+import { ehTetoDeVoz, minutosDaConversa, somarTempoAtivo } from '../../../../core/conversaVirtual';
 import { type PonteDoInterprete, VELOCIDADE_LENTA } from '../../../../lib/captura/controleDoInterprete';
 import { baixarTexto, conversaEmMarkdown, nomeDoArquivoDaConversa } from '../../../../lib/captura/exportarConversa';
 import {
@@ -102,10 +103,18 @@ export default function ConversaVirtual({
   const fontesRef = useRef(fontes);
   fontesRef.current = fontes;
   const [ativos, setAtivos] = useState(() => ({ sistema: fontes.sistemaAtivo(), microfone: fontes.microfoneAtivo() }));
+  /* O MEDIDOR: minutos com ao menos uma fonte aberta (a pausa não conta). Só aparece; o teto quem aplica é o servidor. */
+  const [minutos, setMinutos] = useState(0);
   useEffect(() => {
+    let acumulado = 0;
+    let ultimo = Date.now();
     const ler = () => {
       const sistema = fontesRef.current.sistemaAtivo();
       const microfone = fontesRef.current.microfoneAtivo();
+      const agora = Date.now();
+      acumulado = somarTempoAtivo(acumulado, agora - ultimo, sistema || microfone);
+      ultimo = agora;
+      setMinutos(minutosDaConversa(acumulado));
       setAtivos((a) => (a.sistema === sistema && a.microfone === microfone ? a : { sistema, microfone }));
     };
     ler();
@@ -115,6 +124,8 @@ export default function ConversaVirtual({
 
   /* A LEITURA: uma fila só, para a tradução da outra pessoa (quando ligada) e para os toques no texto. */
   const [lerEmVozAlta, setLerEmVozAlta] = useState(false);
+  /** A voz da nuvem acabou (cota do mês ou uso justo do dia): a conversa segue só com legenda até sair. */
+  const [tetoDaVoz, setTetoDaVoz] = useState(false);
   const lerRef = useRef(false);
   lerRef.current = lerEmVozAlta;
   const velocidadeRef = useRef(velocidade);
@@ -124,7 +135,19 @@ export default function ConversaVirtual({
   const vozRef = useRef<VozDaNuvem | null>(null);
   useEffect(() => {
     /* A voz escolhida do idioma manda: a do aparelho, se a pessoa escolheu uma; senão a nuvem. */
-    const voz = vozNaturalDisponivel ? criarMotorPorPreferencia({ nuvem: criarVozDaNuvem() }) : null;
+    const voz = vozNaturalDisponivel
+      ? criarMotorPorPreferencia({
+          nuvem: criarVozDaNuvem({
+            /* Teto de voz no meio da conversa: cai para SÓ LEGENDA (não para a voz do aparelho) e a tela diz por quê. */
+            aoRecuar: (motivo) => {
+              if (!ehTetoDeVoz(motivo)) return;
+              setTetoDaVoz(true);
+              setLerEmVozAlta(false);
+              filaRef.current?.parar();
+            },
+          }),
+        })
+      : null;
     vozRef.current = voz;
     const velocidadeInicial = velocidadeRef.current;
     const fila = criarFilaDeFala({
@@ -181,6 +204,7 @@ export default function ConversaVirtual({
   }, [registrarPonte, falaDe]);
 
   const alternarLeitura = () => {
+    if (tetoDaVoz) return;
     const ligar = !lerEmVozAlta;
     if (ligar && vozNaturalDisponivel) destravarVozDaNuvem();
     if (!ligar) filaRef.current?.parar();
@@ -400,7 +424,12 @@ export default function ConversaVirtual({
         muda: !lerEmVozAlta,
       }}
       vozes={{ lados: ladosDaVoz(idiomas) }}
-      aviso={aviso ?? ''}
+      aviso={
+        aviso ||
+        (tetoDaVoz
+          ? t('A voz acabou por agora. A conversa segue só com legenda.')
+          : t('{n} min de conversa', { n: minutos }))
+      }
       aoTrocarLados={() => setTrocados((v) => !v)}
       aoRepetir={() => {
         if (ultimaDoOutro?.traducao.trim()) ouvirTrecho(ultimaDoOutro.traducao, idiomaDaTraducao(ultimaDoOutro));

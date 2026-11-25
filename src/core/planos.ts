@@ -132,6 +132,13 @@ export interface EntitlementsDoPlano {
    */
   interpreteAutomatico: boolean;
   /**
+   * A CONVERSA VIRTUAL (`interprete-conversa-virtual`; decisão assumida 25/11: legenda dos dois lados livre
+   * para quem tem conta, 18+ conferido à parte; custo de nuvem zero porque a legenda roda no aparelho).
+   * A VOZ na chamada (Fase 5, adiada) só vale no Plus e no selfhost: ela usa `vozNatural`, não este campo.
+   * Convidado e "tudo fechado" ficam sem: sem conta não há aferição de idade (LGPD art. 14).
+   */
+  conversaVirtual: boolean;
+  /**
    * SEM ANÚNCIOS (planos v3). A política de anúncios (`src/core/anuncios`, atrás da flag `anuncios`)
    * nega por ESTE campo; quem paga, quem testa o Premium e o self-host não veem anúncio.
    */
@@ -488,6 +495,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       traducaoNuance: false,
       vozNatural: false,
       interpreteAutomatico: false,
+      conversaVirtual: true,
       semAnuncios: false,
       sttAoVivo: false,
       nivelDeVoz: 'aparelho',
@@ -530,6 +538,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       traducaoNuance: true,
       vozNatural: false,
       interpreteAutomatico: false,
+      conversaVirtual: true,
       semAnuncios: true,
       sttAoVivo: false,
       nivelDeVoz: 'aparelho',
@@ -571,6 +580,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       traducaoNuance: true,
       vozNatural: true,
       interpreteAutomatico: true,
+      conversaVirtual: true,
       semAnuncios: true,
       sttAoVivo: false,
       nivelDeVoz: 'basica',
@@ -627,6 +637,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       traducaoNuance: true,
       vozNatural: true,
       interpreteAutomatico: true,
+      conversaVirtual: true,
       semAnuncios: true,
       sttAoVivo: true,
       nivelDeVoz: 'boa',
@@ -669,6 +680,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       traducaoNuance: true,
       vozNatural: true,
       interpreteAutomatico: false,
+      conversaVirtual: true,
       semAnuncios: true,
       sttAoVivo: false,
       nivelDeVoz: 'basica',
@@ -707,6 +719,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       traducaoNuance: true,
       vozNatural: true,
       interpreteAutomatico: false,
+      conversaVirtual: true,
       semAnuncios: true,
       sttAoVivo: false,
       nivelDeVoz: 'basica',
@@ -745,6 +758,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       traducaoNuance: true,
       vozNatural: true,
       interpreteAutomatico: true,
+      conversaVirtual: true,
       semAnuncios: true,
       sttAoVivo: false,
       nivelDeVoz: 'basica',
@@ -781,6 +795,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       traducaoNuance: true,
       vozNatural: true,
       interpreteAutomatico: true,
+      conversaVirtual: true,
       semAnuncios: true,
       sttAoVivo: true,
       nivelDeVoz: 'boa',
@@ -839,6 +854,7 @@ export const PLANO_CONVIDADO: DefinicaoDePlano = {
     traducaoNuance: false,
     vozNatural: false,
     interpreteAutomatico: false,
+    conversaVirtual: false,
     semAnuncios: false,
     sttAoVivo: false,
     nivelDeVoz: 'aparelho',
@@ -878,6 +894,7 @@ export const ENTITLEMENTS_FECHADOS: Readonly<EntitlementsDoPlano> = Object.freez
   traducaoNuance: false,
   vozNatural: false,
   interpreteAutomatico: false,
+  conversaVirtual: false,
   semAnuncios: false,
   sttAoVivo: false,
   nivelDeVoz: 'aparelho',

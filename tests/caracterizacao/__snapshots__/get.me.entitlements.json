@@ -6,6 +6,7 @@
       "usados": "number"
     },
     "contaCriadaEm": "number",
+    "conversaVirtual": "boolean",
     "interpreteAutomatico": "boolean",
     "largerModels": "boolean",
     "managedCloudLlm": "boolean",

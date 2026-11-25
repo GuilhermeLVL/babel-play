@@ -30,7 +30,7 @@ Legenda: **[D]** depende do dono; **[R]** pede aparelho real. A mais arriscada v
 ## 3. Guarda na conta (adulto declarado com conta)
 
 - [ ] 3.1 Migração aditiva `audio_chave`, `audio_dur_ms` em `vocab_cards` (PG e SQLite) e rotas `PUT/GET/DELETE
-    /api/vocab/:id/audio` com escopo por `UserId`, teto por clipe e por conta, `reservarArmazenamento`.
+/api/vocab/:id/audio` com escopo por `UserId`, teto por clipe e por conta, `reservarArmazenamento`.
       Verificar: teste de integração (outra conta recebe 404; perfil protegido recebe 403; teto excedido recebe 413).
 - [ ] 3.2 Exclusão: excluir cartão, sessão e conta apagam o objeto no R2; a exportação de dados inclui os clipes
       (`exclusao-e-exportacao-completas`).

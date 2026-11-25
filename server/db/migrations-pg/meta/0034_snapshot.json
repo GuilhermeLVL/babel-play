@@ -53,10 +53,7 @@
       "compositePrimaryKeys": {
         "admissao_de_ia_chave_janela_pk": {
           "name": "admissao_de_ia_chave_janela_pk",
-          "columns": [
-            "chave",
-            "janela"
-          ]
+          "columns": ["chave", "janela"]
         }
       },
       "uniqueConstraints": {},
@@ -240,11 +237,7 @@
       "compositePrimaryKeys": {
         "agregados_diarios_user_id_idioma_dia_pk": {
           "name": "agregados_diarios_user_id_idioma_dia_pk",
-          "columns": [
-            "user_id",
-            "idioma",
-            "dia"
-          ]
+          "columns": ["user_id", "idioma", "dia"]
         }
       },
       "uniqueConstraints": {},
@@ -503,12 +496,8 @@
           "name": "anki_imports_deck_id_anki_decks_id_fk",
           "tableFrom": "anki_imports",
           "tableTo": "anki_decks",
-          "columnsFrom": [
-            "deck_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deck_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -725,12 +714,8 @@
           "name": "anki_notes_deck_id_anki_decks_id_fk",
           "tableFrom": "anki_notes",
           "tableTo": "anki_decks",
-          "columnsFrom": [
-            "deck_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deck_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -738,12 +723,8 @@
           "name": "anki_notes_projected_card_id_vocab_cards_id_fk",
           "tableFrom": "anki_notes",
           "tableTo": "vocab_cards",
-          "columnsFrom": [
-            "projected_card_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["projected_card_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -899,10 +880,7 @@
       "compositePrimaryKeys": {
         "anotacoes_de_leitura_user_id_id_pk": {
           "name": "anotacoes_de_leitura_user_id_id_pk",
-          "columns": [
-            "user_id",
-            "id"
-          ]
+          "columns": ["user_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -972,10 +950,7 @@
       "compositePrimaryKeys": {
         "anuncios_premiados_user_id_exibicao_id_pk": {
           "name": "anuncios_premiados_user_id_exibicao_id_pk",
-          "columns": [
-            "user_id",
-            "exibicao_id"
-          ]
+          "columns": ["user_id", "exibicao_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1759,11 +1734,7 @@
       "compositePrimaryKeys": {
         "estado_por_item_user_id_card_id_jogo_pk": {
           "name": "estado_por_item_user_id_card_id_jogo_pk",
-          "columns": [
-            "user_id",
-            "card_id",
-            "jogo"
-          ]
+          "columns": ["user_id", "card_id", "jogo"]
         }
       },
       "uniqueConstraints": {},
@@ -2040,12 +2011,8 @@
           "name": "exercise_results_session_id_sessions_id_fk",
           "tableFrom": "exercise_results",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2053,12 +2020,8 @@
           "name": "exercise_results_card_id_vocab_cards_id_fk",
           "tableFrom": "exercise_results",
           "tableTo": "vocab_cards",
-          "columnsFrom": [
-            "card_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["card_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2425,11 +2388,7 @@
       "compositePrimaryKeys": {
         "palavras_marcadas_user_id_lang_chave_pk": {
           "name": "palavras_marcadas_user_id_lang_chave_pk",
-          "columns": [
-            "user_id",
-            "lang",
-            "chave"
-          ]
+          "columns": ["user_id", "lang", "chave"]
         }
       },
       "uniqueConstraints": {},
@@ -2540,12 +2499,8 @@
           "name": "palavras_vistas_session_id_sessions_id_fk",
           "tableFrom": "palavras_vistas",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2553,12 +2508,7 @@
       "compositePrimaryKeys": {
         "palavras_vistas_user_id_session_id_lang_chave_pk": {
           "name": "palavras_vistas_user_id_session_id_lang_chave_pk",
-          "columns": [
-            "user_id",
-            "session_id",
-            "lang",
-            "chave"
-          ]
+          "columns": ["user_id", "session_id", "lang", "chave"]
         }
       },
       "uniqueConstraints": {},
@@ -2726,12 +2676,8 @@
           "name": "provider_credentials_secret_ref_secrets_ref_fk",
           "tableFrom": "provider_credentials",
           "tableTo": "secrets",
-          "columnsFrom": [
-            "secret_ref"
-          ],
-          "columnsTo": [
-            "ref"
-          ],
+          "columnsFrom": ["secret_ref"],
+          "columnsTo": ["ref"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3040,12 +2986,8 @@
           "name": "review_logs_card_id_vocab_cards_id_fk",
           "tableFrom": "review_logs",
           "tableTo": "vocab_cards",
-          "columnsFrom": [
-            "card_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["card_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3713,9 +3655,7 @@
         "uq_subscriptions_user": {
           "name": "uq_subscriptions_user",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id"
-          ]
+          "columns": ["user_id"]
         }
       },
       "policies": {},
@@ -3867,11 +3807,7 @@
         "uq_usage_user_metric_window": {
           "name": "uq_usage_user_metric_window",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "metric",
-            "window"
-          ]
+          "columns": ["user_id", "metric", "window"]
         }
       },
       "policies": {},
@@ -4239,12 +4175,8 @@
           "name": "utterances_session_id_sessions_id_fk",
           "tableFrom": "utterances",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4889,12 +4821,8 @@
           "name": "vocab_cards_session_id_sessions_id_fk",
           "tableFrom": "vocab_cards",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5132,12 +5060,8 @@
           "name": "vocab_occurrences_card_id_vocab_cards_id_fk",
           "tableFrom": "vocab_occurrences",
           "tableTo": "vocab_cards",
-          "columnsFrom": [
-            "card_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["card_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5145,12 +5069,8 @@
           "name": "vocab_occurrences_utterance_id_utterances_id_fk",
           "tableFrom": "vocab_occurrences",
           "tableTo": "utterances",
-          "columnsFrom": [
-            "utterance_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["utterance_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }

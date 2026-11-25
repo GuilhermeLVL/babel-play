@@ -21,7 +21,8 @@ Legenda: **[D]** = ato ou decisão do dono; **[R]** = exige aparelho real.
 
 ## 5. Pendências
 
-- [ ] 5.1 Tela: botão "Traduzir a legenda neste aparelho", aviso do download, barra de progresso, cancelar, coluna bilíngue
-      (textos i18n em en/es/ar). **[D]** layout.
+- [x] 5.1 Tela (`src/components/views/biblioteca/PreTraduzirLegenda.tsx`, dentro do painel de importar, atrás da flag): botão "Traduzir tudo no
+      aparelho", aviso do download, progresso, cancelar, coluna bilíngue (textos i18n em en/es/ar). Layout simples, sem menu novo;
+      o refinamento visual segue **[D]**. Verificar: `tests/preTraduzirLegenda.test.tsx`.
 - [ ] 5.2 **[R]** Medir em celular real (opus-mt no Worker WASM): ms por fala e a tela responde durante o lote.
 - [ ] 5.3 **[D]** Ligar a flag, depois do A/B de UX e da medição 5.2.

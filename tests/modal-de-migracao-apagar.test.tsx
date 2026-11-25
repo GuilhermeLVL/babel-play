@@ -52,8 +52,8 @@ describe('o aviso de entrada com o que o visitante deixou', () => {
     await act(async () => {
       fireEvent.click(botao('Sim, apagar'))
     })
-    expect(m.limparTudo).toHaveBeenCalledWith({ soDoModoSemConta: true })
-    expect(m.apagarDadosDoVisitante).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(m.limparTudo).toHaveBeenCalledWith({ soDoModoSemConta: true }))
+    await waitFor(() => expect(m.apagarDadosDoVisitante).toHaveBeenCalledTimes(1))
     expect(m.migrarParaConta).not.toHaveBeenCalled()
     expect(screen.getByRole('status').textContent).toMatch(/foi apagado/)
   })
@@ -72,8 +72,9 @@ describe('o aviso de entrada com o que o visitante deixou', () => {
     await act(async () => {
       fireEvent.click(botao('Guardar na conta'))
     })
-    expect(m.trazerDadosDoVisitante).toHaveBeenCalledTimes(1)
-    expect(m.migrarParaConta).toHaveBeenCalledTimes(1)
+    /* O clique chega às chamadas por import dinâmico: com a CI carregada o `act` termina antes. */
+    await waitFor(() => expect(m.trazerDadosDoVisitante).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(m.migrarParaConta).toHaveBeenCalledTimes(1))
     expect(m.limparTudo).not.toHaveBeenCalled()
   })
 })

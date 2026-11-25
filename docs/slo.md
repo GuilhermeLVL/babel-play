@@ -34,6 +34,8 @@ entram como **% de degradação**, acompanhada à parte.
 | CLS                                                            | < 0,1                                                 | idem                                                                                        |
 | INP                                                            | < 200 ms                                              | `scripts/perf/telas/medir-telas.mjs` (Event Timing por interação, celular médio, CPU 4×/6×) |
 
+Nota do teto de JS inicial (25/11/2026): subiu de 181 para 184 KB gzip porque a onda 3 do backlog deixou o medido em 182,3 KB (flags novas em `planos.ts`, armazém do áudio do cartão e medidor da conversa virtual na captura). Se a próxima mudança passar de 184, antes de subir o teto procure o que pode descer para um chunk sob demanda.
+
 ### Medido em 03/10/2026 (build de produção, `scripts/perf/frontend.mjs --execucoes=3`, Lighthouse 13)
 
 Mediana de 3 execuções (a de celular em 4G lento simulado oscila: algumas falham no Chrome sem cabeçalho).

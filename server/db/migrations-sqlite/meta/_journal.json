@@ -512,6 +512,13 @@
       "when": 1794800000011,
       "tag": "0072_flag_pre_traducao_de_legendas",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "6",
+      "when": 1794800001011,
+      "tag": "0073_flag_frase_por_frase",
+      "breakpoints": true
     }
   ]
 }

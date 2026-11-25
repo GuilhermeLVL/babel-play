@@ -749,6 +749,11 @@ npx tsx scripts/modelos/conferir-espelho.ts --base=https://modelos.frasy.com.br 
 # 3. vars do Environment `production`: VITE_SELF_HOST_MODELS e VITE_ORT_WASM_URL; deploy pelo workflow
 ```
 
+Ordem obrigatória: publicar, rodar o portão até sair 0, SÓ ENTÃO definir as variáveis (sem a variável o portão não
+confere nada e a CSP continua liberando o Hub). O espelho também serve o Parakeet da rota pt dos parciais
+(`parciais_parakeet`): quem liga essa flag só funciona sem o Hub se `publicar-no-r2.ts` publicou o Parakeet (publica) e
+o portão o confere (`conferir-espelho.ts` lista os arquivos de `parakeetArquivos.ts`).
+
 Sem as variáveis, produção continua como hoje. O portão (`conferir-espelho.ts`) reprova o deploy se qualquer arquivo
 do manifesto (`src/gateway/manifestoDosPesos.json`), do Parakeet ou do runtime não responder 200 no bucket. Depois:
 monitor do UptimeRobot num peso pequeno e no `.wasm` do bucket.
@@ -762,7 +767,9 @@ NÃO gravar no cache um peso truncado ou trocado (`src/gateway/cacheDePesos.ts`)
 (produção e staging), depois do LCP, com escopo `/`. Ele guarda a casca do app e os chunks da captura; `/api/*`, outras
 origens e pesos nunca passam por ele. Versão nova entra na próxima abertura (sem `skipWaiting`). Desligar:
 `VITE_SERVICE_WORKER=0` no build (o `sw.js` se desregistra em quem já o tem), ou, num navegador só, `?sw=desligar` ou
-Diagnóstico → Uso sem internet. O `/sw.js` sai com `Cache-Control: no-cache` (`_headers.base` e `estaticos.ts`).
+Diagnóstico → Uso sem internet. Escopo `/` não captura o site público: o SW só responde a navegações da base do app
+(`/app`), a `/assets/`, runtime do VAD/ORT, `i18n/` e ao precache; `/`, `/planos`, `/guias/*`, `sitemap.xml`, `ads.txt` e
+`/api/*` passam direto (`tests/serviceWorker.test.ts`, 7.1; a conferência no staging é do dono). O `/sw.js` sai com `Cache-Control: no-cache` (`_headers.base` e `estaticos.ts`).
 
 **Contador anônimo de falhas.** `POST /api/erros-do-cliente/falha` (antes do auth) recebe só `{tipo, aparelho, modelo}`
 de listas fechadas e incrementa `cliente_falha_total` (Prometheus; no Worker, família `cliente_falha` do Analytics

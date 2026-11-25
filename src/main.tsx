@@ -23,10 +23,10 @@ import App from './App.tsx';
 import ErroDaTela from './components/ErroDaTela';
 import { toast } from './components/Toast';
 import { ligarAvisoDeNovaVersao } from './lib/avisoDeNovaVersao';
-import { iniciarGuardaDoAudioDoCartao } from './lib/cartoes/audioDoCartao/armazem';
 import { capturarTokenDoConvite } from './lib/conviteNaUrl';
 import { marcarDispositivoNoDocumento } from './lib/dispositivo/perfil';
 import { marcarQuestNovoNoDocumento } from './lib/dispositivo/telaNovaDoQuest';
+import { iniciarGuardaDosArmazensLocais } from './lib/guardaDosArmazensLocais';
 import { quandoPassarOLcp } from './lib/polimento/depoisDoLcp';
 import { instalarRelatorioDeErros } from './lib/relatorioDeErros';
 import { bootTheme } from './lib/theme';
@@ -34,8 +34,9 @@ import { bootTheme } from './lib/theme';
 // Fase 4: o link do convite ao responsável sai da barra antes que o login ou o roteador o apaguem.
 capturarTokenDoConvite();
 
-// Privacidade: o ouvinte que apaga o áudio dos cartões na troca de conta nasce já no boot (não abre o IndexedDB).
-iniciarGuardaDoAudioDoCartao();
+// Privacidade: o ouvinte que apaga o que é da conta e mora só no aparelho (áudio, cena, diário, conversas...) nasce já
+// no boot (não abre o IndexedDB).
+iniciarGuardaDosArmazensLocais();
 
 // O service worker mínimo (abrir e legendar offline o app já visitado): registra depois do LCP, só no Worker.
 quandoPassarOLcp(() => void import('./lib/registrarSw').then((m) => m.registrarServiceWorker()));

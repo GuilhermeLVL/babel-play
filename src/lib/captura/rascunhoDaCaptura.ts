@@ -9,8 +9,12 @@
  *
  * Até `MAX_RASCUNHOS`, o mais recente primeiro. Toda leitura e escrita é best-effort: sem storage
  * (aba privada, cota), a captura segue na tela e o rascunho simplesmente não existe.
+ *
+ * DE QUEM É (`lib/armazemLocalPorConta`): o rascunho leva o dono. O do visitante sem conta passa para a conta que entra
+ * (é o caso de uso acima); o de uma conta NUNCA passa a outra, e sair, limpar tudo e excluir a conta o apagam.
  */
 import type { NewUtterancePayload } from '../../data/rotas/sessoes';
+import { criarChaveLocalPorConta } from '../armazemLocalPorConta';
 
 export const CHAVE_DO_RASCUNHO = 'babel.capturas_pendentes';
 export const MAX_RASCUNHOS = 5;
@@ -33,26 +37,20 @@ export interface RascunhoDaCaptura {
   cenario?: 'interprete';
 }
 
+const lista = criarChaveLocalPorConta<RascunhoDaCaptura[]>(CHAVE_DO_RASCUNHO, {
+  nome: 'rascunho-da-captura',
+  adotarDoAnonimo: true,
+});
+
 export function lerRascunhos(): RascunhoDaCaptura[] {
-  try {
-    const bruto = JSON.parse(localStorage.getItem(CHAVE_DO_RASCUNHO) || '[]') as unknown;
-    return Array.isArray(bruto)
-      ? (bruto as RascunhoDaCaptura[]).filter(
-          (r) => r && typeof r.origemLocalId === 'string' && Array.isArray(r.utterances),
-        )
-      : [];
-  } catch {
-    return [];
-  }
+  const bruto = lista.ler();
+  return Array.isArray(bruto)
+    ? bruto.filter((r) => r && typeof r.origemLocalId === 'string' && Array.isArray(r.utterances))
+    : [];
 }
 
-function gravar(lista: RascunhoDaCaptura[]): boolean {
-  try {
-    localStorage.setItem(CHAVE_DO_RASCUNHO, JSON.stringify(lista.slice(0, MAX_RASCUNHOS)));
-    return true;
-  } catch {
-    return false;
-  }
+function gravar(l: RascunhoDaCaptura[]): boolean {
+  return lista.gravar(l.slice(0, MAX_RASCUNHOS));
 }
 
 /** Guarda (ou atualiza) o rascunho desta captura no topo da lista. `false` = sem storage. */
@@ -61,7 +59,7 @@ export function guardarRascunho(r: RascunhoDaCaptura): boolean {
 }
 
 export function apagarRascunho(origemLocalId: string): void {
-  const lista = lerRascunhos();
-  const resto = lista.filter((x) => x.origemLocalId !== origemLocalId);
-  if (resto.length !== lista.length) gravar(resto);
+  const atuais = lerRascunhos();
+  const resto = atuais.filter((x) => x.origemLocalId !== origemLocalId);
+  if (resto.length !== atuais.length) gravar(resto);
 }

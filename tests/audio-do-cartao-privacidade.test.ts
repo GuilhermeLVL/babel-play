@@ -20,12 +20,12 @@ vi.mock('../src/data/funil', () => ({ apiFetch: api.apiFetch }))
 
 import { limparTudo } from '../src/data/efemero/store'
 import { excluirConta } from '../src/data/rotas/conta'
+import { iniciarGuardaDosArmazensLocais } from '../src/lib/armazemLocalPorConta'
 import { signOut } from '../src/lib/auth'
 import {
   _reiniciarGuardaDoAudioDoCartao,
   armazemDeAudioDoCartao,
   criarArmazemDeAudioDoCartao,
-  iniciarGuardaDoAudioDoCartao,
 } from '../src/lib/cartoes/audioDoCartao/armazem'
 import { _reiniciarIdentidade, definirDonoDaConta, definirIdentidade } from '../src/lib/identidade'
 
@@ -98,7 +98,7 @@ describe('o ouvinte nasce no boot', () => {
   it('troca conta -> conta (o estado não muda) apaga o clipe da primeira, sem ninguém abrir os Ajustes', async () => {
     definirDonoDaConta('A')
     definirIdentidade('conta')
-    iniciarGuardaDoAudioDoCartao() // como no main.tsx: antes de qualquer uso do armazém
+    iniciarGuardaDosArmazensLocais() // como no main.tsx: antes de qualquer uso do armazém
     await armazemDeAudioDoCartao().gravar('c1', { audio: blob(100), durMs: 3000 })
     definirDonoDaConta('B')
     await espera()
@@ -111,7 +111,7 @@ describe('o ouvinte nasce no boot', () => {
   it('sair (conta -> anônimo) apaga tudo', async () => {
     definirDonoDaConta('A')
     definirIdentidade('conta')
-    iniciarGuardaDoAudioDoCartao()
+    iniciarGuardaDosArmazensLocais()
     await armazemDeAudioDoCartao().gravar('c1', { audio: blob(100), durMs: 3000 })
     definirDonoDaConta(null)
     definirIdentidade('anonimo')

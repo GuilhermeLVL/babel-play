@@ -66,11 +66,11 @@ export async function excluirConta(): Promise<ResultadoDaExclusao> {
     const corpo = (await res.json().catch(() => ({}))) as Partial<ResultadoDaExclusao>
     const ok = res.ok && corpo.ok !== false
     /* A conta sumiu: o token ainda vale até expirar e qualquer chamada recriaria uma linha vazia. Encerra a sessão aqui. */
-    /* O áudio dos cartões fica só no aparelho: a conta acabou, o banco também. */
+    /* O que é da conta e fica só no aparelho (áudio e cena dos cartões, diário, conversas...): a conta acabou, os bancos também. */
     if (ok) {
       try {
-        const { destruirBancoDoAudioDoCartao } = await import('../../lib/cartoes/audioDoCartao/armazem')
-        await destruirBancoDoAudioDoCartao()
+        const { destruirTodosOsArmazensDaConta } = await import('../../lib/guardaDosArmazensLocais')
+        await destruirTodosOsArmazensDaConta()
       } catch {
         /* nada guardado */
       }

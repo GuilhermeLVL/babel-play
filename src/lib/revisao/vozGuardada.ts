@@ -9,11 +9,12 @@
  *  · desligado de fábrica (`lerVozNaRevisao().guardarVoz`); quem liga é a pessoa, na folha;
  *  · uma gravação por dia e por cartão (gravar de novo no mesmo dia troca a de hoje, como o protótipo
  *    troca a "você hoje"), e no máximo `MAXIMO_POR_CARTAO` por cartão: a mais antiga sai;
- *  · "Apagar" tira todas as gravações do cartão; trocar de conta neste aparelho apaga tudo (a voz de
- *    uma pessoa não fica à espera da próxima conta);
+ *  · "Apagar" tira todas as gravações do cartão; cada gravação leva o DONO (`lib/armazemLocalPorConta`):
+ *    a de outra conta não aparece e sai, a guarda nasce no boot e sair, limpar tudo e excluir a conta apagam tudo (a voz
+ *    de uma pessoa não fica à espera da próxima conta);
  *  · sem IndexedDB (navegação privada, banco bloqueado), guardar não dá certo e a folha diz isso.
  */
-import { aoMudarIdentidade } from '../identidade';
+import { criarBancoPorConta, iniciarGuardaDosArmazensLocais, registrarArmazemPorConta } from '../armazemLocalPorConta';
 
 export interface GravacaoGuardada {
   /** Quando foi gravada (ms). */
@@ -34,6 +35,8 @@ interface Linha {
   dur: number;
   bytes: ArrayBuffer;
   tipo: string;
+  /** A conta que gravou; sem ele, a linha é de antes da regra e não é de ninguém. */
+  dono?: string;
 }
 
 export const MAXIMO_POR_CARTAO = 12;
@@ -64,43 +67,32 @@ export interface VozesGuardadas {
 }
 
 export function criarVozesGuardadas(
-  o: { fabrica?: IDBFactory | null; agora?: () => number } = {},
-): VozesGuardadas {
-  const fabrica = o.fabrica === undefined ? (globalThis.indexedDB ?? null) : o.fabrica;
+  o: { fabrica?: IDBFactory | null; agora?: () => number; dono?: () => string | null } = {},
+): VozesGuardadas & { purgarDeOutros(): Promise<void>; destruir(): Promise<void> } {
   const agora = o.agora ?? (() => Date.now());
-  let aberto: Promise<IDBDatabase | null> | null = null;
+  const b = criarBancoPorConta<Linha>({
+    banco: BANCO,
+    loja: GRAVACOES,
+    chave: 'chave',
+    aoCriar: (loja) => loja.createIndex('cartao', 'cartao'),
+    fabrica: o.fabrica,
+    dono: o.dono,
+  });
+  const abrir = b.abrir;
 
-  const abrir = (): Promise<IDBDatabase | null> => {
-    if (!fabrica) return Promise.resolve(null);
-    aberto ??= new Promise<IDBDatabase | null>((ok) => {
-      try {
-        const r = fabrica.open(BANCO, 1);
-        r.onupgradeneeded = () => {
-          const loja = r.result.createObjectStore(GRAVACOES, { keyPath: 'chave' });
-          loja.createIndex('cartao', 'cartao');
-        };
-        r.onsuccess = () => ok(r.result);
-        r.onerror = () => ok(null);
-        r.onblocked = () => ok(null);
-      } catch {
-        ok(null);
-      }
-    });
-    return aberto;
-  };
-
-  const linhasDe = async (db: IDBDatabase, cartao: string): Promise<Linha[]> => {
-    const loja = db.transaction(GRAVACOES, 'readonly').objectStore(GRAVACOES);
-    const linhas = (await pedido(loja.index('cartao').getAll(cartao))) as Linha[];
-    return linhas.sort((a, b) => a.em - b.em);
+  const linhasDe = async (db: IDBDatabase, cartao: string, dono: string): Promise<Linha[]> => {
+    const linhas = (await b.soDoDono(db, dono)).filter((l) => l.cartao === cartao);
+    return linhas.sort((x, y) => x.em - y.em);
   };
 
   return {
     async listar(cartao) {
       try {
+        const dono = b.dono();
+        if (!dono) return [];
         const db = await abrir();
         if (!db) return [];
-        return (await linhasDe(db, cartao)).map((l) => ({
+        return (await linhasDe(db, cartao, dono)).map((l) => ({
           em: l.em,
           picos: l.picos,
           dur: l.dur,
@@ -112,14 +104,15 @@ export function criarVozesGuardadas(
     },
     async guardar(cartao, g) {
       try {
-        if (!g.audio.size || g.audio.size > MAIOR_GRAVACAO_BYTES) return false;
+        const dono = b.dono();
+        if (!dono || !g.audio.size || g.audio.size > MAIOR_GRAVACAO_BYTES) return false;
         const db = await abrir();
         if (!db) return false;
         const em = agora();
         const dia = diaDe(em);
         const bytes = await g.audio.arrayBuffer();
-        const antigas = (await linhasDe(db, cartao)).filter((l) => l.dia !== dia);
-        const loja = db.transaction(GRAVACOES, 'readwrite').objectStore(GRAVACOES);
+        const antigas = (await linhasDe(db, cartao, dono)).filter((l) => l.dia !== dia);
+        const loja = b.loja(db, 'readwrite');
         /* a mais antiga sai quando o cartão já tem o máximo (contando a de hoje, que entra agora) */
         for (const l of antigas.slice(0, Math.max(0, antigas.length + 1 - MAXIMO_POR_CARTAO)))
           void loja.delete(l.chave);
@@ -132,6 +125,7 @@ export function criarVozesGuardadas(
           dur: g.dur,
           bytes,
           tipo: g.audio.type || 'audio/webm',
+          dono,
         };
         await pedido(loja.put(linha));
         return true;
@@ -141,40 +135,43 @@ export function criarVozesGuardadas(
     },
     async apagar(cartao) {
       try {
+        const dono = b.dono();
+        if (!dono) return;
         const db = await abrir();
         if (!db) return;
-        const linhas = await linhasDe(db, cartao);
-        const loja = db.transaction(GRAVACOES, 'readwrite').objectStore(GRAVACOES);
+        const linhas = await linhasDe(db, cartao, dono);
+        const loja = b.loja(db, 'readwrite');
         await Promise.all(linhas.map((l) => pedido(loja.delete(l.chave))));
       } catch {
         /* nada guardado, nada a apagar */
       }
     },
-    async limpar() {
-      try {
-        const db = await abrir();
-        if (!db) return;
-        await pedido(db.transaction(GRAVACOES, 'readwrite').objectStore(GRAVACOES).clear());
-      } catch {
-        /* idem */
-      }
-    },
+    limpar: b.apagarTudo,
+    purgarDeOutros: b.purgarDeOutros,
+    destruir: b.destruir,
   };
 }
 
-let doAparelho: VozesGuardadas | null = null;
+let doAparelho: ReturnType<typeof criarVozesGuardadas> | null = null;
 
-/** As gravações deste aparelho. Trocar de conta apaga todas. */
+const doDispositivo = () => (doAparelho ??= criarVozesGuardadas());
+
+registrarArmazemPorConta({
+  nome: 'minha-voz-do-cartao',
+  apagarTudo: () => doDispositivo().limpar(),
+  purgarDeOutros: () => doDispositivo().purgarDeOutros(),
+  destruir: () => doDispositivo().destruir(),
+});
+
+/** As gravações deste aparelho. Trocar de conta apaga todas (guarda comum: `lib/armazemLocalPorConta`). */
 export function vozesGuardadas(): VozesGuardadas {
-  if (!doAparelho) {
-    const vozes = criarVozesGuardadas();
-    doAparelho = vozes;
-    if (typeof window !== 'undefined')
-      aoMudarIdentidade((_depois, antes) => {
-        if (antes !== 'carregando') void vozes.limpar();
-      });
-  }
-  return doAparelho;
+  iniciarGuardaDosArmazensLocais();
+  return doDispositivo();
+}
+
+/** Só para testes: esquece as gravações do aparelho. */
+export function _reiniciarVozesGuardadas(): void {
+  doAparelho = null;
 }
 
 /** "você hoje", "você em março", "você em 12 de março" (quando há mais de uma no mesmo mês). */

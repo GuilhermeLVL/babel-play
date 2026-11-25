@@ -16,7 +16,7 @@
  * NUNCA ATRAPALHA A FALA. Sem IndexedDB, sem `crypto.subtle` (página sem HTTPS), banco bloqueado ou
  * cheio: toda operação devolve "não tenho" e a voz segue pelo caminho de sempre, a rede.
  */
-import { aoMudarIdentidade } from '../identidade';
+import { iniciarGuardaDosArmazensLocais, registrarArmazemPorConta } from '../armazemLocalPorConta';
 
 /** O que identifica um áudio: muda qualquer um, é outro áudio. */
 export interface PedidoDeVoz {
@@ -179,6 +179,18 @@ export function criarCacheDeVoz(o: OpcoesDoCacheDeVoz = {}): GuardadosDaVoz {
 
 let doAparelho: GuardadosDaVoz | null | undefined;
 
+/* Sem dono por linha: a chave é um resumo (SHA-256) e o áudio é sintético, então o que vale é apagar tudo ao sair/trocar
+   de conta, limpar tudo e excluir a conta (guarda comum, `lib/armazemLocalPorConta`). */
+const limparDoAparelho = async () => {
+  await cacheDeVozDoAparelho()?.limpar();
+};
+registrarArmazemPorConta({
+  nome: 'cache-de-voz',
+  apagarTudo: limparDoAparelho,
+  purgarDeOutros: () => undefined,
+  destruir: limparDoAparelho,
+});
+
 /**
  * O cache deste navegador (um só), ou `null` onde não dá para guardar (sem IndexedDB, sem
  * `crypto.subtle`): aí a voz nem pergunta por ele. Trocar de conta, ou sair dela, apaga o que estava
@@ -190,11 +202,8 @@ export function cacheDeVozDoAparelho(): GuardadosDaVoz | null {
       doAparelho = null;
       return null;
     }
-    const cache = criarCacheDeVoz();
-    doAparelho = cache;
-    aoMudarIdentidade((_depois, antes) => {
-      if (antes !== 'carregando') void cache.limpar();
-    });
+    doAparelho = criarCacheDeVoz();
   }
+  iniciarGuardaDosArmazensLocais();
   return doAparelho;
 }

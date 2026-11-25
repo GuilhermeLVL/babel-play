@@ -20,7 +20,9 @@ vi.mock('../src/lib/supabase', () => ({
 }))
 
 import { carregarEntitlements, getEntitlements, limparEntitlements, onPlanChange } from '../src/lib/entitlements'
+import { _reiniciarIdentidade, definirDonoDaConta, definirIdentidade } from '../src/lib/identidade'
 
+const comDono = (valor: unknown) => JSON.stringify({ dono: 'conta-a', valor })
 const resposta = (corpo: unknown, status = 200) =>
   new Response(JSON.stringify(corpo), { status, headers: { 'content-type': 'application/json' } })
 
@@ -28,6 +30,10 @@ describe('entitlements do cliente', () => {
   beforeEach(() => {
     localStorage.clear()
     localStorage.setItem('sb-teste-auth-token', '{}')
+    /* O plano guardado é da conta: sem dono conhecido nem se lê nem se grava (`lib/armazemLocalPorConta`). */
+    _reiniciarIdentidade()
+    definirDonoDaConta('conta-a')
+    definirIdentidade('conta')
     limparEntitlements()
   })
   afterEach(() => {
@@ -70,7 +76,7 @@ describe('entitlements do cliente', () => {
     expect(e.interpreteAutomatico).toBe(true)
     expect(getEntitlements().armazenamento).toEqual({ usados: 1024, teto: 5_000_000_000 })
     expect(avisos).toHaveBeenCalledTimes(1)
-    expect(JSON.parse(localStorage.getItem('babel.entitlements')!).plan).toBe('premium')
+    expect(JSON.parse(localStorage.getItem('babel.entitlements')!).valor.plan).toBe('premium')
   })
 
   it('matriz v2: o nome antigo (servidor anterior ou cache antigo) é lido como Premium, com as flags dele', async () => {
@@ -127,10 +133,10 @@ describe('entitlements do cliente', () => {
   })
 
   it('cache durável sobrevive ao recarregar o módulo, mas só se tiver a forma certa', async () => {
-    localStorage.setItem('babel.entitlements', JSON.stringify({ plan: 'pro', sttAoVivo: true }))
+    localStorage.setItem('babel.entitlements', comDono({ plan: 'pro', sttAoVivo: true }))
     limparEntitlements() // limpa memória E disco — então o próximo get volta ao default
     expect(getEntitlements().plan).toBe('free')
-    localStorage.setItem('babel.entitlements', '{"plan":"pro","sttAoVivo":true}')
+    localStorage.setItem('babel.entitlements', comDono({ plan: 'pro', sttAoVivo: true }))
     vi.resetModules()
     vi.doMock('../src/lib/supabase', () => ({
       supabase: null,
@@ -138,10 +144,16 @@ describe('entitlements do cliente', () => {
       carregarSupabase: async () => null,
       getAccessToken: async () => null,
     }))
+    const idFresca = await import('../src/lib/identidade')
+    idFresca.definirDonoDaConta('conta-a')
+    idFresca.definirIdentidade('conta')
     const fresco = await import('../src/lib/entitlements')
     expect(fresco.getEntitlements().sttAoVivo).toBe(true)
     localStorage.setItem('babel.entitlements', 'não é json')
     vi.resetModules()
+    const idQuebrada = await import('../src/lib/identidade')
+    idQuebrada.definirDonoDaConta('conta-a')
+    idQuebrada.definirIdentidade('conta')
     const quebrado = await import('../src/lib/entitlements')
     expect(quebrado.getEntitlements().sttAoVivo).toBe(false)
   })

@@ -1,3 +1,5 @@
+> **Arquivada em 25/11/2026 (Onda 5, fechamentos).** O trabalho de dev terminou; o que resta é ato do dono, aparelho real ou bancada ([D]/[R]/[B]) e está em `docs/pendencias-do-dono.md`, Parte 5. As tarefas abertas abaixo ficam como registro.
+
 > **Revisão de 25/11/2026** (main `897c9d25`). Das 6 abertas (2.6b, 2.8, 2.9, 2.10, 4.7, 5.2), 4 foram relidas contra o desenho de hoje: o lobby do Jogar
 > passou a usar a ficha de conteúdo (`FichaDoJogar.tsx`, seletor único com Cartões e Biblioteca) e `polimento-movimento` (bloco 2, "Jogar sem frustração")
 > entregou níveis por jogo, ajudas e a ficha "Como se joga" na antessala e na pausa. `Play.tsx` cresceu de 2.611 para 4.037 linhas; `SalaDeEscolha`,

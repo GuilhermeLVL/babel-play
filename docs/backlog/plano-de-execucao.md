@@ -1,6 +1,6 @@
 # Plano de execução do backlog (25/11/2026)
 
-> **Andamento (25/11/2026):** Onda 1 entregue no PR #208 (merge `36dad2f4`, staging). Onda 2 entregue no PR #209 (merge `4f14a128`). Produção segue em `897c9d25` até a publicação única no fim.
+> **Andamento (25/11/2026):** Ondas 1 a 4 entregues na `main` (PRs #208, #209, #210 e #211, mais o #212 de correção). Onda 5 em curso (branch `onda5/fechamentos`: chave de duplicata v2 também em marcadas e vistas, arquivamento das changes que só esperam o dono, este plano). Produção segue em `897c9d25` até a publicação única no fim. Detalhe por onda e o que falta: seção "Andamento das ondas e o que resta".
 
 Consolida as 39 changes ativas de `openspec/changes/`: 18 vivas revisadas, 10 incertas, 10 novas de planejamento e `modo-offline-declarado`. Decisões: `docs/backlog/decisoes-do-dono.md` (lista única, numerada). Ordem anterior: `openspec/changes/README-ordem-2026-11-23.md`.
 
@@ -103,6 +103,31 @@ Nota: os relatórios divergem. `traducao-local` diz que `modelos-confiaveis` vem
 | 5.1 | `formatacao-e-lint-estrito` (passada geral) | Por último, com `.git-blame-ignore-revs`. Se `estrutura-por-dominio-proposta` for aprovada, depois dela |
 | 5.2 | Incertas decididas                          | Executar o que as decisões 20 a 29 mandarem (arquivar, abandonar ou abrir change)                       |
 | 5.3 | Publicação única em produção                | Staging verde, portões de CI, flags desligadas, deploy manual com OK do dono                            |
+
+## Andamento das ondas e o que resta para a publicação
+
+Atualizado em 25/11/2026. Staging recebeu cada onda; produção não mudou.
+
+| Onda | Entrega                                                                                                                                                                                                                                                                                                             | Estado                                                                                           |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 1    | PR #208 (`36dad2f4`): filtro do tutor e porta de entrada, tradução sem rota no celular, voz Kitten, status da palavra, repetir e pausar por frase, motor Anki de jogos, roteador em sombra, lint e modo offline                                                                                                     | Mergeada. Pendências [D]/[R]/[B] em `pendencias-do-dono`                                         |
+| 2    | PR #209 (`4f14a128`): modelos confiáveis e offline, cartões bloco 2, fechamento de planos v3, mapeador Anki, sombra sem Web Speech, latência publicada, conferência do avatar                                                                                                                                       | Mergeada                                                                                         |
+| 3    | PR #210 (`34be215b`): polimento de movimento, modelo do aluno (chave de duplicata, flag `chave_dedup_v2`), leitura ativa com Moonshine, cartão com áudio do trecho, tradução local por direção, intérprete conversa virtual (Fase 4)                                                                                | Mergeada                                                                                         |
+| 4    | PR #211 (`a05e9387`): tela de jogos v2, audiolivros (piloto), diário com correção que vira cartão, cartão com captura de tela, privacidade do áudio do cartão. PR #212: dados locais por conta                                                                                                                      | Mergeada. **`navegacao-mais-simples` (4.4) NÃO começou**: espera a decisão 1.3/2.4 e o protótipo |
+| 5    | 5.3 (do modelo do aluno): reescrita de `palavras_marcadas` e `palavras_vistas` junto com `norm_key`; arquivadas `modo-offline-declarado`, `tela-de-jogos-v2`, `filtro-tutor-menores`, `latencia-publicada-por-aparelho`, `porta-de-entrada`, `pre-traducao-de-legendas`, `planos-v3-e-rota-inteligente`; este plano | Em curso. 5.1 (passada geral do Prettier) e 5.2 (incertas) abertas                               |
+
+### O que resta para a publicação única
+
+1. **Dev ainda aberto**
+   - `navegacao-mais-simples` (4.4): só depois de decidir 1.3/2.4 e aprovar o protótipo.
+   - `modelo-do-aluno-e-dados` 5.4: chave v2 no cliente (leitor, legenda, `useConhecimento`) e na edição estática. **Bloqueia ligar `chave_dedup_v2`**: sem ela, a palavra marcada com acento em es/pt/de/fr não casa na tela.
+   - `leitura-ativa-com-moonshine` 1.2 (simulação offline), `motor-anki-jogos` e `motor-anki-mapeador` (tarefas de dev restantes), `polimento-movimento` (1.10 e outras), `status-da-palavra-na-legenda` 3.1/3.2, `sombra-sem-web-speech` 4.1, `formatacao-e-lint-estrito` 1.8 e a passada geral (5.1).
+   - Ondas 5.2: executar o que as decisões 20 a 29 mandarem para as 10 incertas.
+2. **Sessão de bancada única [B]** (depois da Onda 4, máquina sozinha): roteador 4.1 a 4.3, sombra e leitura com Moonshine (régua de atraso), `traducao-local-por-direcao` (`mt.mjs`), Kitten e áudio do trecho (escuta cega), diário 1.1/1.2, audiolivros, e a ida e volta da chave de duplicata em Postgres real. Ordem na seção "Janela de bancada".
+3. **Atos do dono [D]** (lista única em `docs/pendencias-do-dono.md`, Partes 1 a 5, e `docs/backlog/decisoes-do-dono.md`): publicar no R2 (decisão 3), parecer de privacidade (5), pedido jurídico único (6), tokens e segredos, parecer OpenRAIL-M, escolha de modelos e tetos.
+4. **Aparelho real [R]**: celular bom e fraco, Safari/iPhone, Quest 3, rodada com 10 a 20 brasileiros.
+5. **Migrações a aplicar em produção** (com backup e ensaio, no deploy único): PG 0034 a 0043 e SQLite 0074 a 0082 (as das ondas, já renumeradas; conferir também qualquer anterior que a produção ainda não tenha, como a 0028 de `pendencias-do-dono`), e a reescrita de chaves (`operacao.cjs chave-de-duplicata`) só junto com a flag `chave_dedup_v2` e depois da 5.4.
+6. **Fechamento**: staging verde, portões de CI, todas as flags novas desligadas, deploy manual com OK do dono (5.3).
 
 ## Janela de bancada (máquina sozinha, tampa aberta e `caffeinate`)
 

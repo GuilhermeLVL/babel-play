@@ -5,17 +5,17 @@ cito `arquivo:linha`, a leitura é de 09/10 na branch `feat/polimento-movimento`
 
 ## 1. Os planos
 
-| | Grátis | Essencial | Premium | Ao Vivo |
-|---|---|---|---|---|
-| Mensal | R$ 0 | R$ 9,90 | R$ 19,90 | R$ 39,90 |
-| Anual | | R$ 79,90 | R$ 149,90 | só mensal no início |
-| Anúncios | leves | não | não | não |
-| Nível de serviço | No aparelho | No aparelho + Precisão sob demanda | Precisão por padrão onde compensa | Ao vivo |
-| Nuvem por trechos | amostra por anúncio premiado | 5 h/mês | 20 h/mês | 20 h/mês |
-| Nuvem ao vivo | | | | 10 h/mês |
-| Nuance | não | sim | sim | sim |
-| Intérprete automático | não | não | sim | sim |
-| Voz | do aparelho | do aparelho | neural básica | neural boa |
+|                       | Grátis                       | Essencial                          | Premium                           | Ao Vivo             |
+| --------------------- | ---------------------------- | ---------------------------------- | --------------------------------- | ------------------- |
+| Mensal                | R$ 0                         | R$ 9,90                            | R$ 19,90                          | R$ 39,90            |
+| Anual                 |                              | R$ 79,90                           | R$ 149,90                         | só mensal no início |
+| Anúncios              | leves                        | não                                | não                               | não                 |
+| Nível de serviço      | No aparelho                  | No aparelho + Precisão sob demanda | Precisão por padrão onde compensa | Ao vivo             |
+| Nuvem por trechos     | amostra por anúncio premiado | 5 h/mês                            | 20 h/mês                          | 20 h/mês            |
+| Nuvem ao vivo         |                              |                                    |                                   | 10 h/mês            |
+| Nuance                | não                          | sim                                | sim                               | sim                 |
+| Intérprete automático | não                          | não                                | sim                               | sim                 |
+| Voz                   | do aparelho                  | do aparelho                        | neural básica                     | neural boa          |
 
 Para quem: Grátis para quem está conhecendo ou tem computador com placa de vídeo; Essencial para o
 estudante no computador; Premium para quem depende de nuvem (celular, notebook fraco, Quest); Ao Vivo
@@ -51,19 +51,25 @@ global. Recebe o pedido e devolve a decisão com o motivo.
 
 ```ts
 export type NivelDeServico = 'aparelho' | 'precisao' | 'aovivo';
-export type TarefaDaRota = 'stt-final' | 'stt-parcial' | 'mt-final' | 'mt-parcial' | 'voz' | 'nuance';
+export type TarefaDaRota =
+  | 'stt-final'
+  | 'stt-parcial'
+  | 'mt-final'
+  | 'mt-parcial'
+  | 'voz'
+  | 'nuance';
 export type DegrauDaRota =
-  | 'modelo-no-aparelho'      // Whisper, Moonshine, Bergamot, opus-mt, voz do sistema
-  | 'navegador-no-aparelho'   // fala do navegador processada localmente, tradutor do Chrome
-  | 'navegador-na-nuvem'      // fala do navegador que envia o áudio ao fabricante
+  | 'modelo-no-aparelho' // Whisper, Moonshine, Bergamot, opus-mt, voz do sistema
+  | 'navegador-no-aparelho' // fala do navegador processada localmente, tradutor do Chrome
+  | 'navegador-na-nuvem' // fala do navegador que envia o áudio ao fabricante
   | 'nuvem-por-trechos'
   | 'nuvem-ao-vivo'
-  | 'nuvem-do-site';          // edição estática
+  | 'nuvem-do-site'; // edição estática
 
 export interface DecisaoDeRota {
   nivel: NivelDeServico;
-  rota: PassoDaRota;                 // o que roda agora
-  reservas: PassoDaRota[];           // em ordem; sempre termina no aparelho
+  rota: PassoDaRota; // o que roda agora
+  reservas: PassoDaRota[]; // em ordem; sempre termina no aparelho
   descartadas: { degrau: DegrauDaRota; motivo: MotivoDaRota }[];
   processamento: { onde: 'aparelho' | 'navegador' | 'nuvem'; enviaDadosA: DestinoDosDados };
   explicacao: { chave: string; vars?: Record<string, string | number> };
@@ -94,13 +100,13 @@ pausada, rede, edição estática, preferência da pessoa).
 
 ### Árvore resumida (transcrever)
 
-| Aparelho | Grátis | Essencial | Premium | Ao Vivo |
-|---|---|---|---|---|
-| Computador com placa de vídeo, inglês | aparelho | aparelho | aparelho; "refinar na nuvem" por trecho | aparelho; nuvem a pedido |
-| Computador com placa de vídeo, outros idiomas | melhor modelo local | local; nuvem a pedido ou quando a confiança cai | nuvem primeiro, local de reserva | nuvem em fluxo |
-| Computador sem placa de vídeo | modelo leve; se não acompanha, navegador com etiqueta | nuvem dentro da cota | nuvem primeiro | nuvem em fluxo |
-| Celular | modelo leve em inglês; outros, navegador com etiqueta | nuvem dentro da cota | nuvem primeiro | nuvem em fluxo |
-| Quest | modelo leve em inglês; outros idiomas com aviso de atraso (sem anúncio no Quest, logo sem amostra) | nuvem dentro da cota | nuvem primeiro | nuvem em fluxo |
+| Aparelho                                      | Grátis                                                                                             | Essencial                                       | Premium                                 | Ao Vivo                  |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------- | --------------------------------------- | ------------------------ |
+| Computador com placa de vídeo, inglês         | aparelho                                                                                           | aparelho                                        | aparelho; "refinar na nuvem" por trecho | aparelho; nuvem a pedido |
+| Computador com placa de vídeo, outros idiomas | melhor modelo local                                                                                | local; nuvem a pedido ou quando a confiança cai | nuvem primeiro, local de reserva        | nuvem em fluxo           |
+| Computador sem placa de vídeo                 | modelo leve; se não acompanha, navegador com etiqueta                                              | nuvem dentro da cota                            | nuvem primeiro                          | nuvem em fluxo           |
+| Celular                                       | modelo leve em inglês; outros, navegador com etiqueta                                              | nuvem dentro da cota                            | nuvem primeiro                          | nuvem em fluxo           |
+| Quest                                         | modelo leve em inglês; outros idiomas com aviso de atraso (sem anúncio no Quest, logo sem amostra) | nuvem dentro da cota                            | nuvem primeiro                          | nuvem em fluxo           |
 
 Traduzir: no Grátis, tradutor do navegador, depois Bergamot, depois opus-mt; a partir do Premium, o
 modelo de linguagem da nuvem por padrão (custa centavos por hora). Falar: voz do aparelho até o
@@ -136,11 +142,11 @@ pequeno em `admitirTranscricao` (`transcrever.ts:89-124`) recusa o nível que o 
 
 Três etiquetas fixas, sempre visíveis na captura e no intérprete:
 
-| Etiqueta | Quando | O áudio sai do aparelho? |
-|---|---|---|
-| No aparelho | modelo local ou recurso do navegador processado localmente | Não |
-| Pelo navegador | fala do navegador que envia ao fabricante (Google, Apple) | Sim, para um terceiro |
-| Nuvem do Babel | nossa nuvem, por trechos ou ao vivo | Sim, para o nosso servidor |
+| Etiqueta       | Quando                                                     | O áudio sai do aparelho?   |
+| -------------- | ---------------------------------------------------------- | -------------------------- |
+| No aparelho    | modelo local ou recurso do navegador processado localmente | Não                        |
+| Pelo navegador | fala do navegador que envia ao fabricante (Google, Apple)  | Sim, para um terceiro      |
+| Nuvem do Babel | nossa nuvem, por trechos ou ao vivo                        | Sim, para o nosso servidor |
 
 - Ao toque: duas linhas com o motivo e o que dá para trocar, e a folha "Como isto funciona".
 - Mudança automática de rota: aviso curto, não bloqueante, dizendo o que mudou e por quê.
@@ -209,21 +215,21 @@ Riscos que precisam de teste real antes de contar com receita:
 
 Cada etapa é entregável sozinha. "Atrás de flag" quer dizer desligada de fábrica.
 
-| # | Etapa | Depende de | Muda algo para o usuário? |
-|---|---|---|---|
-| 0 | ADR novo e respostas do dono | | Não |
-| 1 | Matriz preparada para vários planos pagos, sem plano novo | 0 | Não |
-| 2 | Entitlements e cotas novos na matriz (`semAnuncios`, `sttAoVivo`, nível de voz) | 1 | Não |
-| 3 | Contador por nível | 2 | Não |
-| 4 | Política de rota em modo sombra | 2 | Não |
-| 5 | Transparência: selo de três etiquetas, motivo, avisos, consentimentos | 4 | Sim |
-| 6 | Rota inteligente valendo (flag `rota_inteligente`) | 4 | Sim, com a flag |
-| 7 | Os quatro planos na matriz, venda fechada (flag `venda_planos_v3`) | 3 | Não |
-| 8 | Cobrança dos quatro e troca de plano | 7 | Sim, com a flag |
-| 9 | Tela de Planos, medidor e seletor de nível | 8 | Sim |
-| 10 | Nuvem ao vivo (flag `stt_ao_vivo`) | 3, 6, 7 | Sim, com a flag |
-| 11 | Anúncios (flag `anuncios`) | 2, 9 | Sim, com a flag |
-| Q | Qualidade no aparelho: medições e adoções da seção 6 | independente | Sim |
+| #   | Etapa                                                                           | Depende de   | Muda algo para o usuário? |
+| --- | ------------------------------------------------------------------------------- | ------------ | ------------------------- |
+| 0   | ADR novo e respostas do dono                                                    |              | Não                       |
+| 1   | Matriz preparada para vários planos pagos, sem plano novo                       | 0            | Não                       |
+| 2   | Entitlements e cotas novos na matriz (`semAnuncios`, `sttAoVivo`, nível de voz) | 1            | Não                       |
+| 3   | Contador por nível                                                              | 2            | Não                       |
+| 4   | Política de rota em modo sombra                                                 | 2            | Não                       |
+| 5   | Transparência: selo de três etiquetas, motivo, avisos, consentimentos           | 4            | Sim                       |
+| 6   | Rota inteligente valendo (flag `rota_inteligente`)                              | 4            | Sim, com a flag           |
+| 7   | Os quatro planos na matriz, venda fechada (flag `venda_planos_v3`)              | 3            | Não                       |
+| 8   | Cobrança dos quatro e troca de plano                                            | 7            | Sim, com a flag           |
+| 9   | Tela de Planos, medidor e seletor de nível                                      | 8            | Sim                       |
+| 10  | Nuvem ao vivo (flag `stt_ao_vivo`)                                              | 3, 6, 7      | Sim, com a flag           |
+| 11  | Anúncios (flag `anuncios`)                                                      | 2, 9         | Sim, com a flag           |
+| Q   | Qualidade no aparelho: medições e adoções da seção 6                            | independente | Sim                       |
 
 A trilha Q e as etapas 4 e 5 não dependem de nenhuma decisão comercial e podem começar primeiro.
 

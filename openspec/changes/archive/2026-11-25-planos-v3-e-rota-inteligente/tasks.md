@@ -108,6 +108,6 @@
 
 ## Arquivamento (proposto, 25/11)
 
-- [ ] 12.1 Arquivar com `/opsx:archive` (ato do integrador, depois do merge desta branch). Sincronizar as cinco specs; a `matriz-de-planos`
+- [x] 12.1 (feito em 25/11/2026 na Onda 5, decisão assumida: recomendação a do item de arquivar, 25/11) Arquivar com `/opsx:archive` (ato do integrador, depois do merge desta branch). Sincronizar as cinco specs; a `matriz-de-planos`
       já é a da v4 e SUBSTITUI a de `openspec/specs/matriz-de-planos/` (que ainda diz Premium R$ 19,90). Não sincronizar texto da v3.
       Verificar: `openspec/specs/matriz-de-planos/spec.md` sem "9,90", "19,90" e "39,90" fora de menção a plano encerrado; `openspec validate` verde.

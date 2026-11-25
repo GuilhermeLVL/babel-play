@@ -5,6 +5,7 @@ import { and, asc, desc, eq, gte, isNull, like, lt, lte } from 'drizzle-orm'
 import { contarChaves, diferencaDeChaves } from '../../../src/core/texto/palavrasVistas'
 import type { UserId } from '../../lib/authContext'
 import { cadeiaDeCausas } from '../../lib/cadeiaDeCausas'
+import { versaoDaChaveDedup } from '../../lib/versaoDaChaveDedup'
 import { db, travarUsuario } from '../db'
 import { type InstrucaoDeBatch, rodarLote } from '../lotes'
 import { sessions, utterances as tabelaDeFalas } from '../schema'
@@ -144,10 +145,15 @@ export const sessionsRepo = {
       })
     const inserirFalas = utterancesRepo.stmtInsertMany(userId, id, utts)
     // As palavras vistas entram no MESMO lote (etiquetas de palavras): depois da sessão, por causa da FK.
-    const indexar = palavrasVistasRepo.stmtsReconstruir(userId, id, contarChaves(falasDoLote(utts, input.sourceLang)), {
-      primeiraEm: now,
-      ultimaEm: now,
-    })
+    const indexar = palavrasVistasRepo.stmtsReconstruir(
+      userId,
+      id,
+      contarChaves(falasDoLote(utts, input.sourceLang), versaoDaChaveDedup()),
+      {
+        primeiraEm: now,
+        ultimaEm: now,
+      },
+    )
 
     // Um lote só (uma transação): uma instrução que falha desfaz as anteriores. As falas vêm em
     // LOTES (teto de variáveis — ver `stmtInsertMany`), todos na mesma transação: um lote que
@@ -259,10 +265,15 @@ export const sessionsRepo = {
         .set({ wordCount, updatedAt: agora })
         .where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
     // A transcrição inteira mudou: as palavras vistas da sessão são reconstruídas no mesmo lote.
-    const reindexar = palavrasVistasRepo.stmtsReconstruir(userId, id, contarChaves(falasDoLote(utts, s.sourceLang)), {
-      primeiraEm: s.createdAt,
-      ultimaEm: agora,
-    })
+    const reindexar = palavrasVistasRepo.stmtsReconstruir(
+      userId,
+      id,
+      contarChaves(falasDoLote(utts, s.sourceLang), versaoDaChaveDedup()),
+      {
+        primeiraEm: s.createdAt,
+        ultimaEm: agora,
+      },
+    )
     // A trava do usuário enfileira esta troca com os lotes da captura da mesma sessão (`appendUtterances`).
     await rodarLote([(tx) => travarUsuario(tx, userId), apagar, ...inserir, contar, ...reindexar])
     return this.get(userId, id)
@@ -325,7 +336,10 @@ export const sessionsRepo = {
         tx,
         userId,
         id,
-        diferencaDeChaves(contarChaves(falasComIdioma(saem, idioma)), contarChaves(falasDoLote(utts, idioma))),
+        diferencaDeChaves(
+          contarChaves(falasComIdioma(saem, idioma), versaoDaChaveDedup()),
+          contarChaves(falasDoLote(utts, idioma), versaoDaChaveDedup()),
+        ),
         agora,
         { de, ate },
       )

@@ -21,7 +21,7 @@ import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 
 import { type EstadoDoCartao, estadoDoCartao, fsrsStateDaLinha } from '../../../src/core/learning/estadoDoCartao'
 import { type Forca, forcaDoCartao } from '../../../src/core/learning/forcaDoCartao'
-import { chaveDaPalavra, chaveDedup } from '../../../src/core/texto/palavra'
+import { chaveDaPalavraNaVersao, chaveDedup } from '../../../src/core/texto/palavra'
 import { type ContagemDeChave, contarChaves, fraseComAChave, idiomaBase } from '../../../src/core/texto/palavrasVistas'
 import type { UserId } from '../../lib/authContext'
 import { versaoDaChaveDedup } from '../../lib/versaoDaChaveDedup'
@@ -222,7 +222,7 @@ export const palavrasVistasRepo = {
         .from(utterances)
         .where(and(eq(utterances.sessionId, sessionId), eq(utterances.userId, userId), isNull(utterances.deletedAt)))
       const ultimaEm = falas.reduce((m, f) => Math.max(m, Number(f.createdAt)), Number(s.createdAt))
-      const contagem = contarChaves(falasComIdioma(falas, s.sourceLang))
+      const contagem = contarChaves(falasComIdioma(falas, s.sourceLang), versaoDaChaveDedup())
       for (const i of this.stmtsReconstruir(userId, sessionId, contagem, { primeiraEm: Number(s.createdAt), ultimaEm }))
         await i(tx)
     }
@@ -264,7 +264,7 @@ export const palavrasVistasRepo = {
   /** O histórico de UMA palavra: o cartão (se houver), onde ela apareceu, os jogos e a nota. */
   async historico(userId: UserId, lang: string, palavra: string, agora = Date.now()): Promise<ResumoDaPalavra> {
     const base = idiomaBase(lang)
-    const chave = chaveDaPalavra(palavra)
+    const chave = chaveDaPalavraNaVersao(palavra, base, versaoDaChaveDedup())
 
     const [card] = await db
       .select({

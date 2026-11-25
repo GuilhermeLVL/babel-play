@@ -58,7 +58,7 @@ Dois pontos de decisão do dono ainda sem resposta: e-mails de cobrança do Asaa
 - **Assinar** (`billing.ts:359`): exige `planosAVendaPara` (:377) e `anualLigado()` (:385); só intenção. **Troca** (`/trocar` :587, `/trocar/cancelar` :667): próximo ciclo sem pro-rata, `alterarValorDaAssinatura` (`asaas.ts:349`), migração `0050_troca_de_plano.sql`, `recusaDaTroca` :515.
 - **Tela** (`Planos.tsx` 1277 linhas + `views/planos/`): cartões = Grátis + `status.planosAVenda` + plano atual (:266-285); 2 cartões (flags desligadas), 3 (`venda_planos_v3`), 4 (+`stt_ao_vivo`); `DialogoTrocar`; aba de consumo por nível (`/api/me/uso` `porNivel`); `src/components/views/captura/niveis/` (medidor, cadeado) cobre parte do 9.2.
 
-### 3.2 O que falta (`openspec/changes/planos-v3-e-rota-inteligente/tasks.md`)
+### 3.2 O que falta (`openspec/changes/archive/2026-11-25-planos-v3-e-rota-inteligente/tasks.md`)
 
 O `tasks.md` está atrasado em relação ao código: 9.x e 11.2–11.5 constam `[ ]` mas há código (não conferido item a item).
 Feitos: grupos 1, 2, 3, 7, 0.2 (ADR 0013), 8.1, 8.2. Abertos 0.1 e 0.3.

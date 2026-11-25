@@ -445,6 +445,15 @@ export const FLAG_CHAVE_DEDUP_V2 = 'chave_dedup_v2';
 export const FLAG_CARTAO_COM_AUDIO = 'cartao_com_audio';
 
 /**
+ * O DIÁRIO COM CORREÇÃO QUE VIRA CARTÃO (openspec `diario-com-correcao-que-vira-cartao`; migrações PG 0042 e SQLite 0081,
+ * provisórias): a tela `/diario` e `POST /api/ai/diario`. Nasce DESLIGADA e sem regra de plano. A cota é a MESMA `escritasMes`
+ * da Leitura ativa (decisão assumida: recomendação da decisão 31, 25/11; nenhum número novo na matriz). A IA é só para adulto
+ * declarado; o perfil protegido só tem o "Conferir sozinho" até `filtro-tutor-menores` 4.3/4.4 e a rodada de risco (decisão do dono).
+ * Ligar é ato do dono.
+ */
+export const FLAG_DIARIO = 'diario';
+
+/**
  * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,
  * "Custo da escrita"): um retorno leva ~900 tokens de entrada (system + texto de até 120 palavras) e até 500 de saída;
  * 30 por mês ficam na casa de US$ 0,01 por assinante que usa tudo, e os tokens já saem da `tokensMes`.

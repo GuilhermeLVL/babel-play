@@ -24,6 +24,7 @@ import { type Forca, forcaDoCartao } from '../../../src/core/learning/forcaDoCar
 import { chaveDaPalavra, chaveDedup } from '../../../src/core/texto/palavra'
 import { type ContagemDeChave, contarChaves, fraseComAChave, idiomaBase } from '../../../src/core/texto/palavrasVistas'
 import type { UserId } from '../../lib/authContext'
+import { versaoDaChaveDedup } from '../../lib/versaoDaChaveDedup'
 import { db, type ExecutorDb, linhas as linhasDe, travarUsuario } from '../db'
 import { emLotes, inserirEmLotes, type InstrucaoDeBatch, rodarLote, tamanhoDoLoteDeInsert } from '../lotes'
 import { palavrasVistas, reviewLogs, sessions, utterances, vocabCards } from '../schema'
@@ -280,7 +281,8 @@ export const palavrasVistasRepo = {
       .where(
         and(
           eq(vocabCards.userId, userId),
-          eq(vocabCards.normKey, chaveDedup(chave, base)),
+          /* A palavra CRUA, não a `chave` reduzida: a chave v2 mantém marcas que a reduzida já perdeu (`año`). */
+          eq(vocabCards.normKey, chaveDedup(palavra, base, versaoDaChaveDedup())),
           isNull(vocabCards.deletedAt),
         ),
       )

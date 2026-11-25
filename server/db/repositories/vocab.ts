@@ -22,6 +22,7 @@ import { type Grade, makeFsrs5, metaDeRetencao, type SchedulingState } from '../
 import { chaveDedup as chaveDedupDoNucleo } from '../../../src/core/texto/palavra'
 import type { UserId } from '../../lib/authContext'
 import { garantirNiveis } from '../../lib/niveisDaTrilha'
+import { versaoDaChaveDedup } from '../../lib/versaoDaChaveDedup'
 import { db, emTransacao, type ExecutorDb, linhas, travarUsuario } from '../db'
 import { type ColunaCompacta, lerCompacto } from '../leituraCompacta'
 import { atualizarEmLotes, inserirEmLotes, rodarLote, tamanhoDoLoteDeInsert } from '../lotes'
@@ -137,7 +138,10 @@ export interface BulkAddResult {
    para `src/core/texto/palavra.ts` — o modo anônimo tinha a SUA, diferente em três pontos apesar
    do comentário dizer "mesma chave do servidor", e a divergência aparecia na migração (achado
    A24). O comportamento aqui não muda: a canônica é esta. */
-const chaveDedup = (word: string, srcLang: string | null | undefined) => chaveDedupDoNucleo(word, srcLang)
+/* A versão da chave (1 = a de sempre; 2 = por idioma, flag `chave_dedup_v2`) vem de `versaoDaChaveDedup`: todo
+   `norm_key` do banco é de UMA versão só (a reescrita é `operacao.cjs chave-de-duplicata`). */
+const chaveDedup = (word: string, srcLang: string | null | undefined) =>
+  chaveDedupDoNucleo(word, srcLang, versaoDaChaveDedup())
 
 export interface NewVocabCard {
   word: string

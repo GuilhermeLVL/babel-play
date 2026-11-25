@@ -157,7 +157,7 @@ Detalhe e justificativa: seção "Revisão de 25/11/2026" no fim de cada `propos
 - `planos-v3-e-rota-inteligente` · arquivar e abrir duas changes pequenas (recomendado); abandonar o Ao Vivo e a nuvem ao vivo; um só pedido jurídico (preço, anual, anúncios) e abrir o mensal do Plus antes dele.
 - `interprete-conversa-virtual` · legenda livre para 18+ e voz na chamada no Plus e no selfhost (recomendado); fechar só a Fase 4 e adiar o spike da Fase 5.
 - `polimento-movimento` · aprovar a aparência do tema Água e da barra de cinco com capturas lado a lado; manter a exceção do canvas; respeitar "reduzir movimento" do sistema por padrão (recomendado).
-- # `audiolivros` · motor Supertonic 3 F1 condicionado ao parecer sobre OpenRAIL-M (recomendado); enviar o pedido jurídico agora; piloto de 3 livros primeiro, na ortografia que o leitor mostra.
+- `audiolivros` · motor Supertonic 3 F1 condicionado ao parecer sobre OpenRAIL-M (recomendado); enviar o pedido jurídico agora; piloto de 3 livros primeiro, na ortografia que o leitor mostra.
 
 ## Parte 4. Changes novas de planejamento (25/11/2026; branch `chore/preparo-specs-3`)
 
@@ -167,4 +167,16 @@ Só planejamento: nenhuma flag nasce ligada e nenhum código mudou. Detalhe e re
 - `cartao-com-audio-do-trecho` · 1.2, 3.3, 5.1 · Escuta cega do bitrate; linha do ROPA e parecer sobre voz de terceiros; ligar `cartao_com_audio` (recomendo só local como padrão).
 - `cartao-com-captura-de-tela` · 4.3, 5.1 · Decidir se a função existe (recomendo sim só para adulto e só local, ou não construir); perfil protegido fora na v1.
 - `diario-com-correcao-que-vira-cartao` · 1.3, 3.4, 5.2 · Aprovar modelo e custo; cota compartilhada com a escrita (recomendado); IA para menores só depois de `filtro-tutor-menores` 4.3 e 4.4 e da rodada de risco.
-  > > > > > > > chore/preparo-specs-3
+
+## Parte 5. Arquivadas em 25/11/2026 (Onda 5, fechamentos)
+
+Só restava ato do dono, aparelho real ou bancada. As specs foram sincronizadas em `openspec/specs/` e o `tasks.md` original está em `openspec/changes/archive/2026-11-25-<change>/` (as entradas das Partes 2 e 3 dessas changes seguem valendo e apontam para cá). Nada aqui bloqueia o desenvolvimento.
+
+- `modo-offline-declarado` · sem pendência; reconciliada com `modelos-confiaveis-e-offline` 7.3.
+- `tela-de-jogos-v2` · sem pendência; 2.8 a 2.10 arquivadas como absorvidas.
+- `filtro-tutor-menores` · 4.3 **[D]** opção C (moderação por IA) como segundo moderador, com custo medido; 4.4 **[D]** revisar `listasParaMenores.ts` e acompanhar `tutor_saida_filtrada` nas primeiras semanas.
+- `latencia-publicada-por-aparelho` · 4.1 **[D]** parecer de privacidade (o mesmo de `rum_latencia`); 4.2 **[D]** token de leitura do Analytics Engine como segredo do Action; 4.3 **[R]** triagem no staging com celular bom e fraco; 4.4 **[D]** ligar `latencia_publicada` após uma semana com 6 ou mais células `ok`.
+- `porta-de-entrada` · 6.2 **[D]** conferir no navegador com `VITE_AUTH_REQUIRED=1` e `acesso_restrito_sem_conta` desligada (funde com `acesso-sem-conta-v2` 6.1).
+- `pre-traducao-de-legendas` · 5.2 **[R]** medir no celular real (opus-mt no Worker WASM); 5.3 **[D]** ligar a flag depois do A/B de UX e da 5.2.
+- `planos-v3-e-rota-inteligente` · arquivada (decisão assumida: recomendação, 25/11). A conferência no Asaas (0.3) e a consulta jurídica (11.6) migraram para `anuncios-no-gratis-fechamento` 1.2 e 1.3, que continua viva.
+- `modelo-do-aluno-e-dados` 5.3 (fica viva) · **[D]** aplicar a reescrita de chave em produção: parar o app; `pg_dump`; ensaio (`operacao.cjs chave-de-duplicata`); `--aplicar --backup-feito` (agora cobre `vocab_cards.norm_key`, `palavras_marcadas.chave` e `palavras_vistas.chave`); `flags ligar chave_dedup_v2`; subir o app. **Antes de ligar:** o cliente (leitor, legenda, `useConhecimento`) ainda compara com `chaveDaPalavra` v1; com a v2 ligada, palavra marcada com acento em es/pt/de/fr não casa na tela. Fica pronto atrás da flag desligada; a 5.4 (cliente e edição estática) precisa sair antes da rampa. **[B]** ida e volta em Postgres real.

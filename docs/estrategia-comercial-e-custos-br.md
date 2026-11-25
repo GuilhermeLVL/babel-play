@@ -3,7 +3,7 @@
 Versão de 17/10/2026. Reúne a conta de custo (medida), o pacote e o teste (acessíveis e que dão lucro), os gatilhos de venda
 (éticos), o controle de gasto e o que falta fazer. **Convenção:** _[medido]_ saiu de chamada real ou do código; _[fonte]_ tem
 URL no fim; _[hipótese]_ é raciocínio meu, a validar com o produto no ar. Nada aqui contradiz as decisões do dono em
-`openspec/changes/planos-v3-e-rota-inteligente/design.md` (preços, Ao Vivo fechado, anúncios desligados, só retenção zero, nunca Gemini).
+`openspec/changes/archive/2026-11-25-planos-v3-e-rota-inteligente/design.md` (preços, Ao Vivo fechado, anúncios desligados, só retenção zero, nunca Gemini).
 
 ## 1. A ideia central
 

@@ -8,7 +8,7 @@
 
 **Tech Stack:** o do repositório (React + Vite, Express no Worker, Postgres/Drizzle, Asaas, Supabase Auth, vitest, Playwright). Skills obrigatórias por tarefa: `copy-br-etica` (qualquer texto de plano/oferta/anúncio), `custo-de-ia` (vozes, provedores).
 
-**Spec:** `openspec/changes/planos-v3-e-rota-inteligente/` (`design.md` §7–§11; `specs/anuncios-no-gratis/spec.md`, `specs/matriz-de-planos/spec.md`) e ADR 0013. O estado real do código está em `docs/auditoria/2026-10-21-lancamento-inventario.md` (gerado junto com este plano). Decisões do dono delegadas em 09/10 (`design.md` §11): valem os padrões.
+**Spec:** `openspec/changes/archive/2026-11-25-planos-v3-e-rota-inteligente/` (`design.md` §7–§11; `specs/anuncios-no-gratis/spec.md`, `specs/matriz-de-planos/spec.md`) e ADR 0013. O estado real do código está em `docs/auditoria/2026-10-21-lancamento-inventario.md` (gerado junto com este plano). Decisões do dono delegadas em 09/10 (`design.md` §11): valem os padrões.
 
 ## Pressupostos declarados (o dono pode derrubar qualquer um)
 
@@ -27,7 +27,7 @@
 - Com a flag `anuncios` desligada, **nenhum byte de terceiro** é pedido e a CSP continua sem host externo (`tests/seguranca/csp-estreita.test.ts`).
 - Anúncio nunca para perfil protegido, headset, captura ativa, conta com menos de 3 dias, ou sem consentimento (`politicaDeAnuncio.ts`); todo anúncio tem a porta "Sem anúncios".
 - Não enfraquecer testes; `npm run lint` com zero avisos; i18n: toda string de UI por `t()` nos 4 catálogos (`node scripts/i18n/orfas.mjs`, `cobertura.mjs --check`, `pseudo.mjs --check`).
-- Mudança de comportamento segue a change OpenSpec existente; ao concluir cada grupo, marcar o item em `openspec/changes/planos-v3-e-rota-inteligente/tasks.md`.
+- Mudança de comportamento segue a change OpenSpec existente; ao concluir cada grupo, marcar o item em `openspec/changes/archive/2026-11-25-planos-v3-e-rota-inteligente/tasks.md`.
 - Deploy só pelo `deploy-worker.yml`; staging é o ambiente de prova; produção só com as "Você" do bloco 1 feitas.
 - Ramo de trabalho: `lancamento/estado-3` a partir da `main`; worktrees por tarefa quando paralelas; merge na `main` só com CI verde e revisão.
 
@@ -100,7 +100,7 @@ Bloco 3 (as conferências antes de abrir — `docs/LANCAMENTO.md` §10): as 16 c
 
 - Create: `tests/integration/billing-por-plano.test.ts`
 - Modify: `server/routes/billing.ts:419` (mensagem fixa "esta conta já tem o Premium pago" → o nome do plano atual via `PLAN_MATRIX[plano].nome`), outros textos fixos "Premium" em `server/routes/billing.ts` e `server/lib/billingEventos.ts` (grep `'Premium'`)
-- Modify: `openspec/changes/planos-v3-e-rota-inteligente/tasks.md` (8.3 → `[x]` quando concluída a parte de testes; a "conferência no sandbox" fica na Task 10)
+- Modify: `openspec/changes/archive/2026-11-25-planos-v3-e-rota-inteligente/tasks.md` (8.3 → `[x]` quando concluída a parte de testes; a "conferência no sandbox" fica na Task 10)
 
 **Interfaces:**
 
@@ -204,7 +204,7 @@ Bloco 3 (as conferências antes de abrir — `docs/LANCAMENTO.md` §10): as 16 c
 - Rewrite: `docs/ESTADO-DO-LANCAMENTO.md` (datado de hoje; "o que está pronto" com as Frentes 1–3 feitas e evidência; "o que falta" = este plano; decisões abertas atualizadas)
 - Modify: `docs/LANCAMENTO.md` (§8 passo "flags do lançamento": `venda_planos_v3` ligada, `anuncios` desligada; §10 ganha as caixas: "3 cartões na produção", "checkout do Essencial no sandbox", "anúncio: página de bancada sem violação"; §11 "abrir a venda": procedimento passo a passo — `SIGNUP_ENABLED`/`CHECKOUT_ENABLED` por `wrangler secret put`, cadastro no Supabase, `ANUAL_ENABLED` depois do jurídico, `anuncios` depois do jurídico + rede aprovada)
 - Modify: `docs/runbook.md` (§"Abrir e fechar portas": cadastro, venda, anual, anúncios, IA), `docs/flags.md` (`venda_planos_v3`, `anuncios` com o que "ligar" exige)
-- Modify: `openspec/changes/planos-v3-e-rota-inteligente/{proposal,tasks}.md` (estado real; 0.1 `[x]` com referência ao §11; itens feitos marcados), e **sincronizar** `specs/anuncios-no-gratis/spec.md` para `openspec/specs/anuncios-no-gratis/spec.md` (`openspec` CLI, sem arquivar a change: os grupos 4–6, 10 e Q continuam)
+- Modify: `openspec/changes/archive/2026-11-25-planos-v3-e-rota-inteligente/{proposal,tasks}.md` (estado real; 0.1 `[x]` com referência ao §11; itens feitos marcados), e **sincronizar** `specs/anuncios-no-gratis/spec.md` para `openspec/specs/anuncios-no-gratis/spec.md` (`openspec` CLI, sem arquivar a change: os grupos 4–6, 10 e Q continuam)
 - Test: `tests/docs-sem-fly.test.ts` continua verde; `tests/integration/alertas-e-painel.test.ts` idem
 
 - [ ] Steps: escrever → `npx prettier --check` nos tocados → commit `docs(lancamento): estado real, procedimento de abrir a venda e flags do lançamento`.

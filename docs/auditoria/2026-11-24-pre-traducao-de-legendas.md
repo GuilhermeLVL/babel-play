@@ -1,6 +1,6 @@
 # Pré-tradução de legendas: medição rápida no Node (24/11/2026)
 
-Change: `openspec/changes/pre-traducao-de-legendas`. Flag `pre_traducao_de_legendas` (desligada).
+Change: `openspec/changes/archive/2026-11-25-pre-traducao-de-legendas`. Flag `pre_traducao_de_legendas` (desligada).
 
 ## Método
 

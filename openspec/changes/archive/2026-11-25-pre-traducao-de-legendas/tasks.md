@@ -1,3 +1,5 @@
+> **Arquivada em 25/11/2026 (Onda 5, fechamentos).** O trabalho de dev terminou; o que resta é ato do dono, aparelho real ou bancada ([D]/[R]/[B]) e está em `docs/pendencias-do-dono.md`, Parte 5. As tarefas abertas abaixo ficam como registro.
+
 Legenda: **[D]** = ato ou decisão do dono; **[R]** = exige aparelho real.
 
 ## 1. Núcleo

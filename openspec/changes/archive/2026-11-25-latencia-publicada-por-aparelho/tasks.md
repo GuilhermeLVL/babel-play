@@ -1,3 +1,5 @@
+> **Arquivada em 25/11/2026 (Onda 5, fechamentos).** O trabalho de dev terminou; o que resta é ato do dono, aparelho real ou bancada ([D]/[R]/[B]) e está em `docs/pendencias-do-dono.md`, Parte 5. As tarefas abertas abaixo ficam como registro.
+
 ## 1. Simulação e agregador (a mais arriscada primeiro: o número ser honesto)
 
 - [x] 1.1 Simulador de lotes `v: 2` sintéticos (`tests/harness/`) e função pura `agregarLatencia` em `src/core/` (soma de baldes,

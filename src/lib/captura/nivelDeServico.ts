@@ -1,7 +1,7 @@
 /**
  * O NÍVEL DE SERVIÇO NA TELA DE CAPTURA — "No aparelho / Precisão / Ao vivo" (porte de
  * `planos4.js:115-235` do protótipo `anuncios-no-gratis`; decisões em
- * `openspec/changes/planos-v3-e-rota-inteligente/design.md` §3, §4, §5 e §11).
+ * `openspec/changes/archive/2026-11-25-planos-v3-e-rota-inteligente/design.md` §3, §4, §5 e §11).
  *
  * O PROTÓTIPO INVENTA O DADO (`PL.escolha`, `MINUTOS`, `nivelAgora`); AQUI O DADO É O DO APP:
  *

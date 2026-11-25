@@ -16,7 +16,7 @@
  * `anonimo` NÃO está aqui: é identidade do cliente sem conta, não um plano que o servidor possa
  * atribuir a uma assinatura. O tipo do cliente o acrescenta por união.
  *
- * A MATRIZ V3 (decisões de 09/10/2026, ADR 0013, `openspec/changes/planos-v3-e-rota-inteligente`):
+ * A MATRIZ V3 (decisões de 09/10/2026, ADR 0013, `openspec/changes/archive/2026-11-25-planos-v3-e-rota-inteligente`):
  * Grátis + TRÊS planos pagos por NÍVEL DE SERVIÇO — Essencial (no aparelho, com a nuvem por trechos
  * sob demanda), Premium (a nuvem por trechos por padrão onde compensa) e Ao Vivo (o texto durante a
  * fala). Substitui a v2 (ADR 0011, um plano pago só). O id `essencial` voltou a ser um plano de

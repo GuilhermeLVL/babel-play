@@ -1,5 +1,5 @@
 import { chaveComparavel } from '../learning/quality';
-import { type MinigameId,MINIGAMES } from './types';
+import { type MinigameId, MINIGAMES } from './types';
 
 /**
  * O QUE A PRÉVIA PODE MOSTRAR — a regra anti-spoiler, declarada em vez de improvisada.
@@ -143,8 +143,11 @@ export function origemDoMaterial(
   jogo: MinigameId,
   fonteId: OrigemDoItem,
   declarada?: OrigemDoItem,
+  /** As falas desta rodada vêm das frases de exemplo do acervo (não de gravação): a origem é o baralho. */
+  falaDoAcervo = false,
 ): OrigemDoItem {
   if (declarada) return declarada;
+  if (falaDoAcervo && MINIGAMES[jogo].modalidade !== 'palavra') return 'baralho';
   const deFala = MINIGAMES[jogo].modalidade !== 'palavra';
   if (deFala && (fonteId === 'baralho' || fonteId === 'dificeis')) return 'sessao';
   return fonteId;
@@ -257,17 +260,26 @@ export function previaSegura(jogo: MinigameId, crus: ItemCru[]): ItemDaAntessala
      * Quando o rótulo é retido, o `tipo` sobrevive — a tela ainda diz "desta gravação", que é
      * verdade e não entrega nada.
      */
-    const origem = pode.has('origem') && c.origem
-      ? {
-        tipo: c.origem,
-        rotulo: c.origemRotulo && !pistaEntregaAlvo(c.origemRotulo, c.alvo) ? c.origemRotulo : undefined,
-        idioma: c.idioma,
-      }
-      : undefined;
+    const origem =
+      pode.has('origem') && c.origem
+        ? {
+            tipo: c.origem,
+            rotulo: c.origemRotulo && !pistaEntregaAlvo(c.origemRotulo, c.alvo) ? c.origemRotulo : undefined,
+            idioma: c.idioma,
+          }
+        : undefined;
 
     if (pode.has('alvo')) {
       // Aqui a resposta já está autorizada: nada a esconder, e a pista não precisa de cerca.
-      return { ref: c.ref, titulo: c.alvo, pista: pode.has('pista') ? c.pista : undefined, forma, tamanho, cefr: nivel, origem };
+      return {
+        ref: c.ref,
+        titulo: c.alvo,
+        pista: pode.has('pista') ? c.pista : undefined,
+        forma,
+        tamanho,
+        cefr: nivel,
+        origem,
+      };
     }
     if (pode.has('pista') && c.pista && !pistaEntregaAlvo(c.pista, c.alvo)) {
       // A pista SOBE para o título: ela é o enunciado que o jogo já vai mostrar, e repeti-la na

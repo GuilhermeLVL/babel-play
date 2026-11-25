@@ -1,9 +1,10 @@
-Legenda: [D] decisão do dono (ato humano, não do agente); [R] revisão/verificação independente.
+Legenda: [B] janela de bancada (medição, só com a bancada livre); [D] decisão do dono (ato humano, não do agente); [R] revisão/verificação independente.
 
 ## 1. Critério e linha de base
 
 - [x] 1.1 Escrever o critério do E-005 em `docs/auditoria/` (precisão ≥ 80%, ≤ 2 trocas/min, ≤ US$ 0,058/h, zero rede para convidado/menor) com data, ANTES de qualquer rodada
-- [ ] 1.2 [R] Conferir que o critério foi commitado antes dos dados
+- [ ] 1.2 [R] Conferir que o critério foi commitado antes dos dados. Verificar: `git log --format=%ad -1 -- docs/auditoria/2026-11-25-criterio-do-roteador-adaptativo.md` anterior ao primeiro arquivo de dados da avaliação (hoje não há dado nenhum, então vale por construção).
+- [x] 1.3 Reconciliar o critério com o que mudou depois de 21/11 ANTES de coletar (muda a data do critério, regra do próprio arquivo): (a) o Parakeet/`stt_aparelho_primeiro` e a rota pt dos parciais entram como rota candidata na "melhor rota a posteriori"; (b) o custo de US$ 0,058/h só reprova se for maior que 1 h de nuvem, então a métrica 3 passa a ser o ACRÉSCIMO sobre a rota efetiva, com teto em US$/h escolhido pelo dono (ver planos v4 e o corte de custo de 02/10). Verificar: novo commit do critério com data; `avaliar-roteador.mjs` roda sobre um JSON de exemplo com a rota Parakeet e imprime o acréscimo.
 
 ## 2. Puro (`src/core/rota/`)
 
@@ -15,7 +16,7 @@ Legenda: [D] decisão do dono (ato humano, não do agente); [R] revisão/verific
 
 ## 3. Ligação em sombra
 
-- [x] 3.1 Flag `roteador_adaptativo_sombra` DESLIGADA: PG 0025 e SQLite 0067 (PROVISÓRIOS, conferir o número no PR), snapshots, journals, `PainelFlags`, `docs/flags.md`, baseline
+- [x] 3.1 Flag `roteador_adaptativo_sombra` DESLIGADA: PG 0025 e SQLite 0067 (nota de 25/11: números FINAIS, estão na main: `0025_flag_roteador_adaptativo_sombra.sql`), snapshots, journals, `PainelFlags`, `docs/flags.md`, baseline
 - [x] 3.2 `conferenciaDaRota.ts` alimenta a sombra com os sinais da sessão; rota efetiva intocada; teste "flag ligada = mesma rota"
 - [x] 3.3 Ler `medicoesDeStt` (depende da tarefa 2.2 de `stt-ingles-volume-e-rota`); teste "nuvem não vence, sem sugerir por confiança"
 - [x] 3.4 Campo `roteador` no lote `v: 2`, atrás de `rum_latencia` e da flag; perfil protegido não envia; teste de forma do lote
@@ -24,14 +25,14 @@ Legenda: [D] decisão do dono (ato humano, não do agente); [R] revisão/verific
 
 ## 4. Medir (E-005)
 
-- [ ] 4.1 Rodar a bancada em perfil fraco e 4G simulado, por rota, reexecutando as mesmas falas (só com a bancada livre)
-- [ ] 4.2 Calcular precisão, trocas/min e custo/h; relatório em `docs/auditoria/` com a decisão "seguir" ou "não sair da sombra"
-- [ ] 4.3 [R] Revisão independente do relatório e do teste de privacidade
+- [ ] 4.1 **[B]** **[R]** Rodar a bancada em perfil fraco e 4G simulado, por rota (incluindo Parakeet), reexecutando as mesmas falas (só com a bancada livre; segue `docs/auditoria/protocolo-do-laboratorio-de-latencia.md` e a regra de ciclo rápido: simular com `avaliar-roteador.mjs` antes de medir). Verificar: `dados.json` com pelo menos 200 falas julgadas e 5 sessões, ou o relatório diz "dados insuficientes"
+- [ ] 4.2 [B] Calcular precisão, trocas/min e custo/h; relatório em `docs/auditoria/` com a decisão "seguir" ou "não sair da sombra"
+- [ ] 4.3 [B] [R] Revisão independente do relatório e do teste de privacidade
 
 ## 5. Fechamento
 
 - [ ] 5.1 `npm run typecheck`, `npm run lint`, `npm test` (arquivos de rota e telemetria) e `npx knip` verdes; um PR só
-- [ ] 5.2 [D] Ligar a flag no staging; [D] parecer de privacidade do dono para o campo em produção (`rum_latencia`); [D] decidir se segue para a mudança "sair da sombra"
+- [ ] 5.2 **[D]** Ligar a flag no staging; **[D]** parecer de privacidade do dono para o campo em produção (`rum_latencia`); **[D]** decidir se segue para a mudança "sair da sombra". Verificar: com a flag ligada no staging, `window.__roteadorSombra()` devolve só lista fechada e baldes, e o campo `roteador` do lote `v: 2` chega ao agregador sem texto nem id; decisão com data em `docs/pendencias-do-dono.md`.
 
 ## Notas da implementação (2026-11-21)
 
@@ -43,3 +44,9 @@ Legenda: [D] decisão do dono (ato humano, não do agente); [R] revisão/verific
 - E-005 não cumprido (sem dado de campo): critério em `docs/auditoria/2026-11-21-criterio-do-roteador-adaptativo.md`,
   cálculo em `scripts/perf/latencia-legenda/avaliar-roteador.mjs`. 4.1 bloqueada (rodadas por rota), 4.2 parcial.
 - Observação: o teto de US$ 0,058/h é igual a 1 h de nuvem; o relatório também mostra o acréscimo sobre a rota efetiva.
+
+## Notas de 25/11/2026 (onda 1)
+
+- 1.3 feita. Decisão assumida: recomendação 10 de `docs/backlog/decisoes-do-dono.md` (teto de US$ 0,01/h de acréscimo sobre a rota efetiva), 25/11. Novo critério em `docs/auditoria/2026-11-25-criterio-do-roteador-adaptativo.md` (o de 21/11 ficou marcado como substituído; nenhuma coleta existia). `avaliar-roteador.mjs` agora julga o acréscimo, aceita `parakeet` como rota candidata (`manter` vale a rota efetiva) e roda sobre `docs/auditoria/exemplos/roteador-entrada-exemplo.json`.
+- Decisão assumida: opção A + 1.3 (ligar no staging por 2 semanas é ato do dono, 5.2 [D]) e parecer de privacidade opção B (campo `roteador` só no staging). Nenhuma flag nova nesta tarefa (a flag e as migrações PG 0025 / SQLite 0067 já estão na main).
+- Abertos: 1.2 [R] (conferir ordem de commits antes dos dados), 4.1 a 4.3 [B] (bancada), 5.1 (fecha no PR único), 5.2 [D].

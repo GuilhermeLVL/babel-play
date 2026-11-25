@@ -378,6 +378,20 @@ export const FLAG_TRADUCAO_INCREMENTAL = 'traducao_incremental';
 export const FLAG_PRE_TRADUCAO_DE_LEGENDAS = 'pre_traducao_de_legendas';
 
 /**
+ * A FORÇA 1 A 4 NA LEGENDA E NO LEITOR (openspec `status-da-palavra-na-legenda`; migrações PG 0033 e SQLite 0073): a etiqueta da palavra sai da força do cartão (`forcaDoCartao`: 1 = salva, 2 e 3 = aprendendo, 4 = silenciosa)
+ * e a glosa do leitor some em força 3, em vez da régua de três estados com relógio. Nasce DESLIGADA e sem regra de plano;
+ * ligar é ato do dono, depois de simular no deck dele. Desligada = as etiquetas de hoje.
+ */
+export const FLAG_FORCA_NA_LEGENDA = 'forca_na_legenda';
+
+/**
+ * O MODO "FRASE POR FRASE" (openspec `repetir-e-pausar-por-frase`; migrações PG 0034 e SQLite 0074): o player da
+ * sessão repete a frase 1x a 3x, espera a pessoa repetir em voz alta e segue (ou para no fim). Só mídia do próprio Frasy;
+ * nada é gravado nem sai do aparelho. Nasce DESLIGADA e sem regra de plano; ligar é ato do dono. Desligada = player de hoje.
+ */
+export const FLAG_FRASE_POR_FRASE = 'frase_por_frase';
+
+/**
  * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,
  * "Custo da escrita"): um retorno leva ~900 tokens de entrada (system + texto de até 120 palavras) e até 500 de saída;
  * 30 por mês ficam na casa de US$ 0,01 por assinante que usa tudo, e os tokens já saem da `tokensMes`.

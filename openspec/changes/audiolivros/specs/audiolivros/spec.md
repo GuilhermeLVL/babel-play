@@ -102,4 +102,24 @@ O sistema SHALL manter o custo da voz de nuvem dentro das cotas de `src/core/pla
 #### Scenario: Teto por pessoa
 
 - **WHEN** uma pessoa usa a voz natural no limite do plano
-- **THEN** o custo mensal não passa de US$ 0,60 no Premium e a margem no pior caso segue maior ou igual a zero
+- **THEN** o custo mensal não passa de US$ 0,60 no plano com `vozNatural` (hoje o Plus; antes da v4, o Premium) e a margem no pior caso segue maior ou igual a zero
+
+#### Scenario: Teto declarado antes de ligar (acrescentado em 25/11/2026)
+
+- **WHEN** a flag `audiolivros_nuvem` é ligada para qualquer conta
+- **THEN** existe um teto em USD por mês declarado em `docs/` e a voz de nuvem não é chamada sem ele
+
+### Requirement: Licença do motor registrada (acrescentado em 25/11/2026)
+
+O sistema SHALL distribuir só áudio gerado por motor cuja licença de pesos e de código esteja registrada no runbook, com o rótulo de voz
+sintetizada visível, e SHALL NOT incluir espeak-ng (GPL-3.0) no caminho distribuído sem parecer jurídico.
+
+#### Scenario: Motor com restrição de uso
+
+- **WHEN** a licença dos pesos do motor (por exemplo OpenRAIL-M) impõe restrições sobre menores ou sobre rótulo
+- **THEN** o runbook as lista e o lote só é publicado depois que o dono as aceita por escrito
+
+#### Scenario: Motor com espeak-ng
+
+- **WHEN** um motor candidato embute o espeak-ng
+- **THEN** ele não entra no catálogo nem no aparelho sem o parecer jurídico anexado

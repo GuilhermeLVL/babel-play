@@ -146,3 +146,24 @@ Registrados para não se perderem; não são do dono, mas ficaram abertos nas ch
 - `auditoria-i18n-v1` (P3) · G0.1, G1.1 · Aceitar tabela e vereditos; decidir rede Wikidata/Tatoeba e prioridade de N3 (`?ui=`); ainda interessa ou arquiva como relatório.
 - `api-e-mcp` (P3) · Decidir se a API pública/MCP entra no roadmap.
 - `estrutura-por-dominio-proposta` (P3) · 2.1 · Aprovar ou recusar a árvore-alvo e a ordem.
+
+## Parte 3. Revisão de 25/11/2026 de seis changes vivas (decisões novas, com recomendação)
+
+Detalhe e justificativa: seção "Revisão de 25/11/2026" no fim de cada `proposal.md`.
+
+- `motor-anki-jogos` · áudio nativo do baralho: só TTS (recomendado), mídia só no navegador, ou reabrir no servidor. "Só revisão": fazer agora (recomendado).
+- `traducao-local-por-direcao` · licença par a par começando por es, fr, it e de (recomendado); teste cego pt-BR adiado até X→en mostrar ganho; runtime novo da Mozilla só se o celular real estourar a memória.
+- `planos-v3-e-rota-inteligente` · arquivar e abrir duas changes pequenas (recomendado); abandonar o Ao Vivo e a nuvem ao vivo; um só pedido jurídico (preço, anual, anúncios) e abrir o mensal do Plus antes dele.
+- `interprete-conversa-virtual` · legenda livre para 18+ e voz na chamada no Plus e no selfhost (recomendado); fechar só a Fase 4 e adiar o spike da Fase 5.
+- `polimento-movimento` · aprovar a aparência do tema Água e da barra de cinco com capturas lado a lado; manter a exceção do canvas; respeitar "reduzir movimento" do sistema por padrão (recomendado).
+- # `audiolivros` · motor Supertonic 3 F1 condicionado ao parecer sobre OpenRAIL-M (recomendado); enviar o pedido jurídico agora; piloto de 3 livros primeiro, na ortografia que o leitor mostra.
+
+## Parte 4. Changes novas de planejamento (25/11/2026; branch `chore/preparo-specs-3`)
+
+Só planejamento: nenhuma flag nasce ligada e nenhum código mudou. Detalhe e recomendações na seção "Decisões do dono" de cada `proposal.md`.
+
+- `navegacao-mais-simples` · 1.3 e 2.4 · Decidir juntas: opção A (recomendada) ou B; Livros, Planos, Intérprete e Ajustes saem do primeiro nível?; medir uso por agregado?. Aprovar o protótipo antes de qualquer código.
+- `cartao-com-audio-do-trecho` · 1.2, 3.3, 5.1 · Escuta cega do bitrate; linha do ROPA e parecer sobre voz de terceiros; ligar `cartao_com_audio` (recomendo só local como padrão).
+- `cartao-com-captura-de-tela` · 4.3, 5.1 · Decidir se a função existe (recomendo sim só para adulto e só local, ou não construir); perfil protegido fora na v1.
+- `diario-com-correcao-que-vira-cartao` · 1.3, 3.4, 5.2 · Aprovar modelo e custo; cota compartilhada com a escrita (recomendado); IA para menores só depois de `filtro-tutor-menores` 4.3 e 4.4 e da rodada de risco.
+  > > > > > > > chore/preparo-specs-3

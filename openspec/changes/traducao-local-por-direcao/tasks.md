@@ -1,10 +1,17 @@
 Legenda: **[D]** = ato ou decisão do dono (ou de humano); **[R]** = exige aparelho real. Nenhuma tarefa de ligar (6.x) começa antes
 dos portões 1 a 4 estarem marcados.
 
+> **Revisão de 25/11/2026** (main `897c9d25`): 8 tarefas feitas (1.3, 2.1, 2.2, 3.1 a 3.3, 4.3 só a ferramenta) e o resto bloqueado por
+> dono, dependência nova ou aparelho real. A numeração final das migrações na `main` é **PG 0026 e SQLite 0068** (o relatório de 21/11
+> dizia 0027/0069). O que ficou velho está em `proposal.md`, "Revisão de 25/11/2026".
+
 ## 1. Portões e critério escrito (antes de qualquer número)
 
-- [ ] 1.1 Escrever e commitar `criterio.md` dos três A/B (D6) e o protocolo do teste cego (D4) ANTES da primeira rodada.
-      Verificar: `ab.mjs` aceita o critério (commit anterior à primeira rodada).
+- [x] 1.1a Critério e protocolo do TESTE CEGO pt-BR (D4). Feito: `docs/auditoria/2026-11-21-criterio-da-traducao-local-por-direcao.md`,
+      commitado em `ad4a09ed`; nenhum A/B de decisão rodou antes dele (as medições de 21/11 são exploratórias e marcadas `emulado`).
+- [ ] 1.1b Escrever e commitar o critério dos três A/B (D6: qualidade, memória/latência do runtime, `fimDaFalaAteLegendaMs`) ANTES de
+      qualquer rodada de decisão, no padrão dos `criterio.md` de `scripts/perf/latencia-legenda/resultados/`.
+      Verificar: `git log` mostra o commit do critério anterior ao primeiro resultado de decisão; `ab.mjs` o aceita.
 - [ ] 1.2 **[D]** Portão 1, licença: o dono lê o checklist (README dos pesos Mozilla = MPL-2.0; corpora não informados; sem campo
       no registro) e decide, por par, se o R2 pode hospedar. EuroNano segue ADIADO (TED2020 CC BY-NC-ND); contato com a Tether só
       com OK do dono. Verificar: decisão registrada em `docs/auditoria/` com a data.
@@ -14,7 +21,7 @@ dos portões 1 a 4 estarem marcados.
 
 ## 2. Flag
 
-- [x] 2.1 Flag `traducao_local_por_direcao`: migrações PROVISÓRIAS PG 0026 e SQLite 0068 (semente idempotente, sem regra de plano,
+- [x] 2.1 Flag `traducao_local_por_direcao`: migrações PG 0026 e SQLite 0068, JÁ NA `main` (semente idempotente, sem regra de plano,
       reversão `DELETE FROM flags`), snapshots, journals, `PainelFlags`, `docs/flags.md`, baseline. Verificar: nasce desligada;
       numeração conferida contra a `main` no PR.
 - [x] 2.2 Gate no uso: desligada, `parDoBergamot`/`bergamotOferecido` só atendem pt→en e o runtime é o 0.4.9, mesmo com
@@ -36,10 +43,11 @@ dos portões 1 a 4 estarem marcados.
       `fleurs:pt-en` e, ao fim da 4.2, nos demais X→en. Verificar: COMET e chrF++ com IC 95% pareado por par, gold junto.
 - [ ] 4.2 Acrescentar corpora FLEURS `X→en` dos pares a publicar à bancada (hoje nenhum corpus tem origem em es e demais X;
       `baixar-corpus.py`). Verificar: o relatório lista n por par.
-- [ ] 4.3 **[D]** Portão 2, teste cego pt-BR (D4): montar a planilha embaralhada e o gabarito; o dono recruta ≥ 2 avaliadores
+- [ ] 4.3 **[D]** Portão 2, teste cego pt-BR (D4; a ferramenta `scripts/eval-fala/teste-cego-ptbr/` está PRONTA, falta recrutar e aplicar): montar a planilha embaralhada e o gabarito; o dono recruta ≥ 2 avaliadores
       brasileiros; aplicar; calcular pt-PT por sistema, kappa e IC. Verificar: relatório com o veredito por sistema
       (`aprovado`, `reprovado`, `inconclusivo`); só `aprovado` muda a rota de en→pt.
 - [ ] 4.4 Registrar o veredito no catálogo e no relatório. Verificar: com `reprovado` ou `inconclusivo` o en→pt segue opus-mt.
+- [ ] 4.5 Meta de qualidade es→pt (herdada de `traducao-sem-rota-no-celular` 5.2/6.2): com o modelo direto, nota média do juiz (`celular/juiz-traducao.mjs`) de pelo menos 3/5 nas traduções es→pt. Hoje o pivô pelo inglês mede 2,33 a 2,89 e segue rotulado "tradução aproximada". Verificar: relatório com a nota por rota.
 
 ## 5. Laboratório: runtime, memória, latência e download
 
@@ -59,7 +67,8 @@ dos portões 1 a 4 estarem marcados.
 
 ## 6. Publicar e ligar (só com os portões)
 
-- [ ] 6.1 **[D]** Publicar os pares aprovados no R2 (`publicar-bergamot-no-r2.ts --seco` primeiro; depois sem `--seco`,
+- [ ] 6.1 **[D]** Publicar os pares aprovados no R2, no MESMO ato da tarefa 1.3 da change arquivada `bergamot-multi-idioma-via-cdn`
+      (bucket, CORS, `VITE_BERGAMOT_MODELOS_URL`; um só ato do dono para as duas) (`publicar-bergamot-no-r2.ts --seco` primeiro; depois sem `--seco`,
       segredo só no host) e definir `VITE_BERGAMOT_MODELOS_URL`. Verificar: a flag segue desligada e nada muda para as pessoas.
 - [ ] 6.2 **[D]** Ligar a flag por etapa (desktop primeiro; celular só após 5.5), acompanhando a taxa de falha e o p75 de campo
       (quando `rum_latencia` estiver ligada). Verificar: reversão ensaiada (flag off; depois URL vazia).

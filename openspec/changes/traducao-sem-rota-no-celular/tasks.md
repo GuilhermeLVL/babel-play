@@ -18,8 +18,10 @@
 
 - [x] 3.1 `pacotesNativos.ts`: prazo de 20 s sem progresso por par e falha quando o disjuntor `chrome-translator` abre; a primeira tradução local tira o `tradutor` do cartão. Verificar: teste com relógio falso (um par falha, o outro parado: o cartão some em 20 s).
   - Feitos: o prazo de 20 s, o "local assumiu" e o descarte da sessão anterior. NÃO foi ligado o gancho do disjuntor `chrome-translator`; o prazo de 20 s cobre o mesmo caso.
-- [ ] 3.2 `ModelPrepPanel.tsx` na faixa de avisos, sem sobrepor a lista. Verificar: e2e que compara os retângulos em 375×667, 412×915 e 1280×800.
-  - Pendente. O cartão já está no fluxo da faixa de avisos (não é absoluto), e nas rodadas a sobreposição medida foi 0. O e2e das três janelas não foi escrito. Ver `openspec/audits/2026-11-17-traducao-sem-rota-medicao.md`.
+- [x] 3.2 `ModelPrepPanel.tsx` na faixa de avisos, sem sobrepor a lista. Verificar: e2e que compara os retângulos em 375×667, 412×915 e 1280×800.
+  - Revisão de 25/11: a causa real (o cartão cruzava a lista em 375×667 com os avisos de nuvem e de bipe) foi corrigida em #205 (`2e65c0dd`, área `.cel-rola`, legenda primeiro, avisos esperam o cartão) e #206 (`3cbcefc7`, avisos somem com a folha da frase aberta). Falta SÓ recolocar o e2e, que foi revertido em `65c5c54c` porque reprovava: o teste está pronto em `ef991c9f` (`tests/e2e/captura-no-celular.e2e.ts`, 3 janelas, `tradutorFalso(page, 20_000)`). Fazer `git cherry-pick ef991c9f`, rodar `npx playwright test tests/e2e/captura-no-celular.e2e.ts` e só então marcar.
+  - Feito em 25/11: e2e recolocado (cherry-pick de `ef991c9f`, com `data-testid="cartao-de-preparo"`). `npx playwright test tests/e2e/captura-no-celular.e2e.ts` em servidor próprio (porta 3217): 9 passaram (4 de fluxo, 3 janelas do cartão, 2 da tela de uma mão); os projetos tablet-768 e desktop-1280 pulam o arquivo de propósito (`test.skip` fora do mobile-375: o celular emulado roda uma vez e as 3 janelas estão dentro do teste).
+  - Histórico: O cartão já está no fluxo da faixa de avisos (não é absoluto), e nas rodadas a sobreposição medida foi 0. O e2e das três janelas não foi escrito. Ver `openspec/audits/2026-11-17-traducao-sem-rota-medicao.md`.
 - [x] 3.3 `ModoInterprete.tsx:768-780`: `comoInstalarVoz` antes do progresso de preparo. Verificar: teste de componente com voz ausente e preparo em curso.
   - Testado na função pura `avisoComAVozPrimeiro`, sem teste de componente.
 
@@ -27,9 +29,9 @@
 
 - [x] 4.1 Marcas `performance.mark` na carga do STT, na carga do MT e na fila do worker de tradução, expostas ao harness. Verificar: as marcas aparecem em `resultado.json` de `celular/medir-celular.mjs`.
   - Elas aparecem na cópia da bancada usada na medição. O `medir-celular.mjs` versionado em `reports/` não foi alterado.
-- [ ] 4.2 Medir 5 pares de sessões com ordem alternada (`celular/rodar-visitante.sh` + `celular/latencias.mjs`) e registrar a causa em `openspec/audits/`. Verificar: relatório com p50/p95 por sessão e a causa sustentada pelas marcas.
+- [ ] 4.2 (VELHA: recomendo encerrar) Medir 5 pares de sessões com ordem alternada (`celular/rodar-visitante.sh` + `celular/latencias.mjs`) e registrar a causa em `openspec/audits/`. Verificar: relatório com p50/p95 por sessão e a causa sustentada pelas marcas.
   - Parcial. Foram 4 pares de sessões contra o build local (3 no iPhone, 1 no Pixel), sem a alternância de 5 pares. As marcas mostram as cargas do STT e do MT em série e a fila do worker ≤ 1: a disputa não se reproduziu. Relatório em `openspec/audits/2026-11-17-traducao-sem-rota-medicao.md`.
-- [ ] 4.3 Aplicar a correção que a medição apontar (adiar o `preload` do MT até o STT estar pronto, ou serializar as cargas sem isolamento). Verificar: p50 da 2ª sessão no máximo 1,2× o da 1ª e máximo abaixo de 8 s, nos dois aparelhos.
+- [ ] 4.3 (VELHA: depende da 4.2) Aplicar a correção que a medição apontar (adiar o `preload` do MT até o STT estar pronto, ou serializar as cargas sem isolamento). Verificar: p50 da 2ª sessão no máximo 1,2× o da 1ª e máximo abaixo de 8 s, nos dois aparelhos.
   - Não aplicada, porque a medição não apontou causa. No build local a 2ª sessão ficou em 0,96× (iPhone) e 0,95× (Pixel) da 1ª, com máximos de 7,1 s e 6,7 s.
 - [x] 4.4 `oferecerNativoOuNuvem`: mostrar o aviso sempre que for registrado. Verificar: teste do regulador (log e aviso andam juntos).
 
@@ -37,9 +39,16 @@
 
 - [x] 5.1 Rodar `celular/medir-celular.mjs --aparelho iphone14 --cenario mercado` e `--aparelho pixel7` contra o staging. Verificar: `linhasSemTraducao` = 0 em `analise.json`.
   - Rodado contra o BUILD LOCAL (edição estática), não contra o staging: 0/9 linhas sem tradução no iPhone e no Pixel, na 1ª e na 2ª sessão, com opus-mt e com Bergamot (a auditoria mediu 9/9). A repetição no staging fica com o dono.
-- [ ] 5.2 Rodar `celular/juiz-traducao.mjs` nas traduções es→pt. Verificar: nota média de pelo menos 3/5.
+- [ ] 5.2 (MOVIDA para `traducao-local-por-direcao` 4.5; ver 6.1) Rodar `celular/juiz-traducao.mjs` nas traduções es→pt. Verificar: nota média de pelo menos 3/5.
   - NÃO ATINGIDO. Juiz só da tradução: 2,33 e 2,56 com o opus-mt nas duas pernas, 2,89 com o Bergamot es-en. O juiz da auditoria (STT + MT juntos) deu 1 correta, 3 parciais, 3 erradas e 1 perigosa.
-- [ ] 5.3 Medir a memória da aba no cenário mercado. Verificar: no máximo +300 MB sobre a rodada en→pt de referência.
+- [ ] 5.3 (decisão do dono, ver 6.1 e `docs/backlog/decisoes-do-dono.md` item 4: opus-mt nas duas pernas até medir em aparelho real) Medir a memória da aba no cenário mercado. Verificar: no máximo +300 MB sobre a rodada en→pt de referência.
   - O opus-mt nas duas pernas fica dentro do teto (+185/+206 MB). O Bergamot es-en + opus-mt en→pt PASSA do teto: +726 MB na 1ª sessão e +316 MB na 2ª.
 - [x] 5.4 `npm run typecheck`, `npm run lint` e `npm test` verdes.
   - typecheck verde, lint dos arquivos alterados verde e `npx vitest run` verde. O `npm run lint` completo fica para a CI.
+
+## 6. Fechamento da revisão de 25/11/2026
+
+- [x] 6.1 **[D]** (decisão assumida: recomendação a, 25/11: aceitar o pivô com o rótulo "tradução aproximada"; meta de 3,0 passa para `traducao-local-por-direcao` 4.5. Rótulo aplicado em `AvisoDaCoberturaDoPar`. Falta o dono registrar em `docs/pendencias-do-dono.md`.) Decidir o piso de qualidade do pivô es→en→pt (5.2 reprovou: 2,33 a 2,89 de 5) e o teto de memória (5.3: Bergamot es-en + opus-mt en→pt passa +726 MB). Verificar: decisão registrada em `docs/pendencias-do-dono.md` com data; a 5.2 e a 5.3 deste arquivo apontam para ela.
+- [x] 6.2 Mover a meta de qualidade es→pt para `traducao-local-por-direcao` (modelo direto), deixando aqui só "o par tem rota e é honesto". Verificar: `grep -n "es→pt\|es-pt" openspec/changes/traducao-local-por-direcao/*.md` mostra a meta de nota ≥ 3/5 ali; este arquivo cita a change.
+- [ ] 6.3 **[D]** Aprovar o texto "sem tradução neste aparelho" (skill `copy-br-etica`) e confirmar `VITE_BERGAMOT_MODELOS_URL` em `production` (a tarefa 1.3 de `bergamot-multi-idioma-via-cdn` está em `docs/pendencias-do-dono.md`). Verificar: em produção, `curl -I` do `es-en` do CDN responde 200 e a escolha es→pt mostra o aviso de download somado.
+- [ ] 6.4 **[R]** Repetir `celular/medir-celular.mjs --aparelho iphone14 --cenario mercado` e `--aparelho pixel7` no staging (5.1 foi no build local) e uma passada em iPhone e Android reais. Verificar: `linhasSemTraducao` = 0 em `analise.json` e p50 da 2ª sessão ≤ 1,2× a 1ª; se não se reproduzir a lentidão, fechar 4.2 e 4.3 como "não reproduzido".

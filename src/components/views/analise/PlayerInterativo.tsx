@@ -29,7 +29,6 @@ export interface PropsDoPlayerInterativo {
   isPlaying: boolean;
   setIsPlaying: Dispatch<SetStateAction<boolean>>;
   setCurrentTime: Dispatch<SetStateAction<number>>;
-  loopMode: boolean;
   activeSentenceIndex: number;
   seekTo: (t: number, indice?: number) => void;
   /** O áudio gravado ainda está sendo baixado (a faixa mostra a espera). */
@@ -46,6 +45,8 @@ export interface PropsDoPlayerInterativo {
    * novo. `true` = está refazendo, e o player espera em vez de avisar. `false` = já tentou.
    */
   aoFalharOAudio?: () => boolean;
+  /** O modo "Frase por frase" (`FrasePorFrase`): outra linha dentro da faixa, só com a flag. */
+  frase?: ReactNode;
   /** O seletor "Modo de escuta" e o passo da frase (`EscutaGuiada`): uma linha dentro da faixa. */
   escuta?: ReactNode;
   /** Escuta guiada ligada: o áudio pausa no fim da frase ativa, em vez de seguir para a próxima. */
@@ -59,12 +60,10 @@ export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
     hasRealAudio,
     audioSrc,
     audioRef,
-    audioDuration,
     setAudioDuration,
     isPlaying,
     setIsPlaying,
     setCurrentTime,
-    loopMode,
     activeSentenceIndex,
     seekTo,
     carregandoAudio = false,
@@ -72,6 +71,7 @@ export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
     haVozParaNarrar = true,
     aoFalharOAudio,
     escuta,
+    frase,
     pararNoFim = false,
   } = props;
 
@@ -101,7 +101,7 @@ export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
       onTimeUpdate={(e) => {
         const a = e.currentTarget;
         setCurrentTime(a.currentTime);
-        if (pararNoFim && !loopMode && activeSentenceIndex !== -1 && activeSentenceIndex < parsedSentences.length - 1) {
+        if (pararNoFim && activeSentenceIndex !== -1 && activeSentenceIndex < parsedSentences.length - 1) {
           const ini = parsedSentences[activeSentenceIndex].startTime;
           const fim = parsedSentences.find((s, j) => j > activeSentenceIndex && s.startTime > ini)?.startTime;
           if (fim !== undefined && a.currentTime >= fim) {
@@ -114,20 +114,6 @@ export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
             a.pause();
             setIsPlaying(false);
             return;
-          }
-        }
-        if (loopMode && activeSentenceIndex !== -1 && activeSentenceIndex < parsedSentences.length) {
-          const start = parsedSentences[activeSentenceIndex].startTime;
-          const nextStart =
-            activeSentenceIndex < parsedSentences.length - 1
-              ? parsedSentences[activeSentenceIndex + 1].startTime
-              : audioDuration || start + 25;
-          if (a.currentTime >= nextStart) {
-            try {
-              a.currentTime = start;
-            } catch {
-              /* noop */
-            }
           }
         }
       }}
@@ -174,12 +160,13 @@ export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
   const largura = total > 0 && (isPlaying || activeSentenceIndex > 0) ? ((naFala + 1) / total) * 100 : 0;
   return (
     <div
-      className={escuta ? 'q-faixa px-player px-player-guiada' : 'q-faixa px-player'}
+      className={escuta || frase ? 'q-faixa px-player px-player-guiada' : 'q-faixa px-player'}
       role="group"
       aria-label={t('Player')}
     >
       {audio}
       {escuta}
+      {frase}
       <button
         type="button"
         className="q-ctl"

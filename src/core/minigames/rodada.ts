@@ -24,10 +24,16 @@
 import type { VocabCard } from '../../types';
 import { isDueNow } from '../learning/due';
 import { diaLocal } from '../learning/economia';
-import { estadoDoItem, type HistoricoDoItem,ordenarPorMemoria, rngDe } from '../learning/memoriaDeItens';
+import { estadoDoItem, type HistoricoDoItem, ordenarPorMemoria, rngDe } from '../learning/memoriaDeItens';
 import { baseLang, idiomaDoCartao } from '../texto/idioma';
 import { chaveDaPalavra } from '../texto/palavra';
-import { aceitaFiltroDeDificuldade, type CortesDeFaixa, type EstrategiaDaUI,faixaDe as faixaDaComposicao, type FaixaDificuldade } from './composicao';
+import {
+  aceitaFiltroDeDificuldade,
+  type CortesDeFaixa,
+  type EstrategiaDaUI,
+  faixaDe as faixaDaComposicao,
+  type FaixaDificuldade,
+} from './composicao';
 import {
   buildRodadasConectores,
   buildRodadasDitado,
@@ -40,11 +46,11 @@ import {
 import { frasesElegiveis } from './frasesCorrigidas';
 import { buildItems } from './itemSource';
 import { palavraTocada, PARES_POR_RODADA, sortearRodada } from './paresMinimos';
-import { type ItemCru, type ItemDaAntessala, type OrigemDoItem,origemDoMaterial, previaSegura } from './revelavel';
+import { type ItemCru, type ItemDaAntessala, type OrigemDoItem, origemDoMaterial, previaSegura } from './revelavel';
 import { buildScrambleRounds, type RodadaFrase } from './scramble';
-import { type FonteDeItens,priorizar } from './source';
+import { type FonteDeItens, priorizar } from './source';
 import { rodadasDaEscada, type RodadaTermo } from './termo';
-import { type MinigameId, type MinigameItem,MINIGAMES } from './types';
+import { type MinigameId, type MinigameItem, MINIGAMES } from './types';
 
 /**
  * Uma fala, como esta montagem precisa dela.
@@ -148,6 +154,8 @@ export interface EntradaDaRodada {
   origemDaPalavra: (palavra: string, cardId?: string) => OrigemDoItem;
   /** O nome da gravação em uso. Entra CRU: quem o cerca é `previaSegura`, num lugar só. */
   tituloDaSessao?: string;
+  /** Nome do baralho Anki escolhido no lobby; rotula a origem na prévia. */
+  nomeDoBaralho?: string;
   semente?: SementeDaRodada | null;
   /** Restringe o material a um conjunto de `item_ref` — é como "repetir a última" funciona. */
   apenas?: ReadonlySet<string>;
@@ -173,10 +181,30 @@ export interface EntradaDaRodada {
  */
 export function montarRodada(entrada: EntradaDaRodada): RodadaMontada | null {
   const {
-    jogo, agora, jogaveis, fonte, etapaDaTrilha, memoria, estrategia, faixas, cortes,
-    decisaoAuto, vistasRecentes, frasesGravadas, frasesDaTrilha, frasesDoAcervo,
-    comTrilha, temVoz, temAudio, porPalavra, origemDaPalavra, tituloDaSessao,
-    semente, apenas, evitarTambem,
+    jogo,
+    agora,
+    jogaveis,
+    fonte,
+    etapaDaTrilha,
+    memoria,
+    estrategia,
+    faixas,
+    cortes,
+    decisaoAuto,
+    vistasRecentes,
+    frasesGravadas,
+    frasesDaTrilha,
+    frasesDoAcervo,
+    comTrilha,
+    temVoz,
+    temAudio,
+    porPalavra,
+    origemDaPalavra,
+    tituloDaSessao,
+    nomeDoBaralho,
+    semente,
+    apenas,
+    evitarTambem,
   } = entrada;
 
   /* PARES MÍNIMOS: o material é a lista do idioma, não o baralho. Antes de toda a lógica de fonte, etapa e
@@ -266,7 +294,7 @@ export function montarRodada(entrada: EntradaDaRodada): RodadaMontada | null {
    * `apenas` (repetir estas) ignora a regra de propósito: ali repetir é o pedido.
    */
   const naoRepetir = apenas?.size ? null : evitarTambem;
-  const semRepetidas = <T,>(lista: T[], refDe: (x: T) => string) =>
+  const semRepetidas = <T>(lista: T[], refDe: (x: T) => string) =>
     naoRepetir?.size ? lista.filter((x) => !naoRepetir.has((refDe(x) ?? '').trim())) : lista;
 
   const cartas = semRepetidas(apenas?.size ? jogaveis.filter((c) => apenas.has(c.word)) : base, (c) => c.word);
@@ -308,14 +336,19 @@ export function montarRodada(entrada: EntradaDaRodada): RodadaMontada | null {
      que já sabe a origem (os de baralho, via `nivelDe`) mantém a sua. */
   /* Jogo de FRASE vive de gravação, e a prévia diz isso mesmo quando a aba é outra —
      `origemDoMaterial` (revelavel.ts) carrega a regra e o porquê (auditoria S4). */
+  const falaDoAcervo = falasGravadas.length === 0 && frasesDoAcervo.length > 0;
+  /* Frase do baralho não tem clipe, mas a voz sintetizada a lê: escuta e ditado montam; karaokê não (precisa de tempo real). */
+  const somDeEscuta = temAudio || (falaDoAcervo && temVoz);
+  const origemFinal = (declarada?: OrigemDoItem) => origemDoMaterial(jogo, fonte.id, declarada, falaDoAcervo);
+  const rotuloDoBaralho = nomeDoBaralho ? `Anki · ${nomeDoBaralho}` : undefined;
   const pronta = (crus: ItemCru[], material: MaterialDaRodada): RodadaMontada => ({
     jogo,
     previa: previaSegura(
       jogo,
       crus.map((c) => ({
         ...c,
-        origem: origemDoMaterial(jogo, fonte.id, c.origem),
-        origemRotulo: c.origemRotulo ?? tituloDaSessao,
+        origem: origemFinal(c.origem),
+        origemRotulo: c.origemRotulo ?? (origemFinal(c.origem) === 'baralho' ? rotuloDoBaralho : tituloDaSessao),
         idioma: c.idioma ?? fonte.lang,
       })),
     ),
@@ -488,7 +521,7 @@ export function montarRodada(entrada: EntradaDaRodada): RodadaMontada | null {
       trecho,
       (x) => x.correta.text,
     );
-    if (r.length < MINIGAMES.escuta.minItems || !temAudio) return null;
+    if (r.length < MINIGAMES.escuta.minItems || !somDeEscuta) return null;
     return pronta(
       r.map((x) => ({ ref: x.correta.id ?? '', alvo: x.correta.text, pista: x.correta.translation })),
       { tipo: 'escuta', rodadas: r },
@@ -500,7 +533,7 @@ export function montarRodada(entrada: EntradaDaRodada): RodadaMontada | null {
       trecho,
       (x) => x.fala.text,
     );
-    if (r.length < MINIGAMES.ditado.minItems || !temAudio) return null;
+    if (r.length < MINIGAMES.ditado.minItems || !somDeEscuta) return null;
     return pronta(
       r.map((x) => ({ ref: x.fala.id ?? '', alvo: x.fala.text, pista: x.fala.translation })),
       { tipo: 'ditado', rodadas: r },

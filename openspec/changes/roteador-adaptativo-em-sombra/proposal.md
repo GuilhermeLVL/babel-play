@@ -37,3 +37,14 @@ for arquivada antes, esta passa a ser delta sobre `politica-de-rota` e o PR conf
   servidor de métricas (só incrementa), flag + migrações, `docs/flags.md`, `docs/auditoria/`.
 - Sem dependência nova. Sem mudança em planos, cotas, `routeStt`/`routeMt` efetivos nem UI.
 - Depende de `lab-medicao-legenda-traduzida` (marcas `frasy:*`, telemetria v2) e de `stt-ingles-volume-e-rota` (`medicoesDeStt`).
+
+## Revisão de 25/11/2026
+
+- **Estado**: código pronto e em sombra (seções 2 e 3 feitas; flag `roteador_adaptativo_sombra` desligada, migrações finais PG 0025 e SQLite 0067). Falta medir e decidir (4.1 a 4.3, 5.1, 5.2) e não há um único dado de campo. O que ficou VELHO: (a) o critério do E-005 é de 21/11 e não conhece a rota Parakeet/`stt_aparelho_primeiro` nem o corte de custo de 02/10, e a meta de custo (US$ 0,058/h, igual a 1 h de nuvem) não reprova nada; (b) o texto cita "migrações provisórias" (já são finais); (c) o `planos-v3-e-rota-inteligente` (que vive em `openspec/changes/`, não em `openspec/specs/`) está para ser reconciliado com os planos v4, então o delta `politica-de-rota` ainda não tem base arquivada. Nova tarefa 1.3 trata de (a) antes de qualquer coleta. PRs #201, #202, #205 e #206 não tocam `src/core/rota/`.
+- **Esforço**: M (1.3 é P; coletar e avaliar 4.1 e 4.2 é M e exige a bancada livre e aparelho fraco).
+- **Valor para quem usa**: baixo a médio e indireto. Só importa se a rota inteligente de `planos-v3` sair; com o Parakeet primeiro no aparelho, a nuvem é reserva e o ganho do roteador encolheu. Não muda nada visível enquanto estiver em sombra.
+- **Dependências**: `planos-v3-e-rota-inteligente` (esta change o destrava, e ele depende dela), `stt-ingles-volume-e-rota` (arquivada; `medicoesDeStt`) e `lab-medicao-legenda-traduzida` (arquivada; telemetria v2). Conflito de arquivo: `politicaDeRota.ts` e `conferenciaDaRota.ts`, que `planos-v3` também altera; fazer esta antes ou só depois dele, nunca em paralelo.
+- **Decisões do dono**:
+  1. Seguir ou parar: (A) ligar a flag só no staging por 2 semanas para colher trocas/min e a distribuição, sem a precisão (custo zero, depende do parecer de `rum_latencia`); (B) fazer a coleta completa da bancada por rota (M, tempo de máquina); (C) arquivar a change e a flag até `planos-v3` ser retomado. **Recomendo A + 1.3**: é barato, não muda rota nem custo, e dá o sinal de que o roteador oscila ou não antes de gastar bancada.
+  2. Parecer de privacidade do campo `roteador` em produção (perfil protegido já não envia): (A) aprovar só para adultos com `rum_latencia`; (B) manter em staging; (C) negar. **Recomendo B** até a 4.2 sair.
+  3. Teto de custo da métrica 3: o dono escolhe o acréscimo em US$/h aceito (sugestão: US$ 0,01/h sobre a rota efetiva).

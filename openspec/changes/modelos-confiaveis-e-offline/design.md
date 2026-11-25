@@ -52,11 +52,11 @@
    mesma de `publicar-no-r2.ts`) e grava bytes e sha256 dos arquivos que os workers carregam. Um teste prende o manifesto a
    `REVISOES_DOS_MODELOS`: revisão nova sem manifesto reprova.
 4. **Service worker mínimo, escrito à mão e gerado no build** (sem `vite-plugin-pwa`, para não trazer dependência nova).
-   `scripts/vite/` gera `dist/app/sw.js` com a lista de precache tirada do `manifest.json` do Vite: a entrada, os chunks
+   `scripts/vite/` gera o `sw.js` (no escopo `/`, ver a nota de 25/11 abaixo) com a lista de precache tirada do `manifest.json` do Vite: a entrada, os chunks
    estáticos da casca e os da captura (`LiveCapture`, `whisperWorker`, `vadWorker`, `mtWorker`, `bergamot`), mais o
    `silero_vad_legacy.onnx` e os `ort-wasm-*` locais. Estratégias: HTML network-first com reserva no cache em 3 s; assets
    com hash cache-first; `/api/*` e pesos de modelo sempre pela rede, sem passar pelo service worker. É registrado só em
-   produção e no staging, depois do LCP (`requestIdleCallback`), escopo `/app/`. A versão do cache é o hash do build, e as
+   produção e no staging, depois do LCP (`requestIdleCallback`), escopo `/` (nota de 25/11: o plano inicial era `/app/`; os workers da captura moram em `/assets/` e só um SW cujo escopo os cubra os controla, e o SW responde só às navegações da base do app, para não tocar o site público estático). A versão do cache é o hash do build, e as
    versões velhas são apagadas no `activate`. A atualização entra na próxima abertura, nunca no meio de uma captura.
    Alternativa mais barata, guardada como fase 1 se o dono não aprovar o SW: `modulepreload`/`prefetch` dos chunks do
    worker quando Legendar abre. Isso resolve "Iniciar offline", mas não "recarregar offline".

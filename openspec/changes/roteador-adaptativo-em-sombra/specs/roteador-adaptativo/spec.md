@@ -81,7 +81,7 @@ trocas por minuto.
 ### Requirement: O critério de saída da sombra é escrito antes da coleta
 
 O critério do E-005 SHALL ser registrado em `docs/auditoria/` antes da primeira rodada: precisão ≥ 80% contra a melhor rota a posteriori,
-≤ 2 trocas/min e custo simulado ≤ US$ 0,058/h. Se qualquer um falhar, a sombra SHALL NOT ser promovida.
+≤ 2 trocas/min e ACRÉSCIMO de custo sobre a rota efetiva ≤ US$ 0,01/h (critério reconciliado em 25/11/2026, com a rota Parakeet como candidata). Se qualquer um falhar, a sombra SHALL NOT ser promovida.
 
 #### Scenario: Critério falha
 

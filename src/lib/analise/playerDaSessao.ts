@@ -14,6 +14,7 @@ import React from 'react';
 
 import { avisarSemVoz, getVoicePref, pickVoice, vozesCarregadas } from '../tts';
 import type { FalaDaAnalise } from './tiposDaAnalise';
+import type { PontoDeFrasePorFrase } from './usarFrasePorFrase';
 
 /** m:ss (ou h:mm:ss) a partir de segundos — o `seg()` do protótipo: o relógio do player e dos trechos. */
 export function formatSeconds(secs: number): string {
@@ -59,7 +60,12 @@ export interface DepsDoPlayerDaSessao {
   currentTime: number;
   isPlaying: boolean;
   playbackSpeed: number;
-  loopMode: boolean;
+  /**
+   * O modo "Frase por frase" (openspec `repetir-e-pausar-por-frase`) para a NARRAÇÃO por voz: ao fim de cada fala quem decide
+   * é a máquina dele (repetir, esperar, seguir, parar). Ausente ou `null`, a narração segue como sempre. Com áudio gravado
+   * o modo mora em `usarFrasePorFrase`, que vigia o `<audio>`.
+   */
+  frasePorFraseRef?: RefObject<PontoDeFrasePorFrase | null>;
   /** Escuta guiada: a reprodução PARA no fim da frase ativa (áudio e voz), em vez de seguir para a próxima. */
   pararNoFimRef?: RefObject<boolean>;
   autoSlowEnabled: boolean;
@@ -98,7 +104,7 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
     currentTime,
     isPlaying,
     playbackSpeed: velocidadeEscolhida,
-    loopMode,
+    frasePorFraseRef,
     pararNoFimRef,
     autoSlowEnabled,
     ttsLang,
@@ -241,6 +247,25 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
     setActiveSentenceIndex(activeIdx);
   }, [currentTime, parsedSentences, setActiveSentenceIndex]);
 
+  /* O FIM DE UMA FALA NARRADA. O modo "Frase por frase" (quando ligado) decide: repetir a fala, esperar a pessoa repetir em
+     voz alta e seguir, seguir ou parar. Sem ele: para (escuta guiada) ou segue para a fala seguinte, como sempre. */
+  const decidirOFim = React.useCallback(
+    (i: number, t0: number, falarOutra: (j: number) => void, agendar: (ms: number, f: () => void) => void) => {
+      const ponte = frasePorFraseRef?.current;
+      if (ponte?.ativo) {
+        const acao = ponte.aoFim(i, Date.now() - t0);
+        if (acao.tipo === 'repetir') falarOutra(i);
+        else if (acao.tipo === 'esperar') agendar(acao.ms, () => falarOutra(i + 1));
+        else if (acao.tipo === 'parar') setIsPlaying(false);
+        else falarOutra(i + 1);
+        return;
+      }
+      if (pararNoFimRef?.current) setIsPlaying(false);
+      else falarOutra(i + 1);
+    },
+    [frasePorFraseRef, pararNoFimRef, setIsPlaying],
+  );
+
   // Motor de reprodução REAL (substitui o setInterval falso):
   //  • Com áudio gravado → controla o elemento <audio> (play/pause/velocidade). O tempo/waveform
   //    vem do evento `timeupdate` (ver JSX do <audio>). Loop de frase tratado no timeupdate.
@@ -281,6 +306,7 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
       }
       if (parsedSentences.length === 0) return;
       let cancelada = false;
+      let espera: ReturnType<typeof setTimeout> | undefined;
       const falarDe = (i: number) => {
         if (cancelada) return;
         if (i >= parsedSentences.length) {
@@ -296,13 +322,15 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
         }
         setActiveSentenceIndex(i);
         setCurrentTime(s.startTime);
+        const t0 = Date.now();
         motor.falar(texto, {
           lang,
           rate: playbackSpeed,
           onEnd: () => {
             if (cancelada) return;
-            if (pararNoFimRef?.current) setIsPlaying(false);
-            else falarDe(loopMode ? i : i + 1);
+            decidirOFim(i, t0, falarDe, (ms, f) => {
+              espera = setTimeout(f, ms);
+            });
           },
           onError: () => {
             if (!cancelada) setIsPlaying(false);
@@ -312,6 +340,7 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
       falarDe(Math.max(0, activeSentenceIndexRef.current));
       return () => {
         cancelada = true;
+        if (espera !== undefined) clearTimeout(espera);
         motor.calar();
       };
     }
@@ -323,6 +352,7 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
     if (!('speechSynthesis' in window) || parsedSentences.length === 0) return;
 
     let cancelled = false;
+    let esperaTts: ReturnType<typeof setTimeout> | undefined;
     const synth = window.speechSynthesis;
     synth.cancel();
     const startIdx = Math.max(0, activeSentenceIndexRef.current);
@@ -360,7 +390,9 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
         u.lang = lang;
       }
       u.rate = playbackSpeed;
+      let t0 = Date.now();
       u.onstart = () => {
+        t0 = Date.now();
         if (!cancelled) {
           setActiveSentenceIndex(i);
           setCurrentTime(s.startTime);
@@ -374,8 +406,9 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
       };
       u.onend = () => {
         if (cancelled) return;
-        if (pararNoFimRef?.current) setIsPlaying(false);
-        else speakFrom(loopMode ? i : i + 1);
+        decidirOFim(i, t0, speakFrom, (ms, f) => {
+          esperaTts = setTimeout(f, ms);
+        });
       };
       synth.speak(u);
     };
@@ -383,6 +416,7 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
 
     return () => {
       cancelled = true;
+      if (esperaTts !== undefined) clearTimeout(esperaTts);
       synth.cancel();
     };
     // seekNonce força reinício quando o usuário busca durante a narração TTS.
@@ -392,8 +426,9 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
     audioSrc,
     narraPeloMotor,
     playbackSpeed,
-    loopMode,
     pararNoFimRef,
+    frasePorFraseRef,
+    decidirOFim,
     parsedSentences,
     ttsLang,
     seekNonce,

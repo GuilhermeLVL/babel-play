@@ -110,8 +110,15 @@ import {
   filtroParaComposicao,
   recortarPelaComposicao,
 } from '../../core/minigames/composicao';
-import { filtroDaFonte, type FiltroDaPratica, fonteDominante, passaNoFiltro } from '../../core/minigames/filtro';
+import {
+  filtroAplicavel,
+  filtroDaFonte,
+  type FiltroDaPratica,
+  fonteDominante,
+  passaNoFiltro,
+} from '../../core/minigames/filtro';
 import { type MaterialDaRodada, montarRodada as montarRodadaPura } from '../../core/minigames/rodada';
+import { itensSoRevisao } from '../../core/minigames/soRevisao';
 import {
   type AppMetrics,
   bulkAddCards,
@@ -196,6 +203,7 @@ import { unidadeDaRodada } from '../minigames/casca/regras';
 import { TabelaDaCobertura } from '../minigames/CoberturaDosIdiomas';
 import type { FalaKaraoke } from '../minigames/KaraokeDoPrototipo';
 import { jogosSeguintes, nomeCurtoDoJogo } from '../minigames/polimento/textos';
+import RevisaoSimples from '../minigames/RevisaoSimples';
 import SalaDeEscolha from '../minigames/SalaDeEscolha';
 import { toast } from '../Toast';
 import { Abas, CabecalhoDeTela, IconeEmBloco, Tela as MolduraDaTela, TituloDeSecao } from '../ui';
@@ -642,6 +650,14 @@ export default function Play({
     if (!id) return null;
     return { id, nome: decksAnki.find((d) => d.id === id)?.nome ?? 'Baralho' };
   }, [filtro.baralhos, decksAnki]);
+  /** O recorte por baralho se aplicou de verdade? Se não, a pessoa precisa saber (tarefa 1.4). */
+  const avisoDoFiltro = useMemo(
+    () => filtroAplicavel((deck ?? []) as unknown as Parameters<typeof filtroAplicavel>[0], filtro),
+    [deck, filtro],
+  );
+  /** Itens que nenhum jogo atende (sem tradução e sem frase) seguem revisáveis (tarefa 4.3). */
+  const soRevisao = useMemo(() => itensSoRevisao(deck ?? [], fonte.lang), [deck, fonte.lang]);
+  const [revisandoSimples, setRevisandoSimples] = useState(false);
   /** Idioma da pessoa — é o destino da tradução das palavras da trilha. */
   const [idiomaNativo, setIdiomaNativo] = useState('pt');
   /**
@@ -925,6 +941,7 @@ export default function Play({
       porPalavra,
       origemDaPalavra,
       tituloDaSessao: sessaoEmUso?.title,
+      nomeDoBaralho: baralhoAnki?.nome,
       semente,
       apenas,
       evitarTambem,
@@ -2307,6 +2324,7 @@ export default function Play({
       frasesDaTrilha: comTrilha ? frasesTrilha : undefined,
       temAudio: !!audioSessao,
       audioPronto: !!audioParaJogos,
+      falasSoDoAcervo: !frasesDoIdioma.length && frasesDoAcervoAtual.length > 0,
       temVoz: temVozOuEscrita,
       fonteId: fonte.id,
       lang: fonte.lang,
@@ -2623,8 +2641,7 @@ export default function Play({
          sempre: "Precisa de N palavras" mandaria a pessoa juntar palavras que nunca abririam o jogo. Só a
          forma muda (frase com maiúscula e ponto, como os outros motivos da seção). */
       const porExtenso = (frase: string) => `${frase.charAt(0).toLocaleUpperCase()}${frase.slice(1)}.`;
-      if (motivo === 'sem-lista-do-idioma')
-        return porExtenso(t('ainda não há pares de sons em {idioma}', { idioma }));
+      if (motivo === 'sem-lista-do-idioma') return porExtenso(t('ainda não há pares de sons em {idioma}', { idioma }));
       if (motivo === 'sem-voz') return porExtenso(t('este navegador não tem voz em {idioma}', { idioma }));
       if (motivo === 'escrita-sem-separacao')
         return porExtenso(
@@ -2635,6 +2652,7 @@ export default function Play({
       if (motivo === 'alfabeto-nao-suportado')
         return porExtenso(t('este jogo usa letras do alfabeto latino, e {idioma} não é escrito com elas', { idioma }));
       if (motivo === 'audio-carregando') return t('Baixando o áudio da gravação…');
+      if (motivo === 'sem-clipe-de-audio') return t('As frases do baralho não têm áudio real; o Karaokê precisa dele.');
       if (j.estado.fonte === 'falas')
         return MINIGAMES[j.id].modalidade === 'frase-audio'
           ? t('Precisa de {min} frases com áudio; aqui há {ha}.', { min, ha })
@@ -3812,6 +3830,28 @@ export default function Play({
             <Recordes ageProfile={ageProfile} onFechar={() => setVerRecordes(false)} />
           </Suspense>
         )}
+
+        {!avisoDoFiltro.aplicavel && (
+          <p className="qj-nota" role="status" data-testid="aviso-filtro-baralho">
+            {t('Não deu para recortar por baralho: {motivo}. Jogando com todo o acervo.', {
+              motivo: avisoDoFiltro.motivo ?? '',
+            })}
+          </p>
+        )}
+
+        {soRevisao.length > 0 &&
+          (revisandoSimples ? (
+            <RevisaoSimples itens={soRevisao} aoFechar={() => setRevisandoSimples(false)} />
+          ) : (
+            <p className="qj-nota" data-testid="so-revisao-oferta">
+              {t('{n} palavras não servem a nenhum jogo (sem tradução nem frase), mas continuam suas.', {
+                n: soRevisao.length,
+              })}{' '}
+              <button type="button" onClick={() => setRevisandoSimples(true)}>
+                {t('Só revisar')}
+              </button>
+            </p>
+          ))}
 
         {/* ── DIAGNÓSTICO TÉCNICO EXPANSÍVEL (ativado pelo botão de gráfico da barra de acervo) ── */}
         {detalhes && (

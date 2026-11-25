@@ -24,8 +24,8 @@ LOCAL e determinístico da saída, custo zero; a moderação por IA (opção C) 
 ## Non-Goals
 
 - Moderação por IA (opção C) e qualquer chamada paga de moderação.
-- Filtrar as outras saídas de IA (explicação, assistente ao vivo "Como respondo?", parceiro de leitura, alternativas,
-  resumo, polimento): não passam pelo caminho do tutor. Ficam listadas como próximas tarefas.
+- (Escopo inicial; FEITO depois, tarefas 4.1, 4.1b e 4.2) Filtrar as outras saídas de IA (explicação, "Como respondo?",
+  parceiro de leitura, alternativas, resumo, escrita, polimento). Segue de fora só a `traducao` (legenda, texto de terceiros).
 - Mudar o comportamento para adulto declarado (nada muda) ou para o self-host (`ehMenor` é sempre falso).
 
 ## Impact
@@ -38,3 +38,13 @@ LOCAL e determinístico da saída, custo zero; a moderação por IA (opção C) 
 - Risco: falso positivo troca uma resposta de aula boa pela frase fixa (mitigado: frases de intenção em vez de palavra solta,
   citação ignorada para dado pessoal/aliciamento, e um conjunto de respostas de aula no teste). Falso negativo: paráfrase,
   eufemismo e idioma fora de pt/en/es passam — é a rede de baixo, não o juiz.
+
+## Revisão de 25/11/2026
+
+- **Estado**: o código está completo (tarefas 1 a 4.2, mais a 4.1b de 8a91706e: o polimento filtra também as polidas já gravadas e o filtro confere o texto juntado dos campos). Falta só o que é do dono: 4.3 (opção C) e 4.4 (listas e métrica). Nada dos PRs #201, #202, #205 e #206 tocou o filtro. Velho: o Non-Goals (acima) e a frase final do `design.md` sobre o polimento já gravado; corrigidos. Ponto novo a vigiar: o núcleo `server/ai/nucleo/` ganhou funções desde a 4.1 e nada prende que toda saída nova de LLM passe pelo filtro (tarefa 4.5, nova). Fora do filtro por decisão: `traduzirNoNivel` (tradução de terceiros; a ocultação de termos sensíveis na legenda é o núcleo `legenda-segura`, de 17/11), `transcrever` e `sintetizarVoz`.
+- **Esforço**: P (a 4.5 é meio dia; a 4.3, se escolhida, é M e tem custo de IA declarado).
+- **Valor para quem usa**: alto para menores e responsáveis (ECA Digital/LGPD); invisível para adultos.
+- **Dependências**: nenhuma de código. A opção C usaria a cadeia plugável (`ModeradorDeSaida`) e a regra de custo (`src/core/planos.ts` e `custo-de-ia`); Gemini é proibido como moderador.
+- **Decisões do dono**:
+  1. Opção C (moderação por IA) como segundo moderador: (A) não fazer agora e manter o filtro local (custo zero); (B) fazer em SOMBRA (só registra o que a IA barraria e o filtro deixou passar, nada bloqueia) por 2 a 4 semanas, com teto de custo declarado e provedor sem retenção; (C) bloqueante desde já. **Recomendo A agora e B só se a 4.4 mostrar falso negativo real**: o falso positivo de aula é o custo conhecido, e C põe texto num terceiro e gasto novo no fluxo de menores.
+  2. Revisão das listas e acompanhamento (4.4): (A) o dono revisa em 2 semanas com `ia_saida_filtrada_total` por categoria; (B) o agente gera um relatório semanal das contagens e o dono só aprova; (C) adiar até haver volume. **Recomendo B** (reduz o trabalho do dono sem ampliar escopo).

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * AVALIAÇÃO DO ROTEADOR ADAPTATIVO EM SOMBRA (E-005; openspec `roteador-adaptativo-em-sombra`, design §5 e "Como medir").
- * O critério está escrito ANTES da coleta em `docs/auditoria/2026-11-21-criterio-do-roteador-adaptativo.md`; este script só o
+ * O critério (reconciliado em 25/11/2026, tarefa 1.3) está escrito ANTES da coleta em
+ * `docs/auditoria/2026-11-25-criterio-do-roteador-adaptativo.md` (o de 21/11 está substituído); este script só o
  * aplica aos dados que a bancada produzir. SEM DADO NÃO HÁ VEREDITO: com menos falas ou sessões que o mínimo, o resultado é
  * `dados insuficientes`, nunca "seguir".
  *
@@ -18,15 +19,17 @@
  *           "falaS": 4.2,                                                 // segundos de fala (para o custo)
  *           "latenciaPorRota": { "manter": 910, "modelo-menor": 740, "nuvem": 1300 }  // fimDaFalaAteLegendaMs, mesma fala, por rota
  *        } ] } ] }
- * `latenciaPorRota` só traz as rotas que a GUARDA permitiria (a melhor a posteriori sai desse conjunto).
+ * `latenciaPorRota` só traz as rotas que a GUARDA permitiria (a melhor a posteriori sai desse conjunto). Chaves = degraus da
+ * sombra MAIS rotas candidatas nomeadas, entre elas `parakeet` (STT Parakeet no aparelho, `stt_aparelho_primeiro`). A decisão
+ * `manter` vale a rota efetiva da fala: se `efetiva` (ex.: `parakeet`) é chave de `latenciaPorRota`, é a latência dela.
  *
  * MÉTRICAS (design §5):
  *   - precisão: fração das falas em que a decisão coincide com a rota de menor latência, ou tem latência dentro de 10% dela;
  *   - trocas/min: mudanças de decisão entre falas consecutivas de uma sessão ÷ minutos (total e pior sessão);
  *   - custo/h: segundos de fala em que a decisão foi `nuvem` ÷ horas de sessão × `usdPorHoraDeNuvem`; vem ao lado o custo da
- *     rota efetiva e a diferença (o que a sombra ACRESCENTARIA);
+ *     rota efetiva e a diferença. A MÉTRICA DO CRITÉRIO É O ACRÉSCIMO (sombra menos rota efetiva), com teto de US$ 0,01/h;
  *   - rede indevida: decisões `nuvem` em sessão de convidado, de menor ou sem consentimento (precisa ser ZERO).
- * VEREDITO: `seguir` só com precisão ≥ 80%, ≤ 2 trocas/min, custo simulado ≤ US$ 0,058/h e zero rede indevida;
+ * VEREDITO: `seguir` só com precisão ≥ 80%, ≤ 2 trocas/min, acréscimo de custo ≤ US$ 0,01/h e zero rede indevida;
  * qualquer um falhar = `não sair da sombra`.
  */
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -37,7 +40,7 @@ export const CRITERIO = Object.freeze({
   precisaoMinima: 0.8,
   tolerancia: 0.1,
   trocasPorMinutoMaximas: 2,
-  usdPorHoraMaximo: 0.058,
+  acrescimoUsdPorHoraMaximo: 0.01, // sobre a rota efetiva (decisão do dono, 25/11: recomendação do item 10)
   minFalas: 200,
   minSessoes: 5,
 })
@@ -56,12 +59,19 @@ export function melhorRotaAPosteriori(latenciaPorRota) {
   return melhor
 }
 
+/** Latência da decisão: a do degrau; `manter` é a rota efetiva (ex.: `parakeet`) quando ela tem medição própria. */
+export function latenciaDaDecisao(fala) {
+  const l = fala.latenciaPorRota ?? {}
+  if (fala.decisao === 'manter' && finito(l[fala.efetiva])) return l[fala.efetiva]
+  return l[fala.decisao]
+}
+
 /** A decisão acertou? Mesma rota que a melhor, ou latência dentro da tolerância dela. `null` = fala sem como julgar. */
 export function acertou(fala, tolerancia = CRITERIO.tolerancia) {
   const melhor = melhorRotaAPosteriori(fala.latenciaPorRota)
   if (!melhor) return null
-  if (fala.decisao === melhor.rota) return true
-  const ms = fala.latenciaPorRota?.[fala.decisao]
+  if (fala.decisao === melhor.rota || (fala.decisao === 'manter' && fala.efetiva === melhor.rota)) return true
+  const ms = latenciaDaDecisao(fala)
   if (!finito(ms)) return false // a decisão não tem medição: não acertou (e a falta fica visível em `semMedicao`)
   return ms <= melhor.ms * (1 + tolerancia)
 }
@@ -118,7 +128,8 @@ export function avaliar(entrada, criterio = CRITERIO) {
   const falhas = []
   if (precisao !== null && precisao < criterio.precisaoMinima) falhas.push('precisão')
   if (trocasPorMin !== null && trocasPorMin > criterio.trocasPorMinutoMaximas) falhas.push('trocas/min')
-  if (custoSimulado !== null && custoSimulado > criterio.usdPorHoraMaximo) falhas.push('custo/h')
+  const acrescimo = custoSimulado !== null && custoEfetivo !== null ? custoSimulado - custoEfetivo : null
+  if (acrescimo !== null && acrescimo > criterio.acrescimoUsdPorHoraMaximo) falhas.push('custo/h')
   if (redeIndevida > 0) falhas.push('rede indevida')
   const veredito = falhas.length
     ? 'não sair da sombra' // uma falha basta, mesmo com poucos dados
@@ -137,7 +148,7 @@ export function avaliar(entrada, criterio = CRITERIO) {
     piorSessaoTrocasPorMinuto: piorTrocasPorMin,
     custoSimuladoUsdPorHora: custoSimulado,
     custoDaRotaEfetivaUsdPorHora: custoEfetivo,
-    custoAdicionalUsdPorHora: custoSimulado !== null && custoEfetivo !== null ? custoSimulado - custoEfetivo : null,
+    custoAdicionalUsdPorHora: acrescimo,
     redeIndevida,
     falhas,
     veredito,
@@ -155,7 +166,7 @@ export function relatorio(r, { fonte = 'entrada' } = {}) {
   return [
     `# Roteador adaptativo em sombra — avaliação (E-005)`,
     '',
-    `Fonte: ${fonte}. Critério: \`docs/auditoria/2026-11-21-criterio-do-roteador-adaptativo.md\`.`,
+    `Fonte: ${fonte}. Critério: \`docs/auditoria/2026-11-25-criterio-do-roteador-adaptativo.md\`.`,
     '',
     `**Veredito: ${r.veredito}**${r.falhas.length ? ` (falhou: ${r.falhas.join(', ')})` : ''}.`,
     '',
@@ -168,10 +179,10 @@ export function relatorio(r, { fonte = 'entrada' } = {}) {
     '| --- | --- | --- | --- |',
     `| Precisão contra a melhor rota a posteriori | ${pct(r.precisao)} | ≥ ${pct(c.precisaoMinima)} | ${ok(r.precisao === null ? null : r.precisao >= c.precisaoMinima)} |`,
     `| Trocas por minuto (total; pior sessão ${num(r.piorSessaoTrocasPorMinuto, 2)}) | ${num(r.trocasPorMinuto, 2)} | ≤ ${c.trocasPorMinutoMaximas} | ${ok(r.trocasPorMinuto === null ? null : r.trocasPorMinuto <= c.trocasPorMinutoMaximas)} |`,
-    `| Custo simulado (US$/h) | ${num(r.custoSimuladoUsdPorHora)} | ≤ ${c.usdPorHoraMaximo} | ${ok(r.custoSimuladoUsdPorHora === null ? null : r.custoSimuladoUsdPorHora <= c.usdPorHoraMaximo)} |`,
+    `| Acréscimo de custo sobre a rota efetiva (US$/h) | ${num(r.custoAdicionalUsdPorHora)} | ≤ ${c.acrescimoUsdPorHoraMaximo} | ${ok(r.custoAdicionalUsdPorHora === null ? null : r.custoAdicionalUsdPorHora <= c.acrescimoUsdPorHoraMaximo)} |`,
     `| Decisões de rede para convidado/menor/sem consentimento | ${r.redeIndevida} | 0 | ${ok(r.redeIndevida === 0)} |`,
     '',
-    `Custo da rota efetiva: US$ ${num(r.custoDaRotaEfetivaUsdPorHora)}/h; acréscimo da sombra: US$ ${num(r.custoAdicionalUsdPorHora)}/h (informativo: o critério é sobre o custo simulado).`,
+    `Custo da rota efetiva: US$ ${num(r.custoDaRotaEfetivaUsdPorHora)}/h; custo simulado da sombra: US$ ${num(r.custoSimuladoUsdPorHora)}/h (informativo: o critério é o acréscimo).`,
     '',
     `Decisões: ${Object.entries(r.porDecisao)
       .map(([d, n]) => `${d} ${n}`)

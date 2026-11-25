@@ -16,7 +16,7 @@ personagens** nos livros, para leigos, experientes, quem quer personalizar e que
   elenco nos livros, estúdio.
 - **Três flags** (nascem desligadas): `avatar_3d`, `avatar_sinais`, `avatar_elenco` (migração PG 0016).
 - **Loja**: `TipoDaLoja` ganha `'avatar'`.
-- Em M0 esta mudança entrega só a especificação, as flags e a migração. Nenhum código de avatar.
+- Em M0 esta mudança entregava só a especificação, as flags e a migração. (Velho desde 29/10/2026: M1 a M7 já estão no código, atrás das flags; ver a revisão no fim.)
 
 ## Intenção, metas e não-metas
 
@@ -82,3 +82,16 @@ no Safari real · ligar flags em staging e produção.
 Código novo em `src/core/avatar/`, `src/lib/avatar/`, `src/components/avatar/`; `src/core/planos.ts` (3 flags, feito em M0),
 `server/db/migrations-pg/0016_flags_avatar.sql`, `server/http/csp.ts` (`VITE_AVATARES_URL`), `src/core/tiposDaLoja.ts`. Cotas e
 direitos de plano NÃO mudam. Dependências novas: `three`, `@pixiv/three-vrm`, `gltf-validator` (vendorizado).
+
+## Revisão de 25/11/2026
+
+- **Estado: precisa decisão (e depois, pronta para ligar em staging).** O proposal original dizia "M0 entrega só a especificação", mas M1 a M7 já estão no código desde 29/10/2026 (quase 70 arquivos em `src/{core,lib,components}/avatar`, 40 testes de unidade e 20 e2e), atrás de três flags desligadas. Nada mais foi tocado depois de 29/10; #201, #202, #205 e #206 não afetam. As tarefas 1.x, 2.x e 6.x estavam sem marca por esquecimento e foram reconciliadas em `tasks.md`.
+- **O que ficou velho:** (1) o texto "Em M0 esta mudança entrega só a especificação" e "Nenhum código de avatar"; (2) a pendência "PR único das 4 frentes de Livros (bloqueia M5)": M5 já foi feito atrás de `avatar_elenco` e `avatar_3d`; (3) a opção B de `leitura_elenco` (função no servidor com subcota em `planos.ts`) conflita com o corte de custo de 02/10 e com os planos v4: só a opção A (arquivo gerado fora do produto, zero de API) cabe sem custo novo. Planos e cotas não mudam com esta change.
+- **Esforço restante: P** (M em número de passos, mas quase tudo é conferência): runbook da flag, i18n es/ar, juiz de microcopy, 3 conferências em aparelho real e publicação da coleção no R2. Código novo só se o dono quiser `leitura_elenco` (M, opção A) ou cobrir lacunas achadas na conferência.
+- **Valor para quem usa: médio.** Acessibilidade e personalização reais, mas só para quem abre Intérprete e Livros; soletração de Libras é demonstração rotulada e não pode ser vendida como tradução.
+- **Dependências:** `filtro-tutor-menores` (qualquer saída nova de IA para perfil protegido), `interprete-conversa-virtual` (avatar por lado no Intérprete, mesmos arquivos de `ModoInterprete`), `audiolivros` (`audiolivros_elenco` é independente de `avatar_3d`, mas usa o mesmo mapa personagem para voz). Conflito de arquivos baixo (a pasta de avatar está parada); cuidado com `ModoInterprete.tsx` e `src/lib/leitor/narrador.ts`.
+- **Decisões do dono:**
+  1. Ligar em staging agora? (a) sim, só no id do dono, depois de publicar a coleção no R2 e rodar a tarefa 4.6/8.1 (recomendado); (b) esperar o parecer jurídico antes de qualquer staging; (c) congelar o avatar até haver prioridade.
+  2. `leitura_elenco`: (a) não fazer, ficar com a heurística (recomendado agora, zero custo); (b) opção A, arquivo gerado offline por `claude -p` para os livros do catálogo; (c) opção B, função no servidor (exige custo declarado, subcota e migração; só depois de o custo do plano v4 fechar).
+  3. `avatar_sinais`: (a) manter desligada até a revisão por pessoas surdas (recomendado); (b) ligar como demonstração rotulada em staging; (c) remover a soletração do produto.
+  4. Parecer jurídico sobre Quaternius, `meta` de terceiros e menores: pedir junto da consulta dos anúncios (menor custo) ou dispensar a base derivada de Quaternius e lançar só com ToxSam CC0 e peças próprias (recomendado, já previsto na decisão 3 do assistente).

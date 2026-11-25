@@ -19,7 +19,9 @@
  */
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 
+import { type Forca, forcaDoCartao } from '../../core/learning/forcaDoCartao';
 import type { Layout } from '../../core/legendas/janelaFlutuante';
+import { FLAG_FORCA_NA_LEGENDA } from '../../core/planos';
 import { baseLang } from '../../core/texto/idioma';
 import { chaveDaPalavra } from '../../core/texto/palavra';
 import {
@@ -28,7 +30,10 @@ import {
   type Etiqueta,
   etiquetaDaChave,
   etiquetasNoLayout,
+  forcaNoCaderno,
+  type IndiceDeForcas,
   type IndiceDoCaderno,
+  montarIndiceDeForcas,
   montarIndiceDoCaderno,
   type VistasDoIdioma,
 } from '../../core/vocabulario/etiquetas';
@@ -52,12 +57,15 @@ import {
 } from '../../data/api';
 import type { VocabCard } from '../../types';
 import { lerAjustesDoAssistente, useAjustesDoAssistente } from '../assistente/ajustesDoAssistente';
+import { useFlag } from '../flags';
 import { aoMudarIdentidade } from '../identidade';
 import { estadoDoCartao } from '../pelesDeCartao';
 
 export interface SnapshotDasEtiquetas {
   /** `null` até o caderno chegar (nada é pintado). */
   caderno: IndiceDoCaderno | null;
+  /** A força 1 a 4 de cada palavra do caderno (flag `forca_na_legenda`); só é lida com a flag ligada. */
+  forcas?: IndiceDeForcas | null;
   /** Por idioma-base: ausente = não pedido ou a caminho; `null` = sem índice (convidado, erro). */
   vistas: ReadonlyMap<string, VistasDoIdioma | null>;
   /** "Já sei" e "Ignorar" por idioma. `null` até a lista chegar (ou se ela falhou): nenhuma marcação vale. */
@@ -74,10 +82,15 @@ const ESTADO_DO_CONTRATO: Record<ReturnType<typeof estadoDoCartao>, EstadoNoCade
 
 /** O caderno no formato do índice: só o que está no baralho, com o estado da pele de cartão. */
 export function cartoesParaOIndice(cartas: readonly VocabCard[], agora = Date.now()) {
-  const saida: Array<{ palavra: string; lang?: string; estado: EstadoNoCaderno }> = [];
+  const saida: Array<{ palavra: string; lang?: string; estado: EstadoNoCaderno; forca: Forca }> = [];
   for (const c of cartas) {
     if (!c.inDeck || !c.word) continue;
-    saida.push({ palavra: c.word, lang: c.srcLang, estado: ESTADO_DO_CONTRATO[estadoDoCartao(c, agora)] });
+    saida.push({
+      palavra: c.word,
+      lang: c.srcLang,
+      estado: ESTADO_DO_CONTRATO[estadoDoCartao(c, agora)],
+      forca: forcaDoCartao(c),
+    });
   }
   return saida;
 }
@@ -101,12 +114,11 @@ function publicar(patch: Partial<SnapshotDasEtiquetas>) {
 }
 
 function remontarCaderno() {
-  publicar({
-    caderno: montarIndiceDoCaderno([
-      ...cartoesLidos,
-      ...[...fichadas.values()].map((f) => ({ ...f, estado: 'nova' as const })),
-    ]),
-  });
+  const todos = [
+    ...cartoesLidos,
+    ...[...fichadas.values()].map((f) => ({ ...f, estado: 'nova' as const, forca: 1 as Forca })),
+  ];
+  publicar({ caderno: montarIndiceDoCaderno(todos), forcas: montarIndiceDeForcas(todos) });
 }
 
 /** Lê (ou relê) o caderno. Quem chama junto recebe a mesma leitura. */
@@ -351,7 +363,7 @@ export function marcarSalva(palavra: string, lang?: string): void {
 
 /** Para os testes: volta ao começo. */
 export function esquecerIndiceDeEtiquetas(): void {
-  snapshot = { caderno: null, vistas: new Map(), marcadas: null, listaDeMarcadas: [] };
+  snapshot = { caderno: null, forcas: null, vistas: new Map(), marcadas: null, listaDeMarcadas: [] };
   fichadas.clear();
   esquecerMarcadas();
   cartoesLidos = [];
@@ -409,25 +421,35 @@ export interface Etiquetador {
   etiqueta(palavra: string, lang: string | undefined): Etiqueta | undefined;
   /** A palavra está no caderno (qualquer estado)? */
   salva(palavra: string, lang: string | undefined): boolean;
+  /** A força 1 a 4 da palavra (só com a flag `forca_na_legenda` ligada; sem ela, sempre `undefined`). */
+  forca(palavra: string, lang: string | undefined): Forca | undefined;
   /** O mesmo etiquetador sem o ponto "nova para você" (a Faixa). */
   semNova(): Etiquetador;
 }
 
-function criarEtiquetador(s: SnapshotDasEtiquetas, nova: boolean, langDaPessoa: string | undefined): Etiquetador {
+function criarEtiquetador(
+  s: SnapshotDasEtiquetas,
+  nova: boolean,
+  langDaPessoa: string | undefined,
+  porForca = false,
+): Etiquetador {
   const etiqueta = (palavra: string, lang: string | undefined, comNova: boolean) =>
     etiquetaDaChave(chaveDaPalavra(palavra), lang, s.caderno, {
       nova: comNova,
       langDaPessoa,
       vistas: s.vistas.get(baseLang(lang)),
       marcadas: s.marcadas,
+      /* Flag `forca_na_legenda` desligada: sem força, a etiqueta é a da régua de três estados de hoje. */
+      forcas: porForca ? s.forcas : null,
     });
   let sem: Etiquetador | null = null;
   const e: Etiquetador = {
     etiqueta: (palavra, lang) => etiqueta(palavra, lang, nova),
     salva: (palavra, lang) => estaNoCaderno(s, palavra, lang),
+    forca: (palavra, lang) => (porForca ? forcaNoCaderno(s.forcas, chaveDaPalavra(palavra), lang) : undefined),
     semNova: () => {
       if (!nova) return e;
-      sem ??= criarEtiquetador(s, false, langDaPessoa);
+      sem ??= criarEtiquetador(s, false, langDaPessoa, porForca);
       return sem;
     },
   };
@@ -445,6 +467,7 @@ export function useEtiquetador(o: {
 }): Etiquetador | null {
   const aj = useAjustesDoAssistente();
   const s = useSnapshotDasEtiquetas();
+  const porForca = useFlag(FLAG_FORCA_NA_LEGENDA);
   const nova = aj.etiquetaNova && etiquetasNoLayout(o.layout).nova;
   /* No idioma da pessoa nada é "novo para você": as vistas dele não são pedidas. */
   const daPessoa = baseLang(o.langDaPessoa);
@@ -455,7 +478,7 @@ export function useEtiquetador(o: {
     for (const l of chaveDosIdiomas.split(',')) if (l) pedirVistas(l, { renovar: true });
   }, [aj.etiquetas, aj.etiquetaNova, chaveDosIdiomas]);
   return useMemo(
-    () => (aj.etiquetas ? criarEtiquetador(s, nova, o.langDaPessoa) : null),
-    [aj.etiquetas, s, nova, o.langDaPessoa],
+    () => (aj.etiquetas ? criarEtiquetador(s, nova, o.langDaPessoa, porForca) : null),
+    [aj.etiquetas, s, nova, o.langDaPessoa, porForca],
   );
 }

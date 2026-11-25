@@ -6,6 +6,7 @@ import { trechosDaSessao } from '../../core/leitura/coberturaDoConteudo';
 import type { AppMetrics, UtteranceRow } from '../../data/api';
 import { fetchDeck, fetchSessionTranscript, fetchSettings } from '../../data/api';
 import { useEscutaGuiada } from '../../lib/analise/escutaGuiada';
+import { type PontoDeFrasePorFrase, useFrasePorFrase } from '../../lib/analise/usarFrasePorFrase';
 import { applyOutputDevice } from '../../lib/audioDevices';
 import { MIN_FALAS_DO_RESUMO } from '../../lib/estudo/constantes';
 import { useEtiquetador } from '../../lib/etiquetas/indiceDeEtiquetas';
@@ -59,6 +60,7 @@ import { aparelhoTemVoz, haVozPara } from '../../lib/voz/haVoz';
 import CoberturaDoConteudo from '../CoberturaDoConteudo';
 import EscutaGuiada from './analise/EscutaGuiada';
 import ExportarSessao from './analise/ExportarSessao';
+import FrasePorFrase from './analise/FrasePorFrase';
 import { palavraFicouNoCaderno } from './analise/guardarDaSessao';
 import ParaEstudarDaSessao from './analise/ParaEstudarDaSessao';
 import PlayerInterativo from './analise/PlayerInterativo';
@@ -152,7 +154,6 @@ export default function Analysis({
   /* A faixa do player não tem mais os botões de Smart Slow-Mo e de loop: os dois seguem desligados,
      e o motor (`usePlayerDaSessao`) continua recebendo o valor. */
   const [autoSlowEnabled] = useState<boolean>(false);
-  const [loopMode] = useState<boolean>(false);
   const [activeSentenceIndex, setActiveSentenceIndex] = useState<number>(-1);
 
   /* O player zera o shadowing ao trocar de mídia (`usePlayerDaSessao` pede o setter); nesta tela o
@@ -353,6 +354,8 @@ export default function Analysis({
      Transcrição marca. Um ref, e não estado: um aviso por palavra não pode repintar a tela inteira. */
   const palavraFalada = useRef<((posicao: number, charIndex: number) => void) | null>(null);
   const pararNoFimRef = useRef(false);
+  /* O modo "Frase por frase" (flag `frase_por_frase`) entrega aqui o que a narração por voz precisa; ver `usarFrasePorFrase`. */
+  const frasePorFraseRef = useRef<PontoDeFrasePorFrase | null>(null);
   const { seekTo, playFrom, lembrarPosicao } = usePlayerDaSessao({
     narrador: narradorDoQuest,
     aoFalarPalavra: (posicao, charIndex) => palavraFalada.current?.(posicao, charIndex),
@@ -365,7 +368,7 @@ export default function Analysis({
     currentTime,
     isPlaying,
     playbackSpeed,
-    loopMode,
+    frasePorFraseRef,
     pararNoFimRef,
     autoSlowEnabled,
     ttsLang,
@@ -433,6 +436,19 @@ export default function Analysis({
   });
   /* Nos modos guiados a reprodução para no fim da frase: quem ouviu precisa ler o que ouviu. */
   pararNoFimRef.current = escuta.modo !== 'livre';
+
+  /* FRASE POR FRASE (flag `frase_por_frase`): repete e pausa por frase no áudio da sessão e na narração. Fora dos modos
+     guiados da escuta (que já param no fim da frase) e fora de documento. Desligada, não faz nada. */
+  const fraseAFrase = useFrasePorFrase({
+    falas: parsedSentences,
+    hasRealAudio,
+    audioRef,
+    audioDuration,
+    isPlaying,
+    setIsPlaying,
+    permitido: escuta.modo === 'livre' && recording.type !== 'document',
+    ponteDoPlayer: frasePorFraseRef,
+  });
 
   // Gateway (uma vez) para traduções reais no hover e no "Adicionar ao Deck".
   const gateway = React.useMemo(() => buildGateway({ profile: getActiveProfile(), cloudConsent: consentiuNuvem }), []);
@@ -681,7 +697,6 @@ export default function Analysis({
     isPlaying,
     setIsPlaying,
     setCurrentTime,
-    loopMode,
     activeSentenceIndex,
     seekTo,
     aoFalharOAudio,
@@ -885,6 +900,22 @@ export default function Analysis({
               <PlayerInterativo
                 {...propsDoPlayer}
                 escuta={<EscutaGuiada escuta={escuta} nivel={nivelDaPessoa} />}
+                frase={
+                  fraseAFrase.disponivel ? (
+                    <FrasePorFrase
+                      frase={fraseAFrase}
+                      falas={parsedSentences}
+                      naFala={Math.max(0, activeSentenceIndex)}
+                      aoPraticar={() => setIsPlaying(false)}
+                      aoSeguirDepoisDaPratica={(i) => {
+                        const alvo = parsedSentences[i];
+                        if (!alvo) return;
+                        seekTo(alvo.startTime, i);
+                        setIsPlaying(true);
+                      }}
+                    />
+                  ) : undefined
+                }
                 pararNoFim={escuta.modo !== 'livre'}
                 carregandoAudio={audioDaSessao.carregando}
                 erroDoAudio={audioDaSessao.erro}

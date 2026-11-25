@@ -50,6 +50,7 @@
     "lint": "eslint src server server.ts worker.ts tests --max-warnings 0",
     "formato": "prettier --check .",
     "formato:corrigir": "prettier --write .",
+    "formato:diff": "node scripts/formato-do-diff.mjs",
     "morto:arquivos": "knip --include files,dependencies,unlisted --no-progress",
     "morto:ciclos": "madge --circular --extensions ts,tsx src server server.ts",
     "audit:gate": "node scripts/audit-gate.mjs",

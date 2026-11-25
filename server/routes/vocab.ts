@@ -6,6 +6,7 @@ import { chaveDaPalavra } from '../../src/core/texto/palavra'
 import { MAX_ETIQUETAS, normalizarEtiqueta, normalizarEtiquetas } from '../../src/core/vocabulario/etiquetasDoUsuario'
 import { TETO_DE_MARCADAS } from '../../src/core/vocabulario/marcadas'
 import { contagensDeConteudo, versaoDosBaralhos } from '../db/repositories/contagensDeConteudo'
+import { opcoesDaRevisaoRepo } from '../db/repositories/opcoesDaRevisao'
 import { palavrasMarcadasRepo } from '../db/repositories/palavrasMarcadas'
 import { palavrasVistasRepo } from '../db/repositories/palavrasVistas'
 import { resumoDosCartoes } from '../db/repositories/resumoDosCartoes'
@@ -23,6 +24,7 @@ import {
   loteDeMarcadasSchema,
   marcarPalavraSchema,
   notaDoCartaoSchema,
+  opcoesDaRevisaoSchema,
   palavraQuerySchema,
   palavrasMarcadasQuerySchema,
   palavrasVistasQuerySchema,
@@ -288,6 +290,38 @@ vocabRouter.get('/palavra', async (req, res) => {
   if (!q) return
   try {
     res.json(await palavrasVistasRepo.historico(req.userId, q.lang, q.chave))
+  } catch (err) {
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
+/**
+ * AS OPÇÕES DA REVISÃO NA CONTA E O LIMITE DIÁRIO (openspec `cartoes`, 2.1 e 2.2). Antes de `/:id`.
+ *
+ *   GET /opcoes-da-revisao → `{ opcoes, naConta, hoje: { novas, revisoes, restamNovas, restamRevisoes } }`
+ *                            (`hoje` é o feito no dia da pessoa, no fuso gravado da conta; sem linha, o padrão)
+ *   PUT /opcoes-da-revisao → corpo PARCIAL (só o que mudou), fora da faixa é 400 → mesmo formato do GET
+ *
+ * O limite é preferência de estudo da pessoa, não cota de plano: nenhum teto por plano passa por aqui.
+ */
+vocabRouter.get('/opcoes-da-revisao', async (req, res) => {
+  try {
+    res.json(await opcoesDaRevisaoRepo.comHoje(req.userId))
+  } catch (err) {
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
+vocabRouter.put('/opcoes-da-revisao', async (req, res) => {
+  const corpo = parseOr400(opcoesDaRevisaoSchema, req.body, res)
+  if (!corpo) return
+  try {
+    await opcoesDaRevisaoRepo.gravar(req.userId, corpo)
+    res.json(await opcoesDaRevisaoRepo.comHoje(req.userId))
   } catch (err) {
     res.status(500).json({
       error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),

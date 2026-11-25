@@ -33,6 +33,7 @@ import {
   exerciseResults,
   glossario,
   idadesDeclaradas,
+  opcoesDaRevisao,
   palavrasMarcadas,
   palavrasVistas,
   presencas,
@@ -132,6 +133,8 @@ const TABELAS_DO_TITULAR: ReadonlyArray<readonly [string, any]> = [
   ['anotacoesDeLeitura', anotacoesDeLeitura],
   /* As palavras marcadas sem cartão (migração 0027): "Já sei" e "Ignorar". Sem FOREIGN KEY para ninguém. */
   ['palavrasMarcadas', palavrasMarcadas],
+  /* As opções da revisão na conta (migração 0035, provisória): limites diários, ordem, tipo e meta de retenção. */
+  ['opcoesDaRevisao', opcoesDaRevisao],
   /* A contabilidade derivada (versões dos dados, agregados diários e estado por item): sem FOREIGN
      KEY para ninguém, mas com o id do titular. Por ÚLTIMO, depois das tabelas brutas, porque os
      gatilhos delas mexem nestas a cada DELETE. Os DELETEs incondicionais em `excluir` (depois do

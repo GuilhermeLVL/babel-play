@@ -20,6 +20,7 @@ prepararDialogoNoJsdom()
 const mocks = vi.hoisted(() => ({
   estatica: false,
   protegido: false,
+  anonimo: false,
   carteira: { creditos: 500 as number | null, disponivel: true, recarregar: () => {} },
   comprar: null as unknown as ReturnType<(typeof import('vitest'))['vi']['fn']>,
 }))
@@ -38,7 +39,7 @@ vi.mock('../src/lib/protecaoDoMenor', async (orig) => ({
 }))
 vi.mock('../src/lib/identidade', async (orig) => ({
   ...(await orig<typeof import('../src/lib/identidade')>()),
-  estaAnonimo: () => false,
+  estaAnonimo: () => mocks.anonimo,
 }))
 vi.mock('../src/lib/carteira', () => ({ useCarteira: () => mocks.carteira }))
 vi.mock('../src/lib/temporada', () => ({ useTemporada: () => null }))
@@ -58,6 +59,7 @@ vi.mock('../src/lib/comemoracao', async (orig) => ({
   tocarPreviaDoEfeito: vi.fn(),
 }))
 
+import { CONVITE } from '../src/components/conta/exigeConta'
 import { toast } from '../src/components/Toast'
 import Loja from '../src/components/views/Loja'
 import { CONQUISTAS } from '../src/core'
@@ -93,6 +95,7 @@ beforeEach(() => {
   localStorage.clear()
   mocks.estatica = false
   mocks.protegido = false
+  mocks.anonimo = false
   mocks.carteira = { creditos: 500, disponivel: true, recarregar: () => {} }
   vi.mocked(comprarPecaComCreditos).mockClear()
   setTheme.mockClear()
@@ -120,6 +123,43 @@ describe('as cinco abas', () => {
     expect(screen.getAllByText('Rumo ao Bronze · 0/30')).toHaveLength(21)
     for (const nome of [/Temporada/, /Conquistas/, /Loja/]) {
       fireEvent.click(aba(nome))
+      expect(screen.queryByTestId('cartao-de-convite')).toBeNull()
+    }
+  })
+})
+
+describe('o gate por aba sem conta (porta-de-entrada 3.3)', () => {
+  it('na edição completa: a Coleção abre livre; Maestria, Temporada, Conquistas e Loja pedem conta, cada uma com o texto dela', async () => {
+    mocks.anonimo = true
+    renderizar()
+    await act(async () => {})
+    expect(screen.queryByTestId('cartao-de-convite')).toBeNull()
+    expect(screen.getByTestId('vitrine-da-colecao')).toBeTruthy()
+    const titulos = new Set<string>()
+    for (const [nome, chave] of [
+      [/Maestria/, 'maestria'],
+      [/Temporada/, 'passe'],
+      [/Conquistas/, 'conquistas'],
+      [/Loja/, 'loja'],
+    ] as const) {
+      fireEvent.click(aba(nome))
+      await act(async () => {})
+      const convite = screen.getByTestId('cartao-de-convite')
+      expect(within(convite).getByText(CONVITE[chave].titulo)).toBeTruthy()
+      titulos.add(CONVITE[chave].titulo)
+    }
+    expect(titulos.size).toBe(4)
+    fireEvent.click(aba(/Coleção/))
+    await act(async () => {})
+    expect(screen.queryByTestId('cartao-de-convite')).toBeNull()
+    expect(screen.getByTestId('vitrine-da-colecao')).toBeTruthy()
+  })
+
+  it('com conta, nenhuma aba mostra o convite', async () => {
+    renderizar()
+    for (const nome of [/Maestria/, /Temporada/, /Conquistas/, /Loja/]) {
+      fireEvent.click(aba(nome))
+      await act(async () => {})
       expect(screen.queryByTestId('cartao-de-convite')).toBeNull()
     }
   })

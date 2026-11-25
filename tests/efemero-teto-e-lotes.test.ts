@@ -84,7 +84,12 @@ describe('falas em lotes', () => {
     const pedir = await servidor()
     const criada = await pedir('POST', '/api/sessions', sessao(0, { utterances: [{ idx: 0, sourceText: 'um dois' }] }))
     const id = criada.body.id as string
-    const lote = { utterances: [{ idx: 1, sourceText: 'três' }, { idx: 2, sourceText: 'quatro cinco' }] }
+    const lote = {
+      utterances: [
+        { idx: 1, sourceText: 'três' },
+        { idx: 2, sourceText: 'quatro cinco' },
+      ],
+    }
     const a = await pedir('POST', `/api/sessions/${id}/utterances`, lote)
     expect(a.status).toBe(200)
     expect(a.body.wordCount).toBe(5)
@@ -99,6 +104,41 @@ describe('falas em lotes', () => {
     const pedir = await servidor()
     const r = await pedir('POST', '/api/sessions/nao-existe/utterances', { utterances: [{ idx: 0 }] })
     expect(r.status).toBe(404)
+  })
+})
+
+describe('teto de palavras (POST /api/vocab/bulk-add)', () => {
+  const lote = (de: number, ate: number) => ({
+    cards: Array.from({ length: ate - de }, (_, i) => ({ word: `palavra${de + i}`, srcLang: 'en' })),
+  })
+
+  it('a 81ª palavra recebe 507 TETO_ANONIMO com recurso palavras, sem gravar nada do lote', async () => {
+    const pedir = await servidor()
+    expect((await pedir('POST', '/api/vocab/bulk-add', lote(0, 80))).status).toBe(200)
+    const r = await pedir('POST', '/api/vocab/bulk-add', lote(80, 81))
+    expect(r.status).toBe(507)
+    expect(r.body).toMatchObject({ codigo: 'TETO_ANONIMO', recurso: 'palavras', teto: 80, usado: 80 })
+    expect(r.body.error).toContain('80 palavras')
+    expect((await pedir('GET', '/api/vocab')).body).toHaveLength(80)
+  })
+
+  it('reenviar a mesma palavra não conta para o teto (dedup): 79 + repetida + a 80ª cabem, a 81ª não', async () => {
+    const pedir = await servidor()
+    expect((await pedir('POST', '/api/vocab/bulk-add', lote(0, 79))).status).toBe(200)
+    expect((await pedir('POST', '/api/vocab/bulk-add', lote(0, 1))).status).toBe(200)
+    expect((await pedir('GET', '/api/vocab')).body).toHaveLength(79)
+    expect((await pedir('POST', '/api/vocab/bulk-add', lote(79, 80))).status).toBe(200)
+    expect((await pedir('POST', '/api/vocab/bulk-add', lote(80, 81))).status).toBe(507)
+  })
+
+  it('edição estática mantém o teto de 80 palavras e a mensagem de demonstração', async () => {
+    vi.stubEnv('VITE_EDICAO_ESTATICA', '1')
+    vi.resetModules()
+    const pedir = await servidor()
+    expect((await pedir('POST', '/api/vocab/bulk-add', lote(0, 80))).status).toBe(200)
+    const r = await pedir('POST', '/api/vocab/bulk-add', lote(80, 81))
+    expect(r.status).toBe(507)
+    expect(r.body.error).toContain('edição de demonstração')
   })
 })
 

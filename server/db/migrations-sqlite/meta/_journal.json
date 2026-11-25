@@ -526,6 +526,13 @@
       "when": 1794800000013,
       "tag": "0074_flag_frase_por_frase",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "6",
+      "when": 1794800000014,
+      "tag": "0075_flag_latencia_publicada",
+      "breakpoints": true
     }
   ]
 }

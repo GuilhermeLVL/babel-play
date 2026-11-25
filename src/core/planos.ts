@@ -454,6 +454,13 @@ export const FLAG_CARTAO_COM_AUDIO = 'cartao_com_audio';
 export const FLAG_DIARIO = 'diario';
 
 /**
+ * O CARTÃO COM A CENA DA TELA (openspec `cartao-com-captura-de-tela`; migrações PG 0043 e SQLite 0082): a pessoa
+ * ADULTA toca em "Guardar a cena", vê um quadro da tela compartilhada, cobre o que quiser e só então guarda, SÓ NO APARELHO
+ * (IndexedDB). Fora do perfil protegido, sem rota de servidor para imagem. Nasce DESLIGADA e sem regra de plano; nenhuma cota.
+ */
+export const FLAG_CARTAO_COM_CENA = 'cartao_com_cena';
+
+/**
  * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,
  * "Custo da escrita"): um retorno leva ~900 tokens de entrada (system + texto de até 120 palavras) e até 500 de saída;
  * 30 por mês ficam na casa de US$ 0,01 por assinante que usa tudo, e os tokens já saem da `tokensMes`.

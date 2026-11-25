@@ -302,6 +302,13 @@
       "when": 1795616220198,
       "tag": "0042_flag_diario",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1795616221198,
+      "tag": "0043_flag_cartao_com_cena",
+      "breakpoints": true
     }
   ]
 }

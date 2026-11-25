@@ -70,19 +70,31 @@ const pedido = <T>(r: IDBRequest<T>): Promise<T> =>
   });
 
 export function criarArmazemDeAudioDoCartao(
-  o: { fabrica?: IDBFactory | null; agora?: () => number; teto?: number; dono?: () => string | null } = {},
+  o: {
+    fabrica?: IDBFactory | null;
+    agora?: () => number;
+    teto?: number;
+    dono?: () => string | null;
+    /** Outro banco/loja e outro tamanho máximo por item: é como `cenaDoCartao` reaproveita este armazém (imagem). */
+    banco?: string;
+    maiorBytes?: number;
+    tipoPadrao?: string;
+  } = {},
 ): ArmazemDeAudioDoCartao {
   const fabrica = o.fabrica === undefined ? (globalThis.indexedDB ?? null) : o.fabrica;
   const agora = o.agora ?? (() => Date.now());
   const teto = o.teto ?? TETO_BYTES;
   const donoAtual = o.dono ?? donoDaIdentidade;
+  const banco = o.banco ?? BANCO;
+  const maiorBytes = o.maiorBytes ?? MAIOR_CLIPE_BYTES;
+  const tipoPadrao = o.tipoPadrao ?? 'audio/ogg';
   let aberto: Promise<IDBDatabase | null> | null = null;
 
   const abrirBanco = (): Promise<IDBDatabase | null> => {
     if (!fabrica) return Promise.resolve(null);
     aberto ??= new Promise<IDBDatabase | null>((ok) => {
       try {
-        const r = fabrica.open(BANCO, 1);
+        const r = fabrica.open(banco, 1);
         r.onupgradeneeded = () => {
           r.result.createObjectStore(LOJA, { keyPath: 'cartao' });
         };
@@ -122,7 +134,7 @@ export function criarArmazemDeAudioDoCartao(
       try {
         const dono = donoAtual();
         if (!dono) return false;
-        if (!cartao || !clipe.audio.size || clipe.audio.size > MAIOR_CLIPE_BYTES) return false;
+        if (!cartao || !clipe.audio.size || clipe.audio.size > maiorBytes) return false;
         const db = await abrirBanco();
         if (!db) return false;
         const bytes = await clipe.audio.arrayBuffer();
@@ -130,7 +142,7 @@ export function criarArmazemDeAudioDoCartao(
           cartao,
           em: agora(),
           durMs: Math.round(clipe.durMs),
-          tipo: clipe.audio.type || 'audio/ogg',
+          tipo: clipe.audio.type || tipoPadrao,
           bytes,
           tamanho: bytes.byteLength,
           dono,
@@ -202,7 +214,7 @@ export function criarArmazemDeAudioDoCartao(
         aberto = null;
         if (!fabrica) return;
         await new Promise<void>((ok) => {
-          const r = fabrica.deleteDatabase(BANCO);
+          const r = fabrica.deleteDatabase(banco);
           r.onsuccess = () => ok();
           r.onerror = () => ok();
           r.onblocked = () => ok();

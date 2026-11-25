@@ -51,6 +51,7 @@ import {
 import { useEffect, useId, useRef, useState } from 'react';
 
 import { fetchMemoriaDoCartao, updateCard } from '../../../data/api';
+import { useCenaDoCartao } from '../../../hooks/useCenaDoCartao';
 import { cartaoDificil } from '../../../lib/conteudo/cartoes';
 import { type DictionaryResult, forvoUrl, lookup, wiktionaryUrl } from '../../../lib/dictionary';
 import { noHeadset } from '../../../lib/dispositivo/telaNovaDoQuest';
@@ -171,6 +172,7 @@ export default function GavetaDaPalavra({
   const idTitulo = useId();
   const [editando, setEditando] = useState(editandoInicial);
   const [confirmaExcluir, setConfirmaExcluir] = useState(false);
+  const imagemDaCena = useCenaDoCartao(cartao.id);
   const [verbete, setVerbete] = useState<DictionaryResult | null>(null);
   const [memoria, setMemoria] = useState<{ revisoes: number; acertos: number } | null>(null);
   const [origem, setOrigem] = useState<OrigemDoCartao | null>(null);
@@ -471,6 +473,18 @@ export default function GavetaDaPalavra({
                     <blockquote lang={lang || undefined}>“{fraseDaCena}”</blockquote>
                     {cena?.traducao && <p className="mut">{cena.traducao}</p>}
                     <small className="mut">{deOnde}</small>
+                    {imagemDaCena.url && (
+                      <figure className="ct-cena-imagem" data-testid="cena-da-tela">
+                        <img
+                          src={imagemDaCena.url}
+                          alt={t('A cena da tela guardada neste cartão')}
+                          style={{ maxWidth: '100%', borderRadius: 8 }}
+                        />
+                        <button type="button" className="btn btn-outline peq" onClick={imagemDaCena.remover}>
+                          {t('Remover a imagem')}
+                        </button>
+                      </figure>
+                    )}
                   </div>
                   {cena && aoAbrirSessao && (
                     <span className="ct-cena-acoes">

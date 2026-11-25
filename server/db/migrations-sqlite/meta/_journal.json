@@ -575,6 +575,13 @@
       "when": 1794800002017,
       "tag": "0081_flag_diario",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "6",
+      "when": 1794800003017,
+      "tag": "0082_flag_cartao_com_cena",
+      "breakpoints": true
     }
   ]
 }

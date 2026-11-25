@@ -45,6 +45,7 @@ const FLAGS_SENSIVEIS = new Set([
   'leitura_voz_local',
   'cartao_com_audio',
   'diario',
+  'cartao_com_cena',
 ]);
 
 /** As regras da flag em palavras curtas, para ver de relance quem ela alcança. */

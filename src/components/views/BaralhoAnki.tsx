@@ -24,6 +24,7 @@ import {
   type ResultadoAtivar,
 } from '../../data/apiAnki';
 import { type ImportAnkiResposta, importarBaralhoAnki, type ProgressoDaImportacao } from '../../data/importarAnki';
+import { esquecerPerfil } from '../../lib/anki/perfisDeMapeamento';
 import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
 import { numero, t } from '../../lib/i18n';
 import { langLabelNaUI } from '../../lib/languages';
@@ -31,6 +32,7 @@ import type { AgeProfileType } from '../../lib/profile';
 import type { VocabCard } from '../../types';
 import { toast } from '../Toast';
 import { Abas, CabecalhoDeTela, IconeEmBloco, type ItemDeAba, PainelDeAba, Tela } from '../ui';
+import { AvisoDePerfilReconhecido, useConferenciaDoMapeador } from './anki/MapeadorDeCampos';
 import GerenciarBaralhos from './BaralhosAnki';
 
 /**
@@ -132,6 +134,7 @@ export default function BaralhoAnki({
   const [erroAtivar, setErroAtivar] = useState<string | null>(null);
   const [ativacao, setAtivacao] = useState<ResultadoAtivar | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const { opcoes: mapeador, painel: painelDoMapeador } = useConferenciaDoMapeador();
 
   const escolher = async (arquivo: File | undefined) => {
     if (!arquivo) return;
@@ -143,7 +146,7 @@ export default function BaralhoAnki({
     setProgresso(null);
     setEnviando(true);
     try {
-      const resp = await importarBaralhoAnki(arquivo, idioma, idiomaNativo, setProgresso);
+      const resp = await importarBaralhoAnki(arquivo, idioma, idiomaNativo, setProgresso, mapeador);
       setResultado(resp);
       void recarregarBaralhos();
       await onImportou();
@@ -315,7 +318,9 @@ export default function BaralhoAnki({
         </section>
       )}
 
-      {etapa === 'lendo' && (
+      {etapa === 'lendo' && painelDoMapeador && <section className="cartao p6">{painelDoMapeador}</section>}
+
+      {etapa === 'lendo' && !painelDoMapeador && (
         <section className="cartao p6">
           <div className="linha" style={{ gap: 12 }}>
             <span className="ondas" aria-hidden="true">
@@ -396,6 +401,10 @@ export default function BaralhoAnki({
                 ))}
               </div>
             </div>
+          )}
+
+          {resultado.reconhecidos && (
+            <AvisoDePerfilReconhecido reconhecidos={resultado.reconhecidos} aoEsquecer={esquecerPerfil} />
           )}
 
           {/* Amostra real: a pessoa confere se os lados não vieram trocados. */}

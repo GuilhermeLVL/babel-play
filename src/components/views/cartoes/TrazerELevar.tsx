@@ -26,11 +26,13 @@ import {
   lerBaralhoParaImportar,
   type ProgressoDaImportacao,
 } from '../../../data/importarAnki';
+import { esquecerPerfil } from '../../../lib/anki/perfisDeMapeamento';
 import { numero, t, tp } from '../../../lib/i18n';
 import { polido, reduz } from '../../../lib/polimento/base';
 import { confete } from '../../../lib/polimento/planos';
 import { sentir } from '../../../lib/polimento/sentidos';
 import { toast } from '../../Toast';
+import { AvisoDePerfilReconhecido, useConferenciaDoMapeador } from '../anki/MapeadorDeCampos';
 import { fecharAFolhaDe, FolhaDeCartoes, LinhasDeMenu } from './pecas';
 
 /**
@@ -121,6 +123,10 @@ export function FluxoDoAnki({
   const [ativadas, setAtivadas] = useState<number | null>(null);
   const [escolhido, setEscolhido] = useState(false);
   const nome = arquivo.name;
+  const { opcoes: mapeador, painel: painelDoMapeador } = useConferenciaDoMapeador();
+  /* O Mapeador é lido no PRIMEIRO pedido do arquivo: a flag liga ou desliga o fluxo na hora de abrir a folha. */
+  const mapeadorRef = useRef(mapeador);
+  mapeadorRef.current = mapeador;
 
   /* Lê ao abrir, UMA VEZ POR ARQUIVO. O efeito roda em dobro no modo estrito (desenvolvimento), e o servidor
      só aceita um envio grande por pessoa de cada vez: o segundo pedido, que era o que a tela esperava,
@@ -132,7 +138,8 @@ export function FluxoDoAnki({
   useEffect(() => {
     let vivo = true;
     const de = `${arquivo.name}|${arquivo.size}|${arquivo.lastModified}`;
-    if (leitura.current?.de !== de) leitura.current = { de, pedido: lerBaralhoParaImportar(arquivo, setProgresso) };
+    if (leitura.current?.de !== de)
+      leitura.current = { de, pedido: lerBaralhoParaImportar(arquivo, setProgresso, mapeadorRef.current) };
     const pedido = leitura.current.pedido;
     void (async () => {
       try {
@@ -352,6 +359,8 @@ export function FluxoDoAnki({
       >
         {erro ? (
           avisoDeErro
+        ) : painelDoMapeador ? (
+          painelDoMapeador
         ) : (
           <div className="q-vazio" role="status" data-testid="anki-lendo">
             <span className="q-ic">
@@ -560,6 +569,7 @@ export function FluxoDoAnki({
             </ul>
           </div>
         </div>
+        {lido.reconhecidos && <AvisoDePerfilReconhecido reconhecidos={lido.reconhecidos} aoEsquecer={esquecerPerfil} />}
         {(lido.campos.length > 0 || primeiro) && (
           <div className="q-secao">
             <header>

@@ -1,4 +1,12 @@
 import { extrairMidia, limparELacunas } from './campo';
+import {
+  indiceDoExemplo,
+  indicePorNome,
+  PADRAO_FRENTE,
+  PADRAO_VERSO,
+  type PapelNaImportacao,
+  textosDaNota,
+} from './mapeador';
 import type { NotaAnki } from './tipos';
 
 /** Separador de campos de uma nota do Anki. */
@@ -13,62 +21,19 @@ const SEP = '\x1f';
  */
 export const TETO_DE_NOTAS = 50_000;
 
-/** Qual campo é a frase de exemplo? Pelo NOME, quando o baralho nomeia os campos. */
-export function indiceDoExemplo(campos: string[]): number {
-  const alvo = /(example|exemplo|sentence|frase|context|contexto|usage)/i;
-  return campos.findIndex((c) => alvo.test(c));
-}
-
-/**
+/*
  * QUAL CAMPO É A PALAVRA E QUAL É O SENTIDO — pelo NOME, e não pela posição.
  *
- * O DEFEITO QUE ISTO CONSERTA, medido com o baralho "4000 Essential English Words" do AnkiWeb
- * (3.871 notas): a frente vinha de `flds[0]` e o verso de `flds[1]`, fixos. Naquele baralho os
- * dois primeiros campos do tipo de nota principal são `№` e `IMG` — um número de ordem e uma tag
- * `<img>`. Depois de `limparCampo` a imagem vira string vazia, o par nasce sem verso, e as 3.871
- * notas caíam todas no `descartadas++`: o importador dizia "0 notas lidas" sobre um baralho
- * perfeitamente válido, e não havia como a pessoa descobrir por quê.
+ * O DEFEITO QUE ISTO CONSERTA, medido com o baralho "4000 Essential English Words" do AnkiWeb (3.871 notas): a frente
+ * vinha de `flds[0]` e o verso de `flds[1]`, fixos. Naquele baralho os dois primeiros campos do tipo de nota principal
+ * são `№` e `IMG`; depois de `limparCampo` a imagem vira vazio, o par nasce sem verso e as 3.871 notas caíam no
+ * `descartadas++`: "0 notas lidas" sobre um baralho válido.
  *
- * O parser JÁ LIA os nomes dos campos (`camposPorModelo`) e já os usava para achar o exemplo —
- * só nunca os usou para os dois campos que decidem se a nota existe. Era a peça que estava na
- * mesa e não tinha sido ligada.
- *
- * A PRIORIDADE É POR PADRÃO, não por posição no baralho: `Word` vence `Front` quando o baralho
- * tem os dois, porque `Word` é o conteúdo e `Front` costuma ser o template do cartão. Isso exige
- * varrer os padrões em ordem — um `findIndex` sozinho varreria o ARRAY e devolveria o que viesse
- * primeiro nele, que é o contrário do pretendido (foi o que um teste pegou).
- *
- * Sem nomes reconhecíveis, volta ao posicional — que é o certo para o baralho de dois campos sem
- * nome, ainda o caso mais comum.
+ * Os nomes conhecidos e a ordem de prioridade (`Word` vence `Front`; igualdade antes de "contém", porque `Sound_Meaning`
+ * contém "meaning" e é áudio) moram agora em `priorsDeCampos.json`, lidos por `mapeador.ts` — que também diz a
+ * CONFIANÇA do palpite. Sem nomes reconhecíveis, volta ao posicional: o certo para o baralho de dois campos sem nome.
  */
-export const PADRAO_FRENTE: RegExp[] = [
-  /^(word|palavra|term|termo|expression|expressão|vocab\w*|english|inglês)$/i,
-  /^(front|frente|question|pergunta)$/i,
-];
-export const PADRAO_VERSO: RegExp[] = [
-  /^(meaning|significado|sentido|definition|definição|translation|tradução|portuguese|português)$/i,
-  /^(back|verso|answer|resposta)$/i,
-];
-
-/**
- * Acha o campo pelo nome: TODOS os padrões por igualdade primeiro, e só então por conter.
- *
- * A igualdade vem antes porque `Sound_Meaning` CONTÉM "meaning" e é um ÁUDIO: num baralho com
- * `Meaning` e `Sound_Meaning`, casar por conteúdo primeiro poria um marcador de som no verso.
- */
-export function indicePorNome(campos: string[], padroes: RegExp[]): number {
-  const limpos = campos.map((c) => (c ?? '').trim());
-  for (const padrao of padroes) {
-    const exato = limpos.findIndex((c) => padrao.test(c));
-    if (exato >= 0) return exato;
-  }
-  for (const padrao of padroes) {
-    const solto = new RegExp(padrao.source.replace(/^\^|\$$/g, ''), 'i');
-    const i = limpos.findIndex((c) => solto.test(c));
-    if (i >= 0) return i;
-  }
-  return -1;
-}
+export { indiceDoExemplo, indicePorNome, PADRAO_FRENTE, PADRAO_VERSO } from './mapeador';
 
 /**
  * Monta a nota a partir de uma linha da tabela `notes` — o corpo do laço do `lerApkg`, puro, para
@@ -82,8 +47,11 @@ export function montarNota(entrada: {
   nomesDosCampos: string[];
   notetype?: string;
   baralho?: string;
+  /** Papéis por campo decididos por `inferirMapeamento` (confiança, perfil ou escolha da pessoa). Sem isto, vale o
+   *  caminho de sempre: nome primeiro, posição depois. */
+  mapeamento?: PapelNaImportacao[];
 }): NotaAnki | null {
-  const { guid, flds, tags, nomesDosCampos: nomes, notetype, baralho } = entrada;
+  const { guid, flds, tags, nomesDosCampos: nomes, notetype, baralho, mapeamento } = entrada;
   const partes = flds.split(SEP);
 
   // Mídia é extraída do campo BRUTO — depois de `limparCampo` a referência já não existe.
@@ -107,16 +75,29 @@ export function montarNota(entrada: {
     const i = indicePorNome(nomes, padroes);
     return (i >= 0 ? camposLimpos[i]?.texto : '') || camposLimpos[posicao]?.texto || '';
   };
-  const frente = porNomeOuPosicao(PADRAO_FRENTE, 0);
-  const verso = porNomeOuPosicao(PADRAO_VERSO, 1);
+  let frente: string;
+  let verso: string;
+  let exemplo = '';
+  if (mapeamento) {
+    // Papéis já decididos (a pessoa os viu, ou o perfil/palpite os trouxe): sem segunda adivinhação por posição.
+    ({ frente, verso, exemplo } = textosDaNota(
+      camposLimpos.map((c) => c.texto),
+      mapeamento,
+    ));
+  } else {
+    frente = porNomeOuPosicao(PADRAO_FRENTE, 0);
+    verso = porNomeOuPosicao(PADRAO_VERSO, 1);
+  }
   // Sem frente OU sem verso não há cartão: um dos dois lados seria inventado.
   if (!frente || !verso) return null;
 
-  const iExemplo = indiceDoExemplo(nomes);
-  const cru = iExemplo >= 0 ? (camposLimpos[iExemplo]?.texto ?? '') : (camposLimpos[2]?.texto ?? '');
-  /* O exemplo não pode ser a própria palavra nem a própria tradução: onde o posicional cai em
-     cima de um dos dois, a frase "de contexto" seria a resposta repetida. */
-  const exemplo = cru && cru !== frente && cru !== verso ? cru : '';
+  if (!mapeamento) {
+    const iExemplo = indiceDoExemplo(nomes);
+    const cru = iExemplo >= 0 ? (camposLimpos[iExemplo]?.texto ?? '') : (camposLimpos[2]?.texto ?? '');
+    /* O exemplo não pode ser a própria palavra nem a própria tradução: onde o posicional cai em
+       cima de um dos dois, a frase "de contexto" seria a resposta repetida. */
+    exemplo = cru && cru !== frente && cru !== verso ? cru : '';
+  }
 
   /* OS CAMPOS ORIGINAIS, POR NOME — a promessa de "reclassificar sem reimportar" mora aqui.
      Quem só guardasse frente/verso/exemplo estaria jogando fora o resto da nota (leitura,

@@ -1,0 +1,93 @@
+{
+  "versao": 1,
+  "fonte": "Levantamento G0 dos tipos de nota populares (Kaishi, Core, subs2srs/mpvacious, Migaku, HSK, Basic, 4000EW). Nomes ja normalizados: minusculas, sem acento, separadores viram espaco. '*' no fim = prefixo. Cada lista de 'exato' e uma FAIXA DE PRIORIDADE: a primeira faixa que casar vence; dentro de uma faixa, o primeiro campo do baralho. 'ambiguos' so se resolvem olhando o conteudo. 'contem' (so audio e imagem) tira o campo da disputa por palavra e significado.",
+  "papeis": {
+    "palavra": {
+      "exato": [
+        [
+          "word",
+          "palavra",
+          "term",
+          "termo",
+          "expression",
+          "expressao",
+          "vocab*",
+          "vocabulary kanji",
+          "word to translate",
+          "simplified",
+          "english",
+          "ingles"
+        ],
+        ["front", "frente", "question", "pergunta"]
+      ],
+      "ambiguos": ["expression", "expressao"]
+    },
+    "significado": {
+      "exato": [
+        [
+          "meaning",
+          "significado",
+          "sentido",
+          "definition",
+          "definicao",
+          "translation",
+          "traducao",
+          "portuguese",
+          "portugues",
+          "word meaning"
+        ],
+        ["back", "verso", "answer", "resposta"]
+      ]
+    },
+    "frase": {
+      "exato": [
+        [
+          "sentence",
+          "frase",
+          "example",
+          "exemplo",
+          "sentkanji",
+          "sent kanji",
+          "sample sentence",
+          "context",
+          "contexto",
+          "usage"
+        ]
+      ]
+    },
+    "leitura": {
+      "exato": [
+        [
+          "reading",
+          "leitura",
+          "word reading",
+          "pronunciation",
+          "pronuncia",
+          "transcription",
+          "ipa",
+          "pinyin",
+          "furigana"
+        ]
+      ]
+    },
+    "audio": {
+      "exato": [
+        [
+          "audio",
+          "sound",
+          "word audio",
+          "sent audio",
+          "sentaudio",
+          "sentence audio",
+          "sound meaning",
+          "sound example"
+        ]
+      ],
+      "contem": ["audio", "sound"]
+    },
+    "imagem": {
+      "exato": [["picture", "image", "img", "snapshot", "screenshot", "imagem", "foto"]],
+      "contem": ["image", "picture", "snapshot", "screenshot", "img"]
+    }
+  }
+}

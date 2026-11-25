@@ -46,6 +46,7 @@ import { iniciarGuardaDosArmazensLocais } from '../src/lib/guardaDosArmazensLoca
 import { carregarConversas, novaConversa, salvarConversas } from '../src/lib/ichat/conversas'
 import { _reiniciarIdentidade, definirDonoDaConta, definirIdentidade } from '../src/lib/identidade'
 import { _reiniciarVozesGuardadas, vozesGuardadas } from '../src/lib/revisao/vozGuardada'
+import { CHAVE_DO_DONO_DO_CACHE_DE_VOZ, comDonoDoCache, criarCacheDeVoz } from '../src/lib/voz/cacheDeVoz'
 
 const espera = () => new Promise((r) => setTimeout(r, 40))
 const blob = (n: number) => new Blob([new Uint8Array(n).fill(7)], { type: 'audio/ogg' })
@@ -303,5 +304,81 @@ describe('a chave local por conta', () => {
     dono = 'B'
     expect(k.ler()).toBeNull()
     expect(localStorage.getItem('teste.chave')).toBeNull() // a leitura da B apagou o da A
+  })
+})
+
+describe('o rascunho do visitante adotado não vaza para a conta seguinte', () => {
+  it('visitante começa, A entra e adota, A sai, B entra: B não vê', async () => {
+    definirIdentidade('anonimo')
+    iniciarGuardaDosArmazensLocais()
+    guardarRascunho(rascunhoDaCaptura())
+    entrar('A')
+    await espera()
+    expect(lerRascunhos()).toHaveLength(1) // A adotou
+    // a adoção regravou o registro como DA conta A (não fica `anonimo`)
+    expect(JSON.parse(localStorage.getItem('babel.capturas_pendentes') ?? '{}').dono).toBe('A')
+    definirDonoDaConta(null)
+    definirIdentidade('anonimo')
+    await espera()
+    entrar('B')
+    await espera()
+    expect(lerRascunhos()).toHaveLength(0)
+  })
+
+  it('sair apaga também o registro anônimo que A não chegou a ler; conta -> conta idem', async () => {
+    definirIdentidade('anonimo')
+    iniciarGuardaDosArmazensLocais()
+    guardarRascunho(rascunhoDaCaptura())
+    entrar('A') // A não lê: o registro segue `anonimo`
+    await espera()
+    definirDonoDaConta('B') // conta -> conta
+    await espera()
+    expect(localStorage.getItem('babel.capturas_pendentes')).toBeNull()
+    definirIdentidade('anonimo')
+    guardarRascunho(rascunhoDaCaptura())
+    entrar('A')
+    await espera()
+    definirDonoDaConta(null)
+    definirIdentidade('anonimo') // sair
+    await espera()
+    expect(localStorage.getItem('babel.capturas_pendentes')).toBeNull()
+  })
+})
+
+describe('o cache de voz tem dono', () => {
+  const pedidoDeVoz = { texto: 'good morning', idioma: 'en', voz: 'v', velocidade: 1 }
+  const novo = (dono: () => string | null) => comDonoDoCache(criarCacheDeVoz({ fabrica: new IDBFactory() }), dono)
+
+  it('o áudio que a A gerou não chega à B no mesmo aparelho (sem ouvinte, só pelo dono do cache)', async () => {
+    const f = new IDBFactory()
+    let dono: string | null = 'A'
+    const cache = comDonoDoCache(criarCacheDeVoz({ fabrica: f }), () => dono)
+    await cache.guardar(pedidoDeVoz, blob(100))
+    expect(await cache.ler(pedidoDeVoz)).not.toBeNull()
+    dono = 'B'
+    expect(await cache.ler(pedidoDeVoz)).toBeNull()
+    dono = 'A' // e a B limpou o cache inteiro: a A também não o recupera
+    expect(await cache.ler(pedidoDeVoz)).toBeNull()
+  })
+
+  it('cache de antes da regra (sem dono guardado) é esvaziado; purgarDeOutros limpa se o dono mudou', async () => {
+    const f = new IDBFactory()
+    const bruto = criarCacheDeVoz({ fabrica: f })
+    await bruto.guardar(pedidoDeVoz, blob(100)) // sem dono guardado
+    let dono: string | null = 'A'
+    const cache = comDonoDoCache(criarCacheDeVoz({ fabrica: f }), () => dono)
+    expect(await cache.ler(pedidoDeVoz)).toBeNull()
+    await cache.guardar(pedidoDeVoz, blob(100))
+    dono = 'B'
+    await cache.purgarDeOutros()
+    dono = 'B'
+    expect(await bruto.ler(pedidoDeVoz)).toBeNull()
+  })
+
+  it('sem dono conhecido (identidade carregando) não lê nem grava', async () => {
+    const cache = novo(() => null)
+    await cache.guardar(pedidoDeVoz, blob(100))
+    expect(await cache.ler(pedidoDeVoz)).toBeNull()
+    expect(localStorage.getItem(CHAVE_DO_DONO_DO_CACHE_DE_VOZ)).toBeNull()
   })
 })

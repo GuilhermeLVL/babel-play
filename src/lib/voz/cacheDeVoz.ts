@@ -17,6 +17,7 @@
  * cheio: toda operação devolve "não tenho" e a voz segue pelo caminho de sempre, a rede.
  */
 import { iniciarGuardaDosArmazensLocais, registrarArmazemPorConta } from '../armazemLocalPorConta';
+import { donoDaIdentidade } from '../identidade';
 
 /** O que identifica um áudio: muda qualquer um, é outro áudio. */
 export interface PedidoDeVoz {
@@ -179,15 +180,60 @@ export function criarCacheDeVoz(o: OpcoesDoCacheDeVoz = {}): GuardadosDaVoz {
 
 let doAparelho: GuardadosDaVoz | null | undefined;
 
-/* Sem dono por linha: a chave é um resumo (SHA-256) e o áudio é sintético, então o que vale é apagar tudo ao sair/trocar
-   de conta, limpar tudo e excluir a conta (guarda comum, `lib/armazemLocalPorConta`). */
+export const CHAVE_DO_DONO_DO_CACHE_DE_VOZ = 'babel.cacheDeVoz.dono';
+
+/**
+ * O cache não tem dono por linha (a chave é um resumo e o áudio é sintético), então o dono é do cache INTEIRO, numa
+ * chave: antes de ler, gravar ou purgar, se o dono guardado for outro (ou não houver), o cache é esvaziado e o dono novo
+ * é gravado. Sem dono conhecido (identidade carregando), não lê nem grava.
+ */
+export function comDonoDoCache(cache: GuardadosDaVoz, dono: () => string | null = donoDaIdentidade) {
+  const garantir = async (): Promise<boolean> => {
+    const atual = dono();
+    if (!atual) return false;
+    let guardado: string | null = null;
+    try {
+      guardado = localStorage.getItem(CHAVE_DO_DONO_DO_CACHE_DE_VOZ);
+    } catch {
+      /* sem armazenamento: não há como provar o dono, então o cache é esvaziado a cada troca de leitura */
+    }
+    if (guardado === atual) return true;
+    await cache.limpar();
+    try {
+      localStorage.setItem(CHAVE_DO_DONO_DO_CACHE_DE_VOZ, atual);
+    } catch {
+      return false; // sem como guardar o dono, o cache não é usado
+    }
+    return true;
+  };
+  return {
+    async ler(p: PedidoDeVoz) {
+      return (await garantir()) ? cache.ler(p) : null;
+    },
+    async guardar(p: PedidoDeVoz, audio: Blob) {
+      if (await garantir()) await cache.guardar(p, audio);
+    },
+    limpar: cache.limpar,
+    async purgarDeOutros() {
+      await garantir();
+    },
+  };
+}
+
+/* Apaga tudo ao sair/trocar de conta, limpar tudo e excluir a conta (guarda comum, `lib/armazemLocalPorConta`); o dono do
+   cache fecha o caso da recarga com outra conta. */
 const limparDoAparelho = async () => {
   await cacheDeVozDoAparelho()?.limpar();
+  try {
+    localStorage.removeItem(CHAVE_DO_DONO_DO_CACHE_DE_VOZ);
+  } catch {
+    /* nada guardado */
+  }
 };
 registrarArmazemPorConta({
   nome: 'cache-de-voz',
   apagarTudo: limparDoAparelho,
-  purgarDeOutros: () => undefined,
+  purgarDeOutros: () => (cacheDeVozDoAparelho() as ReturnType<typeof comDonoDoCache> | null)?.purgarDeOutros(),
   destruir: limparDoAparelho,
 });
 
@@ -202,7 +248,7 @@ export function cacheDeVozDoAparelho(): GuardadosDaVoz | null {
       doAparelho = null;
       return null;
     }
-    doAparelho = criarCacheDeVoz();
+    doAparelho = comDonoDoCache(criarCacheDeVoz());
   }
   iniciarGuardaDosArmazensLocais();
   return doAparelho;

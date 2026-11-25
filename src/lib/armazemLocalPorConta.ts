@@ -20,7 +20,11 @@ export interface ArmazemPorConta {
   /** Nome único (idempotência do registro e diagnóstico). */
   nome: string;
   /** Apaga tudo o que o armazém guarda (o armazém continua usável). */
-  apagarTudo(): Promise<void> | void;
+  /**
+   * Apaga tudo o que o armazém guarda (o armazém continua usável). `preservarVisitante`: é a transição visitante -> conta,
+   * e quem adota o que o visitante deixou o mantém; em qualquer outra (sair, conta -> conta) o do visitante também sai.
+   */
+  apagarTudo(o?: { preservarVisitante?: boolean }): Promise<void> | void;
   /** Apaga só o que não é do dono atual (ou não tem dono). Sem dono conhecido, não mexe em nada. */
   purgarDeOutros(): Promise<void> | void;
   /** Apaga o banco/a chave inteira (esquecer o navegador, excluir a conta). */
@@ -46,8 +50,8 @@ const seguro = async (f: () => Promise<void> | void): Promise<void> => {
   }
 };
 
-export async function apagarTodosOsArmazensDaConta(): Promise<void> {
-  await Promise.all([...registro.values()].map((a) => seguro(() => a.apagarTudo())));
+export async function apagarTodosOsArmazensDaConta(o?: { preservarVisitante?: boolean }): Promise<void> {
+  await Promise.all([...registro.values()].map((a) => seguro(() => a.apagarTudo(o))));
 }
 
 export async function purgarTodosOsArmazensDeOutros(): Promise<void> {
@@ -69,7 +73,8 @@ export function iniciarGuardaDosArmazensLocais(): void {
   /* Conta -> sem conta (sair) e qualquer troca de estado depois de carregado. */
   desfazer.push(
     aoMudarIdentidade((depois, antes) => {
-      if (antes !== 'carregando' && antes !== depois) void apagarTodosOsArmazensDaConta();
+      if (antes !== 'carregando' && antes !== depois)
+        void apagarTodosOsArmazensDaConta({ preservarVisitante: antes === 'anonimo' && depois === 'conta' });
       else void purgarTodosOsArmazensDeOutros();
     }),
   );
@@ -279,6 +284,15 @@ export function criarChaveLocalPorConta<T>(
         apagar();
         return null;
       }
+      if (j.dono !== dono) {
+        /* Adotou o do visitante: passa a ser desta conta NA HORA (se ficasse `anonimo`, a próxima conta o adotaria). */
+        try {
+          armazem().setItem(chave, JSON.stringify({ dono, valor: j.valor }));
+        } catch {
+          apagar();
+          return null;
+        }
+      }
       return j.valor as T;
     },
     gravar(valor) {
@@ -297,8 +311,8 @@ export function criarChaveLocalPorConta<T>(
     registrarArmazemPorConta({
       nome: o.nome,
       /* Quem adota o visitante guarda o que é dele ao entrar numa conta: só sai o que é de uma conta. */
-      apagarTudo: () => {
-        if (adota && lerBruto()?.dono === 'anonimo') return;
+      apagarTudo: (op) => {
+        if (adota && op?.preservarVisitante && lerBruto()?.dono === 'anonimo') return;
         apagar();
       },
       purgarDeOutros: () => {

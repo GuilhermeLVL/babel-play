@@ -38,6 +38,7 @@ const FLAGS_SENSIVEIS = new Set([
   'pre_traducao_de_legendas',
   'forca_na_legenda',
   'frase_por_frase',
+  'anki_mapeador',
 ]);
 
 /** As regras da flag em palavras curtas, para ver de relance quem ela alcança. */

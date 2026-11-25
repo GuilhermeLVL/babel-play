@@ -62,3 +62,13 @@ html[data-quest-novo='true'] .ct .ct-tabela td {
   letter-spacing: 0;
   text-transform: none;
 }
+
+/* O botão principal do dia cabe com texto 40% mais longo (pseudo-localização a 375 px): quebra em vez de estourar. */
+.ct-hoje-acoes .q-ctl.pri {
+  height: auto;
+  padding-block: 8px;
+  padding-inline: 14px;
+  line-height: 1.15;
+  text-align: center;
+  white-space: normal;
+}

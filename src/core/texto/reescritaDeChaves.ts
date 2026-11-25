@@ -103,3 +103,75 @@ export function cartaoComProvaDeFusao(
   }
   return false;
 }
+
+/** Uma palavra marcada sem cartão (`palavras_marcadas`): o idioma é o base. */
+export interface MarcadaParaReescrever {
+  lang: string;
+  chave: string;
+  estado: string;
+}
+
+export interface PlanoDeMarcadas {
+  /** Linhas a CRIAR (a original fica). Só na ida (v1 → v2). */
+  inserir: MarcadaParaReescrever[];
+  /** Volta (v2 → v1): linhas que trocam de chave. */
+  mover: { lang: string; de: string; para: string; estado: string }[];
+  /** Volta: linhas que saem porque a chave v1 de destino já existe (o estado do destino prevalece). */
+  apagar: { lang: string; chave: string }[];
+  /** Ida: marcadas que nenhuma palavra conhecida da pessoa desdobra (ficam como estão). */
+  semDesdobra: number;
+}
+
+/**
+ * O PLANO DA REESCRITA DE `palavras_marcadas.chave` (openspec `modelo-do-aluno-e-dados`, 5.3). A tabela guarda só a
+ * chave, não a palavra: a v1 (`ano`) perdeu a informação de que podia ser `año`. Por isso a IDA nunca troca nem
+ * apaga: a linha v1 continua (ela é também uma chave v2 válida, a da forma sem marca) e, para cada palavra
+ * CONHECIDA da pessoa (cartões e falas) cuja chave v1 é a marcada e cuja v2 é outra, cria a linha v2 com o mesmo
+ * estado. Palavra nunca vista não ganha linha: a marcação dela só vale para a forma sem marca.
+ * A VOLTA (v2 → v1) leva cada linha à chave v1 (`chaveDaPalavra` da chave v2 é a v1); se o destino já existe, a
+ * linha que sai é apagada e o estado do destino prevalece.
+ */
+export function planejarReescritaDeMarcadas(
+  marcadas: readonly MarcadaParaReescrever[],
+  palavras: readonly { palavra: string; lang: string }[],
+  para: VersaoDaChaveDedup,
+): PlanoDeMarcadas {
+  const plano: PlanoDeMarcadas = { inserir: [], mover: [], apagar: [], semDesdobra: 0 };
+  const existe = new Set(marcadas.map((m) => `${m.lang}|${m.chave}`));
+  if (para === 2) {
+    const porV1 = new Map<string, Set<string>>();
+    for (const p of palavras) {
+      const lang = idiomaBase(p.lang);
+      const v1 = chaveDaPalavra(p.palavra);
+      const v2 = chaveDaPalavraV2(p.palavra, lang);
+      if (!v1 || v1 === v2) continue;
+      const k = `${lang}|${v1}`;
+      (porV1.get(k) ?? porV1.set(k, new Set()).get(k)!).add(v2);
+    }
+    for (const m of marcadas) {
+      const desdobra = porV1.get(`${m.lang}|${m.chave}`);
+      if (!desdobra) {
+        plano.semDesdobra++;
+        continue;
+      }
+      for (const v2 of [...desdobra].sort()) {
+        const k = `${m.lang}|${v2}`;
+        if (existe.has(k)) continue;
+        existe.add(k);
+        plano.inserir.push({ lang: m.lang, chave: v2, estado: m.estado });
+      }
+    }
+    return plano;
+  }
+  for (const m of marcadas) {
+    const v1 = chaveDaPalavra(m.chave);
+    if (!v1 || v1 === m.chave) continue;
+    if (existe.has(`${m.lang}|${v1}`)) plano.apagar.push({ lang: m.lang, chave: m.chave });
+    else {
+      existe.add(`${m.lang}|${v1}`);
+      plano.mover.push({ lang: m.lang, de: m.chave, para: v1, estado: m.estado });
+    }
+    existe.delete(`${m.lang}|${m.chave}`);
+  }
+  return plano;
+}

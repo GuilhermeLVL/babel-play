@@ -81,6 +81,18 @@ export function chaveDedup(
 }
 
 /**
+ * A chave SEM o prefixo de idioma (a de `palavras_marcadas.chave` e `palavras_vistas.chave`): a v1 é
+ * `chaveDaPalavra`, a v2 é `chaveDaPalavraV2` do idioma. É o sufixo de `chaveDedup` com a mesma versão.
+ */
+export function chaveDaPalavraNaVersao(
+  palavra: string | undefined | null,
+  lang: string | undefined | null,
+  versao: VersaoDaChaveDedup = 1,
+): string {
+  return versao === 2 ? chaveDaPalavraV2(palavra, lang) : chaveDaPalavra(palavra);
+}
+
+/**
  * A VERSÃO DA CHAVE DE DEDUPLICAÇÃO (openspec `modelo-do-aluno-e-dados`, tarefa 5.1).
  *
  *   1 = a de hoje (`chaveDaPalavra`): tira TODA marca, então `año`=`ano`, `schön`=`schon`, `avó`=`avô`,

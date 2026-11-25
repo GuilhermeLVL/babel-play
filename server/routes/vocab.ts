@@ -2,7 +2,7 @@
 import { Router } from 'express'
 
 import type { Grade } from '../../src/core/learning/scheduler'
-import { chaveDaPalavra } from '../../src/core/texto/palavra'
+import { chaveDaPalavraNaVersao } from '../../src/core/texto/palavra'
 import { MAX_ETIQUETAS, normalizarEtiqueta, normalizarEtiquetas } from '../../src/core/vocabulario/etiquetasDoUsuario'
 import { TETO_DE_MARCADAS } from '../../src/core/vocabulario/marcadas'
 import { contagensDeConteudo, versaoDosBaralhos } from '../db/repositories/contagensDeConteudo'
@@ -16,6 +16,7 @@ import { CachePorVersao } from '../lib/cachePorVersao'
 import { erroDeRota } from '../lib/erroDeRota'
 import { casaComIfNoneMatch, etagPorVersao } from '../lib/etagPorVersao'
 import { log } from '../lib/logger'
+import { versaoDaChaveDedup } from '../lib/versaoDaChaveDedup'
 import {
   bulkAddCardsSchema,
   desfazerRevisaoSchema,
@@ -339,7 +340,7 @@ vocabRouter.put('/opcoes-da-revisao', async (req, res) => {
  *   DELETE /marcadas?lang=xx&chave=yy → 204 (idempotente)
  *   PUT /marcadas/lote e POST /marcadas/lote/desfazer: ver abaixo
  *
- * O servidor reduz o idioma à base e a chave com `chaveDaPalavra` (o cliente não é confiável); chave que não sobra
+ * O servidor reduz o idioma à base e a chave com `chaveDaPalavraNaVersao` (v1 = `chaveDaPalavra`, v2 com a flag `chave_dedup_v2`) (o cliente não é confiável); chave que não sobra
  * nada (só pontuação) é 400.
  */
 const idiomaBaseDe = (lang: string) => lang.toLowerCase().split('-')[0]
@@ -364,7 +365,7 @@ vocabRouter.get('/marcadas', async (req, res) => {
 vocabRouter.put('/marcadas', async (req, res) => {
   const body = parseOr400(marcarPalavraSchema, req.body, res)
   if (!body) return
-  const chave = chaveDaPalavra(body.chave)
+  const chave = chaveDaPalavraNaVersao(body.chave, body.lang, versaoDaChaveDedup())
   if (!chave) return res.status(400).json({ error: 'chave sem letras', code: 'chave_invalida' })
   try {
     const r = await palavrasMarcadasRepo.marcar(
@@ -395,7 +396,10 @@ vocabRouter.put('/marcadas', async (req, res) => {
  * Registradas ANTES de `DELETE /marcadas` e de `/:id`.
  */
 function chavesDoLote(lang: string, brutas: string[]) {
-  return { idioma: idiomaBaseDe(lang), chaves: [...new Set(brutas.map((c) => chaveDaPalavra(c)).filter(Boolean))] }
+  return {
+    idioma: idiomaBaseDe(lang),
+    chaves: [...new Set(brutas.map((c) => chaveDaPalavraNaVersao(c, lang, versaoDaChaveDedup())).filter(Boolean))],
+  }
 }
 
 vocabRouter.put('/marcadas/lote', async (req, res) => {
@@ -439,7 +443,7 @@ vocabRouter.delete('/marcadas', async (req, res) => {
   // A mesma forma de `GET /palavra`: `lang` e `chave`.
   const q = parseOr400(palavraQuerySchema, req.query, res)
   if (!q) return
-  const chave = chaveDaPalavra(q.chave)
+  const chave = chaveDaPalavraNaVersao(q.chave, q.lang, versaoDaChaveDedup())
   if (!chave) return res.status(400).json({ error: 'chave sem letras', code: 'chave_invalida' })
   try {
     await palavrasMarcadasRepo.desmarcar(req.userId, idiomaBaseDe(q.lang), chave)

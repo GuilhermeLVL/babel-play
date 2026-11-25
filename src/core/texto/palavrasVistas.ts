@@ -18,7 +18,7 @@
  */
 import { PALAVRAS_FUNCIONAIS } from '../harness/palavrasConhecidas';
 import { baseLang } from './idioma';
-import { chaveDaPalavra } from './palavra';
+import { chaveDaPalavra, chaveDaPalavraNaVersao, type VersaoDaChaveDedup } from './palavra';
 import { escreveSemEspaco, frasesDoTexto, palavrasDoTexto } from './segmentacao';
 
 /** O idioma base em que a palavra é guardada (`pt-BR` → `pt`), o mesmo de `chaveDedup`. */
@@ -44,13 +44,18 @@ export function chaveContavel(chave: string, lang: string): boolean {
 }
 
 /** As chaves contáveis de um texto, na ordem, COM repetição. `idioma` é o da fala (BCP-47 ou base). */
-export function chavesDoTexto(texto: string | null | undefined, idioma: string | null | undefined): string[] {
+export function chavesDoTexto(
+  texto: string | null | undefined,
+  idioma: string | null | undefined,
+  versao: VersaoDaChaveDedup = 1,
+): string[] {
   const lang = idiomaBase(idioma);
   if (!lang) return [];
   const saida: string[] = [];
   for (const p of palavrasDoTexto(texto, lang)) {
-    const chave = chaveDaPalavra(p);
-    if (chaveContavel(chave, lang)) saida.push(chave);
+    /* O corte (algarismo, tamanho, palavra funcional) é sempre pela v1; a v2 só muda a chave GUARDADA. */
+    const v1 = chaveDaPalavra(p);
+    if (chaveContavel(v1, lang)) saida.push(versao === 2 ? chaveDaPalavraNaVersao(p, lang, 2) : v1);
   }
   return saida;
 }
@@ -74,13 +79,16 @@ export interface ContagemDeChave {
 export const chaveDaContagem = (lang: string, chave: string): string => `${lang}|${chave}`;
 
 /** Conta as chaves de um conjunto de falas. O `idx` guardado é o da fala de menor `idx` que a contém. */
-export function contarChaves(falas: Iterable<FalaParaContar>): Map<string, ContagemDeChave> {
+export function contarChaves(
+  falas: Iterable<FalaParaContar>,
+  versao: VersaoDaChaveDedup = 1,
+): Map<string, ContagemDeChave> {
   const mapa = new Map<string, ContagemDeChave>();
   for (const f of falas) {
     const lang = idiomaBase(f.idioma);
     if (!lang) continue;
     const idx = typeof f.idx === 'number' ? f.idx : null;
-    for (const chave of chavesDoTexto(f.texto, lang)) {
+    for (const chave of chavesDoTexto(f.texto, lang, versao)) {
       const k = chaveDaContagem(lang, chave);
       const atual = mapa.get(k);
       if (!atual) mapa.set(k, { lang, chave, vezes: 1, idx });

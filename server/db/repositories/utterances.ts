@@ -4,6 +4,7 @@ import { and, asc, eq, gte, inArray, isNotNull, isNull, lte } from 'drizzle-orm'
 
 import { contarChaves, diferencaDeChaves } from '../../../src/core/texto/palavrasVistas'
 import type { UserId } from '../../lib/authContext'
+import { versaoDaChaveDedup } from '../../lib/versaoDaChaveDedup'
 import { db, type ExecutorDb, linhasAfetadas, travarUsuario } from '../db'
 import { emLotes, type InstrucaoDeBatch, rodarLote, tamanhoDoLoteDeInsert } from '../lotes'
 import { sessions, utterances } from '../schema'
@@ -273,8 +274,8 @@ export const utterancesRepo = {
             userId,
             atual.sessionId,
             diferencaDeChaves(
-              contarChaves([{ texto: atual.sourceText, idioma, idx }]),
-              contarChaves([{ texto: patch.sourceText, idioma, idx }]),
+              contarChaves([{ texto: atual.sourceText, idioma, idx }], versaoDaChaveDedup()),
+              contarChaves([{ texto: patch.sourceText, idioma, idx }], versaoDaChaveDedup()),
             ),
             Number(values.updatedAt),
             idx == null ? undefined : { de: idx, ate: idx },

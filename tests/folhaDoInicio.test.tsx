@@ -20,11 +20,13 @@ beforeAll(prepararDialogoNoJsdom)
 afterEach(cleanup)
 
 describe('folha do início (a pergunta do mic com o download real)', () => {
-  function montar(inicio: { mbSePrivado: number; mbSeRapido: number; aparelhoLento: boolean; mbTradutor?: number } = {
-    mbSePrivado: 80,
-    mbSeRapido: 0,
-    aparelhoLento: true,
-  }) {
+  function montar(
+    inicio: { mbSePrivado: number; mbSeRapido: number; aparelhoLento: boolean; mbTradutor?: number } = {
+      mbSePrivado: 80,
+      mbSeRapido: 0,
+      aparelhoLento: true,
+    },
+  ) {
     const props = { mb: 80, aoEscolher: vi.fn(), aoFechar: vi.fn(), inicio }
     render(<EscolhaDoMicrofone {...props} />)
     return props
@@ -60,10 +62,11 @@ describe('folha do início (a pergunta do mic com o download real)', () => {
     expect(screen.getByRole('button', { name: /Privado/ }).textContent).toMatch(/pode atrasar/)
   })
 
-  it('nenhuma opção marcada: sem linha de download e o botão desligado', () => {
+  it('o "Privado" vem marcado: a linha do download já aparece e o botão de iniciar vale', () => {
     montar()
-    expect(screen.queryByTestId('download-da-escolha')).toBeNull()
-    expect((screen.getByRole('button', { name: 'Iniciar' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByRole('button', { name: /Privado/ }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByTestId('download-da-escolha').textContent).toMatch(/cerca de 80 MB/)
+    expect((screen.getByRole('button', { name: /Baixar e iniciar/ }) as HTMLButtonElement).disabled).toBe(false)
   })
 })
 

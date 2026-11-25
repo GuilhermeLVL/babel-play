@@ -378,6 +378,14 @@ export default function BibliotecaDoQuest({
   /* `fxDaGravacao()` de `fontes.js:114`: o baralho desta sessão (as palavras guardadas como cartão). */
   const baralhoDaSelecionada = conteudo?.daSessao(selecionada.id);
   const semBaralho = !!conteudo?.carregado && !baralhoDaSelecionada;
+  /* "Jogar com esta" e "Revisar palavras" desligados dizem POR QUÊ (antes só ficavam apagados). */
+  const motivoSemJogo = semTexto
+    ? selecionada.wordCount
+      ? t('Ainda processando: jogar e revisar abrem quando terminar')
+      : t('Sem texto ainda: jogar e revisar precisam das palavras')
+    : semBaralho
+      ? t('Sem palavras guardadas desta sessão: guarde algumas para jogar')
+      : null;
   const fatos: [string, string, string?][] = [
     conteudo?.carregado
       ? [
@@ -572,7 +580,10 @@ export default function BibliotecaDoQuest({
           </div>
         </div>
 
-        <section className="q-cartao q-bib-det" aria-label={t('Gravação selecionada')}>
+        <section
+          className={`q-cartao q-bib-det${motivoSemJogo ? ' q-bib-det-motivo' : ''}`}
+          aria-label={t('Gravação selecionada')}
+        >
           <div className="q-bib-topo">
             <span className="q-ic" aria-hidden>
               <IconeDaSelecionada />
@@ -607,6 +618,7 @@ export default function BibliotecaDoQuest({
                 className="q-ctl"
                 data-px="jogar"
                 disabled={semTexto || semBaralho}
+                aria-describedby={motivoSemJogo ? 'q-bib-motivo' : undefined}
                 title={conteudo ? t('Esta sessão vira o conteúdo escolhido e o Jogar abre') : undefined}
                 onClick={() => aoJogar(selecionada)}
               >
@@ -616,12 +628,18 @@ export default function BibliotecaDoQuest({
                 type="button"
                 className="q-ctl"
                 disabled={semTexto || semBaralho}
+                aria-describedby={motivoSemJogo ? 'q-bib-motivo' : undefined}
                 title={conteudo ? t('Esta sessão vira o conteúdo escolhido e a revisão abre') : undefined}
                 onClick={() => aoRevisar(selecionada)}
               >
                 {conteudo && <Target aria-hidden />} {t('Revisar palavras')}
               </button>
             </div>
+            {motivoSemJogo && (
+              <p id="q-bib-motivo" className="q-bib-motivo" data-testid="motivo-sem-jogo" title={motivoSemJogo}>
+                {motivoSemJogo}
+              </p>
+            )}
             {(aoExportar || aoRetomar) && (
               <div className="q-acoes q-bib-cuidar q-bib-levar">
                 {aoExportar && (

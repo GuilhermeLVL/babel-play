@@ -230,6 +230,13 @@ html[data-quest-novo='true'] .q-bib-vazia .q-acoes {
   html[data-quest-novo='true'] .q-bib-det.q-bib-det-mais {
     bottom: -214px;
   }
+  /* A linha do motivo (18 px + 10 px de vão) fica abaixo do "Abrir", como as outras fileiras. */
+  html[data-quest-novo='true'] .q-bib-det.q-bib-det-motivo {
+    bottom: -176px;
+  }
+  html[data-quest-novo='true'] .q-bib-det.q-bib-det-mais.q-bib-det-motivo {
+    bottom: -242px;
+  }
   /* O que a linha selecionada já diz não se repete aqui. */
   html[data-quest-novo='true'] .q-bib-det :is(.q-bib-topo, .q-bib-fatos) {
     display: none;
@@ -252,6 +259,37 @@ html[data-quest-novo='true'] .q-bib-vazia .q-acoes {
     text-align: center;
     line-height: 1.15;
     overflow-wrap: anywhere;
+  }
+}
+/* O motivo de "Jogar com esta" e "Revisar palavras" estarem desligados: uma linha, pequena, sob o par. */
+html[data-quest-novo='true'] .q-bib-motivo {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Renomear, Fixar e Excluir (a fileira de três): a palavra nunca parte no meio ("Renomea/r"). A quebra só
+   vale nos espaços ("Fixar no / topo"); em tela estreita a letra encolhe um pouco para a palavra caber. */
+@media (max-width: 900px) {
+  html[data-quest-novo='true'] .q-bib-cuidar > .q-ctl {
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: none;
+  }
+}
+@media (max-width: 400px) {
+  html[data-quest-novo='true'] .q-bib-cuidar > .q-ctl {
+    font-size: 13px;
+    padding-inline: 4px;
+  }
+}
+@media (max-width: 340px) {
+  html[data-quest-novo='true'] .q-bib-cuidar > .q-ctl {
+    font-size: 12px;
   }
 }
 @media (max-width: 720px) {

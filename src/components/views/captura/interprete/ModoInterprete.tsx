@@ -865,6 +865,7 @@ export default function ModoInterprete({
         aoExportar: () => {
           if (totalDeFinais > 0) exportar();
         },
+        podeExportar: totalDeFinais > 0,
       }}
       {...(pratica && pratica.possivel !== 'sem_idioma'
         ? { modos: [modoDaPratica(pratica, () => alternarPratica(praticaBotao()))] }

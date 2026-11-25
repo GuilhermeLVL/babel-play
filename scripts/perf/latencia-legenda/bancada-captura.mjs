@@ -13,6 +13,9 @@
  *        [--fixture fleurs-pt-12.json --eles pt-BR --eu pt-BR --qualidade accurate]   (cenário pt: exercita o Parakeet; padrão: fleurs-en-8, en-US→pt-BR)
  *        [--armazenamento-do-alvo "braco=babel.lab.parciaisModo:sem-cauda;..."]   (chaves do localStorage POR alvo)
  *        [--flag-do-alvo "depois=parciais_vivos,parciais_parakeet;antes="]   (flags POR alvo; várias por alvo)
+ *        [--gravar-hipoteses]   (CICLO 3: liga `babel.lab.gravarHipoteses=1` em todos os alvos e salva, por rodada, `hipoteses/<rotulo>.json`:
+ *                                as hipóteses do worker (tokens e decodes), a hora do fim da fala e do final, e a tela real da rodada;
+ *                                a gravação roda na cadência mais rápida permitida; ver `hipoteses-da-fala.mjs` e `simular-exibicao.mjs`)
  *
  * O que faz, por perfil de aparelho:
  *  1. monta o áudio do fixture versionado (`tests/fixtures/bancada-captura/fleurs-en-8.json`: 8 falas
@@ -53,6 +56,7 @@ import { flagsComoArgumento, flagsDoAlvo, lerFlagsDoAlvo } from './flags-do-alvo
 import { cenarioDaBancada } from './cenario-da-bancada.mjs'
 import { armazenamentoComoArgumento, armazenamentoDoAlvo, lerArmazenamentoDoAlvo } from './armazenamento-do-alvo.mjs'
 import { agregarRodadas, metricasDaRodada } from './metricas-captura.mjs'
+import { montarGravacao, politicaDasChaves } from './hipoteses-da-fala.mjs'
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url))
 const RAIZ = path.join(AQUI, '..', '..', '..')
@@ -69,7 +73,11 @@ const flagsDe = (alvo) => flagsComoArgumento(flagsDoAlvo(alvo.nome, FLAGS_POR_AL
 
 const ARMAZENAMENTO_POR_ALVO = lerArmazenamentoDoAlvo(opt('armazenamento-do-alvo', ''))
 /** O `--armazenamento` do `medir.mjs` para este alvo (chaves de laboratório do localStorage; vazio = nenhuma). */
-const armazenamentoDe = (alvo) => armazenamentoComoArgumento(armazenamentoDoAlvo(alvo.nome, ARMAZENAMENTO_POR_ALVO))
+const armazenamentoDe = (alvo) =>
+  armazenamentoComoArgumento({
+    ...armazenamentoDoAlvo(alvo.nome, ARMAZENAMENTO_POR_ALVO),
+    ...(flag('gravar-hipoteses') ? { 'babel.lab.gravarHipoteses': '1' } : {}),
+  })
 
 const PERFIS = { desktop: null, fraco: 'fraco' }
 const perfis = opt('perfis', 'desktop,fraco').split(',').filter(Boolean)
@@ -110,6 +118,7 @@ const log = (...a) => console.log('[bancada]', ...a)
 
 mkdirSync(path.join(SAIDA, 'rodadas'), { recursive: true })
 mkdirSync(path.join(SAIDA, 'metricas'), { recursive: true })
+if (flag('gravar-hipoteses')) mkdirSync(path.join(SAIDA, 'hipoteses'), { recursive: true })
 
 // ---- 1. áudio
 const AUDIO_DIR = path.join(SAIDA, 'audio')
@@ -220,6 +229,11 @@ function rodar(alvo, perfil, rotulo) {
   uaDoNavegador ??= d.ua ?? null
   const m = metricasDaRodada(d)
   writeFileSync(path.join(SAIDA, 'metricas', `${rotulo}.json`), JSON.stringify(m, null, 1))
+  if (flag('gravar-hipoteses') && !rotulo.endsWith('.aquecimento')) {
+    const g = montarGravacao(d, politicaDasChaves(armazenamentoDoAlvo(alvo.nome, ARMAZENAMENTO_POR_ALVO)))
+    if (g.valida) writeFileSync(path.join(SAIDA, 'hipoteses', `${rotulo}.json`), JSON.stringify(g.gravacao))
+    else log(`   ${rotulo}: sem gravação de hipóteses — ${g.motivo}`)
+  }
   if (m.valida)
     log(
       `   ${rotulo}: ${m.modeloStt?.split('/').pop()} · frames>50 ${m.framesLongos.n50} (>100 ${m.framesLongos.n100}, Σ ${m.framesLongos.somaMs} ms) · 1º texto na tela ${m.primeiroTextoNaTelaMs} ms · legenda completa ${m.primeiraLegendaMs} ms · RTF p50 ${m.rtf.p50?.toFixed(3)} · memória ${m.memoriaPicoMb} MB · CPU no silêncio ${m.cpuSilencio.processoPct?.toFixed(1)}% · renders/s ${m.rendersPorS.silencio?.toFixed(1)} (silêncio) ${m.rendersPorS.fala?.toFixed(1)} (fala) · trocas de modelo ${m.regulador.trocasDeModelo} · pedidos ao Hub ${m.pedidosAoHub} · atraso/palavra original p50 ${m.palavras?.atrasoDePalavraMs.original.p50?.toFixed(0)} p90 ${m.palavras?.atrasoDePalavraMs.original.p90?.toFixed(0)} ms (tradução p50 ${m.palavras?.atrasoDePalavraMs.traducao.p50?.toFixed(0)}) · erasure ${m.palavras?.erasureOriginal.ne?.toFixed(2)}/${m.palavras?.erasureTraducao.ne?.toFixed(2)}`,

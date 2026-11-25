@@ -117,6 +117,7 @@ import {
   fonteDominante,
   passaNoFiltro,
 } from '../../core/minigames/filtro';
+import { previaDaFolha } from '../../core/minigames/previaDaFolha';
 import { type MaterialDaRodada, montarRodada as montarRodadaPura } from '../../core/minigames/rodada';
 import { itensSoRevisao } from '../../core/minigames/soRevisao';
 import {
@@ -2853,6 +2854,7 @@ export default function Play({
           jogo={antessala.jogo}
           titulo={tituloDoJogo(jogoUI, ageProfile)}
           ageProfile={ageProfile}
+          previa={previaDaFolha(antessala.previa, historico, vencidosAgora)}
           onJogar={() => {
             setExplicando(null);
             comecar(antessala);

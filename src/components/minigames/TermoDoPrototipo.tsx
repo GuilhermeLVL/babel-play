@@ -4,6 +4,7 @@ import { Check, CornerDownLeft, Delete, Lightbulb, Volume2 } from 'lucide-react'
 import React, { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
 import { regrasDoJogo, vezesDaAjuda } from '../../core/minigames/regras';
+import { letraDaTecla, linhasDoTeclado } from '../../core/minigames/tecladoDoTermo';
 import { celebrar } from '../../lib/comemoracao';
 import { useNivelDoJogo } from '../../lib/jogos/nivelDoJogo';
 import { polido } from '../../lib/polimento/base';
@@ -50,7 +51,6 @@ interface Tab {
 
 /** A escada do protótipo (`DEGRAUS`, `jogos4.js:265`): uma palavra, depois duas ao mesmo tempo. */
 const ESCADA = [1, 2];
-const LINHAS_DO_TECLADO = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
 const PESO: Record<Cor, number> = { fora: 1, lugar: 2, certa: 3 };
 const SUBIU = 'Subiu! Agora são duas ao mesmo tempo: o mesmo palpite vale para as duas.';
 
@@ -286,7 +286,8 @@ export default function TermoDoPrototipo({ rodadas, onFinish }: Props) {
         return enviar();
       }
       if (e.key === 'Backspace') return apagar();
-      if (/^[a-zA-Z]$/.test(e.key)) digitar(e.key.toUpperCase());
+      const letra = letraDaTecla(e.key);
+      if (letra) digitar(letra);
     };
     window.addEventListener('keydown', aoTeclar);
     return () => window.removeEventListener('keydown', aoTeclar);
@@ -425,8 +426,8 @@ export default function TermoDoPrototipo({ rodadas, onFinish }: Props) {
           ))}
         </div>
         <div className="teclado">
-          {LINHAS_DO_TECLADO.map((l, n) => {
-            const fim = n === LINHAS_DO_TECLADO.length - 1;
+          {linhasDoTeclado(degraus[0]?.[0]?.lang).map((l, n, todas) => {
+            const fim = n === todas.length - 1;
             return (
               <div className="fila" key={l}>
                 {fim && (

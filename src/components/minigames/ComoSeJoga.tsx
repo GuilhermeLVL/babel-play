@@ -1,6 +1,7 @@
 import type { MinigameId } from '@core';
 import { LifeBuoy, Play, TriangleAlert } from 'lucide-react';
 
+import { linhasDaPrevia, type PreviaDaFolha } from '../../core/minigames/previaDaFolha';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
 import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
@@ -242,13 +243,10 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
       'Escolha qual das duas você ouviu (teclas 1 e 2). Ouvir devagar e ouvir de novo não têm limite.',
       'Veja o contraste entre os sons e ouça as duas palavras. No fim, o resumo diz quais sons o ouvido confundiu.',
     ],
-    avaliacao:
-      'Cada par vale um acerto ou um erro. Não há relógio nem bônus por rapidez: ouça no seu passo.',
+    avaliacao: 'Cada par vale um acerto ou um erro. Não há relógio nem bônus por rapidez: ouça no seu passo.',
     limites:
       'A voz é sintetizada e pode soar diferente de uma pessoa real, e o sotaque muda de um lugar para outro. Sem voz neste aparelho para o idioma, ou sem lista de pares nele, o jogo não abre.',
-    ajudas: [
-      { o_que: 'Ouvir de novo e ouvir devagar, sem limite.', custo: null },
-    ],
+    ajudas: [{ o_que: 'Ouvir de novo e ouvir devagar, sem limite.', custo: null }],
   },
   conectores: {
     treina: 'Perceber as palavras que AMARRAM as ideias, o que separa entender palavras de entender o texto.',
@@ -371,12 +369,16 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
   },
 };
 
+const ROTULO_DA_PREVIA = { novas: 'novas', jaViu: 'já viu', paraRepetir: 'para repetir' } as const;
+
 interface ComoSeJogaProps {
   jogo: MinigameId;
   titulo: string;
   ageProfile: AgeProfileType;
   onJogar: () => void;
   onFechar: () => void;
+  /** Só quando a folha abre da antessala (há rodada montada): as contagens dela, já pela cerca de `previaSegura`. */
+  previa?: PreviaDaFolha;
 }
 
 /**
@@ -385,7 +387,7 @@ interface ComoSeJogaProps {
  * o preço de cada uma, o aviso `.aviso-info.warn` do que o jogo não mede e o rodapé `.dlg-pe`.
  * Esc (o `cancel` nativo) fecha; o foco começa em "Começar" — quem já sabe aperta Enter e segue.
  */
-export default function ComoSeJoga({ jogo, titulo, ageProfile, onJogar, onFechar }: ComoSeJogaProps) {
+export default function ComoSeJoga({ jogo, titulo, ageProfile, onJogar, onFechar, previa }: ComoSeJogaProps) {
   const conteudo = COMO_SE_JOGA[jogo];
   if (!conteudo) return null;
 
@@ -416,6 +418,19 @@ export default function ComoSeJoga({ jogo, titulo, ageProfile, onJogar, onFechar
         </>
       }
     >
+      {previa && (
+        <section className="q-secao" data-secao="previa-da-rodada">
+          <p className="q-rotulo">{t('Nesta rodada')}</p>
+          <ul className="qj-ajudas">
+            {linhasDaPrevia(previa).map(({ chave, n }) => (
+              <li key={chave} data-previa={chave}>
+                <span>{t(ROTULO_DA_PREVIA[chave])}</span>
+                <span className="q-tag">{n}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <section className="q-secao">
         <p className="q-rotulo">{t('O que treina')}</p>
         <p className="q-texto">{t(conteudo.treina)}</p>

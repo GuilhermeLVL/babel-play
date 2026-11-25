@@ -16,7 +16,7 @@
  * - `avancar` deve receber UMA hipótese por decode COMPLETO. O texto que cresce token a token DENTRO de um decode
  *   (`onUpdate`) concorda sempre com o decode anterior dele mesmo: use `visualizar` para pintá-lo, sem avançar.
  */
-import { SEM_ESPACO, tokenizar } from './medidasDeParcial';
+import { SEM_ESPACO, tokenizar } from './medidasDeParcial.ts';
 
 export interface Unidade {
   /** Separador que vinha antes dela no texto (' ' ou ''). */

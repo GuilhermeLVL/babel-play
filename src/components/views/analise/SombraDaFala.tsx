@@ -5,7 +5,12 @@
  * Três momentos, como no desenho: pronto (ouvir e gravar), analisando, nota. A gravação é real nas
  * duas pontas: o reconhecimento de fala do navegador dá o texto que a nota compara com a frase
  * (`scorePronunciation`), e um `MediaRecorder` no mesmo microfone guarda o áudio — é ele que toca
- * em "Ouvir minha gravação". Sem reconhecimento de fala no navegador, a tela diz isso.
+ * em "Ouvir minha gravação".
+ *
+ * QUEM TRANSCREVE é `motorDaSombra` (core): o Web Speech SÓ onde o navegador o tem E `rapidoDoMicPermitido()` (no
+ * Chrome ele manda o áudio ao fabricante; perfil protegido sem o responsável nunca o usa: decisão 12). Sem ele, e com a
+ * flag `sombra_local`, a frase é transcrita NO APARELHO (`lib/fala/ouvirFraseNoAparelho`), só em inglês por ora. Sem
+ * nenhum dos dois, a gravação comparável sem nota.
  */
 import { scorePronunciation } from '@core';
 import { Headphones, Mic, RotateCcw, Square, Volume2 } from 'lucide-react';

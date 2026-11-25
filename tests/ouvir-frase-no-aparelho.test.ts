@@ -64,7 +64,7 @@ afterEach(() => vi.unstubAllGlobals())
 describe('ouvirUmaFrase', () => {
   it('com fala: reamostra, apara, decodifica e devolve o texto; solta o microfone', async () => {
     const f = capturaFalsa([ruido(1, 48000), tom(1.2, 48000), ruido(1, 48000)])
-    const transcrever = vi.fn(async () => 'hello there my friend')
+    const transcrever = vi.fn(async (_pcm: Float32Array, _lang: string) => 'hello there my friend')
     const fetchEspiao = vi.fn()
     vi.stubGlobal('fetch', fetchEspiao)
     const s = await ouvirUmaFrase({ lang: 'en-US', deps: { capturar: f.capturar, transcrever } })

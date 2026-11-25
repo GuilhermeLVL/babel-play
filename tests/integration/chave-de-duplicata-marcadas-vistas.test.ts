@@ -37,7 +37,7 @@ const marcadas = async (): Promise<string[]> =>
   (
     linhas(
       await db.execute(
-        sql`SELECT lang, chave, estado FROM palavras_marcadas WHERE user_id = ${u} ORDER BY lang, chave`,
+        sql`SELECT lang, chave, estado FROM palavras_marcadas WHERE user_id = ${u} ORDER BY lang COLLATE "C", chave COLLATE "C"`,
       ),
     ) as Array<{ lang: string; chave: string; estado: string }>
   ).map((r) => `${r.lang}|${r.chave}|${r.estado}`)

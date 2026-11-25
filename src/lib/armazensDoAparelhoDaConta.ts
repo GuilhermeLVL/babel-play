@@ -208,13 +208,27 @@ async function purgarDeOutros(): Promise<void> {
     gravarMarcador(dono);
     return;
   }
-  if (marcador === 'anonimo' && ehConta(dono)) return; // pendente: a pessoa escolhe no aviso de entrada
+  if (marcador === 'anonimo' && ehConta(dono)) {
+    /* O visitante só abriu o app (nada além dos marcadores passivos): não há o que escolher, a conta adota. Sem isto
+       o que a própria conta grava logo depois (conquistas, cromas) faria o aviso aparecer a quem não deixou nada. */
+    if (!(await haAlgoDoVisitante())) gravarMarcador(dono);
+    return; // senão, pendente: a pessoa escolhe no aviso de entrada
+  }
   await apagarEReconhecer();
 }
 
 registrarArmazemPorConta({
   nome: 'dados-do-aparelho-da-conta',
-  async apagarTudo() {
+  async apagarTudo(o) {
+    /* O visitante que só abriu o app e agora entra: não há o que escolher, a conta adota (ver `purgarDeOutros`). */
+    if (
+      o?.preservarVisitante &&
+      lerMarcador() === 'anonimo' &&
+      ehConta(donoDaIdentidade()) &&
+      !(await haAlgoDoVisitante())
+    ) {
+      gravarMarcador(donoDaIdentidade());
+    }
     /* O que é do VISITANTE não é da conta que entra nem da que sai: fica (pendente, a pessoa escolhe trazer ou apagar;
        perdê-lo ao entrar e sair apagaria os livros que ele trouxe). Só sai o que é da conta por chave de usuário:
        foto e avatar. */
@@ -236,10 +250,17 @@ registrarArmazemPorConta({
 /** O visitante (sem conta) deixou algo marcado e agora há uma conta: falta a escolha da pessoa. */
 export const visitantePendente = (): boolean => lerMarcador() === 'anonimo' && ehConta(donoDaIdentidade());
 
+/** Marcadores que o app grava sozinho ao abrir (sem a pessoa ter feito nada): não justificam o aviso. */
+const CHAVES_PASSIVAS = new Set(['babel.presenca_dia', 'babel.nivel_visto']);
+
 /** Há mesmo algo do visitante no aparelho (chave ou banco com conteúdo)? É o que decide se o aviso aparece. */
 export async function temDadosDoVisitante(): Promise<boolean> {
   if (!visitantePendente()) return false;
-  if (chavesPresentes().some((k) => k !== CHAVE_DO_DONO)) return true;
+  return haAlgoDoVisitante();
+}
+
+async function haAlgoDoVisitante(): Promise<boolean> {
+  if (chavesPresentes().some((k) => k !== CHAVE_DO_DONO && !CHAVES_PASSIVAS.has(k))) return true;
   const f = fabrica();
   if (!f) return false;
   for (const nome of CONJUNTOS.flatMap((c) => c.bancos)) {

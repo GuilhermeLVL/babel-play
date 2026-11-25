@@ -1502,3 +1502,9 @@ body:has(.leitor-pe) .fab {
     bottom: calc(84px + 78px + env(safe-area-inset-bottom, 0px));
   }
 }
+
+/* Com a barra do narrador aberta o iChat flutuante sai de cena: a barra tem altura variável (convite, painel,
+   celular) e ele cobria "Voz e modo". O leitor já tem o botão "IA" na barra de ferramentas. */
+body:has(.leitor-narrador) .fab {
+  display: none;
+}

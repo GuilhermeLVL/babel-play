@@ -360,6 +360,20 @@ describe('o visitante que entra numa conta: fica pendente até a pessoa escolher
     await espera()
     expect(await temDadosDoVisitante()).toBe(false)
   })
+
+  it('o visitante que só abriu o app: a conta adota, e o que ela grava depois não faz o aviso aparecer', async () => {
+    definirIdentidade('anonimo')
+    iniciarGuardaDosArmazensLocais()
+    await espera()
+    localStorage.setItem('babel.presenca_dia', '2026-11-25')
+    localStorage.setItem('babel.nivel_visto', '1')
+    entrar('A')
+    await espera()
+    expect(_lerMarcador()).toBe('A')
+    localStorage.setItem('babel.conquistas', '[]')
+    expect(visitantePendente()).toBe(false)
+    expect(await temDadosDoVisitante()).toBe(false)
+  })
 })
 
 describe('"Meus livros": a lista na memória se esquece quando o conjunto é apagado', () => {

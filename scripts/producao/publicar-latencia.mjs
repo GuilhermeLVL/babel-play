@@ -8,7 +8,7 @@
  *   npx tsx scripts/producao/publicar-latencia.mjs --fonte analytics-engine --dry-run    (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN)
  *   npx tsx scripts/producao/publicar-latencia.mjs --fonte arquivo --entrada dump.json --saida dist/latencia.json
  *
- * Opções: `--dataset <nome>` (padrão `frasy_metricas`; no staging, `frasy_metricas_staging`), `--janela <dias>` (padrão 28),
+ * Opções: `--saida-dono <arquivo>` (grava também a visão do dono: p95 e carga de modelo; arquivo PRIVADO), `--dataset <nome>` (padrão `frasy_metricas`; no staging, `frasy_metricas_staging`), `--janela <dias>` (padrão 28),
  * `--saida <arquivo>` (padrão `latencia.json`), `--dry-run` (valida e imprime o resumo; NÃO grava). Sai com 0 se gerou um
  * arquivo válido, 1 se a fonte falhou ou o contrato não fechou, 2 em uso errado. Não imprime segredo.
  *
@@ -20,6 +20,7 @@ import { pathToFileURL } from 'node:url'
 
 import { agregarLatencia, JANELA_DIAS, N_MIN } from '../../src/core/latencia/agregarLatencia.ts'
 import { celulasOk, validarLatencia } from '../../src/core/latencia/contratoDaLatencia.ts'
+import { agregarLatenciaDoDono, validarLatenciaDoDono } from '../../src/core/latencia/latenciaDoDono.ts'
 import { fonteDeArquivo, fonteDoAnalyticsEngine, fonteDoPrometheus } from './latencia/fontes.mjs'
 
 /** Lê e agrega; devolve o arquivo VALIDADO pelo contrato (ou lança). `fonte` e `hoje` entram para o teste ser determinístico. */
@@ -29,6 +30,19 @@ export async function gerarLatencia({ fonte, hoje = new Date(), janelaDias = JAN
   /* Passa pelo MESMO contrato que o app aplica ao ler: o que o script grava é o que o app aceita. */
   const valido = validarLatencia(JSON.parse(JSON.stringify(arquivo)))
   if (!valido) throw new Error('o agregado não passou no contrato do latencia.json (v: 1)')
+  return valido
+}
+
+/**
+ * A visão do DONO (p95 só com 1.000 falas ou mais, carga do modelo por fase): outro arquivo, que NÃO vai para o lugar público.
+ * Fonte sem `lerCargas` gera só a parte de latência.
+ */
+export async function gerarLatenciaDoDono({ fonte, hoje = new Date(), janelaDias = JANELA_DIAS }) {
+  const amostras = await fonte.ler({ janelaDias })
+  const cargas = fonte.lerCargas ? await fonte.lerCargas({ janelaDias }) : []
+  const arquivo = agregarLatenciaDoDono(amostras, cargas, hoje, janelaDias)
+  const valido = validarLatenciaDoDono(JSON.parse(JSON.stringify(arquivo)))
+  if (!valido) throw new Error('o agregado do dono não passou no contrato (v: 1)')
   return valido
 }
 
@@ -51,6 +65,7 @@ function lerArgumentos(argv) {
     fonte: undefined,
     dryRun: false,
     saida: 'latencia.json',
+    saidaDono: undefined,
     janela: JANELA_DIAS,
     dataset: 'frasy_metricas',
     entrada: undefined,
@@ -62,6 +77,7 @@ function lerArgumentos(argv) {
     else if (a === '--fonte') o.fonte = valor()
     else if (a === '--saida') o.saida = valor()
     else if (a === '--entrada') o.entrada = valor()
+    else if (a === '--saida-dono') o.saidaDono = valor()
     else if (a === '--dataset') o.dataset = valor()
     else if (a === '--janela') o.janela = Number(valor())
     else return { erro: `argumento desconhecido: ${a}` }
@@ -98,8 +114,20 @@ export async function principal(argv, env, saida = console) {
     const arquivo = await gerarLatencia({ fonte, janelaDias: opcoes.janela })
     saida.log(resumo(arquivo))
     if (opcoes.dryRun) {
+      if (opcoes.saidaDono) {
+        const dono = await gerarLatenciaDoDono({ fonte, janelaDias: opcoes.janela })
+        saida.log(
+          `visão do dono: ${dono.celulas.filter((c) => c.p95Ms !== undefined).length} células com p95, ${dono.cargas.length} cargas de modelo`,
+        )
+      }
       saida.log('--dry-run: nada foi gravado.')
       return 0
+    }
+    if (opcoes.saidaDono) {
+      const dono = await gerarLatenciaDoDono({ fonte, janelaDias: opcoes.janela })
+      mkdirSync(path.dirname(path.resolve(opcoes.saidaDono)), { recursive: true })
+      writeFileSync(opcoes.saidaDono, `${JSON.stringify(dono, null, 2)}\n`)
+      saida.log(`visão do dono gravada em ${opcoes.saidaDono} (NÃO publique em lugar público)`)
     }
     mkdirSync(path.dirname(path.resolve(opcoes.saida)), { recursive: true })
     writeFileSync(opcoes.saida, `${JSON.stringify(arquivo, null, 2)}\n`)

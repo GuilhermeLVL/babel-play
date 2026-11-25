@@ -99,7 +99,38 @@ export function fonteDoPrometheus({ base, buscar = fetch }) {
       }
       return [...mapa.values()]
     },
+    /** Tempo de carga do modelo por classe, modelo e fase (`captura_carga_modelo_ms`), só para a visão do dono. */
+    async lerCargas({ janelaDias }) {
+      const series = await consultaInstantanea(
+        buscar,
+        base,
+        `sum by (classe, modelo, fase, le) (increase(captura_carga_modelo_ms_bucket[${duracao(janelaDias)}]))`,
+      )
+      const grupos = new Map()
+      for (const s of series) {
+        const { classe, modelo, fase, le } = s.metric ?? {}
+        if ([classe, modelo, fase, le].some((x) => typeof x !== 'string')) continue
+        const k = [classe, modelo, fase].join('\u0000')
+        const g = grupos.get(k) ?? { classe, modelo, fase, porLe: new Map() }
+        g.porLe.set(le === '+Inf' ? Infinity : Number(le), Number(s.value?.[1]))
+        grupos.set(k, g)
+      }
+      return [...grupos.values()].map(({ porLe, ...resto }) => ({ ...resto, baldes: baldesDoCumulativo(porLe) }))
+    },
   }
+}
+
+/** O histograma cumulativo por `le` vira contagem por balde. */
+function baldesDoCumulativo(porLe) {
+  const baldes = Array.from({ length: N_BALDES_DA_LATENCIA }, () => 0)
+  let anterior = 0
+  ;[...LIMITES_DOS_BALDES_MS, Infinity].forEach((limite, i) => {
+    const cum = porLe.get(limite)
+    if (cum === undefined || !Number.isFinite(cum)) return
+    baldes[i] = arredondar(cum - anterior)
+    anterior = Math.max(anterior, cum)
+  })
+  return baldes
 }
 
 /* ------------------------------------------------------------------ Analytics Engine */
@@ -117,19 +148,23 @@ export function sqlDoAnalyticsEngine({ dataset, janelaDias }) {
 
 /** Fonte Analytics Engine: `conta` e `token` vêm do ambiente do Action (`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`). */
 export function fonteDoAnalyticsEngine({ conta, token, dataset = 'frasy_metricas', buscar = fetch }) {
+  async function consultar(sql) {
+    if (!/^[a-f0-9]{32}$/i.test(conta ?? '')) throw new Error('CLOUDFLARE_ACCOUNT_ID ausente ou inválido')
+    if (!token) throw new Error('CLOUDFLARE_API_TOKEN ausente')
+    const r = await buscar(`https://api.cloudflare.com/client/v4/accounts/${conta}/analytics_engine/sql`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'text/plain' },
+      body: sql,
+    })
+    if (!r.ok) throw new Error(`Analytics Engine respondeu ${r.status}`)
+    const corpo = await r.json()
+    if (!Array.isArray(corpo?.data)) throw new Error('resposta do Analytics Engine fora do formato')
+    return corpo
+  }
   return {
     nome: 'analytics-engine',
     async ler({ janelaDias }) {
-      if (!/^[a-f0-9]{32}$/i.test(conta ?? '')) throw new Error('CLOUDFLARE_ACCOUNT_ID ausente ou inválido')
-      if (!token) throw new Error('CLOUDFLARE_API_TOKEN ausente')
-      const r = await buscar(`https://api.cloudflare.com/client/v4/accounts/${conta}/analytics_engine/sql`, {
-        method: 'POST',
-        headers: { authorization: `Bearer ${token}`, 'content-type': 'text/plain' },
-        body: sqlDoAnalyticsEngine({ dataset, janelaDias }),
-      })
-      if (!r.ok) throw new Error(`Analytics Engine respondeu ${r.status}`)
-      const corpo = await r.json()
-      if (!Array.isArray(corpo?.data)) throw new Error('resposta do Analytics Engine fora do formato')
+      const corpo = await consultar(sqlDoAnalyticsEngine({ dataset, janelaDias }))
       const mapa = new Map()
       for (const l of corpo.data) {
         if (typeof l?.classe !== 'string' || typeof l?.idioma !== 'string') continue
@@ -144,10 +179,36 @@ export function fonteDoAnalyticsEngine({ conta, token, dataset = 'frasy_metricas
       }
       return [...mapa.values()]
     },
+    async lerCargas({ janelaDias }) {
+      if (!/^[A-Za-z0-9_]{1,64}$/.test(dataset)) throw new Error('nome de dataset inválido')
+      const dias = Math.max(1, Math.floor(janelaDias))
+      const sql =
+        `SELECT blob2 AS classe, blob3 AS modelo, blob4 AS fase, double1 AS limite_ms, SUM(double2 * _sample_interval) AS q ` +
+        `FROM ${dataset} WHERE blob1 = 'captura_carga' AND timestamp > NOW() - INTERVAL '${dias}' DAY ` +
+        `GROUP BY classe, modelo, fase, limite_ms FORMAT JSON`
+      const corpo = await consultar(sql)
+      const grupos = new Map()
+      for (const l of corpo.data) {
+        if ([l?.classe, l?.modelo, l?.fase].some((x) => typeof x !== 'string')) continue
+        const q = arredondar(Number(l.q))
+        const i = indiceDoLimite(Number(l.limite_ms))
+        if (q === 0 || i === -1) continue
+        const k = [l.classe, l.modelo, l.fase].join('\u0000')
+        const g = grupos.get(k) ?? {
+          classe: l.classe,
+          modelo: l.modelo,
+          fase: l.fase,
+          baldes: Array.from({ length: N_BALDES_DA_LATENCIA }, () => 0),
+        }
+        g.baldes[i] += q
+        grupos.set(k, g)
+      }
+      return [...grupos.values()]
+    },
   }
 }
 
 /** Fonte de arquivo: um dump local (`AmostraDeCelula[]` em JSON), para o `--dry-run` e para os testes. */
-export function fonteDeArquivo({ amostras }) {
-  return { nome: 'arquivo', ler: async () => amostras }
+export function fonteDeArquivo({ amostras, cargas = [] }) {
+  return { nome: 'arquivo', ler: async () => amostras, lerCargas: async () => cargas }
 }

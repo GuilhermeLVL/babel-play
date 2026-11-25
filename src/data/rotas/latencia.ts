@@ -11,6 +11,7 @@
  */
 import { type LatenciaPublicada } from '../../core/latencia/agregarLatencia';
 import { arquivoFresco, validarLatencia } from '../../core/latencia/contratoDaLatencia';
+import { type LatenciaDoDono, validarLatenciaDoDono } from '../../core/latencia/latenciaDoDono';
 import { FLAG_LATENCIA_PUBLICADA, FLAG_RUM_LATENCIA } from '../../core/planos';
 import { flagLigada } from '../../lib/flagsCache';
 
@@ -50,4 +51,33 @@ export function lerLatenciaPublicada(agora: Date = new Date()): Promise<Latencia
     }
   })();
   return pedido;
+}
+
+/* ------------------------------------------------------------------ visão do dono */
+
+/** O endereço do arquivo do DONO (`VITE_LATENCIA_DONO_URL`): privado, atrás de acesso. Sem ele, a visão do dono não existe. */
+export function urlDaLatenciaDoDono(): string | null {
+  const v = (import.meta.env.VITE_LATENCIA_DONO_URL as string | undefined)?.trim();
+  return v || null;
+}
+
+/**
+ * A visão do dono (p95 e carga por fase) ou `null`: flag desligada, sem URL configurada, falha ou contrato inválido. Sem cache de
+ * módulo de propósito: é o painel do admin (o botão Atualizar relê).
+ */
+export async function lerLatenciaDoDono(agora: Date = new Date()): Promise<LatenciaDoDono | null> {
+  const url = urlDaLatenciaDoDono();
+  if (!latenciaPublicadaLigada() || !url) return null;
+  try {
+    const r = await fetch(url, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { accept: 'application/json' },
+    });
+    if (!r.ok) return null;
+    const arquivo = validarLatenciaDoDono(await r.json());
+    return arquivo && arquivoFresco(arquivo, agora) ? arquivo : null;
+  } catch {
+    return null;
+  }
 }

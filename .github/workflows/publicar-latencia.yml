@@ -1,0 +1,96 @@
+# PUBLICAR A LATÊNCIA DE CAMPO (openspec `latencia-publicada-por-aparelho`, tarefa 3.1) — semanal, pelo runner do GitHub.
+#
+# O que faz: lê a telemetria `v: 2` (Analytics Engine) dos últimos 28 dias, soma os baldes por classe de aparelho x idioma,
+# aplica o piso de 200 falas e gera DOIS arquivos com `scripts/producao/publicar-latencia.mjs`:
+#   - `latencia.json`       agregado PÚBLICO (o selo do app e a página /desempenho leem este);
+#   - `latencia-dono.json`  visão do DONO (p95 com 1.000 falas ou mais e carga de modelo por fase): NUNCA vai para lugar público.
+# Os dois sobem como artefato (35 dias) e, só se as variáveis do Environment existirem, para o R2 com `wrangler r2 object put`.
+#
+# NASCE SEGURO: sem a variável `LATENCIA_PUBLICAR=1` no Environment, o workflow só gera e confere (dry-run + artefato); nada é
+# publicado. Ligar a publicação é ato do dono, depois do parecer de privacidade sobre `rum_latencia` e de uma semana com 6 ou
+# mais células `ok` (`docs/runbook.md`, "Latência publicada por aparelho"). Com `rum_latencia` desligada não há dado novo: o
+# arquivo sai com `celulas: []`, e isso é a resposta honesta.
+#
+# GITHUB ENVIRONMENT (`staging` e `production`)
+#   secrets:  CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN com SÓ a permissão "Account Analytics: Read" (leitura do SQL do
+#             Analytics Engine); para publicar, `CLOUDFLARE_R2_TOKEN` com R2 Edit (outro token: o de leitura nunca escreve).
+#   variables: LATENCIA_PUBLICAR=1 (liga o upload), LATENCIA_BUCKET (bucket público do agregado), LATENCIA_BUCKET_DONO (bucket
+#             PRIVADO da visão do dono).
+name: publicar-latencia
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        description: 'Ambiente (GitHub Environment com o token de leitura do Analytics Engine)'
+        type: choice
+        options: [staging, production]
+        default: staging
+      so_conferir:
+        description: 'Só gerar e conferir (dry-run), sem subir nada'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+env:
+  ONNXRUNTIME_NODE_INSTALL: skip
+
+concurrency:
+  group: publicar-latencia-${{ inputs.ambiente || 'production' }}
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: ${{ inputs.ambiente || 'production' }}
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: 'false'
+      DATASET: ${{ (inputs.ambiente || 'production') == 'production' && 'frasy_metricas' || 'frasy_metricas_staging' }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        timeout-minutes: 5
+      - name: Conferir as credenciais de leitura
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          for n in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+            [ -n "${!n}" ] || { echo "::error::falta o secret $n no Environment"; exit 1; }
+          done
+      - name: Conferir (dry-run contra a fonte)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx tsx scripts/producao/publicar-latencia.mjs --fonte analytics-engine --dataset "$DATASET" --saida-dono latencia-dono.json --dry-run
+      - name: Gerar os arquivos
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx tsx scripts/producao/publicar-latencia.mjs --fonte analytics-engine --dataset "$DATASET" --saida latencia.json --saida-dono latencia-dono.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: latencia
+          path: |
+            latencia.json
+            latencia-dono.json
+          retention-days: 35
+      - name: Publicar no R2 (só com LATENCIA_PUBLICAR=1)
+        if: ${{ vars.LATENCIA_PUBLICAR == '1' && inputs.so_conferir != true }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_TOKEN }}
+          BUCKET: ${{ vars.LATENCIA_BUCKET }}
+          BUCKET_DONO: ${{ vars.LATENCIA_BUCKET_DONO }}
+        run: |
+          for n in CLOUDFLARE_API_TOKEN BUCKET BUCKET_DONO; do
+            [ -n "${!n}" ] || { echo "::error::falta $n (secret CLOUDFLARE_R2_TOKEN ou variável do Environment)"; exit 1; }
+          done
+          npx wrangler r2 object put "$BUCKET/latencia.json" --file latencia.json --content-type application/json --cache-control "public, max-age=3600" --remote
+          npx wrangler r2 object put "$BUCKET_DONO/latencia-dono.json" --file latencia-dono.json --content-type application/json --cache-control "private, no-store" --remote

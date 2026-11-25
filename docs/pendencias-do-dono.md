@@ -126,6 +126,7 @@ Registrados para não se perderem; não são do dono, mas ficaram abertos nas ch
 - `audiolivros` (P2) · Consulta jurídica espeak/OpenRAIL, escuta cega, bucket/CDN, aprovar a amostra de 5%, beta e rampa.
 - `interprete-conversa-virtual` (P2) · Plano da conversa virtual, voz roteável do Grátis, teste real com Meet/Zoom e Discord.
 - `polimento-movimento` (P2) · Aprovar a aparência do tema e da barra de cinco; decidir temas-v2 (5.3).
+- `latencia-publicada-por-aparelho` (P2) · 4.1 a 4.4 · Parecer de privacidade (o mesmo de `rum_latencia`), token de leitura do Analytics Engine, triagem no staging com celular bom e fraco, e ligar `latencia_publicada` só após uma semana com 6 ou mais células `ok`. Código pronto atrás da flag desligada (runbook §3.3).
 - `roteador-adaptativo-em-sombra` (P2) · 5.2 · Ligar a flag no staging, parecer de privacidade (`rum_latencia`) e decidir sair da sombra.
 - `avatar-interprete` (P2) · 5.1 · Decisão da função `leitura_elenco`; revisão por pessoas surdas antes de `avatar_sinais`; ligar as flags depois do staging.
 - `modelo-do-aluno-e-dados` (P2) · Cada fatia espera o sim do dono; as que mexem em dado gravado exigem backup e ensaio.

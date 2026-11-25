@@ -26,6 +26,14 @@ describe('arquivosEsperados', () => {
     expect(urls).toContain('https://modelos.frasy.com.br/ort/1.26.0/ort-wasm-simd-threaded.asyncify.wasm')
     expect(e).toHaveLength(2 + ARQUIVOS_DO_PARAKEET.length + 1)
   })
+
+  it('7.2: cada arquivo do Parakeet (rota pt dos parciais) é conferido, com repo/revisão/nome e bytes fixados', () => {
+    const e = arquivosEsperados('https://modelos.frasy.com.br', { m: {} })
+    expect(ARQUIVOS_DO_PARAKEET.length).toBeGreaterThan(0)
+    for (const a of ARQUIVOS_DO_PARAKEET)
+      expect(e).toContainEqual({ url: `https://modelos.frasy.com.br/${a.repo}/${a.revisao}/${a.nome}`, bytes: a.bytes })
+    expect(e).toHaveLength(ARQUIVOS_DO_PARAKEET.length)
+  })
 })
 
 describe('conferirEspelho', () => {

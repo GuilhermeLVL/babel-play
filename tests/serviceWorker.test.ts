@@ -151,6 +151,38 @@ describe('sw.js', () => {
     expect(await sw.pedir('https://frasy.test/planos', 'navigate')).toBeNull()
   })
 
+  it('7.1: o site público estático (escopo / do SW) e /api nunca passam pelo SW, em navegação ou subrecurso', async () => {
+    const sw = rodarSw(fonte)
+    await sw.esperar('install')
+    const publicas = [
+      '/',
+      '/inicio.html',
+      '/planos',
+      '/planos/',
+      '/guias/ingles-com-series',
+      '/sitemap.xml',
+      '/robots.txt',
+      '/ads.txt',
+      '/aplicativo', // prefixo parecido com /app, mas não é o app
+      '/api/flags',
+      '/api/health',
+    ]
+    for (const p of publicas) {
+      expect(await sw.pedir(`https://frasy.test${p}`, 'navigate'), `navegação ${p}`).toBeNull()
+      expect(await sw.pedir(`https://frasy.test${p}`, 'no-cors'), `subrecurso ${p}`).toBeNull()
+    }
+    expect(sw.fetch).not.toHaveBeenCalled()
+  })
+
+  it('7.1: a lista de precache e a cache do SW não guardam páginas do site público nem /api', async () => {
+    const l = listaDePrecache(bundle)
+    expect(l.some((p) => /^(planos|guias|sitemap|robots|ads|inicio|api)/.test(p))).toBe(false)
+    const sw = rodarSw(fonte)
+    await sw.esperar('install')
+    const guardado = [...sw.lojas.get(`${PREFIXO_DO_CACHE}v2`)!.keys()]
+    expect(guardado.some((p) => /^\/(planos|guias|sitemap|robots|ads|inicio|api)/.test(p))).toBe(false)
+  })
+
   it('recarregar offline: a navegação do app cai no HTML guardado (sem tela branca)', async () => {
     const sw = rodarSw(fonte, { rede: async () => Promise.reject(new TypeError('Failed to fetch')) })
     await sw.esperar('install')

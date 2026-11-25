@@ -14,6 +14,11 @@
  *
  * Função pura sobre as opções (os guias vêm lidos): os testes chamam `gerarSite` direto.
  */
+import { readFileSync } from 'node:fs';
+
+import { type LatenciaPublicada } from '../../src/core/latencia/agregarLatencia';
+import { validarLatencia } from '../../src/core/latencia/contratoDaLatencia';
+import { CAMINHO_DO_DESEMPENHO, corpoDoDesempenho, deveGerarDesempenho } from './desempenho';
 import { type Guia, lerGuias } from './guias';
 import { corpoDaHome, CSS_DA_HOME } from './home';
 import { pagina } from './layout';
@@ -63,6 +68,10 @@ export interface OpcoesDoSite {
   versaoDaFonte: string;
   /** Versão do pacote da Inter (padrão: a da Archivo). */
   versaoDaFonteDoTexto?: string;
+  /** O `latencia.json` lido e VALIDADO (`SITE_LATENCIA_ARQUIVO`); só vira a página `/desempenho` com a flag `latencia_publicada` na lista. */
+  latencia?: LatenciaPublicada | null;
+  /** O dia do build (injetável nos testes); decide se o arquivo ainda vale (35 dias). */
+  hoje?: Date;
 }
 
 /** As páginas indexáveis, na ordem do sitemap: [caminho, arquivo]. */
@@ -78,9 +87,10 @@ const FIXAS: [string, string][] = [
 /** As páginas escritas à mão em `public/` que também entram no sitemap. */
 const DE_PUBLIC = ['/privacidade', '/termos'];
 
-function sitemap(url: string, guias: Guia[]): string {
+function sitemap(url: string, guias: Guia[], comDesempenho = false): string {
   const entradas = [
     ...FIXAS.map(([c]) => ({ loc: `${url}${c}`, lastmod: undefined as string | undefined })),
+    ...(comDesempenho ? [{ loc: `${url}${CAMINHO_DO_DESEMPENHO}`, lastmod: undefined as string | undefined }] : []),
     ...DE_PUBLIC.map((c) => ({ loc: `${url}${c}`, lastmod: undefined as string | undefined })),
     ...guias.map((g) => ({ loc: `${url}/guias/${g.slug}`, lastmod: g.publicado })),
   ];
@@ -230,7 +240,21 @@ export function gerarSite(o: OpcoesDoSite): Map<string, string> {
       corpo: corpoDo404(),
     }),
   );
-  arquivos.set('sitemap.xml', sitemap(url, o.guias));
+  const desempenho = deveGerarDesempenho(o.flags, o.latencia, o.hoje);
+  if (desempenho && o.latencia) {
+    arquivos.set(
+      'desempenho.html',
+      pagina({
+        ...base,
+        caminho: CAMINHO_DO_DESEMPENHO,
+        titulo: 'Desempenho medido | Frasy',
+        descricao:
+          'Quanto tempo a legenda traduzida leva para aparecer, por tipo de aparelho, com a definição da medida e o que ela não garante.',
+        corpo: corpoDoDesempenho(o.latencia),
+      }),
+    );
+  }
+  arquivos.set('sitemap.xml', sitemap(url, o.guias, desempenho));
   arquivos.set('robots.txt', robots(url));
   if (o.adsensePubId) arquivos.set('ads.txt', `google.com, ${o.adsensePubId}, DIRECT, f08c47fec0942fa0\n`);
   return arquivos;
@@ -273,6 +297,16 @@ export function paginaLegal(
   });
 }
 
+/** O `latencia.json` do build: inválido, ausente ou ilegível = `null` (a página não sai; nunca derruba o build). */
+export function lerLatenciaDoBuild(caminho: string | undefined): LatenciaPublicada | null {
+  if (!caminho?.trim()) return null;
+  try {
+    return validarLatencia(JSON.parse(readFileSync(caminho.trim(), 'utf8')));
+  } catch {
+    return null;
+  }
+}
+
 /** As opções a partir do ambiente do build e da pasta dos guias. */
 export function opcoesDoAmbiente(
   env: Record<string, string | undefined>,
@@ -288,6 +322,7 @@ export function opcoesDoAmbiente(
       flags: lerFlagsDoSite(env.SITE_FLAGS_DE_VENDA),
       anualAVenda: env.SITE_ANUAL_A_VENDA?.trim() === '1',
       adsensePubId: idDoAdsense(env.ADSENSE_PUB_ID),
+      latencia: lerLatenciaDoBuild(env.SITE_LATENCIA_ARQUIVO),
       versaoDaFonte,
       versaoDaFonteDoTexto,
     },

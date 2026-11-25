@@ -416,6 +416,14 @@ export const FLAG_SOMBRA_LOCAL = 'sombra_local';
 export const FLAG_LATENCIA_PUBLICADA = 'latencia_publicada';
 
 /**
+ * A CHAVE DE DUPLICATA POR IDIOMA (openspec `modelo-do-aluno-e-dados`, fatia 5; migrações PG 0039 e SQLite 0078, provisórias):
+ * com a flag ligada o servidor compara palavras pela chave v2 (`chaveDedup(..., 2)`), que mantém as marcas que distinguem
+ * palavras (`año` x `ano`). Só vale DEPOIS da reescrita de `norm_key` (`operacao.cjs chave-de-duplicata`). Nasce DESLIGADA e
+ * sem regra de plano; ligar é ato do dono, com backup e o app parado.
+ */
+export const FLAG_CHAVE_DEDUP_V2 = 'chave_dedup_v2';
+
+/**
  * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,
  * "Custo da escrita"): um retorno leva ~900 tokens de entrada (system + texto de até 120 palavras) e até 500 de saída;
  * 30 por mês ficam na casa de US$ 0,01 por assinante que usa tudo, e os tokens já saem da `tokensMes`.

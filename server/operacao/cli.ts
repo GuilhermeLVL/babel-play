@@ -13,6 +13,7 @@
  *       `/api/admin` exige um). Ver `server/operacao/contas.ts`.
  *
  *   node dist-server/operacao.cjs reparar-idiomas [--aplicar]
+ *   node dist-server/operacao.cjs chave-de-duplicata [--para 1|2] [--aplicar --backup-feito]
  *       Reetiqueta o idioma de falas, sessões e cartões gravados errado (ver `reparoDeIdioma.ts`).
  *       Sem `--aplicar` só mostra o plano.
  *
@@ -47,12 +48,29 @@ async function principal(): Promise<number> {
     console.log(`${aplicar ? 'APLICADO' : 'ENSAIO (nada gravado; use --aplicar)'}:`, r)
     return 0
   }
+  if (comando === 'chave-de-duplicata') {
+    // Import dinâmico, como `flags`: só este comando precisa do banco da aplicação.
+    const { reescreverChavesDeDuplicata } = await import('./chaveDeDuplicata')
+    const aplicar = process.argv.includes('--aplicar')
+    const i = process.argv.indexOf('--para')
+    const para = i >= 0 && process.argv[i + 1] === '1' ? 1 : 2
+    const r = await reescreverChavesDeDuplicata({
+      aplicar,
+      para,
+      backupFeito: process.argv.includes('--backup-feito'),
+    })
+    console.log(
+      `${aplicar ? 'APLICADO' : 'ENSAIO (nada gravado; use --aplicar --backup-feito)'} (v${para === 2 ? '1 → 2' : '2 → 1'}):`,
+      r,
+    )
+    return 0
+  }
   return uso()
 }
 
 function uso(): number {
   console.error(
-    'uso: operacao.cjs flags listar|ligar|desligar|definir | conta listar|papel|plano | reparar-idiomas [--aplicar] | palavras reindexar [--usuario <id>]',
+    'uso: operacao.cjs flags listar|ligar|desligar|definir | conta listar|papel|plano | reparar-idiomas [--aplicar] | chave-de-duplicata [--para 1|2] [--aplicar --backup-feito] | palavras reindexar [--usuario <id>]',
   )
   return 2
 }

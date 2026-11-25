@@ -32,6 +32,7 @@ import helmet from 'helmet'
 import { audioRouter } from '../audio/loopback'
 import { exigirAal2SeTiver2fa } from '../lib/aal'
 import { abertura, portaDoCadastro } from '../lib/abertura'
+import { versaoDaChaveNaRequisicao } from '../lib/atualizarChaveDedup'
 import { authMiddleware, authRequired, verificarTokenPadrao } from '../lib/auth'
 import type { UserId } from '../lib/authContext'
 import { metricasHabilitadas, segredoDeOrigem } from '../lib/config'
@@ -547,6 +548,9 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   /* Fase 6 — 2FA de verdade: quem ativou a verificação em duas etapas precisa de sessão AAL2 nas
      rotas de cobrança, exclusão/exportação de conta, credencial BYOK e admin (`server/lib/aal.ts`). */
   app.use('/api', exigirAal2SeTiver2fa())
+
+  /* Fatia 5 de `modelo-do-aluno-e-dados`: a chave de duplicata (v1 ou v2) segue a flag `chave_dedup_v2`. */
+  app.use('/api', versaoDaChaveNaRequisicao)
 
   // Rate-limit por tenant — DEPOIS do auth, para a chave ser o usuário e não o IP.
   app.use(['/api/ai', '/api/import', '/api/tutor'], expensiveLimiter)

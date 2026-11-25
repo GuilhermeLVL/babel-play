@@ -1,6 +1,15 @@
-- [x] 1.1 prettier com as duas convencoes medidas
+> Revisão de 25/11/2026 (main `897c9d25`). **[D]** = depende do dono. Cada tarefa tem "Verificar:".
+> O que já está no ar: `prettier.config.mjs` com `semi` por área (src com ponto e vírgula, server/tests/scripts sem), `.editorconfig`, husky com `lint-staged`
+> (Prettier e ESLint `--fix --max-warnings 0` em todo arquivo que entra num commit), `simple-import-sort`, `npm run lint` (`--max-warnings 0`) e `npm run typecheck:estrito`
+> (job da CI). Como o `lint-staged` formata o que se toca, a dívida só encolhe: o que resta fora do padrão são os arquivos que ninguém mexeu desde 09/09.
+> A CI NÃO roda `prettier --check` (nem `npm run formato`), então nada impede um arquivo fora do padrão de entrar por `--no-verify` ou por edição na web.
+> O motivo antigo de esperar ("depois das movimentações") depende da decisão sobre `estrutura-por-dominio-proposta`: se a árvore por domínio for recusada, o motivo cai.
+
+- [x] 1.1 Prettier com as duas convenções medidas. Prova: `prettier.config.mjs`
 - [x] 1.2 `.editorconfig`
-- [x] 1.3 husky + lint-staged
-- [x] 1.4 ordem de import automatica
-- [ ] 1.5 passada geral do Prettier (depois das movimentacoes, por decisao do dono)
-- [ ] 1.6 `prettier --check` no CI (junto com 1.5)
+- [x] 1.3 husky + lint-staged. Prova: bloco `lint-staged` do `package.json`
+- [x] 1.4 Ordem de import automática (`simple-import-sort`, 664 avisos corrigidos)
+- [ ] 1.5 Medir a dívida: quantos arquivos o `prettier --check` acusa hoje e em quais pastas (não medido nesta revisão por falta de dependências instaladas no worktree). Verificar: `npm run formato 2>&1 | tail` e a lista por pasta registrada em `docs/` ou no proposal, com data e commit
+- [ ] 1.6 `prettier --check` só nos arquivos alterados pelo PR, na CI (por exemplo `prettier --check $(git diff --name-only --diff-filter=d origin/main...HEAD)`), para travar a entrada de arquivo fora do padrão SEM reformatar o repositório. Verificar: PR de teste com um arquivo mal formatado falha no job e o PR limpo passa; nenhum arquivo fora do diff é tocado
+- [ ] 1.7 **[D]** Passada geral do Prettier (`npm run formato:corrigir`) num PR só de formatação, numa janela em que não haja PR aberto com mais de uma frente, com `.git-blame-ignore-revs` apontando o commit. Verificar: `git diff -w --stat` só mostra espaço e quebra de linha; `npm run typecheck`, `npm run typecheck:estrito`, `npm run lint` e `npm test` sem diferença; `npm run build` gera os mesmos arquivos (hash do `dist` igual, ou diferença explicada); `public/i18n`, `src/data/i18n` e `src/index.css` continuam fora (`.prettierignore`)
+- [ ] 1.8 `prettier --check .` inteiro na CI (o antigo 1.6), só depois de 1.7. Verificar: o job passa na `main` e falha com um arquivo mal formatado

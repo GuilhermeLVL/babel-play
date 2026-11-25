@@ -1,5 +1,5 @@
 > **O app trabalha pelo aluno.** Levantamento do código: `docs/auditoria/2026-10-10-dados-metricas-e-selecao.md`.
-> Pesquisa: `docs/auditoria/2026-10-10-ciencia-do-aprendizado-e-dados.md`. Nada desta proposta foi implementado;
+> Pesquisa: `docs/auditoria/2026-10-10-ciencia-do-aprendizado-e-dados.md`. Só as fatias 1 e 2 (medir, agregados, limpeza) foram feitas; o resto não;
 > cada fatia espera o sim do dono, e as que mexem em dado gravado dizem o risco.
 
 ## Why
@@ -89,3 +89,17 @@ de rastreio de conhecimento, nível CEFR por contagem, nota automática de pron�
 Sem estudo que as sustente, só raciocínio: jogo alimentando a repetição espaçada com peso menor, o alvo de
 80 a 90% nos jogos, abrir e fechar a rodada com item fácil, a proporção de palavras novas. Cada uma entra
 com a medida que vai dizer se funcionou.
+
+## Revisão de 25/11/2026
+
+- **Estado: precisa decisão (fatias 1 e 2 prontas; 3 a 7 esperam o sim do dono, por fatia).** Foram entregues em 10/10: colunas novas em `review_logs` (incluindo `resposta_ms`), calibração do FSRS no admin, agregados diários, estado por item e limpeza diária. O cabeçalho "Nada desta proposta foi implementado" estava errado e foi corrigido. Não existe `src/core/selecao/`; a chave de duplicata ainda funde `año`/`ano`, `schön`/`schon` (`src/core/texto/palavra.ts`); não há dicionário nem forma base; o cliente da revisão não envia o tempo.
+- **O que ficou velho:** (1) a premissa SQLite/libsql/Litestream (`PRAGMA optimize`, checkpoint do WAL, migrações 0052 e 0053): a produção é Postgres, o baseline PG absorveu as migrações e a limpeza só roda `ANALYZE` no PGlite; os números de tamanho e de tempo do levantamento (43,2 MB; 533 ms) são de SQLite sintético e precisam ser refeitos em PG antes de justificar mexer em agregados; (2) a aba Baralhos, que virou a ficha de conteúdo (tarefa 4.3); (3) a "tela principal" de métricas precisa se alinhar ao desenho de Cartões e ao polimento; (4) a decisão D.3 já foi implementada como `LIMPEZA_RETENCAO_DIAS`. Criado `specs/modelo-do-aluno/spec.md`, que não existia.
+- **Esforço: G** no conjunto. Por fatia: 3.1 a 3.3 (seletor) M a G; 3.4 M; 3.5 e 3.6 M; 4.x P a M; 5.x (chave de duplicata) M com risco alto; 6.x G com risco alto; 7.x M.
+- **Valor para quem usa:** alto na fatia 5 para quem estuda es, pt, de, fr, ja, hi, th (a palavra que colide nunca vira cartão: erro silencioso de conteúdo); médio no seletor único (a revisão e os jogos passam a concordar) e na regra jogo x memória; baixo a médio nas métricas e no dicionário; baixo em 7.x agora.
+- **Dependências:** `cartoes` vem ANTES (limites diários e opções na conta alimentam 3.2; as duas disputam o seletor de revisão); `motor-anki-mapeador` e `motor-anki-jogos` antes de 6.4; `tela-de-jogos-v2` e `polimento-movimento` mexem em `Play.tsx`, então 3.3 espera ambos. Arquivos de conflito: `src/core/minigames/*`, `src/core/learning/*`, `Study.tsx`, `Play.tsx`, `server/routes/{vocab,metrics}.ts`, `server/db/repositories/{vocab,agregados,metrics}.ts`. Regra de produto: sem cota nova (cotas só em `src/core/planos.ts`), sem IA, flags nascem desligadas, dados novos entram na exportação e na exclusão de conta.
+- **Decisões do dono:**
+  1. Qual fatia primeiro? (a) fatia 5, só a chave de duplicata, com ensaio na cópia do banco do dono (recomendado: bug de conteúdo, escopo fechado e reversível); (b) seletor único (3.1 a 3.3), maior ganho de coerência, mas disputa arquivos com Cartões e Jogos; (c) nenhuma agora, congelar depois da fatia 2.
+  2. D.2, jogo de reconhecer e agenda: (a) deixa de mexer na agenda (recomendado, é o que a pesquisa sustenta); (b) mexe com peso menor; (c) manter como está.
+  3. D.4, tempo de resposta: (a) guardar e mostrar só para a pessoa, fora de anúncio e de perfil (recomendado); (b) guardar sem mostrar; (c) não guardar. O mesmo parecer de privacidade dos anúncios cobre.
+  4. D.1, alvo de acerto e dificuldade adaptativa: (a) alvo 80 a 90% com a flag desligada, medindo primeiro (recomendado); (b) ligar para novos usuários; (c) não fazer.
+  5. Refazer as medições de tamanho e de tempo em Postgres antes da 2.2 (a) sim, junto da CI de carga (recomendado); (b) assumir que valem; (c) abandonar os agregados restantes.

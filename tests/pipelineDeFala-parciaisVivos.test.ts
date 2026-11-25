@@ -288,9 +288,9 @@ describe('parciais_vivos: escopo só na rota do Parakeet', () => {
 describe('parciais_vivos: gravação das hipóteses para o simulador', () => {
   const lista = (): EventoDeHipotese[] => ((globalThis as { __hipoteses?: EventoDeHipotese[] }).__hipoteses ??= [])
 
-  async function falar() {
+  async function falar(lang?: string) {
     const antes = lista().length
-    const { p, falas } = montar(['Olá', 'Olá tudo', 'Olá tudo bem'])
+    const { p, falas } = montar(['Olá', 'Olá tudo', 'Olá tudo bem'], lang)
     p.micHandlers.onSpeechStart(1)
     for (const n of [1600, 3200, 4800]) {
       await parcial(p, n)
@@ -321,5 +321,14 @@ describe('parciais_vivos: gravação das hipóteses para o simulador', () => {
     })
     expect(simulada.quadros.map((q) => q.texto)).toEqual([...armazem.escritas, 'Olá, tudo bem?'])
     expect(simulada.textoFinal).toBe(falas.ler().originalText)
+  })
+
+  it('ligada, grava também fora da rota do Parakeet (inglês/Moonshine), sem o pedido `parakeet`; desligada, o escopo é o de sempre', async () => {
+    motor.parakeet = false
+    const antes = await falar('en-US')
+    expect(antes.eventos).toEqual([])
+    localStorage.setItem('babel.lab.gravarHipoteses', '1')
+    const { eventos } = await falar('en-US')
+    expect(eventos.map((e) => e.tipo)).toEqual(['decode', 'decode', 'decode', 'fechada', 'final'])
   })
 })

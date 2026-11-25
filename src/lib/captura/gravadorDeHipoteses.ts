@@ -1,5 +1,5 @@
 /**
- * GRAVAÇÃO DAS HIPÓTESES DO PARCIAL (laboratório, ciclo 3; opt-in, só com `parciais_vivos` na rota do Parakeet).
+ * GRAVAÇÃO DAS HIPÓTESES DO PARCIAL (laboratório, ciclo 3; opt-in, com `parciais_vivos`, em qualquer rota: pt/Parakeet e inglês/Whisper).
  *
  * Com a chave de laboratório `babel.lab.gravarHipoteses=1` no localStorage, o pipeline registra, por fala, cada hipótese que o worker
  * devolve (token do `onUpdate` e decode completo), o instante em que a fala fechou e o texto final, todos com `performance.now()`.

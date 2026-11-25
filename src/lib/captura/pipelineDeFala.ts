@@ -845,11 +845,15 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
      * (inglês, Whisper, Moonshine, Web Speech, nuvem) o parcial é o de flag desligada, sem cadência, limitador, LocalAgreement nem armazém.
      * Decidido a cada parcial, porque o idioma e o motor podem mudar no meio da sessão. Aprovado só no pt/Parakeet (A/B da V7).
      */
-    const parcialVivoNaRota = (dica: string): boolean =>
+    const rotaDoParakeet = (dica: string): boolean =>
       flagLigada(FLAG_PARCIAIS_VIVOS) &&
       flagLigada(FLAG_PARCIAIS_PARAKEET) &&
       gateway.stt.parakeetAtivo?.() === true &&
       parakeetAceita(dica);
+    /* LABORATÓRIO (`babel.lab.gravarHipoteses=1`): a gravação vale em QUALQUER rota (inglês/Whisper) com `parciais_vivos` ligada, para o
+       simulador cobrir o que a produção não liga. Sem a chave, o escopo é o de sempre. */
+    const parcialVivoNaRota = (dica: string): boolean =>
+      rotaDoParakeet(dica) || (flagLigada(FLAG_PARCIAIS_VIVOS) && gravadorDeHipoteses().ligado);
     /**
      * CADÊNCIA ADAPTATIVA (flag `parciais_vivos`, só na rota do Parakeet): a captura pergunta, a cada tique, se pede um parcial agora. `undefined`
      * = flag desligada (ou o parcial único do modo desempenho automático): a captura segue o tique fixo de 2 s e o teto
@@ -940,7 +944,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         : 'cauda-token';
       /* Chave de LABORATÓRIO (`babel.lab.parciaisMascara`): máscara dos modos `acrescenta-*`; ausente = 2. */
       const mascaraDeParciais = vivos ? lerMascaraDeParciais(lerChaveDeLaboratorio(CHAVE_DA_MASCARA_DE_PARCIAIS)) : 0;
-      const viaParakeet = vivos; // a rota dos parciais vivos É a do Parakeet
+      const viaParakeet = vivos && rotaDoParakeet(hint); // fora da rota do Parakeet só com a gravação de laboratório
       const audioMs = (pcm.length / sr) * 1000; // antes do envio: o buffer é transferido ao worker
       /* GRAVAÇÃO DE LABORATÓRIO (`babel.lab.gravarHipoteses=1`, só nesta rota): cada hipótese do worker vai para a memória da página. */
       const gravacao = vivos ? gravadorDeHipoteses().decode(seq, audioMs) : null;

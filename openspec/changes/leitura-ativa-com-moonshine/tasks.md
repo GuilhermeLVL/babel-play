@@ -33,5 +33,5 @@
 
 - Decisão 35 (leitura e prática por frase), parte `leitura-ativa-com-moonshine`: recomendação "sim a todos", ou seja, recrutar 10 a 20 brasileiros para medir; decisão assumida: recomendação 35, 25/11.
 - Decisão 13 (sombra local, só inglês primeiro, capturador reaproveitado): recomendação a, 25/11. Esta change também é só inglês.
-- Migrações PROVISÓRIAS: PG 0039 e SQLite 0078 (`leitura_voz_local`); o integrador renumera.
+- Migrações PROVISÓRIAS: PG 0040 e SQLite 0079 (`leitura_voz_local`); o integrador renumera.
 - Risco anotado: `descartar()` no meio da fala (frase concluída por um parcial) abre outro trecho com o resto da fala; com o modelo real isso transcreve só o rabo da frase. Conferir na rodada real (4.2).

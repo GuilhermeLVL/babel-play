@@ -17,7 +17,7 @@ Legenda: **[D]** depende do dono; **[R]** pede aparelho real. A mais arriscada v
 
 - [x] 2.1 Flag `cartao_com_audio` desligada (constante em `src/core/planos.ts`, migração de semente PG e SQLite).
       Verificar: teste de flags lê a semente `habilitada = 0`; com a flag desligada nenhuma tela muda (teste de componente).
-      Feito 25/11: constante `FLAG_CARTAO_COM_AUDIO` em `src/core/planos.ts`, semente PG 0039 e SQLite 0078 (NÚMEROS PROVISÓRIOS: o integrador renumera), `docs/flags.md`, painel de flags, `tests/cartao-com-audio-flag.test.ts`. Sem flag, `AudioDosCartoes` não renderiza e `abrirClipeDoCartao`/`guardarClipeDoCartao` não fazem nada (`tests/audio-do-cartao.test.ts`).
+      Feito 25/11: constante `FLAG_CARTAO_COM_AUDIO` em `src/core/planos.ts`, semente PG 0041 e SQLite 0080 (NÚMEROS PROVISÓRIOS: o integrador renumera), `docs/flags.md`, painel de flags, `tests/cartao-com-audio-flag.test.ts`. Sem flag, `AudioDosCartoes` não renderiza e `abrirClipeDoCartao`/`guardarClipeDoCartao` não fazem nada (`tests/audio-do-cartao.test.ts`).
 - [x] 2.2 `lib/cartoes/audioDoCartao/` com a interface e o adaptador IndexedDB (gravar, abrir, apagar, apagarTudo; teto de 200
       MB com expulsão do mais antigo).
       Verificar: teste de unidade com IndexedDB falso cobre teto, expulsão e troca de conta (`aoMudarIdentidade` apaga tudo).

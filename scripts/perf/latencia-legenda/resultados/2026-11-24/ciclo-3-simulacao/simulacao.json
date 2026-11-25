@@ -1,0 +1,3745 @@
+{
+  "parametros": {
+    "politicas": 99,
+    "erasureMax": 0.5
+  },
+  "grupos": {
+    "grava-en.desktop": {
+      "rodadas": 4,
+      "falas": 32,
+      "finalIdentico": true,
+      "linhas": [
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k0 · lim sem · x1",
+          "atrasoP50Ms": 1405,
+          "atrasoP90Ms": 3399,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.351,
+          "quadrosPorSDeFala": 1.4,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 1,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k0 · lim 125 ms · x1",
+          "atrasoP50Ms": 1405,
+          "atrasoP90Ms": 3399,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.351,
+          "quadrosPorSDeFala": 1.4,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 2,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k0 · lim 250 ms · x1",
+          "atrasoP50Ms": 1405,
+          "atrasoP90Ms": 3399,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.351,
+          "quadrosPorSDeFala": 1.4,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 3,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 1,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k1 · lim sem · x3",
+          "atrasoP50Ms": 1405,
+          "atrasoP90Ms": 3724,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.392,
+          "quadrosPorSDeFala": 0.6,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 4,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 1,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k1 · lim 125 ms · x3",
+          "atrasoP50Ms": 1405,
+          "atrasoP90Ms": 3724,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.392,
+          "quadrosPorSDeFala": 0.6,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 5,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 1,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k1 · lim 250 ms · x3",
+          "atrasoP50Ms": 1405,
+          "atrasoP90Ms": 3724,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.392,
+          "quadrosPorSDeFala": 0.6,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 6,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 2,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k2 · lim sem · x3",
+          "atrasoP50Ms": 1482,
+          "atrasoP90Ms": 3724,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.394,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 7,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 2,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k2 · lim 125 ms · x3",
+          "atrasoP50Ms": 1482,
+          "atrasoP90Ms": 3724,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.394,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 8,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 2,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k2 · lim 250 ms · x3",
+          "atrasoP50Ms": 1482,
+          "atrasoP90Ms": 3724,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.394,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 9,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 1,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k1 · lim sem · x1",
+          "atrasoP50Ms": 1483,
+          "atrasoP90Ms": 3454,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.323,
+          "quadrosPorSDeFala": 1.3,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 10,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 1,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k1 · lim 125 ms · x1",
+          "atrasoP50Ms": 1483,
+          "atrasoP90Ms": 3454,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.323,
+          "quadrosPorSDeFala": 1.3,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 11,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 1,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k1 · lim 250 ms · x1",
+          "atrasoP50Ms": 1483,
+          "atrasoP90Ms": 3454,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.323,
+          "quadrosPorSDeFala": 1.3,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 12,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k0 · lim sem · x3",
+          "atrasoP50Ms": 1483,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.417,
+          "quadrosPorSDeFala": 0.6,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 13,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k0 · lim 125 ms · x3",
+          "atrasoP50Ms": 1483,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.417,
+          "quadrosPorSDeFala": 0.6,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 14,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k0 · lim 250 ms · x3",
+          "atrasoP50Ms": 1483,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.417,
+          "quadrosPorSDeFala": 0.6,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 15,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 3,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k3 · lim sem · x3",
+          "atrasoP50Ms": 1487,
+          "atrasoP90Ms": 3725,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.387,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 16,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 3,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k3 · lim 125 ms · x3",
+          "atrasoP50Ms": 1487,
+          "atrasoP90Ms": 3725,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.387,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 17,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 3,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k3 · lim 250 ms · x3",
+          "atrasoP50Ms": 1487,
+          "atrasoP90Ms": 3725,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.387,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 18,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 1,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k1 · lim sem · x2",
+          "atrasoP50Ms": 1532,
+          "atrasoP90Ms": 3333,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.399,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 19,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 1,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k1 · lim 125 ms · x2",
+          "atrasoP50Ms": 1532,
+          "atrasoP90Ms": 3333,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.399,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 20,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 1,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k1 · lim 250 ms · x2",
+          "atrasoP50Ms": 1532,
+          "atrasoP90Ms": 3333,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.399,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 21,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k0 · lim sem · x2",
+          "atrasoP50Ms": 1533,
+          "atrasoP90Ms": 3294,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.433,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 22,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k0 · lim 125 ms · x2",
+          "atrasoP50Ms": 1533,
+          "atrasoP90Ms": 3294,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.433,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 23,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k0 · lim 250 ms · x2",
+          "atrasoP50Ms": 1533,
+          "atrasoP90Ms": 3294,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.433,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 24,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "sem-cauda",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "sem-cauda · lim sem · x1",
+          "atrasoP50Ms": 1609,
+          "atrasoP90Ms": 3435,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.3,
+          "quadrosPorSDeFala": 0.7,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 25,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "sem-cauda",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "sem-cauda · lim 125 ms · x1",
+          "atrasoP50Ms": 1609,
+          "atrasoP90Ms": 3435,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.3,
+          "quadrosPorSDeFala": 0.7,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 26,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "sem-cauda",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "sem-cauda · lim 250 ms · x1",
+          "atrasoP50Ms": 1609,
+          "atrasoP90Ms": 3435,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.3,
+          "quadrosPorSDeFala": 0.7,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 27,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 2,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k2 · lim sem · x2",
+          "atrasoP50Ms": 1621,
+          "atrasoP90Ms": 3439,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.399,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 28,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 2,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k2 · lim 125 ms · x2",
+          "atrasoP50Ms": 1621,
+          "atrasoP90Ms": 3439,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.399,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 29,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 2,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k2 · lim 250 ms · x2",
+          "atrasoP50Ms": 1621,
+          "atrasoP90Ms": 3439,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.399,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 30,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 2,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k2 · lim sem · x3",
+          "atrasoP50Ms": 1621,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.438,
+          "quadrosPorSDeFala": 1.2,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 31,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 2,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k2 · lim 125 ms · x3",
+          "atrasoP50Ms": 1621,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.438,
+          "quadrosPorSDeFala": 1.1,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 32,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 2,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k2 · lim 250 ms · x3",
+          "atrasoP50Ms": 1621,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.438,
+          "quadrosPorSDeFala": 1.1,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 33,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 3,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k3 · lim sem · x3",
+          "atrasoP50Ms": 1626,
+          "atrasoP90Ms": 3725,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.394,
+          "quadrosPorSDeFala": 1.2,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 34,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 3,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k3 · lim 125 ms · x3",
+          "atrasoP50Ms": 1626,
+          "atrasoP90Ms": 3725,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.394,
+          "quadrosPorSDeFala": 1,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 35,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 3,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k3 · lim 250 ms · x3",
+          "atrasoP50Ms": 1626,
+          "atrasoP90Ms": 3725,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.394,
+          "quadrosPorSDeFala": 1,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 36,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 2,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k2 · lim sem · x1",
+          "atrasoP50Ms": 1815,
+          "atrasoP90Ms": 3469,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.308,
+          "quadrosPorSDeFala": 1.3,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 37,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 2,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k2 · lim 125 ms · x1",
+          "atrasoP50Ms": 1815,
+          "atrasoP90Ms": 3469,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.308,
+          "quadrosPorSDeFala": 1.3,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 38,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 2,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k2 · lim 250 ms · x1",
+          "atrasoP50Ms": 1815,
+          "atrasoP90Ms": 3469,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.308,
+          "quadrosPorSDeFala": 1.3,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 39,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 3,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k3 · lim sem · x1",
+          "atrasoP50Ms": 1815,
+          "atrasoP90Ms": 3499,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.29,
+          "quadrosPorSDeFala": 1.3,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 40,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 3,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k3 · lim 125 ms · x1",
+          "atrasoP50Ms": 1815,
+          "atrasoP90Ms": 3499,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.29,
+          "quadrosPorSDeFala": 1.3,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 41,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 3,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k3 · lim 250 ms · x1",
+          "atrasoP50Ms": 1815,
+          "atrasoP90Ms": 3499,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.29,
+          "quadrosPorSDeFala": 1.3,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 42,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 3,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k3 · lim sem · x2",
+          "atrasoP50Ms": 1831,
+          "atrasoP90Ms": 3469,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.359,
+          "quadrosPorSDeFala": 0.7,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 43,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 3,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k3 · lim 125 ms · x2",
+          "atrasoP50Ms": 1831,
+          "atrasoP90Ms": 3469,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.359,
+          "quadrosPorSDeFala": 0.7,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 44,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 3,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k3 · lim 250 ms · x2",
+          "atrasoP50Ms": 1831,
+          "atrasoP90Ms": 3469,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.359,
+          "quadrosPorSDeFala": 0.7,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 45,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 2,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k2 · lim sem · x2",
+          "atrasoP50Ms": 1926,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.453,
+          "quadrosPorSDeFala": 2,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 46,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 2,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k2 · lim 125 ms · x2",
+          "atrasoP50Ms": 1926,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.453,
+          "quadrosPorSDeFala": 1.6,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 47,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 2,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k2 · lim 250 ms · x2",
+          "atrasoP50Ms": 1926,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.453,
+          "quadrosPorSDeFala": 1.6,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 48,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 3,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k3 · lim sem · x2",
+          "atrasoP50Ms": 1940,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.41,
+          "quadrosPorSDeFala": 1.9,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 49,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 3,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k3 · lim 125 ms · x2",
+          "atrasoP50Ms": 1940,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.41,
+          "quadrosPorSDeFala": 1.5,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 50,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 3,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k3 · lim 250 ms · x2",
+          "atrasoP50Ms": 1940,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.41,
+          "quadrosPorSDeFala": 1.5,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 51,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 1,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k1 · lim sem · x1",
+          "atrasoP50Ms": 2001,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.476,
+          "quadrosPorSDeFala": 3.9,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 52,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 1,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k1 · lim 125 ms · x1",
+          "atrasoP50Ms": 2001,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.476,
+          "quadrosPorSDeFala": 3,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 53,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 1,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k1 · lim 250 ms · x1",
+          "atrasoP50Ms": 2016,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.476,
+          "quadrosPorSDeFala": 2.9,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 54,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 3,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k3 · lim sem · x1",
+          "atrasoP50Ms": 2035,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.356,
+          "quadrosPorSDeFala": 3.8,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 55,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 3,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k3 · lim 125 ms · x1",
+          "atrasoP50Ms": 2035,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.356,
+          "quadrosPorSDeFala": 2.9,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 56,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 3,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k3 · lim 250 ms · x1",
+          "atrasoP50Ms": 2035,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.356,
+          "quadrosPorSDeFala": 2.8,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 57,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 2,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k2 · lim sem · x1",
+          "atrasoP50Ms": 2061,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.392,
+          "quadrosPorSDeFala": 3.9,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 58,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 2,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k2 · lim 125 ms · x1",
+          "atrasoP50Ms": 2103,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.392,
+          "quadrosPorSDeFala": 3,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 59,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 2,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k2 · lim 250 ms · x1",
+          "atrasoP50Ms": 2103,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.392,
+          "quadrosPorSDeFala": 2.9,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 60,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "sem-cauda",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "sem-cauda · lim sem · x2",
+          "atrasoP50Ms": 2271,
+          "atrasoP90Ms": 3682,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.018,
+          "quadrosPorSDeFala": 0.4,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 61,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "sem-cauda",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "sem-cauda · lim 125 ms · x2",
+          "atrasoP50Ms": 2271,
+          "atrasoP90Ms": 3682,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.018,
+          "quadrosPorSDeFala": 0.4,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 62,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "sem-cauda",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "sem-cauda · lim 250 ms · x2",
+          "atrasoP50Ms": 2271,
+          "atrasoP90Ms": 3682,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.018,
+          "quadrosPorSDeFala": 0.4,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 63,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "sem-cauda",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "sem-cauda · lim sem · x3",
+          "atrasoP50Ms": 2421,
+          "atrasoP90Ms": 3785,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.025,
+          "quadrosPorSDeFala": 0.3,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 64,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "sem-cauda",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "sem-cauda · lim 125 ms · x3",
+          "atrasoP50Ms": 2421,
+          "atrasoP90Ms": 3785,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.025,
+          "quadrosPorSDeFala": 0.3,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 65,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "sem-cauda",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "sem-cauda · lim 250 ms · x3",
+          "atrasoP50Ms": 2421,
+          "atrasoP90Ms": 3785,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.025,
+          "quadrosPorSDeFala": 0.3,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 66,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 1,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k1 · lim sem · x3",
+          "atrasoP50Ms": 1483,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.506,
+          "quadrosPorSDeFala": 1.3,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 67,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 1,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k1 · lim 125 ms · x3",
+          "atrasoP50Ms": 1483,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.506,
+          "quadrosPorSDeFala": 1.1,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 68,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 1,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k1 · lim 250 ms · x3",
+          "atrasoP50Ms": 1483,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.506,
+          "quadrosPorSDeFala": 1.1,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 69,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k0 · lim sem · x1",
+          "atrasoP50Ms": 2001,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.519,
+          "quadrosPorSDeFala": 4.2,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 70,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k0 · lim 125 ms · x1",
+          "atrasoP50Ms": 2001,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.519,
+          "quadrosPorSDeFala": 3.1,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 71,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k0 · lim 250 ms · x1",
+          "atrasoP50Ms": 2001,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.519,
+          "quadrosPorSDeFala": 3.1,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 72,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 1,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k1 · lim sem · x2",
+          "atrasoP50Ms": 1865,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.522,
+          "quadrosPorSDeFala": 2,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 73,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 1,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k1 · lim 125 ms · x2",
+          "atrasoP50Ms": 1865,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.522,
+          "quadrosPorSDeFala": 1.6,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 74,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 1,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k1 · lim 250 ms · x2",
+          "atrasoP50Ms": 1865,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.522,
+          "quadrosPorSDeFala": 1.6,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 75,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k0 · lim sem · x3",
+          "atrasoP50Ms": 1626,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.55,
+          "quadrosPorSDeFala": 1.6,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 76,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k0 · lim 125 ms · x3",
+          "atrasoP50Ms": 1626,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.55,
+          "quadrosPorSDeFala": 1.3,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 77,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k0 · lim 250 ms · x3",
+          "atrasoP50Ms": 1626,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.55,
+          "quadrosPorSDeFala": 1.2,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 78,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k0 · lim sem · x2",
+          "atrasoP50Ms": 1870,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.557,
+          "quadrosPorSDeFala": 2.3,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 79,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k0 · lim 125 ms · x2",
+          "atrasoP50Ms": 1870,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.557,
+          "quadrosPorSDeFala": 1.8,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 80,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k0 · lim 250 ms · x2",
+          "atrasoP50Ms": 1870,
+          "atrasoP90Ms": 3721,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.557,
+          "quadrosPorSDeFala": 1.8,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 81,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-decode",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "cauda-decode · lim sem · x3",
+          "atrasoP50Ms": 1060,
+          "atrasoP90Ms": 3460,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.819,
+          "quadrosPorSDeFala": 0.6,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 82,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-decode",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "cauda-decode · lim 125 ms · x3",
+          "atrasoP50Ms": 1060,
+          "atrasoP90Ms": 3460,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.819,
+          "quadrosPorSDeFala": 0.6,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 83,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-decode",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "cauda-decode · lim 250 ms · x3",
+          "atrasoP50Ms": 1060,
+          "atrasoP90Ms": 3460,
+          "palavrasNoCalculo": 263,
+          "erasure": 0.819,
+          "quadrosPorSDeFala": 0.6,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 84,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-decode",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "cauda-decode · lim sem · x2",
+          "atrasoP50Ms": 790,
+          "atrasoP90Ms": 2623,
+          "palavrasNoCalculo": 263,
+          "erasure": 1.313,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 85,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-decode",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "cauda-decode · lim 125 ms · x2",
+          "atrasoP50Ms": 790,
+          "atrasoP90Ms": 2623,
+          "palavrasNoCalculo": 263,
+          "erasure": 1.313,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 86,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-decode",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "cauda-decode · lim 250 ms · x2",
+          "atrasoP50Ms": 790,
+          "atrasoP90Ms": 2623,
+          "palavrasNoCalculo": 263,
+          "erasure": 1.313,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 87,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-token",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "cauda-token · lim 125 ms · x3",
+          "atrasoP50Ms": 961,
+          "atrasoP90Ms": 2587,
+          "palavrasNoCalculo": 263,
+          "erasure": 1.326,
+          "quadrosPorSDeFala": 1.3,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 88,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-token",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "cauda-token · lim 250 ms · x3",
+          "atrasoP50Ms": 1031,
+          "atrasoP90Ms": 2612,
+          "palavrasNoCalculo": 263,
+          "erasure": 1.326,
+          "quadrosPorSDeFala": 1.2,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 89,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-token",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "cauda-token · lim sem · x3",
+          "atrasoP50Ms": 898,
+          "atrasoP90Ms": 2575,
+          "palavrasNoCalculo": 263,
+          "erasure": 1.379,
+          "quadrosPorSDeFala": 1.6,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 90,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-decode",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "cauda-decode · lim sem · x1",
+          "atrasoP50Ms": 331,
+          "atrasoP90Ms": 2101,
+          "palavrasNoCalculo": 263,
+          "erasure": 1.903,
+          "quadrosPorSDeFala": 1.4,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 782,
+          "posicao": 91,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-decode",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "cauda-decode · lim 125 ms · x1",
+          "atrasoP50Ms": 331,
+          "atrasoP90Ms": 2101,
+          "palavrasNoCalculo": 263,
+          "erasure": 1.903,
+          "quadrosPorSDeFala": 1.4,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 782,
+          "posicao": 92,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-decode",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "cauda-decode · lim 250 ms · x1",
+          "atrasoP50Ms": 331,
+          "atrasoP90Ms": 2101,
+          "palavrasNoCalculo": 263,
+          "erasure": 1.903,
+          "quadrosPorSDeFala": 1.4,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 782,
+          "posicao": 93,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-token",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "cauda-token · lim 125 ms · x2",
+          "atrasoP50Ms": 680,
+          "atrasoP90Ms": 2101,
+          "palavrasNoCalculo": 263,
+          "erasure": 2.003,
+          "quadrosPorSDeFala": 1.8,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 94,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-token",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "cauda-token · lim 250 ms · x2",
+          "atrasoP50Ms": 756,
+          "atrasoP90Ms": 2101,
+          "palavrasNoCalculo": 263,
+          "erasure": 2.003,
+          "quadrosPorSDeFala": 1.8,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 95,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-token",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "cauda-token · lim sem · x2",
+          "atrasoP50Ms": 646,
+          "atrasoP90Ms": 2013,
+          "palavrasNoCalculo": 263,
+          "erasure": 2.056,
+          "quadrosPorSDeFala": 2.3,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 783,
+          "posicao": 96,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-token",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "cauda-token · lim 125 ms · x1",
+          "atrasoP50Ms": 292,
+          "atrasoP90Ms": 2101,
+          "palavrasNoCalculo": 263,
+          "erasure": 3.646,
+          "quadrosPorSDeFala": 3.1,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 782,
+          "posicao": 97,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-token",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "cauda-token · lim 250 ms · x1",
+          "atrasoP50Ms": 414,
+          "atrasoP90Ms": 2101,
+          "palavrasNoCalculo": 263,
+          "erasure": 3.646,
+          "quadrosPorSDeFala": 3.1,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 782,
+          "posicao": 98,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-token",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "cauda-token · lim sem · x1",
+          "atrasoP50Ms": 223,
+          "atrasoP90Ms": 2010,
+          "palavrasNoCalculo": 263,
+          "erasure": 3.7,
+          "quadrosPorSDeFala": 4.2,
+          "finalP50Ms": 768,
+          "fimAteOriginalP75Ms": 782,
+          "posicao": 99,
+          "estado": "acima da erasure"
+        }
+      ],
+      "validacao": {
+        "falas": 32,
+        "sequenciaIgual": 32,
+        "fracaoIgual": 1,
+        "deslocamentoMedianoMs": 10,
+        "deslocamentoP90Ms": 17,
+        "atrasoP50Ms": {
+          "real": 1827,
+          "simulado": 1815,
+          "diferenca": -12
+        },
+        "erasure": {
+          "real": 0.308,
+          "simulada": 0.308,
+          "diferenca": 0
+        },
+        "divergentes": [],
+        "ok": true
+      }
+    },
+    "grava-en.fraco": {
+      "rodadas": 4,
+      "falas": 32,
+      "finalIdentico": true,
+      "linhas": [
+        {
+          "politica": {
+            "modo": "cauda-decode",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "cauda-decode · lim sem · x1",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.451,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 1,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "cauda-decode",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "cauda-decode · lim sem · x2",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.451,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 2,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "cauda-decode",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "cauda-decode · lim sem · x3",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.451,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 3,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "cauda-decode",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "cauda-decode · lim 125 ms · x1",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.451,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 4,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "cauda-decode",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "cauda-decode · lim 125 ms · x2",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.451,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 5,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "cauda-decode",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "cauda-decode · lim 125 ms · x3",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.451,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 6,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "cauda-decode",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "cauda-decode · lim 250 ms · x1",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.451,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 7,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "cauda-decode",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "cauda-decode · lim 250 ms · x2",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.451,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 8,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "cauda-decode",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "cauda-decode · lim 250 ms · x3",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.451,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 9,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k0 · lim sem · x1",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.451,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 10,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k0 · lim sem · x2",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.451,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 11,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k0 · lim sem · x3",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.451,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 12,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k0 · lim 125 ms · x1",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.451,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 13,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k0 · lim 125 ms · x2",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.451,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 14,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k0 · lim 125 ms · x3",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.451,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 15,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k0 · lim 250 ms · x1",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.451,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 16,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k0 · lim 250 ms · x2",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.451,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 17,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k0 · lim 250 ms · x3",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.451,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 18,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "cauda-token",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "cauda-token · lim 250 ms · x1",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.489,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 19,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "cauda-token",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "cauda-token · lim 250 ms · x2",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.489,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 20,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "cauda-token",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "cauda-token · lim 250 ms · x3",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.489,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 21,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 1,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k1 · lim sem · x1",
+          "atrasoP50Ms": 1764,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.373,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 22,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 1,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k1 · lim sem · x2",
+          "atrasoP50Ms": 1764,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.373,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 23,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 1,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k1 · lim sem · x3",
+          "atrasoP50Ms": 1764,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.373,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 24,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 1,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k1 · lim 125 ms · x1",
+          "atrasoP50Ms": 1764,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.373,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 25,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 1,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k1 · lim 125 ms · x2",
+          "atrasoP50Ms": 1764,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.373,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 26,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 1,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k1 · lim 125 ms · x3",
+          "atrasoP50Ms": 1764,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.373,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 27,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 1,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k1 · lim 250 ms · x1",
+          "atrasoP50Ms": 1764,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.373,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 28,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 1,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k1 · lim 250 ms · x2",
+          "atrasoP50Ms": 1764,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.373,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 29,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 1,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k1 · lim 250 ms · x3",
+          "atrasoP50Ms": 1764,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.373,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 30,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 1,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k1 · lim sem · x1",
+          "atrasoP50Ms": 1764,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.479,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 31,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 1,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k1 · lim sem · x2",
+          "atrasoP50Ms": 1764,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.479,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 32,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 1,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k1 · lim sem · x3",
+          "atrasoP50Ms": 1764,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.479,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 33,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 1,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k1 · lim 125 ms · x1",
+          "atrasoP50Ms": 1764,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.479,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 34,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 1,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k1 · lim 125 ms · x2",
+          "atrasoP50Ms": 1764,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.479,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 35,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 1,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k1 · lim 125 ms · x3",
+          "atrasoP50Ms": 1764,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.479,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 36,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 1,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k1 · lim 250 ms · x1",
+          "atrasoP50Ms": 1764,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.479,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 37,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 1,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k1 · lim 250 ms · x2",
+          "atrasoP50Ms": 1764,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.479,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 38,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 1,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k1 · lim 250 ms · x3",
+          "atrasoP50Ms": 1764,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.479,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 39,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 2,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k2 · lim sem · x1",
+          "atrasoP50Ms": 1972,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.409,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 40,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 2,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k2 · lim sem · x2",
+          "atrasoP50Ms": 1972,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.409,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 41,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 2,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k2 · lim sem · x3",
+          "atrasoP50Ms": 1972,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.409,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 42,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 2,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k2 · lim 125 ms · x1",
+          "atrasoP50Ms": 1972,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.409,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 43,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 2,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k2 · lim 125 ms · x2",
+          "atrasoP50Ms": 1972,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.409,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 44,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 2,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k2 · lim 125 ms · x3",
+          "atrasoP50Ms": 1972,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.409,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 45,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 2,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k2 · lim 250 ms · x1",
+          "atrasoP50Ms": 1972,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.409,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 46,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 2,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k2 · lim 250 ms · x2",
+          "atrasoP50Ms": 1972,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.409,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 47,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 2,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k2 · lim 250 ms · x3",
+          "atrasoP50Ms": 1972,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.409,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 48,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 2,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k2 · lim sem · x1",
+          "atrasoP50Ms": 1979,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.308,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 49,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 2,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k2 · lim sem · x2",
+          "atrasoP50Ms": 1979,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.308,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 50,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 2,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k2 · lim sem · x3",
+          "atrasoP50Ms": 1979,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.308,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 51,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 2,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k2 · lim 125 ms · x1",
+          "atrasoP50Ms": 1979,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.308,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 52,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 2,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k2 · lim 125 ms · x2",
+          "atrasoP50Ms": 1979,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.308,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 53,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 2,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k2 · lim 125 ms · x3",
+          "atrasoP50Ms": 1979,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.308,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 54,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 2,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k2 · lim 250 ms · x1",
+          "atrasoP50Ms": 1979,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.308,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 55,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 2,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k2 · lim 250 ms · x2",
+          "atrasoP50Ms": 1979,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.308,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 56,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 2,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k2 · lim 250 ms · x3",
+          "atrasoP50Ms": 1979,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.308,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 57,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 3,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k3 · lim sem · x1",
+          "atrasoP50Ms": 2281,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.338,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 58,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 3,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k3 · lim sem · x2",
+          "atrasoP50Ms": 2281,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.338,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 59,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 3,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k3 · lim sem · x3",
+          "atrasoP50Ms": 2281,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.338,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 60,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 3,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k3 · lim 125 ms · x1",
+          "atrasoP50Ms": 2281,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.338,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 61,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 3,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k3 · lim 125 ms · x2",
+          "atrasoP50Ms": 2281,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.338,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 62,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 3,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k3 · lim 125 ms · x3",
+          "atrasoP50Ms": 2281,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.338,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 63,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 3,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k3 · lim 250 ms · x1",
+          "atrasoP50Ms": 2281,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.338,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 64,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 3,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k3 · lim 250 ms · x2",
+          "atrasoP50Ms": 2281,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.338,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 65,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 3,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k3 · lim 250 ms · x3",
+          "atrasoP50Ms": 2281,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.338,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 66,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 3,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k3 · lim sem · x1",
+          "atrasoP50Ms": 2292,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.243,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 67,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 3,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k3 · lim sem · x2",
+          "atrasoP50Ms": 2292,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.243,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 68,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 3,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k3 · lim sem · x3",
+          "atrasoP50Ms": 2292,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.243,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 69,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 3,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k3 · lim 125 ms · x1",
+          "atrasoP50Ms": 2292,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.243,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 70,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 3,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k3 · lim 125 ms · x2",
+          "atrasoP50Ms": 2292,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.243,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 71,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 3,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k3 · lim 125 ms · x3",
+          "atrasoP50Ms": 2292,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.243,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 72,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 3,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-decode k3 · lim 250 ms · x1",
+          "atrasoP50Ms": 2292,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.243,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 73,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 3,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-decode k3 · lim 250 ms · x2",
+          "atrasoP50Ms": 2292,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.243,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 74,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-decode",
+            "mascara": 3,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-decode k3 · lim 250 ms · x3",
+          "atrasoP50Ms": 2292,
+          "atrasoP90Ms": 3819,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.243,
+          "quadrosPorSDeFala": 0.5,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 75,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "sem-cauda",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "sem-cauda · lim sem · x1",
+          "atrasoP50Ms": 2768,
+          "atrasoP90Ms": 4082,
+          "palavrasNoCalculo": 257,
+          "erasure": 0,
+          "quadrosPorSDeFala": 0.3,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 76,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "sem-cauda",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "sem-cauda · lim sem · x2",
+          "atrasoP50Ms": 2768,
+          "atrasoP90Ms": 4082,
+          "palavrasNoCalculo": 257,
+          "erasure": 0,
+          "quadrosPorSDeFala": 0.3,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 77,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "sem-cauda",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "sem-cauda · lim sem · x3",
+          "atrasoP50Ms": 2768,
+          "atrasoP90Ms": 4082,
+          "palavrasNoCalculo": 257,
+          "erasure": 0,
+          "quadrosPorSDeFala": 0.3,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 78,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "sem-cauda",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "sem-cauda · lim 125 ms · x1",
+          "atrasoP50Ms": 2768,
+          "atrasoP90Ms": 4082,
+          "palavrasNoCalculo": 257,
+          "erasure": 0,
+          "quadrosPorSDeFala": 0.3,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 79,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "sem-cauda",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "sem-cauda · lim 125 ms · x2",
+          "atrasoP50Ms": 2768,
+          "atrasoP90Ms": 4082,
+          "palavrasNoCalculo": 257,
+          "erasure": 0,
+          "quadrosPorSDeFala": 0.3,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 80,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "sem-cauda",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "sem-cauda · lim 125 ms · x3",
+          "atrasoP50Ms": 2768,
+          "atrasoP90Ms": 4082,
+          "palavrasNoCalculo": 257,
+          "erasure": 0,
+          "quadrosPorSDeFala": 0.3,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 81,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "sem-cauda",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "sem-cauda · lim 250 ms · x1",
+          "atrasoP50Ms": 2768,
+          "atrasoP90Ms": 4082,
+          "palavrasNoCalculo": 257,
+          "erasure": 0,
+          "quadrosPorSDeFala": 0.3,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 82,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "sem-cauda",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "sem-cauda · lim 250 ms · x2",
+          "atrasoP50Ms": 2768,
+          "atrasoP90Ms": 4082,
+          "palavrasNoCalculo": 257,
+          "erasure": 0,
+          "quadrosPorSDeFala": 0.3,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 83,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "sem-cauda",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "sem-cauda · lim 250 ms · x3",
+          "atrasoP50Ms": 2768,
+          "atrasoP90Ms": 4082,
+          "palavrasNoCalculo": 257,
+          "erasure": 0,
+          "quadrosPorSDeFala": 0.3,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 84,
+          "estado": "ok"
+        },
+        {
+          "politica": {
+            "modo": "cauda-token",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "cauda-token · lim 125 ms · x1",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.521,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 85,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-token",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "cauda-token · lim 125 ms · x2",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.521,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 86,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-token",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "cauda-token · lim 125 ms · x3",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.521,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 87,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-token",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "cauda-token · lim sem · x1",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.559,
+          "quadrosPorSDeFala": 1.1,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 88,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-token",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "cauda-token · lim sem · x2",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.559,
+          "quadrosPorSDeFala": 1.1,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 89,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "cauda-token",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "cauda-token · lim sem · x3",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.559,
+          "quadrosPorSDeFala": 1.1,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 90,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k0 · lim sem · x1",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.559,
+          "quadrosPorSDeFala": 1.1,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 91,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k0 · lim sem · x2",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.559,
+          "quadrosPorSDeFala": 1.1,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 92,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 0,
+            "intervaloMs": 0,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k0 · lim sem · x3",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.559,
+          "quadrosPorSDeFala": 1.1,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 93,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k0 · lim 125 ms · x1",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.559,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 94,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k0 · lim 125 ms · x2",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.559,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 95,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 0,
+            "intervaloMs": 125,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k0 · lim 125 ms · x3",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.559,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 96,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 1
+          },
+          "nome": "acrescenta-token k0 · lim 250 ms · x1",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.559,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 97,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 2
+          },
+          "nome": "acrescenta-token k0 · lim 250 ms · x2",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.559,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 98,
+          "estado": "acima da erasure"
+        },
+        {
+          "politica": {
+            "modo": "acrescenta-token",
+            "mascara": 0,
+            "intervaloMs": 250,
+            "subamostra": 3
+          },
+          "nome": "acrescenta-token k0 · lim 250 ms · x3",
+          "atrasoP50Ms": 1728,
+          "atrasoP90Ms": 3816,
+          "palavrasNoCalculo": 257,
+          "erasure": 0.559,
+          "quadrosPorSDeFala": 0.8,
+          "finalP50Ms": 1087,
+          "fimAteOriginalP75Ms": 1142,
+          "posicao": 99,
+          "estado": "acima da erasure"
+        }
+      ],
+      "validacao": {
+        "falas": 32,
+        "sequenciaIgual": 0,
+        "fracaoIgual": 0,
+        "deslocamentoMedianoMs": null,
+        "deslocamentoP90Ms": null,
+        "atrasoP50Ms": {
+          "real": 1998,
+          "simulado": 1979,
+          "diferenca": -19
+        },
+        "erasure": {
+          "real": 0.353,
+          "simulada": 0.308,
+          "diferenca": -0.045
+        },
+        "divergentes": [
+          {
+            "rotulo": "grava-en.fraco.r1",
+            "k": 0,
+            "real": 3,
+            "simulada": 2
+          },
+          {
+            "rotulo": "grava-en.fraco.r1",
+            "k": 1,
+            "real": 3,
+            "simulada": 2
+          },
+          {
+            "rotulo": "grava-en.fraco.r1",
+            "k": 2,
+            "real": 3,
+            "simulada": 2
+          },
+          {
+            "rotulo": "grava-en.fraco.r1",
+            "k": 3,
+            "real": 3,
+            "simulada": 2
+          },
+          {
+            "rotulo": "grava-en.fraco.r1",
+            "k": 4,
+            "real": 3,
+            "simulada": 2
+          },
+          {
+            "rotulo": "grava-en.fraco.r1",
+            "k": 5,
+            "real": 3,
+            "simulada": 2
+          },
+          {
+            "rotulo": "grava-en.fraco.r1",
+            "k": 6,
+            "real": 3,
+            "simulada": 2
+          },
+          {
+            "rotulo": "grava-en.fraco.r1",
+            "k": 7,
+            "real": 3,
+            "simulada": 2
+          },
+          {
+            "rotulo": "grava-en.fraco.r2",
+            "k": 0,
+            "real": 3,
+            "simulada": 2
+          },
+          {
+            "rotulo": "grava-en.fraco.r2",
+            "k": 1,
+            "real": 2,
+            "simulada": 1
+          },
+          {
+            "rotulo": "grava-en.fraco.r2",
+            "k": 2,
+            "real": 3,
+            "simulada": 2
+          },
+          {
+            "rotulo": "grava-en.fraco.r2",
+            "k": 3,
+            "real": 3,
+            "simulada": 2
+          },
+          {
+            "rotulo": "grava-en.fraco.r2",
+            "k": 4,
+            "real": 3,
+            "simulada": 2
+          },
+          {
+            "rotulo": "grava-en.fraco.r2",
+            "k": 5,
+            "real": 3,
+            "simulada": 2
+          },
+          {
+            "rotulo": "grava-en.fraco.r2",
+            "k": 6,
+            "real": 3,
+            "simulada": 2
+          },
+          {
+            "rotulo": "grava-en.fraco.r2",
+            "k": 7,
+            "real": 3,
+            "simulada": 2
+          },
+          {
+            "rotulo": "grava-en.fraco.r3",
+            "k": 0,
+            "real": 3,
+            "simulada": 2
+          },
+          {
+            "rotulo": "grava-en.fraco.r3",
+            "k": 1,
+            "real": 3,
+            "simulada": 2
+          },
+          {
+            "rotulo": "grava-en.fraco.r3",
+            "k": 2,
+            "real": 3,
+            "simulada": 2
+          },
+          {
+            "rotulo": "grava-en.fraco.r3",
+            "k": 3,
+            "real": 3,
+            "simulada": 2
+          }
+        ],
+        "ok": false
+      }
+    }
+  }
+}

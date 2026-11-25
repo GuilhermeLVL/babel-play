@@ -30,7 +30,9 @@ import { fileURLToPath } from 'node:url'
 const RAIZ = fileURLToPath(new URL('../..', import.meta.url))
 const WRANGLER = join(RAIZ, 'node_modules', 'wrangler', 'bin', 'wrangler.js')
 
-const LIVROS = ['frasy-livros', 'frasy-livros-staging']
+/* `frasy-audio(-staging)`: audiolivros pré-gerados (docs/runbooks/audiolivros.md); mesmo CORS de GET/HEAD
+ * (`headers: ['*']` cobre o `Range`). Criar é ato do dono; o domínio público vira `VITE_AUDIO_URL`. */
+const LIVROS = ['frasy-livros', 'frasy-livros-staging', 'frasy-audio', 'frasy-audio-staging']
 const BUCKETS = ['frasy-midia', 'frasy-midia-staging', 'frasy-backups', 'frasy-modelos', ...LIVROS]
 const BACKUPS = 'frasy-backups'
 const MODELOS = 'frasy-modelos'

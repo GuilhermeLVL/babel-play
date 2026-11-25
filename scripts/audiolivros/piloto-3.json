@@ -1,0 +1,8 @@
+{
+  "sobre": "PILOTO de 3 livros (decisão assumida: recomendação 17 de docs/backlog/decisoes-do-dono.md, 25/11). Sai da lista de 10 de piloto.json; os 7 restantes ficam para depois do beta. Ortografia = a que o leitor MOSTRA (sem modernizar): o hash das frases do manifesto (hashDasFrases) tem de bater com o do app, ou o capítulo cai no narrador local. Por isso `opcoes.ortografia` fica indefinida na geração.",
+  "ortografia": "do-leitor",
+  "voz": "F1",
+  "motor": "supertonic",
+  "condicao": "Motor Supertonic condicionado ao parecer OpenRAIL-M (tarefa 1.1, [D]).",
+  "livros": ["ws-pt-dom-casmurro", "pg-54829", "ws-pt-o-guarani"]
+}

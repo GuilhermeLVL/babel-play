@@ -34,3 +34,19 @@ docs/auditoria/eval/ia-paga-v1/bruto-*.json
 
 # Motor do leitor vendorizado (foliate-js, MIT): código de terceiro numa versão fixa (ver ORIGEM.txt)
 src/lib/leitor/foliate
+# protótipos montados por montar.mjs a partir dos *-src (saída gerada, dezenas de milhares de linhas)
+docs/prototipos/*.html
+# dados brutos da bancada (JSON de medição, sem leitura humana)
+docs/auditoria/eval/**/*.json
+
+# Passada geral (formatacao-e-lint-estrito 1.7): o que fica fora de propósito
+# public/ inteiro: ativos e dados GERADOS (fichas, glosas, trilha) e vendorizados; o gerador é a fonte
+public
+# snapshots das regras do ast-grep: a saída exata é a prova
+audit/rules/ast-grep-tests/__snapshots__
+# comandos e skills do OpenSpec são gerados pela ferramenta (`openspec update`)
+.claude
+# index.html: o CSP do build confere o conteúdo dos scripts inline; não mexer na forma
+index.html
+# wrangler.jsonc: comentários e ordem de chaves lidos por humano e por testes de configuração
+wrangler.jsonc

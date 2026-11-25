@@ -9,6 +9,7 @@ import type { FonteType, ThemeType } from '../appearance';
 import { ativarLiberacaoTotal, liberadoTudo } from '../desbloqueios';
 import { definirReduzirEfeitos, reduzirEfeitos, reduzirEfeitosMedido } from '../dispositivo/perfil';
 import { estaAnonimo } from '../identidade';
+import { animacoesLigadasPorPadrao } from '../movimento/padraoDeAnimacoes';
 import { revelarEmCirculo } from '../movimento/revelar';
 import { isAgeProfile, readAgeProfile, readStoredEnum, readStoredValue } from '../profile';
 import { instalarRastroDoMouse } from '../rastroDoMouse';
@@ -80,12 +81,13 @@ export function useAparencia(): EstadoDaAparencia {
    * quer — e isso tem precedência sobre uma inferência do sistema operacional.
    */
   const [animationsEnabled, setAnimationsEnabledState] = useState<boolean>(() => {
-    const guardado = readStoredValue('babel.animations_enabled');
-    if (guardado === 'true') return true;
-    if (guardado === 'false') return false;
-    /* O movimento nasce ligado em todo aparelho (decisão do dono, 08/10/2026): quem quer menos
-       desliga aqui, em Ajustes. */
-    return true;
+    /* O movimento nasce ligado em todo aparelho (decisão do dono, 08/10/2026), MENOS para quem pediu
+       menos movimento ao sistema e ainda não escolheu nada aqui (8.5 do polimento: sem isso a classe
+       `animations-on` fazia o app ignorar o sistema). Quem quer menos desliga em Ajustes. */
+    return animacoesLigadasPorPadrao(
+      readStoredValue('babel.animations_enabled'),
+      typeof window !== 'undefined' && (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false),
+    );
   });
   /**
    * MODO DESEMPENHO = o "modo leve" de `lib/dispositivo/perfil.ts` (`reduzirEfeitos()`), a mesma

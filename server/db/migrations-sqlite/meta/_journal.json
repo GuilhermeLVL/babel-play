@@ -568,6 +568,13 @@
       "when": 1794800001017,
       "tag": "0080_flag_cartao_com_audio",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "6",
+      "when": 1794800002017,
+      "tag": "0081_flag_cartao_com_cena",
+      "breakpoints": true
     }
   ]
 }

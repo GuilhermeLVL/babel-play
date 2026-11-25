@@ -34,5 +34,6 @@
       o texto JUNTADO dos campos (`\n` e espaço), para barrar termo, link ou contato partido entre dois campos;
       juntado acima de `TETO_DO_TEXTO_MODERADO` é barrado (fail-closed). Testes: `tests/saida-filtrada-nucleo.test.ts`,
       `tests/integration/polimento.test.ts`
-- [ ] 4.3 Opção C (moderação por IA) como segundo moderador da cadeia — decisão do dono, com custo medido
-- [ ] 4.4 Dono: revisar as listas e acompanhar `tutor_saida_filtrada` por categoria nas primeiras semanas
+- [ ] 4.3 **[D]** Opção C (moderação por IA) como segundo moderador da cadeia — decisão do dono, com custo medido. Verificar: decisão e data em `docs/pendencias-do-dono.md`; se for sombra, um teste de que o segundo moderador nunca bloqueia (`tests/filtro-tutor-menores.test.ts`) e o custo por 1000 saídas medido na bancada.
+- [ ] 4.4 **[D]** Revisar as listas (`listasParaMenores.ts`) e acompanhar `tutor_saida_filtrada` e `ia_saida_filtrada_total` por categoria nas primeiras semanas. Verificar: nota em `docs/runbook.md` com as contagens por categoria e a lista de ajustes (falso positivo ou negativo) aceitos ou recusados.
+- [ ] 4.5 Prender a cobertura: um teste estático que lista as funções de `server/ai/nucleo/*.ts` que devolvem texto de LLM e falha se alguma não chama `recusaSeSaidaBarrada`/`moderarSaidaDoTutor` e não está numa lista de exceções comentada (`traduzirNoNivel`, `transcrever`, `sintetizarVoz`). Verificar: `npx vitest run tests/saida-filtrada-cobertura.test.ts` verde; ao apagar a chamada de `explicarFrase.ts` num experimento local, o teste falha.

@@ -26,20 +26,40 @@ describe('o estado da aba Hoje', () => {
   })
 
   it('há cartões e nunca houve revisão: primeiras palavras, mesmo com tudo vencendo', () => {
-    expect(hojeDosCartoes(resumo(34, 0, [34, 0, 0]), opcoes)).toEqual({ estado: 'primeiro', vencem: 34, rodada: 20 })
+    expect(hojeDosCartoes(resumo(34, 0, [34, 0, 0]), opcoes)).toEqual({
+      estado: 'primeiro',
+      vencem: 34,
+      rodada: 20,
+      tetoDeHoje: false,
+    })
   })
 
   it('vence o que cabe numa rodada: normal, e a rodada é tudo o que vence', () => {
-    expect(hojeDosCartoes(resumo(422, 600, [5, 3, 18]), opcoes)).toEqual({ estado: 'normal', vencem: 26, rodada: 26 })
+    expect(hojeDosCartoes(resumo(422, 600, [5, 3, 18]), opcoes)).toEqual({
+      estado: 'normal',
+      vencem: 26,
+      rodada: 26,
+      tetoDeHoje: false,
+    })
   })
 
   it('vence mais do que cabe: pilha, com o tamanho da rodada como o teto', () => {
-    expect(hojeDosCartoes(resumo(422, 600, [5, 3, 240]), opcoes)).toEqual({ estado: 'pilha', vencem: 248, rodada: 205 })
+    expect(hojeDosCartoes(resumo(422, 600, [5, 3, 240]), opcoes)).toEqual({
+      estado: 'pilha',
+      vencem: 248,
+      rodada: 205,
+      tetoDeHoje: false,
+    })
     expect(hojeDosCartoes(resumo(422, 600, [30, 0, 0]), opcoes).estado).toBe('pilha')
   })
 
   it('nada vence agora: dia cumprido', () => {
-    expect(hojeDosCartoes(resumo(422, 600, [0, 0, 0]), opcoes)).toEqual({ estado: 'feito', vencem: 0, rodada: 0 })
+    expect(hojeDosCartoes(resumo(422, 600, [0, 0, 0]), opcoes)).toEqual({
+      estado: 'feito',
+      vencem: 0,
+      rodada: 0,
+      tetoDeHoje: false,
+    })
   })
 })
 

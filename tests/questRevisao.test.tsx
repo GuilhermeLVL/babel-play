@@ -224,7 +224,12 @@ describe('Revisão no Quest', () => {
     expect(voz.falar).toHaveBeenCalledWith(palavra, expect.objectContaining({ lang: 'en' }))
 
     await tocar(notas[2])
-    expect(api.revisar).toHaveBeenCalledWith(expect.any(String), 3, 0.9, expect.objectContaining({ origem: 'revisao', formato: 'lembrar', respostaMs: expect.any(Number) }))
+    expect(api.revisar).toHaveBeenCalledWith(
+      expect.any(String),
+      3,
+      0.9,
+      expect.objectContaining({ origem: 'revisao', formato: 'lembrar', respostaMs: expect.any(Number) }),
+    )
     expect(api.rodada).toHaveBeenCalledTimes(1)
     expect(container.querySelector('.qr-conta')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('2 / 3')
 
@@ -384,7 +389,12 @@ describe('Revisão no Quest', () => {
     await tocar(botao(/Verificar/))
     expect(palco().querySelector('.qr-veredito.certo')?.textContent).toContain('Correto! A tradução era “gato”.')
     await tocar(botao(/Avançar/))
-    expect(api.revisar).toHaveBeenCalledWith('c1', 3, 0.9, expect.objectContaining({ origem: 'revisao', formato: 'digitar', respostaMs: expect.any(Number) }))
+    expect(api.revisar).toHaveBeenCalledWith(
+      'c1',
+      3,
+      0.9,
+      expect.objectContaining({ origem: 'revisao', formato: 'digitar', respostaMs: expect.any(Number) }),
+    )
     expect(palco().dataset.estado).toBe('fim')
   })
 
@@ -398,7 +408,12 @@ describe('Revisão no Quest', () => {
     expect(veredito).toContain('“gato”')
     expect(veredito).toContain('“cavalo”')
     await tocar(botao(/Avançar/))
-    expect(api.revisar).toHaveBeenCalledWith('c1', 1, 0.9, expect.objectContaining({ origem: 'revisao', formato: 'digitar', respostaMs: expect.any(Number) }))
+    expect(api.revisar).toHaveBeenCalledWith(
+      'c1',
+      1,
+      0.9,
+      expect.objectContaining({ origem: 'revisao', formato: 'digitar', respostaMs: expect.any(Number) }),
+    )
   })
 
   it('Escolher: quatro alternativas; a escolha é gravada e Avançar dá a nota', async () => {
@@ -437,7 +452,12 @@ describe('Revisão no Quest', () => {
     expect(within(exercicio).getByRole('button', { name: /Ouvir a frase completa/ })).toBeTruthy()
     await tocar(botao(/Próximo exercício/))
     // Produção ativa é mais difícil: um acerto vale "Fácil".
-    expect(api.revisar).toHaveBeenCalledWith('c1', 4, 0.9, expect.objectContaining({ origem: 'revisao', formato: 'producao-ativa', respostaMs: expect.any(Number) }))
+    expect(api.revisar).toHaveBeenCalledWith(
+      'c1',
+      4,
+      0.9,
+      expect.objectContaining({ origem: 'revisao', formato: 'producao-ativa', respostaMs: expect.any(Number) }),
+    )
   })
 
   it('a instrução aparece só nos três primeiros cartões, e o lugar dela existe sempre', async () => {
@@ -619,6 +639,13 @@ describe('Revisão no Quest', () => {
       await tocar(botao(/Mostrar resposta/))
       await tocar(container.querySelector(`.fsrs button.${nota}`) as HTMLElement)
     }
+    /* Quem erra revê (cartões 2.4): as duas que escaparam voltam no fim da rodada, e a volta não grava nota. */
+    expect(palco().dataset.estado).toBe('rodada')
+    for (let i = 0; i < 2; i++) {
+      await tocar(botao(/Mostrar resposta/))
+      await tocar(container.querySelector('.fsrs button.b') as HTMLElement)
+    }
+    expect(api.revisar).toHaveBeenCalledTimes(3)
     expect(palco().dataset.estado).toBe('fim')
     const escaparam = palco().querySelector('.cx-subiu li') as HTMLElement
     expect(escaparam.querySelector('.q-tag')?.textContent?.trim()).toBe('2')
@@ -723,6 +750,58 @@ describe('Revisão no Quest', () => {
     expect(palco().querySelector('.cx-aviso')).toBeNull()
   })
 
+  it('quem erra revê: o Errei grava UMA vez, a volta vem depois e não grava nota nem entra no resumo', async () => {
+    const { palco, container, botao, tocar } = await montar()
+    const nota = async (qual: string) => {
+      await tocar(botao(/Mostrar resposta/))
+      await tocar(container.querySelector(`.fsrs button.${qual}`) as HTMLElement)
+    }
+    await nota('e')
+    expect(api.revisar).toHaveBeenCalledTimes(1)
+    await nota('b')
+    await nota('b')
+    // As três notas de verdade foram dadas; o cartão errado ainda volta antes do fim.
+    expect(api.revisar).toHaveBeenCalledTimes(3)
+    expect(palco().dataset.estado).toBe('rodada')
+    await nota('b')
+    expect(api.revisar).toHaveBeenCalledTimes(3)
+    expect(palco().dataset.estado).toBe('fim')
+    expect([...palco().querySelectorAll('.qr-numeros .q-num b')].map((b) => b.textContent)[0]).toBe('3')
+  })
+
+  it('a volta que erra de novo volta mais uma vez, e só até o teto (nenhuma grava nota)', async () => {
+    api.deck = [cartao('c1', 'cat', 'gato')]
+    const { palco, container, botao, tocar } = await montar()
+    const nota = async (qual: string) => {
+      await tocar(botao(/Mostrar resposta/))
+      await tocar(container.querySelector(`.fsrs button.${qual}`) as HTMLElement)
+    }
+    await nota('e')
+    await nota('e')
+    await nota('e')
+    expect(palco().dataset.estado).toBe('fim')
+    expect(api.revisar).toHaveBeenCalledTimes(1)
+  })
+
+  it('nota não gravada: o fim da rodada AVISA, tenta de novo e some quando grava', async () => {
+    const { palco, container, botao, tocar } = await montar()
+    const nota = async () => {
+      await tocar(botao(/Mostrar resposta/))
+      await tocar(container.querySelector('.fsrs button.b') as HTMLElement)
+    }
+    await nota()
+    await nota()
+    api.revisar.mockRejectedValueOnce(new Error('sem rede'))
+    await nota()
+    expect(palco().dataset.estado).toBe('fim')
+    const aviso = palco().querySelector('[data-testid="nota-nao-gravada"]') as HTMLElement
+    expect(aviso.textContent).toContain('Nota não gravada.')
+    expect(aviso.textContent).toContain('Se você sair agora, ela se perde.')
+    await tocar(within(aviso).getByRole('button', { name: 'Tentar de novo' }))
+    expect(api.revisar).toHaveBeenCalledTimes(4)
+    expect(palco().querySelector('[data-testid="nota-nao-gravada"]')).toBeNull()
+  })
+
   it('palavra que não entra: a linha aparece quando uma palavra com muitos erros escapa de novo', async () => {
     api.deck = [cartao('c1', 'cat', 'gato', { lapses: 8 } as Partial<VocabCard>), cartao('c2', 'dog', 'cão')]
     api.deck = (api.deck as VocabCard[]).map((c, i) => ({ ...c, dueAtMs: Date.now() - (9 - i) * 86_400_000 }))
@@ -778,7 +857,12 @@ describe('Revisão no computador com o desenho novo', () => {
 
     fireEvent.keyDown(window, { key: '3' })
     await act(async () => {})
-    expect(api.revisar).toHaveBeenCalledWith(expect.any(String), 3, 0.9, expect.objectContaining({ origem: 'revisao', formato: 'lembrar', respostaMs: expect.any(Number) }))
+    expect(api.revisar).toHaveBeenCalledWith(
+      expect.any(String),
+      3,
+      0.9,
+      expect.objectContaining({ origem: 'revisao', formato: 'lembrar', respostaMs: expect.any(Number) }),
+    )
     expect(container.querySelector('.qr-conta')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('2 / 3')
 
     fireEvent.keyDown(window, { key: 'z' })

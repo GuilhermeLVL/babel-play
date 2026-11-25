@@ -5,9 +5,9 @@
  * de a rodada abrir (quantas cabem numa rodada, qual é a meta de retenção), então a leitura e a
  * gravação ficam num lugar só e as duas telas não discordam.
  *
- * Ficam no navegador (`localStorage`): não acompanham a pessoa entre aparelhos e os dois limites
- * valem POR RODADA, não por dia. O limite diário de verdade, guardado na conta, é fatia seguinte
- * (`openspec/changes/cartoes`).
+ * O `localStorage` é o CACHE deste aparelho (e a fonte sem conta). Com conta, as opções valem na CONTA
+ * (`GET/PUT /api/vocab/opcoes-da-revisao`, `lib/revisao/opcoesNaConta.ts`) e o servidor conta o limite por DIA no
+ * fuso da pessoa; este módulo só limita o tamanho de cada rodada (`tamanhoDaRodada`).
  */
 
 /** O tipo de cartão. O padrão, por decisão do dono, é "Lembrar". */
@@ -72,6 +72,11 @@ export function lerOpcoesDaRevisao(): OpcoesDaRevisao {
     retencao: numeroEntre(ler(CHAVE.retencao), 80, 97, OPCOES_PADRAO.retencao),
     botoes: ler(CHAVE.botoes) === '2' ? 2 : 4,
   };
+}
+
+/** A pessoa já escolheu alguma opção neste aparelho? (Para subir à conta a escolha de antes da conta ter opções.) */
+export function temOpcoesLocais(): boolean {
+  return Object.values(CHAVE).some((c) => ler(c) !== null);
 }
 
 export function gravarOpcoesDaRevisao(mudou: Partial<OpcoesDaRevisao>): void {

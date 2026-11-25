@@ -174,6 +174,7 @@ describe('o estado de Hoje com um conteúdo escolhido', () => {
       estado: 'normal',
       vencem: 9,
       rodada: 9,
+      tetoDeHoje: false,
     })
   })
 
@@ -182,6 +183,7 @@ describe('o estado de Hoje com um conteúdo escolhido', () => {
       estado: 'normal',
       vencem: 0,
       rodada: 0,
+      tetoDeHoje: false,
     })
     const emDia = { ...conta, hoje: { novas: 0, aprendendo: 0, revisar: 0 } }
     expect(hojeDosCartoes(emDia, opcoes, { novas: 0, aprendendo: 0, revisar: 0 }).estado).toBe('feito')

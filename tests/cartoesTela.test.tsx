@@ -25,6 +25,8 @@ const api = vi.hoisted(() => ({
   doAnki: [] as unknown[],
   ativar: null as unknown as ReturnType<(typeof import('vitest'))['vi']['fn']>,
   contagens: null as unknown,
+  /** O que o servidor conta de HOJE (cartões 2.1); `null` = sem contador (sem conta ou sem rede). */
+  feitoHoje: null as null | { novas: number; revisoes: number },
 }))
 
 vi.mock('../src/data/api', async (orig) => {
@@ -48,6 +50,21 @@ vi.mock('../src/data/rotas/settings', () => ({
   fetchSettings: async () => null,
   patchUiSettings: vi.fn(async () => null),
   saveSettings: async () => null,
+}))
+vi.mock('../src/data/rotas/opcoesDaRevisao', () => ({
+  fetchOpcoesDaRevisao: async () =>
+    api.feitoHoje
+      ? {
+          opcoes: { novas: 10, revisoes: 10, ordem: 'vencidas', tipo: 'lembrar', ouvir: true, retencao: 90, botoes: 4 },
+          naConta: true,
+          hoje: {
+            ...api.feitoHoje,
+            restamNovas: Math.max(0, 10 - api.feitoHoje.novas),
+            restamRevisoes: Math.max(0, 10 - api.feitoHoje.revisoes),
+          },
+        }
+      : null,
+  gravarOpcoesDaRevisaoNaConta: async () => null,
 }))
 vi.mock('../src/data/rotas/conteudo', () => ({
   lerContagensDeConteudo: async () => api.contagens,
@@ -202,6 +219,7 @@ beforeEach(() => {
   api.resumo = resumoBase()
   api.contagens = contagensBase()
   api.doAnki = []
+  api.feitoHoje = null
   window.matchMedia = ((q: string) => ({
     matches: false,
     media: q,
@@ -388,6 +406,40 @@ describe('a aba Hoje, no modo faixa, pelo dado real e pela fonte da ficha', () =
     )
     expect(screen.getByTestId('cartoes').dataset.ctHoje).toBe('normal')
     expect(screen.queryByText('Tudo em dia')).toBeNull()
+  })
+
+  it('o teto de hoje usa o contador do servidor: 0, no meio e no teto, sem número inventado', async () => {
+    // Sem contador (sem rede): o que entra na fila, como antes.
+    localStorage.setItem('revisao.novasPorDia', '10')
+    api.feitoHoje = { novas: 0, revisoes: 0 }
+    montar()
+    await pronta()
+    const faixa = screen.getByTestId('faixa-de-estado')
+    await waitFor(() => expect(faixa.querySelector('.ct-estado-teto b')?.textContent).toBe('0 de 10'))
+    cleanup()
+
+    api.feitoHoje = { novas: 6, revisoes: 2 }
+    montar()
+    await pronta()
+    await waitFor(() =>
+      expect(screen.getByTestId('faixa-de-estado').querySelector('.ct-estado-teto b')?.textContent).toBe('6 de 10'),
+    )
+    expect(screen.getByTestId('convite-de-hoje').querySelector('h2')?.textContent).not.toBe(
+      'Você chegou ao limite de hoje.',
+    )
+    cleanup()
+
+    // No teto: o limite do dia fechou a rodada, mesmo com cartão vencendo.
+    api.feitoHoje = { novas: 10, revisoes: 10 }
+    const { ir } = montar()
+    await pronta()
+    await waitFor(() => expect(screen.getByTestId('cartoes').dataset.ctHoje).toBe('pilha'))
+    const convite = screen.getByTestId('convite-de-hoje')
+    expect(convite.querySelector('h2')?.textContent).toBe('Você chegou ao limite de hoje.')
+    expect(within(convite).queryByRole('button', { name: /Estudar/ })).toBeNull()
+    fireEvent.click(within(convite).getByRole('button', { name: 'Mudar o limite do dia' }))
+    await folha('Ajustes da memória')
+    expect(ir).not.toHaveBeenCalledWith('study', expect.anything())
   })
 
   it('pilha: vence mais do que cabe na rodada; a folha "E o resto?" guarda as saídas que o app cumpre', async () => {
@@ -600,10 +652,9 @@ describe('o "…" do cabeçalho e as folhas', () => {
     expect([...trazer.querySelectorAll('.q-linha b')].map((b) => b.textContent)).toEqual([
       'Palavra nova',
       'Arquivo do Anki',
+      'Colar uma lista',
       'Exportar',
     ])
-    /* Colar uma lista não existe no app: não vira linha. */
-    expect(within(trazer).queryByText(/Colar uma lista/)).toBeNull()
     const arquivo = screen.getByTestId('anki-arquivo') as HTMLInputElement
     const abriu = vi.spyOn(arquivo, 'click')
     fireEvent.click(within(trazer).getByRole('button', { name: /Arquivo do Anki/ }))

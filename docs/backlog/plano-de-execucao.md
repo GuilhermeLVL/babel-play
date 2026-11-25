@@ -1,5 +1,7 @@
 # Plano de execução do backlog (25/11/2026)
 
+> **Andamento (25/11/2026):** Onda 1 entregue no PR #208 (merge `36dad2f4`, staging). Onda 2 entregue no PR #209 (merge `4f14a128`). Produção segue em `897c9d25` até a publicação única no fim.
+
 Consolida as 39 changes ativas de `openspec/changes/`: 18 vivas revisadas, 10 incertas, 10 novas de planejamento e `modo-offline-declarado`. Decisões: `docs/backlog/decisoes-do-dono.md` (lista única, numerada). Ordem anterior: `openspec/changes/README-ordem-2026-11-23.md`.
 
 ## Regras que valem para tudo

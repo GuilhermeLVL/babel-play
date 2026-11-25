@@ -8,7 +8,7 @@
 
 **Tech Stack:** o do repositório. Skill `copy-br-etica` para qualquer texto novo de anúncio/plano.
 
-**Spec:** `openspec/changes/planos-v3-e-rota-inteligente/specs/anuncios-no-gratis/spec.md` e `design.md` §7 (espaços e formatos); protótipo `docs/prototipos/anuncios-no-gratis.html` (+ `anuncios-no-gratis-src/anuncios.js`); pedido do dono em 21/10/2026 (barra por prioridade; experiência completa de anúncios; Safari).
+**Spec:** `openspec/changes/archive/2026-11-25-planos-v3-e-rota-inteligente/specs/anuncios-no-gratis/spec.md` e `design.md` §7 (espaços e formatos); protótipo `docs/prototipos/anuncios-no-gratis.html` (+ `anuncios-no-gratis-src/anuncios.js`); pedido do dono em 21/10/2026 (barra por prioridade; experiência completa de anúncios; Safari).
 
 ## Rulings
 

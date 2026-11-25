@@ -62,7 +62,13 @@ describe('economia v2 — só resultado paga', () => {
      (1.050 Seeds). Sessão só rende XP se dela saiu ao menos UMA palavra salva no caderno: é o
      sinal de esforço que o servidor enxerga (a palavra é um cartão com `session_id`). */
   it('sessão sem palavra salva não rende XP — nem na conta, nem na temporada', () => {
-    const vazia = { sessions: 40, sessoesComPalavraSalva: 0, wordsCaptured: 0, reviews: 0, correctReviews: 0 } as AppMetrics
+    const vazia = {
+      sessions: 40,
+      sessoesComPalavraSalva: 0,
+      wordsCaptured: 0,
+      reviews: 0,
+      correctReviews: 0,
+    } as AppMetrics
     expect(eventosDeMetricas(vazia).sessoes).toBe(0)
     expect(xpDeEventos(eventosDeMetricas(vazia))).toBe(0)
     const comPalavra = { ...vazia, sessoesComPalavraSalva: 2 } as AppMetrics

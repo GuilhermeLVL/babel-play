@@ -33,7 +33,10 @@ const CHAVE_STORAGE = /['"`](babel[.\w-]*)['"`]/g;
 
 const linhas = [];
 const chavesStorage = new Set();
-let pluralSufixo = 0, pluralTernario = 0, templates = 0, tagsInline = 0;
+let pluralSufixo = 0,
+  pluralTernario = 0,
+  templates = 0,
+  tagsInline = 0;
 const arquivosComTagInline = new Set();
 
 for (const arq of arquivos) {
@@ -47,34 +50,52 @@ for (const arq of arquivos) {
 
   for (const m of limpo.matchAll(CHAVE_STORAGE)) chavesStorage.add(m[1]);
 
-  pluralSufixo += ps; pluralTernario += pt; templates += tl; tagsInline += ti;
+  pluralSufixo += ps;
+  pluralTernario += pt;
+  templates += tl;
+  tagsInline += ti;
   if (ti) arquivosComTagInline.add(rel);
-  if (ps + pt + tl + ti > 0) linhas.push({ arquivo: rel, pluralSufixo: ps, pluralTernario: pt, templates: tl, tagsInline: ti });
+  if (ps + pt + tl + ti > 0)
+    linhas.push({ arquivo: rel, pluralSufixo: ps, pluralTernario: pt, templates: tl, tagsInline: ti });
 }
 
 // Só as chaves que de fato são usadas com localStorage/sessionStorage.
-const usoDeStorage = arquivos
-  .map((a) => semComentarios(lerTexto(a)))
-  .join('\n');
-const chavesReais = [...chavesStorage].filter((k) => new RegExp(`(?:localStorage|sessionStorage)[\\s\\S]{0,80}${k.replace(/[.*+?^\${}()|[\]\\]/g, '\\$&')}`).test(usoDeStorage));
+const usoDeStorage = arquivos.map((a) => semComentarios(lerTexto(a))).join('\n');
+const chavesReais = [...chavesStorage].filter((k) =>
+  new RegExp(`(?:localStorage|sessionStorage)[\\s\\S]{0,80}${k.replace(/[.*+?^\${}()|[\]\\]/g, '\\$&')}`).test(
+    usoDeStorage,
+  ),
+);
 
-let texto = tabela(['medida', 'medido', 'alegado', 'origem'], [
-  ['plural por sufixo (`${n>1?"s":""}`)', pluralSufixo, '—', 'i18n.md:131 cita o padrão'],
-  ['plural por ternário sobre número', pluralTernario, '78 / ~60', 'i18n-lacunas.md:58 / i18n.md:130'],
-  ['plural total decidido no código', pluralSufixo + pluralTernario, '78', 'i18n-lacunas.md:58'],
-  ['template literal com `${}`', templates, '1.053 / 540', 'i18n-lacunas.md:117 / i18n.md:129'],
-  ['tag inline de ênfase em JSX', tagsInline, '688', 'i18n.md:127'],
-  ['arquivos com tag inline', arquivosComTagInline.size, '—', '—'],
-  ['chaves `babel.*` distintas', chavesStorage.size, '~55', 'i18n.md:143'],
-  ['dessas, usadas com (local|session)Storage', chavesReais.length, '~55', 'i18n.md:143'],
-]);
+let texto = tabela(
+  ['medida', 'medido', 'alegado', 'origem'],
+  [
+    ['plural por sufixo (`${n>1?"s":""}`)', pluralSufixo, '—', 'i18n.md:131 cita o padrão'],
+    ['plural por ternário sobre número', pluralTernario, '78 / ~60', 'i18n-lacunas.md:58 / i18n.md:130'],
+    ['plural total decidido no código', pluralSufixo + pluralTernario, '78', 'i18n-lacunas.md:58'],
+    ['template literal com `${}`', templates, '1.053 / 540', 'i18n-lacunas.md:117 / i18n.md:129'],
+    ['tag inline de ênfase em JSX', tagsInline, '688', 'i18n.md:127'],
+    ['arquivos com tag inline', arquivosComTagInline.size, '—', '—'],
+    ['chaves `babel.*` distintas', chavesStorage.size, '~55', 'i18n.md:143'],
+    ['dessas, usadas com (local|session)Storage', chavesReais.length, '~55', 'i18n.md:143'],
+  ],
+);
 
 texto += '\n\nOs 12 arquivos com mais dívida somada:\n';
-texto += tabela(['arquivo', 'plural suf.', 'plural tern.', 'templates', 'tag inline'],
+texto += tabela(
+  ['arquivo', 'plural suf.', 'plural tern.', 'templates', 'tag inline'],
   [...linhas]
-    .sort((a, b) => (b.pluralSufixo + b.pluralTernario + b.templates + b.tagsInline) - (a.pluralSufixo + a.pluralTernario + a.templates + a.tagsInline))
+    .sort(
+      (a, b) =>
+        b.pluralSufixo +
+        b.pluralTernario +
+        b.templates +
+        b.tagsInline -
+        (a.pluralSufixo + a.pluralTernario + a.templates + a.tagsInline),
+    )
     .slice(0, 12)
-    .map((x) => [x.arquivo, x.pluralSufixo, x.pluralTernario, x.templates, x.tagsInline]));
+    .map((x) => [x.arquivo, x.pluralSufixo, x.pluralTernario, x.templates, x.tagsInline]),
+);
 
 texto += '\n\nRessalva: "template literal com ${}" e "tag inline" são censos de PADRÃO, não de';
 texto += '\nstring de tela. Um template literal pode montar uma classe CSS ou uma URL; uma tag';
@@ -82,8 +103,12 @@ texto += '\ninline pode envolver um ícone. O número alto não é dívida de tr
 texto += '\né o teto dela. É por isso que os próprios documentos dão dois valores diferentes.';
 
 export default publicar('09 — dívida de código quantificada', texto, {
-  pluralSufixo, pluralTernario, templates, tagsInline,
+  pluralSufixo,
+  pluralTernario,
+  templates,
+  tagsInline,
   arquivosComTagInline: arquivosComTagInline.size,
-  chavesStorage: chavesStorage.size, chavesReais: chavesReais.length,
+  chavesStorage: chavesStorage.size,
+  chavesReais: chavesReais.length,
   porArquivo: linhas,
 });

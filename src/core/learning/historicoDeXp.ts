@@ -80,8 +80,14 @@ export function historicoDeXp(
   const porBalde = new Map<number, EventosDeXp>();
   const somar = (ts: number, patch: Partial<EventosDeXp>) => {
     const chave = inicioDoBalde(ts, balde);
-    const atual = porBalde.get(chave)
-      ?? { sessoes: 0, palavrasCapturadas: 0, revisoes: 0, revisoesCertas: 0, itensDeJogo: 0, itensDeJogoCertos: 0 };
+    const atual = porBalde.get(chave) ?? {
+      sessoes: 0,
+      palavrasCapturadas: 0,
+      revisoes: 0,
+      revisoesCertas: 0,
+      itensDeJogo: 0,
+      itensDeJogoCertos: 0,
+    };
     porBalde.set(chave, {
       sessoes: atual.sessoes + (patch.sessoes ?? 0),
       palavrasCapturadas: atual.palavrasCapturadas + (patch.palavrasCapturadas ?? 0),
@@ -95,7 +101,8 @@ export function historicoDeXp(
   /* A sessão e as palavras dela caem no MESMO instante: a contagem mora na linha da sessão, não
      numa tabela de palavras com data própria. É a aproximação certa — as palavras foram
      capturadas naquela gravação. */
-  for (const s of linhas.sessoes) somar(s.em, { sessoes: sessaoRendeXp(s.palavrasSalvas) ? 1 : 0, palavrasCapturadas: s.palavras });
+  for (const s of linhas.sessoes)
+    somar(s.em, { sessoes: sessaoRendeXp(s.palavrasSalvas) ? 1 : 0, palavrasCapturadas: s.palavras });
   for (const r of linhas.revisoes) somar(r.em, { revisoes: 1, revisoesCertas: r.certa ? 1 : 0 });
   for (const i of linhas.itensDeJogo) somar(i.em, { itensDeJogo: 1, itensDeJogoCertos: i.certo ? 1 : 0 });
 

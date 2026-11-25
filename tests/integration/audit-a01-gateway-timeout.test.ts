@@ -13,15 +13,20 @@
  *   - 'BUG ATUAL: binding pendurado trava'  passará a falhar → inverta.
  *   - 'DESEJADO: cai para o próximo binding' (it.fails) passará → remova o .fails.
  */
-import type { CapabilityBinding,Profile } from '@core'
+import type { CapabilityBinding, Profile } from '@core'
 import { AiGateway, BreakerRegistry, BudgetLedger } from '@core'
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-const NUNCA_RESOLVE = new Promise<never>(() => { /* pendura de propósito */ })
+const NUNCA_RESOLVE = new Promise<never>(() => {
+  /* pendura de propósito */
+})
 
 function gatewayComBindingQuePendura() {
   const profile: Profile = {
-    id: 'test', name: 'test', builtin: false, economyMode: false,
+    id: 'test',
+    name: 'test',
+    builtin: false,
+    economyMode: false,
     budget: { maxCloudRequests: -1, maxTokens: -1 },
     bindings: { llm: [{ adapterId: 'pendura' }, { adapterId: 'funciona' }] },
   }
@@ -58,12 +63,18 @@ describe('A-01 — timeout no gateway', () => {
 
   it('CONTROLE: sem binding pendurado, o gateway resolve normalmente (não é o timer que engana)', async () => {
     const profile: Profile = {
-      id: 't', name: 't', builtin: false, economyMode: false,
+      id: 't',
+      name: 't',
+      builtin: false,
+      economyMode: false,
       budget: { maxCloudRequests: -1, maxTokens: -1 },
       bindings: { llm: [{ adapterId: 'funciona' }] },
     }
     const gw = new AiGateway(profile, new BreakerRegistry(), new BudgetLedger(profile.budget), () => true)
-    const resultado = await corridaContraTimer(gw.run('llm', () => Promise.resolve('ok')), 300)
+    const resultado = await corridaContraTimer(
+      gw.run('llm', () => Promise.resolve('ok')),
+      300,
+    )
     expect(resultado).toBe('ok')
   })
 })

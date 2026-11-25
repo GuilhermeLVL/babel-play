@@ -1,6 +1,6 @@
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { isSafeImageUrl, MAX_IMAGE_URL,patchMetaSchema } from '../../server/validation'
+import { isSafeImageUrl, MAX_IMAGE_URL, patchMetaSchema } from '../../server/validation'
 
 const dataUri = (bytes: number) => `data:image/png;base64,${Buffer.alloc(bytes, 0).toString('base64')}`
 const aceita = (uri: string) => patchMetaSchema.safeParse({ imageUrl: uri }).success && isSafeImageUrl(uri)

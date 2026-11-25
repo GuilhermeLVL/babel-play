@@ -22,7 +22,9 @@ describe('useSondaGuardada', () => {
   })
 
   it('sem sonda legível fica null (a estimativa conservadora), sem lançar', async () => {
-    vi.doMock('../src/lib/dispositivo/sonda', () => ({ sondaGuardada: vi.fn(async () => Promise.reject(new Error('x'))) }))
+    vi.doMock('../src/lib/dispositivo/sonda', () => ({
+      sondaGuardada: vi.fn(async () => Promise.reject(new Error('x'))),
+    }))
     const { useSondaGuardada } = await import('../src/lib/dispositivo/useSondaGuardada')
     const { result } = renderHook(() => useSondaGuardada())
     await new Promise((r) => setTimeout(r, 20))

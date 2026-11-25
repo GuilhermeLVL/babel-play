@@ -1,13 +1,21 @@
 // @vitest-environment jsdom
 /** A seção de conta só aparece no modo com login (authRequired); no self-host não renderiza nada. */
-import { cleanup,render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 
-afterEach(() => { cleanup(); vi.resetModules() })
+afterEach(() => {
+  cleanup()
+  vi.resetModules()
+})
 
 it('authRequired=true → renderiza "Conta e Segurança" e o botão de sair', async () => {
   vi.doMock('../src/lib/supabase', () => ({ supabase: {}, authRequired: true, getAccessToken: async () => null }))
-  vi.doMock('../src/lib/auth', () => ({ listTotpFactors: async () => [], signOut: vi.fn(), updatePassword: vi.fn(), SENHA_MINIMA: 8 }))
+  vi.doMock('../src/lib/auth', () => ({
+    listTotpFactors: async () => [],
+    signOut: vi.fn(),
+    updatePassword: vi.fn(),
+    SENHA_MINIMA: 8,
+  }))
   const { default: Section } = await import('../src/components/auth/AccountSecuritySection')
   render(<Section />)
   expect(screen.getByRole('heading', { name: 'Conta e Segurança' })).toBeTruthy()

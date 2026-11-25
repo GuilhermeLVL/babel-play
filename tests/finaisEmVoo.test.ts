@@ -8,11 +8,23 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { aguardarFinaisEmVoo, falasParaSalvar, PRAZO_DAS_FINAIS_MS, prazoDaMistura } from '../src/lib/captura/finaisEmVoo'
+import {
+  aguardarFinaisEmVoo,
+  falasParaSalvar,
+  PRAZO_DAS_FINAIS_MS,
+  prazoDaMistura,
+} from '../src/lib/captura/finaisEmVoo'
 import type { SpeechSegment } from '../src/lib/captura/tiposDaFala'
 
 const fala = (id: string, texto: string, isPartial = false): SpeechSegment => ({
-  id, speakerId: 'system', source: 'system', timestamp: '', originalText: texto, translatedText: '', words: [], isPartial,
+  id,
+  speakerId: 'system',
+  source: 'system',
+  timestamp: '',
+  originalText: texto,
+  translatedText: '',
+  words: [],
+  isPartial,
 })
 
 describe('aguardarFinaisEmVoo', () => {

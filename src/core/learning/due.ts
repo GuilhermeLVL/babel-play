@@ -1,4 +1,4 @@
-import type { SchedulerType,VocabCard } from '../../types';
+import type { SchedulerType, VocabCard } from '../../types';
 
 /**
  * "ESTE CARTÃO ESTÁ VENCIDO?" — a pergunta que a interface fazia errado.
@@ -46,12 +46,16 @@ export function countDue(cards: VocabCard[], scheduler: SchedulerType = 'fsrs', 
  * Vencidos primeiro, do MAIS atrasado para o menos — a ordem que o Duelo Relâmpago usa. Quem
  * está vencido há mais tempo é quem está mais perto de ser esquecido, então joga primeiro.
  */
-export function byUrgency(cards: VocabCard[], scheduler: SchedulerType = 'fsrs', now: number = Date.now()): VocabCard[] {
+export function byUrgency(
+  cards: VocabCard[],
+  scheduler: SchedulerType = 'fsrs',
+  now: number = Date.now(),
+): VocabCard[] {
   const quando = (c: VocabCard) => {
     const bruto = scheduler === 'fsrs' ? c.fsrsDueAt : c.leitnerDueAt;
     if (bruto && LEGADO_HOJE.has(String(bruto).trim().toLowerCase())) return now;
     const ts = Date.parse(String(bruto ?? ''));
     return Number.isNaN(ts) ? Infinity : ts;
   };
-  return cards.filter(c => isDueNow(c, scheduler, now)).sort((a, b) => quando(a) - quando(b));
+  return cards.filter((c) => isDueNow(c, scheduler, now)).sort((a, b) => quando(a) - quando(b));
 }

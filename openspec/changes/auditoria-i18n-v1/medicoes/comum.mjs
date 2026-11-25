@@ -19,7 +19,11 @@ export function andar(dir, filtro = () => true) {
   while (pilha.length) {
     const atual = pilha.pop();
     let itens;
-    try { itens = readdirSync(atual, { withFileTypes: true }); } catch { continue; }
+    try {
+      itens = readdirSync(atual, { withFileTypes: true });
+    } catch {
+      continue;
+    }
     for (const item of itens) {
       if (IGNORAR.includes(item.name)) continue;
       const p = join(atual, item.name);
@@ -41,10 +45,13 @@ export const tamanho = (p) => statSync(p).size;
 export function tabela(cabecalho, linhas) {
   const todas = [cabecalho, ...linhas].map((l) => l.map((c) => String(c ?? '')));
   const larg = cabecalho.map((_, i) => Math.max(...todas.map((l) => [...(l[i] ?? '')].length)));
-  const uma = (l) => l.map((c, i) => {
-    const sobra = larg[i] - [...c].length;
-    return i === 0 ? c + ' '.repeat(sobra) : ' '.repeat(sobra) + c;
-  }).join('  ');
+  const uma = (l) =>
+    l
+      .map((c, i) => {
+        const sobra = larg[i] - [...c].length;
+        return i === 0 ? c + ' '.repeat(sobra) : ' '.repeat(sobra) + c;
+      })
+      .join('  ');
   return [uma(todas[0]), larg.map((n) => '-'.repeat(n)).join('  '), ...todas.slice(1).map(uma)].join('\n');
 }
 

@@ -35,7 +35,10 @@ const TEM_ACENTO = /[̀-ͯ]/;
 
 /** Caixa e pontuação fora; acento DENTRO. */
 function chaveComAcento(s: string): string {
-  return (s ?? '').normalize('NFC').toLowerCase().replace(/[^\p{L}\p{N}\p{M}]/gu, '');
+  return (s ?? '')
+    .normalize('NFC')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\p{M}]/gu, '');
 }
 
 /** Caixa, pontuação e acento latino fora. Marcas de outros alfabetos ficam. */

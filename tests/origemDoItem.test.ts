@@ -6,10 +6,18 @@
  * caíam no mesmo balde e a coleção parava de contar como foi montada.
  */
 // @vitest-environment jsdom
-import { beforeEach,describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { estadoDaColecao, iconeDoItem } from '../src/lib/galeria/progressao'
-import { CATALOGO_DA_LOJA, COR_DA_RARIDADE, marcarPosse, ORIGEM, type OrigemDoItem,origemDoItem,temPortaDeNivel } from '../src/lib/loja'
+import {
+  CATALOGO_DA_LOJA,
+  COR_DA_RARIDADE,
+  marcarPosse,
+  ORIGEM,
+  type OrigemDoItem,
+  origemDoItem,
+  temPortaDeNivel,
+} from '../src/lib/loja'
 
 beforeEach(() => localStorage.removeItem('babel.loja_possuidos'))
 

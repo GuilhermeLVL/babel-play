@@ -23,6 +23,8 @@
  * só perde a persistência entre sessões. Nenhuma falha daqui chega à tela.
  */
 
+import { EVENTO_DE_ARMAZENS_LIMPOS } from '../armazensDoAparelhoDaConta';
+
 /** Até quantas palavras uma fala é guardada entre sessões (ver DECISÕES acima). */
 export const MAX_PALAVRAS_GUARDADAS = 12;
 /** Até quantas palavras a fala vai ao tradutor SEM o contexto da conversa (a chave não depende dele). */
@@ -238,6 +240,12 @@ export function criarArmazemIndexedDb(opts: OpcoesDoIndexedDb): ArmazemComChaves
 }
 
 let padrao: ArmazemDeTraducoes | null = null;
+
+/* A guarda esvaziou o banco (sair, trocar de conta): a reserva em memória da aba também é da conta que saiu. */
+if (typeof window !== 'undefined')
+  window.addEventListener(EVENTO_DE_ARMAZENS_LIMPOS, () => {
+    padrao = null;
+  });
 
 /** O armazém da aplicação: IndexedDB quando há, memória quando não. Um por página. */
 export function armazemPadrao(): ArmazemDeTraducoes {

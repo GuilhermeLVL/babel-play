@@ -16,28 +16,44 @@
  * Vale para os nove jogos, não só o Termo. Um gate que libera o que o montador recusa é a classe do
  * defeito, e é essa classe que a verificação cruzada cobre — inclusive no décimo jogo.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { buildRodadasConectores,buildRodadasDitado, buildRodadasEscuta } from '../src/core/minigames/escuta'
-import { type EntradaDoEstado,estadoDoJogo } from '../src/core/minigames/estadoDosJogos'
+import { buildRodadasConectores, buildRodadasDitado, buildRodadasEscuta } from '../src/core/minigames/escuta'
+import { type EntradaDoEstado, estadoDoJogo } from '../src/core/minigames/estadoDosJogos'
 import { frasesElegiveis } from '../src/core/minigames/frasesCorrigidas'
 import { buildItems } from '../src/core/minigames/itemSource'
 import { sortearRodada } from '../src/core/minigames/paresMinimos'
 import { buildScrambleRounds } from '../src/core/minigames/scramble'
 import {
-consumoDaEscada, contarJogaveisMulti, DEGRAUS_MINIMOS, ESCADA_POR_FAIXA,
-MAX_LETRAS,
-  MIN_LETRAS, planoDaEscada,   rodadasDaEscada, } from '../src/core/minigames/termo'
-import { type MinigameId,MINIGAMES } from '../src/core/minigames/types'
+  consumoDaEscada,
+  contarJogaveisMulti,
+  DEGRAUS_MINIMOS,
+  ESCADA_POR_FAIXA,
+  MAX_LETRAS,
+  MIN_LETRAS,
+  planoDaEscada,
+  rodadasDaEscada,
+} from '../src/core/minigames/termo'
+import { type MinigameId, MINIGAMES } from '../src/core/minigames/types'
 import type { VocabCard } from '../src/types'
 
 function carta(word: string, translation: string): VocabCard {
   return {
-    id: `c-${word}`, word, phonetics: '', translation, explanation: '',
-    srcLang: 'en', tgtLang: 'pt', 
-    leitnerBox: 1, leitnerDueAt: new Date(0).toISOString(),
-    fsrsState: 'New', fsrsStability: 0, fsrsDifficulty: 5,
-    fsrsPredictedRetention: 0, fsrsDueAt: new Date(0).toISOString(), inDeck: true,
+    id: `c-${word}`,
+    word,
+    phonetics: '',
+    translation,
+    explanation: '',
+    srcLang: 'en',
+    tgtLang: 'pt',
+    leitnerBox: 1,
+    leitnerDueAt: new Date(0).toISOString(),
+    fsrsState: 'New',
+    fsrsStability: 0,
+    fsrsDifficulty: 5,
+    fsrsPredictedRetention: 0,
+    fsrsDueAt: new Date(0).toISOString(),
+    inDeck: true,
   }
 }
 
@@ -57,7 +73,20 @@ function carta(word: string, translation: string): VocabCard {
  * Daí a asserção logo abaixo: a fixture prova que É material jogável antes de ser usada.
  */
 function palavrasIguais(n: number): VocabCard[] {
-  const base = ['house', 'bread', 'table', 'chair', 'plant', 'water', 'green', 'stone', 'light', 'money', 'river', 'cloud']
+  const base = [
+    'house',
+    'bread',
+    'table',
+    'chair',
+    'plant',
+    'water',
+    'green',
+    'stone',
+    'light',
+    'money',
+    'river',
+    'cloud',
+  ]
   const TRAD = ['casa', 'pão', 'mesa', 'cadeira', 'planta', 'água', 'verde', 'pedra', 'luz', 'dinheiro', 'rio', 'nuvem']
   expect(base.length, 'fixture curta demais').toBeGreaterThanOrEqual(n)
 
@@ -76,7 +105,9 @@ const FALAS = Array.from({ length: 12 }, (_, i) => ({
   id: `f${i}`,
   text: `But then she said that number ${i} again.`,
   translation: `Mas aí ela disse ${i} de novo.`,
-  startMs: i * 4000, endMs: i * 4000 + 3000, lang: 'en',
+  startMs: i * 4000,
+  endMs: i * 4000 + 3000,
+  lang: 'en',
 }))
 
 function entrada(cartas: VocabCard[], extra: Partial<EntradaDoEstado> = {}): EntradaDoEstado {
@@ -109,11 +140,13 @@ function montaRodada(id: MinigameId, e: EntradaDoEstado): number {
   if (id === 'scramble') return buildScrambleRounds(e.frases, { quantidade: def.maxItems }).length
   if (id === 'escuta') return e.temAudio ? buildRodadasEscuta(e.frases, { quantidade: def.maxItems }).length : 0
   if (id === 'ditado') return e.temAudio ? buildRodadasDitado(e.frases, { quantidade: def.maxItems }).length : 0
-  if (id === 'retraducao') return frasesElegiveis(e.frases, 'retraducao', { lang: e.lang, quantidade: def.maxItems }).length
-  if (id === 'ditadoDeFrase') return e.temVoz ? frasesElegiveis(e.frases, 'ditado', { lang: e.lang, quantidade: def.maxItems }).length : 0
+  if (id === 'retraducao')
+    return frasesElegiveis(e.frases, 'retraducao', { lang: e.lang, quantidade: def.maxItems }).length
+  if (id === 'ditadoDeFrase')
+    return e.temVoz ? frasesElegiveis(e.frases, 'ditado', { lang: e.lang, quantidade: def.maxItems }).length : 0
   if (id === 'conectores') return buildRodadasConectores(e.frases, { lang: e.lang, quantidade: def.maxItems }).length
   // karaokê: as falas com áudio real
-  return e.temAudio ? e.frases.filter(f => f.endMs > f.startMs && f.text.trim()).length : 0
+  return e.temAudio ? e.frases.filter((f) => f.endMs > f.startMs && f.text.trim()).length : 0
 }
 
 const IDS = Object.keys(MINIGAMES) as MinigameId[]
@@ -130,9 +163,11 @@ describe('gate × builder — a carta liberada sempre abre', () => {
       const gate = estadoDoJogo('termo', e)
       const itens = montaRodada('termo', e)
 
-      expect(itens > 0, gate.ok
-        ? `carta liberada com ${n} palavras mas a rodada veio vazia — é o defeito original`
-        : `carta bloqueada com ${n} palavras mas a rodada montou`,
+      expect(
+        itens > 0,
+        gate.ok
+          ? `carta liberada com ${n} palavras mas a rodada veio vazia — é o defeito original`
+          : `carta bloqueada com ${n} palavras mas a rodada montou`,
       ).toBe(gate.ok)
     })
 
@@ -145,8 +180,8 @@ describe('gate × builder — a carta liberada sempre abre', () => {
 
   it('a rodada consome 3 ou 7, nunca 4, 5 ou 6', () => {
     // O que tornava "5 palavras prontas" uma promessa impossível de cumprir.
-    expect([3, 4, 5, 6].map(n => consumoDaEscada(n))).toEqual([3, 3, 3, 3])
-    expect([7, 8, 100].map(n => consumoDaEscada(n))).toEqual([7, 7, 7])
+    expect([3, 4, 5, 6].map((n) => consumoDaEscada(n))).toEqual([3, 3, 3, 3])
+    expect([7, 8, 100].map((n) => consumoDaEscada(n))).toEqual([7, 7, 7])
   })
 
   it('um degrau só não é escada — 1 e 2 palavras não montam rodada', () => {
@@ -212,8 +247,7 @@ describe('gate × builder — os nove jogos', () => {
           expect(itens, `${id} liberado mas a rodada veio vazia`).toBeGreaterThan(0)
           expect(itens, `${id} liberado com menos itens que o mínimo`).toBeGreaterThanOrEqual(MINIGAMES[id].minItems)
         } else {
-          expect(itens, `${id} bloqueado mas a rodada montou com ${itens} itens`)
-            .toBeLessThan(MINIGAMES[id].minItems)
+          expect(itens, `${id} bloqueado mas a rodada montou com ${itens} itens`).toBeLessThan(MINIGAMES[id].minItems)
         }
       })
 

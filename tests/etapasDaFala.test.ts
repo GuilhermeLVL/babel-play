@@ -7,7 +7,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { capMetrics, PRECO_DA_NUVEM_USD_POR_MIN } from '../src/gateway/capture/captureMetrics'
-import { CHAVE_DO_ULTIMO_INTERPRETE, descreverEtapas, lerUltimoDoInterprete, tempoAteAVoz } from '../src/lib/voz/tempoAteAVoz'
+import {
+  CHAVE_DO_ULTIMO_INTERPRETE,
+  descreverEtapas,
+  lerUltimoDoInterprete,
+  tempoAteAVoz,
+} from '../src/lib/voz/tempoAteAVoz'
 
 beforeEach(() => {
   capMetrics.reset()

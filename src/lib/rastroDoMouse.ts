@@ -29,10 +29,14 @@
  * (`reduzirEfeitos`, que já inclui movimento reduzido).
  */
 import { reduzirEfeitos } from './dispositivo/perfil';
-import { type BurstKind, type BurstSpec,emitBurst } from './effects';
-import { coresDaPaleta, MATIZES,paletaPorId } from './galeria/paletas';
+import { type BurstKind, type BurstSpec, emitBurst } from './effects';
+import { coresDaPaleta, MATIZES, paletaPorId } from './galeria/paletas';
 
-export interface EstiloDeRastro { id: string; nome: string; kind: BurstKind }
+export interface EstiloDeRastro {
+  id: string;
+  nome: string;
+  kind: BurstKind;
+}
 
 export const RASTROS: EstiloDeRastro[] = [
   { id: 'off', nome: 'Desligado', kind: 'xp' },
@@ -57,7 +61,11 @@ const CHAVE = 'babel.rastro';
 const INTERVALO_MS = 45;
 const DISTANCIA_MIN = 14;
 
-export interface RastroResolvido { kind: BurstKind; sobrescrever?: Partial<BurstSpec>; nome: string }
+export interface RastroResolvido {
+  kind: BurstKind;
+  sobrescrever?: Partial<BurstSpec>;
+  nome: string;
+}
 
 /** Resolve QUALQUER id (fixo ou personalizado) para o que o canvas precisa. `null` = inválido. */
 export function estiloDeRastro(id: string): RastroResolvido | null {
@@ -69,15 +77,23 @@ export function estiloDeRastro(id: string): RastroResolvido | null {
     const paleta = paletaPorId(paletaId ?? '');
     if (!forma || !paleta) return null;
     const cores = coresDaPaleta(paleta).slice(0, 2);
-    return { kind: forma.kind, nome: `${forma.nome} · ${paleta.nome}`, sobrescrever: { paleta: [paleta.accent, ...cores] } };
+    return {
+      kind: forma.kind,
+      nome: `${forma.nome} · ${paleta.nome}`,
+      sobrescrever: { paleta: [paleta.accent, ...cores] },
+    };
   }
   if (id.startsWith('croma:')) {
-    const [, formaId, matiz] = id.split(':')
-    const forma = FORMAS_DE_RASTRO.find((f) => f.id === formaId)
-    const m = MATIZES.find((x) => x.id === matiz)
-    if (!forma || !m) return null
+    const [, formaId, matiz] = id.split(':');
+    const forma = FORMAS_DE_RASTRO.find((f) => f.id === formaId);
+    const m = MATIZES.find((x) => x.id === matiz);
+    if (!forma || !m) return null;
     // Duas cores: o matiz e uma versão mais funda dele — é o que dá volume ao rastro.
-    return { kind: forma.kind, nome: `${forma.nome} · ${m.nome}`, sobrescrever: { paleta: [`hsl(${m.h} 85% 62%)`, `hsl(${m.h} 72% 46%)`] } }
+    return {
+      kind: forma.kind,
+      nome: `${forma.nome} · ${m.nome}`,
+      sobrescrever: { paleta: [`hsl(${m.h} 85% 62%)`, `hsl(${m.h} 72% 46%)`] },
+    };
   }
   return null;
 }
@@ -90,19 +106,29 @@ export function readRastro(): string {
   try {
     const v = localStorage.getItem(CHAVE) ?? 'off';
     return rastroValido(v) ? v : 'off';
-  } catch { return 'off'; }
+  } catch {
+    return 'off';
+  }
 }
 
 export function setRastro(id: string): string {
   const valido = rastroValido(id) ? id : 'off';
-  try { localStorage.setItem(CHAVE, valido); } catch { /* sem storage */ }
+  try {
+    localStorage.setItem(CHAVE, valido);
+  } catch {
+    /* sem storage */
+  }
   return valido;
 }
 
 /** Monta o id de um rastro personalizado por forma + paleta. */
-export function idDeRastroGerado(forma: string, paletaId: string): string { return `gen:${forma}:${paletaId}`; }
+export function idDeRastroGerado(forma: string, paletaId: string): string {
+  return `gen:${forma}:${paletaId}`;
+}
 /** Monta o id de um rastro na cor de um croma comprado. */
-export function idDeRastroDeCroma(forma: string, matiz: string): string { return `croma:${forma}:${matiz}`; }
+export function idDeRastroDeCroma(forma: string, matiz: string): string {
+  return `croma:${forma}:${matiz}`;
+}
 
 function animacoesDesligadas(): boolean {
   const b = document.body;
@@ -130,28 +156,38 @@ export function instalarRastroDoMouse(): void {
   let ultimoX = -999;
   let ultimoY = -999;
 
-  window.addEventListener('pointermove', (e) => {
-    // O acelerador vem ANTES da leitura do estilo: pointermove dispara dezenas de vezes por
-    // segundo e `readRastro()` toca o localStorage — barato um a um, caro em rajada contínua.
-    const agora = performance.now();
-    if (agora - ultimoT < INTERVALO_MS) return;
-    const id = readRastro();
-    if (id === 'off' || animacoesDesligadas()) return;
-    const dx = e.clientX - ultimoX;
-    const dy = e.clientY - ultimoY;
-    if (dx * dx + dy * dy < DISTANCIA_MIN * DISTANCIA_MIN) return;
-    ultimoT = agora;
-    ultimoX = e.clientX;
-    ultimoY = e.clientY;
-    const estilo = estiloDeRastro(id);
-    if (estilo) emitBurst(e.clientX, e.clientY, estilo.kind, estilo.sobrescrever);
-  }, { passive: true });
+  window.addEventListener(
+    'pointermove',
+    (e) => {
+      // O acelerador vem ANTES da leitura do estilo: pointermove dispara dezenas de vezes por
+      // segundo e `readRastro()` toca o localStorage — barato um a um, caro em rajada contínua.
+      const agora = performance.now();
+      if (agora - ultimoT < INTERVALO_MS) return;
+      const id = readRastro();
+      if (id === 'off' || animacoesDesligadas()) return;
+      const dx = e.clientX - ultimoX;
+      const dy = e.clientY - ultimoY;
+      if (dx * dx + dy * dy < DISTANCIA_MIN * DISTANCIA_MIN) return;
+      ultimoT = agora;
+      ultimoX = e.clientX;
+      ultimoY = e.clientY;
+      const estilo = estiloDeRastro(id);
+      if (estilo) emitBurst(e.clientX, e.clientY, estilo.kind, estilo.sobrescrever);
+    },
+    { passive: true },
+  );
 
-  window.addEventListener('pointerdown', (e) => {
-    const id = readRastro();
-    if (id === 'off' || animacoesDesligadas()) return;
-    const estilo = estiloDeRastro(id);
-    // Clique = três emissões rápidas: a mini-explosão que dá peso ao toque.
-    if (estilo) for (let i = 0; i < 3; i++) setTimeout(() => emitBurst(e.clientX, e.clientY, estilo.kind, estilo.sobrescrever), i * 40);
-  }, { passive: true });
+  window.addEventListener(
+    'pointerdown',
+    (e) => {
+      const id = readRastro();
+      if (id === 'off' || animacoesDesligadas()) return;
+      const estilo = estiloDeRastro(id);
+      // Clique = três emissões rápidas: a mini-explosão que dá peso ao toque.
+      if (estilo)
+        for (let i = 0; i < 3; i++)
+          setTimeout(() => emitBurst(e.clientX, e.clientY, estilo.kind, estilo.sobrescrever), i * 40);
+    },
+    { passive: true },
+  );
 }

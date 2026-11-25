@@ -8,10 +8,10 @@
  * O risco desta mudança é o teto ESTOURAR: com `by > 1`, a condição antiga (`count < cap`) deixaria
  * passar 99 + 60 contra um teto de 100. É isso que os testes abaixo prendem.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let repo: any
@@ -20,7 +20,9 @@ beforeAll(async () => {
   h = await setupEphemeralDb()
   ;({ usageCountersRepo: repo } = await h.load('../../server/db/repositories/usageCounters'))
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 const M = 'stt_seconds'
 const W = '2026-08'

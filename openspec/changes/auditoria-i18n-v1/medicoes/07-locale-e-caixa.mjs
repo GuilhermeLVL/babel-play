@@ -15,25 +15,25 @@
 import { andar, caminho, ehFonte, lerTexto, relativo, tabela, publicar } from './comum.mjs';
 
 const SRC = caminho('src');
-const arquivos = [
-  ...andar(SRC, ehFonte),
-  ...andar(caminho('server'), ehFonte),
-].filter(Boolean);
+const arquivos = [...andar(SRC, ehFonte), ...andar(caminho('server'), ehFonte)].filter(Boolean);
 
 const semComentarios = (s) => s.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
 
 // --- 1. locale cravado -------------------------------------------------------------------
 const TO_LOCALE_LITERAL = /\.toLocale(?:String|DateString|TimeString)\(\s*['"][a-zA-Z-]+['"]/g;
 const TO_LOCALE_QUALQUER = /\.toLocale(?:String|DateString|TimeString)\(/g;
-const INTL_LITERAL = /new\s+Intl\.(?:NumberFormat|DateTimeFormat|RelativeTimeFormat|ListFormat|Collator|PluralRules|Segmenter|DisplayNames)\(\s*['"][a-zA-Z-]+['"]/g;
+const INTL_LITERAL =
+  /new\s+Intl\.(?:NumberFormat|DateTimeFormat|RelativeTimeFormat|ListFormat|Collator|PluralRules|Segmenter|DisplayNames)\(\s*['"][a-zA-Z-]+['"]/g;
 
 // --- 2. caixa sem locale -----------------------------------------------------------------
 const CAIXA_SEM_LOCALE = /\.to(?:Lower|Upper)Case\(\s*\)/g;
 const CAIXA_COM_LOCALE = /\.toLocale(?:Lower|Upper)Case\(/g;
 
 // --- 3. classes direcionais --------------------------------------------------------------
-const LOGICAS = /\b(?:ms|me|ps|pe|start|end)-[\w./[\]-]+|\btext-(?:start|end)\b|\b(?:border|rounded)-(?:s|e)(?:[ext]*)?-[\w./[\]-]+|\b(?:border|rounded)-(?:s|e)\b/g;
-const FISICAS = /\b(?:ml|mr|pl|pr|left|right)-[\w./[\]-]+|\btext-(?:left|right)\b|\b(?:border|rounded)-(?:l|r)(?:[ext]*)?-[\w./[\]-]+/g;
+const LOGICAS =
+  /\b(?:ms|me|ps|pe|start|end)-[\w./[\]-]+|\btext-(?:start|end)\b|\b(?:border|rounded)-(?:s|e)(?:[ext]*)?-[\w./[\]-]+|\b(?:border|rounded)-(?:s|e)\b/g;
+const FISICAS =
+  /\b(?:ml|mr|pl|pr|left|right)-[\w./[\]-]+|\btext-(?:left|right)\b|\b(?:border|rounded)-(?:l|r)(?:[ext]*)?-[\w./[\]-]+/g;
 
 const conta = (s, re) => (s.match(re) ?? []).length;
 
@@ -61,9 +61,12 @@ for (const arq of arquivos) {
 for (const extra of ['index.css', 'index.html', 'src/index.css']) {
   try {
     const txt = lerTexto(caminho(extra));
-    const lg = conta(txt, LOGICAS); const fs = conta(txt, FISICAS);
+    const lg = conta(txt, LOGICAS);
+    const fs = conta(txt, FISICAS);
     if (lg || fs) direcionais.push({ arquivo: extra, logicas: lg, fisicas: fs });
-  } catch { /* arquivo não existe nesta árvore */ }
+  } catch {
+    /* arquivo não existe nesta árvore */
+  }
 }
 
 const totalToLocale = localeCravado.reduce((a, x) => a + x.toLocale.length, 0);
@@ -73,14 +76,17 @@ const totalCaixaOk = caixaSemLocale.reduce((a, x) => a + x.comLocale, 0);
 const totalLog = direcionais.reduce((a, x) => a + x.logicas, 0);
 const totalFis = direcionais.reduce((a, x) => a + x.fisicas, 0);
 
-let texto = tabela(['censo', 'total'], [
-  ['1. .toLocale*() com locale literal', totalToLocale],
-  ['1. new Intl.*() com locale literal', totalIntl],
-  ['2. toLowerCase/toUpperCase() sem locale', totalCaixa],
-  ['2. toLocaleLowerCase/UpperCase() (a forma certa)', totalCaixaOk],
-  ['3. classes lógicas (espelham em RTL)', totalLog],
-  ['3. classes físicas (NÃO espelham)', totalFis],
-]);
+let texto = tabela(
+  ['censo', 'total'],
+  [
+    ['1. .toLocale*() com locale literal', totalToLocale],
+    ['1. new Intl.*() com locale literal', totalIntl],
+    ['2. toLowerCase/toUpperCase() sem locale', totalCaixa],
+    ['2. toLocaleLowerCase/UpperCase() (a forma certa)', totalCaixaOk],
+    ['3. classes lógicas (espelham em RTL)', totalLog],
+    ['3. classes físicas (NÃO espelham)', totalFis],
+  ],
+);
 
 texto += '\n\n[1] Onde ainda há locale literal:';
 if (!localeCravado.length) texto += ' nenhum lugar.';
@@ -90,16 +96,32 @@ for (const x of localeCravado) {
 }
 
 texto += '\n\n[2] Os 12 arquivos com mais caixa sem locale:\n';
-texto += tabela(['arquivo', 'sem locale', 'com locale'],
-  [...caixaSemLocale].sort((a, b) => b.semLocale - a.semLocale).slice(0, 12)
-    .map((x) => [x.arquivo, x.semLocale, x.comLocale]));
+texto += tabela(
+  ['arquivo', 'sem locale', 'com locale'],
+  [...caixaSemLocale]
+    .sort((a, b) => b.semLocale - a.semLocale)
+    .slice(0, 12)
+    .map((x) => [x.arquivo, x.semLocale, x.comLocale]),
+);
 
 texto += '\n\n[3] Os 12 arquivos com mais classe física remanescente:\n';
-texto += tabela(['arquivo', 'físicas', 'lógicas'],
-  [...direcionais].filter((x) => x.fisicas > 0).sort((a, b) => b.fisicas - a.fisicas).slice(0, 12)
-    .map((x) => [x.arquivo, x.fisicas, x.logicas]));
+texto += tabela(
+  ['arquivo', 'físicas', 'lógicas'],
+  [...direcionais]
+    .filter((x) => x.fisicas > 0)
+    .sort((a, b) => b.fisicas - a.fisicas)
+    .slice(0, 12)
+    .map((x) => [x.arquivo, x.fisicas, x.logicas]),
+);
 
 export default publicar('07 — locale cravado, caixa sem locale e classes direcionais', texto, {
-  totalToLocale, totalIntl, totalCaixa, totalCaixaOk, totalLog, totalFis,
-  localeCravado, caixaSemLocale, direcionais,
+  totalToLocale,
+  totalIntl,
+  totalCaixa,
+  totalCaixaOk,
+  totalLog,
+  totalFis,
+  localeCravado,
+  caixaSemLocale,
+  direcionais,
 });

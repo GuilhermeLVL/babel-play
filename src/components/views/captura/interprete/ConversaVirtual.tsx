@@ -383,6 +383,7 @@ export default function ConversaVirtual({
         aoExportar: () => {
           if (totalDeFinais > 0) exportar();
         },
+        podeExportar: totalDeFinais > 0,
         topo:
           detectar && idiomasOuvidos.length > 0 ? (
             <span

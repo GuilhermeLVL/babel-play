@@ -52,7 +52,13 @@ async function traduzirCom(rota, textos) {
       const ids = [BigInt(rota.tokenId), ...Array.from(enc.input_ids.data)]
       const input_ids = new Tensor('int64', BigInt64Array.from(ids), [1, ids.length])
       const attention_mask = new Tensor('int64', BigInt64Array.from(ids.map(() => 1n)), [1, ids.length])
-      const gen = await mt.model.generate({ input_ids, attention_mask, max_new_tokens: 128, num_beams: 1, do_sample: false })
+      const gen = await mt.model.generate({
+        input_ids,
+        attention_mask,
+        max_new_tokens: 128,
+        num_beams: 1,
+        do_sample: false,
+      })
       return mt.tokenizer.batch_decode(gen, { skip_special_tokens: true })[0] ?? ''
     }
     const r = await mt(frase, GERACAO)
@@ -80,8 +86,14 @@ ${rota.rotulo}: ${i + 1}/${textos.length}            `)
 }
 
 async function main() {
-  const casos = readFileSync(GOLD, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l))
-  console.log(`gold set: ${casos.length} casos · categorias: ${[...new Set(casos.map((c) => c.categoria))].join(', ')}\n`)
+  const casos = readFileSync(GOLD, 'utf8')
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+    .map((l) => JSON.parse(l))
+  console.log(
+    `gold set: ${casos.length} casos · categorias: ${[...new Set(casos.map((c) => c.categoria))].join(', ')}\n`,
+  )
 
   const rotas = COMPARAR_ES ? [ROTA_PT, ROTA_ES] : [ROTA_PT]
   const resultados = []
@@ -92,7 +104,10 @@ async function main() {
     if (rota === ROTA_ES) {
       console.log('\n(o controle em espanhol usa referências em português — comparar o PERFIL, não o valor)')
     }
-    const saidas = await traduzirCom(rota, casos.map((c) => c.origem))
+    const saidas = await traduzirCom(
+      rota,
+      casos.map((c) => c.origem),
+    )
     const comHip = casos.map((c, i) => ({ ...c, hipotese: saidas[i] }))
     const geral = agregarChrf(comHip)
     const porCategoria = agregarPorCategoria(comHip)
@@ -121,4 +136,7 @@ async function main() {
   console.log(`\nresultado bruto: ${SAIDA}`)
 }
 
-main().catch((e) => { console.error('\nfalhou:', e); process.exit(1) })
+main().catch((e) => {
+  console.error('\nfalhou:', e)
+  process.exit(1)
+})

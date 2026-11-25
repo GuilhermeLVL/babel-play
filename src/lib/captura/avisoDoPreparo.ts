@@ -67,7 +67,7 @@ export function avisoComAVozPrimeiro(
   prep: ModelPrepState | null | undefined,
   avisoDaVoz: string | null | undefined,
 ): string | null {
-  if (prep?.error) return prep.error;
+  if (prep?.error) return t(falhaDaCaptura(prep.error).texto);
   /* Só disputa com o PROGRESSO: sem preparo em curso, a faixa segue a ordem de sempre da tela (prática, cadeado, voz…). */
   const progresso = avisoDoPreparo(prep);
   return progresso ? avisoDaVoz || progresso : null;

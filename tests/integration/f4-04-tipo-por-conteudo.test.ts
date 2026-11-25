@@ -12,11 +12,11 @@ import { existsSync, mkdtempSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { detectarAudio,detectarTipoDeArquivo } from '../../server/lib/tipoDeArquivo'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { detectarAudio, detectarTipoDeArquivo } from '../../server/lib/tipoDeArquivo'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 /** Um corpo com a assinatura pedida e enchimento depois — o tamanho não importa para a detecção. */
 function comAssinatura(sig: number[] | string, total = 64, offset = 0): Buffer {
@@ -87,7 +87,10 @@ beforeAll(async () => {
   ;({ sessionsRouter: router } = await h.load('../../server/routes/sessions'))
   ;({ sessionsRepo: sessions } = await h.load('../../server/db/repositories/sessions'))
 })
-afterAll(async () => { delete process.env.AUDIO_DIR; await h.cleanup() })
+afterAll(async () => {
+  delete process.env.AUDIO_DIR
+  await h.cleanup()
+})
 
 function upload(req: any, res: any) {
   const layer = router.stack.find((l: any) => l.route?.path === '/:id/audio' && l.route?.methods?.post)
@@ -96,15 +99,27 @@ function upload(req: any, res: any) {
 }
 function fakeRes() {
   const r: any = { statusCode: 200, body: undefined }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    return r
+  }
   return r
 }
 async function novaSessao(u: string) {
   return (await sessions.create(asUserId(u), { title: 'tipo', kind: 'audio' })).id as string
 }
 function req(u: string, id: string, body: Buffer, contentType = 'audio/webm') {
-  return { userId: asUserId(u), params: { id }, body, headers: { 'content-type': contentType }, path: `/${id}/audio` } as any
+  return {
+    userId: asUserId(u),
+    params: { id },
+    body,
+    headers: { 'content-type': contentType },
+    path: `/${id}/audio`,
+  } as any
 }
 
 describe('POST /api/sessions/:id/audio — o Content-Type do cliente não é evidência', () => {

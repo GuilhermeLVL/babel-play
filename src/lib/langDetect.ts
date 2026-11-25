@@ -41,10 +41,7 @@ function getNativeDetector(): Promise<NativeDetector | null> {
     try {
       // Exposto como `LanguageDetector` global (Chrome/Edge ≥138). Em versões antigas ficava sob
       // `self.ai.languageDetector` — checamos os dois.
-      const Ctor: any =
-        (globalThis as any).LanguageDetector ??
-        (globalThis as any).self?.ai?.languageDetector ??
-        null;
+      const Ctor: any = (globalThis as any).LanguageDetector ?? (globalThis as any).self?.ai?.languageDetector ?? null;
       if (!Ctor) return null;
       // `availability()`/`capabilities()` podem exigir download do modelo; se não estiver pronto,
       // não bloqueamos a UI — caímos na heurística e o nativo entra quando estiver disponível.

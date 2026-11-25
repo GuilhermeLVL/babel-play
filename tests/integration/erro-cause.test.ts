@@ -8,7 +8,7 @@
  *   err.message = "Failed query: insert into sessions (...)"     ← inútil
  *   err.cause   = "SQLITE_ERROR: no such table: sessions"        ← o que importa
  */
-import { afterEach,describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { erroDeRota } from '../../server/lib/erroDeRota'
 
@@ -35,7 +35,7 @@ describe('erroDeRota — a causa precisa chegar ao log', () => {
 
     const { logado } = capturarLog(() => erroDeRota(erro, { event: 't' }))
 
-    expect(logado).toContain('Failed query')          // a superfície
+    expect(logado).toContain('Failed query') // a superfície
     expect(logado).toContain('no such table: sessions') // ← a causa, o que faltava
   })
 

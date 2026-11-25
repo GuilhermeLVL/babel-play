@@ -17,11 +17,11 @@ porque parte do que existe vai precisar ser retrabalhada.
 ## What Changes
 
 1. **Auditoria crítica na perspectiva do usuário leigo**, tela a tela, com três eixos:
-   - *Coerência*: mesmo conceito = mesmo ícone, mesmo nome, mesmo lugar (o caso `Leaf` × `Sprout`
+   - _Coerência_: mesmo conceito = mesmo ícone, mesmo nome, mesmo lugar (o caso `Leaf` × `Sprout`
      das Seeds foi um sintoma, não o problema).
-   - *Redirecionamento*: todo botão leva a algo que existe e faz sentido (o link morto para a aba
+   - _Redirecionamento_: todo botão leva a algo que existe e faz sentido (o link morto para a aba
      `progressao` provou que a classe existe).
-   - *Grau de liberdade*: o que cada tela DEIXA o usuário fazer, e se isso respeita a progressão.
+   - _Grau de liberdade_: o que cada tela DEIXA o usuário fazer, e se isso respeita a progressão.
 2. **Matriz de liberdade × progressão**: para cada capacidade de edição do app, declarar em que
    nível/condição ela deveria estar disponível — e corrigir as que hoje estão soltas.
 3. **Redesenho da curva de recompensa do passe**: agrupar moeda em blocos, definir o que cada

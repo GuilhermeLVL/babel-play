@@ -141,7 +141,12 @@ async function classify(input: AuditInput, cfg: LangConfig): Promise<LangFinding
 
   // O par já está correto — inclusive o alvo. Um src certo com tgt invertido continua sendo um bug.
   if (current.srcLang === lang && current.tgtLang === proposed.tgtLang) {
-    return { ...withDetection, verdict: 'ok', proposed: null, reason: `O rótulo bate com o texto (${pct}% de confiança).` };
+    return {
+      ...withDetection,
+      verdict: 'ok',
+      proposed: null,
+      reason: `O rótulo bate com o texto (${pct}% de confiança).`,
+    };
   }
 
   // GUARDA CONTRA FALSO POSITIVO DA HEURÍSTICA. Palavras-função curtas do inglês ("to", "do", "a",
@@ -237,7 +242,14 @@ export interface AuditUtterance {
 async function auditUtterance(u: AuditUtterance, cfg: LangConfig): Promise<LangFinding> {
   const n = typeof u.idx === 'number' ? u.idx + 1 : undefined;
   return classify(
-    { id: u.id, kind: 'utterance', word: n ? `Fala ${n}` : 'Fala', text: u.sourceText, rawSrc: u.sourceLang, rawTgt: u.targetLang },
+    {
+      id: u.id,
+      kind: 'utterance',
+      word: n ? `Fala ${n}` : 'Fala',
+      text: u.sourceText,
+      rawSrc: u.sourceLang,
+      rawTgt: u.targetLang,
+    },
     cfg,
   );
 }

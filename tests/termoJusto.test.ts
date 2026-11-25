@@ -2,13 +2,27 @@ import { describe, expect, it } from 'vitest'
 
 import { balancear } from '../src/core/minigames/composicao'
 import {
-buildTermoRounds,   chaveDoTermo, diagnosticoTermo, distanciaDeEdicao,
-julgarPalpite, motivoForaDoTermo,   type RodadaTermo,
+  buildTermoRounds,
+  chaveDoTermo,
+  diagnosticoTermo,
+  distanciaDeEdicao,
+  julgarPalpite,
+  motivoForaDoTermo,
+  type RodadaTermo,
 } from '../src/core/minigames/termo'
 import type { VocabCard } from '../src/types'
 
 const carta = (word: string, translation: string, extra: Partial<VocabCard> = {}): VocabCard =>
-  ({ id: word, word, translation, inDeck: true, srcLang: 'en', fsrsDueAt: '', leitnerDueAt: '', ...extra } as unknown as VocabCard)
+  ({
+    id: word,
+    word,
+    translation,
+    inDeck: true,
+    srcLang: 'en',
+    fsrsDueAt: '',
+    leitnerDueAt: '',
+    ...extra,
+  }) as unknown as VocabCard
 
 describe('Termo justo — normalização', () => {
   it('preserva letras Unicode e ignora acentos; hífen/espaço ficam fora com motivo', () => {
@@ -34,7 +48,13 @@ describe('Termo justo — normalização', () => {
 })
 
 describe('Termo justo — sinônimos e quase', () => {
-  const rodada: RodadaTermo = { resposta: 'DEAD', palavra: 'dead', pista: 'morto', lang: 'en', alternativas: ['deceased'] }
+  const rodada: RodadaTermo = {
+    resposta: 'DEAD',
+    palavra: 'dead',
+    pista: 'morto',
+    lang: 'en',
+    alternativas: ['deceased'],
+  }
 
   it('sinônimo do acervo não gasta tentativa e orienta com tamanho + 1ª letra', () => {
     const j = julgarPalpite('DECEASED', rodada)
@@ -54,7 +74,11 @@ describe('Termo justo — sinônimos e quase', () => {
     expect(distanciaDeEdicao('DEAD', 'LIVE')).toBe(4)
   })
   it('buildTermoRounds carrega as alternativas do acervo e a frase de contexto', () => {
-    const cards = [carta('dead', 'morto', { sentence: 'The battery is dead.' }), carta('deceased', 'morto'), carta('house', 'casa')]
+    const cards = [
+      carta('dead', 'morto', { sentence: 'The battery is dead.' }),
+      carta('deceased', 'morto'),
+      carta('house', 'casa'),
+    ]
     const rodadas = buildTermoRounds(cards, { quantidade: 3, shuffle: (xs) => xs })
     const dead = rodadas.find((r) => r.palavra === 'dead' || r.palavra === 'deceased')!
     expect(dead.alternativas).toHaveLength(1)
@@ -76,6 +100,11 @@ describe('composição local balanceia como o servidor (50/25/25)', () => {
     expect(r.filter((x) => x.id.startsWith('f')).length).toBe(2)
     expect(r.filter((x) => x.id.startsWith('d')).length).toBe(2)
     // sem difíceis: completa com o que há
-    expect(balancear(pool.filter((x) => !x.id.startsWith('d')), 8)).toHaveLength(8)
+    expect(
+      balancear(
+        pool.filter((x) => !x.id.startsWith('d')),
+        8,
+      ),
+    ).toHaveLength(8)
   })
 })

@@ -92,7 +92,7 @@ export const PARAFRASES: ReadonlyArray<readonly [string, string]> = [
   ['sacou', 'entendeu'],
   ['saquei', 'entendi'],
   ['sacar', 'entender'],
-]
+];
 
 /** Falas que SÃO a expressão inteira: já saem traduzidas, por idioma-alvo. */
 export const FRASES_INTEIRAS: Readonly<Record<string, ReadonlyArray<readonly [string, string]>>> = {
@@ -149,4 +149,4 @@ export const FRASES_INTEIRAS: Readonly<Record<string, ReadonlyArray<readonly [st
     ['tchau', 'Bye.'],
     ['vamos nessa', 'Let’s do it.'],
   ],
-}
+};

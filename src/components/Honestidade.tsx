@@ -22,26 +22,26 @@
  *    haver dado é diferente em cada tela e apagar essa diferença seria perder informação real.
  *    O que se unifica é o tratamento visual e a garantia final, não a explicação.
  */
-import { Info } from 'lucide-react'
-import React from 'react'
+import { Info } from 'lucide-react';
+import React from 'react';
 
-import { numero, t } from '../lib/i18n'
+import { numero, t } from '../lib/i18n';
 
 /**
  * Abaixo disto, o número é frágil o bastante para a UI avisar.
  * Único e exportado de propósito: um limiar que mora em quatro arquivos vira quatro limiares.
  */
-export const LIMIAR_CONFIANCA = 0.5
+export const LIMIAR_CONFIANCA = 0.5;
 
 /** `true` quando o número merece aviso. Ausência de confiança conta como baixa — nunca como alta. */
 export function ehBaixaConfianca(valor: number): boolean {
-  return !Number.isFinite(valor) || valor < LIMIAR_CONFIANCA
+  return !Number.isFinite(valor) || valor < LIMIAR_CONFIANCA;
 }
 
 /** A redação única. Sem confiança conhecida, não inventa percentual. */
 export function rotuloDeConfianca(valor: number, estimativa = false): string {
-  if (!Number.isFinite(valor)) return 'confiança desconhecida'
-  return `${estimativa ? 'estimativa · ' : ''}confiança ${Math.round(valor * 100)}%`
+  if (!Number.isFinite(valor)) return 'confiança desconhecida';
+  return `${estimativa ? 'estimativa · ' : ''}confiança ${Math.round(valor * 100)}%`;
 }
 
 /**
@@ -53,11 +53,11 @@ export function Confianca({
   estimativa = false,
   className = '',
 }: {
-  valor: number
-  estimativa?: boolean
-  className?: string
+  valor: number;
+  estimativa?: boolean;
+  className?: string;
 }) {
-  const baixa = ehBaixaConfianca(valor)
+  const baixa = ehBaixaConfianca(valor);
   return (
     <span
       className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
@@ -71,11 +71,11 @@ export function Confianca({
     >
       {rotuloDeConfianca(valor, estimativa)}
     </span>
-  )
+  );
 }
 
 /** Sobre quantos itens a métrica foi calculada. Ver `SemDado` e o campo `base` do contrato. */
-export type BaseDeCalculo = { considerados: number; total: number }
+export type BaseDeCalculo = { considerados: number; total: number };
 
 /** Formata a base para leitura humana. `1.753 de 1.902 ficaram de fora` é o que o usuário precisa saber. */
 export function rotuloDaBase(base: BaseDeCalculo): string {
@@ -86,7 +86,7 @@ export function rotuloDaBase(base: BaseDeCalculo): string {
   return t('calculado sobre {considerados} de {total}', {
     considerados: numero(base.considerados),
     total: numero(base.total),
-  })
+  });
 }
 
 /**
@@ -103,10 +103,10 @@ export function SemDado({
   compacto = false,
   className = '',
 }: {
-  motivo: string
-  base?: BaseDeCalculo
-  compacto?: boolean
-  className?: string
+  motivo: string;
+  base?: BaseDeCalculo;
+  compacto?: boolean;
+  className?: string;
 }) {
   return (
     <div
@@ -119,5 +119,5 @@ export function SemDado({
       {base && <p className="text-[11.5px] text-ink-faint">{rotuloDaBase(base)}</p>}
       <p className="text-[11px] text-ink-faint">(Sem dados fabricados.)</p>
     </div>
-  )
+  );
 }

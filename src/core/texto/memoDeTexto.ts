@@ -19,13 +19,13 @@
  * ou objeto que ninguém altera; quem devolve objeto diz isso no ponto de uso.
  */
 export function memoDeTexto<R>(calcular: (texto: string) => R, teto = 30_000): (texto: string) => R {
-  const guardado = new Map<string, R>()
+  const guardado = new Map<string, R>();
   return (texto) => {
-    const tem = guardado.get(texto)
-    if (tem !== undefined || guardado.has(texto)) return tem as R
-    const valor = calcular(texto)
-    if (guardado.size >= teto) guardado.clear()
-    guardado.set(texto, valor)
-    return valor
-  }
+    const tem = guardado.get(texto);
+    if (tem !== undefined || guardado.has(texto)) return tem as R;
+    const valor = calcular(texto);
+    if (guardado.size >= teto) guardado.clear();
+    guardado.set(texto, valor);
+    return valor;
+  };
 }

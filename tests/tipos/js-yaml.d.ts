@@ -6,7 +6,7 @@
  * nada: `load` devolve `unknown`, e quem lê faz a asserção da forma que espera.
  */
 declare module 'js-yaml' {
-  export function load(texto: string): unknown;
-  const yaml: { load: typeof load };
-  export default yaml;
+  export function load(texto: string): unknown
+  const yaml: { load: typeof load }
+  export default yaml
 }

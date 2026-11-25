@@ -8,20 +8,20 @@ que se entra, e a matriz abaixo é uma leitura delas, não uma invenção.
 
 ## A matriz jogo × dados
 
-| Jogo | Precisa | Vem do baralho quando | Falta o quê → o que acontece |
-|---|---|---|---|
-| memória | palavra + tradução | tem os dois campos mapeados | sem tradução → item fica fora deste jogo |
-| caça-palavras | palavra + tradução; alfabeto latino | idem | script não latino → jogo indisponível para o baralho (declarado, não falha em silêncio) |
-| duelo (blitz) | palavra + (tradução **ou** frase→cloze) | idem; cloze do Anki entra direto | sem nenhum dos dois → fora |
-| termo | palavra 4–6 letras, sem espaço/hífen; tradução única no degrau | palavras curtas do baralho | poucas palavras elegíveis → menos degraus, ou jogo indisponível |
-| embaralhar frase | frase 4–10 palavras + tradução da frase | nota tem frase de exemplo e tradução | sem tradução da frase → fora |
-| escuta | frase + áudio (nativo ou TTS) + ≥4 falas | frase + áudio do baralho, ou TTS | sem áudio e sem voz no idioma → jogo indisponível |
-| ditado | frase 4–12 palavras + áudio | idem | idem |
-| karaokê | frase + áudio com duração real | só com áudio nativo do baralho | sem clipe → TTS não serve (karaokê precisa de tempo) → fora |
-| conectores | frase ≥5 tokens com conector; idioma en/pt/es | frase do baralho no idioma certo | idioma sem lista de conectores → indisponível |
+| Jogo             | Precisa                                                        | Vem do baralho quando                | Falta o quê → o que acontece                                                            |
+| ---------------- | -------------------------------------------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------- |
+| memória          | palavra + tradução                                             | tem os dois campos mapeados          | sem tradução → item fica fora deste jogo                                                |
+| caça-palavras    | palavra + tradução; alfabeto latino                            | idem                                 | script não latino → jogo indisponível para o baralho (declarado, não falha em silêncio) |
+| duelo (blitz)    | palavra + (tradução **ou** frase→cloze)                        | idem; cloze do Anki entra direto     | sem nenhum dos dois → fora                                                              |
+| termo            | palavra 4–6 letras, sem espaço/hífen; tradução única no degrau | palavras curtas do baralho           | poucas palavras elegíveis → menos degraus, ou jogo indisponível                         |
+| embaralhar frase | frase 4–10 palavras + tradução da frase                        | nota tem frase de exemplo e tradução | sem tradução da frase → fora                                                            |
+| escuta           | frase + áudio (nativo ou TTS) + ≥4 falas                       | frase + áudio do baralho, ou TTS     | sem áudio e sem voz no idioma → jogo indisponível                                       |
+| ditado           | frase 4–12 palavras + áudio                                    | idem                                 | idem                                                                                    |
+| karaokê          | frase + áudio com duração real                                 | só com áudio nativo do baralho       | sem clipe → TTS não serve (karaokê precisa de tempo) → fora                             |
+| conectores       | frase ≥5 tokens com conector; idioma en/pt/es                  | frase do baralho no idioma certo     | idioma sem lista de conectores → indisponível                                           |
 
 Regra geral da degradação: **nunca apresentar item quebrado**. Ausência de dado tira o item daquele
-jogo; ausência sistemática torna o jogo indisponível *com motivo dito* (o gate `estadoDeCadaJogo` já
+jogo; ausência sistemática torna o jogo indisponível _com motivo dito_ (o gate `estadoDeCadaJogo` já
 faz isso e já tem os motivos `sem-voz`, `trilha-sem-frase`, `audio-carregando`).
 
 ## Decisão 1 — Filtro por baralho é `fonte.ref`, não uma quinta fonte
@@ -66,8 +66,8 @@ mobiliário, e a auditoria de tela já pagou essa conta uma vez.
 
 ## Riscos
 
-| Risco | Mitigação |
-|---|---|
-| Rodada mista de idiomas entrega a resposta pelo idioma do distrator | Não é escopo aqui; o filtro por baralho mantém um idioma por rodada, como hoje |
-| Baralho de script não latino quebra caça-palavras/termo em silêncio | A matriz declara indisponibilidade com motivo; o gate já sabe exibir motivo |
-| Chip de origem polui a prévia | Uma linha discreta, dentro do funil `previaSegura` (nenhum ramo escreve título por fora) |
+| Risco                                                               | Mitigação                                                                                |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Rodada mista de idiomas entrega a resposta pelo idioma do distrator | Não é escopo aqui; o filtro por baralho mantém um idioma por rodada, como hoje           |
+| Baralho de script não latino quebra caça-palavras/termo em silêncio | A matriz declara indisponibilidade com motivo; o gate já sabe exibir motivo              |
+| Chip de origem polui a prévia                                       | Uma linha discreta, dentro do funil `previaSegura` (nenhum ramo escreve título por fora) |

@@ -40,7 +40,10 @@ export async function resumoDoDono(): Promise<ResumoDoDono> {
     db.select({ n: count() }).from(users),
     db.select({ n: count() }).from(users).where(gte(users.createdAt, seteDiasAtras)),
     db.select({ n: count() }).from(sessions),
-    db.select({ n: count() }).from(sessions).where(gte(sql`coalesce(${sessions.startedAt}, 0)`, seteDiasAtras)),
+    db
+      .select({ n: count() })
+      .from(sessions)
+      .where(gte(sql`coalesce(${sessions.startedAt}, 0)`, seteDiasAtras)),
     db.select({ n: count() }).from(utterances),
     db.select({ n: count() }).from(vocabCards),
   ])

@@ -15,9 +15,17 @@ const CHAVE = 'babel.presenca_dia';
 /** Registra o dia uma vez. Devolve `true` quando gravou um dia novo; nunca credita nada. */
 export async function registrarPresencaHoje(agora = Date.now()): Promise<boolean> {
   const hoje = diaLocal(agora);
-  try { if (Number(localStorage.getItem(CHAVE)) === hoje) return false; } catch { /* sem storage */ }
+  try {
+    if (Number(localStorage.getItem(CHAVE)) === hoje) return false;
+  } catch {
+    /* sem storage */
+  }
   const r = await registrarPresenca(hoje);
   if (!r) return false;
-  try { localStorage.setItem(CHAVE, String(hoje)); } catch { /* sem storage */ }
+  try {
+    localStorage.setItem(CHAVE, String(hoje));
+  } catch {
+    /* sem storage */
+  }
   return !r.jaExistia;
 }

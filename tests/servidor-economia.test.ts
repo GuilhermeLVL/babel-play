@@ -77,7 +77,11 @@ describe('métricas novas', () => {
   it('palavra salva da captura rende com teto diário e conta como dia de prática', async () => {
     const sessao = (await (await post('/api/sessions', { title: 'c', sourceLang: 'en' })).json()) as { id: string }
     const cards = Array.from({ length: 35 }, (_, i) => ({
-      word: `palavra${i}`, translation: `tradução${i}`, srcLang: 'en', tgtLang: 'pt', sessionId: sessao.id,
+      word: `palavra${i}`,
+      translation: `tradução${i}`,
+      srcLang: 'en',
+      tgtLang: 'pt',
+      sessionId: sessao.id,
     }))
     await post('/api/vocab/bulk-add', { cards })
     const m = await metricas()
@@ -114,7 +118,14 @@ describe('meta do dia — `meta:<AAAA-MM-DD>` = as três missões do dia (recomp
       origem: 'baralho',
       score: certos,
       melhorSequencia: 1,
-      itens: Array.from({ length: certos }, (_, i) => ({ itemRef: 'm' + i, correct: 1, attempts: 1, ms: 500, hinted: 0, kind: 'drill' })),
+      itens: Array.from({ length: certos }, (_, i) => ({
+        itemRef: 'm' + i,
+        correct: 1,
+        attempts: 1,
+        ms: 500,
+        hinted: 0,
+        kind: 'drill',
+      })),
     })
   const missoes = async () =>
     (await (await servidorEfemero(`/api/metrics/missoes?fuso=${encodeURIComponent(fuso)}`)).json()) as {
@@ -141,7 +152,13 @@ describe('meta do dia — `meta:<AAAA-MM-DD>` = as três missões do dia (recomp
 
     // Cumpre o teto de cada tipo: 5 palavras salvas, 20 revisões, 2 rodadas boas em jogos novos.
     const sessao = (await (await post('/api/sessions', { title: 'meta', sourceLang: 'en' })).json()) as { id: string }
-    const cards = Array.from({ length: 5 }, (_, i) => ({ word: `meta${i}`, translation: `meta${i}`, srcLang: 'en', tgtLang: 'pt', sessionId: sessao.id }))
+    const cards = Array.from({ length: 5 }, (_, i) => ({
+      word: `meta${i}`,
+      translation: `meta${i}`,
+      srcLang: 'en',
+      tgtLang: 'pt',
+      sessionId: sessao.id,
+    }))
     await post('/api/vocab/bulk-add', { cards })
     const [cartao] = (await (await servidorEfemero('/api/vocab')).json()) as Array<{ id: string }>
     for (let i = 0; i < 20; i++) await post(`/api/vocab/${cartao.id}/review`, { grade: 3 })

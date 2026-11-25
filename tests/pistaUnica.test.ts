@@ -1,9 +1,9 @@
-import { describe, expect,it } from 'vitest';
+import { describe, expect, it } from 'vitest'
 
-import { chaveComparavel } from '../src/core/learning/quality';
-import { buildItems, promptFor } from '../src/core/minigames/itemSource';
-import { buildTermoRounds } from '../src/core/minigames/termo';
-import type { VocabCard } from '../src/types';
+import { chaveComparavel } from '../src/core/learning/quality'
+import { buildItems, promptFor } from '../src/core/minigames/itemSource'
+import { buildTermoRounds } from '../src/core/minigames/termo'
+import type { VocabCard } from '../src/types'
 
 /**
  * A PISTA TEM DE IDENTIFICAR A RESPOSTA.
@@ -20,13 +20,25 @@ import type { VocabCard } from '../src/types';
  */
 
 function carta(id: string, word: string, translation: string, sentence = ''): VocabCard {
-  const agora = Date.now();
+  const agora = Date.now()
   return {
-    id, word, translation, sentence, phonetics: '', explanation: '', inDeck: true,
-    leitnerBox: 1, leitnerDueAt: '', srcLang: 'en',
-    fsrsState: 'New', fsrsStability: 0, fsrsDifficulty: 5, fsrsPredictedRetention: 0.9,
-    fsrsDueAt: new Date(agora + 86_400_000).toISOString(), dueAt: agora + 86_400_000,
-  } as never;
+    id,
+    word,
+    translation,
+    sentence,
+    phonetics: '',
+    explanation: '',
+    inDeck: true,
+    leitnerBox: 1,
+    leitnerDueAt: '',
+    srcLang: 'en',
+    fsrsState: 'New',
+    fsrsStability: 0,
+    fsrsDifficulty: 5,
+    fsrsPredictedRetention: 0.9,
+    fsrsDueAt: new Date(agora + 86_400_000).toISOString(),
+    dueAt: agora + 86_400_000,
+  } as never
 }
 
 /** O caso exato do relato, mais material limpo para a rodada ter como se completar. */
@@ -41,31 +53,31 @@ const COM_COLISAO = [
   carta('8', 'music', 'música'),
   carta('9', 'river', 'rio'),
   carta('10', 'bread', 'pão'),
-];
+]
 
 describe('buildItems — pista única', () => {
   it('não põe duas respostas para a mesma pista', () => {
     for (let i = 0; i < 30; i++) {
-      const itens = buildItems('memory', COM_COLISAO);
-      const pistas = itens.map(x => chaveComparavel(x.prompt));
-      expect(new Set(pistas).size).toBe(pistas.length);
+      const itens = buildItems('memory', COM_COLISAO)
+      const pistas = itens.map((x) => chaveComparavel(x.prompt))
+      expect(new Set(pistas).size).toBe(pistas.length)
     }
-  });
+  })
 
   it('uma das duas colididas entra — recusar não é descartar as duas', () => {
-    const vistas = new Set<string>();
+    const vistas = new Set<string>()
     for (let i = 0; i < 40; i++) {
-      for (const x of buildItems('memory', COM_COLISAO)) vistas.add(x.answer);
+      for (const x of buildItems('memory', COM_COLISAO)) vistas.add(x.answer)
     }
     // Ao longo de muitas rodadas, tanto `body` quanto `dead` aparecem — só nunca juntos.
-    expect(vistas.has('body') || vistas.has('dead')).toBe(true);
-  });
+    expect(vistas.has('body') || vistas.has('dead')).toBe(true)
+  })
 
   it('a rodada continua se completando depois de recusar', () => {
     // 10 cartões, 9 pistas distintas → a rodada de 8 deve sair cheia.
-    const itens = buildItems('memory', COM_COLISAO);
-    expect(itens).toHaveLength(8);
-  });
+    const itens = buildItems('memory', COM_COLISAO)
+    expect(itens).toHaveLength(8)
+  })
 
   it('acento e caixa não escapam da regra', () => {
     // "Água" e "agua" são a MESMA pista; sem normalização comum as duas entrariam.
@@ -76,24 +88,26 @@ describe('buildItems — pista única', () => {
       carta('4', 'table', 'mesa'),
       carta('5', 'green', 'verde'),
       carta('6', 'plant', 'planta'),
-    ];
-    const itens = buildItems('memory', deck);
-    const pistas = itens.map(x => chaveComparavel(x.prompt));
-    expect(new Set(pistas).size).toBe(pistas.length);
-  });
+    ]
+    const itens = buildItems('memory', deck)
+    const pistas = itens.map((x) => chaveComparavel(x.prompt))
+    expect(new Set(pistas).size).toBe(pistas.length)
+  })
 
   it('baralho onde TODAS as pistas colidem ainda produz rodada (não esvazia)', () => {
     // O jogo vai abaixo do mínimo e a carta dirá o que falta — mas o construtor não pode devolver
     // lista vazia por causa da regra nova, senão trocamos um enigma ruim por uma tela quebrada.
-    const todosIguais = ['a', 'b', 'c', 'd', 'e', 'f'].map((w, i) => carta(String(i), `word${'x'.repeat(i + 1)}`, 'mesma'));
-    const itens = buildItems('memory', todosIguais);
-    expect(itens).toHaveLength(1);
-  });
+    const todosIguais = ['a', 'b', 'c', 'd', 'e', 'f'].map((w, i) =>
+      carta(String(i), `word${'x'.repeat(i + 1)}`, 'mesma'),
+    )
+    const itens = buildItems('memory', todosIguais)
+    expect(itens).toHaveLength(1)
+  })
 
   it('pista de FRASE COM LACUNA também conta — duas lacunas idênticas são a mesma pista', () => {
     // Cartão sem tradução usa a frase com lacuna como pista (`promptFor`). Se dois cartões saem da
     // mesma frase, a lacuna pode coincidir.
-    const mesmaFrase = 'the cat sat on the mat';
+    const mesmaFrase = 'the cat sat on the mat'
     const deck = [
       carta('1', 'cat', '', mesmaFrase),
       carta('2', 'cat', '', mesmaFrase),
@@ -101,37 +115,37 @@ describe('buildItems — pista única', () => {
       carta('4', 'table', 'mesa'),
       carta('5', 'green', 'verde'),
       carta('6', 'plant', 'planta'),
-    ];
-    const itens = buildItems('wordsearch', deck);
-    const pistas = itens.map(x => chaveComparavel(x.prompt));
-    expect(new Set(pistas).size).toBe(pistas.length);
-  });
-});
+    ]
+    const itens = buildItems('wordsearch', deck)
+    const pistas = itens.map((x) => chaveComparavel(x.prompt))
+    expect(new Set(pistas).size).toBe(pistas.length)
+  })
+})
 
 describe('buildTermoRounds — pista única', () => {
   it('não põe duas palavras com a mesma pista no mesmo degrau', () => {
     for (let i = 0; i < 30; i++) {
-      const r = buildTermoRounds(COM_COLISAO, { quantidade: 7 });
-      const pistas = r.map(x => chaveComparavel(x.pista));
-      expect(new Set(pistas).size).toBe(pistas.length);
+      const r = buildTermoRounds(COM_COLISAO, { quantidade: 7 })
+      const pistas = r.map((x) => chaveComparavel(x.pista))
+      expect(new Set(pistas).size).toBe(pistas.length)
     }
-  });
+  })
 
   it('no modo DIFÍCIL a regra não se aplica — sem pista não há pista repetida', () => {
-    const r = buildTermoRounds(COM_COLISAO, { quantidade: 7, dificil: true });
-    expect(r.every(x => x.pista === '')).toBe(true);
+    const r = buildTermoRounds(COM_COLISAO, { quantidade: 7, dificil: true })
+    expect(r.every((x) => x.pista === '')).toBe(true)
     // As duas colididas podem coexistir aqui, porque a pista não é o que distingue.
-    expect(r.length).toBeGreaterThan(1);
-  });
+    expect(r.length).toBeGreaterThan(1)
+  })
 
   it('continua respeitando a quantidade pedida quando há material', () => {
-    const r = buildTermoRounds(COM_COLISAO, { quantidade: 5 });
-    expect(r).toHaveLength(5);
-  });
-});
+    const r = buildTermoRounds(COM_COLISAO, { quantidade: 5 })
+    expect(r).toHaveLength(5)
+  })
+})
 
 describe('promptFor continua o único lugar que decide a pista', () => {
   it('a pista de um cartão com tradução é a tradução', () => {
-    expect(promptFor(carta('1', 'body', 'corpo'))?.prompt).toBe('corpo');
-  });
-});
+    expect(promptFor(carta('1', 'body', 'corpo'))?.prompt).toBe('corpo')
+  })
+})

@@ -8,7 +8,7 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 
-import { pararGravador,PRAZO_PARA_PARAR_O_GRAVADOR_MS } from '../src/gateway/capture/pararGravador'
+import { pararGravador, PRAZO_PARA_PARAR_O_GRAVADOR_MS } from '../src/gateway/capture/pararGravador'
 
 function gravadorFalso(comportamento: 'para' | 'trava' | 'lanca') {
   const r = {
@@ -33,7 +33,12 @@ describe('pararGravador', () => {
 
   it('o onstop NÃO chega: no prazo, devolve o que já foi entregue em vez de esperar para sempre', async () => {
     const t0 = Date.now()
-    const blob = await pararGravador(gravadorFalso('trava') as unknown as MediaRecorder, [new Blob(['abc'])], 'audio/ogg', 40)
+    const blob = await pararGravador(
+      gravadorFalso('trava') as unknown as MediaRecorder,
+      [new Blob(['abc'])],
+      'audio/ogg',
+      40,
+    )
     expect(Date.now() - t0).toBeLessThan(1000)
     expect(blob?.size).toBe(3)
   })

@@ -57,7 +57,10 @@ export function cotasPorMaiorResto(tamanhos: readonly number[], total: number): 
   while (soma < alvo && guarda-- > 0) {
     for (const { i } of porResto) {
       if (soma >= alvo) break;
-      if (cotas[i] < tamanhos[i]) { cotas[i]++; soma++; }
+      if (cotas[i] < tamanhos[i]) {
+        cotas[i]++;
+        soma++;
+      }
     }
   }
   const porRestoInverso = [...porResto].reverse();
@@ -66,13 +69,19 @@ export function cotasPorMaiorResto(tamanhos: readonly number[], total: number): 
     for (const { i } of porRestoInverso) {
       if (soma <= alvo) break;
       const piso = tamanhos[i] > 0 ? 1 : 0;
-      if (cotas[i] > piso) { cotas[i]--; soma--; }
+      if (cotas[i] > piso) {
+        cotas[i]--;
+        soma--;
+      }
     }
     // Se só o piso sobrou em todas e ainda excede (mais fontes que vagas): corta do fim.
     if (soma > alvo && cotas.every((c, i) => c <= (tamanhos[i] > 0 ? 1 : 0))) {
       for (const { i } of porRestoInverso) {
         if (soma <= alvo) break;
-        if (cotas[i] > 0) { cotas[i]--; soma--; }
+        if (cotas[i] > 0) {
+          cotas[i]--;
+          soma--;
+        }
       }
     }
   }
@@ -98,7 +107,10 @@ export function distribuirPorFonte<T extends CartaoFiltravel>(
     if (f) porFonte.get(f)!.push(c);
   }
   const pools = fontes.map((f) => porFonte.get(f)!);
-  const cotas = cotasPorMaiorResto(pools.map((p) => p.length), tamanho);
+  const cotas = cotasPorMaiorResto(
+    pools.map((p) => p.length),
+    tamanho,
+  );
 
   /* Remontagem na ordem GLOBAL original (não fonte a fonte em bloco): a rodada continua vendo o
      mais urgente primeiro; a cota só decide QUEM entra, não a ordem de quem entrou. */
@@ -109,7 +121,10 @@ export function distribuirPorFonte<T extends CartaoFiltravel>(
     const f = fonteDoCartao(c, fontes);
     if (!f) continue;
     const sobra = restante.get(f)!;
-    if (sobra > 0) { restante.set(f, sobra - 1); escolhidos.push(c); }
+    if (sobra > 0) {
+      restante.set(f, sobra - 1);
+      escolhidos.push(c);
+    }
   }
   return escolhidos;
 }

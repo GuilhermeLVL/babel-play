@@ -20,6 +20,7 @@ O servidor efemero (`src/data/efemero/servidor.ts:632-657`) e a implementacao de
 ## Capabilities
 
 ### New Capabilities
+
 - `paridade-anonima`: o modo anonimo responde a toda rota do cliente com a mesma forma do Express ou com um 501 explicado.
 
 ## Impact

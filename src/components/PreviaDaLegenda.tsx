@@ -35,7 +35,9 @@ export default function PreviaDaLegenda({ estilo, compacta = false }: { estilo: 
         <span className="leg-o" style={{ fontWeight: 600 }}>
           We ship the <span data-aprendida>roadmap</span> today.
         </span>
-        {!compacta && <span style={{ color: '#FFEA00', fontSize: '.85em', opacity: 0.85 }}>Entregamos o roteiro hoje.</span>}
+        {!compacta && (
+          <span style={{ color: '#FFEA00', fontSize: '.85em', opacity: 0.85 }}>Entregamos o roteiro hoje.</span>
+        )}
       </span>
     </span>
   );

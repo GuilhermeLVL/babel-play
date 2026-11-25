@@ -26,7 +26,7 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 /* Os 6 temas completos das recompensas v2 moram em `src/styles/temas-v2.css`: a matriz lê os dois. */
 const css = ['src/index.css', 'src/styles/temas-v2.css']
@@ -51,37 +51,57 @@ const MINIMO_AA = 4.5
  * pular não seja silencioso.
  */
 const PARES: [string, string][] = [
-  ['ink', 'canvas'], ['ink', 'surface'],
-  ['ink-muted', 'canvas'], ['ink-muted', 'surface'],
-  ['ink-faint', 'canvas'], ['ink-faint', 'surface'],
+  ['ink', 'canvas'],
+  ['ink', 'surface'],
+  ['ink-muted', 'canvas'],
+  ['ink-muted', 'surface'],
+  ['ink-faint', 'canvas'],
+  ['ink-faint', 'surface'],
   // Preenchimentos: o texto sobre o botão primário e sobre as faixas semânticas.
   ['accent-contrast', 'accent'],
-  ['accent-ink', 'accent-soft'], ['good-ink', 'good-soft'],
-  ['warn-ink', 'warn-soft'], ['rare-ink', 'rare-soft'], ['error-ink', 'error-soft'],
+  ['accent-ink', 'accent-soft'],
+  ['good-ink', 'good-soft'],
+  ['warn-ink', 'warn-soft'],
+  ['rare-ink', 'rare-soft'],
+  ['error-ink', 'error-soft'],
   // Preenchimento SÓLIDO semântico. Esta linha foi acrescentada na TERCEIRA vez que a lista
   // se mostrou incompleta: com todos os pares acima passando, o coletor ainda achava 2,93:1 no
   // botão "Abrir exercícios", porque `--warn-contrast` sobre `--warn` não estava sendo checado.
   // O padrão já devia ter sido óbvio na segunda: toda vez que um par existe no CSS e não está
   // aqui, ele reprova em silêncio e o teste verde diz que está tudo bem.
-  ['good-contrast', 'good'], ['warn-contrast', 'warn'],
-  ['error-contrast', 'error'], ['ink-contrast', 'ink'],
+  ['good-contrast', 'good'],
+  ['warn-contrast', 'warn'],
+  ['error-contrast', 'error'],
+  ['ink-contrast', 'ink'],
   // Os `-ink` também aparecem sobre superfície neutra, não só sobre o `-soft` da própria
   // família: rótulo colorido em card branco, chip com fundo opaco, número destacado. Foi o par
   // da correção do pill "Context" do iChat.
-  ['accent-ink', 'surface'], ['accent-ink', 'canvas'],
-  ['good-ink', 'surface'], ['warn-ink', 'surface'],
-  ['rare-ink', 'surface'], ['error-ink', 'surface'],
+  ['accent-ink', 'surface'],
+  ['accent-ink', 'canvas'],
+  ['good-ink', 'surface'],
+  ['warn-ink', 'surface'],
+  ['rare-ink', 'surface'],
+  ['error-ink', 'surface'],
   // `--surface-hover` é FUNDO como qualquer outro, e faltava. Quarta vez que a lista se mostrou
   // incompleta, e desta vez o padrão ficou impossível de ignorar: um item de navegação passa
   // metade da vida em hover, e o texto ali estava em 3,89:1 sem nada acusar. A regra que sai
   // disto é simples — todo token que APARECE COMO FUNDO em algum lugar precisa estar nesta
   // matriz, senão o teste verde só cobre os fundos de que alguém lembrou.
-  ['ink', 'surface-hover'], ['ink-muted', 'surface-hover'], ['ink-faint', 'surface-hover'],
-  ['accent-ink', 'surface-hover'], ['good-ink', 'surface-hover'],
-  ['warn-ink', 'surface-hover'], ['rare-ink', 'surface-hover'], ['error-ink', 'surface-hover'],
+  ['ink', 'surface-hover'],
+  ['ink-muted', 'surface-hover'],
+  ['ink-faint', 'surface-hover'],
+  ['accent-ink', 'surface-hover'],
+  ['good-ink', 'surface-hover'],
+  ['warn-ink', 'surface-hover'],
+  ['rare-ink', 'surface-hover'],
+  ['error-ink', 'surface-hover'],
 ]
 
-interface Bloco { tema: string; escuro: boolean; tokens: Record<string, string> }
+interface Bloco {
+  tema: string
+  escuro: boolean
+  tokens: Record<string, string>
+}
 
 function blocos(): Bloco[] {
   const out: Bloco[] = []
@@ -99,7 +119,13 @@ function blocos(): Bloco[] {
 const hex = (s: string): [number, number, number] | null => {
   const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(s.trim())
   if (!m) return null
-  const h = m[1].length === 3 ? m[1].split('').map((c) => c + c).join('') : m[1]
+  const h =
+    m[1].length === 3
+      ? m[1]
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : m[1]
   return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)) as [number, number, number]
 }
 
@@ -160,7 +186,8 @@ describe('todo par de texto/fundo de todo tema passa WCAG AA', () => {
 
   it('cobre uma quantidade plausível de pares — pular em silêncio é como a lacuna anterior passou', () => {
     const avaliados = paletas.flatMap(({ tokens }) =>
-      PARES.filter(([f, g]) => hex(tokens[f] ?? '') && hex(tokens[g] ?? '')))
+      PARES.filter(([f, g]) => hex(tokens[f] ?? '') && hex(tokens[g] ?? '')),
+    )
     // Piso deliberadamente folgado: o ponto é acusar se a extração degradar de vez, não fixar
     // um número que quebre ao adicionar um tema.
     expect(avaliados.length).toBeGreaterThanOrEqual(70)

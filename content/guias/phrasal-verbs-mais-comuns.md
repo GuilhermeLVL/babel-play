@@ -1,10 +1,11 @@
 ---
-titulo: "Phrasal verbs mais comuns em conversas, com exemplos"
-descricao: "Aprenda os phrasal verbs que mais aparecem no inglês falado, com significados, exemplos traduzidos e um jeito prático de memorizá-los em contexto."
-slug: "phrasal-verbs-mais-comuns"
-publicado: "2026-10-25"
+titulo: 'Phrasal verbs mais comuns em conversas, com exemplos'
+descricao: 'Aprenda os phrasal verbs que mais aparecem no inglês falado, com significados, exemplos traduzidos e um jeito prático de memorizá-los em contexto.'
+slug: 'phrasal-verbs-mais-comuns'
+publicado: '2026-10-25'
 revisado: false
-palavrasChave: ["phrasal verbs", "phrasal verbs mais comuns", "verbos com preposição", "inglês conversação"]
+palavrasChave:
+  ['phrasal verbs', 'phrasal verbs mais comuns', 'verbos com preposição', 'inglês conversação']
 ---
 
 Phrasal verbs são verbos seguidos de uma partícula (uma preposição ou advérbio, como _up_, _out_, _off_, _in_) que juntos formam um significado novo. É um dos assuntos que mais assustam quem estuda inglês, porque o sentido muitas vezes não dá para adivinhar pelas partes.

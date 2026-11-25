@@ -12,7 +12,18 @@
  * que já mandam na aparência (persistTheme/setParticulas) — a loja não inventa um segundo dono.
  */
 import type { TipoDesbloqueavel } from '@core';
-import { abrePorNivel, CATALOGO_DA_LOJA, CONQUISTAS, type ItemDaLoja, precoSeedsDoItem, type Raridade, rotuloDaMaestria, soPorSeeds, temporadaPorId, temPortaDeNivel } from '@core';
+import {
+  abrePorNivel,
+  CATALOGO_DA_LOJA,
+  CONQUISTAS,
+  type ItemDaLoja,
+  precoSeedsDoItem,
+  type Raridade,
+  rotuloDaMaestria,
+  soPorSeeds,
+  temporadaPorId,
+  temPortaDeNivel,
+} from '@core';
 
 import { conquistasDesbloqueadas } from './conquistasPosse';
 import { liberadoTudo } from './liberacaoDev';
@@ -25,12 +36,14 @@ import { itensDaTemporadaPossuidos } from './temporadaPosse';
 export { abrePorNivel, CATALOGO_DA_LOJA, soPorSeeds, temPortaDeNivel };
 export type { ItemDaLoja, Raridade } from '@core';
 
-
-
 const CHAVE_POSSE = 'babel.loja_possuidos';
 
 export function possuidos(): Set<string> {
-  try { return new Set(JSON.parse(localStorage.getItem(CHAVE_POSSE) || '[]') as string[]); } catch { return new Set(); }
+  try {
+    return new Set(JSON.parse(localStorage.getItem(CHAVE_POSSE) || '[]') as string[]);
+  } catch {
+    return new Set();
+  }
 }
 
 export function marcarPosse(id: string): void {
@@ -38,7 +51,9 @@ export function marcarPosse(id: string): void {
     const p = possuidos();
     p.add(id);
     localStorage.setItem(CHAVE_POSSE, JSON.stringify([...p]));
-  } catch { /* sem storage */ }
+  } catch {
+    /* sem storage */
+  }
 }
 
 /**
@@ -81,7 +96,9 @@ export function hidratarPosse(doServidor: readonly string[] | undefined, autorit
     const antes = p.size;
     for (const id of doServidor) p.add(id);
     if (p.size !== antes) localStorage.setItem(CHAVE_POSSE, JSON.stringify([...p]));
-  } catch { /* sem storage: estadoDoItem cai no nível, e a posse volta na próxima carga */ }
+  } catch {
+    /* sem storage: estadoDoItem cai no nível, e a posse volta na próxima carga */
+  }
 }
 
 /**
@@ -95,19 +112,32 @@ export function hidratarPosse(doServidor: readonly string[] | undefined, autorit
 const CHAVE_PREMIUM = 'babel.premium_possuidos';
 
 export function premiumPossuidos(): Set<string> {
-  try { return new Set(JSON.parse(localStorage.getItem(CHAVE_PREMIUM) || '[]') as string[]); } catch { return new Set(); }
+  try {
+    return new Set(JSON.parse(localStorage.getItem(CHAVE_PREMIUM) || '[]') as string[]);
+  } catch {
+    return new Set();
+  }
 }
 
 export function hidratarPremium(doServidor: readonly string[] | undefined): void {
   if (!doServidor) return;
-  try { localStorage.setItem(CHAVE_PREMIUM, JSON.stringify([...new Set(doServidor)])); } catch { /* sem storage */ }
+  try {
+    localStorage.setItem(CHAVE_PREMIUM, JSON.stringify([...new Set(doServidor)]));
+  } catch {
+    /* sem storage */
+  }
 }
 
 export type EstadoDoItem = 'equipavel' | 'compravel' | 'bloqueado';
 
 /** Um item está disponível se: liberou tudo, OU nível alcançado, OU comprado com Seeds. */
-export function estadoDoItem(item: ItemDaLoja, nivel: number, saldoSeeds: number): {
-  estado: EstadoDoItem; motivo?: string;
+export function estadoDoItem(
+  item: ItemDaLoja,
+  nivel: number,
+  saldoSeeds: number,
+): {
+  estado: EstadoDoItem;
+  motivo?: string;
 } {
   if (liberadoTudo()) return { estado: 'equipavel' };
   /* O equivalente pago (recompensas v2): a posse premium vinda do servidor já troca o item pago
@@ -132,10 +162,14 @@ export function estadoDoItem(item: ItemDaLoja, nivel: number, saldoSeeds: number
   if (item.origemTemporada) {
     if (itensDaTemporadaPossuidos().has(item.id) || possuidos().has(item.id)) return { estado: 'equipavel' };
     const preco = precoSeedsDoItem(item, Date.now());
-    if (preco !== undefined) return saldoSeeds >= preco ? { estado: 'compravel' } : { estado: 'bloqueado', motivo: `${preco} Seeds` };
-    return { estado: 'bloqueado', motivo: `Temporada ${temporadaPorId(item.origemTemporada.temporada)?.numero ?? ''}`.trim() };
+    if (preco !== undefined)
+      return saldoSeeds >= preco ? { estado: 'compravel' } : { estado: 'bloqueado', motivo: `${preco} Seeds` };
+    return {
+      estado: 'bloqueado',
+      motivo: `Temporada ${temporadaPorId(item.origemTemporada.temporada)?.numero ?? ''}`.trim(),
+    };
   }
-    /* PREMIUM: paga-se com Créditos. Nível e Seeds não abrem — como o exclusivo
+  /* PREMIUM: paga-se com Créditos. Nível e Seeds não abrem — como o exclusivo
      de conquista, é uma via só, e a tela tem de dizer QUAL. O saldo de Créditos é do servidor
      (`useCarteira`), então quem decide "compravel" aqui é a POSSE; a tela pede o resto. */
   if (item.precoCreditos !== undefined) {
@@ -147,7 +181,10 @@ export function estadoDoItem(item: ItemDaLoja, nivel: number, saldoSeeds: number
   if (abrePorNivel(item, nivel) || possuidos().has(item.id)) return { estado: 'equipavel' };
   if (item.precoSeeds !== undefined && saldoSeeds >= item.precoSeeds) return { estado: 'compravel' };
   if (item.precoSeeds !== undefined) {
-    return { estado: 'bloqueado', motivo: temPortaDeNivel(item) ? `Nível ${item.nivel} ou ${item.precoSeeds} Seeds` : `${item.precoSeeds} Seeds` };
+    return {
+      estado: 'bloqueado',
+      motivo: temPortaDeNivel(item) ? `Nível ${item.nivel} ou ${item.precoSeeds} Seeds` : `${item.precoSeeds} Seeds`,
+    };
   }
   return { estado: 'bloqueado', motivo: temPortaDeNivel(item) ? `Nível ${item.nivel}` : 'Indisponível' };
 }
@@ -171,12 +208,12 @@ export function estadoPorAlvo(
   saldoSeeds: number,
   escolhaAtual?: string,
 ): { estado: EstadoDoItem; motivo?: string } {
-  if (escolhaAtual !== undefined && escolhaAtual === alvo) return { estado: 'equipavel' }
-  const item = CATALOGO_DA_LOJA.find((i) => i.tipo === tipo && i.alvo === alvo)
+  if (escolhaAtual !== undefined && escolhaAtual === alvo) return { estado: 'equipavel' };
+  const item = CATALOGO_DA_LOJA.find((i) => i.tipo === tipo && i.alvo === alvo);
   // Fora do catálogo = livre. É o comportamento antigo (`nivelNecessario` devolvia 1) e o certo:
   // item que ninguém vende nem premia não tem por que estar trancado.
-  if (!item) return { estado: 'equipavel' }
-  return estadoDoItem(item, nivel, saldoSeeds)
+  if (!item) return { estado: 'equipavel' };
+  return estadoDoItem(item, nivel, saldoSeeds);
 }
 
 /** Itens que o nível N (próximo) vai liberar — a vitrine de "continue jogando". */
@@ -214,15 +251,48 @@ export const COR_DA_RARIDADE: Record<Raridade, { borda: string; fundo: string; r
  */
 export type OrigemDoItem = 'nivel' | 'seeds' | 'conquista' | 'creditos' | 'temporada';
 
-export const ORIGEM: Record<OrigemDoItem, { rotulo: string; comoSeGanha: string; borda: string; fundo: string; texto: string }> = {
+export const ORIGEM: Record<
+  OrigemDoItem,
+  { rotulo: string; comoSeGanha: string; borda: string; fundo: string; texto: string }
+> = {
   // Os três primeiros reusam tokens que JÁ significam isso no app (accent = progressão na barra
   // de XP, good = o verde das Seeds, warn = o dourado do troféu). O quarto é o token novo.
-  nivel: { rotulo: 'Nível', comoSeGanha: 'chega estudando', borda: 'border-accent', fundo: 'bg-accent-soft', texto: 'text-accent-ink' },
-  seeds: { rotulo: 'Seeds', comoSeGanha: 'compra com a moeda de estudo', borda: 'border-good', fundo: 'bg-good-soft', texto: 'text-good-ink' },
-  conquista: { rotulo: 'Conquista', comoSeGanha: 'só fazendo — não se compra', borda: 'border-warn', fundo: 'bg-warn-soft', texto: 'text-warn-ink' },
-  creditos: { rotulo: 'Créditos', comoSeGanha: 'prateleira paga', borda: 'border-premium', fundo: 'bg-premium-soft', texto: 'text-premium-ink' },
+  nivel: {
+    rotulo: 'Nível',
+    comoSeGanha: 'chega estudando',
+    borda: 'border-accent',
+    fundo: 'bg-accent-soft',
+    texto: 'text-accent-ink',
+  },
+  seeds: {
+    rotulo: 'Seeds',
+    comoSeGanha: 'compra com a moeda de estudo',
+    borda: 'border-good',
+    fundo: 'bg-good-soft',
+    texto: 'text-good-ink',
+  },
+  conquista: {
+    rotulo: 'Conquista',
+    comoSeGanha: 'só fazendo — não se compra',
+    borda: 'border-warn',
+    fundo: 'bg-warn-soft',
+    texto: 'text-warn-ink',
+  },
+  creditos: {
+    rotulo: 'Créditos',
+    comoSeGanha: 'prateleira paga',
+    borda: 'border-premium',
+    fundo: 'bg-premium-soft',
+    texto: 'text-premium-ink',
+  },
   /* A quinta origem (recompensas v2, onda 5): a trilha da temporada, grátis ou de assinante. */
-  temporada: { rotulo: 'Temporada', comoSeGanha: 'sobe estudando na temporada', borda: 'border-epic', fundo: 'bg-epic-soft', texto: 'text-epic' },
+  temporada: {
+    rotulo: 'Temporada',
+    comoSeGanha: 'sobe estudando na temporada',
+    borda: 'border-epic',
+    fundo: 'bg-epic-soft',
+    texto: 'text-epic',
+  },
 };
 
 /**
@@ -318,9 +388,7 @@ export function rotaDeObtencao(item: ItemDaLoja, saldoSeeds = 0): RotaDeObtencao
   }
   if (item.precoSeeds !== undefined) {
     const falta = item.precoSeeds - saldoSeeds;
-    const bolso = falta <= 0
-      ? `Você já tem as ${item.precoSeeds} Seeds.`
-      : `Faltam ${falta} Seeds para o atalho.`;
+    const bolso = falta <= 0 ? `Você já tem as ${item.precoSeeds} Seeds.` : `Faltam ${falta} Seeds para o atalho.`;
     /* Sem porta de nível (recompensas v2): a única porta é a compra. */
     if (soPorSeeds(item)) {
       return {

@@ -24,9 +24,9 @@ export async function listDevices(): Promise<AudioDeviceList> {
     return { inputs: [], outputs: [], hasLabels: false };
   }
   const devices = await navigator.mediaDevices.enumerateDevices();
-  const inputs = devices.filter(d => d.kind === 'audioinput').map(toDevice);
-  const outputs = devices.filter(d => d.kind === 'audiooutput').map(toDevice);
-  const hasLabels = [...inputs, ...outputs].some(d => !!d.label);
+  const inputs = devices.filter((d) => d.kind === 'audioinput').map(toDevice);
+  const outputs = devices.filter((d) => d.kind === 'audiooutput').map(toDevice);
+  const hasLabels = [...inputs, ...outputs].some((d) => !!d.label);
   return { inputs, outputs, hasLabels };
 }
 
@@ -52,9 +52,9 @@ export function isLoopbackDevice(label: string): boolean {
  * por heurística (true) ou se é o fallback com a lista inteira (false).
  */
 export function filterLoopbackDevices(inputs: AudioDevice[]): { devices: AudioDevice[]; detected: boolean } {
-  const hits = inputs.filter(d => d.deviceId && isLoopbackDevice(d.label));
+  const hits = inputs.filter((d) => d.deviceId && isLoopbackDevice(d.label));
   if (hits.length) return { devices: hits, detected: true };
-  return { devices: inputs.filter(d => d.deviceId), detected: false };
+  return { devices: inputs.filter((d) => d.deviceId), detected: false };
 }
 
 /** Registra um listener de mudança de dispositivos (plugar/desplugar fone). Devolve o unsubscribe. */

@@ -23,22 +23,22 @@
  * chamada capaz de dispará-lo. É o mesmo desenho de `tests/contratos/rotas-espelhadas.test.ts`,
  * que varre o código atrás das rotas em vez de confiar numa lista.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { join } from 'node:path'
 
-import { describe, expect,it } from 'vitest';
+import { describe, expect, it } from 'vitest'
 
-import { type ContextoDeJogada,eventosCondicionais, sortearEventoRaro, todosOsEventos } from '../src/lib/eventosDeJogo';
+import { type ContextoDeJogada, eventosCondicionais, sortearEventoRaro, todosOsEventos } from '../src/lib/eventosDeJogo'
 
-const RAIZ = join(__dirname, '..', 'src');
+const RAIZ = join(__dirname, '..', 'src')
 
 function arquivosDeCodigo(dir: string, saida: string[] = []): string[] {
   for (const nome of readdirSync(dir)) {
-    const caminho = join(dir, nome);
-    if (statSync(caminho).isDirectory()) arquivosDeCodigo(caminho, saida);
-    else if (/\.(ts|tsx)$/.test(nome)) saida.push(caminho);
+    const caminho = join(dir, nome)
+    if (statSync(caminho).isDirectory()) arquivosDeCodigo(caminho, saida)
+    else if (/\.(ts|tsx)$/.test(nome)) saida.push(caminho)
   }
-  return saida;
+  return saida
 }
 
 /**
@@ -49,49 +49,49 @@ function arquivosDeCodigo(dir: string, saida: string[] = []): string[] {
  * teste não usa.
  */
 function chamadasNoCodigo(): string[] {
-  const chamadas: string[] = [];
+  const chamadas: string[] = []
   for (const arquivo of arquivosDeCodigo(RAIZ)) {
-    const texto = readFileSync(arquivo, 'utf8');
+    const texto = readFileSync(arquivo, 'utf8')
     for (const m of texto.matchAll(/eventosCondicionais\(([^)]*)\)/g)) {
       // A declaração e o import da própria função não são chamadas.
-      if (/^\s*ctx\s*:/.test(m[1])) continue;
-      chamadas.push(m[1]);
+      if (/^\s*ctx\s*:/.test(m[1])) continue
+      chamadas.push(m[1])
     }
   }
-  return chamadas;
+  return chamadas
 }
 
 /** O contexto que uma chamada é capaz de produzir, no melhor caso para o evento. */
 function contextosPossiveis(argumento: string): ContextoDeJogada[] {
-  const ctxs: ContextoDeJogada[] = [];
+  const ctxs: ContextoDeJogada[] = []
   /* Combo literal (`combo: 5`) dispara só aquele degrau; combo por variável (`combo: nova`) pode
      ser qualquer um, então conta para os três. */
-  const comboLiteral = argumento.match(/combo:\s*(\d+)/);
-  if (comboLiteral) ctxs.push({ combo: Number(comboLiteral[1]), fever: false });
-  else if (/combo:/.test(argumento)) for (const c of [5, 10, 15]) ctxs.push({ combo: c, fever: false });
-  if (/recorde:\s*(true|[a-zA-Z])/.test(argumento)) ctxs.push({ combo: 0, fever: false, recorde: true });
-  if (/perfeita:\s*(true|[a-zA-Z])/.test(argumento)) ctxs.push({ combo: 0, fever: false, perfeita: true });
-  return ctxs;
+  const comboLiteral = argumento.match(/combo:\s*(\d+)/)
+  if (comboLiteral) ctxs.push({ combo: Number(comboLiteral[1]), fever: false })
+  else if (/combo:/.test(argumento)) for (const c of [5, 10, 15]) ctxs.push({ combo: c, fever: false })
+  if (/recorde:\s*(true|[a-zA-Z])/.test(argumento)) ctxs.push({ combo: 0, fever: false, recorde: true })
+  if (/perfeita:\s*(true|[a-zA-Z])/.test(argumento)) ctxs.push({ combo: 0, fever: false, perfeita: true })
+  return ctxs
 }
 
 describe('a meta do Colecionador é alcançável jogando', () => {
-  const meta = todosOsEventos();
-  const chamadas = chamadasNoCodigo();
+  const meta = todosOsEventos()
+  const chamadas = chamadasNoCodigo()
 
   it('o varredor achou as chamadas — senão o resto do arquivo é decorativo', () => {
-    expect(chamadas.length, 'nenhuma chamada de eventosCondicionais encontrada em src/').toBeGreaterThan(0);
-  });
+    expect(chamadas.length, 'nenhuma chamada de eventosCondicionais encontrada em src/').toBeGreaterThan(0)
+  })
 
   /* Os raros não vêm de contexto e sim do sorteio (`juice.ts:87`): para eles basta que exista
      algum valor do dado que os devolva. */
-  const produziveis = new Set<string>();
+  const produziveis = new Set<string>()
   for (let i = 0; i < 1000; i++) {
-    const ev = sortearEventoRaro(() => i / 1000);
-    if (ev) produziveis.add(ev.id);
+    const ev = sortearEventoRaro(() => i / 1000)
+    if (ev) produziveis.add(ev.id)
   }
   for (const argumento of chamadas) {
     for (const ctx of contextosPossiveis(argumento)) {
-      for (const ev of eventosCondicionais(ctx)) produziveis.add(ev.id);
+      for (const ev of eventosCondicionais(ctx)) produziveis.add(ev.id)
     }
   }
 
@@ -99,12 +99,12 @@ describe('a meta do Colecionador é alcançável jogando', () => {
     expect(
       produziveis.has(id),
       `"${id}" está na meta da conquista Colecionador e nenhuma chamada real de eventosCondicionais o dispara`,
-    ).toBe(true);
-  });
+    ).toBe(true)
+  })
 
   it('nenhum evento produzido está fora da meta — senão a contagem nunca fecha', () => {
     for (const id of produziveis) {
-      expect(meta, `"${id}" é produzido pelo app e não está em todosOsEventos()`).toContain(id);
+      expect(meta, `"${id}" é produzido pelo app e não está em todosOsEventos()`).toContain(id)
     }
-  });
-});
+  })
+})

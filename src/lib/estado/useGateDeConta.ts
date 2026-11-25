@@ -9,7 +9,11 @@ import { guardarIntencao, lerIntencao } from '../intencaoDeLogin';
 import { EVENTO_PEDIR_ENTRADA, type ModoDeEntrada } from '../pedirConta';
 
 /** O `idb` e o store do modo sem conta só descem quando alguém entra — e só para esta pergunta. */
-const temDadosLocais = () => import('../../data/efemero/store').then((m) => m.temDadosLocais());
+const temDadosLocais = async (): Promise<boolean> => {
+  if (await import('../../data/efemero/store').then((m) => m.temDadosLocais())) return true;
+  /* O que o visitante deixou nos armazéns do aparelho (livros, desenhos, fotos...) também pede a escolha da pessoa. */
+  return import('../armazensDoAparelhoDaConta').then((m) => m.temDadosDoVisitante());
+};
 
 export interface EstadoDoGateDeConta {
   anonimo: boolean;

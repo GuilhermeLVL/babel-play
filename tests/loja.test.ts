@@ -1,7 +1,15 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 
-import { CATALOGO_DA_LOJA, estadoDoItem, hidratarPosse, marcarPosse, nivelCoerente, possuidos, vitrineDoProximoNivel } from '../src/lib/loja'
+import {
+  CATALOGO_DA_LOJA,
+  estadoDoItem,
+  hidratarPosse,
+  marcarPosse,
+  nivelCoerente,
+  possuidos,
+  vitrineDoProximoNivel,
+} from '../src/lib/loja'
 
 describe('loja', () => {
   it('o catálogo espelha os níveis do módulo de desbloqueios', () => {
@@ -32,7 +40,12 @@ describe('loja', () => {
   })
   /* Faixas calibradas pela simulação das recompensas v2 (`docs/economia-v2.md`). */
   it('preços seguem as faixas calibradas (comum < raro < épico < lendário)', () => {
-    const faixa: Record<string, [number, number]> = { comum: [350, 450], raro: [1000, 1300], epico: [2600, 3000], lendario: [5200, 5200] }
+    const faixa: Record<string, [number, number]> = {
+      comum: [350, 450],
+      raro: [1000, 1300],
+      epico: [2600, 3000],
+      lendario: [5200, 5200],
+    }
     for (const i of CATALOGO_DA_LOJA) {
       if (i.precoSeeds === undefined) continue
       const [min, max] = faixa[i.raridade]

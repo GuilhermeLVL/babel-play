@@ -7,17 +7,27 @@
  * já domina. A faixa (`facil`/`medio`/`dificil`) já existia e já recortava o material da rodada;
  * o que faltava era ela alcançar as duas alavancas que decidem o custo real deste jogo.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import {
-contarJogaveisMulti, digitavelNoTermo,
-ESCADA_POR_FAIXA,   LETRAS_POR_FAIXA, MAX_LETRAS,
-MIN_LETRAS,   motivoForaDoTermo, rodadasDaEscada, } from '../src/core/minigames/termo'
+  contarJogaveisMulti,
+  digitavelNoTermo,
+  ESCADA_POR_FAIXA,
+  LETRAS_POR_FAIXA,
+  MAX_LETRAS,
+  MIN_LETRAS,
+  motivoForaDoTermo,
+  rodadasDaEscada,
+} from '../src/core/minigames/termo'
 import type { VocabCard } from '../src/types'
 
-const carta = (word: string, translation: string): VocabCard => ({
-  id: word, word, translation, inDeck: true,
-} as unknown as VocabCard)
+const carta = (word: string, translation: string): VocabCard =>
+  ({
+    id: word,
+    word,
+    translation,
+    inDeck: true,
+  }) as unknown as VocabCard
 
 describe('a régua de letras segue a faixa', () => {
   it('médio é a régua de sempre — quem não passa faixa não vê mudança', () => {
@@ -50,8 +60,12 @@ describe('a régua de letras segue a faixa', () => {
 
   it('a contagem de jogáveis respeita a faixa pedida', () => {
     const baralho = [
-      carta('door', 'porta'), carta('bread', 'pão'), carta('house', 'casa'),
-      carta('garden', 'jardim'), carta('winter', 'inverno'), carta('summer', 'verão'),
+      carta('door', 'porta'),
+      carta('bread', 'pão'),
+      carta('house', 'casa'),
+      carta('garden', 'jardim'),
+      carta('winter', 'inverno'),
+      carta('summer', 'verão'),
     ]
     // fácil pára em 5 letras: o maior grupo possível é {bread, house}
     expect(contarJogaveisMulti(baralho, 'facil')).toBe(2)
@@ -72,10 +86,21 @@ describe('a régua de letras segue a faixa', () => {
 describe('a rodada inteira cabe no mesmo tabuleiro', () => {
   it('mesmo com o baralho misturando comprimentos, a escada sai toda do mesmo tamanho', () => {
     const baralho = [
-      ['door', 'porta'], ['bread', 'pão'], ['house', 'casa'], ['water', 'água'],
-      ['green', 'verde'], ['story', 'conto'], ['plant', 'planta'], ['child', 'criança'],
-      ['garden', 'jardim'], ['winter', 'inverno'], ['summer', 'verão'], ['forest', 'floresta'],
-      ['tree', 'árvore'], ['fish', 'peixe'], ['bird', 'pássaro'],
+      ['door', 'porta'],
+      ['bread', 'pão'],
+      ['house', 'casa'],
+      ['water', 'água'],
+      ['green', 'verde'],
+      ['story', 'conto'],
+      ['plant', 'planta'],
+      ['child', 'criança'],
+      ['garden', 'jardim'],
+      ['winter', 'inverno'],
+      ['summer', 'verão'],
+      ['forest', 'floresta'],
+      ['tree', 'árvore'],
+      ['fish', 'peixe'],
+      ['bird', 'pássaro'],
     ].map(([w, t]) => carta(w, t))
     for (const faixa of ['facil', 'medio', 'dificil'] as const) {
       const r = rodadasDaEscada(baralho, { faixa })
@@ -102,22 +127,71 @@ describe('refazer uma fase usa as palavras dela, não a régua de hoje', () => {
 
   it('as três fases que o banco tinha e que nenhuma faixa aceitava voltam a montar', () => {
     const casos: Array<[string, Array<[string, string]>]> = [
-      ['4 letras', [['find', 'encontrar'], ['ball', 'bola'], ['left', 'esquerda']]],
-      ['6 letras', [['legend', 'lenda'], ['sponge', 'esponja'], ['empire', 'império']]],
-      ['7 letras (teto antigo)', [['sadness', 'tristeza'], ['geology', 'geologia'], ['mystery', 'mistério']]],
+      [
+        '4 letras',
+        [
+          ['find', 'encontrar'],
+          ['ball', 'bola'],
+          ['left', 'esquerda'],
+        ],
+      ],
+      [
+        '6 letras',
+        [
+          ['legend', 'lenda'],
+          ['sponge', 'esponja'],
+          ['empire', 'império'],
+        ],
+      ],
+      [
+        '7 letras (teto antigo)',
+        [
+          ['sadness', 'tristeza'],
+          ['geology', 'geologia'],
+          ['mystery', 'mistério'],
+        ],
+      ],
     ]
     for (const [rotulo, ws] of casos) {
       const r = rodadasDaEscada(fase(ws), { faixa: 'livre' })
       expect(r.length, rotulo).toBeGreaterThanOrEqual(3)
-      expect(r.map(x => x.palavra).sort(), rotulo).toEqual(ws.map(([w]) => w).sort())
+      expect(r.map((x) => x.palavra).sort(), rotulo).toEqual(ws.map(([w]) => w).sort())
     }
   })
 
   it('e cada uma delas era mesmo impossível em alguma faixa — a prova do defeito', () => {
-    expect(rodadasDaEscada(fase([['find','encontrar'],['ball','bola'],['left','esquerda']]), { faixa: 'dificil' })).toEqual([])
-    expect(rodadasDaEscada(fase([['legend','lenda'],['sponge','esponja'],['empire','império']]), { faixa: 'facil' })).toEqual([])
+    expect(
+      rodadasDaEscada(
+        fase([
+          ['find', 'encontrar'],
+          ['ball', 'bola'],
+          ['left', 'esquerda'],
+        ]),
+        { faixa: 'dificil' },
+      ),
+    ).toEqual([])
+    expect(
+      rodadasDaEscada(
+        fase([
+          ['legend', 'lenda'],
+          ['sponge', 'esponja'],
+          ['empire', 'império'],
+        ]),
+        { faixa: 'facil' },
+      ),
+    ).toEqual([])
     for (const f of ['facil', 'medio', 'dificil'] as const) {
-      expect(rodadasDaEscada(fase([['sadness','tristeza'],['geology','geologia'],['mystery','mistério']]), { faixa: f }), f).toEqual([])
+      expect(
+        rodadasDaEscada(
+          fase([
+            ['sadness', 'tristeza'],
+            ['geology', 'geologia'],
+            ['mystery', 'mistério'],
+          ]),
+          { faixa: f },
+        ),
+        f,
+      ).toEqual([])
     }
   })
 
@@ -136,13 +210,20 @@ describe('a escada para onde a faixa manda', () => {
 
   it('no fácil, nenhum degrau pede mais de um tabuleiro por vez', () => {
     // É a regra que o dono pediu: manter um nível de dificuldade em vez de escalar sempre.
-    expect(ESCADA_POR_FAIXA.facil.every(d => d === 1)).toBe(true)
+    expect(ESCADA_POR_FAIXA.facil.every((d) => d === 1)).toBe(true)
   })
 
   it('com material de sobra, o fácil monta uma escada mais curta em tabuleiros que o difícil', () => {
     // Sete palavras de 5 letras: material suficiente para qualquer escada.
-    const baralho = [['bread','pão'],['house','casa'],['water','água'],['green','verde'],['story','conto'],['plant','planta'],['child','criança']]
-      .map(([w, t]) => carta(w, t))
+    const baralho = [
+      ['bread', 'pão'],
+      ['house', 'casa'],
+      ['water', 'água'],
+      ['green', 'verde'],
+      ['story', 'conto'],
+      ['plant', 'planta'],
+      ['child', 'criança'],
+    ].map(([w, t]) => carta(w, t))
     const facil = rodadasDaEscada(baralho, { faixa: 'facil' })
     const dificil = rodadasDaEscada(baralho, { faixa: 'dificil' })
     // O difícil consome mais palavras porque seus degraus são maiores (1+2+4 contra 1+1+1).
@@ -150,8 +231,13 @@ describe('a escada para onde a faixa manda', () => {
   })
 
   it('sem faixa, o comportamento continua o do médio', () => {
-    const baralho = [['bread','pão'],['house','casa'],['water','água'],['green','verde'],['story','conto']]
-      .map(([w, t]) => carta(w, t))
+    const baralho = [
+      ['bread', 'pão'],
+      ['house', 'casa'],
+      ['water', 'água'],
+      ['green', 'verde'],
+      ['story', 'conto'],
+    ].map(([w, t]) => carta(w, t))
     expect(rodadasDaEscada(baralho).length).toBe(rodadasDaEscada(baralho, { faixa: 'medio' }).length)
   })
 })
@@ -166,8 +252,18 @@ describe('S1b — motivoForaDoTermo respeita o perfil curado quando o cartão ve
     'A period of one hundred years, often used to describe a century in historical or scientific contexts today.'
 
   it('cartão daAnki de 100 chars é jogável (null); sem daAnki, sem-pista', () => {
-    const comAnki = { word: 'agree', translation: definicaoDeDicionario, inDeck: true, daAnki: true } as unknown as VocabCard
-    const semAnki = { word: 'agree', translation: definicaoDeDicionario, inDeck: true, daAnki: false } as unknown as VocabCard
+    const comAnki = {
+      word: 'agree',
+      translation: definicaoDeDicionario,
+      inDeck: true,
+      daAnki: true,
+    } as unknown as VocabCard
+    const semAnki = {
+      word: 'agree',
+      translation: definicaoDeDicionario,
+      inDeck: true,
+      daAnki: false,
+    } as unknown as VocabCard
     expect(motivoForaDoTermo(comAnki)).toBeNull()
     expect(motivoForaDoTermo(semAnki)).toBe('sem-pista')
   })

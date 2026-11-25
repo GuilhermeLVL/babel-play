@@ -27,7 +27,10 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { chrf } from '../../src/core/eval/chrf.ts'
 
 const args = process.argv.slice(2)
-const opt = (n, p) => { const i = args.indexOf(`--${n}`); return i > -1 && args[i + 1] ? args[i + 1] : p }
+const opt = (n, p) => {
+  const i = args.indexOf(`--${n}`)
+  return i > -1 && args[i + 1] ? args[i + 1] : p
+}
 
 const ENTRADA = opt('entrada', 'docs/auditoria/eval/resultados-traducao-llm.json')
 const SAIDA = opt('saida', 'docs/auditoria/eval/resultados-juiz.json')
@@ -76,7 +79,9 @@ async function julgar(caso) {
   try {
     const j = JSON.parse(bruto)
     const n = (v) => (Number.isFinite(Number(v)) ? Math.max(0, Math.min(5, Number(v))) : null)
-    const a = n(j.adequacao), nat = n(j.naturalidade), reg = n(j.registro)
+    const a = n(j.adequacao),
+      nat = n(j.naturalidade),
+      reg = n(j.registro)
     if (a === null || nat === null || reg === null) return null
     return { adequacao: a, naturalidade: nat, registro: reg, porque: String(j.porque ?? '').slice(0, 90) }
   } catch {
@@ -96,7 +101,9 @@ async function main() {
   const porModelo = new Map()
   for (const e of execucoes) if (!porModelo.has(e.modelo)) porModelo.set(e.modelo, e)
 
-  console.log(`juiz: ${JUIZ} (local, neutro) · ${porModelo.size} modelo(s) · ${[...porModelo.values()][0].casos.length} casos\n`)
+  console.log(
+    `juiz: ${JUIZ} (local, neutro) · ${porModelo.size} modelo(s) · ${[...porModelo.values()][0].casos.length} casos\n`,
+  )
 
   const resultados = []
   for (const [modelo, e] of porModelo) {
@@ -106,9 +113,20 @@ async function main() {
     for (const c of e.casos) {
       try {
         const j = await julgar(c)
-        if (!j) { semJulgamento++; process.stdout.write('?'); continue }
-        julgados.push({ id: c.id, categoria: c.categoria, origem: c.origem, referencia: c.referencia,
-          hipotese: c.hipotese, juiz: j, chrf: chrf(c.referencia, c.hipotese).chrf })
+        if (!j) {
+          semJulgamento++
+          process.stdout.write('?')
+          continue
+        }
+        julgados.push({
+          id: c.id,
+          categoria: c.categoria,
+          origem: c.origem,
+          referencia: c.referencia,
+          hipotese: c.hipotese,
+          juiz: j,
+          chrf: chrf(c.referencia, c.hipotese).chrf,
+        })
         process.stdout.write('.')
       } catch (err) {
         semJulgamento++
@@ -129,7 +147,9 @@ async function main() {
       casos: julgados,
     }
     resultados.push(resumo)
-    console.log(`  juiz ${resumo.juizGeral?.toFixed(2)}/5  (adeq ${resumo.adequacao?.toFixed(2)} · nat ${resumo.naturalidade?.toFixed(2)} · reg ${resumo.registro?.toFixed(2)})`)
+    console.log(
+      `  juiz ${resumo.juizGeral?.toFixed(2)}/5  (adeq ${resumo.adequacao?.toFixed(2)} · nat ${resumo.naturalidade?.toFixed(2)} · reg ${resumo.registro?.toFixed(2)})`,
+    )
   }
 
   console.log(`\n${'modelo'.padEnd(30)} ${'juiz/5'.padStart(7)} ${'chrF++'.padStart(8)}`)
@@ -162,17 +182,32 @@ async function main() {
     for (const c of r.casos) {
       const nota = (c.juiz.adequacao + c.juiz.naturalidade + c.juiz.registro) / 3
       if (nota <= 2 && c.chrf >= 0.7) {
-        console.log(`  [${c.categoria}] ${c.origem} → ${c.hipotese}  (juiz ${nota.toFixed(1)} · chrF++ ${(c.chrf * 100).toFixed(0)}%)`)
+        console.log(
+          `  [${c.categoria}] ${c.origem} → ${c.hipotese}  (juiz ${nota.toFixed(1)} · chrF++ ${(c.chrf * 100).toFixed(0)}%)`,
+        )
         m++
       }
     }
   }
   if (!m) console.log('  (nenhuma)')
 
-  writeFileSync(SAIDA, JSON.stringify({
-    geradoEm: new Date().toISOString(), juiz: JUIZ, entrada: ENTRADA, resultados,
-  }, null, 2))
+  writeFileSync(
+    SAIDA,
+    JSON.stringify(
+      {
+        geradoEm: new Date().toISOString(),
+        juiz: JUIZ,
+        entrada: ENTRADA,
+        resultados,
+      },
+      null,
+      2,
+    ),
+  )
   console.log(`\nbruto: ${SAIDA}`)
 }
 
-main().catch((e) => { console.error('FALHOU:', e.message); process.exit(1) })
+main().catch((e) => {
+  console.error('FALHOU:', e.message)
+  process.exit(1)
+})

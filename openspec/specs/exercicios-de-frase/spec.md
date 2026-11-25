@@ -1,6 +1,7 @@
 # exercicios-de-frase Specification
 
 ## Purpose
+
 Jogos de retradução e ditado de frase com correção local sem IA. Criada pela change `exercicios-de-frase` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-exercicios-de-frase/proposal.md` para o porquê.
 
 ## Requirements

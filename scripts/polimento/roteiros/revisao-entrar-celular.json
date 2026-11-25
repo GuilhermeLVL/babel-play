@@ -51,10 +51,7 @@
       }
     ]
   },
-  "seletores": [
-    ".qv-convite",
-    "[data-testid='tudo-revisado']"
-  ],
+  "seletores": [".qv-convite", "[data-testid='tudo-revisado']"],
   "gravar": {
     "app": [
       {

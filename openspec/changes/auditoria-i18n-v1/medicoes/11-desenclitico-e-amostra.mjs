@@ -57,7 +57,11 @@ const CASOS = [
 const vocab = {};
 for (const lang of ['es', 'it']) {
   const d = lerJSON(caminho('public', 'trilha', `${lang}.json`));
-  vocab[lang] = new Set(Object.values(d.niveis).flat().map((i) => String(i[0]).toLowerCase()));
+  vocab[lang] = new Set(
+    Object.values(d.niveis)
+      .flat()
+      .map((i) => String(i[0]).toLowerCase()),
+  );
 }
 // Para os casos nomeados, o "dicionário" recebe também as raízes verdadeiras, senão o teste
 // mediria a ausência do verbo no vocabulário em vez de medir a regra.
@@ -93,10 +97,19 @@ const erros = linhasCasos.filter((l) => l[4] === 'ERRO').length;
 texto += `\n\n${linhasCasos.length - erros} de ${linhasCasos.length} casos corretos · ${erros} erro(s)`;
 
 texto += '\n\nVARREDURA SOBRE O VOCABULÁRIO REAL DA TRILHA:\n';
-texto += tabela(['lang', 'palavras', 'que a regra cortaria', 'taxa'],
-  varredura.map((v) => [v.lang, v.total, v.cortadas.length, `${((v.cortadas.length / v.total) * 100).toFixed(2)}%`]));
+texto += tabela(
+  ['lang', 'palavras', 'que a regra cortaria', 'taxa'],
+  varredura.map((v) => [v.lang, v.total, v.cortadas.length, `${((v.cortadas.length / v.total) * 100).toFixed(2)}%`]),
+);
 for (const v of varredura) {
-  texto += `\n  [${v.lang}] ${v.cortadas.length ? v.cortadas.slice(0, 25).map(([p, r]) => `${p}→${r}`).join(' · ') : 'nenhuma'}`;
+  texto += `\n  [${v.lang}] ${
+    v.cortadas.length
+      ? v.cortadas
+          .slice(0, 25)
+          .map(([p, r]) => `${p}→${r}`)
+          .join(' · ')
+      : 'nenhuma'
+  }`;
   if (v.cortadas.length > 25) texto += ` … e mais ${v.cortadas.length - 25}`;
 }
 
@@ -113,14 +126,27 @@ function wilson(acertos, n, z = 1.96) {
 // n necessário para uma meia-largura alvo, na proporção observada.
 const nPara = (alvo, p = 0.9, z = 1.96) => Math.ceil((z * z * p * (1 - p)) / (alvo * alvo));
 
-const antes = wilson(42, 60);   // 70% de 60
-const depois = wilson(54, 60);  // 90% de 60
+const antes = wilson(42, 60); // 70% de 60
+const depois = wilson(54, 60); // 90% de 60
 
 texto += '\n\nA AMOSTRA DE 60 (docs/auditoria/trilha-multi-idioma-v1.md:81-82):\n';
-texto += tabela(['medida', 'proporção', 'IC 95% (Wilson)', 'meia-largura'], [
-  ['antes das correções (42/60)', `${(antes.p * 100).toFixed(1)}%`, `${(antes.baixo * 100).toFixed(1)}% – ${(antes.alto * 100).toFixed(1)}%`, `±${(((antes.alto - antes.baixo) / 2) * 100).toFixed(1)} pp`],
-  ['depois (54/60)', `${(depois.p * 100).toFixed(1)}%`, `${(depois.baixo * 100).toFixed(1)}% – ${(depois.alto * 100).toFixed(1)}%`, `±${(((depois.alto - depois.baixo) / 2) * 100).toFixed(1)} pp`],
-]);
+texto += tabela(
+  ['medida', 'proporção', 'IC 95% (Wilson)', 'meia-largura'],
+  [
+    [
+      'antes das correções (42/60)',
+      `${(antes.p * 100).toFixed(1)}%`,
+      `${(antes.baixo * 100).toFixed(1)}% – ${(antes.alto * 100).toFixed(1)}%`,
+      `±${(((antes.alto - antes.baixo) / 2) * 100).toFixed(1)} pp`,
+    ],
+    [
+      'depois (54/60)',
+      `${(depois.p * 100).toFixed(1)}%`,
+      `${(depois.baixo * 100).toFixed(1)}% – ${(depois.alto * 100).toFixed(1)}%`,
+      `±${(((depois.alto - depois.baixo) / 2) * 100).toFixed(1)} pp`,
+    ],
+  ],
+);
 // A comparação 70% → 90% é PAREADA: `D:78` diz "amostra determinística de 60", e as correções
 // foram aplicadas sobre as mesmas entradas. Comparar os dois intervalos de confiança seria o
 // teste errado — ele trata as medidas como amostras independentes e perde todo o poder do
@@ -132,27 +158,42 @@ function mcnemarExato(b, c) {
   const n = b + c;
   if (n === 0) return 1;
   const menor = Math.min(b, c);
-  const comb = (k) => { let r = 1; for (let i = 0; i < k; i++) r = (r * (n - i)) / (i + 1); return r; };
+  const comb = (k) => {
+    let r = 1;
+    for (let i = 0; i < k; i++) r = (r * (n - i)) / (i + 1);
+    return r;
+  };
   let cauda = 0;
   for (let i = 0; i <= menor; i++) cauda += comb(i);
   return Math.min(1, 2 * cauda * Math.pow(0.5, n));
 }
 
 texto += '\n\nA melhora 70% → 90%, testada como PAREADA (mesma amostra antes e depois):\n';
-texto += tabela(['cenário (b→erro, c→acerto)', 'discordantes', 'p (McNemar exato)', 'significativa a 5%?'],
-  [[0, 12], [2, 14], [4, 16], [6, 18]].map(([b, c]) => {
+texto += tabela(
+  ['cenário (b→erro, c→acerto)', 'discordantes', 'p (McNemar exato)', 'significativa a 5%?'],
+  [
+    [0, 12],
+    [2, 14],
+    [4, 16],
+    [6, 18],
+  ].map(([b, c]) => {
     const p = mcnemarExato(b, c);
     return [`b=${b}, c=${c}`, b + c, p < 0.0001 ? '<0,0001' : p.toFixed(4), p < 0.05 ? 'sim' : 'não'];
-  }));
+  }),
+);
 texto += '\n  Em todos os cenários compatíveis com o saldo de +12, a melhora É significativa.';
 texto += '\n  (Comparar os dois IC acima e ver sobreposição daria "não significativa" — e seria';
 texto += '\n   o teste errado, porque trata como independentes duas medidas sobre os mesmos itens.)';
 
 texto += '\n\nTamanho de amostra necessário (proporção esperada 90%, 95% de confiança):\n';
-texto += tabela(['precisão desejada', 'n necessário'],
-  [0.10, 0.05, 0.03, 0.02].map((a) => [`±${(a * 100).toFixed(0)} pp`, nPara(a)]));
+texto += tabela(
+  ['precisão desejada', 'n necessário'],
+  [0.1, 0.05, 0.03, 0.02].map((a) => [`±${(a * 100).toFixed(0)} pp`, nPara(a)]),
+);
 
 export default publicar('11 — desenclítico e a amostra de 60', texto, {
-  casos: linhasCasos, erros, varredura: varredura.map((v) => ({ lang: v.lang, total: v.total, cortadas: v.cortadas })),
+  casos: linhasCasos,
+  erros,
+  varredura: varredura.map((v) => ({ lang: v.lang, total: v.total, cortadas: v.cortadas })),
   amostra: { antes, depois, nPara3pp: nPara(0.03) },
 });

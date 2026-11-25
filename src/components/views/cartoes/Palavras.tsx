@@ -174,18 +174,16 @@ export default function Palavras({
       return;
     }
     if (!polido() || reduz()) return;
-    tabela.current
-      ?.querySelectorAll('tbody tr:nth-child(-n+14)')
-      .forEach((x, k) =>
-        anima(
-          x,
-          [
-            { opacity: 0, transform: 'translateY(8px)' },
-            { opacity: 1, transform: 'translateY(0)' },
-          ],
-          { d: 320, atraso: k * 22 },
-        ),
-      );
+    tabela.current?.querySelectorAll('tbody tr:nth-child(-n+14)').forEach((x, k) =>
+      anima(
+        x,
+        [
+          { opacity: 0, transform: 'translateY(8px)' },
+          { opacity: 1, transform: 'translateY(0)' },
+        ],
+        { d: 320, atraso: k * 22 },
+      ),
+    );
   }, [chaveDaLista]);
 
   /* O "Desfazer" some sozinho. */
@@ -274,10 +272,7 @@ export default function Palavras({
   const praticar = () => {
     const ids = [...marcados];
     if (!ids.length) return;
-    aoPraticar(
-      ids,
-      tp(ids.length, '{n} palavra selecionada', '{n} palavras selecionadas', { n: numero(ids.length) }),
-    );
+    aoPraticar(ids, tp(ids.length, '{n} palavra selecionada', '{n} palavras selecionadas', { n: numero(ids.length) }));
   };
 
   const tituloDaSessao = useMemo(() => new Map(sessoes.map((s) => [s.id, s.title])), [sessoes]);

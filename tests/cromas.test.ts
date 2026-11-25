@@ -9,13 +9,21 @@
  *    é o que impede a coleção completa de ser só uma questão de moer Seeds.
  * 3. **Sem croma, nada muda.** É a garantia de que a economia velha continua funcionando.
  */
-import { beforeEach,describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { acessoAoEstilo } from '../src/lib/galeria/acesso'
 import {
-corDoCromaEquipado,   cromaEquipado,   cromasDaPeca, cromasPossuidos, equiparCroma, hidratarCromas,
-idDoCroma, marcarCroma, PRECO_DO_CROMA,
-temOCroma, } from '../src/lib/galeria/cromas'
+  corDoCromaEquipado,
+  cromaEquipado,
+  cromasDaPeca,
+  cromasPossuidos,
+  equiparCroma,
+  hidratarCromas,
+  idDoCroma,
+  marcarCroma,
+  PRECO_DO_CROMA,
+  temOCroma,
+} from '../src/lib/galeria/cromas'
 import { todasAsPaletas } from '../src/lib/galeria/paletas'
 
 beforeEach(() => {

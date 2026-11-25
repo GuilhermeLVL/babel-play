@@ -64,13 +64,30 @@ describe('nivelDeMaestria — os limiares exatos', () => {
 })
 
 /** Uma rodada gravada: `n` itens, `certos` deles certos, gravados no mesmo milissegundo. */
-function rodada(jogo: string, roundId: string, certos: number, n: number, combo: number, em: number): LinhaDeMaestria[] {
-  return Array.from({ length: n }, (_, i) => ({ exerciseKind: jogo, roundId, correct: i < certos ? 1 : 0, combo, createdAt: em }))
+function rodada(
+  jogo: string,
+  roundId: string,
+  certos: number,
+  n: number,
+  combo: number,
+  em: number,
+): LinhaDeMaestria[] {
+  return Array.from({ length: n }, (_, i) => ({
+    exerciseKind: jogo,
+    roundId,
+    correct: i < certos ? 1 : 0,
+    combo,
+    createdAt: em,
+  }))
 }
 
 describe('maestriaPorJogo — a soma que o servidor faz', () => {
   it('soma por rodada e por jogo, com os 21 jogos na resposta', () => {
-    const linhas = [...rodada('memory', 'r1', 10, 10, 10, 1000), ...rodada('memory', 'r2', 9, 10, 0, 2000), ...rodada('termo', 'r3', 3, 4, 0, 3000)]
+    const linhas = [
+      ...rodada('memory', 'r1', 10, 10, 10, 1000),
+      ...rodada('memory', 'r2', 9, 10, 0, 2000),
+      ...rodada('termo', 'r3', 3, 4, 0, 3000),
+    ]
     const m = maestriaPorJogo(linhas)
     expect(m).toHaveLength(Object.keys(MINIGAMES).length)
     expect(m.find((j) => j.jogo === 'memory')).toMatchObject({ pontos: 37, nivel: 1 })
@@ -94,10 +111,17 @@ describe('maestriaPorJogo — a soma que o servidor faz', () => {
   })
 
   it('créditos devidos: um por nível alcançado, menos os já creditados', () => {
-    const m = maestriaPorJogo(rodada('memory', 'r1', 10, 10, 10, 1).concat(...Array.from({ length: 9 }, (_, i) => rodada('memory', `r${i + 2}`, 10, 10, 10, 10 + i))))
+    const m = maestriaPorJogo(
+      rodada('memory', 'r1', 10, 10, 10, 1).concat(
+        ...Array.from({ length: 9 }, (_, i) => rodada('memory', `r${i + 2}`, 10, 10, 10, 10 + i)),
+      ),
+    )
     // 10 rodadas perfeitas de 23 = 230 → Ouro (nível 3)
     expect(m.find((j) => j.jogo === 'memory')?.nivel).toBe(3)
-    expect(creditosDeMaestriaDevidos(m, new Set(['maestria:memory:1']))).toEqual(['maestria:memory:2', 'maestria:memory:3'])
+    expect(creditosDeMaestriaDevidos(m, new Set(['maestria:memory:1']))).toEqual([
+      'maestria:memory:2',
+      'maestria:memory:3',
+    ])
   })
 })
 
@@ -105,11 +129,22 @@ describe('valorDoCredito — a família maestria', () => {
   it('maestria:memory:3 vale 20 × 3 Seeds e exige 220 pontos', () => {
     expect(PESOS_SEEDS.nivelDeMaestria).toBe(20)
     const c = valorDoCredito('maestria:memory:3')
-    expect(c).toMatchObject({ seeds: 60, xp: 0, reason: 'maestria:memory:3', maestria: { jogo: 'memory', nivel: 3, pontosExigidos: 220 } })
+    expect(c).toMatchObject({
+      seeds: 60,
+      xp: 0,
+      reason: 'maestria:memory:3',
+      maestria: { jogo: 'memory', nivel: 3, pontosExigidos: 220 },
+    })
   })
 
   it('jogo inexistente, nível fora de 1..5 ou formato torto é recusado', () => {
-    for (const id of ['maestria:xadrez:1', 'maestria:memory:0', 'maestria:memory:6', 'maestria:memory', 'maestria:memory:2:x']) {
+    for (const id of [
+      'maestria:xadrez:1',
+      'maestria:memory:0',
+      'maestria:memory:6',
+      'maestria:memory',
+      'maestria:memory:2:x',
+    ]) {
       expect(creditoDeMaestria(id), id).toBeNull()
       expect(valorDoCredito(id), id).toHaveProperty('erro')
     }

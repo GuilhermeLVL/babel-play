@@ -13,11 +13,13 @@ gpt-oss-120b "low", filtro de alucinação nível 4.
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Reduzir em pelo menos 400 ms o p50 do fim da fala até o início da voz, sem piorar WER nem custo.
 - Mostrar tradução em andamento sem falar por cima do que ainda vai ser dito.
 - Medir cada etapa para decidir com número, não com impressão.
 
 **Non-Goals:**
+
 - Modelo fala→fala (Fase 6). STT em streaming de verdade (fora do escopo; o parcial local atual fica como está).
 - Mudar a cauda de eco (medir e propor depois; hoje serve ao guarda de eco).
 - Trocar o Silero por outro VAD.

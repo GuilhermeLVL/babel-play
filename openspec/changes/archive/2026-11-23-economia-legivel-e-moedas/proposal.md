@@ -1,8 +1,8 @@
 ## Why
 
-O dono, revendo o app (31/08): *"o passe está meio estranho e tem vários itens vazios; precisamos
-garantir que a cada nível o usuário vai desbloquear algo"* e *"tudo parece mudar demais, nada
-parece estar ligado"* — sem conseguir apontar o quê. A investigação achou causas estruturais:
+O dono, revendo o app (31/08): _"o passe está meio estranho e tem vários itens vazios; precisamos
+garantir que a cada nível o usuário vai desbloquear algo"_ e _"tudo parece mudar demais, nada
+parece estar ligado"_ — sem conseguir apontar o quê. A investigação achou causas estruturais:
 
 1. **O passe estava oco por falta de conteúdo**: 59 itens não-exclusivos para 100 casas, com 43
    deles nos níveis 1–5. Resultado medido: **33 casas vazias**, 29 na segunda metade, e **8 dos 10

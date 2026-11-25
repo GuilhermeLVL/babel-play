@@ -1,14 +1,14 @@
-import type { SchedulerType,VocabCard } from '../../types';
+import type { SchedulerType, VocabCard } from '../../types';
 import { makeCloze } from '../learning/cloze';
 import { byUrgency, isDueNow } from '../learning/due';
-import { type HistoricoDoItem,ordenarPorMemoria } from '../learning/memoriaDeItens';
+import { type HistoricoDoItem, ordenarPorMemoria } from '../learning/memoriaDeItens';
 import { pistaDeJogo } from '../learning/pistaDeJogo';
 import { avaliarCartao, chaveComparavel } from '../learning/quality';
 import { baseLang, idiomaDoCartao } from '../texto/idioma';
 import { memoDeTexto } from '../texto/memoDeTexto';
 import { itensDaCorrente } from './shiritori';
 import { digitavelNoTermo } from './termo';
-import type { MinigameId,MinigameItem } from './types';
+import type { MinigameId, MinigameItem } from './types';
 import { MINIGAMES } from './types';
 import { entraNaGrade } from './wordsearch';
 
@@ -87,7 +87,13 @@ export function promptFor(card: VocabCard): { prompt: string; clozed: boolean } 
      são a chave da memória. O saguão do Jogar pedia a pista do mesmo cartão uma vez por jogo (são 18),
      e de novo a cada passada: no build de produção, CPU 4×, a régua, a máscara e a lacuna somavam a
      maior parte dos 712 a 1.070 ms do gate. Cartão editado muda de texto, logo de chave. */
-  const campos = [card.daAnki ? '1' : '0', card.srcLang ?? '', card.word ?? '', card.translation ?? '', card.sentence ?? ''];
+  const campos = [
+    card.daAnki ? '1' : '0',
+    card.srcLang ?? '',
+    card.word ?? '',
+    card.translation ?? '',
+    card.sentence ?? '',
+  ];
   // Texto que traz o próprio separador não tem chave segura: faz a conta direto.
   if (campos.some((c) => c.includes(SEPARADOR))) return pistaDoCartao(card);
   return pistaGuardada(campos.join(SEPARADOR));
@@ -164,7 +170,12 @@ export function buildItems(gameId: MinigameId, cards: VocabCard[], opts: BuildIt
  * chave da tradução de TODOS os cartões do acervo, e o gate fazia isso uma vez por jogo para jogar o
  * campo fora (a contagem não depende dele).
  */
-function itensDe(gameId: MinigameId, cards: VocabCard[], opts: BuildItemsOptions, comAlternativas: boolean): MinigameItem[] {
+function itensDe(
+  gameId: MinigameId,
+  cards: VocabCard[],
+  opts: BuildItemsOptions,
+  comAlternativas: boolean,
+): MinigameItem[] {
   const def = MINIGAMES[gameId];
   const scheduler = opts.scheduler ?? 'fsrs';
   const now = opts.now ?? Date.now();
@@ -176,12 +187,13 @@ function itensDe(gameId: MinigameId, cards: VocabCard[], opts: BuildItemsOptions
   // O gate já recusa alfabeto que o jogo não escreve; o builder recusa junto, para uma chamada
   // direta não montar rodada impossível (grade vazia, teclado que não digita a palavra).
   const cabe = cabeNaEscrita(gameId);
-  const cabeNoJogo = !opts.ignorarRequisitos && MINIGAMES[gameId].requisitos?.alfabeto === 'latino'
-    ? (c: VocabCard) => cabe(c.word ?? '')
-    : () => true;
-  const noBaralho = cards.filter(c => c.inDeck && (c.word ?? '').trim() && cabeNoJogo(c));
+  const cabeNoJogo =
+    !opts.ignorarRequisitos && MINIGAMES[gameId].requisitos?.alfabeto === 'latino'
+      ? (c: VocabCard) => cabe(c.word ?? '')
+      : () => true;
+  const noBaralho = cards.filter((c) => c.inDeck && (c.word ?? '').trim() && cabeNoJogo(c));
   const vencidos = byUrgency(noBaralho, scheduler, now);
-  const resto = noBaralho.filter(c => !isDueNow(c, scheduler, now));
+  const resto = noBaralho.filter((c) => !isDueNow(c, scheduler, now));
 
   /**
    * O DOC ACIMA ERA MENTIRA FORA DO DUELO, e o defeito estava numa única linha: a versão anterior
@@ -201,32 +213,39 @@ function itensDe(gameId: MinigameId, cards: VocabCard[], opts: BuildItemsOptions
        delas. O duelo mantém os vencidos por urgência (é a mecânica dele): a régua só reordena o
        resto. */
     const urgentesSet = new Set(vencidos);
-    const { ordenados: porMemoria } = ordenarPorMemoria(noBaralho, c => c.word, {
-      memoria: opts.memoria, semente: `${gameId}:${opts.semente}`, agora: now,
+    const { ordenados: porMemoria } = ordenarPorMemoria(noBaralho, (c) => c.word, {
+      memoria: opts.memoria,
+      semente: `${gameId}:${opts.semente}`,
+      agora: now,
       diaDe: opts.diaDe ?? ((ts) => Math.floor(ts / 86_400_000)),
-      urgente: c => urgentesSet.has(c), cotaDeNovas: 0.3, limite: limite,
+      urgente: (c) => urgentesSet.has(c),
+      cotaDeNovas: 0.3,
+      limite: limite,
     });
-    ordenados = gameId === 'blitz'
-      ? [...vencidos.filter(c => porMemoria.includes(c)), ...porMemoria.filter(c => !urgentesSet.has(c))]
-      : porMemoria;
+    ordenados =
+      gameId === 'blitz'
+        ? [...vencidos.filter((c) => porMemoria.includes(c)), ...porMemoria.filter((c) => !urgentesSet.has(c))]
+        : porMemoria;
     if (evitar?.size) {
-      const semEvitadas = ordenados.filter(c => !evitar.has(c.word));
+      const semEvitadas = ordenados.filter((c) => !evitar.has(c.word));
       // Exclusão de verdade quando sobra material; senão, demoção (nunca uma rodada vazia).
-      ordenados = opts.excluirEvitadas && semEvitadas.length >= def.minItems
-        ? semEvitadas
-        : [...semEvitadas, ...ordenados.filter(c => evitar.has(c.word))];
+      ordenados =
+        opts.excluirEvitadas && semEvitadas.length >= def.minItems
+          ? semEvitadas
+          : [...semEvitadas, ...ordenados.filter((c) => evitar.has(c.word))];
     }
   } else {
-    const base = gameId === 'blitz'
-      // O duelo é a revisão cronometrada: do mais atrasado ao menos, sem embaralhar os vencidos —
-      // aqui a ordem de urgência É a mecânica. Completa com o resto quando faltam vencidos.
-      ? [...vencidos, ...shuffle(resto)]
-      : [...shuffle(vencidos), ...shuffle(resto)];
+    const base =
+      gameId === 'blitz'
+        ? // O duelo é a revisão cronometrada: do mais atrasado ao menos, sem embaralhar os vencidos —
+          // aqui a ordem de urgência É a mecânica. Completa com o resto quando faltam vencidos.
+          [...vencidos, ...shuffle(resto)]
+        : [...shuffle(vencidos), ...shuffle(resto)];
 
     // Estável: `filter` preserva a ordem acima dentro de cada metade.
     ordenados = !evitar?.size
       ? base
-      : [...base.filter(c => !evitar.has(c.word)), ...base.filter(c => evitar.has(c.word))];
+      : [...base.filter((c) => !evitar.has(c.word)), ...base.filter((c) => evitar.has(c.word))];
   }
 
   const itens: MinigameItem[] = [];
@@ -296,7 +315,8 @@ function itensDe(gameId: MinigameId, cards: VocabCard[], opts: BuildItemsOptions
     if (chaveDaResposta && respostasUsadas.has(chaveDaResposta)) continue;
     pistasUsadas.add(chaveDaPista);
     respostasUsadas.add(chaveDaResposta);
-    const mesmasPista = !comAlternativas || pista.clozed ? [] : palavrasDaPista(chaveComparavel(card.translation ?? ''));
+    const mesmasPista =
+      !comAlternativas || pista.clozed ? [] : palavrasDaPista(chaveComparavel(card.translation ?? ''));
     const alternativas = [...new Set(mesmasPista.filter((w) => chaveComparavel(w) !== chaveDaResposta))];
     itens.push({
       cardId: card.id,
@@ -317,11 +337,20 @@ function itensDe(gameId: MinigameId, cards: VocabCard[], opts: BuildItemsOptions
 }
 
 /** Há itens suficientes para este jogo? A tela usa isto para habilitar (ou explicar o que falta). */
-export function canPlay(gameId: MinigameId, cards: VocabCard[], opts: BuildItemsOptions = {}): { ok: boolean; disponiveis: number; faltam: number } {
+export function canPlay(
+  gameId: MinigameId,
+  cards: VocabCard[],
+  opts: BuildItemsOptions = {},
+): { ok: boolean; disponiveis: number; faltam: number } {
   const def = MINIGAMES[gameId];
   /* O limite fica com o builder quando ele tem regra propria de pool (shiritori procura a
      corrente num pool maior); forcar `maxItems` aqui fazia o gate perguntar outra coisa. */
-  const disponiveis = itensDe(gameId, cards, { ...opts, ...(gameId === 'shiritori' ? {} : { limit: def.maxItems }) }, false).length;
+  const disponiveis = itensDe(
+    gameId,
+    cards,
+    { ...opts, ...(gameId === 'shiritori' ? {} : { limit: def.maxItems }) },
+    false,
+  ).length;
   return { ok: disponiveis >= def.minItems, disponiveis, faltam: Math.max(0, def.minItems - disponiveis) };
 }
 
@@ -350,7 +379,12 @@ export function shortPrompt(prompt: string, max = 64): string {
  * reais do baralho — distrator inventado é pista de que a resposta certa é a "estranha".
  * A resposta correta nunca entra na lista.
  */
-export function distractorsFor(item: MinigameItem, itens: MinigameItem[], quantidade = 3, shuffle = embaralhar): string[] {
+export function distractorsFor(
+  item: MinigameItem,
+  itens: MinigameItem[],
+  quantidade = 3,
+  shuffle = embaralhar,
+): string[] {
   const alvo = item.answer.toLowerCase();
   /* MESMO IDIOMA, sempre. Sem isto a alternativa em outro alfabeto denuncia a certa por
      eliminacao — e o pool CHEGA misto: com `fonte.lang` vazio (o estado inicial de `Play`), o

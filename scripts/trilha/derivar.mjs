@@ -25,7 +25,11 @@ const idiomas = readdirSync(DIR)
 /** Idiomas nativos com arquivo de glosa para `lang` — é o que a tela pode oferecer como pista. */
 function paresDe(lang) {
   let arquivos
-  try { arquivos = readdirSync(DIR_GLOSAS) } catch { return [] }
+  try {
+    arquivos = readdirSync(DIR_GLOSAS)
+  } catch {
+    return []
+  }
   return arquivos
     .filter((f) => f.startsWith(`${lang}-`) && f.endsWith('.json'))
     .map((f) => f.slice(lang.length + 1, -5))
@@ -55,7 +59,10 @@ for (const lang of idiomas) {
       if (item[colunaDaFrase]) comFrase++
       const k = chave(item[0])
       if (!k) continue
-      if (vistas.has(k)) { colisoes++; continue } // primeira ocorrência vence
+      if (vistas.has(k)) {
+        colisoes++
+        continue
+      } // primeira ocorrência vence
       vistas.add(k)
       palavras.push(k)
     }

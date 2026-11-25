@@ -30,7 +30,14 @@ export default function FraseComLacuna({ sentence, word }: FraseComLacunaProps) 
       {sentence ? (
         sentence.split(new RegExp(`(${word})`, 'gi')).map((chunk, index) => {
           if (chunk.toLowerCase() === word.toLowerCase()) {
-            return <span key={index} className="px-3 py-1 bg-accent-soft text-accent-ink border-b-2 border-accent border-dashed font-bold font-mono">___</span>;
+            return (
+              <span
+                key={index}
+                className="px-3 py-1 bg-accent-soft text-accent-ink border-b-2 border-accent border-dashed font-bold font-mono"
+              >
+                ___
+              </span>
+            );
           }
           return <span key={index}>{chunk}</span>;
         })

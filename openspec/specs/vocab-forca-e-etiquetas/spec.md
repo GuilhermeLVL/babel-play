@@ -1,6 +1,7 @@
 # vocab-forca-e-etiquetas Specification
 
 ## Purpose
+
 Força 1–4 derivada do FSRS e etiquetas do usuário no vocabulário. Criada pela change `vocab-forca-e-etiquetas` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-vocab-forca-e-etiquetas/proposal.md` para o porquê.
 
 ## Requirements

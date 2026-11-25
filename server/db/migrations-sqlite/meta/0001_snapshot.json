@@ -196,16 +196,12 @@
       "indexes": {
         "idx_exercise_results_item_ref": {
           "name": "idx_exercise_results_item_ref",
-          "columns": [
-            "item_ref"
-          ],
+          "columns": ["item_ref"],
           "isUnique": false
         },
         "idx_exercise_results_round_id": {
           "name": "idx_exercise_results_round_id",
-          "columns": [
-            "round_id"
-          ],
+          "columns": ["round_id"],
           "isUnique": false
         }
       },

@@ -51,7 +51,11 @@ export interface PropsDeT {
 
 /** Tags implícitas: cobrem o caso dominante (um número em negrito) sem exigir mapa. */
 const PADRAO: Tags = {
-  b: <strong />, i: <em />, code: <code />, br: <br />, small: <small />,
+  b: <strong />,
+  i: <em />,
+  code: <code />,
+  br: <br />,
+  small: <small />,
 };
 const VAZIAS = new Set(['br']);
 
@@ -89,18 +93,27 @@ export function montar(texto: string, val?: Record<string, ValorDeT>, tags?: Tag
     }
 
     const modelo = mapa[nome];
-    if (!modelo) { topo().push(inteiro); continue; }
+    if (!modelo) {
+      topo().push(inteiro);
+      continue;
+    }
 
     if (autoFecha || VAZIAS.has(nome)) {
       topo().push(cloneElement(modelo, { key: `t${k++}` }));
       continue;
     }
 
-    if (!fecha) { pilha.push({ nome, abre: inteiro, filhos: [] }); continue; }
+    if (!fecha) {
+      pilha.push({ nome, abre: inteiro, filhos: [] });
+      continue;
+    }
 
     let i = pilha.length - 1;
     while (i >= 0 && pilha[i].nome !== nome) i--;
-    if (i < 0) { topo().push(inteiro); continue; }
+    if (i < 0) {
+      topo().push(inteiro);
+      continue;
+    }
     /* Aberturas presas acima do que fechou (`<b><i>x</b>`) viram texto, e o conteúdo é preservado:
        tradução malformada custa formatação, nunca palavras. */
     while (pilha.length - 1 > i) {

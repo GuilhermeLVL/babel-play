@@ -1,6 +1,7 @@
 # teste-de-3-dias Specification
 
 ## Purpose
+
 Teste Premium de 3 dias com 1 h de nuvem e freios contra fábrica de contas (e-mail descartável, não confirmado, IP). Criada pela change `teste-de-3-dias` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-teste-de-3-dias/proposal.md` para o porquê.
 
 ## Requirements

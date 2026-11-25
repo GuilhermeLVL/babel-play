@@ -27,7 +27,10 @@ let postadas: Record<string, unknown>[] = []
 beforeEach(async () => {
   cargas.length = 0
   postadas = []
-  const falsoSelf: Record<string, unknown> = { navigator: {}, postMessage: (m: Record<string, unknown>) => postadas.push(m) }
+  const falsoSelf: Record<string, unknown> = {
+    navigator: {},
+    postMessage: (m: Record<string, unknown>) => postadas.push(m),
+  }
   vi.stubGlobal('self', falsoSelf)
   vi.resetModules()
   await import('../src/gateway/adapters/whisperWorker')

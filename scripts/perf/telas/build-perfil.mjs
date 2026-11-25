@@ -24,7 +24,8 @@ import { RAIZ } from './_servidores.mjs'
 const arg = (n, d) => process.argv.find((x) => x.startsWith(`--${n}=`))?.slice(n.length + 3) ?? d
 const saida = path.resolve(arg('saida', path.join(RAIZ, '.perf-perfil')))
 mkdirSync(saida, { recursive: true })
-if (!existsSync(path.join(RAIZ, 'dist-server/server.cjs'))) throw new Error('rode npm run build antes (falta dist-server)')
+if (!existsSync(path.join(RAIZ, 'dist-server/server.cjs')))
+  throw new Error('rode npm run build antes (falta dist-server)')
 
 await build({
   root: RAIZ,

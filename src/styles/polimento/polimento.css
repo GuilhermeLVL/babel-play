@@ -91,8 +91,13 @@ html[data-px='on'] button:is(.q-tile, .q-linha):not(.apagado):not(:disabled):act
 }
 
 /* ---- 3. Abas e trilho: a pílula desliza, não teleporta -------------------- */
-html[data-px='on'] .q-abas.px-com-pilula { position: relative; }
-html[data-px='on'] .q-abas.px-com-pilula > .q-aba { position: relative; z-index: 1; }
+html[data-px='on'] .q-abas.px-com-pilula {
+  position: relative;
+}
+html[data-px='on'] .q-abas.px-com-pilula > .q-aba {
+  position: relative;
+  z-index: 1;
+}
 html[data-px='on'] .q-abas.px-com-pilula > .q-aba:is([aria-selected='true'], [aria-checked='true']) {
   background: transparent;
   border-color: transparent;
@@ -114,16 +119,24 @@ html[data-px='on'] .px-pilula {
     height calc(300ms * var(--px-k)) var(--px-ease-gaveta),
     opacity 0.15s ease;
 }
-html:not([data-px='on']) .px-pilula { display: none; }
+html:not([data-px='on']) .px-pilula {
+  display: none;
+}
 
-html[data-px='on'] .q-trilho { position: relative; }
+html[data-px='on'] .q-trilho {
+  position: relative;
+}
 /* Os itens ficam acima da pílula, que é filha direta do trilho (os do computador moram em `.q-trilho-topo`/`-pe`). */
-html[data-px='on'] .q-trilho .q-item { z-index: 1; }
+html[data-px='on'] .q-trilho .q-item {
+  z-index: 1;
+}
 html[data-px='on'] .q-trilho .q-item[aria-current='page'] {
   background: transparent;
   border-color: transparent;
 }
-html[data-px='on'] .q-trilho > .px-pilula { border-radius: 16px; }
+html[data-px='on'] .q-trilho > .px-pilula {
+  border-radius: 16px;
+}
 
 /* ---- 4. Painéis ("Mais", "O que você vai praticar"): material e origem ---- */
 html[data-px='on'] .q-mais-fundo {
@@ -140,7 +153,9 @@ html[data-px='on'] .q-mais-fundo::before {
   opacity: 0;
   transition: opacity calc(240ms * var(--px-k)) ease;
 }
-html[data-px='on'] .q-mais-fundo.px-aberto::before { opacity: 1; }
+html[data-px='on'] .q-mais-fundo.px-aberto::before {
+  opacity: 1;
+}
 html[data-px='on'] .q-mais-fundo.px-saindo::before {
   opacity: 0;
   transition-duration: calc(160ms * var(--px-k));
@@ -168,7 +183,9 @@ html[data-px='on'].dark .q-mais {
 html[data-px='on'] .px-tela {
   transition: transform calc(340ms * var(--px-k)) var(--px-ease-gaveta);
 }
-html[data-px='on'] .px-recuado .px-tela { transform: scale(0.985); }
+html[data-px='on'] .px-recuado .px-tela {
+  transform: scale(0.985);
+}
 
 /* ---- 5. Borda de rolagem: o conteúdo some num degradê, não num corte ------ */
 html[data-px='on'] .px-borda {
@@ -184,10 +201,14 @@ html[data-px='on'] .px-borda {
   opacity: 0;
   transition: opacity 0.18s ease;
 }
-html[data-px='on'] main[data-px-rolou] .px-borda { opacity: 1; }
+html[data-px='on'] main[data-px-rolou] .px-borda {
+  opacity: 1;
+}
 
 /* ---- 6. Entradas de tela ficam por conta do JS (cascata curta) ------------ */
-html[data-px='on'] .px-tela :is(.q-palco, .tela.entra) { animation: none; }
+html[data-px='on'] .px-tela :is(.q-palco, .tela.entra) {
+  animation: none;
+}
 
 /* ---- 7. Interruptor: curva de gaveta e o botão estica ao pressionar ------- */
 html[data-px='on'] .q-interruptor::after {
@@ -200,8 +221,12 @@ html[data-px='on'] .q-interruptor::before {
     background-color calc(220ms * var(--px-k)) ease,
     box-shadow 0.16s ease;
 }
-html[data-px='on'] .q-interruptor:active::after { width: 36px; }
-html[data-px='on'] .q-interruptor[aria-checked='true']:active::after { transform: translate(24px); }
+html[data-px='on'] .q-interruptor:active::after {
+  width: 36px;
+}
+html[data-px='on'] .q-interruptor[aria-checked='true']:active::after {
+  transform: translate(24px);
+}
 
 /* ---- 8. Toast: entra e sai pela mesma borda, e pode ser arrastado --------- */
 html[data-px='on'] .toast {
@@ -253,9 +278,15 @@ html[data-px='on'] .q-cartao.px-feita .q-ic {
   background: var(--good, #3f9b56);
   color: #fff;
 }
-html[data-px='on'] .q-cartao.px-feita .q-barra > span { background: var(--good, #3f9b56); }
-html[data-px='on'] .q-cartao { transition: border-color calc(300ms * var(--px-k)) ease; }
-html[data-px='on'] .q-cartao.px-feita { border-color: color-mix(in srgb, var(--good, #3f9b56) 55%, var(--border-subtle)); }
+html[data-px='on'] .q-cartao.px-feita .q-barra > span {
+  background: var(--good, #3f9b56);
+}
+html[data-px='on'] .q-cartao {
+  transition: border-color calc(300ms * var(--px-k)) ease;
+}
+html[data-px='on'] .q-cartao.px-feita {
+  border-color: color-mix(in srgb, var(--good, #3f9b56) 55%, var(--border-subtle));
+}
 .px-mais-um {
   position: absolute;
   z-index: 60;
@@ -303,11 +334,18 @@ html[data-px='on'] .tabuleiro .carta {
   html[data-px='on'] .toast:not(.on) {
     transform: none;
     opacity: 0;
-    transition: opacity 0.2s ease, visibility 0s linear 0.2s;
+    transition:
+      opacity 0.2s ease,
+      visibility 0s linear 0.2s;
   }
-  html[data-px='on'] .toast.on { opacity: 1; transition-delay: 0s; }
+  html[data-px='on'] .toast.on {
+    opacity: 1;
+    transition-delay: 0s;
+  }
   ::view-transition-old(root),
-  ::view-transition-new(root) { animation-duration: 0.01ms; }
+  ::view-transition-new(root) {
+    animation-duration: 0.01ms;
+  }
 }
 @media (prefers-reduced-transparency: reduce) {
   html[data-px='on'] .q-mais {

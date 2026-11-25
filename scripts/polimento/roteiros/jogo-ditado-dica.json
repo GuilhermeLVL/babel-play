@@ -90,9 +90,5 @@
     "[data-ajuda='palavra'] .n",
     ".pj-entrada input"
   ],
-  "props": [
-    "textDecorationLine",
-    "borderTopStyle",
-    "animationDelay"
-  ]
+  "props": ["textDecorationLine", "borderTopStyle", "animationDelay"]
 }

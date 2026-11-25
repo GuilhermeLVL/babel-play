@@ -16,13 +16,15 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 
-import { ehFaltaDeRota,traduzirVersos } from '../src/lib/versosDoVocabulario'
+import { ehFaltaDeRota, traduzirVersos } from '../src/lib/versosDoVocabulario'
 
-const pedidos = (n: number) =>
-  Array.from({ length: n }, (_, i) => ({ word: `palavra${i}`, src: 'pt', tgt: 'en' }))
+const pedidos = (n: number) => Array.from({ length: n }, (_, i) => ({ word: `palavra${i}`, src: 'pt', tgt: 'en' }))
 
 class NoRouteError extends Error {
-  constructor() { super('sem rota disponível para a capacidade "mt"'); this.name = 'NoRouteError' }
+  constructor() {
+    super('sem rota disponível para a capacidade "mt"')
+    this.name = 'NoRouteError'
+  }
 }
 
 describe('reconhecer a ausência de rota', () => {
@@ -103,7 +105,8 @@ describe('caminho feliz e limites', () => {
     let simultaneas = 0
     let pico = 0
     const traduzir = async (w: string) => {
-      simultaneas++; pico = Math.max(pico, simultaneas)
+      simultaneas++
+      pico = Math.max(pico, simultaneas)
       await new Promise((r) => setTimeout(r, 5))
       simultaneas--
       return { text: w }

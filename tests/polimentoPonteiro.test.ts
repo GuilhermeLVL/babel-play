@@ -161,7 +161,8 @@ describe('a inclinação 3D do cartão sob o mouse', () => {
       .map(Number)
 
   beforeEach(() => {
-    cartao().getBoundingClientRect = () => ({ left: 0, top: 0, width: 200, height: 100, right: 200, bottom: 100 }) as DOMRect
+    cartao().getBoundingClientRect = () =>
+      ({ left: 0, top: 0, width: 200, height: 100, right: 200, bottom: 100 }) as DOMRect
   })
 
   it('persegue o alvo 16% por quadro e, com o mouse PARADO sobre o cartão, o laço dorme', () => {

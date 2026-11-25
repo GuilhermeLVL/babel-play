@@ -32,7 +32,9 @@
 'use strict';
 const dir = process.env.COLETOR_DIR;
 if (dir && !/^file:/.test(process.env.DATABASE_URL ?? '')) {
-  console.error('[coletor] COLETOR_DIR definido, mas o banco não é libsql (file:). O coletor mede só o driver libsql e coletaria zero. Desligue o coletor.');
+  console.error(
+    '[coletor] COLETOR_DIR definido, mas o banco não é libsql (file:). O coletor mede só o driver libsql e coletaria zero. Desligue o coletor.',
+  );
   process.exit(2);
 }
 if (dir) {

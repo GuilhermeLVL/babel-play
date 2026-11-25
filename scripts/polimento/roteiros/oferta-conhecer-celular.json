@@ -65,10 +65,5 @@
       }
     ]
   },
-  "seletores": [
-    ".px-planos-tela .q-cab h1",
-    ".px-planos-grade",
-    ".px-premium",
-    ".px-meu-plano"
-  ]
+  "seletores": [".px-planos-tela .q-cab h1", ".px-planos-grade", ".px-premium", ".px-meu-plano"]
 }

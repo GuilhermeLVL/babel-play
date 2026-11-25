@@ -8,7 +8,7 @@
  * O caso que mais importa é o último: `sem-voz` e `audio-carregando` NÃO ganham botão. É fácil
  * "melhorar" isso oferecendo algo genérico e transformar a carta num botão que mente.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { comoDesbloquear, type ContextoDeDesbloqueio } from '../src/core/minigames/desbloqueio'
 import type { EstadoDoJogo } from '../src/core/minigames/estadoDosJogos'
@@ -19,14 +19,22 @@ const PRECISA = MINIGAMES.memory.minItems
 
 function bloqueado(p: Partial<EstadoDoJogo> = {}): EstadoDoJogo {
   return {
-    id: 'memory', ok: false, disponiveis: 1, faltam: PRECISA - 1,
-    fonte: 'baralho', tamanhoDaRodada: 0, ...p,
+    id: 'memory',
+    ok: false,
+    disponiveis: 1,
+    faltam: PRECISA - 1,
+    fonte: 'baralho',
+    tamanhoDaRodada: 0,
+    ...p,
   }
 }
 
 const CTX: ContextoDeDesbloqueio = {
-  fonteId: 'baralho', outrosIdiomas: [], naOutraFonte: 0,
-  descartados: 0, gravacoes: 0,
+  fonteId: 'baralho',
+  outrosIdiomas: [],
+  naOutraFonte: 0,
+  descartados: 0,
+  gravacoes: 0,
 }
 
 describe('quando não existe ação, não existe botão', () => {
@@ -48,7 +56,9 @@ describe('a ordem: o conserto mais barato primeiro', () => {
     const d = comoDesbloquear(bloqueado(), {
       ...CTX,
       outrosIdiomas: [{ lang: 'en', jogaveis: 600 }],
-      naOutraFonte: 2784, descartados: 40, gravacoes: 5,   // tudo o mais também disponível
+      naOutraFonte: 2784,
+      descartados: 40,
+      gravacoes: 5, // tudo o mais também disponível
     })
     expect(d?.acao).toBe('trocar-idioma')
     expect(d?.lang).toBe('en')
@@ -56,14 +66,20 @@ describe('a ordem: o conserto mais barato primeiro', () => {
 
   it('e escolhe o idioma com MAIS material, não o primeiro da lista', () => {
     const d = comoDesbloquear(bloqueado(), {
-      ...CTX, outrosIdiomas: [{ lang: 'es', jogaveis: 12 }, { lang: 'en', jogaveis: 600 }],
+      ...CTX,
+      outrosIdiomas: [
+        { lang: 'es', jogaveis: 12 },
+        { lang: 'en', jogaveis: 600 },
+      ],
     })
     expect(d?.lang).toBe('en')
   })
 
   it('idioma que também não tem o bastante NÃO é oferecido — seria trocar cinza por cinza', () => {
     const d = comoDesbloquear(bloqueado(), {
-      ...CTX, outrosIdiomas: [{ lang: 'es', jogaveis: PRECISA - 1 }], descartados: 7,
+      ...CTX,
+      outrosIdiomas: [{ lang: 'es', jogaveis: PRECISA - 1 }],
+      descartados: 7,
     })
     expect(d?.acao).toBe('revisar-descartes')
   })
@@ -106,7 +122,9 @@ describe('jogo de FRASE tem a sua própria escada', () => {
        porque a regra comparava com a contagem de PALAVRAS do outro idioma. As frases vêm da
        gravação, não do baralho: o botão levaria para outra tela igualmente bloqueada. */
     const d = comoDesbloquear(bloqueado({ fonte: 'falas' }), {
-      ...CTX, outrosIdiomas: [{ lang: 'en', jogaveis: 600 }], gravacoes: 5,
+      ...CTX,
+      outrosIdiomas: [{ lang: 'en', jogaveis: 600 }],
+      gravacoes: 5,
     })
     expect(d?.acao).toBe('escolher-gravacao')
   })
@@ -119,10 +137,12 @@ describe('jogo de FRASE tem a sua própria escada', () => {
 
 describe('a trilha não tem frase', () => {
   it('oferece escolher uma gravação — trocar de idioma não resolveria', () => {
-    const d = comoDesbloquear(
-      bloqueado({ motivo: 'trilha-sem-frase', fonte: 'falas' }),
-      { ...CTX, fonteId: 'trilha', outrosIdiomas: [{ lang: 'en', jogaveis: 600 }], gravacoes: 3 },
-    )
+    const d = comoDesbloquear(bloqueado({ motivo: 'trilha-sem-frase', fonte: 'falas' }), {
+      ...CTX,
+      fonteId: 'trilha',
+      outrosIdiomas: [{ lang: 'en', jogaveis: 600 }],
+      gravacoes: 3,
+    })
     expect(d?.acao).toBe('escolher-gravacao')
   })
 
@@ -135,7 +155,8 @@ describe('a trilha não tem frase', () => {
 describe('o rótulo', () => {
   it('usa o nome do idioma em português quando quem chama sabe traduzir', () => {
     const d = comoDesbloquear(bloqueado(), {
-      ...CTX, outrosIdiomas: [{ lang: 'en', jogaveis: 600 }],
+      ...CTX,
+      outrosIdiomas: [{ lang: 'en', jogaveis: 600 }],
       nomeDoIdioma: (l) => (l === 'en' ? 'inglês' : l),
     })
     expect(d?.rotulo).toBe('Jogar em inglês')

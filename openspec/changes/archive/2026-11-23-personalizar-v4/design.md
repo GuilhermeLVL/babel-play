@@ -41,14 +41,15 @@ entram no passe.
 
 ### 2. Taxonomia de editabilidade — cada item declara QUANTO o usuário pode mexer
 
-| Grau | Nome | O que é | Exemplos hoje | Raridade típica |
-|---|---|---|---|---|
-| E0 | Fechado | Peça pronta, zero parâmetro | temas prontos, cursores, packs fixos | comum–raro |
-| E1 | Paramétrico curado | UM eixo de escolha dentro de conjunto NOSSO | paletas (estilo × 30 matizes), rastros `gen:<forma>:<paleta>` | comum–épico |
-| E2 | Composição de partes curadas | montar com peças do catálogo | editor de pack (emojis do catálogo), perfis salvos | raro–épico |
-| E3 | Edição livre sob contrato | valores livres DENTRO de invariantes técnicas | Estúdio/tema-custom (4 tokens de cor, contraste validado) | lendário |
+| Grau | Nome                         | O que é                                       | Exemplos hoje                                                 | Raridade típica |
+| ---- | ---------------------------- | --------------------------------------------- | ------------------------------------------------------------- | --------------- |
+| E0   | Fechado                      | Peça pronta, zero parâmetro                   | temas prontos, cursores, packs fixos                          | comum–raro      |
+| E1   | Paramétrico curado           | UM eixo de escolha dentro de conjunto NOSSO   | paletas (estilo × 30 matizes), rastros `gen:<forma>:<paleta>` | comum–épico     |
+| E2   | Composição de partes curadas | montar com peças do catálogo                  | editor de pack (emojis do catálogo), perfis salvos            | raro–épico      |
+| E3   | Edição livre sob contrato    | valores livres DENTRO de invariantes técnicas | Estúdio/tema-custom (4 tokens de cor, contraste validado)     | lendário        |
 
 Regras de segurança que a taxonomia impõe (todas já têm precedente no código):
+
 - **Todo caminho passa pela régua** (`estadoDoItem`/`acessoAoItem`) — invariante da spec
   galeria-gating-fechado; grau maior de edição = gate mais alto.
 - **E3 nunca expõe CSS/HTML cru**: o Estúdio só escreve os 4 tokens (`applyCustomColors`), nunca

@@ -1,3 +1,5 @@
+> **Arquivada em 25/11/2026 (Onda 5, fechamentos).** O trabalho de dev terminou; o que resta é ato do dono, aparelho real ou bancada ([D]/[R]/[B]) e está em `docs/pendencias-do-dono.md`, Parte 5. As tarefas abertas abaixo ficam como registro.
+
 ## 1. Regra pura
 
 - [x] 1.1 `src/core/modoOffline.ts` com `capacidadesSemRede` e testes em `tests/modoOffline.test.ts`. Verificar: `npx vitest run tests/modoOffline.test.ts`.

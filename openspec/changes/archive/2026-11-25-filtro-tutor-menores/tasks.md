@@ -1,3 +1,5 @@
+> **Arquivada em 25/11/2026 (Onda 5, fechamentos).** O trabalho de dev terminou; o que resta é ato do dono, aparelho real ou bancada ([D]/[R]/[B]) e está em `docs/pendencias-do-dono.md`, Parte 5. As tarefas abertas abaixo ficam como registro.
+
 ## 1. Filtro local e interface
 
 - [x] 1.1 `server/ai/moderacao/listasParaMenores.ts`: categorias e padrões pt/en/es, comentados

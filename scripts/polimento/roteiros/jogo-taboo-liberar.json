@@ -85,9 +85,5 @@
     ".pj-tabu s:not(.livre)",
     "[data-n]"
   ],
-  "props": [
-    "textDecorationLine",
-    "borderTopStyle",
-    "animationDelay"
-  ]
+  "props": ["textDecorationLine", "borderTopStyle", "animationDelay"]
 }

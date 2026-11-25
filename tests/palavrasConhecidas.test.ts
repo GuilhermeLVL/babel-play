@@ -24,8 +24,17 @@ const maduro = { fsrsState: 'Review' as const, fsrsStability: 12, inDeck: true }
 
 const trilha: Pick<DadoTrilha, 'niveis'> = {
   niveis: {
-    A1: [['house', 'casa'], ['water', 'água'], ['dog', 'cachorro'], ['cat', 'gato'], ['red', 'vermelho']],
-    A2: [['kitchen', 'cozinha'], ['travel', 'viajar']],
+    A1: [
+      ['house', 'casa'],
+      ['water', 'água'],
+      ['dog', 'cachorro'],
+      ['cat', 'gato'],
+      ['red', 'vermelho'],
+    ],
+    A2: [
+      ['kitchen', 'cozinha'],
+      ['travel', 'viajar'],
+    ],
     B1: [['achieve', 'alcançar']],
   },
 }

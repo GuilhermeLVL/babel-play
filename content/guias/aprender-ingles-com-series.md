@@ -1,10 +1,16 @@
 ---
-titulo: "Como aprender inglês com séries sem perder a diversão"
-descricao: "Um método simples para aprender inglês com séries: escolha, legendas, cenas curtas, frases salvas e revisão, sem transformar o lazer em obrigação."
-slug: "aprender-ingles-com-series"
-publicado: "2026-10-25"
+titulo: 'Como aprender inglês com séries sem perder a diversão'
+descricao: 'Um método simples para aprender inglês com séries: escolha, legendas, cenas curtas, frases salvas e revisão, sem transformar o lazer em obrigação.'
+slug: 'aprender-ingles-com-series'
+publicado: '2026-10-25'
 revisado: false
-palavrasChave: ["aprender inglês com séries", "inglês com legendas", "vocabulário de séries", "listening em inglês"]
+palavrasChave:
+  [
+    'aprender inglês com séries',
+    'inglês com legendas',
+    'vocabulário de séries',
+    'listening em inglês',
+  ]
 ---
 
 Assistir a séries em inglês é uma das formas mais agradáveis de estudar. Mas só assistir, episódio após episódio, costuma render menos do que parece. Você entende a história pelas imagens, pela legenda em português e pelo clima da cena, e o inglês passa por você sem deixar muito rastro.

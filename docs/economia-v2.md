@@ -8,17 +8,17 @@ Não é parecer jurídico; as restrições legais estão na seção 3 da spec.
 Só resultado paga. Saíram a **presença** (abrir o app) e os **minutos de captura** — Decreto
 12.880/2026, art. 9º. `tests/economia-sem-tempo.test.ts` varre `REGRAS`, `PESOS_SEEDS` e `PESOS_XP`.
 
-| Ação                            | Seeds      | XP    | Limite / conferência                                                                                      |
-| ------------------------------- | ---------- | ----- | --------------------------------------------------------------------------------------------------------- |
-| Palavra nova salva da captura   | 1          | 0     | até 30 por dia local (derivado: cartão do caderno com `sessionId`)                                        |
-| Fichar uma palavra no caderno   | 1          | 2     | —                                                                                                         |
-| Acertar uma revisão             | 2          | 5     | —                                                                                                         |
-| Acertar um item de jogo         | 1          | 3     | —                                                                                                         |
-| Rodada sem erro (3 estrelas)    | 5          | 15    | mínimo de itens do jogo                                                                                   |
-| Meta do dia (as 3 missões do dia) | 15 | 20 | crédito `meta:<AAAA-MM-DD>`, hoje/ontem no fuso do usuário, missões conferidas no servidor (onda 5) |
-| Nível de maestria               | 20 × nível | —     | `maestria:<jogo>:<n>`, pontos somados das rodadas gravadas (uma vez por `roundId`), conferido no servidor |
-| 7 dias seguidos de prática      | 25         | 50    | dia de prática = revisão, rodada ou palavra salva                                                         |
-| Conquista                       | 10–200     | 0–300 | uma vez cada (40, 3.305 Seeds no total), conferida no servidor e no espelho                               |
+| Ação                              | Seeds      | XP    | Limite / conferência                                                                                      |
+| --------------------------------- | ---------- | ----- | --------------------------------------------------------------------------------------------------------- |
+| Palavra nova salva da captura     | 1          | 0     | até 30 por dia local (derivado: cartão do caderno com `sessionId`)                                        |
+| Fichar uma palavra no caderno     | 1          | 2     | —                                                                                                         |
+| Acertar uma revisão               | 2          | 5     | —                                                                                                         |
+| Acertar um item de jogo           | 1          | 3     | —                                                                                                         |
+| Rodada sem erro (3 estrelas)      | 5          | 15    | mínimo de itens do jogo                                                                                   |
+| Meta do dia (as 3 missões do dia) | 15         | 20    | crédito `meta:<AAAA-MM-DD>`, hoje/ontem no fuso do usuário, missões conferidas no servidor (onda 5)       |
+| Nível de maestria                 | 20 × nível | —     | `maestria:<jogo>:<n>`, pontos somados das rodadas gravadas (uma vez por `roundId`), conferido no servidor |
+| 7 dias seguidos de prática        | 25         | 50    | dia de prática = revisão, rodada ou palavra salva                                                         |
+| Conquista                         | 10–200     | 0–300 | uma vez cada (40, 3.305 Seeds no total), conferida no servidor e no espelho                               |
 
 A ofensiva (`streakDays`, `streakPresenca`/`maiorSequenciaPresenca` — nomes antigos, conteúdo novo)
 conta dias de prática. `POST /api/metrics/presenca` continua gravando, só como estatística.
@@ -213,12 +213,12 @@ régua `vendavelEmCreditos` (`src/core/economiaAutoridade.ts`): uma moeda só (s
 porta de nível, épico ou lendário, nunca de maestria, conquista ou temporada, fora do baú e sem
 repetir o `tipo` + `alvo` de um item de Seeds.
 
-| Item                  | Tipo   | Créditos | c100 (R$ 9,90) | c300 (R$ 24,90) | c700 (R$ 49,90) |
-| --------------------- | ------ | -------- | -------------- | --------------- | --------------- |
-| Rastro Dourado        | rastro | 100      | R$ 9,90        | R$ 8,30         | R$ 7,13         |
-| Pixel Dourado         | rastro | 100      | R$ 9,90        | R$ 8,30         | R$ 7,13         |
-| Corações de Ouro      | rastro | 100      | R$ 9,90        | R$ 8,30         | R$ 7,13         |
-| Aurora Dourada        | rastro | 100      | R$ 9,90        | R$ 8,30         | R$ 7,13         |
+| Item             | Tipo   | Créditos | c100 (R$ 9,90) | c300 (R$ 24,90) | c700 (R$ 49,90) |
+| ---------------- | ------ | -------- | -------------- | --------------- | --------------- |
+| Rastro Dourado   | rastro | 100      | R$ 9,90        | R$ 8,30         | R$ 7,13         |
+| Pixel Dourado    | rastro | 100      | R$ 9,90        | R$ 8,30         | R$ 7,13         |
+| Corações de Ouro | rastro | 100      | R$ 9,90        | R$ 8,30         | R$ 7,13         |
+| Aurora Dourada   | rastro | 100      | R$ 9,90        | R$ 8,30         | R$ 7,13         |
 
 - **100 Créditos (eram 150):** todo pacote compra itens inteiros, sem troco que empurre a próxima
   compra; com 150 o pacote de 100 sozinho não comprava nada. `tests/loja-creditos-v2.test.ts` trava.

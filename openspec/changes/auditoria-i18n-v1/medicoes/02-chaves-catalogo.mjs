@@ -48,7 +48,11 @@ for (const arq of arquivos) {
 
   // O que o CLDR exige para este idioma, contra o que o catálogo declara.
   let exigidas = [];
-  try { exigidas = new Intl.PluralRules(ehPseudo(lang) ? 'pt' : lang).resolvedOptions().pluralCategories; } catch { exigidas = ['?']; }
+  try {
+    exigidas = new Intl.PluralRules(ehPseudo(lang) ? 'pt' : lang).resolvedOptions().pluralCategories;
+  } catch {
+    exigidas = ['?'];
+  }
   const faltando = new Map();
   for (const p of plurais) {
     const ausentes = exigidas.filter((c) => !p.categorias.includes(c));
@@ -96,10 +100,13 @@ texto += `\nPortuguês não tem arquivo — a chave É o texto português (src/l
 for (const i of porIdioma) {
   texto += `\n\n[${i.lang}] categorias CLDR exigidas: ${i.categoriasCLDR.join(', ')}`;
   if (i.pluraisIncompletos.length === 0) {
-    texto += i.objetosDePlural ? '  → todos os objetos de plural cobrem todas elas' : '  → nenhum objeto de plural neste catálogo';
+    texto += i.objetosDePlural
+      ? '  → todos os objetos de plural cobrem todas elas'
+      : '  → nenhum objeto de plural neste catálogo';
   } else {
     texto += `  → ${i.pluraisIncompletos.length} de ${i.objetosDePlural} objetos de plural com categoria faltando:`;
-    for (const p of i.pluraisIncompletos.slice(0, 10)) texto += `\n    ${JSON.stringify(p.chave)} falta: ${p.faltando.join(', ')}`;
+    for (const p of i.pluraisIncompletos.slice(0, 10))
+      texto += `\n    ${JSON.stringify(p.chave)} falta: ${p.faltando.join(', ')}`;
     if (i.pluraisIncompletos.length > 10) texto += `\n    … e mais ${i.pluraisIncompletos.length - 10}`;
   }
 }

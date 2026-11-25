@@ -86,9 +86,5 @@
     ".opcoes-blitz button:disabled:not(.certa):not(.errada)",
     ".pj-treme"
   ],
-  "props": [
-    "textDecorationLine",
-    "borderTopStyle",
-    "animationDelay"
-  ]
+  "props": ["textDecorationLine", "borderTopStyle", "animationDelay"]
 }

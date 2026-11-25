@@ -6,10 +6,14 @@ const ss = ev.filter((e) => e.name === 'SelectorStats' && e.args?.selector_stats
 const ult = ev.filter((e) => e.name === 'UpdateLayoutTree' && e.ph === 'X');
 const us = (x) => x['elapsed (us)'] ?? 0;
 const soma = (t, f) => t.reduce((s, x) => s + f(x), 0);
-const maior = ss.map((e) => e.args.selector_stats.selector_timings).sort((a, b) => soma(b, (x) => x.match_attempts) - soma(a, (x) => x.match_attempts))[0];
+const maior = ss
+  .map((e) => e.args.selector_stats.selector_timings)
+  .sort((a, b) => soma(b, (x) => x.match_attempts) - soma(a, (x) => x.match_attempts))[0];
 const cont = {};
 for (const x of maior) cont[x.match_attempts] = (cont[x.match_attempts] || 0) + 1;
-const topo = Object.entries(cont).sort((a, b) => b[1] - a[1]).slice(0, 5);
+const topo = Object.entries(cont)
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 5);
 const E = +(process.argv[3] || topo[0][0]);
 const uni = maior.filter((x) => x.match_attempts >= E);
 const ultimo = (s) => {
@@ -25,7 +29,23 @@ const ultimo = (s) => {
 };
 const tipo = (s) => {
   const r = ultimo(s);
-  return r.startsWith(':is(') ? ':is(...) no fim' : r.startsWith(':where(') ? ':where(...) no fim' : r.startsWith('[') ? '[atributo] no fim' : r.startsWith('*') ? '* no fim' : r.startsWith('::') ? '::pseudo-elemento' : r.startsWith(':') ? ':pseudo-classe no fim' : /^[a-z]/i.test(r) ? 'tag' : r[0] === '.' ? '.classe' : r[0];
+  return r.startsWith(':is(')
+    ? ':is(...) no fim'
+    : r.startsWith(':where(')
+      ? ':where(...) no fim'
+      : r.startsWith('[')
+        ? '[atributo] no fim'
+        : r.startsWith('*')
+          ? '* no fim'
+          : r.startsWith('::')
+            ? '::pseudo-elemento'
+            : r.startsWith(':')
+              ? ':pseudo-classe no fim'
+              : /^[a-z]/i.test(r)
+                ? 'tag'
+                : r[0] === '.'
+                  ? '.classe'
+                  : r[0];
 };
 const g = {};
 for (const x of uni) {
@@ -48,7 +68,9 @@ const saida = {
     tempoDeTodos_ms: +(soma(maior, us) / 1000).toFixed(1),
     casamentosDeles: soma(uni, (x) => x.match_count),
     tentativasDeles: soma(uni, (x) => x.match_attempts),
-    porFormato: Object.entries(g).sort((a, b) => b[1].us - a[1].us).map(([k, v]) => ({ formato: k, seletores: v.n, ms: +(v.us / 1000).toFixed(1), exemplos: v.ex })),
+    porFormato: Object.entries(g)
+      .sort((a, b) => b[1].us - a[1].us)
+      .map(([k, v]) => ({ formato: k, seletores: v.n, ms: +(v.us / 1000).toFixed(1), exemplos: v.ex })),
   },
 };
 console.log(JSON.stringify(saida, null, 1));

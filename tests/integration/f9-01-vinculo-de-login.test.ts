@@ -15,7 +15,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let router: any
@@ -32,7 +32,9 @@ beforeAll(async () => {
   ;({ meRouter: router } = await h.load('../../server/routes/me'))
   ;({ usersRepo } = await h.load('../../server/db/repositories/users'))
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 afterEach(() => {
   vi.restoreAllMocks()
   for (const [k, v] of Object.entries(ENV)) {
@@ -43,8 +45,14 @@ afterEach(() => {
 
 function fakeRes() {
   const r: any = { statusCode: 200, body: undefined }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    return r
+  }
   r.setHeader = () => r
   return r
 }

@@ -18,7 +18,7 @@
  * O que este arquivo trava é a **partição**: todo cartão tem exatamente uma casa. É a propriedade
  * que faz a escolha binária ser verdadeira.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import type { DadoTrilha } from '../src/core/learning/trilha'
 import { cartoesDaTrilha } from '../src/core/learning/trilha'
@@ -27,11 +27,19 @@ import type { VocabCard } from '../src/types'
 
 function carta(p: Partial<VocabCard> & { id: string; word: string }): VocabCard {
   return {
-    phonetics: '', translation: `t-${p.word}`, explanation: '',
-    srcLang: 'en', tgtLang: 'pt', 
-    leitnerBox: 1, leitnerDueAt: new Date(0).toISOString(),
-    fsrsState: 'New', fsrsStability: 0, fsrsDifficulty: 5,
-    fsrsPredictedRetention: 0, fsrsDueAt: new Date(0).toISOString(), inDeck: true,
+    phonetics: '',
+    translation: `t-${p.word}`,
+    explanation: '',
+    srcLang: 'en',
+    tgtLang: 'pt',
+    leitnerBox: 1,
+    leitnerDueAt: new Date(0).toISOString(),
+    fsrsState: 'New',
+    fsrsStability: 0,
+    fsrsDifficulty: 5,
+    fsrsPredictedRetention: 0,
+    fsrsDueAt: new Date(0).toISOString(),
+    inDeck: true,
     ...p,
   } as VocabCard
 }
@@ -40,7 +48,7 @@ const DECK = [
   carta({ id: 'g1', word: 'house', sourceSessionId: 'sessao-1' }),
   carta({ id: 'g2', word: 'bread', sourceSessionId: 'sessao-1' }),
   carta({ id: 'g3', word: 'table', sourceSessionId: 'sessao-2' }),
-  carta({ id: 'm1', word: 'window' }),                                   // manual, sem sessão
+  carta({ id: 'm1', word: 'window' }), // manual, sem sessão
   carta({ id: 't1', word: 'garden', daTrilha: true, cefrLevel: 'A1' }),
   carta({ id: 't2', word: 'bottle', daTrilha: true, cefrLevel: 'B1' }),
 ]
@@ -48,7 +56,7 @@ const DECK = [
 describe('a partição do baralho', () => {
   it('"minhas gravações" NÃO inclui a trilha', () => {
     const t = cartoesDaFonte(DECK, { id: 'baralho', lang: 'en' })
-    const ids = t.usaveis.map(c => c.id)
+    const ids = t.usaveis.map((c) => c.id)
 
     expect(ids).not.toContain('t1')
     expect(ids).not.toContain('t2')
@@ -57,7 +65,7 @@ describe('a partição do baralho', () => {
 
   it('"trilha" inclui SÓ a trilha — e agora inclui de verdade', () => {
     const t = cartoesDaFonte(DECK, { id: 'trilha', lang: 'en' })
-    expect(t.usaveis.map(c => c.id).sort()).toEqual(['t1', 't2'])
+    expect(t.usaveis.map((c) => c.id).sort()).toEqual(['t1', 't2'])
   })
 
   it('a partição é COMPLETA — nenhum cartão fica sem casa', () => {
@@ -65,22 +73,29 @@ describe('a partição do baralho', () => {
     const trilha = cartoesDaFonte(DECK, { id: 'trilha', lang: 'en' })
 
     const cobertos = new Set([
-      ...gravacoes.usaveis.map(c => c.id), ...gravacoes.fora.map(f => f.card.id), ...gravacoes.outroIdioma.map(c => c.id),
-      ...trilha.usaveis.map(c => c.id), ...trilha.fora.map(f => f.card.id), ...trilha.outroIdioma.map(c => c.id),
+      ...gravacoes.usaveis.map((c) => c.id),
+      ...gravacoes.fora.map((f) => f.card.id),
+      ...gravacoes.outroIdioma.map((c) => c.id),
+      ...trilha.usaveis.map((c) => c.id),
+      ...trilha.fora.map((f) => f.card.id),
+      ...trilha.outroIdioma.map((c) => c.id),
     ])
     expect(cobertos.size).toBe(DECK.length)
   })
 
   it('e é EXCLUSIVA — nenhum cartão aparece nas duas', () => {
-    const daGravacao = new Set(cartoesDaFonte(DECK, { id: 'baralho', lang: 'en' }).usaveis.map(c => c.id))
-    const daTrilha = cartoesDaFonte(DECK, { id: 'trilha', lang: 'en' }).usaveis.map(c => c.id)
+    const daGravacao = new Set(cartoesDaFonte(DECK, { id: 'baralho', lang: 'en' }).usaveis.map((c) => c.id))
+    const daTrilha = cartoesDaFonte(DECK, { id: 'trilha', lang: 'en' }).usaveis.map((c) => c.id)
 
-    expect(daTrilha.some(id => daGravacao.has(id)), 'um cartão está nas duas fontes').toBe(false)
+    expect(
+      daTrilha.some((id) => daGravacao.has(id)),
+      'um cartão está nas duas fontes',
+    ).toBe(false)
   })
 
   it('a trilha respeita o nível escolhido', () => {
-    expect(cartoesDaFonte(DECK, { id: 'trilha', lang: 'en', nivel: 'A1' }).usaveis.map(c => c.id)).toEqual(['t1'])
-    expect(cartoesDaFonte(DECK, { id: 'trilha', lang: 'en', nivel: 'B1' }).usaveis.map(c => c.id)).toEqual(['t2'])
+    expect(cartoesDaFonte(DECK, { id: 'trilha', lang: 'en', nivel: 'A1' }).usaveis.map((c) => c.id)).toEqual(['t1'])
+    expect(cartoesDaFonte(DECK, { id: 'trilha', lang: 'en', nivel: 'B1' }).usaveis.map((c) => c.id)).toEqual(['t2'])
   })
 })
 
@@ -95,19 +110,26 @@ describe('a fonte "sessão" sem gravação escolhida', () => {
 
   it('com gravação escolhida, recorta por ela', () => {
     const t = cartoesDaFonte(DECK, { id: 'sessao', lang: 'en', sessionId: 'sessao-1' })
-    expect(t.usaveis.map(c => c.id).sort()).toEqual(['g1', 'g2'])
+    expect(t.usaveis.map((c) => c.id).sort()).toEqual(['g1', 'g2'])
   })
 })
 
 describe('os cartões sintéticos da trilha', () => {
   const FALSA: DadoTrilha = {
-    lang: 'en', fonte: 'teste', versao: '1',
-    niveis: { A2: [['bridge', 'ponte'], ['candle', 'vela']] },
+    lang: 'en',
+    fonte: 'teste',
+    versao: '1',
+    niveis: {
+      A2: [
+        ['bridge', 'ponte'],
+        ['candle', 'vela'],
+      ],
+    },
   }
 
   it('nascem marcados como da trilha, e por isso passam pelo filtro da fonte', () => {
     const cartoes = cartoesDaTrilha(FALSA, 'A2') as unknown as VocabCard[]
-    expect(cartoes.every(c => c.daTrilha === true)).toBe(true)
+    expect(cartoes.every((c) => c.daTrilha === true)).toBe(true)
 
     const t = cartoesDaFonte(cartoes, { id: 'trilha', lang: 'en', nivel: 'A2' })
     expect(t.usaveis).toHaveLength(2)
@@ -122,7 +144,7 @@ describe('os cartões sintéticos da trilha', () => {
     /* `SESSAO_DA_TRILHA` sobrevive como convenção de ESCRITA. Se alguém apagar isso achando que é
        resíduo, `origemDe()` perde como classificar a ocorrência e a procedência some de novo. */
     const cartoes = cartoesDaTrilha(FALSA, 'A2')
-    expect(cartoes.every(c => c.sourceSessionId === SESSAO_DA_TRILHA('en'))).toBe(true)
+    expect(cartoes.every((c) => c.sourceSessionId === SESSAO_DA_TRILHA('en'))).toBe(true)
   })
 })
 

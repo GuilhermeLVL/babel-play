@@ -71,7 +71,15 @@ const TELAS = {
   'hoje-primeiro': [
     '/cartoes',
     'hoje-primeiro',
-    ['.ct-hoje', '.ct-hoje .qv-contagem', '.ct-hoje h2', '.ct-hoje .q-ctl.pri', '.ct-atalho', '.ct-como', '.q-passos li'],
+    [
+      '.ct-hoje',
+      '.ct-hoje .qv-contagem',
+      '.ct-hoje h2',
+      '.ct-hoje .q-ctl.pri',
+      '.ct-atalho',
+      '.ct-como',
+      '.q-passos li',
+    ],
   ],
   'hoje-vazio': [
     '/cartoes',
@@ -150,14 +158,26 @@ const TELAS = {
   menu: [
     '/cartoes',
     'hoje',
-    ['dialog.ct-menu', 'dialog.ct-menu .dlg-cab h2', '.ct-menu-lista', '.ct-menu-lista .q-linha', '.ct-menu-lista .q-linha b'],
+    [
+      'dialog.ct-menu',
+      'dialog.ct-menu .dlg-cab h2',
+      '.ct-menu-lista',
+      '.ct-menu-lista .q-linha',
+      '.ct-menu-lista .q-linha b',
+    ],
     undefined,
     [{ clicar: '.q-cab > .q-ctl.ct-so-icone' }, { esperar: 900 }],
   ],
   ajustes: [
     '/cartoes',
     'hoje',
-    ['dialog.ct-ajustes', 'dialog.ct-ajustes .q-ajuste', '.qr-passo', '.ct-mais-ajustes', 'dialog.ct-ajustes .dlg-pe .q-ctl'],
+    [
+      'dialog.ct-ajustes',
+      'dialog.ct-ajustes .q-ajuste',
+      '.qr-passo',
+      '.ct-mais-ajustes',
+      'dialog.ct-ajustes .dlg-pe .q-ctl',
+    ],
     undefined,
     [{ clicar: '.ct-estado-teto' }, { esperar: 900 }],
   ],

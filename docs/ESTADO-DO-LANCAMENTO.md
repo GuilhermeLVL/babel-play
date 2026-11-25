@@ -77,7 +77,7 @@ Evidência por frente do plano de 02/10 (o detalhe, com arquivo e linha, está n
 | 6      | Desempenho                                                                                   | Parcial  | k6 no staging e HKDF feitos                                                                                                                                                                   |
 | 7      | Saneamento dos documentos                                                                    | Parcial  | `LANCAMENTO.md`, `runbook.md` e `flags.md` revistos; este arquivo estava defasado (inventário §8) e foi alinhado a ele                                                                        |
 
-Planos v3 e anúncios, na change [`planos-v3-e-rota-inteligente`](../openspec/changes/planos-v3-e-rota-inteligente/tasks.md):
+Planos v3 e anúncios, na change [`planos-v3-e-rota-inteligente`](../openspec/changes/archive/2026-11-25-planos-v3-e-rota-inteligente/tasks.md):
 grupos 1, 2, 3, 7 e 8 prontos; 9.1, 9.2 e 9.4 prontos; 11.2 a 11.5 com o código pronto (sobem desligados). A prova
 de cobrança por plano e a tela de 3–4 cartões estão na seção 0. Abertos: 0.3, 9.3, 11.1, 11.6 e os grupos 4, 5, 6,
 10 e Q (pós-lançamento, P2).
@@ -95,14 +95,14 @@ cadastro/checkout fechados por padrão. Ver [a lista de pendências](planejament
 
 ### Código (assistente)
 
-| Item                                                                                                                                                                                         | Onde                                                                  |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| **Task 6 — bancada de anúncios:** página de bancada e prova real com o isolamento ligado (change 11.1). Se a rede exigir domínio aprovado, registrar "aguardando".                           | plano, Task 6 · `docs/auditoria/2026-10-21-anuncios-bancada.md`       |
-| **Task 10 — provas no staging:** checkout do Essencial e do Premium (mensal, anual, 12x), troca e arrependimento com a chave **sandbox** do Asaas; as caixas do §10 que cabem ao assistente. | plano, Task 10 · [LANCAMENTO.md §10](LANCAMENTO.md)                   |
-| Task 8 (vozes): a recomendação está na [pesquisa](pesquisa/2026-10-21-vozes-por-nivel.md); `voz_natural` segue desligada (P5).                                                               | plano, Task 8                                                         |
-| 9.3 (ofertas nos momentos do protótipo) e o texto fixo de `server/routes/billing.ts` ("esta conta já tem o Premium pago"), achado no inventário.                                             | [tasks.md](../openspec/changes/planos-v3-e-rota-inteligente/tasks.md) |
-| Frente 5: bancada de qualidade e custo da IA (espera as chaves pagas).                                                                                                                       | `openspec/changes/archive/2026-11-23-bancada-multi-modelo`            |
-| Pós-lançamento: rota inteligente, transparência, nuvem ao vivo e qualidade no aparelho (grupos 4, 5, 6, 10 e Q).                                                                             | `tasks.md` da change                                                  |
+| Item                                                                                                                                                                                         | Onde                                                                                     |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| **Task 6 — bancada de anúncios:** página de bancada e prova real com o isolamento ligado (change 11.1). Se a rede exigir domínio aprovado, registrar "aguardando".                           | plano, Task 6 · `docs/auditoria/2026-10-21-anuncios-bancada.md`                          |
+| **Task 10 — provas no staging:** checkout do Essencial e do Premium (mensal, anual, 12x), troca e arrependimento com a chave **sandbox** do Asaas; as caixas do §10 que cabem ao assistente. | plano, Task 10 · [LANCAMENTO.md §10](LANCAMENTO.md)                                      |
+| Task 8 (vozes): a recomendação está na [pesquisa](pesquisa/2026-10-21-vozes-por-nivel.md); `voz_natural` segue desligada (P5).                                                               | plano, Task 8                                                                            |
+| 9.3 (ofertas nos momentos do protótipo) e o texto fixo de `server/routes/billing.ts` ("esta conta já tem o Premium pago"), achado no inventário.                                             | [tasks.md](../openspec/changes/archive/2026-11-25-planos-v3-e-rota-inteligente/tasks.md) |
+| Frente 5: bancada de qualidade e custo da IA (espera as chaves pagas).                                                                                                                       | `openspec/changes/archive/2026-11-23-bancada-multi-modelo`                               |
+| Pós-lançamento: rota inteligente, transparência, nuvem ao vivo e qualidade no aparelho (grupos 4, 5, 6, 10 e Q).                                                                             | `tasks.md` da change                                                                     |
 
 ### Dono
 
@@ -133,18 +133,18 @@ A lista completa e atualizada é a seção **"Você (dono)"** do plano
 
 ## 4. Decisões abertas do dono
 
-| #   | Decisão                                                                                                                 | Onde está descrita                                                                        |
-| --- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| 1   | E-mails de cobrança do Asaas ao cliente: **ligar ou deixar desligados**? Os dois docs se contradizem.                   | [asaas-notificacoes.md](asaas-notificacoes.md) × [operadores.md](lgpd/operadores.md)      |
-| 2   | Existe assinatura manual a R$ 39,90 (hoje o preço do Ao Vivo) ou R$ 179 no Asaas? Conferir antes de abrir (change 0.3). | [`design.md`](../openspec/changes/planos-v3-e-rota-inteligente/design.md) §11, pergunta 3 |
-| 3   | Rede de anúncios (recomendação: Google Ad Manager por origem própria), domínio `ads.` e jurídico.                       | [pesquisa](pesquisa/2026-10-21-rede-de-anuncios.md)                                       |
-| 4   | Serviço do Ao Vivo (`stt_ao_vivo`): fora do lançamento; escolher por medição depois.                                    | `design.md` §11 · [flags.md](flags.md)                                                    |
-| 5   | Vozes "básica" e "boa": adotar a recomendação da pesquisa ou manter `voz_natural` desligada.                            | [pesquisa](pesquisa/2026-10-21-vozes-por-nivel.md)                                        |
-| 6   | Langfuse: ligar, e com que amostragem? Fora do custo fixo de hoje.                                                      | [LANCAMENTO.md — Custo mensal](LANCAMENTO.md#custo-mensal), nota ¹                        |
-| 7   | Subir o compute do Supabase/Hyperdrive antes de ~100 simultâneos?                                                       | [escala.md](escala.md) · RELATORIO-FINAL §6.2                                             |
-| 8   | O exercício de restauração pelo Actions é aceitável pela LGPD (o banco tem dados de menores)?                           | RELATORIO-FINAL §6.4 · [runbook.md §0.2](runbook.md)                                      |
-| 9   | Quando ligar as flags `oferta_planos`, `nuvem_gratuita_alivio`, `nuvem_convidado` e `voz_natural`.                      | [flags.md](flags.md) · RELATORIO-FINAL §6.7                                               |
-| 10  | Teto em dólar por conta nos planos pagos (`TETO_USD_MES_*`, estrutura pronta e desligada): escolher os números.         | [`.env.production.example`](../.env.production.example)                                   |
+| #   | Decisão                                                                                                                 | Onde está descrita                                                                                           |
+| --- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 1   | E-mails de cobrança do Asaas ao cliente: **ligar ou deixar desligados**? Os dois docs se contradizem.                   | [asaas-notificacoes.md](asaas-notificacoes.md) × [operadores.md](lgpd/operadores.md)                         |
+| 2   | Existe assinatura manual a R$ 39,90 (hoje o preço do Ao Vivo) ou R$ 179 no Asaas? Conferir antes de abrir (change 0.3). | [`design.md`](../openspec/changes/archive/2026-11-25-planos-v3-e-rota-inteligente/design.md) §11, pergunta 3 |
+| 3   | Rede de anúncios (recomendação: Google Ad Manager por origem própria), domínio `ads.` e jurídico.                       | [pesquisa](pesquisa/2026-10-21-rede-de-anuncios.md)                                                          |
+| 4   | Serviço do Ao Vivo (`stt_ao_vivo`): fora do lançamento; escolher por medição depois.                                    | `design.md` §11 · [flags.md](flags.md)                                                                       |
+| 5   | Vozes "básica" e "boa": adotar a recomendação da pesquisa ou manter `voz_natural` desligada.                            | [pesquisa](pesquisa/2026-10-21-vozes-por-nivel.md)                                                           |
+| 6   | Langfuse: ligar, e com que amostragem? Fora do custo fixo de hoje.                                                      | [LANCAMENTO.md — Custo mensal](LANCAMENTO.md#custo-mensal), nota ¹                                           |
+| 7   | Subir o compute do Supabase/Hyperdrive antes de ~100 simultâneos?                                                       | [escala.md](escala.md) · RELATORIO-FINAL §6.2                                                                |
+| 8   | O exercício de restauração pelo Actions é aceitável pela LGPD (o banco tem dados de menores)?                           | RELATORIO-FINAL §6.4 · [runbook.md §0.2](runbook.md)                                                         |
+| 9   | Quando ligar as flags `oferta_planos`, `nuvem_gratuita_alivio`, `nuvem_convidado` e `voz_natural`.                      | [flags.md](flags.md) · RELATORIO-FINAL §6.7                                                                  |
+| 10  | Teto em dólar por conta nos planos pagos (`TETO_USD_MES_*`, estrutura pronta e desligada): escolher os números.         | [`.env.production.example`](../.env.production.example)                                                      |
 
 ## 5. Documentos que não valem mais
 

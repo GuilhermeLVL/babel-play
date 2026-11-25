@@ -15,111 +15,111 @@
  * ele exige que **todo número e todo nome que o cadeado cita apareçam na rota**. A rota pode
  * dizer mais; não pode dizer menos.
  */
-import { beforeEach,describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest'
 
-import { CONQUISTAS } from '../../src/core';
-import { FONTE_OPTIONS } from '../../src/lib/appearance';
-import { CATALOGO_DA_LOJA, estadoDoItem, type ItemDaLoja,rotaDeObtencao } from '../../src/lib/loja';
+import { CONQUISTAS } from '../../src/core'
+import { FONTE_OPTIONS } from '../../src/lib/appearance'
+import { CATALOGO_DA_LOJA, estadoDoItem, type ItemDaLoja, rotaDeObtencao } from '../../src/lib/loja'
 
 /* Nível 1 e zero Seeds: o estado de quem acabou de chegar, que é quando a rota importa. Sem
    nenhuma posse no localStorage, `estadoDoItem` responde pela regra pura do catálogo. */
-const NIVEL_ZERADO = 1;
-const SEM_SEEDS = 0;
+const NIVEL_ZERADO = 1
+const SEM_SEEDS = 0
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => localStorage.clear())
 
 /** Normaliza para comparar sem depender de maiúscula ou de acento no "Nível". */
-const solto = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+const solto = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
 describe('rotaDeObtencao concorda com o cadeado de estadoDoItem', () => {
-  const trancados = CATALOGO_DA_LOJA.filter(
-    (i) => estadoDoItem(i, NIVEL_ZERADO, SEM_SEEDS).estado !== 'equipavel',
-  );
+  const trancados = CATALOGO_DA_LOJA.filter((i) => estadoDoItem(i, NIVEL_ZERADO, SEM_SEEDS).estado !== 'equipavel')
 
   it('há itens trancados no nível 1 — senão o teste não testa nada', () => {
-    expect(trancados.length).toBeGreaterThan(10);
-  });
+    expect(trancados.length).toBeGreaterThan(10)
+  })
 
   /* O comparador é a parte que pode falhar em silêncio: se `solto` não tirasse o acento, o
      `matchAll(/nivel (\d+)/)` nunca casaria e a suíte inteira passaria sem comparar nada. */
   it('o comparador tira o acento, senão o resto do arquivo é decorativo', () => {
-    expect(solto('Nível 5 ou 140 Seeds')).toBe('nivel 5 ou 140 seeds');
-    expect([...solto('Nível 5 ou 140 Seeds').matchAll(/nivel (\d+)/g)]).toHaveLength(1);
-  });
+    expect(solto('Nível 5 ou 140 Seeds')).toBe('nivel 5 ou 140 seeds')
+    expect([...solto('Nível 5 ou 140 Seeds').matchAll(/nivel (\d+)/g)]).toHaveLength(1)
+  })
 
   it.each(trancados.map((i) => [i.id, i] as [string, ItemDaLoja]))(
     '%s: a rota repete tudo que o cadeado cita',
     (_id, item) => {
-      const { motivo } = estadoDoItem(item, NIVEL_ZERADO, SEM_SEEDS);
-      expect(motivo, 'todo item trancado tem motivo').toBeTruthy();
-      const rota = solto(rotaDeObtencao(item, SEM_SEEDS).texto);
+      const { motivo } = estadoDoItem(item, NIVEL_ZERADO, SEM_SEEDS)
+      expect(motivo, 'todo item trancado tem motivo').toBeTruthy()
+      const rota = solto(rotaDeObtencao(item, SEM_SEEDS).texto)
 
       /* Os NÚMEROS do motivo com a unidade colada (140 Seeds, 150 Créditos, Nível 5) têm de
          reaparecer na rota. É o que pega a rota que esconde metade do preço. */
       for (const [, numero, unidade] of solto(motivo!).matchAll(/(\d+)\s+(seeds|creditos)/g)) {
-        expect(rota, `${item.id}: a rota omite "${numero} ${unidade}"`).toContain(`${numero} ${unidade}`);
+        expect(rota, `${item.id}: a rota omite "${numero} ${unidade}"`).toContain(`${numero} ${unidade}`)
       }
       for (const [, numero] of solto(motivo!).matchAll(/nivel (\d+)/g)) {
-        expect(rota, `${item.id}: a rota omite "nível ${numero}"`).toContain(`nivel ${numero}`);
+        expect(rota, `${item.id}: a rota omite "nível ${numero}"`).toContain(`nivel ${numero}`)
       }
       /* E o NOME da conquista, nunca o id. */
       if (item.exclusivoDe) {
-        const nome = CONQUISTAS.find((c) => c.id === item.exclusivoDe)?.nome;
-        expect(nome, `${item.id}: exclusivoDe aponta para a conquista inexistente "${item.exclusivoDe}"`).toBeTruthy();
-        expect(rota).toContain(solto(nome!));
+        const nome = CONQUISTAS.find((c) => c.id === item.exclusivoDe)?.nome
+        expect(nome, `${item.id}: exclusivoDe aponta para a conquista inexistente "${item.exclusivoDe}"`).toBeTruthy()
+        expect(rota).toContain(solto(nome!))
       }
     },
-  );
-});
+  )
+})
 
 describe('toda rota é acionável', () => {
   it.each(CATALOGO_DA_LOJA.map((i) => [i.id, i] as [string, ItemDaLoja]))(
     '%s tem canal, frase e destino',
     (_id, item) => {
-      const r = rotaDeObtencao(item, SEM_SEEDS);
+      const r = rotaDeObtencao(item, SEM_SEEDS)
       // 'jogar' (recompensas v2, onda 3): o item de maestria se ganha jogando.
-      expect(['conquistas', 'loja', 'passe', 'jogar']).toContain(r.destino);
-      expect(r.titulo.length).toBeGreaterThan(3);
-      expect(r.texto.length).toBeGreaterThan(20);
-      expect(r.rotuloDoBotao.length).toBeGreaterThan(3);
+      expect(['conquistas', 'loja', 'passe', 'jogar']).toContain(r.destino)
+      expect(r.titulo.length).toBeGreaterThan(3)
+      expect(r.texto.length).toBeGreaterThan(20)
+      expect(r.rotuloDoBotao.length).toBeGreaterThan(3)
     },
-  );
+  )
 
   /* O item de conquista NÃO manda para a Loja, e o de Créditos não manda para as Conquistas: um
      destino errado é pior do que nenhum, porque manda a pessoa procurar onde não está. */
   it('o destino corresponde ao canal', () => {
     for (const item of CATALOGO_DA_LOJA) {
-      const r = rotaDeObtencao(item, SEM_SEEDS);
+      const r = rotaDeObtencao(item, SEM_SEEDS)
       // Maestria é da família da conquista (só fazendo), mas o lugar de fazer é o jogo.
-      if (r.origem === 'conquista') expect(r.destino).toBe(item.origemMaestria ? 'jogar' : 'conquistas');
-      if (r.origem === 'seeds') expect(r.destino).toBe('loja');
+      if (r.origem === 'conquista') expect(r.destino).toBe(item.origemMaestria ? 'jogar' : 'conquistas')
+      if (r.origem === 'seeds') expect(r.destino).toBe('loja')
       // O nível chega estudando (o Passe de 100 casas saiu na onda 5); a temporada tem a sua seção.
-      if (r.origem === 'nivel') expect(r.destino).toBe('jogar');
-      if (r.origem === 'temporada') expect(r.destino).toBe('passe');
+      if (r.origem === 'nivel') expect(r.destino).toBe('jogar')
+      if (r.origem === 'temporada') expect(r.destino).toBe('passe')
     }
-  });
+  })
 
   /* O saldo entra na frase: "faltam N Seeds" é a informação que decide se a pessoa vai à Loja
      agora ou volta a estudar. Com o preço no bolso, a frase muda. */
   it('a rota de Seeds conta quanto falta, e some quando não falta mais', () => {
-    const comPreco = CATALOGO_DA_LOJA.find((i) => i.precoSeeds !== undefined && !i.exclusivoDe && i.precoCreditos === undefined);
-    expect(comPreco).toBeTruthy();
-    const preco = comPreco!.precoSeeds!;
-    expect(rotaDeObtencao(comPreco!, 0).texto).toContain(`Faltam ${preco} Seeds`);
-    expect(rotaDeObtencao(comPreco!, preco).texto).toContain(`já tem as ${preco} Seeds`);
-  });
+    const comPreco = CATALOGO_DA_LOJA.find(
+      (i) => i.precoSeeds !== undefined && !i.exclusivoDe && i.precoCreditos === undefined,
+    )
+    expect(comPreco).toBeTruthy()
+    const preco = comPreco!.precoSeeds!
+    expect(rotaDeObtencao(comPreco!, 0).texto).toContain(`Faltam ${preco} Seeds`)
+    expect(rotaDeObtencao(comPreco!, preco).texto).toContain(`já tem as ${preco} Seeds`)
+  })
 
   /* O item de temporada diz de que temporada é e que volta à Loja depois de um ano (spec 8.3). */
   it('o item de temporada cita a temporada e manda para a Temporada', () => {
-    const daTemporada = CATALOGO_DA_LOJA.filter((i) => i.origemTemporada);
-    expect(daTemporada.length).toBeGreaterThan(0);
+    const daTemporada = CATALOGO_DA_LOJA.filter((i) => i.origemTemporada)
+    expect(daTemporada.length).toBeGreaterThan(0)
     for (const item of daTemporada) {
-      const r = rotaDeObtencao(item, SEM_SEEDS);
-      expect(r.texto).toContain('Temporada 1');
-      expect(r.destino).toBe('passe');
+      const r = rotaDeObtencao(item, SEM_SEEDS)
+      expect(r.texto).toContain('Temporada 1')
+      expect(r.destino).toBe('passe')
     }
-  });
-});
+  })
+})
 
 /**
  * AS FONTES SÃO DESCRITAS EM DOIS LUGARES, e é estrutural: `FONTE_OPTIONS` (`src/lib`) é o que o
@@ -135,10 +135,10 @@ describe('toda rota é acionável', () => {
    volta a ser item da Loja — e fora do catálogo, `estadoPorAlvo` a trata como livre. */
 describe('as fontes não são recompensa', () => {
   it('nenhum item do catálogo é fonte', () => {
-    expect(CATALOGO_DA_LOJA.filter((i) => (i.tipo as string) === 'fonte')).toEqual([]);
-    expect(FONTE_OPTIONS.length).toBe(8);
-  });
-});
+    expect(CATALOGO_DA_LOJA.filter((i) => (i.tipo as string) === 'fonte')).toEqual([])
+    expect(FONTE_OPTIONS.length).toBe(8)
+  })
+})
 
 /**
  * UMA CONQUISTA COMUM NAO PAGA UM COSMETICO EPICO.
@@ -161,38 +161,47 @@ describe('as fontes não são recompensa', () => {
  * Seeds.
  */
 describe('a raridade do exclusivo acompanha a da conquista', () => {
-  const FAIXA = { comum: 0, raro: 1, epico: 2, lendario: 3 } as const;
-  const comCosmetico = CONQUISTAS.filter((c) => c.recompensa.cosmetico);
+  const FAIXA = { comum: 0, raro: 1, epico: 2, lendario: 3 } as const
+  const comCosmetico = CONQUISTAS.filter((c) => c.recompensa.cosmetico)
 
   /* Eram sete; `cur-coroa`, `pack-astrologia` e `cur-katana` saíram com os cursores e packs
      (recompensas v2). A peça nova delas vem na onda 5 (moldura/título). */
   it('há exclusivos para medir', () => {
-    expect(comCosmetico.length).toBeGreaterThanOrEqual(4);
-  });
+    expect(comCosmetico.length).toBeGreaterThanOrEqual(4)
+  })
 
   it.each(comCosmetico.map((c) => [c.id, c] as const))(
     '%s paga um cosmético proporcional ao feito',
     (_id, conquista) => {
-      const item = CATALOGO_DA_LOJA.find((i) => i.id === conquista.recompensa.cosmetico);
-      expect(item, `${conquista.id} promete "${conquista.recompensa.cosmetico}", que não existe no catálogo`).toBeTruthy();
-      const distancia = FAIXA[item!.raridade] - FAIXA[conquista.raridade as keyof typeof FAIXA];
+      const item = CATALOGO_DA_LOJA.find((i) => i.id === conquista.recompensa.cosmetico)
+      expect(
+        item,
+        `${conquista.id} promete "${conquista.recompensa.cosmetico}", que não existe no catálogo`,
+      ).toBeTruthy()
+      const distancia = FAIXA[item!.raridade] - FAIXA[conquista.raridade as keyof typeof FAIXA]
       /* O premio nunca vale MENOS que a conquista: seria a conquista desvalorizando a si mesma. */
-      expect(distancia, `${conquista.id} (${conquista.raridade}) entrega ${item!.id} (${item!.raridade}), que e de faixa mais baixa`).toBeGreaterThanOrEqual(0);
+      expect(
+        distancia,
+        `${conquista.id} (${conquista.raridade}) entrega ${item!.id} (${item!.raridade}), que e de faixa mais baixa`,
+      ).toBeGreaterThanOrEqual(0)
       /* E o piso: conquista comum nao paga epico nem lendario. */
       if (conquista.raridade === 'comum') {
-        expect(FAIXA[item!.raridade], `${conquista.id} e comum e entrega ${item!.id} (${item!.raridade})`).toBeLessThanOrEqual(FAIXA.raro);
+        expect(
+          FAIXA[item!.raridade],
+          `${conquista.id} e comum e entrega ${item!.id} (${item!.raridade})`,
+        ).toBeLessThanOrEqual(FAIXA.raro)
       }
     },
-  );
+  )
 
   /* E o item que a conquista promete tem de ser EXCLUSIVO dela: um cosmético anunciado como prêmio
      e vendido na Loja ao lado seria a promessa e a sua própria quebra na mesma tela. */
   it('o cosmético prometido é exclusivo daquela conquista', () => {
     for (const c of comCosmetico) {
-      const item = CATALOGO_DA_LOJA.find((i) => i.id === c.recompensa.cosmetico)!;
-      expect(item.exclusivoDe, `${item.id} é prêmio de ${c.id} e não está marcado como exclusivo dela`).toBe(c.id);
-      expect(item.precoSeeds, `${item.id} é prêmio de ${c.id} e também é vendido`).toBeUndefined();
-      expect(item.precoCreditos, `${item.id} é prêmio de ${c.id} e também é vendido`).toBeUndefined();
+      const item = CATALOGO_DA_LOJA.find((i) => i.id === c.recompensa.cosmetico)!
+      expect(item.exclusivoDe, `${item.id} é prêmio de ${c.id} e não está marcado como exclusivo dela`).toBe(c.id)
+      expect(item.precoSeeds, `${item.id} é prêmio de ${c.id} e também é vendido`).toBeUndefined()
+      expect(item.precoCreditos, `${item.id} é prêmio de ${c.id} e também é vendido`).toBeUndefined()
     }
-  });
-});
+  })
+})

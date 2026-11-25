@@ -168,9 +168,15 @@ describe('conversa virtual: a direção é fixa por fonte', () => {
     expect(m.falas.ler()[0].lado).toBeUndefined()
     m.p.sysHandlers.onUtterance(PCM, 16000, 1)
     await esperar()
-    expect(m.translateSegment).toHaveBeenCalledWith('sys-1', expect.any(String), expect.any(String), expect.any(String), {
-      falada: false,
-    })
+    expect(m.translateSegment).toHaveBeenCalledWith(
+      'sys-1',
+      expect.any(String),
+      expect.any(String),
+      expect.any(String),
+      {
+        falada: false,
+      },
+    )
   })
 
   it('fora do cenário intérprete, a conversa virtual não muda nada', () => {

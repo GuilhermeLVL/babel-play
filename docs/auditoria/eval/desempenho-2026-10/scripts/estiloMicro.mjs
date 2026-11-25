@@ -74,7 +74,12 @@ const r = await page.evaluate(async () => {
     const sem = { documento_ms: tudo(9), um_elemento_ms: um(15) };
     f.disabled = false;
     forcar();
-    folhas.push({ folha: nomeF, regras, documento_sem_ela_ms: sem.documento_ms, um_elemento_sem_ela_ms: sem.um_elemento_ms });
+    folhas.push({
+      folha: nomeF,
+      regras,
+      documento_sem_ela_ms: sem.documento_ms,
+      um_elemento_sem_ela_ms: sem.um_elemento_ms,
+    });
   }
   /* todas as animacoes paradas: quanto do custo e animacao viva */
   const st = document.createElement('style');
@@ -83,15 +88,30 @@ const r = await page.evaluate(async () => {
   forcar();
   const semAnim = { documento_ms: tudo(), um_elemento_ms: um() };
   st.remove();
-  return { nos: document.querySelectorAll('*').length, variaveisNaRaiz: vars, animacoes: document.getAnimations().length, base, semAnim, folhas, alvo: el.className };
+  return {
+    nos: document.querySelectorAll('*').length,
+    variaveisNaRaiz: vars,
+    animacoes: document.getAnimations().length,
+    base,
+    semAnim,
+    folhas,
+    alvo: el.className,
+  };
 });
 const f2 = (x) => Math.round(x * 100) / 100;
 console.log(`${caminho}: ${r.nos} nos, ${r.variaveisNaRaiz} variaveis CSS na raiz, ${r.animacoes} animacoes vivas`);
-console.log(`  recalcular o documento inteiro (variavel herdada mudou na raiz): ${f2(r.base.documento_ms)} ms = ${f2((r.base.documento_ms / r.nos) * 1000)} us por no`);
+console.log(
+  `  recalcular o documento inteiro (variavel herdada mudou na raiz): ${f2(r.base.documento_ms)} ms = ${f2((r.base.documento_ms / r.nos) * 1000)} us por no`,
+);
 console.log(`  trocar uma classe na raiz: ${f2(r.base.classe_na_raiz_ms)} ms`);
 console.log(`  um elemento (transform em linha num .q-tile): ${f2(r.base.um_elemento_ms)} ms`);
-console.log(`  com animacoes e transicoes desligadas: documento ${f2(r.semAnim.documento_ms)} ms, um elemento ${f2(r.semAnim.um_elemento_ms)} ms`);
-for (const f of r.folhas.sort((a, b) => a.documento_sem_ela_ms - b.documento_sem_ela_ms)) console.log(`  sem ${f.folha.padEnd(34)} (${String(f.regras).padStart(5)} regras): documento ${f2(f.documento_sem_ela_ms)} ms (${f2(r.base.documento_ms - f.documento_sem_ela_ms)} a menos), um elemento ${f2(f.um_elemento_sem_ela_ms)} ms`);
+console.log(
+  `  com animacoes e transicoes desligadas: documento ${f2(r.semAnim.documento_ms)} ms, um elemento ${f2(r.semAnim.um_elemento_ms)} ms`,
+);
+for (const f of r.folhas.sort((a, b) => a.documento_sem_ela_ms - b.documento_sem_ela_ms))
+  console.log(
+    `  sem ${f.folha.padEnd(34)} (${String(f.regras).padStart(5)} regras): documento ${f2(f.documento_sem_ela_ms)} ms (${f2(r.base.documento_ms - f.documento_sem_ela_ms)} a menos), um elemento ${f2(f.um_elemento_sem_ela_ms)} ms`,
+  );
 salvar(`estiloMicro-${nome}-${caminho.replace(/\W+/g, '') || 'inicio'}.json`, r);
 await s.browser.close();
 console.log('FIM');

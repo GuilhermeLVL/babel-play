@@ -1,15 +1,17 @@
 export function normalize(str: string): string {
-  return str
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Remove accents
-    /* Pontuação. As barras de escape em `\/`, `\^` e `\*` eram inúteis: dentro de `[...]` a barra
+  return (
+    str
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove accents
+      /* Pontuação. As barras de escape em `\/`, `\^` e `\*` eram inúteis: dentro de `[...]` a barra
        não precisa de escape, `^` só é especial na PRIMEIRA posição e `*` não é quantificador ali.
        O `\-` no meio da classe é MANTIDO de propósito, sem ele, `=-_` seria lido como o intervalo
        de `=` a `_`, que engoliria letras maiúsculas e dígitos. */
-    .replace(/[.,/#!$%^&*;:{}=\-_`~()?"']/g, "") // Remove punctuation
-    .replace(/\s+/g, " ") // Normalize spacing
-    .trim();
+      .replace(/[.,/#!$%^&*;:{}=\-_`~()?"']/g, '') // Remove punctuation
+      .replace(/\s+/g, ' ') // Normalize spacing
+      .trim()
+  );
 }
 
 export function levenshtein(a: string, b: string): number {
@@ -24,8 +26,8 @@ export function levenshtein(a: string, b: string): number {
       } else {
         matrix[i][j] = Math.min(
           matrix[i - 1][j - 1] + 1, // substitution
-          matrix[i][j - 1] + 1,     // insertion
-          matrix[i - 1][j] + 1      // deletion
+          matrix[i][j - 1] + 1, // insertion
+          matrix[i - 1][j] + 1, // deletion
         );
       }
     }
@@ -52,7 +54,7 @@ export function diffWords(word: string, attempt: string): DiffPart[] {
   const result: DiffPart[] = [];
   const w = word.trim();
   const att = attempt.trim();
-  
+
   let i = 0;
   let j = 0;
   while (i < w.length || j < att.length) {

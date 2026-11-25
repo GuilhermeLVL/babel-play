@@ -64,10 +64,7 @@
     "borderTopStyle",
     "textTransform"
   ],
-  "seletores": [
-    ".px-cats",
-    ".px-loja"
-  ],
+  "seletores": [".px-cats", ".px-loja"],
   "gravar": {
     "app": [
       {

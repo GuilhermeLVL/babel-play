@@ -11,9 +11,9 @@
  * A regra que importa: palavra FORA da wordlist não recebe nível chutado — recebe `null` com
  * procedência `ausente`. Nível inventado tem peso zero no modelo de dificuldade (F4).
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { coberturaDaWordlist,nivelCefr, PROCEDENCIAS } from '../src/core/learning/cefrWordlist'
+import { coberturaDaWordlist, nivelCefr, PROCEDENCIAS } from '../src/core/learning/cefrWordlist'
 import { precarregarNiveis } from '../src/data/trilha/carregar'
 
 describe('nivelCefr — lookup em wordlist real', () => {

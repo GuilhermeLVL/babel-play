@@ -1,7 +1,14 @@
 // @vitest-environment jsdom
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { EVENTOS_RAROS, eventosCondicionais, eventosVistos,marcarEventoVisto, sortearEventoRaro, todosOsEventos } from '../src/lib/eventosDeJogo'
+import {
+  EVENTOS_RAROS,
+  eventosCondicionais,
+  eventosVistos,
+  marcarEventoVisto,
+  sortearEventoRaro,
+  todosOsEventos,
+} from '../src/lib/eventosDeJogo'
 
 describe('eventos de jogo', () => {
   it('a soma das probabilidades raras fica abaixo de 5% por acerto', () => {
@@ -14,9 +21,9 @@ describe('eventos de jogo', () => {
     expect(sortearEventoRaro(() => 0.9)).toBeNull()
   })
   it('condicionais: combo 10 dá tempestade; recorde dá fogos; nada em combo comum', () => {
-    expect(eventosCondicionais({ combo: 10, fever: true }).map(e => e.id)).toContain('tempestade')
-    expect(eventosCondicionais({ combo: 4, fever: false, recorde: true }).map(e => e.id)).toContain('fogos')
-    expect(eventosCondicionais({ combo: 5, fever: false }).map(e => e.id)).toContain('aquecendo')
+    expect(eventosCondicionais({ combo: 10, fever: true }).map((e) => e.id)).toContain('tempestade')
+    expect(eventosCondicionais({ combo: 4, fever: false, recorde: true }).map((e) => e.id)).toContain('fogos')
+    expect(eventosCondicionais({ combo: 5, fever: false }).map((e) => e.id)).toContain('aquecendo')
     expect(eventosCondicionais({ combo: 4, fever: false })).toHaveLength(0)
   })
   it('colecionável: marca e lê os vistos; o catálogo lista todos', () => {

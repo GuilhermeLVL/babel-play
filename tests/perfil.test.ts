@@ -11,12 +11,10 @@
  *    Um slug livre vindo do cliente viraria "games", "jogos" e "video-game" como três interesses
  *    distintos, e nenhuma recomendação construída sobre isso funcionaria.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { perfilPatchSchema } from '../server/validation'
-import {
-interessePorSlug,   INTERESSES, MAX_INTERESSES,
-saneiaInteresses, } from '../src/core/learning/interesses'
+import { interessePorSlug, INTERESSES, MAX_INTERESSES, saneiaInteresses } from '../src/core/learning/interesses'
 import { iniciaisDe } from '../src/lib/usePerfil'
 
 describe('PATCH /api/me — o esquema é a fronteira de confiança', () => {
@@ -52,7 +50,7 @@ describe('PATCH /api/me — o esquema é a fronteira de confiança', () => {
 
 describe('vocabulário fechado de interesses', () => {
   it('todo slug é único e estável', () => {
-    const slugs = INTERESSES.map(i => i.slug)
+    const slugs = INTERESSES.map((i) => i.slug)
     expect(new Set(slugs).size).toBe(slugs.length)
     for (const s of slugs) expect(s, `${s} precisa ser um slug simples`).toMatch(/^[a-z][a-z-]*$/)
   })

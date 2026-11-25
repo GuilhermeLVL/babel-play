@@ -1,6 +1,7 @@
 # palavras-marcadas Specification
 
 ## Purpose
+
 Marcar palavras como 'Já sei' ou 'Ignorar' sem cartão, com contador de palavras conhecidas. Criada pela change `vocab-conhecidas-e-ignoradas` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-vocab-conhecidas-e-ignoradas/proposal.md` para o porquê.
 
 ## Requirements

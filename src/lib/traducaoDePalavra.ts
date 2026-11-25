@@ -37,7 +37,28 @@ interface MtDePalavra {
 }
 
 /** Escritas não latinas: glosa com letra delas não serve a destino latino. */
-const DESTINO_LATINO = new Set(['pt', 'en', 'es', 'fr', 'it', 'de', 'nl', 'sv', 'pl', 'tr', 'ca', 'gl', 'ro', 'da', 'nb', 'fi', 'cs', 'hu', 'id', 'vi']);
+const DESTINO_LATINO = new Set([
+  'pt',
+  'en',
+  'es',
+  'fr',
+  'it',
+  'de',
+  'nl',
+  'sv',
+  'pl',
+  'tr',
+  'ca',
+  'gl',
+  'ro',
+  'da',
+  'nb',
+  'fi',
+  'cs',
+  'hu',
+  'id',
+  'vi',
+]);
 
 /**
  * A glosa serve como resposta? Filtro de DADO RUIM, não de gosto: o Wikidata tem lexemas
@@ -55,7 +76,8 @@ export function glosaServe(glosa: string, alvo: string): boolean {
 }
 
 /** O verbete fala SOBRE a palavra ("plural de dog") em vez de traduzi-la. Mesma régua do gerador. */
-const METALINGUAGEM = /^(?:o |a )?(?:feminino|masculino|plural|singular|diminutivo|aumentativo|superlativo|particípio|gerúndio|forma|flexão|variante|grafia|sinônimo|antônimo|abreviação|abreviatura)\b/i;
+const METALINGUAGEM =
+  /^(?:o |a )?(?:feminino|masculino|plural|singular|diminutivo|aumentativo|superlativo|particípio|gerúndio|forma|flexão|variante|grafia|sinônimo|antônimo|abreviação|abreviatura)\b/i;
 
 /**
  * Do verbete do Wiktionary, a tradução curta — ou `null`. Só quando o wiki definiu no idioma de
@@ -82,7 +104,9 @@ const FONTES_PADRAO: Required<FontesDaPalavra> = {
   local: (palavra, lang, alvo) => glosaLocal(palavra, lang, alvo, (g) => glosaServe(g, alvo)),
   wiktionary: async (palavra, lang, alvo) => {
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const teto = new Promise<null>((ok) => { timer = setTimeout(() => ok(null), TETO_DO_WIKTIONARY_MS); });
+    const teto = new Promise<null>((ok) => {
+      timer = setTimeout(() => ok(null), TETO_DO_WIKTIONARY_MS);
+    });
     try {
       return glosaDoVerbete(await Promise.race([lookup(palavra, lang), teto]), alvo);
     } finally {

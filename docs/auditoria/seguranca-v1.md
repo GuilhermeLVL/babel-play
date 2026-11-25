@@ -3,12 +3,12 @@
 Rodada em 2026-08-30 sobre `babel-play-lab`. Priorizei **usar o aparato que o projeto já tem** —
 ele é bom — em vez de duplicar com ferramenta genérica.
 
-| Verificação | Ferramenta | Resultado |
-|---|---|---|
-| Segredos no histórico | gitleaks (82 commits, 6,6 MB) | **limpo** (1 falso positivo) |
-| CVEs de dependência | Trivy + `npm run audit:gate` | 2 HIGH, ambas triadas |
-| Invariantes de arquitetura | `ast-grep` (regras do projeto) | **2 erros**, 2 avisos |
-| Integridade cliente↔servidor | inspeção de rede no navegador | **2 rotas mortas** |
+| Verificação                   | Ferramenta                     | Resultado                    |
+| ----------------------------- | ------------------------------ | ---------------------------- |
+| Segredos no histórico         | gitleaks (82 commits, 6,6 MB)  | **limpo** (1 falso positivo) |
+| CVEs de dependência           | Trivy + `npm run audit:gate`   | 2 HIGH, ambas triadas        |
+| Invariantes de arquitetura    | `ast-grep` (regras do projeto) | **2 erros**, 2 avisos        |
+| Integridade cliente↔servidor | inspeção de rede no navegador  | **2 rotas mortas**           |
 
 Semgrep não rodou: exige Docker, e o Docker Desktop estava parado. O CI já roda **CodeQL** e
 **gitleaks** (`.github/workflows/seguranca.yml`), então a cobertura de SAST genérico existe.
@@ -26,17 +26,17 @@ Falso positivo.
 
 Duas HIGH, ambas no cluster `@huggingface/transformers`:
 
-| pacote | versão | correção | via |
-|---|---|---|---|
-| `adm-zip` | 0.5.18 | **0.6.0** | `onnxruntime-node` → `@huggingface/transformers` |
-| `sharp` | 0.34.5 | **0.35.0** | `@huggingface/transformers` |
+| pacote    | versão | correção   | via                                              |
+| --------- | ------ | ---------- | ------------------------------------------------ |
+| `adm-zip` | 0.5.18 | **0.6.0**  | `onnxruntime-node` → `@huggingface/transformers` |
+| `sharp`   | 0.34.5 | **0.35.0** | `@huggingface/transformers`                      |
 
 **A triagem se sustenta e é verificável:** o `Dockerfile:69` remove `node_modules/onnxruntime-node`
 da imagem de runtime, e a inferência roda no navegador (`onnxruntime-web`), não no servidor. Os
 pacotes vulneráveis não estão no caminho de execução de produção.
 
 **O que envelheceu:** o cabeçalho de `scripts/audit-gate.mjs` diz que a allowlist é de
-*"HIGH sem fix upstream"*. **Já existe fix upstream para as duas.** A premissa deixou de valer,
+_"HIGH sem fix upstream"_. **Já existe fix upstream para as duas.** A premissa deixou de valer,
 mesmo que a conclusão (risco baixo) continue.
 
 **Ação:** atualizar a justificativa da allowlist, e no próximo bump do `@huggingface/transformers`
@@ -71,11 +71,11 @@ Avisos (não bloqueiam, e ambos com justificativa plausível): `res.send()` din�
 
 Encontradas inspecionando a rede do navegador com a aplicação rodando.
 
-| chamada | Express | Pages Functions | servidor efêmero (sem conta) |
-|---|---|---|---|
-| `POST /api/metrics/presenca` | **404** | — | existe |
-| `POST /api/metrics/seeds/creditar` | **404** | — | existe |
-| `GET /api/rank/:jogo` | **não existe** | existe | — |
+| chamada                            | Express        | Pages Functions | servidor efêmero (sem conta) |
+| ---------------------------------- | -------------- | --------------- | ---------------------------- |
+| `POST /api/metrics/presenca`       | **404**        | —               | existe                       |
+| `POST /api/metrics/seeds/creditar` | **404**        | —               | existe                       |
+| `GET /api/rank/:jogo`              | **não existe** | existe          | —                            |
 
 **Consequência 1 — conquistas nunca desbloqueiam na conta logada.** `src/lib/conquistas.ts:6`
 recusa marcar a conquista se o crédito falhar ("nunca conquistada sem as Seeds"), o que é correto.
@@ -100,7 +100,6 @@ perseguindo.
 - A superfície de autenticação **não foi reauditada**: as auditorias anteriores (F15-01, P0-1, S-01)
   estão registradas no código com correções aplicadas, e refazê-las seria a duplicação que este
   trabalho vem evitando.
-
 
 ---
 

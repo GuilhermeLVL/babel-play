@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { beforeEach,describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { equiparItem, equipavel } from '../src/lib/galeria/equipar'
 import { CATALOGO_DA_LOJA } from '../src/lib/loja'
@@ -10,7 +10,14 @@ const item = (id: string) => CATALOGO_DA_LOJA.find((i) => i.id === id)!
 
 describe('equiparItem — o único caminho que equipa', () => {
   beforeEach(() => localStorage.clear())
-  const ctx = () => ({ setTheme: vi.fn(), setFonte: vi.fn(), setMenuPosition: vi.fn(), onOpenStudio: vi.fn(), nivel: 10, saldo: 0 })
+  const ctx = () => ({
+    setTheme: vi.fn(),
+    setFonte: vi.fn(),
+    setMenuPosition: vi.fn(),
+    onOpenStudio: vi.fn(),
+    nivel: 10,
+    saldo: 0,
+  })
 
   it('cada tipo chama o setter certo', () => {
     const c = ctx()

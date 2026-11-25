@@ -7,45 +7,58 @@
  * `recompensasDoNivel` (desbloqueios) só sabia de tema/posição/estúdio, e as partículas, packs,
  * cursores e galeria que o mesmo nível libera ficavam de fora do "você destravou".
  */
-import { CONQUISTAS } from '@core'
-import { Compass, Gift, Image, type LucideIcon, MousePointer2, Palette, Sparkles, Type, WandSparkles } from 'lucide-react'
+import { CONQUISTAS } from '@core';
+import {
+  Compass,
+  Gift,
+  Image,
+  type LucideIcon,
+  MousePointer2,
+  Palette,
+  Sparkles,
+  Type,
+  WandSparkles,
+} from 'lucide-react';
 
-import { CATALOGO_DA_LOJA, estadoDoItem, type ItemDaLoja, possuidos, temPortaDeNivel } from '../loja'
+import { CATALOGO_DA_LOJA, estadoDoItem, type ItemDaLoja, possuidos, temPortaDeNivel } from '../loja';
 
 /** Itens que abrem por nível (sem exclusivo), agrupados: nível → itens. Ordenado por nível. */
 export function itensPorNivel(catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA): Map<number, ItemDaLoja[]> {
-  const m = new Map<number, ItemDaLoja[]>()
+  const m = new Map<number, ItemDaLoja[]>();
   for (const i of catalogo) {
-    if (i.exclusivoDe || !temPortaDeNivel(i)) continue
-    const lista = m.get(i.nivel) ?? []
-    lista.push(i)
-    m.set(i.nivel, lista)
+    if (i.exclusivoDe || !temPortaDeNivel(i)) continue;
+    const lista = m.get(i.nivel) ?? [];
+    lista.push(i);
+    m.set(i.nivel, lista);
   }
-  return new Map([...m.entries()].sort((a, b) => a[0] - b[0]))
+  return new Map([...m.entries()].sort((a, b) => a[0] - b[0]));
 }
 
 export interface ProximaRecompensa {
-  nivel: number
-  itens: ItemDaLoja[]
+  nivel: number;
+  itens: ItemDaLoja[];
   /** O 1º item, para caber numa linha ("próximo: Nome"). */
-  destaque: ItemDaLoja
+  destaque: ItemDaLoja;
 }
 
 /** O menor nível acima do atual que libera algo. `null` quando não há mais nada por nível. */
-export function proximaRecompensa(nivelAtual: number, catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA): ProximaRecompensa | null {
-  const proximos = catalogo.filter((i) => !i.exclusivoDe && temPortaDeNivel(i) && i.nivel! > nivelAtual)
-  if (!proximos.length) return null
-  const nivel = Math.min(...proximos.map((i) => i.nivel ?? Infinity))
-  const itens = proximos.filter((i) => i.nivel === nivel)
+export function proximaRecompensa(
+  nivelAtual: number,
+  catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA,
+): ProximaRecompensa | null {
+  const proximos = catalogo.filter((i) => !i.exclusivoDe && temPortaDeNivel(i) && i.nivel! > nivelAtual);
+  if (!proximos.length) return null;
+  const nivel = Math.min(...proximos.map((i) => i.nivel ?? Infinity));
+  const itens = proximos.filter((i) => i.nivel === nivel);
   // O destaque é o mais raro daquele nível — é o que se mostra numa linha só.
-  const peso = { lendario: 4, epico: 3, raro: 2, comum: 1 } as const
-  const destaque = [...itens].sort((a, b) => peso[b.raridade] - peso[a.raridade])[0]
-  return { nivel, itens, destaque }
+  const peso = { lendario: 4, epico: 3, raro: 2, comum: 1 } as const;
+  const destaque = [...itens].sort((a, b) => peso[b.raridade] - peso[a.raridade])[0];
+  return { nivel, itens, destaque };
 }
 
 export interface EstadoDaColecao {
   /** Já é seu (nível alcançado, comprado, ou conquista feita) — equipável. */
-  possuidos: ItemDaLoja[]
+  possuidos: ItemDaLoja[];
   /**
    * OS MESMOS `possuidos`, separados por COMO foram conseguidos (mudança
    * economia-legivel-e-moedas). Três origens caíam num balde só e a coleção deixava de contar a
@@ -53,53 +66,66 @@ export interface EstadoDaColecao {
    * comprou e ao que você conquistou. `possuidos` continua sendo a união, porque metade das
    * telas só quer saber "é meu?".
    */
-  ganhosPorNivel: ItemDaLoja[]
-  compradosComSeeds: ItemDaLoja[]
-  conquistados: ItemDaLoja[]
+  ganhosPorNivel: ItemDaLoja[];
+  compradosComSeeds: ItemDaLoja[];
+  conquistados: ItemDaLoja[];
   /** Dá para comprar agora com o saldo. */
-  compraveis: ItemDaLoja[]
+  compraveis: ItemDaLoja[];
   /** Ainda trancado por nível (compra possível, mas o saldo não chega, ou sem preço). */
-  porNivel: ItemDaLoja[]
+  porNivel: ItemDaLoja[];
   /** Só por conquista (e ainda não feita). */
-  porConquista: ItemDaLoja[]
+  porConquista: ItemDaLoja[];
 }
 
 /** Classifica cada item do catálogo numa das quatro áreas. */
-export function estadoDaColecao(nivel: number, saldo: number, catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA): EstadoDaColecao {
+export function estadoDaColecao(
+  nivel: number,
+  saldo: number,
+  catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA,
+): EstadoDaColecao {
   const r: EstadoDaColecao = {
-    possuidos: [], ganhosPorNivel: [], compradosComSeeds: [], conquistados: [],
-    compraveis: [], porNivel: [], porConquista: [],
-  }
-  const comprados = possuidos()
+    possuidos: [],
+    ganhosPorNivel: [],
+    compradosComSeeds: [],
+    conquistados: [],
+    compraveis: [],
+    porNivel: [],
+    porConquista: [],
+  };
+  const comprados = possuidos();
   for (const i of catalogo) {
-    const { estado } = estadoDoItem(i, nivel, saldo)
+    const { estado } = estadoDoItem(i, nivel, saldo);
     if (estado === 'equipavel') {
-      r.possuidos.push(i)
+      r.possuidos.push(i);
       // A ordem importa: conquista ganha de compra, e compra ganha de nível — um item comprado
       // ANTES de o nível chegar continua sendo "eu comprei", que é o que a pessoa lembra.
-      if (i.exclusivoDe) r.conquistados.push(i)
-      else if (comprados.has(i.id)) r.compradosComSeeds.push(i)
-      else r.ganhosPorNivel.push(i)
-    }
-    else if (i.exclusivoDe) r.porConquista.push(i)
-    else if (estado === 'compravel') r.compraveis.push(i)
-    else r.porNivel.push(i)
+      if (i.exclusivoDe) r.conquistados.push(i);
+      else if (comprados.has(i.id)) r.compradosComSeeds.push(i);
+      else r.ganhosPorNivel.push(i);
+    } else if (i.exclusivoDe) r.porConquista.push(i);
+    else if (estado === 'compravel') r.compraveis.push(i);
+    else r.porNivel.push(i);
   }
-  return r
+  return r;
 }
 
 /** TUDO que o nível `n` abre (Loja + galeria), para o modal de resgate. */
-export function recompensasDoNivelCompleto(n: number, catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA): ItemDaLoja[] {
-  return catalogo.filter((i) => !i.exclusivoDe && temPortaDeNivel(i) && i.nivel === n)
+export function recompensasDoNivelCompleto(
+  n: number,
+  catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA,
+): ItemDaLoja[] {
+  return catalogo.filter((i) => !i.exclusivoDe && temPortaDeNivel(i) && i.nivel === n);
 }
 
 /** O item exclusivo que uma conquista libera, se houver. */
-export function itemDaConquista(conquistaId: string, catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA): ItemDaLoja | undefined {
-  const c = CONQUISTAS.find((x) => x.id === conquistaId)
-  const id = c?.recompensa.cosmetico
-  return (id ? catalogo.find((i) => i.id === id) : undefined) ?? catalogo.find((i) => i.exclusivoDe === conquistaId)
+export function itemDaConquista(
+  conquistaId: string,
+  catalogo: ReadonlyArray<ItemDaLoja> = CATALOGO_DA_LOJA,
+): ItemDaLoja | undefined {
+  const c = CONQUISTAS.find((x) => x.id === conquistaId);
+  const id = c?.recompensa.cosmetico;
+  return (id ? catalogo.find((i) => i.id === id) : undefined) ?? catalogo.find((i) => i.exclusivoDe === conquistaId);
 }
-
 
 /**
  * O ÍCONE DO TIPO de um item (lucide), para quando a peça não tem miniatura própria.
@@ -109,13 +135,21 @@ export function itemDaConquista(conquistaId: string, catalogo: ReadonlyArray<Ite
  */
 export function iconeDoItem(item: Pick<ItemDaLoja, 'tipo'>): LucideIcon {
   switch (item.tipo) {
-    case 'tema': return Palette
-    case 'fonte': return Type
-    case 'posicao': return Compass
-    case 'estudio': return WandSparkles
-    case 'particulas': return Sparkles
-    case 'rastro': return MousePointer2
-    case 'galeria': return Image
-    default: return Gift
+    case 'tema':
+      return Palette;
+    case 'fonte':
+      return Type;
+    case 'posicao':
+      return Compass;
+    case 'estudio':
+      return WandSparkles;
+    case 'particulas':
+      return Sparkles;
+    case 'rastro':
+      return MousePointer2;
+    case 'galeria':
+      return Image;
+    default:
+      return Gift;
   }
 }

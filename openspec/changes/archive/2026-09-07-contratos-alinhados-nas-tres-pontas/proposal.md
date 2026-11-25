@@ -22,6 +22,7 @@ O cliente, o servidor Express e o servidor efemero discordam sobre a forma de 15
 ## Capabilities
 
 ### New Capabilities
+
 - `contrato-unico-de-api`: cliente, Express e efemero compartilham tipos e envelope de erro, presos por teste.
 
 ## Impact

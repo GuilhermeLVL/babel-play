@@ -1,12 +1,17 @@
 // @vitest-environment jsdom
-import { beforeEach,describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import {
-type CartaoFiltravel,
-FILTRO_PADRAO,
-filtroAplicavel, filtroDaFonte,   type FiltroDaPratica, fonteDominante,   passaNoFiltro, } from '../src/core/minigames/filtro'
+  type CartaoFiltravel,
+  FILTRO_PADRAO,
+  filtroAplicavel,
+  filtroDaFonte,
+  type FiltroDaPratica,
+  fonteDominante,
+  passaNoFiltro,
+} from '../src/core/minigames/filtro'
 import type { FonteDeItens } from '../src/core/minigames/source'
-import { gravarFiltro,lerFiltroGuardado } from '../src/lib/filtroDaPratica'
+import { gravarFiltro, lerFiltroGuardado } from '../src/lib/filtroDaPratica'
 import { gravarFonteGuardada } from '../src/lib/fonteDaPratica'
 
 function cartao(overrides: Partial<CartaoFiltravel> = {}): CartaoFiltravel {
@@ -14,7 +19,12 @@ function cartao(overrides: Partial<CartaoFiltravel> = {}): CartaoFiltravel {
 }
 
 function filtro(overrides: Partial<FiltroDaPratica> = {}): FiltroDaPratica {
-  return { ...FILTRO_PADRAO, ...overrides, recorte: { ...FILTRO_PADRAO.recorte, ...overrides.recorte }, midia: { ...FILTRO_PADRAO.midia, ...overrides.midia } }
+  return {
+    ...FILTRO_PADRAO,
+    ...overrides,
+    recorte: { ...FILTRO_PADRAO.recorte, ...overrides.recorte },
+    midia: { ...FILTRO_PADRAO.midia, ...overrides.midia },
+  }
 }
 
 describe('passaNoFiltro — fontes: união dentro da faceta', () => {
@@ -201,7 +211,10 @@ describe('lerFiltroGuardado / gravarFiltro — persistência e migração', () =
   })
 
   it('lista de fontes vazia após saneamento cai para FILTRO_PADRAO', () => {
-    localStorage.setItem('babel.filtro_da_pratica', JSON.stringify({ versao: 1, fontes: ['lixo'], baralhos: [], sessoes: [], idiomas: [], recorte: {}, midia: {} }))
+    localStorage.setItem(
+      'babel.filtro_da_pratica',
+      JSON.stringify({ versao: 1, fontes: ['lixo'], baralhos: [], sessoes: [], idiomas: [], recorte: {}, midia: {} }),
+    )
     expect(lerFiltroGuardado([], [])).toEqual(FILTRO_PADRAO)
   })
 

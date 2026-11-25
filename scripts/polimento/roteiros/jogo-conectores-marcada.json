@@ -82,9 +82,5 @@
     ".pj-conect button[aria-pressed='true']",
     ".pj-conect button[aria-pressed='false']"
   ],
-  "props": [
-    "textDecorationLine",
-    "borderTopStyle",
-    "animationDelay"
-  ]
+  "props": ["textDecorationLine", "borderTopStyle", "animationDelay"]
 }

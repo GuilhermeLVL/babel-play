@@ -238,6 +238,8 @@ export default function ConversaDoPrototipo({
     bolhas: BolhaDaConversa[];
     aoAlternar: () => void;
     aoExportar: () => void;
+    /** Sem nada dito ainda (ou sem lista para exportar), o botão fica desligado e diz o motivo. Padrão: pode. */
+    podeExportar?: boolean;
     /** O que vai ao lado de "Exportar", no alto da lista (os idiomas ouvidos, na conversa virtual). */
     topo?: ReactNode;
     /** A lista pronta, no lugar das bolhas simples: a que deixa ouvir, corrigir e guardar cada fala. */
@@ -747,10 +749,23 @@ export default function ConversaDoPrototipo({
         <section key="lista" className="int-conversa" aria-label={t('Conversa')} data-testid="interprete-conversa">
           <div className="int-conversa-topo">
             {lista.topo}
-            <button type="button" className="int-modo" onClick={lista.aoExportar} data-testid="exportar-conversa">
+            <button
+              type="button"
+              className="int-modo"
+              onClick={lista.aoExportar}
+              disabled={lista.podeExportar === false}
+              title={lista.podeExportar === false ? t('Nada para exportar ainda') : undefined}
+              aria-describedby={lista.podeExportar === false ? 'exportar-conversa-motivo' : undefined}
+              data-testid="exportar-conversa"
+            >
               <Download aria-hidden />
               <span>{t('Exportar')}</span>
             </button>
+            {lista.podeExportar === false && (
+              <span id="exportar-conversa-motivo" className="sr">
+                {t('Nada para exportar ainda')}
+              </span>
+            )}
           </div>
           {lista.conteudo || (
             <div className="int-bolhas">

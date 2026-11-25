@@ -16,32 +16,46 @@
 
 /* O SKU `passe-t1` SAIU com a temporada com datas (recompensas v2, onda 5): a trilha paga agora é
    a do ASSINANTE (`temporada.ts`), e o Passe de 100 casas que ele abria não existe mais. */
-export type SkuDeCredito = 'c100' | 'c300' | 'c700'
+export type SkuDeCredito = 'c100' | 'c300' | 'c700';
 
 export interface PacoteDeCredito {
-  sku: SkuDeCredito
-  nome: string
+  sku: SkuDeCredito;
+  nome: string;
   /** Créditos concedidos na confirmação do pagamento. */
-  creditos: number
-  precoCentavos: number
+  creditos: number;
+  precoCentavos: number;
   /** Só para os pacotes: quanto se ganha a mais por real, contra o pacote base. */
-  bonusPct?: number
-  descricao: string
+  bonusPct?: number;
+  descricao: string;
 }
 
 export const CATALOGO_DE_CREDITOS: PacoteDeCredito[] = [
   { sku: 'c100', nome: '100 Créditos', creditos: 100, precoCentavos: 990, descricao: 'Para começar.' },
-  { sku: 'c300', nome: '300 Créditos', creditos: 300, precoCentavos: 2490, bonusPct: 8, descricao: 'O mais escolhido.' },
-  { sku: 'c700', nome: '700 Créditos', creditos: 700, precoCentavos: 4990, bonusPct: 21, descricao: 'Para a temporada inteira.' },
-]
+  {
+    sku: 'c300',
+    nome: '300 Créditos',
+    creditos: 300,
+    precoCentavos: 2490,
+    bonusPct: 8,
+    descricao: 'O mais escolhido.',
+  },
+  {
+    sku: 'c700',
+    nome: '700 Créditos',
+    creditos: 700,
+    precoCentavos: 4990,
+    bonusPct: 21,
+    descricao: 'Para a temporada inteira.',
+  },
+];
 
 export function pacotePorSku(sku: string): PacoteDeCredito | undefined {
-  return CATALOGO_DE_CREDITOS.find((p) => p.sku === sku)
+  return CATALOGO_DE_CREDITOS.find((p) => p.sku === sku);
 }
 
 /** Reais para o provedor (que cobra em BRL) — a única conversão do sistema. */
 export function centavosParaReais(centavos: number): number {
-  return Math.round(centavos) / 100
+  return Math.round(centavos) / 100;
 }
 
 /* `precoEmReais` MORA EM `lib/i18n.ts`, não aqui.

@@ -8,10 +8,10 @@
 import type { Server } from 'node:http'
 
 import express from 'express'
-import { generateKeyPair,SignJWT } from 'jose'
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { generateKeyPair, SignJWT } from 'jose'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 /*
  * F15-01 (2026-08-26): o deploy bem configurado e JWKS ASSIMETRICO com origem declarada. Este e2e
@@ -22,8 +22,14 @@ const URL_SUPABASE = 'https://projeto-e2e.supabase.co'
 const ISS = `${URL_SUPABASE}/auth/v1`
 const { publicKey, privateKey } = await generateKeyPair('ES256')
 const mkToken = (sub: string) =>
-  new SignJWT({}).setProtectedHeader({ alg: 'ES256' }).setSubject(sub)
-    .setAudience('authenticated').setIssuer(ISS).setIssuedAt().setExpirationTime('1h').sign(privateKey)
+  new SignJWT({})
+    .setProtectedHeader({ alg: 'ES256' })
+    .setSubject(sub)
+    .setAudience('authenticated')
+    .setIssuer(ISS)
+    .setIssuedAt()
+    .setExpirationTime('1h')
+    .sign(privateKey)
 
 let h: EphemeralDb
 let server: Server

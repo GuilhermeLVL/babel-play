@@ -11,21 +11,21 @@ outros 13 idiomas de trilha não têm catálogo, então "testar a interface nele
 
 ## Matriz: idioma × escrita × status
 
-| idioma | escrita | catálogo de UI | status | causa raiz |
-|---|---|---:|---|---|
-| português | latina | origem | **PRONTO** | — |
-| inglês | latina | 693 | **PRONTO** | — |
-| espanhol | latina | 16 úteis | **PARCIAL** | catálogo é estube (2,3% do universo) |
-| árabe | árabe | 21 | **QUEBRADO** | ver §5 — texto latino em contexto RTL sem isolamento bidi |
-| hebraico | hebraica | 0 | **NÃO TESTADO** | sem catálogo; `ehRTL` o cobre, mas nada a exibir |
-| turco | latina | 0 | **QUEBRADO** | ver §1 — 34,5% do vocabulário muda de identidade com caixa invariante |
-| alemão, holandês, sueco, francês, italiano, polonês | latina | 0 | **PARCIAL** | degrada para português; ordenação errada (§2) |
-| russo | cirílica | 0 | **PARCIAL** | degrada; ordenação errada |
-| japonês, chinês | Han/kana | 0 | **PARCIAL** | degrada; fonte do sistema (§5); régua de palavras erra (Fase 1, N5) |
-| coreano | Hangul | 0 | **PARCIAL** | degrada; normalização OK (Fase 1) |
-| híndi | devanágari | 0 | **PARCIAL** | degrada; fonte do sistema |
-| tailandês | tailandesa | 0 | **FORA** | trilha não publicada (`tasks.md:97`); a régua conta 21 onde o ICU conta 11 |
-| islandês, vietnamita | latina | — | **NÃO SUPORTADO** | não estão entre os 16 |
+| idioma                                              | escrita    | catálogo de UI | status            | causa raiz                                                                 |
+| --------------------------------------------------- | ---------- | -------------: | ----------------- | -------------------------------------------------------------------------- |
+| português                                           | latina     |         origem | **PRONTO**        | —                                                                          |
+| inglês                                              | latina     |            693 | **PRONTO**        | —                                                                          |
+| espanhol                                            | latina     |       16 úteis | **PARCIAL**       | catálogo é estube (2,3% do universo)                                       |
+| árabe                                               | árabe      |             21 | **QUEBRADO**      | ver §5 — texto latino em contexto RTL sem isolamento bidi                  |
+| hebraico                                            | hebraica   |              0 | **NÃO TESTADO**   | sem catálogo; `ehRTL` o cobre, mas nada a exibir                           |
+| turco                                               | latina     |              0 | **QUEBRADO**      | ver §1 — 34,5% do vocabulário muda de identidade com caixa invariante      |
+| alemão, holandês, sueco, francês, italiano, polonês | latina     |              0 | **PARCIAL**       | degrada para português; ordenação errada (§2)                              |
+| russo                                               | cirílica   |              0 | **PARCIAL**       | degrada; ordenação errada                                                  |
+| japonês, chinês                                     | Han/kana   |              0 | **PARCIAL**       | degrada; fonte do sistema (§5); régua de palavras erra (Fase 1, N5)        |
+| coreano                                             | Hangul     |              0 | **PARCIAL**       | degrada; normalização OK (Fase 1)                                          |
+| híndi                                               | devanágari |              0 | **PARCIAL**       | degrada; fonte do sistema                                                  |
+| tailandês                                           | tailandesa |              0 | **FORA**          | trilha não publicada (`tasks.md:97`); a régua conta 21 onde o ICU conta 11 |
+| islandês, vietnamita                                | latina     |              — | **NÃO SUPORTADO** | não estão entre os 16                                                      |
 
 ---
 
@@ -33,11 +33,11 @@ outros 13 idiomas de trilha não têm catálogo, então "testar a interface nele
 
 O caso clássico, e aqui ele é real porque **o turco é um dos 16 idiomas da trilha**.
 
-| operação | invariante | com locale `tr` | igual? |
-|---|---|---|---|
-| `'I'.toLowerCase()` | `"i"` | `"ı"` | **não** |
-| `'i'.toUpperCase()` | `"I"` | `"İ"` | **não** |
-| `'İSTANBUL'` minúsculo | `"i̇stanbul"` | `"istanbul"` | **não** |
+| operação               | invariante   | com locale `tr` | igual?  |
+| ---------------------- | ------------ | --------------- | ------- |
+| `'I'.toLowerCase()`    | `"i"`        | `"ı"`           | **não** |
+| `'i'.toUpperCase()`    | `"I"`        | `"İ"`           | **não** |
+| `'İSTANBUL'` minúsculo | `"i̇stanbul"` | `"istanbul"`    | **não** |
 
 Sobre as 5.787 palavras reais da trilha turca:
 
@@ -64,12 +64,12 @@ palavras.
 
 Os quatro casos testados divergem. Nenhum é sutil:
 
-| idioma | entrada | `.sort()` binário | `Intl.Collator` |
-|---|---|---|---|
+| idioma   | entrada              | `.sort()` binário    | `Intl.Collator`      |
+| -------- | -------------------- | -------------------- | -------------------- |
 | islandês | `zebra þór ær öl að` | `að zebra ær öl þór` | `að zebra þór ær öl` |
-| sueco | `ö z å ä a` | `a z ä å ö` | `a z å ä ö` |
-| turco | `z ç ş i ı` | `i z ç ı ş` | `ç ı i ş z` |
-| alemão | `ß ss z ä` | `ss z ß ä` | `ä ss ß z` |
+| sueco    | `ö z å ä a`          | `a z ä å ö`          | `a z å ä ö`          |
+| turco    | `z ç ş i ı`          | `i z ç ı ş`          | `ç ı i ş z`          |
+| alemão   | `ß ss z ä`           | `ss z ß ä`           | `ä ss ß z`           |
 
 No código: **5 arquivos** usam `Intl.Collator` ou `localeCompare` (`CoberturaDosIdiomas.tsx`,
 `MapaDoConteudo.tsx`, `fillers.ts`, `painelDaPratica.ts`) e há **4** `.sort()` sem comparador.
@@ -84,12 +84,12 @@ por idioma for ordenada para exibição — e o islandês, se um dia entrar, que
 
 `.length` conta unidades UTF-16; o que o leitor vê são grafemas.
 
-| lang | palavra | `.length` | grafemas (ICU) | razão |
-|---|---|---:|---:|---:|
-| híndi | तुम्हें | 7 | **2** | 3,5× |
-| híndi | क्षत्रिय | 8 | **3** | 2,7× |
-| árabe | مُحَمَّد | 8 | **4** | 2,0× |
-| coreano | 한국어 | 3 | 3 | 1,0× |
+| lang    | palavra  | `.length` | grafemas (ICU) | razão |
+| ------- | -------- | --------: | -------------: | ----: |
+| híndi   | तुम्हें  |         7 |          **2** |  3,5× |
+| híndi   | क्षत्रिय |         8 |          **3** |  2,7× |
+| árabe   | مُحَمَّد |         8 |          **4** |  2,0× |
+| coreano | 한국어   |         3 |              3 |  1,0× |
 
 Censo no código: **58** `.slice(0, N)` sobre string e **4** `.substring`/`.substr`. Cada um trunca
 por unidade UTF-16.
@@ -120,13 +120,13 @@ padrão de honestidade (`Honestidade.tsx`) para dizer o que falta, e aqui ele n�
 
 ## 5. Fontes — e o achado que o briefing previu ao contrário
 
-| medida | valor |
-|---|---|
-| arquivos de fonte no repositório | **0** |
-| famílias importadas do Google Fonts | 8 (Inter, Archivo, IBM Plex Mono, Geist, Geist Mono, Baloo 2, Silkscreen, VT323) |
-| `@font-face` próprio | 0 |
-| `unicode-range` próprio | 0 |
-| fallback declarado para escrita não latina | **NÃO** |
+| medida                                     | valor                                                                            |
+| ------------------------------------------ | -------------------------------------------------------------------------------- |
+| arquivos de fonte no repositório           | **0**                                                                            |
+| famílias importadas do Google Fonts        | 8 (Inter, Archivo, IBM Plex Mono, Geist, Geist Mono, Baloo 2, Silkscreen, VT323) |
+| `@font-face` próprio                       | 0                                                                                |
+| `unicode-range` próprio                    | 0                                                                                |
+| fallback declarado para escrita não latina | **NÃO**                                                                          |
 
 Tudo vem de `@import url('https://fonts.googleapis.com/…')` em `src/index.css:1`.
 
@@ -148,9 +148,9 @@ terceiro que expõe o IP de todo visitante, e é bloqueante de renderização.
 `?ui=ar` em `http://localhost:3106/jogar`. Medido no documento:
 
 ```js
-document.documentElement.lang  // "ar"
-document.documentElement.dir   // "rtl"
-scrollWidth > clientWidth      // false — sem estouro horizontal
+document.documentElement.lang; // "ar"
+document.documentElement.dir; // "rtl"
+scrollWidth > clientWidth; // false — sem estouro horizontal
 ```
 
 O espelhamento do documento **funciona** (`langConfig.ts:164-167`). O que não funciona é o que
@@ -160,11 +160,11 @@ acontece dentro dele.
 
 Medido na página:
 
-| medida | valor |
-|---|---|
-| elementos de texto em contexto `dir=rtl` | 69 |
-| desses, **sem uma única letra árabe** | **69** |
-| elementos `<bdi>` no documento inteiro | **0** |
+| medida                                   | valor  |
+| ---------------------------------------- | ------ |
+| elementos de texto em contexto `dir=rtl` | 69     |
+| desses, **sem uma única letra árabe**    | **69** |
+| elementos `<bdi>` no documento inteiro   | **0**  |
 
 Com 21 chaves traduzidas de 693, ~97% da interface em árabe é **texto português dentro de um
 container RTL**. Sem isolamento bidi, a pontuação de cada frase latina é reordenada.
@@ -196,10 +196,10 @@ Fase 2 — `Conquistas.tsx` e `RecompensaDesbloqueada.tsx` estão em 0%.
 
 `?ui=xx` em `/ajustes` (`evidencias/xx/ajustes-pseudo.png`). Medido:
 
-| medida | valor |
-|---|---|
-| elementos com estouro de conteúdo | **0** |
-| navegação fora da tela | não (`navX = 74`) |
+| medida                            | valor             |
+| --------------------------------- | ----------------- |
+| elementos com estouro de conteúdo | **0**             |
+| navegação fora da tela            | não (`navX = 74`) |
 
 O teste e2e está **certo** ao passar: com texto 40% mais longo, nada corta. Verifiquei
 especificamente a barra de navegação, que na captura parece cortada à esquerda — ela rola na

@@ -16,13 +16,13 @@ IA por assinante pesado ≈ **US$ 1,31/mês (~R$ 7)**, e a vantagem do plano pag
 Você tem CNPJ, então as opções nacionais estão abertas. **Num ticket baixo como R$ 19,90, a taxa
 fixa pesa mais que o percentual** — é isso que separa as opções.
 
-| Provedor | Cartão recorrente | Custo em R$ 19,90 | Pix | Observação |
-|---|---|---|---|---|
-| **Asaas** | 1,99% + R$ 0,49 | **R$ 0,89 (4,5%)** | Pix recorrente desde jan/2026 | Feito para cobrança recorrente |
-| Mercado Pago (D+30) | 3,99% | R$ 0,79 (4,0%) | sim | D+30 prende o caixa 30 dias |
-| Mercado Pago (imediato) | 4,99% | R$ 0,99 (5,0%) | sim | |
-| Stripe | 3,99% + R$ 0,39 + 0,7% Billing | **R$ 1,32 (6,6%)** | 1,19%, **só por convite** | Melhor API e documentação |
-| AbacatePay | R$ 0,80 por Pix | R$ 0,80 (4,0%) | foco em Pix | Novo, menor rastro de produção |
+| Provedor                | Cartão recorrente              | Custo em R$ 19,90  | Pix                           | Observação                     |
+| ----------------------- | ------------------------------ | ------------------ | ----------------------------- | ------------------------------ |
+| **Asaas**               | 1,99% + R$ 0,49                | **R$ 0,89 (4,5%)** | Pix recorrente desde jan/2026 | Feito para cobrança recorrente |
+| Mercado Pago (D+30)     | 3,99%                          | R$ 0,79 (4,0%)     | sim                           | D+30 prende o caixa 30 dias    |
+| Mercado Pago (imediato) | 4,99%                          | R$ 0,99 (5,0%)     | sim                           |                                |
+| Stripe                  | 3,99% + R$ 0,39 + 0,7% Billing | **R$ 1,32 (6,6%)** | 1,19%, **só por convite**     | Melhor API e documentação      |
+| AbacatePay              | R$ 0,80 por Pix                | R$ 0,80 (4,0%)     | foco em Pix                   | Novo, menor rastro de produção |
 
 **Recomendação: Asaas.** Não é a melhor API do lote — a da Stripe é —, mas é a que foi desenhada
 para o problema que você tem: assinatura recorrente de ticket baixo no Brasil, com Pix recorrente,
@@ -42,11 +42,11 @@ Hoje: **libsql (SQLite) local, ou Turso** quando `DATABASE_URL` não começa com
 (`server/db/db.ts:28-30`). O Drizzle já abstrai, e a portabilidade para Postgres está declarada
 como futura em `drizzle.config.ts:4-5`.
 
-| Opção | Plano gratuito | Serve? |
-|---|---|---|
-| **Turso** (atual) | 5 GB, 500 M linhas lidas/mês, 10 M escritas | **Sim, com folga larga** |
-| Neon (Postgres) | 0,5 GB por projeto, 100 h de CPU/mês | Sim, mas menor |
-| Supabase Postgres | — | Já usado só para identidade |
+| Opção             | Plano gratuito                              | Serve?                      |
+| ----------------- | ------------------------------------------- | --------------------------- |
+| **Turso** (atual) | 5 GB, 500 M linhas lidas/mês, 10 M escritas | **Sim, com folga larga**    |
+| Neon (Postgres)   | 0,5 GB por projeto, 100 h de CPU/mês        | Sim, mas menor              |
+| Supabase Postgres | —                                           | Já usado só para identidade |
 
 **Recomendação: ficar no Turso.** O gratuito comporta milhares de usuários deste produto — a
 aplicação grava sessões, falas e cartões de vocabulário, não mídia (o áudio vai para disco). Migrar
@@ -57,12 +57,12 @@ teste de restauração. Isso importa mais que a escolha de fornecedor.
 
 ## 3. Serviços de IA — a decisão já está medida
 
-| Camada | Hoje | Recomendado | Por quê |
-|---|---|---|---|
-| STT nuvem | Groq `whisper-large-v3-turbo` | **manter** | US$ 0,04/h é o piso do mercado; o segundo mais barato cobra 2,5× mais |
-| LLM tradução | Groq `gpt-oss-120b` | **mesmo modelo, via OpenRouter** | US$ 0,029 contra US$ 0,107 por mil falas — 3,7× |
-| STT local | `whisper-base` no navegador | manter | é o plano gratuito, e custa zero |
-| Tradução local | `opus-mt` no navegador | manter | idem |
+| Camada         | Hoje                          | Recomendado                      | Por quê                                                               |
+| -------------- | ----------------------------- | -------------------------------- | --------------------------------------------------------------------- |
+| STT nuvem      | Groq `whisper-large-v3-turbo` | **manter**                       | US$ 0,04/h é o piso do mercado; o segundo mais barato cobra 2,5× mais |
+| LLM tradução   | Groq `gpt-oss-120b`           | **mesmo modelo, via OpenRouter** | US$ 0,029 contra US$ 0,107 por mil falas — 3,7×                       |
+| STT local      | `whisper-base` no navegador   | manter                           | é o plano gratuito, e custa zero                                      |
+| Tradução local | `opus-mt` no navegador        | manter                           | idem                                                                  |
 
 **A troca de roteador já está pronta**: `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL`. Não foi
 ativada porque a conta do OpenRouter está sem saldo, e trocar agora derrubaria a tradução de nuvem.
@@ -78,15 +78,15 @@ Ainda não implementado.
 
 ## Custo mensal projetado, com tudo somado
 
-| Item | Custo |
-|---|---|
-| Cloudflare Pages (front, banda ilimitada) | R$ 0 |
+| Item                                                       | Custo            |
+| ---------------------------------------------------------- | ---------------- |
+| Cloudflare Pages (front, banda ilimitada)                  | R$ 0             |
 | Cloud Run (API, escala a zero; 2 M requisições grátis/mês) | R$ 0 até escalar |
-| Turso (banco) | R$ 0 |
-| Supabase (identidade, até 50 k usuários ativos) | R$ 0 |
-| Domínio | ~R$ 40/ano |
-| IA por assinante pesado | ~R$ 7/mês |
-| Taxa de pagamento (Asaas, R$ 19,90) | R$ 0,89 |
+| Turso (banco)                                              | R$ 0             |
+| Supabase (identidade, até 50 k usuários ativos)            | R$ 0             |
+| Domínio                                                    | ~R$ 40/ano       |
+| IA por assinante pesado                                    | ~R$ 7/mês        |
+| Taxa de pagamento (Asaas, R$ 19,90)                        | R$ 0,89          |
 
 **Margem por assinante a R$ 19,90: ~R$ 12 (60%)**, contando o perfil pesado. O assinante médio
 custa metade disso.

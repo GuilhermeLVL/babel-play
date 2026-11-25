@@ -26,7 +26,7 @@
 - [ ] 3.1 `POST /api/anki/media/faltantes` — cliente manda hashes candidatos, servidor responde
       quais faltam (dedupe antes de trafegar)
 - [ ] 3.2 `POST /api/anki/media` — lote (~25 MB), **servidor recalcula o sha256** e é a autoridade;
-      tipo por magic bytes (reusar `server/lib/tipoDeArquivo.ts`), allowlist audio/* e image/*
+      tipo por magic bytes (reusar `server/lib/tipoDeArquivo.ts`), allowlist audio/_ e image/_
 - [ ] 3.3 Reserva de cota ANTES de gravar, com 507 explicativo (reusar `reservarArmazenamento`)
 - [ ] 3.4 Cliente: extrair do `.apkg` só a mídia das notas ativadas — evolução de `soAColecao`,
       preservando a compressão de 356× medida

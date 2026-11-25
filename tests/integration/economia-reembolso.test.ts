@@ -44,7 +44,11 @@ async function reembolsar(u: string) {
 async function gastosAntigos(u: string) {
   await seedSpendsRepo.debitar(asUserId(u), { spendId: 'loja-cur-pato', amount: 100, reason: 'loja:cur-pato' })
   await seedSpendsRepo.debitar(asUserId(u), { spendId: 'loja-pack-animais', amount: 50, reason: 'loja:pack-animais' })
-  await seedSpendsRepo.debitar(asUserId(u), { spendId: 'apr-particulas-n1', amount: 50, reason: 'aprimoramento:particulas:1' })
+  await seedSpendsRepo.debitar(asUserId(u), {
+    spendId: 'apr-particulas-n1',
+    amount: 50,
+    reason: 'aprimoramento:particulas:1',
+  })
   await seedSpendsRepo.debitar(asUserId(u), { spendId: 'loja-tema-linear', amount: 60, reason: 'loja:tema-linear' })
 }
 
@@ -91,7 +95,13 @@ describe('POST /api/metrics/seeds/reembolso', () => {
     const { creditSpends } = (await h.load('../../server/db/schema')) as any
     const agora = Date.now()
     await db.insert(creditSpends).values({
-      id: 'cs-1', createdAt: agora, updatedAt: agora, userId: u, spendId: 'premium-dourada-3', amount: 150, reason: 'premium:dourada-3',
+      id: 'cs-1',
+      createdAt: agora,
+      updatedAt: agora,
+      userId: u,
+      spendId: 'premium-dourada-3',
+      amount: 150,
+      reason: 'premium:dourada-3',
     })
     expect(await creditsRepo.itensPremium(asUserId(u))).toEqual(['dourada-8'])
   })
@@ -103,12 +113,21 @@ describe('POST /api/metrics/seeds/reembolso', () => {
     const { recusaDePosse } = (await h.load('../../server/lib/posseDeCosmeticos')) as any
     const agora = Date.now()
     await db.insert(creditSpends).values({
-      id: 'cs-aurora', createdAt: agora, updatedAt: agora, userId: u, spendId: 'premium-aurora', amount: 100, reason: 'premium:tema-aurora',
+      id: 'cs-aurora',
+      createdAt: agora,
+      updatedAt: agora,
+      userId: u,
+      spendId: 'premium-aurora',
+      amount: 100,
+      reason: 'premium:tema-aurora',
     })
     expect(await creditsRepo.itensPremium(asUserId(u))).toEqual([])
     // Mesmo com a posse premium dizendo "tema-aurora", a conquista é conferida antes.
     const recusa = await recusaDePosse(asUserId(u), 'tema', 'aurora', {
-      nivel: 99, comprados: [], conquistas: [], premium: ['tema-aurora'],
+      nivel: 99,
+      comprados: [],
+      conquistas: [],
+      premium: ['tema-aurora'],
     })
     expect(recusa?.motivo).toMatch(/conquista/)
   })
@@ -120,8 +139,24 @@ describe('POST /api/metrics/seeds/reembolso', () => {
     const agora = Date.now()
     const vitrine = ['dourada-2', 'dourada-6', 'dourada-8', 'dourada-10']
     await db.insert(creditSpends).values([
-      ...vitrine.map((id, n) => ({ id: `cs-v${n}`, createdAt: agora, updatedAt: agora, userId: u, spendId: `premium-${id}`, amount: 100, reason: `premium:${id}` })),
-      { id: 'cs-d3', createdAt: agora + 1, updatedAt: agora + 1, userId: u, spendId: 'premium-dourada-3', amount: 150, reason: 'premium:dourada-3' },
+      ...vitrine.map((id, n) => ({
+        id: `cs-v${n}`,
+        createdAt: agora,
+        updatedAt: agora,
+        userId: u,
+        spendId: `premium-${id}`,
+        amount: 100,
+        reason: `premium:${id}`,
+      })),
+      {
+        id: 'cs-d3',
+        createdAt: agora + 1,
+        updatedAt: agora + 1,
+        userId: u,
+        spendId: 'premium-dourada-3',
+        amount: 150,
+        reason: 'premium:dourada-3',
+      },
     ])
     const antes = await creditsRepo.totalComprado(asUserId(u))
     const a = await reembolsar(u)
@@ -165,8 +200,32 @@ describe('o Passe da T1 que saiu (`passe-t1`)', () => {
     const { creditPurchases } = (await h.load('../../server/db/schema')) as any
     const agora = Date.now()
     await db.insert(creditPurchases).values([
-      { id: 'cp-passe', createdAt: agora, updatedAt: agora, userId: u, sku: 'passe-t1', creditos: 0, valorCentavos: 1490, provider: 'asaas', providerPaymentId: 'pay-passe-1', status: 'pago', paidAt: agora },
-      { id: 'cp-casa', createdAt: agora, updatedAt: agora, userId: u, sku: 'concessao', creditos: 34, valorCentavos: 0, provider: 'interno', providerPaymentId: 'passe:t1:premium-3', status: 'pago', paidAt: agora },
+      {
+        id: 'cp-passe',
+        createdAt: agora,
+        updatedAt: agora,
+        userId: u,
+        sku: 'passe-t1',
+        creditos: 0,
+        valorCentavos: 1490,
+        provider: 'asaas',
+        providerPaymentId: 'pay-passe-1',
+        status: 'pago',
+        paidAt: agora,
+      },
+      {
+        id: 'cp-casa',
+        createdAt: agora,
+        updatedAt: agora,
+        userId: u,
+        sku: 'concessao',
+        creditos: 34,
+        valorCentavos: 0,
+        provider: 'interno',
+        providerPaymentId: 'passe:t1:premium-3',
+        status: 'pago',
+        paidAt: agora,
+      },
     ])
     const antes = await creditsRepo.totalComprado(asUserId(u))
     expect((await reembolsar(u)).body.creditosDevolvidos).toBe(1100)
@@ -180,7 +239,16 @@ describe('o Passe da T1 que saiu (`passe-t1`)', () => {
     const { creditPurchases } = (await h.load('../../server/db/schema')) as any
     const agora = Date.now()
     await db.insert(creditPurchases).values({
-      id: 'cp-passe-p', createdAt: agora, updatedAt: agora, userId: u, sku: 'passe-t1', creditos: 0, valorCentavos: 1490, provider: 'asaas', providerPaymentId: 'pay-passe-2', status: 'pendente',
+      id: 'cp-passe-p',
+      createdAt: agora,
+      updatedAt: agora,
+      userId: u,
+      sku: 'passe-t1',
+      creditos: 0,
+      valorCentavos: 1490,
+      provider: 'asaas',
+      providerPaymentId: 'pay-passe-2',
+      status: 'pendente',
     })
     expect((await reembolsar(u)).body.creditosDevolvidos).toBe(0)
   })

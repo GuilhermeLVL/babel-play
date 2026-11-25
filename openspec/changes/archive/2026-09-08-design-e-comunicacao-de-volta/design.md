@@ -8,10 +8,10 @@ A branch escreveu os quatro caminhos de aquisição dentro de `Inventario.tsx`, 
 `item.exclusivoDe ? … : item.precoCreditos ? … : item.precoSeeds ? … : …`. Funciona, e foi assim
 que as duas réguas divergiram em dois pontos que dá para medir:
 
-| O que o cadeado dizia (`estadoDoItem`) | O que a rota dizia (branch) |
-|---|---|
+| O que o cadeado dizia (`estadoDoItem`)                                      | O que a rota dizia (branch)                |
+| --------------------------------------------------------------------------- | ------------------------------------------ |
 | `Conquista: Foco impecável` (`lib/loja.ts:113-114` resolve em `CONQUISTAS`) | `Recompensa da conquista "foco_impecavel"` |
-| `Nível 5 ou 140 Seeds` (`lib/loja.ts:125`) | `Custa 140 Seeds` |
+| `Nível 5 ou 140 Seeds` (`lib/loja.ts:125`)                                  | `Custa 140 Seeds`                          |
 
 O segundo é o pior dos dois: esconde o caminho de graça de quem só precisava estudar mais um pouco,
 e empurra para a moeda.
@@ -102,10 +102,10 @@ código, não que não tem sobra. As quatro saíram, `xx.json` e `cobertura.json
 
 ## O que ficou de fora da onda, em uma linha cada
 
-| Item | Onda | Motivo |
-|---|---|---|
-| 13 shaders de tela | 3 | `data-shader` só é aplicado por `aplicarSuiteTematica` |
-| 470 linhas de carta holográfica | 4 | nenhum seletor as usa; voltam com o componente |
-| `ResumoDaRodada.tsx` | 3 | inseparável de `lib/drops.ts` |
-| `src/App.tsx`, `index.html` | — | `git diff -w` vazio: é só reindentação |
-| `SeletorDeEmojis.tsx` | — | a branch só REMOVEU a busca; `main` já é a versão boa |
+| Item                            | Onda | Motivo                                                 |
+| ------------------------------- | ---- | ------------------------------------------------------ |
+| 13 shaders de tela              | 3    | `data-shader` só é aplicado por `aplicarSuiteTematica` |
+| 470 linhas de carta holográfica | 4    | nenhum seletor as usa; voltam com o componente         |
+| `ResumoDaRodada.tsx`            | 3    | inseparável de `lib/drops.ts`                          |
+| `src/App.tsx`, `index.html`     | —    | `git diff -w` vazio: é só reindentação                 |
+| `SeletorDeEmojis.tsx`           | —    | a branch só REMOVEU a busca; `main` já é a versão boa  |

@@ -19,6 +19,7 @@ Esta e a ultima change: so remove o que as anteriores nao reaproveitaram.
 ## Capabilities
 
 ### New Capabilities
+
 - `sem-codigo-morto`: o CI recusa arquivo, export ou dependencia sem uso e warning de lint.
 
 ## Impact

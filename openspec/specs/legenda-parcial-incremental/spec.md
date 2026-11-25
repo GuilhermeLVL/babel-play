@@ -1,6 +1,7 @@
 # legenda-parcial-incremental Specification
 
 ## Purpose
+
 Parciais vivos incrementais (LocalAgreement-2, acrescenta-decode) na rota pt/Parakeet atrás de flags. Criada pela change `parciais-incrementais` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-parciais-incrementais/proposal.md` para o porquê.
 
 ## Requirements

@@ -12,16 +12,32 @@
  *
  * Comentário que afirma paridade sem teste que a prove envelhece para mentira. Este é o teste.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { chaveDaPalavra,chaveDedup } from '../src/core/texto/palavra'
+import { chaveDaPalavra, chaveDedup } from '../src/core/texto/palavra'
 
 /** Palavras com acento, caixa, pontuação e espaços — o que uma captura real produz. */
 const PALAVRAS = [
-  'Água', 'agua', 'ÁGUA!', ' água ', 'água,',
-  'coração', 'CORAÇÃO?', 'não', 'Não.', 'não!',
-  'hello', 'Hello,', 'HELLO', "don't", 'Don\'t!',
-  '日本語', '日本語。', 'naïve', 'NAÏVE', 'café',
+  'Água',
+  'agua',
+  'ÁGUA!',
+  ' água ',
+  'água,',
+  'coração',
+  'CORAÇÃO?',
+  'não',
+  'Não.',
+  'não!',
+  'hello',
+  'Hello,',
+  'HELLO',
+  "don't",
+  "Don't!",
+  '日本語',
+  '日本語。',
+  'naïve',
+  'NAÏVE',
+  'café',
 ]
 
 describe('a chave de deduplicação é uma só', () => {

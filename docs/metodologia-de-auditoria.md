@@ -28,10 +28,10 @@ Isso torna impossível um relatório envelhecer em silêncio — que foi exatame
 
 ### 1.2 Achado cita evidência CONGELADA; regressão compara contra o baseline VIVO
 
-| Diretório | Natureza | Para quê |
-|---|---|---|
-| `audit/baseline/` | regravado a cada execução | detectar regressão entre dois pontos |
-| `audit/evidence/fase-N/` | **imutável**, congelado ao fim da fase | sustentar os números de um achado |
+| Diretório                | Natureza                               | Para quê                             |
+| ------------------------ | -------------------------------------- | ------------------------------------ |
+| `audit/baseline/`        | regravado a cada execução              | detectar regressão entre dois pontos |
+| `audit/evidence/fase-N/` | **imutável**, congelado ao fim da fase | sustentar os números de um achado    |
 
 A separação existe porque o erro já aconteceu: achados citavam o baseline vivo, o próprio commit da
 auditoria mudava os números, e o validador reprovava. O erro não era o número — era a fonte.
@@ -59,7 +59,7 @@ consertado. Hoje o veredicto vem de rodar a suíte que trava cada vetor: removid
 volta a ✗ sozinho.
 
 Corolário: **"lê o código e conclui" não é medição.** O commit `2bcdcff` marca um achado como
-IMPROCEDENTE com a frase *"eu inferi em vez de medir"*.
+IMPROCEDENTE com a frase _"eu inferi em vez de medir"_.
 
 ### 1.5 Gates são ratchets: falham em PIORA, não em estado ruim
 
@@ -91,13 +91,13 @@ um aviso: ao ler um número neles, prefira o de `ACHADOS.md`.
 
 ## 2. Os cinco estados de um achado
 
-| Estado | Significa | Exige |
-|---|---|---|
-| `ABERTO` | medido, não corrigido | medição `antes` |
-| `RESOLVIDO` | corrigido **e** provado | medição `depois` + prova que roda |
-| `ACEITO` | risco assumido, ou resultado positivo registrado | `motivo` |
-| `INDETERMINADO` | não foi possível provar | `motivo` |
-| `IMPROCEDENTE` | o achado estava errado | `motivo` |
+| Estado          | Significa                                        | Exige                             |
+| --------------- | ------------------------------------------------ | --------------------------------- |
+| `ABERTO`        | medido, não corrigido                            | medição `antes`                   |
+| `RESOLVIDO`     | corrigido **e** provado                          | medição `depois` + prova que roda |
+| `ACEITO`        | risco assumido, ou resultado positivo registrado | `motivo`                          |
+| `INDETERMINADO` | não foi possível provar                          | `motivo`                          |
+| `IMPROCEDENTE`  | o achado estava errado                           | `motivo`                          |
 
 **`IMPROCEDENTE` existe para corrigir um viés.** Sem ele, a saída fácil para um achado mal medido é
 apagá-lo e fingir que nunca existiu — o que é pior, porque some a informação de que a medição foi
@@ -111,12 +111,12 @@ las dá linha de base para a próxima execução.
 
 ## 3. As quatro severidades
 
-| | Critério |
-|---|---|
+|        | Critério                                |
+| ------ | --------------------------------------- |
 | **P0** | perda de dado ou de dinheiro do usuário |
-| **P1** | quebra função ou gate |
-| **P2** | degrada |
-| **P3** | higiene |
+| **P1** | quebra função ou gate                   |
+| **P2** | degrada                                 |
+| **P3** | higiene                                 |
 
 ---
 
@@ -124,20 +124,25 @@ las dá linha de base para a próxima execução.
 
 ```jsonc
 {
-  "id": "F11-02",              // F<fase>-<n>
+  "id": "F11-02", // F<fase>-<n>
   "fase": 11,
   "severidade": "P2",
   "estado": "ABERTO",
-  "titulo": "…",               // frase declarativa
-  "detalhe": "…",              // prosa com números medidos e arquivo:linha
-  "porQueImporta": "…",        // o impacto, não a repetição do detalhe
-  "motivo": "…",               // obrigatório em ACEITO/INDETERMINADO/IMPROCEDENTE
+  "titulo": "…", // frase declarativa
+  "detalhe": "…", // prosa com números medidos e arquivo:linha
+  "porQueImporta": "…", // o impacto, não a repetição do detalhe
+  "motivo": "…", // obrigatório em ACEITO/INDETERMINADO/IMPROCEDENTE
   "medicoes": [
-    { "rotulo": "antes|depois|parcial", "commit": "…",
-      "arquivo": "audit/evidence/fase-11/…json", "campo": "a.b.0.c", "valor": 12 }
+    {
+      "rotulo": "antes|depois|parcial",
+      "commit": "…",
+      "arquivo": "audit/evidence/fase-11/…json",
+      "campo": "a.b.0.c",
+      "valor": 12,
+    },
   ],
   "provaDeConserto": { "comando": "…", "criterio": "…" },
-  "evidencia": ["…"]           // qualquer arquivo; só precisa existir
+  "evidencia": ["…"], // qualquer arquivo; só precisa existir
 }
 ```
 
@@ -166,32 +171,32 @@ teste de carga — a resposta honesta sobre uma diferença de 2 % é **"não dá
 
 Cada uma custou uma medição errada. Estão aqui para não custarem duas.
 
-| Armadilha | Como evitar |
-|---|---|
-| Ler a contagem impressa em vez do **exit code** | `npm test` já saiu 1 com 1.737 testes verdes (F0-09) |
-| Zero achados com **zero arquivos varridos** | todo coletor registra `montagemValida` / `varreduraValida` |
-| Docker no Windows com espaço/acento no caminho | `shell: false` e argumentos em array — sem shell não há reescrita de caminho |
-| Instrumento que semeia dados e nunca limpa | ele passa a medir a própria história (F8-04) |
-| Medir com a máquina ocupada | a carga da máquina é variável; registre-a ou meça quieto (F0-10) |
-| Uma amostra apresentada como valor | reporte mediana **e** distribuição, com a amplitude na mesma linha |
-| Casar string num corpo JSON cru | desserialize antes: as aspas vêm escapadas (F11-02) |
-| Prova de conserto com critério invertido | `grep` sai 1 quando **não** acha; `ls` sai 2 quando não existe |
-| **Prova de conserto que ESCREVE na evidência** | rodá-la reescreve o "antes" com o "depois" e o registro desanda — instrumento escreve no baseline vivo, nunca em `audit/evidence/` por padrão (F13-01) |
-| `docker compose up -d` numa prova | ele retorna ANTES do healthcheck; a carga não alcança o alvo e a prova reprova um conserto certo. Use `--wait` |
-| Encurtar `PROVA_PRAZO_MS` para "ir mais rápido" | `ux:medir --only=performance` leva 260s medidos; com 3 min, cinco provas boas reprovam por relógio |
-| Prova cujo exit code não corresponde ao critério | `carga.mjs` sai 0 com SLO reprovado; um critério sobre o ARTEFATO precisa checar o artefato |
-| Segredo detectado gravado no artefato | o artefato é versionado — `--redact` e só regra/arquivo/commit |
-| Instrumento que varre as saídas da própria auditoria | escrever um relatório mudava `arquivosVarridos` (873→885) |
-| Ler a mensagem de erro do scanner como se fosse a causa | 3 hipóteses sobre o `&` do JSX, 3 refutadas por fixture (F11-06) |
-| Adicionar validação só para a métrica subir | onde um validador dedicado é melhor, deixe-o e **diga por quê** (F11-04) |
-| Schema que amplia o contrato em vez de tipá-lo | `patchVocabSchema` cobre só o que a rota já aceitava |
-| Apagar o teste que o conserto contradiz | inverta a asserção **com a razão escrita** (S-13 → F11-03) |
-| Porta anti-falso-verde só no JSON | quem lê o **exit code** — CI, `provaDeConserto`, `&&` no terminal — vê 0 e conclui que correu bem. `segunda-opiniao.mjs` sai **2** quando uma porta reprova (F14) |
-| `npx <pacote>` cujo binário tem outro nome | responde "could not determine executable to run"; e `npx.cmd` sob `shell: false` morre com `EINVAL` no Node 24. Fixe a dependência e spawne o **binário nativo** |
-| Regra de lint/AST sem fixture | uma regra errada devolve zero e isso tem a cara de "código limpo". A 1ª versão de `catch-vazio` inocentava `catch` nu se houvesse comentário **no corpo do `try`**; 3 casos, achava 1, devia achar 2 |
-| Teste do auditor que suja a árvore | um caminho absoluto do Windows achatado virou **arquivo na raiz**, e o SAST devolveu achado sobre um Dockerfile que não é do projeto. Todo caminho reportado tem de resolver a partir da raiz |
-| Zero achados sem **controle positivo** | `varreduraValida` prova que a montagem funcionou, não que as políticas carregaram. `trivy config` varre um alvo sabidamente ruim e exige reprová-lo antes de `0` valer (F14) |
-| Campo de medição com ponto na chave | `rastrear.mjs` resolve com `campo.split('.')`; `porRegra.<id-do-semgrep>` quebra. Exponha um campo com nome sem ponto |
+| Armadilha                                               | Como evitar                                                                                                                                                                                          |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ler a contagem impressa em vez do **exit code**         | `npm test` já saiu 1 com 1.737 testes verdes (F0-09)                                                                                                                                                 |
+| Zero achados com **zero arquivos varridos**             | todo coletor registra `montagemValida` / `varreduraValida`                                                                                                                                           |
+| Docker no Windows com espaço/acento no caminho          | `shell: false` e argumentos em array — sem shell não há reescrita de caminho                                                                                                                         |
+| Instrumento que semeia dados e nunca limpa              | ele passa a medir a própria história (F8-04)                                                                                                                                                         |
+| Medir com a máquina ocupada                             | a carga da máquina é variável; registre-a ou meça quieto (F0-10)                                                                                                                                     |
+| Uma amostra apresentada como valor                      | reporte mediana **e** distribuição, com a amplitude na mesma linha                                                                                                                                   |
+| Casar string num corpo JSON cru                         | desserialize antes: as aspas vêm escapadas (F11-02)                                                                                                                                                  |
+| Prova de conserto com critério invertido                | `grep` sai 1 quando **não** acha; `ls` sai 2 quando não existe                                                                                                                                       |
+| **Prova de conserto que ESCREVE na evidência**          | rodá-la reescreve o "antes" com o "depois" e o registro desanda — instrumento escreve no baseline vivo, nunca em `audit/evidence/` por padrão (F13-01)                                               |
+| `docker compose up -d` numa prova                       | ele retorna ANTES do healthcheck; a carga não alcança o alvo e a prova reprova um conserto certo. Use `--wait`                                                                                       |
+| Encurtar `PROVA_PRAZO_MS` para "ir mais rápido"         | `ux:medir --only=performance` leva 260s medidos; com 3 min, cinco provas boas reprovam por relógio                                                                                                   |
+| Prova cujo exit code não corresponde ao critério        | `carga.mjs` sai 0 com SLO reprovado; um critério sobre o ARTEFATO precisa checar o artefato                                                                                                          |
+| Segredo detectado gravado no artefato                   | o artefato é versionado — `--redact` e só regra/arquivo/commit                                                                                                                                       |
+| Instrumento que varre as saídas da própria auditoria    | escrever um relatório mudava `arquivosVarridos` (873→885)                                                                                                                                            |
+| Ler a mensagem de erro do scanner como se fosse a causa | 3 hipóteses sobre o `&` do JSX, 3 refutadas por fixture (F11-06)                                                                                                                                     |
+| Adicionar validação só para a métrica subir             | onde um validador dedicado é melhor, deixe-o e **diga por quê** (F11-04)                                                                                                                             |
+| Schema que amplia o contrato em vez de tipá-lo          | `patchVocabSchema` cobre só o que a rota já aceitava                                                                                                                                                 |
+| Apagar o teste que o conserto contradiz                 | inverta a asserção **com a razão escrita** (S-13 → F11-03)                                                                                                                                           |
+| Porta anti-falso-verde só no JSON                       | quem lê o **exit code** — CI, `provaDeConserto`, `&&` no terminal — vê 0 e conclui que correu bem. `segunda-opiniao.mjs` sai **2** quando uma porta reprova (F14)                                    |
+| `npx <pacote>` cujo binário tem outro nome              | responde "could not determine executable to run"; e `npx.cmd` sob `shell: false` morre com `EINVAL` no Node 24. Fixe a dependência e spawne o **binário nativo**                                     |
+| Regra de lint/AST sem fixture                           | uma regra errada devolve zero e isso tem a cara de "código limpo". A 1ª versão de `catch-vazio` inocentava `catch` nu se houvesse comentário **no corpo do `try`**; 3 casos, achava 1, devia achar 2 |
+| Teste do auditor que suja a árvore                      | um caminho absoluto do Windows achatado virou **arquivo na raiz**, e o SAST devolveu achado sobre um Dockerfile que não é do projeto. Todo caminho reportado tem de resolver a partir da raiz        |
+| Zero achados sem **controle positivo**                  | `varreduraValida` prova que a montagem funcionou, não que as políticas carregaram. `trivy config` varre um alvo sabidamente ruim e exige reprová-lo antes de `0` valer (F14)                         |
+| Campo de medição com ponto na chave                     | `rastrear.mjs` resolve com `campo.split('.')`; `porRegra.<id-do-semgrep>` quebra. Exponha um campo com nome sem ponto                                                                                |
 
 ---
 
@@ -199,23 +204,23 @@ Cada uma custou uma medição errada. Estão aqui para não custarem duas.
 
 Nenhum tem atalho em `package.json`; são invocados por caminho ou pelo CI.
 
-| Script | O que faz | Custo |
-|---|---|---|
-| `baseline.mjs` | a régua única — 11 coletores num comando | ~2 min |
-| `comparar.mjs` | diff entre dois baselines, ignorando `_volatil` | instantâneo |
-| `deteccao.mjs` | knip + jscpd + cobertura + superfície dinâmica, nos 5 status | ~2 min |
-| `gate-deteccao.mjs` | ratchet de código morto | instantâneo |
-| `dados.mjs` | integridade referencial, blob, FSRS, planos — **somente leitura** | ~5 s |
-| `midia.mjs` | os 5 vetores de mídia, exercitados | ~10 s |
-| `carga.mjs` / `carga-repetida.mjs` | carga contra o container; a segunda reporta mediana | ~1 min |
-| `seguranca.mjs` | SAST, segredos, SCA, Zod, erro, capa, injeção, TOFU, ratchet de UX | ~4 min |
-| `gate-seguranca.mjs` | ratchet de SAST + cobertura Zod + segredos | ~3 min |
-| `golden.ts` | congela 9 jogos + FSRS-5 + vocabulário, byte a byte | ~5 s |
-| `segunda-opiniao.mjs` | ferramentas de terceiro rodadas **às cegas**: Semgrep com packs disjuntos, `trivy config` (IaC), ast-grep (regras arquiteturais), `.mcp.json` | ~6 min |
-| `diff-ferramentas.mjs` | classifica cada achado bruto em NOVO / JÁ CONHECIDO / FALSO POSITIVO contra a tabela versionada; **o único da fase 14 que lê `achados.json`** | instantâneo |
-| `conformidade.mjs` | matriz ASVS 5.0 + OWASP LLM 2025; reabre cada artefato, resolve o campo e avalia o critério | instantâneo |
-| `rastrear.mjs` | **o validador** — confere cada número e gera `ACHADOS.md` | instantâneo |
-| `sonda-*.ts` | exercitam um caminho real e imprimem uma linha de JSON | segundos |
+| Script                             | O que faz                                                                                                                                     | Custo       |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `baseline.mjs`                     | a régua única — 11 coletores num comando                                                                                                      | ~2 min      |
+| `comparar.mjs`                     | diff entre dois baselines, ignorando `_volatil`                                                                                               | instantâneo |
+| `deteccao.mjs`                     | knip + jscpd + cobertura + superfície dinâmica, nos 5 status                                                                                  | ~2 min      |
+| `gate-deteccao.mjs`                | ratchet de código morto                                                                                                                       | instantâneo |
+| `dados.mjs`                        | integridade referencial, blob, FSRS, planos — **somente leitura**                                                                             | ~5 s        |
+| `midia.mjs`                        | os 5 vetores de mídia, exercitados                                                                                                            | ~10 s       |
+| `carga.mjs` / `carga-repetida.mjs` | carga contra o container; a segunda reporta mediana                                                                                           | ~1 min      |
+| `seguranca.mjs`                    | SAST, segredos, SCA, Zod, erro, capa, injeção, TOFU, ratchet de UX                                                                            | ~4 min      |
+| `gate-seguranca.mjs`               | ratchet de SAST + cobertura Zod + segredos                                                                                                    | ~3 min      |
+| `golden.ts`                        | congela 9 jogos + FSRS-5 + vocabulário, byte a byte                                                                                           | ~5 s        |
+| `segunda-opiniao.mjs`              | ferramentas de terceiro rodadas **às cegas**: Semgrep com packs disjuntos, `trivy config` (IaC), ast-grep (regras arquiteturais), `.mcp.json` | ~6 min      |
+| `diff-ferramentas.mjs`             | classifica cada achado bruto em NOVO / JÁ CONHECIDO / FALSO POSITIVO contra a tabela versionada; **o único da fase 14 que lê `achados.json`** | instantâneo |
+| `conformidade.mjs`                 | matriz ASVS 5.0 + OWASP LLM 2025; reabre cada artefato, resolve o campo e avalia o critério                                                   | instantâneo |
+| `rastrear.mjs`                     | **o validador** — confere cada número e gera `ACHADOS.md`                                                                                     | instantâneo |
+| `sonda-*.ts`                       | exercitam um caminho real e imprimem uma linha de JSON                                                                                        | segundos    |
 
 As sondas vivem em arquivo e não em `npx tsx -e` por um motivo medido: o `-e` engole o erro em
 silêncio, e o coletor registra `_naoFoiPossivelDeterminar` com stderr vazio — pior do que falhar.

@@ -198,7 +198,9 @@ export async function offlineTranscribe(blob: Blob, opts: OfflineOptions = {}): 
       // silêncio). ANTES do preload: trocar depois baixaria os dois modelos.
       const modelo = modeloLocalDaImportacao(languageHint);
       if (modelo) local.setModel(modelo);
-      await local.preload((progress, label) => onProgress?.({ phase: 'model', progress, label, motor: 'whisper-local', modelo: local?.modeloAtual }));
+      await local.preload((progress, label) =>
+        onProgress?.({ phase: 'model', progress, label, motor: 'whisper-local', modelo: local?.modeloAtual }),
+      );
     }
     return local;
   };

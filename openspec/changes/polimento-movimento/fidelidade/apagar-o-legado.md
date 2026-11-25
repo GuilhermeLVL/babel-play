@@ -9,7 +9,7 @@ sempre `true`. Falta tirar do código o que só existia para o desenho de antes.
 1. **Tirar a pergunta.** Onde houver `useQuestNovo()` / `questNovo()`, o ramo do desenho novo fica e o
    outro sai inteiro: o `if (!questNovo)`, o JSX de sempre, o componente `…DeSempre`, as funções, os
    tipos, as constantes, os imports e os textos que só o ramo antigo usava. Não deixe `const questNovo
-   = true` nem `if (true)`: simplifique até a pergunta sumir.
+= true` nem `if (true)`: simplifique até a pergunta sumir.
 2. **Apagar arquivos que ficaram sem uso** (componentes, CSS, utilitários), um a um, com
    `git rm <arquivo>`. NUNCA apague pasta em bloco (`rm -rf`, `git rm -r`). Antes de apagar, confira
    com Grep que ninguém mais importa o arquivo. Liste no relatório cada arquivo apagado.
@@ -33,7 +33,7 @@ sempre `true`. Falta tirar do código o que só existia para o desenho de antes.
 7. **Sem `tsc`, sem build, sem a suíte inteira** (máquina com pouca memória; quem roda é o
    orquestrador). Pode rodar: `rtk proxy npx vitest run <seus testes>` (até uns 15 arquivos por vez),
    `rtk proxy npx eslint --max-warnings 0 <seus arquivos>`, `rtk proxy npx prettier --write <seus
-   arquivos>`. O ESLint acusa import e variável sem uso: é o seu melhor aviso de sobra.
+arquivos>`. O ESLint acusa import e variável sem uso: é o seu melhor aviso de sobra.
 8. **Sem commit, push, stash ou checkout.** Outros agentes trabalham na mesma pasta. Temporários com o
    seu prefixo, apagados no fim (arquivos, não pastas).
 9. Armadilhas: `String.replace(a, b)` com `$$` no texto novo vira `$` (use `split(a).join(b)`); crase em

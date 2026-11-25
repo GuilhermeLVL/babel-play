@@ -1,6 +1,7 @@
 # traducao-nuance Specification
 
 ## Purpose
+
 Fase D (retroativa): Tradução Nuance, Outras formas e polimento de sessão. Criada pela change `traducao-nuance` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-traducao-nuance/proposal.md` para o porquê.
 
 ## Requirements

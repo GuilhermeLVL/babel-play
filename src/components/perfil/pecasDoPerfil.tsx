@@ -19,7 +19,15 @@ export const COR_DA_MOLDURA: Record<Raridade, string> = {
 };
 
 /** O anel na cor da raridade em volta do avatar (ou do ícone `Frame`, sem avatar). */
-export function AnelDaMoldura({ item, tamanho = 40, avatar }: { item: ItemDaLoja; tamanho?: number; avatar?: ReactNode }) {
+export function AnelDaMoldura({
+  item,
+  tamanho = 40,
+  avatar,
+}: {
+  item: ItemDaLoja;
+  tamanho?: number;
+  avatar?: ReactNode;
+}) {
   const cor = COR_DA_MOLDURA[item.raridade];
   return (
     <span

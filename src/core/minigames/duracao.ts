@@ -59,10 +59,7 @@ export function medianaPorItem(amostras: readonly number[]): number | null {
  * Devolve `null` quando não há medição suficiente. Quem chama diz "rodada curta" nesse caso — a
  * tela nunca inventa o minuto.
  */
-export function estimativaDeMinutos(
-  nItens: number,
-  amostras: readonly number[],
-): EstimativaDeRodada | null {
+export function estimativaDeMinutos(nItens: number, amostras: readonly number[]): EstimativaDeRodada | null {
   if (nItens <= 0) return null;
 
   const mediana = medianaPorItem(amostras);

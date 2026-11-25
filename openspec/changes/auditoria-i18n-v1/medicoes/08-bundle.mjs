@@ -48,21 +48,34 @@ const bytesEntrada = entrada.reduce((a, x) => a + x.bytes, 0);
 const mib = (b) => `${(b / 1048576).toFixed(2)} MiB`;
 const kb = (b) => `${(b / 1024).toFixed(0)} kB`;
 
-let texto = tabela(['medida', 'valor'], [
-  ['dist/ total', `${mib(total)} em ${arquivos.length} arquivos`],
-  ['dist/assets/', `${mib(totalAssets)} em ${assets.length} arquivos`],
-]);
+let texto = tabela(
+  ['medida', 'valor'],
+  [
+    ['dist/ total', `${mib(total)} em ${arquivos.length} arquivos`],
+    ['dist/assets/', `${mib(totalAssets)} em ${assets.length} arquivos`],
+  ],
+);
 
 texto += '\n\nPor categoria:\n';
-texto += tabela(['categoria', 'arquivos', 'peso', '% do dist'],
-  categorias.map(([nome, g]) => [nome, g.n, mib(g.bytes), pct(g.bytes, total)]));
+texto += tabela(
+  ['categoria', 'arquivos', 'peso', '% do dist'],
+  categorias.map(([nome, g]) => [nome, g.n, mib(g.bytes), pct(g.bytes, total)]),
+);
 
 texto += '\n\nOs 15 maiores arquivos do build:\n';
-texto += tabela(['arquivo', 'peso'],
-  [...arquivos].sort((a, b) => b.bytes - a.bytes).slice(0, 15).map((x) => [x.arquivo, kb(x.bytes)]));
+texto += tabela(
+  ['arquivo', 'peso'],
+  [...arquivos]
+    .sort((a, b) => b.bytes - a.bytes)
+    .slice(0, 15)
+    .map((x) => [x.arquivo, kb(x.bytes)]),
+);
 
 texto += `\n\nCandidatos a "entrada do app" (index + vendor-react + css de entrada): ${kb(bytesEntrada)}\n`;
-texto += tabela(['arquivo', 'peso'], entrada.map((x) => [x.arquivo, kb(x.bytes)]));
+texto += tabela(
+  ['arquivo', 'peso'],
+  entrada.map((x) => [x.arquivo, kb(x.bytes)]),
+);
 
 // A projeção que interessa para a decisão: 16 catálogos de UI cheios.
 const universoDeChaves = 693;
@@ -72,13 +85,19 @@ const bytesPorChaveEn = (() => {
 })();
 if (bytesPorChaveEn) {
   texto += `\n\nProjeção de catálogos de UI (base: en.json medido, ${bytesPorChaveEn.toFixed(0)} B/chave):`;
-  for (const [idiomas, chaves] of [[3, 693], [16, 693], [16, 2000]]) {
+  for (const [idiomas, chaves] of [
+    [3, 693],
+    [16, 693],
+    [16, 2000],
+  ]) {
     texto += `\n  ${idiomas} idiomas × ${chaves} chaves ≈ ${kb(bytesPorChaveEn * chaves * idiomas)} servidos (fora do bundle de entrada)`;
   }
 }
 
 export default publicar('08 — peso do build', texto, {
-  totalBytes: total, assetsBytes: totalAssets, arquivos: arquivos.length,
+  totalBytes: total,
+  assetsBytes: totalAssets,
+  arquivos: arquivos.length,
   categorias: Object.fromEntries(categorias.map(([n, g]) => [n, g])),
   entradaBytes: bytesEntrada,
 });

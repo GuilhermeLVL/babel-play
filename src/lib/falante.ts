@@ -55,10 +55,7 @@ export interface Falante {
  * `audioEl` é passado por referência viva (`{ current }`) porque o elemento só existe depois do
  * primeiro render, e a rodada é montada antes.
  */
-export function criarFalante(
-  audioEl: { current: HTMLAudioElement | null },
-  audioUrl: string | undefined,
-): Falante {
+export function criarFalante(audioEl: { current: HTMLAudioElement | null }, audioUrl: string | undefined): Falante {
   const temGravacao = !!audioUrl;
   /* A API existir não basta: no Quest ela existe sem voz nenhuma, e o jogo prometia um som que não
      vinha. Vale a voz do aparelho ou a do site (`lib/voz/haVoz.ts`). */
@@ -69,7 +66,10 @@ export function criarFalante(
   let jaAvisouDoAudio = false;
 
   const parar = () => {
-    if (pararEm !== null) { window.clearTimeout(pararEm); pararEm = null; }
+    if (pararEm !== null) {
+      window.clearTimeout(pararEm);
+      pararEm = null;
+    }
     audioEl.current?.pause();
     cancelSpeech();
   };
@@ -80,10 +80,8 @@ export function criarFalante(
     parar,
     ouvir(item, velocidade = 1) {
       parar();
-      const recortavel = temGravacao
-        && typeof item.startMs === 'number'
-        && typeof item.endMs === 'number'
-        && item.endMs > item.startMs;
+      const recortavel =
+        temGravacao && typeof item.startMs === 'number' && typeof item.endMs === 'number' && item.endMs > item.startMs;
 
       const porVoz = () => {
         // `falar`: voz DO IDIOMA do item, ou aviso — nunca a voz padrão (inglesa) lendo outra língua.
@@ -108,8 +106,12 @@ export function criarFalante(
             // sem explicação é o pior desfecho possível num jogo de escuta.
             audio.play().catch(porVoz);
             const duracao = Math.max(300, (item.endMs as number) - (item.startMs as number)) / velocidade;
-            pararEm = window.setTimeout(() => { audio.pause(); }, duracao);
-          } catch { porVoz(); }
+            pararEm = window.setTimeout(() => {
+              audio.pause();
+            }, duracao);
+          } catch {
+            porVoz();
+          }
         };
 
         /* O `error` do <audio> é a única fonte de causa da falha de CARGA (rede, formato, arquivo
@@ -125,7 +127,10 @@ export function criarFalante(
           porVoz();
         };
 
-        if (audio.readyState >= 1) { tocar(); return; }
+        if (audio.readyState >= 1) {
+          tocar();
+          return;
+        }
         audio.addEventListener('loadedmetadata', tocar, { once: true });
         audio.addEventListener('error', falhouACarga, { once: true });
         audio.load();

@@ -3,11 +3,13 @@
 Data: 10/10/2026. Continua `2026-10-10-cartoes-e-descoberta.md` e não repete o que está lá (necessidades básicas, FSRS, pilha, padrões de tela, conceito da tela). Aqui: por que as pessoas trocam de ferramenta, que mecânicas divertidas existem e como são recebidas, o que a ciência diz sobre falar, gravar, digitar e gamificar, que formatos de cartão quem estuda idioma monta à mão, e o que isso vira no Babel Play.
 
 Como ler as marcas:
+
 - **[E]** estudo ou revisão acadêmica. **[F]** dado ou texto do fabricante. **[R]** relato de usuário, fórum, blog ou imprensa.
 - **(d)** li a página ou o resumo do artigo nesta sessão. **(b)** só vi pelo resumo da ferramenta de busca; conferir antes de citar em público.
 - Força da evidência: **forte** (meta-análise ou vários estudos na mesma direção), **fraca** (um estudo, amostra pequena ou resultado misto), **só relato**.
 
 Limites desta pesquisa, para ler antes de confiar:
+
 - **O Reddit bloqueou a leitura direta** (r/Anki, r/languagelearning, r/LearnJapanese, r/medicalschoolanki). Só tenho títulos e trechos devolvidos pela busca. Os relatos de usuário vêm principalmente dos fóruns do Anki, WaniKani, Bunpro, Memrise e Language Reactor, de Hacker News e de blogs.
 - Ninguém mediu frequência de queixa. "Muita gente reclama" aqui significa "achei mais de um relato independente".
 - As páginas passaram por um resumidor automático. Números de estudos marcados (b) não foram conferidos no texto completo.
@@ -22,6 +24,7 @@ As fontes (G1…G90) estão no fim.
 ### 1.1 Por que alguém troca de ferramenta, ou fica com duas
 
 **O histórico de revisão é o que prende a pessoa.**
+
 - Um guia de migração resume as três saídas reais: exportar e importar (perde a agenda), refazer à mão, ou "rodar os dois aplicativos", que é a escolha de quem "se recusa a perder o histórico de revisão mas quer recursos novos" [R] (b) G1. É texto de um concorrente, mas descreve bem o dilema.
 - No fórum do Anki, em 25/08/2026, um usuário do Noji quer ir para o Anki sem perder a sequência de mais de 800 dias nem o histórico dos cartões. Resposta: o importador não traz o progresso, e a sequência do Anki depende do histórico, então também não vem [R] (d) G2.
 - O manual do Anki confirma que o pacote só leva agenda e histórico se a pessoa marcar a opção; sem ela, o baralho sai "limpo" [F] (b) G3. Outro tópico do fórum: importar não muda o histórico de cartões que já existem [R] (b) G4.
@@ -29,14 +32,17 @@ As fontes (G1…G90) estão no fim.
 - Quem já aceita importar progresso ganha elogio. O jpdb anuncia na página inicial: "Já usa Anki? Importamos parcialmente o seu banco para você não começar do zero" [F] (b) G6. No fórum do Migaku, usuários contam que o progresso do Anki veio junto na importação [R] (b) G7. O Jiten (outro site) diz que traz o histórico pelo AnkiConnect "para as palavras manterem a maturidade", e avisa que a importação sobrescreve a agenda sem desfazer [F] (b) G8.
 
 **Saída fechada gera sensação de prisão.**
+
 - Migaku: no fórum deles, usuários dizem que o cartão só pode ir para o Anki na hora em que é criado; depois de guardado no aplicativo, não sai mais; pelo celular não há caminho para o Anki. Um usuário escreve que é cômodo ter tudo num lugar, mas que se sente "mais preso" [R] (b) G7. Não achei posição oficial.
 - LingQ: a exportação existe, por e-mail; um ex-usuário conta que recebeu arquivo vazio e trocou de aplicativo porque queria exportar as palavras conhecidas a qualquer hora [R] (b) G9.
 - Language Reactor: exporta CSV mais uma pasta de mídia que a pessoa precisa copiar à mão para dentro do Anki; há tópicos de quem só conseguiu exportar três palavras [R] (b) G10, G11.
 
 **Tirar o conteúdo da comunidade faz a pessoa ir embora.**
+
 - Memrise tirou os cursos da comunidade do aplicativo em 31/03/2024 [F] (b) G12. No fórum, assinantes escrevem que cancelaram porque usavam quase só os cursos da comunidade e o modo offline [R] (b) G13. Uma autora de cursos conta que passou a importar tudo para o Anki [R] (b) G14.
 
 **Por que largam o Anki.**
+
 - Em Hacker News: revisar vira "tarefa sem sentido" quando o conteúdo não importa de verdade; pular dias faz a carga ficar "chata e insuportável" e a pessoa desiste; e o cansaço de **criar** cartões é citado tanto quanto o de revisar [R] (b) G15, G16, G17.
 - Um comparativo de alternativas afirma que a maioria sai do Anki porque fazer cartão dá trabalho, não porque a agenda está errada [R] (b) G18. É blog de concorrente; bate com os relatos de Hacker News.
 - Tópicos de r/languagelearning (só título e trecho): "Por que vou largar minha sequência de 1.300 dias no Anki", com o argumento de que o Anki é só um meio e pode ser trocado por qualquer outra atividade na língua; "Alguém se arrependeu de largar o Anki?" [R] (b) G19, G20.
@@ -50,6 +56,7 @@ As fontes (G1…G90) estão no fim.
 ### 1.2 Mecânicas divertidas que existem, e como são recebidas
 
 **Quizlet Match (casar pares contra o relógio).** É o modo mais usado e o que menos ensina. Num estudo com 165 alunos, o Match respondeu por metade do uso do Quizlet e foi o único modo que **não** contribuiu para o ganho de vocabulário; os autores atribuem a ser pouco exigente e só de reconhecimento. Os modos de recordação contribuíram, mas pedem digitação, que é incômoda no celular [E] (b) G27. O PDF não abriu aqui; conferir.
+
 - No conjunto, o Quizlet tem efeito moderado: meta-análise de 23 estudos, g = 0,62 em vocabulário e 0,74 em retenção; a maioria dos estudos é quase-experimental [E] (b) G28.
 
 **Quizlet Gravity (digitar antes de a palavra cair).** Na versão de teste, com 3.000 respostas, 80% disseram que se divertiram e 84% que aprenderam; os que não gostaram reclamaram da digitação (crianças, respostas longas, exigência de grafia exata) e da "espera tediosa" até a palavra que não sabiam chegar ao fim da tela. Os alunos pediram mais surpresa e variedade (a troca de planeta), e as palavras erradas voltavam na rodada seguinte [F] (d) G29. O modo foi retirado depois; um texto de opinião cita a justificativa de que era pouco usado, mas não achei o anúncio oficial [R] (b) G30.
@@ -65,6 +72,7 @@ As fontes (G1…G90) estão no fim.
 **Drops.** Bonito e leve; queixas de pouca profundidade (só vocabulário), sem prática de fala, imagens parecidas que confundem, repetição desigual [R] (b) G39. Não achei queixa específica sobre o limite de cinco minutos.
 
 **Complementos de gamificação do Anki.**
+
 - Barra de progresso, confirmação visual da nota e "Puppy Reinforcement" (foto de filhote e frase de incentivo em intervalos irregulares). O autor explica o desenho como reforço intermitente; a barra tem a vantagem de permitir esconder as contagens, que funcionam como dica [R] (d) G40. Aparece em listas de favoritos de estudantes de medicina [R] (b) G41.
 - Pokemanki e Ankimon (criaturas que crescem com as revisões): mais de 30 mil e mais de 15 mil downloads segundo um blog [R] (d) G42. Num tópico de r/Anki, um comentário diz que "Ankimon não funciona, na minha opinião" [R] (b) G43. Não achei relato de "jogo mais do que estudo".
 - AnkiNick-Mon: fazenda mais batalha por turnos, em que **para mover ou atacar é preciso estudar N cartões**, e no modo contra amigo ganha a vez quem estudar mais cartões em dois minutos [F] (d) G44. É o desenho que mais incentiva apertar rápido.
@@ -75,6 +83,7 @@ As fontes (G1…G90) estão no fim.
 **Duolingo.** Ligas: reportagem sobre trapaça e "farm" de XP; a empresa diz que combate [R] (b) G47. Sequência: relatos de ansiedade ("devo quebrar a sequência para acabar com o sofrimento?") [R] (b) G48. Reconhecimento de fala: relatos de repetir várias vezes e ser reprovado [R] (b) G49.
 
 **Atrapalha a memória?** Resumo do que há:
+
 - Reconhecimento puro (casar pares, múltipla escolha) ensina menos que recordar: **fraca a forte** (um estudo específico do Match, G27, apoiado pelo que já estava no primeiro relatório sobre recordar contra escolher).
 - Cronômetro: **sem evidência de ganho**. Um estudo sobre pressão de desempenho sugere que ela pode reduzir o benefício do teste; outro não achou ganho de vocabulário com limite de tempo numa tarefa de fala [E] (b) G50. Não achei experimento que compare cartão com e sem relógio.
 - Recompensa por volume e ranking: incentivam nota inflada e trapaça. **Só relato** (G45, G47), coerente com a Parte 1.4 do primeiro relatório.
@@ -82,6 +91,7 @@ As fontes (G1…G90) estão no fim.
 ### 1.3 O que a pesquisa diz
 
 **Dizer em voz alta (efeito de produção).** Palavras lidas em voz alta são mais lembradas que as lidas em silêncio. **Evidência forte para reconhecimento, fraca para recordação livre.**
+
 - Revisão dos autores do termo: o efeito vale para falar, escrever e digitar (falar é o maior), dura uma semana, vale para pares de palavras e frases. Condição importante: a produção tem de ser **distinta** para cada item; dizer "sim" para tudo não ajuda [E] (d) G51.
 - Meta-análise de 2023: quando todo o material é produzido (sem itens silenciosos para contraste), o efeito continua existindo em reconhecimento, pequeno; em recordação livre não aparece no agregado; a produção reduz intrusões [E] (d) G52. Consequência prática: falar **todos** os cartões rende menos do que falar **alguns**.
 - Em segunda língua: falantes de hebraico aprendendo palavras de esperanto lembraram melhor as ditas em voz alta, logo depois, em uma e em duas semanas, com menos esquecimento [E] (d, resumo) G53. Em crianças aprendendo árabe, resultado misto (uma tese) [E] (b) G54.
@@ -96,11 +106,13 @@ As fontes (G1…G90) estão no fim.
 **Sombra da fala (shadowing).** **Evidência razoável para ritmo, fluência e inteligibilidade; inconclusiva para sons isolados.** Uma revisão sistemática de 44 estudos chega a isso; os estudos de pronúncia usam tarefas controladas e raramente juízes ouvintes [E] (b) G60. Há uma meta-análise citada (Li, 2018) que não consegui ler.
 
 **Treino de ouvido com variedade de vozes (pares mínimos, tons).** **Evidência forte para percepção, fraca para produção.**
+
 - Meta-análise de 79 estudos: efeito médio a grande na percepção (g = 0,92 antes e depois; 0,67 contra controle), com retenção e alguma generalização [E] (b) G61.
 - Para a **fala**, 31 estudos: ganho pequeno a médio (cerca de 10,5% nos itens treinados, 4,5% nos novos), pouca evidência de que dure [E] (b) G62.
 - Tons do mandarim: oito sessões em duas semanas, com tons treinados em pares e correção imediata, melhoraram a identificação em 21%, com generalização para palavras e vozes novas [E] (b) G63.
 
 **Nota automática de pronúncia.** **Evidência de que erra o bastante para frustrar; nenhum número publicado dos aplicativos comerciais.**
+
 - A literatura técnica reconhece muitos alarmes falsos, porque o sistema supõe que reconhece fonemas com precisão e que só existe uma pronúncia certa [E] (b) G64. Um trabalho de 2005 afirma que o sistema "não é aceito se houver alarmes falsos demais, e os usuários se frustram" [E] (b) G65. Mesmo avaliadores humanos concordam pouco sobre o que é erro [E] (b) G66.
 - Relatos de Duolingo e Babbel reprovando fala correta (G49); a Rosetta Stone tem página de ajuda para **desligar** o reconhecimento de fala [R] (b) G67.
 
@@ -113,6 +125,7 @@ As fontes (G1…G90) estão no fim.
 **Mnemônicos.** **Evidência mista.** O método da palavra-chave ajuda no teste imediato; dois estudos acharam que, depois de um intervalo, o esquecimento é maior que com repetição simples; fornecer **imagem** ajudou mais do que a pessoa inventar a palavra-chave; outro estudo achou imagens próprias e fornecidas equivalentes [E] (b) G74. Mnemônicos gerados por modelo de linguagem são avaliados como comparáveis aos humanos em imaginabilidade e utilidade percebida, e a preferência varia muito de pessoa para pessoa; ninguém mediu retenção de longo prazo [E] (b) G75.
 
 **Gamificação e motivação.** **Evidência de que recompensa externa pode reduzir o interesse próprio; contestada.**
+
 - Meta-análise clássica (Deci, Koestner e Ryan, 1999): recompensas tangíveis reduzem a motivação intrínseca; outros autores contestam [E] (b) G76.
 - Num curso de 16 semanas com ranking, medalhas e moedas (80 alunos), a turma gamificada terminou com menos motivação intrínseca e nota menor na prova final [E] (b) G77. Um estudo, vários mecanismos juntos; outros acham o contrário. Posição no ranking importa: quem está em baixo se desmotiva [E] (b) G77.
 - Sequências: o que estava no primeiro relatório. Dado novo, do fabricante: a Duolingo diz ter feito mais de 600 experimentos com a sequência e que ela é o recurso de maior impacto na retenção de usuários [F, entrevista] (b) G78. Isso mede **volta ao aplicativo**, não aprendizado.
@@ -150,66 +163,66 @@ Esforço: P pequeno (dias, reaproveita o que existe), M médio (uma a duas seman
 
 ### A. Voz e ouvido
 
-| # | Ideia, em uma frase | Necessidade | Evidência | Risco | Esforço |
-|---|---|---|---|---|---|
-| 1 | **Minha voz no cartão**: depois de tentar lembrar, a pessoa grava a palavra ou a frase; no verso, o app toca a fala original e a gravação dela, uma atrás da outra | Tornar o cartão "meu"; praticar fala | Fraca para memória (G56, um estudo); fraca para pronúncia (G58) | Vergonha da própria voz (G59); armazenamento de áudio pessoal (LGPD: dado de voz, apagar junto com o cartão) | M |
-| 2 | **Dizer antes de virar**, sem gravar e sem nota: a tela pede "diga em voz alta" em parte dos cartões, não em todos | Fixar com esforço quase zero | Forte para reconhecimento (G51, G52, G53); o ganho vem do contraste, por isso "em parte" | Quase nenhum; não funciona em público, então precisa de "agora não" | P |
-| 3 | **Sombra da cena**: no verso, laço da fala original com velocidade ajustável e "repita junto" (o "Praticar pronúncia" que já existe na folha da frase, levado para o cartão) | Ritmo e entonação | Razoável para prosódia (G60) | Alongar a sessão; deixar como ação, não etapa | P a M |
-| 4 | **"O app entendeu?"** em vez de nota de pronúncia: mostra o que o reconhecimento de fala transcreveu da gravação, sem número e sem reprovar | Retorno honesto sobre inteligibilidade | Sem estudo; evita o problema documentado dos alarmes falsos (G64, G65) | Reconhecimento ruim ainda frustra; dizer "pode ser falha do microfone" | M |
-| 5 | **Cartão de escuta**: frente só com o áudio da fala original, texto no verso | Compreensão oral | Só relato (G25) | Áudio ruim da captura vira cartão ruim; oferecer só quando o trecho é limpo | P a M |
-| 6 | **Qual você ouviu?**: par de palavras de som parecido do próprio acervo, em vozes diferentes | Treinar o ouvido | Forte para percepção (G61); fraca para fala (G62) | Precisa de várias vozes; com voz sintética a evidência não se aplica direto | G |
-| 7 | **Revisão de ouvido, mãos livres**: o app fala a pista, espera, fala a resposta; a nota é por voz ou por um toque grande | Revisar andando ou lavando louça | Só relato | Nota menos precisa; marcar essas revisões como "leves" | M |
+| #   | Ideia, em uma frase                                                                                                                                                          | Necessidade                            | Evidência                                                                                | Risco                                                                                                        | Esforço |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------- |
+| 1   | **Minha voz no cartão**: depois de tentar lembrar, a pessoa grava a palavra ou a frase; no verso, o app toca a fala original e a gravação dela, uma atrás da outra           | Tornar o cartão "meu"; praticar fala   | Fraca para memória (G56, um estudo); fraca para pronúncia (G58)                          | Vergonha da própria voz (G59); armazenamento de áudio pessoal (LGPD: dado de voz, apagar junto com o cartão) | M       |
+| 2   | **Dizer antes de virar**, sem gravar e sem nota: a tela pede "diga em voz alta" em parte dos cartões, não em todos                                                           | Fixar com esforço quase zero           | Forte para reconhecimento (G51, G52, G53); o ganho vem do contraste, por isso "em parte" | Quase nenhum; não funciona em público, então precisa de "agora não"                                          | P       |
+| 3   | **Sombra da cena**: no verso, laço da fala original com velocidade ajustável e "repita junto" (o "Praticar pronúncia" que já existe na folha da frase, levado para o cartão) | Ritmo e entonação                      | Razoável para prosódia (G60)                                                             | Alongar a sessão; deixar como ação, não etapa                                                                | P a M   |
+| 4   | **"O app entendeu?"** em vez de nota de pronúncia: mostra o que o reconhecimento de fala transcreveu da gravação, sem número e sem reprovar                                  | Retorno honesto sobre inteligibilidade | Sem estudo; evita o problema documentado dos alarmes falsos (G64, G65)                   | Reconhecimento ruim ainda frustra; dizer "pode ser falha do microfone"                                       | M       |
+| 5   | **Cartão de escuta**: frente só com o áudio da fala original, texto no verso                                                                                                 | Compreensão oral                       | Só relato (G25)                                                                          | Áudio ruim da captura vira cartão ruim; oferecer só quando o trecho é limpo                                  | P a M   |
+| 6   | **Qual você ouviu?**: par de palavras de som parecido do próprio acervo, em vozes diferentes                                                                                 | Treinar o ouvido                       | Forte para percepção (G61); fraca para fala (G62)                                        | Precisa de várias vozes; com voz sintética a evidência não se aplica direto                                  | G       |
+| 7   | **Revisão de ouvido, mãos livres**: o app fala a pista, espera, fala a resposta; a nota é por voz ou por um toque grande                                                     | Revisar andando ou lavando louça       | Só relato                                                                                | Nota menos precisa; marcar essas revisões como "leves"                                                       | M       |
 
 ### B. Cartão que só o Babel Play tem
 
-| # | Ideia | Necessidade | Evidência | Risco | Esforço |
-|---|---|---|---|---|---|
-| 8 | **A cena no verso**: quadro do vídeo, frase com a palavra destacada, áudio de quem falou, e "Abrir na sessão" | Lembrar pelo contexto vivido; rastreabilidade | Só relato, mas é o cartão que os avançados montam à mão (G25, G26) | Quadro com legenda queimada entrega a resposta: nunca na frente; custo de armazenamento | G (quadro) / P (resto) |
-| 9 | **Frase que muda**: cartão maduro alterna entre as ocorrências da palavra nas sessões da pessoa | Não decorar a frase em vez da palavra | Fraca a moderada (G71 a G73): fixar primeiro, variar depois | Variar cedo demais atrapalha; só depois de N acertos | M |
-| 10 | **Lacuna na fala original**: a frase com a palavra apagada, e o áudio toca depois da resposta | Produção em contexto | Só relato (G11, G37) | Áudio antes da resposta entrega; tocar só depois | M |
-| 11 | **Enriquecer o baralho importado**: "37 palavras do seu baralho apareceram nos seus vídeos" e o cartão ganha frase, áudio e cena reais | Dar ao baralho antigo o que o Anki não dá | Sem estudo; é o diferencial | Casar palavra errada (homônimos): pedir confirmação em lote | M |
-| 12 | **Cobertura**: "seu baralho cobre 82% das palavras deste vídeo; faltam 23" antes de assistir, com "aprender as que faltam" | Dar sentido ao baralho: estudar para entender algo | Só relato (é o centro do jpdb, G6, G22) | Número enganoso se a contagem de palavras for ruim | M |
-| 13 | **"Precisei e não sabia"**: palavras que travaram a pessoa numa conversa do intérprete viram cartões com a frase da conversa | Estudar o que faz falta de verdade | Sem estudo | Privacidade da conversa do outro: guardar só a frase da pessoa | M |
-| 14 | **Usar numa frase**: em parte das revisões de cartão maduro, o tutor pede uma frase com a palavra, falada ou escrita, e responde | Passar de reconhecer para usar | Fraca (produção e geração ajudam, G51; sem estudo deste formato) | Custo de IA por uso; cansaço se for sempre | M |
-| 15 | **Linha do tempo do cartão**: onde nasceu, cada nota dada, cada vez que a palavra reapareceu num vídeo | Confiança e rastreabilidade | Só relato | Nenhum | P a M |
-| 16 | **"Por que este cartão hoje?"**: uma linha no verso ("você acertou há 12 dias; a chance de lembrar caiu para 90%") | Transparência do algoritmo | Só relato, indireto (G23, G24) | Texto errado destrói a confiança; usar os números reais | P |
+| #   | Ideia                                                                                                                                  | Necessidade                                        | Evidência                                                          | Risco                                                                                   | Esforço                |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------- | ---------------------- |
+| 8   | **A cena no verso**: quadro do vídeo, frase com a palavra destacada, áudio de quem falou, e "Abrir na sessão"                          | Lembrar pelo contexto vivido; rastreabilidade      | Só relato, mas é o cartão que os avançados montam à mão (G25, G26) | Quadro com legenda queimada entrega a resposta: nunca na frente; custo de armazenamento | G (quadro) / P (resto) |
+| 9   | **Frase que muda**: cartão maduro alterna entre as ocorrências da palavra nas sessões da pessoa                                        | Não decorar a frase em vez da palavra              | Fraca a moderada (G71 a G73): fixar primeiro, variar depois        | Variar cedo demais atrapalha; só depois de N acertos                                    | M                      |
+| 10  | **Lacuna na fala original**: a frase com a palavra apagada, e o áudio toca depois da resposta                                          | Produção em contexto                               | Só relato (G11, G37)                                               | Áudio antes da resposta entrega; tocar só depois                                        | M                      |
+| 11  | **Enriquecer o baralho importado**: "37 palavras do seu baralho apareceram nos seus vídeos" e o cartão ganha frase, áudio e cena reais | Dar ao baralho antigo o que o Anki não dá          | Sem estudo; é o diferencial                                        | Casar palavra errada (homônimos): pedir confirmação em lote                             | M                      |
+| 12  | **Cobertura**: "seu baralho cobre 82% das palavras deste vídeo; faltam 23" antes de assistir, com "aprender as que faltam"             | Dar sentido ao baralho: estudar para entender algo | Só relato (é o centro do jpdb, G6, G22)                            | Número enganoso se a contagem de palavras for ruim                                      | M                      |
+| 13  | **"Precisei e não sabia"**: palavras que travaram a pessoa numa conversa do intérprete viram cartões com a frase da conversa           | Estudar o que faz falta de verdade                 | Sem estudo                                                         | Privacidade da conversa do outro: guardar só a frase da pessoa                          | M                      |
+| 14  | **Usar numa frase**: em parte das revisões de cartão maduro, o tutor pede uma frase com a palavra, falada ou escrita, e responde       | Passar de reconhecer para usar                     | Fraca (produção e geração ajudam, G51; sem estudo deste formato)   | Custo de IA por uso; cansaço se for sempre                                              | M                      |
+| 15  | **Linha do tempo do cartão**: onde nasceu, cada nota dada, cada vez que a palavra reapareceu num vídeo                                 | Confiança e rastreabilidade                        | Só relato                                                          | Nenhum                                                                                  | P a M                  |
+| 16  | **"Por que este cartão hoje?"**: uma linha no verso ("você acertou há 12 dias; a chance de lembrar caiu para 90%")                     | Transparência do algoritmo                         | Só relato, indireto (G23, G24)                                     | Texto errado destrói a confiança; usar os números reais                                 | P                      |
 
 ### C. Jogo e ritmo
 
-| # | Ideia | Necessidade | Evidência | Risco | Esforço |
-|---|---|---|---|---|---|
-| 17 | **Jogar com as que errei**: no fim da sessão, um minijogo só com as palavras erradas, sem mexer na agenda | Segunda chance leve; fechar bem | Fraca (repetir o que errou é o que o Gravity fazia, G29) | Nenhum para a memória, se não contar nota | P |
-| 18 | **Jogo que conta como revisão só se pedir recordação**: jogos de digitar, falar ou montar valem nota; jogos de casar e escolher são "aquecimento" | Unir os 17 minijogos aos cartões sem estragar a agenda | Fraca a forte (G27) | Regra difícil de explicar; mostrar um selo "conta para a memória" | M |
-| 19 | **Rodada relâmpago** opcional, só com cartões maduros: estourar o tempo não vira "Errei", só encerra a rodada | Emoção; treinar rapidez de acesso | Sem evidência de ganho (G50); relatos divididos (G34) | Ansiedade, branco; nunca padrão, nunca em cartão novo | P a M |
-| 20 | **Surpresa de vez em quando**: a cada tantos cartões, em intervalo irregular, aparece algo pequeno (uma cena do acervo, uma variação da pele, uma frase de incentivo) | Quebrar a monotonia | Só relato (G40, G41) | Virar distração: nunca antes de a pessoa responder | P |
-| 21 | **Álbum de cenas**: cada palavra que amadurece vira uma "carta" com o quadro, a frase e o áudio, agrupada por vídeo ou série; completar a série mostra a cobertura | Ver o progresso como coleção | Só relato (popularidade de Pokemanki e Ankimon, G42) | Premiar volume; a carta nasce do amadurecimento, não do número de revisões | M a G |
-| 22 | **Escolher o modo da rodada**: Lembrar, Digitar, Falar, Ouvir, Lacuna, e "Misturado" que varia sozinho | Variedade sem trocar de tela | Mista (G68); a variedade em si não foi medida | Excesso de opções; "Misturado" como padrão sugerido | M |
-| 23 | **Digitação tolerante**: aceita erro de digitação e sinônimo conhecido, e mostra "quase" | Tirar a maior irritação de quem digita | Só relato (G21, G38) | Aceitar errado; mostrar sempre a forma certa | P a M |
-| 24 | **Sessão curta com fim claro**: "5 minutos" ou "10 cartões" como botões, com fecho próprio | Caber na vida; não abrir uma parede | Só relato (primeiro relatório) | Nenhum | P |
-| 25 | **Sanguessuga com saídas**: ao travar, o cartão oferece trocar a frase, rever a cena, escrever um lembrete, mandar para um minijogo ou descansar 30 dias | Transformar frustração em ação | Só relato (G83) | Reativar tudo de uma vez afoga (G83): reativar aos poucos | M |
-| 26 | **Meu lembrete**: campo livre para a pessoa escrever o próprio truque de memória; botão "sugerir um" só quando ela pede | Ajuda para a palavra que não entra | Mista (G74, G75) | Mnemônico pode piorar no longo prazo; nunca automático em todo cartão | P (campo) / M (sugestão) |
-| 27 | **Outra forma do verbo**: para verbos, parte das revisões pede outra pessoa ou tempo dentro da mesma frase | Conjugar sem baralho separado | Só relato (G79, G80) | Precisa de conjugador confiável por idioma | G |
+| #   | Ideia                                                                                                                                                                 | Necessidade                                            | Evidência                                                | Risco                                                                      | Esforço                  |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------ |
+| 17  | **Jogar com as que errei**: no fim da sessão, um minijogo só com as palavras erradas, sem mexer na agenda                                                             | Segunda chance leve; fechar bem                        | Fraca (repetir o que errou é o que o Gravity fazia, G29) | Nenhum para a memória, se não contar nota                                  | P                        |
+| 18  | **Jogo que conta como revisão só se pedir recordação**: jogos de digitar, falar ou montar valem nota; jogos de casar e escolher são "aquecimento"                     | Unir os 17 minijogos aos cartões sem estragar a agenda | Fraca a forte (G27)                                      | Regra difícil de explicar; mostrar um selo "conta para a memória"          | M                        |
+| 19  | **Rodada relâmpago** opcional, só com cartões maduros: estourar o tempo não vira "Errei", só encerra a rodada                                                         | Emoção; treinar rapidez de acesso                      | Sem evidência de ganho (G50); relatos divididos (G34)    | Ansiedade, branco; nunca padrão, nunca em cartão novo                      | P a M                    |
+| 20  | **Surpresa de vez em quando**: a cada tantos cartões, em intervalo irregular, aparece algo pequeno (uma cena do acervo, uma variação da pele, uma frase de incentivo) | Quebrar a monotonia                                    | Só relato (G40, G41)                                     | Virar distração: nunca antes de a pessoa responder                         | P                        |
+| 21  | **Álbum de cenas**: cada palavra que amadurece vira uma "carta" com o quadro, a frase e o áudio, agrupada por vídeo ou série; completar a série mostra a cobertura    | Ver o progresso como coleção                           | Só relato (popularidade de Pokemanki e Ankimon, G42)     | Premiar volume; a carta nasce do amadurecimento, não do número de revisões | M a G                    |
+| 22  | **Escolher o modo da rodada**: Lembrar, Digitar, Falar, Ouvir, Lacuna, e "Misturado" que varia sozinho                                                                | Variedade sem trocar de tela                           | Mista (G68); a variedade em si não foi medida            | Excesso de opções; "Misturado" como padrão sugerido                        | M                        |
+| 23  | **Digitação tolerante**: aceita erro de digitação e sinônimo conhecido, e mostra "quase"                                                                              | Tirar a maior irritação de quem digita                 | Só relato (G21, G38)                                     | Aceitar errado; mostrar sempre a forma certa                               | P a M                    |
+| 24  | **Sessão curta com fim claro**: "5 minutos" ou "10 cartões" como botões, com fecho próprio                                                                            | Caber na vida; não abrir uma parede                    | Só relato (primeiro relatório)                           | Nenhum                                                                     | P                        |
+| 25  | **Sanguessuga com saídas**: ao travar, o cartão oferece trocar a frase, rever a cena, escrever um lembrete, mandar para um minijogo ou descansar 30 dias              | Transformar frustração em ação                         | Só relato (G83)                                          | Reativar tudo de uma vez afoga (G83): reativar aos poucos                  | M                        |
+| 26  | **Meu lembrete**: campo livre para a pessoa escrever o próprio truque de memória; botão "sugerir um" só quando ela pede                                               | Ajuda para a palavra que não entra                     | Mista (G74, G75)                                         | Mnemônico pode piorar no longo prazo; nunca automático em todo cartão      | P (campo) / M (sugestão) |
+| 27  | **Outra forma do verbo**: para verbos, parte das revisões pede outra pessoa ou tempo dentro da mesma frase                                                            | Conjugar sem baralho separado                          | Só relato (G79, G80)                                     | Precisa de conjugador confiável por idioma                                 | G                        |
 
 ### D. Trazer e levar
 
-| # | Ideia | Necessidade | Evidência | Risco | Esforço |
-|---|---|---|---|---|---|
-| 28 | **Trazer com a agenda e o histórico** do `.apkg`, como opção, convertendo para o FSRS | Não começar do zero | Só relato, mas é o medo mais citado (G1, G2, G6, G7) | Conversão ruim gera pilha no primeiro dia: mostrar a previsão de carga antes de confirmar | M a G |
-| 29 | **Ensaio e desfazer**: antes de importar, mostrar o que vem e o que não vem; depois, um "desfazer esta importação" por 30 dias | Confiança | Só relato (G5, G8) | Nenhum | M |
-| 30 | **Levar de volta inteiro**: exportar `.apkg` com agenda, histórico e mídia (inclusive o áudio da fala e a gravação da pessoa) | Não ficar preso | Só relato (G7, G9, G10) | Tamanho do arquivo; direitos do áudio capturado, que é da sessão da pessoa | M a G |
-| 31 | **Conviver com o Anki**: reimportar atualiza sem duplicar (já existe pelo `guid`) e exportar "só o que mudou desde a última vez" | Manter dois sem trabalho | Só relato (G1) | Conflito quando a pessoa revisa nos dois; avisar e deixar escolher | M |
-| 32 | **Trazer a mídia do baralho** (áudio e imagem do `.apkg`), hoje descartada | O baralho da pessoa chega inteiro | Só relato (perder mídia é queixa recorrente, primeiro relatório) | Foi cancelado em setembro; custo de armazenamento; decisão do dono | G |
-| 33 | **Áudio para baralho mudo**: voz sintética em todo cartão importado sem áudio e, quando houver, a fala real do acervo | Ganho imediato ao importar | Só relato (G84) | Voz errada para o idioma; detectar idioma por baralho | P a M |
-| 34 | **Outras portas de entrada**: lista colada, CSV, texto do Quizlet, CSV mais pasta de mídia do Language Reactor | Receber quem não vem do Anki | Só relato (G10, G11, G14) | Formatos mudam; começar por lista e CSV | M |
+| #   | Ideia                                                                                                                            | Necessidade                       | Evidência                                                        | Risco                                                                                     | Esforço |
+| --- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------- |
+| 28  | **Trazer com a agenda e o histórico** do `.apkg`, como opção, convertendo para o FSRS                                            | Não começar do zero               | Só relato, mas é o medo mais citado (G1, G2, G6, G7)             | Conversão ruim gera pilha no primeiro dia: mostrar a previsão de carga antes de confirmar | M a G   |
+| 29  | **Ensaio e desfazer**: antes de importar, mostrar o que vem e o que não vem; depois, um "desfazer esta importação" por 30 dias   | Confiança                         | Só relato (G5, G8)                                               | Nenhum                                                                                    | M       |
+| 30  | **Levar de volta inteiro**: exportar `.apkg` com agenda, histórico e mídia (inclusive o áudio da fala e a gravação da pessoa)    | Não ficar preso                   | Só relato (G7, G9, G10)                                          | Tamanho do arquivo; direitos do áudio capturado, que é da sessão da pessoa                | M a G   |
+| 31  | **Conviver com o Anki**: reimportar atualiza sem duplicar (já existe pelo `guid`) e exportar "só o que mudou desde a última vez" | Manter dois sem trabalho          | Só relato (G1)                                                   | Conflito quando a pessoa revisa nos dois; avisar e deixar escolher                        | M       |
+| 32  | **Trazer a mídia do baralho** (áudio e imagem do `.apkg`), hoje descartada                                                       | O baralho da pessoa chega inteiro | Só relato (perder mídia é queixa recorrente, primeiro relatório) | Foi cancelado em setembro; custo de armazenamento; decisão do dono                        | G       |
+| 33  | **Áudio para baralho mudo**: voz sintética em todo cartão importado sem áudio e, quando houver, a fala real do acervo            | Ganho imediato ao importar        | Só relato (G84)                                                  | Voz errada para o idioma; detectar idioma por baralho                                     | P a M   |
+| 34  | **Outras portas de entrada**: lista colada, CSV, texto do Quizlet, CSV mais pasta de mídia do Language Reactor                   | Receber quem não vem do Anki      | Só relato (G10, G11, G14)                                        | Formatos mudam; começar por lista e CSV                                                   | M       |
 
 ### E. Com outras pessoas
 
-| # | Ideia | Necessidade | Evidência | Risco | Esforço |
-|---|---|---|---|---|---|
-| 35 | **Baralho por link**: compartilhar um baralho (sem agenda), e quem recebe pode puxar atualizações sem perder o próprio progresso | Estudar junto; professor e aluno | Só relato e dado do fabricante (G85, G86) | Moderação de conteúdo; começar só por link privado | M a G |
-| 36 | **Desafio de dez**: mandar a um amigo as mesmas dez cartas; cada um responde quando quiser e os dois veem o resultado lado a lado | Companhia sem ranking | Só relato (G31, G87) | Comparação desanima quem perde sempre; mostrar acertos, não posição | M |
-| 37 | **Cartão para postar**: imagem com a palavra, a frase e o desenho do app | Mostrar o que aprendeu | Dado do fabricante (G89) | **Quadro de vídeo de terceiros é direito autoral**: usar só o desenho do app, não o quadro | P |
-| 38 | **Resumo sem spoiler**: uma grade pequena da sessão (acertos e erros em quadradinhos) para copiar e colar | Compartilhar sem expor conteúdo | Só relato (G90) | Nenhum | P |
+| #   | Ideia                                                                                                                             | Necessidade                      | Evidência                                 | Risco                                                                                      | Esforço |
+| --- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------ | ------- |
+| 35  | **Baralho por link**: compartilhar um baralho (sem agenda), e quem recebe pode puxar atualizações sem perder o próprio progresso  | Estudar junto; professor e aluno | Só relato e dado do fabricante (G85, G86) | Moderação de conteúdo; começar só por link privado                                         | M a G   |
+| 36  | **Desafio de dez**: mandar a um amigo as mesmas dez cartas; cada um responde quando quiser e os dois veem o resultado lado a lado | Companhia sem ranking            | Só relato (G31, G87)                      | Comparação desanima quem perde sempre; mostrar acertos, não posição                        | M       |
+| 37  | **Cartão para postar**: imagem com a palavra, a frase e o desenho do app                                                          | Mostrar o que aprendeu           | Dado do fabricante (G89)                  | **Quadro de vídeo de terceiros é direito autoral**: usar só o desenho do app, não o quadro | P       |
+| 38  | **Resumo sem spoiler**: uma grade pequena da sessão (acertos e erros em quadradinhos) para copiar e colar                         | Compartilhar sem expor conteúdo  | Só relato (G90)                           | Nenhum                                                                                     | P       |
 
 ---
 

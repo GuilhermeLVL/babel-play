@@ -1490,3 +1490,21 @@ body:has(.cartao-palavra[data-modo='folha']) .fab {
 .leitor-avatar-painel .avm-painel {
   max-height: min(55dvh, 520px);
 }
+
+/* O iChat flutuante ficava sobre o "Próxima página" (o canto do pé do leitor): sobe acima do pé (56 px +
+   respiro), sem mudar o desenho do botão nem tirá-lo da tela. No celular a barra de 84 px fica abaixo do
+   leitor, então o botão sobe 84 + o pé. */
+body:has(.leitor-pe) .fab {
+  bottom: calc(78px + var(--shell-inset-bottom, 0px));
+}
+@container app (max-width: 760px) {
+  body:has(.leitor-pe) .fab {
+    bottom: calc(84px + 78px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Com a barra do narrador aberta o iChat flutuante sai de cena: a barra tem altura variável (convite, painel,
+   celular) e ele cobria "Voz e modo". O leitor já tem o botão "IA" na barra de ferramentas. */
+body:has(.leitor-narrador) .fab {
+  display: none;
+}

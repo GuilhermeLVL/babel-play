@@ -57,9 +57,7 @@
       }
     ]
   },
-  "seletores": [
-    ".q-cab > .q-chip"
-  ],
+  "seletores": [".q-cab > .q-chip"],
   "gravar": {
     "app": [
       {

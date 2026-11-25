@@ -179,6 +179,7 @@ describe('a guarda cobre todos os armazéns migrados', () => {
         'audio-do-cartao',
         'cache-de-voz',
         'cena-do-cartao',
+        'dados-do-aparelho-da-conta',
         'diario-historico',
         'diario-rascunho',
         'entitlements',

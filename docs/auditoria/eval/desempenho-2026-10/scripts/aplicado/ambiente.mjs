@@ -21,31 +21,54 @@ export async function subir(nome, porta = 4310, { restaurar = true } = {}) {
     for (const s of ['', '-wal', '-shm']) if (existsSync(MODELO + s)) copyFileSync(MODELO + s, BANCO + s);
   }
   const base = `http://127.0.0.1:${porta}`;
-  const filho = spawn(process.execPath, [REPO + '/node_modules/.cache/perf-cli/' + (nome.startsWith('legivel') ? 'antes' : nome) + '/server.cjs'], {
-    cwd: raiz,
-    env: {
-      PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, TEMP: process.env.TEMP, TMP: process.env.TMP,
-      NODE_PATH: REPO + '/node_modules',
-      NODE_ENV: 'production', PORT: String(porta), HOST: '127.0.0.1',
-      DATABASE_URL: 'file:' + BANCO, MIGRATIONS_DIR: REPO + '/server/db/migrations',
-      AUDIO_DIR: TMP + '/audio-perf-cli', BACKUP_DIARIO: '0', SECRET_KEY: randomBytes(32).toString('hex'),
-      AUTH_REQUIRED: '0', SELF_HOST: '1', TRUST_PROXY: 'false', LOG_LEVEL: 'error',
+  const filho = spawn(
+    process.execPath,
+    [REPO + '/node_modules/.cache/perf-cli/' + (nome.startsWith('legivel') ? 'antes' : nome) + '/server.cjs'],
+    {
+      cwd: raiz,
+      env: {
+        PATH: process.env.PATH,
+        SystemRoot: process.env.SystemRoot,
+        TEMP: process.env.TEMP,
+        TMP: process.env.TMP,
+        NODE_PATH: REPO + '/node_modules',
+        NODE_ENV: 'production',
+        PORT: String(porta),
+        HOST: '127.0.0.1',
+        DATABASE_URL: 'file:' + BANCO,
+        MIGRATIONS_DIR: REPO + '/server/db/migrations',
+        AUDIO_DIR: TMP + '/audio-perf-cli',
+        BACKUP_DIARIO: '0',
+        SECRET_KEY: randomBytes(32).toString('hex'),
+        AUTH_REQUIRED: '0',
+        SELF_HOST: '1',
+        TRUST_PROXY: 'false',
+        LOG_LEVEL: 'error',
+      },
+      stdio: ['ignore', 'ignore', 'pipe'],
     },
-    stdio: ['ignore', 'ignore', 'pipe'],
-  });
+  );
   let err = '';
   filho.stderr.on('data', (d) => (err += d));
   let morreu = null;
   filho.on('exit', (c) => (morreu = c));
-  const parar = () => { if (filho.exitCode === null) filho.kill(); };
+  const parar = () => {
+    if (filho.exitCode === null) filho.kill();
+  };
   process.on('exit', parar);
   for (const t0 = Date.now(); ; ) {
     if (morreu !== null) throw new Error('servidor morreu: ' + err.slice(-1500));
-    try { if ((await fetch(base + '/api/ready', { signal: AbortSignal.timeout(2000) })).ok) break; } catch {}
+    try {
+      if ((await fetch(base + '/api/ready', { signal: AbortSignal.timeout(2000) })).ok) break;
+    } catch {}
     if (Date.now() - t0 > 90000) throw new Error('servidor nao subiu: ' + err.slice(-1500));
     await new Promise((r) => setTimeout(r, 300));
   }
-  const r = await fetch(base + '/api/settings', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ui: { onboarded: true, providerMode: 'local', credentialId: null } }) });
+  const r = await fetch(base + '/api/settings', {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ ui: { onboarded: true, providerMode: 'local', credentialId: null } }),
+  });
   if (!r.ok) throw new Error('PUT settings ' + r.status);
   process.env.URL0 = base;
   return { base, parar };

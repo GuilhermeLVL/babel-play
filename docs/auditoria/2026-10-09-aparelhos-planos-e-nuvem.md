@@ -9,13 +9,13 @@ Marcas: **[C]** confirmado em fonte; **[I]** inferência; câmbio PTAX de 09/10/
 
 ## 1. O que cada aparelho consegue de graça
 
-| Aparelho | Transcrição grátis | Tradução grátis | Voz grátis | Onde não há via grátis aceitável |
-|---|---|---|---|---|
-| Computador, Chrome/Edge | Sim: reconhecimento do navegador em tempo real (inclusive som de aba, Chrome 135+) e modelo local em WebGPU | Sim: tradutor embutido do Chrome (138+), Bergamot, opus-mt | Sim (boa no Edge, vozes online) | Português local de alta precisão; gíria e registro na tradução |
-| Computador, Firefox/Safari | Só modelo local | Bergamot, opus-mt | Sim | Texto durante a fala com pouca espera |
-| Celular Android | Reconhecimento do navegador só pelo microfone, em frases curtas que reiniciam; modelo local só em topo de linha, sem medição pública | Só modelo próprio (o tradutor do Chrome não existe no celular) | Sim, qualidade variável | **Som do sistema (impossível na web)**; legenda contínua estável |
-| iPhone | Reconhecimento instável; memória de ~1,5 GB por aba limita modelo local | Só modelo próprio | Sim | **Som do sistema**; sessão longa confiável |
-| Meta Quest 3 | **Não existe** no navegador (quatro fontes independentes, a mais recente de 03/2026) | Só modelo próprio, não medido | **Relatos dizem que não** | Transcrição, voz e som do sistema |
+| Aparelho                   | Transcrição grátis                                                                                                                   | Tradução grátis                                                | Voz grátis                      | Onde não há via grátis aceitável                                 |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------- |
+| Computador, Chrome/Edge    | Sim: reconhecimento do navegador em tempo real (inclusive som de aba, Chrome 135+) e modelo local em WebGPU                          | Sim: tradutor embutido do Chrome (138+), Bergamot, opus-mt     | Sim (boa no Edge, vozes online) | Português local de alta precisão; gíria e registro na tradução   |
+| Computador, Firefox/Safari | Só modelo local                                                                                                                      | Bergamot, opus-mt                                              | Sim                             | Texto durante a fala com pouca espera                            |
+| Celular Android            | Reconhecimento do navegador só pelo microfone, em frases curtas que reiniciam; modelo local só em topo de linha, sem medição pública | Só modelo próprio (o tradutor do Chrome não existe no celular) | Sim, qualidade variável         | **Som do sistema (impossível na web)**; legenda contínua estável |
+| iPhone                     | Reconhecimento instável; memória de ~1,5 GB por aba limita modelo local                                                              | Só modelo próprio                                              | Sim                             | **Som do sistema**; sessão longa confiável                       |
+| Meta Quest 3               | **Não existe** no navegador (quatro fontes independentes, a mais recente de 03/2026)                                                 | Só modelo próprio, não medido                                  | **Relatos dizem que não**       | Transcrição, voz e som do sistema                                |
 
 Dois limites são da plataforma e pagar não resolve: no celular e no Quest a web não capta o som de
 outro aplicativo; o aparelho só ouve o ambiente pelo microfone.
@@ -29,11 +29,11 @@ inglês ou chinês; a do Quest não traduz [C].
 **Transcrição, de cada 100 palavras, quantas erra** (áudio de teste; em conversa real com ruído o erro
 dobra ou triplica [I]):
 
-| Onde roda | Inglês | Português |
-|---|---|---|
-| No aparelho (Moonshine small/medium, Whisper small, Nemotron streaming) | 7 a 9 | 7 a 13 |
-| Whisper large-v3-turbo na nuvem (US$ 0,012 a 0,04 por hora) | 5 a 8 | ~5 |
-| Melhores pagos (Scribe v2, AssemblyAI Universal-3 Pro) | 2 a 6 | ~3 |
+| Onde roda                                                               | Inglês | Português |
+| ----------------------------------------------------------------------- | ------ | --------- |
+| No aparelho (Moonshine small/medium, Whisper small, Nemotron streaming) | 7 a 9  | 7 a 13    |
+| Whisper large-v3-turbo na nuvem (US$ 0,012 a 0,04 por hora)             | 5 a 8  | ~5        |
+| Melhores pagos (Scribe v2, AssemblyAI Universal-3 Pro)                  | 2 a 6  | ~3        |
 
 Fontes: Open ASR Leaderboard v4 (03/2026), Artificial Analysis (10/2026), artigo do Whisper (2022, a
 única tabela por tamanho em português: antiga). Não existe medição independente do reconhecimento do
@@ -49,6 +49,7 @@ navegador.
   aproximam.
 
 **O que justifica pagar, por aparelho:**
+
 - **Quest:** sem nuvem não há legenda nem intérprete. A nuvem é pré-requisito do produto ali.
 - **Celular:** sessão contínua e estável, e tradução (não há tradutor embutido).
 - **Computador:** português e outros idiomas com menos erro, áudio ruidoso, tradução com registro.
@@ -69,15 +70,15 @@ navegador.
 
 ## 4. Proposta de planos
 
-| | Grátis | Essencial | Premium | Ao Vivo |
-|---|---|---|---|---|
-| Preço mensal | R$ 0 | R$ 9,90 | R$ 19,90 | R$ 39,90 |
-| Preço anual | | R$ 79,90 | R$ 149,90 | só mensal no início |
-| Para quem | Quem está conhecendo; computador com placa de vídeo | Estudante no computador: sem anúncio e com Nuance | Quem depende de nuvem: celular, notebook fraco, Quest | Intérprete na rua, viagem, reunião, aula ao vivo |
-| O que entra | Tudo no aparelho sem limite, jogos, revisão; anúncio leve | Sem anúncio, sincronização, Nuance rápida, 5 h de nuvem | + transcrição e tradução na nuvem (20 h), intérprete automático, voz neural básica | + texto durante a fala pela nuvem (10 h), voz neural boa |
-| Custo no uso típico | R$ 0,03 a 0,25 | R$ 0,75 | R$ 3,50 | R$ 7,00 |
-| Custo no teto | R$ 0,37 | R$ 2,90 | R$ 7 a 10,50 | R$ 19 a 27,50 |
-| Margem típica (mensal) | | ~78% | ~71% | ~72% |
+|                        | Grátis                                                    | Essencial                                               | Premium                                                                            | Ao Vivo                                                  |
+| ---------------------- | --------------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Preço mensal           | R$ 0                                                      | R$ 9,90                                                 | R$ 19,90                                                                           | R$ 39,90                                                 |
+| Preço anual            |                                                           | R$ 79,90                                                | R$ 149,90                                                                          | só mensal no início                                      |
+| Para quem              | Quem está conhecendo; computador com placa de vídeo       | Estudante no computador: sem anúncio e com Nuance       | Quem depende de nuvem: celular, notebook fraco, Quest                              | Intérprete na rua, viagem, reunião, aula ao vivo         |
+| O que entra            | Tudo no aparelho sem limite, jogos, revisão; anúncio leve | Sem anúncio, sincronização, Nuance rápida, 5 h de nuvem | + transcrição e tradução na nuvem (20 h), intérprete automático, voz neural básica | + texto durante a fala pela nuvem (10 h), voz neural boa |
+| Custo no uso típico    | R$ 0,03 a 0,25                                            | R$ 0,75                                                 | R$ 3,50                                                                            | R$ 7,00                                                  |
+| Custo no teto          | R$ 0,37                                                   | R$ 2,90                                                 | R$ 7 a 10,50                                                                       | R$ 19 a 27,50                                            |
+| Margem típica (mensal) |                                                           | ~78%                                                    | ~71%                                                                               | ~72%                                                     |
 
 Comparação: apps de idiomas no Brasil cobram de R$ 31,90 a R$ 69,90 por mês; Spotify R$ 23,90;
 ChatGPT Go R$ 39,99; Otter Pro ~R$ 85. Nenhum concorrente junta legenda bilíngue de qualquer som,
@@ -88,11 +89,11 @@ Deepgram; voz ElevenLabs em qualquer nível; imposto de 15,5% (Anexo V) em vez d
 
 Resultado mensal estimado, antes de custos fixos (R$ 300 a 600):
 
-| Ativos | Conversão 1,5% | 3,5% | 7% |
-|---|---|---|---|
-| 100 | ~R$ 0 | R$ 24 | R$ 65 |
-| 1.000 | ~R$ 5 | R$ 240 | R$ 650 |
-| 10.000 | ~R$ 50 | R$ 2.400 | R$ 6.500 |
+| Ativos | Conversão 1,5% | 3,5%     | 7%       |
+| ------ | -------------- | -------- | -------- |
+| 100    | ~R$ 0          | R$ 24    | R$ 65    |
+| 1.000  | ~R$ 5          | R$ 240   | R$ 650   |
+| 10.000 | ~R$ 50         | R$ 2.400 | R$ 6.500 |
 
 No cenário conservador a amostra de nuvem do Grátis come todo o ganho. Com o Grátis 100% no aparelho,
 10.000 ativos a 1,5% sobem para ~R$ 2.200. Referências de conversão: Duolingo ~9% depois de dez anos;

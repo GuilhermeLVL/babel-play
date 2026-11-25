@@ -7,9 +7,7 @@
         "entrada": 0.44,
         "saida": 2.2,
         "endpoints": 2,
-        "provedores": [
-          "Mistral"
-        ]
+        "provedores": ["Mistral"]
       }
     },
     {
@@ -160,39 +158,15 @@
       },
       "media": 7,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          true,
-          true
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          true
-        ],
-        "diferencial": [
-          true,
-          true
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, true],
+        "frequencia": [true, true],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, true],
+        "diferencial": [true, true],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Tooltip pode ser difícil de acionar em PiP Safari",
         "Hover não existe em PiP de vídeo Safari; só leitura, sem toque para ver glosa."
@@ -214,39 +188,15 @@
       },
       "media": 7,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          true,
-          true
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          true
-        ],
-        "diferencial": [
-          true,
-          true
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, true],
+        "frequencia": [true, true],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, true],
+        "diferencial": [true, true],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Tamanho fixo pode limitar visibilidade do destaque",
         "A clareza do destaque visual sem poluir a legenda é o desafio."
@@ -268,39 +218,15 @@
       },
       "media": 6.5,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          true,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          true
-        ],
-        "diferencial": [
-          true,
-          true
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, true],
+        "frequencia": [true, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, true],
+        "diferencial": [true, true],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Tamanho fixo e sem transparência",
         "Lista de tópicos pode não caber em ~440×300 sem rolagem e compete com a legenda."
@@ -322,39 +248,15 @@
       },
       "media": 6.5,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          true,
-          true
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          true
-        ],
-        "diferencial": [
-          true,
-          true
-        ],
-        "naoAtrapalha": [
-          true,
-          false
-        ]
+        "valor": [true, true],
+        "frequencia": [true, true],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, true],
+        "diferencial": [true, true],
+        "naoAtrapalha": [true, false]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Tamanho fixo e sem transparência",
         "Correção automática polui a legenda e compete com o vídeo/jogo."
@@ -376,39 +278,15 @@
       },
       "media": 6.5,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          false,
-          true
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          true
-        ],
-        "diferencial": [
-          true,
-          true
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, true],
+        "frequencia": [false, true],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, true],
+        "diferencial": [true, true],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Tamanho fixo e sem transparência",
         "A latência da geração de 3 sugestões pode ser perceptível durante o fluxo da conversa."
@@ -430,39 +308,15 @@
       },
       "media": 6.5,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          true,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          true
-        ],
-        "diferencial": [
-          true,
-          true
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, true],
+        "frequencia": [true, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, true],
+        "diferencial": [true, true],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Tamanho fixo e sem transparência",
         "Texto extra pode poluir legenda em janela pequena e distrair."
@@ -484,39 +338,15 @@
       },
       "media": 6,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          false,
-          true
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          true
-        ],
-        "diferencial": [
-          true,
-          true
-        ],
-        "naoAtrapalha": [
-          false,
-          true
-        ]
+        "valor": [true, true],
+        "frequencia": [false, true],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, true],
+        "diferencial": [true, true],
+        "naoAtrapalha": [false, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Frequência alta pode distrair",
         "A relevância do conceito pode ser baixa se o discurso for muito denso ou vago."
@@ -538,39 +368,15 @@
       },
       "media": 6,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          false,
-          true
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          false
-        ],
-        "diferencial": [
-          true,
-          true
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, true],
+        "frequencia": [false, true],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, false],
+        "diferencial": [true, true],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        true,
-        false
-      ],
+      "somenteAdultos": [true, false],
       "problemaPiP": [
         "Uso esporádico, não justifica janela flutuante",
         "Rascunho longo não cabe em ~440×300; revisar e editar texto na janelinha é sofrível."
@@ -592,39 +398,15 @@
       },
       "media": 6,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          true,
-          true
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          false
-        ],
-        "diferencial": [
-          true,
-          false
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, true],
+        "frequencia": [true, true],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, false],
+        "diferencial": [true, false],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Tamanho fixo e sem transparência",
         "Glossário longo não cabe em ~440×300 px sem rolagem e compete com a legenda."
@@ -646,39 +428,15 @@
       },
       "media": 6,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          true,
-          true
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          false
-        ],
-        "diferencial": [
-          true,
-          false
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, true],
+        "frequencia": [true, true],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, false],
+        "diferencial": [true, false],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Tamanho fixo e sem transparência",
         "Cartões de vocabulário não cabem bem em ~300px de altura."
@@ -700,39 +458,15 @@
       },
       "media": 6,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          true,
-          true
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          false
-        ],
-        "diferencial": [
-          true,
-          true
-        ],
-        "naoAtrapalha": [
-          true,
-          false
-        ]
+        "valor": [true, true],
+        "frequencia": [true, true],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, false],
+        "diferencial": [true, true],
+        "naoAtrapalha": [true, false]
       },
-      "somenteAdultos": [
-        false,
-        true
-      ],
+      "somenteAdultos": [false, true],
       "problemaPiP": [
         "Tamanho fixo e sem transparência",
         "Ler resposta em voz alta exige atenção e cliques no momento errado; janela pequena não comporta."
@@ -754,39 +488,15 @@
       },
       "media": 6,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          false,
-          true
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          true
-        ],
-        "diferencial": [
-          true,
-          true
-        ],
-        "naoAtrapalha": [
-          true,
-          false
-        ]
+        "valor": [true, true],
+        "frequencia": [false, true],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, true],
+        "diferencial": [true, true],
+        "naoAtrapalha": [true, false]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Tamanho fixo e sem transparência",
         "Digitar e ler na janelinha durante reunião desvia atenção e atrapalha a fala."
@@ -808,39 +518,15 @@
       },
       "media": 6,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          false,
-          true
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          false
-        ],
-        "diferencial": [
-          true,
-          true
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, true],
+        "frequencia": [false, true],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, false],
+        "diferencial": [true, true],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Tamanho fixo, sem transparência.",
         "Lista de 3 frases em janela 440×300 exige rolagem e quebra o layout."
@@ -862,39 +548,15 @@
       },
       "media": 5.5,
       "porCriterio": {
-        "valor": [
-          true,
-          false
-        ],
-        "frequencia": [
-          true,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          true
-        ],
-        "diferencial": [
-          true,
-          false
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, false],
+        "frequencia": [true, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, true],
+        "diferencial": [true, false],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Tamanho fixo e sem transparência",
         "Lista longa de tópicos não cabe em ~440×300 px sem rolagem constante."
@@ -916,39 +578,15 @@
       },
       "media": 5.5,
       "porCriterio": {
-        "valor": [
-          true,
-          false
-        ],
-        "frequencia": [
-          false,
-          true
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          true
-        ],
-        "diferencial": [
-          true,
-          false
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, false],
+        "frequencia": [false, true],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, true],
+        "diferencial": [true, false],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Tamanho fixo e sem transparência",
         "Conteúdo pós-jogo irrelevante na janela pequena durante a partida."
@@ -970,39 +608,15 @@
       },
       "media": 5.5,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          false,
-          true
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          false
-        ],
-        "diferencial": [
-          true,
-          true
-        ],
-        "naoAtrapalha": [
-          true,
-          false
-        ]
+        "valor": [true, true],
+        "frequencia": [false, true],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, false],
+        "diferencial": [true, true],
+        "naoAtrapalha": [true, false]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Safari não permite interação",
         "Ler sugestões durante partida exige atenção e cliques no momento errado."
@@ -1024,39 +638,15 @@
       },
       "media": 5.5,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          false,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          false,
-          true
-        ],
-        "diferencial": [
-          true,
-          true
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, true],
+        "frequencia": [false, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [false, true],
+        "diferencial": [true, true],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        true,
-        true
-      ],
+      "somenteAdultos": [true, true],
       "problemaPiP": [
         "Transcrição de terceiros sem consentimento",
         "Não é um recurso de PiP, mas sim um relatório pós-sessão."
@@ -1078,39 +668,15 @@
       },
       "media": 5.5,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          true,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          false,
-          false
-        ],
-        "diferencial": [
-          true,
-          true
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, true],
+        "frequencia": [true, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [false, false],
+        "diferencial": [true, true],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        true,
-        true
-      ],
+      "somenteAdultos": [true, true],
       "problemaPiP": [
         "Processa falas de terceiros sem consentimento",
         "Lista de tarefas não cabe em ~440×300 px sem rolagem e compete com a legenda."
@@ -1132,39 +698,15 @@
       },
       "media": 5.5,
       "porCriterio": {
-        "valor": [
-          false,
-          true
-        ],
-        "frequencia": [
-          false,
-          true
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          true
-        ],
-        "diferencial": [
-          false,
-          true
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [false, true],
+        "frequencia": [false, true],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, true],
+        "diferencial": [false, true],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Tamanho fixo e sem transparência",
         "A dependência de um gatilho manual pode quebrar o fluxo de consumo passivo."
@@ -1186,39 +728,15 @@
       },
       "media": 5.5,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          false,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          false
-        ],
-        "diferencial": [
-          true,
-          true
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, true],
+        "frequencia": [false, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, false],
+        "diferencial": [true, true],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Tamanho fixo e sem transparência",
         "Lista longa de nomes não cabe em ~440×300 px sem rolagem constante."
@@ -1240,39 +758,15 @@
       },
       "media": 5,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          false,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          true
-        ],
-        "diferencial": [
-          false,
-          true
-        ],
-        "naoAtrapalha": [
-          true,
-          false
-        ]
+        "valor": [true, true],
+        "frequencia": [false, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, true],
+        "diferencial": [false, true],
+        "naoAtrapalha": [true, false]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Tamanho fixo e sem transparência",
         "Digitar pergunta em janela de 440×300 durante a aula tira atenção e é desconfortável."
@@ -1294,39 +788,15 @@
       },
       "media": 5,
       "porCriterio": {
-        "valor": [
-          false,
-          true
-        ],
-        "frequencia": [
-          false,
-          true
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          true
-        ],
-        "diferencial": [
-          false,
-          false
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [false, true],
+        "frequencia": [false, true],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, true],
+        "diferencial": [false, false],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Tamanho fixo e sem transparência",
         "Quiz exige ler e clicar em ~440×300, apertado e sem toque no celular."
@@ -1348,39 +818,15 @@
       },
       "media": 5,
       "porCriterio": {
-        "valor": [
-          true,
-          false
-        ],
-        "frequencia": [
-          false,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          true
-        ],
-        "diferencial": [
-          true,
-          false
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, false],
+        "frequencia": [false, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, true],
+        "diferencial": [true, false],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Tamanho fixo e sem transparência",
         "Chip em janela de ~440×300 pode cobrir legenda e competir por espaço."
@@ -1402,39 +848,15 @@
       },
       "media": 5,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          false,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          true
-        ],
-        "diferencial": [
-          false,
-          false
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, true],
+        "frequencia": [false, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, true],
+        "diferencial": [false, false],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Frequência baixa para justificar uso",
         "Chip piscando em 440×300 px pode cobrir legenda e distrair do vídeo."
@@ -1456,39 +878,15 @@
       },
       "media": 5,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          true,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          false,
-          false
-        ],
-        "diferencial": [
-          true,
-          false
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, true],
+        "frequencia": [true, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [false, false],
+        "diferencial": [true, false],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        true,
-        false
-      ],
+      "somenteAdultos": [true, false],
       "problemaPiP": [
         "Transcrição de terceiros sem consentimento",
         "Ata longa em janela ~440×300 exige rolagem e cópia difícil; sem botões no Safari."
@@ -1510,39 +908,15 @@
       },
       "media": 5,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          false,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          true
-        ],
-        "diferencial": [
-          true,
-          false
-        ],
-        "naoAtrapalha": [
-          false,
-          true
-        ]
+        "valor": [true, true],
+        "frequencia": [false, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, true],
+        "diferencial": [true, false],
+        "naoAtrapalha": [false, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Piscar pode distrair em reuniões",
         "Piscar compete com legenda em 440×300 e pode distrair em reunião."
@@ -1564,39 +938,15 @@
       },
       "media": 5,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          false,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          false,
-          false
-        ],
-        "diferencial": [
-          true,
-          true
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, true],
+        "frequencia": [false, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [false, false],
+        "diferencial": [true, true],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        true,
-        false
-      ],
+      "somenteAdultos": [true, false],
       "problemaPiP": [
         "Exposição de terceiros sem consentimento",
         "Ler perguntas em 440×300 px durante reunião desvia atenção da fala."
@@ -1618,39 +968,15 @@
       },
       "media": 5,
       "porCriterio": {
-        "valor": [
-          true,
-          false
-        ],
-        "frequencia": [
-          false,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          true
-        ],
-        "diferencial": [
-          true,
-          false
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, false],
+        "frequencia": [false, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, true],
+        "diferencial": [true, false],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Tamanho fixo, sem transparência",
         "Texto de resumo longo em janela ~440×300 exige rolagem e leitura, competindo com o vídeo."
@@ -1672,39 +998,15 @@
       },
       "media": 4.5,
       "porCriterio": {
-        "valor": [
-          false,
-          false
-        ],
-        "frequencia": [
-          false,
-          true
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          true
-        ],
-        "diferencial": [
-          false,
-          false
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [false, false],
+        "frequencia": [false, true],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, true],
+        "diferencial": [false, false],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Tamanho fixo e sem transparência",
         "Palavras soltas sem contexto confundem e ainda cobrem parte do jogo."
@@ -1726,39 +1028,15 @@
       },
       "media": 4.5,
       "porCriterio": {
-        "valor": [
-          true,
-          false
-        ],
-        "frequencia": [
-          false,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          true
-        ],
-        "diferencial": [
-          false,
-          false
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, false],
+        "frequencia": [false, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, true],
+        "diferencial": [false, false],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Uso esporádico não justifica janela flutuante",
         "Lista de 6 frases em ~440×300 px exige rolagem e leitura, competindo com o vídeo."
@@ -1780,39 +1058,15 @@
       },
       "media": 4.5,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          false,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          false,
-          false
-        ],
-        "diferencial": [
-          false,
-          true
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, true],
+        "frequencia": [false, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [false, false],
+        "diferencial": [false, true],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        true,
-        false
-      ],
+      "somenteAdultos": [true, false],
       "problemaPiP": [
         "Exposição de terceiros sem consentimento",
         "Resumo de 3 linhas pode não caber legível em ~440×300 px."
@@ -1834,39 +1088,15 @@
       },
       "media": 4.5,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          false,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          true
-        ],
-        "diferencial": [
-          false,
-          false
-        ],
-        "naoAtrapalha": [
-          true,
-          false
-        ]
+        "valor": [true, true],
+        "frequencia": [false, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, true],
+        "diferencial": [false, false],
+        "naoAtrapalha": [true, false]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Tamanho fixo, sem transparência",
         "Falar em voz alta durante vídeo é constrangedor e interrompe a sessão."
@@ -1888,39 +1118,15 @@
       },
       "media": 4,
       "porCriterio": {
-        "valor": [
-          true,
-          false
-        ],
-        "frequencia": [
-          true,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          false,
-          false
-        ],
-        "diferencial": [
-          true,
-          false
-        ],
-        "naoAtrapalha": [
-          true,
-          false
-        ]
+        "valor": [true, false],
+        "frequencia": [true, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [false, false],
+        "diferencial": [true, false],
+        "naoAtrapalha": [true, false]
       },
-      "somenteAdultos": [
-        true,
-        true
-      ],
+      "somenteAdultos": [true, true],
       "problemaPiP": [
         "Falas de terceiros sem consentimento",
         "Sugestões em tempo real exigem leitura durante a fala, atrapalhando a conversa."
@@ -1942,39 +1148,15 @@
       },
       "media": 4,
       "porCriterio": {
-        "valor": [
-          true,
-          false
-        ],
-        "frequencia": [
-          false,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          false
-        ],
-        "diferencial": [
-          false,
-          false
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [true, false],
+        "frequencia": [false, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, false],
+        "diferencial": [false, false],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Uso esporádico não justifica janela flutuante",
         "Digitar/falar em janela de 440×300 durante vídeo é lento e tira o foco."
@@ -1996,39 +1178,15 @@
       },
       "media": 4,
       "porCriterio": {
-        "valor": [
-          true,
-          false
-        ],
-        "frequencia": [
-          true,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          false,
-          false
-        ],
-        "diferencial": [
-          true,
-          false
-        ],
-        "naoAtrapalha": [
-          true,
-          false
-        ]
+        "valor": [true, false],
+        "frequencia": [true, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [false, false],
+        "diferencial": [true, false],
+        "naoAtrapalha": [true, false]
       },
-      "somenteAdultos": [
-        true,
-        false
-      ],
+      "somenteAdultos": [true, false],
       "problemaPiP": [
         "Processa falas de terceiros sem consentimento",
         "Atualização automática a cada 5 min pisca e desvia atenção em janela pequena."
@@ -2050,39 +1208,15 @@
       },
       "media": 3.5,
       "porCriterio": {
-        "valor": [
-          false,
-          false
-        ],
-        "frequencia": [
-          false,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          true,
-          true
-        ],
-        "diferencial": [
-          false,
-          false
-        ],
-        "naoAtrapalha": [
-          true,
-          false
-        ]
+        "valor": [false, false],
+        "frequencia": [false, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [true, true],
+        "diferencial": [false, false],
+        "naoAtrapalha": [true, false]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Uso esporádico não justifica janela flutuante",
         "Falar e copiar durante o jogo desvia a atenção e atrapalha a ação."
@@ -2104,39 +1238,15 @@
       },
       "media": 3.5,
       "porCriterio": {
-        "valor": [
-          true,
-          false
-        ],
-        "frequencia": [
-          false,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          false,
-          false
-        ],
-        "diferencial": [
-          false,
-          true
-        ],
-        "naoAtrapalha": [
-          true,
-          false
-        ]
+        "valor": [true, false],
+        "frequencia": [false, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [false, false],
+        "diferencial": [false, true],
+        "naoAtrapalha": [true, false]
       },
-      "somenteAdultos": [
-        false,
-        true
-      ],
+      "somenteAdultos": [false, true],
       "problemaPiP": [
         "Busca na web sem ZDR",
         "Exige toque e leitura de fonte, desviando atenção no meio da reunião."
@@ -2158,39 +1268,15 @@
       },
       "media": 3,
       "porCriterio": {
-        "valor": [
-          false,
-          false
-        ],
-        "frequencia": [
-          false,
-          false
-        ],
-        "viavel": [
-          false,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          false,
-          false
-        ],
-        "diferencial": [
-          true,
-          false
-        ],
-        "naoAtrapalha": [
-          true,
-          true
-        ]
+        "valor": [false, false],
+        "frequencia": [false, false],
+        "viavel": [false, true],
+        "custo": [true, true],
+        "privacidade": [false, false],
+        "diferencial": [true, false],
+        "naoAtrapalha": [true, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Busca na web viola ZDR",
         "Resposta com fontes pode não caber em ~440×300 e desviar atenção da cena."
@@ -2212,39 +1298,15 @@
       },
       "media": 2.5,
       "porCriterio": {
-        "valor": [
-          true,
-          true
-        ],
-        "frequencia": [
-          false,
-          true
-        ],
-        "viavel": [
-          false,
-          true
-        ],
-        "custo": [
-          false,
-          false
-        ],
-        "privacidade": [
-          false,
-          false
-        ],
-        "diferencial": [
-          false,
-          false
-        ],
-        "naoAtrapalha": [
-          false,
-          true
-        ]
+        "valor": [true, true],
+        "frequencia": [false, true],
+        "viavel": [false, true],
+        "custo": [false, false],
+        "privacidade": [false, false],
+        "diferencial": [false, false],
+        "naoAtrapalha": [false, true]
       },
-      "somenteAdultos": [
-        false,
-        false
-      ],
+      "somenteAdultos": [false, false],
       "problemaPiP": [
         "Espaço limitado para links",
         "Lista cresce rápido e vira parede de texto em janela de 440×300 px."
@@ -2266,39 +1328,15 @@
       },
       "media": 2,
       "porCriterio": {
-        "valor": [
-          true,
-          false
-        ],
-        "frequencia": [
-          false,
-          false
-        ],
-        "viavel": [
-          false,
-          false
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          false,
-          false
-        ],
-        "diferencial": [
-          true,
-          false
-        ],
-        "naoAtrapalha": [
-          false,
-          false
-        ]
+        "valor": [true, false],
+        "frequencia": [false, false],
+        "viavel": [false, false],
+        "custo": [true, true],
+        "privacidade": [false, false],
+        "diferencial": [true, false],
+        "naoAtrapalha": [false, false]
       },
-      "somenteAdultos": [
-        true,
-        true
-      ],
+      "somenteAdultos": [true, true],
       "problemaPiP": [
         "Exige foco para ler dados",
         "Dossiê longo não cabe em ~440×300 px e desvia atenção da conversa."
@@ -2320,39 +1358,15 @@
       },
       "media": 2,
       "porCriterio": {
-        "valor": [
-          false,
-          false
-        ],
-        "frequencia": [
-          false,
-          false
-        ],
-        "viavel": [
-          true,
-          true
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          false,
-          false
-        ],
-        "diferencial": [
-          false,
-          false
-        ],
-        "naoAtrapalha": [
-          false,
-          false
-        ]
+        "valor": [false, false],
+        "frequencia": [false, false],
+        "viavel": [true, true],
+        "custo": [true, true],
+        "privacidade": [false, false],
+        "diferencial": [false, false],
+        "naoAtrapalha": [false, false]
       },
-      "somenteAdultos": [
-        true,
-        true
-      ],
+      "somenteAdultos": [true, true],
       "problemaPiP": [
         "Aviso atrapalha imersão no jogo",
         "Aviso automático interrompe o jogo e pede ação no pior momento."
@@ -2374,39 +1388,15 @@
       },
       "media": 1,
       "porCriterio": {
-        "valor": [
-          false,
-          false
-        ],
-        "frequencia": [
-          false,
-          false
-        ],
-        "viavel": [
-          false,
-          false
-        ],
-        "custo": [
-          true,
-          true
-        ],
-        "privacidade": [
-          false,
-          false
-        ],
-        "diferencial": [
-          false,
-          false
-        ],
-        "naoAtrapalha": [
-          false,
-          false
-        ]
+        "valor": [false, false],
+        "frequencia": [false, false],
+        "viavel": [false, false],
+        "custo": [true, true],
+        "privacidade": [false, false],
+        "diferencial": [false, false],
+        "naoAtrapalha": [false, false]
       },
-      "somenteAdultos": [
-        true,
-        true
-      ],
+      "somenteAdultos": [true, true],
       "problemaPiP": [
         "Distração visual com emoções",
         "Rótulos de emoção por falante poluem janela pequena e distraem do vídeo."

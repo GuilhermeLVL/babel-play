@@ -5,14 +5,14 @@
  * era `{ok:true}` de qualquer jeito: o arquivo ficava órfão no disco enquanto o usuário via
  * "apagado". Para um pedido de exclusão (LGPD/GDPR) é confirmar o que não ocorreu.
  */
-import { existsSync,mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let router: any
@@ -23,11 +23,14 @@ beforeAll(async () => {
   audioDir = mkdtempSync(path.join(tmpdir(), 'babel-del-'))
   process.env.AUDIO_DIR = audioDir
   h = await setupEphemeralDb()
-  const mod = await h.load('../../server/routes/sessions') as any
+  const mod = (await h.load('../../server/routes/sessions')) as any
   router = mod.sessionsRouter
   ;({ sessionsRepo: sessions } = await h.load('../../server/db/repositories/sessions'))
 })
-afterAll(async () => { delete process.env.AUDIO_DIR; await h.cleanup() })
+afterAll(async () => {
+  delete process.env.AUDIO_DIR
+  await h.cleanup()
+})
 afterEach(() => vi.restoreAllMocks())
 
 /** Invoca o handler do DELETE registrado no router, sem subir servidor. */
@@ -37,8 +40,14 @@ function handlerDelete() {
 }
 function fakeRes() {
   const r: any = { statusCode: 200, body: undefined }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    return r
+  }
   return r
 }
 

@@ -28,7 +28,12 @@ describe('quem adianta o download do servidor em memória', () => {
 
 describe('modulepreload do servidor em memória na edição estática', () => {
   const bundle = {
-    'assets/index-A.js': { type: 'chunk' as const, fileName: 'assets/index-A.js', facadeModuleId: '/r/src/main.tsx', imports: [] },
+    'assets/index-A.js': {
+      type: 'chunk' as const,
+      fileName: 'assets/index-A.js',
+      facadeModuleId: '/r/src/main.tsx',
+      imports: [],
+    },
     'assets/servidor-B.js': {
       type: 'chunk' as const,
       fileName: 'assets/servidor-B.js',

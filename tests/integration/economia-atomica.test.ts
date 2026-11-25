@@ -12,11 +12,11 @@
  * O teste do item 1 é sobre o MECANISMO, não sobre um espião: dez gastos simultâneos contra um
  * saldo que paga poucos, e a conta do que entrou no ledger.
  */
-import { afterAll,afterEach,beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
 import { recompensaDaTrilha } from '../../src/core/temporada'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let metricsRouter: any
@@ -30,8 +30,14 @@ function handler(caminho: string): (req: any, res: any) => Promise<void> {
 }
 function mockRes(): any {
   const r: any = { statusCode: 200, body: undefined }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    return r
+  }
   return r
 }
 const req = (body: unknown, u: string) => ({ userId: asUserId(u), body, requestId: 'req-at', path: '/x' })
@@ -40,7 +46,10 @@ const req = (body: unknown, u: string) => ({ userId: asUserId(u), body, requestI
 async function ganhar(userId: string, rodadas: number) {
   for (let n = 0; n < rodadas; n++) {
     await exerciseResultsRepo.addRodada(asUserId(userId), {
-      roundId: `r-${userId}-${n}`, exerciseKind: 'termo', origem: 'baralho', score: 100,
+      roundId: `r-${userId}-${n}`,
+      exerciseKind: 'termo',
+      origem: 'baralho',
+      score: 100,
       melhorSequencia: 20,
       itens: Array.from({ length: 20 }, (_, i) => ({ itemRef: `w${n}-${i}`, correct: 1, kind: 'drill' })),
     })
@@ -54,7 +63,9 @@ beforeAll(async () => {
   ;({ economiaDoUsuario } = (await h.load('../../server/db/repositories/metrics')) as any)
   ;({ exerciseResultsRepo } = (await h.load('../../server/db/repositories/exerciseResults')) as any)
 })
-afterAll(async () => { await h.cleanup() })
+afterAll(async () => {
+  await h.cleanup()
+})
 
 describe('gasto concorrente', () => {
   it('dez "pular rodada" simultâneos com saldo para dois debitam DOIS', async () => {
@@ -68,7 +79,11 @@ describe('gasto concorrente', () => {
        ganhas. Com ele, o SQLite avalia a soma no momento da escrita e só cabem dois. */
     const resultados = await Promise.all(
       Array.from({ length: 10 }, (_, i) =>
-        seedSpendsRepo.debitar(asUserId(u), { spendId: `pular-${i}-xxxx`, amount: 40, reason: 'pular-rodada' }, { tetoDeGasto: ganhas }),
+        seedSpendsRepo.debitar(
+          asUserId(u),
+          { spendId: `pular-${i}-xxxx`, amount: 40, reason: 'pular-rodada' },
+          { tetoDeGasto: ganhas },
+        ),
       ),
     )
     const entraram = resultados.filter((r: any) => r.linha && !r.jaExistia)
@@ -124,7 +139,9 @@ describe('crédito de casa da temporada', () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-10-15T12:00:00-03:00'))
   }
-  afterEach(() => { vi.useRealTimers() })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
 
   it('sem o XP da janela, recusa dizendo o XP e o exigido', async () => {
     durante()

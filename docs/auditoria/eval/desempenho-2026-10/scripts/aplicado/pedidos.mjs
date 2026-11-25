@@ -19,7 +19,12 @@ for (let i = 0; i < N; i++) {
   let t0 = Date.now();
   cdp.on('Network.requestWillBeSent', (e) => {
     if (!e.request.url.includes('/api/')) return;
-    vivos.set(e.requestId, { m: e.request.method, url: e.request.url.replace(URL0, '').replace(/\?.*/, (q) => (q.length > 40 ? '?…' : q)), t: Date.now() - t0, inm: !!(e.request.headers['If-None-Match'] || e.request.headers['if-none-match']) });
+    vivos.set(e.requestId, {
+      m: e.request.method,
+      url: e.request.url.replace(URL0, '').replace(/\?.*/, (q) => (q.length > 40 ? '?…' : q)),
+      t: Date.now() - t0,
+      inm: !!(e.request.headers['If-None-Match'] || e.request.headers['if-none-match']),
+    });
   });
   cdp.on('Network.responseReceived', (e) => {
     const r = vivos.get(e.requestId);
@@ -49,8 +54,23 @@ for (let i = 0; i < N; i++) {
     lista = [];
     const por = {};
     for (const r of l) por[r.m + ' ' + r.url] = (por[r.m + ' ' + r.url] ?? 0) + 1;
-    const res = { rotulo: rot, pedidos: l.length, bytes: l.reduce((a, r) => a + (r.fio || 0), 0), repetidos: Object.entries(por).filter(([, n]) => n > 1).map(([k, n]) => `${k} ×${n}`), n304: l.filter((r) => r.status === 304).length, cancelados: l.filter((r) => r.falhou).length, lista: l.map((r) => `${String(r.t).padStart(6)} ${r.m} ${r.url} ${r.status ?? r.falhou}${r.doCache ? ' (cache do navegador)' : ''} ${r.fio ?? 0}B${r.inm ? ' inm' : ''}${r.etag ? ' etag' : ''}${r.cc ? ' cc=' + r.cc : ''}`) };
-    console.log(`${build} ${nome} r${i} ${rot}: ${res.pedidos} pedidos, ${res.bytes} B, 304: ${res.n304}, cancelados: ${res.cancelados}, repetidos: ${res.repetidos.join('; ') || 'nenhum'}`);
+    const res = {
+      rotulo: rot,
+      pedidos: l.length,
+      bytes: l.reduce((a, r) => a + (r.fio || 0), 0),
+      repetidos: Object.entries(por)
+        .filter(([, n]) => n > 1)
+        .map(([k, n]) => `${k} ×${n}`),
+      n304: l.filter((r) => r.status === 304).length,
+      cancelados: l.filter((r) => r.falhou).length,
+      lista: l.map(
+        (r) =>
+          `${String(r.t).padStart(6)} ${r.m} ${r.url} ${r.status ?? r.falhou}${r.doCache ? ' (cache do navegador)' : ''} ${r.fio ?? 0}B${r.inm ? ' inm' : ''}${r.etag ? ' etag' : ''}${r.cc ? ' cc=' + r.cc : ''}`,
+      ),
+    };
+    console.log(
+      `${build} ${nome} r${i} ${rot}: ${res.pedidos} pedidos, ${res.bytes} B, 304: ${res.n304}, cancelados: ${res.cancelados}, repetidos: ${res.repetidos.join('; ') || 'nenhum'}`,
+    );
     if (i === 0) for (const x of res.lista) console.log('   ' + x);
     return res;
   };
@@ -66,7 +86,11 @@ for (let i = 0; i < N; i++) {
     await sossegar(s, 3000, 45000);
     passos.push(fechar('abrir o app'));
     t0 = Date.now();
-    await toca(s.P.toque ? '.q-trilho .q-item[data-px-rota="cartoes"]' : '.q-trilho .q-item[data-px-rota="cartoes"], .q-trilho .q-item[aria-label="Praticar"]');
+    await toca(
+      s.P.toque
+        ? '.q-trilho .q-item[data-px-rota="cartoes"]'
+        : '.q-trilho .q-item[data-px-rota="cartoes"], .q-trilho .q-item[aria-label="Praticar"]',
+    );
     await page.waitForTimeout(3000);
     await sossegar(s, 2500, 30000);
     passos.push(fechar('abrir Cartoes (Praticar)'));
@@ -79,7 +103,12 @@ for (let i = 0; i < N; i++) {
     await page.waitForTimeout(3500);
     await sossegar(s, 2500, 30000);
     if (i === 0) {
-      console.log('   URL', page.url(), '| h1:', await page.evaluate(() => document.querySelector('.px-tela h1, h1')?.textContent));
+      console.log(
+        '   URL',
+        page.url(),
+        '| h1:',
+        await page.evaluate(() => document.querySelector('.px-tela h1, h1')?.textContent),
+      );
       await page.screenshot({ path: `palavras-${build}-${nome}.png` });
     }
     passos.push(fechar('abrir Palavras (Vocabulario)'));
@@ -111,7 +140,13 @@ const rotulos = [...new Set(runs.flatMap((r) => r.map((p) => p.rotulo)))];
 const med = {};
 for (const rot of rotulos) {
   const xs = runs.map((r) => r.find((p) => p.rotulo === rot)).filter(Boolean);
-  med[rot] = { n: xs.length, pedidos: mediana(xs.map((x) => x.pedidos)), bytes: mediana(xs.map((x) => x.bytes)), n304: mediana(xs.map((x) => x.n304)), repetidos: xs[0].repetidos };
+  med[rot] = {
+    n: xs.length,
+    pedidos: mediana(xs.map((x) => x.pedidos)),
+    bytes: mediana(xs.map((x) => x.bytes)),
+    n304: mediana(xs.map((x) => x.n304)),
+    repetidos: xs[0].repetidos,
+  };
   console.log('MEDIANA', build, nome, rot, JSON.stringify(med[rot]));
 }
 salvar(`pedidos-${build}${suf}-${nome}.json`, { mediana: med, runs });

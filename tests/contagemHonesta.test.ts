@@ -13,20 +13,34 @@
  * exibir um artefato de paginação como se fosse um fato sobre o acervo é o defeito mais grave
  * possível — corrói justamente o diferencial.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { pistasDaTriagem,triarCartoes } from '../src/core/learning/quality'
-import { type CartaoParaCompor, composicaoLocal, contagemDaFonte, type PedidoDeComposicao } from '../src/core/minigames/composicao'
+import { pistasDaTriagem, triarCartoes } from '../src/core/learning/quality'
+import {
+  type CartaoParaCompor,
+  composicaoLocal,
+  contagemDaFonte,
+  type PedidoDeComposicao,
+} from '../src/core/minigames/composicao'
 import { estadoDoJogo } from '../src/core/minigames/estadoDosJogos'
 import type { VocabCard } from '../src/types'
 
 /** Gera N cartões válidos e distintos — o ponto é o VOLUME, não o conteúdo. */
 const muitosCartoes = (n: number): CartaoParaCompor[] =>
   Array.from({ length: n }, (_, i) => ({
-    id: `c${i}`, word: `word${i}`, back: `palavra${i}`, sentence: null,
-    cefrLevel: 'A2', cefrSource: 'wordlist', occurrences: 1 + (i % 5),
-    difficultyScore: (i % 100) / 100, dueAt: i, srcLang: 'en', tgtLang: 'pt',
-    clozePrompt: null, clozeAnswer: null,
+    id: `c${i}`,
+    word: `word${i}`,
+    back: `palavra${i}`,
+    sentence: null,
+    cefrLevel: 'A2',
+    cefrSource: 'wordlist',
+    occurrences: 1 + (i % 5),
+    difficultyScore: (i % 100) / 100,
+    dueAt: i,
+    srcLang: 'en',
+    tgtLang: 'pt',
+    clozePrompt: null,
+    clozeAnswer: null,
   })) as CartaoParaCompor[]
 
 const PEDIDO: PedidoDeComposicao = { jogo: 'memory', fonte: { id: 'baralho' }, limite: 200 }
@@ -71,7 +85,11 @@ describe('contagemDaFonte — decide qual número vai para a tela', () => {
 
   it('o total do SERVIDOR vence o local: é ele que conhece a fonte inteira', () => {
     // O servidor compôs 200 de 1.902; o cliente só tinha 300 cartões em memória.
-    const doServidor = { ...composicaoLocal(muitosCartoes(300), PEDIDO), total: 1902, origemDaComposicao: 'servidor' as const }
+    const doServidor = {
+      ...composicaoLocal(muitosCartoes(300), PEDIDO),
+      total: 1902,
+      origemDaComposicao: 'servidor' as const,
+    }
     const r = contagemDaFonte(doServidor, 300)
     expect(r.total).toBe(1902)
   })
@@ -98,27 +116,78 @@ describe('contagemDaFonte — decide qual número vai para a tela', () => {
  * do que existe COM TRADUÇÃO, e o número da faixa tem de bater com o que a rodada entrega.
  */
 describe('a aritmética sobre um baralho sujo, como o real', () => {
-  const carta = (p: Partial<VocabCard> & { id: string; word: string }): VocabCard => ({
-    phonetics: '', translation: '', explanation: '', srcLang: 'en', tgtLang: 'pt',
-    leitnerBox: 1, leitnerDueAt: new Date(0).toISOString(),
-    fsrsState: 'New', fsrsStability: 0, fsrsDifficulty: 5, fsrsPredictedRetention: 0,
-    fsrsDueAt: new Date(0).toISOString(), inDeck: true, ...p,
-  } as VocabCard)
+  const carta = (p: Partial<VocabCard> & { id: string; word: string }): VocabCard =>
+    ({
+      phonetics: '',
+      translation: '',
+      explanation: '',
+      srcLang: 'en',
+      tgtLang: 'pt',
+      leitnerBox: 1,
+      leitnerDueAt: new Date(0).toISOString(),
+      fsrsState: 'New',
+      fsrsStability: 0,
+      fsrsDifficulty: 5,
+      fsrsPredictedRetention: 0,
+      fsrsDueAt: new Date(0).toISOString(),
+      inDeck: true,
+      ...p,
+    }) as VocabCard
 
   /* 60 cartões nas proporções medidas: 20 inglês com tradução, 20 inglês só com frase,
      20 português (outra rodada). Sem dígitos nas traduções — `pistaUtil` os rejeita, e foi
      assim que um teste anterior deste projeto passou a comparar zero com zero. */
-  const NOMES = ['house', 'bread', 'table', 'window', 'garden', 'bottle', 'candle', 'bridge',
-    'river', 'forest', 'mountain', 'island', 'street', 'market', 'letter', 'summer',
-    'winter', 'flower', 'silver', 'golden']
-  const TRADUCOES = ['casa', 'pão', 'mesa', 'janela', 'jardim', 'garrafa', 'vela', 'ponte',
-    'rio', 'floresta', 'montanha', 'ilha', 'rua', 'mercado', 'carta', 'verão',
-    'inverno', 'flor', 'prata', 'dourado']
+  const NOMES = [
+    'house',
+    'bread',
+    'table',
+    'window',
+    'garden',
+    'bottle',
+    'candle',
+    'bridge',
+    'river',
+    'forest',
+    'mountain',
+    'island',
+    'street',
+    'market',
+    'letter',
+    'summer',
+    'winter',
+    'flower',
+    'silver',
+    'golden',
+  ]
+  const TRADUCOES = [
+    'casa',
+    'pão',
+    'mesa',
+    'janela',
+    'jardim',
+    'garrafa',
+    'vela',
+    'ponte',
+    'rio',
+    'floresta',
+    'montanha',
+    'ilha',
+    'rua',
+    'mercado',
+    'carta',
+    'verão',
+    'inverno',
+    'flor',
+    'prata',
+    'dourado',
+  ]
 
   const SUJO: VocabCard[] = [
     ...NOMES.map((w, i) => carta({ id: `t${i}`, word: w, translation: TRADUCOES[i] })),
     ...NOMES.map((w, i) => carta({ id: `f${i}`, word: `${w}s`, translation: '', sentence: `I saw the ${w}s there.` })),
-    ...NOMES.map((w, i) => carta({ id: `p${i}`, word: TRADUCOES[i], translation: NOMES[i], srcLang: 'pt', tgtLang: 'en' })),
+    ...NOMES.map((w, i) =>
+      carta({ id: `p${i}`, word: TRADUCOES[i], translation: NOMES[i], srcLang: 'pt', tgtLang: 'en' }),
+    ),
   ]
 
   it('a fixture é MESMO suja — sem isto o resto compara zero com zero', () => {
@@ -134,14 +203,19 @@ describe('a aritmética sobre um baralho sujo, como o real', () => {
        Memória só monta com par de verdade. Aqui as duas contas voltam a ser compatíveis. */
     const t = triarCartoes(SUJO, { lang: 'en' })
     const memoria = estadoDoJogo('memory', {
-      cartas: t.usaveis, frases: [], temAudio: false, temVoz: false, fonteId: 'baralho', lang: 'en',
+      cartas: t.usaveis,
+      frases: [],
+      temAudio: false,
+      temVoz: false,
+      fonteId: 'baralho',
+      lang: 'en',
     })
     expect(memoria.disponiveis).toBeLessThanOrEqual(pistasDaTriagem(t).comTraducao.length)
   })
 
   it('e os cartões de outro idioma não entram na conta de jeito nenhum', () => {
     const t = triarCartoes(SUJO, { lang: 'en' })
-    expect(t.usaveis.some(c => c.srcLang === 'pt')).toBe(false)
+    expect(t.usaveis.some((c) => c.srcLang === 'pt')).toBe(false)
   })
 
   it('a faixa fecha: usáveis = com tradução + só com frase', () => {

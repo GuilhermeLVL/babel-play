@@ -1,8 +1,15 @@
 // @vitest-environment jsdom
-import { beforeEach,describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { recompensasDoNivel } from '../src/lib/desbloqueios'
-import { estadoDaColecao, iconeDoItem, itemDaConquista, itensPorNivel, proximaRecompensa, recompensasDoNivelCompleto } from '../src/lib/galeria/progressao'
+import {
+  estadoDaColecao,
+  iconeDoItem,
+  itemDaConquista,
+  itensPorNivel,
+  proximaRecompensa,
+  recompensasDoNivelCompleto,
+} from '../src/lib/galeria/progressao'
 import { abrePorNivel, CATALOGO_DA_LOJA } from '../src/lib/loja'
 
 describe('progressão — o mapa das quatro áreas', () => {
@@ -29,7 +36,7 @@ describe('progressão — o mapa das quatro áreas', () => {
     const total = e.possuidos.length + e.compraveis.length + e.porNivel.length + e.porConquista.length
     expect(total).toBe(CATALOGO_DA_LOJA.length)
     expect(e.porConquista.every((i) => !!i.exclusivoDe)).toBe(true)
-    expect(e.possuidos.every((i) => i.exclusivoDe ? false : abrePorNivel(i, 3))).toBe(true)
+    expect(e.possuidos.every((i) => (i.exclusivoDe ? false : abrePorNivel(i, 3)))).toBe(true)
     expect(e.compraveis.every((i) => !abrePorNivel(i, 3) && (i.precoSeeds ?? Infinity) <= 100)).toBe(true)
   })
 

@@ -131,11 +131,7 @@ export function montarCorrente(
     const alvo = corrente[i];
     const letra = letraFinal(corrente[i - 1].answer);
     const distratores = shuffle([
-      ...new Set(
-        items
-          .map((x) => x.answer)
-          .filter((a) => a !== alvo.answer && letraInicial(a) !== letra),
-      ),
+      ...new Set(items.map((x) => x.answer).filter((a) => a !== alvo.answer && letraInicial(a) !== letra)),
     ]).slice(0, OPCOES_POR_PASSO - 1);
     if (!distratores.length) break;
     passos.push({

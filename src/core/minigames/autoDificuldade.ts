@@ -22,24 +22,44 @@ export interface DecisaoAuto {
   media: number | null;
 }
 
-export function faixaAuto(p: { ultimasPrecisoes: readonly number[]; faixaAtual?: FaixaDificuldade | null }): DecisaoAuto {
+export function faixaAuto(p: {
+  ultimasPrecisoes: readonly number[];
+  faixaAtual?: FaixaDificuldade | null;
+}): DecisaoAuto {
   const atual = p.faixaAtual ?? 'facil';
   const ultimas = p.ultimasPrecisoes.slice(-JANELA_DE_RODADAS);
-  if (!ultimas.length) return { faixa: 'facil', motivo: 'Começando em Fácil: ainda não há rodadas para medir.', media: null };
+  if (!ultimas.length)
+    return { faixa: 'facil', motivo: 'Começando em Fácil: ainda não há rodadas para medir.', media: null };
   if (ultimas.length < JANELA_DE_RODADAS) {
-    return { faixa: atual, motivo: `${rotulo(atual)} por enquanto: faltam ${JANELA_DE_RODADAS - ultimas.length} rodada(s) para ajustar.`, media: media(ultimas) };
+    return {
+      faixa: atual,
+      motivo: `${rotulo(atual)} por enquanto: faltam ${JANELA_DE_RODADAS - ultimas.length} rodada(s) para ajustar.`,
+      media: media(ultimas),
+    };
   }
   const m = media(ultimas);
   const i = ORDEM.indexOf(atual);
   if (m >= ALVO_MAX && i < ORDEM.length - 1) {
     const nova = ORDEM[i + 1];
-    return { faixa: nova, motivo: `Subiu para ${rotulo(nova)}: ${m}% nas últimas ${JANELA_DE_RODADAS} rodadas.`, media: m };
+    return {
+      faixa: nova,
+      motivo: `Subiu para ${rotulo(nova)}: ${m}% nas últimas ${JANELA_DE_RODADAS} rodadas.`,
+      media: m,
+    };
   }
   if (m < ALVO_MIN && i > 0) {
     const nova = ORDEM[i - 1];
-    return { faixa: nova, motivo: `Voltou para ${rotulo(nova)}: ${m}% nas últimas ${JANELA_DE_RODADAS} rodadas. Sem pressa.`, media: m };
+    return {
+      faixa: nova,
+      motivo: `Voltou para ${rotulo(nova)}: ${m}% nas últimas ${JANELA_DE_RODADAS} rodadas. Sem pressa.`,
+      media: m,
+    };
   }
-  return { faixa: atual, motivo: `${rotulo(atual)} mantido: ${m}% nas últimas ${JANELA_DE_RODADAS} rodadas (alvo ${ALVO_MIN}-${ALVO_MAX}%).`, media: m };
+  return {
+    faixa: atual,
+    motivo: `${rotulo(atual)} mantido: ${m}% nas últimas ${JANELA_DE_RODADAS} rodadas (alvo ${ALVO_MIN}-${ALVO_MAX}%).`,
+    media: m,
+  };
 }
 
 function media(xs: readonly number[]): number {

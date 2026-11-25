@@ -46,8 +46,8 @@ jurídico, não por conveniência de disco.
 
 ## Decisão 3 — Cota no mesmo change, nunca depois
 
-A isenção de `/api/import/anki` está escrita com a premissa: *"nada delas chega ao disco, então não
-consomem cota"* (`routes/import.ts:37-40`). No instante em que gravarmos o primeiro byte de mídia
+A isenção de `/api/import/anki` está escrita com a premissa: _"nada delas chega ao disco, então não
+consomem cota"_ (`routes/import.ts:37-40`). No instante em que gravarmos o primeiro byte de mídia
 Anki, essa frase vira falsa. Então `somarBytesEmDisco` passa a somar `anki_media` **na mesma
 entrega**, e a reserva atômica de `storageQuota.ts:114-125` vale para o upload de mídia como já
 vale para o áudio de sessão. Separar as duas coisas em entregas diferentes criaria uma janela em
@@ -71,9 +71,9 @@ por lote, e sanitização do HTML dos campos na ingestão **e** no render.
 
 ## Riscos
 
-| Risco | Mitigação |
-|---|---|
-| Mídia Anki estoura a cota do plano free (500 MB) | Reserva atômica antes de gravar, com 507 explicativo; ativação em lotes limita o volume por vez; a tela mostra o custo antes |
-| Descompressão zstd por arquivo é lenta em baralho com milhares de mídias | Só a mídia das notas **ativadas** é processada; medido no G2 |
-| Cliente sem o arquivo na hora de ativar | Fluxo declarado: pedir o `.apkg` de novo, com mensagem clara |
-| Arquivo malicioso disfarçado de áudio | Magic bytes + allowlist + nome por hash + teto |
+| Risco                                                                    | Mitigação                                                                                                                    |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| Mídia Anki estoura a cota do plano free (500 MB)                         | Reserva atômica antes de gravar, com 507 explicativo; ativação em lotes limita o volume por vez; a tela mostra o custo antes |
+| Descompressão zstd por arquivo é lenta em baralho com milhares de mídias | Só a mídia das notas **ativadas** é processada; medido no G2                                                                 |
+| Cliente sem o arquivo na hora de ativar                                  | Fluxo declarado: pedir o `.apkg` de novo, com mensagem clara                                                                 |
+| Arquivo malicioso disfarçado de áudio                                    | Magic bytes + allowlist + nome por hash + teto                                                                               |

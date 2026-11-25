@@ -1,6 +1,7 @@
 # leitor-glosa Specification
 
 ## Purpose
+
 Glosa (tradução curta sobre palavras novas) no leitor, que some conforme a palavra é aprendida. Criada pela change `glosa-no-leitor` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-glosa-no-leitor/proposal.md` para o porquê.
 
 ## Requirements

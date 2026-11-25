@@ -2,9 +2,9 @@
  * REGRESSÃO — S-09: pesos de modelo baixados sem verificação de integridade.
  * Correção: SHA-256 por arquivo contra um manifesto (TOFU). (scripts/modelHash.mjs)
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { checkModelHash,sha256 } from '../../scripts/modelHash.mjs'
+import { checkModelHash, sha256 } from '../../scripts/modelHash.mjs'
 
 describe('S-09 — verificação de hash dos modelos', () => {
   const buf = Buffer.from('conteudo-do-peso-do-modelo')

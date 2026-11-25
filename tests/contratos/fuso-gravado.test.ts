@@ -87,10 +87,16 @@ afterAll(async () => {
 describe('decidirFuso — a régua pura', () => {
   it('primeiro uso grava; troca só depois da carência; pedido inválido não conta', () => {
     const t = 1_000_000_000_000
-    expect(decidirFuso({ fuso: null, desde: null }, 'Asia/Tokyo', t)).toEqual({ fuso: 'Asia/Tokyo', gravar: { fuso: 'Asia/Tokyo', desde: t } })
+    expect(decidirFuso({ fuso: null, desde: null }, 'Asia/Tokyo', t)).toEqual({
+      fuso: 'Asia/Tokyo',
+      gravar: { fuso: 'Asia/Tokyo', desde: t },
+    })
     expect(decidirFuso({ fuso: null, desde: null }, 'Marte/Olimpo', t)).toEqual({ fuso: FUSO_PADRAO, gravar: null })
     const gravado = { fuso: 'Asia/Tokyo', desde: t }
-    expect(decidirFuso(gravado, 'America/Sao_Paulo', t + CARENCIA_DO_FUSO_MS - 1)).toEqual({ fuso: 'Asia/Tokyo', gravar: null })
+    expect(decidirFuso(gravado, 'America/Sao_Paulo', t + CARENCIA_DO_FUSO_MS - 1)).toEqual({
+      fuso: 'Asia/Tokyo',
+      gravar: null,
+    })
     expect(decidirFuso(gravado, 'America/Sao_Paulo', t + CARENCIA_DO_FUSO_MS).gravar).toEqual({
       fuso: 'America/Sao_Paulo',
       desde: t + CARENCIA_DO_FUSO_MS,
@@ -127,7 +133,11 @@ describe('o fuso gravado, nas duas pontas', () => {
 
   it('baú: três às 23h e o quarto às 00:10 do dia seguinte bate no teto — e trocar o fuso do pedido não abre outro', async () => {
     await limparTudo()
-    try { localStorage.clear() } catch { /* sem storage */ }
+    try {
+      localStorage.clear()
+    } catch {
+      /* sem storage */
+    }
     vi.useFakeTimers({ toFake: ['Date'] })
     const u = 'fuso-bau'
     const SP = 'America/Sao_Paulo'
@@ -148,13 +158,21 @@ describe('o fuso gravado, nas duas pontas', () => {
 
     // Um fuso "adiantado" no pedido, dentro da carência, não muda nada.
     await rodada(u, 'termo-fuso-4')
-    expect((await creditarExpress(u, { creditoId: 'drop:termo-fuso-4', fuso: 'Pacific/Kiritimati' })).body.semBau).toBe('teto')
-    expect((await creditarEfemero({ creditoId: 'drop:termo-fuso-4', fuso: 'Pacific/Kiritimati' })).body.semBau).toBe('teto')
+    expect((await creditarExpress(u, { creditoId: 'drop:termo-fuso-4', fuso: 'Pacific/Kiritimati' })).body.semBau).toBe(
+      'teto',
+    )
+    expect((await creditarEfemero({ creditoId: 'drop:termo-fuso-4', fuso: 'Pacific/Kiritimati' })).body.semBau).toBe(
+      'teto',
+    )
   })
 
   it('a ofensiva conta no fuso GRAVADO, não no do processo', async () => {
     await limparTudo()
-    try { localStorage.clear() } catch { /* sem storage */ }
+    try {
+      localStorage.clear()
+    } catch {
+      /* sem storage */
+    }
     vi.useFakeTimers({ toFake: ['Date'] })
     const u = asUserId('fuso-ofensiva')
     // A prática: 14:00 UTC de 09/10 — 11:00 de 09/10 em São Paulo, 23:00 de 09/10 em Tóquio.

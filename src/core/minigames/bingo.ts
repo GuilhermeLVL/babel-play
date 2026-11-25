@@ -34,27 +34,37 @@ export const CASAS = LADO_CARTELA * LADO_CARTELA;
 const ESCRITA_COMPACTA = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
 const minimoDaEscrita = (s: string) => (ESCRITA_COMPACTA.test(s) ? 1 : 3);
 
-export function buildCartela(cards: VocabCard[], opts: { casas?: number; shuffle?: <T>(xs: T[]) => T[] } = {}): CasaBingo[] {
+export function buildCartela(
+  cards: VocabCard[],
+  opts: { casas?: number; shuffle?: <T>(xs: T[]) => T[] } = {},
+): CasaBingo[] {
   const casas = opts.casas ?? CASAS;
-  const shuffle = opts.shuffle ?? (<T,>(xs: T[]) => {
-    const a = [...xs];
-    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
-    return a;
-  });
+  const shuffle =
+    opts.shuffle ??
+    (<T>(xs: T[]) => {
+      const a = [...xs];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    });
   const vistas = new Set<string>();
-  const candidatos = cards.filter(c => {
+  const candidatos = cards.filter((c) => {
     if (!c.inDeck) return false;
     const chave = chaveComparavel(c.word ?? '');
     if (chave.length < minimoDaEscrita(chave) || vistas.has(chave)) return false;
     vistas.add(chave);
     return true;
   });
-  return shuffle(candidatos).slice(0, casas).map(c => ({
-    cardId: c.id,
-    palavra: c.word.trim(),
-    chave: chaveComparavel(c.word),
-    ouvidaEm: null,
-  }));
+  return shuffle(candidatos)
+    .slice(0, casas)
+    .map((c) => ({
+      cardId: c.id,
+      palavra: c.word.trim(),
+      chave: chaveComparavel(c.word),
+      ouvidaEm: null,
+    }));
 }
 
 /**
@@ -73,10 +83,12 @@ export function marcarFala(
   /* As palavras pelo idioma da fala (`palavrasDoTexto`): o VERBETE, que é o que a cartela guarda —
      "fazê-lo" acende "fazer", e em japonês a fala deixa de ser uma palavra só. */
   const ditas = new Set(
-    palavrasDoTexto(texto, idioma).map(chaveComparavel).filter(p => p.length >= minimoDaEscrita(p))
+    palavrasDoTexto(texto, idioma)
+      .map(chaveComparavel)
+      .filter((p) => p.length >= minimoDaEscrita(p)),
   );
   const novas: CasaBingo[] = [];
-  const atualizada = cartela.map(casa => {
+  const atualizada = cartela.map((casa) => {
     if (casa.ouvidaEm !== null || !ditas.has(casa.chave)) return casa;
     const marcada = { ...casa, ouvidaEm: agora };
     novas.push(marcada);
@@ -102,5 +114,5 @@ export function linhasCompletas(cartela: CasaBingo[], lado: number = LADO_CARTEL
 
 /** Cartela cheia? */
 export function cartelaCheia(cartela: CasaBingo[]): boolean {
-  return cartela.length > 0 && cartela.every(c => c.ouvidaEm !== null);
+  return cartela.length > 0 && cartela.every((c) => c.ouvidaEm !== null);
 }

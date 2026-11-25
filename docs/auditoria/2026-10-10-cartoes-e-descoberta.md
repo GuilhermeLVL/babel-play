@@ -5,6 +5,7 @@ Data: 10/10/2026. Branch lida: `feat/polimento-movimento` (`dc293280`). Somente 
 Marcação da pesquisa: **[C]** confirmado em fonte primária lida nesta data; **[R]** relato de fórum, blog ou imprensa; **[I]** inferência; **[M]** citado de memória, não lido nesta sessão (tratar como não confirmado). As fontes (F1…F32) estão no fim.
 
 Limites da pesquisa, para ler antes de confiar:
+
 - Nenhum tópico de r/Anki, r/languagelearning ou r/LearnJapanese foi lido diretamente; as queixas vêm do fórum do Anki, de blogs que resumem tópicos e de imprensa estudantil. A frequência das queixas não foi medida.
 - Não foram lidas fontes primárias de RemNote, Clozemaster, LingQ, Quizlet e Memrise (telas e limites atuais); AnkiMobile também não.
 - As páginas foram lidas por um resumidor automático: citações literais devem ser conferidas antes de irem para material público.
@@ -15,23 +16,23 @@ Limites da pesquisa, para ler antes de confiar:
 
 ### 1.1 Funções indispensáveis
 
-| Função | O que é, como o Anki faz | Evidência |
-|---|---|---|
-| Agendamento FSRS com retenção desejada | Padrão 90%; o manual chama de a configuração mais importante e avisa que a carga sobe forte acima de 90%. Faixa 0,70 a 0,97; 80 a 95% é o razoável | [C] F1, F5 |
-| Otimização de parâmetros | Ajusta os pesos ao histórico da pessoa; "uma vez por mês basta"; com poucas centenas de revisões não vale | [C] F1, F5 |
-| Reagendar ao mudar | Desligado de fábrica. No fórum, subir de 90 para 95% com a opção ligada levou um baralho de 150 para mais de 4.000 revisões por dia | [C] F1; [R] fórum do Anki |
-| Dias leves e balanceamento | "Easy Days" desloca vencimentos; o balanceador escolhe, dentro da folga, dias com menos carga (24.11) | [C] F1; [R] F7 |
-| Limites diários | Novos por dia e revisões por dia. Regra do manual: 20 novos por dia dá cerca de 200 revisões por dia; com atraso, parar os novos | [C] F1 |
-| Ordem e mistura | Novos misturados, antes ou depois; revisões por vencimento e depois aleatório | [C] F1 |
-| Passos de aprendizagem | Com FSRS: poucos passos, menores que um dia (10 ou 30 min). Quem erra revê o cartão na mesma sessão | [C] F1, F5 |
-| Quatro botões com intervalo escrito | Errei = não lembrou; Difícil = lembrou com esforço; Bom; Fácil. Dá para usar só Errei e Bom. Usar Difícil quando errou infla os intervalos (o FSRS Helper tem função só para consertar isso) | [C] F2, F5, F8 |
-| Sanguessugas | 8 lapsos: etiqueta e suspende; o conselho é reescrever, apagar ou esperar | [C] F3 |
-| Enterrar, suspender, desfazer, editar, bandeira, info do cartão | Tudo dentro da revisão, sem sair dela | [C] F2, F9 |
-| Navegador de cartões | Barra lateral (baralhos, etiquetas, buscas salvas), tabela com colunas (vencimento, intervalo, lapsos, revisões, etiquetas, criado), editor embaixo, ações em massa | [C] F4 |
-| Áudio | Toca sozinho, tecla para repetir; TTS no AnkiDroid | [C] F1, F2, F9 |
-| Cartão com frase de contexto | jpdb: toda frase tem uma só palavra desconhecida; Migaku: frase, áudio, captura de tela e definição num clique a partir da legenda | [C] F11, F14 |
-| Importação e exportação `.apkg` | O pacote leva notas, tipos de nota (modelos), mídia e, opcionalmente, agendamento. Importadores de terceiros costumam perder agendamento, modelos com HTML/JS e às vezes a mídia. Baralho compartilhado não traz agendamento, por desenho | [C] F3b; [R] F20 a F23 |
-| Sincronização e offline | Sincroniza pelo AnkiWeb; estudar sem rede é o esperado | [C] F9; [M] offline |
+| Função                                                          | O que é, como o Anki faz                                                                                                                                                                                                                  | Evidência                 |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| Agendamento FSRS com retenção desejada                          | Padrão 90%; o manual chama de a configuração mais importante e avisa que a carga sobe forte acima de 90%. Faixa 0,70 a 0,97; 80 a 95% é o razoável                                                                                        | [C] F1, F5                |
+| Otimização de parâmetros                                        | Ajusta os pesos ao histórico da pessoa; "uma vez por mês basta"; com poucas centenas de revisões não vale                                                                                                                                 | [C] F1, F5                |
+| Reagendar ao mudar                                              | Desligado de fábrica. No fórum, subir de 90 para 95% com a opção ligada levou um baralho de 150 para mais de 4.000 revisões por dia                                                                                                       | [C] F1; [R] fórum do Anki |
+| Dias leves e balanceamento                                      | "Easy Days" desloca vencimentos; o balanceador escolhe, dentro da folga, dias com menos carga (24.11)                                                                                                                                     | [C] F1; [R] F7            |
+| Limites diários                                                 | Novos por dia e revisões por dia. Regra do manual: 20 novos por dia dá cerca de 200 revisões por dia; com atraso, parar os novos                                                                                                          | [C] F1                    |
+| Ordem e mistura                                                 | Novos misturados, antes ou depois; revisões por vencimento e depois aleatório                                                                                                                                                             | [C] F1                    |
+| Passos de aprendizagem                                          | Com FSRS: poucos passos, menores que um dia (10 ou 30 min). Quem erra revê o cartão na mesma sessão                                                                                                                                       | [C] F1, F5                |
+| Quatro botões com intervalo escrito                             | Errei = não lembrou; Difícil = lembrou com esforço; Bom; Fácil. Dá para usar só Errei e Bom. Usar Difícil quando errou infla os intervalos (o FSRS Helper tem função só para consertar isso)                                              | [C] F2, F5, F8            |
+| Sanguessugas                                                    | 8 lapsos: etiqueta e suspende; o conselho é reescrever, apagar ou esperar                                                                                                                                                                 | [C] F3                    |
+| Enterrar, suspender, desfazer, editar, bandeira, info do cartão | Tudo dentro da revisão, sem sair dela                                                                                                                                                                                                     | [C] F2, F9                |
+| Navegador de cartões                                            | Barra lateral (baralhos, etiquetas, buscas salvas), tabela com colunas (vencimento, intervalo, lapsos, revisões, etiquetas, criado), editor embaixo, ações em massa                                                                       | [C] F4                    |
+| Áudio                                                           | Toca sozinho, tecla para repetir; TTS no AnkiDroid                                                                                                                                                                                        | [C] F1, F2, F9            |
+| Cartão com frase de contexto                                    | jpdb: toda frase tem uma só palavra desconhecida; Migaku: frase, áudio, captura de tela e definição num clique a partir da legenda                                                                                                        | [C] F11, F14              |
+| Importação e exportação `.apkg`                                 | O pacote leva notas, tipos de nota (modelos), mídia e, opcionalmente, agendamento. Importadores de terceiros costumam perder agendamento, modelos com HTML/JS e às vezes a mídia. Baralho compartilhado não traz agendamento, por desenho | [C] F3b; [R] F20 a F23    |
+| Sincronização e offline                                         | Sincroniza pelo AnkiWeb; estudar sem rede é o esperado                                                                                                                                                                                    | [C] F9; [M] offline       |
 
 ### 1.2 Úteis, mas secundárias
 
@@ -45,18 +46,19 @@ Enfeite para este app [I]: avanço automático, cronômetro na tela, quadro bran
 
 ### 1.3 Queixas recorrentes e como os bons respondem
 
-| Queixa | Evidência | Resposta dos bons produtos |
-|---|---|---|
-| Pilha de revisões depois de dias sem estudar; a "parede" de 300 cartões é ponto de desistência | [R] F17; fórum do Anki | jpdb: "não entre em pânico", faça quantos quiser, vencidos ordenados por chance de lembrar, "abandonar" vencidos [C] F11, F12. FSRS Helper: adiar, agendar pausa, achatar com teto por dia [C] F8. Fórum do Anki: baralho filtrado só de atrasados e zero novos por uns dias [R] |
-| Culpa e esgotamento | [R] F17 | Readwise: cerca de 5 itens por dia e sessões extras opcionais [C] F13 |
-| Curva de aprendizado e interface datada | [R] F18; [C] F13 | Mochi e Migaku: dois botões (lembrei, esqueci), algoritmo escondido [R] F15, [C] F14 |
-| "Ease hell" do algoritmo antigo | [R] F17 | FSRS |
-| Cartões ruins e sem contexto | [C] F10 (regras do Wozniak) | Cartão nascido de conteúdo real: Migaku, jpdb [C] F11, F14 |
-| Recurso gratuito que vira pago (Quizlet 2022); conteúdo da comunidade removido (Memrise 2024) | [R] F24, F25 | Exportação aberta; o vocabulário é da pessoa |
+| Queixa                                                                                         | Evidência                   | Resposta dos bons produtos                                                                                                                                                                                                                                                       |
+| ---------------------------------------------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pilha de revisões depois de dias sem estudar; a "parede" de 300 cartões é ponto de desistência | [R] F17; fórum do Anki      | jpdb: "não entre em pânico", faça quantos quiser, vencidos ordenados por chance de lembrar, "abandonar" vencidos [C] F11, F12. FSRS Helper: adiar, agendar pausa, achatar com teto por dia [C] F8. Fórum do Anki: baralho filtrado só de atrasados e zero novos por uns dias [R] |
+| Culpa e esgotamento                                                                            | [R] F17                     | Readwise: cerca de 5 itens por dia e sessões extras opcionais [C] F13                                                                                                                                                                                                            |
+| Curva de aprendizado e interface datada                                                        | [R] F18; [C] F13            | Mochi e Migaku: dois botões (lembrei, esqueci), algoritmo escondido [R] F15, [C] F14                                                                                                                                                                                             |
+| "Ease hell" do algoritmo antigo                                                                | [R] F17                     | FSRS                                                                                                                                                                                                                                                                             |
+| Cartões ruins e sem contexto                                                                   | [C] F10 (regras do Wozniak) | Cartão nascido de conteúdo real: Migaku, jpdb [C] F11, F14                                                                                                                                                                                                                       |
+| Recurso gratuito que vira pago (Quizlet 2022); conteúdo da comunidade removido (Memrise 2024)  | [R] F24, F25                | Exportação aberta; o vocabulário é da pessoa                                                                                                                                                                                                                                     |
 
 ### 1.4 Revisão agradável sem estragar a memória
 
 O que a pesquisa sustenta:
+
 - Testar ganha de reler em 2 dias e 1 semana (Roediger e Karpicke, 2006) [C] F27. A tela tem de pedir a lembrança antes de mostrar.
 - Espaçar funciona, e o intervalo ótimo cresce com o prazo (Cepeda et al., 2006, 317 experimentos) [C] F28.
 - Com a resposta mostrada depois, lembrar livremente rende mais que múltipla escolha (Kang, McDermott e Roediger, 2007) [C] F29. "Lembrar" como padrão está certo; "Escolher" é apoio.
@@ -150,42 +152,42 @@ Não confirmado: efeito de sons e animação, duração ideal de sessão, ansied
 
 Trilho: Início, Capturar, Intérprete, Jogar, Estatísticas, Personalizar, Buscar, Mais (`src/components/shell/TrilhoDoQuest.tsx:80`). Na barra de cinco do celular, Estatísticas e Personalizar descem para o "Mais". Toques contados a partir do Início, no computador.
 
-| Recurso | Onde mora | Toques | Por que é difícil achar |
-|---|---|---|---|
-| Revisão | pseudo-view dentro da sessão; ladrilho condicional no Início | 1 com palavra vencida; 3 sem | Sem item de menu; some do Início quando nada vence; volta para o Vocabulário |
-| Vocabulário | Mais > Vocabulário | 2 | Dentro do "Mais" desde 08/10 (`ficou-de-fora.md:9`) |
-| Biblioteca | Mais > Biblioteca; link no Início só se já houver sessão | 2 | Dentro do "Mais"; lista de 4 por página |
-| Biblioteca completa (filtros finos, fila de importação) | `Library.tsx:445+` | 3, por acidente | Só abre pelo botão Importar; não existe botão próprio |
-| Importar YouTube, link, documento, áudio, texto | Mais > Biblioteca > Importar > fonte | 4 | Dentro do "Mais"; YouTube só no self-host; o Início só oferece importar quando não há sessão |
-| Importar Anki | Mais > Vocabulário > Trazer do Anki | 3 | Longe das outras importações |
-| Sessão aberta (Transcrição, Leitura, Jogos, Visão geral) | Início > sessões recentes, ou Biblioteca | 1 a 4 | Não é destino de menu |
-| Leitura | sessão > aba Leitura | sessão + 1 | Só dentro de sessão, em aba |
-| Estudos & notas | sessão > Leitura > chip | sessão + 2 | Nome não diz o que é; só neste navegador |
-| Desenho livre | sessão > Leitura > Desenho livre | sessão + 2 | Só dentro de sessão e aba |
-| Voz, idioma e tom | sessão > Leitura > botão no pé | sessão + 2 | Botão de texto no fim da faixa |
-| Exportar sessão | sessão > Exportar | sessão + 1 | Só dentro de sessão |
-| Exportar transcrição (.srt, .vtt) | Mais > Biblioteca > linha > Exportar transcrição | 4 | Dois "Exportar" para a mesma sessão; sem porta no headset |
-| iChat / tutor | botão flutuante global (`IChat.tsx:836`) | 1 | Some na captura, com folha aberta e em jogo no celular; nome "iChat · Context" não diz o que faz; saiu da tela de Planos |
-| Nuance | tocar numa fala (Captura ou Transcrição) | 2 ou mais | Só aparece ao tocar numa fala; Premium |
-| Glossário "Sempre traduzir assim" | grava na folha da palavra; lista em Mais > Ajustes, no fim da aba Idiomas | 2 a 4 | Gravar e listar em lugares diferentes |
-| Legendas flutuantes | Capturar > Legendas flutuantes | 2 | Só na tela de Capturar; sem porta no headset |
-| Conversa virtual | Intérprete > "Virtual" | 3 | Rótulo não diz o que é; sem porta no celular e no headset |
-| Histórico do intérprete | Intérprete > "Conversa" | 2 | Rótulo "Conversa"; vazio fora de conversa em curso |
-| Diagnóstico | só pela URL `/diagnostico` (ladrilho só no headset) | sem porta | A Busca também não o acha |
-| Temporada, Conquistas, Maestria, Loja | abas de Personalizar | 2 (3 no celular) | Dentro de uma tela cujo nome fala de aparência |
-| Seeds e Créditos | chip em Personalizar | 2 | Nada indica que o chip é clicável |
-| Recordes e ranking | Jogar > Opções > Recordes | 3 a 4 | Atrás de "Opções" |
-| Mapa do conteúdo, Curadoria do baralho | Jogar > Opções | 3 | Atrás de "Opções"; a Curadoria é condicional |
-| Trilha | Jogar > chip da fonte > Trilha | 3 | É uma fonte, não um destino |
-| Praticar pronúncia (sombra da fala) | folha da frase | sessão + 2 | Só na folha; sem porta no headset |
-| Menu de prática (falar a frase, ditado, duelo, adicionar ao baralho) | botão direito sobre texto selecionado | sem toque | Só por botão direito: não existe no celular nem no headset |
-| Busca (Ctrl K) | trilho no computador; dentro do "Mais" no celular | 1 (2 no celular) | Não acha Ajuda, Diagnóstico, Anki, exportar, abas de Personalizar, jogo específico; palavra achada abre o Vocabulário, não a palavra |
-| Atalhos de teclado | Mais > Ajuda > cartão de atalhos | 2 a 3 | Lista só 4; não há tecla "?"; os do Intérprete (1, 2, R, P) e do Desenho livre não estão em lista nenhuma |
-| Modo desempenho, tema, som | pé do "Mais"; também Ajustes > Aparência | 2 | No pé de um painel |
-| Idioma da interface e os três eixos | Mais > Ajustes > seletor | 3 | Dentro do "Mais"; o par da captura e o do Jogar trocam em outros lugares |
-| Auditoria de idioma | Mais > Ajustes, no fim da aba | 2 e rolar | Sem âncora |
-| Lembrete de estudo | Mais > Ajustes > Notificações | 3 | Lembra pela meta de minutos, não pelas revisões vencidas; entrega por push não achada no código |
-| Relatório semanal | Mais > Ajustes > Notificações > Ver exemplo | 4 a 5 | Só aparece com o resumo ligado |
+| Recurso                                                              | Onde mora                                                                 | Toques                       | Por que é difícil achar                                                                                                              |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Revisão                                                              | pseudo-view dentro da sessão; ladrilho condicional no Início              | 1 com palavra vencida; 3 sem | Sem item de menu; some do Início quando nada vence; volta para o Vocabulário                                                         |
+| Vocabulário                                                          | Mais > Vocabulário                                                        | 2                            | Dentro do "Mais" desde 08/10 (`ficou-de-fora.md:9`)                                                                                  |
+| Biblioteca                                                           | Mais > Biblioteca; link no Início só se já houver sessão                  | 2                            | Dentro do "Mais"; lista de 4 por página                                                                                              |
+| Biblioteca completa (filtros finos, fila de importação)              | `Library.tsx:445+`                                                        | 3, por acidente              | Só abre pelo botão Importar; não existe botão próprio                                                                                |
+| Importar YouTube, link, documento, áudio, texto                      | Mais > Biblioteca > Importar > fonte                                      | 4                            | Dentro do "Mais"; YouTube só no self-host; o Início só oferece importar quando não há sessão                                         |
+| Importar Anki                                                        | Mais > Vocabulário > Trazer do Anki                                       | 3                            | Longe das outras importações                                                                                                         |
+| Sessão aberta (Transcrição, Leitura, Jogos, Visão geral)             | Início > sessões recentes, ou Biblioteca                                  | 1 a 4                        | Não é destino de menu                                                                                                                |
+| Leitura                                                              | sessão > aba Leitura                                                      | sessão + 1                   | Só dentro de sessão, em aba                                                                                                          |
+| Estudos & notas                                                      | sessão > Leitura > chip                                                   | sessão + 2                   | Nome não diz o que é; só neste navegador                                                                                             |
+| Desenho livre                                                        | sessão > Leitura > Desenho livre                                          | sessão + 2                   | Só dentro de sessão e aba                                                                                                            |
+| Voz, idioma e tom                                                    | sessão > Leitura > botão no pé                                            | sessão + 2                   | Botão de texto no fim da faixa                                                                                                       |
+| Exportar sessão                                                      | sessão > Exportar                                                         | sessão + 1                   | Só dentro de sessão                                                                                                                  |
+| Exportar transcrição (.srt, .vtt)                                    | Mais > Biblioteca > linha > Exportar transcrição                          | 4                            | Dois "Exportar" para a mesma sessão; sem porta no headset                                                                            |
+| iChat / tutor                                                        | botão flutuante global (`IChat.tsx:836`)                                  | 1                            | Some na captura, com folha aberta e em jogo no celular; nome "iChat · Context" não diz o que faz; saiu da tela de Planos             |
+| Nuance                                                               | tocar numa fala (Captura ou Transcrição)                                  | 2 ou mais                    | Só aparece ao tocar numa fala; Premium                                                                                               |
+| Glossário "Sempre traduzir assim"                                    | grava na folha da palavra; lista em Mais > Ajustes, no fim da aba Idiomas | 2 a 4                        | Gravar e listar em lugares diferentes                                                                                                |
+| Legendas flutuantes                                                  | Capturar > Legendas flutuantes                                            | 2                            | Só na tela de Capturar; sem porta no headset                                                                                         |
+| Conversa virtual                                                     | Intérprete > "Virtual"                                                    | 3                            | Rótulo não diz o que é; sem porta no celular e no headset                                                                            |
+| Histórico do intérprete                                              | Intérprete > "Conversa"                                                   | 2                            | Rótulo "Conversa"; vazio fora de conversa em curso                                                                                   |
+| Diagnóstico                                                          | só pela URL `/diagnostico` (ladrilho só no headset)                       | sem porta                    | A Busca também não o acha                                                                                                            |
+| Temporada, Conquistas, Maestria, Loja                                | abas de Personalizar                                                      | 2 (3 no celular)             | Dentro de uma tela cujo nome fala de aparência                                                                                       |
+| Seeds e Créditos                                                     | chip em Personalizar                                                      | 2                            | Nada indica que o chip é clicável                                                                                                    |
+| Recordes e ranking                                                   | Jogar > Opções > Recordes                                                 | 3 a 4                        | Atrás de "Opções"                                                                                                                    |
+| Mapa do conteúdo, Curadoria do baralho                               | Jogar > Opções                                                            | 3                            | Atrás de "Opções"; a Curadoria é condicional                                                                                         |
+| Trilha                                                               | Jogar > chip da fonte > Trilha                                            | 3                            | É uma fonte, não um destino                                                                                                          |
+| Praticar pronúncia (sombra da fala)                                  | folha da frase                                                            | sessão + 2                   | Só na folha; sem porta no headset                                                                                                    |
+| Menu de prática (falar a frase, ditado, duelo, adicionar ao baralho) | botão direito sobre texto selecionado                                     | sem toque                    | Só por botão direito: não existe no celular nem no headset                                                                           |
+| Busca (Ctrl K)                                                       | trilho no computador; dentro do "Mais" no celular                         | 1 (2 no celular)             | Não acha Ajuda, Diagnóstico, Anki, exportar, abas de Personalizar, jogo específico; palavra achada abre o Vocabulário, não a palavra |
+| Atalhos de teclado                                                   | Mais > Ajuda > cartão de atalhos                                          | 2 a 3                        | Lista só 4; não há tecla "?"; os do Intérprete (1, 2, R, P) e do Desenho livre não estão em lista nenhuma                            |
+| Modo desempenho, tema, som                                           | pé do "Mais"; também Ajustes > Aparência                                  | 2                            | No pé de um painel                                                                                                                   |
+| Idioma da interface e os três eixos                                  | Mais > Ajustes > seletor                                                  | 3                            | Dentro do "Mais"; o par da captura e o do Jogar trocam em outros lugares                                                             |
+| Auditoria de idioma                                                  | Mais > Ajustes, no fim da aba                                             | 2 e rolar                    | Sem âncora                                                                                                                           |
+| Lembrete de estudo                                                   | Mais > Ajustes > Notificações                                             | 3                            | Lembra pela meta de minutos, não pelas revisões vencidas; entrega por push não achada no código                                      |
+| Relatório semanal                                                    | Mais > Ajustes > Notificações > Ver exemplo                               | 4 a 5                        | Só aparece com o resumo ligado                                                                                                       |
 
 Sem porta nenhuma no desenho novo: Polir sessão (`analise/PolirSessao.tsx`, sem importador), Editar a fala (`ficou-de-fora.md:104`), o player com velocidade, laço e barra arrastável (`ficou-de-fora.md:106`), a faixa "Revisar as palavras desta sessão" (`ficou-de-fora.md:107`), o selo de dias seguidos no Início (`ficou-de-fora.md:10`).
 
@@ -211,18 +213,20 @@ Regra do dono em vigor: o protótipo manda na tela. Tudo abaixo é para virar pr
    - Trilha;
    - cada baralho do Anki importado, com "N de M notas ativadas" e "Ativar mais";
    - "Difíceis" (sanguessugas) e "Suspensas".
-   Tocar no baralho abre a folha dele: Estudar, Jogar com este, Ver cartões, Opções do baralho.
+     Tocar no baralho abre a folha dele: Estudar, Jogar com este, Ver cartões, Opções do baralho.
 3. **Cartões** (o navegador): o catálogo de hoje, com filtros novos por estado, baralho, sessão, idioma e etiqueta, e seleção em massa (suspender, mover para difíceis, excluir, exportar).
 4. **Trazer e levar**: Anki `.apkg`, lista de palavras colada, CSV; exportar.
 5. **Memória** (estatísticas só de cartões): previsão de 30 dias, retenção real contra a meta, calendário de revisões, botões usados, palavras por estado.
 
 **Estados**:
+
 - Vazio: três caminhos lado a lado: "Capturar uma sessão", "Trazer um baralho do Anki", "Começar pela Trilha".
 - Primeiro uso com palavras: "Suas 34 palavras das sessões já são cartões. Comece por 10." Sem falar de algoritmo.
 - Dia cumprido: "Tudo em dia. A próxima abre amanhã com 8." Oferece jogo com as mesmas palavras ou mais 5 novas; **não** oferece rever o baralho inteiro.
 - Pilha acumulada (mais vencidas que o teto do dia): "Você tem 240 esperando. Hoje são 40, começando pelas que você mais tem chance de lembrar." Opções: "Espalhar pelos próximos 7 dias" e "Sem novas até zerar". Nenhum número em vermelho.
 
 **Revisão melhorada, o que entra**:
+
 - Limite diário de verdade, com contador por dia, guardado na conta.
 - Quem erra revê na mesma sessão (um passo de 10 min, ou no fim da fila).
 - **Tocar a fala original** da sessão no verso, além da voz sintética; a frase com a palavra destacada; o título e a capa da sessão; "Abrir na sessão" leva ao trecho.
@@ -241,6 +245,7 @@ Regra do dono em vigor: o protótipo manda na tela. Tudo abaixo é para virar pr
 **O que é "divertido" sem atrapalhar**: virada do cartão com a pele equipada; som curto na nota; barra da sessão; fecho com as palavras que mudaram de estado; "Jogar com as mesmas"; sequência com perdão; missões do dia ligadas à revisão. Nada disso aparece antes de a pessoa tentar lembrar.
 
 **O que este app faz e o Anki não**:
+
 - O cartão nasce da legenda: palavra, frase, **o áudio de quem falou** e a sessão de origem, sem a pessoa montar nada.
 - Uma palavra vista em várias sessões tem várias frases; o cartão pode alternar a frase a cada revisão [I: exemplos variados].
 - Virar jogo: qualquer baralho abre nos jogos, e os jogos que escrevem na memória contam como revisão.
@@ -253,6 +258,7 @@ Regra do dono em vigor: o protótipo manda na tela. Tudo abaixo é para virar pr
 ### 4.2 Onde ela mora
 
 **Recomendada (A): conteúdo no trilho, acessório no "Mais".**
+
 - Computador: Início, Capturar, Intérprete, **Biblioteca**, **Cartões**, Jogar; Buscar e Mais no pé.
 - Vocabulário deixa de ser destino: vira a aba "Cartões" da tela nova (as três abas de análise vão para Estatísticas).
 - Estatísticas desce para o "Mais" e continua a um toque pela linha de progresso do Início; a parte de memória mora na aba "Memória" dos Cartões.
@@ -269,35 +275,35 @@ Em qualquer das três: **o ladrilho de revisão do Início deixa de ser condicio
 
 ### 4.3 A porta proposta para cada recurso escondido
 
-| Recurso | Porta proposta |
-|---|---|
-| Revisão | Tela Cartões; ladrilho fixo no Início |
-| Vocabulário | Aba "Cartões" da tela nova; a Busca abre a palavra, não a lista |
-| Biblioteca | Trilho (A e B); botão "Importar" visível no cabeçalho |
-| Importar (tudo) | Um "Importar" único, na Biblioteca e na Busca, com as fontes: link, arquivo, texto, Anki |
-| Biblioteca completa | Os filtros finos viram "Filtros" na Biblioteca nova |
-| Leitura, Transcrição, Jogos da sessão | Na linha da sessão, três atalhos: Ler, Ouvir, Jogar |
-| Estudos & notas | Renomear para "Minhas anotações"; "Virar cartão" em cada anotação; guardar na conta |
-| Desenho livre | Fica na Leitura; entra na Busca como ação |
-| Exportar sessão e transcrição | Um "Exportar" só, na sessão e na linha da Biblioteca |
-| iChat / tutor | Renomear para "Tutor"; item no "Mais"; "Perguntar ao tutor" na folha da palavra e no verso do cartão |
-| Nuance | Demonstração na primeira fala; item em Ajuda |
-| Glossário | Seção própria "Meu glossário" em Ajustes > Idiomas, com âncora; link na folha da palavra |
-| Legendas flutuantes | Além do Capturar, ação na Busca |
-| Conversa virtual | Rótulo "Conversa por chamada" (ou o que o dono preferir); item em Ajuda |
-| Histórico do intérprete | Rótulo "Histórico"; conversas passadas na Biblioteca |
-| Diagnóstico | Ajuda e suporte > "Diagnóstico do aparelho", em todo aparelho; achável na Busca |
-| Temporada, Conquistas, Loja | Chip de Seeds e nível no Início abre a Temporada; conquistas de revisão aparecem no fecho da sessão |
-| Recordes, Mapa do conteúdo, Curadoria | Sair de trás de "Opções": Recordes no cabeçalho do Jogar; Mapa e Curadoria na folha do baralho, em Cartões |
-| Trilha | Baralho "Trilha" em Cartões |
-| Praticar pronúncia | Botão no verso do cartão e na folha da palavra |
-| Menu de prática | Os mesmos itens na folha da frase (toque), além do botão direito |
-| Busca | Indexar Ajuda, Diagnóstico, Anki, exportar, abas de Personalizar, jogos, baralhos e ações ("Importar baralho", "Estudar difíceis") |
-| Atalhos | Tecla "?" global, com a lista completa por tela |
-| Modo desempenho, tema, som | Ficam; entram na Busca como ações |
-| Idioma da interface | Chip do idioma no alto do "Mais" |
-| Lembrete | "Lembrar quando houver revisão" em Cartões > Opções |
-| Polir sessão, Editar a fala, player completo | Decisão do dono: voltar ou apagar o código |
+| Recurso                                      | Porta proposta                                                                                                                     |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Revisão                                      | Tela Cartões; ladrilho fixo no Início                                                                                              |
+| Vocabulário                                  | Aba "Cartões" da tela nova; a Busca abre a palavra, não a lista                                                                    |
+| Biblioteca                                   | Trilho (A e B); botão "Importar" visível no cabeçalho                                                                              |
+| Importar (tudo)                              | Um "Importar" único, na Biblioteca e na Busca, com as fontes: link, arquivo, texto, Anki                                           |
+| Biblioteca completa                          | Os filtros finos viram "Filtros" na Biblioteca nova                                                                                |
+| Leitura, Transcrição, Jogos da sessão        | Na linha da sessão, três atalhos: Ler, Ouvir, Jogar                                                                                |
+| Estudos & notas                              | Renomear para "Minhas anotações"; "Virar cartão" em cada anotação; guardar na conta                                                |
+| Desenho livre                                | Fica na Leitura; entra na Busca como ação                                                                                          |
+| Exportar sessão e transcrição                | Um "Exportar" só, na sessão e na linha da Biblioteca                                                                               |
+| iChat / tutor                                | Renomear para "Tutor"; item no "Mais"; "Perguntar ao tutor" na folha da palavra e no verso do cartão                               |
+| Nuance                                       | Demonstração na primeira fala; item em Ajuda                                                                                       |
+| Glossário                                    | Seção própria "Meu glossário" em Ajustes > Idiomas, com âncora; link na folha da palavra                                           |
+| Legendas flutuantes                          | Além do Capturar, ação na Busca                                                                                                    |
+| Conversa virtual                             | Rótulo "Conversa por chamada" (ou o que o dono preferir); item em Ajuda                                                            |
+| Histórico do intérprete                      | Rótulo "Histórico"; conversas passadas na Biblioteca                                                                               |
+| Diagnóstico                                  | Ajuda e suporte > "Diagnóstico do aparelho", em todo aparelho; achável na Busca                                                    |
+| Temporada, Conquistas, Loja                  | Chip de Seeds e nível no Início abre a Temporada; conquistas de revisão aparecem no fecho da sessão                                |
+| Recordes, Mapa do conteúdo, Curadoria        | Sair de trás de "Opções": Recordes no cabeçalho do Jogar; Mapa e Curadoria na folha do baralho, em Cartões                         |
+| Trilha                                       | Baralho "Trilha" em Cartões                                                                                                        |
+| Praticar pronúncia                           | Botão no verso do cartão e na folha da palavra                                                                                     |
+| Menu de prática                              | Os mesmos itens na folha da frase (toque), além do botão direito                                                                   |
+| Busca                                        | Indexar Ajuda, Diagnóstico, Anki, exportar, abas de Personalizar, jogos, baralhos e ações ("Importar baralho", "Estudar difíceis") |
+| Atalhos                                      | Tecla "?" global, com a lista completa por tela                                                                                    |
+| Modo desempenho, tema, som                   | Ficam; entram na Busca como ações                                                                                                  |
+| Idioma da interface                          | Chip do idioma no alto do "Mais"                                                                                                   |
+| Lembrete                                     | "Lembrar quando houver revisão" em Cartões > Opções                                                                                |
+| Polir sessão, Editar a fala, player completo | Decisão do dono: voltar ou apagar o código                                                                                         |
 
 ### 4.4 Ordem de implementação, em fatias
 

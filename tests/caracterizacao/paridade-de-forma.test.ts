@@ -18,10 +18,10 @@
  */
 import 'fake-indexeddb/auto'
 
-import { existsSync,readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { afterAll,describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it } from 'vitest'
 
 import { servidorEfemero } from '../../src/data/efemero/servidor'
 import { fecharStore } from '../../src/data/efemero/store'
@@ -31,8 +31,43 @@ const SNAPS = join('tests', 'caracterizacao', '__snapshots__')
 
 /** Rota do Express → como chamá-la no espelho (a semente é feita pelas próprias rotas de escrita). */
 const ROTAS: Array<{ snapshot: string; metodo: string; caminho: string; corpo?: unknown }> = [
-  { snapshot: 'post.vocab.bulk-add.json', metodo: 'POST', caminho: '/api/vocab/bulk-add', corpo: { cards: [{ word: 'harvest', srcLang: 'en', back: 'colheita', sentence: 'The harvest was good.' }, { word: 'water', srcLang: 'en', back: 'agua', sentence: 'Drink water.' }] } },
-  { snapshot: 'post.sessions.json', metodo: 'POST', caminho: '/api/sessions', corpo: { title: 'espelho', kind: 'live', sourceLang: 'en', targetLang: 'pt', status: 'done', durationMs: 1000, utterances: [{ idx: 0, source: 'mic', speakerName: 'A', sourceLang: 'en', sourceText: 'Drink water.', targetLang: 'pt', translatedText: 'Beba agua.', tStartMs: 0, tEndMs: 900 }] } },
+  {
+    snapshot: 'post.vocab.bulk-add.json',
+    metodo: 'POST',
+    caminho: '/api/vocab/bulk-add',
+    corpo: {
+      cards: [
+        { word: 'harvest', srcLang: 'en', back: 'colheita', sentence: 'The harvest was good.' },
+        { word: 'water', srcLang: 'en', back: 'agua', sentence: 'Drink water.' },
+      ],
+    },
+  },
+  {
+    snapshot: 'post.sessions.json',
+    metodo: 'POST',
+    caminho: '/api/sessions',
+    corpo: {
+      title: 'espelho',
+      kind: 'live',
+      sourceLang: 'en',
+      targetLang: 'pt',
+      status: 'done',
+      durationMs: 1000,
+      utterances: [
+        {
+          idx: 0,
+          source: 'mic',
+          speakerName: 'A',
+          sourceLang: 'en',
+          sourceText: 'Drink water.',
+          targetLang: 'pt',
+          translatedText: 'Beba agua.',
+          tStartMs: 0,
+          tEndMs: 900,
+        },
+      ],
+    },
+  },
   { snapshot: 'get.settings.json', metodo: 'GET', caminho: '/api/settings' },
   { snapshot: 'get.sessions.json', metodo: 'GET', caminho: '/api/sessions' },
   { snapshot: 'get.vocab.json', metodo: 'GET', caminho: '/api/vocab' },
@@ -62,14 +97,19 @@ function faltando(a: Forma, b: Forma, prefixo = ''): string[] {
     if (!b || typeof b !== 'object' || Array.isArray(b)) return [prefixo || '(raiz)']
     for (const [k, v] of Object.entries(a as Record<string, Forma>)) {
       const ob = b as Record<string, Forma>
-      if (!(k in ob)) { fora.push(`${prefixo}.${k}`); continue }
+      if (!(k in ob)) {
+        fora.push(`${prefixo}.${k}`)
+        continue
+      }
       fora.push(...faltando(v, ob[k], `${prefixo}.${k}`))
     }
   }
   return fora
 }
 
-afterAll(async () => { await fecharStore().catch(() => {}) })
+afterAll(async () => {
+  await fecharStore().catch(() => {})
+})
 
 describe('espelho anônimo x snapshots do Express', () => {
   const lacunas: Record<string, { status: { express: number; espelho: number }; faltamNoEspelho: string[] }> = {}
@@ -88,7 +128,11 @@ describe('espelho anônimo x snapshots do Express', () => {
       expect(r.status, 'o espelho respondeu 501: a rota saiu da paridade').not.toBe(501)
       const texto = await r.text()
       let corpo: unknown = texto
-      try { corpo = JSON.parse(texto) } catch { /* texto cru */ }
+      try {
+        corpo = JSON.parse(texto)
+      } catch {
+        /* texto cru */
+      }
       const espelho = forma(corpo)
 
       const aMais = faltando(espelho, express.forma)
@@ -101,6 +145,8 @@ describe('espelho anônimo x snapshots do Express', () => {
   }
 
   it('o que falta no espelho está registrado, e só muda com decisão', async () => {
-    await expect(JSON.stringify(lacunas, null, 2)).toMatchFileSnapshot('__snapshots__/paridade.faltando-no-espelho.json')
+    await expect(JSON.stringify(lacunas, null, 2)).toMatchFileSnapshot(
+      '__snapshots__/paridade.faltando-no-espelho.json',
+    )
   })
 })

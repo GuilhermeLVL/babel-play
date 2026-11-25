@@ -18,16 +18,16 @@
  * por `t()` e foram extraídas. Ele cresce a cada tela migrada, então a cobertura de um idioma CAI
  * quando a extração avança — o que é honesto: a tela nova não está traduzida.
  */
-import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const DIR_CATALOGOS = join(RAIZ, 'public', 'i18n');
-const DESTINO = join(RAIZ, 'src', 'data', 'i18n', 'cobertura.json');
+const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+const DIR_CATALOGOS = join(RAIZ, 'public', 'i18n')
+const DESTINO = join(RAIZ, 'src', 'data', 'i18n', 'cobertura.json')
 
 /** O pseudo-idioma é ferramenta de teste de layout, não opção de produto — fica fora da conta. */
-const FORA_DA_CONTA = new Set(['xx']);
+const FORA_DA_CONTA = new Set(['xx'])
 
 /**
  * O PISO. Abaixo disto o idioma não é oferecido.
@@ -36,54 +36,54 @@ const FORA_DA_CONTA = new Set(['xx']);
  * inteiro por uma frase nova seria pior para quem já lia a interface naquele idioma. Abaixo de 90%
  * a experiência vira mistura, que é o defeito que este piso existe para impedir.
  */
-export const PISO_DE_COBERTURA = 0.9;
+export const PISO_DE_COBERTURA = 0.9
 
 function catalogos() {
-  const fora = new Map();
+  const fora = new Map()
   for (const arquivo of existsSync(DIR_CATALOGOS) ? readdirSync(DIR_CATALOGOS) : []) {
-    if (!arquivo.endsWith('.json')) continue;
-    const idioma = arquivo.replace(/\.json$/, '');
-    fora.set(idioma, JSON.parse(readFileSync(join(DIR_CATALOGOS, arquivo), 'utf8')));
+    if (!arquivo.endsWith('.json')) continue
+    const idioma = arquivo.replace(/\.json$/, '')
+    fora.set(idioma, JSON.parse(readFileSync(join(DIR_CATALOGOS, arquivo), 'utf8')))
   }
-  return fora;
+  return fora
 }
 
 function medir() {
-  const lidos = catalogos();
-  const universo = new Set();
+  const lidos = catalogos()
+  const universo = new Set()
   for (const [idioma, catalogo] of lidos) {
-    if (FORA_DA_CONTA.has(idioma)) continue;
-    for (const chave of Object.keys(catalogo)) universo.add(chave);
+    if (FORA_DA_CONTA.has(idioma)) continue
+    for (const chave of Object.keys(catalogo)) universo.add(chave)
   }
-  const total = universo.size;
+  const total = universo.size
 
   /* Português é a ORIGEM: a chave é a própria frase portuguesa, então a cobertura é 1 por
      construção e não existe arquivo para medir. */
-  const idiomas = { pt: { chaves: total, cobertura: 1 } };
+  const idiomas = { pt: { chaves: total, cobertura: 1 } }
   for (const [idioma, catalogo] of [...lidos].sort()) {
-    if (FORA_DA_CONTA.has(idioma)) continue;
-    const chaves = Object.keys(catalogo).filter((k) => universo.has(k)).length;
-    idiomas[idioma] = { chaves, cobertura: total ? Number((chaves / total).toFixed(4)) : 0 };
+    if (FORA_DA_CONTA.has(idioma)) continue
+    const chaves = Object.keys(catalogo).filter((k) => universo.has(k)).length
+    idiomas[idioma] = { chaves, cobertura: total ? Number((chaves / total).toFixed(4)) : 0 }
   }
-  return { total, piso: PISO_DE_COBERTURA, idiomas };
+  return { total, piso: PISO_DE_COBERTURA, idiomas }
 }
 
-const medido = medir();
-const serializado = JSON.stringify(medido, null, 2) + '\n';
+const medido = medir()
+const serializado = JSON.stringify(medido, null, 2) + '\n'
 
 if (process.argv.includes('--check')) {
-  const atual = existsSync(DESTINO) ? readFileSync(DESTINO, 'utf8') : '';
+  const atual = existsSync(DESTINO) ? readFileSync(DESTINO, 'utf8') : ''
   if (atual !== serializado) {
-    console.error('cobertura.json está desatualizado. Rode: node scripts/i18n/cobertura.mjs');
-    process.exit(1);
+    console.error('cobertura.json está desatualizado. Rode: node scripts/i18n/cobertura.mjs')
+    process.exit(1)
   }
-  console.log(`cobertura em dia · ${medido.total} chaves no universo`);
-  process.exit(0);
+  console.log(`cobertura em dia · ${medido.total} chaves no universo`)
+  process.exit(0)
 }
 
-mkdirSync(dirname(DESTINO), { recursive: true });
-writeFileSync(DESTINO, serializado);
+mkdirSync(dirname(DESTINO), { recursive: true })
+writeFileSync(DESTINO, serializado)
 for (const [idioma, m] of Object.entries(medido.idiomas)) {
-  const oferecido = m.cobertura >= PISO_DE_COBERTURA ? 'oferecido' : 'abaixo do piso';
-  console.log(`${idioma}: ${m.chaves}/${medido.total} (${Math.round(m.cobertura * 100)}%) — ${oferecido}`);
+  const oferecido = m.cobertura >= PISO_DE_COBERTURA ? 'oferecido' : 'abaixo do piso'
+  console.log(`${idioma}: ${m.chaves}/${medido.total} (${Math.round(m.cobertura * 100)}%) — ${oferecido}`)
 }

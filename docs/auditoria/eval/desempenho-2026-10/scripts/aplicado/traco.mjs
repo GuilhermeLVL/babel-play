@@ -2,8 +2,23 @@
 import fs from 'fs';
 import { r0, r1 } from './lib.mjs';
 
-export const CATS_BASE = ['devtools.timeline', 'disabled-by-default-devtools.timeline', 'disabled-by-default-devtools.timeline.frame', 'v8.execute', 'blink.user_timing', 'latencyInfo', 'cc', 'gpu', 'viz', 'toplevel'];
-export const CATS_ESTILO = [...CATS_BASE, 'disabled-by-default-devtools.timeline.invalidationTracking', 'disabled-by-default-blink.debug'];
+export const CATS_BASE = [
+  'devtools.timeline',
+  'disabled-by-default-devtools.timeline',
+  'disabled-by-default-devtools.timeline.frame',
+  'v8.execute',
+  'blink.user_timing',
+  'latencyInfo',
+  'cc',
+  'gpu',
+  'viz',
+  'toplevel',
+];
+export const CATS_ESTILO = [
+  ...CATS_BASE,
+  'disabled-by-default-devtools.timeline.invalidationTracking',
+  'disabled-by-default-blink.debug',
+];
 
 export async function gravar(s, arquivo, fazer, cats = CATS_BASE) {
   await s.browser.startTracing(s.page, { categories: cats });
@@ -16,13 +31,43 @@ export async function gravar(s, arquivo, fazer, cats = CATS_BASE) {
   return resumir(JSON.parse(buf.toString('utf8')), ms);
 }
 
-const ESCRITA = new Set(['FunctionCall', 'EvaluateScript', 'v8.compile', 'v8.run', 'V8.GC_SCAVENGER', 'MinorGC', 'MajorGC', 'TimerFire', 'FireAnimationFrame', 'EventDispatch', 'RunMicrotasks', 'v8.callFunction', 'FireIdleCallback', 'XHRReadyStateChange', 'V8.GCScavenger', 'CompileCode', 'v8.produceCache', 'v8.compileModule', 'v8.evaluateModule']);
+const ESCRITA = new Set([
+  'FunctionCall',
+  'EvaluateScript',
+  'v8.compile',
+  'v8.run',
+  'V8.GC_SCAVENGER',
+  'MinorGC',
+  'MajorGC',
+  'TimerFire',
+  'FireAnimationFrame',
+  'EventDispatch',
+  'RunMicrotasks',
+  'v8.callFunction',
+  'FireIdleCallback',
+  'XHRReadyStateChange',
+  'V8.GCScavenger',
+  'CompileCode',
+  'v8.produceCache',
+  'v8.compileModule',
+  'v8.evaluateModule',
+]);
 const grupoDe = (n) =>
-  n === 'UpdateLayoutTree' || n === 'ScheduleStyleRecalculation' || n === 'ParseAuthorStyleSheet' || n === 'Document::recalcStyle'
+  n === 'UpdateLayoutTree' ||
+  n === 'ScheduleStyleRecalculation' ||
+  n === 'ParseAuthorStyleSheet' ||
+  n === 'Document::recalcStyle'
     ? 'estilo'
     : n === 'Layout' || n === 'UpdateLayerTree' || n === 'IntersectionObserverController::computeIntersections'
       ? 'layout'
-      : n === 'Paint' || n === 'PrePaint' || n === 'Layerize' || n === 'PaintImage' || n === 'Commit' || n === 'CompositeLayers' || n === 'UpdateLayer' || n === 'Pre-paint'
+      : n === 'Paint' ||
+          n === 'PrePaint' ||
+          n === 'Layerize' ||
+          n === 'PaintImage' ||
+          n === 'Commit' ||
+          n === 'CompositeLayers' ||
+          n === 'UpdateLayer' ||
+          n === 'Pre-paint'
         ? 'pintura'
         : n === 'HitTest'
           ? 'hittest'
@@ -118,7 +163,8 @@ export function resumir(trace, janelaMs) {
     fios[rot].parede_ms += t.parede / 1000;
     fios[rot].cpu_ms += t.cpu / 1000;
   }
-  for (const k in fios) fios[k] = { parede_ms: r0(fios[k].parede_ms), cpu_ms: r0(fios[k].cpu_ms), cpu_por_s: r1(fios[k].cpu_ms / seg) };
+  for (const k in fios)
+    fios[k] = { parede_ms: r0(fios[k].parede_ms), cpu_ms: r0(fios[k].cpu_ms), cpu_por_s: r1(fios[k].cpu_ms / seg) };
 
   const cont = (nome, f = () => true) => ev.filter((e) => e.name === nome && f(e)).length;
   const ult = X.filter((e) => e.name === 'UpdateLayoutTree' && e.pid + ':' + e.tid === principal);
@@ -167,8 +213,20 @@ export function resumir(trace, janelaMs) {
       grupos_ms: Object.fromEntries(Object.entries(grupos).map(([k, v]) => [k, ms(v)])),
       por_s: Object.fromEntries(Object.entries(grupos).map(([k, v]) => [k, r1(v / 1000 / seg)])),
     },
-    estilo: { recalculos: ult.length, por_s: r1(ult.length / seg), total_ms: ms(ult.reduce((a, e) => a + e.dur, 0)), elementos_medio: r1(els.reduce((a, b) => a + b, 0) / (els.length || 1)), elementos_max: Math.max(0, ...els), forcadoPor: topo(estiloForcado) },
-    layout: { n: layouts.length, total_ms: ms(layouts.reduce((a, e) => a + e.dur, 0)), forcados: forcados.length, forcadoPor: topo(pilhasForcadas) },
+    estilo: {
+      recalculos: ult.length,
+      por_s: r1(ult.length / seg),
+      total_ms: ms(ult.reduce((a, e) => a + e.dur, 0)),
+      elementos_medio: r1(els.reduce((a, b) => a + b, 0) / (els.length || 1)),
+      elementos_max: Math.max(0, ...els),
+      forcadoPor: topo(estiloForcado),
+    },
+    layout: {
+      n: layouts.length,
+      total_ms: ms(layouts.reduce((a, e) => a + e.dur, 0)),
+      forcados: forcados.length,
+      forcadoPor: topo(pilhasForcadas),
+    },
     quadros: {
       desenhados: cont('DrawFrame'),
       descartados: cont('DroppedFrame'),
@@ -205,7 +263,11 @@ export function estilos(arquivo) {
   }
   const motivos = {};
   for (const e of ev) {
-    if (e.name === 'StyleRecalcInvalidationTracking' || e.name === 'ScheduleStyleInvalidationTracking' || e.name === 'StyleInvalidatorInvalidationTracking') {
+    if (
+      e.name === 'StyleRecalcInvalidationTracking' ||
+      e.name === 'ScheduleStyleInvalidationTracking' ||
+      e.name === 'StyleInvalidatorInvalidationTracking'
+    ) {
       const d = e.args?.data ?? {};
       const k = `${e.name.replace('InvalidationTracking', '')}|${d.reason ?? d.invalidationSet ?? ''}|${d.extraData ?? d.changedClass ?? d.changedAttribute ?? d.changedId ?? d.changedPseudo ?? ''}|${(d.nodeName ?? '').slice(0, 60)}`;
       motivos[k] = (motivos[k] ?? 0) + 1;
@@ -219,7 +281,11 @@ export function estilos(arquivo) {
       .sort((a, b) => b[1].us - a[1].us)
       .slice(0, 40)
       .map(([k, v]) => ({ seletor: k.slice(0, 160), ms: r1(v.us / 1000), tentativas: v.tentativas, casou: v.casou })),
-    comHas_ms: r1(Object.entries(sel).filter(([k]) => k.includes(':has(')).reduce((a, [, v]) => a + v.us, 0) / 1000),
+    comHas_ms: r1(
+      Object.entries(sel)
+        .filter(([k]) => k.includes(':has('))
+        .reduce((a, [, v]) => a + v.us, 0) / 1000,
+    ),
     motivos: Object.entries(motivos)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 40)

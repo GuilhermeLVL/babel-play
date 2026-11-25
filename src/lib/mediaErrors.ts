@@ -16,13 +16,18 @@
 /** Traduz o `MediaError` do <audio> em algo que o usuário consiga agir em cima. */
 export function mediaErrorMessage(el: HTMLMediaElement | null): string {
   switch (el?.error?.code) {
-    case 1: return 'A carga do áudio foi abortada.';
-    case 2: return 'Erro de rede ao baixar o áudio desta sessão.';
-    case 3: return 'O áudio desta sessão está corrompido e não pôde ser decodificado.';
+    case 1:
+      return 'A carga do áudio foi abortada.';
+    case 2:
+      return 'Erro de rede ao baixar o áudio desta sessão.';
+    case 3:
+      return 'O áudio desta sessão está corrompido e não pôde ser decodificado.';
     /* Code 4 NÃO é só codec: um blob revogado (remontagem do React) e um src que sumiu caem
        aqui também. A mensagem admite as duas causas e dá a ação barata primeiro. */
-    case 4: return 'Não consegui reproduzir este áudio. Recarregar a página costuma resolver; se persistir, o navegador não suporta este formato.';
-    default: return 'Não foi possível carregar o áudio desta sessão.';
+    case 4:
+      return 'Não consegui reproduzir este áudio. Recarregar a página costuma resolver; se persistir, o navegador não suporta este formato.';
+    default:
+      return 'Não foi possível carregar o áudio desta sessão.';
   }
 }
 
@@ -59,7 +64,8 @@ type SpeechErrorCode = string;
 /** Traduz `SpeechRecognitionErrorEvent.error`. Devolve `null` para 'aborted' (parada normal). */
 export function speechErrorMessage(code: SpeechErrorCode): string | null {
   switch (code) {
-    case 'aborted': return null;
+    case 'aborted':
+      return null;
     case 'no-speech':
       return 'Não ouvi nada. Fale mais perto do microfone e tente de novo.';
     case 'audio-capture':

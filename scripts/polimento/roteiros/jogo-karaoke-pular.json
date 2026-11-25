@@ -90,9 +90,5 @@
     ".pj-nota",
     "[data-pj='pular']"
   ],
-  "props": [
-    "textDecorationLine",
-    "borderTopStyle",
-    "animationDelay"
-  ]
+  "props": ["textDecorationLine", "borderTopStyle", "animationDelay"]
 }

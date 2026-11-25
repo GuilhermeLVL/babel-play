@@ -20,12 +20,21 @@ const DIR = caminho('public', 'trilha');
 // A escrita que cada idioma deveria usar. Serve para medir vazamento, não para reprovar:
 // nome próprio estrangeiro e sigla aparecem legitimamente em qualquer trilha.
 const ESCRITA = {
-  ar: /\p{Script=Arabic}/u, de: /\p{Script=Latin}/u, en: /\p{Script=Latin}/u,
-  es: /\p{Script=Latin}/u, fr: /\p{Script=Latin}/u, he: /\p{Script=Hebrew}/u,
-  hi: /\p{Script=Devanagari}/u, it: /\p{Script=Latin}/u,
+  ar: /\p{Script=Arabic}/u,
+  de: /\p{Script=Latin}/u,
+  en: /\p{Script=Latin}/u,
+  es: /\p{Script=Latin}/u,
+  fr: /\p{Script=Latin}/u,
+  he: /\p{Script=Hebrew}/u,
+  hi: /\p{Script=Devanagari}/u,
+  it: /\p{Script=Latin}/u,
   ja: /\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}/u,
-  ko: /\p{Script=Hangul}/u, nl: /\p{Script=Latin}/u, pl: /\p{Script=Latin}/u,
-  ru: /\p{Script=Cyrillic}/u, sv: /\p{Script=Latin}/u, tr: /\p{Script=Latin}/u,
+  ko: /\p{Script=Hangul}/u,
+  nl: /\p{Script=Latin}/u,
+  pl: /\p{Script=Latin}/u,
+  ru: /\p{Script=Cyrillic}/u,
+  sv: /\p{Script=Latin}/u,
+  tr: /\p{Script=Latin}/u,
   zh: /\p{Script=Han}/u,
 };
 
@@ -102,11 +111,20 @@ for (const arq of andar(DIR, (p) => p.endsWith('.json'))) {
   }
 
   resultados.push({
-    lang, arquivo: relativo(arq), bytes: tamanho(arq),
-    versao: ehV1 ? 'v1' : 'v2', versaoDeclarada: dados.versao, escala: dados.escala ?? '—',
-    bruto, vazias, unicasLiteral, unicasNFC, unicasCaixa,
+    lang,
+    arquivo: relativo(arq),
+    bytes: tamanho(arq),
+    versao: ehV1 ? 'v1' : 'v2',
+    versaoDeclarada: dados.versao,
+    escala: dados.escala ?? '—',
+    bruto,
+    vazias,
+    unicasLiteral,
+    unicasNFC,
+    unicasCaixa,
     duplicataLiteral: validas.length - unicasLiteral,
-    emNFD, colisoesNFC: colisoesNFC.length,
+    emNFD,
+    colisoesNFC: colisoesNFC.length,
     colisoesCaixa: colisoesCaixa.length,
     exemplosCaixa: colisoesCaixa.slice(0, 3).map(([, s]) => [...s]),
     comFrase,
@@ -119,10 +137,29 @@ for (const arq of andar(DIR, (p) => p.endsWith('.json'))) {
 const soma = (c) => resultados.reduce((a, r) => a + r[c], 0);
 
 let texto = tabela(
-  ['lang', 'v', 'escala', 'bruto', 'únicas', 'dup.lit', 'dup.caixa', 'em NFD', 'colisão NFC', 'c/ frase', 'fora da escrita'],
+  [
+    'lang',
+    'v',
+    'escala',
+    'bruto',
+    'únicas',
+    'dup.lit',
+    'dup.caixa',
+    'em NFD',
+    'colisão NFC',
+    'c/ frase',
+    'fora da escrita',
+  ],
   resultados.map((r) => [
-    r.lang, r.versao, r.escala, r.bruto, r.unicasLiteral,
-    r.duplicataLiteral, r.colisoesCaixa, r.emNFD, r.colisoesNFC,
+    r.lang,
+    r.versao,
+    r.escala,
+    r.bruto,
+    r.unicasLiteral,
+    r.duplicataLiteral,
+    r.colisoesCaixa,
+    r.emNFD,
+    r.colisoesNFC,
     `${r.comFrase} (${pct(r.comFrase, r.bruto)})`,
     `${r.foraDaEscrita} (${pct(r.foraDaEscrita, r.bruto)})`,
   ]),
@@ -149,11 +186,15 @@ let vazou = false;
 for (const r of resultados) {
   if (!r.exemplosForaDaEscrita.length) continue;
   vazou = true;
-  texto += `\n  [${r.lang}] ${r.foraDaEscrita} entradas · por faixa: ${Object.entries(r.foraPorNivel).map(([n, v]) => `${n} ${v}`).join('  ')}`;
+  texto += `\n  [${r.lang}] ${r.foraDaEscrita} entradas · por faixa: ${Object.entries(r.foraPorNivel)
+    .map(([n, v]) => `${n} ${v}`)
+    .join('  ')}`;
   texto += `\n         amostra: ${r.exemplosForaDaEscrita.map((e) => JSON.stringify(e)).join(' ')}`;
 }
 if (!vazou) texto += ' nenhuma.';
 
 export default publicar('04 — palavras da trilha, recontadas', texto, {
-  totalBruto: soma('bruto'), totalUnicas: soma('unicasLiteral'), porIdioma: resultados,
+  totalBruto: soma('bruto'),
+  totalUnicas: soma('unicasLiteral'),
+  porIdioma: resultados,
 });

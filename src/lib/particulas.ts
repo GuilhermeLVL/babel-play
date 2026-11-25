@@ -11,7 +11,11 @@
    equipada cai em "Do tema" (`readParticulas` só aceita o que está em PARTICULAS_OPTIONS). */
 export type ParticulasType = 'tema' | 'pixel' | 'confete' | 'coracoes' | 'estrelas' | 'cometa';
 
-export interface ParticulasOption { id: ParticulasType; name: string; desc: string }
+export interface ParticulasOption {
+  id: ParticulasType;
+  name: string;
+  desc: string;
+}
 
 export const PARTICULAS_OPTIONS: ParticulasOption[] = [
   { id: 'tema', name: 'Do tema', desc: 'Faiscas redondas na cor do tema (padrao).' },
@@ -28,7 +32,9 @@ export function readParticulas(): ParticulasType {
   try {
     const v = localStorage.getItem(CHAVE);
     return PARTICULAS_OPTIONS.some((o) => o.id === v) ? (v as ParticulasType) : 'tema';
-  } catch { return 'tema'; }
+  } catch {
+    return 'tema';
+  }
 }
 
 export function applyParticulas(p: ParticulasType): void {
@@ -36,7 +42,11 @@ export function applyParticulas(p: ParticulasType): void {
 }
 
 export function setParticulas(p: ParticulasType): ParticulasType {
-  try { localStorage.setItem(CHAVE, p); } catch { /* sem storage */ }
+  try {
+    localStorage.setItem(CHAVE, p);
+  } catch {
+    /* sem storage */
+  }
   applyParticulas(p);
   return p;
 }

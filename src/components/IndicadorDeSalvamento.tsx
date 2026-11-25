@@ -42,7 +42,12 @@ export default function IndicadorDeSalvamento({
   }
   if (s.fase === 'falhou' && !naCaptura) {
     return (
-      <div className="indicador-de-salvamento warn" role="status" aria-live="polite" data-testid="indicador-de-salvamento">
+      <div
+        className="indicador-de-salvamento warn"
+        role="status"
+        aria-live="polite"
+        data-testid="indicador-de-salvamento"
+      >
         <TriangleAlert aria-hidden />
         <span>{t('A sessão “{titulo}” não foi salva.', { titulo: s.titulo })}</span>
         <button type="button" className="btn btn-outline peq" onClick={aoVerCaptura}>

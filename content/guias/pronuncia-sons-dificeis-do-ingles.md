@@ -1,10 +1,17 @@
 ---
-titulo: "Pronúncia: os sons do inglês que mais travam o brasileiro"
-descricao: "Os sons do inglês mais difíceis para brasileiros (th, vogais curtas, R, final de palavras, -ed) com pares de palavras e exercícios simples."
-slug: "pronuncia-sons-dificeis-do-ingles"
-publicado: "2026-10-25"
+titulo: 'Pronúncia: os sons do inglês que mais travam o brasileiro'
+descricao: 'Os sons do inglês mais difíceis para brasileiros (th, vogais curtas, R, final de palavras, -ed) com pares de palavras e exercícios simples.'
+slug: 'pronuncia-sons-dificeis-do-ingles'
+publicado: '2026-10-25'
 revisado: false
-palavrasChave: ["pronúncia do inglês", "th em inglês", "sons difíceis do inglês", "pronúncia para brasileiros", "pares mínimos"]
+palavrasChave:
+  [
+    'pronúncia do inglês',
+    'th em inglês',
+    'sons difíceis do inglês',
+    'pronúncia para brasileiros',
+    'pares mínimos',
+  ]
 ---
 
 Quase todo brasileiro que aprende inglês enfrenta os mesmos obstáculos de pronúncia. Isso é ótimo para você, porque significa que existe um caminho conhecido: os problemas são previsíveis, e dá para treiná-los um de cada vez.

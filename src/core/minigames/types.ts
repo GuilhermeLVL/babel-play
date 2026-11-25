@@ -16,10 +16,28 @@ import type { RodadaDePar } from './paresMinimos';
  */
 
 /** Os jogos existentes. A tela lê esta lista — nenhuma tela repete a regra de cada um. */
-export type MinigameId = 'memory' | 'wordsearch' | 'blitz' | 'termo' | 'scramble' | 'karaoke'
-  | 'escuta' | 'ditado' | 'conectores' | 'retraducao' | 'ditadoDeFrase' | 'paresMinimos'
-  | 'karuta' | 'choseong' | 'tenis' | 'koffer' | 'bao' | 'vitendawili' | 'shiritori'
-  | 'cadavre' | 'taboo';
+export type MinigameId =
+  | 'memory'
+  | 'wordsearch'
+  | 'blitz'
+  | 'termo'
+  | 'scramble'
+  | 'karaoke'
+  | 'escuta'
+  | 'ditado'
+  | 'conectores'
+  | 'retraducao'
+  | 'ditadoDeFrase'
+  | 'paresMinimos'
+  | 'karuta'
+  | 'choseong'
+  | 'tenis'
+  | 'koffer'
+  | 'bao'
+  | 'vitendawili'
+  | 'shiritori'
+  | 'cadavre'
+  | 'taboo';
 
 /**
  * Um item jogável: a pergunta que a pessoa precisa responder de cabeça.
@@ -162,42 +180,164 @@ export interface MinigameDef {
 
 export const MINIGAMES: Record<MinigameId, MinigameDef> = {
   memory: { id: 'memory', minItems: 4, maxItems: 8, requiresTranslation: true, writesSrs: true, modalidade: 'palavra' },
-  wordsearch: { id: 'wordsearch', minItems: 4, maxItems: 8, requiresTranslation: false, writesSrs: true, modalidade: 'palavra', requisitos: { alfabeto: 'latino', escrita: 'grade' } },
+  wordsearch: {
+    id: 'wordsearch',
+    minItems: 4,
+    maxItems: 8,
+    requiresTranslation: false,
+    writesSrs: true,
+    modalidade: 'palavra',
+    requisitos: { alfabeto: 'latino', escrita: 'grade' },
+  },
   blitz: { id: 'blitz', minItems: 4, maxItems: 20, requiresTranslation: false, writesSrs: true, modalidade: 'palavra' },
   // Termo: exige tradução (é a pista) e palavras de 4 a 6 letras — ver `LETRAS_POR_FAIXA`.
   /* `maxItems: 7` = 1+2+4, a escada completa. Estava em 5 e a carta chegava a anunciar "5 prontas"
      para uma rodada que consome 7, o rótulo e o jogo discordavam. Quem manda no tamanho real é
      `consumoDaEscada` (`minigames/termo.ts`); este teto existe para o rótulo não prometer menos. */
-  termo: { id: 'termo', minItems: 3, maxItems: 7, requiresTranslation: true, writesSrs: true, modalidade: 'palavra', requisitos: { alfabeto: 'latino', escrita: 'teclado' } },
+  termo: {
+    id: 'termo',
+    minItems: 3,
+    maxItems: 7,
+    requiresTranslation: true,
+    writesSrs: true,
+    modalidade: 'palavra',
+    requisitos: { alfabeto: 'latino', escrita: 'teclado' },
+  },
   // Frase embaralhada e karaokê vivem de FALAS, não de cartões: não há nota de SRS a dar.
-  scramble: { id: 'scramble', minItems: 3, maxItems: 5, requiresTranslation: true, writesSrs: false, modalidade: 'frase' },
-  karaoke: { id: 'karaoke', minItems: 3, maxItems: 6, requiresTranslation: false, writesSrs: false, modalidade: 'frase-audio', aceitaPalavraFalada: true },
+  scramble: {
+    id: 'scramble',
+    minItems: 3,
+    maxItems: 5,
+    requiresTranslation: true,
+    writesSrs: false,
+    modalidade: 'frase',
+  },
+  karaoke: {
+    id: 'karaoke',
+    minItems: 3,
+    maxItems: 6,
+    requiresTranslation: false,
+    writesSrs: false,
+    modalidade: 'frase-audio',
+    aceitaPalavraFalada: true,
+  },
   /* Os três que herdaram o núcleo dos exercícios legados. Também vivem de FALAS — daí
      `writesSrs: false`: uma fala não é cartão do baralho, e gravar nota de agendamento para algo
      que não tem cartão inventaria histórico. */
-  escuta: { id: 'escuta', minItems: 4, maxItems: 6, requiresTranslation: false, writesSrs: false, modalidade: 'frase-audio', aceitaPalavraFalada: true },
-  ditado: { id: 'ditado', minItems: 3, maxItems: 5, requiresTranslation: false, writesSrs: false, modalidade: 'frase-audio', aceitaPalavraFalada: true },
-  conectores: { id: 'conectores', minItems: 3, maxItems: 5, requiresTranslation: false, writesSrs: false, modalidade: 'frase' },
+  escuta: {
+    id: 'escuta',
+    minItems: 4,
+    maxItems: 6,
+    requiresTranslation: false,
+    writesSrs: false,
+    modalidade: 'frase-audio',
+    aceitaPalavraFalada: true,
+  },
+  ditado: {
+    id: 'ditado',
+    minItems: 3,
+    maxItems: 5,
+    requiresTranslation: false,
+    writesSrs: false,
+    modalidade: 'frase-audio',
+    aceitaPalavraFalada: true,
+  },
+  conectores: {
+    id: 'conectores',
+    minItems: 3,
+    maxItems: 5,
+    requiresTranslation: false,
+    writesSrs: false,
+    modalidade: 'frase',
+  },
   /* Exercicios de frase inteira, corrigidos no aparelho (frasesCorrigidas.ts). Vivem de FALAS: sem cartao, sem nota de SRS. */
-  retraducao: { id: 'retraducao', minItems: 3, maxItems: 5, requiresTranslation: true, writesSrs: false, modalidade: 'frase' },
-  ditadoDeFrase: { id: 'ditadoDeFrase', minItems: 3, maxItems: 5, requiresTranslation: false, writesSrs: false, modalidade: 'frase' },
+  retraducao: {
+    id: 'retraducao',
+    minItems: 3,
+    maxItems: 5,
+    requiresTranslation: true,
+    writesSrs: false,
+    modalidade: 'frase',
+  },
+  ditadoDeFrase: {
+    id: 'ditadoDeFrase',
+    minItems: 3,
+    maxItems: 5,
+    requiresTranslation: false,
+    writesSrs: false,
+    modalidade: 'frase',
+  },
   /* Pares mínimos: ouvir UMA palavra e escolher qual dos dois sons foi. Lista do idioma (paresMinimos.ts), sem cartão nem SRS. */
-  paresMinimos: { id: 'paresMinimos', minItems: 5, maxItems: 8, requiresTranslation: false, writesSrs: false, modalidade: 'frase', doIdioma: true },
+  paresMinimos: {
+    id: 'paresMinimos',
+    minItems: 5,
+    maxItems: 8,
+    requiresTranslation: false,
+    writesSrs: false,
+    modalidade: 'frase',
+    doIdioma: true,
+  },
 
   /* Os nove culturais. Todos rodam sobre o baralho; os que precisam de alfabeto latino declaram
      em `requisitos`, e nao por nome espalhado no codigo. */
   karuta: { id: 'karuta', minItems: 4, maxItems: 8, requiresTranslation: true, writesSrs: true, modalidade: 'palavra' },
-  choseong: { id: 'choseong', minItems: 4, maxItems: 8, requiresTranslation: true, writesSrs: true, modalidade: 'palavra', requisitos: { alfabeto: 'latino', escrita: 'teclado' } },
+  choseong: {
+    id: 'choseong',
+    minItems: 4,
+    maxItems: 8,
+    requiresTranslation: true,
+    writesSrs: true,
+    modalidade: 'palavra',
+    requisitos: { alfabeto: 'latino', escrita: 'teclado' },
+  },
   /* O tenis DIGITA a palavra inteira, como o Termo — e por isso carrega o mesmo requisito. Sem
      ele, o jogo aparecia jogavel em japones e arabe, e a comparacao dava acerto a quem errou:
      `chaveDoTermo` remove o dakuten (nao e `\p{L}`), entao `食べる` e `食へる` viram a mesma chave. */
-  tenis: { id: 'tenis', minItems: 4, maxItems: 10, requiresTranslation: true, writesSrs: true, modalidade: 'palavra', requisitos: { alfabeto: 'latino', escrita: 'teclado' } },
+  tenis: {
+    id: 'tenis',
+    minItems: 4,
+    maxItems: 10,
+    requiresTranslation: true,
+    writesSrs: true,
+    modalidade: 'palavra',
+    requisitos: { alfabeto: 'latino', escrita: 'teclado' },
+  },
   koffer: { id: 'koffer', minItems: 4, maxItems: 8, requiresTranslation: true, writesSrs: true, modalidade: 'palavra' },
-  bao: { id: 'bao', minItems: 4, maxItems: 6, requiresTranslation: true, writesSrs: true, modalidade: 'palavra', requisitos: { alfabeto: 'latino', escrita: 'grade' } },
-  vitendawili: { id: 'vitendawili', minItems: 4, maxItems: 8, requiresTranslation: true, writesSrs: true, modalidade: 'palavra' },
-  shiritori: { id: 'shiritori', minItems: 4, maxItems: 8, requiresTranslation: true, writesSrs: true, modalidade: 'palavra', requisitos: { alfabeto: 'latino', escrita: 'grade' } },
+  bao: {
+    id: 'bao',
+    minItems: 4,
+    maxItems: 6,
+    requiresTranslation: true,
+    writesSrs: true,
+    modalidade: 'palavra',
+    requisitos: { alfabeto: 'latino', escrita: 'grade' },
+  },
+  vitendawili: {
+    id: 'vitendawili',
+    minItems: 4,
+    maxItems: 8,
+    requiresTranslation: true,
+    writesSrs: true,
+    modalidade: 'palavra',
+  },
+  shiritori: {
+    id: 'shiritori',
+    minItems: 4,
+    maxItems: 8,
+    requiresTranslation: true,
+    writesSrs: true,
+    modalidade: 'palavra',
+    requisitos: { alfabeto: 'latino', escrita: 'grade' },
+  },
   /* Escrever uma frase usando a palavra nao e evidencia de recuperacao: nao agenda revisao. */
-  cadavre: { id: 'cadavre', minItems: 4, maxItems: 4, requiresTranslation: true, writesSrs: false, modalidade: 'palavra' },
+  cadavre: {
+    id: 'cadavre',
+    minItems: 4,
+    maxItems: 4,
+    requiresTranslation: true,
+    writesSrs: false,
+    modalidade: 'palavra',
+  },
   taboo: { id: 'taboo', minItems: 4, maxItems: 8, requiresTranslation: true, writesSrs: true, modalidade: 'palavra' },
 };
 
@@ -225,7 +365,5 @@ export interface FonteDeItens {
    */
   cardIds?: string[];
 }
-
-
 
 /** Rótulo da fonte para a tela — em UM lugar, para as telas não inventarem cada uma o seu. */

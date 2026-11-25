@@ -20,20 +20,35 @@
  *  2. **Idioma**: o material entregue aos jogos respeita o idioma escolhido — o que, antes, o
  *     seletor do lobby não conseguia garantir de jeito nenhum.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { baseLangDe,triarCartoes } from '../src/core/learning/quality'
-import { type CartaoParaCompor,type Composicao, composicaoLocal, recortarPelaComposicao } from '../src/core/minigames/composicao'
+import { baseLangDe, triarCartoes } from '../src/core/learning/quality'
+import {
+  type CartaoParaCompor,
+  type Composicao,
+  composicaoLocal,
+  recortarPelaComposicao,
+} from '../src/core/minigames/composicao'
 import { cartoesDaFonte } from '../src/core/minigames/source'
 import type { VocabCard } from '../src/types'
 
 function carta(id: string, word: string, translation: string, srcLang: string | undefined): VocabCard {
   return {
-    id, word, phonetics: '', translation, explanation: '',
-    srcLang, tgtLang: 'pt', 
-    leitnerBox: 1, leitnerDueAt: new Date(0).toISOString(),
-    fsrsState: 'New', fsrsStability: 0, fsrsDifficulty: 5,
-    fsrsPredictedRetention: 0, fsrsDueAt: new Date(0).toISOString(), inDeck: true,
+    id,
+    word,
+    phonetics: '',
+    translation,
+    explanation: '',
+    srcLang,
+    tgtLang: 'pt',
+    leitnerBox: 1,
+    leitnerDueAt: new Date(0).toISOString(),
+    fsrsState: 'New',
+    fsrsStability: 0,
+    fsrsDifficulty: 5,
+    fsrsPredictedRetention: 0,
+    fsrsDueAt: new Date(0).toISOString(),
+    inDeck: true,
   }
 }
 
@@ -57,12 +72,21 @@ function composicaoMisturada(ids: string[]): Composicao {
   return {
     total: ids.length,
     origemDaComposicao: 'servidor',
-    itens: ids.map(id => ({
-      cardId: id, word: id, back: null, sentence: null,
+    itens: ids.map((id) => ({
+      cardId: id,
+      word: id,
+      back: null,
+      sentence: null,
       proveniencia: {
-        origem: 'baralho', origemRef: null, nivel: null, nivelFonte: 'ausente',
-        dificuldade: null, faixa: null, ocorrencias: null,
-        porQueSelecionado: 'teste', origemDaComposicao: 'servidor',
+        origem: 'baralho',
+        origemRef: null,
+        nivel: null,
+        nivelFonte: 'ausente',
+        dificuldade: null,
+        faixa: null,
+        ocorrencias: null,
+        porQueSelecionado: 'teste',
+        origemDaComposicao: 'servidor',
       },
     })),
   } as unknown as Composicao
@@ -82,29 +106,36 @@ describe('o material entregue aos jogos respeita o idioma escolhido', () => {
   })
 
   it('trocar o idioma troca o material — antes o seletor não tinha efeito nenhum', () => {
-    const servida = composicaoMisturada(DECK.map(c => c.id))
+    const servida = composicaoMisturada(DECK.map((c) => c.id))
 
-    const emIngles = recortarPelaComposicao(cartoesDaFonte(DECK, { id: 'baralho', lang: 'en' }).usaveis, servida, { completar: true })
-    const emPortugues = recortarPelaComposicao(cartoesDaFonte(DECK, { id: 'baralho', lang: 'pt' }).usaveis, servida, { completar: true })
+    const emIngles = recortarPelaComposicao(cartoesDaFonte(DECK, { id: 'baralho', lang: 'en' }).usaveis, servida, {
+      completar: true,
+    })
+    const emPortugues = recortarPelaComposicao(cartoesDaFonte(DECK, { id: 'baralho', lang: 'pt' }).usaveis, servida, {
+      completar: true,
+    })
 
     expect(emIngles.length).toBeGreaterThan(0)
     expect(emPortugues.length).toBeGreaterThan(0)
     // Conjuntos disjuntos: nenhuma palavra aparece nas duas rodadas.
-    const idsEn = new Set(emIngles.map(c => c.id))
-    expect(emPortugues.some(c => idsEn.has(c.id))).toBe(false)
+    const idsEn = new Set(emIngles.map((c) => c.id))
+    expect(emPortugues.some((c) => idsEn.has(c.id))).toBe(false)
   })
 
   it('cartão sem idioma não entra numa rodada com idioma declarado', () => {
     const t = cartoesDaFonte(DECK, { id: 'baralho', lang: 'en' })
-    expect(t.usaveis.some(c => c.id === 'x1'), 'cartão sem srcLang passou como inglês').toBe(false)
+    expect(
+      t.usaveis.some((c) => c.id === 'x1'),
+      'cartão sem srcLang passou como inglês',
+    ).toBe(false)
     // E é DEFEITO (tem conserto na curadoria), não "de outro idioma".
-    expect(t.fora.some(f => f.card.id === 'x1' && f.motivo === 'idioma-incerto')).toBe(true)
-    expect(t.outroIdioma.some(c => c.id === 'x1')).toBe(false)
+    expect(t.fora.some((f) => f.card.id === 'x1' && f.motivo === 'idioma-incerto')).toBe(true)
+    expect(t.outroIdioma.some((c) => c.id === 'x1')).toBe(false)
   })
 
   it('sem idioma declarado, nada muda — o comportamento antigo é preservado', () => {
     const t = cartoesDaFonte(DECK, { id: 'baralho', lang: '' })
-    expect(t.usaveis.some(c => c.id === 'x1')).toBe(true)
+    expect(t.usaveis.some((c) => c.id === 'x1')).toBe(true)
     expect(t.outroIdioma).toEqual([])
   })
 })
@@ -117,7 +148,7 @@ describe('a composição ordena e prioriza; nunca adiciona', () => {
     const servida = composicaoMisturada(['pt1', 'en2', 'fantasma', 'en1'])
     const material = recortarPelaComposicao(usaveis, servida, { completar: true })
 
-    const permitidos = new Set(usaveis.map(c => c.id))
+    const permitidos = new Set(usaveis.map((c) => c.id))
     for (const c of material) {
       expect(permitidos.has(c.id), `${c.id} entrou sem passar pela triagem`).toBe(true)
     }
@@ -137,7 +168,7 @@ describe('a composição ordena e prioriza; nunca adiciona', () => {
 
   it('com filtro de dificuldade NÃO completa — senão o recorte pedido seria apagado', () => {
     const material = recortarPelaComposicao(usaveis, composicaoMisturada(['en3']), { completar: false })
-    expect(material.map(c => c.id)).toEqual(['en3'])
+    expect(material.map((c) => c.id)).toEqual(['en3'])
   })
 
   it('sem composição (offline), o acervo inteiro passa', () => {
@@ -151,20 +182,31 @@ describe('a composição ordena e prioriza; nunca adiciona', () => {
 })
 
 describe('o fallback offline também filtra idioma', () => {
-  const paraCompor: CartaoParaCompor[] = DECK.map(c => ({
-    id: c.id, word: c.word, back: c.translation, sentence: null,
-    srcLang: c.srcLang ?? null, tgtLang: c.tgtLang ?? null,
-    clozePrompt: null, clozeAnswer: null,
-    cefrLevel: null, cefrSource: null, occurrences: null, difficultyScore: null, dueAt: null,
+  const paraCompor: CartaoParaCompor[] = DECK.map((c) => ({
+    id: c.id,
+    word: c.word,
+    back: c.translation,
+    sentence: null,
+    srcLang: c.srcLang ?? null,
+    tgtLang: c.tgtLang ?? null,
+    clozePrompt: null,
+    clozeAnswer: null,
+    cefrLevel: null,
+    cefrSource: null,
+    occurrences: null,
+    difficultyScore: null,
+    dueAt: null,
   }))
 
   it('sem rede, a composição local respeita o idioma', () => {
     /* O buraco simétrico: pôr o filtro só na rota deixaria a rodada errada exatamente quando a
        rede cai — que é quando um app local-first tem de estar certo. */
     const c = composicaoLocal(paraCompor, {
-      jogo: 'memory', fonte: { id: 'baralho', lang: 'pt' }, limite: 50,
+      jogo: 'memory',
+      fonte: { id: 'baralho', lang: 'pt' },
+      limite: 50,
     })
-    const ids = c.itens.map(i => i.cardId)
+    const ids = c.itens.map((i) => i.cardId)
     expect(ids).not.toContain('en1')
     expect(ids).toContain('pt1')
   })
@@ -178,7 +220,7 @@ describe('o fallback offline também filtra idioma', () => {
 describe('fonte dificeis — o ranking do servidor vira rodada (progresso-de-idioma 2.3)', () => {
   it('recorta pelo ranking e DEVOLVE NA ORDEM DELE — a rodada começa pelo que mais dói', () => {
     const t = cartoesDaFonte(DECK, { id: 'dificeis', lang: 'en', cardIds: ['en3', 'en1', 'en4'] })
-    expect(t.usaveis.map(c => c.id)).toEqual(['en3', 'en1', 'en4'])
+    expect(t.usaveis.map((c) => c.id)).toEqual(['en3', 'en1', 'en4'])
   })
 
   it('sem cardIds injetados, a resposta é VAZIO — a mesma regra da sessão sem id', () => {
@@ -188,11 +230,11 @@ describe('fonte dificeis — o ranking do servidor vira rodada (progresso-de-idi
 
   it('a triagem de idioma continua valendo por cima do ranking', () => {
     const t = cartoesDaFonte(DECK, { id: 'dificeis', lang: 'en', cardIds: ['pt1', 'en2'] })
-    expect(t.usaveis.map(c => c.id)).toEqual(['en2'])
+    expect(t.usaveis.map((c) => c.id)).toEqual(['en2'])
   })
 
   it('id que não existe mais no baralho é ignorado sem quebrar a rodada', () => {
     const t = cartoesDaFonte(DECK, { id: 'dificeis', lang: 'en', cardIds: ['apagado', 'en1'] })
-    expect(t.usaveis.map(c => c.id)).toEqual(['en1'])
+    expect(t.usaveis.map((c) => c.id)).toEqual(['en1'])
   })
 })

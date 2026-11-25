@@ -12,10 +12,12 @@ chave Groq é da camada gratuita e não aguenta produção; o provedor deste ní
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Decidir com número se o nível "Ao vivo" vale o custo e a complexidade.
 - Se valer, entregar com proxy no servidor, queda para a cascata e teto de horas.
 
 **Non-Goals:**
+
 - Hospedar um modelo próprio (GPU) agora. Clonagem de voz. Substituir a cascata (ela segue como base).
 - Prometer qualidade igual à humana ou "ilimitado".
 

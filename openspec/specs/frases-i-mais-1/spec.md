@@ -1,6 +1,7 @@
 # frases-i-mais-1 Specification
 
 ## Purpose
+
 Painel 'Para estudar desta sessão': frases i+1 e palavras novas por frequência. Criada pela change `frases-i-mais-1` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-frases-i-mais-1/proposal.md` para o porquê.
 
 ## Requirements

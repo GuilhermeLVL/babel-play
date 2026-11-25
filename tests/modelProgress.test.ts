@@ -27,11 +27,23 @@ const ev = {
   initiate: (file: string) => ({ status: 'initiate' as const, name: 'repo', file }),
   download: (file: string) => ({ status: 'download' as const, name: 'repo', file }),
   /** `progress` é o percentual DO ARQUIVO — nunca do conjunto. */
-  progress: (file: string, loaded: number, total: number) =>
-    ({ status: 'progress' as const, name: 'repo', file, loaded, total, progress: (loaded / total) * 100 }),
+  progress: (file: string, loaded: number, total: number) => ({
+    status: 'progress' as const,
+    name: 'repo',
+    file,
+    loaded,
+    total,
+    progress: (loaded / total) * 100,
+  }),
   /** `progress_total` é o agregado. NÃO tem campo `file` — era isso que o filtro antigo barrava. */
-  progressTotal: (loaded: number, total: number) =>
-    ({ status: 'progress_total' as const, name: 'repo', loaded, total, progress: (loaded / total) * 100, files: {} }),
+  progressTotal: (loaded: number, total: number) => ({
+    status: 'progress_total' as const,
+    name: 'repo',
+    loaded,
+    total,
+    progress: (loaded / total) * 100,
+    files: {},
+  }),
   /** `done` é POR ARQUIVO e não carrega `total` (core.js:59-63). */
   done: (file: string) => ({ status: 'done' as const, name: 'repo', file }),
   ready: () => ({ status: 'ready' as const, task: 'asr', model: 'repo' }),
@@ -132,7 +144,9 @@ describe('criarRastreadorDeProgresso — estado POR CARGA, não global de módul
 
   it('expõe bytes para a UI poder dizer "12 MB de 85 MB" em vez de só um percentual', () => {
     let ultimo: { loaded: number; total: number } | null = null
-    const rastrear = criarRastreadorDeProgresso((p) => { ultimo = { loaded: p.loaded, total: p.total } })
+    const rastrear = criarRastreadorDeProgresso((p) => {
+      ultimo = { loaded: p.loaded, total: p.total }
+    })
     rastrear(ev.progressTotal(12_000_000, 85_000_000))
     expect(ultimo).toEqual({ loaded: 12_000_000, total: 85_000_000 })
   })
@@ -145,7 +159,11 @@ describe('criarWatchdogDeEstagnacao — regressão A-P1-6', () => {
     vi.useFakeTimers()
     let travou = false
     const w = criarWatchdogDeEstagnacao({
-      semProgressoMs: 45_000, tickMs: 5_000, aoTravar: () => { travou = true },
+      semProgressoMs: 45_000,
+      tickMs: 5_000,
+      aoTravar: () => {
+        travou = true
+      },
     })
     // 5 minutos de download, com bytes chegando a cada 10 s — bem além do antigo prazo absoluto.
     for (let i = 0; i < 30; i++) {
@@ -161,12 +179,16 @@ describe('criarWatchdogDeEstagnacao — regressão A-P1-6', () => {
     vi.useFakeTimers()
     let paradoHa = 0
     const w = criarWatchdogDeEstagnacao({
-      semProgressoMs: 45_000, tickMs: 5_000, aoTravar: (ms) => { paradoHa = ms },
+      semProgressoMs: 45_000,
+      tickMs: 5_000,
+      aoTravar: (ms) => {
+        paradoHa = ms
+      },
     })
     await vi.advanceTimersByTimeAsync(20_000)
-    w.sinalDeVida()             // último sinal de vida
+    w.sinalDeVida() // último sinal de vida
     await vi.advanceTimersByTimeAsync(44_000)
-    expect(paradoHa).toBe(0)    // ainda dentro da janela
+    expect(paradoHa).toBe(0) // ainda dentro da janela
     await vi.advanceTimersByTimeAsync(6_000)
     expect(paradoHa).toBeGreaterThanOrEqual(45_000)
     vi.useRealTimers()
@@ -175,7 +197,13 @@ describe('criarWatchdogDeEstagnacao — regressão A-P1-6', () => {
   it('cancelar impede disparo posterior', async () => {
     vi.useFakeTimers()
     let travou = false
-    const w = criarWatchdogDeEstagnacao({ semProgressoMs: 1_000, tickMs: 100, aoTravar: () => { travou = true } })
+    const w = criarWatchdogDeEstagnacao({
+      semProgressoMs: 1_000,
+      tickMs: 100,
+      aoTravar: () => {
+        travou = true
+      },
+    })
     w.cancelar()
     await vi.advanceTimersByTimeAsync(10_000)
     expect(travou).toBe(false)

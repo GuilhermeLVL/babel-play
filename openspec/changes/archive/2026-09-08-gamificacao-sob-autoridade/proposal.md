@@ -8,21 +8,21 @@ chama a economia por um contrato que já não existe.
 
 ## O que foi medido antes de mexer
 
-| Fato | Número |
-|---|---|
-| Itens no catálogo mestre da branch | 128 |
-| Deles, que já são o MESMO objeto em `main` | 29 |
-| Em canais que **nenhum** código concede (`desafio` 23 + `tempo` 20) | 43 |
-| `conquistaId` que não existem em `CONQUISTAS` | 4 |
-| Itens que "equipam" para lugar nenhum (shader, carimbo, som, visualizador, moldura) | 11 |
-| Itens que dependem do motor de suítes (Onda 4) | 36 |
-| Duplicatas por mistura de `-` e `_` | 9 |
+| Fato                                                                                | Número |
+| ----------------------------------------------------------------------------------- | ------ |
+| Itens no catálogo mestre da branch                                                  | 128    |
+| Deles, que já são o MESMO objeto em `main`                                          | 29     |
+| Em canais que **nenhum** código concede (`desafio` 23 + `tempo` 20)                 | 43     |
+| `conquistaId` que não existem em `CONQUISTAS`                                       | 4      |
+| Itens que "equipam" para lugar nenhum (shader, carimbo, som, visualizador, moldura) | 11     |
+| Itens que dependem do motor de suítes (Onda 4)                                      | 36     |
+| Duplicatas por mistura de `-` e `_`                                                 | 9      |
 
 E três achados que decidiram o desenho:
 
 1. **`drop_partida` não é concedido por nada em `main`** — nem por `main` nem, de forma utilizável,
    pela branch: `src/lib/drops.ts:207` chama `creditarSeeds({ creditoId: 'drop-partida-bau-' +
-   Date.now(), amount, reason })`. Três defeitos numa linha: `amount` e `reason` saíram do contrato
+Date.now(), amount, reason })`. Três defeitos numa linha: `amount` e `reason` saíram do contrato
    (`src/data/api.ts:914`), o `Date.now()` destrói a idempotência — que é POR `creditoId` — e a
    família não resolve em `valorDoCredito`, então leva 400 de qualquer jeito.
 2. **`ItemDaLoja` não tem campo `canal`.** As quatro portas de `main` são derivadas dos campos

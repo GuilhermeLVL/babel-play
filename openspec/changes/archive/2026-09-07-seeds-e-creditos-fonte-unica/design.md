@@ -12,11 +12,11 @@ daqui em diante, e a resposta é o banco que obedece à regra.
 **A regra aplicada, e ela vale para qualquer linha de qualquer época:** o valor de um crédito é
 `valorDoCredito(creditoId)`, e nada mais. Daí saem três casos, sem julgamento caso a caso:
 
-| caso | ação |
-|---|---|
-| o `creditoId` não resolve | soft-delete (`deleted_at`) |
+| caso                      | ação                                               |
+| ------------------------- | -------------------------------------------------- |
+| o `creditoId` não resolve | soft-delete (`deleted_at`)                         |
 | resolve e o valor diverge | `amount`, `xp` e `reason` passam a ser os da regra |
-| resolve e bate | nada |
+| resolve e bate            | nada                                               |
 
 Soft-delete e não `DELETE`: o razão continua auditável, e as duas consultas que somam o saldo já
 filtram `deleted_at` — foi o achado P2-N2 que obrigou a isso, e desfazê-lo aqui reabriria o mesmo
@@ -28,13 +28,13 @@ primeira deixou tudo igual à regra.
 
 **O que ele encontrou e fez no banco real (07/09), com cópia de segurança antes:**
 
-| | |
-|---|---|
-| linhas vivas em `seed_credits` | 45 |
-| já corretas | 23 |
-| a corrigir | 0 |
-| soft-deletadas | 22 |
-| Seeds creditadas | 2.923 → 2.004 (−919) |
+|                                |                      |
+| ------------------------------ | -------------------- |
+| linhas vivas em `seed_credits` | 45                   |
+| já corretas                    | 23                   |
+| a corrigir                     | 0                    |
+| soft-deletadas                 | 22                   |
+| Seeds creditadas               | 2.923 → 2.004 (−919) |
 
 As 22 são de dois formatos que o passe não emite mais: `passe:t1:slot-<n>` (14 linhas, do desenho
 anterior, em que cada casa creditava) e `passe:t1:cofre-d<N>` sem a posição (5 linhas), mais os
@@ -83,7 +83,7 @@ calculado fora, e isso é seguro porque **ganho só cresce**: um teto de milisse
 conservador. No pior caso recusa uma compra que teria passado, e o retry seguinte passa. O oposto,
 cobrar além do saldo, não pode acontecer.
 
-A conferência antecipada continua, e não é redundante: ela é quem sabe dizer *quanto falta* no 402.
+A conferência antecipada continua, e não é redundante: ela é quem sabe dizer _quanto falta_ no 402.
 O teto do INSERT sabe barrar, não sabe explicar.
 
 Para os Créditos (a moeda comprada) a trava é ainda mais direta, porque as duas metades do saldo

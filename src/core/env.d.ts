@@ -9,14 +9,14 @@
  */
 
 declare const console: {
-  log(...args: unknown[]): void
-  warn(...args: unknown[]): void
-  error(...args: unknown[]): void
-  info(...args: unknown[]): void
-}
+  log(...args: unknown[]): void;
+  warn(...args: unknown[]): void;
+  error(...args: unknown[]): void;
+  info(...args: unknown[]): void;
+};
 
-declare function setTimeout(handler: (...args: unknown[]) => void, timeout?: number): number
-declare function clearTimeout(id: number): void
-declare function setInterval(handler: (...args: unknown[]) => void, timeout?: number): number
-declare function clearInterval(id: number): void
-declare function queueMicrotask(callback: () => void): void
+declare function setTimeout(handler: (...args: unknown[]) => void, timeout?: number): number;
+declare function clearTimeout(id: number): void;
+declare function setInterval(handler: (...args: unknown[]) => void, timeout?: number): number;
+declare function clearInterval(id: number): void;
+declare function queueMicrotask(callback: () => void): void;

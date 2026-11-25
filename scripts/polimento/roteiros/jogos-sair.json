@@ -74,9 +74,7 @@
     ],
     "depois": 1500
   },
-  "seletores": [
-    ".cab .voltar"
-  ],
+  "seletores": [".cab .voltar"],
   "gravar": {
     "app": [
       {

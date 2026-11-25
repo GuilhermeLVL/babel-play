@@ -1,6 +1,7 @@
 # aviso-fim-do-teste-e-teto Specification
 
 ## Purpose
+
 Aviso de fim do teste por uso (80%/100% da franquia) e estrutura do teto em US$ por conta, desligada. Criada pela change `aviso-fim-do-teste-e-teto` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-aviso-fim-do-teste-e-teto/proposal.md` para o porquê.
 
 ## Requirements

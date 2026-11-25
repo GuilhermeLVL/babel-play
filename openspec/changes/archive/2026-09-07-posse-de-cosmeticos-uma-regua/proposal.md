@@ -31,9 +31,11 @@ navegador, e a URL `/loja/undefined`. O `tasks.md` diz item a item o que ficou e
 ## Capabilities
 
 ### New Capabilities
+
 - `posse-uma-regua`: um catalogo, uma regua, um chokepoint de equipar, posse servida pelo servidor.
 
 ### Modified Capabilities
+
 - `gating-da-galeria` (change `galeria-gating-fechado`): o requirement "todo caminho de aplicar passa pela regua" passa a valer para setters e para `PUT /api/settings`, nao so para a UI.
 
 ## Impact

@@ -5,7 +5,7 @@
  * ninguém. Sem essa regra o indicador contaria o recorte do motor de transcrição como conversa
  * atropelada, e o número subiria quanto mais bem fatiado fosse o áudio — o oposto da verdade.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { contarSobreposicoes } from '../src/core/learning/sobreposicao'
 
@@ -80,10 +80,7 @@ describe('contarSobreposicoes', () => {
   })
 
   it('devolve null sem timing', () => {
-    expect(contarSobreposicoes([
-      { speaker: 'Ana' },
-      { speaker: 'Beto' },
-    ])).toBeNull()
+    expect(contarSobreposicoes([{ speaker: 'Ana' }, { speaker: 'Beto' }])).toBeNull()
   })
 
   it('devolve null com lista vazia', () => {
@@ -149,7 +146,7 @@ describe('contarSobreposicoes', () => {
   it('registra a maior sobreposição, não a última', () => {
     const r = contarSobreposicoes([
       { speaker: 'Ana', startMs: 0, endMs: 10000 },
-      { speaker: 'Beto', startMs: 1000, endMs: 9000 },   // 8000 ms
+      { speaker: 'Beto', startMs: 1000, endMs: 9000 }, // 8000 ms
       { speaker: 'Ana', startMs: 20000, endMs: 25000 },
       { speaker: 'Beto', startMs: 24500, endMs: 26000 }, // 500 ms
     ])

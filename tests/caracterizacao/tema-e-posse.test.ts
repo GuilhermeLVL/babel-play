@@ -5,10 +5,10 @@
  * As chaves do blob `ui` que nomeiam item do catalogo (server/routes/settings.ts, CAMPOS_DE_ITEM):
  * theme, fonte, menuPosition, particulas, pack, cursor, rastro. O resto do blob passa direto.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { abrePorNivel, CATALOGO_DA_LOJA, type ItemDaLoja } from '../../src/core/loja'
-import { type AppDeTeste,resposta, semear, subirApp } from './_app'
+import { type AppDeTeste, resposta, semear, subirApp } from './_app'
 
 const DONO = 'local-owner'
 
@@ -24,7 +24,12 @@ const uiDe = (corpo: { ui: unknown }): Record<string, unknown> => JSON.parse(Str
 async function seedsSemXp(s: AppDeTeste, userId: string, amount: number) {
   const { asUserId } = await s.load('../../server/lib/authContext')
   const { economiaRepo } = await s.load('../../server/db/repositories/economia')
-  await economiaRepo.creditar(asUserId(userId), { creditoId: `fixture-seeds-${userId}`, amount, xp: 0, reason: 'fixture' })
+  await economiaRepo.creditar(asUserId(userId), {
+    creditoId: `fixture-seeds-${userId}`,
+    amount,
+    xp: 0,
+    reason: 'fixture',
+  })
 }
 
 async function ganhar(s: AppDeTeste, userId: string, rodadas: number) {
@@ -32,7 +37,11 @@ async function ganhar(s: AppDeTeste, userId: string, rodadas: number) {
   const { exerciseResultsRepo } = await s.load('../../server/db/repositories/exerciseResults')
   for (let n = 0; n < rodadas; n++) {
     await exerciseResultsRepo.addRodada(asUserId(userId), {
-      roundId: `ganho-${userId}-${n}`, exerciseKind: 'termo', origem: 'baralho', score: 100, melhorSequencia: 20,
+      roundId: `ganho-${userId}-${n}`,
+      exerciseKind: 'termo',
+      origem: 'baralho',
+      score: 100,
+      melhorSequencia: 20,
       itens: Array.from({ length: 20 }, (_, i) => ({ itemRef: `w${n}-${i}`, correct: 1, kind: 'drill' })),
     })
   }
@@ -58,9 +67,18 @@ describe('PUT /api/settings — posse de cosmeticos (modo self-host)', () => {
     const { asUserId } = await s.load('../../server/lib/authContext')
     const { economiaDoUsuario } = await s.load('../../server/db/repositories/metrics')
     ;({ nivel, saldo } = await economiaDoUsuario(asUserId(DONO)))
-    COMPRAVEL = CATALOGO_DA_LOJA.find((i) => i.tipo === 'tema' && !i.exclusivoDe && i.precoSeeds !== undefined && !abrePorNivel(i, nivel) && i.precoSeeds <= saldo)!
+    COMPRAVEL = CATALOGO_DA_LOJA.find(
+      (i) =>
+        i.tipo === 'tema' &&
+        !i.exclusivoDe &&
+        i.precoSeeds !== undefined &&
+        !abrePorNivel(i, nivel) &&
+        i.precoSeeds <= saldo,
+    )!
   })
-  afterAll(async () => { await s.encerrar() })
+  afterAll(async () => {
+    await s.encerrar()
+  })
 
   it('a fixture sustenta o caso: ha um tema acima do nivel que o saldo paga, e o premium nao', () => {
     expect(COMPRAVEL).toBeDefined()
@@ -74,7 +92,9 @@ describe('PUT /api/settings — posse de cosmeticos (modo self-host)', () => {
     const corpo = await r.clone().json()
     expect(corpo).toMatchObject({ code: 'item_nao_possuido', detalhes: { tipo: 'tema', alvo: PREMIUM.alvo } })
     expect(corpo.detalhes.motivo).toBe(`exige nível ${PREMIUM.nivel} ou ${PREMIUM.precoSeeds} seeds`)
-    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/put.settings.item-nao-possuido.json')
+    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/put.settings.item-nao-possuido.json',
+    )
   })
 
   it('a recusa nao grava NADA do patch, nem os campos que nao sao item', async () => {
@@ -98,7 +118,9 @@ describe('PUT /api/settings — posse de cosmeticos (modo self-host)', () => {
     const corpo = await r.clone().json()
     expect(typeof corpo.ui).toBe('string')
     expect(uiDe(corpo)).toMatchObject({ theme: LIVRE.alvo })
-    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/put.settings.tema-livre.json')
+    await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot(
+      '__snapshots__/put.settings.tema-livre.json',
+    )
   })
 
   it('alvo fora do catalogo passa: a regua so tranca o que existe para vender ou premiar', async () => {
@@ -117,7 +139,11 @@ describe('PUT /api/settings — posse de cosmeticos (modo self-host)', () => {
     const negado = await s.put('/api/settings', { ui: { theme: COMPRAVEL.alvo } })
     expect(negado.status).toBe(403)
 
-    const compra = await s.post('/api/metrics/seeds/gastar', { spendId: `compra-${COMPRAVEL.id}`, amount: COMPRAVEL.precoSeeds, reason: `loja:${COMPRAVEL.id}` })
+    const compra = await s.post('/api/metrics/seeds/gastar', {
+      spendId: `compra-${COMPRAVEL.id}`,
+      amount: COMPRAVEL.precoSeeds,
+      reason: `loja:${COMPRAVEL.id}`,
+    })
     expect(compra.status).toBe(200)
 
     const aceito = await s.put('/api/settings', { ui: { theme: COMPRAVEL.alvo } })
@@ -127,7 +153,9 @@ describe('PUT /api/settings — posse de cosmeticos (modo self-host)', () => {
   })
 
   it('a posse vale por chave: o tema comprado nao libera outro tipo de item do mesmo nivel', async () => {
-    const outro = CATALOGO_DA_LOJA.find((i) => i.tipo === 'particulas' && !i.exclusivoDe && !abrePorNivel(i, nivel) && i.precoSeeds !== undefined)!
+    const outro = CATALOGO_DA_LOJA.find(
+      (i) => i.tipo === 'particulas' && !i.exclusivoDe && !abrePorNivel(i, nivel) && i.precoSeeds !== undefined,
+    )!
     const r = await s.put('/api/settings', { ui: { theme: COMPRAVEL.alvo, particulas: outro.alvo } })
     expect(r.status).toBe(403)
     expect((await r.json()).detalhes).toMatchObject({ tipo: 'particulas', alvo: outro.alvo })

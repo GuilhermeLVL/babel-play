@@ -15,10 +15,12 @@ permitem, para áudio que o app produz.
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Entender a outra pessoa na chamada em texto e voz, e falar de volta traduzido, com eco controlado.
 - Cobrir primeiro o caminho de menor risco (aba, fone, só ouvir) e provar o caminho com microfone virtual antes de prometer.
 
 **Non-Goals:**
+
 - Mais de duas pessoas rotuladas (diarização de grupos). App nativo com microfone virtual embutido (alternativa futura).
 - Gravar a chamada. Falar por cima do outro (half-duplex é aceito).
 - macOS com áudio de sistema (só aba, ou driver virtual do usuário).

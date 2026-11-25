@@ -33,9 +33,7 @@
       }
     ]
   },
-  "seletores": [
-    ".q-trilho .q-item"
-  ],
+  "seletores": [".q-trilho .q-item"],
   "gravar": {
     "app": [
       {

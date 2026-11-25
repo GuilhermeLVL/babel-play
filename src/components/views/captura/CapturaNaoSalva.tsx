@@ -78,7 +78,9 @@ export default function CapturaNaoSalva({
       ? t('Esta é a edição de demonstração: ela guarda até {n} gravações neste navegador.', { n: teto })
       : t('Sem conta dá para guardar {n} gravações neste navegador.', { n: teto })
     : cheio
-      ? t('Seu espaço de armazenamento está cheio. Apague sessões antigas na Biblioteca ou veja os planos com mais espaço.')
+      ? t(
+          'Seu espaço de armazenamento está cheio. Apague sessões antigas na Biblioteca ou veja os planos com mais espaço.',
+        )
       : (falha?.mensagem ?? '');
   const oQueFazer =
     modo === 'teto'
@@ -98,7 +100,12 @@ export default function CapturaNaoSalva({
   };
 
   return (
-    <section className="cartao p6 pilha" aria-labelledby="captura-nao-salva-titulo" data-testid="captura-nao-salva" role="region">
+    <section
+      className="cartao p6 pilha"
+      aria-labelledby="captura-nao-salva-titulo"
+      data-testid="captura-nao-salva"
+      role="region"
+    >
       <p className="aviso-info warn">
         <TriangleAlert aria-hidden />
         <span>
@@ -106,8 +113,7 @@ export default function CapturaNaoSalva({
           {rascunho && modo === 'naoSalva' && (
             <>
               {' · '}
-              {rascunho.titulo} ·{' '}
-              {tp(rascunho.utterances.length, '{n} fala', '{n} falas')}
+              {rascunho.titulo} · {tp(rascunho.utterances.length, '{n} fala', '{n} falas')}
             </>
           )}
         </span>

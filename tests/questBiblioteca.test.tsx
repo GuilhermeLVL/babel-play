@@ -84,6 +84,11 @@ describe('BibliotecaDoQuest', () => {
     expect([...container.querySelectorAll('.q-ctl.pri')].map((b) => b.textContent?.trim())).toEqual(['Abrir'])
   })
 
+  it('gravação com texto e sem aviso de desligado: nenhuma linha de motivo', () => {
+    montar([gravacao('a')])
+    expect(screen.queryByTestId('motivo-sem-jogo')).toBeNull()
+  })
+
   it('gravação fixada: o botão passa a desafixar', () => {
     const { botao } = montar([gravacao('a', { pinned: true })])
     expect(botao(/Desafixar/)).toBeTruthy()
@@ -100,6 +105,11 @@ describe('BibliotecaDoQuest', () => {
     expect(linhas()[0].querySelector('.q-fim')?.textContent).toBe('Sem texto ainda')
     expect(botao(/Jogar com esta/).disabled).toBe(true)
     expect(botao(/Revisar palavras/).disabled).toBe(true)
+    // Desligados dizem o motivo, à vista e ligado aos dois botões (leitor de tela).
+    const motivo = screen.getByTestId('motivo-sem-jogo')
+    expect(motivo.textContent).toMatch(/Sem texto ainda/)
+    expect(botao(/Jogar com esta/).getAttribute('aria-describedby')).toBe(motivo.id)
+    expect(botao(/Revisar palavras/).getAttribute('aria-describedby')).toBe(motivo.id)
     fireEvent.click(botao(/^Abrir$/))
     expect(acoes.aoAbrir).toHaveBeenCalledTimes(1)
   })

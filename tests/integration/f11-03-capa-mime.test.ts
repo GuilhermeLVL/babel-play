@@ -15,17 +15,19 @@
 import type { AddressInfo } from 'node:net'
 
 import express from 'express'
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { ehCapaEmbutida, lerCapaEmbutida, SUBTIPOS_DE_CAPA_ACEITOS } from '../../server/lib/capaDeSessao'
 import { isSafeImageUrl, MAX_IMAGE_URL } from '../../server/validation'
 
 const b64 = (s: string) => Buffer.from(s, 'utf8').toString('base64')
 
-const SVG_HOSTIL = '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(document.domain)"><script>alert(1)</script></svg>'
+const SVG_HOSTIL =
+  '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(document.domain)"><script>alert(1)</script></svg>'
 const URI_SVG = `data:image/svg+xml;base64,${b64(SVG_HOSTIL)}`
 /** PNG de 1x1 de verdade — o controle: o caminho legítimo tem de continuar funcionando. */
-const URI_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+const URI_PNG =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
 
 describe('F11-03 · escrita — isSafeImageUrl', () => {
   it('recusa data:image/svg+xml', () => {
@@ -83,7 +85,10 @@ describe('F11-03 · o caminho HTTP, como sessions.ts:85-87 o exercita', () => {
     const app = express()
     app.get('/capa', (_req, res) => {
       const capa = lerCapaEmbutida(uri)
-      if (!capa) { res.status(404).json({ error: 'esta sessão não tem capa embutida' }); return }
+      if (!capa) {
+        res.status(404).json({ error: 'esta sessão não tem capa embutida' })
+        return
+      }
       res.setHeader('Content-Type', capa.mime)
       res.send(capa.bytes)
     })

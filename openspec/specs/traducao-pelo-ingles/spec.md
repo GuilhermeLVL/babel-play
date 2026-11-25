@@ -1,6 +1,7 @@
 # traducao-pelo-ingles Specification
 
 ## Purpose
+
 Tradução local de ja, ko, ru, ar e outros via pivô em inglês (opus-mt X→en → en→alvo). Criada pela change `traducao-local-pelo-ingles` (arquivada em 2026-11-23); veja `openspec/changes/archive/2026-11-23-traducao-local-pelo-ingles/proposal.md` para o porquê.
 
 ## Requirements

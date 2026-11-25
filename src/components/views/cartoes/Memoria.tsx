@@ -325,7 +325,9 @@ export default function Memoria({
       <div className="q-grade g2 ct-mem-par">
         <section className="q-cartao ct-seq" data-testid="sequencia-da-semana">
           <CabecaDoCartao
-            titulo={sequencia === null ? t('Os últimos sete dias') : tp(sequencia, '{n} dia seguido', '{n} dias seguidos')}
+            titulo={
+              sequencia === null ? t('Os últimos sete dias') : tp(sequencia, '{n} dia seguido', '{n} dias seguidos')
+            }
             sub={[
               sequencia === null ? '' : t('Dias de prática seguidos.'),
               maiorSequencia === null ? '' : tp(maiorSequencia, 'Recorde: {n} dia.', 'Recorde: {n} dias.'),

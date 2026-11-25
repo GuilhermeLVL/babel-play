@@ -9,26 +9,26 @@
 
 ## Onde está cada coisa
 
-| arquivo | o que traz |
-|---|---|
-| [proposal.md](./proposal.md) | por que a auditoria existe, o que está sendo auditado, as regras |
-| [ALEGACOES.md](./ALEGACOES.md) | cada alegação dos cinco documentos, com `arquivo:linha` |
-| [FASE-0-baseline.md](./FASE-0-baseline.md) | a tabela alegado × medido × delta |
-| [FASE-1-verificacao.md](./FASE-1-verificacao.md) | **o veredito de cada alegação, e os achados novos** |
-| [FASE-2-cobertura.md](./FASE-2-cobertura.md) | censo por tela e por superfície esquecida |
-| [FASE-3-escritas.md](./FASE-3-escritas.md) | matriz idioma × escrita × status, com capturas |
-| [tasks.md](./tasks.md) | as oito fases como checklist |
-| [medicoes/](./medicoes/) | 14 scripts, `COMANDOS.md` e as saídas cruas |
-| [evidencias/](./evidencias/) | capturas de tela |
+| arquivo                                          | o que traz                                                       |
+| ------------------------------------------------ | ---------------------------------------------------------------- |
+| [proposal.md](./proposal.md)                     | por que a auditoria existe, o que está sendo auditado, as regras |
+| [ALEGACOES.md](./ALEGACOES.md)                   | cada alegação dos cinco documentos, com `arquivo:linha`          |
+| [FASE-0-baseline.md](./FASE-0-baseline.md)       | a tabela alegado × medido × delta                                |
+| [FASE-1-verificacao.md](./FASE-1-verificacao.md) | **o veredito de cada alegação, e os achados novos**              |
+| [FASE-2-cobertura.md](./FASE-2-cobertura.md)     | censo por tela e por superfície esquecida                        |
+| [FASE-3-escritas.md](./FASE-3-escritas.md)       | matriz idioma × escrita × status, com capturas                   |
+| [tasks.md](./tasks.md)                           | as oito fases como checklist                                     |
+| [medicoes/](./medicoes/)                         | 14 scripts, `COMANDOS.md` e as saídas cruas                      |
+| [evidencias/](./evidencias/)                     | capturas de tela                                                 |
 
 ## Placar dos vereditos
 
-| veredito | n |
-|---|---:|
-| CONFIRMADO | 41 |
-| PARCIAL | 12 |
-| REFUTADO | 4 |
-| NÃO VERIFICÁVEL | 6 |
+| veredito        |   n |
+| --------------- | --: |
+| CONFIRMADO      |  41 |
+| PARCIAL         |  12 |
+| REFUTADO        |   4 |
+| NÃO VERIFICÁVEL |   6 |
 
 **O núcleo do relatório se sustenta.** 85.668 palavras em 16 idiomas: exato, com zero duplicata
 em qualquer definição. `dist/assets` em 27,66 MiB, os 22,5 MB de WASM, os 6,4 MB em 31 arquivos,
@@ -45,13 +45,13 @@ publicação por estar abaixo do limiar de 10%. Errado — e a causa real é pio
 
 ## Cinco achados que nenhuma alegação cobre
 
-| id | sev. | achado | evidência |
-|---|---|---|---|
-| **N1** | P2 | `new Intl.NumberFormat('pt-BR')` cravado, **invisível para o gate** `locale-cravado`, usado por 8 componentes incluindo Hub, Metrics e Analysis | `Honestidade.tsx:80`; `ast-grep scan` no arquivo não acha nada |
-| **N2** | P2 | **455 palavras em escrita árabe na trilha turca**, 171 (17,7%) na faixa A1. A checagem de escrita **não roda** para idioma latino — provado por fixture: `tr` passa com 50% | `verificar.mjs:30-34` tem 8 escritas; nenhuma latina |
-| **N3** | P2 | **`?ui=` sem allowlist**: busca caminho arbitrário de mesma origem, aceita qualquer JSON como catálogo, e envenena `document.lang` a ponto de os formatadores lançarem `RangeError` | observado em navegador; `evidencias/ui-param/` |
-| **N4** | P3 | **239 `toLowerCase()`/`toUpperCase()` sem locale**, zero com locale — e o turco está na trilha | medição 07 |
-| **N5** | P3 | a régua de palavras **erra −17,2% em japonês** contra `Intl.Segmenter`; 1 em 10 frases publicadas seria recusada por um segmentador padrão | medição 10 |
+| id     | sev. | achado                                                                                                                                                                              | evidência                                                      |
+| ------ | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| **N1** | P2   | `new Intl.NumberFormat('pt-BR')` cravado, **invisível para o gate** `locale-cravado`, usado por 8 componentes incluindo Hub, Metrics e Analysis                                     | `Honestidade.tsx:80`; `ast-grep scan` no arquivo não acha nada |
+| **N2** | P2   | **455 palavras em escrita árabe na trilha turca**, 171 (17,7%) na faixa A1. A checagem de escrita **não roda** para idioma latino — provado por fixture: `tr` passa com 50%         | `verificar.mjs:30-34` tem 8 escritas; nenhuma latina           |
+| **N3** | P2   | **`?ui=` sem allowlist**: busca caminho arbitrário de mesma origem, aceita qualquer JSON como catálogo, e envenena `document.lang` a ponto de os formatadores lançarem `RangeError` | observado em navegador; `evidencias/ui-param/`                 |
+| **N4** | P3   | **239 `toLowerCase()`/`toUpperCase()` sem locale**, zero com locale — e o turco está na trilha                                                                                      | medição 07                                                     |
+| **N5** | P3   | a régua de palavras **erra −17,2% em japonês** contra `Intl.Segmenter`; 1 em 10 frases publicadas seria recusada por um segmentador padrão                                          | medição 10                                                     |
 
 Do lado da infraestrutura: **`npm run audit:gate` sai 1** (`HIGH browserslist`), então o CI está
 vermelho nesta branch e aborta antes do e2e.

@@ -7,14 +7,18 @@
  * contrato precisa ver este teste quebrar. Um `expect` marcado com `// caracterizacao:` descreve o
  * que acontece hoje, não o que deveria acontecer.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { type AppDeTeste,resposta, subirApp } from './_app'
+import { type AppDeTeste, resposta, subirApp } from './_app'
 
 describe('idioma e preferencias (self-host)', () => {
   let s: AppDeTeste
-  beforeAll(async () => { s = await subirApp({ modo: 'self-host' }) })
-  afterAll(async () => { await s.encerrar() })
+  beforeAll(async () => {
+    s = await subirApp({ modo: 'self-host' })
+  })
+  afterAll(async () => {
+    await s.encerrar()
+  })
 
   it('GET /api/settings cria a linha do dono local e devolve a forma conhecida', async () => {
     const r = await s.get('/api/settings')

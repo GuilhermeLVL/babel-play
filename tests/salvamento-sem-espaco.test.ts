@@ -38,7 +38,16 @@ import type { RascunhoDaCaptura } from '../src/lib/captura/rascunhoDaCaptura'
 import { salvarCaptura } from '../src/lib/captura/trabalhoDeSalvar'
 import { EVENTO_PEDIR_CONTA } from '../src/lib/ofertas/eventos'
 
-const REC = { id: 's1', title: 'Aula', date: 'Hoje', durationStr: '0:10', wordCount: 3, type: 'audio' as const, tags: [], status: 'Processado' as const }
+const REC = {
+  id: 's1',
+  title: 'Aula',
+  date: 'Hoje',
+  durationStr: '0:10',
+  wordCount: 3,
+  type: 'audio' as const,
+  tags: [],
+  status: 'Processado' as const,
+}
 
 let n = 0
 function rascunho(): RascunhoDaCaptura {
@@ -51,7 +60,9 @@ function rascunho(): RascunhoDaCaptura {
     sourceLang: 'en',
     targetLang: 'pt-BR',
     parConfigurado: { sourceLang: 'pt-BR', targetLang: 'en' },
-    utterances: [{ idx: 0, source: 'system', sourceLang: 'en', sourceText: 'good morning teacher', translatedText: 'bom dia' }],
+    utterances: [
+      { idx: 0, source: 'system', sourceLang: 'en', sourceText: 'good morning teacher', translatedText: 'bom dia' },
+    ],
     criadoEm: 1,
   }
 }

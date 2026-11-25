@@ -12,24 +12,75 @@
  * jogam sobre falas de sessão, que não têm dificuldade por palavra. O adaptador serve os 9 e diz,
  * por jogo, se o filtro se aplica — em vez de fingir que sim e devolver um chip inerte.
  */
-import { beforeEach,describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
-aceitaFiltroDeDificuldade, type CartaoParaCompor,   compor, type Composicao,
-composicaoLocal, filtroParaComposicao,
-  type PedidoDeComposicao,   pedidoHttpDaComposicao, recortarPelaComposicao, TETO_DA_QUERY_DA_COMPOSICAO,
+  aceitaFiltroDeDificuldade,
+  type CartaoParaCompor,
+  compor,
+  type Composicao,
+  composicaoLocal,
+  filtroParaComposicao,
+  type PedidoDeComposicao,
+  pedidoHttpDaComposicao,
+  recortarPelaComposicao,
+  TETO_DA_QUERY_DA_COMPOSICAO,
 } from '../src/core/minigames/composicao'
-import { type CartaoFiltravel,FILTRO_PADRAO, type FiltroDaPratica } from '../src/core/minigames/filtro'
+import { type CartaoFiltravel, FILTRO_PADRAO, type FiltroDaPratica } from '../src/core/minigames/filtro'
 
 const CARTOES: CartaoParaCompor[] = [
-  { id: 'c1', word: 'water', back: 'água', sentence: null, cefrLevel: 'A1', cefrSource: 'wordlist', occurrences: 9, difficultyScore: 0.12, dueAt: 1, srcLang: 'en', tgtLang: 'pt', clozePrompt: null, clozeAnswer: null },
-  { id: 'c2', word: 'leverage', back: 'alavancagem', sentence: null, cefrLevel: 'B2', cefrSource: 'wordlist', occurrences: 3, difficultyScore: 0.5, dueAt: 2, srcLang: 'en', tgtLang: 'pt', clozePrompt: null, clozeAnswer: null },
-  { id: 'c3', word: 'incomprehensible', back: 'incompreensível', sentence: null, cefrLevel: null, cefrSource: 'ausente', occurrences: 1, difficultyScore: 0.88, dueAt: 3, srcLang: 'en', tgtLang: 'pt', clozePrompt: null, clozeAnswer: null },
+  {
+    id: 'c1',
+    word: 'water',
+    back: 'água',
+    sentence: null,
+    cefrLevel: 'A1',
+    cefrSource: 'wordlist',
+    occurrences: 9,
+    difficultyScore: 0.12,
+    dueAt: 1,
+    srcLang: 'en',
+    tgtLang: 'pt',
+    clozePrompt: null,
+    clozeAnswer: null,
+  },
+  {
+    id: 'c2',
+    word: 'leverage',
+    back: 'alavancagem',
+    sentence: null,
+    cefrLevel: 'B2',
+    cefrSource: 'wordlist',
+    occurrences: 3,
+    difficultyScore: 0.5,
+    dueAt: 2,
+    srcLang: 'en',
+    tgtLang: 'pt',
+    clozePrompt: null,
+    clozeAnswer: null,
+  },
+  {
+    id: 'c3',
+    word: 'incomprehensible',
+    back: 'incompreensível',
+    sentence: null,
+    cefrLevel: null,
+    cefrSource: 'ausente',
+    occurrences: 1,
+    difficultyScore: 0.88,
+    dueAt: 3,
+    srcLang: 'en',
+    tgtLang: 'pt',
+    clozePrompt: null,
+    clozeAnswer: null,
+  },
 ]
 
 const PEDIDO: PedidoDeComposicao = { jogo: 'memory', fonte: { id: 'baralho' }, limite: 8 }
 
-beforeEach(() => { vi.unstubAllGlobals() })
+beforeEach(() => {
+  vi.unstubAllGlobals()
+})
 
 describe('aceitaFiltroDeDificuldade — o recorte é declarado, não presumido', () => {
   it('vale para os 4 jogos de palavra', () => {
@@ -60,7 +111,9 @@ describe('composicaoLocal — o fallback', () => {
   it('todo item carrega proveniência completa', () => {
     const [i] = composicaoLocal(CARTOES, PEDIDO).itens
     expect(i.proveniencia).toMatchObject({
-      origem: 'baralho', nivelFonte: expect.any(String), porQueSelecionado: expect.any(String),
+      origem: 'baralho',
+      nivelFonte: expect.any(String),
+      porQueSelecionado: expect.any(String),
     })
     expect(['facil', 'medio', 'dificil', null]).toContain(i.proveniencia.faixa)
   })
@@ -73,10 +126,31 @@ describe('composicaoLocal — o fallback', () => {
 
 describe('compor — servidor com fallback', () => {
   it('usa o servidor quando ele responde', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
-      total: 1,
-      itens: [{ cardId: 'c9', word: 'harvest', back: 'colheita', proveniencia: { origem: 'trilha', faixa: 'medio', nivelFonte: 'wordlist', porQueSelecionado: 'estrategia:equilibrado' } }],
-    }), { status: 200, headers: { 'content-type': 'application/json' } })))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              total: 1,
+              itens: [
+                {
+                  cardId: 'c9',
+                  word: 'harvest',
+                  back: 'colheita',
+                  proveniencia: {
+                    origem: 'trilha',
+                    faixa: 'medio',
+                    nivelFonte: 'wordlist',
+                    porQueSelecionado: 'estrategia:equilibrado',
+                  },
+                },
+              ],
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          ),
+      ),
+    )
 
     const r = await compor(PEDIDO, CARTOES)
     expect(r.origemDaComposicao).toBe('servidor')
@@ -86,20 +160,34 @@ describe('compor — servidor com fallback', () => {
   it('REDE CAÍDA ⇒ cai para local, com a origem marcada — nunca rodada vazia', async () => {
     // A aplicação é local-first: uma falha de rede não pode virar tela quebrada nem lista vazia
     // silenciosa. O comportamento é DEFINIDO, não acidental.
-    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline') }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('offline')
+      }),
+    )
     const r = await compor(PEDIDO, CARTOES)
     expect(r.origemDaComposicao).toBe('fallback-local')
     expect(r.itens.length).toBeGreaterThan(0)
   })
 
   it('resposta 500 ⇒ cai para local do mesmo jeito', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('erro', { status: 500 })))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('erro', { status: 500 })),
+    )
     const r = await compor(PEDIDO, CARTOES)
     expect(r.origemDaComposicao).toBe('fallback-local')
   })
 
   it('resposta malformada ⇒ cai para local em vez de propagar lixo aos jogos', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('{"itens":"nao é array"}', { status: 200, headers: { 'content-type': 'application/json' } })))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response('{"itens":"nao é array"}', { status: 200, headers: { 'content-type': 'application/json' } }),
+      ),
+    )
     const r = await compor(PEDIDO, CARTOES)
     expect(r.origemDaComposicao).toBe('fallback-local')
   })
@@ -109,7 +197,13 @@ describe('compor — servidor com fallback', () => {
    * validado nas duas pontas e nunca serializado aqui — o servidor recebia o pedido antigo.
    */
   it('com `filtro` no pedido, a URL leva o filtro em JSON e mantém fonte/lang como proveniência', async () => {
-    const espia = vi.fn(async () => new Response(JSON.stringify({ total: 0, itens: [] }), { status: 200, headers: { 'content-type': 'application/json' } }))
+    const espia = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ total: 0, itens: [] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+    )
     vi.stubGlobal('fetch', espia)
     const filtro = { fontes: ['baralho' as const], baralhos: ['deckA'], recorte: { pedindoRevisao: true } }
     await compor({ ...PEDIDO, fonte: { id: 'baralho', lang: 'en' }, filtro }, CARTOES)
@@ -122,14 +216,26 @@ describe('compor — servidor com fallback', () => {
   })
 
   it('sem `filtro` no pedido, a URL não ganha o parâmetro', async () => {
-    const espia = vi.fn(async () => new Response(JSON.stringify({ total: 0, itens: [] }), { status: 200, headers: { 'content-type': 'application/json' } }))
+    const espia = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ total: 0, itens: [] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+    )
     vi.stubGlobal('fetch', espia)
     await compor(PEDIDO, CARTOES)
     expect(String((espia.mock.calls as unknown as Array<[unknown]>)[0][0])).not.toContain('filtro')
   })
 
   it('acima do teto da query, o MESMO pedido vai por POST com os mesmos campos no corpo', async () => {
-    const espia = vi.fn(async () => new Response(JSON.stringify({ total: 0, itens: [] }), { status: 200, headers: { 'content-type': 'application/json' } }))
+    const espia = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ total: 0, itens: [] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+    )
     vi.stubGlobal('fetch', espia)
     const dificeisIds = Array.from({ length: 200 }, (_, i) => `id-${String(i).padStart(36, '0')}`)
     const filtro = { fontes: ['baralho' as const], recorte: { dificeisIds } }
@@ -155,7 +261,13 @@ describe('compor — servidor com fallback', () => {
   })
 
   it('jogo de FRASE não manda filtro de dificuldade ao servidor', async () => {
-    const espia = vi.fn(async () => new Response(JSON.stringify({ total: 0, itens: [] }), { status: 200, headers: { 'content-type': 'application/json' } }))
+    const espia = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ total: 0, itens: [] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+    )
     vi.stubGlobal('fetch', espia)
     await compor({ jogo: 'ditado', fonte: { id: 'baralho' }, limite: 5, dificuldade: ['dificil'] }, CARTOES)
     const url = String((espia.mock.calls as unknown as Array<[unknown]>)[0][0])
@@ -199,8 +311,29 @@ describe('recortarPelaComposicao com { filtro } — completa SÓ com elegíveis'
     { id: 'c', daTrilha: false, cefrLevel: 'A1' },
   ]
   const servida: Composicao = {
-    total: 1, origemDaComposicao: 'servidor',
-    itens: [{ cardId: 'b', word: 'x', back: null, sentence: null, clozePrompt: null, clozeAnswer: null, proveniencia: { origem: 'baralho', origemRef: null, nivel: null, nivelFonte: '', dificuldade: null, faixa: null, ocorrencias: null, porQueSelecionado: '', origemDaComposicao: 'servidor' } }],
+    total: 1,
+    origemDaComposicao: 'servidor',
+    itens: [
+      {
+        cardId: 'b',
+        word: 'x',
+        back: null,
+        sentence: null,
+        clozePrompt: null,
+        clozeAnswer: null,
+        proveniencia: {
+          origem: 'baralho',
+          origemRef: null,
+          nivel: null,
+          nivelFonte: '',
+          dificuldade: null,
+          faixa: null,
+          ocorrencias: null,
+          porQueSelecionado: '',
+          origemDaComposicao: 'servidor',
+        },
+      },
+    ],
   }
 
   it('filtro vazio (FILTRO_PADRAO) ≡ completar:true antigo', () => {
@@ -239,13 +372,43 @@ describe('recortarPelaComposicao com { filtro } — completa SÓ com elegíveis'
 
 describe('composicaoLocal com filtro — a paridade de graça no fallback offline', () => {
   const cartoes: CartaoParaCompor[] = [
-    { id: 'c1', word: 'water', back: 'água', sentence: 'I like water.', cefrLevel: 'A1', cefrSource: 'x', occurrences: 1, difficultyScore: 0.1, dueAt: 1, srcLang: 'en', tgtLang: 'pt', clozePrompt: null, clozeAnswer: null },
-    { id: 'c2', word: 'leverage', back: null, sentence: null, cefrLevel: 'B2', cefrSource: 'x', occurrences: 1, difficultyScore: 0.5, dueAt: 2, srcLang: 'en', tgtLang: 'pt', clozePrompt: null, clozeAnswer: null },
+    {
+      id: 'c1',
+      word: 'water',
+      back: 'água',
+      sentence: 'I like water.',
+      cefrLevel: 'A1',
+      cefrSource: 'x',
+      occurrences: 1,
+      difficultyScore: 0.1,
+      dueAt: 1,
+      srcLang: 'en',
+      tgtLang: 'pt',
+      clozePrompt: null,
+      clozeAnswer: null,
+    },
+    {
+      id: 'c2',
+      word: 'leverage',
+      back: null,
+      sentence: null,
+      cefrLevel: 'B2',
+      cefrSource: 'x',
+      occurrences: 1,
+      difficultyScore: 0.5,
+      dueAt: 2,
+      srcLang: 'en',
+      tgtLang: 'pt',
+      clozePrompt: null,
+      clozeAnswer: null,
+    },
   ]
 
   it('midia.comTraducao filtra offline exatamente como o predicado prevê', () => {
     const p: PedidoDeComposicao = {
-      jogo: 'memory', fonte: { id: 'baralho' }, limite: 8,
+      jogo: 'memory',
+      fonte: { id: 'baralho' },
+      limite: 8,
       filtro: filtroParaComposicao({ ...FILTRO_PADRAO, midia: { comTraducao: true } }),
     }
     const r = composicaoLocal(cartoes, p)

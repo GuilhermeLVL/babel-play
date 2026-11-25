@@ -64,10 +64,17 @@ export interface ResumoDaSequencia {
 
 function vazia(jogo: MinigameId, origem: string): EstadoSequencia {
   return {
-    jogo, origem,
-    rodadas: 0, pontos: 0, acertos: 0, total: 0, xp: 0,
-    sequenciaAtual: 0, melhorSequencia: 0,
-    vistosNaSequencia: new Set(), jaPromovidas: new Set(),
+    jogo,
+    origem,
+    rodadas: 0,
+    pontos: 0,
+    acertos: 0,
+    total: 0,
+    xp: 0,
+    sequenciaAtual: 0,
+    melhorSequencia: 0,
+    vistosNaSequencia: new Set(),
+    jaPromovidas: new Set(),
   };
 }
 
@@ -97,7 +104,7 @@ export function acumular(
     ? (anterior as EstadoSequencia)
     : vazia(report.gameId, origem);
 
-  const acertos = report.items.filter(o => o.correct && !o.revealed).length;
+  const acertos = report.items.filter((o) => o.correct && !o.revealed).length;
   const vistos = new Set(base.vistosNaSequencia);
   for (const o of report.items) if (o.itemRef) vistos.add(o.itemRef);
 

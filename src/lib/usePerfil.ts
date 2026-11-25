@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { fetchPerfil, type PatchDePerfil,patchPerfil, type Perfil } from '../data/me';
+import { fetchPerfil, type PatchDePerfil, patchPerfil, type Perfil } from '../data/me';
 
 /**
  * O PERFIL, COMPARTILHADO ENTRE AS TELAS — com store de módulo, não Context.
@@ -25,7 +25,6 @@ function publicar(p: Perfil | null): void {
   cache = p;
   for (const avisar of inscritos) avisar(p);
 }
-
 
 /** Grava e propaga para todos os inscritos. Devolve `false` quando o servidor recusou. */
 export async function salvarPerfil(patch: PatchDePerfil): Promise<boolean> {
@@ -75,16 +74,21 @@ export function usePerfil(): EstadoDoPerfil {
       // `carregando` guarda a PROMESSA: duas montagens simultâneas compartilham uma requisição.
       carregando ??= fetchPerfil();
       let vivo = true;
-      void carregando.then(p => {
+      void carregando.then((p) => {
         carregando = null;
         if (p) publicar(p);
         if (vivo) setBuscando(false);
       });
-      return () => { vivo = false; inscritos.delete(setPerfil); };
+      return () => {
+        vivo = false;
+        inscritos.delete(setPerfil);
+      };
     }
 
     setBuscando(false);
-    return () => { inscritos.delete(setPerfil); };
+    return () => {
+      inscritos.delete(setPerfil);
+    };
   }, []);
 
   return { perfil, carregando: buscando, iniciais: iniciaisDe(perfil?.displayName, perfil?.email) };

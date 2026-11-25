@@ -10,7 +10,7 @@
  * Quem quiser jogar com o baralho inteiro vai à tela Jogar. A troca de escopo passa a ser uma
  * mudança de LUGAR, não um controle escondido dentro de um contexto que promete outra coisa.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { fontesDisponiveis } from '../src/core/minigames/source'
 
@@ -27,8 +27,9 @@ describe('fontesDisponiveis — quando embutido na Sessão', () => {
   })
 
   it('permitir trocar de gravação também é sair do escopo', () => {
-    expect(fontesDisponiveis({ embutido: true, temSessao: true, temTrilha: false, sessoesDisponiveis: 12 }))
-      .toEqual(['sessao'])
+    expect(fontesDisponiveis({ embutido: true, temSessao: true, temTrilha: false, sessoesDisponiveis: 12 })).toEqual([
+      'sessao',
+    ])
   })
 })
 
@@ -39,25 +40,25 @@ describe('fontesDisponiveis — na tela Jogar (não embutida)', () => {
   })
 
   it('as palavras difíceis entram quando o ranking sustenta uma rodada — e nunca embutido', () => {
-    expect(fontesDisponiveis({ embutido: false, temSessao: false, temTrilha: false, temDificeis: true }))
-      .toEqual(['baralho', 'dificeis'])
-    expect(fontesDisponiveis({ embutido: true, temSessao: true, temTrilha: false, temDificeis: true }))
-      .toEqual(['sessao'])
+    expect(fontesDisponiveis({ embutido: false, temSessao: false, temTrilha: false, temDificeis: true })).toEqual([
+      'baralho',
+      'dificeis',
+    ])
+    expect(fontesDisponiveis({ embutido: true, temSessao: true, temTrilha: false, temDificeis: true })).toEqual([
+      'sessao',
+    ])
   })
 
   it('omite a sessão quando não há gravação — botão que não faz nada é pior que ausente', () => {
-    expect(fontesDisponiveis({ embutido: false, temSessao: false, temTrilha: true }))
-      .toEqual(['baralho', 'trilha'])
+    expect(fontesDisponiveis({ embutido: false, temSessao: false, temTrilha: true })).toEqual(['baralho', 'trilha'])
   })
 
   it('omite a trilha quando o idioma não tem lista curada', () => {
-    expect(fontesDisponiveis({ embutido: false, temSessao: true, temTrilha: false }))
-      .toEqual(['baralho', 'sessao'])
+    expect(fontesDisponiveis({ embutido: false, temSessao: true, temTrilha: false })).toEqual(['baralho', 'sessao'])
   })
 
   it('o baralho sempre existe — é o único que não depende de nada', () => {
-    expect(fontesDisponiveis({ embutido: false, temSessao: false, temTrilha: false }))
-      .toEqual(['baralho'])
+    expect(fontesDisponiveis({ embutido: false, temSessao: false, temTrilha: false })).toEqual(['baralho'])
   })
 })
 

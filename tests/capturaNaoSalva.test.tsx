@@ -20,7 +20,16 @@ import CapturaNaoSalva from '../src/components/views/captura/CapturaNaoSalva'
 import type { Recording } from '../src/types'
 
 const gravacoes: Recording[] = [
-  { id: 'g1', title: 'Aula antiga', date: 'Ontem', durationStr: '1:00', wordCount: 10, type: 'audio', tags: [], status: 'Processado' },
+  {
+    id: 'g1',
+    title: 'Aula antiga',
+    date: 'Ontem',
+    durationStr: '1:00',
+    wordCount: 10,
+    type: 'audio',
+    tags: [],
+    status: 'Processado',
+  },
 ]
 
 const base = { gravacoes, teto: 20, aoApagarGravacao: vi.fn(async () => true) }
@@ -53,8 +62,16 @@ describe('antes de gravar, no teto', () => {
 
 describe('captura recusada', () => {
   const rascunho = {
-    origemLocalId: 'c1', resumeId: null, titulo: 'Aula nova', capa: '', durationMs: 1000, sourceLang: 'en', targetLang: 'pt',
-    parConfigurado: { sourceLang: 'pt', targetLang: 'en' }, utterances: [{ idx: 0, sourceText: 'oi' }], criadoEm: 1,
+    origemLocalId: 'c1',
+    resumeId: null,
+    titulo: 'Aula nova',
+    capa: '',
+    durationMs: 1000,
+    sourceLang: 'en',
+    targetLang: 'pt',
+    parConfigurado: { sourceLang: 'pt', targetLang: 'en' },
+    utterances: [{ idx: 0, sourceText: 'oi' }],
+    criadoEm: 1,
   }
 
   it('mostra o que o servidor disse e as três saídas; descartar pede confirmação', () => {
@@ -105,8 +122,16 @@ describe('captura recusada', () => {
 
 describe('espaço de armazenamento cheio (507 storage_quota_exceeded)', () => {
   const rascunho = {
-    origemLocalId: 'c2', resumeId: null, titulo: 'Aula cheia', capa: '', durationMs: 1000, sourceLang: 'en', targetLang: 'pt',
-    parConfigurado: { sourceLang: 'pt', targetLang: 'en' }, utterances: [{ idx: 0, sourceText: 'oi' }], criadoEm: 1,
+    origemLocalId: 'c2',
+    resumeId: null,
+    titulo: 'Aula cheia',
+    capa: '',
+    durationMs: 1000,
+    sourceLang: 'en',
+    targetLang: 'pt',
+    parConfigurado: { sourceLang: 'pt', targetLang: 'en' },
+    utterances: [{ idx: 0, sourceText: 'oi' }],
+    criadoEm: 1,
   }
 
   it('diz que o espaço acabou e "Ver planos" leva a Planos', () => {
@@ -116,7 +141,13 @@ describe('espaço de armazenamento cheio (507 storage_quota_exceeded)', () => {
         modo="naoSalva"
         estatica={false}
         rascunho={rascunho}
-        falha={{ mensagem: 'armazenamento cheio: 500 MB de 500 MB usados.', status: 507, codigo: 'storage_quota_exceeded', teto: false, cheio: true }}
+        falha={{
+          mensagem: 'armazenamento cheio: 500 MB de 500 MB usados.',
+          status: 507,
+          codigo: 'storage_quota_exceeded',
+          teto: false,
+          cheio: true,
+        }}
         aoTentarDeNovo={vi.fn()}
         aoBaixar={vi.fn()}
         aoDescartar={vi.fn()}
@@ -129,7 +160,13 @@ describe('espaço de armazenamento cheio (507 storage_quota_exceeded)', () => {
 
   it('outra recusa não mostra "Ver planos"', () => {
     render(
-      <CapturaNaoSalva {...base} modo="naoSalva" estatica={false} rascunho={rascunho} falha={{ mensagem: 'x', status: 503, teto: false }} />,
+      <CapturaNaoSalva
+        {...base}
+        modo="naoSalva"
+        estatica={false}
+        rascunho={rascunho}
+        falha={{ mensagem: 'x', status: 503, teto: false }}
+      />,
     )
     expect(screen.queryByRole('button', { name: /Ver planos/ })).toBeNull()
   })

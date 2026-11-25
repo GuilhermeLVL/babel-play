@@ -59,7 +59,8 @@ export default function EscolhaDoMicrofone({
   /** O reconhecimento do navegador apita a cada frase neste aparelho (Android). */
   bipa?: boolean;
 }) {
-  const [escolha, setEscolha] = useState<EscolhaDoMic | null>(null);
+  // Decisão assumida (recomendação, 25/11): vem marcado o "Privado" (o áudio não sai do aparelho; protege menores).
+  const [escolha, setEscolha] = useState<EscolhaDoMic | null>('privado');
   const mbAgora = !inicio || !escolha ? 0 : escolha === 'rapido' ? inicio.mbSeRapido : inicio.mbSePrivado;
 
   return (

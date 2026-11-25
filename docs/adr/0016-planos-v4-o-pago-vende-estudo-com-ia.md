@@ -49,4 +49,4 @@ venda desligada, oferta ou preço para perfil protegido.
 
 `tests/planos-v4-matriz.test.ts` (planos vendáveis, encerrados e valores distintos), `tests/planos-tela-v4.test.tsx` (a tela só
 promete o que a matriz concede), `tests/integration/billing-por-plano.test.ts` (cobrança por valor e venda fechada) e a
-`openspec/changes/planos-v3-e-rota-inteligente/specs/matriz-de-planos/spec.md`, que substitui a spec antiga da matriz no arquivamento.
+`openspec/changes/archive/2026-11-25-planos-v3-e-rota-inteligente/specs/matriz-de-planos/spec.md`, que substitui a spec antiga da matriz no arquivamento.

@@ -97,4 +97,3 @@ describe('ChromeTranslatorMt', () => {
     expect(estado(mt, 'pt|en')).toBe('unavailable')
   })
 })
-

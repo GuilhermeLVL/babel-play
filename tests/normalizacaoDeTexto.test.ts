@@ -8,9 +8,9 @@
  * Os casos abaixo são justamente os que as distinguem. Se alguém "simplificar" as três numa só,
  * é aqui que a simplificação falha.
  */
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { chaveDaPalavra, chaveDedup, comBaseLatina,dobrarTexto } from '../src/core/texto/palavra'
+import { chaveDaPalavra, chaveDedup, comBaseLatina, dobrarTexto } from '../src/core/texto/palavra'
 
 describe('1. estas duas PALAVRAS são a mesma?', () => {
   it('ignora acento e caixa', () => {
@@ -79,8 +79,18 @@ describe('3. esta letra cabe na grade?', () => {
        A-Z — sem `comBaseLatina` antes, `łatwy` virava `ATWY`, e quem digitava a palavra certa
        errava. É por isso que a pergunta 3 existe separada. */
     expect(chaveDaPalavra('łatwy')).toBe('łatwy')
-    expect(chaveDaPalavra('łatwy').toUpperCase().replace(/[^A-Z]/g, ''), 'a grade sem base latina').toBe('ATWY')
-    expect(comBaseLatina('łatwy').toUpperCase().replace(/[^A-Z]/g, ''), 'a grade COM base latina').toBe('LATWY')
+    expect(
+      chaveDaPalavra('łatwy')
+        .toUpperCase()
+        .replace(/[^A-Z]/g, ''),
+      'a grade sem base latina',
+    ).toBe('ATWY')
+    expect(
+      comBaseLatina('łatwy')
+        .toUpperCase()
+        .replace(/[^A-Z]/g, ''),
+      'a grade COM base latina',
+    ).toBe('LATWY')
   })
 })
 
@@ -92,7 +102,12 @@ describe('as três não são intercambiáveis', () => {
     /* Pergunta 3: `comBaseLatina` NÃO tira acento nem caixa — ela só resolve as letras que o NFD
        não decompõe. A remoção de acento vem do NFD, que a grade aplica depois. */
     expect(comBaseLatina(entrada), 'base latina preserva acento e caixa').toBe('Água   Doce!')
-    expect(comBaseLatina(entrada).normalize('NFD').replace(/[^A-Za-z]/g, '').toUpperCase(),
-      'pergunta 3: só A-Z, maiúsculo').toBe('AGUADOCE')
+    expect(
+      comBaseLatina(entrada)
+        .normalize('NFD')
+        .replace(/[^A-Za-z]/g, '')
+        .toUpperCase(),
+      'pergunta 3: só A-Z, maiúsculo',
+    ).toBe('AGUADOCE')
   })
 })

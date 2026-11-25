@@ -36,12 +36,7 @@ import { MINIGAMES } from './types';
  * ela teria nascido como mais uma condicional no meio do JSX.
  */
 
-export type AcaoDeDesbloqueio =
-  | 'trocar-idioma'
-  | 'trocar-fonte'
-  | 'revisar-descartes'
-  | 'escolher-gravacao'
-  | 'gravar';
+export type AcaoDeDesbloqueio = 'trocar-idioma' | 'trocar-fonte' | 'revisar-descartes' | 'escolher-gravacao' | 'gravar';
 
 export interface Desbloqueio {
   acao: AcaoDeDesbloqueio;
@@ -107,7 +102,7 @@ export function comoDesbloquear(estado: EstadoDoJogo, ctx: ContextoDeDesbloqueio
 
   // 1. O conserto de um clique: o material já existe, só está em outro idioma.
   const melhorIdioma = [...ctx.outrosIdiomas]
-    .filter(i => i.jogaveis >= precisa)
+    .filter((i) => i.jogaveis >= precisa)
     .sort((a, b) => b.jogaveis - a.jogaveis)[0];
   if (melhorIdioma) {
     return { acao: 'trocar-idioma', lang: melhorIdioma.lang, rotulo: `Jogar em ${nome(melhorIdioma.lang)}` };

@@ -55,11 +55,5 @@
     "borderTopStyle",
     "textTransform"
   ],
-  "seletores": [
-    ".q-palco",
-    ".q-cab",
-    ".qp-abas",
-    ".qp-miolo",
-    ".qp-pilha"
-  ]
+  "seletores": [".q-palco", ".q-cab", ".qp-abas", ".qp-miolo", ".qp-pilha"]
 }

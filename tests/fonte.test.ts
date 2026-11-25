@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { applyFonte, coerceFonte, FONTE_KEY,readFonte } from '../src/lib/theme'
+import { applyFonte, coerceFonte, FONTE_KEY, readFonte } from '../src/lib/theme'
 
 describe('fonte da interface (padrao | pixel)', () => {
   it('coerceFonte normaliza qualquer lixo para padrao', () => {

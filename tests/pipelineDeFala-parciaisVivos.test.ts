@@ -31,6 +31,7 @@ vi.mock('../src/lib/flags', async (original) => {
   return { ...m, flagLigada: (nome: string) => flags.ligadas.has(nome) }
 })
 
+import { type EventoDeHipotese, simularExibicao } from '../src/core/legendas/exibicaoDoParcial'
 import { FLAG_PARCIAIS_PARAKEET, FLAG_PARCIAIS_VIVOS } from '../src/core/planos'
 import { lerParcialVivo, limparParcialVivo } from '../src/lib/captura/parcialVivo'
 import { criarPipelineDeFala } from '../src/lib/captura/pipelineDeFala'
@@ -278,4 +279,56 @@ describe('parciais_vivos: escopo só na rota do Parakeet', () => {
       expect(r.historia).toContain('Alô tudo bem hoje') // a prova de que não é o modo que só acrescenta
     })
   }
+})
+
+/**
+ * GRAVAÇÃO DAS HIPÓTESES (laboratório, ciclo 3): com `babel.lab.gravarHipoteses=1` o pipeline guarda em `window.__hipoteses` cada decode, o
+ * fechamento da fala e o final; o simulador, aplicado a esses eventos com a política que estava ligada, reproduz o que a tela recebeu de fato.
+ */
+describe('parciais_vivos: gravação das hipóteses para o simulador', () => {
+  const lista = (): EventoDeHipotese[] => ((globalThis as { __hipoteses?: EventoDeHipotese[] }).__hipoteses ??= [])
+
+  async function falar(lang?: string) {
+    const antes = lista().length
+    const { p, falas } = montar(['Olá', 'Olá tudo', 'Olá tudo bem'], lang)
+    p.micHandlers.onSpeechStart(1)
+    for (const n of [1600, 3200, 4800]) {
+      await parcial(p, n)
+      await vi.advanceTimersByTimeAsync(300)
+    }
+    p.micHandlers.onUtterance(new Float32Array(16000), 16000, 1)
+    await vi.advanceTimersByTimeAsync(0)
+    return { falas, eventos: lista().slice(antes) }
+  }
+
+  it('desligada (padrão), nada é gravado', async () => {
+    const { eventos } = await falar()
+    expect(eventos).toEqual([])
+  })
+
+  it('ligada: registra os decodes, o fechamento e o final; o simulador reproduz a tela da mesma rodada', async () => {
+    localStorage.setItem('babel.lab.gravarHipoteses', '1')
+    const { falas, eventos } = await falar()
+    expect(eventos.map((e) => e.tipo)).toEqual(['decode', 'decode', 'decode', 'fechada', 'final'])
+    expect(eventos.filter((e) => e.tipo === 'decode').map((e) => e.decode)).toEqual([0, 1, 2])
+    expect(eventos.at(-1)).toMatchObject({ tipo: 'final', texto: 'Olá, tudo bem?' })
+    // Mesma política que o app usou (padrão do código com a máscara 0 da `beforeEach`): acrescenta-decode, limitador de 125 ms.
+    const simulada = simularExibicao(eventos, {
+      modo: 'acrescenta-decode',
+      mascara: 0,
+      intervaloMs: 125,
+      subamostra: 1,
+    })
+    expect(simulada.quadros.map((q) => q.texto)).toEqual([...armazem.escritas, 'Olá, tudo bem?'])
+    expect(simulada.textoFinal).toBe(falas.ler().originalText)
+  })
+
+  it('ligada, grava também fora da rota do Parakeet (inglês/Moonshine), sem o pedido `parakeet`; desligada, o escopo é o de sempre', async () => {
+    motor.parakeet = false
+    const antes = await falar('en-US')
+    expect(antes.eventos).toEqual([])
+    localStorage.setItem('babel.lab.gravarHipoteses', '1')
+    const { eventos } = await falar('en-US')
+    expect(eventos.map((e) => e.tipo)).toEqual(['decode', 'decode', 'decode', 'fechada', 'final'])
+  })
 })

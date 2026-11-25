@@ -209,6 +209,6 @@ export function fonteDoAnalyticsEngine({ conta, token, dataset = 'frasy_metricas
 }
 
 /** Fonte de arquivo: um dump local (`AmostraDeCelula[]` em JSON), para o `--dry-run` e para os testes. */
-export function fonteDeArquivo({ amostras, cargas = [] }) {
+export function fonteDeArquivo({ amostras, cargas = /** @type {any[]} */ ([]) }) {
   return { nome: 'arquivo', ler: async () => amostras, lerCargas: async () => cargas }
 }

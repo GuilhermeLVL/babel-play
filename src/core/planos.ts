@@ -392,6 +392,13 @@ export const FLAG_FORCA_NA_LEGENDA = 'forca_na_legenda';
 export const FLAG_FRASE_POR_FRASE = 'frase_por_frase';
 
 /**
+ * SOMBRA LOCAL (openspec `sombra-sem-web-speech`): com a flag, a prática de pronúncia transcreve a frase NO APARELHO
+ * (PCM 16 kHz + VAD + Moonshine/Whisper) onde o Web Speech não existe ou o perfil protegido não pode usá-lo. Só inglês
+ * no começo. O áudio nunca sai do aparelho. Nasce DESLIGADA e sem regra de plano; ligar é ato do dono.
+ */
+export const FLAG_SOMBRA_LOCAL = 'sombra_local';
+
+/**
  * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,
  * "Custo da escrita"): um retorno leva ~900 tokens de entrada (system + texto de até 120 palavras) e até 500 de saída;
  * 30 por mês ficam na casa de US$ 0,01 por assinante que usa tudo, e os tokens já saem da `tokensMes`.

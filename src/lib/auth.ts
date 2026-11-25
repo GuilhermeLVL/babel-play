@@ -218,6 +218,13 @@ export async function updatePassword(newPassword: string): Promise<AuthResult> {
 }
 
 export async function signOut(): Promise<void> {
+  /* O áudio dos cartões é desta conta e fica só no aparelho: sair o apaga (privacidade; o ouvinte de identidade é a rede de segurança). */
+  try {
+    const { armazemDeAudioDoCartao } = await import('./cartoes/audioDoCartao/armazem');
+    await armazemDeAudioDoCartao().apagarTudo();
+  } catch {
+    /* sem armazém, nada a apagar */
+  }
   const supabase = await clienteDoSupabase();
   if (supabase) await supabase.auth.signOut();
 }

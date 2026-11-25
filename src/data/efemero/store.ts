@@ -180,6 +180,13 @@ export function abrirStore(): Promise<IDBPDatabase<BabelLocalDB>> {
 export async function limparTudo(): Promise<void> {
   /* As palavras marcadas ("Já sei"/"Ignorar") moram no localStorage, não no IndexedDB. */
   esquecerMarcadasLocais();
+  /* O áudio dos cartões mora em outro banco (só neste aparelho): "esquecer este navegador" o leva junto. */
+  try {
+    const { destruirBancoDoAudioDoCartao } = await import('../../lib/cartoes/audioDoCartao/armazem');
+    await destruirBancoDoAudioDoCartao();
+  } catch {
+    /* sem o banco, nada a apagar */
+  }
   const db = await abrirStore();
   const tx = db.transaction(['sessoes', 'falas', 'audios', 'cartoes', 'revisoes', 'exercicios', 'gastos', 'presencas', 'creditos'], 'readwrite');
   await Promise.all([

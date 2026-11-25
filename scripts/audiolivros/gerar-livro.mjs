@@ -24,7 +24,12 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { chaveDoCapitulo, hashDasFrases, hashDoLivro, temposDasFrases } from '../../src/core/leitura/audiolivro.ts'
 import { OPCOES_PADRAO_DA_NARRACAO } from '../../src/core/leitura/estilosDeLeitura.ts'
-import { prepararTextoParaVoz, VERSAO_DO_PREPROCESSADOR } from '../../src/core/leitura/prepararTextoParaVoz.ts'
+import {
+  prepararTextoParaVoz,
+  SILENCIO_DO_TITULO_REPETIDO_S,
+  tituloRepetidoPelaProxima,
+  VERSAO_DO_PREPROCESSADOR,
+} from '../../src/core/leitura/prepararTextoParaVoz.ts'
 import { nomeSeguro, pegarOpcao } from '../eval-voz/comum.mjs'
 import { frasesDoCapituloEpub } from './capitulos.mjs'
 import { codificarOpus } from './opus.mjs'
@@ -53,6 +58,11 @@ export async function gerarCapitulo(entrada) {
   const clipes = []
   const falhas = []
   for (const [i, f] of frases.entries()) {
+    if (tituloRepetidoPelaProxima(f.texto, frases[i + 1]?.texto)) {
+      /* Título que o 1º parágrafo repete: não é falado (silêncio no lugar; o índice da frase se mantém). */
+      clipes.push(null)
+      continue
+    }
     const texto = prepararTextoParaVoz(f.texto, /** @type {any} */ (idioma), opcoes)
     let clipe = null
     for (let k = 0; k <= tentativas && !clipe; k++) {
@@ -67,6 +77,16 @@ export async function gerarCapitulo(entrada) {
     else falhas.push(i)
   }
   if (falhas.length || clipes.length === 0) return { wavs: new Uint8Array(0), tempos: [], falhas }
+  const primeiro = clipes.find((c) => c)
+  if (!primeiro) return { wavs: new Uint8Array(0), tempos: [], falhas }
+  for (const [i, c] of clipes.entries()) {
+    if (!c)
+      clipes[i] = {
+        wav: wavDeSilencio(SILENCIO_DO_TITULO_REPETIDO_S, primeiro.taxaHz),
+        duracaoS: SILENCIO_DO_TITULO_REPETIDO_S,
+        taxaHz: primeiro.taxaHz,
+      }
+  }
   const tempos = temposDasFrases(
     clipes.map((c, i) => ({ duracaoS: c.duracaoS, fimDeParagrafo: frases[i].fimDeParagrafo })),
     pausas,

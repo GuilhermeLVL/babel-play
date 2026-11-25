@@ -279,3 +279,28 @@ export function prepararTextoParaVoz(texto: string, idioma: IdiomaDeVoz, opcoes:
   }
   return espacos(t);
 }
+
+/** Silêncio (em segundos) que ocupa o lugar de um título falado duas vezes; mantém o índice `i` das frases do app. */
+export const SILENCIO_DO_TITULO_REPETIDO_S = 0.4;
+
+const normalizarTitulo = (s: string): string =>
+  s
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/**
+ * A frase é um título curto (até 6 palavras) que o texto seguinte repete logo no começo ("I" seguido de
+ * "I. Do título"; ouvia-se "I. I.")? Então a voz o pula (silêncio no lugar): a frase continua existindo para o
+ * destaque, só não é falada.
+ */
+export function tituloRepetidoPelaProxima(frase: string, proxima: string | undefined): boolean {
+  if (!proxima) return false;
+  const t = normalizarTitulo(frase);
+  if (!t || t.split(' ').length > 6) return false;
+  const p = normalizarTitulo(proxima);
+  return p === t || p.startsWith(`${t} `);
+}

@@ -11,7 +11,7 @@ import { criarSintetizadorFalso } from '../scripts/audiolivros/sintetizador.mjs'
 import { duracaoDoWav } from '../scripts/audiolivros/wav.mjs'
 import { validarManifesto } from '../src/core/leitura/audiolivro'
 import { frasesDoTexto } from '../src/core/leitura/narracao'
-import { prepararTextoParaVoz } from '../src/core/leitura/prepararTextoParaVoz'
+import { prepararTextoParaVoz, tituloRepetidoPelaProxima } from '../src/core/leitura/prepararTextoParaVoz'
 
 const PAUSAS = { frase: 0.2, paragrafo: 0.4 }
 const POR_CARACTERE = 0.06
@@ -97,6 +97,39 @@ describe('gerarCapitulo', () => {
     })
     expect(r.tempos).toHaveLength(doCapitulo.length)
     expect(sintetizar.mock.calls.length).toBeGreaterThan(doCapitulo.length)
+  })
+})
+
+describe('título falado duas vezes (3.6)', () => {
+  const comTitulo = [
+    { texto: 'I', fimDeParagrafo: true },
+    { texto: 'I. Do título.', fimDeParagrafo: false },
+    { texto: 'Outra frase.', fimDeParagrafo: true },
+  ]
+  it('o título igual ao começo do 1º parágrafo não vai ao motor, mas ganha tempo e índice', async () => {
+    const { sintetizador, recebidos } = espiao()
+    const r = await gerarCapitulo({
+      frases: comTitulo,
+      idioma: 'pt',
+      voz: 'falsa',
+      sintetizador,
+      opcoes: {},
+      pausas: PAUSAS,
+    })
+    expect(r.falhas).toEqual([])
+    expect(recebidos).toHaveLength(2)
+    expect(r.tempos.map((t) => t.i)).toEqual([0, 1, 2])
+    expect(r.tempos[0].t1).toBeCloseTo(0.4, 3)
+    expect(duracaoDoWav(r.wavs)).toBeCloseTo(r.tempos[2].t1, 2)
+  })
+  it('frase longa ou sem repetição continua falada', () => {
+    expect(tituloRepetidoPelaProxima('Capítulo único', 'Outro assunto')).toBe(false)
+    expect(tituloRepetidoPelaProxima('I', 'II. Seguinte')).toBe(false)
+    expect(
+      tituloRepetidoPelaProxima('Um dois três quatro cinco seis sete', 'Um dois três quatro cinco seis sete'),
+    ).toBe(false)
+    expect(tituloRepetidoPelaProxima('I', undefined)).toBe(false)
+    expect(tituloRepetidoPelaProxima('Capítulo I', 'capitulo i - Do título')).toBe(true)
   })
 })
 

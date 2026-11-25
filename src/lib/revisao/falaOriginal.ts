@@ -1,8 +1,9 @@
 /**
  * A FALA ORIGINAL NA REVISÃO — faz soar a frase do cartão e avisa quando acabou.
  *
- * Dois caminhos, os mesmos de `lib/falante.ts`: o trecho da gravação da sessão quando a cena tem áudio,
- * ou a voz do aparelho (`lib/tts.falar`, a voz do idioma da frase).
+ * Três caminhos, nesta ordem de queda: o CLIPE DO CARTÃO (guardado no aparelho, flag `cartao_com_audio`; nunca baixa a
+ * sessão), o trecho da gravação da sessão quando a cena tem áudio, ou a voz do aparelho (`lib/tts.falar`, a voz do
+ * idioma da frase).
  *
  * O CUSTO: o app baixa o áudio INTEIRO da sessão (não há corte no servidor). Por isso o áudio só é
  * pedido aqui, quando a pessoa toca para ouvir, e nunca ao mostrar um cartão. `urlDeAudio` guarda um
@@ -10,13 +11,14 @@
  * revisão fechar (`soltar`), então vinte cartões da mesma reunião baixam o áudio uma vez.
  */
 import { liberar, urlDeAudio } from '../audioDaSessao';
+import { abrirClipeDoCartao } from '../cartoes/audioDoCartao';
 import { cancelSpeech, falar } from '../tts';
 import { haVozPara } from '../voz/haVoz';
 import type { CenaDoCartao } from './cena';
 
 export interface Tocador {
   /** A fala gravada da cena (ou a voz do aparelho, se o áudio falhar). Resolve quando acaba. */
-  original(cena: CenaDoCartao, idioma: string, velocidade?: number): Promise<void>;
+  original(cena: CenaDoCartao, idioma: string, velocidade?: number, cartaoId?: string): Promise<void>;
   /** A voz do aparelho lendo o texto. Resolve quando acaba (ou em silêncio, sem voz para o idioma). */
   voz(texto: string, idioma: string, velocidade?: number): Promise<void>;
   parar(): void;
@@ -31,6 +33,9 @@ const tetoDaVoz = (texto: string, velocidade: number): number =>
 export function criarTocador(): Tocador {
   const pedidos = new Map<string, Promise<string>>();
   let audio: HTMLAudioElement | null = null;
+  /** O elemento do clipe do cartão e o `blob:` em uso (revogado ao acabar, parar ou soltar). */
+  let audioDoClipe: HTMLAudioElement | null = null;
+  let urlDoClipe: string | null = null;
   let vez = 0;
   let pararEm = 0;
   /** Quem espera o fim do trecho: parar no meio também é um fim. */
@@ -42,7 +47,42 @@ export function criarTocador(): Tocador {
     acabar?.();
     acabar = null;
     audio?.pause();
+    audioDoClipe?.pause();
+    soltarClipe();
     cancelSpeech();
+  };
+
+  const soltarClipe = () => {
+    if (urlDoClipe) URL.revokeObjectURL(urlDoClipe);
+    urlDoClipe = null;
+  };
+
+  /** Toca o clipe do cartão até o fim. `false` = não deu para tocar (cai no caminho seguinte). */
+  const tocarClipe = async (clipe: Blob, velocidade: number, minha: number): Promise<boolean> => {
+    if (typeof Audio === 'undefined') return false;
+    soltarClipe();
+    const url = URL.createObjectURL(clipe);
+    urlDoClipe = url;
+    const a = (audioDoClipe ??= new Audio());
+    a.src = url;
+    a.playbackRate = velocidade;
+    (a as HTMLAudioElement & { preservesPitch?: boolean }).preservesPitch = true;
+    try {
+      await a.play();
+    } catch {
+      if (urlDoClipe === url) soltarClipe();
+      return false;
+    }
+    if (minha !== vez) return true;
+    await new Promise<void>((ok) => {
+      acabar = ok;
+      a.onended = () => ok();
+      a.onerror = () => ok();
+    });
+    a.onended = null;
+    a.onerror = null;
+    if (urlDoClipe === url) soltarClipe();
+    return true;
   };
 
   const voz = (texto: string, idioma: string, velocidade = 1): Promise<void> => {
@@ -58,7 +98,14 @@ export function criarTocador(): Tocador {
     });
   };
 
-  const original = async (cena: CenaDoCartao, idioma: string, velocidade = 1): Promise<void> => {
+  const original = async (cena: CenaDoCartao, idioma: string, velocidade = 1, cartaoId?: string): Promise<void> => {
+    if (cartaoId) {
+      parar();
+      const minha = vez;
+      const clipe = await abrirClipeDoCartao(cartaoId);
+      if (minha !== vez) return;
+      if (clipe && (await tocarClipe(clipe, velocidade, minha))) return;
+    }
     if (!cena.temAudio || cena.inicioMs === null || cena.fimMs === null || cena.fimMs <= cena.inicioMs)
       return voz(cena.frase, idioma, velocidade);
     parar();
@@ -114,6 +161,7 @@ export function criarTocador(): Tocador {
       for (const [sessao, p] of pedidos) liberar(sessao, p);
       pedidos.clear();
       audio = null;
+      audioDoClipe = null;
     },
   };
 }

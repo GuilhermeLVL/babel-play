@@ -148,7 +148,7 @@ export default function Pratica({
     const p = ateALacuna
       ? tocador.voz(frase.slice(0, inicioDaLacuna).trim() || c.word, idioma, velocidade)
       : item.cena
-        ? tocador.original(item.cena, idioma, velocidade)
+        ? tocador.original(item.cena, idioma, velocidade, c.id)
         : tocador.voz(frase, idioma, velocidade);
     void p.finally(() => {
       if (vezDoSom.current === vez) setTocando(false);
@@ -265,12 +265,19 @@ export default function Pratica({
     const resto = total - fim.certos;
     const feito =
       tipo === 'falar'
-        ? tp(total, '{certos} de {n} frase lembrada, dita em voz alta.', '{certos} de {n} frases lembradas, ditas em voz alta.', {
-            certos: fim.certos,
-          })
+        ? tp(
+            total,
+            '{certos} de {n} frase lembrada, dita em voz alta.',
+            '{certos} de {n} frases lembradas, ditas em voz alta.',
+            {
+              certos: fim.certos,
+            },
+          )
         : tipo === 'ditado'
           ? tp(total, '{certos} de {n} frase de ouvido.', '{certos} de {n} frases de ouvido.', { certos: fim.certos })
-          : tp(total, '{certos} de {n} lacuna completada.', '{certos} de {n} lacunas completadas.', { certos: fim.certos });
+          : tp(total, '{certos} de {n} lacuna completada.', '{certos} de {n} lacunas completadas.', {
+              certos: fim.certos,
+            });
     return (
       <div
         className="q-palco q-revisao ct-rev ct-fim cx-fim cx-pr cx-pr-fim"
@@ -432,7 +439,7 @@ export default function Pratica({
               quem={item.cena?.quem}
               originalGravada={!!item.cena?.temAudio}
               aoOuvirOriginal={() =>
-                item.cena ? tocador.original(item.cena, idioma) : tocador.voz(frase, idioma)
+                item.cena ? tocador.original(item.cena, idioma, 1, c.id) : tocador.voz(frase, idioma)
               }
               convite={t('Toque no microfone e diga a frase. Depois você ouve a original e a sua.')}
               aoGravar={revelar}
@@ -455,7 +462,12 @@ export default function Pratica({
         )}
         <div className="cx-pr-nota" hidden={!notaAVista} ref={refNota}>
           <p className="q-rotulo">{t('Você lembrou da frase?')}</p>
-          <div className="fsrs" role="group" aria-label={t('Você lembrou da frase?')} style={{ '--n': 2 } as CSSProperties}>
+          <div
+            className="fsrs"
+            role="group"
+            aria-label={t('Você lembrou da frase?')}
+            style={{ '--n': 2 } as CSSProperties}
+          >
             <button
               type="button"
               className="e"

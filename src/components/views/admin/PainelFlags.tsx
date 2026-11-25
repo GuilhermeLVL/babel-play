@@ -41,6 +41,9 @@ const FLAGS_SENSIVEIS = new Set([
   'anki_mapeador',
   'sombra_local',
   'latencia_publicada',
+  'chave_dedup_v2',
+  'leitura_voz_local',
+  'cartao_com_audio',
 ]);
 
 /** As regras da flag em palavras curtas, para ver de relance quem ela alcança. */

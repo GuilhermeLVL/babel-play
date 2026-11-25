@@ -22,7 +22,9 @@ import { db, type ExecutorDb, travarUsuario } from '../db/db'
 import { type InstrucaoDeBatch, rodarLote } from '../db/lotes'
 import { palavrasVistasRepo } from '../db/repositories/palavrasVistas'
 import { sessions, utterances, vocabCards } from '../db/schema'
+import { atualizarVersaoDaChaveDedup } from '../lib/atualizarChaveDedup'
 import { asUserId } from '../lib/authContext'
+import { versaoDaChaveDedup } from '../lib/versaoDaChaveDedup'
 
 export interface RelatorioDoReparo {
   usuarios: number
@@ -85,7 +87,7 @@ async function repararUsuario(userId: string | null, aplicar: boolean): Promise<
     )
   }
   for (const t of plano.cartoes) {
-    const normKey = chaveDedup(palavraDe.get(t.id) ?? '', t.srcPara)
+    const normKey = chaveDedup(palavraDe.get(t.id) ?? '', t.srcPara, versaoDaChaveDedup())
     const dono = donoDaChave.get(normKey)
     if (dono && dono !== t.id) {
       r.conflitos++
@@ -124,6 +126,7 @@ async function repararUsuario(userId: string | null, aplicar: boolean): Promise<
 }
 
 export async function repararIdiomasNoBanco(opcoes: { aplicar: boolean }): Promise<RelatorioDoReparo> {
+  await atualizarVersaoDaChaveDedup() // a chave dos cartões reetiquetados acompanha a flag `chave_dedup_v2`
   const donos = await db.selectDistinct({ userId: sessions.userId }).from(sessions)
   const total: RelatorioDoReparo = { usuarios: 0, falas: 0, cartoes: 0, sessoes: 0, conflitos: 0 }
   for (const { userId } of donos) {

@@ -35,6 +35,8 @@ export interface DepsDaPalavraDaFala {
   setFeedbackMsg: (msg: string) => void;
   /** Navegação entre telas (ex.: "praticar esta frase" a partir da captura ao vivo). */
   onChangeView?: (view: string, data?: any) => void;
+  /** Um cartão nasceu da frase (flag `cartao_com_audio`: a tela guarda o clipe da fala no aparelho). */
+  aoCriarCartao?: (cartaoId: string, frase: string) => void;
 }
 
 export function criarPalavraDaFala(deps: DepsDaPalavraDaFala) {
@@ -49,6 +51,7 @@ export function criarPalavraDaFala(deps: DepsDaPalavraDaFala) {
     setAddedWords,
     setFeedbackMsg,
     onChangeView,
+    aoCriarCartao,
   } = deps;
 
   /**
@@ -143,6 +146,7 @@ export function criarPalavraDaFala(deps: DepsDaPalavraDaFala) {
       /* Confirmar antes de saber é o defeito mais fácil de cometer aqui: a régua pode recusar a
          palavra (repetida, sem tradução) e a tela dizia "adicionado" do mesmo jeito. A pessoa
          então procura no baralho o que nunca entrou e conclui que o app perde coisa. */
+      if (r.cards[0]?.id && sentence) aoCriarCartao?.(r.cards[0].id, sentence);
       msg = r.cards.length
         ? `"${word}" adicionado ao seu deck (FSRS)!`
         : `"${word}" não entrou: ${motivoLegivel(r.skipped[0]?.motivo ?? '')}.`;

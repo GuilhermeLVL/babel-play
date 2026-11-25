@@ -28,6 +28,8 @@ interface AudioGuardado {
 const guardados = new Map<string, AudioGuardado>();
 let bytes = 0;
 let ligado = false;
+/** O ANEL do cartão com áudio (flag `cartao_com_audio`): guarda as falas recentes para o clipe do cartão, sem tocar "Ouvir". */
+let anel = false;
 let tocando: { id: string; audio: HTMLAudioElement; url: string; fimDoEco: () => void } | null = null;
 const ouvintes = new Set<() => void>();
 const avisar = () => ouvintes.forEach((f) => f());
@@ -42,11 +44,29 @@ export function aoMudarAudioDasFalas(aoMudar: () => void): () => void {
 
 export function ligarAudioDasFalas(sim: boolean): void {
   ligado = sim;
-  if (!sim) limparAudioDasFalas();
+  if (!sim && !anel) limparAudioDasFalas();
+}
+
+/**
+ * Liga o anel do cartão com áudio (openspec `cartao-com-audio-do-trecho`, 2.3): as falas recentes ficam em memória
+ * (mesmos tetos de falas e bytes) para o clipe do cartão quando a palavra é salva. Desligado, sem a flag, nada é guardado.
+ */
+export function ligarAnelDoCartao(sim: boolean): void {
+  anel = sim;
+  if (!sim && !ligado) limparAudioDasFalas();
+}
+
+/** O PCM guardado da fala (em float, como a captura o entregou), para o clipe do cartão. */
+export function pcmDaFala(id: string): { pcm: Float32Array; sr: number } | null {
+  const g = guardados.get(id);
+  if (!g) return null;
+  const f = new Float32Array(g.pcm.length);
+  for (let i = 0; i < f.length; i++) f[i] = g.pcm[i] / 0x8000;
+  return { pcm: f, sr: g.sr };
 }
 
 export function guardarAudioDaFala(id: string, pcm: Float32Array, sr: number): void {
-  if (!ligado || !id || !pcm.length) return;
+  if (!(ligado || anel) || !id || !pcm.length) return;
   const anterior = guardados.get(id);
   if (anterior) {
     bytes -= anterior.pcm.byteLength;
@@ -67,7 +87,8 @@ export function guardarAudioDaFala(id: string, pcm: Float32Array, sr: number): v
   }
 }
 
-export const temAudioDaFala = (id: string): boolean => guardados.has(id);
+/** "Ouvir" o áudio real só existe no Quest (`ligado`); o anel do cartão não muda o botão. */
+export const temAudioDaFala = (id: string): boolean => ligado && guardados.has(id);
 
 /** Quantas falas e quantos bytes estão guardados (para os testes e o diagnóstico). */
 export const estadoDoAudioDasFalas = (): { falas: number; bytes: number } => ({ falas: guardados.size, bytes });
@@ -92,7 +113,7 @@ export function pararAudioDasFalas(): void {
  */
 export function tocarAudioDaFala(id: string, opcoes: { lenta?: boolean } = {}): boolean {
   const guardado = guardados.get(id);
-  if (!guardado || typeof Audio === 'undefined') return false;
+  if (!guardado || !ligado || typeof Audio === 'undefined') return false;
   pararAudioDasFalas();
   const flutuante = new Float32Array(guardado.pcm.length);
   for (let i = 0; i < flutuante.length; i++) flutuante[i] = guardado.pcm[i] / 0x8000;

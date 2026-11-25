@@ -37,6 +37,13 @@ export async function transcreverFrase(pcm: Float32Array, lang: string): Promise
   return (r.text || '').trim();
 }
 
+/** Um PARCIAL da leitura em voz alta: `null` quando o worker está ocupado (o parcial é descartado, nunca enfileira). */
+export async function transcreverParcial(pcm: Float32Array, lang: string): Promise<string | null> {
+  if (!stt || !motorPreparado) throw new Error('modelo da sombra local não preparado');
+  const r = await stt.transcribeIfIdle(pcm, 16000, { languageHint: lang.split('-')[0] });
+  return r ? (r.text || '').trim() : null;
+}
+
 /** Solta o worker e o modelo (ao sair da tela de prática). A próxima `prepararSombraLocal` recria do cache. */
 export function liberarSombraLocal(): void {
   stt?.liberar();

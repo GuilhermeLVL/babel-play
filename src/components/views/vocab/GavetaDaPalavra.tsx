@@ -312,7 +312,7 @@ export default function GavetaDaPalavra({
     const tc = (tocador.current ??= criarTocador());
     setTocando(true);
     sentir('grava');
-    void tc.original(cena, lang, velocidade).finally(() => setTocando(false));
+    void tc.original(cena, lang, velocidade, cartao.id).finally(() => setTocando(false));
   };
 
   return (
@@ -460,9 +460,7 @@ export default function GavetaDaPalavra({
             {fraseDaCena && (
               <section className="ct-de-onde" data-testid="de-onde-veio">
                 <span className="label-mono">
-                  {outras.length
-                    ? t('De onde veio · {n} lugares', { n: outras.length + 1 })
-                    : t('De onde veio')}
+                  {outras.length ? t('De onde veio · {n} lugares', { n: outras.length + 1 }) : t('De onde veio')}
                 </span>
                 <div className="ct-cena primeira">
                   <span className="ct-cena-quadro" aria-hidden="true">
@@ -502,9 +500,7 @@ export default function GavetaDaPalavra({
                       }}
                     >
                       <ChevronDown aria-hidden />
-                      <span>
-                        {tp(outras.length, 'Mais {n} lugar onde apareceu', 'Mais {n} lugares onde apareceu')}
-                      </span>
+                      <span>{tp(outras.length, 'Mais {n} lugar onde apareceu', 'Mais {n} lugares onde apareceu')}</span>
                     </button>
                     <div className="ct-recolhido" hidden={!maisLugares} ref={lugares}>
                       {outras.map((o, i) => (
@@ -549,8 +545,8 @@ export default function GavetaDaPalavra({
                 )}
               </ol>
               <span className="proveniencia">
-                <BookMarked aria-hidden /> {t('Fonte')} · {achado ? `Wiktionary, ${achado.source.wiki}` : 'Wiktionary'} (CC
-                BY-SA)
+                <BookMarked aria-hidden /> {t('Fonte')} · {achado ? `Wiktionary, ${achado.source.wiki}` : 'Wiktionary'}{' '}
+                (CC BY-SA)
                 {lang && (
                   <>
                     {' · '}
@@ -610,7 +606,8 @@ export default function GavetaDaPalavra({
       </div>
       <div className="ct-mais-da-palavra" hidden={!maisAcoes} ref={acoes}>
         <button type="button" className="btn btn-outline peq" onClick={() => void suspender()}>
-          {cartao.inDeck ? <Pause aria-hidden /> : <Play aria-hidden />} {cartao.inDeck ? t('Suspender') : t('Reativar')}
+          {cartao.inDeck ? <Pause aria-hidden /> : <Play aria-hidden />}{' '}
+          {cartao.inDeck ? t('Suspender') : t('Reativar')}
         </button>
         {aoPraticar && (
           <button

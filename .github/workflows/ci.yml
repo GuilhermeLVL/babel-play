@@ -406,6 +406,7 @@ jobs:
       ARQUIVOS: >-
         tests/integration/admissao-no-banco.test.ts
         tests/integration/banco-de-teste-postgres.test.ts
+        tests/integration/chave-de-duplicata.test.ts
         tests/integration/agregados-concorrentes.test.ts
         tests/integration/db-por-requisicao.test.ts
         tests/integration/gasto-concorrente.test.ts

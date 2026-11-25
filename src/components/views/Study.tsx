@@ -790,7 +790,7 @@ export default function Study({
     const cena = o.cena ?? (cenaJuntada(card.id) ? o.achada : null);
     const frase = fraseDe(card) || card.word;
     /* a cena é a da frase do cartão: com "Outra frase" à vista, quem lê é a voz do aparelho */
-    await (cena && cena.frase === frase ? oTocador().original(cena, lang) : oTocador().voz(frase, lang));
+    await (cena && cena.frase === frase ? oTocador().original(cena, lang, 1, card.id) : oTocador().voz(frase, lang));
     setTocando((x) => (x === 'original' ? null : x));
   };
   const ouvirVoz = async (card: VocabCard) => {
@@ -1760,7 +1760,7 @@ export default function Study({
               cenaAVista || temVoz
                 ? () =>
                     cenaAVista
-                      ? oTocador().original(cenaAVista, idiomaDe(currentCard))
+                      ? oTocador().original(cenaAVista, idiomaDe(currentCard), 1, currentCard.id)
                       : oTocador().voz(frase, idiomaDe(currentCard))
                 : undefined
             }
@@ -1782,7 +1782,7 @@ export default function Study({
             aoTrocarFrase={(nova) => void trocarFrase(cartaoDasSaidas, nova)}
             aoOuvirCena={() => {
               const c = cenaDe(cartaoDasSaidas);
-              if (c) void oTocador().original(c, idiomaDe(cartaoDasSaidas));
+              if (c) void oTocador().original(c, idiomaDe(cartaoDasSaidas), 1, cartaoDasSaidas.id);
             }}
             aoDescansar={() => void adiar(cartaoDasSaidas, 30)}
             aoFechar={() => {

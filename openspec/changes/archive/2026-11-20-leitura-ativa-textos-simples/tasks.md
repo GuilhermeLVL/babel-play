@@ -48,7 +48,7 @@ Nenhuma chamada de IA paga: testes com IA simulada.
 
 ### Notas da Parte 1 (o que mudou em relação ao planejado)
 
-- 5.3 fica aberta: o ouvido usa só a Web Speech com `processLocally` (falha fechada); o modelo local do roteador
+- 5.3 (RESOLVIDA por `leitura-ativa-com-moonshine`, 25/11: o Moonshine é o segundo motor, atrás da flag `leitura_voz_local`) ficava aberta: o ouvido usa só a Web Speech com `processLocally` (falha fechada); o modelo local do roteador
   (Moonshine via `startLive`) como segundo motor ainda não está ligado. Sem `processLocally`, a voz alta aparece
   esmaecida. Testes em `tests/leitura-ativa-ouvinte.test.ts` (sem motor local nada abre; `descartar` solta e reabre).
 - 5.2 usa `falar` (com `onEnd`) + `narrar`, e não `criarFalante`, que não avisa o fim da fala.

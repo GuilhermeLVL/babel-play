@@ -22,6 +22,7 @@ import {
 } from '../server/lib/usageQuota'
 import {
   ehPlanoDeAssinatura,
+  ENTITLEMENTS_FECHADOS,
   ESCRITAS_MES_DOS_PAGOS,
   FLAG_VENDA_PLANOS_V4,
   horasDeTranscricao,
@@ -176,6 +177,14 @@ describe('a matriz v3', () => {
     })
     const tudo = getEntitlements('selfhost')
     expect(tudo.traducaoNuance && tudo.vozNatural && tudo.interpreteAutomatico).toBe(true)
+  })
+
+  /* A conversa virtual (openspec `interprete-conversa-virtual`, decisão assumida 25/11): a legenda dos dois lados é livre
+     para quem tem conta, em todo plano da matriz; o convidado e o "tudo fechado" ficam sem (sem conta, sem aferição de idade). */
+  it('conversaVirtual: todo plano da matriz tem; convidado e tudo fechado não', () => {
+    for (const p of PLANOS_DE_ASSINATURA) expect(PLAN_MATRIX[p].entitlements.conversaVirtual, p).toBe(true)
+    expect(PLANO_CONVIDADO.entitlements.conversaVirtual).toBe(false)
+    expect(ENTITLEMENTS_FECHADOS.conversaVirtual).toBe(false)
   })
 
   /* A escrita da Leitura ativa (openspec `leitura-ativa-textos-simples`): só os pagos recebem retorno da IA. */

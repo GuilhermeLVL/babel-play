@@ -92,6 +92,7 @@ import {
 } from '../../lib/captura/ajudaDoMicrofone';
 import { useAquecerNaIntencao } from '../../lib/captura/aquecerNaIntencao';
 import {
+  ligarAnelDoCartao,
   ligarAudioDasFalas,
   limparAudioDasFalas,
   pararAudioDasFalas,
@@ -236,7 +237,7 @@ import { useAvatarDaLegenda } from './captura/legendas/AvatarDaLegenda';
 let benchmarkPendente: AbortController | null = null;
 import { correcaoNaPratica, praticaPossivel } from '../../core/assistente/praticaDaConversa';
 import type { FalaDoAssistente, MarcaNaLinha } from '../../core/assistente/telaDoAssistente';
-import { FLAG_ASSISTENTE_AO_VIVO } from '../../core/planos';
+import { FLAG_ASSISTENTE_AO_VIVO, FLAG_CARTAO_COM_AUDIO } from '../../core/planos';
 import { usePaginaVisivel } from '../../hooks/usePaginaVisivel';
 import {
   contextoDasFalas,
@@ -244,6 +245,7 @@ import {
   paginaMostraOAssistente,
 } from '../../lib/assistente/falasDoAssistente';
 import { esperaDaLegenda, mioloDoPreparo } from '../../lib/captura/esperaDoPreparo';
+import { guardarClipeDaFraseSalva } from '../../lib/cartoes/audioDoCartao/daFala';
 import { useFlag } from '../../lib/flags';
 import { estabilizarFalas } from '../../lib/legendas/estabilizarFalas';
 import { aoMudarEstadoDaTela, estadoDaTela, mudarEstadoDaTela } from '../../lib/polimento/interprete';
@@ -2174,7 +2176,19 @@ export default function LiveCapture({
 
   /* O VOCABULÁRIO DA CAPTURA (examinar, fichar no deck, mandar praticar) mora em
      `lib/captura/palavraDaFala.ts`. Fábrica por render, como as closures que substituiu. */
+  const cartaoComAudio = useFlag(FLAG_CARTAO_COM_AUDIO);
+  /* O ÁUDIO DO CARTÃO (flag `cartao_com_audio`): as falas recentes ficam num anel em memória e, quando a palavra é
+     salva, o clipe da fala vai para o aparelho (nada sobe). No Intérprete não há anel: a voz da outra pessoa não vira clipe. */
+  useEffect(() => {
+    if (!cartaoComAudio || entrada === 'interprete') return;
+    ligarAnelDoCartao(true);
+    return () => ligarAnelDoCartao(false);
+  }, [cartaoComAudio, entrada]);
+  const clipeDoCartaoCriado = useFuncaoEstavel((cartaoId: string, frase: string) => {
+    if (cartaoComAudio && entrada !== 'interprete') void guardarClipeDaFraseSalva(cartaoId, frase, speechSegments);
+  });
   const { examineWord, handleAddWordToDeck, glosaDaPalavra } = criarPalavraDaFala({
+    aoCriarCartao: clipeDoCartaoCriado,
     gateway,
     langConfigRef,
     targetLangRef,
@@ -3343,6 +3357,8 @@ export default function LiveCapture({
   /* O MODO AUTOMÁTICO DO INTÉRPRETE NESTA CONTA (decisão do dono, 30/09: só no Premium). Quem o tem
      começa nele; quem não tem vê o botão com cadeado — menos no site sem servidor (não há plano a
      assinar) e no perfil protegido (só o que é funcional, nada de oferta). */
+  /* A CONVERSA VIRTUAL NESTA CONTA (`conversaVirtual`; legenda livre para quem tem conta, convidado fora). */
+  const virtualNoPlano = !!getEntitlements().conversaVirtual;
   const automaticoDoInterprete: AutomaticoNoPlano = getEntitlements().interpreteAutomatico
     ? 'disponivel'
     : edicaoEstatica() || perfilProtegido()
@@ -4265,7 +4281,7 @@ export default function LiveCapture({
               vozDoSite={nuvemDoQuestAtiva()}
               aoConhecerOPremium={conhecerOPremium}
               aoComecar={entrarNoInterprete}
-              {...(chaveLigada('virtual') && systemEnabled && !capturaEnxuta
+              {...(chaveLigada('virtual') && virtualNoPlano && systemEnabled && !capturaEnxuta
                 ? { aoComecarVirtual: entrarNaConversaVirtual }
                 : {})}
               aoEscolherIdiomas={() => setIdiomasAbertos(true)}
@@ -4659,7 +4675,7 @@ export default function LiveCapture({
             aoConhecerOPremium={conhecerOPremium}
             aoEscolherOutroAvatar={onChangeView ? () => abrirMeuAvatar(onChangeView) : undefined}
             janelaFlutuante={janelaDoInterprete}
-            comVirtual={chaveLigada('virtual') && systemEnabled && !capturaEnxuta}
+            comVirtual={chaveLigada('virtual') && virtualNoPlano && systemEnabled && !capturaEnxuta}
             assistente={doAssistente}
             aoOuvirSugestao={ouvirNaLegenda}
             {...(praticaDoInterprete ? { pratica: praticaDoInterprete } : {})}

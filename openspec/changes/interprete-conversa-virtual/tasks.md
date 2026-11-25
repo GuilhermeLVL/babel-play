@@ -4,8 +4,8 @@
 
 ## 1. Fase 4 — ouvir a outra pessoa
 
-- [ ] 1.1 **[D]** Entitlement `conversaVirtual` em `src/core/planos.ts`. Hoje a opção só aparece com a chave de teste `virtual` ligada.
-      Depende da decisão do dono (plano). Verificar: `tests/planos-matriz.test.ts` e `tests/planos-v4-matriz.test.ts` verdes com o campo novo; grade plano × entitlement
+- [x] 1.1 Entitlement `conversaVirtual` em `src/core/planos.ts`. Hoje a opção só aparece com a chave de teste `virtual` ligada.
+      Decisão assumida: recomendação (a) da decisão 18, 25/11: legenda dos dois lados livre para quem tem conta (18+ na folha); convidado e "tudo fechado" sem; a voz na chamada (Fase 5) usa `vozNatural` (Plus e selfhost). Feito: `conversaVirtual` em `src/core/planos.ts`, porta em `LiveCapture.tsx` (`virtualNoPlano`), `tests/planos-matriz.test.ts`, snapshot de `/api/me/entitlements`. Bloqueio com texto de plano só quando houver plano sem o direito para vender (hoje só o convidado, que não vê o botão). Verificar: `tests/planos-matriz.test.ts` e `tests/planos-v4-matriz.test.ts` verdes com o campo novo; grade plano × entitlement
       em `/api/me/entitlements`; nenhuma comparação do nome do plano fora da matriz.
 - [x] 1.2 Direção fixa por fonte: `interpreteVirtual()` no pipeline. Feito: `tests/interprete-virtual.test.ts`.
 - [x] 1.3 As duas fontes abrem ao começar (`micNoInicio`). Feito: `tests/salvarSessaoInterprete.test.ts`.
@@ -16,12 +16,14 @@
 - [x] 1.6 Tela `ConversaVirtual.tsx` (bolhas, silenciar, só legenda por padrão, corrigir, guardar, exportar). Feito: `tests/conversaVirtual.test.tsx`.
 - [x] 1.7 Entrada pelo botão "Virtual" (`FolhaDaConversaVirtual.tsx`), só no computador com áudio do sistema e com a chave `virtual`.
 - [x] 1.8 Aviso e confirmação (18+, avisar quem está na conversa, nada gravado), escolha de fone, botão de sair sempre visível.
-- [ ] 1.9 Medidor de minutos e queda para só legenda no teto. Depende da 1.1.
+- [x] 1.9 Medidor de minutos e queda para só legenda no teto. Feito: `src/core/conversaVirtual.ts`, `ConversaVirtual.tsx` (faixa "N min de conversa"; `aoRecuar` por cota ou uso justo desliga a leitura e diz o motivo), `tests/conversaVirtualTeto.test.tsx`. O teto em si segue no servidor.
       Verificar: teste com cota de voz zerada no meio da conversa: continua só com legenda e a tela diz o motivo (cenário "Teto atingido").
 - [x] 1.10 Conferido em navegador real (edição estática) em outubro. Reconferir depois do #206 (avisos e conversa numa área que rola; `2e65c0dd`):
-      o aviso de consentimento não pode ficar escondido no celular. Verificar: e2e de captura em 375x667 mostra o aviso antes de abrir a captura.
+      o aviso de consentimento não pode ficar escondido no celular. Aberta: e2e em 375x667 não rodado nesta onda (a Fase 4 só aparece no computador com áudio do sistema; conferir em janela estreita). Verificar: e2e de captura em 375x667 mostra o aviso antes de abrir a captura.
 
 ## 2. Fase 5 — spike com portão (antes de qualquer código de produto)
+
+> Decisão assumida: recomendação das decisões 18, 25/11: Fase 5 ADIADA [D]; voz roteável sem voz agora (só legenda) e local depois do spike; teste real em Meet, Zoom e Discord adiado. Nada das seções 2 e 3 foi iniciado.
 
 - [ ] 2.1 **[R]** Spike descartável tocando a tradução por `setSinkId` no VB-Cable (Windows) e no BlackHole (macOS); medir eco, atraso e
       inteligibilidade com Meet e Zoom. Verificar: 10 chamadas de 2 min por combinação, números em tabela (eco sim/não, p50 do fim da fala até o som, nota de 1 a 5).

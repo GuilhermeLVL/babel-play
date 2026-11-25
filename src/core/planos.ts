@@ -132,6 +132,13 @@ export interface EntitlementsDoPlano {
    */
   interpreteAutomatico: boolean;
   /**
+   * A CONVERSA VIRTUAL (`interprete-conversa-virtual`; decisão assumida 25/11: legenda dos dois lados livre
+   * para quem tem conta, 18+ conferido à parte; custo de nuvem zero porque a legenda roda no aparelho).
+   * A VOZ na chamada (Fase 5, adiada) só vale no Plus e no selfhost: ela usa `vozNatural`, não este campo.
+   * Convidado e "tudo fechado" ficam sem: sem conta não há aferição de idade (LGPD art. 14).
+   */
+  conversaVirtual: boolean;
+  /**
    * SEM ANÚNCIOS (planos v3). A política de anúncios (`src/core/anuncios`, atrás da flag `anuncios`)
    * nega por ESTE campo; quem paga, quem testa o Premium e o self-host não veem anúncio.
    */
@@ -311,6 +318,13 @@ export const FLAG_PARCEIRO_DE_LEITURA = 'parceiro_de_leitura';
 export const FLAG_LEITURA_ATIVA = 'leitura_ativa';
 
 /**
+ * LEITURA ATIVA COM VOZ LOCAL (openspec `leitura-ativa-com-moonshine`; migrações PG 0040 e SQLite 0079, PROVISÓRIAS):
+ * com a flag (e a `leitura_ativa`), "Ler em voz alta" também funciona sem Web Speech local, ouvindo a leitura em inglês
+ * com o Moonshine NO APARELHO. O áudio nunca sai do aparelho. Nasce DESLIGADA e sem regra de plano; ligar é ato do dono.
+ */
+export const FLAG_LEITURA_VOZ_LOCAL = 'leitura_voz_local';
+
+/**
  * O ACESSO RESTRITO SEM CONTA (openspec `acesso-sem-conta-v2`; migrações PG 0022 e SQLite 0064): depois da 1ª
  * sessão, quem não tem conta e se declara adulto passa pela porta de entrada. Nasce DESLIGADA e sem regra de
  * plano; a regra mora em `src/core/acessoSemConta.ts` (a flag só liga o fluxo). Desligada = comportamento de hoje.
@@ -416,6 +430,21 @@ export const FLAG_SOMBRA_LOCAL = 'sombra_local';
 export const FLAG_LATENCIA_PUBLICADA = 'latencia_publicada';
 
 /**
+ * A CHAVE DE DUPLICATA POR IDIOMA (openspec `modelo-do-aluno-e-dados`, fatia 5; migrações PG 0039 e SQLite 0078, provisórias):
+ * com a flag ligada o servidor compara palavras pela chave v2 (`chaveDedup(..., 2)`), que mantém as marcas que distinguem
+ * palavras (`año` x `ano`). Só vale DEPOIS da reescrita de `norm_key` (`operacao.cjs chave-de-duplicata`). Nasce DESLIGADA e
+ * sem regra de plano; ligar é ato do dono, com backup e o app parado.
+ */
+export const FLAG_CHAVE_DEDUP_V2 = 'chave_dedup_v2';
+
+/**
+ * O CARTÃO COM ÁUDIO DO TRECHO (openspec `cartao-com-audio-do-trecho`; migrações PG 0041 e SQLite 0080, provisórias): o cartão guarda
+ * a fala de onde a palavra veio (Ogg Opus curto) SÓ NO APARELHO (IndexedDB) e o verso toca esse clipe antes do trecho da sessão.
+ * Nasce DESLIGADA e sem regra de plano; nenhuma cota nova (o teto é por aparelho, não por conta). Ligar é ato do dono.
+ */
+export const FLAG_CARTAO_COM_AUDIO = 'cartao_com_audio';
+
+/**
  * Os RETORNOS DA ESCRITA por mês nos planos pagos (provisório, spec `leitura-ativa-escrita`). A conta (design.md,
  * "Custo da escrita"): um retorno leva ~900 tokens de entrada (system + texto de até 120 palavras) e até 500 de saída;
  * 30 por mês ficam na casa de US$ 0,01 por assinante que usa tudo, e os tokens já saem da `tokensMes`.
@@ -466,6 +495,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       traducaoNuance: false,
       vozNatural: false,
       interpreteAutomatico: false,
+      conversaVirtual: true,
       semAnuncios: false,
       sttAoVivo: false,
       nivelDeVoz: 'aparelho',
@@ -508,6 +538,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       traducaoNuance: true,
       vozNatural: false,
       interpreteAutomatico: false,
+      conversaVirtual: true,
       semAnuncios: true,
       sttAoVivo: false,
       nivelDeVoz: 'aparelho',
@@ -549,6 +580,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       traducaoNuance: true,
       vozNatural: true,
       interpreteAutomatico: true,
+      conversaVirtual: true,
       semAnuncios: true,
       sttAoVivo: false,
       nivelDeVoz: 'basica',
@@ -605,6 +637,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       traducaoNuance: true,
       vozNatural: true,
       interpreteAutomatico: true,
+      conversaVirtual: true,
       semAnuncios: true,
       sttAoVivo: true,
       nivelDeVoz: 'boa',
@@ -647,6 +680,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       traducaoNuance: true,
       vozNatural: true,
       interpreteAutomatico: false,
+      conversaVirtual: true,
       semAnuncios: true,
       sttAoVivo: false,
       nivelDeVoz: 'basica',
@@ -685,6 +719,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       traducaoNuance: true,
       vozNatural: true,
       interpreteAutomatico: false,
+      conversaVirtual: true,
       semAnuncios: true,
       sttAoVivo: false,
       nivelDeVoz: 'basica',
@@ -723,6 +758,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       traducaoNuance: true,
       vozNatural: true,
       interpreteAutomatico: true,
+      conversaVirtual: true,
       semAnuncios: true,
       sttAoVivo: false,
       nivelDeVoz: 'basica',
@@ -759,6 +795,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       traducaoNuance: true,
       vozNatural: true,
       interpreteAutomatico: true,
+      conversaVirtual: true,
       semAnuncios: true,
       sttAoVivo: true,
       nivelDeVoz: 'boa',
@@ -817,6 +854,7 @@ export const PLANO_CONVIDADO: DefinicaoDePlano = {
     traducaoNuance: false,
     vozNatural: false,
     interpreteAutomatico: false,
+    conversaVirtual: false,
     semAnuncios: false,
     sttAoVivo: false,
     nivelDeVoz: 'aparelho',
@@ -856,6 +894,7 @@ export const ENTITLEMENTS_FECHADOS: Readonly<EntitlementsDoPlano> = Object.freez
   traducaoNuance: false,
   vozNatural: false,
   interpreteAutomatico: false,
+  conversaVirtual: false,
   semAnuncios: false,
   sttAoVivo: false,
   nivelDeVoz: 'aparelho',

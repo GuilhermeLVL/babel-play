@@ -702,11 +702,10 @@ async function verificacoes(base, w, token, provedor) {
 async function comoRespondoEmFluxo(base, token, provedor) {
   const quem = `fumaca-fluxo-${randomBytes(4).toString('hex')}`
   const agora = Date.now()
-  /* Plano pago ANTES do primeiro pedido da conta e a flag ligada (a semente da migração nasce desligada). */
+  /* Plano pago ANTES do primeiro pedido da conta (a flag `assistente_ao_vivo` já foi ligada logo depois da migração). */
   consultar(
     `insert into subscriptions (id, created_at, updated_at, user_id, plan, status) values ('${quem}', ${agora}, ${agora}, '${quem}', 'plus', 'active')`,
   )
-  consultar("update flags set habilitada = true where chave = 'assistente_ao_vivo'")
   const auth = { authorization: `Bearer ${await token(quem)}` }
   const idade = await fetch(`${base}/api/me/idade`, {
     method: 'PUT',
@@ -849,6 +848,9 @@ async function principal() {
     }
     passo('migrações (npm run db:migrate)')
     rodar('npx', ['tsx', 'server/db/migrate.ts'], { env: { ...process.env, DATABASE_URL: URL_PG } })
+    /* A semente da migração nasce desligada. Liga ANTES de subir o Worker: todo pedido a /api lê as flags (cache de 30 s,
+       por causa da versão da chave de duplicata), então um `update` feito depois não seria visto a tempo. */
+    consultar("update flags set habilitada = true where chave = 'assistente_ao_vivo'")
     jwks = await subirJwks()
     provedor = await subirProvedorSimulado(persistir)
     const porta = await portaLivre()

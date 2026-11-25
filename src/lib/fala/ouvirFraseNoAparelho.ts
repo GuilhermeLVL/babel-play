@@ -55,7 +55,7 @@ export interface OpcoesDeOuvir {
 const URL_DO_WORKLET = '/pcm-capture-worklet.js';
 
 /** A captura real: contexto na taxa nativa (o Firefox recusa microfone ligado a contexto de outra taxa). */
-async function capturarDoMicrofone(aoBloco: (b: Float32Array) => void): Promise<Captura> {
+export async function capturarDoMicrofone(aoBloco: (b: Float32Array) => void): Promise<Captura> {
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
   });

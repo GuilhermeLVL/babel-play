@@ -66,6 +66,15 @@ export async function excluirConta(): Promise<ResultadoDaExclusao> {
     const corpo = (await res.json().catch(() => ({}))) as Partial<ResultadoDaExclusao>
     const ok = res.ok && corpo.ok !== false
     /* A conta sumiu: o token ainda vale até expirar e qualquer chamada recriaria uma linha vazia. Encerra a sessão aqui. */
+    /* O áudio dos cartões fica só no aparelho: a conta acabou, o banco também. */
+    if (ok) {
+      try {
+        const { destruirBancoDoAudioDoCartao } = await import('../../lib/cartoes/audioDoCartao/armazem')
+        await destruirBancoDoAudioDoCartao()
+      } catch {
+        /* nada guardado */
+      }
+    }
     if (ok && supabase) await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined)
     return { ...corpo, ok }
   } catch (err) {

@@ -1,7 +1,8 @@
 # ADR 0013 — Vender quatro planos por nível de serviço (Grátis, Essencial, Premium, Ao Vivo), com a venda dos novos fechada por flag
 
 - **Data:** 2026-10-09
-- **Estado:** aceito (o dono delegou as decisões em 09/10/2026: `design.md` §11 da change)
+- **Estado:** aceito; substituído parcialmente pelo [ADR 0016](0016-planos-v4-o-pago-vende-estudo-com-ia.md) em 25/11/2026 (a matriz por capacidades, o contador por nível e a venda fechada por flag seguem; os planos vendidos e os preços da tabela abaixo são os da v3, hoje encerrados). O painel que embasa a v4 está em `docs/auditoria/planos-v4-painel/`.
+- **Decisões da change:** o dono delegou em 09/10/2026 (`design.md` §11 da change)
 - **Change OpenSpec:** `planos-v3-e-rota-inteligente`
 - **Substitui:** [ADR 0011](0011-um-plano-pago-com-uso-justo-diario.md) (um plano pago só)
 

@@ -1,3 +1,8 @@
+> **DESCARTADA em 25/11/2026 (decisão assumida: recomendação das decisões 7 e 39, 25/11).** O plano Ao Vivo saiu de venda (ADR 0016) e
+> a nuvem ao vivo foi abandonada em `planos-v3-e-rota-inteligente`. Só voltaria se a latência publicada por aparelho
+> (`latencia-publicada-por-aparelho`) mostrar celular fraco o bastante para justificar um terceiro, e então com parecer jurídico sobre
+> voz de menor primeiro. Mantida como registro; pode ser arquivada sem sincronizar `specs/`.
+
 > **Plano Ao Vivo com streaming de terceiro: SÓ spec, tudo depende do dono.** Pacote de decisão para escolher (ou recusar) o
 > serviço de transcrição em fluxo que sustenta o texto durante a fala na nuvem. Nenhum código de produção até as decisões
 > abaixo; nenhuma flag nasce nesta change (`stt_ao_vivo` já existe e continua desligada).

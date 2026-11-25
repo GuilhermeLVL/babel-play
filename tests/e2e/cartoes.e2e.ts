@@ -498,6 +498,6 @@ test.describe('Cartões: o peso da abertura', () => {
     expect(
       [...new Set(doVocab)].sort(),
       'de /api/vocab*, a abertura dos Cartões deveria pedir só o resumo e as contagens do catálogo',
-    ).toEqual(['GET /api/vocab/conteudo', 'GET /api/vocab/resumo'])
+    ).toEqual(['GET /api/vocab/conteudo', 'GET /api/vocab/opcoes-da-revisao', 'GET /api/vocab/resumo'])
   })
 })

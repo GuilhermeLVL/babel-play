@@ -459,6 +459,8 @@ html[data-quest-novo='true'] .ct-cab-dentro > .q-voltar { background: var(--surf
 
 /* ---- Hoje ---- */
 .ct-hoje-acoes { display: grid; gap: 8px; justify-items: stretch; }
+/* o botão principal cabe com texto 40% mais longo (pseudo-localização a 375 px): quebra em vez de estourar */
+.ct-hoje-acoes .q-ctl.pri { height: auto; padding-block: 8px; padding-inline: 14px; line-height: 1.15; text-align: center; white-space: normal; }
 html[data-quest-novo='true'] .ct-hoje .q-ctl.ct-resto { min-height: 48px; padding: 0 14px 0 18px; gap: 8px; font-size: 16px; background: none; border-color: transparent; justify-content: center; }
 html[data-quest-novo='true'] .ct-hoje .q-ctl.ct-resto:hover { background: var(--canvas); border-color: var(--border-subtle); }
 .ct-resto small { font: 600 14px/1 var(--font-body, inherit); color: var(--ink-muted); }

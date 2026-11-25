@@ -132,13 +132,20 @@ function procurar(
   return null;
 }
 
-/** Tira marcas de mídia e HTML; sobra algo? */
-const soMidia = (valor: string, marca: RegExp) =>
-  marca.test(valor) &&
-  !valor
-    .replace(/\[sound:[^\]]*\]/gi, '')
-    .replace(/<img\b[^>]*>/gi, '')
-    .replace(/<[^>]*>|&nbsp;|\s/gi, '').length;
+/** Tira marcas de mídia e HTML até estabilizar (um `<scr<b>ipt>` não sobra); sobra algo? */
+function textoSemMarcas(valor: string): string {
+  let atual = valor;
+  for (let anterior = ''; anterior !== atual; ) {
+    anterior = atual;
+    atual = atual
+      .replace(/\[sound:[^\]]*\]/gi, '')
+      .replace(/<img\b[^>]*>/gi, '')
+      .replace(/<[^>]*>|&nbsp;|\s/gi, '');
+  }
+  return atual;
+}
+
+const soMidia = (valor: string, marca: RegExp) => marca.test(valor) && !textoSemMarcas(valor).length;
 
 /** O que a AMOSTRA diz de cada coluna: áudio ou imagem quando a maioria das notas só tem a marca de mídia. */
 function papelPeloConteudo(amostra: string[][], coluna: number): 'audio' | 'imagem' | null {

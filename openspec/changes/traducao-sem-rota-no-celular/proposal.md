@@ -82,3 +82,14 @@ Evidências (relativas a `reports/auditoria-qualidade/`):
   1. Confirmar que `VITE_BERGAMOT_MODELOS_URL` está no Environment `production` e que o bucket tem `es-en`, `fr-en`,
      `it-en` e `de-en` publicados (`scripts/modelos/publicar-bergamot-no-r2.ts`, credencial do R2).
   2. Aprovar o texto do aviso "sem tradução neste aparelho" (skill `copy-br-etica`).
+
+## Revisão de 25/11/2026
+
+- **Estado**: quase toda feita (cobertura, rota pelo inglês, linha honesta, aviso de par, cartão de 20 s, marcas, regulador). #205 e #206 corrigiram o layout que reprovava o e2e da 3.2; o e2e ainda NÃO voltou (revertido em `65c5c54c`, pronto em `ef991c9f`). Abertas e velhas: 4.2 e 4.3 (a lentidão da 2ª sessão não se reproduziu: 0,96× e 0,95×), 5.2 (nota 2,33 a 2,89 contra o piso 3,0) e 5.3 (Bergamot es-en passa o teto de memória: +726 MB). Decisões que mudaram: a qualidade do es→pt local passou para `traducao-local-por-direcao`; o corte de custo de 02/10 e os planos v4 não alteram esta change (o pivô é local, sem custo, e o perfil protegido continua sem nuvem); a tarefa 3.1 não ligou o disjuntor `chrome-translator`, e o prazo de 20 s cobre o caso.
+- **Esforço**: P (cerca de 0,5 dia: cherry-pick do e2e e rodar; mais a rodada no staging, que é do dono/aparelho real).
+- **Valor para quem usa**: alto (es→pt é o par mais comum de quem viaja; antes a tela fingia traduzir). Já entregue em grande parte; o resto é prova e qualidade.
+- **Dependências**: conflito de arquivo com `modelos-confiaveis-e-offline` em `ModelPrepPanel.tsx` (esta vai primeiro); o piso de qualidade depende de `traducao-local-por-direcao`; o CDN do Bergamot depende de `bergamot-multi-idioma-via-cdn` 1.3 (dono).
+- **Decisões do dono** (tarefa 6.1 e 6.3):
+  1. Piso do pivô es→pt: (A) aceitar 2,9 com o Bergamot e rotular "tradução aproximada" na linha; (B) exigir 3,0 e bloquear o pivô até haver modelo direto; (C) A para desktop e, no celular, só o opus-mt (memória no teto) com o rótulo. **Recomendo A**: mostrar algo útil e honesto vale mais que nada, e `traducao-local-por-direcao` sobe a nota depois.
+  2. Memória no celular (+726 MB na 1ª sessão): (A) aceitar com o Bergamot só onde há 6 GB ou mais; (B) usar opus-mt nas duas pernas (+185/+206 MB, nota menor); (C) medir em aparelho real antes. **Recomendo C com B como padrão no celular enquanto não medir**.
+  3. Aprovar o texto do aviso e publicar o CDN do Bergamot (itens antigos, sem opção: só fazer).

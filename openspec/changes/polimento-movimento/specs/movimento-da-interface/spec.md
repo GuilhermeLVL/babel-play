@@ -12,6 +12,16 @@ montada (`src/lib/movimento/animar.ts:21`, `src/lib/movimento/animar.ts:35`).
 - **WHEN** o desenho novo roda no headset
 - **THEN** a marca é `contido` e nenhuma regra da camada de movimento rico se aplica
 
+#### Scenario: O sistema pede menos movimento (acrescentado em 25/11/2026)
+
+- **WHEN** o sistema operacional pede "reduzir movimento" e a pessoa nunca ligou as animações do app de propósito
+- **THEN** a marca é `contido` e a camada rica não anima
+
+#### Scenario: A pessoa liga as animações de propósito
+
+- **WHEN** a pessoa liga o interruptor Animações do app mesmo com o sistema pedindo menos movimento
+- **THEN** a marca é `rico`, e o app mostra no próprio interruptor que isso vale só para ele
+
 #### Scenario: A pessoa desliga as animações
 
 - **WHEN** o interruptor de animações é desligado com a casca montada

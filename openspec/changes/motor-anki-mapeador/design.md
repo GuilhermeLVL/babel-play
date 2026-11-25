@@ -1,3 +1,9 @@
+> **Atualização de 25/11/2026.** Onde o texto diz `server/import/anki.ts`, leia `src/core/anki/mapeamento.ts` (função pura, usada pelo
+> worker do navegador). O servidor não lê mais `.apkg`: recebe notas em lotes e guarda `estrutura_hash` e `campos_brutos`. As decisões 1 a 5
+> continuam valendo; muda o lugar: a Decisão 3 (confiança) e o Mapeador rodam no cliente antes do primeiro lote, a Decisão 4 (priors) vira
+> JSON em `src/core/anki/`, e a Decisão 5 (remapear) usa `campos_brutos` no servidor com a mesma função pura. O perfil (Decisão 1) pode
+> ficar só no aparelho (nenhum dado novo no servidor) ou na conta; ver decisão do dono no proposal.
+
 ## Context
 
 Hoje a escolha de campo é uma função pura no servidor: `indicePorNome(campos, padroes)`
@@ -57,8 +63,8 @@ correção só existiria para quem ainda tivesse o arquivo.
 
 ## Riscos
 
-| Risco | Mitigação |
-|---|---|
+| Risco                                        | Mitigação                                                                                                                  |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | Perfil salvo errado se propaga a cada import | O perfil é por usuário; o Mapeador sempre mostra o que aplicou e permite desfazer; confiança "média" quando veio de perfil |
-| Renomear um campo quebra o perfil | É o comportamento correto (estrutura diferente = tipo diferente); o auto reassume e o custo é uma correção |
-| Reprocessar em massa é caro | Reprocessamento roda por baralho, em lote, e só recalcula texto — não toca em SRS nem em mídia |
+| Renomear um campo quebra o perfil            | É o comportamento correto (estrutura diferente = tipo diferente); o auto reassume e o custo é uma correção                 |
+| Reprocessar em massa é caro                  | Reprocessamento roda por baralho, em lote, e só recalcula texto — não toca em SRS nem em mídia                             |

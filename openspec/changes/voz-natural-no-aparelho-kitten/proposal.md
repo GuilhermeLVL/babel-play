@@ -49,3 +49,14 @@ es 1,2% × 1,5%, en 0% × 0%). Nenhum código GPL entra no app.
 motorNoAparelho,vozNoAparelho}.ts`, `src/components/voz/VozNaturalNoAparelho.tsx`, Ajustes, leitor.
 - Dados: migração de flag (só semente). Config: `VITE_VOZ_KITTEN_URL`, CSP `connect-src`.
 - Tamanho: nada no JS inicial (motor e worker por `import()`); a seção de Ajustes ~6 KB no chunk de Ajustes.
+
+## Revisão de 25/11/2026
+
+- **Estado**: o código está pronto (spike, core puro, fonetizador sem GPL, motor, tela de Ajustes, flag `voz_kitten` PG 0020/SQLite 0062 desligada, `VITE_VOZ_KITTEN_URL` e CSP, script de publicação, testes e prova no app real). Abertas: 4.3 (R2, flag e escuta, do dono), 4.4 (seletor do leitor, é dev, confirmado ausente em `SeletorDeVoz.tsx`) e 4.5 (opcional). Velho: a premissa "depende da decisão de `voz-no-aparelho`" segue de pé e é a pergunta 3 da faxina; o texto "a lista de permissão de vozes do sistema entra quando aquele PR chegar" ficou sem dono. Os PRs #201, #202, #205 e #206 não tocam a voz. A diferença que justifica a change continua valendo: o Kitten (Apache-2.0, ~8 MB por idioma no celular) serve também o perfil protegido, a Supertonic (OpenRAIL-M, ~400 MB) não.
+- **Esforço**: P para a 4.4 (cerca de 1 dia); a 4.3 e a escuta são do dono (cerca de 0,5 dia, junto da sessão do R2).
+- **Valor para quem usa**: alto para quem lê livros e usa jogos de áudio sem boa voz do sistema (muitos Android e o Chrome em Linux), inclusive menores; zero para quem já tem voz boa do sistema.
+- **Dependências**: decisão de `voz-no-aparelho` (motor); o R2 e o portão de `modelos-confiaveis-e-offline` (mesma sessão de publicação); `SeletorDeVoz.tsx` é compartilhado com `voz-no-aparelho` e com `audiolivros` (elenco): fazer a 4.4 antes de mexer neles. Sem conflito com as outras quatro changes desta revisão.
+- **Decisões do dono**:
+  1. Motor local: (A) Kitten como padrão e arquivar `voz-no-aparelho` (a Supertonic fica como possível extra futuro); (B) manter os dois, Kitten no celular e perfil protegido e Supertonic no computador para adultos; (C) só Supertonic. **Recomendo A** (uma só manutenção, licença limpa para menores, peso 50x menor no celular) e reavaliar a Supertonic só se a escuta achar o Kitten claramente pior no computador.
+  2. Publicar no R2 e ligar `voz_kitten` (4.3): fazer na mesma sessão do espelho de `modelos-confiaveis-e-offline` e ligar primeiro só para o id do dono, depois rampa; **recomendo** essa ordem.
+  3. Escuta (4.3): o dono ouve pt, en e es no computador e no celular, ou delega uma escuta cega curta com 2 pessoas; **recomendo o dono ouvir, 10 minutos**.

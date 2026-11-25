@@ -114,3 +114,45 @@ O item de loja `'avatar'` SHALL ser livre (`nivel:1`) e a acessibilidade SHALL N
 
 - **WHEN** o marco fecha
 - **THEN** os três typechecks, lint, testes, `i18n:orfas`, E2E dos fluxos, axe e a medição de FPS no tier fraco passam
+
+### Requirement: Flags dependentes e produção fechada (revisão de 25/11/2026)
+
+`avatar_sinais` e `avatar_elenco` SHALL só ter efeito com `avatar_3d` ligada, e nenhuma das três SHALL ser ligada em produção sem o ato explícito do dono.
+
+#### Scenario: Flag filha sem a base
+
+- **WHEN** `avatar_sinais` ou `avatar_elenco` está ligada e `avatar_3d` está desligada
+- **THEN** nenhuma tela de avatar, soletração ou elenco aparece e nenhum chunk de `three` é baixado
+
+#### Scenario: Coleção sem a variável
+
+- **WHEN** `avatar_3d` está ligada e `VITE_AVATARES_URL` não está definida
+- **THEN** o app mostra o fallback 2D (foto, iniciais ou SVG), sem erro de rede no console e sem bloquear a tela
+
+### Requirement: Marcação de elenco por IA só com custo declarado (M5, opcional)
+
+A função `leitura_elenco` SHALL só existir depois de o dono escolher a opção A (arquivo gerado fora do produto) ou B (função no servidor), e, na B, SHALL declarar custo, subcota em `src/core/planos.ts` e passar pelo filtro de saída de IA do perfil protegido.
+
+#### Scenario: Opção A, arquivo prévio
+
+- **WHEN** o capítulo traz marcação prévia válida, com o mesmo texto, confiança de 0,5 ou mais e personagem da lista
+- **THEN** o Narrador usa a marcação, e frases fora dessa regra caem na heurística de aspas e travessão
+
+#### Scenario: Opção B sem cota ou sem permissão
+
+- **WHEN** a função está indisponível, sem cota ou não permitida ao perfil
+- **THEN** a leitura segue pela heurística e nenhuma chamada paga é feita
+
+#### Scenario: Perfil protegido
+
+- **WHEN** a saída da IA chega para um perfil de menor
+- **THEN** passa pelo filtro de saída antes de aparecer ou ser lida, e nada do capítulo é retido depois da resposta
+
+### Requirement: Prova em aparelho real antes de ligar (M4, M5)
+
+O sistema SHALL ter registrada a conferência em navegador e aparelho reais antes de qualquer flag de avatar ser ligada fora do id do dono.
+
+#### Scenario: Checklist registrado
+
+- **WHEN** o dono pede para ligar `avatar_3d` além do próprio id
+- **THEN** existe em `docs/pesquisa/` o checklist do PiP (Safari, Firefox, celular), a voz do aparelho no Narrador e o FPS do tier fraco, com data e aparelho

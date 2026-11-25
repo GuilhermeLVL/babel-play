@@ -96,3 +96,15 @@ Scripts: `disponibilidade/cenario.mjs`, `rodar-envenenado.sh`, `rodar-corte-hf.s
      nada. E o beacon do Cloudflare: desligar a injeção na zona (recomendado: coerente com o público menor) ou liberar
      `static.cloudflareinsights.com` na CSP.
   4. Aprovar o service worker (muda o comportamento de atualização do app).
+
+## Revisão de 25/11/2026
+
+- **Estado**: a parte de código está feita e verificada no build local: mensagens humanas (1.x), cache validado e cura (2.x), `wasmPaths`, CSP e portão do deploy (3.1 a 3.3), service worker, promessa condicionada e saída de emergência (4.2 a 4.4), contador anônimo (5.1). A 4.1 foi dispensada (o SW cobre). Abertas e todas do dono ou de staging: 3.4 (R2), 4.5 e 6.1 (rodadas no staging), 5.2 (texto de privacidade) e 5.3 (Web Analytics). Velho: o `design.md` e o Impact dizem SW no escopo `/app/` e arquivo `dist/app/sw.js`, mas o implementado é escopo `/` (os workers moram em `/assets/`); corrigido no design. Com o site público na raiz e o app em `/app` (`siteNoWorker.ts`), o escopo `/` merece conferência (tarefa 7.1). O `modo-offline-declarado` entrou na main em paralelo e compartilha a promessa offline (7.3). Hoje o portão do espelho só roda se `VITE_SELF_HOST_MODELS` estiver definida; contra o bucket real, 887/887 arquivos faltam.
+- **Esforço**: P para o que resta de dev (7.1 a 7.3, cerca de 1 dia); a publicação no R2 e as rodadas no staging são do dono (cerca de 0,5 dia cada).
+- **Valor para quem usa**: alto para quem tem rede ruim ou escolar (legenda que não morre por download cortado ou cache envenenado) e para quem usa o app já visitado sem internet; baixo para quem está sempre online com bom Wi-Fi.
+- **Dependências**: `ModelPrepPanel.tsx` e `avisoDoPreparo` conflitam com `traducao-sem-rota-no-celular` (aquela vai primeiro); o R2 compartilha o bucket com `bergamot-multi-idioma-via-cdn` 1.3, `voz-natural-no-aparelho-kitten` 4.3 e `traducao-local-por-direcao` (publicar tudo na mesma sessão do R2); o Parakeet do espelho serve `parciais_parakeet`.
+- **Decisões do dono**:
+  1. Espelho próprio em produção: (A) publicar agora tudo no R2 (pesos, ORT, Parakeet, Bergamot, Kitten) numa única sessão e ligar `VITE_SELF_HOST_MODELS`; (B) só pesos e ORT agora, o resto depois; (C) manter o Hub e adiar. **Recomendo A**: uma credencial, um portão, e tira o Hub e o jsDelivr da CSP para um público com menores e escolas.
+  2. Web Analytics da zona (5.3): (A) desligar a injeção (coerente com retenção zero e menores); (B) liberar `static.cloudflareinsights.com` na CSP; (C) deixar o erro de CSP. **Recomendo A.**
+  3. Texto de privacidade do contador de falhas (5.2): aprovar como está (anônimo, agregado, só enum, respeita "Métricas de uso anônimas" e menor restrito) ou pedir parecer jurídico antes de produção. **Recomendo aprovar com uma leitura jurídica rápida**, porque o `relatorioDeErros.ts` prometia que nada sai do navegador sem conta.
+  4. Staging (4.5, 6.1): o dono roda os dois scripts ou autoriza o agente a rodá-los (sem custo de IA).

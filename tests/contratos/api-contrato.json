@@ -83,6 +83,7 @@
     "POST /api/ai/assistente/expressoes",
     "POST /api/ai/assistente/termos",
     "POST /api/ai/credentials",
+    "POST /api/ai/diario",
     "POST /api/ai/escrita",
     "POST /api/ai/explicar",
     "POST /api/ai/feedback",

@@ -37,6 +37,7 @@ const FLAGS_SENSIVEIS = new Set([
   'traducao_incremental',
   'pre_traducao_de_legendas',
   'forca_na_legenda',
+  'frase_por_frase',
 ]);
 
 /** As regras da flag em palavras curtas, para ver de relance quem ela alcança. */

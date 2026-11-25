@@ -55,6 +55,8 @@ function reprodutorFalso() {
     aoFimDoCapitulo: () => {},
     aoErro: () => {},
     aoPausarDeFora: () => {},
+    aoPararNoFim: () => {},
+    definirFrasePorFrase: vi.fn(),
     carregar: vi.fn(async (url: string) => void chamadas.push(`carregar ${url}`)),
     tocarDe: vi.fn(async (i: number) => void chamadas.push(`tocarDe ${i}`)),
     pausar: vi.fn(() => void chamadas.push('pausar')),

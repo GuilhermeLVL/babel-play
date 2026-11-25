@@ -687,7 +687,6 @@ describe('PlayerInterativo no desenho novo: a faixa de telas3.js:69-70', () => {
       setAudioDuration: nada,
       isPlaying: false,
       setCurrentTime: nada,
-      loopMode: false,
       activeSentenceIndex: -1,
       ...acoes,
       ...extra,
@@ -802,7 +801,6 @@ describe('useAudioDaSessao: a URL de blob revogada com o player montado', () => 
         isPlaying={tocando}
         setIsPlaying={setTocando}
         setCurrentTime={() => undefined}
-        loopMode={false}
         activeSentenceIndex={-1}
         seekTo={() => undefined}
         carregandoAudio={audio.carregando}

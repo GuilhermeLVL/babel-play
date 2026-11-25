@@ -239,6 +239,13 @@
       "when": 1795366711727,
       "tag": "0033_flag_forca_na_legenda",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1795366711728,
+      "tag": "0034_flag_frase_por_frase",
+      "breakpoints": true
     }
   ]
 }

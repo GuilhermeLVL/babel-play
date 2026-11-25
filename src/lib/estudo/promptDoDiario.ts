@@ -31,11 +31,6 @@ export const MAX_PALAVRAS_DO_DIARIO = 200;
 
 const NOME_DO_IDIOMA: Record<IdiomaDoDiario, string> = { en: 'inglês', es: 'espanhol' };
 
-export const ehIdiomaDoDiario = (v: unknown): v is IdiomaDoDiario =>
-  typeof v === 'string' && (IDIOMAS_DO_DIARIO as readonly string[]).includes(v);
-export const ehNivelDoDiario = (v: unknown): v is NivelDoDiario =>
-  typeof v === 'string' && (NIVEIS_DO_DIARIO as readonly string[]).includes(v);
-
 export function systemDoDiario(idioma: IdiomaDoDiario, nivel: NivelDoDiario): string {
   const lingua = NOME_DO_IDIOMA[idioma];
   return (

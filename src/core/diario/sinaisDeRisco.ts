@@ -21,12 +21,11 @@ export type CategoriaDeRisco = 'automutilacao' | 'violencia' | 'abuso';
 
 export const CATEGORIAS_DE_RISCO: readonly CategoriaDeRisco[] = ['automutilacao', 'violencia', 'abuso'];
 
-/**
- * A mensagem fixa (a tela a mostra em português; o CVV atende no 188, 24 horas, no Brasil). Nunca repete o que a pessoa
+/*
+ * A MENSAGEM FIXA fica na tela (`components/views/diario/Diario.tsx`, via `t()`, com tradução): "Parece que você está passando por
+ * algo difícil. Converse com um adulto de confiança. No Brasil, o CVV atende no 188, 24 horas." Nunca repete o que a pessoa
  * escreveu. A decisão sobre citar o CVV ou outro serviço é do dono (decisão 4 da change; decisão assumida: CVV).
  */
-export const MENSAGEM_DE_APOIO =
-  'Parece que você está passando por algo difícil. Converse com um adulto de confiança. No Brasil, o CVV atende no 188, 24 horas.';
 
 /** As frases por categoria. Cada item é uma expressão regular sobre o texto normalizado (espaço nas pontas). */
 const SINAIS: Readonly<Record<CategoriaDeRisco, readonly RegExp[]>> = {

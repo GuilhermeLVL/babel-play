@@ -1,3 +1,7 @@
+## 0. Decisão de 25/11/2026 (assumida: recomendação A de docs/backlog/decisoes-do-dono.md, item 22)
+
+- O motor local de voz é o Kitten (`voz-natural-no-aparelho-kitten`, Apache-2.0, serve o perfil protegido). Esta change fica **ARQUIVÁVEL**: o código da Supertonic segue no repositório atrás da flag `voz_no_aparelho` (desligada) e só volta a ser mexido se a escuta do dono achar o Kitten claramente pior no computador. Falta o dono confirmar e arquivar (`/opsx:archive`).
+
 ## 1. Puro
 
 - [x] 1.1 `src/core/voz/supertonic.ts`: arquivos fixados (bytes, sha256), vozes, preparo do texto, corte, ids, velocidade

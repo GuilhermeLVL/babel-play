@@ -4,7 +4,9 @@ import '../../styles/seletorDeVoz.css';
 import { AudioLines, Check, Cloud, Cpu, Sparkles, Square, Star, Volume2 } from 'lucide-react';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
+import { FLAG_VOZ_KITTEN } from '../../core/harness/vozKitten';
 import { FLAG_VOZ_NO_APARELHO } from '../../core/harness/vozNoAparelho';
+import { idiomaDoKitten } from '../../core/voz/kitten';
 import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
 import { useFlag } from '../../lib/flags';
 import { t } from '../../lib/i18n';
@@ -24,6 +26,7 @@ import {
   vozEmUso,
   vozGuardada,
 } from '../../lib/voz/preferenciaDeVoz';
+import { definirVozDoKitten, motorDoKitten, VOZ_KITTEN, vozDoKittenNoIdioma } from '../../lib/voz/vozKitten';
 import {
   aoMudarVozNoAparelho,
   definirVozDoNarrador,
@@ -36,12 +39,13 @@ import {
 } from '../../lib/voz/vozNoAparelho';
 import { zoomDoCorpo } from '../../lib/zoomDoCorpo';
 import { toast } from '../Toast';
+import VozKittenNoSeletor from './VozKittenNoSeletor';
 import VozNoAparelho from './VozNoAparelho';
 
 const grupoDe = (o: OpcaoDeVoz) =>
   o.tipo === 'aparelho' ? 'aparelho' : o.tipo === 'automatica' ? 'automatica' : 'qualidade';
 
-const ICONE = { automatica: Sparkles, nuvem: Cloud, 'no-aparelho': Cpu, aparelho: AudioLines } as const;
+const ICONE = { automatica: Sparkles, nuvem: Cloud, 'no-aparelho': Cpu, kitten: Cpu, aparelho: AudioLines } as const;
 
 /**
  * O SELETOR DE VOZ — um só, para a Leitura ("Voz, idioma e tom"), o intérprete e a conversa virtual (a
@@ -74,6 +78,7 @@ export default function SeletorDeVoz({
 }) {
   useVozesPreferidas(); // a lista acompanha a escolha feita em outra tela, a conta e as vozes do sistema
   useFlag(FLAG_VOZ_NO_APARELHO); // a voz no aparelho aparece (ou some) quando a flag chega
+  useFlag(FLAG_VOZ_KITTEN); // a voz natural (Kitten) também
   /* A resposta da sonda do OPFS (uma vez por sessão) redesenha a opção: desabilitada, com o motivo, se ele não funciona. */
   useSyncExternalStore(aoMudarVozNoAparelho, () => opfsConhecido());
   useEffect(() => {
@@ -96,13 +101,19 @@ export default function SeletorDeVoz({
         ? t('A voz natural não faz parte do seu plano agora. Lendo com a voz automática.')
         : guardada === VOZ_NO_APARELHO
           ? t('A voz de alta qualidade não está pronta neste aparelho. Lendo com a voz automática.')
-          : vozesCarregadas() && !vozDoAparelhoExiste(guardada)
-            ? t('A voz {voz} não existe neste aparelho. Lendo com a voz automática.', {
-                voz: nomeLegivelDaVoz(guardada),
-              })
-            : '';
+          : guardada === VOZ_KITTEN
+            ? t('A voz natural não está pronta neste aparelho. Lendo com a voz automática.')
+            : vozesCarregadas() && !vozDoAparelhoExiste(guardada)
+              ? t('A voz {voz} não existe neste aparelho. Lendo com a voz automática.', {
+                  voz: nomeLegivelDaVoz(guardada),
+                })
+              : '';
   const semVozDoAparelho = !opcoes.some((o) => o.tipo === 'aparelho');
   const nomeDoIdioma = langLabelNaUI(idioma);
+  const baseKitten = idiomaDoKitten(idioma);
+  const kittenPronta = opcoes.some((o) => o.tipo === 'kitten' && o.vozDoKitten);
+  const chaveDe = (o: OpcaoDeVoz) =>
+    (o.vozDoModelo ?? o.vozDoKitten) ? `${o.id}:${o.vozDoModelo ?? o.vozDoKitten}` : o.id;
 
   /** A amostra tocando agora (o `id` da opção) e quem a toca, para poder calar. */
   const [tocando, setTocando] = useState<string | null>(null);
@@ -129,7 +140,7 @@ export default function SeletorDeVoz({
   }, [idioma]);
 
   const ouvir = async (o: OpcaoDeVoz) => {
-    const chave = o.vozDoModelo ? `${o.id}:${o.vozDoModelo}` : o.id;
+    const chave = chaveDe(o);
     const jaTocava = tocando === chave;
     parar();
     setRecuou(false);
@@ -160,6 +171,15 @@ export default function SeletorDeVoz({
       motor.speak(texto, o.vozDoModelo ? { ...fala, voiceName: o.vozDoModelo } : fala);
       return;
     }
+    if (o.tipo === 'kitten') {
+      /* A amostra sai do motor do Kitten com a voz da linha (a escolha da pessoa só muda ao tocar na linha). */
+      const motor = await motorDoKitten().catch(() => null);
+      if (meu !== pedido.current) return;
+      if (!motor) return fim();
+      calar.current = () => motor.cancel();
+      motor.speak(texto, o.vozDoKitten ? { ...fala, voiceName: o.vozDoKitten } : fala);
+      return;
+    }
     calar.current = cancelSpeech;
     /* `voiceName: ''` é a automática de verdade: sem ele, a amostra sairia com a voz já escolhida. */
     speak(texto, { ...fala, voiceName: o.id });
@@ -167,7 +187,9 @@ export default function SeletorDeVoz({
 
   const escolher = (o: OpcaoDeVoz) => {
     if (o.id === VOZ_NO_APARELHO && !vozNoAparelhoUtilizavel()) return; // antes de baixar, só o botão de baixar vale
+    if (o.id === VOZ_KITTEN && !o.vozDoKitten && !kittenPronta) return; // antes de baixar, só o botão de baixar vale
     if (o.vozDoModelo) definirVozDoNarrador(o.vozDoModelo);
+    if (o.vozDoKitten && baseKitten) definirVozDoKitten(baseKitten, o.vozDoKitten);
     aoEscolher?.(o.id);
     void escolherVoz(idioma, o.id).then(
       (ok) => ok || toast.warn(t('A voz já vale neste aparelho, mas não deu para guardar na conta agora.')),
@@ -184,6 +206,15 @@ export default function SeletorDeVoz({
           }
         />
       )}
+      {comModelo && (
+        <VozKittenNoSeletor
+          idioma={idioma}
+          aoFicarPronta={() => {
+            aoEscolher?.(VOZ_KITTEN);
+            void escolherVoz(idioma, VOZ_KITTEN);
+          }}
+        />
+      )}
       <div
         ref={lista}
         className="q-seletor-lista voz-lista"
@@ -192,8 +223,11 @@ export default function SeletorDeVoz({
       >
         {opcoes.map((o, i) => {
           const Icone = ICONE[o.tipo];
-          const chave = o.vozDoModelo ? `${o.id}:${o.vozDoModelo}` : o.id;
-          const escolhida = o.id === emUso && (!o.vozDoModelo || o.vozDoModelo === vozDoNarradorNoAparelho());
+          const chave = chaveDe(o);
+          const escolhida =
+            o.id === emUso &&
+            (!o.vozDoModelo || o.vozDoModelo === vozDoNarradorNoAparelho()) &&
+            (!o.vozDoKitten || (baseKitten !== null && o.vozDoKitten === vozDoKittenNoIdioma(baseKitten)));
           const amostra = tocando === chave;
           const grupo = grupoDe(o);
           const abreGrupo = i === 0 || grupoDe(opcoes[i - 1]) !== grupo;
@@ -230,7 +264,7 @@ export default function SeletorDeVoz({
                     {o.vozDoModelo ? null : (
                       <small>{o.tipo === 'aparelho' ? [o.detalhe, ...o.etiquetas].join(' · ') : o.detalhe}</small>
                     )}
-                    {o.tipo === 'no-aparelho' &&
+                    {(o.tipo === 'kitten' || o.tipo === 'no-aparelho') &&
                       !o.vozDoModelo &&
                       o.etiquetas.map((e) => (
                         <span key={e} className="q-tag voz-texto-tag">
@@ -252,7 +286,9 @@ export default function SeletorDeVoz({
                   aria-pressed={amostra}
                   aria-label={amostra ? t('Parar a amostra') : t('Ouvir uma amostra da voz {voz}', { voz: o.nome })}
                   data-amostra={chave || 'automatica'}
-                  disabled={o.tipo === 'no-aparelho' && !vozNoAparelhoUtilizavel()}
+                  disabled={
+                    (o.tipo === 'no-aparelho' && !vozNoAparelhoUtilizavel()) || (o.tipo === 'kitten' && !o.vozDoKitten)
+                  }
                   onClick={() => void ouvir(o)}
                 >
                   {amostra ? <Square aria-hidden /> : <Volume2 aria-hidden />}

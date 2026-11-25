@@ -16,7 +16,7 @@
  */
 import { baseLang } from '../texto/idioma';
 import { chaveDaPalavra } from '../texto/palavra';
-import { estadoNoCaderno, type IndiceDoCaderno } from './etiquetas';
+import { estadoNoCaderno, FORCA_QUE_APAGA_A_GLOSA, type IndiceDeForcas, type IndiceDoCaderno } from './etiquetas';
 
 export const ESTADOS_DA_MARCACAO = ['conhecida', 'ignorada'] as const;
 export type EstadoDaMarcacao = (typeof ESTADOS_DA_MARCACAO)[number];
@@ -85,6 +85,30 @@ export function chavesConhecidas(
   }
   for (const [chave, estado] of marcadas?.get(idioma) ?? []) {
     // O cartão manda: com cartão (em qualquer estado), a marcação não decide.
+    if (estado === 'conhecida' && !estadoNoCaderno(caderno ?? null, chave, idioma)) conhecidas.add(chave);
+  }
+  return conhecidas;
+}
+
+/**
+ * As chaves "conhecidas" para a GLOSA do leitor com a flag `forca_na_legenda`: cartão só conta com força
+ * >= `FORCA_QUE_APAGA_A_GLOSA` (3); "Já sei" sem cartão conta na hora. `chavesConhecidas` e `contarConhecidas`
+ * NÃO mudam (decisão do dono: os números que a pessoa já viu ficam como estão).
+ */
+export function chavesConhecidasPorForca(
+  caderno: IndiceDoCaderno | null | undefined,
+  forcas: IndiceDeForcas | null | undefined,
+  marcadas: IndiceDeMarcadas | null | undefined,
+  lang: string,
+  o: { incluirSemIdioma?: boolean } = {},
+): Set<string> {
+  const idioma = baseLang(lang);
+  const conhecidas = new Set<string>();
+  const baldes = o.incluirSemIdioma ? [forcas?.get(idioma), forcas?.get('')] : [forcas?.get(idioma)];
+  for (const balde of baldes) {
+    for (const [chave, forca] of balde ?? []) if (forca >= FORCA_QUE_APAGA_A_GLOSA) conhecidas.add(chave);
+  }
+  for (const [chave, estado] of marcadas?.get(idioma) ?? []) {
     if (estado === 'conhecida' && !estadoNoCaderno(caderno ?? null, chave, idioma)) conhecidas.add(chave);
   }
   return conhecidas;

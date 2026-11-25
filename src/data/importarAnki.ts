@@ -9,7 +9,7 @@
  * `importarBaralhoAnki` resolve, a importação JÁ aconteceu. O que a tela
  * decide depois é quantas dessas notas viram cartão agora (`ativarNotasDoBaralho`, `apiAnki.ts`).
  */
-import { type NotaAnki, TETOS_DA_NOTA } from '../core/anki';
+import { type LeituraAnki, type NotaAnki, TETOS_DA_NOTA } from '../core/anki';
 import { lerBaralhoNoNavegador } from '../lib/anki/lerBaralho';
 import { abrirImportAnki, enviarNotasDoImport, fecharImportAnki, LimiteDeLotes, notaParaOFio } from './apiAnki';
 
@@ -93,8 +93,29 @@ async function enviarLote(importId: string, notas: NotaAnki[]) {
   }
 }
 
+/** O arquivo já lido no navegador, esperando a confirmação: NADA foi ao servidor (cartões 7.2). */
+export interface BaralhoLido {
+  arquivo: File;
+  leitura: LeituraAnki;
+}
+
 /**
- * LÊ no navegador e GRAVA o acervo no servidor, em lotes sequenciais — não é "ler e depois confirmar".
+ * SÓ LÊ o arquivo, no navegador, e devolve o que achou para o relatório vir ANTES de trazer. Nenhuma requisição ao
+ * servidor: quem decide enviar é `enviarBaralhoLido`, depois da confirmação da pessoa.
+ */
+export async function lerBaralhoParaImportar(
+  arquivo: File,
+  aoProgredir?: (p: ProgressoDaImportacao) => void,
+): Promise<BaralhoLido> {
+  const leitura = await lerBaralhoNoNavegador(arquivo, (p) =>
+    aoProgredir?.({ etapa: 'lendo', feitas: p.notas ?? 0, total: p.total ?? 0 }),
+  );
+  return { arquivo, leitura };
+}
+
+/**
+ * LÊ no navegador e GRAVA o acervo no servidor, em lotes sequenciais — não é "ler e depois confirmar" (para
+ * confirmar entre uma coisa e outra, use `lerBaralhoParaImportar` e depois `enviarBaralhoLido`).
  *
  * O IDIOMA VIAJA JUNTO, e sem ele o baralho entra e não chega a jogo nenhum: o cartão nasce com
  * `srcLang` vazio, a triagem o marca `idioma-incerto` e ele cai na pilha "de outro idioma" assim
@@ -110,9 +131,16 @@ export async function importarBaralhoAnki(
   idiomaNativo: string,
   aoProgredir?: (p: ProgressoDaImportacao) => void,
 ): Promise<ImportAnkiResposta> {
-  const leitura = await lerBaralhoNoNavegador(arquivo, (p) =>
-    aoProgredir?.({ etapa: 'lendo', feitas: p.notas ?? 0, total: p.total ?? 0 }),
-  );
+  return enviarBaralhoLido(await lerBaralhoParaImportar(arquivo, aoProgredir), idioma, idiomaNativo, aoProgredir);
+}
+
+/** Manda ao servidor um baralho já lido (abrir, notas em lotes, fechar). É aqui que a primeira requisição sai. */
+export async function enviarBaralhoLido(
+  { arquivo, leitura }: BaralhoLido,
+  idioma: string,
+  idiomaNativo: string,
+  aoProgredir?: (p: ProgressoDaImportacao) => void,
+): Promise<ImportAnkiResposta> {
   const { notas } = leitura;
 
   const aberto = await abrirImportAnki({

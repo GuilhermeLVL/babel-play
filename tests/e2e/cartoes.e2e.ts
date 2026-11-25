@@ -278,6 +278,16 @@ test.describe('Cartões: trazer do Anki', () => {
 
     await page.getByTestId('anki-arquivo').setInputFiles('tests/fixtures/baralho-moderno.apkg')
 
+    /* ANTES DE TRAZER (cartões 7.2): o arquivo é lido no navegador e a tela mostra o que achou; nada foi ao servidor
+       até a pessoa confirmar em "Trazer". */
+    const previa = page.getByTestId('anki-previa')
+    await expect(previa, 'a prévia do arquivo deveria aparecer antes de enviar').toBeVisible({ timeout: 60_000 })
+    await expect(page.getByTestId('anki-lido')).toHaveCount(0)
+    await clicarRobusto(
+      page,
+      page.getByRole('dialog', { name: 'Trazer do Anki' }).getByRole('button', { name: /^Trazer \d+ notas?$/ }),
+    )
+
     /* PASSO 1: o que vem e o que não vem, dito como o app faz hoje (a agenda do Anki não vem). */
     const lido = page.getByTestId('anki-lido')
     await expect(lido, 'o passo 1 do arquivo deveria aparecer').toBeVisible({ timeout: 60_000 })

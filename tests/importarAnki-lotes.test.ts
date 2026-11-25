@@ -17,7 +17,14 @@ vi.mock('../src/data/api', () => ({
 }))
 
 import { apiFetch } from '../src/data/api'
-import { BYTES_POR_LOTE, importarBaralhoAnki, LOTE, type ProgressoDaImportacao } from '../src/data/importarAnki'
+import {
+  BYTES_POR_LOTE,
+  enviarBaralhoLido,
+  importarBaralhoAnki,
+  lerBaralhoParaImportar,
+  LOTE,
+  type ProgressoDaImportacao,
+} from '../src/data/importarAnki'
 import { lerBaralhoNoNavegador } from '../src/lib/anki/lerBaralho'
 
 const apiFetchMock = apiFetch as unknown as ReturnType<typeof vi.fn>
@@ -207,5 +214,31 @@ describe('importarBaralhoAnki — orquestração', () => {
     lerMock.mockResolvedValue(leitura([nota(1)]))
     servidor(() => json({ error: 'este import já foi fechado', code: 'import_fechado' }, 409))
     await expect(importarBaralhoAnki(arquivo, 'en', 'pt')).rejects.toThrow('este import já foi fechado')
+  })
+})
+
+describe('ler SEM gravar, para o relatório vir antes de trazer (cartões 7.2)', () => {
+  it('lerBaralhoParaImportar só lê no navegador: nenhuma requisição ao servidor, e devolve o que achou', async () => {
+    lerMock.mockResolvedValue(leitura([nota(1), nota(2)]))
+    const chamadas = servidor()
+    const lido = await lerBaralhoParaImportar(arquivo)
+    expect(lido.leitura.notas).toHaveLength(2)
+    expect(lido.arquivo).toBe(arquivo)
+    expect(apiFetchMock).not.toHaveBeenCalled()
+    expect(chamadas).toHaveLength(0)
+  })
+
+  it('o envio só acontece em enviarBaralhoLido, com a mesma sequência de abrir, lotes e fechar', async () => {
+    lerMock.mockResolvedValue(leitura([nota(1), nota(2), nota(3)]))
+    const chamadas = servidor()
+    const lido = await lerBaralhoParaImportar(arquivo)
+    expect(chamadas).toHaveLength(0)
+    const r = await enviarBaralhoLido(lido, 'en', 'pt')
+    expect(chamadas.map((c) => c.url)).toEqual([
+      '/api/anki/imports',
+      '/api/anki/imports/imp/notas',
+      '/api/anki/imports/imp/fechar',
+    ])
+    expect(r.resumo.notas).toBe(3)
   })
 })

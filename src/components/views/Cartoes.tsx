@@ -19,6 +19,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import type { ResumoDosCartoes } from '../../core/learning/resumoDosCartoes';
 import { type AppMetrics, fetchDeck, lerResumoDosCartoes } from '../../data/api';
 import { ativarNotasDoBaralho, type BaralhoAnkiResumo, listarBaralhosAnki } from '../../data/apiAnki';
+import type { HojeDaRevisao } from '../../data/rotas/opcoesDaRevisao';
 import { hojeDosCartoes } from '../../lib/cartoes/estadoDeHoje';
 import { cartoesDoConteudo, hojeDaFonte } from '../../lib/conteudo/cartoes';
 import { chaveDaFonte, type Conteudo, type FonteDeConteudo } from '../../lib/conteudo/estado';
@@ -33,6 +34,7 @@ import { lazyComRecarga } from '../../lib/lazyComRecarga';
 import { pedirConta, semContaComPorta } from '../../lib/pedirConta';
 import { useBarraDeCinco } from '../../lib/polimento/celular';
 import type { AgeProfileType } from '../../lib/profile';
+import { enviarOpcoes, restamDeHoje, sincronizarOpcoes } from '../../lib/revisao/opcoesNaConta';
 import type { RecorteDaPratica } from '../../lib/revisao/pratica';
 import {
   gravarOpcoesDaRevisao,
@@ -52,7 +54,7 @@ import { toast } from '../Toast';
 import { AjustesDaMemoria, FolhaDoResto, MenuDaFonte, MenuDeCartoes } from './cartoes/Folhas';
 import Hoje, { type PedidoDeEstudo } from './cartoes/Hoje';
 import Memoria from './cartoes/Memoria';
-import TrazerELevar, { ARQUIVOS_DO_ANKI, FluxoDoAnki } from './cartoes/TrazerELevar';
+import TrazerELevar, { ARQUIVOS_DO_ANKI, ColarUmaLista, FluxoDoAnki } from './cartoes/TrazerELevar';
 
 /* O que só desce quando a pessoa pede: a rodada de revisão, a lista de palavras, a tela de gerenciar
    baralhos do Anki e o diálogo de exportar. Abrir "Hoje" não baixa nenhum. */
@@ -93,7 +95,7 @@ const ABAS: Array<[Exclude<AbaDeCartoes, 'memoria'>, LucideIcon]> = [
 
 type Leitura = { fase: 'carregando' } | { fase: 'erro' } | { fase: 'pronta'; resumo: ResumoDosCartoes };
 
-type Folha = null | 'menu' | 'ajustes' | 'trazer' | 'resto';
+type Folha = null | 'menu' | 'ajustes' | 'trazer' | 'colar' | 'resto';
 
 export default function Cartoes({
   aba,
@@ -159,13 +161,28 @@ export default function Cartoes({
   }, [estudando, recarregarContagens]);
 
   const [opcoes, setOpcoes] = useState<OpcoesDaRevisao>(lerOpcoesDaRevisao);
-  /* As opções podem ter mudado dentro da rodada: ao voltar dela, vale o que ficou gravado. */
+  /** O feito de hoje, contado pelo servidor (cartões 2.1); `null` sem conta ou sem rede: sem número inventado. */
+  const [feitoHoje, setFeitoHoje] = useState<HojeDaRevisao | null>(null);
+  /* As opções podem ter mudado dentro da rodada: ao voltar dela, vale o que ficou gravado, e a conta diz
+     quanto do dia já foi (e as opções que valem em todos os aparelhos). */
   useEffect(() => {
-    if (!estudando) setOpcoes(lerOpcoesDaRevisao());
-  }, [estudando]);
+    if (estudando) return;
+    setOpcoes(lerOpcoesDaRevisao());
+    if (semConta) return;
+    let vivo = true;
+    void sincronizarOpcoes().then((r) => {
+      if (!vivo || !r) return;
+      setOpcoes(r.opcoes);
+      setFeitoHoje(r.hoje);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [estudando, semConta]);
   const trocarOpcoes = (mudou: Partial<OpcoesDaRevisao>) => {
     gravarOpcoesDaRevisao(mudou);
     setOpcoes((o) => ({ ...o, ...mudou }));
+    if (!semConta) enviarOpcoes(mudou);
   };
 
   const resumo = !semConta && leitura.fase === 'pronta' ? leitura.resumo : null;
@@ -176,7 +193,8 @@ export default function Cartoes({
         : { total: 0, fila: { novas: 0, aprendendo: 0, revisar: 0 }, porFase: true },
     [resumo, conteudo, contagens],
   );
-  const dia = useMemo(() => hojeDosCartoes(resumo, opcoes, daFonte.fila), [resumo, opcoes, daFonte]);
+  const restam = useMemo(() => restamDeHoje(feitoHoje, opcoes), [feitoHoje, opcoes]);
+  const dia = useMemo(() => hojeDosCartoes(resumo, opcoes, daFonte.fila, restam), [resumo, opcoes, daFonte, restam]);
 
   /* AS FOLHAS: uma por vez. */
   const [folha, setFolha] = useState<Folha>(null);
@@ -452,6 +470,7 @@ export default function Cartoes({
       <Hoje
         resumo={resumo}
         dia={dia}
+        feitoHoje={feitoHoje}
         daFonte={daFonte}
         conteudo={conteudo}
         contagens={contagens}
@@ -663,8 +682,18 @@ export default function Cartoes({
           total={resumo?.total ?? null}
           entrada={entradaDoAnki}
           aoPalavraNova={palavraNova}
+          aoColar={() => setFolha('colar')}
           aoExportar={() => void levar()}
           aoFechar={() => setFolha((f) => (f === 'trazer' ? null : f))}
+        />
+      )}
+      {folha === 'colar' && (
+        <ColarUmaLista
+          aoContinuar={(arquivo) => {
+            setFolha(null);
+            setArquivoDoAnki(arquivo);
+          }}
+          aoFechar={() => setFolha((f) => (f === 'colar' ? null : f))}
         />
       )}
       {folha === 'ajustes' && (

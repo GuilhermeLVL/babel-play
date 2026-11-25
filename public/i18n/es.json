@@ -82,6 +82,7 @@
     "one": "{n} error",
     "other": "{n} errores"
   },
+  "{n} esperam para amanhã, sem pressa. Dá para mudar o limite do dia.": "{n} esperan para mañana, sin prisa. Puedes cambiar el límite del día.",
   "{n} falas": {
     "one": "{n} frase",
     "other": "{n} frases"
@@ -108,6 +109,10 @@
     "one": "{n} recordada",
     "other": "{n} recordadas"
   },
+  "{n} linhas para conferir.": {
+    "one": "{n} línea para revisar.",
+    "other": "{n} líneas para revisar."
+  },
   "{n} livros do backup já estão na sua estante: {titulos}. O que fazer com eles?": "{n} libros de la copia ya están en tu estantería: {titulos}. ¿Qué hacemos con ellos?",
   "{n} MB": "{n} MB",
   "{n} meses grátis": "{n} meses gratis",
@@ -115,6 +120,10 @@
   "{n} notas desta prática não foram gravadas: a agenda desses cartões não mudou.": {
     "one": "{n} nota de esta práctica no se guardó: el calendario de esa tarjeta no cambió.",
     "other": "{n} notas de esta práctica no se guardaron: el calendario de esas tarjetas no cambió."
+  },
+  "{n} notas não chegaram ao servidor. Se você sair agora, elas se perdem.": {
+    "one": "{n} nota no llegó al servidor. Si sales ahora, se pierde.",
+    "other": "{n} notas no llegaron al servidor. Si sales ahora, se pierden."
   },
   "{n} notas não foram gravadas": {
     "one": "{n} nota no se guardó",
@@ -257,6 +266,7 @@
   "A licença proíbe modificar o modelo, e as texturas teriam de ser reduzidas aqui.": "La licencia prohíbe modificar el modelo, y las texturas tendrían que reducirse aquí.",
   "A licença proíbe modificar o modelo.": "La licencia prohíbe modificar el modelo.",
   "A licença tem regras próprias de uso e de redistribuição. Leia antes de usar.": "La licencia tiene reglas propias de uso y redistribución. Léela antes de usar.",
+  "A lista": "La lista",
   "A lista mostra só as contas mais recentes. Se você tem o id completo, abra a conta direto.": "La lista muestra solo las cuentas más recientes. Si tienes el id completo, abre la cuenta directamente.",
   "A Maestria precisa de conta": "La Maestría necesita una cuenta",
   "a mais: {escrita}": "de más: {escrita}",
@@ -641,6 +651,7 @@
   "Cada palavra que você guarda vira um cartão, e o app traz de volta na hora em que você estaria esquecendo.": "Cada palabra que guardas se vuelve una tarjeta, y la app la trae de vuelta justo cuando la estarías olvidando.",
   "Cada trecho de fala vai para um servidor que erra menos, sobretudo em português e em áudio com barulho. O texto chega logo depois de cada frase.": "Cada tramo de habla va a un servidor que se equivoca menos, sobre todo en portugués y en audio con ruido. El texto llega justo después de cada frase.",
   "Caminho até {marco} palavras em {idioma}": "Camino hasta {marco} palabras en {idioma}",
+  "Campos do arquivo: {campos}.": "Campos del archivo: {campos}.",
   "cancela no fim do período": "se cancela al final del período",
   "Cancelar": "Cancelar",
   "Cancelar a assinatura": "Cancelar la suscripción",
@@ -708,10 +719,12 @@
   "Código inválido.": "Código no válido.",
   "Código inválido. Tente de novo.": "Código no válido. Inténtalo de nuevo.",
   "Colar o link de um livro": "Pegar el enlace de un libro",
+  "Colar uma lista": "Pegar una lista",
   "Colar uma lista ou um texto": "Pegar una lista o un texto",
   "Cole o endereço completo de um arquivo de livro (.epub, .pdf, .docx, .txt…), começando com https://": "Pega la dirección completa de un archivo de libro (.epub, .pdf, .docx, .txt…), empezando con https://",
   "Cole o endereço de um arquivo de livro (.epub, .pdf, .mobi, .docx, .txt…) do GitHub (raw.githubusercontent.com). O seu navegador baixa o arquivo direto: ele não passa pelo Frasy.": "Pega la dirección de un archivo de libro (.epub, .pdf, .mobi, .docx, .txt…) de GitHub (raw.githubusercontent.com). Tu navegador descarga el archivo directamente: no pasa por Frasy.",
   "Cole o id da conta": "Pega el id de la cuenta",
+  "Cole ou escreva a lista aqui.": "Pega o escribe la lista aquí.",
   "Coleção do Frasy": "Colección de Frasy",
   "com a frase da cena": "con la frase de la escena",
   "Com a nuvem (15 min por dia, grátis), a legenda chega bem mais rápido e a tradução pode ser lida em voz alta. O áudio e o texto de cada fala vão à Cloudflare só para isso; nada é guardado.": "Con la nube (15 min al día, gratis), los subtítulos llegan mucho más rápido y la traducción puede leerse en voz alta. El audio y el texto de cada frase van a Cloudflare solo para eso; no se guarda nada.",
@@ -759,6 +772,7 @@
   "Conectando…": "Conectando…",
   "Conecte um microfone (ou escolha outro em Dispositivos e modelos de IA) e tente de novo.": "Conecta un micrófono (o elige otro en Dispositivos y modelos de IA) e inténtalo de nuevo.",
   "Conferindo o arquivo…": "Revisando el archivo…",
+  "Conferir antes de trazer · {nome} · nada foi enviado ainda": "Revisar antes de traer · {nome} · aún no se envió nada",
   "Conferir sozinho": "Revisar por tu cuenta",
   "Configuração salva como “Meu perfil”": "Configuración guardada como “Mi perfil”",
   "Configurações": "Configuración",
@@ -1020,6 +1034,7 @@
   "Enviamos um link de redefinição por e-mail.": "Te enviamos un enlace para restablecerla por correo.",
   "Enviamos um link para o seu e-mail. Depois de confirmar, defina a senha em Ajustes → Conta — o que você fez como convidado continua com você.": "Te enviamos un enlace por correo. Después de confirmar, define la contraseña en Ajustes → Cuenta: lo que hiciste como invitado sigue contigo.",
   "Enviamos um link seguro pro seu e-mail, você define uma nova senha e volta em segundos.": "Te enviamos un enlace seguro por correo, defines una nueva contraseña y vuelves en segundos.",
+  "Enviando {nome}…": "Enviando {nome}…",
   "Enviar {n} para o Anki": "Enviar {n} a Anki",
   "Enviar link": "Enviar enlace",
   "Envio interrompido. Até aqui:": "Envío interrumpido. Hasta aquí:",
@@ -1151,6 +1166,7 @@
   "Este aparelho não tem voz para o idioma destes cartões.": "Este dispositivo no tiene voz para el idioma de estas tarjetas.",
   "Este aparelho pode ficar lento com a legenda feita nele.": "Este dispositivo puede volverse lento si genera los subtítulos él mismo.",
   "Este arquivo não é um avatar 3D (.vrm ou .glb).": "Este archivo no es un avatar 3D (.vrm o .glb).",
+  "Este arquivo tem {total} notas, mais do que dá para ler de uma vez; só as primeiras {lidas} entram. Traga o mesmo arquivo de novo para o resto.": "Este archivo tiene {total} notas, más de las que se pueden leer de una vez; solo entran las primeras {lidas}. Trae el mismo archivo otra vez para el resto.",
   "Este avatar não tem braços articulados.": "Este avatar no tiene brazos articulados.",
   "Este avatar não tem dedos articulados.": "Este avatar no tiene dedos articulados.",
   "Este cartão não nasceu de uma captura.": "Esta tarjeta no nació de una captura.",
@@ -1482,6 +1498,10 @@
   "leve": "ligero",
   "Leve": "Ligero",
   "leves e rotulados": "ligeros y rotulados",
+  "Li {n} notas neste aparelho. Nada foi ao servidor: elas só entram quando você confirmar.": {
+    "one": "Leí {n} nota en este dispositivo. No se envió nada al servidor: solo entra cuando confirmes.",
+    "other": "Leí {n} notas en este dispositivo. No se envió nada al servidor: solo entran cuando confirmes."
+  },
   "Liberar microfone": "Permitir micrófono",
   "Libere o microfone agora": "Permite el micrófono ahora",
   "Libras": "Libras",
@@ -1659,6 +1679,7 @@
   "nada. O áudio não sai daqui.": "nada. El audio no sale de aquí.",
   "Não achamos nada para corrigir. Que tal tentar a outra tarefa?": "No encontramos nada para corregir. ¿Qué tal probar la otra tarea?",
   "Não achamos um microfone. Conecte um fone com microfone ou leia em silêncio.": "No encontramos un micrófono. Conecta auriculares con micrófono o lee en silencio.",
+  "Não achei nenhuma nota neste arquivo. Nada foi enviado.": "No encontré ninguna nota en este archivo. No se envió nada.",
   "Não achei o Anki. Abra o Anki no computador e confira se o complemento AnkiConnect está instalado (código 2055492159). Se o Anki já está aberto, o navegador pode ter bloqueado o acesso à rede local: libere nas permissões do site (cadeado ao lado do endereço) e tente de novo.": "No encuentro Anki. Abre Anki en tu computadora y comprueba que el complemento AnkiConnect esté instalado (código 2055492159). Si Anki ya está abierto, el navegador puede haber bloqueado el acceso a la red local: permítelo en los permisos del sitio (candado junto a la dirección) e inténtalo de nuevo.",
   "Não achei o arquivo deste livro neste aparelho. Traga-o de novo.": "No encontré el archivo de este libro en este dispositivo. Tráelo de nuevo.",
   "Não achei o arquivo neste aparelho para baixar. Traga-o de novo.": "No encontré el archivo en este dispositivo para descargar. Tráelo de nuevo.",
@@ -1712,6 +1733,7 @@
   "Não deu para iniciar a legenda neste navegador agora.": "No se pudieron iniciar los subtítulos en este navegador ahora.",
   "Não deu para ler esse arquivo: ele pode estar incompleto ou danificado. Baixe de novo e tente outra vez.": "No se pudo leer este archivo: puede estar incompleto o dañado. Descárgalo de nuevo e inténtalo otra vez.",
   "Não deu para ler esse backup: o arquivo pode estar incompleto ou danificado.": "No se pudo leer esta copia de seguridad: el archivo puede estar incompleto o dañado.",
+  "Não deu para ler este arquivo do Anki.": "No se pudo leer este archivo de Anki.",
   "Não deu para ler seu texto agora.": "No pudimos leer tu texto ahora.",
   "Não deu para marcar agora.": "No se pudo marcar ahora.",
   "Não deu para medir agora.": "No se pudo medir ahora.",
@@ -1846,6 +1868,8 @@
   "Normal (a duração da frase)": "Normal (la duración de la frase)",
   "Nota": "Nota",
   "Nota {nota} de 100": "Nota {nota} de 100",
+  "Nota não gravada.": "Nota no guardada.",
+  "Nota não gravada. Ela espera nesta tela até a internet voltar; se você sair, ela se perde.": "Nota no guardada. Espera en esta pantalla hasta que vuelva internet; si sales, se pierde.",
   "Notas e marcações": "Notas y marcas",
   "nova": "nueva",
   "Nova senha": "Nueva contraseña",
@@ -1906,6 +1930,7 @@
   "O Asaas recebeu 200 e não reenvia: estes eventos ficaram guardados com o motivo. Reprocessar aplica de novo, com a regra de hoje.": "Asaas recibió 200 y no reenvía: estos eventos quedaron guardados con el motivo. Reprocesar los aplica de nuevo, con la regla de hoy.",
   "O áudio da sua voz vai para o reconhecimento do navegador (Google ou Apple) enquanto você fala.": "El audio de tu voz va al reconocimiento del navegador (Google o Apple) mientras hablas.",
   "O áudio do sistema é transcrito e traduzido no seu computador, e o vocabulário fica aqui.": "El audio del sistema se transcribe y se traduce en tu ordenador, y el vocabulario se queda aquí.",
+  "O áudio e as imagens do arquivo não vêm: o cartão usa a voz do aparelho.": "El audio y las imágenes del archivo no vienen: la tarjeta usa la voz del dispositivo.",
   "O áudio e o texto de cada fala vão à Cloudflare só para transcrever e ler em voz alta; nada é guardado.": "El audio y el texto de cada frase van a Cloudflare solo para transcribir y leer en voz alta; no se guarda nada.",
   "o áudio vai para o nosso servidor": "el audio va a nuestro servidor",
   "o áudio vai para o serviço de fala do navegador": "el audio va al servicio de voz del navegador",
@@ -2891,6 +2916,10 @@
   "Transcrição no aparelho": "Transcripción en el dispositivo",
   "transcrita aqui, depois de tentar a nuvem": "transcrita aquí, después de intentar la nube",
   "Trazer": "Traer",
+  "Trazer {n} notas": {
+    "one": "Traer {n} nota",
+    "other": "Traer {n} notas"
+  },
   "Trazer livro": "Traer libro",
   "Trazer mais": "Traer más",
   "Trazer ou capturar": "Traer o capturar",
@@ -2947,6 +2976,8 @@
   "Uma ideia ou pergunta para conversar sobre o capítulo.": "Una idea o pregunta para conversar sobre el capítulo.",
   "Uma imagem (textura) do modelo não pôde ser lida.": "No se pudo leer una imagen (textura) del modelo.",
   "Uma imagem do modelo é grande demais ({largura} x {altura} pixels) para o seu aparelho.": "Una imagen del modelo es demasiado grande ({largura} x {altura} píxeles) para tu dispositivo.",
+  "Uma palavra e a tradução por linha, separadas por vírgula ou tabulação.": "Una palabra y su traducción por línea, separadas por coma o tabulación.",
+  "Uma palavra e a tradução por linha. Nada sai do aparelho antes de você confirmar.": "Una palabra y su traducción por línea. Nada sale del dispositivo antes de que confirmes.",
   "Uma palavra foi ocultada pela proteção. O reconhecimento automático às vezes entende errado.": "La protección ocultó una palabra. El reconocimiento automático a veces se equivoca.",
   "Uma palavra por linha, com ou sem tradução. Também lê CSV.": "Una palabra por línea, con o sin traducción. También lee CSV.",
   "Uma parte da loja é de domínio público.": "Una parte de la tienda es de dominio público.",
@@ -3070,7 +3101,9 @@
   "Você ainda não autorizou o envio para fora do aparelho.": "Aún no has autorizado el envío fuera del dispositivo.",
   "Você ainda não salvou um “Meu perfil”: ajuste e use “Salvar como Meu perfil”.": "Aún no guardaste un “Mi perfil”: ajusta y usa “Guardar como Mi perfil”.",
   "Você cancelou: mostrando as {n} falas já traduzidas.": "Cancelaste: se muestran las {n} frases ya traducidas.",
+  "Você chegou ao limite de hoje.": "Llegaste al límite de hoy.",
   "Você chegou ao limite de hoje. Amanhã o polimento continua de onde parou.": "Llegaste al límite de hoy. Mañana el pulido sigue donde se quedó.",
+  "Você chegou ao limite de hoje. Dá para mudar o limite em Cartões.": "Llegaste al límite de hoy. Puedes cambiarlo en Tarjetas.",
   "Você chegou ao limite de hoje. Volta amanhã.": "Llegaste al límite de hoy. Vuelve mañana.",
   "Você continua usando o Frasy neste navegador, como até agora.": "Sigues usando Frasy en este navegador, como hasta ahora.",
   "Você deve conhecer cerca de {n} das palavras mais comuns que usamos como referência.": "Probablemente conoces unas {n} de las palabras más comunes que usamos como referencia.",

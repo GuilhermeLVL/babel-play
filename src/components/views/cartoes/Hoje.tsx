@@ -21,6 +21,7 @@ import { type ReactNode, useEffect, useRef } from 'react';
 
 import type { ContagensDeConteudo, FonteContada } from '../../../core/learning/contagensDeConteudo';
 import { type ContagemDeFila, linhaNoIdioma, type ResumoDosCartoes } from '../../../core/learning/resumoDosCartoes';
+import type { HojeDaRevisao } from '../../../data/rotas/opcoesDaRevisao';
 import {
   type Hoje as EstadoDoDia,
   porcentoDeLembradas,
@@ -119,6 +120,7 @@ function FaixaDeEstado({
   resumo,
   sequencia,
   novasNaFila,
+  novasFeitasHoje,
   limiteDeNovas,
   aoMemoria,
   aoAjustes,
@@ -126,12 +128,14 @@ function FaixaDeEstado({
   resumo: ResumoDosCartoes;
   sequencia: number | null;
   novasNaFila: number;
+  /** As novas que a pessoa JÁ estudou hoje, contadas pelo servidor; `null` sem contador (usa o que entra na fila). */
+  novasFeitasHoje: number | null;
   limiteDeNovas: number;
   aoMemoria: () => void;
   aoAjustes: () => void;
 }) {
   const semana = porcentoDeLembradas(resumo.retencao.d7);
-  const novas = Math.min(novasNaFila, limiteDeNovas);
+  const novas = Math.min(novasFeitasHoje ?? novasNaFila, limiteDeNovas);
   const dias = sequencia ?? 0;
   const rotuloDaMemoria = [
     tp(dias, '{n} dia seguido', '{n} dias seguidos'),
@@ -263,6 +267,7 @@ function fontesParaContinuar(
 export default function Hoje({
   resumo,
   dia,
+  feitoHoje,
   daFonte,
   conteudo,
   contagens,
@@ -281,6 +286,8 @@ export default function Hoje({
   /** `null` no estado vazio (sem conta, ou nenhum cartão). */
   resumo: ResumoDosCartoes | null;
   dia: EstadoDoDia;
+  /** O que a pessoa já estudou hoje (contado pelo servidor); `null` sem conta ou sem rede. */
+  feitoHoje: HojeDaRevisao | null;
   /** O total e a fila do conteúdo escolhido. */
   daFonte: HojeDaFonte;
   conteudo: Conteudo;
@@ -496,6 +503,7 @@ export default function Hoje({
       resumo={resumo}
       sequencia={sequencia}
       novasNaFila={n.novas}
+      novasFeitasHoje={feitoHoje ? feitoHoje.novas : null}
       limiteDeNovas={opcoes.novas}
       aoMemoria={aoMemoria}
       aoAjustes={aoAjustes}
@@ -688,15 +696,19 @@ export default function Hoje({
           <span className="qv-contagem">{numero(dia.vencem)}</span>
           <div>
             <h2>
-              {dia.rodada > 0
-                ? t('Você tem {n} esperando. Vamos de {rodada} hoje?', {
-                    n: numero(dia.vencem),
-                    rodada: numero(dia.rodada),
-                  })
-                : t('Você tem {n} esperando.', { n: numero(dia.vencem) })}
+              {dia.tetoDeHoje
+                ? t('Você chegou ao limite de hoje.')
+                : dia.rodada > 0
+                  ? t('Você tem {n} esperando. Vamos de {rodada} hoje?', {
+                      n: numero(dia.vencem),
+                      rodada: numero(dia.rodada),
+                    })
+                  : t('Você tem {n} esperando.', { n: numero(dia.vencem) })}
             </h2>
             <p>
-              {t('O resto espera sem pressa.')}{' '}
+              {dia.tetoDeHoje
+                ? t('{n} esperam para amanhã, sem pressa. Dá para mudar o limite do dia.', { n: numero(dia.vencem) })
+                : t('O resto espera sem pressa.')}{' '}
               <Dica
                 texto={t(
                   'Começa pelas que venceram há mais tempo. O resto espera sem pressa: dia sem estudo não vira dívida.',
@@ -705,10 +717,16 @@ export default function Hoje({
             </p>
           </div>
           <div className="ct-hoje-acoes">
-            <button type="button" className="q-ctl pri" onClick={() => aoEstudar()}>
-              <Target aria-hidden />{' '}
-              {dia.rodada > 0 ? t('Estudar {n} agora', { n: numero(dia.rodada) }) : t('Estudar agora')}
-            </button>
+            {dia.tetoDeHoje ? (
+              <button type="button" className="q-ctl pri" onClick={aoAjustes}>
+                <SlidersHorizontal aria-hidden /> {t('Mudar o limite do dia')}
+              </button>
+            ) : (
+              <button type="button" className="q-ctl pri" onClick={() => aoEstudar()}>
+                <Target aria-hidden />{' '}
+                {dia.rodada > 0 ? t('Estudar {n} agora', { n: numero(dia.rodada) }) : t('Estudar agora')}
+              </button>
+            )}
             <button
               type="button"
               className="q-ctl ct-resto"

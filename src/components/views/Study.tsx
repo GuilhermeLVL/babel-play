@@ -5,6 +5,7 @@ import { countDue, ganhoDaNota, ganhoDaRevisao, type Grade, isDueNow, makeFsrs5,
 import { Brain, Zap } from 'lucide-react';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { ehVolta, type MarcaDeVolta, reinserirErrado } from '../../core/learning/filaDaRevisao';
 import {
   desfazerRevisao,
   type EstadoAntesDaNota,
@@ -14,6 +15,7 @@ import {
   salvarRodada,
   updateCard,
 } from '../../data/api';
+import type { HojeDaRevisao } from '../../data/rotas/opcoesDaRevisao';
 import { cartoesDoConteudo } from '../../lib/conteudo/cartoes';
 import type { Conteudo } from '../../lib/conteudo/estado';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
@@ -34,14 +36,9 @@ import {
   lerOrigemDoCartao,
   type OrigemDoCartao,
 } from '../../lib/revisao/cena';
-import {
-  itensDaPratica,
-  palavraDificil,
-  pedeDizer,
-  relogio,
-  type TipoDePratica,
-} from '../../lib/revisao/enxuta';
+import { itensDaPratica, palavraDificil, pedeDizer, relogio, type TipoDePratica } from '../../lib/revisao/enxuta';
 import { criarTocador, type Tocador } from '../../lib/revisao/falaOriginal';
+import { enviarOpcoes, restamDeHoje, sincronizarOpcoes } from '../../lib/revisao/opcoesNaConta';
 import type { RecorteDaPratica } from '../../lib/revisao/pratica';
 import {
   gravarOpcoesDaRevisao,
@@ -85,7 +82,9 @@ const FolhaDasSaidas = lazy(() => import('./revisao/enxuta/FolhaDasSaidas'));
 const FolhaMinhaVoz = lazy(() => import('./revisao/enxuta/FolhaMinhaVoz'));
 const FolhaPraticar = lazy(() => import('./revisao/enxuta/FolhaPraticar'));
 const Pratica = lazy(() => import('./revisao/enxuta/Pratica'));
-const InfoDoCartao = lazy(() => import('./revisao/enxuta/DialogosDaRevisao').then((m) => ({ default: m.InfoDoCartao })));
+const InfoDoCartao = lazy(() =>
+  import('./revisao/enxuta/DialogosDaRevisao').then((m) => ({ default: m.InfoDoCartao })),
+);
 const AtalhosDaRevisao = lazy(() =>
   import('./revisao/enxuta/DialogosDaRevisao').then((m) => ({ default: m.AtalhosDaRevisao })),
 );
@@ -210,6 +209,10 @@ interface NotaDada {
   nota: number;
   aceita: boolean;
   registro: RegistroDaNota;
+  /** Foi a VOLTA de um cartão errado (cartões 2.4): prática da rodada, não grava nota nem conta no resumo. */
+  repeticao?: boolean;
+  /** Onde esta nota inseriu a volta do cartão errado, para o "Desfazer" tirá-la da fila. */
+  inseriuEm?: number;
 }
 
 type Folha = null | 'mais' | 'saidas' | 'voz';
@@ -235,11 +238,28 @@ export default function Study({
    */
   const [deckLoaded, setDeckLoaded] = useState(false);
 
+  /** O que já foi estudado hoje, contado pelo servidor (cartões 2.1); `null` sem conta ou sem rede. */
+  const [feitoHoje, setFeitoHoje] = useState<HojeDaRevisao | null>(null);
   useEffect(() => {
-    fetchDeck()
+    /* A tela só abre a rodada com o deck E o contador do dia lidos: senão a primeira rodada do dia ignoraria o
+       limite. Sem rede o contador falha em silêncio (vale o limite por rodada) e não segura a tela. */
+    const contador = sincronizarOpcoes()
+      .then((r) => {
+        if (!r) return;
+        setNovasPorDia(r.opcoes.novas);
+        setRevisoesPorDia(r.opcoes.revisoes);
+        setOrdem(r.opcoes.ordem);
+        setTipo(r.opcoes.tipo);
+        setOuvirAoMostrar(r.opcoes.ouvir);
+        setRetencao(r.opcoes.retencao);
+        setBotoes(r.opcoes.botoes);
+        setFeitoHoje(r.hoje);
+      })
+      .catch(() => undefined);
+    const deck = fetchDeck()
       .then(setVocabCards)
-      .catch(() => setVocabCards([]))
-      .finally(() => setDeckLoaded(true));
+      .catch(() => setVocabCards([]));
+    void Promise.all([deck, contador]).then(() => setDeckLoaded(true));
   }, []);
 
   /**
@@ -305,6 +325,10 @@ export default function Study({
   const [editando, setEditando] = useState<VocabCard | null>(null);
   /** As notas desta rodada, com o estado de ANTES de cada uma — o "Desfazer" (Z) volta uma a uma. */
   const [historico, setHistorico] = useState<NotaDada[]>([]);
+  /** Quantas vezes cada cartão já voltou nesta rodada (quem erra revê, cartões 2.4). */
+  const voltas = useRef(new Map<string, number>());
+  /** Já avisei que uma nota não foi gravada? Uma vez por sequência de falhas, para não encher a tela de aviso. */
+  const avisouFalha = useRef(false);
 
   /* ── O que é da versão enxuta ─────────────────────────────────────────────────────────────────── */
   const [voz, setVoz] = useState(lerVozNaRevisao);
@@ -419,9 +443,44 @@ export default function Study({
     }
     oTocador().parar();
     setTocando(null);
-    setNotasDaRodada((prev) => [...prev, effectiveRating]);
     const antes = vocabCards.find((c) => c.id === cardId);
     const indice = currentReviewIndex;
+    /* A VOLTA de um cartão errado é prática da rodada: não grava nota (o "Errei" já gravou uma vez), não conta
+       no resumo, não rende XP e não mexe no agendamento. Se errar de novo, ainda pode voltar (até o teto). */
+    const daFila = reviewCards[currentReviewIndex];
+    /* A fila cresce quando uma volta entra: o "próximo cartão" confere o tamanho NOVO, não o do render. */
+    let tamanhoDaFila = reviewCards.length;
+    if (antes && daFila && daFila.id === cardId && ehVolta(daFila as MarcaDeVolta)) {
+      let inseriuEm: number | undefined;
+      if (effectiveRating === 1) {
+        const nova = reinserirErrado(reviewCards, indice, daFila, voltas.current.get(cardId) ?? 0);
+        if (nova) {
+          voltas.current.set(cardId, (voltas.current.get(cardId) ?? 0) + 1);
+          setReviewCards(nova.fila);
+          inseriuEm = nova.posicao;
+          tamanhoDaFila = nova.fila.length;
+        }
+      }
+      setHistorico((h) => [
+        ...h,
+        {
+          card: antes,
+          antes: estadoDoCartao(antes),
+          indice,
+          xp: 0,
+          nota: effectiveRating,
+          aceita: true,
+          registro: { origem: 'revisao', formato: tipo },
+          repeticao: true,
+          inseriuEm,
+        },
+      ]);
+      setDirecao(1);
+      setAvisoDificil(null);
+      triggerNextCard(tamanhoDaFila);
+      return;
+    }
+    setNotasDaRodada((prev) => [...prev, effectiveRating]);
     /* O retângulo é lido ANTES do await: depois dele o cartão já pode ter trocado. Só Digitar,
        Escolher e a produção ativa mostram o "+N XP" subindo do botão; no Lembrar o que sobe da nota é
        "volta em…" (`cartoes2.js:427`), e o ganho aparece no fim da sessão. */
@@ -437,6 +496,15 @@ export default function Study({
     try {
       const updated = await reviewCard(cardId, effectiveRating, retencao / 100, registro);
       setVocabCards((prev) => prev.map((c) => (c.id === cardId ? updated : c)));
+      avisouFalha.current = false;
+      /* O contador do dia acompanha a nota (o servidor conta a mesma coisa): a primeira do cartão é nova. */
+      setFeitoHoje((f) =>
+        f
+          ? antes?.fsrsState === 'New'
+            ? { ...f, novas: f.novas + 1, restamNovas: Math.max(0, f.restamNovas - 1) }
+            : { ...f, revisoes: f.revisoes + 1, restamRevisoes: Math.max(0, f.restamRevisoes - 1) }
+          : f,
+      );
       lapsos = (updated as ComMemoria).lapses ?? lapsos;
       // Só depois de o servidor gravar: o XP que sobe é o que de fato entrou na conta.
       xp = xpDaNota(effectiveRating);
@@ -444,12 +512,27 @@ export default function Study({
       if (rect) ganho(rect, `+${xp} XP`);
     } catch {
       // Offline/erro: não inventamos um agendamento novo. O cartão fica como está, e a linha de
-      // "Sem rede" oferece mandar a nota de novo.
+      // "Sem rede" oferece mandar a nota de novo. O aviso aparece uma vez: a nota NÃO foi gravada.
+      if (!avisouFalha.current) {
+        avisouFalha.current = true;
+        toast.warn(t('Nota não gravada. Ela espera nesta tela até a internet voltar; se você sair, ela se perde.'));
+      }
+    }
+    /* QUEM ERRA REVÊ: o cartão volta mais adiante na mesma rodada (fora da produção ativa, que já é prática). */
+    let inseriuEm: number | undefined;
+    if (effectiveRating === 1 && !isActiveProductionOnly && antes) {
+      const nova = reinserirErrado(reviewCards, indice, reviewCards[indice] ?? antes, voltas.current.get(cardId) ?? 0);
+      if (nova) {
+        voltas.current.set(cardId, (voltas.current.get(cardId) ?? 0) + 1);
+        setReviewCards(nova.fila);
+        inseriuEm = nova.posicao;
+        tamanhoDaFila = nova.fila.length;
+      }
     }
     if (antes)
       setHistorico((h) => [
         ...h,
-        { card: antes, antes: estadoDoCartao(antes), indice, xp, nota: effectiveRating, aceita, registro },
+        { card: antes, antes: estadoDoCartao(antes), indice, xp, nota: effectiveRating, aceita, registro, inseriuEm },
       ]);
     setDirecao(1);
     setSeguidas((s) => (effectiveRating === 1 ? 0 : s + 1));
@@ -472,7 +555,7 @@ export default function Study({
       itens: [{ cardId, correct: effectiveRating > 1 ? 1 : 0, kind: 'srs' }],
     });
 
-    triggerNextCard();
+    triggerNextCard(tamanhoDaFila);
   };
 
   // Leitner feedback algorithm
@@ -498,12 +581,14 @@ export default function Study({
   const concluir = () => {
     setSessionCompleted(true);
     setFimDaRodada(Date.now());
+    /* O fim da rodada confere o contador do dia com o servidor (a conta é dele, não do cliente). */
+    void sincronizarOpcoes().then((r) => r && setFeitoHoje(r.hoje));
   };
 
   // Move forward in the flashcard queue
-  const triggerNextCard = () => {
+  const triggerNextCard = (tamanhoDaFila = reviewCards.length) => {
     setShowAnswer(false);
-    if (currentReviewIndex + 1 < reviewCards.length) {
+    if (currentReviewIndex + 1 < tamanhoDaFila) {
       setCurrentReviewIndex((prev) => prev + 1);
     } else {
       concluir();
@@ -526,6 +611,7 @@ export default function Study({
     setAvisoDificil(null);
     setDirecao(1);
     avisados.current.clear();
+    voltas.current.clear();
     setReviewing(true);
   };
 
@@ -545,18 +631,32 @@ export default function Study({
     const base = due.length > 0 ? due : noBaralho;
     /* OPÇÕES DA REVISÃO: no máximo N novas (nunca vistas) e M revisões por rodada; "Vencidas
        primeiro" põe as de vencimento mais antigo na frente, "Misturar" embaralha. */
-    const novas = base.filter((c) => c.fsrsState === 'New').slice(0, novasPorDia);
-    const revisoes = base.filter((c) => c.fsrsState !== 'New').slice(0, revisoesPorDia);
+    /* O LIMITE DO DIA (cartões 2.1): o que a conta já contou hoje desconta dos dois limites. Sem contador
+       (sem conta, sem rede), vale só o limite por rodada. */
+    const restam = restamDeHoje(feitoHoje, { novas: novasPorDia, revisoes: revisoesPorDia });
+    const limiteDeNovas = restam ? restam.novas : novasPorDia;
+    const limiteDeRevisoes = restam ? restam.revisoes : revisoesPorDia;
+    const novas = base.filter((c) => c.fsrsState === 'New').slice(0, limiteDeNovas);
+    const revisoes = base.filter((c) => c.fsrsState !== 'New').slice(0, limiteDeRevisoes);
     let fila =
       ordem === 'misturar'
         ? [...revisoes, ...novas].sort(() => Math.random() - 0.5)
         : [...revisoes.sort((a, b) => (a.dueAtMs ?? 0) - (b.dueAtMs ?? 0)), ...novas];
-    if (!fila.length) fila = base.slice(0, Math.max(1, revisoesPorDia));
+    if (!fila.length) {
+      /* Venceu algo, mas o limite de HOJE já foi: não abre rodada escondida (nem estuda "o baralho todo"). */
+      const cabiaSemOLimiteDoDia =
+        due.some((c) => (c.fsrsState === 'New' ? novasPorDia > 0 : true)) && !!restam && due.length > 0;
+      if (cabiaSemOLimiteDoDia) {
+        setEncerrada(true);
+        toast.info(t('Você chegou ao limite de hoje. Dá para mudar o limite em Cartões.'));
+        return;
+      }
+      fila = base.slice(0, Math.max(1, revisoesPorDia));
+    }
     /* "Só 10 agora": as primeiras da fila, que na ordem padrão são as vencidas há mais tempo. */
     if (rodada?.limite) fila = fila.slice(0, rodada.limite);
     if (fila.length > 0) abrirRodada(fila, false);
-     
-  }, [activeVocabCards, scheduler, novasPorDia, revisoesPorDia, ordem, rodada?.limite, rodada?.soNovas]);
+  }, [activeVocabCards, scheduler, novasPorDia, revisoesPorDia, ordem, rodada?.limite, rodada?.soNovas, feitoHoje]);
 
   /** Revisão FOCADA numa palavra — o "Revisar agora" do Analista de Vocabulário, via semente. */
   const startReviewSessionFor = (card: VocabCard) => abrirRodada([card], false);
@@ -565,7 +665,6 @@ export default function Study({
     const threshold = stabilityThreshold();
     const eligible = activeVocabCards.filter((c) => c.inDeck && (c.stability ?? c.fsrsStability ?? 0) >= threshold);
     if (eligible.length > 0) abrirRodada(eligible, true);
-     
   }, [activeVocabCards]);
 
   /* Prioridade 1: enquanto esta tela está montada, o ⌘K busca EXERCÍCIO, não gravação. */
@@ -742,16 +841,28 @@ export default function Study({
     window.addEventListener('online', aoVoltarARede);
     return () => window.removeEventListener('online', aoVoltarARede);
   });
+  /* Fechar ou recarregar com nota por gravar perde a nota (nada fica guardado, retenção zero): o navegador pergunta. */
+  useEffect(() => {
+    if (!pendentes) return;
+    const aoSair = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', aoSair);
+    return () => window.removeEventListener('beforeunload', aoSair);
+  }, [pendentes]);
 
   /** Desfaz a última nota: o cartão volta ao estado de antes (no servidor) e à frente da fila. */
   const desfazer = async () => {
     const ultimo = historico[historico.length - 1];
     if (!ultimo) return;
-    /* Uma nota que o servidor não gravou não tem o que desfazer lá: só sai desta tela. */
-    if (ultimo.aceita) {
+    /* Uma nota que o servidor não gravou não tem o que desfazer lá: só sai desta tela. A VOLTA de um cartão
+       errado também não foi ao servidor. */
+    if (ultimo.aceita && !ultimo.repeticao) {
       try {
         const volta = await desfazerRevisao(ultimo.card.id, ultimo.antes);
         setVocabCards((prev) => prev.map((c) => (c.id === volta.id ? volta : c)));
+        void sincronizarOpcoes().then((r) => r && setFeitoHoje(r.hoje));
       } catch (e) {
         toast.error('Não deu para desfazer a última resposta.', { detail: e });
         return;
@@ -760,7 +871,15 @@ export default function Study({
     oTocador().parar();
     setTocando(null);
     setHistorico((h) => h.slice(0, -1));
-    setNotasDaRodada((n) => n.slice(0, -1));
+    if (!ultimo.repeticao) setNotasDaRodada((n) => n.slice(0, -1));
+    /* A volta que esta nota tinha posto na fila sai junto. */
+    if (ultimo.inseriuEm !== undefined) {
+      const pos = ultimo.inseriuEm;
+      setReviewCards((prev) =>
+        prev[pos]?.id === ultimo.card.id ? [...prev.slice(0, pos), ...prev.slice(pos + 1)] : prev,
+      );
+      voltas.current.set(ultimo.card.id, Math.max(0, (voltas.current.get(ultimo.card.id) ?? 1) - 1));
+    }
     setSessionCompleted(false);
     setReviewing(true);
     setDirecao(-1);
@@ -1016,7 +1135,8 @@ export default function Study({
         e.preventDefault();
         acao();
       };
-      if (k === 'r') return faz(() => void (temFalaOriginal(currentCard) ? ouvirOriginal(currentCard) : ouvirVoz(currentCard)));
+      if (k === 'r')
+        return faz(() => void (temFalaOriginal(currentCard) ? ouvirOriginal(currentCard) : ouvirVoz(currentCard)));
       if (k === 'v') return faz(() => void ouvirVoz(currentCard));
       if (k === 'n' && frasesDe(currentCard).length > 1) return faz(() => outraFrase(currentCard));
       if (k === 'e') return faz(() => setEditando(currentCard));
@@ -1092,6 +1212,7 @@ export default function Study({
     if (v.retencao !== undefined) setRetencao(v.retencao);
     if (v.botoes !== undefined) setBotoes(v.botoes);
     gravarOpcoesDaRevisao(v);
+    enviarOpcoes(v);
   };
   const trocarVoz = (v: Partial<typeof voz>) => {
     setVoz((a) => ({ ...a, ...v }));
@@ -1231,7 +1352,7 @@ export default function Study({
     const seg = inicioDaRodada && fimDaRodada ? Math.round((fimDaRodada - inicioDaRodada) / 1000) : 0;
     /* O QUE FOI CREDITADO, pela mesma conta do perfil (`ganhoDaRevisao`, core): só as notas que o
        servidor aceitou. XP e Seeds do resumo são os que entraram na conta (spec 10.2). */
-    const creditado = ganhoDaRevisao(historico.filter((h) => h.aceita).map((h) => h.nota));
+    const creditado = ganhoDaRevisao(historico.filter((h) => h.aceita && !h.repeticao).map((h) => h.nota));
     const v2 = recompensasV2Ligadas();
     /* Quando abre a próxima rodada: o vencimento mais próximo e quantas vencem naquele dia. */
     const proxima = (() => {
@@ -1248,12 +1369,20 @@ export default function Study({
     /* O QUE MUDOU (`cxSubiram`, `cartoes2.js:870-879`), pelo estado de antes de cada nota e o de agora. */
     const agoraDe = (id: string) => vocabCards.find((c) => c.id === id);
     const unicos = (l: NotaDada[]) => l.filter((h, i) => l.findIndex((x) => x.card.id === h.card.id) === i);
-    const chips = (l: NotaDada[]) => unicos(l).map((h) => ({ id: h.card.id, palavra: h.card.word, idioma: idiomaDe(h.card) }));
-    const comecaram = historico.filter((h) => h.aceita && h.nota > 1 && h.card.fsrsState === 'New');
-    const subiram = historico.filter(
-      (h) => h.aceita && h.nota > 1 && h.card.fsrsState !== 'New' && h.card.fsrsState !== 'Review' && agoraDe(h.card.id)?.fsrsState === 'Review',
+    const chips = (l: NotaDada[]) =>
+      unicos(l).map((h) => ({ id: h.card.id, palavra: h.card.word, idioma: idiomaDe(h.card) }));
+    /* A volta de um cartão errado é prática: o resumo conta só as notas de verdade. */
+    const reais = historico.filter((h) => !h.repeticao);
+    const comecaram = reais.filter((h) => h.aceita && h.nota > 1 && h.card.fsrsState === 'New');
+    const subiram = reais.filter(
+      (h) =>
+        h.aceita &&
+        h.nota > 1 &&
+        h.card.fsrsState !== 'New' &&
+        h.card.fsrsState !== 'Review' &&
+        agoraDe(h.card.id)?.fsrsState === 'Review',
     );
-    const escapou = historico.filter((h) => h.nota === 1);
+    const escapou = reais.filter((h) => h.nota === 1);
     const grupos: GrupoQueMudou[] = [
       { classe: 'ct-nv' as const, icone: 'comecaram' as const, titulo: t('Começaram'), palavras: chips(comecaram) },
       {
@@ -1265,7 +1394,7 @@ export default function Study({
       { classe: 'ct-ap' as const, icone: 'escaparam' as const, titulo: t('Escaparam'), palavras: chips(escapou) },
     ].filter((g) => g.palavras.length);
     const idsQueEscaparam = unicos(escapou).map((h) => h.card.id);
-    const idsDaSessao = unicos(historico).map((h) => h.card.id);
+    const idsDaSessao = unicos(reais).map((h) => h.card.id);
     const recorteDoFim: RecorteDaPratica = idsQueEscaparam.length
       ? {
           origem: 'escaparam',
@@ -1277,7 +1406,8 @@ export default function Study({
     const fechouODia = dueCount === 0 && !recording && !rodada?.limite && !rodada?.soNovas;
     /* A missão de revisar do dia e a sequência: só quando o servidor as devolve (recompensas v2). */
     const missaoDeRevisar = resumoDoDia.missoes?.missoes.find((m) => m.tipo === 'revisar');
-    const sequencia = resumoDoDia.ofensiva !== null && resumoDoDia.ofensiva > 0 && !perfilProtegido() ? resumoDoDia.ofensiva : 0;
+    const sequencia =
+      resumoDoDia.ofensiva !== null && resumoDoDia.ofensiva > 0 && !perfilProtegido() ? resumoDoDia.ofensiva : 0;
     return (
       <FimDaRodadaNoQuest
         titulo={fechouODia ? t('Você fechou o dia') : t('Você fechou a sessão')}
@@ -1312,6 +1442,7 @@ export default function Study({
         aoPraticar={daParaPraticar ? () => setRecortePedido(recorteDoFim) : undefined}
         aoAbrirPalavra={(id) => setEditando(agoraDe(id) ?? null)}
         aoVoltar={voltarAoVocabulario}
+        semRede={pendentes ? { pendentes, aoTentar: () => void tentarDeNovo(true) } : undefined}
       >
         {dialogos}
         {paleta}

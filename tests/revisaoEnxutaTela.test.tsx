@@ -53,7 +53,11 @@ vi.mock('../src/lib/langConfig', async (orig) => {
   const real = await orig<typeof import('../src/lib/langConfig')>()
   return { ...real, fetchLangConfig: async () => real.DEFAULT_LANG_CONFIG, onLangConfigChange: () => () => {} }
 })
-vi.mock('../src/lib/dictionary', () => ({ lookup: vi.fn(async () => null), forvoUrl: () => '#', wiktionaryUrl: () => '#' }))
+vi.mock('../src/lib/dictionary', () => ({
+  lookup: vi.fn(async () => null),
+  forvoUrl: () => '#',
+  wiktionaryUrl: () => '#',
+}))
 vi.mock('../src/components/Toast', async (orig) => {
   avisos.ok = vi.fn()
   avisos.warn = vi.fn()
@@ -489,6 +493,10 @@ describe('as práticas de recordar', () => {
     const { palco, tocar } = await montar()
     await tocar(screen.getByRole('button', { name: /Mostrar resposta/ }))
     await tocar(palco().querySelector('.fsrs button.e') as HTMLElement)
+    /* Quem erra revê (cartões 2.4): a palavra volta uma vez na mesma rodada, sem gravar a nota de novo. */
+    expect(palco().dataset.estado).toBe('rodada')
+    await tocar(screen.getByRole('button', { name: /Mostrar resposta/ }))
+    await tocar(palco().querySelector('.fsrs button.b') as HTMLElement)
     expect(palco().dataset.estado).toBe('fim')
     await tocar(screen.getByRole('button', { name: 'Praticar a que escapou' }))
     const folha = document.querySelector('dialog.cx-folha-praticar') as HTMLElement

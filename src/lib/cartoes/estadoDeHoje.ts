@@ -13,8 +13,9 @@
  * o estado é "normal" com zero: a tela diz "Nada vence aqui hoje" (`cartoes.js:356`) em vez de comemorar
  * um dia que ainda tem o que estudar.
  *
- * O "teto" da pilha é o tamanho da rodada: os limites de hoje valem por rodada e ficam no navegador
- * (`lib/revisao/preferencias`). O teto por dia, contado na conta, é fatia seguinte.
+ * O "teto" da pilha é o tamanho da rodada. Com `restam` (o que ainda cabe HOJE, contado pelo servidor no fuso da
+ * pessoa, `lib/revisao/opcoesNaConta`), a rodada respeita o limite do DIA: duas rodadas no mesmo dia somam. Sem
+ * `restam` (sem conta, sem rede) vale só o limite por rodada, e a tela não finge um contador.
  */
 import type { ContagemDeFila, ResumoDosCartoes } from '../../core/learning/resumoDosCartoes';
 import { type OpcoesDaRevisao, tamanhoDaRodada } from '../revisao/preferencias';
@@ -27,6 +28,11 @@ export interface Hoje {
   vencem: number;
   /** Quantos a rodada de agora leva, com os limites. */
   rodada: number;
+  /**
+   * O limite DO DIA acabou de fechar a rodada: caberia uma rodada com os limites das opções, mas o que já foi
+   * estudado hoje não deixa. Só existe com `restam` (contador do servidor).
+   */
+  tetoDeHoje: boolean;
 }
 
 export function hojeDosCartoes(
@@ -34,20 +40,31 @@ export function hojeDosCartoes(
   opcoes: Pick<OpcoesDaRevisao, 'novas' | 'revisoes'>,
   /** A fila do conteúdo escolhido; sem ela, a da conta inteira. */
   fila: ContagemDeFila | null = null,
+  /** O que ainda cabe hoje (limite do dia menos o feito); `null` quando não há contador. */
+  restam: { novas: number; revisoes: number } | null = null,
 ): Hoje {
-  if (!resumo || resumo.total === 0) return { estado: 'vazio', vencem: 0, rodada: 0 };
+  if (!resumo || resumo.total === 0) return { estado: 'vazio', vencem: 0, rodada: 0, tetoDeHoje: false };
   const aqui = fila ?? resumo.hoje;
   const vencem = aqui.novas + aqui.aprendendo + aqui.revisar;
-  const rodada = tamanhoDaRodada(aqui, opcoes);
-  if (resumo.revisoesDeSempre === 0) return { estado: 'primeiro', vencem, rodada };
+  const rodada = tamanhoDaRodada(aqui, restam ? menorDosDois(opcoes, restam) : opcoes);
+  const tetoDeHoje = restam !== null && vencem > 0 && rodada === 0 && tamanhoDaRodada(aqui, opcoes) > 0;
+  if (resumo.revisoesDeSempre === 0) return { estado: 'primeiro', vencem, rodada, tetoDeHoje };
   if (vencem === 0) {
     const naConta = resumo.hoje.novas + resumo.hoje.aprendendo + resumo.hoje.revisar;
-    return { estado: naConta > 0 ? 'normal' : 'feito', vencem, rodada };
+    return { estado: naConta > 0 ? 'normal' : 'feito', vencem, rodada, tetoDeHoje };
   }
   /* Com um limite em zero ("0 novas") a rodada pode ficar vazia mesmo com cartão vencendo: é pilha,
      e a tela diz quantos esperam em vez de oferecer uma rodada de zero. */
-  return { estado: vencem > rodada ? 'pilha' : 'normal', vencem, rodada };
+  return { estado: vencem > rodada ? 'pilha' : 'normal', vencem, rodada, tetoDeHoje };
 }
+
+const menorDosDois = (
+  a: Pick<OpcoesDaRevisao, 'novas' | 'revisoes'>,
+  b: { novas: number; revisoes: number },
+): Pick<OpcoesDaRevisao, 'novas' | 'revisoes'> => ({
+  novas: Math.min(a.novas, b.novas),
+  revisoes: Math.min(a.revisoes, b.revisoes),
+});
 
 /** O dia da semana de cada barra da previsão, a partir de amanhã (`CT_DIAS7`, `cartoes.js:93`). */
 export function diasAPartirDeAmanha(inicioDoDia: number, quantos: number): number[] {

@@ -315,6 +315,7 @@ describe('migração SQLite → Postgres', () => {
       'anotacoes_de_leitura',
       'cache_do_parceiro',
       'palavras_marcadas',
+      'opcoes_da_revisao',
     ])
   })
 

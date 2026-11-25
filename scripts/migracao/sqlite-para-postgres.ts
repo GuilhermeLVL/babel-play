@@ -82,6 +82,8 @@ export const TABELAS_SO_DO_POSTGRES: ReadonlySet<string> = new Set([
   'cache_do_parceiro',
   // As palavras marcadas sem cartão ("Já sei"/"Ignorar"), migração PG 0027: posteriores à migração.
   'palavras_marcadas',
+  // As opções da revisão na conta (cartões, 2.2), migração PG 0035: posteriores à migração.
+  'opcoes_da_revisao',
 ]);
 
 /**

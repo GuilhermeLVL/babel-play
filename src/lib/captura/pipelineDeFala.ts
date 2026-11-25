@@ -98,6 +98,7 @@ import {
   prepararSombraDoRoteador,
 } from './conferenciaDaRota';
 import { converterEscritaChinesa, escritaDoIdioma, prepararEscritaChinesa } from './escritaChinesa';
+import { CADENCIA_DE_GRAVACAO, gravadorDeHipoteses } from './gravadorDeHipoteses';
 import { idiomaForaDoPar } from './idiomaForaDoPar';
 import { decidirNaVirtual, ESTADO_DA_VIRTUAL, type EstadoDaVirtual } from './idiomasDaConversaVirtual';
 import { idiomasDoModelo } from './idiomasDoModelo';
@@ -863,15 +864,19 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     }): boolean | undefined => {
       if (!parcialVivoNaRota(dicaDoParcial(e.seq === undefined ? undefined : e.seq + offset)) || perfModeAutomatico())
         return undefined;
-      return decidirParcial({
-        rtf: medidorDeParcial.rtf(),
-        janelaS: e.janelaS,
-        workerOcupado: gateway.stt.pendingCount() > 0,
-        msDesdeUltimo: e.msDesdeUltimo,
-        amostrasNovas: e.amostrasNovas,
-        cpuRecente: medidorDeParcial.cpu(),
-        silencioMs: e.silencioMs,
-      }).pedir;
+      return decidirParcial(
+        {
+          rtf: medidorDeParcial.rtf(),
+          janelaS: e.janelaS,
+          workerOcupado: gateway.stt.pendingCount() > 0,
+          msDesdeUltimo: e.msDesdeUltimo,
+          amostrasNovas: e.amostrasNovas,
+          cpuRecente: medidorDeParcial.cpu(),
+          silencioMs: e.silencioMs,
+        },
+        // Gravação de laboratório (`babel.lab.gravarHipoteses=1`): a cadência mais rápida permitida (ver `gravadorDeHipoteses.ts`).
+        gravadorDeHipoteses().ligado ? CADENCIA_DE_GRAVACAO : undefined,
+      ).pedir;
     };
     /** Teto de parciais por fala (ver as constantes acima). */
     const maxParciaisPorFala = (): number => {
@@ -937,11 +942,15 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       const mascaraDeParciais = vivos ? lerMascaraDeParciais(lerChaveDeLaboratorio(CHAVE_DA_MASCARA_DE_PARCIAIS)) : 0;
       const viaParakeet = vivos; // a rota dos parciais vivos É a do Parakeet
       const audioMs = (pcm.length / sr) * 1000; // antes do envio: o buffer é transferido ao worker
+      /* GRAVAÇÃO DE LABORATÓRIO (`babel.lab.gravarHipoteses=1`, só nesta rota): cada hipótese do worker vai para a memória da página. */
+      const gravacao = vivos ? gravadorDeHipoteses().decode(seq, audioMs) : null;
       const aoAtualizar =
-        vivos && pintaTokens(modoDeParciais)
+        vivos && (pintaTokens(modoDeParciais) || gravacao)
           ? (parcial: string) => {
-              if (!seqToSegmentRef.current.has(seq) || lastPartialTextRef.current.get(seq) === FALA_FECHADA) return;
               const texto = naEscritaEscolhida((parcial ?? '').trim(), undefined, hint);
+              if (texto) gravacao?.token(texto);
+              if (!pintaTokens(modoDeParciais)) return;
+              if (!seqToSegmentRef.current.has(seq) || lastPartialTextRef.current.get(seq) === FALA_FECHADA) return;
               if (!texto) return;
               const v = vistaDoToken(
                 modoDeParciais,
@@ -974,6 +983,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
              com a tradução do final. */
           if (lastPartialTextRef.current.get(seq) === FALA_FECHADA) return;
           const limpo = naEscritaEscolhida((res.text ?? '').trim(), undefined, hint);
+          gravacao?.fim(limpo);
           /* LocalAgreement-2: o prefixo que duas hipóteses seguidas confirmam nunca regride; `clean` é o que se pinta. */
           const la = vivos && limpo ? avancar(agreementPorSeq.get(seq) ?? novoLocalAgreement(), limpo) : null;
           if (la) agreementPorSeq.set(seq, la.estado);
@@ -1149,6 +1159,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       // Daqui até o resultado do final, nenhum parcial desta fala decodifica nem traduz.
       lastPartialTextRef.current.set(seq, FALA_FECHADA);
       soltarLimitador(seq);
+      gravadorDeHipoteses().fechada(seq);
       clog('enunciado', source, '(seq', seq, ') →', pcm.length, 'amostras @', sr, 'Hz, decode final');
       // O áudio real da fala, para "Ouvir" onde não há voz de leitura (só guarda quando ligado).
       guardarAudioDaFala(uttId, pcm, sr);
@@ -1327,6 +1338,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             ') →',
             clean ? JSON.stringify(clean).slice(0, 80) : '(vazio)',
           );
+          gravadorDeHipoteses().final(seq, clean);
           seqToSegmentRef.current.delete(seq);
           lastPartialTextRef.current.delete(seq);
           agreementPorSeq.delete(seq);

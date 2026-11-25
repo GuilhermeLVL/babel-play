@@ -35,6 +35,7 @@ const FLAGS_SENSIVEIS = new Set([
   'parciais_vivos',
   'parciais_parakeet',
   'traducao_incremental',
+  'pre_traducao_de_legendas',
 ]);
 
 /** As regras da flag em palavras curtas, para ver de relance quem ela alcança. */

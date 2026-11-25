@@ -225,6 +225,13 @@
       "when": 1795366711725,
       "tag": "0031_flag_traducao_incremental",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1795366711726,
+      "tag": "0032_flag_pre_traducao_de_legendas",
+      "breakpoints": true
     }
   ]
 }
